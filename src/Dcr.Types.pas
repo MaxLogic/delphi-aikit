@@ -35,9 +35,11 @@ type
     fHasFixXml: Boolean;
     fFixCsv: Boolean;
     fHasFixCsv: Boolean;
+    fRunFixInsight: Boolean;
   end;
 
   TFixInsightExtraOptions = record
+    fExePath: string;
     fOutput: string;
     fIgnore: string;
     fSettings: string;

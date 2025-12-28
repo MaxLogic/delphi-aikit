@@ -6,7 +6,7 @@ resourcestring
   SUsage =
     'DelphiConfigResolver.exe --dproj "<path>" --delphi <23.0> [--platform <Win32|Win64>] [--config <Debug|Release>] ' +
     '[--out-kind <bat|ini|xml>] [--out "<path>"] [--output "<path>"] [--ignore "<list>"] [--settings "<path>"] ' +
-    '[--silent [true|false]] [--xml [true|false]] [--csv [true|false]] [--verbose <true|false>] ' +
+    '[--silent [true|false]] [--xml [true|false]] [--csv [true|false]] [--run-fixinsight [true|false]] [--verbose <true|false>] ' +
     '[--rsvars "<path>"] [--envoptions "<path>"]';
   SInvalidArgs = 'Invalid command line arguments.';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -75,7 +75,12 @@ resourcestring
   SInfoResolvedLibraryPath = 'Library path resolved: %s';
   SInfoResolvedCombinedSearchPath = 'Combined search path resolved: %s';
   SInfoFixInsightPath = 'FixInsightCL.exe: %s';
-  SFixInsightNotFound = 'FixInsightCL.exe not found in PATH or HKCU\Software\FixInsight\Path.';
+  SFixInsightNotFound =
+    'FixInsightCL.exe not found in PATH or FixInsight registry (HKCU/HKLM 32/64-bit; FixInsight/TMS FixInsight Pro).';
+  SFixInsightPathInvalid = 'FixInsightCL.exe not found at settings.ini Path: %s';
+  SFixInsightExeMissing = 'FixInsightCL.exe path is not resolved.';
+  SFixInsightRunFailed = 'FixInsightCL.exe failed to start: %s';
+  SFixInsightRunExit = 'FixInsightCL.exe exited with code %d.';
   SSettingsInvalidBool = 'Invalid settings.ini boolean for %s: %s';
 
 implementation

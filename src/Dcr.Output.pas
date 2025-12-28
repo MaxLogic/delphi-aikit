@@ -3,7 +3,7 @@ unit Dcr.Output;
 interface
 
 uses
-  System.Classes, System.IOUtils, System.SysUtils,
+  System.Classes, System.Generics.Collections, System.IOUtils, System.SysUtils,
   Dcr.Messages, Dcr.Types;
 
 function WriteOutput(const aParams: TFixInsightParams; aKind: TOutputKind; const aOutPath: string;
@@ -113,6 +113,77 @@ var
   lFixSilent: Boolean;
   lFixXml: Boolean;
   lFixCsv: Boolean;
+  lHasDefines: Boolean;
+  lHasSearchPath: Boolean;
+  lHasLibPath: Boolean;
+  lHasScopes: Boolean;
+  lHasAliases: Boolean;
+
+  function SplitList(const aValue: string): TArray<string>;
+  var
+    lParts: TArray<string>;
+    lPart: string;
+    lList: TList<string>;
+    i: Integer;
+  begin
+    lList := TList<string>.Create;
+    try
+      lParts := aValue.Split([';']);
+      for i := 0 to High(lParts) do
+      begin
+        lPart := Trim(lParts[i]);
+        if lPart <> '' then
+          lList.Add(lPart);
+      end;
+      Result := lList.ToArray;
+    finally
+      lList.Free;
+    end;
+  end;
+
+  procedure AppendVarList(const aVarName, aValue: string);
+  const
+    CMaxChunk = 1800;
+  var
+    lParts: TArray<string>;
+    lPart: string;
+    lChunk: string;
+    lFirst: Boolean;
+
+    procedure FlushChunk;
+    begin
+      if lChunk = '' then
+        Exit;
+      if lFirst then
+        lLines.AppendLine(Format('set "%s=%s"', [aVarName, lChunk]))
+      else
+        lLines.AppendLine(Format('set "%s=%%%s%%;%s"', [aVarName, aVarName, lChunk]));
+      lChunk := '';
+      lFirst := False;
+    end;
+  begin
+    if aValue = '' then
+      Exit;
+    lParts := SplitList(aValue);
+    if Length(lParts) = 0 then
+      Exit;
+    lLines.AppendLine(Format('set "%s="', [aVarName]));
+    lChunk := '';
+    lFirst := True;
+    for lPart in lParts do
+    begin
+      if lChunk = '' then
+        lChunk := lPart
+      else if Length(lChunk) + 1 + Length(lPart) <= CMaxChunk then
+        lChunk := lChunk + ';' + lPart
+      else
+      begin
+        FlushChunk;
+        lChunk := lPart;
+      end;
+    end;
+    FlushChunk;
+  end;
 
   procedure AddArg(const aValue: string);
   begin
@@ -128,6 +199,11 @@ begin
     lLibPath := JoinList(aParams.fLibraryPath);
     lScopes := JoinList(aParams.fUnitScopes);
     lAliases := JoinList(aParams.fUnitAliases);
+    lHasDefines := lDefines <> '';
+    lHasSearchPath := lSearchPath <> '';
+    lHasLibPath := lLibPath <> '';
+    lHasScopes := lScopes <> '';
+    lHasAliases := lAliases <> '';
     lExe := aParams.fFixInsightExe;
     if lExe = '' then
       lExe := 'FixInsightCL.exe';
@@ -138,14 +214,33 @@ begin
     lFixXml := aParams.fFixXml;
     lFixCsv := aParams.fFixCsv;
 
+    lLines.AppendLine('@echo off');
+    lLines.AppendLine('chcp 65001 >nul');
+    lLines.AppendLine('setlocal EnableExtensions');
+
+    if lHasDefines then
+      AppendVarList('FI_DEFINES', lDefines);
+    if lHasSearchPath then
+      AppendVarList('FI_SEARCHPATH', lSearchPath);
+    if lHasLibPath then
+      AppendVarList('FI_LIBPATH', lLibPath);
+    if lHasScopes then
+      AppendVarList('FI_UNITSCOPES', lScopes);
+    if lHasAliases then
+      AppendVarList('FI_UNITALIASES', lAliases);
+
     lArgCount := 0;
     AddArg('--project=' + CmdQuote(aParams.fProjectDpr));
-    AddArg('--defines=' + CmdQuote(lDefines));
-    AddArg('--searchpath=' + CmdQuote(lSearchPath));
-    AddArg('--libpath=' + CmdQuote(lLibPath));
-    AddArg('--unitscopes=' + CmdQuote(lScopes));
-    if lAliases <> '' then
-      AddArg('--unitaliases=' + CmdQuote(lAliases));
+    if lHasDefines then
+      AddArg('--defines=' + CmdQuote('%FI_DEFINES%'));
+    if lHasSearchPath then
+      AddArg('--searchpath=' + CmdQuote('%FI_SEARCHPATH%'));
+    if lHasLibPath then
+      AddArg('--libpath=' + CmdQuote('%FI_LIBPATH%'));
+    if lHasScopes then
+      AddArg('--unitscopes=' + CmdQuote('%FI_UNITSCOPES%'));
+    if lHasAliases then
+      AddArg('--unitaliases=' + CmdQuote('%FI_UNITALIASES%'));
     if lFixOutput <> '' then
       AddArg('--output=' + CmdQuote(lFixOutput));
     if lFixIgnore <> '' then
@@ -159,8 +254,6 @@ begin
     if lFixCsv then
       AddArg('--csv');
 
-    lLines.AppendLine('@echo off');
-    lLines.AppendLine('setlocal');
     lLines.AppendLine(CmdQuote(lExe) + ' ^');
     for lIndex := 0 to High(lArgs) do
     begin
@@ -179,6 +272,7 @@ function WriteOutput(const aParams: TFixInsightParams; aKind: TOutputKind; const
   out aError: string): Boolean;
 var
   lContent: string;
+  lEncoding: TEncoding;
 begin
   aError := '';
   case aKind of
@@ -196,7 +290,16 @@ begin
   end;
 
   try
-    TFile.WriteAllText(aOutPath, lContent, TEncoding.UTF8);
+    if aKind = TOutputKind.okBat then
+    begin
+      lEncoding := TUTF8Encoding.Create(False);
+      try
+        TFile.WriteAllText(aOutPath, lContent, lEncoding);
+      finally
+        lEncoding.Free;
+      end;
+    end else
+      TFile.WriteAllText(aOutPath, lContent, TEncoding.UTF8);
   except
     on E: Exception do
     begin

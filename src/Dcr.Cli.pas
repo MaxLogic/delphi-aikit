@@ -267,6 +267,15 @@ begin
         Exit(False);
       end;
       aOptions.fHasFixCsv := True;
+    end else if SameText(lSwitch, 'run-fixinsight') then
+    begin
+      if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--run-fixinsight') then
+        Exit(False);
+      if not TryParseBool(lValue, aOptions.fRunFixInsight) then
+      begin
+        aError := Format(SInvalidBoolValue, ['--run-fixinsight', lValue]);
+        Exit(False);
+      end;
     end else if SameText(lSwitch, 'help') or SameText(lSwitch, 'h') or SameText(lSwitch, '?') then
     begin
       // handled by IsHelpRequested

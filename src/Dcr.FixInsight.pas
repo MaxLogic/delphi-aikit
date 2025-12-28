@@ -13,8 +13,11 @@ implementation
 
 const
   SFixInsightExeName = 'FixInsightCL.exe';
-  SFixInsightRegKey = 'Software\FixInsight';
   SFixInsightRegValue = 'Path';
+  CFixInsightRegKeys: array[0..1] of string = (
+    'Software\FixInsight',
+    'Software\TMSSoftware\TMS FixInsight Pro'
+  );
 
 function ExpandEnvVars(const aValue: string): string;
 var
@@ -67,10 +70,37 @@ begin
 end;
 
 function TryResolveFixInsightExe(aDiagnostics: TDiagnostics; out aExePath: string): Boolean;
+const
+  CRoots: array[0..1] of HKEY = (HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE);
+  CViews: array[0..1] of Cardinal = (KEY_WOW64_64KEY, KEY_WOW64_32KEY);
 var
   lReg: TRegistry;
   lValue: string;
   lCandidate: string;
+  lRootIndex: Integer;
+  lViewIndex: Integer;
+  lKeyIndex: Integer;
+
+  function TryReadRegistryValue(const aRegKey: string; aRootKey: HKEY; aViewFlag: Cardinal;
+    out aOutValue: string): Boolean;
+  begin
+    Result := False;
+    aOutValue := '';
+    lReg := TRegistry.Create;
+    try
+      lReg.Access := KEY_READ or aViewFlag;
+      lReg.RootKey := aRootKey;
+      if lReg.OpenKeyReadOnly(aRegKey) then
+      begin
+        if lReg.ValueExists(SFixInsightRegValue) then
+          aOutValue := lReg.ReadString(SFixInsightRegValue);
+      end;
+    finally
+      lReg.Free;
+      lReg := nil;
+    end;
+    Result := aOutValue <> '';
+  end;
 begin
   aExePath := '';
   if FindInPath(SFixInsightExeName, aExePath) then
@@ -80,28 +110,21 @@ begin
     Exit(True);
   end;
 
-  lValue := '';
-  lReg := TRegistry.Create;
-  try
-    lReg.Access := KEY_READ;
-    lReg.RootKey := HKEY_CURRENT_USER;
-    if lReg.OpenKeyReadOnly(SFixInsightRegKey) then
-    begin
-      if lReg.ValueExists(SFixInsightRegValue) then
-        lValue := lReg.ReadString(SFixInsightRegValue);
-    end;
-  finally
-    lReg.Free;
-  end;
-
-  lCandidate := BuildFromRegistry(lValue);
-  if (lCandidate <> '') and FileExists(lCandidate) then
-  begin
-    aExePath := lCandidate;
-    if aDiagnostics <> nil then
-      aDiagnostics.AddInfo(Format(SInfoFixInsightPath, [aExePath]));
-    Exit(True);
-  end;
+  for lRootIndex := 0 to High(CRoots) do
+    for lViewIndex := 0 to High(CViews) do
+      for lKeyIndex := 0 to High(CFixInsightRegKeys) do
+      begin
+        if not TryReadRegistryValue(CFixInsightRegKeys[lKeyIndex], CRoots[lRootIndex], CViews[lViewIndex], lValue) then
+          Continue;
+        lCandidate := BuildFromRegistry(lValue);
+        if (lCandidate <> '') and FileExists(lCandidate) then
+        begin
+          aExePath := lCandidate;
+          if aDiagnostics <> nil then
+            aDiagnostics.AddInfo(Format(SInfoFixInsightPath, [aExePath]));
+          Exit(True);
+        end;
+      end;
 
   Result := False;
 end;

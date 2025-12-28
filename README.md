@@ -37,6 +37,12 @@ For extra diagnostics during troubleshooting, enable verbose output:
 DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --verbose true
 ```
 
+To run FixInsightCL directly (avoids cmd.exe 8K limit), add:
+
+```
+DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight
+```
+
 We run `rsvars.bat` from the default Delphi installation path to pick up IDE environment variables.
 If Delphi is installed in a non-standard location, pass the path explicitly:
 
@@ -67,6 +73,7 @@ Sample `settings.ini`:
 
 ```
 [FixInsightCL]
+Path=
 Output=
 Ignore=
 Settings=
@@ -74,6 +81,8 @@ Silent=false
 Xml=false
 Csv=false
 ```
+
+`Path` is optional and can point to FixInsightCL.exe (or its folder). Relative paths are resolved against the executable folder.
 
 ## Output formats
 
@@ -86,5 +95,5 @@ Csv=false
 - We read IDE configuration from the registry for the requested Delphi version (for example `23.0` for Delphi 12).
 - We run `rsvars.bat` first so the IDE environment variables are available for macro expansion.
 - If the IDE library path is not in the registry, we fall back to `EnvOptions.proj` from `%AppData%\Embarcadero\BDS\<version>\EnvOptions.proj`.
-- For `bat` output, we try to resolve `FixInsightCL.exe` from `PATH`, then from `HKCU\Software\FixInsight\Path`.
+- For `bat` output, we try to resolve `FixInsightCL.exe` from `PATH`, then from FixInsight registry keys (HKCU/HKLM, 32/64-bit).
 - Sample inputs live in `tests\fixtures\` so we can quickly try the resolver.

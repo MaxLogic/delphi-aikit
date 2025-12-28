@@ -90,6 +90,7 @@ var
   lLibKey: string;
   lHasLibPath: Boolean;
   lBaseFound: Boolean;
+  lRegistryLibFound: Boolean;
   lNames: TStringList;
   lName: string;
   lBdsUserDir: string;
@@ -97,6 +98,22 @@ var
   lEnvOptionsFile: string;
   lValue: string;
   lCatalogRepo: string;
+  lBdsRoot: string;
+  lBdsLib: string;
+
+  procedure EnsureEnvVar(const aName, aValue: string; aAllowEmpty: Boolean);
+  var
+    lExisting: string;
+  begin
+    if aEnvVars.TryGetValue(aName, lExisting) then
+    begin
+      if (lExisting = '') and (aValue <> '') then
+        aEnvVars.AddOrSetValue(aName, aValue);
+      Exit;
+    end;
+    if (aValue <> '') or aAllowEmpty then
+      aEnvVars.AddOrSetValue(aName, aValue);
+  end;
 
   function JoinNames(const aList: TStrings): string;
   begin
@@ -200,13 +217,14 @@ begin
 
   lHasLibPath := False;
   lBaseFound := False;
+  lRegistryLibFound := False;
   if aDiagnostics <> nil then
     aDiagnostics.AddInfo(Format(SInfoRegistryBase, [lBaseKey]));
 
   if TryReadRegistryView('64-bit', KEY_WOW64_64KEY) then
-    Exit(True);
-  if TryReadRegistryView('32-bit', KEY_WOW64_32KEY) then
-    Exit(True);
+    lRegistryLibFound := True;
+  if (not lRegistryLibFound) and TryReadRegistryView('32-bit', KEY_WOW64_32KEY) then
+    lRegistryLibFound := True;
 
   if not lBaseFound then
   begin
@@ -219,9 +237,6 @@ begin
     Exit(False);
   end;
 
-  if aDiagnostics <> nil then
-    aDiagnostics.AddInfo(SInfoRegistryLibraryFallback);
-
   if not aEnvVars.TryGetValue('BDSUSERDIR', lBdsUserDir) then
     lBdsUserDir := GetEnvironmentVariable('BDSUSERDIR');
   if lBdsUserDir = '' then
@@ -232,62 +247,54 @@ begin
     else
       lBdsUserDir := TPath.Combine(TPath.GetDocumentsPath, 'Embarcadero\Studio\' + aDelphiVersion);
   end;
-  if (lBdsUserDir <> '') and (not aEnvVars.ContainsKey('BDSUSERDIR')) then
-    aEnvVars.AddOrSetValue('BDSUSERDIR', lBdsUserDir);
-  if not aEnvVars.ContainsKey('BDSCatalogRepository') then
-  begin
-    lCatalogRepo := GetEnvironmentVariable('BDSCatalogRepository');
-    if (lCatalogRepo = '') and (lBdsUserDir <> '') then
-      lCatalogRepo := TPath.Combine(lBdsUserDir, 'CatalogRepository');
-    if lCatalogRepo <> '' then
-      aEnvVars.AddOrSetValue('BDSCatalogRepository', lCatalogRepo);
-  end;
-
-  if aEnvOptionsOverride <> '' then
-    lEnvOptionsFile := TPath.GetFullPath(aEnvOptionsOverride)
-  else
-    lEnvOptionsFile := TPath.Combine(lBdsUserDir, 'EnvOptions.proj');
-  if aDiagnostics <> nil then
-    aDiagnostics.AddInfo(Format(SInfoEnvOptionsPath, [lEnvOptionsFile]));
-  if (aEnvOptionsOverride <> '') and (aDiagnostics <> nil) then
-    aDiagnostics.AddInfo(Format(SInfoEnvOptionsOverride, [lEnvOptionsFile]));
-  if aDiagnostics <> nil then
-    aDiagnostics.AddInfo(Format(SInfoStep, ['Read EnvOptions.proj']));
-  if not TryReadEnvOptionsLibraryPath(lEnvOptionsFile, aPlatform, aDelphiVersion, aEnvVars, aDiagnostics,
-    aLibraryPath, aError) then
-    Exit(False);
-
-  aLibrarySource := TPropertySource.psEnvOptions;
-  if aDiagnostics <> nil then
-    aDiagnostics.AddInfo(Format(SInfoLibraryPathRaw, [aLibraryPath]));
+  EnsureEnvVar('BDSUSERDIR', lBdsUserDir, False);
 
   if not aEnvVars.TryGetValue('BDSCatalogRepository', lCatalogRepo) then
     lCatalogRepo := GetEnvironmentVariable('BDSCatalogRepository');
-  if lCatalogRepo = '' then
-  begin
-    if lBdsUserDir = '' then
-      lBdsUserDir := GetEnvironmentVariable('BDSUSERDIR');
-    if lBdsUserDir <> '' then
-      lCatalogRepo := TPath.Combine(lBdsUserDir, 'CatalogRepository');
-  end;
-  if (lCatalogRepo <> '') and (not aEnvVars.ContainsKey('BDSCatalogRepository')) then
-    aEnvVars.AddOrSetValue('BDSCatalogRepository', lCatalogRepo);
+  if (lCatalogRepo = '') and (lBdsUserDir <> '') then
+    lCatalogRepo := TPath.Combine(lBdsUserDir, 'CatalogRepository');
+  EnsureEnvVar('BDSCatalogRepository', lCatalogRepo, False);
 
-  if not aEnvVars.ContainsKey('DCC_Define') then
+  if not lRegistryLibFound then
   begin
-    lValue := GetEnvironmentVariable('DCC_Define');
-    aEnvVars.AddOrSetValue('DCC_Define', lValue);
+    if aDiagnostics <> nil then
+      aDiagnostics.AddInfo(SInfoRegistryLibraryFallback);
+
+    if aEnvOptionsOverride <> '' then
+      lEnvOptionsFile := TPath.GetFullPath(aEnvOptionsOverride)
+    else
+      lEnvOptionsFile := TPath.Combine(lBdsUserDir, 'EnvOptions.proj');
+    if aDiagnostics <> nil then
+      aDiagnostics.AddInfo(Format(SInfoEnvOptionsPath, [lEnvOptionsFile]));
+    if (aEnvOptionsOverride <> '') and (aDiagnostics <> nil) then
+      aDiagnostics.AddInfo(Format(SInfoEnvOptionsOverride, [lEnvOptionsFile]));
+    if aDiagnostics <> nil then
+      aDiagnostics.AddInfo(Format(SInfoStep, ['Read EnvOptions.proj']));
+    if not TryReadEnvOptionsLibraryPath(lEnvOptionsFile, aPlatform, aDelphiVersion, aEnvVars, aDiagnostics,
+      aLibraryPath, aError) then
+      Exit(False);
+
+    aLibrarySource := TPropertySource.psEnvOptions;
+    if aDiagnostics <> nil then
+      aDiagnostics.AddInfo(Format(SInfoLibraryPathRaw, [aLibraryPath]));
   end;
-  if not aEnvVars.ContainsKey('DCC_UnitSearchPath') then
-  begin
-    lValue := GetEnvironmentVariable('DCC_UnitSearchPath');
-    aEnvVars.AddOrSetValue('DCC_UnitSearchPath', lValue);
-  end;
-  if not aEnvVars.ContainsKey('DCC_Namespace') then
-  begin
-    lValue := GetEnvironmentVariable('DCC_Namespace');
-    aEnvVars.AddOrSetValue('DCC_Namespace', lValue);
-  end;
+
+  if not aEnvVars.TryGetValue('BDS', lBdsRoot) then
+    lBdsRoot := GetEnvironmentVariable('BDS');
+  EnsureEnvVar('BDS', lBdsRoot, False);
+
+  if not aEnvVars.TryGetValue('BDSLIB', lBdsLib) then
+    lBdsLib := GetEnvironmentVariable('BDSLIB');
+  if (lBdsLib = '') and (lBdsRoot <> '') then
+    lBdsLib := TPath.Combine(lBdsRoot, 'lib');
+  EnsureEnvVar('BDSLIB', lBdsLib, False);
+
+  lValue := GetEnvironmentVariable('DCC_Define');
+  EnsureEnvVar('DCC_Define', lValue, True);
+  lValue := GetEnvironmentVariable('DCC_UnitSearchPath');
+  EnsureEnvVar('DCC_UnitSearchPath', lValue, True);
+  lValue := GetEnvironmentVariable('DCC_Namespace');
+  EnsureEnvVar('DCC_Namespace', lValue, True);
   Result := True;
 end;
 

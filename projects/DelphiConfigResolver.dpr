@@ -4,9 +4,11 @@ program DelphiConfigResolver;
 
 uses
   System.Generics.Collections, System.IOUtils, System.SysUtils,
+  Winapi.Windows,
   Xml.omnixmldom, Xml.xmldom,
   Dcr.Cli in '..\src\Dcr.Cli.pas', Dcr.diagnostics in '..\src\Dcr.Diagnostics.pas',
   Dcr.FixInsight in '..\src\Dcr.FixInsight.pas',
+  Dcr.FixInsightRunner in '..\src\Dcr.FixInsightRunner.pas',
   Dcr.FixInsightSettings in '..\src\Dcr.FixInsightSettings.pas',
   Dcr.Messages in '..\src\Dcr.Messages.pas', Dcr.MacroExpander in '..\src\Dcr.MacroExpander.pas',
   Dcr.MsBuild in '..\src\Dcr.MsBuild.pas', Dcr.output in '..\src\Dcr.Output.pas',
@@ -26,6 +28,38 @@ begin
   end;
 end;
 
+function ExpandEnvVars(const aValue: string): string;
+var
+  lRequired: Cardinal;
+  lBuffer: string;
+begin
+  if aValue = '' then
+    Exit('');
+  lRequired := ExpandEnvironmentStrings(PChar(aValue), nil, 0);
+  if lRequired = 0 then
+    Exit(aValue);
+  SetLength(lBuffer, lRequired);
+  if ExpandEnvironmentStrings(PChar(aValue), PChar(lBuffer), Length(lBuffer)) = 0 then
+    Exit(aValue);
+  SetLength(lBuffer, StrLen(PChar(lBuffer)));
+  Result := lBuffer;
+end;
+
+function ResolveFixInsightPath(const aValue: string): string;
+var
+  lValue: string;
+begin
+  lValue := Trim(ExpandEnvVars(aValue));
+  if lValue = '' then
+    Exit('');
+  if not TPath.IsPathRooted(lValue) then
+    lValue := TPath.Combine(ExtractFilePath(ParamStr(0)), lValue);
+  if SameText(TPath.GetExtension(lValue), '.exe') then
+    Result := lValue
+  else
+    Result := TPath.Combine(lValue, 'FixInsightCL.exe');
+end;
+
 var
   lOptions: TAppOptions;
   lParams: TFixInsightParams;
@@ -39,6 +73,8 @@ var
   lExitCode: integer;
   lOutPath: string;
   lOk: boolean;
+  lRunExit: Cardinal;
+  lRunError: string;
 begin
   DefaultDOMVendor := sOmniXmlVendor;
   lExitCode := 0;
@@ -143,7 +179,19 @@ begin
       if lOk then
       begin
         lDiagnostics.AddInfo(Format(SInfoStep, ['Resolve FixInsightCL.exe']));
-        if not TryResolveFixInsightExe(lDiagnostics, lParams.fFixInsightExe) then
+        if lFixOptions.fExePath <> '' then
+        begin
+          lParams.fFixInsightExe := ResolveFixInsightPath(lFixOptions.fExePath);
+          if (lParams.fFixInsightExe <> '') and FileExists(lParams.fFixInsightExe) then
+          begin
+            lDiagnostics.AddInfo(Format(SInfoFixInsightPath, [lParams.fFixInsightExe]));
+          end else
+          begin
+            lParams.fFixInsightExe := '';
+            lDiagnostics.AddWarning(Format(SFixInsightPathInvalid, [lFixOptions.fExePath]));
+          end;
+        end;
+        if (lParams.fFixInsightExe = '') and (not TryResolveFixInsightExe(lDiagnostics, lParams.fFixInsightExe)) then
           lDiagnostics.AddWarning(SFixInsightNotFound);
       end;
 
@@ -165,6 +213,22 @@ begin
         begin
           writeln(ErrOutput, lError);
           lExitCode := 6;
+        end;
+      end;
+
+      if lOk and lOptions.fRunFixInsight then
+      begin
+        lDiagnostics.AddInfo(Format(SInfoStep, ['Run FixInsightCL']));
+        lOk := TryRunFixInsight(lParams, lRunExit, lRunError);
+        if not lOk then
+        begin
+          writeln(ErrOutput, lRunError);
+          lExitCode := 6;
+        end else if lRunExit <> 0 then
+        begin
+          writeln(ErrOutput, Format(SFixInsightRunExit, [lRunExit]));
+          lExitCode := Integer(lRunExit);
+          lOk := False;
         end;
       end;
     except

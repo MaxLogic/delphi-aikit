@@ -63,7 +63,7 @@ var
             lName := Copy(aText, lStart, lIndex - lStart);
             if StackContains(lName) then
             begin
-              if aDiagnostics <> nil then
+              if (aDiagnostics <> nil) and (not aUnknownAsEmpty) then
                 aDiagnostics.AddCycleMacro(lName);
               if aUnknownAsEmpty then
                 lValue := ''
@@ -79,7 +79,7 @@ var
               end;
             end else
             begin
-              if aDiagnostics <> nil then
+              if (aDiagnostics <> nil) and (not aUnknownAsEmpty) then
                 aDiagnostics.AddUnknownMacro(lName);
               if aUnknownAsEmpty then
                 lValue := ''

@@ -63,6 +63,7 @@ begin
   Result := False;
   lIni := TIniFile.Create(lPath);
   try
+    aOptions.fExePath := Trim(lIni.ReadString(SFixInsightSection, 'Path', ''));
     aOptions.fOutput := Trim(lIni.ReadString(SFixInsightSection, 'Output', ''));
     aOptions.fIgnore := Trim(lIni.ReadString(SFixInsightSection, 'Ignore', ''));
     aOptions.fSettings := Trim(lIni.ReadString(SFixInsightSection, 'Settings', ''));
