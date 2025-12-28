@@ -36,6 +36,10 @@ type
     fFixCsv: Boolean;
     fHasFixCsv: Boolean;
     fRunFixInsight: Boolean;
+    fLogFile: string;
+    fHasLogFile: Boolean;
+    fLogTee: Boolean;
+    fHasLogTee: Boolean;
   end;
 
   TFixInsightExtraOptions = record

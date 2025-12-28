@@ -276,6 +276,22 @@ begin
         aError := Format(SInvalidBoolValue, ['--run-fixinsight', lValue]);
         Exit(False);
       end;
+    end else if SameText(lSwitch, 'logfile') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--logfile') then
+        Exit(False);
+      aOptions.fLogFile := lValue;
+      aOptions.fHasLogFile := True;
+    end else if SameText(lSwitch, 'log-tee') then
+    begin
+      if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--log-tee') then
+        Exit(False);
+      if not TryParseBool(lValue, aOptions.fLogTee) then
+      begin
+        aError := Format(SInvalidBoolValue, ['--log-tee', lValue]);
+        Exit(False);
+      end;
+      aOptions.fHasLogTee := True;
     end else if SameText(lSwitch, 'help') or SameText(lSwitch, 'h') or SameText(lSwitch, '?') then
     begin
       // handled by IsHelpRequested

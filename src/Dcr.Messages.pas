@@ -6,7 +6,9 @@ resourcestring
   SUsage =
     'DelphiConfigResolver.exe --dproj "<path>" --delphi <23.0> [--platform <Win32|Win64>] [--config <Debug|Release>] ' +
     '[--out-kind <bat|ini|xml>] [--out "<path>"] [--output "<path>"] [--ignore "<list>"] [--settings "<path>"] ' +
-    '[--silent [true|false]] [--xml [true|false]] [--csv [true|false]] [--run-fixinsight [true|false]] [--verbose <true|false>] ' +
+    '[--silent [true|false]] [--xml [true|false]] [--csv [true|false]] [--run-fixinsight [true|false]] [--logfile "<path>"] ' +
+    '[--log-tee [true|false]] ' +
+    '[--verbose <true|false>] ' +
     '[--rsvars "<path>"] [--envoptions "<path>"]';
   SInvalidArgs = 'Invalid command line arguments.';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -14,6 +16,8 @@ resourcestring
   SInvalidBoolValue = 'Invalid value for %s: %s';
   SUnknownArg = 'Unknown argument: %s';
   SFileNotFound = 'File not found: %s';
+  SAssociatedDprojMissing = 'Associated .dproj not found for: %s';
+  SInfoAssociatedDproj = 'Using associated .dproj: %s';
   SRegistryBaseMissing = 'Delphi registry base key not found for version %s.';
   SRegistryLibraryMissing = 'Library search path not found for platform %s.';
   SEnvOptionsNotFound = 'EnvOptions.proj not found at: %s';
@@ -81,6 +85,7 @@ resourcestring
   SFixInsightExeMissing = 'FixInsightCL.exe path is not resolved.';
   SFixInsightRunFailed = 'FixInsightCL.exe failed to start: %s';
   SFixInsightRunExit = 'FixInsightCL.exe exited with code %d.';
+  SLogFileOpenFailed = 'Failed to open log file: %s';
   SSettingsInvalidBool = 'Invalid settings.ini boolean for %s: %s';
 
 implementation

@@ -43,6 +43,20 @@ To run FixInsightCL directly (avoids cmd.exe 8K limit), add:
 DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight
 ```
 
+To capture resolver diagnostics (warnings, missing paths, macro issues) into a log file:
+
+```
+DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight --logfile "C:\temp\resolver.log"
+```
+
+To also include resolver diagnostics in stderr/stdout output (useful when redirecting into a report), add:
+
+```
+DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight --logfile "C:\temp\resolver.log" --log-tee true
+```
+
+When `--run-fixinsight` is used, we suppress stdout output unless `--out` or `--out-kind` is explicitly provided.
+
 We run `rsvars.bat` from the default Delphi installation path to pick up IDE environment variables.
 If Delphi is installed in a non-standard location, pass the path explicitly:
 

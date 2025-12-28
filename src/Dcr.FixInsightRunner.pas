@@ -3,7 +3,7 @@ unit Dcr.FixInsightRunner;
 interface
 
 uses
-  System.SysUtils,
+  System.Generics.Collections, System.SysUtils,
   Winapi.Windows,
   Dcr.Messages, Dcr.Types;
 
@@ -75,11 +75,31 @@ var
   lLibPath: string;
   lScopes: string;
   lAliases: string;
+  lSearchPaths: TArray<string>;
+  lLibPaths: TArray<string>;
+
+  function FilterExistingPaths(const aPaths: TArray<string>): TArray<string>;
+  var
+    lList: TList<string>;
+    lItem: string;
+  begin
+    lList := TList<string>.Create;
+    try
+      for lItem in aPaths do
+        if (lItem <> '') and DirectoryExists(lItem) then
+          lList.Add(lItem);
+      Result := lList.ToArray;
+    finally
+      lList.Free;
+    end;
+  end;
 begin
   lCount := 0;
   lDefines := String.Join(';', aParams.fDefines);
-  lSearchPath := String.Join(';', aParams.fUnitSearchPath);
-  lLibPath := String.Join(';', aParams.fLibraryPath);
+  lSearchPaths := FilterExistingPaths(aParams.fUnitSearchPath);
+  lLibPaths := FilterExistingPaths(aParams.fLibraryPath);
+  lSearchPath := String.Join(';', lSearchPaths);
+  lLibPath := String.Join(';', lLibPaths);
   lScopes := String.Join(';', aParams.fUnitScopes);
   lAliases := String.Join(';', aParams.fUnitAliases);
 

@@ -60,6 +60,39 @@ begin
     Result := TPath.Combine(lValue, 'FixInsightCL.exe');
 end;
 
+function TryResolveDprojPath(const aInputPath: string; out aDprojPath: string; out aError: string): Boolean;
+var
+  lExt: string;
+  lCandidate: string;
+begin
+  aError := '';
+  aDprojPath := TPath.GetFullPath(aInputPath);
+  lExt := TPath.GetExtension(aDprojPath);
+  if SameText(lExt, '.dproj') then
+  begin
+    Result := FileExists(aDprojPath);
+    if not Result then
+      aError := Format(SFileNotFound, [aDprojPath]);
+    Exit;
+  end;
+
+  if SameText(lExt, '.dpr') or SameText(lExt, '.dpk') then
+  begin
+    lCandidate := TPath.ChangeExtension(aDprojPath, '.dproj');
+    if FileExists(lCandidate) then
+    begin
+      aDprojPath := lCandidate;
+      Exit(True);
+    end;
+    aError := Format(SAssociatedDprojMissing, [aDprojPath]);
+    Exit(False);
+  end;
+
+  Result := FileExists(aDprojPath);
+  if not Result then
+    aError := Format(SFileNotFound, [aDprojPath]);
+end;
+
 var
   lOptions: TAppOptions;
   lParams: TFixInsightParams;
@@ -75,6 +108,9 @@ var
   lOk: boolean;
   lRunExit: Cardinal;
   lRunError: string;
+  lLogPath: string;
+  lSkipOutput: Boolean;
+  lInputPath: string;
 begin
   DefaultDOMVendor := sOmniXmlVendor;
   lExitCode := 0;
@@ -107,6 +143,26 @@ begin
 
       if lOk then
       begin
+        if lOptions.fHasLogFile then
+        begin
+          lLogPath := TPath.GetFullPath(lOptions.fLogFile);
+          lOk := lDiagnostics.TryOpenLogFile(lLogPath, lError);
+          if not lOk then
+          begin
+            writeln(ErrOutput, lError);
+            lExitCode := 6;
+          end else
+          begin
+            if lOptions.fHasLogTee then
+              lDiagnostics.LogToStderr := lOptions.fLogTee
+            else
+              lDiagnostics.LogToStderr := False;
+          end;
+        end;
+      end;
+
+      if lOk then
+      begin
         lDiagnostics.AddInfo(Format(SInfoStep, ['Read settings.ini']));
         lOk := LoadFixInsightDefaults(lDiagnostics, lFixOptions);
         if not lOk then
@@ -119,13 +175,14 @@ begin
       if lOk then
       begin
         lDiagnostics.AddInfo(Format(SInfoStep, ['Validate inputs']));
-        lOptions.fDprojPath := TPath.GetFullPath(lOptions.fDprojPath);
-        if not FileExists(lOptions.fDprojPath) then
+        lInputPath := lOptions.fDprojPath;
+        lOk := TryResolveDprojPath(lInputPath, lOptions.fDprojPath, lError);
+        if not lOk then
         begin
-          writeln(ErrOutput, Format(SFileNotFound, [lOptions.fDprojPath]));
+          writeln(ErrOutput, lError);
           lExitCode := 3;
-          lOk := False;
-        end;
+        end else if not SameText(TPath.GetExtension(lInputPath), '.dproj') then
+          lDiagnostics.AddNote(Format(SInfoAssociatedDproj, [lOptions.fDprojPath]));
       end;
 
       if lOk then
@@ -197,22 +254,26 @@ begin
 
       if lOk then
       begin
-        writeln(ErrOutput, Format(SSourceLibraryPath, [SourceToText(lParams.fLibrarySource)]));
-        writeln(ErrOutput, Format(SSourceDefines, [SourceToText(lParams.fDefineSource)]));
-        writeln(ErrOutput, Format(SSourceSearchPath, [SourceToText(lParams.fSearchPathSource)]));
-        writeln(ErrOutput, Format(SSourceUnitScopes, [SourceToText(lParams.fUnitScopesSource)]));
+        lDiagnostics.AddNote(Format(SSourceLibraryPath, [SourceToText(lParams.fLibrarySource)]));
+        lDiagnostics.AddNote(Format(SSourceDefines, [SourceToText(lParams.fDefineSource)]));
+        lDiagnostics.AddNote(Format(SSourceSearchPath, [SourceToText(lParams.fSearchPathSource)]));
+        lDiagnostics.AddNote(Format(SSourceUnitScopes, [SourceToText(lParams.fUnitScopesSource)]));
         if length(lParams.fUnitAliases) > 0 then
-          writeln(ErrOutput, Format(SSourceUnitAliases, [SourceToText(lParams.fUnitAliasesSource)]));
+          lDiagnostics.AddNote(Format(SSourceUnitAliases, [SourceToText(lParams.fUnitAliasesSource)]));
 
         lOutPath := '';
         if lOptions.fHasOutPath then
           lOutPath := lOptions.fOutPath;
 
-        lOk := WriteOutput(lParams, lOptions.fOutKind, lOutPath, lError);
-        if not lOk then
+        lSkipOutput := lOptions.fRunFixInsight and (not lOptions.fHasOutPath) and (not lOptions.fHasOutKind);
+        if not lSkipOutput then
         begin
-          writeln(ErrOutput, lError);
-          lExitCode := 6;
+          lOk := WriteOutput(lParams, lOptions.fOutKind, lOutPath, lError);
+          if not lOk then
+          begin
+            writeln(ErrOutput, lError);
+            lExitCode := 6;
+          end;
         end;
       end;
 

@@ -3,7 +3,7 @@ interface
 
 
 uses
-  System.Generics.Collections, System.Generics.Defaults, System.SysUtils,
+  System.Classes, System.Generics.Collections, System.Generics.Defaults, System.SysUtils,
   maxLogic.StrUtils,
   Dcr.Messages;
 
@@ -27,16 +27,24 @@ type
     fMissingPaths: TStringSet;
     fWarnings: TList<string>;
     fVerbose: Boolean;
+    fLogWriter: TStreamWriter;
+    fLogStream: TFileStream;
+    fLogEncoding: TEncoding;
+    fLogToStderr: Boolean;
+    procedure WriteLine(const aMessage: string);
   public
     constructor Create;
     destructor Destroy; override;
+    function TryOpenLogFile(const aPath: string; out aError: string): Boolean;
     procedure AddUnknownMacro(const aName: string);
     procedure AddCycleMacro(const aName: string);
     procedure AddMissingPath(const aPath: string);
     procedure AddWarning(const aMessage: string);
+    procedure AddNote(const aMessage: string);
     procedure AddInfo(const aMessage: string);
     procedure WriteToStderr;
     property Verbose: Boolean read fVerbose write fVerbose;
+    property LogToStderr: Boolean read fLogToStderr write fLogToStderr;
   end;
 
 implementation
@@ -83,15 +91,67 @@ begin
   fCycleMacros := TStringSet.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   fMissingPaths := TStringSet.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   fWarnings := TList<string>.Create;
+  fLogWriter := nil;
+  fLogStream := nil;
+  fLogEncoding := nil;
+  fLogToStderr := True;
 end;
 
 destructor TDiagnostics.Destroy;
 begin
+  fLogWriter.Free;
+  fLogStream.Free;
+  fLogEncoding.Free;
   fWarnings.Free;
   fMissingPaths.Free;
   fCycleMacros.Free;
   fUnknownMacros.Free;
   inherited;
+end;
+
+function TDiagnostics.TryOpenLogFile(const aPath: string; out aError: string): Boolean;
+var
+  lDir: string;
+begin
+  Result := False;
+  aError := '';
+  if aPath = '' then
+  begin
+    aError := Format(SLogFileOpenFailed, ['<empty>']);
+    Exit(False);
+  end;
+  lDir := ExtractFilePath(aPath);
+  if (lDir <> '') and (not DirectoryExists(lDir)) then
+    ForceDirectories(lDir);
+  try
+    fLogEncoding := TUTF8Encoding.Create(False);
+    fLogStream := TFileStream.Create(aPath, fmCreate or fmShareDenyNone);
+    fLogWriter := TStreamWriter.Create(fLogStream, fLogEncoding);
+    fLogWriter.AutoFlush := True;
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      fLogWriter.Free;
+      fLogWriter := nil;
+      fLogStream.Free;
+      fLogStream := nil;
+      fLogEncoding.Free;
+      fLogEncoding := nil;
+      aError := Format(SLogFileOpenFailed, [E.Message]);
+      Exit(False);
+    end;
+  end;
+end;
+
+procedure TDiagnostics.WriteLine(const aMessage: string);
+begin
+  if aMessage = '' then
+    Exit;
+  if fLogWriter <> nil then
+    fLogWriter.WriteLine(aMessage);
+  if fLogToStderr then
+    WriteLn(ErrOutput, aMessage);
 end;
 
 procedure TDiagnostics.AddUnknownMacro(const aName: string);
@@ -122,11 +182,18 @@ begin
   fWarnings.Add(aMessage);
 end;
 
+procedure TDiagnostics.AddNote(const aMessage: string);
+begin
+  if aMessage = '' then
+    Exit;
+  WriteLine(aMessage);
+end;
+
 procedure TDiagnostics.AddInfo(const aMessage: string);
 begin
   if (not fVerbose) or (aMessage = '') then
     Exit;
-  WriteLn(ErrOutput, aMessage);
+  WriteLine(aMessage);
 end;
 
 procedure TDiagnostics.WriteToStderr;
@@ -136,19 +203,19 @@ var
   i: Integer;
 begin
   for lItem in fWarnings do
-    WriteLn(ErrOutput, lItem);
+    WriteLine(lItem);
 
   lItems := fUnknownMacros.ToArray;
   for i := 0 to High(lItems) do
-    WriteLn(ErrOutput, Format(SUnknownMacro, [lItems[i]]));
+    WriteLine(Format(SUnknownMacro, [lItems[i]]));
 
   lItems := fCycleMacros.ToArray;
   for i := 0 to High(lItems) do
-    WriteLn(ErrOutput, Format(SCycleMacro, [lItems[i]]));
+    WriteLine(Format(SCycleMacro, [lItems[i]]));
 
   lItems := fMissingPaths.ToArray;
   for i := 0 to High(lItems) do
-    WriteLn(ErrOutput, Format(SMissingDirectory, [lItems[i]]));
+    WriteLine(Format(SMissingDirectory, [lItems[i]]));
 end;
 
 end.
