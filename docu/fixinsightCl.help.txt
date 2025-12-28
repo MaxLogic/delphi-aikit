@@ -1,0 +1,88 @@
+FixInsightCL Pro version 2023.12
+This product is licensed to  pawelp79@gmail.com
+Single license. Free updates until 25.03.2026
+
+Parameters:
+  --project=XXX.dpr (a project to analyze)
+  --defines=XXX;YYY;ZZZ (compiler defines separated by semicolon)
+  --output=XXX (write output to a file)
+  --searchpath=XXX (unit directories)
+  --libpath=XXX (Delphi library path)
+  --unitaliases=XXX;YYY;ZZZ
+  --unitscopes=XXX;YYY;ZZZ
+  --ignore=XXX (units and directories to be ignored)
+  --settings=XXX.ficfg (override project settings)
+  --silent (produce no output if no issues were found)
+  --xml (format output as xml)
+  --csv (format output as csv)
+
+--project parameter is mandatory, other parameters are optional.
+Setting --libpath and --unitscopes parameters is highly recommended.
+
+  Example:
+    FixInsightCL --project=c:\source\example.dpr
+                 --libpath="C:\Program Files (x86)\Embarcadero\Studio\20.0\source"
+                 --unitscopes=Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;System;Xml;Data;Datasnap;Web;Soap
+
+
+---
+
+Here’s what those parameters mean, based on the official FixInsight manual + TMS support threads (and how FIToolkit tends to use them).
+
+## `--project`: can it be a `.dproj`?
+
+* **Official docs** still describe it as `--project=XXX.dpr` (project source). ([TMS Software Download][1])
+* **FIToolkit** supports `.dproj` as an *input type* on its side, but that does **not** automatically prove FixInsightCL accepts `.dproj` directly. ([GitHub][2])
+* Practical conclusion: **FixInsightCL is definitely happy with `.dpr`**, and very likely `.dpk` (packages are a supported “project” concept in Delphi tooling, and FIToolkit treats `.dpk` as input too). ([GitHub][2])
+
+  
+  
+## `--searchpath` vs `--libpath`
+
+From the manual:
+
+* `--searchpath=...` = **unit directories** (think “where to find our project/third-party units”). ([TMS Software Download][1])
+* `--libpath=...` = **Delphi library path** (in practice, the Delphi **source** tree like `...\Embarcadero\Studio\XX.0\source` — that’s exactly how the manual and real-world CL usage show it). ([TMS Software Download][1])
+
+Why `--libpath` matters:
+
+* TMS explicitly warns that some rules won’t work without `--libpath` and `--unitscopes`. ([TMS Software Download][1])
+  So: `searchpath` is “our code + dependencies”, `libpath` is “Delphi’s RTL/VCL/FMX sources”.
+
+## `--ignore`: patterns? how separated?
+
+Two key facts:
+
+1. **Separator**
+
+* TMS support says **the delimiter is `;` (semicolon)**. ([TMS Support Center][3])
+
+2. **What syntax it supports**
+
+* TMS says `--ignore` uses the **same logic as the IDE “ignore file list”**. ([TMS Support Center][3])
+* The FixInsight manual (IDE section, but same ignore logic) says you can use:
+
+  * **file masks** like `Jwa*.pas` or `C:\Project\ThirdParty\*.pas`
+  * **whole-folder ignore** by specifying a folder path (example ends with `\`). ([TMS Software Download][1])
+
+So you can reasonably assume `--ignore` accepts a `;`-separated list of masks and/or folders, e.g.
+
+* `--ignore=Jwa*.pas;C:\Project\ThirdParty\*.pas;C:\Project\Generated\`
+
+One more option (sometimes nicer than global ignore lists):
+
+* Put `//FI:ignore` on the first line of a unit to skip it. ([TMS Software Download][1])
+
+⚠️ Note: there have been versions where ignore handling in FixInsightCL differed/bugged vs the IDE plugin (TMS acknowledged issues in older versions). ([TMS Support Center][4])
+
+## `--settings`
+
+* The manual: `--settings=XXX.ficfg` = **override project settings**. ([TMS Software Download][1])
+* In practice, `.ficfg` is the FixInsight config file used by the IDE plugin; passing it on the CLI forces FixInsightCL to use that configuration (even if the project would otherwise use a different/default one). You can see real usage in TMS support posts where they run FixInsightCL with `--settings="...\ProjectForFixinsight.ficfg"`. ([TMS Support Center][4])
+
+
+
+[1]: https://download.tmssoftware.com/download/manuals/TMS%20FixInsight.pdf "TMS FixInsight"
+[2]: https://github.com/Xcentric/FIToolkit "GitHub - Xcentric/FIToolkit: A small set of tools built around TMS® FixInsight™"
+[3]: https://support.tmssoftware.com/t/fixinsightcl-and-ignore-parameter/19457 "FixInsightCL and --ignore parameter - TMS FixInsight Pro - TMS Support Center"
+[4]: https://support.tmssoftware.com/t/fixinsight-2021-10-differences-between-the-plugin-and-fixinsightcl/19470 "FixInsight 2021.10 - Differences between the plugin and FixInsightCL? - TMS FixInsight Pro - TMS Support Center"

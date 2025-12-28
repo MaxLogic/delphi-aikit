@@ -1,0 +1,27 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <DCC_UnitSearchPath>f:\projects\maxLogic\MaxLogicFoundation\;F:\projects\3rdParty\Daniele Spinetti\loggerpro;F:\projects\3rdParty\Spring4D\_git\spring4d\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_FOR_VARIABLE>error</DCC_FOR_VARIABLE>
+        <DCC_FOR_LOOP_VAR_VARPAR>error</DCC_FOR_LOOP_VAR_VARPAR>
+        <DCC_FOR_LOOP_VAR_UNDEF>error</DCC_FOR_LOOP_VAR_UNDEF>
+        <DCC_NO_RETVAL>error</DCC_NO_RETVAL>
+        <DCC_USE_BEFORE_DEF>error</DCC_USE_BEFORE_DEF>
+        <DCC_Define>NeverUninstall;NeverSleepOnMMThreadContention;UseSwitchToThread;UseReleaseStack;ZUGFeRD_Support;$(DCC_Define)</DCC_Define>
+        <DCC_CASE_LABEL_RANGE>error</DCC_CASE_LABEL_RANGE>
+        <DCC_OPTION_TRUNCATED>error</DCC_OPTION_TRUNCATED>
+        <DCC_BOUNDS_ERROR>error</DCC_BOUNDS_ERROR>
+        <DCC_CONSTRUCTING_ABSTRACT>error</DCC_CONSTRUCTING_ABSTRACT>
+        <DCC_PACKAGED_THREADVAR>error</DCC_PACKAGED_THREADVAR>
+        <DCC_FILE_OPEN>error</DCC_FILE_OPEN>
+        <DCC_TYPED_CONST_VARPAR>error</DCC_TYPED_CONST_VARPAR>
+        <DCC_DcuOutput>.\dcu\$(platform)\$(config)\</DCC_DcuOutput>
+    </PropertyGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+        <Borland.ProjectType>OptionSet</Borland.ProjectType>
+        <BorlandProject>
+            <Delphi.Personality/>
+        </BorlandProject>
+        <ProjectFileVersion>12</ProjectFileVersion>
+    </ProjectExtensions>
+</Project>

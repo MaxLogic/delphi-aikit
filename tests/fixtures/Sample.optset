@@ -1,0 +1,10 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <DCC_Define>OPTSET_BASE</DCC_Define>
+    <DCC_UnitSearchPath>.\optset;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_Namespace>System;Vcl</DCC_Namespace>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'=='Win32'">
+    <DCC_Define>OPTSET_WIN32;$(DCC_Define)</DCC_Define>
+  </PropertyGroup>
+</Project>

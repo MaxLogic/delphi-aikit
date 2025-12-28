@@ -1,0 +1,15 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MainSource>Sample.dpr</MainSource>
+    <CfgDependentOn>Sample.optset</CfgDependentOn>
+    <DCC_Define>BASE;$(DCC_Define)</DCC_Define>
+    <DCC_UnitSearchPath>.\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_Namespace>System;Vcl;$(DCC_Namespace)</DCC_Namespace>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Config)'=='Debug'">
+    <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'=='Win32' and '$(Cfg_2)'==''">
+    <DCC_Define>WIN32CFG;$(DCC_Define)</DCC_Define>
+  </PropertyGroup>
+</Project>
