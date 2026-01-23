@@ -1,6 +1,6 @@
 # DelphiConfigResolver
 
-DelphiConfigResolver is a small console tool that reads a Delphi `.dproj` plus a target platform and configuration, then emits a fully expanded set of FixInsightCL parameters. We can use it to run FixInsight analysis outside the IDE in a repeatable way.
+DelphiConfigResolver is a small console tool that reads a Delphi project plus a target platform/configuration, then emits a fully expanded set of FixInsightCL parameters. We can use it to run FixInsight analysis outside the IDE in a repeatable way.
 
 ## What it can do
 
@@ -15,44 +15,71 @@ DelphiConfigResolver is a small console tool that reads a Delphi `.dproj` plus a
 - Reproducing the exact IDE configuration in a headless environment
 - Comparing config differences between platforms or build types
 
+## Requirements
+
+- Windows (we use the registry and `rsvars.bat`)
+- Delphi (any supported version); build scripts/examples default to 12 / 23.0, but we can pass other versions
+- FixInsightCL.exe only if we plan to run FixInsight (`--run-fixinsight`) or use the generated `bat`
+
+## Build
+
+The project file is `projects\DelphiConfigResolver.dproj` and the executable is output to `bin\DelphiConfigResolver.exe`.
+
+Build from Windows:
+
+```
+build-delphi.bat projects\DelphiConfigResolver.dproj -config Debug -platform Win32 -ver 23
+```
+
+Build from WSL (calls Windows `cmd.exe`):
+
+```
+./build-delphi.sh projects/DelphiConfigResolver.dproj -config Debug -platform Win32 -ver 23
+```
+
+`build.bat` is a convenience wrapper that builds the resolver in Debug (Win32) with the default Delphi version.
+
 ## Quick start
 
-Build the console app with Delphi 12+, then run:
+Build the console app, then run:
 
 ```
-DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0
+bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0
 ```
+
+`--dproj` accepts `.dproj`, `.dpr`, or `.dpk`. If we pass `.dpr`/`.dpk`, the resolver uses the sibling `.dproj`.
+`--delphi` is required; `23` is normalized to `23.0`. We can pass other Delphi versions here as well.
 
 If `--platform` or `--config` is omitted, we default to `Win32` and `Release`.
 
 By default, we write `ini` output to stdout. To write a file or change the output kind:
 
 ```
-DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win64 --config Release --delphi 23.0 --out-kind bat --out "C:\temp\run_fixinsight.bat"
+bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win64 --config Release --delphi 23.0 --out-kind bat --out "C:\temp\run_fixinsight.bat"
 ```
 
 For extra diagnostics during troubleshooting, enable verbose output:
 
 ```
-DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --verbose true
+bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --verbose true
 ```
 
 To run FixInsightCL directly (avoids cmd.exe 8K limit), add:
 
 ```
-DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight
+bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight
 ```
 
 To capture resolver diagnostics (warnings, missing paths, macro issues) into a log file:
 
 ```
-DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight --logfile "C:\temp\resolver.log"
+bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight --logfile "C:\temp\resolver.log"
 ```
 
 To also include resolver diagnostics in stderr/stdout output (useful when redirecting into a report), add:
 
 ```
-DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight --logfile "C:\temp\resolver.log" --log-tee true
+bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight --logfile "C:\temp\resolver.log" --log-tee true
 ```
 
 When `--run-fixinsight` is used, we suppress stdout output unless `--out` or `--out-kind` is explicitly provided.
@@ -61,13 +88,13 @@ We run `rsvars.bat` from the default Delphi installation path to pick up IDE env
 If Delphi is installed in a non-standard location, pass the path explicitly:
 
 ```
-DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --rsvars "D:\Apps\Embarcadero\Studio\23.0\bin\rsvars.bat"
+bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --rsvars "D:\Apps\Embarcadero\Studio\23.0\bin\rsvars.bat"
 ```
 
-If `EnvOptions.proj` is stored elsewhere, we can override that path too:
+If the IDE library path is missing in the registry, we fall back to `EnvOptions.proj`. We can override that path too:
 
 ```
-DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --envoptions "D:\Config\EnvOptions.proj"
+bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --envoptions "D:\Config\EnvOptions.proj"
 ```
 
 ## FixInsightCL pass-through options
@@ -108,6 +135,13 @@ Csv=false
 
 - We read IDE configuration from the registry for the requested Delphi version (for example `23.0` for Delphi 12).
 - We run `rsvars.bat` first so the IDE environment variables are available for macro expansion.
-- If the IDE library path is not in the registry, we fall back to `EnvOptions.proj` from `%AppData%\Embarcadero\BDS\<version>\EnvOptions.proj`.
-- For `bat` output, we try to resolve `FixInsightCL.exe` from `PATH`, then from FixInsight registry keys (HKCU/HKLM, 32/64-bit).
+- If the IDE library path is not in the registry, we fall back to `EnvOptions.proj` from `BDSUSERDIR`.
+  If `BDSUSERDIR` is missing, we derive it from `%APPDATA%\Embarcadero\BDS\<version>` and then `%USERPROFILE%\Documents\Embarcadero\Studio\<version>`.
+- We resolve `FixInsightCL.exe` from `settings.ini` (`Path`), then `PATH`, then FixInsight registry keys (HKCU/HKLM, 32/64-bit).
 - Sample inputs live in `tests\fixtures\` so we can quickly try the resolver.
+
+## Tests
+
+There are no automated unit tests in this repo. Manual checks live in `tests\README.md`.
+We can also run `tests\run.bat`, which executes the resolver against all fixture `.dproj` files and writes outputs to `tests\out`.
+It expects `bin\DelphiConfigResolver.exe` to exist and accepts optional `RSVARS` and `ENVOPTIONS` environment variables for overrides.
