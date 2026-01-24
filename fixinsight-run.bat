@@ -22,6 +22,10 @@ set "ML_PLATFORM=Win32"
 set "ML_CONFIG=Release"
 set "ML_DELPHI_VER=23.0"
 
+rem Optional: generate raw FixInsightCL reports (txt/xml/csv) under docs/ for post-processing tests
+set "ML_GENERATE_SAMPLE_REPORTS=true"
+set "ML_SAMPLE_DIR_REL=docs\sample-fix-insight-self-reports"
+
 rem Optional troubleshooting
 set "ML_VERBOSE=false"
 set "ML_LOG_TEE=true"
@@ -203,4 +207,44 @@ echo.
 
 echo [DONE] Report saved to:
 echo        "%ML_REPORT_FILE%"
+
+rem ---- Optional: capture raw FixInsightCL outputs (txt/xml/csv) --------------
+if not "%ML_RC%"=="0" goto samples_done
+if /I not "%ML_GENERATE_SAMPLE_REPORTS%"=="true" goto samples_done
+
+set "ML_SAMPLE_DIR=%ML_SCRIPT_DIR%%ML_SAMPLE_DIR_REL%"
+if not exist "%ML_SAMPLE_DIR%" mkdir "%ML_SAMPLE_DIR%"
+
+echo.
+echo ============================================================
+echo  Generating raw FixInsightCL reports: txt/xml/csv
+echo ============================================================
+echo  Dir: "%ML_SAMPLE_DIR%"
+echo.
+
+rem TXT
+"%ML_RESOLVER_EXE%" --dproj "%ML_DPROJ%" --platform "%ML_PLATFORM%" --config "%ML_CONFIG%" --delphi "%ML_DELPHI_VER%" --run-fixinsight --output "%ML_SAMPLE_DIR%\fixinsight-self.txt" --log-tee false --verbose false >nul 2>&1
+if errorlevel 1 (
+  echo [ERROR] Failed to generate TXT sample report.
+  exit /b 10
+)
+
+rem XML
+"%ML_RESOLVER_EXE%" --dproj "%ML_DPROJ%" --platform "%ML_PLATFORM%" --config "%ML_CONFIG%" --delphi "%ML_DELPHI_VER%" --run-fixinsight --xml true --output "%ML_SAMPLE_DIR%\fixinsight-self.xml" --log-tee false --verbose false >nul 2>&1
+if errorlevel 1 (
+  echo [ERROR] Failed to generate XML sample report.
+  exit /b 11
+)
+
+rem CSV
+"%ML_RESOLVER_EXE%" --dproj "%ML_DPROJ%" --platform "%ML_PLATFORM%" --config "%ML_CONFIG%" --delphi "%ML_DELPHI_VER%" --run-fixinsight --csv true --output "%ML_SAMPLE_DIR%\fixinsight-self.csv" --log-tee false --verbose false >nul 2>&1
+if errorlevel 1 (
+  echo [ERROR] Failed to generate CSV sample report.
+  exit /b 12
+)
+
+echo [DONE] Raw reports saved under:
+echo        "%ML_SAMPLE_DIR%"
+
+:samples_done
 exit /b %ML_RC%

@@ -56,6 +56,7 @@
 *.projdata
 *.tvsconfig
 *.dsk
+*.dproj.user
 
 # Delphi history and backups
 __history/
@@ -79,3 +80,7 @@ pas-api-map.md
 sfx
 /tests/out
 *.log
+fixInsight-*-report.txt
+fixInsight-*-params.ini
+tests/fixtures/KFZMeister.dpr
+tests/fixtures/KFZMeister.dproj

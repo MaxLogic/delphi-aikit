@@ -13,6 +13,8 @@ uses
   Dcr.Messages in '..\src\Dcr.Messages.pas', Dcr.MacroExpander in '..\src\Dcr.MacroExpander.pas',
   Dcr.MsBuild in '..\src\Dcr.MsBuild.pas', Dcr.output in '..\src\Dcr.Output.pas',
   Dcr.Project in '..\src\Dcr.Project.pas', Dcr.Registry in '..\src\Dcr.Registry.pas',
+  Dcr.PascalAnalyzerRunner in '..\src\Dcr.PascalAnalyzerRunner.pas',
+  Dcr.ReportPostProcess in '..\src\Dcr.ReportPostProcess.pas',
   Dcr.RsVars in '..\src\Dcr.RsVars.pas',
   Dcr.Types in '..\src\Dcr.Types.pas';
 
@@ -101,6 +103,9 @@ var
   lLibraryPath: string;
   lLibrarySource: TPropertySource;
   lFixOptions: TFixInsightExtraOptions;
+  lFixIgnoreDefaults: TFixInsightIgnoreDefaults;
+  lReportFilter: TReportFilterDefaults;
+  lPascalAnalyzer: TPascalAnalyzerDefaults;
   lError: string;
   lErrorCode: integer;
   lExitCode: integer;
@@ -164,12 +169,12 @@ begin
       if lOk then
       begin
         lDiagnostics.AddInfo(Format(SInfoStep, ['Read settings.ini']));
-        lOk := LoadFixInsightDefaults(lDiagnostics, lFixOptions);
+        lOk := LoadSettings(lDiagnostics, lFixOptions, lFixIgnoreDefaults, lReportFilter, lPascalAnalyzer);
         if not lOk then
         begin
           lExitCode := 6;
         end else
-          ApplyFixInsightOverrides(lOptions, lFixOptions);
+          ApplySettingsOverrides(lOptions, lFixOptions, lFixIgnoreDefaults, lReportFilter, lPascalAnalyzer);
       end;
 
       if lOk then
@@ -280,6 +285,26 @@ begin
       if lOk and lOptions.fRunFixInsight then
       begin
         lDiagnostics.AddInfo(Format(SInfoStep, ['Run FixInsightCL']));
+        if (lParams.fFixInsightExe = '') then
+        begin
+          writeln(ErrOutput, SFixInsightExeMissing);
+          lExitCode := 7;
+          lOk := False;
+        end;
+      end;
+
+      if lOk and lOptions.fRunFixInsight then
+      begin
+        if lParams.fFixOutput <> '' then
+        begin
+          // FixInsightCL resolves relative --output paths against the project folder.
+          // We need a stable, deterministic output location because we post-process the report file.
+          lParams.fFixOutput := TPath.GetFullPath(lParams.fFixOutput);
+          TDirectory.CreateDirectory(ExtractFilePath(lParams.fFixOutput));
+        end;
+        if lParams.fFixSettings <> '' then
+          lParams.fFixSettings := TPath.GetFullPath(lParams.fFixSettings);
+
         lOk := TryRunFixInsight(lParams, lRunExit, lRunError);
         if not lOk then
         begin
@@ -290,6 +315,57 @@ begin
           writeln(ErrOutput, Format(SFixInsightRunExit, [lRunExit]));
           lExitCode := Integer(lRunExit);
           lOk := False;
+        end else if HasAnyReportFilters(lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings) then
+        begin
+          if lParams.fFixOutput = '' then
+          begin
+            // We only post-process file output; stdout-only output is left untouched.
+            lDiagnostics.AddWarning('Report filtering requested but FixInsightCL --output is not set; skipping.');
+          end else
+          begin
+            var lFormat: TReportFormat := TReportFormat.rfText;
+            if lParams.fFixCsv then
+              lFormat := TReportFormat.rfCsv
+            else if lParams.fFixXml then
+              lFormat := TReportFormat.rfXml;
+
+            var lReportPath := lParams.fFixOutput;
+            var lFilterError: string;
+            if not TryPostProcessFixInsightReport(lReportPath, lFormat, lReportFilter.fExcludePathMasks,
+              lFixIgnoreDefaults.fWarnings, lFilterError) then
+            begin
+              writeln(ErrOutput, 'FixInsight report post-processing failed: ' + lFilterError);
+              lExitCode := 6;
+              lOk := False;
+            end;
+          end;
+        end;
+      end;
+
+      if lOk and lOptions.fRunPascalAnalyzer then
+      begin
+        lDiagnostics.AddInfo(Format(SInfoStep, ['Run Pascal Analyzer (PALCMD)']));
+
+        var lPalExe: string;
+        if not TryResolvePalCmdExe(lPascalAnalyzer.fPath, lPalExe, lRunError) then
+        begin
+          writeln(ErrOutput, lRunError);
+          lExitCode := 7;
+          lOk := False;
+        end else
+        begin
+          lPascalAnalyzer.fPath := lPalExe;
+          lOk := TryRunPascalAnalyzer(lParams, lPascalAnalyzer, lRunExit, lRunError);
+          if not lOk then
+          begin
+            writeln(ErrOutput, lRunError);
+            lExitCode := 6;
+          end else if lRunExit <> 0 then
+          begin
+            writeln(ErrOutput, Format('PALCMD exited with code %d.', [lRunExit]));
+            lExitCode := Integer(lRunExit);
+            lOk := False;
+          end;
         end;
       end;
     except

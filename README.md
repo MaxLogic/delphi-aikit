@@ -20,6 +20,7 @@ DelphiConfigResolver is a small console tool that reads a Delphi project plus a 
 - Windows (we use the registry and `rsvars.bat`)
 - Delphi (any supported version); build scripts/examples default to 12 / 23.0, but we can pass other versions
 - FixInsightCL.exe only if we plan to run FixInsight (`--run-fixinsight`) or use the generated `bat`
+- Pascal Analyzer (PALCMD.EXE / PALCMD32.EXE) only if we plan to run it (`--run-pascal-analyzer`)
 
 ## Build
 
@@ -121,9 +122,66 @@ Settings=
 Silent=false
 Xml=false
 Csv=false
+
+[FixInsightIgnore]
+; semicolon-separated FixInsight rule IDs to suppress in report post-processing (e.g. W502;C101;O801)
+Warnings=
+
+[ReportFilter]
+; semicolon-separated Windows-style file mask patterns for report post-processing
+ExcludePathMasks=
+
+[PascalAnalyzer]
+; path to palcmd.exe / palcmd32.exe (or its folder)
+Path=
+; report root folder (PALCMD /R=...)
+Output=
+; extra PALCMD args (passed verbatim)
+Args=
 ```
 
 `Path` is optional and can point to FixInsightCL.exe (or its folder). Relative paths are resolved against the executable folder.
+
+## Report filtering (post-processing)
+
+We support deterministic report filtering after analysis:
+
+- `--exclude-path-masks "<m1;m2;...>"` (or `[ReportFilter].ExcludePathMasks`) removes findings whose reported file path matches any mask.
+- `--ignore-warning-ids "W502;C101;O801"` (or `[FixInsightIgnore].Warnings`) removes findings for those FixInsight rule IDs.
+
+Notes:
+
+- This is post-processing only, so it does not speed up FixInsightCL.
+- Filtering only applies when FixInsightCL writes to a file (`--output`), because we need a report file to rewrite.
+- Supported FixInsight report formats: text (default), `--xml`, and `--csv`.
+
+Example (CSV, filtered):
+
+```
+bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Release --delphi 23.0 ^
+  --run-fixinsight --csv true --output "C:\temp\fixinsight.csv" ^
+  --exclude-path-masks "*\lib\*;*\thirdparty\*" ^
+  --ignore-warning-ids "O802;O803"
+```
+
+## Pascal Analyzer (PALCMD) runner
+
+To run Peganza Pascal Analyzer headlessly using our resolved project inputs:
+
+- `--run-pascal-analyzer`
+- optional overrides:
+  - `--pa-path "...\palcmd.exe"` (or `palcmd32.exe`, or a folder containing it)
+  - `--pa-output "C:\temp\pa"` (report root folder, passed as `/R=...`)
+  - `--pa-args "/F=X /Q ..."` (extra PALCMD options, passed verbatim)
+
+If `--pa-args` is omitted, we use sensible defaults (`/F=X /Q /A+ /FR /T=min(8, CPU)`) and we derive `/CD...` from `--delphi` + `--platform`.
+
+Example:
+
+```
+bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Release --delphi 23.0 ^
+  --run-pascal-analyzer --pa-output "C:\temp\pa" --pa-args "/F=X /Q"
+```
 
 ## Output formats
 
@@ -139,6 +197,7 @@ Csv=false
   If `BDSUSERDIR` is missing, we derive it from `%APPDATA%\Embarcadero\BDS\<version>` and then `%USERPROFILE%\Documents\Embarcadero\Studio\<version>`.
 - We resolve `FixInsightCL.exe` from `settings.ini` (`Path`), then `PATH`, then FixInsight registry keys (HKCU/HKLM, 32/64-bit).
 - Sample inputs live in `tests\fixtures\` so we can quickly try the resolver.
+- `fixinsight-run.bat` can regenerate sample FixInsight reports under `docs\sample-fix-insight-self-reports\`.
 
 ## Tests
 
