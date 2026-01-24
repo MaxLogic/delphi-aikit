@@ -12,6 +12,8 @@ All notable user-visible changes to this project will be documented in this file
 - Added --run-fixinsight to execute FixInsightCL directly via CreateProcess. (T-009)
 - Added --logfile to capture resolver diagnostics in a file. (T-010)
 - Added --log-tee to mirror resolver diagnostics to output when using --logfile. (T-011)
+- Added FixInsight report post-processing filters: `--exclude-path-masks`, `--ignore-warning-ids` and settings.ini sections `[ReportFilter]` + `[FixInsightIgnore]`. (T-013, T-014)
+- Added Pascal Analyzer runner: `--run-pascal-analyzer` with PALCMD discovery + `--pa-path/--pa-output/--pa-args` and `[PascalAnalyzer]` settings.ini section. (T-015)
 
 ### Changed
 - Defaulted CLI `--platform` to `Win32` and `--config` to `Release` when omitted. (T-002)
@@ -19,6 +21,7 @@ All notable user-visible changes to this project will be documented in this file
 - Auto-detect FixInsightCL.exe via `PATH`, then `HKCU\Software\FixInsight\Path` for bat output. (T-003)
 - Added FixInsightCL pass-through options via settings.ini defaults and CLI overrides. (T-004)
 - Suppressed stdout output during --run-fixinsight unless --out/--out-kind is provided. (T-010)
+- Updated `fixinsight-run.bat` to generate sample FixInsight reports (txt/xml/csv) under `docs\sample-fix-insight-self-reports\`. (T-017)
 
 ### Fixed
 - Fixed FixInsightCL.exe discovery across HKCU/HKLM 32/64-bit registry views. (T-005)

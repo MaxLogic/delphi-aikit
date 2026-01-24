@@ -7,6 +7,8 @@ resourcestring
     'DelphiConfigResolver.exe --dproj "<path>" --delphi <23.0> [--platform <Win32|Win64>] [--config <Debug|Release>] ' +
     '[--out-kind <bat|ini|xml>] [--out "<path>"] [--output "<path>"] [--ignore "<list>"] [--settings "<path>"] ' +
     '[--silent [true|false]] [--xml [true|false]] [--csv [true|false]] [--run-fixinsight [true|false]] [--logfile "<path>"] ' +
+    '[--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"] ' +
+    '[--run-pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +
     '[--log-tee [true|false]] ' +
     '[--verbose <true|false>] ' +
     '[--rsvars "<path>"] [--envoptions "<path>"]';
