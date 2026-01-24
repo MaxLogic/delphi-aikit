@@ -3,17 +3,26 @@ unit Dcr.FixInsightSettings;
 interface
 
 uses
+  System.Generics.Collections,
   System.IniFiles, System.IOUtils, System.SysUtils,
+  maxLogic.StrUtils,
   Dcr.Diagnostics, Dcr.Messages, Dcr.Types;
 
-function LoadFixInsightDefaults(aDiagnostics: TDiagnostics; out aOptions: TFixInsightExtraOptions): Boolean;
-procedure ApplyFixInsightOverrides(const aOverrides: TAppOptions; var aOptions: TFixInsightExtraOptions);
+function LoadSettings(aDiagnostics: TDiagnostics; out aFixInsight: TFixInsightExtraOptions;
+  out aFixInsightIgnore: TFixInsightIgnoreDefaults; out aReportFilter: TReportFilterDefaults;
+  out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean;
+procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
+  var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
+  var aPascalAnalyzer: TPascalAnalyzerDefaults);
 
 implementation
 
 const
   SSettingsFileName = 'settings.ini';
   SFixInsightSection = 'FixInsightCL';
+  SFixInsightIgnoreSection = 'FixInsightIgnore';
+  SReportFilterSection = 'ReportFilter';
+  SPascalAnalyzerSection = 'PascalAnalyzer';
 
 function GetSettingsPath: string;
 begin
@@ -48,12 +57,72 @@ begin
     aDiagnostics.AddWarning(Format(SSettingsInvalidBool, [aKey, lValue]));
 end;
 
-function LoadFixInsightDefaults(aDiagnostics: TDiagnostics; out aOptions: TFixInsightExtraOptions): Boolean;
+function SplitList(const aValue: string): TArray<string>;
+var
+  lPart: string;
+  lItem: string;
+  lRaw: TArray<string>;
+  lList: TList<string>;
+begin
+  Result := nil;
+  if aValue = '' then
+    Exit;
+  lRaw := aValue.Split([';']);
+  lList := TList<string>.Create;
+  try
+    for lPart in lRaw do
+    begin
+      lItem := Trim(lPart);
+      if lItem <> '' then
+        lList.Add(lItem);
+    end;
+    Result := lList.ToArray;
+  finally
+    lList.Free;
+  end;
+end;
+
+function MergeList(const aFirst: string; const aSecond: string): string;
+var
+  lSet: THashSet<string>;
+  lItems: TList<string>;
+
+  procedure AddFrom(const aValue: string);
+  var
+    lItem: string;
+  begin
+    for lItem in SplitList(aValue) do
+      if lSet.Add(lItem) then
+        lItems.Add(lItem);
+  end;
+begin
+  Result := '';
+  lSet := THashSet<string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    lItems := TList<string>.Create;
+    try
+      AddFrom(aFirst);
+      AddFrom(aSecond);
+      Result := String.Join(';', lItems.ToArray);
+    finally
+      lItems.Free;
+    end;
+  finally
+    lSet.Free;
+  end;
+end;
+
+function LoadSettings(aDiagnostics: TDiagnostics; out aFixInsight: TFixInsightExtraOptions;
+  out aFixInsightIgnore: TFixInsightIgnoreDefaults; out aReportFilter: TReportFilterDefaults;
+  out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean;
 var
   lIni: TIniFile;
   lPath: string;
 begin
-  aOptions := Default(TFixInsightExtraOptions);
+  aFixInsight := Default(TFixInsightExtraOptions);
+  aFixInsightIgnore := Default(TFixInsightIgnoreDefaults);
+  aReportFilter := Default(TReportFilterDefaults);
+  aPascalAnalyzer := Default(TPascalAnalyzerDefaults);
   lPath := GetSettingsPath;
   if aDiagnostics <> nil then
     aDiagnostics.AddInfo(Format(SInfoSettingsPath, [lPath]));
@@ -63,33 +132,56 @@ begin
   Result := False;
   lIni := TIniFile.Create(lPath);
   try
-    aOptions.fExePath := Trim(lIni.ReadString(SFixInsightSection, 'Path', ''));
-    aOptions.fOutput := Trim(lIni.ReadString(SFixInsightSection, 'Output', ''));
-    aOptions.fIgnore := Trim(lIni.ReadString(SFixInsightSection, 'Ignore', ''));
-    aOptions.fSettings := Trim(lIni.ReadString(SFixInsightSection, 'Settings', ''));
-    ReadBoolOption(lIni, 'Silent', aOptions.fSilent, aDiagnostics);
-    ReadBoolOption(lIni, 'Xml', aOptions.fXml, aDiagnostics);
-    ReadBoolOption(lIni, 'Csv', aOptions.fCsv, aDiagnostics);
+    aFixInsight.fExePath := Trim(lIni.ReadString(SFixInsightSection, 'Path', ''));
+    aFixInsight.fOutput := Trim(lIni.ReadString(SFixInsightSection, 'Output', ''));
+    aFixInsight.fIgnore := Trim(lIni.ReadString(SFixInsightSection, 'Ignore', ''));
+    aFixInsight.fSettings := Trim(lIni.ReadString(SFixInsightSection, 'Settings', ''));
+    ReadBoolOption(lIni, 'Silent', aFixInsight.fSilent, aDiagnostics);
+    ReadBoolOption(lIni, 'Xml', aFixInsight.fXml, aDiagnostics);
+    ReadBoolOption(lIni, 'Csv', aFixInsight.fCsv, aDiagnostics);
+
+    aFixInsightIgnore.fWarnings := Trim(lIni.ReadString(SFixInsightIgnoreSection, 'Warnings', ''));
+
+    aReportFilter.fExcludePathMasks := Trim(lIni.ReadString(SReportFilterSection, 'ExcludePathMasks', ''));
+
+    aPascalAnalyzer.fPath := Trim(lIni.ReadString(SPascalAnalyzerSection, 'Path', ''));
+    aPascalAnalyzer.fOutput := Trim(lIni.ReadString(SPascalAnalyzerSection, 'Output', ''));
+    aPascalAnalyzer.fArgs := Trim(lIni.ReadString(SPascalAnalyzerSection, 'Args', ''));
     Result := True;
   finally
     lIni.Free;
   end;
 end;
 
-procedure ApplyFixInsightOverrides(const aOverrides: TAppOptions; var aOptions: TFixInsightExtraOptions);
+procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
+  var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
+  var aPascalAnalyzer: TPascalAnalyzerDefaults);
 begin
   if aOverrides.fHasFixOutput then
-    aOptions.fOutput := aOverrides.fFixOutput;
+    aFixInsight.fOutput := aOverrides.fFixOutput;
   if aOverrides.fHasFixIgnore then
-    aOptions.fIgnore := aOverrides.fFixIgnore;
+    aFixInsight.fIgnore := MergeList(aFixInsight.fIgnore, aOverrides.fFixIgnore);
   if aOverrides.fHasFixSettings then
-    aOptions.fSettings := aOverrides.fFixSettings;
+    aFixInsight.fSettings := aOverrides.fFixSettings;
   if aOverrides.fHasFixSilent then
-    aOptions.fSilent := aOverrides.fFixSilent;
+    aFixInsight.fSilent := aOverrides.fFixSilent;
   if aOverrides.fHasFixXml then
-    aOptions.fXml := aOverrides.fFixXml;
+    aFixInsight.fXml := aOverrides.fFixXml;
   if aOverrides.fHasFixCsv then
-    aOptions.fCsv := aOverrides.fFixCsv;
+    aFixInsight.fCsv := aOverrides.fFixCsv;
+
+  if aOverrides.fHasIgnoreWarningIds then
+    aFixInsightIgnore.fWarnings := MergeList(aFixInsightIgnore.fWarnings, aOverrides.fIgnoreWarningIds);
+
+  if aOverrides.fHasExcludePathMasks then
+    aReportFilter.fExcludePathMasks := aOverrides.fExcludePathMasks;
+
+  if aOverrides.fHasPaPath then
+    aPascalAnalyzer.fPath := aOverrides.fPaPath;
+  if aOverrides.fHasPaOutput then
+    aPascalAnalyzer.fOutput := aOverrides.fPaOutput;
+  if aOverrides.fHasPaArgs then
+    aPascalAnalyzer.fArgs := aOverrides.fPaArgs;
 end;
 
 end.

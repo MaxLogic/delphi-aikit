@@ -267,6 +267,18 @@ begin
         Exit(False);
       end;
       aOptions.fHasFixCsv := True;
+    end else if SameText(lSwitch, 'exclude-path-masks') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--exclude-path-masks') then
+        Exit(False);
+      aOptions.fExcludePathMasks := lValue;
+      aOptions.fHasExcludePathMasks := True;
+    end else if SameText(lSwitch, 'ignore-warning-ids') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--ignore-warning-ids') then
+        Exit(False);
+      aOptions.fIgnoreWarningIds := lValue;
+      aOptions.fHasIgnoreWarningIds := True;
     end else if SameText(lSwitch, 'run-fixinsight') then
     begin
       if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--run-fixinsight') then
@@ -276,6 +288,33 @@ begin
         aError := Format(SInvalidBoolValue, ['--run-fixinsight', lValue]);
         Exit(False);
       end;
+    end else if SameText(lSwitch, 'run-pascal-analyzer') then
+    begin
+      if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--run-pascal-analyzer') then
+        Exit(False);
+      if not TryParseBool(lValue, aOptions.fRunPascalAnalyzer) then
+      begin
+        aError := Format(SInvalidBoolValue, ['--run-pascal-analyzer', lValue]);
+        Exit(False);
+      end;
+    end else if SameText(lSwitch, 'pa-path') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--pa-path') then
+        Exit(False);
+      aOptions.fPaPath := lValue;
+      aOptions.fHasPaPath := True;
+    end else if SameText(lSwitch, 'pa-output') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--pa-output') then
+        Exit(False);
+      aOptions.fPaOutput := lValue;
+      aOptions.fHasPaOutput := True;
+    end else if SameText(lSwitch, 'pa-args') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--pa-args') then
+        Exit(False);
+      aOptions.fPaArgs := lValue;
+      aOptions.fHasPaArgs := True;
     end else if SameText(lSwitch, 'logfile') then
     begin
       if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--logfile') then

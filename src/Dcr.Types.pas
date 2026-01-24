@@ -9,6 +9,8 @@ type
 
   TPropertySource = (psUnknown, psDproj, psOptset, psRegistry, psEnvOptions);
 
+  TReportFormat = (rfText, rfXml, rfCsv);
+
   TAppOptions = record
     fDprojPath: string;
     fPlatform: string;
@@ -36,6 +38,17 @@ type
     fFixCsv: Boolean;
     fHasFixCsv: Boolean;
     fRunFixInsight: Boolean;
+    fExcludePathMasks: string;
+    fHasExcludePathMasks: Boolean;
+    fIgnoreWarningIds: string;
+    fHasIgnoreWarningIds: Boolean;
+    fRunPascalAnalyzer: Boolean;
+    fPaPath: string;
+    fHasPaPath: Boolean;
+    fPaOutput: string;
+    fHasPaOutput: Boolean;
+    fPaArgs: string;
+    fHasPaArgs: Boolean;
     fLogFile: string;
     fHasLogFile: Boolean;
     fLogTee: Boolean;
@@ -50,6 +63,20 @@ type
     fSilent: Boolean;
     fXml: Boolean;
     fCsv: Boolean;
+  end;
+
+  TFixInsightIgnoreDefaults = record
+    fWarnings: string;
+  end;
+
+  TReportFilterDefaults = record
+    fExcludePathMasks: string;
+  end;
+
+  TPascalAnalyzerDefaults = record
+    fPath: string;
+    fOutput: string;
+    fArgs: string;
   end;
 
   TFixInsightParams = record
