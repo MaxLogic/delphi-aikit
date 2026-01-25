@@ -1,9 +1,41 @@
 # Tests
 
-Manual checks
+`tests\run.bat` is an end-to-end feature test that exercises:
 
-- Run DelphiConfigResolver against `tests\fixtures\Sample.dproj` with `--platform Win32 --config Debug` and verify:
-  - Defines contain OPTSET_WIN32, OPTSET_BASE, BASE, DEBUG, WIN32CFG (order may vary by overrides).
-  - Unit search path starts with `tests\fixtures\src` and includes `tests\fixtures\optset` before IDE library path.
-  - Unit scopes include System and Vcl.
-- Repeat with `--platform Win64` to confirm the Win32-only optset define is absent.
+- resolver output generation (`--out-kind ini|xml|bat`) for fixtures and for our own `projects\DelphiConfigResolver.dproj`
+- FixInsightCL execution in `txt/xml/csv` (`--run-fixinsight`)
+- report filtering (`--exclude-path-masks`, `[ReportFilter]`)
+- warning-id filtering (`--ignore-warning-ids`, `[FixInsightIgnore]`)
+- Pascal Analyzer execution (`--run-pascal-analyzer`) if installed
+
+## Prereqs
+
+- `bin\DelphiConfigResolver.exe` exists (build it first if needed)
+- FixInsightCL is installed and discoverable (PATH / registry / settings)
+- Pascal Analyzer is installed (optional; can be skipped)
+
+## Run
+
+From a Windows shell:
+
+```bat
+tests\run.bat
+```
+
+From WSL (runs via Windows `cmd.exe`):
+
+```bash
+/mnt/c/Windows/System32/cmd.exe /C tests\\run.bat
+```
+
+Artifacts are written under `tests\out\` (this folder is expected to be disposable).
+
+## Useful env vars
+
+- `DCR_PLATFORM` (default: `Win32`)
+- `DCR_CONFIG` (default: `Release`)
+- `DCR_DELPHI` (default: `23.0`)
+- `RSVARS` (optional; passed as `--rsvars`)
+- `ENVOPTIONS` (optional; passed as `--envoptions`)
+- `PA_PATH` (optional; forwarded to `--pa-path` and/or `[PascalAnalyzer].Path`)
+- `SKIP_PASCAL_ANALYZER` (set to any value to skip PALCMD tests)
