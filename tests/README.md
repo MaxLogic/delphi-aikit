@@ -28,6 +28,12 @@ From WSL (runs via Windows `cmd.exe`):
 /mnt/c/Windows/System32/cmd.exe /C tests\\run.bat
 ```
 
+Or simply:
+
+```bash
+./tests/run.sh
+```
+
 Artifacts are written under `tests\out\` (this folder is expected to be disposable).
 
 ## Useful env vars
