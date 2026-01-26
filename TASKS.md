@@ -2,13 +2,6 @@
 
 ## In Progress
 
-### T-021 [TEST] Revisit run.bat reliability
-Outcome: Re-evaluate `tests/run.bat` behavior after the DUnitX suite lands and fix or replace it as needed.
-Proof:
-- Command: tests\\run.bat
-- Expect: All steps complete and all expected artifacts are produced under `tests\\out\\`.
-Touches: tests/run.bat, tests/README.md
-
 ## Next - Today
 
 ## Next - This Week
@@ -27,6 +20,9 @@ Summary: Added DUnitX FixInsight runs that validate txt/xml/csv outputs and exer
 
 ### T-020 [TEST] Add Pascal Analyzer integration tests in DUnitX
 Summary: Added DUnitX Pascal Analyzer runs that store outputs under `tests/temp/` and skip when PALCMD is unavailable.
+
+### T-021 [TEST] Revisit run.bat reliability
+Summary: Made run.bat build the resolver when missing and documented DUnitX/run scripts in tests README.
 
 ### T-012 [CLI] Extend settings.ini schema for ignore/filter/Pascal Analyzer
 Summary: Extended `settings.ini` schema with `[FixInsightIgnore]`, `[ReportFilter]`, and `[PascalAnalyzer]` and added corresponding CLI overrides.
