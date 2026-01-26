@@ -18,6 +18,14 @@ fi
 
 win_root="$(wslpath -w "${repo_root}")"
 
-# Run the Windows batch test from the repo root so relative paths match.
-exec "${cmd_exe}" /C "cd /d \"${win_root}\" && tests\\run.bat"
+# WSL -> Windows interop can mangle quotes inside cmd.exe `/C` strings.
+# Our repo path is expected to be on a drive path without spaces (e.g. F:\projects\...).
+if [[ "${win_root}" == *" "* ]]; then
+  echo "[ERROR] Repo path contains spaces; cmd.exe invocation would require quoting which is unreliable under WSL interop." >&2
+  echo "        Windows path: ${win_root}" >&2
+  echo "        Run tests\\run.bat from a Windows shell, or move the repo to a path without spaces." >&2
+  exit 2
+fi
 
+# Run the Windows batch test from the repo root so relative paths match.
+exec "${cmd_exe}" /C "cd /d ${win_root} && tests\\run.bat"
