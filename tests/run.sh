@@ -16,7 +16,7 @@ if [[ ! -x "${cmd_exe}" ]]; then
   exit 2
 fi
 
-win_root="$(wslpath -w "${repo_root}")"
+win_root="$(wslpath -w -a "${repo_root}")"
 
 # WSL -> Windows interop can mangle quotes inside cmd.exe `/C` strings.
 # Our repo path is expected to be on a drive path without spaces (e.g. F:\projects\...).
@@ -28,4 +28,10 @@ if [[ "${win_root}" == *" "* ]]; then
 fi
 
 # Run the Windows batch test from the repo root so relative paths match.
-exec "${cmd_exe}" /C "cd /d ${win_root} && tests\\run.bat"
+"${cmd_exe}" /C "cd /d ${win_root} && tests\\run.bat"
+rc=$?
+if [[ $rc -eq 126 || $rc -eq 127 ]]; then
+  echo "[ERROR] Failed to execute Windows cmd.exe from WSL (exit $rc)." >&2
+  echo "        Run tests\\run.bat from a Windows shell instead." >&2
+fi
+exit $rc

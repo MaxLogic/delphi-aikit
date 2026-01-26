@@ -10,7 +10,7 @@
 
 ## Prereqs
 
-- `bin\DelphiConfigResolver.exe` exists (build it first if needed)
+- `bin\DelphiConfigResolver.exe` exists (run.bat will attempt to build it if missing)
 - FixInsightCL is installed and discoverable (PATH / registry / settings)
 - Pascal Analyzer is installed (optional; can be skipped)
 
@@ -35,6 +35,23 @@ Or simply:
 ```
 
 Artifacts are written under `tests\out\` (this folder is expected to be disposable).
+
+## DUnitX suite (unit + integration)
+
+The DUnitX test runner lives under `tests\` and exercises:
+
+- build + resolver smoke checks
+- FixInsight txt/xml/csv runs and filtering
+- Pascal Analyzer runs and output validation
+
+Build and run from a Windows shell:
+
+```bat
+build-delphi.bat tests\DelphiConfigResolver.Tests.dproj -config Debug -platform Win32 -ver 23
+tests\DelphiConfigResolver.Tests.exe
+```
+
+If `pawelspc=1` is set, missing FixInsight/PALCMD is treated as a failure; otherwise the relevant tests are skipped.
 
 ## Useful env vars
 
