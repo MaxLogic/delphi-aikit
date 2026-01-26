@@ -9,7 +9,8 @@ uses
   DUnitX.Loggers.Console,
   Tests.Support in 'units\\tests.support.pas',
   Tests.Build in 'units\\tests.build.pas',
-  Tests.FixInsight in 'units\\tests.fixinsight.pas';
+  Tests.FixInsight in 'units\\tests.fixinsight.pas',
+  Tests.PascalAnalyzer in 'units\\tests.pascalanalyzer.pas';
 
 var
   Runner: ITestRunner;
