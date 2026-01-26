@@ -30,11 +30,23 @@ set "EXE=%ROOT%\bin\DelphiConfigResolver.exe"
 set "DPROJ_SELF=%ROOT%\projects\DelphiConfigResolver.dproj"
 
 if not exist "%EXE%" (
-  echo [ERROR] DelphiConfigResolver.exe not found:
+  echo [WARN] DelphiConfigResolver.exe not found:
+  echo        "%EXE%"
+  echo [INFO] Attempting to build it now...
+  if not exist "%ROOT%\build-delphi.bat" (
+    echo [ERROR] build-delphi.bat not found at:
+    echo         "%ROOT%\build-delphi.bat"
+    exit /b 2
+  )
+  call "%ROOT%\build-delphi.bat" "%ROOT%\projects\DelphiConfigResolver.dproj" -config %CONFIG% -platform %PLATFORM% -ver %DELPHI%
+  if errorlevel 1 (
+    echo [ERROR] build-delphi.bat failed.
+    exit /b 2
+  )
+)
+if not exist "%EXE%" (
+  echo [ERROR] DelphiConfigResolver.exe still missing after build:
   echo         "%EXE%"
-  echo.
-  echo Build it first, e.g.:
-  echo   build-delphi.bat projects\DelphiConfigResolver.dproj -config Release -platform Win32 -ver 23
   exit /b 2
 )
 if not exist "%DPROJ_SELF%" (
