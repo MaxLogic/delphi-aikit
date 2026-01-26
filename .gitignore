@@ -79,6 +79,7 @@ pas-api-map.md
 *.cbk
 sfx
 /tests/out
+/tests/temp
 *.log
 fixInsight-*-report.txt
 fixInsight-*-params.ini
