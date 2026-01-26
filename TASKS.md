@@ -2,22 +2,14 @@
 
 ## In Progress
 
-### T-020 [TEST] Add Pascal Analyzer integration tests in DUnitX
-Outcome: DUnitX tests run `--run-pascal-analyzer` against `projects/DelphiConfigResolver.dproj`, store outputs under `tests/temp/`, and clearly report skipped tests when PALCMD is unavailable.
-Proof:
-- Command: tests\\DelphiConfigResolver.Tests.exe
-- Expect: Pascal Analyzer tests pass (or are marked skipped when PALCMD is missing) and outputs are written under `tests\\temp\\pa-*`.
-Touches: tests/units/tests.pascalanalyzer.pas, tests/temp/
-Notes: Use `--pa-path` when needed; outputs are kept for review. If env var `pawelspc=1`, missing PALCMD should fail; otherwise skip when unavailable.
-
-## Next - Today
-
 ### T-021 [TEST] Revisit run.bat reliability
 Outcome: Re-evaluate `tests/run.bat` behavior after the DUnitX suite lands and fix or replace it as needed.
 Proof:
 - Command: tests\\run.bat
 - Expect: All steps complete and all expected artifacts are produced under `tests\\out\\`.
 Touches: tests/run.bat, tests/README.md
+
+## Next - Today
 
 ## Next - This Week
 
@@ -32,6 +24,9 @@ Summary: Created a DUnitX test project under `tests/` with temp cleanup at run s
 
 ### T-019 [TEST] Add FixInsight integration tests in DUnitX
 Summary: Added DUnitX FixInsight runs that validate txt/xml/csv outputs and exercise path-mask and warning-ID filtering.
+
+### T-020 [TEST] Add Pascal Analyzer integration tests in DUnitX
+Summary: Added DUnitX Pascal Analyzer runs that store outputs under `tests/temp/` and skip when PALCMD is unavailable.
 
 ### T-012 [CLI] Extend settings.ini schema for ignore/filter/Pascal Analyzer
 Summary: Extended `settings.ini` schema with `[FixInsightIgnore]`, `[ReportFilter]`, and `[PascalAnalyzer]` and added corresponding CLI overrides.

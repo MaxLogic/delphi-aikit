@@ -58,6 +58,7 @@
     <DCCReference Include="units\\tests.support.pas"/>
     <DCCReference Include="units\\tests.build.pas"/>
     <DCCReference Include="units\\tests.fixinsight.pas"/>
+    <DCCReference Include="units\\tests.pascalanalyzer.pas"/>
   </ItemGroup>
   <ItemGroup>
     <BuildConfiguration Include="Base">
