@@ -8,7 +8,8 @@ uses
   DUnitX.TestFramework,
   DUnitX.Loggers.Console,
   Tests.Support in 'units\\tests.support.pas',
-  Tests.Build in 'units\\tests.build.pas';
+  Tests.Build in 'units\\tests.build.pas',
+  Tests.FixInsight in 'units\\tests.fixinsight.pas';
 
 var
   Runner: ITestRunner;

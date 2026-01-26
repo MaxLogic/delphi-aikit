@@ -57,6 +57,7 @@
     </DelphiCompile>
     <DCCReference Include="units\\tests.support.pas"/>
     <DCCReference Include="units\\tests.build.pas"/>
+    <DCCReference Include="units\\tests.fixinsight.pas"/>
   </ItemGroup>
   <ItemGroup>
     <BuildConfiguration Include="Base">
