@@ -135,6 +135,20 @@ var
     Result := GetEnvironmentVariable(aName);
   end;
 
+  procedure AddRoot(const aValue: string);
+  var
+    lValue: string;
+    lItem: string;
+  begin
+    lValue := Trim(aValue);
+    if lValue = '' then
+      Exit;
+    for lItem in lRoots do
+      if SameText(lItem, lValue) then
+        Exit;
+    lRoots.Add(lValue);
+  end;
+
   function TryParseVer(const aFolderName: string; out aVer: Integer): Boolean;
   var
     lText: string;
@@ -159,10 +173,15 @@ begin
 
   lRoots := TList<string>.Create;
   try
-    if Env('ProgramFiles') <> '' then
-      lRoots.Add(Env('ProgramFiles'));
-    if Env('ProgramFiles(x86)') <> '' then
-      lRoots.Add(Env('ProgramFiles(x86)'));
+    AddRoot(Env('ProgramFiles'));
+    AddRoot(Env('ProgramFiles(x86)'));
+    AddRoot(Env('ProgramW6432'));
+    if lRoots.Count = 0 then
+    begin
+      // WSL-launched Windows processes sometimes miss ProgramFiles env vars.
+      lRoots.Add('C:\Program Files');
+      lRoots.Add('C:\Program Files (x86)');
+    end;
 
     // Known default (v9)
     for lRoot in lRoots do
@@ -273,33 +292,133 @@ end;
 function TryBuildDelphiTargetFlag(const aBdsVersion: string; const aPlatform: string; out aFlag: string): Boolean;
 var
   lMajor: Integer;
-  lDelphi: string;
-  lPlat: string;
+  lIsWin32: Boolean;
+  lIsWin64: Boolean;
 begin
   aFlag := '';
 
   lMajor := StrToIntDef(Copy(aBdsVersion, 1, Pos('.', aBdsVersion + '.') - 1), 0);
+  lIsWin32 := SameText(aPlatform, 'Win32');
+  lIsWin64 := SameText(aPlatform, 'Win64');
+  if not (lIsWin32 or lIsWin64) then
+    Exit(False);
+
   case lMajor of
-    23: lDelphi := '12';
-    22: lDelphi := '11';
-    21: lDelphi := '104';
-    20: lDelphi := '103';
-    19: lDelphi := '102';
-    18: lDelphi := '101';
-    17: lDelphi := '10';
+    23, 22:
+      if lIsWin32 then
+        aFlag := '/CD11W32'
+      else
+        aFlag := '/CD11W64';
+    21:
+      if lIsWin32 then
+        aFlag := '/CD104W32'
+      else
+        aFlag := '/CD104W64';
+    20:
+      if lIsWin32 then
+        aFlag := '/CD103W32'
+      else
+        aFlag := '/CD103W64';
+    19:
+      if lIsWin32 then
+        aFlag := '/CD102W32'
+      else
+        aFlag := '/CD102W64';
+    18:
+      if lIsWin32 then
+        aFlag := '/CD101W32'
+      else
+        aFlag := '/CD101W64';
+    17:
+      if lIsWin32 then
+        aFlag := '/CD10W32'
+      else
+        aFlag := '/CD10W64';
+    16:
+      if lIsWin32 then
+        aFlag := '/CDXE8W32'
+      else
+        aFlag := '/CDXE8W64';
+    15:
+      if lIsWin32 then
+        aFlag := '/CDXE7W32'
+      else
+        aFlag := '/CDXE7W64';
+    14:
+      if lIsWin32 then
+        aFlag := '/CDXE6W32'
+      else
+        aFlag := '/CDXE6W64';
+    13:
+      if lIsWin32 then
+        aFlag := '/CDXE5W32'
+      else
+        aFlag := '/CDXE5W64';
+    12:
+      if lIsWin32 then
+        aFlag := '/CDXE4W32'
+      else
+        aFlag := '/CDXE4W64';
+    11:
+      if lIsWin32 then
+        aFlag := '/CDXE3W32'
+      else
+        aFlag := '/CDXE3W64';
+    10:
+      if lIsWin32 then
+        aFlag := '/CDXE2W32'
+      else
+        aFlag := '/CDXE2W64';
+     9:
+      if lIsWin32 then
+        aFlag := '/CDXEW'
+      else
+        Exit(False);
+     8:
+      if lIsWin32 then
+        aFlag := '/CD14W'
+      else
+        Exit(False);
+     7:
+      if lIsWin32 then
+        aFlag := '/CD12W'
+      else
+        Exit(False);
+     6:
+      if lIsWin32 then
+        aFlag := '/CD11W'
+      else
+        Exit(False);
+     5:
+      if lIsWin32 then
+        aFlag := '/CD10W'
+      else
+        Exit(False);
+     4:
+      if lIsWin32 then
+        aFlag := '/CD9W'
+      else
+        Exit(False);
+     3:
+      if lIsWin32 then
+        aFlag := '/CD8'
+      else
+        Exit(False);
+     2:
+      if lIsWin32 then
+        aFlag := '/CD7'
+      else
+        Exit(False);
+     1:
+      if lIsWin32 then
+        aFlag := '/CD6'
+      else
+        Exit(False);
   else
     Exit(False);
   end;
 
-  if SameText(aPlatform, 'Win32') then
-    lPlat := 'W32'
-  else if SameText(aPlatform, 'Win64') then
-    lPlat := 'W64'
-  else
-    Exit(False);
-
-  aFlag := '/CD' + lDelphi + lPlat;
-  Result := True;
+  Result := aFlag <> '';
 end;
 
 function CpuCount: Integer;
