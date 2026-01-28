@@ -12,6 +12,15 @@
 
 ## Done
 
+### T-027 [CLI] Add analyze-project/analyze-unit commands
+Summary: Added analyze subcommand parsing, options, and help output for project/unit analysis.
+
+### T-028 [CLI] Implement analysis orchestration + output tree in DCR
+Summary: Added DCR analysis runner that writes _analysis outputs, run logs, and summaries while invoking FixInsight and PAL.
+
+### T-029 [DOC] Make static-analysis scripts thin wrappers
+Summary: Simplified static-analysis scripts to call DCR analyze subcommands and updated skill docs.
+
 ### T-022 [DOC] Specify PAL XML parsing + normalized findings format
 Summary: Added a spec slice documenting PAL XML findings extraction patterns and normalized pal-findings/pal-hotspots formats.
 

@@ -82,6 +82,7 @@ Unit runs write to:
 - `DCR_RSVARS`, `DCR_ENVOPTIONS`
 - `DCR_EXCLUDE_PATH_MASKS`, `DCR_IGNORE_WARNING_IDS`
 - `DCR_FI_FORMATS` (default: `txt`; values: `txt`, `csv`, `xml`, `all`)
+- `DCR_OUT`, `DCR_PAL`, `DCR_CLEAN`, `DCR_WRITE_SUMMARY`
 - `FI_SETTINGS` / `FIXINSIGHT_SETTINGS`
 - `PA_PATH`, `PA_ARGS`
 

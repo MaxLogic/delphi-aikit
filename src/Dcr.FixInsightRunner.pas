@@ -7,7 +7,11 @@ uses
   Winapi.Windows,
   Dcr.Messages, Dcr.Types;
 
+function BuildFixInsightCommandLine(const aParams: TFixInsightParams; out aExePath: string; out aCmdLine: string;
+  out aError: string): Boolean;
 function TryRunFixInsight(const aParams: TFixInsightParams; out aExitCode: Cardinal; out aError: string): Boolean;
+function TryRunFixInsightWithHandles(const aParams: TFixInsightParams; aStdOut: THandle; aStdErr: THandle;
+  out aExitCode: Cardinal; out aError: string): Boolean;
 
 implementation
 
@@ -149,21 +153,16 @@ begin
   end;
 end;
 
-function TryRunFixInsight(const aParams: TFixInsightParams; out aExitCode: Cardinal; out aError: string): Boolean;
+function BuildFixInsightCommandLine(const aParams: TFixInsightParams; out aExePath: string; out aCmdLine: string;
+  out aError: string): Boolean;
 var
   lExe: string;
   lArgs: TArray<string>;
-  lCmdLine: string;
-  lAppName: string;
-  lAppPtr: PChar;
-  lSi: TStartupInfo;
-  lPi: TProcessInformation;
-  lWait: Cardinal;
-  lLastError: Cardinal;
 begin
   Result := False;
   aError := '';
-  aExitCode := 0;
+  aExePath := '';
+  aCmdLine := '';
 
   lExe := aParams.fFixInsightExe;
   if lExe = '' then
@@ -175,7 +174,31 @@ begin
   end;
 
   lArgs := BuildArgs(aParams);
-  lCmdLine := BuildCommandLine(lExe, lArgs);
+  aExePath := lExe;
+  aCmdLine := BuildCommandLine(lExe, lArgs);
+  Result := True;
+end;
+
+function TryRunFixInsightWithHandles(const aParams: TFixInsightParams; aStdOut: THandle; aStdErr: THandle;
+  out aExitCode: Cardinal; out aError: string): Boolean;
+var
+  lExe: string;
+  lCmdLine: string;
+  lAppName: string;
+  lAppPtr: PChar;
+  lSi: TStartupInfo;
+  lPi: TProcessInformation;
+  lWait: Cardinal;
+  lLastError: Cardinal;
+  lStdOut: THandle;
+  lStdErr: THandle;
+begin
+  Result := False;
+  aError := '';
+  aExitCode := 0;
+
+  if not BuildFixInsightCommandLine(aParams, lExe, lCmdLine, aError) then
+    Exit(False);
   UniqueString(lCmdLine);
 
   lAppName := '';
@@ -190,8 +213,14 @@ begin
   lSi.cb := SizeOf(lSi);
   lSi.dwFlags := STARTF_USESTDHANDLES;
   lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
-  lSi.hStdOutput := GetStdHandle(STD_OUTPUT_HANDLE);
-  lSi.hStdError := GetStdHandle(STD_ERROR_HANDLE);
+  lStdOut := aStdOut;
+  if lStdOut = 0 then
+    lStdOut := GetStdHandle(STD_OUTPUT_HANDLE);
+  lStdErr := aStdErr;
+  if lStdErr = 0 then
+    lStdErr := GetStdHandle(STD_ERROR_HANDLE);
+  lSi.hStdOutput := lStdOut;
+  lSi.hStdError := lStdErr;
   FillChar(lPi, SizeOf(lPi), 0);
 
   if not CreateProcess(lAppPtr, PChar(lCmdLine), nil, nil, True, 0, nil, nil, lSi, lPi) then
@@ -220,6 +249,12 @@ begin
   end;
 
   Result := True;
+end;
+
+function TryRunFixInsight(const aParams: TFixInsightParams; out aExitCode: Cardinal; out aError: string): Boolean;
+begin
+  Result := TryRunFixInsightWithHandles(aParams, GetStdHandle(STD_OUTPUT_HANDLE), GetStdHandle(STD_ERROR_HANDLE),
+    aExitCode, aError);
 end;
 
 end.

@@ -6,7 +6,8 @@ uses
   System.Generics.Collections, System.IOUtils, System.SysUtils,
   Winapi.Windows,
   Xml.omnixmldom, Xml.xmldom,
-  Dcr.Cli in '..\src\Dcr.Cli.pas', Dcr.diagnostics in '..\src\Dcr.Diagnostics.pas',
+  Dcr.Analyze in '..\src\Dcr.Analyze.pas', Dcr.Cli in '..\src\Dcr.Cli.pas',
+  Dcr.diagnostics in '..\src\Dcr.Diagnostics.pas',
   Dcr.FixInsight in '..\src\Dcr.FixInsight.pas',
   Dcr.FixInsightRunner in '..\src\Dcr.FixInsightRunner.pas',
   Dcr.FixInsightSettings in '..\src\Dcr.FixInsightSettings.pas',
@@ -143,6 +144,12 @@ begin
           WriteUsage;
           lExitCode := 2;
         end;
+      end;
+
+      if lOk and (lOptions.fCommand <> TCommandKind.ckResolve) then
+      begin
+        lExitCode := RunAnalyzeCommand(lOptions);
+        lOk := False;
       end;
 
       if lOk then
