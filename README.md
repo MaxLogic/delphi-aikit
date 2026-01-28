@@ -197,7 +197,8 @@ bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --
   If `BDSUSERDIR` is missing, we derive it from `%APPDATA%\Embarcadero\BDS\<version>` and then `%USERPROFILE%\Documents\Embarcadero\Studio\<version>`.
 - We resolve `FixInsightCL.exe` from `settings.ini` (`Path`), then `PATH`, then FixInsight registry keys (HKCU/HKLM, 32/64-bit).
 - Sample inputs live in `tests\fixtures\` so we can quickly try the resolver.
-- `fixinsight-run.bat` can regenerate sample FixInsight reports under `docs\sample-fix-insight-self-reports\`.
+- `scripts\fixinsight-selftest\fixinsight-run.bat` runs FixInsight against this repo and can generate raw reports under `scripts\fixinsight-selftest\Reports\`.
+- `scripts\pascal-analyzer-selftest\pascal-analyzer-run.bat` runs Pascal Analyzer against this repo and writes reports under `scripts\pascal-analyzer-selftest\Reports\`.
 
 ## Tests
 
