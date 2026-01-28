@@ -6,7 +6,51 @@
 
 ## Next - This Week
 
+### T-022 [DOC] Specify PAL XML parsing + normalized findings format
+Outcome: Add a focused spec slice that documents which Pascal Analyzer XML reports are actionable vs. inventory/metrics, and define a stable normalized output format for an AI-friendly `pal-findings.md` (and optional hotspots) derived from our real PAL XML outputs.
+Proof:
+- Command: ls docs/spec-slices/pascal-analyzer-xml-findings.md
+- Expect: file exists and documents extraction rules for at least Warnings.xml / Strong Warnings.xml / Optimization.xml (including the observed XML patterns: <section>, <item>, <loc>, <locmod>, <locline>), plus a concrete `pal-findings.md` line format.
+Touches: docs/spec-slices/, _analysis/DelphiConfigResolver/pascal-analyzer/DelphiConfigResolver/
+Notes: Review the actual PAL XML files under `_analysis/DelphiConfigResolver/pascal-analyzer/DelphiConfigResolver/` and confirm semantics via Peganza docs found via docker MCP web search (PAL manual PDF + PALHelp pages).
+
+### T-023 [CLI] Generate pal-findings.md from PALCMD XML output
+Outcome: After a project-level Pascal Analyzer run (`--run-pascal-analyzer`), DelphiConfigResolver generates an AI-friendly `pal-findings.md` alongside the raw PAL output folder, containing only finding-like items (warnings/strong warnings/optimization/exceptions) in a stable one-line-per-finding format; keep the full PAL XML folder as an artifact.
+Proof:
+- Command: ./agentskill/delphi-static-analysis/analyze.sh projects/DelphiConfigResolver.dproj
+- Expect: _analysis/DelphiConfigResolver/pascal-analyzer/pal-findings.md exists and contains normalized entries referencing modules and line numbers (e.g., `Dcr.*:<line>`).
+Touches: src/Dcr.PascalAnalyzerRunner.pas
+Deps: T-022
+Notes: Start by parsing Warnings.xml / Strong Warnings.xml / Optimization.xml (and Exception.xml if non-empty). Avoid reading/serializing the full 52-report set by default.
+
+### T-024 [TEST] Add fixture-based tests for PAL findings normalization
+Outcome: Add DUnitX tests that validate PAL XML parsing and `pal-findings.md` normalization against checked-in sample PAL XML fixtures, so parsing stays stable without requiring PALCMD in CI.
+Proof:
+- Command: ./build-and-run-tests.sh
+- Expect: DUnitX tests for PAL findings normalization pass (and are skipped only when fixtures are missing, not when PALCMD is missing).
+Touches: tests/, docs/sample-pal-reports/
+Deps: T-022
+Notes: Use trimmed copies of real PAL XML files from `_analysis/DelphiConfigResolver/pascal-analyzer/DelphiConfigResolver/` as fixtures (remove unrelated sections but keep structure).
+
 ## Next - Later
+
+### T-025 [CLI] Generate pal-hotspots.md from PAL metrics reports
+Outcome: Produce an optional `pal-hotspots.md` derived from PAL metrics reports (Complexity.xml + Module Totals.xml), listing top hotspots (e.g., top 20 routines/modules by complexity/LOC) without dumping full XML.
+Proof:
+- Command: ./agentskill/delphi-static-analysis/analyze.sh projects/DelphiConfigResolver.dproj
+- Expect: _analysis/DelphiConfigResolver/pascal-analyzer/pal-hotspots.md exists and contains only the top-N items (no raw XML dumps).
+Touches: src/Dcr.PascalAnalyzerRunner.pas
+Deps: T-022
+Notes: Keep this strictly “refactor territory” output so it doesn’t distract from warnings; prefer stable ordering + top-N caps for token safety.
+
+### T-026 [CLI] Emit pal-findings.jsonl (machine-readable)
+Outcome: Optionally emit `pal-findings.jsonl` (one JSON object per finding) alongside `pal-findings.md` to support tooling (filtering/dedup/trends) while keeping Markdown as the primary agent surface.
+Proof:
+- Command: ./agentskill/delphi-static-analysis/analyze.sh projects/DelphiConfigResolver.dproj
+- Expect: _analysis/DelphiConfigResolver/pascal-analyzer/pal-findings.jsonl exists; each line is valid JSON and includes at least severity, report, section, module, line, message/id.
+Touches: src/Dcr.PascalAnalyzerRunner.pas
+Deps: T-022, T-023
+Notes: Keep JSON schema minimal and stable; do not embed full XML nodes.
 
 ## Blocked
 

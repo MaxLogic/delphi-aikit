@@ -1,4 +1,4 @@
-program DelphiConfigResolverTests;
+program DelphiConfigResolver_Tests;
 
 {$APPTYPE CONSOLE}
 {$STRONGLINKTYPES ON}

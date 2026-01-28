@@ -81,7 +81,12 @@ sfx
 /tests/out
 /tests/temp
 *.log
-fixInsight-*-report.txt
-fixInsight-*-params.ini
 tests/fixtures/KFZMeister.dpr
 tests/fixtures/KFZMeister.dproj
+_analysis/
+project.zip
+zip-project.bat
+project.zip
+zip-project.bat
+project.zip
+zip-project.bat
