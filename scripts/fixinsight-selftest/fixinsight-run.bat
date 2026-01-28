@@ -7,7 +7,7 @@ rem
 rem  What this script does:
 rem    - Calls DelphiConfigResolver.exe to read a Delphi .dproj (and IDE settings)
 rem      for a chosen platform/config/Delphi version.
-rem    - Uses --run-fixinsight to execute FixInsightCL directly (no temp runner bat).
+rem    - Uses --run-fixinsight to execute FixInsightCL directly 
 rem    - Captures all console output to a report file next to this script:
 rem        fixInsight-<ProjectName>-report.txt
 rem
@@ -17,14 +17,14 @@ rem    - The report includes both DelphiConfigResolver diagnostics and FixInsigh
 rem ============================================================================
 
 rem ---- Parameters (edit these) ----------------------------------------------
-set "ML_DPROJ_REL=projects\DelphiConfigResolver.dproj"
+set "ML_DPROJ_REL=..\..\projects\DelphiConfigResolver.dproj"
 set "ML_PLATFORM=Win32"
 set "ML_CONFIG=Release"
 set "ML_DELPHI_VER=23.0"
 
 rem Optional: generate raw FixInsightCL reports (txt/xml/csv) under docs/ for post-processing tests
 set "ML_GENERATE_SAMPLE_REPORTS=true"
-set "ML_SAMPLE_DIR_REL=docs\sample-fix-insight-self-reports"
+set "ML_SAMPLE_DIR_REL=Reports"
 
 rem Optional troubleshooting
 set "ML_VERBOSE=false"
@@ -45,7 +45,7 @@ set "ML_FI_CSV="
 
 rem Resolver location: if next to this script, keep as exe name.
 rem Otherwise set a relative path like: tools\DelphiConfigResolver.exe
-set "ML_RESOLVER_EXE=bin\DelphiConfigResolver.exe"
+set "ML_RESOLVER_EXE=..\..\bin\DelphiConfigResolver.exe"
 rem ----------------------------------------------------------------------------
 
 rem ---- Derived (do not edit unless needed) -----------------------------------

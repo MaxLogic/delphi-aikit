@@ -2,6 +2,18 @@
 
 Date: 2025-12-23
 
+## Scope note (tool vs. skill)
+
+This `spec.md` covers the main DelphiConfigResolver tool only.
+
+The repo also includes a repo-local agent skill for running static analysis via this tool:
+
+- Skill root: `agentskill/delphi-static-analysis/`
+- Skill entrypoint: `agentskill/delphi-static-analysis/SKILL.md`
+- Skill docs: `agentskill/delphi-static-analysis/README.md`, `agentskill/delphi-static-analysis/SETUP.md`, `agentskill/delphi-static-analysis/references/`
+
+Keep skill workflow/output guidance in the skill docs (not in this spec).
+
 ## Related spec slices
 
 - `docs/spec-slices/pascal-analyser-cli.md` (Pascal analyser CLI contract and conventions)
