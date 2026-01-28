@@ -10,6 +10,7 @@ uses
   Tests.Support in 'units\\tests.support.pas',
   Tests.Build in 'units\\tests.build.pas',
   Tests.FixInsight in 'units\\tests.fixinsight.pas',
+  Tests.PalFindingNormalize in 'units\\tests.palfindingnormalize.pas',
   Tests.PascalAnalyzer in 'units\\tests.pascalanalyzer.pas';
 
 var

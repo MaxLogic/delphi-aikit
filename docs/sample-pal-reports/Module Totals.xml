@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Module Totals Report">
+  <section name="Metrics">
+    <module id="1">
+      <name>Dcr.Cli</name>
+      <item>
+        <kind>lines</kind>
+        <total>360</total>
+      </item>
+    </module>
+    <module id="2">
+      <name>Dcr.ReportPostProcess</name>
+      <item>
+        <kind>lines</kind>
+        <total>592</total>
+      </item>
+    </module>
+  </section>
+</report>
