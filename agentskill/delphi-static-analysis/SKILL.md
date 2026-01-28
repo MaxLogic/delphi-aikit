@@ -43,6 +43,11 @@ We do not call FixInsightCL/PALCMD directly for project analysis. We call our re
 
 Inputs/overrides are provided via environment variables (so `analyze.*` still takes exactly one argument).
 
+Scripts delegate to the DCR subcommands:
+
+- `DelphiConfigResolver.exe analyze-project ...`
+- `DelphiConfigResolver.exe analyze-unit ...`
+
 ### DCR location
 
 By default, scripts use:
@@ -57,7 +62,8 @@ Override with:
 
 - `DCR_EXCLUDE_PATH_MASKS="*\\lib\\*;*\\3rdparty\\*"` (forwarded to `--exclude-path-masks`)
 - `DCR_IGNORE_WARNING_IDS="C101;C103;O802"` (forwarded to `--ignore-warning-ids`)
-- `DCR_FI_FORMATS="txt"` (default), or `csv`, `xml`, `txt,csv`, or `all`
+- FixInsight default output is **TXT only**. Opt in to more with `DCR_FI_FORMATS="txt,csv"` or `DCR_FI_FORMATS="all"`.
+- Optional overrides: `DCR_OUT`, `DCR_PAL`, `DCR_CLEAN`, `DCR_WRITE_SUMMARY`
 
 For the full list of supported environment variables and tool-specific gotchas, see `references/tooling.md`.
 
@@ -90,6 +96,11 @@ _analysis/_unit/{unitName}/
   summary.md
   run.log
 ```
+
+## First-pass triage (always)
+
+- Read `summary.md` first.
+- If `pal-findings.md` exists, use it; only open raw XML if we still need detail.
 
 ## Pascal Analyzer XML (read selectively)
 

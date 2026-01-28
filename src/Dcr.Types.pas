@@ -5,13 +5,17 @@ interface
 {$SCOPEDENUMS ON}
 
 type
+  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit);
+
   TOutputKind = (okIni, okXml, okBat);
 
   TPropertySource = (psUnknown, psDproj, psOptset, psRegistry, psEnvOptions);
 
   TReportFormat = (rfText, rfXml, rfCsv);
+  TReportFormatSet = set of TReportFormat;
 
   TAppOptions = record
+    fCommand: TCommandKind;
     fDprojPath: string;
     fPlatform: string;
     fConfig: string;
@@ -53,6 +57,13 @@ type
     fHasLogFile: Boolean;
     fLogTee: Boolean;
     fHasLogTee: Boolean;
+    fAnalyzeOutPath: string;
+    fHasAnalyzeOutPath: Boolean;
+    fAnalyzeFiFormats: TReportFormatSet;
+    fAnalyzePal: Boolean;
+    fAnalyzeClean: Boolean;
+    fAnalyzeWriteSummary: Boolean;
+    fUnitPath: string;
   end;
 
   TFixInsightExtraOptions = record
