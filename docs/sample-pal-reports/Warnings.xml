@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Warnings Report">
+  <section name="Local variables that are referenced before they are set" count="1">
+    <item>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dcr.FixInsightRunner</locmod>
+        <locline>106</locline>
+      </loc>
+    </item>
+  </section>
+  <section name="Functions called as procedures" count="1">
+    <name>Dcr.ReportPostProcess.TryNormalizeRuleId</name>
+    <loc>
+      <locmod>Dcr.ReportPostProcess</locmod>
+      <locline>467</locline>
+    </loc>
+  </section>
+  <section name="Interfaced identifiers that are used, but not outside of unit" count="1">
+    <item>
+      <id>ParseList</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dcr.ReportPostProcess (18)</locmod>
+    </item>
+  </section>
+  <section name="Empty begin/end-blocks" count="1">
+    <loc>
+      <locmod>Dcr.Cli</locmod>
+      <locline>337</locline>
+    </loc>
+  </section>
+</report>

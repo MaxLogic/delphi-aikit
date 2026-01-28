@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Complexity Report">
+  <section name="Complexity per module/subprogram">
+    <module_or_subprogram>
+      <name>Dcr.ReportPostProcess</name>
+      <lines_of_code>526</lines_of_code>
+      <dp>136</dp>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dcr.Cli</name>
+      <lines_of_code>335</lines_of_code>
+      <dp>102</dp>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryParseOptions (F)</name>
+      <lines_of_code>211</lines_of_code>
+      <dp>65</dp>
+    </module_or_subprogram>
+  </section>
+</report>

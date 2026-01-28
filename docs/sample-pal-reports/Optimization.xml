@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Optimization Report">
+  <section name="Local subprograms with references to outer local variables" count="1">
+    <item>
+      <id>AddRoot</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dcr.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (525)</locmod>
+    </item>
+  </section>
+</report>
