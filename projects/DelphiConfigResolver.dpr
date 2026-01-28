@@ -114,6 +114,8 @@ var
   lRunExit: Cardinal;
   lRunError: string;
   lLogPath: string;
+  lPaOutputRoot: string;
+  lPaReportRoot: string;
   lSkipOutput: Boolean;
   lInputPath: string;
 begin
@@ -365,6 +367,18 @@ begin
             writeln(ErrOutput, Format('PALCMD exited with code %d.', [lRunExit]));
             lExitCode := Integer(lRunExit);
             lOk := False;
+          end else
+          begin
+            lPaOutputRoot := '';
+            if lPascalAnalyzer.fOutput <> '' then
+              lPaOutputRoot := TPath.GetFullPath(lPascalAnalyzer.fOutput);
+
+            if lPaOutputRoot = '' then
+              lDiagnostics.AddWarning('PAL output root not set; skipping pal-findings generation. Use --pa-output.')
+            else if not TryFindPalReportRoot(lPaOutputRoot, lPaReportRoot, lRunError) then
+              lDiagnostics.AddWarning('PAL report root not found; skipping pal-findings generation. ' + lRunError)
+            else if not TryGeneratePalArtifacts(lPaReportRoot, lPaOutputRoot, lRunError) then
+              lDiagnostics.AddWarning('PAL findings generation failed: ' + lRunError);
           end;
         end;
       end;

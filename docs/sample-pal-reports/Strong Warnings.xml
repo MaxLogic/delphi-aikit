@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Strong Warnings Report">
+  <section name="Out parameter is read before set" count="1">
+    <loc>
+      <locmod>Dcr.Project</locmod>
+      <locline>77</locline>
+    </loc>
+  </section>
+</report>

@@ -14,6 +14,8 @@ All notable user-visible changes to this project will be documented in this file
 - Added --log-tee to mirror resolver diagnostics to output when using --logfile. (T-011)
 - Added FixInsight report post-processing filters: `--exclude-path-masks`, `--ignore-warning-ids` and settings.ini sections `[ReportFilter]` + `[FixInsightIgnore]`. (T-013, T-014)
 - Added Pascal Analyzer runner: `--run-pascal-analyzer` with PALCMD discovery + `--pa-path/--pa-output/--pa-args` and `[PascalAnalyzer]` settings.ini section. (T-015)
+- Added PAL findings outputs (`pal-findings.md`, `pal-findings.jsonl`) after Pascal Analyzer runs. (T-023, T-026)
+- Added PAL hotspots output (`pal-hotspots.md`) derived from PAL metrics reports. (T-025)
 
 ### Changed
 - Defaulted CLI `--platform` to `Win32` and `--config` to `Release` when omitted. (T-002)
