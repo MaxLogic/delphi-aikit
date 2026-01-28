@@ -11,8 +11,16 @@ uses
   Dcr.Types;
 
 function TryResolvePalCmdExe(const aOverridePath: string; out aExePath: string; out aError: string): Boolean;
+function BuildPalCmdCommandLine(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
+  out aExePath: string; out aCmdLine: string; out aError: string): Boolean;
 function TryRunPascalAnalyzer(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
   out aExitCode: Cardinal; out aError: string): Boolean;
+function TryRunPascalAnalyzerWithHandles(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
+  aStdOut: THandle; aStdErr: THandle; out aExitCode: Cardinal; out aError: string): Boolean;
+function BuildPalCmdUnitCommandLine(const aUnitPath: string; const aPa: TPascalAnalyzerDefaults;
+  out aExePath: string; out aCmdLine: string; out aError: string): Boolean;
+function TryRunPascalAnalyzerUnit(const aUnitPath: string; const aPa: TPascalAnalyzerDefaults;
+  aStdOut: THandle; aStdErr: THandle; out aExitCode: Cardinal; out aError: string): Boolean;
 function TryFindPalReportRoot(const aOutputRoot: string; out aReportRoot: string; out aError: string): Boolean;
 function TryGeneratePalArtifacts(const aReportRoot: string; const aOutRoot: string; out aError: string): Boolean;
 
@@ -920,8 +928,34 @@ begin
   end;
 end;
 
+function BuildPalCmdCommandLine(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
+  out aExePath: string; out aCmdLine: string; out aError: string): Boolean;
+var
+  lExe: string;
+begin
+  Result := False;
+  aExePath := '';
+  aCmdLine := '';
+  aError := '';
+
+  if not TryResolvePalCmdExe(aPa.fPath, lExe, aError) then
+    Exit(False);
+  if not BuildArgs(aParams, aPa, lExe, aCmdLine, aError) then
+    Exit(False);
+
+  aExePath := lExe;
+  Result := True;
+end;
+
 function TryRunPascalAnalyzer(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
   out aExitCode: Cardinal; out aError: string): Boolean;
+begin
+  Result := TryRunPascalAnalyzerWithHandles(aParams, aPa, GetStdHandle(STD_OUTPUT_HANDLE),
+    GetStdHandle(STD_ERROR_HANDLE), aExitCode, aError);
+end;
+
+function TryRunPascalAnalyzerWithHandles(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
+  aStdOut: THandle; aStdErr: THandle; out aExitCode: Cardinal; out aError: string): Boolean;
 var
   lExe: string;
   lCmdLine: string;
@@ -929,15 +963,14 @@ var
   lPi: TProcessInformation;
   lWait: Cardinal;
   lLastError: Cardinal;
+  lStdOut: THandle;
+  lStdErr: THandle;
 begin
   Result := False;
   aError := '';
   aExitCode := 0;
 
-  if not TryResolvePalCmdExe(aPa.fPath, lExe, aError) then
-    Exit(False);
-
-  if not BuildArgs(aParams, aPa, lExe, lCmdLine, aError) then
+  if not BuildPalCmdCommandLine(aParams, aPa, lExe, lCmdLine, aError) then
     Exit(False);
   UniqueString(lCmdLine);
 
@@ -945,8 +978,132 @@ begin
   lSi.cb := SizeOf(lSi);
   lSi.dwFlags := STARTF_USESTDHANDLES;
   lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
-  lSi.hStdOutput := GetStdHandle(STD_OUTPUT_HANDLE);
-  lSi.hStdError := GetStdHandle(STD_ERROR_HANDLE);
+  lStdOut := aStdOut;
+  if lStdOut = 0 then
+    lStdOut := GetStdHandle(STD_OUTPUT_HANDLE);
+  lStdErr := aStdErr;
+  if lStdErr = 0 then
+    lStdErr := GetStdHandle(STD_ERROR_HANDLE);
+  lSi.hStdOutput := lStdOut;
+  lSi.hStdError := lStdErr;
+  FillChar(lPi, SizeOf(lPi), 0);
+
+  if not CreateProcess(PChar(lExe), PChar(lCmdLine), nil, nil, True, 0, nil, nil, lSi, lPi) then
+  begin
+    lLastError := GetLastError;
+    aError := 'PALCMD failed to start: ' + SysErrorMessage(lLastError);
+    Exit(False);
+  end;
+  try
+    lWait := WaitForSingleObject(lPi.hProcess, INFINITE);
+    if lWait <> WAIT_OBJECT_0 then
+    begin
+      lLastError := GetLastError;
+      aError := 'PALCMD failed: ' + SysErrorMessage(lLastError);
+      Exit(False);
+    end;
+    if not GetExitCodeProcess(lPi.hProcess, aExitCode) then
+    begin
+      lLastError := GetLastError;
+      aError := 'PALCMD failed: ' + SysErrorMessage(lLastError);
+      Exit(False);
+    end;
+  finally
+    CloseHandle(lPi.hThread);
+    CloseHandle(lPi.hProcess);
+  end;
+
+  Result := True;
+end;
+
+function BuildPalCmdUnitCommandLine(const aUnitPath: string; const aPa: TPascalAnalyzerDefaults;
+  out aExePath: string; out aCmdLine: string; out aError: string): Boolean;
+var
+  lExe: string;
+  lArgs: TStringBuilder;
+  lThreads: Integer;
+begin
+  Result := False;
+  aExePath := '';
+  aCmdLine := '';
+  aError := '';
+
+  if aUnitPath = '' then
+  begin
+    aError := 'PALCMD unit path is empty.';
+    Exit(False);
+  end;
+  if not TryResolvePalCmdExe(aPa.fPath, lExe, aError) then
+    Exit(False);
+
+  lArgs := TStringBuilder.Create;
+  try
+    lArgs.Append(QuoteArg(lExe));
+    lArgs.Append(' ');
+    lArgs.Append(QuoteArg(TPath.GetFullPath(aUnitPath)));
+    if aPa.fOutput <> '' then
+    begin
+      lArgs.Append(' /R=');
+      lArgs.Append(QuoteArg(TPath.GetFullPath(aPa.fOutput)));
+    end;
+
+    if aPa.fArgs = '' then
+    begin
+      lArgs.Append(' /F=X');
+      lArgs.Append(' /Q');
+      lArgs.Append(' /A+');
+      lArgs.Append(' /FR');
+      lThreads := CpuCount;
+      if lThreads > 8 then
+        lThreads := 8;
+      lArgs.Append(' /T=');
+      lArgs.Append(lThreads.ToString);
+    end else
+    begin
+      lArgs.Append(' ');
+      lArgs.Append(aPa.fArgs);
+    end;
+
+    aExePath := lExe;
+    aCmdLine := lArgs.ToString;
+    Result := True;
+  finally
+    lArgs.Free;
+  end;
+end;
+
+function TryRunPascalAnalyzerUnit(const aUnitPath: string; const aPa: TPascalAnalyzerDefaults;
+  aStdOut: THandle; aStdErr: THandle; out aExitCode: Cardinal; out aError: string): Boolean;
+var
+  lExe: string;
+  lCmdLine: string;
+  lSi: TStartupInfo;
+  lPi: TProcessInformation;
+  lWait: Cardinal;
+  lLastError: Cardinal;
+  lStdOut: THandle;
+  lStdErr: THandle;
+begin
+  Result := False;
+  aError := '';
+  aExitCode := 0;
+
+  if not BuildPalCmdUnitCommandLine(aUnitPath, aPa, lExe, lCmdLine, aError) then
+    Exit(False);
+  UniqueString(lCmdLine);
+
+  FillChar(lSi, SizeOf(lSi), 0);
+  lSi.cb := SizeOf(lSi);
+  lSi.dwFlags := STARTF_USESTDHANDLES;
+  lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
+  lStdOut := aStdOut;
+  if lStdOut = 0 then
+    lStdOut := GetStdHandle(STD_OUTPUT_HANDLE);
+  lStdErr := aStdErr;
+  if lStdErr = 0 then
+    lStdErr := GetStdHandle(STD_ERROR_HANDLE);
+  lSi.hStdOutput := lStdOut;
+  lSi.hStdError := lStdErr;
   FillChar(lPi, SizeOf(lPi), 0);
 
   if not CreateProcess(PChar(lExe), PChar(lCmdLine), nil, nil, True, 0, nil, nil, lSi, lPi) then

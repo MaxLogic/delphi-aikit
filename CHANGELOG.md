@@ -9,6 +9,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added a `--verbose` flag to emit detailed diagnostics for troubleshooting. (T-001)
 - Added `--rsvars` to override the `rsvars.bat` location for IDE environment setup. (T-001)
 - Added `--envoptions` to override the `EnvOptions.proj` path when the default is not available. (T-001)
+- Added `analyze-project`/`analyze-unit` commands to run FixInsight/PAL with stable `_analysis` output and summaries. (T-027, T-028)
 - Added --run-fixinsight to execute FixInsightCL directly via CreateProcess. (T-009)
 - Added --logfile to capture resolver diagnostics in a file. (T-010)
 - Added --log-tee to mirror resolver diagnostics to output when using --logfile. (T-011)
@@ -24,6 +25,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added FixInsightCL pass-through options via settings.ini defaults and CLI overrides. (T-004)
 - Suppressed stdout output during --run-fixinsight unless --out/--out-kind is provided. (T-010)
 - Updated `fixinsight-run.bat` to generate sample FixInsight reports (txt/xml/csv) under `docs\sample-fix-insight-self-reports\`. (T-017)
+- Static-analysis skill scripts now call DCR analyze subcommands directly. (T-029)
 
 ### Fixed
 - Fixed FixInsightCL.exe discovery across HKCU/HKLM 32/64-bit registry views. (T-005)

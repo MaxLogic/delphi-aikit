@@ -4,18 +4,32 @@ interface
 
 resourcestring
   SUsage =
-    'DelphiConfigResolver.exe --dproj "<path>" --delphi <23.0> [--platform <Win32|Win64>] [--config <Debug|Release>] ' +
+    'DelphiConfigResolver.exe [command] [options]' + #13#10 +
+    'Commands:' + #13#10 +
+    '  analyze-project --dproj "<path>" [--out "<path>"] [--fi-formats <txt|xml|csv|all>] ' +
+    '[--pal [true|false]] [--clean [true|false]] [--write-summary [true|false]] ' +
+    '[--platform <Win32|Win64>] [--config <Debug|Release>] [--delphi <23.0>] ' +
+    '[--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"] ' +
+    '[--rsvars "<path>"] [--envoptions "<path>"] [--settings "<path>"] ' +
+    '[--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +
+    '[--logfile "<path>"] [--log-tee [true|false]] [--verbose [true|false]]' + #13#10 +
+    '  analyze-unit --unit "<path>" [--out "<path>"] [--pal [true|false]] [--clean [true|false]] ' +
+    '[--write-summary [true|false]] [--pa-path "<path>"] [--pa-args "<args>"] ' +
+    '[--logfile "<path>"] [--log-tee [true|false]] [--verbose [true|false]]' + #13#10 +
+    '  (no command) resolve FixInsight params:' + #13#10 +
+    '    --dproj "<path>" --delphi <23.0> [--platform <Win32|Win64>] [--config <Debug|Release>] ' +
     '[--out-kind <bat|ini|xml>] [--out "<path>"] [--output "<path>"] [--ignore "<list>"] [--settings "<path>"] ' +
     '[--silent [true|false]] [--xml [true|false]] [--csv [true|false]] [--run-fixinsight [true|false]] [--logfile "<path>"] ' +
     '[--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"] ' +
     '[--run-pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +
-    '[--log-tee [true|false]] ' +
-    '[--verbose <true|false>] ' +
+    '[--log-tee [true|false]] [--verbose [true|false]] ' +
     '[--rsvars "<path>"] [--envoptions "<path>"]';
   SInvalidArgs = 'Invalid command line arguments.';
+  SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
   SInvalidOutKind = 'Invalid --out-kind value: %s';
   SInvalidBoolValue = 'Invalid value for %s: %s';
+  SInvalidFiFormats = 'Invalid --fi-formats value: %s';
   SUnknownArg = 'Unknown argument: %s';
   SFileNotFound = 'File not found: %s';
   SAssociatedDprojMissing = 'Associated .dproj not found for: %s';
