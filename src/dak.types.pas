@@ -1,11 +1,11 @@
-unit Dcr.Types;
+unit Dak.Types;
 
 interface
 
 {$SCOPEDENUMS ON}
 
 type
-  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit);
+  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild);
 
   TOutputKind = (okIni, okXml, okBat);
 
@@ -60,6 +60,7 @@ type
     fAnalyzeOutPath: string;
     fHasAnalyzeOutPath: Boolean;
     fAnalyzeFiFormats: TReportFormatSet;
+    fAnalyzeFixInsight: Boolean;
     fAnalyzePal: Boolean;
     fAnalyzeClean: Boolean;
     fAnalyzeWriteSummary: Boolean;

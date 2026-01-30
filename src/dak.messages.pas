@@ -1,36 +1,49 @@
-unit Dcr.Messages;
+unit Dak.Messages;
 
 interface
 
 resourcestring
-  SUsage =
-    'DelphiConfigResolver.exe [command] [options]' + #13#10 +
+  SUsageGlobal =
+    'DelphiAIKit.exe <command> [global options] [command options]' + #13#10 +
     'Commands:' + #13#10 +
-    '  analyze-project --dproj "<path>" [--out "<path>"] [--fi-formats <txt|xml|csv|all>] ' +
-    '[--pal [true|false]] [--clean [true|false]] [--write-summary [true|false]] ' +
-    '[--platform <Win32|Win64>] [--config <Debug|Release>] [--delphi <23.0>] ' +
-    '[--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"] ' +
-    '[--rsvars "<path>"] [--envoptions "<path>"] [--settings "<path>"] ' +
-    '[--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +
-    '[--logfile "<path>"] [--log-tee [true|false]] [--verbose [true|false]]' + #13#10 +
-    '  analyze-unit --unit "<path>" [--out "<path>"] [--pal [true|false]] [--clean [true|false]] ' +
-    '[--write-summary [true|false]] [--pa-path "<path>"] [--pa-args "<args>"] ' +
-    '[--logfile "<path>"] [--log-tee [true|false]] [--verbose [true|false]]' + #13#10 +
-    '  (no command) resolve FixInsight params:' + #13#10 +
-    '    --dproj "<path>" --delphi <23.0> [--platform <Win32|Win64>] [--config <Debug|Release>] ' +
-    '[--out-kind <bat|ini|xml>] [--out "<path>"] [--output "<path>"] [--ignore "<list>"] [--settings "<path>"] ' +
-    '[--silent [true|false]] [--xml [true|false]] [--csv [true|false]] [--run-fixinsight [true|false]] [--logfile "<path>"] ' +
-    '[--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"] ' +
-    '[--run-pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +
-    '[--log-tee [true|false]] [--verbose [true|false]] ' +
-    '[--rsvars "<path>"] [--envoptions "<path>"]';
+    '  resolve   Resolve FixInsight params (ini/xml/bat)' + #13#10 +
+    '  analyze   Run FixInsight / Pascal Analyzer' + #13#10 +
+    '  build     Build a Delphi .dproj via build-delphi.bat' + #13#10 +
+    'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
+  SUsageResolve =
+    'DelphiAIKit.exe resolve --project "<path>" --delphi <23.0> ' +
+    '[--platform <Win32|Win64>] [--config <Debug|Release>]' + #13#10 +
+    '  [--format <ini|xml|bat>] [--out-file "<path>"]' + #13#10 +
+    '  [--fi-output "<path>"] [--fi-ignore "<list>"] [--fi-settings "<path>"] [--fi-silent [true|false]] ' +
+    '[--fi-xml [true|false]] [--fi-csv [true|false]]' + #13#10 +
+    '  [--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"]' + #13#10 +
+    '  [--rsvars "<path>"] [--envoptions "<path>"] [--log-file "<path>"] [--log-tee [true|false]] ' +
+    '[--verbose [true|false]]';
+  SUsageAnalyze =
+    'DelphiAIKit.exe analyze --project "<path>" --delphi <23.0> ' +
+    '[--platform <Win32|Win64>] [--config <Debug|Release>]' + #13#10 +
+    '  [--out "<path>"] [--fi-formats <txt|xml|csv|all>] [--fixinsight [true|false]] ' +
+    '[--pascal-analyzer [true|false]]' + #13#10 +
+    '  [--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"]' + #13#10 +
+    '  [--fi-settings "<path>"] [--fi-ignore "<list>"] [--fi-silent [true|false]]' + #13#10 +
+    '  [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"]' + #13#10 +
+    '  [--clean [true|false]] [--write-summary [true|false]]' + #13#10 +
+    '  [--rsvars "<path>"] [--envoptions "<path>"] [--log-file "<path>"] [--log-tee [true|false]] ' +
+    '[--verbose [true|false]]' + #13#10 +
+    'DelphiAIKit.exe analyze --unit "<path>" --delphi <23.0> [--out "<path>"] ' +
+    '[--pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"]';
+  SUsageBuild =
+    'DelphiAIKit.exe build --project "<path>" --delphi <23.0> ' +
+    '[--platform <Win32|Win64>] [--config <Debug|Release>]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
-  SInvalidOutKind = 'Invalid --out-kind value: %s';
+  SInvalidOutKind = 'Invalid --format value: %s';
   SInvalidBoolValue = 'Invalid value for %s: %s';
   SInvalidFiFormats = 'Invalid --fi-formats value: %s';
   SUnknownArg = 'Unknown argument: %s';
+  SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
+  SBuildBatMissing = 'build-delphi.bat not found: %s';
   SFileNotFound = 'File not found: %s';
   SAssociatedDprojMissing = 'Associated .dproj not found for: %s';
   SInfoAssociatedDproj = 'Using associated .dproj: %s';

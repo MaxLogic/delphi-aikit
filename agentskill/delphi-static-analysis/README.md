@@ -2,11 +2,11 @@
 
 This skill helps us run Delphi static analysis in a repeatable way from an
 AI tool (Claude Code, Codex CLI, or similar). It invokes TMS FixInsight and
-Peganza Pascal Analyzer through `DelphiConfigResolver.exe`, captures reports
-into a stable folder tree, and produces a short summary we can review.
+Peganza Pascal Analyzer through `DelphiAIKit.exe`, captures reports into a
+stable folder tree, and produces a short summary we can review.
 
-The scripts are thin wrappers around the DCR CLI subcommands
-`analyze-project` and `analyze-unit`.
+The scripts are thin wrappers around the DAK CLI subcommand
+`analyze`, using `--project` or `--unit`.
 
 Good for:
 - One-command analysis runs against a .dproj

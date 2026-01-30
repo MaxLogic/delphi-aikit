@@ -3,19 +3,19 @@
   <section name="Exception Call Tree">
     <branch index="1">
       <name>main block</name>
-      <locmod>DelphiConfigResolver</locmod>
+      <locmod>DelphiAIKit</locmod>
       <called_by>
         <name>IsHelpRequested</name>
-        <locmod>Dcr.Cli</locmod>
+        <locmod>Dak.Cli</locmod>
         <locline>16</locline>
       </called_by>
       <called_by>
         <name>TryParseOptions</name>
-        <locmod>Dcr.Cli</locmod>
+        <locmod>Dak.Cli</locmod>
         <locline>29</locline>
         <called_by>
           <name>TrySplitSwitch</name>
-          <locmod>Dcr.Cli</locmod>
+          <locmod>Dak.Cli</locmod>
           <locline>69</locline>
         </called_by>
       </called_by>

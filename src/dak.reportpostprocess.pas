@@ -1,4 +1,4 @@
-unit Dcr.ReportPostProcess;
+unit Dak.ReportPostProcess;
 
 interface
 
@@ -10,7 +10,7 @@ uses
   Xml.XMLDoc,
   Xml.XMLIntf,
   maxLogic.StrUtils,
-  Dcr.Types;
+  Dak.Types;
 
 type
   EReportPostProcess = class(Exception);

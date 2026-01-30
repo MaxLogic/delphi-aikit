@@ -1,11 +1,11 @@
-unit Dcr.RsVars;
+unit Dak.RsVars;
 
 interface
 
 uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.SysUtils,
   Winapi.Windows,
-  Dcr.Diagnostics, Dcr.Messages;
+  Dak.Diagnostics, Dak.Messages;
 
 function TryLoadRsVars(const aDelphiVersion, aOverridePath: string; aDiagnostics: TDiagnostics;
   out aError: string): Boolean;

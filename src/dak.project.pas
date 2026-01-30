@@ -1,11 +1,11 @@
-unit Dcr.Project;
+unit Dak.Project;
 
 interface
 
 uses
   System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.SysUtils,
   maxLogic.StrUtils,
-  Dcr.Diagnostics, Dcr.MacroExpander, Dcr.Messages, Dcr.MsBuild, Dcr.Types;
+  Dak.Diagnostics, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Types;
 
 function TryBuildParams(const aOptions: TAppOptions; const aEnvVars: TDictionary<string, string>;
   const aLibraryPath: string; aLibrarySource: TPropertySource; aDiagnostics: TDiagnostics;

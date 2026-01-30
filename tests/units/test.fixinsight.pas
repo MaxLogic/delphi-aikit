@@ -1,4 +1,4 @@
-unit Tests.FixInsight;
+unit Test.FixInsight;
 
 interface
 
@@ -9,7 +9,7 @@ uses
   System.IOUtils,
   System.StrUtils,
   System.RegularExpressions,
-  Tests.Support;
+  Test.Support;
 
 type
   [TestFixture]
@@ -17,7 +17,6 @@ type
   private
     procedure RunFixInsightOutputs(const aSuffix, aMasks, aIds: string;
       out aTxt, aXml, aCsv: string);
-    procedure RunOne(const aFmt, aOutFile, aMasks, aIds: string);
     procedure ExtractIdsAndFile(const aText: string; out aId1, aId2, aFileName: string);
   public
     [Test]
@@ -26,46 +25,41 @@ type
 
 implementation
 
-procedure TFixInsightTests.RunOne(const aFmt, aOutFile, aMasks, aIds: string);
+procedure TFixInsightTests.RunFixInsightOutputs(const aSuffix, aMasks, aIds: string;
+  out aTxt, aXml, aCsv: string);
 var
+  lOutRoot: string;
   lArgs: string;
   lExit: Cardinal;
   lLog: string;
 begin
-  lArgs := '--dproj ' + QuoteArg(TPath.Combine(RepoRoot, 'projects\\DelphiConfigResolver.dproj')) +
-    ' --platform Win32 --config Release --delphi 23.0 --run-fixinsight --output ' + QuoteArg(aOutFile);
+  lOutRoot := TPath.Combine(TempRoot, 'fixinsight-' + aSuffix);
+  if TDirectory.Exists(lOutRoot) then
+    TDirectory.Delete(lOutRoot, True);
+  TDirectory.CreateDirectory(lOutRoot);
 
-  if SameText(aFmt, 'xml') then
-    lArgs := lArgs + ' --xml true'
-  else if SameText(aFmt, 'csv') then
-    lArgs := lArgs + ' --csv true';
+  lArgs := 'analyze --project ' + QuoteArg(TPath.Combine(RepoRoot, 'projects\\DelphiAIKit.dproj')) +
+    ' --platform Win32 --config Release --delphi 23.0 --out ' + QuoteArg(lOutRoot) +
+    ' --fixinsight true --pascal-analyzer false --fi-formats all';
 
   if aMasks <> '' then
     lArgs := lArgs + ' --exclude-path-masks ' + QuoteArg(aMasks);
   if aIds <> '' then
     lArgs := lArgs + ' --ignore-warning-ids ' + QuoteArg(aIds);
 
-  lLog := TPath.ChangeExtension(aOutFile, '.' + aFmt + '.log');
+  lLog := TPath.Combine(lOutRoot, 'fixinsight-analyze.log');
   if not RunProcess(ResolverExePath, lArgs, RepoRoot, lLog, lExit) then
-    Assert.Fail('Failed to start FixInsight run: ' + lLog);
+    Assert.Fail('Failed to start FixInsight analyze: ' + lLog);
   if lExit <> 0 then
-    Assert.Fail('FixInsight run failed, exit=' + lExit.ToString + '. See: ' + lLog);
-  Assert.IsTrue(FileExists(aOutFile), 'Missing FixInsight output: ' + aOutFile);
-end;
+    Assert.Fail('FixInsight analyze failed, exit=' + lExit.ToString + '. See: ' + lLog);
 
-procedure TFixInsightTests.RunFixInsightOutputs(const aSuffix, aMasks, aIds: string;
-  out aTxt, aXml, aCsv: string);
-var
-  lBase: string;
-begin
-  lBase := TPath.Combine(TempRoot, 'fixinsight-' + aSuffix);
-  aTxt := lBase + '.txt';
-  aXml := lBase + '.xml';
-  aCsv := lBase + '.csv';
+  aTxt := TPath.Combine(lOutRoot, 'fixinsight\\fixinsight.txt');
+  aXml := TPath.Combine(lOutRoot, 'fixinsight\\fixinsight.xml');
+  aCsv := TPath.Combine(lOutRoot, 'fixinsight\\fixinsight.csv');
 
-  RunOne('txt', aTxt, aMasks, aIds);
-  RunOne('xml', aXml, aMasks, aIds);
-  RunOne('csv', aCsv, aMasks, aIds);
+  Assert.IsTrue(FileExists(aTxt), 'Missing FixInsight output: ' + aTxt);
+  Assert.IsTrue(FileExists(aXml), 'Missing FixInsight output: ' + aXml);
+  Assert.IsTrue(FileExists(aCsv), 'Missing FixInsight output: ' + aCsv);
 end;
 
 procedure TFixInsightTests.ExtractIdsAndFile(const aText: string; out aId1, aId2, aFileName: string);

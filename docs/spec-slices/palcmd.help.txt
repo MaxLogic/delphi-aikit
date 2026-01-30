@@ -1,0 +1,128 @@
+Pascal Analyzer (64-bits) version 9.11.0.0 Copyright (c) 2001-2023 Peganza (built 2023-03-26)
+Options are read from PAL.INI.
+
+Syntax: PALCMD projectpath|sourcepath [options]
+
+        /A+            Parse both source/form files
+        /A-            Parse source files only
+        /FA            Parse all files
+        /F+            Parse all files
+        /FR            Parse main file and directly used files
+        /FM            Parse main file only
+        /F-            Parse main file only
+        /Q             Quiet mode
+
+        /CBP           Borland Pascal 7 (or earlier)
+        /CD1           Delphi 1
+        /CD2           Delphi 2
+        /CD3           Delphi 3
+        /CD4           Delphi 4
+        /CD5           Delphi 5
+        /CD6           Delphi 6
+        /CD7           Delphi 7
+        /CD8           Delphi 8 for .NET
+        /CD9W          Delphi 2005 for Win32
+        /CD9N          Delphi 2005 for .NET
+        /CD10W         Delphi 2006 for Win32
+        /CD10N         Delphi 2006 for .NET
+        /CD11W         Delphi 2007 for Win32
+        /CD11N         Delphi 2007 for .NET
+        /CD12W         Delphi 2009 for Win32
+        /CD14W         Delphi 2010 for Win32
+        /CDXEW         Delphi XE for Win32
+        /CDXE2W32      Delphi XE2 for Win32
+        /CDXE2W64      Delphi XE2 for Win64
+        /CDXE2OSX      Delphi XE2 for OSX
+        /CDXE3W32      Delphi XE3 for Win32
+        /CDXE3W64      Delphi XE3 for Win64
+        /CDXE3OSX      Delphi XE3 for OSX
+        /CDXE4W32      Delphi XE4 for Win32
+        /CDXE4W64      Delphi XE4 for Win64
+        /CDXE4OSX      Delphi XE4 for OSX
+        /CDXE4IOSDEV   Delphi XE4 for iOS Device
+        /CDXE4IOSSIM   Delphi XE4 for iOS Simulator
+        /CDXE5W32      Delphi XE5 for Win32
+        /CDXE5W64      Delphi XE5 for Win64
+        /CDXE5OSX      Delphi XE5 for OSX
+        /CDXE5IOSDEV   Delphi XE5 for iOS Device
+        /CDXE5IOSSIM   Delphi XE5 for iOS Simulator
+        /CDXE5ANDROID  Delphi XE5 for Android
+        /CDXE6W32      Delphi XE6 for Win32
+        /CDXE6W64      Delphi XE6 for Win64
+        /CDXE6OSX      Delphi XE6 for OSX
+        /CDXE6IOSDEV   Delphi XE6 for iOS Device
+        /CDXE6IOSSIM   Delphi XE6 for iOS Simulator
+        /CDXE6ANDROID  Delphi XE6 for Android
+        /CDXE7W32      Delphi XE7 for Win32
+        /CDXE7W64      Delphi XE7 for Win64
+        /CDXE7OSX      Delphi XE7 for OSX
+        /CDXE7IOSDEV   Delphi XE7 for iOS Device
+        /CDXE7IOSSIM   Delphi XE7 for iOS Simulator
+        /CDXE7ANDROID  Delphi XE7 for Android
+        /CDXE8W32      Delphi XE8 for Win32
+        /CDXE8W64      Delphi XE8 for Win64
+        /CDXE8OSX      Delphi XE8 for OSX
+        /CDXE8IOSDEV   Delphi XE8 for iOS Device 32-bits
+        /CDXE8IOSDEV64 Delphi XE8 for iOS Device 64-bits
+        /CDXE8IOSSIM   Delphi XE8 for iOS Simulator
+        /CDXE8ANDROID  Delphi XE8 for Android
+        /CD10W32       Delphi 10 for Win32
+        /CD10W64       Delphi 10 for Win64
+        /CD10OSX       Delphi 10 for OSX
+        /CD10IOSDEV    Delphi 10 for iOS Device 32-bits
+        /CD10IOSDEV64  Delphi 10 for iOS Device 64-bits
+        /CD10IOSSIM    Delphi 10 for iOS Simulator
+        /CD10ANDROID   Delphi 10 for Android
+        /CD101W32      Delphi 10.1 for Win32
+        /CD101W64      Delphi 10.1 for Win64
+        /CD101OSX      Delphi 10.1 for OSX
+        /CD101IOSDEV   Delphi 10.1 for iOS Device 32-bits
+        /CD101IOSDEV64 Delphi 10.1 for iOS Device 64-bits
+        /CD101IOSSIM   Delphi 10.1 for iOS Simulator
+        /CD101ANDROID  Delphi 10.1 for Android
+        /CD102W32      Delphi 10.2 for Win32
+        /CD102W64      Delphi 10.2 for Win64
+        /CD102OSX      Delphi 10.2 for OSX
+        /CD102IOSDEV   Delphi 10.2 for iOS Device 32-bits
+        /CD102IOSDEV64 Delphi 10.2 for iOS Device 64-bits
+        /CD102IOSSIM   Delphi 10.2 for iOS Simulator
+        /CD102ANDROID  Delphi 10.2 for Android
+        /CD102LINUX64  Delphi 10.2 for Linux64
+        /CD103W32      Delphi 10.3 for Win32
+        /CD103W64      Delphi 10.3 for Win64
+        /CD103OSX      Delphi 10.3 for OSX 32-bits
+        /CD103OSX64    Delphi 10.3 for OSX 64-bits
+        /CD103IOSDEV   Delphi 10.3 for iOS Device 32-bits
+        /CD103IOSDEV64 Delphi 10.3 for iOS Device 64-bits
+        /CD103IOSSIM   Delphi 10.3 for iOS Simulator
+        /CD103ANDROID  Delphi 10.3 for Android 32-bits
+        /CD103ANDROID64Delphi 10.3 for Android 64-bits
+        /CD103LINUX64  Delphi 10.3 for Linux64
+        /CD104W32      Delphi 10.4 for Win32
+        /CD104W64      Delphi 10.4 for Win64
+        /CD104OSX64    Delphi 10.4 for OSX 64-bits
+        /CD104IOSDEV64 Delphi 10.4 for iOS Device 64-bits
+        /CD104IOSSIM   Delphi 10.4 for iOS Simulator
+        /CD104ANDROID  Delphi 10.4 for Android 32-bits
+        /CD104ANDROID64Delphi 10.4 for Android 64-bits
+        /CD104LINUX64  Delphi 10.4 for Linux64
+        /CD11W32       Delphi 11 for Win32
+        /CD11W64       Delphi 11 for Win64
+        /CD11OSX64     Delphi 11 for OSX 64-bits
+        /CD11OSXARM64  Delphi 11 for OSX ARM 64-bits
+        /CD11IOSDEV64  Delphi 11 for iOS Device 64-bits
+        /CD11IOSSIM    Delphi 11 for iOS Simulator 64-bits
+        /CD11ANDROID   Delphi 11 for Android 32-bits
+        /CD11ANDROID64 Delphi 11 for Android 64-bits
+        /CD11LINUX64   Delphi 11 for Linux64
+        /CD11OSXARM64  Delphi 11 for OSX ARM 64-bits
+
+        /D=x           Conditional defines (/D=MyDef1;MyDef2)
+        /F=format      /F=T -> text, /F=H -> HTML, /F=X -> XML
+        /I=path        Path to PAL.INI (/I=C:\PAL\PAL.INI)
+        /L=path        Path to text file with limit info (/L=C:\PAL\Limits.txt)
+        /P             Create/use PAP-file in source folder
+        /R=path        Report root folder (/R=C:\Out or "/R=C:\My Out")
+        /S=folders     Search folders (/S="C:\CODE1;C:\My Code")
+        /T=n           Number of report threads 1-64
+        /X=x           Excluded search folders (/X=C:\DIR1<+>;C:\DIR2)

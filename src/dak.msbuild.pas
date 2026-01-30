@@ -1,11 +1,11 @@
-unit Dcr.MsBuild;
+unit Dak.MsBuild;
 
 interface
 
 uses
   System.Generics.Collections, System.SysUtils, System.Variants,
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
-  Dcr.Diagnostics, Dcr.MacroExpander, Dcr.Messages;
+  Dak.Diagnostics, Dak.MacroExpander, Dak.Messages;
 
 type
   TPropertySetProc = procedure(const aName, aValue: string) of object;

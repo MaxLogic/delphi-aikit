@@ -1,23 +1,28 @@
-program DelphiConfigResolver;
+program DelphiAIKit;
 
 {$APPTYPE CONSOLE}
 
 uses
+  madExcept,
+  madLinkDisAsm,
+  madListHardware,
+  madListProcesses,
+  madListModules,
   System.Generics.Collections, System.IOUtils, System.SysUtils,
   Winapi.Windows,
   Xml.omnixmldom, Xml.xmldom,
-  Dcr.Analyze in '..\src\Dcr.Analyze.pas', Dcr.Cli in '..\src\Dcr.Cli.pas',
-  Dcr.diagnostics in '..\src\Dcr.Diagnostics.pas',
-  Dcr.FixInsight in '..\src\Dcr.FixInsight.pas',
-  Dcr.FixInsightRunner in '..\src\Dcr.FixInsightRunner.pas',
-  Dcr.FixInsightSettings in '..\src\Dcr.FixInsightSettings.pas',
-  Dcr.Messages in '..\src\Dcr.Messages.pas', Dcr.MacroExpander in '..\src\Dcr.MacroExpander.pas',
-  Dcr.MsBuild in '..\src\Dcr.MsBuild.pas', Dcr.output in '..\src\Dcr.Output.pas',
-  Dcr.Project in '..\src\Dcr.Project.pas', Dcr.Registry in '..\src\Dcr.Registry.pas',
-  Dcr.PascalAnalyzerRunner in '..\src\Dcr.PascalAnalyzerRunner.pas',
-  Dcr.ReportPostProcess in '..\src\Dcr.ReportPostProcess.pas',
-  Dcr.RsVars in '..\src\Dcr.RsVars.pas',
-  Dcr.Types in '..\src\Dcr.Types.pas';
+  Dak.Analyze in '..\src\dak.analyze.pas', Dak.Cli in '..\src\dak.cli.pas',
+  Dak.Diagnostics in '..\src\dak.diagnostics.pas',
+  Dak.FixInsight in '..\src\dak.fixinsight.pas',
+  Dak.FixInsightRunner in '..\src\dak.fixinsightrunner.pas',
+  Dak.FixInsightSettings in '..\src\dak.fixinsightsettings.pas',
+  Dak.Messages in '..\src\dak.messages.pas', Dak.MacroExpander in '..\src\dak.macroexpander.pas',
+  Dak.MsBuild in '..\src\dak.msbuild.pas', Dak.Output in '..\src\dak.output.pas',
+  Dak.Project in '..\src\dak.project.pas', Dak.Registry in '..\src\dak.registry.pas',
+  Dak.PascalAnalyzerRunner in '..\src\dak.pascalanalyzerrunner.pas',
+  Dak.ReportPostProcess in '..\src\dak.reportpostprocess.pas',
+  Dak.RsVars in '..\src\dak.rsvars.pas',
+  Dak.Types in '..\src\dak.types.pas';
 
 function SourceToText(aSource: TPropertySource): string;
 begin
@@ -96,6 +101,94 @@ begin
     aError := Format(SFileNotFound, [aDprojPath]);
 end;
 
+function QuoteCmdArg(const aValue: string): string;
+begin
+  if (aValue = '') or (Pos(' ', aValue) > 0) or (Pos('"', aValue) > 0) then
+    Result := '"' + StringReplace(aValue, '"', '""', [rfReplaceAll]) + '"'
+  else
+    Result := aValue;
+end;
+
+function NormalizeDelphiVerForBuild(const aValue: string): string;
+var
+  lDot: Integer;
+begin
+  Result := Trim(aValue);
+  lDot := Pos('.', Result);
+  if lDot > 0 then
+    Result := Copy(Result, 1, lDot - 1);
+end;
+
+function TryRunBuildDelphi(const aOptions: TAppOptions; out aExitCode: Integer; out aError: string): Boolean;
+var
+  lBatPath: string;
+  lRoot: string;
+  lProjectPath: string;
+  lCmdExe: string;
+  lCmdLine: string;
+  lWorkDir: string;
+  lSi: TStartupInfo;
+  lPi: TProcessInformation;
+  lWait: Cardinal;
+  lExit: Cardinal;
+  lDelphiVer: string;
+begin
+  Result := False;
+  aExitCode := 0;
+  aError := '';
+
+  lRoot := TPath.GetFullPath(TPath.Combine(ExcludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0))), '..'));
+  lBatPath := TPath.Combine(lRoot, 'build-delphi.bat');
+  if not FileExists(lBatPath) then
+  begin
+    aError := Format(SBuildBatMissing, [lBatPath]);
+    Exit(False);
+  end;
+
+  lProjectPath := TPath.GetFullPath(aOptions.fDprojPath);
+  lDelphiVer := NormalizeDelphiVerForBuild(aOptions.fDelphiVersion);
+  if lDelphiVer = '' then
+    lDelphiVer := aOptions.fDelphiVersion;
+
+  lCmdExe := GetEnvironmentVariable('ComSpec');
+  if lCmdExe = '' then
+    lCmdExe := 'C:\Windows\System32\cmd.exe';
+
+  lCmdLine := QuoteCmdArg(lCmdExe) + ' /C "call ' + QuoteCmdArg(lBatPath) + ' ' +
+    QuoteCmdArg(lProjectPath) + ' -config ' + aOptions.fConfig + ' -platform ' + aOptions.fPlatform +
+    ' -ver ' + lDelphiVer + '"';
+  UniqueString(lCmdLine);
+  lWorkDir := ExtractFilePath(lBatPath);
+
+  FillChar(lSi, SizeOf(lSi), 0);
+  lSi.cb := SizeOf(lSi);
+  FillChar(lPi, SizeOf(lPi), 0);
+
+  if not CreateProcess(PChar(lCmdExe), PChar(lCmdLine), nil, nil, True, 0, nil, PChar(lWorkDir), lSi, lPi) then
+  begin
+    aError := SysErrorMessage(GetLastError);
+    Exit(False);
+  end;
+  try
+    lWait := WaitForSingleObject(lPi.hProcess, INFINITE);
+    if lWait <> WAIT_OBJECT_0 then
+    begin
+      aError := SysErrorMessage(GetLastError);
+      Exit(False);
+    end;
+    if not GetExitCodeProcess(lPi.hProcess, lExit) then
+    begin
+      aError := SysErrorMessage(GetLastError);
+      Exit(False);
+    end;
+    aExitCode := Integer(lExit);
+    Result := True;
+  finally
+    CloseHandle(lPi.hThread);
+    CloseHandle(lPi.hProcess);
+  end;
+end;
+
 var
   lOptions: TAppOptions;
   lParams: TFixInsightParams;
@@ -119,6 +212,8 @@ var
   lPaReportRoot: string;
   lSkipOutput: Boolean;
   lInputPath: string;
+  lHelpCommand: TCommandKind;
+  lHasHelpCommand: Boolean;
 begin
   DefaultDOMVendor := sOmniXmlVendor;
   lExitCode := 0;
@@ -129,7 +224,15 @@ begin
     try
       if IsHelpRequested then
       begin
-        WriteUsage;
+        if not TryGetCommand(lHelpCommand, lHasHelpCommand, lError) then
+        begin
+          writeln(ErrOutput, SInvalidArgs);
+          if lError <> '' then
+            writeln(ErrOutput, lError);
+          WriteUsage(TCommandKind.ckResolve, True);
+          lExitCode := 2;
+        end else
+          WriteUsage(lHelpCommand, not lHasHelpCommand);
         lOk := False;
       end;
 
@@ -141,15 +244,26 @@ begin
           writeln(ErrOutput, SInvalidArgs);
           if lError <> '' then
             writeln(ErrOutput, lError);
-          WriteUsage;
+          WriteUsage(lOptions.fCommand, False);
           lExitCode := 2;
         end;
       end;
 
-      if lOk and (lOptions.fCommand <> TCommandKind.ckResolve) then
+      if lOk then
       begin
-        lExitCode := RunAnalyzeCommand(lOptions);
-        lOk := False;
+        if lOptions.fCommand = TCommandKind.ckBuild then
+        begin
+          if not TryRunBuildDelphi(lOptions, lExitCode, lError) then
+          begin
+            writeln(ErrOutput, lError);
+            lExitCode := 6;
+          end;
+          lOk := False;
+        end else if lOptions.fCommand <> TCommandKind.ckResolve then
+        begin
+          lExitCode := RunAnalyzeCommand(lOptions);
+          lOk := False;
+        end;
       end;
 
       if lOk then

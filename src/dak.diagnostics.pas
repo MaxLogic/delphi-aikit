@@ -1,11 +1,11 @@
-unit Dcr.Diagnostics;
+unit Dak.Diagnostics;
 interface
 
 
 uses
   System.Classes, System.Generics.Collections, System.Generics.Defaults, System.SysUtils,
   maxLogic.StrUtils,
-  Dcr.Messages;
+  Dak.Messages;
 
 type
   TStringSet = class

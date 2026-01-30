@@ -1,4 +1,4 @@
-unit Tests.PalFindingNormalize;
+unit Test.PalFindingNormalize;
 
 interface
 
@@ -7,8 +7,8 @@ uses
   System.JSON,
   System.IOUtils,
   System.SysUtils,
-  Tests.Support,
-  Dcr.PascalAnalyzerRunner;
+  Test.Support,
+  Dak.PascalAnalyzerRunner;
 
 type
   [TestFixture]
@@ -61,9 +61,9 @@ begin
 
   lFound := False;
   for i := 0 to High(lLines) do
-    if lLines[i].Contains('Dcr.FixInsightRunner:106') then
+    if lLines[i].Contains('Dak.FixInsightRunner:106') then
       lFound := True;
-  Assert.IsTrue(lFound, 'Expected Dcr.FixInsightRunner:106 in pal-findings.md');
+  Assert.IsTrue(lFound, 'Expected Dak.FixInsightRunner:106 in pal-findings.md');
 
   lJsonPath := TPath.Combine(lOutDir, 'pal-findings.jsonl');
   Assert.IsTrue(FileExists(lJsonPath), 'pal-findings.jsonl missing: ' + lJsonPath);

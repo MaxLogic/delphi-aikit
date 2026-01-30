@@ -1,11 +1,11 @@
-unit Dcr.FixInsight;
+unit Dak.FixInsight;
 
 interface
 
 uses
   System.IOUtils, System.SysUtils, System.Win.Registry,
   Winapi.Windows,
-  Dcr.Diagnostics, Dcr.Messages;
+  Dak.Diagnostics, Dak.Messages;
 
 function TryResolveFixInsightExe(aDiagnostics: TDiagnostics; out aExePath: string): Boolean;
 

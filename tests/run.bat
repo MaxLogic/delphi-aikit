@@ -8,11 +8,11 @@ set "OUTDIR=%TESTS_DIR%out"
 
 rem ---- Defaults (override via env vars) -------------------------------------
 set "PLATFORM=Win32"
-if defined DCR_PLATFORM set "PLATFORM=%DCR_PLATFORM%"
+if defined DAK_PLATFORM set "PLATFORM=%DAK_PLATFORM%"
 set "CONFIG=Release"
-if defined DCR_CONFIG set "CONFIG=%DCR_CONFIG%"
+if defined DAK_CONFIG set "CONFIG=%DAK_CONFIG%"
 set "DELPHI=23.0"
-if defined DCR_DELPHI set "DELPHI=%DCR_DELPHI%"
+if defined DAK_DELPHI set "DELPHI=%DAK_DELPHI%"
 
 rem Optional rsvars/envoptions overrides (kept compatible with existing names)
 set "RSVARS_ARG="
@@ -24,13 +24,20 @@ rem Optional Pascal Analyzer override
 set "PA_PATH_ARG="
 if defined PA_PATH set "PA_PATH_ARG=--pa-path ""%PA_PATH%"""
 
+rem PALCMD threads (1..64), default to NUMBER_OF_PROCESSORS
+set "PA_THREADS=1"
+if defined NUMBER_OF_PROCESSORS set "PA_THREADS=%NUMBER_OF_PROCESSORS%"
+set /a PA_THREADS=PA_THREADS
+if %PA_THREADS% LSS 1 set "PA_THREADS=1"
+if %PA_THREADS% GTR 64 set "PA_THREADS=64"
+
 if not exist "%OUTDIR%" mkdir "%OUTDIR%" >nul 2>&1
 
-set "EXE=%ROOT%\bin\DelphiConfigResolver.exe"
-set "DPROJ_SELF=%ROOT%\projects\DelphiConfigResolver.dproj"
+set "EXE=%ROOT%\bin\DelphiAIKit.exe"
+set "DPROJ_SELF=%ROOT%\projects\DelphiAIKit.dproj"
 
 if not exist "%EXE%" (
-  echo [WARN] DelphiConfigResolver.exe not found:
+  echo [WARN] DelphiAIKit.exe not found:
   echo        "%EXE%"
   echo [INFO] Attempting to build it now...
   if not exist "%ROOT%\build-delphi.bat" (
@@ -38,14 +45,14 @@ if not exist "%EXE%" (
     echo         "%ROOT%\build-delphi.bat"
     exit /b 2
   )
-  call "%ROOT%\build-delphi.bat" "%ROOT%\projects\DelphiConfigResolver.dproj" -config %CONFIG% -platform %PLATFORM% -ver %DELPHI%
+  call "%ROOT%\build-delphi.bat" "%ROOT%\projects\DelphiAIKit.dproj" -config %CONFIG% -platform %PLATFORM% -ver %DELPHI%
   if errorlevel 1 (
     echo [ERROR] build-delphi.bat failed.
     exit /b 2
   )
 )
 if not exist "%EXE%" (
-  echo [ERROR] DelphiConfigResolver.exe still missing after build:
+  echo [ERROR] DelphiAIKit.exe still missing after build:
   echo         "%EXE%"
   exit /b 2
 )
@@ -65,12 +72,23 @@ rem ----------------------------------------------------------------------------
 rem 0) Usage/help sanity (new flags are present)
 rem ----------------------------------------------------------------------------
 "%EXE%" --help > "%OUTDIR%\help.txt" 2>&1
-call :AssertContains "%OUTDIR%\help.txt" "--exclude-path-masks" || exit /b 10
-call :AssertContains "%OUTDIR%\help.txt" "--ignore-warning-ids" || exit /b 10
-call :AssertContains "%OUTDIR%\help.txt" "--run-pascal-analyzer" || exit /b 10
-call :AssertContains "%OUTDIR%\help.txt" "--pa-path" || exit /b 10
-call :AssertContains "%OUTDIR%\help.txt" "--pa-output" || exit /b 10
-call :AssertContains "%OUTDIR%\help.txt" "--pa-args" || exit /b 10
+call :AssertContains "%OUTDIR%\help.txt" "resolve" || exit /b 10
+call :AssertContains "%OUTDIR%\help.txt" "analyze" || exit /b 10
+call :AssertContains "%OUTDIR%\help.txt" "build" || exit /b 10
+
+"%EXE%" resolve --help > "%OUTDIR%\help-resolve.txt" 2>&1
+call :AssertContains "%OUTDIR%\help-resolve.txt" "--format" || exit /b 10
+call :AssertContains "%OUTDIR%\help-resolve.txt" "--out-file" || exit /b 10
+call :AssertContains "%OUTDIR%\help-resolve.txt" "--fi-output" || exit /b 10
+
+"%EXE%" analyze --help > "%OUTDIR%\help-analyze.txt" 2>&1
+call :AssertContains "%OUTDIR%\help-analyze.txt" "--fixinsight" || exit /b 10
+call :AssertContains "%OUTDIR%\help-analyze.txt" "--pascal-analyzer" || exit /b 10
+call :AssertContains "%OUTDIR%\help-analyze.txt" "--exclude-path-masks" || exit /b 10
+call :AssertContains "%OUTDIR%\help-analyze.txt" "--ignore-warning-ids" || exit /b 10
+call :AssertContains "%OUTDIR%\help-analyze.txt" "--pa-path" || exit /b 10
+call :AssertContains "%OUTDIR%\help-analyze.txt" "--pa-output" || exit /b 10
+call :AssertContains "%OUTDIR%\help-analyze.txt" "--pa-args" || exit /b 10
 
 rem ----------------------------------------------------------------------------
 rem 1) Resolver output generation (fixtures + self)
@@ -84,7 +102,7 @@ echo [INFO] Generating outputs for fixture projects...
 for %%F in ("%FIXTURES%\*.dproj") do (
   for %%K in (ini xml bat) do (
     set "OUTFILE=%OUTDIR%\fixture-%%~nF.%%K"
-    "%EXE%" --dproj "%%~fF" --platform %PLATFORM% --config Debug --delphi %DELPHI% --out-kind %%K --out "!OUTFILE!" --verbose true !RSVARS_ARG! !ENVOPTIONS_ARG!
+    "%EXE%" resolve --project "%%~fF" --platform %PLATFORM% --config Debug --delphi %DELPHI% --format %%K --out-file "!OUTFILE!" --verbose true !RSVARS_ARG! !ENVOPTIONS_ARG!
     if errorlevel 1 (
       echo [ERROR] Failed: %%~fF (%%K)
       exit /b 1
@@ -99,7 +117,7 @@ for %%F in ("%FIXTURES%\*.dproj") do (
 echo [INFO] Generating outputs for self project...
 for %%K in (ini xml bat) do (
   set "OUTFILE=%OUTDIR%\self.%%K"
-  "%EXE%" --dproj "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --out-kind %%K --out "!OUTFILE!" --verbose true !RSVARS_ARG! !ENVOPTIONS_ARG!
+  "%EXE%" resolve --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --format %%K --out-file "!OUTFILE!" --verbose true !RSVARS_ARG! !ENVOPTIONS_ARG!
   if errorlevel 1 (
     echo [ERROR] Failed: self project (%%K)
     exit /b 12
@@ -115,13 +133,13 @@ rem 2) FixInsight end-to-end (self) + filtering (txt/xml/csv)
 rem ----------------------------------------------------------------------------
 echo [INFO] Running FixInsightCL (self) in txt/xml/csv...
 
-set "FI_BASE_TXT=%OUTDIR%\fi-self.txt"
-set "FI_BASE_XML=%OUTDIR%\fi-self.xml"
-set "FI_BASE_CSV=%OUTDIR%\fi-self.csv"
+set "FI_BASE_ROOT=%OUTDIR%\fi-self"
+set "FI_BASE_TXT=%FI_BASE_ROOT%\fixinsight\fixinsight.txt"
+set "FI_BASE_XML=%FI_BASE_ROOT%\fixinsight\fixinsight.xml"
+set "FI_BASE_CSV=%FI_BASE_ROOT%\fixinsight\fixinsight.csv"
 
-call :RunFixInsight "%EXE%" txt "%FI_BASE_TXT%" "" "" || exit /b 20
-call :RunFixInsight "%EXE%" xml "%FI_BASE_XML%" "" "" || exit /b 20
-call :RunFixInsight "%EXE%" csv "%FI_BASE_CSV%" "" "" || exit /b 20
+set "FIXINSIGHT_OUT=!FI_BASE_ROOT!"
+call :RunFixInsight "%EXE%" "!FI_BASE_ROOT!" "" "" || exit /b 20
 
 rem Extract 1-2 warning IDs from the baseline report to keep tests version-agnostic.
 set "ID1="
@@ -165,14 +183,14 @@ set "MASK_NEEDLE=%EXCL_FILE_NAME%"
 echo [INFO] ExcludePathMasks sample: %EXCL_MASKS%
 
 rem ---- ExcludePathMasks filtering (txt/xml/csv) ------------------------------
-set "FI_EXCL_TXT=%OUTDIR%\fi-self.excl.txt"
-set "FI_EXCL_XML=%OUTDIR%\fi-self.excl.xml"
-set "FI_EXCL_CSV=%OUTDIR%\fi-self.excl.csv"
+set "FI_EXCL_ROOT=%OUTDIR%\fi-self.excl"
+set "FI_EXCL_TXT=%FI_EXCL_ROOT%\fixinsight\fixinsight.txt"
+set "FI_EXCL_XML=%FI_EXCL_ROOT%\fixinsight\fixinsight.xml"
+set "FI_EXCL_CSV=%FI_EXCL_ROOT%\fixinsight\fixinsight.csv"
 
 call :AssertContains "%FI_BASE_TXT%" "%MASK_NEEDLE%" || exit /b 21
-call :RunFixInsight "%EXE%" txt "%FI_EXCL_TXT%" "%EXCL_MASKS%" "" || exit /b 22
-call :RunFixInsight "%EXE%" xml "%FI_EXCL_XML%" "%EXCL_MASKS%" "" || exit /b 22
-call :RunFixInsight "%EXE%" csv "%FI_EXCL_CSV%" "%EXCL_MASKS%" "" || exit /b 22
+set "FIXINSIGHT_OUT=!FI_EXCL_ROOT!"
+call :RunFixInsight "%EXE%" "!FI_EXCL_ROOT!" "%EXCL_MASKS%" "" || exit /b 22
 
 call :AssertNotContains "%FI_EXCL_TXT%" "%MASK_NEEDLE%" || exit /b 23
 call :AssertNotContains "%FI_EXCL_XML%" "%MASK_NEEDLE%" || exit /b 23
@@ -180,14 +198,14 @@ call :AssertNotContains "%FI_EXCL_CSV%" "%MASK_NEEDLE%" || exit /b 23
 
 rem ---- Ignore warning IDs filtering (txt/xml/csv) ----------------------------
 set "IGNORE_IDS=!ID1!;!ID2!"
-set "FI_IDS_TXT=%OUTDIR%\fi-self.ignore-ids.txt"
-set "FI_IDS_XML=%OUTDIR%\fi-self.ignore-ids.xml"
-set "FI_IDS_CSV=%OUTDIR%\fi-self.ignore-ids.csv"
+set "FI_IDS_ROOT=%OUTDIR%\fi-self.ignore-ids"
+set "FI_IDS_TXT=%FI_IDS_ROOT%\fixinsight\fixinsight.txt"
+set "FI_IDS_XML=%FI_IDS_ROOT%\fixinsight\fixinsight.xml"
+set "FI_IDS_CSV=%FI_IDS_ROOT%\fixinsight\fixinsight.csv"
 
 call :AssertContains "%FI_BASE_TXT%" "!ID1!" || exit /b 21
-call :RunFixInsight "%EXE%" txt "%FI_IDS_TXT%" "" "%IGNORE_IDS%" || exit /b 24
-call :RunFixInsight "%EXE%" xml "%FI_IDS_XML%" "" "%IGNORE_IDS%" || exit /b 24
-call :RunFixInsight "%EXE%" csv "%FI_IDS_CSV%" "" "%IGNORE_IDS%" || exit /b 24
+set "FIXINSIGHT_OUT=!FI_IDS_ROOT!"
+call :RunFixInsight "%EXE%" "!FI_IDS_ROOT!" "" "!IGNORE_IDS!" || exit /b 24
 
 call :AssertNotContains "%FI_IDS_TXT%" "!ID1!" || exit /b 25
 call :AssertNotContains "%FI_IDS_TXT%" "!ID2!" || exit /b 25
@@ -203,7 +221,7 @@ echo [INFO] Testing settings.ini defaults/merge via sandboxed exe copy...
 
 set "SANDBOX=%OUTDIR%\sandbox"
 if not exist "%SANDBOX%" mkdir "%SANDBOX%" >nul 2>&1
-copy /Y "%EXE%" "%SANDBOX%\DelphiConfigResolver.exe" >nul
+copy /Y "%EXE%" "%SANDBOX%\DelphiAIKit.exe" >nul
 
 (
   echo [FixInsightCL]
@@ -226,8 +244,9 @@ copy /Y "%EXE%" "%SANDBOX%\DelphiConfigResolver.exe" >nul
   echo Args=
 ) > "%SANDBOX%\settings.ini"
 
-set "FI_SETTINGS_CSV=%OUTDIR%\fi-self.settings.csv"
-call :RunFixInsight "%SANDBOX%\DelphiConfigResolver.exe" csv "%FI_SETTINGS_CSV%" "" "!ID2!" || exit /b 30
+set "FI_SETTINGS_ROOT=%OUTDIR%\fi-self.settings"
+set "FI_SETTINGS_CSV=%FI_SETTINGS_ROOT%\fixinsight\fixinsight.csv"
+call :RunFixInsight "%SANDBOX%\DelphiAIKit.exe" "%FI_SETTINGS_ROOT%" "" "!ID2!" || exit /b 30
 call :AssertNotContains "%FI_SETTINGS_CSV%" "%MASK_NEEDLE%" || exit /b 31
 call :AssertNotContains "%FI_SETTINGS_CSV%" ",!ID1!," || exit /b 31
 call :AssertNotContains "%FI_SETTINGS_CSV%" ",!ID2!," || exit /b 31
@@ -235,11 +254,11 @@ call :AssertNotContains "%FI_SETTINGS_CSV%" ",!ID2!," || exit /b 31
 rem Also verify ignore list merging (settings + CLI) via bat output.
 set "SANDBOX2=%OUTDIR%\sandbox-ignore"
 if not exist "%SANDBOX2%" mkdir "%SANDBOX2%" >nul 2>&1
-copy /Y "%EXE%" "%SANDBOX2%\DelphiConfigResolver.exe" >nul
+copy /Y "%EXE%" "%SANDBOX2%\DelphiAIKit.exe" >nul
 (
   echo [FixInsightCL]
   echo Output=
-  echo Ignore=..\src\Dcr.Cli.pas;..\src\Dcr.Cli.pas
+  echo Ignore=..\src\Dak.Cli.pas;..\src\Dak.Cli.pas
   echo Settings=
   echo Silent=false
   echo Xml=false
@@ -247,12 +266,12 @@ copy /Y "%EXE%" "%SANDBOX2%\DelphiConfigResolver.exe" >nul
 ) > "%SANDBOX2%\settings.ini"
 
 set "BAT_OUT=%OUTDIR%\ignore-merged.bat"
-"%SANDBOX2%\DelphiConfigResolver.exe" --dproj "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --out-kind bat --out "%BAT_OUT%" --ignore "..\src\Dcr.Output.pas;..\src\Dcr.Cli.pas" !RSVARS_ARG! !ENVOPTIONS_ARG!
+"%SANDBOX2%\DelphiAIKit.exe" resolve --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --format bat --out-file "%BAT_OUT%" --fi-ignore "..\src\Dak.Output.pas;..\src\Dak.Cli.pas" !RSVARS_ARG! !ENVOPTIONS_ARG!
 if errorlevel 1 (
   echo [ERROR] Failed to generate bat output for ignore merge test.
   exit /b 32
 )
-call :AssertContains "%BAT_OUT%" "..\src\Dcr.Cli.pas;..\src\Dcr.Output.pas" || exit /b 33
+call :AssertContains "%BAT_OUT%" "..\src\Dak.Cli.pas;..\src\Dak.Output.pas" || exit /b 33
 
 rem ----------------------------------------------------------------------------
 rem 4) Pascal Analyzer end-to-end (self)
@@ -275,7 +294,7 @@ mkdir "%PA_OUT_CLI%" >nul 2>&1
 rem Use settings.ini to feed PALCMD Output=... and (optionally) Path=...
 set "SANDBOX_PA=%OUTDIR%\sandbox-pa"
 if not exist "%SANDBOX_PA%" mkdir "%SANDBOX_PA%" >nul 2>&1
-copy /Y "%EXE%" "%SANDBOX_PA%\DelphiConfigResolver.exe" >nul
+copy /Y "%EXE%" "%SANDBOX_PA%\DelphiAIKit.exe" >nul
 
 set "PA_PATH_VALUE="
 if defined PA_PATH set "PA_PATH_VALUE=%PA_PATH%"
@@ -296,7 +315,7 @@ if defined PA_PATH set "PA_PATH_VALUE=%PA_PATH%"
 ) > "%SANDBOX_PA%\settings.ini"
 
 rem Settings-driven run (tests Output from settings.ini + our default args)
-"%SANDBOX_PA%\DelphiConfigResolver.exe" --dproj "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --run-pascal-analyzer !RSVARS_ARG! !ENVOPTIONS_ARG!
+"%SANDBOX_PA%\DelphiAIKit.exe" analyze --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --fixinsight false --pascal-analyzer true !RSVARS_ARG! !ENVOPTIONS_ARG!
 if errorlevel 1 (
   echo [ERROR] PALCMD run (settings.ini) failed. If PALCMD is not installed, set PA_PATH or SKIP_PASCAL_ANALYZER=1.
   exit /b 40
@@ -304,7 +323,7 @@ if errorlevel 1 (
 call :AssertAnyMatch "%PA_OUT_SETTINGS%\*.xml" || exit /b 41
 
 rem CLI-driven run (tests overrides)
-"%EXE%" --dproj "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --run-pascal-analyzer !PA_PATH_ARG! --pa-output "%PA_OUT_CLI%" --pa-args "/F=X /Q /A+ /FR /T=1" !RSVARS_ARG! !ENVOPTIONS_ARG!
+"%EXE%" analyze --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --fixinsight false --pascal-analyzer true !PA_PATH_ARG! --pa-output "%PA_OUT_CLI%" --pa-args "/F=X /Q /A+ /FA /T=%PA_THREADS%" !RSVARS_ARG! !ENVOPTIONS_ARG!
 if errorlevel 1 (
   echo [ERROR] PALCMD run (CLI overrides) failed. If PALCMD is not installed, set PA_PATH or SKIP_PASCAL_ANALYZER=1.
   exit /b 42
@@ -320,35 +339,44 @@ rem ----------------------------------------------------------------------------
 rem Helpers
 rem ----------------------------------------------------------------------------
 :RunFixInsight
-rem args: <exe> <fmt:txt|xml|csv> <outFile> <excludeMasks> <ignoreIds>
+rem args: <exe> <outRoot> <excludeMasks> <ignoreIds>
 set "RUN_EXE=%~1"
-set "FMT=%~2"
-set "OUT_FILE=%~3"
-set "MASKS=%~4"
-set "IDS=%~5"
-
-set "FMT_ARGS="
-if /I "%FMT%"=="xml" set "FMT_ARGS=--xml true"
-if /I "%FMT%"=="csv" set "FMT_ARGS=--csv true"
+if "%~2"=="" (
+  set "OUT_ROOT=%FIXINSIGHT_OUT%"
+) else (
+  set "OUT_ROOT=%~2"
+)
+set "MASKS=%~3"
+set "IDS=%~4"
 
 set "MASK_ARG="
 if not "%MASKS%"=="" set "MASK_ARG=--exclude-path-masks ""%MASKS%"""
 set "IDS_ARG="
 if not "%IDS%"=="" set "IDS_ARG=--ignore-warning-ids ""%IDS%"""
 
-"%RUN_EXE%" --dproj "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --run-fixinsight %FMT_ARGS% --output "%OUT_FILE%" %MASK_ARG% %IDS_ARG% %RSVARS_ARG% %ENVOPTIONS_ARG%
+"%RUN_EXE%" analyze --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --out "%OUT_ROOT%" --fixinsight true --pascal-analyzer false --fi-formats all %MASK_ARG% %IDS_ARG% %RSVARS_ARG% %ENVOPTIONS_ARG%
 if errorlevel 1 (
-  echo [ERROR] FixInsight run failed: fmt=%FMT% out="%OUT_FILE%"
+  echo [ERROR] FixInsight analyze failed: out="%OUT_ROOT%"
   exit /b 1
 )
-if not exist "%OUT_FILE%" (
+if not exist "%OUT_ROOT%\fixinsight\fixinsight.txt" (
   echo [ERROR] Expected FixInsight report missing:
-  echo         "%OUT_FILE%"
+  echo         "%OUT_ROOT%\fixinsight\fixinsight.txt"
   exit /b 1
 )
-for %%I in ("%OUT_FILE%") do if %%~zI EQU 0 (
+if not exist "%OUT_ROOT%\fixinsight\fixinsight.xml" (
+  echo [ERROR] Expected FixInsight report missing:
+  echo         "%OUT_ROOT%\fixinsight\fixinsight.xml"
+  exit /b 1
+)
+if not exist "%OUT_ROOT%\fixinsight\fixinsight.csv" (
+  echo [ERROR] Expected FixInsight report missing:
+  echo         "%OUT_ROOT%\fixinsight\fixinsight.csv"
+  exit /b 1
+)
+for %%I in ("%OUT_ROOT%\fixinsight\fixinsight.txt") do if %%~zI EQU 0 (
   echo [ERROR] FixInsight report is empty:
-  echo         "%OUT_FILE%"
+  echo         "%OUT_ROOT%\fixinsight\fixinsight.txt"
   exit /b 1
 )
 exit /b 0

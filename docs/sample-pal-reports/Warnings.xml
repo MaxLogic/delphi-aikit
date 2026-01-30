@@ -4,15 +4,15 @@
     <item>
       <loc>
         <kind>Read+Set</kind>
-        <locmod>Dcr.FixInsightRunner</locmod>
+        <locmod>Dak.FixInsightRunner</locmod>
         <locline>106</locline>
       </loc>
     </item>
   </section>
   <section name="Functions called as procedures" count="1">
-    <name>Dcr.ReportPostProcess.TryNormalizeRuleId</name>
+    <name>Dak.ReportPostProcess.TryNormalizeRuleId</name>
     <loc>
-      <locmod>Dcr.ReportPostProcess</locmod>
+      <locmod>Dak.ReportPostProcess</locmod>
       <locline>467</locline>
     </loc>
   </section>
@@ -20,12 +20,12 @@
     <item>
       <id>ParseList</id>
       <kind>Func, Interfaced</kind>
-      <locmod>Dcr.ReportPostProcess (18)</locmod>
+      <locmod>Dak.ReportPostProcess (18)</locmod>
     </item>
   </section>
   <section name="Empty begin/end-blocks" count="1">
     <loc>
-      <locmod>Dcr.Cli</locmod>
+      <locmod>Dak.Cli</locmod>
       <locline>337</locline>
     </loc>
   </section>

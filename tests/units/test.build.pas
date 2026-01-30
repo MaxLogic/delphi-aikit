@@ -1,11 +1,11 @@
-unit Tests.Build;
+unit Test.Build;
 
 interface
 
 uses
   DUnitX.TestFramework,
   System.SysUtils,
-  Tests.Support;
+  Test.Support;
 
 type
   [TestFixture]
