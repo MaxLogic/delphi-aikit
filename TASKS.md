@@ -4,6 +4,14 @@
 
 ## Next - Today
 
+## Next - This Week
+
+## Next - Later
+
+## Blocked
+
+## Done
+
 ### T-035 [FixInsight] Address W510 in NormalizePath
 Outcome: Update `NormalizePath` to avoid the "values on both sides of the operator are equal" warning while keeping output identical.
 Proof:
@@ -12,14 +20,6 @@ Proof:
 - Command: ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
 - Expect: FixInsight report no longer lists W510 for `lib/MaxLogicFoundation/MaxLogic.ioUtils.pas`.
 Touches: lib/MaxLogicFoundation/MaxLogic.ioUtils.pas
-
-## Next - This Week
-
-## Next - Later
-
-## Blocked
-
-## Done
 
 ### T-034 [FixInsight] Remove unused loop variable in OccurrencesOfChar
 Outcome: Rewrite the loop in `OccurrencesOfChar` to avoid the unused `i` variable while keeping the same semantics and performance.
