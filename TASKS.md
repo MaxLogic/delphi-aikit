@@ -4,15 +4,6 @@
 
 ## Next - Today
 
-### T-034 [FixInsight] Remove unused loop variable in OccurrencesOfChar
-Outcome: Rewrite the loop in `OccurrencesOfChar` to avoid the unused `i` variable while keeping the same semantics and performance.
-Proof:
-- Command: ./build-delphi.sh projects/DelphiAIKit.dproj
-- Expect: Build succeeds.
-- Command: ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
-- Expect: FixInsight report no longer lists W528 for `lib/MaxLogicFoundation/MaxLogic.StrUtils.pas`.
-Touches: lib/MaxLogicFoundation/MaxLogic.StrUtils.pas
-
 ### T-035 [FixInsight] Address W510 in NormalizePath
 Outcome: Update `NormalizePath` to avoid the "values on both sides of the operator are equal" warning while keeping output identical.
 Proof:
@@ -29,6 +20,15 @@ Touches: lib/MaxLogicFoundation/MaxLogic.ioUtils.pas
 ## Blocked
 
 ## Done
+
+### T-034 [FixInsight] Remove unused loop variable in OccurrencesOfChar
+Outcome: Rewrite the loop in `OccurrencesOfChar` to avoid the unused `i` variable while keeping the same semantics and performance.
+Proof:
+- Command: ./build-delphi.sh projects/DelphiAIKit.dproj
+- Expect: Build succeeds.
+- Command: ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: FixInsight report no longer lists W528 for `lib/MaxLogicFoundation/MaxLogic.StrUtils.pas`.
+Touches: lib/MaxLogicFoundation/MaxLogic.StrUtils.pas
 
 ### T-033 [FixInsight] Avoid empty FINALLY in TFastCaseAwareComparer.Equals
 Outcome: Adjust the `try..finally` in `TFastCaseAwareComparer.Equals` so the FINALLY section is non-empty under current compile defines, preserving behavior while clearing W502.
