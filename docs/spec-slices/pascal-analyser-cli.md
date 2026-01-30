@@ -1,6 +1,6 @@
 # Pascal Analyzer CLI (PALCMD) integration
 
-This spec-slice captures the minimal contract we need to integrate Peganza Pascal Analyzer's CLI (`PALCMD.EXE` / `PALCMD32.EXE`) into DelphiConfigResolver.
+This spec-slice captures the minimal contract we need to integrate Peganza Pascal Analyzer's CLI (`PALCMD.EXE` / `PALCMD32.EXE`) into DelphiAIKit.
 
 ## 1) Canonical CLI syntax
 
@@ -20,14 +20,14 @@ We run PALCMD against our resolved main project entrypoint (typically the `.dpr`
 - Report format: `/F=T|H|X` (Text/HTML/XML)
 - Quiet mode: `/Q`
 - Parse forms: `/A+` (source + form files)
-- Parse scope: `/FR` (main file + directly used files)
+- Parse scope: `/FA` (all files)
 - Threads: `/T=n` (1..64)
 
-## 3) DelphiConfigResolver contract
+## 3) DelphiAIKit contract
 
 ### CLI flags (new, non-breaking)
 
-- `--run-pascal-analyzer`
+- `analyze --pascal-analyzer true`
 - `--pa-path "<path>"` (optional)
 - `--pa-output "<path>"` (optional)
 - `--pa-args "<args>"` (optional)
@@ -49,9 +49,9 @@ Semantics:
 
 ### Defaults when Args is empty
 
-When `--run-pascal-analyzer` is used and neither `--pa-args` nor `[PascalAnalyzer].Args` is set:
+When `--pascal-analyzer true` is used and neither `--pa-args` nor `[PascalAnalyzer].Args` is set:
 
-- Use `/F=X /Q /A+ /FR /T=min(8, CPUCount)`
+- Use `/F=X /Q /A+ /FA /T=min(CPUCount, 64)`
 - Add `/CD...` derived from `--delphi` + `--platform` (unless the args already contain a `/CD...` flag)
 
 ## 4) Executable discovery (must be deterministic and fast)
@@ -69,3 +69,8 @@ Resolve `palcmd.exe`/`palcmd32.exe` in this order:
 
 - We do not try to map our mask-based excludes to PALCMD's `/X` and `/XF` automatically (PALCMD takes folder/file lists, not globs). If needed, the user can pass `/X` and `/XF` via `--pa-args`.
 
+## PALCMD Help
+
+to see the help for palmcmd.exe just run it, it will print the help.
+We have a copy in 
+./docs/spec-slices/palcmd.help.txt

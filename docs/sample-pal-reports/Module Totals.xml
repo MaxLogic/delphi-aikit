@@ -2,14 +2,14 @@
 <report name="Module Totals Report">
   <section name="Metrics">
     <module id="1">
-      <name>Dcr.Cli</name>
+      <name>Dak.Cli</name>
       <item>
         <kind>lines</kind>
         <total>360</total>
       </item>
     </module>
     <module id="2">
-      <name>Dcr.ReportPostProcess</name>
+      <name>Dak.ReportPostProcess</name>
       <item>
         <kind>lines</kind>
         <total>592</total>

@@ -4,7 +4,7 @@
     <item>
       <id>AddRoot</id>
       <kind>Proc, Local</kind>
-      <locmod>Dcr.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (525)</locmod>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (525)</locmod>
     </item>
   </section>
 </report>

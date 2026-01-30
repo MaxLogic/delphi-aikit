@@ -5,16 +5,16 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
-- Added DelphiConfigResolver CLI to resolve FixInsight params from .dproj/.optset. (T-001)
+- Added DelphiAIKit CLI to resolve FixInsight params from .dproj/.optset. (T-001)
 - Added a `--verbose` flag to emit detailed diagnostics for troubleshooting. (T-001)
 - Added `--rsvars` to override the `rsvars.bat` location for IDE environment setup. (T-001)
 - Added `--envoptions` to override the `EnvOptions.proj` path when the default is not available. (T-001)
-- Added `analyze-project`/`analyze-unit` commands to run FixInsight/PAL with stable `_analysis` output and summaries. (T-027, T-028)
-- Added --run-fixinsight to execute FixInsightCL directly via CreateProcess. (T-009)
-- Added --logfile to capture resolver diagnostics in a file. (T-010)
-- Added --log-tee to mirror resolver diagnostics to output when using --logfile. (T-011)
+- Added `analyze` with `--project`/`--unit` to run FixInsight/PAL with stable `_analysis` output and summaries. (T-027, T-028)
+- Added FixInsightCL execution via `analyze --fixinsight true` (CreateProcess). (T-009)
+- Added `--log-file` (alias `--logfile`) to capture resolver diagnostics in a file. (T-010)
+- Added `--log-tee` to mirror resolver diagnostics to output when using `--log-file`. (T-011)
 - Added FixInsight report post-processing filters: `--exclude-path-masks`, `--ignore-warning-ids` and settings.ini sections `[ReportFilter]` + `[FixInsightIgnore]`. (T-013, T-014)
-- Added Pascal Analyzer runner: `--run-pascal-analyzer` with PALCMD discovery + `--pa-path/--pa-output/--pa-args` and `[PascalAnalyzer]` settings.ini section. (T-015)
+- Added Pascal Analyzer runner: `analyze --pascal-analyzer true` with PALCMD discovery + `--pa-path/--pa-output/--pa-args` and `[PascalAnalyzer]` settings.ini section. (T-015)
 - Added PAL findings outputs (`pal-findings.md`, `pal-findings.jsonl`) after Pascal Analyzer runs. (T-023, T-026)
 - Added PAL hotspots output (`pal-hotspots.md`) derived from PAL metrics reports. (T-025)
 
@@ -23,9 +23,9 @@ All notable user-visible changes to this project will be documented in this file
 - Generated FixInsight bat now uses one argument per line and no command echo. (T-002)
 - Auto-detect FixInsightCL.exe via `PATH`, then `HKCU\Software\FixInsight\Path` for bat output. (T-003)
 - Added FixInsightCL pass-through options via settings.ini defaults and CLI overrides. (T-004)
-- Suppressed stdout output during --run-fixinsight unless --out/--out-kind is provided. (T-010)
+- Suppressed stdout output during FixInsightCL runs unless resolve output is explicitly requested. (T-010)
 - Updated `fixinsight-run.bat` to generate sample FixInsight reports (txt/xml/csv) under `docs\sample-fix-insight-self-reports\`. (T-017)
-- Static-analysis skill scripts now call DCR analyze subcommands directly. (T-029)
+- Static-analysis skill scripts now call DAK analyze subcommands directly. (T-029)
 
 ### Fixed
 - Fixed FixInsightCL.exe discovery across HKCU/HKLM 32/64-bit registry views. (T-005)

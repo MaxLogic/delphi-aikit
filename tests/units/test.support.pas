@@ -1,4 +1,4 @@
-unit Tests.Support;
+unit Test.Support;
 
 interface
 
@@ -9,8 +9,8 @@ uses
   System.StrUtils,
   Winapi.Windows,
   DUnitX.TestFramework,
-  Dcr.FixInsight,
-  Dcr.PascalAnalyzerRunner;
+  Dak.FixInsight,
+  Dak.PascalAnalyzerRunner;
 
 function RepoRoot: string;
 function TempRoot: string;
@@ -49,7 +49,7 @@ begin
   lDir := ExcludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)));
   for i := 0 to 6 do
   begin
-    if FileExists(TPath.Combine(lDir, 'projects\DelphiConfigResolver.dproj')) then
+    if FileExists(TPath.Combine(lDir, 'projects\DelphiAIKit.dproj')) then
       Exit(lDir);
     lDir := ExcludeTrailingPathDelimiter(ExtractFilePath(lDir));
     if lDir = '' then
@@ -188,7 +188,7 @@ begin
 
   EnsureTempClean;
   lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
-  lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiConfigResolver.dproj')) +
+  lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
     ' -config Release -platform Win32 -ver 23';
   lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
   lLog := TPath.Combine(TempRoot, 'build-resolver.log');
@@ -198,7 +198,7 @@ begin
   if lExit <> 0 then
     Assert.Fail('build-delphi.bat failed, exit=' + lExit.ToString + '. See: ' + lLog);
 
-  GResolverExe := TPath.Combine(RepoRoot, 'bin\DelphiConfigResolver.exe');
+  GResolverExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
   if not FileExists(GResolverExe) then
     Assert.Fail('Resolver exe not found after build: ' + GResolverExe);
 
@@ -208,7 +208,7 @@ end;
 function ResolverExePath: string;
 begin
   if GResolverExe = '' then
-    GResolverExe := TPath.Combine(RepoRoot, 'bin\DelphiConfigResolver.exe');
+    GResolverExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
   Result := GResolverExe;
 end;
 

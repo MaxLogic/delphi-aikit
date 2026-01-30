@@ -1,8 +1,8 @@
 ---
 name: delphi-static-analysis
-description: Run Delphi static analysis with TMS FixInsight (FixInsightCL) and Peganza Pascal Analyzer (PALCMD) via DelphiConfigResolver (DCR), normalize reports, triage findings, and apply conservative, verified fixes.
+description: Run Delphi static analysis with TMS FixInsight (FixInsightCL) and Peganza Pascal Analyzer (PALCMD) via DelphiAIKit (DAK), normalize reports, triage findings, and apply conservative, verified fixes.
 license: internal
-compatibility: "Requires Windows/WSL, DelphiConfigResolver.exe, FixInsightCL, PALCMD; may require commercial licenses"
+compatibility: "Requires Windows/WSL, DelphiAIKit.exe, FixInsightCL, PALCMD; may require commercial licenses"
 metadata:
   tags: [delphi, static-analysis]
   version: "1.0"
@@ -15,7 +15,7 @@ allowed-tools:
 
 # Delphi Static Analysis (FixInsight + Pascal Analyzer)
 
-Goal: give an AI a repeatable workflow to (1) run TMS FixInsightCL + Peganza PALCMD against a Delphi codebase using our `DelphiConfigResolver` (DCR), (2) store reports in a predictable folder tree, (3) triage results, and (4) apply safe fixes with build/test verification.
+Goal: give an AI a repeatable workflow to (1) run TMS FixInsightCL + Peganza PALCMD against a Delphi codebase using our `DelphiAIKit` (DAK), (2) store reports in a predictable folder tree, (3) triage results, and (4) apply safe fixes with build/test verification.
 
 ## Quick start
 
@@ -43,27 +43,28 @@ We do not call FixInsightCL/PALCMD directly for project analysis. We call our re
 
 Inputs/overrides are provided via environment variables (so `analyze.*` still takes exactly one argument).
 
-Scripts delegate to the DCR subcommands:
+Scripts delegate to the DAK subcommands:
 
-- `DelphiConfigResolver.exe analyze-project ...`
-- `DelphiConfigResolver.exe analyze-unit ...`
+- `DelphiAIKit.exe analyze --project ...`
+- `DelphiAIKit.exe analyze --unit ...`
 
-### DCR location
+### DAK location
 
 By default, scripts use:
 
-- `bin/DelphiConfigResolver.exe`
+- `bin/DelphiAIKit.exe`
 
 Override with:
 
-- `DCR_EXE=<path-to-DelphiConfigResolver.exe>`
+- `DAK_EXE=<path-to-DelphiAIKit.exe>`
 
 ### Common overrides
 
-- `DCR_EXCLUDE_PATH_MASKS="*\\lib\\*;*\\3rdparty\\*"` (forwarded to `--exclude-path-masks`)
-- `DCR_IGNORE_WARNING_IDS="C101;C103;O802"` (forwarded to `--ignore-warning-ids`)
-- FixInsight default output is **TXT only**. Opt in to more with `DCR_FI_FORMATS="txt,csv"` or `DCR_FI_FORMATS="all"`.
-- Optional overrides: `DCR_OUT`, `DCR_PAL`, `DCR_CLEAN`, `DCR_WRITE_SUMMARY`
+- `DAK_EXCLUDE_PATH_MASKS="*\\lib\\*;*\\3rdparty\\*"` (forwarded to `--exclude-path-masks`)
+- `DAK_IGNORE_WARNING_IDS="C101;C103;O802"` (forwarded to `--ignore-warning-ids`)
+- FixInsight default output is **TXT only**. Opt in to more with `DAK_FI_FORMATS="txt,csv"` or `DAK_FI_FORMATS="all"`.
+- Optional overrides: `DAK_OUT`, `DAK_FIXINSIGHT`, `DAK_PASCAL_ANALYZER` (or legacy `DAK_PAL`), `DAK_CLEAN`,
+  `DAK_WRITE_SUMMARY`
 
 For the full list of supported environment variables and tool-specific gotchas, see `references/tooling.md`.
 

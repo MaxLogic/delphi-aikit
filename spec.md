@@ -4,7 +4,7 @@ Date: 2025-12-23
 
 ## Scope note (tool vs. skill)
 
-This `spec.md` covers the main DelphiConfigResolver tool only.
+This `spec.md` covers the main DelphiAIKit tool only.
 
 The repo also includes a repo-local agent skill for running static analysis via this tool:
 
@@ -29,76 +29,99 @@ FixInsightCL supports the relevant CLI parameters such as `--project`, `--define
 ### 2.1 Invocation
 
 ```
-FixInsightParams.exe ^
-  --dproj "<path>\DelphiCompanion.dproj" ^
-  --platform Win32 ^
-  --config Debug ^
-  --delphi 23.0 ^
-  --out-kind bat|ini|xml ^
-  --out "<path>\outFile.ext"
+DelphiAIKit.exe <command> [global options] [command options]
+DelphiAIKit.exe --help
+DelphiAIKit.exe <command> --help
 ```
 
-### 2.2 Parameters
+Commands:
 
-- `--dproj` (required)  
-  Path to a Delphi `.dproj`.
+- `resolve` — generate resolved FixInsight params output (ini/xml/bat)
+- `analyze` — run FixInsightCL and/or Pascal Analyzer with stable report output
+- `build` — build a `.dproj` via `build-delphi.bat`
 
-- `--platform` (optional)  
-  Example: `Win32`, `Win64`. Default: `Win32` if omitted.
+### 2.2 Global options (shared)
 
-- `--config` (optional)  
-  Example: `Debug`, `Release`, `Base` (if used by the project). Default: `Release` if omitted.
+- `--project <path>` (required for `resolve`/`analyze`/`build`)  
+  Alias: `--dproj`. Accepts `.dproj`, `.dpr`, or `.dpk`. If `.dpr`/`.dpk`, we resolve the sibling `.dproj`.
 
-- `--delphi` (required)  
-  Delphi IDE registry version, e.g. `23.0` for Delphi 12.  
+- `--platform <Win32|Win64|...>` (optional)  
+  Default: `Win32`.
+
+- `--config <Debug|Release|...>` (optional)  
+  Default: `Release`.
+
+- `--delphi <23.0>` (required)  
   Accept also `23` and normalize to `23.0` (append `.0` if missing).
 
-- `--out-kind` (optional)  
-  Output kind:  
-  - `bat`  -> emit a **Windows batch** that runs `FixInsightCL.exe` with computed params  
-  - `ini`  -> emit an **INI** containing all computed params  
-  - `xml`  -> emit an **XML** containing all computed params  
-  Default: output to **stdout** as `ini` (human readable) if `--out-kind` omitted.
+- `--rsvars <path>` (optional)  
+  Override the rsvars.bat path.
 
-- `--out` (optional)  
-  Output file path. If absent -> stdout.
+- `--envoptions <path>` (optional)  
+  Override EnvOptions.proj path.
 
-- FixInsightCL pass-through options (optional):  
-  `--output`, `--ignore`, `--settings`, `--silent`, `--xml`, `--csv`.  
-  Defaults are read from `settings.ini` next to the executable and can be overridden by CLI.
+- `--log-file <path>` (optional)  
+  Alias: `--logfile`.
 
-- `--exclude-path-masks` (optional)  
-  Semicolon-separated Windows-style file masks used to exclude findings during report post-processing (see §12).  
-  Overrides `[ReportFilter].ExcludePathMasks`.
+- `--log-tee [true|false]` (optional)  
+  When used with `--log-file`, also write diagnostics to stderr/stdout.
 
-- `--ignore-warning-ids` (optional)  
-  Semicolon-separated FixInsight rule IDs to suppress in report post-processing (e.g. `W502;C101;O801`).  
-  Merged with `[FixInsightIgnore].Warnings`.
+- `--verbose [true|false]` (optional)
 
-- `--run-fixinsight` (optional)  
-  If present, run FixInsightCL directly via CreateProcess after resolving parameters.  
-  This avoids cmd.exe 8K command line limits. Default: false.
+### 2.3 `resolve` — generate params
 
-- `--run-pascal-analyzer` (optional)  
-  If present, run Pascal Analyzer (`palcmd.exe`) directly via CreateProcess after resolving parameters (see §13).
+```
+DelphiAIKit.exe resolve --project "<path>\MyProject.dproj" --delphi 23.0 ^
+  [--platform Win32] [--config Release] ^
+  [--format ini|xml|bat] [--out-file "<path>\out.ext"] ^
+  [--fi-output "<path>"] [--fi-ignore "<list>"] [--fi-settings "<path>"] ^
+  [--fi-silent [true|false]] [--fi-xml [true|false]] [--fi-csv [true|false]] ^
+  [--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"]
+```
 
-- `--pa-path` (optional)  
-  Override `palcmd.exe` path (see §13.1).
+Notes:
 
-- `--pa-output` (optional)  
-  Output folder (report root) for the Pascal Analyzer report (see §13.3).
+- `--format` replaces `--out-kind`.
+- `--out-file` replaces `--out`.
+- FixInsightCL pass-through options are now namespaced with `--fi-*`.
 
-- `--pa-args` (optional)  
-  Extra arguments appended verbatim to the `palcmd.exe` command line.
+### 2.4 `analyze` — run FixInsightCL / Pascal Analyzer
 
-- `--logfile` (optional)  
-  Write resolver diagnostics (warnings, missing paths, macros) to the specified file.  
-  When set, diagnostics are not written to stderr.
+```
+DelphiAIKit.exe analyze --project "<path>\MyProject.dproj" --delphi 23.0 ^
+  [--platform Win32] [--config Release] [--out "<path>"] ^
+  [--fixinsight [true|false]] [--pascal-analyzer [true|false]] ^
+  [--fi-formats <txt|xml|csv|all>] ^
+  [--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"] ^
+  [--fi-settings "<path>"] [--fi-ignore "<list>"] [--fi-silent [true|false]] ^
+  [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ^
+  [--clean [true|false]] [--write-summary [true|false]]
+```
 
-- `--log-tee` (optional)  
-  When used with `--logfile`, also write diagnostics to stderr/stdout (for capture into a report).
+Defaults:
 
-### 2.3 Exit codes
+- `--fixinsight` default: `true`
+- `--pascal-analyzer` default: `false`
+- `--fi-formats` default: `txt`
+- If `--out` is omitted, outputs go under `_analysis/<ProjectName>/`.
+
+Unit analysis is supported via `--unit`:
+
+```
+DelphiAIKit.exe analyze --unit "<path>\Unit1.pas" --delphi 23.0 ^
+  [--out "<path>"] [--pascal-analyzer [true|false]] [--pa-* ...]
+```
+
+### 2.5 `build` — build a `.dproj`
+
+```
+DelphiAIKit.exe build --project "<path>\MyProject.dproj" --delphi 23.0 ^
+  [--platform Win32] [--config Release]
+```
+
+Implementation uses `build-delphi.bat` and propagates its exit code.
+
+### 2.6 Exit codes
 
 - `0` success
 - `2` invalid CLI arguments
@@ -106,12 +129,9 @@ FixInsightParams.exe ^
 - `4` registry / IDE configuration not found for requested Delphi version
 - `5` parse error (`.dproj` or `.optset`)
 - `6` unresolved required values (e.g., no MainSource / no paths)
-- `7` external tool not found (e.g., FixInsightCL / palcmd when `--run-*` is requested)
+- `7` external tool not found (e.g., FixInsightCL / PALCMD when required)
 
-If `--run-fixinsight` is used, the process exit code is the FixInsightCL exit code (non-zero propagates).
-When `--run-fixinsight` is used and no `--out` or `--out-kind` is provided, stdout output is suppressed.
-
-### 2.4 `settings.ini` defaults
+### 2.7 `settings.ini` defaults
 
 If `settings.ini` exists next to the executable, read defaults from section `[FixInsightCL]`:
 
@@ -155,12 +175,12 @@ Args=
 Notes:
 
 - `[FixInsightIgnore].Warnings` is used for report post-processing only (see §12). If empty, existing behavior is unchanged.
-- Effective FixInsight path ignore list passed as `--ignore="..."` is merged from:
+- Effective FixInsight path ignore list passed as `--fi-ignore="..."` is merged from:
   - `[FixInsightCL].Ignore`
-  - CLI `--ignore`
+  - CLI `--fi-ignore`
   Dedupe case-insensitively and keep first-seen order.
 - `[ReportFilter].ExcludePathMasks` only affects report post-processing (see §12); it does not affect parameter generation.
-- `[PascalAnalyzer]` is only used when `--run-pascal-analyzer` is present (see §13).
+- `[PascalAnalyzer]` is only used when `--pascal-analyzer true` is present (see §13).
 
 ## 3. Output model
 
@@ -492,6 +512,9 @@ FixInsightCL supports:
 - `--xml` (format output as XML)
 - `--csv` (format output as CSV)
 
+In our CLI, these are toggled via `--fi-xml` / `--fi-csv` and the output file path is controlled by `--fi-output`
+(`resolve`) or by the `analyze` output root.
+
 Post-processing applies only to file output we can rewrite (i.e., when FixInsightCL is invoked with `--output=...`). If FixInsightCL writes only to stdout, we do not filter.
 
 Observed report formats (FixInsightCL 2023.12) we support for post-processing:
@@ -513,11 +536,12 @@ Observed report formats (FixInsightCL 2023.12) we support for post-processing:
   </FixInsightReport>
   ```
 
-Implementation note: when `--run-fixinsight` is used and `--output` is relative, we canonicalize it to an absolute path before invoking FixInsightCL so the report lands in a deterministic location for post-processing.
+Implementation note: when FixInsightCL is invoked and the output path is relative, we canonicalize it to an absolute
+path before running so the report lands in a deterministic location for post-processing.
 
 Apply `ExcludePathMasks` in two layers:
 
-1. Best case: if FixInsight supports source include/exclude via its settings file or another CLI flag, use it (we already pass `--settings` through).
+1. Best case: if FixInsight supports source include/exclude via its settings file or another CLI flag, use it (we already pass `--fi-settings` through).
 2. Fallback (guaranteed): post-process the produced report (text/xml/csv) and remove any finding whose file path matches any exclude mask.
 
 Filtering is applied after analysis, so it does not speed up FixInsight, but it cleans the report reliably.
@@ -543,7 +567,8 @@ We do not post-process PALCMD reports yet. If exclusions are needed, pass `/X` (
 
 ## 13. Pascal Analyzer (PALCMD) integration
 
-When `--run-pascal-analyzer` is present, run `palcmd.exe` (or `palcmd32.exe`) using the same `.dproj` resolution + macro expansion pipeline we use for FixInsight.
+When `--pascal-analyzer true` is present (via `analyze`), run `palcmd.exe` (or `palcmd32.exe`) using the same
+`.dproj` resolution + macro expansion pipeline we use for FixInsight.
 
 ### 13.1 `palcmd.exe` / `palcmd32.exe` path discovery (required)
 
@@ -573,8 +598,8 @@ Defaults when `--pa-args` and `[PascalAnalyzer].Args` are empty:
 - `/F=X` (XML)
 - `/Q` (quiet)
 - `/A+` (parse source + form files)
-- `/FR` (main file + directly used files)
-- `/T=n` where `n = min(8, CPUCount)`
+- `/FA` (parse all files)
+- `/T=n` where `n = min(CPUCount, 64)`
 
 ### 13.3 Output
 

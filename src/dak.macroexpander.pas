@@ -1,10 +1,10 @@
-unit Dcr.MacroExpander;
+unit Dak.MacroExpander;
 
 interface
 
 uses
   System.Generics.Collections, System.SysUtils,
-  Dcr.Diagnostics;
+  Dak.Diagnostics;
 
 type
   TMacroExpander = record

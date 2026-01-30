@@ -1,22 +1,24 @@
 # Pascal Analyzer self-test
 
 This folder contains a self-contained Pascal Analyzer run script that uses our
-DelphiConfigResolver to analyze this repo's own project.
+DelphiAIKit to analyze this repo's own project.
 
 ## What it does
 
-- Resolves the project configuration from `projects\DelphiConfigResolver.dproj`.
-- Runs PALCMD directly via `DelphiConfigResolver.exe --run-pascal-analyzer`.
+- Resolves the project configuration from `projects\DelphiAIKit.dproj`.
+- Runs PALCMD via `DelphiAIKit.exe analyze`.
 - Writes a combined report file and resolver log next to this script.
-- Writes PALCMD reports under `Reports\`.
+- Writes DAK outputs under `Out\` (summary.md, run.log, pascal-analyzer\).
+- Writes PALCMD reports under `Out\Reports\` (configurable).
 
 ## Files
 
 - `pascal-analyzer-run.bat` - main runner
-- `pascal-analyzer-DelphiConfigResolver-report.txt` - combined run report (example)
-- `pascal-analyzer-DelphiConfigResolver-resolver.log` - resolver log (example)
-- `pascal-analyzer-DelphiConfigResolver-params.ini` - last ini output (example)
-- `Reports\` - PALCMD report output (XML/text/etc.)
+- `pascal-analyzer-DelphiAIKit-report.txt` - combined run report (example)
+- `pascal-analyzer-DelphiAIKit-resolver.log` - resolver log (example)
+- `Out\summary.md` / `Out\run.log` - DAK analysis outputs
+- `Out\pascal-analyzer\` - PALCMD reports when `--pa-output` is not set
+- `Out\Reports\` - PALCMD report output (XML/text/etc.) when `ML_PA_OUTPUT_REL` is set
 
 ## How to run
 
@@ -37,4 +39,4 @@ From WSL:
 - The script is designed to be editable. Update the parameters at the top of
   the .bat if you need a different platform/config/Delphi version.
 - If Pascal Analyzer is not installed, the run will fail with a clear error.
-- We keep results next to the script to make diffs and inspection easy.
+- We keep results under `Out\` so `--clean` never wipes the script folder.

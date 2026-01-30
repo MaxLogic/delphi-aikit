@@ -1,4 +1,4 @@
-unit Dcr.FixInsightSettings;
+unit Dak.FixInsightSettings;
 
 interface
 
@@ -6,7 +6,7 @@ uses
   System.Generics.Collections,
   System.IniFiles, System.IOUtils, System.SysUtils,
   maxLogic.StrUtils,
-  Dcr.Diagnostics, Dcr.Messages, Dcr.Types;
+  Dak.Diagnostics, Dak.Messages, Dak.Types;
 
 function LoadSettings(aDiagnostics: TDiagnostics; out aFixInsight: TFixInsightExtraOptions;
   out aFixInsightIgnore: TFixInsightIgnoreDefaults; out aReportFilter: TReportFilterDefaults;
