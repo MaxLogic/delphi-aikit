@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Thin wrapper around DelphiConfigResolver.exe analyze-project.
+# Thin wrapper around DelphiAIKit.exe analyze.
 # Handles WSL path conversion and prints summary.md when available.
 
 from __future__ import annotations
@@ -38,16 +38,16 @@ def _get_env(name: str, default: str) -> str:
     return val if val else default
 
 
-def _find_dcr_exe(repo_root: Path) -> Path:
-    env = os.environ.get("DCR_EXE", "").strip()
+def _find_dak_exe(repo_root: Path) -> Path:
+    env = os.environ.get("DAK_EXE", "").strip()
     if env:
         p = Path(env)
         if p.exists():
             return p
-        raise FileNotFoundError(f"DCR_EXE points to missing file: {p}")
-    p = repo_root / "bin" / "DelphiConfigResolver.exe"
+        raise FileNotFoundError(f"DAK_EXE points to missing file: {p}")
+    p = repo_root / "bin" / "DelphiAIKit.exe"
     if not p.exists():
-        raise FileNotFoundError(f"DelphiConfigResolver.exe not found at: {p} (set DCR_EXE to override)")
+        raise FileNotFoundError(f"DelphiAIKit.exe not found at: {p} (set DAK_EXE to override)")
     return p
 
 
@@ -61,7 +61,7 @@ def _maybe_add_arg(args: list[str], flag: str, value: str | None) -> None:
 
 
 def _resolve_out_root(repo_root: Path, dproj: Path) -> Path:
-    raw = os.environ.get("DCR_OUT", "").strip()
+    raw = os.environ.get("DAK_OUT", "").strip()
     if not raw:
         return repo_root / "_analysis" / dproj.stem
     p = Path(raw).expanduser()
@@ -87,28 +87,29 @@ def main(argv: list[str]) -> int:
         print(f"ERROR: .dproj not found: {dproj}", file=sys.stderr)
         return 2
 
-    dcr_exe = _find_dcr_exe(repo_root)
+    dak_exe = _find_dak_exe(repo_root)
 
-    platform_name = _get_env("DCR_PLATFORM", "Win32")
-    config_name = _get_env("DCR_CONFIG", "Release")
-    delphi_ver = _get_env("DCR_DELPHI", "23.0")
+    platform_name = _get_env("DAK_PLATFORM", "Win32")
+    config_name = _get_env("DAK_CONFIG", "Release")
+    delphi_ver = _get_env("DAK_DELPHI", "23.0")
 
-    dcr_rsvars = os.environ.get("DCR_RSVARS", "").strip()
-    dcr_envoptions = os.environ.get("DCR_ENVOPTIONS", "").strip()
-    fi_formats = os.environ.get("DCR_FI_FORMATS", "").strip()
-    exclude_masks = os.environ.get("DCR_EXCLUDE_PATH_MASKS", "").strip()
-    ignore_rule_ids = os.environ.get("DCR_IGNORE_WARNING_IDS", "").strip()
+    dak_rsvars = os.environ.get("DAK_RSVARS", "").strip()
+    dak_envoptions = os.environ.get("DAK_ENVOPTIONS", "").strip()
+    fi_formats = os.environ.get("DAK_FI_FORMATS", "").strip()
+    exclude_masks = os.environ.get("DAK_EXCLUDE_PATH_MASKS", "").strip()
+    ignore_rule_ids = os.environ.get("DAK_IGNORE_WARNING_IDS", "").strip()
     fi_settings = (os.environ.get("FIXINSIGHT_SETTINGS", "").strip() or os.environ.get("FI_SETTINGS", "").strip())
     pa_path = os.environ.get("PA_PATH", "").strip()
     pa_args = os.environ.get("PA_ARGS", "").strip()
-    pal_flag = os.environ.get("DCR_PAL", "").strip()
-    clean_flag = os.environ.get("DCR_CLEAN", "").strip()
-    summary_flag = os.environ.get("DCR_WRITE_SUMMARY", "").strip()
+    fixinsight_flag = os.environ.get("DAK_FIXINSIGHT", "").strip()
+    pal_flag = _get_env("DAK_PASCAL_ANALYZER", os.environ.get("DAK_PAL", "").strip())
+    clean_flag = os.environ.get("DAK_CLEAN", "").strip()
+    summary_flag = os.environ.get("DAK_WRITE_SUMMARY", "").strip()
 
     args = [
-        str(dcr_exe),
-        "analyze-project",
-        "--dproj",
+        str(dak_exe),
+        "analyze",
+        "--project",
         _to_win_arg(dproj),
         "--platform",
         platform_name,
@@ -120,28 +121,29 @@ def main(argv: list[str]) -> int:
 
     if fi_formats:
         args += ["--fi-formats", fi_formats]
-    _maybe_add_arg(args, "--pal", pal_flag)
+    _maybe_add_arg(args, "--fixinsight", fixinsight_flag)
+    _maybe_add_arg(args, "--pascal-analyzer", pal_flag)
     _maybe_add_arg(args, "--clean", clean_flag)
     _maybe_add_arg(args, "--write-summary", summary_flag)
 
-    if dcr_rsvars:
-        args += ["--rsvars", _to_win_arg(Path(dcr_rsvars))]
-    if dcr_envoptions:
-        args += ["--envoptions", _to_win_arg(Path(dcr_envoptions))]
+    if dak_rsvars:
+        args += ["--rsvars", _to_win_arg(Path(dak_rsvars))]
+    if dak_envoptions:
+        args += ["--envoptions", _to_win_arg(Path(dak_envoptions))]
     if exclude_masks:
         args += ["--exclude-path-masks", exclude_masks]
     if ignore_rule_ids:
         args += ["--ignore-warning-ids", ignore_rule_ids]
     if fi_settings:
-        args += ["--settings", _to_win_arg(Path(fi_settings))]
+        args += ["--fi-settings", _to_win_arg(Path(fi_settings))]
     if pa_path:
         args += ["--pa-path", _to_win_arg(Path(pa_path))]
     if pa_args:
         args += ["--pa-args", pa_args]
 
-    dcr_out = os.environ.get("DCR_OUT", "").strip()
-    if dcr_out:
-        out_path = Path(dcr_out).expanduser()
+    dak_out = os.environ.get("DAK_OUT", "").strip()
+    if dak_out:
+        out_path = Path(dak_out).expanduser()
         if not out_path.is_absolute():
             out_path = (Path.cwd() / out_path).resolve()
         args += ["--out", _to_win_arg(out_path)]

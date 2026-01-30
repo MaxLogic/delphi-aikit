@@ -1,4 +1,4 @@
-program DelphiConfigResolver_Tests;
+program DelphiAIKit_Tests;
 
 {$APPTYPE CONSOLE}
 {$STRONGLINKTYPES ON}
@@ -7,11 +7,11 @@ uses
   System.SysUtils,
   DUnitX.TestFramework,
   DUnitX.Loggers.Console,
-  Tests.Support in 'units\\tests.support.pas',
-  Tests.Build in 'units\\tests.build.pas',
-  Tests.FixInsight in 'units\\tests.fixinsight.pas',
-  Tests.PalFindingNormalize in 'units\\tests.palfindingnormalize.pas',
-  Tests.PascalAnalyzer in 'units\\tests.pascalanalyzer.pas';
+  Test.Support in 'units\\test.support.pas',
+  Test.Build in 'units\\test.build.pas',
+  Test.FixInsight in 'units\\test.fixinsight.pas',
+  Test.PalFindingNormalize in 'units\\test.palfindingnormalize.pas',
+  Test.PascalAnalyzer in 'units\\test.pascalanalyzer.pas';
 
 var
   Runner: ITestRunner;

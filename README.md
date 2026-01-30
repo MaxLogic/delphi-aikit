@@ -1,6 +1,6 @@
-# DelphiConfigResolver
+# DelphiAIKit
 
-DelphiConfigResolver is a small console tool that reads a Delphi project plus a target platform/configuration, then emits a fully expanded set of FixInsightCL parameters. We can use it to run FixInsight analysis outside the IDE in a repeatable way.
+“Utilities for AI-assisted Delphi code analysis and builds.”
 
 ## What it can do
 
@@ -19,36 +19,42 @@ DelphiConfigResolver is a small console tool that reads a Delphi project plus a 
 
 - Windows (we use the registry and `rsvars.bat`)
 - Delphi (any supported version); build scripts/examples default to 12 / 23.0, but we can pass other versions
-- FixInsightCL.exe only if we plan to run FixInsight (`--run-fixinsight`) or use the generated `bat`
-- Pascal Analyzer (PALCMD.EXE / PALCMD32.EXE) only if we plan to run it (`--run-pascal-analyzer`)
+- FixInsightCL.exe only if we plan to run FixInsight (`analyze`) or use the generated `bat`
+- Pascal Analyzer (PALCMD.EXE / PALCMD32.EXE) only if we plan to run it (`--pascal-analyzer true`)
 
 ## Build
 
-The project file is `projects\DelphiConfigResolver.dproj` and the executable is output to `bin\DelphiConfigResolver.exe`.
+The project file is `projects\DelphiAIKit.dproj` and the executable is output to `bin\DelphiAIKit.exe`.
 
 Build from Windows:
 
 ```
-build-delphi.bat projects\DelphiConfigResolver.dproj -config Debug -platform Win32 -ver 23
+build-delphi.bat projects\DelphiAIKit.dproj -config Debug -platform Win32 -ver 23
 ```
 
 Build from WSL (calls Windows `cmd.exe`):
 
 ```
-./build-delphi.sh projects/DelphiConfigResolver.dproj -config Debug -platform Win32 -ver 23
+./build-delphi.sh projects/DelphiAIKit.dproj -config Debug -platform Win32 -ver 23
 ```
 
 `build.bat` is a convenience wrapper that builds the resolver in Debug (Win32) with the default Delphi version.
+
+Or via the CLI:
+
+```
+bin\DelphiAIKit.exe build --project "projects\DelphiAIKit.dproj" --delphi 23.0 --platform Win32 --config Debug
+```
 
 ## Quick start
 
 Build the console app, then run:
 
 ```
-bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0
+bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0
 ```
 
-`--dproj` accepts `.dproj`, `.dpr`, or `.dpk`. If we pass `.dpr`/`.dpk`, the resolver uses the sibling `.dproj`.
+`--project` (alias: `--dproj`) accepts `.dproj`, `.dpr`, or `.dpk`. If we pass `.dpr`/`.dpk`, the resolver uses the sibling `.dproj`.
 `--delphi` is required; `23` is normalized to `23.0`. We can pass other Delphi versions here as well.
 
 If `--platform` or `--config` is omitted, we default to `Win32` and `Release`.
@@ -56,46 +62,46 @@ If `--platform` or `--config` is omitted, we default to `Win32` and `Release`.
 By default, we write `ini` output to stdout. To write a file or change the output kind:
 
 ```
-bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win64 --config Release --delphi 23.0 --out-kind bat --out "C:\temp\run_fixinsight.bat"
+bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win64 --config Release --delphi 23.0 --format bat --out-file "C:\temp\run_fixinsight.bat"
 ```
 
 For extra diagnostics during troubleshooting, enable verbose output:
 
 ```
-bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --verbose true
+bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --verbose true
 ```
 
-To run FixInsightCL directly (avoids cmd.exe 8K limit), add:
+To run FixInsightCL directly, use `analyze` (FixInsight is on by default):
 
 ```
-bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight
+bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0
 ```
 
 To capture resolver diagnostics (warnings, missing paths, macro issues) into a log file:
 
 ```
-bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight --logfile "C:\temp\resolver.log"
+bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --log-file "C:\temp\resolver.log"
 ```
 
 To also include resolver diagnostics in stderr/stdout output (useful when redirecting into a report), add:
 
 ```
-bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --run-fixinsight --logfile "C:\temp\resolver.log" --log-tee true
+bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --log-file "C:\temp\resolver.log" --log-tee true
 ```
 
-When `--run-fixinsight` is used, we suppress stdout output unless `--out` or `--out-kind` is explicitly provided.
+When `resolve` writes to stdout, `--format` and `--out-file` control output. `analyze` always writes reports to files.
 
 We run `rsvars.bat` from the default Delphi installation path to pick up IDE environment variables.
 If Delphi is installed in a non-standard location, pass the path explicitly:
 
 ```
-bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --rsvars "D:\Apps\Embarcadero\Studio\23.0\bin\rsvars.bat"
+bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --rsvars "D:\Apps\Embarcadero\Studio\23.0\bin\rsvars.bat"
 ```
 
 If the IDE library path is missing in the registry, we fall back to `EnvOptions.proj`. We can override that path too:
 
 ```
-bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --envoptions "D:\Config\EnvOptions.proj"
+bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --envoptions "D:\Config\EnvOptions.proj"
 ```
 
 ## FixInsightCL pass-through options
@@ -104,12 +110,12 @@ We can pass extra FixInsightCL flags either via `settings.ini` (next to the exec
 
 Supported pass-through options:
 
-- `--output`
-- `--ignore`
-- `--settings`
-- `--silent`
-- `--xml`
-- `--csv`
+- `--fi-output`
+- `--fi-ignore`
+- `--fi-settings`
+- `--fi-silent`
+- `--fi-xml`
+- `--fi-csv`
 
 Sample `settings.ini`:
 
@@ -152,14 +158,14 @@ We support deterministic report filtering after analysis:
 Notes:
 
 - This is post-processing only, so it does not speed up FixInsightCL.
-- Filtering only applies when FixInsightCL writes to a file (`--output`), because we need a report file to rewrite.
-- Supported FixInsight report formats: text (default), `--xml`, and `--csv`.
+- Filtering only applies when FixInsightCL writes to a file (`--fi-output`), because we need a report file to rewrite.
+- Supported FixInsight report formats: text (default), `--fi-xml`, and `--fi-csv`.
 
 Example (CSV, filtered):
 
 ```
-bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Release --delphi 23.0 ^
-  --run-fixinsight --csv true --output "C:\temp\fixinsight.csv" ^
+bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 --config Release --delphi 23.0 ^
+  --out "C:\temp\analysis" --fi-formats csv --fixinsight true --pascal-analyzer false ^
   --exclude-path-masks "*\lib\*;*\thirdparty\*" ^
   --ignore-warning-ids "O802;O803"
 ```
@@ -168,19 +174,19 @@ bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --
 
 To run Peganza Pascal Analyzer headlessly using our resolved project inputs:
 
-- `--run-pascal-analyzer`
+- `analyze --pascal-analyzer true`
 - optional overrides:
   - `--pa-path "...\palcmd.exe"` (or `palcmd32.exe`, or a folder containing it)
   - `--pa-output "C:\temp\pa"` (report root folder, passed as `/R=...`)
   - `--pa-args "/F=X /Q ..."` (extra PALCMD options, passed verbatim)
 
-If `--pa-args` is omitted, we use sensible defaults (`/F=X /Q /A+ /FR /T=min(8, CPU)`) and we derive `/CD...` from `--delphi` + `--platform`.
+If `--pa-args` is omitted, we use sensible defaults (`/F=X /Q /A+ /FA /T=min(CPU, 64)`) and we derive `/CD...` from `--delphi` + `--platform`.
 
 Example:
 
 ```
-bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --config Release --delphi 23.0 ^
-  --run-pascal-analyzer --pa-output "C:\temp\pa" --pa-args "/F=X /Q"
+bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 --config Release --delphi 23.0 ^
+  --fixinsight false --pascal-analyzer true --pa-output "C:\temp\pa" --pa-args "/F=X /Q"
 ```
 
 ## Output formats
@@ -204,4 +210,4 @@ bin\DelphiConfigResolver.exe --dproj "C:\path\Project.dproj" --platform Win32 --
 
 There are no automated unit tests in this repo. Manual checks live in `tests\README.md`.
 We can also run `tests\run.bat`, which executes the resolver against all fixture `.dproj` files and writes outputs to `tests\out`.
-It expects `bin\DelphiConfigResolver.exe` to exist and accepts optional `RSVARS` and `ENVOPTIONS` environment variables for overrides.
+It expects `bin\DelphiAIKit.exe` to exist and accepts optional `RSVARS` and `ENVOPTIONS` environment variables for overrides.

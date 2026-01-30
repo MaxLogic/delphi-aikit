@@ -12,14 +12,14 @@
 
 ## Done
 
-### T-027 [CLI] Add analyze-project/analyze-unit commands
+### T-027 [CLI] Add analyze command (project/unit)
 Summary: Added analyze subcommand parsing, options, and help output for project/unit analysis.
 
-### T-028 [CLI] Implement analysis orchestration + output tree in DCR
-Summary: Added DCR analysis runner that writes _analysis outputs, run logs, and summaries while invoking FixInsight and PAL.
+### T-028 [CLI] Implement analysis orchestration + output tree in DAK
+Summary: Added DAK analysis runner that writes _analysis outputs, run logs, and summaries while invoking FixInsight and PAL.
 
 ### T-029 [DOC] Make static-analysis scripts thin wrappers
-Summary: Simplified static-analysis scripts to call DCR analyze subcommands and updated skill docs.
+Summary: Simplified static-analysis scripts to call DAK analyze subcommands and updated skill docs.
 
 ### T-022 [DOC] Specify PAL XML parsing + normalized findings format
 Summary: Added a spec slice documenting PAL XML findings extraction patterns and normalized pal-findings/pal-hotspots formats.
@@ -52,13 +52,13 @@ Summary: Made run.bat build the resolver when missing and documented DUnitX/run 
 Summary: Extended `settings.ini` schema with `[FixInsightIgnore]`, `[ReportFilter]`, and `[PascalAnalyzer]` and added corresponding CLI overrides.
 
 ### T-013 [FixInsight] Add ignored-warnings defaults
-Summary: Added `--ignore-warning-ids` and `[FixInsightIgnore].Warnings` and suppress matching rule IDs via report post-processing (keep `--ignore` for paths).
+Summary: Added `--ignore-warning-ids` and `[FixInsightIgnore].Warnings` and suppress matching rule IDs via report post-processing (keep `--fi-ignore` for paths).
 
 ### T-014 [CLI] Filter analyzer reports by ExcludePathMasks
 Summary: Added deterministic report filtering for FixInsight outputs (text/xml/csv) via `[ReportFilter].ExcludePathMasks` / `--exclude-path-masks`.
 
 ### T-015 [CLI] Run Pascal Analyzer (palcmd.exe) with resolved project config
-Summary: Added `--run-pascal-analyzer` runner with PALCMD discovery (`palcmd.exe`/`palcmd32.exe`), Delphi target mapping, and sensible defaults.
+Summary: Added `analyze --pascal-analyzer true` runner with PALCMD discovery (`palcmd.exe`/`palcmd32.exe`), Delphi target mapping, and sensible defaults.
 
 ### T-016 [DOC] Update README for ignore/filter + Pascal Analyzer features
 Summary: Documented new settings.ini sections and CLI flags for report filtering and Pascal Analyzer, including examples.
@@ -66,7 +66,7 @@ Summary: Documented new settings.ini sections and CLI flags for report filtering
 ### T-017 [DOC] Capture sample FixInsight self reports (txt/xml/csv) for filtering
 Summary: Added sample FixInsight self reports under `docs\\sample-fix-insight-self-reports\\` and updated `fixinsight-run.bat` to regenerate them.
 
-### T-001 Implement DelphiConfigResolver console app
+### T-001 Implement DelphiAIKit console app
 Summary: Build the CLI tool that resolves FixInsight params from .dproj/.optset and IDE config.
 
 ### T-002 Refine FixInsight bat output and CLI defaults
@@ -91,10 +91,10 @@ Summary: Read FixInsightCL.exe path from settings.ini when registry/PATH lookup 
 Summary: Write UTF-8 bat without BOM, set codepage, and split long path lists into variables.
 
 ### T-009 Add direct FixInsightCL execution
-Summary: Add --run to execute FixInsightCL via CreateProcess to avoid cmd.exe limits.
+Summary: Add `analyze --fixinsight true` to execute FixInsightCL via CreateProcess to avoid cmd.exe limits.
 
 ### T-010 Add resolver logfile support
-Summary: Write resolver diagnostics to a separate log file via --logfile.
+Summary: Write resolver diagnostics to a separate log file via --log-file.
 
 ### T-011 Add log tee option for resolver diagnostics
-Summary: Allow resolver diagnostics to be mirrored to output when --logfile is used.
+Summary: Allow resolver diagnostics to be mirrored to output when --log-file is used.

@@ -1,4 +1,4 @@
-unit Dcr.Analyze;
+unit Dak.Analyze;
 
 interface
 
@@ -8,8 +8,8 @@ uses
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf,
   Winapi.Windows,
   maxLogic.IOUtils, maxLogic.StrUtils,
-  Dcr.Diagnostics, Dcr.FixInsight, Dcr.FixInsightRunner, Dcr.FixInsightSettings, Dcr.Messages,
-  Dcr.PascalAnalyzerRunner, Dcr.Project, Dcr.Registry, Dcr.ReportPostProcess, Dcr.RsVars, Dcr.Types;
+  Dak.Diagnostics, Dak.FixInsight, Dak.FixInsightRunner, Dak.FixInsightSettings, Dak.Messages,
+  Dak.PascalAnalyzerRunner, Dak.Project, Dak.Registry, Dak.ReportPostProcess, Dak.RsVars, Dak.Types;
 
 function RunAnalyzeCommand(const aOptions: TAppOptions): Integer;
 
@@ -348,13 +348,13 @@ begin
   end;
 end;
 
-function LoadXmlDocument(const aPath: string): IXMLDocument;
+function TryLoadXmlDocument(const aPath: string): IXMLDocument;
 var
   lDoc: IXMLDocument;
 begin
   if not FileExists(aPath) then
     Exit(nil);
-  lDoc := LoadXMLDocument(aPath);
+  lDoc := Xml.XMLDoc.LoadXMLDocument(aPath);
   Result := lDoc;
 end;
 
@@ -363,7 +363,7 @@ var
   lDoc: IXMLDocument;
 begin
   Result := 0;
-  lDoc := LoadXmlDocument(aPath);
+  lDoc := TryLoadXmlDocument(aPath);
   if lDoc = nil then
     Exit(0);
   SumSectionCounts(lDoc.DocumentElement, Result);
@@ -377,7 +377,7 @@ var
 begin
   aVersion := '';
   aCompiler := '';
-  lDoc := LoadXmlDocument(aPath);
+  lDoc := TryLoadXmlDocument(aPath);
   if lDoc = nil then
     Exit;
   lRoot := lDoc.DocumentElement;
@@ -787,6 +787,7 @@ var
   lFixLogPath: string;
   lPal: TPalSummary;
   lPaReportRoot: string;
+  lPalPostError: string;
   lSummaryText: string;
 begin
   lExitCode := 0;
@@ -841,113 +842,116 @@ begin
     lFixTxtRan := False;
     lFixXmlRan := False;
     lFixCsvRan := False;
-  lFixTxtExit := -1;
-  lFixXmlExit := -1;
-  lFixCsvExit := -1;
+    lFixTxtExit := -1;
+    lFixXmlExit := -1;
+    lFixCsvExit := -1;
 
-    if TReportFormat.rfText in aOptions.fAnalyzeFiFormats then
+    if aOptions.fAnalyzeFixInsight then
     begin
-      lFixTxtRan := True;
-      lParams.fFixOutput := TPath.GetFullPath(lFixTxtPath);
-      lParams.fFixXml := False;
-      lParams.fFixCsv := False;
-      lFixLogPath := TPath.Combine(lFixDir, 'fixinsight.txt.log');
-      if TryRunFixInsightLogged(lParams, lRunLog, lRunExit, lRunError) then
+      if TReportFormat.rfText in aOptions.fAnalyzeFiFormats then
       begin
-        lFixTxtExit := Integer(lRunExit);
-        if lFixTxtExit <> 0 then
+        lFixTxtRan := True;
+        lParams.fFixOutput := TPath.GetFullPath(lFixTxtPath);
+        lParams.fFixXml := False;
+        lParams.fFixCsv := False;
+        lFixLogPath := TPath.Combine(lFixDir, 'fixinsight.txt.log');
+        if TryRunFixInsightLogged(lParams, lRunLog, lRunExit, lRunError) then
         begin
-          lErrors.Add(Format('FixInsight TXT failed (exit=%d).', [lFixTxtExit]));
-          if lExitCode = 0 then
-            lExitCode := lFixTxtExit;
-        end
-        else if HasAnyReportFilters(lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings) then
-        begin
-          if not TryPostProcessFixInsightReport(lParams.fFixOutput, TReportFormat.rfText,
-            lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings, lFilterError) then
+          lFixTxtExit := Integer(lRunExit);
+          if lFixTxtExit <> 0 then
           begin
-            lErrors.Add('FixInsight TXT post-processing failed: ' + lFilterError);
+            lErrors.Add(Format('FixInsight TXT failed (exit=%d).', [lFixTxtExit]));
             if lExitCode = 0 then
-              lExitCode := 6;
+              lExitCode := lFixTxtExit;
+          end
+          else if HasAnyReportFilters(lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings) then
+          begin
+            if not TryPostProcessFixInsightReport(lParams.fFixOutput, TReportFormat.rfText,
+              lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings, lFilterError) then
+            begin
+              lErrors.Add('FixInsight TXT post-processing failed: ' + lFilterError);
+              if lExitCode = 0 then
+                lExitCode := 6;
+            end;
           end;
+        end else
+        begin
+          lErrors.Add('FixInsight TXT failed: ' + lRunError);
+          if lExitCode = 0 then
+            lExitCode := 6;
         end;
-      end else
-      begin
-        lErrors.Add('FixInsight TXT failed: ' + lRunError);
-        if lExitCode = 0 then
-          lExitCode := 6;
+        WriteToolLog(lFixLogPath, 'FixInsight TXT', lFixTxtExit, lRunError);
       end;
-      WriteToolLog(lFixLogPath, 'FixInsight TXT', lFixTxtExit, lRunError);
-    end;
 
-    if TReportFormat.rfXml in aOptions.fAnalyzeFiFormats then
-    begin
-      lFixXmlRan := True;
-      lParams.fFixOutput := TPath.GetFullPath(lFixXmlPath);
-      lParams.fFixXml := True;
-      lParams.fFixCsv := False;
-      lFixLogPath := TPath.Combine(lFixDir, 'fixinsight.xml.log');
-      if TryRunFixInsightLogged(lParams, lRunLog, lRunExit, lRunError) then
+      if TReportFormat.rfXml in aOptions.fAnalyzeFiFormats then
       begin
-        lFixXmlExit := Integer(lRunExit);
-        if lFixXmlExit <> 0 then
+        lFixXmlRan := True;
+        lParams.fFixOutput := TPath.GetFullPath(lFixXmlPath);
+        lParams.fFixXml := True;
+        lParams.fFixCsv := False;
+        lFixLogPath := TPath.Combine(lFixDir, 'fixinsight.xml.log');
+        if TryRunFixInsightLogged(lParams, lRunLog, lRunExit, lRunError) then
         begin
-          lErrors.Add(Format('FixInsight XML failed (exit=%d).', [lFixXmlExit]));
-          if lExitCode = 0 then
-            lExitCode := lFixXmlExit;
-        end
-        else if HasAnyReportFilters(lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings) then
-        begin
-          if not TryPostProcessFixInsightReport(lParams.fFixOutput, TReportFormat.rfXml,
-            lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings, lFilterError) then
+          lFixXmlExit := Integer(lRunExit);
+          if lFixXmlExit <> 0 then
           begin
-            lErrors.Add('FixInsight XML post-processing failed: ' + lFilterError);
+            lErrors.Add(Format('FixInsight XML failed (exit=%d).', [lFixXmlExit]));
             if lExitCode = 0 then
-              lExitCode := 6;
+              lExitCode := lFixXmlExit;
+          end
+          else if HasAnyReportFilters(lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings) then
+          begin
+            if not TryPostProcessFixInsightReport(lParams.fFixOutput, TReportFormat.rfXml,
+              lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings, lFilterError) then
+            begin
+              lErrors.Add('FixInsight XML post-processing failed: ' + lFilterError);
+              if lExitCode = 0 then
+                lExitCode := 6;
+            end;
           end;
+        end else
+        begin
+          lErrors.Add('FixInsight XML failed: ' + lRunError);
+          if lExitCode = 0 then
+            lExitCode := 6;
         end;
-      end else
-      begin
-        lErrors.Add('FixInsight XML failed: ' + lRunError);
-        if lExitCode = 0 then
-          lExitCode := 6;
+        WriteToolLog(lFixLogPath, 'FixInsight XML', lFixXmlExit, lRunError);
       end;
-      WriteToolLog(lFixLogPath, 'FixInsight XML', lFixXmlExit, lRunError);
-    end;
 
-    if TReportFormat.rfCsv in aOptions.fAnalyzeFiFormats then
-    begin
-      lFixCsvRan := True;
-      lParams.fFixOutput := TPath.GetFullPath(lFixCsvPath);
-      lParams.fFixXml := False;
-      lParams.fFixCsv := True;
-      lFixLogPath := TPath.Combine(lFixDir, 'fixinsight.csv.log');
-      if TryRunFixInsightLogged(lParams, lRunLog, lRunExit, lRunError) then
+      if TReportFormat.rfCsv in aOptions.fAnalyzeFiFormats then
       begin
-        lFixCsvExit := Integer(lRunExit);
-        if lFixCsvExit <> 0 then
+        lFixCsvRan := True;
+        lParams.fFixOutput := TPath.GetFullPath(lFixCsvPath);
+        lParams.fFixXml := False;
+        lParams.fFixCsv := True;
+        lFixLogPath := TPath.Combine(lFixDir, 'fixinsight.csv.log');
+        if TryRunFixInsightLogged(lParams, lRunLog, lRunExit, lRunError) then
         begin
-          lErrors.Add(Format('FixInsight CSV failed (exit=%d).', [lFixCsvExit]));
-          if lExitCode = 0 then
-            lExitCode := lFixCsvExit;
-        end
-        else if HasAnyReportFilters(lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings) then
-        begin
-          if not TryPostProcessFixInsightReport(lParams.fFixOutput, TReportFormat.rfCsv,
-            lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings, lFilterError) then
+          lFixCsvExit := Integer(lRunExit);
+          if lFixCsvExit <> 0 then
           begin
-            lErrors.Add('FixInsight CSV post-processing failed: ' + lFilterError);
+            lErrors.Add(Format('FixInsight CSV failed (exit=%d).', [lFixCsvExit]));
             if lExitCode = 0 then
-              lExitCode := 6;
+              lExitCode := lFixCsvExit;
+          end
+          else if HasAnyReportFilters(lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings) then
+          begin
+            if not TryPostProcessFixInsightReport(lParams.fFixOutput, TReportFormat.rfCsv,
+              lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings, lFilterError) then
+            begin
+              lErrors.Add('FixInsight CSV post-processing failed: ' + lFilterError);
+              if lExitCode = 0 then
+                lExitCode := 6;
+            end;
           end;
+        end else
+        begin
+          lErrors.Add('FixInsight CSV failed: ' + lRunError);
+          if lExitCode = 0 then
+            lExitCode := 6;
         end;
-      end else
-      begin
-        lErrors.Add('FixInsight CSV failed: ' + lRunError);
-        if lExitCode = 0 then
-          lExitCode := 6;
+        WriteToolLog(lFixLogPath, 'FixInsight CSV', lFixCsvExit, lRunError);
       end;
-      WriteToolLog(lFixLogPath, 'FixInsight CSV', lFixCsvExit, lRunError);
     end;
 
     lPal := Default(TPalSummary);
@@ -956,6 +960,8 @@ begin
       lPal.Ran := True;
       if aOptions.fHasPaOutput then
         lPascalAnalyzer.fOutput := TPath.GetFullPath(aOptions.fPaOutput)
+      else if lPascalAnalyzer.fOutput <> '' then
+        lPascalAnalyzer.fOutput := TPath.GetFullPath(lPascalAnalyzer.fOutput)
       else
         lPascalAnalyzer.fOutput := lPaDir;
       lPal.OutputRoot := lPascalAnalyzer.fOutput;
@@ -970,18 +976,24 @@ begin
         end
         else
         begin
-          if TryFindPalReportRoot(lPal.OutputRoot, lPaReportRoot, lRunError) then
-          begin
-            lPal.ReportRoot := lPaReportRoot;
-            ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), lPal.Version, lPal.Compiler);
-            lPal.Warnings := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Warnings.xml'));
-            lPal.StrongWarnings := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Strong Warnings.xml'));
-            lPal.Exceptions := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Exception.xml'));
-            if not TryGeneratePalArtifacts(lPaReportRoot, lPal.OutputRoot, lRunError) then
-              lDiagnostics.AddWarning('PAL findings generation failed: ' + lRunError);
-          end else
-          begin
-            lDiagnostics.AddWarning('PAL report root not found: ' + lRunError);
+          try
+            lPalPostError := '';
+            if TryFindPalReportRoot(lPal.OutputRoot, lPaReportRoot, lPalPostError) then
+            begin
+              lPal.ReportRoot := lPaReportRoot;
+              ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), lPal.Version, lPal.Compiler);
+              lPal.Warnings := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Warnings.xml'));
+              lPal.StrongWarnings := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Strong Warnings.xml'));
+              lPal.Exceptions := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Exception.xml'));
+              if not TryGeneratePalArtifacts(lPaReportRoot, lPal.OutputRoot, lPalPostError) then
+                lDiagnostics.AddWarning('PAL findings generation failed: ' + lPalPostError);
+            end else
+            begin
+              lDiagnostics.AddWarning('PAL report root not found: ' + lPalPostError);
+            end;
+          except
+            on E: Exception do
+              lDiagnostics.AddWarning('PAL post-processing failed: ' + E.ClassName + ': ' + E.Message);
           end;
         end;
       end else
@@ -1033,6 +1045,7 @@ var
   lPal: TPalSummary;
   lPaReportRoot: string;
   lSummaryText: string;
+  lPalPostError: string;
   lError: string;
 begin
   lExitCode := 0;
@@ -1086,6 +1099,8 @@ begin
       lPal.Ran := True;
       if aOptions.fHasPaOutput then
         lPascalAnalyzer.fOutput := TPath.GetFullPath(aOptions.fPaOutput)
+      else if lPascalAnalyzer.fOutput <> '' then
+        lPascalAnalyzer.fOutput := TPath.GetFullPath(lPascalAnalyzer.fOutput)
       else
         lPascalAnalyzer.fOutput := lPaDir;
       lPal.OutputRoot := lPascalAnalyzer.fOutput;
@@ -1098,13 +1113,22 @@ begin
           if lExitCode = 0 then
             lExitCode := lPal.ExitCode;
         end
-        else if TryFindPalReportRoot(lPal.OutputRoot, lPaReportRoot, lRunError) then
+        else
         begin
-          lPal.ReportRoot := lPaReportRoot;
-          ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), lPal.Version, lPal.Compiler);
-        end else
-        begin
-          lDiagnostics.AddWarning('PAL report root not found: ' + lRunError);
+          try
+            lPalPostError := '';
+            if TryFindPalReportRoot(lPal.OutputRoot, lPaReportRoot, lPalPostError) then
+            begin
+              lPal.ReportRoot := lPaReportRoot;
+              ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), lPal.Version, lPal.Compiler);
+            end else
+            begin
+              lDiagnostics.AddWarning('PAL report root not found: ' + lPalPostError);
+            end;
+          except
+            on E: Exception do
+              lDiagnostics.AddWarning('PAL post-processing failed: ' + E.ClassName + ': ' + E.Message);
+          end;
         end;
       end else
       begin

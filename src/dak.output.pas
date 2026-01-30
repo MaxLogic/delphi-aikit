@@ -1,10 +1,10 @@
-unit Dcr.Output;
+unit Dak.Output;
 
 interface
 
 uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.SysUtils,
-  Dcr.Messages, Dcr.Types;
+  Dak.Messages, Dak.Types;
 
 function WriteOutput(const aParams: TFixInsightParams; aKind: TOutputKind; const aOutPath: string;
   out aError: string): Boolean;

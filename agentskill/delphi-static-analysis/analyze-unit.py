@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Thin wrapper around DelphiConfigResolver.exe analyze-unit.
+# Thin wrapper around DelphiAIKit.exe analyze --unit.
 # Handles WSL path conversion and prints summary.md when available.
 
 from __future__ import annotations
@@ -32,16 +32,16 @@ def _to_win_arg(p: Path) -> str:
     return _wslpath_to_windows(p)
 
 
-def _find_dcr_exe(repo_root: Path) -> Path:
-    env = os.environ.get("DCR_EXE", "").strip()
+def _find_dak_exe(repo_root: Path) -> Path:
+    env = os.environ.get("DAK_EXE", "").strip()
     if env:
         p = Path(env)
         if p.exists():
             return p
-        raise FileNotFoundError(f"DCR_EXE points to missing file: {p}")
-    p = repo_root / "bin" / "DelphiConfigResolver.exe"
+        raise FileNotFoundError(f"DAK_EXE points to missing file: {p}")
+    p = repo_root / "bin" / "DelphiAIKit.exe"
     if not p.exists():
-        raise FileNotFoundError(f"DelphiConfigResolver.exe not found at: {p} (set DCR_EXE to override)")
+        raise FileNotFoundError(f"DelphiAIKit.exe not found at: {p} (set DAK_EXE to override)")
     return p
 
 
@@ -54,8 +54,13 @@ def _maybe_add_arg(args: list[str], flag: str, value: str | None) -> None:
     args.extend([flag, v])
 
 
+def _get_env(name: str, default: str) -> str:
+    val = os.environ.get(name, "").strip()
+    return val if val else default
+
+
 def _resolve_out_root(repo_root: Path, unit_path: Path) -> Path:
-    raw = os.environ.get("DCR_OUT", "").strip()
+    raw = os.environ.get("DAK_OUT", "").strip()
     if not raw:
         return repo_root / "_analysis" / "_unit" / unit_path.stem
     p = Path(raw).expanduser()
@@ -81,22 +86,26 @@ def main(argv: list[str]) -> int:
         print(f"ERROR: .pas not found: {unit_path}", file=sys.stderr)
         return 2
 
-    dcr_exe = _find_dcr_exe(repo_root)
+    dak_exe = _find_dak_exe(repo_root)
 
+    delphi_ver = _get_env("DAK_DELPHI", "23.0")
     pa_path = os.environ.get("PA_PATH", "").strip()
     pa_args = os.environ.get("PA_ARGS", "").strip()
-    pal_flag = os.environ.get("DCR_PAL", "").strip()
-    clean_flag = os.environ.get("DCR_CLEAN", "").strip()
-    summary_flag = os.environ.get("DCR_WRITE_SUMMARY", "").strip()
+    pal_flag = _get_env("DAK_PASCAL_ANALYZER", os.environ.get("DAK_PAL", "").strip() or "true")
+    clean_flag = os.environ.get("DAK_CLEAN", "").strip()
+    summary_flag = os.environ.get("DAK_WRITE_SUMMARY", "").strip()
 
     args = [
-        str(dcr_exe),
-        "analyze-unit",
+        str(dak_exe),
+        "analyze",
         "--unit",
         _to_win_arg(unit_path),
+        "--delphi",
+        delphi_ver,
     ]
 
-    _maybe_add_arg(args, "--pal", pal_flag)
+    _maybe_add_arg(args, "--fixinsight", "false")
+    _maybe_add_arg(args, "--pascal-analyzer", pal_flag)
     _maybe_add_arg(args, "--clean", clean_flag)
     _maybe_add_arg(args, "--write-summary", summary_flag)
 
@@ -105,9 +114,9 @@ def main(argv: list[str]) -> int:
     if pa_args:
         args += ["--pa-args", pa_args]
 
-    dcr_out = os.environ.get("DCR_OUT", "").strip()
-    if dcr_out:
-        out_path = Path(dcr_out).expanduser()
+    dak_out = os.environ.get("DAK_OUT", "").strip()
+    if dak_out:
+        out_path = Path(dak_out).expanduser()
         if not out_path.is_absolute():
             out_path = (Path.cwd() / out_path).resolve()
         args += ["--out", _to_win_arg(out_path)]

@@ -2,15 +2,15 @@
 
 `tests\run.bat` is an end-to-end feature test that exercises:
 
-- resolver output generation (`--out-kind ini|xml|bat`) for fixtures and for our own `projects\DelphiConfigResolver.dproj`
-- FixInsightCL execution in `txt/xml/csv` (`--run-fixinsight`)
+- resolver output generation (`resolve --format ini|xml|bat`) for fixtures and for our own `projects\DelphiAIKit.dproj`
+- FixInsightCL execution in `txt/xml/csv` (`analyze --fi-formats all`)
 - report filtering (`--exclude-path-masks`, `[ReportFilter]`)
 - warning-id filtering (`--ignore-warning-ids`, `[FixInsightIgnore]`)
-- Pascal Analyzer execution (`--run-pascal-analyzer`) if installed
+- Pascal Analyzer execution (`analyze --pascal-analyzer true`) if installed
 
 ## Prereqs
 
-- `bin\DelphiConfigResolver.exe` exists (run.bat will attempt to build it if missing)
+- `bin\DelphiAIKit.exe` exists (run.bat will attempt to build it if missing)
 - FixInsightCL is installed and discoverable (PATH / registry / settings)
 - Pascal Analyzer is installed (optional; can be skipped)
 
@@ -47,17 +47,17 @@ The DUnitX test runner lives under `tests\` and exercises:
 Build and run from a Windows shell:
 
 ```bat
-build-delphi.bat tests\DelphiConfigResolver.Tests.dproj -config Debug -platform Win32 -ver 23
-tests\DelphiConfigResolver.Tests.exe
+build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23
+tests\DelphiAIKit.Tests.exe
 ```
 
 If `pawelspc=1` is set, missing FixInsight/PALCMD is treated as a failure; otherwise the relevant tests are skipped.
 
 ## Useful env vars
 
-- `DCR_PLATFORM` (default: `Win32`)
-- `DCR_CONFIG` (default: `Release`)
-- `DCR_DELPHI` (default: `23.0`)
+- `DAK_PLATFORM` (default: `Win32`)
+- `DAK_CONFIG` (default: `Release`)
+- `DAK_DELPHI` (default: `23.0`)
 - `RSVARS` (optional; passed as `--rsvars`)
 - `ENVOPTIONS` (optional; passed as `--envoptions`)
 - `PA_PATH` (optional; forwarded to `--pa-path` and/or `[PascalAnalyzer].Path`)

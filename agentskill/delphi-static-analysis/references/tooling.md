@@ -1,21 +1,21 @@
-# Tooling notes (FixInsightCL, PALCMD, DCR)
+# Tooling notes (FixInsightCL, PALCMD, DAK)
 
 ## Environment variables (forwarded by analyze.*)
 
 Common overrides:
 
-- `DCR_EXE=<path>` (overrides resolver location)
+- `DAK_EXE=<path>` (overrides resolver location)
 - `PA_PATH=...` (forwarded to `--pa-path`)
-- `FI_SETTINGS=...` / `FIXINSIGHT_SETTINGS=...` (forwarded to FixInsightCL `--settings` via DCR)
-- `DCR_RSVARS=...` (forwarded to `--rsvars`)
-- `DCR_ENVOPTIONS=...` (forwarded to `--envoptions`)
-- `DCR_EXCLUDE_PATH_MASKS=...` (forwarded to `--exclude-path-masks`)
-- `DCR_IGNORE_WARNING_IDS=...` (forwarded to `--ignore-warning-ids`)
-- `DCR_FI_FORMATS=txt|csv|xml|all` (default: `txt`)
+- `FI_SETTINGS=...` / `FIXINSIGHT_SETTINGS=...` (forwarded to FixInsightCL `--fi-settings` via DAK)
+- `DAK_RSVARS=...` (forwarded to `--rsvars`)
+- `DAK_ENVOPTIONS=...` (forwarded to `--envoptions`)
+- `DAK_EXCLUDE_PATH_MASKS=...` (forwarded to `--exclude-path-masks`)
+- `DAK_IGNORE_WARNING_IDS=...` (forwarded to `--ignore-warning-ids`)
+- `DAK_FI_FORMATS=txt|csv|xml|all` (default: `txt`)
 
 ## FixInsightCL specifics
 
-- `--project=<dpr>` is mandatory; DCR builds the command line for us. See `references/sources.md`.
+- `--project=<dpr>` is mandatory; DAK builds the command line for us. See `references/sources.md`.
 - Prefer valid `--libpath` and `--unitscopes` for parity with the IDE.
 - Some FixInsightCL versions can show a message box when `--libpath` includes invalid paths. Avoid invalid entries in CI.
 - Some FixInsightCL versions can fail to create output if the current working directory is not writable. Use a writable CWD and absolute output paths.
@@ -35,4 +35,4 @@ Not directly via a unit mode. FixInsightCL is a project analyzer and requires `-
 
 ### Why does Pascal Analyzer unit-level analysis differ from project-level analysis?
 
-When PALCMD is run on a single unit, it relies on defaults from `PAL.INI` unless we provide `/S=...` (search folders), `/D=...` (defines), `/BUILD=...`, and compiler target flags. Project-level runs via DCR supply these consistently from `.dproj`.
+When PALCMD is run on a single unit, it relies on defaults from `PAL.INI` unless we provide `/S=...` (search folders), `/D=...` (defines), `/BUILD=...`, and compiler target flags. Project-level runs via DAK supply these consistently from `.dproj`.

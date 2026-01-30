@@ -33,7 +33,7 @@ Patterns inside a section:
 <item>
   <id>ParseList</id>
   <kind>Func, Interfaced</kind>
-  <locmod>Dcr.ReportPostProcess (18)</locmod>
+  <locmod>Dak.ReportPostProcess (18)</locmod>
 </item>
 ```
 
@@ -45,7 +45,7 @@ Patterns inside a section:
 <item>
   <loc>
     <kind>Read+Set</kind>
-    <locmod>Dcr.FixInsightRunner</locmod>
+    <locmod>Dak.FixInsightRunner</locmod>
     <locline>106</locline>
   </loc>
 </item>
@@ -56,9 +56,9 @@ Patterns inside a section:
 3. **Name + loc pairs (flat)**
 
 ```xml
-<name>Dcr.ReportPostProcess.TryNormalizeRuleId</name>
+<name>Dak.ReportPostProcess.TryNormalizeRuleId</name>
 <loc>
-  <locmod>Dcr.ReportPostProcess</locmod>
+  <locmod>Dak.ReportPostProcess</locmod>
   <locline>467</locline>
 </loc>
 ```
@@ -67,7 +67,7 @@ Patterns inside a section:
 
 ```xml
 <loc>
-  <locmod>Dcr.Cli</locmod>
+  <locmod>Dak.Cli</locmod>
   <locline>337</locline>
 </loc>
 ```
@@ -81,7 +81,7 @@ Patterns inside a section:
   <branch index="1">
     <called_by>
       <name>IsHelpRequested</name>
-      <locmod>Dcr.Cli</locmod>
+      <locmod>Dak.Cli</locmod>
       <locline>16</locline>
       <called_by>...</called_by>
     </called_by>
@@ -124,7 +124,7 @@ One JSON object per line. Each object includes at least:
   "severity": "warning",
   "report": "Warnings.xml",
   "section": "Local variables that are referenced before they are set",
-  "module": "Dcr.FixInsightRunner",
+  "module": "Dak.FixInsightRunner",
   "line": 106,
   "message": "Read+Set",
   "id": "ParseList",
@@ -151,6 +151,5 @@ lines=<value> | <name>
 
 ## Location of outputs
 
-When PALCMD is run via `--run-pascal-analyzer`, outputs are written next to the PAL output root (the folder
+When PALCMD is run via `analyze --pascal-analyzer true`, outputs are written next to the PAL output root (the folder
 containing the PAL XML reports, usually `--pa-output`).
-

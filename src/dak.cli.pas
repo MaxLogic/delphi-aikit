@@ -1,14 +1,15 @@
-unit Dcr.Cli;
+unit Dak.Cli;
 
 interface
 
 uses
   System.Classes, System.SysUtils,
   maxLogic.CmdLineParams,
-  Dcr.Messages, Dcr.Types;
+  Dak.Messages, Dak.Types;
 
 function TryParseOptions(out aOptions: TAppOptions; out aError: string): Boolean;
-procedure WriteUsage;
+function TryGetCommand(out aCommand: TCommandKind; out aHasCommand: Boolean; out aError: string): Boolean;
+procedure WriteUsage(const aCommand: TCommandKind; const aShowGlobalOnly: Boolean);
 function IsHelpRequested: Boolean;
 
 implementation
@@ -21,9 +22,60 @@ begin
   Result := lParams.has(['help', 'h', '?']);
 end;
 
-procedure WriteUsage;
+function TryGetCommand(out aCommand: TCommandKind; out aHasCommand: Boolean; out aError: string): Boolean;
+var
+  lParams: iCmdLineParams;
+  lList: TStringList;
+  lArg: string;
+  lIndex: Integer;
 begin
-  WriteLn(ErrOutput, SUsage);
+  Result := False;
+  aError := '';
+  aCommand := TCommandKind.ckResolve;
+  aHasCommand := False;
+  lParams := maxCmdLineParams;
+  lList := lParams.GetParamList;
+  for lIndex := 0 to lList.Count - 1 do
+  begin
+    lArg := lList[lIndex];
+    if (lArg <> '') and (lArg[1] <> '-') and (lArg[1] <> '/') then
+    begin
+      aHasCommand := True;
+      if SameText(lArg, 'resolve') then
+        aCommand := TCommandKind.ckResolve
+      else if SameText(lArg, 'analyze') or SameText(lArg, 'analyze-project') then
+        aCommand := TCommandKind.ckAnalyzeProject
+      else if SameText(lArg, 'analyze-unit') then
+        aCommand := TCommandKind.ckAnalyzeUnit
+      else if SameText(lArg, 'build') then
+        aCommand := TCommandKind.ckBuild
+      else
+      begin
+        aError := Format(SUnknownCommand, [lArg]);
+        Exit(False);
+      end;
+      Exit(True);
+    end;
+  end;
+  Result := True;
+end;
+
+procedure WriteUsage(const aCommand: TCommandKind; const aShowGlobalOnly: Boolean);
+begin
+  if aShowGlobalOnly then
+  begin
+    WriteLn(ErrOutput, SUsageGlobal);
+    Exit;
+  end;
+
+  case aCommand of
+    TCommandKind.ckAnalyzeProject, TCommandKind.ckAnalyzeUnit:
+      WriteLn(ErrOutput, SUsageAnalyze);
+    TCommandKind.ckBuild:
+      WriteLn(ErrOutput, SUsageBuild);
+  else
+    WriteLn(ErrOutput, SUsageResolve);
+  end;
 end;
 
 function TryParseOptions(out aOptions: TAppOptions; out aError: string): Boolean;
@@ -36,6 +88,7 @@ var
   lValue: string;
   lInlineValue: string;
   lHasInlineValue: Boolean;
+  lHandled: Boolean;
 
   function TryParseOutKind(const aText: string; out aKind: TOutputKind): Boolean;
   begin
@@ -157,14 +210,15 @@ var
   end;
 
   function TakeValue(const aRequiresValue: Boolean; const aAllowsValue: Boolean; const aInlineValue: string;
-    const aHasInlineValue: Boolean; out aOutValue: string; const aArgName: string): Boolean;
+    const aHasInlineValue: Boolean; out aOutValue: string; const aArgName: string;
+    const aAllowSwitchValue: Boolean = False): Boolean;
   begin
     aOutValue := '';
     if aHasInlineValue then
       aOutValue := aInlineValue
     else if aRequiresValue or aAllowsValue then
     begin
-      if (lIndex + 1 < lList.Count) and (not IsSwitchParam(lList[lIndex + 1])) then
+      if (lIndex + 1 < lList.Count) and (aAllowSwitchValue or (not IsSwitchParam(lList[lIndex + 1]))) then
       begin
         Inc(lIndex);
         aOutValue := lList[lIndex];
@@ -189,7 +243,8 @@ begin
   aOptions.fConfig := 'Release';
   aOptions.fOutKind := TOutputKind.okIni;
   aOptions.fAnalyzeFiFormats := [TReportFormat.rfText];
-  aOptions.fAnalyzePal := True;
+  aOptions.fAnalyzeFixInsight := True;
+  aOptions.fAnalyzePal := False;
   aOptions.fAnalyzeClean := True;
   aOptions.fAnalyzeWriteSummary := True;
 
@@ -201,10 +256,14 @@ begin
     lArg := lList[0];
     if not TrySplitSwitch(lArg, lParams.SwitchPrefixes, lSwitch, lInlineValue, lHasInlineValue) then
     begin
-      if SameText(lArg, 'analyze-project') then
+      if SameText(lArg, 'resolve') then
+        aOptions.fCommand := TCommandKind.ckResolve
+      else if SameText(lArg, 'analyze') or SameText(lArg, 'analyze-project') then
         aOptions.fCommand := TCommandKind.ckAnalyzeProject
       else if SameText(lArg, 'analyze-unit') then
         aOptions.fCommand := TCommandKind.ckAnalyzeUnit
+      else if SameText(lArg, 'build') then
+        aOptions.fCommand := TCommandKind.ckBuild
       else
       begin
         aError := Format(SUnknownCommand, [lArg]);
@@ -220,6 +279,79 @@ begin
     begin
       aError := Format(SUnknownArg, [lArg]);
       Exit(False);
+    end;
+
+    lHandled := True;
+    if SameText(lSwitch, 'project') or SameText(lSwitch, 'dproj') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--project') then
+        Exit(False);
+      aOptions.fDprojPath := lValue;
+    end else if SameText(lSwitch, 'platform') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--platform') then
+        Exit(False);
+      aOptions.fPlatform := lValue;
+    end else if SameText(lSwitch, 'config') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--config') then
+        Exit(False);
+      aOptions.fConfig := lValue;
+    end else if SameText(lSwitch, 'delphi') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--delphi') then
+        Exit(False);
+      if Pos('.', lValue) = 0 then
+        lValue := lValue + '.0';
+      aOptions.fDelphiVersion := lValue;
+    end else if SameText(lSwitch, 'rsvars') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--rsvars') then
+        Exit(False);
+      aOptions.fRsVarsPath := lValue;
+      aOptions.fHasRsVarsPath := True;
+    end else if SameText(lSwitch, 'envoptions') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--envoptions') then
+        Exit(False);
+      aOptions.fEnvOptionsPath := lValue;
+      aOptions.fHasEnvOptionsPath := True;
+    end else if SameText(lSwitch, 'log-file') or SameText(lSwitch, 'logfile') then
+    begin
+      if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--log-file') then
+        Exit(False);
+      aOptions.fLogFile := lValue;
+      aOptions.fHasLogFile := True;
+    end else if SameText(lSwitch, 'log-tee') then
+    begin
+      if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--log-tee') then
+        Exit(False);
+      if not TryParseBool(lValue, aOptions.fLogTee) then
+      begin
+        aError := Format(SInvalidBoolValue, ['--log-tee', lValue]);
+        Exit(False);
+      end;
+      aOptions.fHasLogTee := True;
+    end else if SameText(lSwitch, 'verbose') then
+    begin
+      if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--verbose') then
+        Exit(False);
+      if not TryParseBool(lValue, aOptions.fVerbose) then
+      begin
+        aError := Format(SInvalidBoolValue, ['--verbose', lValue]);
+        Exit(False);
+      end;
+    end else if SameText(lSwitch, 'help') or SameText(lSwitch, 'h') or SameText(lSwitch, '?') then
+    begin
+      // handled by IsHelpRequested
+    end
+    else
+      lHandled := False;
+
+    if lHandled then
+    begin
+      Inc(lIndex);
+      Continue;
     end;
 
     if (aOptions.fCommand = TCommandKind.ckResolve) then
@@ -246,9 +378,9 @@ begin
         if Pos('.', lValue) = 0 then
           lValue := lValue + '.0';
         aOptions.fDelphiVersion := lValue;
-      end else if SameText(lSwitch, 'out-kind') then
+      end else if SameText(lSwitch, 'format') or SameText(lSwitch, 'out-kind') then
       begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--out-kind') then
+        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--format') then
           Exit(False);
         if not TryParseOutKind(lValue, aOptions.fOutKind) then
         begin
@@ -256,9 +388,9 @@ begin
           Exit(False);
         end;
         aOptions.fHasOutKind := True;
-      end else if SameText(lSwitch, 'out') then
+      end else if SameText(lSwitch, 'out-file') or SameText(lSwitch, 'out') then
       begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--out') then
+        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--out-file') then
           Exit(False);
         aOptions.fOutPath := lValue;
         aOptions.fHasOutPath := True;
@@ -283,51 +415,51 @@ begin
           Exit(False);
         aOptions.fEnvOptionsPath := lValue;
         aOptions.fHasEnvOptionsPath := True;
-      end else if SameText(lSwitch, 'output') then
+      end else if SameText(lSwitch, 'fi-output') or SameText(lSwitch, 'output') then
       begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--output') then
+        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--fi-output') then
           Exit(False);
         aOptions.fFixOutput := lValue;
         aOptions.fHasFixOutput := True;
-      end else if SameText(lSwitch, 'ignore') then
+      end else if SameText(lSwitch, 'fi-ignore') or SameText(lSwitch, 'ignore') then
       begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--ignore') then
+        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--fi-ignore') then
           Exit(False);
         aOptions.fFixIgnore := lValue;
         aOptions.fHasFixIgnore := True;
-      end else if SameText(lSwitch, 'settings') then
+      end else if SameText(lSwitch, 'fi-settings') or SameText(lSwitch, 'settings') then
       begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--settings') then
+        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--fi-settings') then
           Exit(False);
         aOptions.fFixSettings := lValue;
         aOptions.fHasFixSettings := True;
-      end else if SameText(lSwitch, 'silent') then
+      end else if SameText(lSwitch, 'fi-silent') or SameText(lSwitch, 'silent') then
       begin
-        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--silent') then
+        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--fi-silent') then
           Exit(False);
         if not TryParseBool(lValue, aOptions.fFixSilent) then
         begin
-          aError := Format(SInvalidBoolValue, ['--silent', lValue]);
+          aError := Format(SInvalidBoolValue, ['--fi-silent', lValue]);
           Exit(False);
         end;
         aOptions.fHasFixSilent := True;
-      end else if SameText(lSwitch, 'xml') then
+      end else if SameText(lSwitch, 'fi-xml') or SameText(lSwitch, 'xml') then
       begin
-        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--xml') then
+        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--fi-xml') then
           Exit(False);
         if not TryParseBool(lValue, aOptions.fFixXml) then
         begin
-          aError := Format(SInvalidBoolValue, ['--xml', lValue]);
+          aError := Format(SInvalidBoolValue, ['--fi-xml', lValue]);
           Exit(False);
         end;
         aOptions.fHasFixXml := True;
-      end else if SameText(lSwitch, 'csv') then
+      end else if SameText(lSwitch, 'fi-csv') or SameText(lSwitch, 'csv') then
       begin
-        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--csv') then
+        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--fi-csv') then
           Exit(False);
         if not TryParseBool(lValue, aOptions.fFixCsv) then
         begin
-          aError := Format(SInvalidBoolValue, ['--csv', lValue]);
+          aError := Format(SInvalidBoolValue, ['--fi-csv', lValue]);
           Exit(False);
         end;
         aOptions.fHasFixCsv := True;
@@ -343,75 +475,18 @@ begin
           Exit(False);
         aOptions.fIgnoreWarningIds := lValue;
         aOptions.fHasIgnoreWarningIds := True;
-      end else if SameText(lSwitch, 'run-fixinsight') then
-      begin
-        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--run-fixinsight') then
-          Exit(False);
-        if not TryParseBool(lValue, aOptions.fRunFixInsight) then
-        begin
-          aError := Format(SInvalidBoolValue, ['--run-fixinsight', lValue]);
-          Exit(False);
-        end;
-      end else if SameText(lSwitch, 'run-pascal-analyzer') then
-      begin
-        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--run-pascal-analyzer') then
-          Exit(False);
-        if not TryParseBool(lValue, aOptions.fRunPascalAnalyzer) then
-        begin
-          aError := Format(SInvalidBoolValue, ['--run-pascal-analyzer', lValue]);
-          Exit(False);
-        end;
-      end else if SameText(lSwitch, 'pa-path') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--pa-path') then
-          Exit(False);
-        aOptions.fPaPath := lValue;
-        aOptions.fHasPaPath := True;
-      end else if SameText(lSwitch, 'pa-output') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--pa-output') then
-          Exit(False);
-        aOptions.fPaOutput := lValue;
-        aOptions.fHasPaOutput := True;
-      end else if SameText(lSwitch, 'pa-args') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--pa-args') then
-          Exit(False);
-        aOptions.fPaArgs := lValue;
-        aOptions.fHasPaArgs := True;
-      end else if SameText(lSwitch, 'logfile') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--logfile') then
-          Exit(False);
-        aOptions.fLogFile := lValue;
-        aOptions.fHasLogFile := True;
-      end else if SameText(lSwitch, 'log-tee') then
-      begin
-        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--log-tee') then
-          Exit(False);
-        if not TryParseBool(lValue, aOptions.fLogTee) then
-        begin
-          aError := Format(SInvalidBoolValue, ['--log-tee', lValue]);
-          Exit(False);
-        end;
-        aOptions.fHasLogTee := True;
-      end else if SameText(lSwitch, 'help') or SameText(lSwitch, 'h') or SameText(lSwitch, '?') then
-      begin
-        // handled by IsHelpRequested
-      end
-      else
+      end else
       begin
         aError := Format(SUnknownArg, [lArg]);
         Exit(False);
       end;
+    end else if aOptions.fCommand = TCommandKind.ckBuild then
+    begin
+      aError := Format(SUnknownArg, [lArg]);
+      Exit(False);
     end else
     begin
-      if SameText(lSwitch, 'dproj') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--dproj') then
-          Exit(False);
-        aOptions.fDprojPath := lValue;
-      end else if SameText(lSwitch, 'unit') then
+      if SameText(lSwitch, 'unit') then
       begin
         if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--unit') then
           Exit(False);
@@ -431,13 +506,22 @@ begin
           aError := Format(SInvalidFiFormats, [lValue]);
           Exit(False);
         end;
-      end else if SameText(lSwitch, 'pal') then
+      end else if SameText(lSwitch, 'fixinsight') then
       begin
-        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--pal') then
+        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--fixinsight') then
+          Exit(False);
+        if not TryParseBool(lValue, aOptions.fAnalyzeFixInsight) then
+        begin
+          aError := Format(SInvalidBoolValue, ['--fixinsight', lValue]);
+          Exit(False);
+        end;
+      end else if SameText(lSwitch, 'pascal-analyzer') or SameText(lSwitch, 'pal') then
+      begin
+        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--pascal-analyzer') then
           Exit(False);
         if not TryParseBool(lValue, aOptions.fAnalyzePal) then
         begin
-          aError := Format(SInvalidBoolValue, ['--pal', lValue]);
+          aError := Format(SInvalidBoolValue, ['--pascal-analyzer', lValue]);
           Exit(False);
         end;
       end else if SameText(lSwitch, 'clean') then
@@ -458,54 +542,25 @@ begin
           aError := Format(SInvalidBoolValue, ['--write-summary', lValue]);
           Exit(False);
         end;
-      end else if SameText(lSwitch, 'platform') then
+      end else if SameText(lSwitch, 'fi-settings') or SameText(lSwitch, 'settings') then
       begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--platform') then
-          Exit(False);
-        aOptions.fPlatform := lValue;
-      end else if SameText(lSwitch, 'config') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--config') then
-          Exit(False);
-        aOptions.fConfig := lValue;
-      end else if SameText(lSwitch, 'delphi') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--delphi') then
-          Exit(False);
-        if Pos('.', lValue) = 0 then
-          lValue := lValue + '.0';
-        aOptions.fDelphiVersion := lValue;
-      end else if SameText(lSwitch, 'rsvars') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--rsvars') then
-          Exit(False);
-        aOptions.fRsVarsPath := lValue;
-        aOptions.fHasRsVarsPath := True;
-      end else if SameText(lSwitch, 'envoptions') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--envoptions') then
-          Exit(False);
-        aOptions.fEnvOptionsPath := lValue;
-        aOptions.fHasEnvOptionsPath := True;
-      end else if SameText(lSwitch, 'settings') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--settings') then
+        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--fi-settings') then
           Exit(False);
         aOptions.fFixSettings := lValue;
         aOptions.fHasFixSettings := True;
-      end else if SameText(lSwitch, 'ignore') then
+      end else if SameText(lSwitch, 'fi-ignore') or SameText(lSwitch, 'ignore') then
       begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--ignore') then
+        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--fi-ignore') then
           Exit(False);
         aOptions.fFixIgnore := lValue;
         aOptions.fHasFixIgnore := True;
-      end else if SameText(lSwitch, 'silent') then
+      end else if SameText(lSwitch, 'fi-silent') or SameText(lSwitch, 'silent') then
       begin
-        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--silent') then
+        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--fi-silent') then
           Exit(False);
         if not TryParseBool(lValue, aOptions.fFixSilent) then
         begin
-          aError := Format(SInvalidBoolValue, ['--silent', lValue]);
+          aError := Format(SInvalidBoolValue, ['--fi-silent', lValue]);
           Exit(False);
         end;
         aOptions.fHasFixSilent := True;
@@ -535,40 +590,11 @@ begin
         aOptions.fHasPaOutput := True;
       end else if SameText(lSwitch, 'pa-args') then
       begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--pa-args') then
+        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--pa-args', True) then
           Exit(False);
         aOptions.fPaArgs := lValue;
         aOptions.fHasPaArgs := True;
-      end else if SameText(lSwitch, 'logfile') then
-      begin
-        if not TakeValue(True, False, lInlineValue, lHasInlineValue, lValue, '--logfile') then
-          Exit(False);
-        aOptions.fLogFile := lValue;
-        aOptions.fHasLogFile := True;
-      end else if SameText(lSwitch, 'log-tee') then
-      begin
-        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--log-tee') then
-          Exit(False);
-        if not TryParseBool(lValue, aOptions.fLogTee) then
-        begin
-          aError := Format(SInvalidBoolValue, ['--log-tee', lValue]);
-          Exit(False);
-        end;
-        aOptions.fHasLogTee := True;
-      end else if SameText(lSwitch, 'verbose') then
-      begin
-        if not TakeValue(False, True, lInlineValue, lHasInlineValue, lValue, '--verbose') then
-          Exit(False);
-        if not TryParseBool(lValue, aOptions.fVerbose) then
-        begin
-          aError := Format(SInvalidBoolValue, ['--verbose', lValue]);
-          Exit(False);
-        end;
-      end else if SameText(lSwitch, 'help') or SameText(lSwitch, 'h') or SameText(lSwitch, '?') then
-      begin
-        // handled by IsHelpRequested
-      end
-      else
+      end else
       begin
         aError := Format(SUnknownArg, [lArg]);
         Exit(False);
@@ -577,11 +603,21 @@ begin
     Inc(lIndex);
   end;
 
+  if (aOptions.fCommand = TCommandKind.ckAnalyzeProject) and (aOptions.fUnitPath <> '') then
+  begin
+    if aOptions.fDprojPath <> '' then
+    begin
+      aError := SAnalyzeUnitConflict;
+      Exit(False);
+    end;
+    aOptions.fCommand := TCommandKind.ckAnalyzeUnit;
+  end;
+
   if aOptions.fCommand = TCommandKind.ckResolve then
   begin
     if aOptions.fDprojPath = '' then
     begin
-      aError := Format(SArgMissingValue, ['--dproj']);
+      aError := Format(SArgMissingValue, ['--project']);
       Exit(False);
     end;
     if aOptions.fDelphiVersion = '' then
@@ -593,16 +629,36 @@ begin
   begin
     if aOptions.fDprojPath = '' then
     begin
-      aError := Format(SArgMissingValue, ['--dproj']);
+      aError := Format(SArgMissingValue, ['--project']);
       Exit(False);
     end;
     if aOptions.fDelphiVersion = '' then
-      aOptions.fDelphiVersion := '23.0';
+    begin
+      aError := Format(SArgMissingValue, ['--delphi']);
+      Exit(False);
+    end;
   end else if aOptions.fCommand = TCommandKind.ckAnalyzeUnit then
   begin
     if aOptions.fUnitPath = '' then
     begin
       aError := Format(SArgMissingValue, ['--unit']);
+      Exit(False);
+    end;
+    if aOptions.fDelphiVersion = '' then
+    begin
+      aError := Format(SArgMissingValue, ['--delphi']);
+      Exit(False);
+    end;
+  end else if aOptions.fCommand = TCommandKind.ckBuild then
+  begin
+    if aOptions.fDprojPath = '' then
+    begin
+      aError := Format(SArgMissingValue, ['--project']);
+      Exit(False);
+    end;
+    if aOptions.fDelphiVersion = '' then
+    begin
+      aError := Format(SArgMissingValue, ['--delphi']);
       Exit(False);
     end;
   end;

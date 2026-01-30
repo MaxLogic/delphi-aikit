@@ -1,10 +1,10 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectGuid>{E529D5F7-753A-4635-9F8F-7FBF1DDAB44E}</ProjectGuid>
-    <MainSource>DelphiConfigResolver.Tests.dpr</MainSource>
+    <MainSource>DelphiAIKit.Tests.dpr</MainSource>
     <Base>True</Base>
     <Config Condition="'$(Config)'==''">Debug</Config>
-    <ProjectName Condition="'$(ProjectName)'==''">DelphiConfigResolver.Tests</ProjectName>
+    <ProjectName Condition="'$(ProjectName)'==''">DelphiAIKit.Tests</ProjectName>
     <TargetedPlatforms>1</TargetedPlatforms>
     <AppType>Console</AppType>
     <FrameworkType>None</FrameworkType>
@@ -42,7 +42,7 @@
     <DCC_N>false</DCC_N>
     <DCC_S>false</DCC_S>
     <DCC_ImageBase>00400000</DCC_ImageBase>
-    <SanitizedProjectName>DelphiConfigResolver_Tests</SanitizedProjectName>
+    <SanitizedProjectName>DelphiAIKit_Tests</SanitizedProjectName>
     <VerInfo_Locale>1045</VerInfo_Locale>
     <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=</VerInfo_Keys>
     <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
@@ -55,11 +55,11 @@
     <DelphiCompile Include="$(MainSource)">
       <MainSource>MainSource</MainSource>
     </DelphiCompile>
-    <DCCReference Include="units\\tests.support.pas"/>
-    <DCCReference Include="units\\tests.build.pas"/>
-    <DCCReference Include="units\\tests.fixinsight.pas"/>
-    <DCCReference Include="units\\tests.palfindingnormalize.pas"/>
-    <DCCReference Include="units\\tests.pascalanalyzer.pas"/>
+    <DCCReference Include="units\\test.support.pas"/>
+    <DCCReference Include="units\\test.build.pas"/>
+    <DCCReference Include="units\\test.fixinsight.pas"/>
+    <DCCReference Include="units\\test.palfindingnormalize.pas"/>
+    <DCCReference Include="units\\test.pascalanalyzer.pas"/>
   </ItemGroup>
   <ItemGroup>
     <BuildConfiguration Include="Base">
@@ -81,7 +81,7 @@
     <BorlandProject>
       <Delphi.Personality>
         <Source>
-          <Source Name="MainSource">DelphiConfigResolver.Tests.dpr</Source>
+          <Source Name="MainSource">DelphiAIKit.Tests.dpr</Source>
         </Source>
       </Delphi.Personality>
       <Platforms>

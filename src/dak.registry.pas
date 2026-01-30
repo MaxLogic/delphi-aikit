@@ -1,4 +1,4 @@
-unit Dcr.Registry;
+unit Dak.Registry;
 
 interface
 
@@ -7,7 +7,7 @@ uses
   System.Win.Registry,
   Winapi.Windows,
   maxLogic.StrUtils,
-  Dcr.Diagnostics, Dcr.Messages, Dcr.MsBuild, Dcr.Types;
+  Dak.Diagnostics, Dak.Messages, Dak.MsBuild, Dak.Types;
 
 function TryReadIdeConfig(const aDelphiVersion, aPlatform, aEnvOptionsOverride: string;
   out aEnvVars: TDictionary<string, string>; out aLibraryPath: string; out aLibrarySource: TPropertySource;

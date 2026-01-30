@@ -1,4 +1,4 @@
-unit Dcr.PascalAnalyzerRunner;
+unit Dak.PascalAnalyzerRunner;
 
 interface
 
@@ -8,7 +8,7 @@ uses
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
   Winapi.Windows,
   maxLogic.StrUtils,
-  Dcr.Types;
+  Dak.Types;
 
 function TryResolvePalCmdExe(const aOverridePath: string; out aExePath: string; out aError: string): Boolean;
 function BuildPalCmdCommandLine(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
@@ -184,88 +184,90 @@ begin
   Result := False;
   aError := '';
   InitPalCmdMap(aMap);
-
-  lPath := PalCmdMapPath;
-  if not FileExists(lPath) then
-  begin
-    aError := 'PALCMD mapping file not found: ' + lPath;
-    Exit(False);
-  end;
-
-  lText := TFile.ReadAllText(lPath, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lText) as TJSONObject;
-  if lJson = nil then
-  begin
-    aError := 'PALCMD mapping file is not valid JSON: ' + lPath;
-    Exit(False);
-  end;
   try
-    if not TryGetJsonArray(lJson, 'delphiOrder', lArr) then
+    lPath := PalCmdMapPath;
+    if not FileExists(lPath) then
     begin
-      aError := 'PALCMD mapping file is missing delphiOrder: ' + lPath;
+      aError := 'PALCMD mapping file not found: ' + lPath;
       Exit(False);
     end;
-    SetLength(aMap.DelphiOrder, lArr.Count);
-    for i := 0 to lArr.Count - 1 do
-      aMap.DelphiOrder[i] := lArr.Items[i].Value;
 
-    if not TryGetJsonArray(lJson, 'bdsToDelphi', lArr) then
+    lText := TFile.ReadAllText(lPath, TEncoding.UTF8);
+    lJson := TJSONObject.ParseJSONValue(lText) as TJSONObject;
+    if lJson = nil then
     begin
-      aError := 'PALCMD mapping file is missing bdsToDelphi: ' + lPath;
+      aError := 'PALCMD mapping file is not valid JSON: ' + lPath;
       Exit(False);
     end;
-    for lItem in lArr do
-      if lItem is TJSONObject then
+    try
+      if not TryGetJsonArray(lJson, 'delphiOrder', lArr) then
       begin
-        lObj := TJSONObject(lItem);
-        lKey := JsonGetInteger(lObj, 'bdsMajor', -1);
-        lValue := JsonGetString(lObj, 'delphi', '');
-        if (lKey >= 0) and (lValue <> '') then
-          aMap.BdsToDelphi.AddOrSetValue(lKey, lValue);
+        aError := 'PALCMD mapping file is missing delphiOrder: ' + lPath;
+        Exit(False);
+      end;
+      SetLength(aMap.DelphiOrder, lArr.Count);
+      for i := 0 to lArr.Count - 1 do
+        aMap.DelphiOrder[i] := lArr.Items[i].Value;
+
+      if not TryGetJsonArray(lJson, 'bdsToDelphi', lArr) then
+      begin
+        aError := 'PALCMD mapping file is missing bdsToDelphi: ' + lPath;
+        Exit(False);
+      end;
+      for lItem in lArr do
+        if lItem is TJSONObject then
+        begin
+          lObj := TJSONObject(lItem);
+          lKey := JsonGetInteger(lObj, 'bdsMajor', -1);
+          lValue := JsonGetString(lObj, 'delphi', '');
+          if (lKey >= 0) and (lValue <> '') then
+            aMap.BdsToDelphi.AddOrSetValue(lKey, lValue);
+        end;
+
+      if not TryGetJsonArray(lJson, 'palcmdSupport', lArr) then
+      begin
+        aError := 'PALCMD mapping file is missing palcmdSupport: ' + lPath;
+        Exit(False);
+      end;
+      for lItem in lArr do
+        if lItem is TJSONObject then
+        begin
+          lObj := TJSONObject(lItem);
+          lKey := JsonGetInteger(lObj, 'palcmdMajor', -1);
+          lValue := JsonGetString(lObj, 'maxDelphi', '');
+          if (lKey >= 0) and (lValue <> '') then
+            aMap.PalCmdMax.AddOrSetValue(lKey, lValue);
+        end;
+
+      if not TryGetJsonArray(lJson, 'delphiFlags', lArr) then
+      begin
+        aError := 'PALCMD mapping file is missing delphiFlags: ' + lPath;
+        Exit(False);
+      end;
+      for lItem in lArr do
+        if lItem is TJSONObject then
+        begin
+          lObj := TJSONObject(lItem);
+          lValue := JsonGetString(lObj, 'delphi', '');
+          if lValue = '' then
+            Continue;
+          if lObj.GetValue('win32') <> nil then
+            aMap.DelphiWin32.AddOrSetValue(lValue, JsonGetString(lObj, 'win32', ''));
+          if lObj.GetValue('win64') <> nil then
+            aMap.DelphiWin64.AddOrSetValue(lValue, JsonGetString(lObj, 'win64', ''));
+        end;
+
+      if (Length(aMap.DelphiOrder) = 0) or (aMap.BdsToDelphi.Count = 0) or (aMap.PalCmdMax.Count = 0) then
+      begin
+        aError := 'PALCMD mapping file is incomplete: ' + lPath;
+        Exit(False);
       end;
 
-    if not TryGetJsonArray(lJson, 'palcmdSupport', lArr) then
-    begin
-      aError := 'PALCMD mapping file is missing palcmdSupport: ' + lPath;
-      Exit(False);
+      Result := True;
+    finally
+      lJson.Free;
     end;
-    for lItem in lArr do
-      if lItem is TJSONObject then
-      begin
-        lObj := TJSONObject(lItem);
-        lKey := JsonGetInteger(lObj, 'palcmdMajor', -1);
-        lValue := JsonGetString(lObj, 'maxDelphi', '');
-        if (lKey >= 0) and (lValue <> '') then
-          aMap.PalCmdMax.AddOrSetValue(lKey, lValue);
-      end;
-
-    if not TryGetJsonArray(lJson, 'delphiFlags', lArr) then
-    begin
-      aError := 'PALCMD mapping file is missing delphiFlags: ' + lPath;
-      Exit(False);
-    end;
-    for lItem in lArr do
-      if lItem is TJSONObject then
-      begin
-        lObj := TJSONObject(lItem);
-        lValue := JsonGetString(lObj, 'delphi', '');
-        if lValue = '' then
-          Continue;
-        if lObj.GetValue('win32') <> nil then
-          aMap.DelphiWin32.AddOrSetValue(lValue, JsonGetString(lObj, 'win32', ''));
-        if lObj.GetValue('win64') <> nil then
-          aMap.DelphiWin64.AddOrSetValue(lValue, JsonGetString(lObj, 'win64', ''));
-      end;
-
-    if (Length(aMap.DelphiOrder) = 0) or (aMap.BdsToDelphi.Count = 0) or (aMap.PalCmdMax.Count = 0) then
-    begin
-      aError := 'PALCMD mapping file is incomplete: ' + lPath;
-      Exit(False);
-    end;
-
-    Result := True;
   finally
-    lJson.Free;
     if not Result then
       FreePalCmdMap(aMap);
   end;
@@ -397,8 +399,11 @@ begin
   Result := TryCaptureProcessOutput(aPalCmdExe, '', aText, lExit, aError);
   if Result and (lExit <> 0) then
   begin
-    aError := 'PALCMD help exited with code ' + lExit.ToString + '.';
-    Result := False;
+    if aText = '' then
+    begin
+      aError := 'PALCMD help exited with code ' + lExit.ToString + '.';
+      Result := False;
+    end;
   end;
 end;
 
@@ -702,7 +707,8 @@ var
   lMap: TPalCmdMap;
   lDelphiKey: string;
   lMaxDelphi: string;
-  lSelected: string;
+  lExpectedFlag: string;
+  lResolvedFlag: string;
   lIndex: Integer;
   lMaxIndex: Integer;
   lPalCmdMajor: Integer;
@@ -732,57 +738,72 @@ begin
       Exit(False);
     end;
 
-    if not TryGetFileVersionMajor(aPalCmdExe, lPalCmdMajor) then
+    if lIsWin32 then
     begin
-      aError := 'Unable to read PALCMD version from: ' + aPalCmdExe;
-      Exit(False);
-    end;
-
-    if not TryGetPalCmdMaxDelphi(lMap, lPalCmdMajor, lMaxDelphi) then
-    begin
-      aError := 'PALCMD version ' + lPalCmdMajor.ToString + ' not supported in mapping file.';
-      Exit(False);
-    end;
-
-    lIndex := FindOrderIndex(lMap.DelphiOrder, lDelphiKey);
-    lMaxIndex := FindOrderIndex(lMap.DelphiOrder, lMaxDelphi);
-    if (lIndex < 0) or (lMaxIndex < 0) then
-    begin
-      aError := 'PALCMD mapping order is missing Delphi version keys.';
-      Exit(False);
-    end;
-
-    lSelected := lDelphiKey;
-    if lIndex > lMaxIndex then
-      lSelected := lMaxDelphi;
-
-    if TryGetPalCmdHelpText(aPalCmdExe, lHelpText, lHelpError) then
-    begin
-      if not TryResolveFlagFromHelp(lMap, lHelpText, aPlatform, lSelected, aFlag) then
+      if not lMap.DelphiWin32.TryGetValue(lDelphiKey, lExpectedFlag) then
       begin
-        aError := 'PALCMD help does not list a compatible /CD flag.';
+        aError := 'PALCMD mapping missing Win32 flag for Delphi version: ' + lDelphiKey;
         Exit(False);
       end;
     end else
     begin
-      if lIsWin32 then
+      if not lMap.DelphiWin64.TryGetValue(lDelphiKey, lExpectedFlag) then
       begin
-        if not lMap.DelphiWin32.TryGetValue(lSelected, aFlag) then
-        begin
-          aError := 'PALCMD mapping missing Win32 flag for Delphi version: ' + lSelected;
-          Exit(False);
-        end;
-      end else
-      begin
-        if not lMap.DelphiWin64.TryGetValue(lSelected, aFlag) then
-        begin
-          aError := 'PALCMD mapping missing Win64 flag for Delphi version: ' + lSelected;
-          Exit(False);
-        end;
+        aError := 'PALCMD mapping missing Win64 flag for Delphi version: ' + lDelphiKey;
+        Exit(False);
       end;
     end;
 
-    Result := True;
+    if not TryGetPalCmdHelpText(aPalCmdExe, lHelpText, lHelpError) then
+    begin
+      // Fall back to version mapping when PALCMD help is unavailable.
+      if not TryGetFileVersionMajor(aPalCmdExe, lPalCmdMajor) then
+      begin
+        aError := 'Unable to read PALCMD version from: ' + aPalCmdExe;
+        Exit(False);
+      end;
+
+      if not TryGetPalCmdMaxDelphi(lMap, lPalCmdMajor, lMaxDelphi) then
+      begin
+        aError := 'PALCMD version ' + lPalCmdMajor.ToString + ' not supported in mapping file.';
+        Exit(False);
+      end;
+
+      lIndex := FindOrderIndex(lMap.DelphiOrder, lDelphiKey);
+      lMaxIndex := FindOrderIndex(lMap.DelphiOrder, lMaxDelphi);
+      if (lIndex < 0) or (lMaxIndex < 0) then
+      begin
+        aError := 'PALCMD mapping order is missing Delphi version keys.';
+        Exit(False);
+      end;
+
+      if lIndex > lMaxIndex then
+      begin
+        aError := Format('PALCMD %d supports Delphi up to %s, but %s was requested. Install a newer Pascal Analyzer or ' +
+          'pass /CD... via --pa-args to override.', [lPalCmdMajor, lMaxDelphi, lDelphiKey]);
+        Exit(False);
+      end;
+
+      aFlag := lExpectedFlag;
+      Exit(True);
+    end;
+
+    // PALCMD help is authoritative: use it to choose a supported /CD flag.
+    if ContainsFlag(lHelpText, lExpectedFlag) then
+    begin
+      aFlag := lExpectedFlag;
+      Exit(True);
+    end;
+
+    if TryResolveFlagFromHelp(lMap, lHelpText, aPlatform, lDelphiKey, lResolvedFlag) then
+    begin
+      aFlag := lResolvedFlag;
+      Exit(True);
+    end;
+
+    aError := Format('PALCMD help did not list a supported compiler flag for Delphi %s %s. Install a newer Pascal Analyzer or ' +
+      'pass /CD... via --pa-args to override.', [lDelphiKey, aPlatform]);
+    Result := False;
   finally
     FreePalCmdMap(lMap);
   end;
@@ -909,10 +930,10 @@ begin
       lArgs.Append(' /F=X');
       lArgs.Append(' /Q');
       lArgs.Append(' /A+');
-      lArgs.Append(' /FR');
+      lArgs.Append(' /FA');
       lThreads := CpuCount;
-      if lThreads > 8 then
-        lThreads := 8;
+      if lThreads > 64 then
+        lThreads := 64;
       lArgs.Append(' /T=');
       lArgs.Append(lThreads.ToString);
     end else
@@ -1052,10 +1073,10 @@ begin
       lArgs.Append(' /F=X');
       lArgs.Append(' /Q');
       lArgs.Append(' /A+');
-      lArgs.Append(' /FR');
+      lArgs.Append(' /FA');
       lThreads := CpuCount;
-      if lThreads > 8 then
-        lThreads := 8;
+      if lThreads > 64 then
+        lThreads := 64;
       lArgs.Append(' /T=');
       lArgs.Append(lThreads.ToString);
     end else

@@ -1,11 +1,11 @@
-unit Dcr.FixInsightRunner;
+unit Dak.FixInsightRunner;
 
 interface
 
 uses
   System.Generics.Collections, System.SysUtils,
   Winapi.Windows,
-  Dcr.Messages, Dcr.Types;
+  Dak.Messages, Dak.Types;
 
 function BuildFixInsightCommandLine(const aParams: TFixInsightParams; out aExePath: string; out aCmdLine: string;
   out aError: string): Boolean;
