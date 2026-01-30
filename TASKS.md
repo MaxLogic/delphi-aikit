@@ -4,6 +4,33 @@
 
 ## Next - Today
 
+### T-033 [FixInsight] Avoid empty FINALLY in TFastCaseAwareComparer.Equals
+Outcome: Adjust the `try..finally` in `TFastCaseAwareComparer.Equals` so the FINALLY section is non-empty under current compile defines, preserving behavior while clearing W502.
+Proof:
+- Command: ./build-delphi.sh projects/DelphiAIKit.dproj
+- Expect: Build succeeds.
+- Command: ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: FixInsight report no longer lists W502 for `lib/MaxLogicFoundation/MaxLogic.StrUtils.pas`.
+Touches: lib/MaxLogicFoundation/MaxLogic.StrUtils.pas
+
+### T-034 [FixInsight] Remove unused loop variable in OccurrencesOfChar
+Outcome: Rewrite the loop in `OccurrencesOfChar` to avoid the unused `i` variable while keeping the same semantics and performance.
+Proof:
+- Command: ./build-delphi.sh projects/DelphiAIKit.dproj
+- Expect: Build succeeds.
+- Command: ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: FixInsight report no longer lists W528 for `lib/MaxLogicFoundation/MaxLogic.StrUtils.pas`.
+Touches: lib/MaxLogicFoundation/MaxLogic.StrUtils.pas
+
+### T-035 [FixInsight] Address W510 in NormalizePath
+Outcome: Update `NormalizePath` to avoid the "values on both sides of the operator are equal" warning while keeping output identical.
+Proof:
+- Command: ./build-delphi.sh projects/DelphiAIKit.dproj
+- Expect: Build succeeds.
+- Command: ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: FixInsight report no longer lists W510 for `lib/MaxLogicFoundation/MaxLogic.ioUtils.pas`.
+Touches: lib/MaxLogicFoundation/MaxLogic.ioUtils.pas
+
 ## Next - This Week
 
 ## Next - Later
@@ -11,6 +38,34 @@
 ## Blocked
 
 ## Done
+
+### T-032 [FixInsight] Handle missing enum cases in ReplacePlaceholder
+Outcome: Add explicit handling for `raReplace` and `raReplaceAndStop` in the `ReplacePlaceholder` case on `lAction` to clear W535 without changing behavior.
+Proof:
+- Command: ./build-delphi.sh projects/DelphiAIKit.dproj
+- Expect: Build succeeds.
+- Command: ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: FixInsight report no longer lists W535 for `lib/MaxLogicFoundation/MaxLogic.StrUtils.pas`.
+Touches: lib/MaxLogicFoundation/MaxLogic.StrUtils.pas
+
+### T-030 [CLI] Refactor long CLI/analyze routines to reduce FixInsight complexity warnings
+Outcome: Extract helper routines from `TryParseOptions` in `src/dak.cli.pas` plus `RunAnalyzeProject`/`RunAnalyzeUnit` in `src/dak.analyze.pas` to reduce C101/C103 without changing any public API signatures.
+Proof:
+- Command: ./build-delphi.sh projects/DelphiAIKit.dproj
+- Expect: Build succeeds.
+- Command: ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: FixInsight report no longer flags C101/C103 for `TryParseOptions` in `src/dak.cli.pas` and `RunAnalyzeProject`/`RunAnalyzeUnit` in `src/dak.analyze.pas`.
+Touches: src/dak.cli.pas, src/dak.analyze.pas
+Notes: Keep helper routines non-local (unit/private methods) to avoid nested routine rule in conventions.
+
+### T-031 [CLI] Remove unused ResourceStrings in dak.messages
+Outcome: Remove or repurpose unused ResourceStrings in `src/dak.messages.pas` so FixInsight O802 is cleared for that unit.
+Proof:
+- Command: ./build-delphi.sh projects/DelphiAIKit.dproj
+- Expect: Build succeeds.
+- Command: ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: FixInsight report no longer lists O802 unused ResourceStrings in `src/dak.messages.pas`.
+Touches: src/dak.messages.pas
 
 ### T-027 [CLI] Add analyze command (project/unit)
 Summary: Added analyze subcommand parsing, options, and help output for project/unit analysis.
