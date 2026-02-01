@@ -131,9 +131,19 @@ Implementation uses `build-delphi.bat` and propagates its exit code.
 - `6` unresolved required values (e.g., no MainSource / no paths)
 - `7` external tool not found (e.g., FixInsightCL / PALCMD when required)
 
-### 2.7 `settings.ini` defaults
+### 2.7 `dak.ini` defaults (cascading)
 
-If `settings.ini` exists next to the executable, read defaults from section `[FixInsightCL]`:
+Defaults come from `dak.ini` files loaded in **cascading** order (lowest → highest precedence):
+
+1. `dak.ini` next to the executable (global defaults).
+2. `dak.ini` at repo root (folder containing `.git` or `.svn`), then each subfolder on the path down to the target `.dproj` folder.
+3. The `.dproj` folder `dak.ini` (already included by the path walk).
+
+Repo root detection stops at the first folder that contains `.git` or `.svn` (that folder is included). If neither marker is found, we stop at filesystem root. The **current working directory is not used** for settings.
+
+Each `dak.ini` is applied in order so more local settings override/extend more global ones.
+
+If `dak.ini` exists next to the executable, read defaults from section `[FixInsightCL]`:
 
 ```
 [FixInsightCL]
@@ -174,9 +184,15 @@ Args=
 
 Notes:
 
-- `[FixInsightIgnore].Warnings` is used for report post-processing only (see §12). If empty, existing behavior is unchanged.
-- Effective FixInsight path ignore list passed as `--fi-ignore="..."` is merged from:
+- Singular string values (`Path`, `Output`, `Settings`, `Args`) override only when the new value is non-empty.
+- Booleans (`Silent`, `Xml`, `Csv`) override only when the key is present and parseable (`true/false/1/0/yes/no`).
+- List-like values are **merged + deduped** case-insensitively, preserving first-seen order:
   - `[FixInsightCL].Ignore`
+  - `[FixInsightIgnore].Warnings`
+  - `[ReportFilter].ExcludePathMasks`
+- `[FixInsightIgnore].Warnings` is used for report post-processing only (see §12).
+- Effective FixInsight path ignore list passed as `--fi-ignore="..."` is merged from:
+  - merged `dak.ini` defaults
   - CLI `--fi-ignore`
   Dedupe case-insensitively and keep first-seen order.
 - `[ReportFilter].ExcludePathMasks` only affects report post-processing (see §12); it does not affect parameter generation.
@@ -193,7 +209,7 @@ Notes:
 - `UnitScopes` (list of strings) — from `DCC_Namespace` (or option set)
 - `UnitAliases` (optional list)
 - `FixInsightExe` (optional; resolved from `PATH` or `HKCU\Software\FixInsight\Path`)
-- `FixInsightExtra` (optional; output/ignore/settings/xml/csv/silent, from `settings.ini` + CLI overrides)
+- `FixInsightExtra` (optional; output/ignore/settings/xml/csv/silent, from cascading `dak.ini` + CLI overrides)
 - `SettingsFile` (optional; user may add later)
 
 ### 3.2 Output kinds
@@ -575,7 +591,7 @@ When `--pascal-analyzer true` is present (via `analyze`), run `palcmd.exe` (or `
 Discovery order:
 
 1. CLI override: `--pa-path "...\\palcmd.exe"` or `--pa-path "...\\palcmd32.exe"`
-2. `settings.ini` override: `[PascalAnalyzer] Path=...`
+2. `dak.ini` override: `[PascalAnalyzer] Path=...`
 3. Known default (v9): `C:\Program Files\Peganza\Pascal Analyzer 9\palcmd.exe` (or `palcmd32.exe`)
 4. Version sweep: `C:\Program Files\Peganza\Pascal Analyzer {N}\palcmd.exe` (or `palcmd32.exe`) for `N = 5..15` (also check `Program Files (x86)`)
 5. Directory scan (depth-limited): enumerate `C:\Program Files\Peganza\` (and x86) for folders matching `Pascal Analyzer*`, pick the newest version that contains `palcmd.exe` (prefer `palcmd.exe` over `palcmd32.exe` when both exist)

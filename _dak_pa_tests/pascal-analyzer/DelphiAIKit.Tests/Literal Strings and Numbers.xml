@@ -1,0 +1,732 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Literal Strings and Numbers Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Resourcestrings" count="0" oldcount="-2">
+  </section>
+  <section name="Literal strings declared as constants, more than one character" count="17" oldcount="-2">
+    <item>
+      <string>&apos;{06C0D8D2-B2D7-42F9-8D23-8F2D8A75263F}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>485</locline>
+    </item>
+    <item>
+      <string>&apos;{1C614DC2-537F-4229-863D-669E4211074E}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>175</locline>
+    </item>
+    <item>
+      <string>&apos;{33559983-D522-4ED5-9B5E-AC9A055FA01A}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>621</locline>
+    </item>
+    <item>
+      <string>&apos;{375941C6-CEFD-44E5-9646-30D7915B8A71}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>268</locline>
+    </item>
+    <item>
+      <string>&apos;{382288B7-932C-4B6E-8417-660FFCA849EB}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>600</locline>
+    </item>
+    <item>
+      <string>&apos;{4A335B76-33E3-48FD-87DF-9462428C60DA}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>331</locline>
+    </item>
+    <item>
+      <string>&apos;{7264579D-495E-4E00-A15D-751E6A65BEF6}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>291</locline>
+    </item>
+    <item>
+      <string>&apos;{9E98B1E8-583A-49FC-B409-9B6937E22E81}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>183</locline>
+    </item>
+    <item>
+      <string>&apos;{A374A4D0-9BF6-4E01-8A29-647F92CBF41C}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>607</locline>
+    </item>
+    <item>
+      <string>&apos;{AADCA392-421C-4060-8D47-79D7CAAB0EEF}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>366</locline>
+    </item>
+    <item>
+      <string>&apos;{AEA1E458-157B-4B3A-9474-44EDFB3EE7A1}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>229</locline>
+    </item>
+    <item>
+      <string>&apos;{DEE229E7-1450-4DC1-BEEA-562461439084}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>222</locline>
+    </item>
+    <item>
+      <string>&apos;{EFD44ABA-4F3E-435C-B8FC-1F8EB4B35A3B}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>246</locline>
+    </item>
+    <item>
+      <string>&apos;{FF61A6EB-A76B-4BE7-887A-598EBBAE5611}&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>149</locline>
+    </item>
+    <item>
+      <string>&apos;Err&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>117</locline>
+    </item>
+    <item>
+      <string>&apos;Info&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>117</locline>
+    </item>
+    <item>
+      <string>&apos;Warn&apos;</string>
+      <locmod>DUnitX.TestFramework</locmod>
+      <locline>117</locline>
+    </item>
+  </section>
+  <section name="Literal strings in code, more than one character" count="127" oldcount="-2">
+    <item>
+      <string>&apos;-------------------------------------------------&apos;</string>
+      <locmod>DUnitX.Loggers.Console</locmod>
+      <locline>255</locline>
+    </item>
+    <item>
+      <string>&apos;-------------------------------------------------&apos;</string>
+      <locmod>DUnitX.Loggers.Console</locmod>
+      <locline>267</locline>
+    </item>
+    <item>
+      <string>&apos; : &apos;</string>
+      <locmod>DUnitX.Loggers.Console</locmod>
+      <locline>285</locline>
+    </item>
+    <item>
+      <string>&apos;  &apos;</string>
+      <locmod>DUnitX.Loggers.Console</locmod>
+      <locline>378</locline>
+    </item>
+    <item>
+      <string>&apos;  &apos;</string>
+      <locmod>DUnitX.Loggers.Console</locmod>
+      <locline>400</locline>
+    </item>
+    <item>
+      <string>&apos;  &apos;</string>
+      <locmod>DUnitX.Loggers.Console</locmod>
+      <locline>422</locline>
+    </item>
+    <item>
+      <string>&apos;&amp;quot;&amp;quot;&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>38</locline>
+    </item>
+    <item>
+      <string>&apos;projects\DelphiAIKit.dproj&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>52</locline>
+    </item>
+    <item>
+      <string>&apos;tests\temp&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>74</locline>
+    </item>
+    <item>
+      <string>&apos;ComSpec&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>93</locline>
+    </item>
+    <item>
+      <string>&apos;C:\Windows\System32\cmd.exe&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>95</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to create output file: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>122</locline>
+    </item>
+    <item>
+      <string>&apos;Process start failed: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>152</locline>
+    </item>
+    <item>
+      <string>&apos;Process wait failed: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>159</locline>
+    </item>
+    <item>
+      <string>&apos;Process exit code failed: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>164</locline>
+    </item>
+    <item>
+      <string>&apos;build-delphi.bat&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>190</locline>
+    </item>
+    <item>
+      <string>&apos;projects\DelphiAIKit.dproj&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>191</locline>
+    </item>
+    <item>
+      <string>&apos; -config Release -platform Win32 -ver 23&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>192</locline>
+    </item>
+    <item>
+      <string>&apos;/C &amp;quot;call &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>193</locline>
+    </item>
+    <item>
+      <string>&apos;build-resolver.log&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>194</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to start build-delphi.bat&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>197</locline>
+    </item>
+    <item>
+      <string>&apos;build-delphi.bat failed, exit=&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>199</locline>
+    </item>
+    <item>
+      <string>&apos;. See: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>199</locline>
+    </item>
+    <item>
+      <string>&apos;bin\DelphiAIKit.exe&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>201</locline>
+    </item>
+    <item>
+      <string>&apos;Resolver exe not found after build: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>203</locline>
+    </item>
+    <item>
+      <string>&apos;bin\DelphiAIKit.exe&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>211</locline>
+    </item>
+    <item>
+      <string>&apos;pawelspc&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>217</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe not found, but pawelspc=1 requires it.&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>226</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe not found; skipping FixInsight tests.&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>230</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD not found, but pawelspc=1 requires it. &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>242</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD not found; skipping Pascal Analyzer tests.&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>246</locline>
+    </item>
+    <item>
+      <string>&apos;Resolver exe not found: &apos;</string>
+      <locmod>Test.Build</locmod>
+      <locline>23</locline>
+    </item>
+    <item>
+      <string>&apos;fixinsight-&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>36</locline>
+    </item>
+    <item>
+      <string>&apos;analyze --project &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>41</locline>
+    </item>
+    <item>
+      <string>&apos;projects\\DelphiAIKit.dproj&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>41</locline>
+    </item>
+    <item>
+      <string>&apos; --platform Win32 --config Release --delphi 23.0 --out &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>42</locline>
+    </item>
+    <item>
+      <string>&apos; --fixinsight true --pascal-analyzer false --fi-formats all&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>43</locline>
+    </item>
+    <item>
+      <string>&apos; --exclude-path-masks &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>46</locline>
+    </item>
+    <item>
+      <string>&apos; --ignore-warning-ids &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>48</locline>
+    </item>
+    <item>
+      <string>&apos;fixinsight-analyze.log&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>50</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to start FixInsight analyze: &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>52</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsight analyze failed, exit=&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>54</locline>
+    </item>
+    <item>
+      <string>&apos;. See: &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>54</locline>
+    </item>
+    <item>
+      <string>&apos;fixinsight\\fixinsight.txt&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>56</locline>
+    </item>
+    <item>
+      <string>&apos;fixinsight\\fixinsight.xml&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>57</locline>
+    </item>
+    <item>
+      <string>&apos;fixinsight\\fixinsight.csv&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>58</locline>
+    </item>
+    <item>
+      <string>&apos;Missing FixInsight output: &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>60</locline>
+    </item>
+    <item>
+      <string>&apos;Missing FixInsight output: &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>61</locline>
+    </item>
+    <item>
+      <string>&apos;Missing FixInsight output: &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>62</locline>
+    </item>
+    <item>
+      <string>&apos;File:&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>86</locline>
+    </item>
+    <item>
+      <string>&apos;File:&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>88</locline>
+    </item>
+    <item>
+      <string>&apos;^\s*([A-Z]\d{3})\b&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>93</locline>
+    </item>
+    <item>
+      <string>&apos;base&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>125</locline>
+    </item>
+    <item>
+      <string>&apos;No FixInsight warning IDs found in baseline output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>129</locline>
+    </item>
+    <item>
+      <string>&apos;No FixInsight file entries found in baseline output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>130</locline>
+    </item>
+    <item>
+      <string>&apos;exclude&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>133</locline>
+    </item>
+    <item>
+      <string>&apos;Exclude mask did not filter text output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>135</locline>
+    </item>
+    <item>
+      <string>&apos;Exclude mask did not filter XML output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>136</locline>
+    </item>
+    <item>
+      <string>&apos;Exclude mask did not filter CSV output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>137</locline>
+    </item>
+    <item>
+      <string>&apos;ignore-ids&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>140</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from text output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>142</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from text output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>143</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from XML output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>144</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from XML output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>145</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from CSV output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>146</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from CSV output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>147</locline>
+    </item>
+    <item>
+      <string>&apos;docs\sample-pal-reports&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>37</locline>
+    </item>
+    <item>
+      <string>&apos;PAL fixtures missing; skipping.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>40</locline>
+    </item>
+    <item>
+      <string>&apos;Warnings.xml&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>43</locline>
+    </item>
+    <item>
+      <string>&apos;PAL fixtures missing; skipping.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>45</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>49</locline>
+    </item>
+    <item>
+      <string>&apos;PAL findings generation failed: &apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>55</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.md&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>57</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.md missing: &apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>58</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.md is empty.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>60</locline>
+    </item>
+    <item>
+      <string>&apos;Dak.FixInsightRunner:106&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>64</locline>
+    </item>
+    <item>
+      <string>&apos;Expected Dak.FixInsightRunner:106 in pal-findings.md&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>66</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.jsonl&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>68</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.jsonl missing: &apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>69</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.jsonl is empty.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>71</locline>
+    </item>
+    <item>
+      <string>&apos;First JSON line is invalid.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>75</locline>
+    </item>
+    <item>
+      <string>&apos;severity&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>76</locline>
+    </item>
+    <item>
+      <string>&apos;JSON missing severity.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>76</locline>
+    </item>
+    <item>
+      <string>&apos;report&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>77</locline>
+    </item>
+    <item>
+      <string>&apos;JSON missing report.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>77</locline>
+    </item>
+    <item>
+      <string>&apos;section&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>78</locline>
+    </item>
+    <item>
+      <string>&apos;JSON missing section.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>78</locline>
+    </item>
+    <item>
+      <string>&apos;module&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>79</locline>
+    </item>
+    <item>
+      <string>&apos;JSON missing module.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>79</locline>
+    </item>
+    <item>
+      <string>&apos;line&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>80</locline>
+    </item>
+    <item>
+      <string>&apos;JSON missing line.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>80</locline>
+    </item>
+    <item>
+      <string>&apos;pal-hotspots.md&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>85</locline>
+    </item>
+    <item>
+      <string>&apos;pal-hotspots.md missing: &apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>86</locline>
+    </item>
+    <item>
+      <string>&apos;TryParseOptions&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>90</locline>
+    </item>
+    <item>
+      <string>&apos;Expected TryParseOptions in pal-hotspots.md&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>92</locline>
+    </item>
+    <item>
+      <string>&apos;palcmd-help.txt&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>33</locline>
+    </item>
+    <item>
+      <string>&apos;bin\\palcmd-map.json&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>88</locline>
+    </item>
+    <item>
+      <string>&apos;palcmd-map.json&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>89</locline>
+    </item>
+    <item>
+      <string>&apos;projects\\DelphiAIKit.dpr&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>98</locline>
+    </item>
+    <item>
+      <string>&apos;23.0&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>99</locline>
+    </item>
+    <item>
+      <string>&apos;Win32&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>100</locline>
+    </item>
+    <item>
+      <string>&apos;Release&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>101</locline>
+    </item>
+    <item>
+      <string>&apos;BuildPalCmdCommandLine failed: &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>107</locline>
+    </item>
+    <item>
+      <string>&apos;/CD&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>110</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD flag selection returned empty flag.&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>119</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD help does not list flag: &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>120</locline>
+    </item>
+    <item>
+      <string>&apos;/CD12W32&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>121</locline>
+    </item>
+    <item>
+      <string>&apos;/CD12W32&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>122</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD supports Delphi 12, but a different flag was selected..&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>122</locline>
+    </item>
+    <item>
+      <string>&apos;/CD12W32&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>141</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD does not list /CD12W32; skipping integration run. Fla..&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>143</locline>
+    </item>
+    <item>
+      <string>&apos;pa-run&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>147</locline>
+    </item>
+    <item>
+      <string>&apos;analyze --project &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>151</locline>
+    </item>
+    <item>
+      <string>&apos;projects\\DelphiAIKit.dproj&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>151</locline>
+    </item>
+    <item>
+      <string>&apos; --platform Win32 --config Release --delphi 23.0 --fixinsigh..&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>152</locline>
+    </item>
+    <item>
+      <string>&apos; --out &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>153</locline>
+    </item>
+    <item>
+      <string>&apos; --pa-path &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>154</locline>
+    </item>
+    <item>
+      <string>&apos; --pa-output &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>155</locline>
+    </item>
+    <item>
+      <string>&apos; --pa-args &amp;quot;/F=X /Q /A+ /FA /T=&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>156</locline>
+    </item>
+    <item>
+      <string>&apos;pascal-analyzer.log&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>158</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to start Pascal Analyzer run: &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>160</locline>
+    </item>
+    <item>
+      <string>&apos;--- PALCMD log tail ---&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>165</locline>
+    </item>
+    <item>
+      <string>&apos;Pascal Analyzer run failed, exit=&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>166</locline>
+    </item>
+    <item>
+      <string>&apos;. See: &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>166</locline>
+    </item>
+    <item>
+      <string>&apos;*.xml&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>169</locline>
+    </item>
+    <item>
+      <string>&apos;No XML report produced under: &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>170</locline>
+    </item>
+    <item>
+      <string>&apos;: &apos;</string>
+      <locmod>DelphiAIKit.Tests</locmod>
+      <locline>39</locline>
+    </item>
+  </section>
+  <section name="Literal strings that could be replaced with constants/resourcestrings, more than one character" count="0" oldcount="-2">
+  </section>
+</report>

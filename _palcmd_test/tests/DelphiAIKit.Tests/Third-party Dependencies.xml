@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Third-party Dependencies Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Third-party folders directly referenced" count="2" oldcount="-2">
+    <item>
+      <folder>C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnitX</folder>
+    </item>
+    <item>
+      <folder>C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS</folder>
+    </item>
+  </section>
+  <section name="Third-party modules directly referenced" count="4" oldcount="-2">
+    <item>
+      <module>DUnitX.Loggers.Console</module>
+    </item>
+    <item>
+      <module>DUnitX.TestFramework</module>
+    </item>
+    <item>
+      <module>DUnitX.TestRunner</module>
+    </item>
+    <item>
+      <module>System.SysUtils</module>
+    </item>
+  </section>
+  <section name="Third-party identifiers directly referenced" count="13" oldcount="-2">
+  </section>
+  <section name="Third-party identifiers directly referenced, with locations" count="13" oldcount="-2">
+  </section>
+  <section name="Third-party class and interface types directly referenced" count="6" oldcount="-2">
+  </section>
+</report>

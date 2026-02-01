@@ -1,0 +1,1108 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Object-oriented Metrics Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Weighted Methods per Class (WMC)">
+    <item>
+      <id>WMC=2,5...TFastCaseAwareComparer in maxLogic.StrUtils</id>
+      <WMC>2,5</WMC>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (148)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Create (C)</id>
+      <dp>1</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (136)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (137)</locmod>
+    </item>
+    <item>
+      <id>  DP=8......  Equals (FM)</id>
+      <dp>8</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (151)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  FoldAscii (FM)</id>
+      <dp>1</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (138)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  FoldCharValue (FM)</id>
+      <dp>1</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (139)</locmod>
+    </item>
+    <item>
+      <id>  DP=7......  FoldPair (FM)</id>
+      <dp>7</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (140)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  GetHashCode (FM)</id>
+      <dp>1</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (152)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  GetOrdinalComparer (FM)</id>
+      <dp>1</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (145)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  GetOrdinalIgnoreCaseComparer (FM)</id>
+      <dp>1</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (146)</locmod>
+    </item>
+    <item>
+      <id>  DP=9......  HashBytes (FM)</id>
+      <dp>9</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (142)</locmod>
+    </item>
+    <item>
+      <id>  DP=8......  HashCaseInsensitive (FM)</id>
+      <dp>8</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  HashOrdinal (FM)</id>
+      <dp>1</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (143)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Ordinal (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (149)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  OrdinalIgnoreCase (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Rotl32 (FM)</id>
+      <dp>1</dp>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (141)</locmod>
+    </item>
+    <item>
+      <id>WMC=5,6...TFilterEx in maxLogic.StrUtils</id>
+      <WMC>5,6</WMC>
+      <locmod>maxLogic.StrUtils (236)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TFilterEx (257)</locmod>
+    </item>
+    <item>
+      <id>  DP=11.....  Matches (FM)</id>
+      <dp>11</dp>
+      <locmod>maxLogic.StrUtils\TFilterEx (261)</locmod>
+    </item>
+    <item>
+      <id>  DP=5......  Prepare (PM)</id>
+      <dp>5</dp>
+      <locmod>maxLogic.StrUtils\TFilterEx (251)</locmod>
+    </item>
+    <item>
+      <id>  DP=6......  Preprocess (PM)</id>
+      <dp>6</dp>
+      <locmod>maxLogic.StrUtils\TFilterEx (254)</locmod>
+    </item>
+    <item>
+      <id>  DP=6......  SplitBySpace (FM)</id>
+      <dp>6</dp>
+      <locmod>maxLogic.StrUtils\TFilterEx (253)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TStringComparerHelper in maxLogic.StrUtils</id>
+      <WMC>0,0</WMC>
+      <locmod>maxLogic.StrUtils (292)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  OrdinalIgnoreCase (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TStringComparerHelper (293)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TRegExHelper in maxLogic.StrUtils</id>
+      <WMC>0,0</WMC>
+      <locmod>maxLogic.StrUtils (299)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Replace (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TRegExHelper (317)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Replace (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TRegExHelper (316)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Replace (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TRegExHelper (313)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Replace (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TProcAdapter in maxLogic.StrUtils</id>
+      <WMC>0,0</WMC>
+      <locmod>maxLogic.StrUtils (303)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TProcAdapter (307)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Invoke (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.StrUtils\TProcAdapter (308)</locmod>
+    </item>
+    <item>
+      <id>WMC=1,0...TGarbos in AutoFree</id>
+      <WMC>1,0</WMC>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Add (FM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbos (23)</locmod>
+    </item>
+    <item>
+      <id>  DP=4......  Add (PM)</id>
+      <dp>4</dp>
+      <locmod>AutoFree\TGarbos (22)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Clear (PM)</id>
+      <dp>1</dp>
+      <locmod>AutoFree\TGarbos (25)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Finalize ()</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbos (28)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Initialize ()</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbos (27)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,4...TGarbo in AutoFree</id>
+      <WMC>0,4</WMC>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddAfterFree (FM)</id>
+      <dp>1</dp>
+      <locmod>AutoFree\TGarbo (40)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbo (36)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  Destroy (D)</id>
+      <dp>2</dp>
+      <locmod>AutoFree\TGarbo (37)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GC&lt;T&gt; (FM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GC&lt;T&gt; (PM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbo (44)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GC&lt;T&gt; (PM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbo (43)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Obj (FM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbo (39)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,2...TCallProcOnDestroy in AutoFree</id>
+      <WMC>0,2</WMC>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TCallProcOnDestroy (62)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Destroy (D)</id>
+      <dp>1</dp>
+      <locmod>AutoFree\TCallProcOnDestroy (63)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetProc (FM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TCallProcOnDestroy (60)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  New (FM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetProc (PM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TCallProcOnDestroy (59)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,2...TStringSet in Dak.Diagnostics</id>
+      <WMC>0,2</WMC>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Add (FM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Count (FM)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TStringSet (19)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TStringSet (16)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TStringSet (17)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  ToArray (FM)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+    </item>
+    <item>
+      <id>WMC=1,6...TDiagnostics in Dak.Diagnostics</id>
+      <WMC>1,6</WMC>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddCycleMacro (PM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (40)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  AddInfo (PM)</id>
+      <dp>2</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddMissingPath (PM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddNote (PM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddUnknownMacro (PM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddWarning (PM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (37)</locmod>
+    </item>
+    <item>
+      <id>  DP=4......  TryOpenLogFile (FM)</id>
+      <dp>4</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  WriteLine (PM)</id>
+      <dp>3</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (34)</locmod>
+    </item>
+    <item>
+      <id>  DP=4......  WriteToStderr (PM)</id>
+      <dp>4</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TBuildTests in Test.Build</id>
+      <WMC>0,0</WMC>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  BuildResolverExe (PM)</id>
+      <dp>0</dp>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+    </item>
+    <item>
+      <id>WMC=5,0...TFixInsightTests in Test.FixInsight</id>
+      <WMC>5,0</WMC>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>  DP=10.....  ExtractIdsAndFile (PM)</id>
+      <dp>10</dp>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  FixInsightFiltering (PM)</id>
+      <dp>0</dp>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>  DP=5......  RunFixInsightOutputs (PM)</id>
+      <dp>5</dp>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+    <item>
+      <id>WMC=8,0...TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <WMC>8,0</WMC>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>  DP=8......  NormalizePalFindingsFromFixtures (PM)</id>
+      <dp>8</dp>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>WMC=6,5...TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <WMC>6,5</WMC>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+    <item>
+      <id>  DP=5......  RunPascalAnalyzer (PM)</id>
+      <dp>5</dp>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>  DP=8......  SelectsSupportedCompilerFlag (PM)</id>
+      <dp>8</dp>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+  </section>
+  <section name="Depth of Inheritance Tree (DIT)">
+    <item>
+      <id>DIT=2.....TFastCaseAwareComparer in maxLogic.StrUtils</id>
+      <DIT>2</DIT>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFilterEx in maxLogic.StrUtils</id>
+      <DIT>0</DIT>
+      <locmod>maxLogic.StrUtils (236)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFilterItem in maxLogic.StrUtils</id>
+      <DIT>0</DIT>
+      <locmod>maxLogic.StrUtils (240)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TStringComparerHelper in maxLogic.StrUtils</id>
+      <DIT>1</DIT>
+      <locmod>maxLogic.StrUtils (292)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TRegExHelper in maxLogic.StrUtils</id>
+      <DIT>0</DIT>
+      <locmod>maxLogic.StrUtils (299)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TProcAdapter in maxLogic.StrUtils</id>
+      <DIT>1</DIT>
+      <locmod>maxLogic.StrUtils (303)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TGarbos in AutoFree</id>
+      <DIT>0</DIT>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TGarbo in AutoFree</id>
+      <DIT>2</DIT>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TCallProcOnDestroy in AutoFree</id>
+      <DIT>2</DIT>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TStringSet in Dak.Diagnostics</id>
+      <DIT>1</DIT>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TDiagnostics in Dak.Diagnostics</id>
+      <DIT>1</DIT>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TAppOptions in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixInsightExtraOptions in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixInsightIgnoreDefaults in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TReportFilterDefaults in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TPascalAnalyzerDefaults in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixInsightParams in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TPalCmdMap in Dak.PascalAnalyzerRunner</id>
+      <DIT>0</DIT>
+      <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TPalFinding in Dak.PascalAnalyzerRunner</id>
+      <DIT>0</DIT>
+      <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TComplexityEntry in Dak.PascalAnalyzerRunner</id>
+      <DIT>0</DIT>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....THotspotEntry in Dak.PascalAnalyzerRunner</id>
+      <DIT>0</DIT>
+      <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TComparer&lt;THotspotEntry&gt; in Dak.PascalAnalyzerRunner</id>
+      <DIT>2</DIT>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TBuildTests in Test.Build</id>
+      <DIT>1</DIT>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TFixInsightTests in Test.FixInsight</id>
+      <DIT>1</DIT>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <DIT>1</DIT>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <DIT>1</DIT>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+  <section name="Number of Children (NOC)">
+    <item>
+      <id>NOC=0.....TFastCaseAwareComparer in maxLogic.StrUtils</id>
+      <NOC>0</NOC>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFilterEx in maxLogic.StrUtils</id>
+      <NOC>0</NOC>
+      <locmod>maxLogic.StrUtils (236)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFilterItem in maxLogic.StrUtils</id>
+      <NOC>0</NOC>
+      <locmod>maxLogic.StrUtils (240)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TStringComparerHelper in maxLogic.StrUtils</id>
+      <NOC>0</NOC>
+      <locmod>maxLogic.StrUtils (292)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TRegExHelper in maxLogic.StrUtils</id>
+      <NOC>0</NOC>
+      <locmod>maxLogic.StrUtils (299)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TProcAdapter in maxLogic.StrUtils</id>
+      <NOC>0</NOC>
+      <locmod>maxLogic.StrUtils (303)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TGarbos in AutoFree</id>
+      <NOC>0</NOC>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TGarbo in AutoFree</id>
+      <NOC>0</NOC>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TCallProcOnDestroy in AutoFree</id>
+      <NOC>0</NOC>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TStringSet in Dak.Diagnostics</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TDiagnostics in Dak.Diagnostics</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TAppOptions in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightExtraOptions in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightIgnoreDefaults in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TReportFilterDefaults in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPascalAnalyzerDefaults in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightParams in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPalCmdMap in Dak.PascalAnalyzerRunner</id>
+      <NOC>0</NOC>
+      <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPalFinding in Dak.PascalAnalyzerRunner</id>
+      <NOC>0</NOC>
+      <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TComplexityEntry in Dak.PascalAnalyzerRunner</id>
+      <NOC>0</NOC>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....THotspotEntry in Dak.PascalAnalyzerRunner</id>
+      <NOC>0</NOC>
+      <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TComparer&lt;THotspotEntry&gt; in Dak.PascalAnalyzerRunner</id>
+      <NOC>0</NOC>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TBuildTests in Test.Build</id>
+      <NOC>0</NOC>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightTests in Test.FixInsight</id>
+      <NOC>0</NOC>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <NOC>0</NOC>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <NOC>0</NOC>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+  <section name="Coupling between Object Classes (CBO)">
+    <item>
+      <id>CBO=1.....TFastCaseAwareComparer in maxLogic.StrUtils</id>
+      <CBO>1</CBO>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>  TDiagnostics in Dak.Diagnostics</id>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFilterEx in maxLogic.StrUtils</id>
+      <CBO>0</CBO>
+      <locmod>maxLogic.StrUtils (236)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFilterItem in maxLogic.StrUtils</id>
+      <CBO>0</CBO>
+      <locmod>maxLogic.StrUtils (240)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TStringComparerHelper in maxLogic.StrUtils</id>
+      <CBO>0</CBO>
+      <locmod>maxLogic.StrUtils (292)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TRegExHelper in maxLogic.StrUtils</id>
+      <CBO>1</CBO>
+      <locmod>maxLogic.StrUtils (299)</locmod>
+    </item>
+    <item>
+      <id>  TProcAdapter in maxLogic.StrUtils</id>
+      <locmod>maxLogic.StrUtils (303)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TProcAdapter in maxLogic.StrUtils</id>
+      <CBO>1</CBO>
+      <locmod>maxLogic.StrUtils (303)</locmod>
+    </item>
+    <item>
+      <id>  TRegExHelper in maxLogic.StrUtils</id>
+      <locmod>maxLogic.StrUtils (299)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TGarbos in AutoFree</id>
+      <CBO>1</CBO>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>  TGarbo in AutoFree</id>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TGarbo in AutoFree</id>
+      <CBO>1</CBO>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>  TGarbos in AutoFree</id>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TCallProcOnDestroy in AutoFree</id>
+      <CBO>0</CBO>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TStringSet in Dak.Diagnostics</id>
+      <CBO>1</CBO>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>  TDiagnostics in Dak.Diagnostics</id>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>CBO=2.....TDiagnostics in Dak.Diagnostics</id>
+      <CBO>2</CBO>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>  TStringSet in Dak.Diagnostics</id>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>  TFastCaseAwareComparer in maxLogic.StrUtils</id>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TAppOptions in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightExtraOptions in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightIgnoreDefaults in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TReportFilterDefaults in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPascalAnalyzerDefaults in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightParams in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPalCmdMap in Dak.PascalAnalyzerRunner</id>
+      <CBO>0</CBO>
+      <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPalFinding in Dak.PascalAnalyzerRunner</id>
+      <CBO>0</CBO>
+      <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TComplexityEntry in Dak.PascalAnalyzerRunner</id>
+      <CBO>0</CBO>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....THotspotEntry in Dak.PascalAnalyzerRunner</id>
+      <CBO>0</CBO>
+      <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TComparer&lt;THotspotEntry&gt; in Dak.PascalAnalyzerRunner</id>
+      <CBO>0</CBO>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TBuildTests in Test.Build</id>
+      <CBO>0</CBO>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightTests in Test.FixInsight</id>
+      <CBO>0</CBO>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <CBO>0</CBO>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <CBO>0</CBO>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+  <section name="Response for a Class (RFC)">
+    <item>
+      <id>RFC=17....TFastCaseAwareComparer in maxLogic.StrUtils</id>
+      <RFC>1</RFC>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>RFC=5.....TFilterEx in maxLogic.StrUtils</id>
+      <RFC>0</RFC>
+      <locmod>maxLogic.StrUtils (236)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFilterItem in maxLogic.StrUtils</id>
+      <RFC>0</RFC>
+      <locmod>maxLogic.StrUtils (240)</locmod>
+    </item>
+    <item>
+      <id>RFC=1.....TStringComparerHelper in maxLogic.StrUtils</id>
+      <RFC>0</RFC>
+      <locmod>maxLogic.StrUtils (292)</locmod>
+    </item>
+    <item>
+      <id>RFC=4.....TRegExHelper in maxLogic.StrUtils</id>
+      <RFC>0</RFC>
+      <locmod>maxLogic.StrUtils (299)</locmod>
+    </item>
+    <item>
+      <id>RFC=3.....TProcAdapter in maxLogic.StrUtils</id>
+      <RFC>1</RFC>
+      <locmod>maxLogic.StrUtils (303)</locmod>
+    </item>
+    <item>
+      <id>RFC=6.....TGarbos in AutoFree</id>
+      <RFC>1</RFC>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>RFC=7.....TGarbo in AutoFree</id>
+      <RFC>0</RFC>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>RFC=5.....TCallProcOnDestroy in AutoFree</id>
+      <RFC>0</RFC>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>RFC=6.....TStringSet in Dak.Diagnostics</id>
+      <RFC>1</RFC>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>RFC=11....TDiagnostics in Dak.Diagnostics</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TAppOptions in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFixInsightExtraOptions in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFixInsightIgnoreDefaults in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TReportFilterDefaults in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TPascalAnalyzerDefaults in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFixInsightParams in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TPalCmdMap in Dak.PascalAnalyzerRunner</id>
+      <RFC>0</RFC>
+      <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TPalFinding in Dak.PascalAnalyzerRunner</id>
+      <RFC>0</RFC>
+      <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TComplexityEntry in Dak.PascalAnalyzerRunner</id>
+      <RFC>0</RFC>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....THotspotEntry in Dak.PascalAnalyzerRunner</id>
+      <RFC>0</RFC>
+      <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TComparer&lt;THotspotEntry&gt; in Dak.PascalAnalyzerRunner</id>
+      <RFC>0</RFC>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>RFC=1.....TBuildTests in Test.Build</id>
+      <RFC>0</RFC>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>RFC=3.....TFixInsightTests in Test.FixInsight</id>
+      <RFC>0</RFC>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>RFC=1.....TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <RFC>0</RFC>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>RFC=2.....TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <RFC>0</RFC>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+  <section name="Lack of Cohesion in Methods (LCOM)">
+    <item>
+      <id>LCOM=11...TFastCaseAwareComparer in maxLogic.StrUtils</id>
+      <xeLCOM>11</xeLCOM>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>LCOM=2....TFilterEx in maxLogic.StrUtils</id>
+      <xeLCOM>2</xeLCOM>
+      <locmod>maxLogic.StrUtils (236)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFilterItem in maxLogic.StrUtils</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxLogic.StrUtils (240)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TStringComparerHelper in maxLogic.StrUtils</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxLogic.StrUtils (292)</locmod>
+    </item>
+    <item>
+      <id>LCOM=3....TRegExHelper in maxLogic.StrUtils</id>
+      <xeLCOM>3</xeLCOM>
+      <locmod>maxLogic.StrUtils (299)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TProcAdapter in maxLogic.StrUtils</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxLogic.StrUtils (303)</locmod>
+    </item>
+    <item>
+      <id>LCOM=2....TGarbos in AutoFree</id>
+      <xeLCOM>2</xeLCOM>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>LCOM=4....TGarbo in AutoFree</id>
+      <xeLCOM>4</xeLCOM>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TCallProcOnDestroy in AutoFree</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TStringSet in Dak.Diagnostics</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>LCOM=2....TDiagnostics in Dak.Diagnostics</id>
+      <xeLCOM>2</xeLCOM>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TAppOptions in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixInsightExtraOptions in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixInsightIgnoreDefaults in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TReportFilterDefaults in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPascalAnalyzerDefaults in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixInsightParams in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPalCmdMap in Dak.PascalAnalyzerRunner</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPalFinding in Dak.PascalAnalyzerRunner</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TComplexityEntry in Dak.PascalAnalyzerRunner</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....THotspotEntry in Dak.PascalAnalyzerRunner</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TComparer&lt;THotspotEntry&gt; in Dak.PascalAnalyzerRunner</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TBuildTests in Test.Build</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>LCOM=2....TFixInsightTests in Test.FixInsight</id>
+      <xeLCOM>2</xeLCOM>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>LCOM=1....TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <xeLCOM>1</xeLCOM>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+</report>

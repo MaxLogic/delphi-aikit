@@ -1,0 +1,1280 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Third-party Dependencies Report">
+  <created>30.01.2026 00:14:14</created>
+  <section name="Third-party folders directly referenced" count="5" oldcount="-2">
+    <item>
+      <folder>C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common</folder>
+    </item>
+    <item>
+      <folder>C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS</folder>
+    </item>
+    <item>
+      <folder>C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win</folder>
+    </item>
+    <item>
+      <folder>C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML</folder>
+    </item>
+    <item>
+      <folder>F:\projects\MaxLogic\DelphiConfigResolver\src</folder>
+    </item>
+  </section>
+  <section name="Third-party modules directly referenced" count="20" oldcount="-2">
+    <item>
+      <module>Dak.Analyze</module>
+    </item>
+    <item>
+      <module>Dak.Cli</module>
+    </item>
+    <item>
+      <module>Dak.Diagnostics</module>
+    </item>
+    <item>
+      <module>Dak.FixInsight</module>
+    </item>
+    <item>
+      <module>Dak.FixInsightRunner</module>
+    </item>
+    <item>
+      <module>Dak.FixInsightSettings</module>
+    </item>
+    <item>
+      <module>Dak.Messages</module>
+    </item>
+    <item>
+      <module>Dak.Output</module>
+    </item>
+    <item>
+      <module>Dak.PascalAnalyzerRunner</module>
+    </item>
+    <item>
+      <module>Dak.Project</module>
+    </item>
+    <item>
+      <module>Dak.Registry</module>
+    </item>
+    <item>
+      <module>Dak.ReportPostProcess</module>
+    </item>
+    <item>
+      <module>Dak.RsVars</module>
+    </item>
+    <item>
+      <module>Dak.Types</module>
+    </item>
+    <item>
+      <module>System.Generics.Collections</module>
+    </item>
+    <item>
+      <module>System.IOUtils</module>
+    </item>
+    <item>
+      <module>System.SysUtils</module>
+    </item>
+    <item>
+      <module>Winapi.Windows</module>
+    </item>
+    <item>
+      <module>Xml.omnixmldom</module>
+    </item>
+    <item>
+      <module>Xml.xmldom</module>
+    </item>
+  </section>
+  <section name="Third-party identifiers directly referenced" count="100" oldcount="-2">
+    <item>
+      <id>AddInfo</id>
+      <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+    </item>
+    <item>
+      <id>AddNote</id>
+      <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+    </item>
+    <item>
+      <id>AddWarning</id>
+      <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+    </item>
+    <item>
+      <id>ApplySettingsOverrides</id>
+      <locmod>Dak.FixInsightSettings (14)</locmod>
+    </item>
+    <item>
+      <id>ChangeExtension</id>
+      <locmod>System.IOUtils\TPath (334)</locmod>
+    </item>
+    <item>
+      <id>ckBuild</id>
+      <locmod>Dak.Types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <id>ckResolve</id>
+      <locmod>Dak.Types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <id>CloseHandle</id>
+      <locmod>Winapi.Windows (8662)</locmod>
+    </item>
+    <item>
+      <id>Combine</id>
+      <locmod>System.IOUtils\TPath (335)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+    </item>
+    <item>
+      <id>CreateDirectory</id>
+      <locmod>System.IOUtils\TDirectory (158)</locmod>
+    </item>
+    <item>
+      <id>CreateProcess</id>
+      <locmod>Winapi.Windows (9783)</locmod>
+    </item>
+    <item>
+      <id>DefaultDOMVendor</id>
+      <locmod>Xml.xmldom (592)</locmod>
+    </item>
+    <item>
+      <id>Exception</id>
+      <locmod>System.SysUtils (380)</locmod>
+    </item>
+    <item>
+      <id>ExcludeTrailingPathDelimiter</id>
+      <locmod>System.SysUtils (3366)</locmod>
+    </item>
+    <item>
+      <id>ExpandEnvironmentStrings</id>
+      <locmod>Winapi.Windows (9837)</locmod>
+    </item>
+    <item>
+      <id>ExtractFilePath</id>
+      <locmod>System.SysUtils (1698)</locmod>
+    </item>
+    <item>
+      <id>FileExists</id>
+      <locmod>System.SysUtils (1534)</locmod>
+    </item>
+    <item>
+      <id>Format</id>
+      <locmod>System.SysUtils (2209)</locmod>
+    </item>
+    <item>
+      <id>GetEnvironmentVariable</id>
+      <locmod>System.SysUtils (3911)</locmod>
+    </item>
+    <item>
+      <id>GetExitCodeProcess</id>
+      <locmod>Winapi.Windows (6802)</locmod>
+    </item>
+    <item>
+      <id>GetExtension</id>
+      <locmod>System.IOUtils\TPath (337)</locmod>
+    </item>
+    <item>
+      <id>GetFullPath</id>
+      <locmod>System.IOUtils\TPath (340)</locmod>
+    </item>
+    <item>
+      <id>GetLastError</id>
+      <locmod>Winapi.Windows (6990)</locmod>
+    </item>
+    <item>
+      <id>HasAnyReportFilters</id>
+      <locmod>Dak.ReportPostProcess (20)</locmod>
+    </item>
+    <item>
+      <id>INFINITE</id>
+      <locmod>Winapi.Windows (5473)</locmod>
+    </item>
+    <item>
+      <id>IsHelpRequested</id>
+      <locmod>Dak.Cli (13)</locmod>
+    </item>
+    <item>
+      <id>IsPathRooted</id>
+      <locmod>System.IOUtils\TPath (373)</locmod>
+    </item>
+    <item>
+      <id>LoadSettings</id>
+      <locmod>Dak.FixInsightSettings (11)</locmod>
+    </item>
+    <item>
+      <id>psDproj</id>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <id>psEnvOptions</id>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <id>psOptset</id>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <id>psRegistry</id>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <id>rfCsv</id>
+      <locmod>Dak.Types\TReportFormat (14)</locmod>
+    </item>
+    <item>
+      <id>rfReplaceAll</id>
+      <locmod>System.SysUtils (3439)</locmod>
+    </item>
+    <item>
+      <id>rfText</id>
+      <locmod>Dak.Types\TReportFormat (14)</locmod>
+    </item>
+    <item>
+      <id>rfXml</id>
+      <locmod>Dak.Types\TReportFormat (14)</locmod>
+    </item>
+    <item>
+      <id>RunAnalyzeCommand</id>
+      <locmod>Dak.Analyze (14)</locmod>
+    </item>
+    <item>
+      <id>SameText</id>
+      <locmod>System.SysUtils (1106)</locmod>
+    </item>
+    <item>
+      <id>SAssociatedDprojMissing</id>
+      <locmod>Dak.Messages (48)</locmod>
+    </item>
+    <item>
+      <id>SBuildBatMissing</id>
+      <locmod>Dak.Messages (46)</locmod>
+    </item>
+    <item>
+      <id>SFileNotFound</id>
+      <locmod>Dak.Messages (47)</locmod>
+    </item>
+    <item>
+      <id>SFixInsightExeMissing</id>
+      <locmod>Dak.Messages (114)</locmod>
+    </item>
+    <item>
+      <id>SFixInsightNotFound</id>
+      <locmod>Dak.Messages (111)</locmod>
+    </item>
+    <item>
+      <id>SFixInsightPathInvalid</id>
+      <locmod>Dak.Messages (113)</locmod>
+    </item>
+    <item>
+      <id>SFixInsightRunExit</id>
+      <locmod>Dak.Messages (116)</locmod>
+    </item>
+    <item>
+      <id>SInfoAssociatedDproj</id>
+      <locmod>Dak.Messages (49)</locmod>
+    </item>
+    <item>
+      <id>SInfoFixInsightPath</id>
+      <locmod>Dak.Messages (110)</locmod>
+    </item>
+    <item>
+      <id>SInfoOptions</id>
+      <locmod>Dak.Messages (82)</locmod>
+    </item>
+    <item>
+      <id>SInfoStep</id>
+      <locmod>Dak.Messages (96)</locmod>
+    </item>
+    <item>
+      <id>SInvalidArgs</id>
+      <locmod>Dak.Messages (38)</locmod>
+    </item>
+    <item>
+      <id>sOmniXmlVendor</id>
+      <locmod>Xml.omnixmldom (28)</locmod>
+    </item>
+    <item>
+      <id>SSourceDefines</id>
+      <locmod>Dak.Messages (71)</locmod>
+    </item>
+    <item>
+      <id>SSourceDproj</id>
+      <locmod>Dak.Messages (77)</locmod>
+    </item>
+    <item>
+      <id>SSourceEnvOptions</id>
+      <locmod>Dak.Messages (80)</locmod>
+    </item>
+    <item>
+      <id>SSourceLibraryPath</id>
+      <locmod>Dak.Messages (75)</locmod>
+    </item>
+    <item>
+      <id>SSourceOptset</id>
+      <locmod>Dak.Messages (78)</locmod>
+    </item>
+    <item>
+      <id>SSourceRegistry</id>
+      <locmod>Dak.Messages (79)</locmod>
+    </item>
+    <item>
+      <id>SSourceSearchPath</id>
+      <locmod>Dak.Messages (72)</locmod>
+    </item>
+    <item>
+      <id>SSourceUnitAliases</id>
+      <locmod>Dak.Messages (74)</locmod>
+    </item>
+    <item>
+      <id>SSourceUnitScopes</id>
+      <locmod>Dak.Messages (73)</locmod>
+    </item>
+    <item>
+      <id>SSourceUnknown</id>
+      <locmod>Dak.Messages (76)</locmod>
+    </item>
+    <item>
+      <id>StringReplace</id>
+      <locmod>System.SysUtils (3441)</locmod>
+    </item>
+    <item>
+      <id>StrLen</id>
+      <locmod>System.SysUtils (1873)</locmod>
+    </item>
+    <item>
+      <id>SUnhandledException</id>
+      <locmod>Dak.Messages (81)</locmod>
+    </item>
+    <item>
+      <id>SysErrorMessage</id>
+      <locmod>System.SysUtils (3082)</locmod>
+    </item>
+    <item>
+      <id>TAppOptions</id>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>TCommandKind</id>
+      <locmod>Dak.Types (8)</locmod>
+    </item>
+    <item>
+      <id>TDiagnostics</id>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>TDictionary&lt;K,V&gt;</id>
+      <locmod>System.Generics.Collections (811)</locmod>
+    </item>
+    <item>
+      <id>TDirectory</id>
+      <locmod>System.IOUtils (62)</locmod>
+    </item>
+    <item>
+      <id>TFixInsightExtraOptions</id>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>TFixInsightIgnoreDefaults</id>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>TFixInsightParams</id>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>TPascalAnalyzerDefaults</id>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>TPath</id>
+      <locmod>System.IOUtils (257)</locmod>
+    </item>
+    <item>
+      <id>TProcessInformation</id>
+      <locmod>Winapi.Windows (4674)</locmod>
+    </item>
+    <item>
+      <id>TPropertySource</id>
+      <locmod>Dak.Types (12)</locmod>
+    </item>
+    <item>
+      <id>TReportFilterDefaults</id>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>TReportFormat</id>
+      <locmod>Dak.Types (14)</locmod>
+    </item>
+    <item>
+      <id>Trim</id>
+      <locmod>System.SysUtils (1239)</locmod>
+    </item>
+    <item>
+      <id>TryBuildParams</id>
+      <locmod>Dak.Project (10)</locmod>
+    </item>
+    <item>
+      <id>TryFindPalReportRoot</id>
+      <locmod>Dak.PascalAnalyzerRunner (24)</locmod>
+    </item>
+    <item>
+      <id>TryGeneratePalArtifacts</id>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+    </item>
+    <item>
+      <id>TryGetCommand</id>
+      <locmod>Dak.Cli (11)</locmod>
+    </item>
+    <item>
+      <id>TryLoadRsVars</id>
+      <locmod>Dak.RsVars (10)</locmod>
+    </item>
+    <item>
+      <id>TryOpenLogFile</id>
+      <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+    </item>
+    <item>
+      <id>TryParseOptions</id>
+      <locmod>Dak.Cli (10)</locmod>
+    </item>
+    <item>
+      <id>TryPostProcessFixInsightReport</id>
+      <locmod>Dak.ReportPostProcess (22)</locmod>
+    </item>
+    <item>
+      <id>TryReadIdeConfig</id>
+      <locmod>Dak.Registry (12)</locmod>
+    </item>
+    <item>
+      <id>TryResolveFixInsightExe</id>
+      <locmod>Dak.FixInsight (10)</locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExe</id>
+      <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+    </item>
+    <item>
+      <id>TryRunFixInsight</id>
+      <locmod>Dak.FixInsightRunner (12)</locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzer</id>
+      <locmod>Dak.PascalAnalyzerRunner (16)</locmod>
+    </item>
+    <item>
+      <id>TStartupInfo</id>
+      <locmod>Winapi.Windows (9358)</locmod>
+    </item>
+    <item>
+      <id>WaitForSingleObject</id>
+      <locmod>Winapi.Windows (7656)</locmod>
+    </item>
+    <item>
+      <id>WAIT_OBJECT_0</id>
+      <locmod>Winapi.Windows (4416)</locmod>
+    </item>
+    <item>
+      <id>WriteOutput</id>
+      <locmod>Dak.Output (9)</locmod>
+    </item>
+    <item>
+      <id>WriteToStderr</id>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+    </item>
+    <item>
+      <id>WriteUsage</id>
+      <locmod>Dak.Cli (12)</locmod>
+    </item>
+  </section>
+  <section name="Third-party identifiers directly referenced, with locations" count="100" oldcount="-2">
+    <item>
+      <name>AddInfo</name>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>294r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>305r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>319r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>321r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>332r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>344r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>366r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>372r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>410r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>470r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>AddNote</name>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>313r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>385r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>386r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>387r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>388r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>390r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>AddWarning</name>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>376r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>380r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>446r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>498r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>500r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>502r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>ApplySettingsOverrides</name>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Dak.FixInsightSettings (14)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>300r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>ckBuild</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TCommandKind (8)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>254r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>ckResolve</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TCommandKind (8)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>232r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>262r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>Create</name>
+      <kind>Constructor</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>221r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>HasAnyReportFilters</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (20)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>441r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>IsHelpRequested</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Cli (13)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>225r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>LoadSettings</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightSettings (11)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>295r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>psDproj</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>30r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>psEnvOptions</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>33r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>psOptset</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>31r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>psRegistry</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>32r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>rfCsv</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TReportFormat (14)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>451r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>rfText</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TReportFormat (14)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>449r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>rfXml</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TReportFormat (14)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>453r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>RunAnalyzeCommand</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Analyze (14)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>264r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SAssociatedDprojMissing : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (48)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>95r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SBuildBatMissing : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (46)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>144r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SFileNotFound : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (47)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>83r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>101r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SFixInsightExeMissing : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (114)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>413r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SFixInsightNotFound : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (111)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>380r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SFixInsightPathInvalid : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (113)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>376r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SFixInsightRunExit : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (116)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>438r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SInfoAssociatedDproj : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (49)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>313r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SInfoFixInsightPath : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (110)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>372r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SInfoOptions : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (82)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>319r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SInfoStep : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (96)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>294r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>305r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>321r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>332r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>344r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>366r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>410r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>470r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SInvalidArgs : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (38)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>229r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>244r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SSourceDefines : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (71)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>386r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SSourceDproj : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (77)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>30r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SSourceEnvOptions : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (80)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>33r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SSourceLibraryPath : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (75)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>385r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SSourceOptset : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (78)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>31r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SSourceRegistry : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (79)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>32r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SSourceSearchPath : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (72)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>387r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SSourceUnitAliases : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (74)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>390r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SSourceUnitScopes : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (73)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>388r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SSourceUnknown : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (76)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>35r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SUnhandledException : UnicodeString</name>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (81)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>509r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TAppOptions = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (17)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>122r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>193r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TCommandKind = Enumerated</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (8)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>215r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>232r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>254r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>262r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TDiagnostics = Class</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Diagnostics (23)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>196r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>221r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TFixInsightExtraOptions = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (70)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>199r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TFixInsightIgnoreDefaults = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (80)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>200r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TFixInsightParams = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (94)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>194r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TPascalAnalyzerDefaults = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (88)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>202r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TPropertySource = Enumerated</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (12)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>27r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>30r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>31r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>32r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>33r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>198r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TReportFilterDefaults = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (84)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>201r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TReportFormat = Enumerated</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (14)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>449s</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>449r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>451r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>453r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryBuildParams</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Project (10)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>345r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryFindPalReportRoot</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (24)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>499r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryGeneratePalArtifacts</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>501r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryGetCommand</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Cli (11)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>227r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryLoadRsVars</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.RsVars (10)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>322r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryOpenLogFile</name>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>277r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryParseOptions</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Cli (10)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>241r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryPostProcessFixInsightReport</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (22)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>457r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryReadIdeConfig</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Registry (12)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>333r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryResolveFixInsightExe</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsight (10)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>379r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryResolvePalCmdExe</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>473r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryRunFixInsight</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightRunner (12)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>431r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TryRunPascalAnalyzer</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (16)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>481r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>WriteOutput</name>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Output (9)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>399r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>WriteToStderr</name>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>514r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>WriteUsage</name>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Dak.Cli (12)</locmod>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>232r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>235r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit</module>
+        <loc>247r</loc>
+      </ref>
+    </item>
+  </section>
+  <section name="Third-party class and interface types directly referenced" count="3" oldcount="-2">
+    <item>
+      <id>Exception</id>
+      <locmod>System.SysUtils (380)</locmod>
+    </item>
+    <item>
+      <id>TDiagnostics</id>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>TDictionary&lt;K,V&gt;</id>
+      <locmod>System.Generics.Collections (811)</locmod>
+    </item>
+  </section>
+</report>

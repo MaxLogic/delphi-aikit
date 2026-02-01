@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Uses Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Usage" count="-2" oldcount="-2">
+    <item>
+      <name>Dak.Types</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+  </section>
+  <section name="Modules that are referenced in the Delphi project file, but not used" count="-2" oldcount="-2">
+  </section>
+  <section name="Modules that are used but not added to the Delphi project file" count="-2" oldcount="-2">
+    <item id="1">System</item>
+  </section>
+  <section name="References">
+    <module>
+        Dak.Types
+      <references id="1">System</references>
+    </module>
+  </section>
+  <section name="Optimal uses list">
+    <item id="1">dak.types</item>
+  </section>
+  <section name="Runtime initialization order">
+  </section>
+  <section name="Mutual unit references" count="0" oldcount="-2">
+  </section>
+  <section name="All modules" count="1" oldcount="-2">
+    <item id="1">Dak.Types</item>
+  </section>
+</report>

@@ -1,0 +1,260 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Inconsistent Case Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Inconsistent case for same identifier" count="0" oldcount="-2">
+  </section>
+  <section name="Inconsistent case for different identifiers with same name" count="25" oldcount="-2">
+    <item>
+      <id>AChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\PutBefore (20)</locmod>
+    </item>
+    <item>
+      <id>AChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\PutBefore (20)</locmod>
+    </item>
+    <item>
+      <id>AChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\PutBefore (21)</locmod>
+    </item>
+    <item>
+      <id>AChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\PutBefore (21)</locmod>
+    </item>
+    <item>
+      <id>aChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\FoldAscii (138)</locmod>
+    </item>
+    <item>
+      <id>aChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\FoldAscii (138)</locmod>
+    </item>
+    <item>
+      <id>aChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\FoldCharValue (139)</locmod>
+    </item>
+    <item>
+      <id>aChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\FoldCharValue (139)</locmod>
+    </item>
+    <item>
+      <id>Line : Integer</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TPalFinding (1164)</locmod>
+    </item>
+    <item>
+      <id>Line : Integer</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TPalFinding (1164)</locmod>
+    </item>
+    <item>
+      <id>Line (aFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\BuildFindingKey (1256)</locmod>
+    </item>
+    <item>
+      <id>Line (aFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\BuildFindingKey (1256)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\AddFindingRecord (1266)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\AddFindingRecord (1266)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalFindingsMd (1732)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalFindingsMd (1732)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalFindingsJsonl (1769)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalFindingsJsonl (1769)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxLogic.StrUtils\Split (264)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxLogic.StrUtils\Split (264)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxLogic.StrUtils\Split (265)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxLogic.StrUtils\Split (265)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxLogic.StrUtils\Split (266)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxLogic.StrUtils\Split (266)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>AutoFree\TGarbo\Destroy (136)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>AutoFree\TGarbo\Destroy (136)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>AutoFree\TGarbos\Clear (261)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>AutoFree\TGarbos\Clear (261)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\PutBefore (424)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\PutBefore (424)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\CombineUrl (625)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\CombineUrl (625)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFilterEx\Prepare (725)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFilterEx\Prepare (725)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFilterEx\Matches (846)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFilterEx\Matches (846)</locmod>
+    </item>
+    <item>
+      <id>x : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\splitstring (927)</locmod>
+    </item>
+    <item>
+      <id>x : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\splitstring (927)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\Join (967)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\Join (967)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\CharPosEx (1059)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\CharPosEx (1059)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\CharPosEx (1071)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\CharPosEx (1071)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\PrepareTextForStrToFloatWcc (1121)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\PrepareTextForStrToFloatWcc (1121)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\floatToHex (1688)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\floatToHex (1688)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ParseStatement (1749)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ParseStatement (1749)</locmod>
+    </item>
+  </section>
+  <section name="Mismatch unit name/file name" count="0" oldcount="-2">
+  </section>
+</report>

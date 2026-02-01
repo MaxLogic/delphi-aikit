@@ -1,0 +1,166 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="NextGen Readiness Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Unsupported types" count="14" oldcount="0">
+    <item>
+      <id>FUpperAscii : Array (static)</id>
+      <kind>Class Field</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (133)</locmod>
+    </item>
+    <item>
+      <id>FUpperAscii : Array (static)</id>
+      <kind>Class Field</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (133)</locmod>
+    </item>
+    <item>
+      <id>lAnsi : AnsiString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (318)</locmod>
+    </item>
+    <item>
+      <id>lAnsi : AnsiString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (318)</locmod>
+    </item>
+    <item>
+      <id>lBuffer : Array (static)</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (314)</locmod>
+    </item>
+    <item>
+      <id>lBuffer : Array (static)</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (314)</locmod>
+    </item>
+    <item>
+      <id>lEnd : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1417)</locmod>
+    </item>
+    <item>
+      <id>lEnd : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1417)</locmod>
+    </item>
+    <item>
+      <id>lEndPtr : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\Equals (1508)</locmod>
+    </item>
+    <item>
+      <id>lEndPtr : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\Equals (1508)</locmod>
+    </item>
+    <item>
+      <id>lFilePart : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.FixInsight\FindInPath (43)</locmod>
+    </item>
+    <item>
+      <id>lFilePart : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.FixInsight\FindInPath (43)</locmod>
+    </item>
+    <item>
+      <id>lLeftPtr : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\Equals (1508)</locmod>
+    </item>
+    <item>
+      <id>lLeftPtr : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\Equals (1508)</locmod>
+    </item>
+    <item>
+      <id>lLimit : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1417)</locmod>
+    </item>
+    <item>
+      <id>lLimit : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1417)</locmod>
+    </item>
+    <item>
+      <id>lPtr : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1417)</locmod>
+    </item>
+    <item>
+      <id>lPtr : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1417)</locmod>
+    </item>
+    <item>
+      <id>lRightPtr : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\Equals (1508)</locmod>
+    </item>
+    <item>
+      <id>lRightPtr : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\Equals (1508)</locmod>
+    </item>
+    <item>
+      <id>pc : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\OccurrencesOfChar (351)</locmod>
+    </item>
+    <item>
+      <id>pc : PChar</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\OccurrencesOfChar (351)</locmod>
+    </item>
+    <item>
+      <id>psz1 : PWideChar</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\StrCmpLogicalW (214)</locmod>
+    </item>
+    <item>
+      <id>psz1 : PWideChar</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\StrCmpLogicalW (214)</locmod>
+    </item>
+    <item>
+      <id>psz2 : PWideChar</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\StrCmpLogicalW (214)</locmod>
+    </item>
+    <item>
+      <id>psz2 : PWideChar</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\StrCmpLogicalW (214)</locmod>
+    </item>
+    <item>
+      <id>s : RawByteString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxLogic.StrUtils\RawStrToBytes (289)</locmod>
+    </item>
+    <item>
+      <id>s : RawByteString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxLogic.StrUtils\RawStrToBytes (289)</locmod>
+    </item>
+  </section>
+  <section name="Except-block without call to non-inlined subprograms" count="0" oldcount="0">
+    <loc>
+      <locmod>Dak.Diagnostics</locmod>
+      <locline>132</locline>
+    </loc>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1414</locline>
+    </loc>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1694</locline>
+    </loc>
+    <loc>
+      <locmod>DelphiAIKit.Tests</locmod>
+      <locline>36</locline>
+    </loc>
+  </section>
+  <section name="Assembler code in these subprograms" count="0" oldcount="0">
+  </section>
+</report>

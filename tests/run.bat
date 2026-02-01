@@ -215,9 +215,58 @@ call :AssertNotContains "%FI_IDS_CSV%" ",!ID1!," || exit /b 25
 call :AssertNotContains "%FI_IDS_CSV%" ",!ID2!," || exit /b 25
 
 rem ----------------------------------------------------------------------------
-rem 3) settings.ini behavior (sandboxed exe copy)
+rem 3) dak.ini cascade (repo root -> dproj)
 rem ----------------------------------------------------------------------------
-echo [INFO] Testing settings.ini defaults/merge via sandboxed exe copy...
+echo [INFO] Testing dak.ini cascade defaults...
+
+set "CFGROOT=%OUTDIR%\cfgrepo"
+if exist "%CFGROOT%" rmdir /S /Q "%CFGROOT%" >nul 2>&1
+mkdir "%CFGROOT%" >nul 2>&1
+mkdir "%CFGROOT%\.git" >nul 2>&1
+mkdir "%CFGROOT%\sub" >nul 2>&1
+copy /Y "%FIXTURES%\Sample.dproj" "%CFGROOT%\sub\Sample.dproj" >nul
+copy /Y "%FIXTURES%\Sample.dpr" "%CFGROOT%\sub\Sample.dpr" >nul
+
+(
+  echo [FixInsightIgnore]
+  echo Warnings=!ID1!
+) > "%CFGROOT%\dak.ini"
+
+(
+  echo [FixInsightIgnore]
+  echo Warnings=!ID2!
+) > "%CFGROOT%\sub\dak.ini"
+
+set "CASCADE_DPROJ=%CFGROOT%\sub\Sample.dproj"
+set "FI_CASCADE_ROOT=%OUTDIR%\fi-self.cascade"
+set "FI_CASCADE_TXT=%FI_CASCADE_ROOT%\fixinsight\fixinsight.txt"
+set "FI_CASCADE_XML=%FI_CASCADE_ROOT%\fixinsight\fixinsight.xml"
+set "FI_CASCADE_CSV=%FI_CASCADE_ROOT%\fixinsight\fixinsight.csv"
+set "CASCADE_LOG=%OUTDIR%\cascade.log"
+if exist "%FI_CASCADE_ROOT%" rmdir /S /Q "%FI_CASCADE_ROOT%" >nul 2>&1
+
+"%EXE%" analyze --project "%CASCADE_DPROJ%" --platform %PLATFORM% --config Debug --delphi %DELPHI% --out "%FI_CASCADE_ROOT%" --fixinsight true --pascal-analyzer false --fi-formats all --log-file "%CASCADE_LOG%" !RSVARS_ARG! !ENVOPTIONS_ARG!
+if errorlevel 1 (
+  echo [ERROR] Cascade analyze failed: project="%CASCADE_DPROJ%"
+  exit /b 26
+)
+
+call :AssertNotContains "%FI_CASCADE_TXT%" "!ID1!" || exit /b 27
+call :AssertNotContains "%FI_CASCADE_TXT%" "!ID2!" || exit /b 27
+call :AssertNotContains "%FI_CASCADE_XML%" "!ID1!" || exit /b 27
+call :AssertNotContains "%FI_CASCADE_XML%" "!ID2!" || exit /b 27
+call :AssertNotContains "%FI_CASCADE_CSV%" ",!ID1!," || exit /b 27
+call :AssertNotContains "%FI_CASCADE_CSV%" ",!ID2!," || exit /b 27
+
+set "EXE_DAK=%ROOT%\bin\dak.ini"
+call :AssertContains "%CASCADE_LOG%" "%EXE_DAK%" || exit /b 28
+call :AssertContains "%CASCADE_LOG%" "%CFGROOT%\dak.ini" || exit /b 28
+call :AssertContains "%CASCADE_LOG%" "%CFGROOT%\sub\dak.ini" || exit /b 28
+
+rem ----------------------------------------------------------------------------
+rem 4) dak.ini behavior (sandboxed exe copy)
+rem ----------------------------------------------------------------------------
+echo [INFO] Testing dak.ini defaults/merge via sandboxed exe copy...
 
 set "SANDBOX=%OUTDIR%\sandbox"
 if not exist "%SANDBOX%" mkdir "%SANDBOX%" >nul 2>&1
@@ -242,7 +291,7 @@ copy /Y "%EXE%" "%SANDBOX%\DelphiAIKit.exe" >nul
   echo Path=
   echo Output=
   echo Args=
-) > "%SANDBOX%\settings.ini"
+) > "%SANDBOX%\dak.ini"
 
 set "FI_SETTINGS_ROOT=%OUTDIR%\fi-self.settings"
 set "FI_SETTINGS_CSV=%FI_SETTINGS_ROOT%\fixinsight\fixinsight.csv"
@@ -263,7 +312,7 @@ copy /Y "%EXE%" "%SANDBOX2%\DelphiAIKit.exe" >nul
   echo Silent=false
   echo Xml=false
   echo Csv=false
-) > "%SANDBOX2%\settings.ini"
+) > "%SANDBOX2%\dak.ini"
 
 set "BAT_OUT=%OUTDIR%\ignore-merged.bat"
 "%SANDBOX2%\DelphiAIKit.exe" resolve --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --format bat --out-file "%BAT_OUT%" --fi-ignore "..\src\Dak.Output.pas;..\src\Dak.Cli.pas" !RSVARS_ARG! !ENVOPTIONS_ARG!
@@ -274,7 +323,7 @@ if errorlevel 1 (
 call :AssertContains "%BAT_OUT%" "..\src\Dak.Cli.pas;..\src\Dak.Output.pas" || exit /b 33
 
 rem ----------------------------------------------------------------------------
-rem 4) Pascal Analyzer end-to-end (self)
+rem 5) Pascal Analyzer end-to-end (self)
 rem ----------------------------------------------------------------------------
 echo [INFO] Running Pascal Analyzer (PALCMD) on self project...
 
@@ -291,7 +340,7 @@ set "PA_OUT_CLI=%OUTDIR%\pa-self.cli"
 if exist "%PA_OUT_CLI%" rmdir /S /Q "%PA_OUT_CLI%" >nul 2>&1
 mkdir "%PA_OUT_CLI%" >nul 2>&1
 
-rem Use settings.ini to feed PALCMD Output=... and (optionally) Path=...
+rem Use dak.ini to feed PALCMD Output=... and (optionally) Path=...
 set "SANDBOX_PA=%OUTDIR%\sandbox-pa"
 if not exist "%SANDBOX_PA%" mkdir "%SANDBOX_PA%" >nul 2>&1
 copy /Y "%EXE%" "%SANDBOX_PA%\DelphiAIKit.exe" >nul
@@ -312,12 +361,12 @@ if defined PA_PATH set "PA_PATH_VALUE=%PA_PATH%"
   echo Path=%PA_PATH_VALUE%
   echo Output=%PA_OUT_SETTINGS%
   echo Args=
-) > "%SANDBOX_PA%\settings.ini"
+) > "%SANDBOX_PA%\dak.ini"
 
-rem Settings-driven run (tests Output from settings.ini + our default args)
+rem Settings-driven run (tests Output from dak.ini + our default args)
 "%SANDBOX_PA%\DelphiAIKit.exe" analyze --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --fixinsight false --pascal-analyzer true !RSVARS_ARG! !ENVOPTIONS_ARG!
 if errorlevel 1 (
-  echo [ERROR] PALCMD run (settings.ini) failed. If PALCMD is not installed, set PA_PATH or SKIP_PASCAL_ANALYZER=1.
+  echo [ERROR] PALCMD run (dak.ini) failed. If PALCMD is not installed, set PA_PATH or SKIP_PASCAL_ANALYZER=1.
   exit /b 40
 )
 call :AssertAnyMatch "%PA_OUT_SETTINGS%\*.xml" || exit /b 41

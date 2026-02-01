@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Conditional Symbols Report">
+  <created>29.01.2026 23:48:55</created>
+  <section name="Conditional symbols that were defined ($DEFINE) in code" count="8" oldcount="-2">
+    <item id="1">FASTCASE_EQUALS_QPLUS</item>
+    <item id="2">FASTCASE_EQUALS_RPLUS</item>
+    <item id="3">FASTCASE_HASHBYTES_QPLUS</item>
+    <item id="4">FASTCASE_HASHBYTES_RPLUS</item>
+    <item id="5">FASTCASE_HASHCI_QPLUS</item>
+    <item id="6">FASTCASE_HASHCI_RPLUS</item>
+    <item id="7">FASTCASE_HASHORD_RPLUS</item>
+    <item id="8">FORWARD_EXCEPTIONS_TO_MAIN_THREAD</item>
+  </section>
+  <section name="Conditional symbols that were undefined ($UNDEF) in code" count="7" oldcount="-2">
+    <item id="1">FASTCASE_EQUALS_QPLUS</item>
+    <item id="2">FASTCASE_EQUALS_RPLUS</item>
+    <item id="3">FASTCASE_HASHBYTES_QPLUS</item>
+    <item id="4">FASTCASE_HASHBYTES_RPLUS</item>
+    <item id="5">FASTCASE_HASHCI_QPLUS</item>
+    <item id="6">FASTCASE_HASHCI_RPLUS</item>
+    <item id="7">FASTCASE_HASHORD_RPLUS</item>
+  </section>
+  <section name="Conditional symbols/expressions that were evaluated as true ($IF/$IFDEF/$ELSEIF)" count="11" oldcount="-2">
+    <item id="1">DEFINED( MsWINDOWS)</item>
+    <item id="2">Defined(MSWINDOWS)</item>
+    <item id="3">FASTCASE_EQUALS_QPLUS</item>
+    <item id="4">FASTCASE_EQUALS_RPLUS</item>
+    <item id="5">FASTCASE_HASHBYTES_QPLUS</item>
+    <item id="6">FASTCASE_HASHBYTES_RPLUS</item>
+    <item id="7">FASTCASE_HASHCI_QPLUS</item>
+    <item id="8">FASTCASE_HASHCI_RPLUS</item>
+    <item id="9">FASTCASE_HASHORD_RPLUS</item>
+    <item id="10">FORWARD_EXCEPTIONS_TO_MAIN_THREAD</item>
+    <item id="11">MSWINDOWS</item>
+  </section>
+  <section name="Conditional symbols/expressions that were evaluated as false ($IF/$IFDEF/$ELSEIF)" count="10" oldcount="-2">
+    <item id="1">ASYNC_LOOP_USES_SINGLETHREAD</item>
+    <item id="2">CanUseApplicationInstance</item>
+    <item id="3">CompilerVersion &lt;= 29.0</item>
+    <item id="4">CONSOLE</item>
+    <item id="5">DEBUG_MAXASYNC</item>
+    <item id="6">DEFINED(FRAMEWORK_VCL) OR DEFINED(FRAMEWORK_FMXs)</item>
+    <item id="7">ForceQueueNotAvailable</item>
+    <item id="8">LINUX</item>
+    <item id="9">MadExcept</item>
+    <item id="10">SIZEOF(TTestRec) &lt;&gt; 16</item>
+  </section>
+  <section name="Unnecessary $DEFINE/$UNDEF" count="7" oldcount="-2">
+    <item>
+      <id>FASTCASE_EQUALS_QPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1555</locline>
+    </item>
+    <item>
+      <id>FASTCASE_EQUALS_RPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1551</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHBYTES_QPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1391</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHBYTES_RPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1387</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHCI_QPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1499</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHCI_RPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1495</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHORD_RPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1409</locline>
+    </item>
+  </section>
+  <section name="Unnecessary $IFDEF/$IFNDEF" count="1" oldcount="-2">
+    <item>
+      <id>MsWindows</id>
+      <locmod>maxAsync</locmod>
+      <locline>1837</locline>
+    </item>
+  </section>
+  <section name="$DEFINE/UNDEF used but no matching $IFDEF/$IFNDEF in code" count="0" oldcount="-2">
+  </section>
+</report>

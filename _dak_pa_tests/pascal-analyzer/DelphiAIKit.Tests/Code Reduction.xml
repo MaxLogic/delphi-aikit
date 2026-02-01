@@ -1,0 +1,897 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Code Reduction Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Identifiers never used" count="57" oldcount="-2">
+    <item>
+      <id>AutoNameTestCaseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (92)</locmod>
+    </item>
+    <item>
+      <id>AutoNameTestCaseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (92)</locmod>
+    </item>
+    <item>
+      <id>BuildResolverExe</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+    </item>
+    <item>
+      <id>BuildResolverExe</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+    </item>
+    <item>
+      <id>CategoryAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (81)</locmod>
+    </item>
+    <item>
+      <id>CategoryAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (81)</locmod>
+    </item>
+    <item>
+      <id>ConsoleMode : TDunitXConsoleMode</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (560)</locmod>
+    </item>
+    <item>
+      <id>ConsoleMode : TDunitXConsoleMode</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (560)</locmod>
+    </item>
+    <item>
+      <id>CreateRunner</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (585)</locmod>
+    </item>
+    <item>
+      <id>CreateRunner</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (585)</locmod>
+    </item>
+    <item>
+      <id>CurrentRunner</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (587)</locmod>
+    </item>
+    <item>
+      <id>CurrentRunner</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (587)</locmod>
+    </item>
+    <item>
+      <id>CustomTestCaseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (89)</locmod>
+    </item>
+    <item>
+      <id>CustomTestCaseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (89)</locmod>
+    </item>
+    <item>
+      <id>CustomTestCaseSourceAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (90)</locmod>
+    </item>
+    <item>
+      <id>CustomTestCaseSourceAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (90)</locmod>
+    </item>
+    <item>
+      <id>DontShowIgnored : Boolean</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (566)</locmod>
+    </item>
+    <item>
+      <id>DontShowIgnored : Boolean</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (566)</locmod>
+    </item>
+    <item>
+      <id>Exclude : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (550)</locmod>
+    </item>
+    <item>
+      <id>Exclude : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (550)</locmod>
+    </item>
+    <item>
+      <id>exDescendant</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (120)</locmod>
+    </item>
+    <item>
+      <id>exDescendant</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (120)</locmod>
+    </item>
+    <item>
+      <id>exExact</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (119)</locmod>
+    </item>
+    <item>
+      <id>exExact</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (119)</locmod>
+    </item>
+    <item>
+      <id>ExitBehavior : TDUnitXExitBehavior</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (558)</locmod>
+    </item>
+    <item>
+      <id>ExitBehavior : TDUnitXExitBehavior</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (558)</locmod>
+    </item>
+    <item>
+      <id>EXIT_ERRORS : Signed 8-bit Integer</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (627)</locmod>
+    </item>
+    <item>
+      <id>EXIT_ERRORS : Signed 8-bit Integer</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (627)</locmod>
+    </item>
+    <item>
+      <id>Filter : Simple (unknown)</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (595)</locmod>
+    </item>
+    <item>
+      <id>Filter : Simple (unknown)</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (595)</locmod>
+    </item>
+    <item>
+      <id>FixInsightFiltering</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>FixInsightFiltering</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>GetAssertCount</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (588)</locmod>
+    </item>
+    <item>
+      <id>GetAssertCount</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (588)</locmod>
+    </item>
+    <item>
+      <id>IgnoreAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (82)</locmod>
+    </item>
+    <item>
+      <id>IgnoreAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (82)</locmod>
+    </item>
+    <item>
+      <id>Ignored</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TTestResultType (243)</locmod>
+    </item>
+    <item>
+      <id>Ignored</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TTestResultType (243)</locmod>
+    </item>
+    <item>
+      <id>IgnoreMemoryLeaks = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (79)</locmod>
+    </item>
+    <item>
+      <id>IgnoreMemoryLeaks = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (79)</locmod>
+    </item>
+    <item>
+      <id>Include : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (547)</locmod>
+    </item>
+    <item>
+      <id>Include : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (547)</locmod>
+    </item>
+    <item>
+      <id>Level : TLogLevel</id>
+      <kind>Record Field</kind>
+      <locmod>DUnitX.TestFramework\TLogMessage (106)</locmod>
+    </item>
+    <item>
+      <id>Level : TLogLevel</id>
+      <kind>Record Field</kind>
+      <locmod>DUnitX.TestFramework\TLogMessage (106)</locmod>
+    </item>
+    <item>
+      <id>Log</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (131)</locmod>
+    </item>
+    <item>
+      <id>Log</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (131)</locmod>
+    </item>
+    <item>
+      <id>LogLevel : TLogLevel</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (552)</locmod>
+    </item>
+    <item>
+      <id>LogLevel : TLogLevel</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (552)</locmod>
+    </item>
+    <item>
+      <id>MaxTimeAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (84)</locmod>
+    </item>
+    <item>
+      <id>MaxTimeAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (84)</locmod>
+    </item>
+    <item>
+      <id>Msg : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>DUnitX.TestFramework\TLogMessage (107)</locmod>
+    </item>
+    <item>
+      <id>Msg : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>DUnitX.TestFramework\TLogMessage (107)</locmod>
+    </item>
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>Off</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TDunitXConsoleMode (479)</locmod>
+    </item>
+    <item>
+      <id>Off</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TDunitXConsoleMode (479)</locmod>
+    </item>
+    <item>
+      <id>Options : TDUnitXOptions</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (593)</locmod>
+    </item>
+    <item>
+      <id>Options : TDUnitXOptions</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (593)</locmod>
+    </item>
+    <item>
+      <id>Pass</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TTestResultType (243)</locmod>
+    </item>
+    <item>
+      <id>Pass</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TTestResultType (243)</locmod>
+    </item>
+    <item>
+      <id>Pause</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXExitBehavior (476)</locmod>
+    </item>
+    <item>
+      <id>Pause</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXExitBehavior (476)</locmod>
+    </item>
+    <item>
+      <id>Quiet</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TDunitXConsoleMode (480)</locmod>
+    </item>
+    <item>
+      <id>Quiet</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TDunitXConsoleMode (480)</locmod>
+    </item>
+    <item>
+      <id>RepeatTestAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (83)</locmod>
+    </item>
+    <item>
+      <id>RepeatTestAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (83)</locmod>
+    </item>
+    <item>
+      <id>Run : Simple (unknown)</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (541)</locmod>
+    </item>
+    <item>
+      <id>Run : Simple (unknown)</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (541)</locmod>
+    </item>
+    <item>
+      <id>RunListFile : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (544)</locmod>
+    </item>
+    <item>
+      <id>RunListFile : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (544)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>SelectsSupportedCompilerFlag</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+    <item>
+      <id>SelectsSupportedCompilerFlag</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+    <item>
+      <id>SetupAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (76)</locmod>
+    </item>
+    <item>
+      <id>SetupAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (76)</locmod>
+    </item>
+    <item>
+      <id>SetupFixtureAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (75)</locmod>
+    </item>
+    <item>
+      <id>SetupFixtureAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (75)</locmod>
+    </item>
+    <item>
+      <id>Status</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (133)</locmod>
+    </item>
+    <item>
+      <id>Status</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (133)</locmod>
+    </item>
+    <item>
+      <id>TearDownAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (77)</locmod>
+    </item>
+    <item>
+      <id>TearDownAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (77)</locmod>
+    </item>
+    <item>
+      <id>TearDownFixtureAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (78)</locmod>
+    </item>
+    <item>
+      <id>TearDownFixtureAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (78)</locmod>
+    </item>
+    <item>
+      <id>TestAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (80)</locmod>
+    </item>
+    <item>
+      <id>TestAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (80)</locmod>
+    </item>
+    <item>
+      <id>TestCaseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (91)</locmod>
+    </item>
+    <item>
+      <id>TestCaseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (91)</locmod>
+    </item>
+    <item>
+      <id>TestCaseInfo = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (86)</locmod>
+    </item>
+    <item>
+      <id>TestCaseInfo = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (86)</locmod>
+    </item>
+    <item>
+      <id>TestCaseInfoArray = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (87)</locmod>
+    </item>
+    <item>
+      <id>TestCaseInfoArray = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (87)</locmod>
+    </item>
+    <item>
+      <id>TestCaseProviderAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (93)</locmod>
+    </item>
+    <item>
+      <id>TestCaseProviderAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (93)</locmod>
+    </item>
+    <item>
+      <id>TestInOwnThreadAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (74)</locmod>
+    </item>
+    <item>
+      <id>TestInOwnThreadAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (74)</locmod>
+    </item>
+    <item>
+      <id>TExceptionInheritance = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (95)</locmod>
+    </item>
+    <item>
+      <id>TExceptionInheritance = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (95)</locmod>
+    </item>
+    <item>
+      <id>TLogLevelDesc : Array (static)</id>
+      <kind>Typed const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (117)</locmod>
+    </item>
+    <item>
+      <id>TLogLevelDesc : Array (static)</id>
+      <kind>Typed const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (117)</locmod>
+    </item>
+    <item>
+      <id>TTestLocalMethod = TProc</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (99)</locmod>
+    </item>
+    <item>
+      <id>TTestLocalMethod = TProc</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (99)</locmod>
+    </item>
+    <item>
+      <id>TTestMethod = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (97)</locmod>
+    </item>
+    <item>
+      <id>TTestMethod = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (97)</locmod>
+    </item>
+    <item>
+      <id>Warning</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TTestResultType (243)</locmod>
+    </item>
+    <item>
+      <id>Warning</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\TTestResultType (243)</locmod>
+    </item>
+    <item>
+      <id>WillRaiseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (85)</locmod>
+    </item>
+    <item>
+      <id>WillRaiseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (85)</locmod>
+    </item>
+    <item>
+      <id>WriteLn</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (135)</locmod>
+    </item>
+    <item>
+      <id>WriteLn</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (135)</locmod>
+    </item>
+    <item>
+      <id>WriteLn</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (136)</locmod>
+    </item>
+    <item>
+      <id>WriteLn</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (136)</locmod>
+    </item>
+    <item>
+      <id>XMLOutputFile : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (538)</locmod>
+    </item>
+    <item>
+      <id>XMLOutputFile : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (538)</locmod>
+    </item>
+  </section>
+  <section name="Local identifiers only used at a lower scope" count="0" oldcount="-2">
+  </section>
+  <section name="Local identifiers only used at a lower scope, but in more than one subprogram" count="0" oldcount="-2">
+  </section>
+  <section name="Local identifiers that are set and referenced once" count="11" oldcount="-2">
+    <item>
+      <name>lArgs</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.PascalAnalyzer</locmod>
+        <locline>151</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.PascalAnalyzer</locmod>
+        <locline>159</locline>
+      </loc>
+    </item>
+    <item>
+      <name>lArgs</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.Support</locmod>
+        <locline>191</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.Support</locmod>
+        <locline>193</locline>
+      </loc>
+    </item>
+    <item>
+      <name>lBat</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.Support</locmod>
+        <locline>190</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.Support</locmod>
+        <locline>193</locline>
+      </loc>
+    </item>
+    <item>
+      <name>lCmdArgs</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.Support</locmod>
+        <locline>193</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.Support</locmod>
+        <locline>196</locline>
+      </loc>
+    </item>
+    <item>
+      <name>lFiles</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.PascalAnalyzer</locmod>
+        <locline>169</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.PascalAnalyzer</locmod>
+        <locline>170</locline>
+      </loc>
+    </item>
+    <item>
+      <name>lIds</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.FixInsight</locmod>
+        <locline>139</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.FixInsight</locmod>
+        <locline>140</locline>
+      </loc>
+    </item>
+    <item>
+      <name>lMask</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.FixInsight</locmod>
+        <locline>132</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.FixInsight</locmod>
+        <locline>133</locline>
+      </loc>
+    </item>
+    <item>
+      <name>lStart</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.PascalAnalyzer</locmod>
+        <locline>56</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.PascalAnalyzer</locmod>
+        <locline>57</locline>
+      </loc>
+    </item>
+    <item>
+      <name>lText</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.FixInsight</locmod>
+        <locline>126</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.FixInsight</locmod>
+        <locline>127</locline>
+      </loc>
+    </item>
+    <item>
+      <name>lText</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.PascalAnalyzer</locmod>
+        <locline>40</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.PascalAnalyzer</locmod>
+        <locline>41</locline>
+      </loc>
+    </item>
+    <item>
+      <name>lWait</name>
+      <loc>
+        <kind>Set</kind>
+        <locmod>Test.Support</locmod>
+        <locline>155</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Test.Support</locmod>
+        <locline>156</locline>
+      </loc>
+    </item>
+  </section>
+  <section name="Local identifiers that are set more than once without referencing in-between" count="0" oldcount="-2">
+  </section>
+  <section name="Class fields that are zero-initialized in constructor" count="0" oldcount="-2">
+  </section>
+  <section name="Local long strings that are initialized to empty string" count="2" oldcount="-2">
+    <item>
+      <id>lFilePath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (70)</locmod>
+    </item>
+    <item>
+      <id>lFilePath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (70)</locmod>
+    </item>
+    <item>
+      <id>lFlag : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\SelectsSupportedCompilerFlag (79)</locmod>
+    </item>
+    <item>
+      <id>lFlag : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\SelectsSupportedCompilerFlag (79)</locmod>
+    </item>
+  </section>
+  <section name="Functions called only as procedures (result ignored)" count="0" oldcount="-2">
+  </section>
+  <section name="Functions/procedures (methods excluded) only called once" count="7" oldcount="-2">
+    <item>
+      <id>CmdExePath</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.Support (91)   </locmod>
+    </item>
+    <item>
+      <id>CmdExePath</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.Support (91)   </locmod>
+    </item>
+    <item>
+      <id>DefaultPalThreads</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.PascalAnalyzer (60)</locmod>
+    </item>
+    <item>
+      <id>DefaultPalThreads</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.PascalAnalyzer (60)</locmod>
+    </item>
+    <item>
+      <id>FindRepoRoot</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.Support (43)   </locmod>
+    </item>
+    <item>
+      <id>FindRepoRoot</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.Support (43)   </locmod>
+    </item>
+    <item>
+      <id>InitAssert</id>
+      <kind>Proc, Global</kind>
+      <locmod>DUnitX.TestFramework (907)</locmod>
+    </item>
+    <item>
+      <id>InitAssert</id>
+      <kind>Proc, Global</kind>
+      <locmod>DUnitX.TestFramework (907)</locmod>
+    </item>
+    <item>
+      <id>IsNewId</id>
+      <kind>Func, Local</kind>
+      <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (72)</locmod>
+    </item>
+    <item>
+      <id>IsNewId</id>
+      <kind>Func, Local</kind>
+      <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (72)</locmod>
+    </item>
+    <item>
+      <id>RequireFixInsightOrSkip</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (21)   </locmod>
+    </item>
+    <item>
+      <id>RequireFixInsightOrSkip</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (21)   </locmod>
+    </item>
+    <item>
+      <id>TailFile</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.PascalAnalyzer (44)</locmod>
+    </item>
+    <item>
+      <id>TailFile</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.PascalAnalyzer (44)</locmod>
+    </item>
+  </section>
+  <section name="Methods only called once from other method of the same class" count="5" oldcount="-2">
+    <item>
+      <id>CreateRunner</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (584)</locmod>
+    </item>
+    <item>
+      <id>CreateRunner</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (584)</locmod>
+    </item>
+    <item>
+      <id>ExtractIdsAndFile</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+    <item>
+      <id>ExtractIdsAndFile</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleRunTestColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (50)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleRunTestColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (50)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleSetupTestColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (49)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleSetupTestColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (49)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleSummaryColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (51)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleSummaryColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (51)</locmod>
+    </item>
+  </section>
+  <section name="Unneeded boolean comparisons" count="0" oldcount="-2">
+  </section>
+  <section name="Boolean assignment can be shortened" count="0" oldcount="-2">
+  </section>
+  <section name="Fields only used in single method" count="0" oldcount="-2">
+  </section>
+  <section name="Consider using interface type" count="0" oldcount="-2">
+  </section>
+  <section name="Redundant parentheses" count="0" oldcount="-2">
+  </section>
+  <section name="Common subexpression, consider elimination" count="0" oldcount="-2">
+  </section>
+  <section name="Default parameter values that can be omitted" count="0" oldcount="-2">
+  </section>
+  <section name="Inconsistent conditions" count="0" oldcount="-2">
+  </section>
+  <section name="Typecasts that possibly can be omitted" count="0" oldcount="-2">
+  </section>
+  <section name="Local identifiers never used" count="0" oldcount="-2">
+  </section>
+</report>

@@ -1,0 +1,840 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Optimization Report">
+  <created>29.01.2026 23:48:55</created>
+  <section name="Missing &quot;const&quot; for unmodified string parameter" count="4" oldcount="-2">
+    <item>
+      <id>aDefault : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams\Get (128)</locmod>
+    </item>
+    <item>
+      <id>aDefault : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams\Get (128)</locmod>
+    </item>
+    <item>
+      <id>aDefault : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams\Get (129)</locmod>
+    </item>
+    <item>
+      <id>aDefault : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams\Get (129)</locmod>
+    </item>
+    <item>
+      <id>aSeparator : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\CombineUrl (201)</locmod>
+    </item>
+    <item>
+      <id>aSeparator : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\CombineUrl (201)</locmod>
+    </item>
+    <item>
+      <id>aSeparator : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\CombineUrl (202)</locmod>
+    </item>
+    <item>
+      <id>aSeparator : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\CombineUrl (202)</locmod>
+    </item>
+  </section>
+  <section name="Missing &quot;const&quot; for unmodified record parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Missing &quot;const&quot; for unmodified array parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Array properties that are referenced/set within methods" count="0" oldcount="-2">
+  </section>
+  <section name="Virtual methods (procedures/functions) that are not overridden" count="0" oldcount="-2">
+  </section>
+  <section name="Local subprograms with references to outer local variables" count="17" oldcount="-2">
+    <item>
+      <id>AddArg</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat (188)</locmod>
+    </item>
+    <item>
+      <id>AddArg</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat (188)</locmod>
+    </item>
+    <item>
+      <id>AddFrom</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.FixInsightSettings\MergeList (90)</locmod>
+    </item>
+    <item>
+      <id>AddFrom</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.FixInsightSettings\MergeList (90)</locmod>
+    </item>
+    <item>
+      <id>AddRoot</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+    </item>
+    <item>
+      <id>AddRoot</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+    </item>
+    <item>
+      <id>AppendVarList</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat (144)</locmod>
+    </item>
+    <item>
+      <id>AppendVarList</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat (144)</locmod>
+    </item>
+    <item>
+      <id>CaptureOption</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Registry\TryReadEnvOptionsLibraryPath (27)</locmod>
+    </item>
+    <item>
+      <id>CaptureOption</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Registry\TryReadEnvOptionsLibraryPath (27)</locmod>
+    </item>
+    <item>
+      <id>DetectIndexesFromRow</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightCsv (407)</locmod>
+    </item>
+    <item>
+      <id>DetectIndexesFromRow</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightCsv (407)</locmod>
+    </item>
+    <item>
+      <id>ExpandText</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.MacroExpander\TMacroExpander\Expand (42)</locmod>
+    </item>
+    <item>
+      <id>ExpandText</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.MacroExpander\TMacroExpander\Expand (42)</locmod>
+    </item>
+    <item>
+      <id>Flush</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (171)</locmod>
+    </item>
+    <item>
+      <id>Flush</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (171)</locmod>
+    </item>
+    <item>
+      <id>FlushChunk</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat\AppendVarList (153)</locmod>
+    </item>
+    <item>
+      <id>FlushChunk</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat\AppendVarList (153)</locmod>
+    </item>
+    <item>
+      <id>FlushSegment</id>
+      <kind>Proc, Local</kind>
+      <locmod>maxLogic.IOUtils\SanitizeFileName\SanitizeFullPath (643)</locmod>
+    </item>
+    <item>
+      <id>FlushSegment</id>
+      <kind>Proc, Local</kind>
+      <locmod>maxLogic.IOUtils\SanitizeFileName\SanitizeFullPath (643)</locmod>
+    </item>
+    <item>
+      <id>IsSwitchParam</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Cli\TryParseOptions (203)</locmod>
+    </item>
+    <item>
+      <id>IsSwitchParam</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Cli\TryParseOptions (203)</locmod>
+    </item>
+    <item>
+      <id>IsVolumeSepHere</id>
+      <kind>Func, Local</kind>
+      <locmod>maxLogic.IOUtils\SanitizeFileName\SanitizeFullPath (651)</locmod>
+    </item>
+    <item>
+      <id>IsVolumeSepHere</id>
+      <kind>Func, Local</kind>
+      <locmod>maxLogic.IOUtils\SanitizeFileName\SanitizeFullPath (651)</locmod>
+    </item>
+    <item>
+      <id>LogBdsVersions</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (125)</locmod>
+    </item>
+    <item>
+      <id>LogBdsVersions</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (125)</locmod>
+    </item>
+    <item>
+      <id>StackContains</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.MacroExpander\TMacroExpander\Expand (32)</locmod>
+    </item>
+    <item>
+      <id>StackContains</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.MacroExpander\TMacroExpander\Expand (32)</locmod>
+    </item>
+    <item>
+      <id>TakeValue</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Cli\TryParseOptions (212)</locmod>
+    </item>
+    <item>
+      <id>TakeValue</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Cli\TryParseOptions (212)</locmod>
+    </item>
+    <item>
+      <id>TryReadRegistryValue</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.FixInsight\TryResolveFixInsightExe (84)</locmod>
+    </item>
+    <item>
+      <id>TryReadRegistryValue</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.FixInsight\TryResolveFixInsightExe (84)</locmod>
+    </item>
+    <item>
+      <id>TryReadRegistryView</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (150)</locmod>
+    </item>
+    <item>
+      <id>TryReadRegistryView</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (150)</locmod>
+    </item>
+  </section>
+  <section name="Subprograms with local subprograms" count="0" oldcount="-2">
+  </section>
+  <section name="Parameter is &quot;var&quot;, can be changed to &quot;out&quot;" count="3" oldcount="-2">
+    <item>
+      <id>aArgs : TArray&lt;UnicodeString&gt;</id>
+      <kind>VarParam</kind>
+      <locmod>Dak.FixInsightRunner\AddArg (66)</locmod>
+    </item>
+    <item>
+      <id>aArgs : TArray&lt;UnicodeString&gt;</id>
+      <kind>VarParam</kind>
+      <locmod>Dak.FixInsightRunner\AddArg (66)</locmod>
+    </item>
+    <item>
+      <id>aTarget : Boolean</id>
+      <kind>VarParam</kind>
+      <locmod>Dak.FixInsightSettings\ReadBoolOption (45)</locmod>
+    </item>
+    <item>
+      <id>aTarget : Boolean</id>
+      <kind>VarParam</kind>
+      <locmod>Dak.FixInsightSettings\ReadBoolOption (45)</locmod>
+    </item>
+    <item>
+      <id>Buf : Simple (unknown)</id>
+      <kind>Untyped VarParam</kind>
+      <locmod>maxLogic.IOUtils\readFromBytes (221)</locmod>
+    </item>
+    <item>
+      <id>Buf : Simple (unknown)</id>
+      <kind>Untyped VarParam</kind>
+      <locmod>maxLogic.IOUtils\readFromBytes (221)</locmod>
+    </item>
+  </section>
+  <section name="Inlined subprograms not inlined because not yet implemented" count="29" oldcount="-2">
+    <subprog>
+      <name>InsideMainThread</name>
+      <module>InsideMainThread</module>
+      <implementedline>878</implementedline>
+      <calledline>631</calledline>
+    </subprog>
+    <subprog>
+      <name>InsideMainThread</name>
+      <module>InsideMainThread</module>
+      <implementedline>878</implementedline>
+      <calledline>701</calledline>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <module>GC</module>
+      <implementedline>222</implementedline>
+      <calledline>207</calledline>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <module>GC</module>
+      <implementedline>222</implementedline>
+      <calledline>212</calledline>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <module>GC</module>
+      <implementedline>215</implementedline>
+      <calledline>197</calledline>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <module>GC</module>
+      <implementedline>215</implementedline>
+      <calledline>202</calledline>
+    </subprog>
+    <subprog>
+      <name>Enter</name>
+      <module>Enter</module>
+      <implementedline>1943</implementedline>
+      <calledline>1677</calledline>
+    </subprog>
+    <subprog>
+      <name>Enter</name>
+      <module>Enter</module>
+      <implementedline>1943</implementedline>
+      <calledline>1692</calledline>
+    </subprog>
+    <subprog>
+      <name>Enter</name>
+      <module>Enter</module>
+      <implementedline>1943</implementedline>
+      <calledline>1704</calledline>
+    </subprog>
+    <subprog>
+      <name>Enter</name>
+      <module>Enter</module>
+      <implementedline>1943</implementedline>
+      <calledline>1715</calledline>
+    </subprog>
+    <subprog>
+      <name>Enter</name>
+      <module>Enter</module>
+      <implementedline>1943</implementedline>
+      <calledline>1750</calledline>
+    </subprog>
+    <subprog>
+      <name>Enter</name>
+      <module>Enter</module>
+      <implementedline>1943</implementedline>
+      <calledline>1787</calledline>
+    </subprog>
+    <subprog>
+      <name>Enter</name>
+      <module>Enter</module>
+      <implementedline>1943</implementedline>
+      <calledline>1925</calledline>
+    </subprog>
+    <subprog>
+      <name>leave</name>
+      <module>leave</module>
+      <implementedline>1958</implementedline>
+      <calledline>1682</calledline>
+    </subprog>
+    <subprog>
+      <name>leave</name>
+      <module>leave</module>
+      <implementedline>1958</implementedline>
+      <calledline>1697</calledline>
+    </subprog>
+    <subprog>
+      <name>leave</name>
+      <module>leave</module>
+      <implementedline>1958</implementedline>
+      <calledline>1708</calledline>
+    </subprog>
+    <subprog>
+      <name>leave</name>
+      <module>leave</module>
+      <implementedline>1958</implementedline>
+      <calledline>1719</calledline>
+    </subprog>
+    <subprog>
+      <name>leave</name>
+      <module>leave</module>
+      <implementedline>1958</implementedline>
+      <calledline>1756</calledline>
+    </subprog>
+    <subprog>
+      <name>leave</name>
+      <module>leave</module>
+      <implementedline>1958</implementedline>
+      <calledline>1808</calledline>
+    </subprog>
+    <subprog>
+      <name>leave</name>
+      <module>leave</module>
+      <implementedline>1958</implementedline>
+      <calledline>1930</calledline>
+    </subprog>
+    <subprog>
+      <name>Free</name>
+      <module>Free</module>
+      <implementedline>1953</implementedline>
+      <calledline>1669</calledline>
+    </subprog>
+    <subprog>
+      <name>Free</name>
+      <module>Free</module>
+      <implementedline>1953</implementedline>
+      <calledline>1919</calledline>
+    </subprog>
+    <subprog>
+      <name>lock</name>
+      <module>lock</module>
+      <implementedline>1966</implementedline>
+      <calledline>1858</calledline>
+    </subprog>
+    <subprog>
+      <name>lock</name>
+      <module>lock</module>
+      <implementedline>1966</implementedline>
+      <calledline>1868</calledline>
+    </subprog>
+    <subprog>
+      <name>unlock</name>
+      <module>unlock</module>
+      <implementedline>1975</implementedline>
+      <calledline>1862</calledline>
+    </subprog>
+    <subprog>
+      <name>unlock</name>
+      <module>unlock</module>
+      <implementedline>1975</implementedline>
+      <calledline>1872</calledline>
+    </subprog>
+    <subprog>
+      <name>Preprocess</name>
+      <module>Preprocess</module>
+      <implementedline>755</implementedline>
+      <calledline>747</calledline>
+    </subprog>
+    <subprog>
+      <name>Create</name>
+      <module>Create</module>
+      <implementedline>1937</implementedline>
+      <calledline>1650</calledline>
+    </subprog>
+    <subprog>
+      <name>Create</name>
+      <module>Create</module>
+      <implementedline>1937</implementedline>
+      <calledline>1911</calledline>
+    </subprog>
+  </section>
+  <section name="Managed local variable can be declared inline" count="38" oldcount="-2">
+    <item>
+      <id>Bytes : TBytes</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\LoatStringFromResource (244)</locmod>
+    </item>
+    <item>
+      <id>Bytes : TBytes</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\LoatStringFromResource (244)</locmod>
+    </item>
+    <item>
+      <id>lAppData : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (97)</locmod>
+    </item>
+    <item>
+      <id>lAppData : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (97)</locmod>
+    </item>
+    <item>
+      <id>lCandidate : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\TryResolveDprojPath (162)</locmod>
+    </item>
+    <item>
+      <id>lCandidate : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\TryResolveDprojPath (162)</locmod>
+    </item>
+    <item>
+      <id>lCandidate : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>DelphiAIKit\TryResolveDprojPath (69)</locmod>
+    </item>
+    <item>
+      <id>lCandidate : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>DelphiAIKit\TryResolveDprojPath (69)</locmod>
+    </item>
+    <item>
+      <id>lCountText : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\SumSectionCounts (331)</locmod>
+    </item>
+    <item>
+      <id>lCountText : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\SumSectionCounts (331)</locmod>
+    </item>
+    <item>
+      <id>lEntries : TArray&lt;TComplexityEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1914)</locmod>
+    </item>
+    <item>
+      <id>lEntries : TArray&lt;TComplexityEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1914)</locmod>
+    </item>
+    <item>
+      <id>lEnvOptionsFile : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (98)</locmod>
+    </item>
+    <item>
+      <id>lEnvOptionsFile : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (98)</locmod>
+    </item>
+    <item>
+      <id>lError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1049)</locmod>
+    </item>
+    <item>
+      <id>lError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1049)</locmod>
+    </item>
+    <item>
+      <id>lError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1906)</locmod>
+    </item>
+    <item>
+      <id>lError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1906)</locmod>
+    </item>
+    <item>
+      <id>lFilterError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (786)</locmod>
+    </item>
+    <item>
+      <id>lFilterError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (786)</locmod>
+    </item>
+    <item>
+      <id>lFixExe : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\TryPrepareProjectParams (403)</locmod>
+    </item>
+    <item>
+      <id>lFixExe : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\TryPrepareProjectParams (403)</locmod>
+    </item>
+    <item>
+      <id>lFixLogPath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (787)</locmod>
+    </item>
+    <item>
+      <id>lFixLogPath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (787)</locmod>
+    </item>
+    <item>
+      <id>lFlag : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\BuildArgs (874)</locmod>
+    </item>
+    <item>
+      <id>lFlag : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\BuildArgs (874)</locmod>
+    </item>
+    <item>
+      <id>lLineText : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryParseLocMod (1224)</locmod>
+    </item>
+    <item>
+      <id>lLineText : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryParseLocMod (1224)</locmod>
+    </item>
+    <item>
+      <id>lLocLine : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1452)</locmod>
+    </item>
+    <item>
+      <id>lLocLine : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1452)</locmod>
+    </item>
+    <item>
+      <id>lLocMod : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1451)</locmod>
+    </item>
+    <item>
+      <id>lLocMod : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1451)</locmod>
+    </item>
+    <item>
+      <id>lMaxDelphi : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (709)</locmod>
+    </item>
+    <item>
+      <id>lMaxDelphi : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (709)</locmod>
+    </item>
+    <item>
+      <id>lModule : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1453)</locmod>
+    </item>
+    <item>
+      <id>lModule : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1453)</locmod>
+    </item>
+    <item>
+      <id>lModuleArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1920)</locmod>
+    </item>
+    <item>
+      <id>lModuleArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1920)</locmod>
+    </item>
+    <item>
+      <id>lModuleLineArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1921)</locmod>
+    </item>
+    <item>
+      <id>lModuleLineArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1921)</locmod>
+    </item>
+    <item>
+      <id>lName : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1450)</locmod>
+    </item>
+    <item>
+      <id>lName : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1450)</locmod>
+    </item>
+    <item>
+      <id>lOut : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\BuildOutputRoot (476)</locmod>
+    </item>
+    <item>
+      <id>lOut : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\BuildOutputRoot (476)</locmod>
+    </item>
+    <item>
+      <id>lOut : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\BuildUnitOutputRoot (491)</locmod>
+    </item>
+    <item>
+      <id>lOut : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\BuildUnitOutputRoot (491)</locmod>
+    </item>
+    <item>
+      <id>lPalPostError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (790)</locmod>
+    </item>
+    <item>
+      <id>lPalPostError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (790)</locmod>
+    </item>
+    <item>
+      <id>lPalPostError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1048)</locmod>
+    </item>
+    <item>
+      <id>lPalPostError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1048)</locmod>
+    </item>
+    <item>
+      <id>lPaReportRoot : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (789)</locmod>
+    </item>
+    <item>
+      <id>lPaReportRoot : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (789)</locmod>
+    </item>
+    <item>
+      <id>lPaReportRoot : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1046)</locmod>
+    </item>
+    <item>
+      <id>lPaReportRoot : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1046)</locmod>
+    </item>
+    <item>
+      <id>lPotentialValue : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams\find (251)</locmod>
+    </item>
+    <item>
+      <id>lPotentialValue : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams\find (251)</locmod>
+    </item>
+    <item>
+      <id>lRoutineArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1919)</locmod>
+    </item>
+    <item>
+      <id>lRoutineArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1919)</locmod>
+    </item>
+    <item>
+      <id>lRunError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (784)</locmod>
+    </item>
+    <item>
+      <id>lRunError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (784)</locmod>
+    </item>
+    <item>
+      <id>lRunError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1043)</locmod>
+    </item>
+    <item>
+      <id>lRunError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1043)</locmod>
+    </item>
+    <item>
+      <id>lSummaryPath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (771)</locmod>
+    </item>
+    <item>
+      <id>lSummaryPath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (771)</locmod>
+    </item>
+    <item>
+      <id>lSummaryPath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1038)</locmod>
+    </item>
+    <item>
+      <id>lSummaryPath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1038)</locmod>
+    </item>
+    <item>
+      <id>lSummaryText : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (791)</locmod>
+    </item>
+    <item>
+      <id>lSummaryText : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeProject (791)</locmod>
+    </item>
+    <item>
+      <id>lSummaryText : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1047)</locmod>
+    </item>
+    <item>
+      <id>lSummaryText : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.Analyze\RunAnalyzeUnit (1047)</locmod>
+    </item>
+    <item>
+      <id>lTag : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\SplitComplexityName (1518)</locmod>
+    </item>
+    <item>
+      <id>lTag : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\SplitComplexityName (1518)</locmod>
+    </item>
+    <item>
+      <id>lWord : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.MsBuild\TConditionParser\NextToken (65)</locmod>
+    </item>
+    <item>
+      <id>lWord : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.MsBuild\TConditionParser\NextToken (65)</locmod>
+    </item>
+    <item>
+      <id>Signal : iSignal</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TmaxThread\DoSync (698)</locmod>
+    </item>
+    <item>
+      <id>Signal : iSignal</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TmaxThread\DoSync (698)</locmod>
+    </item>
+  </section>
+  <section name="Managed local variable is inlined in loop" count="2" oldcount="-2">
+    <item>
+      <id>lRuleId : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (242)</locmod>
+    </item>
+    <item>
+      <id>lRuleId : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (242)</locmod>
+    </item>
+    <item>
+      <id>n : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams\has (322)</locmod>
+    </item>
+    <item>
+      <id>n : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams\has (322)</locmod>
+    </item>
+  </section>
+</report>

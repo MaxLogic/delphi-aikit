@@ -1,0 +1,4070 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Complexity Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Complexity per module/subprogram">
+    <module_or_subprogram>
+      <name>Overall</name>
+      <total_lines>2546</total_lines>
+      <lines_of_code>1596</lines_of_code>
+      <cmt_lines>395</cmt_lines>
+      <cmts_per_total_lines>0,16</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,25</cmts_per_lines_of_code>
+      <dp>167</dp>
+      <dp_per_lines_of_code>0,10</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>31</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,45</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>\...\DUnitX\Source\</name>
+      <total_lines>1794</total_lines>
+      <lines_of_code>944</lines_of_code>
+      <cmt_lines>395</cmt_lines>
+      <cmts_per_total_lines>0,22</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,42</cmts_per_lines_of_code>
+      <dp>67</dp>
+      <dp_per_lines_of_code>0,07</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>33</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>\...\tests\</name>
+      <total_lines>43</total_lines>
+      <lines_of_code>36</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>\...\tests\units\\</name>
+      <total_lines>709</total_lines>
+      <lines_of_code>616</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>100</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>DelphiAIKit.Tests</name>
+      <total_lines>43</total_lines>
+      <lines_of_code>36</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>DUnitX.Loggers.Console</name>
+      <total_lines>679</total_lines>
+      <lines_of_code>359</lines_of_code>
+      <cmt_lines>141</cmt_lines>
+      <cmts_per_total_lines>0,21</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,39</cmts_per_lines_of_code>
+      <dp>67</dp>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,86</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>DUnitX.TestFramework</name>
+      <total_lines>1115</total_lines>
+      <lines_of_code>585</lines_of_code>
+      <cmt_lines>254</cmt_lines>
+      <cmts_per_total_lines>0,23</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,43</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>35</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,65</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.Build</name>
+      <total_lines>29</total_lines>
+      <lines_of_code>22</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,05</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.FixInsight</name>
+      <total_lines>153</total_lines>
+      <lines_of_code>131</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>21</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>36</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.PalFindingNormalize</name>
+      <total_lines>98</total_lines>
+      <lines_of_code>84</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,11</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>33</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.PascalAnalyzer</name>
+      <total_lines>176</total_lines>
+      <lines_of_code>157</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>27</dp>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>29</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.Support</name>
+      <total_lines>253</total_lines>
+      <lines_of_code>222</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>42</dp>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>DelphiAIKit.Tests</name>
+      <total_lines>43</total_lines>
+      <lines_of_code>36</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>DUnitX.Loggers.Console</name>
+      <total_lines>679</total_lines>
+      <lines_of_code>359</lines_of_code>
+      <cmt_lines>141</cmt_lines>
+      <cmts_per_total_lines>0,21</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,39</cmts_per_lines_of_code>
+      <dp>67</dp>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,86</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.SetConsoleDefaultColor (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.SetConsoleErrorColor (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.SetConsolePassColor (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.SetConsoleSetupTestColor (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.SetConsoleRunTestColor (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.SetConsoleSummaryColor (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.SetConsoleWarningColor (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnTestingStarts (PM)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>8</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnStartTestFixture (PM)</name>
+      <total_lines>12</total_lines>
+      <lines_of_code>10</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnSetupFixture (PM)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnEndSetupFixture (PM)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>14</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnBeginTest (PM)</name>
+      <total_lines>11</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,22</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnSetupTest (PM)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnEndSetupTest (PM)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>2</cmt_lines>
+      <cmts_per_total_lines>0,22</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,40</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>11</chrs_per_lines_of_code>
+      <cmtchars_per_chars>1,04</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnExecuteTest (PM)</name>
+      <total_lines>15</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>3</cmt_lines>
+      <cmts_per_total_lines>0,20</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,33</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,22</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,57</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnTestMemoryLeak (PM)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,50</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>13</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnTestIgnored (PM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,50</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>13</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnTestError (PM)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,29</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>10</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnTestFailure (PM)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,29</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>10</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnTestSuccess (PM)</name>
+      <total_lines>19</total_lines>
+      <lines_of_code>16</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnLog (PM)</name>
+      <total_lines>20</total_lines>
+      <lines_of_code>16</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,38</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnTeardownTest (PM)</name>
+      <total_lines>11</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,22</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnEndTeardownTest (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>2</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>4</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnEndTest (PM)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>14</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnTearDownFixture (PM)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnEndTearDownFixture (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>2</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>4</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnEndTestFixture (PM)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>14</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.OnTestingEnds (PM)</name>
+      <total_lines>119</total_lines>
+      <lines_of_code>100</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>16</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.Create (C)</name>
+      <total_lines>7</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>34</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXConsoleLogger.Destroy (D)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>6</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>DUnitX.TestFramework</name>
+      <total_lines>1115</total_lines>
+      <lines_of_code>585</lines_of_code>
+      <cmt_lines>254</cmt_lines>
+      <cmts_per_total_lines>0,23</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,43</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>35</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,65</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>WriteLine (P)</name>
+      <total_lines>7</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ShowUsage (P)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>14</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,29</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>31</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>InitAssert (P)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.GetName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.GetFullName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.GetMethodName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.GetCategories (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.GetActive (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.GetTestFixture (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.GetTestStartTime (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.GetTestEndTime (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.GetTestDuration (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.GetEnabled (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetNameSpace (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetFullName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetUnitName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetCategories (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetDescription (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetTests (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetTestClass (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetSetupMethodName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetSetupFixtureMethodName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetTearDownMethodName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetTearDownFixtureMethodName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetTestInOwnThread (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetHasChildren (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetTestCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestFixtureInfo.GetActiveTestCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IResult.GetStartTime (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IResult.GetFinishTime (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IResult.GetDuration (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestResult.GetTest (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestResult.GetResult (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestResult.GetResultType (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestResult.GetMessage (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestResult.GetLogMessages (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestResult.GetStackTrace (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestError.GetExceptionClass (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestError.GetExceptionMessage (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestError.GetExceptionLocationInfo (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestError.GetExceptionAddressInfo (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestError.GetExceptionAddress (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestError.GetIsComparable (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestError.GetExpected (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestError.GetActual (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestError.GetFormat (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetErrorCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetFailureCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetIgnoredCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetPassCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetHasFailures (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetTestResultCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetChildCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetFixture (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetTestResults (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetChildren (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetFailures (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetErrors (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetPasses (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.GetNamespace (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetFixtureCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetTestCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetAllPassed (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetFailureCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetErrorCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetMemoryLeakCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetPassCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetIgnoredCount (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetSuccessRate (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetFixtureResults (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.GetAllTestResults (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IRunResults.ToString (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.GetUseRTTI (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.GetFailsOnNoAsserts (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.CurrentTestName (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.BuildFixtures (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.Execute (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitX.CreateRunner (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>12</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitX.CreateRunner (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitX.CreateRunner (FM)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitX.CurrentRunner (FM)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>31</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitX.GetAssertCount (FM)</name>
+      <total_lines>10</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,11</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>12</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IStacktraceProvider.GetStackTrace (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IStacktraceProvider.PointerToLocationInfo (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IStacktraceProvider.PointerToAddressInfo (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IMemoryLeakMonitor.SetUpMemoryAllocated (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IMemoryLeakMonitor.TearDownMemoryAllocated (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IMemoryLeakMonitor.TestMemoryAllocated (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IMemoryLeakMonitor2.GetReport (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TTestFixtureHelper.Log (PM)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>12</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TTestFixtureHelper.Log (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TTestFixtureHelper.Status (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TTestFixtureHelper.WriteLn (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TTestFixtureHelper.WriteLn (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestInfo.SetEnabled (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IFixtureResult.Reduce (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnTestingStarts (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnStartTestFixture (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnSetupFixture (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnEndSetupFixture (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnBeginTest (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnSetupTest (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnEndSetupTest (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnExecuteTest (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnTestSuccess (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnTestError (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnTestFailure (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnTestIgnored (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnTestMemoryLeak (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnLog (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnTeardownTest (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnEndTeardownTest (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnEndTest (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnTearDownFixture (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnEndTearDownFixture (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnEndTestFixture (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestLogger.OnTestingEnds (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.AddLogger (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.SetUseRTTI (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.SetFailsOnNoAsserts (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.Log (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.Log (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.Status (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.WriteLn (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ITestRunner.WriteLn (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitX.RegisterTestFixture (PM)</name>
+      <total_lines>30</total_lines>
+      <lines_of_code>17</lines_of_code>
+      <cmt_lines>3</cmt_lines>
+      <cmts_per_total_lines>0,10</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,18</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,35</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,55</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitX.CheckCommandLine (PM)</name>
+      <total_lines>52</total_lines>
+      <lines_of_code>38</lines_of_code>
+      <cmt_lines>7</cmt_lines>
+      <cmts_per_total_lines>0,13</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,18</cmts_per_lines_of_code>
+      <dp>10</dp>
+      <dp_per_lines_of_code>0,26</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>25</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,43</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IMemoryLeakMonitor.PreSetup (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IMemoryLeakMonitor.PostSetUp (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IMemoryLeakMonitor.PreTest (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IMemoryLeakMonitor.PostTest (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IMemoryLeakMonitor.PreTearDown (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IMemoryLeakMonitor.PostTearDown (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXOptions.Create (C)</name>
+      <total_lines>7</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>27</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitX.Create (C)</name>
+      <total_lines>30</total_lines>
+      <lines_of_code>28</lines_of_code>
+      <cmt_lines>1</cmt_lines>
+      <cmts_per_total_lines>0,03</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,04</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,11</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,10</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitXOptions.Destroy (D)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>7</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDUnitX.Destroy (D)</name>
+      <total_lines>7</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>13</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.Build</name>
+      <total_lines>29</total_lines>
+      <lines_of_code>22</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,05</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TBuildTests.BuildResolverExe (PM)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.FixInsight</name>
+      <total_lines>153</total_lines>
+      <lines_of_code>131</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>21</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>36</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFixInsightTests.RunFixInsightOutputs (PM)</name>
+      <total_lines>36</total_lines>
+      <lines_of_code>24</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>52</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFixInsightTests.ExtractIdsAndFile (PM)</name>
+      <total_lines>45</total_lines>
+      <lines_of_code>32</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>11</dp>
+      <dp_per_lines_of_code>0,34</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IsNewId (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>33</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFixInsightTests.FixInsightFiltering (PM)</name>
+      <total_lines>38</total_lines>
+      <lines_of_code>22</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,05</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>73</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.PalFindingNormalize</name>
+      <total_lines>98</total_lines>
+      <lines_of_code>84</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,11</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>33</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TPalFindingNormalizeTests.NormalizePalFindingsFromFixtures (PM)</name>
+      <total_lines>71</total_lines>
+      <lines_of_code>51</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,18</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>42</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.PascalAnalyzer</name>
+      <total_lines>176</total_lines>
+      <lines_of_code>157</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>27</dp>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>29</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>PalCmdSupportsFlag (F)</name>
+      <total_lines>17</total_lines>
+      <lines_of_code>12</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TailFile (F)</name>
+      <total_lines>15</total_lines>
+      <lines_of_code>10</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,50</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>31</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>DefaultPalThreads (F)</name>
+      <total_lines>11</total_lines>
+      <lines_of_code>8</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,38</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TPascalAnalyzerTests.SelectsSupportedCompilerFlag (PM)</name>
+      <total_lines>56</total_lines>
+      <lines_of_code>38</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,24</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>35</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TPascalAnalyzerTests.RunPascalAnalyzer (PM)</name>
+      <total_lines>43</total_lines>
+      <lines_of_code>30</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>44</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.Support</name>
+      <total_lines>253</total_lines>
+      <lines_of_code>222</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>42</dp>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>RepoRoot (F)</name>
+      <total_lines>10</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TempRoot (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ResolverExePath (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>24</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IsPawelMachine (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>RunProcess (F)</name>
+      <total_lines>79</total_lines>
+      <lines_of_code>63</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>10</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>28</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>QuoteArg (F)</name>
+      <total_lines>7</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,67</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>29</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>FindRepoRoot (F)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>12</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>CmdExePath (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>EnsureTempClean (P)</name>
+      <total_lines>12</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>EnsureResolverBuilt (P)</name>
+      <total_lines>29</total_lines>
+      <lines_of_code>18</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,28</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>41</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>RequireFixInsightOrSkip (P)</name>
+      <total_lines>13</total_lines>
+      <lines_of_code>11</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,27</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>RequirePalCmdOrSkip (P)</name>
+      <total_lines>15</total_lines>
+      <lines_of_code>11</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,27</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+  </section>
+  <section name="Long identifier names" count="136" oldcount="-2">
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>CustomTestCaseSourceAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (90)</locmod>
+    </item>
+    <item>
+      <id>SelectsSupportedCompilerFlag</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+    <item>
+      <id>GetTearDownFixtureMethodName</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (195)</locmod>
+    </item>
+    <item>
+      <id>IEnumerable&lt;IFixtureResult&gt; = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\IInterface (342)</locmod>
+    </item>
+    <item>
+      <id>AutoNameTestCaseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (92)</locmod>
+    </item>
+    <item>
+      <id>TestCaseProviderAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (93)</locmod>
+    </item>
+    <item>
+      <id>TPalFindingNormalizeTests = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>GetSetupFixtureMethodName</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (193)</locmod>
+    </item>
+    <item>
+      <id>TearDownFixtureMethodName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (213)</locmod>
+    </item>
+    <item>
+      <id>Test.PalFindingNormalize</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>TestInOwnThreadAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (74)</locmod>
+    </item>
+    <item>
+      <id>TearDownFixtureAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (78)</locmod>
+    </item>
+    <item>
+      <id>IEnumerable&lt;ITestResult&gt; = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\IInterface (344)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleSetupTestColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (49)</locmod>
+    </item>
+    <item>
+      <id>GetExceptionLocationInfo</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (271)</locmod>
+    </item>
+    <item>
+      <id>CustomTestCaseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (89)</locmod>
+    </item>
+    <item>
+      <id>RequireFixInsightOrSkip</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (21)   </locmod>
+    </item>
+    <item>
+      <id>GetExceptionAddressInfo</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (272)</locmod>
+    </item>
+    <item>
+      <id>TearDownMemoryAllocated</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (616)</locmod>
+    </item>
+    <item>
+      <id>DUnitX.Loggers.Console</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>SetConsoleDefaultColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (46)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleRunTestColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (50)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleSummaryColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (51)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleWarningColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (52)</locmod>
+    </item>
+    <item>
+      <id>SetupFixtureMethodName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (211)</locmod>
+    </item>
+    <item>
+      <id>SetupFixtureAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (75)</locmod>
+    </item>
+    <item>
+      <id>TExceptionInheritance = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (95)</locmod>
+    </item>
+    <item>
+      <id>GetTearDownMethodName</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (194)</locmod>
+    </item>
+    <item>
+      <id>PointerToLocationInfo</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IStacktraceProvider (602)</locmod>
+    </item>
+    <item>
+      <id>ExceptionLocationInfo : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (281)</locmod>
+    </item>
+    <item>
+      <id>DUnitX.TestFramework</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>TestFixtureAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (73)</locmod>
+    </item>
+    <item>
+      <id>ITestFixtureInfoList = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ (221)</locmod>
+    </item>
+    <item>
+      <id>TTestFixtureInfoList = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (225)</locmod>
+    </item>
+    <item>
+      <id>TDUnitXConsoleLogger = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+    <item>
+      <id>TPascalAnalyzerTests = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+    <item>
+      <id>OnEndTearDownFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (462)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleErrorColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (47)</locmod>
+    </item>
+    <item>
+      <id>OnEndTearDownFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (81)</locmod>
+    </item>
+    <item>
+      <id>RunFixInsightOutputs</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+    <item>
+      <id>PointerToAddressInfo</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IStacktraceProvider (603)</locmod>
+    </item>
+    <item>
+      <id>SetUpMemoryAllocated</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (615)</locmod>
+    </item>
+    <item>
+      <id>ExceptionAddressInfo : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (282)</locmod>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>RepeatTestAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (83)</locmod>
+    </item>
+    <item>
+      <id>TDUnitXExitBehavior = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (475)</locmod>
+    </item>
+    <item>
+      <id>IStacktraceProvider = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\IInterface (599)</locmod>
+    </item>
+    <item>
+      <id>IMemoryLeakMonitor2 = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (620)</locmod>
+    </item>
+    <item>
+      <id>EnsureResolverBuilt</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (18)   </locmod>
+    </item>
+    <item>
+      <id>RequirePalCmdOrSkip</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (22)   </locmod>
+    </item>
+    <item>
+      <id>SetFailsOnNoAsserts</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (492)</locmod>
+    </item>
+    <item>
+      <id>RegisterTestFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+    </item>
+    <item>
+      <id>SetConsolePassColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (48)</locmod>
+    </item>
+    <item>
+      <id>FixInsightFiltering</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>GetExceptionMessage</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (270)</locmod>
+    </item>
+    <item>
+      <id>GetExceptionAddress</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (273)</locmod>
+    </item>
+    <item>
+      <id>GetFailsOnNoAsserts</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (491)</locmod>
+    </item>
+    <item>
+      <id>TestMemoryAllocated</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (617)</locmod>
+    </item>
+    <item>
+      <id>EXIT_OPTIONS_ERROR : Signed 8-bit Integer</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (628)</locmod>
+    </item>
+    <item>
+      <id>WillRaiseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (85)</locmod>
+    </item>
+    <item>
+      <id>TTestFixtureHelper = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (128)</locmod>
+    </item>
+    <item>
+      <id>TDunitXConsoleMode = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (479)</locmod>
+    </item>
+    <item>
+      <id>IMemoryLeakMonitor = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\IInterface (606)</locmod>
+    </item>
+    <item>
+      <id>PalCmdSupportsFlag</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.PascalAnalyzer (26)</locmod>
+    </item>
+    <item>
+      <id>OnStartTestFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (377)</locmod>
+    </item>
+    <item>
+      <id>OnStartTestFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (56)</locmod>
+    </item>
+    <item>
+      <id>GetSetupMethodName</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (192)</locmod>
+    </item>
+    <item>
+      <id>GetTestInOwnThread</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (196)</locmod>
+    </item>
+    <item>
+      <id>GetActiveTestCount</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (200)</locmod>
+    </item>
+    <item>
+      <id>GetTestResultCount</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (297)</locmod>
+    </item>
+    <item>
+      <id>GetMemoryLeakCount</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (337)</locmod>
+    </item>
+    <item>
+      <id>RegisteredFixtures : Simple (unknown)</id>
+      <kind>Class Field</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (581)</locmod>
+    </item>
+    <item>
+      <id>RegisteredFixtures : Simple (unknown)</id>
+      <kind>Class Field</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (581)</locmod>
+    </item>
+    <item>
+      <id>TearDownMethodName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (212)</locmod>
+    </item>
+    <item>
+      <id>DelphiAIKit_Tests</id>
+      <kind>Program</kind>
+    </item>
+    <item>
+      <id>TearDownAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (77)</locmod>
+    </item>
+    <item>
+      <id>IgnoreMemoryLeaks = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (79)</locmod>
+    </item>
+    <item>
+      <id>CategoryAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (81)</locmod>
+    </item>
+    <item>
+      <id>TestCaseInfoArray = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (87)</locmod>
+    </item>
+    <item>
+      <id>TestCaseAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (91)</locmod>
+    </item>
+    <item>
+      <id>DefaultPalThreads</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.PascalAnalyzer (60)</locmod>
+    </item>
+    <item>
+      <id>OnEndSetupFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (387)</locmod>
+    </item>
+    <item>
+      <id>OnEndTeardownTest</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (447)</locmod>
+    </item>
+    <item>
+      <id>OnTearDownFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (457)</locmod>
+    </item>
+    <item>
+      <id>OnEndSetupFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (59)</locmod>
+    </item>
+    <item>
+      <id>OnEndTeardownTest</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (76)</locmod>
+    </item>
+    <item>
+      <id>OnTearDownFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (80)</locmod>
+    </item>
+    <item>
+      <id>ExtractIdsAndFile</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>GetExceptionClass</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (269)</locmod>
+    </item>
+    <item>
+      <id>GetFixtureResults</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (342)</locmod>
+    </item>
+    <item>
+      <id>GetAllTestResults</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (344)</locmod>
+    </item>
+    <item>
+      <id>MaxTimeAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (84)</locmod>
+    </item>
+    <item>
+      <id>TTestLocalMethod = TProc</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (99)</locmod>
+    </item>
+    <item>
+      <id>TLogMessageArray = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (110)</locmod>
+    </item>
+    <item>
+      <id>ITestFixtureInfo = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\IInterface (182)</locmod>
+    </item>
+    <item>
+      <id>TFixInsightTests = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>OnTestMemoryLeak</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (432)</locmod>
+    </item>
+    <item>
+      <id>OnEndTestFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (467)</locmod>
+    </item>
+    <item>
+      <id>CheckCommandLine</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+    </item>
+    <item>
+      <id>OnTestMemoryLeak</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (68)</locmod>
+    </item>
+    <item>
+      <id>OnEndTestFixture</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (83)</locmod>
+    </item>
+    <item>
+      <id>BuildResolverExe</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+    </item>
+    <item>
+      <id>GetTestStartTime</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (157)</locmod>
+    </item>
+    <item>
+      <id>FDontShowIgnored : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (533)</locmod>
+    </item>
+    <item>
+      <id>FDontShowIgnored : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (533)</locmod>
+    </item>
+    <item>
+      <id>HasChildFixtures : Boolean</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (207)</locmod>
+    </item>
+    <item>
+      <id>ExceptionMessage : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (280)</locmod>
+    </item>
+    <item>
+      <id>ExceptionAddress : Pointer</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (283)</locmod>
+    </item>
+    <item>
+      <id>FailsOnNoAsserts : Boolean</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (518)</locmod>
+    </item>
+    <item>
+      <id>exAddressAddress : Pointer</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IStacktraceProvider\GetStackTrace (601)</locmod>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>IgnoreAttribute = Simple (unknown)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (82)</locmod>
+    </item>
+    <item>
+      <id>TTestResultType = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (243)</locmod>
+    </item>
+    <item>
+      <id>EnsureTempClean</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (17)   </locmod>
+    </item>
+    <item>
+      <id>ResolverExePath</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (19)   </locmod>
+    </item>
+    <item>
+      <id>OnTestingStarts</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (372)</locmod>
+    </item>
+    <item>
+      <id>OnTestingStarts</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (54)</locmod>
+    </item>
+    <item>
+      <id>GetTestDuration</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (159)</locmod>
+    </item>
+    <item>
+      <id>GetIsComparable</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (274)</locmod>
+    </item>
+    <item>
+      <id>GetFailureCount</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (293)</locmod>
+    </item>
+    <item>
+      <id>GetIgnoredCount</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (294)</locmod>
+    </item>
+    <item>
+      <id>GetFixtureCount</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (332)</locmod>
+    </item>
+    <item>
+      <id>GetFailureCount</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (335)</locmod>
+    </item>
+    <item>
+      <id>GetIgnoredCount</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (339)</locmod>
+    </item>
+    <item>
+      <id>CurrentTestName</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (494)</locmod>
+    </item>
+    <item>
+      <id>FAssertCounters : Simple (unknown)</id>
+      <kind>Class Field</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (575)</locmod>
+    </item>
+    <item>
+      <id>FAssertCounters : Simple (unknown)</id>
+      <kind>Class Field</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (575)</locmod>
+    </item>
+    <item>
+      <id>SetupMethodName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (210)</locmod>
+    </item>
+    <item>
+      <id>TestInOwnThread : Boolean</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (214)</locmod>
+    </item>
+    <item>
+      <id>ActiveTestCount : Cardinal</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (218)</locmod>
+    </item>
+    <item>
+      <id>MemoryLeakCount : Integer</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (355)</locmod>
+    </item>
+    <item>
+      <id>DontShowIgnored : Boolean</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (566)</locmod>
+    </item>
+    <item>
+      <id>testActiveCount : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnTestingStarts (372)</locmod>
+    </item>
+    <item>
+      <id>testActiveCount : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnTestingStarts (54)</locmod>
+    </item>
+  </section>
+  <section name="Largest Modules by Total Lines">
+    <item>
+      <id>DUnitX.TestFramework</id>
+      <total_lines>1115</total_lines>
+    </item>
+    <item>
+      <id>DUnitX.Loggers.Console</id>
+      <total_lines>679</total_lines>
+    </item>
+    <item>
+      <id>Test.Support</id>
+      <total_lines>253</total_lines>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <total_lines>176</total_lines>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <total_lines>153</total_lines>
+    </item>
+    <item>
+      <id>Test.PalFindingNormalize</id>
+      <total_lines>98</total_lines>
+    </item>
+    <item>
+      <id>DelphiAIKit.Tests</id>
+      <total_lines>43</total_lines>
+    </item>
+    <item>
+      <id>Test.Build</id>
+      <total_lines>29</total_lines>
+    </item>
+  </section>
+  <section name="Largest Modules by LOC">
+    <item>
+      <id>DUnitX.TestFramework</id>
+      <lines_of_code>585</lines_of_code>
+    </item>
+    <item>
+      <id>DUnitX.Loggers.Console</id>
+      <lines_of_code>359</lines_of_code>
+    </item>
+    <item>
+      <id>Test.Support</id>
+      <lines_of_code>222</lines_of_code>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <lines_of_code>157</lines_of_code>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <lines_of_code>131</lines_of_code>
+    </item>
+    <item>
+      <id>Test.PalFindingNormalize</id>
+      <lines_of_code>84</lines_of_code>
+    </item>
+    <item>
+      <id>DelphiAIKit.Tests</id>
+      <lines_of_code>36</lines_of_code>
+    </item>
+    <item>
+      <id>Test.Build</id>
+      <lines_of_code>22</lines_of_code>
+    </item>
+  </section>
+  <section name="Most Complex Modules by DP">
+    <item>
+      <id>DUnitX.Loggers.Console</id>
+      <dp>67</dp>
+    </item>
+    <item>
+      <id>Test.Support</id>
+      <dp>42</dp>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <dp>27</dp>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <dp>21</dp>
+    </item>
+    <item>
+      <id>Test.PalFindingNormalize</id>
+      <dp>9</dp>
+    </item>
+  </section>
+  <section name="Most Complex Modules by DP/LOC">
+    <item>
+      <id>DUnitX.Loggers.Console</id>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.Support</id>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.PalFindingNormalize</id>
+      <dp_per_lines_of_code>0,11</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.Build</id>
+      <dp_per_lines_of_code>0,05</dp_per_lines_of_code>
+    </item>
+  </section>
+  <section name="Most Complex Modules by Characters per LOC">
+    <item>
+      <id>Test.FixInsight</id>
+      <chrs_per_lines_of_code>36,08</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>DUnitX.TestFramework</id>
+      <chrs_per_lines_of_code>35,05</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.PalFindingNormalize</id>
+      <chrs_per_lines_of_code>33,04</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>DUnitX.Loggers.Console</id>
+      <chrs_per_lines_of_code>29,86</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <chrs_per_lines_of_code>29,10</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.Support</id>
+      <chrs_per_lines_of_code>25,87</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>DelphiAIKit.Tests</id>
+      <chrs_per_lines_of_code>23,03</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.Build</id>
+      <chrs_per_lines_of_code>17,64</chrs_per_lines_of_code>
+    </item>
+  </section>
+  <section name="Most Commented Modules by Comment Lines">
+    <item>
+      <id>DUnitX.TestFramework</id>
+      <cmt_lines>254</cmt_lines>
+    </item>
+    <item>
+      <id>DUnitX.Loggers.Console</id>
+      <cmt_lines>141</cmt_lines>
+    </item>
+  </section>
+  <section name="Most Commented Modules by Comment Lines per Total Lines">
+    <item>
+      <id>DUnitX.TestFramework</id>
+      <cmts_per_total_lines>0,23</cmts_per_total_lines>
+    </item>
+    <item>
+      <id>DUnitX.Loggers.Console</id>
+      <cmts_per_total_lines>0,21</cmts_per_total_lines>
+    </item>
+  </section>
+  <section name="Most Commented Modules by Comment Lines per LOC">
+    <item>
+      <id>DUnitX.TestFramework</id>
+      <cmts_per_lines_of_code>0,43</cmts_per_lines_of_code>
+    </item>
+    <item>
+      <id>DUnitX.Loggers.Console</id>
+      <cmts_per_lines_of_code>0,39</cmts_per_lines_of_code>
+    </item>
+  </section>
+  <section name="Most Commented Modules by Comment Characters per Total Characters">
+    <item>
+      <id>DUnitX.Loggers.Console</id>
+      <cmtchars_per_chars>0,86</cmtchars_per_chars>
+    </item>
+    <item>
+      <id>DUnitX.TestFramework</id>
+      <cmtchars_per_chars>0,65</cmtchars_per_chars>
+    </item>
+  </section>
+  <section name="Largest Subprograms by Total Lines">
+    <item>
+      <id>OnTestingEnds</id>
+      <total_lines>119</total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (85)</locmod>
+    </item>
+    <item>
+      <id>RunProcess</id>
+      <total_lines>79</total_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (23)</locmod>
+    </item>
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <total_lines>71</total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>SelectsSupportedCompilerFlag</id>
+      <total_lines>56</total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+    <item>
+      <id>CheckCommandLine</id>
+      <total_lines>52</total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+    </item>
+    <item>
+      <id>ExtractIdsAndFile</id>
+      <total_lines>45</total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <total_lines>43</total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>FixInsightFiltering</id>
+      <total_lines>38</total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>RunFixInsightOutputs</id>
+      <total_lines>36</total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <total_lines>30</total_lines>
+      <kind>Constructor</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (578)</locmod>
+    </item>
+  </section>
+  <section name="Largest Subprograms by LOC">
+    <item>
+      <id>OnTestingEnds</id>
+      <lines_of_code>100</lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (85)</locmod>
+    </item>
+    <item>
+      <id>RunProcess</id>
+      <lines_of_code>63</lines_of_code>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (23)</locmod>
+    </item>
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <lines_of_code>51</lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>SelectsSupportedCompilerFlag</id>
+      <lines_of_code>38</lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+    <item>
+      <id>CheckCommandLine</id>
+      <lines_of_code>38</lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+    </item>
+    <item>
+      <id>ExtractIdsAndFile</id>
+      <lines_of_code>32</lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <lines_of_code>30</lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <lines_of_code>28</lines_of_code>
+      <kind>Constructor</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (578)</locmod>
+    </item>
+    <item>
+      <id>RunFixInsightOutputs</id>
+      <lines_of_code>24</lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+    <item>
+      <id>main block</id>
+      <lines_of_code>22</lines_of_code>
+      <locmod>DelphiAIKit.Tests (20)</locmod>
+    </item>
+  </section>
+  <section name="Most Complex Subprograms by DP">
+    <item>
+      <id>OnTestingEnds</id>
+      <dp>15</dp>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (85)</locmod>
+    </item>
+    <item>
+      <id>ExtractIdsAndFile</id>
+      <dp>10</dp>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+    <item>
+      <id>CheckCommandLine</id>
+      <dp>9</dp>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+    </item>
+    <item>
+      <id>RunProcess</id>
+      <dp>9</dp>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (23)</locmod>
+    </item>
+    <item>
+      <id>SelectsSupportedCompilerFlag</id>
+      <dp>8</dp>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <dp>8</dp>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <dp>5</dp>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>RegisterTestFixture</id>
+      <dp>5</dp>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+    </item>
+    <item>
+      <id>OnLog</id>
+      <dp>5</dp>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (73)</locmod>
+    </item>
+    <item>
+      <id>RunFixInsightOutputs</id>
+      <dp>5</dp>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+  </section>
+  <section name="Most Complex Subprograms by DP/LOC">
+    <item>
+      <id>GetTestFixture</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (155)</locmod>
+    </item>
+    <item>
+      <id>GetTestStartTime</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (157)</locmod>
+    </item>
+    <item>
+      <id>SetEnabled</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (162)</locmod>
+    </item>
+    <item>
+      <id>GetTestEndTime</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (158)</locmod>
+    </item>
+    <item>
+      <id>GetMethodName</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (152)</locmod>
+    </item>
+    <item>
+      <id>GetName</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (150)</locmod>
+    </item>
+    <item>
+      <id>GetTestDuration</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (159)</locmod>
+    </item>
+    <item>
+      <id>OnBeginTest</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (392)</locmod>
+    </item>
+    <item>
+      <id>OnEndTest</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (452)</locmod>
+    </item>
+    <item>
+      <id>OnEndTestFixture</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (467)</locmod>
+    </item>
+  </section>
+  <section name="Most Complex Subprograms by Characters per LOC">
+    <item>
+      <id>FixInsightFiltering</id>
+      <chrs_per_lines_of_code>72,55</chrs_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>RunFixInsightOutputs</id>
+      <chrs_per_lines_of_code>52,42</chrs_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <chrs_per_lines_of_code>44,10</chrs_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <chrs_per_lines_of_code>42,20</chrs_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>EnsureResolverBuilt</id>
+      <chrs_per_lines_of_code>41,11</chrs_per_lines_of_code>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (18)</locmod>
+    </item>
+    <item>
+      <id>SelectsSupportedCompilerFlag</id>
+      <chrs_per_lines_of_code>34,71</chrs_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <chrs_per_lines_of_code>34,33</chrs_per_lines_of_code>
+      <kind>Constructor</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (87)</locmod>
+    </item>
+    <item>
+      <id>IsNewId</id>
+      <chrs_per_lines_of_code>33,33</chrs_per_lines_of_code>
+      <kind>Func, Local</kind>
+      <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (72)</locmod>
+    </item>
+    <item>
+      <id>initialization</id>
+      <chrs_per_lines_of_code>33,00</chrs_per_lines_of_code>
+      <locmod>DUnitX.TestFramework (915)</locmod>
+    </item>
+    <item>
+      <id>ShowUsage</id>
+      <chrs_per_lines_of_code>31,21</chrs_per_lines_of_code>
+      <kind>Proc, Global</kind>
+      <locmod>DUnitX.TestFramework (704)</locmod>
+    </item>
+  </section>
+  <section name="Most Commented Subprograms by Comment Lines">
+    <item>
+      <id>CheckCommandLine</id>
+      <cmt_lines>7</cmt_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+    </item>
+    <item>
+      <id>OnExecuteTest</id>
+      <cmt_lines>3</cmt_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (66)</locmod>
+    </item>
+    <item>
+      <id>RegisterTestFixture</id>
+      <cmt_lines>3</cmt_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+    </item>
+    <item>
+      <id>OnEndSetupTest</id>
+      <cmt_lines>2</cmt_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (64)</locmod>
+    </item>
+  </section>
+  <section name="Most Commented Subprograms by Comment Lines per Total Lines">
+    <item>
+      <id>SetEnabled</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (162)</locmod>
+    </item>
+    <item>
+      <id>OnBeginTest</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (392)</locmod>
+    </item>
+    <item>
+      <id>OnEndSetupFixture</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (387)</locmod>
+    </item>
+    <item>
+      <id>GetTestStartTime</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (157)</locmod>
+    </item>
+    <item>
+      <id>GetTestDuration</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (159)</locmod>
+    </item>
+    <item>
+      <id>GetTestEndTime</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (158)</locmod>
+    </item>
+    <item>
+      <id>GetTestFixture</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (155)</locmod>
+    </item>
+    <item>
+      <id>OnEndSetupTest</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (402)</locmod>
+    </item>
+    <item>
+      <id>OnExecuteTest</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (407)</locmod>
+    </item>
+    <item>
+      <id>OnLog</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (437)</locmod>
+    </item>
+  </section>
+  <section name="Most Commented Subprograms by Comment Lines per LOC">
+    <item>
+      <id>SetEnabled</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (162)</locmod>
+    </item>
+    <item>
+      <id>OnBeginTest</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (392)</locmod>
+    </item>
+    <item>
+      <id>OnEndSetupFixture</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (387)</locmod>
+    </item>
+    <item>
+      <id>GetTestStartTime</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (157)</locmod>
+    </item>
+    <item>
+      <id>GetTestDuration</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (159)</locmod>
+    </item>
+    <item>
+      <id>GetTestEndTime</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (158)</locmod>
+    </item>
+    <item>
+      <id>GetTestFixture</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (155)</locmod>
+    </item>
+    <item>
+      <id>OnEndSetupTest</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (402)</locmod>
+    </item>
+    <item>
+      <id>OnExecuteTest</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (407)</locmod>
+    </item>
+    <item>
+      <id>OnLog</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (437)</locmod>
+    </item>
+  </section>
+  <section name="Most Commented Subprograms by Comment Characters per Total Characters">
+    <item>
+      <id>OnEndSetupTest</id>
+      <cmtchars_per_chars>1,04</cmtchars_per_chars>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (64)</locmod>
+    </item>
+    <item>
+      <id>OnBeginTest</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (392)</locmod>
+    </item>
+    <item>
+      <id>OnEndSetupFixture</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (387)</locmod>
+    </item>
+    <item>
+      <id>OnEndSetupTest</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (402)</locmod>
+    </item>
+    <item>
+      <id>SetEnabled</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (162)</locmod>
+    </item>
+    <item>
+      <id>GetTestEndTime</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (158)</locmod>
+    </item>
+    <item>
+      <id>GetTestFixture</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (155)</locmod>
+    </item>
+    <item>
+      <id>GetTestStartTime</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (157)</locmod>
+    </item>
+    <item>
+      <id>OnExecuteTest</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (407)</locmod>
+    </item>
+    <item>
+      <id>OnLog</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (437)</locmod>
+    </item>
+  </section>
+  <section name="Most Parameters per Subprogram">
+    <item>
+      <id>RunFixInsightOutputs</id>
+      <parameters_per_sub>6</parameters_per_sub>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+    <item>
+      <id>RunProcess</id>
+      <parameters_per_sub>5</parameters_per_sub>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (23)</locmod>
+    </item>
+    <item>
+      <id>ExtractIdsAndFile</id>
+      <parameters_per_sub>4</parameters_per_sub>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+    <item>
+      <id>OnTestingStarts</id>
+      <parameters_per_sub>3</parameters_per_sub>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger (372)</locmod>
+    </item>
+    <item>
+      <id>OnTestingStarts</id>
+      <parameters_per_sub>3</parameters_per_sub>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (54)</locmod>
+    </item>
+    <item>
+      <id>OnBeginTest</id>
+      <parameters_per_sub>2</parameters_per_sub>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (61)</locmod>
+    </item>
+    <item>
+      <id>OnEndTestFixture</id>
+      <parameters_per_sub>2</parameters_per_sub>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (83)</locmod>
+    </item>
+    <item>
+      <id>OnExecuteTest</id>
+      <parameters_per_sub>2</parameters_per_sub>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (66)</locmod>
+    </item>
+    <item>
+      <id>OnLog</id>
+      <parameters_per_sub>2</parameters_per_sub>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (73)</locmod>
+    </item>
+    <item>
+      <id>OnEndTest</id>
+      <parameters_per_sub>2</parameters_per_sub>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (78)</locmod>
+    </item>
+  </section>
+  <section name="Most Methods per Class">
+    <item>
+      <id>TDUnitXConsoleLogger = Class</id>
+      <methods_per_class>30</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+    <item>
+      <id>TDUnitX = Class</id>
+      <methods_per_class>9</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>TTestFixtureHelper = Class</id>
+      <methods_per_class>5</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (128)</locmod>
+    </item>
+    <item>
+      <id>TFixInsightTests = Class</id>
+      <methods_per_class>3</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>TPascalAnalyzerTests = Class</id>
+      <methods_per_class>2</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+    <item>
+      <id>TDUnitXOptions = Class</id>
+      <methods_per_class>2</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (521)</locmod>
+    </item>
+  </section>
+  <section name="Most Fields per Class">
+    <item>
+      <id>TDUnitXOptions = Class</id>
+      <fields_per_class>11</fields_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (521)</locmod>
+    </item>
+    <item>
+      <id>TDUnitX = Class</id>
+      <fields_per_class>5</fields_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>TDUnitXConsoleLogger = Class</id>
+      <fields_per_class>2</fields_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+  </section>
+  <section name="Most Properties per Class">
+    <item>
+      <id>TDUnitXOptions = Class</id>
+      <properties_per_class>11</properties_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (521)</locmod>
+    </item>
+    <item>
+      <id>TDUnitX = Class</id>
+      <properties_per_class>2</properties_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+  </section>
+</report>

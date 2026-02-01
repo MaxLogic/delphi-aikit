@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Class Hierarchy Report">
+  <created>29.01.2026 23:48:36</created>
+  <item>
+    <name>TAppOptions</name>
+    <locmod>dak.types (17)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightExtraOptions</name>
+    <locmod>dak.types (70)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightIgnoreDefaults</name>
+    <locmod>dak.types (80)</locmod>
+  </item>
+  <item>
+    <name>TReportFilterDefaults</name>
+    <locmod>dak.types (84)</locmod>
+  </item>
+  <item>
+    <name>TPascalAnalyzerDefaults</name>
+    <locmod>dak.types (88)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightParams</name>
+    <locmod>dak.types (94)</locmod>
+  </item>
+</report>

@@ -1,0 +1,1100 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Warnings Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Interfaced identifiers that are used, but not outside of unit" count="11" oldcount="-2">
+    <item>
+      <id>BuildPalCmdUnitCommandLine</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+    </item>
+    <item>
+      <id>BuildPalCmdUnitCommandLine</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+    </item>
+    <item>
+      <id>CharPosEx</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (95)</locmod>
+    </item>
+    <item>
+      <id>CharPosEx</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (95)</locmod>
+    </item>
+    <item>
+      <id>CombineUrl</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (201)</locmod>
+    </item>
+    <item>
+      <id>CombineUrl</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (201)</locmod>
+    </item>
+    <item>
+      <id>EnsureTempClean</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (17)   </locmod>
+    </item>
+    <item>
+      <id>EnsureTempClean</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (17)   </locmod>
+    </item>
+    <item>
+      <id>ExtractString</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (83)</locmod>
+    </item>
+    <item>
+      <id>ExtractString</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (83)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)       </locmod>
+    </item>
+    <item>
+      <id>IsPawelMachine</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (20)   </locmod>
+    </item>
+    <item>
+      <id>IsPawelMachine</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (20)   </locmod>
+    </item>
+    <item>
+      <id>PutBefore</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (20)</locmod>
+    </item>
+    <item>
+      <id>PutBefore</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (20)</locmod>
+    </item>
+    <item>
+      <id>ReplacePlaceholder</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (182)</locmod>
+    </item>
+    <item>
+      <id>ReplacePlaceholder</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (182)</locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzerWithHandles</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzerWithHandles</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+    </item>
+  </section>
+  <section name="Interfaced class identifiers that are public/published, but not used outside of unit" count="26" oldcount="-2">
+    <item>
+      <id>Add</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+    </item>
+    <item>
+      <id>Add</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+    </item>
+    <item>
+      <id>AddAfterFree</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (40)</locmod>
+    </item>
+    <item>
+      <id>AddAfterFree</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (40)</locmod>
+    </item>
+    <item>
+      <id>AddCycleMacro</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (40)</locmod>
+    </item>
+    <item>
+      <id>AddCycleMacro</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (40)</locmod>
+    </item>
+    <item>
+      <id>AddMissingPath</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+    </item>
+    <item>
+      <id>AddMissingPath</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+    </item>
+    <item>
+      <id>AddNote</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+    </item>
+    <item>
+      <id>AddNote</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+    </item>
+    <item>
+      <id>AddUnknownMacro</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+    </item>
+    <item>
+      <id>AddUnknownMacro</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+    </item>
+    <item>
+      <id>AddWarning</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+    </item>
+    <item>
+      <id>AddWarning</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+    </item>
+    <item>
+      <id>BuildResolverExe</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+    </item>
+    <item>
+      <id>BuildResolverExe</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+    </item>
+    <item>
+      <id>Count</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (19)</locmod>
+    </item>
+    <item>
+      <id>Count</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (19)</locmod>
+    </item>
+    <item>
+      <id>Equals</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (151)</locmod>
+    </item>
+    <item>
+      <id>Equals</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (151)</locmod>
+    </item>
+    <item>
+      <id>FixInsightFiltering</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>FixInsightFiltering</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (43)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (43)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (44)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (44)</locmod>
+    </item>
+    <item>
+      <id>GetHashCode</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (152)</locmod>
+    </item>
+    <item>
+      <id>GetHashCode</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (152)</locmod>
+    </item>
+    <item>
+      <id>New</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+    </item>
+    <item>
+      <id>New</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+    </item>
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>Obj</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (39)</locmod>
+    </item>
+    <item>
+      <id>Obj</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (39)</locmod>
+    </item>
+    <item>
+      <id>Ordinal</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (149)</locmod>
+    </item>
+    <item>
+      <id>Ordinal</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (149)</locmod>
+    </item>
+    <item>
+      <id>Proc : TProc</id>
+      <kind>Property</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (53)</locmod>
+    </item>
+    <item>
+      <id>Proc : TProc</id>
+      <kind>Property</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (53)</locmod>
+    </item>
+    <item>
+      <id>Proc : TProc</id>
+      <kind>Property</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (66)</locmod>
+    </item>
+    <item>
+      <id>Proc : TProc</id>
+      <kind>Property</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (66)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>SelectsSupportedCompilerFlag</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+    <item>
+      <id>SelectsSupportedCompilerFlag</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+    <item>
+      <id>ToArray</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+    </item>
+    <item>
+      <id>ToArray</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+    </item>
+    <item>
+      <id>TryOpenLogFile</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+    </item>
+    <item>
+      <id>TryOpenLogFile</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+    </item>
+    <item>
+      <id>WriteToStderr</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+    </item>
+    <item>
+      <id>WriteToStderr</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+    </item>
+  </section>
+  <section name="Variables that are referenced, but never set" count="9" oldcount="-2">
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFilterEx\Prepare (713)</locmod>
+    </item>
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFilterEx\Prepare (713)</locmod>
+    </item>
+    <item>
+      <id>l : TList&lt;UnicodeString&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFilterEx\SplitBySpace (797)</locmod>
+    </item>
+    <item>
+      <id>l : TList&lt;UnicodeString&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TFilterEx\SplitBySpace (797)</locmod>
+    </item>
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\Split (914)</locmod>
+    </item>
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\Split (914)</locmod>
+    </item>
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\Split (933)</locmod>
+    </item>
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\Split (933)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TRegExHelper\Replace (1617)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TRegExHelper\Replace (1617)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TRegExHelper\Replace (1626)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TRegExHelper\Replace (1626)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TRegExHelper\Replace (1634)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TRegExHelper\Replace (1634)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TRegExHelper\Replace (1644)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\TRegExHelper\Replace (1644)</locmod>
+    </item>
+    <item>
+      <id>sb : TStringBuilder</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ReplacePlaceholder (530)</locmod>
+    </item>
+    <item>
+      <id>sb : TStringBuilder</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ReplacePlaceholder (530)</locmod>
+    </item>
+  </section>
+  <section name="Variables that are set, but never referenced" count="0" oldcount="-2">
+  </section>
+  <section name="Local variables that are referenced before they are set" count="9" oldcount="-2">
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>717</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>718</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>719</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>720</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>740</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>742</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>743</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>744</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>746</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>802</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>823</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>830</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>916</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>917</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>918</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>919</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>920</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>935</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>936</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>937</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>938</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>940</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>1619</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>1621</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>1628</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>1629</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>1637</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>1639</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>1647</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>1649</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>533</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>534</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>541</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>587</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>604</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>607</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>614</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.StrUtils</locmod>
+        <locline>615</locline>
+      </loc>
+    </item>
+  </section>
+  <section name="Var parameters that are used, but never set" count="3" oldcount="-2">
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\TGarbos\Finalize (28)</locmod>
+    </item>
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\TGarbos\Finalize (28)</locmod>
+    </item>
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\GC (70)    </locmod>
+    </item>
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\GC (70)    </locmod>
+    </item>
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\GC (74)    </locmod>
+    </item>
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\GC (74)    </locmod>
+    </item>
+  </section>
+  <section name="Value parameters that are set" count="3" oldcount="-2">
+    <item>
+      <id>aEndOffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\CharPosEx (99)</locmod>
+    </item>
+    <item>
+      <id>aEndOffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\CharPosEx (99)</locmod>
+    </item>
+    <item>
+      <id>aStartoffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\ExtractString (86)</locmod>
+    </item>
+    <item>
+      <id>aStartoffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\ExtractString (86)</locmod>
+    </item>
+    <item>
+      <id>aStartoffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\ReplacePlaceholder (186)</locmod>
+    </item>
+    <item>
+      <id>aStartoffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\ReplacePlaceholder (186)</locmod>
+    </item>
+  </section>
+  <section name="Interfaces passed as parameters without &quot;const&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Variables with absolute directive" count="0" oldcount="-2">
+  </section>
+  <section name="Constructors/destructors without calls to inherited" count="0" oldcount="-2">
+  </section>
+  <section name="Destructors without override directive" count="0" oldcount="-2">
+  </section>
+  <section name="Classes with more than one destructor" count="0" oldcount="-2">
+  </section>
+  <section name="Function result not set" count="4" oldcount="-2">
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)       </locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>Split</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (266)</locmod>
+    </item>
+    <item>
+      <id>Split</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (266)</locmod>
+    </item>
+  </section>
+  <section name="Recursive subprograms" count="2" oldcount="-2">
+    <item>
+      <id>CollectExceptionCalls</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+    </item>
+    <item>
+      <id>CollectExceptionCalls</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+    </item>
+    <item>
+      <id>CombineUrl</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (201)</locmod>
+    </item>
+    <item>
+      <id>CombineUrl</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (201)</locmod>
+    </item>
+  </section>
+  <section name="Dangerous Exit-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Dangerous Raise" count="0" oldcount="-2">
+  </section>
+  <section name="Dangerous Label-locations inside for-loops" count="0" oldcount="-2">
+  </section>
+  <section name="Dangerous Label-locations inside repeat/while-loops" count="0" oldcount="-2">
+  </section>
+  <section name="Possible bad object creation" count="0" oldcount="-2">
+  </section>
+  <section name="Bad thread-local variables" count="0" oldcount="-2">
+  </section>
+  <section name="Instance created of class with abstract methods" count="0" oldcount="-2">
+  </section>
+  <section name="Empty begin/end-blocks" count="1" oldcount="-2">
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1202</locline>
+    </loc>
+  </section>
+  <section name="Empty case labels" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited for-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited if-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited on-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited repeat-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited while-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Empty except-block" count="0" oldcount="-2">
+  </section>
+  <section name="Empty finally-block" count="1" oldcount="-2">
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1549</locline>
+    </loc>
+  </section>
+  <section name="Forward directive in interface" count="0" oldcount="-2">
+  </section>
+  <section name="Ambiguous references in with-blocks" count="0" oldcount="-2">
+  </section>
+  <section name="Classes without overrides of abstract methods" count="0" oldcount="-2">
+  </section>
+  <section name="Local for-loop variables read after loop" count="0" oldcount="-2">
+  </section>
+  <section name="For-loop variables not used in loop" count="2" oldcount="-2">
+    <item>
+      <id>i : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\OccurrencesOfChar (357)</locmod>
+    </item>
+    <item>
+      <id>i : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\OccurrencesOfChar (357)</locmod>
+    </item>
+    <item>
+      <id>i : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Test.Support\FindRepoRoot (46)</locmod>
+    </item>
+    <item>
+      <id>i : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Test.Support\FindRepoRoot (46)</locmod>
+    </item>
+  </section>
+  <section name="Non-public constructors/destructors" count="0" oldcount="-2">
+  </section>
+  <section name="Functions called as procedures" count="7" oldcount="7">
+    <name>AutoFree.TGarbos.Add</name>
+    <loc>
+      <locmod>AutoFree</locmod>
+      <locline>108</locline>
+    </loc>
+    <name>AutoFree.TGarbos.Add</name>
+    <loc>
+      <locmod>AutoFree</locmod>
+      <locline>202</locline>
+    </loc>
+    <name>AutoFree.TGarbos.Add</name>
+    <loc>
+      <locmod>AutoFree</locmod>
+      <locline>212</locline>
+    </loc>
+    <name>AutoFree.TGarbos.Add</name>
+    <loc>
+      <locmod>AutoFree</locmod>
+      <locline>256</locline>
+    </loc>
+    <name>Dak.Diagnostics.TStringSet.Add</name>
+    <loc>
+      <locmod>Dak.Diagnostics</locmod>
+      <locline>161</locline>
+    </loc>
+    <name>Dak.Diagnostics.TStringSet.Add</name>
+    <loc>
+      <locmod>Dak.Diagnostics</locmod>
+      <locline>168</locline>
+    </loc>
+    <name>Dak.Diagnostics.TStringSet.Add</name>
+    <loc>
+      <locmod>Dak.Diagnostics</locmod>
+      <locline>175</locline>
+    </loc>
+  </section>
+  <section name="Mismatch property read/write specifiers" count="0" oldcount="-2">
+  </section>
+  <section name="Local variables that are set but not later used" count="0" oldcount="-2">
+  </section>
+  <section name="Duplicate lines" count="0" oldcount="-2">
+  </section>
+  <section name="Duplicate class types in except-block" count="0" oldcount="-2">
+  </section>
+  <section name="Redeclared identifiers from System unit" count="2" oldcount="-2">
+    <item>
+      <id>CpuCount</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+    </item>
+    <item>
+      <id>CpuCount</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+    </item>
+    <item>
+      <id>ParamCount : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ParseStatement (1748)</locmod>
+    </item>
+    <item>
+      <id>ParamCount : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ParseStatement (1748)</locmod>
+    </item>
+  </section>
+  <section name="Out parameter is read before set" count="0" oldcount="-2">
+  </section>
+  <section name="Possible bad assignment" count="7" oldcount="-2">
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>33</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>35</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>54</locline>
+    </loc>
+    <name>lFilePart</name>
+    <loc>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>47</locline>
+    </loc>
+    <name>lFilePart</name>
+    <loc>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>51</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>103</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>105</locline>
+    </loc>
+  </section>
+  <section name="Mixing interface variables and objects" count="0" oldcount="-2">
+  </section>
+  <section name="Set before passed as out parameter" count="7" oldcount="-2">
+    <name>lLineFromMod</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1310</locline>
+    </loc>
+    <name>lModule</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1334</locline>
+    </loc>
+    <name>lLine</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1334</locline>
+    </loc>
+    <name>lModule</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1469</locline>
+    </loc>
+    <name>lLineFromMod</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1469</locline>
+    </loc>
+    <name>lEntries</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>2042</locline>
+    </loc>
+    <name>lModuleLines</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>2050</locline>
+    </loc>
+  </section>
+  <section name="Redeclares ancestor member" count="2" oldcount="-2">
+    <item>
+      <id>Equals</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (151)</locmod>
+    </item>
+    <item>
+      <id>Equals</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (151)</locmod>
+    </item>
+    <item>
+      <id>GetHashCode</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (152)</locmod>
+    </item>
+    <item>
+      <id>GetHashCode</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (152)</locmod>
+    </item>
+  </section>
+  <section name="Parameter to FreeAndNil is not an object" count="0" oldcount="-2">
+  </section>
+  <section name="Enumerated constant missing in case structure" count="2" oldcount="-2">
+    <name>raReplace</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>575</locline>
+    </loc>
+    <name>raReplaceAndStop</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>575</locline>
+    </loc>
+  </section>
+  <section name="Mixed operator precedence levels" count="1" oldcount="-2">
+    <item>
+      <text>v := params[x * 2 + 1];</text>
+      <module>maxLogic.StrUtils</module>
+      <locline>1757</locline>
+    </item>
+  </section>
+  <section name="Explicit float comparison" count="0" oldcount="-2">
+  </section>
+  <section name="Condition evaluates to constant value" count="2" oldcount="-2">
+    <item>
+      <text>if lWrite &lt;&gt; 0 then</text>
+      <module>Dak.PascalAnalyzerRunner</module>
+      <locline>386</locline>
+    </item>
+    <item>
+      <text>while True do</text>
+      <module>maxLogic.StrUtils</module>
+      <locline>484</locline>
+    </item>
+  </section>
+  <section name="Assigned to itself" count="0" oldcount="-2">
+  </section>
+  <section name="Possible orphan event handler" count="0" oldcount="-2">
+  </section>
+  <section name="Mismatch parameter value (32/64-bits)" count="0" oldcount="-2">
+  </section>
+</report>

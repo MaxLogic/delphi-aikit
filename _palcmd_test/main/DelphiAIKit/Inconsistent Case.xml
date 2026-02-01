@@ -1,0 +1,1080 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Inconsistent Case Report">
+  <created>29.01.2026 23:48:55</created>
+  <section name="Inconsistent case for same identifier" count="0" oldcount="-2">
+  </section>
+  <section name="Inconsistent case for different identifiers with same name" count="107" oldcount="-2">
+    <item>
+      <id>AChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\PutBefore (20)</locmod>
+    </item>
+    <item>
+      <id>AChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\PutBefore (20)</locmod>
+    </item>
+    <item>
+      <id>AChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\PutBefore (21)</locmod>
+    </item>
+    <item>
+      <id>AChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\PutBefore (21)</locmod>
+    </item>
+    <item>
+      <id>aChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\FoldAscii (138)</locmod>
+    </item>
+    <item>
+      <id>aChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\FoldAscii (138)</locmod>
+    </item>
+    <item>
+      <id>aChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\FoldCharValue (139)</locmod>
+    </item>
+    <item>
+      <id>aChar : Char</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\FoldCharValue (139)</locmod>
+    </item>
+    <item>
+      <id>aHandle : THandle</id>
+      <kind>OutParam</kind>
+      <locmod>Dak.Analyze\TryOpenLogHandle (82)</locmod>
+    </item>
+    <item>
+      <id>aHandle : THandle</id>
+      <kind>OutParam</kind>
+      <locmod>Dak.Analyze\TryOpenLogHandle (82)</locmod>
+    </item>
+    <item>
+      <id>aHandle : THandle</id>
+      <kind>ConstParam</kind>
+      <locmod>maxConsoleRunner\TPipeThread\StartReading (129)</locmod>
+    </item>
+    <item>
+      <id>aHandle : THandle</id>
+      <kind>ConstParam</kind>
+      <locmod>maxConsoleRunner\TPipeThread\StartReading (129)</locmod>
+    </item>
+    <item>
+      <id>ahandle : THandle</id>
+      <kind>VarParam</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner\ClosehandleAndZeroIt (54)</locmod>
+    </item>
+    <item>
+      <id>ahandle : THandle</id>
+      <kind>VarParam</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner\ClosehandleAndZeroIt (54)</locmod>
+    </item>
+    <item>
+      <id>commaCount : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryDetectCsvDelimiter (273)</locmod>
+    </item>
+    <item>
+      <id>commaCount : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryDetectCsvDelimiter (273)</locmod>
+    </item>
+    <item>
+      <id>CommaCount : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\PrepareTextForStrToFloatWcc (1123)</locmod>
+    </item>
+    <item>
+      <id>CommaCount : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\PrepareTextForStrToFloatWcc (1123)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>AutoFree\TGarbo (37)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>AutoFree\TGarbo (37)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (63)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (63)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>Dak.Diagnostics\TStringSet (17)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>Dak.Diagnostics\TStringSet (17)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (37)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (37)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TObjectWithCriticalSection (234)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TObjectWithCriticalSection (234)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\tInterfacedCriticalSection (251)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\tInterfacedCriticalSection (251)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TThreadData (298)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TThreadData (298)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TmaxAsync (330)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TmaxAsync (330)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TmaxThread (353)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TmaxThread (353)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TAsyncLoop (376)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TAsyncLoop (376)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TAsyncTimer (569)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxAsync\TAsyncTimer (569)</locmod>
+    </item>
+    <item>
+      <id>destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (71)</locmod>
+    </item>
+    <item>
+      <id>destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (71)</locmod>
+    </item>
+    <item>
+      <id>destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxConsoleRunner\TPipeThread (127)</locmod>
+    </item>
+    <item>
+      <id>destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxConsoleRunner\TPipeThread (127)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (112)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (112)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (137)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (137)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxSignal\TSignal (45)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>maxSignal\TSignal (45)</locmod>
+    </item>
+    <item>
+      <id>FHandle (TThreadData.fThread.FHandle) : THandle</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>maxAsync\TThreadData\fThread (265)</locmod>
+    </item>
+    <item>
+      <id>FHandle (TThreadData.fThread.FHandle) : THandle</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>maxAsync\TThreadData\fThread (265)</locmod>
+    </item>
+    <item>
+      <id>fHandle : THandle</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TPipeThread (113)</locmod>
+    </item>
+    <item>
+      <id>fHandle : THandle</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TPipeThread (113)</locmod>
+    </item>
+    <item>
+      <id>FHandle (TSignal.fEvent.FHandle) : THandle</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>maxSignal\TSignal\fEvent (41)</locmod>
+    </item>
+    <item>
+      <id>FHandle (TSignal.fEvent.FHandle) : THandle</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>maxSignal\TSignal\fEvent (41)</locmod>
+    </item>
+    <item>
+      <id>Line : Integer</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TPalFinding (1164)</locmod>
+    </item>
+    <item>
+      <id>Line : Integer</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TPalFinding (1164)</locmod>
+    </item>
+    <item>
+      <id>Line (aFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\BuildFindingKey (1256)</locmod>
+    </item>
+    <item>
+      <id>Line (aFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\BuildFindingKey (1256)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\AddFindingRecord (1266)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\AddFindingRecord (1266)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalFindingsMd (1732)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalFindingsMd (1732)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalFindingsJsonl (1769)</locmod>
+    </item>
+    <item>
+      <id>Line (lFinding.Line) : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalFindingsJsonl (1769)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>MaxLogic.strUtils\Split (264)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>MaxLogic.strUtils\Split (264)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>MaxLogic.strUtils\Split (265)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>MaxLogic.strUtils\Split (265)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>MaxLogic.strUtils\Split (266)</locmod>
+    </item>
+    <item>
+      <id>line : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>MaxLogic.strUtils\Split (266)</locmod>
+    </item>
+    <item>
+      <id>lPi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.FixInsightRunner\TryRunFixInsightWithHandles (190)</locmod>
+    </item>
+    <item>
+      <id>lPi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.FixInsightRunner\TryRunFixInsightWithHandles (190)</locmod>
+    </item>
+    <item>
+      <id>lPi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (312)</locmod>
+    </item>
+    <item>
+      <id>lPi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (312)</locmod>
+    </item>
+    <item>
+      <id>lPi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerWithHandles (984)</locmod>
+    </item>
+    <item>
+      <id>lPi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerWithHandles (984)</locmod>
+    </item>
+    <item>
+      <id>lPi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerUnit (1102)</locmod>
+    </item>
+    <item>
+      <id>lPi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerUnit (1102)</locmod>
+    </item>
+    <item>
+      <id>lPI : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.RsVars\RunCmdToFile (49)</locmod>
+    </item>
+    <item>
+      <id>lPI : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.RsVars\RunCmdToFile (49)</locmod>
+    </item>
+    <item>
+      <id>lPi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>DelphiAIKit\TryRunBuildDelphi (126)</locmod>
+    </item>
+    <item>
+      <id>lPi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>DelphiAIKit\TryRunBuildDelphi (126)</locmod>
+    </item>
+    <item>
+      <id>lSi : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.FixInsightRunner\TryRunFixInsightWithHandles (189)</locmod>
+    </item>
+    <item>
+      <id>lSi : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.FixInsightRunner\TryRunFixInsightWithHandles (189)</locmod>
+    </item>
+    <item>
+      <id>lSi : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (311)</locmod>
+    </item>
+    <item>
+      <id>lSi : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (311)</locmod>
+    </item>
+    <item>
+      <id>lSi : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerWithHandles (983)</locmod>
+    </item>
+    <item>
+      <id>lSi : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerWithHandles (983)</locmod>
+    </item>
+    <item>
+      <id>lSi : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerUnit (1101)</locmod>
+    </item>
+    <item>
+      <id>lSi : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerUnit (1101)</locmod>
+    </item>
+    <item>
+      <id>lSI : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.RsVars\RunCmdToFile (48)</locmod>
+    </item>
+    <item>
+      <id>lSI : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.RsVars\RunCmdToFile (48)</locmod>
+    </item>
+    <item>
+      <id>lSi : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>DelphiAIKit\TryRunBuildDelphi (125)</locmod>
+    </item>
+    <item>
+      <id>lSi : TStartupInfo</id>
+      <kind>Var, Local</kind>
+      <locmod>DelphiAIKit\TryRunBuildDelphi (125)</locmod>
+    </item>
+    <item>
+      <id>Name : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TComplexityEntry (1171)</locmod>
+    </item>
+    <item>
+      <id>Name : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TComplexityEntry (1171)</locmod>
+    </item>
+    <item>
+      <id>Name : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.PascalAnalyzerRunner\THotspotEntry (1178)</locmod>
+    </item>
+    <item>
+      <id>Name : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.PascalAnalyzerRunner\THotspotEntry (1178)</locmod>
+    </item>
+    <item>
+      <id>Name (lEntry.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryLoadComplexityEntries (1565)</locmod>
+    </item>
+    <item>
+      <id>Name (lEntry.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryLoadComplexityEntries (1565)</locmod>
+    </item>
+    <item>
+      <id>Name (aRight.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CompareHotspot (1705)</locmod>
+    </item>
+    <item>
+      <id>Name (aRight.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CompareHotspot (1705)</locmod>
+    </item>
+    <item>
+      <id>Name (aLeft.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CompareHotspot (1705)</locmod>
+    </item>
+    <item>
+      <id>Name (aLeft.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CompareHotspot (1705)</locmod>
+    </item>
+    <item>
+      <id>Name (lItem.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalHotspotsMd (1813)</locmod>
+    </item>
+    <item>
+      <id>Name (lItem.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalHotspotsMd (1813)</locmod>
+    </item>
+    <item>
+      <id>Name (lEntry.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1922)</locmod>
+    </item>
+    <item>
+      <id>Name (lEntry.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1922)</locmod>
+    </item>
+    <item>
+      <id>Name (lHotspot.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1923)</locmod>
+    </item>
+    <item>
+      <id>Name (lHotspot.Name) : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1923)</locmod>
+    </item>
+    <item>
+      <id>name : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner\CreateAsyncPipe (55)</locmod>
+    </item>
+    <item>
+      <id>name : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner\CreateAsyncPipe (55)</locmod>
+    </item>
+    <item>
+      <id>New</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+    </item>
+    <item>
+      <id>New</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+    </item>
+    <item>
+      <id>new</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (468)</locmod>
+    </item>
+    <item>
+      <id>new</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (468)</locmod>
+    </item>
+    <item>
+      <id>Run</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (384)</locmod>
+    </item>
+    <item>
+      <id>Run</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (384)</locmod>
+    </item>
+    <item>
+      <id>run</id>
+      <kind>Func, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (79)</locmod>
+    </item>
+    <item>
+      <id>run</id>
+      <kind>Func, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (79)</locmod>
+    </item>
+    <item>
+      <id>timeout : DWORD</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\MsgWaitForSingleObject (594)</locmod>
+    </item>
+    <item>
+      <id>timeout : DWORD</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\MsgWaitForSingleObject (594)</locmod>
+    </item>
+    <item>
+      <id>TimeOut : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\IInterface\iSignal\WaitForSignaled (30)</locmod>
+    </item>
+    <item>
+      <id>TimeOut : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\IInterface\iSignal\WaitForSignaled (30)</locmod>
+    </item>
+    <item>
+      <id>TimeOut : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\IInterface\iSignal\MsgWaitForSignaled (33)</locmod>
+    </item>
+    <item>
+      <id>TimeOut : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\IInterface\iSignal\MsgWaitForSignaled (33)</locmod>
+    </item>
+    <item>
+      <id>TimeOut : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\TSignal\WaitForSignaled (49)</locmod>
+    </item>
+    <item>
+      <id>TimeOut : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\TSignal\WaitForSignaled (49)</locmod>
+    </item>
+    <item>
+      <id>TimeOut : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\TSignal\MsgWaitForSignaled (52)</locmod>
+    </item>
+    <item>
+      <id>TimeOut : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\TSignal\MsgWaitForSignaled (52)</locmod>
+    </item>
+    <item>
+      <id>TimeOut : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\MsgWaitForSingleObject (61)</locmod>
+    </item>
+    <item>
+      <id>TimeOut : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\MsgWaitForSingleObject (61)</locmod>
+    </item>
+    <item>
+      <id>tSignal = TSignal</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxAsync (88)       </locmod>
+    </item>
+    <item>
+      <id>tSignal = TSignal</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxAsync (88)       </locmod>
+    </item>
+    <item>
+      <id>TSignal = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxSignal (39)      </locmod>
+    </item>
+    <item>
+      <id>TSignal = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxSignal (39)      </locmod>
+    </item>
+    <item>
+      <id>unlock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TObjectWithCriticalSection (237)</locmod>
+    </item>
+    <item>
+      <id>unlock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TObjectWithCriticalSection (237)</locmod>
+    </item>
+    <item>
+      <id>unlock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TLockFreeLock (486)</locmod>
+    </item>
+    <item>
+      <id>unlock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TLockFreeLock (486)</locmod>
+    </item>
+    <item>
+      <id>unLock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (124)</locmod>
+    </item>
+    <item>
+      <id>unLock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (124)</locmod>
+    </item>
+    <item>
+      <id>V1 : Word</id>
+      <kind>OutParam</kind>
+      <locmod>maxLogic.IOUtils\GetBuildInfo (31)</locmod>
+    </item>
+    <item>
+      <id>V1 : Word</id>
+      <kind>OutParam</kind>
+      <locmod>maxLogic.IOUtils\GetBuildInfo (31)</locmod>
+    </item>
+    <item>
+      <id>V1 : Word</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetBuildNumber (302)</locmod>
+    </item>
+    <item>
+      <id>V1 : Word</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetBuildNumber (302)</locmod>
+    </item>
+    <item>
+      <id>V1 : Word</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetBuildInfo (312)</locmod>
+    </item>
+    <item>
+      <id>V1 : Word</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetBuildInfo (312)</locmod>
+    </item>
+    <item>
+      <id>v1 : Cardinal</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\HashBytes (1327)</locmod>
+    </item>
+    <item>
+      <id>v1 : Cardinal</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\HashBytes (1327)</locmod>
+    </item>
+    <item>
+      <id>v1 : Cardinal</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\HashCaseInsensitive (1418)</locmod>
+    </item>
+    <item>
+      <id>v1 : Cardinal</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\HashCaseInsensitive (1418)</locmod>
+    </item>
+    <item>
+      <id>V2 : Word</id>
+      <kind>OutParam</kind>
+      <locmod>maxLogic.IOUtils\GetBuildInfo (31)</locmod>
+    </item>
+    <item>
+      <id>V2 : Word</id>
+      <kind>OutParam</kind>
+      <locmod>maxLogic.IOUtils\GetBuildInfo (31)</locmod>
+    </item>
+    <item>
+      <id>V2 : Word</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetBuildNumber (302)</locmod>
+    </item>
+    <item>
+      <id>V2 : Word</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetBuildNumber (302)</locmod>
+    </item>
+    <item>
+      <id>V2 : Word</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetBuildInfo (312)</locmod>
+    </item>
+    <item>
+      <id>V2 : Word</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetBuildInfo (312)</locmod>
+    </item>
+    <item>
+      <id>v2 : Cardinal</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\HashBytes (1327)</locmod>
+    </item>
+    <item>
+      <id>v2 : Cardinal</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\HashBytes (1327)</locmod>
+    </item>
+    <item>
+      <id>v2 : Cardinal</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\HashCaseInsensitive (1418)</locmod>
+    </item>
+    <item>
+      <id>v2 : Cardinal</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer\HashCaseInsensitive (1418)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>AutoFree\TGarbo\Destroy (136)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>AutoFree\TGarbo\Destroy (136)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>AutoFree\TGarbos\Clear (261)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>AutoFree\TGarbos\Clear (261)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TAsyncLoop\Execute (1226)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TAsyncLoop\Execute (1226)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TAsyncLoop\Destroy (1328)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TAsyncLoop\Destroy (1328)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal\DestroyClass (1391)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal\DestroyClass (1391)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal\GetThreadName (1506)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal\GetThreadName (1506)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (1538)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (1538)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (1550)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (1550)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (1581)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (1581)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TAsyncCollectionProcessor&lt;T&gt;\AsyncProcessItem (1778)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TAsyncCollectionProcessor&lt;T&gt;\AsyncProcessItem (1778)</locmod>
+    </item>
+    <item>
+      <id>x : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner\quote (446)</locmod>
+    </item>
+    <item>
+      <id>x : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner\quote (446)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxConsoleRunner\TPipeThread\safeRetrieveOutput (595)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxConsoleRunner\TPipeThread\safeRetrieveOutput (595)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams\RebuildDic (386)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams\RebuildDic (386)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\CombinePath (544)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\CombinePath (544)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\PutBefore (424)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\PutBefore (424)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\CombineUrl (625)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\CombineUrl (625)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFilterEx\Prepare (725)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFilterEx\Prepare (725)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFilterEx\Matches (846)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFilterEx\Matches (846)</locmod>
+    </item>
+    <item>
+      <id>x : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\splitstring (927)</locmod>
+    </item>
+    <item>
+      <id>x : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\splitstring (927)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\Join (967)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\Join (967)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\CharPosEx (1059)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\CharPosEx (1059)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\CharPosEx (1071)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\CharPosEx (1071)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\PrepareTextForStrToFloatWcc (1121)</locmod>
+    </item>
+    <item>
+      <id>X : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\PrepareTextForStrToFloatWcc (1121)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\floatToHex (1688)</locmod>
+    </item>
+    <item>
+      <id>X : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\floatToHex (1688)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\ParseStatement (1749)</locmod>
+    </item>
+    <item>
+      <id>x : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\ParseStatement (1749)</locmod>
+    </item>
+  </section>
+  <section name="Mismatch unit name/file name" count="0" oldcount="-2">
+  </section>
+</report>

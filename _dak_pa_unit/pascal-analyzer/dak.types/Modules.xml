@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Modules Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Module information" count="1" oldcount="-2">
+    <module id="1">
+      <name>Dak.Types</name>
+      <lines>120</lines>
+      <size>2832</size>
+      <date>28.01.2026</date>
+      <time>22:29:54</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+  </section>
+  <section name="Last modified file">
+  </section>
+  <section name="Unique files" count="1" oldcount="-2">
+    <item id="1">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas</item>
+  </section>
+  <section name="Missing files" count="0" oldcount="-2">
+  </section>
+  <section name="Binary DFM/XFM files" count="0" oldcount="-2">
+  </section>
+</report>

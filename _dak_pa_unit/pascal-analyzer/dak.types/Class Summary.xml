@@ -1,0 +1,106 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Class Summary Report">
+  <created>29.01.2026 23:48:36</created>
+  <class>
+    <id>TAppOptions</id>
+    <locmod>dak.types (17)</locmod>
+    <inherits/>
+    <inherited_constructors>-</inherited_constructors>
+    <new_constructors>0</new_constructors>
+    <total_constructors>0</total_constructors>
+    <inherited_destructors>-</inherited_destructors>
+    <new_destructors>0</new_destructors>
+    <total_destructors>0</total_destructors>
+    <inherited_procedures>-</inherited_procedures>
+    <new_procedures>0</new_procedures>
+    <total_procedures>0</total_procedures>
+    <inherited_functions>-</inherited_functions>
+    <new_functions>0</new_functions>
+    <total_functions>0</total_functions>
+  </class>
+  <class>
+    <id>TFixInsightExtraOptions</id>
+    <locmod>dak.types (70)</locmod>
+    <inherits/>
+    <inherited_constructors>-</inherited_constructors>
+    <new_constructors>0</new_constructors>
+    <total_constructors>0</total_constructors>
+    <inherited_destructors>-</inherited_destructors>
+    <new_destructors>0</new_destructors>
+    <total_destructors>0</total_destructors>
+    <inherited_procedures>-</inherited_procedures>
+    <new_procedures>0</new_procedures>
+    <total_procedures>0</total_procedures>
+    <inherited_functions>-</inherited_functions>
+    <new_functions>0</new_functions>
+    <total_functions>0</total_functions>
+  </class>
+  <class>
+    <id>TFixInsightIgnoreDefaults</id>
+    <locmod>dak.types (80)</locmod>
+    <inherits/>
+    <inherited_constructors>-</inherited_constructors>
+    <new_constructors>0</new_constructors>
+    <total_constructors>0</total_constructors>
+    <inherited_destructors>-</inherited_destructors>
+    <new_destructors>0</new_destructors>
+    <total_destructors>0</total_destructors>
+    <inherited_procedures>-</inherited_procedures>
+    <new_procedures>0</new_procedures>
+    <total_procedures>0</total_procedures>
+    <inherited_functions>-</inherited_functions>
+    <new_functions>0</new_functions>
+    <total_functions>0</total_functions>
+  </class>
+  <class>
+    <id>TReportFilterDefaults</id>
+    <locmod>dak.types (84)</locmod>
+    <inherits/>
+    <inherited_constructors>-</inherited_constructors>
+    <new_constructors>0</new_constructors>
+    <total_constructors>0</total_constructors>
+    <inherited_destructors>-</inherited_destructors>
+    <new_destructors>0</new_destructors>
+    <total_destructors>0</total_destructors>
+    <inherited_procedures>-</inherited_procedures>
+    <new_procedures>0</new_procedures>
+    <total_procedures>0</total_procedures>
+    <inherited_functions>-</inherited_functions>
+    <new_functions>0</new_functions>
+    <total_functions>0</total_functions>
+  </class>
+  <class>
+    <id>TPascalAnalyzerDefaults</id>
+    <locmod>dak.types (88)</locmod>
+    <inherits/>
+    <inherited_constructors>-</inherited_constructors>
+    <new_constructors>0</new_constructors>
+    <total_constructors>0</total_constructors>
+    <inherited_destructors>-</inherited_destructors>
+    <new_destructors>0</new_destructors>
+    <total_destructors>0</total_destructors>
+    <inherited_procedures>-</inherited_procedures>
+    <new_procedures>0</new_procedures>
+    <total_procedures>0</total_procedures>
+    <inherited_functions>-</inherited_functions>
+    <new_functions>0</new_functions>
+    <total_functions>0</total_functions>
+  </class>
+  <class>
+    <id>TFixInsightParams</id>
+    <locmod>dak.types (94)</locmod>
+    <inherits/>
+    <inherited_constructors>-</inherited_constructors>
+    <new_constructors>0</new_constructors>
+    <total_constructors>0</total_constructors>
+    <inherited_destructors>-</inherited_destructors>
+    <new_destructors>0</new_destructors>
+    <total_destructors>0</total_destructors>
+    <inherited_procedures>-</inherited_procedures>
+    <new_procedures>0</new_procedures>
+    <total_procedures>0</total_procedures>
+    <inherited_functions>-</inherited_functions>
+    <new_functions>0</new_functions>
+    <total_functions>0</total_functions>
+  </class>
+</report>

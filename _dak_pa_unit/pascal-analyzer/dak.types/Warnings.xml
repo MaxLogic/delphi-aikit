@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Warnings Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Interfaced identifiers that are used, but not outside of unit" count="0" oldcount="-2">
+  </section>
+  <section name="Interfaced class identifiers that are public/published, but not used outside of unit" count="0" oldcount="-2">
+  </section>
+  <section name="Variables that are referenced, but never set" count="0" oldcount="-2">
+  </section>
+  <section name="Variables that are set, but never referenced" count="0" oldcount="-2">
+  </section>
+  <section name="Local variables that are referenced before they are set" count="0" oldcount="-2">
+  </section>
+  <section name="Var parameters that are used, but never set" count="0" oldcount="-2">
+  </section>
+  <section name="Value parameters that are set" count="0" oldcount="-2">
+  </section>
+  <section name="Interfaces passed as parameters without &quot;const&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Variables with absolute directive" count="0" oldcount="-2">
+  </section>
+  <section name="Constructors/destructors without calls to inherited" count="0" oldcount="-2">
+  </section>
+  <section name="Destructors without override directive" count="0" oldcount="-2">
+  </section>
+  <section name="Classes with more than one destructor" count="0" oldcount="-2">
+  </section>
+  <section name="Function result not set" count="0" oldcount="-2">
+  </section>
+  <section name="Recursive subprograms" count="0" oldcount="-2">
+  </section>
+  <section name="Dangerous Exit-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Dangerous Raise" count="0" oldcount="-2">
+  </section>
+  <section name="Dangerous Label-locations inside for-loops" count="0" oldcount="-2">
+  </section>
+  <section name="Dangerous Label-locations inside repeat/while-loops" count="0" oldcount="-2">
+  </section>
+  <section name="Possible bad object creation" count="0" oldcount="-2">
+  </section>
+  <section name="Bad thread-local variables" count="0" oldcount="-2">
+  </section>
+  <section name="Instance created of class with abstract methods" count="0" oldcount="-2">
+  </section>
+  <section name="Empty begin/end-blocks" count="0" oldcount="-2">
+  </section>
+  <section name="Empty case labels" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited for-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited if-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited on-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited repeat-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited while-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Empty except-block" count="0" oldcount="-2">
+  </section>
+  <section name="Empty finally-block" count="0" oldcount="-2">
+  </section>
+  <section name="Forward directive in interface" count="0" oldcount="-2">
+  </section>
+  <section name="Ambiguous references in with-blocks" count="0" oldcount="-2">
+  </section>
+  <section name="Classes without overrides of abstract methods" count="0" oldcount="-2">
+  </section>
+  <section name="Local for-loop variables read after loop" count="0" oldcount="-2">
+  </section>
+  <section name="For-loop variables not used in loop" count="0" oldcount="-2">
+  </section>
+  <section name="Non-public constructors/destructors" count="0" oldcount="-2">
+  </section>
+  <section name="Functions called as procedures" count="0" oldcount="0">
+  </section>
+  <section name="Mismatch property read/write specifiers" count="0" oldcount="-2">
+  </section>
+  <section name="Local variables that are set but not later used" count="0" oldcount="-2">
+  </section>
+  <section name="Duplicate lines" count="0" oldcount="-2">
+  </section>
+  <section name="Duplicate class types in except-block" count="0" oldcount="-2">
+  </section>
+  <section name="Redeclared identifiers from System unit" count="0" oldcount="-2">
+  </section>
+  <section name="Out parameter is read before set" count="0" oldcount="-2">
+  </section>
+  <section name="Possible bad assignment" count="0" oldcount="-2">
+  </section>
+  <section name="Mixing interface variables and objects" count="0" oldcount="-2">
+  </section>
+  <section name="Set before passed as out parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Redeclares ancestor member" count="0" oldcount="-2">
+  </section>
+  <section name="Parameter to FreeAndNil is not an object" count="0" oldcount="-2">
+  </section>
+  <section name="Enumerated constant missing in case structure" count="0" oldcount="-2">
+  </section>
+  <section name="Mixed operator precedence levels" count="0" oldcount="-2">
+  </section>
+  <section name="Explicit float comparison" count="0" oldcount="-2">
+  </section>
+  <section name="Condition evaluates to constant value" count="0" oldcount="-2">
+  </section>
+  <section name="Assigned to itself" count="0" oldcount="-2">
+  </section>
+  <section name="Possible orphan event handler" count="0" oldcount="-2">
+  </section>
+  <section name="Mismatch parameter value (32/64-bits)" count="0" oldcount="-2">
+  </section>
+</report>

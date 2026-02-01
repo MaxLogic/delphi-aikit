@@ -1,0 +1,1145 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Bindings Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Bindings">
+    <subprog>
+      <type>MB</type>
+      <ownertype/>
+      <locmod>DelphiAIKit.Tests (20)</locmod>
+      <ref>
+        <id>AddLogger</id>
+        <kind>Proc, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestRunner (486)</locmod>
+        <locline>ref ;AddLogger;Proc, Method;DUnitX.TestFramework\IInterface\ITestRunner (486)</locline>
+      </ref>
+      <ref>
+        <id>CheckCommandLine</id>
+        <kind>Proc, Method</kind>
+        <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+        <locline>ref ;CheckCommandLine;Proc, Method;DUnitX.TestFramework\TDUnitX (591)</locline>
+      </ref>
+      <ref>
+        <id>CreateRunner</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\TDUnitX (583)</locmod>
+        <locline>ref ;CreateRunner;Func, Method;DUnitX.TestFramework\TDUnitX (583)</locline>
+      </ref>
+      <ref>
+        <id>Execute</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestRunner (499)</locmod>
+        <locline>ref ;Execute;Func, Method;DUnitX.TestFramework\IInterface\ITestRunner (499)</locline>
+      </ref>
+      <ref>
+        <id>GetAllPassed</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (334)</locmod>
+        <locline>ref ;GetAllPassed;Func, Method;DUnitX.TestFramework\IInterface\IResult\IRunResults (334)</locline>
+      </ref>
+      <ref>
+        <id>Logger : ITestLogger</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (19)</locmod>
+        <locline>ref ;Logger : ITestLogger;Var, Global;DelphiAIKit.Tests (19)</locline>
+      </ref>
+      <ref>
+        <id>Results : IRunResults</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (18)</locmod>
+        <locline>ref ;Results : IRunResults;Var, Global;DelphiAIKit.Tests (18)</locline>
+      </ref>
+      <ref>
+        <id>Runner : ITestRunner</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (17)</locmod>
+        <locline>ref ;Runner : ITestRunner;Var, Global;DelphiAIKit.Tests (17)</locline>
+      </ref>
+      <ref>
+        <id>SetFailsOnNoAsserts</id>
+        <kind>Proc, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestRunner (492)</locmod>
+        <locline>ref ;SetFailsOnNoAsserts;Proc, Method;DUnitX.TestFramework\IInterface\ITestRunner (492)</locline>
+      </ref>
+      <ref>
+        <id>SetUseRTTI</id>
+        <kind>Proc, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestRunner (489)</locmod>
+        <locline>ref ;SetUseRTTI;Proc, Method;DUnitX.TestFramework\IInterface\ITestRunner (489)</locline>
+      </ref>
+      <ref>
+        <id>TDUnitX = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (570)</locmod>
+        <locline>ref ;TDUnitX = Class;Type, Interfaced;DUnitX.TestFramework (570)</locline>
+      </ref>
+      <ref>
+        <id>TDUnitXConsoleLogger = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.Loggers.Console (41)</locmod>
+        <locline>ref ;TDUnitXConsoleLogger = Class;Type, Interfaced;DUnitX.Loggers.Console (41)</locline>
+      </ref>
+      <set>
+        <id>Logger : ITestLogger</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (19)</locmod>
+        <locline>set ;Logger : ITestLogger;Var, Global;DelphiAIKit.Tests (19)</locline>
+      </set>
+      <set>
+        <id>Results : IRunResults</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (18)</locmod>
+        <locline>set ;Results : IRunResults;Var, Global;DelphiAIKit.Tests (18)</locline>
+      </set>
+      <set>
+        <id>Runner : ITestRunner</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (17)</locmod>
+        <locline>set ;Runner : ITestRunner;Var, Global;DelphiAIKit.Tests (17)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>Test.Build (26)</locmod>
+      <ref>
+        <id>RegisterTestFixture</id>
+        <kind>Proc, Method</kind>
+        <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+        <locline>ref ;RegisterTestFixture;Proc, Method;DUnitX.TestFramework\TDUnitX (586)</locline>
+      </ref>
+      <ref>
+        <id>TBuildTests = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Test.Build (12)</locmod>
+        <locline>ref ;TBuildTests = Class;Type, Interfaced;Test.Build (12)</locline>
+      </ref>
+      <ref>
+        <id>TDUnitX = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (570)</locmod>
+        <locline>ref ;TDUnitX = Class;Type, Interfaced;DUnitX.TestFramework (570)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>Test.PalFindingNormalize (95)</locmod>
+      <ref>
+        <id>RegisterTestFixture</id>
+        <kind>Proc, Method</kind>
+        <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+        <locline>ref ;RegisterTestFixture;Proc, Method;DUnitX.TestFramework\TDUnitX (586)</locline>
+      </ref>
+      <ref>
+        <id>TDUnitX = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (570)</locmod>
+        <locline>ref ;TDUnitX = Class;Type, Interfaced;DUnitX.TestFramework (570)</locline>
+      </ref>
+      <ref>
+        <id>TPalFindingNormalizeTests = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Test.PalFindingNormalize (15)</locmod>
+        <locline>ref ;TPalFindingNormalizeTests = Class;Type, Interfaced;Test.PalFindingNormalize (15)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>Test.FixInsight (150)</locmod>
+      <ref>
+        <id>RegisterTestFixture</id>
+        <kind>Proc, Method</kind>
+        <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+        <locline>ref ;RegisterTestFixture;Proc, Method;DUnitX.TestFramework\TDUnitX (586)</locline>
+      </ref>
+      <ref>
+        <id>TDUnitX = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (570)</locmod>
+        <locline>ref ;TDUnitX = Class;Type, Interfaced;DUnitX.TestFramework (570)</locline>
+      </ref>
+      <ref>
+        <id>TFixInsightTests = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Test.FixInsight (16)</locmod>
+        <locline>ref ;TFixInsightTests = Class;Type, Interfaced;Test.FixInsight (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>Test.PascalAnalyzer (173)</locmod>
+      <ref>
+        <id>RegisterTestFixture</id>
+        <kind>Proc, Method</kind>
+        <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+        <locline>ref ;RegisterTestFixture;Proc, Method;DUnitX.TestFramework\TDUnitX (586)</locline>
+      </ref>
+      <ref>
+        <id>TDUnitX = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (570)</locmod>
+        <locline>ref ;TDUnitX = Class;Type, Interfaced;DUnitX.TestFramework (570)</locline>
+      </ref>
+      <ref>
+        <id>TPascalAnalyzerTests = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Test.PascalAnalyzer (16)</locmod>
+        <locline>ref ;TPascalAnalyzerTests = Class;Type, Interfaced;Test.PascalAnalyzer (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>Test.Support (250)</locmod>
+      <ref>
+        <id>EnsureTempClean</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (17)</locmod>
+        <locline>ref ;EnsureTempClean;Proc, Interfaced;Test.Support (17)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>DUnitX.TestFramework (915)</locmod>
+      <ref>
+        <id>InitAssert</id>
+        <kind>Proc, Global</kind>
+        <locmod>DUnitX.TestFramework (907)</locmod>
+        <locline>ref ;InitAssert;Proc, Global;DUnitX.TestFramework (907)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>EnsureResolverBuilt</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Test.Support (18)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+      <ref>
+        <id>CmdExePath</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.Support (91)</locmod>
+        <locline>ref ;CmdExePath;Func, Global;Test.Support (91)</locline>
+      </ref>
+      <ref>
+        <id>EnsureTempClean</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (17)</locmod>
+        <locline>ref ;EnsureTempClean;Proc, Interfaced;Test.Support (17)</locline>
+      </ref>
+      <ref>
+        <id>GResolverBuilt : Boolean</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (32)</locmod>
+        <locline>ref ;GResolverBuilt : Boolean;Var, Global;Test.Support (32)</locline>
+      </ref>
+      <ref>
+        <id>GResolverExe : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (33)</locmod>
+        <locline>ref ;GResolverExe : UnicodeString;Var, Global;Test.Support (33)</locline>
+      </ref>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (24)</locmod>
+        <locline>ref ;QuoteArg;Func, Interfaced;Test.Support (24)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>RunProcess</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (23)</locmod>
+        <locline>ref ;RunProcess;Func, Interfaced;Test.Support (23)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+      <set>
+        <id>GResolverBuilt : Boolean</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (32)</locmod>
+        <locline>set ;GResolverBuilt : Boolean;Var, Global;Test.Support (32)</locline>
+      </set>
+      <set>
+        <id>GResolverExe : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (33)</locmod>
+        <locline>set ;GResolverExe : UnicodeString;Var, Global;Test.Support (33)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>EnsureTempClean</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Test.Support (17)</locmod>
+      <ref>
+        <id>GTempCleaned : Boolean</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (31)</locmod>
+        <locline>ref ;GTempCleaned : Boolean;Var, Global;Test.Support (31)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+      <set>
+        <id>GTempCleaned : Boolean</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (31)</locmod>
+        <locline>set ;GTempCleaned : Boolean;Var, Global;Test.Support (31)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>InitAssert</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>DUnitX.TestFramework (907)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>PalCmdSupportsFlag</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Test.PascalAnalyzer (26)</locmod>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>RunProcess</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (23)</locmod>
+        <locline>ref ;RunProcess;Func, Interfaced;Test.Support (23)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>RepoRoot</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Test.Support (15)</locmod>
+      <ref>
+        <id>FindRepoRoot</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.Support (43)</locmod>
+        <locline>ref ;FindRepoRoot;Func, Global;Test.Support (43)</locline>
+      </ref>
+      <ref>
+        <id>GRepoRoot : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (29)</locmod>
+        <locline>ref ;GRepoRoot : UnicodeString;Var, Global;Test.Support (29)</locline>
+      </ref>
+      <set>
+        <id>GRepoRoot : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (29)</locmod>
+        <locline>set ;GRepoRoot : UnicodeString;Var, Global;Test.Support (29)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>RequireFixInsightOrSkip</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Test.Support (21)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+      <ref>
+        <id>IsPawelMachine</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (20)</locmod>
+        <locline>ref ;IsPawelMachine;Func, Interfaced;Test.Support (20)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>RequirePalCmdOrSkip</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Test.Support (22)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+      <ref>
+        <id>IsPawelMachine</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (20)</locmod>
+        <locline>ref ;IsPawelMachine;Func, Interfaced;Test.Support (20)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ResolverExePath</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Test.Support (19)</locmod>
+      <ref>
+        <id>GResolverExe : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (33)</locmod>
+        <locline>ref ;GResolverExe : UnicodeString;Var, Global;Test.Support (33)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <set>
+        <id>GResolverExe : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (33)</locmod>
+        <locline>set ;GResolverExe : UnicodeString;Var, Global;Test.Support (33)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>RunProcess</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Test.Support (23)</locmod>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (24)</locmod>
+        <locline>ref ;QuoteArg;Func, Interfaced;Test.Support (24)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ShowUsage</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>DUnitX.TestFramework (704)</locmod>
+      <ref>
+        <id>WriteLine</id>
+        <kind>Proc, Global</kind>
+        <locmod>DUnitX.TestFramework (695)</locmod>
+        <locline>ref ;WriteLine;Proc, Global;DUnitX.TestFramework (695)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>BuildResolverExe</name>
+      <type>PM</type>
+      <ownertype>TBuildTests</ownertype>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+      <ref>
+        <id>EnsureResolverBuilt</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (18)</locmod>
+        <locline>ref ;EnsureResolverBuilt;Proc, Interfaced;Test.Support (18)</locline>
+      </ref>
+      <ref>
+        <id>ResolverExePath</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (19)</locmod>
+        <locline>ref ;ResolverExePath;Func, Interfaced;Test.Support (19)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>CheckCommandLine</name>
+      <type>PM</type>
+      <ownertype>TDUnitX</ownertype>
+      <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+      <ref>
+        <id>EXIT_OK : Signed 8-bit Integer</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (626)</locmod>
+        <locline>ref ;EXIT_OK : Signed 8-bit Integer;Const, Interfaced;DUnitX.TestFramework (626)</locline>
+      </ref>
+      <ref>
+        <id>EXIT_OPTIONS_ERROR : Signed 8-bit Integer</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (628)</locmod>
+        <locline>ref ;EXIT_OPTIONS_ERROR : Signed 8-bit Integer;Const, Interfaced;DUnitX.TestFramework (628)</locline>
+      </ref>
+      <ref>
+        <id>FHideBanner : Boolean</id>
+        <kind>Class Field</kind>
+        <locmod>DUnitX.TestFramework\TDUnitXOptions (529)</locmod>
+        <locline>ref ;FHideBanner : Boolean;Class Field;DUnitX.TestFramework\TDUnitXOptions (529)</locline>
+      </ref>
+      <ref>
+        <id>FShowUsage : Boolean</id>
+        <kind>Class Field</kind>
+        <locmod>DUnitX.TestFramework\TDUnitXOptions (532)</locmod>
+        <locline>ref ;FShowUsage : Boolean;Class Field;DUnitX.TestFramework\TDUnitXOptions (532)</locline>
+      </ref>
+      <ref>
+        <id>ShowUsage</id>
+        <kind>Proc, Global</kind>
+        <locmod>DUnitX.TestFramework (704)</locmod>
+        <locline>ref ;ShowUsage;Proc, Global;DUnitX.TestFramework (704)</locline>
+      </ref>
+      <ref>
+        <id>WriteLine</id>
+        <kind>Proc, Global</kind>
+        <locmod>DUnitX.TestFramework (695)</locmod>
+        <locline>ref ;WriteLine;Proc, Global;DUnitX.TestFramework (695)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Create</name>
+      <type>C</type>
+      <ownertype>TDUnitX</ownertype>
+      <locmod>DUnitX.TestFramework\TDUnitX (578)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+      <ref>
+        <id>IMemoryLeakMonitor = Interface</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\IInterface (606)</locmod>
+        <locline>ref ;IMemoryLeakMonitor = Interface;Type, Interfaced;DUnitX.TestFramework\IInterface (606)</locline>
+      </ref>
+      <ref>
+        <id>TDUnitXOptions = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (521)</locmod>
+        <locline>ref ;TDUnitXOptions = Class;Type, Interfaced;DUnitX.TestFramework (521)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>RegisterTestFixture</name>
+      <type>PM</type>
+      <ownertype>TDUnitX</ownertype>
+      <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+      <ref>
+        <id>TestFixtureAttribute = Simple (unknown)</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (73)</locmod>
+        <locline>ref ;TestFixtureAttribute = Simple (unknown);Type, Interfaced;DUnitX.TestFramework (73)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>OnBeginTest</name>
+      <type>PM</type>
+      <ownertype>TDUnitXConsoleLogger</ownertype>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (61)</locmod>
+      <ref>
+        <id>GetFullName</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestInfo (151)</locmod>
+        <locline>ref ;GetFullName;Func, Method;DUnitX.TestFramework\IInterface\ITestInfo (151)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>OnExecuteTest</name>
+      <type>PM</type>
+      <ownertype>TDUnitXConsoleLogger</ownertype>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (66)</locmod>
+      <ref>
+        <id>GetName</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestInfo (150)</locmod>
+        <locline>ref ;GetName;Func, Method;DUnitX.TestFramework\IInterface\ITestInfo (150)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>OnLog</name>
+      <type>PM</type>
+      <ownertype>TDUnitXConsoleLogger</ownertype>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (73)</locmod>
+      <ref>
+        <id>Error</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TLogLevel (102)</locmod>
+        <locline>ref ;Error;Enum const, Interfaced;DUnitX.TestFramework\TLogLevel (102)</locline>
+      </ref>
+      <ref>
+        <id>Information</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TLogLevel (102)</locmod>
+        <locline>ref ;Information;Enum const, Interfaced;DUnitX.TestFramework\TLogLevel (102)</locline>
+      </ref>
+      <ref>
+        <id>TLogLevel = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (102)</locmod>
+        <locline>ref ;TLogLevel = Enumerated;Type, Interfaced;DUnitX.TestFramework (102)</locline>
+      </ref>
+      <ref>
+        <id>Warning</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TLogLevel (102)</locmod>
+        <locline>ref ;Warning;Enum const, Interfaced;DUnitX.TestFramework\TLogLevel (102)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>OnSetupFixture</name>
+      <type>PM</type>
+      <ownertype>TDUnitXConsoleLogger</ownertype>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (58)</locmod>
+      <ref>
+        <id>GetSetupFixtureMethodName</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (193)</locmod>
+        <locline>ref ;GetSetupFixtureMethodName;Func, Method;DUnitX.TestFramework\IInterface\ITestFixtureInfo (193)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>OnSetupTest</name>
+      <type>PM</type>
+      <ownertype>TDUnitXConsoleLogger</ownertype>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (63)</locmod>
+      <ref>
+        <id>GetName</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestInfo (150)</locmod>
+        <locline>ref ;GetName;Func, Method;DUnitX.TestFramework\IInterface\ITestInfo (150)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>OnStartTestFixture</name>
+      <type>PM</type>
+      <ownertype>TDUnitXConsoleLogger</ownertype>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (56)</locmod>
+      <ref>
+        <id>GetFullName</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (186)</locmod>
+        <locline>ref ;GetFullName;Func, Method;DUnitX.TestFramework\IInterface\ITestFixtureInfo (186)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>OnTearDownFixture</name>
+      <type>PM</type>
+      <ownertype>TDUnitXConsoleLogger</ownertype>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (80)</locmod>
+      <ref>
+        <id>GetTearDownFixtureMethodName</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (195)</locmod>
+        <locline>ref ;GetTearDownFixtureMethodName;Func, Method;DUnitX.TestFramework\IInterface\ITestFixtureInfo (195)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>OnTeardownTest</name>
+      <type>PM</type>
+      <ownertype>TDUnitXConsoleLogger</ownertype>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (75)</locmod>
+      <ref>
+        <id>GetName</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestInfo (150)</locmod>
+        <locline>ref ;GetName;Func, Method;DUnitX.TestFramework\IInterface\ITestInfo (150)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>OnTestingEnds</name>
+      <type>PM</type>
+      <ownertype>TDUnitXConsoleLogger</ownertype>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (85)</locmod>
+      <ref>
+        <id>Error</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TTestResultType (243)</locmod>
+        <locline>ref ;Error;Enum const, Interfaced;DUnitX.TestFramework\TTestResultType (243)</locline>
+      </ref>
+      <ref>
+        <id>Failure</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TTestResultType (243)</locmod>
+        <locline>ref ;Failure;Enum const, Interfaced;DUnitX.TestFramework\TTestResultType (243)</locline>
+      </ref>
+      <ref>
+        <id>GetAllTestResults</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (344)</locmod>
+        <locline>ref ;GetAllTestResults;Func, Method;DUnitX.TestFramework\IInterface\IResult\IRunResults (344)</locline>
+      </ref>
+      <ref>
+        <id>GetErrorCount</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (336)</locmod>
+        <locline>ref ;GetErrorCount;Func, Method;DUnitX.TestFramework\IInterface\IResult\IRunResults (336)</locline>
+      </ref>
+      <ref>
+        <id>GetFailureCount</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (335)</locmod>
+        <locline>ref ;GetFailureCount;Func, Method;DUnitX.TestFramework\IInterface\IResult\IRunResults (335)</locline>
+      </ref>
+      <ref>
+        <id>GetFullName</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestInfo (151)</locmod>
+        <locline>ref ;GetFullName;Func, Method;DUnitX.TestFramework\IInterface\ITestInfo (151)</locline>
+      </ref>
+      <ref>
+        <id>GetIgnoredCount</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (339)</locmod>
+        <locline>ref ;GetIgnoredCount;Func, Method;DUnitX.TestFramework\IInterface\IResult\IRunResults (339)</locline>
+      </ref>
+      <ref>
+        <id>GetMemoryLeakCount</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (337)</locmod>
+        <locline>ref ;GetMemoryLeakCount;Func, Method;DUnitX.TestFramework\IInterface\IResult\IRunResults (337)</locline>
+      </ref>
+      <ref>
+        <id>GetMessage</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (250)</locmod>
+        <locline>ref ;GetMessage;Func, Method;DUnitX.TestFramework\IInterface\IResult\ITestResult (250)</locline>
+      </ref>
+      <ref>
+        <id>GetPassCount</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (338)</locmod>
+        <locline>ref ;GetPassCount;Func, Method;DUnitX.TestFramework\IInterface\IResult\IRunResults (338)</locline>
+      </ref>
+      <ref>
+        <id>GetResultType</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (249)</locmod>
+        <locline>ref ;GetResultType;Func, Method;DUnitX.TestFramework\IInterface\IResult\ITestResult (249)</locline>
+      </ref>
+      <ref>
+        <id>GetTest</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (247)</locmod>
+        <locline>ref ;GetTest;Func, Method;DUnitX.TestFramework\IInterface\IResult\ITestResult (247)</locline>
+      </ref>
+      <ref>
+        <id>GetTestCount</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (333)</locmod>
+        <locline>ref ;GetTestCount;Func, Method;DUnitX.TestFramework\IInterface\IResult\IRunResults (333)</locline>
+      </ref>
+      <ref>
+        <id>MemoryLeak</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TTestResultType (243)</locmod>
+        <locline>ref ;MemoryLeak;Enum const, Interfaced;DUnitX.TestFramework\TTestResultType (243)</locline>
+      </ref>
+      <ref>
+        <id>TTestResultType = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (243)</locmod>
+        <locline>ref ;TTestResultType = Enumerated;Type, Interfaced;DUnitX.TestFramework (243)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>OnTestSuccess</name>
+      <type>PM</type>
+      <ownertype>TDUnitXConsoleLogger</ownertype>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (72)</locmod>
+      <ref>
+        <id>GetMessage</id>
+        <kind>Func, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (250)</locmod>
+        <locline>ref ;GetMessage;Func, Method;DUnitX.TestFramework\IInterface\IResult\ITestResult (250)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Create</name>
+      <type>C</type>
+      <ownertype>TDUnitXOptions</ownertype>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (535)</locmod>
+      <ref>
+        <id>Continue</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TDUnitXExitBehavior (475)</locmod>
+        <locline>ref ;Continue;Enum const, Interfaced;DUnitX.TestFramework\TDUnitXExitBehavior (475)</locline>
+      </ref>
+      <ref>
+        <id>Information</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TLogLevel (102)</locmod>
+        <locline>ref ;Information;Enum const, Interfaced;DUnitX.TestFramework\TLogLevel (102)</locline>
+      </ref>
+      <ref>
+        <id>TDunitXConsoleMode = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (479)</locmod>
+        <locline>ref ;TDunitXConsoleMode = Enumerated;Type, Interfaced;DUnitX.TestFramework (479)</locline>
+      </ref>
+      <ref>
+        <id>TDUnitXExitBehavior = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (475)</locmod>
+        <locline>ref ;TDUnitXExitBehavior = Enumerated;Type, Interfaced;DUnitX.TestFramework (475)</locline>
+      </ref>
+      <ref>
+        <id>TLogLevel = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (102)</locmod>
+        <locline>ref ;TLogLevel = Enumerated;Type, Interfaced;DUnitX.TestFramework (102)</locline>
+      </ref>
+      <ref>
+        <id>Verbose</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TDunitXConsoleMode (481)</locmod>
+        <locline>ref ;Verbose;Enum const, Interfaced;DUnitX.TestFramework\TDunitXConsoleMode (481)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TempRoot</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Test.Support (16)</locmod>
+      <ref>
+        <id>GTempRoot : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (30)</locmod>
+        <locline>ref ;GTempRoot : UnicodeString;Var, Global;Test.Support (30)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <set>
+        <id>GTempRoot : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (30)</locmod>
+        <locline>set ;GTempRoot : UnicodeString;Var, Global;Test.Support (30)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>FixInsightFiltering</name>
+      <type>PM</type>
+      <ownertype>TFixInsightTests</ownertype>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+      <ref>
+        <id>EnsureResolverBuilt</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (18)</locmod>
+        <locline>ref ;EnsureResolverBuilt;Proc, Interfaced;Test.Support (18)</locline>
+      </ref>
+      <ref>
+        <id>RequireFixInsightOrSkip</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (21)</locmod>
+        <locline>ref ;RequireFixInsightOrSkip;Proc, Interfaced;Test.Support (21)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>RunFixInsightOutputs</name>
+      <type>PM</type>
+      <ownertype>TFixInsightTests</ownertype>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (24)</locmod>
+        <locline>ref ;QuoteArg;Func, Interfaced;Test.Support (24)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>ResolverExePath</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (19)</locmod>
+        <locline>ref ;ResolverExePath;Func, Interfaced;Test.Support (19)</locline>
+      </ref>
+      <ref>
+        <id>RunProcess</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (23)</locmod>
+        <locline>ref ;RunProcess;Func, Interfaced;Test.Support (23)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>NormalizePalFindingsFromFixtures</name>
+      <type>PM</type>
+      <ownertype>TPalFindingNormalizeTests</ownertype>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>RunPascalAnalyzer</name>
+      <type>PM</type>
+      <ownertype>TPascalAnalyzerTests</ownertype>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+      <ref>
+        <id>DefaultPalThreads</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.PascalAnalyzer (60)</locmod>
+        <locline>ref ;DefaultPalThreads;Func, Global;Test.PascalAnalyzer (60)</locline>
+      </ref>
+      <ref>
+        <id>EnsureResolverBuilt</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (18)</locmod>
+        <locline>ref ;EnsureResolverBuilt;Proc, Interfaced;Test.Support (18)</locline>
+      </ref>
+      <ref>
+        <id>PalCmdSupportsFlag</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.PascalAnalyzer (26)</locmod>
+        <locline>ref ;PalCmdSupportsFlag;Func, Global;Test.PascalAnalyzer (26)</locline>
+      </ref>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (24)</locmod>
+        <locline>ref ;QuoteArg;Func, Interfaced;Test.Support (24)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>RequirePalCmdOrSkip</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (22)</locmod>
+        <locline>ref ;RequirePalCmdOrSkip;Proc, Interfaced;Test.Support (22)</locline>
+      </ref>
+      <ref>
+        <id>ResolverExePath</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (19)</locmod>
+        <locline>ref ;ResolverExePath;Func, Interfaced;Test.Support (19)</locline>
+      </ref>
+      <ref>
+        <id>RunProcess</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (23)</locmod>
+        <locline>ref ;RunProcess;Func, Interfaced;Test.Support (23)</locline>
+      </ref>
+      <ref>
+        <id>TailFile</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.PascalAnalyzer (44)</locmod>
+        <locline>ref ;TailFile;Func, Global;Test.PascalAnalyzer (44)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>SelectsSupportedCompilerFlag</name>
+      <type>PM</type>
+      <ownertype>TPascalAnalyzerTests</ownertype>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+      <ref>
+        <id>Assert = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (141)</locmod>
+        <locline>ref ;Assert = Class;Type, Interfaced;DUnitX.TestFramework (141)</locline>
+      </ref>
+      <ref>
+        <id>PalCmdSupportsFlag</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.PascalAnalyzer (26)</locmod>
+        <locline>ref ;PalCmdSupportsFlag;Func, Global;Test.PascalAnalyzer (26)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>RequirePalCmdOrSkip</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (22)</locmod>
+        <locline>ref ;RequirePalCmdOrSkip;Proc, Interfaced;Test.Support (22)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Log</name>
+      <type>PM</type>
+      <ownertype>TTestFixtureHelper</ownertype>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (130)</locmod>
+      <ref>
+        <id>Log</id>
+        <kind>Proc, Method</kind>
+        <locmod>DUnitX.TestFramework\IInterface\ITestRunner (501)</locmod>
+        <locline>ref ;Log;Proc, Method;DUnitX.TestFramework\IInterface\ITestRunner (501)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Log</name>
+      <type>PM</type>
+      <ownertype>TTestFixtureHelper</ownertype>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (131)</locmod>
+      <ref>
+        <id>Information</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TLogLevel (102)</locmod>
+        <locline>ref ;Information;Enum const, Interfaced;DUnitX.TestFramework\TLogLevel (102)</locline>
+      </ref>
+      <ref>
+        <id>TLogLevel = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (102)</locmod>
+        <locline>ref ;TLogLevel = Enumerated;Type, Interfaced;DUnitX.TestFramework (102)</locline>
+      </ref>
+      <ref>
+        <id>TTestFixtureHelper = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (128)</locmod>
+        <locline>ref ;TTestFixtureHelper = Class;Type, Interfaced;DUnitX.TestFramework (128)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Status</name>
+      <type>PM</type>
+      <ownertype>TTestFixtureHelper</ownertype>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (133)</locmod>
+      <ref>
+        <id>Information</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TLogLevel (102)</locmod>
+        <locline>ref ;Information;Enum const, Interfaced;DUnitX.TestFramework\TLogLevel (102)</locline>
+      </ref>
+      <ref>
+        <id>TLogLevel = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (102)</locmod>
+        <locline>ref ;TLogLevel = Enumerated;Type, Interfaced;DUnitX.TestFramework (102)</locline>
+      </ref>
+      <ref>
+        <id>TTestFixtureHelper = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (128)</locmod>
+        <locline>ref ;TTestFixtureHelper = Class;Type, Interfaced;DUnitX.TestFramework (128)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>WriteLn</name>
+      <type>PM</type>
+      <ownertype>TTestFixtureHelper</ownertype>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (135)</locmod>
+      <ref>
+        <id>Information</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TLogLevel (102)</locmod>
+        <locline>ref ;Information;Enum const, Interfaced;DUnitX.TestFramework\TLogLevel (102)</locline>
+      </ref>
+      <ref>
+        <id>TLogLevel = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (102)</locmod>
+        <locline>ref ;TLogLevel = Enumerated;Type, Interfaced;DUnitX.TestFramework (102)</locline>
+      </ref>
+      <ref>
+        <id>TTestFixtureHelper = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (128)</locmod>
+        <locline>ref ;TTestFixtureHelper = Class;Type, Interfaced;DUnitX.TestFramework (128)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>WriteLn</name>
+      <type>PM</type>
+      <ownertype>TTestFixtureHelper</ownertype>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (136)</locmod>
+      <ref>
+        <id>Information</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>DUnitX.TestFramework\TLogLevel (102)</locmod>
+        <locline>ref ;Information;Enum const, Interfaced;DUnitX.TestFramework\TLogLevel (102)</locline>
+      </ref>
+      <ref>
+        <id>TLogLevel = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (102)</locmod>
+        <locline>ref ;TLogLevel = Enumerated;Type, Interfaced;DUnitX.TestFramework (102)</locline>
+      </ref>
+      <ref>
+        <id>TTestFixtureHelper = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>DUnitX.TestFramework (128)</locmod>
+        <locline>ref ;TTestFixtureHelper = Class;Type, Interfaced;DUnitX.TestFramework (128)</locline>
+      </ref>
+    </subprog>
+  </section>
+</report>

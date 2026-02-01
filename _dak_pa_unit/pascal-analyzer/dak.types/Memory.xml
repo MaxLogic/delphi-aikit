@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Memory Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Local objects with unprotected calls to Free" count="0" oldcount="-2">
+  </section>
+  <section name="Non-local objects with unprotected calls to Free" count="0" oldcount="-2">
+  </section>
+  <section name="Objects created in try-structure" count="0" oldcount="-2">
+  </section>
+  <section name="Unbalanced Create/Free" count="0" oldcount="-2">
+  </section>
+  <section name="Local objects that are created more than once without being freed in-between" count="0" oldcount="-2">
+  </section>
+  <section name="Local objects that are referenced before being created" count="0" oldcount="-2">
+  </section>
+  <section name="Local objects that are referenced after being freed" count="0" oldcount="-2">
+  </section>
+</report>

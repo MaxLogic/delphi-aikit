@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Duplicate Identifiers Report">
+  <created>29.01.2026 21:38:30</created>
+  <section name="Duplicate Identifiers" count="22" oldcount="-2">
+    <item>
+      <id>fConfig : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (21)</locmod>
+    </item>
+    <item>
+      <id>fConfig : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (110)</locmod>
+    </item>
+    <item>
+      <id>fDelphiVersion : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (22)</locmod>
+    </item>
+    <item>
+      <id>fDelphiVersion : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (108)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (45)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TReportFilterDefaults (85)</locmod>
+    </item>
+    <item>
+      <id>fFixCsv : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (42)</locmod>
+    </item>
+    <item>
+      <id>fFixCsv : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (102)</locmod>
+    </item>
+    <item>
+      <id>fFixIgnore : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (34)</locmod>
+    </item>
+    <item>
+      <id>fFixIgnore : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (98)</locmod>
+    </item>
+    <item>
+      <id>fFixOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (32)</locmod>
+    </item>
+    <item>
+      <id>fFixOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (97)</locmod>
+    </item>
+    <item>
+      <id>fFixSettings : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (36)</locmod>
+    </item>
+    <item>
+      <id>fFixSettings : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (99)</locmod>
+    </item>
+    <item>
+      <id>fFixSilent : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (38)</locmod>
+    </item>
+    <item>
+      <id>fFixSilent : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (100)</locmod>
+    </item>
+    <item>
+      <id>fFixXml : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (40)</locmod>
+    </item>
+    <item>
+      <id>fFixXml : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (101)</locmod>
+    </item>
+    <item>
+      <id>fOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightExtraOptions (72)</locmod>
+    </item>
+    <item>
+      <id>fOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TPascalAnalyzerDefaults (90)</locmod>
+    </item>
+    <item>
+      <id>fPlatform : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (20)</locmod>
+    </item>
+    <item>
+      <id>fPlatform : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (109)</locmod>
+    </item>
+  </section>
+  <section name="Duplicate Identifiers in overlapping scope" count="0" oldcount="-2">
+  </section>
+</report>

@@ -1,0 +1,331 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Used Outside Unit Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Interfaced identifiers that are used outside their units" count="65" oldcount="-2">
+    <item>
+      <id>GC</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>AutoFree (69)       </locmod>
+    </item>
+    <item>
+      <id>AddInfo</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+    </item>
+    <item>
+      <id>fCycleMacros : TStringSet</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (26)</locmod>
+    </item>
+    <item>
+      <id>fLogEncoding : TEncoding</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (32)</locmod>
+    </item>
+    <item>
+      <id>fLogStream : TFileStream</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (31)</locmod>
+    </item>
+    <item>
+      <id>fLogToStderr : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (33)</locmod>
+    </item>
+    <item>
+      <id>fLogWriter : TStreamWriter</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (30)</locmod>
+    </item>
+    <item>
+      <id>fMissingPaths : TStringSet</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (27)</locmod>
+    </item>
+    <item>
+      <id>fUnknownMacros : TStringSet</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (25)</locmod>
+    </item>
+    <item>
+      <id>fVerbose : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (29)</locmod>
+    </item>
+    <item>
+      <id>fWarnings : TList&lt;UnicodeString&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (28)</locmod>
+    </item>
+    <item>
+      <id>LogToStderr : Boolean</id>
+      <kind>Property</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (47)</locmod>
+    </item>
+    <item>
+      <id>TDiagnostics = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>Verbose : Boolean</id>
+      <kind>Property</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (46)</locmod>
+    </item>
+    <item>
+      <id>TryResolveFixInsightExe</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsight (10) </locmod>
+    </item>
+    <item>
+      <id>SCycleMacro : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (66)   </locmod>
+    </item>
+    <item>
+      <id>SInfoFixInsightPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (110)  </locmod>
+    </item>
+    <item>
+      <id>SLogFileOpenFailed : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (117)  </locmod>
+    </item>
+    <item>
+      <id>SMissingDirectory : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (67)   </locmod>
+    </item>
+    <item>
+      <id>SUnknownMacro : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (65)   </locmod>
+    </item>
+    <item>
+      <id>BuildPalCmdCommandLine</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+    </item>
+    <item>
+      <id>TComparer&lt;THotspotEntry&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>TryGeneratePalArtifacts</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExe</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+    </item>
+    <item>
+      <id>fArgs : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TPascalAnalyzerDefaults (91)</locmod>
+    </item>
+    <item>
+      <id>fConfig : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (110)</locmod>
+    </item>
+    <item>
+      <id>fDefines : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (103)</locmod>
+    </item>
+    <item>
+      <id>fDefineSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (112)</locmod>
+    </item>
+    <item>
+      <id>fDelphiVersion : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (108)</locmod>
+    </item>
+    <item>
+      <id>fFixCsv : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (102)</locmod>
+    </item>
+    <item>
+      <id>fFixIgnore : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (98)</locmod>
+    </item>
+    <item>
+      <id>fFixInsightExe : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (96)</locmod>
+    </item>
+    <item>
+      <id>fFixOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (97)</locmod>
+    </item>
+    <item>
+      <id>fFixSettings : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (99)</locmod>
+    </item>
+    <item>
+      <id>fFixSilent : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (100)</locmod>
+    </item>
+    <item>
+      <id>fFixXml : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (101)</locmod>
+    </item>
+    <item>
+      <id>fLibraryPath : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (105)</locmod>
+    </item>
+    <item>
+      <id>fLibrarySource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (111)</locmod>
+    </item>
+    <item>
+      <id>fOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TPascalAnalyzerDefaults (90)</locmod>
+    </item>
+    <item>
+      <id>fPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TPascalAnalyzerDefaults (89)</locmod>
+    </item>
+    <item>
+      <id>fPlatform : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (109)</locmod>
+    </item>
+    <item>
+      <id>fProjectDpr : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (95)</locmod>
+    </item>
+    <item>
+      <id>fSearchPathSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (113)</locmod>
+    </item>
+    <item>
+      <id>fUnitAliases : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (107)</locmod>
+    </item>
+    <item>
+      <id>fUnitAliasesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (115)</locmod>
+    </item>
+    <item>
+      <id>fUnitScopes : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (106)</locmod>
+    </item>
+    <item>
+      <id>fUnitScopesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (114)</locmod>
+    </item>
+    <item>
+      <id>fUnitSearchPath : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (104)</locmod>
+    </item>
+    <item>
+      <id>TFixInsightParams = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (94)      </locmod>
+    </item>
+    <item>
+      <id>TPascalAnalyzerDefaults = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (88)      </locmod>
+    </item>
+    <item>
+      <id>FCaseSensitive : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (132)</locmod>
+    </item>
+    <item>
+      <id>FOrdinalComparer : IEqualityComparer&lt;UnicodeString&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (134)</locmod>
+    </item>
+    <item>
+      <id>FOrdinalIgnoreCaseComparer : IEqualityComparer&lt;UnicodeString&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (135)</locmod>
+    </item>
+    <item>
+      <id>FUpperAscii : Array (static)</id>
+      <kind>Class Field</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (133)</locmod>
+    </item>
+    <item>
+      <id>IEqualityComparer&lt;UnicodeString&gt; = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.StrUtils\IInterface (134)</locmod>
+    </item>
+    <item>
+      <id>OrdinalIgnoreCase</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+    </item>
+    <item>
+      <id>TFastCaseAwareComparer = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>EnsureResolverBuilt</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (18)   </locmod>
+    </item>
+    <item>
+      <id>QuoteArg</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (24)   </locmod>
+    </item>
+    <item>
+      <id>RepoRoot</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (15)   </locmod>
+    </item>
+    <item>
+      <id>RequireFixInsightOrSkip</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (21)   </locmod>
+    </item>
+    <item>
+      <id>RequirePalCmdOrSkip</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (22)   </locmod>
+    </item>
+    <item>
+      <id>ResolverExePath</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (19)   </locmod>
+    </item>
+    <item>
+      <id>RunProcess</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (23)   </locmod>
+    </item>
+    <item>
+      <id>TempRoot</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (16)   </locmod>
+    </item>
+  </section>
+</report>

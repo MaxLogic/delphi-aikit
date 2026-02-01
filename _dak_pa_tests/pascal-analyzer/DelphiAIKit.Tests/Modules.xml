@@ -1,0 +1,173 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Modules Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Module information" count="8" oldcount="-2">
+    <module id="1">
+      <name>DelphiAIKit_Tests</name>
+      <lines>43</lines>
+      <size>1013</size>
+      <date>28.01.2026</date>
+      <time>19:57:38</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\DelphiAIKit.Tests.dpr</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="2">
+      <name>DUnitX.Loggers.Console</name>
+      <lines>487</lines>
+      <size>14803</size>
+      <date>27.09.2025</date>
+      <time>09:32:42</time>
+      <path>F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.Loggers.Console.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+      <includes id="1">
+        <name>DUnitX.inc</name>
+        <lines>115</lines>
+        <size>4137</size>
+        <date>01.11.2024</date>
+        <time>22:18:40</time>
+        <path>F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+      <includes id="2">
+        <name>DUnitX.Stacktrace.inc</name>
+        <lines>43</lines>
+        <size>2396</size>
+        <date>01.11.2024</date>
+        <time>22:18:40</time>
+        <path>F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.Stacktrace.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+      <includes id="3">
+        <name>DUnitX.MemoryLeaks.inc</name>
+        <lines>34</lines>
+        <size>2232</size>
+        <date>01.11.2024</date>
+        <time>22:18:40</time>
+        <path>F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.MemoryLeaks.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="3">
+      <name>DUnitX.TestFramework</name>
+      <lines>923</lines>
+      <size>31734</size>
+      <date>27.09.2025</date>
+      <time>09:32:42</time>
+      <path>F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.TestFramework.pas</path>
+      <encoding>65001 (UTF-8)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>Yes</finalization>
+      <includes id="1">
+        <name>DUnitX.inc</name>
+        <lines>115</lines>
+        <size>4137</size>
+        <date>01.11.2024</date>
+        <time>22:18:40</time>
+        <path>F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+      <includes id="2">
+        <name>DUnitX.Stacktrace.inc</name>
+        <lines>43</lines>
+        <size>2396</size>
+        <date>01.11.2024</date>
+        <time>22:18:40</time>
+        <path>F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.Stacktrace.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+      <includes id="3">
+        <name>DUnitX.MemoryLeaks.inc</name>
+        <lines>34</lines>
+        <size>2232</size>
+        <date>01.11.2024</date>
+        <time>22:18:40</time>
+        <path>F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.MemoryLeaks.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="4">
+      <name>Test.Build</name>
+      <lines>29</lines>
+      <size>445</size>
+      <date>28.01.2026</date>
+      <time>19:58:28</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.build.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="5">
+      <name>Test.FixInsight</name>
+      <lines>153</lines>
+      <size>5226</size>
+      <date>28.01.2026</date>
+      <time>22:43:52</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.fixinsight.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="6">
+      <name>Test.PalFindingNormalize</name>
+      <lines>98</lines>
+      <size>3061</size>
+      <date>28.01.2026</date>
+      <time>19:58:54</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.palfindingnormalize.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="7">
+      <name>Test.PascalAnalyzer</name>
+      <lines>176</lines>
+      <size>5123</size>
+      <date>29.01.2026</date>
+      <time>23:39:06</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.pascalanalyzer.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="8">
+      <name>Test.Support</name>
+      <lines>253</lines>
+      <size>6540</size>
+      <date>29.01.2026</date>
+      <time>19:12:10</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+  </section>
+  <section name="Last modified file">
+  </section>
+  <section name="Unique files" count="11" oldcount="-2">
+    <item id="1">F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.inc</item>
+    <item id="2">F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.Loggers.Console.pas</item>
+    <item id="3">F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.MemoryLeaks.inc</item>
+    <item id="4">F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.Stacktrace.inc</item>
+    <item id="5">F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.TestFramework.pas</item>
+    <item id="6">F:\projects\MaxLogic\DelphiConfigResolver\tests\DelphiAIKit.Tests.dpr</item>
+    <item id="7">F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.build.pas</item>
+    <item id="8">F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.fixinsight.pas</item>
+    <item id="9">F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.palfindingnormalize.pas</item>
+    <item id="10">F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.pascalanalyzer.pas</item>
+    <item id="11">F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas</item>
+  </section>
+  <section name="Missing files" count="0" oldcount="-2">
+  </section>
+  <section name="Binary DFM/XFM files" count="0" oldcount="-2">
+  </section>
+</report>

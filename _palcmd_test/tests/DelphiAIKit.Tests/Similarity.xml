@@ -1,0 +1,2913 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Similarity Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Similarity by Soundex" count="527" oldcount="-2">
+    <soundex value="A132">
+      <item>
+        <id>aBdsVersion : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (701)</locmod>
+      </item>
+      <item>
+        <id>aPaths : TArray&lt;UnicodeString&gt;</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\FilterExistingPaths (822)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A142">
+      <item>
+        <id>aFlag : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Test.PascalAnalyzer\PalCmdSupportsFlag (26)</locmod>
+      </item>
+      <item>
+        <id>aPalCmdExe : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Test.PascalAnalyzer\PalCmdSupportsFlag (26)</locmod>
+      </item>
+      <item>
+        <id>aPalCmdMajor : Integer</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGetPalCmdMaxDelphi (286)</locmod>
+      </item>
+      <item>
+        <id>aPalCmdExe : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGetPalCmdHelpText (395)</locmod>
+      </item>
+      <item>
+        <id>aFlag : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ContainsFlag (410)</locmod>
+      </item>
+      <item>
+        <id>aFlag : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolveFlagFromHelp (441)</locmod>
+      </item>
+      <item>
+        <id>aPalCmdExe : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (701)</locmod>
+      </item>
+      <item>
+        <id>aFlag : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (702)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A143">
+      <item>
+        <id>aFilter : TStringDynArray</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\MatchesFilter (207)</locmod>
+      </item>
+      <item>
+        <id>aFilterText : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx\Create (257)</locmod>
+      </item>
+      <item>
+        <id>aPlatform : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolveFlagFromHelp (440)</locmod>
+      </item>
+      <item>
+        <id>aFolderName : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots\TryParseVer (561)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A153">
+      <item>
+        <id>aFinding : TPalFinding</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\BuildFindingKey (1256)</locmod>
+      </item>
+      <item>
+        <id>aFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>ValParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingRecord (1264)</locmod>
+      </item>
+      <item>
+        <id>aFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>ValParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLoc (1290)</locmod>
+      </item>
+      <item>
+        <id>aFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>ValParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLocMod (1326)</locmod>
+      </item>
+      <item>
+        <id>aFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>ValParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseItemNode (1341)</locmod>
+      </item>
+      <item>
+        <id>aFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>ValParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseSectionNode (1370)</locmod>
+      </item>
+      <item>
+        <id>aFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>ValParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseFindingReport (1423)</locmod>
+      </item>
+      <item>
+        <id>aFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>ValParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1448)</locmod>
+      </item>
+      <item>
+        <id>aFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>ValParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseExceptionReport (1487)</locmod>
+      </item>
+      <item>
+        <id>aFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\WritePalFindingsMd (1729)</locmod>
+      </item>
+      <item>
+        <id>aFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\WritePalFindingsJsonl (1766)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A163">
+      <item>
+        <id>aPart1 : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\CombineUrl (201)</locmod>
+      </item>
+      <item>
+        <id>aPart2 : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\CombineUrl (201)</locmod>
+      </item>
+      <item>
+        <id>aParts : Array (dynamic)</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\CombineUrl (202)</locmod>
+      </item>
+      <item>
+        <id>aParts : TArray&lt;UnicodeString&gt;</id>
+        <kind>OutParam</kind>
+        <locmod>maxLogic.StrUtils\SplitInHalfBy (269)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A200">
+      <item>
+        <id>aKey : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\FindOrderIndex (276)</locmod>
+      </item>
+      <item>
+        <id>aExe : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (305)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A236">
+      <item>
+        <id>aStdErr : THandle</id>
+        <kind>ValParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerWithHandles (19)</locmod>
+      </item>
+      <item>
+        <id>aStartDelphi : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolveFlagFromHelp (441)</locmod>
+      </item>
+      <item>
+        <id>AString : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\PutBefore (20)</locmod>
+      </item>
+      <item>
+        <id>aStartMarker : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (43)</locmod>
+      </item>
+      <item>
+        <id>aStartoffset : Integer</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (44)</locmod>
+      </item>
+      <item>
+        <id>aStartMarkerFoundAtIndex : Integer</id>
+        <kind>OutParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (46)</locmod>
+      </item>
+      <item>
+        <id>aStartMarker : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (85)</locmod>
+      </item>
+      <item>
+        <id>aStartoffset : Integer</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (86)</locmod>
+      </item>
+      <item>
+        <id>aStartMarkerFoundAtIndex : Integer</id>
+        <kind>OutParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (88)</locmod>
+      </item>
+      <item>
+        <id>aStartoffset : Integer</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\CharPosEx (99)</locmod>
+      </item>
+      <item>
+        <id>aStartMarker : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\ReplacePlaceholder (183)</locmod>
+      </item>
+      <item>
+        <id>aStartoffset : Integer</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\ReplacePlaceholder (186)</locmod>
+      </item>
+      <item>
+        <id>aStartToken : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\ExpandEnvVars (199)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A253">
+      <item>
+        <id>aCmdLine : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\BuildPalCmdCommandLine (15)</locmod>
+      </item>
+      <item>
+        <id>aKind : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ChooseMessage (1247)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A261">
+      <item>
+        <id>aGarbo : IGarbo</id>
+        <kind>ConstParam</kind>
+        <locmod>AutoFree\TGarbos\Add (22)</locmod>
+      </item>
+      <item>
+        <id>aGarbos : TGarbos</id>
+        <kind>OutParam</kind>
+        <locmod>AutoFree\TGarbos\Initialize (27)</locmod>
+      </item>
+      <item>
+        <id>aGarbos : TGarbos</id>
+        <kind>VarParam</kind>
+        <locmod>AutoFree\TGarbos\Finalize (28)</locmod>
+      </item>
+      <item>
+        <id>aGarboInstance : IGarbo</id>
+        <kind>OutParam</kind>
+        <locmod>AutoFree\TGarbo\GC&lt;T&gt; (43)</locmod>
+      </item>
+      <item>
+        <id>aGarbos : TGarbos</id>
+        <kind>VarParam</kind>
+        <locmod>AutoFree\TGarbo\GC&lt;T&gt; (44)</locmod>
+      </item>
+      <item>
+        <id>aGarboInstance : IGarbo</id>
+        <kind>OutParam</kind>
+        <locmod>AutoFree\GC (69)    </locmod>
+      </item>
+      <item>
+        <id>aGarbos : TGarbos</id>
+        <kind>VarParam</kind>
+        <locmod>AutoFree\GC (70)    </locmod>
+      </item>
+      <item>
+        <id>aGarboInstance : IGarbo</id>
+        <kind>OutParam</kind>
+        <locmod>AutoFree\GC (73)    </locmod>
+      </item>
+      <item>
+        <id>aGarbos : TGarbos</id>
+        <kind>VarParam</kind>
+        <locmod>AutoFree\GC (74)    </locmod>
+      </item>
+    </soundex>
+    <soundex value="A262">
+      <item>
+        <id>aChars : TArray&lt;Char&gt;</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\CharPosEx (97)</locmod>
+      </item>
+      <item>
+        <id>aCharsArrayIsSorted : Boolean</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\CharPosEx (98)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A300">
+      <item>
+        <id>aId2 : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (20)</locmod>
+      </item>
+      <item>
+        <id>aId1 : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (20)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A313">
+      <item>
+        <id>aOutputRoot : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryFindPalReportRoot (24)</locmod>
+      </item>
+      <item>
+        <id>aOutput : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (305)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A315">
+      <item>
+        <id>AddFindingRecord</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+      </item>
+      <item>
+        <id>AddFindingFromLoc</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+      </item>
+      <item>
+        <id>AddFindingFromLocMod</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A320">
+      <item>
+        <id>aDoc : IXMLDocument</id>
+        <kind>OutParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadXml (1392)</locmod>
+      </item>
+      <item>
+        <id>aTag : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\SplitComplexityName (1515)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A323">
+      <item>
+        <id>aTxt : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\RunFixInsightOutputs (19)</locmod>
+      </item>
+      <item>
+        <id>aText : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (20)</locmod>
+      </item>
+      <item>
+        <id>aText : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (43)</locmod>
+      </item>
+      <item>
+        <id>aTextForCaseSensitiveSearch : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (84)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A352">
+      <item>
+        <id>AddUnknownMacro</id>
+        <kind>Proc, Method</kind>
+        <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+      </item>
+      <item>
+        <id>AddMissingPath</id>
+        <kind>Proc, Method</kind>
+        <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+      </item>
+      <item>
+        <id>aItems : TArray&lt;UnicodeString&gt;</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\JoinSemi (848)</locmod>
+      </item>
+      <item>
+        <id>aItemKind : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingRecord (1264)</locmod>
+      </item>
+      <item>
+        <id>aItemKind : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLoc (1289)</locmod>
+      </item>
+      <item>
+        <id>aItemKind : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLocMod (1325)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A363">
+      <item>
+        <id>aOutRoot : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (25)</locmod>
+      </item>
+      <item>
+        <id>AddRoot</id>
+        <kind>Proc, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+      </item>
+      <item>
+        <id>AttrText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A413">
+      <item>
+        <id>aLeft : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\Equals (151)</locmod>
+      </item>
+      <item>
+        <id>alLeft : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>maxLogic.StrUtils\SplitInHalfBy (270)</locmod>
+      </item>
+      <item>
+        <id>aHelpText : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolveFlagFromHelp (440)</locmod>
+      </item>
+      <item>
+        <id>aLeft : TArray&lt;UnicodeString&gt;</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ConcatArrays (853)</locmod>
+      </item>
+      <item>
+        <id>aLeft : THotspotEntry</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\CompareHotspot (1705)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A514">
+      <item>
+        <id>aInvalidChars : Simple (unknown)</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (52)</locmod>
+      </item>
+      <item>
+        <id>aInvalidCharsAreSorted : Boolean</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (53)</locmod>
+      </item>
+      <item>
+        <id>aInvalidCharsAreSorted : Boolean</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (94)</locmod>
+      </item>
+      <item>
+        <id>aInvalidCharsAreSorted : Boolean</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\ReplacePlaceholder (194)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A532">
+      <item>
+        <id>aIndexOfCharFound : Integer</id>
+        <kind>OutParam</kind>
+        <locmod>maxLogic.StrUtils\CharPosEx (100)</locmod>
+      </item>
+      <item>
+        <id>aEndToken : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\ExpandEnvVars (199)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A534">
+      <item>
+        <id>aModule : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryParseLocMod (1220)</locmod>
+      </item>
+      <item>
+        <id>aModuleLineHotspots : TArray&lt;THotspotEntry&gt;</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\WritePalHotspotsMd (1809)</locmod>
+      </item>
+      <item>
+        <id>aModuleHotspots : TArray&lt;THotspotEntry&gt;</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\WritePalHotspotsMd (1809)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A600">
+      <item>
+        <id>aArr : TJSONArray</id>
+        <kind>OutParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGetJsonArray (161)</locmod>
+      </item>
+      <item>
+        <id>aRaw : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\SplitComplexityName (1515)</locmod>
+      </item>
+    </soundex>
+    <soundex value="A616">
+      <item>
+        <id>aReportRoot : UnicodeString</id>
+        <kind>OutParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryFindPalReportRoot (24)</locmod>
+      </item>
+      <item>
+        <id>aReport : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingRecord (1263)</locmod>
+      </item>
+      <item>
+        <id>aReport : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLoc (1289)</locmod>
+      </item>
+      <item>
+        <id>aReport : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLocMod (1325)</locmod>
+      </item>
+      <item>
+        <id>aReport : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseItemNode (1340)</locmod>
+      </item>
+      <item>
+        <id>aReport : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseSectionNode (1369)</locmod>
+      </item>
+      <item>
+        <id>aReportName : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseFindingReport (1423)</locmod>
+      </item>
+      <item>
+        <id>aReport : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1447)</locmod>
+      </item>
+      <item>
+        <id>aReportName : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseExceptionReport (1487)</locmod>
+      </item>
+    </soundex>
+    <soundex value="B431">
+      <item>
+        <id>BuildPalCmdCommandLine</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+      </item>
+      <item>
+        <id>BuildPalCmdUnitCommandLine</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+      </item>
+      <item>
+        <id>BuildFindingKey</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1256)</locmod>
+      </item>
+    </soundex>
+    <soundex value="C151">
+      <item>
+        <id>CFNVOffsetBasis32</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1260)</locmod>
+      </item>
+      <item>
+        <id>CFNVPrime32</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1261)</locmod>
+      </item>
+    </soundex>
+    <soundex value="C165">
+      <item>
+        <id>CXXPrime1</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1262)</locmod>
+      </item>
+      <item>
+        <id>CXXPrime2</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1263)</locmod>
+      </item>
+      <item>
+        <id>CXXPrime3</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1264)</locmod>
+      </item>
+      <item>
+        <id>CXXPrime4</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1265)</locmod>
+      </item>
+      <item>
+        <id>CXXPrime5</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1266)</locmod>
+      </item>
+    </soundex>
+    <soundex value="C542">
+      <item>
+        <id>ckAnalyzeProject</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>Dak.Types\TCommandKind (8)</locmod>
+      </item>
+      <item>
+        <id>ckAnalyzeUnit</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>Dak.Types\TCommandKind (8)</locmod>
+      </item>
+    </soundex>
+    <soundex value="D415">
+      <item>
+        <id>DelphiWin32 : TDictionary&lt;UnicodeString,Unicodestring&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TPalCmdMap (114)</locmod>
+      </item>
+      <item>
+        <id>DelphiWin64 : TDictionary&lt;UnicodeString,Unicodestring&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TPalCmdMap (115)</locmod>
+      </item>
+    </soundex>
+    <soundex value="E526">
+      <item>
+        <id>EnsureTempClean</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (17)   </locmod>
+      </item>
+      <item>
+        <id>EnsureResolverBuilt</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (18)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="F000">
+      <item>
+        <id>f : Double</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\floatToHex (325)</locmod>
+      </item>
+      <item>
+        <id>fi : TFilterItem</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx\Prepare (712)</locmod>
+      </item>
+      <item>
+        <id>fi : TFilterItem</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx\Matches (836)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F210">
+      <item>
+        <id>fFixCsv : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (42)</locmod>
+      </item>
+      <item>
+        <id>fCsv : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightExtraOptions (77)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F212">
+      <item>
+        <id>fHasFixOutput : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (33)</locmod>
+      </item>
+      <item>
+        <id>fHasFixIgnore : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (35)</locmod>
+      </item>
+      <item>
+        <id>fHasFixSettings : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (37)</locmod>
+      </item>
+      <item>
+        <id>fHasFixSilent : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (39)</locmod>
+      </item>
+      <item>
+        <id>fHasFixXml : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (41)</locmod>
+      </item>
+      <item>
+        <id>fHasFixCsv : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (43)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F213">
+      <item>
+        <id>fHasPaOutput : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (53)</locmod>
+      </item>
+      <item>
+        <id>fExePath : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightExtraOptions (71)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F225">
+      <item>
+        <id>fFixIgnore : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (34)</locmod>
+      </item>
+      <item>
+        <id>fHasIgnoreWarningIds : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (48)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F231">
+      <item>
+        <id>fHasOutPath : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (25)</locmod>
+      </item>
+      <item>
+        <id>fFixOutput : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (32)</locmod>
+      </item>
+      <item>
+        <id>fFixOutput : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (97)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F235">
+      <item>
+        <id>fFixSettings : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (36)</locmod>
+      </item>
+      <item>
+        <id>fSettings : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightExtraOptions (74)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F242">
+      <item>
+        <id>fHasLogFile : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (57)</locmod>
+      </item>
+      <item>
+        <id>fHasLogTee : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (59)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F245">
+      <item>
+        <id>fFixSilent : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (38)</locmod>
+      </item>
+      <item>
+        <id>fSilent : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightExtraOptions (75)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F251">
+      <item>
+        <id>fConfig : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (21)</locmod>
+      </item>
+      <item>
+        <id>fHasEnvOptionsPath : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (31)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F254">
+      <item>
+        <id>fFixXml : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (40)</locmod>
+      </item>
+      <item>
+        <id>fHasAnalyzeOutPath : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (61)</locmod>
+      </item>
+      <item>
+        <id>fXml : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightExtraOptions (76)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F256">
+      <item>
+        <id>fIgnoreWarningIds : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (47)</locmod>
+      </item>
+      <item>
+        <id>fIgnore : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightExtraOptions (73)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F262">
+      <item>
+        <id>fHasRsVarsPath : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (29)</locmod>
+      </item>
+      <item>
+        <id>fSearchPathSource : TPropertySource</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (113)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F313">
+      <item>
+        <id>fOutPath : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (24)</locmod>
+      </item>
+      <item>
+        <id>fPaOutput : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (52)</locmod>
+      </item>
+      <item>
+        <id>fOutput : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightExtraOptions (72)</locmod>
+      </item>
+      <item>
+        <id>fOutput : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TPascalAnalyzerDefaults (90)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F315">
+      <item>
+        <id>fDefines : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (103)</locmod>
+      </item>
+      <item>
+        <id>fDefineSource : TPropertySource</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (112)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F416">
+      <item>
+        <id>fLibraryPath : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (105)</locmod>
+      </item>
+      <item>
+        <id>fLibrarySource : TPropertySource</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (111)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F423">
+      <item>
+        <id>fLogStream : TFileStream</id>
+        <kind>Class Field</kind>
+        <locmod>Dak.Diagnostics\TDiagnostics (31)</locmod>
+      </item>
+      <item>
+        <id>fLogToStderr : Boolean</id>
+        <kind>Class Field</kind>
+        <locmod>Dak.Diagnostics\TDiagnostics (33)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F432">
+      <item>
+        <id>FoldAscii</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (138)</locmod>
+      </item>
+      <item>
+        <id>FoldCharValue</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (139)</locmod>
+      </item>
+      <item>
+        <id>floatToHex</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (325)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F525">
+      <item>
+        <id>fUnknownMacros : TStringSet</id>
+        <kind>Class Field</kind>
+        <locmod>Dak.Diagnostics\TDiagnostics (25)</locmod>
+      </item>
+      <item>
+        <id>fMissingPaths : TStringSet</id>
+        <kind>Class Field</kind>
+        <locmod>Dak.Diagnostics\TDiagnostics (27)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F532">
+      <item>
+        <id>fUnitSearchPath : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (104)</locmod>
+      </item>
+      <item>
+        <id>fUnitScopes : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (106)</locmod>
+      </item>
+      <item>
+        <id>fUnitScopesSource : TPropertySource</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (114)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F534">
+      <item>
+        <id>fUnitAliases : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (107)</locmod>
+      </item>
+      <item>
+        <id>fUnitAliasesSource : TPropertySource</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TFixInsightParams (115)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F542">
+      <item>
+        <id>fAnalyzeOutPath : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (60)</locmod>
+      </item>
+      <item>
+        <id>fAnalyzeFiFormats : TReportFormatSet</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (62)</locmod>
+      </item>
+      <item>
+        <id>fAnalyzeFixInsight : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (63)</locmod>
+      </item>
+      <item>
+        <id>fAnalyzePal : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (64)</locmod>
+      </item>
+      <item>
+        <id>fAnalyzeClean : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (65)</locmod>
+      </item>
+      <item>
+        <id>fAnalyzeWriteSummary : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (66)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F620">
+      <item>
+        <id>fPaArgs : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (54)</locmod>
+      </item>
+      <item>
+        <id>fArgs : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TPascalAnalyzerDefaults (91)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F623">
+      <item>
+        <id>firstCommaIndex : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\PrepareTextForStrToFloatWcc (1122)</locmod>
+      </item>
+      <item>
+        <id>FirstDotIndex : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\PrepareTextForStrToFloatWcc (1122)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F635">
+      <item>
+        <id>FOrdinalComparer : IEqualityComparer&lt;UnicodeString&gt;</id>
+        <kind>Class Field</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (134)</locmod>
+      </item>
+      <item>
+        <id>FOrdinalIgnoreCaseComparer : IEqualityComparer&lt;UnicodeString&gt;</id>
+        <kind>Class Field</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (135)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F651">
+      <item>
+        <id>fRunFixInsight : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (44)</locmod>
+      </item>
+      <item>
+        <id>fRunPascalAnalyzer : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.Types\TAppOptions (49)</locmod>
+      </item>
+    </soundex>
+    <soundex value="G351">
+      <item>
+        <id>GTempRoot : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (30)   </locmod>
+      </item>
+      <item>
+        <id>GTempCleaned : Boolean</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (31)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="G363">
+      <item>
+        <id>GetOrdinalComparer</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (145)</locmod>
+      </item>
+      <item>
+        <id>GetOrdinalIgnoreCaseComparer</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (146)</locmod>
+      </item>
+    </soundex>
+    <soundex value="G624">
+      <item>
+        <id>GResolverBuilt : Boolean</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (32)   </locmod>
+      </item>
+      <item>
+        <id>GResolverExe : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (33)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="I000">
+      <item>
+        <id>i : Integer</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\i2s (321)</locmod>
+      </item>
+      <item>
+        <id>i2 : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (479)</locmod>
+      </item>
+      <item>
+        <id>i1 : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (479)</locmod>
+      </item>
+      <item>
+        <id>i1 : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx\Preprocess (757)</locmod>
+      </item>
+      <item>
+        <id>i2 : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx\Preprocess (757)</locmod>
+      </item>
+      <item>
+        <id>i2 : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx\SplitBySpace (796)</locmod>
+      </item>
+      <item>
+        <id>i1 : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx\SplitBySpace (796)</locmod>
+      </item>
+    </soundex>
+    <soundex value="J523">
+      <item>
+        <id>JsonGetString</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (141)</locmod>
+      </item>
+      <item>
+        <id>JsonGetInteger</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (151)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L000">
+      <item>
+        <id>l : TStringList</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx\Prepare (713)</locmod>
+      </item>
+      <item>
+        <id>lLow : Word</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\FoldPair (1304)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L116">
+      <item>
+        <id>lBuffer : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ExpandEnvVars (95)</locmod>
+      </item>
+      <item>
+        <id>lBefore : Char</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ContainsFlag (415)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L120">
+      <item>
+        <id>lObj : TJSONObject</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadPalCmdMap (179)</locmod>
+      </item>
+      <item>
+        <id>lPos : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ContainsFlag (414)</locmod>
+      </item>
+      <item>
+        <id>lPos : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots\TryParseVer (564)</locmod>
+      </item>
+      <item>
+        <id>lPos : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryParseLocMod (1223)</locmod>
+      </item>
+      <item>
+        <id>lPos : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\SplitComplexityName (1517)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L122">
+      <item>
+        <id>lBaseXml : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\FixInsightFiltering (114)</locmod>
+      </item>
+      <item>
+        <id>lBaseCsv : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\FixInsightFiltering (114)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L123">
+      <item>
+        <id>lBest : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGetPalCmdMaxDelphi (288)</locmod>
+      </item>
+      <item>
+        <id>lFixed : PVSFixedFileInfo</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGetFileVersionMajor (480)</locmod>
+      </item>
+      <item>
+        <id>lBestVer : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (539)</locmod>
+      </item>
+      <item>
+        <id>lBestPath : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (540)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L125">
+      <item>
+        <id>lBsCount : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\QuoteArg (48)</locmod>
+      </item>
+      <item>
+        <id>lPeganza : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (534)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L142">
+      <item>
+        <id>lPalCmdExe : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\SelectsSupportedCompilerFlag (74)</locmod>
+      </item>
+      <item>
+        <id>lFlag : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\SelectsSupportedCompilerFlag (79)</locmod>
+      </item>
+      <item>
+        <id>lFiles : TArray&lt;UnicodeString&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\RunPascalAnalyzer (135)</locmod>
+      </item>
+      <item>
+        <id>lFlag : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ContainsFlag (413)</locmod>
+      </item>
+      <item>
+        <id>lPalCmdMajor : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (714)</locmod>
+      </item>
+      <item>
+        <id>lFiles : TStringDynArray</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryFindPalReportRoot (1860)</locmod>
+      </item>
+      <item>
+        <id>lPlaceHolderLen : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\ReplacePlaceholder (529)</locmod>
+      </item>
+      <item>
+        <id>lValues : TArray&lt;UnicodeString&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\Join (964)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L143">
+      <item>
+        <id>lBuilder : TStringBuilder</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\QuoteArg (49)</locmod>
+      </item>
+      <item>
+        <id>lFolders : TArray&lt;UnicodeString&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\BuildArgs (877)</locmod>
+      </item>
+      <item>
+        <id>lFilter : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\MatchesFilter (651)</locmod>
+      </item>
+      <item>
+        <id>lFolded : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1419)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L153">
+      <item>
+        <id>lFindingsPath : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests\NormalizePalFindingsFromFixtures (28)</locmod>
+      </item>
+      <item>
+        <id>lFound : Boolean</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests\NormalizePalFindingsFromFixtures (34)</locmod>
+      </item>
+      <item>
+        <id>lFinding : TPalFinding</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingRecord (1266)</locmod>
+      </item>
+      <item>
+        <id>lFindings : TList&lt;TPalFinding&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1902)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L200">
+      <item>
+        <id>lCh : Char</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\QuoteArg (47)</locmod>
+      </item>
+      <item>
+        <id>lKey : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadPalCmdMap (180)</locmod>
+      </item>
+      <item>
+        <id>lKey : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGetPalCmdMaxDelphi (289)</locmod>
+      </item>
+      <item>
+        <id>lSa : TSecurityAttributes</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (308)</locmod>
+      </item>
+      <item>
+        <id>lSi : TStartupInfo</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (311)</locmod>
+      </item>
+      <item>
+        <id>lKey : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolveFlagFromHelp (445)</locmod>
+      </item>
+      <item>
+        <id>lExe : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ChoosePalCmdExeInDir (512)</locmod>
+      </item>
+      <item>
+        <id>lExe : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\BuildPalCmdCommandLine (955)</locmod>
+      </item>
+      <item>
+        <id>lExe : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerWithHandles (981)</locmod>
+      </item>
+      <item>
+        <id>lSi : TStartupInfo</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerWithHandles (983)</locmod>
+      </item>
+      <item>
+        <id>lExe : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\BuildPalCmdUnitCommandLine (1043)</locmod>
+      </item>
+      <item>
+        <id>lExe : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerUnit (1099)</locmod>
+      </item>
+      <item>
+        <id>lSi : TStartupInfo</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerUnit (1101)</locmod>
+      </item>
+      <item>
+        <id>lKey : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingRecord (1267)</locmod>
+      </item>
+      <item>
+        <id>lExe : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\SelectsSupportedCompilerFlag (77)</locmod>
+      </item>
+      <item>
+        <id>lLog : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\RunPascalAnalyzer (136)</locmod>
+      </item>
+      <item>
+        <id>lSi : TStartupInfo</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.Support\RunProcess (100)</locmod>
+      </item>
+      <item>
+        <id>lSa : TSecurityAttributes</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.Support\RunProcess (106)</locmod>
+      </item>
+      <item>
+        <id>lLog : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.Support\EnsureResolverBuilt (184)</locmod>
+      </item>
+      <item>
+        <id>lJ : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\PrepareTextForStrToFloatWcc (1190)</locmod>
+      </item>
+      <item>
+        <id>lHigh : Word</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\FoldPair (1304)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L220">
+      <item>
+        <id>lSize : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGetFileVersionMajor (477)</locmod>
+      </item>
+      <item>
+        <id>lSys : TSystemInfo</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\CpuCount (814)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L223">
+      <item>
+        <id>lSectionName : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseSectionNode (1372)</locmod>
+      </item>
+      <item>
+        <id>lSection : IXMLNode</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadComplexityEntries (1562)</locmod>
+      </item>
+      <item>
+        <id>lSection : IXMLNode</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadModuleLines (1631)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L230">
+      <item>
+        <id>lExit : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGetPalCmdHelpText (397)</locmod>
+      </item>
+      <item>
+        <id>lList : TList&lt;UnicodeString&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\FilterExistingPaths (824)</locmod>
+      </item>
+      <item>
+        <id>lSet : Simple (unknown)</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\FilterExistingPaths (825)</locmod>
+      </item>
+      <item>
+        <id>lList : TList&lt;UnicodeString&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ConcatArrays (855)</locmod>
+      </item>
+      <item>
+        <id>lList : TList&lt;TComplexityEntry&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadComplexityEntries (1564)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L236">
+      <item>
+        <id>lLastError : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (317)</locmod>
+      </item>
+      <item>
+        <id>lStdErr : THandle</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerWithHandles (988)</locmod>
+      </item>
+      <item>
+        <id>lStdErr : THandle</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryRunPascalAnalyzerUnit (1106)</locmod>
+      </item>
+      <item>
+        <id>lStrongPath : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1908)</locmod>
+      </item>
+      <item>
+        <id>lStartMarkerFoundAtIndex : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\ReplacePlaceholder (525)</locmod>
+      </item>
+      <item>
+        <id>lStartMarker : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\ReplacePlaceholder (528)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L242">
+      <item>
+        <id>lExclXml : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\FixInsightFiltering (115)</locmod>
+      </item>
+      <item>
+        <id>lExclCsv : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\FixInsightFiltering (115)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L250">
+      <item>
+        <id>lJson : TJSONObject</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadPalCmdMap (176)</locmod>
+      </item>
+      <item>
+        <id>lIsWin32 : Boolean</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolveFlagFromHelp (447)</locmod>
+      </item>
+      <item>
+        <id>lIsWin32 : Boolean</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (705)</locmod>
+      </item>
+      <item>
+        <id>lIsWin64 : Boolean</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (706)</locmod>
+      </item>
+      <item>
+        <id>lSeen : Simple (unknown)</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1903)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L253">
+      <item>
+        <id>lCount : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.PascalAnalyzer\TailFile (48)</locmod>
+      </item>
+      <item>
+        <id>lCmdLine : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\SelectsSupportedCompilerFlag (78)</locmod>
+      </item>
+      <item>
+        <id>lCandidate : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.FixInsight\TryResolveFixInsightExe (79)</locmod>
+      </item>
+      <item>
+        <id>lKeyIndex : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.FixInsight\TryResolveFixInsightExe (82)</locmod>
+      </item>
+      <item>
+        <id>lCmdLine : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.Support\RunProcess (104)</locmod>
+      </item>
+      <item>
+        <id>lCmdArgs : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.Support\EnsureResolverBuilt (183)</locmod>
+      </item>
+      <item>
+        <id>lCmdLine : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (313)</locmod>
+      </item>
+      <item>
+        <id>lCandidate : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (537)</locmod>
+      </item>
+      <item>
+        <id>lLocMod : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLoc (1292)</locmod>
+      </item>
+      <item>
+        <id>lLocKind : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLoc (1294)</locmod>
+      </item>
+      <item>
+        <id>lKind : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLoc (1299)</locmod>
+      </item>
+      <item>
+        <id>lLocMod : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseItemNode (1345)</locmod>
+      </item>
+      <item>
+        <id>lLocMod : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1451)</locmod>
+      </item>
+      <item>
+        <id>lKind : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadModuleLines (1635)</locmod>
+      </item>
+      <item>
+        <id>lCount : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TakeTopHotspots (1716)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L300">
+      <item>
+        <id>lId : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (71)</locmod>
+      </item>
+      <item>
+        <id>lId1 : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\FixInsightFiltering (118)</locmod>
+      </item>
+      <item>
+        <id>lId2 : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\FixInsightFiltering (118)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L320">
+      <item>
+        <id>lDoc : IXMLDocument</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseFindingReport (1426)</locmod>
+      </item>
+      <item>
+        <id>lTag : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\SplitComplexityName (1518)</locmod>
+      </item>
+      <item>
+        <id>lTag : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadComplexityEntries (1567)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L323">
+      <item>
+        <id>lIdsTxt : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\FixInsightFiltering (116)</locmod>
+      </item>
+      <item>
+        <id>lText : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\FixInsightFiltering (117)</locmod>
+      </item>
+      <item>
+        <id>lTextForCaseSensitiveSearch : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\ReplacePlaceholder (528)</locmod>
+      </item>
+      <item>
+        <id>lText : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx\Matches (838)</locmod>
+      </item>
+      <item>
+        <id>lDigitsRight : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\PrepareTextForStrToFloatWcc (1189)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L334">
+      <item>
+        <id>lTotal : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\Utf8TruncateByCodePoint (995)</locmod>
+      </item>
+      <item>
+        <id>lToDel : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\floatToHex (1677)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L363">
+      <item>
+        <id>lThreads : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\BuildArgs (875)</locmod>
+      </item>
+      <item>
+        <id>lOutRoot : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1901)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L500">
+      <item>
+        <id>line : UnicodeString</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\Split (264)</locmod>
+      </item>
+      <item>
+        <id>lLen : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1416)</locmod>
+      </item>
+      <item>
+        <id>lLen : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\Equals (1507)</locmod>
+      </item>
+      <item>
+        <id>lLen : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGetFileVersionMajor (481)</locmod>
+      </item>
+      <item>
+        <id>Line : Integer</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TPalFinding (1164)</locmod>
+      </item>
+      <item>
+        <id>lLine : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLoc (1296)</locmod>
+      </item>
+      <item>
+        <id>lLine : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLocMod (1329)</locmod>
+      </item>
+      <item>
+        <id>lLine : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1454)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L520">
+      <item>
+        <id>lLines : TStringList</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (67)</locmod>
+      </item>
+      <item>
+        <id>lMask : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Test.FixInsight\TFixInsightTests\FixInsightFiltering (119)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L530">
+      <item>
+        <id>lEnd : PByte</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashBytes (1326)</locmod>
+      </item>
+      <item>
+        <id>lLimit : PChar</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1417)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L532">
+      <item>
+        <id>lNeedsQuotes : Boolean</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\QuoteArg (46)</locmod>
+      </item>
+      <item>
+        <id>lIndex : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolveFlagFromHelp (443)</locmod>
+      </item>
+      <item>
+        <id>lIndex : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (712)</locmod>
+      </item>
+      <item>
+        <id>lLineText : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryParseLocMod (1224)</locmod>
+      </item>
+      <item>
+        <id>lIndexOfInvalidChar : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\ExtractString (480)</locmod>
+      </item>
+      <item>
+        <id>lMatchesANy : Boolean</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx\Matches (835)</locmod>
+      </item>
+      <item>
+        <id>lIndex : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\Utf8TruncateByCodePoint (993)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L534">
+      <item>
+        <id>lHandle : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGetFileVersionMajor (478)</locmod>
+      </item>
+      <item>
+        <id>lModule : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLoc (1295)</locmod>
+      </item>
+      <item>
+        <id>lModule : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\AddFindingFromLocMod (1328)</locmod>
+      </item>
+      <item>
+        <id>lModule : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1453)</locmod>
+      </item>
+      <item>
+        <id>lModule : IXMLNode</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadModuleLines (1632)</locmod>
+      </item>
+      <item>
+        <id>lModuleTotalsPath : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1912)</locmod>
+      </item>
+      <item>
+        <id>lModuleLines : TDictionary&lt;UnicodeString,Integer&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1915)</locmod>
+      </item>
+      <item>
+        <id>lModuleList : TList&lt;THotspotEntry&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1917)</locmod>
+      </item>
+      <item>
+        <id>lModuleLineList : TList&lt;THotspotEntry&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1918)</locmod>
+      </item>
+      <item>
+        <id>lModuleArr : TArray&lt;THotspotEntry&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1920)</locmod>
+      </item>
+      <item>
+        <id>lModuleLineArr : TArray&lt;THotspotEntry&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1921)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L536">
+      <item>
+        <id>lEntry : TComplexityEntry</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadComplexityEntries (1565)</locmod>
+      </item>
+      <item>
+        <id>lEntries : TArray&lt;TComplexityEntry&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1914)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L622">
+      <item>
+        <id>lRegexPattern : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\MatchesMaskCaseSensitive_RegEx (370)</locmod>
+      </item>
+      <item>
+        <id>lOrgCasedText : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\ReplacePlaceholder (528)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L630">
+      <item>
+        <id>lRead : THandle</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (309)</locmod>
+      </item>
+      <item>
+        <id>lWrite : THandle</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryCaptureProcessOutput (310)</locmod>
+      </item>
+      <item>
+        <id>lRoot : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (533)</locmod>
+      </item>
+      <item>
+        <id>lRoot : IXMLNode</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseFindingReport (1427)</locmod>
+      </item>
+      <item>
+        <id>lRoot : IXMLNode</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\ParseExceptionReport (1491)</locmod>
+      </item>
+      <item>
+        <id>lRoot : IXMLNode</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadComplexityEntries (1561)</locmod>
+      </item>
+      <item>
+        <id>lRoot : IXMLNode</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryLoadModuleLines (1630)</locmod>
+      </item>
+      <item>
+        <id>lRoot : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryFindPalReportRoot (1859)</locmod>
+      </item>
+    </soundex>
+    <soundex value="L635">
+      <item>
+        <id>lRoutineList : TList&lt;THotspotEntry&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1916)</locmod>
+      </item>
+      <item>
+        <id>lRoutineArr : TArray&lt;THotspotEntry&gt;</id>
+        <kind>Var, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1919)</locmod>
+      </item>
+    </soundex>
+    <soundex value="M213">
+      <item>
+        <id>MegaBytesToStr</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (329)</locmod>
+      </item>
+      <item>
+        <id>MegaByteCount : Extended</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\MegaBytesToStr (329)</locmod>
+      </item>
+    </soundex>
+    <soundex value="M322">
+      <item>
+        <id>MatchesFilter</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (207)</locmod>
+      </item>
+      <item>
+        <id>Matches</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx (261)</locmod>
+      </item>
+      <item>
+        <id>MatchesMaskCaseSensitive_RegEx</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (368)</locmod>
+      </item>
+    </soundex>
+    <soundex value="N210">
+      <item>
+        <id>nKb : Signed 16-bit Integer</id>
+        <kind>Const, Local</kind>
+        <locmod>maxLogic.StrUtils\MegaBytesToStr (1715)</locmod>
+      </item>
+      <item>
+        <id>nGb : Signed 8-bit Integer</id>
+        <kind>Const, Local</kind>
+        <locmod>maxLogic.StrUtils\MegaBytesToStr (1717)</locmod>
+      </item>
+    </soundex>
+    <soundex value="N654">
+      <item>
+        <id>NormalizeExePath</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (498)</locmod>
+      </item>
+      <item>
+        <id>NormalizeLineText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+      </item>
+    </soundex>
+    <soundex value="O635">
+      <item>
+        <id>Ordinal</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (149)</locmod>
+      </item>
+      <item>
+        <id>OrdinalIgnoreCase</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+      </item>
+      <item>
+        <id>OrdinalIgnoreCase</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TStringComparerHelper (293)</locmod>
+      </item>
+    </soundex>
+    <soundex value="O645">
+      <item>
+        <id>OrElements : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>maxLogic.StrUtils\TFilterItem (242)</locmod>
+      </item>
+      <item>
+        <id>OrElementKinds : TArray&lt;TKind&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>maxLogic.StrUtils\TFilterItem (243)</locmod>
+      </item>
+    </soundex>
+    <soundex value="P200">
+      <item>
+        <id>psz2 : PWideChar</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\StrCmpLogicalW (214)</locmod>
+      </item>
+      <item>
+        <id>psz1 : PWideChar</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\StrCmpLogicalW (214)</locmod>
+      </item>
+      <item>
+        <id>pc : PChar</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\OccurrencesOfChar (351)</locmod>
+      </item>
+    </soundex>
+    <soundex value="P425">
+      <item>
+        <id>PalCmdMax : TDictionary&lt;Integer,UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TPalCmdMap (113)</locmod>
+      </item>
+      <item>
+        <id>PalCmdMapPath</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (136)</locmod>
+      </item>
+    </soundex>
+    <soundex value="P616">
+      <item>
+        <id>Prepare</id>
+        <kind>Proc, Method</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx (251)</locmod>
+      </item>
+      <item>
+        <id>Preprocess</id>
+        <kind>Proc, Method</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx (254)</locmod>
+      </item>
+      <item>
+        <id>PrepareTextForStrToFloatWcc</id>
+        <kind>Proc, Global</kind>
+        <locmod>maxLogic.StrUtils (286)</locmod>
+      </item>
+    </soundex>
+    <soundex value="P622">
+      <item>
+        <id>ParseSectionNode</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+      </item>
+      <item>
+        <id>ParseExceptionReport</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+      </item>
+    </soundex>
+    <soundex value="P652">
+      <item>
+        <id>params : TArray&lt;UnicodeString&gt;</id>
+        <kind>ConstParam</kind>
+        <locmod>maxLogic.StrUtils\ParseStatement (341)</locmod>
+      </item>
+      <item>
+        <id>ParamCount : Integer</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\ParseStatement (1748)</locmod>
+      </item>
+    </soundex>
+    <soundex value="R142">
+      <item>
+        <id>ReplacePlaceholder</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (182)</locmod>
+      </item>
+      <item>
+        <id>Replace</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+      </item>
+      <item>
+        <id>Replace</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TRegExHelper (313)</locmod>
+      </item>
+      <item>
+        <id>Replace</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TRegExHelper (316)</locmod>
+      </item>
+      <item>
+        <id>Replace</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TRegExHelper (317)</locmod>
+      </item>
+    </soundex>
+    <soundex value="R261">
+      <item>
+        <id>RequireFixInsightOrSkip</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (21)   </locmod>
+      </item>
+      <item>
+        <id>RequirePalCmdOrSkip</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (22)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="R614">
+      <item>
+        <id>raReplace</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (104)</locmod>
+      </item>
+      <item>
+        <id>raReplaceAndResumeAtSamePosition</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (105)</locmod>
+      </item>
+      <item>
+        <id>raReplaceAndStop</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (108)</locmod>
+      </item>
+    </soundex>
+    <soundex value="S125">
+      <item>
+        <id>SFixInsightExeName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.FixInsight (15) </locmod>
+      </item>
+      <item>
+        <id>SFixInsightRegValue : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.FixInsight (16) </locmod>
+      </item>
+      <item>
+        <id>SFixInsightNotFound : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (111)  </locmod>
+      </item>
+      <item>
+        <id>SFixInsightPathInvalid : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (113)  </locmod>
+      </item>
+      <item>
+        <id>SFixInsightExeMissing : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (114)  </locmod>
+      </item>
+      <item>
+        <id>SFixInsightRunFailed : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (115)  </locmod>
+      </item>
+      <item>
+        <id>SFixInsightRunExit : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (116)  </locmod>
+      </item>
+    </soundex>
+    <soundex value="S132">
+      <item>
+        <id>SOptsetParseError : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (57)   </locmod>
+      </item>
+      <item>
+        <id>SOptsetUsing : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (69)   </locmod>
+      </item>
+      <item>
+        <id>SOptsetMissing : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (70)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="S141">
+      <item>
+        <id>SPalFindingsFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (33)</locmod>
+      </item>
+      <item>
+        <id>SPalFindingsJsonlFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (34)</locmod>
+      </item>
+      <item>
+        <id>SPalOptimizationFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (38)</locmod>
+      </item>
+    </soundex>
+    <soundex value="S142">
+      <item>
+        <id>SPalCmdExeName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (30)</locmod>
+      </item>
+      <item>
+        <id>SPalCmd32ExeName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (31)</locmod>
+      </item>
+      <item>
+        <id>SPalCmdMapFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (32)</locmod>
+      </item>
+      <item>
+        <id>SPalStrongWarningsFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (37)</locmod>
+      </item>
+      <item>
+        <id>SPalExceptionFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (39)</locmod>
+      </item>
+      <item>
+        <id>SPalComplexityFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (40)</locmod>
+      </item>
+      <item>
+        <id>SPalStatusFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (42)</locmod>
+      </item>
+      <item>
+        <id>SPalSeverityWarning : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1184)</locmod>
+      </item>
+      <item>
+        <id>SPalSeverityStrongWarning : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1185)</locmod>
+      </item>
+      <item>
+        <id>SPalSeverityOptimization : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1186)</locmod>
+      </item>
+      <item>
+        <id>SPalSeverityException : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1187)</locmod>
+      </item>
+    </soundex>
+    <soundex value="S143">
+      <item>
+        <id>SPalHotspotsFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (35)</locmod>
+      </item>
+      <item>
+        <id>SplitComplexityName</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1515)</locmod>
+      </item>
+      <item>
+        <id>SplitBySpace</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFilterEx (253)</locmod>
+      </item>
+      <item>
+        <id>Split</id>
+        <kind>Proc, Global</kind>
+        <locmod>maxLogic.StrUtils (264)</locmod>
+      </item>
+      <item>
+        <id>Split</id>
+        <kind>Proc, Global</kind>
+        <locmod>maxLogic.StrUtils (265)</locmod>
+      </item>
+      <item>
+        <id>Split</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (266)</locmod>
+      </item>
+      <item>
+        <id>splitstring</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (267)</locmod>
+      </item>
+      <item>
+        <id>SplitInHalfBy</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (269)</locmod>
+      </item>
+      <item>
+        <id>SplitInHalfBy</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (270)</locmod>
+      </item>
+    </soundex>
+    <soundex value="S362">
+      <item>
+        <id>StrCmpLogical</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (211)</locmod>
+      </item>
+      <item>
+        <id>StrCmpLogicalW</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (214)</locmod>
+      </item>
+    </soundex>
+    <soundex value="S363">
+      <item>
+        <id>StrToFloatWCC</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (283)</locmod>
+      </item>
+      <item>
+        <id>StrToFLoatWccDef</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (285)</locmod>
+      </item>
+    </soundex>
+    <soundex value="S365">
+      <item>
+        <id>StringMatches</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (17)</locmod>
+      </item>
+      <item>
+        <id>STRINGS : TStringList</id>
+        <kind>ValParam</kind>
+        <locmod>maxLogic.StrUtils\Split (264)</locmod>
+      </item>
+      <item>
+        <id>STRINGS : TArray&lt;UnicodeString&gt;</id>
+        <kind>OutParam</kind>
+        <locmod>maxLogic.StrUtils\Split (265)</locmod>
+      </item>
+    </soundex>
+    <soundex value="S511">
+      <item>
+        <id>SEnvOptionsNotFound : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (52)   </locmod>
+      </item>
+      <item>
+        <id>SEnvOptionsMissingLibPath : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (53)   </locmod>
+      </item>
+      <item>
+        <id>SInfoOptions : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (82)   </locmod>
+      </item>
+      <item>
+        <id>SInfoProjectDir : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (83)   </locmod>
+      </item>
+      <item>
+        <id>SInfoOptsetResolved : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (85)   </locmod>
+      </item>
+      <item>
+        <id>SInfoPropertyCondition : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (99)   </locmod>
+      </item>
+      <item>
+        <id>SInfoPropertyRaw : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (100)  </locmod>
+      </item>
+      <item>
+        <id>SInfoPropertySet : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (101)  </locmod>
+      </item>
+      <item>
+        <id>SInfoFixInsightPath : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (110)  </locmod>
+      </item>
+    </soundex>
+    <soundex value="S512">
+      <item>
+        <id>SInfoAssociatedDproj : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (49)   </locmod>
+      </item>
+      <item>
+        <id>SInfoStep : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (96)   </locmod>
+      </item>
+      <item>
+        <id>SInfoGroupCondition : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (98)   </locmod>
+      </item>
+      <item>
+        <id>SInfoSettingsPath : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (104)  </locmod>
+      </item>
+    </soundex>
+    <soundex value="S514">
+      <item>
+        <id>SInvalidArgs : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (38)   </locmod>
+      </item>
+      <item>
+        <id>SInvalidOutKind : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (41)   </locmod>
+      </item>
+      <item>
+        <id>SInvalidBoolValue : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (42)   </locmod>
+      </item>
+      <item>
+        <id>SInvalidFiFormats : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (43)   </locmod>
+      </item>
+      <item>
+        <id>SInfoLibraryPathRaw : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (93)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="S515">
+      <item>
+        <id>SInfoMainSource : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (84)   </locmod>
+      </item>
+      <item>
+        <id>SInfoEnvOptionsPath : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (90)   </locmod>
+      </item>
+      <item>
+        <id>SInfoEnvVarCount : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (91)   </locmod>
+      </item>
+      <item>
+        <id>SInfoEnvVarCountView : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (92)   </locmod>
+      </item>
+      <item>
+        <id>SInfoEnvOptionsOverride : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (103)  </locmod>
+      </item>
+    </soundex>
+    <soundex value="S516">
+      <item>
+        <id>SInfoRegistryBase : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (86)   </locmod>
+      </item>
+      <item>
+        <id>SInfoRegistryView : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (87)   </locmod>
+      </item>
+      <item>
+        <id>SInfoRegistryBaseMissing : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (88)   </locmod>
+      </item>
+      <item>
+        <id>SInfoRegistryVersions : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (89)   </locmod>
+      </item>
+      <item>
+        <id>SInfoRsVarsPath : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (94)   </locmod>
+      </item>
+      <item>
+        <id>SInfoRsVarsCount : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (95)   </locmod>
+      </item>
+      <item>
+        <id>SInfoReadingFile : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (97)   </locmod>
+      </item>
+      <item>
+        <id>SInfoRegistryLibraryFallback : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (102)  </locmod>
+      </item>
+      <item>
+        <id>SInfoResolvedDefines : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (105)  </locmod>
+      </item>
+      <item>
+        <id>SInfoResolvedUnitScopes : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (106)  </locmod>
+      </item>
+      <item>
+        <id>SInfoResolvedProjectSearchPath : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (107)  </locmod>
+      </item>
+      <item>
+        <id>SInfoResolvedLibraryPath : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (108)  </locmod>
+      </item>
+      <item>
+        <id>SInfoResolvedCombinedSearchPath : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (109)  </locmod>
+      </item>
+    </soundex>
+    <soundex value="S525">
+      <item>
+        <id>SUnknownCommand : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (39)   </locmod>
+      </item>
+      <item>
+        <id>SUnknownArg : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (44)   </locmod>
+      </item>
+      <item>
+        <id>SUnknownMacro : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (65)   </locmod>
+      </item>
+      <item>
+        <id>SMissingDirectory : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (67)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="S552">
+      <item>
+        <id>SMainSourceMissing : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (59)   </locmod>
+      </item>
+      <item>
+        <id>SMainSourceMissingFile : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (60)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="S621">
+      <item>
+        <id>SRsVarsNotFound : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (54)   </locmod>
+      </item>
+      <item>
+        <id>SRsVarsFailed : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (55)   </locmod>
+      </item>
+      <item>
+        <id>SSearchPathEmpty : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (62)   </locmod>
+      </item>
+      <item>
+        <id>SSourceOptset : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (78)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="S622">
+      <item>
+        <id>SRegistryBaseMissing : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (50)   </locmod>
+      </item>
+      <item>
+        <id>SRegistryLibraryMissing : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (51)   </locmod>
+      </item>
+      <item>
+        <id>SSourceSearchPath : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (72)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="S623">
+      <item>
+        <id>SSourceDefines : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (71)   </locmod>
+      </item>
+      <item>
+        <id>SSourceDproj : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (77)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="S625">
+      <item>
+        <id>SArgMissingValue : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (40)   </locmod>
+      </item>
+      <item>
+        <id>SSourceUnitScopes : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (73)   </locmod>
+      </item>
+      <item>
+        <id>SSourceUnitAliases : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (74)   </locmod>
+      </item>
+      <item>
+        <id>SSourceUnknown : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (76)   </locmod>
+      </item>
+      <item>
+        <id>SSourceEnvOptions : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (80)   </locmod>
+      </item>
+    </soundex>
+    <soundex value="T125">
+      <item>
+        <id>TFixInsightExtraOptions = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Types (70)      </locmod>
+      </item>
+      <item>
+        <id>TFixInsightIgnoreDefaults = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Types (80)      </locmod>
+      </item>
+      <item>
+        <id>TFixInsightParams = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Types (94)      </locmod>
+      </item>
+    </soundex>
+    <soundex value="T143">
+      <item>
+        <id>TFilterEx = Record</id>
+        <kind>Type, Global</kind>
+        <locmod>maxLogic.StrUtils (236)</locmod>
+      </item>
+      <item>
+        <id>TFilterItem = Record</id>
+        <kind>Nestled Type, Global</kind>
+        <locmod>maxLogic.StrUtils (240)</locmod>
+      </item>
+    </soundex>
+    <soundex value="T251">
+      <item>
+        <id>TComplexityEntry = Record</id>
+        <kind>Type, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+      </item>
+      <item>
+        <id>TComparer&lt;THotspotEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+      </item>
+    </soundex>
+    <soundex value="T261">
+      <item>
+        <id>TGarbos = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>AutoFree (17)       </locmod>
+      </item>
+      <item>
+        <id>TGarbo = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>AutoFree (31)       </locmod>
+      </item>
+    </soundex>
+    <soundex value="T614">
+      <item>
+        <id>TReplacePlaceholderAction = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (103)</locmod>
+      </item>
+      <item>
+        <id>TReplacePlaceholderOnFoundProc = Procedure Type</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (110)</locmod>
+      </item>
+    </soundex>
+    <soundex value="T616">
+      <item>
+        <id>TReportFormat = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Types (14)      </locmod>
+      </item>
+      <item>
+        <id>TReportFormatSet = Set</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Types (15)      </locmod>
+      </item>
+      <item>
+        <id>TReportFilterDefaults = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Types (84)      </locmod>
+      </item>
+      <item>
+        <id>TryParseVer</id>
+        <kind>Func, Local</kind>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (561)</locmod>
+      </item>
+      <item>
+        <id>TryParseLocMod</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+      </item>
+    </soundex>
+    <soundex value="T623">
+      <item>
+        <id>TryGetJsonArray</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (161)</locmod>
+      </item>
+      <item>
+        <id>TryGetPalCmdMaxDelphi</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (286)</locmod>
+      </item>
+      <item>
+        <id>TryGetPalCmdHelpText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (395)</locmod>
+      </item>
+      <item>
+        <id>TryGetFileVersionMajor</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (475)</locmod>
+      </item>
+    </soundex>
+    <soundex value="T643">
+      <item>
+        <id>TryLoadPalCmdMap</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+      </item>
+      <item>
+        <id>TryLoadXml</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+      </item>
+      <item>
+        <id>TryLoadComplexityEntries</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+      </item>
+      <item>
+        <id>TryLoadModuleLines</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+      </item>
+    </soundex>
+    <soundex value="T662">
+      <item>
+        <id>TryResolvePalCmdExe</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+      </item>
+      <item>
+        <id>TryResolveFlagFromHelp</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (440)</locmod>
+      </item>
+      <item>
+        <id>TryResolvePalCmdExeFromKnownRoots</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+      </item>
+    </soundex>
+    <soundex value="T665">
+      <item>
+        <id>TryRunPascalAnalyzer</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (16)</locmod>
+      </item>
+      <item>
+        <id>TryRunPascalAnalyzerWithHandles</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+      </item>
+      <item>
+        <id>TryRunPascalAnalyzerUnit</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (22)</locmod>
+      </item>
+    </soundex>
+    <soundex value="V000">
+      <item>
+        <id>v : UnicodeString</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\ExpandEnvVars (681)</locmod>
+      </item>
+      <item>
+        <id>v1 : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashBytes (1327)</locmod>
+      </item>
+      <item>
+        <id>v4 : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashBytes (1327)</locmod>
+      </item>
+      <item>
+        <id>v3 : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashBytes (1327)</locmod>
+      </item>
+      <item>
+        <id>v2 : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashBytes (1327)</locmod>
+      </item>
+      <item>
+        <id>v3 : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1418)</locmod>
+      </item>
+      <item>
+        <id>v4 : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1418)</locmod>
+      </item>
+      <item>
+        <id>v1 : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1418)</locmod>
+      </item>
+      <item>
+        <id>v2 : Cardinal</id>
+        <kind>Var, Local</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer\HashCaseInsensitive (1418)</locmod>
+      </item>
+    </soundex>
+    <soundex value="W631">
+      <item>
+        <id>WritePalFindingsMd</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1729)</locmod>
+      </item>
+      <item>
+        <id>WritePalFindingsJsonl</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1766)</locmod>
+      </item>
+      <item>
+        <id>WritePalHotspotsMd</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1809)</locmod>
+      </item>
+    </soundex>
+  </section>
+</report>

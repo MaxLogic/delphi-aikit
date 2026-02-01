@@ -1,0 +1,217 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Third-party Dependencies Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Third-party folders directly referenced" count="2" oldcount="-2">
+    <item>
+      <folder>C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS</folder>
+    </item>
+    <item>
+      <folder>F:\projects\3rdParty\VSoft\DUnitX\Source</folder>
+    </item>
+  </section>
+  <section name="Third-party modules directly referenced" count="3" oldcount="-2">
+    <item>
+      <module>DUnitX.Loggers.Console</module>
+    </item>
+    <item>
+      <module>DUnitX.TestFramework</module>
+    </item>
+    <item>
+      <module>System.SysUtils</module>
+    </item>
+  </section>
+  <section name="Third-party identifiers directly referenced" count="13" oldcount="-2">
+    <item>
+      <id>AddLogger</id>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (486)</locmod>
+    </item>
+    <item>
+      <id>CheckCommandLine</id>
+      <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+    </item>
+    <item>
+      <id>CreateRunner</id>
+      <locmod>DUnitX.TestFramework\TDUnitX (583)</locmod>
+    </item>
+    <item>
+      <id>Exception</id>
+      <locmod>System.SysUtils (380)</locmod>
+    </item>
+    <item>
+      <id>Execute</id>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (499)</locmod>
+    </item>
+    <item>
+      <id>GetAllPassed</id>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (334)</locmod>
+    </item>
+    <item>
+      <id>IRunResults</id>
+      <locmod>DUnitX.TestFramework\IInterface\IResult (330)</locmod>
+    </item>
+    <item>
+      <id>ITestLogger</id>
+      <locmod>DUnitX.TestFramework\IInterface (365)</locmod>
+    </item>
+    <item>
+      <id>ITestRunner</id>
+      <locmod>DUnitX.TestFramework\IInterface (484)</locmod>
+    </item>
+    <item>
+      <id>SetFailsOnNoAsserts</id>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (492)</locmod>
+    </item>
+    <item>
+      <id>SetUseRTTI</id>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (489)</locmod>
+    </item>
+    <item>
+      <id>TDUnitX</id>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>TDUnitXConsoleLogger</id>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+  </section>
+  <section name="Third-party identifiers directly referenced, with locations" count="13" oldcount="-2">
+    <item>
+      <name>AddLogger</name>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (486)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>29r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>CheckCommandLine</name>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>23r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>CreateRunner</name>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (583)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>24r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>Execute</name>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (499)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>31r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>GetAllPassed</name>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (334)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>32r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>IRunResults = Interface</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult (330)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>18r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>ITestLogger = Interface</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\IInterface (365)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>19r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>ITestRunner = Interface</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework\IInterface (484)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>17r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SetFailsOnNoAsserts</name>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (492)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>26r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>SetUseRTTI</name>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (489)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>25r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TDUnitX = Class</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>23r</loc>
+      </ref>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>24r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TDUnitXConsoleLogger = Class</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+      <ref>
+        <module>DelphiAIKit.Tests</module>
+        <loc>28r</loc>
+      </ref>
+    </item>
+  </section>
+  <section name="Third-party class and interface types directly referenced" count="6" oldcount="-2">
+    <item>
+      <id>Exception</id>
+      <locmod>System.SysUtils (380)</locmod>
+    </item>
+    <item>
+      <id>IRunResults</id>
+      <locmod>DUnitX.TestFramework\IInterface\IResult (330)</locmod>
+    </item>
+    <item>
+      <id>ITestLogger</id>
+      <locmod>DUnitX.TestFramework\IInterface (365)</locmod>
+    </item>
+    <item>
+      <id>ITestRunner</id>
+      <locmod>DUnitX.TestFramework\IInterface (484)</locmod>
+    </item>
+    <item>
+      <id>TDUnitX</id>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>TDUnitXConsoleLogger</id>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+  </section>
+</report>

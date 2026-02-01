@@ -1,0 +1,357 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Similarity Report">
+  <created>29.01.2026 21:38:30</created>
+  <section name="Similarity by Soundex" count="61" oldcount="-2">
+    <soundex value="C542">
+      <item>
+        <id>ckAnalyzeProject</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>dak.types\TCommandKind (8)</locmod>
+      </item>
+      <item>
+        <id>ckAnalyzeUnit</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>dak.types\TCommandKind (8)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F210">
+      <item>
+        <id>fFixCsv : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (42)</locmod>
+      </item>
+      <item>
+        <id>fCsv : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightExtraOptions (77)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F212">
+      <item>
+        <id>fHasFixOutput : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (33)</locmod>
+      </item>
+      <item>
+        <id>fHasFixIgnore : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (35)</locmod>
+      </item>
+      <item>
+        <id>fHasFixSettings : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (37)</locmod>
+      </item>
+      <item>
+        <id>fHasFixSilent : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (39)</locmod>
+      </item>
+      <item>
+        <id>fHasFixXml : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (41)</locmod>
+      </item>
+      <item>
+        <id>fHasFixCsv : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (43)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F213">
+      <item>
+        <id>fHasPaOutput : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (53)</locmod>
+      </item>
+      <item>
+        <id>fExePath : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightExtraOptions (71)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F225">
+      <item>
+        <id>fFixIgnore : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (34)</locmod>
+      </item>
+      <item>
+        <id>fHasIgnoreWarningIds : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (48)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F231">
+      <item>
+        <id>fHasOutPath : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (25)</locmod>
+      </item>
+      <item>
+        <id>fFixOutput : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (32)</locmod>
+      </item>
+      <item>
+        <id>fFixOutput : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (97)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F235">
+      <item>
+        <id>fFixSettings : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (36)</locmod>
+      </item>
+      <item>
+        <id>fSettings : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightExtraOptions (74)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F242">
+      <item>
+        <id>fHasLogFile : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (57)</locmod>
+      </item>
+      <item>
+        <id>fHasLogTee : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (59)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F245">
+      <item>
+        <id>fFixSilent : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (38)</locmod>
+      </item>
+      <item>
+        <id>fSilent : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightExtraOptions (75)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F251">
+      <item>
+        <id>fConfig : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (21)</locmod>
+      </item>
+      <item>
+        <id>fHasEnvOptionsPath : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (31)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F254">
+      <item>
+        <id>fFixXml : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (40)</locmod>
+      </item>
+      <item>
+        <id>fHasAnalyzeOutPath : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (61)</locmod>
+      </item>
+      <item>
+        <id>fXml : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightExtraOptions (76)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F256">
+      <item>
+        <id>fIgnoreWarningIds : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (47)</locmod>
+      </item>
+      <item>
+        <id>fIgnore : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightExtraOptions (73)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F262">
+      <item>
+        <id>fHasRsVarsPath : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (29)</locmod>
+      </item>
+      <item>
+        <id>fSearchPathSource : TPropertySource</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (113)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F313">
+      <item>
+        <id>fOutPath : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (24)</locmod>
+      </item>
+      <item>
+        <id>fPaOutput : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (52)</locmod>
+      </item>
+      <item>
+        <id>fOutput : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightExtraOptions (72)</locmod>
+      </item>
+      <item>
+        <id>fOutput : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TPascalAnalyzerDefaults (90)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F315">
+      <item>
+        <id>fDefines : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (103)</locmod>
+      </item>
+      <item>
+        <id>fDefineSource : TPropertySource</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (112)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F416">
+      <item>
+        <id>fLibraryPath : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (105)</locmod>
+      </item>
+      <item>
+        <id>fLibrarySource : TPropertySource</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (111)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F532">
+      <item>
+        <id>fUnitSearchPath : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (104)</locmod>
+      </item>
+      <item>
+        <id>fUnitScopes : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (106)</locmod>
+      </item>
+      <item>
+        <id>fUnitScopesSource : TPropertySource</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (114)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F534">
+      <item>
+        <id>fUnitAliases : TArray&lt;UnicodeString&gt;</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (107)</locmod>
+      </item>
+      <item>
+        <id>fUnitAliasesSource : TPropertySource</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TFixInsightParams (115)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F542">
+      <item>
+        <id>fAnalyzeOutPath : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (60)</locmod>
+      </item>
+      <item>
+        <id>fAnalyzeFiFormats : TReportFormatSet</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (62)</locmod>
+      </item>
+      <item>
+        <id>fAnalyzeFixInsight : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (63)</locmod>
+      </item>
+      <item>
+        <id>fAnalyzePal : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (64)</locmod>
+      </item>
+      <item>
+        <id>fAnalyzeClean : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (65)</locmod>
+      </item>
+      <item>
+        <id>fAnalyzeWriteSummary : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (66)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F620">
+      <item>
+        <id>fPaArgs : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (54)</locmod>
+      </item>
+      <item>
+        <id>fArgs : UnicodeString</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TPascalAnalyzerDefaults (91)</locmod>
+      </item>
+    </soundex>
+    <soundex value="F651">
+      <item>
+        <id>fRunFixInsight : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (44)</locmod>
+      </item>
+      <item>
+        <id>fRunPascalAnalyzer : Boolean</id>
+        <kind>Record Field</kind>
+        <locmod>dak.types\TAppOptions (49)</locmod>
+      </item>
+    </soundex>
+    <soundex value="T125">
+      <item>
+        <id>TFixInsightExtraOptions = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>dak.types (70)      </locmod>
+      </item>
+      <item>
+        <id>TFixInsightIgnoreDefaults = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>dak.types (80)      </locmod>
+      </item>
+      <item>
+        <id>TFixInsightParams = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>dak.types (94)      </locmod>
+      </item>
+    </soundex>
+    <soundex value="T616">
+      <item>
+        <id>TReportFormat = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>dak.types (14)      </locmod>
+      </item>
+      <item>
+        <id>TReportFormatSet = Set</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>dak.types (15)      </locmod>
+      </item>
+      <item>
+        <id>TReportFilterDefaults = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>dak.types (84)      </locmod>
+      </item>
+    </soundex>
+  </section>
+</report>

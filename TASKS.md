@@ -6,6 +6,35 @@
 
 ## Next - This Week
 
+### T-039 Remove PAL bad typecast warning in maxConsoleRunner ExitCode
+Outcome: Update exit-code retrieval to avoid PAL "Possible bad typecast" for `fExitCode` while keeping the public `ExitCode: Integer` unchanged.
+Proof:
+- Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: pal-findings no longer reports "Possible bad typecast" for `lib/MaxLogicFoundation/maxConsoleRunner.pas` exit-code handling.
+Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
+
+### T-038 Refactor TAsyncLoop.Run to avoid PAL bad pointer usage warning
+Outcome: Update `TAsyncLoop.Run` to avoid capturing a local loop instance inside anonymous methods while preserving behavior and keeping public API signatures unchanged.
+Proof:
+- Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: pal-findings no longer reports "Possible bad pointer usage" for `maxAsync.pas:1267`.
+Touches: lib/MaxLogicFoundation/maxAsync.pas
+Notes: Keep the change internal to the unit; do not change any public/protected signatures.
+
+### T-037 Use safe JSON array cast in Pascal Analyzer runner
+Outcome: Replace the hard cast in `TryGetJsonArray` with a safe cast after the `is TJSONArray` guard to clear the PAL strong warning without changing behavior.
+Proof:
+- Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: pal-findings no longer reports "Possible bad typecast" for `dak.pascalanalyzerrunner.pas:169`.
+Touches: src/dak.pascalanalyzerrunner.pas
+
+### T-036 Fix GetExitCodeProcess out param cast in maxConsoleRunner
+Outcome: Use a local `DWORD` for `GetExitCodeProcess` and then assign to `fExitCode` to avoid the unsafe typecast and keep the public `ExitCode: Integer` unchanged.
+Proof:
+- Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: pal-findings no longer reports "Possible bad typecast" for `maxConsoleRunner.pas:334`.
+Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
+
 ## Next - Later
 
 ## Blocked

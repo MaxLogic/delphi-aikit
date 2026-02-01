@@ -1,0 +1,2568 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Bindings Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Bindings">
+    <subprog>
+      <type>MB</type>
+      <ownertype/>
+      <locmod>DelphiAIKit.Tests (20)</locmod>
+      <ref>
+        <id>Logger : ITestLogger</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (19)</locmod>
+        <locline>ref ;Logger : ITestLogger;Var, Global;DelphiAIKit.Tests (19)</locline>
+      </ref>
+      <ref>
+        <id>Results : IRunResults</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (18)</locmod>
+        <locline>ref ;Results : IRunResults;Var, Global;DelphiAIKit.Tests (18)</locline>
+      </ref>
+      <ref>
+        <id>Runner : ITestRunner</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (17)</locmod>
+        <locline>ref ;Runner : ITestRunner;Var, Global;DelphiAIKit.Tests (17)</locline>
+      </ref>
+      <set>
+        <id>Logger : ITestLogger</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (19)</locmod>
+        <locline>set ;Logger : ITestLogger;Var, Global;DelphiAIKit.Tests (19)</locline>
+      </set>
+      <set>
+        <id>Results : IRunResults</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (18)</locmod>
+        <locline>set ;Results : IRunResults;Var, Global;DelphiAIKit.Tests (18)</locline>
+      </set>
+      <set>
+        <id>Runner : ITestRunner</id>
+        <kind>Var, Global</kind>
+        <locmod>DelphiAIKit.Tests (17)</locmod>
+        <locline>set ;Runner : ITestRunner;Var, Global;DelphiAIKit.Tests (17)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>Test.Build (26)</locmod>
+      <ref>
+        <id>TBuildTests = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Test.Build (12)</locmod>
+        <locline>ref ;TBuildTests = Class;Type, Interfaced;Test.Build (12)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>Test.PalFindingNormalize (95)</locmod>
+      <ref>
+        <id>TPalFindingNormalizeTests = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Test.PalFindingNormalize (15)</locmod>
+        <locline>ref ;TPalFindingNormalizeTests = Class;Type, Interfaced;Test.PalFindingNormalize (15)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>Test.FixInsight (150)</locmod>
+      <ref>
+        <id>TFixInsightTests = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Test.FixInsight (16)</locmod>
+        <locline>ref ;TFixInsightTests = Class;Type, Interfaced;Test.FixInsight (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>Test.PascalAnalyzer (173)</locmod>
+      <ref>
+        <id>TPascalAnalyzerTests = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Test.PascalAnalyzer (16)</locmod>
+        <locline>ref ;TPascalAnalyzerTests = Class;Type, Interfaced;Test.PascalAnalyzer (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <type>UI</type>
+      <ownertype/>
+      <locmod>Test.Support (250)</locmod>
+      <ref>
+        <id>EnsureTempClean</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (17)</locmod>
+        <locline>ref ;EnsureTempClean;Proc, Interfaced;Test.Support (17)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>AddFindingFromLoc</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+      <ref>
+        <id>AddFindingRecord</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+        <locline>ref ;AddFindingRecord;Proc, Global;Dak.PascalAnalyzerRunner (1263)</locline>
+      </ref>
+      <ref>
+        <id>ChildText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+        <locline>ref ;ChildText;Func, Global;Dak.PascalAnalyzerRunner (1196)</locline>
+      </ref>
+      <ref>
+        <id>ChooseMessage</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1247)</locmod>
+        <locline>ref ;ChooseMessage;Func, Global;Dak.PascalAnalyzerRunner (1247)</locline>
+      </ref>
+      <ref>
+        <id>NormalizeLineText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+        <locline>ref ;NormalizeLineText;Func, Global;Dak.PascalAnalyzerRunner (1190)</locline>
+      </ref>
+      <ref>
+        <id>TryParseLocMod</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+        <locline>ref ;TryParseLocMod;Func, Global;Dak.PascalAnalyzerRunner (1220)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>AddFindingFromLocMod</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+      <ref>
+        <id>AddFindingRecord</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+        <locline>ref ;AddFindingRecord;Proc, Global;Dak.PascalAnalyzerRunner (1263)</locline>
+      </ref>
+      <ref>
+        <id>ChooseMessage</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1247)</locmod>
+        <locline>ref ;ChooseMessage;Func, Global;Dak.PascalAnalyzerRunner (1247)</locline>
+      </ref>
+      <ref>
+        <id>TryParseLocMod</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+        <locline>ref ;TryParseLocMod;Func, Global;Dak.PascalAnalyzerRunner (1220)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>AddFindingRecord</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+      <ref>
+        <id>BuildFindingKey</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1256)</locmod>
+        <locline>ref ;BuildFindingKey;Func, Global;Dak.PascalAnalyzerRunner (1256)</locline>
+      </ref>
+      <ref>
+        <id>NormalizeLineText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+        <locline>ref ;NormalizeLineText;Func, Global;Dak.PascalAnalyzerRunner (1190)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>BuildArgs</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+      <ref>
+        <id>ConcatArrays</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (853)</locmod>
+        <locline>ref ;ConcatArrays;Func, Global;Dak.PascalAnalyzerRunner (853)</locline>
+      </ref>
+      <ref>
+        <id>CpuCount</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+        <locline>ref ;CpuCount;Func, Global;Dak.PascalAnalyzerRunner (812)</locline>
+      </ref>
+      <ref>
+        <id>FilterExistingPaths</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (822)</locmod>
+        <locline>ref ;FilterExistingPaths;Func, Global;Dak.PascalAnalyzerRunner (822)</locline>
+      </ref>
+      <ref>
+        <id>JoinSemi</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (848)</locmod>
+        <locline>ref ;JoinSemi;Func, Global;Dak.PascalAnalyzerRunner (848)</locline>
+      </ref>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+        <locline>ref ;QuoteArg;Func, Global;Dak.PascalAnalyzerRunner (44)</locline>
+      </ref>
+      <ref>
+        <id>TryBuildDelphiTargetFlag</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+        <locline>ref ;TryBuildDelphiTargetFlag;Func, Global;Dak.PascalAnalyzerRunner (701)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>BuildFromRegistry</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.FixInsight (59)</locmod>
+      <ref>
+        <id>ExpandEnvVars</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.FixInsight (22)</locmod>
+        <locline>ref ;ExpandEnvVars;Func, Global;Dak.FixInsight (22)</locline>
+      </ref>
+      <ref>
+        <id>SFixInsightExeName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.FixInsight (15)</locmod>
+        <locline>ref ;SFixInsightExeName : UnicodeString;Const, Global;Dak.FixInsight (15)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>BuildPalCmdCommandLine</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+      <ref>
+        <id>BuildArgs</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+        <locline>ref ;BuildArgs;Func, Global;Dak.PascalAnalyzerRunner (870)</locline>
+      </ref>
+      <ref>
+        <id>TryResolvePalCmdExe</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+        <locline>ref ;TryResolvePalCmdExe;Func, Interfaced;Dak.PascalAnalyzerRunner (13)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>BuildPalCmdUnitCommandLine</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+      <ref>
+        <id>CpuCount</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+        <locline>ref ;CpuCount;Func, Global;Dak.PascalAnalyzerRunner (812)</locline>
+      </ref>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+        <locline>ref ;QuoteArg;Func, Global;Dak.PascalAnalyzerRunner (44)</locline>
+      </ref>
+      <ref>
+        <id>TryResolvePalCmdExe</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+        <locline>ref ;TryResolvePalCmdExe;Func, Interfaced;Dak.PascalAnalyzerRunner (13)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ChoosePalCmdExeInDir</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+      <ref>
+        <id>SPalCmd32ExeName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (31)</locmod>
+        <locline>ref ;SPalCmd32ExeName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (31)</locline>
+      </ref>
+      <ref>
+        <id>SPalCmdExeName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (30)</locmod>
+        <locline>ref ;SPalCmdExeName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (30)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>CollectExceptionCalls</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+      <ref>
+        <id>AddFindingRecord</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+        <locline>ref ;AddFindingRecord;Proc, Global;Dak.PascalAnalyzerRunner (1263)</locline>
+      </ref>
+      <ref>
+        <id>ChildText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+        <locline>ref ;ChildText;Func, Global;Dak.PascalAnalyzerRunner (1196)</locline>
+      </ref>
+      <ref>
+        <id>CollectExceptionCalls</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+        <locline>ref ;CollectExceptionCalls;Proc, Global;Dak.PascalAnalyzerRunner (1447)</locline>
+      </ref>
+      <ref>
+        <id>NormalizeLineText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+        <locline>ref ;NormalizeLineText;Func, Global;Dak.PascalAnalyzerRunner (1190)</locline>
+      </ref>
+      <ref>
+        <id>TryParseLocMod</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+        <locline>ref ;TryParseLocMod;Func, Global;Dak.PascalAnalyzerRunner (1220)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>CombineUrl</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (201)</locmod>
+      <ref>
+        <id>CombineUrl</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (201)</locmod>
+        <locline>ref ;CombineUrl;Func, Interfaced;maxLogic.StrUtils (201)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ConcatArrays</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (853)</locmod>
+      <ref>
+        <id>TList&lt;TComplexityEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1564)</locmod>
+        <locline>ref ;TList&lt;TComplexityEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1564)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;THotspotEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+        <locline>ref ;TList&lt;THotspotEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1916)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;TPalFinding&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1264)</locmod>
+        <locline>ref ;TList&lt;TPalFinding&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1264)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>EnsureResolverBuilt</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Test.Support (18)</locmod>
+      <ref>
+        <id>CmdExePath</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.Support (91)</locmod>
+        <locline>ref ;CmdExePath;Func, Global;Test.Support (91)</locline>
+      </ref>
+      <ref>
+        <id>EnsureTempClean</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (17)</locmod>
+        <locline>ref ;EnsureTempClean;Proc, Interfaced;Test.Support (17)</locline>
+      </ref>
+      <ref>
+        <id>GResolverBuilt : Boolean</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (32)</locmod>
+        <locline>ref ;GResolverBuilt : Boolean;Var, Global;Test.Support (32)</locline>
+      </ref>
+      <ref>
+        <id>GResolverExe : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (33)</locmod>
+        <locline>ref ;GResolverExe : UnicodeString;Var, Global;Test.Support (33)</locline>
+      </ref>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (24)</locmod>
+        <locline>ref ;QuoteArg;Func, Interfaced;Test.Support (24)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>RunProcess</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (23)</locmod>
+        <locline>ref ;RunProcess;Func, Interfaced;Test.Support (23)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+      <set>
+        <id>GResolverBuilt : Boolean</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (32)</locmod>
+        <locline>set ;GResolverBuilt : Boolean;Var, Global;Test.Support (32)</locline>
+      </set>
+      <set>
+        <id>GResolverExe : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (33)</locmod>
+        <locline>set ;GResolverExe : UnicodeString;Var, Global;Test.Support (33)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>EnsureTempClean</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Test.Support (17)</locmod>
+      <ref>
+        <id>GTempCleaned : Boolean</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (31)</locmod>
+        <locline>ref ;GTempCleaned : Boolean;Var, Global;Test.Support (31)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+      <set>
+        <id>GTempCleaned : Boolean</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (31)</locmod>
+        <locline>set ;GTempCleaned : Boolean;Var, Global;Test.Support (31)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>ExpandEnvVars</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (199)</locmod>
+      <ref>
+        <id>raSkip</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (106)</locmod>
+        <locline>ref ;raSkip;Enum const, Interfaced;maxLogic.StrUtils\TReplacePlaceholderAction (106)</locline>
+      </ref>
+      <ref>
+        <id>ReplacePlaceholder</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (182)</locmod>
+        <locline>ref ;ReplacePlaceholder;Func, Interfaced;maxLogic.StrUtils (182)</locline>
+      </ref>
+      <ref>
+        <id>TReplacePlaceholderAction = Enumerated</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (103)</locmod>
+        <locline>ref ;TReplacePlaceholderAction = Enumerated;Type, Interfaced;maxLogic.StrUtils (103)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ExtractString</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (42)</locmod>
+      <ref>
+        <id>ExtractString</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (83)</locmod>
+        <locline>ref ;ExtractString;Func, Interfaced;maxLogic.StrUtils (83)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ExtractString</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (83)</locmod>
+      <ref>
+        <id>CharPosEx</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (95)</locmod>
+        <locline>ref ;CharPosEx;Func, Interfaced;maxLogic.StrUtils (95)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>FilterExistingPaths</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (822)</locmod>
+      <ref>
+        <id>OrdinalIgnoreCase</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+        <locline>ref ;OrdinalIgnoreCase;Func, Method;maxLogic.StrUtils\TFastCaseAwareComparer (150)</locline>
+      </ref>
+      <ref>
+        <id>TFastCaseAwareComparer = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (130)</locmod>
+        <locline>ref ;TFastCaseAwareComparer = Class;Type, Interfaced;maxLogic.StrUtils (130)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;TComplexityEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1564)</locmod>
+        <locline>ref ;TList&lt;TComplexityEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1564)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;THotspotEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+        <locline>ref ;TList&lt;THotspotEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1916)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;TPalFinding&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1264)</locmod>
+        <locline>ref ;TList&lt;TPalFinding&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1264)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>fStr</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (272)</locmod>
+      <ref>
+        <id>PutBefore</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (20)</locmod>
+        <locline>ref ;PutBefore;Func, Interfaced;maxLogic.StrUtils (20)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>AutoFree (69)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>AutoFree (71)</locmod>
+        <locline>ref ;GC;Func, Interfaced;AutoFree (71)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>AutoFree (70)</locmod>
+      <ref>
+        <id>Add</id>
+        <kind>Func, Method</kind>
+        <locmod>AutoFree\TGarbos (23)</locmod>
+        <locline>ref ;Add;Func, Method;AutoFree\TGarbos (23)</locline>
+      </ref>
+      <ref>
+        <id>GC</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>AutoFree (71)</locmod>
+        <locline>ref ;GC;Func, Interfaced;AutoFree (71)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>AutoFree (71)</locmod>
+      <ref>
+        <id>TGarbo = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>AutoFree (31)</locmod>
+        <locline>ref ;TGarbo = Class;Type, Interfaced;AutoFree (31)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>AutoFree (73)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>AutoFree (75)</locmod>
+        <locline>ref ;GC;Func, Interfaced;AutoFree (75)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>AutoFree (74)</locmod>
+      <ref>
+        <id>Add</id>
+        <kind>Func, Method</kind>
+        <locmod>AutoFree\TGarbos (23)</locmod>
+        <locline>ref ;Add;Func, Method;AutoFree\TGarbos (23)</locline>
+      </ref>
+      <ref>
+        <id>GC</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>AutoFree (75)</locmod>
+        <locline>ref ;GC;Func, Interfaced;AutoFree (75)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>AutoFree (75)</locmod>
+      <ref>
+        <id>TGarbo = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>AutoFree (31)</locmod>
+        <locline>ref ;TGarbo = Class;Type, Interfaced;AutoFree (31)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>InitPalCmdMap</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (118)</locmod>
+      <ref>
+        <id>OrdinalIgnoreCase</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+        <locline>ref ;OrdinalIgnoreCase;Func, Method;maxLogic.StrUtils\TFastCaseAwareComparer (150)</locline>
+      </ref>
+      <ref>
+        <id>TDictionary&lt;UnicodeString,Integer&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+        <locline>ref ;TDictionary&lt;UnicodeString,Integer&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1627)</locline>
+      </ref>
+      <ref>
+        <id>TFastCaseAwareComparer = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (130)</locmod>
+        <locline>ref ;TFastCaseAwareComparer = Class;Type, Interfaced;maxLogic.StrUtils (130)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>MegaBytesToStr</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (329)</locmod>
+      <ref>
+        <id>fStr</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (272)</locmod>
+        <locline>ref ;fStr;Func, Global;maxLogic.StrUtils (272)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>NormalizeExePath</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (498)</locmod>
+      <ref>
+        <id>ExpandEnvVars</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (92)</locmod>
+        <locline>ref ;ExpandEnvVars;Func, Global;Dak.PascalAnalyzerRunner (92)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>PalCmdMapPath</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (136)</locmod>
+      <ref>
+        <id>SPalCmdMapFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (32)</locmod>
+        <locline>ref ;SPalCmdMapFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (32)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>PalCmdSupportsFlag</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Test.PascalAnalyzer (26)</locmod>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>RunProcess</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (23)</locmod>
+        <locline>ref ;RunProcess;Func, Interfaced;Test.Support (23)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ParseExceptionReport</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+      <ref>
+        <id>AttrText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+        <locline>ref ;AttrText;Func, Global;Dak.PascalAnalyzerRunner (1209)</locline>
+      </ref>
+      <ref>
+        <id>CollectExceptionCalls</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+        <locline>ref ;CollectExceptionCalls;Proc, Global;Dak.PascalAnalyzerRunner (1447)</locline>
+      </ref>
+      <ref>
+        <id>NormalizeLineText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+        <locline>ref ;NormalizeLineText;Func, Global;Dak.PascalAnalyzerRunner (1190)</locline>
+      </ref>
+      <ref>
+        <id>TryLoadXml</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+        <locline>ref ;TryLoadXml;Func, Global;Dak.PascalAnalyzerRunner (1392)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ParseFindingReport</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+      <ref>
+        <id>ParseSectionNode</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+        <locline>ref ;ParseSectionNode;Proc, Global;Dak.PascalAnalyzerRunner (1369)</locline>
+      </ref>
+      <ref>
+        <id>TryLoadXml</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+        <locline>ref ;TryLoadXml;Func, Global;Dak.PascalAnalyzerRunner (1392)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ParseItemNode</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+      <ref>
+        <id>AddFindingFromLoc</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+        <locline>ref ;AddFindingFromLoc;Proc, Global;Dak.PascalAnalyzerRunner (1289)</locline>
+      </ref>
+      <ref>
+        <id>AddFindingFromLocMod</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+        <locline>ref ;AddFindingFromLocMod;Proc, Global;Dak.PascalAnalyzerRunner (1325)</locline>
+      </ref>
+      <ref>
+        <id>ChildText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+        <locline>ref ;ChildText;Func, Global;Dak.PascalAnalyzerRunner (1196)</locline>
+      </ref>
+      <ref>
+        <id>NormalizeLineText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+        <locline>ref ;NormalizeLineText;Func, Global;Dak.PascalAnalyzerRunner (1190)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ParseSectionNode</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+      <ref>
+        <id>AddFindingFromLoc</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+        <locline>ref ;AddFindingFromLoc;Proc, Global;Dak.PascalAnalyzerRunner (1289)</locline>
+      </ref>
+      <ref>
+        <id>AttrText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+        <locline>ref ;AttrText;Func, Global;Dak.PascalAnalyzerRunner (1209)</locline>
+      </ref>
+      <ref>
+        <id>NormalizeLineText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+        <locline>ref ;NormalizeLineText;Func, Global;Dak.PascalAnalyzerRunner (1190)</locline>
+      </ref>
+      <ref>
+        <id>ParseItemNode</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+        <locline>ref ;ParseItemNode;Proc, Global;Dak.PascalAnalyzerRunner (1340)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>PrettyPrintSize</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (328)</locmod>
+      <ref>
+        <id>MegaBytesToStr</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (329)</locmod>
+        <locline>ref ;MegaBytesToStr;Func, Global;maxLogic.StrUtils (329)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>PutBefore</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (21)</locmod>
+      <ref>
+        <id>PutBefore</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (20)</locmod>
+        <locline>ref ;PutBefore;Func, Interfaced;maxLogic.StrUtils (20)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ReplacePlaceholder</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (182)</locmod>
+      <ref>
+        <id>ExtractString</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (83)</locmod>
+        <locline>ref ;ExtractString;Func, Interfaced;maxLogic.StrUtils (83)</locline>
+      </ref>
+      <ref>
+        <id>GC</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>AutoFree (69)</locmod>
+        <locline>ref ;GC;Proc, Interfaced;AutoFree (69)</locline>
+      </ref>
+      <ref>
+        <id>raReplace</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (104)</locmod>
+        <locline>ref ;raReplace;Enum const, Interfaced;maxLogic.StrUtils\TReplacePlaceholderAction (104)</locline>
+      </ref>
+      <ref>
+        <id>raReplaceAndResumeAtSamePosition</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (105)</locmod>
+        <locline>ref ;raReplaceAndResumeAtSamePosition;Enum const, Interfaced;maxLogic.StrUtils\TReplacePlaceholderAction (105)</locline>
+      </ref>
+      <ref>
+        <id>raReplaceAndStop</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (108)</locmod>
+        <locline>ref ;raReplaceAndStop;Enum const, Interfaced;maxLogic.StrUtils\TReplacePlaceholderAction (108)</locline>
+      </ref>
+      <ref>
+        <id>raSkip</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (106)</locmod>
+        <locline>ref ;raSkip;Enum const, Interfaced;maxLogic.StrUtils\TReplacePlaceholderAction (106)</locline>
+      </ref>
+      <ref>
+        <id>raStop</id>
+        <kind>Enum const, Interfaced</kind>
+        <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (107)</locmod>
+        <locline>ref ;raStop;Enum const, Interfaced;maxLogic.StrUtils\TReplacePlaceholderAction (107)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>RepoRoot</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Test.Support (15)</locmod>
+      <ref>
+        <id>FindRepoRoot</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.Support (43)</locmod>
+        <locline>ref ;FindRepoRoot;Func, Global;Test.Support (43)</locline>
+      </ref>
+      <ref>
+        <id>GRepoRoot : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (29)</locmod>
+        <locline>ref ;GRepoRoot : UnicodeString;Var, Global;Test.Support (29)</locline>
+      </ref>
+      <set>
+        <id>GRepoRoot : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (29)</locmod>
+        <locline>set ;GRepoRoot : UnicodeString;Var, Global;Test.Support (29)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>RequireFixInsightOrSkip</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Test.Support (21)</locmod>
+      <ref>
+        <id>IsPawelMachine</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (20)</locmod>
+        <locline>ref ;IsPawelMachine;Func, Interfaced;Test.Support (20)</locline>
+      </ref>
+      <ref>
+        <id>TryResolveFixInsightExe</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.FixInsight (10)</locmod>
+        <locline>ref ;TryResolveFixInsightExe;Func, Interfaced;Dak.FixInsight (10)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>RequirePalCmdOrSkip</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Test.Support (22)</locmod>
+      <ref>
+        <id>IsPawelMachine</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (20)</locmod>
+        <locline>ref ;IsPawelMachine;Func, Interfaced;Test.Support (20)</locline>
+      </ref>
+      <ref>
+        <id>TryResolvePalCmdExe</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+        <locline>ref ;TryResolvePalCmdExe;Func, Interfaced;Dak.PascalAnalyzerRunner (13)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>ResolverExePath</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Test.Support (19)</locmod>
+      <ref>
+        <id>GResolverExe : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (33)</locmod>
+        <locline>ref ;GResolverExe : UnicodeString;Var, Global;Test.Support (33)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <set>
+        <id>GResolverExe : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (33)</locmod>
+        <locline>set ;GResolverExe : UnicodeString;Var, Global;Test.Support (33)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>RunOnExit</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>AutoFree (78)</locmod>
+      <ref>
+        <id>New</id>
+        <kind>Func, Method</kind>
+        <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+        <locline>ref ;New;Func, Method;AutoFree\TCallProcOnDestroy (64)</locline>
+      </ref>
+      <ref>
+        <id>TCallProcOnDestroy = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>AutoFree (56)</locmod>
+        <locline>ref ;TCallProcOnDestroy = Class;Type, Interfaced;AutoFree (56)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>RunProcess</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Test.Support (23)</locmod>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (24)</locmod>
+        <locline>ref ;QuoteArg;Func, Interfaced;Test.Support (24)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>SortHotspots</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1724)</locmod>
+      <ref>
+        <id>CompareHotspot</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1705)</locmod>
+        <locline>ref ;CompareHotspot;Func, Global;Dak.PascalAnalyzerRunner (1705)</locline>
+      </ref>
+      <ref>
+        <id>TComparer&lt;THotspotEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+        <locline>ref ;TComparer&lt;THotspotEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1726)</locline>
+      </ref>
+      <ref>
+        <id>THotspotEntry = Record</id>
+        <kind>Type, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+        <locline>ref ;THotspotEntry = Record;Type, Global;Dak.PascalAnalyzerRunner (1177)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Split</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (264)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>AutoFree (69)</locmod>
+        <locline>ref ;GC;Proc, Interfaced;AutoFree (69)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Split</name>
+      <type>P</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (265)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>AutoFree (69)</locmod>
+        <locline>ref ;GC;Proc, Interfaced;AutoFree (69)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Split</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (266)</locmod>
+      <ref>
+        <id>Split</id>
+        <kind>Proc, Global</kind>
+        <locmod>maxLogic.StrUtils (264)</locmod>
+        <locline>ref ;Split;Proc, Global;maxLogic.StrUtils (264)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>splitstring</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (267)</locmod>
+      <ref>
+        <id>Split</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (266)</locmod>
+        <locline>ref ;Split;Func, Global;maxLogic.StrUtils (266)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>StrCmpLogical</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (211)</locmod>
+      <ref>
+        <id>StrCmpLogicalW</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (214)</locmod>
+        <locline>ref ;StrCmpLogicalW;Func, Interfaced;maxLogic.StrUtils (214)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>StringMatches</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (17)</locmod>
+      <ref>
+        <id>MatchesMaskCaseSensitive_RegEx</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (368)</locmod>
+        <locline>ref ;MatchesMaskCaseSensitive_RegEx;Func, Global;maxLogic.StrUtils (368)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>StrToFloatWCC</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (283)</locmod>
+      <ref>
+        <id>PrepareTextForStrToFloatWcc</id>
+        <kind>Proc, Global</kind>
+        <locmod>maxLogic.StrUtils (286)</locmod>
+        <locline>ref ;PrepareTextForStrToFloatWcc;Proc, Global;maxLogic.StrUtils (286)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>StrToFLoatWccDef</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (285)</locmod>
+      <ref>
+        <id>PrepareTextForStrToFloatWcc</id>
+        <kind>Proc, Global</kind>
+        <locmod>maxLogic.StrUtils (286)</locmod>
+        <locline>ref ;PrepareTextForStrToFloatWcc;Proc, Global;maxLogic.StrUtils (286)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TakeTopHotspots</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1714)</locmod>
+      <ref>
+        <id>CHotspotTopN : Signed 8-bit Integer</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1188)</locmod>
+        <locline>ref ;CHotspotTopN : Signed 8-bit Integer;Const, Global;Dak.PascalAnalyzerRunner (1188)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>BuildResolverExe</name>
+      <type>PM</type>
+      <ownertype>TBuildTests</ownertype>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+      <ref>
+        <id>EnsureResolverBuilt</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (18)</locmod>
+        <locline>ref ;EnsureResolverBuilt;Proc, Interfaced;Test.Support (18)</locline>
+      </ref>
+      <ref>
+        <id>ResolverExePath</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (19)</locmod>
+        <locline>ref ;ResolverExePath;Func, Interfaced;Test.Support (19)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>New</name>
+      <type>FM</type>
+      <ownertype>TCallProcOnDestroy</ownertype>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+      <ref>
+        <id>TCallProcOnDestroy = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>AutoFree (56)</locmod>
+        <locline>ref ;TCallProcOnDestroy = Class;Type, Interfaced;AutoFree (56)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>AddCycleMacro</name>
+      <type>PM</type>
+      <ownertype>TDiagnostics</ownertype>
+      <locmod>Dak.Diagnostics\TDiagnostics (40)</locmod>
+      <ref>
+        <id>Add</id>
+        <kind>Func, Method</kind>
+        <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+        <locline>ref ;Add;Func, Method;Dak.Diagnostics\TStringSet (18)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>AddMissingPath</name>
+      <type>PM</type>
+      <ownertype>TDiagnostics</ownertype>
+      <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+      <ref>
+        <id>Add</id>
+        <kind>Func, Method</kind>
+        <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+        <locline>ref ;Add;Func, Method;Dak.Diagnostics\TStringSet (18)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>AddUnknownMacro</name>
+      <type>PM</type>
+      <ownertype>TDiagnostics</ownertype>
+      <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+      <ref>
+        <id>Add</id>
+        <kind>Func, Method</kind>
+        <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+        <locline>ref ;Add;Func, Method;Dak.Diagnostics\TStringSet (18)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Create</name>
+      <type>C</type>
+      <ownertype>TDiagnostics</ownertype>
+      <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+      <ref>
+        <id>OrdinalIgnoreCase</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+        <locline>ref ;OrdinalIgnoreCase;Func, Method;maxLogic.StrUtils\TFastCaseAwareComparer (150)</locline>
+      </ref>
+      <ref>
+        <id>TFastCaseAwareComparer = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (130)</locmod>
+        <locline>ref ;TFastCaseAwareComparer = Class;Type, Interfaced;maxLogic.StrUtils (130)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;TComplexityEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1564)</locmod>
+        <locline>ref ;TList&lt;TComplexityEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1564)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;THotspotEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+        <locline>ref ;TList&lt;THotspotEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1916)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;TPalFinding&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1264)</locmod>
+        <locline>ref ;TList&lt;TPalFinding&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1264)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;UnicodeString&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (532)</locmod>
+        <locline>ref ;TList&lt;UnicodeString&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (532)</locline>
+      </ref>
+      <ref>
+        <id>TStringSet = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Diagnostics (11)</locmod>
+        <locline>ref ;TStringSet = Class;Type, Interfaced;Dak.Diagnostics (11)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryOpenLogFile</name>
+      <type>FM</type>
+      <ownertype>TDiagnostics</ownertype>
+      <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+      <ref>
+        <id>SLogFileOpenFailed : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (117)</locmod>
+        <locline>ref ;SLogFileOpenFailed : UnicodeString;Const, Interfaced;Dak.Messages (117)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>WriteToStderr</name>
+      <type>PM</type>
+      <ownertype>TDiagnostics</ownertype>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+      <ref>
+        <id>SCycleMacro : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (66)</locmod>
+        <locline>ref ;SCycleMacro : UnicodeString;Const, Interfaced;Dak.Messages (66)</locline>
+      </ref>
+      <ref>
+        <id>SMissingDirectory : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (67)</locmod>
+        <locline>ref ;SMissingDirectory : UnicodeString;Const, Interfaced;Dak.Messages (67)</locline>
+      </ref>
+      <ref>
+        <id>SUnknownMacro : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (65)</locmod>
+        <locline>ref ;SUnknownMacro : UnicodeString;Const, Interfaced;Dak.Messages (65)</locline>
+      </ref>
+      <ref>
+        <id>ToArray</id>
+        <kind>Func, Method</kind>
+        <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+        <locline>ref ;ToArray;Func, Method;Dak.Diagnostics\TStringSet (20)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TempRoot</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Test.Support (16)</locmod>
+      <ref>
+        <id>GTempRoot : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (30)</locmod>
+        <locline>ref ;GTempRoot : UnicodeString;Var, Global;Test.Support (30)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <set>
+        <id>GTempRoot : UnicodeString</id>
+        <kind>Var, Global</kind>
+        <locmod>Test.Support (30)</locmod>
+        <locline>set ;GTempRoot : UnicodeString;Var, Global;Test.Support (30)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>GetOrdinalComparer</name>
+      <type>FM</type>
+      <ownertype>TFastCaseAwareComparer</ownertype>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (145)</locmod>
+      <ref>
+        <id>TFastCaseAwareComparer = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (130)</locmod>
+        <locline>ref ;TFastCaseAwareComparer = Class;Type, Interfaced;maxLogic.StrUtils (130)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>GetOrdinalIgnoreCaseComparer</name>
+      <type>FM</type>
+      <ownertype>TFastCaseAwareComparer</ownertype>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (146)</locmod>
+      <ref>
+        <id>TFastCaseAwareComparer = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (130)</locmod>
+        <locline>ref ;TFastCaseAwareComparer = Class;Type, Interfaced;maxLogic.StrUtils (130)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>HashBytes</name>
+      <type>FM</type>
+      <ownertype>TFastCaseAwareComparer</ownertype>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (142)</locmod>
+      <ref>
+        <id>CXXPrime1</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1262)</locmod>
+        <locline>ref ;CXXPrime1;Const, Global;maxLogic.StrUtils (1262)</locline>
+      </ref>
+      <ref>
+        <id>CXXPrime2</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1263)</locmod>
+        <locline>ref ;CXXPrime2;Const, Global;maxLogic.StrUtils (1263)</locline>
+      </ref>
+      <ref>
+        <id>CXXPrime3</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1264)</locmod>
+        <locline>ref ;CXXPrime3;Const, Global;maxLogic.StrUtils (1264)</locline>
+      </ref>
+      <ref>
+        <id>CXXPrime4</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1265)</locmod>
+        <locline>ref ;CXXPrime4;Const, Global;maxLogic.StrUtils (1265)</locline>
+      </ref>
+      <ref>
+        <id>CXXPrime5</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1266)</locmod>
+        <locline>ref ;CXXPrime5;Const, Global;maxLogic.StrUtils (1266)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>HashCaseInsensitive</name>
+      <type>FM</type>
+      <ownertype>TFastCaseAwareComparer</ownertype>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+      <ref>
+        <id>CXXPrime1</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1262)</locmod>
+        <locline>ref ;CXXPrime1;Const, Global;maxLogic.StrUtils (1262)</locline>
+      </ref>
+      <ref>
+        <id>CXXPrime2</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1263)</locmod>
+        <locline>ref ;CXXPrime2;Const, Global;maxLogic.StrUtils (1263)</locline>
+      </ref>
+      <ref>
+        <id>CXXPrime3</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1264)</locmod>
+        <locline>ref ;CXXPrime3;Const, Global;maxLogic.StrUtils (1264)</locline>
+      </ref>
+      <ref>
+        <id>CXXPrime4</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1265)</locmod>
+        <locline>ref ;CXXPrime4;Const, Global;maxLogic.StrUtils (1265)</locline>
+      </ref>
+      <ref>
+        <id>CXXPrime5</id>
+        <kind>Const, Global</kind>
+        <locmod>maxLogic.StrUtils (1266)</locmod>
+        <locline>ref ;CXXPrime5;Const, Global;maxLogic.StrUtils (1266)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Create</name>
+      <type>FM</type>
+      <ownertype>TFilterEx</ownertype>
+      <locmod>maxLogic.StrUtils\TFilterEx (257)</locmod>
+      <ref>
+        <id>TFilterEx = Record</id>
+        <kind>Type, Global</kind>
+        <locmod>maxLogic.StrUtils (236)</locmod>
+        <locline>ref ;TFilterEx = Record;Type, Global;maxLogic.StrUtils (236)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Matches</name>
+      <type>FM</type>
+      <ownertype>TFilterEx</ownertype>
+      <locmod>maxLogic.StrUtils\TFilterEx (261)</locmod>
+      <ref>
+        <id>kContains</id>
+        <kind>Enum const, Global</kind>
+        <locmod>maxLogic.StrUtils\TKind (238)</locmod>
+        <locline>ref ;kContains;Enum const, Global;maxLogic.StrUtils\TKind (238)</locline>
+      </ref>
+      <ref>
+        <id>kEnds</id>
+        <kind>Enum const, Global</kind>
+        <locmod>maxLogic.StrUtils\TKind (238)</locmod>
+        <locline>ref ;kEnds;Enum const, Global;maxLogic.StrUtils\TKind (238)</locline>
+      </ref>
+      <ref>
+        <id>kMask</id>
+        <kind>Enum const, Global</kind>
+        <locmod>maxLogic.StrUtils\TKind (238)</locmod>
+        <locline>ref ;kMask;Enum const, Global;maxLogic.StrUtils\TKind (238)</locline>
+      </ref>
+      <ref>
+        <id>kStarts</id>
+        <kind>Enum const, Global</kind>
+        <locmod>maxLogic.StrUtils\TKind (238)</locmod>
+        <locline>ref ;kStarts;Enum const, Global;maxLogic.StrUtils\TKind (238)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Prepare</name>
+      <type>PM</type>
+      <ownertype>TFilterEx</ownertype>
+      <locmod>maxLogic.StrUtils\TFilterEx (251)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>AutoFree (69)</locmod>
+        <locline>ref ;GC;Proc, Interfaced;AutoFree (69)</locline>
+      </ref>
+      <ref>
+        <id>TFilterItem = Record</id>
+        <kind>Nestled Type, Global</kind>
+        <locmod>maxLogic.StrUtils (240)</locmod>
+        <locline>ref ;TFilterItem = Record;Nestled Type, Global;maxLogic.StrUtils (240)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Preprocess</name>
+      <type>PM</type>
+      <ownertype>TFilterEx</ownertype>
+      <locmod>maxLogic.StrUtils\TFilterEx (254)</locmod>
+      <ref>
+        <id>kContains</id>
+        <kind>Enum const, Global</kind>
+        <locmod>maxLogic.StrUtils\TKind (238)</locmod>
+        <locline>ref ;kContains;Enum const, Global;maxLogic.StrUtils\TKind (238)</locline>
+      </ref>
+      <ref>
+        <id>kEnds</id>
+        <kind>Enum const, Global</kind>
+        <locmod>maxLogic.StrUtils\TKind (238)</locmod>
+        <locline>ref ;kEnds;Enum const, Global;maxLogic.StrUtils\TKind (238)</locline>
+      </ref>
+      <ref>
+        <id>kMask</id>
+        <kind>Enum const, Global</kind>
+        <locmod>maxLogic.StrUtils\TKind (238)</locmod>
+        <locline>ref ;kMask;Enum const, Global;maxLogic.StrUtils\TKind (238)</locline>
+      </ref>
+      <ref>
+        <id>kStarts</id>
+        <kind>Enum const, Global</kind>
+        <locmod>maxLogic.StrUtils\TKind (238)</locmod>
+        <locline>ref ;kStarts;Enum const, Global;maxLogic.StrUtils\TKind (238)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>SplitBySpace</name>
+      <type>FM</type>
+      <ownertype>TFilterEx</ownertype>
+      <locmod>maxLogic.StrUtils\TFilterEx (253)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>AutoFree (69)</locmod>
+        <locline>ref ;GC;Proc, Interfaced;AutoFree (69)</locline>
+      </ref>
+      <set>
+        <id>TList&lt;TComplexityEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1564)</locmod>
+        <locline>set ;TList&lt;TComplexityEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1564)</locline>
+      </set>
+      <set>
+        <id>TList&lt;THotspotEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+        <locline>set ;TList&lt;THotspotEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1916)</locline>
+      </set>
+      <set>
+        <id>TList&lt;TPalFinding&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1264)</locmod>
+        <locline>set ;TList&lt;TPalFinding&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1264)</locline>
+      </set>
+      <set>
+        <id>TList&lt;UnicodeString&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Diagnostics (13)</locmod>
+        <locline>set ;TList&lt;UnicodeString&gt; = Class;Type, Interfaced;Dak.Diagnostics (13)</locline>
+      </set>
+      <set>
+        <id>TList&lt;UnicodeString&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (532)</locmod>
+        <locline>set ;TList&lt;UnicodeString&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (532)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>FixInsightFiltering</name>
+      <type>PM</type>
+      <ownertype>TFixInsightTests</ownertype>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+      <ref>
+        <id>EnsureResolverBuilt</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (18)</locmod>
+        <locline>ref ;EnsureResolverBuilt;Proc, Interfaced;Test.Support (18)</locline>
+      </ref>
+      <ref>
+        <id>RequireFixInsightOrSkip</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (21)</locmod>
+        <locline>ref ;RequireFixInsightOrSkip;Proc, Interfaced;Test.Support (21)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>RunFixInsightOutputs</name>
+      <type>PM</type>
+      <ownertype>TFixInsightTests</ownertype>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (24)</locmod>
+        <locline>ref ;QuoteArg;Func, Interfaced;Test.Support (24)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>ResolverExePath</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (19)</locmod>
+        <locline>ref ;ResolverExePath;Func, Interfaced;Test.Support (19)</locline>
+      </ref>
+      <ref>
+        <id>RunProcess</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (23)</locmod>
+        <locline>ref ;RunProcess;Func, Interfaced;Test.Support (23)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>AddAfterFree</name>
+      <type>FM</type>
+      <ownertype>TGarbo</ownertype>
+      <locmod>AutoFree\TGarbo (40)</locmod>
+      <ref>
+        <id>TGarbo = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>AutoFree (31)</locmod>
+        <locline>ref ;TGarbo = Class;Type, Interfaced;AutoFree (31)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;TComplexityEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1564)</locmod>
+        <locline>ref ;TList&lt;TComplexityEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1564)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;THotspotEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+        <locline>ref ;TList&lt;THotspotEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1916)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;TPalFinding&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1264)</locmod>
+        <locline>ref ;TList&lt;TPalFinding&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1264)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;UnicodeString&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Diagnostics (13)</locmod>
+        <locline>ref ;TList&lt;UnicodeString&gt; = Class;Type, Interfaced;Dak.Diagnostics (13)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;UnicodeString&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (532)</locmod>
+        <locline>ref ;TList&lt;UnicodeString&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (532)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;UnicodeString&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (797)</locmod>
+        <locline>ref ;TList&lt;UnicodeString&gt; = Class;Type, Interfaced;maxLogic.StrUtils (797)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>GC&lt;T&gt;</name>
+      <type>PM</type>
+      <ownertype>TGarbo</ownertype>
+      <locmod>AutoFree\TGarbo (44)</locmod>
+      <ref>
+        <id>Add</id>
+        <kind>Proc, Method</kind>
+        <locmod>AutoFree\TGarbos (22)</locmod>
+        <locline>ref ;Add;Proc, Method;AutoFree\TGarbos (22)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Add</name>
+      <type>FM</type>
+      <ownertype>TGarbos</ownertype>
+      <locmod>AutoFree\TGarbos (23)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>AutoFree (71)</locmod>
+        <locline>ref ;GC;Func, Interfaced;AutoFree (71)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>NormalizePalFindingsFromFixtures</name>
+      <type>PM</type>
+      <ownertype>TPalFindingNormalizeTests</ownertype>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+      <ref>
+        <id>TryGeneratePalArtifacts</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+        <locline>ref ;TryGeneratePalArtifacts;Func, Interfaced;Dak.PascalAnalyzerRunner (25)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>RunPascalAnalyzer</name>
+      <type>PM</type>
+      <ownertype>TPascalAnalyzerTests</ownertype>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      <ref>
+        <id>DefaultPalThreads</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.PascalAnalyzer (60)</locmod>
+        <locline>ref ;DefaultPalThreads;Func, Global;Test.PascalAnalyzer (60)</locline>
+      </ref>
+      <ref>
+        <id>EnsureResolverBuilt</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (18)</locmod>
+        <locline>ref ;EnsureResolverBuilt;Proc, Interfaced;Test.Support (18)</locline>
+      </ref>
+      <ref>
+        <id>PalCmdSupportsFlag</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.PascalAnalyzer (26)</locmod>
+        <locline>ref ;PalCmdSupportsFlag;Func, Global;Test.PascalAnalyzer (26)</locline>
+      </ref>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (24)</locmod>
+        <locline>ref ;QuoteArg;Func, Interfaced;Test.Support (24)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>RequirePalCmdOrSkip</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (22)</locmod>
+        <locline>ref ;RequirePalCmdOrSkip;Proc, Interfaced;Test.Support (22)</locline>
+      </ref>
+      <ref>
+        <id>ResolverExePath</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (19)</locmod>
+        <locline>ref ;ResolverExePath;Func, Interfaced;Test.Support (19)</locline>
+      </ref>
+      <ref>
+        <id>RunProcess</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (23)</locmod>
+        <locline>ref ;RunProcess;Func, Interfaced;Test.Support (23)</locline>
+      </ref>
+      <ref>
+        <id>TailFile</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.PascalAnalyzer (44)</locmod>
+        <locline>ref ;TailFile;Func, Global;Test.PascalAnalyzer (44)</locline>
+      </ref>
+      <ref>
+        <id>TempRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (16)</locmod>
+        <locline>ref ;TempRoot;Func, Interfaced;Test.Support (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>SelectsSupportedCompilerFlag</name>
+      <type>PM</type>
+      <ownertype>TPascalAnalyzerTests</ownertype>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+      <ref>
+        <id>BuildPalCmdCommandLine</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+        <locline>ref ;BuildPalCmdCommandLine;Func, Interfaced;Dak.PascalAnalyzerRunner (14)</locline>
+      </ref>
+      <ref>
+        <id>PalCmdSupportsFlag</id>
+        <kind>Func, Global</kind>
+        <locmod>Test.PascalAnalyzer (26)</locmod>
+        <locline>ref ;PalCmdSupportsFlag;Func, Global;Test.PascalAnalyzer (26)</locline>
+      </ref>
+      <ref>
+        <id>RepoRoot</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Test.Support (15)</locmod>
+        <locline>ref ;RepoRoot;Func, Interfaced;Test.Support (15)</locline>
+      </ref>
+      <ref>
+        <id>RequirePalCmdOrSkip</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>Test.Support (22)</locmod>
+        <locline>ref ;RequirePalCmdOrSkip;Proc, Interfaced;Test.Support (22)</locline>
+      </ref>
+      <ref>
+        <id>TFixInsightParams = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Types (94)</locmod>
+        <locline>ref ;TFixInsightParams = Record;Type, Interfaced;Dak.Types (94)</locline>
+      </ref>
+      <ref>
+        <id>TPascalAnalyzerDefaults = Record</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.Types (88)</locmod>
+        <locline>ref ;TPascalAnalyzerDefaults = Record;Type, Interfaced;Dak.Types (88)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Trap</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>AutoFree (80)</locmod>
+      <ref>
+        <id>New</id>
+        <kind>Func, Method</kind>
+        <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+        <locline>ref ;New;Func, Method;AutoFree\TCallProcOnDestroy (64)</locline>
+      </ref>
+      <ref>
+        <id>TCallProcOnDestroy = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>AutoFree (56)</locmod>
+        <locline>ref ;TCallProcOnDestroy = Class;Type, Interfaced;AutoFree (56)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Replace</name>
+      <type>FM</type>
+      <ownertype>TRegExHelper</ownertype>
+      <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>AutoFree (69)</locmod>
+        <locline>ref ;GC;Proc, Interfaced;AutoFree (69)</locline>
+      </ref>
+      <ref>
+        <id>Invoke</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TProcAdapter (308)</locmod>
+        <locline>ref ;Invoke;Func, Method;maxLogic.StrUtils\TProcAdapter (308)</locline>
+      </ref>
+      <ref>
+        <id>TRegExHelper = Record</id>
+        <kind>Type, Global</kind>
+        <locmod>maxLogic.StrUtils (299)</locmod>
+        <locline>ref ;TRegExHelper = Record;Type, Global;maxLogic.StrUtils (299)</locline>
+      </ref>
+      <set>
+        <id>TProcAdapter = Class</id>
+        <kind>Nestled Type, Global</kind>
+        <locmod>maxLogic.StrUtils (303)</locmod>
+        <locline>set ;TProcAdapter = Class;Nestled Type, Global;maxLogic.StrUtils (303)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>Replace</name>
+      <type>FM</type>
+      <ownertype>TRegExHelper</ownertype>
+      <locmod>maxLogic.StrUtils\TRegExHelper (313)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>AutoFree (69)</locmod>
+        <locline>ref ;GC;Proc, Interfaced;AutoFree (69)</locline>
+      </ref>
+      <ref>
+        <id>Invoke</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TProcAdapter (308)</locmod>
+        <locline>ref ;Invoke;Func, Method;maxLogic.StrUtils\TProcAdapter (308)</locline>
+      </ref>
+      <ref>
+        <id>TRegExHelper = Record</id>
+        <kind>Type, Global</kind>
+        <locmod>maxLogic.StrUtils (299)</locmod>
+        <locline>ref ;TRegExHelper = Record;Type, Global;maxLogic.StrUtils (299)</locline>
+      </ref>
+      <set>
+        <id>TProcAdapter = Class</id>
+        <kind>Nestled Type, Global</kind>
+        <locmod>maxLogic.StrUtils (303)</locmod>
+        <locline>set ;TProcAdapter = Class;Nestled Type, Global;maxLogic.StrUtils (303)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>Replace</name>
+      <type>FM</type>
+      <ownertype>TRegExHelper</ownertype>
+      <locmod>maxLogic.StrUtils\TRegExHelper (316)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>AutoFree (69)</locmod>
+        <locline>ref ;GC;Proc, Interfaced;AutoFree (69)</locline>
+      </ref>
+      <ref>
+        <id>Invoke</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TProcAdapter (308)</locmod>
+        <locline>ref ;Invoke;Func, Method;maxLogic.StrUtils\TProcAdapter (308)</locline>
+      </ref>
+      <set>
+        <id>TProcAdapter = Class</id>
+        <kind>Nestled Type, Global</kind>
+        <locmod>maxLogic.StrUtils (303)</locmod>
+        <locline>set ;TProcAdapter = Class;Nestled Type, Global;maxLogic.StrUtils (303)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>Replace</name>
+      <type>FM</type>
+      <ownertype>TRegExHelper</ownertype>
+      <locmod>maxLogic.StrUtils\TRegExHelper (317)</locmod>
+      <ref>
+        <id>GC</id>
+        <kind>Proc, Interfaced</kind>
+        <locmod>AutoFree (69)</locmod>
+        <locline>ref ;GC;Proc, Interfaced;AutoFree (69)</locline>
+      </ref>
+      <ref>
+        <id>Invoke</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TProcAdapter (308)</locmod>
+        <locline>ref ;Invoke;Func, Method;maxLogic.StrUtils\TProcAdapter (308)</locline>
+      </ref>
+      <set>
+        <id>TProcAdapter = Class</id>
+        <kind>Nestled Type, Global</kind>
+        <locmod>maxLogic.StrUtils (303)</locmod>
+        <locline>set ;TProcAdapter = Class;Nestled Type, Global;maxLogic.StrUtils (303)</locline>
+      </set>
+    </subprog>
+    <subprog>
+      <name>TryBuildDelphiTargetFlag</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      <ref>
+        <id>ContainsFlag</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (410)</locmod>
+        <locline>ref ;ContainsFlag;Func, Global;Dak.PascalAnalyzerRunner (410)</locline>
+      </ref>
+      <ref>
+        <id>FindOrderIndex</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (276)</locmod>
+        <locline>ref ;FindOrderIndex;Func, Global;Dak.PascalAnalyzerRunner (276)</locline>
+      </ref>
+      <ref>
+        <id>FreePalCmdMap</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (127)</locmod>
+        <locline>ref ;FreePalCmdMap;Proc, Global;Dak.PascalAnalyzerRunner (127)</locline>
+      </ref>
+      <ref>
+        <id>TryGetFileVersionMajor</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (475)</locmod>
+        <locline>ref ;TryGetFileVersionMajor;Func, Global;Dak.PascalAnalyzerRunner (475)</locline>
+      </ref>
+      <ref>
+        <id>TryGetPalCmdHelpText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (395)</locmod>
+        <locline>ref ;TryGetPalCmdHelpText;Func, Global;Dak.PascalAnalyzerRunner (395)</locline>
+      </ref>
+      <ref>
+        <id>TryGetPalCmdMaxDelphi</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (286)</locmod>
+        <locline>ref ;TryGetPalCmdMaxDelphi;Func, Global;Dak.PascalAnalyzerRunner (286)</locline>
+      </ref>
+      <ref>
+        <id>TryLoadPalCmdMap</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+        <locline>ref ;TryLoadPalCmdMap;Func, Global;Dak.PascalAnalyzerRunner (172)</locline>
+      </ref>
+      <ref>
+        <id>TryResolveFlagFromHelp</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (440)</locmod>
+        <locline>ref ;TryResolveFlagFromHelp;Func, Global;Dak.PascalAnalyzerRunner (440)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryCaptureProcessOutput</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+      <ref>
+        <id>QuoteArg</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+        <locline>ref ;QuoteArg;Func, Global;Dak.PascalAnalyzerRunner (44)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryFindPalReportRoot</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (24)</locmod>
+      <ref>
+        <id>SPalStatusFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (42)</locmod>
+        <locline>ref ;SPalStatusFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (42)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryGeneratePalArtifacts</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      <ref>
+        <id>IsAggregateName</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1542)</locmod>
+        <locline>ref ;IsAggregateName;Func, Global;Dak.PascalAnalyzerRunner (1542)</locline>
+      </ref>
+      <ref>
+        <id>OrdinalIgnoreCase</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+        <locline>ref ;OrdinalIgnoreCase;Func, Method;maxLogic.StrUtils\TFastCaseAwareComparer (150)</locline>
+      </ref>
+      <ref>
+        <id>ParseExceptionReport</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+        <locline>ref ;ParseExceptionReport;Proc, Global;Dak.PascalAnalyzerRunner (1487)</locline>
+      </ref>
+      <ref>
+        <id>ParseFindingReport</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+        <locline>ref ;ParseFindingReport;Proc, Global;Dak.PascalAnalyzerRunner (1423)</locline>
+      </ref>
+      <ref>
+        <id>SortHotspots</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1724)</locmod>
+        <locline>ref ;SortHotspots;Proc, Global;Dak.PascalAnalyzerRunner (1724)</locline>
+      </ref>
+      <ref>
+        <id>SPalComplexityFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (40)</locmod>
+        <locline>ref ;SPalComplexityFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (40)</locline>
+      </ref>
+      <ref>
+        <id>SPalExceptionFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (39)</locmod>
+        <locline>ref ;SPalExceptionFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (39)</locline>
+      </ref>
+      <ref>
+        <id>SPalFindingsFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (33)</locmod>
+        <locline>ref ;SPalFindingsFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (33)</locline>
+      </ref>
+      <ref>
+        <id>SPalFindingsJsonlFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (34)</locmod>
+        <locline>ref ;SPalFindingsJsonlFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (34)</locline>
+      </ref>
+      <ref>
+        <id>SPalHotspotsFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (35)</locmod>
+        <locline>ref ;SPalHotspotsFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (35)</locline>
+      </ref>
+      <ref>
+        <id>SPalModuleTotalsFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (41)</locmod>
+        <locline>ref ;SPalModuleTotalsFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (41)</locline>
+      </ref>
+      <ref>
+        <id>SPalOptimizationFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (38)</locmod>
+        <locline>ref ;SPalOptimizationFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (38)</locline>
+      </ref>
+      <ref>
+        <id>SPalSeverityException : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1187)</locmod>
+        <locline>ref ;SPalSeverityException : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (1187)</locline>
+      </ref>
+      <ref>
+        <id>SPalSeverityOptimization : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1186)</locmod>
+        <locline>ref ;SPalSeverityOptimization : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (1186)</locline>
+      </ref>
+      <ref>
+        <id>SPalSeverityStrongWarning : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1185)</locmod>
+        <locline>ref ;SPalSeverityStrongWarning : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (1185)</locline>
+      </ref>
+      <ref>
+        <id>SPalSeverityWarning : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1184)</locmod>
+        <locline>ref ;SPalSeverityWarning : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (1184)</locline>
+      </ref>
+      <ref>
+        <id>SPalStrongWarningsFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (37)</locmod>
+        <locline>ref ;SPalStrongWarningsFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (37)</locline>
+      </ref>
+      <ref>
+        <id>SPalWarningsFileName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (36)</locmod>
+        <locline>ref ;SPalWarningsFileName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (36)</locline>
+      </ref>
+      <ref>
+        <id>TakeTopHotspots</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1714)</locmod>
+        <locline>ref ;TakeTopHotspots;Func, Global;Dak.PascalAnalyzerRunner (1714)</locline>
+      </ref>
+      <ref>
+        <id>TFastCaseAwareComparer = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (130)</locmod>
+        <locline>ref ;TFastCaseAwareComparer = Class;Type, Interfaced;maxLogic.StrUtils (130)</locline>
+      </ref>
+      <ref>
+        <id>THotspotEntry = Record</id>
+        <kind>Type, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+        <locline>ref ;THotspotEntry = Record;Type, Global;Dak.PascalAnalyzerRunner (1177)</locline>
+      </ref>
+      <ref>
+        <id>TPalFinding = Record</id>
+        <kind>Type, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+        <locline>ref ;TPalFinding = Record;Type, Global;Dak.PascalAnalyzerRunner (1159)</locline>
+      </ref>
+      <ref>
+        <id>TryLoadComplexityEntries</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+        <locline>ref ;TryLoadComplexityEntries;Func, Global;Dak.PascalAnalyzerRunner (1558)</locline>
+      </ref>
+      <ref>
+        <id>TryLoadModuleLines</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+        <locline>ref ;TryLoadModuleLines;Func, Global;Dak.PascalAnalyzerRunner (1627)</locline>
+      </ref>
+      <ref>
+        <id>WritePalFindingsJsonl</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1766)</locmod>
+        <locline>ref ;WritePalFindingsJsonl;Func, Global;Dak.PascalAnalyzerRunner (1766)</locline>
+      </ref>
+      <ref>
+        <id>WritePalFindingsMd</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1729)</locmod>
+        <locline>ref ;WritePalFindingsMd;Func, Global;Dak.PascalAnalyzerRunner (1729)</locline>
+      </ref>
+      <ref>
+        <id>WritePalHotspotsMd</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1809)</locmod>
+        <locline>ref ;WritePalHotspotsMd;Func, Global;Dak.PascalAnalyzerRunner (1809)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryGetPalCmdHelpText</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (395)</locmod>
+      <ref>
+        <id>TryCaptureProcessOutput</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+        <locline>ref ;TryCaptureProcessOutput;Func, Global;Dak.PascalAnalyzerRunner (305)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryLoadComplexityEntries</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+      <ref>
+        <id>AttrText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+        <locline>ref ;AttrText;Func, Global;Dak.PascalAnalyzerRunner (1209)</locline>
+      </ref>
+      <ref>
+        <id>ChildText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+        <locline>ref ;ChildText;Func, Global;Dak.PascalAnalyzerRunner (1196)</locline>
+      </ref>
+      <ref>
+        <id>NormalizeLineText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+        <locline>ref ;NormalizeLineText;Func, Global;Dak.PascalAnalyzerRunner (1190)</locline>
+      </ref>
+      <ref>
+        <id>SplitComplexityName</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1515)</locmod>
+        <locline>ref ;SplitComplexityName;Func, Global;Dak.PascalAnalyzerRunner (1515)</locline>
+      </ref>
+      <ref>
+        <id>TComplexityEntry = Record</id>
+        <kind>Type, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+        <locline>ref ;TComplexityEntry = Record;Type, Global;Dak.PascalAnalyzerRunner (1170)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;THotspotEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+        <locline>ref ;TList&lt;THotspotEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1916)</locline>
+      </ref>
+      <ref>
+        <id>TryLoadXml</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+        <locline>ref ;TryLoadXml;Func, Global;Dak.PascalAnalyzerRunner (1392)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryLoadModuleLines</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+      <ref>
+        <id>ChildText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+        <locline>ref ;ChildText;Func, Global;Dak.PascalAnalyzerRunner (1196)</locline>
+      </ref>
+      <ref>
+        <id>IsAggregateName</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1542)</locmod>
+        <locline>ref ;IsAggregateName;Func, Global;Dak.PascalAnalyzerRunner (1542)</locline>
+      </ref>
+      <ref>
+        <id>NormalizeLineText</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+        <locline>ref ;NormalizeLineText;Func, Global;Dak.PascalAnalyzerRunner (1190)</locline>
+      </ref>
+      <ref>
+        <id>OrdinalIgnoreCase</id>
+        <kind>Func, Method</kind>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+        <locline>ref ;OrdinalIgnoreCase;Func, Method;maxLogic.StrUtils\TFastCaseAwareComparer (150)</locline>
+      </ref>
+      <ref>
+        <id>TFastCaseAwareComparer = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>maxLogic.StrUtils (130)</locmod>
+        <locline>ref ;TFastCaseAwareComparer = Class;Type, Interfaced;maxLogic.StrUtils (130)</locline>
+      </ref>
+      <ref>
+        <id>TryLoadXml</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+        <locline>ref ;TryLoadXml;Func, Global;Dak.PascalAnalyzerRunner (1392)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryLoadPalCmdMap</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+      <ref>
+        <id>FreePalCmdMap</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (127)</locmod>
+        <locline>ref ;FreePalCmdMap;Proc, Global;Dak.PascalAnalyzerRunner (127)</locline>
+      </ref>
+      <ref>
+        <id>InitPalCmdMap</id>
+        <kind>Proc, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (118)</locmod>
+        <locline>ref ;InitPalCmdMap;Proc, Global;Dak.PascalAnalyzerRunner (118)</locline>
+      </ref>
+      <ref>
+        <id>JsonGetInteger</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (151)</locmod>
+        <locline>ref ;JsonGetInteger;Func, Global;Dak.PascalAnalyzerRunner (151)</locline>
+      </ref>
+      <ref>
+        <id>JsonGetString</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (141)</locmod>
+        <locline>ref ;JsonGetString;Func, Global;Dak.PascalAnalyzerRunner (141)</locline>
+      </ref>
+      <ref>
+        <id>PalCmdMapPath</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (136)</locmod>
+        <locline>ref ;PalCmdMapPath;Func, Global;Dak.PascalAnalyzerRunner (136)</locline>
+      </ref>
+      <ref>
+        <id>TryGetJsonArray</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (161)</locmod>
+        <locline>ref ;TryGetJsonArray;Func, Global;Dak.PascalAnalyzerRunner (161)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryReadRegistryValue</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.FixInsight\TryResolveFixInsightExe (84)</locmod>
+      <ref>
+        <id>SFixInsightRegValue : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.FixInsight (16)</locmod>
+        <locline>ref ;SFixInsightRegValue : UnicodeString;Const, Global;Dak.FixInsight (16)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryResolveFixInsightExe</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.FixInsight (10)</locmod>
+      <ref>
+        <id>AddInfo</id>
+        <kind>Proc, Method</kind>
+        <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+        <locline>ref ;AddInfo;Proc, Method;Dak.Diagnostics\TDiagnostics (44)</locline>
+      </ref>
+      <ref>
+        <id>BuildFromRegistry</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.FixInsight (59)</locmod>
+        <locline>ref ;BuildFromRegistry;Func, Global;Dak.FixInsight (59)</locline>
+      </ref>
+      <ref>
+        <id>CFixInsightRegKeys : Array (static)</id>
+        <kind>Typed const, Global</kind>
+        <locmod>Dak.FixInsight (17)</locmod>
+        <locline>ref ;CFixInsightRegKeys : Array (static);Typed const, Global;Dak.FixInsight (17)</locline>
+      </ref>
+      <ref>
+        <id>FindInPath</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.FixInsight (39)</locmod>
+        <locline>ref ;FindInPath;Func, Global;Dak.FixInsight (39)</locline>
+      </ref>
+      <ref>
+        <id>SFixInsightExeName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.FixInsight (15)</locmod>
+        <locline>ref ;SFixInsightExeName : UnicodeString;Const, Global;Dak.FixInsight (15)</locline>
+      </ref>
+      <ref>
+        <id>SInfoFixInsightPath : UnicodeString</id>
+        <kind>Const, Interfaced</kind>
+        <locmod>Dak.Messages (110)</locmod>
+        <locline>ref ;SInfoFixInsightPath : UnicodeString;Const, Interfaced;Dak.Messages (110)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryResolveFlagFromHelp</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (440)</locmod>
+      <ref>
+        <id>ContainsFlag</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (410)</locmod>
+        <locline>ref ;ContainsFlag;Func, Global;Dak.PascalAnalyzerRunner (410)</locline>
+      </ref>
+      <ref>
+        <id>FindOrderIndex</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (276)</locmod>
+        <locline>ref ;FindOrderIndex;Func, Global;Dak.PascalAnalyzerRunner (276)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryResolvePalCmdExe</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+      <ref>
+        <id>ChoosePalCmdExeInDir</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+        <locline>ref ;ChoosePalCmdExeInDir;Func, Global;Dak.PascalAnalyzerRunner (510)</locline>
+      </ref>
+      <ref>
+        <id>NormalizeExePath</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (498)</locmod>
+        <locline>ref ;NormalizeExePath;Func, Global;Dak.PascalAnalyzerRunner (498)</locline>
+      </ref>
+      <ref>
+        <id>TryResolvePalCmdExeFromKnownRoots</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+        <locline>ref ;TryResolvePalCmdExeFromKnownRoots;Func, Global;Dak.PascalAnalyzerRunner (527)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryResolvePalCmdExeFromKnownRoots</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+      <ref>
+        <id>ChoosePalCmdExeInDir</id>
+        <kind>Func, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+        <locline>ref ;ChoosePalCmdExeInDir;Func, Global;Dak.PascalAnalyzerRunner (510)</locline>
+      </ref>
+      <ref>
+        <id>SPalCmd32ExeName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (31)</locmod>
+        <locline>ref ;SPalCmd32ExeName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (31)</locline>
+      </ref>
+      <ref>
+        <id>SPalCmdExeName : UnicodeString</id>
+        <kind>Const, Global</kind>
+        <locmod>Dak.PascalAnalyzerRunner (30)</locmod>
+        <locline>ref ;SPalCmdExeName : UnicodeString;Const, Global;Dak.PascalAnalyzerRunner (30)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;TComplexityEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1564)</locmod>
+        <locline>ref ;TList&lt;TComplexityEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1564)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;THotspotEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+        <locline>ref ;TList&lt;THotspotEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1916)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;TPalFinding&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1264)</locmod>
+        <locline>ref ;TList&lt;TPalFinding&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1264)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryRunPascalAnalyzer</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (16)</locmod>
+      <ref>
+        <id>TryRunPascalAnalyzerWithHandles</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+        <locline>ref ;TryRunPascalAnalyzerWithHandles;Func, Interfaced;Dak.PascalAnalyzerRunner (18)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryRunPascalAnalyzerUnit</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (22)</locmod>
+      <ref>
+        <id>BuildPalCmdUnitCommandLine</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+        <locline>ref ;BuildPalCmdUnitCommandLine;Func, Interfaced;Dak.PascalAnalyzerRunner (20)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryRunPascalAnalyzerWithHandles</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+      <ref>
+        <id>BuildPalCmdCommandLine</id>
+        <kind>Func, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+        <locline>ref ;BuildPalCmdCommandLine;Func, Interfaced;Dak.PascalAnalyzerRunner (14)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>TryStrToFLoatWCC</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (284)</locmod>
+      <ref>
+        <id>PrepareTextForStrToFloatWcc</id>
+        <kind>Proc, Global</kind>
+        <locmod>maxLogic.StrUtils (286)</locmod>
+        <locline>ref ;PrepareTextForStrToFloatWcc;Proc, Global;maxLogic.StrUtils (286)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Create</name>
+      <type>C</type>
+      <ownertype>TStringSet</ownertype>
+      <locmod>Dak.Diagnostics\TStringSet (16)</locmod>
+      <ref>
+        <id>TList&lt;TComplexityEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1564)</locmod>
+        <locline>ref ;TList&lt;TComplexityEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1564)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;THotspotEntry&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+        <locline>ref ;TList&lt;THotspotEntry&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1916)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;TPalFinding&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (1264)</locmod>
+        <locline>ref ;TList&lt;TPalFinding&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (1264)</locline>
+      </ref>
+      <ref>
+        <id>TList&lt;UnicodeString&gt; = Class</id>
+        <kind>Type, Interfaced</kind>
+        <locmod>Dak.PascalAnalyzerRunner (532)</locmod>
+        <locline>ref ;TList&lt;UnicodeString&gt; = Class;Type, Interfaced;Dak.PascalAnalyzerRunner (532)</locline>
+      </ref>
+    </subprog>
+    <subprog>
+      <name>Utf8TruncateByCodePoint</name>
+      <type>F</type>
+      <ownertype/>
+      <locmod>maxLogic.StrUtils (280)</locmod>
+      <ref>
+        <id>IsUtf8ContinuationByte</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (985)</locmod>
+        <locline>ref ;IsUtf8ContinuationByte;Func, Global;maxLogic.StrUtils (985)</locline>
+      </ref>
+      <ref>
+        <id>Utf8SequenceLength</id>
+        <kind>Func, Global</kind>
+        <locmod>maxLogic.StrUtils (972)</locmod>
+        <locline>ref ;Utf8SequenceLength;Func, Global;maxLogic.StrUtils (972)</locline>
+      </ref>
+    </subprog>
+  </section>
+</report>

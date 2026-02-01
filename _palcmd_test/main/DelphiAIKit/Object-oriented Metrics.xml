@@ -1,0 +1,2926 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Object-oriented Metrics Report">
+  <created>29.01.2026 23:48:55</created>
+  <section name="Weighted Methods per Class (WMC)">
+    <item>
+      <id>WMC=0,0...TSignal in maxSignal</id>
+      <WMC>0,0</WMC>
+      <locmod>maxSignal (39)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxSignal\TSignal (44)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>maxSignal\TSignal (45)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetEvent (FM)</id>
+      <dp>0</dp>
+      <locmod>maxSignal\TSignal (42)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  MsgWaitForSignaled (PM)</id>
+      <dp>0</dp>
+      <locmod>maxSignal\TSignal (52)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetNonSignaled (PM)</id>
+      <dp>0</dp>
+      <locmod>maxSignal\TSignal (48)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetSignaled (PM)</id>
+      <dp>0</dp>
+      <locmod>maxSignal\TSignal (47)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  WaitForSignaled (FM)</id>
+      <dp>0</dp>
+      <locmod>maxSignal\TSignal (49)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TRTLCriticalSectionHelper in maxAsync</id>
+      <WMC>0,0</WMC>
+      <locmod>maxAsync (192)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TRTLCriticalSectionHelper (196)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Enter (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TRTLCriticalSectionHelper (199)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  exit (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TRTLCriticalSectionHelper (202)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Free (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TRTLCriticalSectionHelper (203)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  leave (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TRTLCriticalSectionHelper (200)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TFixedRtlCriticalSection in maxAsync</id>
+      <WMC>0,0</WMC>
+      <locmod>maxAsync (208)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TFixedRtlCriticalSection (215)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Enter (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TFixedRtlCriticalSection (217)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  exit (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TFixedRtlCriticalSection (220)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Free (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TFixedRtlCriticalSection (221)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  leave (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TFixedRtlCriticalSection (218)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TObjectWithCriticalSection in maxAsync</id>
+      <WMC>0,0</WMC>
+      <locmod>maxAsync (225)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TObjectWithCriticalSection (233)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TObjectWithCriticalSection (234)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  lock (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TObjectWithCriticalSection (236)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  unlock (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TObjectWithCriticalSection (237)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...tInterfacedCriticalSection in maxAsync</id>
+      <WMC>0,0</WMC>
+      <locmod>maxAsync (246)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\tInterfacedCriticalSection (250)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\tInterfacedCriticalSection (251)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Enter (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\tInterfacedCriticalSection (253)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  leave (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\tInterfacedCriticalSection (254)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TThreadData in maxAsync</id>
+      <WMC>0,0</WMC>
+      <locmod>maxAsync (257)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (297)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (298)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetFinished (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (278)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetFullThreadId (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (275)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetKeepAlive (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (285)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetProc (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (286)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetReadySignal (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (282)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetStartSignal (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (295)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetTaskName (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (287)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetTerminated (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (294)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetThread (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (274)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetWaiting (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (279)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetWakeSignal (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (283)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  SetDefaultValues (PM)</id>
+      <dp>1</dp>
+      <locmod>maxAsync\TThreadData (300)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetFinished (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (280)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetKeepAlive (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (288)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetProc (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (290)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetTaskName (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (291)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetTerminated (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (293)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetThread (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (277)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetThreadId (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (276)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetThreadToTerminated (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (289)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetWaiting (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TThreadData (281)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,2...TmaxAsync in maxAsync</id>
+      <WMC>0,2</WMC>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TmaxAsync (329)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TmaxAsync (330)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Finished (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TmaxAsync (335)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetThreadData (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TmaxAsync (323)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetThreadPriority (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TmaxAsync (325)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  msgwaitfor (PM)</id>
+      <dp>1</dp>
+      <locmod>maxAsync\TmaxAsync (332)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetThreadPriority (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TmaxAsync (326)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  WaitFor (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TmaxAsync (334)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  WakeUp (PM)</id>
+      <dp>1</dp>
+      <locmod>maxAsync\TmaxAsync (337)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  WakeUp (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TmaxAsync (336)</locmod>
+    </item>
+    <item>
+      <id>WMC=1,3...TAsyncLoop in maxAsync</id>
+      <WMC>1,3</WMC>
+      <locmod>maxAsync (360)</locmod>
+    </item>
+    <item>
+      <id>  DP=6......  asyncLoopIteration (PM)</id>
+      <dp>6</dp>
+      <locmod>maxAsync\TAsyncLoop (373)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Cancel (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TAsyncLoop (380)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TAsyncLoop (375)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  Destroy (D)</id>
+      <dp>2</dp>
+      <locmod>maxAsync\TAsyncLoop (376)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Execute (PM)</id>
+      <dp>1</dp>
+      <locmod>maxAsync\TAsyncLoop (378)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  Run (PM)</id>
+      <dp>2</dp>
+      <locmod>maxAsync\TAsyncLoop (384)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  RunAndWait (PM)</id>
+      <dp>2</dp>
+      <locmod>maxAsync\TAsyncLoop (383)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetOnFinished (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TAsyncLoop (371)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetSimultanousThreadCount (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TAsyncLoop (372)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  WaitFor (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TAsyncLoop (379)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TSafeValue&lt;T&gt; in maxAsync</id>
+      <WMC>0,0</WMC>
+      <locmod>maxAsync (468)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  EnsureInit (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (463)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  getValue (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (461)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  new (FM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (468)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetValue (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (462)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,5...TLockFreeLock in maxAsync</id>
+      <WMC>0,5</WMC>
+      <locmod>maxAsync (480)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  lock (PM)</id>
+      <dp>1</dp>
+      <locmod>maxAsync\TLockFreeLock (484)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  unlock (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TLockFreeLock (486)</locmod>
+    </item>
+    <item>
+      <id>WMC=2,1...TmaxAsyncGlobal in maxAsync</id>
+      <WMC>2,1</WMC>
+      <locmod>maxAsync (501)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  addToAllThreadList (PM)</id>
+      <dp>2</dp>
+      <locmod>maxAsync\TmaxAsyncGlobal (519)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  AddToWaiting (PM)</id>
+      <dp>2</dp>
+      <locmod>maxAsync\TmaxAsyncGlobal (517)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  CreateClass (C)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TmaxAsyncGlobal (513)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  DestroyClass (D)</id>
+      <dp>2</dp>
+      <locmod>maxAsync\TmaxAsyncGlobal (514)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  GetThreadData (FM)</id>
+      <dp>3</dp>
+      <locmod>maxAsync\TmaxAsyncGlobal (516)</locmod>
+    </item>
+    <item>
+      <id>  DP=5......  GetThreadName (FM)</id>
+      <dp>5</dp>
+      <locmod>maxAsync\TmaxAsyncGlobal (523)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  ReleaseThreadData (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TmaxAsyncGlobal (515)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  removeFromAllThreadList (PM)</id>
+      <dp>3</dp>
+      <locmod>maxAsync\TmaxAsyncGlobal (520)</locmod>
+    </item>
+    <item>
+      <id>WMC=4,3...TWaiter in maxAsync</id>
+      <WMC>4,3</WMC>
+      <locmod>maxAsync (528)</locmod>
+    </item>
+    <item>
+      <id>  DP=11.....  WaitFor (FM)</id>
+      <dp>11</dp>
+      <locmod>maxAsync\TWaiter (534)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  WaitFor (FM)</id>
+      <dp>1</dp>
+      <locmod>maxAsync\TWaiter (533)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  WaitFor (FM)</id>
+      <dp>1</dp>
+      <locmod>maxAsync\TWaiter (532)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TAtomic in maxAsync</id>
+      <WMC>0,0</WMC>
+      <locmod>maxAsync (546)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TAtomic (553)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,8...TAsyncTimer in maxAsync</id>
+      <WMC>0,8</WMC>
+      <locmod>maxAsync (556)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  asyncLoop (PM)</id>
+      <dp>2</dp>
+      <locmod>maxAsync\TAsyncTimer (564)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TAsyncTimer (568)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TAsyncTimer (569)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  SetEnabled (PM)</id>
+      <dp>2</dp>
+      <locmod>maxAsync\TAsyncTimer (565)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetInterval (PM)</id>
+      <dp>0</dp>
+      <locmod>maxAsync\TAsyncTimer (566)</locmod>
+    </item>
+    <item>
+      <id>WMC=1,1...TPipeThread in maxConsoleRunner</id>
+      <WMC>1,1</WMC>
+      <locmod>maxConsoleRunner (109)</locmod>
+    </item>
+    <item>
+      <id>  DP=6......  asyncRead (PM)</id>
+      <dp>6</dp>
+      <locmod>maxConsoleRunner\TPipeThread (122)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TPipeThread (126)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  destroy (D)</id>
+      <dp>1</dp>
+      <locmod>maxConsoleRunner\TPipeThread (127)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  DoClosing (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TPipeThread (131)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  lock (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TPipeThread (123)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  safeRetrieveOutput (PM)</id>
+      <dp>2</dp>
+      <locmod>maxConsoleRunner\TPipeThread (130)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  StartReading (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TPipeThread (129)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  unLock (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TPipeThread (124)</locmod>
+    </item>
+    <item>
+      <id>WMC=1,2...TmaxConsoleRunner in maxConsoleRunner</id>
+      <WMC>1,2</WMC>
+      <locmod>maxConsoleRunner (17)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  asyncWaitForProcessFinished (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (62)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  ClosehandleAndZeroIt (PM)</id>
+      <dp>1</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (54)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (70)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  CreateAsyncPipe (FM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (55)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  DecodeCommand (PM)</id>
+      <dp>3</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (76)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  destroy (D)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (71)</locmod>
+    </item>
+    <item>
+      <id>  DP=6......  Execute (FM)</id>
+      <dp>6</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (73)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  GetCmdExeFullPath (FM)</id>
+      <dp>1</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (67)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  getCommand (FM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (58)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  preparePipes (FM)</id>
+      <dp>3</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (53)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  prepareSecurityAttributes (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (52)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  prepareStartUpInfo (PM)</id>
+      <dp>3</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (56)</locmod>
+    </item>
+    <item>
+      <id>  DP=4......  PullData (PM)</id>
+      <dp>4</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (64)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  quote (FM)</id>
+      <dp>3</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (59)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  run (FM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (79)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetexeName (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (49)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetOnErrorDataRead (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (65)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetOnStdDataRead (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (66)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetParamsString (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (63)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetRedirectErrOutToStdOut (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (68)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetWorkDir (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (50)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  StartAsyncReadPipes (PM)</id>
+      <dp>1</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (60)</locmod>
+    </item>
+    <item>
+      <id>  DP=4......  startProcess (FM)</id>
+      <dp>4</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (57)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  startWaitForProcessFinished (PM)</id>
+      <dp>0</dp>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (61)</locmod>
+    </item>
+    <item>
+      <id>WMC=2,5...TFastCaseAwareComparer in MaxLogic.strUtils</id>
+      <WMC>2,5</WMC>
+      <locmod>MaxLogic.strUtils (130)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (148)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Create (C)</id>
+      <dp>1</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (136)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (137)</locmod>
+    </item>
+    <item>
+      <id>  DP=8......  Equals (FM)</id>
+      <dp>8</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (151)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  FoldAscii (FM)</id>
+      <dp>1</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (138)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  FoldCharValue (FM)</id>
+      <dp>1</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (139)</locmod>
+    </item>
+    <item>
+      <id>  DP=7......  FoldPair (FM)</id>
+      <dp>7</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (140)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  GetHashCode (FM)</id>
+      <dp>1</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (152)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  GetOrdinalComparer (FM)</id>
+      <dp>1</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (145)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  GetOrdinalIgnoreCaseComparer (FM)</id>
+      <dp>1</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (146)</locmod>
+    </item>
+    <item>
+      <id>  DP=9......  HashBytes (FM)</id>
+      <dp>9</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (142)</locmod>
+    </item>
+    <item>
+      <id>  DP=8......  HashCaseInsensitive (FM)</id>
+      <dp>8</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (144)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  HashOrdinal (FM)</id>
+      <dp>1</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (143)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Ordinal (FM)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (149)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  OrdinalIgnoreCase (FM)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (150)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Rotl32 (FM)</id>
+      <dp>1</dp>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (141)</locmod>
+    </item>
+    <item>
+      <id>WMC=5,6...TFilterEx in MaxLogic.strUtils</id>
+      <WMC>5,6</WMC>
+      <locmod>MaxLogic.strUtils (236)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (FM)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TFilterEx (257)</locmod>
+    </item>
+    <item>
+      <id>  DP=11.....  Matches (FM)</id>
+      <dp>11</dp>
+      <locmod>MaxLogic.strUtils\TFilterEx (261)</locmod>
+    </item>
+    <item>
+      <id>  DP=5......  Prepare (PM)</id>
+      <dp>5</dp>
+      <locmod>MaxLogic.strUtils\TFilterEx (251)</locmod>
+    </item>
+    <item>
+      <id>  DP=6......  Preprocess (PM)</id>
+      <dp>6</dp>
+      <locmod>MaxLogic.strUtils\TFilterEx (254)</locmod>
+    </item>
+    <item>
+      <id>  DP=6......  SplitBySpace (FM)</id>
+      <dp>6</dp>
+      <locmod>MaxLogic.strUtils\TFilterEx (253)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TStringComparerHelper in MaxLogic.strUtils</id>
+      <WMC>0,0</WMC>
+      <locmod>MaxLogic.strUtils (292)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  OrdinalIgnoreCase (FM)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TStringComparerHelper (293)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TRegExHelper in MaxLogic.strUtils</id>
+      <WMC>0,0</WMC>
+      <locmod>MaxLogic.strUtils (299)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Replace (FM)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TRegExHelper (317)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Replace (FM)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TRegExHelper (316)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Replace (FM)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TRegExHelper (313)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Replace (FM)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TRegExHelper (312)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TProcAdapter in MaxLogic.strUtils</id>
+      <WMC>0,0</WMC>
+      <locmod>MaxLogic.strUtils (303)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TProcAdapter (307)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Invoke (FM)</id>
+      <dp>0</dp>
+      <locmod>MaxLogic.strUtils\TProcAdapter (308)</locmod>
+    </item>
+    <item>
+      <id>WMC=1,0...TGarbos in AutoFree</id>
+      <WMC>1,0</WMC>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Add (FM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbos (23)</locmod>
+    </item>
+    <item>
+      <id>  DP=4......  Add (PM)</id>
+      <dp>4</dp>
+      <locmod>AutoFree\TGarbos (22)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Clear (PM)</id>
+      <dp>1</dp>
+      <locmod>AutoFree\TGarbos (25)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Finalize ()</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbos (28)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Initialize ()</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbos (27)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,4...TGarbo in AutoFree</id>
+      <WMC>0,4</WMC>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddAfterFree (FM)</id>
+      <dp>1</dp>
+      <locmod>AutoFree\TGarbo (40)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbo (36)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  Destroy (D)</id>
+      <dp>2</dp>
+      <locmod>AutoFree\TGarbo (37)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GC&lt;T&gt; (FM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GC&lt;T&gt; (PM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbo (44)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GC&lt;T&gt; (PM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbo (43)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Obj (FM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TGarbo (39)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,2...TCallProcOnDestroy in AutoFree</id>
+      <WMC>0,2</WMC>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TCallProcOnDestroy (62)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Destroy (D)</id>
+      <dp>1</dp>
+      <locmod>AutoFree\TCallProcOnDestroy (63)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetProc (FM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TCallProcOnDestroy (60)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  New (FM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetProc (PM)</id>
+      <dp>0</dp>
+      <locmod>AutoFree\TCallProcOnDestroy (59)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,2...TStringSet in Dak.Diagnostics</id>
+      <WMC>0,2</WMC>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Add (FM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Count (FM)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TStringSet (19)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TStringSet (16)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TStringSet (17)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  ToArray (FM)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+    </item>
+    <item>
+      <id>WMC=1,6...TDiagnostics in Dak.Diagnostics</id>
+      <WMC>1,6</WMC>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddCycleMacro (PM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (40)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  AddInfo (PM)</id>
+      <dp>2</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddMissingPath (PM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddNote (PM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddUnknownMacro (PM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  AddWarning (PM)</id>
+      <dp>1</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (37)</locmod>
+    </item>
+    <item>
+      <id>  DP=4......  TryOpenLogFile (FM)</id>
+      <dp>4</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  WriteLine (PM)</id>
+      <dp>3</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (34)</locmod>
+    </item>
+    <item>
+      <id>  DP=4......  WriteToStderr (PM)</id>
+      <dp>4</dp>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TMacroExpander in Dak.MacroExpander</id>
+      <WMC>0,0</WMC>
+      <locmod>Dak.MacroExpander (10)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Expand (FM)</id>
+      <dp>0</dp>
+      <locmod>Dak.MacroExpander\TMacroExpander (11)</locmod>
+    </item>
+    <item>
+      <id>WMC=5,8...TMsBuildEvaluator in Dak.MsBuild</id>
+      <WMC>5,8</WMC>
+      <locmod>Dak.MsBuild (13)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  ApplyProperty (PM)</id>
+      <dp>2</dp>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (20)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (22)</locmod>
+    </item>
+    <item>
+      <id>  DP=19.....  EvaluateFile (FM)</id>
+      <dp>19</dp>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (23)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  TryEvaluateCondition (FM)</id>
+      <dp>2</dp>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (19)</locmod>
+    </item>
+    <item>
+      <id>WMC=5,6...TConditionParser in Dak.MsBuild</id>
+      <WMC>5,6</WMC>
+      <locmod>Dak.MsBuild (37)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>Dak.MsBuild\TConditionParser (48)</locmod>
+    </item>
+    <item>
+      <id>  DP=21.....  NextToken (PM)</id>
+      <dp>21</dp>
+      <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+    </item>
+    <item>
+      <id>  DP=5......  ParseComparison (FM)</id>
+      <dp>5</dp>
+      <locmod>Dak.MsBuild\TConditionParser (46)</locmod>
+    </item>
+    <item>
+      <id>  DP=4......  ParseExpr (FM)</id>
+      <dp>4</dp>
+      <locmod>Dak.MsBuild\TConditionParser (43)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  ParseFactor (FM)</id>
+      <dp>3</dp>
+      <locmod>Dak.MsBuild\TConditionParser (45)</locmod>
+    </item>
+    <item>
+      <id>  DP=4......  ParseTerm (FM)</id>
+      <dp>4</dp>
+      <locmod>Dak.MsBuild\TConditionParser (44)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  TryEvaluate (FM)</id>
+      <dp>2</dp>
+      <locmod>Dak.MsBuild\TConditionParser (49)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TSourceTracker in Dak.Project</id>
+      <WMC>0,0</WMC>
+      <locmod>Dak.Project (17)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>Dak.Project\TSourceTracker (22)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  OnPropertySet (PM)</id>
+      <dp>0</dp>
+      <locmod>Dak.Project\TSourceTracker (23)</locmod>
+    </item>
+    <item>
+      <id>WMC=1,7...TCmdLineParams in maxLogic.CmdLineParams</id>
+      <WMC>1,7</WMC>
+      <locmod>maxLogic.CmdLineParams (92)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  BuildFromString (PM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (114)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Clear (PM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (117)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Clone (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (116)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  Create (C)</id>
+      <dp>3</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (109)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (112)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  find (FM)</id>
+      <dp>2</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (125)</locmod>
+    </item>
+    <item>
+      <id>  DP=8......  find (FM)</id>
+      <dp>8</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (124)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  find (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (123)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  find (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (122)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  find (FM)</id>
+      <dp>2</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (121)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  Get (FM)</id>
+      <dp>3</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (131)</locmod>
+    </item>
+    <item>
+      <id>  DP=3......  Get (FM)</id>
+      <dp>3</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (130)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  Get (FM)</id>
+      <dp>2</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (129)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  Get (FM)</id>
+      <dp>2</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (128)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetCount (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (103)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetParamList (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (119)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetSwitchPrefixes (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (105)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  has (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (134)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  has (FM)</id>
+      <dp>2</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (133)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  IsSwitch (FM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (102)</locmod>
+    </item>
+    <item>
+      <id>  DP=6......  IsSwitch (FM)</id>
+      <dp>6</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (101)</locmod>
+    </item>
+    <item>
+      <id>  DP=7......  RebuildDic (PM)</id>
+      <dp>7</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (100)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetParam (PM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (118)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetSwitchPrefixes (PM)</id>
+      <dp>0</dp>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (104)</locmod>
+    </item>
+  </section>
+  <section name="Depth of Inheritance Tree (DIT)">
+    <item>
+      <id>DIT=2.....TSignal in maxSignal</id>
+      <DIT>2</DIT>
+      <locmod>maxSignal (39)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....tSignal in maxAsync</id>
+      <DIT>1</DIT>
+      <locmod>maxAsync (88)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TDummy in maxAsync</id>
+      <DIT>0</DIT>
+      <locmod>maxAsync (167)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TRTLCriticalSectionHelper in maxAsync</id>
+      <DIT>0</DIT>
+      <locmod>maxAsync (192)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixedRtlCriticalSection in maxAsync</id>
+      <DIT>0</DIT>
+      <locmod>maxAsync (208)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TObjectWithCriticalSection in maxAsync</id>
+      <DIT>1</DIT>
+      <locmod>maxAsync (225)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....tInterfacedCriticalSection in maxAsync</id>
+      <DIT>2</DIT>
+      <locmod>maxAsync (246)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TThreadData in maxAsync</id>
+      <DIT>2</DIT>
+      <locmod>maxAsync (257)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TmaxAsync in maxAsync</id>
+      <DIT>2</DIT>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TAsyncLoop in maxAsync</id>
+      <DIT>1</DIT>
+      <locmod>maxAsync (360)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TAsyncCollectionProcessor&lt;T&gt; in maxAsync</id>
+      <DIT>1</DIT>
+      <locmod>maxAsync (395)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TThreadHolder in maxAsync</id>
+      <DIT>0</DIT>
+      <locmod>maxAsync (397)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TFindInSortedList&lt;T&gt; in maxAsync</id>
+      <DIT>1</DIT>
+      <locmod>maxAsync (446)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TSafeValue&lt;T&gt; in maxAsync</id>
+      <DIT>0</DIT>
+      <locmod>maxAsync (456)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TSafeValue&lt;T&gt; in maxAsync</id>
+      <DIT>0</DIT>
+      <locmod>maxAsync (468)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TLockFreeLock in maxAsync</id>
+      <DIT>0</DIT>
+      <locmod>maxAsync (480)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TUserData&lt;T&gt; in maxAsync</id>
+      <DIT>2</DIT>
+      <locmod>maxAsync (490)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TmaxAsyncGlobal in maxAsync</id>
+      <DIT>1</DIT>
+      <locmod>maxAsync (501)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TWaiter in maxAsync</id>
+      <DIT>1</DIT>
+      <locmod>maxAsync (528)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TAtomic in maxAsync</id>
+      <DIT>0</DIT>
+      <locmod>maxAsync (546)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TAsyncTimer in maxAsync</id>
+      <DIT>1</DIT>
+      <locmod>maxAsync (556)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TTestRec in maxAsync</id>
+      <DIT>0</DIT>
+      <locmod>maxAsync\TAtomic\Create (1985)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TPipeThread in maxConsoleRunner</id>
+      <DIT>1</DIT>
+      <locmod>maxConsoleRunner (109)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TmaxConsoleRunner in maxConsoleRunner</id>
+      <DIT>1</DIT>
+      <locmod>maxConsoleRunner (17)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TFastCaseAwareComparer in MaxLogic.strUtils</id>
+      <DIT>2</DIT>
+      <locmod>MaxLogic.strUtils (130)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFilterEx in MaxLogic.strUtils</id>
+      <DIT>0</DIT>
+      <locmod>MaxLogic.strUtils (236)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFilterItem in MaxLogic.strUtils</id>
+      <DIT>0</DIT>
+      <locmod>MaxLogic.strUtils (240)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TStringComparerHelper in MaxLogic.strUtils</id>
+      <DIT>1</DIT>
+      <locmod>MaxLogic.strUtils (292)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TRegExHelper in MaxLogic.strUtils</id>
+      <DIT>0</DIT>
+      <locmod>MaxLogic.strUtils (299)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TProcAdapter in MaxLogic.strUtils</id>
+      <DIT>1</DIT>
+      <locmod>MaxLogic.strUtils (303)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TGarbos in AutoFree</id>
+      <DIT>0</DIT>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TGarbo in AutoFree</id>
+      <DIT>2</DIT>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TCallProcOnDestroy in AutoFree</id>
+      <DIT>2</DIT>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TStringSet in Dak.Diagnostics</id>
+      <DIT>1</DIT>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TDiagnostics in Dak.Diagnostics</id>
+      <DIT>1</DIT>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TAppOptions in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixInsightExtraOptions in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixInsightIgnoreDefaults in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TReportFilterDefaults in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TPascalAnalyzerDefaults in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixInsightParams in Dak.Types</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TPalCmdMap in Dak.PascalAnalyzerRunner</id>
+      <DIT>0</DIT>
+      <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TPalFinding in Dak.PascalAnalyzerRunner</id>
+      <DIT>0</DIT>
+      <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TComplexityEntry in Dak.PascalAnalyzerRunner</id>
+      <DIT>0</DIT>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....THotspotEntry in Dak.PascalAnalyzerRunner</id>
+      <DIT>0</DIT>
+      <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TComparer&lt;THotspotEntry&gt; in Dak.PascalAnalyzerRunner</id>
+      <DIT>2</DIT>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TMacroExpander in Dak.MacroExpander</id>
+      <DIT>0</DIT>
+      <locmod>Dak.MacroExpander (10)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TMsBuildEvaluator in Dak.MsBuild</id>
+      <DIT>1</DIT>
+      <locmod>Dak.MsBuild (13)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TToken in Dak.MsBuild</id>
+      <DIT>0</DIT>
+      <locmod>Dak.MsBuild (32)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TConditionParser in Dak.MsBuild</id>
+      <DIT>1</DIT>
+      <locmod>Dak.MsBuild (37)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TSourceTracker in Dak.Project</id>
+      <DIT>1</DIT>
+      <locmod>Dak.Project (17)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TPair&lt;UnicodeString,UnicodeString&gt; in Dak.Project</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Project (45)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixInsightCounts in Dak.Analyze</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Analyze (19)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TPair&lt;UnicodeString,Integer&gt; in Dak.Analyze</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Analyze (21)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TPalSummary in Dak.Analyze</id>
+      <DIT>0</DIT>
+      <locmod>Dak.Analyze (24)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TComparer&lt;TPair&lt;UnicodeString,Integer&gt;&gt; in Dak.Analyze</id>
+      <DIT>2</DIT>
+      <locmod>Dak.Analyze (271)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TCmdLineParams in maxLogic.CmdLineParams</id>
+      <DIT>2</DIT>
+      <locmod>maxLogic.CmdLineParams (92)</locmod>
+    </item>
+  </section>
+  <section name="Number of Children (NOC)">
+    <item>
+      <id>NOC=0.....TSignal in maxSignal</id>
+      <NOC>0</NOC>
+      <locmod>maxSignal (39)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....tSignal in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (88)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TDummy in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (167)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TRTLCriticalSectionHelper in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (192)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixedRtlCriticalSection in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (208)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TObjectWithCriticalSection in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (225)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....tInterfacedCriticalSection in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (246)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TThreadData in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (257)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TmaxAsync in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TAsyncLoop in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (360)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TAsyncCollectionProcessor&lt;T&gt; in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (395)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TThreadHolder in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (397)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFindInSortedList&lt;T&gt; in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (446)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TSafeValue&lt;T&gt; in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (456)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TSafeValue&lt;T&gt; in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (468)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TLockFreeLock in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (480)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TUserData&lt;T&gt; in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (490)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TmaxAsyncGlobal in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (501)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TWaiter in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (528)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TAtomic in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (546)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TAsyncTimer in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync (556)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TTestRec in maxAsync</id>
+      <NOC>0</NOC>
+      <locmod>maxAsync\TAtomic\Create (1985)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPipeThread in maxConsoleRunner</id>
+      <NOC>0</NOC>
+      <locmod>maxConsoleRunner (109)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TmaxConsoleRunner in maxConsoleRunner</id>
+      <NOC>0</NOC>
+      <locmod>maxConsoleRunner (17)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFastCaseAwareComparer in MaxLogic.strUtils</id>
+      <NOC>0</NOC>
+      <locmod>MaxLogic.strUtils (130)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFilterEx in MaxLogic.strUtils</id>
+      <NOC>0</NOC>
+      <locmod>MaxLogic.strUtils (236)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFilterItem in MaxLogic.strUtils</id>
+      <NOC>0</NOC>
+      <locmod>MaxLogic.strUtils (240)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TStringComparerHelper in MaxLogic.strUtils</id>
+      <NOC>0</NOC>
+      <locmod>MaxLogic.strUtils (292)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TRegExHelper in MaxLogic.strUtils</id>
+      <NOC>0</NOC>
+      <locmod>MaxLogic.strUtils (299)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TProcAdapter in MaxLogic.strUtils</id>
+      <NOC>0</NOC>
+      <locmod>MaxLogic.strUtils (303)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TGarbos in AutoFree</id>
+      <NOC>0</NOC>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TGarbo in AutoFree</id>
+      <NOC>0</NOC>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TCallProcOnDestroy in AutoFree</id>
+      <NOC>0</NOC>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TStringSet in Dak.Diagnostics</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TDiagnostics in Dak.Diagnostics</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TAppOptions in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightExtraOptions in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightIgnoreDefaults in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TReportFilterDefaults in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPascalAnalyzerDefaults in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightParams in Dak.Types</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPalCmdMap in Dak.PascalAnalyzerRunner</id>
+      <NOC>0</NOC>
+      <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPalFinding in Dak.PascalAnalyzerRunner</id>
+      <NOC>0</NOC>
+      <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TComplexityEntry in Dak.PascalAnalyzerRunner</id>
+      <NOC>0</NOC>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....THotspotEntry in Dak.PascalAnalyzerRunner</id>
+      <NOC>0</NOC>
+      <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TComparer&lt;THotspotEntry&gt; in Dak.PascalAnalyzerRunner</id>
+      <NOC>0</NOC>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TMacroExpander in Dak.MacroExpander</id>
+      <NOC>0</NOC>
+      <locmod>Dak.MacroExpander (10)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TMsBuildEvaluator in Dak.MsBuild</id>
+      <NOC>0</NOC>
+      <locmod>Dak.MsBuild (13)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TToken in Dak.MsBuild</id>
+      <NOC>0</NOC>
+      <locmod>Dak.MsBuild (32)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TConditionParser in Dak.MsBuild</id>
+      <NOC>0</NOC>
+      <locmod>Dak.MsBuild (37)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TSourceTracker in Dak.Project</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Project (17)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPair&lt;UnicodeString,UnicodeString&gt; in Dak.Project</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Project (45)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightCounts in Dak.Analyze</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Analyze (19)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPair&lt;UnicodeString,Integer&gt; in Dak.Analyze</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Analyze (21)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPalSummary in Dak.Analyze</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Analyze (24)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TComparer&lt;TPair&lt;UnicodeString,Integer&gt;&gt; in Dak.Analyze</id>
+      <NOC>0</NOC>
+      <locmod>Dak.Analyze (271)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TCmdLineParams in maxLogic.CmdLineParams</id>
+      <NOC>0</NOC>
+      <locmod>maxLogic.CmdLineParams (92)</locmod>
+    </item>
+  </section>
+  <section name="Coupling between Object Classes (CBO)">
+    <item>
+      <id>CBO=0.....TSignal in maxSignal</id>
+      <CBO>0</CBO>
+      <locmod>maxSignal (39)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....tSignal in maxAsync</id>
+      <CBO>0</CBO>
+      <locmod>maxAsync (88)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TDummy in maxAsync</id>
+      <CBO>0</CBO>
+      <locmod>maxAsync (167)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TRTLCriticalSectionHelper in maxAsync</id>
+      <CBO>1</CBO>
+      <locmod>maxAsync (192)</locmod>
+    </item>
+    <item>
+      <id>  TFixedRtlCriticalSection in maxAsync</id>
+      <locmod>maxAsync (208)</locmod>
+    </item>
+    <item>
+      <id>CBO=3.....TFixedRtlCriticalSection in maxAsync</id>
+      <CBO>3</CBO>
+      <locmod>maxAsync (208)</locmod>
+    </item>
+    <item>
+      <id>  TRTLCriticalSectionHelper in maxAsync</id>
+      <locmod>maxAsync (192)</locmod>
+    </item>
+    <item>
+      <id>  TObjectWithCriticalSection in maxAsync</id>
+      <locmod>maxAsync (225)</locmod>
+    </item>
+    <item>
+      <id>  TAsyncCollectionProcessor&lt;T&gt; in maxAsync</id>
+      <locmod>maxAsync (395)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TObjectWithCriticalSection in maxAsync</id>
+      <CBO>1</CBO>
+      <locmod>maxAsync (225)</locmod>
+    </item>
+    <item>
+      <id>  TFixedRtlCriticalSection in maxAsync</id>
+      <locmod>maxAsync (208)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....tInterfacedCriticalSection in maxAsync</id>
+      <CBO>1</CBO>
+      <locmod>maxAsync (246)</locmod>
+    </item>
+    <item>
+      <id>  TSafeValue&lt;T&gt; in maxAsync</id>
+      <locmod>maxAsync (456)</locmod>
+    </item>
+    <item>
+      <id>CBO=2.....TThreadData in maxAsync</id>
+      <CBO>2</CBO>
+      <locmod>maxAsync (257)</locmod>
+    </item>
+    <item>
+      <id>  TmaxThread in maxAsync</id>
+      <locmod>maxAsync (343)</locmod>
+    </item>
+    <item>
+      <id>  TmaxAsyncGlobal in maxAsync</id>
+      <locmod>maxAsync (501)</locmod>
+    </item>
+    <item>
+      <id>CBO=7.....TmaxAsync in maxAsync</id>
+      <CBO>7</CBO>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>  TmaxAsyncGlobal in maxAsync</id>
+      <locmod>maxAsync (501)</locmod>
+    </item>
+    <item>
+      <id>  TWaiter in maxAsync</id>
+      <locmod>maxAsync (528)</locmod>
+    </item>
+    <item>
+      <id>  TPipeThread in maxConsoleRunner</id>
+      <locmod>maxConsoleRunner (109)</locmod>
+    </item>
+    <item>
+      <id>  TmaxConsoleRunner in maxConsoleRunner</id>
+      <locmod>maxConsoleRunner (17)</locmod>
+    </item>
+    <item>
+      <id>  TAsyncTimer in maxAsync</id>
+      <locmod>maxAsync (556)</locmod>
+    </item>
+    <item>
+      <id>  TAsyncLoop in maxAsync</id>
+      <locmod>maxAsync (360)</locmod>
+    </item>
+    <item>
+      <id>  iThreadData in maxAsync</id>
+      <locmod>maxAsync\IInterface (126)</locmod>
+    </item>
+    <item>
+      <id>CBO=2.....TAsyncLoop in maxAsync</id>
+      <CBO>2</CBO>
+      <locmod>maxAsync (360)</locmod>
+    </item>
+    <item>
+      <id>  TmaxAsyncGlobal in maxAsync</id>
+      <locmod>maxAsync (501)</locmod>
+    </item>
+    <item>
+      <id>  TmaxAsync in maxAsync</id>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>CBO=3.....TAsyncCollectionProcessor&lt;T&gt; in maxAsync</id>
+      <CBO>3</CBO>
+      <locmod>maxAsync (395)</locmod>
+    </item>
+    <item>
+      <id>  TmaxAsyncGlobal in maxAsync</id>
+      <locmod>maxAsync (501)</locmod>
+    </item>
+    <item>
+      <id>  TThreadHolder in maxAsync</id>
+      <locmod>maxAsync (397)</locmod>
+    </item>
+    <item>
+      <id>  TFixedRtlCriticalSection in maxAsync</id>
+      <locmod>maxAsync (208)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TThreadHolder in maxAsync</id>
+      <CBO>1</CBO>
+      <locmod>maxAsync (397)</locmod>
+    </item>
+    <item>
+      <id>  TAsyncCollectionProcessor&lt;T&gt; in maxAsync</id>
+      <locmod>maxAsync (395)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFindInSortedList&lt;T&gt; in maxAsync</id>
+      <CBO>0</CBO>
+      <locmod>maxAsync (446)</locmod>
+    </item>
+    <item>
+      <id>CBO=2.....TSafeValue&lt;T&gt; in maxAsync</id>
+      <CBO>2</CBO>
+      <locmod>maxAsync (456)</locmod>
+    </item>
+    <item>
+      <id>  TSafeValue&lt;T&gt; in maxAsync</id>
+      <locmod>maxAsync (468)</locmod>
+    </item>
+    <item>
+      <id>  tInterfacedCriticalSection in maxAsync</id>
+      <locmod>maxAsync (246)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TSafeValue&lt;T&gt; in maxAsync</id>
+      <CBO>1</CBO>
+      <locmod>maxAsync (468)</locmod>
+    </item>
+    <item>
+      <id>  TSafeValue&lt;T&gt; in maxAsync</id>
+      <locmod>maxAsync (456)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TLockFreeLock in maxAsync</id>
+      <CBO>1</CBO>
+      <locmod>maxAsync (480)</locmod>
+    </item>
+    <item>
+      <id>  TUserData&lt;T&gt; in maxAsync</id>
+      <locmod>maxAsync (490)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TUserData&lt;T&gt; in maxAsync</id>
+      <CBO>1</CBO>
+      <locmod>maxAsync (490)</locmod>
+    </item>
+    <item>
+      <id>  TLockFreeLock in maxAsync</id>
+      <locmod>maxAsync (480)</locmod>
+    </item>
+    <item>
+      <id>CBO=6.....TmaxAsyncGlobal in maxAsync</id>
+      <CBO>6</CBO>
+      <locmod>maxAsync (501)</locmod>
+    </item>
+    <item>
+      <id>  TAsyncCollectionProcessor&lt;T&gt; in maxAsync</id>
+      <locmod>maxAsync (395)</locmod>
+    </item>
+    <item>
+      <id>  TAsyncLoop in maxAsync</id>
+      <locmod>maxAsync (360)</locmod>
+    </item>
+    <item>
+      <id>  TmaxAsync in maxAsync</id>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>  TmaxThread in maxAsync</id>
+      <locmod>maxAsync (343)</locmod>
+    </item>
+    <item>
+      <id>  iThreadData in maxAsync</id>
+      <locmod>maxAsync\IInterface (126)</locmod>
+    </item>
+    <item>
+      <id>  TThreadData in maxAsync</id>
+      <locmod>maxAsync (257)</locmod>
+    </item>
+    <item>
+      <id>CBO=2.....TWaiter in maxAsync</id>
+      <CBO>2</CBO>
+      <locmod>maxAsync (528)</locmod>
+    </item>
+    <item>
+      <id>  TmaxAsync in maxAsync</id>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>  iThreadData in maxAsync</id>
+      <locmod>maxAsync\IInterface (126)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TAtomic in maxAsync</id>
+      <CBO>0</CBO>
+      <locmod>maxAsync (546)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TAsyncTimer in maxAsync</id>
+      <CBO>1</CBO>
+      <locmod>maxAsync (556)</locmod>
+    </item>
+    <item>
+      <id>  TmaxAsync in maxAsync</id>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TTestRec in maxAsync</id>
+      <CBO>0</CBO>
+      <locmod>maxAsync\TAtomic\Create (1985)</locmod>
+    </item>
+    <item>
+      <id>CBO=2.....TPipeThread in maxConsoleRunner</id>
+      <CBO>2</CBO>
+      <locmod>maxConsoleRunner (109)</locmod>
+    </item>
+    <item>
+      <id>  TmaxAsync in maxAsync</id>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>  TmaxConsoleRunner in maxConsoleRunner</id>
+      <locmod>maxConsoleRunner (17)</locmod>
+    </item>
+    <item>
+      <id>CBO=2.....TmaxConsoleRunner in maxConsoleRunner</id>
+      <CBO>2</CBO>
+      <locmod>maxConsoleRunner (17)</locmod>
+    </item>
+    <item>
+      <id>  TmaxAsync in maxAsync</id>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>  TPipeThread in maxConsoleRunner</id>
+      <locmod>maxConsoleRunner (109)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TFastCaseAwareComparer in MaxLogic.strUtils</id>
+      <CBO>1</CBO>
+      <locmod>MaxLogic.strUtils (130)</locmod>
+    </item>
+    <item>
+      <id>  TDiagnostics in Dak.Diagnostics</id>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFilterEx in MaxLogic.strUtils</id>
+      <CBO>0</CBO>
+      <locmod>MaxLogic.strUtils (236)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFilterItem in MaxLogic.strUtils</id>
+      <CBO>0</CBO>
+      <locmod>MaxLogic.strUtils (240)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TStringComparerHelper in MaxLogic.strUtils</id>
+      <CBO>0</CBO>
+      <locmod>MaxLogic.strUtils (292)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TRegExHelper in MaxLogic.strUtils</id>
+      <CBO>1</CBO>
+      <locmod>MaxLogic.strUtils (299)</locmod>
+    </item>
+    <item>
+      <id>  TProcAdapter in MaxLogic.strUtils</id>
+      <locmod>MaxLogic.strUtils (303)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TProcAdapter in MaxLogic.strUtils</id>
+      <CBO>1</CBO>
+      <locmod>MaxLogic.strUtils (303)</locmod>
+    </item>
+    <item>
+      <id>  TRegExHelper in MaxLogic.strUtils</id>
+      <locmod>MaxLogic.strUtils (299)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TGarbos in AutoFree</id>
+      <CBO>1</CBO>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>  TGarbo in AutoFree</id>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TGarbo in AutoFree</id>
+      <CBO>1</CBO>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>  TGarbos in AutoFree</id>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TCallProcOnDestroy in AutoFree</id>
+      <CBO>0</CBO>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TStringSet in Dak.Diagnostics</id>
+      <CBO>1</CBO>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>  TDiagnostics in Dak.Diagnostics</id>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>CBO=3.....TDiagnostics in Dak.Diagnostics</id>
+      <CBO>3</CBO>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>  TFastCaseAwareComparer in MaxLogic.strUtils</id>
+      <locmod>MaxLogic.strUtils (130)</locmod>
+    </item>
+    <item>
+      <id>  TMsBuildEvaluator in Dak.MsBuild</id>
+      <locmod>Dak.MsBuild (13)</locmod>
+    </item>
+    <item>
+      <id>  TStringSet in Dak.Diagnostics</id>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TAppOptions in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightExtraOptions in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightIgnoreDefaults in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TReportFilterDefaults in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPascalAnalyzerDefaults in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightParams in Dak.Types</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPalCmdMap in Dak.PascalAnalyzerRunner</id>
+      <CBO>0</CBO>
+      <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPalFinding in Dak.PascalAnalyzerRunner</id>
+      <CBO>0</CBO>
+      <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TComplexityEntry in Dak.PascalAnalyzerRunner</id>
+      <CBO>0</CBO>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....THotspotEntry in Dak.PascalAnalyzerRunner</id>
+      <CBO>0</CBO>
+      <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TComparer&lt;THotspotEntry&gt; in Dak.PascalAnalyzerRunner</id>
+      <CBO>0</CBO>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TMacroExpander in Dak.MacroExpander</id>
+      <CBO>1</CBO>
+      <locmod>Dak.MacroExpander (10)</locmod>
+    </item>
+    <item>
+      <id>  TMsBuildEvaluator in Dak.MsBuild</id>
+      <locmod>Dak.MsBuild (13)</locmod>
+    </item>
+    <item>
+      <id>CBO=3.....TMsBuildEvaluator in Dak.MsBuild</id>
+      <CBO>3</CBO>
+      <locmod>Dak.MsBuild (13)</locmod>
+    </item>
+    <item>
+      <id>  TMacroExpander in Dak.MacroExpander</id>
+      <locmod>Dak.MacroExpander (10)</locmod>
+    </item>
+    <item>
+      <id>  TDiagnostics in Dak.Diagnostics</id>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>  TConditionParser in Dak.MsBuild</id>
+      <locmod>Dak.MsBuild (37)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TToken in Dak.MsBuild</id>
+      <CBO>1</CBO>
+      <locmod>Dak.MsBuild (32)</locmod>
+    </item>
+    <item>
+      <id>  TConditionParser in Dak.MsBuild</id>
+      <locmod>Dak.MsBuild (37)</locmod>
+    </item>
+    <item>
+      <id>CBO=2.....TConditionParser in Dak.MsBuild</id>
+      <CBO>2</CBO>
+      <locmod>Dak.MsBuild (37)</locmod>
+    </item>
+    <item>
+      <id>  TToken in Dak.MsBuild</id>
+      <locmod>Dak.MsBuild (32)</locmod>
+    </item>
+    <item>
+      <id>  TMsBuildEvaluator in Dak.MsBuild</id>
+      <locmod>Dak.MsBuild (13)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TSourceTracker in Dak.Project</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Project (17)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPair&lt;UnicodeString,UnicodeString&gt; in Dak.Project</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Project (45)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightCounts in Dak.Analyze</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Analyze (19)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPair&lt;UnicodeString,Integer&gt; in Dak.Analyze</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Analyze (21)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPalSummary in Dak.Analyze</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Analyze (24)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TComparer&lt;TPair&lt;UnicodeString,Integer&gt;&gt; in Dak.Analyze</id>
+      <CBO>0</CBO>
+      <locmod>Dak.Analyze (271)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TCmdLineParams in maxLogic.CmdLineParams</id>
+      <CBO>0</CBO>
+      <locmod>maxLogic.CmdLineParams (92)</locmod>
+    </item>
+  </section>
+  <section name="Response for a Class (RFC)">
+    <item>
+      <id>RFC=7.....TSignal in maxSignal</id>
+      <RFC>0</RFC>
+      <locmod>maxSignal (39)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....tSignal in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (88)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TDummy in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (167)</locmod>
+    </item>
+    <item>
+      <id>RFC=6.....TRTLCriticalSectionHelper in maxAsync</id>
+      <RFC>1</RFC>
+      <locmod>maxAsync (192)</locmod>
+    </item>
+    <item>
+      <id>RFC=7.....TFixedRtlCriticalSection in maxAsync</id>
+      <RFC>2</RFC>
+      <locmod>maxAsync (208)</locmod>
+    </item>
+    <item>
+      <id>RFC=4.....TObjectWithCriticalSection in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (225)</locmod>
+    </item>
+    <item>
+      <id>RFC=5.....tInterfacedCriticalSection in maxAsync</id>
+      <RFC>1</RFC>
+      <locmod>maxAsync (246)</locmod>
+    </item>
+    <item>
+      <id>RFC=25....TThreadData in maxAsync</id>
+      <RFC>2</RFC>
+      <locmod>maxAsync (257)</locmod>
+    </item>
+    <item>
+      <id>RFC=15....TmaxAsync in maxAsync</id>
+      <RFC>5</RFC>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>RFC=10....TAsyncLoop in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (360)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TAsyncCollectionProcessor&lt;T&gt; in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (395)</locmod>
+    </item>
+    <item>
+      <id>RFC=1.....TThreadHolder in maxAsync</id>
+      <RFC>1</RFC>
+      <locmod>maxAsync (397)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFindInSortedList&lt;T&gt; in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (446)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TSafeValue&lt;T&gt; in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (456)</locmod>
+    </item>
+    <item>
+      <id>RFC=5.....TSafeValue&lt;T&gt; in maxAsync</id>
+      <RFC>1</RFC>
+      <locmod>maxAsync (468)</locmod>
+    </item>
+    <item>
+      <id>RFC=3.....TLockFreeLock in maxAsync</id>
+      <RFC>1</RFC>
+      <locmod>maxAsync (480)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TUserData&lt;T&gt; in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (490)</locmod>
+    </item>
+    <item>
+      <id>RFC=12....TmaxAsyncGlobal in maxAsync</id>
+      <RFC>4</RFC>
+      <locmod>maxAsync (501)</locmod>
+    </item>
+    <item>
+      <id>RFC=3.....TWaiter in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (528)</locmod>
+    </item>
+    <item>
+      <id>RFC=1.....TAtomic in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (546)</locmod>
+    </item>
+    <item>
+      <id>RFC=5.....TAsyncTimer in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync (556)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TTestRec in maxAsync</id>
+      <RFC>0</RFC>
+      <locmod>maxAsync\TAtomic\Create (1985)</locmod>
+    </item>
+    <item>
+      <id>RFC=9.....TPipeThread in maxConsoleRunner</id>
+      <RFC>1</RFC>
+      <locmod>maxConsoleRunner (109)</locmod>
+    </item>
+    <item>
+      <id>RFC=24....TmaxConsoleRunner in maxConsoleRunner</id>
+      <RFC>0</RFC>
+      <locmod>maxConsoleRunner (17)</locmod>
+    </item>
+    <item>
+      <id>RFC=17....TFastCaseAwareComparer in MaxLogic.strUtils</id>
+      <RFC>1</RFC>
+      <locmod>MaxLogic.strUtils (130)</locmod>
+    </item>
+    <item>
+      <id>RFC=5.....TFilterEx in MaxLogic.strUtils</id>
+      <RFC>0</RFC>
+      <locmod>MaxLogic.strUtils (236)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFilterItem in MaxLogic.strUtils</id>
+      <RFC>0</RFC>
+      <locmod>MaxLogic.strUtils (240)</locmod>
+    </item>
+    <item>
+      <id>RFC=1.....TStringComparerHelper in MaxLogic.strUtils</id>
+      <RFC>0</RFC>
+      <locmod>MaxLogic.strUtils (292)</locmod>
+    </item>
+    <item>
+      <id>RFC=4.....TRegExHelper in MaxLogic.strUtils</id>
+      <RFC>0</RFC>
+      <locmod>MaxLogic.strUtils (299)</locmod>
+    </item>
+    <item>
+      <id>RFC=3.....TProcAdapter in MaxLogic.strUtils</id>
+      <RFC>1</RFC>
+      <locmod>MaxLogic.strUtils (303)</locmod>
+    </item>
+    <item>
+      <id>RFC=6.....TGarbos in AutoFree</id>
+      <RFC>1</RFC>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>RFC=7.....TGarbo in AutoFree</id>
+      <RFC>0</RFC>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>RFC=5.....TCallProcOnDestroy in AutoFree</id>
+      <RFC>0</RFC>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>RFC=6.....TStringSet in Dak.Diagnostics</id>
+      <RFC>1</RFC>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>RFC=12....TDiagnostics in Dak.Diagnostics</id>
+      <RFC>1</RFC>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TAppOptions in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFixInsightExtraOptions in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFixInsightIgnoreDefaults in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TReportFilterDefaults in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TPascalAnalyzerDefaults in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFixInsightParams in Dak.Types</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TPalCmdMap in Dak.PascalAnalyzerRunner</id>
+      <RFC>0</RFC>
+      <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TPalFinding in Dak.PascalAnalyzerRunner</id>
+      <RFC>0</RFC>
+      <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TComplexityEntry in Dak.PascalAnalyzerRunner</id>
+      <RFC>0</RFC>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....THotspotEntry in Dak.PascalAnalyzerRunner</id>
+      <RFC>0</RFC>
+      <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TComparer&lt;THotspotEntry&gt; in Dak.PascalAnalyzerRunner</id>
+      <RFC>0</RFC>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>RFC=2.....TMacroExpander in Dak.MacroExpander</id>
+      <RFC>1</RFC>
+      <locmod>Dak.MacroExpander (10)</locmod>
+    </item>
+    <item>
+      <id>RFC=4.....TMsBuildEvaluator in Dak.MsBuild</id>
+      <RFC>0</RFC>
+      <locmod>Dak.MsBuild (13)</locmod>
+    </item>
+    <item>
+      <id>RFC=1.....TToken in Dak.MsBuild</id>
+      <RFC>1</RFC>
+      <locmod>Dak.MsBuild (32)</locmod>
+    </item>
+    <item>
+      <id>RFC=8.....TConditionParser in Dak.MsBuild</id>
+      <RFC>1</RFC>
+      <locmod>Dak.MsBuild (37)</locmod>
+    </item>
+    <item>
+      <id>RFC=2.....TSourceTracker in Dak.Project</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Project (17)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TPair&lt;UnicodeString,UnicodeString&gt; in Dak.Project</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Project (45)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFixInsightCounts in Dak.Analyze</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Analyze (19)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TPair&lt;UnicodeString,Integer&gt; in Dak.Analyze</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Analyze (21)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TPalSummary in Dak.Analyze</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Analyze (24)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TComparer&lt;TPair&lt;UnicodeString,Integer&gt;&gt; in Dak.Analyze</id>
+      <RFC>0</RFC>
+      <locmod>Dak.Analyze (271)</locmod>
+    </item>
+    <item>
+      <id>RFC=24....TCmdLineParams in maxLogic.CmdLineParams</id>
+      <RFC>0</RFC>
+      <locmod>maxLogic.CmdLineParams (92)</locmod>
+    </item>
+  </section>
+  <section name="Lack of Cohesion in Methods (LCOM)">
+    <item>
+      <id>LCOM=0....TSignal in maxSignal</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxSignal (39)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....tSignal in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (88)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TDummy in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (167)</locmod>
+    </item>
+    <item>
+      <id>LCOM=4....TRTLCriticalSectionHelper in maxAsync</id>
+      <xeLCOM>4</xeLCOM>
+      <locmod>maxAsync (192)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixedRtlCriticalSection in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (208)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TObjectWithCriticalSection in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (225)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....tInterfacedCriticalSection in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (246)</locmod>
+    </item>
+    <item>
+      <id>LCOM=16...TThreadData in maxAsync</id>
+      <xeLCOM>16</xeLCOM>
+      <locmod>maxAsync (257)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TmaxAsync in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (320)</locmod>
+    </item>
+    <item>
+      <id>LCOM=3....TAsyncLoop in maxAsync</id>
+      <xeLCOM>3</xeLCOM>
+      <locmod>maxAsync (360)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TAsyncCollectionProcessor&lt;T&gt; in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (395)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TThreadHolder in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (397)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFindInSortedList&lt;T&gt; in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (446)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TSafeValue&lt;T&gt; in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (456)</locmod>
+    </item>
+    <item>
+      <id>LCOM=3....TSafeValue&lt;T&gt; in maxAsync</id>
+      <xeLCOM>3</xeLCOM>
+      <locmod>maxAsync (468)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TLockFreeLock in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (480)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TUserData&lt;T&gt; in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (490)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TmaxAsyncGlobal in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (501)</locmod>
+    </item>
+    <item>
+      <id>LCOM=2....TWaiter in maxAsync</id>
+      <xeLCOM>2</xeLCOM>
+      <locmod>maxAsync (528)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TAtomic in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (546)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TAsyncTimer in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync (556)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TTestRec in maxAsync</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>maxAsync\TAtomic\Create (1985)</locmod>
+    </item>
+    <item>
+      <id>LCOM=1....TPipeThread in maxConsoleRunner</id>
+      <xeLCOM>1</xeLCOM>
+      <locmod>maxConsoleRunner (109)</locmod>
+    </item>
+    <item>
+      <id>LCOM=19...TmaxConsoleRunner in maxConsoleRunner</id>
+      <xeLCOM>19</xeLCOM>
+      <locmod>maxConsoleRunner (17)</locmod>
+    </item>
+    <item>
+      <id>LCOM=11...TFastCaseAwareComparer in MaxLogic.strUtils</id>
+      <xeLCOM>11</xeLCOM>
+      <locmod>MaxLogic.strUtils (130)</locmod>
+    </item>
+    <item>
+      <id>LCOM=2....TFilterEx in MaxLogic.strUtils</id>
+      <xeLCOM>2</xeLCOM>
+      <locmod>MaxLogic.strUtils (236)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFilterItem in MaxLogic.strUtils</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>MaxLogic.strUtils (240)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TStringComparerHelper in MaxLogic.strUtils</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>MaxLogic.strUtils (292)</locmod>
+    </item>
+    <item>
+      <id>LCOM=3....TRegExHelper in MaxLogic.strUtils</id>
+      <xeLCOM>3</xeLCOM>
+      <locmod>MaxLogic.strUtils (299)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TProcAdapter in MaxLogic.strUtils</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>MaxLogic.strUtils (303)</locmod>
+    </item>
+    <item>
+      <id>LCOM=2....TGarbos in AutoFree</id>
+      <xeLCOM>2</xeLCOM>
+      <locmod>AutoFree (17)</locmod>
+    </item>
+    <item>
+      <id>LCOM=4....TGarbo in AutoFree</id>
+      <xeLCOM>4</xeLCOM>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TCallProcOnDestroy in AutoFree</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TStringSet in Dak.Diagnostics</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>LCOM=2....TDiagnostics in Dak.Diagnostics</id>
+      <xeLCOM>2</xeLCOM>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TAppOptions in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (17)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixInsightExtraOptions in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (70)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixInsightIgnoreDefaults in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (80)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TReportFilterDefaults in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (84)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPascalAnalyzerDefaults in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (88)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixInsightParams in Dak.Types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Types (94)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPalCmdMap in Dak.PascalAnalyzerRunner</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPalFinding in Dak.PascalAnalyzerRunner</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TComplexityEntry in Dak.PascalAnalyzerRunner</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....THotspotEntry in Dak.PascalAnalyzerRunner</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TComparer&lt;THotspotEntry&gt; in Dak.PascalAnalyzerRunner</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TMacroExpander in Dak.MacroExpander</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.MacroExpander (10)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TMsBuildEvaluator in Dak.MsBuild</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.MsBuild (13)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TToken in Dak.MsBuild</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.MsBuild (32)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TConditionParser in Dak.MsBuild</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.MsBuild (37)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TSourceTracker in Dak.Project</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Project (17)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPair&lt;UnicodeString,UnicodeString&gt; in Dak.Project</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Project (45)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixInsightCounts in Dak.Analyze</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Analyze (19)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPair&lt;UnicodeString,Integer&gt; in Dak.Analyze</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Analyze (21)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPalSummary in Dak.Analyze</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Analyze (24)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TComparer&lt;TPair&lt;UnicodeString,Integer&gt;&gt; in Dak.Analyze</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Dak.Analyze (271)</locmod>
+    </item>
+    <item>
+      <id>LCOM=11...TCmdLineParams in maxLogic.CmdLineParams</id>
+      <xeLCOM>11</xeLCOM>
+      <locmod>maxLogic.CmdLineParams (92)</locmod>
+    </item>
+  </section>
+</report>

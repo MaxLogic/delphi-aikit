@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Convention Compliance Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Ordinary types that do not start with &quot;T&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Exception types that do not start with &quot;E&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Pointer types that do not start with &quot;P&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Interface types that do not start with &quot;I&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Class fields that are not declared in the private section" count="0" oldcount="-2">
+  </section>
+  <section name="Class fields that are exposed by properties (read/write) but do not start with &quot;F&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Properties to method pointers that do not start with &quot;On/Before/After&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Functions that are exposed by properties (read) but do not start with &quot;Get&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Procedures that are exposed by properties (write) but do not start with &quot;Set&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Classes that have visible constructors with bad names" count="0" oldcount="-2">
+  </section>
+  <section name="Classes that have visible destructors with bad names" count="0" oldcount="-2">
+  </section>
+  <section name="Identifiers that have unsuitable names" count="0" oldcount="-2">
+  </section>
+  <section name="Multiple with-variables" count="0" oldcount="-2">
+  </section>
+  <section name="Property access methods that are not private/protected" count="0" oldcount="-2">
+  </section>
+  <section name="Hard to read identifier names" count="0" oldcount="-2">
+  </section>
+  <section name="Label usage" count="0" oldcount="-2">
+  </section>
+  <section name="Bad class visibility order" count="0" oldcount="-2">
+  </section>
+  <section name="Identifiers with numerals" count="0" oldcount="-2">
+  </section>
+  <section name="Local identifiers that &quot;shadow&quot; outer scope identifiers" count="0" oldcount="-2">
+  </section>
+  <section name="Local identifiers that &quot;shadow&quot; class members" count="0" oldcount="-2">
+  </section>
+  <section name="Class/member name collision" count="0" oldcount="-2">
+  </section>
+  <section name="Class fields that are not declared in the private/protected sections" count="0" oldcount="-2">
+  </section>
+  <section name="Class fields that do not start with &quot;F&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Old-style function result variable" count="0" oldcount="-2">
+  </section>
+  <section name="With statements" count="0" oldcount="-2">
+  </section>
+  <section name="Private can be changed to strict private" count="0" oldcount="-2">
+  </section>
+  <section name="Protected can be changed to strict protected" count="0" oldcount="-2">
+  </section>
+</report>

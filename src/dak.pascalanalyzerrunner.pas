@@ -166,7 +166,7 @@ begin
   lValue := aObj.GetValue(aName);
   Result := (lValue <> nil) and (lValue is TJSONArray);
   if Result then
-    aArr := TJSONArray(lValue);
+    aArr := lValue as TJSONArray;
 end;
 
 function TryLoadPalCmdMap(out aMap: TPalCmdMap; out aError: string): Boolean;
@@ -695,7 +695,7 @@ begin
   if TryResolvePalCmdExeFromKnownRoots(aExePath) then
     Exit(True);
 
-  aError := 'PALCMD not found. Provide --pa-path or set [PascalAnalyzer].Path in settings.ini.';
+  aError := 'PALCMD not found. Provide --pa-path or set [PascalAnalyzer].Path in dak.ini.';
 end;
 
 function TryBuildDelphiTargetFlag(const aBdsVersion: string; const aPlatform: string; const aPalCmdExe: string;
