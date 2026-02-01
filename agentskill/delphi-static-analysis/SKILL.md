@@ -143,6 +143,38 @@ Examples of do not auto-fix (plan and do in small PR-sized steps):
 5. Re-run `analyze.*` and confirm the warning count drops (or at least does not spike).
 6. Repeat.
 
+## Reporting format (agent output)
+
+- Keep the header line `Results (from _analysis/<Project>/summary.md):`.
+- Extend it with a short “Top 5 critical warnings/errors to fix (ours)” list. If none are important, say so explicitly.
+- Do **not** emit a `Notes emitted by the run:` section. Only mention warnings or errors.
+
+## PAL suppression (inline comments)
+
+- Suppress a single line: append `//PALOFF` at end-of-line. Extra text after the marker is ok.
+  - Example: `DoSomethingRisky(); //PALOFF false positive here`
+- Suppress an identifier: put `//PALOFF` on the declaration line of the identifier (var/field/const/interface).
+- Suppress specific PAL sections: add section codes after the marker, separated by semicolons.
+  - Example: `//PALOFF STWA;WARN1;OPTI8`
+- This is per-line/per-identifier (not a block pragma).
+
+## Verification hint for lifetime/concurrency findings
+
+When PAL/FixInsight flags lifetime, ownership, or concurrency hazards (e.g., “bad pointer”, “dangling reference”, “race”), validate with a targeted DUnitX test that:
+
+- uses a timeout guard (so deadlocks are caught),
+- and optionally includes a short stress loop (hundreds/thousands of iterations) to reproduce timing‑sensitive defects.
+
+Only accept a fix when the tests pass reliably before/after and the analysis findings drop or are justified.
+
+## PAL false‑positive pattern: unaligned reads
+
+If PAL flags “bad pointer” on unaligned reads used for hashing/compare, prefer making the code portable rather than ignoring:
+
+- use `{$IFDEF CPUARM}` (or other strict‑alignment targets) to read via `Move` into a local scalar,
+- keep the fast `PCardinal`/`PUInt64` path on x86/x64,
+- add `//PALOFF` only on the intentionally unaligned x86/x64 line if needed.
+
 ## Example outputs (minimal)
 
 ### summary.md (snippet)
