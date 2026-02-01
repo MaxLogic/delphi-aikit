@@ -1,0 +1,592 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Brief Cross-reference Report">
+  <created>29.01.2026 21:38:30</created>
+  <section name="Brief Cross-reference">
+    <item>
+      <name>ckAnalyzeProject</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <name>ckAnalyzeUnit</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <name>ckBuild</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <name>ckResolve</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <name>fAnalyzeClean : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (65)</locmod>
+    </item>
+    <item>
+      <name>fAnalyzeFiFormats : TReportFormatSet</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (62)</locmod>
+    </item>
+    <item>
+      <name>fAnalyzeFixInsight : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (63)</locmod>
+    </item>
+    <item>
+      <name>fAnalyzeOutPath : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (60)</locmod>
+    </item>
+    <item>
+      <name>fAnalyzePal : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (64)</locmod>
+    </item>
+    <item>
+      <name>fAnalyzeWriteSummary : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (66)</locmod>
+    </item>
+    <item>
+      <name>fArgs : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TPascalAnalyzerDefaults (91)</locmod>
+    </item>
+    <item>
+      <name>fCommand : TCommandKind</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (18)</locmod>
+    </item>
+    <item>
+      <name>fConfig : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (21)</locmod>
+    </item>
+    <item>
+      <name>fConfig : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (110)</locmod>
+    </item>
+    <item>
+      <name>fCsv : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightExtraOptions (77)</locmod>
+    </item>
+    <item>
+      <name>fDefines : TArray&lt;UnicodeString&gt;</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (103)</locmod>
+    </item>
+    <item>
+      <name>fDefineSource : TPropertySource</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (112)</locmod>
+    </item>
+    <item>
+      <name>fDelphiVersion : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (22)</locmod>
+    </item>
+    <item>
+      <name>fDelphiVersion : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (108)</locmod>
+    </item>
+    <item>
+      <name>fDprojPath : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (19)</locmod>
+    </item>
+    <item>
+      <name>fEnvOptionsPath : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (30)</locmod>
+    </item>
+    <item>
+      <name>fExcludePathMasks : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (45)</locmod>
+    </item>
+    <item>
+      <name>fExcludePathMasks : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TReportFilterDefaults (85)</locmod>
+    </item>
+    <item>
+      <name>fExePath : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightExtraOptions (71)</locmod>
+    </item>
+    <item>
+      <name>fFixCsv : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (42)</locmod>
+    </item>
+    <item>
+      <name>fFixCsv : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (102)</locmod>
+    </item>
+    <item>
+      <name>fFixIgnore : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (34)</locmod>
+    </item>
+    <item>
+      <name>fFixIgnore : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (98)</locmod>
+    </item>
+    <item>
+      <name>fFixInsightExe : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (96)</locmod>
+    </item>
+    <item>
+      <name>fFixOutput : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (32)</locmod>
+    </item>
+    <item>
+      <name>fFixOutput : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (97)</locmod>
+    </item>
+    <item>
+      <name>fFixSettings : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (36)</locmod>
+    </item>
+    <item>
+      <name>fFixSettings : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (99)</locmod>
+    </item>
+    <item>
+      <name>fFixSilent : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (38)</locmod>
+    </item>
+    <item>
+      <name>fFixSilent : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (100)</locmod>
+    </item>
+    <item>
+      <name>fFixXml : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (40)</locmod>
+    </item>
+    <item>
+      <name>fFixXml : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (101)</locmod>
+    </item>
+    <item>
+      <name>fHasAnalyzeOutPath : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (61)</locmod>
+    </item>
+    <item>
+      <name>fHasEnvOptionsPath : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (31)</locmod>
+    </item>
+    <item>
+      <name>fHasExcludePathMasks : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (46)</locmod>
+    </item>
+    <item>
+      <name>fHasFixCsv : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (43)</locmod>
+    </item>
+    <item>
+      <name>fHasFixIgnore : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (35)</locmod>
+    </item>
+    <item>
+      <name>fHasFixOutput : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (33)</locmod>
+    </item>
+    <item>
+      <name>fHasFixSettings : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (37)</locmod>
+    </item>
+    <item>
+      <name>fHasFixSilent : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (39)</locmod>
+    </item>
+    <item>
+      <name>fHasFixXml : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (41)</locmod>
+    </item>
+    <item>
+      <name>fHasIgnoreWarningIds : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (48)</locmod>
+    </item>
+    <item>
+      <name>fHasLogFile : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (57)</locmod>
+    </item>
+    <item>
+      <name>fHasLogTee : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (59)</locmod>
+    </item>
+    <item>
+      <name>fHasOutKind : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (26)</locmod>
+    </item>
+    <item>
+      <name>fHasOutPath : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (25)</locmod>
+    </item>
+    <item>
+      <name>fHasPaArgs : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (55)</locmod>
+    </item>
+    <item>
+      <name>fHasPaOutput : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (53)</locmod>
+    </item>
+    <item>
+      <name>fHasPaPath : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (51)</locmod>
+    </item>
+    <item>
+      <name>fHasRsVarsPath : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (29)</locmod>
+    </item>
+    <item>
+      <name>fIgnore : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightExtraOptions (73)</locmod>
+    </item>
+    <item>
+      <name>fIgnoreWarningIds : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (47)</locmod>
+    </item>
+    <item>
+      <name>fLibraryPath : TArray&lt;UnicodeString&gt;</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (105)</locmod>
+    </item>
+    <item>
+      <name>fLibrarySource : TPropertySource</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (111)</locmod>
+    </item>
+    <item>
+      <name>fLogFile : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (56)</locmod>
+    </item>
+    <item>
+      <name>fLogTee : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (58)</locmod>
+    </item>
+    <item>
+      <name>fOutKind : TOutputKind</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (23)</locmod>
+    </item>
+    <item>
+      <name>fOutPath : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (24)</locmod>
+    </item>
+    <item>
+      <name>fOutput : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightExtraOptions (72)</locmod>
+    </item>
+    <item>
+      <name>fOutput : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TPascalAnalyzerDefaults (90)</locmod>
+    </item>
+    <item>
+      <name>fPaArgs : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (54)</locmod>
+    </item>
+    <item>
+      <name>fPaOutput : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (52)</locmod>
+    </item>
+    <item>
+      <name>fPaPath : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (50)</locmod>
+    </item>
+    <item>
+      <name>fPath : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TPascalAnalyzerDefaults (89)</locmod>
+    </item>
+    <item>
+      <name>fPlatform : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (20)</locmod>
+    </item>
+    <item>
+      <name>fPlatform : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (109)</locmod>
+    </item>
+    <item>
+      <name>fProjectDpr : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (95)</locmod>
+    </item>
+    <item>
+      <name>fRsVarsPath : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (28)</locmod>
+    </item>
+    <item>
+      <name>fRunFixInsight : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (44)</locmod>
+    </item>
+    <item>
+      <name>fRunPascalAnalyzer : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (49)</locmod>
+    </item>
+    <item>
+      <name>fSearchPathSource : TPropertySource</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (113)</locmod>
+    </item>
+    <item>
+      <name>fSettings : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightExtraOptions (74)</locmod>
+    </item>
+    <item>
+      <name>fSilent : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightExtraOptions (75)</locmod>
+    </item>
+    <item>
+      <name>fUnitAliases : TArray&lt;UnicodeString&gt;</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (107)</locmod>
+    </item>
+    <item>
+      <name>fUnitAliasesSource : TPropertySource</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (115)</locmod>
+    </item>
+    <item>
+      <name>fUnitPath : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (67)</locmod>
+    </item>
+    <item>
+      <name>fUnitScopes : TArray&lt;UnicodeString&gt;</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (106)</locmod>
+    </item>
+    <item>
+      <name>fUnitScopesSource : TPropertySource</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (114)</locmod>
+    </item>
+    <item>
+      <name>fUnitSearchPath : TArray&lt;UnicodeString&gt;</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (104)</locmod>
+    </item>
+    <item>
+      <name>fVerbose : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (27)</locmod>
+    </item>
+    <item>
+      <name>fWarnings : UnicodeString</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightIgnoreDefaults (81)</locmod>
+    </item>
+    <item>
+      <name>fXml : Boolean</name>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightExtraOptions (76)</locmod>
+    </item>
+    <item>
+      <name>okBat</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TOutputKind (10)</locmod>
+    </item>
+    <item>
+      <name>okIni</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TOutputKind (10)</locmod>
+    </item>
+    <item>
+      <name>okXml</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TOutputKind (10)</locmod>
+    </item>
+    <item>
+      <name>psDproj</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <name>psEnvOptions</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <name>psOptset</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <name>psRegistry</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <name>psUnknown</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <name>rfCsv</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TReportFormat (14)</locmod>
+    </item>
+    <item>
+      <name>rfText</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TReportFormat (14)</locmod>
+    </item>
+    <item>
+      <name>rfXml</name>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TReportFormat (14)</locmod>
+    </item>
+    <item>
+      <name>TAppOptions = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (17)</locmod>
+    </item>
+    <item>
+      <name>TArray&lt;UnicodeString&gt; = Array (dynamic)</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (103)</locmod>
+    </item>
+    <item>
+      <name>TCommandKind = Enumerated</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (8)</locmod>
+      <ref>
+        <module>dak.types</module>
+        <loc>18r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TFixInsightExtraOptions = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (70)</locmod>
+    </item>
+    <item>
+      <name>TFixInsightIgnoreDefaults = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (80)</locmod>
+    </item>
+    <item>
+      <name>TFixInsightParams = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (94)</locmod>
+    </item>
+    <item>
+      <name>TOutputKind = Enumerated</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (10)</locmod>
+      <ref>
+        <module>dak.types</module>
+        <loc>23r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TPascalAnalyzerDefaults = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (88)</locmod>
+    </item>
+    <item>
+      <name>TPropertySource = Enumerated</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (12)</locmod>
+      <ref>
+        <module>dak.types</module>
+        <loc>111r</loc>
+      </ref>
+      <ref>
+        <module>dak.types</module>
+        <loc>112r</loc>
+      </ref>
+      <ref>
+        <module>dak.types</module>
+        <loc>113r</loc>
+      </ref>
+      <ref>
+        <module>dak.types</module>
+        <loc>114r</loc>
+      </ref>
+      <ref>
+        <module>dak.types</module>
+        <loc>115r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TReportFilterDefaults = Record</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (84)</locmod>
+    </item>
+    <item>
+      <name>TReportFormat = Enumerated</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (14)</locmod>
+      <ref>
+        <module>dak.types</module>
+        <loc>15r</loc>
+      </ref>
+    </item>
+    <item>
+      <name>TReportFormatSet = Set</name>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (15)</locmod>
+      <ref>
+        <module>dak.types</module>
+        <loc>62r</loc>
+      </ref>
+    </item>
+  </section>
+</report>

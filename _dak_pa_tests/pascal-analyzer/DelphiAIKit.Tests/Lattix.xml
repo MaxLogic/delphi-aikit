@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<ldi delimiter="\" system="pascalanalyzer">
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\DelphiAIKit.Tests.dpr" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.Loggers.Console.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.build.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.fixinsight.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.palfindingnormalize.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.pascalanalyzer.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.Loggers.Console.pas" type="source">
+    <uses provider="F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="private-uses"/>
+  </element>
+  <element name="F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.TestFramework.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.build.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.fixinsight.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.palfindingnormalize.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.pascalanalyzer.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\3rdParty\VSoft\DUnitX\Source\DUnitX.TestFramework.pas" kind="public-uses"/>
+  </element>
+</ldi>

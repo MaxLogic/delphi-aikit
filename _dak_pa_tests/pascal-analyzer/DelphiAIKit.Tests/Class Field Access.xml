@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Class Field Access Report">
+  <created>29.01.2026 23:48:17</created>
+  <item>
+    <id>CheckCommandLine</id>
+    <kind>Proc, Method</kind>
+    <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+  </item>
+  <item>
+    <id>CheckCommandLine</id>
+    <kind>Proc, Method</kind>
+    <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+  </item>
+  <item>
+    <id>CheckCommandLine</id>
+    <kind>Proc, Method</kind>
+    <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+  </item>
+  <item>
+    <id>FHideBanner : Boolean</id>
+    <kind>Class Field</kind>
+    <locmod>DUnitX.TestFramework\TDUnitXOptions (529)</locmod>
+  </item>
+  <item>
+    <id>CheckCommandLine</id>
+    <kind>Proc, Method</kind>
+    <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+  </item>
+  <item>
+    <id>FShowUsage : Boolean</id>
+    <kind>Class Field</kind>
+    <locmod>DUnitX.TestFramework\TDUnitXOptions (532)</locmod>
+  </item>
+</report>

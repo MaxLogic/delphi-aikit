@@ -1,0 +1,2489 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Warnings Report">
+  <created>29.01.2026 23:48:55</created>
+  <section name="Interfaced identifiers that are used, but not outside of unit" count="25" oldcount="-2">
+    <item>
+      <id>BuildRuleIdSet</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (19)</locmod>
+    </item>
+    <item>
+      <id>BuildRuleIdSet</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (19)</locmod>
+    </item>
+    <item>
+      <id>CharPosEx</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (95)</locmod>
+    </item>
+    <item>
+      <id>CharPosEx</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (95)</locmod>
+    </item>
+    <item>
+      <id>CombineUrl</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (201)</locmod>
+    </item>
+    <item>
+      <id>CombineUrl</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (201)</locmod>
+    </item>
+    <item>
+      <id>ExecuteFile</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (58)</locmod>
+    </item>
+    <item>
+      <id>ExecuteFile</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (58)</locmod>
+    </item>
+    <item>
+      <id>ExtractString</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (83)</locmod>
+    </item>
+    <item>
+      <id>ExtractString</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (83)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)       </locmod>
+    </item>
+    <item>
+      <id>GetBuildInfo</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (30)</locmod>
+    </item>
+    <item>
+      <id>GetBuildInfo</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (30)</locmod>
+    </item>
+    <item>
+      <id>GetBuildInfo</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (31)</locmod>
+    </item>
+    <item>
+      <id>GetBuildInfo</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (31)</locmod>
+    </item>
+    <item>
+      <id>GetBuildNumber</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (35)</locmod>
+    </item>
+    <item>
+      <id>GetBuildNumber</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (35)</locmod>
+    </item>
+    <item>
+      <id>GetCurrentDLLName</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (28)</locmod>
+    </item>
+    <item>
+      <id>GetCurrentDLLName</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (28)</locmod>
+    </item>
+    <item>
+      <id>InsideMainThread</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxAsync (590)      </locmod>
+    </item>
+    <item>
+      <id>InsideMainThread</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxAsync (590)      </locmod>
+    </item>
+    <item>
+      <id>LoatStringFromResource</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (43)</locmod>
+    </item>
+    <item>
+      <id>LoatStringFromResource</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (43)</locmod>
+    </item>
+    <item>
+      <id>MessageDlgThreadSafe</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxAsync (601)      </locmod>
+    </item>
+    <item>
+      <id>MessageDlgThreadSafe</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxAsync (601)      </locmod>
+    </item>
+    <item>
+      <id>NormalizePath</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (139)</locmod>
+    </item>
+    <item>
+      <id>NormalizePath</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (139)</locmod>
+    </item>
+    <item>
+      <id>ParseList</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (18)</locmod>
+    </item>
+    <item>
+      <id>ParseList</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (18)</locmod>
+    </item>
+    <item>
+      <id>PutBefore</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (20)</locmod>
+    </item>
+    <item>
+      <id>PutBefore</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (20)</locmod>
+    </item>
+    <item>
+      <id>QuoteWindowsShellArgument</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (173)</locmod>
+    </item>
+    <item>
+      <id>QuoteWindowsShellArgument</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (173)</locmod>
+    </item>
+    <item>
+      <id>readFromBytes</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (221)</locmod>
+    </item>
+    <item>
+      <id>readFromBytes</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (221)</locmod>
+    </item>
+    <item>
+      <id>ReplacePlaceholder</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (182)</locmod>
+    </item>
+    <item>
+      <id>ReplacePlaceholder</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (182)</locmod>
+    </item>
+    <item>
+      <id>SanitizeFileName</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (118)</locmod>
+    </item>
+    <item>
+      <id>SanitizeFileName</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (118)</locmod>
+    </item>
+    <item>
+      <id>slash</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (130)</locmod>
+    </item>
+    <item>
+      <id>slash</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (130)</locmod>
+    </item>
+    <item>
+      <id>syncVclCall</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxAsync (587)      </locmod>
+    </item>
+    <item>
+      <id>syncVclCall</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxAsync (587)      </locmod>
+    </item>
+    <item>
+      <id>TRTLCriticalSectionHelper = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxAsync (192)      </locmod>
+    </item>
+    <item>
+      <id>TRTLCriticalSectionHelper = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxAsync (192)      </locmod>
+    </item>
+    <item>
+      <id>writeToBytes</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (217)</locmod>
+    </item>
+    <item>
+      <id>writeToBytes</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (217)</locmod>
+    </item>
+  </section>
+  <section name="Interfaced class identifiers that are public/published, but not used outside of unit" count="89" oldcount="-2">
+    <item>
+      <id>Add</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+    </item>
+    <item>
+      <id>Add</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+    </item>
+    <item>
+      <id>AddAfterFree</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (40)</locmod>
+    </item>
+    <item>
+      <id>AddAfterFree</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (40)</locmod>
+    </item>
+    <item>
+      <id>BuildFromString</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (114)</locmod>
+    </item>
+    <item>
+      <id>BuildFromString</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (114)</locmod>
+    </item>
+    <item>
+      <id>Cancel</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (380)</locmod>
+    </item>
+    <item>
+      <id>Cancel</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (380)</locmod>
+    </item>
+    <item>
+      <id>Clear</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (117)</locmod>
+    </item>
+    <item>
+      <id>Clear</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (117)</locmod>
+    </item>
+    <item>
+      <id>Clone</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (116)</locmod>
+    </item>
+    <item>
+      <id>Clone</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (116)</locmod>
+    </item>
+    <item>
+      <id>Count</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (19)</locmod>
+    </item>
+    <item>
+      <id>Count</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (19)</locmod>
+    </item>
+    <item>
+      <id>Count : Integer</id>
+      <kind>Property</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (136)</locmod>
+    </item>
+    <item>
+      <id>Count : Integer</id>
+      <kind>Property</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (136)</locmod>
+    </item>
+    <item>
+      <id>DoClosing</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (131)</locmod>
+    </item>
+    <item>
+      <id>DoClosing</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (131)</locmod>
+    </item>
+    <item>
+      <id>Enabled : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncTimer (571)</locmod>
+    </item>
+    <item>
+      <id>Enabled : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncTimer (571)</locmod>
+    </item>
+    <item>
+      <id>Enter</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\tInterfacedCriticalSection (253)</locmod>
+    </item>
+    <item>
+      <id>Enter</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\tInterfacedCriticalSection (253)</locmod>
+    </item>
+    <item>
+      <id>Equals</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (151)</locmod>
+    </item>
+    <item>
+      <id>Equals</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (151)</locmod>
+    </item>
+    <item>
+      <id>Execute</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (378)</locmod>
+    </item>
+    <item>
+      <id>Execute</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (378)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (121)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (121)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (122)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (122)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (123)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (123)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (124)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (124)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (125)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (125)</locmod>
+    </item>
+    <item>
+      <id>Finished</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TmaxAsync (335)</locmod>
+    </item>
+    <item>
+      <id>Finished</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TmaxAsync (335)</locmod>
+    </item>
+    <item>
+      <id>Finished : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (158)</locmod>
+    </item>
+    <item>
+      <id>Finished : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (158)</locmod>
+    </item>
+    <item>
+      <id>Finished : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (304)</locmod>
+    </item>
+    <item>
+      <id>Finished : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (304)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (43)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (43)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (44)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (44)</locmod>
+    </item>
+    <item>
+      <id>Get</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (128)</locmod>
+    </item>
+    <item>
+      <id>Get</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (128)</locmod>
+    </item>
+    <item>
+      <id>Get</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (129)</locmod>
+    </item>
+    <item>
+      <id>Get</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (129)</locmod>
+    </item>
+    <item>
+      <id>Get</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (130)</locmod>
+    </item>
+    <item>
+      <id>Get</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (130)</locmod>
+    </item>
+    <item>
+      <id>Get</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (131)</locmod>
+    </item>
+    <item>
+      <id>Get</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (131)</locmod>
+    </item>
+    <item>
+      <id>GetHashCode</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (152)</locmod>
+    </item>
+    <item>
+      <id>GetHashCode</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (152)</locmod>
+    </item>
+    <item>
+      <id>GetThreadName</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal (523)</locmod>
+    </item>
+    <item>
+      <id>GetThreadName</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal (523)</locmod>
+    </item>
+    <item>
+      <id>has</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (133)</locmod>
+    </item>
+    <item>
+      <id>has</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (133)</locmod>
+    </item>
+    <item>
+      <id>Interval : Integer</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncTimer (572)</locmod>
+    </item>
+    <item>
+      <id>Interval : Integer</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncTimer (572)</locmod>
+    </item>
+    <item>
+      <id>KeepAlive : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (154)</locmod>
+    </item>
+    <item>
+      <id>KeepAlive : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (154)</locmod>
+    </item>
+    <item>
+      <id>KeepAlive : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (311)</locmod>
+    </item>
+    <item>
+      <id>KeepAlive : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (311)</locmod>
+    </item>
+    <item>
+      <id>leave</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\tInterfacedCriticalSection (254)</locmod>
+    </item>
+    <item>
+      <id>leave</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\tInterfacedCriticalSection (254)</locmod>
+    </item>
+    <item>
+      <id>lock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TObjectWithCriticalSection (236)</locmod>
+    </item>
+    <item>
+      <id>lock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TObjectWithCriticalSection (236)</locmod>
+    </item>
+    <item>
+      <id>msgwaitfor</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (332)</locmod>
+    </item>
+    <item>
+      <id>msgwaitfor</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (332)</locmod>
+    </item>
+    <item>
+      <id>MsgWaitForSignaled</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxSignal\TSignal (52)</locmod>
+    </item>
+    <item>
+      <id>MsgWaitForSignaled</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxSignal\TSignal (52)</locmod>
+    </item>
+    <item>
+      <id>New</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+    </item>
+    <item>
+      <id>New</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+    </item>
+    <item>
+      <id>NumberOfProcessors : DWORD</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal (522)</locmod>
+    </item>
+    <item>
+      <id>NumberOfProcessors : DWORD</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal (522)</locmod>
+    </item>
+    <item>
+      <id>Obj</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (39)</locmod>
+    </item>
+    <item>
+      <id>Obj</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (39)</locmod>
+    </item>
+    <item>
+      <id>OnFinished : TThreadProcedure</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncLoop (388)</locmod>
+    </item>
+    <item>
+      <id>OnFinished : TThreadProcedure</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncLoop (388)</locmod>
+    </item>
+    <item>
+      <id>OnFinished : TThreadProcedure</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncCollectionProcessor&lt;T&gt; (441)</locmod>
+    </item>
+    <item>
+      <id>OnFinished : TThreadProcedure</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncCollectionProcessor&lt;T&gt; (441)</locmod>
+    </item>
+    <item>
+      <id>Ordinal</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (149)</locmod>
+    </item>
+    <item>
+      <id>Ordinal</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (149)</locmod>
+    </item>
+    <item>
+      <id>Priority : TThreadPriority</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TmaxAsync (339)</locmod>
+    </item>
+    <item>
+      <id>Priority : TThreadPriority</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TmaxAsync (339)</locmod>
+    </item>
+    <item>
+      <id>Proc : TProc</id>
+      <kind>Property</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (53)</locmod>
+    </item>
+    <item>
+      <id>Proc : TProc</id>
+      <kind>Property</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (53)</locmod>
+    </item>
+    <item>
+      <id>Proc : TProc</id>
+      <kind>Property</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (66)</locmod>
+    </item>
+    <item>
+      <id>Proc : TProc</id>
+      <kind>Property</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (66)</locmod>
+    </item>
+    <item>
+      <id>Proc : TThreadProcedure</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (153)</locmod>
+    </item>
+    <item>
+      <id>Proc : TThreadProcedure</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (153)</locmod>
+    </item>
+    <item>
+      <id>Proc : TThreadProcedure</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (310)</locmod>
+    </item>
+    <item>
+      <id>Proc : TThreadProcedure</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (310)</locmod>
+    </item>
+    <item>
+      <id>Proc : TAsyncCollectionProcessorProc&lt;T&gt;</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncCollectionProcessor&lt;T&gt; (438)</locmod>
+    </item>
+    <item>
+      <id>Proc : TAsyncCollectionProcessorProc&lt;T&gt;</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncCollectionProcessor&lt;T&gt; (438)</locmod>
+    </item>
+    <item>
+      <id>ReadySignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (161)</locmod>
+    </item>
+    <item>
+      <id>ReadySignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (161)</locmod>
+    </item>
+    <item>
+      <id>ReadySignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (307)</locmod>
+    </item>
+    <item>
+      <id>ReadySignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (307)</locmod>
+    </item>
+    <item>
+      <id>Run</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (384)</locmod>
+    </item>
+    <item>
+      <id>Run</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (384)</locmod>
+    </item>
+    <item>
+      <id>run</id>
+      <kind>Func, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (79)</locmod>
+    </item>
+    <item>
+      <id>run</id>
+      <kind>Func, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (79)</locmod>
+    </item>
+    <item>
+      <id>RunAndWait</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (383)</locmod>
+    </item>
+    <item>
+      <id>RunAndWait</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (383)</locmod>
+    </item>
+    <item>
+      <id>safeRetrieveOutput</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (130)</locmod>
+    </item>
+    <item>
+      <id>safeRetrieveOutput</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (130)</locmod>
+    </item>
+    <item>
+      <id>SetDefaultValues</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TThreadData (300)</locmod>
+    </item>
+    <item>
+      <id>SetDefaultValues</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TThreadData (300)</locmod>
+    </item>
+    <item>
+      <id>SetNonSignaled</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxSignal\TSignal (48)</locmod>
+    </item>
+    <item>
+      <id>SetNonSignaled</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxSignal\TSignal (48)</locmod>
+    </item>
+    <item>
+      <id>SetParam</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (118)</locmod>
+    </item>
+    <item>
+      <id>SetParam</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (118)</locmod>
+    </item>
+    <item>
+      <id>SetSignaled</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxSignal\TSignal (47)</locmod>
+    </item>
+    <item>
+      <id>SetSignaled</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxSignal\TSignal (47)</locmod>
+    </item>
+    <item>
+      <id>SimultanousThreadCount : Integer</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncLoop (390)</locmod>
+    </item>
+    <item>
+      <id>SimultanousThreadCount : Integer</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncLoop (390)</locmod>
+    </item>
+    <item>
+      <id>SimultanousThreadCount : Integer</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncCollectionProcessor&lt;T&gt; (443)</locmod>
+    </item>
+    <item>
+      <id>SimultanousThreadCount : Integer</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TAsyncCollectionProcessor&lt;T&gt; (443)</locmod>
+    </item>
+    <item>
+      <id>StartReading</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (129)</locmod>
+    </item>
+    <item>
+      <id>StartReading</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (129)</locmod>
+    </item>
+    <item>
+      <id>StartSignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (157)</locmod>
+    </item>
+    <item>
+      <id>StartSignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (157)</locmod>
+    </item>
+    <item>
+      <id>StartSignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (303)</locmod>
+    </item>
+    <item>
+      <id>StartSignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (303)</locmod>
+    </item>
+    <item>
+      <id>SwitchPrefixes : TSwitchPrefixes</id>
+      <kind>Property</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (137)</locmod>
+    </item>
+    <item>
+      <id>SwitchPrefixes : TSwitchPrefixes</id>
+      <kind>Property</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (137)</locmod>
+    </item>
+    <item>
+      <id>TaskName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (155)</locmod>
+    </item>
+    <item>
+      <id>TaskName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (155)</locmod>
+    </item>
+    <item>
+      <id>TaskName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (312)</locmod>
+    </item>
+    <item>
+      <id>TaskName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (312)</locmod>
+    </item>
+    <item>
+      <id>terminated : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (160)</locmod>
+    </item>
+    <item>
+      <id>terminated : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (160)</locmod>
+    </item>
+    <item>
+      <id>terminated : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (306)</locmod>
+    </item>
+    <item>
+      <id>terminated : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (306)</locmod>
+    </item>
+    <item>
+      <id>Thread : TmaxThread</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (164)</locmod>
+    </item>
+    <item>
+      <id>Thread : TmaxThread</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (164)</locmod>
+    </item>
+    <item>
+      <id>Thread : TmaxThread</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (302)</locmod>
+    </item>
+    <item>
+      <id>Thread : TmaxThread</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (302)</locmod>
+    </item>
+    <item>
+      <id>ToArray</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+    </item>
+    <item>
+      <id>ToArray</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+    </item>
+    <item>
+      <id>unlock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TObjectWithCriticalSection (237)</locmod>
+    </item>
+    <item>
+      <id>unlock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TObjectWithCriticalSection (237)</locmod>
+    </item>
+    <item>
+      <id>Value : T</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (466)</locmod>
+    </item>
+    <item>
+      <id>Value : T</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (466)</locmod>
+    </item>
+    <item>
+      <id>Value : T</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (466)</locmod>
+    </item>
+    <item>
+      <id>Value : T</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (466)</locmod>
+    </item>
+    <item>
+      <id>Value : T</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iUserData&lt;T&gt; (476)</locmod>
+    </item>
+    <item>
+      <id>Value : T</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iUserData&lt;T&gt; (476)</locmod>
+    </item>
+    <item>
+      <id>Value : T</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TUserData&lt;T&gt; (498)</locmod>
+    </item>
+    <item>
+      <id>Value : T</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TUserData&lt;T&gt; (498)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TWaiter (532)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TWaiter (532)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TWaiter (533)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TWaiter (533)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TWaiter (534)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TWaiter (534)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (379)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (379)</locmod>
+    </item>
+    <item>
+      <id>WaitForSignaled</id>
+      <kind>Func, Method</kind>
+      <locmod>maxSignal\TSignal (49)</locmod>
+    </item>
+    <item>
+      <id>WaitForSignaled</id>
+      <kind>Func, Method</kind>
+      <locmod>maxSignal\TSignal (49)</locmod>
+    </item>
+    <item>
+      <id>Waiting : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (159)</locmod>
+    </item>
+    <item>
+      <id>Waiting : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (159)</locmod>
+    </item>
+    <item>
+      <id>Waiting : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (305)</locmod>
+    </item>
+    <item>
+      <id>Waiting : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (305)</locmod>
+    </item>
+    <item>
+      <id>WakeUp</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (336)</locmod>
+    </item>
+    <item>
+      <id>WakeUp</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (336)</locmod>
+    </item>
+    <item>
+      <id>WakeUp</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (337)</locmod>
+    </item>
+    <item>
+      <id>WakeUp</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (337)</locmod>
+    </item>
+    <item>
+      <id>WakeUpSignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (152)</locmod>
+    </item>
+    <item>
+      <id>WakeUpSignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iThreadData (152)</locmod>
+    </item>
+    <item>
+      <id>WakeUpSignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (308)</locmod>
+    </item>
+    <item>
+      <id>WakeUpSignal : iSignal</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\TThreadData (308)</locmod>
+    </item>
+  </section>
+  <section name="Variables that are referenced, but never set" count="12" oldcount="-2">
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFilterEx\Prepare (713)</locmod>
+    </item>
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFilterEx\Prepare (713)</locmod>
+    </item>
+    <item>
+      <id>l : TList&lt;UnicodeString&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFilterEx\SplitBySpace (797)</locmod>
+    </item>
+    <item>
+      <id>l : TList&lt;UnicodeString&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TFilterEx\SplitBySpace (797)</locmod>
+    </item>
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\Split (914)</locmod>
+    </item>
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\Split (914)</locmod>
+    </item>
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\Split (933)</locmod>
+    </item>
+    <item>
+      <id>l : TStringList</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\Split (933)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TRegExHelper\Replace (1617)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TRegExHelper\Replace (1617)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TRegExHelper\Replace (1626)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TRegExHelper\Replace (1626)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TRegExHelper\Replace (1634)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TRegExHelper\Replace (1634)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TRegExHelper\Replace (1644)</locmod>
+    </item>
+    <item>
+      <id>lAdapter : TProcAdapter</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\TRegExHelper\Replace (1644)</locmod>
+    </item>
+    <item>
+      <id>lBuilder : TStringBuilder</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\QuoteUnixShellArgument (915)</locmod>
+    </item>
+    <item>
+      <id>lBuilder : TStringBuilder</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\QuoteUnixShellArgument (915)</locmod>
+    </item>
+    <item>
+      <id>lPath : Array (static)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetSpecialWindowsFolder (974)</locmod>
+    </item>
+    <item>
+      <id>lPath : Array (static)</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetSpecialWindowsFolder (974)</locmod>
+    </item>
+    <item>
+      <id>sb : TStringBuilder</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\ReplacePlaceholder (530)</locmod>
+    </item>
+    <item>
+      <id>sb : TStringBuilder</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\ReplacePlaceholder (530)</locmod>
+    </item>
+    <item>
+      <id>StopWatch : TStopwatch</id>
+      <kind>Var, Local</kind>
+      <locmod>maxSignal\MsgWaitForSingleObject (85)</locmod>
+    </item>
+    <item>
+      <id>StopWatch : TStopwatch</id>
+      <kind>Var, Local</kind>
+      <locmod>maxSignal\MsgWaitForSingleObject (85)</locmod>
+    </item>
+  </section>
+  <section name="Variables that are set, but never referenced" count="1" oldcount="-2">
+    <item>
+      <id>lastTick : DWORD</id>
+      <kind>Var, Global</kind>
+      <locmod>maxConsoleRunner (363)</locmod>
+    </item>
+    <item>
+      <id>lastTick : DWORD</id>
+      <kind>Var, Global</kind>
+      <locmod>maxConsoleRunner (363)</locmod>
+    </item>
+  </section>
+  <section name="Local variables that are referenced before they are set" count="12" oldcount="-2">
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.IOUtils</locmod>
+        <locline>855</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.IOUtils</locmod>
+        <locline>856</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>717</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>718</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>719</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>720</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>740</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>742</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>743</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>744</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>746</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>802</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>823</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>830</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>916</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>917</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>918</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>919</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>920</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>935</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>936</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>937</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>938</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>940</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>1619</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>1621</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>1628</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>1629</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>1637</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>1639</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>1647</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>1649</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>110</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>112</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>114</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>116</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>118</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>120</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>122</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>124</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>126</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>128</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>130</locline>
+      </loc>
+      <loc>
+        <kind>Read+Set</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>132</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>Dak.FixInsightRunner</locmod>
+        <locline>134</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.IOUtils</locmod>
+        <locline>933</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.IOUtils</locmod>
+        <locline>936</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.IOUtils</locmod>
+        <locline>945</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.IOUtils</locmod>
+        <locline>947</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.IOUtils</locmod>
+        <locline>950</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>maxLogic.IOUtils</locmod>
+        <locline>951</locline>
+      </loc>
+    </item>
+    <item>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>533</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>534</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>541</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>587</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>604</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>607</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>614</locline>
+      </loc>
+      <loc>
+        <kind>Read</kind>
+        <locmod>MaxLogic.strUtils</locmod>
+        <locline>615</locline>
+      </loc>
+    </item>
+  </section>
+  <section name="Var parameters that are used, but never set" count="4" oldcount="-2">
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\TGarbos\Finalize (28)</locmod>
+    </item>
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\TGarbos\Finalize (28)</locmod>
+    </item>
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\GC (70)    </locmod>
+    </item>
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\GC (70)    </locmod>
+    </item>
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\GC (74)    </locmod>
+    </item>
+    <item>
+      <id>aGarbos : TGarbos</id>
+      <kind>VarParam</kind>
+      <locmod>AutoFree\GC (74)    </locmod>
+    </item>
+    <item>
+      <id>Bytes : TBytes</id>
+      <kind>VarParam</kind>
+      <locmod>maxLogic.IOUtils\FillZeroBytes (223)</locmod>
+    </item>
+    <item>
+      <id>Bytes : TBytes</id>
+      <kind>VarParam</kind>
+      <locmod>maxLogic.IOUtils\FillZeroBytes (223)</locmod>
+    </item>
+  </section>
+  <section name="Value parameters that are set" count="11" oldcount="-2">
+    <item>
+      <id>aEncoding : TEncoding</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.IOUtils\LoatStringFromResource (43)</locmod>
+    </item>
+    <item>
+      <id>aEncoding : TEncoding</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.IOUtils\LoatStringFromResource (43)</locmod>
+    </item>
+    <item>
+      <id>aEncoding : TEncoding</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.IOUtils\SafeAppendToFile (76)</locmod>
+    </item>
+    <item>
+      <id>aEncoding : TEncoding</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.IOUtils\SafeAppendToFile (76)</locmod>
+    </item>
+    <item>
+      <id>aEndOffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\CharPosEx (99)</locmod>
+    </item>
+    <item>
+      <id>aEndOffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\CharPosEx (99)</locmod>
+    </item>
+    <item>
+      <id>aRetryCount : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.IOUtils\SafeAppendToFile (76)</locmod>
+    </item>
+    <item>
+      <id>aRetryCount : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.IOUtils\SafeAppendToFile (76)</locmod>
+    </item>
+    <item>
+      <id>aStartoffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\ExtractString (86)</locmod>
+    </item>
+    <item>
+      <id>aStartoffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\ExtractString (86)</locmod>
+    </item>
+    <item>
+      <id>aStartoffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\ReplacePlaceholder (186)</locmod>
+    </item>
+    <item>
+      <id>aStartoffset : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>MaxLogic.strUtils\ReplacePlaceholder (186)</locmod>
+    </item>
+    <item>
+      <id>DoProcessMessages : Boolean</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (534)</locmod>
+    </item>
+    <item>
+      <id>DoProcessMessages : Boolean</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (534)</locmod>
+    </item>
+    <item>
+      <id>Handle : THandle</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\MsgWaitForSingleObject (61)</locmod>
+    </item>
+    <item>
+      <id>Handle : THandle</id>
+      <kind>ValParam</kind>
+      <locmod>maxSignal\MsgWaitForSingleObject (61)</locmod>
+    </item>
+    <item>
+      <id>Milliseconds : DWORD</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (534)</locmod>
+    </item>
+    <item>
+      <id>Milliseconds : DWORD</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (534)</locmod>
+    </item>
+    <item>
+      <id>StartDir : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.IOUtils\exec (53)</locmod>
+    </item>
+    <item>
+      <id>StartDir : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.IOUtils\exec (53)</locmod>
+    </item>
+    <item>
+      <id>ThreadData : iThreadData</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal\AddToWaiting (517)</locmod>
+    </item>
+    <item>
+      <id>ThreadData : iThreadData</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal\AddToWaiting (517)</locmod>
+    </item>
+  </section>
+  <section name="Interfaces passed as parameters without &quot;const&quot; directive" count="2" oldcount="-2">
+    <item>
+      <id>aComparer : IComparer&lt;T&gt;</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\TFindInSortedList&lt;T&gt;\Create (452)</locmod>
+    </item>
+    <item>
+      <id>aComparer : IComparer&lt;T&gt;</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\TFindInSortedList&lt;T&gt;\Create (452)</locmod>
+    </item>
+    <item>
+      <id>ThreadData : iThreadData</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal\AddToWaiting (517)</locmod>
+    </item>
+    <item>
+      <id>ThreadData : iThreadData</id>
+      <kind>ValParam</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal\AddToWaiting (517)</locmod>
+    </item>
+  </section>
+  <section name="Variables with absolute directive" count="0" oldcount="-2">
+  </section>
+  <section name="Constructors/destructors without calls to inherited" count="0" oldcount="-2">
+  </section>
+  <section name="Destructors without override directive" count="0" oldcount="-2">
+  </section>
+  <section name="Classes with more than one destructor" count="0" oldcount="-2">
+  </section>
+  <section name="Function result not set" count="4" oldcount="-2">
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)       </locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>Split</id>
+      <kind>Func, Global</kind>
+      <locmod>MaxLogic.strUtils (266)</locmod>
+    </item>
+    <item>
+      <id>Split</id>
+      <kind>Func, Global</kind>
+      <locmod>MaxLogic.strUtils (266)</locmod>
+    </item>
+  </section>
+  <section name="Recursive subprograms" count="4" oldcount="-2">
+    <item>
+      <id>CollectExceptionCalls</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+    </item>
+    <item>
+      <id>CollectExceptionCalls</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+    </item>
+    <item>
+      <id>CombineUrl</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (201)</locmod>
+    </item>
+    <item>
+      <id>CombineUrl</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (201)</locmod>
+    </item>
+    <item>
+      <id>LoadXmlDocument</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (351)   </locmod>
+    </item>
+    <item>
+      <id>LoadXmlDocument</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (351)   </locmod>
+    </item>
+    <item>
+      <id>SumSectionCounts</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (327)   </locmod>
+    </item>
+    <item>
+      <id>SumSectionCounts</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (327)   </locmod>
+    </item>
+  </section>
+  <section name="Dangerous Exit-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Dangerous Raise" count="0" oldcount="-2">
+  </section>
+  <section name="Dangerous Label-locations inside for-loops" count="0" oldcount="-2">
+  </section>
+  <section name="Dangerous Label-locations inside repeat/while-loops" count="0" oldcount="-2">
+  </section>
+  <section name="Possible bad object creation" count="0" oldcount="-2">
+  </section>
+  <section name="Bad thread-local variables" count="0" oldcount="-2">
+  </section>
+  <section name="Instance created of class with abstract methods" count="0" oldcount="-2">
+  </section>
+  <section name="Empty begin/end-blocks" count="4" oldcount="-2">
+    <loc>
+      <locmod>maxAsync</locmod>
+      <locline>804</locline>
+    </loc>
+    <loc>
+      <locmod>maxAsync</locmod>
+      <locline>1995</locline>
+    </loc>
+    <loc>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1202</locline>
+    </loc>
+    <loc>
+      <locmod>Dak.Cli</locmod>
+      <locline>347</locline>
+    </loc>
+  </section>
+  <section name="Empty case labels" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited for-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited if-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited on-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited repeat-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Short-circuited while-statements" count="0" oldcount="-2">
+  </section>
+  <section name="Empty except-block" count="0" oldcount="-2">
+  </section>
+  <section name="Empty finally-block" count="1" oldcount="-2">
+    <loc>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1549</locline>
+    </loc>
+  </section>
+  <section name="Forward directive in interface" count="0" oldcount="-2">
+  </section>
+  <section name="Ambiguous references in with-blocks" count="0" oldcount="-2">
+  </section>
+  <section name="Classes without overrides of abstract methods" count="0" oldcount="-2">
+  </section>
+  <section name="Local for-loop variables read after loop" count="0" oldcount="-2">
+  </section>
+  <section name="For-loop variables not used in loop" count="1" oldcount="-2">
+    <item>
+      <id>i : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\OccurrencesOfChar (357)</locmod>
+    </item>
+    <item>
+      <id>i : Simple (unknown)</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\OccurrencesOfChar (357)</locmod>
+    </item>
+  </section>
+  <section name="Non-public constructors/destructors" count="0" oldcount="-2">
+  </section>
+  <section name="Functions called as procedures" count="13" oldcount="13">
+    <name>maxLogic.IOUtils.GetBuildInfo</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>304</locline>
+    </loc>
+    <name>Dak.ReportPostProcess.TryNormalizeRuleId</name>
+    <loc>
+      <locmod>Dak.ReportPostProcess</locmod>
+      <locline>467</locline>
+    </loc>
+    <name>Dak.ReportPostProcess.TryNormalizeRuleId</name>
+    <loc>
+      <locmod>Dak.ReportPostProcess</locmod>
+      <locline>474</locline>
+    </loc>
+    <name>Dak.ReportPostProcess.TryNormalizeRuleId</name>
+    <loc>
+      <locmod>Dak.ReportPostProcess</locmod>
+      <locline>540</locline>
+    </loc>
+    <name>maxConsoleRunner.TmaxConsoleRunner.preparePipes</name>
+    <loc>
+      <locmod>maxConsoleRunner</locmod>
+      <locline>311</locline>
+    </loc>
+    <name>maxConsoleRunner.TmaxConsoleRunner.Execute</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>410</locline>
+    </loc>
+    <name>AutoFree.TGarbos.Add</name>
+    <loc>
+      <locmod>AutoFree</locmod>
+      <locline>108</locline>
+    </loc>
+    <name>AutoFree.TGarbos.Add</name>
+    <loc>
+      <locmod>AutoFree</locmod>
+      <locline>202</locline>
+    </loc>
+    <name>AutoFree.TGarbos.Add</name>
+    <loc>
+      <locmod>AutoFree</locmod>
+      <locline>212</locline>
+    </loc>
+    <name>AutoFree.TGarbos.Add</name>
+    <loc>
+      <locmod>AutoFree</locmod>
+      <locline>256</locline>
+    </loc>
+    <name>Dak.Diagnostics.TStringSet.Add</name>
+    <loc>
+      <locmod>Dak.Diagnostics</locmod>
+      <locline>161</locline>
+    </loc>
+    <name>Dak.Diagnostics.TStringSet.Add</name>
+    <loc>
+      <locmod>Dak.Diagnostics</locmod>
+      <locline>168</locline>
+    </loc>
+    <name>Dak.Diagnostics.TStringSet.Add</name>
+    <loc>
+      <locmod>Dak.Diagnostics</locmod>
+      <locline>175</locline>
+    </loc>
+  </section>
+  <section name="Mismatch property read/write specifiers" count="0" oldcount="-2">
+  </section>
+  <section name="Local variables that are set but not later used" count="2" oldcount="-2">
+    <item>
+      <id>dummy : Cardinal</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetBuildInfo (334)</locmod>
+    </item>
+    <item>
+      <id>dummy : Cardinal</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\GetBuildInfo (334)</locmod>
+    </item>
+    <item>
+      <id>Signal : iSignal</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TmaxThread\DoSync (698)</locmod>
+    </item>
+    <item>
+      <id>Signal : iSignal</id>
+      <kind>Var, Local</kind>
+      <locmod>maxAsync\TmaxThread\DoSync (698)</locmod>
+    </item>
+  </section>
+  <section name="Duplicate lines" count="0" oldcount="-2">
+  </section>
+  <section name="Duplicate class types in except-block" count="0" oldcount="-2">
+  </section>
+  <section name="Redeclared identifiers from System unit" count="7" oldcount="-2">
+    <item>
+      <id>CpuCount</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+    </item>
+    <item>
+      <id>CpuCount</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+    </item>
+    <item>
+      <id>delete</id>
+      <kind>Proc, Local</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (1563)</locmod>
+    </item>
+    <item>
+      <id>delete</id>
+      <kind>Proc, Local</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (1563)</locmod>
+    </item>
+    <item>
+      <id>Flush</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (171)</locmod>
+    </item>
+    <item>
+      <id>Flush</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (171)</locmod>
+    </item>
+    <item>
+      <id>mark : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.ReportPostProcess\MatchesMaskCI (102)</locmod>
+    </item>
+    <item>
+      <id>mark : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.ReportPostProcess\MatchesMaskCI (102)</locmod>
+    </item>
+    <item>
+      <id>ParamCount : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\ParseStatement (1748)</locmod>
+    </item>
+    <item>
+      <id>ParamCount : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>MaxLogic.strUtils\ParseStatement (1748)</locmod>
+    </item>
+    <item>
+      <id>pi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\ExecuteFile (446)</locmod>
+    </item>
+    <item>
+      <id>pi : TProcessInformation</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.IOUtils\ExecuteFile (446)</locmod>
+    </item>
+    <item>
+      <id>tkString</id>
+      <kind>Enum const, Global</kind>
+      <locmod>Dak.MsBuild\TTokenKind (30)</locmod>
+    </item>
+    <item>
+      <id>tkString</id>
+      <kind>Enum const, Global</kind>
+      <locmod>Dak.MsBuild\TTokenKind (30)</locmod>
+    </item>
+  </section>
+  <section name="Out parameter is read before set" count="0" oldcount="-2">
+  </section>
+  <section name="Possible bad assignment" count="32" oldcount="-2">
+    <name>TimeLeft</name>
+    <loc>
+      <locmod>maxSignal</locmod>
+      <locline>107</locline>
+    </loc>
+    <name>Count</name>
+    <loc>
+      <locmod>maxAsync</locmod>
+      <locline>1604</locline>
+    </loc>
+    <name>V1</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>319</locline>
+    </loc>
+    <name>V2</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>319</locline>
+    </loc>
+    <name>v3</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>319</locline>
+    </loc>
+    <name>v4</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>319</locline>
+    </loc>
+    <name>i</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>366</locline>
+    </loc>
+    <name>lEnvVarValue</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>766</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>33</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>35</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>54</locline>
+    </loc>
+    <name>lFilePart</name>
+    <loc>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>47</locline>
+    </loc>
+    <name>lFilePart</name>
+    <loc>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>51</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>103</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>105</locline>
+    </loc>
+    <name>lBdsUserDir</name>
+    <loc>
+      <locmod>Dak.Registry</locmod>
+      <locline>241</locline>
+    </loc>
+    <name>lAppData</name>
+    <loc>
+      <locmod>Dak.Registry</locmod>
+      <locline>244</locline>
+    </loc>
+    <name>lValue</name>
+    <loc>
+      <locmod>Dak.Registry</locmod>
+      <locline>292</locline>
+    </loc>
+    <name>lValue</name>
+    <loc>
+      <locmod>Dak.Registry</locmod>
+      <locline>294</locline>
+    </loc>
+    <name>lValue</name>
+    <loc>
+      <locmod>Dak.Registry</locmod>
+      <locline>296</locline>
+    </loc>
+    <name>lCatalogRepo</name>
+    <loc>
+      <locmod>Dak.Registry</locmod>
+      <locline>253</locline>
+    </loc>
+    <name>lBdsRoot</name>
+    <loc>
+      <locmod>Dak.Registry</locmod>
+      <locline>283</locline>
+    </loc>
+    <name>lBdsLib</name>
+    <loc>
+      <locmod>Dak.Registry</locmod>
+      <locline>287</locline>
+    </loc>
+    <name>lBase</name>
+    <loc>
+      <locmod>Dak.RsVars</locmod>
+      <locline>25</locline>
+    </loc>
+    <name>lBase</name>
+    <loc>
+      <locmod>Dak.RsVars</locmod>
+      <locline>33</locline>
+    </loc>
+    <name>lComSpec</name>
+    <loc>
+      <locmod>Dak.RsVars</locmod>
+      <locline>108</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.Analyze</locmod>
+      <locline>138</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>Dak.Analyze</locmod>
+      <locline>140</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>DelphiAIKit</locmod>
+      <locline>45</locline>
+    </loc>
+    <name>lBuffer</name>
+    <loc>
+      <locmod>DelphiAIKit</locmod>
+      <locline>47</locline>
+    </loc>
+    <name>lCmdExe</name>
+    <loc>
+      <locmod>DelphiAIKit</locmod>
+      <locline>148</locline>
+    </loc>
+    <name>fExitCode</name>
+    <loc>
+      <locmod>maxConsoleRunner</locmod>
+      <locline>276</locline>
+    </loc>
+  </section>
+  <section name="Mixing interface variables and objects" count="0" oldcount="-2">
+  </section>
+  <section name="Set before passed as out parameter" count="20" oldcount="-2">
+    <name>V1</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>319</locline>
+    </loc>
+    <name>V2</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>319</locline>
+    </loc>
+    <name>v3</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>319</locline>
+    </loc>
+    <name>v4</name>
+    <loc>
+      <locmod>maxLogic.IOUtils</locmod>
+      <locline>319</locline>
+    </loc>
+    <name>s</name>
+    <loc>
+      <locmod>maxConsoleRunner</locmod>
+      <locline>381</locline>
+    </loc>
+    <name>lLineFromMod</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1310</locline>
+    </loc>
+    <name>lModule</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1334</locline>
+    </loc>
+    <name>lLine</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1334</locline>
+    </loc>
+    <name>lModule</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1469</locline>
+    </loc>
+    <name>lLineFromMod</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1469</locline>
+    </loc>
+    <name>lEntries</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>2042</locline>
+    </loc>
+    <name>lModuleLines</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>2050</locline>
+    </loc>
+    <name>lValue</name>
+    <loc>
+      <locmod>Dak.MacroExpander</locmod>
+      <locline>72</locline>
+    </loc>
+    <name>lRuleId</name>
+    <loc>
+      <locmod>Dak.ReportPostProcess</locmod>
+      <locline>540</locline>
+    </loc>
+    <name>lEnvVars</name>
+    <loc>
+      <locmod>Dak.Analyze</locmod>
+      <locline>442</locline>
+    </loc>
+    <name>lPalPostError</name>
+    <loc>
+      <locmod>Dak.Analyze</locmod>
+      <locline>981</locline>
+    </loc>
+    <name>lPalPostError</name>
+    <loc>
+      <locmod>Dak.Analyze</locmod>
+      <locline>1120</locline>
+    </loc>
+    <name>lExitCode</name>
+    <loc>
+      <locmod>DelphiAIKit</locmod>
+      <locline>251</locline>
+    </loc>
+    <name>fFixInsightExe</name>
+    <loc>
+      <locmod>Dak.Analyze</locmod>
+      <locline>450</locline>
+    </loc>
+    <name>Total</name>
+    <loc>
+      <locmod>Dak.Analyze</locmod>
+      <locline>603</locline>
+    </loc>
+  </section>
+  <section name="Redeclares ancestor member" count="2" oldcount="-2">
+    <item>
+      <id>Equals</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (151)</locmod>
+    </item>
+    <item>
+      <id>Equals</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (151)</locmod>
+    </item>
+    <item>
+      <id>GetHashCode</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (152)</locmod>
+    </item>
+    <item>
+      <id>GetHashCode</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (152)</locmod>
+    </item>
+  </section>
+  <section name="Parameter to FreeAndNil is not an object" count="0" oldcount="-2">
+  </section>
+  <section name="Enumerated constant missing in case structure" count="2" oldcount="-2">
+    <name>raReplace</name>
+    <loc>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>575</locline>
+    </loc>
+    <name>raReplaceAndStop</name>
+    <loc>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>575</locline>
+    </loc>
+  </section>
+  <section name="Mixed operator precedence levels" count="5" oldcount="-2">
+    <item>
+      <text>FSimultanousThreadCount := TmaxAsyncGlobal.NumberOfProcessors * 4 - 2  ;</text>
+      <module>maxAsync</module>
+      <locline>1219</locline>
+    </item>
+    <item>
+      <text>FSimultanousThreadCount := TmaxAsyncGlobal.NumberOfProcessors * 4 - 2  ;</text>
+      <module>maxAsync</module>
+      <locline>1658</locline>
+    </item>
+    <item>
+      <text>v := params[x * 2 + 1];</text>
+      <module>MaxLogic.strUtils</module>
+      <locline>1757</locline>
+    </item>
+    <item>
+      <text>if not lNeedsQuoting and (aValue &lt;&gt; &apos;&apos;) then</text>
+      <module>maxLogic.IOUtils</module>
+      <locline>904</locline>
+    </item>
+    <item>
+      <text>gc(lBuilder, TStringBuilder.Create(length(aValue) * 2 + 2));</text>
+      <module>maxLogic.IOUtils</module>
+      <locline>933</locline>
+    </item>
+  </section>
+  <section name="Explicit float comparison" count="0" oldcount="-2">
+  </section>
+  <section name="Condition evaluates to constant value" count="6" oldcount="-2">
+    <item>
+      <text>Until false;</text>
+      <module>maxSignal</module>
+      <locline>116</locline>
+    </item>
+    <item>
+      <text>while True do</text>
+      <module>MaxLogic.strUtils</module>
+      <locline>484</locline>
+    </item>
+    <item>
+      <text>if lWrite &lt;&gt; 0 then</text>
+      <module>Dak.PascalAnalyzerRunner</module>
+      <locline>386</locline>
+    </item>
+    <item>
+      <text>if lExitCode = 0 then</text>
+      <module>Dak.Analyze</module>
+      <locline>864</locline>
+    </item>
+    <item>
+      <text>if lExitCode = 0 then</text>
+      <module>Dak.Analyze</module>
+      <locline>1113</locline>
+    </item>
+    <item>
+      <text>while True do</text>
+      <module>maxConsoleRunner</module>
+      <locline>520</locline>
+    </item>
+  </section>
+  <section name="Assigned to itself" count="0" oldcount="-2">
+  </section>
+  <section name="Possible orphan event handler" count="0" oldcount="-2">
+  </section>
+  <section name="Mismatch parameter value (32/64-bits)" count="1" oldcount="-2">
+    <name>orgTimeOutMilliseconds</name>
+    <loc>
+      <locmod>maxAsync</locmod>
+      <locline>1635</locline>
+      <units>[32-bits passed to 64-bits]</units>
+    </loc>
+  </section>
+</report>

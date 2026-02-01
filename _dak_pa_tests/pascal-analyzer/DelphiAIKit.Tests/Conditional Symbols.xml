@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Conditional Symbols Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Conditional symbols that were defined ($DEFINE) in code" count="12" oldcount="-2">
+    <item id="1">DELPHI_XE_UP</item>
+    <item id="2">DELPHI_XE101_UP</item>
+    <item id="3">DELPHI_XE103_UP</item>
+    <item id="4">DELPHI_XE2_UP</item>
+    <item id="5">DELPHI_XE3_UP</item>
+    <item id="6">DELPHI_XE4_UP</item>
+    <item id="7">DELPHI_XE6_UP</item>
+    <item id="8">DELPHI_XE8_UP</item>
+    <item id="9">DELPHIX_SEATTLE_UP</item>
+    <item id="10">SUPPORTS_REGEX</item>
+    <item id="11">SUPPORTS_TARRAY</item>
+    <item id="12">USE_NS</item>
+  </section>
+  <section name="Conditional symbols that were undefined ($UNDEF) in code" count="0" oldcount="-2">
+  </section>
+  <section name="Conditional symbols/expressions that were evaluated as true ($IF/$IFDEF/$ELSEIF)" count="12" oldcount="-2">
+    <item id="1">CompilerVersion &gt; 21.0</item>
+    <item id="2">CompilerVersion &gt; 22.0</item>
+    <item id="3">CompilerVersion &gt; 23.0</item>
+    <item id="4">CompilerVersion &gt; 24.0</item>
+    <item id="5">CompilerVersion &gt; 26.0</item>
+    <item id="6">CompilerVersion &gt; 28.0</item>
+    <item id="7">CompilerVErsion &gt; 29.0</item>
+    <item id="8">CompilerVersion &gt; 31.0</item>
+    <item id="9">CompilerVersion &gt; 32.0</item>
+    <item id="10">CONDITIONALEXPRESSIONS</item>
+    <item id="11">DELPHI_XE2_UP</item>
+    <item id="12">USE_NS</item>
+  </section>
+  <section name="Conditional symbols/expressions that were evaluated as false ($IF/$IFDEF/$ELSEIF)" count="9" oldcount="-2">
+    <item id="1">CompilerVersion &lt; 21.0</item>
+    <item id="2">CompilerVersion &lt; 23.0</item>
+    <item id="3">CompilerVersion = 21.0</item>
+    <item id="4">CompilerVersion = 24.0</item>
+    <item id="5">DELPHI_2010</item>
+    <item id="6">DELPHI_XE3</item>
+    <item id="7">DUNITXDEBUG</item>
+    <item id="8">DUNITX-DEBUG</item>
+    <item id="9">UNSUPPORTED_COMPILER_VERSION</item>
+  </section>
+  <section name="Unnecessary $DEFINE/$UNDEF" count="0" oldcount="-2">
+  </section>
+  <section name="Unnecessary $IFDEF/$IFNDEF" count="0" oldcount="-2">
+  </section>
+  <section name="$DEFINE/UNDEF used but no matching $IFDEF/$IFNDEF in code" count="10" oldcount="-2">
+    <item id="1">DELPHI_XE_UP</item>
+    <item id="2">DELPHI_XE101_UP</item>
+    <item id="3">DELPHI_XE103_UP</item>
+    <item id="4">DELPHI_XE3_UP</item>
+    <item id="5">DELPHI_XE4_UP</item>
+    <item id="6">DELPHI_XE6_UP</item>
+    <item id="7">DELPHI_XE8_UP</item>
+    <item id="8">DELPHIX_SEATTLE_UP</item>
+    <item id="9">SUPPORTS_REGEX</item>
+    <item id="10">SUPPORTS_TARRAY</item>
+  </section>
+</report>

@@ -1,0 +1,236 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Optimization Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Missing &quot;const&quot; for unmodified string parameter" count="2" oldcount="-2">
+    <item>
+      <id>aSeparator : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\CombineUrl (201)</locmod>
+    </item>
+    <item>
+      <id>aSeparator : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\CombineUrl (201)</locmod>
+    </item>
+    <item>
+      <id>aSeparator : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\CombineUrl (202)</locmod>
+    </item>
+    <item>
+      <id>aSeparator : UnicodeString</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\CombineUrl (202)</locmod>
+    </item>
+  </section>
+  <section name="Missing &quot;const&quot; for unmodified record parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Missing &quot;const&quot; for unmodified array parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Array properties that are referenced/set within methods" count="0" oldcount="-2">
+  </section>
+  <section name="Virtual methods (procedures/functions) that are not overridden" count="0" oldcount="-2">
+  </section>
+  <section name="Local subprograms with references to outer local variables" count="2" oldcount="-2">
+    <item>
+      <id>AddRoot</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+    </item>
+    <item>
+      <id>AddRoot</id>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+    </item>
+    <item>
+      <id>TryReadRegistryValue</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.FixInsight\TryResolveFixInsightExe (84)</locmod>
+    </item>
+    <item>
+      <id>TryReadRegistryValue</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.FixInsight\TryResolveFixInsightExe (84)</locmod>
+    </item>
+  </section>
+  <section name="Subprograms with local subprograms" count="0" oldcount="-2">
+  </section>
+  <section name="Parameter is &quot;var&quot;, can be changed to &quot;out&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Inlined subprograms not inlined because not yet implemented" count="5" oldcount="-2">
+    <subprog>
+      <name>GC</name>
+      <module>GC</module>
+      <implementedline>222</implementedline>
+      <calledline>207</calledline>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <module>GC</module>
+      <implementedline>222</implementedline>
+      <calledline>212</calledline>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <module>GC</module>
+      <implementedline>215</implementedline>
+      <calledline>197</calledline>
+    </subprog>
+    <subprog>
+      <name>GC</name>
+      <module>GC</module>
+      <implementedline>215</implementedline>
+      <calledline>202</calledline>
+    </subprog>
+    <subprog>
+      <name>Preprocess</name>
+      <module>Preprocess</module>
+      <implementedline>755</implementedline>
+      <calledline>747</calledline>
+    </subprog>
+  </section>
+  <section name="Managed local variable can be declared inline" count="14" oldcount="-2">
+    <item>
+      <id>lEntries : TArray&lt;TComplexityEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1914)</locmod>
+    </item>
+    <item>
+      <id>lEntries : TArray&lt;TComplexityEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1914)</locmod>
+    </item>
+    <item>
+      <id>lError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1906)</locmod>
+    </item>
+    <item>
+      <id>lError : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1906)</locmod>
+    </item>
+    <item>
+      <id>lFlag : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\BuildArgs (874)</locmod>
+    </item>
+    <item>
+      <id>lFlag : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\BuildArgs (874)</locmod>
+    </item>
+    <item>
+      <id>lLineText : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryParseLocMod (1224)</locmod>
+    </item>
+    <item>
+      <id>lLineText : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryParseLocMod (1224)</locmod>
+    </item>
+    <item>
+      <id>lLocLine : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1452)</locmod>
+    </item>
+    <item>
+      <id>lLocLine : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1452)</locmod>
+    </item>
+    <item>
+      <id>lLocMod : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1451)</locmod>
+    </item>
+    <item>
+      <id>lLocMod : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1451)</locmod>
+    </item>
+    <item>
+      <id>lMaxDelphi : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (709)</locmod>
+    </item>
+    <item>
+      <id>lMaxDelphi : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryBuildDelphiTargetFlag (709)</locmod>
+    </item>
+    <item>
+      <id>lModule : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1453)</locmod>
+    </item>
+    <item>
+      <id>lModule : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1453)</locmod>
+    </item>
+    <item>
+      <id>lModuleArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1920)</locmod>
+    </item>
+    <item>
+      <id>lModuleArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1920)</locmod>
+    </item>
+    <item>
+      <id>lModuleLineArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1921)</locmod>
+    </item>
+    <item>
+      <id>lModuleLineArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1921)</locmod>
+    </item>
+    <item>
+      <id>lName : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1450)</locmod>
+    </item>
+    <item>
+      <id>lName : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\CollectExceptionCalls (1450)</locmod>
+    </item>
+    <item>
+      <id>lRoutineArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1919)</locmod>
+    </item>
+    <item>
+      <id>lRoutineArr : TArray&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1919)</locmod>
+    </item>
+    <item>
+      <id>lTag : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\SplitComplexityName (1518)</locmod>
+    </item>
+    <item>
+      <id>lTag : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\SplitComplexityName (1518)</locmod>
+    </item>
+    <item>
+      <id>lTail : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\RunPascalAnalyzer (137)</locmod>
+    </item>
+    <item>
+      <id>lTail : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\RunPascalAnalyzer (137)</locmod>
+    </item>
+  </section>
+  <section name="Managed local variable is inlined in loop" count="0" oldcount="-2">
+  </section>
+</report>

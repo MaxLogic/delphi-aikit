@@ -1,0 +1,947 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Class Index Report">
+  <created>29.01.2026 23:48:36</created>
+  <class>
+    <id>TAppOptions</id>
+    <locmod>dak.types (17)</locmod>
+    <inherits/>
+    <item>
+      <id>fAnalyzeClean</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>65</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fAnalyzeFiFormats</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>62</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fAnalyzeFixInsight</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>63</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fAnalyzeOutPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>60</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fAnalyzePal</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>64</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fAnalyzeWriteSummary</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>66</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fCommand</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>18</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fConfig</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>21</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fDelphiVersion</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>22</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fDprojPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>19</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fEnvOptionsPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>30</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fExcludePathMasks</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>45</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixCsv</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>42</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixIgnore</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>34</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixOutput</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>32</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixSettings</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>36</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixSilent</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>38</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixXml</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>40</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasAnalyzeOutPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>61</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasEnvOptionsPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>31</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasExcludePathMasks</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>46</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasFixCsv</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>43</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasFixIgnore</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>35</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasFixOutput</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>33</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasFixSettings</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>37</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasFixSilent</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>39</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasFixXml</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>41</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasIgnoreWarningIds</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>48</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasLogFile</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>57</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasLogTee</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>59</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasOutKind</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>26</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasOutPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>25</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasPaArgs</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>55</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasPaOutput</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>53</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasPaPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>51</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fHasRsVarsPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>29</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fIgnoreWarningIds</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>47</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fLogFile</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>56</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fLogTee</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>58</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fOutKind</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>23</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fOutPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>24</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fPaArgs</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>54</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fPaOutput</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>52</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fPaPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>50</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fPlatform</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>20</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fRsVarsPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>28</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fRunFixInsight</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>44</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fRunPascalAnalyzer</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>49</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fUnitPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>67</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fVerbose</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TAppOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>27</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+  </class>
+  <class>
+    <id>TFixInsightExtraOptions</id>
+    <locmod>dak.types (70)</locmod>
+    <inherits/>
+    <item>
+      <id>fCsv</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightExtraOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>77</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fExePath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightExtraOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>71</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fIgnore</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightExtraOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>73</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fOutput</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightExtraOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>72</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fSettings</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightExtraOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>74</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fSilent</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightExtraOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>75</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fXml</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightExtraOptions</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>76</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+  </class>
+  <class>
+    <id>TFixInsightIgnoreDefaults</id>
+    <locmod>dak.types (80)</locmod>
+    <inherits/>
+    <item>
+      <id>fWarnings</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightIgnoreDefaults</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>81</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+  </class>
+  <class>
+    <id>TReportFilterDefaults</id>
+    <locmod>dak.types (84)</locmod>
+    <inherits/>
+    <item>
+      <id>fExcludePathMasks</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TReportFilterDefaults</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>85</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+  </class>
+  <class>
+    <id>TPascalAnalyzerDefaults</id>
+    <locmod>dak.types (88)</locmod>
+    <inherits/>
+    <item>
+      <id>fArgs</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TPascalAnalyzerDefaults</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>91</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fOutput</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TPascalAnalyzerDefaults</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>90</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TPascalAnalyzerDefaults</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>89</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+  </class>
+  <class>
+    <id>TFixInsightParams</id>
+    <locmod>dak.types (94)</locmod>
+    <inherits/>
+    <item>
+      <id>fConfig</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>110</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fDefines</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>103</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fDefineSource</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>112</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fDelphiVersion</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>108</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixCsv</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>102</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixIgnore</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>98</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixInsightExe</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>96</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixOutput</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>97</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixSettings</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>99</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixSilent</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>100</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fFixXml</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>101</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fLibraryPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>105</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fLibrarySource</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>111</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fPlatform</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>109</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fProjectDpr</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>95</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fSearchPathSource</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>113</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fUnitAliases</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>107</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fUnitAliasesSource</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>115</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fUnitScopes</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>106</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fUnitScopesSource</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>114</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+    <item>
+      <id>fUnitSearchPath</id>
+      <type>Field</type>
+      <scope>Public</scope>
+      <directive>Static</directive>
+      <current>TFixInsightParams</current>
+      <introduced/>
+      <locmod>dak.types</locmod>
+      <locline>104</locline>
+      <info>--&gt; is public/published and is not a property</info>
+    </item>
+  </class>
+</report>

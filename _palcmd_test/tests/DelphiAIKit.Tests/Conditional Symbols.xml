@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Conditional Symbols Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Conditional symbols that were defined ($DEFINE) in code" count="5" oldcount="-2">
+    <item id="1">FASTCASE_EQUALS_QPLUS</item>
+    <item id="2">FASTCASE_EQUALS_RPLUS</item>
+    <item id="3">FASTCASE_HASHCI_QPLUS</item>
+    <item id="4">FASTCASE_HASHCI_RPLUS</item>
+    <item id="5">FASTCASE_HASHORD_RPLUS</item>
+  </section>
+  <section name="Conditional symbols that were undefined ($UNDEF) in code" count="5" oldcount="-2">
+    <item id="1">FASTCASE_EQUALS_QPLUS</item>
+    <item id="2">FASTCASE_EQUALS_RPLUS</item>
+    <item id="3">FASTCASE_HASHCI_QPLUS</item>
+    <item id="4">FASTCASE_HASHCI_RPLUS</item>
+    <item id="5">FASTCASE_HASHORD_RPLUS</item>
+  </section>
+  <section name="Conditional symbols/expressions that were evaluated as true ($IF/$IFDEF/$ELSEIF)" count="6" oldcount="-2">
+    <item id="1">FASTCASE_EQUALS_QPLUS</item>
+    <item id="2">FASTCASE_EQUALS_RPLUS</item>
+    <item id="3">FASTCASE_HASHCI_QPLUS</item>
+    <item id="4">FASTCASE_HASHCI_RPLUS</item>
+    <item id="5">FASTCASE_HASHORD_RPLUS</item>
+    <item id="6">MSWINDOWS</item>
+  </section>
+  <section name="Conditional symbols/expressions that were evaluated as false ($IF/$IFDEF/$ELSEIF)" count="2" oldcount="-2">
+    <item id="1">FASTCASE_HASHBYTES_QPLUS</item>
+    <item id="2">FASTCASE_HASHBYTES_RPLUS</item>
+  </section>
+  <section name="Unnecessary $DEFINE/$UNDEF" count="5" oldcount="-2">
+    <item>
+      <id>FASTCASE_EQUALS_QPLUS</id>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1555</locline>
+    </item>
+    <item>
+      <id>FASTCASE_EQUALS_RPLUS</id>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1551</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHCI_QPLUS</id>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1499</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHCI_RPLUS</id>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1495</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHORD_RPLUS</id>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1409</locline>
+    </item>
+  </section>
+  <section name="Unnecessary $IFDEF/$IFNDEF" count="0" oldcount="-2">
+  </section>
+  <section name="$DEFINE/UNDEF used but no matching $IFDEF/$IFNDEF in code" count="0" oldcount="-2">
+  </section>
+</report>

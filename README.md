@@ -106,7 +106,31 @@ bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win32 -
 
 ## FixInsightCL pass-through options
 
-We can pass extra FixInsightCL flags either via `settings.ini` (next to the executable) or the CLI. CLI values win.
+We can pass extra FixInsightCL flags either via cascading `dak.ini` files or the CLI. CLI values win.
+
+### Cascading `dak.ini` lookup
+
+`dak.ini` files are loaded in **cascading** order (lowest → highest precedence):
+
+1. `dak.ini` next to the executable (global defaults).
+2. `dak.ini` at repo root (folder containing `.git` or `.svn`), then each subfolder on the path down to the `.dproj` folder.
+3. The `.dproj` folder `dak.ini` (already included by the path walk).
+
+We **do not** use the current working directory for settings lookup.
+
+List-like values are merged + deduped case-insensitively, preserving first-seen order; singular strings override only when non-empty.
+
+Example layout (more local files override/extend more global ones):
+
+```
+repo/
+  dak.ini
+  src/
+    dak.ini
+    app/
+      MyApp.dproj
+      dak.ini
+```
 
 Supported pass-through options:
 
@@ -117,7 +141,7 @@ Supported pass-through options:
 - `--fi-xml`
 - `--fi-csv`
 
-Sample `settings.ini`:
+Sample `dak.ini`:
 
 ```
 [FixInsightCL]
@@ -201,7 +225,7 @@ bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 -
 - We run `rsvars.bat` first so the IDE environment variables are available for macro expansion.
 - If the IDE library path is not in the registry, we fall back to `EnvOptions.proj` from `BDSUSERDIR`.
   If `BDSUSERDIR` is missing, we derive it from `%APPDATA%\Embarcadero\BDS\<version>` and then `%USERPROFILE%\Documents\Embarcadero\Studio\<version>`.
-- We resolve `FixInsightCL.exe` from `settings.ini` (`Path`), then `PATH`, then FixInsight registry keys (HKCU/HKLM, 32/64-bit).
+- We resolve `FixInsightCL.exe` from `dak.ini` (`Path`), then `PATH`, then FixInsight registry keys (HKCU/HKLM, 32/64-bit).
 - Sample inputs live in `tests\fixtures\` so we can quickly try the resolver.
 - `scripts\fixinsight-selftest\fixinsight-run.bat` runs FixInsight against this repo and can generate raw reports under `scripts\fixinsight-selftest\Reports\`.
 - `scripts\pascal-analyzer-selftest\pascal-analyzer-run.bat` runs Pascal Analyzer against this repo and writes reports under `scripts\pascal-analyzer-selftest\Reports\`.

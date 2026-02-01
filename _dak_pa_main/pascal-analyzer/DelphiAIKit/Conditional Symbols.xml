@@ -1,0 +1,220 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Conditional Symbols Report">
+  <created>30.01.2026 00:14:14</created>
+  <section name="Conditional symbols that were defined ($DEFINE) in code" count="36" oldcount="-2">
+    <item id="1">d10_1</item>
+    <item id="2">d10_2</item>
+    <item id="3">d10_3</item>
+    <item id="4">d10_4</item>
+    <item id="5">d10seattle</item>
+    <item id="6">d11</item>
+    <item id="7">d2005</item>
+    <item id="8">d2006</item>
+    <item id="9">d2007</item>
+    <item id="10">d2009</item>
+    <item id="11">d2010</item>
+    <item id="12">d5</item>
+    <item id="13">d6</item>
+    <item id="14">d7</item>
+    <item id="15">delayStackWalk64</item>
+    <item id="16">FASTCASE_EQUALS_QPLUS</item>
+    <item id="17">FASTCASE_EQUALS_RPLUS</item>
+    <item id="18">FASTCASE_HASHBYTES_QPLUS</item>
+    <item id="19">FASTCASE_HASHBYTES_RPLUS</item>
+    <item id="20">FASTCASE_HASHCI_QPLUS</item>
+    <item id="21">FASTCASE_HASHCI_RPLUS</item>
+    <item id="22">FASTCASE_HASHORD_RPLUS</item>
+    <item id="23">FORWARD_EXCEPTIONS_TO_MAIN_THREAD</item>
+    <item id="24">jdbg</item>
+    <item id="25">pdb</item>
+    <item id="26">RangeCheck</item>
+    <item id="27">td32</item>
+    <item id="28">UnicodeOverloads</item>
+    <item id="29">xe</item>
+    <item id="30">xe2</item>
+    <item id="31">xe3</item>
+    <item id="32">xe4</item>
+    <item id="33">xe5</item>
+    <item id="34">xe6</item>
+    <item id="35">xe7</item>
+    <item id="36">xe8</item>
+  </section>
+  <section name="Conditional symbols that were undefined ($UNDEF) in code" count="8" oldcount="-2">
+    <item id="1">FASTCASE_EQUALS_QPLUS</item>
+    <item id="2">FASTCASE_EQUALS_RPLUS</item>
+    <item id="3">FASTCASE_HASHBYTES_QPLUS</item>
+    <item id="4">FASTCASE_HASHBYTES_RPLUS</item>
+    <item id="5">FASTCASE_HASHCI_QPLUS</item>
+    <item id="6">FASTCASE_HASHCI_RPLUS</item>
+    <item id="7">FASTCASE_HASHORD_RPLUS</item>
+    <item id="8">RangeCheck</item>
+  </section>
+  <section name="Conditional symbols/expressions that were evaluated as true ($IF/$IFDEF/$ELSEIF)" count="26" oldcount="-2">
+    <item id="1">d2005</item>
+    <item id="2">d2006</item>
+    <item id="3">d2009</item>
+    <item id="4">d6</item>
+    <item id="5">d7</item>
+    <item id="6">DEFINED( MsWINDOWS)</item>
+    <item id="7">Defined(MSWINDOWS)</item>
+    <item id="8">FASTCASE_EQUALS_QPLUS</item>
+    <item id="9">FASTCASE_EQUALS_RPLUS</item>
+    <item id="10">FASTCASE_HASHBYTES_QPLUS</item>
+    <item id="11">FASTCASE_HASHBYTES_RPLUS</item>
+    <item id="12">FASTCASE_HASHCI_QPLUS</item>
+    <item id="13">FASTCASE_HASHCI_RPLUS</item>
+    <item id="14">FASTCASE_HASHORD_RPLUS</item>
+    <item id="15">FORWARD_EXCEPTIONS_TO_MAIN_THREAD</item>
+    <item id="16">jdbg</item>
+    <item id="17">MadExcept</item>
+    <item id="18">MSWINDOWS</item>
+    <item id="19">pdb</item>
+    <item id="20">RangeCheck</item>
+    <item id="21">td32</item>
+    <item id="22">UNICODE</item>
+    <item id="23">UnicodeOverloads</item>
+    <item id="24">ver350</item>
+    <item id="25">xe2</item>
+    <item id="26">xe3</item>
+  </section>
+  <section name="Conditional symbols/expressions that were evaluated as false ($IF/$IFDEF/$ELSEIF)" count="45" oldcount="-2">
+    <item id="1">ASYNC_LOOP_USES_SINGLETHREAD</item>
+    <item id="2">bcb</item>
+    <item id="3">CanUseApplicationInstance</item>
+    <item id="4">CodeJak</item>
+    <item id="5">CompilerVersion &lt;= 29.0</item>
+    <item id="6">CONSOLE</item>
+    <item id="7">cstyle</item>
+    <item id="8">DEBUG_MAXASYNC</item>
+    <item id="9">DEFINED(FRAMEWORK_VCL) OR DEFINED(FRAMEWORK_FMXs)</item>
+    <item id="10">ForceQueueNotAvailable</item>
+    <item id="11">HideGdprSensitiveData</item>
+    <item id="12">LINUX</item>
+    <item id="13">log</item>
+    <item id="14">meLog</item>
+    <item id="15">noncommercial</item>
+    <item id="16">oneServerOnly</item>
+    <item id="17">OverflowCheck</item>
+    <item id="18">RangeCheck</item>
+    <item id="19">SIZEOF(TTestRec) &lt;&gt; 16</item>
+    <item id="20">supportAggregrateExceptions</item>
+    <item id="21">USE_NETHTTPCLIENT</item>
+    <item id="22">USE_NETHTTPCLIENT_CONFIRMED</item>
+    <item id="23">ver120</item>
+    <item id="24">ver130</item>
+    <item id="25">ver140</item>
+    <item id="26">ver150</item>
+    <item id="27">ver170</item>
+    <item id="28">ver180</item>
+    <item id="29">ver185</item>
+    <item id="30">ver200</item>
+    <item id="31">ver210</item>
+    <item id="32">ver220</item>
+    <item id="33">ver230</item>
+    <item id="34">ver240</item>
+    <item id="35">ver250</item>
+    <item id="36">ver260</item>
+    <item id="37">ver270</item>
+    <item id="38">ver280</item>
+    <item id="39">ver290</item>
+    <item id="40">ver300</item>
+    <item id="41">ver310</item>
+    <item id="42">ver320</item>
+    <item id="43">ver330</item>
+    <item id="44">ver340</item>
+    <item id="45">win64</item>
+  </section>
+  <section name="Unnecessary $DEFINE/$UNDEF" count="12" oldcount="-2">
+    <item>
+      <id>d6</id>
+      <locmod>madStrings</locmod>
+      <locline>368</locline>
+    </item>
+    <item>
+      <id>d7</id>
+      <locmod>madStrings</locmod>
+      <locline>368</locline>
+    </item>
+    <item>
+      <id>FASTCASE_EQUALS_QPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1555</locline>
+    </item>
+    <item>
+      <id>FASTCASE_EQUALS_RPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1551</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHBYTES_QPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1391</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHBYTES_RPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1387</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHCI_QPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1499</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHCI_RPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1495</locline>
+    </item>
+    <item>
+      <id>FASTCASE_HASHORD_RPLUS</id>
+      <locmod>MaxLogic.strUtils</locmod>
+      <locline>1409</locline>
+    </item>
+    <item>
+      <id>RangeCheck</id>
+      <locmod>madZip</locmod>
+      <locline>1355</locline>
+    </item>
+    <item>
+      <id>RangeCheck</id>
+      <locmod>madZip</locmod>
+      <locline>834</locline>
+    </item>
+    <item>
+      <id>RangeCheck</id>
+      <locmod>madZip</locmod>
+      <locline>799</locline>
+    </item>
+  </section>
+  <section name="Unnecessary $IFDEF/$IFNDEF" count="1" oldcount="-2">
+    <item>
+      <id>MsWindows</id>
+      <locmod>maxAsync</locmod>
+      <locline>1837</locline>
+    </item>
+  </section>
+  <section name="$DEFINE/UNDEF used but no matching $IFDEF/$IFNDEF in code" count="22" oldcount="-2">
+    <item id="1">d10_1</item>
+    <item id="2">d10_2</item>
+    <item id="3">d10_3</item>
+    <item id="4">d10_4</item>
+    <item id="5">d10seattle</item>
+    <item id="6">d11</item>
+    <item id="7">d2007</item>
+    <item id="8">d2010</item>
+    <item id="9">d5</item>
+    <item id="10">delayStackWalk64</item>
+    <item id="11">NeverSleepOnMMThreadContention (set in options)</item>
+    <item id="12">NeverUninstall (set in options)</item>
+    <item id="13">RELEASE (set in options)</item>
+    <item id="14">UseReleaseStack (set in options)</item>
+    <item id="15">UseSwitchToThread (set in options)</item>
+    <item id="16">xe</item>
+    <item id="17">xe4</item>
+    <item id="18">xe5</item>
+    <item id="19">xe6</item>
+    <item id="20">xe7</item>
+    <item id="21">xe8</item>
+    <item id="22">ZUGFeRD_Support (set in options)</item>
+  </section>
+</report>

@@ -1,0 +1,521 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Status Report">
+  <created>30.01.2026 00:14:19</created>
+  <section name="Overview">
+    <analyzed_by>PAL - Pascal Analyzer</analyzed_by>
+    <version>9.11.0.0</version>
+    <parse_speed>
+      <sourcelines>227461</sourcelines>
+      <seconds>2,44</seconds>
+      <lines_per_second>93184</lines_per_second>
+    </parse_speed>
+    <time_for_reports>
+      <seconds>5,38 seconds (for 50 reports in 32 threads)</seconds>
+    </time_for_reports>
+    <total_time>
+      <seconds>9,95</seconds>
+    </total_time>
+    <main_file>F:\projects\MaxLogic\DelphiConfigResolver\projects\DelphiAIKit.dpr</main_file>
+    <outout_folder>F:\projects\MaxLogic\DelphiConfigResolver\_dak_pa_main\pascal-analyzer\DelphiAIKit</outout_folder>
+    <compiler>Delphi 11 (Win32)</compiler>
+    <projectconfiguration>Debug</projectconfiguration>
+    <filetypes_parsed>Both source and form files</filetypes_parsed>
+    <files_parsed>All files</files_parsed>
+    <env._variables__8_>
+      <item id="1">$(BDS)=C:\Program Files (x86)\Embarcadero\Studio\22.0</item>
+      <item id="2">$(BDSCatalogRepository)=C:\Users\pawel\Documents\Embarcadero\Studio\23.0\CatalogRepository</item>
+      <item id="3">$(BDSCOMMONDIR)=C:\Users\Public\Documents\Embarcadero\Studio\22.0</item>
+      <item id="4">$(BDSLIB)=c:\program files (x86)\embarcadero\studio\23.0\lib</item>
+      <item id="5">$(BDSUSERDIR)=C:\Users\pawel\Documents\Embarcadero\Studio\23.0</item>
+      <item id="6">$(FNCGRIDEXCELBRIDGE)=c:\tms\FNCExcelBridge</item>
+      <item id="7">$(Platform)=Win32</item>
+      <item id="8">$(SKIADIR)=C:\Users\pawel\Documents\Embarcadero\Studio\22.0\CatalogRepository\Skia4Delphi-5.0.0</item>
+    </env._variables__8_>
+    <search_folders__221_>
+      <item id="1">F:\projects\MaxLogic\DelphiConfigResolver\projects</item>
+      <item id="2">f:\projects\maxLogic\MaxLogicFoundation\</item>
+      <item id="3">F:\projects\3rdParty\Daniele Spinetti\loggerpro</item>
+      <item id="4">F:\projects\3rdParty\Spring4D\_git\spring4d\Source</item>
+      <item id="5">c:\program files (x86)\embarcadero\studio\23.0\lib\Win32\release</item>
+      <item id="6">C:\Users\pawel\Documents\Embarcadero\Studio\23.0\Imports</item>
+      <item id="7">C:\Users\pawel\Documents\Embarcadero\Studio\23.0\Imports\Win32</item>
+      <item id="8">C:\Program Files (x86)\Embarcadero\Studio\23.0\Imports</item>
+      <item id="9">C:\Users\Public\Documents\Embarcadero\Studio\23.0\Dcp</item>
+      <item id="10">C:\Program Files (x86)\Embarcadero\Studio\23.0\include</item>
+      <item id="11">C:\Program Files (x86)\madCollection\Plugins\win32</item>
+      <item id="12">F:\projects\3rdParty\JCL\jcl\jcl\lib\d29\win32</item>
+      <item id="13">F:\projects\3rdParty\JCL\jcl\jcl\source\include</item>
+      <item id="14">F:\projects\3rdParty\JVCL\jvcl\jvcl\lib\d29\win32</item>
+      <item id="15">F:\projects\3rdParty\JVCL\jvcl\jvcl\common</item>
+      <item id="16">F:\projects\3rdParty\JVCL\jvcl\jvcl\resources</item>
+      <item id="17">F:\projects\3rdParty\VirtualTree\_git\Source</item>
+      <item id="18">F:\projects\3rdParty\IconFontsImageList (EtheaDev)\IconFontsImageList\Source</item>
+      <item id="19">F:\projects\Statuspro\_git\packages_2023\SRC\WCL\source</item>
+      <item id="20">F:\projects\Statuspro\_git\packages_2023\SRC\SmartInspect2\source\delphi</item>
+      <item id="21">F:\projects\Statuspro\_git\packages_2023\SRC\SmartInspect2\lib\delphi\delphi12</item>
+      <item id="22">F:\projects\Statuspro\_git\packages_2023\SRC\TsiLang\Units</item>
+      <item id="23">F:\projects\Statuspro\_git\packages_2023\SRC\QuickRep\src\</item>
+      <item id="24">F:\projects\Statuspro\_git\packages_2023\SRC\QuickRep\src\SGChart</item>
+      <item id="25">F:\projects\Statuspro\_git\packages_2023\SRC\TsiLang\Units\siInternetTranslator</item>
+      <item id="26">F:\projects\3rdParty\Graphics32\graphics32\Source</item>
+      <item id="27">F:\projects\Statuspro\_git\packages_2023\SRC\StatusPro\src</item>
+      <item id="28">F:\projects\Statuspro\_git\packages_2023\SRC\wPDF4\RS12</item>
+      <item id="29">F:\projects\3rdParty\VSoft\DUnitX\Source\</item>
+      <item id="30">F:\projects\3rdParty\Spring4D\_git\spring4d\Library\Delphi12\Win32\Release</item>
+      <item id="31">F:\projects\3rdParty\EtheaDev\SVGIconImageList\Source</item>
+      <item id="32">F:\projects\3rdParty\EtheaDev\SVGIconImageList\Image32\source</item>
+      <item id="33">C:\Program Files (x86)\Add-in Express\Add-in Express for VCL\Packages\Delphi12</item>
+      <item id="34">C:\Program Files (x86)\madCollection\madBasic\BDS23\win32</item>
+      <item id="35">C:\Program Files (x86)\madCollection\madDisAsm\BDS23\win32</item>
+      <item id="36">C:\Program Files (x86)\madCollection\madExcept\BDS23\win32</item>
+      <item id="37">C:\Program Files (x86)\madCollection\madKernel\BDS23\win32</item>
+      <item id="38">C:\Program Files (x86)\madCollection\madSecurity\BDS23\win32</item>
+      <item id="39">C:\Program Files (x86)\madCollection\madShell\BDS23\win32</item>
+      <item id="40">F:\projects\Statuspro\_git\packages_2023\SRC\TeeChartSrc\Source</item>
+      <item id="41">F:\projects\Statuspro\_git\packages_2023\SRC\TeeChartSrc\Source\VCL</item>
+      <item id="42">F:\TMS-SmartSetUp\Products\tms.vcl.diagram\packages\d12\Win32\Release</item>
+      <item id="43">F:\TMS-SmartSetUp\Products\tms.vcl.passkit\packages\d12\Win32\Release</item>
+      <item id="44">F:\TMS-SmartSetUp\Products\tms.vcl.pluginframework\packages\d12\Win32\Release</item>
+      <item id="45">F:\TMS-SmartSetUp\Products\tms.dev.mqtt\packages\d12\Win32\Release</item>
+      <item id="46">F:\TMS-SmartSetUp\Products\tms.dev.analytics\packages\d12\Win32\Release</item>
+      <item id="47">F:\TMS-SmartSetUp\Products\tms.biz.bcl\packages\d12\Win32\Release</item>
+      <item id="48">F:\TMS-SmartSetUp\Products\tms.biz.bcl\source\extra</item>
+      <item id="49">F:\TMS-SmartSetUp\Products\tms.fmx.icl\packages\d12\Win32\Release</item>
+      <item id="50">F:\TMS-SmartSetUp\Products\tms.vcl.async32\packages\d12\Win32\Release</item>
+      <item id="51">F:\TMS-SmartSetUp\Products\tms.fmx.mcl\packages\d12\Win32\Release</item>
+      <item id="52">F:\TMS-SmartSetUp\Products\tms.vcl.securitysystem\packages\d12\Win32\Release</item>
+      <item id="53">F:\TMS-SmartSetUp\Products\tms.graphql\packages\d12\Win32\Release</item>
+      <item id="54">F:\TMS-SmartSetUp\Products\tms.vcl.instrumentationworkshop\packages\d12\Win32\Release</item>
+      <item id="55">F:\TMS-SmartSetUp\Products\tms.vcl.chart\packages\d12\Win32\Release</item>
+      <item id="56">F:\TMS-SmartSetUp\Products\tms.dev.aistudio\packages\d12\Win32\Release</item>
+      <item id="57">F:\TMS-SmartSetUp\Products\tms.biz.logging\packages\d12\Win32\Release</item>
+      <item id="58">F:\TMS-SmartSetUp\Products\tms.biz.logging\source\extra</item>
+      <item id="59">F:\TMS-SmartSetUp\Products\tms.biz.sparkle\packages\d12\Win32\Release</item>
+      <item id="60">F:\TMS-SmartSetUp\Products\tms.biz.sparkle\source\extra</item>
+      <item id="61">F:\TMS-SmartSetUp\Products\tms.biz.sparkle\source\app</item>
+      <item id="62">F:\TMS-SmartSetUp\Products\tms.vcl.workflow\packages\d12\Win32\Release</item>
+      <item id="63">F:\TMS-SmartSetUp\Products\tms.vcl.workflow\source\drivers\anydac</item>
+      <item id="64">F:\TMS-SmartSetUp\Products\tms.vcl.workflow\source\drivers\fibplus</item>
+      <item id="65">F:\TMS-SmartSetUp\Products\tms.biz.aurelius\packages\d12\Win32\Release</item>
+      <item id="66">F:\TMS-SmartSetUp\Products\tms.biz.aurelius\source\drivers</item>
+      <item id="67">F:\TMS-SmartSetUp\Products\tms.vcl.cloudpack\packages\d12\Win32\Release</item>
+      <item id="68">F:\TMS-SmartSetUp\Products\tms.biz.remotedb\packages\d12\Win32\Release</item>
+      <item id="69">F:\TMS-SmartSetUp\Products\tms.biz.remotedb\source\drivers</item>
+      <item id="70">F:\TMS-SmartSetUp\Products\tms.fnc.core\packages\d12\Win32\Release</item>
+      <item id="71">F:\TMS-SmartSetUp\Products\tms.fnc.pushnotifications\packages\d12\Win32\Release</item>
+      <item id="72">F:\TMS-SmartSetUp\Products\tms.fnc.pushnotifications</item>
+      <item id="73">F:\TMS-SmartSetUp\Products\tms.biz.scripter\packages\d12\Win32\Release</item>
+      <item id="74">F:\TMS-SmartSetUp\Products\tms.biz.scripter\source\imports\extra</item>
+      <item id="75">F:\TMS-SmartSetUp\Products\tms.fnc.apptools\packages\d12\Win32\Release</item>
+      <item id="76">F:\TMS-SmartSetUp\Products\tms.biz.xdata\packages\d12\Win32\Release</item>
+      <item id="77">F:\TMS-SmartSetUp\Products\tms.biz.echo\packages\d12\Win32\Release</item>
+      <item id="78">F:\TMS-SmartSetUp\Products\tms.fnc.websocket\packages\d12\Win32\Release</item>
+      <item id="79">F:\TMS-SmartSetUp\Products\tms.fnc.dashboardpack\packages\d12\Win32\Release</item>
+      <item id="80">F:\TMS-SmartSetUp\Products\tms.biz.sphinx\packages\d12\Win32\Release</item>
+      <item id="81">F:\TMS-SmartSetUp\Products\tms.fnc.chart\packages\d12\Win32\Release</item>
+      <item id="82">F:\TMS-SmartSetUp\Products\tms.fnc.blox\packages\d12\Win32\Release</item>
+      <item id="83">F:\TMS-SmartSetUp\Products\tms.fnc.wxpack\packages\d12\Win32\Release</item>
+      <item id="84">F:\TMS-SmartSetUp\Products\tms.fnc.maps\packages\d12\Win32\Release</item>
+      <item id="85">F:\TMS-SmartSetUp\Products\tms.fnc.ganttchart\packages\d12\Win32\Release</item>
+      <item id="86">F:\TMS-SmartSetUp\Products\tms.fnc.cloudpack\packages\d12\Win32\Release</item>
+      <item id="87">F:\TMS-SmartSetUp\Products\tms.fnc.uipack\packages\d12\Win32\Release</item>
+      <item id="88">F:\TMS-SmartSetUp\Products\tms.fnc.bloxtoolbars\packages\d12\Win32\Release</item>
+      <item id="89">F:\TMS-SmartSetUp\Products\tms.fnc.cloudpackresteditor\packages\d12\Win32\Release</item>
+      <item id="90">F:\TMS-SmartSetUp\Products\tms.fnc.chartgridadapter\packages\d12\Win32\Release</item>
+      <item id="91">F:\TMS-SmartSetUp\Products\tms.flexcel.vcl\Packages\d12+\23.0\Win32\Release</item>
+      <item id="92">F:\TMS-SmartSetUp\Products\tms.fnc.excel.bridge\Packages\d12+\23.0\Win32\Release</item>
+      <item id="93">F:\projects\mecMeister\_SVN\Kfzmeister_workCopy\3rdParty\Chromium\src\packages\23.0\Win32\Release</item>
+      <item id="94">F:\projects\mecMeister\_SVN\Kfzmeister_workCopy\3rdParty\Chromium\src\source</item>
+      <item id="95">C:\Users\pawel\Documents\Embarcadero\Studio\23.0\CatalogRepository\Abbrevia-12\source\</item>
+      <item id="96">F:\TMS-SmartSetUp\Products\tms.webcore\Packages\d12\Win32\Release</item>
+      <item id="97">F:\TMS-SmartSetUp\Products\tms.vcl.crypto\packages\d12\Win32\Release</item>
+      <item id="98">F:\TMS-SmartSetUp\Products\tms.vcl.crypto</item>
+      <item id="99">F:\projects\mecMeister\_SVN\Kfzmeister_workCopy\3rdParty\WPP4Delphi\Packages\23.0\Win32\Release</item>
+      <item id="100">F:\projects\mecMeister\_SVN\Kfzmeister_workCopy\3rdParty\WPP4Delphi\Source</item>
+      <item id="101">F:\TMS-SmartSetUp\Products\tms.vcl.uipack\packages\d12\Win32\Release</item>
+      <item id="102">F:\TMS-SmartSetUp\Products\tms.vcl.chartlink\packages\d12\Win32\Release</item>
+      <item id="103">F:\TMS-SmartSetUp\Products\tms.vcl.excel.bridge\Packages\d12+\23.0\Win32\Release</item>
+      <item id="104">C:\Program Files (x86)\Embarcadero\Studio\22.0\lib\win32\release</item>
+      <item id="105">C:\Program Files (x86)\Embarcadero\Studio\22.0\redist\Win32</item>
+      <item id="106">C:\Users\Public\Documents\Embarcadero\Studio\22.0\Bpl\Win32</item>
+      <item id="107">C:\Program Files (x86)\Embarcadero\Studio\22.0\Imports</item>
+      <item id="108">C:\Users\Public\Documents\Embarcadero\Studio\22.0\Dcp</item>
+      <item id="109">C:\Users\Public\Documents\Embarcadero\Studio\22.0\Dcp\Win32</item>
+      <item id="110">C:\Program Files (x86)\Embarcadero\Studio\22.0\include</item>
+      <item id="111">C:\Users\pawel\Documents\Embarcadero\Studio\23.0\CatalogRepository\Abbrevia-2021.11-Alexandria\source</item>
+      <item id="112">C:\Repo\d11\dbExpress\PostgreSql\Lib\Delphi28\Win32</item>
+      <item id="113">C:\Repo\d11\ShellAce\Source</item>
+      <item id="114">F:\projects\3rdParty\JEDI-Common</item>
+      <item id="115">F:\projects\mecSecretRunner</item>
+      <item id="116">F:\projects\MaxLogic\MaxLogicFoundation</item>
+      <item id="117">C:\Users\pawel\Documents\Embarcadero\Studio\22.0\CatalogRepository\Skia4Delphi-5.0.0\Source</item>
+      <item id="118">C:\Users\pawel\Documents\Embarcadero\Studio\22.0\CatalogRepository\Skia4Delphi-5.0.0\Source\FMX</item>
+      <item id="119">C:\Users\pawel\Documents\Embarcadero\Studio\22.0\CatalogRepository\Skia4Delphi-5.0.0\Source\VCL</item>
+      <item id="120">C:\Users\pawel\Documents\Embarcadero\Studio\22.0\CatalogRepository\Skia4Delphi-5.0.0\Source\FMX\Designtime</item>
+      <item id="121">C:\Users\pawel\Documents\Embarcadero\Studio\22.0\CatalogRepository\Skia4Delphi-5.0.0\Source\VCL\Designtime</item>
+      <item id="122">C:\Users\pawel\Documents\Embarcadero\Studio\22.0\CatalogRepository\Skia4Delphi-5.0.0\Library\RAD Studio 11 Alexandria\Win32\Release</item>
+      <item id="123">C:\Users\pawel\AppData\Local\Programs\TestInsight\Source</item>
+      <item id="124">C:\Program Files (x86)\FastReports\LibD28</item>
+      <item id="125">C:\Repo\d11\FastReport\LibD28</item>
+      <item id="126">F:\projects\Statuspro\_git\PACKAGES\TeeChartPro\Compiled\Delphi28.win32\Lib</item>
+      <item id="127">C:\Users\pawel\Documents\Embarcadero\Studio\23.0\CatalogRepository\IconFontsImageList-3.2-Olympus\source</item>
+      <item id="128">F:\projects\3rdParty\Spring4D\_git\spring4d\Library\Delphi11\Win32\Release</item>
+      <item id="129">C:\Users\pawel\Documents\Embarcadero\Studio\23.0\CatalogRepository\SVGIconImageList-11-4.0.0\source</item>
+      <item id="130">C:\Users\pawel\Documents\Embarcadero\Studio\23.0\CatalogRepository\SVGIconImageList-11-4.0.0\Image32\source</item>
+      <item id="131">F:\projects\3rdParty\DwScript\_git\dwScript\Source</item>
+      <item id="132">F:\projects\3rdParty\DwScript\_git\dwScript\Source\SynEdit</item>
+      <item id="133">F:\projects\3rdParty\DwScript\_git\dwScript\Source\SourceUtils</item>
+      <item id="134">F:\projects\3rdParty\DwScript\_git\dwScript\Source\jitter</item>
+      <item id="135">F:\projects\3rdParty\DwScript\_git\dwScript\Source\external</item>
+      <item id="136">c:\tms\FNCExcelBridge\Packages\d11\Win32\Release</item>
+      <item id="137">F:\projects\3rdParty\JCL\jcl\jcl\lib\d28\win32</item>
+      <item id="138">F:\projects\3rdParty\JVCL\jvcl\jvcl\lib\d28\win32</item>
+      <item id="139">C:\Program Files (x86)\Add-in Express\Add-in Express for VCL\Packages\Delphi11</item>
+      <item id="140">C:\Program Files (x86)\madCollection\madBasic\BDS22\win32</item>
+      <item id="141">C:\Program Files (x86)\madCollection\madDisAsm\BDS22\win32</item>
+      <item id="142">C:\Program Files (x86)\madCollection\madExcept\BDS22\win32</item>
+      <item id="143">C:\Program Files (x86)\madCollection\madExcept\..\Plugins\win32</item>
+      <item id="144">C:\Program Files (x86)\madCollection\madKernel\BDS22\win32</item>
+      <item id="145">C:\Program Files (x86)\madCollection\madSecurity\BDS22\win32</item>
+      <item id="146">C:\Program Files (x86)\madCollection\madShell\BDS22\win32</item>
+      <item id="147">C:\Program Files (x86)\Embarcadero\Studio\22.0\OCX\Servers</item>
+      <item id="148">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL</item>
+      <item id="149">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common</item>
+      <item id="150">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS</item>
+      <item id="151">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win</item>
+      <item id="152">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\winrt</item>
+      <item id="153">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\ToolsAPI</item>
+      <item id="154">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\IBX</item>
+      <item id="155">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\Internet</item>
+      <item id="156">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\PROPERTY EDITORS</item>
+      <item id="157">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\soap</item>
+      <item id="158">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML</item>
+      <item id="159">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\Indy10\Core</item>
+      <item id="160">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\Indy10\System</item>
+      <item id="161">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\Indy10\Protocols</item>
+      <item id="162">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\fmx</item>
+      <item id="163">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\databinding\components</item>
+      <item id="164">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\databinding\engine</item>
+      <item id="165">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\databinding\graph</item>
+      <item id="166">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data</item>
+      <item id="167">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\ado</item>
+      <item id="168">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\cloud</item>
+      <item id="169">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\datasnap</item>
+      <item id="170">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\dbx</item>
+      <item id="171">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\dsnap</item>
+      <item id="172">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\vclctrls</item>
+      <item id="173">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\datasnap\connectors</item>
+      <item id="174">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\datasnap\proxygen</item>
+      <item id="175">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DataExplorer</item>
+      <item id="176">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnit\Contrib\DUnitWizard\Source\Common</item>
+      <item id="177">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnit\Contrib\DUnitWizard\Source\Common\dunit</item>
+      <item id="178">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\Common</item>
+      <item id="179">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\DUnitProject</item>
+      <item id="180">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\DUnitProject\dunit</item>
+      <item id="181">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnit\src</item>
+      <item id="182">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnit\tests</item>
+      <item id="183">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\Experts</item>
+      <item id="184">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\indy\abstraction</item>
+      <item id="185">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\indy\implementation</item>
+      <item id="186">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\indyimpl</item>
+      <item id="187">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\Property Editors\Indy10</item>
+      <item id="188">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\soap\wsdlimporter</item>
+      <item id="189">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\Visualizers</item>
+      <item id="190">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnit\Contrib\XMLReporting</item>
+      <item id="191">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnit\Contrib\XPGen</item>
+      <item id="192">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\rest</item>
+      <item id="193">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\firedac</item>
+      <item id="194">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\tethering</item>
+      <item id="195">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnitX</item>
+      <item id="196">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\data\ems</item>
+      <item id="197">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\net</item>
+      <item id="198">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\FlatBox2D</item>
+      <item id="199">F:\projects\Statuspro\_git\PACKAGES\TeeChartPro\TeeTree</item>
+      <item id="200">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Base</item>
+      <item id="201">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Base\Collections</item>
+      <item id="202">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Base\Logging</item>
+      <item id="203">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Base\Patches</item>
+      <item id="204">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Core\Container</item>
+      <item id="205">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Core\Interception</item>
+      <item id="206">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Core\Logging</item>
+      <item id="207">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Core\Mocking</item>
+      <item id="208">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Core\Services</item>
+      <item id="209">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Extensions\Cryptography</item>
+      <item id="210">F:\projects\3rdParty\Spring4D\_git\spring4d\Source\Extensions\Utils</item>
+      <item id="211">c:\tms\FNCExcelBridge\Source</item>
+      <item id="212">F:\projects\3rdParty\JCL\jcl\jcl\source\common</item>
+      <item id="213">F:\projects\3rdParty\JCL\jcl\jcl\source\windows</item>
+      <item id="214">F:\projects\3rdParty\JCL\jcl\jcl\source\vcl</item>
+      <item id="215">F:\projects\3rdParty\JVCL\jvcl\jvcl\run</item>
+      <item id="216">C:\Program Files (x86)\madCollection\madBasic\Sources</item>
+      <item id="217">C:\Program Files (x86)\madCollection\madDisAsm\Sources</item>
+      <item id="218">C:\Program Files (x86)\madCollection\madExcept\Sources</item>
+      <item id="219">C:\Program Files (x86)\madCollection\madKernel\Sources</item>
+      <item id="220">C:\Program Files (x86)\madCollection\madSecurity\Sources</item>
+      <item id="221">C:\Program Files (x86)\madCollection\madShell\Sources</item>
+    </search_folders__221_>
+    <excluded_search_folders__0_>
+    </excluded_search_folders__0_>
+    <excluded_files__1_>
+      <item id="1">System.pas</item>
+    </excluded_files__1_>
+    <unit_aliases__5_>
+      <item id="1">DbiErrs=BDE</item>
+      <item id="2">DbiProcs=BDE</item>
+      <item id="3">DbiTypes=BDE</item>
+      <item id="4">WinProcs=Windows</item>
+      <item id="5">WinTypes=Windows</item>
+    </unit_aliases__5_>
+    <predefined>
+      <item id="1">_PEGANZA_</item>
+      <item id="2">ASSEMBLER</item>
+      <item id="3">CONDITIONALEXPRESSIONS</item>
+      <item id="4">CPU32BITS</item>
+      <item id="5">CPU386</item>
+      <item id="6">CPUX86</item>
+      <item id="7">DCC</item>
+      <item id="8">MSWINDOWS</item>
+      <item id="9">NATIVECODE</item>
+      <item id="10">UNDERSCOREIMPORTNAME</item>
+      <item id="11">UNICODE</item>
+      <item id="12">WIN32</item>
+      <item id="13">VER350</item>
+    </predefined>
+    <conditional_defines__8_>
+      <item id="1">DEBUG</item>
+      <item id="2">madExcept</item>
+      <item id="3">NeverSleepOnMMThreadContention</item>
+      <item id="4">NeverUninstall</item>
+      <item id="5">RELEASE</item>
+      <item id="6">UseReleaseStack</item>
+      <item id="7">UseSwitchToThread</item>
+      <item id="8">ZUGFeRD_Support</item>
+    </conditional_defines__8_>
+    <excluded_for_reports__1_>
+      <item id="1">C:\Program Files (x86)\Embarcadero\Studio\22.0 (and subfolders)</item>
+    </excluded_for_reports__1_>
+    <unit_scopes__14_>
+      <item id="1">System</item>
+      <item id="2">Xml</item>
+      <item id="3">Data</item>
+      <item id="4">Datasnap</item>
+      <item id="5">Web</item>
+      <item id="6">Soap</item>
+      <item id="7">Winapi</item>
+      <item id="8">System.Win</item>
+      <item id="9">Data.Win</item>
+      <item id="10">Datasnap.Win</item>
+      <item id="11">Web.Win</item>
+      <item id="12">Soap.Win</item>
+      <item id="13">Xml.Win</item>
+      <item id="14">Bde</item>
+    </unit_scopes__14_>
+    <global_switches>
+      <item id="1">A+</item>
+      <item id="2">B-</item>
+      <item id="3">C+</item>
+      <item id="4">D+</item>
+      <item id="5">E-</item>
+      <item id="6">F-</item>
+      <item id="7">G+</item>
+      <item id="8">H+</item>
+      <item id="9">HINTS ON</item>
+      <item id="10">I+</item>
+      <item id="11">J-</item>
+      <item id="12">K+</item>
+      <item id="13">L+</item>
+      <item id="14">M-</item>
+      <item id="15">N+</item>
+      <item id="16">O-</item>
+      <item id="17">P+</item>
+      <item id="18">Q+</item>
+      <item id="19">R+</item>
+      <item id="20">S+</item>
+      <item id="21">SCOPEDENUMS OFF</item>
+      <item id="22">T-</item>
+      <item id="23">U-</item>
+      <item id="24">V+</item>
+      <item id="25">W+</item>
+      <item id="26">WARNINGS ON</item>
+      <item id="27">X+</item>
+      <item id="28">YD</item>
+      <item id="29">Z-</item>
+    </global_switches>
+    <loaded_files>
+      <item id="1">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Actions.pas</item>
+      <item id="2">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.AnsiStrings.pas</item>
+      <item id="3">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Character.inc</item>
+      <item id="4">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Character.pas</item>
+      <item id="5">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Character_const.inc</item>
+      <item id="6">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Character_definition.inc</item>
+      <item id="7">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas</item>
+      <item id="8">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Contnrs.pas</item>
+      <item id="9">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.DateUtils.pas</item>
+      <item id="10">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Diagnostics.pas</item>
+      <item id="11">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas</item>
+      <item id="12">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas</item>
+      <item id="13">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Hash.pas</item>
+      <item id="14">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.HelpIntfs.pas</item>
+      <item id="15">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.ImageList.pas</item>
+      <item id="16">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IniFiles.pas</item>
+      <item id="17">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas</item>
+      <item id="18">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.JSON.pas</item>
+      <item id="19">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.JSONConsts.pas</item>
+      <item id="20">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Masks.pas</item>
+      <item id="21">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.MaskUtils.pas</item>
+      <item id="22">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Math.pas</item>
+      <item id="23">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Messaging.pas</item>
+      <item id="24">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.RegularExpressions.pas</item>
+      <item id="25">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.RegularExpressionsAPI.pas</item>
+      <item id="26">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.RegularExpressionsConsts.pas</item>
+      <item id="27">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.RegularExpressionsCore.pas</item>
+      <item id="28">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.RTLConsts.pas</item>
+      <item id="29">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Rtti.pas</item>
+      <item id="30">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.StrUtils.pas</item>
+      <item id="31">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.SyncObjs.pas</item>
+      <item id="32">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.TimeSpan.pas</item>
+      <item id="33">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.TypInfo.pas</item>
+      <item id="34">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.UIConsts.pas</item>
+      <item id="35">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.UITypes.pas</item>
+      <item id="36">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.WideStrUtils.pas</item>
+      <item id="37">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Win.ComConst.pas</item>
+      <item id="38">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Win.ComObj.pas</item>
+      <item id="39">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Win.Crtl.pas</item>
+      <item id="40">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Win.Registry.pas</item>
+      <item id="41">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Win.Taskbar.pas</item>
+      <item id="42">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Win.TaskbarCore.pas</item>
+      <item id="43">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.ZLib.pas</item>
+      <item id="44">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\CPConv.inc</item>
+      <item id="45">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\EncodingData.inc</item>
+      <item id="46">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Internal.ExcUtils.pas</item>
+      <item id="47">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysConst.pas</item>
+      <item id="48">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas</item>
+      <item id="49">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Types.pas</item>
+      <item id="50">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Variants.pas</item>
+      <item id="51">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.VarUtils.pas</item>
+      <item id="52">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.ActiveX.pas</item>
+      <item id="53">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.CommCtrl.pas</item>
+      <item id="54">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.CommDlg.pas</item>
+      <item id="55">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Dlgs.pas</item>
+      <item id="56">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.DwmApi.pas</item>
+      <item id="57">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.FlatSB.pas</item>
+      <item id="58">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.ImageHlp.pas</item>
+      <item id="59">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Imm.pas</item>
+      <item id="60">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.IpExport.pas</item>
+      <item id="61">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.KnownFolders.pas</item>
+      <item id="62">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Messages.pas</item>
+      <item id="63">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.mmSystem.pas</item>
+      <item id="64">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.MSCTF.pas</item>
+      <item id="65">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.MsInkAut.pas</item>
+      <item id="66">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.msxml.pas</item>
+      <item id="67">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.MSXMLIntf.pas</item>
+      <item id="68">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.MultiMon.pas</item>
+      <item id="69">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.ObjectArray.pas</item>
+      <item id="70">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.PenInputPanel.pas</item>
+      <item id="71">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.PropSys.pas</item>
+      <item id="72">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.PsAPI.pas</item>
+      <item id="73">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Qos.pas</item>
+      <item id="74">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.RegStr.pas</item>
+      <item id="75">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.RichEdit.pas</item>
+      <item id="76">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.ShellAPI.pas</item>
+      <item id="77">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.ShellScaling.pas</item>
+      <item id="78">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.SHFolder.pas</item>
+      <item id="79">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.ShlObj.pas</item>
+      <item id="80">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\winApi.ShLwApi.pas</item>
+      <item id="81">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.StructuredQueryCondition.pas</item>
+      <item id="82">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.TpcShrd.pas</item>
+      <item id="83">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.UrlMon.pas</item>
+      <item id="84">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.UxTheme.pas</item>
+      <item id="85">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Wincodec.pas</item>
+      <item id="86">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas</item>
+      <item id="87">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.WinInet.pas</item>
+      <item id="88">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.WinSock.pas</item>
+      <item id="89">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.WinSock2.pas</item>
+      <item id="90">C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.WinSpool.pas</item>
+      <item id="91">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.ActnList.pas</item>
+      <item id="92">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.Clipbrd.pas</item>
+      <item id="93">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.ComCtrls.pas</item>
+      <item id="94">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.ComStrs.pas</item>
+      <item id="95">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.Consts.pas</item>
+      <item id="96">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.Controls.pas</item>
+      <item id="97">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.Dialogs.pas</item>
+      <item id="98">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.ExtCtrls.pas</item>
+      <item id="99">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\vcl.Forms.pas</item>
+      <item id="100">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.Graphics.pas</item>
+      <item id="101">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.GraphUtil.pas</item>
+      <item id="102">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.ImgList.pas</item>
+      <item id="103">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.ListActns.pas</item>
+      <item id="104">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.Mask.pas</item>
+      <item id="105">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.Menus.pas</item>
+      <item id="106">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.Printers.pas</item>
+      <item id="107">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.StdActns.pas</item>
+      <item id="108">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.StdCtrls.pas</item>
+      <item id="109">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.Themes.pas</item>
+      <item id="110">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.ToolWin.pas</item>
+      <item id="111">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Internal.CodecUtilsWin32.pas</item>
+      <item id="112">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Internal.EncodingUtils.pas</item>
+      <item id="113">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Internal.OBufferedStreams.pas</item>
+      <item id="114">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Internal.OmniXML.pas</item>
+      <item id="115">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Internal.OmniXMLXPath.pas</item>
+      <item id="116">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Internal.OTextReadWrite.pas</item>
+      <item id="117">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Internal.ParserUtilsWin32.pas</item>
+      <item id="118">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Internal.WideStringUtils.pas</item>
+      <item id="119">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Internal.xmlInputSource.pas</item>
+      <item id="120">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Internal.XmlRulesUtils.pas</item>
+      <item id="121">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.omnixmldom.pas</item>
+      <item id="122">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.Win.msxmldom.pas</item>
+      <item id="123">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLConst.pas</item>
+      <item id="124">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLDoc.pas</item>
+      <item id="125">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.xmldom.pas</item>
+      <item id="126">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLIntf.pas</item>
+      <item id="127">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLSchema.pas</item>
+      <item id="128">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLSchemaTags.pas</item>
+      <item id="129">C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLUtil.pas</item>
+      <item id="130">C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</item>
+      <item id="131">C:\Program Files (x86)\madCollection\madBasic\Sources\madCrypt.pas</item>
+      <item id="132">C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas</item>
+      <item id="133">C:\Program Files (x86)\madCollection\madBasic\Sources\madTools.pas</item>
+      <item id="134">C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas</item>
+      <item id="135">C:\Program Files (x86)\madCollection\madBasic\Sources\madZip.pas</item>
+      <item id="136">C:\Program Files (x86)\madCollection\madDisAsm\Sources\madDisAsm.pas</item>
+      <item id="137">C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas</item>
+      <item id="138">C:\Program Files (x86)\madCollection\madExcept\Sources\madLinkDisAsm.pas</item>
+      <item id="139">C:\Program Files (x86)\madCollection\madExcept\Sources\madListHardware.pas</item>
+      <item id="140">C:\Program Files (x86)\madCollection\madExcept\Sources\madListModules.pas</item>
+      <item id="141">C:\Program Files (x86)\madCollection\madExcept\Sources\madListProcesses.pas</item>
+      <item id="142">C:\Program Files (x86)\madCollection\madExcept\Sources\madMapFile.pas</item>
+      <item id="143">C:\Program Files (x86)\madCollection\madExcept\Sources\madNVAssistant.pas</item>
+      <item id="144">C:\Program Files (x86)\madCollection\madExcept\Sources\madNVBitmap.pas</item>
+      <item id="145">C:\Program Files (x86)\madCollection\madExcept\Sources\madNVPrgrAlert.pas</item>
+      <item id="146">C:\Program Files (x86)\madCollection\madExcept\Sources\madStackTrace.pas</item>
+      <item id="147">F:\projects\MaxLogic\DelphiConfigResolver\projects\DelphiAIKit.dpr</item>
+      <item id="148">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.analyze.pas</item>
+      <item id="149">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.cli.pas</item>
+      <item id="150">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas</item>
+      <item id="151">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsight.pas</item>
+      <item id="152">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightrunner.pas</item>
+      <item id="153">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightsettings.pas</item>
+      <item id="154">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.macroexpander.pas</item>
+      <item id="155">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas</item>
+      <item id="156">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.msbuild.pas</item>
+      <item id="157">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.output.pas</item>
+      <item id="158">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.pascalanalyzerrunner.pas</item>
+      <item id="159">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.project.pas</item>
+      <item id="160">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.registry.pas</item>
+      <item id="161">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.reportpostprocess.pas</item>
+      <item id="162">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.rsvars.pas</item>
+      <item id="163">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas</item>
+      <item id="164">f:\projects\maxLogic\MaxLogicFoundation\AutoFree.pas</item>
+      <item id="165">f:\projects\maxLogic\MaxLogicFoundation\maxAsync.pas</item>
+      <item id="166">f:\projects\maxLogic\MaxLogicFoundation\maxConsoleRunner.pas</item>
+      <item id="167">f:\projects\maxLogic\MaxLogicFoundation\maxLogic.CmdLineParams.pas</item>
+      <item id="168">f:\projects\maxLogic\MaxLogicFoundation\maxLogic.IOUtils.pas</item>
+      <item id="169">f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas</item>
+      <item id="170">f:\projects\maxLogic\MaxLogicFoundation\maxSignal.pas</item>
+    </loaded_files>
+    <not_found_files>
+      <item id="1">Dialogs</item>
+      <item id="2">Forms</item>
+    </not_found_files>
+  </section>
+</report>

@@ -1,0 +1,804 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Subprogram Index Report">
+  <created>29.01.2026 23:48:17</created>
+  <item>
+    <id>DelphiAIKit.Tests (MB)</id>
+    <locmod>DelphiAIKit.Tests (20)</locmod>
+  </item>
+  <item>
+    <id>Test.Build (UI)</id>
+    <locmod>Test.Build (26)</locmod>
+  </item>
+  <item>
+    <id>Test.PalFindingNormalize (UI)</id>
+    <locmod>Test.PalFindingNormalize (95)</locmod>
+  </item>
+  <item>
+    <id>Test.FixInsight (UI)</id>
+    <locmod>Test.FixInsight (150)</locmod>
+  </item>
+  <item>
+    <id>Test.PascalAnalyzer (UI)</id>
+    <locmod>Test.PascalAnalyzer (173)</locmod>
+  </item>
+  <item>
+    <id>Test.Support (UI)</id>
+    <locmod>Test.Support (250)</locmod>
+  </item>
+  <item>
+    <id>DUnitX.TestFramework (UI)</id>
+    <locmod>DUnitX.TestFramework (915)</locmod>
+  </item>
+  <item>
+    <id>DUnitX.TestFramework (UF)</id>
+    <locmod>DUnitX.TestFramework (919)</locmod>
+  </item>
+  <item>
+    <id>CmdExePath (F)</id>
+    <locmod>Test.Support (91)</locmod>
+  </item>
+  <item>
+    <id>DefaultPalThreads (F)</id>
+    <locmod>Test.PascalAnalyzer (60)</locmod>
+  </item>
+  <item>
+    <id>EnsureResolverBuilt (P)</id>
+    <locmod>Test.Support (18)</locmod>
+  </item>
+  <item>
+    <id>EnsureTempClean (P)</id>
+    <locmod>Test.Support (17)</locmod>
+  </item>
+  <item>
+    <id>FindRepoRoot (F)</id>
+    <locmod>Test.Support (43)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetChildCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (298)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetChildren (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (302)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetErrorCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (292)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetErrors (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (304)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetFailureCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (293)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetFailures (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (303)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetFixture (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (300)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetHasFailures (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (296)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetIgnoredCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (294)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (306)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetNamespace (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (307)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetPassCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (295)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetPasses (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (305)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetTestResultCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (297)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.GetTestResults (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (301)</locmod>
+  </item>
+  <item>
+    <id>IFixtureResult.Reduce (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (308)</locmod>
+  </item>
+  <item>
+    <id>IMemoryLeakMonitor.PostSetUp (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (609)</locmod>
+  </item>
+  <item>
+    <id>IMemoryLeakMonitor.PostTearDown (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (613)</locmod>
+  </item>
+  <item>
+    <id>IMemoryLeakMonitor.PostTest (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (611)</locmod>
+  </item>
+  <item>
+    <id>IMemoryLeakMonitor.PreSetup (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (608)</locmod>
+  </item>
+  <item>
+    <id>IMemoryLeakMonitor.PreTearDown (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (612)</locmod>
+  </item>
+  <item>
+    <id>IMemoryLeakMonitor.PreTest (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (610)</locmod>
+  </item>
+  <item>
+    <id>IMemoryLeakMonitor.SetUpMemoryAllocated (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (615)</locmod>
+  </item>
+  <item>
+    <id>IMemoryLeakMonitor.TearDownMemoryAllocated (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (616)</locmod>
+  </item>
+  <item>
+    <id>IMemoryLeakMonitor.TestMemoryAllocated (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor (617)</locmod>
+  </item>
+  <item>
+    <id>IMemoryLeakMonitor2.GetReport (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IMemoryLeakMonitor\IMemoryLeakMonitor2 (622)</locmod>
+  </item>
+  <item>
+    <id>InitAssert (P)</id>
+    <locmod>DUnitX.TestFramework (907)</locmod>
+  </item>
+  <item>
+    <id>IResult.GetDuration (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult (232)</locmod>
+  </item>
+  <item>
+    <id>IResult.GetFinishTime (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult (231)</locmod>
+  </item>
+  <item>
+    <id>IResult.GetStartTime (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult (230)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetAllPassed (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (334)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetAllTestResults (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (344)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetErrorCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (336)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetFailureCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (335)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetFixtureCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (332)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetFixtureResults (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (342)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetIgnoredCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (339)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetMemoryLeakCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (337)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetPassCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (338)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetSuccessRate (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (340)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.GetTestCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (333)</locmod>
+  </item>
+  <item>
+    <id>IRunResults.ToString (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (346)</locmod>
+  </item>
+  <item>
+    <id>IsPawelMachine (F)</id>
+    <locmod>Test.Support (20)</locmod>
+  </item>
+  <item>
+    <id>IStacktraceProvider.GetStackTrace (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IStacktraceProvider (601)</locmod>
+  </item>
+  <item>
+    <id>IStacktraceProvider.PointerToAddressInfo (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IStacktraceProvider (603)</locmod>
+  </item>
+  <item>
+    <id>IStacktraceProvider.PointerToLocationInfo (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IStacktraceProvider (602)</locmod>
+  </item>
+  <item>
+    <id>ITestError.GetActual (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (276)</locmod>
+  </item>
+  <item>
+    <id>ITestError.GetExceptionAddress (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (273)</locmod>
+  </item>
+  <item>
+    <id>ITestError.GetExceptionAddressInfo (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (272)</locmod>
+  </item>
+  <item>
+    <id>ITestError.GetExceptionClass (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (269)</locmod>
+  </item>
+  <item>
+    <id>ITestError.GetExceptionLocationInfo (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (271)</locmod>
+  </item>
+  <item>
+    <id>ITestError.GetExceptionMessage (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (270)</locmod>
+  </item>
+  <item>
+    <id>ITestError.GetExpected (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (275)</locmod>
+  </item>
+  <item>
+    <id>ITestError.GetFormat (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (277)</locmod>
+  </item>
+  <item>
+    <id>ITestError.GetIsComparable (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult\ITestError (274)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetActiveTestCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (200)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetCategories (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (188)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetDescription (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (189)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetFullName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (186)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetHasChildren (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (197)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (184)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetNameSpace (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (185)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetSetupFixtureMethodName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (193)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetSetupMethodName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (192)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetTearDownFixtureMethodName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (195)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetTearDownMethodName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (194)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetTestClass (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (191)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetTestCount (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (199)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetTestInOwnThread (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (196)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetTests (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (190)</locmod>
+  </item>
+  <item>
+    <id>ITestFixtureInfo.GetUnitName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (187)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.GetActive (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (154)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.GetCategories (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (153)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.GetEnabled (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (161)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.GetFullName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (151)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.GetMethodName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (152)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.GetName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (150)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.GetTestDuration (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (159)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.GetTestEndTime (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (158)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.GetTestFixture (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (155)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.GetTestStartTime (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (157)</locmod>
+  </item>
+  <item>
+    <id>ITestInfo.SetEnabled (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestInfo (162)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnBeginTest (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (392)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnEndSetupFixture (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (387)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnEndSetupTest (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (402)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnEndTearDownFixture (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (462)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnEndTeardownTest (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (447)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnEndTest (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (452)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnEndTestFixture (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (467)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnExecuteTest (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (407)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnLog (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (437)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnSetupFixture (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (382)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnSetupTest (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (397)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnStartTestFixture (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (377)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnTearDownFixture (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (457)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnTeardownTest (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (442)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnTestError (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (417)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnTestFailure (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (422)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnTestIgnored (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (427)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnTestingEnds (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (472)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnTestingStarts (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (372)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnTestMemoryLeak (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (432)</locmod>
+  </item>
+  <item>
+    <id>ITestLogger.OnTestSuccess (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestLogger (412)</locmod>
+  </item>
+  <item>
+    <id>ITestResult.GetLogMessages (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (251)</locmod>
+  </item>
+  <item>
+    <id>ITestResult.GetMessage (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (250)</locmod>
+  </item>
+  <item>
+    <id>ITestResult.GetResult (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (248)</locmod>
+  </item>
+  <item>
+    <id>ITestResult.GetResultType (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (249)</locmod>
+  </item>
+  <item>
+    <id>ITestResult.GetStackTrace (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (252)</locmod>
+  </item>
+  <item>
+    <id>ITestResult.GetTest (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (247)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.AddLogger (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (486)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.BuildFixtures (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (497)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.CurrentTestName (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (494)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.Execute (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (499)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.GetFailsOnNoAsserts (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (491)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.GetUseRTTI (FM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (488)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.Log (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (501)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.Log (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (502)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.SetFailsOnNoAsserts (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (492)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.SetUseRTTI (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (489)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.Status (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (504)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.WriteLn (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (506)</locmod>
+  </item>
+  <item>
+    <id>ITestRunner.WriteLn (PM)</id>
+    <locmod>DUnitX.TestFramework\IInterface\ITestRunner (507)</locmod>
+  </item>
+  <item>
+    <id>PalCmdSupportsFlag (F)</id>
+    <locmod>Test.PascalAnalyzer (26)</locmod>
+  </item>
+  <item>
+    <id>QuoteArg (F)</id>
+    <locmod>Test.Support (24)</locmod>
+  </item>
+  <item>
+    <id>RepoRoot (F)</id>
+    <locmod>Test.Support (15)</locmod>
+  </item>
+  <item>
+    <id>RequireFixInsightOrSkip (P)</id>
+    <locmod>Test.Support (21)</locmod>
+  </item>
+  <item>
+    <id>RequirePalCmdOrSkip (P)</id>
+    <locmod>Test.Support (22)</locmod>
+  </item>
+  <item>
+    <id>ResolverExePath (F)</id>
+    <locmod>Test.Support (19)</locmod>
+  </item>
+  <item>
+    <id>RunProcess (F)</id>
+    <locmod>Test.Support (23)</locmod>
+  </item>
+  <item>
+    <id>ShowUsage (P)</id>
+    <locmod>DUnitX.TestFramework (704)</locmod>
+  </item>
+  <item>
+    <id>TailFile (F)</id>
+    <locmod>Test.PascalAnalyzer (44)</locmod>
+  </item>
+  <item>
+    <id>TBuildTests.BuildResolverExe (PM)</id>
+    <locmod>Test.Build\TBuildTests (15)</locmod>
+  </item>
+  <item>
+    <id>TDUnitX.CheckCommandLine (PM)</id>
+    <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+  </item>
+  <item>
+    <id>TDUnitX.Create (C)</id>
+    <locmod>DUnitX.TestFramework\TDUnitX (578)</locmod>
+  </item>
+  <item>
+    <id>TDUnitX.CreateRunner (FM)</id>
+    <locmod>DUnitX.TestFramework\TDUnitX (583)</locmod>
+  </item>
+  <item>
+    <id>TDUnitX.CreateRunner (FM)</id>
+    <locmod>DUnitX.TestFramework\TDUnitX (584)</locmod>
+  </item>
+  <item>
+    <id>TDUnitX.CreateRunner (FM)</id>
+    <locmod>DUnitX.TestFramework\TDUnitX (585)</locmod>
+  </item>
+  <item>
+    <id>TDUnitX.CurrentRunner (FM)</id>
+    <locmod>DUnitX.TestFramework\TDUnitX (587)</locmod>
+  </item>
+  <item>
+    <id>TDUnitX.Destroy (D)</id>
+    <locmod>DUnitX.TestFramework\TDUnitX (579)</locmod>
+  </item>
+  <item>
+    <id>TDUnitX.GetAssertCount (FM)</id>
+    <locmod>DUnitX.TestFramework\TDUnitX (588)</locmod>
+  </item>
+  <item>
+    <id>TDUnitX.RegisterTestFixture (PM)</id>
+    <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.Create (C)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (87)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.Destroy (D)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (88)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnBeginTest (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (61)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnEndSetupFixture (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (59)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnEndSetupTest (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (64)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnEndTearDownFixture (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (81)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnEndTeardownTest (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (76)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnEndTest (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (78)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnEndTestFixture (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (83)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnExecuteTest (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (66)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnLog (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (73)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnSetupFixture (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (58)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnSetupTest (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (63)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnStartTestFixture (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (56)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnTearDownFixture (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (80)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnTeardownTest (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (75)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnTestError (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (70)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnTestFailure (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (71)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnTestIgnored (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (69)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnTestingEnds (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (85)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnTestingStarts (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (54)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnTestMemoryLeak (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (68)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.OnTestSuccess (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (72)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.SetConsoleDefaultColor (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (46)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.SetConsoleErrorColor (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (47)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.SetConsolePassColor (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (48)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.SetConsoleRunTestColor (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (50)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.SetConsoleSetupTestColor (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (49)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.SetConsoleSummaryColor (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (51)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXConsoleLogger.SetConsoleWarningColor (PM)</id>
+    <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (52)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXOptions.Create (C)</id>
+    <locmod>DUnitX.TestFramework\TDUnitXOptions (535)</locmod>
+  </item>
+  <item>
+    <id>TDUnitXOptions.Destroy (D)</id>
+    <locmod>DUnitX.TestFramework\TDUnitXOptions (536)</locmod>
+  </item>
+  <item>
+    <id>TempRoot (F)</id>
+    <locmod>Test.Support (16)</locmod>
+  </item>
+  <item>
+    <id>TFixInsightTests.ExtractIdsAndFile (PM)</id>
+    <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+  </item>
+  <item>
+    <id>  IsNewId (F)</id>
+    <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (72)</locmod>
+  </item>
+  <item>
+    <id>TFixInsightTests.FixInsightFiltering (PM)</id>
+    <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+  </item>
+  <item>
+    <id>TFixInsightTests.RunFixInsightOutputs (PM)</id>
+    <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+  </item>
+  <item>
+    <id>TPalFindingNormalizeTests.NormalizePalFindingsFromFixtures (PM)</id>
+    <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+  </item>
+  <item>
+    <id>TPascalAnalyzerTests.RunPascalAnalyzer (PM)</id>
+    <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+  </item>
+  <item>
+    <id>TPascalAnalyzerTests.SelectsSupportedCompilerFlag (PM)</id>
+    <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+  </item>
+  <item>
+    <id>TTestFixtureHelper.Log (PM)</id>
+    <locmod>DUnitX.TestFramework\TTestFixtureHelper (130)</locmod>
+  </item>
+  <item>
+    <id>TTestFixtureHelper.Log (PM)</id>
+    <locmod>DUnitX.TestFramework\TTestFixtureHelper (131)</locmod>
+  </item>
+  <item>
+    <id>TTestFixtureHelper.Status (PM)</id>
+    <locmod>DUnitX.TestFramework\TTestFixtureHelper (133)</locmod>
+  </item>
+  <item>
+    <id>TTestFixtureHelper.WriteLn (PM)</id>
+    <locmod>DUnitX.TestFramework\TTestFixtureHelper (135)</locmod>
+  </item>
+  <item>
+    <id>TTestFixtureHelper.WriteLn (PM)</id>
+    <locmod>DUnitX.TestFramework\TTestFixtureHelper (136)</locmod>
+  </item>
+  <item>
+    <id>WriteLine (P)</id>
+    <locmod>DUnitX.TestFramework (695)</locmod>
+  </item>
+</report>

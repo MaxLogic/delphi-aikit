@@ -1,0 +1,382 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<ldi delimiter="\" system="pascalanalyzer">
+  <element name="f:\projects\maxLogic\MaxLogicFoundation\AutoFree.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.analyze.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Variants.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.omnixmldom.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLIntf.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLDoc.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\maxLogic.IOUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsight.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightrunner.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightsettings.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.pascalanalyzerrunner.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.project.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.registry.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.reportpostprocess.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.rsvars.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.cli.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\maxLogic.CmdLineParams.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsight.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Win.Registry.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightrunner.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightsettings.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IniFiles.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.macroexpander.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" type="source">
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.msbuild.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Variants.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.xmldom.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.omnixmldom.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLIntf.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLDoc.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.macroexpander.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.output.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.pascalanalyzerrunner.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Types.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Variants.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.StrUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.xmldom.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.omnixmldom.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLIntf.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLDoc.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.JSON.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.project.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.macroexpander.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.msbuild.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.registry.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Win.Registry.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.msbuild.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.reportpostprocess.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Variants.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLIntf.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLDoc.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.rsvars.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" type="source">
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\projects\DelphiAIKit.dpr" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madLinkDisAsm.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madListHardware.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madListProcesses.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madListModules.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.xmldom.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.omnixmldom.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsight.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightrunner.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightsettings.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.pascalanalyzerrunner.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.macroexpander.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.msbuild.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.project.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.registry.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.reportpostprocess.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.rsvars.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.analyze.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.cli.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\dak.output.pas" kind="public-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madBasic\Sources\madCrypt.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madDisAsm\Sources\madDisAsm.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTools.pas" kind="public-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madNVPrgrAlert.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madStackTrace.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madDisAsm\Sources\madDisAsm.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madNVBitmap.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madNVAssistant.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Messages.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madMapFile.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTools.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madZip.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madCrypt.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.ActiveX.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.CommCtrl.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.ShellAPI.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.CommDlg.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysConst.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.WinSock.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madExcept\Sources\madLinkDisAsm.pas" type="source">
+    <uses provider="C:\Program Files (x86)\madCollection\madDisAsm\Sources\madDisAsm.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madExcept\Sources\madListHardware.pas" type="source">
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madExcept\Sources\madListModules.pas" type="source">
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTools.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madExcept\Sources\madListProcesses.pas" type="source">
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madExcept\Sources\madMapFile.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTools.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madDisAsm\Sources\madDisAsm.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madZip.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madCrypt.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madExcept\Sources\madNVAssistant.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madNVBitmap.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Messages.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madMapFile.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTools.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madDisAsm\Sources\madDisAsm.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madExcept\Sources\madNVBitmap.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madZip.pas" kind="public-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madExcept\Sources\madNVPrgrAlert.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Messages.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madExcept\Sources\madStackTrace.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madNVPrgrAlert.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madMapFile.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTools.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madDisAsm\Sources\madDisAsm.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madZip.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" type="source">
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madBasic\Sources\madTools.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Messages.pas" kind="private-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+  </element>
+  <element name="C:\Program Files (x86)\madCollection\madBasic\Sources\madZip.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas" kind="private-uses"/>
+  </element>
+  <element name="f:\projects\maxLogic\MaxLogicFoundation\maxAsync.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.UITypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Messages.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.SyncObjs.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\maxSignal.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.ActiveX.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Math.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Diagnostics.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.mmSystem.pas" kind="private-uses"/>
+  </element>
+  <element name="f:\projects\maxLogic\MaxLogicFoundation\maxConsoleRunner.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Messages.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Diagnostics.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\maxAsync.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.StrUtils.pas" kind="private-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas" kind="private-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\maxLogic.IOUtils.pas" kind="private-uses"/>
+  </element>
+  <element name="f:\projects\maxLogic\MaxLogicFoundation\maxLogic.CmdLineParams.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.StrUtils.pas" kind="private-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas" kind="private-uses"/>
+  </element>
+  <element name="f:\projects\maxLogic\MaxLogicFoundation\maxLogic.IOUtils.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.WinInet.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.ShlObj.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.SHFolder.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Win.ComObj.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\winApi.ShLwApi.pas" kind="public-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\maxConsoleRunner.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.StrUtils.pas" kind="private-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\AutoFree.pas" kind="private-uses"/>
+  </element>
+  <element name="f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Types.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Character.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.StrUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.RegularExpressions.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Math.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Masks.pas" kind="private-uses"/>
+    <uses provider="f:\projects\maxLogic\MaxLogicFoundation\AutoFree.pas" kind="private-uses"/>
+  </element>
+  <element name="f:\projects\maxLogic\MaxLogicFoundation\maxSignal.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.UITypes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Messages.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.SyncObjs.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\vcl.Forms.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\VCL\Vcl.Dialogs.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Diagnostics.pas" kind="private-uses"/>
+  </element>
+</ldi>

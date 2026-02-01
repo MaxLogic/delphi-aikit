@@ -1,0 +1,3501 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Used Outside Unit Report">
+  <created>30.01.2026 00:14:14</created>
+  <section name="Interfaced identifiers that are used outside their units" count="699" oldcount="-2">
+    <item>
+      <id>GC</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>AutoFree (69)       </locmod>
+    </item>
+    <item>
+      <id>RunAnalyzeCommand</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Analyze (14)    </locmod>
+    </item>
+    <item>
+      <id>TComparer&lt;TPair&lt;UnicodeString,Integer&gt;&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Analyze (271)   </locmod>
+    </item>
+    <item>
+      <id>TPair&lt;UnicodeString,Integer&gt; = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Analyze (21)    </locmod>
+    </item>
+    <item>
+      <id>IsHelpRequested</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Cli (13)        </locmod>
+    </item>
+    <item>
+      <id>TryGetCommand</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Cli (11)        </locmod>
+    </item>
+    <item>
+      <id>TryParseOptions</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Cli (10)        </locmod>
+    </item>
+    <item>
+      <id>WriteUsage</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Dak.Cli (12)        </locmod>
+    </item>
+    <item>
+      <id>AddCycleMacro</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (40)</locmod>
+    </item>
+    <item>
+      <id>AddInfo</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+    </item>
+    <item>
+      <id>AddMissingPath</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+    </item>
+    <item>
+      <id>AddNote</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+    </item>
+    <item>
+      <id>AddUnknownMacro</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+    </item>
+    <item>
+      <id>AddWarning</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <kind>Constructor</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+    </item>
+    <item>
+      <id>fCycleMacros : TStringSet</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (26)</locmod>
+    </item>
+    <item>
+      <id>fLogEncoding : TEncoding</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (32)</locmod>
+    </item>
+    <item>
+      <id>fLogStream : TFileStream</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (31)</locmod>
+    </item>
+    <item>
+      <id>fLogToStderr : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (33)</locmod>
+    </item>
+    <item>
+      <id>fLogWriter : TStreamWriter</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (30)</locmod>
+    </item>
+    <item>
+      <id>fMissingPaths : TStringSet</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (27)</locmod>
+    </item>
+    <item>
+      <id>fUnknownMacros : TStringSet</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (25)</locmod>
+    </item>
+    <item>
+      <id>fVerbose : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (29)</locmod>
+    </item>
+    <item>
+      <id>fWarnings : TList&lt;UnicodeString&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (28)</locmod>
+    </item>
+    <item>
+      <id>LogToStderr : Boolean</id>
+      <kind>Property</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (47)</locmod>
+    </item>
+    <item>
+      <id>TDiagnostics = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>TryOpenLogFile</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+    </item>
+    <item>
+      <id>Verbose : Boolean</id>
+      <kind>Property</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (46)</locmod>
+    </item>
+    <item>
+      <id>WriteToStderr</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+    </item>
+    <item>
+      <id>TryResolveFixInsightExe</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsight (10) </locmod>
+    </item>
+    <item>
+      <id>BuildFixInsightCommandLine</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightRunner (10)</locmod>
+    </item>
+    <item>
+      <id>TryRunFixInsight</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightRunner (12)</locmod>
+    </item>
+    <item>
+      <id>TryRunFixInsightWithHandles</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightRunner (13)</locmod>
+    </item>
+    <item>
+      <id>ApplySettingsOverrides</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Dak.FixInsightSettings (14)</locmod>
+    </item>
+    <item>
+      <id>LoadSettings</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightSettings (11)</locmod>
+    </item>
+    <item>
+      <id>Expand</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MacroExpander\TMacroExpander (11)</locmod>
+    </item>
+    <item>
+      <id>TMacroExpander = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.MacroExpander (10)</locmod>
+    </item>
+    <item>
+      <id>SAnalyzeUnitConflict : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (45)   </locmod>
+    </item>
+    <item>
+      <id>SArgMissingValue : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (40)   </locmod>
+    </item>
+    <item>
+      <id>SAssociatedDprojMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (48)   </locmod>
+    </item>
+    <item>
+      <id>SBuildBatMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (46)   </locmod>
+    </item>
+    <item>
+      <id>SConditionParseError : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (58)   </locmod>
+    </item>
+    <item>
+      <id>SCycleMacro : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (66)   </locmod>
+    </item>
+    <item>
+      <id>SDprojParseError : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (56)   </locmod>
+    </item>
+    <item>
+      <id>SEnvOptionsMissingLibPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (53)   </locmod>
+    </item>
+    <item>
+      <id>SEnvOptionsNotFound : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (52)   </locmod>
+    </item>
+    <item>
+      <id>SFileNotFound : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (47)   </locmod>
+    </item>
+    <item>
+      <id>SFixInsightExeMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (114)  </locmod>
+    </item>
+    <item>
+      <id>SFixInsightNotFound : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (111)  </locmod>
+    </item>
+    <item>
+      <id>SFixInsightPathInvalid : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (113)  </locmod>
+    </item>
+    <item>
+      <id>SFixInsightRunExit : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (116)  </locmod>
+    </item>
+    <item>
+      <id>SFixInsightRunFailed : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (115)  </locmod>
+    </item>
+    <item>
+      <id>SInfoAssociatedDproj : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (49)   </locmod>
+    </item>
+    <item>
+      <id>SInfoEnvOptionsOverride : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (103)  </locmod>
+    </item>
+    <item>
+      <id>SInfoEnvOptionsPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (90)   </locmod>
+    </item>
+    <item>
+      <id>SInfoEnvVarCountView : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (92)   </locmod>
+    </item>
+    <item>
+      <id>SInfoFixInsightPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (110)  </locmod>
+    </item>
+    <item>
+      <id>SInfoGroupCondition : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (98)   </locmod>
+    </item>
+    <item>
+      <id>SInfoLibraryPathRaw : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (93)   </locmod>
+    </item>
+    <item>
+      <id>SInfoMainSource : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (84)   </locmod>
+    </item>
+    <item>
+      <id>SInfoOptions : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (82)   </locmod>
+    </item>
+    <item>
+      <id>SInfoOptsetResolved : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (85)   </locmod>
+    </item>
+    <item>
+      <id>SInfoProjectDir : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (83)   </locmod>
+    </item>
+    <item>
+      <id>SInfoPropertyCondition : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (99)   </locmod>
+    </item>
+    <item>
+      <id>SInfoPropertyRaw : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (100)  </locmod>
+    </item>
+    <item>
+      <id>SInfoPropertySet : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (101)  </locmod>
+    </item>
+    <item>
+      <id>SInfoReadingFile : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (97)   </locmod>
+    </item>
+    <item>
+      <id>SInfoRegistryBase : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (86)   </locmod>
+    </item>
+    <item>
+      <id>SInfoRegistryBaseMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (88)   </locmod>
+    </item>
+    <item>
+      <id>SInfoRegistryLibraryFallback : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (102)  </locmod>
+    </item>
+    <item>
+      <id>SInfoRegistryVersions : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (89)   </locmod>
+    </item>
+    <item>
+      <id>SInfoRegistryView : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (87)   </locmod>
+    </item>
+    <item>
+      <id>SInfoResolvedCombinedSearchPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (109)  </locmod>
+    </item>
+    <item>
+      <id>SInfoResolvedDefines : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (105)  </locmod>
+    </item>
+    <item>
+      <id>SInfoResolvedLibraryPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (108)  </locmod>
+    </item>
+    <item>
+      <id>SInfoResolvedProjectSearchPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (107)  </locmod>
+    </item>
+    <item>
+      <id>SInfoResolvedUnitScopes : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (106)  </locmod>
+    </item>
+    <item>
+      <id>SInfoRsVarsCount : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (95)   </locmod>
+    </item>
+    <item>
+      <id>SInfoRsVarsPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (94)   </locmod>
+    </item>
+    <item>
+      <id>SInfoSettingsPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (104)  </locmod>
+    </item>
+    <item>
+      <id>SInfoStep : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (96)   </locmod>
+    </item>
+    <item>
+      <id>SInvalidArgs : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (38)   </locmod>
+    </item>
+    <item>
+      <id>SInvalidBoolValue : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (42)   </locmod>
+    </item>
+    <item>
+      <id>SInvalidFiFormats : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (43)   </locmod>
+    </item>
+    <item>
+      <id>SInvalidOutKind : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (41)   </locmod>
+    </item>
+    <item>
+      <id>SLibraryPathEmpty : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (61)   </locmod>
+    </item>
+    <item>
+      <id>SLogFileOpenFailed : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (117)  </locmod>
+    </item>
+    <item>
+      <id>SMainSourceMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (59)   </locmod>
+    </item>
+    <item>
+      <id>SMainSourceMissingFile : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (60)   </locmod>
+    </item>
+    <item>
+      <id>SMissingDirectory : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (67)   </locmod>
+    </item>
+    <item>
+      <id>SOptsetMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (70)   </locmod>
+    </item>
+    <item>
+      <id>SOptsetParseError : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (57)   </locmod>
+    </item>
+    <item>
+      <id>SOptsetUsing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (69)   </locmod>
+    </item>
+    <item>
+      <id>SOutputWriteFailed : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (63)   </locmod>
+    </item>
+    <item>
+      <id>SRegistryBaseMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (50)   </locmod>
+    </item>
+    <item>
+      <id>SRsVarsFailed : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (55)   </locmod>
+    </item>
+    <item>
+      <id>SRsVarsNotFound : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (54)   </locmod>
+    </item>
+    <item>
+      <id>SSearchPathEmpty : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (62)   </locmod>
+    </item>
+    <item>
+      <id>SSettingsInvalidBool : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (118)  </locmod>
+    </item>
+    <item>
+      <id>SSourceDefines : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (71)   </locmod>
+    </item>
+    <item>
+      <id>SSourceDproj : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (77)   </locmod>
+    </item>
+    <item>
+      <id>SSourceEnvOptions : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (80)   </locmod>
+    </item>
+    <item>
+      <id>SSourceLibraryPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (75)   </locmod>
+    </item>
+    <item>
+      <id>SSourceOptset : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (78)   </locmod>
+    </item>
+    <item>
+      <id>SSourceRegistry : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (79)   </locmod>
+    </item>
+    <item>
+      <id>SSourceSearchPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (72)   </locmod>
+    </item>
+    <item>
+      <id>SSourceUnitAliases : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (74)   </locmod>
+    </item>
+    <item>
+      <id>SSourceUnitScopes : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (73)   </locmod>
+    </item>
+    <item>
+      <id>SSourceUnknown : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (76)   </locmod>
+    </item>
+    <item>
+      <id>SUnhandledException : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (81)   </locmod>
+    </item>
+    <item>
+      <id>SUnknownArg : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (44)   </locmod>
+    </item>
+    <item>
+      <id>SUnknownCommand : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (39)   </locmod>
+    </item>
+    <item>
+      <id>SUnknownMacro : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (65)   </locmod>
+    </item>
+    <item>
+      <id>SUnresolvedMacroDropped : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (68)   </locmod>
+    </item>
+    <item>
+      <id>SUsageAnalyze : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (22)   </locmod>
+    </item>
+    <item>
+      <id>SUsageBuild : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (35)   </locmod>
+    </item>
+    <item>
+      <id>SUsageGlobal : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (6)    </locmod>
+    </item>
+    <item>
+      <id>SUsageResolve : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (13)   </locmod>
+    </item>
+    <item>
+      <id>SXmlVendorMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (64)   </locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <kind>Constructor</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (22)</locmod>
+    </item>
+    <item>
+      <id>EvaluateFile</id>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (23)</locmod>
+    </item>
+    <item>
+      <id>fDiagnostics : TDiagnostics</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (17)</locmod>
+    </item>
+    <item>
+      <id>fEnvVars : TDictionary&lt;UnicodeString,Unicodestring&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (16)</locmod>
+    </item>
+    <item>
+      <id>fOnPropertySet : TPropertySetProc</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (18)</locmod>
+    </item>
+    <item>
+      <id>fProps : TDictionary&lt;UnicodeString,Unicodestring&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (15)</locmod>
+    </item>
+    <item>
+      <id>OnPropertySet : TPropertySetProc</id>
+      <kind>Property</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (24)</locmod>
+    </item>
+    <item>
+      <id>TMsBuildEvaluator = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.MsBuild (13)    </locmod>
+    </item>
+    <item>
+      <id>WriteOutput</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Output (9)      </locmod>
+    </item>
+    <item>
+      <id>BuildPalCmdCommandLine</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+    </item>
+    <item>
+      <id>BuildPalCmdUnitCommandLine</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+    </item>
+    <item>
+      <id>TComparer&lt;THotspotEntry&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>TryFindPalReportRoot</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (24)</locmod>
+    </item>
+    <item>
+      <id>TryGeneratePalArtifacts</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExe</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzer</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (16)</locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzerUnit</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (22)</locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzerWithHandles</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+    </item>
+    <item>
+      <id>TPair&lt;UnicodeString,UnicodeString&gt; = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Project (45)    </locmod>
+    </item>
+    <item>
+      <id>TryBuildParams</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Project (10)    </locmod>
+    </item>
+    <item>
+      <id>TryReadIdeConfig</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Registry (12)   </locmod>
+    </item>
+    <item>
+      <id>HasAnyReportFilters</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (20)</locmod>
+    </item>
+    <item>
+      <id>TryPostProcessFixInsightReport</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (22)</locmod>
+    </item>
+    <item>
+      <id>TryLoadRsVars</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.RsVars (10)     </locmod>
+    </item>
+    <item>
+      <id>ckAnalyzeProject</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <id>ckAnalyzeUnit</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <id>ckBuild</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <id>ckResolve</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeClean : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (65)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeFiFormats : TReportFormatSet</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (62)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeFixInsight : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (63)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeOutPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (60)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzePal : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (64)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeWriteSummary : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (66)</locmod>
+    </item>
+    <item>
+      <id>fArgs : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TPascalAnalyzerDefaults (91)</locmod>
+    </item>
+    <item>
+      <id>fCommand : TCommandKind</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (18)</locmod>
+    </item>
+    <item>
+      <id>fConfig : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (21)</locmod>
+    </item>
+    <item>
+      <id>fConfig : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (110)</locmod>
+    </item>
+    <item>
+      <id>fCsv : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightExtraOptions (77)</locmod>
+    </item>
+    <item>
+      <id>fDefines : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (103)</locmod>
+    </item>
+    <item>
+      <id>fDefineSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (112)</locmod>
+    </item>
+    <item>
+      <id>fDelphiVersion : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (22)</locmod>
+    </item>
+    <item>
+      <id>fDelphiVersion : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (108)</locmod>
+    </item>
+    <item>
+      <id>fDprojPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (19)</locmod>
+    </item>
+    <item>
+      <id>fEnvOptionsPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (30)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (45)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TReportFilterDefaults (85)</locmod>
+    </item>
+    <item>
+      <id>fExePath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightExtraOptions (71)</locmod>
+    </item>
+    <item>
+      <id>fFixCsv : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (42)</locmod>
+    </item>
+    <item>
+      <id>fFixCsv : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (102)</locmod>
+    </item>
+    <item>
+      <id>fFixIgnore : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (34)</locmod>
+    </item>
+    <item>
+      <id>fFixIgnore : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (98)</locmod>
+    </item>
+    <item>
+      <id>fFixInsightExe : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (96)</locmod>
+    </item>
+    <item>
+      <id>fFixOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (32)</locmod>
+    </item>
+    <item>
+      <id>fFixOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (97)</locmod>
+    </item>
+    <item>
+      <id>fFixSettings : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (36)</locmod>
+    </item>
+    <item>
+      <id>fFixSettings : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (99)</locmod>
+    </item>
+    <item>
+      <id>fFixSilent : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (38)</locmod>
+    </item>
+    <item>
+      <id>fFixSilent : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (100)</locmod>
+    </item>
+    <item>
+      <id>fFixXml : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (40)</locmod>
+    </item>
+    <item>
+      <id>fFixXml : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (101)</locmod>
+    </item>
+    <item>
+      <id>fHasAnalyzeOutPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (61)</locmod>
+    </item>
+    <item>
+      <id>fHasEnvOptionsPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (31)</locmod>
+    </item>
+    <item>
+      <id>fHasExcludePathMasks : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (46)</locmod>
+    </item>
+    <item>
+      <id>fHasFixCsv : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (43)</locmod>
+    </item>
+    <item>
+      <id>fHasFixIgnore : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (35)</locmod>
+    </item>
+    <item>
+      <id>fHasFixOutput : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (33)</locmod>
+    </item>
+    <item>
+      <id>fHasFixSettings : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (37)</locmod>
+    </item>
+    <item>
+      <id>fHasFixSilent : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (39)</locmod>
+    </item>
+    <item>
+      <id>fHasFixXml : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (41)</locmod>
+    </item>
+    <item>
+      <id>fHasIgnoreWarningIds : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (48)</locmod>
+    </item>
+    <item>
+      <id>fHasLogFile : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (57)</locmod>
+    </item>
+    <item>
+      <id>fHasLogTee : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (59)</locmod>
+    </item>
+    <item>
+      <id>fHasOutKind : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (26)</locmod>
+    </item>
+    <item>
+      <id>fHasOutPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (25)</locmod>
+    </item>
+    <item>
+      <id>fHasPaArgs : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (55)</locmod>
+    </item>
+    <item>
+      <id>fHasPaOutput : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (53)</locmod>
+    </item>
+    <item>
+      <id>fHasPaPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (51)</locmod>
+    </item>
+    <item>
+      <id>fHasRsVarsPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (29)</locmod>
+    </item>
+    <item>
+      <id>fIgnore : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightExtraOptions (73)</locmod>
+    </item>
+    <item>
+      <id>fIgnoreWarningIds : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (47)</locmod>
+    </item>
+    <item>
+      <id>fLibraryPath : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (105)</locmod>
+    </item>
+    <item>
+      <id>fLibrarySource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (111)</locmod>
+    </item>
+    <item>
+      <id>fLogFile : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (56)</locmod>
+    </item>
+    <item>
+      <id>fLogTee : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (58)</locmod>
+    </item>
+    <item>
+      <id>fOutKind : TOutputKind</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (23)</locmod>
+    </item>
+    <item>
+      <id>fOutPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (24)</locmod>
+    </item>
+    <item>
+      <id>fOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightExtraOptions (72)</locmod>
+    </item>
+    <item>
+      <id>fOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TPascalAnalyzerDefaults (90)</locmod>
+    </item>
+    <item>
+      <id>fPaArgs : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (54)</locmod>
+    </item>
+    <item>
+      <id>fPaOutput : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (52)</locmod>
+    </item>
+    <item>
+      <id>fPaPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (50)</locmod>
+    </item>
+    <item>
+      <id>fPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TPascalAnalyzerDefaults (89)</locmod>
+    </item>
+    <item>
+      <id>fPlatform : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (20)</locmod>
+    </item>
+    <item>
+      <id>fPlatform : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (109)</locmod>
+    </item>
+    <item>
+      <id>fProjectDpr : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (95)</locmod>
+    </item>
+    <item>
+      <id>fRsVarsPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (28)</locmod>
+    </item>
+    <item>
+      <id>fRunFixInsight : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (44)</locmod>
+    </item>
+    <item>
+      <id>fRunPascalAnalyzer : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (49)</locmod>
+    </item>
+    <item>
+      <id>fSearchPathSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (113)</locmod>
+    </item>
+    <item>
+      <id>fSettings : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightExtraOptions (74)</locmod>
+    </item>
+    <item>
+      <id>fSilent : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightExtraOptions (75)</locmod>
+    </item>
+    <item>
+      <id>fUnitAliases : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (107)</locmod>
+    </item>
+    <item>
+      <id>fUnitAliasesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (115)</locmod>
+    </item>
+    <item>
+      <id>fUnitPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (67)</locmod>
+    </item>
+    <item>
+      <id>fUnitScopes : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (106)</locmod>
+    </item>
+    <item>
+      <id>fUnitScopesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (114)</locmod>
+    </item>
+    <item>
+      <id>fUnitSearchPath : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (104)</locmod>
+    </item>
+    <item>
+      <id>fVerbose : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (27)</locmod>
+    </item>
+    <item>
+      <id>fWarnings : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightIgnoreDefaults (81)</locmod>
+    </item>
+    <item>
+      <id>fXml : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightExtraOptions (76)</locmod>
+    </item>
+    <item>
+      <id>okBat</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TOutputKind (10)</locmod>
+    </item>
+    <item>
+      <id>okIni</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TOutputKind (10)</locmod>
+    </item>
+    <item>
+      <id>okXml</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TOutputKind (10)</locmod>
+    </item>
+    <item>
+      <id>psDproj</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <id>psEnvOptions</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <id>psOptset</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <id>psRegistry</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <id>psUnknown</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TPropertySource (12)</locmod>
+    </item>
+    <item>
+      <id>rfCsv</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TReportFormat (14)</locmod>
+    </item>
+    <item>
+      <id>rfText</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TReportFormat (14)</locmod>
+    </item>
+    <item>
+      <id>rfXml</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TReportFormat (14)</locmod>
+    </item>
+    <item>
+      <id>TAppOptions = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (17)      </locmod>
+    </item>
+    <item>
+      <id>TCommandKind = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (8)       </locmod>
+    </item>
+    <item>
+      <id>TFixInsightExtraOptions = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (70)      </locmod>
+    </item>
+    <item>
+      <id>TFixInsightIgnoreDefaults = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (80)      </locmod>
+    </item>
+    <item>
+      <id>TFixInsightParams = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (94)      </locmod>
+    </item>
+    <item>
+      <id>TOutputKind = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (10)      </locmod>
+    </item>
+    <item>
+      <id>TPascalAnalyzerDefaults = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (88)      </locmod>
+    </item>
+    <item>
+      <id>TPropertySource = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (12)      </locmod>
+    </item>
+    <item>
+      <id>TReportFilterDefaults = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (84)      </locmod>
+    </item>
+    <item>
+      <id>TReportFormat = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (14)      </locmod>
+    </item>
+    <item>
+      <id>TReportFormatSet = Set</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (15)      </locmod>
+    </item>
+    <item>
+      <id>DecodeA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madCrypt (64)       </locmod>
+    </item>
+    <item>
+      <id>Decrypt</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madCrypt (34)       </locmod>
+    </item>
+    <item>
+      <id>Encode</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madCrypt (48)       </locmod>
+    </item>
+    <item>
+      <id>Encode</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madCrypt (53)       </locmod>
+    </item>
+    <item>
+      <id>OldDecrypt</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madCrypt (43)       </locmod>
+    </item>
+    <item>
+      <id>OldEncrypt</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madCrypt (42)       </locmod>
+    </item>
+    <item>
+      <id>AreaBegin : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeArea (110)</locmod>
+    </item>
+    <item>
+      <id>AreaEnd : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeArea (111)</locmod>
+    </item>
+    <item>
+      <id>Call : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (90)</locmod>
+    </item>
+    <item>
+      <id>CodeAddr1 : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFarCall (119)</locmod>
+    </item>
+    <item>
+      <id>CodeAddr1 : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TUnknownTarget (131)</locmod>
+    </item>
+    <item>
+      <id>CodeAddr2 : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFarCall (120)</locmod>
+    </item>
+    <item>
+      <id>CodeAddr2 : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TUnknownTarget (132)</locmod>
+    </item>
+    <item>
+      <id>CodeAreas : Array (dynamic)</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (142)</locmod>
+    </item>
+    <item>
+      <id>CodeBegin : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (137)</locmod>
+    </item>
+    <item>
+      <id>CodeLen : Integer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (138)</locmod>
+    </item>
+    <item>
+      <id>Copy : @T0</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (146)</locmod>
+    </item>
+    <item>
+      <id>EndTryRead</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madDisAsm (212)     </locmod>
+    </item>
+    <item>
+      <id>Enlargeable : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (97)</locmod>
+    </item>
+    <item>
+      <id>EntryPoint : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (136)</locmod>
+    </item>
+    <item>
+      <id>FarCalls : Array (dynamic)</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (143)</locmod>
+    </item>
+    <item>
+      <id>GetLineNumber : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madDisAsm (202)     </locmod>
+    </item>
+    <item>
+      <id>GetProcNameFromMapFile : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madDisAsm (201)     </locmod>
+    </item>
+    <item>
+      <id>Interceptable : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (145)</locmod>
+    </item>
+    <item>
+      <id>IsValid : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (82)</locmod>
+    </item>
+    <item>
+      <id>IsValid : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (135)</locmod>
+    </item>
+    <item>
+      <id>Jmp : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (91)</locmod>
+    </item>
+    <item>
+      <id>LastErrorAddr : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (139)</locmod>
+    </item>
+    <item>
+      <id>LastErrorNo : Cardinal</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (140)</locmod>
+    </item>
+    <item>
+      <id>LastErrorStr : AnsiString</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (141)</locmod>
+    </item>
+    <item>
+      <id>Magic</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (188)     </locmod>
+    </item>
+    <item>
+      <id>Magic95</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (189)     </locmod>
+    </item>
+    <item>
+      <id>ModRm : Byte</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (84)</locmod>
+    </item>
+    <item>
+      <id>Next : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (99)</locmod>
+    </item>
+    <item>
+      <id>Opcode : Word</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (83)</locmod>
+    </item>
+    <item>
+      <id>ParseCode</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (104)     </locmod>
+    </item>
+    <item>
+      <id>ParseCode_</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (190)     </locmod>
+    </item>
+    <item>
+      <id>ParseFunction</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (160)     </locmod>
+    </item>
+    <item>
+      <id>ParseFunctionEx</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (198)     </locmod>
+    </item>
+    <item>
+      <id>ParseFunction_</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (191)     </locmod>
+    </item>
+    <item>
+      <id>PPTarget : TPPointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (95)</locmod>
+    </item>
+    <item>
+      <id>PTarget : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (94)</locmod>
+    </item>
+    <item>
+      <id>RelTarget : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (92)</locmod>
+    </item>
+    <item>
+      <id>StartTryRead</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (211)     </locmod>
+    </item>
+    <item>
+      <id>Target : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (93)</locmod>
+    </item>
+    <item>
+      <id>Target : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFarCall (121)</locmod>
+    </item>
+    <item>
+      <id>TargetSize : Integer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (96)</locmod>
+    </item>
+    <item>
+      <id>TCodeInfo = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madDisAsm (81)      </locmod>
+    </item>
+    <item>
+      <id>TFunctionInfo = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madDisAsm (134)     </locmod>
+    </item>
+    <item>
+      <id>This : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TCodeInfo (98)</locmod>
+    </item>
+    <item>
+      <id>TryRead</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (213)     </locmod>
+    </item>
+    <item>
+      <id>UnknownTargets : Array (dynamic)</id>
+      <kind>Record Field</kind>
+      <locmod>madDisAsm\TFunctionInfo (144)</locmod>
+    </item>
+    <item>
+      <id>DisAsmFunc : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madExcept (1963)    </locmod>
+    </item>
+    <item>
+      <id>NameThread</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1536)    </locmod>
+    </item>
+    <item>
+      <id>PauseFreezeCheck</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1519)    </locmod>
+    </item>
+    <item>
+      <id>RegReadStr</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1901)    </locmod>
+    </item>
+    <item>
+      <id>UnregisterBugReportPlugin</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1747)    </locmod>
+    </item>
+    <item>
+      <id>BaseOfCode : NativeUInt</id>
+      <kind>Property</kind>
+      <locmod>madMapFile\TMapFile (252)</locmod>
+    </item>
+    <item>
+      <id>EntryPoint : Pointer</id>
+      <kind>Property</kind>
+      <locmod>madMapFile\TMapFile (249)</locmod>
+    </item>
+    <item>
+      <id>FBaseOfCode : NativeUInt</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (216)</locmod>
+    </item>
+    <item>
+      <id>FBaseOfData : NativeUInt</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (212)</locmod>
+    </item>
+    <item>
+      <id>FCodeOnly : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (201)</locmod>
+    </item>
+    <item>
+      <id>FCorrectBase : DWORD</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (224)</locmod>
+    </item>
+    <item>
+      <id>FEntryPoint : Pointer</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (211)</locmod>
+    </item>
+    <item>
+      <id>FHInstance : HMODULE</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (214)</locmod>
+    </item>
+    <item>
+      <id>FindLine</id>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMapFile (244)</locmod>
+    </item>
+    <item>
+      <id>FindMapFile</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madMapFile (272)    </locmod>
+    </item>
+    <item>
+      <id>FindPublic</id>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMapFile (241)</locmod>
+    </item>
+    <item>
+      <id>FindPublic</id>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMapFile (242)</locmod>
+    </item>
+    <item>
+      <id>FindSegment</id>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMapFile (239)</locmod>
+    </item>
+    <item>
+      <id>FLastLineInfo : TSrcCodeInfo</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (223)</locmod>
+    </item>
+    <item>
+      <id>FLCapacity : Integer</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (210)</locmod>
+    </item>
+    <item>
+      <id>FLCount : Integer</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (209)</locmod>
+    </item>
+    <item>
+      <id>FLItems : Array (dynamic)</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (208)</locmod>
+    </item>
+    <item>
+      <id>FMapFileName : UnicodeString</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (219)</locmod>
+    </item>
+    <item>
+      <id>FMinDebugInfo : AnsiString</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (220)</locmod>
+    </item>
+    <item>
+      <id>FModuleFileName : UnicodeString</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (218)</locmod>
+    </item>
+    <item>
+      <id>FPCapacity : Integer</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (207)</locmod>
+    </item>
+    <item>
+      <id>FPCount : Integer</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (206)</locmod>
+    </item>
+    <item>
+      <id>FPItems : Array (dynamic)</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (205)</locmod>
+    </item>
+    <item>
+      <id>FSCapacity : Integer</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (204)</locmod>
+    </item>
+    <item>
+      <id>FSCount : Integer</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (203)</locmod>
+    </item>
+    <item>
+      <id>FSItems : Array (dynamic)</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (202)</locmod>
+    </item>
+    <item>
+      <id>FSLastAdded : Array (static)</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (221)</locmod>
+    </item>
+    <item>
+      <id>FTopOfCode : NativeUInt</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (217)</locmod>
+    </item>
+    <item>
+      <id>FTopOfData : NativeUInt</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (213)</locmod>
+    </item>
+    <item>
+      <id>FValid : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>madMapFile\TMapFile (215)</locmod>
+    </item>
+    <item>
+      <id>GetMapFileInfos</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madMapFile (284)    </locmod>
+    </item>
+    <item>
+      <id>IsValid : Boolean</id>
+      <kind>Property</kind>
+      <locmod>madMapFile\TMapFile (233)</locmod>
+    </item>
+    <item>
+      <id>MapFileName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madMapFile\TMapFile (259)</locmod>
+    </item>
+    <item>
+      <id>MinDebugInfo : AnsiString</id>
+      <kind>Property</kind>
+      <locmod>madMapFile\TMapFile (236)</locmod>
+    </item>
+    <item>
+      <id>ModuleFileName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madMapFile\TMapFile (256)</locmod>
+    </item>
+    <item>
+      <id>TMapFile = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madMapFile (199)    </locmod>
+    </item>
+    <item>
+      <id>TopOfCode : NativeUInt</id>
+      <kind>Property</kind>
+      <locmod>madMapFile\TMapFile (253)</locmod>
+    </item>
+    <item>
+      <id>ActiveControl : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (169)</locmod>
+    </item>
+    <item>
+      <id>Assistant : INVAssistant</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (160)</locmod>
+    </item>
+    <item>
+      <id>Bitmap : INVBitmap</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVImage (125)</locmod>
+    </item>
+    <item>
+      <id>Border : Boolean</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVImage (127)</locmod>
+    </item>
+    <item>
+      <id>CancelButton : INVButton</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (168)</locmod>
+    </item>
+    <item>
+      <id>Caption : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVCheckBox (110)</locmod>
+    </item>
+    <item>
+      <id>Checked : Boolean</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVCheckBox (111)</locmod>
+    </item>
+    <item>
+      <id>Clickable : Boolean</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVImage (126)</locmod>
+    </item>
+    <item>
+      <id>Colored : Boolean</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (96)</locmod>
+    </item>
+    <item>
+      <id>ContinueButton : INVButton</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (166)</locmod>
+    </item>
+    <item>
+      <id>Data : Pointer</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (191)</locmod>
+    </item>
+    <item>
+      <id>Data : Pointer</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (219)</locmod>
+    </item>
+    <item>
+      <id>Enabled : Boolean</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (58)</locmod>
+    </item>
+    <item>
+      <id>Exception : IUnknown</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (187)</locmod>
+    </item>
+    <item>
+      <id>Exception : IUnknown</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (215)</locmod>
+    </item>
+    <item>
+      <id>File_ : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVImage (124)</locmod>
+    </item>
+    <item>
+      <id>Form : Array (static)</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (207)</locmod>
+    </item>
+    <item>
+      <id>FormCount : Integer</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (205)</locmod>
+    </item>
+    <item>
+      <id>Forms : Array (static)</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (206)</locmod>
+    </item>
+    <item>
+      <id>GetBitmap</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVImage (117)</locmod>
+    </item>
+    <item>
+      <id>GetChecked</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVCheckBox (105)</locmod>
+    </item>
+    <item>
+      <id>GetContinueButton</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (149)</locmod>
+    </item>
+    <item>
+      <id>GetData</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (189)</locmod>
+    </item>
+    <item>
+      <id>GetEnabled</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (51)</locmod>
+    </item>
+    <item>
+      <id>GetFormCount</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (197)</locmod>
+    </item>
+    <item>
+      <id>GetForms</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (198)</locmod>
+    </item>
+    <item>
+      <id>GetLines</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (79)</locmod>
+    </item>
+    <item>
+      <id>GetModalResult</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (156)</locmod>
+    </item>
+    <item>
+      <id>GetName</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (47)</locmod>
+    </item>
+    <item>
+      <id>GetOutputName</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (90)</locmod>
+    </item>
+    <item>
+      <id>GetOutputName</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVCheckBox (107)</locmod>
+    </item>
+    <item>
+      <id>GetOutputType</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (88)</locmod>
+    </item>
+    <item>
+      <id>GetText</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (82)</locmod>
+    </item>
+    <item>
+      <id>Handle : HWND</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (55)</locmod>
+    </item>
+    <item>
+      <id>Handle : HWND</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (171)</locmod>
+    </item>
+    <item>
+      <id>HandleContactFormProc : Pointer</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madNVAssistant (235)</locmod>
+    </item>
+    <item>
+      <id>HandleExceptionHelper : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madNVAssistant (237)</locmod>
+    </item>
+    <item>
+      <id>HandleScreenshotFormProc : Pointer</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madNVAssistant (236)</locmod>
+    </item>
+    <item>
+      <id>Height : Integer</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVImage (129)</locmod>
+    </item>
+    <item>
+      <id>INVAssistant = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madNVAssistant\IInterface (194)</locmod>
+    </item>
+    <item>
+      <id>INVCheckBox = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (102)</locmod>
+    </item>
+    <item>
+      <id>INVEdit = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (78)</locmod>
+    </item>
+    <item>
+      <id>INVForm = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madNVAssistant\IInterface (140)</locmod>
+    </item>
+    <item>
+      <id>INVImage = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (115)</locmod>
+    </item>
+    <item>
+      <id>INVItem = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madNVAssistant\IInterface (46)</locmod>
+    </item>
+    <item>
+      <id>ItemCount : Integer</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (164)</locmod>
+    </item>
+    <item>
+      <id>Items : Array (static)</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (165)</locmod>
+    </item>
+    <item>
+      <id>Lines : Integer</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (93)</locmod>
+    </item>
+    <item>
+      <id>LoadAssistant</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madNVAssistant (230)</locmod>
+    </item>
+    <item>
+      <id>Message : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (163)</locmod>
+    </item>
+    <item>
+      <id>ModalResult : TNVModalResult</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (172)</locmod>
+    </item>
+    <item>
+      <id>ModalResult : TNVModalResult</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (208)</locmod>
+    </item>
+    <item>
+      <id>Name : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (54)</locmod>
+    </item>
+    <item>
+      <id>Name : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (161)</locmod>
+    </item>
+    <item>
+      <id>nvaFormClose</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVAssistant\TNVAction (136)</locmod>
+    </item>
+    <item>
+      <id>nvaFormCreate</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVAssistant\TNVAction (136)</locmod>
+    </item>
+    <item>
+      <id>nvaItemEvent</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVAssistant\TNVAction (136)</locmod>
+    </item>
+    <item>
+      <id>nvmOk</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVAssistant\TNVModalResult (135)</locmod>
+    </item>
+    <item>
+      <id>OnAction : TNVActionHandler</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (173)</locmod>
+    </item>
+    <item>
+      <id>OnAction : TNVActionHandler</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (209)</locmod>
+    </item>
+    <item>
+      <id>Optional : Boolean</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (94)</locmod>
+    </item>
+    <item>
+      <id>otOwnSection</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVAssistant\TOutputType (44)</locmod>
+    </item>
+    <item>
+      <id>OutputName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (99)</locmod>
+    </item>
+    <item>
+      <id>OutputName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVCheckBox (112)</locmod>
+    </item>
+    <item>
+      <id>OutputType : TOutputType</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (98)</locmod>
+    </item>
+    <item>
+      <id>SetActiveControl</id>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (153)</locmod>
+    </item>
+    <item>
+      <id>SetBitmap</id>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVImage (118)</locmod>
+    </item>
+    <item>
+      <id>SetChecked</id>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVCheckBox (106)</locmod>
+    </item>
+    <item>
+      <id>SetData</id>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (190)</locmod>
+    </item>
+    <item>
+      <id>SetText</id>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (83)</locmod>
+    </item>
+    <item>
+      <id>SetValid</id>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (87)</locmod>
+    </item>
+    <item>
+      <id>SkipButton : INVButton</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (167)</locmod>
+    </item>
+    <item>
+      <id>Spacing : Integer</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (57)</locmod>
+    </item>
+    <item>
+      <id>TabStop : Boolean</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (56)</locmod>
+    </item>
+    <item>
+      <id>Text : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (95)</locmod>
+    </item>
+    <item>
+      <id>Timer : DWORD</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (170)</locmod>
+    </item>
+    <item>
+      <id>Title : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (162)</locmod>
+    </item>
+    <item>
+      <id>Title : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (204)</locmod>
+    </item>
+    <item>
+      <id>TNVAction = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madNVAssistant (136)</locmod>
+    </item>
+    <item>
+      <id>Valid : Boolean</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (97)</locmod>
+    </item>
+    <item>
+      <id>Width : Integer</id>
+      <kind>Property</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVImage (128)</locmod>
+    </item>
+    <item>
+      <id>GetHeight</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVBitmap\IInterface\INVBitmap (38)</locmod>
+    </item>
+    <item>
+      <id>GetWidth</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVBitmap\IInterface\INVBitmap (37)</locmod>
+    </item>
+    <item>
+      <id>Height : Integer</id>
+      <kind>Property</kind>
+      <locmod>madNVBitmap\IInterface\INVBitmap (40)</locmod>
+    </item>
+    <item>
+      <id>INVBitmap = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madNVBitmap\IInterface (36)</locmod>
+    </item>
+    <item>
+      <id>LoadBitmap</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madNVBitmap (54)    </locmod>
+    </item>
+    <item>
+      <id>pf100kb</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVBitmap\TPngFormat (33)</locmod>
+    </item>
+    <item>
+      <id>pf16Grays</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVBitmap\TPngFormat (33)</locmod>
+    </item>
+    <item>
+      <id>pf200kb</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVBitmap\TPngFormat (33)</locmod>
+    </item>
+    <item>
+      <id>pf256Colors</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVBitmap\TPngFormat (33)</locmod>
+    </item>
+    <item>
+      <id>pf300kb</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVBitmap\TPngFormat (33)</locmod>
+    </item>
+    <item>
+      <id>pf50kb</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madNVBitmap\TPngFormat (33)</locmod>
+    </item>
+    <item>
+      <id>ScreenShot</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madNVBitmap (57)    </locmod>
+    </item>
+    <item>
+      <id>TPngFormat = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madNVBitmap (33)    </locmod>
+    </item>
+    <item>
+      <id>Width : Integer</id>
+      <kind>Property</kind>
+      <locmod>madNVBitmap\IInterface\INVBitmap (39)</locmod>
+    </item>
+    <item>
+      <id>CurrentArea : Integer</id>
+      <kind>Property</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (41)</locmod>
+    </item>
+    <item>
+      <id>GetCurrentArea</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (39)</locmod>
+    </item>
+    <item>
+      <id>GetPosition</id>
+      <kind>Func, Method</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (31)</locmod>
+    </item>
+    <item>
+      <id>IProgressAlert = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madNVPrgrAlert\IInterface (26)</locmod>
+    </item>
+    <item>
+      <id>NewProgressAlert</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madNVPrgrAlert (49) </locmod>
+    </item>
+    <item>
+      <id>Position : Integer</id>
+      <kind>Property</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (33)</locmod>
+    </item>
+    <item>
+      <id>SetCurrentArea</id>
+      <kind>Proc, Method</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (40)</locmod>
+    </item>
+    <item>
+      <id>SetPosition</id>
+      <kind>Proc, Method</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (32)</locmod>
+    </item>
+    <item>
+      <id>Title : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (29)</locmod>
+    </item>
+    <item>
+      <id>InternalError</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStackTrace (145) </locmod>
+    </item>
+    <item>
+      <id>PrepareStackTrace</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStackTrace (156) </locmod>
+    </item>
+    <item>
+      <id>StackAddrToStr</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStackTrace (144) </locmod>
+    </item>
+    <item>
+      <id>StackTrace</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStackTrace (113) </locmod>
+    </item>
+    <item>
+      <id>TPStackTrace = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madStackTrace (106) </locmod>
+    </item>
+    <item>
+      <id>TStackTrace = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madStackTrace (105) </locmod>
+    </item>
+    <item>
+      <id>AnsiToWideEx</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (372)    </locmod>
+    </item>
+    <item>
+      <id>BooleanToCharA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (235)    </locmod>
+    </item>
+    <item>
+      <id>BooleanToCharW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (345)    </locmod>
+    </item>
+    <item>
+      <id>CNtDll : AnsiString</id>
+      <kind>Typed const, Interfaced</kind>
+      <locmod>madStrings (375)    </locmod>
+    </item>
+    <item>
+      <id>CompareText</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (100)    </locmod>
+    </item>
+    <item>
+      <id>CompareTextW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (286)    </locmod>
+    </item>
+    <item>
+      <id>CopyR</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (76)     </locmod>
+    </item>
+    <item>
+      <id>CopyR</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (77)     </locmod>
+    </item>
+    <item>
+      <id>DecodeUtf8</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (376)    </locmod>
+    </item>
+    <item>
+      <id>DecryptStr</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (371)    </locmod>
+    </item>
+    <item>
+      <id>EncodeUtf8</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (377)    </locmod>
+    </item>
+    <item>
+      <id>ErrorCodeToStrA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (260)    </locmod>
+    </item>
+    <item>
+      <id>ErrorCodeToStrW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (354)    </locmod>
+    </item>
+    <item>
+      <id>ExtractFileDriveW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (381)    </locmod>
+    </item>
+    <item>
+      <id>ExtractFileExtW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (382)    </locmod>
+    </item>
+    <item>
+      <id>ExtractFileNameW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (379)    </locmod>
+    </item>
+    <item>
+      <id>ExtractFilePathW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (380)    </locmod>
+    </item>
+    <item>
+      <id>FillStrA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (250)    </locmod>
+    </item>
+    <item>
+      <id>FillStrW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (296)    </locmod>
+    </item>
+    <item>
+      <id>FormatSubStrsW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (299)    </locmod>
+    </item>
+    <item>
+      <id>IntToHexExA</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (362)    </locmod>
+    </item>
+    <item>
+      <id>IntToHexExW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (349)    </locmod>
+    </item>
+    <item>
+      <id>IntToStrExA</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (359)    </locmod>
+    </item>
+    <item>
+      <id>IntToStrExA</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (361)    </locmod>
+    </item>
+    <item>
+      <id>IntToStrExW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (346)    </locmod>
+    </item>
+    <item>
+      <id>IntToStrExW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (348)    </locmod>
+    </item>
+    <item>
+      <id>IsTextEqualA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (236)    </locmod>
+    </item>
+    <item>
+      <id>IsTextEqualW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (284)    </locmod>
+    </item>
+    <item>
+      <id>IsValidIdentW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (378)    </locmod>
+    </item>
+    <item>
+      <id>KeepW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (277)    </locmod>
+    </item>
+    <item>
+      <id>KillCharsW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (269)    </locmod>
+    </item>
+    <item>
+      <id>KillCharW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (268)    </locmod>
+    </item>
+    <item>
+      <id>KillStrW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (270)    </locmod>
+    </item>
+    <item>
+      <id>LowCharW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (282)    </locmod>
+    </item>
+    <item>
+      <id>LowStrW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (283)    </locmod>
+    </item>
+    <item>
+      <id>PosCharsW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (292)    </locmod>
+    </item>
+    <item>
+      <id>PosNotCharsW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (355)    </locmod>
+    </item>
+    <item>
+      <id>PosPCharA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (241)    </locmod>
+    </item>
+    <item>
+      <id>PosStrA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (239)    </locmod>
+    </item>
+    <item>
+      <id>PosStrIs1A : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (242)    </locmod>
+    </item>
+    <item>
+      <id>PosStrIs1W : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (290)    </locmod>
+    </item>
+    <item>
+      <id>PosStrW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (287)    </locmod>
+    </item>
+    <item>
+      <id>PosText</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (108)    </locmod>
+    </item>
+    <item>
+      <id>PosTextA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (240)    </locmod>
+    </item>
+    <item>
+      <id>PosTextIs1W : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (291)    </locmod>
+    </item>
+    <item>
+      <id>PosTextW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (288)    </locmod>
+    </item>
+    <item>
+      <id>ReplaceStrA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (222)    </locmod>
+    </item>
+    <item>
+      <id>ReplaceStrW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (271)    </locmod>
+    </item>
+    <item>
+      <id>ReplaceTextA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (223)    </locmod>
+    </item>
+    <item>
+      <id>ReplaceTextW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (272)    </locmod>
+    </item>
+    <item>
+      <id>RetDelete</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (60)     </locmod>
+    </item>
+    <item>
+      <id>RetDeleteW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (274)    </locmod>
+    </item>
+    <item>
+      <id>RetTrimStrA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (218)    </locmod>
+    </item>
+    <item>
+      <id>RetTrimStrW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (267)    </locmod>
+    </item>
+    <item>
+      <id>SizeToStrW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (352)    </locmod>
+    </item>
+    <item>
+      <id>StrToIntExA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (251)    </locmod>
+    </item>
+    <item>
+      <id>StrToIntExW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (297)    </locmod>
+    </item>
+    <item>
+      <id>SubStrA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (255)    </locmod>
+    </item>
+    <item>
+      <id>SubStrCountA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (254)    </locmod>
+    </item>
+    <item>
+      <id>SubStrCountW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (300)    </locmod>
+    </item>
+    <item>
+      <id>SubStrExistsW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (302)    </locmod>
+    </item>
+    <item>
+      <id>SubStrW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (301)    </locmod>
+    </item>
+    <item>
+      <id>SubTextExistsW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (303)    </locmod>
+    </item>
+    <item>
+      <id>TrimStrA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (217)    </locmod>
+    </item>
+    <item>
+      <id>TrimStrW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (266)    </locmod>
+    </item>
+    <item>
+      <id>UpCharA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (231)    </locmod>
+    </item>
+    <item>
+      <id>UpStrA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (232)    </locmod>
+    </item>
+    <item>
+      <id>UpStrW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madStrings (281)    </locmod>
+    </item>
+    <item>
+      <id>WideToAnsiEx</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (373)    </locmod>
+    </item>
+    <item>
+      <id>AddMsgHandler</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (169)      </locmod>
+    </item>
+    <item>
+      <id>CEMAGIC : Signed 16-bit Integer</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>madTools (179)      </locmod>
+    </item>
+    <item>
+      <id>CENEWHDR : Signed 8-bit Integer</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>madTools (178)      </locmod>
+    </item>
+    <item>
+      <id>CPEMAGIC : Signed 16-bit Integer</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>madTools (180)      </locmod>
+    </item>
+    <item>
+      <id>DelMsgHandler</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (171)      </locmod>
+    </item>
+    <item>
+      <id>description : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>madTools\TOS (77)   </locmod>
+    </item>
+    <item>
+      <id>Enum : TOsEnum</id>
+      <kind>Record Field</kind>
+      <locmod>madTools\TOS (74)   </locmod>
+    </item>
+    <item>
+      <id>FindModule</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (265)      </locmod>
+    </item>
+    <item>
+      <id>FindModuleA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madTools (268)      </locmod>
+    </item>
+    <item>
+      <id>ForwarderChain : DWORD</id>
+      <kind>Record Field</kind>
+      <locmod>madTools\TImageImportDirectory (191)</locmod>
+    </item>
+    <item>
+      <id>GetFileVersionStr</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (128)      </locmod>
+    </item>
+    <item>
+      <id>GetFileVersionStrW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madTools (140)      </locmod>
+    </item>
+    <item>
+      <id>GetFreeSystemResources</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (97)       </locmod>
+    </item>
+    <item>
+      <id>GetImageExportDirectory</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (278)      </locmod>
+    </item>
+    <item>
+      <id>GetImageNtHeaders</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (276)      </locmod>
+    </item>
+    <item>
+      <id>GetImageProcAddress</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (283)      </locmod>
+    </item>
+    <item>
+      <id>GetImageProcName</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (287)      </locmod>
+    </item>
+    <item>
+      <id>GetImageProcNameW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (288)      </locmod>
+    </item>
+    <item>
+      <id>GetLongFileNameA : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madTools (111)      </locmod>
+    </item>
+    <item>
+      <id>GetLongFileNameW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madTools (116)      </locmod>
+    </item>
+    <item>
+      <id>GetShortFileNameW : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madTools (115)      </locmod>
+    </item>
+    <item>
+      <id>GetSizeOfImage</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (309)      </locmod>
+    </item>
+    <item>
+      <id>HideLeak_ : Procedure Type</id>
+      <kind>Var, Interfaced</kind>
+      <locmod>madTools (315)      </locmod>
+    </item>
+    <item>
+      <id>HintNameArray : DWORD</id>
+      <kind>Record Field</kind>
+      <locmod>madTools\TImageImportDirectory (189)</locmod>
+    </item>
+    <item>
+      <id>IMAGE_NT_OPTIONAL_HDR64_MAGIC : Signed 16-bit Integer</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>madTools (183)      </locmod>
+    </item>
+    <item>
+      <id>InitTryExceptFinally</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madTools (298)      </locmod>
+    </item>
+    <item>
+      <id>INVALID_FILE_ATTRIBUTES</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>madTools (303)      </locmod>
+    </item>
+    <item>
+      <id>IsBadReadPtr2</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (311)      </locmod>
+    </item>
+    <item>
+      <id>MethodToProcedure</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (154)      </locmod>
+    </item>
+    <item>
+      <id>MethodToProcedure</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (155)      </locmod>
+    </item>
+    <item>
+      <id>MsgHandlerWindow</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (166)      </locmod>
+    </item>
+    <item>
+      <id>Name_ : DWORD</id>
+      <kind>Record Field</kind>
+      <locmod>madTools\TImageImportDirectory (192)</locmod>
+    </item>
+    <item>
+      <id>OS</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (90)       </locmod>
+    </item>
+    <item>
+      <id>osWin95</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madTools\TOsEnum (63)</locmod>
+    </item>
+    <item>
+      <id>osWin95osr2</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madTools\TOsEnum (63)</locmod>
+    </item>
+    <item>
+      <id>osWinNt4</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madTools\TOsEnum (64)</locmod>
+    </item>
+    <item>
+      <id>osWinNtOld</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madTools\TOsEnum (64)</locmod>
+    </item>
+    <item>
+      <id>osWinXP</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madTools\TOsEnum (64)</locmod>
+    </item>
+    <item>
+      <id>PImageExportDirectory = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTools (209)      </locmod>
+    </item>
+    <item>
+      <id>ResToStr</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (292)      </locmod>
+    </item>
+    <item>
+      <id>ThunkArray : DWORD</id>
+      <kind>Record Field</kind>
+      <locmod>madTools\TImageImportDirectory (193)</locmod>
+    </item>
+    <item>
+      <id>TickDif</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (310)      </locmod>
+    </item>
+    <item>
+      <id>TImageImportDirectory = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTools (188)      </locmod>
+    </item>
+    <item>
+      <id>TimeDateStamp : DWORD</id>
+      <kind>Record Field</kind>
+      <locmod>madTools\TImageImportDirectory (190)</locmod>
+    </item>
+    <item>
+      <id>UnmangleW</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (307)      </locmod>
+    </item>
+    <item>
+      <id>winNtEnum : TOsEnum</id>
+      <kind>Record Field</kind>
+      <locmod>madTools\TOS (73)   </locmod>
+    </item>
+    <item>
+      <id>AcquireInnerException : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>madTypes\MadException (204)</locmod>
+    </item>
+    <item>
+      <id>CleanUpStackInfoProc : Procedure Type</id>
+      <kind>Class Field</kind>
+      <locmod>madTypes\MadException (210)</locmod>
+    </item>
+    <item>
+      <id>code : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madTypes\TMethod (224)</locmod>
+    </item>
+    <item>
+      <id>data : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madTypes\TMethod (224)</locmod>
+    </item>
+    <item>
+      <id>Destroy</id>
+      <kind>Destructor</kind>
+      <locmod>madTypes\MadException (207)</locmod>
+    </item>
+    <item>
+      <id>ExceptAddr : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madTypes\TExceptionRecord (190)</locmod>
+    </item>
+    <item>
+      <id>ExceptionAddress : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madTypes\TExceptionRecord (186)</locmod>
+    </item>
+    <item>
+      <id>ExceptionCode : DWORD</id>
+      <kind>Record Field</kind>
+      <locmod>madTypes\TExceptionRecord (183)</locmod>
+    </item>
+    <item>
+      <id>ExceptionFlags : DWORD</id>
+      <kind>Record Field</kind>
+      <locmod>madTypes\TExceptionRecord (184)</locmod>
+    </item>
+    <item>
+      <id>ExceptionInformation : Array (static)</id>
+      <kind>Record Field</kind>
+      <locmod>madTypes\TExceptionRecord (189)</locmod>
+    </item>
+    <item>
+      <id>ExceptionRecord : PExceptionRecord</id>
+      <kind>Record Field</kind>
+      <locmod>madTypes\TExceptionRecord (185)</locmod>
+    </item>
+    <item>
+      <id>ExceptObject : Pointer</id>
+      <kind>Record Field</kind>
+      <locmod>madTypes\TExceptionRecord (190)</locmod>
+    </item>
+    <item>
+      <id>HelpContext : Integer</id>
+      <kind>Class Field</kind>
+      <locmod>madTypes\MadException (200)</locmod>
+    </item>
+    <item>
+      <id>InnerException : MadException</id>
+      <kind>Class Field</kind>
+      <locmod>madTypes\MadException (202)</locmod>
+    </item>
+    <item>
+      <id>MadException = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (197)      </locmod>
+    </item>
+    <item>
+      <id>Message : UnicodeString</id>
+      <kind>Class Field</kind>
+      <locmod>madTypes\MadException (199)</locmod>
+    </item>
+    <item>
+      <id>no</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madTypes\TExtBool (43)</locmod>
+    </item>
+    <item>
+      <id>NumberParameters : DWORD</id>
+      <kind>Record Field</kind>
+      <locmod>madTypes\TExceptionRecord (187)</locmod>
+    </item>
+    <item>
+      <id>other</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madTypes\TExtBool (43)</locmod>
+    </item>
+    <item>
+      <id>PExceptionRecord = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (181)      </locmod>
+    </item>
+    <item>
+      <id>StackInfo : Pointer</id>
+      <kind>Class Field</kind>
+      <locmod>madTypes\MadException (203)</locmod>
+    </item>
+    <item>
+      <id>TDAAnsiString = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (150)      </locmod>
+    </item>
+    <item>
+      <id>TDACardinal = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (144)      </locmod>
+    </item>
+    <item>
+      <id>TDAInteger = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (145)      </locmod>
+    </item>
+    <item>
+      <id>TDANativeUInt = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (146)      </locmod>
+    </item>
+    <item>
+      <id>TDASmallInt = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (143)      </locmod>
+    </item>
+    <item>
+      <id>TDAUnicodeString = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (152)      </locmod>
+    </item>
+    <item>
+      <id>TExceptionRecord = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (182)      </locmod>
+    </item>
+    <item>
+      <id>TExtBool = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (43)       </locmod>
+    </item>
+    <item>
+      <id>TMethod = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (224)      </locmod>
+    </item>
+    <item>
+      <id>TPAByte = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (113)      </locmod>
+    </item>
+    <item>
+      <id>TPACardinal = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (122)      </locmod>
+    </item>
+    <item>
+      <id>TPAInt64 = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (132)      </locmod>
+    </item>
+    <item>
+      <id>TPAInteger = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (123)      </locmod>
+    </item>
+    <item>
+      <id>TPANativeInt = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (125)      </locmod>
+    </item>
+    <item>
+      <id>TPANativeUInt = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (124)      </locmod>
+    </item>
+    <item>
+      <id>TPAPointer = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (126)      </locmod>
+    </item>
+    <item>
+      <id>TPAWord = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (120)      </locmod>
+    </item>
+    <item>
+      <id>TPBoolean = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (63)       </locmod>
+    </item>
+    <item>
+      <id>TPByte = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (58)       </locmod>
+    </item>
+    <item>
+      <id>TPCardinal = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (67)       </locmod>
+    </item>
+    <item>
+      <id>TPDAUnicodeString = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (174)      </locmod>
+    </item>
+    <item>
+      <id>TPInt64 = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (77)       </locmod>
+    </item>
+    <item>
+      <id>TPInteger = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (68)       </locmod>
+    </item>
+    <item>
+      <id>TPNativeUInt = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (69)       </locmod>
+    </item>
+    <item>
+      <id>TPPointer = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (71)       </locmod>
+    </item>
+    <item>
+      <id>TPShortInt = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (59)       </locmod>
+    </item>
+    <item>
+      <id>TPSmallInt = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (66)       </locmod>
+    </item>
+    <item>
+      <id>TPUnicodeString = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (75)       </locmod>
+    </item>
+    <item>
+      <id>TPWord = Pointer</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (65)       </locmod>
+    </item>
+    <item>
+      <id>TSChar = Set</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>madTypes (47)       </locmod>
+    </item>
+    <item>
+      <id>yes</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>madTypes\TExtBool (43)</locmod>
+    </item>
+    <item>
+      <id>Compress</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madZip (70)         </locmod>
+    </item>
+    <item>
+      <id>Compress</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madZip (73)         </locmod>
+    </item>
+    <item>
+      <id>Uncompress</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madZip (74)         </locmod>
+    </item>
+    <item>
+      <id>UpdateCrc32</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madZip (83)         </locmod>
+    </item>
+    <item>
+      <id>Zip</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>madZip (85)         </locmod>
+    </item>
+    <item>
+      <id>iAsync = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxAsync\IInterface (108)</locmod>
+    </item>
+    <item>
+      <id>iSignal = iSignal</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxAsync\IInterface (89)</locmod>
+    </item>
+    <item>
+      <id>Priority : TThreadPriority</id>
+      <kind>Property</kind>
+      <locmod>maxAsync\IInterface\iAsync (122)</locmod>
+    </item>
+    <item>
+      <id>SimpleAsyncCall</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxAsync (575)      </locmod>
+    </item>
+    <item>
+      <id>tSignal = TSignal</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxAsync (88)       </locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (334)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <kind>Constructor</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (70)</locmod>
+    </item>
+    <item>
+      <id>DecodeCommand</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (76)</locmod>
+    </item>
+    <item>
+      <id>ErrorOutput : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (96)</locmod>
+    </item>
+    <item>
+      <id>Execute</id>
+      <kind>Func, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (73)</locmod>
+    </item>
+    <item>
+      <id>ExeName : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (82)</locmod>
+    </item>
+    <item>
+      <id>ExitCode : Integer</id>
+      <kind>Property</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (103)</locmod>
+    </item>
+    <item>
+      <id>fErrorOutput : UnicodeString</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (39)</locmod>
+    </item>
+    <item>
+      <id>FExeName : UnicodeString</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (19)</locmod>
+    </item>
+    <item>
+      <id>fExitCode : Integer</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (45)</locmod>
+    </item>
+    <item>
+      <id>FOnErrorDataRead : TDataReadyProc</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (40)</locmod>
+    </item>
+    <item>
+      <id>FOnStdDataRead : TDataReadyProc</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (38)</locmod>
+    </item>
+    <item>
+      <id>fParamsString : UnicodeString</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (21)</locmod>
+    </item>
+    <item>
+      <id>fPipeErrorReadThread : TPipeThread</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (31)</locmod>
+    </item>
+    <item>
+      <id>fPipeErrorsRead : THandle</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (25)</locmod>
+    </item>
+    <item>
+      <id>fPipeErrorsWrite : THandle</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (26)</locmod>
+    </item>
+    <item>
+      <id>fPipeStdRead : THandle</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (27)</locmod>
+    </item>
+    <item>
+      <id>fPipeStdReadThread : TPipeThread</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (30)</locmod>
+    </item>
+    <item>
+      <id>fPipeStdWrite : THandle</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (28)</locmod>
+    </item>
+    <item>
+      <id>fProcessFinished : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (43)</locmod>
+    </item>
+    <item>
+      <id>fProcessInfo : TProcessInformation</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (33)</locmod>
+    </item>
+    <item>
+      <id>FRedirectErrOutToStdOut : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (46)</locmod>
+    </item>
+    <item>
+      <id>fRunHidden : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (47)</locmod>
+    </item>
+    <item>
+      <id>fSecurityAttributes : TSecurityAttributes</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (34)</locmod>
+    </item>
+    <item>
+      <id>fSignal : iSignal</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (42)</locmod>
+    </item>
+    <item>
+      <id>fStartupInfo : TStartupInfo</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (35)</locmod>
+    </item>
+    <item>
+      <id>fStrOutput : UnicodeString</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (41)</locmod>
+    </item>
+    <item>
+      <id>fWaitForProcess : iAsync</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (44)</locmod>
+    </item>
+    <item>
+      <id>fWorkDir : UnicodeString</id>
+      <kind>Class Field</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (20)</locmod>
+    </item>
+    <item>
+      <id>OnErrorDataRead : TDataReadyProc</id>
+      <kind>Property</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (97)</locmod>
+    </item>
+    <item>
+      <id>OnStdDataRead : TDataReadyProc</id>
+      <kind>Property</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (95)</locmod>
+    </item>
+    <item>
+      <id>ParamsString : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (85)</locmod>
+    </item>
+    <item>
+      <id>RedirectErrOutToStdOut : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (100)</locmod>
+    </item>
+    <item>
+      <id>RunHidden : Boolean</id>
+      <kind>Property</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (106)</locmod>
+    </item>
+    <item>
+      <id>SetOnErrorDataRead</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (65)</locmod>
+    </item>
+    <item>
+      <id>SetOnStdDataRead</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (66)</locmod>
+    </item>
+    <item>
+      <id>StrOutput : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (94)</locmod>
+    </item>
+    <item>
+      <id>TDataReadyProc = Procedure Type</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxConsoleRunner (15)</locmod>
+    </item>
+    <item>
+      <id>TmaxConsoleRunner = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxConsoleRunner (17)</locmod>
+    </item>
+    <item>
+      <id>WorkDir : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (88)</locmod>
+    </item>
+    <item>
+      <id>Count : Integer</id>
+      <kind>Property</kind>
+      <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (85)</locmod>
+    </item>
+    <item>
+      <id>GetParamList</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (119)</locmod>
+    </item>
+    <item>
+      <id>GetSwitchPrefixes</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (19)</locmod>
+    </item>
+    <item>
+      <id>has</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (134)</locmod>
+    </item>
+    <item>
+      <id>iCmdLineparams = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.CmdLineParams\IInterface (15)</locmod>
+    </item>
+    <item>
+      <id>maxCmdLineParams</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.CmdLineParams (140)</locmod>
+    </item>
+    <item>
+      <id>spDash</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>maxLogic.CmdLineParams\TSwitchPrefix (12)</locmod>
+    </item>
+    <item>
+      <id>spDoubleDash</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>maxLogic.CmdLineParams\TSwitchPrefix (12)</locmod>
+    </item>
+    <item>
+      <id>spSlash</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>maxLogic.CmdLineParams\TSwitchPrefix (12)</locmod>
+    </item>
+    <item>
+      <id>SwitchPrefixes : TSwitchPrefixes</id>
+      <kind>Property</kind>
+      <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (86)</locmod>
+    </item>
+    <item>
+      <id>TSwitchPrefixes = Set</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.CmdLineParams (13)</locmod>
+    </item>
+    <item>
+      <id>CombinePath</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (82)</locmod>
+    </item>
+    <item>
+      <id>FCaseSensitive : Boolean</id>
+      <kind>Class Field</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (132)</locmod>
+    </item>
+    <item>
+      <id>FOrdinalComparer : IEqualityComparer&lt;UnicodeString&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (134)</locmod>
+    </item>
+    <item>
+      <id>FOrdinalIgnoreCaseComparer : IEqualityComparer&lt;UnicodeString&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (135)</locmod>
+    </item>
+    <item>
+      <id>FUpperAscii : Array (static)</id>
+      <kind>Class Field</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (133)</locmod>
+    </item>
+    <item>
+      <id>IEqualityComparer&lt;UnicodeString&gt; = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>MaxLogic.strUtils\IInterface (134)</locmod>
+    </item>
+    <item>
+      <id>OrdinalIgnoreCase</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (150)</locmod>
+    </item>
+    <item>
+      <id>TFastCaseAwareComparer = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (130)</locmod>
+    </item>
+    <item>
+      <id>Event : TEvent</id>
+      <kind>Property</kind>
+      <locmod>maxSignal\IInterface\iSignal (36)</locmod>
+    </item>
+    <item>
+      <id>Event : TEvent</id>
+      <kind>Property</kind>
+      <locmod>maxSignal\TSignal (54)</locmod>
+    </item>
+    <item>
+      <id>fEvent : TEvent</id>
+      <kind>Class Field</kind>
+      <locmod>maxSignal\TSignal (41)</locmod>
+    </item>
+    <item>
+      <id>InsideMainThread</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxSignal (58)      </locmod>
+    </item>
+    <item>
+      <id>iSignal = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxSignal\IInterface (18)</locmod>
+    </item>
+    <item>
+      <id>MsgWaitForSingleObject</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxSignal (61)      </locmod>
+    </item>
+    <item>
+      <id>TSignal = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxSignal (39)      </locmod>
+    </item>
+  </section>
+</report>

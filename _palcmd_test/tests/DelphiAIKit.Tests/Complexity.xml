@@ -1,0 +1,5095 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Complexity Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Complexity per module/subprogram">
+    <module_or_subprogram>
+      <name>Overall</name>
+      <total_lines>5521</total_lines>
+      <lines_of_code>4609</lines_of_code>
+      <cmt_lines>258</cmt_lines>
+      <cmts_per_total_lines>0,05</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,06</cmts_per_lines_of_code>
+      <dp>788</dp>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>27</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,16</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>\...\</name>
+      <total_lines>2048</total_lines>
+      <lines_of_code>1483</lines_of_code>
+      <cmt_lines>248</cmt_lines>
+      <cmts_per_total_lines>0,12</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,17</cmts_per_lines_of_code>
+      <dp>279</dp>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>\...\src\</name>
+      <total_lines>2721</total_lines>
+      <lines_of_code>2474</lines_of_code>
+      <cmt_lines>10</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>409</dp>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>\...\tests\</name>
+      <total_lines>43</total_lines>
+      <lines_of_code>36</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>\...\tests\units\\</name>
+      <total_lines>709</total_lines>
+      <lines_of_code>616</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>100</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>AutoFree</name>
+      <total_lines>283</total_lines>
+      <lines_of_code>216</lines_of_code>
+      <cmt_lines>10</cmt_lines>
+      <cmts_per_total_lines>0,04</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,05</cmts_per_lines_of_code>
+      <dp>28</dp>
+      <dp_per_lines_of_code>0,13</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>24</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,08</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dak.Diagnostics</name>
+      <total_lines>221</total_lines>
+      <lines_of_code>192</lines_of_code>
+      <cmt_lines>2</cmt_lines>
+      <cmts_per_total_lines>0,01</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,01</cmts_per_lines_of_code>
+      <dp>35</dp>
+      <dp_per_lines_of_code>0,18</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,01</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dak.FixInsight</name>
+      <total_lines>132</total_lines>
+      <lines_of_code>118</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>24</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dak.Messages</name>
+      <total_lines>122</total_lines>
+      <lines_of_code>118</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>52</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dak.PascalAnalyzerRunner</name>
+      <total_lines>2126</total_lines>
+      <lines_of_code>1941</lines_of_code>
+      <cmt_lines>8</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>350</dp>
+      <dp_per_lines_of_code>0,18</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>25</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,01</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dak.Types</name>
+      <total_lines>120</total_lines>
+      <lines_of_code>105</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>DelphiAIKit.Tests</name>
+      <total_lines>43</total_lines>
+      <lines_of_code>36</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>maxLogic.StrUtils</name>
+      <total_lines>1765</total_lines>
+      <lines_of_code>1267</lines_of_code>
+      <cmt_lines>238</cmt_lines>
+      <cmts_per_total_lines>0,13</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,19</cmts_per_lines_of_code>
+      <dp>251</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,56</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.Build</name>
+      <total_lines>29</total_lines>
+      <lines_of_code>22</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,05</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.FixInsight</name>
+      <total_lines>153</total_lines>
+      <lines_of_code>131</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>21</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>36</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.PalFindingNormalize</name>
+      <total_lines>98</total_lines>
+      <lines_of_code>84</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,11</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>33</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.PascalAnalyzer</name>
+      <total_lines>176</total_lines>
+      <lines_of_code>157</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>27</dp>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>29</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.Support</name>
+      <total_lines>253</total_lines>
+      <lines_of_code>222</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>42</dp>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>AutoFree</name>
+      <total_lines>283</total_lines>
+      <lines_of_code>216</lines_of_code>
+      <cmt_lines>10</cmt_lines>
+      <cmts_per_total_lines>0,04</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,05</cmts_per_lines_of_code>
+      <dp>28</dp>
+      <dp_per_lines_of_code>0,13</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>24</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,08</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>GC (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>13</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>GC (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>1</cmt_lines>
+      <cmts_per_total_lines>0,17</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,25</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>1,08</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>RunOnExit (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Trap (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>GC (P)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>12</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>GC (P)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>10</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>GC (P)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>GC (P)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>14</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IGarbo.Obj (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IGarbo.AddAfterFree (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TGarbos.Add (FM)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>10</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TGarbo.Obj (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>8</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TGarbo.AddAfterFree (FM)</name>
+      <total_lines>10</total_lines>
+      <lines_of_code>8</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TGarbo.GC&lt;T&gt; (FM)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ICallProcOnDestroy.GetProc (FM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TCallProcOnDestroy.GetProc (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>8</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TCallProcOnDestroy.New (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>17</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TGarbos.Add (PM)</name>
+      <total_lines>23</total_lines>
+      <lines_of_code>17</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,29</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TGarbos.Clear (PM)</name>
+      <total_lines>11</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>1</cmt_lines>
+      <cmts_per_total_lines>0,09</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,17</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>13</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,72</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TGarbo.GC&lt;T&gt; (PM)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TGarbo.GC&lt;T&gt; (PM)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>17</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ICallProcOnDestroy.SetProc (PM)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TCallProcOnDestroy.SetProc (PM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>8</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TGarbo.Create (C)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>12</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TCallProcOnDestroy.Create (C)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>10</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TGarbo.Destroy (D)</name>
+      <total_lines>20</total_lines>
+      <lines_of_code>15</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>14</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TCallProcOnDestroy.Destroy (D)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,29</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>8</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dak.Diagnostics</name>
+      <total_lines>221</total_lines>
+      <lines_of_code>192</lines_of_code>
+      <cmt_lines>2</cmt_lines>
+      <cmts_per_total_lines>0,01</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,01</cmts_per_lines_of_code>
+      <dp>35</dp>
+      <dp_per_lines_of_code>0,18</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,01</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TStringSet.Add (FM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>14</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TStringSet.Count (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>11</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TStringSet.ToArray (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>11</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.TryOpenLogFile (FM)</name>
+      <total_lines>34</total_lines>
+      <lines_of_code>31</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.WriteLine (PM)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>8</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,50</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.AddUnknownMacro (PM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>12</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.AddCycleMacro (PM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>11</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.AddMissingPath (PM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>11</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.AddWarning (PM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>12</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.AddNote (PM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>11</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.AddInfo (PM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,60</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.WriteToStderr (PM)</name>
+      <total_lines>21</total_lines>
+      <lines_of_code>13</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,38</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>29</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TStringSet.Create (C)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.Create (C)</name>
+      <total_lines>12</total_lines>
+      <lines_of_code>11</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,09</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>33</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TStringSet.Destroy (D)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>8</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TDiagnostics.Destroy (D)</name>
+      <total_lines>11</total_lines>
+      <lines_of_code>10</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,10</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>14</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dak.FixInsight</name>
+      <total_lines>132</total_lines>
+      <lines_of_code>118</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>24</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryResolveFixInsightExe (F)</name>
+      <total_lines>59</total_lines>
+      <lines_of_code>25</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>10</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>27</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryReadRegistryValue (F)</name>
+      <total_lines>20</total_lines>
+      <lines_of_code>18</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,22</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ExpandEnvVars (F)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>12</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>27</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>FindInPath (F)</name>
+      <total_lines>19</total_lines>
+      <lines_of_code>14</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,21</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>28</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>BuildFromRegistry (F)</name>
+      <total_lines>12</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dak.Messages</name>
+      <total_lines>122</total_lines>
+      <lines_of_code>118</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>52</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dak.PascalAnalyzerRunner</name>
+      <total_lines>2126</total_lines>
+      <lines_of_code>1941</lines_of_code>
+      <cmt_lines>8</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>350</dp>
+      <dp_per_lines_of_code>0,18</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>25</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,01</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryResolvePalCmdExe (F)</name>
+      <total_lines>37</total_lines>
+      <lines_of_code>29</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,21</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>BuildPalCmdCommandLine (F)</name>
+      <total_lines>18</total_lines>
+      <lines_of_code>12</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryRunPascalAnalyzer (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>37</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryRunPascalAnalyzerWithHandles (F)</name>
+      <total_lines>61</total_lines>
+      <lines_of_code>46</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>7</dp>
+      <dp_per_lines_of_code>0,15</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>BuildPalCmdUnitCommandLine (F)</name>
+      <total_lines>55</total_lines>
+      <lines_of_code>45</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,13</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryRunPascalAnalyzerUnit (F)</name>
+      <total_lines>61</total_lines>
+      <lines_of_code>46</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>7</dp>
+      <dp_per_lines_of_code>0,15</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryFindPalReportRoot (F)</name>
+      <total_lines>40</total_lines>
+      <lines_of_code>31</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryGeneratePalArtifacts (F)</name>
+      <total_lines>227</total_lines>
+      <lines_of_code>183</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>35</dp>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>25</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>QuoteArg (F)</name>
+      <total_lines>47</total_lines>
+      <lines_of_code>37</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>10</dp>
+      <dp_per_lines_of_code>0,27</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ExpandEnvVars (F)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>12</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>27</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>PalCmdMapPath (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>28</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>JsonGetString (F)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>JsonGetInteger (F)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryGetJsonArray (F)</name>
+      <total_lines>10</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,43</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryLoadPalCmdMap (F)</name>
+      <total_lines>103</total_lines>
+      <lines_of_code>86</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>25</dp>
+      <dp_per_lines_of_code>0,29</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>FindOrderIndex (F)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,50</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryGetPalCmdMaxDelphi (F)</name>
+      <total_lines>18</total_lines>
+      <lines_of_code>13</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,38</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryCaptureProcessOutput (F)</name>
+      <total_lines>89</total_lines>
+      <lines_of_code>68</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>11</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>24</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryGetPalCmdHelpText (F)</name>
+      <total_lines>14</total_lines>
+      <lines_of_code>11</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,36</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ContainsFlag (F)</name>
+      <total_lines>29</total_lines>
+      <lines_of_code>22</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>8</dp>
+      <dp_per_lines_of_code>0,36</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryResolveFlagFromHelp (F)</name>
+      <total_lines>34</total_lines>
+      <lines_of_code>26</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>7</dp>
+      <dp_per_lines_of_code>0,27</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryGetFileVersionMajor (F)</name>
+      <total_lines>22</total_lines>
+      <lines_of_code>15</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,27</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>25</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>NormalizeExePath (F)</name>
+      <total_lines>11</total_lines>
+      <lines_of_code>8</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,38</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>24</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ChoosePalCmdExeInDir (F)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>11</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,36</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryResolvePalCmdExeFromKnownRoots (F)</name>
+      <total_lines>135</total_lines>
+      <lines_of_code>74</lines_of_code>
+      <cmt_lines>4</cmt_lines>
+      <cmts_per_total_lines>0,03</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,05</cmts_per_lines_of_code>
+      <dp>16</dp>
+      <dp_per_lines_of_code>0,22</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,13</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Env (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryParseVer (F)</name>
+      <total_lines>17</total_lines>
+      <lines_of_code>13</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,38</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>25</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>AddRoot (P)</name>
+      <total_lines>13</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,44</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryBuildDelphiTargetFlag (F)</name>
+      <total_lines>110</total_lines>
+      <lines_of_code>81</lines_of_code>
+      <cmt_lines>2</cmt_lines>
+      <cmts_per_total_lines>0,02</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,02</cmts_per_lines_of_code>
+      <dp>17</dp>
+      <dp_per_lines_of_code>0,21</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>28</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,06</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>CpuCount (F)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>FilterExistingPaths (F)</name>
+      <total_lines>25</total_lines>
+      <lines_of_code>20</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>JoinSemi (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ConcatArrays (F)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>12</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>14</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>BuildArgs (F)</name>
+      <total_lines>81</total_lines>
+      <lines_of_code>63</lines_of_code>
+      <cmt_lines>2</cmt_lines>
+      <cmts_per_total_lines>0,02</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,03</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,14</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,03</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>NormalizeLineText (F)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>38</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ChildText (F)</name>
+      <total_lines>12</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>AttrText (F)</name>
+      <total_lines>10</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,43</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryParseLocMod (F)</name>
+      <total_lines>26</total_lines>
+      <lines_of_code>19</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,26</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ChooseMessage (F)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,43</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>13</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>BuildFindingKey (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>46</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryLoadXml (F)</name>
+      <total_lines>30</total_lines>
+      <lines_of_code>29</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,10</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>SplitComplexityName (F)</name>
+      <total_lines>26</total_lines>
+      <lines_of_code>21</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>7</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IsAggregateName (F)</name>
+      <total_lines>15</total_lines>
+      <lines_of_code>12</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,42</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>17</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryLoadComplexityEntries (F)</name>
+      <total_lines>68</total_lines>
+      <lines_of_code>55</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>11</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryLoadModuleLines (F)</name>
+      <total_lines>77</total_lines>
+      <lines_of_code>63</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>14</dp>
+      <dp_per_lines_of_code>0,22</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>CompareHotspot (F)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,43</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TakeTopHotspots (F)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>WritePalFindingsMd (F)</name>
+      <total_lines>36</total_lines>
+      <lines_of_code>31</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,06</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>WritePalFindingsJsonl (F)</name>
+      <total_lines>42</total_lines>
+      <lines_of_code>36</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,11</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>WritePalHotspotsMd (F)</name>
+      <total_lines>47</total_lines>
+      <lines_of_code>38</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>7</dp>
+      <dp_per_lines_of_code>0,18</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>28</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>InitPalCmdMap (P)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,14</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>48</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>FreePalCmdMap (P)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,14</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>17</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>AddFindingRecord (P)</name>
+      <total_lines>25</total_lines>
+      <lines_of_code>17</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,29</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>32</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>AddFindingFromLoc (P)</name>
+      <total_lines>35</total_lines>
+      <lines_of_code>20</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>8</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>33</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>AddFindingFromLocMod (P)</name>
+      <total_lines>14</total_lines>
+      <lines_of_code>8</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>32</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ParseItemNode (P)</name>
+      <total_lines>28</total_lines>
+      <lines_of_code>17</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,29</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>34</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ParseSectionNode (P)</name>
+      <total_lines>22</total_lines>
+      <lines_of_code>14</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,36</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>38</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ParseFindingReport (P)</name>
+      <total_lines>23</total_lines>
+      <lines_of_code>16</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,31</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>CollectExceptionCalls (P)</name>
+      <total_lines>39</total_lines>
+      <lines_of_code>27</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>36</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ParseExceptionReport (P)</name>
+      <total_lines>27</total_lines>
+      <lines_of_code>19</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,26</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>SortHotspots (P)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>32</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Dak.Types</name>
+      <total_lines>120</total_lines>
+      <lines_of_code>105</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>DelphiAIKit.Tests</name>
+      <total_lines>43</total_lines>
+      <lines_of_code>36</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>0</dp>
+      <dp_per_lines_of_code>0,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>maxLogic.StrUtils</name>
+      <total_lines>1765</total_lines>
+      <lines_of_code>1267</lines_of_code>
+      <cmt_lines>238</cmt_lines>
+      <cmts_per_total_lines>0,13</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,19</cmts_per_lines_of_code>
+      <dp>251</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,56</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>StringMatches (F)</name>
+      <total_lines>28</total_lines>
+      <lines_of_code>8</lines_of_code>
+      <cmt_lines>7</cmt_lines>
+      <cmts_per_total_lines>0,25</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,88</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>3,70</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>PutBefore (F)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>13</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,31</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>25</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>PutBefore (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ExtractString (F)</name>
+      <total_lines>21</total_lines>
+      <lines_of_code>10</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>36</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ExtractString (F)</name>
+      <total_lines>44</total_lines>
+      <lines_of_code>24</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,21</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>CharPosEx (F)</name>
+      <total_lines>46</total_lines>
+      <lines_of_code>37</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>11</dp>
+      <dp_per_lines_of_code>0,30</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>17</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ReplacePlaceholder (F)</name>
+      <total_lines>106</total_lines>
+      <lines_of_code>68</lines_of_code>
+      <cmt_lines>8</cmt_lines>
+      <cmts_per_total_lines>0,08</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,12</cmts_per_lines_of_code>
+      <dp>13</dp>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,24</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ExpandEnvVars (F)</name>
+      <total_lines>25</total_lines>
+      <lines_of_code>19</lines_of_code>
+      <cmt_lines>4</cmt_lines>
+      <cmts_per_total_lines>0,16</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,21</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,11</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,82</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>CombineUrl (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>CombineUrl (F)</name>
+      <total_lines>24</total_lines>
+      <lines_of_code>21</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,29</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>MatchesFilter (F)</name>
+      <total_lines>17</total_lines>
+      <lines_of_code>11</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,36</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>StrCmpLogical (F)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>StrCmpLogicalW (F)</name>
+      <total_lines>-</total_lines>
+      <lines_of_code>-</lines_of_code>
+      <cmt_lines>-</cmt_lines>
+      <cmts_per_total_lines>-</cmts_per_total_lines>
+      <cmts_per_lines_of_code>-</cmts_per_lines_of_code>
+      <dp>-</dp>
+      <dp_per_lines_of_code>-</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>-</chrs_per_lines_of_code>
+      <cmtchars_per_chars>-</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Split (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>13</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>splitstring (F)</name>
+      <total_lines>7</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,50</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>SplitInHalfBy (F)</name>
+      <total_lines>17</total_lines>
+      <lines_of_code>13</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,15</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>13</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>SplitInHalfBy (F)</name>
+      <total_lines>13</total_lines>
+      <lines_of_code>10</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>fStr (F)</name>
+      <total_lines>7</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>GuidToHex (F)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Join (F)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>27</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Join (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Utf8TruncateByCodePoint (F)</name>
+      <total_lines>47</total_lines>
+      <lines_of_code>35</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>11</dp>
+      <dp_per_lines_of_code>0,31</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>StrToFloatWCC (F)</name>
+      <total_lines>10</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TryStrToFLoatWCC (F)</name>
+      <total_lines>11</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>StrToFLoatWccDef (F)</name>
+      <total_lines>10</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>17</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>BytesToRawStr (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>RawStrToBytes (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>PrettyElapsed (F)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>13</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,31</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>24</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>i2s (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>10</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>floatToHex (F)</name>
+      <total_lines>31</total_lines>
+      <lines_of_code>26</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>8</dp>
+      <dp_per_lines_of_code>0,31</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>PrettyPrintSize (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>MegaBytesToStr (F)</name>
+      <total_lines>32</total_lines>
+      <lines_of_code>17</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,35</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>24</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ParseStatement (F)</name>
+      <total_lines>18</total_lines>
+      <lines_of_code>11</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,18</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>OccurrencesOfChar (F)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>13</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,31</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>10</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>MatchesMaskCaseSensitive_RegEx (F)</name>
+      <total_lines>21</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>10</cmt_lines>
+      <cmts_per_total_lines>0,48</cmts_per_total_lines>
+      <cmts_per_lines_of_code>1,43</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,14</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>44</chrs_per_lines_of_code>
+      <cmtchars_per_chars>2,02</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Utf8SequenceLength (F)</name>
+      <total_lines>12</total_lines>
+      <lines_of_code>11</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,82</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IsUtf8ContinuationByte (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,67</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>14</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Split (P)</name>
+      <total_lines>11</total_lines>
+      <lines_of_code>8</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,13</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Split (P)</name>
+      <total_lines>10</total_lines>
+      <lines_of_code>7</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,14</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>PrepareTextForStrToFloatWcc (P)</name>
+      <total_lines>123</total_lines>
+      <lines_of_code>99</lines_of_code>
+      <cmt_lines>10</cmt_lines>
+      <cmts_per_total_lines>0,08</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,10</cmts_per_lines_of_code>
+      <dp>33</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,32</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.FoldAscii (FM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.FoldCharValue (FM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.FoldPair (FM)</name>
+      <total_lines>14</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>8</dp>
+      <dp_per_lines_of_code>0,89</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.Rotl32 (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,67</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.HashBytes (FM)</name>
+      <total_lines>71</total_lines>
+      <lines_of_code>43</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>10</dp>
+      <dp_per_lines_of_code>0,23</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.HashOrdinal (FM)</name>
+      <total_lines>17</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>28</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.HashCaseInsensitive (FM)</name>
+      <total_lines>89</total_lines>
+      <lines_of_code>46</lines_of_code>
+      <cmt_lines>14</cmt_lines>
+      <cmts_per_total_lines>0,16</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,30</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,64</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.GetOrdinalComparer (FM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>24</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.GetOrdinalIgnoreCaseComparer (FM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>31</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.Ordinal (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>13</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.OrdinalIgnoreCase (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.Equals (FM)</name>
+      <total_lines>57</total_lines>
+      <lines_of_code>30</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,30</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>21</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.GetHashCode (FM)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFilterEx.SplitBySpace (FM)</name>
+      <total_lines>39</total_lines>
+      <lines_of_code>29</lines_of_code>
+      <cmt_lines>1</cmt_lines>
+      <cmts_per_total_lines>0,03</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,03</cmts_per_lines_of_code>
+      <dp>7</dp>
+      <dp_per_lines_of_code>0,24</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,15</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFilterEx.Create (FM)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFilterEx.Matches (FM)</name>
+      <total_lines>39</total_lines>
+      <lines_of_code>31</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>12</dp>
+      <dp_per_lines_of_code>0,39</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TStringComparerHelper.OrdinalIgnoreCase (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TProcAdapter.Invoke (FM)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>11</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TRegExHelper.Replace (FM)</name>
+      <total_lines>8</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>1</cmt_lines>
+      <cmts_per_total_lines>0,13</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,25</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>25</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,62</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TRegExHelper.Replace (FM)</name>
+      <total_lines>7</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>27</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TRegExHelper.Replace (FM)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TRegExHelper.Replace (FM)</name>
+      <total_lines>9</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>28</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFilterEx.Prepare (PM)</name>
+      <total_lines>45</total_lines>
+      <lines_of_code>35</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFilterEx.Preprocess (PM)</name>
+      <total_lines>37</total_lines>
+      <lines_of_code>34</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>7</dp>
+      <dp_per_lines_of_code>0,21</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>12</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.Create (C)</name>
+      <total_lines>7</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,50</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.Create (C)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>15</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TProcAdapter.Create (C)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>10</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFastCaseAwareComparer.Destroy (D)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>17</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.Build</name>
+      <total_lines>29</total_lines>
+      <lines_of_code>22</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,05</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TBuildTests.BuildResolverExe (PM)</name>
+      <total_lines>5</total_lines>
+      <lines_of_code>4</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.FixInsight</name>
+      <total_lines>153</total_lines>
+      <lines_of_code>131</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>21</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>36</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFixInsightTests.RunFixInsightOutputs (PM)</name>
+      <total_lines>36</total_lines>
+      <lines_of_code>24</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,25</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>52</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFixInsightTests.ExtractIdsAndFile (PM)</name>
+      <total_lines>45</total_lines>
+      <lines_of_code>32</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>11</dp>
+      <dp_per_lines_of_code>0,34</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IsNewId (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>33</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TFixInsightTests.FixInsightFiltering (PM)</name>
+      <total_lines>38</total_lines>
+      <lines_of_code>22</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,05</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>73</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.PalFindingNormalize</name>
+      <total_lines>98</total_lines>
+      <lines_of_code>84</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,11</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>33</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TPalFindingNormalizeTests.NormalizePalFindingsFromFixtures (PM)</name>
+      <total_lines>71</total_lines>
+      <lines_of_code>51</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,18</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>42</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.PascalAnalyzer</name>
+      <total_lines>176</total_lines>
+      <lines_of_code>157</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>27</dp>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>29</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>PalCmdSupportsFlag (F)</name>
+      <total_lines>17</total_lines>
+      <lines_of_code>12</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>30</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TailFile (F)</name>
+      <total_lines>15</total_lines>
+      <lines_of_code>10</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,50</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>31</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>DefaultPalThreads (F)</name>
+      <total_lines>11</total_lines>
+      <lines_of_code>8</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,38</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>16</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TPascalAnalyzerTests.SelectsSupportedCompilerFlag (PM)</name>
+      <total_lines>56</total_lines>
+      <lines_of_code>38</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>9</dp>
+      <dp_per_lines_of_code>0,24</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>35</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TPascalAnalyzerTests.RunPascalAnalyzer (PM)</name>
+      <total_lines>43</total_lines>
+      <lines_of_code>30</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>6</dp>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>44</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>Test.Support</name>
+      <total_lines>253</total_lines>
+      <lines_of_code>222</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>42</dp>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>26</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>RepoRoot (F)</name>
+      <total_lines>10</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>18</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>TempRoot (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>20</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>ResolverExePath (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>24</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>IsPawelMachine (F)</name>
+      <total_lines>4</total_lines>
+      <lines_of_code>3</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>1</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>RunProcess (F)</name>
+      <total_lines>79</total_lines>
+      <lines_of_code>63</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>10</dp>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>28</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>QuoteArg (F)</name>
+      <total_lines>7</total_lines>
+      <lines_of_code>6</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,67</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>29</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>FindRepoRoot (F)</name>
+      <total_lines>16</total_lines>
+      <lines_of_code>12</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>4</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>CmdExePath (F)</name>
+      <total_lines>6</total_lines>
+      <lines_of_code>5</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>2</dp>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>22</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>EnsureTempClean (P)</name>
+      <total_lines>12</total_lines>
+      <lines_of_code>9</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,33</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>19</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>EnsureResolverBuilt (P)</name>
+      <total_lines>29</total_lines>
+      <lines_of_code>18</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>5</dp>
+      <dp_per_lines_of_code>0,28</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>41</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>RequireFixInsightOrSkip (P)</name>
+      <total_lines>13</total_lines>
+      <lines_of_code>11</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,27</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+    <module_or_subprogram>
+      <name>RequirePalCmdOrSkip (P)</name>
+      <total_lines>15</total_lines>
+      <lines_of_code>11</lines_of_code>
+      <cmt_lines>0</cmt_lines>
+      <cmts_per_total_lines>0,00</cmts_per_total_lines>
+      <cmts_per_lines_of_code>0,00</cmts_per_lines_of_code>
+      <dp>3</dp>
+      <dp_per_lines_of_code>0,27</dp_per_lines_of_code>
+      <chrs_per_lines_of_code>23</chrs_per_lines_of_code>
+      <cmtchars_per_chars>0,00</cmtchars_per_chars>
+    </module_or_subprogram>
+  </section>
+  <section name="Long identifier names" count="274" oldcount="-2">
+    <item>
+      <id>TDictionary&lt;UnicodeString,Unicodestring&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (114)</locmod>
+    </item>
+    <item>
+      <id>TDictionary&lt;Integer,UnicodeString&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (112)</locmod>
+    </item>
+    <item>
+      <id>TDictionary&lt;UnicodeString,Integer&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExeFromKnownRoots</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+    </item>
+    <item>
+      <id>raReplaceAndResumeAtSamePosition</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (105)</locmod>
+    </item>
+    <item>
+      <id>IEqualityComparer&lt;UnicodeString&gt; = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.StrUtils\IInterface (134)</locmod>
+    </item>
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>SInfoResolvedCombinedSearchPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (109)  </locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzerWithHandles</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+    </item>
+    <item>
+      <id>SInfoResolvedProjectSearchPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (107)  </locmod>
+    </item>
+    <item>
+      <id>TReplacePlaceholderOnFoundProc = Procedure Type</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (110)</locmod>
+    </item>
+    <item>
+      <id>MatchesMaskCaseSensitive_RegEx</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (368)</locmod>
+    </item>
+    <item>
+      <id>SInfoRegistryLibraryFallback : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (102)  </locmod>
+    </item>
+    <item>
+      <id>SelectsSupportedCompilerFlag</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+    <item>
+      <id>GetOrdinalIgnoreCaseComparer</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (146)</locmod>
+    </item>
+    <item>
+      <id>PrepareTextForStrToFloatWcc</id>
+      <kind>Proc, Global</kind>
+      <locmod>maxLogic.StrUtils (286)</locmod>
+    </item>
+    <item>
+      <id>lTextForCaseSensitiveSearch : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ReplacePlaceholder (528)</locmod>
+    </item>
+    <item>
+      <id>aTextForCaseSensitiveSearch : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>maxLogic.StrUtils\ExtractString (84)</locmod>
+    </item>
+    <item>
+      <id>SPalStrongWarningsFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (37)</locmod>
+    </item>
+    <item>
+      <id>BuildPalCmdUnitCommandLine</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+    </item>
+    <item>
+      <id>FOrdinalIgnoreCaseComparer : IEqualityComparer&lt;UnicodeString&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (135)</locmod>
+    </item>
+    <item>
+      <id>FOrdinalIgnoreCaseComparer : IEqualityComparer&lt;UnicodeString&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (135)</locmod>
+    </item>
+    <item>
+      <id>SEnvOptionsMissingLibPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (53)   </locmod>
+    </item>
+    <item>
+      <id>SPalFindingsJsonlFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (34)</locmod>
+    </item>
+    <item>
+      <id>SPalSeverityStrongWarning : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1185)</locmod>
+    </item>
+    <item>
+      <id>TReplacePlaceholderAction = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (103)</locmod>
+    </item>
+    <item>
+      <id>TFixInsightIgnoreDefaults = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (80)      </locmod>
+    </item>
+    <item>
+      <id>TPalFindingNormalizeTests = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>SInfoRegistryBaseMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (88)   </locmod>
+    </item>
+    <item>
+      <id>SInfoResolvedLibraryPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (108)  </locmod>
+    </item>
+    <item>
+      <id>SPalOptimizationFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (38)</locmod>
+    </item>
+    <item>
+      <id>SPalModuleTotalsFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (41)</locmod>
+    </item>
+    <item>
+      <id>SPalSeverityOptimization : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1186)</locmod>
+    </item>
+    <item>
+      <id>Dak.PascalAnalyzerRunner</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>Test.PalFindingNormalize</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>TArray&lt;TComplexityEntry&gt; = Array (dynamic)</id>
+      <kind>Type, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+    </item>
+    <item>
+      <id>TComparer&lt;THotspotEntry&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzerUnit</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (22)</locmod>
+    </item>
+    <item>
+      <id>TryBuildDelphiTargetFlag</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+    </item>
+    <item>
+      <id>TryLoadComplexityEntries</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+    </item>
+    <item>
+      <id>lStartMarkerFoundAtIndex : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ReplacePlaceholder (525)</locmod>
+    </item>
+    <item>
+      <id>aStartMarkerFoundAtIndex : Integer</id>
+      <kind>OutParam</kind>
+      <locmod>maxLogic.StrUtils\ExtractString (46)</locmod>
+    </item>
+    <item>
+      <id>aStartMarkerFoundAtIndex : Integer</id>
+      <kind>OutParam</kind>
+      <locmod>maxLogic.StrUtils\ExtractString (88)</locmod>
+    </item>
+    <item>
+      <id>SAssociatedDprojMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (48)   </locmod>
+    </item>
+    <item>
+      <id>SRegistryLibraryMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (51)   </locmod>
+    </item>
+    <item>
+      <id>SUnresolvedMacroDropped : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (68)   </locmod>
+    </item>
+    <item>
+      <id>SInfoEnvOptionsOverride : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (103)  </locmod>
+    </item>
+    <item>
+      <id>SInfoResolvedUnitScopes : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (106)  </locmod>
+    </item>
+    <item>
+      <id>TList&lt;TThreadProcedure&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>AutoFree (34)       </locmod>
+    </item>
+    <item>
+      <id>TFixInsightExtraOptions = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (70)      </locmod>
+    </item>
+    <item>
+      <id>TPascalAnalyzerDefaults = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (88)      </locmod>
+    </item>
+    <item>
+      <id>TList&lt;TComplexityEntry&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1564)</locmod>
+    </item>
+    <item>
+      <id>RequireFixInsightOrSkip</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (21)   </locmod>
+    </item>
+    <item>
+      <id>Utf8TruncateByCodePoint</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (280)</locmod>
+    </item>
+    <item>
+      <id>TryResolveFixInsightExe</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsight (10) </locmod>
+    </item>
+    <item>
+      <id>TryGeneratePalArtifacts</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+    </item>
+    <item>
+      <id>TryCaptureProcessOutput</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+    </item>
+    <item>
+      <id>SMainSourceMissingFile : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (60)   </locmod>
+    </item>
+    <item>
+      <id>SInfoPropertyCondition : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (99)   </locmod>
+    </item>
+    <item>
+      <id>SFixInsightPathInvalid : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (113)  </locmod>
+    </item>
+    <item>
+      <id>SPalComplexityFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (40)</locmod>
+    </item>
+    <item>
+      <id>TFastCaseAwareComparer = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>IsUtf8ContinuationByte</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (985)</locmod>
+    </item>
+    <item>
+      <id>BuildPalCmdCommandLine</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+    </item>
+    <item>
+      <id>TryResolveFlagFromHelp</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (440)</locmod>
+    </item>
+    <item>
+      <id>TryGetFileVersionMajor</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (475)</locmod>
+    </item>
+    <item>
+      <id>aInvalidCharsAreSorted : Boolean</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\ExtractString (53)</locmod>
+    </item>
+    <item>
+      <id>aInvalidCharsAreSorted : Boolean</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\ExtractString (94)</locmod>
+    </item>
+    <item>
+      <id>aInvalidCharsAreSorted : Boolean</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\ReplacePlaceholder (194)</locmod>
+    </item>
+    <item>
+      <id>SInfoRegistryVersions : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (89)   </locmod>
+    </item>
+    <item>
+      <id>SFixInsightExeMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (114)  </locmod>
+    </item>
+    <item>
+      <id>SPalExceptionFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (39)</locmod>
+    </item>
+    <item>
+      <id>SPalSeverityException : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1187)</locmod>
+    </item>
+    <item>
+      <id>TStringComparerHelper = Class</id>
+      <kind>Type, Global</kind>
+      <locmod>maxLogic.StrUtils (292)</locmod>
+    </item>
+    <item>
+      <id>TArray&lt;UnicodeString&gt; = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Diagnostics (20)</locmod>
+    </item>
+    <item>
+      <id>TReportFilterDefaults = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (84)      </locmod>
+    </item>
+    <item>
+      <id>TArray&lt;UnicodeString&gt; = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (103)     </locmod>
+    </item>
+    <item>
+      <id>TArray&lt;THotspotEntry&gt; = Array (dynamic)</id>
+      <kind>Type, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1714)</locmod>
+    </item>
+    <item>
+      <id>TArray&lt;UnicodeString&gt; = Array (dynamic)</id>
+      <kind>Type, Local</kind>
+      <locmod>Test.PalFindingNormalize (31)</locmod>
+    </item>
+    <item>
+      <id>CollectExceptionCalls</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+    </item>
+    <item>
+      <id>TryGetPalCmdMaxDelphi</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (286)</locmod>
+    </item>
+    <item>
+      <id>WritePalFindingsJsonl</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1766)</locmod>
+    </item>
+    <item>
+      <id>decimalSeparatorIndex : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\PrepareTextForStrToFloatWcc (1122)</locmod>
+    </item>
+    <item>
+      <id>fAfterFreedProcedures : TList&lt;TThreadProcedure&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>AutoFree\TGarbo (34)</locmod>
+    </item>
+    <item>
+      <id>fAfterFreedProcedures : TList&lt;TThreadProcedure&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>AutoFree\TGarbo (34)</locmod>
+    </item>
+    <item>
+      <id>SAnalyzeUnitConflict : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (45)   </locmod>
+    </item>
+    <item>
+      <id>SInfoAssociatedDproj : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (49)   </locmod>
+    </item>
+    <item>
+      <id>SRegistryBaseMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (50)   </locmod>
+    </item>
+    <item>
+      <id>SConditionParseError : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (58)   </locmod>
+    </item>
+    <item>
+      <id>SInfoEnvVarCountView : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (92)   </locmod>
+    </item>
+    <item>
+      <id>SInfoResolvedDefines : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (105)  </locmod>
+    </item>
+    <item>
+      <id>SFixInsightRunFailed : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (115)  </locmod>
+    </item>
+    <item>
+      <id>SSettingsInvalidBool : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (118)  </locmod>
+    </item>
+    <item>
+      <id>SPalFindingsFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (33)</locmod>
+    </item>
+    <item>
+      <id>SPalHotspotsFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (35)</locmod>
+    </item>
+    <item>
+      <id>SPalWarningsFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (36)</locmod>
+    </item>
+    <item>
+      <id>TList&lt;UnicodeString&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (797)</locmod>
+    </item>
+    <item>
+      <id>TList&lt;UnicodeString&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Diagnostics (13)</locmod>
+    </item>
+    <item>
+      <id>TList&lt;UnicodeString&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (532)</locmod>
+    </item>
+    <item>
+      <id>TList&lt;THotspotEntry&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+    </item>
+    <item>
+      <id>TPascalAnalyzerTests = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+    <item>
+      <id>AddFindingFromLocMod</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+    </item>
+    <item>
+      <id>ParseExceptionReport</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+    </item>
+    <item>
+      <id>TryReadRegistryValue</id>
+      <kind>Func, Local</kind>
+      <locmod>Dak.FixInsight\TryResolveFixInsightExe (84)</locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzer</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (16)</locmod>
+    </item>
+    <item>
+      <id>TryFindPalReportRoot</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (24)</locmod>
+    </item>
+    <item>
+      <id>TryGetPalCmdHelpText</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (395)</locmod>
+    </item>
+    <item>
+      <id>ChoosePalCmdExeInDir</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+    </item>
+    <item>
+      <id>RunFixInsightOutputs</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+    <item>
+      <id>fHasExcludePathMasks : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (46)</locmod>
+    </item>
+    <item>
+      <id>fHasIgnoreWarningIds : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (48)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeWriteSummary : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (66)</locmod>
+    </item>
+    <item>
+      <id>fHasExcludePathMasks : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (46)</locmod>
+    </item>
+    <item>
+      <id>fHasIgnoreWarningIds : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (48)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeWriteSummary : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (66)</locmod>
+    </item>
+    <item>
+      <id>SEnvOptionsNotFound : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (52)   </locmod>
+    </item>
+    <item>
+      <id>SUnhandledException : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (81)   </locmod>
+    </item>
+    <item>
+      <id>SInfoOptsetResolved : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (85)   </locmod>
+    </item>
+    <item>
+      <id>SInfoEnvOptionsPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (90)   </locmod>
+    </item>
+    <item>
+      <id>SInfoLibraryPathRaw : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (93)   </locmod>
+    </item>
+    <item>
+      <id>SInfoGroupCondition : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (98)   </locmod>
+    </item>
+    <item>
+      <id>SInfoFixInsightPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (110)  </locmod>
+    </item>
+    <item>
+      <id>SFixInsightNotFound : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (111)  </locmod>
+    </item>
+    <item>
+      <id>SFixInsightRegValue : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.FixInsight (16) </locmod>
+    </item>
+    <item>
+      <id>SPalSeverityWarning : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1184)</locmod>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>TArray&lt;TFilterItem&gt; = Array (dynamic)</id>
+      <kind>Type, Global</kind>
+      <locmod>maxLogic.StrUtils (248)</locmod>
+    </item>
+    <item>
+      <id>TMatchEvaluatorProc = Procedure Type</id>
+      <kind>Type, Global</kind>
+      <locmod>maxLogic.StrUtils (297)</locmod>
+    </item>
+    <item>
+      <id>EnsureResolverBuilt</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (18)   </locmod>
+    </item>
+    <item>
+      <id>RequirePalCmdOrSkip</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (22)   </locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExe</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+    </item>
+    <item>
+      <id>FilterExistingPaths</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (822)</locmod>
+    </item>
+    <item>
+      <id>SplitComplexityName</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1515)</locmod>
+    </item>
+    <item>
+      <id>Sort&lt;THotspotEntry&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TArray (1726)</locmod>
+    </item>
+    <item>
+      <id>FixInsightFiltering</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>HashCaseInsensitive</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+    </item>
+    <item>
+      <id>lIndexOfInvalidChar : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ExtractString (480)</locmod>
+    </item>
+    <item>
+      <id>aCharsArrayIsSorted : Boolean</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\CharPosEx (98)</locmod>
+    </item>
+    <item>
+      <id>aPerformTrimOnParts : Boolean</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\splitstring (267)</locmod>
+    </item>
+    <item>
+      <id>aModuleLineHotspots : TArray&lt;THotspotEntry&gt;</id>
+      <kind>ConstParam</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalHotspotsMd (1809)</locmod>
+    </item>
+    <item>
+      <id>SMainSourceMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (59)   </locmod>
+    </item>
+    <item>
+      <id>SOutputWriteFailed : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (63)   </locmod>
+    </item>
+    <item>
+      <id>SSourceUnitAliases : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (74)   </locmod>
+    </item>
+    <item>
+      <id>SSourceLibraryPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (75)   </locmod>
+    </item>
+    <item>
+      <id>SFixInsightRunExit : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (116)  </locmod>
+    </item>
+    <item>
+      <id>SLogFileOpenFailed : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (117)  </locmod>
+    </item>
+    <item>
+      <id>SFixInsightExeName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.FixInsight (15) </locmod>
+    </item>
+    <item>
+      <id>CFixInsightRegKeys : Array (static)</id>
+      <kind>Typed const, Global</kind>
+      <locmod>Dak.FixInsight (17) </locmod>
+    </item>
+    <item>
+      <id>SPalCmdMapFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (32)</locmod>
+    </item>
+    <item>
+      <id>SPalStatusFileName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (42)</locmod>
+    </item>
+    <item>
+      <id>ICallProcOnDestroy = Interface</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>AutoFree\IInterface (49)</locmod>
+    </item>
+    <item>
+      <id>TCallProcOnDestroy = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>AutoFree (56)       </locmod>
+    </item>
+    <item>
+      <id>TList&lt;TPalFinding&gt; = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1264)</locmod>
+    </item>
+    <item>
+      <id>ParseFindingReport</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+    </item>
+    <item>
+      <id>ReplacePlaceholder</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (182)</locmod>
+    </item>
+    <item>
+      <id>Utf8SequenceLength</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (972)</locmod>
+    </item>
+    <item>
+      <id>TryLoadModuleLines</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+    </item>
+    <item>
+      <id>WritePalFindingsMd</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1729)</locmod>
+    </item>
+    <item>
+      <id>WritePalHotspotsMd</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1809)</locmod>
+    </item>
+    <item>
+      <id>PalCmdSupportsFlag</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.PascalAnalyzer (26)</locmod>
+    </item>
+    <item>
+      <id>GetOrdinalComparer</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (145)</locmod>
+    </item>
+    <item>
+      <id>BinarySearch&lt;Char&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TArray (1061)</locmod>
+    </item>
+    <item>
+      <id>lInvalidCharOffset : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ExtractString (480)</locmod>
+    </item>
+    <item>
+      <id>lHasFindingsSource : Boolean</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1904)</locmod>
+    </item>
+    <item>
+      <id>fHasEnvOptionsPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (31)</locmod>
+    </item>
+    <item>
+      <id>fRunPascalAnalyzer : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (49)</locmod>
+    </item>
+    <item>
+      <id>fHasAnalyzeOutPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (61)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeFixInsight : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (63)</locmod>
+    </item>
+    <item>
+      <id>fUnitAliasesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (115)</locmod>
+    </item>
+    <item>
+      <id>fHasEnvOptionsPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (31)</locmod>
+    </item>
+    <item>
+      <id>fRunPascalAnalyzer : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (49)</locmod>
+    </item>
+    <item>
+      <id>fHasAnalyzeOutPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (61)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeFixInsight : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (63)</locmod>
+    </item>
+    <item>
+      <id>fUnitAliasesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (115)</locmod>
+    </item>
+    <item>
+      <id>CFNVOffsetBasis32</id>
+      <kind>Const, Global</kind>
+      <locmod>maxLogic.StrUtils (1260)</locmod>
+    </item>
+    <item>
+      <id>SInvalidBoolValue : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (42)   </locmod>
+    </item>
+    <item>
+      <id>SInvalidFiFormats : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (43)   </locmod>
+    </item>
+    <item>
+      <id>SOptsetParseError : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (57)   </locmod>
+    </item>
+    <item>
+      <id>SLibraryPathEmpty : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (61)   </locmod>
+    </item>
+    <item>
+      <id>SXmlVendorMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (64)   </locmod>
+    </item>
+    <item>
+      <id>SMissingDirectory : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (67)   </locmod>
+    </item>
+    <item>
+      <id>SSourceSearchPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (72)   </locmod>
+    </item>
+    <item>
+      <id>SSourceUnitScopes : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (73)   </locmod>
+    </item>
+    <item>
+      <id>SSourceEnvOptions : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (80)   </locmod>
+    </item>
+    <item>
+      <id>SInfoRegistryBase : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (86)   </locmod>
+    </item>
+    <item>
+      <id>SInfoRegistryView : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (87)   </locmod>
+    </item>
+    <item>
+      <id>SInfoSettingsPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (104)  </locmod>
+    </item>
+    <item>
+      <id>maxLogic.StrUtils</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>DelphiAIKit_Tests</id>
+      <kind>Program</kind>
+    </item>
+    <item>
+      <id>TFixInsightParams = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (94)      </locmod>
+    </item>
+    <item>
+      <id>AddFindingFromLoc</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+    </item>
+    <item>
+      <id>OccurrencesOfChar</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (349)</locmod>
+    </item>
+    <item>
+      <id>BuildFromRegistry</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.FixInsight (59) </locmod>
+    </item>
+    <item>
+      <id>NormalizeLineText</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+    </item>
+    <item>
+      <id>DefaultPalThreads</id>
+      <kind>Func, Global</kind>
+      <locmod>Test.PascalAnalyzer (60)</locmod>
+    </item>
+    <item>
+      <id>ExtractIdsAndFile</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>OrdinalIgnoreCase</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+    </item>
+    <item>
+      <id>OrdinalIgnoreCase</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TStringComparerHelper (293)</locmod>
+    </item>
+    <item>
+      <id>lReplacementValue : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ReplacePlaceholder (524)</locmod>
+    </item>
+    <item>
+      <id>lHasHotspotSource : Boolean</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1905)</locmod>
+    </item>
+    <item>
+      <id>lOptimizationPath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1909)</locmod>
+    </item>
+    <item>
+      <id>lModuleTotalsPath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1912)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (45)</locmod>
+    </item>
+    <item>
+      <id>fIgnoreWarningIds : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (47)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeFiFormats : TReportFormatSet</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (62)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TReportFilterDefaults (85)</locmod>
+    </item>
+    <item>
+      <id>fSearchPathSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (113)</locmod>
+    </item>
+    <item>
+      <id>fUnitScopesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (114)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (45)</locmod>
+    </item>
+    <item>
+      <id>fIgnoreWarningIds : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (47)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeFiFormats : TReportFormatSet</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (62)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TReportFilterDefaults (85)</locmod>
+    </item>
+    <item>
+      <id>fSearchPathSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (113)</locmod>
+    </item>
+    <item>
+      <id>fUnitScopesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (114)</locmod>
+    </item>
+    <item>
+      <id>aIndexOfCharFound : Integer</id>
+      <kind>OutParam</kind>
+      <locmod>maxLogic.StrUtils\CharPosEx (100)</locmod>
+    </item>
+    <item>
+      <id>raReplaceAndStop</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>maxLogic.StrUtils\TReplacePlaceholderAction (108)</locmod>
+    </item>
+    <item>
+      <id>SArgMissingValue : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (40)   </locmod>
+    </item>
+    <item>
+      <id>SBuildBatMissing : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (46)   </locmod>
+    </item>
+    <item>
+      <id>SDprojParseError : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (56)   </locmod>
+    </item>
+    <item>
+      <id>SSearchPathEmpty : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (62)   </locmod>
+    </item>
+    <item>
+      <id>SInfoEnvVarCount : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (91)   </locmod>
+    </item>
+    <item>
+      <id>SInfoRsVarsCount : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (95)   </locmod>
+    </item>
+    <item>
+      <id>SInfoReadingFile : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (97)   </locmod>
+    </item>
+    <item>
+      <id>SInfoPropertyRaw : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (100)  </locmod>
+    </item>
+    <item>
+      <id>SInfoPropertySet : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (101)  </locmod>
+    </item>
+    <item>
+      <id>ckAnalyzeProject</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>Dak.Types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <id>SPalCmd32ExeName : UnicodeString</id>
+      <kind>Const, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (31)</locmod>
+    </item>
+    <item>
+      <id>TReportFormatSet = Set</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (15)      </locmod>
+    </item>
+    <item>
+      <id>TComplexityEntry = Record</id>
+      <kind>Type, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+    </item>
+    <item>
+      <id>TFixInsightTests = Class</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>AddFindingRecord</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+    </item>
+    <item>
+      <id>ParseSectionNode</id>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+    </item>
+    <item>
+      <id>TryStrToFLoatWCC</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (284)</locmod>
+    </item>
+    <item>
+      <id>StrToFLoatWccDef</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (285)</locmod>
+    </item>
+    <item>
+      <id>TryLoadPalCmdMap</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+    </item>
+    <item>
+      <id>NormalizeExePath</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (498)</locmod>
+    </item>
+    <item>
+      <id>BuildResolverExe</id>
+      <kind>Proc, Method</kind>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+    </item>
+    <item>
+      <id>FOrdinalComparer : IEqualityComparer&lt;UnicodeString&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (134)</locmod>
+    </item>
+    <item>
+      <id>FOrdinalComparer : IEqualityComparer&lt;UnicodeString&gt;</id>
+      <kind>Class Field</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (134)</locmod>
+    </item>
+    <item>
+      <id>aRoutineHotspots : TArray&lt;THotspotEntry&gt;</id>
+      <kind>ConstParam</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalHotspotsMd (1809)</locmod>
+    </item>
+    <item>
+      <id>SUnknownCommand : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (39)   </locmod>
+    </item>
+    <item>
+      <id>SInvalidOutKind : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (41)   </locmod>
+    </item>
+    <item>
+      <id>SRsVarsNotFound : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (54)   </locmod>
+    </item>
+    <item>
+      <id>SSourceRegistry : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (79)   </locmod>
+    </item>
+    <item>
+      <id>SInfoProjectDir : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (83)   </locmod>
+    </item>
+    <item>
+      <id>SInfoMainSource : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (84)   </locmod>
+    </item>
+    <item>
+      <id>SInfoRsVarsPath : UnicodeString</id>
+      <kind>Const, Interfaced</kind>
+      <locmod>Dak.Messages (94)   </locmod>
+    </item>
+    <item>
+      <id>Dak.Diagnostics</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <kind>Unit</kind>
+    </item>
+    <item>
+      <id>TPropertySource = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Types (12)      </locmod>
+    </item>
+    <item>
+      <id>EnsureTempClean</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (17)   </locmod>
+    </item>
+    <item>
+      <id>PrettyPrintSize</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (328)</locmod>
+    </item>
+    <item>
+      <id>TryGetJsonArray</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (161)</locmod>
+    </item>
+    <item>
+      <id>BuildFindingKey</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1256)</locmod>
+    </item>
+    <item>
+      <id>IsAggregateName</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1542)</locmod>
+    </item>
+    <item>
+      <id>TakeTopHotspots</id>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1714)</locmod>
+    </item>
+    <item>
+      <id>ResolverExePath</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (19)   </locmod>
+    </item>
+    <item>
+      <id>AddUnknownMacro</id>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+    </item>
+    <item>
+      <id>aMaxBytesLength : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\PutBefore (424)</locmod>
+    </item>
+    <item>
+      <id>lPlaceHolderLen : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\ReplacePlaceholder (529)</locmod>
+    </item>
+    <item>
+      <id>firstCommaIndex : Integer</id>
+      <kind>Var, Local</kind>
+      <locmod>maxLogic.StrUtils\PrepareTextForStrToFloatWcc (1122)</locmod>
+    </item>
+    <item>
+      <id>lComplexityPath : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1911)</locmod>
+    </item>
+    <item>
+      <id>lModuleLineList : TList&lt;THotspotEntry&gt;</id>
+      <kind>Var, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryGeneratePalArtifacts (1918)</locmod>
+    </item>
+    <item>
+      <id>fEnvOptionsPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (30)</locmod>
+    </item>
+    <item>
+      <id>fHasFixSettings : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (37)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeOutPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (60)</locmod>
+    </item>
+    <item>
+      <id>fUnitSearchPath : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (104)</locmod>
+    </item>
+    <item>
+      <id>fEnvOptionsPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (30)</locmod>
+    </item>
+    <item>
+      <id>fHasFixSettings : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (37)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeOutPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TAppOptions (60)</locmod>
+    </item>
+    <item>
+      <id>fUnitSearchPath : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>Dak.Types\TFixInsightParams (104)</locmod>
+    </item>
+    <item>
+      <id>aMaxBytesLength : Integer</id>
+      <kind>ValParam</kind>
+      <locmod>maxLogic.StrUtils\Utf8TruncateByCodePoint (280)</locmod>
+    </item>
+    <item>
+      <id>aModuleHotspots : TArray&lt;THotspotEntry&gt;</id>
+      <kind>ConstParam</kind>
+      <locmod>Dak.PascalAnalyzerRunner\WritePalHotspotsMd (1809)</locmod>
+    </item>
+  </section>
+  <section name="Largest Modules by Total Lines">
+    <item>
+      <id>Dak.PascalAnalyzerRunner</id>
+      <total_lines>2126</total_lines>
+    </item>
+    <item>
+      <id>maxLogic.StrUtils</id>
+      <total_lines>1765</total_lines>
+    </item>
+    <item>
+      <id>AutoFree</id>
+      <total_lines>283</total_lines>
+    </item>
+    <item>
+      <id>Test.Support</id>
+      <total_lines>253</total_lines>
+    </item>
+    <item>
+      <id>Dak.Diagnostics</id>
+      <total_lines>221</total_lines>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <total_lines>176</total_lines>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <total_lines>153</total_lines>
+    </item>
+    <item>
+      <id>Dak.FixInsight</id>
+      <total_lines>132</total_lines>
+    </item>
+    <item>
+      <id>Dak.Messages</id>
+      <total_lines>122</total_lines>
+    </item>
+    <item>
+      <id>Dak.Types</id>
+      <total_lines>120</total_lines>
+    </item>
+  </section>
+  <section name="Largest Modules by LOC">
+    <item>
+      <id>Dak.PascalAnalyzerRunner</id>
+      <lines_of_code>1941</lines_of_code>
+    </item>
+    <item>
+      <id>maxLogic.StrUtils</id>
+      <lines_of_code>1267</lines_of_code>
+    </item>
+    <item>
+      <id>Test.Support</id>
+      <lines_of_code>222</lines_of_code>
+    </item>
+    <item>
+      <id>AutoFree</id>
+      <lines_of_code>216</lines_of_code>
+    </item>
+    <item>
+      <id>Dak.Diagnostics</id>
+      <lines_of_code>192</lines_of_code>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <lines_of_code>157</lines_of_code>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <lines_of_code>131</lines_of_code>
+    </item>
+    <item>
+      <id>Dak.Messages</id>
+      <lines_of_code>118</lines_of_code>
+    </item>
+    <item>
+      <id>Dak.FixInsight</id>
+      <lines_of_code>118</lines_of_code>
+    </item>
+    <item>
+      <id>Dak.Types</id>
+      <lines_of_code>105</lines_of_code>
+    </item>
+  </section>
+  <section name="Most Complex Modules by DP">
+    <item>
+      <id>Dak.PascalAnalyzerRunner</id>
+      <dp>350</dp>
+    </item>
+    <item>
+      <id>maxLogic.StrUtils</id>
+      <dp>251</dp>
+    </item>
+    <item>
+      <id>Test.Support</id>
+      <dp>42</dp>
+    </item>
+    <item>
+      <id>Dak.Diagnostics</id>
+      <dp>35</dp>
+    </item>
+    <item>
+      <id>AutoFree</id>
+      <dp>28</dp>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <dp>27</dp>
+    </item>
+    <item>
+      <id>Dak.FixInsight</id>
+      <dp>24</dp>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <dp>21</dp>
+    </item>
+    <item>
+      <id>Test.PalFindingNormalize</id>
+      <dp>9</dp>
+    </item>
+  </section>
+  <section name="Most Complex Modules by DP/LOC">
+    <item>
+      <id>maxLogic.StrUtils</id>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Dak.FixInsight</id>
+      <dp_per_lines_of_code>0,20</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.Support</id>
+      <dp_per_lines_of_code>0,19</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Dak.Diagnostics</id>
+      <dp_per_lines_of_code>0,18</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Dak.PascalAnalyzerRunner</id>
+      <dp_per_lines_of_code>0,18</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <dp_per_lines_of_code>0,17</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <dp_per_lines_of_code>0,16</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>AutoFree</id>
+      <dp_per_lines_of_code>0,13</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.PalFindingNormalize</id>
+      <dp_per_lines_of_code>0,11</dp_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.Build</id>
+      <dp_per_lines_of_code>0,05</dp_per_lines_of_code>
+    </item>
+  </section>
+  <section name="Most Complex Modules by Characters per LOC">
+    <item>
+      <id>Dak.Messages</id>
+      <chrs_per_lines_of_code>52,40</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.FixInsight</id>
+      <chrs_per_lines_of_code>36,08</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.PalFindingNormalize</id>
+      <chrs_per_lines_of_code>33,04</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.PascalAnalyzer</id>
+      <chrs_per_lines_of_code>29,10</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Dak.FixInsight</id>
+      <chrs_per_lines_of_code>26,46</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>maxLogic.StrUtils</id>
+      <chrs_per_lines_of_code>26,42</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Test.Support</id>
+      <chrs_per_lines_of_code>25,87</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Dak.PascalAnalyzerRunner</id>
+      <chrs_per_lines_of_code>25,26</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>AutoFree</id>
+      <chrs_per_lines_of_code>24,21</chrs_per_lines_of_code>
+    </item>
+    <item>
+      <id>Dak.Diagnostics</id>
+      <chrs_per_lines_of_code>23,40</chrs_per_lines_of_code>
+    </item>
+  </section>
+  <section name="Most Commented Modules by Comment Lines">
+    <item>
+      <id>maxLogic.StrUtils</id>
+      <cmt_lines>238</cmt_lines>
+    </item>
+    <item>
+      <id>AutoFree</id>
+      <cmt_lines>10</cmt_lines>
+    </item>
+    <item>
+      <id>Dak.PascalAnalyzerRunner</id>
+      <cmt_lines>8</cmt_lines>
+    </item>
+    <item>
+      <id>Dak.Diagnostics</id>
+      <cmt_lines>2</cmt_lines>
+    </item>
+  </section>
+  <section name="Most Commented Modules by Comment Lines per Total Lines">
+    <item>
+      <id>maxLogic.StrUtils</id>
+      <cmts_per_total_lines>0,13</cmts_per_total_lines>
+    </item>
+    <item>
+      <id>AutoFree</id>
+      <cmts_per_total_lines>0,04</cmts_per_total_lines>
+    </item>
+  </section>
+  <section name="Most Commented Modules by Comment Lines per LOC">
+    <item>
+      <id>maxLogic.StrUtils</id>
+      <cmts_per_lines_of_code>0,19</cmts_per_lines_of_code>
+    </item>
+    <item>
+      <id>AutoFree</id>
+      <cmts_per_lines_of_code>0,05</cmts_per_lines_of_code>
+    </item>
+  </section>
+  <section name="Most Commented Modules by Comment Characters per Total Characters">
+    <item>
+      <id>maxLogic.StrUtils</id>
+      <cmtchars_per_chars>0,56</cmtchars_per_chars>
+    </item>
+    <item>
+      <id>AutoFree</id>
+      <cmtchars_per_chars>0,08</cmtchars_per_chars>
+    </item>
+  </section>
+  <section name="Largest Subprograms by Total Lines">
+    <item>
+      <id>TryGeneratePalArtifacts</id>
+      <total_lines>227</total_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExeFromKnownRoots</id>
+      <total_lines>135</total_lines>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+    </item>
+    <item>
+      <id>PrepareTextForStrToFloatWcc</id>
+      <total_lines>123</total_lines>
+      <kind>Proc, Global</kind>
+      <locmod>maxLogic.StrUtils (286)</locmod>
+    </item>
+    <item>
+      <id>TryBuildDelphiTargetFlag</id>
+      <total_lines>110</total_lines>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+    </item>
+    <item>
+      <id>ReplacePlaceholder</id>
+      <total_lines>106</total_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (182)</locmod>
+    </item>
+    <item>
+      <id>TryLoadPalCmdMap</id>
+      <total_lines>103</total_lines>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+    </item>
+    <item>
+      <id>TryCaptureProcessOutput</id>
+      <total_lines>89</total_lines>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+    </item>
+    <item>
+      <id>HashCaseInsensitive</id>
+      <total_lines>89</total_lines>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+    </item>
+    <item>
+      <id>BuildArgs</id>
+      <total_lines>81</total_lines>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+    </item>
+    <item>
+      <id>RunProcess</id>
+      <total_lines>79</total_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (23)</locmod>
+    </item>
+  </section>
+  <section name="Largest Subprograms by LOC">
+    <item>
+      <id>TryGeneratePalArtifacts</id>
+      <lines_of_code>183</lines_of_code>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+    </item>
+    <item>
+      <id>PrepareTextForStrToFloatWcc</id>
+      <lines_of_code>99</lines_of_code>
+      <kind>Proc, Global</kind>
+      <locmod>maxLogic.StrUtils (286)</locmod>
+    </item>
+    <item>
+      <id>TryLoadPalCmdMap</id>
+      <lines_of_code>86</lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+    </item>
+    <item>
+      <id>TryBuildDelphiTargetFlag</id>
+      <lines_of_code>81</lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExeFromKnownRoots</id>
+      <lines_of_code>74</lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+    </item>
+    <item>
+      <id>TryCaptureProcessOutput</id>
+      <lines_of_code>68</lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+    </item>
+    <item>
+      <id>ReplacePlaceholder</id>
+      <lines_of_code>68</lines_of_code>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (182)</locmod>
+    </item>
+    <item>
+      <id>BuildArgs</id>
+      <lines_of_code>63</lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+    </item>
+    <item>
+      <id>TryLoadModuleLines</id>
+      <lines_of_code>63</lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+    </item>
+    <item>
+      <id>RunProcess</id>
+      <lines_of_code>63</lines_of_code>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (23)</locmod>
+    </item>
+  </section>
+  <section name="Most Complex Subprograms by DP">
+    <item>
+      <id>TryGeneratePalArtifacts</id>
+      <dp>34</dp>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+    </item>
+    <item>
+      <id>PrepareTextForStrToFloatWcc</id>
+      <dp>32</dp>
+      <kind>Proc, Global</kind>
+      <locmod>maxLogic.StrUtils (286)</locmod>
+    </item>
+    <item>
+      <id>TryLoadPalCmdMap</id>
+      <dp>24</dp>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+    </item>
+    <item>
+      <id>TryBuildDelphiTargetFlag</id>
+      <dp>16</dp>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExeFromKnownRoots</id>
+      <dp>15</dp>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+    </item>
+    <item>
+      <id>TryLoadModuleLines</id>
+      <dp>13</dp>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+    </item>
+    <item>
+      <id>ReplacePlaceholder</id>
+      <dp>12</dp>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (182)</locmod>
+    </item>
+    <item>
+      <id>Matches</id>
+      <dp>11</dp>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFilterEx (261)</locmod>
+    </item>
+    <item>
+      <id>TryCaptureProcessOutput</id>
+      <dp>10</dp>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+    </item>
+    <item>
+      <id>ExtractIdsAndFile</id>
+      <dp>10</dp>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+  </section>
+  <section name="Most Complex Subprograms by DP/LOC">
+    <item>
+      <id>AddAfterFree</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\IGarbo (13)</locmod>
+    </item>
+    <item>
+      <id>SetProc</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (51)</locmod>
+    </item>
+    <item>
+      <id>GetProc</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (52)</locmod>
+    </item>
+    <item>
+      <id>StrCmpLogicalW</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (214)</locmod>
+    </item>
+    <item>
+      <id>Obj</id>
+      <dp_per_lines_of_code>1,00</dp_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\IGarbo (11)</locmod>
+    </item>
+    <item>
+      <id>FoldPair</id>
+      <dp_per_lines_of_code>0,78</dp_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (140)</locmod>
+    </item>
+    <item>
+      <id>Utf8SequenceLength</id>
+      <dp_per_lines_of_code>0,73</dp_per_lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (972)</locmod>
+    </item>
+    <item>
+      <id>IsNewId</id>
+      <dp_per_lines_of_code>0,67</dp_per_lines_of_code>
+      <kind>Func, Local</kind>
+      <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (72)</locmod>
+    </item>
+    <item>
+      <id>QuoteArg</id>
+      <dp_per_lines_of_code>0,50</dp_per_lines_of_code>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (24)</locmod>
+    </item>
+    <item>
+      <id>AddInfo</id>
+      <dp_per_lines_of_code>0,40</dp_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+    </item>
+  </section>
+  <section name="Most Complex Subprograms by Characters per LOC">
+    <item>
+      <id>FixInsightFiltering</id>
+      <chrs_per_lines_of_code>72,55</chrs_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>RunFixInsightOutputs</id>
+      <chrs_per_lines_of_code>52,42</chrs_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+    <item>
+      <id>InitPalCmdMap</id>
+      <chrs_per_lines_of_code>48,14</chrs_per_lines_of_code>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (118)</locmod>
+    </item>
+    <item>
+      <id>BuildFindingKey</id>
+      <chrs_per_lines_of_code>45,80</chrs_per_lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1256)</locmod>
+    </item>
+    <item>
+      <id>RunPascalAnalyzer</id>
+      <chrs_per_lines_of_code>44,10</chrs_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>MatchesMaskCaseSensitive_RegEx</id>
+      <chrs_per_lines_of_code>43,71</chrs_per_lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (368)</locmod>
+    </item>
+    <item>
+      <id>NormalizePalFindingsFromFixtures</id>
+      <chrs_per_lines_of_code>42,20</chrs_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>EnsureResolverBuilt</id>
+      <chrs_per_lines_of_code>41,11</chrs_per_lines_of_code>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (18)</locmod>
+    </item>
+    <item>
+      <id>ParseSectionNode</id>
+      <chrs_per_lines_of_code>38,29</chrs_per_lines_of_code>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+    </item>
+    <item>
+      <id>NormalizeLineText</id>
+      <chrs_per_lines_of_code>37,75</chrs_per_lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+    </item>
+  </section>
+  <section name="Most Commented Subprograms by Comment Lines">
+    <item>
+      <id>HashCaseInsensitive</id>
+      <cmt_lines>14</cmt_lines>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+    </item>
+    <item>
+      <id>MatchesMaskCaseSensitive_RegEx</id>
+      <cmt_lines>10</cmt_lines>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (368)</locmod>
+    </item>
+    <item>
+      <id>PrepareTextForStrToFloatWcc</id>
+      <cmt_lines>10</cmt_lines>
+      <kind>Proc, Global</kind>
+      <locmod>maxLogic.StrUtils (286)</locmod>
+    </item>
+    <item>
+      <id>ReplacePlaceholder</id>
+      <cmt_lines>8</cmt_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (182)</locmod>
+    </item>
+    <item>
+      <id>StringMatches</id>
+      <cmt_lines>7</cmt_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (17)</locmod>
+    </item>
+    <item>
+      <id>ExpandEnvVars</id>
+      <cmt_lines>4</cmt_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (199)</locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExeFromKnownRoots</id>
+      <cmt_lines>4</cmt_lines>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+    </item>
+    <item>
+      <id>TryBuildDelphiTargetFlag</id>
+      <cmt_lines>2</cmt_lines>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+    </item>
+    <item>
+      <id>BuildArgs</id>
+      <cmt_lines>2</cmt_lines>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+    </item>
+  </section>
+  <section name="Most Commented Subprograms by Comment Lines per Total Lines">
+    <item>
+      <id>SetProc</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (51)</locmod>
+    </item>
+    <item>
+      <id>AddAfterFree</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\IGarbo (13)</locmod>
+    </item>
+    <item>
+      <id>Obj</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\IGarbo (11)</locmod>
+    </item>
+    <item>
+      <id>StrCmpLogicalW</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (214)</locmod>
+    </item>
+    <item>
+      <id>GetProc</id>
+      <cmts_per_total_lines>1,00</cmts_per_total_lines>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (52)</locmod>
+    </item>
+    <item>
+      <id>MatchesMaskCaseSensitive_RegEx</id>
+      <cmts_per_total_lines>0,48</cmts_per_total_lines>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (368)</locmod>
+    </item>
+    <item>
+      <id>StringMatches</id>
+      <cmts_per_total_lines>0,25</cmts_per_total_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (17)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <cmts_per_total_lines>0,17</cmts_per_total_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)</locmod>
+    </item>
+    <item>
+      <id>HashCaseInsensitive</id>
+      <cmts_per_total_lines>0,16</cmts_per_total_lines>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+    </item>
+    <item>
+      <id>ExpandEnvVars</id>
+      <cmts_per_total_lines>0,16</cmts_per_total_lines>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (199)</locmod>
+    </item>
+  </section>
+  <section name="Most Commented Subprograms by Comment Lines per LOC">
+    <item>
+      <id>MatchesMaskCaseSensitive_RegEx</id>
+      <cmts_per_lines_of_code>1,43</cmts_per_lines_of_code>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (368)</locmod>
+    </item>
+    <item>
+      <id>AddAfterFree</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\IGarbo (13)</locmod>
+    </item>
+    <item>
+      <id>Obj</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\IGarbo (11)</locmod>
+    </item>
+    <item>
+      <id>StrCmpLogicalW</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (214)</locmod>
+    </item>
+    <item>
+      <id>SetProc</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (51)</locmod>
+    </item>
+    <item>
+      <id>GetProc</id>
+      <cmts_per_lines_of_code>1,00</cmts_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (52)</locmod>
+    </item>
+    <item>
+      <id>StringMatches</id>
+      <cmts_per_lines_of_code>0,88</cmts_per_lines_of_code>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (17)</locmod>
+    </item>
+    <item>
+      <id>HashCaseInsensitive</id>
+      <cmts_per_lines_of_code>0,30</cmts_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+    </item>
+    <item>
+      <id>Replace</id>
+      <cmts_per_lines_of_code>0,25</cmts_per_lines_of_code>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <cmts_per_lines_of_code>0,25</cmts_per_lines_of_code>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)</locmod>
+    </item>
+  </section>
+  <section name="Most Commented Subprograms by Comment Characters per Total Characters">
+    <item>
+      <id>StringMatches</id>
+      <cmtchars_per_chars>3,70</cmtchars_per_chars>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (17)</locmod>
+    </item>
+    <item>
+      <id>MatchesMaskCaseSensitive_RegEx</id>
+      <cmtchars_per_chars>2,02</cmtchars_per_chars>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (368)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <cmtchars_per_chars>1,08</cmtchars_per_chars>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)</locmod>
+    </item>
+    <item>
+      <id>StrCmpLogicalW</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (214)</locmod>
+    </item>
+    <item>
+      <id>Obj</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\IGarbo (11)</locmod>
+    </item>
+    <item>
+      <id>AddAfterFree</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\IGarbo (13)</locmod>
+    </item>
+    <item>
+      <id>GetProc</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (52)</locmod>
+    </item>
+    <item>
+      <id>SetProc</id>
+      <cmtchars_per_chars>1,00</cmtchars_per_chars>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\IInterface\ICallProcOnDestroy (51)</locmod>
+    </item>
+    <item>
+      <id>ExpandEnvVars</id>
+      <cmtchars_per_chars>0,82</cmtchars_per_chars>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (199)</locmod>
+    </item>
+    <item>
+      <id>Clear</id>
+      <cmtchars_per_chars>0,72</cmtchars_per_chars>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbos (25)</locmod>
+    </item>
+  </section>
+  <section name="Most Parameters per Subprogram">
+    <item>
+      <id>AddFindingRecord</id>
+      <parameters_per_sub>10</parameters_per_sub>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+    </item>
+    <item>
+      <id>ExtractString</id>
+      <parameters_per_sub>9</parameters_per_sub>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (83)</locmod>
+    </item>
+    <item>
+      <id>ExtractString</id>
+      <parameters_per_sub>9</parameters_per_sub>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (42)</locmod>
+    </item>
+    <item>
+      <id>AddFindingFromLoc</id>
+      <parameters_per_sub>9</parameters_per_sub>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+    </item>
+    <item>
+      <id>AddFindingFromLocMod</id>
+      <parameters_per_sub>9</parameters_per_sub>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+    </item>
+    <item>
+      <id>ReplacePlaceholder</id>
+      <parameters_per_sub>8</parameters_per_sub>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (182)</locmod>
+    </item>
+    <item>
+      <id>ParseExceptionReport</id>
+      <parameters_per_sub>7</parameters_per_sub>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+    </item>
+    <item>
+      <id>ParseItemNode</id>
+      <parameters_per_sub>7</parameters_per_sub>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+    </item>
+    <item>
+      <id>ParseFindingReport</id>
+      <parameters_per_sub>7</parameters_per_sub>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+    </item>
+    <item>
+      <id>CharPosEx</id>
+      <parameters_per_sub>7</parameters_per_sub>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (95)</locmod>
+    </item>
+  </section>
+  <section name="Most Methods per Class">
+    <item>
+      <id>TFastCaseAwareComparer = Class</id>
+      <methods_per_class>16</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>TDiagnostics = Class</id>
+      <methods_per_class>11</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>TGarbo = Class</id>
+      <methods_per_class>7</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>TStringSet = Class</id>
+      <methods_per_class>5</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+    <item>
+      <id>TCallProcOnDestroy = Class</id>
+      <methods_per_class>5</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>AutoFree (56)</locmod>
+    </item>
+    <item>
+      <id>TFixInsightTests = Class</id>
+      <methods_per_class>3</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>TProcAdapter = Class</id>
+      <methods_per_class>2</methods_per_class>
+      <kind>Nestled Type, Global</kind>
+      <locmod>maxLogic.StrUtils (303)</locmod>
+    </item>
+    <item>
+      <id>TPascalAnalyzerTests = Class</id>
+      <methods_per_class>2</methods_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+  <section name="Most Fields per Class">
+    <item>
+      <id>TDiagnostics = Class</id>
+      <fields_per_class>9</fields_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+    <item>
+      <id>TFastCaseAwareComparer = Class</id>
+      <fields_per_class>4</fields_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (130)</locmod>
+    </item>
+    <item>
+      <id>TGarbo = Class</id>
+      <fields_per_class>2</fields_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>AutoFree (31)</locmod>
+    </item>
+    <item>
+      <id>TStringSet = Class</id>
+      <fields_per_class>2</fields_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Diagnostics (11)</locmod>
+    </item>
+  </section>
+  <section name="Most Properties per Class">
+    <item>
+      <id>TDiagnostics = Class</id>
+      <properties_per_class>2</properties_per_class>
+      <kind>Type, Interfaced</kind>
+      <locmod>Dak.Diagnostics (23)</locmod>
+    </item>
+  </section>
+</report>

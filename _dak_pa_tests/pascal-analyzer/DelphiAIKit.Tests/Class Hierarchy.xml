@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Class Hierarchy Report">
+  <created>29.01.2026 23:48:17</created>
+  <item>
+    <name>TLogMessage</name>
+    <locmod>DUnitX.TestFramework (105)</locmod>
+  </item>
+  <item>
+    <name>TTestFixtureHelper</name>
+    <locmod>DUnitX.TestFramework (128)</locmod>
+  </item>
+  <item>
+    <name>Assert</name>
+    <locmod>DUnitX.TestFramework (141)</locmod>
+  </item>
+  <item>
+    <name>TTestInfoList</name>
+    <locmod>DUnitX.TestFramework (178)</locmod>
+  </item>
+  <item>
+    <name>TTestFixtureInfoList</name>
+    <locmod>DUnitX.TestFramework (225)</locmod>
+  </item>
+  <item>
+    <name>TDUnitXOptions</name>
+    <locmod>DUnitX.TestFramework (521)</locmod>
+  </item>
+  <item>
+    <name>TDUnitX</name>
+    <locmod>DUnitX.TestFramework (570)</locmod>
+  </item>
+  <item>
+    <name>TDUnitXConsoleLogger</name>
+    <locmod>DUnitX.Loggers.Console (41)</locmod>
+  </item>
+  <item>
+    <name>TBuildTests</name>
+    <locmod>Test.Build (12)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightTests</name>
+    <locmod>Test.FixInsight (16)</locmod>
+  </item>
+  <item>
+    <name>TPalFindingNormalizeTests</name>
+    <locmod>Test.PalFindingNormalize (15)</locmod>
+  </item>
+  <item>
+    <name>TPascalAnalyzerTests</name>
+    <locmod>Test.PascalAnalyzer (16)</locmod>
+  </item>
+</report>

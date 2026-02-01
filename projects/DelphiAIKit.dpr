@@ -291,17 +291,6 @@ begin
 
       if lOk then
       begin
-        lDiagnostics.AddInfo(Format(SInfoStep, ['Read settings.ini']));
-        lOk := LoadSettings(lDiagnostics, lFixOptions, lFixIgnoreDefaults, lReportFilter, lPascalAnalyzer);
-        if not lOk then
-        begin
-          lExitCode := 6;
-        end else
-          ApplySettingsOverrides(lOptions, lFixOptions, lFixIgnoreDefaults, lReportFilter, lPascalAnalyzer);
-      end;
-
-      if lOk then
-      begin
         lDiagnostics.AddInfo(Format(SInfoStep, ['Validate inputs']));
         lInputPath := lOptions.fDprojPath;
         lOk := TryResolveDprojPath(lInputPath, lOptions.fDprojPath, lError);
@@ -311,6 +300,18 @@ begin
           lExitCode := 3;
         end else if not SameText(TPath.GetExtension(lInputPath), '.dproj') then
           lDiagnostics.AddNote(Format(SInfoAssociatedDproj, [lOptions.fDprojPath]));
+      end;
+
+      if lOk then
+      begin
+        lDiagnostics.AddInfo(Format(SInfoStep, ['Read dak.ini']));
+        lOk := LoadSettings(lDiagnostics, lOptions.fDprojPath, lFixOptions, lFixIgnoreDefaults, lReportFilter,
+          lPascalAnalyzer);
+        if not lOk then
+        begin
+          lExitCode := 6;
+        end else
+          ApplySettingsOverrides(lOptions, lFixOptions, lFixIgnoreDefaults, lReportFilter, lPascalAnalyzer);
       end;
 
       if lOk then

@@ -1,0 +1,254 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Class Field Access Report">
+  <created>29.01.2026 23:48:55</created>
+  <item>
+    <id>GetThreadName</id>
+    <kind>Func, Method</kind>
+    <locmod>maxAsync\TmaxAsyncGlobal (523)</locmod>
+  </item>
+  <item>
+    <id>fThreadId : TThreadID</id>
+    <kind>Class Field</kind>
+    <locmod>maxAsync\TThreadData (261)</locmod>
+  </item>
+  <item>
+    <id>Create</id>
+    <kind>Constructor</kind>
+    <locmod>maxAsync\TThreadData (297)</locmod>
+  </item>
+  <item>
+    <id>fThreadData : iThreadData</id>
+    <kind>Class Field</kind>
+    <locmod>maxAsync\TmaxThread (345)</locmod>
+  </item>
+  <item>
+    <id>AsyncProcessItem</id>
+    <kind>Proc, Method</kind>
+    <locmod>maxAsync\TAsyncCollectionProcessor&lt;T&gt; (421)</locmod>
+  </item>
+  <item>
+    <id>Id : Int64</id>
+    <kind>Record Field</kind>
+    <locmod>maxAsync\TThreadHolder (398)</locmod>
+  </item>
+  <item>
+    <id>Create</id>
+    <kind>Constructor</kind>
+    <locmod>maxAsync\TAsyncLoop (375)</locmod>
+  </item>
+  <item>
+    <id>Create</id>
+    <kind>Constructor</kind>
+    <locmod>maxAsync\TAsyncCollectionProcessor&lt;T&gt; (423)</locmod>
+  </item>
+  <item>
+    <id>FNumberOfProcessors : DWORD</id>
+    <kind>Class Field</kind>
+    <locmod>maxAsync\TmaxAsyncGlobal (503)</locmod>
+  </item>
+  <item>
+    <id>asyncRead</id>
+    <kind>Proc, Method</kind>
+    <locmod>maxConsoleRunner\TPipeThread (122)</locmod>
+  </item>
+  <item>
+    <id>fSignal : iSignal</id>
+    <kind>Class Field</kind>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (42)</locmod>
+  </item>
+  <item>
+    <id>ExecuteFile</id>
+    <kind>Proc, Interfaced</kind>
+    <locmod>maxLogic.IOUtils (65)</locmod>
+  </item>
+  <item>
+    <id>fExitCode : Integer</id>
+    <kind>Class Field</kind>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (45)</locmod>
+  </item>
+  <item>
+    <id>Execute</id>
+    <kind>Func, Method</kind>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (73)</locmod>
+  </item>
+  <item>
+    <id>Execute</id>
+    <kind>Func, Method</kind>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (73)</locmod>
+  </item>
+  <item>
+    <id>fDone : Boolean</id>
+    <kind>Class Field</kind>
+    <locmod>maxConsoleRunner\TPipeThread (115)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>ParseComparison</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (46)</locmod>
+  </item>
+  <item>
+    <id>ParseComparison</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (46)</locmod>
+  </item>
+  <item>
+    <id>ParseComparison</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (46)</locmod>
+  </item>
+  <item>
+    <id>ParseComparison</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (46)</locmod>
+  </item>
+  <item>
+    <id>ParseComparison</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (46)</locmod>
+  </item>
+  <item>
+    <id>ParseFactor</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (45)</locmod>
+  </item>
+  <item>
+    <id>ParseFactor</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (45)</locmod>
+  </item>
+  <item>
+    <id>ParseTerm</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (44)</locmod>
+  </item>
+  <item>
+    <id>ParseExpr</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (43)</locmod>
+  </item>
+  <item>
+    <id>TryEvaluate</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (49)</locmod>
+  </item>
+  <item>
+    <id>fKind : TTokenKind</id>
+    <kind>Record Field</kind>
+    <locmod>Dak.MsBuild\TToken (33)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>NextToken</id>
+    <kind>Proc, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>ParseComparison</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (46)</locmod>
+  </item>
+  <item>
+    <id>ParseComparison</id>
+    <kind>Func, Method</kind>
+    <locmod>Dak.MsBuild\TConditionParser (46)</locmod>
+  </item>
+  <item>
+    <id>fText : UnicodeString</id>
+    <kind>Record Field</kind>
+    <locmod>Dak.MsBuild\TToken (34)</locmod>
+  </item>
+</report>

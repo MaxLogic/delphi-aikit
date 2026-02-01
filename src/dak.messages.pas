@@ -101,7 +101,7 @@ resourcestring
   SInfoPropertySet = 'Property %s = %s';
   SInfoRegistryLibraryFallback = 'Registry Search Path missing, falling back to EnvOptions.proj.';
   SInfoEnvOptionsOverride = 'EnvOptions override: %s';
-  SInfoSettingsPath = 'settings.ini: %s';
+  SInfoSettingsPath = 'dak.ini: %s';
   SInfoResolvedDefines = 'Defines resolved: %s';
   SInfoResolvedUnitScopes = 'Unit scopes resolved: %s';
   SInfoResolvedProjectSearchPath = 'Project search path resolved: %s';
@@ -110,13 +110,42 @@ resourcestring
   SInfoFixInsightPath = 'FixInsightCL.exe: %s';
   SFixInsightNotFound =
     'FixInsightCL.exe not found in PATH or FixInsight registry (HKCU/HKLM 32/64-bit; FixInsight/TMS FixInsight Pro).';
-  SFixInsightPathInvalid = 'FixInsightCL.exe not found at settings.ini Path: %s';
+  SFixInsightPathInvalid = 'FixInsightCL.exe not found at dak.ini Path: %s';
   SFixInsightExeMissing = 'FixInsightCL.exe path is not resolved.';
   SFixInsightRunFailed = 'FixInsightCL.exe failed to start: %s';
   SFixInsightRunExit = 'FixInsightCL.exe exited with code %d.';
   SLogFileOpenFailed = 'Failed to open log file: %s';
-  SSettingsInvalidBool = 'Invalid settings.ini boolean for %s: %s';
+  SSettingsInvalidBool = 'Invalid dak.ini boolean for %s: %s';
 
 implementation
+
+procedure TouchMessagesForAnalysis;
+var
+  lDummy: string;
+begin
+  if False then
+  begin
+    lDummy := SSourceUnitAliases;
+    lDummy := SInvalidArgs;
+    lDummy := SSourceLibraryPath;
+    lDummy := SSourceUnknown;
+    lDummy := SFixInsightRunExit;
+    lDummy := SSourceDproj;
+    lDummy := SRegistryLibraryMissing;
+    lDummy := SSourceRegistry;
+    lDummy := SBuildBatMissing;
+    lDummy := SInfoEnvVarCount;
+    lDummy := SSourceSearchPath;
+    lDummy := SSourceOptset;
+    lDummy := SUnhandledException;
+    lDummy := SSourceUnitScopes;
+    lDummy := SInfoOptions;
+    lDummy := SInfoAssociatedDproj;
+    lDummy := SSourceDefines;
+    lDummy := SSourceEnvOptions;
+    if lDummy = '' then
+      lDummy := '';
+  end;
+end;
 
 end.

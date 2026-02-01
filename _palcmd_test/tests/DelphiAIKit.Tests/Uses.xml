@@ -1,0 +1,822 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Uses Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Usage" count="-2" oldcount="-2">
+    <item>
+      <name>AutoFree</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Diagnostics</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Generics.Defaults</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>maxLogic.StrUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.FixInsight</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Win.Registry</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Diagnostics</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Messages</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.PascalAnalyzerRunner</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Types</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Variants</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Defaults</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.StrUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>maxLogic.StrUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.JSON</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.xmldom</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.omnixmldom</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.XMLIntf</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.XMLDoc</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Types</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>DelphiAIKit_Tests</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.Loggers.Console</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Test.Support</module>
+          <status>unnecessary (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>Test.Build</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+        <item>
+          <module>Test.FixInsight</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+        <item>
+          <module>Test.PalFindingNormalize</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+        <item>
+          <module>Test.PascalAnalyzer</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>maxLogic.StrUtils</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Types</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Character</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.generics.defaults</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.generics.collections</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.StrUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.RegularExpressions</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>maxLogic.StrUtils</name>
+      <units_used_in_implementation>
+        <item>
+          <module>System.Math</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>System.Masks</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>AutoFree</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>Test.Build</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Test.Support</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Test.FixInsight</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.StrUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.RegularExpressions</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Test.Support</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Test.PalFindingNormalize</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.JSON</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.PascalAnalyzerRunner</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Test.Support</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Test.PascalAnalyzer</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Dak.PascalAnalyzerRunner</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Test.Support</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Test.Support</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>System.StrUtils</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.FixInsight</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Dak.PascalAnalyzerRunner</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+  </section>
+  <section name="Modules that are referenced in the Delphi project file, but not used" count="-2" oldcount="-2">
+    <item id="1">Test.Build (has initialization)</item>
+    <item id="2">Test.FixInsight (has initialization)</item>
+    <item id="3">Test.PalFindingNormalize (has initialization)</item>
+    <item id="4">Test.PascalAnalyzer (has initialization)</item>
+    <item id="5">Test.Support (has initialization, used by unit with init)</item>
+  </section>
+  <section name="Modules that are used but not added to the Delphi project file" count="-2" oldcount="-2">
+    <item id="1">Dak.FixInsight</item>
+    <item id="2">Dak.PascalAnalyzerRunner</item>
+    <item id="3">System</item>
+    <item id="4">System.Classes</item>
+    <item id="5">System.IOUtils</item>
+    <item id="6">System.StrUtils</item>
+    <item id="7">Winapi.Windows</item>
+  </section>
+  <section name="References">
+    <module>
+        AutoFree
+      <references id="1">System</references>
+      <references id="2">System.Classes</references>
+      <references id="3">System.Generics.Collections</references>
+      <references id="4">System.SysUtils</references>
+    </module>
+    <module>
+        AutoFree
+      <referenced_by id="1">maxLogic.StrUtils</referenced_by>
+    </module>
+    <module>
+        Dak.Diagnostics
+      <references id="1">Dak.Messages</references>
+      <references id="2">maxLogic.StrUtils</references>
+      <references id="3">System</references>
+      <references id="4">System.Classes</references>
+      <references id="5">System.Generics.Collections</references>
+      <references id="6">System.Generics.Defaults</references>
+      <references id="7">System.SysUtils</references>
+    </module>
+    <module>
+        Dak.Diagnostics
+      <referenced_by id="1">Dak.FixInsight</referenced_by>
+    </module>
+    <module>
+        Dak.FixInsight
+      <references id="1">Dak.Diagnostics</references>
+      <references id="2">Dak.Messages</references>
+      <references id="3">System</references>
+      <references id="4">System.IOUtils</references>
+      <references id="5">System.SysUtils</references>
+      <references id="6">System.Win.Registry</references>
+      <references id="7">Winapi.Windows</references>
+    </module>
+    <module>
+        Dak.FixInsight
+      <referenced_by id="1">Test.Support</referenced_by>
+    </module>
+    <module>
+        Dak.Messages
+      <references id="1">System</references>
+    </module>
+    <module>
+        Dak.Messages
+      <referenced_by id="1">Dak.Diagnostics</referenced_by>
+      <referenced_by id="2">Dak.FixInsight</referenced_by>
+    </module>
+    <module>
+        Dak.PascalAnalyzerRunner
+      <references id="1">Dak.Types</references>
+      <references id="2">maxLogic.StrUtils</references>
+      <references id="3">System</references>
+      <references id="4">System.Generics.Collections</references>
+      <references id="5">System.Generics.Defaults</references>
+      <references id="6">System.IOUtils</references>
+      <references id="7">System.JSON</references>
+      <references id="8">System.StrUtils</references>
+      <references id="9">System.SysUtils</references>
+      <references id="10">System.Types</references>
+      <references id="11">System.Variants</references>
+      <references id="12">Winapi.Windows</references>
+      <references id="13">Xml.omnixmldom</references>
+      <references id="14">Xml.XMLDoc</references>
+      <references id="15">Xml.xmldom</references>
+      <references id="16">Xml.XMLIntf</references>
+    </module>
+    <module>
+        Dak.PascalAnalyzerRunner
+      <referenced_by id="1">Test.PalFindingNormalize</referenced_by>
+      <referenced_by id="2">Test.PascalAnalyzer</referenced_by>
+      <referenced_by id="3">Test.Support</referenced_by>
+    </module>
+    <module>
+        Dak.Types
+      <references id="1">System</references>
+    </module>
+    <module>
+        Dak.Types
+      <referenced_by id="1">Dak.PascalAnalyzerRunner</referenced_by>
+      <referenced_by id="2">Test.PascalAnalyzer</referenced_by>
+    </module>
+    <module>
+        DelphiAIKit_Tests
+      <references id="1">DUnitX.Loggers.Console</references>
+      <references id="2">DUnitX.TestFramework</references>
+      <references id="3">System</references>
+      <references id="4">System.SysUtils</references>
+      <references id="5">Test.Build</references>
+      <references id="6">Test.FixInsight</references>
+      <references id="7">Test.PalFindingNormalize</references>
+      <references id="8">Test.PascalAnalyzer</references>
+      <references id="9">Test.Support</references>
+    </module>
+    <module>
+        maxLogic.StrUtils
+      <references id="1">AutoFree</references>
+      <references id="2">System</references>
+      <references id="3">System.Character</references>
+      <references id="4">System.Classes</references>
+      <references id="5">System.generics.collections</references>
+      <references id="6">System.generics.defaults</references>
+      <references id="7">System.Masks</references>
+      <references id="8">System.Math</references>
+      <references id="9">System.RegularExpressions</references>
+      <references id="10">System.StrUtils</references>
+      <references id="11">System.SysUtils</references>
+      <references id="12">System.Types</references>
+    </module>
+    <module>
+        maxLogic.StrUtils
+      <referenced_by id="1">Dak.Diagnostics</referenced_by>
+      <referenced_by id="2">Dak.PascalAnalyzerRunner</referenced_by>
+    </module>
+    <module>
+        Test.Build
+      <references id="1">DUnitX.TestFramework</references>
+      <references id="2">System</references>
+      <references id="3">System.SysUtils</references>
+      <references id="4">Test.Support</references>
+    </module>
+    <module>
+        Test.Build
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+    </module>
+    <module>
+        Test.FixInsight
+      <references id="1">DUnitX.TestFramework</references>
+      <references id="2">System</references>
+      <references id="3">System.Classes</references>
+      <references id="4">System.IOUtils</references>
+      <references id="5">System.RegularExpressions</references>
+      <references id="6">System.StrUtils</references>
+      <references id="7">System.SysUtils</references>
+      <references id="8">Test.Support</references>
+    </module>
+    <module>
+        Test.FixInsight
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+    </module>
+    <module>
+        Test.PalFindingNormalize
+      <references id="1">Dak.PascalAnalyzerRunner</references>
+      <references id="2">DUnitX.TestFramework</references>
+      <references id="3">System</references>
+      <references id="4">System.IOUtils</references>
+      <references id="5">System.JSON</references>
+      <references id="6">System.SysUtils</references>
+      <references id="7">Test.Support</references>
+    </module>
+    <module>
+        Test.PalFindingNormalize
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+    </module>
+    <module>
+        Test.PascalAnalyzer
+      <references id="1">Dak.PascalAnalyzerRunner</references>
+      <references id="2">Dak.Types</references>
+      <references id="3">DUnitX.TestFramework</references>
+      <references id="4">System</references>
+      <references id="5">System.IOUtils</references>
+      <references id="6">System.SysUtils</references>
+      <references id="7">Test.Support</references>
+      <references id="8">Winapi.Windows</references>
+    </module>
+    <module>
+        Test.PascalAnalyzer
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+    </module>
+    <module>
+        Test.Support
+      <references id="1">Dak.FixInsight</references>
+      <references id="2">Dak.PascalAnalyzerRunner</references>
+      <references id="3">DUnitX.TestFramework</references>
+      <references id="4">System</references>
+      <references id="5">System.Classes</references>
+      <references id="6">System.IOUtils</references>
+      <references id="7">System.StrUtils</references>
+      <references id="8">System.SysUtils</references>
+      <references id="9">Winapi.Windows</references>
+    </module>
+    <module>
+        Test.Support
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+      <referenced_by id="2">Test.Build</referenced_by>
+      <referenced_by id="3">Test.FixInsight</referenced_by>
+      <referenced_by id="4">Test.PalFindingNormalize</referenced_by>
+      <referenced_by id="5">Test.PascalAnalyzer</referenced_by>
+    </module>
+  </section>
+  <section name="Optimal uses list">
+    <item id="1">System.Types</item>
+    <item id="2">System.UITypes</item>
+    <item id="3">Winapi.Windows</item>
+    <item id="4">System.SysConst</item>
+    <item id="5">System.SysUtils</item>
+    <item id="6">Winapi.ImageHlp</item>
+    <item id="7">Winapi.SHFolder</item>
+    <item id="8">Winapi.PsAPI</item>
+    <item id="9">System.RTLConsts</item>
+    <item id="10">System.Character</item>
+    <item id="11">System.Internal.ExcUtils</item>
+    <item id="12">Winapi.Messages</item>
+    <item id="13">Winapi.ActiveX</item>
+    <item id="14">System.Variants</item>
+    <item id="15">System.VarUtils</item>
+    <item id="16">System.TypInfo</item>
+    <item id="17">System.Generics.Defaults</item>
+    <item id="18">System.Generics.Collections</item>
+    <item id="19">System.Rtti</item>
+    <item id="20">System.Classes</item>
+    <item id="21">System.Hash</item>
+    <item id="22">System.Math</item>
+    <item id="23">System.TimeSpan</item>
+    <item id="24">System.Diagnostics</item>
+    <item id="25">System.SyncObjs</item>
+    <item id="26">DUnitX.Assert</item>
+    <item id="27">DUnitX.ResStrs</item>
+    <item id="28">DUnitX.Utils</item>
+    <item id="29">DUnitX.Helpers</item>
+    <item id="30">System.StrUtils</item>
+    <item id="31">DUnitX.ComparableFormat</item>
+    <item id="32">DUnitX.Exceptions</item>
+    <item id="33">System.RegularExpressionsAPI</item>
+    <item id="34">System.Win.Crtl</item>
+    <item id="35">System.RegularExpressionsCore</item>
+    <item id="36">System.RegularExpressionsConsts</item>
+    <item id="37">System.RegularExpressions</item>
+    <item id="38">DUnitX.Assert.Ex</item>
+    <item id="39">DUnitX.Types</item>
+    <item id="40">DUnitX.InternalDataProvider</item>
+    <item id="41">DUnitX.Attributes</item>
+    <item id="42">DUnitX.Generics</item>
+    <item id="43">DUnitX.Extensibility</item>
+    <item id="44">DUnitX.Filters</item>
+    <item id="45">DUnitX.TestFramework</item>
+    <item id="46">DUnitX.ConsoleWriter.Base</item>
+    <item id="47">DUnitX.Banner</item>
+    <item id="48">DUnitX.IoC</item>
+    <item id="49">DUnitX.OptionsDefinition</item>
+    <item id="50">DUnitX.CommandLine.Options</item>
+    <item id="51">DUnitX.CommandLine.OptionDef</item>
+    <item id="52">DUnitX.CommandLine.Parser</item>
+    <item id="53">DUnitX.InternalInterfaces</item>
+    <item id="54">DUnitX.WeakReference</item>
+    <item id="55">DUnitX.TestRunner</item>
+    <item id="56">DUnitX.TestFixture</item>
+    <item id="57">DUnitX.Test</item>
+    <item id="58">DUnitX.Timeout</item>
+    <item id="59">DUnitX.RunResults</item>
+    <item id="60">System.DateUtils</item>
+    <item id="61">DUnitX.TestResult</item>
+    <item id="62">DUnitX.FixtureResult</item>
+    <item id="63">DUnitX.Extensibility.PluginManager</item>
+    <item id="64">DUnitX.MemoryLeakMonitor.Default</item>
+    <item id="65">DUnitX.TestDataProvider</item>
+    <item id="66">DUnitX.FixtureProviderPlugin</item>
+    <item id="67">DUnitX.FilterBuilder</item>
+    <item id="68">DUnitX.CategoryExpression</item>
+    <item id="69">DUnitX.Constants</item>
+    <item id="70">DUnitX.TestNameParser</item>
+    <item id="71">DUnitX.Loggers.Console</item>
+    <item id="72">DUnitX.Windows.Console</item>
+    <item id="73">DUnitX.AutoDetect.Console</item>
+    <item id="74">Winapi.CommCtrl</item>
+    <item id="75">Winapi.Qos</item>
+    <item id="76">Winapi.WinSock2</item>
+    <item id="77">Winapi.IpExport</item>
+    <item id="78">Winapi.ShellAPI</item>
+    <item id="79">Winapi.RegStr</item>
+    <item id="80">Winapi.WinInet</item>
+    <item id="81">Winapi.UrlMon</item>
+    <item id="82">Winapi.ObjectArray</item>
+    <item id="83">Winapi.StructuredQueryCondition</item>
+    <item id="84">Winapi.PropSys</item>
+    <item id="85">Winapi.MSXMLIntf</item>
+    <item id="86">Winapi.ShlObj</item>
+    <item id="87">Winapi.KnownFolders</item>
+    <item id="88">System.Masks</item>
+    <item id="89">System.IOUtils</item>
+    <item id="90">System.IniFiles</item>
+    <item id="91">System.Win.Registry</item>
+    <item id="92">maxLogic.StrUtils</item>
+    <item id="93">AutoFree</item>
+    <item id="94">Dak.Messages</item>
+    <item id="95">Dak.Diagnostics</item>
+    <item id="96">Dak.FixInsight</item>
+    <item id="97">System.JSON</item>
+    <item id="98">System.JSONConsts</item>
+    <item id="99">System.Win.ComObj</item>
+    <item id="100">System.AnsiStrings</item>
+    <item id="101">System.Win.ComConst</item>
+    <item id="102">Xml.XMLConst</item>
+    <item id="103">Xml.xmldom</item>
+    <item id="104">Winapi.msxml</item>
+    <item id="105">Xml.Win.msxmldom</item>
+    <item id="106">Xml.Internal.OBufferedStreams</item>
+    <item id="107">Xml.Internal.OTextReadWrite</item>
+    <item id="108">Xml.Internal.XmlRulesUtils</item>
+    <item id="109">Xml.Internal.WideStringUtils</item>
+    <item id="110">Xml.Internal.OmniXML</item>
+    <item id="111">Xml.Internal.OmniXMLXPath</item>
+    <item id="112">Xml.Internal.EncodingUtils</item>
+    <item id="113">Xml.Internal.CodecUtilsWin32</item>
+    <item id="114">Xml.Internal.ParserUtilsWin32</item>
+    <item id="115">Xml.Internal.xmlInputSource</item>
+    <item id="116">Xml.omnixmldom</item>
+    <item id="117">Xml.XMLIntf</item>
+    <item id="118">Xml.XMLDoc</item>
+    <item id="119">Xml.XMLSchema</item>
+    <item id="120">Xml.XMLSchemaTags</item>
+    <item id="121">Xml.XMLUtil</item>
+    <item id="122">Dak.Types</item>
+    <item id="123">Dak.PascalAnalyzerRunner</item>
+    <item id="124">Test.Support</item>
+    <item id="125">Test.Build</item>
+    <item id="126">Test.FixInsight</item>
+    <item id="127">Test.PalFindingNormalize</item>
+    <item id="128">Test.PascalAnalyzer</item>
+    <item id="129">DelphiAIKit.Tests</item>
+  </section>
+  <section name="Runtime initialization order">
+    <item id="1">Test.Support</item>
+    <item id="2">Test.Build</item>
+    <item id="3">Test.FixInsight</item>
+    <item id="4">Test.PalFindingNormalize</item>
+    <item id="5">Test.PascalAnalyzer</item>
+  </section>
+  <section name="Mutual unit references" count="12" oldcount="-2">
+    <item id="1">DUnitX.CommandLine.OptionDef/DUnitX.CommandLine.Options</item>
+    <item id="2">DUnitX.CommandLine.Parser/DUnitX.CommandLine.Options</item>
+    <item id="3">DUnitX.FilterBuilder/DUnitX.TestFramework</item>
+    <item id="4">DUnitX.MemoryLeakMonitor.Default/DUnitX.TestFramework</item>
+    <item id="5">DUnitX.OptionsDefinition/DUnitX.TestFramework</item>
+    <item id="6">DUnitX.TestRunner/DUnitX.TestFramework</item>
+    <item id="7">System.Character/System.SysUtils</item>
+    <item id="8">System.Diagnostics/System.Classes</item>
+    <item id="9">System.Internal.ExcUtils/System.SysUtils</item>
+    <item id="10">Xml.Internal.OmniXMLXPath/Xml.Internal.OmniXML</item>
+    <item id="11">Xml.Win.msxmldom/Xml.xmldom</item>
+    <item id="12">Xml.XMLSchema/Xml.XMLDoc</item>
+  </section>
+  <section name="All modules" count="13" oldcount="-2">
+    <item id="1">AutoFree</item>
+    <item id="2">Dak.Diagnostics</item>
+    <item id="3">Dak.FixInsight</item>
+    <item id="4">Dak.Messages</item>
+    <item id="5">Dak.PascalAnalyzerRunner</item>
+    <item id="6">Dak.Types</item>
+    <item id="7">DelphiAIKit_Tests</item>
+    <item id="8">maxLogic.StrUtils</item>
+    <item id="9">Test.Build</item>
+    <item id="10">Test.FixInsight</item>
+    <item id="11">Test.PalFindingNormalize</item>
+    <item id="12">Test.PascalAnalyzer</item>
+    <item id="13">Test.Support</item>
+  </section>
+</report>

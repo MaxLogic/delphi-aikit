@@ -1,0 +1,170 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Modules Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Module information" count="13" oldcount="-2">
+    <module id="1">
+      <name>AutoFree</name>
+      <lines>283</lines>
+      <size>6565</size>
+      <date>23.12.2025</date>
+      <time>18:29:04</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\lib\MaxLogicFoundation\AutoFree.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="2">
+      <name>Dak.Diagnostics</name>
+      <lines>221</lines>
+      <size>5228</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Diagnostics.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="3">
+      <name>Dak.FixInsight</name>
+      <lines>132</lines>
+      <size>3618</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.FixInsight.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="4">
+      <name>Dak.Messages</name>
+      <lines>122</lines>
+      <size>6590</size>
+      <date>28.01.2026</date>
+      <time>22:42:58</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Messages.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="5">
+      <name>Dak.PascalAnalyzerRunner</name>
+      <lines>2126</lines>
+      <size>58651</size>
+      <date>29.01.2026</date>
+      <time>23:38:00</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.PascalAnalyzerRunner.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="6">
+      <name>Dak.Types</name>
+      <lines>120</lines>
+      <size>2832</size>
+      <date>28.01.2026</date>
+      <time>22:29:54</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Types.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="7">
+      <name>DelphiAIKit_Tests</name>
+      <lines>43</lines>
+      <size>1013</size>
+      <date>28.01.2026</date>
+      <time>19:57:38</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\DelphiAIKit.Tests.dpr</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="8">
+      <name>maxLogic.StrUtils</name>
+      <lines>1765</lines>
+      <size>60493</size>
+      <date>26.01.2026</date>
+      <time>00:32:58</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\lib\MaxLogicFoundation\maxLogic.StrUtils.pas</path>
+      <encoding>65001 (UTF-8)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="9">
+      <name>Test.Build</name>
+      <lines>29</lines>
+      <size>445</size>
+      <date>28.01.2026</date>
+      <time>19:58:28</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.build.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="10">
+      <name>Test.FixInsight</name>
+      <lines>153</lines>
+      <size>5226</size>
+      <date>28.01.2026</date>
+      <time>22:43:52</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.fixinsight.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="11">
+      <name>Test.PalFindingNormalize</name>
+      <lines>98</lines>
+      <size>3061</size>
+      <date>28.01.2026</date>
+      <time>19:58:54</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.palfindingnormalize.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="12">
+      <name>Test.PascalAnalyzer</name>
+      <lines>176</lines>
+      <size>5123</size>
+      <date>29.01.2026</date>
+      <time>23:39:06</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.pascalanalyzer.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="13">
+      <name>Test.Support</name>
+      <lines>253</lines>
+      <size>6540</size>
+      <date>29.01.2026</date>
+      <time>19:12:10</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+  </section>
+  <section name="Last modified file">
+  </section>
+  <section name="Unique files" count="13" oldcount="-2">
+    <item id="1">F:\projects\MaxLogic\DelphiConfigResolver\lib\MaxLogicFoundation\AutoFree.pas</item>
+    <item id="2">F:\projects\MaxLogic\DelphiConfigResolver\lib\MaxLogicFoundation\maxLogic.StrUtils.pas</item>
+    <item id="3">F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Diagnostics.pas</item>
+    <item id="4">F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.FixInsight.pas</item>
+    <item id="5">F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Messages.pas</item>
+    <item id="6">F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.PascalAnalyzerRunner.pas</item>
+    <item id="7">F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Types.pas</item>
+    <item id="8">F:\projects\MaxLogic\DelphiConfigResolver\tests\DelphiAIKit.Tests.dpr</item>
+    <item id="9">F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.build.pas</item>
+    <item id="10">F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.fixinsight.pas</item>
+    <item id="11">F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.palfindingnormalize.pas</item>
+    <item id="12">F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.pascalanalyzer.pas</item>
+    <item id="13">F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas</item>
+  </section>
+  <section name="Missing files" count="0" oldcount="-2">
+  </section>
+  <section name="Binary DFM/XFM files" count="0" oldcount="-2">
+  </section>
+</report>

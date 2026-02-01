@@ -1,0 +1,2648 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Uses Report">
+  <created>30.01.2026 00:14:14</created>
+  <section name="Usage" count="-2" oldcount="-2">
+    <item>
+      <name>AutoFree</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Analyze</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Variants</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Defaults</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.omnixmldom</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>Xml.XMLIntf</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.XMLDoc</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>maxLogic.StrUtils</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>maxLogic.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Diagnostics</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.FixInsight</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Dak.FixInsightRunner</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.FixInsightSettings</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.PascalAnalyzerRunner</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Project</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Registry</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.ReportPostProcess</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.RsVars</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Cli</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>maxLogic.CmdLineParams</module>
+          <status>in implementation (has initialization)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Diagnostics</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Generics.Defaults</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>maxLogic.StrUtils</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.FixInsight</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Win.Registry</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Diagnostics</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.FixInsightRunner</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.FixInsightSettings</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IniFiles</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>maxLogic.StrUtils</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Diagnostics</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.MacroExpander</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Dak.Diagnostics</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Messages</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.MsBuild</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Variants</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Xml.xmldom</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.omnixmldom</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.XMLIntf</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.XMLDoc</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Diagnostics</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Dak.MacroExpander</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Output</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.PascalAnalyzerRunner</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Types</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Variants</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Defaults</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.StrUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.xmldom</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.omnixmldom</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.XMLIntf</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.XMLDoc</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>maxLogic.StrUtils</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.JSON</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Project</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Defaults</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>maxLogic.StrUtils</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Diagnostics</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Dak.MacroExpander</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.MsBuild</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Registry</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Defaults</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Win.Registry</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>maxLogic.StrUtils</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Diagnostics</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Dak.MsBuild</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.ReportPostProcess</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Variants</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.XMLIntf</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.XMLDoc</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>maxLogic.StrUtils</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.RsVars</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Diagnostics</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Dak.Types</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>DelphiAIKit</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>madExcept</module>
+          <status>unnecessary (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>madLinkDisAsm</module>
+          <status>unnecessary (has initialization, empty interface)</status>
+        </item>
+        <item>
+          <module>madListHardware</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+        <item>
+          <module>madListProcesses</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+        <item>
+          <module>madListModules</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.xmldom</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Xml.omnixmldom</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Diagnostics</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.FixInsight</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.FixInsightRunner</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.FixInsightSettings</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.PascalAnalyzerRunner</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.MacroExpander</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>Dak.MsBuild</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>Dak.Project</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Registry</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.ReportPostProcess</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.RsVars</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Analyze</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Cli</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Dak.Output</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madCrypt</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madDisAsm</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madTools</module>
+          <status>in interface (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madExcept</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madNVPrgrAlert</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madStackTrace</module>
+          <status>in interface (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>madDisAsm</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madNVBitmap</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madNVAssistant</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madExcept</name>
+      <units_used_in_implementation>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>madMapFile</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>madTools</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>madZip</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madCrypt</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Winapi.ActiveX</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Winapi.CommCtrl</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>ShellAPI</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Winapi.CommDlg</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.SysConst</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Winapi.WinSock</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madLinkDisAsm</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madLinkDisAsm</name>
+      <units_used_in_implementation>
+        <item>
+          <module>madDisAsm</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madExcept</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madListHardware</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madListHardware</name>
+      <units_used_in_implementation>
+        <item>
+          <module>Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madExcept</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madListModules</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>unnecessary (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madListModules</name>
+      <units_used_in_implementation>
+        <item>
+          <module>Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madTools</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>madExcept</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madListProcesses</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madListProcesses</name>
+      <units_used_in_implementation>
+        <item>
+          <module>Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madExcept</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madMapFile</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madMapFile</name>
+      <units_used_in_implementation>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madTools</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>madDisAsm</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madZip</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madCrypt</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madNVAssistant</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madNVBitmap</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madNVAssistant</name>
+      <units_used_in_implementation>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Messages</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>madMapFile</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>madTools</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>madDisAsm</module>
+          <status>unnecessary (used by unit with init)</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madNVBitmap</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madZip</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madNVPrgrAlert</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>unnecessary (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madNVPrgrAlert</name>
+      <units_used_in_implementation>
+        <item>
+          <module>Winapi.Messages</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madStackTrace</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madNVPrgrAlert</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madStackTrace</name>
+      <units_used_in_implementation>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madMapFile</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>madTools</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>madDisAsm</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>madZip</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madStrings</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madStrings</name>
+      <units_used_in_implementation>
+        <item>
+          <module>Windows</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madTools</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madTools</name>
+      <units_used_in_implementation>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+        <item>
+          <module>Messages</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>madTypes</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madZip</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>madTypes</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>madZip</name>
+      <units_used_in_implementation>
+        <item>
+          <module>madStrings</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>maxAsync</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Forms</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Dialogs</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.UITypes</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Winapi.Messages</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>SysUtils</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>generics.defaults</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>generics.collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Classes</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>SyncObjs</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>maxSignal</module>
+          <status>in interface (used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>maxAsync</name>
+      <units_used_in_implementation>
+        <item>
+          <module>madExcept</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>Winapi.ActiveX</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Math</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.diagnostics</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Winapi.mmSystem</module>
+          <status>unnecessary</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>maxConsoleRunner</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Messages</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>generics.collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>Classes</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>diagnostics</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>maxAsync</module>
+          <status>in interface (has initialization)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>maxConsoleRunner</name>
+      <units_used_in_implementation>
+        <item>
+          <module>system.ioUtils</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>system.strUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>MaxLogic.strUtils</module>
+          <status>unnecessary (used by unit with init)</status>
+        </item>
+        <item>
+          <module>MaxLogic.ioUtils</module>
+          <status>unnecessary</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>maxLogic.CmdLineParams</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>generics.collections</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>maxLogic.CmdLineParams</name>
+      <units_used_in_implementation>
+        <item>
+          <module>System.StrUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>maxLogic.StrUtils</module>
+          <status>in implementation (used by unit with init)</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>maxLogic.IOUtils</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>generics.collections</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>generics.defaults</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>winApi.Windows</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>madExcept</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>winApi.WinInet</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>winApi.ShlObj</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>winApi.SHFolder</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Win.ComObj</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>winApi.ShLwApi</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>maxConsoleRunner</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>maxLogic.IOUtils</name>
+      <units_used_in_implementation>
+        <item>
+          <module>ShellApi</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.StrUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>AutoFree</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>maxLogic.StrUtils</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Types</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.Character</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.generics.defaults</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.generics.collections</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>System.StrUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>System.RegularExpressions</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>maxLogic.StrUtils</name>
+      <units_used_in_implementation>
+        <item>
+          <module>System.Math</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>System.Masks</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>AutoFree</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>maxSignal</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.UITypes</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>winApi.Windows</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>winApi.Messages</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>system.SysUtils</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>generics.defaults</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>generics.Collections</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>system.Classes</module>
+          <status>unnecessary</status>
+        </item>
+        <item>
+          <module>system.SyncObjs</module>
+          <status>in interface</status>
+        </item>
+        <item>
+          <module>vcl.Forms</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>vcl.dialogs</module>
+          <status>unnecessary</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>maxSignal</name>
+      <units_used_in_implementation>
+        <item>
+          <module>System.Diagnostics</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+  </section>
+  <section name="Modules that are referenced in the Delphi project file, but not used" count="-2" oldcount="-2">
+    <item id="1">Dak.MacroExpander</item>
+    <item id="2">Dak.MsBuild</item>
+    <item id="3">madExcept (has initialization, used by unit with init)</item>
+    <item id="4">madLinkDisAsm (has initialization, empty interface)</item>
+    <item id="5">madListHardware (has initialization)</item>
+    <item id="6">madListModules (has initialization)</item>
+    <item id="7">madListProcesses (has initialization)</item>
+  </section>
+  <section name="Modules that are used but not added to the Delphi project file" count="-2" oldcount="-2">
+    <item id="1">System.Diagnostics</item>
+  </section>
+  <section name="References">
+    <module>
+        AutoFree
+      <references id="1">System</references>
+      <references id="2">System.Classes</references>
+      <references id="3">System.Generics.Collections</references>
+      <references id="4">System.SysUtils</references>
+    </module>
+    <module>
+        AutoFree
+      <referenced_by id="1">maxLogic.IOUtils</referenced_by>
+      <referenced_by id="2">maxLogic.StrUtils</referenced_by>
+    </module>
+    <module>
+        Dak.Analyze
+      <references id="1">Dak.Diagnostics</references>
+      <references id="2">Dak.FixInsight</references>
+      <references id="3">Dak.FixInsightRunner</references>
+      <references id="4">Dak.FixInsightSettings</references>
+      <references id="5">Dak.Messages</references>
+      <references id="6">Dak.PascalAnalyzerRunner</references>
+      <references id="7">Dak.Project</references>
+      <references id="8">Dak.Registry</references>
+      <references id="9">Dak.ReportPostProcess</references>
+      <references id="10">Dak.RsVars</references>
+      <references id="11">Dak.Types</references>
+      <references id="12">maxLogic.IOUtils</references>
+      <references id="13">maxLogic.StrUtils</references>
+      <references id="14">System</references>
+      <references id="15">System.Classes</references>
+      <references id="16">System.Generics.Collections</references>
+      <references id="17">System.Generics.Defaults</references>
+      <references id="18">System.IOUtils</references>
+      <references id="19">System.SysUtils</references>
+      <references id="20">System.Variants</references>
+      <references id="21">Winapi.Windows</references>
+      <references id="22">Xml.omnixmldom</references>
+      <references id="23">Xml.XMLDoc</references>
+      <references id="24">Xml.XMLIntf</references>
+    </module>
+    <module>
+        Dak.Analyze
+      <referenced_by id="1">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.Cli
+      <references id="1">Dak.Messages</references>
+      <references id="2">Dak.Types</references>
+      <references id="3">maxLogic.CmdLineParams</references>
+      <references id="4">System</references>
+      <references id="5">System.Classes</references>
+      <references id="6">System.SysUtils</references>
+    </module>
+    <module>
+        Dak.Cli
+      <referenced_by id="1">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.Diagnostics
+      <references id="1">Dak.Messages</references>
+      <references id="2">maxLogic.StrUtils</references>
+      <references id="3">System</references>
+      <references id="4">System.Classes</references>
+      <references id="5">System.Generics.Collections</references>
+      <references id="6">System.Generics.Defaults</references>
+      <references id="7">System.SysUtils</references>
+    </module>
+    <module>
+        Dak.Diagnostics
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">Dak.FixInsight</referenced_by>
+      <referenced_by id="3">Dak.FixInsightSettings</referenced_by>
+      <referenced_by id="4">Dak.MacroExpander</referenced_by>
+      <referenced_by id="5">Dak.MsBuild</referenced_by>
+      <referenced_by id="6">Dak.Project</referenced_by>
+      <referenced_by id="7">Dak.Registry</referenced_by>
+      <referenced_by id="8">Dak.RsVars</referenced_by>
+      <referenced_by id="9">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.FixInsight
+      <references id="1">Dak.Diagnostics</references>
+      <references id="2">Dak.Messages</references>
+      <references id="3">System</references>
+      <references id="4">System.IOUtils</references>
+      <references id="5">System.SysUtils</references>
+      <references id="6">System.Win.Registry</references>
+      <references id="7">Winapi.Windows</references>
+    </module>
+    <module>
+        Dak.FixInsight
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.FixInsightRunner
+      <references id="1">Dak.Messages</references>
+      <references id="2">Dak.Types</references>
+      <references id="3">System</references>
+      <references id="4">System.Generics.Collections</references>
+      <references id="5">System.SysUtils</references>
+      <references id="6">Winapi.Windows</references>
+    </module>
+    <module>
+        Dak.FixInsightRunner
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.FixInsightSettings
+      <references id="1">Dak.Diagnostics</references>
+      <references id="2">Dak.Messages</references>
+      <references id="3">Dak.Types</references>
+      <references id="4">maxLogic.StrUtils</references>
+      <references id="5">System</references>
+      <references id="6">System.Generics.Collections</references>
+      <references id="7">System.IniFiles</references>
+      <references id="8">System.IOUtils</references>
+      <references id="9">System.SysUtils</references>
+    </module>
+    <module>
+        Dak.FixInsightSettings
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.MacroExpander
+      <references id="1">Dak.Diagnostics</references>
+      <references id="2">System</references>
+      <references id="3">System.Generics.Collections</references>
+      <references id="4">System.SysUtils</references>
+    </module>
+    <module>
+        Dak.MacroExpander
+      <referenced_by id="1">Dak.MsBuild</referenced_by>
+      <referenced_by id="2">Dak.Project</referenced_by>
+      <referenced_by id="3">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.Messages
+      <references id="1">System</references>
+    </module>
+    <module>
+        Dak.Messages
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">Dak.Cli</referenced_by>
+      <referenced_by id="3">Dak.Diagnostics</referenced_by>
+      <referenced_by id="4">Dak.FixInsight</referenced_by>
+      <referenced_by id="5">Dak.FixInsightRunner</referenced_by>
+      <referenced_by id="6">Dak.FixInsightSettings</referenced_by>
+      <referenced_by id="7">Dak.MsBuild</referenced_by>
+      <referenced_by id="8">Dak.Output</referenced_by>
+      <referenced_by id="9">Dak.Project</referenced_by>
+      <referenced_by id="10">Dak.Registry</referenced_by>
+      <referenced_by id="11">Dak.RsVars</referenced_by>
+      <referenced_by id="12">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.MsBuild
+      <references id="1">Dak.Diagnostics</references>
+      <references id="2">Dak.MacroExpander</references>
+      <references id="3">Dak.Messages</references>
+      <references id="4">System</references>
+      <references id="5">System.Generics.Collections</references>
+      <references id="6">System.SysUtils</references>
+      <references id="7">System.Variants</references>
+      <references id="8">Xml.omnixmldom</references>
+      <references id="9">Xml.XMLDoc</references>
+      <references id="10">Xml.xmldom</references>
+      <references id="11">Xml.XMLIntf</references>
+    </module>
+    <module>
+        Dak.MsBuild
+      <referenced_by id="1">Dak.Project</referenced_by>
+      <referenced_by id="2">Dak.Registry</referenced_by>
+      <referenced_by id="3">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.Output
+      <references id="1">Dak.Messages</references>
+      <references id="2">Dak.Types</references>
+      <references id="3">System</references>
+      <references id="4">System.Classes</references>
+      <references id="5">System.Generics.Collections</references>
+      <references id="6">System.IOUtils</references>
+      <references id="7">System.SysUtils</references>
+    </module>
+    <module>
+        Dak.Output
+      <referenced_by id="1">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.PascalAnalyzerRunner
+      <references id="1">Dak.Types</references>
+      <references id="2">maxLogic.StrUtils</references>
+      <references id="3">System</references>
+      <references id="4">System.Generics.Collections</references>
+      <references id="5">System.Generics.Defaults</references>
+      <references id="6">System.IOUtils</references>
+      <references id="7">System.JSON</references>
+      <references id="8">System.StrUtils</references>
+      <references id="9">System.SysUtils</references>
+      <references id="10">System.Types</references>
+      <references id="11">System.Variants</references>
+      <references id="12">Winapi.Windows</references>
+      <references id="13">Xml.omnixmldom</references>
+      <references id="14">Xml.XMLDoc</references>
+      <references id="15">Xml.xmldom</references>
+      <references id="16">Xml.XMLIntf</references>
+    </module>
+    <module>
+        Dak.PascalAnalyzerRunner
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.Project
+      <references id="1">Dak.Diagnostics</references>
+      <references id="2">Dak.MacroExpander</references>
+      <references id="3">Dak.Messages</references>
+      <references id="4">Dak.MsBuild</references>
+      <references id="5">Dak.Types</references>
+      <references id="6">maxLogic.StrUtils</references>
+      <references id="7">System</references>
+      <references id="8">System.Generics.Collections</references>
+      <references id="9">System.Generics.Defaults</references>
+      <references id="10">System.IOUtils</references>
+      <references id="11">System.SysUtils</references>
+    </module>
+    <module>
+        Dak.Project
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.Registry
+      <references id="1">Dak.Diagnostics</references>
+      <references id="2">Dak.Messages</references>
+      <references id="3">Dak.MsBuild</references>
+      <references id="4">Dak.Types</references>
+      <references id="5">maxLogic.StrUtils</references>
+      <references id="6">System</references>
+      <references id="7">System.Classes</references>
+      <references id="8">System.Generics.Collections</references>
+      <references id="9">System.Generics.Defaults</references>
+      <references id="10">System.IOUtils</references>
+      <references id="11">System.SysUtils</references>
+      <references id="12">System.Win.Registry</references>
+      <references id="13">Winapi.Windows</references>
+    </module>
+    <module>
+        Dak.Registry
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.ReportPostProcess
+      <references id="1">Dak.Types</references>
+      <references id="2">maxLogic.StrUtils</references>
+      <references id="3">System</references>
+      <references id="4">System.Generics.Collections</references>
+      <references id="5">System.IOUtils</references>
+      <references id="6">System.SysUtils</references>
+      <references id="7">System.Variants</references>
+      <references id="8">Xml.XMLDoc</references>
+      <references id="9">Xml.XMLIntf</references>
+    </module>
+    <module>
+        Dak.ReportPostProcess
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.RsVars
+      <references id="1">Dak.Diagnostics</references>
+      <references id="2">Dak.Messages</references>
+      <references id="3">System</references>
+      <references id="4">System.Classes</references>
+      <references id="5">System.Generics.Collections</references>
+      <references id="6">System.IOUtils</references>
+      <references id="7">System.SysUtils</references>
+      <references id="8">Winapi.Windows</references>
+    </module>
+    <module>
+        Dak.RsVars
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        Dak.Types
+      <references id="1">System</references>
+    </module>
+    <module>
+        Dak.Types
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">Dak.Cli</referenced_by>
+      <referenced_by id="3">Dak.FixInsightRunner</referenced_by>
+      <referenced_by id="4">Dak.FixInsightSettings</referenced_by>
+      <referenced_by id="5">Dak.Output</referenced_by>
+      <referenced_by id="6">Dak.PascalAnalyzerRunner</referenced_by>
+      <referenced_by id="7">Dak.Project</referenced_by>
+      <referenced_by id="8">Dak.Registry</referenced_by>
+      <referenced_by id="9">Dak.ReportPostProcess</referenced_by>
+      <referenced_by id="10">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        DelphiAIKit
+      <references id="1">Dak.Analyze</references>
+      <references id="2">Dak.Cli</references>
+      <references id="3">Dak.Diagnostics</references>
+      <references id="4">Dak.FixInsight</references>
+      <references id="5">Dak.FixInsightRunner</references>
+      <references id="6">Dak.FixInsightSettings</references>
+      <references id="7">Dak.MacroExpander</references>
+      <references id="8">Dak.Messages</references>
+      <references id="9">Dak.MsBuild</references>
+      <references id="10">Dak.Output</references>
+      <references id="11">Dak.PascalAnalyzerRunner</references>
+      <references id="12">Dak.Project</references>
+      <references id="13">Dak.Registry</references>
+      <references id="14">Dak.ReportPostProcess</references>
+      <references id="15">Dak.RsVars</references>
+      <references id="16">Dak.Types</references>
+      <references id="17">madExcept</references>
+      <references id="18">madLinkDisAsm</references>
+      <references id="19">madListHardware</references>
+      <references id="20">madListModules</references>
+      <references id="21">madListProcesses</references>
+      <references id="22">System</references>
+      <references id="23">System.Generics.Collections</references>
+      <references id="24">System.IOUtils</references>
+      <references id="25">System.SysUtils</references>
+      <references id="26">Winapi.Windows</references>
+      <references id="27">Xml.omnixmldom</references>
+      <references id="28">Xml.xmldom</references>
+    </module>
+    <module>
+        madCrypt
+      <references id="1">madTypes</references>
+      <references id="2">System</references>
+      <references id="3">Windows</references>
+    </module>
+    <module>
+        madCrypt
+      <referenced_by id="1">madExcept</referenced_by>
+      <referenced_by id="2">madMapFile</referenced_by>
+    </module>
+    <module>
+        madDisAsm
+      <references id="1">madStrings</references>
+      <references id="2">madTools</references>
+      <references id="3">madTypes</references>
+      <references id="4">System</references>
+      <references id="5">Windows</references>
+    </module>
+    <module>
+        madDisAsm
+      <referenced_by id="1">madExcept</referenced_by>
+      <referenced_by id="2">madLinkDisAsm</referenced_by>
+      <referenced_by id="3">madMapFile</referenced_by>
+      <referenced_by id="4">madNVAssistant</referenced_by>
+      <referenced_by id="5">madStackTrace</referenced_by>
+    </module>
+    <module>
+        madExcept
+      <references id="1">madCrypt</references>
+      <references id="2">madDisAsm</references>
+      <references id="3">madMapFile</references>
+      <references id="4">madNVAssistant</references>
+      <references id="5">madNVBitmap</references>
+      <references id="6">madNVPrgrAlert</references>
+      <references id="7">madStackTrace</references>
+      <references id="8">madStrings</references>
+      <references id="9">madTools</references>
+      <references id="10">madTypes</references>
+      <references id="11">madZip</references>
+      <references id="12">Messages</references>
+      <references id="13">ShellAPI</references>
+      <references id="14">System</references>
+      <references id="15">System.SysConst</references>
+      <references id="16">Winapi.ActiveX</references>
+      <references id="17">Winapi.CommCtrl</references>
+      <references id="18">Winapi.CommDlg</references>
+      <references id="19">Winapi.Windows</references>
+      <references id="20">Winapi.WinSock</references>
+    </module>
+    <module>
+        madExcept
+      <referenced_by id="1">DelphiAIKit</referenced_by>
+      <referenced_by id="2">madLinkDisAsm</referenced_by>
+      <referenced_by id="3">madListHardware</referenced_by>
+      <referenced_by id="4">madListModules</referenced_by>
+      <referenced_by id="5">madListProcesses</referenced_by>
+      <referenced_by id="6">maxAsync</referenced_by>
+      <referenced_by id="7">maxLogic.IOUtils</referenced_by>
+    </module>
+    <module>
+        madLinkDisAsm
+      <references id="1">madDisAsm</references>
+      <references id="2">madExcept</references>
+      <references id="3">System</references>
+    </module>
+    <module>
+        madLinkDisAsm
+      <referenced_by id="1">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        madListHardware
+      <references id="1">madExcept</references>
+      <references id="2">madStrings</references>
+      <references id="3">madTypes</references>
+      <references id="4">System</references>
+      <references id="5">Windows</references>
+    </module>
+    <module>
+        madListHardware
+      <referenced_by id="1">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        madListModules
+      <references id="1">madExcept</references>
+      <references id="2">madStrings</references>
+      <references id="3">madTools</references>
+      <references id="4">madTypes</references>
+      <references id="5">System</references>
+      <references id="6">Windows</references>
+    </module>
+    <module>
+        madListModules
+      <referenced_by id="1">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        madListProcesses
+      <references id="1">madExcept</references>
+      <references id="2">madStrings</references>
+      <references id="3">madTypes</references>
+      <references id="4">System</references>
+      <references id="5">Windows</references>
+    </module>
+    <module>
+        madListProcesses
+      <referenced_by id="1">DelphiAIKit</referenced_by>
+    </module>
+    <module>
+        madMapFile
+      <references id="1">madCrypt</references>
+      <references id="2">madDisAsm</references>
+      <references id="3">madStrings</references>
+      <references id="4">madTools</references>
+      <references id="5">madTypes</references>
+      <references id="6">madZip</references>
+      <references id="7">System</references>
+      <references id="8">Windows</references>
+    </module>
+    <module>
+        madMapFile
+      <referenced_by id="1">madExcept</referenced_by>
+      <referenced_by id="2">madNVAssistant</referenced_by>
+      <referenced_by id="3">madStackTrace</referenced_by>
+    </module>
+    <module>
+        madNVAssistant
+      <references id="1">madDisAsm</references>
+      <references id="2">madMapFile</references>
+      <references id="3">madNVBitmap</references>
+      <references id="4">madStrings</references>
+      <references id="5">madTools</references>
+      <references id="6">madTypes</references>
+      <references id="7">Messages</references>
+      <references id="8">System</references>
+      <references id="9">Windows</references>
+    </module>
+    <module>
+        madNVAssistant
+      <referenced_by id="1">madExcept</referenced_by>
+    </module>
+    <module>
+        madNVBitmap
+      <references id="1">madTypes</references>
+      <references id="2">madZip</references>
+      <references id="3">System</references>
+      <references id="4">Windows</references>
+    </module>
+    <module>
+        madNVBitmap
+      <referenced_by id="1">madExcept</referenced_by>
+      <referenced_by id="2">madNVAssistant</referenced_by>
+    </module>
+    <module>
+        madNVPrgrAlert
+      <references id="1">madStrings</references>
+      <references id="2">madTypes</references>
+      <references id="3">System</references>
+      <references id="4">Winapi.Messages</references>
+      <references id="5">Windows</references>
+    </module>
+    <module>
+        madNVPrgrAlert
+      <referenced_by id="1">madExcept</referenced_by>
+      <referenced_by id="2">madStackTrace</referenced_by>
+    </module>
+    <module>
+        madStackTrace
+      <references id="1">madDisAsm</references>
+      <references id="2">madMapFile</references>
+      <references id="3">madNVPrgrAlert</references>
+      <references id="4">madStrings</references>
+      <references id="5">madTools</references>
+      <references id="6">madTypes</references>
+      <references id="7">madZip</references>
+      <references id="8">System</references>
+      <references id="9">Windows</references>
+    </module>
+    <module>
+        madStackTrace
+      <referenced_by id="1">madExcept</referenced_by>
+    </module>
+    <module>
+        madStrings
+      <references id="1">madTypes</references>
+      <references id="2">System</references>
+      <references id="3">Windows</references>
+    </module>
+    <module>
+        madStrings
+      <referenced_by id="1">madDisAsm</referenced_by>
+      <referenced_by id="2">madExcept</referenced_by>
+      <referenced_by id="3">madListHardware</referenced_by>
+      <referenced_by id="4">madListModules</referenced_by>
+      <referenced_by id="5">madListProcesses</referenced_by>
+      <referenced_by id="6">madMapFile</referenced_by>
+      <referenced_by id="7">madNVAssistant</referenced_by>
+      <referenced_by id="8">madNVPrgrAlert</referenced_by>
+      <referenced_by id="9">madStackTrace</referenced_by>
+      <referenced_by id="10">madTools</referenced_by>
+      <referenced_by id="11">madZip</referenced_by>
+    </module>
+    <module>
+        madTools
+      <references id="1">madStrings</references>
+      <references id="2">madTypes</references>
+      <references id="3">Messages</references>
+      <references id="4">System</references>
+      <references id="5">Windows</references>
+    </module>
+    <module>
+        madTools
+      <referenced_by id="1">madDisAsm</referenced_by>
+      <referenced_by id="2">madExcept</referenced_by>
+      <referenced_by id="3">madListModules</referenced_by>
+      <referenced_by id="4">madMapFile</referenced_by>
+      <referenced_by id="5">madNVAssistant</referenced_by>
+      <referenced_by id="6">madStackTrace</referenced_by>
+    </module>
+    <module>
+        madTypes
+      <references id="1">System</references>
+      <references id="2">Windows</references>
+    </module>
+    <module>
+        madTypes
+      <referenced_by id="1">madCrypt</referenced_by>
+      <referenced_by id="2">madDisAsm</referenced_by>
+      <referenced_by id="3">madExcept</referenced_by>
+      <referenced_by id="4">madListHardware</referenced_by>
+      <referenced_by id="5">madListModules</referenced_by>
+      <referenced_by id="6">madListProcesses</referenced_by>
+      <referenced_by id="7">madMapFile</referenced_by>
+      <referenced_by id="8">madNVAssistant</referenced_by>
+      <referenced_by id="9">madNVBitmap</referenced_by>
+      <referenced_by id="10">madNVPrgrAlert</referenced_by>
+      <referenced_by id="11">madStackTrace</referenced_by>
+      <referenced_by id="12">madStrings</referenced_by>
+      <referenced_by id="13">madTools</referenced_by>
+      <referenced_by id="14">madZip</referenced_by>
+    </module>
+    <module>
+        madZip
+      <references id="1">madStrings</references>
+      <references id="2">madTypes</references>
+      <references id="3">System</references>
+      <references id="4">Windows</references>
+    </module>
+    <module>
+        madZip
+      <referenced_by id="1">madExcept</referenced_by>
+      <referenced_by id="2">madMapFile</referenced_by>
+      <referenced_by id="3">madNVBitmap</referenced_by>
+      <referenced_by id="4">madStackTrace</referenced_by>
+    </module>
+    <module>
+        maxAsync
+      <references id="1">Classes</references>
+      <references id="2">Dialogs</references>
+      <references id="3">Forms</references>
+      <references id="4">generics.collections</references>
+      <references id="5">generics.defaults</references>
+      <references id="6">madExcept</references>
+      <references id="7">maxSignal</references>
+      <references id="8">SyncObjs</references>
+      <references id="9">System</references>
+      <references id="10">System.diagnostics</references>
+      <references id="11">System.Math</references>
+      <references id="12">System.UITypes</references>
+      <references id="13">SysUtils</references>
+      <references id="14">Winapi.ActiveX</references>
+      <references id="15">Winapi.Messages</references>
+      <references id="16">Winapi.mmSystem</references>
+      <references id="17">Winapi.Windows</references>
+    </module>
+    <module>
+        maxAsync
+      <referenced_by id="1">maxConsoleRunner</referenced_by>
+    </module>
+    <module>
+        maxConsoleRunner
+      <references id="1">Classes</references>
+      <references id="2">diagnostics</references>
+      <references id="3">generics.collections</references>
+      <references id="4">maxAsync</references>
+      <references id="5">MaxLogic.ioUtils</references>
+      <references id="6">MaxLogic.strUtils</references>
+      <references id="7">Messages</references>
+      <references id="8">System</references>
+      <references id="9">system.ioUtils</references>
+      <references id="10">system.strUtils</references>
+      <references id="11">SysUtils</references>
+      <references id="12">Windows</references>
+    </module>
+    <module>
+        maxConsoleRunner
+      <referenced_by id="1">maxLogic.IOUtils</referenced_by>
+    </module>
+    <module>
+        maxLogic.CmdLineParams
+      <references id="1">generics.collections</references>
+      <references id="2">maxLogic.StrUtils</references>
+      <references id="3">System</references>
+      <references id="4">System.Classes</references>
+      <references id="5">System.StrUtils</references>
+      <references id="6">System.SysUtils</references>
+    </module>
+    <module>
+        maxLogic.CmdLineParams
+      <referenced_by id="1">Dak.Cli</referenced_by>
+    </module>
+    <module>
+        maxLogic.IOUtils
+      <references id="1">AutoFree</references>
+      <references id="2">generics.collections</references>
+      <references id="3">generics.defaults</references>
+      <references id="4">madExcept</references>
+      <references id="5">maxConsoleRunner</references>
+      <references id="6">ShellApi</references>
+      <references id="7">System</references>
+      <references id="8">System.Classes</references>
+      <references id="9">System.IOUtils</references>
+      <references id="10">System.StrUtils</references>
+      <references id="11">System.SysUtils</references>
+      <references id="12">System.Win.ComObj</references>
+      <references id="13">winApi.SHFolder</references>
+      <references id="14">winApi.ShlObj</references>
+      <references id="15">winApi.ShLwApi</references>
+      <references id="16">winApi.Windows</references>
+      <references id="17">winApi.WinInet</references>
+    </module>
+    <module>
+        maxLogic.IOUtils
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">maxConsoleRunner</referenced_by>
+    </module>
+    <module>
+        maxLogic.StrUtils
+      <references id="1">AutoFree</references>
+      <references id="2">System</references>
+      <references id="3">System.Character</references>
+      <references id="4">System.Classes</references>
+      <references id="5">System.generics.collections</references>
+      <references id="6">System.generics.defaults</references>
+      <references id="7">System.Masks</references>
+      <references id="8">System.Math</references>
+      <references id="9">System.RegularExpressions</references>
+      <references id="10">System.StrUtils</references>
+      <references id="11">System.SysUtils</references>
+      <references id="12">System.Types</references>
+    </module>
+    <module>
+        maxLogic.StrUtils
+      <referenced_by id="1">Dak.Analyze</referenced_by>
+      <referenced_by id="2">Dak.Diagnostics</referenced_by>
+      <referenced_by id="3">Dak.FixInsightSettings</referenced_by>
+      <referenced_by id="4">Dak.PascalAnalyzerRunner</referenced_by>
+      <referenced_by id="5">Dak.Project</referenced_by>
+      <referenced_by id="6">Dak.Registry</referenced_by>
+      <referenced_by id="7">Dak.ReportPostProcess</referenced_by>
+      <referenced_by id="8">maxConsoleRunner</referenced_by>
+      <referenced_by id="9">maxLogic.CmdLineParams</referenced_by>
+    </module>
+    <module>
+        maxSignal
+      <references id="1">generics.Collections</references>
+      <references id="2">generics.defaults</references>
+      <references id="3">System</references>
+      <references id="4">system.Classes</references>
+      <references id="5">System.Diagnostics</references>
+      <references id="6">system.SyncObjs</references>
+      <references id="7">system.SysUtils</references>
+      <references id="8">System.UITypes</references>
+      <references id="9">vcl.dialogs</references>
+      <references id="10">vcl.Forms</references>
+      <references id="11">winApi.Messages</references>
+      <references id="12">winApi.Windows</references>
+    </module>
+    <module>
+        maxSignal
+      <referenced_by id="1">maxAsync</referenced_by>
+    </module>
+  </section>
+  <section name="Optimal uses list">
+    <item id="1">System.Types</item>
+    <item id="2">System.UITypes</item>
+    <item id="3">Winapi.Windows</item>
+    <item id="4">madTypes</item>
+    <item id="5">madStrings</item>
+    <item id="6">madNVPrgrAlert</item>
+    <item id="7">Winapi.Messages</item>
+    <item id="8">madStackTrace</item>
+    <item id="9">madMapFile</item>
+    <item id="10">madTools</item>
+    <item id="11">madDisAsm</item>
+    <item id="12">madZip</item>
+    <item id="13">madCrypt</item>
+    <item id="14">madNVBitmap</item>
+    <item id="15">madNVAssistant</item>
+    <item id="16">madExcept</item>
+    <item id="17">Winapi.ActiveX</item>
+    <item id="18">Winapi.CommCtrl</item>
+    <item id="19">Winapi.Qos</item>
+    <item id="20">Winapi.WinSock2</item>
+    <item id="21">Winapi.IpExport</item>
+    <item id="22">Winapi.ShellAPI</item>
+    <item id="23">Winapi.RegStr</item>
+    <item id="24">Winapi.WinInet</item>
+    <item id="25">Winapi.UrlMon</item>
+    <item id="26">Winapi.ObjectArray</item>
+    <item id="27">Winapi.StructuredQueryCondition</item>
+    <item id="28">Winapi.PropSys</item>
+    <item id="29">Winapi.MSXMLIntf</item>
+    <item id="30">Winapi.ShlObj</item>
+    <item id="31">Winapi.CommDlg</item>
+    <item id="32">System.SysConst</item>
+    <item id="33">Winapi.WinSock</item>
+    <item id="34">madLinkDisAsm</item>
+    <item id="35">madListHardware</item>
+    <item id="36">madListProcesses</item>
+    <item id="37">madListModules</item>
+    <item id="38">System.SysUtils</item>
+    <item id="39">Winapi.ImageHlp</item>
+    <item id="40">Winapi.SHFolder</item>
+    <item id="41">Winapi.PsAPI</item>
+    <item id="42">System.RTLConsts</item>
+    <item id="43">System.Character</item>
+    <item id="44">System.Internal.ExcUtils</item>
+    <item id="45">System.Variants</item>
+    <item id="46">System.VarUtils</item>
+    <item id="47">System.TypInfo</item>
+    <item id="48">System.Generics.Defaults</item>
+    <item id="49">System.Generics.Collections</item>
+    <item id="50">System.Rtti</item>
+    <item id="51">System.Classes</item>
+    <item id="52">System.Hash</item>
+    <item id="53">System.Math</item>
+    <item id="54">System.TimeSpan</item>
+    <item id="55">System.Diagnostics</item>
+    <item id="56">Winapi.KnownFolders</item>
+    <item id="57">System.Masks</item>
+    <item id="58">System.IOUtils</item>
+    <item id="59">System.StrUtils</item>
+    <item id="60">System.DateUtils</item>
+    <item id="61">System.Win.ComObj</item>
+    <item id="62">System.AnsiStrings</item>
+    <item id="63">System.Win.ComConst</item>
+    <item id="64">Xml.XMLConst</item>
+    <item id="65">Xml.xmldom</item>
+    <item id="66">Winapi.msxml</item>
+    <item id="67">Xml.Win.msxmldom</item>
+    <item id="68">Xml.Internal.OBufferedStreams</item>
+    <item id="69">Xml.Internal.OTextReadWrite</item>
+    <item id="70">Xml.Internal.XmlRulesUtils</item>
+    <item id="71">Xml.Internal.WideStringUtils</item>
+    <item id="72">Xml.Internal.OmniXML</item>
+    <item id="73">Xml.Internal.OmniXMLXPath</item>
+    <item id="74">Xml.Internal.EncodingUtils</item>
+    <item id="75">Xml.Internal.CodecUtilsWin32</item>
+    <item id="76">Xml.Internal.ParserUtilsWin32</item>
+    <item id="77">Xml.Internal.xmlInputSource</item>
+    <item id="78">Xml.omnixmldom</item>
+    <item id="79">Xml.XMLIntf</item>
+    <item id="80">Xml.XMLDoc</item>
+    <item id="81">System.SyncObjs</item>
+    <item id="82">Xml.XMLSchema</item>
+    <item id="83">Xml.XMLSchemaTags</item>
+    <item id="84">Xml.XMLUtil</item>
+    <item id="85">winApi.ShLwApi</item>
+    <item id="86">System.Messaging</item>
+    <item id="87">System.Actions</item>
+    <item id="88">Winapi.Wincodec</item>
+    <item id="89">Vcl.Graphics</item>
+    <item id="90">System.IniFiles</item>
+    <item id="91">System.Win.Registry</item>
+    <item id="92">System.UIConsts</item>
+    <item id="93">Vcl.Consts</item>
+    <item id="94">System.Contnrs</item>
+    <item id="95">System.ImageList</item>
+    <item id="96">Vcl.ImgList</item>
+    <item id="97">Vcl.ActnList</item>
+    <item id="98">Vcl.Menus</item>
+    <item id="99">Winapi.MultiMon</item>
+    <item id="100">Winapi.Imm</item>
+    <item id="101">Vcl.Controls</item>
+    <item id="102">Winapi.TpcShrd</item>
+    <item id="103">Winapi.MSCTF</item>
+    <item id="104">System.HelpIntfs</item>
+    <item id="105">Winapi.UxTheme</item>
+    <item id="106">Winapi.DwmApi</item>
+    <item id="107">Vcl.GraphUtil</item>
+    <item id="108">System.ZLib</item>
+    <item id="109">System.Win.Crtl</item>
+    <item id="110">Vcl.Themes</item>
+    <item id="111">System.Win.Taskbar</item>
+    <item id="112">System.Win.TaskbarCore</item>
+    <item id="113">Winapi.ShellScaling</item>
+    <item id="114">vcl.Forms</item>
+    <item id="115">Vcl.StdCtrls</item>
+    <item id="116">System.MaskUtils</item>
+    <item id="117">Vcl.Mask</item>
+    <item id="118">Vcl.Clipbrd</item>
+    <item id="119">Vcl.ExtCtrls</item>
+    <item id="120">Winapi.WinSpool</item>
+    <item id="121">Vcl.Printers</item>
+    <item id="122">Winapi.RichEdit</item>
+    <item id="123">Vcl.ToolWin</item>
+    <item id="124">Vcl.ListActns</item>
+    <item id="125">Vcl.ComCtrls</item>
+    <item id="126">Vcl.ComStrs</item>
+    <item id="127">Vcl.Dialogs</item>
+    <item id="128">Vcl.StdActns</item>
+    <item id="129">System.WideStrUtils</item>
+    <item id="130">Winapi.Dlgs</item>
+    <item id="131">Winapi.MsInkAut</item>
+    <item id="132">Winapi.PenInputPanel</item>
+    <item id="133">Winapi.FlatSB</item>
+    <item id="134">maxSignal</item>
+    <item id="135">maxAsync</item>
+    <item id="136">Winapi.mmSystem</item>
+    <item id="137">maxConsoleRunner</item>
+    <item id="138">System.RegularExpressionsAPI</item>
+    <item id="139">System.RegularExpressionsCore</item>
+    <item id="140">System.RegularExpressionsConsts</item>
+    <item id="141">System.RegularExpressions</item>
+    <item id="142">MaxLogic.strUtils</item>
+    <item id="143">AutoFree</item>
+    <item id="144">maxLogic.IOUtils</item>
+    <item id="145">Dak.Messages</item>
+    <item id="146">Dak.Diagnostics</item>
+    <item id="147">Dak.FixInsight</item>
+    <item id="148">Dak.Types</item>
+    <item id="149">Dak.FixInsightRunner</item>
+    <item id="150">Dak.FixInsightSettings</item>
+    <item id="151">System.JSON</item>
+    <item id="152">System.JSONConsts</item>
+    <item id="153">Dak.PascalAnalyzerRunner</item>
+    <item id="154">Dak.MacroExpander</item>
+    <item id="155">Dak.MsBuild</item>
+    <item id="156">Dak.Project</item>
+    <item id="157">Dak.Registry</item>
+    <item id="158">Dak.ReportPostProcess</item>
+    <item id="159">Dak.RsVars</item>
+    <item id="160">Dak.Analyze</item>
+    <item id="161">maxLogic.CmdLineParams</item>
+    <item id="162">Dak.Cli</item>
+    <item id="163">Dak.Output</item>
+    <item id="164">DelphiAIKit</item>
+  </section>
+  <section name="Runtime initialization order">
+    <item id="1">madStackTrace</item>
+    <item id="2">madMapFile</item>
+    <item id="3">madTools</item>
+    <item id="4">madExcept</item>
+    <item id="5">madLinkDisAsm</item>
+    <item id="6">madListHardware</item>
+    <item id="7">madListProcesses</item>
+    <item id="8">madListModules</item>
+    <item id="9">maxAsync</item>
+    <item id="10">maxLogic.CmdLineParams</item>
+  </section>
+  <section name="Mutual unit references" count="22" oldcount="-2">
+    <item id="1">maxLogic.IOUtils/maxConsoleRunner</item>
+    <item id="2">System.Character/System.SysUtils</item>
+    <item id="3">System.Diagnostics/System.Classes</item>
+    <item id="4">System.Internal.ExcUtils/System.SysUtils</item>
+    <item id="5">Vcl.ComCtrls/Vcl.ListActns</item>
+    <item id="6">Vcl.Controls/Vcl.ActnList</item>
+    <item id="7">Vcl.Controls/Vcl.ImgList</item>
+    <item id="8">Vcl.Controls/Vcl.Menus</item>
+    <item id="9">Vcl.ExtCtrls/Vcl.StdCtrls</item>
+    <item id="10">Vcl.ExtCtrls/Vcl.Themes</item>
+    <item id="11">vcl.Forms/Vcl.ActnList</item>
+    <item id="12">vcl.Forms/Vcl.Controls</item>
+    <item id="13">vcl.Forms/Vcl.Menus</item>
+    <item id="14">vcl.Forms/Vcl.Themes</item>
+    <item id="15">Vcl.Menus/Vcl.ActnList</item>
+    <item id="16">Vcl.Printers/vcl.Forms</item>
+    <item id="17">Vcl.StdActns/vcl.Forms</item>
+    <item id="18">Vcl.StdCtrls/vcl.Forms</item>
+    <item id="19">Vcl.Themes/Vcl.Controls</item>
+    <item id="20">Xml.Internal.OmniXMLXPath/Xml.Internal.OmniXML</item>
+    <item id="21">Xml.Win.msxmldom/Xml.xmldom</item>
+    <item id="22">Xml.XMLSchema/Xml.XMLDoc</item>
+  </section>
+  <section name="All modules" count="42" oldcount="-2">
+    <item id="1">AutoFree</item>
+    <item id="2">Dak.Analyze</item>
+    <item id="3">Dak.Cli</item>
+    <item id="4">Dak.Diagnostics</item>
+    <item id="5">Dak.FixInsight</item>
+    <item id="6">Dak.FixInsightRunner</item>
+    <item id="7">Dak.FixInsightSettings</item>
+    <item id="8">Dak.MacroExpander</item>
+    <item id="9">Dak.Messages</item>
+    <item id="10">Dak.MsBuild</item>
+    <item id="11">Dak.Output</item>
+    <item id="12">Dak.PascalAnalyzerRunner</item>
+    <item id="13">Dak.Project</item>
+    <item id="14">Dak.Registry</item>
+    <item id="15">Dak.ReportPostProcess</item>
+    <item id="16">Dak.RsVars</item>
+    <item id="17">Dak.Types</item>
+    <item id="18">DelphiAIKit</item>
+    <item id="19">Dialogs</item>
+    <item id="20">Forms</item>
+    <item id="21">madCrypt</item>
+    <item id="22">madDisAsm</item>
+    <item id="23">madExcept</item>
+    <item id="24">madLinkDisAsm</item>
+    <item id="25">madListHardware</item>
+    <item id="26">madListModules</item>
+    <item id="27">madListProcesses</item>
+    <item id="28">madMapFile</item>
+    <item id="29">madNVAssistant</item>
+    <item id="30">madNVBitmap</item>
+    <item id="31">madNVPrgrAlert</item>
+    <item id="32">madStackTrace</item>
+    <item id="33">madStrings</item>
+    <item id="34">madTools</item>
+    <item id="35">madTypes</item>
+    <item id="36">madZip</item>
+    <item id="37">maxAsync</item>
+    <item id="38">maxConsoleRunner</item>
+    <item id="39">maxLogic.CmdLineParams</item>
+    <item id="40">maxLogic.IOUtils</item>
+    <item id="41">maxLogic.StrUtils</item>
+    <item id="42">maxSignal</item>
+  </section>
+</report>

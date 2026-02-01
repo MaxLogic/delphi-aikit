@@ -1,0 +1,269 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Complexity Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Complexity per module/subprogram">
+  </section>
+  <section name="Long identifier names" count="45" oldcount="-2">
+    <item>
+      <id>TFixInsightIgnoreDefaults = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (80)      </locmod>
+    </item>
+    <item>
+      <id>TFixInsightExtraOptions = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (70)      </locmod>
+    </item>
+    <item>
+      <id>TPascalAnalyzerDefaults = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (88)      </locmod>
+    </item>
+    <item>
+      <id>TReportFilterDefaults = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (84)      </locmod>
+    </item>
+    <item>
+      <id>TArray&lt;UnicodeString&gt; = Array (dynamic)</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (103)     </locmod>
+    </item>
+    <item>
+      <id>fHasExcludePathMasks : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (46)</locmod>
+    </item>
+    <item>
+      <id>fHasIgnoreWarningIds : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (48)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeWriteSummary : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (66)</locmod>
+    </item>
+    <item>
+      <id>fHasExcludePathMasks : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (46)</locmod>
+    </item>
+    <item>
+      <id>fHasIgnoreWarningIds : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (48)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeWriteSummary : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (66)</locmod>
+    </item>
+    <item>
+      <id>fHasEnvOptionsPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (31)</locmod>
+    </item>
+    <item>
+      <id>fRunPascalAnalyzer : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (49)</locmod>
+    </item>
+    <item>
+      <id>fHasAnalyzeOutPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (61)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeFixInsight : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (63)</locmod>
+    </item>
+    <item>
+      <id>fUnitAliasesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (115)</locmod>
+    </item>
+    <item>
+      <id>fHasEnvOptionsPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (31)</locmod>
+    </item>
+    <item>
+      <id>fRunPascalAnalyzer : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (49)</locmod>
+    </item>
+    <item>
+      <id>fHasAnalyzeOutPath : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (61)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeFixInsight : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (63)</locmod>
+    </item>
+    <item>
+      <id>fUnitAliasesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (115)</locmod>
+    </item>
+    <item>
+      <id>TFixInsightParams = Record</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (94)      </locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (45)</locmod>
+    </item>
+    <item>
+      <id>fIgnoreWarningIds : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (47)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeFiFormats : TReportFormatSet</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (62)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TReportFilterDefaults (85)</locmod>
+    </item>
+    <item>
+      <id>fSearchPathSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (113)</locmod>
+    </item>
+    <item>
+      <id>fUnitScopesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (114)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (45)</locmod>
+    </item>
+    <item>
+      <id>fIgnoreWarningIds : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (47)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeFiFormats : TReportFormatSet</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (62)</locmod>
+    </item>
+    <item>
+      <id>fExcludePathMasks : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TReportFilterDefaults (85)</locmod>
+    </item>
+    <item>
+      <id>fSearchPathSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (113)</locmod>
+    </item>
+    <item>
+      <id>fUnitScopesSource : TPropertySource</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (114)</locmod>
+    </item>
+    <item>
+      <id>ckAnalyzeProject</id>
+      <kind>Enum const, Interfaced</kind>
+      <locmod>dak.types\TCommandKind (8)</locmod>
+    </item>
+    <item>
+      <id>TReportFormatSet = Set</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (15)      </locmod>
+    </item>
+    <item>
+      <id>TPropertySource = Enumerated</id>
+      <kind>Type, Interfaced</kind>
+      <locmod>dak.types (12)      </locmod>
+    </item>
+    <item>
+      <id>fEnvOptionsPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (30)</locmod>
+    </item>
+    <item>
+      <id>fHasFixSettings : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (37)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeOutPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (60)</locmod>
+    </item>
+    <item>
+      <id>fUnitSearchPath : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (104)</locmod>
+    </item>
+    <item>
+      <id>fEnvOptionsPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (30)</locmod>
+    </item>
+    <item>
+      <id>fHasFixSettings : Boolean</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (37)</locmod>
+    </item>
+    <item>
+      <id>fAnalyzeOutPath : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TAppOptions (60)</locmod>
+    </item>
+    <item>
+      <id>fUnitSearchPath : TArray&lt;UnicodeString&gt;</id>
+      <kind>Record Field</kind>
+      <locmod>dak.types\TFixInsightParams (104)</locmod>
+    </item>
+  </section>
+  <section name="Largest Modules by Total Lines">
+    <item>
+      <id>dak.types</id>
+      <total_lines>120</total_lines>
+    </item>
+  </section>
+  <section name="Largest Modules by LOC">
+    <item>
+      <id>dak.types</id>
+      <lines_of_code>105</lines_of_code>
+    </item>
+  </section>
+  <section name="Most Complex Modules by DP">
+  </section>
+  <section name="Most Complex Modules by DP/LOC">
+  </section>
+  <section name="Most Complex Modules by Characters per LOC">
+    <item>
+      <id>dak.types</id>
+      <chrs_per_lines_of_code>22,17</chrs_per_lines_of_code>
+    </item>
+  </section>
+  <section name="Most Commented Modules by Comment Lines">
+  </section>
+  <section name="Most Commented Modules by Comment Lines per Total Lines">
+  </section>
+  <section name="Most Commented Modules by Comment Lines per LOC">
+  </section>
+  <section name="Most Commented Modules by Comment Characters per Total Characters">
+  </section>
+</report>
+<section name="Most Methods per Class">
+</section>
+<section name="Most Fields per Class">
+</section>
+<section name="Most Properties per Class">
+</section>
