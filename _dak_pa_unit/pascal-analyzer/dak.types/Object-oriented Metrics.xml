@@ -1,0 +1,166 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Object-oriented Metrics Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Weighted Methods per Class (WMC)">
+  </section>
+  <section name="Depth of Inheritance Tree (DIT)">
+    <item>
+      <id>DIT=0.....TAppOptions in dak.types</id>
+      <DIT>0</DIT>
+      <locmod>dak.types (17)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixInsightExtraOptions in dak.types</id>
+      <DIT>0</DIT>
+      <locmod>dak.types (70)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixInsightIgnoreDefaults in dak.types</id>
+      <DIT>0</DIT>
+      <locmod>dak.types (80)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TReportFilterDefaults in dak.types</id>
+      <DIT>0</DIT>
+      <locmod>dak.types (84)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TPascalAnalyzerDefaults in dak.types</id>
+      <DIT>0</DIT>
+      <locmod>dak.types (88)</locmod>
+    </item>
+    <item>
+      <id>DIT=0.....TFixInsightParams in dak.types</id>
+      <DIT>0</DIT>
+      <locmod>dak.types (94)</locmod>
+    </item>
+  </section>
+  <section name="Number of Children (NOC)">
+    <item>
+      <id>NOC=0.....TAppOptions in dak.types</id>
+      <NOC>0</NOC>
+      <locmod>dak.types (17)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightExtraOptions in dak.types</id>
+      <NOC>0</NOC>
+      <locmod>dak.types (70)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightIgnoreDefaults in dak.types</id>
+      <NOC>0</NOC>
+      <locmod>dak.types (80)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TReportFilterDefaults in dak.types</id>
+      <NOC>0</NOC>
+      <locmod>dak.types (84)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPascalAnalyzerDefaults in dak.types</id>
+      <NOC>0</NOC>
+      <locmod>dak.types (88)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightParams in dak.types</id>
+      <NOC>0</NOC>
+      <locmod>dak.types (94)</locmod>
+    </item>
+  </section>
+  <section name="Coupling between Object Classes (CBO)">
+    <item>
+      <id>CBO=0.....TAppOptions in dak.types</id>
+      <CBO>0</CBO>
+      <locmod>dak.types (17)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightExtraOptions in dak.types</id>
+      <CBO>0</CBO>
+      <locmod>dak.types (70)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightIgnoreDefaults in dak.types</id>
+      <CBO>0</CBO>
+      <locmod>dak.types (80)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TReportFilterDefaults in dak.types</id>
+      <CBO>0</CBO>
+      <locmod>dak.types (84)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPascalAnalyzerDefaults in dak.types</id>
+      <CBO>0</CBO>
+      <locmod>dak.types (88)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightParams in dak.types</id>
+      <CBO>0</CBO>
+      <locmod>dak.types (94)</locmod>
+    </item>
+  </section>
+  <section name="Response for a Class (RFC)">
+    <item>
+      <id>RFC=0.....TAppOptions in dak.types</id>
+      <RFC>0</RFC>
+      <locmod>dak.types (17)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFixInsightExtraOptions in dak.types</id>
+      <RFC>0</RFC>
+      <locmod>dak.types (70)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFixInsightIgnoreDefaults in dak.types</id>
+      <RFC>0</RFC>
+      <locmod>dak.types (80)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TReportFilterDefaults in dak.types</id>
+      <RFC>0</RFC>
+      <locmod>dak.types (84)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TPascalAnalyzerDefaults in dak.types</id>
+      <RFC>0</RFC>
+      <locmod>dak.types (88)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TFixInsightParams in dak.types</id>
+      <RFC>0</RFC>
+      <locmod>dak.types (94)</locmod>
+    </item>
+  </section>
+  <section name="Lack of Cohesion in Methods (LCOM)">
+    <item>
+      <id>LCOM=0....TAppOptions in dak.types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>dak.types (17)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixInsightExtraOptions in dak.types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>dak.types (70)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixInsightIgnoreDefaults in dak.types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>dak.types (80)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TReportFilterDefaults in dak.types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>dak.types (84)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPascalAnalyzerDefaults in dak.types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>dak.types (88)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TFixInsightParams in dak.types</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>dak.types (94)</locmod>
+    </item>
+  </section>
+</report>

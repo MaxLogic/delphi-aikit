@@ -1,0 +1,5550 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Most Called Report">
+  <created>30.01.2026 00:14:14</created>
+  <section name="These subprograms are called from two or more locations" count="924" oldcount="-2">
+    <item>
+      <id>AcceptData</id>
+      <numcalled>8</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEFields (4979)</locmod>
+    </item>
+    <item>
+      <id>Add</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbos (23)</locmod>
+    </item>
+    <item>
+      <id>Add</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbos (22)</locmod>
+    </item>
+    <item>
+      <id>Add</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+    </item>
+    <item>
+      <id>Add</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEAttachments (4933)</locmod>
+    </item>
+    <item>
+      <id>AddArea</id>
+      <numcalled>21</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVPrgrAlert\TIProgressAlert (97)</locmod>
+    </item>
+    <item>
+      <id>AddArg</id>
+      <numcalled>12</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.FixInsightRunner (66)</locmod>
+    </item>
+    <item>
+      <id>AddArg</id>
+      <numcalled>12</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat (188)</locmod>
+    </item>
+    <item>
+      <id>AddCodeArea</id>
+      <numcalled>14</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madDisAsm\ParseFunction_ (2430)</locmod>
+    </item>
+    <item>
+      <id>AddColumnStr</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TExceptionBox\CheckCurrentTab\PrepareListView_Thread (12318)</locmod>
+    </item>
+    <item>
+      <id>AddDevice</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madListHardware\GetHardwareList (43)</locmod>
+    </item>
+    <item>
+      <id>AddFindingFromLoc</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+    </item>
+    <item>
+      <id>AddFindingRecord</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+    </item>
+    <item>
+      <id>AddFrom</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.FixInsightSettings\MergeList (90)</locmod>
+    </item>
+    <item>
+      <id>AddFunction</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStackTrace (222)</locmod>
+    </item>
+    <item>
+      <id>AddHeaderData</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8706)</locmod>
+    </item>
+    <item>
+      <id>AddInfo</id>
+      <numcalled>42</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+    </item>
+    <item>
+      <id>AddItem</id>
+      <numcalled>38</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TIMEException\GetBugReportHeader (14694)</locmod>
+    </item>
+    <item>
+      <id>AddItem</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TIMEException\GetBugReportSections (15737)</locmod>
+    </item>
+    <item>
+      <id>AddItem</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madListProcesses\GetProcessList (96)</locmod>
+    </item>
+    <item>
+      <id>AddItem</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVAssistant\TNVForm\Create (1192)</locmod>
+    </item>
+    <item>
+      <id>AddLine</id>
+      <numcalled>20</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madDisAsm\ParseFunctionEx\DoItAll (2996)</locmod>
+    </item>
+    <item>
+      <id>AddLink</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madStackTrace\StackTrace (890)</locmod>
+    </item>
+    <item>
+      <id>AddMEProperty</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (4210)</locmod>
+    </item>
+    <item>
+      <id>AddModule</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStackTrace (225)</locmod>
+    </item>
+    <item>
+      <id>AddMsgHandler</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (169)</locmod>
+    </item>
+    <item>
+      <id>AddMsgHandler_</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madTools (1038)</locmod>
+    </item>
+    <item>
+      <id>AddNote</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+    </item>
+    <item>
+      <id>AddPatch</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (14350)</locmod>
+    </item>
+    <item>
+      <id>AddPngPart</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madNVBitmap\TINVBitmap\AsPngStr\CreatePng (236)</locmod>
+    </item>
+    <item>
+      <id>AddPtr</id>
+      <numcalled>22</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (19023)</locmod>
+    </item>
+    <item>
+      <id>AddRoot</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+    </item>
+    <item>
+      <id>AddSpecialBlock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madDisAsm\ParseFunction_ (2480)</locmod>
+    </item>
+    <item>
+      <id>AddStackItem</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madStackTrace\StackTrace\CollectPossibleStackItems (972)</locmod>
+    </item>
+    <item>
+      <id>AddWarning</id>
+      <numcalled>18</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+    </item>
+    <item>
+      <id>AllocOutOfMemoryInsurance</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (13628)</locmod>
+    </item>
+    <item>
+      <id>AmOnline</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1598)</locmod>
+    </item>
+    <item>
+      <id>AnsiToGlobalUnicode</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TWinHttp\Create (8787)</locmod>
+    </item>
+    <item>
+      <id>AnsiToWideEx</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (372)</locmod>
+    </item>
+    <item>
+      <id>AppendRunHeader</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (65)</locmod>
+    </item>
+    <item>
+      <id>AppendVarList</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat (144)</locmod>
+    </item>
+    <item>
+      <id>ApplySettingsOverrides</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Dak.FixInsightSettings (14)</locmod>
+    </item>
+    <item>
+      <id>ApproveFunction</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madStackTrace\AddFunction (327)</locmod>
+    </item>
+    <item>
+      <id>AreaDone</id>
+      <numcalled>13</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVPrgrAlert\TIProgressAlert (99)</locmod>
+    </item>
+    <item>
+      <id>AttrText</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+    </item>
+    <item>
+      <id>BeginUpdate</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5101)</locmod>
+    </item>
+    <item>
+      <id>BitsWindup</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx\FlushBlockOnly\TreeFlushBlock (1307)</locmod>
+    </item>
+    <item>
+      <id>BooleanValue</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madNVAssistant (470)</locmod>
+    </item>
+    <item>
+      <id>BoolToText</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator\EvaluateFile (298)</locmod>
+    </item>
+    <item>
+      <id>Bottom</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVBitmap\TINVBitmap\AsPngStr\FindOptimalPalette (377)</locmod>
+    </item>
+    <item>
+      <id>BugReportChanged</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TExceptionBox (11142)</locmod>
+    </item>
+    <item>
+      <id>BugZillaCall</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8738)</locmod>
+    </item>
+    <item>
+      <id>BuildFixInsightCommandLine</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightRunner (10)</locmod>
+    </item>
+    <item>
+      <id>BuildHuffmanTables</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madZip\UncompressEx\InflateBlocks (2682)</locmod>
+    </item>
+    <item>
+      <id>BuildPalCmdCommandLine</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+    </item>
+    <item>
+      <id>BuildPalCmdUnitCommandLine</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+    </item>
+    <item>
+      <id>BuildTree</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx\FlushBlockOnly\TreeFlushBlock (1022)</locmod>
+    </item>
+    <item>
+      <id>CalcCheckSum</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\Init\CheckFileCrc (19221)</locmod>
+    </item>
+    <item>
+      <id>CalcCodeBegin</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madDisAsm\ParseFunction_ (2764)</locmod>
+    </item>
+    <item>
+      <id>CalcCryptPassword</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madMapFile (400)</locmod>
+    </item>
+    <item>
+      <id>CalcMSize</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madDisAsm\ParseCode\DisAsmModRm (1821)</locmod>
+    </item>
+    <item>
+      <id>CalcRect</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVLabel (319)</locmod>
+    </item>
+    <item>
+      <id>CalibrateCode</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1931)</locmod>
+    </item>
+    <item>
+      <id>CalibrateModule</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\Init (19311)</locmod>
+    </item>
+    <item>
+      <id>CallThreadProcSafe</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (17890)</locmod>
+    </item>
+    <item>
+      <id>Cancel</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (380)</locmod>
+    </item>
+    <item>
+      <id>CaptureOption</id>
+      <numcalled>8</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Registry\TryReadEnvOptionsLibraryPath (27)</locmod>
+    </item>
+    <item>
+      <id>CheckAddTarget</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madDisAsm\ParseFunction_ (2499)</locmod>
+    </item>
+    <item>
+      <id>CheckAutoBtn</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (3231)</locmod>
+    </item>
+    <item>
+      <id>CheckAutoStuff</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (11379)</locmod>
+    </item>
+    <item>
+      <id>CheckColDec</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (11163)</locmod>
+    </item>
+    <item>
+      <id>CheckContinueButton</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\TNVForm (405)</locmod>
+    </item>
+    <item>
+      <id>CheckCurrentTab</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TExceptionBox (11146)</locmod>
+    </item>
+    <item>
+      <id>CheckDoubleListValue</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8718)</locmod>
+    </item>
+    <item>
+      <id>CheckDstMap</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx (712)</locmod>
+    </item>
+    <item>
+      <id>CheckDstMap</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\UncompressEx (1960)</locmod>
+    </item>
+    <item>
+      <id>CheckExceptAddr</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (3995)</locmod>
+    </item>
+    <item>
+      <id>CheckExceptParams</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1886)</locmod>
+    </item>
+    <item>
+      <id>CheckFileCrc</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\Init (19219)</locmod>
+    </item>
+    <item>
+      <id>CheckFunctionAreas</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStackTrace (462)</locmod>
+    </item>
+    <item>
+      <id>CheckFunctionName</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madDisAsm\ParseCode (2100)</locmod>
+    </item>
+    <item>
+      <id>CheckListValue</id>
+      <numcalled>12</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8717)</locmod>
+    </item>
+    <item>
+      <id>CheckSrcMap</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx (673)</locmod>
+    </item>
+    <item>
+      <id>CheckSrcMap</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\UncompressEx (1917)</locmod>
+    </item>
+    <item>
+      <id>CheckStringData</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madDisAsm\ParseCode (2141)</locmod>
+    </item>
+    <item>
+      <id>CheckTabs</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TExceptionBox (11145)</locmod>
+    </item>
+    <item>
+      <id>CheckTryRead</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madDisAsm (3450)</locmod>
+    </item>
+    <item>
+      <id>ChildText</id>
+      <numcalled>15</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+    </item>
+    <item>
+      <id>ChooseAuthScheme</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TWinHttp\ReceiveResponse (9024)</locmod>
+    </item>
+    <item>
+      <id>ChooseMessage</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1247)</locmod>
+    </item>
+    <item>
+      <id>ChoosePalCmdExeInDir</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+    </item>
+    <item>
+      <id>ClearEmail</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TWinHttp\InternalPost (9342)</locmod>
+    </item>
+    <item>
+      <id>ClearExcParent</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEFields (4976)</locmod>
+    </item>
+    <item>
+      <id>ClearLastException</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (3924)</locmod>
+    </item>
+    <item>
+      <id>ClearTempPath</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (2409)</locmod>
+    </item>
+    <item>
+      <id>ClientHandshakeLoop</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TSmtp (7987)</locmod>
+    </item>
+    <item>
+      <id>Close</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVPrgrAlert\TIProgressAlert (107)</locmod>
+    </item>
+    <item>
+      <id>CloseApplication</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1588)</locmod>
+    </item>
+    <item>
+      <id>CloseApplication</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5131)</locmod>
+    </item>
+    <item>
+      <id>CloseAttachFiles</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (7860)</locmod>
+    </item>
+    <item>
+      <id>CloseBmp</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madNVBitmap (109)</locmod>
+    </item>
+    <item>
+      <id>CloseCreateThreadHook</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (18295)</locmod>
+    </item>
+    <item>
+      <id>ClosehandleAndZeroIt</id>
+      <numcalled>8</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (54)</locmod>
+    </item>
+    <item>
+      <id>CloseHandleExceptionThread</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (13582)</locmod>
+    </item>
+    <item>
+      <id>CloseMainWnd</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TExceptionBox (11143)</locmod>
+    </item>
+    <item>
+      <id>CmdQuote</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Output (31)</locmod>
+    </item>
+    <item>
+      <id>CodeToHex</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madDisAsm (1751)</locmod>
+    </item>
+    <item>
+      <id>CollectExceptionCalls</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+    </item>
+    <item>
+      <id>ColumnExists</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TExceptionBox\CheckCurrentTab\PrepareListView_Thread (12302)</locmod>
+    </item>
+    <item>
+      <id>CombinePath</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (82)</locmod>
+    </item>
+    <item>
+      <id>CompareHeaderInfo</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\SaveBugReportEx (10309)</locmod>
+    </item>
+    <item>
+      <id>CompareText</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (100)</locmod>
+    </item>
+    <item>
+      <id>CompleteBugReport</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5136)</locmod>
+    </item>
+    <item>
+      <id>CompletePhaseHandlerExists</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (5303)</locmod>
+    </item>
+    <item>
+      <id>CompName</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (2440)</locmod>
+    </item>
+    <item>
+      <id>Compress</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madZip (70)</locmod>
+    </item>
+    <item>
+      <id>CompressBlock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx\FlushBlockOnly\TreeFlushBlock (1589)</locmod>
+    </item>
+    <item>
+      <id>CompressEx</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madZip (667)</locmod>
+    </item>
+    <item>
+      <id>ContainsFlag</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (410)</locmod>
+    </item>
+    <item>
+      <id>ContainsMacro</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (38)</locmod>
+    </item>
+    <item>
+      <id>ContainsSyncHandler</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\DoFireHandlers (5307)</locmod>
+    </item>
+    <item>
+      <id>ContinueApplication</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5129)</locmod>
+    </item>
+    <item>
+      <id>CopyR</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (76)</locmod>
+    </item>
+    <item>
+      <id>CopyR</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (77)</locmod>
+    </item>
+    <item>
+      <id>CpuCount</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>AutoFree\TGarbo (36)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>3</numcalled>
+      <kind>Constructor</kind>
+      <locmod>Dak.Diagnostics\TStringSet (16)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>3</numcalled>
+      <kind>Constructor</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>4</numcalled>
+      <kind>Constructor</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (22)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>Dak.Project\TSourceTracker (22)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>7</numcalled>
+      <kind>Constructor</kind>
+      <locmod>madExcept\TIMESettings (4616)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>3</numcalled>
+      <kind>Constructor</kind>
+      <locmod>madExcept\TIMEAttachments (4942)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>8</numcalled>
+      <kind>Constructor</kind>
+      <locmod>madExcept\TIMEFields (4981)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>madExcept\TIMEException (5150)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>madExcept\TSmtp (7993)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>7</numcalled>
+      <kind>Constructor</kind>
+      <locmod>madExcept\TWinHttp (8700)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>8</numcalled>
+      <kind>Constructor</kind>
+      <locmod>madMapFile\TMapFile (230)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>5</numcalled>
+      <kind>Constructor</kind>
+      <locmod>madNVAssistant\TNVItem (277)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>4</numcalled>
+      <kind>Constructor</kind>
+      <locmod>madNVAssistant\TNVButton (305)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>madNVBitmap\TINVBitmap (75)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>maxAsync\TAsyncLoop (375)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (215)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (70)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>maxConsoleRunner\TPipeThread (126)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (109)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (148)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>4</numcalled>
+      <kind>Constructor</kind>
+      <locmod>MaxLogic.strUtils\TProcAdapter (307)</locmod>
+    </item>
+    <item>
+      <id>CreateBmp</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madNVBitmap (87)</locmod>
+    </item>
+    <item>
+      <id>CreateButton</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TExceptionBox\Create (12750)</locmod>
+    </item>
+    <item>
+      <id>CreateMainButton</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madNVAssistant\TNVForm\ShowModal (1758)</locmod>
+    </item>
+    <item>
+      <id>CreatePng</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVBitmap\TINVBitmap\AsPngStr (173)</locmod>
+    </item>
+    <item>
+      <id>CreateWindow</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\TNVItem (284)</locmod>
+    </item>
+    <item>
+      <id>CreateWindow_</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TExceptionBox\Create (12741)</locmod>
+    </item>
+    <item>
+      <id>CriticalBugReportCallbackExists</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5138)</locmod>
+    </item>
+    <item>
+      <id>crypt2dwords</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madCrypt\cryptBuf (242)</locmod>
+    </item>
+    <item>
+      <id>cryptBuf</id>
+      <numcalled>10</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madCrypt (229)</locmod>
+    </item>
+    <item>
+      <id>DcToBmp</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madNVBitmap (1070)</locmod>
+    </item>
+    <item>
+      <id>DecCol</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (11174)</locmod>
+    </item>
+    <item>
+      <id>DecCol</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madNVAssistant (480)</locmod>
+    </item>
+    <item>
+      <id>Decode</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madCrypt (49)</locmod>
+    </item>
+    <item>
+      <id>DecodeUtf8</id>
+      <numcalled>33</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (376)</locmod>
+    </item>
+    <item>
+      <id>Decrypt</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madCrypt (34)</locmod>
+    </item>
+    <item>
+      <id>DecryptPassword</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1900)</locmod>
+    </item>
+    <item>
+      <id>DecryptStr</id>
+      <numcalled>15</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (371)</locmod>
+    </item>
+    <item>
+      <id>DecSepA</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStrings (2812)</locmod>
+    </item>
+    <item>
+      <id>DecSepW</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStrings (2824)</locmod>
+    </item>
+    <item>
+      <id>DefWindowProcX</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TExceptionBox\DialogWndMethod (11446)</locmod>
+    </item>
+    <item>
+      <id>Delete</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEFields (4973)</locmod>
+    </item>
+    <item>
+      <id>delete</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (1563)</locmod>
+    </item>
+    <item>
+      <id>DeleteLink</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madStackTrace\StackTrace (909)</locmod>
+    </item>
+    <item>
+      <id>DelMsgHandler</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (171)</locmod>
+    </item>
+    <item>
+      <id>DelMsgHandler_</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madTools (1092)</locmod>
+    </item>
+    <item>
+      <id>DetectIndexesFromRow</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightCsv (407)</locmod>
+    </item>
+    <item>
+      <id>DoClosing</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (131)</locmod>
+    </item>
+    <item>
+      <id>DoDetails</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TExceptionBox (11144)</locmod>
+    </item>
+    <item>
+      <id>DoExceptionAutoStuff</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (13374)</locmod>
+    </item>
+    <item>
+      <id>DoFireHandlers</id>
+      <numcalled>25</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (5305)</locmod>
+    </item>
+    <item>
+      <id>DoItAll</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madDisAsm\ParseFunctionEx (2992)</locmod>
+    </item>
+    <item>
+      <id>Draw</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVBitmap\TINVBitmap (79)</locmod>
+    </item>
+    <item>
+      <id>DrawButton</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TExceptionBox (11136)</locmod>
+    </item>
+    <item>
+      <id>DrawGraphic</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TExceptionBox (11135)</locmod>
+    </item>
+    <item>
+      <id>DrawLine</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TExceptionBox\DrawButton (11261)</locmod>
+    </item>
+    <item>
+      <id>Ebp</id>
+      <numcalled>16</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1904)</locmod>
+    </item>
+    <item>
+      <id>Enabled</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4622)</locmod>
+    </item>
+    <item>
+      <id>Encode</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madCrypt (48)</locmod>
+    </item>
+    <item>
+      <id>Encode</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madCrypt (53)</locmod>
+    </item>
+    <item>
+      <id>EncodeBugZillaParams</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8735)</locmod>
+    </item>
+    <item>
+      <id>EncodeStr</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (7444)</locmod>
+    </item>
+    <item>
+      <id>EncodeUtf8</id>
+      <numcalled>36</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (377)</locmod>
+    </item>
+    <item>
+      <id>EndTryRead</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madDisAsm (212)</locmod>
+    </item>
+    <item>
+      <id>EndUpdate</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5102)</locmod>
+    </item>
+    <item>
+      <id>EnsureEnvVar</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (104)</locmod>
+    </item>
+    <item>
+      <id>Enter</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (217)</locmod>
+    </item>
+    <item>
+      <id>Enter</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\tInterfacedCriticalSection (253)</locmod>
+    </item>
+    <item>
+      <id>EnterSettingsMutex</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (4373)</locmod>
+    </item>
+    <item>
+      <id>Env</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (542)</locmod>
+    </item>
+    <item>
+      <id>ErrorCodeToStrW</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (354)</locmod>
+    </item>
+    <item>
+      <id>Esp</id>
+      <numcalled>15</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1903)</locmod>
+    </item>
+    <item>
+      <id>EvaluateFile</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (23)</locmod>
+    </item>
+    <item>
+      <id>EvaluateLinks</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madStackTrace\StackTrace\RealizeOptimalLinkChain (1618)</locmod>
+    </item>
+    <item>
+      <id>Execute</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (378)</locmod>
+    </item>
+    <item>
+      <id>Execute</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (73)</locmod>
+    </item>
+    <item>
+      <id>Expand</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MacroExpander\TMacroExpander (11)</locmod>
+    </item>
+    <item>
+      <id>ExpandVars</id>
+      <numcalled>11</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1897)</locmod>
+    </item>
+    <item>
+      <id>ExportToFunc</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madTools (1235)</locmod>
+    </item>
+    <item>
+      <id>ExtractBugReportHeaderField</id>
+      <numcalled>14</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1947)</locmod>
+    </item>
+    <item>
+      <id>ExtractBugReportSection</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (10263)</locmod>
+    </item>
+    <item>
+      <id>ExtractFileDriveA</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madTools (524)</locmod>
+    </item>
+    <item>
+      <id>ExtractFileDriveW</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (381)</locmod>
+    </item>
+    <item>
+      <id>ExtractFileNameW</id>
+      <numcalled>17</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (379)</locmod>
+    </item>
+    <item>
+      <id>ExtractFilePathW</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (380)</locmod>
+    </item>
+    <item>
+      <id>ExtractResult</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TWinHttp\ExtractXml\ExtractXml2 (9158)</locmod>
+    </item>
+    <item>
+      <id>ExtractString</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (83)</locmod>
+    </item>
+    <item>
+      <id>ExtractXml</id>
+      <numcalled>47</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8716)</locmod>
+    </item>
+    <item>
+      <id>FillClipboard</id>
+      <numcalled>8</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1888)</locmod>
+    </item>
+    <item>
+      <id>FillDoubleLists</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TWinHttp\InitBugZilla (9576)</locmod>
+    </item>
+    <item>
+      <id>FillFormCache</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMESettings (4908)</locmod>
+    </item>
+    <item>
+      <id>FillList</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TWinHttp\InitBugZilla (9587)</locmod>
+    </item>
+    <item>
+      <id>FillMultiLists</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TWinHttp\InitMantis (9777)</locmod>
+    </item>
+    <item>
+      <id>FillProps</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (4466)</locmod>
+    </item>
+    <item>
+      <id>FillRect</id>
+      <numcalled>14</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madNVAssistant (534)</locmod>
+    </item>
+    <item>
+      <id>FillUpLink</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madStackTrace\StackTrace\InDeepCheck (1487)</locmod>
+    </item>
+    <item>
+      <id>FilterExistingPaths</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.FixInsightRunner\BuildArgs (85)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (121)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (122)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (124)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (125)</locmod>
+    </item>
+    <item>
+      <id>FindApprovedDownLink</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madStackTrace\StackTrace\InDeepCheck (1474)</locmod>
+    </item>
+    <item>
+      <id>FindBpl</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\Init (19290)</locmod>
+    </item>
+    <item>
+      <id>FindChildText</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (307)</locmod>
+    </item>
+    <item>
+      <id>FindClass</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVForm (406)</locmod>
+    </item>
+    <item>
+      <id>FindCodeAddrAndTarget</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStackTrace (479)</locmod>
+    </item>
+    <item>
+      <id>FindColumnIndex</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.ReportPostProcess (352)</locmod>
+    </item>
+    <item>
+      <id>FindColumns</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TExceptionBox\CheckCurrentTab (11963)</locmod>
+    </item>
+    <item>
+      <id>FindHandle</id>
+      <numcalled>11</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVForm (407)</locmod>
+    </item>
+    <item>
+      <id>FindImagePos</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVAssistant\TNVForm\DialogWndMethod (1372)</locmod>
+    </item>
+    <item>
+      <id>FindItem</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEFields (4968)</locmod>
+    </item>
+    <item>
+      <id>FindLine</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMapFile (244)</locmod>
+    </item>
+    <item>
+      <id>FindLine</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMapFile (245)</locmod>
+    </item>
+    <item>
+      <id>FindLines</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TExceptionBox\CheckCurrentTab (11940)</locmod>
+    </item>
+    <item>
+      <id>FindMapFile</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madMapFile (272)</locmod>
+    </item>
+    <item>
+      <id>FindMapFile</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create (844)</locmod>
+    </item>
+    <item>
+      <id>FindMEProperty</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (4336)</locmod>
+    </item>
+    <item>
+      <id>FindMeSettings</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (6517)</locmod>
+    </item>
+    <item>
+      <id>FindOrderIndex</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (276)</locmod>
+    </item>
+    <item>
+      <id>FindProcName</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madDisAsm (1769)</locmod>
+    </item>
+    <item>
+      <id>FindProp</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4896)</locmod>
+    </item>
+    <item>
+      <id>FindProp</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5139)</locmod>
+    </item>
+    <item>
+      <id>FindPublic</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMapFile (241)</locmod>
+    </item>
+    <item>
+      <id>FindPublic</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMapFile (242)</locmod>
+    </item>
+    <item>
+      <id>FindSegment</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMapFile (239)</locmod>
+    </item>
+    <item>
+      <id>FindValidStackArr</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madStackTrace\StackTrace\RemoveRecursiveAreas\RemoveRecursiveArea (1379)</locmod>
+    </item>
+    <item>
+      <id>FinishBugZillaCall</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8737)</locmod>
+    </item>
+    <item>
+      <id>FinishMantisCall</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8745)</locmod>
+    </item>
+    <item>
+      <id>FireChangeEvent</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5135)</locmod>
+    </item>
+    <item>
+      <id>FireHandlers</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (5172)</locmod>
+    </item>
+    <item>
+      <id>FireOnAction</id>
+      <numcalled>9</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\TNVForm (409)</locmod>
+    </item>
+    <item>
+      <id>FixEmptyToUntitled</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>maxLogic.IOUtils\SanitizeFileName (613)</locmod>
+    </item>
+    <item>
+      <id>FlashButton</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TExceptionBox (11138)</locmod>
+    </item>
+    <item>
+      <id>Flush</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (171)</locmod>
+    </item>
+    <item>
+      <id>FlushBlockOnly</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx (982)</locmod>
+    </item>
+    <item>
+      <id>FlushChunk</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat\AppendVarList (153)</locmod>
+    </item>
+    <item>
+      <id>FlushDstFile</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx (700)</locmod>
+    </item>
+    <item>
+      <id>FlushDstFile</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\UncompressEx (1946)</locmod>
+    </item>
+    <item>
+      <id>FocusNext</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\TNVForm (408)</locmod>
+    </item>
+    <item>
+      <id>FogBugzCall</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8730)</locmod>
+    </item>
+    <item>
+      <id>FoldCharValue</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (139)</locmod>
+    </item>
+    <item>
+      <id>FoldPair</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (140)</locmod>
+    </item>
+    <item>
+      <id>ForceDir</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\SaveBugReportEx (10281)</locmod>
+    </item>
+    <item>
+      <id>FormatExceptMessage</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1898)</locmod>
+    </item>
+    <item>
+      <id>FormatMailAddr</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (7022)</locmod>
+    </item>
+    <item>
+      <id>FormatTimestamp</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (36)</locmod>
+    </item>
+    <item>
+      <id>FourBitToHex</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\EncodeStr (7446)</locmod>
+    </item>
+    <item>
+      <id>Free</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (221)</locmod>
+    </item>
+    <item>
+      <id>FreeContributorList</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madNVBitmap\TINVBitmap\Zoom\MitchellResampling32 (883)</locmod>
+    </item>
+    <item>
+      <id>FreeOutOfMemoryInsurance</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (13643)</locmod>
+    </item>
+    <item>
+      <id>FreePalCmdMap</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (127)</locmod>
+    </item>
+    <item>
+      <id>FreeProps</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (4544)</locmod>
+    </item>
+    <item>
+      <id>Fs</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madDisAsm\Magic (3371)</locmod>
+    </item>
+    <item>
+      <id>fStr</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>MaxLogic.strUtils (272)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <numcalled>10</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>AutoFree (69)</locmod>
+    </item>
+    <item>
+      <id>Get</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8724)</locmod>
+    </item>
+    <item>
+      <id>GetAdditionalAttachments</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (831)</locmod>
+    </item>
+    <item>
+      <id>GetAdditionalFields</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (788)</locmod>
+    </item>
+    <item>
+      <id>GetAppendBugReports</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (841)</locmod>
+    </item>
+    <item>
+      <id>GetAppendScreenShot</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1362)</locmod>
+    </item>
+    <item>
+      <id>GetAppendScreenShot</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5116)</locmod>
+    </item>
+    <item>
+      <id>GetAssistant</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4837)</locmod>
+    </item>
+    <item>
+      <id>GetAttachBugReport</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (794)</locmod>
+    </item>
+    <item>
+      <id>GetAttachBugReportFile</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (798)</locmod>
+    </item>
+    <item>
+      <id>GetAutoClipboard</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (589)</locmod>
+    </item>
+    <item>
+      <id>GetAutoClose</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (613)</locmod>
+    </item>
+    <item>
+      <id>GetAutoContinue</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (603)</locmod>
+    </item>
+    <item>
+      <id>GetAutoDelay</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (618)</locmod>
+    </item>
+    <item>
+      <id>GetAutoRestart</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (608)</locmod>
+    </item>
+    <item>
+      <id>GetAutoSave</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (573)</locmod>
+    </item>
+    <item>
+      <id>GetAutoSaveIfNotSent</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (577)</locmod>
+    </item>
+    <item>
+      <id>GetAutoSend</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (581)</locmod>
+    </item>
+    <item>
+      <id>GetAutoSendPrgrBox</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (585)</locmod>
+    </item>
+    <item>
+      <id>GetAutoShowBugReport</id>
+      <numcalled>14</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (665)</locmod>
+    </item>
+    <item>
+      <id>GetBitFaultMsg</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (938)</locmod>
+    </item>
+    <item>
+      <id>GetBitmap</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVImage (117)</locmod>
+    </item>
+    <item>
+      <id>GetBoundary</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (7819)</locmod>
+    </item>
+    <item>
+      <id>GetBugReport</id>
+      <numcalled>16</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5097)</locmod>
+    </item>
+    <item>
+      <id>GetBugReportFile</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (837)</locmod>
+    </item>
+    <item>
+      <id>GetBugReportFileSize</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (845)</locmod>
+    </item>
+    <item>
+      <id>GetBugReportHeader</id>
+      <numcalled>11</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1318)</locmod>
+    </item>
+    <item>
+      <id>GetBugReportHeader</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5093)</locmod>
+    </item>
+    <item>
+      <id>GetBugReportSections</id>
+      <numcalled>17</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1321)</locmod>
+    </item>
+    <item>
+      <id>GetBugReportSections</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5094)</locmod>
+    </item>
+    <item>
+      <id>GetBugReportSendAs</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (806)</locmod>
+    </item>
+    <item>
+      <id>GetBugReportZip</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (810)</locmod>
+    </item>
+    <item>
+      <id>GetBugReport_</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1324)</locmod>
+    </item>
+    <item>
+      <id>GetBugTrackerAccount</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (721)</locmod>
+    </item>
+    <item>
+      <id>GetBugTrackerArea</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (733)</locmod>
+    </item>
+    <item>
+      <id>GetBugTrackerAssignTo</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (737)</locmod>
+    </item>
+    <item>
+      <id>GetBugTrackerDescription</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (990)</locmod>
+    </item>
+    <item>
+      <id>GetBugTrackerPassword</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (725)</locmod>
+    </item>
+    <item>
+      <id>GetBugTrackerProject</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (729)</locmod>
+    </item>
+    <item>
+      <id>GetBugTrackerTitle</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (985)</locmod>
+    </item>
+    <item>
+      <id>GetBuildInfo</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (31)</locmod>
+    </item>
+    <item>
+      <id>GetCallHandlers</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1353)</locmod>
+    </item>
+    <item>
+      <id>GetCancelButton</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVForm (420)</locmod>
+    </item>
+    <item>
+      <id>GetCanContinue</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1268)</locmod>
+    </item>
+    <item>
+      <id>GetCaption</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVButton (309)</locmod>
+    </item>
+    <item>
+      <id>GetCaption</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVLabel (321)</locmod>
+    </item>
+    <item>
+      <id>GetChecked</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVCheckBox (105)</locmod>
+    </item>
+    <item>
+      <id>GetCleartextDisAsm</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TIMEException\CompleteBugReport (15450)</locmod>
+    </item>
+    <item>
+      <id>GetCloseBtnCaption</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (949)</locmod>
+    </item>
+    <item>
+      <id>GetCloseBtnVisible</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (632)</locmod>
+    </item>
+    <item>
+      <id>GetConnectMsg</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (1020)</locmod>
+    </item>
+    <item>
+      <id>GetContent</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMEFields (1195)</locmod>
+    </item>
+    <item>
+      <id>GetContinueBtnCaption</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (947)</locmod>
+    </item>
+    <item>
+      <id>GetContinueBtnVisible</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (630)</locmod>
+    </item>
+    <item>
+      <id>GetContinueButton</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (149)</locmod>
+    </item>
+    <item>
+      <id>GetContinueButton</id>
+      <numcalled>12</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVForm (418)</locmod>
+    </item>
+    <item>
+      <id>GetContributorList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVBitmap\TINVBitmap\Zoom\MitchellResampling32 (830)</locmod>
+    </item>
+    <item>
+      <id>GetCpuRegisters</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TIMEException\CompleteBugReport (15371)</locmod>
+    </item>
+    <item>
+      <id>GetCreateBugReport</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1345)</locmod>
+    </item>
+    <item>
+      <id>GetCreateScreenShot</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1349)</locmod>
+    </item>
+    <item>
+      <id>GetCurrentArea</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (39)</locmod>
+    </item>
+    <item>
+      <id>GetCurrentDLLName</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (28)</locmod>
+    </item>
+    <item>
+      <id>GetData</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (189)</locmod>
+    </item>
+    <item>
+      <id>GetDeleteBugReportFile</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (802)</locmod>
+    </item>
+    <item>
+      <id>GetDetailsBtnCaption</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (968)</locmod>
+    </item>
+    <item>
+      <id>GetDeviceInfo</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madListHardware\GetHardwareList\GetHardwareListNt (167)</locmod>
+    </item>
+    <item>
+      <id>GetDiskStr</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TIMEException\GetBugReportHeader (14680)</locmod>
+    </item>
+    <item>
+      <id>GetDupExceptDef</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (858)</locmod>
+    </item>
+    <item>
+      <id>GetDupFreezeDef</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (862)</locmod>
+    </item>
+    <item>
+      <id>GetEnabled</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (51)</locmod>
+    </item>
+    <item>
+      <id>GetExceptBoxHandle</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1423)</locmod>
+    </item>
+    <item>
+      <id>GetExceptClass</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1280)</locmod>
+    </item>
+    <item>
+      <id>GetExceptClass</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5079)</locmod>
+    </item>
+    <item>
+      <id>GetExceptClass_</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (3333)</locmod>
+    </item>
+    <item>
+      <id>GetExceptMessage</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1283)</locmod>
+    </item>
+    <item>
+      <id>GetExceptMessage</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5080)</locmod>
+    </item>
+    <item>
+      <id>GetExceptMessage_</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (3343)</locmod>
+    </item>
+    <item>
+      <id>GetExceptMsg</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (928)</locmod>
+    </item>
+    <item>
+      <id>GetExceptObject</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1277)</locmod>
+    </item>
+    <item>
+      <id>GetExceptType</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1274)</locmod>
+    </item>
+    <item>
+      <id>GetExportDirectory</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (186)</locmod>
+    </item>
+    <item>
+      <id>GetFileTime</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\HandleScreenshotForm (5812)</locmod>
+    </item>
+    <item>
+      <id>GetFileTime</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create\ParseTd32\IsTdsOld (1700)</locmod>
+    </item>
+    <item>
+      <id>GetFinished</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (128)</locmod>
+    </item>
+    <item>
+      <id>GetFocusedButton</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (648)</locmod>
+    </item>
+    <item>
+      <id>GetFont</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madNVAssistant (504)</locmod>
+    </item>
+    <item>
+      <id>GetFormCount</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (197)</locmod>
+    </item>
+    <item>
+      <id>GetForms</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVAssistant (198)</locmod>
+    </item>
+    <item>
+      <id>GetFreeSystemResources</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (97)</locmod>
+    </item>
+    <item>
+      <id>GetFrozenMsg</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (933)</locmod>
+    </item>
+    <item>
+      <id>GetFrozenMsg</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4843)</locmod>
+    </item>
+    <item>
+      <id>GetHandle</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (48)</locmod>
+    </item>
+    <item>
+      <id>GetHandleAnyExceptionAddr</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madDisAsm (238)</locmod>
+    </item>
+    <item>
+      <id>GetHandleFinallyAddr</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madDisAsm (268)</locmod>
+    </item>
+    <item>
+      <id>GetHandleOnExceptionAddr</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madDisAsm (248)</locmod>
+    </item>
+    <item>
+      <id>GetHeight</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVBitmap\IInterface\INVBitmap (38)</locmod>
+    </item>
+    <item>
+      <id>GetHttpAccount</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (713)</locmod>
+    </item>
+    <item>
+      <id>GetHttpPassword</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (717)</locmod>
+    </item>
+    <item>
+      <id>GetHttpPort</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (709)</locmod>
+    </item>
+    <item>
+      <id>GetHttpServer</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (701)</locmod>
+    </item>
+    <item>
+      <id>GetHttpSsl</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (705)</locmod>
+    </item>
+    <item>
+      <id>GetImageDataDirectory</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madTools (1213)</locmod>
+    </item>
+    <item>
+      <id>GetImageExportDirectory</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (278)</locmod>
+    </item>
+    <item>
+      <id>GetImageNtHeaders</id>
+      <numcalled>19</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (276)</locmod>
+    </item>
+    <item>
+      <id>GetImageProcAddress</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (283)</locmod>
+    </item>
+    <item>
+      <id>GetImageProcAddress</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (284)</locmod>
+    </item>
+    <item>
+      <id>GetImageProcName</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (287)</locmod>
+    </item>
+    <item>
+      <id>GetImageProcNameW</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (288)</locmod>
+    </item>
+    <item>
+      <id>GetItem</id>
+      <numcalled>17</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMEFields (1189)</locmod>
+    </item>
+    <item>
+      <id>GetItem</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEAttachments (4928)</locmod>
+    </item>
+    <item>
+      <id>GetItemCount</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMEAttachments (1161)</locmod>
+    </item>
+    <item>
+      <id>GetItemCount</id>
+      <numcalled>12</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMEFields (1186)</locmod>
+    </item>
+    <item>
+      <id>GetKeepAlive</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (141)</locmod>
+    </item>
+    <item>
+      <id>GetLabel</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\MxLookup\nslookup (7609)</locmod>
+    </item>
+    <item>
+      <id>GetLineNumber</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madMapFile (2518)</locmod>
+    </item>
+    <item>
+      <id>GetLines</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (79)</locmod>
+    </item>
+    <item>
+      <id>GetListThreads</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4815)</locmod>
+    </item>
+    <item>
+      <id>GetMailAddr</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (680)</locmod>
+    </item>
+    <item>
+      <id>GetMailAsSmtpClient</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (746)</locmod>
+    </item>
+    <item>
+      <id>GetMailAsSmtpServer</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (742)</locmod>
+    </item>
+    <item>
+      <id>GetMailBody</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (1000)</locmod>
+    </item>
+    <item>
+      <id>GetMailFrom</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (784)</locmod>
+    </item>
+    <item>
+      <id>GetMailSubject</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (995)</locmod>
+    </item>
+    <item>
+      <id>GetMailViaMailto</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (779)</locmod>
+    </item>
+    <item>
+      <id>GetMailViaMapi</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (775)</locmod>
+    </item>
+    <item>
+      <id>GetMailWasSaved</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5142)</locmod>
+    </item>
+    <item>
+      <id>GetMeSettingsRes</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (4201)</locmod>
+    </item>
+    <item>
+      <id>GetMessageCallbackA</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (18338)</locmod>
+    </item>
+    <item>
+      <id>GetMessageCallbackW</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (18350)</locmod>
+    </item>
+    <item>
+      <id>GetMimeType</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (7868)</locmod>
+    </item>
+    <item>
+      <id>GetModalResult</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (156)</locmod>
+    </item>
+    <item>
+      <id>GetModuleList</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (2641)</locmod>
+    </item>
+    <item>
+      <id>GetMxLookupMsg</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (1015)</locmod>
+    </item>
+    <item>
+      <id>GetName</id>
+      <numcalled>13</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (47)</locmod>
+    </item>
+    <item>
+      <id>GetName</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (142)</locmod>
+    </item>
+    <item>
+      <id>GetNextLine</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create\ParseStr (1031)</locmod>
+    </item>
+    <item>
+      <id>GetNoDupExcepts</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (849)</locmod>
+    </item>
+    <item>
+      <id>GetNoDupFreezes</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (853)</locmod>
+    </item>
+    <item>
+      <id>GetNoOwnerDrawButtons</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (669)</locmod>
+    </item>
+    <item>
+      <id>GetOkBtnCaption</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (967)</locmod>
+    </item>
+    <item>
+      <id>GetOutputName</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (90)</locmod>
+    </item>
+    <item>
+      <id>GetOutputName</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVCheckBox (107)</locmod>
+    </item>
+    <item>
+      <id>GetOutputType</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (88)</locmod>
+    </item>
+    <item>
+      <id>GetParamList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (119)</locmod>
+    </item>
+    <item>
+      <id>GetPCharLen</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madStrings\PosPChar (1272)</locmod>
+    </item>
+    <item>
+      <id>GetPCharLen</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madStrings\PosPChar (1403)</locmod>
+    </item>
+    <item>
+      <id>GetPhase</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1265)</locmod>
+    </item>
+    <item>
+      <id>GetPosition</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (31)</locmod>
+    </item>
+    <item>
+      <id>GetPrepareAttachMsg</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (1010)</locmod>
+    </item>
+    <item>
+      <id>GetPrintAssistant</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (660)</locmod>
+    </item>
+    <item>
+      <id>GetPrintBtnCaption</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (945)</locmod>
+    </item>
+    <item>
+      <id>GetPrintBtnVisible</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (628)</locmod>
+    </item>
+    <item>
+      <id>GetProc</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (142)</locmod>
+    </item>
+    <item>
+      <id>GetProcessMainThreadId</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (19028)</locmod>
+    </item>
+    <item>
+      <id>GetProcessMemInfo</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1949)</locmod>
+    </item>
+    <item>
+      <id>GetPropBool</id>
+      <numcalled>67</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4897)</locmod>
+    </item>
+    <item>
+      <id>GetPropDw</id>
+      <numcalled>14</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4900)</locmod>
+    </item>
+    <item>
+      <id>GetPropertySource</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (192)</locmod>
+    </item>
+    <item>
+      <id>GetPropInt</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4898)</locmod>
+    </item>
+    <item>
+      <id>GetPropStr</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\FillProps (4468)</locmod>
+    </item>
+    <item>
+      <id>GetPropStr</id>
+      <numcalled>64</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4899)</locmod>
+    </item>
+    <item>
+      <id>GetReadySignal</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (136)</locmod>
+    </item>
+    <item>
+      <id>GetRestartBtnCaption</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (948)</locmod>
+    </item>
+    <item>
+      <id>GetRestartBtnVisible</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (631)</locmod>
+    </item>
+    <item>
+      <id>GetSaveAssistant</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (656)</locmod>
+    </item>
+    <item>
+      <id>GetSaveBtnCaption</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (944)</locmod>
+    </item>
+    <item>
+      <id>GetSaveBtnVisible</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (627)</locmod>
+    </item>
+    <item>
+      <id>GetScreenShot</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1329)</locmod>
+    </item>
+    <item>
+      <id>GetScreenShot</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5098)</locmod>
+    </item>
+    <item>
+      <id>GetScreenShotDepth</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (815)</locmod>
+    </item>
+    <item>
+      <id>GetScreenShotDepth</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4787)</locmod>
+    </item>
+    <item>
+      <id>GetScreenShotFile</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\HandleScreenshotForm (5829)</locmod>
+    </item>
+    <item>
+      <id>GetScreenShotSendAs</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (823)</locmod>
+    </item>
+    <item>
+      <id>GetScreenShotZip</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (827)</locmod>
+    </item>
+    <item>
+      <id>GetSeconds</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (2521)</locmod>
+    </item>
+    <item>
+      <id>GetSectionCountTotal</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (361)</locmod>
+    </item>
+    <item>
+      <id>GetSendAssistant</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (652)</locmod>
+    </item>
+    <item>
+      <id>GetSendAttachMsg</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (1035)</locmod>
+    </item>
+    <item>
+      <id>GetSendBoxTitle</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (1005)</locmod>
+    </item>
+    <item>
+      <id>GetSendBtnCaption</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (943)</locmod>
+    </item>
+    <item>
+      <id>GetSendBtnVisible</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (626)</locmod>
+    </item>
+    <item>
+      <id>GetSendFailureMsg</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (1045)</locmod>
+    </item>
+    <item>
+      <id>GetSendFinalizeMsg</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (1040)</locmod>
+    </item>
+    <item>
+      <id>GetSendInBackground</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (676)</locmod>
+    </item>
+    <item>
+      <id>GetSendMailMsg</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (1025)</locmod>
+    </item>
+    <item>
+      <id>GetServers</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\MxLookup\nslookup (7630)</locmod>
+    </item>
+    <item>
+      <id>GetShowAssistant</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1372)</locmod>
+    </item>
+    <item>
+      <id>GetShowBtnCaption</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (946)</locmod>
+    </item>
+    <item>
+      <id>GetShowBtnVisible</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (629)</locmod>
+    </item>
+    <item>
+      <id>GetShowCpuRegisters</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4817)</locmod>
+    </item>
+    <item>
+      <id>GetShowDisAsm</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4821)</locmod>
+    </item>
+    <item>
+      <id>GetShowPleaseWaitBox</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4646)</locmod>
+    </item>
+    <item>
+      <id>GetShowRelativeAddrs</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4825)</locmod>
+    </item>
+    <item>
+      <id>GetShowRelativeLines</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4827)</locmod>
+    </item>
+    <item>
+      <id>GetShowSetting</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1368)</locmod>
+    </item>
+    <item>
+      <id>GetShowStackDump</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4819)</locmod>
+    </item>
+    <item>
+      <id>GetSizeOfImage</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (309)</locmod>
+    </item>
+    <item>
+      <id>GetSkipButton</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVForm (419)</locmod>
+    </item>
+    <item>
+      <id>GetSmtpAccount</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (766)</locmod>
+    </item>
+    <item>
+      <id>GetSmtpPassword</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (770)</locmod>
+    </item>
+    <item>
+      <id>GetSmtpPort</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (762)</locmod>
+    </item>
+    <item>
+      <id>GetSmtpServer</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (750)</locmod>
+    </item>
+    <item>
+      <id>GetSmtpSsl</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (754)</locmod>
+    </item>
+    <item>
+      <id>GetSmtpTls</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (758)</locmod>
+    </item>
+    <item>
+      <id>GetSpecialFolderW</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1945)</locmod>
+    </item>
+    <item>
+      <id>GetStackDump</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TIMEException\CompleteBugReport (15408)</locmod>
+    </item>
+    <item>
+      <id>GetStartSignal</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (148)</locmod>
+    </item>
+    <item>
+      <id>GetStr</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create\ReadJdbg (1218)</locmod>
+    </item>
+    <item>
+      <id>GetSuspendThreads</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (593)</locmod>
+    </item>
+    <item>
+      <id>GetSwitchPrefixes</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (19)</locmod>
+    </item>
+    <item>
+      <id>GetTabClientRect</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TExceptionBox\CheckCurrentTab (12479)</locmod>
+    </item>
+    <item>
+      <id>GetTabStop</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem (49)</locmod>
+    </item>
+    <item>
+      <id>GetTaskName</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (143)</locmod>
+    </item>
+    <item>
+      <id>GetTaskName</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TThreadData (287)</locmod>
+    </item>
+    <item>
+      <id>GetTebIndex</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\IsProcessBlocked (3000)</locmod>
+    </item>
+    <item>
+      <id>GetTempPath</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (2375)</locmod>
+    </item>
+    <item>
+      <id>GetTerminated</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (135)</locmod>
+    </item>
+    <item>
+      <id>GetText</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (82)</locmod>
+    </item>
+    <item>
+      <id>GetText</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVEdit (339)</locmod>
+    </item>
+    <item>
+      <id>GetTextExtent</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madNVAssistant (520)</locmod>
+    </item>
+    <item>
+      <id>GetTextWidth</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TExceptionBox (11134)</locmod>
+    </item>
+    <item>
+      <id>GetThread</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (138)</locmod>
+    </item>
+    <item>
+      <id>GetThreadInfos</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1907)</locmod>
+    </item>
+    <item>
+      <id>GetThreadInfoStr</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (2926)</locmod>
+    </item>
+    <item>
+      <id>GetThreadList</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1905)</locmod>
+    </item>
+    <item>
+      <id>GetThreadReport</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TIMEException\CompleteBugReport (15285)</locmod>
+    </item>
+    <item>
+      <id>GetThreadStack</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TIMEException\GetBugReportSections\PrepareThreadReport (15751)</locmod>
+    </item>
+    <item>
+      <id>GetTitleBar</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (923)</locmod>
+    </item>
+    <item>
+      <id>GetTlsPointer</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (5574)</locmod>
+    </item>
+    <item>
+      <id>GetTNVItem</id>
+      <numcalled>45</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVItem (278)</locmod>
+    </item>
+    <item>
+      <id>GetUploadToBugZilla</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (689)</locmod>
+    </item>
+    <item>
+      <id>GetUploadToCustomScript</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (697)</locmod>
+    </item>
+    <item>
+      <id>GetUploadToFogBugz</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (685)</locmod>
+    </item>
+    <item>
+      <id>GetUploadToMantis</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (693)</locmod>
+    </item>
+    <item>
+      <id>GetWakeSignal</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (140)</locmod>
+    </item>
+    <item>
+      <id>GetWidth</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVBitmap\IInterface\INVBitmap (37)</locmod>
+    </item>
+    <item>
+      <id>GetWindowsFolder</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.IOUtils (1069)</locmod>
+    </item>
+    <item>
+      <id>HandleCreateThreadHook</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (17978)</locmod>
+    </item>
+    <item>
+      <id>HandleException</id>
+      <numcalled>20</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1481)</locmod>
+    </item>
+    <item>
+      <id>HasAnyReportFilters</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (20)</locmod>
+    </item>
+    <item>
+      <id>HashBytes</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (142)</locmod>
+    </item>
+    <item>
+      <id>HideLeak</id>
+      <numcalled>14</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1797)</locmod>
+    </item>
+    <item>
+      <id>HideLeak</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1798)</locmod>
+    </item>
+    <item>
+      <id>HookedCreateThread</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (18126)</locmod>
+    </item>
+    <item>
+      <id>HookedQueueUserWorkItem</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (18203)</locmod>
+    </item>
+    <item>
+      <id>HookedTThreadExecute</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (17959)</locmod>
+    </item>
+    <item>
+      <id>ImportStr</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create (846)</locmod>
+    </item>
+    <item>
+      <id>InflateBlockReset</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\UncompressEx (3561)</locmod>
+    </item>
+    <item>
+      <id>InflateCodesNew</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madZip\UncompressEx\InflateBlocks (2328)</locmod>
+    </item>
+    <item>
+      <id>InflateFlush</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madZip\UncompressEx\InflateBlocks (2059)</locmod>
+    </item>
+    <item>
+      <id>InitBugZilla</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8734)</locmod>
+    </item>
+    <item>
+      <id>InitCreateThreadHook</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (18262)</locmod>
+    </item>
+    <item>
+      <id>InitExceptDll</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (18554)</locmod>
+    </item>
+    <item>
+      <id>InitFogBugz</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8729)</locmod>
+    </item>
+    <item>
+      <id>InitHInstance</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (2059)</locmod>
+    </item>
+    <item>
+      <id>InitializeBlock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx (967)</locmod>
+    </item>
+    <item>
+      <id>InitializeSecurityContext</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TSmtp (7986)</locmod>
+    </item>
+    <item>
+      <id>InitMantis</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8743)</locmod>
+    </item>
+    <item>
+      <id>InitSecAttr</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (2530)</locmod>
+    </item>
+    <item>
+      <id>InitSecBuffers</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TSmtp (7985)</locmod>
+    </item>
+    <item>
+      <id>InRangeOrZero</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\IsValidObjectEx\IsValidObject2 (3055)</locmod>
+    </item>
+    <item>
+      <id>Insert</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEFields (4972)</locmod>
+    </item>
+    <item>
+      <id>InsertString</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx (1744)</locmod>
+    </item>
+    <item>
+      <id>InsideMainThread</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxAsync (590)</locmod>
+    </item>
+    <item>
+      <id>InsideMainThread</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxSignal (58)</locmod>
+    </item>
+    <item>
+      <id>IntegerValue</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madNVAssistant (475)</locmod>
+    </item>
+    <item>
+      <id>InterceptAHandleExcept</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (17292)</locmod>
+    </item>
+    <item>
+      <id>InterceptAShowExcept</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (17285)</locmod>
+    </item>
+    <item>
+      <id>InterceptFinalizeUnits</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (17433)</locmod>
+    </item>
+    <item>
+      <id>InternalError</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStackTrace (145)</locmod>
+    </item>
+    <item>
+      <id>InternalError2</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madStackTrace\StackTrace (2084)</locmod>
+    </item>
+    <item>
+      <id>InternalPost</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8725)</locmod>
+    </item>
+    <item>
+      <id>IntToHex32A</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStrings (2325)</locmod>
+    </item>
+    <item>
+      <id>IntToHex32W</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStrings (2347)</locmod>
+    </item>
+    <item>
+      <id>IntToHexExA</id>
+      <numcalled>32</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (362)</locmod>
+    </item>
+    <item>
+      <id>IntToHexExW</id>
+      <numcalled>22</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (349)</locmod>
+    </item>
+    <item>
+      <id>IntToStr64A</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStrings (2273)</locmod>
+    </item>
+    <item>
+      <id>IntToStr64W</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStrings (2299)</locmod>
+    </item>
+    <item>
+      <id>IntToStrEx</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (168)</locmod>
+    </item>
+    <item>
+      <id>IntToStrEx</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (169)</locmod>
+    </item>
+    <item>
+      <id>IntToStrExA</id>
+      <numcalled>31</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (359)</locmod>
+    </item>
+    <item>
+      <id>IntToStrExA</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (361)</locmod>
+    </item>
+    <item>
+      <id>IntToStrExW</id>
+      <numcalled>63</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (346)</locmod>
+    </item>
+    <item>
+      <id>IntToStrExW</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (347)</locmod>
+    </item>
+    <item>
+      <id>IntToStrExW</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (348)</locmod>
+    </item>
+    <item>
+      <id>InvalidateStackItem</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madStackTrace\StackTrace (919)</locmod>
+    </item>
+    <item>
+      <id>Invoke</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TProcAdapter (308)</locmod>
+    </item>
+    <item>
+      <id>IsAggregateName</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1542)</locmod>
+    </item>
+    <item>
+      <id>IsBadReadPtr2</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (311)</locmod>
+    </item>
+    <item>
+      <id>IsClass</id>
+      <numcalled>13</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (3202)</locmod>
+    </item>
+    <item>
+      <id>IsCorrectExceptAddr</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\CheckExceptAddr (3997)</locmod>
+    </item>
+    <item>
+      <id>IsExcludedWindow</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madNVBitmap (1001)</locmod>
+    </item>
+    <item>
+      <id>IsHeadLabel</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVLabel (320)</locmod>
+    </item>
+    <item>
+      <id>IsProcessBlocked</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (2998)</locmod>
+    </item>
+    <item>
+      <id>IsReplyComplete</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TSmtp\Receive (8288)</locmod>
+    </item>
+    <item>
+      <id>IsSectionLocked</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\IsProcessBlocked (3015)</locmod>
+    </item>
+    <item>
+      <id>IsTrueUnicodeString</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1889)</locmod>
+    </item>
+    <item>
+      <id>IsValid</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4619)</locmod>
+    </item>
+    <item>
+      <id>IsValidException</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (3210)</locmod>
+    </item>
+    <item>
+      <id>IsValidIdentW</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (378)</locmod>
+    </item>
+    <item>
+      <id>IsValidObject</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (3195)</locmod>
+    </item>
+    <item>
+      <id>IsValidObject2</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\IsValidObjectEx (3053)</locmod>
+    </item>
+    <item>
+      <id>IsValidObjectEx</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (3046)</locmod>
+    </item>
+    <item>
+      <id>JoinList</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Output (14)</locmod>
+    </item>
+    <item>
+      <id>JoinList</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (185)</locmod>
+    </item>
+    <item>
+      <id>JoinSemi</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (848)</locmod>
+    </item>
+    <item>
+      <id>JsonGetInteger</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (151)</locmod>
+    </item>
+    <item>
+      <id>JsonGetString</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (141)</locmod>
+    </item>
+    <item>
+      <id>kernelbasehandle</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madDisAsm (3275)</locmod>
+    </item>
+    <item>
+      <id>KillExt</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (2333)</locmod>
+    </item>
+    <item>
+      <id>leave</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (218)</locmod>
+    </item>
+    <item>
+      <id>leave</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\tInterfacedCriticalSection (254)</locmod>
+    </item>
+    <item>
+      <id>LeaveSettingsMutex</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (4386)</locmod>
+    </item>
+    <item>
+      <id>LineRect</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madNVAssistant (555)</locmod>
+    </item>
+    <item>
+      <id>Line_NewItem</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madMapFile\TMapFile (228)</locmod>
+    </item>
+    <item>
+      <id>LinkInSettings</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4624)</locmod>
+    </item>
+    <item>
+      <id>ListViewWndProc</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TExceptionBox (11141)</locmod>
+    </item>
+    <item>
+      <id>LoadAssistant</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madNVAssistant (230)</locmod>
+    </item>
+    <item>
+      <id>LoadBitmap</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madNVBitmap (54)</locmod>
+    </item>
+    <item>
+      <id>LoadSettings</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightSettings (11)</locmod>
+    </item>
+    <item>
+      <id>LoadStrFromFile</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create (595)</locmod>
+    </item>
+    <item>
+      <id>Lock</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEAttachments (4925)</locmod>
+    </item>
+    <item>
+      <id>Lock</id>
+      <numcalled>11</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEFields (4963)</locmod>
+    </item>
+    <item>
+      <id>lock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TLockFreeLock (484)</locmod>
+    </item>
+    <item>
+      <id>lock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (123)</locmod>
+    </item>
+    <item>
+      <id>LogBdsVersions</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (125)</locmod>
+    </item>
+    <item>
+      <id>Magic</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (188)</locmod>
+    </item>
+    <item>
+      <id>MailAddrCount</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (7015)</locmod>
+    </item>
+    <item>
+      <id>MailIt</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\SmtpOrUpload (8546)</locmod>
+    </item>
+    <item>
+      <id>MantisCall</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8746)</locmod>
+    </item>
+    <item>
+      <id>MapFileCache_Add</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madMapFile (2287)</locmod>
+    </item>
+    <item>
+      <id>MapFileCache_Get</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madMapFile (2306)</locmod>
+    </item>
+    <item>
+      <id>MapViewOfFile2</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madZip (662)</locmod>
+    </item>
+    <item>
+      <id>maxCmdLineParams</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.CmdLineParams (140)</locmod>
+    </item>
+    <item>
+      <id>Maximize</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVBitmap\TINVBitmap\AsPngStr\FindOptimalPalette (433)</locmod>
+    </item>
+    <item>
+      <id>MergeList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.FixInsightSettings (85)</locmod>
+    </item>
+    <item>
+      <id>MESettings</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1208)</locmod>
+    </item>
+    <item>
+      <id>MESettings</id>
+      <numcalled>19</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1209)</locmod>
+    </item>
+    <item>
+      <id>MESettings</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1210)</locmod>
+    </item>
+    <item>
+      <id>MethodToProcedure</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (155)</locmod>
+    </item>
+    <item>
+      <id>Min</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madZip (645)</locmod>
+    </item>
+    <item>
+      <id>Modified</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEAttachments (4941)</locmod>
+    </item>
+    <item>
+      <id>Modified</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEFields (4980)</locmod>
+    </item>
+    <item>
+      <id>Module</id>
+      <numcalled>20</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4620)</locmod>
+    </item>
+    <item>
+      <id>ModuleName</id>
+      <numcalled>19</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (2321)</locmod>
+    </item>
+    <item>
+      <id>MsgHandlerWindow</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (166)</locmod>
+    </item>
+    <item>
+      <id>MsgWaitForSingleObject</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxSignal (61)</locmod>
+    </item>
+    <item>
+      <id>NameThread</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1536)</locmod>
+    </item>
+    <item>
+      <id>New</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+    </item>
+    <item>
+      <id>NewException</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1395)</locmod>
+    </item>
+    <item>
+      <id>NewFields</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1609)</locmod>
+    </item>
+    <item>
+      <id>NewProgressAlert</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madNVPrgrAlert (49)</locmod>
+    </item>
+    <item>
+      <id>NextToken</id>
+      <numcalled>8</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+    </item>
+    <item>
+      <id>NormalizeLineText</id>
+      <numcalled>22</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+    </item>
+    <item>
+      <id>NormalizePath</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (139)</locmod>
+    </item>
+    <item>
+      <id>NormalizePathList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (105)</locmod>
+    </item>
+    <item>
+      <id>NormalizeSlashes</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.ReportPostProcess (53)</locmod>
+    </item>
+    <item>
+      <id>NormalizeTextList</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (73)</locmod>
+    </item>
+    <item>
+      <id>nslookup</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\MxLookup (7606)</locmod>
+    </item>
+    <item>
+      <id>ntdllhandle</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (183)</locmod>
+    </item>
+    <item>
+      <id>nvCheckBox</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVForm (431)</locmod>
+    </item>
+    <item>
+      <id>nvEdit</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVForm (428)</locmod>
+    </item>
+    <item>
+      <id>nvImage</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVForm (432)</locmod>
+    </item>
+    <item>
+      <id>OldEncrypt</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madCrypt (42)</locmod>
+    </item>
+    <item>
+      <id>OnPropertySet</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Project\TSourceTracker (23)</locmod>
+    </item>
+    <item>
+      <id>OpenAttachFiles</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (7828)</locmod>
+    </item>
+    <item>
+      <id>OpenRequest</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8705)</locmod>
+    </item>
+    <item>
+      <id>OpenThread</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1906)</locmod>
+    </item>
+    <item>
+      <id>OptimizeSegments</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madMapFile\TMapFile\Create (991)</locmod>
+    </item>
+    <item>
+      <id>OrdinalIgnoreCase</id>
+      <numcalled>19</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (150)</locmod>
+    </item>
+    <item>
+      <id>OS</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (90)</locmod>
+    </item>
+    <item>
+      <id>PackUnicodeString</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (2761)</locmod>
+    </item>
+    <item>
+      <id>Parse</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create\ParseTd32 (1671)</locmod>
+    </item>
+    <item>
+      <id>ParseAll</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create\ParseTd32 (1645)</locmod>
+    </item>
+    <item>
+      <id>ParseCode</id>
+      <numcalled>38</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (104)</locmod>
+    </item>
+    <item>
+      <id>ParseCodeArea</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madDisAsm\ParseFunction_ (2647)</locmod>
+    </item>
+    <item>
+      <id>ParseCode_</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (190)</locmod>
+    </item>
+    <item>
+      <id>ParseCsvRow</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.ReportPostProcess (303)</locmod>
+    </item>
+    <item>
+      <id>ParseExpr</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TConditionParser (43)</locmod>
+    </item>
+    <item>
+      <id>ParseFactor</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TConditionParser (45)</locmod>
+    </item>
+    <item>
+      <id>ParseFindingReport</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+    </item>
+    <item>
+      <id>ParseFunction</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (160)</locmod>
+    </item>
+    <item>
+      <id>ParseFunctionEx</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (198)</locmod>
+    </item>
+    <item>
+      <id>ParseFunction_</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (191)</locmod>
+    </item>
+    <item>
+      <id>ParseList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (18)</locmod>
+    </item>
+    <item>
+      <id>ParsePublics</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madMapFile\TMapFile\Create\ParseTd32 (1530)</locmod>
+    </item>
+    <item>
+      <id>ParseSpecialString</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStrings (1939)</locmod>
+    </item>
+    <item>
+      <id>ParseTd32</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create (1485)</locmod>
+    </item>
+    <item>
+      <id>ParseTerm</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TConditionParser (44)</locmod>
+    </item>
+    <item>
+      <id>PatchAPI</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1936)</locmod>
+    </item>
+    <item>
+      <id>PatchCall2</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (18214)</locmod>
+    </item>
+    <item>
+      <id>PatchImportTable</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (2683)</locmod>
+    </item>
+    <item>
+      <id>PatchImportTables</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (2736)</locmod>
+    </item>
+    <item>
+      <id>PatchInt32</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1894)</locmod>
+    </item>
+    <item>
+      <id>PatchInt64</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1895)</locmod>
+    </item>
+    <item>
+      <id>PatchJmp</id>
+      <numcalled>15</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1893)</locmod>
+    </item>
+    <item>
+      <id>PathMatchesAnyMask</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.ReportPostProcess (146)</locmod>
+    </item>
+    <item>
+      <id>PauseFreezeCheck</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1519)</locmod>
+    </item>
+    <item>
+      <id>PauseMeEventually</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1501)</locmod>
+    </item>
+    <item>
+      <id>PeekMessageCallbackA</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (18344)</locmod>
+    </item>
+    <item>
+      <id>PeekMessageCallbackW</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (18356)</locmod>
+    </item>
+    <item>
+      <id>PosNotCharsW</id>
+      <numcalled>11</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (355)</locmod>
+    </item>
+    <item>
+      <id>Post</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8726)</locmod>
+    </item>
+    <item>
+      <id>PrepareAttachments</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (7043)</locmod>
+    </item>
+    <item>
+      <id>PrepareListView_AutoFormat</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TExceptionBox\CheckCurrentTab (12395)</locmod>
+    </item>
+    <item>
+      <id>PrepareListView_Columns</id>
+      <numcalled>10</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TExceptionBox\CheckCurrentTab (12010)</locmod>
+    </item>
+    <item>
+      <id>PrepareListView_Items</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TExceptionBox\CheckCurrentTab (12028)</locmod>
+    </item>
+    <item>
+      <id>PrepareListView_StackDump</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TExceptionBox\CheckCurrentTab (12068)</locmod>
+    </item>
+    <item>
+      <id>PrepareListView_Thread</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TExceptionBox\CheckCurrentTab (12146)</locmod>
+    </item>
+    <item>
+      <id>PrepareMainButton</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madNVAssistant\TNVForm\ShowModal (1737)</locmod>
+    </item>
+    <item>
+      <id>PrepareStackTrace</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStackTrace (156)</locmod>
+    </item>
+    <item>
+      <id>PrepareTextForStrToFloatWcc</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>MaxLogic.strUtils (286)</locmod>
+    </item>
+    <item>
+      <id>PriorityClassToStr</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madListProcesses\GetProcessList (213)</locmod>
+    </item>
+    <item>
+      <id>ProcessMessages</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVPrgrAlert\TIProgressAlert (104)</locmod>
+    </item>
+    <item>
+      <id>PSendThread</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMEException (5146)</locmod>
+    </item>
+    <item>
+      <id>Public_NewItem</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madMapFile\TMapFile (227)</locmod>
+    </item>
+    <item>
+      <id>PullData</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (64)</locmod>
+    </item>
+    <item>
+      <id>PutAssisIntoBugReport</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1902)</locmod>
+    </item>
+    <item>
+      <id>PutBefore</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (20)</locmod>
+    </item>
+    <item>
+      <id>quote</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (59)</locmod>
+    </item>
+    <item>
+      <id>QuoteArg</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.FixInsightRunner (18)</locmod>
+    </item>
+    <item>
+      <id>QuoteArg</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+    </item>
+    <item>
+      <id>QuoteCmd</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.RsVars (15)</locmod>
+    </item>
+    <item>
+      <id>QuoteCmdArg</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>DelphiAIKit (104)</locmod>
+    </item>
+    <item>
+      <id>Read</id>
+      <numcalled>14</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMiniStream (337)</locmod>
+    </item>
+    <item>
+      <id>ReadBoolOption</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.FixInsightSettings (45)</locmod>
+    </item>
+    <item>
+      <id>ReadPackedInteger</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create (614)</locmod>
+    </item>
+    <item>
+      <id>ReadPackedString</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create (625)</locmod>
+    </item>
+    <item>
+      <id>ReadProperty</id>
+      <numcalled>9</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madNVAssistant\TNVForm\Create\ConvertObject\ConvertProperty (1214)</locmod>
+    </item>
+    <item>
+      <id>ReadStatusSummary</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (372)</locmod>
+    </item>
+    <item>
+      <id>ReadValue</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madMapFile\TMapFile\Create\ReadJdbg (1299)</locmod>
+    </item>
+    <item>
+      <id>RealizeLinks</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madStackTrace\StackTrace\RealizeOptimalLinkChain (1672)</locmod>
+    </item>
+    <item>
+      <id>RealizeOptimalLinkChain</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madStackTrace\StackTrace (1615)</locmod>
+    </item>
+    <item>
+      <id>RebuildDic</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (100)</locmod>
+    </item>
+    <item>
+      <id>Receive</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TSmtp (7989)</locmod>
+    </item>
+    <item>
+      <id>ReceiveAntiFreeze</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (5564)</locmod>
+    </item>
+    <item>
+      <id>ReceiveFireHandlers</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (5268)</locmod>
+    </item>
+    <item>
+      <id>ReceiveHandleException</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (13416)</locmod>
+    </item>
+    <item>
+      <id>ReceiveResponse</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8710)</locmod>
+    </item>
+    <item>
+      <id>RegDelVal</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1933)</locmod>
+    </item>
+    <item>
+      <id>RegisterBugReportCallback</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5103)</locmod>
+    </item>
+    <item>
+      <id>RegisterHandler</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (13800)</locmod>
+    </item>
+    <item>
+      <id>RegisterHandlerOO</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (13823)</locmod>
+    </item>
+    <item>
+      <id>RegReadStr</id>
+      <numcalled>20</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1901)</locmod>
+    </item>
+    <item>
+      <id>RegReadStrA</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madListHardware\GetHardwareList\GetHardwareList9x (88)</locmod>
+    </item>
+    <item>
+      <id>RegStr</id>
+      <numcalled>13</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madDisAsm\ParseCode (1988)</locmod>
+    </item>
+    <item>
+      <id>RegWriteStr</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1932)</locmod>
+    </item>
+    <item>
+      <id>RelativeToAbsolute</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madExcept (1946)</locmod>
+    </item>
+    <item>
+      <id>ReleaseThreadData</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal (515)</locmod>
+    </item>
+    <item>
+      <id>RemoveIR</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (17090)</locmod>
+    </item>
+    <item>
+      <id>RemoveRecursiveAreas</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madStackTrace\StackTrace (1374)</locmod>
+    </item>
+    <item>
+      <id>Replace</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TRegExHelper (312)</locmod>
+    </item>
+    <item>
+      <id>Replace1Str</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\MapToRunError\CreateAVStr (17557)</locmod>
+    </item>
+    <item>
+      <id>ReplaceA</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStrings (610)</locmod>
+    </item>
+    <item>
+      <id>ReplaceVersion</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\ExpandVars (3282)</locmod>
+    </item>
+    <item>
+      <id>ReplaceW</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madStrings (686)</locmod>
+    </item>
+    <item>
+      <id>ResolveFilePath</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (170)</locmod>
+    </item>
+    <item>
+      <id>RestartApplication</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1587)</locmod>
+    </item>
+    <item>
+      <id>RestartApplication</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5130)</locmod>
+    </item>
+    <item>
+      <id>RestoreHeap</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx\FlushBlockOnly\TreeFlushBlock\BuildTree (1076)</locmod>
+    </item>
+    <item>
+      <id>ResToStr</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (292)</locmod>
+    </item>
+    <item>
+      <id>ResumeMainThread</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (5277)</locmod>
+    </item>
+    <item>
+      <id>RetDelete</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (60)</locmod>
+    </item>
+    <item>
+      <id>Rotl32</id>
+      <numcalled>21</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (141)</locmod>
+    </item>
+    <item>
+      <id>safeRetrieveOutput</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (130)</locmod>
+    </item>
+    <item>
+      <id>SanitizeSegment</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>maxLogic.IOUtils\SanitizeFileName (623)</locmod>
+    </item>
+    <item>
+      <id>SaveBugReportEx</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (10277)</locmod>
+    </item>
+    <item>
+      <id>ScanTree</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx\FlushBlockOnly\TreeFlushBlock\BuildBitLengthTree (1461)</locmod>
+    </item>
+    <item>
+      <id>ScreenShot</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madNVBitmap (57)</locmod>
+    </item>
+    <item>
+      <id>Segment_NewItem</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madMapFile\TMapFile (226)</locmod>
+    </item>
+    <item>
+      <id>SelectFont</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madNVAssistant\TNVForm\ShowModal (1725)</locmod>
+    </item>
+    <item>
+      <id>Send</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TSmtp (7990)</locmod>
+    </item>
+    <item>
+      <id>SendBits</id>
+      <numcalled>21</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx\FlushBlockOnly\TreeFlushBlock (1328)</locmod>
+    </item>
+    <item>
+      <id>SendBugReportEx</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (10586)</locmod>
+    </item>
+    <item>
+      <id>SendFile</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8721)</locmod>
+    </item>
+    <item>
+      <id>SendMapiMailEx</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (7264)</locmod>
+    </item>
+    <item>
+      <id>SendReceive</id>
+      <numcalled>16</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TSmtp (7991)</locmod>
+    </item>
+    <item>
+      <id>SendRequest</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8707)</locmod>
+    </item>
+    <item>
+      <id>SendTree</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\CompressEx\FlushBlockOnly\TreeFlushBlock\SendAllTrees (1363)</locmod>
+    </item>
+    <item>
+      <id>SetActiveControl</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (153)</locmod>
+    </item>
+    <item>
+      <id>SetAppendScreenShot</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1363)</locmod>
+    </item>
+    <item>
+      <id>SetAutoClose</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (614)</locmod>
+    </item>
+    <item>
+      <id>SetAutoContinue</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (604)</locmod>
+    </item>
+    <item>
+      <id>SetAutoRestart</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (609)</locmod>
+    </item>
+    <item>
+      <id>SetAutoShowBugReport</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (666)</locmod>
+    </item>
+    <item>
+      <id>SetBitmap</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVImage (118)</locmod>
+    </item>
+    <item>
+      <id>SetChecked</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVCheckBox (106)</locmod>
+    </item>
+    <item>
+      <id>SetContent</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMEFields (1196)</locmod>
+    </item>
+    <item>
+      <id>SetCurrentArea</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (40)</locmod>
+    </item>
+    <item>
+      <id>SetData</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVForm (190)</locmod>
+    </item>
+    <item>
+      <id>SetDefaultValues</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TThreadData (300)</locmod>
+    </item>
+    <item>
+      <id>SetexeName</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (49)</locmod>
+    </item>
+    <item>
+      <id>SetFilePointer2</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madZip (653)</locmod>
+    </item>
+    <item>
+      <id>SetFinished</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (132)</locmod>
+    </item>
+    <item>
+      <id>SetFocus</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\TNVItem (296)</locmod>
+    </item>
+    <item>
+      <id>SetFocusedButton</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (649)</locmod>
+    </item>
+    <item>
+      <id>SetItem</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMEFields (1190)</locmod>
+    </item>
+    <item>
+      <id>SetKeepAlive</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (144)</locmod>
+    </item>
+    <item>
+      <id>SetLastErrorNo</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TWinHttp (8713)</locmod>
+    </item>
+    <item>
+      <id>SetLastErrorStr</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TWinHttp (8714)</locmod>
+    </item>
+    <item>
+      <id>SetLastException</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (16798)</locmod>
+    </item>
+    <item>
+      <id>SetListThreads</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (870)</locmod>
+    </item>
+    <item>
+      <id>SetMailFrom</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (785)</locmod>
+    </item>
+    <item>
+      <id>SetMailWasSaved</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5143)</locmod>
+    </item>
+    <item>
+      <id>SetModified</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5134)</locmod>
+    </item>
+    <item>
+      <id>SetOnErrorDataRead</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (65)</locmod>
+    </item>
+    <item>
+      <id>SetOnFinished</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (371)</locmod>
+    </item>
+    <item>
+      <id>SetOnStdDataRead</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (66)</locmod>
+    </item>
+    <item>
+      <id>SetParamsString</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (63)</locmod>
+    </item>
+    <item>
+      <id>SetPhase</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5073)</locmod>
+    </item>
+    <item>
+      <id>SetPosition</id>
+      <numcalled>13</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVPrgrAlert\IInterface\IProgressAlert (32)</locmod>
+    </item>
+    <item>
+      <id>SetPosition</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVPrgrAlert\TIProgressAlert (95)</locmod>
+    </item>
+    <item>
+      <id>SetProc</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (146)</locmod>
+    </item>
+    <item>
+      <id>SetProgress</id>
+      <numcalled>22</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TWinHttp (8715)</locmod>
+    </item>
+    <item>
+      <id>SetPropBool</id>
+      <numcalled>57</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4901)</locmod>
+    </item>
+    <item>
+      <id>SetPropDw</id>
+      <numcalled>12</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4904)</locmod>
+    </item>
+    <item>
+      <id>SetPropInt</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4902)</locmod>
+    </item>
+    <item>
+      <id>SetPropStr</id>
+      <numcalled>59</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4903)</locmod>
+    </item>
+    <item>
+      <id>SetPropStr</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\FillProps (4478)</locmod>
+    </item>
+    <item>
+      <id>SetScreenShot</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings\IMEException (1330)</locmod>
+    </item>
+    <item>
+      <id>SetShowBtnVisible</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (636)</locmod>
+    </item>
+    <item>
+      <id>SetShowPleaseWaitBox</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\IInterface\IMESettings (599)</locmod>
+    </item>
+    <item>
+      <id>SetShowPleaseWaitBox</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMESettings (4647)</locmod>
+    </item>
+    <item>
+      <id>SetSimultanousThreadCount</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (372)</locmod>
+    </item>
+    <item>
+      <id>SetSize</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madMapFile\TMiniStream (334)</locmod>
+    </item>
+    <item>
+      <id>SetTaskName</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (147)</locmod>
+    </item>
+    <item>
+      <id>SetTerminated</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (134)</locmod>
+    </item>
+    <item>
+      <id>SetText</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (83)</locmod>
+    </item>
+    <item>
+      <id>SetThreadInfo</id>
+      <numcalled>14</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (2821)</locmod>
+    </item>
+    <item>
+      <id>SetThreadPriority</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (326)</locmod>
+    </item>
+    <item>
+      <id>SetValid</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madNVAssistant\IInterface\INVItem\INVEdit (87)</locmod>
+    </item>
+    <item>
+      <id>SetWaiting</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (133)</locmod>
+    </item>
+    <item>
+      <id>SetWorkDir</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (50)</locmod>
+    </item>
+    <item>
+      <id>Show</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5124)</locmod>
+    </item>
+    <item>
+      <id>Show</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVPrgrAlert\TIProgressAlert (106)</locmod>
+    </item>
+    <item>
+      <id>ShowExceptBox</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\ShowException (13213)</locmod>
+    </item>
+    <item>
+      <id>ShowModal</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVAssistant\TNVAssistant (460)</locmod>
+    </item>
+    <item>
+      <id>SimpleAsyncCall</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxAsync (575)</locmod>
+    </item>
+    <item>
+      <id>SizeToStrW</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStrings (352)</locmod>
+    </item>
+    <item>
+      <id>slash</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (130)</locmod>
+    </item>
+    <item>
+      <id>SmtpOrUpload</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (8532)</locmod>
+    </item>
+    <item>
+      <id>SortHotspots</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1724)</locmod>
+    </item>
+    <item>
+      <id>SortPublics</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madMapFile\TMapFile\Create (927)</locmod>
+    </item>
+    <item>
+      <id>SortSegments</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madMapFile\TMapFile\Create (953)</locmod>
+    </item>
+    <item>
+      <id>SourceToText</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>DelphiAIKit (27)</locmod>
+    </item>
+    <item>
+      <id>SplitInHalfBy</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>MaxLogic.strUtils (270)</locmod>
+    </item>
+    <item>
+      <id>SplitList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (51)</locmod>
+    </item>
+    <item>
+      <id>St</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madDisAsm\ParseCode (1806)</locmod>
+    </item>
+    <item>
+      <id>StackAddrToStr</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStackTrace (144)</locmod>
+    </item>
+    <item>
+      <id>StackTrace</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madStackTrace (113)</locmod>
+    </item>
+    <item>
+      <id>StartBugZillaCall</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8736)</locmod>
+    </item>
+    <item>
+      <id>StartDebugMm</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (18959)</locmod>
+    </item>
+    <item>
+      <id>StartLeakChecking_</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (18617)</locmod>
+    </item>
+    <item>
+      <id>StartMantisCall</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8744)</locmod>
+    </item>
+    <item>
+      <id>StartReading</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (129)</locmod>
+    </item>
+    <item>
+      <id>StartSsl</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TSmtp (7988)</locmod>
+    </item>
+    <item>
+      <id>StartTryRead</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (211)</locmod>
+    </item>
+    <item>
+      <id>Store</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\UncompressEx\InflateBlocks\InflateFlush (2065)</locmod>
+    </item>
+    <item>
+      <id>SumSectionCounts</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (327)</locmod>
+    </item>
+    <item>
+      <id>SuspendDelphiThreads</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (5433)</locmod>
+    </item>
+    <item>
+      <id>SuspendMainThread</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (5278)</locmod>
+    </item>
+    <item>
+      <id>SwapDword</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madCrypt\cryptBuf (234)</locmod>
+    </item>
+    <item>
+      <id>SwapDword</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVBitmap\TINVBitmap\AsPngStr\CreatePng (175)</locmod>
+    </item>
+    <item>
+      <id>syncVclCall</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxAsync (587)</locmod>
+    </item>
+    <item>
+      <id>System_Halt0</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\Init (19089)</locmod>
+    </item>
+    <item>
+      <id>TakeTopHotspots</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1714)</locmod>
+    </item>
+    <item>
+      <id>TakeValue</id>
+      <numcalled>41</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Cli\TryParseOptions (212)</locmod>
+    </item>
+    <item>
+      <id>ThreadExceptFrame</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (17934)</locmod>
+    </item>
+    <item>
+      <id>TickDif</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (310)</locmod>
+    </item>
+    <item>
+      <id>TimeToStr</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (14118)</locmod>
+    </item>
+    <item>
+      <id>ToArray</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+    </item>
+    <item>
+      <id>Top</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVBitmap\TINVBitmap\AsPngStr\FindOptimalPalette (396)</locmod>
+    </item>
+    <item>
+      <id>TreeFlushBlock</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madZip\CompressEx\FlushBlockOnly (1016)</locmod>
+    </item>
+    <item>
+      <id>TreeTally</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madZip\CompressEx (1713)</locmod>
+    </item>
+    <item>
+      <id>TryBuildParams</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Project (10)</locmod>
+    </item>
+    <item>
+      <id>TryEvaluateCondition</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (19)</locmod>
+    </item>
+    <item>
+      <id>TryFindPalReportRoot</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (24)</locmod>
+    </item>
+    <item>
+      <id>TryGeneratePalArtifacts</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+    </item>
+    <item>
+      <id>TryGetJsonArray</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (161)</locmod>
+    </item>
+    <item>
+      <id>TryLoadRsVars</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.RsVars (10)</locmod>
+    </item>
+    <item>
+      <id>TryLoadXml</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+    </item>
+    <item>
+      <id>TryLoadXmlDocument</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (351)</locmod>
+    </item>
+    <item>
+      <id>TryNormalizeRuleId</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.ReportPostProcess (58)</locmod>
+    </item>
+    <item>
+      <id>TryOpenLogFile</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+    </item>
+    <item>
+      <id>TryOpenLogHandle</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (82)</locmod>
+    </item>
+    <item>
+      <id>TryParseBool</id>
+      <numcalled>11</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Cli\TryParseOptions (146)</locmod>
+    </item>
+    <item>
+      <id>TryParseLocMod</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+    </item>
+    <item>
+      <id>TryPostProcessFixInsightReport</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (22)</locmod>
+    </item>
+    <item>
+      <id>TryRead</id>
+      <numcalled>16</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madDisAsm (213)</locmod>
+    </item>
+    <item>
+      <id>TryReadIdeConfig</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Registry (12)</locmod>
+    </item>
+    <item>
+      <id>TryReadRegistryView</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (150)</locmod>
+    </item>
+    <item>
+      <id>TryResolveFixInsightExe</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsight (10)</locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExe</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+    </item>
+    <item>
+      <id>TryRunFixInsightLogged</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (504)</locmod>
+    </item>
+    <item>
+      <id>TryRunFixInsightWithHandles</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightRunner (13)</locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzerWithHandles</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+    </item>
+    <item>
+      <id>TrySplitSwitch</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Cli\TryParseOptions (162)</locmod>
+    </item>
+    <item>
+      <id>UncompressEx</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madZip (1913)</locmod>
+    </item>
+    <item>
+      <id>UndoPatches</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (14378)</locmod>
+    </item>
+    <item>
+      <id>UnicodeToAnsi</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madExcept\TWinHttp\InternalPost (9334)</locmod>
+    </item>
+    <item>
+      <id>UnlistMeSettingsModule</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (4531)</locmod>
+    </item>
+    <item>
+      <id>UnloadLeakModule</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madExcept (18835)</locmod>
+    </item>
+    <item>
+      <id>Unlock</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEAttachments (4926)</locmod>
+    </item>
+    <item>
+      <id>Unlock</id>
+      <numcalled>11</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEFields (4964)</locmod>
+    </item>
+    <item>
+      <id>unlock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TLockFreeLock (486)</locmod>
+    </item>
+    <item>
+      <id>unLock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (124)</locmod>
+    </item>
+    <item>
+      <id>UnmangleW</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (307)</locmod>
+    </item>
+    <item>
+      <id>UnpackUnicodeString</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (2802)</locmod>
+    </item>
+    <item>
+      <id>UnpatchAPI</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1937)</locmod>
+    </item>
+    <item>
+      <id>UnregisterBugReportCallback</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>madExcept\TIMEException (5105)</locmod>
+    </item>
+    <item>
+      <id>UnregisterBugReportPlugin</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>madExcept (1747)</locmod>
+    </item>
+    <item>
+      <id>UnregisterHandler</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (13846)</locmod>
+    </item>
+    <item>
+      <id>UnregisterHandlerOO</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>madExcept (13865)</locmod>
+    </item>
+    <item>
+      <id>UpdateCrc32</id>
+      <numcalled>13</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madZip (83)</locmod>
+    </item>
+    <item>
+      <id>UpdatePointers</id>
+      <numcalled>13</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madZip\UncompressEx\InflateBlocks\InflateCodes (2353)</locmod>
+    </item>
+    <item>
+      <id>UpdatePointers</id>
+      <numcalled>22</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madZip\UncompressEx\InflateBlocks (3116)</locmod>
+    </item>
+    <item>
+      <id>UpdatePointers</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madZip\UncompressEx\InflateBlocks\InflateFast (2154)</locmod>
+    </item>
+    <item>
+      <id>UpdateSection</id>
+      <numcalled>9</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madExcept\TIMEException\CompleteBugReport (15271)</locmod>
+    </item>
+    <item>
+      <id>UploadBugToBugZilla</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8740)</locmod>
+    </item>
+    <item>
+      <id>UploadBugToFogBugz</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8731)</locmod>
+    </item>
+    <item>
+      <id>UploadBugToMantis</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TWinHttp (8747)</locmod>
+    </item>
+    <item>
+      <id>Var_</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVBitmap\TINVBitmap\AsPngStr\FindOptimalPalette (415)</locmod>
+    </item>
+    <item>
+      <id>VersionVar</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madExcept\TIMESettings (4835)</locmod>
+    </item>
+    <item>
+      <id>VirtualToRaw</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>madTools (308)</locmod>
+    </item>
+    <item>
+      <id>Vol</id>
+      <numcalled>12</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVBitmap\TINVBitmap\AsPngStr\FindOptimalPalette (364)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TWaiter (534)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (334)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (379)</locmod>
+    </item>
+    <item>
+      <id>WindowToRgn</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>madNVBitmap\CalculateRegion (1032)</locmod>
+    </item>
+    <item>
+      <id>Write</id>
+      <numcalled>17</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madMapFile\TMiniStream (338)</locmod>
+    </item>
+    <item>
+      <id>WriteLine</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (34)</locmod>
+    </item>
+    <item>
+      <id>WriteLogText</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (53)</locmod>
+    </item>
+    <item>
+      <id>WritePackedInteger</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madMapFile\TMapFile\Export (2127)</locmod>
+    </item>
+    <item>
+      <id>WritePackedString</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>madMapFile\TMapFile\Export (2139)</locmod>
+    </item>
+    <item>
+      <id>WriteToolLog</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (108)</locmod>
+    </item>
+    <item>
+      <id>WriteToStderr</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+    </item>
+    <item>
+      <id>WriteUsage</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Dak.Cli (12)</locmod>
+    </item>
+    <item>
+      <id>WrText</id>
+      <numcalled>9</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madNVAssistant (586)</locmod>
+    </item>
+    <item>
+      <id>XmlEscape</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Output (21)</locmod>
+    </item>
+    <item>
+      <id>Zoom</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>madNVBitmap\TINVBitmap (84)</locmod>
+    </item>
+    <item>
+      <id>_FillStrA</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madStrings (2171)</locmod>
+    </item>
+    <item>
+      <id>_FillStrW</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>madStrings (2187)</locmod>
+    </item>
+  </section>
+</report>

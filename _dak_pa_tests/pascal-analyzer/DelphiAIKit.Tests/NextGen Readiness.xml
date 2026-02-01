@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="NextGen Readiness Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Unsupported types" count="0" oldcount="0">
+  </section>
+  <section name="Except-block without call to non-inlined subprograms" count="0" oldcount="0">
+    <loc>
+      <locmod>DelphiAIKit.Tests</locmod>
+      <locline>36</locline>
+    </loc>
+  </section>
+  <section name="Assembler code in these subprograms" count="0" oldcount="0">
+  </section>
+</report>

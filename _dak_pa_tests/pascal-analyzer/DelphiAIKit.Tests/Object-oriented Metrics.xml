@@ -1,0 +1,649 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Object-oriented Metrics Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Weighted Methods per Class (WMC)">
+    <item>
+      <id>WMC=0,4...TTestFixtureHelper in DUnitX.TestFramework</id>
+      <WMC>0,4</WMC>
+      <locmod>DUnitX.TestFramework (128)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Log (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (131)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  Log (PM)</id>
+      <dp>2</dp>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (130)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Status (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (133)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  WriteLn (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (136)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  WriteLn (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (135)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TDUnitXOptions in DUnitX.TestFramework</id>
+      <WMC>0,0</WMC>
+      <locmod>DUnitX.TestFramework (521)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Create (C)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (535)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TDUnitXOptions (536)</locmod>
+    </item>
+    <item>
+      <id>WMC=1,9...TDUnitX in DUnitX.TestFramework</id>
+      <WMC>1,9</WMC>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>  DP=9......  CheckCommandLine (PM)</id>
+      <dp>9</dp>
+      <locmod>DUnitX.TestFramework\TDUnitX (591)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  Create (C)</id>
+      <dp>2</dp>
+      <locmod>DUnitX.TestFramework\TDUnitX (578)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  CreateRunner (FM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TDUnitX (585)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  CreateRunner (FM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TDUnitX (584)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  CreateRunner (FM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TDUnitX (583)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  CurrentRunner (FM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.TestFramework\TDUnitX (587)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TDUnitX (579)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  GetAssertCount (FM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.TestFramework\TDUnitX (588)</locmod>
+    </item>
+    <item>
+      <id>  DP=5......  RegisterTestFixture (PM)</id>
+      <dp>5</dp>
+      <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+    </item>
+    <item>
+      <id>WMC=1,3...TDUnitXConsoleLogger in DUnitX.Loggers.Console</id>
+      <WMC>1,3</WMC>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  Create (C)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (87)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  Destroy (D)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (88)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnBeginTest (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (61)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnEndSetupFixture (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (59)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnEndSetupTest (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (64)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  OnEndTearDownFixture (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (81)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  OnEndTeardownTest (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (76)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnEndTest (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (78)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnEndTestFixture (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (83)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnExecuteTest (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (66)</locmod>
+    </item>
+    <item>
+      <id>  DP=5......  OnLog (PM)</id>
+      <dp>5</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (73)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnSetupFixture (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (58)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnSetupTest (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (63)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnStartTestFixture (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (56)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnTearDownFixture (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (80)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnTeardownTest (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (75)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnTestError (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (70)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnTestFailure (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (71)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnTestIgnored (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (69)</locmod>
+    </item>
+    <item>
+      <id>  DP=15.....  OnTestingEnds (PM)</id>
+      <dp>15</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (85)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnTestingStarts (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (54)</locmod>
+    </item>
+    <item>
+      <id>  DP=1......  OnTestMemoryLeak (PM)</id>
+      <dp>1</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (68)</locmod>
+    </item>
+    <item>
+      <id>  DP=2......  OnTestSuccess (PM)</id>
+      <dp>2</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (72)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetConsoleDefaultColor (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (46)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetConsoleErrorColor (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (47)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetConsolePassColor (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (48)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetConsoleRunTestColor (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (50)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetConsoleSetupTestColor (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (49)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetConsoleSummaryColor (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (51)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  SetConsoleWarningColor (PM)</id>
+      <dp>0</dp>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (52)</locmod>
+    </item>
+    <item>
+      <id>WMC=0,0...TBuildTests in Test.Build</id>
+      <WMC>0,0</WMC>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  BuildResolverExe (PM)</id>
+      <dp>0</dp>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+    </item>
+    <item>
+      <id>WMC=5,0...TFixInsightTests in Test.FixInsight</id>
+      <WMC>5,0</WMC>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>  DP=10.....  ExtractIdsAndFile (PM)</id>
+      <dp>10</dp>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+    </item>
+    <item>
+      <id>  DP=0......  FixInsightFiltering (PM)</id>
+      <dp>0</dp>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+    </item>
+    <item>
+      <id>  DP=5......  RunFixInsightOutputs (PM)</id>
+      <dp>5</dp>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+    <item>
+      <id>WMC=8,0...TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <WMC>8,0</WMC>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>  DP=8......  NormalizePalFindingsFromFixtures (PM)</id>
+      <dp>8</dp>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+    </item>
+    <item>
+      <id>WMC=6,5...TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <WMC>6,5</WMC>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+    <item>
+      <id>  DP=5......  RunPascalAnalyzer (PM)</id>
+      <dp>5</dp>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+    </item>
+    <item>
+      <id>  DP=8......  SelectsSupportedCompilerFlag (PM)</id>
+      <dp>8</dp>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+    </item>
+  </section>
+  <section name="Depth of Inheritance Tree (DIT)">
+    <item>
+      <id>DIT=0.....TLogMessage in DUnitX.TestFramework</id>
+      <DIT>0</DIT>
+      <locmod>DUnitX.TestFramework (105)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TTestFixtureHelper in DUnitX.TestFramework</id>
+      <DIT>1</DIT>
+      <locmod>DUnitX.TestFramework (128)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....Assert in DUnitX.TestFramework</id>
+      <DIT>2</DIT>
+      <locmod>DUnitX.TestFramework (141)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TTestInfoList in DUnitX.TestFramework</id>
+      <DIT>2</DIT>
+      <locmod>DUnitX.TestFramework (178)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TTestFixtureInfoList in DUnitX.TestFramework</id>
+      <DIT>2</DIT>
+      <locmod>DUnitX.TestFramework (225)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TDUnitXOptions in DUnitX.TestFramework</id>
+      <DIT>1</DIT>
+      <locmod>DUnitX.TestFramework (521)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TDUnitX in DUnitX.TestFramework</id>
+      <DIT>1</DIT>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>DIT=2.....TDUnitXConsoleLogger in DUnitX.Loggers.Console</id>
+      <DIT>2</DIT>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TBuildTests in Test.Build</id>
+      <DIT>1</DIT>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TFixInsightTests in Test.FixInsight</id>
+      <DIT>1</DIT>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <DIT>1</DIT>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>DIT=1.....TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <DIT>1</DIT>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+  <section name="Number of Children (NOC)">
+    <item>
+      <id>NOC=0.....TLogMessage in DUnitX.TestFramework</id>
+      <NOC>0</NOC>
+      <locmod>DUnitX.TestFramework (105)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TTestFixtureHelper in DUnitX.TestFramework</id>
+      <NOC>0</NOC>
+      <locmod>DUnitX.TestFramework (128)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....Assert in DUnitX.TestFramework</id>
+      <NOC>0</NOC>
+      <locmod>DUnitX.TestFramework (141)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TTestInfoList in DUnitX.TestFramework</id>
+      <NOC>0</NOC>
+      <locmod>DUnitX.TestFramework (178)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TTestFixtureInfoList in DUnitX.TestFramework</id>
+      <NOC>0</NOC>
+      <locmod>DUnitX.TestFramework (225)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TDUnitXOptions in DUnitX.TestFramework</id>
+      <NOC>0</NOC>
+      <locmod>DUnitX.TestFramework (521)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TDUnitX in DUnitX.TestFramework</id>
+      <NOC>0</NOC>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TDUnitXConsoleLogger in DUnitX.Loggers.Console</id>
+      <NOC>0</NOC>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TBuildTests in Test.Build</id>
+      <NOC>0</NOC>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TFixInsightTests in Test.FixInsight</id>
+      <NOC>0</NOC>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <NOC>0</NOC>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>NOC=0.....TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <NOC>0</NOC>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+  <section name="Coupling between Object Classes (CBO)">
+    <item>
+      <id>CBO=0.....TLogMessage in DUnitX.TestFramework</id>
+      <CBO>0</CBO>
+      <locmod>DUnitX.TestFramework (105)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TTestFixtureHelper in DUnitX.TestFramework</id>
+      <CBO>1</CBO>
+      <locmod>DUnitX.TestFramework (128)</locmod>
+    </item>
+    <item>
+      <id>  ITestRunner in DUnitX.TestFramework</id>
+      <locmod>DUnitX.TestFramework\IInterface (484)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....Assert in DUnitX.TestFramework</id>
+      <CBO>0</CBO>
+      <locmod>DUnitX.TestFramework (141)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TTestInfoList in DUnitX.TestFramework</id>
+      <CBO>0</CBO>
+      <locmod>DUnitX.TestFramework (178)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TTestFixtureInfoList in DUnitX.TestFramework</id>
+      <CBO>0</CBO>
+      <locmod>DUnitX.TestFramework (225)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TDUnitXOptions in DUnitX.TestFramework</id>
+      <CBO>1</CBO>
+      <locmod>DUnitX.TestFramework (521)</locmod>
+    </item>
+    <item>
+      <id>  TDUnitX in DUnitX.TestFramework</id>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>CBO=1.....TDUnitX in DUnitX.TestFramework</id>
+      <CBO>1</CBO>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>  TDUnitXOptions in DUnitX.TestFramework</id>
+      <locmod>DUnitX.TestFramework (521)</locmod>
+    </item>
+    <item>
+      <id>CBO=4.....TDUnitXConsoleLogger in DUnitX.Loggers.Console</id>
+      <CBO>4</CBO>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+    <item>
+      <id>  IRunResults in DUnitX.TestFramework</id>
+      <locmod>DUnitX.TestFramework\IInterface\IResult (330)</locmod>
+    </item>
+    <item>
+      <id>  ITestResult in DUnitX.TestFramework</id>
+      <locmod>DUnitX.TestFramework\IInterface\IResult (245)</locmod>
+    </item>
+    <item>
+      <id>  ITestFixtureInfo in DUnitX.TestFramework</id>
+      <locmod>DUnitX.TestFramework\IInterface (182)</locmod>
+    </item>
+    <item>
+      <id>  ITestInfo in DUnitX.TestFramework</id>
+      <locmod>DUnitX.TestFramework\IInterface (148)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TBuildTests in Test.Build</id>
+      <CBO>0</CBO>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TFixInsightTests in Test.FixInsight</id>
+      <CBO>0</CBO>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <CBO>0</CBO>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>CBO=0.....TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <CBO>0</CBO>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+  <section name="Response for a Class (RFC)">
+    <item>
+      <id>RFC=0.....TLogMessage in DUnitX.TestFramework</id>
+      <RFC>0</RFC>
+      <locmod>DUnitX.TestFramework (105)</locmod>
+    </item>
+    <item>
+      <id>RFC=5.....TTestFixtureHelper in DUnitX.TestFramework</id>
+      <RFC>0</RFC>
+      <locmod>DUnitX.TestFramework (128)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....Assert in DUnitX.TestFramework</id>
+      <RFC>0</RFC>
+      <locmod>DUnitX.TestFramework (141)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TTestInfoList in DUnitX.TestFramework</id>
+      <RFC>0</RFC>
+      <locmod>DUnitX.TestFramework (178)</locmod>
+    </item>
+    <item>
+      <id>RFC=0.....TTestFixtureInfoList in DUnitX.TestFramework</id>
+      <RFC>0</RFC>
+      <locmod>DUnitX.TestFramework (225)</locmod>
+    </item>
+    <item>
+      <id>RFC=3.....TDUnitXOptions in DUnitX.TestFramework</id>
+      <RFC>1</RFC>
+      <locmod>DUnitX.TestFramework (521)</locmod>
+    </item>
+    <item>
+      <id>RFC=9.....TDUnitX in DUnitX.TestFramework</id>
+      <RFC>0</RFC>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>RFC=30....TDUnitXConsoleLogger in DUnitX.Loggers.Console</id>
+      <RFC>0</RFC>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+    <item>
+      <id>RFC=1.....TBuildTests in Test.Build</id>
+      <RFC>0</RFC>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>RFC=3.....TFixInsightTests in Test.FixInsight</id>
+      <RFC>0</RFC>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>RFC=1.....TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <RFC>0</RFC>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>RFC=2.....TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <RFC>0</RFC>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+  <section name="Lack of Cohesion in Methods (LCOM)">
+    <item>
+      <id>LCOM=0....TLogMessage in DUnitX.TestFramework</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>DUnitX.TestFramework (105)</locmod>
+    </item>
+    <item>
+      <id>LCOM=4....TTestFixtureHelper in DUnitX.TestFramework</id>
+      <xeLCOM>4</xeLCOM>
+      <locmod>DUnitX.TestFramework (128)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....Assert in DUnitX.TestFramework</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>DUnitX.TestFramework (141)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TTestInfoList in DUnitX.TestFramework</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>DUnitX.TestFramework (178)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TTestFixtureInfoList in DUnitX.TestFramework</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>DUnitX.TestFramework (225)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TDUnitXOptions in DUnitX.TestFramework</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>DUnitX.TestFramework (521)</locmod>
+    </item>
+    <item>
+      <id>LCOM=4....TDUnitX in DUnitX.TestFramework</id>
+      <xeLCOM>4</xeLCOM>
+      <locmod>DUnitX.TestFramework (570)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TDUnitXConsoleLogger in DUnitX.Loggers.Console</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>DUnitX.Loggers.Console (41)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TBuildTests in Test.Build</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Test.Build (12)</locmod>
+    </item>
+    <item>
+      <id>LCOM=2....TFixInsightTests in Test.FixInsight</id>
+      <xeLCOM>2</xeLCOM>
+      <locmod>Test.FixInsight (16)</locmod>
+    </item>
+    <item>
+      <id>LCOM=0....TPalFindingNormalizeTests in Test.PalFindingNormalize</id>
+      <xeLCOM>0</xeLCOM>
+      <locmod>Test.PalFindingNormalize (15)</locmod>
+    </item>
+    <item>
+      <id>LCOM=1....TPascalAnalyzerTests in Test.PascalAnalyzer</id>
+      <xeLCOM>1</xeLCOM>
+      <locmod>Test.PascalAnalyzer (16)</locmod>
+    </item>
+  </section>
+</report>

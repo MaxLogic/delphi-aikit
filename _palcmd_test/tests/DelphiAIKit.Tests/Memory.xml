@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Memory Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Local objects with unprotected calls to Free" count="0" oldcount="-2">
+  </section>
+  <section name="Non-local objects with unprotected calls to Free" count="0" oldcount="-2">
+  </section>
+  <section name="Objects created in try-structure" count="0" oldcount="-2">
+  </section>
+  <section name="Unbalanced Create/Free" count="8" oldcount="-2">
+    <item>
+      <name>BdsToDelphi</name>
+      <loc>
+        <kind>Created</kind>
+        <locmod>Dak.PascalAnalyzerRunner</locmod>
+        <locline>121</locline>
+      </loc>
+    </item>
+    <item>
+      <name>BdsToDelphi</name>
+      <loc>
+        <kind>Freed</kind>
+        <locmod>Dak.PascalAnalyzerRunner</locmod>
+        <locline>129</locline>
+      </loc>
+    </item>
+    <item>
+      <name>DelphiWin32</name>
+      <loc>
+        <kind>Created</kind>
+        <locmod>Dak.PascalAnalyzerRunner</locmod>
+        <locline>123</locline>
+      </loc>
+    </item>
+    <item>
+      <name>DelphiWin32</name>
+      <loc>
+        <kind>Freed</kind>
+        <locmod>Dak.PascalAnalyzerRunner</locmod>
+        <locline>131</locline>
+      </loc>
+    </item>
+    <item>
+      <name>DelphiWin64</name>
+      <loc>
+        <kind>Created</kind>
+        <locmod>Dak.PascalAnalyzerRunner</locmod>
+        <locline>124</locline>
+      </loc>
+    </item>
+    <item>
+      <name>DelphiWin64</name>
+      <loc>
+        <kind>Freed</kind>
+        <locmod>Dak.PascalAnalyzerRunner</locmod>
+        <locline>132</locline>
+      </loc>
+    </item>
+    <item>
+      <name>PalCmdMax</name>
+      <loc>
+        <kind>Created</kind>
+        <locmod>Dak.PascalAnalyzerRunner</locmod>
+        <locline>122</locline>
+      </loc>
+    </item>
+    <item>
+      <name>PalCmdMax</name>
+      <loc>
+        <kind>Freed</kind>
+        <locmod>Dak.PascalAnalyzerRunner</locmod>
+        <locline>130</locline>
+      </loc>
+    </item>
+  </section>
+  <section name="Local objects that are created more than once without being freed in-between" count="0" oldcount="-2">
+  </section>
+  <section name="Local objects that are referenced before being created" count="0" oldcount="-2">
+  </section>
+  <section name="Local objects that are referenced after being freed" count="0" oldcount="-2">
+  </section>
+</report>

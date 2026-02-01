@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Third-party Dependencies Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Third-party folders directly referenced" count="0" oldcount="-2">
+  </section>
+  <section name="Third-party modules directly referenced" count="0" oldcount="-2">
+  </section>
+  <section name="Third-party identifiers directly referenced" count="0" oldcount="-2">
+  </section>
+  <section name="Third-party identifiers directly referenced, with locations" count="0" oldcount="-2">
+  </section>
+  <section name="Third-party class and interface types directly referenced" count="0" oldcount="-2">
+  </section>
+</report>

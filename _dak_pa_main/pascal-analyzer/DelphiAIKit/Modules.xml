@@ -1,0 +1,649 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Modules Report">
+  <created>30.01.2026 00:14:14</created>
+  <section name="Module information" count="40" oldcount="-2">
+    <module id="1">
+      <name>AutoFree</name>
+      <lines>283</lines>
+      <size>6565</size>
+      <date>17.12.2025</date>
+      <time>10:36:52</time>
+      <path>f:\projects\maxLogic\MaxLogicFoundation\AutoFree.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="2">
+      <name>Dak.Analyze</name>
+      <lines>1168</lines>
+      <size>35243</size>
+      <date>30.01.2026</date>
+      <time>00:06:34</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.analyze.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="3">
+      <name>Dak.Cli</name>
+      <lines>669</lines>
+      <size>22932</size>
+      <date>29.01.2026</date>
+      <time>19:51:54</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.cli.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="4">
+      <name>Dak.Diagnostics</name>
+      <lines>221</lines>
+      <size>5228</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="5">
+      <name>Dak.FixInsight</name>
+      <lines>132</lines>
+      <size>3618</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsight.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="6">
+      <name>Dak.FixInsightRunner</name>
+      <lines>260</lines>
+      <size>6978</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightrunner.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="7">
+      <name>Dak.FixInsightSettings</name>
+      <lines>187</lines>
+      <size>6095</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightsettings.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="8">
+      <name>Dak.MacroExpander</name>
+      <lines>119</lines>
+      <size>3230</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.macroexpander.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="9">
+      <name>Dak.Messages</name>
+      <lines>122</lines>
+      <size>6590</size>
+      <date>28.01.2026</date>
+      <time>22:42:58</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="10">
+      <name>Dak.MsBuild</name>
+      <lines>389</lines>
+      <size>10295</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.msbuild.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="11">
+      <name>Dak.Output</name>
+      <lines>314</lines>
+      <size>8841</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.output.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="12">
+      <name>Dak.PascalAnalyzerRunner</name>
+      <lines>2126</lines>
+      <size>58651</size>
+      <date>29.01.2026</date>
+      <time>23:38:00</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.pascalanalyzerrunner.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="13">
+      <name>Dak.Project</name>
+      <lines>416</lines>
+      <size>13632</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.project.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="14">
+      <name>Dak.Registry</name>
+      <lines>301</lines>
+      <size>9984</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.registry.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="15">
+      <name>Dak.ReportPostProcess</name>
+      <lines>592</lines>
+      <size>14783</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.reportpostprocess.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="16">
+      <name>Dak.RsVars</name>
+      <lines>154</lines>
+      <size>3899</size>
+      <date>28.01.2026</date>
+      <time>20:07:08</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.rsvars.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="17">
+      <name>Dak.Types</name>
+      <lines>120</lines>
+      <size>2832</size>
+      <date>28.01.2026</date>
+      <time>22:29:54</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="18">
+      <name>DelphiAIKit</name>
+      <lines>521</lines>
+      <size>17606</size>
+      <date>29.01.2026</date>
+      <time>23:54:26</time>
+      <path>F:\projects\MaxLogic\DelphiConfigResolver\projects\DelphiAIKit.dpr</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="19">
+      <name>madCrypt</name>
+      <lines>584</lines>
+      <size>29783</size>
+      <date>04.04.2012</date>
+      <time>14:55:38</time>
+      <path>C:\Program Files (x86)\madCollection\madBasic\Sources\madCrypt.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="20">
+      <name>madDisAsm</name>
+      <lines>3540</lines>
+      <size>198046</size>
+      <date>19.11.2021</date>
+      <time>15:30:20</time>
+      <path>C:\Program Files (x86)\madCollection\madDisAsm\Sources\madDisAsm.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="21">
+      <name>madExcept</name>
+      <lines>20462</lines>
+      <size>923474</size>
+      <date>03.10.2024</date>
+      <time>20:14:50</time>
+      <path>C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>Yes</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="22">
+      <name>madLinkDisAsm</name>
+      <lines>30</lines>
+      <size>1329</size>
+      <date>14.06.2003</date>
+      <time>11:01:42</time>
+      <path>C:\Program Files (x86)\madCollection\madExcept\Sources\madLinkDisAsm.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="23">
+      <name>madListHardware</name>
+      <lines>257</lines>
+      <size>9637</size>
+      <date>05.04.2012</date>
+      <time>14:15:50</time>
+      <path>C:\Program Files (x86)\madCollection\madExcept\Sources\madListHardware.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>Yes</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="24">
+      <name>madListModules</name>
+      <lines>119</lines>
+      <size>4030</size>
+      <date>08.08.2012</date>
+      <time>21:33:50</time>
+      <path>C:\Program Files (x86)\madCollection\madExcept\Sources\madListModules.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>Yes</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="25">
+      <name>madListProcesses</name>
+      <lines>286</lines>
+      <size>10211</size>
+      <date>05.04.2012</date>
+      <time>14:16:36</time>
+      <path>C:\Program Files (x86)\madCollection\madExcept\Sources\madListProcesses.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>Yes</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="26">
+      <name>madMapFile</name>
+      <lines>2579</lines>
+      <size>103139</size>
+      <date>08.03.2023</date>
+      <time>11:46:34</time>
+      <path>C:\Program Files (x86)\madCollection\madExcept\Sources\madMapFile.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>Yes</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="27">
+      <name>madNVAssistant</name>
+      <lines>2002</lines>
+      <size>84238</size>
+      <date>12.07.2017</date>
+      <time>13:40:14</time>
+      <path>C:\Program Files (x86)\madCollection\madExcept\Sources\madNVAssistant.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="28">
+      <name>madNVBitmap</name>
+      <lines>1266</lines>
+      <size>44947</size>
+      <date>27.04.2024</date>
+      <time>11:53:54</time>
+      <path>C:\Program Files (x86)\madCollection\madExcept\Sources\madNVBitmap.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="29">
+      <name>madNVPrgrAlert</name>
+      <lines>464</lines>
+      <size>17789</size>
+      <date>03.07.2012</date>
+      <time>11:17:12</time>
+      <path>C:\Program Files (x86)\madCollection\madExcept\Sources\madNVPrgrAlert.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="30">
+      <name>madStackTrace</name>
+      <lines>2450</lines>
+      <size>105960</size>
+      <date>03.10.2024</date>
+      <time>20:13:18</time>
+      <path>C:\Program Files (x86)\madCollection\madExcept\Sources\madStackTrace.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>Yes</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="31">
+      <name>madStrings</name>
+      <lines>3240</lines>
+      <size>121071</size>
+      <date>25.04.2013</date>
+      <time>11:46:00</time>
+      <path>C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="32">
+      <name>madTools</name>
+      <lines>1781</lines>
+      <size>73865</size>
+      <date>08.03.2023</date>
+      <time>11:41:54</time>
+      <path>C:\Program Files (x86)\madCollection\madBasic\Sources\madTools.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>Yes</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="33">
+      <name>madTypes</name>
+      <lines>282</lines>
+      <size>9181</size>
+      <date>20.06.2024</date>
+      <time>10:10:38</time>
+      <path>C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="34">
+      <name>madZip</name>
+      <lines>4115</lines>
+      <size>173209</size>
+      <date>02.01.2020</date>
+      <time>10:16:00</time>
+      <path>C:\Program Files (x86)\madCollection\madBasic\Sources\madZip.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+      <includes id="1">
+        <name>mad.inc</name>
+        <lines>40</lines>
+        <size>1726</size>
+        <date>27.12.2021</date>
+        <time>16:55:20</time>
+        <path>C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</path>
+        <initialization/>
+        <finalization/>
+      </includes>
+    </module>
+    <module id="35">
+      <name>maxAsync</name>
+      <lines>2054</lines>
+      <size>54475</size>
+      <date>15.12.2025</date>
+      <time>21:12:02</time>
+      <path>f:\projects\maxLogic\MaxLogicFoundation\maxAsync.pas</path>
+      <encoding>65001 (UTF-8)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="36">
+      <name>maxConsoleRunner</name>
+      <lines>644</lines>
+      <size>16283</size>
+      <date>15.12.2025</date>
+      <time>21:12:02</time>
+      <path>f:\projects\maxLogic\MaxLogicFoundation\maxConsoleRunner.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="37">
+      <name>maxLogic.CmdLineParams</name>
+      <lines>466</lines>
+      <size>14965</size>
+      <date>09.01.2026</date>
+      <time>19:01:42</time>
+      <path>f:\projects\maxLogic\MaxLogicFoundation\maxLogic.CmdLineParams.pas</path>
+      <encoding>65001 (UTF-8)</encoding>
+      <initialization>Yes</initialization>
+      <finalization>Yes</finalization>
+    </module>
+    <module id="38">
+      <name>maxLogic.IOUtils</name>
+      <lines>1189</lines>
+      <size>35842</size>
+      <date>15.12.2025</date>
+      <time>21:12:02</time>
+      <path>f:\projects\maxLogic\MaxLogicFoundation\maxLogic.IOUtils.pas</path>
+      <encoding>65001 (UTF-8)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="39">
+      <name>maxLogic.StrUtils</name>
+      <lines>1765</lines>
+      <size>60463</size>
+      <date>25.01.2026</date>
+      <time>20:05:14</time>
+      <path>f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas</path>
+      <encoding>65001 (UTF-8)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+    <module id="40">
+      <name>maxSignal</name>
+      <lines>173</lines>
+      <size>4967</size>
+      <date>25.01.2026</date>
+      <time>23:54:14</time>
+      <path>f:\projects\maxLogic\MaxLogicFoundation\maxSignal.pas</path>
+      <encoding>1250  (ANSI - Europa Środkowa)</encoding>
+      <initialization>No</initialization>
+      <finalization>No</finalization>
+    </module>
+  </section>
+  <section name="Last modified file">
+  </section>
+  <section name="Unique files" count="43" oldcount="-2">
+    <item id="1">C:\Program Files (x86)\madCollection\madBasic\Sources\mad.inc</item>
+    <item id="2">C:\Program Files (x86)\madCollection\madBasic\Sources\madCrypt.pas</item>
+    <item id="3">C:\Program Files (x86)\madCollection\madBasic\Sources\madStrings.pas</item>
+    <item id="4">C:\Program Files (x86)\madCollection\madBasic\Sources\madTools.pas</item>
+    <item id="5">C:\Program Files (x86)\madCollection\madBasic\Sources\madTypes.pas</item>
+    <item id="6">C:\Program Files (x86)\madCollection\madBasic\Sources\madZip.pas</item>
+    <item id="7">C:\Program Files (x86)\madCollection\madDisAsm\Sources\madDisAsm.pas</item>
+    <item id="8">C:\Program Files (x86)\madCollection\madExcept\Sources\madExcept.pas</item>
+    <item id="9">C:\Program Files (x86)\madCollection\madExcept\Sources\madLinkDisAsm.pas</item>
+    <item id="10">C:\Program Files (x86)\madCollection\madExcept\Sources\madListHardware.pas</item>
+    <item id="11">C:\Program Files (x86)\madCollection\madExcept\Sources\madListModules.pas</item>
+    <item id="12">C:\Program Files (x86)\madCollection\madExcept\Sources\madListProcesses.pas</item>
+    <item id="13">C:\Program Files (x86)\madCollection\madExcept\Sources\madMapFile.pas</item>
+    <item id="14">C:\Program Files (x86)\madCollection\madExcept\Sources\madNVAssistant.pas</item>
+    <item id="15">C:\Program Files (x86)\madCollection\madExcept\Sources\madNVBitmap.pas</item>
+    <item id="16">C:\Program Files (x86)\madCollection\madExcept\Sources\madNVPrgrAlert.pas</item>
+    <item id="17">C:\Program Files (x86)\madCollection\madExcept\Sources\madStackTrace.pas</item>
+    <item id="18">Dialogs</item>
+    <item id="19">F:\projects\MaxLogic\DelphiConfigResolver\projects\DelphiAIKit.dpr</item>
+    <item id="20">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.analyze.pas</item>
+    <item id="21">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.cli.pas</item>
+    <item id="22">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.diagnostics.pas</item>
+    <item id="23">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsight.pas</item>
+    <item id="24">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightrunner.pas</item>
+    <item id="25">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.fixinsightsettings.pas</item>
+    <item id="26">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.macroexpander.pas</item>
+    <item id="27">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.messages.pas</item>
+    <item id="28">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.msbuild.pas</item>
+    <item id="29">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.output.pas</item>
+    <item id="30">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.pascalanalyzerrunner.pas</item>
+    <item id="31">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.project.pas</item>
+    <item id="32">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.registry.pas</item>
+    <item id="33">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.reportpostprocess.pas</item>
+    <item id="34">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.rsvars.pas</item>
+    <item id="35">F:\projects\MaxLogic\DelphiConfigResolver\src\dak.types.pas</item>
+    <item id="36">f:\projects\maxLogic\MaxLogicFoundation\AutoFree.pas</item>
+    <item id="37">f:\projects\maxLogic\MaxLogicFoundation\maxAsync.pas</item>
+    <item id="38">f:\projects\maxLogic\MaxLogicFoundation\maxConsoleRunner.pas</item>
+    <item id="39">f:\projects\maxLogic\MaxLogicFoundation\maxLogic.CmdLineParams.pas</item>
+    <item id="40">f:\projects\maxLogic\MaxLogicFoundation\maxLogic.IOUtils.pas</item>
+    <item id="41">f:\projects\maxLogic\MaxLogicFoundation\MaxLogic.strUtils.pas</item>
+    <item id="42">f:\projects\maxLogic\MaxLogicFoundation\maxSignal.pas</item>
+    <item id="43">Forms</item>
+  </section>
+  <section name="Missing files" count="2" oldcount="-2">
+    <item id="1">Dialogs</item>
+    <item id="2">Forms</item>
+  </section>
+  <section name="Binary DFM/XFM files" count="0" oldcount="-2">
+  </section>
+</report>

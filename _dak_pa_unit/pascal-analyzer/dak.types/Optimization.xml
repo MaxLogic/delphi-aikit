@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Optimization Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Missing &quot;const&quot; for unmodified string parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Missing &quot;const&quot; for unmodified record parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Missing &quot;const&quot; for unmodified array parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Array properties that are referenced/set within methods" count="0" oldcount="-2">
+  </section>
+  <section name="Virtual methods (procedures/functions) that are not overridden" count="0" oldcount="-2">
+  </section>
+  <section name="Local subprograms with references to outer local variables" count="0" oldcount="-2">
+  </section>
+  <section name="Subprograms with local subprograms" count="0" oldcount="-2">
+  </section>
+  <section name="Parameter is &quot;var&quot;, can be changed to &quot;out&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Inlined subprograms not inlined because not yet implemented" count="0" oldcount="-2">
+  </section>
+  <section name="Managed local variable can be declared inline" count="0" oldcount="-2">
+  </section>
+  <section name="Managed local variable is inlined in loop" count="0" oldcount="-2">
+  </section>
+</report>

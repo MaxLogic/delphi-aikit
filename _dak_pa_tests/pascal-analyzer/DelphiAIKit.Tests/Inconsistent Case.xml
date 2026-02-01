@@ -1,0 +1,370 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Inconsistent Case Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Inconsistent case for same identifier" count="0" oldcount="-2">
+  </section>
+  <section name="Inconsistent case for different identifiers with same name" count="36" oldcount="-2">
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnStartTestFixture (56)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnStartTestFixture (56)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnSetupFixture (58)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnSetupFixture (58)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnEndSetupFixture (59)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnEndSetupFixture (59)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnTearDownFixture (80)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnTearDownFixture (80)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnEndTearDownFixture (81)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnEndTearDownFixture (81)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnStartTestFixture (377)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnStartTestFixture (377)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnSetupFixture (382)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnSetupFixture (382)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnEndSetupFixture (387)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnEndSetupFixture (387)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnTearDownFixture (457)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnTearDownFixture (457)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnEndTearDownFixture (462)</locmod>
+    </item>
+    <item>
+      <id>fixture : ITestFixtureInfo</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnEndTearDownFixture (462)</locmod>
+    </item>
+    <item>
+      <id>Fixture : ITestFixtureInfo</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (171)</locmod>
+    </item>
+    <item>
+      <id>Fixture : ITestFixtureInfo</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (171)</locmod>
+    </item>
+    <item>
+      <id>Fixture : ITestFixtureInfo</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (320)</locmod>
+    </item>
+    <item>
+      <id>Fixture : ITestFixtureInfo</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (320)</locmod>
+    </item>
+    <item>
+      <id>GetNameSpace</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (185)</locmod>
+    </item>
+    <item>
+      <id>GetNameSpace</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (185)</locmod>
+    </item>
+    <item>
+      <id>GetNamespace</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (307)</locmod>
+    </item>
+    <item>
+      <id>GetNamespace</id>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (307)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnLog (73)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnLog (73)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\Log (130)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\Log (130)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\Log (131)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\Log (131)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\Status (133)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\Status (133)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\WriteLn (135)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\WriteLn (135)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnLog (437)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnLog (437)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner\Log (501)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner\Log (501)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner\Log (502)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner\Log (502)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner\Status (504)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner\Status (504)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner\WriteLn (506)</locmod>
+    </item>
+    <item>
+      <id>msg : UnicodeString</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner\WriteLn (506)</locmod>
+    </item>
+    <item>
+      <id>Msg : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>DUnitX.TestFramework\TLogMessage (107)</locmod>
+    </item>
+    <item>
+      <id>Msg : UnicodeString</id>
+      <kind>Record Field</kind>
+      <locmod>DUnitX.TestFramework\TLogMessage (107)</locmod>
+    </item>
+    <item>
+      <id>NameSpace : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (203)</locmod>
+    </item>
+    <item>
+      <id>NameSpace : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (203)</locmod>
+    </item>
+    <item>
+      <id>Namespace : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (319)</locmod>
+    </item>
+    <item>
+      <id>Namespace : UnicodeString</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IFixtureResult (319)</locmod>
+    </item>
+    <item>
+      <id>Results : IRunResults</id>
+      <kind>Var, Global</kind>
+      <locmod>DelphiAIKit.Tests (18)</locmod>
+    </item>
+    <item>
+      <id>Results : IRunResults</id>
+      <kind>Var, Global</kind>
+      <locmod>DelphiAIKit.Tests (18)</locmod>
+    </item>
+    <item>
+      <id>results : IFixtureResult</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnEndTestFixture (83)</locmod>
+    </item>
+    <item>
+      <id>results : IFixtureResult</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnEndTestFixture (83)</locmod>
+    </item>
+    <item>
+      <id>results : IFixtureResult</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnEndTestFixture (467)</locmod>
+    </item>
+    <item>
+      <id>results : IFixtureResult</id>
+      <kind>ConstParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnEndTestFixture (467)</locmod>
+    </item>
+    <item>
+      <id>Runner : ITestRunner</id>
+      <kind>Var, Global</kind>
+      <locmod>DelphiAIKit.Tests (17)</locmod>
+    </item>
+    <item>
+      <id>Runner : ITestRunner</id>
+      <kind>Var, Global</kind>
+      <locmod>DelphiAIKit.Tests (17)</locmod>
+    </item>
+    <item>
+      <id>runner : ITestRunner</id>
+      <kind>Var, Local</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\Log (876)</locmod>
+    </item>
+    <item>
+      <id>runner : ITestRunner</id>
+      <kind>Var, Local</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\Log (876)</locmod>
+    </item>
+    <item>
+      <id>testCount : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnTestingStarts (54)</locmod>
+    </item>
+    <item>
+      <id>testCount : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger\OnTestingStarts (54)</locmod>
+    </item>
+    <item>
+      <id>TestCount : Cardinal</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (217)</locmod>
+    </item>
+    <item>
+      <id>TestCount : Cardinal</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (217)</locmod>
+    </item>
+    <item>
+      <id>TestCount : Integer</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (348)</locmod>
+    </item>
+    <item>
+      <id>TestCount : Integer</id>
+      <kind>Property</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (348)</locmod>
+    </item>
+    <item>
+      <id>testCount : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnTestingStarts (372)</locmod>
+    </item>
+    <item>
+      <id>testCount : Cardinal</id>
+      <kind>ValParam</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestLogger\OnTestingStarts (372)</locmod>
+    </item>
+  </section>
+  <section name="Mismatch unit name/file name" count="0" oldcount="-2">
+  </section>
+</report>

@@ -1,0 +1,607 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Uses Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Usage" count="-2" oldcount="-2">
+    <item>
+      <name>DelphiAIKit_Tests</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>DUnitX.Loggers.Console</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>Test.Support</module>
+          <status>unnecessary (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>Test.Build</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+        <item>
+          <module>Test.FixInsight</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+        <item>
+          <module>Test.PalFindingNormalize</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+        <item>
+          <module>Test.PascalAnalyzer</module>
+          <status>unnecessary (has initialization)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>DUnitX.Loggers.Console</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.ConsoleWriter.Base</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in interface (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>DUnitX.Loggers.Console</name>
+      <units_used_in_implementation>
+        <item>
+          <module>DUnitX.ResStrs</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.AutoDetect.Console</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.ServiceLocator</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>DUnitX.TestFramework</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SyncObjs</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.TypInfo</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Rtti</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.TimeSpan</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Generics.Collections</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.Assert</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.Assert.Ex</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.Attributes</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.Generics</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.Extensibility</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.Filters</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.ComparableFormat</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.Exceptions</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.Types</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in interface</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>DUnitX.TestFramework</name>
+      <units_used_in_implementation>
+        <item>
+          <module>System.Variants</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Math</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.StrUtils</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Types</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.RegularExpressions</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Generics.Defaults</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.ResStrs</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.ConsoleWriter.Base</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.Banner</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.OptionsDefinition</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.CommandLine.Options</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.TestRunner</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.Utils</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.ServiceLocator</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.MemoryLeakMonitor.Default</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.FixtureProvider</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.FilterBuilder</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.WeakReference</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>DUnitX.TestDataProvider</module>
+          <status>source not found</status>
+        </item>
+      </units_used_in_implementation>
+    </item>
+    <item>
+      <name>Test.Build</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>Test.Support</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Test.FixInsight</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.StrUtils</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.RegularExpressions</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>Test.Support</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Test.PalFindingNormalize</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.JSON</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Dak.PascalAnalyzerRunner</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>Test.Support</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Test.PascalAnalyzer</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Dak.PascalAnalyzerRunner</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Dak.Types</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+        <item>
+          <module>Test.Support</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+    <item>
+      <name>Test.Support</name>
+      <units_used_in_interface>
+        <item>
+          <module>System</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.Classes</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.IOUtils</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.StrUtils</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Winapi.Windows</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Dak.FixInsight</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>Dak.PascalAnalyzerRunner</module>
+          <status>source not found</status>
+        </item>
+        <item>
+          <module>System.SysUtils</module>
+          <status>in implementation</status>
+        </item>
+        <item>
+          <module>DUnitX.TestFramework</module>
+          <status>in implementation (has initialization, used by unit with init)</status>
+        </item>
+      </units_used_in_interface>
+    </item>
+  </section>
+  <section name="Modules that are referenced in the Delphi project file, but not used" count="-2" oldcount="-2">
+    <item id="1">Test.Build (has initialization)</item>
+    <item id="2">Test.FixInsight (has initialization)</item>
+    <item id="3">Test.PalFindingNormalize (has initialization)</item>
+    <item id="4">Test.PascalAnalyzer (has initialization)</item>
+    <item id="5">Test.Support (has initialization, used by unit with init)</item>
+  </section>
+  <section name="Modules that are used but not added to the Delphi project file" count="-2" oldcount="-2">
+    <item id="1">Dak.FixInsight</item>
+    <item id="2">Dak.PascalAnalyzerRunner</item>
+    <item id="3">System</item>
+    <item id="4">System.Classes</item>
+    <item id="5">System.IOUtils</item>
+    <item id="6">System.StrUtils</item>
+    <item id="7">Winapi.Windows</item>
+  </section>
+  <section name="References">
+    <module>
+        DelphiAIKit_Tests
+      <references id="1">DUnitX.Loggers.Console</references>
+      <references id="2">DUnitX.TestFramework</references>
+      <references id="3">System</references>
+      <references id="4">System.SysUtils</references>
+      <references id="5">Test.Build</references>
+      <references id="6">Test.FixInsight</references>
+      <references id="7">Test.PalFindingNormalize</references>
+      <references id="8">Test.PascalAnalyzer</references>
+      <references id="9">Test.Support</references>
+    </module>
+    <module>
+        DUnitX.Loggers.Console
+      <references id="1">DUnitX.AutoDetect.Console</references>
+      <references id="2">DUnitX.ConsoleWriter.Base</references>
+      <references id="3">DUnitX.ResStrs</references>
+      <references id="4">DUnitX.ServiceLocator</references>
+      <references id="5">DUnitX.TestFramework</references>
+      <references id="6">System</references>
+      <references id="7">System.SysUtils</references>
+    </module>
+    <module>
+        DUnitX.Loggers.Console
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+    </module>
+    <module>
+        DUnitX.TestFramework
+      <references id="1">DUnitX.Assert</references>
+      <references id="2">DUnitX.Assert.Ex</references>
+      <references id="3">DUnitX.Attributes</references>
+      <references id="4">DUnitX.Banner</references>
+      <references id="5">DUnitX.CommandLine.Options</references>
+      <references id="6">DUnitX.ComparableFormat</references>
+      <references id="7">DUnitX.ConsoleWriter.Base</references>
+      <references id="8">DUnitX.Exceptions</references>
+      <references id="9">DUnitX.Extensibility</references>
+      <references id="10">DUnitX.FilterBuilder</references>
+      <references id="11">DUnitX.Filters</references>
+      <references id="12">DUnitX.FixtureProvider</references>
+      <references id="13">DUnitX.Generics</references>
+      <references id="14">DUnitX.MemoryLeakMonitor.Default</references>
+      <references id="15">DUnitX.OptionsDefinition</references>
+      <references id="16">DUnitX.ResStrs</references>
+      <references id="17">DUnitX.ServiceLocator</references>
+      <references id="18">DUnitX.TestDataProvider</references>
+      <references id="19">DUnitX.TestRunner</references>
+      <references id="20">DUnitX.Types</references>
+      <references id="21">DUnitX.Utils</references>
+      <references id="22">DUnitX.WeakReference</references>
+      <references id="23">System</references>
+      <references id="24">System.Classes</references>
+      <references id="25">System.Generics.Collections</references>
+      <references id="26">System.Generics.Defaults</references>
+      <references id="27">System.Math</references>
+      <references id="28">System.RegularExpressions</references>
+      <references id="29">System.Rtti</references>
+      <references id="30">System.StrUtils</references>
+      <references id="31">System.SyncObjs</references>
+      <references id="32">System.SysUtils</references>
+      <references id="33">System.TimeSpan</references>
+      <references id="34">System.Types</references>
+      <references id="35">System.TypInfo</references>
+      <references id="36">System.Variants</references>
+    </module>
+    <module>
+        DUnitX.TestFramework
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+      <referenced_by id="2">DUnitX.Loggers.Console</referenced_by>
+      <referenced_by id="3">Test.Build</referenced_by>
+      <referenced_by id="4">Test.FixInsight</referenced_by>
+      <referenced_by id="5">Test.PalFindingNormalize</referenced_by>
+      <referenced_by id="6">Test.PascalAnalyzer</referenced_by>
+      <referenced_by id="7">Test.Support</referenced_by>
+    </module>
+    <module>
+        Test.Build
+      <references id="1">DUnitX.TestFramework</references>
+      <references id="2">System</references>
+      <references id="3">System.SysUtils</references>
+      <references id="4">Test.Support</references>
+    </module>
+    <module>
+        Test.Build
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+    </module>
+    <module>
+        Test.FixInsight
+      <references id="1">DUnitX.TestFramework</references>
+      <references id="2">System</references>
+      <references id="3">System.Classes</references>
+      <references id="4">System.IOUtils</references>
+      <references id="5">System.RegularExpressions</references>
+      <references id="6">System.StrUtils</references>
+      <references id="7">System.SysUtils</references>
+      <references id="8">Test.Support</references>
+    </module>
+    <module>
+        Test.FixInsight
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+    </module>
+    <module>
+        Test.PalFindingNormalize
+      <references id="1">Dak.PascalAnalyzerRunner</references>
+      <references id="2">DUnitX.TestFramework</references>
+      <references id="3">System</references>
+      <references id="4">System.IOUtils</references>
+      <references id="5">System.JSON</references>
+      <references id="6">System.SysUtils</references>
+      <references id="7">Test.Support</references>
+    </module>
+    <module>
+        Test.PalFindingNormalize
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+    </module>
+    <module>
+        Test.PascalAnalyzer
+      <references id="1">Dak.PascalAnalyzerRunner</references>
+      <references id="2">Dak.Types</references>
+      <references id="3">DUnitX.TestFramework</references>
+      <references id="4">System</references>
+      <references id="5">System.IOUtils</references>
+      <references id="6">System.SysUtils</references>
+      <references id="7">Test.Support</references>
+      <references id="8">Winapi.Windows</references>
+    </module>
+    <module>
+        Test.PascalAnalyzer
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+    </module>
+    <module>
+        Test.Support
+      <references id="1">Dak.FixInsight</references>
+      <references id="2">Dak.PascalAnalyzerRunner</references>
+      <references id="3">DUnitX.TestFramework</references>
+      <references id="4">System</references>
+      <references id="5">System.Classes</references>
+      <references id="6">System.IOUtils</references>
+      <references id="7">System.StrUtils</references>
+      <references id="8">System.SysUtils</references>
+      <references id="9">Winapi.Windows</references>
+    </module>
+    <module>
+        Test.Support
+      <referenced_by id="1">DelphiAIKit_Tests</referenced_by>
+      <referenced_by id="2">Test.Build</referenced_by>
+      <referenced_by id="3">Test.FixInsight</referenced_by>
+      <referenced_by id="4">Test.PalFindingNormalize</referenced_by>
+      <referenced_by id="5">Test.PascalAnalyzer</referenced_by>
+    </module>
+  </section>
+  <section name="Optimal uses list">
+    <item id="1">System.SysUtils</item>
+    <item id="2">DUnitX.TestFramework</item>
+    <item id="3">DUnitX.Loggers.Console</item>
+    <item id="4">Test.Support</item>
+    <item id="5">Test.Build</item>
+    <item id="6">Test.FixInsight</item>
+    <item id="7">Test.PalFindingNormalize</item>
+    <item id="8">Test.PascalAnalyzer</item>
+    <item id="9">DelphiAIKit.Tests</item>
+  </section>
+  <section name="Runtime initialization order">
+    <item id="1">DUnitX.TestFramework</item>
+    <item id="2">Test.Support</item>
+    <item id="3">Test.Build</item>
+    <item id="4">Test.FixInsight</item>
+    <item id="5">Test.PalFindingNormalize</item>
+    <item id="6">Test.PascalAnalyzer</item>
+  </section>
+  <section name="Mutual unit references" count="0" oldcount="-2">
+  </section>
+  <section name="All modules" count="8" oldcount="-2">
+    <item id="1">DelphiAIKit_Tests</item>
+    <item id="2">DUnitX.Loggers.Console</item>
+    <item id="3">DUnitX.TestFramework</item>
+    <item id="4">Test.Build</item>
+    <item id="5">Test.FixInsight</item>
+    <item id="6">Test.PalFindingNormalize</item>
+    <item id="7">Test.PascalAnalyzer</item>
+    <item id="8">Test.Support</item>
+  </section>
+</report>

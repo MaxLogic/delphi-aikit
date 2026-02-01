@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Inconsistent Case Report">
+  <created>29.01.2026 21:38:30</created>
+  <section name="Inconsistent case for same identifier" count="0" oldcount="-2">
+  </section>
+  <section name="Inconsistent case for different identifiers with same name" count="0" oldcount="-2">
+  </section>
+  <section name="Mismatch unit name/file name" count="0" oldcount="-2">
+  </section>
+</report>

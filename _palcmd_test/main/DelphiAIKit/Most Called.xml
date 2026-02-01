@@ -1,0 +1,1242 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Most Called Report">
+  <created>29.01.2026 23:48:55</created>
+  <section name="These subprograms are called from two or more locations" count="206" oldcount="-2">
+    <item>
+      <id>Add</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbos (23)</locmod>
+    </item>
+    <item>
+      <id>Add</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbos (22)</locmod>
+    </item>
+    <item>
+      <id>Add</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+    </item>
+    <item>
+      <id>AddArg</id>
+      <numcalled>12</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.FixInsightRunner (66)</locmod>
+    </item>
+    <item>
+      <id>AddArg</id>
+      <numcalled>12</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat (188)</locmod>
+    </item>
+    <item>
+      <id>AddFindingFromLoc</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+    </item>
+    <item>
+      <id>AddFindingRecord</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+    </item>
+    <item>
+      <id>AddFrom</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.FixInsightSettings\MergeList (90)</locmod>
+    </item>
+    <item>
+      <id>AddInfo</id>
+      <numcalled>42</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+    </item>
+    <item>
+      <id>AddNote</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+    </item>
+    <item>
+      <id>AddRoot</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+    </item>
+    <item>
+      <id>AddWarning</id>
+      <numcalled>18</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+    </item>
+    <item>
+      <id>AppendRunHeader</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (65)</locmod>
+    </item>
+    <item>
+      <id>AppendVarList</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat (144)</locmod>
+    </item>
+    <item>
+      <id>ApplySettingsOverrides</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Dak.FixInsightSettings (14)</locmod>
+    </item>
+    <item>
+      <id>AttrText</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+    </item>
+    <item>
+      <id>BoolToText</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator\EvaluateFile (298)</locmod>
+    </item>
+    <item>
+      <id>BuildFixInsightCommandLine</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightRunner (10)</locmod>
+    </item>
+    <item>
+      <id>BuildPalCmdCommandLine</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+    </item>
+    <item>
+      <id>BuildPalCmdUnitCommandLine</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+    </item>
+    <item>
+      <id>Cancel</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (380)</locmod>
+    </item>
+    <item>
+      <id>CaptureOption</id>
+      <numcalled>8</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Registry\TryReadEnvOptionsLibraryPath (27)</locmod>
+    </item>
+    <item>
+      <id>ChildText</id>
+      <numcalled>15</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+    </item>
+    <item>
+      <id>ChooseMessage</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1247)</locmod>
+    </item>
+    <item>
+      <id>ChoosePalCmdExeInDir</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+    </item>
+    <item>
+      <id>ClosehandleAndZeroIt</id>
+      <numcalled>8</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (54)</locmod>
+    </item>
+    <item>
+      <id>CmdQuote</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Output (31)</locmod>
+    </item>
+    <item>
+      <id>CollectExceptionCalls</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+    </item>
+    <item>
+      <id>CombinePath</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (82)</locmod>
+    </item>
+    <item>
+      <id>ContainsFlag</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (410)</locmod>
+    </item>
+    <item>
+      <id>ContainsMacro</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (38)</locmod>
+    </item>
+    <item>
+      <id>CpuCount</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>AutoFree\TGarbo (36)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>3</numcalled>
+      <kind>Constructor</kind>
+      <locmod>Dak.Diagnostics\TStringSet (16)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>3</numcalled>
+      <kind>Constructor</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>4</numcalled>
+      <kind>Constructor</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (22)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>Dak.Project\TSourceTracker (22)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>maxAsync\TAsyncLoop (375)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (215)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (70)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>maxConsoleRunner\TPipeThread (126)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (109)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>2</numcalled>
+      <kind>Constructor</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (148)</locmod>
+    </item>
+    <item>
+      <id>Create</id>
+      <numcalled>4</numcalled>
+      <kind>Constructor</kind>
+      <locmod>MaxLogic.strUtils\TProcAdapter (307)</locmod>
+    </item>
+    <item>
+      <id>delete</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>maxAsync\TWaiter\WaitFor (1563)</locmod>
+    </item>
+    <item>
+      <id>DetectIndexesFromRow</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightCsv (407)</locmod>
+    </item>
+    <item>
+      <id>DoClosing</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (131)</locmod>
+    </item>
+    <item>
+      <id>EnsureEnvVar</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (104)</locmod>
+    </item>
+    <item>
+      <id>Enter</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (217)</locmod>
+    </item>
+    <item>
+      <id>Enter</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\tInterfacedCriticalSection (253)</locmod>
+    </item>
+    <item>
+      <id>Env</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (542)</locmod>
+    </item>
+    <item>
+      <id>EvaluateFile</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (23)</locmod>
+    </item>
+    <item>
+      <id>Execute</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (378)</locmod>
+    </item>
+    <item>
+      <id>Execute</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (73)</locmod>
+    </item>
+    <item>
+      <id>Expand</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MacroExpander\TMacroExpander (11)</locmod>
+    </item>
+    <item>
+      <id>ExtractString</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (83)</locmod>
+    </item>
+    <item>
+      <id>FilterExistingPaths</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.FixInsightRunner\BuildArgs (85)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (121)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (122)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (124)</locmod>
+    </item>
+    <item>
+      <id>find</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (125)</locmod>
+    </item>
+    <item>
+      <id>FindChildText</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (307)</locmod>
+    </item>
+    <item>
+      <id>FindColumnIndex</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.ReportPostProcess (352)</locmod>
+    </item>
+    <item>
+      <id>FindOrderIndex</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (276)</locmod>
+    </item>
+    <item>
+      <id>FixEmptyToUntitled</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>maxLogic.IOUtils\SanitizeFileName (613)</locmod>
+    </item>
+    <item>
+      <id>Flush</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (171)</locmod>
+    </item>
+    <item>
+      <id>FlushChunk</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Output\BuildBat\AppendVarList (153)</locmod>
+    </item>
+    <item>
+      <id>FoldCharValue</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (139)</locmod>
+    </item>
+    <item>
+      <id>FoldPair</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (140)</locmod>
+    </item>
+    <item>
+      <id>FormatTimestamp</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (36)</locmod>
+    </item>
+    <item>
+      <id>Free</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (221)</locmod>
+    </item>
+    <item>
+      <id>FreePalCmdMap</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (127)</locmod>
+    </item>
+    <item>
+      <id>fStr</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>MaxLogic.strUtils (272)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <numcalled>10</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>AutoFree (69)</locmod>
+    </item>
+    <item>
+      <id>GetBuildInfo</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (31)</locmod>
+    </item>
+    <item>
+      <id>GetCurrentDLLName</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (28)</locmod>
+    </item>
+    <item>
+      <id>GetFinished</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (128)</locmod>
+    </item>
+    <item>
+      <id>GetKeepAlive</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (141)</locmod>
+    </item>
+    <item>
+      <id>GetParamList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (119)</locmod>
+    </item>
+    <item>
+      <id>GetProc</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (142)</locmod>
+    </item>
+    <item>
+      <id>GetPropertySource</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (192)</locmod>
+    </item>
+    <item>
+      <id>GetReadySignal</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (136)</locmod>
+    </item>
+    <item>
+      <id>GetSectionCountTotal</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (361)</locmod>
+    </item>
+    <item>
+      <id>GetStartSignal</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (148)</locmod>
+    </item>
+    <item>
+      <id>GetSwitchPrefixes</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (19)</locmod>
+    </item>
+    <item>
+      <id>GetTaskName</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (143)</locmod>
+    </item>
+    <item>
+      <id>GetTaskName</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TThreadData (287)</locmod>
+    </item>
+    <item>
+      <id>GetTerminated</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (135)</locmod>
+    </item>
+    <item>
+      <id>GetThread</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (138)</locmod>
+    </item>
+    <item>
+      <id>GetWakeSignal</id>
+      <numcalled>7</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (140)</locmod>
+    </item>
+    <item>
+      <id>GetWindowsFolder</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.IOUtils (1069)</locmod>
+    </item>
+    <item>
+      <id>HasAnyReportFilters</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (20)</locmod>
+    </item>
+    <item>
+      <id>HashBytes</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (142)</locmod>
+    </item>
+    <item>
+      <id>InsideMainThread</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxAsync (590)</locmod>
+    </item>
+    <item>
+      <id>InsideMainThread</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxSignal (58)</locmod>
+    </item>
+    <item>
+      <id>Invoke</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TProcAdapter (308)</locmod>
+    </item>
+    <item>
+      <id>IsAggregateName</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1542)</locmod>
+    </item>
+    <item>
+      <id>JoinList</id>
+      <numcalled>10</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Output (14)</locmod>
+    </item>
+    <item>
+      <id>JoinList</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (185)</locmod>
+    </item>
+    <item>
+      <id>JoinSemi</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (848)</locmod>
+    </item>
+    <item>
+      <id>JsonGetInteger</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (151)</locmod>
+    </item>
+    <item>
+      <id>JsonGetString</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (141)</locmod>
+    </item>
+    <item>
+      <id>leave</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (218)</locmod>
+    </item>
+    <item>
+      <id>leave</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\tInterfacedCriticalSection (254)</locmod>
+    </item>
+    <item>
+      <id>LoadSettings</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightSettings (11)</locmod>
+    </item>
+    <item>
+      <id>LoadXmlDocument</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (351)</locmod>
+    </item>
+    <item>
+      <id>lock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TLockFreeLock (484)</locmod>
+    </item>
+    <item>
+      <id>lock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (123)</locmod>
+    </item>
+    <item>
+      <id>LogBdsVersions</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (125)</locmod>
+    </item>
+    <item>
+      <id>maxCmdLineParams</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.CmdLineParams (140)</locmod>
+    </item>
+    <item>
+      <id>MergeList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.FixInsightSettings (85)</locmod>
+    </item>
+    <item>
+      <id>MsgWaitForSingleObject</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxSignal (61)</locmod>
+    </item>
+    <item>
+      <id>New</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+    </item>
+    <item>
+      <id>NextToken</id>
+      <numcalled>8</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+    </item>
+    <item>
+      <id>NormalizeLineText</id>
+      <numcalled>22</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+    </item>
+    <item>
+      <id>NormalizePath</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (139)</locmod>
+    </item>
+    <item>
+      <id>NormalizePathList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (105)</locmod>
+    </item>
+    <item>
+      <id>NormalizeSlashes</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.ReportPostProcess (53)</locmod>
+    </item>
+    <item>
+      <id>NormalizeTextList</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (73)</locmod>
+    </item>
+    <item>
+      <id>OnPropertySet</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Project\TSourceTracker (23)</locmod>
+    </item>
+    <item>
+      <id>OrdinalIgnoreCase</id>
+      <numcalled>19</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (150)</locmod>
+    </item>
+    <item>
+      <id>ParseCsvRow</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.ReportPostProcess (303)</locmod>
+    </item>
+    <item>
+      <id>ParseExpr</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TConditionParser (43)</locmod>
+    </item>
+    <item>
+      <id>ParseFactor</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TConditionParser (45)</locmod>
+    </item>
+    <item>
+      <id>ParseFindingReport</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+    </item>
+    <item>
+      <id>ParseList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (18)</locmod>
+    </item>
+    <item>
+      <id>ParseTerm</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TConditionParser (44)</locmod>
+    </item>
+    <item>
+      <id>PathMatchesAnyMask</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.ReportPostProcess (146)</locmod>
+    </item>
+    <item>
+      <id>PrepareTextForStrToFloatWcc</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>MaxLogic.strUtils (286)</locmod>
+    </item>
+    <item>
+      <id>PullData</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (64)</locmod>
+    </item>
+    <item>
+      <id>PutBefore</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (20)</locmod>
+    </item>
+    <item>
+      <id>quote</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (59)</locmod>
+    </item>
+    <item>
+      <id>QuoteArg</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.FixInsightRunner (18)</locmod>
+    </item>
+    <item>
+      <id>QuoteArg</id>
+      <numcalled>8</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+    </item>
+    <item>
+      <id>QuoteCmd</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.RsVars (15)</locmod>
+    </item>
+    <item>
+      <id>QuoteCmdArg</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>DelphiAIKit (99)</locmod>
+    </item>
+    <item>
+      <id>ReadBoolOption</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.FixInsightSettings (45)</locmod>
+    </item>
+    <item>
+      <id>ReadStatusSummary</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (372)</locmod>
+    </item>
+    <item>
+      <id>RebuildDic</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxLogic.CmdLineParams\TCmdLineParams (100)</locmod>
+    </item>
+    <item>
+      <id>ReleaseThreadData</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsyncGlobal (515)</locmod>
+    </item>
+    <item>
+      <id>Replace</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TRegExHelper (312)</locmod>
+    </item>
+    <item>
+      <id>ResolveFilePath</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (170)</locmod>
+    </item>
+    <item>
+      <id>Rotl32</id>
+      <numcalled>21</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (141)</locmod>
+    </item>
+    <item>
+      <id>safeRetrieveOutput</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (130)</locmod>
+    </item>
+    <item>
+      <id>SanitizeSegment</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>maxLogic.IOUtils\SanitizeFileName (623)</locmod>
+    </item>
+    <item>
+      <id>SetDefaultValues</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TThreadData (300)</locmod>
+    </item>
+    <item>
+      <id>SetexeName</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (49)</locmod>
+    </item>
+    <item>
+      <id>SetFinished</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (132)</locmod>
+    </item>
+    <item>
+      <id>SetKeepAlive</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (144)</locmod>
+    </item>
+    <item>
+      <id>SetOnErrorDataRead</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (65)</locmod>
+    </item>
+    <item>
+      <id>SetOnFinished</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (371)</locmod>
+    </item>
+    <item>
+      <id>SetOnStdDataRead</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (66)</locmod>
+    </item>
+    <item>
+      <id>SetParamsString</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (63)</locmod>
+    </item>
+    <item>
+      <id>SetProc</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (146)</locmod>
+    </item>
+    <item>
+      <id>SetSimultanousThreadCount</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (372)</locmod>
+    </item>
+    <item>
+      <id>SetTaskName</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (147)</locmod>
+    </item>
+    <item>
+      <id>SetTerminated</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (134)</locmod>
+    </item>
+    <item>
+      <id>SetThreadPriority</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (326)</locmod>
+    </item>
+    <item>
+      <id>SetWaiting</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\IInterface\iThreadData (133)</locmod>
+    </item>
+    <item>
+      <id>SetWorkDir</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TmaxConsoleRunner (50)</locmod>
+    </item>
+    <item>
+      <id>SimpleAsyncCall</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxAsync (575)</locmod>
+    </item>
+    <item>
+      <id>slash</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (130)</locmod>
+    </item>
+    <item>
+      <id>SortHotspots</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1724)</locmod>
+    </item>
+    <item>
+      <id>SourceToText</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>DelphiAIKit (22)</locmod>
+    </item>
+    <item>
+      <id>SplitInHalfBy</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>MaxLogic.strUtils (270)</locmod>
+    </item>
+    <item>
+      <id>SplitList</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Project (51)</locmod>
+    </item>
+    <item>
+      <id>StartReading</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (129)</locmod>
+    </item>
+    <item>
+      <id>SumSectionCounts</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (327)</locmod>
+    </item>
+    <item>
+      <id>syncVclCall</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxAsync (587)</locmod>
+    </item>
+    <item>
+      <id>TakeTopHotspots</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1714)</locmod>
+    </item>
+    <item>
+      <id>TakeValue</id>
+      <numcalled>41</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Cli\TryParseOptions (212)</locmod>
+    </item>
+    <item>
+      <id>ToArray</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+    </item>
+    <item>
+      <id>TryBuildParams</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Project (10)</locmod>
+    </item>
+    <item>
+      <id>TryEvaluateCondition</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.MsBuild\TMsBuildEvaluator (19)</locmod>
+    </item>
+    <item>
+      <id>TryFindPalReportRoot</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (24)</locmod>
+    </item>
+    <item>
+      <id>TryGeneratePalArtifacts</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+    </item>
+    <item>
+      <id>TryGetJsonArray</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (161)</locmod>
+    </item>
+    <item>
+      <id>TryLoadRsVars</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.RsVars (10)</locmod>
+    </item>
+    <item>
+      <id>TryLoadXml</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+    </item>
+    <item>
+      <id>TryNormalizeRuleId</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.ReportPostProcess (58)</locmod>
+    </item>
+    <item>
+      <id>TryOpenLogFile</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+    </item>
+    <item>
+      <id>TryOpenLogHandle</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (82)</locmod>
+    </item>
+    <item>
+      <id>TryParseBool</id>
+      <numcalled>11</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Cli\TryParseOptions (146)</locmod>
+    </item>
+    <item>
+      <id>TryParseLocMod</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+    </item>
+    <item>
+      <id>TryPostProcessFixInsightReport</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.ReportPostProcess (22)</locmod>
+    </item>
+    <item>
+      <id>TryReadIdeConfig</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.Registry (12)</locmod>
+    </item>
+    <item>
+      <id>TryReadRegistryView</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Registry\TryReadIdeConfig (150)</locmod>
+    </item>
+    <item>
+      <id>TryResolveFixInsightExe</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsight (10)</locmod>
+    </item>
+    <item>
+      <id>TryResolvePalCmdExe</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+    </item>
+    <item>
+      <id>TryRunFixInsightLogged</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Analyze (504)</locmod>
+    </item>
+    <item>
+      <id>TryRunFixInsightWithHandles</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.FixInsightRunner (13)</locmod>
+    </item>
+    <item>
+      <id>TryRunPascalAnalyzerWithHandles</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+    </item>
+    <item>
+      <id>TrySplitSwitch</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Local</kind>
+      <locmod>Dak.Cli\TryParseOptions (162)</locmod>
+    </item>
+    <item>
+      <id>unlock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TLockFreeLock (486)</locmod>
+    </item>
+    <item>
+      <id>unLock</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxConsoleRunner\TPipeThread (124)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TWaiter (534)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TmaxAsync (334)</locmod>
+    </item>
+    <item>
+      <id>WaitFor</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TAsyncLoop (379)</locmod>
+    </item>
+    <item>
+      <id>WriteLine</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (34)</locmod>
+    </item>
+    <item>
+      <id>WriteLogText</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (53)</locmod>
+    </item>
+    <item>
+      <id>WriteToolLog</id>
+      <numcalled>5</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>Dak.Analyze (108)</locmod>
+    </item>
+    <item>
+      <id>WriteToStderr</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+    </item>
+    <item>
+      <id>WriteUsage</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Dak.Cli (12)</locmod>
+    </item>
+    <item>
+      <id>XmlEscape</id>
+      <numcalled>9</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Dak.Output (21)</locmod>
+    </item>
+  </section>
+</report>

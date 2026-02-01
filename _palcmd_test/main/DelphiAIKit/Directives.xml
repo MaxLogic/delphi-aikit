@@ -1,0 +1,179 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Directives Report">
+  <created>29.01.2026 23:48:55</created>
+  <section name="Identifiers marked with the &quot;deprecated&quot; directive" count="1" oldcount="-2">
+    <item>
+      <id>ConvertToValidDirectoryName</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.IOUtils (93)</locmod>
+    </item>
+  </section>
+  <section name="Identifiers marked with the &quot;experimental&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Identifiers marked with the &quot;library&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Identifiers marked with the &quot;platform&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Subprograms marked with the &quot;inline&quot; directive" count="32" oldcount="-2">
+    <item>
+      <id>Create</id>
+      <kind>Func, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (215)</locmod>
+    </item>
+    <item>
+      <id>EnsureInit</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TSafeValue&lt;T&gt; (463)</locmod>
+    </item>
+    <item>
+      <id>Enter</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TRTLCriticalSectionHelper (199)</locmod>
+    </item>
+    <item>
+      <id>Enter</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (217)</locmod>
+    </item>
+    <item>
+      <id>exit</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TRTLCriticalSectionHelper (202)</locmod>
+    </item>
+    <item>
+      <id>exit</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (220)</locmod>
+    </item>
+    <item>
+      <id>FoldAscii</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (138)</locmod>
+    </item>
+    <item>
+      <id>FoldCharValue</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (139)</locmod>
+    </item>
+    <item>
+      <id>FoldPair</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (140)</locmod>
+    </item>
+    <item>
+      <id>Free</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TRTLCriticalSectionHelper (203)</locmod>
+    </item>
+    <item>
+      <id>Free</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (221)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)       </locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (43)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (44)</locmod>
+    </item>
+    <item>
+      <id>i2s</id>
+      <kind>Func, Global</kind>
+      <locmod>MaxLogic.strUtils (321)</locmod>
+    </item>
+    <item>
+      <id>InsideMainThread</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxAsync (590)      </locmod>
+    </item>
+    <item>
+      <id>IsUtf8ContinuationByte</id>
+      <kind>Func, Global</kind>
+      <locmod>MaxLogic.strUtils (985)</locmod>
+    </item>
+    <item>
+      <id>leave</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TRTLCriticalSectionHelper (200)</locmod>
+    </item>
+    <item>
+      <id>leave</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TFixedRtlCriticalSection (218)</locmod>
+    </item>
+    <item>
+      <id>lock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TObjectWithCriticalSection (236)</locmod>
+    </item>
+    <item>
+      <id>lock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TLockFreeLock (484)</locmod>
+    </item>
+    <item>
+      <id>MsgWaitForSingleObject</id>
+      <kind>Proc, Interfaced</kind>
+      <locmod>maxAsync (594)      </locmod>
+    </item>
+    <item>
+      <id>Preprocess</id>
+      <kind>Proc, Method</kind>
+      <locmod>MaxLogic.strUtils\TFilterEx (254)</locmod>
+    </item>
+    <item>
+      <id>Rotl32</id>
+      <kind>Func, Method</kind>
+      <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (141)</locmod>
+    </item>
+    <item>
+      <id>RunOnExit</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (78)       </locmod>
+    </item>
+    <item>
+      <id>StrCmpLogical</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>MaxLogic.strUtils (211)</locmod>
+    </item>
+    <item>
+      <id>Trap</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (80)       </locmod>
+    </item>
+    <item>
+      <id>unlock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TObjectWithCriticalSection (237)</locmod>
+    </item>
+    <item>
+      <id>unlock</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxAsync\TLockFreeLock (486)</locmod>
+    </item>
+    <item>
+      <id>Utf8SequenceLength</id>
+      <kind>Func, Global</kind>
+      <locmod>MaxLogic.strUtils (972)</locmod>
+    </item>
+  </section>
+</report>

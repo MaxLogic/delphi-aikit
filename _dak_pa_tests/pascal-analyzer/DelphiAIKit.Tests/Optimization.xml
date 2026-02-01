@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Optimization Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="Missing &quot;const&quot; for unmodified string parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Missing &quot;const&quot; for unmodified record parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Missing &quot;const&quot; for unmodified array parameter" count="0" oldcount="-2">
+  </section>
+  <section name="Array properties that are referenced/set within methods" count="0" oldcount="-2">
+  </section>
+  <section name="Virtual methods (procedures/functions) that are not overridden" count="7" oldcount="-2">
+    <item>
+      <id>SetConsoleDefaultColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (46)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleDefaultColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (46)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleErrorColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (47)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleErrorColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (47)</locmod>
+    </item>
+    <item>
+      <id>SetConsolePassColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (48)</locmod>
+    </item>
+    <item>
+      <id>SetConsolePassColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (48)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleRunTestColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (50)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleRunTestColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (50)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleSetupTestColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (49)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleSetupTestColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (49)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleSummaryColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (51)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleSummaryColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (51)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleWarningColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (52)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleWarningColor</id>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (52)</locmod>
+    </item>
+  </section>
+  <section name="Local subprograms with references to outer local variables" count="0" oldcount="-2">
+  </section>
+  <section name="Subprograms with local subprograms" count="0" oldcount="-2">
+  </section>
+  <section name="Parameter is &quot;var&quot;, can be changed to &quot;out&quot;" count="0" oldcount="-2">
+  </section>
+  <section name="Inlined subprograms not inlined because not yet implemented" count="0" oldcount="-2">
+  </section>
+  <section name="Managed local variable can be declared inline" count="2" oldcount="-2">
+    <item>
+      <id>lTail : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\RunPascalAnalyzer (137)</locmod>
+    </item>
+    <item>
+      <id>lTail : UnicodeString</id>
+      <kind>Var, Local</kind>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests\RunPascalAnalyzer (137)</locmod>
+    </item>
+    <item>
+      <id>runner : ITestRunner</id>
+      <kind>Var, Local</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\Log (876)</locmod>
+    </item>
+    <item>
+      <id>runner : ITestRunner</id>
+      <kind>Var, Local</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper\Log (876)</locmod>
+    </item>
+  </section>
+  <section name="Managed local variable is inlined in loop" count="0" oldcount="-2">
+  </section>
+</report>

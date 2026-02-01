@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Directives Report">
+  <created>29.01.2026 21:38:30</created>
+  <section name="Identifiers marked with the &quot;deprecated&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Identifiers marked with the &quot;experimental&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Identifiers marked with the &quot;library&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Identifiers marked with the &quot;platform&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Subprograms marked with the &quot;inline&quot; directive" count="0" oldcount="-2">
+  </section>
+</report>

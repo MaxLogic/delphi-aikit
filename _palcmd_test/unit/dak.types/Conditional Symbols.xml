@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Conditional Symbols Report">
+  <created>29.01.2026 21:38:30</created>
+  <section name="Conditional symbols that were defined ($DEFINE) in code" count="0" oldcount="-2">
+  </section>
+  <section name="Conditional symbols that were undefined ($UNDEF) in code" count="0" oldcount="-2">
+  </section>
+  <section name="Conditional symbols/expressions that were evaluated as true ($IF/$IFDEF/$ELSEIF)" count="0" oldcount="-2">
+  </section>
+  <section name="Conditional symbols/expressions that were evaluated as false ($IF/$IFDEF/$ELSEIF)" count="0" oldcount="-2">
+  </section>
+  <section name="Unnecessary $DEFINE/$UNDEF" count="0" oldcount="-2">
+  </section>
+  <section name="Unnecessary $IFDEF/$IFNDEF" count="0" oldcount="-2">
+  </section>
+  <section name="$DEFINE/UNDEF used but no matching $IFDEF/$IFNDEF in code" count="0" oldcount="-2">
+  </section>
+</report>

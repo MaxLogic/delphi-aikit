@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Strong Warnings Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Property access in read/write methods" count="0" oldcount="-2">
+  </section>
+  <section name="Ambiguous unit references" count="0" oldcount="-2">
+  </section>
+  <section name="Subprogram calls itself unconditionally" count="0" oldcount="-2">
+  </section>
+  <section name="Index error" count="0" oldcount="-2">
+  </section>
+  <section name="Possible bad pointer usage" count="0" oldcount="-2">
+  </section>
+  <section name="Possible bad typecast (consider using &quot;as&quot; for objects)" count="0" oldcount="-2">
+  </section>
+  <section name="For-loop with possible bad condition" count="0" oldcount="-2">
+  </section>
+  <section name="Bad parameter usage (same identifier passed for different parameters)" count="0" oldcount="-2">
+  </section>
+  <section name="Generic interface has GUID" count="0" oldcount="-2">
+  </section>
+  <section name="Out parameter is read before set" count="0" oldcount="-2">
+  </section>
+</report>

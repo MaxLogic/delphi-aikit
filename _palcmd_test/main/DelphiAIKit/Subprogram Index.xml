@@ -1,0 +1,2360 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Subprogram Index Report">
+  <created>29.01.2026 23:48:55</created>
+  <item>
+    <id>DelphiAIKit (MB)</id>
+    <locmod>DelphiAIKit (212)</locmod>
+  </item>
+  <item>
+    <id>maxLogic.CmdLineParams (UI)</id>
+    <locmod>maxLogic.CmdLineParams (460)</locmod>
+  </item>
+  <item>
+    <id>maxLogic.CmdLineParams (UF)</id>
+    <locmod>maxLogic.CmdLineParams (462)</locmod>
+  </item>
+  <item>
+    <id>maxAsync (UI)</id>
+    <locmod>maxAsync (2046)</locmod>
+  </item>
+  <item>
+    <id>AddArg (P)</id>
+    <locmod>Dak.FixInsightRunner (66)</locmod>
+  </item>
+  <item>
+    <id>AddFindingFromLoc (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+  </item>
+  <item>
+    <id>AddFindingFromLocMod (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+  </item>
+  <item>
+    <id>AddFindingRecord (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+  </item>
+  <item>
+    <id>AppendLogText (P)</id>
+    <locmod>Dak.Analyze (41)</locmod>
+  </item>
+  <item>
+    <id>AppendRunHeader (P)</id>
+    <locmod>Dak.Analyze (65)</locmod>
+  </item>
+  <item>
+    <id>ApplySettingsOverrides (P)</id>
+    <locmod>Dak.FixInsightSettings (14)</locmod>
+  </item>
+  <item>
+    <id>AttrText (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+  </item>
+  <item>
+    <id>BuildArgs (F)</id>
+    <locmod>Dak.FixInsightRunner (73)</locmod>
+  </item>
+  <item>
+    <id>  FilterExistingPaths (F)</id>
+    <locmod>Dak.FixInsightRunner\BuildArgs (85)</locmod>
+  </item>
+  <item>
+    <id>BuildArgs (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+  </item>
+  <item>
+    <id>BuildBat (F)</id>
+    <locmod>Dak.Output (98)</locmod>
+  </item>
+  <item>
+    <id>  AddArg (P)</id>
+    <locmod>Dak.Output\BuildBat (188)</locmod>
+  </item>
+  <item>
+    <id>  AppendVarList (P)</id>
+    <locmod>Dak.Output\BuildBat (144)</locmod>
+  </item>
+  <item>
+    <id>    FlushChunk (P)</id>
+    <locmod>Dak.Output\BuildBat\AppendVarList (153)</locmod>
+  </item>
+  <item>
+    <id>  SplitList (F)</id>
+    <locmod>Dak.Output\BuildBat (122)</locmod>
+  </item>
+  <item>
+    <id>BuildCommandLine (F)</id>
+    <locmod>Dak.FixInsightRunner (137)</locmod>
+  </item>
+  <item>
+    <id>BuildFindingKey (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1256)</locmod>
+  </item>
+  <item>
+    <id>BuildFixInsightCommandLine (F)</id>
+    <locmod>Dak.FixInsightRunner (10)</locmod>
+  </item>
+  <item>
+    <id>BuildFromRegistry (F)</id>
+    <locmod>Dak.FixInsight (59)</locmod>
+  </item>
+  <item>
+    <id>BuildIni (F)</id>
+    <locmod>Dak.Output (36)</locmod>
+  </item>
+  <item>
+    <id>BuildOutputRoot (F)</id>
+    <locmod>Dak.Analyze (474)</locmod>
+  </item>
+  <item>
+    <id>BuildPalCmdCommandLine (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+  </item>
+  <item>
+    <id>BuildPalCmdUnitCommandLine (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+  </item>
+  <item>
+    <id>BuildProjectSummary (F)</id>
+    <locmod>Dak.Analyze (611)</locmod>
+  </item>
+  <item>
+    <id>BuildRuleIdSet (F)</id>
+    <locmod>Dak.ReportPostProcess (19)</locmod>
+  </item>
+  <item>
+    <id>BuildTopFixInsightCodes (F)</id>
+    <locmod>Dak.Analyze (255)</locmod>
+  </item>
+  <item>
+    <id>BuildUnitOutputRoot (F)</id>
+    <locmod>Dak.Analyze (489)</locmod>
+  </item>
+  <item>
+    <id>BuildUnitSummary (F)</id>
+    <locmod>Dak.Analyze (720)</locmod>
+  </item>
+  <item>
+    <id>BuildXml (F)</id>
+    <locmod>Dak.Output (58)</locmod>
+  </item>
+  <item>
+    <id>BytesToRawStr (F)</id>
+    <locmod>MaxLogic.strUtils (288)</locmod>
+  </item>
+  <item>
+    <id>CaptureFixInsightSummary (P)</id>
+    <locmod>Dak.Analyze (597)</locmod>
+  </item>
+  <item>
+    <id>CharPosEx (F)</id>
+    <locmod>MaxLogic.strUtils (95)</locmod>
+  </item>
+  <item>
+    <id>ChildText (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+  </item>
+  <item>
+    <id>ChooseMessage (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1247)</locmod>
+  </item>
+  <item>
+    <id>ChoosePalCmdExeInDir (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+  </item>
+  <item>
+    <id>CmdQuote (F)</id>
+    <locmod>Dak.Output (31)</locmod>
+  </item>
+  <item>
+    <id>CollectExceptionCalls (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+  </item>
+  <item>
+    <id>CombinePath (F)</id>
+    <locmod>maxLogic.IOUtils (82)</locmod>
+  </item>
+  <item>
+    <id>CombineUrl (F)</id>
+    <locmod>MaxLogic.strUtils (201)</locmod>
+  </item>
+  <item>
+    <id>CombineUrl (F)</id>
+    <locmod>MaxLogic.strUtils (202)</locmod>
+  </item>
+  <item>
+    <id>CompareFixInsightPairs (F)</id>
+    <locmod>Dak.Analyze (245)</locmod>
+  </item>
+  <item>
+    <id>CompareHotspot (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1705)</locmod>
+  </item>
+  <item>
+    <id>ConcatArrays (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (853)</locmod>
+  </item>
+  <item>
+    <id>ConcatDedup (F)</id>
+    <locmod>Dak.Project (148)</locmod>
+  </item>
+  <item>
+    <id>ContainsFlag (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (410)</locmod>
+  </item>
+  <item>
+    <id>ContainsMacro (F)</id>
+    <locmod>Dak.Project (38)</locmod>
+  </item>
+  <item>
+    <id>ConvertToValidDirectoryName (F)</id>
+    <locmod>maxLogic.IOUtils (93)</locmod>
+  </item>
+  <item>
+    <id>CopyProps (P)</id>
+    <locmod>Dak.Project (43)</locmod>
+  </item>
+  <item>
+    <id>CountFixInsightCodes (P)</id>
+    <locmod>Dak.Analyze (212)</locmod>
+  </item>
+  <item>
+    <id>CpuCount (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+  </item>
+  <item>
+    <id>DefaultRsVarsPath (F)</id>
+    <locmod>Dak.RsVars (20)</locmod>
+  </item>
+  <item>
+    <id>exec (P)</id>
+    <locmod>maxLogic.IOUtils (53)</locmod>
+  </item>
+  <item>
+    <id>ExecuteFile (P)</id>
+    <locmod>maxLogic.IOUtils (55)</locmod>
+  </item>
+  <item>
+    <id>ExecuteFile (P)</id>
+    <locmod>maxLogic.IOUtils (58)</locmod>
+  </item>
+  <item>
+    <id>ExecuteFile (P)</id>
+    <locmod>maxLogic.IOUtils (65)</locmod>
+  </item>
+  <item>
+    <id>ExpandEnvVars (F)</id>
+    <locmod>Dak.FixInsight (22)</locmod>
+  </item>
+  <item>
+    <id>ExpandEnvVars (F)</id>
+    <locmod>DelphiAIKit (34)</locmod>
+  </item>
+  <item>
+    <id>ExpandEnvVars (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (92)</locmod>
+  </item>
+  <item>
+    <id>ExpandEnvVars (F)</id>
+    <locmod>Dak.Analyze (127)</locmod>
+  </item>
+  <item>
+    <id>ExpandEnvVars (F)</id>
+    <locmod>MaxLogic.strUtils (199)</locmod>
+  </item>
+  <item>
+    <id>ExtractString (F)</id>
+    <locmod>MaxLogic.strUtils (42)</locmod>
+  </item>
+  <item>
+    <id>ExtractString (F)</id>
+    <locmod>MaxLogic.strUtils (83)</locmod>
+  </item>
+  <item>
+    <id>FilePathToURL (F)</id>
+    <locmod>maxLogic.IOUtils (135)</locmod>
+  </item>
+  <item>
+    <id>FillZeroBytes (P)</id>
+    <locmod>maxLogic.IOUtils (223)</locmod>
+  </item>
+  <item>
+    <id>FilterExistingPaths (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (822)</locmod>
+  </item>
+  <item>
+    <id>FindChildText (F)</id>
+    <locmod>Dak.Analyze (307)</locmod>
+  </item>
+  <item>
+    <id>FindColumnIndex (F)</id>
+    <locmod>Dak.ReportPostProcess (352)</locmod>
+  </item>
+  <item>
+    <id>FindInPath (F)</id>
+    <locmod>Dak.FixInsight (39)</locmod>
+  </item>
+  <item>
+    <id>FindOrderIndex (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (276)</locmod>
+  </item>
+  <item>
+    <id>FindSectionByName (F)</id>
+    <locmod>Dak.Analyze (283)</locmod>
+  </item>
+  <item>
+    <id>floatToHex (F)</id>
+    <locmod>MaxLogic.strUtils (325)</locmod>
+  </item>
+  <item>
+    <id>FormatTimestamp (F)</id>
+    <locmod>Dak.Analyze (36)</locmod>
+  </item>
+  <item>
+    <id>FreePalCmdMap (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (127)</locmod>
+  </item>
+  <item>
+    <id>fStr (F)</id>
+    <locmod>MaxLogic.strUtils (272)</locmod>
+  </item>
+  <item>
+    <id>GC (P)</id>
+    <locmod>AutoFree (69)</locmod>
+  </item>
+  <item>
+    <id>GC (P)</id>
+    <locmod>AutoFree (70)</locmod>
+  </item>
+  <item>
+    <id>GC (F)</id>
+    <locmod>AutoFree (71)</locmod>
+  </item>
+  <item>
+    <id>GC (P)</id>
+    <locmod>AutoFree (73)</locmod>
+  </item>
+  <item>
+    <id>GC (P)</id>
+    <locmod>AutoFree (74)</locmod>
+  </item>
+  <item>
+    <id>GC (F)</id>
+    <locmod>AutoFree (75)</locmod>
+  </item>
+  <item>
+    <id>GetAnsiFileName (F)</id>
+    <locmod>maxLogic.IOUtils (143)</locmod>
+  </item>
+  <item>
+    <id>GetBuildInfo (F)</id>
+    <locmod>maxLogic.IOUtils (30)</locmod>
+  </item>
+  <item>
+    <id>GetBuildInfo (F)</id>
+    <locmod>maxLogic.IOUtils (31)</locmod>
+  </item>
+  <item>
+    <id>GetBuildNumber (F)</id>
+    <locmod>maxLogic.IOUtils (34)</locmod>
+  </item>
+  <item>
+    <id>GetBuildNumber (F)</id>
+    <locmod>maxLogic.IOUtils (35)</locmod>
+  </item>
+  <item>
+    <id>GetCurrentDLLName (F)</id>
+    <locmod>maxLogic.IOUtils (28)</locmod>
+  </item>
+  <item>
+    <id>GetFileDate (F)</id>
+    <locmod>maxLogic.IOUtils (188)</locmod>
+  </item>
+  <item>
+    <id>GetFileDate (F)</id>
+    <locmod>maxLogic.IOUtils (189)</locmod>
+  </item>
+  <item>
+    <id>GetInstallDir (F)</id>
+    <locmod>maxLogic.IOUtils (50)</locmod>
+  </item>
+  <item>
+    <id>GetLocalAppDataPath (F)</id>
+    <locmod>maxLogic.IOUtils (175)</locmod>
+  </item>
+  <item>
+    <id>GetPropertySource (F)</id>
+    <locmod>Dak.Project (192)</locmod>
+  </item>
+  <item>
+    <id>GetSectionCountTotal (F)</id>
+    <locmod>Dak.Analyze (361)</locmod>
+  </item>
+  <item>
+    <id>GetSettingsPath (F)</id>
+    <locmod>Dak.FixInsightSettings (27)</locmod>
+  </item>
+  <item>
+    <id>GetShortPath (F)</id>
+    <locmod>maxLogic.IOUtils (145)</locmod>
+  </item>
+  <item>
+    <id>GetSpecialFolderPath (F)</id>
+    <locmod>maxLogic.IOUtils (212)</locmod>
+  </item>
+  <item>
+    <id>GetSpecialWindowsFolder (F)</id>
+    <locmod>maxLogic.IOUtils (183)</locmod>
+  </item>
+  <item>
+    <id>GetVersionString (F)</id>
+    <locmod>maxLogic.IOUtils (32)</locmod>
+  </item>
+  <item>
+    <id>GetWindowsFolder (F)</id>
+    <locmod>maxLogic.IOUtils (1069)</locmod>
+  </item>
+  <item>
+    <id>GuidToHex (F)</id>
+    <locmod>MaxLogic.strUtils (273)</locmod>
+  </item>
+  <item>
+    <id>HasAnyReportFilters (F)</id>
+    <locmod>Dak.ReportPostProcess (20)</locmod>
+  </item>
+  <item>
+    <id>i2s (F)</id>
+    <locmod>MaxLogic.strUtils (321)</locmod>
+  </item>
+  <item>
+    <id>iAsync.Finished (FM)</id>
+    <locmod>maxAsync\IInterface\iAsync (114)</locmod>
+  </item>
+  <item>
+    <id>iAsync.GetThreadPriority (FM)</id>
+    <locmod>maxAsync\IInterface\iAsync (120)</locmod>
+  </item>
+  <item>
+    <id>iAsync.msgwaitfor (PM)</id>
+    <locmod>maxAsync\IInterface\iAsync (112)</locmod>
+  </item>
+  <item>
+    <id>iAsync.SetThreadPriority (PM)</id>
+    <locmod>maxAsync\IInterface\iAsync (121)</locmod>
+  </item>
+  <item>
+    <id>iAsync.WaitFor (PM)</id>
+    <locmod>maxAsync\IInterface\iAsync (110)</locmod>
+  </item>
+  <item>
+    <id>iAsync.WakeUp (PM)</id>
+    <locmod>maxAsync\IInterface\iAsync (116)</locmod>
+  </item>
+  <item>
+    <id>iAsync.WakeUp (PM)</id>
+    <locmod>maxAsync\IInterface\iAsync (117)</locmod>
+  </item>
+  <item>
+    <id>iAsyncIntern.GetThreadData (FM)</id>
+    <locmod>maxAsync\IInterface\iAsyncIntern (317)</locmod>
+  </item>
+  <item>
+    <id>ICallProcOnDestroy.GetProc (FM)</id>
+    <locmod>AutoFree\IInterface\ICallProcOnDestroy (52)</locmod>
+  </item>
+  <item>
+    <id>ICallProcOnDestroy.SetProc (PM)</id>
+    <locmod>AutoFree\IInterface\ICallProcOnDestroy (51)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.BuildFromString (PM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (35)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.Clear (PM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (78)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.Clone (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (77)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.find (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (44)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.find (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (49)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.find (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (54)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.find (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (65)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.find (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (66)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.Get (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (69)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.Get (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (70)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.Get (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (71)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.Get (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (72)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.GetCount (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (24)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.GetParamList (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (29)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.GetSwitchPrefixes (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (19)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.has (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (74)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.has (FM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (75)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.SetParam (PM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (83)</locmod>
+  </item>
+  <item>
+    <id>iCmdLineparams.SetSwitchPrefixes (PM)</id>
+    <locmod>maxLogic.CmdLineParams\IInterface\iCmdLineparams (18)</locmod>
+  </item>
+  <item>
+    <id>iCriticalSection.Enter (PM)</id>
+    <locmod>maxAsync\IInterface\iCriticalSection (242)</locmod>
+  </item>
+  <item>
+    <id>iCriticalSection.leave (PM)</id>
+    <locmod>maxAsync\IInterface\iCriticalSection (243)</locmod>
+  </item>
+  <item>
+    <id>IGarbo.AddAfterFree (FM)</id>
+    <locmod>AutoFree\IInterface\IGarbo (13)</locmod>
+  </item>
+  <item>
+    <id>IGarbo.Obj (FM)</id>
+    <locmod>AutoFree\IInterface\IGarbo (11)</locmod>
+  </item>
+  <item>
+    <id>InitPalCmdMap (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (118)</locmod>
+  </item>
+  <item>
+    <id>InsideMainThread (F)</id>
+    <locmod>maxSignal (58)</locmod>
+  </item>
+  <item>
+    <id>InsideMainThread (F)</id>
+    <locmod>maxAsync (590)</locmod>
+  </item>
+  <item>
+    <id>IReaderWriterLock.BeginRead (PM)</id>
+    <locmod>maxAsync\IInterface\IReaderWriterLock (540)</locmod>
+  </item>
+  <item>
+    <id>IReaderWriterLock.BeginWrite (PM)</id>
+    <locmod>maxAsync\IInterface\IReaderWriterLock (542)</locmod>
+  </item>
+  <item>
+    <id>IReaderWriterLock.EndRead (PM)</id>
+    <locmod>maxAsync\IInterface\IReaderWriterLock (541)</locmod>
+  </item>
+  <item>
+    <id>IReaderWriterLock.EndWrite (PM)</id>
+    <locmod>maxAsync\IInterface\IReaderWriterLock (543)</locmod>
+  </item>
+  <item>
+    <id>IsAggregateName (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1542)</locmod>
+  </item>
+  <item>
+    <id>IsHelpRequested (F)</id>
+    <locmod>Dak.Cli (13)</locmod>
+  </item>
+  <item>
+    <id>iSignal.GetEvent (FM)</id>
+    <locmod>maxSignal\IInterface\iSignal (35)</locmod>
+  </item>
+  <item>
+    <id>iSignal.MsgWaitForSignaled (PM)</id>
+    <locmod>maxSignal\IInterface\iSignal (33)</locmod>
+  </item>
+  <item>
+    <id>iSignal.SetNonSignaled (PM)</id>
+    <locmod>maxSignal\IInterface\iSignal (21)</locmod>
+  </item>
+  <item>
+    <id>iSignal.SetSignaled (PM)</id>
+    <locmod>maxSignal\IInterface\iSignal (20)</locmod>
+  </item>
+  <item>
+    <id>iSignal.WaitForSignaled (FM)</id>
+    <locmod>maxSignal\IInterface\iSignal (30)</locmod>
+  </item>
+  <item>
+    <id>IsInPath (F)</id>
+    <locmod>maxLogic.IOUtils (186)</locmod>
+  </item>
+  <item>
+    <id>IsUtf8ContinuationByte (F)</id>
+    <locmod>MaxLogic.strUtils (985)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetFinished (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (128)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetFullThreadId (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (129)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetKeepAlive (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (141)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetProc (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (142)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetReadySignal (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (136)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetStartSignal (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (148)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetTaskName (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (143)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetTerminated (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (135)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetThread (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (138)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetWaiting (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (131)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.GetWakeSignal (FM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (140)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.SetDefaultValues (PM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (150)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.SetFinished (PM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (132)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.SetKeepAlive (PM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (144)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.SetProc (PM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (146)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.SetTaskName (PM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (147)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.SetTerminated (PM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (134)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.SetThread (PM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (137)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.SetThreadId (PM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (130)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.SetThreadToTerminated (PM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (145)</locmod>
+  </item>
+  <item>
+    <id>iThreadData.SetWaiting (PM)</id>
+    <locmod>maxAsync\IInterface\iThreadData (133)</locmod>
+  </item>
+  <item>
+    <id>Join (F)</id>
+    <locmod>MaxLogic.strUtils (274)</locmod>
+  </item>
+  <item>
+    <id>Join (F)</id>
+    <locmod>MaxLogic.strUtils (275)</locmod>
+  </item>
+  <item>
+    <id>JoinList (F)</id>
+    <locmod>Dak.Output (14)</locmod>
+  </item>
+  <item>
+    <id>JoinList (F)</id>
+    <locmod>Dak.Project (185)</locmod>
+  </item>
+  <item>
+    <id>JoinSemi (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (848)</locmod>
+  </item>
+  <item>
+    <id>JsonGetInteger (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (151)</locmod>
+  </item>
+  <item>
+    <id>JsonGetString (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (141)</locmod>
+  </item>
+  <item>
+    <id>LoadSettings (F)</id>
+    <locmod>Dak.FixInsightSettings (11)</locmod>
+  </item>
+  <item>
+    <id>LoadStrFromFile (F)</id>
+    <locmod>maxLogic.IOUtils (192)</locmod>
+  </item>
+  <item>
+    <id>LoadXmlDocument (F)</id>
+    <locmod>Dak.Analyze (351)</locmod>
+  </item>
+  <item>
+    <id>LoatStringFromResource (F)</id>
+    <locmod>maxLogic.IOUtils (43)</locmod>
+  </item>
+  <item>
+    <id>LoatStringFromResource (F)</id>
+    <locmod>maxLogic.IOUtils (45)</locmod>
+  </item>
+  <item>
+    <id>LongFileNameFix (F)</id>
+    <locmod>maxLogic.IOUtils (127)</locmod>
+  </item>
+  <item>
+    <id>LooksLikePath (F)</id>
+    <locmod>Dak.ReportPostProcess (368)</locmod>
+  </item>
+  <item>
+    <id>MatchesFilter (F)</id>
+    <locmod>MaxLogic.strUtils (207)</locmod>
+  </item>
+  <item>
+    <id>MatchesMaskCaseSensitive_RegEx (F)</id>
+    <locmod>MaxLogic.strUtils (368)</locmod>
+  </item>
+  <item>
+    <id>MatchesMaskCI (F)</id>
+    <locmod>Dak.ReportPostProcess (95)</locmod>
+  </item>
+  <item>
+    <id>maxCmdLineParams (F)</id>
+    <locmod>maxLogic.CmdLineParams (140)</locmod>
+  </item>
+  <item>
+    <id>MegaBytesToStr (F)</id>
+    <locmod>MaxLogic.strUtils (329)</locmod>
+  </item>
+  <item>
+    <id>MergeList (F)</id>
+    <locmod>Dak.FixInsightSettings (85)</locmod>
+  </item>
+  <item>
+    <id>  AddFrom (P)</id>
+    <locmod>Dak.FixInsightSettings\MergeList (90)</locmod>
+  </item>
+  <item>
+    <id>MessageDlg (F)</id>
+    <locmod>maxAsync (599)</locmod>
+  </item>
+  <item>
+    <id>MessageDlgThreadSafe (F)</id>
+    <locmod>maxAsync (601)</locmod>
+  </item>
+  <item>
+    <id>MsgWaitForSingleObject (P)</id>
+    <locmod>maxSignal (61)</locmod>
+  </item>
+  <item>
+    <id>MsgWaitForSingleObject (P)</id>
+    <locmod>maxAsync (594)</locmod>
+  </item>
+  <item>
+    <id>NormalizeDelphiVerForBuild (F)</id>
+    <locmod>DelphiAIKit (107)</locmod>
+  </item>
+  <item>
+    <id>NormalizeExePath (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (498)</locmod>
+  </item>
+  <item>
+    <id>NormalizeLineText (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+  </item>
+  <item>
+    <id>NormalizePath (F)</id>
+    <locmod>maxLogic.IOUtils (139)</locmod>
+  </item>
+  <item>
+    <id>NormalizePathList (F)</id>
+    <locmod>Dak.Project (105)</locmod>
+  </item>
+  <item>
+    <id>NormalizeSlashes (F)</id>
+    <locmod>Dak.ReportPostProcess (53)</locmod>
+  </item>
+  <item>
+    <id>NormalizeTextList (F)</id>
+    <locmod>Dak.Project (73)</locmod>
+  </item>
+  <item>
+    <id>OccurrencesOfChar (F)</id>
+    <locmod>MaxLogic.strUtils (349)</locmod>
+  </item>
+  <item>
+    <id>PalCmdMapPath (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (136)</locmod>
+  </item>
+  <item>
+    <id>ParseCsvRow (F)</id>
+    <locmod>Dak.ReportPostProcess (303)</locmod>
+  </item>
+  <item>
+    <id>ParseExceptionReport (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+  </item>
+  <item>
+    <id>ParseFindingReport (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+  </item>
+  <item>
+    <id>ParseItemNode (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+  </item>
+  <item>
+    <id>ParseList (F)</id>
+    <locmod>Dak.ReportPostProcess (18)</locmod>
+  </item>
+  <item>
+    <id>ParseSectionNode (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+  </item>
+  <item>
+    <id>ParseStatement (F)</id>
+    <locmod>MaxLogic.strUtils (341)</locmod>
+  </item>
+  <item>
+    <id>PathMatchesAnyMask (F)</id>
+    <locmod>Dak.ReportPostProcess (146)</locmod>
+  </item>
+  <item>
+    <id>PrepareTextForStrToFloatWcc (P)</id>
+    <locmod>MaxLogic.strUtils (286)</locmod>
+  </item>
+  <item>
+    <id>PrettyElapsed (F)</id>
+    <locmod>MaxLogic.strUtils (320)</locmod>
+  </item>
+  <item>
+    <id>PrettyPrintSize (F)</id>
+    <locmod>MaxLogic.strUtils (328)</locmod>
+  </item>
+  <item>
+    <id>PutBefore (F)</id>
+    <locmod>MaxLogic.strUtils (20)</locmod>
+  </item>
+  <item>
+    <id>PutBefore (F)</id>
+    <locmod>MaxLogic.strUtils (21)</locmod>
+  </item>
+  <item>
+    <id>QuoteArg (F)</id>
+    <locmod>Dak.FixInsightRunner (18)</locmod>
+  </item>
+  <item>
+    <id>QuoteArg (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+  </item>
+  <item>
+    <id>QuoteCmd (F)</id>
+    <locmod>Dak.RsVars (15)</locmod>
+  </item>
+  <item>
+    <id>QuoteCmdArg (F)</id>
+    <locmod>DelphiAIKit (99)</locmod>
+  </item>
+  <item>
+    <id>QuoteShellArgument (F)</id>
+    <locmod>maxLogic.IOUtils (153)</locmod>
+  </item>
+  <item>
+    <id>QuoteUnixShellArgument (F)</id>
+    <locmod>maxLogic.IOUtils (162)</locmod>
+  </item>
+  <item>
+    <id>QuoteWindowsShellArgument (F)</id>
+    <locmod>maxLogic.IOUtils (173)</locmod>
+  </item>
+  <item>
+    <id>RawStrToBytes (F)</id>
+    <locmod>MaxLogic.strUtils (289)</locmod>
+  </item>
+  <item>
+    <id>ReadBoolOption (P)</id>
+    <locmod>Dak.FixInsightSettings (45)</locmod>
+  </item>
+  <item>
+    <id>readFromBytes (P)</id>
+    <locmod>maxLogic.IOUtils (221)</locmod>
+  </item>
+  <item>
+    <id>readFromBytesAndIncOffset (P)</id>
+    <locmod>maxLogic.IOUtils (219)</locmod>
+  </item>
+  <item>
+    <id>ReadStatusSummary (P)</id>
+    <locmod>Dak.Analyze (372)</locmod>
+  </item>
+  <item>
+    <id>RecycleItem (F)</id>
+    <locmod>maxLogic.IOUtils (79)</locmod>
+  </item>
+  <item>
+    <id>ReplacePlaceholder (F)</id>
+    <locmod>MaxLogic.strUtils (182)</locmod>
+  </item>
+  <item>
+    <id>ResolveFilePath (F)</id>
+    <locmod>Dak.Project (170)</locmod>
+  </item>
+  <item>
+    <id>ResolveFixInsightPath (F)</id>
+    <locmod>DelphiAIKit (51)</locmod>
+  </item>
+  <item>
+    <id>ResolveFixInsightPath (F)</id>
+    <locmod>Dak.Analyze (144)</locmod>
+  </item>
+  <item>
+    <id>RunAnalyzeCommand (F)</id>
+    <locmod>Dak.Analyze (14)</locmod>
+  </item>
+  <item>
+    <id>RunAnalyzeProject (F)</id>
+    <locmod>Dak.Analyze (756)</locmod>
+  </item>
+  <item>
+    <id>RunAnalyzeUnit (F)</id>
+    <locmod>Dak.Analyze (1028)</locmod>
+  </item>
+  <item>
+    <id>RunCmdToFile (F)</id>
+    <locmod>Dak.RsVars (46)</locmod>
+  </item>
+  <item>
+    <id>RunOnExit (F)</id>
+    <locmod>AutoFree (78)</locmod>
+  </item>
+  <item>
+    <id>SafeAppendToFile (F)</id>
+    <locmod>maxLogic.IOUtils (76)</locmod>
+  </item>
+  <item>
+    <id>SamePath (F)</id>
+    <locmod>maxLogic.IOUtils (195)</locmod>
+  </item>
+  <item>
+    <id>SanitizeFileName (F)</id>
+    <locmod>maxLogic.IOUtils (118)</locmod>
+  </item>
+  <item>
+    <id>  FixEmptyToUntitled (F)</id>
+    <locmod>maxLogic.IOUtils\SanitizeFileName (613)</locmod>
+  </item>
+  <item>
+    <id>  IsDirSep (F)</id>
+    <locmod>maxLogic.IOUtils\SanitizeFileName (630)</locmod>
+  </item>
+  <item>
+    <id>  ReplaceOrRemoveInvalid (F)</id>
+    <locmod>maxLogic.IOUtils\SanitizeFileName (560)</locmod>
+  </item>
+  <item>
+    <id>  SanitizeFullPath (F)</id>
+    <locmod>maxLogic.IOUtils\SanitizeFileName (636)</locmod>
+  </item>
+  <item>
+    <id>    FlushSegment (P)</id>
+    <locmod>maxLogic.IOUtils\SanitizeFileName\SanitizeFullPath (643)</locmod>
+  </item>
+  <item>
+    <id>    IsVolumeSepHere (F)</id>
+    <locmod>maxLogic.IOUtils\SanitizeFileName\SanitizeFullPath (651)</locmod>
+  </item>
+  <item>
+    <id>  SanitizeSegment (F)</id>
+    <locmod>maxLogic.IOUtils\SanitizeFileName (623)</locmod>
+  </item>
+  <item>
+    <id>  WindowsFixups (F)</id>
+    <locmod>maxLogic.IOUtils\SanitizeFileName (582)</locmod>
+  </item>
+  <item>
+    <id>SetEnvironmentPath (P)</id>
+    <locmod>maxLogic.IOUtils (134)</locmod>
+  </item>
+  <item>
+    <id>SimpleAsyncCall (F)</id>
+    <locmod>maxAsync (575)</locmod>
+  </item>
+  <item>
+    <id>  merge (F)</id>
+    <locmod>maxAsync\SimpleAsyncCall (652)</locmod>
+  </item>
+  <item>
+    <id>slash (F)</id>
+    <locmod>maxLogic.IOUtils (130)</locmod>
+  </item>
+  <item>
+    <id>SortHotspots (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1724)</locmod>
+  </item>
+  <item>
+    <id>SourceToText (F)</id>
+    <locmod>DelphiAIKit (22)</locmod>
+  </item>
+  <item>
+    <id>Split (P)</id>
+    <locmod>MaxLogic.strUtils (264)</locmod>
+  </item>
+  <item>
+    <id>Split (P)</id>
+    <locmod>MaxLogic.strUtils (265)</locmod>
+  </item>
+  <item>
+    <id>Split (F)</id>
+    <locmod>MaxLogic.strUtils (266)</locmod>
+  </item>
+  <item>
+    <id>SplitComplexityName (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1515)</locmod>
+  </item>
+  <item>
+    <id>SplitInHalfBy (F)</id>
+    <locmod>MaxLogic.strUtils (269)</locmod>
+  </item>
+  <item>
+    <id>SplitInHalfBy (F)</id>
+    <locmod>MaxLogic.strUtils (270)</locmod>
+  </item>
+  <item>
+    <id>SplitList (F)</id>
+    <locmod>Dak.Project (51)</locmod>
+  </item>
+  <item>
+    <id>SplitList (F)</id>
+    <locmod>Dak.FixInsightSettings (60)</locmod>
+  </item>
+  <item>
+    <id>splitstring (F)</id>
+    <locmod>MaxLogic.strUtils (267)</locmod>
+  </item>
+  <item>
+    <id>StrCmpLogical (F)</id>
+    <locmod>MaxLogic.strUtils (211)</locmod>
+  </item>
+  <item>
+    <id>StrCmpLogicalW (F)</id>
+    <locmod>MaxLogic.strUtils (214)</locmod>
+  </item>
+  <item>
+    <id>StringMatches (F)</id>
+    <locmod>MaxLogic.strUtils (17)</locmod>
+  </item>
+  <item>
+    <id>StrToFloatWCC (F)</id>
+    <locmod>MaxLogic.strUtils (283)</locmod>
+  </item>
+  <item>
+    <id>StrToFLoatWccDef (F)</id>
+    <locmod>MaxLogic.strUtils (285)</locmod>
+  </item>
+  <item>
+    <id>SumSectionCounts (P)</id>
+    <locmod>Dak.Analyze (327)</locmod>
+  </item>
+  <item>
+    <id>syncVclCall (P)</id>
+    <locmod>maxAsync (587)</locmod>
+  </item>
+  <item>
+    <id>TakeTopHotspots (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1714)</locmod>
+  </item>
+  <item>
+    <id>TAsyncLoop.asyncLoopIteration (PM)</id>
+    <locmod>maxAsync\TAsyncLoop (373)</locmod>
+  </item>
+  <item>
+    <id>TAsyncLoop.Cancel (PM)</id>
+    <locmod>maxAsync\TAsyncLoop (380)</locmod>
+  </item>
+  <item>
+    <id>TAsyncLoop.Create (C)</id>
+    <locmod>maxAsync\TAsyncLoop (375)</locmod>
+  </item>
+  <item>
+    <id>TAsyncLoop.Destroy (D)</id>
+    <locmod>maxAsync\TAsyncLoop (376)</locmod>
+  </item>
+  <item>
+    <id>TAsyncLoop.Execute (PM)</id>
+    <locmod>maxAsync\TAsyncLoop (378)</locmod>
+  </item>
+  <item>
+    <id>TAsyncLoop.Run (PM)</id>
+    <locmod>maxAsync\TAsyncLoop (384)</locmod>
+  </item>
+  <item>
+    <id>TAsyncLoop.RunAndWait (PM)</id>
+    <locmod>maxAsync\TAsyncLoop (383)</locmod>
+  </item>
+  <item>
+    <id>TAsyncLoop.SetOnFinished (PM)</id>
+    <locmod>maxAsync\TAsyncLoop (371)</locmod>
+  </item>
+  <item>
+    <id>TAsyncLoop.SetSimultanousThreadCount (PM)</id>
+    <locmod>maxAsync\TAsyncLoop (372)</locmod>
+  </item>
+  <item>
+    <id>TAsyncLoop.WaitFor (PM)</id>
+    <locmod>maxAsync\TAsyncLoop (379)</locmod>
+  </item>
+  <item>
+    <id>TAsyncTimer.asyncLoop (PM)</id>
+    <locmod>maxAsync\TAsyncTimer (564)</locmod>
+  </item>
+  <item>
+    <id>TAsyncTimer.Create (C)</id>
+    <locmod>maxAsync\TAsyncTimer (568)</locmod>
+  </item>
+  <item>
+    <id>TAsyncTimer.Destroy (D)</id>
+    <locmod>maxAsync\TAsyncTimer (569)</locmod>
+  </item>
+  <item>
+    <id>TAsyncTimer.SetEnabled (PM)</id>
+    <locmod>maxAsync\TAsyncTimer (565)</locmod>
+  </item>
+  <item>
+    <id>TAsyncTimer.SetInterval (PM)</id>
+    <locmod>maxAsync\TAsyncTimer (566)</locmod>
+  </item>
+  <item>
+    <id>TAtomic.Create (C)</id>
+    <locmod>maxAsync\TAtomic (553)</locmod>
+  </item>
+  <item>
+    <id>TCallProcOnDestroy.Create (C)</id>
+    <locmod>AutoFree\TCallProcOnDestroy (62)</locmod>
+  </item>
+  <item>
+    <id>TCallProcOnDestroy.Destroy (D)</id>
+    <locmod>AutoFree\TCallProcOnDestroy (63)</locmod>
+  </item>
+  <item>
+    <id>TCallProcOnDestroy.GetProc (FM)</id>
+    <locmod>AutoFree\TCallProcOnDestroy (60)</locmod>
+  </item>
+  <item>
+    <id>TCallProcOnDestroy.New (FM)</id>
+    <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+  </item>
+  <item>
+    <id>TCallProcOnDestroy.SetProc (PM)</id>
+    <locmod>AutoFree\TCallProcOnDestroy (59)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.BuildFromString (PM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (114)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.Clear (PM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (117)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.Clone (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (116)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.Create (C)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (109)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.Destroy (D)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (112)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.find (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (121)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.find (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (122)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.find (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (123)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.find (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (124)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.find (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (125)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.Get (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (128)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.Get (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (129)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.Get (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (130)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.Get (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (131)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.GetCount (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (103)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.GetParamList (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (119)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.GetSwitchPrefixes (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (105)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.has (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (133)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.has (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (134)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.IsSwitch (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (101)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.IsSwitch (FM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (102)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.RebuildDic (PM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (100)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.SetParam (PM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (118)</locmod>
+  </item>
+  <item>
+    <id>TCmdLineParams.SetSwitchPrefixes (PM)</id>
+    <locmod>maxLogic.CmdLineParams\TCmdLineParams (104)</locmod>
+  </item>
+  <item>
+    <id>TConditionParser.Create (C)</id>
+    <locmod>Dak.MsBuild\TConditionParser (48)</locmod>
+  </item>
+  <item>
+    <id>TConditionParser.NextToken (PM)</id>
+    <locmod>Dak.MsBuild\TConditionParser (42)</locmod>
+  </item>
+  <item>
+    <id>TConditionParser.ParseComparison (FM)</id>
+    <locmod>Dak.MsBuild\TConditionParser (46)</locmod>
+  </item>
+  <item>
+    <id>TConditionParser.ParseExpr (FM)</id>
+    <locmod>Dak.MsBuild\TConditionParser (43)</locmod>
+  </item>
+  <item>
+    <id>TConditionParser.ParseFactor (FM)</id>
+    <locmod>Dak.MsBuild\TConditionParser (45)</locmod>
+  </item>
+  <item>
+    <id>TConditionParser.ParseTerm (FM)</id>
+    <locmod>Dak.MsBuild\TConditionParser (44)</locmod>
+  </item>
+  <item>
+    <id>TConditionParser.TryEvaluate (FM)</id>
+    <locmod>Dak.MsBuild\TConditionParser (49)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddCycleMacro (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (40)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddInfo (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddMissingPath (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddNote (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddUnknownMacro (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddWarning (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.Create (C)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.Destroy (D)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (37)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.TryOpenLogFile (FM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.WriteLine (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (34)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.WriteToStderr (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Create (C)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (136)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Create (C)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (148)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Destroy (D)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (137)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Equals (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (151)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.FoldAscii (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (138)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.FoldCharValue (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (139)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.FoldPair (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (140)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.GetHashCode (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (152)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.GetOrdinalComparer (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (145)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.GetOrdinalIgnoreCaseComparer (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (146)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.HashBytes (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (142)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.HashCaseInsensitive (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (144)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.HashOrdinal (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (143)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Ordinal (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (149)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.OrdinalIgnoreCase (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (150)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Rotl32 (FM)</id>
+    <locmod>MaxLogic.strUtils\TFastCaseAwareComparer (141)</locmod>
+  </item>
+  <item>
+    <id>TFilterEx.Create (FM)</id>
+    <locmod>MaxLogic.strUtils\TFilterEx (257)</locmod>
+  </item>
+  <item>
+    <id>TFilterEx.Matches (FM)</id>
+    <locmod>MaxLogic.strUtils\TFilterEx (261)</locmod>
+  </item>
+  <item>
+    <id>TFilterEx.Prepare (PM)</id>
+    <locmod>MaxLogic.strUtils\TFilterEx (251)</locmod>
+  </item>
+  <item>
+    <id>TFilterEx.Preprocess (PM)</id>
+    <locmod>MaxLogic.strUtils\TFilterEx (254)</locmod>
+  </item>
+  <item>
+    <id>TFilterEx.SplitBySpace (FM)</id>
+    <locmod>MaxLogic.strUtils\TFilterEx (253)</locmod>
+  </item>
+  <item>
+    <id>TFixedRtlCriticalSection.Create (FM)</id>
+    <locmod>maxAsync\TFixedRtlCriticalSection (215)</locmod>
+  </item>
+  <item>
+    <id>TFixedRtlCriticalSection.Enter (PM)</id>
+    <locmod>maxAsync\TFixedRtlCriticalSection (217)</locmod>
+  </item>
+  <item>
+    <id>TFixedRtlCriticalSection.exit (PM)</id>
+    <locmod>maxAsync\TFixedRtlCriticalSection (220)</locmod>
+  </item>
+  <item>
+    <id>TFixedRtlCriticalSection.Free (PM)</id>
+    <locmod>maxAsync\TFixedRtlCriticalSection (221)</locmod>
+  </item>
+  <item>
+    <id>TFixedRtlCriticalSection.leave (PM)</id>
+    <locmod>maxAsync\TFixedRtlCriticalSection (218)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.AddAfterFree (FM)</id>
+    <locmod>AutoFree\TGarbo (40)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.Create (C)</id>
+    <locmod>AutoFree\TGarbo (36)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.Destroy (D)</id>
+    <locmod>AutoFree\TGarbo (37)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.GC&lt;T&gt; (FM)</id>
+    <locmod>AutoFree\TGarbo (42)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.GC&lt;T&gt; (PM)</id>
+    <locmod>AutoFree\TGarbo (43)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.GC&lt;T&gt; (PM)</id>
+    <locmod>AutoFree\TGarbo (44)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.Obj (FM)</id>
+    <locmod>AutoFree\TGarbo (39)</locmod>
+  </item>
+  <item>
+    <id>TGarbos.Add (PM)</id>
+    <locmod>AutoFree\TGarbos (22)</locmod>
+  </item>
+  <item>
+    <id>TGarbos.Add (FM)</id>
+    <locmod>AutoFree\TGarbos (23)</locmod>
+  </item>
+  <item>
+    <id>TGarbos.Clear (PM)</id>
+    <locmod>AutoFree\TGarbos (25)</locmod>
+  </item>
+  <item>
+    <id>TGarbos.Finalize ()</id>
+    <locmod>AutoFree\TGarbos (28)</locmod>
+  </item>
+  <item>
+    <id>TGarbos.Initialize ()</id>
+    <locmod>AutoFree\TGarbos (27)</locmod>
+  </item>
+  <item>
+    <id>tInterfacedCriticalSection.Create (C)</id>
+    <locmod>maxAsync\tInterfacedCriticalSection (250)</locmod>
+  </item>
+  <item>
+    <id>tInterfacedCriticalSection.Destroy (D)</id>
+    <locmod>maxAsync\tInterfacedCriticalSection (251)</locmod>
+  </item>
+  <item>
+    <id>tInterfacedCriticalSection.Enter (PM)</id>
+    <locmod>maxAsync\tInterfacedCriticalSection (253)</locmod>
+  </item>
+  <item>
+    <id>tInterfacedCriticalSection.leave (PM)</id>
+    <locmod>maxAsync\tInterfacedCriticalSection (254)</locmod>
+  </item>
+  <item>
+    <id>TLockFreeLock.lock (PM)</id>
+    <locmod>maxAsync\TLockFreeLock (484)</locmod>
+  </item>
+  <item>
+    <id>TLockFreeLock.unlock (PM)</id>
+    <locmod>maxAsync\TLockFreeLock (486)</locmod>
+  </item>
+  <item>
+    <id>TMacroExpander.Expand (FM)</id>
+    <locmod>Dak.MacroExpander\TMacroExpander (11)</locmod>
+  </item>
+  <item>
+    <id>  ExpandText (F)</id>
+    <locmod>Dak.MacroExpander\TMacroExpander\Expand (42)</locmod>
+  </item>
+  <item>
+    <id>  StackContains (F)</id>
+    <locmod>Dak.MacroExpander\TMacroExpander\Expand (32)</locmod>
+  </item>
+  <item>
+    <id>  TryGetMacroValue (F)</id>
+    <locmod>Dak.MacroExpander\TMacroExpander\Expand (22)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsync.Create (C)</id>
+    <locmod>maxAsync\TmaxAsync (329)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsync.Destroy (D)</id>
+    <locmod>maxAsync\TmaxAsync (330)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsync.Finished (FM)</id>
+    <locmod>maxAsync\TmaxAsync (335)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsync.GetThreadData (FM)</id>
+    <locmod>maxAsync\TmaxAsync (323)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsync.GetThreadPriority (FM)</id>
+    <locmod>maxAsync\TmaxAsync (325)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsync.msgwaitfor (PM)</id>
+    <locmod>maxAsync\TmaxAsync (332)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsync.SetThreadPriority (PM)</id>
+    <locmod>maxAsync\TmaxAsync (326)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsync.WaitFor (PM)</id>
+    <locmod>maxAsync\TmaxAsync (334)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsync.WakeUp (PM)</id>
+    <locmod>maxAsync\TmaxAsync (336)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsync.WakeUp (PM)</id>
+    <locmod>maxAsync\TmaxAsync (337)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsyncGlobal.addToAllThreadList (PM)</id>
+    <locmod>maxAsync\TmaxAsyncGlobal (519)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsyncGlobal.AddToWaiting (PM)</id>
+    <locmod>maxAsync\TmaxAsyncGlobal (517)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsyncGlobal.CreateClass (C)</id>
+    <locmod>maxAsync\TmaxAsyncGlobal (513)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsyncGlobal.DestroyClass (D)</id>
+    <locmod>maxAsync\TmaxAsyncGlobal (514)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsyncGlobal.GetThreadData (FM)</id>
+    <locmod>maxAsync\TmaxAsyncGlobal (516)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsyncGlobal.GetThreadName (FM)</id>
+    <locmod>maxAsync\TmaxAsyncGlobal (523)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsyncGlobal.ReleaseThreadData (PM)</id>
+    <locmod>maxAsync\TmaxAsyncGlobal (515)</locmod>
+  </item>
+  <item>
+    <id>TmaxAsyncGlobal.removeFromAllThreadList (PM)</id>
+    <locmod>maxAsync\TmaxAsyncGlobal (520)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.asyncWaitForProcessFinished (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (62)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.ClosehandleAndZeroIt (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (54)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.Create (C)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (70)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.CreateAsyncPipe (FM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (55)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.DecodeCommand (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (76)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.destroy (D)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (71)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.Execute (FM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (73)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.GetCmdExeFullPath (FM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (67)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.getCommand (FM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (58)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.preparePipes (FM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (53)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.prepareSecurityAttributes (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (52)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.prepareStartUpInfo (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (56)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.PullData (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (64)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.quote (FM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (59)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.run (FM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (79)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.SetexeName (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (49)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.SetOnErrorDataRead (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (65)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.SetOnStdDataRead (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (66)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.SetParamsString (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (63)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.SetRedirectErrOutToStdOut (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (68)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.SetWorkDir (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (50)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.StartAsyncReadPipes (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (60)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.startProcess (FM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (57)</locmod>
+  </item>
+  <item>
+    <id>TmaxConsoleRunner.startWaitForProcessFinished (PM)</id>
+    <locmod>maxConsoleRunner\TmaxConsoleRunner (61)</locmod>
+  </item>
+  <item>
+    <id>TmaxThread.Destroy (D)</id>
+    <locmod>maxAsync\TmaxThread (353)</locmod>
+  </item>
+  <item>
+    <id>TmaxThread.DoSync (PM)</id>
+    <locmod>maxAsync\TmaxThread (349)</locmod>
+  </item>
+  <item>
+    <id>TmaxThread.Execute (PM)</id>
+    <locmod>maxAsync\TmaxThread (351)</locmod>
+  </item>
+  <item>
+    <id>TmaxThread.HandleException (PM)</id>
+    <locmod>maxAsync\TmaxThread (348)</locmod>
+  </item>
+  <item>
+    <id>TMsBuildEvaluator.ApplyProperty (PM)</id>
+    <locmod>Dak.MsBuild\TMsBuildEvaluator (20)</locmod>
+  </item>
+  <item>
+    <id>TMsBuildEvaluator.Create (C)</id>
+    <locmod>Dak.MsBuild\TMsBuildEvaluator (22)</locmod>
+  </item>
+  <item>
+    <id>TMsBuildEvaluator.EvaluateFile (FM)</id>
+    <locmod>Dak.MsBuild\TMsBuildEvaluator (23)</locmod>
+  </item>
+  <item>
+    <id>  BoolToText (F)</id>
+    <locmod>Dak.MsBuild\TMsBuildEvaluator\EvaluateFile (298)</locmod>
+  </item>
+  <item>
+    <id>TMsBuildEvaluator.TryEvaluateCondition (FM)</id>
+    <locmod>Dak.MsBuild\TMsBuildEvaluator (19)</locmod>
+  </item>
+  <item>
+    <id>TObjectWithCriticalSection.Create (C)</id>
+    <locmod>maxAsync\TObjectWithCriticalSection (233)</locmod>
+  </item>
+  <item>
+    <id>TObjectWithCriticalSection.Destroy (D)</id>
+    <locmod>maxAsync\TObjectWithCriticalSection (234)</locmod>
+  </item>
+  <item>
+    <id>TObjectWithCriticalSection.lock (PM)</id>
+    <locmod>maxAsync\TObjectWithCriticalSection (236)</locmod>
+  </item>
+  <item>
+    <id>TObjectWithCriticalSection.unlock (PM)</id>
+    <locmod>maxAsync\TObjectWithCriticalSection (237)</locmod>
+  </item>
+  <item>
+    <id>TPipeThread.asyncRead (PM)</id>
+    <locmod>maxConsoleRunner\TPipeThread (122)</locmod>
+  </item>
+  <item>
+    <id>TPipeThread.Create (C)</id>
+    <locmod>maxConsoleRunner\TPipeThread (126)</locmod>
+  </item>
+  <item>
+    <id>TPipeThread.destroy (D)</id>
+    <locmod>maxConsoleRunner\TPipeThread (127)</locmod>
+  </item>
+  <item>
+    <id>TPipeThread.DoClosing (PM)</id>
+    <locmod>maxConsoleRunner\TPipeThread (131)</locmod>
+  </item>
+  <item>
+    <id>TPipeThread.lock (PM)</id>
+    <locmod>maxConsoleRunner\TPipeThread (123)</locmod>
+  </item>
+  <item>
+    <id>TPipeThread.safeRetrieveOutput (PM)</id>
+    <locmod>maxConsoleRunner\TPipeThread (130)</locmod>
+  </item>
+  <item>
+    <id>TPipeThread.StartReading (PM)</id>
+    <locmod>maxConsoleRunner\TPipeThread (129)</locmod>
+  </item>
+  <item>
+    <id>TPipeThread.unLock (PM)</id>
+    <locmod>maxConsoleRunner\TPipeThread (124)</locmod>
+  </item>
+  <item>
+    <id>TProcAdapter.Create (C)</id>
+    <locmod>MaxLogic.strUtils\TProcAdapter (307)</locmod>
+  </item>
+  <item>
+    <id>TProcAdapter.Invoke (FM)</id>
+    <locmod>MaxLogic.strUtils\TProcAdapter (308)</locmod>
+  </item>
+  <item>
+    <id>Trap (F)</id>
+    <locmod>AutoFree (80)</locmod>
+  </item>
+  <item>
+    <id>TRegExHelper.Replace (FM)</id>
+    <locmod>MaxLogic.strUtils\TRegExHelper (312)</locmod>
+  </item>
+  <item>
+    <id>TRegExHelper.Replace (FM)</id>
+    <locmod>MaxLogic.strUtils\TRegExHelper (313)</locmod>
+  </item>
+  <item>
+    <id>TRegExHelper.Replace (FM)</id>
+    <locmod>MaxLogic.strUtils\TRegExHelper (316)</locmod>
+  </item>
+  <item>
+    <id>TRegExHelper.Replace (FM)</id>
+    <locmod>MaxLogic.strUtils\TRegExHelper (317)</locmod>
+  </item>
+  <item>
+    <id>TRTLCriticalSectionHelper.Create (FM)</id>
+    <locmod>maxAsync\TRTLCriticalSectionHelper (196)</locmod>
+  </item>
+  <item>
+    <id>TRTLCriticalSectionHelper.Enter (PM)</id>
+    <locmod>maxAsync\TRTLCriticalSectionHelper (199)</locmod>
+  </item>
+  <item>
+    <id>TRTLCriticalSectionHelper.exit (PM)</id>
+    <locmod>maxAsync\TRTLCriticalSectionHelper (202)</locmod>
+  </item>
+  <item>
+    <id>TRTLCriticalSectionHelper.Free (PM)</id>
+    <locmod>maxAsync\TRTLCriticalSectionHelper (203)</locmod>
+  </item>
+  <item>
+    <id>TRTLCriticalSectionHelper.leave (PM)</id>
+    <locmod>maxAsync\TRTLCriticalSectionHelper (200)</locmod>
+  </item>
+  <item>
+    <id>TryBuildDelphiTargetFlag (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+  </item>
+  <item>
+    <id>TryBuildParams (F)</id>
+    <locmod>Dak.Project (10)</locmod>
+  </item>
+  <item>
+    <id>TryCaptureProcessOutput (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+  </item>
+  <item>
+    <id>TryDetectCsvDelimiter (F)</id>
+    <locmod>Dak.ReportPostProcess (269)</locmod>
+  </item>
+  <item>
+    <id>TryFindPalReportRoot (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (24)</locmod>
+  </item>
+  <item>
+    <id>TryGeneratePalArtifacts (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+  </item>
+  <item>
+    <id>TryGetCommand (F)</id>
+    <locmod>Dak.Cli (11)</locmod>
+  </item>
+  <item>
+    <id>TryGetFileVersionMajor (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (475)</locmod>
+  </item>
+  <item>
+    <id>TryGetJsonArray (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (161)</locmod>
+  </item>
+  <item>
+    <id>TryGetPalCmdHelpText (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (395)</locmod>
+  </item>
+  <item>
+    <id>TryGetPalCmdMaxDelphi (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (286)</locmod>
+  </item>
+  <item>
+    <id>TryLoadComplexityEntries (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+  </item>
+  <item>
+    <id>TryLoadModuleLines (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+  </item>
+  <item>
+    <id>TryLoadPalCmdMap (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+  </item>
+  <item>
+    <id>TryLoadRsVars (F)</id>
+    <locmod>Dak.RsVars (10)</locmod>
+  </item>
+  <item>
+    <id>TryLoadXml (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+  </item>
+  <item>
+    <id>TryNormalizeRuleId (F)</id>
+    <locmod>Dak.ReportPostProcess (58)</locmod>
+  </item>
+  <item>
+    <id>TryOpenLogHandle (F)</id>
+    <locmod>Dak.Analyze (82)</locmod>
+  </item>
+  <item>
+    <id>TryParseBoolText (F)</id>
+    <locmod>Dak.FixInsightSettings (32)</locmod>
+  </item>
+  <item>
+    <id>TryParseFixInsightRuleId (F)</id>
+    <locmod>Dak.Analyze (192)</locmod>
+  </item>
+  <item>
+    <id>TryParseLocMod (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+  </item>
+  <item>
+    <id>TryParseOptions (F)</id>
+    <locmod>Dak.Cli (10)</locmod>
+  </item>
+  <item>
+    <id>  IsSwitchParam (F)</id>
+    <locmod>Dak.Cli\TryParseOptions (203)</locmod>
+  </item>
+  <item>
+    <id>  TakeValue (F)</id>
+    <locmod>Dak.Cli\TryParseOptions (212)</locmod>
+  </item>
+  <item>
+    <id>  TryParseBool (F)</id>
+    <locmod>Dak.Cli\TryParseOptions (146)</locmod>
+  </item>
+  <item>
+    <id>  TryParseFiFormats (F)</id>
+    <locmod>Dak.Cli\TryParseOptions (106)</locmod>
+  </item>
+  <item>
+    <id>  TryParseOutKind (F)</id>
+    <locmod>Dak.Cli\TryParseOptions (93)</locmod>
+  </item>
+  <item>
+    <id>  TrySplitSwitch (F)</id>
+    <locmod>Dak.Cli\TryParseOptions (162)</locmod>
+  </item>
+  <item>
+    <id>TryPostProcessFixInsightCsv (F)</id>
+    <locmod>Dak.ReportPostProcess (381)</locmod>
+  </item>
+  <item>
+    <id>  DetectIndexesFromRow (P)</id>
+    <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightCsv (407)</locmod>
+  </item>
+  <item>
+    <id>  LooksLikeHeader (F)</id>
+    <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightCsv (396)</locmod>
+  </item>
+  <item>
+    <id>TryPostProcessFixInsightReport (F)</id>
+    <locmod>Dak.ReportPostProcess (22)</locmod>
+  </item>
+  <item>
+    <id>TryPostProcessFixInsightText (F)</id>
+    <locmod>Dak.ReportPostProcess (160)</locmod>
+  </item>
+  <item>
+    <id>  Flush (P)</id>
+    <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (171)</locmod>
+  </item>
+  <item>
+    <id>  IsFileHeader (F)</id>
+    <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (207)</locmod>
+  </item>
+  <item>
+    <id>  TryGetRuleIdFromLine (F)</id>
+    <locmod>Dak.ReportPostProcess\TryPostProcessFixInsightText (189)</locmod>
+  </item>
+  <item>
+    <id>TryPostProcessFixInsightXml (F)</id>
+    <locmod>Dak.ReportPostProcess (498)</locmod>
+  </item>
+  <item>
+    <id>TryPrepareProjectParams (F)</id>
+    <locmod>Dak.Analyze (393)</locmod>
+  </item>
+  <item>
+    <id>TryReadEnvOptionsLibraryPath (F)</id>
+    <locmod>Dak.Registry (18)</locmod>
+  </item>
+  <item>
+    <id>  CaptureOption (P)</id>
+    <locmod>Dak.Registry\TryReadEnvOptionsLibraryPath (27)</locmod>
+  </item>
+  <item>
+    <id>TryReadIdeConfig (F)</id>
+    <locmod>Dak.Registry (12)</locmod>
+  </item>
+  <item>
+    <id>  EnsureEnvVar (P)</id>
+    <locmod>Dak.Registry\TryReadIdeConfig (104)</locmod>
+  </item>
+  <item>
+    <id>  JoinNames (F)</id>
+    <locmod>Dak.Registry\TryReadIdeConfig (118)</locmod>
+  </item>
+  <item>
+    <id>  LogBdsVersions (P)</id>
+    <locmod>Dak.Registry\TryReadIdeConfig (125)</locmod>
+  </item>
+  <item>
+    <id>  TryReadRegistryView (F)</id>
+    <locmod>Dak.Registry\TryReadIdeConfig (150)</locmod>
+  </item>
+  <item>
+    <id>TryResolveDprojPath (F)</id>
+    <locmod>DelphiAIKit (66)</locmod>
+  </item>
+  <item>
+    <id>TryResolveDprojPath (F)</id>
+    <locmod>Dak.Analyze (159)</locmod>
+  </item>
+  <item>
+    <id>TryResolveFixInsightExe (F)</id>
+    <locmod>Dak.FixInsight (10)</locmod>
+  </item>
+  <item>
+    <id>  TryReadRegistryValue (F)</id>
+    <locmod>Dak.FixInsight\TryResolveFixInsightExe (84)</locmod>
+  </item>
+  <item>
+    <id>TryResolveFlagFromHelp (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (440)</locmod>
+  </item>
+  <item>
+    <id>TryResolvePalCmdExe (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+  </item>
+  <item>
+    <id>TryResolvePalCmdExeFromKnownRoots (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+  </item>
+  <item>
+    <id>  AddRoot (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+  </item>
+  <item>
+    <id>  Env (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (542)</locmod>
+  </item>
+  <item>
+    <id>  TryParseVer (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (561)</locmod>
+  </item>
+  <item>
+    <id>TryRunBuildDelphi (F)</id>
+    <locmod>DelphiAIKit (117)</locmod>
+  </item>
+  <item>
+    <id>TryRunFixInsight (F)</id>
+    <locmod>Dak.FixInsightRunner (12)</locmod>
+  </item>
+  <item>
+    <id>TryRunFixInsightLogged (F)</id>
+    <locmod>Dak.Analyze (504)</locmod>
+  </item>
+  <item>
+    <id>TryRunFixInsightWithHandles (F)</id>
+    <locmod>Dak.FixInsightRunner (13)</locmod>
+  </item>
+  <item>
+    <id>TryRunPalLogged (F)</id>
+    <locmod>Dak.Analyze (535)</locmod>
+  </item>
+  <item>
+    <id>TryRunPalUnitLogged (F)</id>
+    <locmod>Dak.Analyze (566)</locmod>
+  </item>
+  <item>
+    <id>TryRunPascalAnalyzer (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (16)</locmod>
+  </item>
+  <item>
+    <id>TryRunPascalAnalyzerUnit (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (22)</locmod>
+  </item>
+  <item>
+    <id>TryRunPascalAnalyzerWithHandles (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+  </item>
+  <item>
+    <id>TryStrToFLoatWCC (F)</id>
+    <locmod>MaxLogic.strUtils (284)</locmod>
+  </item>
+  <item>
+    <id>TSafeValue&lt;T&gt;.EnsureInit (PM)</id>
+    <locmod>maxAsync\TSafeValue&lt;T&gt; (463)</locmod>
+  </item>
+  <item>
+    <id>TSafeValue&lt;T&gt;.getValue (FM)</id>
+    <locmod>maxAsync\TSafeValue&lt;T&gt; (461)</locmod>
+  </item>
+  <item>
+    <id>TSafeValue&lt;T&gt;.new (FM)</id>
+    <locmod>maxAsync\TSafeValue&lt;T&gt; (468)</locmod>
+  </item>
+  <item>
+    <id>TSafeValue&lt;T&gt;.SetValue (PM)</id>
+    <locmod>maxAsync\TSafeValue&lt;T&gt; (462)</locmod>
+  </item>
+  <item>
+    <id>TSignal.Create (C)</id>
+    <locmod>maxSignal\TSignal (44)</locmod>
+  </item>
+  <item>
+    <id>TSignal.Destroy (D)</id>
+    <locmod>maxSignal\TSignal (45)</locmod>
+  </item>
+  <item>
+    <id>TSignal.GetEvent (FM)</id>
+    <locmod>maxSignal\TSignal (42)</locmod>
+  </item>
+  <item>
+    <id>TSignal.MsgWaitForSignaled (PM)</id>
+    <locmod>maxSignal\TSignal (52)</locmod>
+  </item>
+  <item>
+    <id>TSignal.SetNonSignaled (PM)</id>
+    <locmod>maxSignal\TSignal (48)</locmod>
+  </item>
+  <item>
+    <id>TSignal.SetSignaled (PM)</id>
+    <locmod>maxSignal\TSignal (47)</locmod>
+  </item>
+  <item>
+    <id>TSignal.WaitForSignaled (FM)</id>
+    <locmod>maxSignal\TSignal (49)</locmod>
+  </item>
+  <item>
+    <id>TSourceTracker.Create (C)</id>
+    <locmod>Dak.Project\TSourceTracker (22)</locmod>
+  </item>
+  <item>
+    <id>TSourceTracker.OnPropertySet (PM)</id>
+    <locmod>Dak.Project\TSourceTracker (23)</locmod>
+  </item>
+  <item>
+    <id>TStringComparerHelper.OrdinalIgnoreCase (FM)</id>
+    <locmod>MaxLogic.strUtils\TStringComparerHelper (293)</locmod>
+  </item>
+  <item>
+    <id>TStringSet.Add (FM)</id>
+    <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+  </item>
+  <item>
+    <id>TStringSet.Count (FM)</id>
+    <locmod>Dak.Diagnostics\TStringSet (19)</locmod>
+  </item>
+  <item>
+    <id>TStringSet.Create (C)</id>
+    <locmod>Dak.Diagnostics\TStringSet (16)</locmod>
+  </item>
+  <item>
+    <id>TStringSet.Destroy (D)</id>
+    <locmod>Dak.Diagnostics\TStringSet (17)</locmod>
+  </item>
+  <item>
+    <id>TStringSet.ToArray (FM)</id>
+    <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.Create (C)</id>
+    <locmod>maxAsync\TThreadData (297)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.Destroy (D)</id>
+    <locmod>maxAsync\TThreadData (298)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetFinished (FM)</id>
+    <locmod>maxAsync\TThreadData (278)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetFullThreadId (FM)</id>
+    <locmod>maxAsync\TThreadData (275)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetKeepAlive (FM)</id>
+    <locmod>maxAsync\TThreadData (285)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetProc (FM)</id>
+    <locmod>maxAsync\TThreadData (286)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetReadySignal (FM)</id>
+    <locmod>maxAsync\TThreadData (282)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetStartSignal (FM)</id>
+    <locmod>maxAsync\TThreadData (295)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetTaskName (FM)</id>
+    <locmod>maxAsync\TThreadData (287)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetTerminated (FM)</id>
+    <locmod>maxAsync\TThreadData (294)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetThread (FM)</id>
+    <locmod>maxAsync\TThreadData (274)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetWaiting (FM)</id>
+    <locmod>maxAsync\TThreadData (279)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.GetWakeSignal (FM)</id>
+    <locmod>maxAsync\TThreadData (283)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.SetDefaultValues (PM)</id>
+    <locmod>maxAsync\TThreadData (300)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.SetFinished (PM)</id>
+    <locmod>maxAsync\TThreadData (280)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.SetKeepAlive (PM)</id>
+    <locmod>maxAsync\TThreadData (288)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.SetProc (PM)</id>
+    <locmod>maxAsync\TThreadData (290)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.SetTaskName (PM)</id>
+    <locmod>maxAsync\TThreadData (291)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.SetTerminated (PM)</id>
+    <locmod>maxAsync\TThreadData (293)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.SetThread (PM)</id>
+    <locmod>maxAsync\TThreadData (277)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.SetThreadId (PM)</id>
+    <locmod>maxAsync\TThreadData (276)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.SetThreadToTerminated (PM)</id>
+    <locmod>maxAsync\TThreadData (289)</locmod>
+  </item>
+  <item>
+    <id>TThreadData.SetWaiting (PM)</id>
+    <locmod>maxAsync\TThreadData (281)</locmod>
+  </item>
+  <item>
+    <id>TWaiter.WaitFor (FM)</id>
+    <locmod>maxAsync\TWaiter (532)</locmod>
+  </item>
+  <item>
+    <id>TWaiter.WaitFor (FM)</id>
+    <locmod>maxAsync\TWaiter (533)</locmod>
+  </item>
+  <item>
+    <id>TWaiter.WaitFor (FM)</id>
+    <locmod>maxAsync\TWaiter (534)</locmod>
+  </item>
+  <item>
+    <id>  delete (P)</id>
+    <locmod>maxAsync\TWaiter\WaitFor (1563)</locmod>
+  </item>
+  <item>
+    <id>UnSlash (F)</id>
+    <locmod>maxLogic.IOUtils (131)</locmod>
+  </item>
+  <item>
+    <id>Utf8SequenceLength (F)</id>
+    <locmod>MaxLogic.strUtils (972)</locmod>
+  </item>
+  <item>
+    <id>Utf8TruncateByCodePoint (F)</id>
+    <locmod>MaxLogic.strUtils (280)</locmod>
+  </item>
+  <item>
+    <id>WriteLogText (P)</id>
+    <locmod>Dak.Analyze (53)</locmod>
+  </item>
+  <item>
+    <id>WriteOutput (F)</id>
+    <locmod>Dak.Output (9)</locmod>
+  </item>
+  <item>
+    <id>WritePalFindingsJsonl (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1766)</locmod>
+  </item>
+  <item>
+    <id>WritePalFindingsMd (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1729)</locmod>
+  </item>
+  <item>
+    <id>WritePalHotspotsMd (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1809)</locmod>
+  </item>
+  <item>
+    <id>writeToBytes (P)</id>
+    <locmod>maxLogic.IOUtils (217)</locmod>
+  </item>
+  <item>
+    <id>writeToBytesAndIncOffset (P)</id>
+    <locmod>maxLogic.IOUtils (215)</locmod>
+  </item>
+  <item>
+    <id>WriteToolLog (P)</id>
+    <locmod>Dak.Analyze (108)</locmod>
+  </item>
+  <item>
+    <id>WriteUsage (P)</id>
+    <locmod>Dak.Cli (12)</locmod>
+  </item>
+  <item>
+    <id>XmlEscape (F)</id>
+    <locmod>Dak.Output (21)</locmod>
+  </item>
+</report>

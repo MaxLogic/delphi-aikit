@@ -1,0 +1,2152 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Literal Strings and Numbers Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Resourcestrings" count="11" oldcount="-2">
+    <item>
+      <string>&apos;  analyze   Run FixInsight / Pascal Analyzer&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>10</locline>
+    </item>
+    <item>
+      <string>&apos;  build     Build a Delphi .dproj via build-delphi.bat&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>11</locline>
+    </item>
+    <item>
+      <string>&apos;  resolve   Resolve FixInsight params (ini/xml/bat)&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>9</locline>
+    </item>
+    <item>
+      <string>&apos;¶&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>10</locline>
+    </item>
+    <item>
+      <string>&apos;¶&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>11</locline>
+    </item>
+    <item>
+      <string>&apos;¶&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>9</locline>
+    </item>
+    <item>
+      <string>&apos;¶&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>7</locline>
+    </item>
+    <item>
+      <string>&apos;¶&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>8</locline>
+    </item>
+    <item>
+      <string>&apos;Commands:&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>8</locline>
+    </item>
+    <item>
+      <string>&apos;DelphiAIKit.exe &amp;lt;command&amp;gt; [global options] [command options]&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>7</locline>
+    </item>
+    <item>
+      <string>&apos;Use &amp;quot;DelphiAIKit.exe &amp;lt;command&amp;gt; --help&amp;quot; for command-specific ..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>12</locline>
+    </item>
+  </section>
+  <section name="Literal strings declared as constants, more than one character" count="125" oldcount="-2">
+    <item>
+      <string>&apos;  [--clean [true|false]] [--write-summary [true|false]]&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>30</locline>
+    </item>
+    <item>
+      <string>&apos;  [--exclude-path-masks &amp;quot;&amp;lt;list&amp;gt;&amp;quot;] [--ignore-warning-ids &amp;quot;&amp;lt;li..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>19</locline>
+    </item>
+    <item>
+      <string>&apos;  [--exclude-path-masks &amp;quot;&amp;lt;list&amp;gt;&amp;quot;] [--ignore-warning-ids &amp;quot;&amp;lt;li..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>27</locline>
+    </item>
+    <item>
+      <string>&apos;  [--fi-output &amp;quot;&amp;lt;path&amp;gt;&amp;quot;] [--fi-ignore &amp;quot;&amp;lt;list&amp;gt;&amp;quot;] [--fi-settin..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>17</locline>
+    </item>
+    <item>
+      <string>&apos;  [--fi-settings &amp;quot;&amp;lt;path&amp;gt;&amp;quot;] [--fi-ignore &amp;quot;&amp;lt;list&amp;gt;&amp;quot;] [--fi-sile..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>28</locline>
+    </item>
+    <item>
+      <string>&apos;  [--format &amp;lt;ini|xml|bat&amp;gt;] [--out-file &amp;quot;&amp;lt;path&amp;gt;&amp;quot;]&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>16</locline>
+    </item>
+    <item>
+      <string>&apos;  [--out &amp;quot;&amp;lt;path&amp;gt;&amp;quot;] [--fi-formats &amp;lt;txt|xml|csv|all&amp;gt;] [--fixin..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>25</locline>
+    </item>
+    <item>
+      <string>&apos;  [--pa-path &amp;quot;&amp;lt;path&amp;gt;&amp;quot;] [--pa-output &amp;quot;&amp;lt;path&amp;gt;&amp;quot;] [--pa-args &amp;quot;&amp;lt;a..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>29</locline>
+    </item>
+    <item>
+      <string>&apos;  [--rsvars &amp;quot;&amp;lt;path&amp;gt;&amp;quot;] [--envoptions &amp;quot;&amp;lt;path&amp;gt;&amp;quot;] [--log-file &amp;quot;&amp;lt;..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>31</locline>
+    </item>
+    <item>
+      <string>&apos;  [--rsvars &amp;quot;&amp;lt;path&amp;gt;&amp;quot;] [--envoptions &amp;quot;&amp;lt;path&amp;gt;&amp;quot;] [--log-file &amp;quot;&amp;lt;..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>20</locline>
+    </item>
+    <item>
+      <string>&apos;[--fi-xml [true|false]] [--fi-csv [true|false]]&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>18</locline>
+    </item>
+    <item>
+      <string>&apos;[--pascal-analyzer [true|false]]&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>26</locline>
+    </item>
+    <item>
+      <string>&apos;[--pascal-analyzer [true|false]] [--pa-path &amp;quot;&amp;lt;path&amp;gt;&amp;quot;] [--pa-..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>34</locline>
+    </item>
+    <item>
+      <string>&apos;[--platform &amp;lt;Win32|Win64&amp;gt;] [--config &amp;lt;Debug|Release&amp;gt;]&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>15</locline>
+    </item>
+    <item>
+      <string>&apos;[--platform &amp;lt;Win32|Win64&amp;gt;] [--config &amp;lt;Debug|Release&amp;gt;]&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>37</locline>
+    </item>
+    <item>
+      <string>&apos;[--platform &amp;lt;Win32|Win64&amp;gt;] [--config &amp;lt;Debug|Release&amp;gt;]&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>24</locline>
+    </item>
+    <item>
+      <string>&apos;[--verbose [true|false]]&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>21</locline>
+    </item>
+    <item>
+      <string>&apos;[--verbose [true|false]]&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>32</locline>
+    </item>
+    <item>
+      <string>&apos;{7D3DDF6A-3A2F-44F8-A83B-D7F66F66C559}&apos;</string>
+      <locmod>AutoFree</locmod>
+      <locline>50</locline>
+    </item>
+    <item>
+      <string>&apos;{A6E17957-C233-4433-BCBD-3B53C0C2C596}&apos;</string>
+      <locmod>AutoFree</locmod>
+      <locline>10</locline>
+    </item>
+    <item>
+      <string>&apos;Associated .dproj not found for: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>48</locline>
+    </item>
+    <item>
+      <string>&apos;Available BDS versions (%s view): %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>89</locline>
+    </item>
+    <item>
+      <string>&apos;build-delphi.bat not found: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>46</locline>
+    </item>
+    <item>
+      <string>&apos;Combined search path is empty.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>62</locline>
+    </item>
+    <item>
+      <string>&apos;Combined search path resolved: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>109</locline>
+    </item>
+    <item>
+      <string>&apos;Complexity.xml&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>40</locline>
+    </item>
+    <item>
+      <string>&apos;Defines resolved: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>105</locline>
+    </item>
+    <item>
+      <string>&apos;Defines source: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>71</locline>
+    </item>
+    <item>
+      <string>&apos;Delphi registry base key not found for version %s.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>50</locline>
+    </item>
+    <item>
+      <string>&apos;DelphiAIKit.exe analyze --project &amp;quot;&amp;lt;path&amp;gt;&amp;quot; --delphi &amp;lt;23.0&amp;gt; &apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>23</locline>
+    </item>
+    <item>
+      <string>&apos;DelphiAIKit.exe analyze --unit &amp;quot;&amp;lt;path&amp;gt;&amp;quot; --delphi &amp;lt;23.0&amp;gt; [--o..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>33</locline>
+    </item>
+    <item>
+      <string>&apos;DelphiAIKit.exe build --project &amp;quot;&amp;lt;path&amp;gt;&amp;quot; --delphi &amp;lt;23.0&amp;gt; &apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>36</locline>
+    </item>
+    <item>
+      <string>&apos;DelphiAIKit.exe resolve --project &amp;quot;&amp;lt;path&amp;gt;&amp;quot; --delphi &amp;lt;23.0&amp;gt; &apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>14</locline>
+    </item>
+    <item>
+      <string>&apos;DelphiLibraryPath not found in EnvOptions.proj for platform ..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>53</locline>
+    </item>
+    <item>
+      <string>&apos;dproj&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>77</locline>
+    </item>
+    <item>
+      <string>&apos;envoptions&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>80</locline>
+    </item>
+    <item>
+      <string>&apos;EnvOptions override: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>103</locline>
+    </item>
+    <item>
+      <string>&apos;EnvOptions.proj not found at: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>52</locline>
+    </item>
+    <item>
+      <string>&apos;EnvOptions.proj path: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>90</locline>
+    </item>
+    <item>
+      <string>&apos;exception&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1187</locline>
+    </item>
+    <item>
+      <string>&apos;Exception.xml&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>39</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to open log file: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>117</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to parse option set: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>57</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to parse project file: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>56</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to write output: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>63</locline>
+    </item>
+    <item>
+      <string>&apos;File not found: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>47</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe&apos;</string>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>15</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe exited with code %d.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>116</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe failed to start: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>115</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe not found at settings.ini Path: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>113</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe not found in PATH or FixInsight registry (H..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>112</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe path is not resolved.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>114</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>110</locline>
+    </item>
+    <item>
+      <string>&apos;Hint: Missing directory: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>67</locline>
+    </item>
+    <item>
+      <string>&apos;IDE env vars (%s view): %d&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>92</locline>
+    </item>
+    <item>
+      <string>&apos;IDE env vars: %d&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>91</locline>
+    </item>
+    <item>
+      <string>&apos;Invalid command line arguments.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>38</locline>
+    </item>
+    <item>
+      <string>&apos;Invalid --fi-formats value: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>43</locline>
+    </item>
+    <item>
+      <string>&apos;Invalid --format value: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>41</locline>
+    </item>
+    <item>
+      <string>&apos;Invalid settings.ini boolean for %s: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>118</locline>
+    </item>
+    <item>
+      <string>&apos;Invalid value for %s: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>42</locline>
+    </item>
+    <item>
+      <string>&apos;Library path resolved: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>108</locline>
+    </item>
+    <item>
+      <string>&apos;Library path source: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>75</locline>
+    </item>
+    <item>
+      <string>&apos;Library search path is empty.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>61</locline>
+    </item>
+    <item>
+      <string>&apos;Library search path not found for platform %s.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>51</locline>
+    </item>
+    <item>
+      <string>&apos;Library search path: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>93</locline>
+    </item>
+    <item>
+      <string>&apos;Macro cycle detected: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>66</locline>
+    </item>
+    <item>
+      <string>&apos;Main source: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>84</locline>
+    </item>
+    <item>
+      <string>&apos;MainSource file not found: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>60</locline>
+    </item>
+    <item>
+      <string>&apos;MainSource not found in project.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>59</locline>
+    </item>
+    <item>
+      <string>&apos;Missing value for parameter: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>40</locline>
+    </item>
+    <item>
+      <string>&apos;Module Totals.xml&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>41</locline>
+    </item>
+    <item>
+      <string>&apos;optimization&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1186</locline>
+    </item>
+    <item>
+      <string>&apos;Optimization.xml&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>38</locline>
+    </item>
+    <item>
+      <string>&apos;Option set not found: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>70</locline>
+    </item>
+    <item>
+      <string>&apos;Option set resolved: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>85</locline>
+    </item>
+    <item>
+      <string>&apos;Options: dproj=%s platform=%s config=%s delphi=%s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>82</locline>
+    </item>
+    <item>
+      <string>&apos;optset&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>78</locline>
+    </item>
+    <item>
+      <string>&apos;palcmd.exe&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>30</locline>
+    </item>
+    <item>
+      <string>&apos;palcmd32.exe&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>31</locline>
+    </item>
+    <item>
+      <string>&apos;palcmd-map.json&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>32</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.jsonl&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>34</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.md&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>33</locline>
+    </item>
+    <item>
+      <string>&apos;pal-hotspots.md&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>35</locline>
+    </item>
+    <item>
+      <string>&apos;Path&apos;</string>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>16</locline>
+    </item>
+    <item>
+      <string>&apos;Project dir: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>83</locline>
+    </item>
+    <item>
+      <string>&apos;Project search path resolved: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>107</locline>
+    </item>
+    <item>
+      <string>&apos;Property %s = %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>101</locline>
+    </item>
+    <item>
+      <string>&apos;Property %s condition: %s =&amp;gt; %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>99</locline>
+    </item>
+    <item>
+      <string>&apos;Property %s raw: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>100</locline>
+    </item>
+    <item>
+      <string>&apos;PropertyGroup condition: %s =&amp;gt; %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>98</locline>
+    </item>
+    <item>
+      <string>&apos;Reading: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>97</locline>
+    </item>
+    <item>
+      <string>&apos;registry&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>79</locline>
+    </item>
+    <item>
+      <string>&apos;Registry base key missing in %s view.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>88</locline>
+    </item>
+    <item>
+      <string>&apos;Registry base key: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>86</locline>
+    </item>
+    <item>
+      <string>&apos;Registry Search Path missing, falling back to EnvOptions.pro..&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>102</locline>
+    </item>
+    <item>
+      <string>&apos;Registry view: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>87</locline>
+    </item>
+    <item>
+      <string>&apos;rsvars env vars: %d&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>95</locline>
+    </item>
+    <item>
+      <string>&apos;rsvars.bat failed with exit code %d.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>55</locline>
+    </item>
+    <item>
+      <string>&apos;rsvars.bat not found at: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>54</locline>
+    </item>
+    <item>
+      <string>&apos;rsvars.bat path: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>94</locline>
+    </item>
+    <item>
+      <string>&apos;settings.ini: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>104</locline>
+    </item>
+    <item>
+      <string>&apos;Software\FixInsight&apos;</string>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>18</locline>
+    </item>
+    <item>
+      <string>&apos;Software\TMSSoftware\TMS FixInsight Pro&apos;</string>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>19</locline>
+    </item>
+    <item>
+      <string>&apos;Status.xml&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>42</locline>
+    </item>
+    <item>
+      <string>&apos;Step: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>96</locline>
+    </item>
+    <item>
+      <string>&apos;Strong Warnings.xml&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>37</locline>
+    </item>
+    <item>
+      <string>&apos;strong-warning&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1185</locline>
+    </item>
+    <item>
+      <string>&apos;Unhandled exception: %s: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>81</locline>
+    </item>
+    <item>
+      <string>&apos;Unit aliases source: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>74</locline>
+    </item>
+    <item>
+      <string>&apos;Unit scopes resolved: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>106</locline>
+    </item>
+    <item>
+      <string>&apos;Unit scopes source: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>73</locline>
+    </item>
+    <item>
+      <string>&apos;Unit search path source: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>72</locline>
+    </item>
+    <item>
+      <string>&apos;unknown&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>76</locline>
+    </item>
+    <item>
+      <string>&apos;Unknown argument: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>44</locline>
+    </item>
+    <item>
+      <string>&apos;Unknown command: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>39</locline>
+    </item>
+    <item>
+      <string>&apos;Unknown macro: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>65</locline>
+    </item>
+    <item>
+      <string>&apos;Unresolved macro in %s, skipped: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>68</locline>
+    </item>
+    <item>
+      <string>&apos;Unsupported or invalid Condition: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>58</locline>
+    </item>
+    <item>
+      <string>&apos;Use either --project or --unit (not both) for analyze.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>45</locline>
+    </item>
+    <item>
+      <string>&apos;Using associated .dproj: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>49</locline>
+    </item>
+    <item>
+      <string>&apos;Using option set: %s&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>69</locline>
+    </item>
+    <item>
+      <string>&apos;warning&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1184</locline>
+    </item>
+    <item>
+      <string>&apos;Warnings.xml&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>36</locline>
+    </item>
+    <item>
+      <string>&apos;XML vendor not available: %s.&apos;</string>
+      <locmod>Dak.Messages</locmod>
+      <locline>64</locline>
+    </item>
+  </section>
+  <section name="Literal strings in code, more than one character" count="287" oldcount="-2">
+    <item>
+      <string>&apos;\*&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>380</locline>
+    </item>
+    <item>
+      <string>&apos;.*&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>380</locline>
+    </item>
+    <item>
+      <string>&apos;\?&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>381</locline>
+    </item>
+    <item>
+      <string>&apos;0.&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>947</locline>
+    </item>
+    <item>
+      <string>&apos;%dh %dm %ds %dms&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1663</locline>
+    </item>
+    <item>
+      <string>&apos;%dm %ds %dms&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1664</locline>
+    </item>
+    <item>
+      <string>&apos;%ds %dms&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1665</locline>
+    </item>
+    <item>
+      <string>&apos;%dms&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1666</locline>
+    </item>
+    <item>
+      <string>&apos; Petabyte&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1726</locline>
+    </item>
+    <item>
+      <string>&apos; TB&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1730</locline>
+    </item>
+    <item>
+      <string>&apos; GB&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1734</locline>
+    </item>
+    <item>
+      <string>&apos; MB&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1737</locline>
+    </item>
+    <item>
+      <string>&apos; KB&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1741</locline>
+    </item>
+    <item>
+      <string>&apos; B&apos;</string>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1743</locline>
+    </item>
+    <item>
+      <string>&apos;&amp;lt;empty&amp;gt;&apos;</string>
+      <locmod>Dak.Diagnostics</locmod>
+      <locline>120</locline>
+    </item>
+    <item>
+      <string>&apos;.exe&apos;</string>
+      <locmod>Dak.FixInsight</locmod>
+      <locline>66</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping file not found: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>191</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping file is not valid JSON: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>199</locline>
+    </item>
+    <item>
+      <string>&apos;delphiOrder&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>203</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping file is missing delphiOrder: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>205</locline>
+    </item>
+    <item>
+      <string>&apos;bdsToDelphi&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>212</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping file is missing bdsToDelphi: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>214</locline>
+    </item>
+    <item>
+      <string>&apos;bdsMajor&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>221</locline>
+    </item>
+    <item>
+      <string>&apos;delphi&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>222</locline>
+    </item>
+    <item>
+      <string>&apos;palcmdSupport&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>227</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping file is missing palcmdSupport: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>229</locline>
+    </item>
+    <item>
+      <string>&apos;palcmdMajor&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>236</locline>
+    </item>
+    <item>
+      <string>&apos;maxDelphi&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>237</locline>
+    </item>
+    <item>
+      <string>&apos;delphiFlags&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>242</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping file is missing delphiFlags: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>244</locline>
+    </item>
+    <item>
+      <string>&apos;delphi&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>251</locline>
+    </item>
+    <item>
+      <string>&apos;win32&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>254</locline>
+    </item>
+    <item>
+      <string>&apos;win32&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>255</locline>
+    </item>
+    <item>
+      <string>&apos;win64&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>256</locline>
+    </item>
+    <item>
+      <string>&apos;win64&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>257</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping file is incomplete: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>262</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to create PALCMD output pipe.&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>333</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD help failed to start: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>355</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD help failed: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>379</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD help exited with code &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>404</locline>
+    </item>
+    <item>
+      <string>&apos;Win32&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>453</locline>
+    </item>
+    <item>
+      <string>&apos;Pascal Analyzer&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>568</locline>
+    </item>
+    <item>
+      <string>&apos;0123456789&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>570</locline>
+    </item>
+    <item>
+      <string>&apos;ProgramFiles&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>585</locline>
+    </item>
+    <item>
+      <string>&apos;ProgramFiles(x86)&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>586</locline>
+    </item>
+    <item>
+      <string>&apos;ProgramW6432&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>587</locline>
+    </item>
+    <item>
+      <string>&apos;C:\Program Files&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>591</locline>
+    </item>
+    <item>
+      <string>&apos;C:\Program Files (x86)&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>592</locline>
+    </item>
+    <item>
+      <string>&apos;Peganza\Pascal Analyzer 9\&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>598</locline>
+    </item>
+    <item>
+      <string>&apos;Peganza\Pascal Analyzer 9\&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>604</locline>
+    </item>
+    <item>
+      <string>&apos;Peganza\Pascal Analyzer &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>617</locline>
+    </item>
+    <item>
+      <string>&apos;Peganza&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>632</locline>
+    </item>
+    <item>
+      <string>&apos;Pascal Analyzer*&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>635</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD executable not found in folder: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>679</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD executable not found at: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>691</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD not found. Provide --pa-path or set [PascalAnalyzer]...&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>698</locline>
+    </item>
+    <item>
+      <string>&apos;Win32&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>722</locline>
+    </item>
+    <item>
+      <string>&apos;Win64&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>723</locline>
+    </item>
+    <item>
+      <string>&apos;Invalid Delphi version: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>728</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping missing for Delphi version: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>737</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping missing Win32 flag for Delphi version: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>745</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping missing Win64 flag for Delphi version: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>752</locline>
+    </item>
+    <item>
+      <string>&apos;Unable to read PALCMD version from: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>762</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD version &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>768</locline>
+    </item>
+    <item>
+      <string>&apos; not supported in mapping file.&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>768</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD mapping order is missing Delphi version keys.&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>776</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD %d supports Delphi up to %s, but %s was requested. In..&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>782</locline>
+    </item>
+    <item>
+      <string>&apos;pass /CD... via --pa-args to override.&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>783</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD help did not list a supported compiler flag for Delph..&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>804</locline>
+    </item>
+    <item>
+      <string>&apos;pass /CD... via --pa-args to override.&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>805</locline>
+    </item>
+    <item>
+      <string>&apos;/CD&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>890</locline>
+    </item>
+    <item>
+      <string>&apos;/BUILD=&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>901</locline>
+    </item>
+    <item>
+      <string>&apos;/D=&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>907</locline>
+    </item>
+    <item>
+      <string>&apos;/S=&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>916</locline>
+    </item>
+    <item>
+      <string>&apos;/R=&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>923</locline>
+    </item>
+    <item>
+      <string>&apos; /F=X&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>930</locline>
+    </item>
+    <item>
+      <string>&apos; /Q&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>931</locline>
+    </item>
+    <item>
+      <string>&apos; /A+&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>932</locline>
+    </item>
+    <item>
+      <string>&apos; /FA&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>933</locline>
+    </item>
+    <item>
+      <string>&apos; /T=&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>937</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD failed to start: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1015</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD failed: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1023</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD failed: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1029</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD unit path is empty.&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1054</locline>
+    </item>
+    <item>
+      <string>&apos; /R=&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1067</locline>
+    </item>
+    <item>
+      <string>&apos; /F=X&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1073</locline>
+    </item>
+    <item>
+      <string>&apos; /Q&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1074</locline>
+    </item>
+    <item>
+      <string>&apos; /A+&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1075</locline>
+    </item>
+    <item>
+      <string>&apos; /FA&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1076</locline>
+    </item>
+    <item>
+      <string>&apos; /T=&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1080</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD failed to start: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1133</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD failed: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1141</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD failed: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1147</locline>
+    </item>
+    <item>
+      <string>&apos;locmod&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1301</locline>
+    </item>
+    <item>
+      <string>&apos;locline&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1302</locline>
+    </item>
+    <item>
+      <string>&apos;kind&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1303</locline>
+    </item>
+    <item>
+      <string>&apos;id&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1350</locline>
+    </item>
+    <item>
+      <string>&apos;kind&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1351</locline>
+    </item>
+    <item>
+      <string>&apos;locmod&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1352</locline>
+    </item>
+    <item>
+      <string>&apos;loc&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1358</locline>
+    </item>
+    <item>
+      <string>&apos;name&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1377</locline>
+    </item>
+    <item>
+      <string>&apos;name&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1383</locline>
+    </item>
+    <item>
+      <string>&apos;loc&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1385</locline>
+    </item>
+    <item>
+      <string>&apos;item&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1387</locline>
+    </item>
+    <item>
+      <string>&apos;PAL XML not found: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1399</locline>
+    </item>
+    <item>
+      <string>&apos;PAL XML has no document element: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1410</locline>
+    </item>
+    <item>
+      <string>&apos;PAL XML load failed: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1417</locline>
+    </item>
+    <item>
+      <string>&apos; (&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1417</locline>
+    </item>
+    <item>
+      <string>&apos;section&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1441</locline>
+    </item>
+    <item>
+      <string>&apos;called_by&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1459</locline>
+    </item>
+    <item>
+      <string>&apos;name&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1461</locline>
+    </item>
+    <item>
+      <string>&apos;locmod&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1462</locline>
+    </item>
+    <item>
+      <string>&apos;locline&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1463</locline>
+    </item>
+    <item>
+      <string>&apos;called_by&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1478</locline>
+    </item>
+    <item>
+      <string>&apos;branch&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1480</locline>
+    </item>
+    <item>
+      <string>&apos;section&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1482</locline>
+    </item>
+    <item>
+      <string>&apos;section&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1506</locline>
+    </item>
+    <item>
+      <string>&apos;name&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1508</locline>
+    </item>
+    <item>
+      <string>&apos;Overall&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1549</locline>
+    </item>
+    <item>
+      <string>&apos;\...\&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1553</locline>
+    </item>
+    <item>
+      <string>&apos;section&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1583</locline>
+    </item>
+    <item>
+      <string>&apos;name&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1585</locline>
+    </item>
+    <item>
+      <string>&apos;Complexity per module/subprogram&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1585</locline>
+    </item>
+    <item>
+      <string>&apos;Complexity report section not found: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1594</locline>
+    </item>
+    <item>
+      <string>&apos;module_or_subprogram&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1603</locline>
+    </item>
+    <item>
+      <string>&apos;name&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1605</locline>
+    </item>
+    <item>
+      <string>&apos;dp&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1609</locline>
+    </item>
+    <item>
+      <string>&apos;lines_of_code&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1610</locline>
+    </item>
+    <item>
+      <string>&apos;section&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1653</locline>
+    </item>
+    <item>
+      <string>&apos;Module Totals report section not found: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1661</locline>
+    </item>
+    <item>
+      <string>&apos;module&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1670</locline>
+    </item>
+    <item>
+      <string>&apos;name&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1672</locline>
+    </item>
+    <item>
+      <string>&apos;item&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1681</locline>
+    </item>
+    <item>
+      <string>&apos;kind&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1683</locline>
+    </item>
+    <item>
+      <string>&apos;lines&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1684</locline>
+    </item>
+    <item>
+      <string>&apos;total&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1686</locline>
+    </item>
+    <item>
+      <string>&apos;Module Totals parse failed: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1697</locline>
+    </item>
+    <item>
+      <string>&apos; (&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1697</locline>
+    </item>
+    <item>
+      <string>&apos; | &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1742</locline>
+    </item>
+    <item>
+      <string>&apos; | &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1744</locline>
+    </item>
+    <item>
+      <string>&apos; | &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1746</locline>
+    </item>
+    <item>
+      <string>&apos; | &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1750</locline>
+    </item>
+    <item>
+      <string>&apos;severity&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1781</locline>
+    </item>
+    <item>
+      <string>&apos;report&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1782</locline>
+    </item>
+    <item>
+      <string>&apos;section&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1783</locline>
+    </item>
+    <item>
+      <string>&apos;module&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1784</locline>
+    </item>
+    <item>
+      <string>&apos;line&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1785</locline>
+    </item>
+    <item>
+      <string>&apos;message&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1786</locline>
+    </item>
+    <item>
+      <string>&apos;id&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1788</locline>
+    </item>
+    <item>
+      <string>&apos;kind&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1790</locline>
+    </item>
+    <item>
+      <string>&apos;# PAL Hotspots (top 20)&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1820</locline>
+    </item>
+    <item>
+      <string>&apos;## Routines by decision points&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1822</locline>
+    </item>
+    <item>
+      <string>&apos;- none&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1824</locline>
+    </item>
+    <item>
+      <string>&apos;dp=%d | loc=%d | %s&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1827</locline>
+    </item>
+    <item>
+      <string>&apos;## Modules by decision points&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1830</locline>
+    </item>
+    <item>
+      <string>&apos;- none&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1832</locline>
+    </item>
+    <item>
+      <string>&apos;dp=%d | loc=%d | %s&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1835</locline>
+    </item>
+    <item>
+      <string>&apos;## Modules by lines&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1838</locline>
+    </item>
+    <item>
+      <string>&apos;- none&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1840</locline>
+    </item>
+    <item>
+      <string>&apos;lines=%d | %s&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1843</locline>
+    </item>
+    <item>
+      <string>&apos;PAL output root is empty.&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1870</locline>
+    </item>
+    <item>
+      <string>&apos;PAL output root not found: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1876</locline>
+    </item>
+    <item>
+      <string>&apos;PAL report root not found under: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1890</locline>
+    </item>
+    <item>
+      <string>&apos;PAL report root is empty.&apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1931</locline>
+    </item>
+    <item>
+      <string>&apos;PAL report root not found: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>1937</locline>
+    </item>
+    <item>
+      <string>&apos;No PAL XML report files found under: &apos;</string>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>2014</locline>
+    </item>
+    <item>
+      <string>&apos;&amp;quot;&amp;quot;&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>38</locline>
+    </item>
+    <item>
+      <string>&apos;projects\DelphiAIKit.dproj&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>52</locline>
+    </item>
+    <item>
+      <string>&apos;tests\temp&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>74</locline>
+    </item>
+    <item>
+      <string>&apos;ComSpec&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>93</locline>
+    </item>
+    <item>
+      <string>&apos;C:\Windows\System32\cmd.exe&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>95</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to create output file: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>122</locline>
+    </item>
+    <item>
+      <string>&apos;Process start failed: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>152</locline>
+    </item>
+    <item>
+      <string>&apos;Process wait failed: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>159</locline>
+    </item>
+    <item>
+      <string>&apos;Process exit code failed: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>164</locline>
+    </item>
+    <item>
+      <string>&apos;build-delphi.bat&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>190</locline>
+    </item>
+    <item>
+      <string>&apos;projects\DelphiAIKit.dproj&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>191</locline>
+    </item>
+    <item>
+      <string>&apos; -config Release -platform Win32 -ver 23&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>192</locline>
+    </item>
+    <item>
+      <string>&apos;/C &amp;quot;call &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>193</locline>
+    </item>
+    <item>
+      <string>&apos;build-resolver.log&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>194</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to start build-delphi.bat&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>197</locline>
+    </item>
+    <item>
+      <string>&apos;build-delphi.bat failed, exit=&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>199</locline>
+    </item>
+    <item>
+      <string>&apos;. See: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>199</locline>
+    </item>
+    <item>
+      <string>&apos;bin\DelphiAIKit.exe&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>201</locline>
+    </item>
+    <item>
+      <string>&apos;Resolver exe not found after build: &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>203</locline>
+    </item>
+    <item>
+      <string>&apos;bin\DelphiAIKit.exe&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>211</locline>
+    </item>
+    <item>
+      <string>&apos;pawelspc&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>217</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe not found, but pawelspc=1 requires it.&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>226</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsightCL.exe not found; skipping FixInsight tests.&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>230</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD not found, but pawelspc=1 requires it. &apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>242</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD not found; skipping Pascal Analyzer tests.&apos;</string>
+      <locmod>Test.Support</locmod>
+      <locline>246</locline>
+    </item>
+    <item>
+      <string>&apos;Resolver exe not found: &apos;</string>
+      <locmod>Test.Build</locmod>
+      <locline>23</locline>
+    </item>
+    <item>
+      <string>&apos;fixinsight-&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>36</locline>
+    </item>
+    <item>
+      <string>&apos;analyze --project &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>41</locline>
+    </item>
+    <item>
+      <string>&apos;projects\\DelphiAIKit.dproj&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>41</locline>
+    </item>
+    <item>
+      <string>&apos; --platform Win32 --config Release --delphi 23.0 --out &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>42</locline>
+    </item>
+    <item>
+      <string>&apos; --fixinsight true --pascal-analyzer false --fi-formats all&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>43</locline>
+    </item>
+    <item>
+      <string>&apos; --exclude-path-masks &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>46</locline>
+    </item>
+    <item>
+      <string>&apos; --ignore-warning-ids &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>48</locline>
+    </item>
+    <item>
+      <string>&apos;fixinsight-analyze.log&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>50</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to start FixInsight analyze: &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>52</locline>
+    </item>
+    <item>
+      <string>&apos;FixInsight analyze failed, exit=&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>54</locline>
+    </item>
+    <item>
+      <string>&apos;. See: &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>54</locline>
+    </item>
+    <item>
+      <string>&apos;fixinsight\\fixinsight.txt&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>56</locline>
+    </item>
+    <item>
+      <string>&apos;fixinsight\\fixinsight.xml&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>57</locline>
+    </item>
+    <item>
+      <string>&apos;fixinsight\\fixinsight.csv&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>58</locline>
+    </item>
+    <item>
+      <string>&apos;Missing FixInsight output: &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>60</locline>
+    </item>
+    <item>
+      <string>&apos;Missing FixInsight output: &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>61</locline>
+    </item>
+    <item>
+      <string>&apos;Missing FixInsight output: &apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>62</locline>
+    </item>
+    <item>
+      <string>&apos;File:&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>86</locline>
+    </item>
+    <item>
+      <string>&apos;File:&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>88</locline>
+    </item>
+    <item>
+      <string>&apos;^\s*([A-Z]\d{3})\b&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>93</locline>
+    </item>
+    <item>
+      <string>&apos;base&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>125</locline>
+    </item>
+    <item>
+      <string>&apos;No FixInsight warning IDs found in baseline output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>129</locline>
+    </item>
+    <item>
+      <string>&apos;No FixInsight file entries found in baseline output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>130</locline>
+    </item>
+    <item>
+      <string>&apos;exclude&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>133</locline>
+    </item>
+    <item>
+      <string>&apos;Exclude mask did not filter text output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>135</locline>
+    </item>
+    <item>
+      <string>&apos;Exclude mask did not filter XML output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>136</locline>
+    </item>
+    <item>
+      <string>&apos;Exclude mask did not filter CSV output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>137</locline>
+    </item>
+    <item>
+      <string>&apos;ignore-ids&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>140</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from text output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>142</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from text output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>143</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from XML output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>144</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from XML output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>145</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from CSV output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>146</locline>
+    </item>
+    <item>
+      <string>&apos;Warning IDs not filtered from CSV output.&apos;</string>
+      <locmod>Test.FixInsight</locmod>
+      <locline>147</locline>
+    </item>
+    <item>
+      <string>&apos;docs\sample-pal-reports&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>37</locline>
+    </item>
+    <item>
+      <string>&apos;PAL fixtures missing; skipping.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>40</locline>
+    </item>
+    <item>
+      <string>&apos;Warnings.xml&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>43</locline>
+    </item>
+    <item>
+      <string>&apos;PAL fixtures missing; skipping.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>45</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>49</locline>
+    </item>
+    <item>
+      <string>&apos;PAL findings generation failed: &apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>55</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.md&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>57</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.md missing: &apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>58</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.md is empty.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>60</locline>
+    </item>
+    <item>
+      <string>&apos;Dak.FixInsightRunner:106&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>64</locline>
+    </item>
+    <item>
+      <string>&apos;Expected Dak.FixInsightRunner:106 in pal-findings.md&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>66</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.jsonl&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>68</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.jsonl missing: &apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>69</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.jsonl is empty.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>71</locline>
+    </item>
+    <item>
+      <string>&apos;First JSON line is invalid.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>75</locline>
+    </item>
+    <item>
+      <string>&apos;severity&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>76</locline>
+    </item>
+    <item>
+      <string>&apos;JSON missing severity.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>76</locline>
+    </item>
+    <item>
+      <string>&apos;report&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>77</locline>
+    </item>
+    <item>
+      <string>&apos;JSON missing report.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>77</locline>
+    </item>
+    <item>
+      <string>&apos;section&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>78</locline>
+    </item>
+    <item>
+      <string>&apos;JSON missing section.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>78</locline>
+    </item>
+    <item>
+      <string>&apos;module&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>79</locline>
+    </item>
+    <item>
+      <string>&apos;JSON missing module.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>79</locline>
+    </item>
+    <item>
+      <string>&apos;line&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>80</locline>
+    </item>
+    <item>
+      <string>&apos;JSON missing line.&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>80</locline>
+    </item>
+    <item>
+      <string>&apos;pal-hotspots.md&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>85</locline>
+    </item>
+    <item>
+      <string>&apos;pal-hotspots.md missing: &apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>86</locline>
+    </item>
+    <item>
+      <string>&apos;TryParseOptions&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>90</locline>
+    </item>
+    <item>
+      <string>&apos;Expected TryParseOptions in pal-hotspots.md&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>92</locline>
+    </item>
+    <item>
+      <string>&apos;palcmd-help.txt&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>33</locline>
+    </item>
+    <item>
+      <string>&apos;bin\\palcmd-map.json&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>88</locline>
+    </item>
+    <item>
+      <string>&apos;palcmd-map.json&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>89</locline>
+    </item>
+    <item>
+      <string>&apos;projects\\DelphiAIKit.dpr&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>98</locline>
+    </item>
+    <item>
+      <string>&apos;23.0&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>99</locline>
+    </item>
+    <item>
+      <string>&apos;Win32&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>100</locline>
+    </item>
+    <item>
+      <string>&apos;Release&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>101</locline>
+    </item>
+    <item>
+      <string>&apos;BuildPalCmdCommandLine failed: &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>107</locline>
+    </item>
+    <item>
+      <string>&apos;/CD&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>110</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD flag selection returned empty flag.&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>119</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD help does not list flag: &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>120</locline>
+    </item>
+    <item>
+      <string>&apos;/CD12W32&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>121</locline>
+    </item>
+    <item>
+      <string>&apos;/CD12W32&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>122</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD supports Delphi 12, but a different flag was selected..&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>122</locline>
+    </item>
+    <item>
+      <string>&apos;/CD12W32&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>141</locline>
+    </item>
+    <item>
+      <string>&apos;PALCMD does not list /CD12W32; skipping integration run. Fla..&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>143</locline>
+    </item>
+    <item>
+      <string>&apos;pa-run&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>147</locline>
+    </item>
+    <item>
+      <string>&apos;analyze --project &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>151</locline>
+    </item>
+    <item>
+      <string>&apos;projects\\DelphiAIKit.dproj&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>151</locline>
+    </item>
+    <item>
+      <string>&apos; --platform Win32 --config Release --delphi 23.0 --fixinsigh..&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>152</locline>
+    </item>
+    <item>
+      <string>&apos; --out &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>153</locline>
+    </item>
+    <item>
+      <string>&apos; --pa-path &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>154</locline>
+    </item>
+    <item>
+      <string>&apos; --pa-output &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>155</locline>
+    </item>
+    <item>
+      <string>&apos; --pa-args &amp;quot;/F=X /Q /A+ /FA /T=&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>156</locline>
+    </item>
+    <item>
+      <string>&apos;pascal-analyzer.log&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>158</locline>
+    </item>
+    <item>
+      <string>&apos;Failed to start Pascal Analyzer run: &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>160</locline>
+    </item>
+    <item>
+      <string>&apos;--- PALCMD log tail ---&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>165</locline>
+    </item>
+    <item>
+      <string>&apos;Pascal Analyzer run failed, exit=&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>166</locline>
+    </item>
+    <item>
+      <string>&apos;. See: &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>166</locline>
+    </item>
+    <item>
+      <string>&apos;*.xml&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>169</locline>
+    </item>
+    <item>
+      <string>&apos;No XML report produced under: &apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>170</locline>
+    </item>
+    <item>
+      <string>&apos;: &apos;</string>
+      <locmod>DelphiAIKit.Tests</locmod>
+      <locline>39</locline>
+    </item>
+  </section>
+  <section name="Literal strings that could be replaced with constants/resourcestrings, more than one character" count="5" oldcount="-2">
+    <item>
+      <string>&apos;palcmd-map.json&apos;</string>
+      <locmod>Test.PascalAnalyzer</locmod>
+      <locline>89</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.jsonl&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>68</locline>
+    </item>
+    <item>
+      <string>&apos;pal-findings.md&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>57</locline>
+    </item>
+    <item>
+      <string>&apos;pal-hotspots.md&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>85</locline>
+    </item>
+    <item>
+      <string>&apos;Warnings.xml&apos;</string>
+      <locmod>Test.PalFindingNormalize</locmod>
+      <locline>43</locline>
+    </item>
+  </section>
+</report>

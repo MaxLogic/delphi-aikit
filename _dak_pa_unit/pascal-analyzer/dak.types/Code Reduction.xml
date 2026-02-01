@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Code Reduction Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Identifiers never used" count="0" oldcount="-2">
+  </section>
+  <section name="Local identifiers only used at a lower scope" count="0" oldcount="-2">
+  </section>
+  <section name="Local identifiers only used at a lower scope, but in more than one subprogram" count="0" oldcount="-2">
+  </section>
+  <section name="Local identifiers that are set and referenced once" count="0" oldcount="-2">
+  </section>
+  <section name="Local identifiers that are set more than once without referencing in-between" count="0" oldcount="-2">
+  </section>
+  <section name="Class fields that are zero-initialized in constructor" count="0" oldcount="-2">
+  </section>
+  <section name="Local long strings that are initialized to empty string" count="0" oldcount="-2">
+  </section>
+  <section name="Functions called only as procedures (result ignored)" count="0" oldcount="-2">
+  </section>
+  <section name="Functions/procedures (methods excluded) only called once" count="0" oldcount="-2">
+  </section>
+  <section name="Methods only called once from other method of the same class" count="0" oldcount="-2">
+  </section>
+  <section name="Unneeded boolean comparisons" count="0" oldcount="-2">
+  </section>
+  <section name="Boolean assignment can be shortened" count="0" oldcount="-2">
+  </section>
+  <section name="Fields only used in single method" count="0" oldcount="-2">
+  </section>
+  <section name="Consider using interface type" count="0" oldcount="-2">
+  </section>
+  <section name="Redundant parentheses" count="0" oldcount="-2">
+  </section>
+  <section name="Common subexpression, consider elimination" count="0" oldcount="-2">
+  </section>
+  <section name="Default parameter values that can be omitted" count="0" oldcount="-2">
+  </section>
+  <section name="Inconsistent conditions" count="0" oldcount="-2">
+  </section>
+  <section name="Typecasts that possibly can be omitted" count="0" oldcount="-2">
+  </section>
+  <section name="Local identifiers never used" count="0" oldcount="-2">
+  </section>
+</report>

@@ -1,0 +1,328 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Class Hierarchy Report">
+  <created>29.01.2026 23:48:55</created>
+  <item>
+    <name>TDummy</name>
+    <locmod>maxAsync (167)</locmod>
+  </item>
+  <item>
+    <name>TRTLCriticalSectionHelper</name>
+    <locmod>maxAsync (192)</locmod>
+  </item>
+  <item>
+    <name>TFixedRtlCriticalSection</name>
+    <locmod>maxAsync (208)</locmod>
+  </item>
+  <item>
+    <name>TSafeValue&lt;T&gt;</name>
+    <locmod>maxAsync (456)</locmod>
+  </item>
+  <item>
+    <name>TSafeValue&lt;T&gt;</name>
+    <locmod>maxAsync (468)</locmod>
+  </item>
+  <item>
+    <name>TLockFreeLock</name>
+    <locmod>maxAsync (480)</locmod>
+  </item>
+  <item>
+    <name>TAtomic</name>
+    <locmod>maxAsync (546)</locmod>
+  </item>
+  <item>
+    <name>TTestRec</name>
+    <locmod>maxAsync\TAtomic\Create (1985)</locmod>
+  </item>
+  <item>
+    <name>TFilterEx</name>
+    <locmod>MaxLogic.strUtils (236)</locmod>
+  </item>
+  <item>
+    <name>TRegExHelper</name>
+    <locmod>MaxLogic.strUtils (299)</locmod>
+  </item>
+  <item>
+    <name>TGarbos</name>
+    <locmod>AutoFree (17)</locmod>
+  </item>
+  <item>
+    <name>TAppOptions</name>
+    <locmod>Dak.Types (17)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightExtraOptions</name>
+    <locmod>Dak.Types (70)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightIgnoreDefaults</name>
+    <locmod>Dak.Types (80)</locmod>
+  </item>
+  <item>
+    <name>TReportFilterDefaults</name>
+    <locmod>Dak.Types (84)</locmod>
+  </item>
+  <item>
+    <name>TPascalAnalyzerDefaults</name>
+    <locmod>Dak.Types (88)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightParams</name>
+    <locmod>Dak.Types (94)</locmod>
+  </item>
+  <item>
+    <name>TPalCmdMap</name>
+    <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+  </item>
+  <item>
+    <name>TPalFinding</name>
+    <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+  </item>
+  <item>
+    <name>TComplexityEntry</name>
+    <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+  </item>
+  <item>
+    <name>THotspotEntry</name>
+    <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+  </item>
+  <item>
+    <name>TMacroExpander</name>
+    <locmod>Dak.MacroExpander (10)</locmod>
+  </item>
+  <item>
+    <name>TToken</name>
+    <locmod>Dak.MsBuild (32)</locmod>
+  </item>
+  <item>
+    <name>TPair&lt;UnicodeString,UnicodeString&gt;</name>
+    <locmod>Dak.Project (45)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightCounts</name>
+    <locmod>Dak.Analyze (19)</locmod>
+  </item>
+  <item>
+    <name>TPair&lt;UnicodeString,Integer&gt;</name>
+    <locmod>Dak.Analyze (21)</locmod>
+  </item>
+  <item>
+    <name>TPalSummary</name>
+    <locmod>Dak.Analyze (24)</locmod>
+  </item>
+  <item>
+    <name>TSignal</name>
+    <locmod>maxSignal (39)</locmod>
+  </item>
+  <item>
+    <name>tSignal</name>
+    <locmod>maxAsync (88)</locmod>
+  </item>
+  <item>
+    <name>TObjectWithCriticalSection</name>
+    <locmod>maxAsync (225)</locmod>
+  </item>
+  <item>
+    <name>tInterfacedCriticalSection</name>
+    <locmod>maxAsync (246)</locmod>
+  </item>
+  <item>
+    <name>TThreadData</name>
+    <locmod>maxAsync (257)</locmod>
+  </item>
+  <item>
+    <name>TmaxAsync</name>
+    <locmod>maxAsync (320)</locmod>
+  </item>
+  <item>
+    <name>TAsyncLoop</name>
+    <locmod>maxAsync (360)</locmod>
+  </item>
+  <item>
+    <name>TAsyncCollectionProcessor&lt;T&gt;</name>
+    <locmod>maxAsync (395)</locmod>
+  </item>
+  <item>
+    <name>TFindInSortedList&lt;T&gt;</name>
+    <locmod>maxAsync (446)</locmod>
+  </item>
+  <item>
+    <name>TUserData&lt;T&gt;</name>
+    <locmod>maxAsync (490)</locmod>
+  </item>
+  <item>
+    <name>TmaxAsyncGlobal</name>
+    <locmod>maxAsync (501)</locmod>
+  </item>
+  <item>
+    <name>TWaiter</name>
+    <locmod>maxAsync (528)</locmod>
+  </item>
+  <item>
+    <name>TAsyncTimer</name>
+    <locmod>maxAsync (556)</locmod>
+  </item>
+  <item>
+    <name>TPipeThread</name>
+    <locmod>maxConsoleRunner (109)</locmod>
+  </item>
+  <item>
+    <name>TmaxConsoleRunner</name>
+    <locmod>maxConsoleRunner (17)</locmod>
+  </item>
+  <item>
+    <name>TFastCaseAwareComparer</name>
+    <locmod>MaxLogic.strUtils (130)</locmod>
+  </item>
+  <item>
+    <name>TStringComparerHelper</name>
+    <locmod>MaxLogic.strUtils (292)</locmod>
+  </item>
+  <item>
+    <name>TProcAdapter</name>
+    <locmod>MaxLogic.strUtils (303)</locmod>
+  </item>
+  <item>
+    <name>TGarbo</name>
+    <locmod>AutoFree (31)</locmod>
+  </item>
+  <item>
+    <name>TCallProcOnDestroy</name>
+    <locmod>AutoFree (56)</locmod>
+  </item>
+  <item>
+    <name>TStringSet</name>
+    <locmod>Dak.Diagnostics (11)</locmod>
+  </item>
+  <item>
+    <name>TDiagnostics</name>
+    <locmod>Dak.Diagnostics (23)</locmod>
+  </item>
+  <item>
+    <name>TComparer&lt;THotspotEntry&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+  </item>
+  <item>
+    <name>TMsBuildEvaluator</name>
+    <locmod>Dak.MsBuild (13)</locmod>
+  </item>
+  <item>
+    <name>TConditionParser</name>
+    <locmod>Dak.MsBuild (37)</locmod>
+  </item>
+  <item>
+    <name>TSourceTracker</name>
+    <locmod>Dak.Project (17)</locmod>
+  </item>
+  <item>
+    <name>TComparer&lt;TPair&lt;UnicodeString,Integer&gt;&gt;</name>
+    <locmod>Dak.Analyze (271)</locmod>
+  </item>
+  <item>
+    <name>TCmdLineParams</name>
+    <locmod>maxLogic.CmdLineParams (92)</locmod>
+  </item>
+  <item>
+    <name>TmaxThread</name>
+    <locmod>maxAsync (343)</locmod>
+  </item>
+  <item>
+    <name>TFixedCriticalSection</name>
+    <locmod>maxAsync (185)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;TThreadHolder&gt;</name>
+    <locmod>maxAsync (409)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;iThreadData&gt;</name>
+    <locmod>maxAsync (504)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;TThreadData&gt;</name>
+    <locmod>maxAsync (505)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;UnicodeString&gt;</name>
+    <locmod>maxConsoleRunner (111)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;TThreadProcedure&gt;</name>
+    <locmod>AutoFree (34)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;UnicodeString&gt;</name>
+    <locmod>MaxLogic.strUtils (797)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;UnicodeString&gt;</name>
+    <locmod>Dak.Diagnostics (13)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;UnicodeString&gt;</name>
+    <locmod>Dak.FixInsightRunner (87)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;Integer,UnicodeString&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (112)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;UnicodeString,Unicodestring&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (114)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;UnicodeString&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (532)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;TPalFinding&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (1264)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;TComplexityEntry&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (1564)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;UnicodeString,Integer&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;THotspotEntry&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;UnicodeString,Unicodestring&gt;</name>
+    <locmod>Dak.MacroExpander (11)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;UnicodeString,TPropertysource&gt;</name>
+    <locmod>Dak.Project (20)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;UnicodeString,Unicodestring&gt;</name>
+    <locmod>Dak.Registry (13)</locmod>
+  </item>
+  <item>
+    <name>EReportPostProcess</name>
+    <locmod>Dak.ReportPostProcess (16)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;UnicodeString&gt;</name>
+    <locmod>Dak.ReportPostProcess (30)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;UnicodeString,Integer&gt;</name>
+    <locmod>Dak.Analyze (212)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;TPair&lt;UnicodeString,Integer&gt;&gt;</name>
+    <locmod>Dak.Analyze (258)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;UnicodeString,Integer&gt;</name>
+    <locmod>maxLogic.CmdLineParams (95)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;UnicodeString&gt;</name>
+    <locmod>Dak.Output (126)</locmod>
+  </item>
+</report>

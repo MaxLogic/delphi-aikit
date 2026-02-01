@@ -1,0 +1,836 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Subprogram Index Report">
+  <created>29.01.2026 23:49:28</created>
+  <item>
+    <id>DelphiAIKit.Tests (MB)</id>
+    <locmod>DelphiAIKit.Tests (20)</locmod>
+  </item>
+  <item>
+    <id>Test.Build (UI)</id>
+    <locmod>Test.Build (26)</locmod>
+  </item>
+  <item>
+    <id>Test.PalFindingNormalize (UI)</id>
+    <locmod>Test.PalFindingNormalize (95)</locmod>
+  </item>
+  <item>
+    <id>Test.FixInsight (UI)</id>
+    <locmod>Test.FixInsight (150)</locmod>
+  </item>
+  <item>
+    <id>Test.PascalAnalyzer (UI)</id>
+    <locmod>Test.PascalAnalyzer (173)</locmod>
+  </item>
+  <item>
+    <id>Test.Support (UI)</id>
+    <locmod>Test.Support (250)</locmod>
+  </item>
+  <item>
+    <id>AddFindingFromLoc (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+  </item>
+  <item>
+    <id>AddFindingFromLocMod (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+  </item>
+  <item>
+    <id>AddFindingRecord (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+  </item>
+  <item>
+    <id>AttrText (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+  </item>
+  <item>
+    <id>BuildArgs (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+  </item>
+  <item>
+    <id>BuildFindingKey (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1256)</locmod>
+  </item>
+  <item>
+    <id>BuildFromRegistry (F)</id>
+    <locmod>Dak.FixInsight (59)</locmod>
+  </item>
+  <item>
+    <id>BuildPalCmdCommandLine (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+  </item>
+  <item>
+    <id>BuildPalCmdUnitCommandLine (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+  </item>
+  <item>
+    <id>BytesToRawStr (F)</id>
+    <locmod>maxLogic.StrUtils (288)</locmod>
+  </item>
+  <item>
+    <id>CharPosEx (F)</id>
+    <locmod>maxLogic.StrUtils (95)</locmod>
+  </item>
+  <item>
+    <id>ChildText (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+  </item>
+  <item>
+    <id>ChooseMessage (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1247)</locmod>
+  </item>
+  <item>
+    <id>ChoosePalCmdExeInDir (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+  </item>
+  <item>
+    <id>CmdExePath (F)</id>
+    <locmod>Test.Support (91)</locmod>
+  </item>
+  <item>
+    <id>CollectExceptionCalls (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+  </item>
+  <item>
+    <id>CombineUrl (F)</id>
+    <locmod>maxLogic.StrUtils (201)</locmod>
+  </item>
+  <item>
+    <id>CombineUrl (F)</id>
+    <locmod>maxLogic.StrUtils (202)</locmod>
+  </item>
+  <item>
+    <id>CompareHotspot (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1705)</locmod>
+  </item>
+  <item>
+    <id>ConcatArrays (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (853)</locmod>
+  </item>
+  <item>
+    <id>ContainsFlag (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (410)</locmod>
+  </item>
+  <item>
+    <id>CpuCount (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+  </item>
+  <item>
+    <id>DefaultPalThreads (F)</id>
+    <locmod>Test.PascalAnalyzer (60)</locmod>
+  </item>
+  <item>
+    <id>EnsureResolverBuilt (P)</id>
+    <locmod>Test.Support (18)</locmod>
+  </item>
+  <item>
+    <id>EnsureTempClean (P)</id>
+    <locmod>Test.Support (17)</locmod>
+  </item>
+  <item>
+    <id>ExpandEnvVars (F)</id>
+    <locmod>Dak.FixInsight (22)</locmod>
+  </item>
+  <item>
+    <id>ExpandEnvVars (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (92)</locmod>
+  </item>
+  <item>
+    <id>ExpandEnvVars (F)</id>
+    <locmod>maxLogic.StrUtils (199)</locmod>
+  </item>
+  <item>
+    <id>ExtractString (F)</id>
+    <locmod>maxLogic.StrUtils (42)</locmod>
+  </item>
+  <item>
+    <id>ExtractString (F)</id>
+    <locmod>maxLogic.StrUtils (83)</locmod>
+  </item>
+  <item>
+    <id>FilterExistingPaths (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (822)</locmod>
+  </item>
+  <item>
+    <id>FindInPath (F)</id>
+    <locmod>Dak.FixInsight (39)</locmod>
+  </item>
+  <item>
+    <id>FindOrderIndex (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (276)</locmod>
+  </item>
+  <item>
+    <id>FindRepoRoot (F)</id>
+    <locmod>Test.Support (43)</locmod>
+  </item>
+  <item>
+    <id>floatToHex (F)</id>
+    <locmod>maxLogic.StrUtils (325)</locmod>
+  </item>
+  <item>
+    <id>FreePalCmdMap (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (127)</locmod>
+  </item>
+  <item>
+    <id>fStr (F)</id>
+    <locmod>maxLogic.StrUtils (272)</locmod>
+  </item>
+  <item>
+    <id>GC (P)</id>
+    <locmod>AutoFree (69)</locmod>
+  </item>
+  <item>
+    <id>GC (P)</id>
+    <locmod>AutoFree (70)</locmod>
+  </item>
+  <item>
+    <id>GC (F)</id>
+    <locmod>AutoFree (71)</locmod>
+  </item>
+  <item>
+    <id>GC (P)</id>
+    <locmod>AutoFree (73)</locmod>
+  </item>
+  <item>
+    <id>GC (P)</id>
+    <locmod>AutoFree (74)</locmod>
+  </item>
+  <item>
+    <id>GC (F)</id>
+    <locmod>AutoFree (75)</locmod>
+  </item>
+  <item>
+    <id>GuidToHex (F)</id>
+    <locmod>maxLogic.StrUtils (273)</locmod>
+  </item>
+  <item>
+    <id>i2s (F)</id>
+    <locmod>maxLogic.StrUtils (321)</locmod>
+  </item>
+  <item>
+    <id>ICallProcOnDestroy.GetProc (FM)</id>
+    <locmod>AutoFree\IInterface\ICallProcOnDestroy (52)</locmod>
+  </item>
+  <item>
+    <id>ICallProcOnDestroy.SetProc (PM)</id>
+    <locmod>AutoFree\IInterface\ICallProcOnDestroy (51)</locmod>
+  </item>
+  <item>
+    <id>IGarbo.AddAfterFree (FM)</id>
+    <locmod>AutoFree\IInterface\IGarbo (13)</locmod>
+  </item>
+  <item>
+    <id>IGarbo.Obj (FM)</id>
+    <locmod>AutoFree\IInterface\IGarbo (11)</locmod>
+  </item>
+  <item>
+    <id>InitPalCmdMap (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (118)</locmod>
+  </item>
+  <item>
+    <id>IsAggregateName (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1542)</locmod>
+  </item>
+  <item>
+    <id>IsPawelMachine (F)</id>
+    <locmod>Test.Support (20)</locmod>
+  </item>
+  <item>
+    <id>IsUtf8ContinuationByte (F)</id>
+    <locmod>maxLogic.StrUtils (985)</locmod>
+  </item>
+  <item>
+    <id>Join (F)</id>
+    <locmod>maxLogic.StrUtils (274)</locmod>
+  </item>
+  <item>
+    <id>Join (F)</id>
+    <locmod>maxLogic.StrUtils (275)</locmod>
+  </item>
+  <item>
+    <id>JoinSemi (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (848)</locmod>
+  </item>
+  <item>
+    <id>JsonGetInteger (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (151)</locmod>
+  </item>
+  <item>
+    <id>JsonGetString (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (141)</locmod>
+  </item>
+  <item>
+    <id>MatchesFilter (F)</id>
+    <locmod>maxLogic.StrUtils (207)</locmod>
+  </item>
+  <item>
+    <id>MatchesMaskCaseSensitive_RegEx (F)</id>
+    <locmod>maxLogic.StrUtils (368)</locmod>
+  </item>
+  <item>
+    <id>MegaBytesToStr (F)</id>
+    <locmod>maxLogic.StrUtils (329)</locmod>
+  </item>
+  <item>
+    <id>NormalizeExePath (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (498)</locmod>
+  </item>
+  <item>
+    <id>NormalizeLineText (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+  </item>
+  <item>
+    <id>OccurrencesOfChar (F)</id>
+    <locmod>maxLogic.StrUtils (349)</locmod>
+  </item>
+  <item>
+    <id>PalCmdMapPath (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (136)</locmod>
+  </item>
+  <item>
+    <id>PalCmdSupportsFlag (F)</id>
+    <locmod>Test.PascalAnalyzer (26)</locmod>
+  </item>
+  <item>
+    <id>ParseExceptionReport (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+  </item>
+  <item>
+    <id>ParseFindingReport (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+  </item>
+  <item>
+    <id>ParseItemNode (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+  </item>
+  <item>
+    <id>ParseSectionNode (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+  </item>
+  <item>
+    <id>ParseStatement (F)</id>
+    <locmod>maxLogic.StrUtils (341)</locmod>
+  </item>
+  <item>
+    <id>PrepareTextForStrToFloatWcc (P)</id>
+    <locmod>maxLogic.StrUtils (286)</locmod>
+  </item>
+  <item>
+    <id>PrettyElapsed (F)</id>
+    <locmod>maxLogic.StrUtils (320)</locmod>
+  </item>
+  <item>
+    <id>PrettyPrintSize (F)</id>
+    <locmod>maxLogic.StrUtils (328)</locmod>
+  </item>
+  <item>
+    <id>PutBefore (F)</id>
+    <locmod>maxLogic.StrUtils (20)</locmod>
+  </item>
+  <item>
+    <id>PutBefore (F)</id>
+    <locmod>maxLogic.StrUtils (21)</locmod>
+  </item>
+  <item>
+    <id>QuoteArg (F)</id>
+    <locmod>Test.Support (24)</locmod>
+  </item>
+  <item>
+    <id>QuoteArg (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+  </item>
+  <item>
+    <id>RawStrToBytes (F)</id>
+    <locmod>maxLogic.StrUtils (289)</locmod>
+  </item>
+  <item>
+    <id>ReplacePlaceholder (F)</id>
+    <locmod>maxLogic.StrUtils (182)</locmod>
+  </item>
+  <item>
+    <id>RepoRoot (F)</id>
+    <locmod>Test.Support (15)</locmod>
+  </item>
+  <item>
+    <id>RequireFixInsightOrSkip (P)</id>
+    <locmod>Test.Support (21)</locmod>
+  </item>
+  <item>
+    <id>RequirePalCmdOrSkip (P)</id>
+    <locmod>Test.Support (22)</locmod>
+  </item>
+  <item>
+    <id>ResolverExePath (F)</id>
+    <locmod>Test.Support (19)</locmod>
+  </item>
+  <item>
+    <id>RunOnExit (F)</id>
+    <locmod>AutoFree (78)</locmod>
+  </item>
+  <item>
+    <id>RunProcess (F)</id>
+    <locmod>Test.Support (23)</locmod>
+  </item>
+  <item>
+    <id>SortHotspots (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1724)</locmod>
+  </item>
+  <item>
+    <id>Split (P)</id>
+    <locmod>maxLogic.StrUtils (264)</locmod>
+  </item>
+  <item>
+    <id>Split (P)</id>
+    <locmod>maxLogic.StrUtils (265)</locmod>
+  </item>
+  <item>
+    <id>Split (F)</id>
+    <locmod>maxLogic.StrUtils (266)</locmod>
+  </item>
+  <item>
+    <id>SplitComplexityName (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1515)</locmod>
+  </item>
+  <item>
+    <id>SplitInHalfBy (F)</id>
+    <locmod>maxLogic.StrUtils (269)</locmod>
+  </item>
+  <item>
+    <id>SplitInHalfBy (F)</id>
+    <locmod>maxLogic.StrUtils (270)</locmod>
+  </item>
+  <item>
+    <id>splitstring (F)</id>
+    <locmod>maxLogic.StrUtils (267)</locmod>
+  </item>
+  <item>
+    <id>StrCmpLogical (F)</id>
+    <locmod>maxLogic.StrUtils (211)</locmod>
+  </item>
+  <item>
+    <id>StrCmpLogicalW (F)</id>
+    <locmod>maxLogic.StrUtils (214)</locmod>
+  </item>
+  <item>
+    <id>StringMatches (F)</id>
+    <locmod>maxLogic.StrUtils (17)</locmod>
+  </item>
+  <item>
+    <id>StrToFloatWCC (F)</id>
+    <locmod>maxLogic.StrUtils (283)</locmod>
+  </item>
+  <item>
+    <id>StrToFLoatWccDef (F)</id>
+    <locmod>maxLogic.StrUtils (285)</locmod>
+  </item>
+  <item>
+    <id>TailFile (F)</id>
+    <locmod>Test.PascalAnalyzer (44)</locmod>
+  </item>
+  <item>
+    <id>TakeTopHotspots (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1714)</locmod>
+  </item>
+  <item>
+    <id>TBuildTests.BuildResolverExe (PM)</id>
+    <locmod>Test.Build\TBuildTests (15)</locmod>
+  </item>
+  <item>
+    <id>TCallProcOnDestroy.Create (C)</id>
+    <locmod>AutoFree\TCallProcOnDestroy (62)</locmod>
+  </item>
+  <item>
+    <id>TCallProcOnDestroy.Destroy (D)</id>
+    <locmod>AutoFree\TCallProcOnDestroy (63)</locmod>
+  </item>
+  <item>
+    <id>TCallProcOnDestroy.GetProc (FM)</id>
+    <locmod>AutoFree\TCallProcOnDestroy (60)</locmod>
+  </item>
+  <item>
+    <id>TCallProcOnDestroy.New (FM)</id>
+    <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+  </item>
+  <item>
+    <id>TCallProcOnDestroy.SetProc (PM)</id>
+    <locmod>AutoFree\TCallProcOnDestroy (59)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddCycleMacro (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (40)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddInfo (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddMissingPath (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddNote (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddUnknownMacro (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.AddWarning (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (42)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.Create (C)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.Destroy (D)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (37)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.TryOpenLogFile (FM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (38)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.WriteLine (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (34)</locmod>
+  </item>
+  <item>
+    <id>TDiagnostics.WriteToStderr (PM)</id>
+    <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+  </item>
+  <item>
+    <id>TempRoot (F)</id>
+    <locmod>Test.Support (16)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Create (C)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (136)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Create (C)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (148)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Destroy (D)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (137)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Equals (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (151)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.FoldAscii (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (138)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.FoldCharValue (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (139)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.FoldPair (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (140)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.GetHashCode (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (152)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.GetOrdinalComparer (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (145)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.GetOrdinalIgnoreCaseComparer (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (146)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.HashBytes (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (142)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.HashCaseInsensitive (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.HashOrdinal (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (143)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Ordinal (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (149)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.OrdinalIgnoreCase (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+  </item>
+  <item>
+    <id>TFastCaseAwareComparer.Rotl32 (FM)</id>
+    <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (141)</locmod>
+  </item>
+  <item>
+    <id>TFilterEx.Create (FM)</id>
+    <locmod>maxLogic.StrUtils\TFilterEx (257)</locmod>
+  </item>
+  <item>
+    <id>TFilterEx.Matches (FM)</id>
+    <locmod>maxLogic.StrUtils\TFilterEx (261)</locmod>
+  </item>
+  <item>
+    <id>TFilterEx.Prepare (PM)</id>
+    <locmod>maxLogic.StrUtils\TFilterEx (251)</locmod>
+  </item>
+  <item>
+    <id>TFilterEx.Preprocess (PM)</id>
+    <locmod>maxLogic.StrUtils\TFilterEx (254)</locmod>
+  </item>
+  <item>
+    <id>TFilterEx.SplitBySpace (FM)</id>
+    <locmod>maxLogic.StrUtils\TFilterEx (253)</locmod>
+  </item>
+  <item>
+    <id>TFixInsightTests.ExtractIdsAndFile (PM)</id>
+    <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+  </item>
+  <item>
+    <id>  IsNewId (F)</id>
+    <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (72)</locmod>
+  </item>
+  <item>
+    <id>TFixInsightTests.FixInsightFiltering (PM)</id>
+    <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+  </item>
+  <item>
+    <id>TFixInsightTests.RunFixInsightOutputs (PM)</id>
+    <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.AddAfterFree (FM)</id>
+    <locmod>AutoFree\TGarbo (40)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.Create (C)</id>
+    <locmod>AutoFree\TGarbo (36)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.Destroy (D)</id>
+    <locmod>AutoFree\TGarbo (37)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.GC&lt;T&gt; (FM)</id>
+    <locmod>AutoFree\TGarbo (42)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.GC&lt;T&gt; (PM)</id>
+    <locmod>AutoFree\TGarbo (43)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.GC&lt;T&gt; (PM)</id>
+    <locmod>AutoFree\TGarbo (44)</locmod>
+  </item>
+  <item>
+    <id>TGarbo.Obj (FM)</id>
+    <locmod>AutoFree\TGarbo (39)</locmod>
+  </item>
+  <item>
+    <id>TGarbos.Add (PM)</id>
+    <locmod>AutoFree\TGarbos (22)</locmod>
+  </item>
+  <item>
+    <id>TGarbos.Add (FM)</id>
+    <locmod>AutoFree\TGarbos (23)</locmod>
+  </item>
+  <item>
+    <id>TGarbos.Clear (PM)</id>
+    <locmod>AutoFree\TGarbos (25)</locmod>
+  </item>
+  <item>
+    <id>TGarbos.Finalize ()</id>
+    <locmod>AutoFree\TGarbos (28)</locmod>
+  </item>
+  <item>
+    <id>TGarbos.Initialize ()</id>
+    <locmod>AutoFree\TGarbos (27)</locmod>
+  </item>
+  <item>
+    <id>TPalFindingNormalizeTests.NormalizePalFindingsFromFixtures (PM)</id>
+    <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+  </item>
+  <item>
+    <id>TPascalAnalyzerTests.RunPascalAnalyzer (PM)</id>
+    <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+  </item>
+  <item>
+    <id>TPascalAnalyzerTests.SelectsSupportedCompilerFlag (PM)</id>
+    <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+  </item>
+  <item>
+    <id>TProcAdapter.Create (C)</id>
+    <locmod>maxLogic.StrUtils\TProcAdapter (307)</locmod>
+  </item>
+  <item>
+    <id>TProcAdapter.Invoke (FM)</id>
+    <locmod>maxLogic.StrUtils\TProcAdapter (308)</locmod>
+  </item>
+  <item>
+    <id>Trap (F)</id>
+    <locmod>AutoFree (80)</locmod>
+  </item>
+  <item>
+    <id>TRegExHelper.Replace (FM)</id>
+    <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+  </item>
+  <item>
+    <id>TRegExHelper.Replace (FM)</id>
+    <locmod>maxLogic.StrUtils\TRegExHelper (313)</locmod>
+  </item>
+  <item>
+    <id>TRegExHelper.Replace (FM)</id>
+    <locmod>maxLogic.StrUtils\TRegExHelper (316)</locmod>
+  </item>
+  <item>
+    <id>TRegExHelper.Replace (FM)</id>
+    <locmod>maxLogic.StrUtils\TRegExHelper (317)</locmod>
+  </item>
+  <item>
+    <id>TryBuildDelphiTargetFlag (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+  </item>
+  <item>
+    <id>TryCaptureProcessOutput (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+  </item>
+  <item>
+    <id>TryFindPalReportRoot (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (24)</locmod>
+  </item>
+  <item>
+    <id>TryGeneratePalArtifacts (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+  </item>
+  <item>
+    <id>TryGetFileVersionMajor (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (475)</locmod>
+  </item>
+  <item>
+    <id>TryGetJsonArray (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (161)</locmod>
+  </item>
+  <item>
+    <id>TryGetPalCmdHelpText (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (395)</locmod>
+  </item>
+  <item>
+    <id>TryGetPalCmdMaxDelphi (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (286)</locmod>
+  </item>
+  <item>
+    <id>TryLoadComplexityEntries (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+  </item>
+  <item>
+    <id>TryLoadModuleLines (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+  </item>
+  <item>
+    <id>TryLoadPalCmdMap (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+  </item>
+  <item>
+    <id>TryLoadXml (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+  </item>
+  <item>
+    <id>TryParseLocMod (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+  </item>
+  <item>
+    <id>TryResolveFixInsightExe (F)</id>
+    <locmod>Dak.FixInsight (10)</locmod>
+  </item>
+  <item>
+    <id>  TryReadRegistryValue (F)</id>
+    <locmod>Dak.FixInsight\TryResolveFixInsightExe (84)</locmod>
+  </item>
+  <item>
+    <id>TryResolveFlagFromHelp (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (440)</locmod>
+  </item>
+  <item>
+    <id>TryResolvePalCmdExe (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+  </item>
+  <item>
+    <id>TryResolvePalCmdExeFromKnownRoots (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+  </item>
+  <item>
+    <id>  AddRoot (P)</id>
+    <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+  </item>
+  <item>
+    <id>  Env (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (542)</locmod>
+  </item>
+  <item>
+    <id>  TryParseVer (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (561)</locmod>
+  </item>
+  <item>
+    <id>TryRunPascalAnalyzer (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (16)</locmod>
+  </item>
+  <item>
+    <id>TryRunPascalAnalyzerUnit (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (22)</locmod>
+  </item>
+  <item>
+    <id>TryRunPascalAnalyzerWithHandles (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+  </item>
+  <item>
+    <id>TryStrToFLoatWCC (F)</id>
+    <locmod>maxLogic.StrUtils (284)</locmod>
+  </item>
+  <item>
+    <id>TStringComparerHelper.OrdinalIgnoreCase (FM)</id>
+    <locmod>maxLogic.StrUtils\TStringComparerHelper (293)</locmod>
+  </item>
+  <item>
+    <id>TStringSet.Add (FM)</id>
+    <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+  </item>
+  <item>
+    <id>TStringSet.Count (FM)</id>
+    <locmod>Dak.Diagnostics\TStringSet (19)</locmod>
+  </item>
+  <item>
+    <id>TStringSet.Create (C)</id>
+    <locmod>Dak.Diagnostics\TStringSet (16)</locmod>
+  </item>
+  <item>
+    <id>TStringSet.Destroy (D)</id>
+    <locmod>Dak.Diagnostics\TStringSet (17)</locmod>
+  </item>
+  <item>
+    <id>TStringSet.ToArray (FM)</id>
+    <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+  </item>
+  <item>
+    <id>Utf8SequenceLength (F)</id>
+    <locmod>maxLogic.StrUtils (972)</locmod>
+  </item>
+  <item>
+    <id>Utf8TruncateByCodePoint (F)</id>
+    <locmod>maxLogic.StrUtils (280)</locmod>
+  </item>
+  <item>
+    <id>WritePalFindingsJsonl (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1766)</locmod>
+  </item>
+  <item>
+    <id>WritePalFindingsMd (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1729)</locmod>
+  </item>
+  <item>
+    <id>WritePalHotspotsMd (F)</id>
+    <locmod>Dak.PascalAnalyzerRunner (1809)</locmod>
+  </item>
+</report>

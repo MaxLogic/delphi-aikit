@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Literal Strings and Numbers Report">
+  <created>29.01.2026 23:48:36</created>
+  <section name="Resourcestrings" count="0" oldcount="-2">
+  </section>
+  <section name="Literal strings declared as constants, more than one character" count="0" oldcount="-2">
+  </section>
+  <section name="Literal strings in code, more than one character" count="0" oldcount="-2">
+  </section>
+  <section name="Literal strings that could be replaced with constants/resourcestrings, more than one character" count="0" oldcount="-2">
+  </section>
+</report>

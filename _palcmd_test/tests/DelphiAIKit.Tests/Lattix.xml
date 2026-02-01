@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<ldi delimiter="\" system="pascalanalyzer">
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\lib\MaxLogicFoundation\AutoFree.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Diagnostics.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\lib\MaxLogicFoundation\maxLogic.StrUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Messages.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.FixInsight.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Win.Registry.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Messages.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Diagnostics.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Messages.pas" type="source">
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.PascalAnalyzerRunner.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Types.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Variants.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.StrUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\lib\MaxLogicFoundation\maxLogic.StrUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.JSON.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.xmldom.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.omnixmldom.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLIntf.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\XML\Xml.XMLDoc.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Types.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Types.pas" type="source">
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\DelphiAIKit.Tests.dpr" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnitX\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnitX\DUnitX.Loggers.Console.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.build.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.fixinsight.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.palfindingnormalize.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.pascalanalyzer.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\lib\MaxLogicFoundation\maxLogic.StrUtils.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.Types.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Character.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Defaults.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Generics.Collections.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.StrUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.RegularExpressions.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Math.pas" kind="private-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Masks.pas" kind="private-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\lib\MaxLogicFoundation\AutoFree.pas" kind="private-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.build.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnitX\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.fixinsight.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.StrUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.RegularExpressions.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnitX\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.palfindingnormalize.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnitX\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.JSON.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.PascalAnalyzerRunner.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.pascalanalyzer.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnitX\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.Types.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.PascalAnalyzerRunner.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" kind="public-uses"/>
+  </element>
+  <element name="F:\projects\MaxLogic\DelphiConfigResolver\tests\units\\test.support.pas" type="source">
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\win\Winapi.Windows.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\SOURCE\RTL\SYS\System.SysUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.Classes.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.StrUtils.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\DUnitX\DUnitX.TestFramework.pas" kind="public-uses"/>
+    <uses provider="C:\Program Files (x86)\Embarcadero\Studio\22.0\source\rtl\common\System.IOUtils.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.FixInsight.pas" kind="public-uses"/>
+    <uses provider="F:\projects\MaxLogic\DelphiConfigResolver\src\Dak.PascalAnalyzerRunner.pas" kind="public-uses"/>
+  </element>
+</ldi>

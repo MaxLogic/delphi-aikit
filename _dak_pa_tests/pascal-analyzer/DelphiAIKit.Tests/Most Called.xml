@@ -1,0 +1,228 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Most Called Report">
+  <created>29.01.2026 23:48:17</created>
+  <section name="These subprograms are called from two or more locations" count="37" oldcount="-2">
+    <item>
+      <id>EnsureResolverBuilt</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (18)</locmod>
+    </item>
+    <item>
+      <id>EnsureTempClean</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (17)</locmod>
+    </item>
+    <item>
+      <id>GetAllPassed</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (334)</locmod>
+    </item>
+    <item>
+      <id>GetAllTestResults</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (344)</locmod>
+    </item>
+    <item>
+      <id>GetErrorCount</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (336)</locmod>
+    </item>
+    <item>
+      <id>GetFailureCount</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (335)</locmod>
+    </item>
+    <item>
+      <id>GetFullName</id>
+      <numcalled>5</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (151)</locmod>
+    </item>
+    <item>
+      <id>GetFullName</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (186)</locmod>
+    </item>
+    <item>
+      <id>GetIgnoredCount</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (339)</locmod>
+    </item>
+    <item>
+      <id>GetMemoryLeakCount</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (337)</locmod>
+    </item>
+    <item>
+      <id>GetMessage</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (250)</locmod>
+    </item>
+    <item>
+      <id>GetName</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestInfo (150)</locmod>
+    </item>
+    <item>
+      <id>GetPassCount</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (338)</locmod>
+    </item>
+    <item>
+      <id>GetResultType</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (249)</locmod>
+    </item>
+    <item>
+      <id>GetSetupFixtureMethodName</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (193)</locmod>
+    </item>
+    <item>
+      <id>GetTearDownFixtureMethodName</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestFixtureInfo (195)</locmod>
+    </item>
+    <item>
+      <id>GetTest</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\ITestResult (247)</locmod>
+    </item>
+    <item>
+      <id>GetTestCount</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\IResult\IRunResults (333)</locmod>
+    </item>
+    <item>
+      <id>IsPawelMachine</id>
+      <numcalled>2</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (20)</locmod>
+    </item>
+    <item>
+      <id>Log</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TTestFixtureHelper (130)</locmod>
+    </item>
+    <item>
+      <id>PalCmdSupportsFlag</id>
+      <numcalled>3</numcalled>
+      <kind>Func, Global</kind>
+      <locmod>Test.PascalAnalyzer (26)</locmod>
+    </item>
+    <item>
+      <id>QuoteArg</id>
+      <numcalled>11</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (24)</locmod>
+    </item>
+    <item>
+      <id>RegisterTestFixture</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\TDUnitX (586)</locmod>
+    </item>
+    <item>
+      <id>RepoRoot</id>
+      <numcalled>14</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (15)</locmod>
+    </item>
+    <item>
+      <id>RequirePalCmdOrSkip</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Interfaced</kind>
+      <locmod>Test.Support (22)</locmod>
+    </item>
+    <item>
+      <id>ResolverExePath</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (19)</locmod>
+    </item>
+    <item>
+      <id>RunFixInsightOutputs</id>
+      <numcalled>3</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+    </item>
+    <item>
+      <id>RunProcess</id>
+      <numcalled>4</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (23)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleDefaultColor</id>
+      <numcalled>17</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (46)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleErrorColor</id>
+      <numcalled>7</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (47)</locmod>
+    </item>
+    <item>
+      <id>SetConsolePassColor</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (48)</locmod>
+    </item>
+    <item>
+      <id>SetConsoleWarningColor</id>
+      <numcalled>6</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.Loggers.Console\TDUnitXConsoleLogger (52)</locmod>
+    </item>
+    <item>
+      <id>SetFailsOnNoAsserts</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (492)</locmod>
+    </item>
+    <item>
+      <id>SetUseRTTI</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Method</kind>
+      <locmod>DUnitX.TestFramework\IInterface\ITestRunner (489)</locmod>
+    </item>
+    <item>
+      <id>ShowUsage</id>
+      <numcalled>2</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>DUnitX.TestFramework (704)</locmod>
+    </item>
+    <item>
+      <id>TempRoot</id>
+      <numcalled>6</numcalled>
+      <kind>Func, Interfaced</kind>
+      <locmod>Test.Support (16)</locmod>
+    </item>
+    <item>
+      <id>WriteLine</id>
+      <numcalled>4</numcalled>
+      <kind>Proc, Global</kind>
+      <locmod>DUnitX.TestFramework (695)</locmod>
+    </item>
+  </section>
+</report>

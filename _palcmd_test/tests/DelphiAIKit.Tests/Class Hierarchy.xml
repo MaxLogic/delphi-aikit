@@ -1,0 +1,144 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Class Hierarchy Report">
+  <created>29.01.2026 23:49:28</created>
+  <item>
+    <name>TFilterEx</name>
+    <locmod>maxLogic.StrUtils (236)</locmod>
+  </item>
+  <item>
+    <name>TRegExHelper</name>
+    <locmod>maxLogic.StrUtils (299)</locmod>
+  </item>
+  <item>
+    <name>TGarbos</name>
+    <locmod>AutoFree (17)</locmod>
+  </item>
+  <item>
+    <name>TAppOptions</name>
+    <locmod>Dak.Types (17)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightExtraOptions</name>
+    <locmod>Dak.Types (70)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightIgnoreDefaults</name>
+    <locmod>Dak.Types (80)</locmod>
+  </item>
+  <item>
+    <name>TReportFilterDefaults</name>
+    <locmod>Dak.Types (84)</locmod>
+  </item>
+  <item>
+    <name>TPascalAnalyzerDefaults</name>
+    <locmod>Dak.Types (88)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightParams</name>
+    <locmod>Dak.Types (94)</locmod>
+  </item>
+  <item>
+    <name>TPalCmdMap</name>
+    <locmod>Dak.PascalAnalyzerRunner (110)</locmod>
+  </item>
+  <item>
+    <name>TPalFinding</name>
+    <locmod>Dak.PascalAnalyzerRunner (1159)</locmod>
+  </item>
+  <item>
+    <name>TComplexityEntry</name>
+    <locmod>Dak.PascalAnalyzerRunner (1170)</locmod>
+  </item>
+  <item>
+    <name>THotspotEntry</name>
+    <locmod>Dak.PascalAnalyzerRunner (1177)</locmod>
+  </item>
+  <item>
+    <name>TFastCaseAwareComparer</name>
+    <locmod>maxLogic.StrUtils (130)</locmod>
+  </item>
+  <item>
+    <name>TStringComparerHelper</name>
+    <locmod>maxLogic.StrUtils (292)</locmod>
+  </item>
+  <item>
+    <name>TProcAdapter</name>
+    <locmod>maxLogic.StrUtils (303)</locmod>
+  </item>
+  <item>
+    <name>TGarbo</name>
+    <locmod>AutoFree (31)</locmod>
+  </item>
+  <item>
+    <name>TCallProcOnDestroy</name>
+    <locmod>AutoFree (56)</locmod>
+  </item>
+  <item>
+    <name>TStringSet</name>
+    <locmod>Dak.Diagnostics (11)</locmod>
+  </item>
+  <item>
+    <name>TDiagnostics</name>
+    <locmod>Dak.Diagnostics (23)</locmod>
+  </item>
+  <item>
+    <name>TComparer&lt;THotspotEntry&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (1726)</locmod>
+  </item>
+  <item>
+    <name>TBuildTests</name>
+    <locmod>Test.Build (12)</locmod>
+  </item>
+  <item>
+    <name>TFixInsightTests</name>
+    <locmod>Test.FixInsight (16)</locmod>
+  </item>
+  <item>
+    <name>TPalFindingNormalizeTests</name>
+    <locmod>Test.PalFindingNormalize (15)</locmod>
+  </item>
+  <item>
+    <name>TPascalAnalyzerTests</name>
+    <locmod>Test.PascalAnalyzer (16)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;TThreadProcedure&gt;</name>
+    <locmod>AutoFree (34)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;UnicodeString&gt;</name>
+    <locmod>maxLogic.StrUtils (797)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;UnicodeString&gt;</name>
+    <locmod>Dak.Diagnostics (13)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;Integer,UnicodeString&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (112)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;UnicodeString,Unicodestring&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (114)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;UnicodeString&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (532)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;TPalFinding&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (1264)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;TComplexityEntry&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (1564)</locmod>
+  </item>
+  <item>
+    <name>TDictionary&lt;UnicodeString,Integer&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+  </item>
+  <item>
+    <name>TList&lt;THotspotEntry&gt;</name>
+    <locmod>Dak.PascalAnalyzerRunner (1916)</locmod>
+  </item>
+</report>

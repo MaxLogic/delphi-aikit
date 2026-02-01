@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Strong Warnings Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Property access in read/write methods" count="0" oldcount="-2">
+  </section>
+  <section name="Ambiguous unit references" count="0" oldcount="-2">
+  </section>
+  <section name="Subprogram calls itself unconditionally" count="0" oldcount="-2">
+  </section>
+  <section name="Index error" count="0" oldcount="-2">
+  </section>
+  <section name="Possible bad pointer usage" count="0" oldcount="-2">
+  </section>
+  <section name="Possible bad typecast (consider using &quot;as&quot; for objects)" count="13" oldcount="-2">
+    <name>i</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1273</locline>
+    </loc>
+    <name>lPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1352</locline>
+    </loc>
+    <name>lPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1354</locline>
+    </loc>
+    <name>lPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1356</locline>
+    </loc>
+    <name>lPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1358</locline>
+    </loc>
+    <name>lPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1371</locline>
+    </loc>
+    <name>lPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1451</locline>
+    </loc>
+    <name>lPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1453</locline>
+    </loc>
+    <name>lPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1455</locline>
+    </loc>
+    <name>lPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1457</locline>
+    </loc>
+    <name>lPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1473</locline>
+    </loc>
+    <name>lRightPtr</name>
+    <loc>
+      <locmod>maxLogic.StrUtils</locmod>
+      <locline>1538</locline>
+    </loc>
+    <name>lValue</name>
+    <loc>
+      <locmod>Dak.PascalAnalyzerRunner</locmod>
+      <locline>169</locline>
+    </loc>
+  </section>
+  <section name="For-loop with possible bad condition" count="0" oldcount="-2">
+  </section>
+  <section name="Bad parameter usage (same identifier passed for different parameters)" count="0" oldcount="-2">
+  </section>
+  <section name="Generic interface has GUID" count="0" oldcount="-2">
+  </section>
+  <section name="Out parameter is read before set" count="0" oldcount="-2">
+  </section>
+</report>

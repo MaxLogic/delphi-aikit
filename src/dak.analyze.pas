@@ -33,6 +33,84 @@ type
     Exceptions: Integer;
   end;
 
+  TAnalyzeProjectRunner = class
+  private
+    fOptions: TAppOptions;
+    fDiagnostics: TDiagnostics;
+    fErrors: TList<string>;
+    fFixOptions: TFixInsightExtraOptions;
+    fFixIgnoreDefaults: TFixInsightIgnoreDefaults;
+    fReportFilter: TReportFilterDefaults;
+    fPascalAnalyzer: TPascalAnalyzerDefaults;
+    fParams: TFixInsightParams;
+    fProjectName: string;
+    fOutRoot: string;
+    fFixDir: string;
+    fPaDir: string;
+    fRunLog: string;
+    fFixTxtPath: string;
+    fFixXmlPath: string;
+    fFixCsvPath: string;
+    fFixTxtRan: Boolean;
+    fFixXmlRan: Boolean;
+    fFixCsvRan: Boolean;
+    fFixTxtExit: Integer;
+    fFixXmlExit: Integer;
+    fFixCsvExit: Integer;
+    fFixCounts: TFixInsightCounts;
+    fExitCode: Integer;
+    fPal: TPalSummary;
+    fSummaryPath: string;
+    fSummaryText: string;
+    procedure AddError(const aMessage: string; const aExitCode: Integer);
+    function TryOpenLog: Boolean;
+    function TryPrepareParams: Boolean;
+    procedure PrepareOutputTree;
+    procedure PrepareFixInsightParams;
+    procedure InitFixInsightDefaults;
+    procedure RunFixInsightReports;
+    procedure RunFixInsightReport(const aFormat: TReportFormat; const aOutputPath: string; const aLabel: string;
+      var aRan: Boolean; var aExitCode: Integer);
+    procedure RunPascalAnalyzer;
+    procedure WriteSummary;
+    function ShouldFilterReports: Boolean;
+  public
+    constructor Create(const aOptions: TAppOptions);
+    destructor Destroy; override;
+    function Execute: Integer;
+  end;
+
+  TAnalyzeUnitRunner = class
+  private
+    fOptions: TAppOptions;
+    fDiagnostics: TDiagnostics;
+    fErrors: TList<string>;
+    fFixOptions: TFixInsightExtraOptions;
+    fFixIgnoreDefaults: TFixInsightIgnoreDefaults;
+    fReportFilter: TReportFilterDefaults;
+    fPascalAnalyzer: TPascalAnalyzerDefaults;
+    fOutRoot: string;
+    fPaDir: string;
+    fRunLog: string;
+    fUnitPath: string;
+    fUnitName: string;
+    fExitCode: Integer;
+    fPal: TPalSummary;
+    fSummaryPath: string;
+    fSummaryText: string;
+    procedure AddError(const aMessage: string; const aExitCode: Integer);
+    function TryOpenLog: Boolean;
+    function TryLoadSettings: Boolean;
+    function TryPrepareUnit: Boolean;
+    procedure PrepareOutputTree;
+    procedure RunPascalAnalyzer;
+    procedure WriteSummary;
+  public
+    constructor Create(const aOptions: TAppOptions);
+    destructor Destroy; override;
+    function Execute: Integer;
+  end;
+
 function FormatTimestamp: string;
 begin
   Result := FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now);
@@ -412,14 +490,6 @@ begin
 
   lEnvVars := nil;
   try
-    if not LoadSettings(aDiagnostics, aFixOptions, aFixIgnoreDefaults, aReportFilter, aPascalAnalyzer) then
-    begin
-      aError := 'Failed to read settings.ini.';
-      aErrorCode := 6;
-      Exit(False);
-    end;
-    ApplySettingsOverrides(aOptions, aFixOptions, aFixIgnoreDefaults, aReportFilter, aPascalAnalyzer);
-
     lOptions := aOptions;
     lInputPath := aOptions.fDprojPath;
     if not TryResolveDprojPath(lInputPath, lDprojPath, lError) then
@@ -428,6 +498,14 @@ begin
       aErrorCode := 3;
       Exit(False);
     end;
+
+    if not LoadSettings(aDiagnostics, lDprojPath, aFixOptions, aFixIgnoreDefaults, aReportFilter, aPascalAnalyzer) then
+    begin
+      aError := 'Failed to read dak.ini.';
+      aErrorCode := 6;
+      Exit(False);
+    end;
+    ApplySettingsOverrides(aOptions, aFixOptions, aFixIgnoreDefaults, aReportFilter, aPascalAnalyzer);
 
     lOptions.fDprojPath := lDprojPath;
     aProjectName := TPath.GetFileNameWithoutExtension(lDprojPath);
@@ -753,406 +831,446 @@ begin
   end;
 end;
 
-function RunAnalyzeProject(const aOptions: TAppOptions): Integer;
-var
-  lDiagnostics: TDiagnostics;
-  lFixOptions: TFixInsightExtraOptions;
-  lFixIgnoreDefaults: TFixInsightIgnoreDefaults;
-  lReportFilter: TReportFilterDefaults;
-  lPascalAnalyzer: TPascalAnalyzerDefaults;
-  lParams: TFixInsightParams;
-  lError: string;
-  lErrorCode: Integer;
-  lProjectName: string;
-  lOutRoot: string;
-  lFixDir: string;
-  lPaDir: string;
-  lRunLog: string;
-  lSummaryPath: string;
-  lFixTxtPath: string;
-  lFixXmlPath: string;
-  lFixCsvPath: string;
-  lFixTxtRan: Boolean;
-  lFixXmlRan: Boolean;
-  lFixCsvRan: Boolean;
-  lFixTxtExit: Integer;
-  lFixXmlExit: Integer;
-  lFixCsvExit: Integer;
-  lFixCounts: TFixInsightCounts;
-  lErrors: TList<string>;
-  lRunExit: Cardinal;
-  lRunError: string;
-  lExitCode: Integer;
-  lFilterError: string;
-  lFixLogPath: string;
-  lPal: TPalSummary;
-  lPaReportRoot: string;
-  lPalPostError: string;
-  lSummaryText: string;
+constructor TAnalyzeProjectRunner.Create(const aOptions: TAppOptions);
 begin
-  lExitCode := 0;
-  lDiagnostics := TDiagnostics.Create;
-  lErrors := TList<string>.Create;
-  try
-    lDiagnostics.Verbose := aOptions.fVerbose;
-    if aOptions.fHasLogFile then
-    begin
-      if not lDiagnostics.TryOpenLogFile(TPath.GetFullPath(aOptions.fLogFile), lError) then
-      begin
-        WriteLn(ErrOutput, lError);
-        Exit(6);
-      end;
-      if aOptions.fHasLogTee then
-        lDiagnostics.LogToStderr := aOptions.fLogTee
-      else
-        lDiagnostics.LogToStderr := False;
-    end;
+  inherited Create;
+  fOptions := aOptions;
+  fDiagnostics := TDiagnostics.Create;
+  fErrors := TList<string>.Create;
+  fExitCode := 0;
+end;
 
-    if not TryPrepareProjectParams(aOptions, lDiagnostics, lParams, lFixOptions, lFixIgnoreDefaults, lReportFilter,
-      lPascalAnalyzer, lProjectName, lError, lErrorCode) then
+destructor TAnalyzeProjectRunner.Destroy;
+begin
+  fErrors.Free;
+  fDiagnostics.Free;
+  inherited Destroy;
+end;
+
+procedure TAnalyzeProjectRunner.AddError(const aMessage: string; const aExitCode: Integer);
+begin
+  fErrors.Add(aMessage);
+  if (fExitCode = 0) and (aExitCode <> 0) then
+    fExitCode := aExitCode;
+end;
+
+function TAnalyzeProjectRunner.TryOpenLog: Boolean;
+var
+  lError: string;
+begin
+  Result := True;
+  fDiagnostics.Verbose := fOptions.fVerbose;
+  if fOptions.fHasLogFile then
+  begin
+    if not fDiagnostics.TryOpenLogFile(TPath.GetFullPath(fOptions.fLogFile), lError) then
     begin
       WriteLn(ErrOutput, lError);
-      Exit(lErrorCode);
+      fExitCode := 6;
+      Exit(False);
     end;
+    if fOptions.fHasLogTee then
+      fDiagnostics.LogToStderr := fOptions.fLogTee
+    else
+      fDiagnostics.LogToStderr := False;
+  end;
+end;
 
-    lOutRoot := BuildOutputRoot(aOptions.fAnalyzeOutPath, lProjectName);
-    if aOptions.fAnalyzeClean and DirectoryExists(lOutRoot) then
-      TDirectory.Delete(lOutRoot, True);
-    TDirectory.CreateDirectory(lOutRoot);
+function TAnalyzeProjectRunner.TryPrepareParams: Boolean;
+var
+  lError: string;
+  lErrorCode: Integer;
+begin
+  if not TryPrepareProjectParams(fOptions, fDiagnostics, fParams, fFixOptions, fFixIgnoreDefaults, fReportFilter,
+    fPascalAnalyzer, fProjectName, lError, lErrorCode) then
+  begin
+    WriteLn(ErrOutput, lError);
+    fExitCode := lErrorCode;
+    Exit(False);
+  end;
+  Result := True;
+end;
 
-    lFixDir := TPath.Combine(lOutRoot, 'fixinsight');
-    lPaDir := TPath.Combine(lOutRoot, 'pascal-analyzer');
-    TDirectory.CreateDirectory(lFixDir);
-    TDirectory.CreateDirectory(lPaDir);
+procedure TAnalyzeProjectRunner.PrepareOutputTree;
+begin
+  fOutRoot := BuildOutputRoot(fOptions.fAnalyzeOutPath, fProjectName);
+  if fOptions.fAnalyzeClean and DirectoryExists(fOutRoot) then
+    TDirectory.Delete(fOutRoot, True);
+  TDirectory.CreateDirectory(fOutRoot);
 
-    lRunLog := TPath.Combine(lOutRoot, 'run.log');
-    if aOptions.fAnalyzeClean or (not FileExists(lRunLog)) then
-      WriteLogText(lRunLog, '');
+  fFixDir := TPath.Combine(fOutRoot, 'fixinsight');
+  fPaDir := TPath.Combine(fOutRoot, 'pascal-analyzer');
+  TDirectory.CreateDirectory(fFixDir);
+  TDirectory.CreateDirectory(fPaDir);
 
-    lParams.fFixIgnore := lFixOptions.fIgnore;
-    lParams.fFixSettings := lFixOptions.fSettings;
-    lParams.fFixSilent := lFixOptions.fSilent;
-    if lParams.fFixSettings <> '' then
-      lParams.fFixSettings := TPath.GetFullPath(lParams.fFixSettings);
+  fRunLog := TPath.Combine(fOutRoot, 'run.log');
+  if fOptions.fAnalyzeClean or (not FileExists(fRunLog)) then
+    WriteLogText(fRunLog, '');
+end;
 
-    lFixTxtPath := TPath.Combine(lFixDir, 'fixinsight.txt');
-    lFixXmlPath := TPath.Combine(lFixDir, 'fixinsight.xml');
-    lFixCsvPath := TPath.Combine(lFixDir, 'fixinsight.csv');
+procedure TAnalyzeProjectRunner.PrepareFixInsightParams;
+begin
+  fParams.fFixIgnore := fFixOptions.fIgnore;
+  fParams.fFixSettings := fFixOptions.fSettings;
+  fParams.fFixSilent := fFixOptions.fSilent;
+  if fParams.fFixSettings <> '' then
+    fParams.fFixSettings := TPath.GetFullPath(fParams.fFixSettings);
+end;
 
-    lFixTxtRan := False;
-    lFixXmlRan := False;
-    lFixCsvRan := False;
-    lFixTxtExit := -1;
-    lFixXmlExit := -1;
-    lFixCsvExit := -1;
+procedure TAnalyzeProjectRunner.InitFixInsightDefaults;
+begin
+  fFixTxtPath := TPath.Combine(fFixDir, 'fixinsight.txt');
+  fFixXmlPath := TPath.Combine(fFixDir, 'fixinsight.xml');
+  fFixCsvPath := TPath.Combine(fFixDir, 'fixinsight.csv');
 
-    if aOptions.fAnalyzeFixInsight then
-    begin
-      if TReportFormat.rfText in aOptions.fAnalyzeFiFormats then
-      begin
-        lFixTxtRan := True;
-        lParams.fFixOutput := TPath.GetFullPath(lFixTxtPath);
-        lParams.fFixXml := False;
-        lParams.fFixCsv := False;
-        lFixLogPath := TPath.Combine(lFixDir, 'fixinsight.txt.log');
-        if TryRunFixInsightLogged(lParams, lRunLog, lRunExit, lRunError) then
-        begin
-          lFixTxtExit := Integer(lRunExit);
-          if lFixTxtExit <> 0 then
-          begin
-            lErrors.Add(Format('FixInsight TXT failed (exit=%d).', [lFixTxtExit]));
-            if lExitCode = 0 then
-              lExitCode := lFixTxtExit;
-          end
-          else if HasAnyReportFilters(lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings) then
-          begin
-            if not TryPostProcessFixInsightReport(lParams.fFixOutput, TReportFormat.rfText,
-              lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings, lFilterError) then
-            begin
-              lErrors.Add('FixInsight TXT post-processing failed: ' + lFilterError);
-              if lExitCode = 0 then
-                lExitCode := 6;
-            end;
-          end;
-        end else
-        begin
-          lErrors.Add('FixInsight TXT failed: ' + lRunError);
-          if lExitCode = 0 then
-            lExitCode := 6;
-        end;
-        WriteToolLog(lFixLogPath, 'FixInsight TXT', lFixTxtExit, lRunError);
-      end;
+  fFixTxtRan := False;
+  fFixXmlRan := False;
+  fFixCsvRan := False;
+  fFixTxtExit := -1;
+  fFixXmlExit := -1;
+  fFixCsvExit := -1;
+end;
 
-      if TReportFormat.rfXml in aOptions.fAnalyzeFiFormats then
-      begin
-        lFixXmlRan := True;
-        lParams.fFixOutput := TPath.GetFullPath(lFixXmlPath);
-        lParams.fFixXml := True;
-        lParams.fFixCsv := False;
-        lFixLogPath := TPath.Combine(lFixDir, 'fixinsight.xml.log');
-        if TryRunFixInsightLogged(lParams, lRunLog, lRunExit, lRunError) then
-        begin
-          lFixXmlExit := Integer(lRunExit);
-          if lFixXmlExit <> 0 then
-          begin
-            lErrors.Add(Format('FixInsight XML failed (exit=%d).', [lFixXmlExit]));
-            if lExitCode = 0 then
-              lExitCode := lFixXmlExit;
-          end
-          else if HasAnyReportFilters(lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings) then
-          begin
-            if not TryPostProcessFixInsightReport(lParams.fFixOutput, TReportFormat.rfXml,
-              lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings, lFilterError) then
-            begin
-              lErrors.Add('FixInsight XML post-processing failed: ' + lFilterError);
-              if lExitCode = 0 then
-                lExitCode := 6;
-            end;
-          end;
-        end else
-        begin
-          lErrors.Add('FixInsight XML failed: ' + lRunError);
-          if lExitCode = 0 then
-            lExitCode := 6;
-        end;
-        WriteToolLog(lFixLogPath, 'FixInsight XML', lFixXmlExit, lRunError);
-      end;
+function TAnalyzeProjectRunner.ShouldFilterReports: Boolean;
+begin
+  Result := HasAnyReportFilters(fReportFilter.fExcludePathMasks, fFixIgnoreDefaults.fWarnings);
+end;
 
-      if TReportFormat.rfCsv in aOptions.fAnalyzeFiFormats then
-      begin
-        lFixCsvRan := True;
-        lParams.fFixOutput := TPath.GetFullPath(lFixCsvPath);
-        lParams.fFixXml := False;
-        lParams.fFixCsv := True;
-        lFixLogPath := TPath.Combine(lFixDir, 'fixinsight.csv.log');
-        if TryRunFixInsightLogged(lParams, lRunLog, lRunExit, lRunError) then
-        begin
-          lFixCsvExit := Integer(lRunExit);
-          if lFixCsvExit <> 0 then
-          begin
-            lErrors.Add(Format('FixInsight CSV failed (exit=%d).', [lFixCsvExit]));
-            if lExitCode = 0 then
-              lExitCode := lFixCsvExit;
-          end
-          else if HasAnyReportFilters(lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings) then
-          begin
-            if not TryPostProcessFixInsightReport(lParams.fFixOutput, TReportFormat.rfCsv,
-              lReportFilter.fExcludePathMasks, lFixIgnoreDefaults.fWarnings, lFilterError) then
-            begin
-              lErrors.Add('FixInsight CSV post-processing failed: ' + lFilterError);
-              if lExitCode = 0 then
-                lExitCode := 6;
-            end;
-          end;
-        end else
-        begin
-          lErrors.Add('FixInsight CSV failed: ' + lRunError);
-          if lExitCode = 0 then
-            lExitCode := 6;
-        end;
-        WriteToolLog(lFixLogPath, 'FixInsight CSV', lFixCsvExit, lRunError);
-      end;
-    end;
-
-    lPal := Default(TPalSummary);
-    if aOptions.fAnalyzePal then
-    begin
-      lPal.Ran := True;
-      if aOptions.fHasPaOutput then
-        lPascalAnalyzer.fOutput := TPath.GetFullPath(aOptions.fPaOutput)
-      else if lPascalAnalyzer.fOutput <> '' then
-        lPascalAnalyzer.fOutput := TPath.GetFullPath(lPascalAnalyzer.fOutput)
-      else
-        lPascalAnalyzer.fOutput := lPaDir;
-      lPal.OutputRoot := lPascalAnalyzer.fOutput;
-      if TryRunPalLogged(lParams, lPascalAnalyzer, lRunLog, lRunExit, lRunError) then
-      begin
-        lPal.ExitCode := Integer(lRunExit);
-        if lPal.ExitCode <> 0 then
-        begin
-          lErrors.Add(Format('Pascal Analyzer failed (exit=%d).', [lPal.ExitCode]));
-          if lExitCode = 0 then
-            lExitCode := lPal.ExitCode;
-        end
-        else
-        begin
-          try
-            lPalPostError := '';
-            if TryFindPalReportRoot(lPal.OutputRoot, lPaReportRoot, lPalPostError) then
-            begin
-              lPal.ReportRoot := lPaReportRoot;
-              ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), lPal.Version, lPal.Compiler);
-              lPal.Warnings := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Warnings.xml'));
-              lPal.StrongWarnings := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Strong Warnings.xml'));
-              lPal.Exceptions := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Exception.xml'));
-              if not TryGeneratePalArtifacts(lPaReportRoot, lPal.OutputRoot, lPalPostError) then
-                lDiagnostics.AddWarning('PAL findings generation failed: ' + lPalPostError);
-            end else
-            begin
-              lDiagnostics.AddWarning('PAL report root not found: ' + lPalPostError);
-            end;
-          except
-            on E: Exception do
-              lDiagnostics.AddWarning('PAL post-processing failed: ' + E.ClassName + ': ' + E.Message);
-          end;
-        end;
-      end else
-      begin
-        lPal.ExitCode := -1;
-        lErrors.Add('Pascal Analyzer failed: ' + lRunError);
-        if lExitCode = 0 then
-          lExitCode := 6;
-      end;
-      WriteToolLog(TPath.Combine(lPaDir, 'pascal-analyzer.log'), 'PALCMD', lPal.ExitCode, lRunError);
-    end;
-
-    CaptureFixInsightSummary(lFixTxtPath, lFixCounts);
-
-    if aOptions.fAnalyzeWriteSummary then
-    begin
-      lSummaryPath := TPath.Combine(lOutRoot, 'summary.md');
-      lSummaryText := BuildProjectSummary(lProjectName, lParams.fProjectDpr, lOutRoot, lFixTxtPath, lFixXmlPath,
-        lFixCsvPath, lFixTxtRan, lFixXmlRan, lFixCsvRan, lFixTxtExit, lFixXmlExit, lFixCsvExit, lFixCounts, lPal,
-        lErrors.ToArray);
-      WriteLogText(lSummaryPath, lSummaryText);
-    end;
-  finally
-    lDiagnostics.WriteToStderr;
-    lErrors.Free;
-    lDiagnostics.Free;
+procedure TAnalyzeProjectRunner.RunFixInsightReport(const aFormat: TReportFormat; const aOutputPath: string;
+  const aLabel: string; var aRan: Boolean; var aExitCode: Integer);
+var
+  lRunExit: Cardinal;
+  lRunError: string;
+  lFilterError: string;
+  lLogPath: string;
+begin
+  aRan := True;
+  fParams.fFixOutput := TPath.GetFullPath(aOutputPath);
+  if aFormat = TReportFormat.rfXml then
+  begin
+    fParams.fFixXml := True;
+    fParams.fFixCsv := False;
+    lLogPath := TPath.Combine(fFixDir, 'fixinsight.xml.log');
+  end else if aFormat = TReportFormat.rfCsv then
+  begin
+    fParams.fFixXml := False;
+    fParams.fFixCsv := True;
+    lLogPath := TPath.Combine(fFixDir, 'fixinsight.csv.log');
+  end
+  else
+  begin
+    fParams.fFixXml := False;
+    fParams.fFixCsv := False;
+    lLogPath := TPath.Combine(fFixDir, 'fixinsight.txt.log');
   end;
 
-  Result := lExitCode;
+  lRunError := '';
+  if TryRunFixInsightLogged(fParams, fRunLog, lRunExit, lRunError) then
+  begin
+    aExitCode := Integer(lRunExit);
+    if aExitCode <> 0 then
+      AddError(Format('%s failed (exit=%d).', [aLabel, aExitCode]), aExitCode)
+    else if ShouldFilterReports then
+    begin
+      lFilterError := '';
+      if not TryPostProcessFixInsightReport(fParams.fFixOutput, aFormat, fReportFilter.fExcludePathMasks,
+        fFixIgnoreDefaults.fWarnings, lFilterError) then
+      begin
+        AddError(aLabel + ' post-processing failed: ' + lFilterError, 6);
+      end;
+    end;
+  end else
+  begin
+    AddError(aLabel + ' failed: ' + lRunError, 6);
+  end;
+  WriteToolLog(lLogPath, aLabel, aExitCode, lRunError);
+end;
+
+procedure TAnalyzeProjectRunner.RunFixInsightReports;
+begin
+  PrepareFixInsightParams;
+  InitFixInsightDefaults;
+  if not fOptions.fAnalyzeFixInsight then
+    Exit;
+
+  if TReportFormat.rfText in fOptions.fAnalyzeFiFormats then
+    RunFixInsightReport(TReportFormat.rfText, fFixTxtPath, 'FixInsight TXT', fFixTxtRan, fFixTxtExit);
+  if TReportFormat.rfXml in fOptions.fAnalyzeFiFormats then
+    RunFixInsightReport(TReportFormat.rfXml, fFixXmlPath, 'FixInsight XML', fFixXmlRan, fFixXmlExit);
+  if TReportFormat.rfCsv in fOptions.fAnalyzeFiFormats then
+    RunFixInsightReport(TReportFormat.rfCsv, fFixCsvPath, 'FixInsight CSV', fFixCsvRan, fFixCsvExit);
+end;
+
+procedure TAnalyzeProjectRunner.RunPascalAnalyzer;
+var
+  lRunExit: Cardinal;
+  lRunError: string;
+  lPaReportRoot: string;
+  lPalPostError: string;
+begin
+  fPal := Default(TPalSummary);
+  if not fOptions.fAnalyzePal then
+    Exit;
+
+  fPal.Ran := True;
+  if fOptions.fHasPaOutput then
+    fPascalAnalyzer.fOutput := TPath.GetFullPath(fOptions.fPaOutput)
+  else if fPascalAnalyzer.fOutput <> '' then
+    fPascalAnalyzer.fOutput := TPath.GetFullPath(fPascalAnalyzer.fOutput)
+  else
+    fPascalAnalyzer.fOutput := fPaDir;
+  fPal.OutputRoot := fPascalAnalyzer.fOutput;
+
+  lRunError := '';
+  if TryRunPalLogged(fParams, fPascalAnalyzer, fRunLog, lRunExit, lRunError) then
+  begin
+    fPal.ExitCode := Integer(lRunExit);
+    if fPal.ExitCode <> 0 then
+      AddError(Format('Pascal Analyzer failed (exit=%d).', [fPal.ExitCode]), fPal.ExitCode)
+    else
+    begin
+      try
+        lPalPostError := '';
+        if TryFindPalReportRoot(fPal.OutputRoot, lPaReportRoot, lPalPostError) then
+        begin
+          fPal.ReportRoot := lPaReportRoot;
+          ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), fPal.Version, fPal.Compiler);
+          fPal.Warnings := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Warnings.xml'));
+          fPal.StrongWarnings := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Strong Warnings.xml'));
+          fPal.Exceptions := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Exception.xml'));
+          if not TryGeneratePalArtifacts(lPaReportRoot, fPal.OutputRoot, lPalPostError) then
+            fDiagnostics.AddWarning('PAL findings generation failed: ' + lPalPostError);
+        end else
+        begin
+          fDiagnostics.AddWarning('PAL report root not found: ' + lPalPostError);
+        end;
+      except
+        on E: Exception do
+          fDiagnostics.AddWarning('PAL post-processing failed: ' + E.ClassName + ': ' + E.Message);
+      end;
+    end;
+  end else
+  begin
+    fPal.ExitCode := -1;
+    AddError('Pascal Analyzer failed: ' + lRunError, 6);
+  end;
+  WriteToolLog(TPath.Combine(fPaDir, 'pascal-analyzer.log'), 'PALCMD', fPal.ExitCode, lRunError);
+end;
+
+procedure TAnalyzeProjectRunner.WriteSummary;
+begin
+  if not fOptions.fAnalyzeWriteSummary then
+    Exit;
+
+  fSummaryPath := TPath.Combine(fOutRoot, 'summary.md');
+  fSummaryText := BuildProjectSummary(fProjectName, fParams.fProjectDpr, fOutRoot, fFixTxtPath, fFixXmlPath,
+    fFixCsvPath, fFixTxtRan, fFixXmlRan, fFixCsvRan, fFixTxtExit, fFixXmlExit, fFixCsvExit, fFixCounts, fPal,
+    fErrors.ToArray);
+  WriteLogText(fSummaryPath, fSummaryText);
+end;
+
+function TAnalyzeProjectRunner.Execute: Integer;
+begin
+  try
+    if not TryOpenLog then
+      Exit(fExitCode);
+    if not TryPrepareParams then
+      Exit(fExitCode);
+    PrepareOutputTree;
+    RunFixInsightReports;
+    RunPascalAnalyzer;
+    CaptureFixInsightSummary(fFixTxtPath, fFixCounts);
+    WriteSummary;
+  finally
+    fDiagnostics.WriteToStderr;
+  end;
+  Result := fExitCode;
+end;
+
+constructor TAnalyzeUnitRunner.Create(const aOptions: TAppOptions);
+begin
+  inherited Create;
+  fOptions := aOptions;
+  fDiagnostics := TDiagnostics.Create;
+  fErrors := TList<string>.Create;
+  fExitCode := 0;
+end;
+
+destructor TAnalyzeUnitRunner.Destroy;
+begin
+  fErrors.Free;
+  fDiagnostics.Free;
+  inherited Destroy;
+end;
+
+procedure TAnalyzeUnitRunner.AddError(const aMessage: string; const aExitCode: Integer);
+begin
+  fErrors.Add(aMessage);
+  if (fExitCode = 0) and (aExitCode <> 0) then
+    fExitCode := aExitCode;
+end;
+
+function TAnalyzeUnitRunner.TryOpenLog: Boolean;
+var
+  lError: string;
+begin
+  Result := True;
+  fDiagnostics.Verbose := fOptions.fVerbose;
+  if fOptions.fHasLogFile then
+  begin
+    if not fDiagnostics.TryOpenLogFile(TPath.GetFullPath(fOptions.fLogFile), lError) then
+    begin
+      WriteLn(ErrOutput, lError);
+      fExitCode := 6;
+      Exit(False);
+    end;
+    if fOptions.fHasLogTee then
+      fDiagnostics.LogToStderr := fOptions.fLogTee
+    else
+      fDiagnostics.LogToStderr := False;
+  end;
+end;
+
+function TAnalyzeUnitRunner.TryLoadSettings: Boolean;
+begin
+  if not LoadSettings(fDiagnostics, '', fFixOptions, fFixIgnoreDefaults, fReportFilter, fPascalAnalyzer) then
+  begin
+    WriteLn(ErrOutput, 'Failed to read dak.ini.');
+    fExitCode := 6;
+    Exit(False);
+  end;
+  ApplySettingsOverrides(fOptions, fFixOptions, fFixIgnoreDefaults, fReportFilter, fPascalAnalyzer);
+  Result := True;
+end;
+
+function TAnalyzeUnitRunner.TryPrepareUnit: Boolean;
+begin
+  fUnitPath := TPath.GetFullPath(fOptions.fUnitPath);
+  if not FileExists(fUnitPath) then
+  begin
+    WriteLn(ErrOutput, Format(SFileNotFound, [fUnitPath]));
+    fExitCode := 3;
+    Exit(False);
+  end;
+  fUnitName := TPath.GetFileNameWithoutExtension(fUnitPath);
+  Result := True;
+end;
+
+procedure TAnalyzeUnitRunner.PrepareOutputTree;
+begin
+  fOutRoot := BuildUnitOutputRoot(fOptions.fAnalyzeOutPath, fUnitName);
+  if fOptions.fAnalyzeClean and DirectoryExists(fOutRoot) then
+    TDirectory.Delete(fOutRoot, True);
+  TDirectory.CreateDirectory(fOutRoot);
+
+  fPaDir := TPath.Combine(fOutRoot, 'pascal-analyzer');
+  TDirectory.CreateDirectory(fPaDir);
+
+  fRunLog := TPath.Combine(fOutRoot, 'run.log');
+  if fOptions.fAnalyzeClean or (not FileExists(fRunLog)) then
+    WriteLogText(fRunLog, '');
+end;
+
+procedure TAnalyzeUnitRunner.RunPascalAnalyzer;
+var
+  lRunExit: Cardinal;
+  lRunError: string;
+  lPaReportRoot: string;
+  lPalPostError: string;
+begin
+  fPal := Default(TPalSummary);
+  if not fOptions.fAnalyzePal then
+    Exit;
+
+  fPal.Ran := True;
+  if fOptions.fHasPaOutput then
+    fPascalAnalyzer.fOutput := TPath.GetFullPath(fOptions.fPaOutput)
+  else if fPascalAnalyzer.fOutput <> '' then
+    fPascalAnalyzer.fOutput := TPath.GetFullPath(fPascalAnalyzer.fOutput)
+  else
+    fPascalAnalyzer.fOutput := fPaDir;
+  fPal.OutputRoot := fPascalAnalyzer.fOutput;
+
+  lRunError := '';
+  if TryRunPalUnitLogged(fUnitPath, fPascalAnalyzer, fRunLog, lRunExit, lRunError) then
+  begin
+    fPal.ExitCode := Integer(lRunExit);
+    if fPal.ExitCode <> 0 then
+      AddError(Format('Pascal Analyzer failed (exit=%d).', [fPal.ExitCode]), fPal.ExitCode)
+    else
+    begin
+      try
+        lPalPostError := '';
+        if TryFindPalReportRoot(fPal.OutputRoot, lPaReportRoot, lPalPostError) then
+        begin
+          fPal.ReportRoot := lPaReportRoot;
+          ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), fPal.Version, fPal.Compiler);
+        end else
+        begin
+          fDiagnostics.AddWarning('PAL report root not found: ' + lPalPostError);
+        end;
+      except
+        on E: Exception do
+          fDiagnostics.AddWarning('PAL post-processing failed: ' + E.ClassName + ': ' + E.Message);
+      end;
+    end;
+  end else
+  begin
+    fPal.ExitCode := -1;
+    AddError('Pascal Analyzer failed: ' + lRunError, 6);
+  end;
+  WriteToolLog(TPath.Combine(fPaDir, 'pascal-analyzer.log'), 'PALCMD', fPal.ExitCode, lRunError);
+end;
+
+procedure TAnalyzeUnitRunner.WriteSummary;
+begin
+  if not fOptions.fAnalyzeWriteSummary then
+    Exit;
+
+  fSummaryPath := TPath.Combine(fOutRoot, 'summary.md');
+  fSummaryText := BuildUnitSummary(fUnitName, fUnitPath, fOutRoot, fPal, fErrors.ToArray);
+  WriteLogText(fSummaryPath, fSummaryText);
+end;
+
+function TAnalyzeUnitRunner.Execute: Integer;
+begin
+  try
+    if not TryOpenLog then
+      Exit(fExitCode);
+    if not TryLoadSettings then
+      Exit(fExitCode);
+    if not TryPrepareUnit then
+      Exit(fExitCode);
+    PrepareOutputTree;
+    RunPascalAnalyzer;
+    WriteSummary;
+  finally
+    fDiagnostics.WriteToStderr;
+  end;
+  Result := fExitCode;
+end;
+
+function RunAnalyzeProject(const aOptions: TAppOptions): Integer;
+var
+  lRunner: TAnalyzeProjectRunner;
+begin
+  lRunner := TAnalyzeProjectRunner.Create(aOptions);
+  try
+    Result := lRunner.Execute;
+  finally
+    lRunner.Free;
+  end;
 end;
 
 function RunAnalyzeUnit(const aOptions: TAppOptions): Integer;
 var
-  lDiagnostics: TDiagnostics;
-  lFixOptions: TFixInsightExtraOptions;
-  lFixIgnoreDefaults: TFixInsightIgnoreDefaults;
-  lReportFilter: TReportFilterDefaults;
-  lPascalAnalyzer: TPascalAnalyzerDefaults;
-  lOutRoot: string;
-  lPaDir: string;
-  lRunLog: string;
-  lSummaryPath: string;
-  lErrors: TList<string>;
-  lUnitPath: string;
-  lUnitName: string;
-  lRunExit: Cardinal;
-  lRunError: string;
-  lExitCode: Integer;
-  lPal: TPalSummary;
-  lPaReportRoot: string;
-  lSummaryText: string;
-  lPalPostError: string;
-  lError: string;
+  lRunner: TAnalyzeUnitRunner;
 begin
-  lExitCode := 0;
-  lDiagnostics := TDiagnostics.Create;
-  lErrors := TList<string>.Create;
+  lRunner := TAnalyzeUnitRunner.Create(aOptions);
   try
-    lDiagnostics.Verbose := aOptions.fVerbose;
-    if aOptions.fHasLogFile then
-    begin
-      if not lDiagnostics.TryOpenLogFile(TPath.GetFullPath(aOptions.fLogFile), lError) then
-      begin
-        WriteLn(ErrOutput, lError);
-        Exit(6);
-      end;
-      if aOptions.fHasLogTee then
-        lDiagnostics.LogToStderr := aOptions.fLogTee
-      else
-        lDiagnostics.LogToStderr := False;
-    end;
-
-    if not LoadSettings(lDiagnostics, lFixOptions, lFixIgnoreDefaults, lReportFilter, lPascalAnalyzer) then
-    begin
-      WriteLn(ErrOutput, 'Failed to read settings.ini.');
-      Exit(6);
-    end;
-    ApplySettingsOverrides(aOptions, lFixOptions, lFixIgnoreDefaults, lReportFilter, lPascalAnalyzer);
-
-    lUnitPath := TPath.GetFullPath(aOptions.fUnitPath);
-    if not FileExists(lUnitPath) then
-    begin
-      WriteLn(ErrOutput, Format(SFileNotFound, [lUnitPath]));
-      Exit(3);
-    end;
-
-    lUnitName := TPath.GetFileNameWithoutExtension(lUnitPath);
-    lOutRoot := BuildUnitOutputRoot(aOptions.fAnalyzeOutPath, lUnitName);
-    if aOptions.fAnalyzeClean and DirectoryExists(lOutRoot) then
-      TDirectory.Delete(lOutRoot, True);
-    TDirectory.CreateDirectory(lOutRoot);
-
-    lPaDir := TPath.Combine(lOutRoot, 'pascal-analyzer');
-    TDirectory.CreateDirectory(lPaDir);
-
-    lRunLog := TPath.Combine(lOutRoot, 'run.log');
-    if aOptions.fAnalyzeClean or (not FileExists(lRunLog)) then
-      WriteLogText(lRunLog, '');
-
-    lPal := Default(TPalSummary);
-    if aOptions.fAnalyzePal then
-    begin
-      lPal.Ran := True;
-      if aOptions.fHasPaOutput then
-        lPascalAnalyzer.fOutput := TPath.GetFullPath(aOptions.fPaOutput)
-      else if lPascalAnalyzer.fOutput <> '' then
-        lPascalAnalyzer.fOutput := TPath.GetFullPath(lPascalAnalyzer.fOutput)
-      else
-        lPascalAnalyzer.fOutput := lPaDir;
-      lPal.OutputRoot := lPascalAnalyzer.fOutput;
-      if TryRunPalUnitLogged(lUnitPath, lPascalAnalyzer, lRunLog, lRunExit, lRunError) then
-      begin
-        lPal.ExitCode := Integer(lRunExit);
-        if lPal.ExitCode <> 0 then
-        begin
-          lErrors.Add(Format('Pascal Analyzer failed (exit=%d).', [lPal.ExitCode]));
-          if lExitCode = 0 then
-            lExitCode := lPal.ExitCode;
-        end
-        else
-        begin
-          try
-            lPalPostError := '';
-            if TryFindPalReportRoot(lPal.OutputRoot, lPaReportRoot, lPalPostError) then
-            begin
-              lPal.ReportRoot := lPaReportRoot;
-              ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), lPal.Version, lPal.Compiler);
-            end else
-            begin
-              lDiagnostics.AddWarning('PAL report root not found: ' + lPalPostError);
-            end;
-          except
-            on E: Exception do
-              lDiagnostics.AddWarning('PAL post-processing failed: ' + E.ClassName + ': ' + E.Message);
-          end;
-        end;
-      end else
-      begin
-        lPal.ExitCode := -1;
-        lErrors.Add('Pascal Analyzer failed: ' + lRunError);
-        if lExitCode = 0 then
-          lExitCode := 6;
-      end;
-      WriteToolLog(TPath.Combine(lPaDir, 'pascal-analyzer.log'), 'PALCMD', lPal.ExitCode, lRunError);
-    end;
-
-    if aOptions.fAnalyzeWriteSummary then
-    begin
-      lSummaryPath := TPath.Combine(lOutRoot, 'summary.md');
-      lSummaryText := BuildUnitSummary(lUnitName, lUnitPath, lOutRoot, lPal, lErrors.ToArray);
-      WriteLogText(lSummaryPath, lSummaryText);
-    end;
+    Result := lRunner.Execute;
   finally
-    lDiagnostics.WriteToStderr;
-    lErrors.Free;
-    lDiagnostics.Free;
+    lRunner.Free;
   end;
-
-  Result := lExitCode;
 end;
 
 function RunAnalyzeCommand(const aOptions: TAppOptions): Integer;

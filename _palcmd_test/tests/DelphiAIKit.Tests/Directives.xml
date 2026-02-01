@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Directives Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Identifiers marked with the &quot;deprecated&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Identifiers marked with the &quot;experimental&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Identifiers marked with the &quot;library&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Identifiers marked with the &quot;platform&quot; directive" count="0" oldcount="-2">
+  </section>
+  <section name="Subprograms marked with the &quot;inline&quot; directive" count="16" oldcount="-2">
+    <item>
+      <id>FoldAscii</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (138)</locmod>
+    </item>
+    <item>
+      <id>FoldCharValue</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (139)</locmod>
+    </item>
+    <item>
+      <id>FoldPair</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (140)</locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (71)       </locmod>
+    </item>
+    <item>
+      <id>GC</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (75)       </locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Func, Method</kind>
+      <locmod>AutoFree\TGarbo (42)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (43)</locmod>
+    </item>
+    <item>
+      <id>GC&lt;T&gt;</id>
+      <kind>Proc, Method</kind>
+      <locmod>AutoFree\TGarbo (44)</locmod>
+    </item>
+    <item>
+      <id>i2s</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (321)</locmod>
+    </item>
+    <item>
+      <id>IsUtf8ContinuationByte</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (985)</locmod>
+    </item>
+    <item>
+      <id>Preprocess</id>
+      <kind>Proc, Method</kind>
+      <locmod>maxLogic.StrUtils\TFilterEx (254)</locmod>
+    </item>
+    <item>
+      <id>Rotl32</id>
+      <kind>Func, Method</kind>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (141)</locmod>
+    </item>
+    <item>
+      <id>RunOnExit</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (78)       </locmod>
+    </item>
+    <item>
+      <id>StrCmpLogical</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>maxLogic.StrUtils (211)</locmod>
+    </item>
+    <item>
+      <id>Trap</id>
+      <kind>Func, Interfaced</kind>
+      <locmod>AutoFree (80)       </locmod>
+    </item>
+    <item>
+      <id>Utf8SequenceLength</id>
+      <kind>Func, Global</kind>
+      <locmod>maxLogic.StrUtils (972)</locmod>
+    </item>
+  </section>
+</report>

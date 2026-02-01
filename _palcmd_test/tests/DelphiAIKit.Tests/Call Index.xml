@@ -1,0 +1,2354 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<report name="Call Index Report">
+  <created>29.01.2026 23:49:28</created>
+  <section name="Call Index">
+    <subprog>
+      <name>AutoFree.GC</name>
+      <locmod>AutoFree (69)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (71)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.ReplacePlaceholder</name>
+        <locmod>maxLogic.StrUtils (182)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.Split</name>
+        <locmod>maxLogic.StrUtils (264)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.Split</name>
+        <locmod>maxLogic.StrUtils (265)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TFilterEx.Prepare</name>
+        <locmod>maxLogic.StrUtils\TFilterEx (251)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TFilterEx.SplitBySpace</name>
+        <locmod>maxLogic.StrUtils\TFilterEx (253)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (317)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (316)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (313)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>AutoFree.GC</name>
+      <locmod>AutoFree (70)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (71)</locmod>
+      </calls>
+      <calls>
+        <name>AutoFree.TGarbos.Add</name>
+        <locmod>AutoFree\TGarbos (23)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>AutoFree.GC</name>
+      <locmod>AutoFree (71)</locmod>
+      <called_by>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (70)</locmod>
+      </called_by>
+      <called_by>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (69)</locmod>
+      </called_by>
+      <called_by>
+        <name>AutoFree.TGarbos.Add</name>
+        <locmod>AutoFree\TGarbos (23)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>AutoFree.GC</name>
+      <locmod>AutoFree (73)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (75)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>AutoFree.GC</name>
+      <locmod>AutoFree (74)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (75)</locmod>
+      </calls>
+      <calls>
+        <name>AutoFree.TGarbos.Add</name>
+        <locmod>AutoFree\TGarbos (23)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>AutoFree.GC</name>
+      <locmod>AutoFree (75)</locmod>
+      <called_by>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (74)</locmod>
+      </called_by>
+      <called_by>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (73)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>AutoFree.RunOnExit</name>
+      <locmod>AutoFree (78)</locmod>
+      <calls>
+        <name>AutoFree.TCallProcOnDestroy.New</name>
+        <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>AutoFree.TCallProcOnDestroy.New</name>
+      <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+      <called_by>
+        <name>AutoFree.RunOnExit</name>
+        <locmod>AutoFree (78)</locmod>
+      </called_by>
+      <called_by>
+        <name>AutoFree.Trap</name>
+        <locmod>AutoFree (80)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>AutoFree.TGarbo.GC&lt;T&gt;</name>
+      <locmod>AutoFree\TGarbo (44)</locmod>
+      <calls>
+        <name>AutoFree.TGarbos.Add</name>
+        <locmod>AutoFree\TGarbos (22)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>AutoFree.TGarbos.Add</name>
+      <locmod>AutoFree\TGarbos (22)</locmod>
+      <called_by>
+        <name>AutoFree.TGarbo.GC&lt;T&gt;</name>
+        <locmod>AutoFree\TGarbo (44)</locmod>
+      </called_by>
+      <called_by>
+        <name>AutoFree.TGarbos.Add</name>
+        <locmod>AutoFree\TGarbos (23)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>AutoFree.TGarbos.Add</name>
+      <locmod>AutoFree\TGarbos (23)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (71)</locmod>
+      </calls>
+      <calls>
+        <name>AutoFree.TGarbos.Add</name>
+        <locmod>AutoFree\TGarbos (22)</locmod>
+      </calls>
+      <called_by>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (70)</locmod>
+      </called_by>
+      <called_by>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (74)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>AutoFree.TGarbos.Clear</name>
+      <locmod>AutoFree\TGarbos (25)</locmod>
+      <called_by>
+        <name>AutoFree.TGarbos.Finalize</name>
+        <locmod>AutoFree\TGarbos (28)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>AutoFree.TGarbos.Finalize</name>
+      <locmod>AutoFree\TGarbos (28)</locmod>
+      <calls>
+        <name>AutoFree.TGarbos.Clear</name>
+        <locmod>AutoFree\TGarbos (25)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>AutoFree.Trap</name>
+      <locmod>AutoFree (80)</locmod>
+      <calls>
+        <name>AutoFree.TCallProcOnDestroy.New</name>
+        <locmod>AutoFree\TCallProcOnDestroy (64)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Dak.Diagnostics.TDiagnostics.AddCycleMacro</name>
+      <locmod>Dak.Diagnostics\TDiagnostics (40)</locmod>
+      <calls>
+        <name>Dak.Diagnostics.TStringSet.Add</name>
+        <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Dak.Diagnostics.TDiagnostics.AddInfo</name>
+      <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+      <calls>
+        <name>Dak.Diagnostics.TDiagnostics.WriteLine</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (34)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.FixInsight.TryResolveFixInsightExe</name>
+        <locmod>Dak.FixInsight (10)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.Diagnostics.TDiagnostics.AddMissingPath</name>
+      <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+      <calls>
+        <name>Dak.Diagnostics.TStringSet.Add</name>
+        <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Dak.Diagnostics.TDiagnostics.AddNote</name>
+      <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+      <calls>
+        <name>Dak.Diagnostics.TDiagnostics.WriteLine</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (34)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Dak.Diagnostics.TDiagnostics.AddUnknownMacro</name>
+      <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+      <calls>
+        <name>Dak.Diagnostics.TStringSet.Add</name>
+        <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Dak.Diagnostics.TDiagnostics.Create</name>
+      <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.OrdinalIgnoreCase</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Dak.Diagnostics.TDiagnostics.WriteLine</name>
+      <locmod>Dak.Diagnostics\TDiagnostics (34)</locmod>
+      <called_by>
+        <name>Dak.Diagnostics.TDiagnostics.AddInfo</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.Diagnostics.TDiagnostics.AddNote</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (43)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.Diagnostics.TDiagnostics.WriteToStderr</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.Diagnostics.TDiagnostics.WriteToStderr</name>
+      <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+      <calls>
+        <name>Dak.Diagnostics.TDiagnostics.WriteLine</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (34)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.Diagnostics.TStringSet.ToArray</name>
+        <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Dak.Diagnostics.TStringSet.Add</name>
+      <locmod>Dak.Diagnostics\TStringSet (18)</locmod>
+      <called_by>
+        <name>Dak.Diagnostics.TDiagnostics.AddCycleMacro</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (40)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.Diagnostics.TDiagnostics.AddMissingPath</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (41)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.Diagnostics.TDiagnostics.AddUnknownMacro</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (39)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.Diagnostics.TStringSet.ToArray</name>
+      <locmod>Dak.Diagnostics\TStringSet (20)</locmod>
+      <called_by>
+        <name>Dak.Diagnostics.TDiagnostics.WriteToStderr</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (45)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.FixInsight.BuildFromRegistry</name>
+      <locmod>Dak.FixInsight (59)</locmod>
+      <calls>
+        <name>Dak.FixInsight.ExpandEnvVars</name>
+        <locmod>Dak.FixInsight (22)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.FixInsight.TryResolveFixInsightExe</name>
+        <locmod>Dak.FixInsight (10)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.FixInsight.ExpandEnvVars</name>
+      <locmod>Dak.FixInsight (22)</locmod>
+      <called_by>
+        <name>Dak.FixInsight.BuildFromRegistry</name>
+        <locmod>Dak.FixInsight (59)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.FixInsight.FindInPath</name>
+      <locmod>Dak.FixInsight (39)</locmod>
+      <called_by>
+        <name>Dak.FixInsight.TryResolveFixInsightExe</name>
+        <locmod>Dak.FixInsight (10)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.FixInsight.TryReadRegistryValue</name>
+      <locmod>Dak.FixInsight\TryResolveFixInsightExe (84)</locmod>
+      <called_by>
+        <name>Dak.FixInsight.TryResolveFixInsightExe</name>
+        <locmod>Dak.FixInsight (10)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.FixInsight.TryResolveFixInsightExe</name>
+      <locmod>Dak.FixInsight (10)</locmod>
+      <calls>
+        <name>Dak.Diagnostics.TDiagnostics.AddInfo</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (44)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.FixInsight.BuildFromRegistry</name>
+        <locmod>Dak.FixInsight (59)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.FixInsight.FindInPath</name>
+        <locmod>Dak.FixInsight (39)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.FixInsight.TryReadRegistryValue</name>
+        <locmod>Dak.FixInsight\TryResolveFixInsightExe (84)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.Support.RequireFixInsightOrSkip</name>
+        <locmod>Test.Support (21)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.AddFindingFromLoc</name>
+      <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.AddFindingRecord</name>
+        <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ChildText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ChooseMessage</name>
+        <locmod>Dak.PascalAnalyzerRunner (1247)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.NormalizeLineText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryParseLocMod</name>
+        <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseItemNode</name>
+        <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseSectionNode</name>
+        <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.AddFindingFromLocMod</name>
+      <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.AddFindingRecord</name>
+        <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ChooseMessage</name>
+        <locmod>Dak.PascalAnalyzerRunner (1247)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryParseLocMod</name>
+        <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseItemNode</name>
+        <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.AddFindingRecord</name>
+      <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.BuildFindingKey</name>
+        <locmod>Dak.PascalAnalyzerRunner (1256)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.NormalizeLineText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLoc</name>
+        <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLocMod</name>
+        <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.CollectExceptionCalls</name>
+        <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.AddRoot</name>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExeFromKnownRoots</name>
+        <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.AttrText</name>
+      <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseExceptionReport</name>
+        <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseSectionNode</name>
+        <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadComplexityEntries</name>
+        <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.BuildArgs</name>
+      <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ConcatArrays</name>
+        <locmod>Dak.PascalAnalyzerRunner (853)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.CpuCount</name>
+        <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.FilterExistingPaths</name>
+        <locmod>Dak.PascalAnalyzerRunner (822)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.JoinSemi</name>
+        <locmod>Dak.PascalAnalyzerRunner (848)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.QuoteArg</name>
+        <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryBuildDelphiTargetFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildPalCmdCommandLine</name>
+        <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.BuildFindingKey</name>
+      <locmod>Dak.PascalAnalyzerRunner (1256)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.AddFindingRecord</name>
+        <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.BuildPalCmdCommandLine</name>
+      <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.BuildArgs</name>
+        <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExe</name>
+        <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryRunPascalAnalyzerWithHandles</name>
+        <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.SelectsSupportedCompilerFlag</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.BuildPalCmdUnitCommandLine</name>
+      <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.CpuCount</name>
+        <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.QuoteArg</name>
+        <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExe</name>
+        <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryRunPascalAnalyzerUnit</name>
+        <locmod>Dak.PascalAnalyzerRunner (22)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.ChildText</name>
+      <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLoc</name>
+        <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.CollectExceptionCalls</name>
+        <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseItemNode</name>
+        <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadComplexityEntries</name>
+        <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadModuleLines</name>
+        <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.ChooseMessage</name>
+      <locmod>Dak.PascalAnalyzerRunner (1247)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLoc</name>
+        <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLocMod</name>
+        <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.ChoosePalCmdExeInDir</name>
+      <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExe</name>
+        <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExeFromKnownRoots</name>
+        <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.CollectExceptionCalls</name>
+      <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.AddFindingRecord</name>
+        <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ChildText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.CollectExceptionCalls</name>
+        <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.NormalizeLineText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryParseLocMod</name>
+        <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.CollectExceptionCalls</name>
+        <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseExceptionReport</name>
+        <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.CompareHotspot</name>
+      <locmod>Dak.PascalAnalyzerRunner (1705)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.SortHotspots</name>
+        <locmod>Dak.PascalAnalyzerRunner (1724)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.ConcatArrays</name>
+      <locmod>Dak.PascalAnalyzerRunner (853)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildArgs</name>
+        <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.ContainsFlag</name>
+      <locmod>Dak.PascalAnalyzerRunner (410)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryBuildDelphiTargetFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryResolveFlagFromHelp</name>
+        <locmod>Dak.PascalAnalyzerRunner (440)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.CpuCount</name>
+      <locmod>Dak.PascalAnalyzerRunner (812)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildArgs</name>
+        <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildPalCmdUnitCommandLine</name>
+        <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.Env</name>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (542)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExeFromKnownRoots</name>
+        <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.ExpandEnvVars</name>
+      <locmod>Dak.PascalAnalyzerRunner (92)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.NormalizeExePath</name>
+        <locmod>Dak.PascalAnalyzerRunner (498)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.FilterExistingPaths</name>
+      <locmod>Dak.PascalAnalyzerRunner (822)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.OrdinalIgnoreCase</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildArgs</name>
+        <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.FindOrderIndex</name>
+      <locmod>Dak.PascalAnalyzerRunner (276)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryBuildDelphiTargetFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryResolveFlagFromHelp</name>
+        <locmod>Dak.PascalAnalyzerRunner (440)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.FreePalCmdMap</name>
+      <locmod>Dak.PascalAnalyzerRunner (127)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryBuildDelphiTargetFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadPalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.InitPalCmdMap</name>
+      <locmod>Dak.PascalAnalyzerRunner (118)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.OrdinalIgnoreCase</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadPalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.IsAggregateName</name>
+      <locmod>Dak.PascalAnalyzerRunner (1542)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadModuleLines</name>
+        <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.JoinSemi</name>
+      <locmod>Dak.PascalAnalyzerRunner (848)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildArgs</name>
+        <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.JsonGetInteger</name>
+      <locmod>Dak.PascalAnalyzerRunner (151)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadPalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.JsonGetString</name>
+      <locmod>Dak.PascalAnalyzerRunner (141)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadPalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.NormalizeExePath</name>
+      <locmod>Dak.PascalAnalyzerRunner (498)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ExpandEnvVars</name>
+        <locmod>Dak.PascalAnalyzerRunner (92)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExe</name>
+        <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.NormalizeLineText</name>
+      <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLoc</name>
+        <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.AddFindingRecord</name>
+        <locmod>Dak.PascalAnalyzerRunner (1263)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.CollectExceptionCalls</name>
+        <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseExceptionReport</name>
+        <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseItemNode</name>
+        <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseSectionNode</name>
+        <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadComplexityEntries</name>
+        <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadModuleLines</name>
+        <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.PalCmdMapPath</name>
+      <locmod>Dak.PascalAnalyzerRunner (136)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadPalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.ParseExceptionReport</name>
+      <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.AttrText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.CollectExceptionCalls</name>
+        <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.NormalizeLineText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryLoadXml</name>
+        <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.ParseFindingReport</name>
+      <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ParseSectionNode</name>
+        <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryLoadXml</name>
+        <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.ParseItemNode</name>
+      <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLoc</name>
+        <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLocMod</name>
+        <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ChildText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.NormalizeLineText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseSectionNode</name>
+        <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.ParseSectionNode</name>
+      <locmod>Dak.PascalAnalyzerRunner (1369)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLoc</name>
+        <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.AttrText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.NormalizeLineText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ParseItemNode</name>
+        <locmod>Dak.PascalAnalyzerRunner (1340)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseFindingReport</name>
+        <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.QuoteArg</name>
+      <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildArgs</name>
+        <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildPalCmdUnitCommandLine</name>
+        <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryCaptureProcessOutput</name>
+        <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.SortHotspots</name>
+      <locmod>Dak.PascalAnalyzerRunner (1724)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.CompareHotspot</name>
+        <locmod>Dak.PascalAnalyzerRunner (1705)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.SplitComplexityName</name>
+      <locmod>Dak.PascalAnalyzerRunner (1515)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadComplexityEntries</name>
+        <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TakeTopHotspots</name>
+      <locmod>Dak.PascalAnalyzerRunner (1714)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryBuildDelphiTargetFlag</name>
+      <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ContainsFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (410)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.FindOrderIndex</name>
+        <locmod>Dak.PascalAnalyzerRunner (276)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.FreePalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (127)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryGetFileVersionMajor</name>
+        <locmod>Dak.PascalAnalyzerRunner (475)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryGetPalCmdHelpText</name>
+        <locmod>Dak.PascalAnalyzerRunner (395)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryGetPalCmdMaxDelphi</name>
+        <locmod>Dak.PascalAnalyzerRunner (286)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryLoadPalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryResolveFlagFromHelp</name>
+        <locmod>Dak.PascalAnalyzerRunner (440)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildArgs</name>
+        <locmod>Dak.PascalAnalyzerRunner (870)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryCaptureProcessOutput</name>
+      <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.QuoteArg</name>
+        <locmod>Dak.PascalAnalyzerRunner (44)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGetPalCmdHelpText</name>
+        <locmod>Dak.PascalAnalyzerRunner (395)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+      <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.IsAggregateName</name>
+        <locmod>Dak.PascalAnalyzerRunner (1542)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ParseExceptionReport</name>
+        <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ParseFindingReport</name>
+        <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.SortHotspots</name>
+        <locmod>Dak.PascalAnalyzerRunner (1724)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TakeTopHotspots</name>
+        <locmod>Dak.PascalAnalyzerRunner (1714)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryLoadComplexityEntries</name>
+        <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryLoadModuleLines</name>
+        <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.WritePalFindingsJsonl</name>
+        <locmod>Dak.PascalAnalyzerRunner (1766)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.WritePalFindingsMd</name>
+        <locmod>Dak.PascalAnalyzerRunner (1729)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.WritePalHotspotsMd</name>
+        <locmod>Dak.PascalAnalyzerRunner (1809)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.OrdinalIgnoreCase</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.PalFindingNormalize.TPalFindingNormalizeTests.NormalizePalFindingsFromFixtures</name>
+        <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryGetFileVersionMajor</name>
+      <locmod>Dak.PascalAnalyzerRunner (475)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryBuildDelphiTargetFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryGetJsonArray</name>
+      <locmod>Dak.PascalAnalyzerRunner (161)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadPalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryGetPalCmdHelpText</name>
+      <locmod>Dak.PascalAnalyzerRunner (395)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryCaptureProcessOutput</name>
+        <locmod>Dak.PascalAnalyzerRunner (305)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryBuildDelphiTargetFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryGetPalCmdMaxDelphi</name>
+      <locmod>Dak.PascalAnalyzerRunner (286)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryBuildDelphiTargetFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryLoadComplexityEntries</name>
+      <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.AttrText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1209)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ChildText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.NormalizeLineText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.SplitComplexityName</name>
+        <locmod>Dak.PascalAnalyzerRunner (1515)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryLoadXml</name>
+        <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryLoadModuleLines</name>
+      <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ChildText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1196)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.IsAggregateName</name>
+        <locmod>Dak.PascalAnalyzerRunner (1542)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.NormalizeLineText</name>
+        <locmod>Dak.PascalAnalyzerRunner (1190)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryLoadXml</name>
+        <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.OrdinalIgnoreCase</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryLoadPalCmdMap</name>
+      <locmod>Dak.PascalAnalyzerRunner (172)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.FreePalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (127)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.InitPalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (118)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.JsonGetInteger</name>
+        <locmod>Dak.PascalAnalyzerRunner (151)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.JsonGetString</name>
+        <locmod>Dak.PascalAnalyzerRunner (141)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.PalCmdMapPath</name>
+        <locmod>Dak.PascalAnalyzerRunner (136)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryGetJsonArray</name>
+        <locmod>Dak.PascalAnalyzerRunner (161)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryBuildDelphiTargetFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryLoadXml</name>
+      <locmod>Dak.PascalAnalyzerRunner (1392)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseExceptionReport</name>
+        <locmod>Dak.PascalAnalyzerRunner (1487)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.ParseFindingReport</name>
+        <locmod>Dak.PascalAnalyzerRunner (1423)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadComplexityEntries</name>
+        <locmod>Dak.PascalAnalyzerRunner (1558)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadModuleLines</name>
+        <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryParseLocMod</name>
+      <locmod>Dak.PascalAnalyzerRunner (1220)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLoc</name>
+        <locmod>Dak.PascalAnalyzerRunner (1289)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.AddFindingFromLocMod</name>
+        <locmod>Dak.PascalAnalyzerRunner (1325)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.CollectExceptionCalls</name>
+        <locmod>Dak.PascalAnalyzerRunner (1447)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryParseVer</name>
+      <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (561)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExeFromKnownRoots</name>
+        <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryResolveFlagFromHelp</name>
+      <locmod>Dak.PascalAnalyzerRunner (440)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ContainsFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (410)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.FindOrderIndex</name>
+        <locmod>Dak.PascalAnalyzerRunner (276)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryBuildDelphiTargetFlag</name>
+        <locmod>Dak.PascalAnalyzerRunner (701)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExe</name>
+      <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ChoosePalCmdExeInDir</name>
+        <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.NormalizeExePath</name>
+        <locmod>Dak.PascalAnalyzerRunner (498)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExeFromKnownRoots</name>
+        <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildPalCmdCommandLine</name>
+        <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.BuildPalCmdUnitCommandLine</name>
+        <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.RequirePalCmdOrSkip</name>
+        <locmod>Test.Support (22)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExeFromKnownRoots</name>
+      <locmod>Dak.PascalAnalyzerRunner (527)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.AddRoot</name>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (547)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.ChoosePalCmdExeInDir</name>
+        <locmod>Dak.PascalAnalyzerRunner (510)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.Env</name>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (542)</locmod>
+      </calls>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryParseVer</name>
+        <locmod>Dak.PascalAnalyzerRunner\TryResolvePalCmdExeFromKnownRoots (561)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExe</name>
+        <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryRunPascalAnalyzer</name>
+      <locmod>Dak.PascalAnalyzerRunner (16)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryRunPascalAnalyzerWithHandles</name>
+        <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryRunPascalAnalyzerUnit</name>
+      <locmod>Dak.PascalAnalyzerRunner (22)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.BuildPalCmdUnitCommandLine</name>
+        <locmod>Dak.PascalAnalyzerRunner (20)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.TryRunPascalAnalyzerWithHandles</name>
+      <locmod>Dak.PascalAnalyzerRunner (18)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.BuildPalCmdCommandLine</name>
+        <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryRunPascalAnalyzer</name>
+        <locmod>Dak.PascalAnalyzerRunner (16)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.WritePalFindingsJsonl</name>
+      <locmod>Dak.PascalAnalyzerRunner (1766)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.WritePalFindingsMd</name>
+      <locmod>Dak.PascalAnalyzerRunner (1729)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Dak.PascalAnalyzerRunner.WritePalHotspotsMd</name>
+      <locmod>Dak.PascalAnalyzerRunner (1809)</locmod>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.CharPosEx</name>
+      <locmod>maxLogic.StrUtils (95)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.ExtractString</name>
+        <locmod>maxLogic.StrUtils (83)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.CombineUrl</name>
+      <locmod>maxLogic.StrUtils (201)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.CombineUrl</name>
+        <locmod>maxLogic.StrUtils (201)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.CombineUrl</name>
+        <locmod>maxLogic.StrUtils (201)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.ExpandEnvVars</name>
+      <locmod>maxLogic.StrUtils (199)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.ReplacePlaceholder</name>
+        <locmod>maxLogic.StrUtils (182)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.ExtractString</name>
+      <locmod>maxLogic.StrUtils (42)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.ExtractString</name>
+        <locmod>maxLogic.StrUtils (83)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.ExtractString</name>
+      <locmod>maxLogic.StrUtils (83)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.CharPosEx</name>
+        <locmod>maxLogic.StrUtils (95)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.ExtractString</name>
+        <locmod>maxLogic.StrUtils (42)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.ReplacePlaceholder</name>
+        <locmod>maxLogic.StrUtils (182)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.fStr</name>
+      <locmod>maxLogic.StrUtils (272)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.PutBefore</name>
+        <locmod>maxLogic.StrUtils (20)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.MegaBytesToStr</name>
+        <locmod>maxLogic.StrUtils (329)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.IsUtf8ContinuationByte</name>
+      <locmod>maxLogic.StrUtils (985)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.Utf8TruncateByCodePoint</name>
+        <locmod>maxLogic.StrUtils (280)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.MatchesMaskCaseSensitive_RegEx</name>
+      <locmod>maxLogic.StrUtils (368)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.StringMatches</name>
+        <locmod>maxLogic.StrUtils (17)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.MegaBytesToStr</name>
+      <locmod>maxLogic.StrUtils (329)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.fStr</name>
+        <locmod>maxLogic.StrUtils (272)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.PrettyPrintSize</name>
+        <locmod>maxLogic.StrUtils (328)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.PrepareTextForStrToFloatWcc</name>
+      <locmod>maxLogic.StrUtils (286)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.StrToFloatWCC</name>
+        <locmod>maxLogic.StrUtils (283)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.StrToFLoatWccDef</name>
+        <locmod>maxLogic.StrUtils (285)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TryStrToFLoatWCC</name>
+        <locmod>maxLogic.StrUtils (284)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.PrettyPrintSize</name>
+      <locmod>maxLogic.StrUtils (328)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.MegaBytesToStr</name>
+        <locmod>maxLogic.StrUtils (329)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.PutBefore</name>
+      <locmod>maxLogic.StrUtils (20)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.fStr</name>
+        <locmod>maxLogic.StrUtils (272)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.PutBefore</name>
+        <locmod>maxLogic.StrUtils (21)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.PutBefore</name>
+      <locmod>maxLogic.StrUtils (21)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.PutBefore</name>
+        <locmod>maxLogic.StrUtils (20)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.ReplacePlaceholder</name>
+      <locmod>maxLogic.StrUtils (182)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (69)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.ExtractString</name>
+        <locmod>maxLogic.StrUtils (83)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.ExpandEnvVars</name>
+        <locmod>maxLogic.StrUtils (199)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.Split</name>
+      <locmod>maxLogic.StrUtils (264)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (69)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.Split</name>
+        <locmod>maxLogic.StrUtils (266)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.Split</name>
+      <locmod>maxLogic.StrUtils (265)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (69)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.Split</name>
+      <locmod>maxLogic.StrUtils (266)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.Split</name>
+        <locmod>maxLogic.StrUtils (264)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.splitstring</name>
+        <locmod>maxLogic.StrUtils (267)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.splitstring</name>
+      <locmod>maxLogic.StrUtils (267)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.Split</name>
+        <locmod>maxLogic.StrUtils (266)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.StrCmpLogical</name>
+      <locmod>maxLogic.StrUtils (211)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.StrCmpLogicalW</name>
+        <locmod>maxLogic.StrUtils (214)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.StrCmpLogicalW</name>
+      <locmod>maxLogic.StrUtils (214)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.StrCmpLogical</name>
+        <locmod>maxLogic.StrUtils (211)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.StringMatches</name>
+      <locmod>maxLogic.StrUtils (17)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.MatchesMaskCaseSensitive_RegEx</name>
+        <locmod>maxLogic.StrUtils (368)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.StrToFloatWCC</name>
+      <locmod>maxLogic.StrUtils (283)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.PrepareTextForStrToFloatWcc</name>
+        <locmod>maxLogic.StrUtils (286)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.StrToFLoatWccDef</name>
+      <locmod>maxLogic.StrUtils (285)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.PrepareTextForStrToFloatWcc</name>
+        <locmod>maxLogic.StrUtils (286)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.Equals</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (151)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.FoldCharValue</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (139)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.FoldPair</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (140)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.FoldCharValue</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (139)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.Equals</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (151)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.FoldPair</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (140)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashCaseInsensitive</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.FoldPair</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (140)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.FoldCharValue</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (139)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.Equals</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (151)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashCaseInsensitive</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.GetHashCode</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (152)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashCaseInsensitive</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashOrdinal</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (143)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.GetOrdinalComparer</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (145)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.Ordinal</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (149)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.GetOrdinalIgnoreCaseComparer</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (146)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.OrdinalIgnoreCase</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashBytes</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (142)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.Rotl32</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (141)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashOrdinal</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (143)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashCaseInsensitive</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.FoldCharValue</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (139)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.FoldPair</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (140)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.Rotl32</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (141)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.GetHashCode</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (152)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashOrdinal</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (143)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashBytes</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (142)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.GetHashCode</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (152)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.Ordinal</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (149)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.GetOrdinalComparer</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (145)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.OrdinalIgnoreCase</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (150)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.GetOrdinalIgnoreCaseComparer</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (146)</locmod>
+      </calls>
+      <called_by>
+        <name>Dak.Diagnostics.TDiagnostics.Create</name>
+        <locmod>Dak.Diagnostics\TDiagnostics (36)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.FilterExistingPaths</name>
+        <locmod>Dak.PascalAnalyzerRunner (822)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.InitPalCmdMap</name>
+        <locmod>Dak.PascalAnalyzerRunner (118)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </called_by>
+      <called_by>
+        <name>Dak.PascalAnalyzerRunner.TryLoadModuleLines</name>
+        <locmod>Dak.PascalAnalyzerRunner (1627)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFastCaseAwareComparer.Rotl32</name>
+      <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (141)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashBytes</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (142)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TFastCaseAwareComparer.HashCaseInsensitive</name>
+        <locmod>maxLogic.StrUtils\TFastCaseAwareComparer (144)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFilterEx.Create</name>
+      <locmod>maxLogic.StrUtils\TFilterEx (257)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.TFilterEx.Prepare</name>
+        <locmod>maxLogic.StrUtils\TFilterEx (251)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFilterEx.Prepare</name>
+      <locmod>maxLogic.StrUtils\TFilterEx (251)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (69)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TFilterEx.Preprocess</name>
+        <locmod>maxLogic.StrUtils\TFilterEx (254)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TFilterEx.SplitBySpace</name>
+        <locmod>maxLogic.StrUtils\TFilterEx (253)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.TFilterEx.Create</name>
+        <locmod>maxLogic.StrUtils\TFilterEx (257)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFilterEx.Preprocess</name>
+      <locmod>maxLogic.StrUtils\TFilterEx (254)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.TFilterEx.Prepare</name>
+        <locmod>maxLogic.StrUtils\TFilterEx (251)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TFilterEx.SplitBySpace</name>
+      <locmod>maxLogic.StrUtils\TFilterEx (253)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (69)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.TFilterEx.Prepare</name>
+        <locmod>maxLogic.StrUtils\TFilterEx (251)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TProcAdapter.Invoke</name>
+      <locmod>maxLogic.StrUtils\TProcAdapter (308)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (317)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (316)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+      <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (69)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TProcAdapter.Invoke</name>
+        <locmod>maxLogic.StrUtils\TProcAdapter (308)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (317)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (316)</locmod>
+      </called_by>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+      <locmod>maxLogic.StrUtils\TRegExHelper (313)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (69)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (313)</locmod>
+      </calls>
+      <called_by>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (313)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+      <locmod>maxLogic.StrUtils\TRegExHelper (316)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (69)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TProcAdapter.Invoke</name>
+        <locmod>maxLogic.StrUtils\TProcAdapter (308)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+      <locmod>maxLogic.StrUtils\TRegExHelper (317)</locmod>
+      <calls>
+        <name>AutoFree.GC</name>
+        <locmod>AutoFree (69)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TProcAdapter.Invoke</name>
+        <locmod>maxLogic.StrUtils\TProcAdapter (308)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.TRegExHelper.Replace</name>
+        <locmod>maxLogic.StrUtils\TRegExHelper (312)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.TryStrToFLoatWCC</name>
+      <locmod>maxLogic.StrUtils (284)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.PrepareTextForStrToFloatWcc</name>
+        <locmod>maxLogic.StrUtils (286)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.Utf8SequenceLength</name>
+      <locmod>maxLogic.StrUtils (972)</locmod>
+      <called_by>
+        <name>maxLogic.StrUtils.Utf8TruncateByCodePoint</name>
+        <locmod>maxLogic.StrUtils (280)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>maxLogic.StrUtils.Utf8TruncateByCodePoint</name>
+      <locmod>maxLogic.StrUtils (280)</locmod>
+      <calls>
+        <name>maxLogic.StrUtils.IsUtf8ContinuationByte</name>
+        <locmod>maxLogic.StrUtils (985)</locmod>
+      </calls>
+      <calls>
+        <name>maxLogic.StrUtils.Utf8SequenceLength</name>
+        <locmod>maxLogic.StrUtils (972)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Test.Build.TBuildTests.BuildResolverExe</name>
+      <locmod>Test.Build\TBuildTests (15)</locmod>
+      <calls>
+        <name>Test.Support.EnsureResolverBuilt</name>
+        <locmod>Test.Support (18)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.ResolverExePath</name>
+        <locmod>Test.Support (19)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Test.FixInsight.IsNewId</name>
+      <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (72)</locmod>
+      <called_by>
+        <name>Test.FixInsight.TFixInsightTests.ExtractIdsAndFile</name>
+        <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.FixInsight.TFixInsightTests.ExtractIdsAndFile</name>
+      <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+      <calls>
+        <name>Test.FixInsight.IsNewId</name>
+        <locmod>Test.FixInsight\TFixInsightTests\ExtractIdsAndFile (72)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.FixInsight.TFixInsightTests.FixInsightFiltering</name>
+        <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.FixInsight.TFixInsightTests.FixInsightFiltering</name>
+      <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+      <calls>
+        <name>Test.FixInsight.TFixInsightTests.ExtractIdsAndFile</name>
+        <locmod>Test.FixInsight\TFixInsightTests (20)</locmod>
+      </calls>
+      <calls>
+        <name>Test.FixInsight.TFixInsightTests.RunFixInsightOutputs</name>
+        <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.EnsureResolverBuilt</name>
+        <locmod>Test.Support (18)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RequireFixInsightOrSkip</name>
+        <locmod>Test.Support (21)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Test.FixInsight.TFixInsightTests.RunFixInsightOutputs</name>
+      <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+      <calls>
+        <name>Test.Support.QuoteArg</name>
+        <locmod>Test.Support (24)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RepoRoot</name>
+        <locmod>Test.Support (15)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.ResolverExePath</name>
+        <locmod>Test.Support (19)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RunProcess</name>
+        <locmod>Test.Support (23)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.TempRoot</name>
+        <locmod>Test.Support (16)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.FixInsight.TFixInsightTests.FixInsightFiltering</name>
+        <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.PalFindingNormalize.TPalFindingNormalizeTests.NormalizePalFindingsFromFixtures</name>
+      <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryGeneratePalArtifacts</name>
+        <locmod>Dak.PascalAnalyzerRunner (25)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RepoRoot</name>
+        <locmod>Test.Support (15)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.TempRoot</name>
+        <locmod>Test.Support (16)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Test.PascalAnalyzer.PalCmdSupportsFlag</name>
+      <locmod>Test.PascalAnalyzer (26)</locmod>
+      <calls>
+        <name>Test.Support.RepoRoot</name>
+        <locmod>Test.Support (15)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RunProcess</name>
+        <locmod>Test.Support (23)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.TempRoot</name>
+        <locmod>Test.Support (16)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.RunPascalAnalyzer</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.SelectsSupportedCompilerFlag</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.PascalAnalyzer.TailFile</name>
+      <locmod>Test.PascalAnalyzer (44)</locmod>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.RunPascalAnalyzer</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.PascalAnalyzer.TPascalAnalyzerTests.RunPascalAnalyzer</name>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      <calls>
+        <name>Test.PascalAnalyzer.PalCmdSupportsFlag</name>
+        <locmod>Test.PascalAnalyzer (26)</locmod>
+      </calls>
+      <calls>
+        <name>Test.PascalAnalyzer.TailFile</name>
+        <locmod>Test.PascalAnalyzer (44)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.EnsureResolverBuilt</name>
+        <locmod>Test.Support (18)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.QuoteArg</name>
+        <locmod>Test.Support (24)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RepoRoot</name>
+        <locmod>Test.Support (15)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RequirePalCmdOrSkip</name>
+        <locmod>Test.Support (22)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.ResolverExePath</name>
+        <locmod>Test.Support (19)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RunProcess</name>
+        <locmod>Test.Support (23)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.TempRoot</name>
+        <locmod>Test.Support (16)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Test.PascalAnalyzer.TPascalAnalyzerTests.SelectsSupportedCompilerFlag</name>
+      <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.BuildPalCmdCommandLine</name>
+        <locmod>Dak.PascalAnalyzerRunner (14)</locmod>
+      </calls>
+      <calls>
+        <name>Test.PascalAnalyzer.PalCmdSupportsFlag</name>
+        <locmod>Test.PascalAnalyzer (26)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RepoRoot</name>
+        <locmod>Test.Support (15)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RequirePalCmdOrSkip</name>
+        <locmod>Test.Support (22)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Test.Support.CmdExePath</name>
+      <locmod>Test.Support (91)</locmod>
+      <called_by>
+        <name>Test.Support.EnsureResolverBuilt</name>
+        <locmod>Test.Support (18)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.EnsureResolverBuilt</name>
+      <locmod>Test.Support (18)</locmod>
+      <calls>
+        <name>Test.Support.CmdExePath</name>
+        <locmod>Test.Support (91)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.EnsureTempClean</name>
+        <locmod>Test.Support (17)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.QuoteArg</name>
+        <locmod>Test.Support (24)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RepoRoot</name>
+        <locmod>Test.Support (15)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.RunProcess</name>
+        <locmod>Test.Support (23)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.TempRoot</name>
+        <locmod>Test.Support (16)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.Build.TBuildTests.BuildResolverExe</name>
+        <locmod>Test.Build\TBuildTests (15)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.FixInsight.TFixInsightTests.FixInsightFiltering</name>
+        <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.RunPascalAnalyzer</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.EnsureTempClean</name>
+      <locmod>Test.Support (17)</locmod>
+      <calls>
+        <name>Test.Support.TempRoot</name>
+        <locmod>Test.Support (16)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.Support.EnsureResolverBuilt</name>
+        <locmod>Test.Support (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.initialization</name>
+        <locmod>Test.Support (250)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.FindRepoRoot</name>
+      <locmod>Test.Support (43)</locmod>
+      <called_by>
+        <name>Test.Support.RepoRoot</name>
+        <locmod>Test.Support (15)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.initialization</name>
+      <locmod>Test.Support (250)</locmod>
+      <calls>
+        <name>Test.Support.EnsureTempClean</name>
+        <locmod>Test.Support (17)</locmod>
+      </calls>
+    </subprog>
+    <subprog>
+      <name>Test.Support.IsPawelMachine</name>
+      <locmod>Test.Support (20)</locmod>
+      <called_by>
+        <name>Test.Support.RequireFixInsightOrSkip</name>
+        <locmod>Test.Support (21)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.RequirePalCmdOrSkip</name>
+        <locmod>Test.Support (22)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.QuoteArg</name>
+      <locmod>Test.Support (24)</locmod>
+      <called_by>
+        <name>Test.FixInsight.TFixInsightTests.RunFixInsightOutputs</name>
+        <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.RunPascalAnalyzer</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.EnsureResolverBuilt</name>
+        <locmod>Test.Support (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.RunProcess</name>
+        <locmod>Test.Support (23)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.RepoRoot</name>
+      <locmod>Test.Support (15)</locmod>
+      <calls>
+        <name>Test.Support.FindRepoRoot</name>
+        <locmod>Test.Support (43)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.FixInsight.TFixInsightTests.RunFixInsightOutputs</name>
+        <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PalFindingNormalize.TPalFindingNormalizeTests.NormalizePalFindingsFromFixtures</name>
+        <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.PalCmdSupportsFlag</name>
+        <locmod>Test.PascalAnalyzer (26)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.RunPascalAnalyzer</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.SelectsSupportedCompilerFlag</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.EnsureResolverBuilt</name>
+        <locmod>Test.Support (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.ResolverExePath</name>
+        <locmod>Test.Support (19)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.TempRoot</name>
+        <locmod>Test.Support (16)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.RequireFixInsightOrSkip</name>
+      <locmod>Test.Support (21)</locmod>
+      <calls>
+        <name>Dak.FixInsight.TryResolveFixInsightExe</name>
+        <locmod>Dak.FixInsight (10)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.IsPawelMachine</name>
+        <locmod>Test.Support (20)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.FixInsight.TFixInsightTests.FixInsightFiltering</name>
+        <locmod>Test.FixInsight\TFixInsightTests (23)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.RequirePalCmdOrSkip</name>
+      <locmod>Test.Support (22)</locmod>
+      <calls>
+        <name>Dak.PascalAnalyzerRunner.TryResolvePalCmdExe</name>
+        <locmod>Dak.PascalAnalyzerRunner (13)</locmod>
+      </calls>
+      <calls>
+        <name>Test.Support.IsPawelMachine</name>
+        <locmod>Test.Support (20)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.RunPascalAnalyzer</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.SelectsSupportedCompilerFlag</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (19)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.ResolverExePath</name>
+      <locmod>Test.Support (19)</locmod>
+      <calls>
+        <name>Test.Support.RepoRoot</name>
+        <locmod>Test.Support (15)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.Build.TBuildTests.BuildResolverExe</name>
+        <locmod>Test.Build\TBuildTests (15)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.FixInsight.TFixInsightTests.RunFixInsightOutputs</name>
+        <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.RunPascalAnalyzer</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.RunProcess</name>
+      <locmod>Test.Support (23)</locmod>
+      <calls>
+        <name>Test.Support.QuoteArg</name>
+        <locmod>Test.Support (24)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.FixInsight.TFixInsightTests.RunFixInsightOutputs</name>
+        <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.PalCmdSupportsFlag</name>
+        <locmod>Test.PascalAnalyzer (26)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.RunPascalAnalyzer</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.EnsureResolverBuilt</name>
+        <locmod>Test.Support (18)</locmod>
+      </called_by>
+    </subprog>
+    <subprog>
+      <name>Test.Support.TempRoot</name>
+      <locmod>Test.Support (16)</locmod>
+      <calls>
+        <name>Test.Support.RepoRoot</name>
+        <locmod>Test.Support (15)</locmod>
+      </calls>
+      <called_by>
+        <name>Test.FixInsight.TFixInsightTests.RunFixInsightOutputs</name>
+        <locmod>Test.FixInsight\TFixInsightTests (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PalFindingNormalize.TPalFindingNormalizeTests.NormalizePalFindingsFromFixtures</name>
+        <locmod>Test.PalFindingNormalize\TPalFindingNormalizeTests (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.PalCmdSupportsFlag</name>
+        <locmod>Test.PascalAnalyzer (26)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.PascalAnalyzer.TPascalAnalyzerTests.RunPascalAnalyzer</name>
+        <locmod>Test.PascalAnalyzer\TPascalAnalyzerTests (21)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.EnsureResolverBuilt</name>
+        <locmod>Test.Support (18)</locmod>
+      </called_by>
+      <called_by>
+        <name>Test.Support.EnsureTempClean</name>
+        <locmod>Test.Support (17)</locmod>
+      </called_by>
+    </subprog>
+  </section>
+</report>
