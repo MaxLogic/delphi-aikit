@@ -17,7 +17,7 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
 
 def _utc_now_iso() -> str:
@@ -31,7 +31,7 @@ def _truthy_env(name: str, default: bool = False) -> bool:
     return raw in ("1", "true", "yes", "y", "on")
 
 
-def _int_env(name: str, default: int | None) -> int | None:
+def _int_env(name: str, default: Optional[int]) -> Optional[int]:
     raw = os.environ.get(name, "").strip()
     if not raw:
         return default
@@ -141,7 +141,7 @@ def parse_fixinsight_txt(txt_path: Path) -> list[FixInsightFinding]:
         return []
 
     findings: list[FixInsightFinding] = []
-    current_file: str | None = None
+    current_file: Optional[str] = None
 
     # Example:
     # File: ..\src\foo.pas
@@ -474,7 +474,7 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     gate_enabled = _truthy_env("DAK_GATE", False) or _truthy_env("DAK_CI", False)
 
     baseline_exists = baseline_path.exists()
-    baseline: dict[str, Any] | None = _load_json(baseline_path) if baseline_exists else None
+    baseline: Optional[dict[str, Any]] = _load_json(baseline_path) if baseline_exists else None
 
     current_pal_warning_hashes: list[str] = []
     current_pal_strong_hashes: list[str] = []
