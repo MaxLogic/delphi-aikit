@@ -24,19 +24,20 @@ Confidence:
 
 PALCMD produces multiple reports. Triage order:
 
-1. `Exception.xml` / "Strong Warnings": treat as highest priority.
-2. `Warnings.xml`: likely defects, suspicious code, unused/uninitialized.
-3. `Optimization.xml`: often safe but can be noisy; review for free wins.
-4. `Complexity.xml`: style/maintainability; do in refactor batches.
+1. "Strong Warnings": treat as highest priority.
+2. `Exception.xml`: only treat as high-signal if it contains finding-like sections (ignore "Exception Call Tree" unless we explicitly need throw propagation).
+3. `Warnings.xml`: likely defects, suspicious code, unused/uninitialized.
+4. `Optimization.xml`: often safe but can be noisy; review for free wins.
+5. `Complexity.xml`: style/maintainability; do in refactor batches.
 
 ## Suppressions and baselines (avoid churn)
 
 Prefer fixing real issues over blanket suppression, but when we must suppress:
 
 - Suppress by path for third-party/generated code:
-  - use `DCR_EXCLUDE_PATH_MASKS` for deterministic post-filtering of FixInsight outputs.
+  - use `DAK_EXCLUDE_PATH_MASKS` for deterministic post-filtering of FixInsight outputs.
 - Suppress by rule id only after confirming the rule is noisy for our codebase:
-  - use `DCR_IGNORE_WARNING_IDS` (post-processing; does not affect analysis runtime).
+  - use `DAK_IGNORE_WARNING_IDS` (post-processing; does not affect analysis runtime).
 - For local, intentional exceptions:
   - FixInsight supports inline suppression comments (see FixInsight manual).
   - Pascal Analyzer supports `PALOFF`-style suppression comments (see Peganza docs).

@@ -90,3 +90,6 @@ project.zip
 zip-project.bat
 project.zip
 zip-project.bat
+
+# Python caches (skill wrappers)
+__pycache__/
