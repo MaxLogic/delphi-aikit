@@ -2,6 +2,16 @@
 
 Only browse these sources if local references do not answer the question, or when we explicitly need re-verification.
 
+## Local sources (preferred)
+
+- Delphi vault (book): `Delphi_Quality_Driven_Development` → Chapter 24.1 “Static Code Analysis”
+  - WSL path: `/mnt/f/projects/docs/delphi-vault/md/Delphi_Quality_Driven_Development/Delphi_Quality_Driven_Development.md`
+  - Key takeaways: fix compiler warnings first, don’t let tool noise accumulate, prefer local suppression over global, and don’t run long analysis constantly.
+
+- YouTube transcript (Alister Christie / LearnDelphi.tv): “Why Static Code Analysis Matters”
+  - WSL path: `/mnt/f/projects/MaxLogic/YoutubeTranscriptionDownloader/output/Why Static Code Analysis Matters - AI Created - Delphi  (Alister Christie).txt`
+  - Key takeaways: “zero warnings” policy, use complexity/metrics + dead-code reports, and track trends over time (baseline snapshots).
+
 ## URLs and what we learned
 
 - LearnDelphi.tv videos list (entries #259, #260, #261)
