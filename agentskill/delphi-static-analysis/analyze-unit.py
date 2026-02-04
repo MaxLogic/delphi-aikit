@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 def _is_wsl() -> bool:
@@ -34,7 +35,7 @@ def _wslpath_to_unix(p: str) -> str:
     return out
 
 
-def _find_vcs_root(start_dir: Path) -> tuple[Path | None, str]:
+def _find_vcs_root(start_dir: Path) -> tuple[Optional[Path], str]:
     p = start_dir.resolve()
     while True:
         if (p / ".git").exists():
@@ -89,7 +90,7 @@ def _find_dak_exe(repo_root: Path) -> Path:
     return p
 
 
-def _maybe_add_arg(args: list[str], flag: str, value: str | None) -> None:
+def _maybe_add_arg(args: list[str], flag: str, value: Optional[str]) -> None:
     if not value:
         return
     v = value.strip()

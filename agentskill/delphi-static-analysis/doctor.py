@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 def _is_wsl() -> bool:
@@ -45,7 +46,7 @@ def _normalize_input_path(arg: str) -> Path:
     return Path(s).expanduser()
 
 
-def _find_vcs_root(start_dir: Path) -> tuple[Path | None, str]:
+def _find_vcs_root(start_dir: Path) -> tuple[Optional[Path], str]:
     p = start_dir.resolve()
     while True:
         if (p / ".git").exists():
