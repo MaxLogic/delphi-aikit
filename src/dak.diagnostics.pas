@@ -16,6 +16,7 @@ type
     constructor Create(const aComparer: IEqualityComparer<string>);
     destructor Destroy; override;
     function Add(const aValue: string): Boolean;
+    function Contains(const aValue: string): Boolean;
     function Count: Integer;
     function ToArray: TArray<string>;
   end;
@@ -25,6 +26,8 @@ type
     fUnknownMacros: TStringSet;
     fCycleMacros: TStringSet;
     fMissingPaths: TStringSet;
+    fIgnoreUnknownMacros: TStringSet;
+    fIgnoreMissingPathMasks: TStringSet;
     fWarnings: TList<string>;
     fVerbose: Boolean;
     fLogWriter: TStreamWriter;
@@ -32,6 +35,8 @@ type
     fLogEncoding: TEncoding;
     fLogToStderr: Boolean;
     procedure WriteLine(const aMessage: string);
+    function ShouldIgnoreUnknownMacro(const aName: string): Boolean;
+    function ShouldIgnoreMissingPath(const aPath: string): Boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -39,6 +44,8 @@ type
     procedure AddUnknownMacro(const aName: string);
     procedure AddCycleMacro(const aName: string);
     procedure AddMissingPath(const aPath: string);
+    procedure AddIgnoreUnknownMacros(const aList: string);
+    procedure AddIgnoreMissingPathMasks(const aList: string);
     procedure AddWarning(const aMessage: string);
     procedure AddNote(const aMessage: string);
     procedure AddInfo(const aMessage: string);
@@ -72,6 +79,11 @@ begin
     fItems.Add(aValue);
 end;
 
+function TStringSet.Contains(const aValue: string): Boolean;
+begin
+  Result := fSet.Contains(aValue);
+end;
+
 function TStringSet.Count: Integer;
 begin
   Result := fItems.Count;
@@ -84,12 +96,93 @@ end;
 
 { TDiagnostics }
 
+function SplitList(const aValue: string): TArray<string>;
+var
+  lRaw: TArray<string>;
+  lList: TList<string>;
+  lPart: string;
+  lItem: string;
+begin
+  Result := nil;
+  if aValue = '' then
+    Exit;
+  lRaw := aValue.Split([';']);
+  lList := TList<string>.Create;
+  try
+    for lPart in lRaw do
+    begin
+      lItem := Trim(lPart);
+      if lItem <> '' then
+        lList.Add(lItem);
+    end;
+    Result := lList.ToArray;
+  finally
+    lList.Free;
+  end;
+end;
+
+function NormalizeSlashes(const aValue: string): string;
+begin
+  Result := aValue.Replace('/', '\', [rfReplaceAll]);
+end;
+
+function MatchesMaskCI(const aText: string; const aMask: string): Boolean;
+var
+  t: string;
+  m: string;
+  i: Integer;
+  j: Integer;
+  star: Integer;
+  mark: Integer;
+begin
+  t := UpperCase(aText);
+  m := UpperCase(aMask);
+
+  i := 1;
+  j := 1;
+  star := 0;
+  mark := 0;
+  while i <= Length(t) do
+  begin
+    if (j <= Length(m)) and ((m[j] = '?') or (m[j] = t[i])) then
+    begin
+      Inc(i);
+      Inc(j);
+      Continue;
+    end;
+
+    if (j <= Length(m)) and (m[j] = '*') then
+    begin
+      star := j;
+      mark := i;
+      Inc(j);
+      Continue;
+    end;
+
+    if star <> 0 then
+    begin
+      j := star + 1;
+      Inc(mark);
+      i := mark;
+      Continue;
+    end;
+
+    Exit(False);
+  end;
+
+  while (j <= Length(m)) and (m[j] = '*') do
+    Inc(j);
+  Result := j > Length(m);
+end;
+
 constructor TDiagnostics.Create;
 begin
   inherited Create;
   fUnknownMacros := TStringSet.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   fCycleMacros := TStringSet.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   fMissingPaths := TStringSet.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  fIgnoreUnknownMacros := TStringSet.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  fIgnoreMissingPathMasks := TStringSet.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   fWarnings := TList<string>.Create;
   fLogWriter := nil;
   fLogStream := nil;
@@ -106,6 +199,8 @@ begin
   fMissingPaths.Free;
   fCycleMacros.Free;
   fUnknownMacros.Free;
+  fIgnoreMissingPathMasks.Free;
+  fIgnoreUnknownMacros.Free;
   inherited;
 end;
 
@@ -158,6 +253,8 @@ procedure TDiagnostics.AddUnknownMacro(const aName: string);
 begin
   if aName = '' then
     Exit;
+  if ShouldIgnoreUnknownMacro(aName) then
+    Exit;
   fUnknownMacros.Add(aName);
 end;
 
@@ -172,7 +269,48 @@ procedure TDiagnostics.AddMissingPath(const aPath: string);
 begin
   if aPath = '' then
     Exit;
+  if ShouldIgnoreMissingPath(aPath) then
+    Exit;
   fMissingPaths.Add(aPath);
+end;
+
+procedure TDiagnostics.AddIgnoreUnknownMacros(const aList: string);
+var
+  lItem: string;
+begin
+  for lItem in SplitList(aList) do
+    fIgnoreUnknownMacros.Add(lItem);
+end;
+
+procedure TDiagnostics.AddIgnoreMissingPathMasks(const aList: string);
+var
+  lItem: string;
+begin
+  for lItem in SplitList(aList) do
+    fIgnoreMissingPathMasks.Add(NormalizeSlashes(lItem));
+end;
+
+function TDiagnostics.ShouldIgnoreUnknownMacro(const aName: string): Boolean;
+begin
+  if fIgnoreUnknownMacros.Count = 0 then
+    Exit(False);
+  if fIgnoreUnknownMacros.Contains('*') then
+    Exit(True);
+  Result := fIgnoreUnknownMacros.Contains(aName);
+end;
+
+function TDiagnostics.ShouldIgnoreMissingPath(const aPath: string): Boolean;
+var
+  lMask: string;
+  lPath: string;
+begin
+  if fIgnoreMissingPathMasks.Count = 0 then
+    Exit(False);
+  lPath := NormalizeSlashes(aPath);
+  for lMask in fIgnoreMissingPathMasks.ToArray do
+    if MatchesMaskCI(lPath, NormalizeSlashes(lMask)) then
+      Exit(True);
+  Result := False;
 end;
 
 procedure TDiagnostics.AddWarning(const aMessage: string);
