@@ -2041,16 +2041,16 @@ begin
         begin
           if not TryLoadComplexityEntries(lComplexityPath, lEntries, lError) then
           begin
-            aError := lError;
-            Exit(False);
+            // PAL sometimes emits malformed XML for complexity; keep findings and skip hotspots.
+            lEntries := nil;
           end;
         end;
         if FileExists(lModuleTotalsPath) then
         begin
           if not TryLoadModuleLines(lModuleTotalsPath, lModuleLines, lError) then
           begin
-            aError := lError;
-            Exit(False);
+            // PAL sometimes emits malformed XML for module totals; keep findings and skip hotspots.
+            lModuleLines := nil;
           end;
         end;
 

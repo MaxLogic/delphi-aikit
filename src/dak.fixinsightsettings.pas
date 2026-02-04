@@ -26,6 +26,7 @@ const
   SFixInsightIgnoreSection = 'FixInsightIgnore';
   SReportFilterSection = 'ReportFilter';
   SPascalAnalyzerSection = 'PascalAnalyzer';
+  SDiagnosticsSection = 'Diagnostics';
 
 function GetExeSettingsPath: string;
 begin
@@ -276,6 +277,16 @@ begin
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'Args', ''));
   if lValue <> '' then
     aPascalAnalyzer.fArgs := lValue;
+
+  if aDiagnostics <> nil then
+  begin
+    lValue := Trim(aIni.ReadString(SDiagnosticsSection, 'IgnoreUnknownMacros', ''));
+    if lValue <> '' then
+      aDiagnostics.AddIgnoreUnknownMacros(lValue);
+    lValue := Trim(aIni.ReadString(SDiagnosticsSection, 'IgnoreMissingPaths', ''));
+    if lValue <> '' then
+      aDiagnostics.AddIgnoreMissingPathMasks(lValue);
+  end;
 end;
 
 function LoadSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
