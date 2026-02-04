@@ -13,3 +13,13 @@ Good for:
 - Consistent report collection and triage
 - Comparing results across changes
 - Local, repeatable analysis runs during development
+
+Newer additions:
+- FixInsight normalization (`fi-findings.md` / `fi-findings.jsonl`)
+- Per-project baselines + delta reports (`baseline.json`, `delta.md`)
+- Optional CI gating via env vars (see `SKILL.md`)
+- `doctor.*` preflight checks
+
+Defaults:
+- Outputs go to the analyzed project root (VCS root if we find `.git`/`.svn`, otherwise the `.dproj` directory).
+- If we detect Git, we ensure `_analysis/` is added to that repo’s `.gitignore`.

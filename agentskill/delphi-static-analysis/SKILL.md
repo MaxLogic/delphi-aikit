@@ -5,7 +5,7 @@ license: internal
 compatibility: "Requires Windows/WSL, DelphiAIKit.exe, FixInsightCL, PALCMD; may require commercial licenses"
 metadata:
   tags: [delphi, static-analysis]
-  version: "1.0"
+  version: "1.1"
 disable-model-invocation: true
 allowed-tools:
   - read
@@ -19,19 +19,26 @@ Goal: give an AI a repeatable workflow to (1) run TMS FixInsightCL + Peganza PAL
 
 ## Quick start
 
-Generate reports for a project:
+Generate reports for a project (FixInsight + Pascal Analyzer):
 
 - Windows:
   - `agentskill\\delphi-static-analysis\\analyze.bat path\\to\\MyProject.dproj`
 - WSL:
-  - `./agentskill/delphi-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
+  - `DAK_PASCAL_ANALYZER=1 ./agentskill/delphi-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
+
+Preflight / environment check:
+
+- Windows:
+  - `agentskill\\delphi-static-analysis\\doctor.bat path\\to\\MyProject.dproj`
+- WSL:
+  - `./agentskill/delphi-static-analysis/doctor.sh /mnt/c/path/to/MyProject.dproj`
 
 Generate Pascal Analyzer reports for a single unit:
 
 - Windows:
   - `agentskill\\delphi-static-analysis\\analyze-unit.bat path\\to\\Unit1.pas`
 - WSL:
-  - `./agentskill/delphi-static-analysis/analyze-unit.sh /mnt/c/path/to/Unit1.pas`
+  - `DAK_PASCAL_ANALYZER=1 ./agentskill/delphi-static-analysis/analyze-unit.sh /mnt/c/path/to/Unit1.pas`
 
 ## Tooling model (thin)
 
@@ -70,12 +77,20 @@ For the full list of supported environment variables and tool-specific gotchas, 
 
 ## Output tree (stable)
 
+By default, scripts write analysis outputs under the analyzed project root:
+
+- If we can discover a VCS root by searching up from the target (`.git` or `.svn`), we use that directory.
+- Otherwise we use the directory containing the analyzed file (`*.dproj` / `*.pas`).
+- If we detect a Git repo, we also ensure `_analysis/` is present in that repo’s `.gitignore`.
+
 Scripts create:
 
 ```
 _analysis/{projectName}/
   fixinsight/
     fixinsight.txt
+    fi-findings.md            (normalized; greppable)
+    fi-findings.jsonl         (normalized; machine-friendly)
     *.log
   pascal-analyzer/
     <ProjectName>/             (raw PALCMD XML output; many reports)
@@ -84,6 +99,10 @@ _analysis/{projectName}/
     pal-findings.md            (optional; normalized actionable surface when available)
     pal-hotspots.md            (optional)
     pal-findings.jsonl         (optional)
+  baseline.json                (created on first run; used for deltas/gating)
+  baseline.md                  (human baseline summary)
+  delta.md                     (delta vs baseline)
+  delta.json                   (machine delta vs baseline)
   summary.md
   run.log
 ```
@@ -111,7 +130,7 @@ Default triage flow:
 
 - Prefer `summary.md` (counts + quick context).
 - If `pal-findings.md` exists, use it instead of opening raw XML.
-- Otherwise, open only the finding-like XML reports we care about first (Warnings/Strong Warnings/Optimization, and Exception if non-empty) and treat Complexity/Module Totals as refactor/hotspot-only.
+- Otherwise, open only the finding-like XML reports we care about first (Warnings/Strong Warnings/Optimization). Open `Exception.xml` only when it contains *finding-like* sections (ignore "Exception Call Tree" unless we explicitly need throw propagation). Treat Complexity/Module Totals as refactor/hotspot-only.
 
 ## Safe auto-fix policy (conservative)
 
@@ -136,12 +155,30 @@ Examples of do not auto-fix (plan and do in small PR-sized steps):
 
 ## Recommended workflow (repeatable)
 
-1. Run `analyze.*` to produce baseline reports and `summary.md`.
+1. Run `analyze.*` once to create `baseline.json` + baseline reports.
 2. Identify top 3-5 high-signal issues to fix (prefer highest severity + highest confidence).
 3. Make a small patch.
 4. Build + run tests.
 5. Re-run `analyze.*` and confirm the warning count drops (or at least does not spike).
 6. Repeat.
+
+## Baselines, deltas, and CI gating (optional)
+
+By default:
+
+- First run creates `_analysis/<project>/baseline.json`.
+- Subsequent runs write `_analysis/<project>/delta.md` with counts + “new findings” vs the baseline.
+
+Useful env vars (wrapper-level; not forwarded to DAK):
+
+- `DAK_BASELINE=<path>` override baseline path (default: `_analysis/<project>/baseline.json`)
+- `DAK_UPDATE_BASELINE=1` overwrite the baseline with the current run
+- `DAK_GATE=1` (or `DAK_CI=1`) enable a conservative “don’t regress” gate
+- Thresholds:
+  - `DAK_MAX_NEW_PAL_STRONG=0` (default) fail if new PAL strong-warnings appear
+  - `DAK_MAX_NEW_FI_W=0` (default) fail if new FixInsight `W*` codes appear
+  - `DAK_MAX_PAL_WARNING_INCREASE=<N>` optional fail if PAL warnings increase by more than `N`
+  - `DAK_MAX_FI_TOTAL_INCREASE=<N>` optional fail if FixInsight findings increase by more than `N`
 
 ## Reporting format (agent output)
 
@@ -203,8 +240,9 @@ Top issues:
 
 - Exit code 0 from `analyze.*`.
 - `_analysis/<project>/summary.md` and `run.log` exist.
-- FixInsight TXT output present under `_analysis/<project>/fixinsight/` (or other formats if `DCR_FI_FORMATS` is set).
+- FixInsight TXT output present under `_analysis/<project>/fixinsight/` (or other formats if `DAK_FI_FORMATS` is set).
 - Pascal Analyzer outputs present under `_analysis/<project>/pascal-analyzer/`.
+- `_analysis/<project>/baseline.json` created on first run; `_analysis/<project>/delta.md` updated on subsequent runs.
 
 ## Failure modes (quick checklist)
 
