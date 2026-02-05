@@ -1343,20 +1343,21 @@ def _update_history_and_trend(
 
 def _build_pascal_unit_index(repo_root: Path) -> dict[str, str]:
     idx: dict[str, str] = {}
-    for p in repo_root.rglob("*.pas"):
-        # Skip analysis artifacts and VCS internals.
-        parts = {x.lower() for x in p.parts}
-        if ".git" in parts or "_analysis" in parts:
-            continue
-        try:
-            rel = p.relative_to(repo_root).as_posix()
-        except ValueError:
-            continue
-        key = p.stem.lower()
-        prev = idx.get(key)
-        # Prefer a stable/shortest path when duplicates exist.
-        if prev is None or len(rel) < len(prev):
-            idx[key] = rel
+    for pat in ("*.pas", "*.dpr", "*.dpk"):
+        for p in repo_root.rglob(pat):
+            # Skip analysis artifacts and VCS internals.
+            parts = {x.lower() for x in p.parts}
+            if ".git" in parts or "_analysis" in parts:
+                continue
+            try:
+                rel = p.relative_to(repo_root).as_posix()
+            except ValueError:
+                continue
+            key = p.stem.lower()
+            prev = idx.get(key)
+            # Prefer a stable/shortest path when duplicates exist.
+            if prev is None or len(rel) < len(prev):
+                idx[key] = rel
     return idx
 
 
@@ -1365,18 +1366,17 @@ def _normalize_pal_findings_jsonl(pal_jsonl_path: Path, *, repo_root: Optional[P
         return
 
     # Avoid an expensive repo scan when the file is already normalized.
-    # We treat `path: null` as "not normalized yet".
+    # We treat `path: null` or `path: ""` as "not normalized yet".
     needs_normalize = False
-    for i, first in enumerate(_iter_jsonl(pal_jsonl_path)):
-        if not isinstance(first, dict):
+    for obj in _iter_jsonl(pal_jsonl_path):
+        if not isinstance(obj, dict):
             continue
-        if first.get("path") is None:
+        if "path" not in obj:
             needs_normalize = True
             break
-        if "path" not in first:
+        p = obj.get("path")
+        if p is None or (isinstance(p, str) and not p.strip()):
             needs_normalize = True
-            break
-        if i >= 50:
             break
     if not needs_normalize:
         return
@@ -1389,7 +1389,11 @@ def _normalize_pal_findings_jsonl(pal_jsonl_path: Path, *, repo_root: Optional[P
         mod = str(obj.get("module") or "").strip()
         unit_key = mod.split("\\", 1)[0].split("/", 1)[0].strip().lower()
         obj2 = dict(obj)
-        obj2["path"] = idx.get(unit_key)
+        p = obj2.get("path")
+        if p is None or (isinstance(p, str) and not p.strip()):
+            obj2["path"] = idx.get(unit_key)
+        elif isinstance(p, str):
+            obj2["path"] = posixpath.normpath(p.replace("\\", "/"))
         out_items.append(obj2)
 
     _write_jsonl(pal_jsonl_path, out_items)

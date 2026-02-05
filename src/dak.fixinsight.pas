@@ -22,7 +22,7 @@ const
 function ExpandEnvVars(const aValue: string): string;
 var
   lRequired: Cardinal;
-  lBuffer: string;
+  lBuffer: TArray<Char>;
 begin
   if aValue = '' then
     Exit('');
@@ -32,14 +32,13 @@ begin
   SetLength(lBuffer, lRequired);
   if ExpandEnvironmentStrings(PChar(aValue), PChar(lBuffer), Length(lBuffer)) = 0 then
     Exit(aValue);
-  SetLength(lBuffer, StrLen(PChar(lBuffer)));
-  Result := lBuffer;
+  Result := PChar(lBuffer);
 end;
 
 function FindInPath(const aExeName: string; out aFullPath: string): Boolean;
 var
   lRequired: Cardinal;
-  lBuffer: string;
+  lBuffer: TArray<Char>;
   lFilePart: PChar;
 begin
   aFullPath := '';
@@ -51,8 +50,7 @@ begin
   lRequired := SearchPath(nil, PChar(aExeName), nil, Length(lBuffer), PChar(lBuffer), lFilePart);
   if lRequired = 0 then
     Exit(False);
-  SetLength(lBuffer, StrLen(PChar(lBuffer)));
-  aFullPath := lBuffer;
+  aFullPath := PChar(lBuffer);
   Result := aFullPath <> '';
 end;
 

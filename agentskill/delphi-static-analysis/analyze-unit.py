@@ -146,6 +146,7 @@ def main(argv: list[str]) -> int:
         return 2
 
     dak_exe = _find_dak_exe(repo_root)
+    dak_exe_arg = _to_win_arg(dak_exe) if _is_wsl() else str(dak_exe)
 
     delphi_ver = _get_env("DAK_DELPHI", "23.0")
     pa_path = os.environ.get("PA_PATH", "").strip()
@@ -155,7 +156,7 @@ def main(argv: list[str]) -> int:
     summary_flag = os.environ.get("DAK_WRITE_SUMMARY", "").strip()
 
     args = [
-        str(dak_exe),
+        dak_exe_arg,
         "analyze",
         "--unit",
         _to_win_arg(unit_path),
@@ -176,7 +177,10 @@ def main(argv: list[str]) -> int:
     if pa_args:
         args += ["--pa-args", pa_args]
 
-    p = subprocess.run(args, cwd=str(repo_root))
+    if _is_wsl():
+        p = subprocess.run(["/mnt/c/Windows/System32/cmd.exe", "/C"] + args, cwd=str(repo_root))
+    else:
+        p = subprocess.run(args, cwd=str(repo_root))
 
     summary_path = out_root / "summary.md"
     if summary_path.exists():

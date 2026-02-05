@@ -39,7 +39,7 @@ end;
 function ExpandEnvVars(const aValue: string): string;
 var
   lRequired: Cardinal;
-  lBuffer: string;
+  lBuffer: TArray<Char>;
 begin
   if aValue = '' then
     Exit('');
@@ -49,8 +49,7 @@ begin
   SetLength(lBuffer, lRequired);
   if ExpandEnvironmentStrings(PChar(aValue), PChar(lBuffer), Length(lBuffer)) = 0 then
     Exit(aValue);
-  SetLength(lBuffer, StrLen(PChar(lBuffer)));
-  Result := lBuffer;
+  Result := PChar(lBuffer);
 end;
 
 function ResolveFixInsightPath(const aValue: string): string;
@@ -150,7 +149,7 @@ begin
   if lDelphiVer = '' then
     lDelphiVer := aOptions.fDelphiVersion;
 
-  lCmdExe := GetEnvironmentVariable('ComSpec');
+  lCmdExe := System.SysUtils.GetEnvironmentVariable('ComSpec');
   if lCmdExe = '' then
     lCmdExe := 'C:\Windows\System32\cmd.exe';
 
@@ -203,6 +202,7 @@ var
   lError: string;
   lErrorCode: integer;
   lExitCode: integer;
+  lBuildExitCode: Integer;
   lOutPath: string;
   lOk: boolean;
   lRunExit: Cardinal;
@@ -253,10 +253,12 @@ begin
       begin
         if lOptions.fCommand = TCommandKind.ckBuild then
         begin
-          if not TryRunBuildDelphi(lOptions, lExitCode, lError) then
+          if not TryRunBuildDelphi(lOptions, lBuildExitCode, lError) then
           begin
             writeln(ErrOutput, lError);
             lExitCode := 6;
+          end else begin
+            lExitCode := lBuildExitCode;
           end;
           lOk := False;
         end else if lOptions.fCommand <> TCommandKind.ckResolve then

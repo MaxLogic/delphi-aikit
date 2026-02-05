@@ -25,7 +25,7 @@ var
       Exit(True);
     if aEnv.TryGetValue(aName, aValue) then
       Exit(True);
-    aValue := GetEnvironmentVariable(aName);
+    aValue := System.SysUtils.GetEnvironmentVariable(aName);
     Result := aValue <> '';
   end;
 
