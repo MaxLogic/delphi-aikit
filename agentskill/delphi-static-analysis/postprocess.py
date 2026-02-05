@@ -712,7 +712,188 @@ def _write_triage(out_root: Path, *, title: str, fi_jsonl_path: Path, pal_jsonl_
             lines.append("")
 
     _write_text(triage_path, "\n".join(lines).rstrip() + "\n")
+
+    if _truthy_env("DAK_TRIAGE_SNIPPETS", False):
+        try:
+            _write_triage_snippets(out_root, title=title, fi_top=fi_top, pal_top=pal_top)
+        except Exception as e:
+            # Keep postprocess resilient; snippets are an optional convenience.
+            print(f"WARNING: failed to write triage snippets: {e}", file=sys.stderr)
     return triage_path
+
+
+def _write_triage_snippets(
+    out_root: Path,
+    *,
+    title: str,
+    fi_top: list[dict[str, Any]],
+    pal_top: list[dict[str, Any]],
+) -> Path:
+    snippets_path = out_root / "triage-snippets.md"
+
+    repo_root = _find_git_root(out_root)
+    ctx_lines = _int_env("DAK_TRIAGE_SNIPPET_CONTEXT", 2)
+    if ctx_lines is None:
+        ctx_lines = 2
+    if ctx_lines < 0:
+        ctx_lines = 0
+
+    max_bytes = _int_env("DAK_TRIAGE_SNIPPET_MAX_BYTES", 200_000)
+    if max_bytes is None:
+        max_bytes = 200_000
+    if max_bytes < 0:
+        max_bytes = 0
+
+    file_cache: dict[str, list[str]] = {}
+
+    def try_load_lines(path_str: str) -> Optional[tuple[Path, list[str]]]:
+        if repo_root is None:
+            return None
+        s = (path_str or "").strip()
+        if not s or s in ("?", "unknown"):
+            return None
+
+        # Only repo-relative paths are eligible (avoid leaking huge absolute paths into output
+        # and avoid reading files outside the repo).
+        norm = s.replace("\\", "/")
+        if norm.startswith("/") or norm.startswith("//") or _looks_like_windows_path(norm):
+            return None
+
+        p = (repo_root / norm).resolve()
+        try:
+            if not p.is_relative_to(repo_root):
+                return None
+        except Exception:
+            return None
+
+        if not p.exists() or not p.is_file():
+            return None
+
+        key = str(p)
+        hit = file_cache.get(key)
+        if hit is not None:
+            return p, hit
+
+        # Delphi sources are often UTF-8 these days, but not always; use a permissive decode.
+        try:
+            text = p.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            text = p.read_text(encoding="latin-1", errors="replace")
+        lines = text.splitlines()
+        file_cache[key] = lines
+        return p, lines
+
+    def snippet_for(lines: list[str], line_no: int) -> str:
+        if line_no <= 0:
+            return ""
+        idx = line_no - 1
+        if idx >= len(lines):
+            return ""
+        start = max(0, idx - ctx_lines)
+        end = min(len(lines) - 1, idx + ctx_lines)
+        width = len(str(end + 1))
+
+        out: list[str] = []
+        for i in range(start, end + 1):
+            mark = "=>" if i == idx else "  "
+            out.append(f"{mark}{i + 1:>{width}}: {lines[i]}")
+        return "\n".join(out).rstrip()
+
+    buf: list[str] = []
+    used_bytes = 0
+    truncated = False
+
+    def block_bytes(lines: list[str]) -> int:
+        s = "\n".join(lines).rstrip() + "\n"
+        return len(s.encode("utf-8", errors="replace"))
+
+    def try_add_block(lines: list[str]) -> bool:
+        nonlocal used_bytes, truncated
+        b = block_bytes(lines)
+        if used_bytes + b > max_bytes:
+            truncated = True
+            return False
+        buf.extend(lines)
+        used_bytes += b
+        return True
+
+    header = [
+        f"# {title} triage (snippets)",
+        "",
+        f"- Timestamp: {_utc_now_iso()}",
+        f"- Repo root: `{repo_root}`" if repo_root is not None else "- Repo root: `<unknown>`",
+        f"- Context lines: {ctx_lines}",
+        f"- Max bytes: {max_bytes}",
+        "",
+        "Snippets are best-effort and only emitted for repo-relative paths that exist on disk.",
+        "",
+    ]
+    try_add_block(header)
+
+    def emit_section(name: str, items: list[dict[str, Any]], *, is_fixinsight: bool) -> None:
+        nonlocal truncated
+        if truncated:
+            return
+        if not try_add_block([f"## {name}", ""]):
+            return
+        if not items:
+            try_add_block([f"No {name} findings.", ""])
+            return
+
+        groups: dict[str, list[dict[str, Any]]] = {}
+        for it in items:
+            groups.setdefault(str(it.get("path") or "?"), []).append(it)
+
+        for path, group_items in groups.items():
+            if truncated:
+                return
+            if not try_add_block([f"### `{path}`", ""]):
+                return
+            for it in group_items:
+                if truncated:
+                    return
+                line_val = it.get("line")
+                try:
+                    line_no = int(line_val) if line_val is not None else 0
+                except Exception:
+                    line_no = 0
+                line_disp = str(line_val) if line_val is not None else "?"
+                if line_no > 0:
+                    line_disp = str(line_no)
+
+                if is_fixinsight:
+                    code = it.get("code", "?")
+                    col = it.get("col", "?")
+                    msg = it.get("message", "")
+                    summary = f"- [{code}] {line_disp}:{col} - {msg}"
+                else:
+                    sev = it.get("severity", "?")
+                    section = it.get("section", "")
+                    msg = it.get("message", "")
+                    summary = f"- [{sev}] {line_disp} - {section}: {msg}"
+
+                snip_lines: list[str] = [summary]
+                loaded = try_load_lines(path)
+                if loaded is not None and line_no > 0:
+                    _, src_lines = loaded
+                    snip = snippet_for(src_lines, line_no)
+                    if snip:
+                        snip_lines += ["", "```delphi", snip, "```"]
+                if len(snip_lines) == 1:
+                    snip_lines[0] += " (snippet unavailable)"
+                snip_lines.append("")
+                if not try_add_block(snip_lines):
+                    return
+
+    emit_section("FixInsight", fi_top, is_fixinsight=True)
+    emit_section("Pascal Analyzer", pal_top, is_fixinsight=False)
+
+    if truncated:
+        # Ensure we end on a clean paragraph; avoid leaving open code fences by truncating at block boundaries.
+        try_add_block(["", "_Output truncated due to `DAK_TRIAGE_SNIPPET_MAX_BYTES` budget._", ""])
+
+    _write_text(snippets_path, "\n".join(buf).rstrip() + "\n")
+    return snippets_path
 
 
 def _git_capture(repo_root: Path, args: list[str]) -> Optional[str]:

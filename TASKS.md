@@ -1,10 +1,10 @@
 # Tasks
-Next task ID: T-049
+Next task ID: T-050
 
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 48
+Done tasks: 49
 
 
 ## In Progress
@@ -18,6 +18,14 @@ Done tasks: 48
 ## Blocked
 
 ## Done
+
+### T-049 [CLI] Emit triage-snippets.md with bounded source context
+Outcome: Add an optional `DAK_TRIAGE_SNIPPETS=1` mode that emits `_analysis/<project>/triage-snippets.md` containing small, bounded source snippets for the top triage items (best-effort; repo-local paths only) to speed up fixing without opening files manually.
+Proof:
+- Command: DAK_TRIAGE_SNIPPETS=1 python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/triage-snippets.md` exists and contains at least one ```delphi code block.
+- Expect: Snippets are bounded by `DAK_TRIAGE_TOP` and `DAK_TRIAGE_SNIPPET_CONTEXT` (default), and the file is truncated when exceeding `DAK_TRIAGE_SNIPPET_MAX_BYTES`.
+Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md, agentskill/delphi-static-analysis/references/triage.md
 
 ### T-036 Fix GetExitCodeProcess out param cast in maxConsoleRunner
 Outcome: Use a local `DWORD` for `GetExitCodeProcess` and then assign to `fExitCode` to avoid the unsafe typecast and keep the public `ExitCode: Integer` unchanged.
