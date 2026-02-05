@@ -654,6 +654,24 @@ def _pal_triage_priority(severity: str) -> int:
     return 80
 
 
+def _pal_item_priority(severity: str, report: str, section: str, message: str) -> int:
+    base = _pal_triage_priority(severity)
+    if base <= 0:
+        return base
+
+    # `Exception.xml` "Exception Call Tree" is rarely a "fix next" signal; keep it out
+    # of the shortlist unless explicitly requested.
+    if severity.strip().lower() == "exception":
+        if not _truthy_env("DAK_TRIAGE_PAL_INCLUDE_CALL_TREE", False):
+            s = (section or "").strip().lower()
+            m = (message or "").strip().lower()
+            r = (report or "").strip().lower()
+            if ("call tree" in s) or ("call tree" in m) or (r == "exception.xml" and s == "exception call tree"):
+                return 10
+
+    return base
+
+
 def _write_triage(out_root: Path, *, title: str, fi_jsonl_path: Path, pal_jsonl_path: Path) -> Path:
     triage_path = out_root / "triage.md"
     top_n = _int_env("DAK_TRIAGE_TOP", 20) or 20
@@ -689,15 +707,18 @@ def _write_triage(out_root: Path, *, title: str, fi_jsonl_path: Path, pal_jsonl_
             path = obj.get("path") or obj.get("module") or "?"
             if not _triage_path_allowed(str(path), include=include_paths, exclude=exclude_paths):
                 continue
+            section = obj.get("section") or ""
+            message = obj.get("message") or ""
+            report = obj.get("report") or ""
             pal_items.append(
                 {
-                    "priority": _pal_triage_priority(severity),
+                    "priority": _pal_item_priority(severity, str(report), str(section), str(message)),
                     "path": str(path),
                     "severity": severity,
-                    "section": obj.get("section") or "",
+                    "section": section,
                     "module": obj.get("module") or "?",
                     "line": obj.get("line") or "?",
-                    "message": obj.get("message") or "",
+                    "message": message,
                 }
             )
 

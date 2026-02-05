@@ -183,6 +183,7 @@ Useful env vars (wrapper-level; not forwarded to DAK):
 - `DAK_TRIAGE_INCLUDE_PATHS='<glob;glob;...>'` include only matching paths in triage/snippets (postprocess-only)
 - `DAK_TRIAGE_EXCLUDE_PATHS='<glob;glob;...>'` exclude matching paths from triage/snippets (postprocess-only)
 - `DAK_SCOPE=changed` emit `triage-changed.md` filtered to Git-changed files
+- `DAK_TRIAGE_PAL_INCLUDE_CALL_TREE=1` allow `Exception Call Tree` entries into top PAL triage (default: deprioritized)
 - `DAK_TRIAGE_SNIPPETS=1` emit `triage-snippets.md` with bounded source snippets for top triage items
 - `DAK_TRIAGE_SNIPPET_CONTEXT=<N>` number of context lines around the finding line (default: `2`)
 - `DAK_TRIAGE_SNIPPET_MAX_BYTES=<N>` truncate snippet output when exceeding this size (default: `200000`)

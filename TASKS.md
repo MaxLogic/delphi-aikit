@@ -3,20 +3,13 @@ Next task ID: T-055
 
 
 ## Summary
-Open tasks: 3 (In Progress: 0, Next Today: 3, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 51
+Open tasks: 2 (In Progress: 0, Next Today: 2, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 52
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-052 [CLI] Deprioritize PAL Exception Call Tree entries in triage
-Outcome: Keep `Exception Call Tree` entries out of the top triage list by default (low priority), unless explicitly enabled via `DAK_TRIAGE_PAL_INCLUDE_CALL_TREE=1`.
-Proof:
-- Command: python3 -c "import importlib.util, sys; spec=importlib.util.spec_from_file_location('pp','agentskill/delphi-static-analysis/postprocess.py'); m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m); assert m._pal_triage_priority('warning') > m._pal_item_priority('exception','Exception.xml','Exception Call Tree',''); print('ok')"
-- Expect: Prints `ok`.
-Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
 
 ### T-053 [CLI] Split FixInsight triage into defects vs maintainability
 Outcome: Update `triage.md` (and snippets) rendering so FixInsight findings are grouped by kind: `W` (defects), `C` (maintainability/refactor pressure), `O` (hygiene), to keep the fix workflow focused.
@@ -39,6 +32,13 @@ Touches: agentskill/delphi-static-analysis/postprocess.py
 ## Blocked
 
 ## Done
+
+### T-052 [CLI] Deprioritize PAL Exception Call Tree entries in triage
+Outcome: Keep `Exception Call Tree` entries out of the top triage list by default (low priority), unless explicitly enabled via `DAK_TRIAGE_PAL_INCLUDE_CALL_TREE=1`.
+Proof:
+- Command: python3 -c "import importlib.util, sys; spec=importlib.util.spec_from_file_location('pp','agentskill/delphi-static-analysis/postprocess.py'); m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m); assert m._pal_triage_priority('warning') > m._pal_item_priority('exception','Exception.xml','Exception Call Tree',''); print('ok')"
+- Expect: Prints `ok`.
+Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
 
 ### T-051 [CLI] Add triage include/exclude path filters
 Outcome: Add `DAK_TRIAGE_INCLUDE_PATHS` and `DAK_TRIAGE_EXCLUDE_PATHS` (semicolon-separated glob patterns) so `triage.md`/`triage-snippets.md` can focus on selected paths without re-running analyzers.
