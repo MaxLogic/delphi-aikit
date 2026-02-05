@@ -3,13 +3,21 @@ Next task ID: T-058
 
 
 ## Summary
-Open tasks: 1 (In Progress: 0, Next Today: 1, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 56
+Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 57
 
 
 ## In Progress
 
 ## Next - Today
+
+## Next - This Week
+
+## Next - Later
+
+## Blocked
+
+## Done
 
 ### T-057 [DOC] Add static-analysis fix recipes
 Outcome: Add `agentskill/delphi-static-analysis/references/fix-recipes.md` with safe, conservative fix recipes for common FixInsight/PAL findings, including what to verify (build/tests) and links to our rules in `conventions.md` (especially AutoFree.GC and managed types).
@@ -19,14 +27,6 @@ Proof:
 - Command: rg -n \"AutoFree\\.GC\\(\\)|Managed Types|PALOFF\" agentskill/delphi-static-analysis/references/fix-recipes.md
 - Expect: Outputs at least 3 matching lines.
 Touches: agentskill/delphi-static-analysis/references/fix-recipes.md
-
-## Next - This Week
-
-## Next - Later
-
-## Blocked
-
-## Done
 
 ### T-056 [CLI] Gate: include/exclude paths for CI gating
 Outcome: Add `DAK_GATE_INCLUDE_PATHS` / `DAK_GATE_EXCLUDE_PATHS` (semicolon-separated glob patterns; same semantics as triage) so the CI gate only considers findings in selected paths (e.g. `src/*`) and ignores vendor/submodules.
