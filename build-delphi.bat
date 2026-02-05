@@ -15,7 +15,7 @@ set "DEFAULT_VER=23"
 set "DEFAULT_BUILD_CONFIG=Release"
 set "DEFAULT_BUILD_PLATFORM=Win32"
 
-set "ROOT=%CD%"
+set "ROOT="
 set "EXITCODE=0"
 
 set "PROJECT="
@@ -74,13 +74,21 @@ if not defined PROJECT (
   goto usage_fail
 )
 
-set "PRJ_NAME=%PROJECT%"
 for %%p in ("%PROJECT%") do set "PROJECT=%%~fp"
+
+rem ---- Choose output root for path normalization
+rem Prefer VCS root (.git/.svn) above the target project; fallback to the .dproj directory.
+for /f "usebackq delims=" %%r in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=[IO.Path]::GetFullPath('%PROJECT%'); $dir=[IO.Path]::GetDirectoryName($p); $cur=$dir; $found=$false; while($cur){ if((Test-Path (Join-Path $cur '.git') -PathType Container) -or (Test-Path (Join-Path $cur '.svn') -PathType Container)){ $found=$true; break }; $parent=[IO.Directory]::GetParent($cur); if($parent -eq $null){ break }; $cur=$parent.FullName }; if(-not $found){ $cur=$dir }; Write-Output $cur"`) do set "ROOT=%%r"
+if not defined ROOT for %%d in ("%PROJECT%") do set "ROOT=%%~dpd"
+
+rem ---- Make header stable by showing project path relative to ROOT (when possible)
+set "PRJ_NAME=%PROJECT%"
+for /f "usebackq delims=" %%r in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$proj=[IO.Path]::GetFullPath('%PROJECT%'); $root=[IO.Path]::GetFullPath('%ROOT%'); if(-not $root.EndsWith('\')){ $root=$root+'\' }; if($proj.ToLower().StartsWith($root.ToLower())){ $proj.Substring($root.Length) } else { $proj }"`) do set "PRJ_NAME=%%r"
 
 rem ---- ASCII header (pipes escaped)
 echo +================================================================================+
 echo ^| BUILD   : %PRJ_NAME%
-echo ^| PATH    : %PROJECT%
+echo ^| PATH    : %PRJ_NAME%
 echo ^| CONFIG  : %BUILD_CONFIG%    PLATFORM: %BUILD_PLATFORM%    DELPHI: %VER%
 echo +================================================================================+
 echo.
