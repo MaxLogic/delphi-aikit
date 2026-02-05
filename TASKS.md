@@ -2,24 +2,14 @@
 Next task ID: T-062
 
 ## Summary
-Open tasks: 2 (In Progress: 0, Next Today: 0, Next This Week: 2, Next Later: 0, Blocked: 0)
-Done tasks: 59
+Open tasks: 1 (In Progress: 0, Next Today: 0, Next This Week: 1, Next Later: 0, Blocked: 0)
+Done tasks: 60
 
 ## In Progress
 
 ## Next - Today
 
 ## Next - This Week
-
-### T-060 [CLI] Build: Honor dak.ini Ignores For Compiler Warnings/Hints
-Outcome: Honor ignore lists from `dak.ini` (and CLI overrides) for compiler warnings/hints so build output can hide known-noise findings while still surfacing new/high-signal ones.
-Proof:
-- Command: ./build-delphi.sh tests/DelphiAIKit.Tests.dproj
-- Expect: Build succeeds.
-- Command: tests/run.sh
-- Expect: Exit code `0`.
-Touches: bin/dak.ini, src/dak.analyze.pas, src/dak.diagnostics.pas, projects/DelphiAIKit.dpr, src/dak.cli.pas, src/dak.types.pas
-Notes: Add a dedicated `dak.ini` section for build ignores (e.g. `[BuildIgnore] Warnings=... Hints=...`) and ensure CLI can override.
 
 ### T-061 [CLI] Build: Token-Saving “AI Mode” Output
 Outcome: Add an “AI mode” for `DelphiAIKit.exe build` that prints only what matters to review a build: error summary first, then (optional) a bounded list of warning/hint lines, stripping compiler banners and other noise by default.
@@ -34,6 +24,16 @@ Notes: Consider mapping to `build-delphi.bat -no-brand` and adding a bounded “
 ## Blocked
 
 ## Done
+
+### T-060 [CLI] Build: Honor dak.ini Ignores For Compiler Warnings/Hints
+Outcome: Honor ignore lists from `dak.ini` (and CLI overrides) for compiler warnings/hints so build output can hide known-noise findings while still surfacing new/high-signal ones.
+Proof:
+- Command: ./build-delphi.sh tests/DelphiAIKit.Tests.dproj
+- Expect: Build succeeds.
+- Command: tests/run.sh
+- Expect: Exit code `0`.
+Touches: bin/dak.ini, src/dak.analyze.pas, src/dak.diagnostics.pas, projects/DelphiAIKit.dpr, src/dak.cli.pas, src/dak.types.pas
+Notes: Add a dedicated `dak.ini` section for build ignores (e.g. `[BuildIgnore] Warnings=... Hints=...`) and ensure CLI can override.
 
 ### T-059 [CLI] Build: Normalize Paths In Output (Repo-Relative + WSL-Friendly)
 Outcome: Normalize paths in `DelphiAIKit.exe build` output so AI output is stable across machines: make paths repo-relative where possible (VCS root if detected, else `.dproj` dir), and optionally emit WSL/Linux-style paths when running under WSL.

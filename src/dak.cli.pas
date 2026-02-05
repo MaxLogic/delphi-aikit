@@ -763,6 +763,24 @@ begin
     Exit(True);
   end;
 
+  if SameText(aSwitch, 'ignore-warnings') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--ignore-warnings') then
+      Exit(False);
+    fOptions.fBuildIgnoreWarnings := lValue;
+    fOptions.fHasBuildIgnoreWarnings := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'ignore-hints') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--ignore-hints') then
+      Exit(False);
+    fOptions.fBuildIgnoreHints := lValue;
+    fOptions.fHasBuildIgnoreHints := True;
+    Exit(True);
+  end;
+
   fError := Format(SUnknownArg, [aArg]);
   Result := False;
 end;

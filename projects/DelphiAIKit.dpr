@@ -102,7 +102,7 @@ end;
 
 function QuoteCmdArg(const aValue: string): string;
 begin
-  if (aValue = '') or (Pos(' ', aValue) > 0) or (Pos('"', aValue) > 0) then
+  if (aValue = '') or (Pos(' ', aValue) > 0) or (Pos('"', aValue) > 0) or (Pos(';', aValue) > 0) then
     Result := '"' + StringReplace(aValue, '"', '""', [rfReplaceAll]) + '"'
   else
     Result := aValue;
@@ -160,6 +160,10 @@ begin
     lCmdLine := lCmdLine + ' -show-warnings';
   if aOptions.fBuildShowHints then
     lCmdLine := lCmdLine + ' -show-hints';
+  if aOptions.fHasBuildIgnoreWarnings then
+    lCmdLine := lCmdLine + ' -ignore-warnings ' + QuoteCmdArg(aOptions.fBuildIgnoreWarnings);
+  if aOptions.fHasBuildIgnoreHints then
+    lCmdLine := lCmdLine + ' -ignore-hints ' + QuoteCmdArg(aOptions.fBuildIgnoreHints);
   lCmdLine := lCmdLine + '"';
   UniqueString(lCmdLine);
   lWorkDir := ExtractFilePath(lBatPath);
