@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import platform
 import re
 import sys
 from collections import Counter
@@ -80,6 +81,10 @@ def _write_jsonl(path: Path, items: Iterable[dict[str, Any]]) -> None:
             f.write(json.dumps(obj, ensure_ascii=True) + "\n")
 
 
+def _is_wsl() -> bool:
+    return bool(os.environ.get("WSL_DISTRO_NAME")) or ("microsoft" in platform.release().lower())
+
+
 @dataclass(frozen=True)
 class FixInsightFinding:
     code: str
@@ -133,6 +138,14 @@ def parse_dak_summary_md(summary_path: Path) -> dict[str, Any]:
             "exceptions": int(pal_totals_m.group(3)),
         }
 
+    pal_version_m = re.search(r"^- Version:\s*([0-9.]+)\s*$", text, flags=re.MULTILINE)
+    if pal_version_m:
+        data["pal_version"] = pal_version_m.group(1)
+
+    pal_target_m = re.search(r"^- Compiler target:\s*(.+)\s*$", text, flags=re.MULTILINE)
+    if pal_target_m:
+        data["pal_compiler_target"] = pal_target_m.group(1).strip()
+
     return data
 
 
@@ -174,6 +187,143 @@ def parse_fixinsight_txt(txt_path: Path) -> list[FixInsightFinding]:
         )
 
     return findings
+
+
+def _parse_pal_compiler_target(target: str) -> tuple[Optional[str], Optional[str]]:
+    # Example: "Delphi 12 (Win32)" -> ("Delphi 12", "Win32")
+    t = target.strip()
+    if not t:
+        return None, None
+    m = re.match(r"^(?P<label>.+?)\s*\((?P<plat>[^)]+)\)\s*$", t)
+    if not m:
+        return t, None
+    label = m.group("label").strip()
+    plat_raw = m.group("plat").strip()
+    plat = plat_raw
+    if plat_raw.lower() == "win32":
+        plat = "Win32"
+    elif plat_raw.lower() == "win64":
+        plat = "Win64"
+    return label, plat
+
+
+def _last_matching_line(text: str, *, prefix: str, contains: str) -> Optional[str]:
+    last: Optional[str] = None
+    needle = contains.lower()
+    for line in text.splitlines():
+        if not line.startswith(prefix):
+            continue
+        if needle not in line.lower():
+            continue
+        last = line
+    return last
+
+
+def _parse_run_log_context(run_log_path: Path) -> dict[str, Any]:
+    ctx: dict[str, Any] = {}
+    if not run_log_path.exists():
+        return ctx
+
+    text = run_log_path.read_text(encoding="utf-8", errors="replace")
+
+    # Last recorded CWD (we append new runs; last is the current one).
+    cwd: Optional[str] = None
+    for m in re.finditer(r"^CWD:\s*(.+?)\s*$", text, flags=re.MULTILINE):
+        cwd = m.group(1).strip()
+    if cwd:
+        ctx["analysis_cwd"] = cwd
+
+    fi_line = _last_matching_line(text, prefix="CMD:", contains="fixinsightcl.exe")
+    if fi_line:
+        m = re.search(r'^CMD:\s*"(?P<exe>[^"]*FixInsightCL\.exe)"', fi_line, flags=re.IGNORECASE)
+        if m:
+            ctx["fixinsight_exe"] = m.group("exe")
+
+    pal_line = _last_matching_line(text, prefix="CMD:", contains="palcmd.exe")
+    if pal_line:
+        m = re.search(r'^CMD:\s*"(?P<exe>[^"]*palcmd\.exe)"', pal_line, flags=re.IGNORECASE)
+        if m:
+            ctx["pal_exe"] = m.group("exe")
+
+        m = re.search(r"/BUILD=(?P<cfg>\S+)", pal_line, flags=re.IGNORECASE)
+        if m:
+            ctx["config"] = m.group("cfg")
+
+        m = re.search(r"/CD(?P<cd>\S+)", pal_line, flags=re.IGNORECASE)
+        if m:
+            cd = m.group("cd").strip()
+            ctx["pal_compiler_switch"] = f"CD{cd}"
+            cd_u = cd.upper()
+            if "W32" in cd_u:
+                ctx["platform"] = "Win32"
+            elif "W64" in cd_u:
+                ctx["platform"] = "Win64"
+
+    # Best-effort: infer Delphi/BDS version from RAD Studio path fragments.
+    studio_versions = re.findall(r"Embarcadero[\\/]+Studio[\\/]+(\d+\.\d+)", text, flags=re.IGNORECASE)
+    if studio_versions:
+        ctx["delphi"] = studio_versions[-1]
+
+    return ctx
+
+
+def _build_run_context(out_root: Path, summary: dict[str, Any], *, allow_env: bool, expected_summary_timestamp: Optional[str]) -> dict[str, Any]:
+    ctx: dict[str, Any] = {}
+
+    if allow_env:
+        for k, env_name in (("platform", "DAK_PLATFORM"), ("config", "DAK_CONFIG"), ("delphi", "DAK_DELPHI")):
+            raw = os.environ.get(env_name, "").strip()
+            if raw:
+                ctx[k] = raw
+
+    # We only trust run.log parsing for baselines when we can prove the outputs match.
+    run_log_ctx: dict[str, Any] = {}
+    if expected_summary_timestamp is None or str(summary.get("timestamp") or "") == expected_summary_timestamp:
+        run_log_ctx = _parse_run_log_context(out_root / "run.log")
+
+    for k in ("platform", "config", "delphi"):
+        if not ctx.get(k) and run_log_ctx.get(k):
+            ctx[k] = str(run_log_ctx[k])
+
+    pal_target = str(summary.get("pal_compiler_target") or "").strip()
+    if pal_target:
+        label, plat = _parse_pal_compiler_target(pal_target)
+        if not ctx.get("platform") and plat:
+            ctx["platform"] = plat
+        if not ctx.get("delphi") and label:
+            ctx["delphi"] = label
+
+    # Ensure required keys always exist.
+    for k in ("platform", "config", "delphi"):
+        if not ctx.get(k):
+            ctx[k] = "unknown"
+
+    tools: dict[str, Any] = {}
+    if run_log_ctx.get("fixinsight_exe"):
+        tools["fixinsight_exe"] = run_log_ctx["fixinsight_exe"]
+    if run_log_ctx.get("pal_exe"):
+        tools["pal_exe"] = run_log_ctx["pal_exe"]
+    if run_log_ctx.get("pal_compiler_switch"):
+        tools["pal_compiler_switch"] = run_log_ctx["pal_compiler_switch"]
+    if summary.get("pal_version"):
+        tools["pal_version"] = summary["pal_version"]
+    if pal_target:
+        tools["pal_compiler_target"] = pal_target
+    if tools:
+        ctx["tools"] = tools
+
+    host: dict[str, Any] = {
+        "os": platform.system(),
+        "release": platform.release(),
+        "python": platform.python_version(),
+        "wsl": _is_wsl(),
+    }
+    analysis_cwd = run_log_ctx.get("analysis_cwd")
+    if analysis_cwd:
+        host["analysis_cwd"] = analysis_cwd
+    ctx["host"] = host
+
+    return ctx
 
 
 def _fi_findings_to_jsonl(findings: Iterable[FixInsightFinding]) -> Iterable[dict[str, Any]]:
@@ -295,12 +445,18 @@ def _render_delta_md(delta: dict[str, Any]) -> str:
     current = delta.get("current") or {}
     lines.append(f"- Baseline: `{baseline.get('path', '')}` ({baseline.get('timestamp', 'unknown')})")
     lines.append(f"- Current: `{current.get('summary_path', '')}` ({current.get('timestamp', 'unknown')})")
+    if baseline.get("run_context"):
+        ctx = baseline["run_context"]
+        lines.append(f"- Baseline context: platform={ctx.get('platform','?')}, config={ctx.get('config','?')}, delphi={ctx.get('delphi','?')}")
+    if current.get("run_context"):
+        ctx = current["run_context"]
+        lines.append(f"- Current context: platform={ctx.get('platform','?')}, config={ctx.get('config','?')}, delphi={ctx.get('delphi','?')}")
     lines.append("")
 
     fi = delta.get("fixinsight") or {}
     lines.append("## FixInsight")
     lines.append(f"- Findings: {fi.get('total_before', '?')} -> {fi.get('total_after', '?')} ({fi.get('total_delta', 0):+d})")
-    lines.append(f"- New W-codes: {fi.get('new_w_count', 0)}")
+    lines.append(f"- New W-findings: {fi.get('new_w_count', 0)}")
     if fi.get("top_code_deltas"):
         lines.append("- Top code deltas:")
         for row in fi["top_code_deltas"]:
@@ -330,7 +486,7 @@ def _render_delta_md(delta: dict[str, Any]) -> str:
         lines.append("")
 
     if fi.get("new_w"):
-        lines.append(f"### New FixInsight W-codes ({len(fi['new_w'])})")
+        lines.append(f"### New FixInsight W-findings ({len(fi['new_w'])})")
         for item in fi["new_w"][:20]:
             lines.append(f"- {item}")
         lines.append("")
@@ -354,6 +510,9 @@ def _render_baseline_md(title: str, baseline_path: Path, snapshot: dict[str, Any
     lines.append(f"- Timestamp: {snapshot.get('created_at', 'unknown')}")
     lines.append(f"- Baseline file: `{baseline_path}`")
     lines.append(f"- Summary: `{summary_path}`")
+    ctx = snapshot.get("run_context") or {}
+    if ctx:
+        lines.append(f"- Context: platform={ctx.get('platform','?')}, config={ctx.get('config','?')}, delphi={ctx.get('delphi','?')}")
     lines.append("")
 
     fi = snapshot.get("fixinsight") or {}
@@ -437,7 +596,7 @@ def _gate_eval(delta: dict[str, Any]) -> tuple[bool, list[str]]:
     new_fi_w = int(fi.get("new_w_count", 0))
     if max_new_fi_w is not None and new_fi_w > max_new_fi_w:
         ok = False
-        reasons.append(f"New FixInsight W-codes: {new_fi_w} > {max_new_fi_w}")
+        reasons.append(f"New FixInsight W-findings: {new_fi_w} > {max_new_fi_w}")
 
     if max_pal_warning_increase is not None:
         inc = int(pal.get("warnings_delta", 0))
@@ -510,8 +669,9 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     pal_totals = (summary.get("pal_totals") or {}) if isinstance(summary, dict) else {}
 
     current_snapshot: dict[str, Any] = {
-        "version": 1,
+        "version": 2,
         "created_at": summary.get("timestamp") or _utc_now_iso(),
+        "run_context": _build_run_context(out_root, summary, allow_env=True, expected_summary_timestamp=None),
         "summary": summary,
         "fixinsight": {
             "total": fi_total,
@@ -537,8 +697,17 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         fi_total = current_snapshot.get("fixinsight", {}).get("total")
         delta_obj = {
             "title": title,
-            "baseline": {"path": str(baseline_path), "timestamp": current_snapshot["created_at"], "created": True},
-            "current": {"summary_path": str(summary_path), "timestamp": current_snapshot["created_at"]},
+            "baseline": {
+                "path": str(baseline_path),
+                "timestamp": current_snapshot["created_at"],
+                "created": True,
+                "run_context": current_snapshot.get("run_context") or {},
+            },
+            "current": {
+                "summary_path": str(summary_path),
+                "timestamp": current_snapshot["created_at"],
+                "run_context": current_snapshot.get("run_context") or {},
+            },
             "fixinsight": {
                 "total_before": fi_total,
                 "total_after": fi_total,
@@ -568,6 +737,85 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         return {"baseline": str(baseline_path), "delta": str(delta_md_path), "gate_pass": True, "baseline_created": True}
 
     assert baseline is not None
+
+    # Baseline schema migration (metadata only). We keep baseline findings stable unless DAK_UPDATE_BASELINE=1.
+    baseline_dirty = False
+    try:
+        baseline_ver = int(baseline.get("version", 0))
+    except (TypeError, ValueError):
+        baseline_ver = 0
+    if baseline_ver < 2:
+        baseline["version"] = 2
+        baseline_dirty = True
+
+    baseline_summary = baseline.get("summary") if isinstance(baseline.get("summary"), dict) else {}
+    expected_ts = str(baseline_summary.get("timestamp") or "").strip() or None
+    if expected_ts is None:
+        expected_ts = str(baseline.get("created_at") or "").strip() or None
+
+    can_trust_outputs = bool(expected_ts) and str(summary.get("timestamp") or "") == expected_ts
+
+    baseline_rc = baseline.get("run_context")
+    if not isinstance(baseline_rc, dict):
+        baseline_rc = {}
+
+    if not baseline_rc:
+        # If current summary matches the baseline timestamp, we can safely parse run.log for context.
+        summary_for_ctx = summary if can_trust_outputs else baseline_summary
+        baseline["run_context"] = _build_run_context(
+            out_root,
+            summary_for_ctx if isinstance(summary_for_ctx, dict) else {},
+            allow_env=False,
+            expected_summary_timestamp=expected_ts,
+        )
+        baseline_dirty = True
+    else:
+        # Ensure required keys exist in older baselines.
+        for k in ("platform", "config", "delphi"):
+            if k not in baseline_rc:
+                baseline_rc[k] = "unknown"
+                baseline_dirty = True
+
+        # Backfill missing/unknown context only when we can prove the outputs match the baseline run.
+        if can_trust_outputs:
+            inferred = _build_run_context(out_root, summary, allow_env=False, expected_summary_timestamp=expected_ts)
+            changed = False
+            for k in ("platform", "config", "delphi"):
+                cur = str(baseline_rc.get(k) or "").strip().lower()
+                if k == "delphi":
+                    # If we can infer a concrete BDS version (e.g. "23.0"), prefer it over a generic label ("Delphi 11").
+                    cur_raw = str(baseline_rc.get(k) or "").strip()
+                    inf_raw = str(inferred.get(k) or "").strip()
+                    cur_is_label = bool(re.match(r"^Delphi\s+\d+\b", cur_raw, flags=re.IGNORECASE))
+                    inf_is_bds = bool(re.match(r"^\d+\.\d+$", inf_raw))
+                    if cur_raw and cur != "unknown" and not (cur_is_label and inf_is_bds):
+                        continue
+                else:
+                    if cur not in ("", "unknown"):
+                        continue
+                inf = str(inferred.get(k) or "").strip()
+                if inf and inf.lower() != "unknown":
+                    baseline_rc[k] = inferred.get(k)
+                    changed = True
+
+            base_tools = baseline_rc.get("tools")
+            inf_tools = inferred.get("tools")
+            if isinstance(base_tools, dict) and isinstance(inf_tools, dict):
+                for k, v in inf_tools.items():
+                    if k not in base_tools:
+                        base_tools[k] = v
+                        changed = True
+                baseline_rc["tools"] = base_tools
+            elif not base_tools and isinstance(inf_tools, dict) and inf_tools:
+                baseline_rc["tools"] = inf_tools
+                changed = True
+
+            if changed:
+                baseline["run_context"] = baseline_rc
+                baseline_dirty = True
+
+    if baseline_dirty:
+        _write_json(baseline_path, baseline)
 
     b_fi = baseline.get("fixinsight") or {}
     b_pal = baseline.get("pascal_analyzer") or {}
@@ -622,8 +870,16 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
 
     delta_obj: dict[str, Any] = {
         "title": title,
-        "baseline": {"path": str(baseline_path), "timestamp": baseline.get("created_at") or baseline.get("summary", {}).get("timestamp")},
-        "current": {"summary_path": str(summary_path), "timestamp": current_snapshot["created_at"]},
+        "baseline": {
+            "path": str(baseline_path),
+            "timestamp": baseline.get("created_at") or baseline.get("summary", {}).get("timestamp"),
+            "run_context": baseline.get("run_context") or {},
+        },
+        "current": {
+            "summary_path": str(summary_path),
+            "timestamp": current_snapshot["created_at"],
+            "run_context": current_snapshot.get("run_context") or {},
+        },
         "fixinsight": {
             "total_before": b_fi_total,
             "total_after": a_fi_total,
@@ -660,7 +916,8 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     _write_text(delta_md_path, _render_delta_md(delta_obj))
 
     # Write a human baseline summary too (helps review in PRs).
-    _write_text(baseline_md_path, _render_baseline_md(title, baseline_path, current_snapshot, summary_path=summary_path))
+    snapshot_for_baseline_md = current_snapshot if update_baseline else baseline
+    _write_text(baseline_md_path, _render_baseline_md(title, baseline_path, snapshot_for_baseline_md, summary_path=summary_path))
 
     if update_baseline:
         _write_json(baseline_path, current_snapshot)

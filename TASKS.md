@@ -1,23 +1,15 @@
 # Tasks
-Next task ID: T-046
+Next task ID: T-045
 
 
 ## Summary
-Open tasks: 8 (In Progress: 0, Next Today: 4, Next This Week: 4, Next Later: 0, Blocked: 0)
-Done tasks: 36
+Open tasks: 7 (In Progress: 0, Next Today: 3, Next This Week: 4, Next Later: 0, Blocked: 0)
+Done tasks: 37
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-043 [CLI] Capture run context in baselines and fix delta wording
-Outcome: Extend baseline/delta artifacts to include the run context (platform/config/delphi, tool versions when available) and rename misleading labels (e.g. “New W-codes” -> “New W-findings”).
-Proof:
-- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
-- Expect: `_analysis/DelphiAIKit/baseline.json` includes a `run_context` section (platform/config/delphi at minimum).
-- Expect: `_analysis/DelphiAIKit/delta.md` uses “New W-findings”.
-Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-042 [CLI] Add Git changed-file scope triage
 Outcome: Add a `DAK_SCOPE=changed` mode that emits `_analysis/<project>/triage-changed.md` filtered to Git-changed files (and degrades gracefully when Git is unavailable).
@@ -77,6 +69,14 @@ Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 ## Blocked
 
 ## Done
+
+### T-043 [CLI] Capture run context in baselines and fix delta wording
+Outcome: Extend baseline/delta artifacts to include the run context (platform/config/delphi, tool versions when available) and rename misleading labels (e.g. “New W-codes” -> “New W-findings”).
+Proof:
+- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/baseline.json` includes a `run_context` section (platform/config/delphi at minimum).
+- Expect: `_analysis/DelphiAIKit/delta.md` uses “New W-findings”.
+Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-044 [CLI] Make static-analysis wrappers Python 3.9+ compatible
 Outcome: Update the Python wrappers under `agentskill/delphi-static-analysis/` to run on Python 3.9+ (avoid `X | Y` union syntax) while preserving behavior.
