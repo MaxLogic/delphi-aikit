@@ -17,6 +17,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added Pascal Analyzer runner: `analyze --pascal-analyzer true` with PALCMD discovery + `--pa-path/--pa-output/--pa-args` and `[PascalAnalyzer]` settings.ini section. (T-015)
 - Added PAL findings outputs (`pal-findings.md`, `pal-findings.jsonl`) after Pascal Analyzer runs. (T-023, T-026)
 - Added PAL hotspots output (`pal-hotspots.md`) derived from PAL metrics reports. (T-025)
+- Added SARIF output (`static-analysis.sarif`) from static-analysis postprocess for PR annotations. (T-055)
 
 ### Changed
 - Defaulted CLI `--platform` to `Win32` and `--config` to `Release` when omitted. (T-002)
