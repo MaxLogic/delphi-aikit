@@ -19,6 +19,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added PAL hotspots output (`pal-hotspots.md`) derived from PAL metrics reports. (T-025)
 - Added SARIF output (`static-analysis.sarif`) from static-analysis postprocess for PR annotations. (T-055)
 - Added `DAK_GATE_INCLUDE_PATHS` / `DAK_GATE_EXCLUDE_PATHS` to gate only selected paths during static analysis. (T-056)
+- Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
 - Defaulted CLI `--platform` to `Win32` and `--config` to `Release` when omitted. (T-002)
