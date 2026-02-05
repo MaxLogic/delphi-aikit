@@ -5,7 +5,7 @@ license: internal
 compatibility: "Requires Windows/WSL, DelphiAIKit.exe, FixInsightCL, PALCMD; may require commercial licenses"
 metadata:
   tags: [delphi, static-analysis]
-  version: "1.1"
+  version: "1.2"
 disable-model-invocation: true
 allowed-tools:
   - read
@@ -103,6 +103,8 @@ _analysis/{projectName}/
   baseline.md                  (human baseline summary)
   delta.md                     (delta vs baseline)
   delta.json                   (machine delta vs baseline)
+  triage.md                    (prioritized shortlist; top 20 by default)
+  triage-changed.md            (when `DAK_SCOPE=changed`; filtered to Git-changed files)
   summary.md
   run.log
 ```
@@ -120,6 +122,7 @@ _analysis/_unit/{unitName}/
 ## First-pass triage (always)
 
 - Read `summary.md` first.
+- Then read `triage.md` for a fix-oriented shortlist (top 20 by default).
 - If `pal-findings.md` exists, use it; only open raw XML if we still need detail.
 
 ## Pascal Analyzer XML (read selectively)
@@ -173,6 +176,8 @@ Useful env vars (wrapper-level; not forwarded to DAK):
 
 - `DAK_BASELINE=<path>` override baseline path (default: `_analysis/<project>/baseline.json`)
 - `DAK_UPDATE_BASELINE=1` overwrite the baseline with the current run
+- `DAK_TRIAGE_TOP=<N>` override triage shortlist cap (default: `20`)
+- `DAK_SCOPE=changed` emit `triage-changed.md` filtered to Git-changed files
 - `DAK_GATE=1` (or `DAK_CI=1`) enable a conservative “don’t regress” gate
 - Thresholds:
   - `DAK_MAX_NEW_PAL_STRONG=0` (default) fail if new PAL strong-warnings appear

@@ -415,6 +415,7 @@ def _normalize_to_repo_relative(raw_path: str, *, repo_root: Path, base_dirs: li
     s = s.replace("\\", "/")
 
     # Absolute paths (Windows or Unix).
+    is_abs_input = bool(s.startswith("/") or re.match(r"^[A-Za-z]:/", s))
     abs_candidate: Optional[Path] = None
     if s.startswith("/"):
         abs_candidate = Path(s)
@@ -428,6 +429,11 @@ def _normalize_to_repo_relative(raw_path: str, *, repo_root: Path, base_dirs: li
                 return resolved.relative_to(repo_root).as_posix()
         except Exception:
             pass
+        # It was absolute, but not under this repo root.
+        return None
+
+    if is_abs_input:
+        return None
 
     rel = Path(s)
     for base in base_dirs:
@@ -545,6 +551,115 @@ def _write_triage_changed(out_root: Path, *, title: str, summary: dict[str, Any]
     return triage_path
 
 
+def _fi_triage_priority(kind: str) -> int:
+    k = kind.strip().upper()
+    if k == "W":
+        return 300
+    if k == "O":
+        return 200
+    if k == "C":
+        return 100
+    return 50
+
+
+def _pal_triage_priority(severity: str) -> int:
+    s = severity.strip().lower()
+    if s in ("strong-warning", "strong_warning", "strongwarning"):
+        return 300
+    if s == "warning":
+        return 200
+    if s == "exception":
+        return 150
+    if s == "hint":
+        return 100
+    return 80
+
+
+def _write_triage(out_root: Path, *, title: str, fi_jsonl_path: Path, pal_jsonl_path: Path) -> Path:
+    triage_path = out_root / "triage.md"
+    top_n = _int_env("DAK_TRIAGE_TOP", 20) or 20
+
+    fi_items: list[dict[str, Any]] = []
+    if fi_jsonl_path.exists():
+        for obj in _iter_jsonl(fi_jsonl_path):
+            path = obj.get("path") or obj.get("file") or "?"
+            kind = str(obj.get("kind") or "").strip()
+            fi_items.append(
+                {
+                    "priority": _fi_triage_priority(kind),
+                    "path": str(path),
+                    "code": obj.get("code") or "?",
+                    "kind": kind,
+                    "line": obj.get("line") or "?",
+                    "col": obj.get("col") or "?",
+                    "message": obj.get("message") or "",
+                }
+            )
+
+    fi_items.sort(key=lambda x: (-int(x["priority"]), str(x["code"]), str(x["path"]), int(x["line"]) if str(x["line"]).isdigit() else 0))
+    fi_top = fi_items[:top_n]
+
+    pal_items: list[dict[str, Any]] = []
+    if pal_jsonl_path.exists():
+        for obj in _iter_jsonl(pal_jsonl_path):
+            severity = str(obj.get("severity") or "").strip()
+            path = obj.get("path") or obj.get("module") or "?"
+            pal_items.append(
+                {
+                    "priority": _pal_triage_priority(severity),
+                    "path": str(path),
+                    "severity": severity,
+                    "section": obj.get("section") or "",
+                    "module": obj.get("module") or "?",
+                    "line": obj.get("line") or "?",
+                    "message": obj.get("message") or "",
+                }
+            )
+
+    pal_items.sort(key=lambda x: (-int(x["priority"]), str(x["severity"]), str(x["path"]), int(x["line"]) if str(x["line"]).isdigit() else 0))
+    pal_top = pal_items[:top_n]
+
+    lines: list[str] = []
+    lines.append(f"# {title} triage")
+    lines.append("")
+    lines.append(f"- Timestamp: {_utc_now_iso()}")
+    lines.append(f"- FixInsight findings: {len(fi_items)} (showing top {min(top_n, len(fi_items))})")
+    lines.append(f"- Pascal Analyzer findings: {len(pal_items)} (showing top {min(top_n, len(pal_items))})")
+    lines.append("")
+
+    lines.append("## FixInsight")
+    if not fi_top:
+        lines.append("No FixInsight findings.")
+        lines.append("")
+    else:
+        groups: dict[str, list[dict[str, Any]]] = {}
+        for it in fi_top:
+            groups.setdefault(str(it["path"]), []).append(it)
+        for path, items in groups.items():
+            lines.append(f"### `{path}`")
+            for it in items:
+                lines.append(f"- [{it['code']}] {it['line']}:{it['col']} - {it['message']}")
+            lines.append("")
+
+    lines.append("## Pascal Analyzer")
+    if not pal_top:
+        lines.append("No Pascal Analyzer findings.")
+        lines.append("")
+    else:
+        groups2: dict[str, list[dict[str, Any]]] = {}
+        for it in pal_top:
+            groups2.setdefault(str(it["path"]), []).append(it)
+        for path, items in groups2.items():
+            lines.append(f"### `{path}`")
+            for it in items:
+                section = it.get("section") or ""
+                lines.append(f"- [{it['severity']}] {it['line']} - {section}: {it['message']}")
+            lines.append("")
+
+    _write_text(triage_path, "\n".join(lines).rstrip() + "\n")
+    return triage_path
+
+
 def _build_pascal_unit_index(repo_root: Path) -> dict[str, str]:
     idx: dict[str, str] = {}
     for p in repo_root.rglob("*.pas"):
@@ -568,11 +683,22 @@ def _normalize_pal_findings_jsonl(pal_jsonl_path: Path, *, repo_root: Optional[P
     if not pal_jsonl_path.exists() or repo_root is None:
         return
 
-    # Avoid an expensive repo scan if `path` is already present.
-    for first in _iter_jsonl(pal_jsonl_path):
-        if isinstance(first, dict) and "path" in first:
-            return
-        break
+    # Avoid an expensive repo scan when the file is already normalized.
+    # We treat `path: null` as "not normalized yet".
+    needs_normalize = False
+    for i, first in enumerate(_iter_jsonl(pal_jsonl_path)):
+        if not isinstance(first, dict):
+            continue
+        if first.get("path") is None:
+            needs_normalize = True
+            break
+        if "path" not in first:
+            needs_normalize = True
+            break
+        if i >= 50:
+            break
+    if not needs_normalize:
+        return
 
     idx = _build_pascal_unit_index(repo_root)
     out_items: list[dict[str, Any]] = []
@@ -580,8 +706,9 @@ def _normalize_pal_findings_jsonl(pal_jsonl_path: Path, *, repo_root: Optional[P
         if not isinstance(obj, dict):
             continue
         mod = str(obj.get("module") or "").strip()
+        unit_key = mod.split("\\", 1)[0].split("/", 1)[0].strip().lower()
         obj2 = dict(obj)
-        obj2["path"] = idx.get(mod.lower())
+        obj2["path"] = idx.get(unit_key)
         out_items.append(obj2)
 
     _write_jsonl(pal_jsonl_path, out_items)
@@ -1050,7 +1177,8 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         }
         _write_json(delta_path, delta_obj)
         _write_text(delta_md_path, _render_delta_md(delta_obj))
-        res = {"baseline": str(baseline_path), "delta": str(delta_md_path), "gate_pass": True, "baseline_created": True}
+        triage_path = _write_triage(out_root, title=title, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
+        res = {"baseline": str(baseline_path), "delta": str(delta_md_path), "gate_pass": True, "baseline_created": True, "triage": str(triage_path)}
         if scope == "changed":
             triage_changed_path = _write_triage_changed(out_root, title=title, summary=summary, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
             res["triage_changed"] = str(triage_changed_path)
@@ -1271,11 +1399,13 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     if update_baseline:
         _write_json(baseline_path, current_snapshot)
 
+    triage_path = _write_triage(out_root, title=title, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
     res = {
         "baseline": str(baseline_path),
         "delta": str(delta_md_path),
         "gate_pass": bool(delta_obj["gate"]["pass"]),
         "baseline_updated": bool(update_baseline),
+        "triage": str(triage_path),
     }
     if scope == "changed":
         triage_changed_path = _write_triage_changed(out_root, title=title, summary=summary, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)

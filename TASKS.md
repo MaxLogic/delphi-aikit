@@ -3,20 +3,13 @@ Next task ID: T-045
 
 
 ## Summary
-Open tasks: 5 (In Progress: 0, Next Today: 1, Next This Week: 4, Next Later: 0, Blocked: 0)
-Done tasks: 39
+Open tasks: 4 (In Progress: 0, Next Today: 0, Next This Week: 4, Next Later: 0, Blocked: 0)
+Done tasks: 40
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-040 [CLI] Emit prioritized triage.md from analysis outputs
-Outcome: Generate `_analysis/<project>/triage.md` with a prioritized, fix-oriented shortlist (top 20 by default), grouped by file where possible and referencing line numbers.
-Proof:
-- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
-- Expect: `_analysis/DelphiAIKit/triage.md` exists and includes sections for FixInsight and Pascal Analyzer.
-Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md, agentskill/delphi-static-analysis/references/triage.md
 
 ## Next - This Week
 
@@ -54,6 +47,13 @@ Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 ## Blocked
 
 ## Done
+
+### T-040 [CLI] Emit prioritized triage.md from analysis outputs
+Outcome: Generate `_analysis/<project>/triage.md` with a prioritized, fix-oriented shortlist (top 20 by default), grouped by file where possible and referencing line numbers.
+Proof:
+- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/triage.md` exists and includes sections for FixInsight and Pascal Analyzer.
+Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md, agentskill/delphi-static-analysis/references/triage.md
 
 ### T-041 [CLI] Normalize finding paths for stable deltas
 Outcome: Normalize FixInsight and Pascal Analyzer findings to stable, repo-relative paths (slashes/case/relativization) so baselines and deltas are resilient across machines and working directories.
