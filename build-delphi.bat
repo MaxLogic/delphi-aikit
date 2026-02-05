@@ -43,7 +43,13 @@ if /I "%~1"=="-platform" (
   shift & shift & goto parse_args
 )
 if /I "%~1"=="-keep-logs" set "KEEP_LOGS=1" & shift & goto parse_args
-if /I "%~1"=="-show-warnings-on-success" set "SHOW_WARN_ON_SUCCESS=1" & shift & goto parse_args
+if /I "%~1"=="-show-warnings-on-success" (
+  set "SHOW_WARN_ON_SUCCESS=1"
+  set "SHOW_HINT_ON_SUCCESS=1"
+  shift & goto parse_args
+)
+if /I "%~1"=="-show-warnings" set "SHOW_WARN_ON_SUCCESS=1" & shift & goto parse_args
+if /I "%~1"=="-show-hints" set "SHOW_HINT_ON_SUCCESS=1" & shift & goto parse_args
 if /I "%~1"=="-no-brand" set "NO_BRAND=1" & shift & goto parse_args
 
 if not defined PROJECT (
@@ -169,7 +175,16 @@ for /f %%W in ('
 ') do set "WARNCOUNT=%%W"
 
 if defined SHOW_WARN_ON_SUCCESS (
-  call :print_sanitized "%OUTLOG%"
+  if defined SHOW_HINT_ON_SUCCESS (
+    call :print_sanitized "%OUTLOG%"
+  ) else (
+    call :print_sanitized_no_hints "%OUTLOG%"
+  )
+  echo(
+  call :print_elapsed
+  echo SUCCESS. Warnings: !WARNCOUNT!, Hints: !HINTCOUNT!
+) else if defined SHOW_HINT_ON_SUCCESS (
+  call :print_sanitized_no_warnings "%OUTLOG%"
   echo(
   call :print_elapsed
   echo SUCCESS. Warnings: !WARNCOUNT!, Hints: !HINTCOUNT!
@@ -185,7 +200,7 @@ goto cleanup
 
 :usage_fail
 echo.
-echo Usage: %~nx0 ^<project.dproj^> [-ver N] [-config Debug^|Release] [-platform Platform] [-keep-logs] [-show-warnings-on-success] [-no-brand]
+echo Usage: %~nx0 ^<project.dproj^> [-ver N] [-config Debug^|Release] [-platform Platform] [-keep-logs] [-show-warnings] [-show-hints] [-show-warnings-on-success] [-no-brand]
 goto cleanup
 
 :print_elapsed
@@ -199,6 +214,22 @@ if not exist "%PFILE%" exit /b 0
 setlocal DisableDelayedExpansion
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $nobrand=$env:NO_BRAND -ne $null; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; if($nobrand -and ($s -match '^(Embarcadero\s+Delphi\b|Copyright\s*\(c\))')) { } else { $s } }"
+endlocal & exit /b 0
+
+:print_sanitized_no_hints
+set "PFILE=%~1"
+if not exist "%PFILE%" exit /b 0
+setlocal DisableDelayedExpansion
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $nobrand=$env:NO_BRAND -ne $null; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; if($nobrand -and ($s -match '^(Embarcadero\s+Delphi\b|Copyright\s*\(c\))')) { } elseif($s -match ' hint warning ' -or $s -match ':\s+hint ') { } else { $s } }"
+endlocal & exit /b 0
+
+:print_sanitized_no_warnings
+set "PFILE=%~1"
+if not exist "%PFILE%" exit /b 0
+setlocal DisableDelayedExpansion
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $nobrand=$env:NO_BRAND -ne $null; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; if($nobrand -and ($s -match '^(Embarcadero\s+Delphi\b|Copyright\s*\(c\))')) { } elseif(($s -match ':\s+warning ') -and -not ($s -match ' hint warning ')) { } else { $s } }"
 endlocal & exit /b 0
 
 :print_sanitized_filtered

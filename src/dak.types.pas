@@ -20,6 +20,8 @@ type
     fPlatform: string;
     fConfig: string;
     fDelphiVersion: string;
+    fBuildShowWarnings: Boolean;
+    fBuildShowHints: Boolean;
     fOutKind: TOutputKind;
     fOutPath: string;
     fHasOutPath: Boolean;

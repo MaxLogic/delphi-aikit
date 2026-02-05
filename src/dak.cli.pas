@@ -117,6 +117,8 @@ type
       const aHasInlineValue: Boolean; out aHandled: Boolean): Boolean;
     function TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
+    function TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+      const aHasInlineValue: Boolean): Boolean;
     function ValidateOptions: Boolean;
   public
     class function Create: TOptionParser; static;
@@ -365,10 +367,7 @@ begin
     Exit(TryParseResolveSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   if fOptions.fCommand = TCommandKind.ckBuild then
-  begin
-    fError := Format(SUnknownArg, [aArg]);
-    Exit(False);
-  end;
+    Exit(TryParseBuildSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   Result := TryParseAnalyzeSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue);
 end;
@@ -730,6 +729,39 @@ begin
     Exit(False);
   if lHandled then
     Exit(True);
+
+  fError := Format(SUnknownArg, [aArg]);
+  Result := False;
+end;
+
+function TOptionParser.TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+  const aHasInlineValue: Boolean): Boolean;
+var
+  lValue: string;
+begin
+  if SameText(aSwitch, 'show-warnings') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--show-warnings') then
+      Exit(False);
+    if not TryParseBool(lValue, fOptions.fBuildShowWarnings) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--show-warnings', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'show-hints') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--show-hints') then
+      Exit(False);
+    if not TryParseBool(lValue, fOptions.fBuildShowHints) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--show-hints', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
 
   fError := Format(SUnknownArg, [aArg]);
   Result := False;
