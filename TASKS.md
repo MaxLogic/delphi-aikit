@@ -1,15 +1,41 @@
 # Tasks
-Next task ID: T-045
+Next task ID: T-049
 
 
 ## Summary
-Open tasks: 4 (In Progress: 0, Next Today: 0, Next This Week: 4, Next Later: 0, Blocked: 0)
-Done tasks: 40
+Open tasks: 7 (In Progress: 0, Next Today: 3, Next This Week: 4, Next Later: 0, Blocked: 0)
+Done tasks: 41
 
 
 ## In Progress
 
 ## Next - Today
+
+### T-046 [CLI] Map FixInsight absolute file paths to repo-relative paths when possible
+Outcome: When FixInsight reports absolute paths outside the current repo but the corresponding unit exists in our repo/submodule, populate the normalized `path` field with a repo-relative path (unique basename match) while preserving the original `file` value.
+Proof:
+- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/fixinsight/fi-findings.jsonl` records for MaxLogicFoundation use `path` starting with `lib/MaxLogicFoundation/` (instead of `f:/...`).
+- Command: python3 - <<'PY'\nimport json\nfrom pathlib import Path\np = Path('_analysis/DelphiAIKit/fixinsight/fi-findings.jsonl')\nitems = [json.loads(l) for l in p.read_text(encoding='utf-8', errors='replace').splitlines() if l.strip()]\nmf = [it for it in items if 'maxlogicfoundation' in (it.get('file','').lower())]\nassert mf, 'no MaxLogicFoundation FixInsight findings found to validate'\nbad = [it for it in mf if not str(it.get('path','')).startswith('lib/MaxLogicFoundation/')]\nassert not bad, bad[:2]\nprint('ok', len(mf))\nPY
+- Expect: Prints `ok <n>`.
+Touches: agentskill/delphi-static-analysis/postprocess.py
+
+### T-047 [CLI] Warn on baseline/current context mismatches in delta.md
+Outcome: When baseline and current `run_context` differ materially (platform/config/delphi or tool versions), emit an explicit warning in `delta.md` so we don’t trust deltas/gates computed across incompatible runs.
+Proof:
+- Command: python3 - <<'PY'\nimport json\nfrom pathlib import Path\nsrc = Path('_analysis/DelphiAIKit/baseline.json')\ndst = Path('/tmp/baseline-mismatch.json')\nobj = json.loads(src.read_text(encoding='utf-8'))\nrc = dict(obj.get('run_context') or {})\nrc['platform'] = 'Win64'\nrc['config'] = 'Debug'\nrc['delphi'] = '99.9'\nobj['run_context'] = rc\ndst.write_text(json.dumps(obj, indent=2, sort_keys=True) + '\\n', encoding='utf-8')\nprint(dst)\nPY
+- Expect: Creates `/tmp/baseline-mismatch.json`.
+- Command: DAK_BASELINE=/tmp/baseline-mismatch.json python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/delta.md` contains a “context mismatch” warning.
+Touches: agentskill/delphi-static-analysis/postprocess.py
+
+### T-048 [CLI] Track metrics history and emit trend.md (continuous monitoring)
+Outcome: Append a per-run metrics snapshot to `_analysis/<project>/history.jsonl` (deduped by summary timestamp) and emit `_analysis/<project>/trend.md` summarizing recent runs to support continuous monitoring (spotting spikes in warnings/complexity over time).
+Proof:
+- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/history.jsonl` exists and contains at least 1 JSONL record.
+- Expect: `_analysis/DelphiAIKit/trend.md` exists and contains a table of FixInsight + PAL totals.
+Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
 
 ## Next - This Week
 
@@ -47,6 +73,15 @@ Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 ## Blocked
 
 ## Done
+
+### T-045 [CLI] Fix FixInsight triage ordering (W > C > O)
+Outcome: Adjust triage prioritization so FixInsight findings are ordered `W` first, then `C`, then `O` (default), preventing low-value optimization/style hints from hiding higher-signal issues.
+Proof:
+- Command: python3 -c "import importlib.util, sys; spec=importlib.util.spec_from_file_location('pp','agentskill/delphi-static-analysis/postprocess.py'); m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m); assert m._fi_triage_priority('C') > m._fi_triage_priority('O'); print('ok')"
+- Expect: Prints `ok`.
+- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/triage.md` exists and FixInsight top entries are not dominated by `O*` codes when `C*`/`W*` findings exist.
+Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-040 [CLI] Emit prioritized triage.md from analysis outputs
 Outcome: Generate `_analysis/<project>/triage.md` with a prioritized, fix-oriented shortlist (top 20 by default), grouped by file where possible and referencing line numbers.
