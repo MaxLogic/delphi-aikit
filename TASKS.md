@@ -1,11 +1,9 @@
 # Tasks
 Next task ID: T-058
 
-
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
 Done tasks: 57
-
 
 ## In Progress
 
