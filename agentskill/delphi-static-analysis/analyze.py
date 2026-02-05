@@ -148,6 +148,7 @@ def main(argv: list[str]) -> int:
         return 2
 
     dak_exe = _find_dak_exe(repo_root)
+    dak_exe_arg = _to_win_arg(dak_exe) if _is_wsl() else str(dak_exe)
 
     platform_name = _get_env("DAK_PLATFORM", "Win32")
     config_name = _get_env("DAK_CONFIG", "Release")
@@ -167,7 +168,7 @@ def main(argv: list[str]) -> int:
     summary_flag = os.environ.get("DAK_WRITE_SUMMARY", "").strip()
 
     args = [
-        str(dak_exe),
+        dak_exe_arg,
         "analyze",
         "--project",
         _to_win_arg(dproj),
@@ -204,7 +205,12 @@ def main(argv: list[str]) -> int:
     if pa_args:
         args += ["--pa-args", pa_args]
 
-    p = subprocess.run(args, cwd=str(repo_root))
+    if _is_wsl():
+        # Some environments disallow executing arbitrary Windows binaries directly from WSL,
+        # but `cmd.exe /C ...` remains available and works reliably.
+        p = subprocess.run(["/mnt/c/Windows/System32/cmd.exe", "/C"] + args, cwd=str(repo_root))
+    else:
+        p = subprocess.run(args, cwd=str(repo_root))
 
     summary_path = out_root / "summary.md"
     if summary_path.exists():

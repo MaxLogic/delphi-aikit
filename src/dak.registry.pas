@@ -238,10 +238,10 @@ begin
   end;
 
   if not aEnvVars.TryGetValue('BDSUSERDIR', lBdsUserDir) then
-    lBdsUserDir := GetEnvironmentVariable('BDSUSERDIR');
+    lBdsUserDir := System.SysUtils.GetEnvironmentVariable('BDSUSERDIR');
   if lBdsUserDir = '' then
   begin
-    lAppData := GetEnvironmentVariable('APPDATA');
+    lAppData := System.SysUtils.GetEnvironmentVariable('APPDATA');
     if lAppData <> '' then
       lBdsUserDir := TPath.Combine(lAppData, 'Embarcadero\BDS\' + aDelphiVersion)
     else
@@ -250,7 +250,7 @@ begin
   EnsureEnvVar('BDSUSERDIR', lBdsUserDir, False);
 
   if not aEnvVars.TryGetValue('BDSCatalogRepository', lCatalogRepo) then
-    lCatalogRepo := GetEnvironmentVariable('BDSCatalogRepository');
+    lCatalogRepo := System.SysUtils.GetEnvironmentVariable('BDSCatalogRepository');
   if (lCatalogRepo = '') and (lBdsUserDir <> '') then
     lCatalogRepo := TPath.Combine(lBdsUserDir, 'CatalogRepository');
   EnsureEnvVar('BDSCatalogRepository', lCatalogRepo, False);
@@ -280,20 +280,20 @@ begin
   end;
 
   if not aEnvVars.TryGetValue('BDS', lBdsRoot) then
-    lBdsRoot := GetEnvironmentVariable('BDS');
+    lBdsRoot := System.SysUtils.GetEnvironmentVariable('BDS');
   EnsureEnvVar('BDS', lBdsRoot, False);
 
   if not aEnvVars.TryGetValue('BDSLIB', lBdsLib) then
-    lBdsLib := GetEnvironmentVariable('BDSLIB');
+    lBdsLib := System.SysUtils.GetEnvironmentVariable('BDSLIB');
   if (lBdsLib = '') and (lBdsRoot <> '') then
     lBdsLib := TPath.Combine(lBdsRoot, 'lib');
   EnsureEnvVar('BDSLIB', lBdsLib, False);
 
-  lValue := GetEnvironmentVariable('DCC_Define');
+  lValue := System.SysUtils.GetEnvironmentVariable('DCC_Define');
   EnsureEnvVar('DCC_Define', lValue, True);
-  lValue := GetEnvironmentVariable('DCC_UnitSearchPath');
+  lValue := System.SysUtils.GetEnvironmentVariable('DCC_UnitSearchPath');
   EnsureEnvVar('DCC_UnitSearchPath', lValue, True);
-  lValue := GetEnvironmentVariable('DCC_Namespace');
+  lValue := System.SysUtils.GetEnvironmentVariable('DCC_Namespace');
   EnsureEnvVar('DCC_Namespace', lValue, True);
   Result := True;
 end;

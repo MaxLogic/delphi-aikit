@@ -20,6 +20,12 @@ def _is_wsl() -> bool:
     return bool(os.environ.get("WSL_DISTRO_NAME")) or ("microsoft" in platform.release().lower())
 
 
+def _cmd_exe() -> str:
+    # In some restricted WSL environments, executing `cmd.exe` via PATH is blocked, while
+    # invoking it by absolute path remains allowed.
+    return "/mnt/c/Windows/System32/cmd.exe" if _is_wsl() else "cmd.exe"
+
+
 def _looks_like_windows_path(s: str) -> bool:
     return bool(re.match(r"^[A-Za-z]:[\\/]", s) or s.startswith("\\\\"))
 
@@ -208,9 +214,9 @@ def main(argv: list[str]) -> int:
         print()
         print("## Optional discovery checks (DAK_DOCTOR_RUN)")
         if _is_wsl():
-            code, out = _run_capture(["cmd.exe", "/C", "where", "FixInsightCL.exe"])
+            code, out = _run_capture([_cmd_exe(), "/C", "where", "FixInsightCL.exe"])
             print(f"- where FixInsightCL.exe: exit={code} {out}")
-            code, out = _run_capture(["cmd.exe", "/C", "where", "PALCMD.exe"])
+            code, out = _run_capture([_cmd_exe(), "/C", "where", "PALCMD.exe"])
             print(f"- where PALCMD.exe: exit={code} {out}")
         else:
             code, out = _run_capture(["where", "FixInsightCL.exe"])

@@ -22,7 +22,7 @@ var
   lBase: string;
   lPath: string;
 begin
-  lBase := GetEnvironmentVariable('ProgramFiles(x86)');
+  lBase := System.SysUtils.GetEnvironmentVariable('ProgramFiles(x86)');
   if lBase <> '' then
   begin
     lPath := TPath.Combine(lBase, 'Embarcadero\Studio\' + aDelphiVersion + '\bin\rsvars.bat');
@@ -30,7 +30,7 @@ begin
       Exit(lPath);
   end;
 
-  lBase := GetEnvironmentVariable('ProgramFiles');
+  lBase := System.SysUtils.GetEnvironmentVariable('ProgramFiles');
   if lBase <> '' then
   begin
     lPath := TPath.Combine(lBase, 'Embarcadero\Studio\' + aDelphiVersion + '\bin\rsvars.bat');
@@ -105,7 +105,7 @@ begin
 
   lTempFile := TPath.GetTempFileName;
   try
-    lComSpec := GetEnvironmentVariable('ComSpec');
+    lComSpec := System.SysUtils.GetEnvironmentVariable('ComSpec');
     if lComSpec = '' then
       lComSpec := 'cmd.exe';
 
