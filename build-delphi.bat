@@ -42,6 +42,16 @@ if /I "%~1"=="-platform" (
   set "BUILD_PLATFORM=%~2"
   shift & shift & goto parse_args
 )
+if /I "%~1"=="-ignore-warnings" (
+  if "%~2"=="" ( echo ERROR: -ignore-warnings requires a value.& set "EXITCODE=2" & goto usage_fail )
+  set "CLI_BUILD_IGNORE_WARNINGS=%~2"
+  shift & shift & goto parse_args
+)
+if /I "%~1"=="-ignore-hints" (
+  if "%~2"=="" ( echo ERROR: -ignore-hints requires a value.& set "EXITCODE=2" & goto usage_fail )
+  set "CLI_BUILD_IGNORE_HINTS=%~2"
+  shift & shift & goto parse_args
+)
 if /I "%~1"=="-keep-logs" set "KEEP_LOGS=1" & shift & goto parse_args
 if /I "%~1"=="-show-warnings-on-success" (
   set "SHOW_WARN_ON_SUCCESS=1"
@@ -92,6 +102,19 @@ echo ^| PATH    : %PRJ_NAME%
 echo ^| CONFIG  : %BUILD_CONFIG%    PLATFORM: %BUILD_PLATFORM%    DELPHI: %VER%
 echo +================================================================================+
 echo.
+
+rem ---- Load BuildIgnore lists (tool defaults + project tree)
+set "INI_BUILD_IGNORE_WARNINGS="
+set "INI_BUILD_IGNORE_HINTS="
+for /f "usebackq delims=" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$paths=New-Object 'System.Collections.Generic.List[string]'; $toolIni=[IO.Path]::Combine('%~dp0','bin','dak.ini'); if(Test-Path -LiteralPath $toolIni){ $paths.Add([IO.Path]::GetFullPath($toolIni)) }; $proj=[IO.Path]::GetFullPath('%PROJECT%'); $projDir=[IO.Path]::GetDirectoryName($proj); $root=[IO.Path]::GetFullPath('%ROOT%'); $chain=New-Object 'System.Collections.Generic.List[string]'; $cur=$projDir; while($cur){ $chain.Add($cur); if($cur.TrimEnd('\') -ieq $root.TrimEnd('\')){ break }; $parent=[IO.Directory]::GetParent($cur); if($parent -eq $null){ break }; $cur=$parent.FullName }; $chain.Reverse(); foreach($d in $chain){ $ini=[IO.Path]::Combine($d,'dak.ini'); if(Test-Path -LiteralPath $ini){ $paths.Add([IO.Path]::GetFullPath($ini)) } }; $warn=New-Object 'System.Collections.Generic.List[string]'; $hint=New-Object 'System.Collections.Generic.List[string]'; $warnSet=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); $hintSet=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($ini in $paths){ $section=''; foreach($line in Get-Content -LiteralPath $ini -ErrorAction SilentlyContinue){ $t=$line.Trim(); if(-not $t -or $t.StartsWith(';')){ continue }; if($t -match '^\\[(.+)\\]$'){ $section=$Matches[1]; continue }; if($section -ne 'BuildIgnore'){ continue }; $m=[regex]::Match($t,'^(Warnings|Hints)\\s*=\\s*(.*)$'); if(-not $m.Success){ continue }; $key=$m.Groups[1].Value; $val=$m.Groups[2].Value; foreach($part in $val.Split(';')){ $x=$part.Trim(); if(-not $x){ continue }; if($key -eq 'Warnings'){ if($warnSet.Add($x)){ $warn.Add($x) } } else { if($hintSet.Add($x)){ $hint.Add($x) } } } } }; 'INI_BUILD_IGNORE_WARNINGS=' + ($warn -join ';'); 'INI_BUILD_IGNORE_HINTS=' + ($hint -join ';')"`) do set "%%a"
+set "BUILD_IGNORE_WARNINGS=%INI_BUILD_IGNORE_WARNINGS%"
+if defined CLI_BUILD_IGNORE_WARNINGS (
+  if defined BUILD_IGNORE_WARNINGS (set "BUILD_IGNORE_WARNINGS=%BUILD_IGNORE_WARNINGS%;%CLI_BUILD_IGNORE_WARNINGS%") else set "BUILD_IGNORE_WARNINGS=%CLI_BUILD_IGNORE_WARNINGS%"
+)
+set "BUILD_IGNORE_HINTS=%INI_BUILD_IGNORE_HINTS%"
+if defined CLI_BUILD_IGNORE_HINTS (
+  if defined BUILD_IGNORE_HINTS (set "BUILD_IGNORE_HINTS=%BUILD_IGNORE_HINTS%;%CLI_BUILD_IGNORE_HINTS%") else set "BUILD_IGNORE_HINTS=%CLI_BUILD_IGNORE_HINTS%"
+)
 
 rem ---- 1) Delphi root
 set "BDS_ROOT="
@@ -174,13 +197,10 @@ rem ---- 6) Success
 set "WARNCOUNT=0"
 set "HINTCOUNT=0"
 
-for /f %%H in ('
-  findstr /I /C:": hint " /C:" hint warning " "%OUTLOG%" ^| find /c /v ""
-') do set "HINTCOUNT=%%H"
-
-for /f %%W in ('
-  findstr /I /C:": warning " "%OUTLOG%" ^| findstr /I /V /C:" hint warning " ^| find /c /v ""
-') do set "WARNCOUNT=%%W"
+for /f "usebackq tokens=1,2 delims=," %%w in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$iw=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($x in '%BUILD_IGNORE_WARNINGS%'.Split(';')){ $t=$x.Trim(); if($t){ $iw.Add($t) | Out-Null } }; $ih=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($x in '%BUILD_IGNORE_HINTS%'.Split(';')){ $t=$x.Trim(); if($t){ $ih.Add($t) | Out-Null } }; $warn=0; $hint=0; foreach($s in Get-Content -LiteralPath '%OUTLOG%' -ErrorAction SilentlyContinue){ if($s -match ':\s+warning\s+(W\d+):'){ if(-not $iw.Contains($Matches[1])){ $warn++ } } elseif($s -match ' hint warning\s+(H\d+):'){ if(-not $ih.Contains($Matches[1])){ $hint++ } } elseif($s -match ':\s+hint\s+(H\d+):'){ if(-not $ih.Contains($Matches[1])){ $hint++ } } }; Write-Output ($warn.ToString() + ',' + $hint.ToString())"` ) do (
+  set "WARNCOUNT=%%w"
+  set "HINTCOUNT=%%x"
+)
 
 if defined SHOW_WARN_ON_SUCCESS (
   if defined SHOW_HINT_ON_SUCCESS (
@@ -208,7 +228,7 @@ goto cleanup
 
 :usage_fail
 echo.
-echo Usage: %~nx0 ^<project.dproj^> [-ver N] [-config Debug^|Release] [-platform Platform] [-keep-logs] [-show-warnings] [-show-hints] [-show-warnings-on-success] [-no-brand]
+echo Usage: %~nx0 ^<project.dproj^> [-ver N] [-config Debug^|Release] [-platform Platform] [-ignore-warnings List] [-ignore-hints List] [-keep-logs] [-show-warnings] [-show-hints] [-show-warnings-on-success] [-no-brand]
 goto cleanup
 
 :print_elapsed
@@ -221,7 +241,7 @@ set "PFILE=%~1"
 if not exist "%PFILE%" exit /b 0
 setlocal DisableDelayedExpansion
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $nobrand=$env:NO_BRAND -ne $null; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; if($nobrand -and ($s -match '^(Embarcadero\s+Delphi\b|Copyright\s*\(c\))')) { } else { $s } }"
+  "$root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $nobrand=$env:NO_BRAND -ne $null; $iw=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($x in '%BUILD_IGNORE_WARNINGS%'.Split(';')){ $t=$x.Trim(); if($t){ $iw.Add($t) | Out-Null } }; $ih=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($x in '%BUILD_IGNORE_HINTS%'.Split(';')){ $t=$x.Trim(); if($t){ $ih.Add($t) | Out-Null } }; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; if($nobrand -and ($s -match '^(Embarcadero\s+Delphi\b|Copyright\s*\(c\))')) { } elseif($s -match ':\s+warning\s+(W\d+):'){ if($iw.Contains($Matches[1])){ } else { $s } } elseif($s -match ' hint warning\s+(H\d+):'){ if($ih.Contains($Matches[1])){ } else { $s } } elseif($s -match ':\s+hint\s+(H\d+):'){ if($ih.Contains($Matches[1])){ } else { $s } } else { $s } }"
 endlocal & exit /b 0
 
 :print_sanitized_no_hints
@@ -229,7 +249,7 @@ set "PFILE=%~1"
 if not exist "%PFILE%" exit /b 0
 setlocal DisableDelayedExpansion
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $nobrand=$env:NO_BRAND -ne $null; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; if($nobrand -and ($s -match '^(Embarcadero\s+Delphi\b|Copyright\s*\(c\))')) { } elseif($s -match ' hint warning ' -or $s -match ':\s+hint ') { } else { $s } }"
+  "$root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $nobrand=$env:NO_BRAND -ne $null; $iw=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($x in '%BUILD_IGNORE_WARNINGS%'.Split(';')){ $t=$x.Trim(); if($t){ $iw.Add($t) | Out-Null } }; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; if($nobrand -and ($s -match '^(Embarcadero\s+Delphi\b|Copyright\s*\(c\))')) { } elseif($s -match ' hint warning ' -or $s -match ':\s+hint ') { } elseif($s -match ':\s+warning\s+(W\d+):'){ if($iw.Contains($Matches[1])){ } else { $s } } else { $s } }"
 endlocal & exit /b 0
 
 :print_sanitized_no_warnings
@@ -237,7 +257,7 @@ set "PFILE=%~1"
 if not exist "%PFILE%" exit /b 0
 setlocal DisableDelayedExpansion
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $nobrand=$env:NO_BRAND -ne $null; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; if($nobrand -and ($s -match '^(Embarcadero\s+Delphi\b|Copyright\s*\(c\))')) { } elseif(($s -match ':\s+warning ') -and -not ($s -match ' hint warning ')) { } else { $s } }"
+  "$root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $nobrand=$env:NO_BRAND -ne $null; $ih=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($x in '%BUILD_IGNORE_HINTS%'.Split(';')){ $t=$x.Trim(); if($t){ $ih.Add($t) | Out-Null } }; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; if($nobrand -and ($s -match '^(Embarcadero\s+Delphi\b|Copyright\s*\(c\))')) { } elseif(($s -match ':\s+warning ') -and -not ($s -match ' hint warning ')) { } elseif($s -match ' hint warning\s+(H\d+):'){ if($ih.Contains($Matches[1])){ } else { $s } } elseif($s -match ':\s+hint\s+(H\d+):'){ if($ih.Contains($Matches[1])){ } else { $s } } else { $s } }"
 endlocal & exit /b 0
 
 :print_sanitized_filtered
@@ -250,7 +270,7 @@ endlocal & exit /b 0
 
 :cleanup
 if defined KEEP_LOGS (
-  echo (Logs kept due to -keep-logs)
+  echo (Logs kept due to -keep-logs^)
 ) else (
   if defined FULLLOG if exist "%FULLLOG%" del /q "%FULLLOG%" >nul 2>&1
   if defined OUTLOG  if exist "%OUTLOG%"  del /q "%OUTLOG%"  >nul 2>&1
