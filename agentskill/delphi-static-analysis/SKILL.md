@@ -105,6 +105,7 @@ _analysis/{projectName}/
   delta.json                   (machine delta vs baseline)
   triage.md                    (prioritized shortlist; top 20 by default)
   triage-changed.md            (when `DAK_SCOPE=changed`; filtered to Git-changed files)
+  triage-snippets.md           (when `DAK_TRIAGE_SNIPPETS=1`; bounded source context for top triage items)
   history.jsonl                (per-run metrics snapshots; continuous monitoring)
   trend.md                     (recent history table + deltas)
   summary.md
@@ -180,6 +181,9 @@ Useful env vars (wrapper-level; not forwarded to DAK):
 - `DAK_UPDATE_BASELINE=1` overwrite the baseline with the current run
 - `DAK_TRIAGE_TOP=<N>` override triage shortlist cap (default: `20`)
 - `DAK_SCOPE=changed` emit `triage-changed.md` filtered to Git-changed files
+- `DAK_TRIAGE_SNIPPETS=1` emit `triage-snippets.md` with bounded source snippets for top triage items
+- `DAK_TRIAGE_SNIPPET_CONTEXT=<N>` number of context lines around the finding line (default: `2`)
+- `DAK_TRIAGE_SNIPPET_MAX_BYTES=<N>` truncate snippet output when exceeding this size (default: `200000`)
 - `DAK_TREND_N=<N>` number of runs to show in `trend.md` (default: `20`)
 - `DAK_GATE=1` (or `DAK_CI=1`) enable a conservative “don’t regress” gate
 - Thresholds:
