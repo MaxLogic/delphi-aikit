@@ -1,8 +1,8 @@
 # Tasks
-Next task ID: T-058
+Next task ID: T-062
 
 ## Summary
-Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Open tasks: 4 (In Progress: 0, Next Today: 0, Next This Week: 4, Next Later: 0, Blocked: 0)
 Done tasks: 57
 
 ## In Progress
@@ -10,6 +10,44 @@ Done tasks: 57
 ## Next - Today
 
 ## Next - This Week
+
+### T-058 [CLI] Build: Expose Warnings/Hints Output Switches
+Outcome: Extend `DelphiAIKit.exe build` with switches to control build output verbosity, including separate switches to include compiler warnings and hints in output on success.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --help
+- Expect: Help text mentions `--show-warnings` and `--show-hints`.
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\tests\\DelphiAIKit.Tests.dproj" --delphi 23.0 --platform Win32 --config Release --show-warnings
+- Expect: Output includes a `SUCCESS. Warnings:` line (counts may be 0).
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\tests\\DelphiAIKit.Tests.dproj" --delphi 23.0 --platform Win32 --config Release --show-hints
+- Expect: Output includes a `SUCCESS. ... Hints:` line (counts may be 0).
+Touches: src/dak.cli.pas, src/dak.types.pas, projects/DelphiAIKit.dpr, build-delphi.bat, src/dak.messages.pas
+Notes: `build-delphi.bat` already supports `-show-warnings-on-success`; we will likely extend it to support separate hints/warnings switches and forward those from `DelphiAIKit.exe build`.
+
+### T-059 [CLI] Build: Normalize Paths In Output (Repo-Relative + WSL-Friendly)
+Outcome: Normalize paths in `DelphiAIKit.exe build` output so AI output is stable across machines: make paths repo-relative where possible (VCS root if detected, else `.dproj` dir), and optionally emit WSL/Linux-style paths when running under WSL.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\tests\\DelphiAIKit.Tests.dproj" --delphi 23.0 --platform Win32 --config Release
+- Expect: Output does not contain absolute `F:\\projects\\MaxLogic\\DelphiConfigResolver\\` prefixes for project files; paths are relative where applicable.
+Touches: projects/DelphiAIKit.dpr, src/dak.output.pas, src/dak.messages.pas, build-delphi.bat
+Notes: Prefer a single normalization function shared with static-analysis postprocess (same “repo root vs `.dproj` dir” logic).
+
+### T-060 [CLI] Build: Honor dak.ini Ignores For Compiler Warnings/Hints
+Outcome: Honor ignore lists from `dak.ini` (and CLI overrides) for compiler warnings/hints so build output can hide known-noise findings while still surfacing new/high-signal ones.
+Proof:
+- Command: ./build-delphi.sh tests/DelphiAIKit.Tests.dproj
+- Expect: Build succeeds.
+- Command: tests/run.sh
+- Expect: Exit code `0`.
+Touches: bin/dak.ini, src/dak.analyze.pas, src/dak.diagnostics.pas, projects/DelphiAIKit.dpr, src/dak.cli.pas, src/dak.types.pas
+Notes: Add a dedicated `dak.ini` section for build ignores (e.g. `[BuildIgnore] Warnings=... Hints=...`) and ensure CLI can override.
+
+### T-061 [CLI] Build: Token-Saving “AI Mode” Output
+Outcome: Add an “AI mode” for `DelphiAIKit.exe build` that prints only what matters to review a build: error summary first, then (optional) a bounded list of warning/hint lines, stripping compiler banners and other noise by default.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\tests\\DelphiAIKit.Tests.dproj" --delphi 23.0 --platform Win32 --config Release --ai
+- Expect: Output contains a concise success line and does not print the compiler banner.
+Touches: projects/DelphiAIKit.dpr, src/dak.cli.pas, src/dak.types.pas, build-delphi.bat
+Notes: Consider mapping to `build-delphi.bat -no-brand` and adding a bounded “top N warnings/hints” summary.
 
 ## Next - Later
 
