@@ -3,8 +3,8 @@ Next task ID: T-049
 
 
 ## Summary
-Open tasks: 3 (In Progress: 0, Next Today: 0, Next This Week: 3, Next Later: 0, Blocked: 0)
-Done tasks: 45
+Open tasks: 2 (In Progress: 0, Next Today: 0, Next This Week: 2, Next Later: 0, Blocked: 0)
+Done tasks: 46
 
 
 ## In Progress
@@ -12,14 +12,6 @@ Done tasks: 45
 ## Next - Today
 
 ## Next - This Week
-
-### T-038 Refactor TAsyncLoop.Run to avoid PAL bad pointer usage warning
-Outcome: Update `TAsyncLoop.Run` to avoid capturing a local loop instance inside anonymous methods while preserving behavior and keeping public API signatures unchanged.
-Proof:
-- Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
-- Expect: pal-findings no longer reports "Possible bad pointer usage" for `maxAsync.pas:1267`.
-Touches: lib/MaxLogicFoundation/maxAsync.pas
-Notes: Keep the change internal to the unit; do not change any public/protected signatures.
 
 ### T-037 Use safe JSON array cast in Pascal Analyzer runner
 Outcome: Replace the hard cast in `TryGetJsonArray` with a safe cast after the `is TJSONArray` guard to clear the PAL strong warning without changing behavior.
@@ -40,6 +32,14 @@ Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 ## Blocked
 
 ## Done
+
+### T-038 Refactor TAsyncLoop.Run to avoid PAL bad pointer usage warning
+Outcome: Update `TAsyncLoop.Run` to avoid capturing a local loop instance inside anonymous methods while preserving behavior and keeping public API signatures unchanged.
+Proof:
+- Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: pal-findings no longer reports "Possible bad pointer usage" for `maxAsync.pas:1267`.
+Touches: lib/MaxLogicFoundation/maxAsync.pas
+Notes: Keep the change internal to the unit; do not change any public/protected signatures.
 
 ### T-039 Remove PAL bad typecast warning in maxConsoleRunner ExitCode
 Outcome: Update exit-code retrieval to avoid PAL "Possible bad typecast" for `fExitCode` while keeping the public `ExitCode: Integer` unchanged.
