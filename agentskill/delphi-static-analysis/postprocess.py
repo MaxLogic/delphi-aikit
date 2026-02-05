@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import platform
+import posixpath
 import re
 import subprocess
 import sys
@@ -439,6 +440,21 @@ def _normalize_to_repo_relative(raw_path: str, *, repo_root: Path, base_dirs: li
     return None
 
 
+def _normalize_path_value(raw_path: str, *, repo_root: Optional[Path], base_dirs: list[Path]) -> str:
+    s = raw_path.strip()
+    if not s:
+        return ""
+
+    if repo_root is not None:
+        rel = _normalize_to_repo_relative(raw_path, repo_root=repo_root, base_dirs=base_dirs)
+        if rel:
+            return rel
+
+    # Fallback: normalize separators + dot segments deterministically.
+    s = s.replace("\\", "/")
+    return posixpath.normpath(s)
+
+
 def _write_triage_changed(out_root: Path, *, title: str, summary: dict[str, Any], fi_jsonl_path: Path, pal_jsonl_path: Path) -> Path:
     triage_path = out_root / "triage-changed.md"
 
@@ -529,20 +545,75 @@ def _write_triage_changed(out_root: Path, *, title: str, summary: dict[str, Any]
     return triage_path
 
 
-def _fi_findings_to_jsonl(findings: Iterable[FixInsightFinding]) -> Iterable[dict[str, Any]]:
+def _build_pascal_unit_index(repo_root: Path) -> dict[str, str]:
+    idx: dict[str, str] = {}
+    for p in repo_root.rglob("*.pas"):
+        # Skip analysis artifacts and VCS internals.
+        parts = {x.lower() for x in p.parts}
+        if ".git" in parts or "_analysis" in parts:
+            continue
+        try:
+            rel = p.relative_to(repo_root).as_posix()
+        except ValueError:
+            continue
+        key = p.stem.lower()
+        prev = idx.get(key)
+        # Prefer a stable/shortest path when duplicates exist.
+        if prev is None or len(rel) < len(prev):
+            idx[key] = rel
+    return idx
+
+
+def _normalize_pal_findings_jsonl(pal_jsonl_path: Path, *, repo_root: Optional[Path]) -> None:
+    if not pal_jsonl_path.exists() or repo_root is None:
+        return
+
+    # Avoid an expensive repo scan if `path` is already present.
+    for first in _iter_jsonl(pal_jsonl_path):
+        if isinstance(first, dict) and "path" in first:
+            return
+        break
+
+    idx = _build_pascal_unit_index(repo_root)
+    out_items: list[dict[str, Any]] = []
+    for obj in _iter_jsonl(pal_jsonl_path):
+        if not isinstance(obj, dict):
+            continue
+        mod = str(obj.get("module") or "").strip()
+        obj2 = dict(obj)
+        obj2["path"] = idx.get(mod.lower())
+        out_items.append(obj2)
+
+    _write_jsonl(pal_jsonl_path, out_items)
+
+
+def _fi_findings_to_jsonl(
+    findings: Iterable[FixInsightFinding],
+    *,
+    repo_root: Optional[Path],
+    base_dirs: list[Path],
+) -> Iterable[dict[str, Any]]:
     for f in findings:
+        norm_file = posixpath.normpath(f.file.replace("\\", "/"))
+        norm_path = _normalize_path_value(f.file, repo_root=repo_root, base_dirs=base_dirs)
         yield {
             "tool": "FixInsight",
             "code": f.code,
             "kind": f.kind,
-            "file": f.file,
+            "file": norm_file,
+            "path": norm_path,
             "line": f.line,
             "col": f.col,
             "message": f.message,
         }
 
 
-def write_fixinsight_normalized(out_fixinsight_dir: Path) -> dict[str, Any]:
+def write_fixinsight_normalized(
+    out_fixinsight_dir: Path,
+    *,
+    repo_root: Optional[Path],
+    base_dirs: list[Path],
+) -> dict[str, Any]:
     txt_path = out_fixinsight_dir / "fixinsight.txt"
     findings = parse_fixinsight_txt(txt_path)
     if not findings:
@@ -551,12 +622,33 @@ def write_fixinsight_normalized(out_fixinsight_dir: Path) -> dict[str, Any]:
     jsonl_path = out_fixinsight_dir / "fi-findings.jsonl"
     md_path = out_fixinsight_dir / "fi-findings.md"
 
-    _write_jsonl(jsonl_path, _fi_findings_to_jsonl(findings))
+    records = list(_fi_findings_to_jsonl(findings, repo_root=repo_root, base_dirs=base_dirs))
+    _write_jsonl(jsonl_path, records)
 
     md_lines: list[str] = []
-    for f in findings:
-        md_lines.append(f"{f.code} | {f.file}:{f.line}:{f.col} | {f.message}")
+    for r in records:
+        loc = (r.get("path") or r.get("file") or "?")
+        md_lines.append(f"{r.get('code','?')} | {loc}:{r.get('line','?')}:{r.get('col','?')} | {r.get('message','')}")
     _write_text(md_path, "\n".join(md_lines) + "\n")
+
+    w_hashes_raw: set[str] = set()
+    w_hashes_norm: set[str] = set()
+    w_items_by_raw_hash: dict[str, str] = {}
+    w_items_by_norm_hash: dict[str, str] = {}
+
+    for f, r in zip(findings, records):
+        if f.kind != "W":
+            continue
+        raw_hash = _sha1("|".join([str(f.code), str(f.file), str(f.line), str(f.col), str(f.message)]))
+        norm_loc = str(r.get("path") or r.get("file") or "")
+        norm_hash = _sha1("|".join([str(f.code), norm_loc, str(f.line), str(f.col), str(f.message)]))
+
+        w_hashes_raw.add(raw_hash)
+        w_hashes_norm.add(norm_hash)
+
+        display = f"[{f.code}] {norm_loc}:{f.line}:{f.col} - {f.message}"
+        w_items_by_raw_hash[raw_hash] = display
+        w_items_by_norm_hash[norm_hash] = display
 
     counts_by_code: dict[str, int] = dict(Counter([f.code for f in findings]))
 
@@ -566,6 +658,10 @@ def write_fixinsight_normalized(out_fixinsight_dir: Path) -> dict[str, Any]:
         "md_path": str(md_path),
         "findings": len(findings),
         "counts_by_code": counts_by_code,
+        "w_hashes_raw": sorted(w_hashes_raw),
+        "w_hashes_norm": sorted(w_hashes_norm),
+        "w_items_by_raw_hash": w_items_by_raw_hash,
+        "w_items_by_norm_hash": w_items_by_norm_hash,
     }
 
 
@@ -584,10 +680,12 @@ def _pal_fingerprint(obj: dict[str, Any]) -> str:
     return _sha1("|".join(parts))
 
 
-def _fi_fingerprint(obj: dict[str, Any]) -> str:
+def _fi_fingerprint(obj: dict[str, Any], *, use_normalized_path: bool) -> str:
+    file_key = "path" if use_normalized_path else "file"
+    file_val = obj.get(file_key) or obj.get("file") or obj.get("path") or ""
     parts = [
         str(obj.get("code", "")),
-        str(obj.get("file", "")),
+        str(file_val),
         str(obj.get("line", "")),
         str(obj.get("col", "")),
         str(obj.get("message", "")),
@@ -760,18 +858,18 @@ def _select_new_pal_items(pal_jsonl_path: Path, new_hashes: set[str], *, severit
     return items
 
 
-def _select_new_fi_items(fi_jsonl_path: Path, new_hashes: set[str]) -> list[str]:
+def _select_new_fi_items(fi_jsonl_path: Path, new_hashes: set[str], *, use_normalized_path: bool) -> list[str]:
     if not fi_jsonl_path.exists() or not new_hashes:
         return []
     items: list[str] = []
     for obj in _iter_jsonl(fi_jsonl_path):
         if obj.get("kind") != "W":
             continue
-        h = _fi_fingerprint(obj)
+        h = _fi_fingerprint(obj, use_normalized_path=use_normalized_path)
         if h not in new_hashes:
             continue
         code = obj.get("code", "?")
-        file = obj.get("file", "?")
+        file = obj.get("path") or obj.get("file") or "?"
         line = obj.get("line", "?")
         col = obj.get("col", "?")
         msg = obj.get("message", "")
@@ -824,12 +922,26 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     summary_path = out_root / "summary.md"
     summary = parse_dak_summary_md(summary_path)
 
+    repo_root = _find_git_root(out_root)
+    project_dir: Optional[Path] = None
+    proj_local = _to_local_path(str(summary.get("project") or ""))
+    if proj_local is not None:
+        project_dir = proj_local.parent
+    elif repo_root is not None:
+        cand = repo_root / "projects"
+        if cand.exists():
+            project_dir = cand
+
+    base_dirs = [x for x in [project_dir, repo_root] if isinstance(x, Path)]
+
     fi_norm = {}
     if fixinsight_dir.exists():
-        fi_norm = write_fixinsight_normalized(fixinsight_dir)
+        fi_norm = write_fixinsight_normalized(fixinsight_dir, repo_root=repo_root, base_dirs=base_dirs)
 
     pal_jsonl_path = pal_dir / "pal-findings.jsonl"
     fi_jsonl_path = fixinsight_dir / "fi-findings.jsonl"
+
+    _normalize_pal_findings_jsonl(pal_jsonl_path, repo_root=repo_root)
 
     baseline_path = Path(os.environ.get("DAK_BASELINE", "")).expanduser().resolve() if os.environ.get("DAK_BASELINE", "").strip() else (out_root / "baseline.json")
     update_baseline = _truthy_env("DAK_UPDATE_BASELINE", False)
@@ -851,7 +963,8 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
             elif sev == "strong-warning":
                 current_pal_strong_hashes.append(_pal_fingerprint(obj))
 
-    current_fi_w_hashes: list[str] = []
+    current_fi_w_hashes_raw: list[str] = []
+    current_fi_w_hashes_norm: list[str] = []
     current_fi_counts_by_code: dict[str, int] = {}
     fi_total = None
 
@@ -864,23 +977,22 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         if fi_total is None:
             fi_total = int(fi_norm.get("findings", 0))
 
-    if fi_jsonl_path.exists():
-        for obj in _iter_jsonl(fi_jsonl_path):
-            if obj.get("kind") != "W":
-                continue
-            current_fi_w_hashes.append(_fi_fingerprint(obj))
+    if isinstance(fi_norm.get("w_hashes_raw"), list):
+        current_fi_w_hashes_raw = [str(x) for x in (fi_norm.get("w_hashes_raw") or [])]
+    if isinstance(fi_norm.get("w_hashes_norm"), list):
+        current_fi_w_hashes_norm = [str(x) for x in (fi_norm.get("w_hashes_norm") or [])]
 
     pal_totals = (summary.get("pal_totals") or {}) if isinstance(summary, dict) else {}
 
     current_snapshot: dict[str, Any] = {
-        "version": 2,
+        "version": 3,
         "created_at": summary.get("timestamp") or _utc_now_iso(),
         "run_context": _build_run_context(out_root, summary, allow_env=True, expected_summary_timestamp=None),
         "summary": summary,
         "fixinsight": {
             "total": fi_total,
             "counts_by_code": current_fi_counts_by_code,
-            "w_hashes": sorted(set(current_fi_w_hashes)),
+            "w_hashes": sorted(set(current_fi_w_hashes_norm)),
         },
         "pascal_analyzer": {
             "totals": pal_totals,
@@ -962,6 +1074,21 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         expected_ts = str(baseline.get("created_at") or "").strip() or None
 
     can_trust_outputs = bool(expected_ts) and str(summary.get("timestamp") or "") == expected_ts
+
+    # If outputs still match the baseline, we can safely upgrade the FixInsight W-hash scheme to normalized paths.
+    # This avoids spurious deltas on machines where FixInsight emits different relative/absolute paths.
+    try:
+        baseline_ver_now = int(baseline.get("version", 0))
+    except (TypeError, ValueError):
+        baseline_ver_now = 0
+    if can_trust_outputs and baseline_ver_now < 3:
+        b_fi2 = baseline.get("fixinsight")
+        if isinstance(b_fi2, dict):
+            b_fi2 = dict(b_fi2)
+            b_fi2["w_hashes"] = sorted(set(current_fi_w_hashes_norm))
+            baseline["fixinsight"] = b_fi2
+        baseline["version"] = 3
+        baseline_dirty = True
 
     baseline_rc = baseline.get("run_context")
     if not isinstance(baseline_rc, dict):
@@ -1064,13 +1191,27 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     new_pal_strong = a_pal_strong - b_pal_strong
 
     b_fi_w = set(b_fi.get("w_hashes") or [])
-    a_fi_w = set(current_snapshot["fixinsight"]["w_hashes"])
+    try:
+        baseline_ver_now = int(baseline.get("version", 0))
+    except (TypeError, ValueError):
+        baseline_ver_now = 0
+    use_norm_fi = baseline_ver_now >= 3
+    a_fi_w = set(current_fi_w_hashes_norm) if use_norm_fi else set(current_fi_w_hashes_raw)
     new_fi_w = a_fi_w - b_fi_w
 
     pal_new_strong_items = _select_new_pal_items(pal_jsonl_path, new_pal_strong, severity="strong-warning")
     pal_new_warn_preview = _select_new_pal_items(pal_jsonl_path, new_pal_warn, severity="warning")[:20]
 
-    fi_new_w_items = _select_new_fi_items(fi_jsonl_path, new_fi_w)
+    fi_new_w_items: list[str] = []
+    if use_norm_fi:
+        items_map = fi_norm.get("w_items_by_norm_hash") if isinstance(fi_norm, dict) else None
+    else:
+        items_map = fi_norm.get("w_items_by_raw_hash") if isinstance(fi_norm, dict) else None
+    if isinstance(items_map, dict):
+        fi_new_w_items = [str(items_map[h]) for h in sorted(new_fi_w) if h in items_map][:200]
+    elif use_norm_fi:
+        # Fallback for unusual setups where we couldn't compute item maps.
+        fi_new_w_items = _select_new_fi_items(fi_jsonl_path, new_fi_w, use_normalized_path=True)
 
     b_top_sections = b_pal.get("top_warning_sections") or []
     a_top_sections = current_snapshot["pascal_analyzer"]["top_warning_sections"] or []
