@@ -763,6 +763,18 @@ begin
     Exit(True);
   end;
 
+  if SameText(aSwitch, 'ai') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--ai') then
+      Exit(False);
+    if not TryParseBool(lValue, fOptions.fBuildAi) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--ai', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
   if SameText(aSwitch, 'ignore-warnings') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--ignore-warnings') then

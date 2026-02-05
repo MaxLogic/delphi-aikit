@@ -2,14 +2,20 @@
 Next task ID: T-062
 
 ## Summary
-Open tasks: 1 (In Progress: 0, Next Today: 0, Next This Week: 1, Next Later: 0, Blocked: 0)
-Done tasks: 60
+Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 61
 
 ## In Progress
 
 ## Next - Today
 
 ## Next - This Week
+
+## Next - Later
+
+## Blocked
+
+## Done
 
 ### T-061 [CLI] Build: Token-Saving “AI Mode” Output
 Outcome: Add an “AI mode” for `DelphiAIKit.exe build` that prints only what matters to review a build: error summary first, then (optional) a bounded list of warning/hint lines, stripping compiler banners and other noise by default.
@@ -18,12 +24,6 @@ Proof:
 - Expect: Output contains a concise success line and does not print the compiler banner.
 Touches: projects/DelphiAIKit.dpr, src/dak.cli.pas, src/dak.types.pas, build-delphi.bat
 Notes: Consider mapping to `build-delphi.bat -no-brand` and adding a bounded “top N warnings/hints” summary.
-
-## Next - Later
-
-## Blocked
-
-## Done
 
 ### T-060 [CLI] Build: Honor dak.ini Ignores For Compiler Warnings/Hints
 Outcome: Honor ignore lists from `dak.ini` (and CLI overrides) for compiler warnings/hints so build output can hide known-noise findings while still surfacing new/high-signal ones.
