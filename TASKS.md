@@ -3,8 +3,8 @@ Next task ID: T-049
 
 
 ## Summary
-Open tasks: 2 (In Progress: 0, Next Today: 0, Next This Week: 2, Next Later: 0, Blocked: 0)
-Done tasks: 46
+Open tasks: 1 (In Progress: 0, Next Today: 0, Next This Week: 1, Next Later: 0, Blocked: 0)
+Done tasks: 47
 
 
 ## In Progress
@@ -12,13 +12,6 @@ Done tasks: 46
 ## Next - Today
 
 ## Next - This Week
-
-### T-037 Use safe JSON array cast in Pascal Analyzer runner
-Outcome: Replace the hard cast in `TryGetJsonArray` with a safe cast after the `is TJSONArray` guard to clear the PAL strong warning without changing behavior.
-Proof:
-- Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
-- Expect: pal-findings no longer reports "Possible bad typecast" for `dak.pascalanalyzerrunner.pas:169`.
-Touches: src/dak.pascalanalyzerrunner.pas
 
 ### T-036 Fix GetExitCodeProcess out param cast in maxConsoleRunner
 Outcome: Use a local `DWORD` for `GetExitCodeProcess` and then assign to `fExitCode` to avoid the unsafe typecast and keep the public `ExitCode: Integer` unchanged.
@@ -32,6 +25,13 @@ Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 ## Blocked
 
 ## Done
+
+### T-037 Use safe JSON array cast in Pascal Analyzer runner
+Outcome: Replace the hard cast in `TryGetJsonArray` with a safe cast after the `is TJSONArray` guard to clear the PAL strong warning without changing behavior.
+Proof:
+- Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: pal-findings no longer reports "Possible bad typecast" for `dak.pascalanalyzerrunner.pas:169`.
+Touches: src/dak.pascalanalyzerrunner.pas
 
 ### T-038 Refactor TAsyncLoop.Run to avoid PAL bad pointer usage warning
 Outcome: Update `TAsyncLoop.Run` to avoid capturing a local loop instance inside anonymous methods while preserving behavior and keeping public API signatures unchanged.
