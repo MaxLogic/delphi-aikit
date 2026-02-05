@@ -1272,6 +1272,8 @@ def _diff_run_context(baseline_ctx: Any, current_ctx: Any) -> list[str]:
         av = str(after or "").strip()
         if not bv or not av:
             return
+        if bv.lower() in ("unknown", "?") or av.lower() in ("unknown", "?"):
+            return
         if bv == av:
             return
         out.append(f"{label}: {bv} -> {av}")
@@ -1443,9 +1445,19 @@ def _gate_eval(delta: dict[str, Any]) -> tuple[bool, list[str]]:
     max_new_fi_w = _int_env("DAK_MAX_NEW_FI_W", 0)
     max_pal_warning_increase = _int_env("DAK_MAX_PAL_WARNING_INCREASE", None)
     max_fi_total_increase = _int_env("DAK_MAX_FI_TOTAL_INCREASE", None)
+    require_ctx_match = _truthy_env("DAK_GATE_REQUIRE_CONTEXT_MATCH", False)
 
     reasons: list[str] = []
     ok = True
+
+    if require_ctx_match:
+        b_ctx = (delta.get("baseline") or {}).get("run_context")
+        c_ctx = (delta.get("current") or {}).get("run_context")
+        mismatches = _diff_run_context(b_ctx, c_ctx)
+        if mismatches:
+            ok = False
+            for m in mismatches:
+                reasons.append(f"Context mismatch: {m}")
 
     pal = delta.get("pascal_analyzer") or {}
     fi = delta.get("fixinsight") or {}
