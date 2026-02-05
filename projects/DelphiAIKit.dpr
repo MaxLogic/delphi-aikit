@@ -144,7 +144,9 @@ begin
     Exit(False);
   end;
 
-  lProjectPath := TPath.GetFullPath(aOptions.fDprojPath);
+  if not TryResolveDprojPath(aOptions.fDprojPath, lProjectPath, aError) then
+    Exit(False);
+  lProjectPath := TPath.GetFullPath(lProjectPath);
   lDelphiVer := NormalizeDelphiVerForBuild(aOptions.fDelphiVersion);
   if lDelphiVer = '' then
     lDelphiVer := aOptions.fDelphiVersion;
@@ -166,6 +168,8 @@ begin
     lCmdLine := lCmdLine + ' -ignore-warnings ' + QuoteCmdArg(aOptions.fBuildIgnoreWarnings);
   if aOptions.fHasBuildIgnoreHints then
     lCmdLine := lCmdLine + ' -ignore-hints ' + QuoteCmdArg(aOptions.fBuildIgnoreHints);
+  if aOptions.fHasExcludePathMasks then
+    lCmdLine := lCmdLine + ' -exclude-path-masks ' + QuoteCmdArg(aOptions.fExcludePathMasks);
   lCmdLine := lCmdLine + '"';
   UniqueString(lCmdLine);
   lWorkDir := ExtractFilePath(lBatPath);
