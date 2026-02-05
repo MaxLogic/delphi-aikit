@@ -2,22 +2,14 @@
 Next task ID: T-062
 
 ## Summary
-Open tasks: 3 (In Progress: 0, Next Today: 0, Next This Week: 3, Next Later: 0, Blocked: 0)
-Done tasks: 58
+Open tasks: 2 (In Progress: 0, Next Today: 0, Next This Week: 2, Next Later: 0, Blocked: 0)
+Done tasks: 59
 
 ## In Progress
 
 ## Next - Today
 
 ## Next - This Week
-
-### T-059 [CLI] Build: Normalize Paths In Output (Repo-Relative + WSL-Friendly)
-Outcome: Normalize paths in `DelphiAIKit.exe build` output so AI output is stable across machines: make paths repo-relative where possible (VCS root if detected, else `.dproj` dir), and optionally emit WSL/Linux-style paths when running under WSL.
-Proof:
-- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\tests\\DelphiAIKit.Tests.dproj" --delphi 23.0 --platform Win32 --config Release
-- Expect: Output does not contain absolute `F:\\projects\\MaxLogic\\DelphiConfigResolver\\` prefixes for project files; paths are relative where applicable.
-Touches: projects/DelphiAIKit.dpr, src/dak.output.pas, src/dak.messages.pas, build-delphi.bat
-Notes: Prefer a single normalization function shared with static-analysis postprocess (same “repo root vs `.dproj` dir” logic).
 
 ### T-060 [CLI] Build: Honor dak.ini Ignores For Compiler Warnings/Hints
 Outcome: Honor ignore lists from `dak.ini` (and CLI overrides) for compiler warnings/hints so build output can hide known-noise findings while still surfacing new/high-signal ones.
@@ -42,6 +34,14 @@ Notes: Consider mapping to `build-delphi.bat -no-brand` and adding a bounded “
 ## Blocked
 
 ## Done
+
+### T-059 [CLI] Build: Normalize Paths In Output (Repo-Relative + WSL-Friendly)
+Outcome: Normalize paths in `DelphiAIKit.exe build` output so AI output is stable across machines: make paths repo-relative where possible (VCS root if detected, else `.dproj` dir), and optionally emit WSL/Linux-style paths when running under WSL.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\tests\\DelphiAIKit.Tests.dproj" --delphi 23.0 --platform Win32 --config Release
+- Expect: Output does not contain absolute `F:\\projects\\MaxLogic\\DelphiConfigResolver\\` prefixes for project files; paths are relative where applicable.
+Touches: projects/DelphiAIKit.dpr, src/dak.output.pas, src/dak.messages.pas, build-delphi.bat
+Notes: Prefer a single normalization function shared with static-analysis postprocess (same “repo root vs `.dproj` dir” logic).
 
 ### T-058 [CLI] Build: Expose Warnings/Hints Output Switches
 Outcome: Extend `DelphiAIKit.exe build` with switches to control build output verbosity, including separate switches to include compiler warnings and hints in output on success.
