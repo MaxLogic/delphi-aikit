@@ -180,6 +180,8 @@ Useful env vars (wrapper-level; not forwarded to DAK):
 - `DAK_BASELINE=<path>` override baseline path (default: `_analysis/<project>/baseline.json`)
 - `DAK_UPDATE_BASELINE=1` overwrite the baseline with the current run
 - `DAK_TRIAGE_TOP=<N>` override triage shortlist cap (default: `20`)
+- `DAK_TRIAGE_INCLUDE_PATHS='<glob;glob;...>'` include only matching paths in triage/snippets (postprocess-only)
+- `DAK_TRIAGE_EXCLUDE_PATHS='<glob;glob;...>'` exclude matching paths from triage/snippets (postprocess-only)
 - `DAK_SCOPE=changed` emit `triage-changed.md` filtered to Git-changed files
 - `DAK_TRIAGE_SNIPPETS=1` emit `triage-snippets.md` with bounded source snippets for top triage items
 - `DAK_TRIAGE_SNIPPET_CONTEXT=<N>` number of context lines around the finding line (default: `2`)

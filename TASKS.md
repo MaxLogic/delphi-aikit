@@ -3,22 +3,13 @@ Next task ID: T-055
 
 
 ## Summary
-Open tasks: 4 (In Progress: 0, Next Today: 4, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 50
+Open tasks: 3 (In Progress: 0, Next Today: 3, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 51
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-051 [CLI] Add triage include/exclude path filters
-Outcome: Add `DAK_TRIAGE_INCLUDE_PATHS` and `DAK_TRIAGE_EXCLUDE_PATHS` (semicolon-separated glob patterns) so `triage.md`/`triage-snippets.md` can focus on selected paths without re-running analyzers.
-Proof:
-- Command: DAK_TRIAGE_INCLUDE_PATHS='src/*' python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
-- Expect: `_analysis/DelphiAIKit/triage.md` does not contain `lib/MaxLogicFoundation/`.
-- Command: DAK_TRIAGE_EXCLUDE_PATHS='lib/*' python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
-- Expect: `_analysis/DelphiAIKit/triage.md` does not contain `lib/MaxLogicFoundation/`.
-Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
 
 ### T-052 [CLI] Deprioritize PAL Exception Call Tree entries in triage
 Outcome: Keep `Exception Call Tree` entries out of the top triage list by default (low priority), unless explicitly enabled via `DAK_TRIAGE_PAL_INCLUDE_CALL_TREE=1`.
@@ -48,6 +39,15 @@ Touches: agentskill/delphi-static-analysis/postprocess.py
 ## Blocked
 
 ## Done
+
+### T-051 [CLI] Add triage include/exclude path filters
+Outcome: Add `DAK_TRIAGE_INCLUDE_PATHS` and `DAK_TRIAGE_EXCLUDE_PATHS` (semicolon-separated glob patterns) so `triage.md`/`triage-snippets.md` can focus on selected paths without re-running analyzers.
+Proof:
+- Command: DAK_TRIAGE_INCLUDE_PATHS='src/*' python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/triage.md` does not contain `lib/MaxLogicFoundation/`.
+- Command: DAK_TRIAGE_EXCLUDE_PATHS='lib/*' python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/triage.md` does not contain `lib/MaxLogicFoundation/`.
+Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
 
 ### T-050 [CLI] Gate: optionally require matching analysis context
 Outcome: Add `DAK_GATE_REQUIRE_CONTEXT_MATCH=1` that makes the postprocess gate fail when baseline/current `run_context` differ materially (platform/config/delphi/tool target), ignoring `unknown` values.

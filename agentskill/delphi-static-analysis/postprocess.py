@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import hashlib
+import fnmatch
 import json
 import os
 import platform
@@ -42,6 +43,29 @@ def _int_env(name: str, default: Optional[int]) -> Optional[int]:
         return int(raw)
     except ValueError:
         raise ValueError(f"{name} must be an integer, got: {raw!r}")
+
+
+def _split_semicolon_patterns(raw: str) -> list[str]:
+    parts: list[str] = []
+    for item in raw.split(";"):
+        s = item.strip()
+        if not s:
+            continue
+        parts.append(s.replace("\\", "/").lower())
+    return parts
+
+
+def _triage_path_allowed(path: str, *, include: list[str], exclude: list[str]) -> bool:
+    p = (path or "").strip().replace("\\", "/").lower()
+    if not p:
+        return not include
+    if include:
+        if not any(fnmatch.fnmatch(p, pat) for pat in include):
+            return False
+    if exclude:
+        if any(fnmatch.fnmatch(p, pat) for pat in exclude):
+            return False
+    return True
 
 
 def _sha1(text: str) -> str:
@@ -633,11 +657,15 @@ def _pal_triage_priority(severity: str) -> int:
 def _write_triage(out_root: Path, *, title: str, fi_jsonl_path: Path, pal_jsonl_path: Path) -> Path:
     triage_path = out_root / "triage.md"
     top_n = _int_env("DAK_TRIAGE_TOP", 20) or 20
+    include_paths = _split_semicolon_patterns(os.environ.get("DAK_TRIAGE_INCLUDE_PATHS", "").strip())
+    exclude_paths = _split_semicolon_patterns(os.environ.get("DAK_TRIAGE_EXCLUDE_PATHS", "").strip())
 
     fi_items: list[dict[str, Any]] = []
     if fi_jsonl_path.exists():
         for obj in _iter_jsonl(fi_jsonl_path):
             path = obj.get("path") or obj.get("file") or "?"
+            if not _triage_path_allowed(str(path), include=include_paths, exclude=exclude_paths):
+                continue
             kind = str(obj.get("kind") or "").strip()
             fi_items.append(
                 {
@@ -659,6 +687,8 @@ def _write_triage(out_root: Path, *, title: str, fi_jsonl_path: Path, pal_jsonl_
         for obj in _iter_jsonl(pal_jsonl_path):
             severity = str(obj.get("severity") or "").strip()
             path = obj.get("path") or obj.get("module") or "?"
+            if not _triage_path_allowed(str(path), include=include_paths, exclude=exclude_paths):
+                continue
             pal_items.append(
                 {
                     "priority": _pal_triage_priority(severity),
