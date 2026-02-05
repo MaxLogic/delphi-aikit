@@ -5,7 +5,7 @@ license: internal
 compatibility: "Requires Windows/WSL, DelphiAIKit.exe, FixInsightCL, PALCMD; may require commercial licenses"
 metadata:
   tags: [delphi, static-analysis]
-  version: "1.3"
+  version: "1.4"
 disable-model-invocation: true
 allowed-tools:
   - read
@@ -65,13 +65,11 @@ Scripts delegate to the DAK subcommands:
 
 ### DAK location
 
-By default, scripts use:
+Resolver discovery order:
 
-- `bin/DelphiAIKit.exe`
-
-Override with:
-
-- `DAK_EXE=<path-to-DelphiAIKit.exe>`
+- `DAK_EXE=<path-to-DelphiAIKit.exe>` (recommended; works from any folder)
+- Windows PATH: `where DelphiAIKit.exe` (requires adding the exe folder to Windows PATH)
+- Repo-local fallback: `bin/DelphiAIKit.exe` under the current directory’s VCS root (or the analyzed project’s VCS root)
 
 ### Common overrides
 
