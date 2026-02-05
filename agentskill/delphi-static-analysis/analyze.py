@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import platform
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -15,6 +16,12 @@ from typing import Optional
 
 def _is_wsl() -> bool:
     return bool(os.environ.get("WSL_DISTRO_NAME")) or ("microsoft" in platform.release().lower())
+
+
+def _cmd_exe() -> str:
+    # In some restricted WSL environments, executing `cmd.exe` via PATH is blocked, while
+    # invoking it by absolute path remains allowed.
+    return "/mnt/c/Windows/System32/cmd.exe" if _is_wsl() else "cmd.exe"
 
 
 def _looks_like_windows_path(s: str) -> bool:
@@ -77,7 +84,7 @@ def _get_env(name: str, default: str) -> str:
     return val if val else default
 
 
-def _find_dak_exe(repo_root: Path) -> Path:
+def _find_dak_exe(dproj: Path) -> Path:
     env = os.environ.get("DAK_EXE", "").strip()
     if env:
         # In WSL, allow `DAK_EXE=C:\path\DelphiAIKit.exe` and convert for existence/execution.
@@ -91,10 +98,62 @@ def _find_dak_exe(repo_root: Path) -> Path:
             if p.exists():
                 return p
         raise FileNotFoundError(f"DAK_EXE points to missing file: {env}")
-    p = repo_root / "bin" / "DelphiAIKit.exe"
-    if not p.exists():
-        raise FileNotFoundError(f"DelphiAIKit.exe not found at: {p} (set DAK_EXE to override)")
-    return p
+
+    # Next: Windows PATH (works best for globally installed skills).
+    if _is_wsl():
+        try:
+            out = subprocess.check_output([_cmd_exe(), "/C", "where", "DelphiAIKit.exe"], text=True, stderr=subprocess.STDOUT)
+            for line in (out or "").splitlines():
+                s = line.strip()
+                if not s:
+                    continue
+                if _looks_like_windows_path(s):
+                    try:
+                        p = Path(_wslpath_to_unix(s))
+                        if p.exists():
+                            return p
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+    else:
+        found = shutil.which("DelphiAIKit.exe")
+        if found:
+            p = Path(found)
+            if p.exists():
+                return p
+
+    # Finally: look for a repo-local build of DAK (convenient when we run from the DAK repo).
+    roots: list[Path] = []
+
+    cwd = Path.cwd()
+    roots.append(cwd)
+    cwd_root, _ = _find_vcs_root(cwd)
+    if cwd_root is not None:
+        roots.append(cwd_root)
+
+    target_root, _ = _find_vcs_root(dproj.parent)
+    if target_root is not None:
+        roots.append(target_root)
+
+    # Keep compatibility when the skill lives inside a tooling repo (but do not rely on it).
+    script_dir = Path(__file__).resolve().parent
+    roots.append(script_dir.parent.parent)
+
+    seen: set[str] = set()
+    for r in roots:
+        rr = str(r.resolve())
+        if rr in seen:
+            continue
+        seen.add(rr)
+        cand = r / "bin" / "DelphiAIKit.exe"
+        if cand.exists():
+            return cand
+
+    raise FileNotFoundError(
+        "DelphiAIKit.exe not found. Set DAK_EXE to the full path of DelphiAIKit.exe "
+        "or add it to Windows PATH (so `where DelphiAIKit.exe` works)."
+    )
 
 
 def _maybe_add_arg(args: list[str], flag: str, value: Optional[str]) -> None:
@@ -135,9 +194,6 @@ def main(argv: list[str]) -> int:
         print("Usage: analyze.py <path-to-project.dproj>", file=sys.stderr)
         return 2
 
-    script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent.parent
-
     dproj = _normalize_input_path(argv[1])
     if not dproj.is_absolute():
         dproj = (Path.cwd() / dproj).resolve()
@@ -147,7 +203,7 @@ def main(argv: list[str]) -> int:
         print(f"ERROR: .dproj not found: {dproj}", file=sys.stderr)
         return 2
 
-    dak_exe = _find_dak_exe(repo_root)
+    dak_exe = _find_dak_exe(dproj)
     dak_exe_arg = _to_win_arg(dak_exe) if _is_wsl() else str(dak_exe)
 
     platform_name = _get_env("DAK_PLATFORM", "Win32")
@@ -180,7 +236,7 @@ def main(argv: list[str]) -> int:
         delphi_ver,
     ]
 
-    out_root = _resolve_out_root(repo_root, dproj)
+    out_root = _resolve_out_root(Path.cwd(), dproj)
     args += ["--out", _to_win_arg(out_root)]
 
     if fi_formats:
@@ -205,12 +261,15 @@ def main(argv: list[str]) -> int:
     if pa_args:
         args += ["--pa-args", pa_args]
 
+    vcs_root, _ = _find_vcs_root(dproj.parent)
+    work_root = vcs_root if vcs_root is not None else dproj.parent
+
     if _is_wsl():
         # Some environments disallow executing arbitrary Windows binaries directly from WSL,
         # but `cmd.exe /C ...` remains available and works reliably.
-        p = subprocess.run(["/mnt/c/Windows/System32/cmd.exe", "/C"] + args, cwd=str(repo_root))
+        p = subprocess.run([_cmd_exe(), "/C"] + args, cwd=str(work_root))
     else:
-        p = subprocess.run(args, cwd=str(repo_root))
+        p = subprocess.run(args, cwd=str(work_root))
 
     summary_path = out_root / "summary.md"
     if summary_path.exists():

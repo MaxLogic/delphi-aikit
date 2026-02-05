@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import platform
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -15,6 +16,10 @@ from typing import Optional
 
 def _is_wsl() -> bool:
     return bool(os.environ.get("WSL_DISTRO_NAME")) or ("microsoft" in platform.release().lower())
+
+
+def _cmd_exe() -> str:
+    return "/mnt/c/Windows/System32/cmd.exe" if _is_wsl() else "cmd.exe"
 
 
 def _looks_like_windows_path(s: str) -> bool:
@@ -71,7 +76,7 @@ def _to_win_arg(p: Path) -> str:
     return _wslpath_to_windows(p)
 
 
-def _find_dak_exe(repo_root: Path) -> Path:
+def _find_dak_exe(unit_path: Path) -> Path:
     env = os.environ.get("DAK_EXE", "").strip()
     if env:
         candidates: list[Path] = [Path(env)]
@@ -84,10 +89,59 @@ def _find_dak_exe(repo_root: Path) -> Path:
             if p.exists():
                 return p
         raise FileNotFoundError(f"DAK_EXE points to missing file: {env}")
-    p = repo_root / "bin" / "DelphiAIKit.exe"
-    if not p.exists():
-        raise FileNotFoundError(f"DelphiAIKit.exe not found at: {p} (set DAK_EXE to override)")
-    return p
+
+    if _is_wsl():
+        try:
+            out = subprocess.check_output([_cmd_exe(), "/C", "where", "DelphiAIKit.exe"], text=True, stderr=subprocess.STDOUT)
+            for line in (out or "").splitlines():
+                s = line.strip()
+                if not s:
+                    continue
+                if _looks_like_windows_path(s):
+                    try:
+                        p = Path(_wslpath_to_unix(s))
+                        if p.exists():
+                            return p
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+    else:
+        found = shutil.which("DelphiAIKit.exe")
+        if found:
+            p = Path(found)
+            if p.exists():
+                return p
+
+    roots: list[Path] = []
+
+    cwd = Path.cwd()
+    roots.append(cwd)
+    cwd_root, _ = _find_vcs_root(cwd)
+    if cwd_root is not None:
+        roots.append(cwd_root)
+
+    target_root, _ = _find_vcs_root(unit_path.parent)
+    if target_root is not None:
+        roots.append(target_root)
+
+    script_dir = Path(__file__).resolve().parent
+    roots.append(script_dir.parent.parent)
+
+    seen: set[str] = set()
+    for r in roots:
+        rr = str(r.resolve())
+        if rr in seen:
+            continue
+        seen.add(rr)
+        cand = r / "bin" / "DelphiAIKit.exe"
+        if cand.exists():
+            return cand
+
+    raise FileNotFoundError(
+        "DelphiAIKit.exe not found. Set DAK_EXE to the full path of DelphiAIKit.exe "
+        "or add it to Windows PATH (so `where DelphiAIKit.exe` works)."
+    )
 
 
 def _maybe_add_arg(args: list[str], flag: str, value: Optional[str]) -> None:
@@ -133,9 +187,6 @@ def main(argv: list[str]) -> int:
         print("Usage: analyze-unit.py <path-to-unit.pas>", file=sys.stderr)
         return 2
 
-    script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent.parent
-
     unit_path = _normalize_input_path(argv[1])
     if not unit_path.is_absolute():
         unit_path = (Path.cwd() / unit_path).resolve()
@@ -145,7 +196,7 @@ def main(argv: list[str]) -> int:
         print(f"ERROR: .pas not found: {unit_path}", file=sys.stderr)
         return 2
 
-    dak_exe = _find_dak_exe(repo_root)
+    dak_exe = _find_dak_exe(unit_path)
     dak_exe_arg = _to_win_arg(dak_exe) if _is_wsl() else str(dak_exe)
 
     delphi_ver = _get_env("DAK_DELPHI", "23.0")
@@ -164,7 +215,7 @@ def main(argv: list[str]) -> int:
         delphi_ver,
     ]
 
-    out_root = _resolve_out_root(repo_root, unit_path)
+    out_root = _resolve_out_root(Path.cwd(), unit_path)
     args += ["--out", _to_win_arg(out_root)]
 
     _maybe_add_arg(args, "--fixinsight", "false")
@@ -177,10 +228,13 @@ def main(argv: list[str]) -> int:
     if pa_args:
         args += ["--pa-args", pa_args]
 
+    vcs_root, _ = _find_vcs_root(unit_path.parent)
+    work_root = vcs_root if vcs_root is not None else unit_path.parent
+
     if _is_wsl():
-        p = subprocess.run(["/mnt/c/Windows/System32/cmd.exe", "/C"] + args, cwd=str(repo_root))
+        p = subprocess.run([_cmd_exe(), "/C"] + args, cwd=str(work_root))
     else:
-        p = subprocess.run(args, cwd=str(repo_root))
+        p = subprocess.run(args, cwd=str(work_root))
 
     summary_path = out_root / "summary.md"
     if summary_path.exists():

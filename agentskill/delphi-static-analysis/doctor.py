@@ -10,6 +10,7 @@ import configparser
 import os
 import platform
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -64,12 +65,7 @@ def _find_vcs_root(start_dir: Path) -> tuple[Optional[Path], str]:
         p = p.parent
 
 
-def _find_repo_root(script_dir: Path) -> Path:
-    # skill lives at <repo>/agentskill/delphi-static-analysis
-    return script_dir.parent.parent
-
-
-def _find_dak_exe(repo_root: Path) -> Path:
+def _find_dak_exe(target_dir: Path) -> Path:
     env = os.environ.get("DAK_EXE", "").strip()
     if env:
         candidates: list[Path] = [_normalize_input_path(env)]
@@ -78,10 +74,59 @@ def _find_dak_exe(repo_root: Path) -> Path:
                 return p.resolve()
         raise FileNotFoundError(f"DAK_EXE points to missing file: {env}")
 
-    p = repo_root / "bin" / "DelphiAIKit.exe"
-    if not p.exists():
-        raise FileNotFoundError(f"DelphiAIKit.exe not found at: {p} (set DAK_EXE to override)")
-    return p.resolve()
+    if _is_wsl():
+        code, out = _run_capture([_cmd_exe(), "/C", "where", "DelphiAIKit.exe"])
+        if code == 0 and out:
+            for line in out.splitlines():
+                s = line.strip()
+                if not s:
+                    continue
+                if not _looks_like_windows_path(s):
+                    continue
+                try:
+                    p = Path(_wslpath_to_unix(s))
+                    if p.exists():
+                        return p.resolve()
+                except Exception:
+                    continue
+    else:
+        found = shutil.which("DelphiAIKit.exe")
+        if found:
+            p = Path(found)
+            if p.exists():
+                return p.resolve()
+
+    roots: list[Path] = []
+
+    cwd = Path.cwd()
+    roots.append(cwd)
+    cwd_root, _ = _find_vcs_root(cwd)
+    if cwd_root is not None:
+        roots.append(cwd_root)
+
+    roots.append(target_dir)
+    tgt_root, _ = _find_vcs_root(target_dir)
+    if tgt_root is not None:
+        roots.append(tgt_root)
+
+    # Back-compat when the skill lives inside a tooling repo.
+    script_dir = Path(__file__).resolve().parent
+    roots.append(script_dir.parent.parent)
+
+    seen: set[str] = set()
+    for r in roots:
+        rr = str(r.resolve())
+        if rr in seen:
+            continue
+        seen.add(rr)
+        cand = r / "bin" / "DelphiAIKit.exe"
+        if cand.exists():
+            return cand.resolve()
+
+    raise FileNotFoundError(
+        "DelphiAIKit.exe not found. Set DAK_EXE to the full path of DelphiAIKit.exe "
+        "or add it to Windows PATH (so `where DelphiAIKit.exe` works)."
+    )
 
 
 def _load_ini(path: Path) -> configparser.ConfigParser:
@@ -97,21 +142,28 @@ def _fmt_kv(k: str, v: str) -> str:
 
 def main(argv: list[str]) -> int:
     script_dir = Path(__file__).resolve().parent
-    repo_root = _find_repo_root(script_dir)
+    target_dir = Path.cwd()
+    target = None
+    if len(argv) >= 2:
+        target = _normalize_input_path(argv[1])
+        if not target.is_absolute():
+            target = (Path.cwd() / target).resolve()
+        target_dir = target.parent
 
     print("# Delphi static analysis doctor")
     print()
     print(f"- Python: {sys.version.split()[0]}")
     print(f"- Platform: {platform.platform()}")
     print(f"- WSL: {_is_wsl()}")
-    print(f"- Repo root: {repo_root}")
+    print(f"- Skill dir: {script_dir}")
+    print(f"- CWD: {Path.cwd()}")
 
     if _is_wsl():
         code, out = _run_capture(["wslpath", "-u", "C:\\"])
         print(f"- wslpath: {'ok' if code == 0 else 'missing/failed'}")
 
     try:
-        dak_exe = _find_dak_exe(repo_root)
+        dak_exe = _find_dak_exe(target_dir)
     except Exception as e:
         print()
         print(f"ERROR: {e}")
@@ -119,11 +171,6 @@ def main(argv: list[str]) -> int:
 
     dak_dir = dak_exe.parent
     dak_ini = dak_dir / "dak.ini"
-    if not dak_ini.exists():
-        # repo default
-        alt = repo_root / "bin" / "dak.ini"
-        if alt.exists():
-            dak_ini = alt
 
     print()
     print("## Resolver")
@@ -185,10 +232,7 @@ def main(argv: list[str]) -> int:
             continue
         print(f"- {k}={v}")
 
-    if len(argv) >= 2:
-        target = _normalize_input_path(argv[1])
-        if not target.is_absolute():
-            target = (Path.cwd() / target).resolve()
+    if target is not None:
         print()
         print("## Target")
         print(f"- Path: {target}")
