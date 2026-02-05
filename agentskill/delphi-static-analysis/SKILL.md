@@ -5,7 +5,7 @@ license: internal
 compatibility: "Requires Windows/WSL, DelphiAIKit.exe, FixInsightCL, PALCMD; may require commercial licenses"
 metadata:
   tags: [delphi, static-analysis]
-  version: "1.2"
+  version: "1.3"
 disable-model-invocation: true
 allowed-tools:
   - read
@@ -40,6 +40,13 @@ Generate Pascal Analyzer reports for a single unit:
 - WSL:
   - `DAK_PASCAL_ANALYZER=1 ./agentskill/delphi-static-analysis/analyze-unit.sh /mnt/c/path/to/Unit1.pas`
 
+Build a project with token-saving output (recommended after applying fixes):
+
+- Windows:
+  - `bin\\DelphiAIKit.exe build --project path\\to\\MyProject.dproj --delphi 23.0 --platform Win32 --config Release --ai`
+- WSL:
+  - `/mnt/c/Windows/System32/cmd.exe /C "F:\\path\\to\\DelphiAIKit.exe" build --project "F:\\path\\to\\MyProject.dproj" --delphi 23.0 --platform Win32 --config Release --ai`
+
 ## Tooling model (thin)
 
 We do not call FixInsightCL/PALCMD directly for project analysis. We call our resolver tool and let it:
@@ -54,6 +61,7 @@ Scripts delegate to the DAK subcommands:
 
 - `DelphiAIKit.exe analyze --project ...`
 - `DelphiAIKit.exe analyze --unit ...`
+- `DelphiAIKit.exe build --project ...`
 
 ### DAK location
 
@@ -74,6 +82,22 @@ Override with:
   `DAK_WRITE_SUMMARY`
 
 For the full list of supported environment variables and tool-specific gotchas, see `references/tooling.md`.
+
+## Build (DAK)
+
+We use `DelphiAIKit.exe build` as the cheap, repeatable verification step after fixing analysis findings.
+
+Notes:
+
+- `--project` accepts `*.dproj`. If we pass a `*.dpr` or `*.dpk`, DAK looks for an associated `*.dproj` next to it and uses that; otherwise it fails.
+- `--ai` emits a concise summary (`SUCCESS. Warnings: X, Hints: Y` or `FAILED. Errors: N`) and strips compiler banners/noise.
+- Use `--show-warnings` / `--show-hints` to print a bounded list of findings on success (useful when iterating).
+- Suppress known-noise compiler codes:
+  - CLI: `--ignore-warnings "W1234;W5678"` / `--ignore-hints "H2077;H2219"`
+  - ini (merged along the project tree): `dak.ini` → `[BuildIgnore] Warnings=... Hints=...`
+- Suppress warnings/hints by file path mask (3rd-party/vendor code):
+  - CLI: `--exclude-path-masks "*\\3rdParty\\*;*\\lib\\*"`
+  - ini (merged along the project tree): `dak.ini` → `[BuildIgnore] ExcludePathMasks=...` (also honors `[ReportFilter] ExcludePathMasks=...`)
 
 ## Output tree (stable)
 

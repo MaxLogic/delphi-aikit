@@ -793,6 +793,15 @@ begin
     Exit(True);
   end;
 
+  if SameText(aSwitch, 'exclude-path-masks') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--exclude-path-masks') then
+      Exit(False);
+    fOptions.fExcludePathMasks := lValue;
+    fOptions.fHasExcludePathMasks := True;
+    Exit(True);
+  end;
+
   fError := Format(SUnknownArg, [aArg]);
   Result := False;
 end;
