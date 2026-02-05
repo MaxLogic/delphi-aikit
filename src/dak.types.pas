@@ -22,6 +22,7 @@ type
     fDelphiVersion: string;
     fBuildShowWarnings: Boolean;
     fBuildShowHints: Boolean;
+    fBuildAi: Boolean;
     fBuildIgnoreWarnings: string;
     fHasBuildIgnoreWarnings: Boolean;
     fBuildIgnoreHints: string;
