@@ -107,6 +107,179 @@ def _write_jsonl(path: Path, items: Iterable[dict[str, Any]]) -> None:
             f.write(json.dumps(obj, ensure_ascii=True) + "\n")
 
 
+def _slug_id(text: str, *, max_len: int = 64) -> str:
+    s = (text or "").strip().lower()
+    if not s:
+        return "unknown"
+    out: list[str] = []
+    last_dash = False
+    for ch in s:
+        is_alnum = ("a" <= ch <= "z") or ("0" <= ch <= "9")
+        if is_alnum:
+            out.append(ch)
+            last_dash = False
+            continue
+        if last_dash:
+            continue
+        out.append("-")
+        last_dash = True
+    slug = "".join(out).strip("-")
+    if not slug:
+        return "unknown"
+    return slug[:max_len]
+
+
+def _sarif_level_for_fixinsight_kind(kind: str) -> str:
+    k = (kind or "").strip().upper()
+    if k == "W":
+        return "warning"
+    # C=maintainability/refactor pressure, O=hygiene; keep visible but non-blocking.
+    return "note"
+
+
+def _sarif_level_for_pal_severity(severity: str) -> str:
+    sev = (severity or "").strip().lower()
+    if sev == "strong-warning":
+        return "warning"
+    return "note"
+
+
+def _sarif_uri_for_path(path: str) -> Optional[str]:
+    p = (path or "").strip().replace("\\", "/")
+    if not p or p == ".":
+        return None
+    norm = posixpath.normpath(p)
+    if norm.startswith("../"):
+        return None
+    return norm
+
+
+def _write_sarif(out_root: Path, *, fi_jsonl_path: Path, pal_jsonl_path: Path) -> Optional[Path]:
+    runs: list[dict[str, Any]] = []
+
+    if fi_jsonl_path.exists():
+        rules_by_id: dict[str, dict[str, Any]] = {}
+        results: list[dict[str, Any]] = []
+        for obj in _iter_jsonl(fi_jsonl_path):
+            code = str(obj.get("code") or "").strip()
+            if not code:
+                continue
+            kind = str(obj.get("kind") or "").strip()
+            uri = _sarif_uri_for_path(str(obj.get("path") or obj.get("file") or ""))
+            if not uri:
+                continue
+            line = int(obj.get("line") or 1)
+            col = int(obj.get("col") or 1)
+            msg = str(obj.get("message") or "").strip() or code
+
+            if code not in rules_by_id:
+                rules_by_id[code] = {"id": code, "shortDescription": {"text": f"FixInsight {code}"}}
+
+            results.append(
+                {
+                    "ruleId": code,
+                    "level": _sarif_level_for_fixinsight_kind(kind),
+                    "message": {"text": msg},
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {"uri": uri},
+                                "region": {"startLine": line, "startColumn": col},
+                            }
+                        }
+                    ],
+                    "properties": {"tool": "FixInsight", "kind": kind, "code": code},
+                }
+            )
+
+        if results:
+            runs.append(
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "FixInsight",
+                            "rules": list(rules_by_id.values()),
+                        }
+                    },
+                    "results": results,
+                }
+            )
+
+    if pal_jsonl_path.exists():
+        rules_by_id = {}
+        results = []
+        for obj in _iter_jsonl(pal_jsonl_path):
+            severity = str(obj.get("severity") or "").strip()
+            section = str(obj.get("section") or "").strip()
+            uri = _sarif_uri_for_path(str(obj.get("path") or ""))
+            if not uri:
+                continue
+            line = int(obj.get("line") or 1)
+            col = int(obj.get("col") or 1)
+            ident = str(obj.get("id") or obj.get("message") or "").strip()
+
+            slug = _slug_id(section)
+            rule_id = f"PAL.{slug}"
+            if rule_id not in rules_by_id:
+                rules_by_id[rule_id] = {
+                    "id": rule_id,
+                    "name": section or rule_id,
+                    "shortDescription": {"text": section or "Pascal Analyzer finding"},
+                }
+
+            if section and ident:
+                msg = f"{section}: {ident}"
+            else:
+                msg = section or ident or "Pascal Analyzer finding"
+
+            results.append(
+                {
+                    "ruleId": rule_id,
+                    "level": _sarif_level_for_pal_severity(severity),
+                    "message": {"text": msg},
+                    "locations": [
+                        {
+                            "physicalLocation": {
+                                "artifactLocation": {"uri": uri},
+                                "region": {"startLine": line, "startColumn": col},
+                            }
+                        }
+                    ],
+                    "properties": {
+                        "tool": "Pascal Analyzer",
+                        "severity": severity,
+                        "report": str(obj.get("report") or ""),
+                        "section": section,
+                    },
+                }
+            )
+
+        if results:
+            runs.append(
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "Pascal Analyzer",
+                            "rules": list(rules_by_id.values()),
+                        }
+                    },
+                    "results": results,
+                }
+            )
+
+    if not runs:
+        return None
+
+    sarif_obj: dict[str, Any] = {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": runs,
+    }
+    sarif_path = out_root / "static-analysis.sarif"
+    _write_json(sarif_path, sarif_obj)
+    return sarif_path
+
+
 def _is_wsl() -> bool:
     return bool(os.environ.get("WSL_DISTRO_NAME")) or ("microsoft" in platform.release().lower())
 
@@ -1739,6 +1912,9 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
             triage_snip = out_root / "triage-snippets.md"
             if triage_snip.exists():
                 res["triage_snippets"] = str(triage_snip)
+        sarif_path = _write_sarif(out_root, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
+        if sarif_path is not None:
+            res["sarif"] = str(sarif_path)
         history_path, trend_path, _ = _update_history_and_trend(out_root, title=title, summary=summary, snapshot=current_snapshot, repo_root=repo_root)
         res["history"] = str(history_path)
         res["trend"] = str(trend_path)
@@ -1974,6 +2150,9 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         triage_snip = out_root / "triage-snippets.md"
         if triage_snip.exists():
             res["triage_snippets"] = str(triage_snip)
+    sarif_path = _write_sarif(out_root, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
+    if sarif_path is not None:
+        res["sarif"] = str(sarif_path)
     history_path, trend_path, _ = _update_history_and_trend(out_root, title=title, summary=summary, snapshot=current_snapshot, repo_root=repo_root)
     res["history"] = str(history_path)
     res["trend"] = str(trend_path)
