@@ -1643,6 +1643,13 @@ def _render_delta_md(delta: dict[str, Any]) -> str:
         status = "PASS" if gate.get("pass") else "FAIL"
         lines.append("## Gate")
         lines.append(f"- Result: **{status}**")
+        pf = gate.get("path_filter") if isinstance(gate.get("path_filter"), dict) else {}
+        inc = pf.get("include") if isinstance(pf.get("include"), list) else []
+        exc = pf.get("exclude") if isinstance(pf.get("exclude"), list) else []
+        if inc or exc:
+            inc_s = ";".join(str(x) for x in inc) if inc else "(none)"
+            exc_s = ";".join(str(x) for x in exc) if exc else "(none)"
+            lines.append(f"- Path filter: include={inc_s}, exclude={exc_s}")
         for r in gate.get("reasons", []):
             lines.append(f"- {r}")
         lines.append("")
@@ -2048,11 +2055,31 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     if isinstance(strong_before, int) and isinstance(strong_after, int):
         strong_delta = strong_after - strong_before
 
-    # Finding deltas (hash-based).
+    gate_include = _split_semicolon_patterns(os.environ.get("DAK_GATE_INCLUDE_PATHS", ""))
+    gate_exclude = _split_semicolon_patterns(os.environ.get("DAK_GATE_EXCLUDE_PATHS", ""))
+    gate_path_filter = bool(gate_include or gate_exclude)
+
+    # Finding deltas (hash-based). Gate path filters (when provided) apply only to the *current*
+    # run findings, so we can gate on our code even when baselines contain vendor findings.
     b_pal_warn = set(b_pal.get("warning_hashes") or [])
     b_pal_strong = set(b_pal.get("strong_hashes") or [])
-    a_pal_warn = set(current_snapshot["pascal_analyzer"]["warning_hashes"])
-    a_pal_strong = set(current_snapshot["pascal_analyzer"]["strong_hashes"])
+
+    if gate_path_filter and pal_jsonl_path.exists():
+        a_pal_warn = set()
+        a_pal_strong = set()
+        for obj in _iter_jsonl(pal_jsonl_path):
+            p = str(obj.get("path") or "")
+            if not _triage_path_allowed(p, include=gate_include, exclude=gate_exclude):
+                continue
+            sev = str(obj.get("severity") or "")
+            h = _pal_fingerprint(obj)
+            if sev == "warning":
+                a_pal_warn.add(h)
+            elif sev == "strong-warning":
+                a_pal_strong.add(h)
+    else:
+        a_pal_warn = set(current_snapshot["pascal_analyzer"]["warning_hashes"])
+        a_pal_strong = set(current_snapshot["pascal_analyzer"]["strong_hashes"])
 
     new_pal_warn = a_pal_warn - b_pal_warn
     new_pal_strong = a_pal_strong - b_pal_strong
@@ -2063,7 +2090,18 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     except (TypeError, ValueError):
         baseline_ver_now = 0
     use_norm_fi = baseline_ver_now >= 3
-    a_fi_w = set(current_fi_w_hashes_norm) if use_norm_fi else set(current_fi_w_hashes_raw)
+
+    if gate_path_filter and use_norm_fi and fi_jsonl_path.exists():
+        a_fi_w = set()
+        for obj in _iter_jsonl(fi_jsonl_path):
+            if obj.get("kind") != "W":
+                continue
+            p = str(obj.get("path") or obj.get("file") or "")
+            if not _triage_path_allowed(p, include=gate_include, exclude=gate_exclude):
+                continue
+            a_fi_w.add(_fi_fingerprint(obj, use_normalized_path=True))
+    else:
+        a_fi_w = set(current_fi_w_hashes_norm) if use_norm_fi else set(current_fi_w_hashes_raw)
     new_fi_w = a_fi_w - b_fi_w
 
     pal_new_strong_items = _select_new_pal_items(pal_jsonl_path, new_pal_strong, severity="strong-warning")
@@ -2119,6 +2157,9 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         },
         "gate": {"enabled": gate_enabled},
     }
+
+    if gate_path_filter:
+        delta_obj["gate"]["path_filter"] = {"include": gate_include, "exclude": gate_exclude}
 
     if gate_enabled:
         gate_ok, reasons = _gate_eval(delta_obj)

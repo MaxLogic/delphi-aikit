@@ -3,24 +3,13 @@ Next task ID: T-058
 
 
 ## Summary
-Open tasks: 2 (In Progress: 0, Next Today: 2, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 55
+Open tasks: 1 (In Progress: 0, Next Today: 1, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 56
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-056 [CLI] Gate: include/exclude paths for CI gating
-Outcome: Add `DAK_GATE_INCLUDE_PATHS` / `DAK_GATE_EXCLUDE_PATHS` (semicolon-separated glob patterns; same semantics as triage) so the CI gate only considers findings in selected paths (e.g. `src/*`) and ignores vendor/submodules.
-Proof:
-- Command: python3 - <<'PY'\nimport json, shutil\nfrom pathlib import Path\nroot = Path('/tmp/dak-gate-paths')\nshutil.rmtree(root, ignore_errors=True)\n(root / 'pascal-analyzer').mkdir(parents=True)\n(root / 'fixinsight').mkdir(parents=True)\n(root / 'summary.md').write_text('\\n'.join([\n  '# Static analysis summary',\n  '- Timestamp: 2026-01-01T00:00:00Z',\n  '- Project: `F:\\\\tmp\\\\Foo.dproj`',\n  '- Findings (by code): 0',\n  '- Totals: warnings=0, strong_warnings=0, exceptions=0',\n  '',\n]) + '\\n', encoding='utf-8')\n(root / 'pascal-analyzer' / 'pal-findings.jsonl').write_text(json.dumps({\n  'tool': 'pal',\n  'severity': 'strong-warning',\n  'path': 'vendor/Lib.pas',\n  'line': 10,\n  'col': 1,\n  'section': 'Possible nil access',\n  'message': 'Synthetic strong warning',\n}) + '\\n', encoding='utf-8')\n(root / 'baseline.json').write_text(json.dumps({\n  'version': 3,\n  'created_at': '2026-01-01T00:00:00Z',\n  'run_context': {'platform':'unknown','config':'unknown','delphi':'unknown'},\n  'summary': {'timestamp':'2026-01-01T00:00:00Z'},\n  'fixinsight': {'total': 0, 'counts_by_code': {}, 'w_hashes': []},\n  'pascal_analyzer': {'totals': {'warnings': 0, 'strong_warnings': 0, 'exceptions': 0}, 'warning_hashes': [], 'strong_hashes': []},\n}, indent=2) + '\\n', encoding='utf-8')\nprint(root)\nPY
-- Expect: Prints `/tmp/dak-gate-paths`.
-- Command: DAK_GATE=1 python3 agentskill/delphi-static-analysis/postprocess.py /tmp/dak-gate-paths
-- Expect: Exit code `3` (gate fail due to a new PAL strong warning).
-- Command: DAK_GATE=1 DAK_GATE_EXCLUDE_PATHS='vendor/*' python3 agentskill/delphi-static-analysis/postprocess.py /tmp/dak-gate-paths
-- Expect: Exit code `0` (gate pass; vendor finding excluded).
-Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
 
 ### T-057 [DOC] Add static-analysis fix recipes
 Outcome: Add `agentskill/delphi-static-analysis/references/fix-recipes.md` with safe, conservative fix recipes for common FixInsight/PAL findings, including what to verify (build/tests) and links to our rules in `conventions.md` (especially AutoFree.GC and managed types).
@@ -38,6 +27,17 @@ Touches: agentskill/delphi-static-analysis/references/fix-recipes.md
 ## Blocked
 
 ## Done
+
+### T-056 [CLI] Gate: include/exclude paths for CI gating
+Outcome: Add `DAK_GATE_INCLUDE_PATHS` / `DAK_GATE_EXCLUDE_PATHS` (semicolon-separated glob patterns; same semantics as triage) so the CI gate only considers findings in selected paths (e.g. `src/*`) and ignores vendor/submodules.
+Proof:
+- Command: python3 - <<'PY'\nimport json, shutil\nfrom pathlib import Path\nroot = Path('/tmp/dak-gate-paths')\nshutil.rmtree(root, ignore_errors=True)\n(root / 'pascal-analyzer').mkdir(parents=True)\n(root / 'fixinsight').mkdir(parents=True)\n(root / 'summary.md').write_text('\\n'.join([\n  '# Static analysis summary',\n  '- Timestamp: 2026-01-01T00:00:00Z',\n  '- Project: `F:\\\\tmp\\\\Foo.dproj`',\n  '- Findings (by code): 0',\n  '- Totals: warnings=0, strong_warnings=0, exceptions=0',\n  '',\n]) + '\\n', encoding='utf-8')\n(root / 'pascal-analyzer' / 'pal-findings.jsonl').write_text(json.dumps({\n  'tool': 'pal',\n  'severity': 'strong-warning',\n  'path': 'vendor/Lib.pas',\n  'line': 10,\n  'col': 1,\n  'section': 'Possible nil access',\n  'message': 'Synthetic strong warning',\n}) + '\\n', encoding='utf-8')\n(root / 'baseline.json').write_text(json.dumps({\n  'version': 3,\n  'created_at': '2026-01-01T00:00:00Z',\n  'run_context': {'platform':'unknown','config':'unknown','delphi':'unknown'},\n  'summary': {'timestamp':'2026-01-01T00:00:00Z'},\n  'fixinsight': {'total': 0, 'counts_by_code': {}, 'w_hashes': []},\n  'pascal_analyzer': {'totals': {'warnings': 0, 'strong_warnings': 0, 'exceptions': 0}, 'warning_hashes': [], 'strong_hashes': []},\n}, indent=2) + '\\n', encoding='utf-8')\nprint(root)\nPY
+- Expect: Prints `/tmp/dak-gate-paths`.
+- Command: DAK_GATE=1 python3 agentskill/delphi-static-analysis/postprocess.py /tmp/dak-gate-paths
+- Expect: Exit code `3` (gate fail due to a new PAL strong warning).
+- Command: DAK_GATE=1 DAK_GATE_EXCLUDE_PATHS='vendor/*' python3 agentskill/delphi-static-analysis/postprocess.py /tmp/dak-gate-paths
+- Expect: Exit code `0` (gate pass; vendor finding excluded).
+Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
 
 ### T-055 [CLI] Emit SARIF report for PR annotations
 Outcome: Emit `_analysis/<project>/static-analysis.sarif` (SARIF v2.1.0) from our normalized FixInsight/PAL findings so PRs can annotate findings inline (e.g., GitHub code scanning) without opening `triage.md`.
