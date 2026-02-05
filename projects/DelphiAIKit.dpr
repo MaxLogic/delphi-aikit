@@ -155,7 +155,12 @@ begin
 
   lCmdLine := QuoteCmdArg(lCmdExe) + ' /C "call ' + QuoteCmdArg(lBatPath) + ' ' +
     QuoteCmdArg(lProjectPath) + ' -config ' + aOptions.fConfig + ' -platform ' + aOptions.fPlatform +
-    ' -ver ' + lDelphiVer + '"';
+    ' -ver ' + lDelphiVer;
+  if aOptions.fBuildShowWarnings then
+    lCmdLine := lCmdLine + ' -show-warnings';
+  if aOptions.fBuildShowHints then
+    lCmdLine := lCmdLine + ' -show-hints';
+  lCmdLine := lCmdLine + '"';
   UniqueString(lCmdLine);
   lWorkDir := ExtractFilePath(lBatPath);
 
