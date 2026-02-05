@@ -3,22 +3,13 @@ Next task ID: T-049
 
 
 ## Summary
-Open tasks: 6 (In Progress: 0, Next Today: 2, Next This Week: 4, Next Later: 0, Blocked: 0)
-Done tasks: 42
+Open tasks: 5 (In Progress: 0, Next Today: 1, Next This Week: 4, Next Later: 0, Blocked: 0)
+Done tasks: 43
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-047 [CLI] Warn on baseline/current context mismatches in delta.md
-Outcome: When baseline and current `run_context` differ materially (platform/config/delphi or tool versions), emit an explicit warning in `delta.md` so we don’t trust deltas/gates computed across incompatible runs.
-Proof:
-- Command: python3 - <<'PY'\nimport json\nfrom pathlib import Path\nsrc = Path('_analysis/DelphiAIKit/baseline.json')\ndst = Path('/tmp/baseline-mismatch.json')\nobj = json.loads(src.read_text(encoding='utf-8'))\nrc = dict(obj.get('run_context') or {})\nrc['platform'] = 'Win64'\nrc['config'] = 'Debug'\nrc['delphi'] = '99.9'\nobj['run_context'] = rc\ndst.write_text(json.dumps(obj, indent=2, sort_keys=True) + '\\n', encoding='utf-8')\nprint(dst)\nPY
-- Expect: Creates `/tmp/baseline-mismatch.json`.
-- Command: DAK_BASELINE=/tmp/baseline-mismatch.json python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
-- Expect: `_analysis/DelphiAIKit/delta.md` contains a “context mismatch” warning.
-Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-048 [CLI] Track metrics history and emit trend.md (continuous monitoring)
 Outcome: Append a per-run metrics snapshot to `_analysis/<project>/history.jsonl` (deduped by summary timestamp) and emit `_analysis/<project>/trend.md` summarizing recent runs to support continuous monitoring (spotting spikes in warnings/complexity over time).
@@ -64,6 +55,15 @@ Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 ## Blocked
 
 ## Done
+
+### T-047 [CLI] Warn on baseline/current context mismatches in delta.md
+Outcome: When baseline and current `run_context` differ materially (platform/config/delphi or tool versions), emit an explicit warning in `delta.md` so we don’t trust deltas/gates computed across incompatible runs.
+Proof:
+- Command: python3 - <<'PY'\nimport json\nfrom pathlib import Path\nsrc = Path('_analysis/DelphiAIKit/baseline.json')\ndst = Path('/tmp/baseline-mismatch.json')\nobj = json.loads(src.read_text(encoding='utf-8'))\nrc = dict(obj.get('run_context') or {})\nrc['platform'] = 'Win64'\nrc['config'] = 'Debug'\nrc['delphi'] = '99.9'\nobj['run_context'] = rc\ndst.write_text(json.dumps(obj, indent=2, sort_keys=True) + '\\n', encoding='utf-8')\nprint(dst)\nPY
+- Expect: Creates `/tmp/baseline-mismatch.json`.
+- Command: DAK_BASELINE=/tmp/baseline-mismatch.json python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/delta.md` contains a “context mismatch” warning.
+Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-046 [CLI] Map FixInsight absolute file paths to repo-relative paths when possible
 Outcome: When FixInsight reports absolute paths outside the current repo but the corresponding unit exists in our repo/submodule, populate the normalized `path` field with a repo-relative path (unique basename match) while preserving the original `file` value.

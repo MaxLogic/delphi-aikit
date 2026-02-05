@@ -918,6 +918,34 @@ def _code_delta(before: dict[str, int], after: dict[str, int]) -> list[dict[str,
     return rows[:10]
 
 
+def _diff_run_context(baseline_ctx: Any, current_ctx: Any) -> list[str]:
+    b = baseline_ctx if isinstance(baseline_ctx, dict) else {}
+    c = current_ctx if isinstance(current_ctx, dict) else {}
+
+    out: list[str] = []
+
+    def add(label: str, before: Any, after: Any) -> None:
+        bv = str(before or "").strip()
+        av = str(after or "").strip()
+        if not bv or not av:
+            return
+        if bv == av:
+            return
+        out.append(f"{label}: {bv} -> {av}")
+
+    add("platform", b.get("platform"), c.get("platform"))
+    add("config", b.get("config"), c.get("config"))
+    add("delphi", b.get("delphi"), c.get("delphi"))
+
+    bt = b.get("tools") if isinstance(b.get("tools"), dict) else {}
+    ct = c.get("tools") if isinstance(c.get("tools"), dict) else {}
+    add("pal_version", bt.get("pal_version"), ct.get("pal_version"))
+    add("pal_compiler_target", bt.get("pal_compiler_target"), ct.get("pal_compiler_target"))
+    add("pal_compiler_switch", bt.get("pal_compiler_switch"), ct.get("pal_compiler_switch"))
+
+    return out
+
+
 def _render_delta_md(delta: dict[str, Any]) -> str:
     lines: list[str] = []
     title = delta.get("title") or "Static analysis delta"
@@ -935,6 +963,14 @@ def _render_delta_md(delta: dict[str, Any]) -> str:
         ctx = current["run_context"]
         lines.append(f"- Current context: platform={ctx.get('platform','?')}, config={ctx.get('config','?')}, delphi={ctx.get('delphi','?')}")
     lines.append("")
+
+    mismatches = _diff_run_context(baseline.get("run_context"), current.get("run_context"))
+    if mismatches:
+        lines.append("## Context mismatch")
+        lines.append("Baseline and current analysis contexts differ; deltas and gates may be misleading.")
+        for m in mismatches:
+            lines.append(f"- {m}")
+        lines.append("")
 
     fi = delta.get("fixinsight") or {}
     lines.append("## FixInsight")
