@@ -1,5 +1,9 @@
 # Triage heuristics and suppression guidance
 
+## Generated triage.md (shortlist)
+
+Our `postprocess.py` emits `_analysis/<project>/triage.md` as a prioritized shortlist (top 20 by default; override with `DAK_TRIAGE_TOP=<N>`). It is intentionally a *short* "what to fix next" view; full detail remains in `fi-findings.*` and `pal-findings.*` / raw PAL XML.
+
 ## FixInsight (signal first)
 
 FixInsight reports rule IDs like `W502`, `O801`, `C101`.
