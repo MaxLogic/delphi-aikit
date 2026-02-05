@@ -3,20 +3,13 @@ Next task ID: T-055
 
 
 ## Summary
-Open tasks: 2 (In Progress: 0, Next Today: 2, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 52
+Open tasks: 1 (In Progress: 0, Next Today: 1, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 53
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-053 [CLI] Split FixInsight triage into defects vs maintainability
-Outcome: Update `triage.md` (and snippets) rendering so FixInsight findings are grouped by kind: `W` (defects), `C` (maintainability/refactor pressure), `O` (hygiene), to keep the fix workflow focused.
-Proof:
-- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
-- Expect: `_analysis/DelphiAIKit/triage.md` contains headings for FixInsight `W`, `C`, and `O` groups (even if a group is empty).
-Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-054 [CLI] Include triage-snippets path in postprocess JSON result
 Outcome: When `DAK_TRIAGE_SNIPPETS=1` produces `triage-snippets.md`, include its path in the JSON result as `triage_snippets` so wrappers/CI can link it directly.
@@ -32,6 +25,13 @@ Touches: agentskill/delphi-static-analysis/postprocess.py
 ## Blocked
 
 ## Done
+
+### T-053 [CLI] Split FixInsight triage into defects vs maintainability
+Outcome: Update `triage.md` (and snippets) rendering so FixInsight findings are grouped by kind: `W` (defects), `C` (maintainability/refactor pressure), `O` (hygiene), to keep the fix workflow focused.
+Proof:
+- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/triage.md` contains headings for FixInsight `W`, `C`, and `O` groups (even if a group is empty).
+Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-052 [CLI] Deprioritize PAL Exception Call Tree entries in triage
 Outcome: Keep `Exception Call Tree` entries out of the top triage list by default (low priority), unless explicitly enabled via `DAK_TRIAGE_PAL_INCLUDE_CALL_TREE=1`.
