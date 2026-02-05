@@ -1,15 +1,45 @@
 # Tasks
-Next task ID: T-050
+Next task ID: T-055
 
 
 ## Summary
-Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 49
+Open tasks: 4 (In Progress: 0, Next Today: 4, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 50
 
 
 ## In Progress
 
 ## Next - Today
+
+### T-051 [CLI] Add triage include/exclude path filters
+Outcome: Add `DAK_TRIAGE_INCLUDE_PATHS` and `DAK_TRIAGE_EXCLUDE_PATHS` (semicolon-separated glob patterns) so `triage.md`/`triage-snippets.md` can focus on selected paths without re-running analyzers.
+Proof:
+- Command: DAK_TRIAGE_INCLUDE_PATHS='src/*' python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/triage.md` does not contain `lib/MaxLogicFoundation/`.
+- Command: DAK_TRIAGE_EXCLUDE_PATHS='lib/*' python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/triage.md` does not contain `lib/MaxLogicFoundation/`.
+Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
+
+### T-052 [CLI] Deprioritize PAL Exception Call Tree entries in triage
+Outcome: Keep `Exception Call Tree` entries out of the top triage list by default (low priority), unless explicitly enabled via `DAK_TRIAGE_PAL_INCLUDE_CALL_TREE=1`.
+Proof:
+- Command: python3 -c "import importlib.util, sys; spec=importlib.util.spec_from_file_location('pp','agentskill/delphi-static-analysis/postprocess.py'); m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m); assert m._pal_triage_priority('warning') > m._pal_item_priority('exception','Exception.xml','Exception Call Tree',''); print('ok')"
+- Expect: Prints `ok`.
+Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
+
+### T-053 [CLI] Split FixInsight triage into defects vs maintainability
+Outcome: Update `triage.md` (and snippets) rendering so FixInsight findings are grouped by kind: `W` (defects), `C` (maintainability/refactor pressure), `O` (hygiene), to keep the fix workflow focused.
+Proof:
+- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/triage.md` contains headings for FixInsight `W`, `C`, and `O` groups (even if a group is empty).
+Touches: agentskill/delphi-static-analysis/postprocess.py
+
+### T-054 [CLI] Include triage-snippets path in postprocess JSON result
+Outcome: When `DAK_TRIAGE_SNIPPETS=1` produces `triage-snippets.md`, include its path in the JSON result as `triage_snippets` so wrappers/CI can link it directly.
+Proof:
+- Command: DAK_TRIAGE_SNIPPETS=1 python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: JSON output includes a `triage_snippets` field pointing at `_analysis/DelphiAIKit/triage-snippets.md`.
+Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ## Next - This Week
 
@@ -18,6 +48,15 @@ Done tasks: 49
 ## Blocked
 
 ## Done
+
+### T-050 [CLI] Gate: optionally require matching analysis context
+Outcome: Add `DAK_GATE_REQUIRE_CONTEXT_MATCH=1` that makes the postprocess gate fail when baseline/current `run_context` differ materially (platform/config/delphi/tool target), ignoring `unknown` values.
+Proof:
+- Command: python3 - <<'PY'\nimport json\nfrom pathlib import Path\nsrc = Path('_analysis/DelphiAIKit/baseline.json')\ndst = Path('/tmp/baseline-mismatch-gate.json')\nobj = json.loads(src.read_text(encoding='utf-8'))\nrc = dict(obj.get('run_context') or {})\nrc['platform'] = 'Win64'\nrc['config'] = 'Debug'\nrc['delphi'] = '99.9'\nobj['run_context'] = rc\ndst.write_text(json.dumps(obj, indent=2, sort_keys=True) + '\\n', encoding='utf-8')\nprint(dst)\nPY
+- Expect: Creates `/tmp/baseline-mismatch-gate.json`.
+- Command: DAK_GATE=1 DAK_GATE_REQUIRE_CONTEXT_MATCH=1 DAK_BASELINE=/tmp/baseline-mismatch-gate.json python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: Exit code `3` and `_analysis/DelphiAIKit/delta.md` includes a Gate FAIL reason about context mismatch.
+Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
 
 ### T-049 [CLI] Emit triage-snippets.md with bounded source context
 Outcome: Add an optional `DAK_TRIAGE_SNIPPETS=1` mode that emits `_analysis/<project>/triage-snippets.md` containing small, bounded source snippets for the top triage items (best-effort; repo-local paths only) to speed up fixing without opening files manually.

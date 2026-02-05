@@ -186,6 +186,7 @@ Useful env vars (wrapper-level; not forwarded to DAK):
 - `DAK_TRIAGE_SNIPPET_MAX_BYTES=<N>` truncate snippet output when exceeding this size (default: `200000`)
 - `DAK_TREND_N=<N>` number of runs to show in `trend.md` (default: `20`)
 - `DAK_GATE=1` (or `DAK_CI=1`) enable a conservative “don’t regress” gate
+- `DAK_GATE_REQUIRE_CONTEXT_MATCH=1` fail the gate if baseline/current run contexts differ materially
 - Thresholds:
   - `DAK_MAX_NEW_PAL_STRONG=0` (default) fail if new PAL strong-warnings appear
   - `DAK_MAX_NEW_FI_W=0` (default) fail if new FixInsight `W*` codes appear
