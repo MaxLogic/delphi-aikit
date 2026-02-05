@@ -13,6 +13,7 @@ import json
 import os
 import platform
 import re
+import subprocess
 import sys
 from collections import Counter
 from dataclasses import dataclass
@@ -326,6 +327,208 @@ def _build_run_context(out_root: Path, summary: dict[str, Any], *, allow_env: bo
     return ctx
 
 
+def _find_git_root(start_dir: Path) -> Optional[Path]:
+    p = start_dir.resolve()
+    while True:
+        # `.git` is usually a directory, but can also be a file for worktrees/submodules.
+        if (p / ".git").exists():
+            return p
+        if p.parent == p:
+            return None
+        p = p.parent
+
+
+def _git_changed_files(repo_root: Path) -> tuple[set[str], Optional[str]]:
+    try:
+        p = subprocess.run(
+            ["git", "status", "--porcelain=v1", "-z"],
+            cwd=str(repo_root),
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except FileNotFoundError:
+        return set(), "git not found on PATH"
+
+    if p.returncode != 0:
+        msg = (p.stderr or b"").decode("utf-8", errors="replace").strip()
+        return set(), msg or f"git status failed (exit code {p.returncode})"
+
+    raw = (p.stdout or b"").decode("utf-8", errors="replace")
+    if not raw:
+        return set(), None
+
+    entries = raw.split("\0")
+    out: set[str] = set()
+    i = 0
+    while i < len(entries):
+        s = entries[i]
+        i += 1
+        if not s:
+            continue
+        status = s[:2]
+        path1 = s[3:]
+        # Rename/copy are encoded as: `R  old\0new\0` (same for `C`).
+        if status[:1] in ("R", "C") or status[1:2] in ("R", "C"):
+            if i < len(entries):
+                path2 = entries[i]
+                i += 1
+                if path2:
+                    out.add(path2)
+            continue
+        if path1:
+            out.add(path1)
+
+    return out, None
+
+
+def _looks_like_windows_path(s: str) -> bool:
+    return bool(re.match(r"^[A-Za-z]:[\\/]", s) or s.startswith("\\\\"))
+
+
+def _windows_drive_to_wsl_path(win: str) -> Optional[Path]:
+    m = re.match(r"^(?P<drive>[A-Za-z]):[\\/](?P<rest>.*)$", win)
+    if not m:
+        return None
+    drive = m.group("drive").lower()
+    rest = m.group("rest").replace("\\", "/")
+    return (Path("/mnt") / drive / rest).resolve()
+
+
+def _to_local_path(raw: str) -> Optional[Path]:
+    s = raw.strip()
+    if not s:
+        return None
+    if _is_wsl() and _looks_like_windows_path(s):
+        return _windows_drive_to_wsl_path(s)
+    p = Path(s)
+    return p if p.is_absolute() else None
+
+
+def _normalize_to_repo_relative(raw_path: str, *, repo_root: Path, base_dirs: list[Path]) -> Optional[str]:
+    s = raw_path.strip()
+    if not s:
+        return None
+
+    # Make separators predictable so `Path` can resolve `..` segments even on WSL.
+    s = s.replace("\\", "/")
+
+    # Absolute paths (Windows or Unix).
+    abs_candidate: Optional[Path] = None
+    if s.startswith("/"):
+        abs_candidate = Path(s)
+    elif re.match(r"^[A-Za-z]:/", s):
+        abs_candidate = _to_local_path(s)
+
+    if abs_candidate is not None:
+        try:
+            resolved = abs_candidate.resolve()
+            if resolved.is_relative_to(repo_root):
+                return resolved.relative_to(repo_root).as_posix()
+        except Exception:
+            pass
+
+    rel = Path(s)
+    for base in base_dirs:
+        try:
+            resolved = (base / rel).resolve()
+            if resolved.is_relative_to(repo_root):
+                return resolved.relative_to(repo_root).as_posix()
+        except Exception:
+            continue
+    return None
+
+
+def _write_triage_changed(out_root: Path, *, title: str, summary: dict[str, Any], fi_jsonl_path: Path, pal_jsonl_path: Path) -> Path:
+    triage_path = out_root / "triage-changed.md"
+
+    repo_root = _find_git_root(out_root)
+    if repo_root is None:
+        _write_text(triage_path, f"# {title} (changed files)\n\nGit repo not found; cannot compute changed-file scope.\n")
+        return triage_path
+
+    changed_files, err = _git_changed_files(repo_root)
+    if err:
+        _write_text(triage_path, f"# {title} (changed files)\n\nGit unavailable: {err}\n")
+        return triage_path
+
+    changed_files = {p.replace("\\", "/") for p in changed_files}
+    changed_sorted = sorted(changed_files)
+
+    lines: list[str] = []
+    lines.append(f"# {title} (changed files)")
+    lines.append("")
+    lines.append(f"- Timestamp: {_utc_now_iso()}")
+    lines.append(f"- Repo root: `{repo_root}`")
+    lines.append(f"- Changed files: {len(changed_sorted)}")
+    lines.append("")
+
+    if not changed_sorted:
+        lines.append("No Git-changed files detected.")
+        lines.append("")
+        _write_text(triage_path, "\n".join(lines).rstrip() + "\n")
+        return triage_path
+
+    lines.append("## Changed files")
+    for p in changed_sorted:
+        lines.append(f"- `{p}`")
+    lines.append("")
+
+    project_dir: Optional[Path] = None
+    proj_raw = str(summary.get("project") or "").strip()
+    proj_local = _to_local_path(proj_raw)
+    if proj_local is not None:
+        project_dir = proj_local.parent
+    else:
+        cand = repo_root / "projects"
+        if cand.exists():
+            project_dir = cand
+
+    base_dirs = [x for x in [project_dir, repo_root] if isinstance(x, Path)]
+
+    fi_items: list[str] = []
+    if fi_jsonl_path.exists():
+        for obj in _iter_jsonl(fi_jsonl_path):
+            file_raw = str(obj.get("file") or "").strip()
+            norm = _normalize_to_repo_relative(file_raw, repo_root=repo_root, base_dirs=base_dirs)
+            if not norm or norm not in changed_files:
+                continue
+            code = obj.get("code", "?")
+            line_no = obj.get("line", "?")
+            col_no = obj.get("col", "?")
+            msg = obj.get("message", "")
+            fi_items.append(f"[{code}] {norm}:{line_no}:{col_no} - {msg}")
+
+    pal_items: list[str] = []
+    changed_units = {Path(p).stem.lower() for p in changed_files if p.lower().endswith(".pas")}
+    if pal_jsonl_path.exists() and changed_units:
+        for obj in _iter_jsonl(pal_jsonl_path):
+            mod = str(obj.get("module") or "").strip()
+            if not mod:
+                continue
+            if mod.lower() not in changed_units:
+                continue
+            section = obj.get("section", "")
+            line_no = obj.get("line", "?")
+            msg = obj.get("message", "")
+            pal_items.append(f"[{section}] {mod}:{line_no} - {msg}")
+
+    lines.append("## FixInsight (changed files)")
+    lines.append(f"- Findings: {len(fi_items)}")
+    for item in fi_items[:200]:
+        lines.append(f"- {item}")
+    lines.append("")
+
+    lines.append("## Pascal Analyzer (changed files)")
+    lines.append(f"- Findings: {len(pal_items)}")
+    for item in pal_items[:200]:
+        lines.append(f"- {item}")
+    lines.append("")
+
+    _write_text(triage_path, "\n".join(lines).rstrip() + "\n")
+    return triage_path
+
+
 def _fi_findings_to_jsonl(findings: Iterable[FixInsightFinding]) -> Iterable[dict[str, Any]]:
     for f in findings:
         yield {
@@ -631,6 +834,7 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     baseline_path = Path(os.environ.get("DAK_BASELINE", "")).expanduser().resolve() if os.environ.get("DAK_BASELINE", "").strip() else (out_root / "baseline.json")
     update_baseline = _truthy_env("DAK_UPDATE_BASELINE", False)
     gate_enabled = _truthy_env("DAK_GATE", False) or _truthy_env("DAK_CI", False)
+    scope = os.environ.get("DAK_SCOPE", "").strip().lower()
 
     baseline_exists = baseline_path.exists()
     baseline: Optional[dict[str, Any]] = _load_json(baseline_path) if baseline_exists else None
@@ -734,7 +938,11 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         }
         _write_json(delta_path, delta_obj)
         _write_text(delta_md_path, _render_delta_md(delta_obj))
-        return {"baseline": str(baseline_path), "delta": str(delta_md_path), "gate_pass": True, "baseline_created": True}
+        res = {"baseline": str(baseline_path), "delta": str(delta_md_path), "gate_pass": True, "baseline_created": True}
+        if scope == "changed":
+            triage_changed_path = _write_triage_changed(out_root, title=title, summary=summary, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
+            res["triage_changed"] = str(triage_changed_path)
+        return res
 
     assert baseline is not None
 
@@ -922,12 +1130,16 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     if update_baseline:
         _write_json(baseline_path, current_snapshot)
 
-    return {
+    res = {
         "baseline": str(baseline_path),
         "delta": str(delta_md_path),
         "gate_pass": bool(delta_obj["gate"]["pass"]),
         "baseline_updated": bool(update_baseline),
     }
+    if scope == "changed":
+        triage_changed_path = _write_triage_changed(out_root, title=title, summary=summary, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
+        res["triage_changed"] = str(triage_changed_path)
+    return res
 
 
 def main(argv: list[str]) -> int:
