@@ -99,7 +99,7 @@ var
   i: Integer;
   j: Integer;
   star: Integer;
-  mark: Integer;
+  lMark: Integer;
 begin
   // Simple wildcard matcher: '*' and '?', case-insensitive.
   t := UpperCase(aText);
@@ -108,7 +108,7 @@ begin
   i := 1;
   j := 1;
   star := 0;
-  mark := 0;
+  lMark := 0;
   while i <= Length(t) do
   begin
     if (j <= Length(m)) and ((m[j] = '?') or (m[j] = t[i])) then
@@ -122,15 +122,15 @@ begin
     begin
       star := j;
       Inc(j);
-      mark := i;
+      lMark := i;
       Continue;
     end;
 
     if star <> 0 then
     begin
       j := star + 1;
-      Inc(mark);
-      i := mark;
+      Inc(lMark);
+      i := lMark;
       Continue;
     end;
 
@@ -168,7 +168,7 @@ var
   lCurLines: TList<string>;
   lLine: string;
 
-  procedure Flush;
+  procedure FlushCurrent;
   var
     lItem: string;
   begin
@@ -225,7 +225,7 @@ begin
         begin
           if IsFileHeader(lLine) then
           begin
-            Flush;
+            FlushCurrent;
             lCurHeader := lLine;
             lCurFile := Trim(Copy(lLine, Length('File:') + 1, MaxInt));
             lCurExcluded := PathMatchesAnyMask(lCurFile, aExcludeMasks);
@@ -247,7 +247,7 @@ begin
           end else
             lOut.Add(lLine);
         end;
-        Flush;
+        FlushCurrent;
 
         TFile.WriteAllLines(aReportPath, lOut.ToArray, TEncoding.UTF8);
       finally
@@ -390,6 +390,8 @@ var
   lRow: TArray<string>;
   lFile: string;
   lRule: string;
+  lRawRule: string;
+  lNormRule: string;
   lHasHeader: Boolean;
   lFirstRow: TArray<string>;
 
@@ -464,14 +466,24 @@ begin
         if (lIdxFile >= 0) and (lIdxFile <= High(lRow)) then
           lFile := lRow[lIdxFile];
         if (lIdxRule >= 0) and (lIdxRule <= High(lRow)) then
-          TryNormalizeRuleId(lRow[lIdxRule], lRule)
+        begin
+          lRawRule := lRow[lIdxRule];
+          if not TryNormalizeRuleId(lRawRule, lNormRule) then
+            lNormRule := lRawRule;
+          lRule := lNormRule;
+        end
         else
         begin
           DetectIndexesFromRow(lRow);
           if (lFile = '') and (lIdxFile >= 0) and (lIdxFile <= High(lRow)) then
             lFile := lRow[lIdxFile];
           if (lRule = '') and (lIdxRule >= 0) and (lIdxRule <= High(lRow)) then
-            TryNormalizeRuleId(lRow[lIdxRule], lRule);
+          begin
+            lRawRule := lRow[lIdxRule];
+            if not TryNormalizeRuleId(lRawRule, lNormRule) then
+              lNormRule := lRawRule;
+            lRule := lNormRule;
+          end;
         end;
 
         if (lFile <> '') and PathMatchesAnyMask(lFile, aExcludeMasks) then
@@ -507,6 +519,8 @@ var
   lFileName: string;
   lExcludeFile: Boolean;
   lRuleId: string;
+  lRawRuleId: string;
+  lNormRuleId: string;
 begin
   Result := False;
   aError := '';
@@ -537,7 +551,13 @@ begin
 
           lRuleId := '';
           if lMsgNode.HasAttribute('id') then
-            TryNormalizeRuleId(VarToStr(lMsgNode.Attributes['id']), lRuleId);
+          begin
+            lRawRuleId := VarToStr(lMsgNode.Attributes['id']);
+            if TryNormalizeRuleId(lRawRuleId, lNormRuleId) then
+              lRuleId := lNormRuleId
+            else
+              lRuleId := lRawRuleId;
+          end;
 
           if lExcludeFile or ((lRuleId <> '') and (aIgnoreRuleSet <> nil) and aIgnoreRuleSet.Contains(lRuleId)) then
             lFileNode.ChildNodes.Remove(lMsgNode);

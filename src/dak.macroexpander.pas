@@ -44,6 +44,7 @@ var
     lIndex: Integer;
     lStart: Integer;
     lName: string;
+    lMacroValue: string;
     lValue: string;
     lResult: TStringBuilder;
   begin
@@ -69,11 +70,11 @@ var
                 lValue := ''
               else
                 lValue := '$(' + lName + ')';
-            end else if TryGetMacroValue(lName, lValue) then
+            end else if TryGetMacroValue(lName, lMacroValue) then
             begin
               lStack.Add(lName);
               try
-                lValue := ExpandText(lValue);
+                lValue := ExpandText(lMacroValue);
               finally
                 lStack.Delete(lStack.Count - 1);
               end;
