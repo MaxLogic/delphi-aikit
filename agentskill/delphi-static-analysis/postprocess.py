@@ -738,14 +738,35 @@ def _write_triage(out_root: Path, *, title: str, fi_jsonl_path: Path, pal_jsonl_
         lines.append("No FixInsight findings.")
         lines.append("")
     else:
-        groups: dict[str, list[dict[str, Any]]] = {}
+        by_kind: dict[str, list[dict[str, Any]]] = {"W": [], "C": [], "O": [], "other": []}
         for it in fi_top:
-            groups.setdefault(str(it["path"]), []).append(it)
-        for path, items in groups.items():
-            lines.append(f"### `{path}`")
+            k = str(it.get("kind") or "").strip().upper()
+            if k in ("W", "C", "O"):
+                by_kind[k].append(it)
+            else:
+                by_kind["other"].append(it)
+
+        def emit_kind(kind: str, heading: str) -> None:
+            items = by_kind.get(kind) or []
+            lines.append(f"### {heading}")
+            if not items:
+                lines.append("No findings.")
+                lines.append("")
+                return
+            groups: dict[str, list[dict[str, Any]]] = {}
             for it in items:
-                lines.append(f"- [{it['code']}] {it['line']}:{it['col']} - {it['message']}")
-            lines.append("")
+                groups.setdefault(str(it["path"]), []).append(it)
+            for path, items2 in groups.items():
+                lines.append(f"#### `{path}`")
+                for it2 in items2:
+                    lines.append(f"- [{it2['code']}] {it2['line']}:{it2['col']} - {it2['message']}")
+                lines.append("")
+
+        emit_kind("W", "W findings (defects)")
+        emit_kind("C", "C findings (maintainability)")
+        emit_kind("O", "O findings (hygiene)")
+        if by_kind["other"]:
+            emit_kind("other", "Other findings")
 
     lines.append("## Pascal Analyzer")
     if not pal_top:
@@ -891,18 +912,15 @@ def _write_triage_snippets(
             try_add_block([f"No {name} findings.", ""])
             return
 
-        groups: dict[str, list[dict[str, Any]]] = {}
-        for it in items:
-            groups.setdefault(str(it.get("path") or "?"), []).append(it)
-
-        for path, group_items in groups.items():
+        def emit_group(path: str, group_items: list[dict[str, Any]], *, path_heading: str) -> bool:
+            nonlocal truncated
             if truncated:
-                return
-            if not try_add_block([f"### `{path}`", ""]):
-                return
+                return False
+            if not try_add_block([f"{path_heading} `{path}`", ""]):
+                return False
             for it in group_items:
                 if truncated:
-                    return
+                    return False
                 line_val = it.get("line")
                 try:
                     line_no = int(line_val) if line_val is not None else 0
@@ -934,7 +952,48 @@ def _write_triage_snippets(
                     snip_lines[0] += " (snippet unavailable)"
                 snip_lines.append("")
                 if not try_add_block(snip_lines):
+                    return False
+            return True
+
+        def emit_grouped_by_path(group_items: list[dict[str, Any]], *, path_heading: str) -> None:
+            nonlocal truncated
+            groups: dict[str, list[dict[str, Any]]] = {}
+            for it in group_items:
+                groups.setdefault(str(it.get("path") or "?"), []).append(it)
+            for path, items2 in groups.items():
+                if not emit_group(path, items2, path_heading=path_heading):
                     return
+
+        if is_fixinsight:
+            by_kind: dict[str, list[dict[str, Any]]] = {"W": [], "C": [], "O": [], "other": []}
+            for it in items:
+                k = str(it.get("kind") or "").strip().upper()
+                if k in ("W", "C", "O"):
+                    by_kind[k].append(it)
+                else:
+                    by_kind["other"].append(it)
+
+            for kind, heading in (
+                ("W", "### W findings (defects)"),
+                ("C", "### C findings (maintainability)"),
+                ("O", "### O findings (hygiene)"),
+            ):
+                if truncated:
+                    return
+                if not try_add_block([heading, ""]):
+                    return
+                if not by_kind[kind]:
+                    if not try_add_block(["No findings.", ""]):
+                        return
+                    continue
+                emit_grouped_by_path(by_kind[kind], path_heading="####")
+
+            if by_kind["other"] and not truncated:
+                if try_add_block(["### Other findings", ""]):
+                    emit_grouped_by_path(by_kind["other"], path_heading="####")
+            return
+
+        emit_grouped_by_path(items, path_heading="###")
 
     emit_section("FixInsight", fi_top, is_fixinsight=True)
     emit_section("Pascal Analyzer", pal_top, is_fixinsight=False)
