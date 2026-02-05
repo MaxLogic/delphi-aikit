@@ -3,8 +3,8 @@ Next task ID: T-049
 
 
 ## Summary
-Open tasks: 1 (In Progress: 0, Next Today: 0, Next This Week: 1, Next Later: 0, Blocked: 0)
-Done tasks: 47
+Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 48
 
 
 ## In Progress
@@ -13,18 +13,18 @@ Done tasks: 47
 
 ## Next - This Week
 
+## Next - Later
+
+## Blocked
+
+## Done
+
 ### T-036 Fix GetExitCodeProcess out param cast in maxConsoleRunner
 Outcome: Use a local `DWORD` for `GetExitCodeProcess` and then assign to `fExitCode` to avoid the unsafe typecast and keep the public `ExitCode: Integer` unchanged.
 Proof:
 - Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
 - Expect: pal-findings no longer reports "Possible bad typecast" for `maxConsoleRunner.pas:334`.
 Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
-
-## Next - Later
-
-## Blocked
-
-## Done
 
 ### T-037 Use safe JSON array cast in Pascal Analyzer runner
 Outcome: Replace the hard cast in `TryGetJsonArray` with a safe cast after the `is TJSONArray` guard to clear the PAL strong warning without changing behavior.
