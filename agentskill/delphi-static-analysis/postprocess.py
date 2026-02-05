@@ -555,9 +555,9 @@ def _fi_triage_priority(kind: str) -> int:
     k = kind.strip().upper()
     if k == "W":
         return 300
-    if k == "O":
-        return 200
     if k == "C":
+        return 200
+    if k == "O":
         return 100
     return 50
 
