@@ -3,21 +3,13 @@ Next task ID: T-045
 
 
 ## Summary
-Open tasks: 6 (In Progress: 0, Next Today: 2, Next This Week: 4, Next Later: 0, Blocked: 0)
-Done tasks: 38
+Open tasks: 5 (In Progress: 0, Next Today: 1, Next This Week: 4, Next Later: 0, Blocked: 0)
+Done tasks: 39
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-041 [CLI] Normalize finding paths for stable deltas
-Outcome: Normalize FixInsight and Pascal Analyzer findings to stable, repo-relative paths (slashes/case/relativization) so baselines and deltas are resilient across machines and working directories.
-Proof:
-- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
-- Expect: `_analysis/DelphiAIKit/fixinsight/fi-findings.jsonl` contains a normalized `path` field and does not contain `..\\` segments.
-- Expect: Running the command twice does not introduce spurious “new” findings in `_analysis/DelphiAIKit/delta.md`.
-Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-040 [CLI] Emit prioritized triage.md from analysis outputs
 Outcome: Generate `_analysis/<project>/triage.md` with a prioritized, fix-oriented shortlist (top 20 by default), grouped by file where possible and referencing line numbers.
@@ -62,6 +54,14 @@ Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 ## Blocked
 
 ## Done
+
+### T-041 [CLI] Normalize finding paths for stable deltas
+Outcome: Normalize FixInsight and Pascal Analyzer findings to stable, repo-relative paths (slashes/case/relativization) so baselines and deltas are resilient across machines and working directories.
+Proof:
+- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/fixinsight/fi-findings.jsonl` contains a normalized `path` field and does not contain `..\\` segments.
+- Expect: Running the command twice does not introduce spurious “new” findings in `_analysis/DelphiAIKit/delta.md`.
+Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-042 [CLI] Add Git changed-file scope triage
 Outcome: Add a `DAK_SCOPE=changed` mode that emits `_analysis/<project>/triage-changed.md` filtered to Git-changed files (and degrades gracefully when Git is unavailable).
