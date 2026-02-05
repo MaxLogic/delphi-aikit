@@ -485,45 +485,43 @@ begin
   aError := '';
   aErrorCode := 6;
   aProjectName := '';
-  aParams := Default(TFixInsightParams);
 
-  lEnvVars := nil;
+  lOptions := aOptions;
+  lInputPath := aOptions.fDprojPath;
+  if not TryResolveDprojPath(lInputPath, lDprojPath, lError) then
+  begin
+    aError := lError;
+    aErrorCode := 3;
+    Exit(False);
+  end;
+
+  if not LoadSettings(aDiagnostics, lDprojPath, aFixOptions, aFixIgnoreDefaults, aReportFilter, aPascalAnalyzer) then
+  begin
+    aError := 'Failed to read dak.ini.';
+    aErrorCode := 6;
+    Exit(False);
+  end;
+  ApplySettingsOverrides(aOptions, aFixOptions, aFixIgnoreDefaults, aReportFilter, aPascalAnalyzer);
+
+  lOptions.fDprojPath := lDprojPath;
+  aProjectName := TPath.GetFileNameWithoutExtension(lDprojPath);
+
+  if not TryLoadRsVars(lOptions.fDelphiVersion, lOptions.fRsVarsPath, aDiagnostics, lError) then
+  begin
+    aError := lError;
+    aErrorCode := 4;
+    Exit(False);
+  end;
+
+  if not TryReadIdeConfig(lOptions.fDelphiVersion, lOptions.fPlatform, lOptions.fEnvOptionsPath, lEnvVars, lLibraryPath,
+    lLibrarySource, aDiagnostics, lError) then
+  begin
+    lEnvVars.Free;
+    aError := lError;
+    aErrorCode := 4;
+    Exit(False);
+  end;
   try
-    lOptions := aOptions;
-    lInputPath := aOptions.fDprojPath;
-    if not TryResolveDprojPath(lInputPath, lDprojPath, lError) then
-    begin
-      aError := lError;
-      aErrorCode := 3;
-      Exit(False);
-    end;
-
-    if not LoadSettings(aDiagnostics, lDprojPath, aFixOptions, aFixIgnoreDefaults, aReportFilter, aPascalAnalyzer) then
-    begin
-      aError := 'Failed to read dak.ini.';
-      aErrorCode := 6;
-      Exit(False);
-    end;
-    ApplySettingsOverrides(aOptions, aFixOptions, aFixIgnoreDefaults, aReportFilter, aPascalAnalyzer);
-
-    lOptions.fDprojPath := lDprojPath;
-    aProjectName := TPath.GetFileNameWithoutExtension(lDprojPath);
-
-    if not TryLoadRsVars(lOptions.fDelphiVersion, lOptions.fRsVarsPath, aDiagnostics, lError) then
-    begin
-      aError := lError;
-      aErrorCode := 4;
-      Exit(False);
-    end;
-
-    if not TryReadIdeConfig(lOptions.fDelphiVersion, lOptions.fPlatform, lOptions.fEnvOptionsPath, lEnvVars,
-      lLibraryPath, lLibrarySource, aDiagnostics, lError) then
-    begin
-      aError := lError;
-      aErrorCode := 4;
-      Exit(False);
-    end;
-
     if not TryBuildParams(lOptions, lEnvVars, lLibraryPath, lLibrarySource, aDiagnostics, aParams, lError, aErrorCode) then
     begin
       aError := lError;
@@ -675,8 +673,6 @@ procedure CaptureFixInsightSummary(const aTxtPath: string; out aCounts: TFixInsi
 var
   lCounts: TDictionary<string, Integer>;
 begin
-  aCounts.Total := 0;
-  aCounts.Top := nil;
   CountFixInsightCodes(aTxtPath, lCounts, aCounts.Total);
   try
     aCounts.Top := BuildTopFixInsightCodes(lCounts, 10);
@@ -962,7 +958,6 @@ begin
     lLogPath := TPath.Combine(fFixDir, 'fixinsight.txt.log');
   end;
 
-  lRunError := '';
   if TryRunFixInsightLogged(fParams, fRunLog, lRunExit, lRunError) then
   begin
     aExitCode := Integer(lRunExit);
@@ -970,7 +965,6 @@ begin
       AddError(Format('%s failed (exit=%d).', [aLabel, aExitCode]), aExitCode)
     else if ShouldFilterReports then
     begin
-      lFilterError := '';
       if not TryPostProcessFixInsightReport(fParams.fFixOutput, aFormat, fReportFilter.fExcludePathMasks,
         fFixIgnoreDefaults.fWarnings, lFilterError) then
       begin
@@ -1019,7 +1013,6 @@ begin
     fPascalAnalyzer.fOutput := fPaDir;
   fPal.OutputRoot := fPascalAnalyzer.fOutput;
 
-  lRunError := '';
   if TryRunPalLogged(fParams, fPascalAnalyzer, fRunLog, lRunExit, lRunError) then
   begin
     fPal.ExitCode := Integer(lRunExit);
@@ -1028,7 +1021,6 @@ begin
     else
     begin
       try
-        lPalPostError := '';
         if TryFindPalReportRoot(fPal.OutputRoot, lPaReportRoot, lPalPostError) then
         begin
           fPal.ReportRoot := lPaReportRoot;
@@ -1189,7 +1181,6 @@ begin
     fPascalAnalyzer.fOutput := fPaDir;
   fPal.OutputRoot := fPascalAnalyzer.fOutput;
 
-  lRunError := '';
   if TryRunPalUnitLogged(fUnitPath, fPascalAnalyzer, fRunLog, lRunExit, lRunError) then
   begin
     fPal.ExitCode := Integer(lRunExit);
@@ -1198,7 +1189,6 @@ begin
     else
     begin
       try
-        lPalPostError := '';
         if TryFindPalReportRoot(fPal.OutputRoot, lPaReportRoot, lPalPostError) then
         begin
           fPal.ReportRoot := lPaReportRoot;

@@ -808,7 +808,7 @@ begin
   end;
 end;
 
-function CpuCount: Integer;
+function GetCpuCount: Integer;
 var
   lSys: TSystemInfo;
 begin
@@ -930,7 +930,7 @@ begin
       lArgs.Append(' /Q');
       lArgs.Append(' /A+');
       lArgs.Append(' /FA');
-      lThreads := CpuCount;
+      lThreads := GetCpuCount;
       if lThreads > 64 then
         lThreads := 64;
       lArgs.Append(' /T=');
@@ -1073,7 +1073,7 @@ begin
       lArgs.Append(' /Q');
       lArgs.Append(' /A+');
       lArgs.Append(' /FA');
-      lThreads := CpuCount;
+      lThreads := GetCpuCount;
       if lThreads > 64 then
         lThreads := 64;
       lArgs.Append(' /T=');
@@ -1305,7 +1305,6 @@ begin
 
   if lLocMod <> '' then
   begin
-    lLineFromMod := 0;
     if TryParseLocMod(lLocMod, lModule, lLineFromMod) and (lLine = 0) then
       lLine := lLineFromMod;
   end;
@@ -1328,8 +1327,6 @@ var
   lLine: Integer;
   lMessage: string;
 begin
-  lModule := '';
-  lLine := 0;
   if not TryParseLocMod(aLocMod, lModule, lLine) then
     Exit;
   lMessage := ChooseMessage(aItemId, aName, aItemKind);
@@ -1450,6 +1447,7 @@ var
   lLocMod: string;
   lLocLine: string;
   lModule: string;
+  lParsedModule: string;
   lLine: Integer;
   lLineFromMod: Integer;
   lChild: IXMLNode;
@@ -1464,9 +1462,12 @@ begin
     lModule := '';
     if lLocMod <> '' then
     begin
-      lLineFromMod := 0;
-      if TryParseLocMod(lLocMod, lModule, lLineFromMod) and (lLine = 0) then
-        lLine := lLineFromMod;
+      if TryParseLocMod(lLocMod, lParsedModule, lLineFromMod) then
+      begin
+        lModule := lParsedModule;
+        if lLine = 0 then
+          lLine := lLineFromMod;
+      end;
     end;
     AddFindingRecord(aSeverity, aReport, aSection, lModule, lLine, lName, '', '', aFindings, aSeen);
   end;
@@ -2030,27 +2031,19 @@ begin
 
     if lHasHotspotSource then
     begin
-      lEntries := nil;
-      lModuleLines := nil;
       lRoutineList := TList<THotspotEntry>.Create;
       lModuleList := TList<THotspotEntry>.Create;
       lModuleLineList := TList<THotspotEntry>.Create;
       try
-        if FileExists(lComplexityPath) then
+        if not TryLoadComplexityEntries(lComplexityPath, lEntries, lError) then
         begin
-          if not TryLoadComplexityEntries(lComplexityPath, lEntries, lError) then
-          begin
-            // PAL sometimes emits malformed XML for complexity; keep findings and skip hotspots.
-            lEntries := nil;
-          end;
+          // PAL sometimes emits malformed XML for complexity; keep findings and skip hotspots.
+          lEntries := nil;
         end;
-        if FileExists(lModuleTotalsPath) then
+        if not TryLoadModuleLines(lModuleTotalsPath, lModuleLines, lError) then
         begin
-          if not TryLoadModuleLines(lModuleTotalsPath, lModuleLines, lError) then
-          begin
-            // PAL sometimes emits malformed XML for module totals; keep findings and skip hotspots.
-            lModuleLines := nil;
-          end;
+          // PAL sometimes emits malformed XML for module totals; keep findings and skip hotspots.
+          lModuleLines := nil;
         end;
 
         for lEntry in lEntries do
