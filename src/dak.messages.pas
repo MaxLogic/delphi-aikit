@@ -120,31 +120,32 @@ resourcestring
 implementation
 
 procedure TouchMessagesForAnalysis;
-var
-  lDummy: string;
+  procedure Touch(const aValue: string); inline;
+  begin
+    if aValue = '' then
+      Exit;
+  end;
 begin
   if False then
   begin
-    lDummy := SSourceUnitAliases;
-    lDummy := SInvalidArgs;
-    lDummy := SSourceLibraryPath;
-    lDummy := SSourceUnknown;
-    lDummy := SFixInsightRunExit;
-    lDummy := SSourceDproj;
-    lDummy := SRegistryLibraryMissing;
-    lDummy := SSourceRegistry;
-    lDummy := SBuildBatMissing;
-    lDummy := SInfoEnvVarCount;
-    lDummy := SSourceSearchPath;
-    lDummy := SSourceOptset;
-    lDummy := SUnhandledException;
-    lDummy := SSourceUnitScopes;
-    lDummy := SInfoOptions;
-    lDummy := SInfoAssociatedDproj;
-    lDummy := SSourceDefines;
-    lDummy := SSourceEnvOptions;
-    if lDummy = '' then
-      lDummy := '';
+    Touch(SSourceUnitAliases);
+    Touch(SInvalidArgs);
+    Touch(SSourceLibraryPath);
+    Touch(SSourceUnknown);
+    Touch(SFixInsightRunExit);
+    Touch(SSourceDproj);
+    Touch(SRegistryLibraryMissing);
+    Touch(SSourceRegistry);
+    Touch(SBuildBatMissing);
+    Touch(SInfoEnvVarCount);
+    Touch(SSourceSearchPath);
+    Touch(SSourceOptset);
+    Touch(SUnhandledException);
+    Touch(SSourceUnitScopes);
+    Touch(SInfoOptions);
+    Touch(SInfoAssociatedDproj);
+    Touch(SSourceDefines);
+    Touch(SSourceEnvOptions);
   end;
 end;
 

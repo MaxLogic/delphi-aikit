@@ -98,6 +98,7 @@ var
     end;
   end;
 begin
+  lArgs := nil;
   lCount := 0;
   lDefines := String.Join(';', aParams.fDefines);
   lSearchPaths := FilterExistingPaths(aParams.fUnitSearchPath);

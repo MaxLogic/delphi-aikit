@@ -27,7 +27,7 @@ type
 implementation
 
 type
-  TTokenKind = (tkString, tkEqual, tkNotEqual, tkAnd, tkOr, tkLParen, tkRParen, tkEof);
+  TTokenKind = (tkText, tkEqual, tkNotEqual, tkAnd, tkOr, tkLParen, tkRParen, tkEof);
 
   TToken = record
     fKind: TTokenKind;
@@ -94,7 +94,7 @@ begin
         lStart := fPos;
         while (fPos <= Length(fText)) and (fText[fPos] <> '''') do
           Inc(fPos);
-        fToken.fKind := TTokenKind.tkString;
+        fToken.fKind := TTokenKind.tkText;
         fToken.fText := Copy(fText, lStart, fPos - lStart);
         if fPos <= Length(fText) then
           Inc(fPos);
@@ -149,7 +149,7 @@ var
   lOp: TTokenKind;
 begin
   Result := False;
-  if fToken.fKind <> TTokenKind.tkString then
+  if fToken.fKind <> TTokenKind.tkText then
     Exit;
   lLeft := fToken.fText;
   NextToken;
@@ -157,7 +157,7 @@ begin
     Exit;
   lOp := fToken.fKind;
   NextToken;
-  if fToken.fKind <> TTokenKind.tkString then
+  if fToken.fKind <> TTokenKind.tkText then
     Exit;
   lRight := fToken.fText;
   NextToken;

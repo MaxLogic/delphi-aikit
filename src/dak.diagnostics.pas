@@ -58,6 +58,13 @@ implementation
 
 { TStringSet }
 
+procedure IgnoreBool(const aValue: Boolean); inline;
+begin
+  // Intentionally ignored: we only care about the side-effect (updating the set).
+  if aValue then
+    Exit;
+end;
+
 constructor TStringSet.Create(const aComparer: IEqualityComparer<string>);
 begin
   inherited Create;
@@ -133,7 +140,7 @@ var
   i: Integer;
   j: Integer;
   star: Integer;
-  mark: Integer;
+  lMark: Integer;
 begin
   t := UpperCase(aText);
   m := UpperCase(aMask);
@@ -141,7 +148,7 @@ begin
   i := 1;
   j := 1;
   star := 0;
-  mark := 0;
+  lMark := 0;
   while i <= Length(t) do
   begin
     if (j <= Length(m)) and ((m[j] = '?') or (m[j] = t[i])) then
@@ -154,7 +161,7 @@ begin
     if (j <= Length(m)) and (m[j] = '*') then
     begin
       star := j;
-      mark := i;
+      lMark := i;
       Inc(j);
       Continue;
     end;
@@ -162,8 +169,8 @@ begin
     if star <> 0 then
     begin
       j := star + 1;
-      Inc(mark);
-      i := mark;
+      Inc(lMark);
+      i := lMark;
       Continue;
     end;
 
@@ -255,14 +262,14 @@ begin
     Exit;
   if ShouldIgnoreUnknownMacro(aName) then
     Exit;
-  fUnknownMacros.Add(aName);
+  IgnoreBool(fUnknownMacros.Add(aName));
 end;
 
 procedure TDiagnostics.AddCycleMacro(const aName: string);
 begin
   if aName = '' then
     Exit;
-  fCycleMacros.Add(aName);
+  IgnoreBool(fCycleMacros.Add(aName));
 end;
 
 procedure TDiagnostics.AddMissingPath(const aPath: string);
@@ -271,7 +278,7 @@ begin
     Exit;
   if ShouldIgnoreMissingPath(aPath) then
     Exit;
-  fMissingPaths.Add(aPath);
+  IgnoreBool(fMissingPaths.Add(aPath));
 end;
 
 procedure TDiagnostics.AddIgnoreUnknownMacros(const aList: string);
@@ -279,7 +286,7 @@ var
   lItem: string;
 begin
   for lItem in SplitList(aList) do
-    fIgnoreUnknownMacros.Add(lItem);
+    IgnoreBool(fIgnoreUnknownMacros.Add(lItem));
 end;
 
 procedure TDiagnostics.AddIgnoreMissingPathMasks(const aList: string);
@@ -287,7 +294,7 @@ var
   lItem: string;
 begin
   for lItem in SplitList(aList) do
-    fIgnoreMissingPathMasks.Add(NormalizeSlashes(lItem));
+    IgnoreBool(fIgnoreMissingPathMasks.Add(NormalizeSlashes(lItem)));
 end;
 
 function TDiagnostics.ShouldIgnoreUnknownMacro(const aName: string): Boolean;

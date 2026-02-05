@@ -439,9 +439,7 @@ begin
       Exit(False);
     end;
   end else if SameText(aSwitch, 'help') or SameText(aSwitch, 'h') or SameText(aSwitch, '?') then
-  begin
-    // handled by IsHelpRequested
-  end
+    aHandled := True // handled by IsHelpRequested
   else
     aHandled := False;
 
