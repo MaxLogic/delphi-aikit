@@ -3,8 +3,8 @@ Next task ID: T-049
 
 
 ## Summary
-Open tasks: 4 (In Progress: 0, Next Today: 0, Next This Week: 4, Next Later: 0, Blocked: 0)
-Done tasks: 44
+Open tasks: 3 (In Progress: 0, Next Today: 0, Next This Week: 3, Next Later: 0, Blocked: 0)
+Done tasks: 45
 
 
 ## In Progress
@@ -12,13 +12,6 @@ Done tasks: 44
 ## Next - Today
 
 ## Next - This Week
-
-### T-039 Remove PAL bad typecast warning in maxConsoleRunner ExitCode
-Outcome: Update exit-code retrieval to avoid PAL "Possible bad typecast" for `fExitCode` while keeping the public `ExitCode: Integer` unchanged.
-Proof:
-- Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
-- Expect: pal-findings no longer reports "Possible bad typecast" for `lib/MaxLogicFoundation/maxConsoleRunner.pas` exit-code handling.
-Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 
 ### T-038 Refactor TAsyncLoop.Run to avoid PAL bad pointer usage warning
 Outcome: Update `TAsyncLoop.Run` to avoid capturing a local loop instance inside anonymous methods while preserving behavior and keeping public API signatures unchanged.
@@ -47,6 +40,13 @@ Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 ## Blocked
 
 ## Done
+
+### T-039 Remove PAL bad typecast warning in maxConsoleRunner ExitCode
+Outcome: Update exit-code retrieval to avoid PAL "Possible bad typecast" for `fExitCode` while keeping the public `ExitCode: Integer` unchanged.
+Proof:
+- Command: DAK_PASCAL_ANALYZER=true ./agentskill/delphi-static-analysis/analyze.sh /mnt/f/projects/MaxLogic/DelphiConfigResolver/projects/DelphiAIKit.dproj
+- Expect: pal-findings no longer reports "Possible bad typecast" for `lib/MaxLogicFoundation/maxConsoleRunner.pas` exit-code handling.
+Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 
 ### T-048 [CLI] Track metrics history and emit trend.md (continuous monitoring)
 Outcome: Append a per-run metrics snapshot to `_analysis/<project>/history.jsonl` (deduped by summary timestamp) and emit `_analysis/<project>/trend.md` summarizing recent runs to support continuous monitoring (spotting spikes in warnings/complexity over time).
