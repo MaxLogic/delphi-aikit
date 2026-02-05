@@ -3,21 +3,13 @@ Next task ID: T-049
 
 
 ## Summary
-Open tasks: 5 (In Progress: 0, Next Today: 1, Next This Week: 4, Next Later: 0, Blocked: 0)
-Done tasks: 43
+Open tasks: 4 (In Progress: 0, Next Today: 0, Next This Week: 4, Next Later: 0, Blocked: 0)
+Done tasks: 44
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-048 [CLI] Track metrics history and emit trend.md (continuous monitoring)
-Outcome: Append a per-run metrics snapshot to `_analysis/<project>/history.jsonl` (deduped by summary timestamp) and emit `_analysis/<project>/trend.md` summarizing recent runs to support continuous monitoring (spotting spikes in warnings/complexity over time).
-Proof:
-- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
-- Expect: `_analysis/DelphiAIKit/history.jsonl` exists and contains at least 1 JSONL record.
-- Expect: `_analysis/DelphiAIKit/trend.md` exists and contains a table of FixInsight + PAL totals.
-Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
 
 ## Next - This Week
 
@@ -55,6 +47,14 @@ Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 ## Blocked
 
 ## Done
+
+### T-048 [CLI] Track metrics history and emit trend.md (continuous monitoring)
+Outcome: Append a per-run metrics snapshot to `_analysis/<project>/history.jsonl` (deduped by summary timestamp) and emit `_analysis/<project>/trend.md` summarizing recent runs to support continuous monitoring (spotting spikes in warnings/complexity over time).
+Proof:
+- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/history.jsonl` exists and contains at least 1 JSONL record.
+- Expect: `_analysis/DelphiAIKit/trend.md` exists and contains a table of FixInsight + PAL totals.
+Touches: agentskill/delphi-static-analysis/postprocess.py, agentskill/delphi-static-analysis/SKILL.md
 
 ### T-047 [CLI] Warn on baseline/current context mismatches in delta.md
 Outcome: When baseline and current `run_context` differ materially (platform/config/delphi or tool versions), emit an explicit warning in `delta.md` so we don’t trust deltas/gates computed across incompatible runs.

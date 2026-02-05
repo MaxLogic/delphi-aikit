@@ -105,6 +105,8 @@ _analysis/{projectName}/
   delta.json                   (machine delta vs baseline)
   triage.md                    (prioritized shortlist; top 20 by default)
   triage-changed.md            (when `DAK_SCOPE=changed`; filtered to Git-changed files)
+  history.jsonl                (per-run metrics snapshots; continuous monitoring)
+  trend.md                     (recent history table + deltas)
   summary.md
   run.log
 ```
@@ -178,6 +180,7 @@ Useful env vars (wrapper-level; not forwarded to DAK):
 - `DAK_UPDATE_BASELINE=1` overwrite the baseline with the current run
 - `DAK_TRIAGE_TOP=<N>` override triage shortlist cap (default: `20`)
 - `DAK_SCOPE=changed` emit `triage-changed.md` filtered to Git-changed files
+- `DAK_TREND_N=<N>` number of runs to show in `trend.md` (default: `20`)
 - `DAK_GATE=1` (or `DAK_CI=1`) enable a conservative “don’t regress” gate
 - Thresholds:
   - `DAK_MAX_NEW_PAL_STRONG=0` (default) fail if new PAL strong-warnings appear
