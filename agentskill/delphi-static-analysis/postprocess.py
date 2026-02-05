@@ -1735,6 +1735,10 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         _write_text(delta_md_path, _render_delta_md(delta_obj))
         triage_path = _write_triage(out_root, title=title, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
         res = {"baseline": str(baseline_path), "delta": str(delta_md_path), "gate_pass": True, "baseline_created": True, "triage": str(triage_path)}
+        if _truthy_env("DAK_TRIAGE_SNIPPETS", False):
+            triage_snip = out_root / "triage-snippets.md"
+            if triage_snip.exists():
+                res["triage_snippets"] = str(triage_snip)
         history_path, trend_path, _ = _update_history_and_trend(out_root, title=title, summary=summary, snapshot=current_snapshot, repo_root=repo_root)
         res["history"] = str(history_path)
         res["trend"] = str(trend_path)
@@ -1966,6 +1970,10 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         "baseline_updated": bool(update_baseline),
         "triage": str(triage_path),
     }
+    if _truthy_env("DAK_TRIAGE_SNIPPETS", False):
+        triage_snip = out_root / "triage-snippets.md"
+        if triage_snip.exists():
+            res["triage_snippets"] = str(triage_snip)
     history_path, trend_path, _ = _update_history_and_trend(out_root, title=title, summary=summary, snapshot=current_snapshot, repo_root=repo_root)
     res["history"] = str(history_path)
     res["trend"] = str(trend_path)
