@@ -456,9 +456,55 @@ def _normalize_path_value(raw_path: str, *, repo_root: Optional[Path], base_dirs
         if rel:
             return rel
 
+        # FixInsight can report files using absolute paths outside the current repo even when we
+        # have a repo-local copy (e.g. submodule). When the input is absolute, and the basename
+        # uniquely exists under `repo_root`, map it to that repo-relative path so triage/deltas
+        # are stable and we can open the file locally.
+        norm = s.replace("\\", "/")
+        is_abs_input = bool(norm.startswith("/") or norm.startswith("//") or re.match(r"^[A-Za-z]:/", norm))
+        if is_abs_input:
+            base = posixpath.basename(norm)
+            if base:
+                mapped = _repo_unique_basename_index(repo_root).get(base.lower())
+                if mapped:
+                    return mapped
+
     # Fallback: normalize separators + dot segments deterministically.
     s = s.replace("\\", "/")
     return posixpath.normpath(s)
+
+
+_REPO_UNIQUE_BASENAME_INDEX_CACHE: dict[str, dict[str, str]] = {}
+
+
+def _repo_unique_basename_index(repo_root: Path) -> dict[str, str]:
+    cache_key = str(repo_root.resolve()).lower()
+    hit = _REPO_UNIQUE_BASENAME_INDEX_CACHE.get(cache_key)
+    if hit is not None:
+        return hit
+
+    # Use a uniqueness filter: if two files share a basename, we prefer to not map at all.
+    seen: dict[str, Optional[str]] = {}
+    patterns = ("*.pas", "*.dpr", "*.dpk", "*.inc")
+    for pat in patterns:
+        for p in repo_root.rglob(pat):
+            # Skip analysis artifacts and VCS internals.
+            parts = {x.lower() for x in p.parts}
+            if ".git" in parts or "_analysis" in parts:
+                continue
+            try:
+                rel = p.relative_to(repo_root).as_posix()
+            except ValueError:
+                continue
+            key = p.name.lower()
+            if key in seen:
+                seen[key] = None
+            else:
+                seen[key] = rel
+
+    idx = {k: v for k, v in seen.items() if v is not None}
+    _REPO_UNIQUE_BASENAME_INDEX_CACHE[cache_key] = idx
+    return idx
 
 
 def _write_triage_changed(out_root: Path, *, title: str, summary: dict[str, Any], fi_jsonl_path: Path, pal_jsonl_path: Path) -> Path:
@@ -511,8 +557,17 @@ def _write_triage_changed(out_root: Path, *, title: str, summary: dict[str, Any]
     fi_items: list[str] = []
     if fi_jsonl_path.exists():
         for obj in _iter_jsonl(fi_jsonl_path):
-            file_raw = str(obj.get("file") or "").strip()
-            norm = _normalize_to_repo_relative(file_raw, repo_root=repo_root, base_dirs=base_dirs)
+            norm = str(obj.get("path") or "").strip()
+            if norm:
+                norm = posixpath.normpath(norm.replace("\\", "/"))
+            if not norm:
+                file_raw = str(obj.get("file") or "").strip()
+                norm = _normalize_to_repo_relative(file_raw, repo_root=repo_root, base_dirs=base_dirs) or ""
+            # If we still have an absolute path, try one more time with the normalized value.
+            if norm and (norm.startswith("/") or norm.startswith("//") or re.match(r"^[A-Za-z]:/", norm)):
+                norm2 = _normalize_to_repo_relative(norm, repo_root=repo_root, base_dirs=base_dirs)
+                if norm2:
+                    norm = norm2
             if not norm or norm not in changed_files:
                 continue
             code = obj.get("code", "?")

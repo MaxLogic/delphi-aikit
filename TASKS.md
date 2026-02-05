@@ -3,22 +3,13 @@ Next task ID: T-049
 
 
 ## Summary
-Open tasks: 7 (In Progress: 0, Next Today: 3, Next This Week: 4, Next Later: 0, Blocked: 0)
-Done tasks: 41
+Open tasks: 6 (In Progress: 0, Next Today: 2, Next This Week: 4, Next Later: 0, Blocked: 0)
+Done tasks: 42
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-046 [CLI] Map FixInsight absolute file paths to repo-relative paths when possible
-Outcome: When FixInsight reports absolute paths outside the current repo but the corresponding unit exists in our repo/submodule, populate the normalized `path` field with a repo-relative path (unique basename match) while preserving the original `file` value.
-Proof:
-- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
-- Expect: `_analysis/DelphiAIKit/fixinsight/fi-findings.jsonl` records for MaxLogicFoundation use `path` starting with `lib/MaxLogicFoundation/` (instead of `f:/...`).
-- Command: python3 - <<'PY'\nimport json\nfrom pathlib import Path\np = Path('_analysis/DelphiAIKit/fixinsight/fi-findings.jsonl')\nitems = [json.loads(l) for l in p.read_text(encoding='utf-8', errors='replace').splitlines() if l.strip()]\nmf = [it for it in items if 'maxlogicfoundation' in (it.get('file','').lower())]\nassert mf, 'no MaxLogicFoundation FixInsight findings found to validate'\nbad = [it for it in mf if not str(it.get('path','')).startswith('lib/MaxLogicFoundation/')]\nassert not bad, bad[:2]\nprint('ok', len(mf))\nPY
-- Expect: Prints `ok <n>`.
-Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-047 [CLI] Warn on baseline/current context mismatches in delta.md
 Outcome: When baseline and current `run_context` differ materially (platform/config/delphi or tool versions), emit an explicit warning in `delta.md` so we don’t trust deltas/gates computed across incompatible runs.
@@ -73,6 +64,15 @@ Touches: lib/MaxLogicFoundation/maxConsoleRunner.pas
 ## Blocked
 
 ## Done
+
+### T-046 [CLI] Map FixInsight absolute file paths to repo-relative paths when possible
+Outcome: When FixInsight reports absolute paths outside the current repo but the corresponding unit exists in our repo/submodule, populate the normalized `path` field with a repo-relative path (unique basename match) while preserving the original `file` value.
+Proof:
+- Command: python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: `_analysis/DelphiAIKit/fixinsight/fi-findings.jsonl` records for MaxLogicFoundation use `path` starting with `lib/MaxLogicFoundation/` (instead of `f:/...`).
+- Command: python3 - <<'PY'\nimport json\nfrom pathlib import Path\np = Path('_analysis/DelphiAIKit/fixinsight/fi-findings.jsonl')\nitems = [json.loads(l) for l in p.read_text(encoding='utf-8', errors='replace').splitlines() if l.strip()]\nmf = [it for it in items if 'maxlogicfoundation' in (it.get('file','').lower())]\nassert mf, 'no MaxLogicFoundation FixInsight findings found to validate'\nbad = [it for it in mf if not str(it.get('path','')).startswith('lib/MaxLogicFoundation/')]\nassert not bad, bad[:2]\nprint('ok', len(mf))\nPY
+- Expect: Prints `ok <n>`.
+Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-045 [CLI] Fix FixInsight triage ordering (W > C > O)
 Outcome: Adjust triage prioritization so FixInsight findings are ordered `W` first, then `C`, then `O` (default), preventing low-value optimization/style hints from hiding higher-signal issues.
