@@ -10,6 +10,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added `--rsvars` to override the `rsvars.bat` location for IDE environment setup. (T-001)
 - Added `--envoptions` to override the `EnvOptions.proj` path when the default is not available. (T-001)
 - Added `analyze` with `--project`/`--unit` to run FixInsight/PAL with stable `_analysis` output and summaries. (T-027, T-028)
+- Added build output controls: `--show-warnings`, `--show-hints`, `--ignore-warnings`, `--ignore-hints`, `--ai`. (T-058, T-060, T-061)
 - Added FixInsightCL execution via `analyze --fixinsight true` (CreateProcess). (T-009)
 - Added `--log-file` (alias `--logfile`) to capture resolver diagnostics in a file. (T-010)
 - Added `--log-tee` to mirror resolver diagnostics to output when using `--log-file`. (T-011)
@@ -29,6 +30,7 @@ All notable user-visible changes to this project will be documented in this file
 - Suppressed stdout output during FixInsightCL runs unless resolve output is explicitly requested. (T-010)
 - Updated `fixinsight-run.bat` to generate sample FixInsight reports (txt/xml/csv) under `docs\sample-fix-insight-self-reports\`. (T-017)
 - Static-analysis skill scripts now call DAK analyze subcommands directly. (T-029)
+- Normalized `build` output paths to be repo-relative (VCS root when detected) for stable, machine-independent logs. (T-059)
 
 ### Fixed
 - Fixed FixInsightCL.exe discovery across HKCU/HKLM 32/64-bit registry views. (T-005)

@@ -160,6 +160,8 @@ begin
     lCmdLine := lCmdLine + ' -show-warnings';
   if aOptions.fBuildShowHints then
     lCmdLine := lCmdLine + ' -show-hints';
+  if aOptions.fBuildAi then
+    lCmdLine := lCmdLine + ' -ai';
   if aOptions.fHasBuildIgnoreWarnings then
     lCmdLine := lCmdLine + ' -ignore-warnings ' + QuoteCmdArg(aOptions.fBuildIgnoreWarnings);
   if aOptions.fHasBuildIgnoreHints then

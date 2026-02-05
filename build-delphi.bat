@@ -60,6 +60,7 @@ if /I "%~1"=="-show-warnings-on-success" (
 )
 if /I "%~1"=="-show-warnings" set "SHOW_WARN_ON_SUCCESS=1" & shift & goto parse_args
 if /I "%~1"=="-show-hints" set "SHOW_HINT_ON_SUCCESS=1" & shift & goto parse_args
+if /I "%~1"=="-ai" set "AI_MODE=1" & set "NO_BRAND=1" & shift & goto parse_args
 if /I "%~1"=="-no-brand" set "NO_BRAND=1" & shift & goto parse_args
 
 if not defined PROJECT (
@@ -96,12 +97,14 @@ set "PRJ_NAME=%PROJECT%"
 for /f "usebackq delims=" %%r in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$proj=[IO.Path]::GetFullPath('%PROJECT%'); $root=[IO.Path]::GetFullPath('%ROOT%'); if(-not $root.EndsWith('\')){ $root=$root+'\' }; if($proj.ToLower().StartsWith($root.ToLower())){ $proj.Substring($root.Length) } else { $proj }"`) do set "PRJ_NAME=%%r"
 
 rem ---- ASCII header (pipes escaped)
-echo +================================================================================+
-echo ^| BUILD   : %PRJ_NAME%
-echo ^| PATH    : %PRJ_NAME%
-echo ^| CONFIG  : %BUILD_CONFIG%    PLATFORM: %BUILD_PLATFORM%    DELPHI: %VER%
-echo +================================================================================+
-echo.
+if not defined AI_MODE (
+  echo +================================================================================+
+  echo ^| BUILD   : %PRJ_NAME%
+  echo ^| PATH    : %PRJ_NAME%
+  echo ^| CONFIG  : %BUILD_CONFIG%    PLATFORM: %BUILD_PLATFORM%    DELPHI: %VER%
+  echo +================================================================================+
+  echo.
+)
 
 rem ---- Load BuildIgnore lists (tool defaults + project tree)
 set "INI_BUILD_IGNORE_WARNINGS="
@@ -177,6 +180,18 @@ if not defined HAS_ERRORS if not "%RC%"=="0" (
 )
 
 if defined HAS_ERRORS (
+  if defined AI_MODE (
+    if exist "%ERRLOG%" (
+      if "!ERRCOUNT!"=="0" for /f %%E in ('type "%ERRLOG%" ^| find /c /v ""') do set "ERRCOUNT=%%E"
+      echo FAILED. Errors: !ERRCOUNT!
+      call :print_errors_top "%ERRLOG%"
+    ) else (
+      echo FAILED. No error log generated.
+      call :print_errors_top "%OUTLOG%"
+    )
+    set "EXITCODE=1"
+    goto cleanup
+  )
   if exist "%ERRLOG%" (
     if "!ERRCOUNT!"=="0" for /f %%E in ('type "%ERRLOG%" ^| find /c /v ""') do set "ERRCOUNT=%%E"
     echo(
@@ -202,25 +217,38 @@ for /f "usebackq tokens=1,2 delims=," %%w in (`powershell -NoProfile -ExecutionP
   set "HINTCOUNT=%%x"
 )
 
-if defined SHOW_WARN_ON_SUCCESS (
-  if defined SHOW_HINT_ON_SUCCESS (
-    call :print_sanitized "%OUTLOG%"
-  ) else (
-    call :print_sanitized_no_hints "%OUTLOG%"
+if defined AI_MODE (
+  echo SUCCESS. Warnings: !WARNCOUNT!, Hints: !HINTCOUNT!
+  if defined SHOW_WARN_ON_SUCCESS (
+    if defined SHOW_HINT_ON_SUCCESS (
+      call :print_findings_top "%OUTLOG%"
+    ) else (
+      call :print_warnings_top "%OUTLOG%"
+    )
+  ) else if defined SHOW_HINT_ON_SUCCESS (
+    call :print_hints_top "%OUTLOG%"
   )
-  echo(
-  call :print_elapsed
-  echo SUCCESS. Warnings: !WARNCOUNT!, Hints: !HINTCOUNT!
-) else if defined SHOW_HINT_ON_SUCCESS (
-  call :print_sanitized_no_warnings "%OUTLOG%"
-  echo(
-  call :print_elapsed
-  echo SUCCESS. Warnings: !WARNCOUNT!, Hints: !HINTCOUNT!
 ) else (
-  call :print_sanitized_filtered "%OUTLOG%"
-  echo(
-  call :print_elapsed
-  echo SUCCESS.
+  if defined SHOW_WARN_ON_SUCCESS (
+    if defined SHOW_HINT_ON_SUCCESS (
+      call :print_sanitized "%OUTLOG%"
+    ) else (
+      call :print_sanitized_no_hints "%OUTLOG%"
+    )
+    echo(
+    call :print_elapsed
+    echo SUCCESS. Warnings: !WARNCOUNT!, Hints: !HINTCOUNT!
+  ) else if defined SHOW_HINT_ON_SUCCESS (
+    call :print_sanitized_no_warnings "%OUTLOG%"
+    echo(
+    call :print_elapsed
+    echo SUCCESS. Warnings: !WARNCOUNT!, Hints: !HINTCOUNT!
+  ) else (
+    call :print_sanitized_filtered "%OUTLOG%"
+    echo(
+    call :print_elapsed
+    echo SUCCESS.
+  )
 )
 
 set "EXITCODE=0"
@@ -228,13 +256,45 @@ goto cleanup
 
 :usage_fail
 echo.
-echo Usage: %~nx0 ^<project.dproj^> [-ver N] [-config Debug^|Release] [-platform Platform] [-ignore-warnings List] [-ignore-hints List] [-keep-logs] [-show-warnings] [-show-hints] [-show-warnings-on-success] [-no-brand]
+echo Usage: %~nx0 ^<project.dproj^> [-ver N] [-config Debug^|Release] [-platform Platform] [-ignore-warnings List] [-ignore-hints List] [-keep-logs] [-ai] [-show-warnings] [-show-hints] [-show-warnings-on-success] [-no-brand]
 goto cleanup
 
 :print_elapsed
 for /f %%t in ('powershell -NoProfile -Command "$s=[datetime]::Parse('%BUILD_START%'); ((Get-Date) - $s).ToString('hh\:mm\:ss\.fff')"') do set "ELAPSED=%%t"
 echo done in !ELAPSED!
 exit /b 0
+
+:print_warnings_top
+set "PFILE=%~1"
+if not exist "%PFILE%" exit /b 0
+setlocal DisableDelayedExpansion
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$max=50; $root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $iw=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($x in '%BUILD_IGNORE_WARNINGS%'.Split(';')){ $t=$x.Trim(); if($t){ $iw.Add($t) | Out-Null } }; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; if($s -notmatch ':\s+warning\s+(W\d+):'){ return }; if($iw.Contains($Matches[1])){ return }; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; $s } | Select-Object -First $max"
+endlocal & exit /b 0
+
+:print_hints_top
+set "PFILE=%~1"
+if not exist "%PFILE%" exit /b 0
+setlocal DisableDelayedExpansion
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$max=50; $root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $ih=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($x in '%BUILD_IGNORE_HINTS%'.Split(';')){ $t=$x.Trim(); if($t){ $ih.Add($t) | Out-Null } }; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; $code=$null; if($s -match ' hint warning\s+(H\d+):'){ $code=$Matches[1] } elseif($s -match ':\s+hint\s+(H\d+):'){ $code=$Matches[1] } else { return }; if($code -and $ih.Contains($code)){ return }; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; $s } | Select-Object -First $max"
+endlocal & exit /b 0
+
+:print_findings_top
+set "PFILE=%~1"
+if not exist "%PFILE%" exit /b 0
+setlocal DisableDelayedExpansion
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$max=50; $root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); $iw=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($x in '%BUILD_IGNORE_WARNINGS%'.Split(';')){ $t=$x.Trim(); if($t){ $iw.Add($t) | Out-Null } }; $ih=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($x in '%BUILD_IGNORE_HINTS%'.Split(';')){ $t=$x.Trim(); if($t){ $ih.Add($t) | Out-Null } }; Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; if($s -match ':\s+warning\s+(W\d+):'){ if($iw.Contains($Matches[1])){ return } } elseif($s -match ' hint warning\s+(H\d+):'){ if($ih.Contains($Matches[1])){ return } } elseif($s -match ':\s+hint\s+(H\d+):'){ if($ih.Contains($Matches[1])){ return } } else { return }; $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; $s } | Select-Object -First $max"
+endlocal & exit /b 0
+
+:print_errors_top
+set "PFILE=%~1"
+if not exist "%PFILE%" exit /b 0
+setlocal DisableDelayedExpansion
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$max=50; $root=[IO.Path]::GetFullPath('%ROOT%')+'\'; $rx=[regex]::Escape($root); Get-Content -LiteralPath '%PFILE%' | ForEach-Object { $s=$_; if($s -match ':\s+error ' -or $s -match ':\s+fatal '){ $s=$s -replace ('(?i)'+$rx),''; $s=$s -replace ('(?i)\['+$rx),'['; $s } } | Select-Object -First $max"
+endlocal & exit /b 0
 
 :print_sanitized
 set "PFILE=%~1"

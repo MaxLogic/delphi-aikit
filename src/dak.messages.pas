@@ -34,7 +34,7 @@ resourcestring
     '[--pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"]';
   SUsageBuild =
     'DelphiAIKit.exe build --project "<path>" --delphi <23.0> ' +
-    '[--platform <Win32|Win64>] [--config <Debug|Release>] [--show-warnings] [--show-hints] ' +
+    '[--platform <Win32|Win64>] [--config <Debug|Release>] [--ai] [--show-warnings] [--show-hints] ' +
     '[--ignore-warnings "<list>"] [--ignore-hints "<list>"]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
