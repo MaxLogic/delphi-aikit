@@ -103,6 +103,7 @@ _analysis/{projectName}/
   baseline.md                  (human baseline summary)
   delta.md                     (delta vs baseline)
   delta.json                   (machine delta vs baseline)
+  static-analysis.sarif        (SARIF v2.1.0; PR annotations / code scanning)
   triage.md                    (prioritized shortlist; top 20 by default)
   triage-changed.md            (when `DAK_SCOPE=changed`; filtered to Git-changed files)
   triage-snippets.md           (when `DAK_TRIAGE_SNIPPETS=1`; bounded source context for top triage items)
