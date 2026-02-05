@@ -3,20 +3,13 @@ Next task ID: T-055
 
 
 ## Summary
-Open tasks: 1 (In Progress: 0, Next Today: 1, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 53
+Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 54
 
 
 ## In Progress
 
 ## Next - Today
-
-### T-054 [CLI] Include triage-snippets path in postprocess JSON result
-Outcome: When `DAK_TRIAGE_SNIPPETS=1` produces `triage-snippets.md`, include its path in the JSON result as `triage_snippets` so wrappers/CI can link it directly.
-Proof:
-- Command: DAK_TRIAGE_SNIPPETS=1 python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
-- Expect: JSON output includes a `triage_snippets` field pointing at `_analysis/DelphiAIKit/triage-snippets.md`.
-Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ## Next - This Week
 
@@ -25,6 +18,13 @@ Touches: agentskill/delphi-static-analysis/postprocess.py
 ## Blocked
 
 ## Done
+
+### T-054 [CLI] Include triage-snippets path in postprocess JSON result
+Outcome: When `DAK_TRIAGE_SNIPPETS=1` produces `triage-snippets.md`, include its path in the JSON result as `triage_snippets` so wrappers/CI can link it directly.
+Proof:
+- Command: DAK_TRIAGE_SNIPPETS=1 python3 agentskill/delphi-static-analysis/postprocess.py _analysis/DelphiAIKit
+- Expect: JSON output includes a `triage_snippets` field pointing at `_analysis/DelphiAIKit/triage-snippets.md`.
+Touches: agentskill/delphi-static-analysis/postprocess.py
 
 ### T-053 [CLI] Split FixInsight triage into defects vs maintainability
 Outcome: Update `triage.md` (and snippets) rendering so FixInsight findings are grouped by kind: `W` (defects), `C` (maintainability/refactor pressure), `O` (hygiene), to keep the fix workflow focused.
