@@ -715,6 +715,168 @@ def _write_triage(out_root: Path, *, title: str, fi_jsonl_path: Path, pal_jsonl_
     return triage_path
 
 
+def _git_capture(repo_root: Path, args: list[str]) -> Optional[str]:
+    try:
+        p = subprocess.run(
+            ["git"] + args,
+            cwd=str(repo_root),
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except FileNotFoundError:
+        return None
+    if p.returncode != 0:
+        return None
+    return (p.stdout or b"").decode("utf-8", errors="replace").strip() or None
+
+
+def _build_history_context(run_ctx: Any) -> dict[str, Any]:
+    ctx = run_ctx if isinstance(run_ctx, dict) else {}
+    out: dict[str, Any] = {}
+    for k in ("platform", "config", "delphi"):
+        v = ctx.get(k)
+        if v:
+            out[k] = v
+    tools = ctx.get("tools") if isinstance(ctx.get("tools"), dict) else {}
+    tools_out: dict[str, Any] = {}
+    for k in ("pal_version", "pal_compiler_target"):
+        v = tools.get(k)
+        if v:
+            tools_out[k] = v
+    if tools_out:
+        out["tools"] = tools_out
+    return out
+
+
+def _update_history_and_trend(
+    out_root: Path,
+    *,
+    title: str,
+    summary: dict[str, Any],
+    snapshot: dict[str, Any],
+    repo_root: Optional[Path],
+) -> tuple[Path, Path, bool]:
+    history_path = out_root / "history.jsonl"
+    trend_path = out_root / "trend.md"
+
+    summary_ts = str(summary.get("timestamp") or "").strip() or str(snapshot.get("created_at") or "").strip()
+
+    entries: list[dict[str, Any]] = []
+    if history_path.exists():
+        for line in history_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+                if isinstance(obj, dict):
+                    entries.append(obj)
+            except Exception:
+                continue
+
+    appended = False
+    last_ts = str(entries[-1].get("summary_timestamp") or "").strip() if entries else ""
+    if summary_ts and summary_ts == last_ts:
+        # Avoid writing duplicate history when postprocess is re-run on the same outputs.
+        appended = False
+    else:
+        git_info: dict[str, Any] = {}
+        if repo_root is not None:
+            head = _git_capture(repo_root, ["rev-parse", "HEAD"])
+            branch = _git_capture(repo_root, ["rev-parse", "--abbrev-ref", "HEAD"])
+            changed_files, err = _git_changed_files(repo_root)
+            git_info = {
+                "root": str(repo_root),
+                "head": head,
+                "branch": branch,
+                "dirty": bool(changed_files) if err is None else None,
+                "changed_files": len(changed_files) if err is None else None,
+            }
+            git_info = {k: v for k, v in git_info.items() if v is not None and v != ""}
+
+        pal_totals = snapshot.get("pascal_analyzer", {}).get("totals", {}) or {}
+        fi_total = snapshot.get("fixinsight", {}).get("total")
+
+        entry: dict[str, Any] = {
+            "timestamp": _utc_now_iso(),
+            "summary_timestamp": summary_ts,
+            "project": title,
+            "context": _build_history_context(snapshot.get("run_context")),
+            "fixinsight": {"total": fi_total, "counts_by_code": snapshot.get("fixinsight", {}).get("counts_by_code", {})},
+            "pascal_analyzer": {"totals": pal_totals},
+        }
+        if git_info:
+            entry["git"] = git_info
+
+        entries.append(entry)
+        # Keep the history bounded to avoid unbounded growth.
+        if len(entries) > 200:
+            entries = entries[-200:]
+        _write_jsonl(history_path, entries)
+        appended = True
+
+    # Emit a human-readable trend view of recent runs.
+    show_n = _int_env("DAK_TREND_N", 20) or 20
+    recent = entries[-show_n:] if entries else []
+    lines: list[str] = []
+    lines.append(f"# {title} trend")
+    lines.append("")
+    lines.append(f"- Updated: {_utc_now_iso()}")
+    lines.append(f"- Entries: {len(entries)} (showing last {len(recent)})")
+    lines.append("")
+    lines.append("| Summary timestamp | FI total | FI Δ | PAL strong | Δ | PAL warnings | Δ |")
+    lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: |")
+    prev_fi: Optional[int] = None
+    prev_strong: Optional[int] = None
+    prev_warn: Optional[int] = None
+    for e in recent:
+        ts = str(e.get("summary_timestamp") or e.get("timestamp") or "").strip() or "?"
+        fi = e.get("fixinsight", {}) if isinstance(e.get("fixinsight"), dict) else {}
+        pal = e.get("pascal_analyzer", {}) if isinstance(e.get("pascal_analyzer"), dict) else {}
+        fi_total = fi.get("total")
+        try:
+            fi_total_i = int(fi_total) if fi_total is not None else None
+        except Exception:
+            fi_total_i = None
+        totals = pal.get("totals") if isinstance(pal.get("totals"), dict) else {}
+        strong = totals.get("strong_warnings")
+        warn = totals.get("warnings")
+        try:
+            strong_i = int(strong) if strong is not None else None
+        except Exception:
+            strong_i = None
+        try:
+            warn_i = int(warn) if warn is not None else None
+        except Exception:
+            warn_i = None
+
+        def delta(cur: Optional[int], prev: Optional[int]) -> str:
+            if cur is None or prev is None:
+                return ""
+            d = cur - prev
+            return f"{d:+d}" if d else "0"
+
+        row = [
+            ts,
+            str(fi_total_i) if fi_total_i is not None else "?",
+            delta(fi_total_i, prev_fi),
+            str(strong_i) if strong_i is not None else "?",
+            delta(strong_i, prev_strong),
+            str(warn_i) if warn_i is not None else "?",
+            delta(warn_i, prev_warn),
+        ]
+        lines.append("| " + " | ".join(row) + " |")
+
+        prev_fi = fi_total_i if fi_total_i is not None else prev_fi
+        prev_strong = strong_i if strong_i is not None else prev_strong
+        prev_warn = warn_i if warn_i is not None else prev_warn
+
+    _write_text(trend_path, "\n".join(lines).rstrip() + "\n")
+
+    return history_path, trend_path, appended
+
+
 def _build_pascal_unit_index(repo_root: Path) -> dict[str, str]:
     idx: dict[str, str] = {}
     for p in repo_root.rglob("*.pas"):
@@ -1270,6 +1432,9 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         _write_text(delta_md_path, _render_delta_md(delta_obj))
         triage_path = _write_triage(out_root, title=title, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
         res = {"baseline": str(baseline_path), "delta": str(delta_md_path), "gate_pass": True, "baseline_created": True, "triage": str(triage_path)}
+        history_path, trend_path, _ = _update_history_and_trend(out_root, title=title, summary=summary, snapshot=current_snapshot, repo_root=repo_root)
+        res["history"] = str(history_path)
+        res["trend"] = str(trend_path)
         if scope == "changed":
             triage_changed_path = _write_triage_changed(out_root, title=title, summary=summary, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
             res["triage_changed"] = str(triage_changed_path)
@@ -1498,6 +1663,9 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         "baseline_updated": bool(update_baseline),
         "triage": str(triage_path),
     }
+    history_path, trend_path, _ = _update_history_and_trend(out_root, title=title, summary=summary, snapshot=current_snapshot, repo_root=repo_root)
+    res["history"] = str(history_path)
+    res["trend"] = str(trend_path)
     if scope == "changed":
         triage_changed_path = _write_triage_changed(out_root, title=title, summary=summary, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
         res["triage_changed"] = str(triage_changed_path)
