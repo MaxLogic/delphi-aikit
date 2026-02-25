@@ -147,6 +147,10 @@ begin
   fOptions.fAnalyzePal := False;
   fOptions.fAnalyzeClean := True;
   fOptions.fAnalyzeWriteSummary := True;
+  fOptions.fBuildJson := False;
+  fOptions.fBuildTarget := 'Build';
+  fOptions.fBuildMaxFindings := 5;
+  fOptions.fBuildTimeoutSec := 0;
 end;
 
 function TOptionParser.TryParseOutKind(const aText: string; out aKind: TOutputKind): Boolean;
@@ -737,6 +741,7 @@ end;
 function TOptionParser.TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
 var
+  lRebuild: Boolean;
   lValue: string;
 begin
   if SameText(aSwitch, 'show-warnings') then
@@ -772,6 +777,85 @@ begin
       fError := Format(SInvalidBoolValue, ['--ai', lValue]);
       Exit(False);
     end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'json') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--json') then
+      Exit(False);
+    if not TryParseBool(lValue, fOptions.fBuildJson) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--json', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'target') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--target') then
+      Exit(False);
+    if SameText(lValue, 'build') then
+      fOptions.fBuildTarget := 'Build'
+    else if SameText(lValue, 'rebuild') then
+      fOptions.fBuildTarget := 'Rebuild'
+    else
+    begin
+      fError := Format(SInvalidBuildTarget, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'rebuild') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--rebuild') then
+      Exit(False);
+    if not TryParseBool(lValue, lRebuild) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--rebuild', lValue]);
+      Exit(False);
+    end;
+    if lRebuild then
+      fOptions.fBuildTarget := 'Rebuild'
+    else
+      fOptions.fBuildTarget := 'Build';
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'max-findings') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--max-findings') then
+      Exit(False);
+    fOptions.fBuildMaxFindings := StrToIntDef(lValue, -1);
+    if fOptions.fBuildMaxFindings < 1 then
+    begin
+      fError := Format(SInvalidMaxFindings, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'build-timeout-sec') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--build-timeout-sec') then
+      Exit(False);
+    fOptions.fBuildTimeoutSec := StrToIntDef(lValue, -1);
+    if fOptions.fBuildTimeoutSec < 0 then
+    begin
+      fError := Format(SInvalidBuildTimeout, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'test-output-dir') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--test-output-dir') then
+      Exit(False);
+    fOptions.fBuildTestOutputDir := lValue;
+    fOptions.fHasBuildTestOutputDir := True;
     Exit(True);
   end;
 
