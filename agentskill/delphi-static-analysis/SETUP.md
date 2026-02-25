@@ -10,7 +10,7 @@ binary inside the skill; we build it in this repo and point the skill to it.
 - Python 3 (for `analyze.py` / `analyze-unit.py`)
 - Built resolver binary: `bin\DelphiAIKit.exe`
 - FixInsightCL.exe (only if we run FixInsight)
-- PALCMD.EXE / PALCMD32.EXE (only if we run Pascal Analyzer)
+- PALCMD.EXE / PALCMD32.EXE (required by default; set `DAK_PASCAL_ANALYZER=false` to opt out)
 
 ## Resolver discovery
 
@@ -83,6 +83,7 @@ Unit runs write to:
 - `DAK_EXCLUDE_PATH_MASKS`, `DAK_IGNORE_WARNING_IDS`
 - `DAK_FI_FORMATS` (default: `txt`; values: `txt`, `csv`, `xml`, `all`)
 - `DAK_OUT`, `DAK_FIXINSIGHT`, `DAK_PASCAL_ANALYZER` (or legacy `DAK_PAL`), `DAK_CLEAN`, `DAK_WRITE_SUMMARY`
+  - default wrapper behavior: project runs use `DAK_FIXINSIGHT=true` and `DAK_PASCAL_ANALYZER=true`
 - `FI_SETTINGS` / `FIXINSIGHT_SETTINGS`
 - `PA_PATH`, `PA_ARGS`
 
