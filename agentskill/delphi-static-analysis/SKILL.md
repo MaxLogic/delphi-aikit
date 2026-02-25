@@ -40,6 +40,7 @@ Windows:
 
 Recommended baseline:
 - `DAK_EXE`: absolute path to `DelphiAIKit.exe`.
+- If `DAK_EXE` is unset, wrappers fall back to Windows `PATH` (`where DelphiAIKit.exe`), then repo-local `bin/DelphiAIKit.exe`.
 
 Analyzer toggles:
 - `DAK_PASCAL_ANALYZER`: default `true` (project and unit wrappers). Set `false` only when PAL must be skipped.
@@ -87,6 +88,21 @@ Primary artifacts:
    - Windows: `build-delphi.bat <project.dproj> -config Debug -platform Win32 -ver 23 -ai`
 6. Re-run analysis and confirm no regression in `delta.md` / gate output.
 
+## Report-Driven Fix Loop
+
+1. Start with `_analysis/<project>/summary.md` and `_analysis/<project>/triage.md`.
+2. If triage is too broad, re-run with path/rule filters:
+   - `DAK_EXCLUDE_PATH_MASKS="*\\3rdParty\\*;*\\lib\\*"`
+   - `DAK_IGNORE_WARNING_IDS="W502;O801"`
+3. If triage lacks detail, open:
+   - `fixinsight/fi-findings.md`
+   - `pascal-analyzer/pal-findings.md`
+4. For PAL prioritization, fix in this order:
+   - strong warnings
+   - exception/warning findings
+   - optimization findings
+5. Use `delta.md` to confirm net reduction and no regression after each batch.
+
 ## Safe Fix Rules
 
 Allowed without extra design review:
@@ -102,7 +118,7 @@ Require explicit review before change:
 ## Troubleshooting
 
 - PAL not found: set `PA_PATH` or configure `[PascalAnalyzer].Path` in `dak.ini`.
-- FixInsight not found: configure `[FixInsight].Path` in `dak.ini` or install/discoverable path.
+- FixInsight not found: configure `[FixInsightCL].Path` in `dak.ini` or install/discoverable path.
 - WSL path issues: pass Linux paths to shell scripts; wrappers convert with `wslpath`.
 - `cmd.exe` quoting issues: prefer wrapper scripts over manual `cmd.exe` command construction.
 
