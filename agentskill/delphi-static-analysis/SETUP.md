@@ -35,11 +35,11 @@ export DAK_EXE=/mnt/c/tools/DelphiAIKit.exe
 
 ## Resolver configuration
 
-`DelphiAIKit.exe` reads `bin\settings.ini` by default when it needs
+`DelphiAIKit.exe` reads `bin\dak.ini` by default when it needs
 configuration (FixInsightCL path, report filtering, Pascal Analyzer path, etc.).
 We should keep that file next to the resolver binary. The skill does not pass
 `--fi-settings` automatically, because that flag is a FixInsightCL setting file
-passthrough and is not the same as our `settings.ini`.
+passthrough and is not the same as our `dak.ini`.
 
 If we need a FixInsightCL settings file, set one explicitly via:
 
@@ -51,8 +51,8 @@ set FI_SETTINGS=C:\path\FixInsight.settings
 
 ## Tool discovery behavior
 
-- FixInsightCL: resolved by DelphiAIKit (settings.ini, PATH, registry)
-- Pascal Analyzer: resolved by DelphiAIKit (settings.ini, known install
+- FixInsightCL: resolved by DelphiAIKit (dak.ini, PATH, registry)
+- Pascal Analyzer: resolved by DelphiAIKit (dak.ini, known install
   locations, and `--pa-path` override)
 
 ## Where outputs go
