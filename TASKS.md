@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-062
+Next task ID: T-069
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 61
+Done tasks: 68
 
 ## In Progress
 
@@ -16,6 +16,62 @@ Done tasks: 61
 ## Blocked
 
 ## Done
+
+### T-062 [CLI] Build: Add bounded findings output (`--max-findings`)
+Outcome: Add a build option to cap how many findings are printed per category (errors/warnings/hints), defaulting to `5`, while preserving current behavior where warnings and hints remain hidden unless explicitly requested.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\tests\\DelphiAIKit.Tests.dproj" --delphi 23.0 --platform Win32 --config Debug --ai
+- Expect: Build output does not print warning/hint lines by default; success/failure summary is still shown.
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\tests\\DelphiAIKit.Tests.dproj" --delphi 23.0 --platform Win32 --config Debug --show-warnings --show-hints --max-findings 5 --ai
+- Expect: At most 5 warning lines and at most 5 hint lines are printed.
+Touches: src/dak.cli.pas, src/dak.messages.pas, src/dak.types.pas, build-delphi.bat, README.md
+
+### T-063 [CLI] Build: Add `--json` output mode
+Outcome: Add machine-readable JSON output for `DelphiAIKit.exe build` with status, exit code, timing, counts, and bounded findings so CI and AI tooling can consume build results deterministically.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\projects\\DelphiAIKit.dproj" --delphi 23.0 --platform Win32 --config Debug --json
+- Expect: Stdout is valid JSON containing at least `status`, `exit_code`, `errors`, `warnings`, `hints`, and `time_ms`.
+Touches: projects/DelphiAIKit.dpr, src/dak.cli.pas, src/dak.messages.pas, src/dak.types.pas, build-delphi.bat, README.md
+
+### T-064 [CLI] Build: Add configurable build timeout
+Outcome: Add a build timeout option so hung MSBuild processes are terminated and reported with a clear timeout failure message and non-zero exit code.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --help
+- Expect: Help includes timeout option and default value.
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\projects\\DelphiAIKit.dproj" --delphi 23.0 --platform Win32 --config Debug --build-timeout-sec 1
+- Expect: If build exceeds timeout, process is terminated and build exits non-zero with timeout reason.
+Touches: projects/DelphiAIKit.dpr, src/dak.cli.pas, src/dak.messages.pas, src/dak.types.pas, build-delphi.bat, README.md
+Notes: Deterministic timeout behavior additionally verified via scripts/build-delphi-run-msbuild.ps1 (TimeoutSec=1, exit 124).
+
+### T-065 [CLI] Build: Expose MSBuild target selection (`Build|Rebuild`)
+Outcome: Add an explicit target option so we can choose `/t:Build` (incremental) or `/t:Rebuild` (clean + full compile) without editing scripts.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --help
+- Expect: Help documents target option with accepted values `Build` and `Rebuild`.
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\build-delphi.bat" "F:\\projects\\MaxLogic\\DelphiConfigResolver\\projects\\DelphiAIKit.dproj" -config Debug -platform Win32 -ver 23 -target Rebuild
+- Expect: MSBuild invocation uses `/t:Rebuild`.
+Touches: src/dak.cli.pas, src/dak.messages.pas, src/dak.types.pas, build-delphi.bat, README.md
+
+### T-066 [CLI] Build: Add optional isolated output directory mode
+Outcome: Add an option to compile into an isolated output directory (test/scratch mode) so we can validate compilation without overwriting normal build artifacts.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\build-delphi.bat" "F:\\projects\\MaxLogic\\DelphiConfigResolver\\projects\\DelphiAIKit.dproj" -config Debug -platform Win32 -ver 23 -test-output-dir "F:\\temp\\dak-build-scratch"
+- Expect: Build outputs are written under `F:\\temp\\dak-build-scratch` and normal `bin` output remains unchanged.
+Touches: build-delphi.bat, src/dak.cli.pas, src/dak.messages.pas, src/dak.types.pas, README.md
+
+### T-067 [CLI] Build: Detect stale/locked output executable
+Outcome: Detect when compilation reports success but output binary timestamp did not advance, and report this as an explicit `output_locked` style failure/warning to reduce false positives.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\bin\\DelphiAIKit.exe" build --project "F:\\projects\\MaxLogic\\DelphiConfigResolver\\projects\\DelphiAIKit.dproj" --delphi 23.0 --platform Win32 --config Debug --json
+- Expect: JSON includes output path metadata and, when stale output is detected, a dedicated stale/locked indicator.
+Touches: projects/DelphiAIKit.dpr, build-delphi.bat, src/dak.cli.pas, src/dak.messages.pas, README.md
+
+### T-068 [CLI] Build: Inject missing `environment.proj` variables into MSBuild
+Outcome: When command-line MSBuild lacks IDE-only variables from `environment.proj`, inject missing values as `/p:` properties to improve parity with IDE builds.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "F:\\projects\\MaxLogic\\DelphiConfigResolver\\build-delphi.bat" "F:\\projects\\MaxLogic\\DelphiConfigResolver\\projects\\DelphiAIKit.dproj" -config Debug -platform Win32 -ver 23 -keep-logs
+- Expect: Build succeeds in environments where required custom variables are defined only in `environment.proj`.
+Touches: build-delphi.bat, src/dak.rsvars.pas, src/dak.project.pas, README.md
 
 ### T-061 [CLI] Build: Token-Saving “AI Mode” Output
 Outcome: Add an “AI mode” for `DelphiAIKit.exe build` that prints only what matters to review a build: error summary first, then (optional) a bounded list of warning/hint lines, stripping compiler banners and other noise by default.
