@@ -23,6 +23,12 @@ type
     fBuildShowWarnings: Boolean;
     fBuildShowHints: Boolean;
     fBuildAi: Boolean;
+    fBuildJson: Boolean;
+    fBuildTarget: string;
+    fBuildMaxFindings: Integer;
+    fBuildTimeoutSec: Integer;
+    fBuildTestOutputDir: string;
+    fHasBuildTestOutputDir: Boolean;
     fBuildIgnoreWarnings: string;
     fHasBuildIgnoreWarnings: Boolean;
     fBuildIgnoreHints: string;
