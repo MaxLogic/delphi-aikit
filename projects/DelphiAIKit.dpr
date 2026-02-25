@@ -158,6 +158,16 @@ begin
   lCmdLine := QuoteCmdArg(lCmdExe) + ' /C "call ' + QuoteCmdArg(lBatPath) + ' ' +
     QuoteCmdArg(lProjectPath) + ' -config ' + aOptions.fConfig + ' -platform ' + aOptions.fPlatform +
     ' -ver ' + lDelphiVer;
+  if aOptions.fBuildTarget <> '' then
+    lCmdLine := lCmdLine + ' -target ' + aOptions.fBuildTarget;
+  if aOptions.fBuildJson then
+    lCmdLine := lCmdLine + ' -json';
+  if aOptions.fBuildMaxFindings > 0 then
+    lCmdLine := lCmdLine + ' -max-findings ' + IntToStr(aOptions.fBuildMaxFindings);
+  if aOptions.fBuildTimeoutSec > 0 then
+    lCmdLine := lCmdLine + ' -build-timeout-sec ' + IntToStr(aOptions.fBuildTimeoutSec);
+  if aOptions.fHasBuildTestOutputDir then
+    lCmdLine := lCmdLine + ' -test-output-dir ' + QuoteCmdArg(aOptions.fBuildTestOutputDir);
   if aOptions.fBuildShowWarnings then
     lCmdLine := lCmdLine + ' -show-warnings';
   if aOptions.fBuildShowHints then

@@ -34,13 +34,18 @@ resourcestring
     '[--pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"]';
   SUsageBuild =
     'DelphiAIKit.exe build --project "<path>" --delphi <23.0> ' +
-    '[--platform <Win32|Win64>] [--config <Debug|Release>] [--ai] [--show-warnings] [--show-hints] ' +
+    '[--platform <Win32|Win64>] [--config <Debug|Release>] [--target <Build|Rebuild>] [--rebuild [true|false]] ' +
+    '[--json [true|false]] [--max-findings <N>] [--build-timeout-sec <N default 0>] [--test-output-dir "<path>"] ' +
+    '[--ai] [--show-warnings] [--show-hints] ' +
     '[--ignore-warnings "<list>"] [--ignore-hints "<list>"] [--exclude-path-masks "<list>"]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
   SInvalidOutKind = 'Invalid --format value: %s';
   SInvalidBoolValue = 'Invalid value for %s: %s';
+  SInvalidBuildTarget = 'Invalid --target value: %s (expected Build or Rebuild).';
+  SInvalidMaxFindings = 'Invalid --max-findings value: %s (expected integer >= 1).';
+  SInvalidBuildTimeout = 'Invalid --build-timeout-sec value: %s (expected integer >= 0).';
   SInvalidFiFormats = 'Invalid --fi-formats value: %s';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
