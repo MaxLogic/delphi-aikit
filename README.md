@@ -32,6 +32,12 @@ Build from Windows:
 build-delphi.bat projects\DelphiAIKit.dproj -config Debug -platform Win32 -ver 23
 ```
 
+Use `-target Rebuild` (or `-rebuild`) when we need a full clean rebuild:
+
+```
+build-delphi.bat projects\DelphiAIKit.dproj -config Debug -platform Win32 -ver 23 -target Rebuild
+```
+
 Build from WSL (calls Windows `cmd.exe`):
 
 ```
@@ -45,6 +51,13 @@ Or via the CLI:
 ```
 bin\DelphiAIKit.exe build --project "projects\DelphiAIKit.dproj" --delphi 23.0 --platform Win32 --config Debug
 ```
+
+`build` defaults to incremental `Build`; use `--target Rebuild` (or `--rebuild true`) for a full rebuild.
+Additional build flags:
+- `--json` emits machine-readable build results.
+- `--max-findings N` caps printed findings per category (default `5`).
+- `--build-timeout-sec N` terminates hung builds after `N` seconds (`0` disables timeout).
+- `--test-output-dir "<path>"` writes build artifacts to an isolated output directory.
 
 ## Quick start
 
@@ -168,9 +181,15 @@ Path=
 Output=
 ; extra PALCMD args (passed verbatim)
 Args=
+
+[MadExcept]
+; path to madExceptPatch.exe (or its folder)
+Path=
 ```
 
 `Path` is optional and can point to FixInsightCL.exe (or its folder). Relative paths are resolved against the executable folder.
+
+`[MadExcept].Path` is optional and can point to `madExceptPatch.exe` (or its folder). If empty, `build-delphi.bat` tries `PATH` and common madExcept install folders.
 
 ## Report filtering (post-processing)
 
@@ -226,6 +245,7 @@ bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 -
 - If the IDE library path is not in the registry, we fall back to `EnvOptions.proj` from `BDSUSERDIR`.
   If `BDSUSERDIR` is missing, we derive it from `%APPDATA%\Embarcadero\BDS\<version>` and then `%USERPROFILE%\Documents\Embarcadero\Studio\<version>`.
 - We resolve `FixInsightCL.exe` from `dak.ini` (`Path`), then `PATH`, then FixInsight registry keys (HKCU/HKLM, 32/64-bit).
+- `build-delphi.bat` runs `madExceptPatch.exe` only when a sibling `.mes` exists, the `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected build config/platform.
 - Sample inputs live in `tests\fixtures\` so we can quickly try the resolver.
 - `scripts\fixinsight-selftest\fixinsight-run.bat` runs FixInsight against this repo and can generate raw reports under `scripts\fixinsight-selftest\Reports\`.
 - `scripts\pascal-analyzer-selftest\pascal-analyzer-run.bat` runs Pascal Analyzer against this repo and writes reports under `scripts\pascal-analyzer-selftest\Reports\`.
