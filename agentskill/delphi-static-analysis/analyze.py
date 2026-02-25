@@ -219,7 +219,7 @@ def main(argv: list[str]) -> int:
     pa_path = os.environ.get("PA_PATH", "").strip()
     pa_args = os.environ.get("PA_ARGS", "").strip()
     fixinsight_flag = os.environ.get("DAK_FIXINSIGHT", "").strip()
-    pal_flag = _get_env("DAK_PASCAL_ANALYZER", os.environ.get("DAK_PAL", "").strip())
+    pal_flag = _get_env("DAK_PASCAL_ANALYZER", os.environ.get("DAK_PAL", "").strip() or "true")
     clean_flag = os.environ.get("DAK_CLEAN", "").strip()
     summary_flag = os.environ.get("DAK_WRITE_SUMMARY", "").strip()
 
