@@ -11,6 +11,8 @@ All notable user-visible changes to this project will be documented in this file
 - Added `--envoptions` to override the `EnvOptions.proj` path when the default is not available. (T-001)
 - Added `analyze` with `--project`/`--unit` to run FixInsight/PAL with stable `_analysis` output and summaries. (T-027, T-028)
 - Added build output controls: `--show-warnings`, `--show-hints`, `--ignore-warnings`, `--ignore-hints`, `--ai`. (T-058, T-060, T-061)
+- Added build options: `--target/--rebuild`, `--json`, `--max-findings`, `--build-timeout-sec`, and `--test-output-dir`. (T-062, T-063, T-064, T-065, T-066)
+- Added madExcept integration to `build-delphi.bat` with optional `dak.ini` key `[MadExcept].Path` and fallback discovery from common install locations.
 - Added FixInsightCL execution via `analyze --fixinsight true` (CreateProcess). (T-009)
 - Added `--log-file` (alias `--logfile`) to capture resolver diagnostics in a file. (T-010)
 - Added `--log-tee` to mirror resolver diagnostics to output when using `--log-file`. (T-011)
@@ -31,6 +33,9 @@ All notable user-visible changes to this project will be documented in this file
 - Updated `fixinsight-run.bat` to generate sample FixInsight reports (txt/xml/csv) under `docs\sample-fix-insight-self-reports\`. (T-017)
 - Static-analysis skill scripts now call DAK analyze subcommands directly. (T-029)
 - Normalized `build` output paths to be repo-relative (VCS root when detected) for stable, machine-independent logs. (T-059)
+- JSON build output now includes output file metadata and stale-output indicators (`output_stale`, `output_message`) plus bounded findings arrays. (T-067)
+- `build-delphi.bat` now injects missing `environment.proj` variables into MSBuild as `/p:` properties when they are not already present in the process environment. (T-068)
+- `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
 - Fixed FixInsightCL.exe discovery across HKCU/HKLM 32/64-bit registry views. (T-005)
