@@ -94,6 +94,12 @@ begin
         lStart := fPos;
         while (fPos <= Length(fText)) and (fText[fPos] <> '''') do
           Inc(fPos);
+        if fPos > Length(fText) then
+        begin
+          fToken.fKind := TTokenKind.tkUnknown;
+          fToken.fText := Copy(fText, lStart - 1, MaxInt);
+          Exit;
+        end;
         fToken.fKind := TTokenKind.tkText;
         fToken.fText := Copy(fText, lStart, fPos - lStart);
         if fPos <= Length(fText) then
