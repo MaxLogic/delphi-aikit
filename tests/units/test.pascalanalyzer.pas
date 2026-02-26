@@ -19,6 +19,8 @@ type
     procedure SelectsSupportedCompilerFlag;
     [Test]
     procedure RunPascalAnalyzer;
+    [Test]
+    procedure InvalidPalMapJsonRootDoesNotRaise;
   end;
 
 implementation
@@ -168,6 +170,54 @@ begin
 
   lFiles := TDirectory.GetFiles(lOutDir, '*.xml', TSearchOption.soAllDirectories);
   Assert.IsTrue(Length(lFiles) > 0, 'No XML report produced under: ' + lOutDir);
+end;
+
+procedure TPascalAnalyzerTests.InvalidPalMapJsonRootDoesNotRaise;
+var
+  lMapPath: string;
+  lBackupPath: string;
+  lHadOriginal: Boolean;
+  lParams: TFixInsightParams;
+  lPa: TPascalAnalyzerDefaults;
+  lExePath: string;
+  lCmdLine: string;
+  lError: string;
+  lCmdExe: string;
+  lSuccess: Boolean;
+begin
+  lMapPath := TPath.Combine(ExtractFilePath(ParamStr(0)), 'palcmd-map.json');
+  lBackupPath := lMapPath + '.bak';
+  lHadOriginal := FileExists(lMapPath);
+  if lHadOriginal then
+    TFile.Copy(lMapPath, lBackupPath, True);
+
+  try
+    TFile.WriteAllText(lMapPath, '[]', TEncoding.UTF8);
+
+    lParams := Default(TFixInsightParams);
+    lParams.fProjectDpr := TPath.Combine(RepoRoot, 'projects\\DelphiAIKit.dpr');
+    lParams.fDelphiVersion := '23.0';
+    lParams.fPlatform := 'Win32';
+    lParams.fConfig := 'Release';
+
+    lPa := Default(TPascalAnalyzerDefaults);
+    lCmdExe := GetEnvironmentVariable('ComSpec');
+    if lCmdExe = '' then
+      lCmdExe := 'C:\Windows\System32\cmd.exe';
+    lPa.fPath := lCmdExe;
+
+    lSuccess := BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError);
+    Assert.IsFalse(lSuccess, 'Expected BuildPalCmdCommandLine to fail for invalid map root.');
+    Assert.IsTrue(lError <> '', 'Expected error details for invalid map root.');
+  finally
+    if lHadOriginal then
+      TFile.Copy(lBackupPath, lMapPath, True)
+    else if FileExists(lMapPath) then
+      TFile.Delete(lMapPath);
+
+    if FileExists(lBackupPath) then
+      TFile.Delete(lBackupPath);
+  end;
 end;
 
 initialization
