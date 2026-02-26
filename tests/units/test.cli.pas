@@ -29,6 +29,8 @@ type
     procedure AnalyzeUnitCommandRejectsUnsupportedLinuxAbsolutePath;
     [Test]
     procedure AnalyzeProjectCommandRejectsUnsupportedProjectExtension;
+    [Test]
+    procedure AnalyzeUnitCommandRejectsProjectAndUnitConflict;
   end;
 
 implementation
@@ -181,6 +183,18 @@ begin
     lLogText := TFile.ReadAllText(lRunLog);
   Assert.IsTrue(Pos('Unsupported project input', lLogText) > 0,
     'Expected unsupported project extension error message. See: ' + lRunLog);
+end;
+
+procedure TCliTests.AnalyzeUnitCommandRejectsProjectAndUnitConflict;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('analyze-unit --project C:\repo\Sample.dproj --unit C:\repo\Unit1.pas --delphi 23.0');
+  Assert.IsFalse(TryParseOptions(lOptions, lError),
+    'Expected analyze-unit to reject simultaneous --project and --unit.');
+  Assert.IsTrue(Pos('Use either --project or --unit', lError) > 0,
+    'Expected conflict error message. Actual: ' + lError);
 end;
 
 initialization
