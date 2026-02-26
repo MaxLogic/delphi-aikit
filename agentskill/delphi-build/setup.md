@@ -32,6 +32,14 @@ Canonical build via DAK:
 ```bash
 cd /path/to/target-repo
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --ai
+```
+
+Direct Linux absolute paths are supported only in `/mnt/<drive>/...` form; other `/...` inputs are rejected, so `wslpath -w` remains our canonical safe conversion.
+
+Optional compatibility conversion (older DelphiAIKit builds):
+
+```bash
 PROJECT_WIN="$(wslpath -w -a "$PROJECT_LINUX")"
 "$DAK_EXE" build --project "$PROJECT_WIN" --delphi 23.0 --platform Win32 --config Debug --ai
 ```
@@ -41,9 +49,8 @@ Locked-output-safe rebuild:
 ```bash
 cd /path/to/target-repo
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
-PROJECT_WIN="$(wslpath -w -a "$PROJECT_LINUX")"
 TEST_OUT_WIN="$(wslpath -w -a _build_verify/test-out)"
-"$DAK_EXE" build --project "$PROJECT_WIN" --delphi 23.0 --platform Win32 --config Debug --target Rebuild --test-output-dir "$TEST_OUT_WIN" --ai
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --target Rebuild --test-output-dir "$TEST_OUT_WIN" --ai
 ```
 
 WSL wrapper (optional):

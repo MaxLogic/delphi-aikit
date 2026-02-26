@@ -65,6 +65,11 @@ Wrappers call DAK only:
 - `DelphiAIKit.exe analyze --project ...`
 - `DelphiAIKit.exe analyze --unit ...`
 
+Path note:
+- Direct DAK calls accept Linux-style absolute paths only in `/mnt/<drive>/...` form for `--project` and `--unit` when run from WSL.
+- Other Linux absolute paths (for example `/home/...`) are rejected with a clear error.
+- Wrapper scripts with `wslpath` conversion remain the canonical safe route.
+
 We do not call `FixInsightCL` or `PALCMD` directly in normal workflow.
 
 Default output root:
