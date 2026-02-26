@@ -233,13 +233,56 @@ begin
     Result := TPath.Combine(lValue, 'FixInsightCL.exe');
 end;
 
+function TryNormalizeInputPath(const aPath: string; out aNormalizedPath: string; out aError: string): Boolean;
+var
+  lDrive: Char;
+  lPath: string;
+begin
+  aError := '';
+  lPath := Trim(aPath);
+  aNormalizedPath := lPath;
+  if lPath = '' then
+    Exit(True);
+
+  if lPath[1] <> '/' then
+    Exit(True);
+
+  if SameText(Copy(lPath, 1, 5), '/mnt/') then
+  begin
+    if (Length(lPath) < 6) or (not CharInSet(lPath[6], ['A'..'Z', 'a'..'z'])) or
+      ((Length(lPath) > 6) and (lPath[7] <> '/')) then
+    begin
+      aError := Format(SUnsupportedLinuxPath, [lPath]);
+      Exit(False);
+    end;
+
+    lDrive := UpCase(lPath[6]);
+    if Length(lPath) > 7 then
+      lPath := Copy(lPath, 8, MaxInt)
+    else
+      lPath := '';
+    lPath := lPath.Replace('/', '\', [rfReplaceAll]);
+    if lPath = '' then
+      aNormalizedPath := lDrive + ':\'
+    else
+      aNormalizedPath := lDrive + ':\' + lPath;
+    Exit(True);
+  end;
+
+  aError := Format(SUnsupportedLinuxPath, [lPath]);
+  Result := False;
+end;
+
 function TryResolveDprojPath(const aInputPath: string; out aDprojPath: string; out aError: string): Boolean;
 var
+  lInputPath: string;
   lExt: string;
   lCandidate: string;
 begin
   aError := '';
-  aDprojPath := TPath.GetFullPath(aInputPath);
+  if not TryNormalizeInputPath(aInputPath, lInputPath, aError) then
+    Exit(False);
+  aDprojPath := TPath.GetFullPath(lInputPath);
   lExt := TPath.GetExtension(aDprojPath);
   if SameText(lExt, '.dproj') then
   begin
@@ -1134,8 +1177,18 @@ begin
 end;
 
 function TAnalyzeUnitRunner.TryPrepareUnit: Boolean;
+var
+  lUnitPath: string;
+  lError: string;
 begin
-  fUnitPath := TPath.GetFullPath(fOptions.fUnitPath);
+  if not TryNormalizeInputPath(fOptions.fUnitPath, lUnitPath, lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    fExitCode := 3;
+    Exit(False);
+  end;
+
+  fUnitPath := TPath.GetFullPath(lUnitPath);
   if not FileExists(fUnitPath) then
   begin
     WriteLn(ErrOutput, Format(SFileNotFound, [fUnitPath]));

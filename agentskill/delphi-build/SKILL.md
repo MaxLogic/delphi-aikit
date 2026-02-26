@@ -33,7 +33,13 @@ fi
 
 ## WSL path conversion (canonical)
 
-`DelphiAIKit.exe build --project` should receive a Windows path when called from WSL.
+`DelphiAIKit.exe build --project` accepts both:
+
+- Linux-style absolute paths from WSL only in `/mnt/<drive>/...` form
+- Windows-style absolute paths (`F:\...`)
+
+Other Linux absolute paths (for example `/home/...`) are rejected with a clear error.
+`wslpath` conversion remains our canonical safe route, and also helps compatibility with older DelphiAIKit builds.
 
 ```bash
 PROJECT_LINUX="<path-to-project.dproj>"
@@ -46,25 +52,22 @@ Canonical build:
 
 ```bash
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
-PROJECT_WIN="$(wslpath -w -a "$PROJECT_LINUX")"
-"$DAK_EXE" build --project "$PROJECT_WIN" --delphi 23.0 --platform Win32 --config Debug --ai
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --ai
 ```
 
 Full rebuild:
 
 ```bash
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
-PROJECT_WIN="$(wslpath -w -a "$PROJECT_LINUX")"
-"$DAK_EXE" build --project "$PROJECT_WIN" --delphi 23.0 --platform Win32 --config Debug --target Rebuild --ai
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --target Rebuild --ai
 ```
 
 Locked-output-safe rebuild (for `F2039` / running EXE):
 
 ```bash
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
-PROJECT_WIN="$(wslpath -w -a "$PROJECT_LINUX")"
 TEST_OUT_WIN="$(wslpath -w -a _build_verify/test-out)"
-"$DAK_EXE" build --project "$PROJECT_WIN" --delphi 23.0 --platform Win32 --config Debug --target Rebuild --test-output-dir "$TEST_OUT_WIN" --ai
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --target Rebuild --test-output-dir "$TEST_OUT_WIN" --ai
 ```
 
 WSL wrapper (`build-delphi.sh`) example:
