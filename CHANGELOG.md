@@ -39,6 +39,8 @@ All notable user-visible changes to this project will be documented in this file
 
 ### Fixed
 - Fixed CLI project input validation to reject unsupported `--project` file types early (now only `.dproj`, `.dpr`, `.dpk` are accepted), with a clear error instead of late XML parse failures.
+- Fixed MSBuild project evaluation to bind `TXMLDocument` to the detected OmniXML DOM vendor, so `.dproj` parsing no longer fails on systems where MSXML is unavailable.
+- Fixed MSBuild `Condition` parsing to reject malformed trailing tokens/operators instead of silently accepting invalid expressions.
 - Fixed FixInsightCL.exe discovery across HKCU/HKLM 32/64-bit registry views. (T-005)
 - Fixed missing macro defaults (BDSUSERDIR/BDSCatalogRepository/BDSLIB/DCC_*) to avoid unresolved paths. (T-005)
 - Fixed FixInsightCL discovery for the TMS FixInsight Pro registry key. (T-006)

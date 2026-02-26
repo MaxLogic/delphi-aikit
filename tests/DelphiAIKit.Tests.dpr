@@ -12,6 +12,7 @@ uses
   Test.Cli in 'units\\test.cli.pas',
   Test.Diagnostics in 'units\\test.diagnostics.pas',
   Test.FixInsight in 'units\\test.fixinsight.pas',
+  Test.MsBuild in 'units\\test.msbuild.pas',
   Test.PalFindingNormalize in 'units\\test.palfindingnormalize.pas',
   Test.ReportPostProcess in 'units\\test.reportpostprocess.pas',
   Test.PascalAnalyzer in 'units\\test.pascalanalyzer.pas';
