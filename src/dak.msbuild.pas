@@ -136,7 +136,8 @@ begin
   else
     begin
       lStart := fPos;
-      while (fPos <= Length(fText)) and (fText[fPos] > ' ') and (fText[fPos] <> '(') and (fText[fPos] <> ')') do
+      while (fPos <= Length(fText)) and (fText[fPos] > ' ') and (fText[fPos] <> '(') and
+        (fText[fPos] <> ')') and (fText[fPos] <> '''') do
         Inc(fPos);
       lWord := Copy(fText, lStart, fPos - lStart);
       if SameText(lWord, 'and') then

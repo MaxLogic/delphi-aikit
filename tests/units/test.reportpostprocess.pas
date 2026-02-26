@@ -17,6 +17,8 @@ type
     procedure CsvIgnoreRuleIdsHandlesSemicolonsInMessage;
     [Test]
     procedure CsvIgnoreRuleIdsUsesActualRuleColumnWhenMessageLooksLikeRuleTokens;
+    [Test]
+    procedure CsvIgnoreRuleIdsDoesNotTreatHeaderlessRowAsHeaderWhenMessageIsLine;
   end;
 
 implementation
@@ -69,6 +71,31 @@ begin
 
   lLines := TFile.ReadAllLines(lReportPath, TEncoding.UTF8);
   Assert.AreEqual(1, Length(lLines), 'Expected W502 row to remain when only W501 is ignored.');
+end;
+
+procedure TReportPostProcessTests.CsvIgnoreRuleIdsDoesNotTreatHeaderlessRowAsHeaderWhenMessageIsLine;
+var
+  lRoot: string;
+  lReportPath: string;
+  lLines: TArray<string>;
+  lError: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'report-postprocess-headerless-line-message');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+
+  lReportPath := TPath.Combine(lRoot, 'fixinsight.csv');
+  lLines := [
+    '"C:\repo\src\Unit1.pas",42,1,W501,line'
+  ];
+  TFile.WriteAllLines(lReportPath, lLines, TEncoding.UTF8);
+
+  Assert.IsTrue(TryPostProcessFixInsightReport(lReportPath, TReportFormat.rfCsv, '', 'W501', lError),
+    'CSV post-process failed: ' + lError);
+
+  lLines := TFile.ReadAllLines(lReportPath, TEncoding.UTF8);
+  Assert.AreEqual(0, Length(lLines), 'Expected ignored warning row to be removed from CSV output.');
 end;
 
 initialization
