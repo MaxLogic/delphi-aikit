@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-069
+Next task ID: T-070
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 68
+Done tasks: 69
 
 ## In Progress
 
@@ -16,6 +16,19 @@ Done tasks: 68
 ## Blocked
 
 ## Done
+
+### T-069 [TEST] Fix diagnostics log reopen handle leak
+Outcome: Reopening diagnostics log files now releases previously opened writer/stream/encoding objects before opening the next file, preventing stale file locks and memory leaks.
+Proof:
+- Command: ./tests/DelphiAIKit.Tests.exe -r:Test.Diagnostics.TDiagnosticsTests.ReopenLogFileReleasesPreviousHandle -cm:Quiet
+- Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- Command: ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Expect: Tests Found `6`, Passed `6`, Failed `0`, Leaked `0`.
+- Command: timeout 900 ./tests/run.sh
+- Expect: Exit code `0`.
+- Command: timeout 900 ./build-and-run-tests.sh
+- Expect: Exit code `0`.
+Touches: src/dak.diagnostics.pas, tests/DelphiAIKit.Tests.dpr, tests/units/test.diagnostics.pas
 
 ### T-062 [CLI] Build: Add bounded findings output (`--max-findings`)
 Outcome: Add a build option to cap how many findings are printed per category (errors/warnings/hints), defaulting to `5`, while preserving current behavior where warnings and hints remain hidden unless explicitly requested.
