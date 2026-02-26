@@ -31,6 +31,8 @@ type
     procedure AnalyzeProjectCommandRejectsUnsupportedProjectExtension;
     [Test]
     procedure AnalyzeUnitCommandRejectsProjectAndUnitConflict;
+    [Test]
+    procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
   end;
 
 implementation
@@ -195,6 +197,43 @@ begin
     'Expected analyze-unit to reject simultaneous --project and --unit.');
   Assert.IsTrue(Pos('Use either --project or --unit', lError) > 0,
     'Expected conflict error message. Actual: ' + lError);
+end;
+
+procedure TCliTests.AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
+var
+  lExitCode: Cardinal;
+  lArgs: string;
+  lOutRoot: string;
+  lFixDir: string;
+  lTxtPath: string;
+  lSummaryPath: string;
+  lRunLog: string;
+  lSummaryText: string;
+begin
+  EnsureResolverBuilt;
+
+  lOutRoot := TPath.Combine(TempRoot, 'analyze-stale-summary');
+  lFixDir := TPath.Combine(lOutRoot, 'fixinsight');
+  TDirectory.CreateDirectory(lFixDir);
+  lTxtPath := TPath.Combine(lFixDir, 'fixinsight.txt');
+  TFile.WriteAllLines(lTxtPath, ['W501 stale finding should not be counted'], TEncoding.UTF8);
+
+  lRunLog := TPath.Combine(TempRoot, 'analyze-stale-summary.log');
+  lArgs := 'analyze --project ' + QuoteArg(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dproj')) +
+    ' --platform Win32 --config Debug --delphi 23.0 --fixinsight false --pascal-analyzer false --clean false --out ' +
+    QuoteArg(lOutRoot);
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected analyze run to succeed. See: ' + lRunLog);
+
+  lSummaryPath := TPath.Combine(lOutRoot, 'summary.md');
+  Assert.IsTrue(FileExists(lSummaryPath), 'Expected summary file to be generated: ' + lSummaryPath);
+  lSummaryText := TFile.ReadAllText(lSummaryPath);
+
+  Assert.IsTrue(Pos('- Findings (by code): (TXT not generated)', lSummaryText) > 0,
+    'Expected summary to ignore stale TXT findings when TXT report was not run. Summary: ' + lSummaryPath);
+  Assert.IsFalse(Pos('- Top codes:', lSummaryText) > 0,
+    'Expected summary to skip top code output when TXT report was not run. Summary: ' + lSummaryPath);
 end;
 
 initialization
