@@ -304,9 +304,8 @@ begin
     Exit(False);
   end;
 
-  Result := FileExists(aDprojPath);
-  if not Result then
-    aError := Format(SFileNotFound, [aDprojPath]);
+  aError := Format(SUnsupportedProjectInput, [aDprojPath]);
+  Result := False;
 end;
 
 function TryParseFixInsightRuleId(const aLine: string; out aRuleId: string): Boolean;
