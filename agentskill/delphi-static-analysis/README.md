@@ -8,6 +8,11 @@ stable folder tree, and produces a short summary we can review.
 The scripts are thin wrappers around the DAK CLI subcommand
 `analyze`, using `--project` or `--unit`.
 
+WSL path contract:
+- Direct DAK calls accept Linux absolute paths only in `/mnt/<drive>/...` form.
+- Other Linux absolute paths (for example `/home/...`) are rejected.
+- Wrapper scripts remain the canonical safe route because they normalize paths with `wslpath`.
+
 Good for:
 - One-command analysis runs against a .dproj
 - Consistent report collection and triage

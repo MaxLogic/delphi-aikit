@@ -33,6 +33,11 @@ From WSL:
 export DAK_EXE=/mnt/c/tools/DelphiAIKit.exe
 ```
 
+WSL path note for direct DAK calls:
+- Supported Linux absolute form is `/mnt/<drive>/...`.
+- Other absolute Linux paths (for example `/home/...`) are rejected.
+- Use wrapper scripts (or `wslpath -w`) as the canonical safe conversion path.
+
 ## Resolver configuration
 
 `DelphiAIKit.exe` reads `bin\dak.ini` by default when it needs
