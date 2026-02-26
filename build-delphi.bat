@@ -550,7 +550,17 @@ if defined JSON_MODE (
 )
 
 if defined AI_MODE (
-  echo SUCCESS. Warnings: !WARNCOUNT!, Hints: !HINTCOUNT!
+  if defined SHOW_WARN_ON_SUCCESS (
+    if defined SHOW_HINT_ON_SUCCESS (
+      echo SUCCESS. Warnings: !WARNCOUNT!, Hints: !HINTCOUNT!
+    ) else (
+      echo SUCCESS. Warnings: !WARNCOUNT!
+    )
+  ) else if defined SHOW_HINT_ON_SUCCESS (
+    echo SUCCESS. Hints: !HINTCOUNT!
+  ) else (
+    echo SUCCESS.
+  )
   if "%OUTPUT_STALE%"=="1" (
     echo WARNING. !OUTPUT_MESSAGE!
   )
