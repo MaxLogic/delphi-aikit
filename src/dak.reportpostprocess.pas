@@ -433,6 +433,8 @@ var
     lSampleIndex: Integer;
     lSampleRow: TArray<string>;
     lRuleId: string;
+    lLineNo: Integer;
+    lColNo: Integer;
   begin
     Result := False;
     lSampleIndex := Ord(aHasHeader);
@@ -444,6 +446,13 @@ var
       Exit(False);
     if (aFileIdx < 0) or (aFileIdx > High(lSampleRow)) then
       Exit(False);
+    if not aHasHeader then
+    begin
+      if High(lSampleRow) < 4 then
+        Exit(False);
+      if (not TryStrToInt(Trim(lSampleRow[1]), lLineNo)) or (not TryStrToInt(Trim(lSampleRow[2]), lColNo)) then
+        Exit(False);
+    end;
     if not LooksLikePath(lSampleRow[aFileIdx]) then
       Exit(False);
     Result := TryNormalizeRuleId(lSampleRow[aRuleIdx], lRuleId);

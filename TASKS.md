@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-070
+Next task ID: T-071
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 69
+Done tasks: 70
 
 ## In Progress
 
@@ -16,6 +16,17 @@ Done tasks: 69
 ## Blocked
 
 ## Done
+
+### T-070 [CLI] Fix CSV rule-ignore delimiter misdetection
+Outcome: FixInsight CSV post-processing now validates headerless row layout (including numeric line/column fields) before accepting a delimiter, preventing `--ignore-warning-ids` from matching rule-like tokens inside message text.
+Proof:
+- Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.ReportPostProcess.TReportPostProcessTests.CsvIgnoreRuleIdsUsesActualRuleColumnWhenMessageLooksLikeRuleTokens -cm:Quiet
+- Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Expect: Tests Found `18`, Passed `18`, Failed `0`, Leaked `0`.
+- Command: timeout 900 ./build-and-run-tests.sh
+- Expect: Exit code `0`.
+Touches: src/dak.reportpostprocess.pas, tests/units/test.reportpostprocess.pas, CHANGELOG.md
 
 ### T-069 [TEST] Fix diagnostics log reopen handle leak
 Outcome: Reopening diagnostics log files now releases previously opened writer/stream/encoding objects before opening the next file, preventing stale file locks and memory leaks.
