@@ -92,6 +92,7 @@ type
     function TryParseBool(const aText: string; out aValue: Boolean): Boolean;
     function TrySplitSwitch(const aParam: string; const aPrefixes: TSwitchPrefixes; out aSwitch: string;
       out aValue: string; out aHasValue: Boolean): Boolean;
+    function IsKnownSwitchName(const aSwitch: string): Boolean;
     function IsSwitchParam(const aParam: string): Boolean;
     function TakeValue(const aRequiresValue: Boolean; const aAllowsValue: Boolean; const aInlineValue: string;
       const aHasInlineValue: Boolean; out aOutValue: string; const aArgName: string;
@@ -263,13 +264,49 @@ begin
   Result := aSwitch <> '';
 end;
 
+function TOptionParser.IsKnownSwitchName(const aSwitch: string): Boolean;
+begin
+  Result :=
+    SameText(aSwitch, 'project') or SameText(aSwitch, 'dproj') or
+    SameText(aSwitch, 'platform') or SameText(aSwitch, 'config') or
+    SameText(aSwitch, 'delphi') or SameText(aSwitch, 'rsvars') or
+    SameText(aSwitch, 'envoptions') or SameText(aSwitch, 'log-file') or
+    SameText(aSwitch, 'logfile') or SameText(aSwitch, 'log-tee') or
+    SameText(aSwitch, 'verbose') or SameText(aSwitch, 'help') or
+    SameText(aSwitch, 'h') or SameText(aSwitch, '?') or
+    SameText(aSwitch, 'format') or SameText(aSwitch, 'out-kind') or
+    SameText(aSwitch, 'out-file') or SameText(aSwitch, 'out') or
+    SameText(aSwitch, 'fi-output') or SameText(aSwitch, 'output') or
+    SameText(aSwitch, 'fi-ignore') or SameText(aSwitch, 'ignore') or
+    SameText(aSwitch, 'fi-settings') or SameText(aSwitch, 'settings') or
+    SameText(aSwitch, 'fi-silent') or SameText(aSwitch, 'silent') or
+    SameText(aSwitch, 'fi-xml') or SameText(aSwitch, 'xml') or
+    SameText(aSwitch, 'fi-csv') or SameText(aSwitch, 'csv') or
+    SameText(aSwitch, 'exclude-path-masks') or SameText(aSwitch, 'ignore-warning-ids') or
+    SameText(aSwitch, 'unit') or SameText(aSwitch, 'fi-formats') or
+    SameText(aSwitch, 'fixinsight') or SameText(aSwitch, 'pascal-analyzer') or
+    SameText(aSwitch, 'pal') or SameText(aSwitch, 'clean') or
+    SameText(aSwitch, 'write-summary') or SameText(aSwitch, 'pa-path') or
+    SameText(aSwitch, 'pa-output') or SameText(aSwitch, 'pa-args') or
+    SameText(aSwitch, 'show-warnings') or SameText(aSwitch, 'show-hints') or
+    SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
+    SameText(aSwitch, 'target') or SameText(aSwitch, 'rebuild') or
+    SameText(aSwitch, 'max-findings') or SameText(aSwitch, 'build-timeout-sec') or
+    SameText(aSwitch, 'test-output-dir') or SameText(aSwitch, 'ignore-warnings') or
+    SameText(aSwitch, 'ignore-hints');
+end;
+
 function TOptionParser.IsSwitchParam(const aParam: string): Boolean;
 var
-  lDummySwitch: string;
-  lDummyValue: string;
-  lDummyHasValue: Boolean;
+  lSwitch: string;
+  lValue: string;
+  lHasValue: Boolean;
 begin
-  Result := TrySplitSwitch(aParam, fParams.SwitchPrefixes, lDummySwitch, lDummyValue, lDummyHasValue);
+  Result := TrySplitSwitch(aParam, fParams.SwitchPrefixes, lSwitch, lValue, lHasValue);
+  if (not Result) or (aParam = '') then
+    Exit;
+  if aParam[1] = '/' then
+    Result := IsKnownSwitchName(lSwitch);
 end;
 
 function TOptionParser.TakeValue(const aRequiresValue: Boolean; const aAllowsValue: Boolean; const aInlineValue: string;
