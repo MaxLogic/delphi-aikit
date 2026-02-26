@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-071
+Next task ID: T-072
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 70
+Done tasks: 71
 
 ## In Progress
 
@@ -16,6 +16,23 @@ Done tasks: 70
 ## Blocked
 
 ## Done
+
+### T-071 [CLI] Fix MSBuild boolean token boundaries and CSV headerless detection
+Outcome: MSBuild `Condition` parsing now accepts valid `and/or` operators even when no whitespace surrounds quoted operands, and FixInsight CSV post-processing no longer misclassifies headerless rows as headers when message text equals header-like tokens (for example `line`).
+Proof:
+- RED Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.MsBuild.TMsBuildTests.AcceptsConditionWithoutWhitespaceAroundOr -cm:Quiet
+- RED Expect: Tests Found `1`, Passed `0`, Failed `1` with `Unsupported or invalid Condition`.
+- RED Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.ReportPostProcess.TReportPostProcessTests.CsvIgnoreRuleIdsDoesNotTreatHeaderlessRowAsHeaderWhenMessageIsLine -cm:Quiet
+- RED Expect: Tests Found `1`, Passed `0`, Failed `1` (`Expected [0] but got [1]`).
+- GREEN Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.MsBuild.TMsBuildTests.AcceptsConditionWithoutWhitespaceAroundOr -cm:Quiet
+- GREEN Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- GREEN Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.ReportPostProcess.TReportPostProcessTests.CsvIgnoreRuleIdsDoesNotTreatHeaderlessRowAsHeaderWhenMessageIsLine -cm:Quiet
+- GREEN Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Pre-commit Expect: Tests Found `21`, Passed `21`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 900 ./build-and-run-tests.sh
+- Pre-commit Expect: Exit code `0`.
+Touches: src/dak.msbuild.pas, src/dak.reportpostprocess.pas, tests/units/test.msbuild.pas, tests/units/test.reportpostprocess.pas, CHANGELOG.md
 
 ### T-070 [CLI] Fix CSV rule-ignore delimiter misdetection
 Outcome: FixInsight CSV post-processing now validates headerless row layout (including numeric line/column fields) before accepting a delimiter, preventing `--ignore-warning-ids` from matching rule-like tokens inside message text.

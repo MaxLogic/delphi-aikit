@@ -403,7 +403,14 @@ var
   function LooksLikeHeader(const aFields: TArray<string>): Boolean;
   var
     lField: string;
+    lLineNo: Integer;
+    lColNo: Integer;
+    lRuleId: string;
   begin
+    if (High(aFields) >= 4) and LooksLikePath(Trim(aFields[0])) and TryStrToInt(Trim(aFields[1]), lLineNo) and
+      TryStrToInt(Trim(aFields[2]), lColNo) and TryNormalizeRuleId(Trim(aFields[3]), lRuleId) then
+      Exit(False);
+
     Result := False;
     for lField in aFields do
       if SameText(Trim(lField), 'File') or SameText(Trim(lField), 'Filename') or SameText(Trim(lField), 'Rule') or
