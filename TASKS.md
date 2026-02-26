@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-073
+Next task ID: T-074
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 72
+Done tasks: 73
 
 ## In Progress
 
@@ -16,6 +16,19 @@ Done tasks: 72
 ## Blocked
 
 ## Done
+
+### T-073 [ANALYZE] Ignore stale TXT summary data when TXT report is skipped
+Outcome: `analyze` summaries now report FixInsight findings/top-codes only when TXT output was actually generated in the current run, so stale `fixinsight.txt` files (for example after `--fixinsight false --clean false`) no longer contaminate `summary.md`.
+Proof:
+- RED Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun -cm:Quiet
+- RED Expect: Tests Found `1`, Passed `0`, Failed `1` with `Expected summary to ignore stale TXT findings when TXT report was not run.`
+- GREEN Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun -cm:Quiet
+- GREEN Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 900 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Pre-commit Expect: Tests Found `23`, Passed `23`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 1200 ./build-and-run-tests.sh
+- Pre-commit Expect: Exit code `0`.
+Touches: src/dak.analyze.pas, tests/units/test.cli.pas, CHANGELOG.md
 
 ### T-072 [CLI] Reject conflicting analyze-unit target arguments
 Outcome: `analyze-unit` now rejects simultaneous `--project` and `--unit` inputs with the existing conflict message, so we consistently enforce the “project or unit, never both” contract across all analyze command variants.
