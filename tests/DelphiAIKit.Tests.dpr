@@ -9,6 +9,7 @@ uses
   DUnitX.Loggers.Console,
   Test.Support in 'units\\test.support.pas',
   Test.Build in 'units\\test.build.pas',
+  Test.Cli in 'units\\test.cli.pas',
   Test.Diagnostics in 'units\\test.diagnostics.pas',
   Test.FixInsight in 'units\\test.fixinsight.pas',
   Test.PalFindingNormalize in 'units\\test.palfindingnormalize.pas',
