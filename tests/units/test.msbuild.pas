@@ -24,6 +24,8 @@ type
     procedure RejectsTrailingUnknownTokenInCondition;
     [Test]
     procedure RejectsTrailingInvalidOperatorInCondition;
+    [Test]
+    procedure RejectsUnterminatedQuotedLiteralInCondition;
   end;
 
 implementation
@@ -127,6 +129,11 @@ end;
 procedure TMsBuildTests.RejectsTrailingInvalidOperatorInCondition;
 begin
   AssertConditionRejected('''Debug''==''Debug'' =');
+end;
+
+procedure TMsBuildTests.RejectsUnterminatedQuotedLiteralInCondition;
+begin
+  AssertConditionRejected(#39 + 'Debug' + #39 + '==' + #39 + 'Debug');
 end;
 
 initialization
