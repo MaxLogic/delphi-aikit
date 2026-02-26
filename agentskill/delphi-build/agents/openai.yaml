@@ -1,4 +1,4 @@
 interface:
   display_name: "Delphi Build"
   short_description: "Build Delphi projects from WSL via DelphiAIKit"
-  default_prompt: "Build Delphi projects in this repo from WSL using DelphiAIKit.exe build as canonical interface, use build-delphi.sh for path conversion when needed, and report actionable diagnostics."
+  default_prompt: "Build Delphi projects in this repo from WSL using DelphiAIKit.exe build as canonical interface; pass /mnt/<drive>/... paths directly or use build-delphi.sh/wslpath conversion, and report actionable diagnostics."
