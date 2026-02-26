@@ -27,7 +27,7 @@ type
 implementation
 
 type
-  TTokenKind = (tkText, tkEqual, tkNotEqual, tkAnd, tkOr, tkLParen, tkRParen, tkEof);
+  TTokenKind = (tkText, tkEqual, tkNotEqual, tkAnd, tkOr, tkLParen, tkRParen, tkUnknown, tkEof);
 
   TToken = record
     fKind: TTokenKind;
@@ -108,8 +108,9 @@ begin
           Inc(fPos, 2);
         end else
         begin
-          fToken.fKind := TTokenKind.tkEof;
-          fToken.fText := '';
+          fToken.fKind := TTokenKind.tkUnknown;
+          fToken.fText := lCh;
+          Inc(fPos);
         end;
       end;
     '!':
@@ -121,8 +122,9 @@ begin
           Inc(fPos, 2);
         end else
         begin
-          fToken.fKind := TTokenKind.tkEof;
-          fToken.fText := '';
+          fToken.fKind := TTokenKind.tkUnknown;
+          fToken.fText := lCh;
+          Inc(fPos);
         end;
       end;
   else
@@ -136,7 +138,7 @@ begin
       else if SameText(lWord, 'or') then
         fToken.fKind := TTokenKind.tkOr
       else
-        fToken.fKind := TTokenKind.tkEof;
+        fToken.fKind := TTokenKind.tkUnknown;
       fToken.fText := lWord;
     end;
   end;
@@ -282,6 +284,7 @@ end;
 function TMsBuildEvaluator.EvaluateFile(const aFileName: string; out aError: string): Boolean;
 var
   lDoc: IXMLDocument;
+  lXmlDoc: TXMLDocument;
   lVendor: TDOMVendor;
   lRoot: IXMLNode;
   lGroup: IXMLNode;
@@ -323,7 +326,9 @@ begin
     aError := Format(SXmlVendorMissing, ['OmniXML']);
     Exit(False);
   end;
-  lDoc := TXMLDocument.Create(nil);
+  lXmlDoc := TXMLDocument.Create(nil);
+  lXmlDoc.DOMVendor := lVendor;
+  lDoc := lXmlDoc;
   try
     lDoc.Options := [doNodeAutoIndent];
     lDoc.LoadFromFile(aFileName);
