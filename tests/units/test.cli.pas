@@ -33,6 +33,10 @@ type
     procedure AnalyzeUnitCommandRejectsProjectAndUnitConflict;
     [Test]
     procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
+    [Test]
+    procedure HelpCommandIgnoresSwitchValueTokens;
+    [Test]
+    procedure HelpCommandFindsExplicitCommandAfterSwitchValues;
   end;
 
 implementation
@@ -234,6 +238,32 @@ begin
     'Expected summary to ignore stale TXT findings when TXT report was not run. Summary: ' + lSummaryPath);
   Assert.IsFalse(Pos('- Top codes:', lSummaryText) > 0,
     'Expected summary to skip top code output when TXT report was not run. Summary: ' + lSummaryPath);
+end;
+
+procedure TCliTests.HelpCommandIgnoresSwitchValueTokens;
+var
+  lCommand: TCommandKind;
+  lHasCommand: Boolean;
+  lError: string;
+begin
+  SetParams('--help --project "C:\repo\Sample.dproj"');
+  Assert.IsTrue(TryGetCommand(lCommand, lHasCommand, lError),
+    'Expected help command detection to ignore switch values. Error: ' + lError);
+  Assert.IsFalse(lHasCommand, 'Expected no explicit command when only switches and values are provided.');
+  Assert.AreEqual('', lError, 'Expected empty error for global help command detection.');
+end;
+
+procedure TCliTests.HelpCommandFindsExplicitCommandAfterSwitchValues;
+var
+  lCommand: TCommandKind;
+  lHasCommand: Boolean;
+  lError: string;
+begin
+  SetParams('--help --project "C:\repo\Sample.dproj" analyze');
+  Assert.IsTrue(TryGetCommand(lCommand, lHasCommand, lError),
+    'Expected help command detection to find explicit analyze command. Error: ' + lError);
+  Assert.IsTrue(lHasCommand, 'Expected explicit command detection when analyze token is present.');
+  Assert.AreEqual(TCommandKind.ckAnalyzeProject, lCommand, 'Expected analyze command kind.');
 end;
 
 initialization

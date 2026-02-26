@@ -28,6 +28,22 @@ var
   lList: TStringList;
   lArg: string;
   lIndex: Integer;
+  lHelpRequested: Boolean;
+
+  function TryParseCommandToken(const aArg: string; out aParsedCommand: TCommandKind): Boolean;
+  begin
+    Result := True;
+    if SameText(aArg, 'resolve') then
+      aParsedCommand := TCommandKind.ckResolve
+    else if SameText(aArg, 'analyze') or SameText(aArg, 'analyze-project') then
+      aParsedCommand := TCommandKind.ckAnalyzeProject
+    else if SameText(aArg, 'analyze-unit') then
+      aParsedCommand := TCommandKind.ckAnalyzeUnit
+    else if SameText(aArg, 'build') then
+      aParsedCommand := TCommandKind.ckBuild
+    else
+      Result := False;
+  end;
 begin
   Result := False;
   aError := '';
@@ -35,26 +51,26 @@ begin
   aHasCommand := False;
   lParams := maxCmdLineParams;
   lList := lParams.GetParamList;
+  lHelpRequested := lParams.has(['help', 'h', '?']);
   for lIndex := 0 to lList.Count - 1 do
   begin
     lArg := lList[lIndex];
     if (lArg <> '') and (lArg[1] <> '-') and (lArg[1] <> '/') then
     begin
-      aHasCommand := True;
-      if SameText(lArg, 'resolve') then
-        aCommand := TCommandKind.ckResolve
-      else if SameText(lArg, 'analyze') or SameText(lArg, 'analyze-project') then
-        aCommand := TCommandKind.ckAnalyzeProject
-      else if SameText(lArg, 'analyze-unit') then
-        aCommand := TCommandKind.ckAnalyzeUnit
-      else if SameText(lArg, 'build') then
-        aCommand := TCommandKind.ckBuild
-      else
+      if TryParseCommandToken(lArg, aCommand) then
+      begin
+        aHasCommand := True;
+        Exit(True);
+      end else if lHelpRequested then
+      begin
+        // Help mode may include switch values (for example --project C:\path\file.dproj),
+        // so we ignore positional tokens that are not known command names.
+        Continue;
+      end else
       begin
         aError := Format(SUnknownCommand, [lArg]);
         Exit(False);
       end;
-      Exit(True);
     end;
   end;
   Result := True;

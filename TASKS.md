@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-074
+Next task ID: T-075
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 73
+Done tasks: 74
 
 ## In Progress
 
@@ -16,6 +16,23 @@ Done tasks: 73
 ## Blocked
 
 ## Done
+
+### T-074 [CLI] Ignore switch values while resolving help command context
+Outcome: `TryGetCommand` now skips non-command positional tokens when help mode is active, so value arguments for switches like `--project` no longer trigger false `Unknown command` errors, and explicit commands after those values are still detected.
+Proof:
+- RED Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.HelpCommandIgnoresSwitchValueTokens -cm:Quiet
+- RED Expect: Tests Found `1`, Passed `0`, Failed `1` with `Unknown command: C:\repo\Sample.dproj`.
+- RED Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.HelpCommandFindsExplicitCommandAfterSwitchValues -cm:Quiet
+- RED Expect: Tests Found `1`, Passed `0`, Failed `1` with `Unknown command: C:\repo\Sample.dproj`.
+- GREEN Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.HelpCommandIgnoresSwitchValueTokens -cm:Quiet
+- GREEN Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- GREEN Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.HelpCommandFindsExplicitCommandAfterSwitchValues -cm:Quiet
+- GREEN Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 900 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Pre-commit Expect: Tests Found `25`, Passed `25`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 1800 ./tests/run.sh
+- Pre-commit Expect: Exit code `0`.
+Touches: src/dak.cli.pas, tests/units/test.cli.pas, CHANGELOG.md
 
 ### T-073 [ANALYZE] Ignore stale TXT summary data when TXT report is skipped
 Outcome: `analyze` summaries now report FixInsight findings/top-codes only when TXT output was actually generated in the current run, so stale `fixinsight.txt` files (for example after `--fixinsight false --clean false`) no longer contaminate `summary.md`.
