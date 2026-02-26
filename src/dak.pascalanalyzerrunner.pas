@@ -172,6 +172,7 @@ function TryLoadPalCmdMap(out aMap: TPalCmdMap; out aError: string): Boolean;
 var
   lPath: string;
   lText: string;
+  lJsonValue: TJSONValue;
   lJson: TJSONObject;
   lArr: TJSONArray;
   lItem: TJSONValue;
@@ -192,12 +193,19 @@ begin
     end;
 
     lText := TFile.ReadAllText(lPath, TEncoding.UTF8);
-    lJson := TJSONObject.ParseJSONValue(lText) as TJSONObject;
-    if lJson = nil then
+    lJsonValue := TJSONObject.ParseJSONValue(lText);
+    if lJsonValue = nil then
     begin
       aError := 'PALCMD mapping file is not valid JSON: ' + lPath;
       Exit(False);
     end;
+    if not (lJsonValue is TJSONObject) then
+    begin
+      lJsonValue.Free;
+      aError := 'PALCMD mapping file root must be a JSON object: ' + lPath;
+      Exit(False);
+    end;
+    lJson := TJSONObject(lJsonValue);
     try
       if not TryGetJsonArray(lJson, 'delphiOrder', lArr) then
       begin
