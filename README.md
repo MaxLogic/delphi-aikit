@@ -69,6 +69,9 @@ bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win32 -
 
 `--project` (alias: `--dproj`) accepts `.dproj`, `.dpr`, or `.dpk`. If we pass `.dpr`/`.dpk`, the resolver uses the sibling `.dproj`.
 `--delphi` is required; `23` is normalized to `23.0`. We can pass other Delphi versions here as well.
+When we run from WSL, `--project` and `--unit` accept Linux-style absolute paths only in the `/mnt/<drive>/...` form, and we normalize them internally.
+Other Linux absolute paths (for example `/home/...`) are rejected with a clear error.
+When we need maximum compatibility or explicit conversion, using `wslpath -w` remains the canonical safe route.
 
 If `--platform` or `--config` is omitted, we default to `Win32` and `Release`.
 
@@ -82,6 +85,12 @@ For extra diagnostics during troubleshooting, enable verbose output:
 
 ```
 bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --verbose true
+```
+
+WSL example with Linux-style path:
+
+```
+./bin/DelphiAIKit.exe resolve --project /mnt/f/projects/SomeRepo/_Source/MyProject.dproj --platform Win32 --config Debug --delphi 23.0
 ```
 
 To run FixInsightCL directly, use `analyze` (FixInsight is on by default):
