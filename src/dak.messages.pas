@@ -52,6 +52,7 @@ resourcestring
   SBuildBatMissing = 'build-delphi.bat not found: %s';
   SFileNotFound = 'File not found: %s';
   SUnsupportedLinuxPath = 'Unsupported Linux path format: %s. Use /mnt/<drive>/... or a Windows path.';
+  SUnsupportedProjectInput = 'Unsupported project input: %s. Expected .dproj, .dpr, or .dpk.';
   SAssociatedDprojMissing = 'Associated .dproj not found for: %s';
   SInfoAssociatedDproj = 'Using associated .dproj: %s';
   SRegistryBaseMissing = 'Delphi registry base key not found for version %s.';

@@ -24,7 +24,11 @@ type
     [Test]
     procedure ResolveCommandRejectsUnsupportedLinuxAbsoluteProjectPath;
     [Test]
+    procedure ResolveCommandRejectsUnsupportedProjectExtension;
+    [Test]
     procedure AnalyzeUnitCommandRejectsUnsupportedLinuxAbsolutePath;
+    [Test]
+    procedure AnalyzeProjectCommandRejectsUnsupportedProjectExtension;
   end;
 
 implementation
@@ -115,6 +119,27 @@ begin
     'Expected unsupported Linux path error message. See: ' + lRunLog);
 end;
 
+procedure TCliTests.ResolveCommandRejectsUnsupportedProjectExtension;
+var
+  lExitCode: Cardinal;
+  lArgs: string;
+  lRunLog: string;
+  lLogText: string;
+begin
+  EnsureResolverBuilt;
+  lRunLog := TPath.Combine(TempRoot, 'resolve-project-ext-invalid.log');
+  lArgs := 'resolve --project ' + QuoteArg(TPath.Combine(RepoRoot, 'README.md')) + ' --delphi 23.0';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start resolver process.');
+  Assert.AreEqual(Cardinal(3), lExitCode, 'Expected unsupported project extension to be rejected. See: ' + lRunLog);
+
+  lLogText := '';
+  if FileExists(lRunLog) then
+    lLogText := TFile.ReadAllText(lRunLog);
+  Assert.IsTrue(Pos('Unsupported project input', lLogText) > 0,
+    'Expected unsupported project extension error message. See: ' + lRunLog);
+end;
+
 procedure TCliTests.AnalyzeUnitCommandRejectsUnsupportedLinuxAbsolutePath;
 var
   lExitCode: Cardinal;
@@ -134,6 +159,28 @@ begin
     lLogText := TFile.ReadAllText(lRunLog);
   Assert.IsTrue(Pos('Unsupported Linux path format', lLogText) > 0,
     'Expected unsupported Linux path error message. See: ' + lRunLog);
+end;
+
+procedure TCliTests.AnalyzeProjectCommandRejectsUnsupportedProjectExtension;
+var
+  lExitCode: Cardinal;
+  lArgs: string;
+  lRunLog: string;
+  lLogText: string;
+begin
+  EnsureResolverBuilt;
+  lRunLog := TPath.Combine(TempRoot, 'analyze-project-ext-invalid.log');
+  lArgs := 'analyze --project ' + QuoteArg(TPath.Combine(RepoRoot, 'README.md')) +
+    ' --delphi 23.0 --fixinsight false --pascal-analyzer false';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
+  Assert.AreEqual(Cardinal(3), lExitCode, 'Expected unsupported project extension to be rejected. See: ' + lRunLog);
+
+  lLogText := '';
+  if FileExists(lRunLog) then
+    lLogText := TFile.ReadAllText(lRunLog);
+  Assert.IsTrue(Pos('Unsupported project input', lLogText) > 0,
+    'Expected unsupported project extension error message. See: ' + lRunLog);
 end;
 
 initialization
