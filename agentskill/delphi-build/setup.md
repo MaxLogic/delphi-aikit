@@ -1,13 +1,12 @@
 # Setup
 
-Set stable environment variables so we can call our build entry points without hardcoded paths.
+Set stable environment variables so we can call DelphiAIKit without hardcoded paths.
 
-## Required Variables
+## Required Variable
 
 - `DAK_EXE`: absolute path to `DelphiAIKit.exe`
-- `DAK_REPO_ROOT`: absolute path to repository root
 
-## WSL-Required Variable
+## Optional WSL Convenience Variable
 
 - `DAK_BUILD_SH`: absolute path to `build-delphi.sh`
 
@@ -16,7 +15,6 @@ Set stable environment variables so we can call our build entry points without h
 Add to `~/.bashrc`:
 
 ```bash
-export DAK_REPO_ROOT="/mnt/f/projects/MaxLogic/DelphiAiKit"
 export DAK_EXE="/mnt/f/projects/MaxLogic/DelphiAiKit/bin/DelphiAIKit.exe"
 export DAK_BUILD_SH="/mnt/f/projects/MaxLogic/DelphiAiKit/build-delphi.sh"
 ```
@@ -27,42 +25,57 @@ Reload:
 source ~/.bashrc
 ```
 
-## Usage Examples
+## Usage Examples (WSL)
 
 Canonical build via DAK:
 
 ```bash
-cd "$DAK_REPO_ROOT"
-"$DAK_EXE" build --project "projects/DelphiAIKit.dproj" --delphi 23.0 --platform Win32 --config Debug --ai
+cd /path/to/target-repo
+PROJECT_LINUX="_Source/ActiveAppView.dproj"
+PROJECT_WIN="$(wslpath -w -a "$PROJECT_LINUX")"
+"$DAK_EXE" build --project "$PROJECT_WIN" --delphi 23.0 --platform Win32 --config Debug --ai
 ```
 
-WSL path-conversion wrapper:
+Locked-output-safe rebuild:
 
 ```bash
-cd "$DAK_REPO_ROOT"
-"$DAK_BUILD_SH" projects/DelphiAIKit.dproj -config Debug -platform Win32 -ver 23 -ai
+cd /path/to/target-repo
+PROJECT_LINUX="_Source/ActiveAppView.dproj"
+PROJECT_WIN="$(wslpath -w -a "$PROJECT_LINUX")"
+TEST_OUT_WIN="$(wslpath -w -a _build_verify/test-out)"
+"$DAK_EXE" build --project "$PROJECT_WIN" --delphi 23.0 --platform Win32 --config Debug --target Rebuild --test-output-dir "$TEST_OUT_WIN" --ai
+```
+
+WSL wrapper (optional):
+
+```bash
+cd /path/to/target-repo
+"$DAK_BUILD_SH" _Source/ActiveAppView.dproj -config Debug -platform Win32 -ver 23 -ai
 ```
 
 ## Windows (PowerShell, secondary)
 
-Set user-scoped variables:
+Set user-scoped variable:
 
 ```powershell
-[Environment]::SetEnvironmentVariable("DAK_REPO_ROOT", "F:\projects\MaxLogic\DelphiAiKit", "User")
 [Environment]::SetEnvironmentVariable("DAK_EXE", "F:\projects\MaxLogic\DelphiAiKit\bin\DelphiAIKit.exe", "User")
 ```
 
 Use in session:
 
 ```powershell
-Set-Location $env:DAK_REPO_ROOT
-& $env:DAK_EXE build --project "projects/DelphiAIKit.dproj" --delphi 23.0 --platform Win32 --config Debug --ai
+Set-Location F:\projects\SomeRepo
+$Project = "F:\projects\SomeRepo\_Source\App.dproj"
+& $env:DAK_EXE build --project $Project --delphi 23.0 --platform Win32 --config Debug --ai
 ```
 
 ## Verify Setup
 
 ```bash
 test -x "$DAK_EXE" && echo "DAK_EXE OK"
-test -d "$DAK_REPO_ROOT" && echo "DAK_REPO_ROOT OK"
-if grep -qi microsoft /proc/version 2>/dev/null; then test -x "$DAK_BUILD_SH" && echo "DAK_BUILD_SH OK"; fi
+if grep -qi microsoft /proc/version 2>/dev/null; then
+  if [ -n "${DAK_BUILD_SH:-}" ]; then
+    test -x "$DAK_BUILD_SH" && echo "DAK_BUILD_SH OK"
+  fi
+fi
 ```
