@@ -21,6 +21,8 @@ type
     [Test]
     procedure AcceptsSimpleValidCondition;
     [Test]
+    procedure AcceptsConditionWithoutWhitespaceAroundOr;
+    [Test]
     procedure RejectsTrailingUnknownTokenInCondition;
     [Test]
     procedure RejectsTrailingInvalidOperatorInCondition;
@@ -119,6 +121,12 @@ end;
 procedure TMsBuildTests.AcceptsSimpleValidCondition;
 begin
   AssertConditionAccepted('''Debug''==''Debug''');
+end;
+
+procedure TMsBuildTests.AcceptsConditionWithoutWhitespaceAroundOr;
+begin
+  AssertConditionAccepted(#39 + 'Debug' + #39 + '==' + #39 + 'Debug' + #39 + 'or' +
+    #39 + 'Release' + #39 + '==' + #39 + 'Debug' + #39);
 end;
 
 procedure TMsBuildTests.RejectsTrailingUnknownTokenInCondition;
