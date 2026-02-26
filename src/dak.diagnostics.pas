@@ -217,6 +217,13 @@ var
 begin
   Result := False;
   aError := '';
+  fLogWriter.Free;
+  fLogWriter := nil;
+  fLogStream.Free;
+  fLogStream := nil;
+  fLogEncoding.Free;
+  fLogEncoding := nil;
+
   if aPath = '' then
   begin
     aError := Format(SLogFileOpenFailed, ['<empty>']);
