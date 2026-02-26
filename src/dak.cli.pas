@@ -965,6 +965,11 @@ begin
     end;
   end else if fOptions.fCommand = TCommandKind.ckAnalyzeUnit then
   begin
+    if fOptions.fDprojPath <> '' then
+    begin
+      fError := SAnalyzeUnitConflict;
+      Exit(False);
+    end;
     if fOptions.fUnitPath = '' then
     begin
       fError := Format(SArgMissingValue, ['--unit']);

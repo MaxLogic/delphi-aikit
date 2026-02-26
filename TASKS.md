@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-072
+Next task ID: T-073
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 71
+Done tasks: 72
 
 ## In Progress
 
@@ -16,6 +16,19 @@ Done tasks: 71
 ## Blocked
 
 ## Done
+
+### T-072 [CLI] Reject conflicting analyze-unit target arguments
+Outcome: `analyze-unit` now rejects simultaneous `--project` and `--unit` inputs with the existing conflict message, so we consistently enforce the “project or unit, never both” contract across all analyze command variants.
+Proof:
+- RED Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.AnalyzeUnitCommandRejectsProjectAndUnitConflict -cm:Quiet
+- RED Expect: Tests Found `1`, Passed `0`, Failed `1` with `Expected analyze-unit to reject simultaneous --project and --unit.`
+- GREEN Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.AnalyzeUnitCommandRejectsProjectAndUnitConflict -cm:Quiet
+- GREEN Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 900 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Pre-commit Expect: Tests Found `22`, Passed `22`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 1200 ./build-and-run-tests.sh
+- Pre-commit Expect: Exit code `0`.
+Touches: src/dak.cli.pas, tests/units/test.cli.pas, CHANGELOG.md
 
 ### T-071 [CLI] Fix MSBuild boolean token boundaries and CSV headerless detection
 Outcome: MSBuild `Condition` parsing now accepts valid `and/or` operators even when no whitespace surrounds quoted operands, and FixInsight CSV post-processing no longer misclassifies headerless rows as headers when message text equals header-like tokens (for example `line`).
