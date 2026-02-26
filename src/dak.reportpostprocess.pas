@@ -383,8 +383,11 @@ function TryPostProcessFixInsightCsv(const aReportPath: string; const aExcludeMa
 var
   lLines: TArray<string>;
   lDelim: Char;
+  lAltDelim: Char;
   lIdxRule: Integer;
   lIdxFile: Integer;
+  lAltIdxRule: Integer;
+  lAltIdxFile: Integer;
   lOut: TList<string>;
   i: Integer;
   lRow: TArray<string>;
@@ -393,7 +396,9 @@ var
   lRawRule: string;
   lNormRule: string;
   lHasHeader: Boolean;
+  lAltHasHeader: Boolean;
   lFirstRow: TArray<string>;
+  lAltFirstRow: TArray<string>;
 
   function LooksLikeHeader(const aFields: TArray<string>): Boolean;
   var
@@ -406,20 +411,42 @@ var
         Exit(True);
   end;
 
-  procedure DetectIndexesFromRow(const aFields: TArray<string>);
+  procedure DetectIndexesFromRow(const aFields: TArray<string>; var aRuleIdx: Integer; var aFileIdx: Integer);
   var
     j: Integer;
     lTmp: string;
   begin
-    if (lIdxRule >= 0) and (lIdxFile >= 0) then
+    if (aRuleIdx >= 0) and (aFileIdx >= 0) then
       Exit;
     for j := 0 to High(aFields) do
     begin
-      if (lIdxRule < 0) and TryNormalizeRuleId(aFields[j], lTmp) then
-        lIdxRule := j;
-      if (lIdxFile < 0) and LooksLikePath(aFields[j]) then
-        lIdxFile := j;
+      if (aRuleIdx < 0) and TryNormalizeRuleId(aFields[j], lTmp) then
+        aRuleIdx := j;
+      if (aFileIdx < 0) and LooksLikePath(aFields[j]) then
+        aFileIdx := j;
     end;
+  end;
+
+  function IsUsableLayout(const aDelimiter: Char; const aHasHeader: Boolean; const aRuleIdx: Integer;
+    const aFileIdx: Integer): Boolean;
+  var
+    lSampleIndex: Integer;
+    lSampleRow: TArray<string>;
+    lRuleId: string;
+  begin
+    Result := False;
+    lSampleIndex := Ord(aHasHeader);
+    if (lSampleIndex < 0) or (lSampleIndex > High(lLines)) then
+      Exit(False);
+
+    lSampleRow := ParseCsvRow(lLines[lSampleIndex], aDelimiter);
+    if (aRuleIdx < 0) or (aRuleIdx > High(lSampleRow)) then
+      Exit(False);
+    if (aFileIdx < 0) or (aFileIdx > High(lSampleRow)) then
+      Exit(False);
+    if not LooksLikePath(lSampleRow[aFileIdx]) then
+      Exit(False);
+    Result := TryNormalizeRuleId(lSampleRow[aRuleIdx], lRuleId);
   end;
 begin
   Result := False;
@@ -447,7 +474,38 @@ begin
       // "<file>",<line>,<col>,<rule>,<message>
       lIdxFile := 0;
       lIdxRule := 3;
-      DetectIndexesFromRow(lFirstRow);
+      DetectIndexesFromRow(lFirstRow, lIdxRule, lIdxFile);
+    end;
+
+    if not IsUsableLayout(lDelim, lHasHeader, lIdxRule, lIdxFile) then
+    begin
+      if lDelim = ',' then
+        lAltDelim := ';'
+      else
+        lAltDelim := ',';
+
+      lAltFirstRow := ParseCsvRow(lLines[0], lAltDelim);
+      lAltHasHeader := LooksLikeHeader(lAltFirstRow);
+      lAltIdxRule := -1;
+      lAltIdxFile := -1;
+      if lAltHasHeader then
+      begin
+        lAltIdxRule := FindColumnIndex(lAltFirstRow, ['Rule', 'RuleId', 'RuleID', 'ID', 'Id', 'Code']);
+        lAltIdxFile := FindColumnIndex(lAltFirstRow, ['File', 'FileName', 'Filename', 'Unit', 'Path']);
+      end else
+      begin
+        lAltIdxFile := 0;
+        lAltIdxRule := 3;
+        DetectIndexesFromRow(lAltFirstRow, lAltIdxRule, lAltIdxFile);
+      end;
+
+      if IsUsableLayout(lAltDelim, lAltHasHeader, lAltIdxRule, lAltIdxFile) then
+      begin
+        lDelim := lAltDelim;
+        lHasHeader := lAltHasHeader;
+        lIdxRule := lAltIdxRule;
+        lIdxFile := lAltIdxFile;
+      end;
     end;
 
     lOut := TList<string>.Create;
@@ -474,7 +532,7 @@ begin
         end
         else
         begin
-          DetectIndexesFromRow(lRow);
+          DetectIndexesFromRow(lRow, lIdxRule, lIdxFile);
           if (lFile = '') and (lIdxFile >= 0) and (lIdxFile <= High(lRow)) then
             lFile := lRow[lIdxFile];
           if (lRule = '') and (lIdxRule >= 0) and (lIdxRule <= High(lRow)) then
