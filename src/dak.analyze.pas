@@ -783,12 +783,12 @@ begin
     if lMissing.Count > 0 then
       lLines.AppendLine('- Note: some outputs are missing (' + String.Join(', ', lMissing.ToArray) + ').');
 
-    if FileExists(aFixTxtPath) then
+    if aFixTxtRan and FileExists(aFixTxtPath) then
       lLines.AppendLine('- Findings (by code): ' + aFixCounts.Total.ToString)
     else
       lLines.AppendLine('- Findings (by code): (TXT not generated)');
 
-    if Length(aFixCounts.Top) > 0 then
+    if aFixTxtRan and (Length(aFixCounts.Top) > 0) then
     begin
       lLines.AppendLine('- Top codes:');
       for lPair in aFixCounts.Top do
@@ -1111,7 +1111,9 @@ begin
     PrepareOutputTree;
     RunFixInsightReports;
     RunPascalAnalyzer;
-    CaptureFixInsightSummary(fFixTxtPath, fFixCounts);
+    fFixCounts := Default(TFixInsightCounts);
+    if fFixTxtRan and FileExists(fFixTxtPath) then
+      CaptureFixInsightSummary(fFixTxtPath, fFixCounts);
     WriteSummary;
   finally
     fDiagnostics.WriteToStderr;
