@@ -32,6 +32,9 @@ var
   lSwitch: string;
   lSwitchValue: string;
   lHasSwitchValue: Boolean;
+  lNextSwitch: string;
+  lNextSwitchValue: string;
+  lNextHasSwitchValue: Boolean;
   lSkipNextToken: Boolean;
   lPrefixes: TSwitchPrefixes;
 
@@ -157,7 +160,11 @@ begin
       if not lHasSwitchValue then
       begin
         if SwitchRequiresValue(lSwitch) then
-          lSkipNextToken := True
+        begin
+          if (lIndex + 1 < lList.Count) and
+            (not TrySplitSwitchToken(lList[lIndex + 1], lNextSwitch, lNextSwitchValue, lNextHasSwitchValue)) then
+            lSkipNextToken := True;
+        end
         else if SwitchAllowsBoolValue(lSwitch) and (lIndex + 1 < lList.Count) and IsBoolToken(lList[lIndex + 1]) then
           lSkipNextToken := True;
       end;
