@@ -71,7 +71,7 @@ begin
       Break;
     lDir := lParent;
   end;
-  Result := lDir;
+  Result := '';
 end;
 
 function GetProjectDirChain(const aRepoRoot, aDprojDir: string): TArray<string>;
@@ -136,7 +136,10 @@ begin
       if lDprojDir <> '' then
       begin
         lRepoRoot := FindRepoRoot(lDprojDir);
-        lDirs := GetProjectDirChain(lRepoRoot, lDprojDir);
+        if lRepoRoot <> '' then
+          lDirs := GetProjectDirChain(lRepoRoot, lDprojDir)
+        else
+          lDirs := [lDprojDir];
         for lDir in lDirs do
           AddPath(TPath.Combine(lDir, SSettingsFileName));
       end;
