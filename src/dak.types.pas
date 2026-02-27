@@ -5,7 +5,7 @@ interface
 {$SCOPEDENUMS ON}
 
 type
-  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild);
+  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck);
 
   TOutputKind = (okIni, okXml, okBat);
 
@@ -78,6 +78,8 @@ type
     fAnalyzeClean: Boolean;
     fAnalyzeWriteSummary: Boolean;
     fUnitPath: string;
+    fDfmCheckExePath: string;
+    fHasDfmCheckExePath: Boolean;
   end;
 
   TFixInsightExtraOptions = record

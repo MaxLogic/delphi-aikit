@@ -8,6 +8,7 @@
 - Expand IDE macros and environment variables
 - Merge project search paths with the IDE library path
 - Emit FixInsightCL parameters as `ini`, `xml`, or a runnable `bat`
+- Validate generated `_DfmCheck` projects via `dfm-check` (DFMCheck + DFM stream gate)
 
 ## Good use cases
 
@@ -98,6 +99,23 @@ To run FixInsightCL directly, use `analyze` (FixInsight is on by default):
 ```
 bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0
 ```
+
+To validate DFMs in CI using DFMCheck-generated projects:
+
+```
+bin\DelphiAIKit.exe dfm-check --dproj "C:\path\Project.dproj" --dfmcheck "C:\Tools\DFMCheck\DFMCheck.exe" --config Release --platform Win32
+```
+
+Optional:
+- `--rsvars "C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat"` imports RAD Studio environment variables before `msbuild`.
+- `tools\Validate-Dfm.ps1` is a thin wrapper around the same CLI command.
+
+`dfm-check` stages:
+- run `DFMCheck.exe` on the input `.dproj`
+- inject `tools\inject\DfmStreamAll.pas` and `tools\inject\autoFree.pas` into `<Project>_DfmCheck`
+- patch generated `.dpr` to include `DfmStreamAll` and set `ExitCode := TDfmStreamAll.Run;`
+- build `_DfmCheck.dproj` via `msbuild`
+- run `_DfmCheck.exe` and propagate its exit code (`0` success, non-zero means streaming failures)
 
 To capture resolver diagnostics (warnings, missing paths, macro issues) into a log file:
 
