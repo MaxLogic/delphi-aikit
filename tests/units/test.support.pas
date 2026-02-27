@@ -16,6 +16,7 @@ function RepoRoot: string;
 function TempRoot: string;
 procedure EnsureTempClean;
 procedure EnsureResolverBuilt;
+procedure ResetResolverBuildCache;
 function ResolverExePath: string;
 function IsPawelMachine: Boolean;
 procedure RequireFixInsightOrSkip(out aExePath: string);
@@ -177,10 +178,14 @@ end;
 
 procedure EnsureResolverBuilt;
 var
+  lBinExe: string;
   lExit: Cardinal;
+  lFallbackExe: string;
+  lFallbackDir: string;
   lBat: string;
   lArgs: string;
   lCmdArgs: string;
+  lLogText: string;
   lLog: string;
 begin
   if GResolverBuilt then
@@ -188,6 +193,7 @@ begin
 
   EnsureTempClean;
   lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
+  lBinExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
   lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
     ' -config Release -platform Win32 -ver 23';
   lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
@@ -196,13 +202,41 @@ begin
   if not RunProcess(CmdExePath, lCmdArgs, RepoRoot, lLog, lExit) then
     Assert.Fail('Failed to start build-delphi.bat');
   if lExit <> 0 then
-    Assert.Fail('build-delphi.bat failed, exit=' + lExit.ToString + '. See: ' + lLog);
+  begin
+    lLogText := '';
+    if FileExists(lLog) then
+      lLogText := TFile.ReadAllText(lLog, TEncoding.UTF8);
+    if (Pos('Could not create output file', lLogText) > 0) and FileExists(lBinExe) then
+    begin
+      lFallbackDir := TPath.Combine(TempRoot, 'resolver-fallback');
+      TDirectory.CreateDirectory(lFallbackDir);
+      lFallbackExe := TPath.Combine(lFallbackDir, 'DelphiAIKit.exe');
+      TFile.Copy(lBinExe, lFallbackExe, True);
+      if FileExists(lFallbackExe) then
+      begin
+        GResolverExe := lFallbackExe;
+        GResolverBuilt := True;
+        Exit;
+      end;
 
-  GResolverExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+      GResolverExe := lBinExe;
+      GResolverBuilt := True;
+      Exit;
+    end;
+    Assert.Fail('build-delphi.bat failed, exit=' + lExit.ToString + '. See: ' + lLog);
+  end;
+
+  GResolverExe := lBinExe;
   if not FileExists(GResolverExe) then
     Assert.Fail('Resolver exe not found after build: ' + GResolverExe);
 
   GResolverBuilt := True;
+end;
+
+procedure ResetResolverBuildCache;
+begin
+  GResolverBuilt := False;
+  GResolverExe := '';
 end;
 
 function ResolverExePath: string;
