@@ -43,6 +43,8 @@ type
     [Test]
     procedure HelpCommandRejectsUnknownExplicitToken;
     [Test]
+    procedure HelpCommandRejectsTrailingUnknownTokenAfterExplicitCommand;
+    [Test]
     procedure HelpCommandDoesNotTreatSwitchValueAsExplicitCommand;
     [Test]
     procedure HelpCommandDoesNotConsumeSwitchTokenAsRequiredValue;
@@ -340,6 +342,19 @@ begin
     'Expected unknown explicit token to be rejected even when --help is present.');
   Assert.IsTrue(Pos('Unknown command: foo', lError) > 0,
     'Expected unknown command error message. Actual: ' + lError);
+end;
+
+procedure TCliTests.HelpCommandRejectsTrailingUnknownTokenAfterExplicitCommand;
+var
+  lCommand: TCommandKind;
+  lHasCommand: Boolean;
+  lError: string;
+begin
+  SetParams('--help analyze foo');
+  Assert.IsFalse(TryGetCommand(lCommand, lHasCommand, lError),
+    'Expected trailing unknown token to be rejected in help command mode.');
+  Assert.IsTrue(Pos('Unknown command: foo', lError) > 0,
+    'Expected unknown command error message for trailing token. Actual: ' + lError);
 end;
 
 procedure TCliTests.HelpCommandDoesNotTreatSwitchValueAsExplicitCommand;
