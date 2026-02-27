@@ -434,6 +434,27 @@ var
     end;
   end;
 
+  function LooksLikeEmbeddedHeaderlessRow(const aValue: string; const aDelimiter: Char): Boolean;
+  var
+    lFields: TArray<string>;
+    lLineNo: Integer;
+    lColNo: Integer;
+    lRuleId: string;
+  begin
+    Result := False;
+    if Pos(aDelimiter, aValue) = 0 then
+      Exit(False);
+
+    lFields := ParseCsvRow(aValue, aDelimiter);
+    if High(lFields) < 3 then
+      Exit(False);
+
+    Result :=
+      TryStrToInt(Trim(lFields[1]), lLineNo) and
+      TryStrToInt(Trim(lFields[2]), lColNo) and
+      TryNormalizeRuleId(Trim(lFields[3]), lRuleId);
+  end;
+
   function IsUsableLayout(const aDelimiter: Char; const aHasHeader: Boolean; const aRuleIdx: Integer;
     const aFileIdx: Integer): Boolean;
   var
@@ -442,6 +463,7 @@ var
     lRuleId: string;
     lLineNo: Integer;
     lColNo: Integer;
+    lOtherDelimiter: Char;
   begin
     Result := False;
     lSampleIndex := Ord(aHasHeader);
@@ -458,6 +480,12 @@ var
       if High(lSampleRow) < 4 then
         Exit(False);
       if (not TryStrToInt(Trim(lSampleRow[1]), lLineNo)) or (not TryStrToInt(Trim(lSampleRow[2]), lColNo)) then
+        Exit(False);
+      if aDelimiter = ',' then
+        lOtherDelimiter := ';'
+      else
+        lOtherDelimiter := ',';
+      if LooksLikeEmbeddedHeaderlessRow(lSampleRow[aFileIdx], lOtherDelimiter) then
         Exit(False);
     end;
     if not LooksLikePath(lSampleRow[aFileIdx]) then

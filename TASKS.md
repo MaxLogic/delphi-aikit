@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-075
+Next task ID: T-076
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 74
+Done tasks: 75
 
 ## In Progress
 
@@ -16,6 +16,23 @@ Done tasks: 74
 ## Blocked
 
 ## Done
+
+### T-075 [CLI] Harden help-command value handling and CSV delimiter spoof resistance
+Outcome: Help command detection now skips positional tokens consumed by value-taking switches so command-like values (for example `--project analyze`) are not treated as explicit commands, and FixInsight CSV post-processing now rejects delimiter layouts where file fields embed an alternate headerless row signature (line/column/rule), preventing message-token spoofing from removing non-ignored findings.
+Proof:
+- RED Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.HelpCommandDoesNotTreatSwitchValueAsExplicitCommand -cm:Quiet
+- RED Expect: Tests Found `1`, Passed `0`, Failed `1` with `Expected no explicit command when command-like token is consumed by --project.`
+- RED Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.ReportPostProcess.TReportPostProcessTests.CsvIgnoreRuleIdsDoesNotInferDelimiterFromNumericMessageTokens -cm:Quiet
+- RED Expect: Tests Found `1`, Passed `0`, Failed `1` (`Expected [1] but got [0]`).
+- GREEN Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.HelpCommandDoesNotTreatSwitchValueAsExplicitCommand -cm:Quiet
+- GREEN Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- GREEN Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.ReportPostProcess.TReportPostProcessTests.CsvIgnoreRuleIdsDoesNotInferDelimiterFromNumericMessageTokens -cm:Quiet
+- GREEN Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 900 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Pre-commit Expect: Tests Found `27`, Passed `27`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 1800 ./tests/run.sh
+- Pre-commit Expect: Exit code `0`.
+Touches: src/dak.cli.pas, src/dak.reportpostprocess.pas, tests/units/test.cli.pas, tests/units/test.reportpostprocess.pas, CHANGELOG.md
 
 ### T-074 [CLI] Ignore switch values while resolving help command context
 Outcome: `TryGetCommand` now skips non-command positional tokens when help mode is active, so value arguments for switches like `--project` no longer trigger false `Unknown command` errors, and explicit commands after those values are still detected.

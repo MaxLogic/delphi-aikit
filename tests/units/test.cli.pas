@@ -37,6 +37,8 @@ type
     procedure HelpCommandIgnoresSwitchValueTokens;
     [Test]
     procedure HelpCommandFindsExplicitCommandAfterSwitchValues;
+    [Test]
+    procedure HelpCommandDoesNotTreatSwitchValueAsExplicitCommand;
   end;
 
 implementation
@@ -264,6 +266,19 @@ begin
     'Expected help command detection to find explicit analyze command. Error: ' + lError);
   Assert.IsTrue(lHasCommand, 'Expected explicit command detection when analyze token is present.');
   Assert.AreEqual(TCommandKind.ckAnalyzeProject, lCommand, 'Expected analyze command kind.');
+end;
+
+procedure TCliTests.HelpCommandDoesNotTreatSwitchValueAsExplicitCommand;
+var
+  lCommand: TCommandKind;
+  lHasCommand: Boolean;
+  lError: string;
+begin
+  SetParams('--help --project analyze');
+  Assert.IsTrue(TryGetCommand(lCommand, lHasCommand, lError),
+    'Expected help command detection to ignore switch-consumed value tokens. Error: ' + lError);
+  Assert.IsFalse(lHasCommand, 'Expected no explicit command when command-like token is consumed by --project.');
+  Assert.AreEqual('', lError, 'Expected empty error for help command detection.');
 end;
 
 initialization
