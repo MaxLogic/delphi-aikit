@@ -16,7 +16,6 @@ function RepoRoot: string;
 function TempRoot: string;
 procedure EnsureTempClean;
 procedure EnsureResolverBuilt;
-procedure ResetResolverBuildCache;
 function ResolverExePath: string;
 function IsPawelMachine: Boolean;
 procedure RequireFixInsightOrSkip(out aExePath: string);
@@ -180,13 +179,12 @@ procedure EnsureResolverBuilt;
 var
   lBinExe: string;
   lExit: Cardinal;
-  lFallbackExe: string;
-  lFallbackDir: string;
   lBat: string;
   lArgs: string;
   lCmdArgs: string;
   lLogText: string;
   lLog: string;
+  lTestOutputDir: string;
 begin
   if GResolverBuilt then
     Exit;
@@ -194,8 +192,11 @@ begin
   EnsureTempClean;
   lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
   lBinExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  lTestOutputDir := Trim(GetEnvironmentVariable('DAK_TEST_OUTPUT_DIR'));
   lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
     ' -config Release -platform Win32 -ver 23';
+  if lTestOutputDir <> '' then
+    lArgs := lArgs + ' -test-output-dir ' + QuoteArg(lTestOutputDir);
   lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
   lLog := TPath.Combine(TempRoot, 'build-resolver.log');
 
@@ -206,37 +207,20 @@ begin
     lLogText := '';
     if FileExists(lLog) then
       lLogText := TFile.ReadAllText(lLog, TEncoding.UTF8);
-    if (Pos('Could not create output file', lLogText) > 0) and FileExists(lBinExe) then
-    begin
-      lFallbackDir := TPath.Combine(TempRoot, 'resolver-fallback');
-      TDirectory.CreateDirectory(lFallbackDir);
-      lFallbackExe := TPath.Combine(lFallbackDir, 'DelphiAIKit.exe');
-      TFile.Copy(lBinExe, lFallbackExe, True);
-      if FileExists(lFallbackExe) then
-      begin
-        GResolverExe := lFallbackExe;
-        GResolverBuilt := True;
-        Exit;
-      end;
-
-      GResolverExe := lBinExe;
-      GResolverBuilt := True;
-      Exit;
-    end;
+    if Pos('Could not create output file', lLogText) > 0 then
+      Assert.Fail('build-delphi.bat failed: output file is locked. Choose output location explicitly (set DAK_TEST_OUTPUT_DIR). See: ' +
+        lLog);
     Assert.Fail('build-delphi.bat failed, exit=' + lExit.ToString + '. See: ' + lLog);
   end;
 
-  GResolverExe := lBinExe;
+  if lTestOutputDir <> '' then
+    GResolverExe := TPath.Combine(TPath.GetFullPath(lTestOutputDir), 'DelphiAIKit.exe')
+  else
+    GResolverExe := lBinExe;
   if not FileExists(GResolverExe) then
     Assert.Fail('Resolver exe not found after build: ' + GResolverExe);
 
   GResolverBuilt := True;
-end;
-
-procedure ResetResolverBuildCache;
-begin
-  GResolverBuilt := False;
-  GResolverExe := '';
 end;
 
 function ResolverExePath: string;
