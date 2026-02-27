@@ -41,6 +41,8 @@ type
     [Test]
     procedure HelpCommandFindsExplicitCommandAfterSwitchValues;
     [Test]
+    procedure HelpCommandRejectsUnknownExplicitToken;
+    [Test]
     procedure HelpCommandDoesNotTreatSwitchValueAsExplicitCommand;
   end;
 
@@ -323,6 +325,19 @@ begin
     'Expected help command detection to find explicit analyze command. Error: ' + lError);
   Assert.IsTrue(lHasCommand, 'Expected explicit command detection when analyze token is present.');
   Assert.AreEqual(TCommandKind.ckAnalyzeProject, lCommand, 'Expected analyze command kind.');
+end;
+
+procedure TCliTests.HelpCommandRejectsUnknownExplicitToken;
+var
+  lCommand: TCommandKind;
+  lHasCommand: Boolean;
+  lError: string;
+begin
+  SetParams('foo --help');
+  Assert.IsFalse(TryGetCommand(lCommand, lHasCommand, lError),
+    'Expected unknown explicit token to be rejected even when --help is present.');
+  Assert.IsTrue(Pos('Unknown command: foo', lError) > 0,
+    'Expected unknown command error message. Actual: ' + lError);
 end;
 
 procedure TCliTests.HelpCommandDoesNotTreatSwitchValueAsExplicitCommand;
