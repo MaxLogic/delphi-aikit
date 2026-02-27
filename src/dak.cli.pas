@@ -50,6 +50,8 @@ var
       aParsedCommand := TCommandKind.ckAnalyzeUnit
     else if SameText(aArg, 'build') then
       aParsedCommand := TCommandKind.ckBuild
+    else if SameText(aArg, 'dfm-check') then
+      aParsedCommand := TCommandKind.ckDfmCheck
     else
       Result := False;
   end;
@@ -109,6 +111,7 @@ var
       SameText(aSwitch, 'ignore-warning-ids') or SameText(aSwitch, 'unit') or
       SameText(aSwitch, 'fi-formats') or SameText(aSwitch, 'pa-path') or
       SameText(aSwitch, 'pa-output') or SameText(aSwitch, 'pa-args') or
+      SameText(aSwitch, 'dfmcheck') or
       SameText(aSwitch, 'target') or SameText(aSwitch, 'max-findings') or
       SameText(aSwitch, 'build-timeout-sec') or SameText(aSwitch, 'test-output-dir') or
       SameText(aSwitch, 'ignore-warnings') or SameText(aSwitch, 'ignore-hints');
@@ -206,6 +209,8 @@ begin
       WriteLn(ErrOutput, SUsageAnalyze);
     TCommandKind.ckBuild:
       WriteLn(ErrOutput, SUsageBuild);
+    TCommandKind.ckDfmCheck:
+      WriteLn(ErrOutput, SUsageDfmCheck);
   else
     WriteLn(ErrOutput, SUsageResolve);
   end;
@@ -252,6 +257,8 @@ type
     function TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
     function TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+      const aHasInlineValue: Boolean): Boolean;
+    function TryParseDfmCheckSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
     function ValidateOptions: Boolean;
   public
@@ -425,7 +432,8 @@ begin
     SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
     SameText(aSwitch, 'target') or SameText(aSwitch, 'rebuild') or
     SameText(aSwitch, 'max-findings') or SameText(aSwitch, 'build-timeout-sec') or
-    SameText(aSwitch, 'test-output-dir') or SameText(aSwitch, 'ignore-warnings') or
+    SameText(aSwitch, 'test-output-dir') or SameText(aSwitch, 'dfmcheck') or
+    SameText(aSwitch, 'ignore-warnings') or
     SameText(aSwitch, 'ignore-hints');
 end;
 
@@ -477,6 +485,8 @@ begin
     fOptions.fCommand := TCommandKind.ckAnalyzeUnit
   else if SameText(aArg, 'build') then
     fOptions.fCommand := TCommandKind.ckBuild
+  else if SameText(aArg, 'dfm-check') then
+    fOptions.fCommand := TCommandKind.ckDfmCheck
   else
   begin
     fError := Format(SUnknownCommand, [aArg]);
@@ -542,6 +552,9 @@ begin
 
   if fOptions.fCommand = TCommandKind.ckBuild then
     Exit(TryParseBuildSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
+
+  if fOptions.fCommand = TCommandKind.ckDfmCheck then
+    Exit(TryParseDfmCheckSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   Result := TryParseAnalyzeSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue);
 end;
@@ -1060,6 +1073,24 @@ begin
   Result := False;
 end;
 
+function TOptionParser.TryParseDfmCheckSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+  const aHasInlineValue: Boolean): Boolean;
+var
+  lValue: string;
+begin
+  if SameText(aSwitch, 'dfmcheck') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--dfmcheck') then
+      Exit(False);
+    fOptions.fDfmCheckExePath := lValue;
+    fOptions.fHasDfmCheckExePath := True;
+    Exit(True);
+  end;
+
+  fError := Format(SUnknownArg, [aArg]);
+  Result := False;
+end;
+
 function TOptionParser.ValidateOptions: Boolean;
 begin
   if (fOptions.fCommand = TCommandKind.ckAnalyzeProject) and (fOptions.fUnitPath <> '') then
@@ -1123,6 +1154,18 @@ begin
     if fOptions.fDelphiVersion = '' then
     begin
       fError := Format(SArgMissingValue, ['--delphi']);
+      Exit(False);
+    end;
+  end else if fOptions.fCommand = TCommandKind.ckDfmCheck then
+  begin
+    if fOptions.fDprojPath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--dproj']);
+      Exit(False);
+    end;
+    if fOptions.fDfmCheckExePath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--dfmcheck']);
       Exit(False);
     end;
   end;

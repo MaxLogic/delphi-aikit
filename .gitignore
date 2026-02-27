@@ -69,6 +69,7 @@ __recovery/
 digest.txt
 pas-api-map.md
 agents.md
+.agents/
 conventions.md
 todo.md
 
