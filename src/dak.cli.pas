@@ -37,6 +37,7 @@ var
   lNextHasSwitchValue: Boolean;
   lSkipNextToken: Boolean;
   lPrefixes: TSwitchPrefixes;
+  lParsedCommand: TCommandKind;
 
   function TryParseCommandToken(const aArg: string; out aParsedCommand: TCommandKind): Boolean;
   begin
@@ -173,10 +174,15 @@ begin
 
     if (lArg <> '') and (lArg[1] <> '-') and (lArg[1] <> '/') then
     begin
-      if TryParseCommandToken(lArg, aCommand) then
+      if TryParseCommandToken(lArg, lParsedCommand) then
       begin
+        if aHasCommand then
+        begin
+          aError := Format(SUnknownCommand, [lArg]);
+          Exit(False);
+        end;
+        aCommand := lParsedCommand;
         aHasCommand := True;
-        Exit(True);
       end else
       begin
         aError := Format(SUnknownCommand, [lArg]);

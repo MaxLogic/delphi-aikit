@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-078
+Next task ID: T-079
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 77
+Done tasks: 78
 
 ## In Progress
 
@@ -16,6 +16,19 @@ Done tasks: 77
 ## Blocked
 
 ## Done
+
+### T-078 [CLI] Reject trailing unknown tokens after explicit help command
+Outcome: `TryGetCommand` now validates the full positional token stream in help mode after detecting an explicit command, so trailing unknown tokens (for example `--help analyze foo`) are rejected instead of being silently ignored.
+Proof:
+- RED Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.HelpCommandRejectsTrailingUnknownTokenAfterExplicitCommand -cm:Quiet
+- RED Expect: Tests Found `1`, Passed `0`, Failed `1` with `Expected trailing unknown token to be rejected in help command mode.`
+- GREEN Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.HelpCommandRejectsTrailingUnknownTokenAfterExplicitCommand -cm:Quiet
+- GREEN Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 900 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Pre-commit Expect: Tests Found `32`, Passed `32`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 1800 ./tests/run.sh
+- Pre-commit Expect: Exit code `0`.
+Touches: src/dak.cli.pas, tests/units/test.cli.pas, TASKS.md, CHANGELOG.md
 
 ### T-077 [MSBUILD] Resolve undefined self-referential properties as empty
 Outcome: `TMsBuildEvaluator.ApplyProperty` now seeds the current property with an empty default when it is undefined before macro expansion, so self-referential values like `$(PreBuildEvent)` and `$(DCC_UsePackage)` resolve to empty text instead of remaining unresolved macros.
