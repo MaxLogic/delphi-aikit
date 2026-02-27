@@ -38,6 +38,7 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed MSBuild property expansion so undefined self-references (for example `$(PreBuildEvent)` in `PreBuildEvent`) now resolve to empty text instead of remaining unresolved macro tokens. (T-077)
 - Fixed help-mode command detection so unknown explicit command tokens (for example `foo --help`) now return an invalid-arguments error instead of silently falling back to global help. (T-076)
 - Fixed help-command detection so switch-consumed values that match command names (for example `--project analyze --help`) are no longer treated as explicit commands, and explicit command tokens are still detected correctly. (T-075)
 - Fixed FixInsight CSV delimiter/layout validation so numeric/rule-like message fragments cannot spoof headerless column layout and cause incorrect `--ignore-warning-ids` filtering. (T-075)
