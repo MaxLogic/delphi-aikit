@@ -729,7 +729,10 @@ begin
   lIsWin32 := SameText(aPlatform, 'Win32');
   lIsWin64 := SameText(aPlatform, 'Win64');
   if not (lIsWin32 or lIsWin64) then
+  begin
+    aError := 'Unsupported platform for Pascal Analyzer: ' + aPlatform + '. Use Win32 or Win64.';
     Exit(False);
+  end;
   if lMajor = 0 then
   begin
     aError := 'Invalid Delphi version: ' + aBdsVersion;

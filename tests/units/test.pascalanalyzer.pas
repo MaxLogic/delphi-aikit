@@ -21,6 +21,8 @@ type
     procedure RunPascalAnalyzer;
     [Test]
     procedure InvalidPalMapJsonRootDoesNotRaise;
+    [Test]
+    procedure BuildPalCmdCommandLineUnsupportedPlatformReturnsError;
   end;
 
 implementation
@@ -218,6 +220,35 @@ begin
     if FileExists(lBackupPath) then
       TFile.Delete(lBackupPath);
   end;
+end;
+
+procedure TPascalAnalyzerTests.BuildPalCmdCommandLineUnsupportedPlatformReturnsError;
+var
+  lCmdExe: string;
+  lCmdLine: string;
+  lError: string;
+  lExePath: string;
+  lParams: TFixInsightParams;
+  lPa: TPascalAnalyzerDefaults;
+  lSuccess: Boolean;
+begin
+  lParams := Default(TFixInsightParams);
+  lParams.fProjectDpr := TPath.Combine(RepoRoot, 'projects\\DelphiAIKit.dpr');
+  lParams.fDelphiVersion := '23.0';
+  lParams.fPlatform := 'Linux64';
+  lParams.fConfig := 'Release';
+
+  lPa := Default(TPascalAnalyzerDefaults);
+  lCmdExe := GetEnvironmentVariable('ComSpec');
+  if lCmdExe = '' then
+    lCmdExe := 'C:\Windows\System32\cmd.exe';
+  lPa.fPath := lCmdExe;
+
+  lSuccess := BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError);
+  Assert.IsFalse(lSuccess, 'Expected unsupported platform to be rejected for PALCMD command line generation.');
+  Assert.IsTrue(lError <> '', 'Expected unsupported platform failure to include a concrete error message.');
+  Assert.IsTrue(Pos('Unsupported platform', lError) > 0,
+    'Expected unsupported platform error details. Actual: ' + lError);
 end;
 
 initialization
