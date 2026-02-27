@@ -38,6 +38,8 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed help-command detection so switch-consumed values that match command names (for example `--project analyze --help`) are no longer treated as explicit commands, and explicit command tokens are still detected correctly. (T-075)
+- Fixed FixInsight CSV delimiter/layout validation so numeric/rule-like message fragments cannot spoof headerless column layout and cause incorrect `--ignore-warning-ids` filtering. (T-075)
 - Fixed help command routing so `--help` no longer treats switch values (for example `--project C:\...`) as command tokens, and explicit commands after switch values are now detected correctly. (T-074)
 - Fixed `analyze` summary generation to ignore stale FixInsight TXT findings/top-codes when TXT report generation is skipped (for example `--fixinsight false --clean false`), preventing carry-over from previous runs. (T-073)
 - Fixed CLI argument validation so `analyze-unit` now rejects simultaneous `--project` and `--unit` inputs with a clear conflict error, matching `analyze` command behavior. (T-072)

@@ -29,6 +29,11 @@ var
   lArg: string;
   lIndex: Integer;
   lHelpRequested: Boolean;
+  lSwitch: string;
+  lSwitchValue: string;
+  lHasSwitchValue: Boolean;
+  lSkipNextToken: Boolean;
+  lPrefixes: TSwitchPrefixes;
 
   function TryParseCommandToken(const aArg: string; out aParsedCommand: TCommandKind): Boolean;
   begin
@@ -44,6 +49,90 @@ var
     else
       Result := False;
   end;
+
+  function TrySplitSwitchToken(const aArg: string; out aSwitch: string; out aValue: string;
+    out aHasValue: Boolean): Boolean;
+  var
+    lStart: Integer;
+    lText: string;
+    lPos: Integer;
+  begin
+    Result := False;
+    aSwitch := '';
+    aValue := '';
+    aHasValue := False;
+
+    if (spDoubleDash in lPrefixes) and (Length(aArg) >= 3) and (aArg[1] = '-') and (aArg[2] = '-') then
+      lStart := 3
+    else if (spDash in lPrefixes) and (Length(aArg) >= 2) and (aArg[1] = '-') then
+      lStart := 2
+    else if (spSlash in lPrefixes) and (Length(aArg) >= 2) and (aArg[1] = '/') then
+      lStart := 2
+    else
+      Exit(False);
+
+    lText := Trim(Copy(aArg, lStart, MaxInt));
+    if lText = '' then
+      Exit(False);
+
+    lPos := Pos('=', lText);
+    if lPos = 0 then
+      lPos := Pos(':', lText);
+    if lPos > 0 then
+    begin
+      aSwitch := Trim(Copy(lText, 1, lPos - 1));
+      aValue := Copy(lText, lPos + 1, MaxInt);
+      aHasValue := True;
+    end else
+      aSwitch := lText;
+
+    Result := aSwitch <> '';
+  end;
+
+  function SwitchRequiresValue(const aSwitch: string): Boolean;
+  begin
+    Result :=
+      SameText(aSwitch, 'project') or SameText(aSwitch, 'dproj') or
+      SameText(aSwitch, 'platform') or SameText(aSwitch, 'config') or
+      SameText(aSwitch, 'delphi') or SameText(aSwitch, 'rsvars') or
+      SameText(aSwitch, 'envoptions') or SameText(aSwitch, 'log-file') or
+      SameText(aSwitch, 'logfile') or SameText(aSwitch, 'format') or
+      SameText(aSwitch, 'out-kind') or SameText(aSwitch, 'out-file') or
+      SameText(aSwitch, 'out') or SameText(aSwitch, 'fi-output') or
+      SameText(aSwitch, 'output') or SameText(aSwitch, 'fi-ignore') or
+      SameText(aSwitch, 'ignore') or SameText(aSwitch, 'fi-settings') or
+      SameText(aSwitch, 'settings') or SameText(aSwitch, 'exclude-path-masks') or
+      SameText(aSwitch, 'ignore-warning-ids') or SameText(aSwitch, 'unit') or
+      SameText(aSwitch, 'fi-formats') or SameText(aSwitch, 'pa-path') or
+      SameText(aSwitch, 'pa-output') or SameText(aSwitch, 'pa-args') or
+      SameText(aSwitch, 'target') or SameText(aSwitch, 'max-findings') or
+      SameText(aSwitch, 'build-timeout-sec') or SameText(aSwitch, 'test-output-dir') or
+      SameText(aSwitch, 'ignore-warnings') or SameText(aSwitch, 'ignore-hints');
+  end;
+
+  function SwitchAllowsBoolValue(const aSwitch: string): Boolean;
+  begin
+    Result :=
+      SameText(aSwitch, 'log-tee') or SameText(aSwitch, 'verbose') or
+      SameText(aSwitch, 'help') or SameText(aSwitch, 'h') or
+      SameText(aSwitch, '?') or SameText(aSwitch, 'fi-silent') or
+      SameText(aSwitch, 'silent') or SameText(aSwitch, 'fi-xml') or
+      SameText(aSwitch, 'xml') or SameText(aSwitch, 'fi-csv') or
+      SameText(aSwitch, 'csv') or SameText(aSwitch, 'fixinsight') or
+      SameText(aSwitch, 'pascal-analyzer') or SameText(aSwitch, 'pal') or
+      SameText(aSwitch, 'clean') or SameText(aSwitch, 'write-summary') or
+      SameText(aSwitch, 'show-warnings') or SameText(aSwitch, 'show-hints') or
+      SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
+      SameText(aSwitch, 'rebuild');
+  end;
+
+  function IsBoolToken(const aArg: string): Boolean;
+  begin
+    Result :=
+      SameText(aArg, 'true') or SameText(aArg, 'false') or
+      SameText(aArg, 'yes') or SameText(aArg, 'no') or
+      SameText(aArg, '1') or SameText(aArg, '0');
+  end;
 begin
   Result := False;
   aError := '';
@@ -52,9 +141,29 @@ begin
   lParams := maxCmdLineParams;
   lList := lParams.GetParamList;
   lHelpRequested := lParams.has(['help', 'h', '?']);
+  lPrefixes := lParams.SwitchPrefixes;
+  lSkipNextToken := False;
   for lIndex := 0 to lList.Count - 1 do
   begin
     lArg := lList[lIndex];
+    if lSkipNextToken then
+    begin
+      lSkipNextToken := False;
+      Continue;
+    end;
+
+    if lHelpRequested and TrySplitSwitchToken(lArg, lSwitch, lSwitchValue, lHasSwitchValue) then
+    begin
+      if not lHasSwitchValue then
+      begin
+        if SwitchRequiresValue(lSwitch) then
+          lSkipNextToken := True
+        else if SwitchAllowsBoolValue(lSwitch) and (lIndex + 1 < lList.Count) and IsBoolToken(lList[lIndex + 1]) then
+          lSkipNextToken := True;
+      end;
+      Continue;
+    end;
+
     if (lArg <> '') and (lArg[1] <> '-') and (lArg[1] <> '/') then
     begin
       if TryParseCommandToken(lArg, aCommand) then
