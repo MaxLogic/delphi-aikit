@@ -170,11 +170,6 @@ begin
       begin
         aHasCommand := True;
         Exit(True);
-      end else if lHelpRequested then
-      begin
-        // Help mode may include switch values (for example --project C:\path\file.dproj),
-        // so we ignore positional tokens that are not known command names.
-        Continue;
       end else
       begin
         aError := Format(SUnknownCommand, [lArg]);
