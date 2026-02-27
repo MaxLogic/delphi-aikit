@@ -279,7 +279,14 @@ end;
 procedure TMsBuildEvaluator.ApplyProperty(const aName, aValue: string);
 var
   lExpanded: string;
+  lCurrentValue: string;
 begin
+  if not fProps.TryGetValue(aName, lCurrentValue) then
+  begin
+    lCurrentValue := '';
+    fProps.AddOrSetValue(aName, lCurrentValue);
+  end;
+
   lExpanded := TMacroExpander.Expand(aValue, fProps, fEnvVars, fDiagnostics, False);
   fProps.AddOrSetValue(aName, lExpanded);
   if fDiagnostics <> nil then

@@ -28,6 +28,8 @@ type
     procedure RejectsTrailingInvalidOperatorInCondition;
     [Test]
     procedure RejectsUnterminatedQuotedLiteralInCondition;
+    [Test]
+    procedure SelfReferenceFallsBackToEmptyWhenPropertyWasUndefined;
   end;
 
 implementation
@@ -48,6 +50,30 @@ begin
     lProjectXml.AppendLine('<Project>');
     lProjectXml.AppendLine('  <PropertyGroup Condition="' + aCondition + '">');
     lProjectXml.AppendLine('    <MainSource>ConditionCheck.dpr</MainSource>');
+    lProjectXml.AppendLine('  </PropertyGroup>');
+    lProjectXml.AppendLine('</Project>');
+    TFile.WriteAllText(aProjectPath, lProjectXml.ToString, TEncoding.UTF8);
+  finally
+    lProjectXml.Free;
+  end;
+end;
+
+procedure BuildPropertyProject(const aPropertyName: string; const aPropertyValue: string; out aProjectPath: string);
+var
+  lRoot: string;
+  lProjectXml: TStringBuilder;
+begin
+  lRoot := TPath.Combine(TempRoot, 'msbuild-properties');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+
+  aProjectPath := TPath.Combine(lRoot, 'PropertyCheck.dproj');
+  lProjectXml := TStringBuilder.Create;
+  try
+    lProjectXml.AppendLine('<Project>');
+    lProjectXml.AppendLine('  <PropertyGroup>');
+    lProjectXml.AppendLine('    <' + aPropertyName + '>' + aPropertyValue + '</' + aPropertyName + '>');
     lProjectXml.AppendLine('  </PropertyGroup>');
     lProjectXml.AppendLine('</Project>');
     TFile.WriteAllText(aProjectPath, lProjectXml.ToString, TEncoding.UTF8);
@@ -142,6 +168,40 @@ end;
 procedure TMsBuildTests.RejectsUnterminatedQuotedLiteralInCondition;
 begin
   AssertConditionRejected(#39 + 'Debug' + #39 + '==' + #39 + 'Debug');
+end;
+
+procedure TMsBuildTests.SelfReferenceFallsBackToEmptyWhenPropertyWasUndefined;
+var
+  lProjectPath: string;
+  lProps: TDictionary<string, string>;
+  lEnv: TDictionary<string, string>;
+  lDiagnostics: TDiagnostics;
+  lEvaluator: TMsBuildEvaluator;
+  lError: string;
+  lPreBuildEvent: string;
+begin
+  BuildPropertyProject('PreBuildEvent', 'echo before$(PreBuildEvent)', lProjectPath);
+  lProps := TDictionary<string, string>.Create;
+  lEnv := TDictionary<string, string>.Create;
+  lDiagnostics := TDiagnostics.Create;
+  try
+    lEvaluator := TMsBuildEvaluator.Create(lProps, lEnv, lDiagnostics);
+    try
+      lError := '';
+      Assert.IsTrue(lEvaluator.EvaluateFile(lProjectPath, lError),
+        'Expected property evaluation to succeed. Error: ' + lError);
+    finally
+      lEvaluator.Free;
+    end;
+    Assert.IsTrue(lProps.TryGetValue('PreBuildEvent', lPreBuildEvent),
+      'Expected PreBuildEvent property to be set.');
+    Assert.AreEqual('echo before', lPreBuildEvent,
+      'Expected self-reference to resolve to empty text when no prior property value exists.');
+  finally
+    lDiagnostics.Free;
+    lEnv.Free;
+    lProps.Free;
+  end;
 end;
 
 initialization
