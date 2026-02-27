@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-077
+Next task ID: T-078
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 76
+Done tasks: 77
 
 ## In Progress
 
@@ -16,6 +16,23 @@ Done tasks: 76
 ## Blocked
 
 ## Done
+
+### T-077 [MSBUILD] Resolve undefined self-referential properties as empty
+Outcome: `TMsBuildEvaluator.ApplyProperty` now seeds the current property with an empty default when it is undefined before macro expansion, so self-referential values like `$(PreBuildEvent)` and `$(DCC_UsePackage)` resolve to empty text instead of remaining unresolved macros.
+Proof:
+- BLOCKER Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.MsBuild.TMsBuildTests.SelfReferenceFallsBackToEmptyWhenPropertyWasUndefined -cm:Quiet
+- BLOCKER Expect: Tests Found `0` (non-execution due stale test binary), so rebuild is required before RED/GREEN proof.
+- BLOCKER Fix Command: timeout 1200 ./build-delphi.sh tests/DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23
+- BLOCKER Fix Expect: Build exits `0` with `SUCCESS`.
+- RED Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.MsBuild.TMsBuildTests.SelfReferenceFallsBackToEmptyWhenPropertyWasUndefined -cm:Quiet
+- RED Expect: Tests Found `1`, Passed `0`, Failed `1` with `Expected [echo before] but got [echo before$(PreBuildEvent)]`.
+- GREEN Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.MsBuild.TMsBuildTests.SelfReferenceFallsBackToEmptyWhenPropertyWasUndefined -cm:Quiet
+- GREEN Expect: Tests Found `1`, Passed `1`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 900 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Pre-commit Expect: Tests Found `31`, Passed `31`, Failed `0`, Leaked `0`.
+- Pre-commit Command: timeout 1800 ./tests/run.sh
+- Pre-commit Expect: Exit code `0`.
+Touches: src/dak.msbuild.pas, tests/units/test.msbuild.pas, TASKS.md, CHANGELOG.md
 
 ### T-076 [CLI] Reject unknown explicit command tokens in help mode
 Outcome: `TryGetCommand` now rejects unknown positional command tokens even when `--help` is present, while still ignoring positional values explicitly consumed by value-taking switches.
