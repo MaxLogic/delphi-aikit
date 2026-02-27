@@ -33,6 +33,10 @@ type
     [Test]
     procedure AnalyzeUnitCommandRejectsProjectAndUnitConflict;
     [Test]
+    procedure DfmCheckCommandParsesRequiredFlagsAndDefaults;
+    [Test]
+    procedure DfmCheckCommandRequiresDfmCheckPath;
+    [Test]
     procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
     [Test]
     procedure LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
@@ -212,6 +216,32 @@ begin
     'Expected analyze-unit to reject simultaneous --project and --unit.');
   Assert.IsTrue(Pos('Use either --project or --unit', lError) > 0,
     'Expected conflict error message. Actual: ' + lError);
+end;
+
+procedure TCliTests.DfmCheckCommandParsesRequiredFlagsAndDefaults;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('dfm-check --dproj C:\repo\Sample.dproj --dfmcheck C:\tools\DFMCheck.exe');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected dfm-check args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckDfmCheck, lOptions.fCommand, 'Expected dfm-check command kind.');
+  Assert.AreEqual('C:\repo\Sample.dproj', lOptions.fDprojPath, 'Unexpected --dproj parsing result.');
+  Assert.AreEqual('C:\tools\DFMCheck.exe', lOptions.fDfmCheckExePath, 'Unexpected --dfmcheck parsing result.');
+  Assert.IsTrue(lOptions.fHasDfmCheckExePath, 'Expected --dfmcheck marker to be set.');
+  Assert.AreEqual('Release', lOptions.fConfig, 'Expected default config for dfm-check command.');
+  Assert.AreEqual('Win32', lOptions.fPlatform, 'Expected default platform for dfm-check command.');
+end;
+
+procedure TCliTests.DfmCheckCommandRequiresDfmCheckPath;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('dfm-check --dproj C:\repo\Sample.dproj');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected dfm-check parsing to fail without --dfmcheck.');
+  Assert.IsTrue(Pos('Missing value for parameter: --dfmcheck', lError) > 0,
+    'Expected missing --dfmcheck error. Actual: ' + lError);
 end;
 
 procedure TCliTests.AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;

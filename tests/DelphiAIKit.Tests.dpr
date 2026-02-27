@@ -10,6 +10,7 @@ uses
   Test.Support in 'units\\test.support.pas',
   Test.Build in 'units\\test.build.pas',
   Test.Cli in 'units\\test.cli.pas',
+  Test.DfmCheck in 'units\\test.dfmcheck.pas',
   Test.Diagnostics in 'units\\test.diagnostics.pas',
   Test.FixInsight in 'units\\test.fixinsight.pas',
   Test.MsBuild in 'units\\test.msbuild.pas',
