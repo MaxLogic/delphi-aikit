@@ -9,6 +9,7 @@ resourcestring
     '  resolve   Resolve FixInsight params (ini/xml/bat)' + #13#10 +
     '  analyze   Run FixInsight / Pascal Analyzer' + #13#10 +
     '  build     Build a Delphi project (.dproj; or .dpr/.dpk with sibling .dproj) via build-delphi.bat' + #13#10 +
+    '  dfm-check Validate DFM streaming via DFMCheck + generated _DfmCheck project' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
   SUsageResolve =
     'DelphiAIKit.exe resolve --project "<path>" --delphi <23.0> ' +
@@ -38,6 +39,9 @@ resourcestring
     '[--json [true|false]] [--max-findings <N>] [--build-timeout-sec <N default 0>] [--test-output-dir "<path>"] ' +
     '[--ai] [--show-warnings] [--show-hints] ' +
     '[--ignore-warnings "<list>"] [--ignore-hints "<list>"] [--exclude-path-masks "<list>"]';
+  SUsageDfmCheck =
+    'DelphiAIKit.exe dfm-check --dproj "<path>" --dfmcheck "<path to DFMCheck.exe>" ' +
+    '[--config <Release|Debug>] [--platform <Win32|Win64>] [--rsvars "<path>"]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';

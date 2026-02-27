@@ -12,6 +12,7 @@ uses
   Winapi.Windows,
   Xml.omnixmldom, Xml.xmldom,
   Dak.Analyze in '..\src\dak.analyze.pas', Dak.Cli in '..\src\dak.cli.pas',
+  Dak.DfmCheck in '..\src\dak.dfmcheck.pas',
   Dak.Diagnostics in '..\src\dak.diagnostics.pas',
   Dak.FixInsight in '..\src\dak.fixinsight.pas',
   Dak.FixInsightRunner in '..\src\dak.fixinsightrunner.pas',
@@ -327,6 +328,10 @@ begin
           end else begin
             lExitCode := lBuildExitCode;
           end;
+          lOk := False;
+        end else if lOptions.fCommand = TCommandKind.ckDfmCheck then
+        begin
+          lExitCode := RunDfmCheckCommand(lOptions);
           lOk := False;
         end else if lOptions.fCommand <> TCommandKind.ckResolve then
         begin
