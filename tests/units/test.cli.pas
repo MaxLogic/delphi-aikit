@@ -4,10 +4,11 @@ interface
 
 uses
   DUnitX.TestFramework,
+  System.IniFiles,
   System.IOUtils,
   System.SysUtils,
   maxLogic.CmdLineParams,
-  Dak.Cli, Dak.Types,
+  Dak.Cli, Dak.FixInsightSettings, Dak.Types,
   Test.Support;
 
 type
@@ -33,6 +34,8 @@ type
     procedure AnalyzeUnitCommandRejectsProjectAndUnitConflict;
     [Test]
     procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
+    [Test]
+    procedure LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
     [Test]
     procedure HelpCommandIgnoresSwitchValueTokens;
     [Test]
@@ -240,6 +243,60 @@ begin
     'Expected summary to ignore stale TXT findings when TXT report was not run. Summary: ' + lSummaryPath);
   Assert.IsFalse(Pos('- Top codes:', lSummaryText) > 0,
     'Expected summary to skip top code output when TXT report was not run. Summary: ' + lSummaryPath);
+end;
+
+procedure TCliTests.LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lFixIgnoreDefaults: TFixInsightIgnoreDefaults;
+  lFixOptions: TFixInsightExtraOptions;
+  lGuid: TGUID;
+  lParentDir: string;
+  lParentIniPath: string;
+  lPascalAnalyzer: TPascalAnalyzerDefaults;
+  lProjectDir: string;
+  lProjectIniPath: string;
+  lReportFilter: TReportFilterDefaults;
+
+  procedure WriteWarningsIni(const aPath: string; const aWarnings: string);
+  var
+    lIni: TIniFile;
+  begin
+    lIni := TIniFile.Create(aPath);
+    try
+      lIni.WriteString('FixInsightIgnore', 'Warnings', aWarnings);
+    finally
+      lIni.Free;
+    end;
+  end;
+begin
+  Assert.AreEqual(0, CreateGUID(lGuid), 'Failed to create a temporary GUID.');
+  lBaseDir := TPath.Combine(TPath.GetTempPath, 'dak-settings-norepo-' + GUIDToString(lGuid));
+  lParentDir := TPath.Combine(lBaseDir, 'parent');
+  lProjectDir := TPath.Combine(lParentDir, 'project');
+  TDirectory.CreateDirectory(lProjectDir);
+
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+
+  lParentIniPath := TPath.Combine(lParentDir, 'dak.ini');
+  WriteWarningsIni(lParentIniPath, 'W777');
+
+  lProjectIniPath := TPath.Combine(lProjectDir, 'dak.ini');
+  WriteWarningsIni(lProjectIniPath, 'W888');
+
+  try
+    Assert.IsTrue(LoadSettings(nil, lDprojPath, lFixOptions, lFixIgnoreDefaults, lReportFilter, lPascalAnalyzer),
+      'Expected settings loader to succeed.');
+    Assert.IsTrue(Pos('W888', lFixIgnoreDefaults.fWarnings) > 0,
+      'Expected project-local dak.ini warnings to be loaded.');
+    Assert.IsFalse(Pos('W777', lFixIgnoreDefaults.fWarnings) > 0,
+      'Did not expect parent dak.ini warnings without a repo marker.');
+  finally
+    if TDirectory.Exists(lBaseDir) then
+      TDirectory.Delete(lBaseDir, True);
+  end;
 end;
 
 procedure TCliTests.HelpCommandIgnoresSwitchValueTokens;
