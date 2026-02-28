@@ -31,6 +31,7 @@ type
     fGeneratedDir: string;
     fGeneratedDproj: string;
     fGeneratedDpr: string;
+    fForcedExeOutputDir: string;
     fInjectDir: string;
     fInjectAutoFree: string;
     fInjectDfmStreamAll: string;
@@ -340,6 +341,8 @@ begin
     if EndsText('_DfmCheck', lGeneratedDirName) then
       CleanupDirectory(lGeneratedDirNormalized, lErrors);
   end;
+  if aPaths.fForcedExeOutputDir <> '' then
+    CleanupDirectory(aPaths.fForcedExeOutputDir, lErrors);
 
   if lErrors <> '' then
     EmitLine(aOutput, '[dfm-check] Cleanup warning: ' + lErrors)
@@ -997,6 +1000,12 @@ begin
     lExpectedPathList.Add(TPath.Combine(TPath.Combine(TPath.Combine(lProjectParentDir, 'Bin'), aPlatform),
       TPath.Combine(aConfig, lExeBaseName)));
     lExpectedPathList.Add(TPath.Combine(TPath.Combine(lProjectParentDir, 'Bin'), lExeBaseName));
+    if aPaths.fForcedExeOutputDir <> '' then
+    begin
+      lExpectedPathList.Add(TPath.Combine(aPaths.fForcedExeOutputDir, lExeBaseName));
+      lExpectedPathList.Add(TPath.Combine(TPath.Combine(aPaths.fForcedExeOutputDir, aPlatform),
+        TPath.Combine(aConfig, lExeBaseName)));
+    end;
     lExpectedPathList.Add(TPath.Combine(aPaths.fGeneratedDir, lExeBaseName));
     lExpectedPathList.Add(TPath.Combine(aPaths.fProjectDir, lExeBaseName));
 
@@ -1074,6 +1083,7 @@ var
   lBuildExePath: string;
   lBuildExeOverride: string;
   lConfig: string;
+  lForcedExeOutputDir: string;
   lPlatform: string;
   lValidatorExePath: string;
   lWriterEncoding: TEncoding;
@@ -1196,10 +1206,15 @@ begin
     end;
     EmitLine(aOutput, '[dfm-check] Using MSBuild: ' + lBuildExePath);
 
+    lForcedExeOutputDir := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckBin');
+    TDirectory.CreateDirectory(lForcedExeOutputDir);
+    lPaths.fForcedExeOutputDir := lForcedExeOutputDir;
+
     EmitLine(aOutput, '[dfm-check] Building generated DfmCheck project via MSBuild...');
     if not aRunner.Run(lBuildExePath,
       QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build /p:Config=' + lConfig + ' /p:Platform=' + lPlatform +
-      ' /p:DCC_ForceExecute=true /v:m',
+      ' /p:DCC_ForceExecute=true /p:DCC_ExeOutput=' + QuoteCmdArg(IncludeTrailingPathDelimiter(lForcedExeOutputDir)) +
+      ' /v:m',
       lPaths.fGeneratedDir,
       procedure(const aLine: string)
       begin
