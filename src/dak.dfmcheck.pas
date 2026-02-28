@@ -15,6 +15,7 @@ type
     ecInvalidInput,
     ecToolNotFound,
     ecDfmCheckFailed,
+    ecGeneratorIncompatible,
     ecGeneratedProjectMissing,
     ecInjectFilesMissing,
     ecDprPatchFailed,
@@ -552,6 +553,37 @@ begin
   Result := True;
 end;
 
+function TryWriteRuntimeOnlyCheckerUnit(const aGeneratedUnitPath: string; out aError: string): Boolean;
+const
+  cLineBreak = #13#10;
+var
+  lContent: string;
+  lEncoding: TEncoding;
+  lUnitName: string;
+begin
+  aError := '';
+  lUnitName := Trim(TPath.GetFileNameWithoutExtension(aGeneratedUnitPath));
+  if lUnitName = '' then
+  begin
+    aError := 'Generated checker unit name is empty: ' + aGeneratedUnitPath;
+    Exit(False);
+  end;
+
+  lContent :=
+    'unit ' + lUnitName + ';' + cLineBreak + cLineBreak +
+    'interface' + cLineBreak + cLineBreak +
+    'implementation' + cLineBreak + cLineBreak +
+    'end.' + cLineBreak;
+
+  lEncoding := TUTF8Encoding.Create(False);
+  try
+    TFile.WriteAllText(aGeneratedUnitPath, lContent, lEncoding);
+  finally
+    lEncoding.Free;
+  end;
+  Result := True;
+end;
+
 function TryGenerateDfmCheckProject(const aDprojPath: string; var aPaths: TDfmCheckPaths; out aError: string): Boolean;
 var
   lCheck: TDfmCheck;
@@ -607,6 +639,9 @@ begin
     aError := 'Generated DFMCheck unit not found: ' + lGeneratedUnitPath;
     Exit(False);
   end;
+
+  if not TryWriteRuntimeOnlyCheckerUnit(lGeneratedUnitPath, aError) then
+    Exit(False);
 
   lGeneratedDprName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dpr';
   lGeneratedDprojName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dproj';
@@ -746,18 +781,20 @@ var
   lPos: Integer;
   lWorkText: string;
   lChangedUses: Boolean;
-  lChangedExitCode: Boolean;
+  lChangedValidatorStart: Boolean;
   lUsesBody: string;
   lUsesText: string;
-  lEndPos: Integer;
-  lPrefix: string;
+  lBeginPos: Integer;
+  lMainBlockPrefix: string;
+  lMainEndPos: Integer;
+  lSuffix: string;
 begin
   Result := False;
   aError := '';
   aChanged := False;
   lWorkText := aInputText;
   lChangedUses := False;
-  lChangedExitCode := False;
+  lChangedValidatorStart := False;
   lClauseStart := 0;
   lClauseEnd := 0;
 
@@ -812,34 +849,79 @@ begin
 
   if not ContainsWord(lWorkText, 'TDfmStreamAll.Run') then
   begin
-    lEndPos := LastPosText('end.', lWorkText);
-    if lEndPos = 0 then
+    lMainEndPos := LastPosText('end.', lWorkText);
+    if lMainEndPos = 0 then
     begin
       aError := 'Could not patch DPR: final "end." not found.';
       Exit(False);
     end;
 
-    lPrefix := Copy(lWorkText, 1, lEndPos - 1);
-    if (lPrefix <> '') and (not CharInSet(lPrefix[Length(lPrefix)], [#10, #13])) then
-      lPrefix := lPrefix + cLineBreak;
-    lWorkText := lPrefix + '  ExitCode := TDfmStreamAll.Run;' + cLineBreak + Copy(lWorkText, lEndPos, MaxInt);
-    lChangedExitCode := True;
+    lMainBlockPrefix := Copy(lWorkText, 1, lMainEndPos - 1);
+    lBeginPos := LastPosText('begin', LowerCase(lMainBlockPrefix));
+    if lBeginPos = 0 then
+    begin
+      aError := 'Could not patch DPR: main "begin" not found.';
+      Exit(False);
+    end;
+
+    lSuffix := Copy(lWorkText, lBeginPos + Length('begin'), MaxInt);
+    if (lSuffix <> '') and (not CharInSet(lSuffix[1], [#10, #13, ' '])) then
+      lSuffix := cLineBreak + lSuffix;
+    lWorkText := Copy(lWorkText, 1, lBeginPos + Length('begin') - 1) +
+      cLineBreak +
+      '  ExitCode := TDfmStreamAll.Run;' + cLineBreak +
+      '  Halt(ExitCode);' + lSuffix;
+    lChangedValidatorStart := True;
   end;
 
-  aChanged := lChangedUses or lChangedExitCode;
+  aChanged := lChangedUses or lChangedValidatorStart;
   aOutputText := lWorkText;
   Result := True;
+end;
+
+function IsGeneratedUnitBuildFailure(const aBuildLines: TStrings; const aPaths: TDfmCheckPaths): Boolean;
+var
+  lLine: string;
+  lLineUpper: string;
+  lUnitPathUpper: string;
+  lUnitNameUpper: string;
+begin
+  Result := False;
+  if aBuildLines = nil then
+    Exit(False);
+
+  lUnitPathUpper := UpperCase(TPath.Combine(aPaths.fProjectDir, aPaths.fProjectName + '_DfmCheck_Unit.pas'));
+  lUnitNameUpper := UpperCase(aPaths.fProjectName + '_DfmCheck_Unit.pas');
+
+  for lLine in aBuildLines do
+  begin
+    lLineUpper := UpperCase(lLine);
+    if (Pos(lUnitNameUpper, lLineUpper) = 0) and (Pos(lUnitPathUpper, lLineUpper) = 0) then
+      Continue;
+
+    if (Pos('ERROR E', lLineUpper) > 0) or
+      (Pos('ERROR F', lLineUpper) > 0) or
+      (Pos('COULD NOT COMPILE USED UNIT', lLineUpper) > 0) then
+      Exit(True);
+  end;
 end;
 
 function TryFindValidatorExe(const aPaths: TDfmCheckPaths; const aPlatform: string; const aConfig: string;
   out aValidatorExePath: string; out aError: string): Boolean;
 var
+  lCandidateDir: string;
   lExpectedExePath: string;
   lExeArray: TArray<string>;
   lExeList: TStringList;
+  lFallbackList: TStringList;
+  lGeneratedDirBin: string;
   lExePath: string;
   lNeedlePath: string;
   lExeBaseName: string;
+  lProjectDirBin: string;
+  lProjectParentDir: string;
+  lProjectParentDirBin: string;
+  lSearchDirs: TStringList;
 begin
   aError := '';
   aValidatorExePath := '';
@@ -852,20 +934,55 @@ begin
     Exit(True);
   end;
 
-  lExeArray := TDirectory.GetFiles(aPaths.fGeneratedDir, '*.exe', TSearchOption.soAllDirectories);
+  lSearchDirs := TStringList.Create;
   lExeList := TStringList.Create;
+  lFallbackList := TStringList.Create;
   try
+    lSearchDirs.CaseSensitive := False;
+    lSearchDirs.Sorted := True;
+    lSearchDirs.Duplicates := TDuplicates.dupIgnore;
+    if aPaths.fGeneratedDir <> '' then
+      lSearchDirs.Add(aPaths.fGeneratedDir);
+    lGeneratedDirBin := TPath.Combine(aPaths.fGeneratedDir, 'Bin');
+    if DirectoryExists(lGeneratedDirBin) then
+      lSearchDirs.Add(lGeneratedDirBin);
+    if aPaths.fProjectDir <> '' then
+      lSearchDirs.Add(aPaths.fProjectDir);
+    lProjectDirBin := TPath.Combine(aPaths.fProjectDir, 'Bin');
+    if DirectoryExists(lProjectDirBin) then
+      lSearchDirs.Add(lProjectDirBin);
+    lProjectParentDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aPaths.fProjectDir));
+    if lProjectParentDir <> '' then
+      lSearchDirs.Add(lProjectParentDir);
+    lProjectParentDirBin := TPath.Combine(lProjectParentDir, 'Bin');
+    if DirectoryExists(lProjectParentDirBin) then
+      lSearchDirs.Add(lProjectParentDirBin);
+
     lExeList.CaseSensitive := False;
     lExeList.Sorted := True;
     lExeList.Duplicates := TDuplicates.dupIgnore;
-    for lExePath in lExeArray do
-      lExeList.Add(lExePath);
+
+    lFallbackList.CaseSensitive := False;
+    lFallbackList.Sorted := True;
+    lFallbackList.Duplicates := TDuplicates.dupIgnore;
+
+    for lCandidateDir in lSearchDirs do
+    begin
+      if not DirectoryExists(lCandidateDir) then
+        Continue;
+      try
+        lExeArray := TDirectory.GetFiles(lCandidateDir, lExeBaseName, TSearchOption.soAllDirectories);
+        for lExePath in lExeArray do
+          lExeList.Add(lExePath);
+      except
+        // Ignore inaccessible scan roots and continue with the remaining deterministic search paths.
+      end;
+    end;
 
     lNeedlePath := '\' + aPlatform + '\' + aConfig + '\';
     for lExePath in lExeList do
     begin
-      if SameText(TPath.GetFileName(lExePath), lExeBaseName) and
-        (Pos(UpperCase(lNeedlePath), UpperCase(lExePath)) > 0) then
+      if Pos(UpperCase(lNeedlePath), UpperCase(lExePath)) > 0 then
       begin
         aValidatorExePath := lExePath;
         Exit(True);
@@ -881,19 +998,39 @@ begin
       end;
     end;
 
-    for lExePath in lExeList do
+    for lCandidateDir in lSearchDirs do
     begin
-      if Pos('_DFMCHECK', UpperCase(TPath.GetFileNameWithoutExtension(lExePath))) > 0 then
+      if not DirectoryExists(lCandidateDir) then
+        Continue;
+      try
+        lExeArray := TDirectory.GetFiles(lCandidateDir, '*_DfmCheck*.exe', TSearchOption.soAllDirectories);
+        for lExePath in lExeArray do
+          lFallbackList.Add(lExePath);
+      except
+        // Ignore inaccessible scan roots and continue with the remaining deterministic search paths.
+      end;
+    end;
+
+    for lExePath in lFallbackList do
+    begin
+      if Pos(UpperCase(lNeedlePath), UpperCase(lExePath)) > 0 then
       begin
         aValidatorExePath := lExePath;
         Exit(True);
       end;
     end;
+    if lFallbackList.Count > 0 then
+    begin
+      aValidatorExePath := lFallbackList[0];
+      Exit(True);
+    end;
   finally
+    lSearchDirs.Free;
     lExeList.Free;
+    lFallbackList.Free;
   end;
 
-  aError := 'Could not find built _DfmCheck.exe under: ' + aPaths.fGeneratedDir;
+  aError := 'Could not find built _DfmCheck.exe under generated/project/bin paths.';
   Result := False;
 end;
 
@@ -910,6 +1047,11 @@ begin
         Result := aToolExitCode
       else
         Result := 30;
+    TDfmCheckErrorCategory.ecGeneratorIncompatible:
+      if aToolExitCode <> 0 then
+        Result := aToolExitCode
+      else
+        Result := 37;
     TDfmCheckErrorCategory.ecGeneratedProjectMissing:
       Result := 31;
     TDfmCheckErrorCategory.ecInjectFilesMissing:
@@ -946,6 +1088,7 @@ var
   lChanged: Boolean;
   lExitCode: Cardinal;
   lRunnerError: string;
+  lBuildLines: TStringList;
   lBuildExePath: string;
   lBuildExeOverride: string;
   lConfig: string;
@@ -961,54 +1104,56 @@ begin
   lCopiedAutoFree := False;
   lCopiedDfmStreamAll := False;
   lValidatorExePath := '';
+  lBuildLines := TStringList.Create;
 
-  if aRunner = nil then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecInvalidInput;
-    aError := 'Process runner is not assigned.';
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-
-  if not TryResolveDfmCheckProjectPath(aOptions.fDprojPath, lDprojPath, aError) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecInvalidInput;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-
-  lDelphiVersion := Trim(aOptions.fDelphiVersion);
-  if lDelphiVersion = '' then
-  begin
-    if not LoadDefaultDelphiVersion(lDprojPath, lDelphiVersion) then
-    begin
-      aCategory := TDfmCheckErrorCategory.ecInvalidInput;
-      aError := 'Failed to read default Delphi version from dak.ini.';
-      Exit(MapDfmCheckExitCode(aCategory, 0));
-    end;
-    if lDelphiVersion <> '' then
-      EmitLine(aOutput, '[dfm-check] Using Delphi version from dak.ini: ' + lDelphiVersion);
-  end;
-  if (lDelphiVersion <> '') and (Pos('.', lDelphiVersion) = 0) then
-    lDelphiVersion := lDelphiVersion + '.0';
-
-  if aOptions.fHasRsVarsPath or (lDelphiVersion <> '') then
-  begin
-    EmitLine(aOutput, '[dfm-check] Loading RAD Studio environment from rsvars.bat...');
-    if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, aError) then
-    begin
-      aCategory := TDfmCheckErrorCategory.ecInvalidInput;
-      Exit(MapDfmCheckExitCode(aCategory, 0));
-    end;
-  end;
-
-  lConfig := aOptions.fConfig;
-  if Trim(lConfig) = '' then
-    lConfig := 'Release';
-  lPlatform := aOptions.fPlatform;
-  if Trim(lPlatform) = '' then
-    lPlatform := 'Win32';
-
-  lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
   try
+    if aRunner = nil then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+      aError := 'Process runner is not assigned.';
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+
+    if not TryResolveDfmCheckProjectPath(aOptions.fDprojPath, lDprojPath, aError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+
+    lDelphiVersion := Trim(aOptions.fDelphiVersion);
+    if lDelphiVersion = '' then
+    begin
+      if not LoadDefaultDelphiVersion(lDprojPath, lDelphiVersion) then
+      begin
+        aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+        aError := 'Failed to read default Delphi version from dak.ini.';
+        Exit(MapDfmCheckExitCode(aCategory, 0));
+      end;
+      if lDelphiVersion <> '' then
+        EmitLine(aOutput, '[dfm-check] Using Delphi version from dak.ini: ' + lDelphiVersion);
+    end;
+    if (lDelphiVersion <> '') and (Pos('.', lDelphiVersion) = 0) then
+      lDelphiVersion := lDelphiVersion + '.0';
+
+    if aOptions.fHasRsVarsPath or (lDelphiVersion <> '') then
+    begin
+      EmitLine(aOutput, '[dfm-check] Loading RAD Studio environment from rsvars.bat...');
+      if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, aError) then
+      begin
+        aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+        Exit(MapDfmCheckExitCode(aCategory, 0));
+      end;
+    end;
+
+    lConfig := aOptions.fConfig;
+    if Trim(lConfig) = '' then
+      lConfig := 'Release';
+    lPlatform := aOptions.fPlatform;
+    if Trim(lPlatform) = '' then
+      lPlatform := 'Win32';
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+
     if not TryResolveInjectDir(lPaths.fInjectDir, aError) then
     begin
       aCategory := TDfmCheckErrorCategory.ecInjectFilesMissing;
@@ -1073,7 +1218,12 @@ begin
     if not aRunner.Run(lBuildExePath,
       QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build /p:Config=' + lConfig + ' /p:Platform=' + lPlatform +
       ' /p:DCC_ForceExecute=true /v:m',
-      lPaths.fGeneratedDir, aOutput, lExitCode, lRunnerError) then
+      lPaths.fGeneratedDir,
+      procedure(const aLine: string)
+      begin
+        lBuildLines.Add(aLine);
+        EmitLine(aOutput, aLine);
+      end, lExitCode, lRunnerError) then
     begin
       aCategory := TDfmCheckErrorCategory.ecBuildFailed;
       aError := 'MSBuild failed to start: ' + lRunnerError;
@@ -1081,8 +1231,16 @@ begin
     end;
     if lExitCode <> 0 then
     begin
-      aCategory := TDfmCheckErrorCategory.ecBuildFailed;
-      aError := Format('MSBuild exited with code %d.', [lExitCode]);
+      if IsGeneratedUnitBuildFailure(lBuildLines, lPaths) then
+      begin
+        aCategory := TDfmCheckErrorCategory.ecGeneratorIncompatible;
+        aError := Format('Generated *_DfmCheck_Unit.pas failed to compile (generator incompatibility). MSBuild exited with code %d.',
+          [lExitCode]);
+      end else
+      begin
+        aCategory := TDfmCheckErrorCategory.ecBuildFailed;
+        aError := Format('MSBuild exited with code %d.', [lExitCode]);
+      end;
       Exit(MapDfmCheckExitCode(aCategory, Integer(lExitCode)));
     end;
 
@@ -1103,6 +1261,7 @@ begin
     // Propagate streaming validator result directly: 0 = success, >0 = number of failed resources.
     Result := Integer(lExitCode);
   finally
+    lBuildLines.Free;
     if ShouldKeepArtifacts then
       EmitLine(aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).')
     else
