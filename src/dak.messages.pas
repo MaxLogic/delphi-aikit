@@ -37,7 +37,7 @@ resourcestring
     'DelphiAIKit.exe build --project "<path>" --delphi <23.0> ' +
     '[--platform <Win32|Win64>] [--config <Debug|Release>] [--target <Build|Rebuild>] [--rebuild [true|false]] ' +
     '[--json [true|false]] [--max-findings <N>] [--build-timeout-sec <N default 0>] [--test-output-dir "<path>"] ' +
-    '[--ai] [--show-warnings] [--show-hints] [--dfmcheck [true|false]] ' +
+    '[--ai] [--show-warnings] [--show-hints] [--dfmcheck] ' +
     '[--ignore-warnings "<list>"] [--ignore-hints "<list>"] [--exclude-path-masks "<list>"]';
   SUsageDfmCheck =
     'DelphiAIKit.exe dfm-check --dproj "<path>" [--config <Release|Debug>] [--platform <Win32|Win64>] ' +
