@@ -94,3 +94,4 @@ zip-project.bat
 
 # Python caches (skill wrappers)
 __pycache__/
+docs/delphi-dfm-checker/
