@@ -59,7 +59,7 @@ Additional build flags:
 - `--max-findings N` caps printed findings per category (default `5`).
 - `--build-timeout-sec N` terminates hung builds after `N` seconds (`0` disables timeout).
 - `--test-output-dir "<path>"` writes build artifacts to an isolated output directory.
-- `--dfmcheck` runs DFM streaming validation after a successful build (same as calling `dfm-check` separately).
+- `--dfmcheck` runs DFM streaming validation after a successful build (presence flag; same as calling `dfm-check` separately).
 
 ## Quick start
 
