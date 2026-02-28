@@ -1,6 +1,7 @@
 ---
 name: delphi-dfm-check
 description: Enforce Delphi DFM streaming validation for form-related changes via `dfm-check` or `build --dfmcheck`.
+version: "1.0"
 ---
 
 # Delphi DFM Check
