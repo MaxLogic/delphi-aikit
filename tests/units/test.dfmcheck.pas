@@ -42,6 +42,8 @@ type
     [Test]
     procedure PatchDprIsIdempotentAndPreservesSyntax;
     [Test]
+    procedure PatchDprInjectsAtMainBeginNotNestedBegin;
+    [Test]
     procedure MapExitCodePropagatesToolAndCategoryCodes;
     [Test]
     procedure PipelineHappyPathWithMockRunner;
@@ -294,6 +296,45 @@ begin
   Assert.AreEqual(37, MapDfmCheckExitCode(TDfmCheckErrorCategory.ecGeneratorIncompatible, 0));
   Assert.AreEqual(34, MapDfmCheckExitCode(TDfmCheckErrorCategory.ecBuildFailed, 0));
   Assert.AreEqual(9, MapDfmCheckExitCode(TDfmCheckErrorCategory.ecValidatorFailed, 9));
+end;
+
+procedure TDfmCheckTests.PatchDprInjectsAtMainBeginNotNestedBegin;
+var
+  lChanged: Boolean;
+  lError: string;
+  lIfBeginPos: Integer;
+  lInputText: string;
+  lInjectedPos: Integer;
+  lPatchedText: string;
+  lShowNegPos: Integer;
+begin
+  lInputText :=
+    'program Sample_DfmCheck;' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  System.SysUtils, Vcl.Forms;' + #13#10 +
+    #13#10 +
+    'begin' + #13#10 +
+    '  ShowNeg(mWait);' + #13#10 +
+    '  if PrimeInitialization.PerformInitialization then' + #13#10 +
+    '  begin' + #13#10 +
+    '    Application.CreateForm(TMainForm, MainForm);' + #13#10 +
+    '  end;' + #13#10 +
+    '  Application.Run;' + #13#10 +
+    'end.' + #13#10;
+
+  Assert.IsTrue(TryPatchDfmCheckDpr(lInputText, lPatchedText, lChanged, lError), 'Patch failed: ' + lError);
+  Assert.IsTrue(lChanged, 'Expected nested-begin DPR to be patched.');
+
+  lInjectedPos := Pos('ExitCode := TDfmStreamAll.Run;', lPatchedText);
+  Assert.IsTrue(lInjectedPos > 0, 'Expected validator injection in patched DPR.');
+  lShowNegPos := Pos('ShowNeg(mWait);', lPatchedText);
+  Assert.IsTrue(lShowNegPos > 0, 'Expected ShowNeg call in patched DPR.');
+  Assert.IsTrue(lInjectedPos < lShowNegPos,
+    'Expected validator injection before splash/login initialization statements.');
+  lIfBeginPos := Pos('if PrimeInitialization.PerformInitialization then' + #13#10 + '  begin', lPatchedText);
+  Assert.IsTrue(lIfBeginPos > 0, 'Expected nested IF begin block to remain unchanged.');
+  Assert.IsTrue(lInjectedPos < lIfBeginPos, 'Expected validator injection at main begin, not nested begin.');
 end;
 
 procedure TDfmCheckTests.PipelineHappyPathWithMockRunner;
