@@ -99,6 +99,53 @@ begin
   end;
 end;
 
+function TryFindMainProgramBegin(const aText: string; const aMainEndPos: Integer; out aBeginPos: Integer): Boolean;
+var
+  lBestPos: Integer;
+  lLinePrefix: string;
+  lMatch: TMatch;
+  lMatchCollection: TMatchCollection;
+  lPrefixText: string;
+begin
+  aBeginPos := 0;
+  if aMainEndPos <= 1 then
+    Exit(False);
+
+  lPrefixText := Copy(aText, 1, aMainEndPos - 1);
+  lMatchCollection := TRegEx.Matches(lPrefixText, '(^[ \t]*)begin[ \t]*$', [roIgnoreCase, roMultiLine]);
+  lBestPos := 0;
+  for lMatch in lMatchCollection do
+  begin
+    if not lMatch.Success or (lMatch.Groups.Count < 2) then
+      Continue;
+    lLinePrefix := lMatch.Groups[1].Value;
+    if Length(lLinePrefix) = 0 then
+      lBestPos := lMatch.Index + 1;
+  end;
+  if lBestPos <> 0 then
+  begin
+    aBeginPos := lBestPos;
+    Exit(True);
+  end;
+
+  for lMatch in lMatchCollection do
+  begin
+    if lMatch.Success then
+      lBestPos := lMatch.Index + 1;
+  end;
+  if lBestPos <> 0 then
+  begin
+    aBeginPos := lBestPos;
+    Exit(True);
+  end;
+
+  lBestPos := LastPosText('begin', LowerCase(lPrefixText));
+  if lBestPos = 0 then
+    Exit(False);
+  aBeginPos := lBestPos;
+  Result := True;
+end;
+
 function ContainsWord(const aText: string; const aWord: string): Boolean;
 begin
   Result := TRegEx.IsMatch(aText, '\b' + TRegEx.Escape(aWord) + '\b', [roIgnoreCase]);
@@ -847,7 +894,6 @@ var
   lUsesBody: string;
   lUsesText: string;
   lBeginPos: Integer;
-  lMainBlockPrefix: string;
   lMainEndPos: Integer;
   lSuffix: string;
 begin
@@ -918,9 +964,7 @@ begin
       Exit(False);
     end;
 
-    lMainBlockPrefix := Copy(lWorkText, 1, lMainEndPos - 1);
-    lBeginPos := LastPosText('begin', LowerCase(lMainBlockPrefix));
-    if lBeginPos = 0 then
+    if not TryFindMainProgramBegin(lWorkText, lMainEndPos, lBeginPos) then
     begin
       aError := 'Could not patch DPR: main "begin" not found.';
       Exit(False);
