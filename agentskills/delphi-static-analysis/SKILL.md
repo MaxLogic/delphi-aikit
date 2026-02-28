@@ -1,11 +1,11 @@
 ---
 name: delphi-static-analysis
 description: Run Delphi static analysis through DelphiAIKit wrappers with FixInsight and Pascal Analyzer enabled by default, then triage and apply safe verified fixes.
+version: "1.5"
 license: internal
 compatibility: "Requires Windows/WSL, DelphiAIKit.exe, FixInsightCL, PALCMD; commercial tool licenses may apply"
 metadata:
   tags: [delphi, static-analysis]
-  version: "1.5"
 disable-model-invocation: true
 allowed-tools:
   - read
