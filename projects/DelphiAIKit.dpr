@@ -278,6 +278,7 @@ var
   lErrorCode: integer;
   lExitCode: integer;
   lBuildExitCode: Integer;
+  lDfmCheckExitCode: Integer;
   lOutPath: string;
   lOk: boolean;
   lRunExit: Cardinal;
@@ -334,6 +335,12 @@ begin
             lExitCode := 6;
           end else begin
             lExitCode := lBuildExitCode;
+            if (lExitCode = 0) and lOptions.fBuildRunDfmCheck then
+            begin
+              WriteLn('[build] Running dfm-check validation...');
+              lDfmCheckExitCode := RunDfmCheckCommand(lOptions);
+              lExitCode := lDfmCheckExitCode;
+            end;
           end;
           lOk := False;
         end else if lOptions.fCommand = TCommandKind.ckDfmCheck then
