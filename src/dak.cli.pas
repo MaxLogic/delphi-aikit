@@ -129,8 +129,7 @@ var
       SameText(aSwitch, 'clean') or SameText(aSwitch, 'write-summary') or
       SameText(aSwitch, 'show-warnings') or SameText(aSwitch, 'show-hints') or
       SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
-      SameText(aSwitch, 'rebuild') or
-      SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check');
+      SameText(aSwitch, 'rebuild');
   end;
 
   function IsBoolToken(const aArg: string): Boolean;
@@ -978,13 +977,12 @@ begin
 
   if SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check') then
   begin
-    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--dfmcheck') then
-      Exit(False);
-    if not TryParseBool(lValue, fOptions.fBuildRunDfmCheck) then
+    if aHasInlineValue then
     begin
-      fError := Format(SInvalidBoolValue, ['--dfmcheck', lValue]);
+      fError := Format(SUnknownArg, [aArg]);
       Exit(False);
     end;
+    fOptions.fBuildRunDfmCheck := True;
     Exit(True);
   end;
 

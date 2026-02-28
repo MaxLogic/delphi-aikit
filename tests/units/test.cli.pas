@@ -41,6 +41,8 @@ type
     [Test]
     procedure BuildCommandDefaultsDfmCheckToFalse;
     [Test]
+    procedure BuildCommandRejectsDfmCheckValue;
+    [Test]
     procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
     [Test]
     procedure LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
@@ -266,6 +268,17 @@ begin
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected build args to parse. Error: ' + lError);
   Assert.AreEqual(TCommandKind.ckBuild, lOptions.fCommand, 'Expected build command kind.');
   Assert.IsFalse(lOptions.fBuildRunDfmCheck, 'Expected build to skip DFM validation by default.');
+end;
+
+procedure TCliTests.BuildCommandRejectsDfmCheckValue;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --delphi 23.0 --dfmcheck=false');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --dfmcheck value syntax to be rejected.');
+  Assert.IsTrue(Pos('Unknown argument: --dfmcheck=false', lError) > 0,
+    'Expected unknown-argument error for valued --dfmcheck. Actual: ' + lError);
 end;
 
 procedure TCliTests.AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
