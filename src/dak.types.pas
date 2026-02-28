@@ -78,8 +78,6 @@ type
     fAnalyzeClean: Boolean;
     fAnalyzeWriteSummary: Boolean;
     fUnitPath: string;
-    fDfmCheckExePath: string;
-    fHasDfmCheckExePath: Boolean;
   end;
 
   TFixInsightExtraOptions = record

@@ -7,6 +7,12 @@ uses
   System.SysUtils,
   DUnitX.TestFramework,
   DUnitX.Loggers.Console,
+  DfmCheck_AppConsts in '..\\lib\\DFMCheck\\Source\\DfmCheck_AppConsts.pas',
+  DfmCheck_DfmCheck in '..\\lib\\DFMCheck\\Source\\DfmCheck_DfmCheck.pas',
+  DfmCheck_Options in '..\\lib\\DFMCheck\\Source\\DfmCheck_Options.pas',
+  DfmCheck_PascalParser in '..\\lib\\DFMCheck\\Source\\DfmCheck_PascalParser.pas',
+  DfmCheck_Utils in '..\\lib\\DFMCheck\\Source\\DfmCheck_Utils.pas',
+  ProjectFileReader in '..\\lib\\DFMCheck\\Source\\Console\\ProjectFileReader.pas',
   Test.Support in 'units\\test.support.pas',
   Test.Build in 'units\\test.build.pas',
   Test.Cli in 'units\\test.cli.pas',
@@ -16,7 +22,8 @@ uses
   Test.MsBuild in 'units\\test.msbuild.pas',
   Test.PalFindingNormalize in 'units\\test.palfindingnormalize.pas',
   Test.ReportPostProcess in 'units\\test.reportpostprocess.pas',
-  Test.PascalAnalyzer in 'units\\test.pascalanalyzer.pas';
+  Test.PascalAnalyzer in 'units\\test.pascalanalyzer.pas',
+  ToolsAPIRepl in '..\\lib\\DFMCheck\\Source\\Console\\ToolsAPIRepl.pas';
 
 var
   Runner: ITestRunner;

@@ -111,7 +111,6 @@ var
       SameText(aSwitch, 'ignore-warning-ids') or SameText(aSwitch, 'unit') or
       SameText(aSwitch, 'fi-formats') or SameText(aSwitch, 'pa-path') or
       SameText(aSwitch, 'pa-output') or SameText(aSwitch, 'pa-args') or
-      SameText(aSwitch, 'dfmcheck') or
       SameText(aSwitch, 'target') or SameText(aSwitch, 'max-findings') or
       SameText(aSwitch, 'build-timeout-sec') or SameText(aSwitch, 'test-output-dir') or
       SameText(aSwitch, 'ignore-warnings') or SameText(aSwitch, 'ignore-hints');
@@ -432,7 +431,7 @@ begin
     SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
     SameText(aSwitch, 'target') or SameText(aSwitch, 'rebuild') or
     SameText(aSwitch, 'max-findings') or SameText(aSwitch, 'build-timeout-sec') or
-    SameText(aSwitch, 'test-output-dir') or SameText(aSwitch, 'dfmcheck') or
+    SameText(aSwitch, 'test-output-dir') or
     SameText(aSwitch, 'ignore-warnings') or
     SameText(aSwitch, 'ignore-hints');
 end;
@@ -1075,18 +1074,7 @@ end;
 
 function TOptionParser.TryParseDfmCheckSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
-var
-  lValue: string;
 begin
-  if SameText(aSwitch, 'dfmcheck') then
-  begin
-    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--dfmcheck') then
-      Exit(False);
-    fOptions.fDfmCheckExePath := lValue;
-    fOptions.fHasDfmCheckExePath := True;
-    Exit(True);
-  end;
-
   fError := Format(SUnknownArg, [aArg]);
   Result := False;
 end;
@@ -1161,11 +1149,6 @@ begin
     if fOptions.fDprojPath = '' then
     begin
       fError := Format(SArgMissingValue, ['--dproj']);
-      Exit(False);
-    end;
-    if fOptions.fDfmCheckExePath = '' then
-    begin
-      fError := Format(SArgMissingValue, ['--dfmcheck']);
       Exit(False);
     end;
   end;

@@ -40,8 +40,8 @@ resourcestring
     '[--ai] [--show-warnings] [--show-hints] ' +
     '[--ignore-warnings "<list>"] [--ignore-hints "<list>"] [--exclude-path-masks "<list>"]';
   SUsageDfmCheck =
-    'DelphiAIKit.exe dfm-check --dproj "<path>" --dfmcheck "<path to DFMCheck.exe>" ' +
-    '[--config <Release|Debug>] [--platform <Win32|Win64>] [--rsvars "<path>"]';
+    'DelphiAIKit.exe dfm-check --dproj "<path>" [--config <Release|Debug>] [--platform <Win32|Win64>] ' +
+    '[--rsvars "<path>"]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';

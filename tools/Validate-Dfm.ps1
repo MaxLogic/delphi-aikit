@@ -2,9 +2,6 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$Dproj,
 
-  [Parameter(Mandatory = $true)]
-  [string]$DfmCheckExe,
-
   [string]$Config = "Release",
   [string]$Platform = "Win32",
   [string]$RsVarsBat = ""
@@ -23,7 +20,6 @@ if (!(Test-Path $cliExe)) {
 $args = @(
   "dfm-check",
   "--dproj", $Dproj,
-  "--dfmcheck", $DfmCheckExe,
   "--config", $Config,
   "--platform", $Platform
 )
@@ -34,7 +30,6 @@ if ($RsVarsBat -ne "") {
 
 Write-Host "Running DelphiAIKit dfm-check..."
 Write-Host "  Dproj      : $Dproj"
-Write-Host "  DFMCheck   : $DfmCheckExe"
 Write-Host "  Config     : $Config"
 Write-Host "  Platform   : $Platform"
 if ($RsVarsBat -ne "") { Write-Host "  RsVars     : $RsVarsBat" }

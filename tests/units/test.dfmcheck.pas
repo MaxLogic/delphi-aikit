@@ -4,7 +4,7 @@ interface
 
 uses
   DUnitX.TestFramework,
-  System.Classes, System.IOUtils, System.SysUtils,
+  System.Classes, System.IOUtils, System.StrUtils, System.SysUtils,
   Winapi.Windows,
   Dak.DfmCheck, Dak.Types,
   Test.Support;
@@ -14,27 +14,23 @@ type
 
   TMockDfmCheckRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
   private
-    fMode: TMockValidatorMode;
-    fProjectDproj: string;
+    fGeneratedDproj: string;
     fConfig: string;
+    fMode: TMockValidatorMode;
     fPlatform: string;
     fRunCount: Integer;
-    fGeneratedDir: string;
-    fGeneratedDproj: string;
-    fGeneratedDpr: string;
+    function ReadFirstArg(const aArguments: string): string;
   public
-    constructor Create(const aMode: TMockValidatorMode; const aProjectDproj: string; const aConfig: string;
-      const aPlatform: string);
+    constructor Create(const aMode: TMockValidatorMode; const aConfig: string; const aPlatform: string);
     function Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
       const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
-    property GeneratedDpr: string read fGeneratedDpr;
   end;
 
   [TestFixture]
   TDfmCheckTests = class
   private
     procedure WriteInjectStubs(const aInjectDir: string);
-    procedure CreateFixtureProject(out aProjectDproj: string; out aDfmCheckExePath: string);
+    procedure CreateFixtureProject(out aProjectDproj: string);
     function JoinOutput(const aLines: TStrings): string;
   public
     [Test]
@@ -53,24 +49,42 @@ type
 
 implementation
 
-constructor TMockDfmCheckRunner.Create(const aMode: TMockValidatorMode; const aProjectDproj: string;
-  const aConfig: string; const aPlatform: string);
+constructor TMockDfmCheckRunner.Create(const aMode: TMockValidatorMode; const aConfig: string; const aPlatform: string);
 begin
   inherited Create;
   fMode := aMode;
-  fProjectDproj := aProjectDproj;
   fConfig := aConfig;
   fPlatform := aPlatform;
   fRunCount := 0;
 end;
 
+function TMockDfmCheckRunner.ReadFirstArg(const aArguments: string): string;
+var
+  lArgs: string;
+  lPos: Integer;
+begin
+  lArgs := Trim(aArguments);
+  if lArgs = '' then
+    Exit('');
+  if lArgs[1] = '"' then
+  begin
+    lPos := PosEx('"', lArgs, 2);
+    if lPos > 1 then
+      Exit(Copy(lArgs, 2, lPos - 2));
+  end;
+  lPos := Pos(' ', lArgs);
+  if lPos > 0 then
+    Result := Copy(lArgs, 1, lPos - 1)
+  else
+    Result := lArgs;
+end;
+
 function TMockDfmCheckRunner.Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
   const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
 var
-  lProjectDir: string;
-  lProjectName: string;
-  lValidatorDir: string;
+  lDprojPath: string;
   lValidatorExePath: string;
+  lValidatorDir: string;
 begin
   Result := True;
   aError := '';
@@ -79,34 +93,21 @@ begin
 
   if fRunCount = 1 then
   begin
-    lProjectName := TPath.GetFileNameWithoutExtension(fProjectDproj);
-    lProjectDir := ExtractFilePath(fProjectDproj);
-    fGeneratedDir := TPath.Combine(lProjectDir, lProjectName + '_DfmCheck');
-    fGeneratedDproj := TPath.Combine(fGeneratedDir, lProjectName + '_DfmCheck.dproj');
-    fGeneratedDpr := TPath.Combine(fGeneratedDir, lProjectName + '_DfmCheck.dpr');
-    TDirectory.CreateDirectory(fGeneratedDir);
-    TFile.WriteAllText(fGeneratedDproj, '<Project/>', TEncoding.UTF8);
-    TFile.WriteAllText(fGeneratedDpr,
-      'program ' + lProjectName + '_DfmCheck;' + #13#10 +
-      #13#10 +
-      'uses' + #13#10 +
-      '  System.SysUtils;' + #13#10 +
-      #13#10 +
-      'begin' + #13#10 +
-      'end.' + #13#10, TEncoding.UTF8);
-    Exit(True);
-  end;
-
-  if fRunCount = 2 then
-  begin
-    lValidatorDir := TPath.Combine(TPath.Combine(fGeneratedDir, fPlatform), fConfig);
+    lDprojPath := ReadFirstArg(aArguments);
+    if lDprojPath = '' then
+    begin
+      aError := 'Mock expected generated dproj as first msbuild argument.';
+      Exit(False);
+    end;
+    fGeneratedDproj := lDprojPath;
+    lValidatorDir := TPath.Combine(TPath.Combine(aWorkingDir, fPlatform), fConfig);
     TDirectory.CreateDirectory(lValidatorDir);
-    lValidatorExePath := TPath.Combine(lValidatorDir, TPath.GetFileNameWithoutExtension(fGeneratedDproj) + '.exe');
+    lValidatorExePath := TPath.Combine(lValidatorDir, TPath.GetFileNameWithoutExtension(lDprojPath) + '.exe');
     TFile.WriteAllText(lValidatorExePath, 'mock', TEncoding.ASCII);
     Exit(True);
   end;
 
-  if fRunCount = 3 then
+  if fRunCount = 2 then
   begin
     if Assigned(aOutput) then
     begin
@@ -140,8 +141,11 @@ begin
     'unit DfmStreamAll; interface implementation end.', TEncoding.UTF8);
 end;
 
-procedure TDfmCheckTests.CreateFixtureProject(out aProjectDproj: string; out aDfmCheckExePath: string);
+procedure TDfmCheckTests.CreateFixtureProject(out aProjectDproj: string);
 var
+  lDprPath: string;
+  lMainFormDfmPath: string;
+  lMainFormPasPath: string;
   lRoot: string;
 begin
   lRoot := TPath.Combine(TempRoot, 'dfm-check-fixture');
@@ -150,12 +154,49 @@ begin
   TDirectory.CreateDirectory(lRoot);
 
   aProjectDproj := TPath.Combine(lRoot, 'Sample.dproj');
-  TFile.WriteAllText(aProjectDproj, '<Project/>', TEncoding.UTF8);
-  TFile.WriteAllText(TPath.ChangeExtension(aProjectDproj, '.dpr'),
-    'program Sample;' + #13#10 + 'begin' + #13#10 + 'end.' + #13#10, TEncoding.UTF8);
+  lDprPath := TPath.ChangeExtension(aProjectDproj, '.dpr');
+  lMainFormPasPath := TPath.Combine(lRoot, 'MainForm.pas');
+  lMainFormDfmPath := TPath.Combine(lRoot, 'MainForm.dfm');
 
-  aDfmCheckExePath := TPath.Combine(lRoot, 'DFMCheck.exe');
-  TFile.WriteAllText(aDfmCheckExePath, 'mock', TEncoding.ASCII);
+  TFile.WriteAllText(aProjectDproj,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
+    '  <PropertyGroup>' + #13#10 +
+    '    <MainSource>Sample.dpr</MainSource>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '</Project>' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(lDprPath,
+    'program Sample;' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  Vcl.Forms,' + #13#10 +
+    '  MainForm in ''MainForm.pas'' {MainForm};' + #13#10 +
+    #13#10 +
+    'begin' + #13#10 +
+    'end.' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(lMainFormPasPath,
+    'unit MainForm;' + #13#10 +
+    #13#10 +
+    'interface' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  System.Classes, Vcl.Forms;' + #13#10 +
+    #13#10 +
+    'type' + #13#10 +
+    '  TMainForm = class(TForm)' + #13#10 +
+    '  end;' + #13#10 +
+    #13#10 +
+    'implementation' + #13#10 +
+    #13#10 +
+    '{$R *.dfm}' + #13#10 +
+    #13#10 +
+    'end.' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(lMainFormDfmPath,
+    'object MainForm: TMainForm' + #13#10 +
+    '  Caption = ''MainForm''' + #13#10 +
+    'end' + #13#10, TEncoding.UTF8);
 end;
 
 function TDfmCheckTests.JoinOutput(const aLines: TStrings): string;
@@ -166,11 +207,10 @@ end;
 procedure TDfmCheckTests.ResolveProjectPathMapsDprToSiblingDproj;
 var
   lDprojPath: string;
-  lDfmCheckExePath: string;
   lResolvedPath: string;
   lError: string;
 begin
-  CreateFixtureProject(lDprojPath, lDfmCheckExePath);
+  CreateFixtureProject(lDprojPath);
   Assert.IsTrue(TryResolveDfmCheckProjectPath(TPath.ChangeExtension(lDprojPath, '.dpr'), lResolvedPath, lError),
     'Expected .dpr input to map to sibling .dproj. Error: ' + lError);
   Assert.AreEqual(lDprojPath, lResolvedPath);
@@ -179,10 +219,9 @@ end;
 procedure TDfmCheckTests.BuildExpectedPathsIsDeterministic;
 var
   lDprojPath: string;
-  lDfmCheckExePath: string;
   lPaths: TDfmCheckPaths;
 begin
-  CreateFixtureProject(lDprojPath, lDfmCheckExePath);
+  CreateFixtureProject(lDprojPath);
   lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
   Assert.AreEqual(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck'),
     ExcludeTrailingPathDelimiter(lPaths.fGeneratedDir));
@@ -235,20 +274,19 @@ procedure TDfmCheckTests.PipelineHappyPathWithMockRunner;
 var
   lCategory: TDfmCheckErrorCategory;
   lDprojPath: string;
-  lDfmCheckExePath: string;
   lError: string;
   lInjectDir: string;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
+  lPaths: TDfmCheckPaths;
   lPrevInjectEnv: string;
   lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunner: IDfmCheckProcessRunner;
-  lRunnerObj: TMockDfmCheckRunner;
   lPatchedDprText: string;
 begin
-  CreateFixtureProject(lDprojPath, lDfmCheckExePath);
+  CreateFixtureProject(lDprojPath);
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-happy');
   WriteInjectStubs(lInjectDir);
 
@@ -258,12 +296,9 @@ begin
   SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
   lOutputLines := TStringList.Create;
   try
-    lRunnerObj := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, lDprojPath, 'Release', 'Win32');
-    lRunner := lRunnerObj;
+    lRunner := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
-    lOptions.fDfmCheckExePath := lDfmCheckExePath;
-    lOptions.fHasDfmCheckExePath := True;
     lOptions.fConfig := 'Release';
     lOptions.fPlatform := 'Win32';
 
@@ -278,14 +313,17 @@ begin
     Assert.AreEqual('', lError, 'Did not expect an error message in happy path.');
 
     lOutputText := JoinOutput(lOutputLines);
-    Assert.IsTrue(Pos('[dfm-check] Running DFMCheck...', lOutputText) > 0, 'Missing DFMCheck stage log.');
+    Assert.IsTrue(Pos('[dfm-check] Generating DFMCheck project...', lOutputText) > 0,
+      'Missing DFMCheck generation stage log.');
     Assert.IsTrue(Pos('[dfm-check] Building generated DfmCheck project via MSBuild...', lOutputText) > 0,
       'Missing MSBuild stage log.');
     Assert.IsTrue(Pos('[dfm-check] Running validator exe...', lOutputText) > 0, 'Missing validator stage log.');
     Assert.IsTrue(Pos('OK   MAINFORM', lOutputText) > 0, 'Expected OK resource output from validator stage.');
     Assert.IsFalse(Pos('NON_DFM', lOutputText) > 0, 'Non-DFM resources should not be emitted in validator output.');
 
-    lPatchedDprText := TFile.ReadAllText(lRunnerObj.GeneratedDpr);
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lPatchedDprText := TFile.ReadAllText(lPaths.fGeneratedDpr);
     Assert.IsTrue(Pos('DfmStreamAll,', lPatchedDprText) > 0, 'Expected DfmStreamAll in patched DPR.');
     Assert.IsTrue(Pos('ExitCode := TDfmStreamAll.Run;', lPatchedDprText) > 0,
       'Expected ExitCode assignment in patched DPR.');
@@ -300,7 +338,6 @@ procedure TDfmCheckTests.PipelineBrokenDfmPropagatesValidatorExitAndFailText;
 var
   lCategory: TDfmCheckErrorCategory;
   lDprojPath: string;
-  lDfmCheckExePath: string;
   lError: string;
   lInjectDir: string;
   lOptions: TAppOptions;
@@ -311,7 +348,7 @@ var
   lResult: Integer;
   lRunner: IDfmCheckProcessRunner;
 begin
-  CreateFixtureProject(lDprojPath, lDfmCheckExePath);
+  CreateFixtureProject(lDprojPath);
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-broken');
   WriteInjectStubs(lInjectDir);
 
@@ -321,11 +358,9 @@ begin
   SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
   lOutputLines := TStringList.Create;
   try
-    lRunner := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBroken, lDprojPath, 'Release', 'Win32');
+    lRunner := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBroken, 'Release', 'Win32');
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
-    lOptions.fDfmCheckExePath := lDfmCheckExePath;
-    lOptions.fHasDfmCheckExePath := True;
     lOptions.fConfig := 'Release';
     lOptions.fPlatform := 'Win32';
 
