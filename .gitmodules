@@ -2,3 +2,7 @@
 	path = lib/MaxLogicFoundation
 	url = https://github.com/MaxLogic/MaxLogicFoundation
 	branch = main
+[submodule "lib/DFMCheck"]
+	path = lib/DFMCheck
+	url = https://github.com/MaxLogic/DFMCheck.git
+	branch = main

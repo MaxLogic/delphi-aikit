@@ -35,7 +35,7 @@ type
     [Test]
     procedure DfmCheckCommandParsesRequiredFlagsAndDefaults;
     [Test]
-    procedure DfmCheckCommandRequiresDfmCheckPath;
+    procedure DfmCheckCommandRequiresDproj;
     [Test]
     procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
     [Test]
@@ -223,25 +223,23 @@ var
   lOptions: TAppOptions;
   lError: string;
 begin
-  SetParams('dfm-check --dproj C:\repo\Sample.dproj --dfmcheck C:\tools\DFMCheck.exe');
+  SetParams('dfm-check --dproj C:\repo\Sample.dproj');
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected dfm-check args to parse. Error: ' + lError);
   Assert.AreEqual(TCommandKind.ckDfmCheck, lOptions.fCommand, 'Expected dfm-check command kind.');
   Assert.AreEqual('C:\repo\Sample.dproj', lOptions.fDprojPath, 'Unexpected --dproj parsing result.');
-  Assert.AreEqual('C:\tools\DFMCheck.exe', lOptions.fDfmCheckExePath, 'Unexpected --dfmcheck parsing result.');
-  Assert.IsTrue(lOptions.fHasDfmCheckExePath, 'Expected --dfmcheck marker to be set.');
   Assert.AreEqual('Release', lOptions.fConfig, 'Expected default config for dfm-check command.');
   Assert.AreEqual('Win32', lOptions.fPlatform, 'Expected default platform for dfm-check command.');
 end;
 
-procedure TCliTests.DfmCheckCommandRequiresDfmCheckPath;
+procedure TCliTests.DfmCheckCommandRequiresDproj;
 var
   lOptions: TAppOptions;
   lError: string;
 begin
-  SetParams('dfm-check --dproj C:\repo\Sample.dproj');
-  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected dfm-check parsing to fail without --dfmcheck.');
-  Assert.IsTrue(Pos('Missing value for parameter: --dfmcheck', lError) > 0,
-    'Expected missing --dfmcheck error. Actual: ' + lError);
+  SetParams('dfm-check --platform Win32');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected dfm-check parsing to fail without --dproj.');
+  Assert.IsTrue(Pos('Missing value for parameter: --dproj', lError) > 0,
+    'Expected missing --dproj error. Actual: ' + lError);
 end;
 
 procedure TCliTests.AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;

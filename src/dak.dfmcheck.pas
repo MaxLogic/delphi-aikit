@@ -5,6 +5,7 @@ interface
 uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
   Winapi.Windows,
+  DfmCheck_DfmCheck, DfmCheck_Options, DfmCheck_Utils, ToolsAPIRepl,
   Dak.Messages, Dak.RsVars, Dak.Types;
 
 type
@@ -252,6 +253,159 @@ begin
   Result := False;
 end;
 
+function TryResolveGeneratorProjectPath(const aDprojPath: string; out aSourceProjectPath: string;
+  out aMainSourceRaw: string; out aError: string): Boolean;
+var
+  lCandidatePath: string;
+  lDprojDir: string;
+  lDprojText: string;
+  lMatch: TMatch;
+begin
+  aSourceProjectPath := '';
+  aMainSourceRaw := '';
+  aError := '';
+
+  lCandidatePath := TPath.ChangeExtension(aDprojPath, '.dpr');
+  if FileExists(lCandidatePath) then
+  begin
+    aSourceProjectPath := lCandidatePath;
+    aMainSourceRaw := ExtractFileName(lCandidatePath);
+    Exit(True);
+  end;
+
+  lDprojText := TFile.ReadAllText(aDprojPath);
+  lMatch := TRegEx.Match(lDprojText, '<MainSource>\s*([^<]+?)\s*</MainSource>', [roIgnoreCase, roSingleLine]);
+  if lMatch.Success and (lMatch.Groups.Count > 1) then
+  begin
+    aMainSourceRaw := Trim(lMatch.Groups[1].Value);
+    if aMainSourceRaw <> '' then
+    begin
+      lDprojDir := ExcludeTrailingPathDelimiter(ExtractFilePath(aDprojPath));
+      lCandidatePath := TPath.Combine(lDprojDir, aMainSourceRaw);
+      lCandidatePath := TPath.GetFullPath(lCandidatePath);
+      if FileExists(lCandidatePath) then
+      begin
+        aSourceProjectPath := lCandidatePath;
+        Exit(True);
+      end;
+    end;
+  end;
+
+  aError := 'Could not resolve MainSource (.dpr/.dpk) from .dproj: ' + aDprojPath;
+  Result := False;
+end;
+
+function TryCopyDprojWithNewMainSource(const aSourceDprojPath: string; const aDestDprojPath: string;
+  const aSourceMainSource: string; const aGeneratedMainSource: string; out aError: string): Boolean;
+var
+  lSourceText: string;
+  lOutputText: string;
+  lRegex: string;
+begin
+  aError := '';
+  lSourceText := TFile.ReadAllText(aSourceDprojPath);
+  lOutputText := lSourceText;
+  lRegex := '<MainSource>\s*' + TRegEx.Escape(aSourceMainSource) + '\s*</MainSource>';
+
+  lOutputText := TRegEx.Replace(lOutputText, lRegex, '<MainSource>' + aGeneratedMainSource + '</MainSource>',
+    [roIgnoreCase, roSingleLine]);
+  if lOutputText = lSourceText then
+    lOutputText := TRegEx.Replace(lOutputText, '<MainSource>\s*([^<]+?)\s*</MainSource>',
+      '<MainSource>' + aGeneratedMainSource + '</MainSource>', [roIgnoreCase, roSingleLine]);
+
+  if lOutputText = lSourceText then
+  begin
+    aError := 'Could not patch generated .dproj MainSource.';
+    Exit(False);
+  end;
+
+  TFile.WriteAllText(aDestDprojPath, lOutputText, TEncoding.UTF8);
+  Result := True;
+end;
+
+function TryGenerateDfmCheckProject(const aDprojPath: string; var aPaths: TDfmCheckPaths; out aError: string): Boolean;
+var
+  lCheck: TDfmCheck;
+  lContent: string;
+  lGeneratedCfgPath: string;
+  lGeneratedDprPath: string;
+  lGeneratedDprName: string;
+  lGeneratedDprojPath: string;
+  lGeneratedDprojName: string;
+  lGeneratedUnitPath: string;
+  lMainSourceRaw: string;
+  lOptionsObj: TOptions;
+  lSourceCfgPath: string;
+  lSourceProjectExt: string;
+  lSourceProjectPath: string;
+  lProject: IOTAProject;
+begin
+  aError := '';
+  if not TryResolveGeneratorProjectPath(aDprojPath, lSourceProjectPath, lMainSourceRaw, aError) then
+    Exit(False);
+
+  lSourceProjectExt := LowerCase(TPath.GetExtension(lSourceProjectPath));
+  if not SameText(lSourceProjectExt, '.dpr') then
+  begin
+    aError := 'Only Delphi .dpr MainSource projects are supported for dfm-check.';
+    Exit(False);
+  end;
+
+  lOptionsObj := TOptions.Create;
+  Options := lOptionsObj;
+  try
+    lProject := LoadProject(lSourceProjectPath);
+    if (lProject = nil) or (lProject.ModuleCount = 0) then
+    begin
+      aError := 'DFMCheck generator found no form modules in: ' + lSourceProjectPath;
+      Exit(False);
+    end;
+
+    lCheck := TDfmCheck.Create(lProject);
+    try
+      lCheck.CheckForms(True, False);
+      lGeneratedUnitPath := lCheck.ProjectFileNameDfmCheckUnit;
+    finally
+      lCheck.Free;
+    end;
+  finally
+    Options := nil;
+    lOptionsObj.Free;
+  end;
+
+  if not FileExists(lGeneratedUnitPath) then
+  begin
+    aError := 'Generated DFMCheck unit not found: ' + lGeneratedUnitPath;
+    Exit(False);
+  end;
+
+  lGeneratedDprName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dpr';
+  lGeneratedDprojName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dproj';
+  lGeneratedDprPath := TPath.Combine(aPaths.fProjectDir, lGeneratedDprName);
+  lGeneratedDprojPath := TPath.Combine(aPaths.fProjectDir, lGeneratedDprojName);
+  lGeneratedCfgPath := TPath.ChangeExtension(lGeneratedDprPath, '.cfg');
+
+  lContent := TFile.ReadAllText(lSourceProjectPath);
+  if not AppendProjectUnit(lContent, ExtractFileName(lGeneratedUnitPath)) then
+  begin
+    aError := 'Could not append generated DFMCheck unit to project source.';
+    Exit(False);
+  end;
+  TFile.WriteAllText(lGeneratedDprPath, lContent, TEncoding.UTF8);
+
+  lSourceCfgPath := TPath.ChangeExtension(lSourceProjectPath, '.cfg');
+  if FileExists(lSourceCfgPath) then
+    TFile.Copy(lSourceCfgPath, lGeneratedCfgPath, True);
+
+  if not TryCopyDprojWithNewMainSource(aDprojPath, lGeneratedDprojPath, lMainSourceRaw, lGeneratedDprName, aError) then
+    Exit(False);
+
+  aPaths.fGeneratedDir := aPaths.fProjectDir;
+  aPaths.fGeneratedDpr := lGeneratedDprPath;
+  aPaths.fGeneratedDproj := lGeneratedDprojPath;
+  Result := True;
+end;
+
 function GetFirstSortedFile(const aDirectoryPath: string; const aPattern: string): string;
 var
   lFileArray: TArray<string>;
@@ -282,6 +436,8 @@ end;
 
 function TryLocateGeneratedDfmCheckProject(var aPaths: TDfmCheckPaths; out aError: string): Boolean;
 var
+  lDirectDproj: string;
+  lDirectDpr: string;
   lDirectoryArray: TArray<string>;
   lDirectoryList: TStringList;
   lDirectoryPath: string;
@@ -324,6 +480,20 @@ begin
         aPaths.fGeneratedDpr := lFoundDpr;
         Exit(True);
       end;
+    end;
+
+    lDirectDproj := TPath.Combine(aPaths.fProjectDir, aPaths.fProjectName + '_DfmCheck.dproj');
+    if not FileExists(lDirectDproj) then
+      lDirectDproj := GetFirstSortedFile(aPaths.fProjectDir, '*_DfmCheck.dproj');
+    lDirectDpr := TPath.Combine(aPaths.fProjectDir, aPaths.fProjectName + '_DfmCheck.dpr');
+    if not FileExists(lDirectDpr) then
+      lDirectDpr := GetFirstSortedFile(aPaths.fProjectDir, '*_DfmCheck.dpr');
+    if (lDirectDproj <> '') and (lDirectDpr <> '') then
+    begin
+      aPaths.fGeneratedDir := aPaths.fProjectDir;
+      aPaths.fGeneratedDproj := lDirectDproj;
+      aPaths.fGeneratedDpr := lDirectDpr;
+      Exit(True);
     end;
   finally
     lDirectoryList.Free;
@@ -538,7 +708,6 @@ function RunDfmCheckPipeline(const aOptions: TAppOptions; const aRunner: IDfmChe
   const aOutput: TDfmCheckOutputProc; out aCategory: TDfmCheckErrorCategory; out aError: string): Integer;
 var
   lDprojPath: string;
-  lDfmCheckExePath: string;
   lPaths: TDfmCheckPaths;
   lText: string;
   lPatchedText: string;
@@ -565,18 +734,6 @@ begin
   if not TryResolveDfmCheckProjectPath(aOptions.fDprojPath, lDprojPath, aError) then
   begin
     aCategory := TDfmCheckErrorCategory.ecInvalidInput;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-
-  if not TryResolveAbsolutePath(aOptions.fDfmCheckExePath, lDfmCheckExePath, aError) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecInvalidInput;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-  if not FileExists(lDfmCheckExePath) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecToolNotFound;
-    aError := Format(SFileNotFound, [lDfmCheckExePath]);
     Exit(MapDfmCheckExitCode(aCategory, 0));
   end;
 
@@ -612,19 +769,11 @@ begin
     Exit(MapDfmCheckExitCode(aCategory, 0));
   end;
 
-  EmitLine(aOutput, '[dfm-check] Running DFMCheck...');
-  if not aRunner.Run(lDfmCheckExePath, QuoteCmdArg(lDprojPath), lPaths.fProjectDir, aOutput, lExitCode, lRunnerError)
-  then
+  EmitLine(aOutput, '[dfm-check] Generating DFMCheck project...');
+  if not TryGenerateDfmCheckProject(lDprojPath, lPaths, aError) then
   begin
     aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
-    aError := 'DFMCheck failed to start: ' + lRunnerError;
     Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-  if lExitCode <> 0 then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
-    aError := Format('DFMCheck exited with code %d.', [lExitCode]);
-    Exit(MapDfmCheckExitCode(aCategory, Integer(lExitCode)));
   end;
 
   if not TryLocateGeneratedDfmCheckProject(lPaths, aError) then
