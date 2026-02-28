@@ -100,10 +100,10 @@ To run FixInsightCL directly, use `analyze` (FixInsight is on by default):
 bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0
 ```
 
-To validate DFMs in CI using DFMCheck-generated projects:
+To validate DFMs in CI using generated DFMCheck projects:
 
 ```
-bin\DelphiAIKit.exe dfm-check --dproj "C:\path\Project.dproj" --dfmcheck "C:\Tools\DFMCheck\DFMCheck.exe" --config Release --platform Win32
+bin\DelphiAIKit.exe dfm-check --dproj "C:\path\Project.dproj" --config Release --platform Win32
 ```
 
 Optional:
@@ -111,7 +111,7 @@ Optional:
 - `tools\Validate-Dfm.ps1` is a thin wrapper around the same CLI command.
 
 `dfm-check` stages:
-- run `DFMCheck.exe` on the input `.dproj`
+- generate `_DfmCheck` project files from `lib\DFMCheck`
 - inject `tools\inject\DfmStreamAll.pas` and `tools\inject\autoFree.pas` into `<Project>_DfmCheck`
 - patch generated `.dpr` to include `DfmStreamAll` and set `ExitCode := TDfmStreamAll.Run;`
 - build `_DfmCheck.dproj` via `msbuild`
