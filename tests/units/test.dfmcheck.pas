@@ -16,6 +16,7 @@ type
   private
     fGeneratedDproj: string;
     fConfig: string;
+    fMsBuildArguments: string;
     fMode: TMockValidatorMode;
     fPlatform: string;
     fRunCount: Integer;
@@ -24,6 +25,7 @@ type
     constructor Create(const aMode: TMockValidatorMode; const aConfig: string; const aPlatform: string);
     function Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
       const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
+    property MsBuildArguments: string read fMsBuildArguments;
   end;
 
   [TestFixture]
@@ -45,6 +47,8 @@ type
     procedure PipelineHappyPathWithMockRunner;
     [Test]
     procedure PipelineBrokenDfmPropagatesValidatorExitAndFailText;
+    [Test]
+    procedure PipelineCleansGeneratedArtifactsByDefault;
   end;
 
 implementation
@@ -93,6 +97,7 @@ begin
 
   if fRunCount = 1 then
   begin
+    fMsBuildArguments := aArguments;
     lDprojPath := ReadFirstArg(aArguments);
     if lDprojPath = '' then
     begin
@@ -276,6 +281,7 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
+  lKeepArtifactsEnv: string;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
@@ -283,6 +289,7 @@ var
   lPrevInjectEnv: string;
   lPrevMsBuildEnv: string;
   lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
   lPatchedDprText: string;
 begin
@@ -292,11 +299,14 @@ begin
 
   lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
   lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
   SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
   SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
   lOutputLines := TStringList.Create;
   try
-    lRunner := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
     lOptions.fConfig := 'Release';
@@ -320,6 +330,8 @@ begin
     Assert.IsTrue(Pos('[dfm-check] Running validator exe...', lOutputText) > 0, 'Missing validator stage log.');
     Assert.IsTrue(Pos('OK   MAINFORM', lOutputText) > 0, 'Expected OK resource output from validator stage.');
     Assert.IsFalse(Pos('NON_DFM', lOutputText) > 0, 'Non-DFM resources should not be emitted in validator output.');
+    Assert.IsTrue(Pos('/p:DCC_ForceExecute=true', lRunnerImpl.MsBuildArguments) > 0,
+      'Expected forced response-file mode in MSBuild arguments.');
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
@@ -330,6 +342,7 @@ begin
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
     lOutputLines.Free;
   end;
 end;
@@ -340,12 +353,14 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
+  lKeepArtifactsEnv: string;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
   lPrevInjectEnv: string;
   lPrevMsBuildEnv: string;
   lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
 begin
   CreateFixtureProject(lDprojPath);
@@ -354,11 +369,14 @@ begin
 
   lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
   lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
   SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
   SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
   lOutputLines := TStringList.Create;
   try
-    lRunner := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBroken, 'Release', 'Win32');
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBroken, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
     lOptions.fConfig := 'Release';
@@ -378,9 +396,70 @@ begin
     lOutputText := JoinOutput(lOutputLines);
     Assert.IsTrue(Pos('FAIL MAINFORM -> EReadError: Property FullRowSelect does not exist', lOutputText) > 0,
       'Expected broken DFM FAIL line with streaming exception text.');
+    Assert.IsTrue(Pos('/p:DCC_ForceExecute=true', lRunnerImpl.MsBuildArguments) > 0,
+      'Expected forced response-file mode in MSBuild arguments.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineCleansGeneratedArtifactsByDefault;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lPaths: TDfmCheckPaths;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-cleanup');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', nil);
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected cleanup happy path to return success.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, 'Unexpected error category for cleanup happy path.');
+    Assert.AreEqual('', lError, 'Did not expect an error message in cleanup happy path.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsFalse(FileExists(lPaths.fGeneratedDpr), 'Expected generated DPR to be cleaned up by default.');
+    Assert.IsFalse(FileExists(lPaths.fGeneratedDproj), 'Expected generated DPROJ to be cleaned up by default.');
+    Assert.IsFalse(FileExists(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Unit.pas')),
+      'Expected generated checker unit to be cleaned up by default.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
     lOutputLines.Free;
   end;
 end;
