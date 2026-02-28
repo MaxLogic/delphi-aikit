@@ -103,12 +103,21 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 - `--max-findings N`
 - `--build-timeout-sec N`
 - `--test-output-dir "<path>"`
+- `--dfmcheck` (presence flag; when present, run DFM validation after a successful build)
 - `--show-warnings`, `--show-hints`
 - `--ai`, `--json`
 
 ## Workflow
 
 1. Run build with `--ai`.
-2. If automation needs structured output, rerun with `--json`.
-3. If output is locked, either stop the locking process or use `--test-output-dir`.
-4. Report actionable diagnostics with exact failing unit/error line and next fix step.
+2. Add `--dfmcheck` when we want build + DFM streaming validation in one call.
+3. If automation needs structured output, rerun with `--json`.
+4. If output is locked, either stop the locking process or use `--test-output-dir`.
+5. Report actionable diagnostics with exact failing unit/error line and next fix step.
+
+Build plus DFM check example:
+
+```bash
+PROJECT_LINUX="_Source/ActiveAppView.dproj"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --dfmcheck --ai
+```
