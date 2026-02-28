@@ -18,7 +18,7 @@ Use this skill whenever we touch Delphi forms, frames, datamodules, or any `.dfm
 
 ## Environment Contract (same as delphi-build)
 
-Use the same environment variables as `agentskills/delphi-build`:
+Use the same environment variables as `delphi-build`:
 
 - `DAK_EXE` (required): absolute path to `DelphiAIKit.exe`
 - `DAK_BUILD_SH` (optional, WSL convenience)
@@ -53,7 +53,7 @@ Build with integrated DFM validation:
 ```
 
 `--dfmcheck` is a presence flag. If present, DFM validation runs after successful build.
-For broader build workflow and options, use `agentskills/delphi-build/SKILL.md`.
+For broader build workflow and options, use `delphi-build` skill.
 
 Defaults:
 
