@@ -8,9 +8,9 @@ This `spec.md` covers the main DelphiAIKit tool only.
 
 The repo also includes a repo-local agent skill for running static analysis via this tool:
 
-- Skill root: `agentskill/delphi-static-analysis/`
-- Skill entrypoint: `agentskill/delphi-static-analysis/SKILL.md`
-- Skill docs: `agentskill/delphi-static-analysis/README.md`, `agentskill/delphi-static-analysis/SETUP.md`, `agentskill/delphi-static-analysis/references/`
+- Skill root: `agentskills/delphi-static-analysis/`
+- Skill entrypoint: `agentskills/delphi-static-analysis/SKILL.md`
+- Skill docs: `agentskills/delphi-static-analysis/README.md`, `agentskills/delphi-static-analysis/SETUP.md`, `agentskills/delphi-static-analysis/references/`
 
 Keep skill workflow/output guidance in the skill docs (not in this spec).
 
