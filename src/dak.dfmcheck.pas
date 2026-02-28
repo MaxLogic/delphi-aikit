@@ -559,7 +559,14 @@ const
 var
   lContent: string;
   lEncoding: TEncoding;
+  lInputText: string;
+  lLine: string;
+  lMatch: TMatch;
+  lMatchCollection: TMatchCollection;
+  lUsesBlock: string;
+  lUsesUnits: TStringList;
   lUnitName: string;
+  i: Integer;
 begin
   aError := '';
   lUnitName := Trim(TPath.GetFileNameWithoutExtension(aGeneratedUnitPath));
@@ -569,11 +576,63 @@ begin
     Exit(False);
   end;
 
-  lContent :=
-    'unit ' + lUnitName + ';' + cLineBreak + cLineBreak +
-    'interface' + cLineBreak + cLineBreak +
-    'implementation' + cLineBreak + cLineBreak +
-    'end.' + cLineBreak;
+  if not FileExists(aGeneratedUnitPath) then
+  begin
+    aError := 'Generated checker unit not found: ' + aGeneratedUnitPath;
+    Exit(False);
+  end;
+
+  lInputText := TFile.ReadAllText(aGeneratedUnitPath);
+  lMatch := TRegEx.Match(lInputText, '\buses\b(.*?);', [roIgnoreCase, roSingleLine]);
+  if not lMatch.Success or (lMatch.Groups.Count < 2) then
+  begin
+    aError := 'Could not extract uses clause from generated checker unit: ' + aGeneratedUnitPath;
+    Exit(False);
+  end;
+
+  lUsesUnits := TStringList.Create;
+  try
+    lUsesUnits.CaseSensitive := False;
+    lUsesUnits.Sorted := False;
+    lUsesUnits.Duplicates := TDuplicates.dupIgnore;
+
+    lUsesBlock := lMatch.Groups[1].Value;
+    lMatchCollection := TRegEx.Matches(lUsesBlock, '[A-Za-z_][A-Za-z0-9_\.]*');
+    for lMatch in lMatchCollection do
+      lUsesUnits.Add(lMatch.Value);
+    if lUsesUnits.Count = 0 then
+    begin
+      aError := 'Generated checker unit uses clause is empty: ' + aGeneratedUnitPath;
+      Exit(False);
+    end;
+    if lUsesUnits.IndexOf('System.Classes') < 0 then
+      lUsesUnits.Add('System.Classes');
+
+    lContent :=
+      'unit ' + lUnitName + ';' + cLineBreak + cLineBreak +
+      'interface' + cLineBreak + cLineBreak +
+      'implementation' + cLineBreak + cLineBreak +
+      'uses' + cLineBreak;
+    for i := 0 to lUsesUnits.Count - 1 do
+    begin
+      lLine := '  ' + lUsesUnits[i];
+      if i < lUsesUnits.Count - 1 then
+        lLine := lLine + ','
+      else
+        lLine := lLine + ';';
+      lContent := lContent + lLine + cLineBreak;
+    end;
+    lContent := lContent + cLineBreak +
+      'procedure TouchDfmCheckUnits;' + cLineBreak +
+      'begin' + cLineBreak;
+    lContent := lContent +
+      'end;' + cLineBreak + cLineBreak +
+      'initialization' + cLineBreak +
+      '  TouchDfmCheckUnits;' + cLineBreak + cLineBreak +
+      'end.' + cLineBreak;
+  finally
+    lUsesUnits.Free;
+  end;
 
   lEncoding := TUTF8Encoding.Create(False);
   try
@@ -909,128 +968,51 @@ end;
 function TryFindValidatorExe(const aPaths: TDfmCheckPaths; const aPlatform: string; const aConfig: string;
   out aValidatorExePath: string; out aError: string): Boolean;
 var
-  lCandidateDir: string;
-  lExpectedExePath: string;
-  lExeArray: TArray<string>;
-  lExeList: TStringList;
-  lFallbackList: TStringList;
-  lGeneratedDirBin: string;
-  lExePath: string;
-  lNeedlePath: string;
   lExeBaseName: string;
-  lProjectDirBin: string;
+  lExpectedPathList: TStringList;
   lProjectParentDir: string;
-  lProjectParentDirBin: string;
-  lSearchDirs: TStringList;
+  lCandidatePath: string;
 begin
   aError := '';
   aValidatorExePath := '';
   lExeBaseName := TPath.GetFileNameWithoutExtension(aPaths.fGeneratedDproj) + '.exe';
-  lExpectedExePath := TPath.Combine(TPath.Combine(TPath.Combine(aPaths.fGeneratedDir, aPlatform), aConfig),
-    lExeBaseName);
-  if FileExists(lExpectedExePath) then
-  begin
-    aValidatorExePath := lExpectedExePath;
-    Exit(True);
-  end;
+  lProjectParentDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aPaths.fProjectDir));
 
-  lSearchDirs := TStringList.Create;
-  lExeList := TStringList.Create;
-  lFallbackList := TStringList.Create;
+  lExpectedPathList := TStringList.Create;
   try
-    lSearchDirs.CaseSensitive := False;
-    lSearchDirs.Sorted := True;
-    lSearchDirs.Duplicates := TDuplicates.dupIgnore;
-    if aPaths.fGeneratedDir <> '' then
-      lSearchDirs.Add(aPaths.fGeneratedDir);
-    lGeneratedDirBin := TPath.Combine(aPaths.fGeneratedDir, 'Bin');
-    if DirectoryExists(lGeneratedDirBin) then
-      lSearchDirs.Add(lGeneratedDirBin);
-    if aPaths.fProjectDir <> '' then
-      lSearchDirs.Add(aPaths.fProjectDir);
-    lProjectDirBin := TPath.Combine(aPaths.fProjectDir, 'Bin');
-    if DirectoryExists(lProjectDirBin) then
-      lSearchDirs.Add(lProjectDirBin);
-    lProjectParentDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aPaths.fProjectDir));
-    if lProjectParentDir <> '' then
-      lSearchDirs.Add(lProjectParentDir);
-    lProjectParentDirBin := TPath.Combine(lProjectParentDir, 'Bin');
-    if DirectoryExists(lProjectParentDirBin) then
-      lSearchDirs.Add(lProjectParentDirBin);
+    lExpectedPathList.CaseSensitive := False;
+    lExpectedPathList.Sorted := True;
+    lExpectedPathList.Duplicates := TDuplicates.dupIgnore;
 
-    lExeList.CaseSensitive := False;
-    lExeList.Sorted := True;
-    lExeList.Duplicates := TDuplicates.dupIgnore;
+    lExpectedPathList.Add(TPath.Combine(TPath.Combine(TPath.Combine(aPaths.fGeneratedDir, aPlatform), aConfig),
+      lExeBaseName));
+    lExpectedPathList.Add(TPath.Combine(TPath.Combine(TPath.Combine(aPaths.fGeneratedDir, 'Bin'), aPlatform),
+      TPath.Combine(aConfig, lExeBaseName)));
+    lExpectedPathList.Add(TPath.Combine(TPath.Combine(aPaths.fGeneratedDir, 'Bin'), lExeBaseName));
+    lExpectedPathList.Add(TPath.Combine(TPath.Combine(TPath.Combine(aPaths.fProjectDir, aPlatform), aConfig),
+      lExeBaseName));
+    lExpectedPathList.Add(TPath.Combine(TPath.Combine(TPath.Combine(aPaths.fProjectDir, 'Bin'), aPlatform),
+      TPath.Combine(aConfig, lExeBaseName)));
+    lExpectedPathList.Add(TPath.Combine(TPath.Combine(aPaths.fProjectDir, 'Bin'), lExeBaseName));
+    lExpectedPathList.Add(TPath.Combine(TPath.Combine(TPath.Combine(lProjectParentDir, 'Bin'), aPlatform),
+      TPath.Combine(aConfig, lExeBaseName)));
+    lExpectedPathList.Add(TPath.Combine(TPath.Combine(lProjectParentDir, 'Bin'), lExeBaseName));
+    lExpectedPathList.Add(TPath.Combine(aPaths.fGeneratedDir, lExeBaseName));
+    lExpectedPathList.Add(TPath.Combine(aPaths.fProjectDir, lExeBaseName));
 
-    lFallbackList.CaseSensitive := False;
-    lFallbackList.Sorted := True;
-    lFallbackList.Duplicates := TDuplicates.dupIgnore;
-
-    for lCandidateDir in lSearchDirs do
+    for lCandidatePath in lExpectedPathList do
     begin
-      if not DirectoryExists(lCandidateDir) then
-        Continue;
-      try
-        lExeArray := TDirectory.GetFiles(lCandidateDir, lExeBaseName, TSearchOption.soAllDirectories);
-        for lExePath in lExeArray do
-          lExeList.Add(lExePath);
-      except
-        // Ignore inaccessible scan roots and continue with the remaining deterministic search paths.
-      end;
-    end;
-
-    lNeedlePath := '\' + aPlatform + '\' + aConfig + '\';
-    for lExePath in lExeList do
-    begin
-      if Pos(UpperCase(lNeedlePath), UpperCase(lExePath)) > 0 then
+      if FileExists(lCandidatePath) then
       begin
-        aValidatorExePath := lExePath;
+        aValidatorExePath := lCandidatePath;
         Exit(True);
       end;
-    end;
-
-    for lExePath in lExeList do
-    begin
-      if SameText(TPath.GetFileName(lExePath), lExeBaseName) then
-      begin
-        aValidatorExePath := lExePath;
-        Exit(True);
-      end;
-    end;
-
-    for lCandidateDir in lSearchDirs do
-    begin
-      if not DirectoryExists(lCandidateDir) then
-        Continue;
-      try
-        lExeArray := TDirectory.GetFiles(lCandidateDir, '*_DfmCheck*.exe', TSearchOption.soAllDirectories);
-        for lExePath in lExeArray do
-          lFallbackList.Add(lExePath);
-      except
-        // Ignore inaccessible scan roots and continue with the remaining deterministic search paths.
-      end;
-    end;
-
-    for lExePath in lFallbackList do
-    begin
-      if Pos(UpperCase(lNeedlePath), UpperCase(lExePath)) > 0 then
-      begin
-        aValidatorExePath := lExePath;
-        Exit(True);
-      end;
-    end;
-    if lFallbackList.Count > 0 then
-    begin
-      aValidatorExePath := lFallbackList[0];
-      Exit(True);
     end;
   finally
-    lSearchDirs.Free;
-    lExeList.Free;
-    lFallbackList.Free;
+    lExpectedPathList.Free;
   end;
 
-  aError := 'Could not find built _DfmCheck.exe under generated/project/bin paths.';
+  aError := 'Could not find built _DfmCheck.exe in expected output directories.';
   Result := False;
 end;
 
