@@ -10,7 +10,7 @@ uses
   Test.Support;
 
 type
-  TMockValidatorMode = (vmHappy, vmBroken);
+  TMockValidatorMode = (vmHappy, vmHappyParentBin, vmBroken, vmBuildFailGeneratedUnit);
 
   TMockDfmCheckRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
   private
@@ -47,6 +47,10 @@ type
     procedure PipelineHappyPathWithMockRunner;
     [Test]
     procedure PipelineBrokenDfmPropagatesValidatorExitAndFailText;
+    [Test]
+    procedure PipelineBuildFailureInGeneratedUnitIsClassifiedAsGeneratorIncompatibility;
+    [Test]
+    procedure PipelineFindsValidatorExeInParentBin;
     [Test]
     procedure PipelineCleansGeneratedArtifactsByDefault;
   end;
@@ -97,6 +101,17 @@ begin
 
   if fRunCount = 1 then
   begin
+    if fMode = TMockValidatorMode.vmBuildFailGeneratedUnit then
+    begin
+      if Assigned(aOutput) then
+      begin
+        aOutput('Sample_DfmCheck_Unit.pas(42): error E2003: Undeclared identifier: ''Splitter1''');
+        aOutput('Sample_DfmCheck.dpr(88): error F2063: Could not compile used unit ''Sample_DfmCheck_Unit.pas''');
+      end;
+      aExitCode := 1;
+      Exit(True);
+    end;
+
     fMsBuildArguments := aArguments;
     lDprojPath := ReadFirstArg(aArguments);
     if lDprojPath = '' then
@@ -105,7 +120,10 @@ begin
       Exit(False);
     end;
     fGeneratedDproj := lDprojPath;
-    lValidatorDir := TPath.Combine(TPath.Combine(aWorkingDir, fPlatform), fConfig);
+    if fMode = TMockValidatorMode.vmHappyParentBin then
+      lValidatorDir := TPath.Combine(TPath.Combine(TPath.Combine(ExtractFileDir(aWorkingDir), 'Bin'), fPlatform), fConfig)
+    else
+      lValidatorDir := TPath.Combine(TPath.Combine(aWorkingDir, fPlatform), fConfig);
     TDirectory.CreateDirectory(lValidatorDir);
     lValidatorExePath := TPath.Combine(lValidatorDir, TPath.GetFileNameWithoutExtension(lDprojPath) + '.exe');
     TFile.WriteAllText(lValidatorExePath, 'mock', TEncoding.ASCII);
@@ -258,6 +276,8 @@ begin
   Assert.IsTrue(Pos('DfmStreamAll,', lPatchedText) > 0, 'Expected DfmStreamAll to be injected into uses clause.');
   Assert.IsTrue(Pos('ExitCode := TDfmStreamAll.Run;', lPatchedText) > 0,
     'Expected ExitCode assignment to be injected before final end.');
+  Assert.IsTrue(Pos('Halt(ExitCode);', lPatchedText) > 0,
+    'Expected validator short-circuit halt in patched DPR.');
   Assert.IsTrue(Pos('uses', lPatchedText) > 0, 'Expected patched DPR to preserve uses keyword.');
   Assert.IsTrue(Pos(';', lPatchedText) > 0, 'Expected patched DPR to preserve uses syntax.');
 
@@ -271,6 +291,7 @@ procedure TDfmCheckTests.MapExitCodePropagatesToolAndCategoryCodes;
 begin
   Assert.AreEqual(3, MapDfmCheckExitCode(TDfmCheckErrorCategory.ecInvalidInput, 0));
   Assert.AreEqual(17, MapDfmCheckExitCode(TDfmCheckErrorCategory.ecDfmCheckFailed, 17));
+  Assert.AreEqual(37, MapDfmCheckExitCode(TDfmCheckErrorCategory.ecGeneratorIncompatible, 0));
   Assert.AreEqual(34, MapDfmCheckExitCode(TDfmCheckErrorCategory.ecBuildFailed, 0));
   Assert.AreEqual(9, MapDfmCheckExitCode(TDfmCheckErrorCategory.ecValidatorFailed, 9));
 end;
@@ -292,6 +313,7 @@ var
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
   lPatchedDprText: string;
+  lGeneratedUnitText: string;
 begin
   CreateFixtureProject(lDprojPath);
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-happy');
@@ -339,6 +361,13 @@ begin
     Assert.IsTrue(Pos('DfmStreamAll,', lPatchedDprText) > 0, 'Expected DfmStreamAll in patched DPR.');
     Assert.IsTrue(Pos('ExitCode := TDfmStreamAll.Run;', lPatchedDprText) > 0,
       'Expected ExitCode assignment in patched DPR.');
+    Assert.IsTrue(Pos('Halt(ExitCode);', lPatchedDprText) > 0, 'Expected validator short-circuit halt in DPR.');
+
+    lGeneratedUnitText := TFile.ReadAllText(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Unit.pas'));
+    Assert.IsTrue(Pos('unit Sample_DfmCheck_Unit;', lGeneratedUnitText) > 0,
+      'Expected generated checker unit to be replaced with runtime-only stub.');
+    Assert.IsFalse(Pos('.ClassName;', lGeneratedUnitText) > 0,
+      'Generated checker unit should not include compile-time ClassName checks.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
@@ -398,6 +427,117 @@ begin
       'Expected broken DFM FAIL line with streaming exception text.');
     Assert.IsTrue(Pos('/p:DCC_ForceExecute=true', lRunnerImpl.MsBuildArguments) > 0,
       'Expected forced response-file mode in MSBuild arguments.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineBuildFailureInGeneratedUnitIsClassifiedAsGeneratorIncompatibility;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lOutputText: string;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-buildfail');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBuildFailGeneratedUnit, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(1, lResult, 'Expected non-zero build exit code to be propagated.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecGeneratorIncompatible, lCategory,
+      'Expected generated checker unit compile failure to map to generator incompatibility.');
+    Assert.IsTrue(Pos('generator incompatibility', LowerCase(lError)) > 0,
+      'Expected incompatibility diagnostic in error message.');
+
+    lOutputText := JoinOutput(lOutputLines);
+    Assert.IsTrue(Pos('Sample_DfmCheck_Unit.pas(42): error E2003', lOutputText) > 0,
+      'Expected generated checker unit compile error in build output.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineFindsValidatorExeInParentBin;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lOutputText: string;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-parent-bin');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappyParentBin, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected happy pipeline to find validator exe in parent Bin layout.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, 'Unexpected error category for parent Bin layout.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for parent Bin layout.');
+
+    lOutputText := JoinOutput(lOutputLines);
+    Assert.IsTrue(Pos('OK   MAINFORM', lOutputText) > 0, 'Expected validator run output in parent Bin layout.');
+    Assert.IsFalse(Pos('Could not find built _DfmCheck.exe', lOutputText) > 0,
+      'Did not expect validator-not-found output in parent Bin layout.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
