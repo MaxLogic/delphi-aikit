@@ -15,6 +15,7 @@ Use this skill whenever we touch Delphi forms, frames, datamodules, or any `.dfm
 3. Use `dfm-check` standalone when we only need DFM validation.
 4. Treat any `FAIL` line as a critical error and fix it immediately.
 5. Do not skip, suppress, or defer DFM failures.
+6. Do not call `msbuild` directly; use `DelphiAIKit.exe` orchestration commands only.
 
 ## Environment Contract (same as delphi-build)
 

@@ -4,9 +4,10 @@ interface
 
 uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
+  System.Win.Registry,
   Winapi.Windows,
   DfmCheck_DfmCheck, DfmCheck_Options, DfmCheck_Utils, ToolsAPIRepl,
-  Dak.Messages, Dak.RsVars, Dak.Types;
+  Dak.FixInsightSettings, Dak.Messages, Dak.RsVars, Dak.Types;
 
 type
   TDfmCheckErrorCategory = (
@@ -115,6 +116,234 @@ var
 begin
   lExt := LowerCase(TPath.GetExtension(aPath));
   Result := (lExt = '.bat') or (lExt = '.cmd');
+end;
+
+function TryResolveAbsolutePath(const aInputPath: string; out aOutputPath: string; out aError: string): Boolean; forward;
+
+function IsTrueValue(const aValue: string): Boolean;
+var
+  lValue: string;
+begin
+  lValue := Trim(LowerCase(aValue));
+  Result := (lValue = '1') or (lValue = 'true') or (lValue = 'yes') or (lValue = 'on');
+end;
+
+function ShouldKeepArtifacts: Boolean;
+begin
+  Result := IsTrueValue(GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS'));
+end;
+
+function TryFindExecutableInPath(const aExeName: string; out aExePath: string): Boolean;
+var
+  lFilePart: PChar;
+  lLength: Cardinal;
+  lBuffer: TArray<Char>;
+begin
+  aExePath := '';
+  lFilePart := nil;
+  lLength := SearchPath(nil, PChar(aExeName), nil, 0, nil, lFilePart);
+  if lLength = 0 then
+    Exit(False);
+  SetLength(lBuffer, lLength);
+  if SearchPath(nil, PChar(aExeName), nil, lLength, PChar(lBuffer), lFilePart) = 0 then
+    Exit(False);
+  aExePath := string(PChar(lBuffer));
+  Result := aExePath <> '';
+end;
+
+function TryFindMsBuildFromRegistry(out aMsBuildPath: string): Boolean;
+const
+  CRegistryKeys: array [0 .. 4] of string = (
+    'SOFTWARE\Microsoft\MSBuild\ToolsVersions\Current',
+    'SOFTWARE\Microsoft\MSBuild\ToolsVersions\17.0',
+    'SOFTWARE\Microsoft\MSBuild\ToolsVersions\16.0',
+    'SOFTWARE\Microsoft\MSBuild\ToolsVersions\15.0',
+    'SOFTWARE\Microsoft\MSBuild\ToolsVersions\14.0'
+  );
+  CRegistryViews: array [0 .. 1] of Cardinal = (
+    KEY_WOW64_64KEY,
+    KEY_WOW64_32KEY
+  );
+var
+  lCandidatePath: string;
+  lKey: string;
+  lKeyIndex: Integer;
+  lRegistry: TRegistry;
+  lToolsPath: string;
+  lViewIndex: Integer;
+begin
+  aMsBuildPath := '';
+  for lViewIndex := Low(CRegistryViews) to High(CRegistryViews) do
+  begin
+    lRegistry := TRegistry.Create(KEY_READ or CRegistryViews[lViewIndex]);
+    try
+      lRegistry.RootKey := HKEY_LOCAL_MACHINE;
+      for lKeyIndex := Low(CRegistryKeys) to High(CRegistryKeys) do
+      begin
+        lKey := CRegistryKeys[lKeyIndex];
+        if not lRegistry.OpenKeyReadOnly(lKey) then
+          Continue;
+        try
+          if lRegistry.ValueExists('MSBuildToolsPath') then
+            lToolsPath := Trim(lRegistry.ReadString('MSBuildToolsPath'))
+          else
+            lToolsPath := '';
+        finally
+          lRegistry.CloseKey;
+        end;
+        if lToolsPath = '' then
+          Continue;
+        lCandidatePath := TPath.Combine(lToolsPath, 'MSBuild.exe');
+        if FileExists(lCandidatePath) then
+        begin
+          aMsBuildPath := TPath.GetFullPath(lCandidatePath);
+          Exit(True);
+        end;
+      end;
+    finally
+      lRegistry.Free;
+    end;
+  end;
+  Result := False;
+end;
+
+function TryResolveMsBuildPath(const aMsBuildOverride: string; out aMsBuildPath: string; out aError: string): Boolean;
+var
+  lHasPathMarkers: Boolean;
+  lOverride: string;
+  lPath: string;
+begin
+  aError := '';
+  aMsBuildPath := '';
+  lOverride := Trim(aMsBuildOverride);
+
+  if lOverride <> '' then
+  begin
+    lHasPathMarkers := (Pos('\', lOverride) > 0) or (Pos('/', lOverride) > 0) or (Pos(':', lOverride) > 0);
+    if not lHasPathMarkers then
+    begin
+      aMsBuildPath := lOverride;
+      Exit(True);
+    end;
+
+    if TryFindExecutableInPath(lOverride, lPath) then
+    begin
+      aMsBuildPath := lPath;
+      Exit(True);
+    end;
+
+    if not TryResolveAbsolutePath(lOverride, lPath, aError) then
+      Exit(False);
+    if FileExists(lPath) then
+    begin
+      aMsBuildPath := lPath;
+      Exit(True);
+    end;
+    aError := 'MSBuild override not found: ' + lOverride;
+    Exit(False);
+  end;
+
+  if TryFindExecutableInPath('msbuild.exe', lPath) then
+  begin
+    aMsBuildPath := lPath;
+    Exit(True);
+  end;
+
+  if TryFindMsBuildFromRegistry(lPath) then
+  begin
+    aMsBuildPath := lPath;
+    Exit(True);
+  end;
+
+  aError := 'MSBuild.exe not found. Provide --rsvars or set DAK_DFMCHECK_MSBUILD.';
+  Result := False;
+end;
+
+procedure CleanupFile(const aFilePath: string; var aErrors: string);
+begin
+  if (aFilePath = '') or (not FileExists(aFilePath)) then
+    Exit;
+  try
+    TFile.Delete(aFilePath);
+  except
+    on E: Exception do
+    begin
+      if aErrors <> '' then
+        aErrors := aErrors + '; ';
+      aErrors := aErrors + 'Delete file failed (' + aFilePath + '): ' + E.Message;
+    end;
+  end;
+end;
+
+procedure CleanupDirectory(const aDirPath: string; var aErrors: string);
+begin
+  if (aDirPath = '') or (not DirectoryExists(aDirPath)) then
+    Exit;
+  try
+    TDirectory.Delete(aDirPath, True);
+  except
+    on E: Exception do
+    begin
+      if aErrors <> '' then
+        aErrors := aErrors + '; ';
+      aErrors := aErrors + 'Delete directory failed (' + aDirPath + '): ' + E.Message;
+    end;
+  end;
+end;
+
+procedure CleanupGeneratedArtifacts(const aPaths: TDfmCheckPaths; const aCopiedAutoFree: Boolean;
+  const aCopiedDfmStreamAll: Boolean; const aValidatorExePath: string; const aOutput: TDfmCheckOutputProc);
+var
+  lBasePath: string;
+  lCmdsPath: string;
+  lDirectBasePath: string;
+  lErrors: string;
+  lGeneratedDirName: string;
+  lProjectDirNormalized: string;
+  lGeneratedDirNormalized: string;
+begin
+  lErrors := '';
+  lBasePath := TPath.ChangeExtension(aPaths.fGeneratedDpr, '');
+  lDirectBasePath := TPath.Combine(aPaths.fProjectDir, aPaths.fProjectName + '_DfmCheck');
+
+  CleanupFile(aPaths.fGeneratedDpr, lErrors);
+  CleanupFile(aPaths.fGeneratedDproj, lErrors);
+  CleanupFile(TPath.ChangeExtension(aPaths.fGeneratedDpr, '.cfg'), lErrors);
+  CleanupFile(TPath.ChangeExtension(aPaths.fGeneratedDpr, '.res'), lErrors);
+  CleanupFile(lBasePath + '_Unit.pas', lErrors);
+  CleanupFile(lDirectBasePath + '.dpr', lErrors);
+  CleanupFile(lDirectBasePath + '.dproj', lErrors);
+  CleanupFile(lDirectBasePath + '.cfg', lErrors);
+  CleanupFile(lDirectBasePath + '.res', lErrors);
+  CleanupFile(lDirectBasePath + '_Unit.pas', lErrors);
+  CleanupFile(aValidatorExePath, lErrors);
+
+  if aCopiedAutoFree then
+    CleanupFile(TPath.Combine(aPaths.fGeneratedDir, 'autoFree.pas'), lErrors);
+  if aCopiedDfmStreamAll then
+    CleanupFile(TPath.Combine(aPaths.fGeneratedDir, 'DfmStreamAll.pas'), lErrors);
+
+  lCmdsPath := TPath.Combine(aPaths.fProjectDir, 'Bin\' + TPath.GetFileName(lBasePath) + '.cmds');
+  CleanupFile(lCmdsPath, lErrors);
+  if aPaths.fGeneratedDir <> '' then
+  begin
+    lCmdsPath := TPath.Combine(aPaths.fGeneratedDir, 'Bin\' + TPath.GetFileName(lBasePath) + '.cmds');
+    CleanupFile(lCmdsPath, lErrors);
+  end;
+
+  lGeneratedDirNormalized := ExcludeTrailingPathDelimiter(aPaths.fGeneratedDir);
+  lProjectDirNormalized := ExcludeTrailingPathDelimiter(aPaths.fProjectDir);
+  if (lGeneratedDirNormalized <> '') and (not SameText(lGeneratedDirNormalized, lProjectDirNormalized)) then
+  begin
+    lGeneratedDirName := ExtractFileName(lGeneratedDirNormalized);
+    if EndsText('_DfmCheck', lGeneratedDirName) then
+      CleanupDirectory(lGeneratedDirNormalized, lErrors);
+  end;
+
+  if lErrors <> '' then
+    EmitLine(aOutput, '[dfm-check] Cleanup warning: ' + lErrors)
+  else
+    EmitLine(aOutput, '[dfm-check] Cleanup complete.');
 end;
 
 function BuildExpectedDfmCheckPaths(const aDprojPath: string): TDfmCheckPaths;
@@ -707,6 +936,9 @@ end;
 function RunDfmCheckPipeline(const aOptions: TAppOptions; const aRunner: IDfmCheckProcessRunner;
   const aOutput: TDfmCheckOutputProc; out aCategory: TDfmCheckErrorCategory; out aError: string): Integer;
 var
+  lCopiedAutoFree: Boolean;
+  lCopiedDfmStreamAll: Boolean;
+  lDelphiVersion: string;
   lDprojPath: string;
   lPaths: TDfmCheckPaths;
   lText: string;
@@ -715,14 +947,20 @@ var
   lExitCode: Cardinal;
   lRunnerError: string;
   lBuildExePath: string;
+  lBuildExeOverride: string;
   lConfig: string;
   lPlatform: string;
   lValidatorExePath: string;
   lWriterEncoding: TEncoding;
+  lHadAutoFree: Boolean;
+  lHadDfmStreamAll: Boolean;
 begin
   Result := 1;
   aError := '';
   aCategory := TDfmCheckErrorCategory.ecNone;
+  lCopiedAutoFree := False;
+  lCopiedDfmStreamAll := False;
+  lValidatorExePath := '';
 
   if aRunner = nil then
   begin
@@ -737,10 +975,25 @@ begin
     Exit(MapDfmCheckExitCode(aCategory, 0));
   end;
 
-  if aOptions.fHasRsVarsPath then
+  lDelphiVersion := Trim(aOptions.fDelphiVersion);
+  if lDelphiVersion = '' then
+  begin
+    if not LoadDefaultDelphiVersion(lDprojPath, lDelphiVersion) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+      aError := 'Failed to read default Delphi version from dak.ini.';
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+    if lDelphiVersion <> '' then
+      EmitLine(aOutput, '[dfm-check] Using Delphi version from dak.ini: ' + lDelphiVersion);
+  end;
+  if (lDelphiVersion <> '') and (Pos('.', lDelphiVersion) = 0) then
+    lDelphiVersion := lDelphiVersion + '.0';
+
+  if aOptions.fHasRsVarsPath or (lDelphiVersion <> '') then
   begin
     EmitLine(aOutput, '[dfm-check] Loading RAD Studio environment from rsvars.bat...');
-    if not TryLoadRsVars('', aOptions.fRsVarsPath, nil, aError) then
+    if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, aError) then
     begin
       aCategory := TDfmCheckErrorCategory.ecInvalidInput;
       Exit(MapDfmCheckExitCode(aCategory, 0));
@@ -755,88 +1008,106 @@ begin
     lPlatform := 'Win32';
 
   lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
-  if not TryResolveInjectDir(lPaths.fInjectDir, aError) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecInjectFilesMissing;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-  lPaths.fInjectAutoFree := TPath.Combine(lPaths.fInjectDir, 'autoFree.pas');
-  lPaths.fInjectDfmStreamAll := TPath.Combine(lPaths.fInjectDir, 'DfmStreamAll.pas');
-  if (not FileExists(lPaths.fInjectAutoFree)) or (not FileExists(lPaths.fInjectDfmStreamAll)) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecInjectFilesMissing;
-    aError := 'Missing inject files in: ' + lPaths.fInjectDir;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-
-  EmitLine(aOutput, '[dfm-check] Generating DFMCheck project...');
-  if not TryGenerateDfmCheckProject(lDprojPath, lPaths, aError) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-
-  if not TryLocateGeneratedDfmCheckProject(lPaths, aError) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecGeneratedProjectMissing;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-  EmitLine(aOutput, '[dfm-check] Generated project: ' + lPaths.fGeneratedDproj);
-
-  TFile.Copy(lPaths.fInjectAutoFree, TPath.Combine(lPaths.fGeneratedDir, 'autoFree.pas'), True);
-  TFile.Copy(lPaths.fInjectDfmStreamAll, TPath.Combine(lPaths.fGeneratedDir, 'DfmStreamAll.pas'), True);
-
-  lText := TFile.ReadAllText(lPaths.fGeneratedDpr);
-  if not TryPatchDfmCheckDpr(lText, lPatchedText, lChanged, aError) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecDprPatchFailed;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-  if lChanged then
-  begin
-    lWriterEncoding := TUTF8Encoding.Create(False);
-    try
-      TFile.WriteAllText(lPaths.fGeneratedDpr, lPatchedText, lWriterEncoding);
-    finally
-      lWriterEncoding.Free;
+  try
+    if not TryResolveInjectDir(lPaths.fInjectDir, aError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecInjectFilesMissing;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
-  end;
+    lPaths.fInjectAutoFree := TPath.Combine(lPaths.fInjectDir, 'autoFree.pas');
+    lPaths.fInjectDfmStreamAll := TPath.Combine(lPaths.fInjectDir, 'DfmStreamAll.pas');
+    if (not FileExists(lPaths.fInjectAutoFree)) or (not FileExists(lPaths.fInjectDfmStreamAll)) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecInjectFilesMissing;
+      aError := 'Missing inject files in: ' + lPaths.fInjectDir;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
 
-  lBuildExePath := Trim(GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD'));
-  if lBuildExePath = '' then
-    lBuildExePath := 'msbuild.exe';
-  EmitLine(aOutput, '[dfm-check] Building generated DfmCheck project via MSBuild...');
-  if not aRunner.Run(lBuildExePath,
-    QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build /p:Config=' + lConfig + ' /p:Platform=' + lPlatform + ' /v:m',
-    lPaths.fGeneratedDir, aOutput, lExitCode, lRunnerError) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecBuildFailed;
-    aError := 'MSBuild failed to start: ' + lRunnerError;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
-  if lExitCode <> 0 then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecBuildFailed;
-    aError := Format('MSBuild exited with code %d.', [lExitCode]);
-    Exit(MapDfmCheckExitCode(aCategory, Integer(lExitCode)));
-  end;
+    EmitLine(aOutput, '[dfm-check] Generating DFMCheck project...');
+    if not TryGenerateDfmCheckProject(lDprojPath, lPaths, aError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
 
-  if not TryFindValidatorExe(lPaths, lPlatform, lConfig, lValidatorExePath, aError) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecValidatorNotFound;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
+    if not TryLocateGeneratedDfmCheckProject(lPaths, aError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecGeneratedProjectMissing;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+    EmitLine(aOutput, '[dfm-check] Generated project: ' + lPaths.fGeneratedDproj);
 
-  EmitLine(aOutput, '[dfm-check] Running validator exe...');
-  if not aRunner.Run(lValidatorExePath, '', lPaths.fGeneratedDir, aOutput, lExitCode, lRunnerError) then
-  begin
-    aCategory := TDfmCheckErrorCategory.ecValidatorFailed;
-    aError := 'Validator executable failed to start: ' + lRunnerError;
-    Exit(MapDfmCheckExitCode(aCategory, 0));
-  end;
+    lHadAutoFree := FileExists(TPath.Combine(lPaths.fGeneratedDir, 'autoFree.pas'));
+    lHadDfmStreamAll := FileExists(TPath.Combine(lPaths.fGeneratedDir, 'DfmStreamAll.pas'));
+    TFile.Copy(lPaths.fInjectAutoFree, TPath.Combine(lPaths.fGeneratedDir, 'autoFree.pas'), True);
+    TFile.Copy(lPaths.fInjectDfmStreamAll, TPath.Combine(lPaths.fGeneratedDir, 'DfmStreamAll.pas'), True);
+    lCopiedAutoFree := not lHadAutoFree;
+    lCopiedDfmStreamAll := not lHadDfmStreamAll;
 
-  // Propagate streaming validator result directly: 0 = success, >0 = number of failed resources.
-  Result := Integer(lExitCode);
+    lText := TFile.ReadAllText(lPaths.fGeneratedDpr);
+    if not TryPatchDfmCheckDpr(lText, lPatchedText, lChanged, aError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecDprPatchFailed;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+    if lChanged then
+    begin
+      lWriterEncoding := TUTF8Encoding.Create(False);
+      try
+        TFile.WriteAllText(lPaths.fGeneratedDpr, lPatchedText, lWriterEncoding);
+      finally
+        lWriterEncoding.Free;
+      end;
+    end;
+
+    lBuildExeOverride := Trim(GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD'));
+    if not TryResolveMsBuildPath(lBuildExeOverride, lBuildExePath, lRunnerError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecToolNotFound;
+      aError := lRunnerError;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+    EmitLine(aOutput, '[dfm-check] Using MSBuild: ' + lBuildExePath);
+
+    EmitLine(aOutput, '[dfm-check] Building generated DfmCheck project via MSBuild...');
+    if not aRunner.Run(lBuildExePath,
+      QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build /p:Config=' + lConfig + ' /p:Platform=' + lPlatform +
+      ' /p:DCC_ForceExecute=true /v:m',
+      lPaths.fGeneratedDir, aOutput, lExitCode, lRunnerError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecBuildFailed;
+      aError := 'MSBuild failed to start: ' + lRunnerError;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+    if lExitCode <> 0 then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecBuildFailed;
+      aError := Format('MSBuild exited with code %d.', [lExitCode]);
+      Exit(MapDfmCheckExitCode(aCategory, Integer(lExitCode)));
+    end;
+
+    if not TryFindValidatorExe(lPaths, lPlatform, lConfig, lValidatorExePath, aError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecValidatorNotFound;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+
+    EmitLine(aOutput, '[dfm-check] Running validator exe...');
+    if not aRunner.Run(lValidatorExePath, '', lPaths.fGeneratedDir, aOutput, lExitCode, lRunnerError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecValidatorFailed;
+      aError := 'Validator executable failed to start: ' + lRunnerError;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+
+    // Propagate streaming validator result directly: 0 = success, >0 = number of failed resources.
+    Result := Integer(lExitCode);
+  finally
+    if ShouldKeepArtifacts then
+      EmitLine(aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).')
+    else
+      CleanupGeneratedArtifacts(lPaths, lCopiedAutoFree, lCopiedDfmStreamAll, lValidatorExePath, aOutput);
+  end;
 end;
 
 function RunDfmCheckCommand(const aOptions: TAppOptions): Integer;

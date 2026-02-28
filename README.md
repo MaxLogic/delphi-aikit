@@ -60,6 +60,7 @@ Additional build flags:
 - `--build-timeout-sec N` terminates hung builds after `N` seconds (`0` disables timeout).
 - `--test-output-dir "<path>"` writes build artifacts to an isolated output directory.
 - `--dfmcheck` runs DFM streaming validation after a successful build (presence flag; same as calling `dfm-check` separately).
+- `--rsvars "<path>"` overrides `rsvars.bat` for build and post-build `--dfmcheck` validation.
 
 ## Quick start
 
@@ -108,8 +109,14 @@ bin\DelphiAIKit.exe dfm-check --dproj "C:\path\Project.dproj" --config Release -
 ```
 
 Optional:
+- `--delphi 23.0` selects Delphi version for automatic `rsvars.bat` resolution.
 - `--rsvars "C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat"` imports RAD Studio environment variables before `msbuild`.
 - `tools\Validate-Dfm.ps1` is a thin wrapper around the same CLI command.
+
+`dfm-check` auto-loads `rsvars.bat` when either:
+- `--rsvars` is provided, or
+- `--delphi` is provided, or
+- `dak.ini` provides `[Build] DelphiVersion=<version>` (cascading settings).
 
 `dfm-check` stages:
 - generate `_DfmCheck` project files from `lib\DFMCheck`
@@ -117,6 +124,8 @@ Optional:
 - patch generated `.dpr` to include `DfmStreamAll` and set `ExitCode := TDfmStreamAll.Run;`
 - build `_DfmCheck.dproj` via `msbuild`
 - run `_DfmCheck.exe` and propagate its exit code (`0` success, non-zero means streaming failures)
+- force Delphi response-file build mode (`DCC_ForceExecute=true`) to avoid long command-line failures
+- clean generated `_DfmCheck*` artifacts by default (set `DAK_DFMCHECK_KEEP_ARTIFACTS=true` to keep them for debugging)
 
 To capture resolver diagnostics (warnings, missing paths, macro issues) into a log file:
 
@@ -213,6 +222,10 @@ Args=
 [MadExcept]
 ; path to madExceptPatch.exe (or its folder)
 Path=
+
+[Build]
+; optional default Delphi version used when --delphi is omitted (for example: dfm-check)
+DelphiVersion=
 ```
 
 `Path` is optional and can point to FixInsightCL.exe (or its folder). Relative paths are resolved against the executable folder.

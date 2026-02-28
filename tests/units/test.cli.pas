@@ -47,6 +47,8 @@ type
     [Test]
     procedure LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
     [Test]
+    procedure LoadDefaultDelphiVersionUsesProjectLocalDakIni;
+    [Test]
     procedure HelpCommandIgnoresSwitchValueTokens;
     [Test]
     procedure HelpCommandFindsExplicitCommandAfterSwitchValues;
@@ -366,6 +368,55 @@ begin
       'Expected project-local dak.ini warnings to be loaded.');
     Assert.IsFalse(Pos('W777', lFixIgnoreDefaults.fWarnings) > 0,
       'Did not expect parent dak.ini warnings without a repo marker.');
+  finally
+    if TDirectory.Exists(lBaseDir) then
+      TDirectory.Delete(lBaseDir, True);
+  end;
+end;
+
+procedure TCliTests.LoadDefaultDelphiVersionUsesProjectLocalDakIni;
+var
+  lBaseDir: string;
+  lDefaultDelphiVersion: string;
+  lDprojPath: string;
+  lGuid: TGUID;
+  lParentDir: string;
+  lParentIniPath: string;
+  lProjectDir: string;
+  lProjectIniPath: string;
+
+  procedure WriteDelphiVersionIni(const aPath: string; const aDelphiVersion: string);
+  var
+    lIni: TIniFile;
+  begin
+    lIni := TIniFile.Create(aPath);
+    try
+      lIni.WriteString('Build', 'DelphiVersion', aDelphiVersion);
+    finally
+      lIni.Free;
+    end;
+  end;
+begin
+  Assert.AreEqual(0, CreateGUID(lGuid), 'Failed to create a temporary GUID.');
+  lBaseDir := TPath.Combine(TPath.GetTempPath, 'dak-settings-delphi-' + GUIDToString(lGuid));
+  lParentDir := TPath.Combine(lBaseDir, 'parent');
+  lProjectDir := TPath.Combine(lParentDir, 'project');
+  TDirectory.CreateDirectory(lProjectDir);
+
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+
+  lParentIniPath := TPath.Combine(lParentDir, 'dak.ini');
+  WriteDelphiVersionIni(lParentIniPath, '22.0');
+
+  lProjectIniPath := TPath.Combine(lProjectDir, 'dak.ini');
+  WriteDelphiVersionIni(lProjectIniPath, '23.0');
+
+  try
+    Assert.IsTrue(LoadDefaultDelphiVersion(lDprojPath, lDefaultDelphiVersion),
+      'Expected Delphi version settings loader to succeed.');
+    Assert.AreEqual('23.0', lDefaultDelphiVersion,
+      'Expected project-local DelphiVersion to be used without repo marker traversal.');
   finally
     if TDirectory.Exists(lBaseDir) then
       TDirectory.Delete(lBaseDir, True);
