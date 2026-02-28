@@ -366,6 +366,8 @@ begin
     lGeneratedUnitText := TFile.ReadAllText(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Unit.pas'));
     Assert.IsTrue(Pos('unit Sample_DfmCheck_Unit;', lGeneratedUnitText) > 0,
       'Expected generated checker unit to be replaced with runtime-only stub.');
+    Assert.IsTrue(Pos('uses', lGeneratedUnitText) > 0, 'Expected generated checker unit to keep form-unit linkage.');
+    Assert.IsTrue(Pos('MainForm', lGeneratedUnitText) > 0, 'Expected generated checker unit to keep MainForm in uses.');
     Assert.IsFalse(Pos('.ClassName;', lGeneratedUnitText) > 0,
       'Generated checker unit should not include compile-time ClassName checks.');
   finally
