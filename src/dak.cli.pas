@@ -129,7 +129,8 @@ var
       SameText(aSwitch, 'clean') or SameText(aSwitch, 'write-summary') or
       SameText(aSwitch, 'show-warnings') or SameText(aSwitch, 'show-hints') or
       SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
-      SameText(aSwitch, 'rebuild');
+      SameText(aSwitch, 'rebuild') or
+      SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check');
   end;
 
   function IsBoolToken(const aArg: string): Boolean;
@@ -432,6 +433,7 @@ begin
     SameText(aSwitch, 'target') or SameText(aSwitch, 'rebuild') or
     SameText(aSwitch, 'max-findings') or SameText(aSwitch, 'build-timeout-sec') or
     SameText(aSwitch, 'test-output-dir') or
+    SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check') or
     SameText(aSwitch, 'ignore-warnings') or
     SameText(aSwitch, 'ignore-hints');
 end;
@@ -969,6 +971,18 @@ begin
     if not TryParseBool(lValue, fOptions.fBuildJson) then
     begin
       fError := Format(SInvalidBoolValue, ['--json', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--dfmcheck') then
+      Exit(False);
+    if not TryParseBool(lValue, fOptions.fBuildRunDfmCheck) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--dfmcheck', lValue]);
       Exit(False);
     end;
     Exit(True);

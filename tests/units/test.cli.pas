@@ -37,6 +37,10 @@ type
     [Test]
     procedure DfmCheckCommandRequiresDproj;
     [Test]
+    procedure BuildCommandParsesDfmCheckFlag;
+    [Test]
+    procedure BuildCommandDefaultsDfmCheckToFalse;
+    [Test]
     procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
     [Test]
     procedure LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
@@ -240,6 +244,28 @@ begin
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected dfm-check parsing to fail without --dproj.');
   Assert.IsTrue(Pos('Missing value for parameter: --dproj', lError) > 0,
     'Expected missing --dproj error. Actual: ' + lError);
+end;
+
+procedure TCliTests.BuildCommandParsesDfmCheckFlag;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --delphi 23.0 --dfmcheck');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected build --dfmcheck to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckBuild, lOptions.fCommand, 'Expected build command kind.');
+  Assert.IsTrue(lOptions.fBuildRunDfmCheck, 'Expected --dfmcheck to enable post-build DFM validation.');
+end;
+
+procedure TCliTests.BuildCommandDefaultsDfmCheckToFalse;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --delphi 23.0');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected build args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckBuild, lOptions.fCommand, 'Expected build command kind.');
+  Assert.IsFalse(lOptions.fBuildRunDfmCheck, 'Expected build to skip DFM validation by default.');
 end;
 
 procedure TCliTests.AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
