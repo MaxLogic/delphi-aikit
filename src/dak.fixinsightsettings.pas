@@ -14,6 +14,7 @@ function LoadSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
 function LoadSettings(aDiagnostics: TDiagnostics; out aFixInsight: TFixInsightExtraOptions;
   out aFixInsightIgnore: TFixInsightIgnoreDefaults; out aReportFilter: TReportFilterDefaults;
   out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean; overload;
+function LoadDefaultDelphiVersion(const aDprojPath: string; out aDelphiVersion: string): Boolean;
 procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
   var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
   var aPascalAnalyzer: TPascalAnalyzerDefaults);
@@ -26,6 +27,7 @@ const
   SFixInsightIgnoreSection = 'FixInsightIgnore';
   SReportFilterSection = 'ReportFilter';
   SPascalAnalyzerSection = 'PascalAnalyzer';
+  SBuildSection = 'Build';
   SDiagnosticsSection = 'Diagnostics';
 
 function GetExeSettingsPath: string;
@@ -315,6 +317,31 @@ begin
     lIni := TIniFile.Create(lPath);
     try
       ApplyIniSettings(lIni, aFixInsight, aFixInsightIgnore, aReportFilter, aPascalAnalyzer, aDiagnostics);
+    finally
+      lIni.Free;
+    end;
+  end;
+end;
+
+function LoadDefaultDelphiVersion(const aDprojPath: string; out aDelphiVersion: string): Boolean;
+var
+  lIni: TIniFile;
+  lPath: string;
+  lPaths: TArray<string>;
+  lValue: string;
+begin
+  aDelphiVersion := '';
+  Result := True;
+  lPaths := BuildSettingsPaths(aDprojPath);
+  for lPath in lPaths do
+  begin
+    if not FileExists(lPath) then
+      Continue;
+    lIni := TIniFile.Create(lPath);
+    try
+      lValue := Trim(lIni.ReadString(SBuildSection, 'DelphiVersion', ''));
+      if lValue <> '' then
+        aDelphiVersion := lValue;
     finally
       lIni.Free;
     end;
