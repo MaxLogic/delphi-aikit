@@ -51,7 +51,7 @@ function TryResolveDfmCheckProjectPath(const aInputPath: string; out aDprojPath:
 function BuildExpectedDfmCheckPaths(const aDprojPath: string): TDfmCheckPaths;
 function TryLocateGeneratedDfmCheckProject(var aPaths: TDfmCheckPaths; out aError: string): Boolean;
 function TryPatchDfmCheckDpr(const aInputText: string; out aOutputText: string; out aChanged: Boolean;
-  out aError: string): Boolean;
+  out aError: string; const aRegisterUnitName: string = ''): Boolean;
 function MapDfmCheckExitCode(const aCategory: TDfmCheckErrorCategory; const aToolExitCode: Integer): Integer;
 function RunDfmCheckPipeline(const aOptions: TAppOptions; const aRunner: IDfmCheckProcessRunner;
   const aOutput: TDfmCheckOutputProc; out aCategory: TDfmCheckErrorCategory; out aError: string): Integer;
@@ -840,23 +840,15 @@ begin
 end;
 
 function TryGenerateDfmCheckProject(const aDprojPath: string; var aPaths: TDfmCheckPaths; out aError: string): Boolean;
-const
-  cLineBreak = #13#10;
 var
-  lContent: string;
-  lDirectiveLine: string;
-  lDirectiveLines: TStringList;
   lFormClassNames: TStringList;
   lGeneratedCfgPath: string;
   lGeneratedDprName: string;
   lGeneratedDprojName: string;
   lMainSourceRaw: string;
-  lRegisterUnitName: string;
   lSourceCfgPath: string;
-  lSourceDprLines: TStringList;
   lSourceProjectExt: string;
   lSourceProjectPath: string;
-  lTrimmedLine: string;
   lUnitNames: TStringList;
   lUnitSearchDirs: TStringList;
   lUnitSearchPath: string;
@@ -901,50 +893,7 @@ begin
     if not TryWriteRegisterUnit(aPaths.fGeneratedRegisterUnit, lUnitNames, lFormClassNames, aError) then
       Exit(False);
 
-    lDirectiveLines := TStringList.Create;
-    lSourceDprLines := TStringList.Create;
-    try
-      lSourceDprLines.LoadFromFile(lSourceProjectPath);
-      for lDirectiveLine in lSourceDprLines do
-      begin
-        lTrimmedLine := Trim(lDirectiveLine);
-        if not StartsText('{$', lTrimmedLine) then
-          Continue;
-        if EndsText('}', lTrimmedLine) and
-          (StartsText('{$I ', lTrimmedLine) or StartsText('{$I''', lTrimmedLine) or
-          StartsText('{$INCLUDE', lTrimmedLine)) then
-          lDirectiveLines.Add(lTrimmedLine);
-      end;
-
-      lContent := 'program ' + TPath.GetFileNameWithoutExtension(lGeneratedDprName) + ';' + cLineBreak + cLineBreak +
-        '{$APPTYPE CONSOLE}' + cLineBreak +
-        '{$DEFINE DFMCheck}' + cLineBreak + cLineBreak;
-      if lDirectiveLines.Count > 0 then
-        lContent := lContent + lDirectiveLines.Text + cLineBreak;
-    finally
-      lSourceDprLines.Free;
-      lDirectiveLines.Free;
-    end;
-
-    lRegisterUnitName := TPath.GetFileNameWithoutExtension(aPaths.fGeneratedRegisterUnit);
-    lContent := lContent +
-      'uses' + cLineBreak +
-      '  System.SysUtils,' + cLineBreak +
-      '  DfmStreamAll,' + cLineBreak +
-      '  ' + lRegisterUnitName + ';' + cLineBreak + cLineBreak +
-      'begin' + cLineBreak +
-      '  try' + cLineBreak +
-      '    ExitCode := TDfmStreamAll.Run;' + cLineBreak +
-      '  except' + cLineBreak +
-      '    on E: Exception do' + cLineBreak +
-      '    begin' + cLineBreak +
-      '      Writeln(''FAIL _PROCESS_ -> '' + E.ClassName + '': '' + E.Message);' + cLineBreak +
-      '      ExitCode := 255;' + cLineBreak +
-      '    end;' + cLineBreak +
-      '  end;' + cLineBreak +
-      '  Halt(ExitCode);' + cLineBreak +
-      'end.' + cLineBreak;
-    TFile.WriteAllText(aPaths.fGeneratedDpr, lContent, TEncoding.UTF8);
+    TFile.Copy(lSourceProjectPath, aPaths.fGeneratedDpr, True);
 
     lSourceCfgPath := TPath.ChangeExtension(lSourceProjectPath, '.cfg');
     if FileExists(lSourceCfgPath) then
@@ -1065,7 +1014,7 @@ begin
 end;
 
 function TryPatchDfmCheckDpr(const aInputText: string; out aOutputText: string; out aChanged: Boolean;
-  out aError: string): Boolean;
+  out aError: string; const aRegisterUnitName: string): Boolean;
 const
   cLineBreak = #13#10;
 var
@@ -1074,8 +1023,12 @@ var
   lCharAfter: Char;
   lCharBefore: Char;
   lFoundUses: Boolean;
+  lInjectedUnits: string;
   lLowerText: string;
+  lNeedsDfmStreamAll: Boolean;
+  lNeedsRegisterUnit: Boolean;
   lPos: Integer;
+  lRegisterUnitName: string;
   lWorkText: string;
   lChangedUses: Boolean;
   lChangedValidatorStart: Boolean;
@@ -1093,8 +1046,11 @@ begin
   lChangedValidatorStart := False;
   lClauseStart := 0;
   lClauseEnd := 0;
+  lRegisterUnitName := Trim(aRegisterUnitName);
+  lNeedsDfmStreamAll := not ContainsWord(lWorkText, 'DfmStreamAll');
+  lNeedsRegisterUnit := (lRegisterUnitName <> '') and (not ContainsWord(lWorkText, lRegisterUnitName));
 
-  if not ContainsWord(lWorkText, 'DfmStreamAll') then
+  if lNeedsDfmStreamAll or lNeedsRegisterUnit then
   begin
     lFoundUses := False;
     lLowerText := LowerCase(lWorkText);
@@ -1138,7 +1094,13 @@ begin
       Exit(False);
     end;
 
-    lUsesText := 'uses' + cLineBreak + '  DfmStreamAll,' + cLineBreak + '  ' + lUsesBody + ';';
+    lInjectedUnits := '';
+    if lNeedsDfmStreamAll then
+      lInjectedUnits := lInjectedUnits + '  DfmStreamAll,' + cLineBreak;
+    if lNeedsRegisterUnit then
+      lInjectedUnits := lInjectedUnits + '  ' + lRegisterUnitName + ',' + cLineBreak;
+
+    lUsesText := 'uses' + cLineBreak + lInjectedUnits + '  ' + lUsesBody + ';';
     lWorkText := Copy(lWorkText, 1, lClauseStart - 1) + lUsesText + Copy(lWorkText, lClauseEnd + 1, MaxInt);
     lChangedUses := True;
   end;
@@ -1427,7 +1389,8 @@ begin
     lCopiedDfmStreamAll := not lHadDfmStreamAll;
 
     lText := TFile.ReadAllText(lPaths.fGeneratedDpr);
-    if not TryPatchDfmCheckDpr(lText, lPatchedText, lChanged, aError) then
+    if not TryPatchDfmCheckDpr(lText, lPatchedText, lChanged, aError,
+      TPath.GetFileNameWithoutExtension(lPaths.fGeneratedRegisterUnit)) then
     begin
       aCategory := TDfmCheckErrorCategory.ecDprPatchFailed;
       Exit(MapDfmCheckExitCode(aCategory, 0));

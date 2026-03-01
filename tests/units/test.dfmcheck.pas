@@ -359,6 +359,8 @@ var
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
+  lInjectedPos: Integer;
+  lAppInitPos: Integer;
   lGeneratedDprojText: string;
   lPatchedDprText: string;
   lGeneratedUnitText: string;
@@ -411,11 +413,16 @@ begin
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
     lPatchedDprText := TFile.ReadAllText(lPaths.fGeneratedDpr);
     Assert.IsTrue(Pos('DfmStreamAll,', lPatchedDprText) > 0, 'Expected DfmStreamAll in patched DPR.');
+    Assert.IsTrue(Pos('Sample_DfmCheck_Register', lPatchedDprText) > 0,
+      'Expected generated register unit in patched DPR uses clause.');
     Assert.IsTrue(Pos('ExitCode := TDfmStreamAll.Run;', lPatchedDprText) > 0,
       'Expected ExitCode assignment in patched DPR.');
     Assert.IsTrue(Pos('Halt(ExitCode);', lPatchedDprText) > 0, 'Expected validator short-circuit halt in DPR.');
-    Assert.IsFalse(Pos('Application.Initialize;', lPatchedDprText) > 0,
-      'Generated checker DPR should not execute application startup.');
+    lInjectedPos := Pos('ExitCode := TDfmStreamAll.Run;', lPatchedDprText);
+    lAppInitPos := Pos('Application.Initialize;', lPatchedDprText);
+    if lAppInitPos > 0 then
+      Assert.IsTrue(lInjectedPos < lAppInitPos,
+        'Expected validator short-circuit to run before application startup path.');
 
     lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
     Assert.IsTrue(Pos('<DCC_Define>DFMCheck</DCC_Define>', lGeneratedDprojText) > 0,
