@@ -76,7 +76,7 @@ var
   lResourceNames: TStrings;
   lResourceName: string;
 begin
-  lResourceNames := TStrings(aParam);
+  lResourceNames := TStrings(Pointer(aParam));
   if lResourceNames = nil then
     Exit(True);
 
@@ -126,24 +126,26 @@ begin
   end;
 
   try
-    if not IsComponentStream(lStream, lSigErr) then
-    begin
-      Inc(aStats.Skipped);
-      Exit;
-    end;
+    try
+      if not IsComponentStream(lStream, lSigErr) then
+      begin
+        Inc(aStats.Skipped);
+        Exit;
+      end;
 
-    Inc(aStats.Streamed);
-    if not TryReadRootComponent(lStream, lReadErr) then
-    begin
-      Inc(aStats.Errors);
-      Writeln('FAIL ', aResourceName, ' -> ', lReadErr);
-    end else
-      Writeln('OK   ', aResourceName);
-  except
-    on E: Exception do
-    begin
-      Inc(aStats.Errors);
-      Writeln('FAIL ', aResourceName, ' -> ', E.ClassName, ': ', E.Message);
+      Inc(aStats.Streamed);
+      if not TryReadRootComponent(lStream, lReadErr) then
+      begin
+        Inc(aStats.Errors);
+        Writeln('FAIL ', aResourceName, ' -> ', lReadErr);
+      end else
+        Writeln('OK   ', aResourceName);
+    except
+      on E: Exception do
+      begin
+        Inc(aStats.Errors);
+        Writeln('FAIL ', aResourceName, ' -> ', E.ClassName, ': ', E.Message);
+      end;
     end;
   finally
     lStream.Free;
@@ -163,7 +165,7 @@ begin
     lResourceNames.CaseSensitive := False;
     lResourceNames.Sorted := True;
     lResourceNames.Duplicates := TDuplicates.dupIgnore;
-    EnumResourceNames(HInstance, RT_RCDATA, @EnumRcDataNameProc, NativeInt(lResourceNames));
+    EnumResourceNames(HInstance, RT_RCDATA, @EnumRcDataNameProc, NativeInt(Pointer(lResourceNames)));
     for i := 0 to lResourceNames.Count - 1 do
     begin
       lResourceName := lResourceNames[i];
