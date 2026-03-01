@@ -359,6 +359,7 @@ var
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
+  lGeneratedDprojText: string;
   lPatchedDprText: string;
   lGeneratedUnitText: string;
 begin
@@ -413,6 +414,12 @@ begin
     Assert.IsTrue(Pos('ExitCode := TDfmStreamAll.Run;', lPatchedDprText) > 0,
       'Expected ExitCode assignment in patched DPR.');
     Assert.IsTrue(Pos('Halt(ExitCode);', lPatchedDprText) > 0, 'Expected validator short-circuit halt in DPR.');
+    Assert.IsFalse(Pos('Application.Initialize;', lPatchedDprText) > 0,
+      'Generated checker DPR should not execute application startup.');
+
+    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
+    Assert.IsTrue(Pos('<DCC_Define>DFMCheck</DCC_Define>', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should define DFMCheck symbol.');
 
     lGeneratedUnitText := TFile.ReadAllText(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas'));
     Assert.IsTrue(Pos('unit Sample_DfmCheck_Register;', lGeneratedUnitText) > 0,

@@ -633,6 +633,9 @@ end;
 function TryCopyDprojWithNewMainSource(const aSourceDprojPath: string; const aDestDprojPath: string;
   const aSourceMainSource: string; const aGeneratedMainSource: string; const aAdditionalUnitSearchPath: string;
   out aError: string): Boolean;
+const
+  cLineBreak = #13#10;
+  cDfmCheckSymbol = 'DFMCheck';
   function XmlEscape(const aValue: string): string;
   begin
     Result := aValue;
@@ -644,6 +647,10 @@ function TryCopyDprojWithNewMainSource(const aSourceDprojPath: string; const aDe
   end;
 var
   lEscapedSearchPath: string;
+  lDefineMatch: TMatch;
+  lExistingDefines: string;
+  lInsertText: string;
+  lPropertyGroupMatch: TMatch;
   lSourceText: string;
   lOutputText: string;
   lRegex: string;
@@ -671,6 +678,25 @@ begin
     if TRegEx.IsMatch(lOutputText, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>', [roIgnoreCase]) then
       lOutputText := TRegEx.Replace(lOutputText, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>',
         '<DCC_UnitSearchPath>' + lEscapedSearchPath + ';$1</DCC_UnitSearchPath>', [roIgnoreCase]);
+  end;
+
+  lDefineMatch := TRegEx.Match(lOutputText, '<DCC_Define>\s*([^<]*)\s*</DCC_Define>', [roIgnoreCase]);
+  if lDefineMatch.Success and (lDefineMatch.Groups.Count > 1) then
+  begin
+    lExistingDefines := lDefineMatch.Groups[1].Value;
+    if Pos(UpperCase(cDfmCheckSymbol), UpperCase(lExistingDefines)) = 0 then
+      lOutputText := TRegEx.Replace(lOutputText, '<DCC_Define>\s*([^<]*)\s*</DCC_Define>',
+        '<DCC_Define>$1;' + cDfmCheckSymbol + '</DCC_Define>', [roIgnoreCase]);
+  end else
+  begin
+    lPropertyGroupMatch := TRegEx.Match(lOutputText, '<PropertyGroup\b[^>]*>', [roIgnoreCase]);
+    if lPropertyGroupMatch.Success then
+    begin
+      lInsertText := lPropertyGroupMatch.Value + cLineBreak +
+        '    <DCC_Define>' + cDfmCheckSymbol + '</DCC_Define>';
+      lOutputText := Copy(lOutputText, 1, lPropertyGroupMatch.Index) + lInsertText +
+        Copy(lOutputText, lPropertyGroupMatch.Index + lPropertyGroupMatch.Length + 1, MaxInt);
+    end;
   end;
 
   TFile.WriteAllText(aDestDprojPath, lOutputText, TEncoding.UTF8);
@@ -891,7 +917,8 @@ begin
       end;
 
       lContent := 'program ' + TPath.GetFileNameWithoutExtension(lGeneratedDprName) + ';' + cLineBreak + cLineBreak +
-        '{$APPTYPE CONSOLE}' + cLineBreak + cLineBreak;
+        '{$APPTYPE CONSOLE}' + cLineBreak +
+        '{$DEFINE DFMCheck}' + cLineBreak + cLineBreak;
       if lDirectiveLines.Count > 0 then
         lContent := lContent + lDirectiveLines.Text + cLineBreak;
     finally
