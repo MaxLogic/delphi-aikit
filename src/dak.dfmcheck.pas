@@ -5,8 +5,9 @@ interface
 uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
   System.Win.Registry,
+  Winapi.Messages,
   Winapi.Windows,
-  DfmCheck_DfmCheck, DfmCheck_Options, DfmCheck_Utils, ToolsAPIRepl,
+  DfmCheck_Utils, ToolsAPIRepl,
   Dak.FixInsightSettings, Dak.Messages, Dak.RsVars, Dak.Types;
 
 type
@@ -31,9 +32,10 @@ type
     fGeneratedDir: string;
     fGeneratedDproj: string;
     fGeneratedDpr: string;
+    fGeneratedRegisterUnit: string;
     fForcedExeOutputDir: string;
+    fForcedDcuOutputDir: string;
     fInjectDir: string;
-    fInjectAutoFree: string;
     fInjectDfmStreamAll: string;
   end;
 
@@ -63,6 +65,47 @@ type
     function Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
       const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
   end;
+
+type
+  TWindowCloseContext = record
+    ProcessId: Cardinal;
+  end;
+  PWindowCloseContext = ^TWindowCloseContext;
+
+function EnumCloseProcessWindowsProc(aWnd: HWND; aParam: LPARAM): BOOL; stdcall;
+var
+  lProcessId: Cardinal;
+  lWindowProcessId: Cardinal;
+  lWindowStyle: Longint;
+begin
+  Result := True;
+  if aParam = 0 then
+    Exit(True);
+
+  lProcessId := PWindowCloseContext(aParam)^.ProcessId;
+  if lProcessId = 0 then
+    Exit(True);
+
+  lWindowProcessId := 0;
+  GetWindowThreadProcessId(aWnd, lWindowProcessId);
+  if lWindowProcessId <> lProcessId then
+    Exit(True);
+
+  lWindowStyle := GetWindowLong(aWnd, GWL_STYLE);
+  if (lWindowStyle and WS_VISIBLE) <> 0 then
+    ShowWindow(aWnd, SW_HIDE);
+  PostMessage(aWnd, WM_CLOSE, 0, 0);
+end;
+
+procedure CloseTopLevelWindowsForProcess(const aProcessId: Cardinal);
+var
+  lContext: TWindowCloseContext;
+begin
+  if aProcessId = 0 then
+    Exit;
+  lContext.ProcessId := aProcessId;
+  EnumWindows(@EnumCloseProcessWindowsProc, LPARAM(@lContext));
+end;
 
 function QuoteCmdArg(const aValue: string): string;
 var
@@ -165,6 +208,16 @@ var
 begin
   lExt := LowerCase(TPath.GetExtension(aPath));
   Result := (lExt = '.bat') or (lExt = '.cmd');
+end;
+
+function ShouldIsolateUiProcess(const aExePath: string; const aArguments: string): Boolean;
+var
+  lExeName: string;
+begin
+  if Trim(aArguments) <> '' then
+    Exit(False);
+  lExeName := TPath.GetFileName(aExePath);
+  Result := EndsText('_DfmCheck.exe', lExeName);
 end;
 
 function TryResolveAbsolutePath(const aInputPath: string; out aOutputPath: string; out aError: string): Boolean; forward;
@@ -340,8 +393,8 @@ begin
   end;
 end;
 
-procedure CleanupGeneratedArtifacts(const aPaths: TDfmCheckPaths; const aCopiedAutoFree: Boolean;
-  const aCopiedDfmStreamAll: Boolean; const aValidatorExePath: string; const aOutput: TDfmCheckOutputProc);
+procedure CleanupGeneratedArtifacts(const aPaths: TDfmCheckPaths; const aCopiedDfmStreamAll: Boolean;
+  const aValidatorExePath: string; const aOutput: TDfmCheckOutputProc);
 var
   lBasePath: string;
   lCmdsPath: string;
@@ -359,16 +412,15 @@ begin
   CleanupFile(aPaths.fGeneratedDproj, lErrors);
   CleanupFile(TPath.ChangeExtension(aPaths.fGeneratedDpr, '.cfg'), lErrors);
   CleanupFile(TPath.ChangeExtension(aPaths.fGeneratedDpr, '.res'), lErrors);
-  CleanupFile(lBasePath + '_Unit.pas', lErrors);
+  if aPaths.fGeneratedRegisterUnit <> '' then
+    CleanupFile(aPaths.fGeneratedRegisterUnit, lErrors);
   CleanupFile(lDirectBasePath + '.dpr', lErrors);
   CleanupFile(lDirectBasePath + '.dproj', lErrors);
   CleanupFile(lDirectBasePath + '.cfg', lErrors);
   CleanupFile(lDirectBasePath + '.res', lErrors);
-  CleanupFile(lDirectBasePath + '_Unit.pas', lErrors);
+  CleanupFile(lDirectBasePath + '_Register.pas', lErrors);
   CleanupFile(aValidatorExePath, lErrors);
 
-  if aCopiedAutoFree then
-    CleanupFile(TPath.Combine(aPaths.fGeneratedDir, 'autoFree.pas'), lErrors);
   if aCopiedDfmStreamAll then
     CleanupFile(TPath.Combine(aPaths.fGeneratedDir, 'DfmStreamAll.pas'), lErrors);
 
@@ -390,6 +442,8 @@ begin
   end;
   if aPaths.fForcedExeOutputDir <> '' then
     CleanupDirectory(aPaths.fForcedExeOutputDir, lErrors);
+  if aPaths.fForcedDcuOutputDir <> '' then
+    CleanupDirectory(aPaths.fForcedDcuOutputDir, lErrors);
 
   if lErrors <> '' then
     EmitLine(aOutput, '[dfm-check] Cleanup warning: ' + lErrors)
@@ -406,6 +460,7 @@ begin
   Result.fGeneratedDir := TPath.Combine(Result.fProjectDir, Result.fProjectName + '_DfmCheck');
   Result.fGeneratedDproj := TPath.Combine(Result.fGeneratedDir, Result.fProjectName + '_DfmCheck.dproj');
   Result.fGeneratedDpr := TPath.Combine(Result.fGeneratedDir, Result.fProjectName + '_DfmCheck.dpr');
+  Result.fGeneratedRegisterUnit := TPath.Combine(Result.fGeneratedDir, Result.fProjectName + '_DfmCheck_Register.pas');
 end;
 
 function TryNormalizeInputPath(const aPath: string; out aNormalizedPath: string; out aError: string): Boolean;
@@ -576,8 +631,19 @@ begin
 end;
 
 function TryCopyDprojWithNewMainSource(const aSourceDprojPath: string; const aDestDprojPath: string;
-  const aSourceMainSource: string; const aGeneratedMainSource: string; out aError: string): Boolean;
+  const aSourceMainSource: string; const aGeneratedMainSource: string; const aAdditionalUnitSearchPath: string;
+  out aError: string): Boolean;
+  function XmlEscape(const aValue: string): string;
+  begin
+    Result := aValue;
+    Result := StringReplace(Result, '&', '&amp;', [rfReplaceAll]);
+    Result := StringReplace(Result, '<', '&lt;', [rfReplaceAll]);
+    Result := StringReplace(Result, '>', '&gt;', [rfReplaceAll]);
+    Result := StringReplace(Result, '"', '&quot;', [rfReplaceAll]);
+    Result := StringReplace(Result, '''', '&apos;', [rfReplaceAll]);
+  end;
 var
+  lEscapedSearchPath: string;
   lSourceText: string;
   lOutputText: string;
   lRegex: string;
@@ -599,94 +665,148 @@ begin
     Exit(False);
   end;
 
+  if Trim(aAdditionalUnitSearchPath) <> '' then
+  begin
+    lEscapedSearchPath := XmlEscape(aAdditionalUnitSearchPath);
+    if TRegEx.IsMatch(lOutputText, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>', [roIgnoreCase]) then
+      lOutputText := TRegEx.Replace(lOutputText, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>',
+        '<DCC_UnitSearchPath>' + lEscapedSearchPath + ';$1</DCC_UnitSearchPath>', [roIgnoreCase]);
+  end;
+
   TFile.WriteAllText(aDestDprojPath, lOutputText, TEncoding.UTF8);
   Result := True;
 end;
 
-function TryWriteRuntimeOnlyCheckerUnit(const aGeneratedUnitPath: string; out aError: string): Boolean;
+function BuildDelimitedPath(const aPaths: TStrings): string;
+var
+  i: Integer;
+begin
+  Result := '';
+  if aPaths = nil then
+    Exit;
+  for i := 0 to aPaths.Count - 1 do
+  begin
+    if Result <> '' then
+      Result := Result + ';';
+    Result := Result + aPaths[i];
+  end;
+end;
+
+function TryCollectFormModules(const aSourceProjectPath: string; const aUnitNames: TStrings;
+  const aFormClassNames: TStrings; const aUnitSearchDirs: TStrings; out aError: string): Boolean;
+var
+  i: Integer;
+  lDfmPath: string;
+  lFormClassName: string;
+  lModuleDir: string;
+  lModuleFilePath: string;
+  lProject: IOTAProject;
+  lUnitName: string;
+begin
+  Result := False;
+  aError := '';
+  lProject := LoadProject(aSourceProjectPath);
+  if lProject = nil then
+  begin
+    aError := 'Failed to load project for DFM module discovery: ' + aSourceProjectPath;
+    Exit(False);
+  end;
+
+  for i := 0 to lProject.ModuleCount - 1 do
+  begin
+    lModuleFilePath := Trim(lProject.Modules[i].FileName);
+    if lModuleFilePath = '' then
+      Continue;
+    lModuleFilePath := TPath.GetFullPath(lModuleFilePath);
+    if not FileExists(lModuleFilePath) then
+      Continue;
+    if not SameText(TPath.GetExtension(lModuleFilePath), '.pas') then
+      Continue;
+
+    lDfmPath := TPath.ChangeExtension(lModuleFilePath, '.dfm');
+    if not FileExists(lDfmPath) then
+      Continue;
+
+    lUnitName := TPath.GetFileNameWithoutExtension(lModuleFilePath);
+    lModuleDir := ExcludeTrailingPathDelimiter(ExtractFileDir(lModuleFilePath));
+    if lModuleDir <> '' then
+      aUnitSearchDirs.Add(lModuleDir);
+    if aUnitNames.IndexOf(lUnitName) >= 0 then
+      Continue;
+
+    try
+      lFormClassName := Trim(ReadFormClassNameFromFile(lDfmPath));
+    except
+      on E: Exception do
+      begin
+        aError := 'Failed to read root form class from DFM (' + lDfmPath + '): ' + E.Message;
+        Exit(False);
+      end;
+    end;
+
+    aUnitNames.Add(lUnitName);
+    aFormClassNames.Add(lFormClassName);
+  end;
+  Result := True;
+end;
+
+function TryWriteRegisterUnit(const aRegisterUnitPath: string; const aUnitNames: TStrings;
+  const aFormClassNames: TStrings; out aError: string): Boolean;
 const
   cLineBreak = #13#10;
 var
   lContent: string;
   lEncoding: TEncoding;
-  lInputText: string;
-  lLine: string;
-  lMatch: TMatch;
-  lMatchCollection: TMatchCollection;
-  lUsesBlock: string;
-  lUsesUnits: TStringList;
-  lUnitName: string;
   i: Integer;
+  lRegisterUnitName: string;
 begin
   aError := '';
-  lUnitName := Trim(TPath.GetFileNameWithoutExtension(aGeneratedUnitPath));
-  if lUnitName = '' then
+  lRegisterUnitName := TPath.GetFileNameWithoutExtension(aRegisterUnitPath);
+  if lRegisterUnitName = '' then
   begin
-    aError := 'Generated checker unit name is empty: ' + aGeneratedUnitPath;
+    aError := 'Generated register unit name is empty: ' + aRegisterUnitPath;
+    Exit(False);
+  end;
+  if (aUnitNames = nil) or (aFormClassNames = nil) or (aUnitNames.Count <> aFormClassNames.Count) then
+  begin
+    aError := 'Generated register unit inputs are invalid.';
     Exit(False);
   end;
 
-  if not FileExists(aGeneratedUnitPath) then
+  lContent := 'unit ' + lRegisterUnitName + ';' + cLineBreak + cLineBreak +
+    'interface' + cLineBreak + cLineBreak +
+    'implementation' + cLineBreak + cLineBreak +
+    'uses' + cLineBreak +
+    '  System.Classes';
+  if aUnitNames.Count > 0 then
+    lContent := lContent + ',' + cLineBreak;
+  for i := 0 to aUnitNames.Count - 1 do
   begin
-    aError := 'Generated checker unit not found: ' + aGeneratedUnitPath;
-    Exit(False);
+    lContent := lContent + '  ' + aUnitNames[i];
+    if i < aUnitNames.Count - 1 then
+      lContent := lContent + ','
+    else
+      lContent := lContent + ';';
+    lContent := lContent + cLineBreak;
   end;
 
-  lInputText := TFile.ReadAllText(aGeneratedUnitPath);
-  lMatch := TRegEx.Match(lInputText, '\buses\b(.*?);', [roIgnoreCase, roSingleLine]);
-  if not lMatch.Success or (lMatch.Groups.Count < 2) then
+  lContent := lContent + cLineBreak +
+    'procedure RegisterDfmCheckClasses;' + cLineBreak +
+    'begin' + cLineBreak;
+  for i := 0 to aFormClassNames.Count - 1 do
   begin
-    aError := 'Could not extract uses clause from generated checker unit: ' + aGeneratedUnitPath;
-    Exit(False);
+    if Trim(aFormClassNames[i]) <> '' then
+      lContent := lContent + '  {$IF Declared(' + aFormClassNames[i] + ')} RegisterClass(' + aFormClassNames[i] +
+        '); {$IFEND}' + cLineBreak;
   end;
-
-  lUsesUnits := TStringList.Create;
-  try
-    lUsesUnits.CaseSensitive := False;
-    lUsesUnits.Sorted := False;
-    lUsesUnits.Duplicates := TDuplicates.dupIgnore;
-
-    lUsesBlock := lMatch.Groups[1].Value;
-    lMatchCollection := TRegEx.Matches(lUsesBlock, '[A-Za-z_][A-Za-z0-9_\.]*');
-    for lMatch in lMatchCollection do
-      lUsesUnits.Add(lMatch.Value);
-    if lUsesUnits.Count = 0 then
-    begin
-      aError := 'Generated checker unit uses clause is empty: ' + aGeneratedUnitPath;
-      Exit(False);
-    end;
-    if lUsesUnits.IndexOf('System.Classes') < 0 then
-      lUsesUnits.Add('System.Classes');
-
-    lContent :=
-      'unit ' + lUnitName + ';' + cLineBreak + cLineBreak +
-      'interface' + cLineBreak + cLineBreak +
-      'implementation' + cLineBreak + cLineBreak +
-      'uses' + cLineBreak;
-    for i := 0 to lUsesUnits.Count - 1 do
-    begin
-      lLine := '  ' + lUsesUnits[i];
-      if i < lUsesUnits.Count - 1 then
-        lLine := lLine + ','
-      else
-        lLine := lLine + ';';
-      lContent := lContent + lLine + cLineBreak;
-    end;
-    lContent := lContent + cLineBreak +
-      'procedure TouchDfmCheckUnits;' + cLineBreak +
-      'begin' + cLineBreak;
-    lContent := lContent +
-      'end;' + cLineBreak + cLineBreak +
-      'initialization' + cLineBreak +
-      '  TouchDfmCheckUnits;' + cLineBreak + cLineBreak +
-      'end.' + cLineBreak;
-  finally
-    lUsesUnits.Free;
-  end;
+  lContent := lContent + 'end;' + cLineBreak + cLineBreak +
+    'initialization' + cLineBreak +
+    '  RegisterDfmCheckClasses;' + cLineBreak + cLineBreak +
+    'end.' + cLineBreak;
 
   lEncoding := TUTF8Encoding.Create(False);
   try
-    TFile.WriteAllText(aGeneratedUnitPath, lContent, lEncoding);
+    TFile.WriteAllText(aRegisterUnitPath, lContent, lEncoding);
   finally
     lEncoding.Free;
   end;
@@ -694,21 +814,26 @@ begin
 end;
 
 function TryGenerateDfmCheckProject(const aDprojPath: string; var aPaths: TDfmCheckPaths; out aError: string): Boolean;
+const
+  cLineBreak = #13#10;
 var
-  lCheck: TDfmCheck;
   lContent: string;
+  lDirectiveLine: string;
+  lDirectiveLines: TStringList;
+  lFormClassNames: TStringList;
   lGeneratedCfgPath: string;
-  lGeneratedDprPath: string;
   lGeneratedDprName: string;
-  lGeneratedDprojPath: string;
   lGeneratedDprojName: string;
-  lGeneratedUnitPath: string;
   lMainSourceRaw: string;
-  lOptionsObj: TOptions;
+  lRegisterUnitName: string;
   lSourceCfgPath: string;
+  lSourceDprLines: TStringList;
   lSourceProjectExt: string;
   lSourceProjectPath: string;
-  lProject: IOTAProject;
+  lTrimmedLine: string;
+  lUnitNames: TStringList;
+  lUnitSearchDirs: TStringList;
+  lUnitSearchPath: string;
 begin
   aError := '';
   if not TryResolveGeneratorProjectPath(aDprojPath, lSourceProjectPath, lMainSourceRaw, aError) then
@@ -721,61 +846,93 @@ begin
     Exit(False);
   end;
 
-  lOptionsObj := TOptions.Create;
-  Options := lOptionsObj;
+  lUnitNames := TStringList.Create;
+  lFormClassNames := TStringList.Create;
+  lUnitSearchDirs := TStringList.Create;
   try
-    lProject := LoadProject(lSourceProjectPath);
-    if (lProject = nil) or (lProject.ModuleCount = 0) then
-    begin
-      aError := 'DFMCheck generator found no form modules in: ' + lSourceProjectPath;
+    lUnitNames.CaseSensitive := False;
+    lUnitNames.Sorted := False;
+    lUnitNames.Duplicates := TDuplicates.dupIgnore;
+    lFormClassNames.CaseSensitive := False;
+    lFormClassNames.Sorted := False;
+    lFormClassNames.Duplicates := TDuplicates.dupIgnore;
+    lUnitSearchDirs.CaseSensitive := False;
+    lUnitSearchDirs.Sorted := True;
+    lUnitSearchDirs.Duplicates := TDuplicates.dupIgnore;
+
+    if not TryCollectFormModules(lSourceProjectPath, lUnitNames, lFormClassNames, lUnitSearchDirs, aError) then
       Exit(False);
-    end;
 
-    lCheck := TDfmCheck.Create(lProject);
+    lUnitSearchPath := BuildDelimitedPath(lUnitSearchDirs);
+    lGeneratedDprName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dpr';
+    lGeneratedDprojName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dproj';
+    aPaths.fGeneratedDpr := TPath.Combine(aPaths.fProjectDir, lGeneratedDprName);
+    aPaths.fGeneratedDproj := TPath.Combine(aPaths.fProjectDir, lGeneratedDprojName);
+    aPaths.fGeneratedRegisterUnit := TPath.Combine(aPaths.fProjectDir,
+      TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck_Register.pas');
+    lGeneratedCfgPath := TPath.ChangeExtension(aPaths.fGeneratedDpr, '.cfg');
+
+    if not TryWriteRegisterUnit(aPaths.fGeneratedRegisterUnit, lUnitNames, lFormClassNames, aError) then
+      Exit(False);
+
+    lDirectiveLines := TStringList.Create;
+    lSourceDprLines := TStringList.Create;
     try
-      lCheck.CheckForms(True, False);
-      lGeneratedUnitPath := lCheck.ProjectFileNameDfmCheckUnit;
+      lSourceDprLines.LoadFromFile(lSourceProjectPath);
+      for lDirectiveLine in lSourceDprLines do
+      begin
+        lTrimmedLine := Trim(lDirectiveLine);
+        if not StartsText('{$', lTrimmedLine) then
+          Continue;
+        if EndsText('}', lTrimmedLine) and
+          (StartsText('{$I ', lTrimmedLine) or StartsText('{$I''', lTrimmedLine) or
+          StartsText('{$INCLUDE', lTrimmedLine)) then
+          lDirectiveLines.Add(lTrimmedLine);
+      end;
+
+      lContent := 'program ' + TPath.GetFileNameWithoutExtension(lGeneratedDprName) + ';' + cLineBreak + cLineBreak +
+        '{$APPTYPE CONSOLE}' + cLineBreak + cLineBreak;
+      if lDirectiveLines.Count > 0 then
+        lContent := lContent + lDirectiveLines.Text + cLineBreak;
     finally
-      lCheck.Free;
+      lSourceDprLines.Free;
+      lDirectiveLines.Free;
     end;
+
+    lRegisterUnitName := TPath.GetFileNameWithoutExtension(aPaths.fGeneratedRegisterUnit);
+    lContent := lContent +
+      'uses' + cLineBreak +
+      '  System.SysUtils,' + cLineBreak +
+      '  DfmStreamAll,' + cLineBreak +
+      '  ' + lRegisterUnitName + ';' + cLineBreak + cLineBreak +
+      'begin' + cLineBreak +
+      '  try' + cLineBreak +
+      '    ExitCode := TDfmStreamAll.Run;' + cLineBreak +
+      '  except' + cLineBreak +
+      '    on E: Exception do' + cLineBreak +
+      '    begin' + cLineBreak +
+      '      Writeln(''FAIL _PROCESS_ -> '' + E.ClassName + '': '' + E.Message);' + cLineBreak +
+      '      ExitCode := 255;' + cLineBreak +
+      '    end;' + cLineBreak +
+      '  end;' + cLineBreak +
+      '  Halt(ExitCode);' + cLineBreak +
+      'end.' + cLineBreak;
+    TFile.WriteAllText(aPaths.fGeneratedDpr, lContent, TEncoding.UTF8);
+
+    lSourceCfgPath := TPath.ChangeExtension(lSourceProjectPath, '.cfg');
+    if FileExists(lSourceCfgPath) then
+      TFile.Copy(lSourceCfgPath, lGeneratedCfgPath, True);
+
+    if not TryCopyDprojWithNewMainSource(aDprojPath, aPaths.fGeneratedDproj, lMainSourceRaw, lGeneratedDprName,
+      lUnitSearchPath, aError) then
+      Exit(False);
   finally
-    Options := nil;
-    lOptionsObj.Free;
+    lUnitSearchDirs.Free;
+    lFormClassNames.Free;
+    lUnitNames.Free;
   end;
-
-  if not FileExists(lGeneratedUnitPath) then
-  begin
-    aError := 'Generated DFMCheck unit not found: ' + lGeneratedUnitPath;
-    Exit(False);
-  end;
-
-  if not TryWriteRuntimeOnlyCheckerUnit(lGeneratedUnitPath, aError) then
-    Exit(False);
-
-  lGeneratedDprName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dpr';
-  lGeneratedDprojName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dproj';
-  lGeneratedDprPath := TPath.Combine(aPaths.fProjectDir, lGeneratedDprName);
-  lGeneratedDprojPath := TPath.Combine(aPaths.fProjectDir, lGeneratedDprojName);
-  lGeneratedCfgPath := TPath.ChangeExtension(lGeneratedDprPath, '.cfg');
-
-  lContent := TFile.ReadAllText(lSourceProjectPath);
-  if not AppendProjectUnit(lContent, ExtractFileName(lGeneratedUnitPath)) then
-  begin
-    aError := 'Could not append generated DFMCheck unit to project source.';
-    Exit(False);
-  end;
-  TFile.WriteAllText(lGeneratedDprPath, lContent, TEncoding.UTF8);
-
-  lSourceCfgPath := TPath.ChangeExtension(lSourceProjectPath, '.cfg');
-  if FileExists(lSourceCfgPath) then
-    TFile.Copy(lSourceCfgPath, lGeneratedCfgPath, True);
-
-  if not TryCopyDprojWithNewMainSource(aDprojPath, lGeneratedDprojPath, lMainSourceRaw, lGeneratedDprName, aError) then
-    Exit(False);
 
   aPaths.fGeneratedDir := aPaths.fProjectDir;
-  aPaths.fGeneratedDpr := lGeneratedDprPath;
-  aPaths.fGeneratedDproj := lGeneratedDprojPath;
   Result := True;
 end;
 
@@ -851,6 +1008,8 @@ begin
         aPaths.fGeneratedDir := lDirectoryPath;
         aPaths.fGeneratedDproj := lFoundDproj;
         aPaths.fGeneratedDpr := lFoundDpr;
+        aPaths.fGeneratedRegisterUnit := TPath.Combine(lDirectoryPath,
+          TPath.GetFileNameWithoutExtension(lFoundDpr) + '_Register.pas');
         Exit(True);
       end;
     end;
@@ -866,6 +1025,8 @@ begin
       aPaths.fGeneratedDir := aPaths.fProjectDir;
       aPaths.fGeneratedDproj := lDirectDproj;
       aPaths.fGeneratedDpr := lDirectDpr;
+      aPaths.fGeneratedRegisterUnit := TPath.Combine(aPaths.fProjectDir,
+        TPath.GetFileNameWithoutExtension(lDirectDpr) + '_Register.pas');
       Exit(True);
     end;
   finally
@@ -975,7 +1136,11 @@ begin
       lSuffix := cLineBreak + lSuffix;
     lWorkText := Copy(lWorkText, 1, lBeginPos + Length('begin') - 1) +
       cLineBreak +
-      '  ExitCode := TDfmStreamAll.Run;' + cLineBreak +
+      '  try' + cLineBreak +
+      '    ExitCode := TDfmStreamAll.Run;' + cLineBreak +
+      '  except' + cLineBreak +
+      '    ExitCode := 255;' + cLineBreak +
+      '  end;' + cLineBreak +
       '  Halt(ExitCode);' + lSuffix;
     lChangedValidatorStart := True;
   end;
@@ -987,8 +1152,12 @@ end;
 
 function IsGeneratedUnitBuildFailure(const aBuildLines: TStrings; const aPaths: TDfmCheckPaths): Boolean;
 var
+  lHelperUnitNameUpper: string;
+  lHelperUnitPathUpper: string;
   lLine: string;
   lLineUpper: string;
+  lLegacyUnitNameUpper: string;
+  lLegacyUnitPathUpper: string;
   lUnitPathUpper: string;
   lUnitNameUpper: string;
 begin
@@ -996,13 +1165,22 @@ begin
   if aBuildLines = nil then
     Exit(False);
 
-  lUnitPathUpper := UpperCase(TPath.Combine(aPaths.fProjectDir, aPaths.fProjectName + '_DfmCheck_Unit.pas'));
-  lUnitNameUpper := UpperCase(aPaths.fProjectName + '_DfmCheck_Unit.pas');
+  lLegacyUnitPathUpper := UpperCase(TPath.Combine(aPaths.fProjectDir, aPaths.fProjectName + '_DfmCheck_Unit.pas'));
+  lLegacyUnitNameUpper := UpperCase(aPaths.fProjectName + '_DfmCheck_Unit.pas');
+  lHelperUnitPathUpper := UpperCase(aPaths.fGeneratedRegisterUnit);
+  if lHelperUnitPathUpper = '' then
+    lHelperUnitPathUpper := UpperCase(TPath.Combine(aPaths.fProjectDir, aPaths.fProjectName + '_DfmCheck_Register.pas'));
+  lHelperUnitNameUpper := UpperCase(TPath.GetFileName(lHelperUnitPathUpper));
+  lUnitPathUpper := lLegacyUnitPathUpper;
+  lUnitNameUpper := lLegacyUnitNameUpper;
 
   for lLine in aBuildLines do
   begin
     lLineUpper := UpperCase(lLine);
-    if (Pos(lUnitNameUpper, lLineUpper) = 0) and (Pos(lUnitPathUpper, lLineUpper) = 0) then
+    if (Pos(lUnitNameUpper, lLineUpper) = 0) and
+      (Pos(lUnitPathUpper, lLineUpper) = 0) and
+      (Pos(lHelperUnitNameUpper, lLineUpper) = 0) and
+      (Pos(lHelperUnitPathUpper, lLineUpper) = 0) then
       Continue;
 
     if (Pos('ERROR E', lLineUpper) > 0) or
@@ -1113,7 +1291,6 @@ end;
 function RunDfmCheckPipeline(const aOptions: TAppOptions; const aRunner: IDfmCheckProcessRunner;
   const aOutput: TDfmCheckOutputProc; out aCategory: TDfmCheckErrorCategory; out aError: string): Integer;
 var
-  lCopiedAutoFree: Boolean;
   lCopiedDfmStreamAll: Boolean;
   lDelphiVersion: string;
   lDprojPath: string;
@@ -1127,17 +1304,18 @@ var
   lBuildExePath: string;
   lBuildExeOverride: string;
   lConfig: string;
+  lForcedDcuOutputDir: string;
   lForcedExeOutputDir: string;
+  lRunGuid: TGUID;
+  lRunSuffix: string;
   lPlatform: string;
   lValidatorExePath: string;
   lWriterEncoding: TEncoding;
-  lHadAutoFree: Boolean;
   lHadDfmStreamAll: Boolean;
 begin
   Result := 1;
   aError := '';
   aCategory := TDfmCheckErrorCategory.ecNone;
-  lCopiedAutoFree := False;
   lCopiedDfmStreamAll := False;
   lValidatorExePath := '';
   lBuildLines := TStringList.Create;
@@ -1195,12 +1373,11 @@ begin
       aCategory := TDfmCheckErrorCategory.ecInjectFilesMissing;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
-    lPaths.fInjectAutoFree := TPath.Combine(lPaths.fInjectDir, 'autoFree.pas');
     lPaths.fInjectDfmStreamAll := TPath.Combine(lPaths.fInjectDir, 'DfmStreamAll.pas');
-    if (not FileExists(lPaths.fInjectAutoFree)) or (not FileExists(lPaths.fInjectDfmStreamAll)) then
+    if not FileExists(lPaths.fInjectDfmStreamAll) then
     begin
       aCategory := TDfmCheckErrorCategory.ecInjectFilesMissing;
-      aError := 'Missing inject files in: ' + lPaths.fInjectDir;
+      aError := 'Missing inject file: ' + lPaths.fInjectDfmStreamAll;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
 
@@ -1218,11 +1395,8 @@ begin
     end;
     EmitLine(aOutput, '[dfm-check] Generated project: ' + lPaths.fGeneratedDproj);
 
-    lHadAutoFree := FileExists(TPath.Combine(lPaths.fGeneratedDir, 'autoFree.pas'));
     lHadDfmStreamAll := FileExists(TPath.Combine(lPaths.fGeneratedDir, 'DfmStreamAll.pas'));
-    TFile.Copy(lPaths.fInjectAutoFree, TPath.Combine(lPaths.fGeneratedDir, 'autoFree.pas'), True);
     TFile.Copy(lPaths.fInjectDfmStreamAll, TPath.Combine(lPaths.fGeneratedDir, 'DfmStreamAll.pas'), True);
-    lCopiedAutoFree := not lHadAutoFree;
     lCopiedDfmStreamAll := not lHadDfmStreamAll;
 
     lText := TFile.ReadAllText(lPaths.fGeneratedDpr);
@@ -1250,14 +1424,26 @@ begin
     end;
     EmitLine(aOutput, '[dfm-check] Using MSBuild: ' + lBuildExePath);
 
-    lForcedExeOutputDir := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckBin');
+    if CreateGUID(lRunGuid) = S_OK then
+      lRunSuffix := GUIDToString(lRunGuid)
+    else
+      lRunSuffix := FormatDateTime('yyyymmddhhnnsszzz', Now);
+    lRunSuffix := StringReplace(lRunSuffix, '{', '', [rfReplaceAll]);
+    lRunSuffix := StringReplace(lRunSuffix, '}', '', [rfReplaceAll]);
+    lRunSuffix := StringReplace(lRunSuffix, '-', '', [rfReplaceAll]);
+
+    lForcedExeOutputDir := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckBin_' + lRunSuffix);
+    lForcedDcuOutputDir := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckDcu_' + lRunSuffix);
     TDirectory.CreateDirectory(lForcedExeOutputDir);
+    TDirectory.CreateDirectory(lForcedDcuOutputDir);
     lPaths.fForcedExeOutputDir := lForcedExeOutputDir;
+    lPaths.fForcedDcuOutputDir := lForcedDcuOutputDir;
 
     EmitLine(aOutput, '[dfm-check] Building generated DfmCheck project via MSBuild...');
     if not aRunner.Run(lBuildExePath,
       QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build /p:Config=' + lConfig + ' /p:Platform=' + lPlatform +
       ' /p:DCC_ForceExecute=true /p:DCC_ExeOutput=' + QuoteCmdArg(IncludeTrailingPathDelimiter(lForcedExeOutputDir)) +
+      ' /p:DCC_DcuOutput=' + QuoteCmdArg(IncludeTrailingPathDelimiter(lForcedDcuOutputDir)) +
       ' /v:m',
       lPaths.fGeneratedDir,
       procedure(const aLine: string)
@@ -1275,7 +1461,7 @@ begin
       if IsGeneratedUnitBuildFailure(lBuildLines, lPaths) then
       begin
         aCategory := TDfmCheckErrorCategory.ecGeneratorIncompatible;
-        aError := Format('Generated *_DfmCheck_Unit.pas failed to compile (generator incompatibility). MSBuild exited with code %d.',
+        aError := Format('Generated helper unit failed to compile (generator incompatibility). MSBuild exited with code %d.',
           [lExitCode]);
       end else
       begin
@@ -1306,7 +1492,7 @@ begin
     if ShouldKeepArtifacts then
       EmitLine(aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).')
     else
-      CleanupGeneratedArtifacts(lPaths, lCopiedAutoFree, lCopiedDfmStreamAll, lValidatorExePath, aOutput);
+      CleanupGeneratedArtifacts(lPaths, lCopiedDfmStreamAll, lValidatorExePath, aOutput);
   end;
 end;
 
@@ -1332,6 +1518,13 @@ var
   lWorkDir: string;
   lWaitResult: Cardinal;
   lLastError: Cardinal;
+  lCreateFlags: Cardinal;
+  lIsolatedDesktop: HDESK;
+  lIsolatedDesktopName: string;
+  lIsolatedProcess: Boolean;
+  lStartTick: Cardinal;
+  lTimeoutMs: Cardinal;
+  lPreviousErrorMode: Cardinal;
   lCommandExe: string;
   lCommandScript: string;
   lUnusedOutput: TDfmCheckOutputProc;
@@ -1347,11 +1540,18 @@ begin
 
   FillChar(lStartupInfo, SizeOf(lStartupInfo), 0);
   lStartupInfo.cb := SizeOf(lStartupInfo);
-  lStartupInfo.dwFlags := STARTF_USESTDHANDLES;
+  lStartupInfo.dwFlags := STARTF_USESTDHANDLES or STARTF_USESHOWWINDOW;
   lStartupInfo.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
   lStartupInfo.hStdOutput := GetStdHandle(STD_OUTPUT_HANDLE);
   lStartupInfo.hStdError := GetStdHandle(STD_ERROR_HANDLE);
+  lStartupInfo.wShowWindow := SW_HIDE;
   FillChar(lProcessInfo, SizeOf(lProcessInfo), 0);
+  lCreateFlags := CREATE_NO_WINDOW;
+  lIsolatedDesktop := 0;
+  lIsolatedDesktopName := '';
+  lIsolatedProcess := False;
+  lStartTick := 0;
+  lTimeoutMs := 0;
 
   if IsCmdScript(aExePath) then
   begin
@@ -1381,25 +1581,53 @@ begin
   if Trim(lWorkDir) = '' then
     lWorkDir := GetCurrentDir;
 
+  lIsolatedProcess := ShouldIsolateUiProcess(aExePath, aArguments);
+  if lIsolatedProcess then
+  begin
+    lIsolatedDesktopName := Format('DAK_DFMCHECK_%d_%d', [GetCurrentProcessId, GetTickCount]);
+    lIsolatedDesktop := CreateDesktop(PChar(lIsolatedDesktopName), nil, nil, 0, GENERIC_ALL, nil);
+    if lIsolatedDesktop <> 0 then
+      lStartupInfo.lpDesktop := PChar(lIsolatedDesktopName);
+    lTimeoutMs := 120000;
+  end;
+
+  lPreviousErrorMode := SetErrorMode(SEM_FAILCRITICALERRORS or SEM_NOGPFAULTERRORBOX or SEM_NOOPENFILEERRORBOX);
   if lAppName = '' then
   begin
-    if not CreateProcess(nil, PChar(lCmdLine), nil, nil, True, 0, nil, PChar(lWorkDir), lStartupInfo, lProcessInfo)
+    if not CreateProcess(nil, PChar(lCmdLine), nil, nil, True, lCreateFlags, nil, PChar(lWorkDir), lStartupInfo,
+      lProcessInfo)
     then
     begin
       lLastError := GetLastError;
       aError := SysErrorMessage(lLastError);
+      SetErrorMode(lPreviousErrorMode);
       Exit(False);
     end;
-  end else if not CreateProcess(PChar(lAppName), PChar(lCmdLine), nil, nil, True, 0, nil, PChar(lWorkDir),
+  end else if not CreateProcess(PChar(lAppName), PChar(lCmdLine), nil, nil, True, lCreateFlags, nil, PChar(lWorkDir),
       lStartupInfo, lProcessInfo) then
   begin
     lLastError := GetLastError;
     aError := SysErrorMessage(lLastError);
+    SetErrorMode(lPreviousErrorMode);
     Exit(False);
   end;
+  SetErrorMode(lPreviousErrorMode);
+  lStartTick := GetTickCount;
 
   try
-    lWaitResult := WaitForSingleObject(lProcessInfo.hProcess, INFINITE);
+    repeat
+      lWaitResult := WaitForSingleObject(lProcessInfo.hProcess, 200);
+      if lWaitResult = WAIT_TIMEOUT then
+      begin
+        CloseTopLevelWindowsForProcess(lProcessInfo.dwProcessId);
+        if (lTimeoutMs <> 0) and ((GetTickCount - lStartTick) >= lTimeoutMs) then
+        begin
+          TerminateProcess(lProcessInfo.hProcess, 146);
+          aError := 'Process timed out waiting for background validation.';
+          Exit(False);
+        end;
+      end;
+    until lWaitResult <> WAIT_TIMEOUT;
     if lWaitResult <> WAIT_OBJECT_0 then
     begin
       lLastError := GetLastError;
@@ -1413,6 +1641,8 @@ begin
       Exit(False);
     end;
   finally
+    if lIsolatedDesktop <> 0 then
+      CloseDesktop(lIsolatedDesktop);
     CloseHandle(lProcessInfo.hThread);
     CloseHandle(lProcessInfo.hProcess);
   end;

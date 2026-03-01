@@ -12,56 +12,95 @@ implementation
 
 uses
   Winapi.Windows,
-  System.Classes, System.SysUtils,
-  autoFree;
+  System.Classes, System.SysUtils;
 
 type
-  TEnumCtx = record
+  TValidationStats = record
     Errors: Integer;
+    Streamed: Integer;
+    Skipped: Integer;
   end;
-  PEnumCtx = ^TEnumCtx;
 
 function IsComponentStream(const aStream: TStream; out aErr: string): Boolean;
 var
-  lGarbo: iGarbo;
   lReader: TReader;
 begin
   aErr := '';
   aStream.Position := 0;
-
-  lReader := nil;
-  lGarbo := gc(lReader, TReader.Create(aStream, 4096));
-
+  lReader := TReader.Create(aStream, 4096);
   try
-    lReader.ReadSignature;
-    Result := True;
-  except
-    on E: Exception do
-    begin
-      aErr := E.ClassName + ': ' + E.Message;
-      Result := False;
+    try
+      lReader.ReadSignature;
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        aErr := E.ClassName + ': ' + E.Message;
+        Result := False;
+      end;
     end;
+  finally
+    lReader.Free;
   end;
 end;
 
 function TryReadRootComponent(const aStream: TStream; out aErr: string): Boolean;
 var
-  lGarboComp: iGarbo;
-  lGarboReader: iGarbo;
   lComp: TComponent;
   lReader: TReader;
 begin
   aErr := '';
   aStream.Position := 0;
-
-  lReader := nil;
-  lGarboReader := gc(lReader, TReader.Create(aStream, 4096));
-
+  lReader := TReader.Create(aStream, 4096);
   lComp := nil;
   try
-    // Missing published properties / missing event handlers typically raise here (EReadError).
-    lComp := lReader.ReadRootComponent(nil);
-    lGarboComp := gc(lComp, lComp);
+    try
+      // Missing published properties / missing event handlers typically raise here (EReadError).
+      lComp := lReader.ReadRootComponent(nil);
+      lComp.Free;
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        aErr := E.ClassName + ': ' + E.Message;
+        Result := False;
+      end;
+    end;
+  finally
+    lReader.Free;
+  end;
+end;
+
+function EnumRcDataNameProc(aModule: HMODULE; aType, aName: PChar; aParam: NativeInt): BOOL; stdcall;
+var
+  lResourceNames: TStrings;
+  lResourceName: string;
+begin
+  lResourceNames := TStrings(aParam);
+  if lResourceNames = nil then
+    Exit(True);
+
+  if (NativeUInt(aName) shr 16) = 0 then
+    lResourceName := Format('#%d', [NativeUInt(aName)])
+  else
+    lResourceName := string(aName);
+  lResourceNames.Add(lResourceName);
+  Result := True;
+end;
+
+function TryOpenResourceStream(const aModule: HMODULE; const aResourceName: string; out aStream: TResourceStream;
+  out aErr: string): Boolean;
+var
+  lId: Integer;
+begin
+  aErr := '';
+  aStream := nil;
+  try
+    if (Length(aResourceName) > 1) and (aResourceName[1] = '#') and
+      TryStrToInt(Copy(aResourceName, 2, MaxInt), lId) and (lId >= 0) then
+      aStream := TResourceStream.Create(aModule, PChar(NativeUInt(lId)), RT_RCDATA)
+    else
+      aStream := TResourceStream.Create(aModule, PChar(aResourceName), RT_RCDATA);
     Result := True;
   except
     on E: Exception do
@@ -72,59 +111,74 @@ begin
   end;
 end;
 
-function EnumRcDataProc(aModule: HMODULE; aType, aName: PChar; aParam: NativeInt): BOOL; stdcall;
+procedure ValidateResource(const aModule: HMODULE; const aResourceName: string; var aStats: TValidationStats);
 var
-  lCtx: PEnumCtx;
-  lGarbo: iGarbo;
-  lName: string;
+  lOpenErr: string;
   lReadErr: string;
   lSigErr: string;
   lStream: TResourceStream;
 begin
-  Result := True;
-  lCtx := PEnumCtx(aParam);
+  if not TryOpenResourceStream(aModule, aResourceName, lStream, lOpenErr) then
+  begin
+    Inc(aStats.Errors);
+    Writeln('FAIL ', aResourceName, ' -> ', lOpenErr);
+    Exit;
+  end;
 
-  if NativeUInt(aName) shr 16 = 0 then
-    lName := Format('#%d', [NativeUInt(aName)])
-  else
-    lName := string(aName);
-
-  lStream := nil;
   try
-    lGarbo := gc(lStream, TResourceStream.Create(aModule, aName, RT_RCDATA));
-
-    // Filter: not every RCDATA resource is a DFM. ReadSignature is a cheap discriminator.
     if not IsComponentStream(lStream, lSigErr) then
-      Exit(True);
+    begin
+      Inc(aStats.Skipped);
+      Exit;
+    end;
 
+    Inc(aStats.Streamed);
     if not TryReadRootComponent(lStream, lReadErr) then
     begin
-      Inc(lCtx^.Errors);
-      Writeln('FAIL ', lName, ' -> ', lReadErr);
+      Inc(aStats.Errors);
+      Writeln('FAIL ', aResourceName, ' -> ', lReadErr);
     end else
-      Writeln('OK   ', lName);
-
+      Writeln('OK   ', aResourceName);
   except
     on E: Exception do
     begin
-      Inc(lCtx^.Errors);
-      Writeln('FAIL ', lName, ' -> ', E.ClassName, ': ', E.Message);
+      Inc(aStats.Errors);
+      Writeln('FAIL ', aResourceName, ' -> ', E.ClassName, ': ', E.Message);
     end;
+  finally
+    lStream.Free;
   end;
 end;
 
 class function TDfmStreamAll.Run: Integer;
 var
-  lCtx: TEnumCtx;
+  i: Integer;
+  lResourceName: string;
+  lResourceNames: TStringList;
+  lStats: TValidationStats;
 begin
-  lCtx.Errors := 0;
+  lStats := Default(TValidationStats);
+  lResourceNames := TStringList.Create;
+  try
+    lResourceNames.CaseSensitive := False;
+    lResourceNames.Sorted := True;
+    lResourceNames.Duplicates := TDuplicates.dupIgnore;
+    EnumResourceNames(HInstance, RT_RCDATA, @EnumRcDataNameProc, NativeInt(lResourceNames));
+    for i := 0 to lResourceNames.Count - 1 do
+    begin
+      lResourceName := lResourceNames[i];
+      ValidateResource(HInstance, lResourceName, lStats);
+    end;
+  finally
+    lResourceNames.Free;
+  end;
 
-  EnumResourceNames(HInstance, RT_RCDATA, @EnumRcDataProc, NativeInt(@lCtx));
+  Writeln(Format('DFM stream validation summary: streamed=%d skipped=%d failed=%d',
+    [lStats.Streamed, lStats.Skipped, lStats.Errors]));
+  if lStats.Errors <> 0 then
+    Writeln(Format('DFM stream validation failed: %d error(s)', [lStats.Errors]));
 
-  if lCtx.Errors <> 0 then
-    Writeln(Format('DFM stream validation failed: %d error(s)', [lCtx.Errors]));
-
-  Result := lCtx.Errors;
+  Result := lStats.Errors;
 end;
 
 end.
