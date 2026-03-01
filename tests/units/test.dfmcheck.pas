@@ -10,7 +10,7 @@ uses
   Test.Support;
 
 type
-  TMockValidatorMode = (vmHappy, vmHappyParentBin, vmBroken, vmBuildFailGeneratedUnit);
+  TMockValidatorMode = (vmHappy, vmHappyParentBin, vmBroken, vmBrokenEventSignature, vmBuildFailGeneratedUnit);
 
   TMockDfmCheckRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
   private
@@ -50,11 +50,15 @@ type
     [Test]
     procedure PipelineBrokenDfmPropagatesValidatorExitAndFailText;
     [Test]
+    procedure PipelineBrokenEventSignaturePropagatesValidatorExitAndFailText;
+    [Test]
     procedure PipelineBuildFailureInGeneratedUnitIsClassifiedAsGeneratorIncompatibility;
     [Test]
     procedure PipelineFindsValidatorExeInParentBin;
     [Test]
     procedure PipelineCleansGeneratedArtifactsByDefault;
+    [Test]
+    procedure IntegrationWrongEventSignatureProducesDfmFailure;
   end;
 
 implementation
@@ -107,8 +111,8 @@ begin
     begin
       if Assigned(aOutput) then
       begin
-        aOutput('Sample_DfmCheck_Unit.pas(42): error E2003: Undeclared identifier: ''Splitter1''');
-        aOutput('Sample_DfmCheck.dpr(88): error F2063: Could not compile used unit ''Sample_DfmCheck_Unit.pas''');
+        aOutput('Sample_DfmCheck_Register.pas(42): error E2003: Undeclared identifier: ''TMainForm''');
+        aOutput('Sample_DfmCheck.dpr(88): error F2063: Could not compile used unit ''Sample_DfmCheck_Register.pas''');
       end;
       aExitCode := 1;
       Exit(True);
@@ -139,13 +143,17 @@ begin
       if fMode = TMockValidatorMode.vmBroken then
       begin
         aOutput('FAIL MAINFORM -> EReadError: Property FullRowSelect does not exist');
+      end
+      else if fMode = TMockValidatorMode.vmBrokenEventSignature then
+      begin
+        aOutput('FAIL MAINFORM -> EReadError: Error reading MainForm.OnCreate: Type mismatch for method ''FormCreate''');
       end else
       begin
         aOutput('OK   MAINFORM');
       end;
     end;
 
-    if fMode = TMockValidatorMode.vmBroken then
+    if (fMode = TMockValidatorMode.vmBroken) or (fMode = TMockValidatorMode.vmBrokenEventSignature) then
       aExitCode := 1
     else
       aExitCode := 0;
@@ -160,8 +168,6 @@ end;
 procedure TDfmCheckTests.WriteInjectStubs(const aInjectDir: string);
 begin
   TDirectory.CreateDirectory(aInjectDir);
-  TFile.WriteAllText(TPath.Combine(aInjectDir, 'autoFree.pas'), 'unit autoFree; interface implementation end.',
-    TEncoding.UTF8);
   TFile.WriteAllText(TPath.Combine(aInjectDir, 'DfmStreamAll.pas'),
     'unit DfmStreamAll; interface implementation end.', TEncoding.UTF8);
 end;
@@ -397,6 +403,8 @@ begin
       'Expected forced response-file mode in MSBuild arguments.');
     Assert.IsTrue(Pos('/p:DCC_ExeOutput=', lRunnerImpl.MsBuildArguments) > 0,
       'Expected isolated exe output override in MSBuild arguments.');
+    Assert.IsTrue(Pos('/p:DCC_DcuOutput=', lRunnerImpl.MsBuildArguments) > 0,
+      'Expected isolated DCU output override in MSBuild arguments.');
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
@@ -406,13 +414,15 @@ begin
       'Expected ExitCode assignment in patched DPR.');
     Assert.IsTrue(Pos('Halt(ExitCode);', lPatchedDprText) > 0, 'Expected validator short-circuit halt in DPR.');
 
-    lGeneratedUnitText := TFile.ReadAllText(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Unit.pas'));
-    Assert.IsTrue(Pos('unit Sample_DfmCheck_Unit;', lGeneratedUnitText) > 0,
-      'Expected generated checker unit to be replaced with runtime-only stub.');
-    Assert.IsTrue(Pos('uses', lGeneratedUnitText) > 0, 'Expected generated checker unit to keep form-unit linkage.');
-    Assert.IsTrue(Pos('MainForm', lGeneratedUnitText) > 0, 'Expected generated checker unit to keep MainForm in uses.');
+    lGeneratedUnitText := TFile.ReadAllText(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas'));
+    Assert.IsTrue(Pos('unit Sample_DfmCheck_Register;', lGeneratedUnitText) > 0,
+      'Expected generated register unit for streaming class registration.');
+    Assert.IsTrue(Pos('uses', lGeneratedUnitText) > 0, 'Expected generated register unit to keep form-unit linkage.');
+    Assert.IsTrue(Pos('MainForm', lGeneratedUnitText) > 0, 'Expected generated register unit to keep MainForm in uses.');
+    Assert.IsTrue(Pos('{$IF Declared(TMainForm)} RegisterClass(TMainForm); {$IFEND}', lGeneratedUnitText) > 0,
+      'Expected generated register unit to register root form class for streaming.');
     Assert.IsFalse(Pos('.ClassName;', lGeneratedUnitText) > 0,
-      'Generated checker unit should not include compile-time ClassName checks.');
+      'Generated register unit should not include compile-time ClassName checks.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
@@ -474,6 +484,69 @@ begin
       'Expected forced response-file mode in MSBuild arguments.');
     Assert.IsTrue(Pos('/p:DCC_ExeOutput=', lRunnerImpl.MsBuildArguments) > 0,
       'Expected isolated exe output override in MSBuild arguments.');
+    Assert.IsTrue(Pos('/p:DCC_DcuOutput=', lRunnerImpl.MsBuildArguments) > 0,
+      'Expected isolated DCU output override in MSBuild arguments.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineBrokenEventSignaturePropagatesValidatorExitAndFailText;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lOutputText: string;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-broken-event');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBrokenEventSignature, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(1, lResult, 'Expected validator non-zero exit to be propagated for wrong event signature.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Expected event-signature streaming failures to propagate exit code without remapping category.');
+    Assert.AreEqual('', lError, 'Did not expect orchestration error text for event-signature stream failure.');
+
+    lOutputText := JoinOutput(lOutputLines);
+    Assert.IsTrue(Pos('FAIL MAINFORM -> EReadError:', lOutputText) > 0,
+      'Expected FAIL line for event-signature stream failure.');
+    Assert.IsTrue(Pos('OnCreate', lOutputText) > 0,
+      'Expected streaming exception text to include the failing event property.');
+    Assert.IsTrue(Pos('FormCreate', lOutputText) > 0,
+      'Expected streaming exception text to include the event handler method name.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
@@ -527,7 +600,7 @@ begin
       'Expected incompatibility diagnostic in error message.');
 
     lOutputText := JoinOutput(lOutputLines);
-    Assert.IsTrue(Pos('Sample_DfmCheck_Unit.pas(42): error E2003', lOutputText) > 0,
+    Assert.IsTrue(Pos('Sample_DfmCheck_Register.pas(42): error E2003', lOutputText) > 0,
       'Expected generated checker unit compile error in build output.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
@@ -641,14 +714,130 @@ begin
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsFalse(FileExists(lPaths.fGeneratedDpr), 'Expected generated DPR to be cleaned up by default.');
     Assert.IsFalse(FileExists(lPaths.fGeneratedDproj), 'Expected generated DPROJ to be cleaned up by default.');
-    Assert.IsFalse(FileExists(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Unit.pas')),
-      'Expected generated checker unit to be cleaned up by default.');
+    Assert.IsFalse(FileExists(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas')),
+      'Expected generated register unit to be cleaned up by default.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
     lOutputLines.Free;
   end;
+end;
+
+procedure TDfmCheckTests.IntegrationWrongEventSignatureProducesDfmFailure;
+var
+  lArgs: string;
+  lDfmPath: string;
+  lDprPath: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lMainFormPasPath: string;
+  lOutputText: string;
+  lProjectDir: string;
+  lResolverPath: string;
+  lRsVarsPath: string;
+  lDelphiVersion: string;
+begin
+  if not SameText(Trim(GetEnvironmentVariable('DAK_DFMCHECK_INTEGRATION')), '1') then
+    Assert.Pass('DAK_DFMCHECK_INTEGRATION is not set; skipping dfm-check integration test.');
+
+  lRsVarsPath := Trim(GetEnvironmentVariable('DAK_DFMCHECK_RSVARS'));
+  if lRsVarsPath = '' then
+    lRsVarsPath := Trim(GetEnvironmentVariable('DAK_RSVARS_BAT'));
+  if lRsVarsPath = '' then
+    Assert.Pass('DAK_DFMCHECK_RSVARS is not set; skipping dfm-check integration test.');
+  if not FileExists(lRsVarsPath) then
+    Assert.Pass('Configured rsvars.bat path does not exist: ' + lRsVarsPath);
+
+  EnsureResolverBuilt;
+  lResolverPath := ResolverExePath;
+  if not FileExists(lResolverPath) then
+    Assert.Fail('Resolver exe not found for integration test: ' + lResolverPath);
+
+  lDelphiVersion := Trim(GetEnvironmentVariable('DAK_DFMCHECK_DELPHI'));
+  if lDelphiVersion = '' then
+    lDelphiVersion := '23.0';
+
+  lProjectDir := TPath.Combine(TempRoot, 'dfm-check-wrong-event-signature');
+  if TDirectory.Exists(lProjectDir) then
+    TDirectory.Delete(lProjectDir, True);
+  TDirectory.CreateDirectory(lProjectDir);
+
+  lDprojPath := TPath.Combine(lProjectDir, 'WrongEventSample.dproj');
+  lDprPath := TPath.ChangeExtension(lDprojPath, '.dpr');
+  lMainFormPasPath := TPath.Combine(lProjectDir, 'MainForm.pas');
+  lDfmPath := TPath.Combine(lProjectDir, 'MainForm.dfm');
+  lLogPath := TPath.Combine(lProjectDir, 'dfm-check.log');
+
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
+    '  <PropertyGroup>' + #13#10 +
+    '    <MainSource>WrongEventSample.dpr</MainSource>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '</Project>' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(lDprPath,
+    'program WrongEventSample;' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  Vcl.Forms,' + #13#10 +
+    '  MainForm in ''MainForm.pas'' {MainForm};' + #13#10 +
+    #13#10 +
+    '{$R *.res}' + #13#10 +
+    #13#10 +
+    'begin' + #13#10 +
+    '  Application.Initialize;' + #13#10 +
+    '  Application.CreateForm(TMainForm, MainForm);' + #13#10 +
+    '  Application.Run;' + #13#10 +
+    'end.' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(lMainFormPasPath,
+    'unit MainForm;' + #13#10 +
+    #13#10 +
+    'interface' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  System.Classes, Vcl.Forms;' + #13#10 +
+    #13#10 +
+    'type' + #13#10 +
+    '  TMainForm = class(TForm)' + #13#10 +
+    '    procedure FormCreate(Sender: TObject; badParam: Integer);' + #13#10 +
+    '  end;' + #13#10 +
+    #13#10 +
+    'var' + #13#10 +
+    '  MainForm: TMainForm;' + #13#10 +
+    #13#10 +
+    'implementation' + #13#10 +
+    #13#10 +
+    '{$R *.dfm}' + #13#10 +
+    #13#10 +
+    'procedure TMainForm.FormCreate(Sender: TObject; badParam: Integer);' + #13#10 +
+    'begin' + #13#10 +
+    'end;' + #13#10 +
+    #13#10 +
+    'end.' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(lDfmPath,
+    'object MainForm: TMainForm' + #13#10 +
+    '  OnCreate = FormCreate' + #13#10 +
+    'end' + #13#10, TEncoding.UTF8);
+
+  lArgs := 'dfm-check --dproj ' + QuoteArg(lDprojPath) +
+    ' --delphi ' + lDelphiVersion +
+    ' --config Release --platform Win32 --rsvars ' + QuoteArg(lRsVarsPath);
+  Assert.IsTrue(RunProcess(lResolverPath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start resolver for dfm-check integration test.');
+
+  if FileExists(lLogPath) then
+    lOutputText := TFile.ReadAllText(lLogPath, TEncoding.UTF8)
+  else
+    lOutputText := '';
+
+  Assert.IsTrue(lExitCode <> 0, 'Expected wrong event signature to produce non-zero dfm-check exit code.');
+  Assert.IsTrue(Pos('FAIL ', lOutputText) > 0, 'Expected FAIL line in dfm-check output.');
+  Assert.IsTrue((Pos('OnCreate', lOutputText) > 0) or (Pos('FormCreate', lOutputText) > 0),
+    'Expected dfm-check output to mention failing event property/handler.');
 end;
 
 initialization

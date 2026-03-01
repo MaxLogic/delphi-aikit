@@ -9,7 +9,7 @@ resourcestring
     '  resolve   Resolve FixInsight params (ini/xml/bat)' + #13#10 +
     '  analyze   Run FixInsight / Pascal Analyzer' + #13#10 +
     '  build     Build a Delphi project (.dproj; or .dpr/.dpk with sibling .dproj) via build-delphi.bat' + #13#10 +
-    '  dfm-check Validate DFM streaming via DFMCheck + generated _DfmCheck project' + #13#10 +
+    '  dfm-check Validate DFM streaming via generated _DfmCheck harness project' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
   SUsageResolve =
     'DelphiAIKit.exe resolve --project "<path>" --delphi <23.0> ' +
