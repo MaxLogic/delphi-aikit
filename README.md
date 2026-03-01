@@ -8,7 +8,7 @@
 - Expand IDE macros and environment variables
 - Merge project search paths with the IDE library path
 - Emit FixInsightCL parameters as `ini`, `xml`, or a runnable `bat`
-- Validate generated `_DfmCheck` projects via `dfm-check` (DFMCheck + DFM stream gate)
+- Validate compiled DFM resources via `dfm-check` (generated harness + DFM stream gate)
 
 ## Good use cases
 
@@ -119,12 +119,14 @@ Optional:
 - `dak.ini` provides `[Build] DelphiVersion=<version>` (cascading settings).
 
 `dfm-check` stages:
-- generate `_DfmCheck` project files from `lib\DFMCheck`
-- inject `tools\inject\DfmStreamAll.pas` and `tools\inject\autoFree.pas` into `<Project>_DfmCheck`
-- patch generated `.dpr` to include `DfmStreamAll` and set `ExitCode := TDfmStreamAll.Run;`
+- generate a `_DfmCheck` harness project from the target `.dproj`/`.dpr` (no external `DFMCheck.exe`)
+- generate `_DfmCheck_Register.pas` to register form classes required for streaming
+- inject `tools\inject\DfmStreamAll.pas` into the generated harness project
+- run the harness entrypoint with `ExitCode := TDfmStreamAll.Run;`
 - build `_DfmCheck.dproj` via `msbuild`
 - run `_DfmCheck.exe` and propagate its exit code (`0` success, non-zero means streaming failures)
 - force Delphi response-file build mode (`DCC_ForceExecute=true`) to avoid long command-line failures
+- isolate generated DCU/EXE output directories per run for deterministic CI behavior
 - clean generated `_DfmCheck*` artifacts by default (set `DAK_DFMCHECK_KEEP_ARTIFACTS=true` to keep them for debugging)
 
 To capture resolver diagnostics (warnings, missing paths, macro issues) into a log file:
