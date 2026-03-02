@@ -793,7 +793,10 @@ end;
 function TryBuildValidatorArguments(const aOptions: TAppOptions; const aDprojPath: string; out aValidatorArgs: string;
   out aScopeText: string; out aError: string): Boolean;
 var
+  lDisplayParts: TArray<string>;
   lFilterCsv: string;
+  lPreview: string;
+  lResourceCount: Integer;
 begin
   aError := '';
   aValidatorArgs := '--all';
@@ -809,7 +812,17 @@ begin
     Exit(False);
 
   aValidatorArgs := '--dfm=' + QuoteCmdArg(lFilterCsv);
-  aScopeText := 'selected DFM resources: ' + aScopeText;
+  lDisplayParts := lFilterCsv.Split([',']);
+  lResourceCount := Length(lDisplayParts);
+  if lResourceCount <= 0 then
+    lResourceCount := 1;
+  if lResourceCount <= 5 then
+    aScopeText := Format('selected DFM resources (%d): %s', [lResourceCount, lFilterCsv.Replace(',', ', ', [rfReplaceAll])])
+  else
+  begin
+    lPreview := String.Join(', ', Copy(lDisplayParts, 0, 5));
+    aScopeText := Format('selected DFM resources (%d): %s, ...', [lResourceCount, lPreview]);
+  end;
   Result := True;
 end;
 
@@ -910,6 +923,68 @@ begin
   finally
     lLines.Free;
   end;
+end;
+
+function IsBuildErrorLine(const aLine: string): Boolean;
+var
+  lLower: string;
+begin
+  lLower := LowerCase(aLine);
+  Result := (Pos(': error ', lLower) > 0) or
+    (Pos(' error e', lLower) > 0) or
+    (Pos(' error f', lLower) > 0) or
+    (Pos('fatal error', lLower) > 0);
+end;
+
+procedure EmitBuildFailureDiagnostics(const aBuildLines: TStrings; const aOutput: TDfmCheckOutputProc);
+const
+  cMaxErrorLines = 20;
+var
+  lErrorLines: TStringList;
+  lLine: string;
+  lShownCount: Integer;
+begin
+  if aBuildLines = nil then
+    Exit;
+
+  lErrorLines := TStringList.Create;
+  try
+    lErrorLines.CaseSensitive := False;
+    lErrorLines.Sorted := False;
+    lErrorLines.Duplicates := TDuplicates.dupIgnore;
+    for lLine in aBuildLines do
+    begin
+      if not IsBuildErrorLine(lLine) then
+        Continue;
+      lErrorLines.Add(Trim(lLine));
+    end;
+
+    if lErrorLines.Count = 0 then
+      Exit;
+
+    EmitLine(aOutput, '[dfm-check] Build diagnostics (errors):');
+    lShownCount := 0;
+    for lLine in lErrorLines do
+    begin
+      EmitLine(aOutput, lLine);
+      Inc(lShownCount);
+      if lShownCount >= cMaxErrorLines then
+      begin
+        if lErrorLines.Count > cMaxErrorLines then
+          EmitLine(aOutput, Format('[dfm-check] ... %d more error line(s) omitted.', [lErrorLines.Count - cMaxErrorLines]));
+        Break;
+      end;
+    end;
+  finally
+    lErrorLines.Free;
+  end;
+end;
+
+function FormatExitCodeForDisplay(const aExitCode: Cardinal): string;
+begin
+  Result := IntToStr(Int64(aExitCode));
+  if aExitCode > Cardinal(High(Integer)) then
+    Result := Result + ' (0x' + IntToHex(Int64(aExitCode), 8) + ')';
 end;
 
 function TryFindExecutableInPath(const aExeName: string; out aExePath: string): Boolean;
@@ -2533,10 +2608,7 @@ begin
     lPaths.fForcedDcuOutputDir := lForcedDcuOutputDir;
 
     EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Building generated DfmCheck project via MSBuild...');
-    if lVerbose then
-      lBuildVerbosity := '/v:m'
-    else
-      lBuildVerbosity := '/v:q';
+    lBuildVerbosity := '/v:q';
     lBuildArgs :=
       QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build /p:Config=' + lConfig + ' /p:Platform=' + lPlatform +
       ' /p:DCC_ForceExecute=true /p:DCC_ExeOutput=' + QuoteCmdArg(IncludeTrailingPathDelimiter(lForcedExeOutputDir)) +
@@ -2562,13 +2634,9 @@ begin
         lBuildLines.LoadFromFile(lBuildLogPath, TEncoding.Default);
       end;
     end;
-    if lVerbose then
-    begin
-      for lText in lBuildLines do
-        EmitLine(aOutput, lText);
-    end;
     if lExitCode <> 0 then
     begin
+      EmitBuildFailureDiagnostics(lBuildLines, aOutput);
       if IsGeneratedUnitBuildFailure(lBuildLines, lPaths) then
       begin
         aCategory := TDfmCheckErrorCategory.ecGeneratorIncompatible;
@@ -2597,7 +2665,8 @@ begin
         // Best-effort cleanup before new run.
       end;
     end;
-    lUseQuietValidator := not lVerbose;
+    // Always run validator in quiet mode and replay log lines deterministically after process exit.
+    lUseQuietValidator := True;
     if lUseQuietValidator then
       lValidatorArgs := Trim(lValidatorArgs + ' --quiet');
     if lOriginalAllRequested and lVerbose then
@@ -2606,18 +2675,14 @@ begin
 
     EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Validator scope: ' + lValidatorScope);
     EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Running validator exe...');
-    if not aRunner.Run(lValidatorExePath, lValidatorArgs, lPaths.fGeneratedDir,
-      procedure(const aLine: string)
-      begin
-        EmitVerboseLine(lVerbose, aOutput, aLine);
-      end, lExitCode, lRunnerError) then
+    if not aRunner.Run(lValidatorExePath, lValidatorArgs, lPaths.fGeneratedDir, nil, lExitCode, lRunnerError) then
     begin
       aCategory := TDfmCheckErrorCategory.ecValidatorFailed;
       aError := 'Validator executable failed to start: ' + lRunnerError;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
 
-    EmitValidatorLog(lValidatorLogPath, lVerbose, aOutput, not lUseQuietValidator, lFailedResources, lSummary, lFailLines);
+    EmitValidatorLog(lValidatorLogPath, lVerbose, aOutput, False, lFailedResources, lSummary, lFailLines);
     if lCacheStats.fEnabled then
     begin
       if (lExitCode <> 0) and (lFailLines = 0) then
@@ -2632,19 +2697,26 @@ begin
     if lSummary.fHasSummary then
       EmitLine(aOutput, Format('[dfm-check] Summary: streamed=%d skipped=%d failed=%d requested=%d matched=%d',
         [lSummary.fStreamed, lSummary.fSkipped, lSummary.fFailed, lSummary.fRequested, lSummary.fMatched]))
+    else if lExitCode = 0 then
+      EmitLine(aOutput, '[dfm-check] Summary: failed=0')
     else
-      EmitLine(aOutput, Format('[dfm-check] Summary: failed=%d', [Integer(lExitCode)]));
+      EmitLine(aOutput, '[dfm-check] Summary: validator exit code=' + FormatExitCodeForDisplay(lExitCode));
 
     if (lExitCode <> 0) and (not lVerbose) and (lFailLines = 0) then
       EmitLine(aOutput, '[dfm-check] FAIL details hidden or unavailable. Re-run with --verbose.');
 
     if lExitCode = 0 then
       EmitLine(aOutput, '[dfm-check] Result: OK')
+    else if (lFailLines = 0) and (lExitCode > Cardinal(High(Integer))) then
+      EmitLine(aOutput, '[dfm-check] Result: FAIL (validator crashed, exit code ' + FormatExitCodeForDisplay(lExitCode) + ')')
     else
-      EmitLine(aOutput, Format('[dfm-check] Result: FAIL (%d error(s))', [Integer(lExitCode)]));
+      EmitLine(aOutput, Format('[dfm-check] Result: FAIL (%s error(s))', [FormatExitCodeForDisplay(lExitCode)]));
 
     // Propagate streaming validator result directly: 0 = success, >0 = number of failed resources.
-    Result := Integer(lExitCode);
+    if lExitCode <= Cardinal(High(Integer)) then
+      Result := Integer(lExitCode)
+    else
+      Result := MapDfmCheckExitCode(TDfmCheckErrorCategory.ecValidatorFailed, 0);
   finally
     lFailedResources.Free;
     lBuildLines.Free;

@@ -4,7 +4,7 @@ interface
 
 uses
   DUnitX.TestFramework,
-  System.Classes, System.IniFiles, System.IOUtils, System.StrUtils, System.SysUtils,
+  System.Classes, System.IniFiles, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
   Winapi.Windows,
   Dak.DfmCheck, Dak.Types,
   Test.Support;
@@ -23,9 +23,11 @@ type
     fRunCount: Integer;
     fValidatorArguments: string;
     function ReadFirstArg(const aArguments: string): string;
+    function TryExtractLogFilePath(const aArguments: string; out aLogPath: string): Boolean;
     function TryReadMsBuildArgsFromBuildCmd(const aBuildCmdPath: string; out aMsBuildArgs: string;
       out aBuildLogPath: string): Boolean;
     function TrimMatchingQuotes(const aValue: string): string;
+    procedure WriteValidatorLog(const aLogPath: string; const aLines: TArray<string>);
   public
     constructor Create(const aMode: TMockValidatorMode; const aConfig: string; const aPlatform: string);
     function Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
@@ -191,13 +193,72 @@ begin
   Result := aMsBuildArgs <> '';
 end;
 
+function TMockDfmCheckRunner.TryExtractLogFilePath(const aArguments: string; out aLogPath: string): Boolean;
+var
+  lEndQuote: Integer;
+  lInlineMatch: TMatch;
+  lSplitIndex: Integer;
+  lTail: string;
+begin
+  aLogPath := '';
+  lInlineMatch := TRegEx.Match(aArguments, '--log-file=("([^"]+)"|(\S+))', [roIgnoreCase]);
+  if lInlineMatch.Success then
+  begin
+    if lInlineMatch.Groups[2].Value <> '' then
+      aLogPath := lInlineMatch.Groups[2].Value
+    else
+      aLogPath := lInlineMatch.Groups[3].Value;
+    Exit(Trim(aLogPath) <> '');
+  end;
+
+  lSplitIndex := Pos('--log-file', LowerCase(aArguments));
+  if lSplitIndex <= 0 then
+    Exit(False);
+  lTail := Trim(Copy(aArguments, lSplitIndex + Length('--log-file'), MaxInt));
+  if lTail = '' then
+    Exit(False);
+  if lTail[1] = '=' then
+    lTail := Trim(Copy(lTail, 2, MaxInt));
+  if lTail = '' then
+    Exit(False);
+  if lTail[1] = '"' then
+  begin
+    lEndQuote := PosEx('"', lTail, 2);
+    if lEndQuote > 1 then
+      aLogPath := Copy(lTail, 2, lEndQuote - 2)
+    else
+      aLogPath := TrimMatchingQuotes(lTail);
+  end else
+    aLogPath := TrimMatchingQuotes(lTail.Split([' '])[0]);
+  Result := aLogPath <> '';
+end;
+
+procedure TMockDfmCheckRunner.WriteValidatorLog(const aLogPath: string; const aLines: TArray<string>);
+var
+  lLog: TStringList;
+  lLine: string;
+begin
+  if Trim(aLogPath) = '' then
+    Exit;
+  lLog := TStringList.Create;
+  try
+    for lLine in aLines do
+      lLog.Add(lLine);
+    lLog.SaveToFile(aLogPath, TEncoding.UTF8);
+  finally
+    lLog.Free;
+  end;
+end;
+
 function TMockDfmCheckRunner.Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
   const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
 var
   lBuildArgs: string;
   lBuildLogPath: string;
   lDprojPath: string;
+  lLogPath: string;
   lValidatorExePath: string;
+  lValidatorLines: TArray<string>;
   lValidatorDir: string;
 begin
   Result := True;
@@ -253,24 +314,45 @@ begin
   if fRunCount = 2 then
   begin
     fValidatorArguments := aArguments;
+    SetLength(lValidatorLines, 0);
     if Assigned(aOutput) then
     begin
       if fMode = TMockValidatorMode.vmBroken then
       begin
         aOutput('FAIL MAINFORM -> EReadError: Property FullRowSelect does not exist');
+        lValidatorLines := ['FAIL MAINFORM -> EReadError: Property FullRowSelect does not exist',
+          'DFM stream validation summary: streamed=1 skipped=0 failed=1 requested=1 matched=1'];
       end
       else if fMode = TMockValidatorMode.vmBrokenEventSignature then
       begin
         aOutput('FAIL MAINFORM -> EReadError: Error reading MainForm.OnCreate: Type mismatch for method ''FormCreate''');
+        lValidatorLines := ['FAIL MAINFORM -> EReadError: Error reading MainForm.OnCreate: Type mismatch for method ''FormCreate''',
+          'DFM stream validation summary: streamed=1 skipped=0 failed=1 requested=1 matched=1'];
       end
       else if fMode = TMockValidatorMode.vmValidatorNonZeroNoFail then
       begin
         aOutput('FATAL INIT -> EAccessViolation: Access violation at address 00000000');
+        lValidatorLines := ['FATAL INIT -> EAccessViolation: Access violation at address 00000000'];
       end else
       begin
         aOutput('OK   MAINFORM');
+        lValidatorLines := ['OK   MAINFORM', 'DFM stream validation summary: streamed=1 skipped=0 failed=0 requested=1 matched=1'];
       end;
+    end else
+    begin
+      if fMode = TMockValidatorMode.vmBroken then
+        lValidatorLines := ['FAIL MAINFORM -> EReadError: Property FullRowSelect does not exist',
+          'DFM stream validation summary: streamed=1 skipped=0 failed=1 requested=1 matched=1']
+      else if fMode = TMockValidatorMode.vmBrokenEventSignature then
+        lValidatorLines := ['FAIL MAINFORM -> EReadError: Error reading MainForm.OnCreate: Type mismatch for method ''FormCreate''',
+          'DFM stream validation summary: streamed=1 skipped=0 failed=1 requested=1 matched=1']
+      else if fMode = TMockValidatorMode.vmValidatorNonZeroNoFail then
+        lValidatorLines := ['FATAL INIT -> EAccessViolation: Access violation at address 00000000']
+      else
+        lValidatorLines := ['OK   MAINFORM', 'DFM stream validation summary: streamed=1 skipped=0 failed=0 requested=1 matched=1'];
     end;
+    if TryExtractLogFilePath(aArguments, lLogPath) then
+      WriteValidatorLog(lLogPath, lValidatorLines);
 
     if (fMode = TMockValidatorMode.vmBroken) or (fMode = TMockValidatorMode.vmBrokenEventSignature) or
       (fMode = TMockValidatorMode.vmValidatorNonZeroNoFail) then
