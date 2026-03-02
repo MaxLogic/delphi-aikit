@@ -141,6 +141,13 @@ If none of the above is available, `dfm-check` fails with a hard error (Delphi c
 `dfm-check` output contract:
 - non-verbose: actionable output only (`FAIL` lines + summary + final result)
 - verbose: full stage logs and per-resource output
+- each `FAIL` line includes mapped source context when available: `[unit=... pas=... dfm=...]`
+- on failures we also emit fix-oriented clues:
+  - `[dfm-check] FAIL target: resource=... unit=... pas=... dfm=...`
+  - `[dfm-check] FAIL clue: member=...`
+  - `[dfm-check] FAIL clue: handler=...`
+  - `[dfm-check] FAIL clue: handler declaration line=<N>: procedure ...`
+  - `[dfm-check] FAIL clue: verify handler signature matches event type for <On...>.`
 
 To capture resolver diagnostics (warnings, missing paths, macro issues) into a log file:
 

@@ -444,11 +444,17 @@ begin
     #13#10 +
     'type' + #13#10 +
     '  TMainForm = class(TForm)' + #13#10 +
+    '  public' + #13#10 +
+    '    procedure FormCreate(Sender: TObject);' + #13#10 +
     '  end;' + #13#10 +
     #13#10 +
     'implementation' + #13#10 +
     #13#10 +
     '{$R *.dfm}' + #13#10 +
+    #13#10 +
+    'procedure TMainForm.FormCreate(Sender: TObject);' + #13#10 +
+    'begin' + #13#10 +
+    'end;' + #13#10 +
     #13#10 +
     'end.' + #13#10, TEncoding.UTF8);
 
@@ -987,6 +993,12 @@ begin
       'Expected fail clue to include the failing member path.');
     Assert.IsTrue(Pos('[dfm-check] FAIL clue: handler=FormCreate', lOutputText) > 0,
       'Expected fail clue to include the handler name.');
+    Assert.IsTrue(Pos('[dfm-check] FAIL clue: handler declaration line=', lOutputText) > 0,
+      'Expected fail clue to include handler declaration line.');
+    Assert.IsTrue(Pos('procedure TMainForm.FormCreate(Sender: TObject);', lOutputText) > 0,
+      'Expected fail clue to include handler declaration signature.');
+    Assert.IsTrue(Pos('[dfm-check] FAIL clue: verify handler signature matches event type for OnCreate.', lOutputText) > 0,
+      'Expected fail clue to include event-signature guidance.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
