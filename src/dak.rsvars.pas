@@ -89,6 +89,12 @@ begin
   aError := '';
   lCount := 0;
 
+  if (Trim(aOverridePath) = '') and (Trim(aDelphiVersion) = '') then
+  begin
+    aError := 'Delphi version is required. Pass --delphi <major.minor> or set [Build] DelphiVersion in dak.ini.';
+    Exit(False);
+  end;
+
   if aOverridePath <> '' then
     lPath := aOverridePath
   else

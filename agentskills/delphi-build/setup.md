@@ -35,6 +35,14 @@ PROJECT_LINUX="_Source/ActiveAppView.dproj"
 "$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --ai
 ```
 
+Build plus DFM validation:
+
+```bash
+cd /path/to/target-repo
+PROJECT_LINUX="_Source/ActiveAppView.dproj"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --dfmcheck --all --ai
+```
+
 Direct Linux absolute paths are supported only in `/mnt/<drive>/...` form; other `/...` inputs are rejected, so `wslpath -w` remains our canonical safe conversion.
 
 Optional compatibility conversion (older DelphiAIKit builds):

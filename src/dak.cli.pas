@@ -433,6 +433,7 @@ begin
     SameText(aSwitch, 'max-findings') or SameText(aSwitch, 'build-timeout-sec') or
     SameText(aSwitch, 'test-output-dir') or
     SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check') or
+    SameText(aSwitch, 'dfm') or SameText(aSwitch, 'all') or
     SameText(aSwitch, 'ignore-warnings') or
     SameText(aSwitch, 'ignore-hints');
 end;
@@ -926,7 +927,36 @@ function TOptionParser.TryParseBuildSwitch(const aArg: string; const aSwitch: st
 var
   lRebuild: Boolean;
   lValue: string;
+  function TryParseDfmSelectionSwitch(const aSwitchName: string; const aInline: string;
+    const aHasInline: Boolean): Boolean;
+  begin
+    if SameText(aSwitchName, 'all') then
+    begin
+      if aHasInline then
+      begin
+        fError := Format(SUnknownArg, [aArg]);
+        Exit(False);
+      end;
+      fOptions.fDfmCheckAll := True;
+      fOptions.fDfmCheckFilter := '';
+      Exit(True);
+    end;
+
+    if SameText(aSwitchName, 'dfm') then
+    begin
+      if not TakeValue(True, False, aInline, aHasInline, lValue, '--dfm') then
+        Exit(False);
+      fOptions.fDfmCheckFilter := lValue;
+      fOptions.fDfmCheckAll := False;
+      Exit(True);
+    end;
+
+    Result := False;
+  end;
 begin
+  if TryParseDfmSelectionSwitch(aSwitch, aInlineValue, aHasInlineValue) then
+    Exit(True);
+
   if SameText(aSwitch, 'show-warnings') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--show-warnings') then
@@ -1086,7 +1116,30 @@ end;
 
 function TOptionParser.TryParseDfmCheckSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
+var
+  lValue: string;
 begin
+  if SameText(aSwitch, 'all') then
+  begin
+    if aHasInlineValue then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    fOptions.fDfmCheckAll := True;
+    fOptions.fDfmCheckFilter := '';
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'dfm') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--dfm') then
+      Exit(False);
+    fOptions.fDfmCheckFilter := lValue;
+    fOptions.fDfmCheckAll := False;
+    Exit(True);
+  end;
+
   fError := Format(SUnknownArg, [aArg]);
   Result := False;
 end;
