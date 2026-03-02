@@ -1006,10 +1006,106 @@ begin
   Result := aMethodName <> '';
 end;
 
+function BuildMethodDeclarationSnippet(const aLines: TStrings; const aLineIndex: Integer): string;
+const
+  cMaxLines = 4;
+var
+  lLineText: string;
+  lResultText: string;
+  lScanIndex: Integer;
+  lTaken: Integer;
+begin
+  Result := '';
+  if (aLines = nil) or (aLineIndex < 0) or (aLineIndex >= aLines.Count) then
+    Exit('');
+
+  lResultText := '';
+  lTaken := 0;
+  for lScanIndex := aLineIndex to aLines.Count - 1 do
+  begin
+    lLineText := Trim(aLines[lScanIndex]);
+    if lLineText = '' then
+      Continue;
+    if lResultText = '' then
+      lResultText := lLineText
+    else
+      lResultText := lResultText + ' ' + lLineText;
+    Inc(lTaken);
+    if (Pos(';', lLineText) > 0) or (lTaken >= cMaxLines) then
+      Break;
+  end;
+
+  Result := Trim(lResultText);
+end;
+
+function TryFindHandlerDeclarationInPas(const aPasPath: string; const aMethodName: string;
+  out aLineNumber: Integer; out aDeclaration: string): Boolean;
+var
+  i: Integer;
+  lLines: TStringList;
+  lMatch: TMatch;
+  lMethodToken: string;
+  lRegex: string;
+begin
+  Result := False;
+  aLineNumber := 0;
+  aDeclaration := '';
+  if (Trim(aPasPath) = '') or (Trim(aMethodName) = '') or (not FileExists(aPasPath)) then
+    Exit(False);
+
+  lMethodToken := Trim(aMethodName);
+  lRegex := '^\s*(class\s+)?(procedure|function)\s+(?:[A-Za-z_][A-Za-z0-9_]*\.)*(' +
+    TRegEx.Escape(lMethodToken) + ')\b';
+  lLines := TStringList.Create;
+  try
+    lLines.LoadFromFile(aPasPath);
+    for i := 0 to lLines.Count - 1 do
+    begin
+      lMatch := TRegEx.Match(lLines[i], lRegex, [roIgnoreCase]);
+      if not lMatch.Success then
+        Continue;
+
+      aLineNumber := i + 1;
+      aDeclaration := BuildMethodDeclarationSnippet(lLines, i);
+      if aDeclaration = '' then
+        aDeclaration := Trim(lLines[i]);
+      Exit(True);
+    end;
+  finally
+    lLines.Free;
+  end;
+end;
+
+function TryExtractEventPropertyName(const aMemberPath: string; out aEventName: string): Boolean;
+var
+  lDotPos: Integer;
+  lTail: string;
+begin
+  aEventName := '';
+  lTail := Trim(aMemberPath);
+  if lTail = '' then
+    Exit(False);
+
+  lDotPos := LastDelimiter('.', lTail);
+  if lDotPos > 0 then
+    lTail := Trim(Copy(lTail, lDotPos + 1, MaxInt));
+  if lTail = '' then
+    Exit(False);
+  if not StartsText('On', lTail) then
+    Exit(False);
+
+  aEventName := lTail;
+  Result := True;
+end;
+
 procedure EmitFailedResourceGuidance(const aOutput: TDfmCheckOutputProc; const aFailedResources: TStrings;
   const aFailReasons: TStrings; const aModules: TArray<TDfmCacheModule>);
 var
+  lDeclaration: string;
+  lDeclarationLine: Integer;
+  lEventName: string;
   lFailReason: string;
+  lHasModule: Boolean;
   lMemberPath: string;
   lMethodName: string;
   lModule: TDfmCacheModule;
@@ -1025,7 +1121,8 @@ begin
     if lResourceName = '' then
       Continue;
 
-    if TryFindModuleByResourceName(aModules, lResourceName, lModule) then
+    lHasModule := TryFindModuleByResourceName(aModules, lResourceName, lModule);
+    if lHasModule then
       EmitLine(aOutput, Format('[dfm-check] FAIL target: resource=%s unit=%s pas=%s dfm=%s',
         [lResourceName, lModule.fUnitName, lModule.fPasPath, lModule.fDfmPath]))
     else
@@ -1040,7 +1137,21 @@ begin
     if TryExtractFailMember(lFailReason, lMemberPath) then
       EmitLine(aOutput, '[dfm-check] FAIL clue: member=' + lMemberPath);
     if TryExtractFailMethodName(lFailReason, lMethodName) then
+    begin
       EmitLine(aOutput, '[dfm-check] FAIL clue: handler=' + lMethodName + ' (check signature/visibility)');
+      if lHasModule then
+      begin
+        lDeclarationLine := 0;
+        lDeclaration := '';
+        if TryFindHandlerDeclarationInPas(lModule.fPasPath, lMethodName, lDeclarationLine, lDeclaration) then
+          EmitLine(aOutput, Format('[dfm-check] FAIL clue: handler declaration line=%d: %s',
+            [lDeclarationLine, lDeclaration]))
+        else
+          EmitLine(aOutput, '[dfm-check] FAIL clue: handler declaration not found in ' + lModule.fPasPath);
+      end;
+    end;
+    if TryExtractEventPropertyName(lMemberPath, lEventName) then
+      EmitLine(aOutput, '[dfm-check] FAIL clue: verify handler signature matches event type for ' + lEventName + '.');
   end;
 end;
 
