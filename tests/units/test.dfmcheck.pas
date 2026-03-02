@@ -909,6 +909,9 @@ begin
     lOutputText := JoinOutput(lOutputLines);
     Assert.IsTrue(Pos('FAIL MAINFORM -> EReadError: Property FullRowSelect does not exist', lOutputText) > 0,
       'Expected broken DFM FAIL line with streaming exception text.');
+    Assert.IsTrue(Pos('pas=', lOutputText) > 0, 'Expected FAIL output to include related PAS file path.');
+    Assert.IsTrue(Pos('dfm=', lOutputText) > 0, 'Expected FAIL output to include related DFM file path.');
+    Assert.IsTrue(Pos('MainForm.pas', lOutputText) > 0, 'Expected related MainForm.pas path in FAIL output.');
     Assert.IsTrue(Pos('/p:DCC_ForceExecute=true', lRunnerImpl.MsBuildArguments) > 0,
       'Expected forced response-file mode in MSBuild arguments.');
     Assert.IsTrue(Pos('/p:DCC_ExeOutput=', lRunnerImpl.MsBuildArguments) > 0,
@@ -980,6 +983,10 @@ begin
       'Expected streaming exception text to include the failing event property.');
     Assert.IsTrue(Pos('FormCreate', lOutputText) > 0,
       'Expected streaming exception text to include the event handler method name.');
+    Assert.IsTrue(Pos('[dfm-check] FAIL clue: member=MainForm.OnCreate', lOutputText) > 0,
+      'Expected fail clue to include the failing member path.');
+    Assert.IsTrue(Pos('[dfm-check] FAIL clue: handler=FormCreate', lOutputText) > 0,
+      'Expected fail clue to include the handler name.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
