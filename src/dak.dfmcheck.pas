@@ -126,14 +126,17 @@ begin
   PostMessage(aWnd, WM_CLOSE, 0, 0);
 end;
 
-procedure CloseTopLevelWindowsForProcess(const aProcessId: Cardinal);
+procedure CloseTopLevelWindowsForProcess(const aProcessId: Cardinal; const aDesktop: HDESK = 0);
 var
   lContext: TWindowCloseContext;
 begin
   if aProcessId = 0 then
     Exit;
   lContext.ProcessId := aProcessId;
-  EnumWindows(@EnumCloseProcessWindowsProc, LPARAM(@lContext));
+  if aDesktop <> 0 then
+    EnumDesktopWindows(aDesktop, @EnumCloseProcessWindowsProc, LPARAM(@lContext))
+  else
+    EnumWindows(@EnumCloseProcessWindowsProc, LPARAM(@lContext));
 end;
 
 function QuoteCmdArg(const aValue: string): string;
@@ -873,8 +876,8 @@ begin
 end;
 
 procedure EmitValidatorLog(const aLogPath: string; const aVerbose: Boolean; const aOutput: TDfmCheckOutputProc;
-  const aSuppressLineOutput: Boolean; const aFailedResources: TStrings; out aSummary: TDfmValidationSummary;
-  out aFailLines: Integer);
+  const aSuppressLineOutput: Boolean; const aEmitProgressLines: Boolean; const aFailedResources: TStrings;
+  out aSummary: TDfmValidationSummary; out aFailLines: Integer);
 var
   lFailedResourceName: string;
   lLine: string;
@@ -901,6 +904,9 @@ begin
         if aVerbose then
           EmitLine(aOutput, lTrimmedLine)
         else if StartsText('FAIL ', lTrimmedLine) then
+        begin
+          EmitLine(aOutput, lTrimmedLine);
+        end else if aEmitProgressLines and StartsText('CHECK ', lTrimmedLine) then
         begin
           EmitLine(aOutput, lTrimmedLine);
         end;
@@ -2424,6 +2430,7 @@ var
   lValidatorLogPath: string;
   lValidatorScope: string;
   lUseQuietValidator: Boolean;
+  lValidatorStreamingOutput: Boolean;
   lVerbose: Boolean;
   lHadDfmStreamAll: Boolean;
   lHadRuntimeGuard: Boolean;
@@ -2665,11 +2672,12 @@ begin
         // Best-effort cleanup before new run.
       end;
     end;
-    // Always run validator in quiet mode and replay log lines deterministically after process exit.
-    lUseQuietValidator := True;
+    // All-mode should emit live CHECK progress; filtered runs stay quiet by default.
+    lUseQuietValidator := not lOriginalAllRequested;
+    lValidatorStreamingOutput := not lUseQuietValidator;
     if lUseQuietValidator then
       lValidatorArgs := Trim(lValidatorArgs + ' --quiet');
-    if lOriginalAllRequested and lVerbose then
+    if lOriginalAllRequested then
       lValidatorArgs := Trim(lValidatorArgs + ' --progress');
     lValidatorArgs := Trim(lValidatorArgs + ' --log-file=' + QuoteCmdArg(lValidatorLogPath));
 
@@ -2682,7 +2690,8 @@ begin
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
 
-    EmitValidatorLog(lValidatorLogPath, lVerbose, aOutput, False, lFailedResources, lSummary, lFailLines);
+    EmitValidatorLog(lValidatorLogPath, lVerbose, aOutput, lValidatorStreamingOutput, lOriginalAllRequested,
+      lFailedResources, lSummary, lFailLines);
     if lCacheStats.fEnabled then
     begin
       if (lExitCode <> 0) and (lFailLines = 0) then
@@ -2854,7 +2863,10 @@ begin
       lWaitResult := WaitForSingleObject(lProcessInfo.hProcess, 200);
       if lWaitResult = WAIT_TIMEOUT then
       begin
-        CloseTopLevelWindowsForProcess(lProcessInfo.dwProcessId);
+        if lIsolatedDesktop <> 0 then
+          CloseTopLevelWindowsForProcess(lProcessInfo.dwProcessId, lIsolatedDesktop)
+        else
+          CloseTopLevelWindowsForProcess(lProcessInfo.dwProcessId);
         if lIsolatedProcess and Assigned(aOutput) and ((GetTickCount - lHeartbeatTick) >= 15000) then
         begin
           lElapsedSec := (GetTickCount - lStartTick) div 1000;

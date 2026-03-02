@@ -12,7 +12,7 @@ implementation
 
 uses
   Winapi.Windows,
-  System.Classes, System.IOUtils, System.StrUtils, System.SysUtils;
+  System.Classes, System.IOUtils, System.StrUtils, System.SysUtils, Vcl.Forms;
 
 type
   TValidationStats = record
@@ -82,29 +82,103 @@ begin
   end;
 end;
 
-function TryReadRootComponent(const aStream: TStream; out aErr: string): Boolean;
+function TryCreateStreamingRootComponent(const aResourceName: string; out aRoot: TComponent; out aErr: string): Boolean;
+type
+  TCustomFormClass = class of TCustomForm;
+var
+  lComponentClass: TComponentClass;
+  lPersistentClass: TPersistentClass;
+begin
+  aErr := '';
+  aRoot := nil;
+  lPersistentClass := GetClass(aResourceName);
+  if lPersistentClass = nil then
+    Exit(True);
+  if not lPersistentClass.InheritsFrom(TComponent) then
+    Exit(True);
+  lComponentClass := TComponentClass(lPersistentClass);
+  try
+    if lPersistentClass.InheritsFrom(TCustomForm) then
+      aRoot := TCustomFormClass(lComponentClass).CreateNew(nil)
+    else
+      aRoot := lComponentClass.Create(nil);
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      aErr := E.ClassName + ': ' + E.Message;
+      Result := False;
+    end;
+  end;
+end;
+
+function TryValidateByConstructor(const aResourceName: string; out aErr: string): Boolean;
+type
+  TCustomFormClass = class of TCustomForm;
 var
   lComp: TComponent;
+  lPersistentClass: TPersistentClass;
+begin
+  aErr := '';
+  lComp := nil;
+  lPersistentClass := GetClass(aResourceName);
+  if (lPersistentClass = nil) or (not lPersistentClass.InheritsFrom(TComponent)) then
+  begin
+    aErr := 'Class not registered for constructor fallback: ' + aResourceName;
+    Exit(False);
+  end;
+
+  try
+    if lPersistentClass.InheritsFrom(TCustomForm) then
+      lComp := TCustomFormClass(TComponentClass(lPersistentClass)).Create(nil)
+    else
+      lComp := TComponentClass(lPersistentClass).Create(nil);
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      aErr := E.ClassName + ': ' + E.Message;
+      Result := False;
+    end;
+  end;
+  lComp.Free;
+end;
+
+function TryReadRootComponent(const aStream: TStream; const aResourceName: string; out aErr: string): Boolean;
+var
+  lComp: TComponent;
+  lFallbackErr: string;
   lReader: TReader;
+  lRootCreateErr: string;
 begin
   aErr := '';
   aStream.Position := 0;
+  if not TryCreateStreamingRootComponent(aResourceName, lComp, lRootCreateErr) then
+  begin
+    aErr := lRootCreateErr;
+    Exit(False);
+  end;
   lReader := TReader.Create(aStream, 4096);
-  lComp := nil;
   try
     try
       // Missing published properties / missing event handlers typically raise here (EReadError).
-      lComp := lReader.ReadRootComponent(nil);
-      lComp.Free;
+      lComp := lReader.ReadRootComponent(lComp);
       Result := True;
     except
       on E: Exception do
       begin
         aErr := E.ClassName + ': ' + E.Message;
+        if StartsText('EReadError: Ancestor for ', aErr) then
+        begin
+          if TryValidateByConstructor(aResourceName, lFallbackErr) then
+            Exit(True);
+          aErr := aErr + ' (constructor fallback: ' + lFallbackErr + ')';
+        end;
         Result := False;
       end;
     end;
   finally
+    lComp.Free;
     lReader.Free;
   end;
 end;
@@ -179,6 +253,34 @@ begin
   if Length(aText) < Length(aPrefix) then
     Exit(False);
   Result := SameText(Copy(aText, 1, Length(aPrefix)), aPrefix);
+end;
+
+function BuildScopePreview(const aRequestedFilters: TStrings): string;
+const
+  cPreviewMax = 12;
+var
+  i: Integer;
+  lLimit: Integer;
+  lPreview: TStringList;
+begin
+  if (aRequestedFilters = nil) or (aRequestedFilters.Count = 0) then
+    Exit('selected resources: <none>');
+
+  if aRequestedFilters.Count <= cPreviewMax then
+    Exit('selected resources: ' + String.Join(', ', aRequestedFilters.ToStringArray));
+
+  lPreview := TStringList.Create;
+  try
+    lLimit := cPreviewMax;
+    if aRequestedFilters.Count < lLimit then
+      lLimit := aRequestedFilters.Count;
+    for i := 0 to lLimit - 1 do
+      lPreview.Add(aRequestedFilters[i]);
+    Result := Format('selected resources (%d): %s ...', [aRequestedFilters.Count,
+      String.Join(', ', lPreview.ToStringArray)]);
+  finally
+    lPreview.Free;
+  end;
 end;
 
 procedure AddFilterTokens(const aListValue: string; const aRequestedFilters: TStrings);
@@ -373,7 +475,7 @@ begin
       end;
 
       Inc(aStats.Streamed);
-      if not TryReadRootComponent(lStream, lReadErr) then
+      if not TryReadRootComponent(lStream, aResourceName, lReadErr) then
       begin
         Inc(aStats.Errors);
         EmitLine('FAIL ' + aResourceName + ' -> ' + lReadErr);
@@ -443,8 +545,7 @@ begin
     if lValidateAll then
       EmitLine('DFM stream validation scope: all resources')
     else
-      EmitLine('DFM stream validation scope: selected resources: ' +
-        String.Join(', ', lRequestedFilters.ToStringArray));
+      EmitLine('DFM stream validation scope: ' + BuildScopePreview(lRequestedFilters));
 
     lResourceNames.CaseSensitive := False;
     lResourceNames.Sorted := True;
