@@ -79,6 +79,8 @@ type
     [Test]
     procedure PipelineAllModeCacheSkipsUpdateOnValidatorFailureWithoutFailLines;
     [Test]
+    procedure PipelineAllModeUsesProgressWithoutQuietValidator;
+    [Test]
     procedure IntegrationWrongEventSignatureProducesDfmFailure;
   end;
 
@@ -1424,6 +1426,63 @@ begin
     lOutputText := JoinOutput(lOutputLines);
     Assert.IsTrue(Pos('[dfm-check] Cache: total=1 unchanged=0 validating=1', lOutputText) > 0,
       'Expected cache summary to show validation is required after failed run without FAIL lines.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineAllModeUsesProgressWithoutQuietValidator;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-all-progress');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+    lOptions.fDfmCheckAll := True;
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected all-mode validator run to pass in mock mode.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, 'Unexpected all-mode category.');
+    Assert.IsFalse(Pos('--quiet', LowerCase(lRunnerImpl.ValidatorArguments)) > 0,
+      'All-mode should stream progress and must not force quiet validator output.');
+    Assert.IsTrue(Pos('--progress', LowerCase(lRunnerImpl.ValidatorArguments)) > 0,
+      'All-mode should include --progress for live CHECK lines.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
