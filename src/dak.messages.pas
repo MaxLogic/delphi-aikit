@@ -38,10 +38,11 @@ resourcestring
     '[--platform <Win32|Win64>] [--config <Debug|Release>] [--target <Build|Rebuild>] [--rebuild [true|false]] ' +
     '[--json [true|false]] [--max-findings <N>] [--build-timeout-sec <N default 0>] [--test-output-dir "<path>"] ' +
     '[--ai] [--show-warnings] [--show-hints] [--dfmcheck] ' +
+    '[--dfm "<file.dfm[,file2.dfm]>"] [--all] ' +
     '[--ignore-warnings "<list>"] [--ignore-hints "<list>"] [--exclude-path-masks "<list>"] [--rsvars "<path>"]';
   SUsageDfmCheck =
     'DelphiAIKit.exe dfm-check --dproj "<path>" [--delphi <23.0>] [--config <Release|Debug>] [--platform <Win32|Win64>] ' +
-    '[--rsvars "<path>"]';
+    '[--dfm "<file.dfm[,file2.dfm]>"] [--all] [--rsvars "<path>"] [--verbose [true|false]]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';

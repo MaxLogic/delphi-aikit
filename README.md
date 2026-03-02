@@ -60,6 +60,8 @@ Additional build flags:
 - `--build-timeout-sec N` terminates hung builds after `N` seconds (`0` disables timeout).
 - `--test-output-dir "<path>"` writes build artifacts to an isolated output directory.
 - `--dfmcheck` runs DFM streaming validation after a successful build (presence flag; same as calling `dfm-check` separately).
+- `--dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm"` scopes post-build `--dfmcheck` to selected forms.
+- `--all` scopes post-build `--dfmcheck` to all forms (default when `--dfm` is omitted).
 - `--rsvars "<path>"` overrides `rsvars.bat` for build and post-build `--dfmcheck` validation.
 
 ## Quick start
@@ -105,18 +107,22 @@ bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 -
 To validate DFMs in CI using generated DFMCheck projects:
 
 ```
-bin\DelphiAIKit.exe dfm-check --dproj "C:\path\Project.dproj" --config Release --platform Win32
+bin\DelphiAIKit.exe dfm-check --dproj "C:\path\Project.dproj" --config Release --platform Win32 --all
 ```
 
 Optional:
 - `--delphi 23.0` selects Delphi version for automatic `rsvars.bat` resolution.
 - `--rsvars "C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat"` imports RAD Studio environment variables before `msbuild`.
+- `--dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm"` validates only selected DFM resources.
+- `--all` validates all DFM resources (default when `--dfm` is not provided).
+- `--verbose true` shows stage logs and detailed per-resource output.
 - `tools\Validate-Dfm.ps1` is a thin wrapper around the same CLI command.
 
 `dfm-check` auto-loads `rsvars.bat` when either:
 - `--rsvars` is provided, or
 - `--delphi` is provided, or
 - `dak.ini` provides `[Build] DelphiVersion=<version>` (cascading settings).
+If none of the above is available, `dfm-check` fails with a hard error (Delphi context is required).
 
 `dfm-check` stages:
 - generate a `_DfmCheck` harness project from the target `.dproj`/`.dpr` (no external `DFMCheck.exe`)
@@ -127,7 +133,14 @@ Optional:
 - run `_DfmCheck.exe` and propagate its exit code (`0` success, non-zero means streaming failures)
 - force Delphi response-file build mode (`DCC_ForceExecute=true`) to avoid long command-line failures
 - isolate generated DCU/EXE output directories per run for deterministic CI behavior
+- in full-scope mode (`--all` or no explicit `--dfm`), cache unchanged forms in `<Project>.dfmcheck.cache` and skip revalidation on later runs
+- in full-scope + verbose mode, print progress lines as `CHECK <current>/<total> <resource>`
+- validator timeout is disabled (large projects run until completion)
 - clean generated `_DfmCheck*` artifacts by default (set `DAK_DFMCHECK_KEEP_ARTIFACTS=true` to keep them for debugging)
+
+`dfm-check` output contract:
+- non-verbose: actionable output only (`FAIL` lines + summary + final result)
+- verbose: full stage logs and per-resource output
 
 To capture resolver diagnostics (warnings, missing paths, macro issues) into a log file:
 

@@ -37,7 +37,13 @@ type
     [Test]
     procedure DfmCheckCommandRequiresDproj;
     [Test]
+    procedure DfmCheckCommandParsesSelectedDfmFilterList;
+    [Test]
+    procedure DfmCheckCommandParsesAllFlag;
+    [Test]
     procedure BuildCommandParsesDfmCheckFlag;
+    [Test]
+    procedure BuildCommandParsesDfmSelectionFlags;
     [Test]
     procedure BuildCommandDefaultsDfmCheckToFalse;
     [Test]
@@ -250,6 +256,29 @@ begin
     'Expected missing --dproj error. Actual: ' + lError);
 end;
 
+procedure TCliTests.DfmCheckCommandParsesSelectedDfmFilterList;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('dfm-check --dproj C:\repo\Sample.dproj --dfm MainForm.dfm,Frames\DetailSubEditDocs.dfm');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected dfm-check --dfm list to parse. Error: ' + lError);
+  Assert.AreEqual('MainForm.dfm,Frames\DetailSubEditDocs.dfm', lOptions.fDfmCheckFilter,
+    'Unexpected parsed --dfm filter list.');
+  Assert.IsFalse(lOptions.fDfmCheckAll, 'Expected --dfm list to disable explicit all mode.');
+end;
+
+procedure TCliTests.DfmCheckCommandParsesAllFlag;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('dfm-check --dproj C:\repo\Sample.dproj --all');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected dfm-check --all to parse. Error: ' + lError);
+  Assert.IsTrue(lOptions.fDfmCheckAll, 'Expected --all to enable full DFM validation scope.');
+  Assert.AreEqual('', lOptions.fDfmCheckFilter, 'Expected --all to clear explicit --dfm filter list.');
+end;
+
 procedure TCliTests.BuildCommandParsesDfmCheckFlag;
 var
   lOptions: TAppOptions;
@@ -259,6 +288,22 @@ begin
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected build --dfmcheck to parse. Error: ' + lError);
   Assert.AreEqual(TCommandKind.ckBuild, lOptions.fCommand, 'Expected build command kind.');
   Assert.IsTrue(lOptions.fBuildRunDfmCheck, 'Expected --dfmcheck to enable post-build DFM validation.');
+end;
+
+procedure TCliTests.BuildCommandParsesDfmSelectionFlags;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --delphi 23.0 --dfmcheck --dfm MainForm.dfm');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected build --dfm list to parse. Error: ' + lError);
+  Assert.AreEqual('MainForm.dfm', lOptions.fDfmCheckFilter, 'Unexpected parsed build --dfm value.');
+  Assert.IsFalse(lOptions.fDfmCheckAll, 'Expected build --dfm to disable explicit all mode.');
+
+  SetParams('build --project C:\repo\Sample.dproj --delphi 23.0 --dfmcheck --all');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected build --all to parse. Error: ' + lError);
+  Assert.IsTrue(lOptions.fDfmCheckAll, 'Expected build --all to enable full DFM scope.');
+  Assert.AreEqual('', lOptions.fDfmCheckFilter, 'Expected build --all to clear explicit --dfm filter list.');
 end;
 
 procedure TCliTests.BuildCommandDefaultsDfmCheckToFalse;

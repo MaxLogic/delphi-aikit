@@ -3,7 +3,8 @@ unit Dak.DfmCheck;
 interface
 
 uses
-  System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
+  System.Classes, System.Generics.Collections, System.IOUtils, System.IniFiles, System.RegularExpressions, System.StrUtils,
+  System.SysUtils,
   System.Win.Registry,
   Winapi.Messages,
   Winapi.Windows,
@@ -39,6 +40,33 @@ type
     fInjectDfmStreamAll: string;
   end;
 
+  TDfmValidationSummary = record
+    fHasSummary: Boolean;
+    fMatched: Integer;
+    fRequested: Integer;
+    fSkipped: Integer;
+    fStreamed: Integer;
+    fFailed: Integer;
+  end;
+
+  TDfmCacheModule = record
+    fDfmHash: string;
+    fDfmPath: string;
+    fNeedsValidation: Boolean;
+    fPasHash: string;
+    fPasPath: string;
+    fResourceName: string;
+    fUnitName: string;
+  end;
+
+  TDfmCacheStats = record
+    fEnabled: Boolean;
+    fFilePath: string;
+    fSkippedUnchanged: Integer;
+    fToValidate: Integer;
+    fTotal: Integer;
+  end;
+
   TDfmCheckOutputProc = reference to procedure(const aLine: string);
 
   IDfmCheckProcessRunner = interface
@@ -51,7 +79,7 @@ function TryResolveDfmCheckProjectPath(const aInputPath: string; out aDprojPath:
 function BuildExpectedDfmCheckPaths(const aDprojPath: string): TDfmCheckPaths;
 function TryLocateGeneratedDfmCheckProject(var aPaths: TDfmCheckPaths; out aError: string): Boolean;
 function TryPatchDfmCheckDpr(const aInputText: string; out aOutputText: string; out aChanged: Boolean;
-  out aError: string; const aRegisterUnitName: string = ''): Boolean;
+  out aError: string; const aRegisterUnitName: string = ''; const aProgramName: string = ''): Boolean;
 function MapDfmCheckExitCode(const aCategory: TDfmCheckErrorCategory; const aToolExitCode: Integer): Integer;
 function RunDfmCheckPipeline(const aOptions: TAppOptions; const aRunner: IDfmCheckProcessRunner;
   const aOutput: TDfmCheckOutputProc; out aCategory: TDfmCheckErrorCategory; out aError: string): Integer;
@@ -214,8 +242,10 @@ function ShouldIsolateUiProcess(const aExePath: string; const aArguments: string
 var
   lExeName: string;
 begin
-  if Trim(aArguments) <> '' then
-    Exit(False);
+  if aArguments <> '' then
+  begin
+    // Validator filters are passed via command line; they must not disable desktop isolation.
+  end;
   lExeName := TPath.GetFileName(aExePath);
   Result := EndsText('_DfmCheck.exe', lExeName);
 end;
@@ -233,6 +263,651 @@ end;
 function ShouldKeepArtifacts: Boolean;
 begin
   Result := IsTrueValue(GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS'));
+end;
+
+function TrimMatchingQuotes(const aValue: string): string;
+var
+  lValue: string;
+begin
+  lValue := Trim(aValue);
+  if Length(lValue) >= 2 then
+  begin
+    if ((lValue[1] = '"') and (lValue[Length(lValue)] = '"')) or
+      ((lValue[1] = '''') and (lValue[Length(lValue)] = '''')) then
+      lValue := Copy(lValue, 2, Length(lValue) - 2);
+  end;
+  Result := Trim(lValue);
+end;
+
+function NormalizeRequestedDfmName(const aToken: string): string;
+var
+  lExt: string;
+  lName: string;
+begin
+  lName := TrimMatchingQuotes(aToken);
+  if lName = '' then
+    Exit('');
+
+  lName := lName.Replace('/', '\', [rfReplaceAll]);
+  lExt := LowerCase(TPath.GetExtension(lName));
+  if (lExt <> '') or (Pos('\', lName) > 0) then
+    lName := TPath.GetFileNameWithoutExtension(lName);
+
+  Result := UpperCase(Trim(lName));
+end;
+
+function RemoveKnownDfmSuffix(const aValue: string): string;
+begin
+  Result := aValue;
+  if EndsText('.DFM', Result) then
+    Exit(Copy(Result, 1, Length(Result) - 4));
+  if EndsText('_DFM', Result) then
+    Exit(Copy(Result, 1, Length(Result) - 4));
+end;
+
+function NormalizeResourceToken(const aToken: string): string;
+begin
+  Result := RemoveKnownDfmSuffix(UpperCase(TrimMatchingQuotes(Trim(aToken))));
+end;
+
+function ResourceNamesMatch(const aLeft: string; const aRight: string): Boolean;
+var
+  lLeft: string;
+  lRight: string;
+begin
+  lLeft := NormalizeResourceToken(aLeft);
+  lRight := NormalizeResourceToken(aRight);
+  if (lLeft = '') or (lRight = '') then
+    Exit(False);
+  if SameText(lLeft, lRight) then
+    Exit(True);
+  if (Length(lLeft) > 1) and (lLeft[1] = 'T') and SameText(Copy(lLeft, 2, MaxInt), lRight) then
+    Exit(True);
+  if (Length(lRight) > 1) and (lRight[1] = 'T') and SameText(lLeft, Copy(lRight, 2, MaxInt)) then
+    Exit(True);
+  Result := False;
+end;
+
+function TryComputeFileHash(const aFilePath: string; out aHash: string; out aError: string): Boolean;
+const
+  cFNVOffsetBasis: UInt64 = UInt64($CBF29CE484222325);
+  cFNVPrime: UInt64 = UInt64($00000100000001B3);
+var
+  lBuffer: TBytes;
+  lHash: UInt64;
+  lIndex: Integer;
+  lRead: Integer;
+  lStream: TFileStream;
+begin
+  aError := '';
+  aHash := '';
+  if not FileExists(aFilePath) then
+  begin
+    aError := 'File not found: ' + aFilePath;
+    Exit(False);
+  end;
+
+  lHash := cFNVOffsetBasis;
+  lStream := TFileStream.Create(aFilePath, fmOpenRead or fmShareDenyNone);
+  try
+    SetLength(lBuffer, 64 * 1024);
+    repeat
+      lRead := lStream.Read(lBuffer[0], Length(lBuffer));
+      for lIndex := 0 to lRead - 1 do
+      begin
+        lHash := lHash xor lBuffer[lIndex];
+        lHash := lHash * cFNVPrime;
+      end;
+    until lRead = 0;
+  finally
+    lStream.Free;
+  end;
+
+  aHash := IntToHex(lHash, 16);
+  Result := True;
+end;
+
+function BuildDfmCachePath(const aDprojPath: string): string;
+begin
+  Result := TPath.Combine(ExtractFilePath(aDprojPath), TPath.GetFileNameWithoutExtension(aDprojPath) +
+    '.dfmcheck.cache');
+end;
+
+function TryCollectDfmModulePathsFromDproj(const aDprojPath: string; const aUnitNames: TStrings; const aPasPaths: TStrings;
+  const aDfmPaths: TStrings; out aError: string): Boolean;
+var
+  lDprDir: string;
+  lDprPath: string;
+  lDprText: string;
+  lDfmPath: string;
+  lDprojDir: string;
+  lDprojText: string;
+  lIncludePath: string;
+  lMatch: TMatch;
+  lMatches: TMatchCollection;
+  lPasPath: string;
+  lUnitName: string;
+begin
+  aError := '';
+  if not FileExists(aDprojPath) then
+  begin
+    aError := 'Dproj file not found: ' + aDprojPath;
+    Exit(False);
+  end;
+  if (aUnitNames = nil) or (aPasPaths = nil) or (aDfmPaths = nil) then
+  begin
+    aError := 'Cache module collectors are not assigned.';
+    Exit(False);
+  end;
+
+  lDprojDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aDprojPath));
+  lDprojText := TFile.ReadAllText(aDprojPath);
+  lMatches := TRegEx.Matches(lDprojText, '<DCCReference\b[^>]*\bInclude\s*=\s*"([^"]+)"', [roIgnoreCase]);
+  for lMatch in lMatches do
+  begin
+    if (not lMatch.Success) or (lMatch.Groups.Count < 2) then
+      Continue;
+
+    lIncludePath := Trim(lMatch.Groups[1].Value);
+    if lIncludePath = '' then
+      Continue;
+    lIncludePath := lIncludePath.Replace('/', '\', [rfReplaceAll]);
+    if not SameText(TPath.GetExtension(lIncludePath), '.pas') then
+      Continue;
+
+    lPasPath := TPath.GetFullPath(TPath.Combine(lDprojDir, lIncludePath));
+    if not FileExists(lPasPath) then
+      Continue;
+    lDfmPath := TPath.ChangeExtension(lPasPath, '.dfm');
+    if not FileExists(lDfmPath) then
+      Continue;
+
+    lUnitName := UpperCase(TPath.GetFileNameWithoutExtension(lPasPath));
+    if lUnitName = '' then
+      Continue;
+    if aUnitNames.IndexOf(lUnitName) >= 0 then
+      Continue;
+
+    aUnitNames.Add(lUnitName);
+    aPasPaths.Add(lPasPath);
+    aDfmPaths.Add(lDfmPath);
+  end;
+
+  if aUnitNames.Count = 0 then
+  begin
+    lDprPath := TPath.ChangeExtension(aDprojPath, '.dpr');
+    if not FileExists(lDprPath) then
+    begin
+      lMatch := TRegEx.Match(lDprojText, '<MainSource>\s*([^<]+?)\s*</MainSource>', [roIgnoreCase, roSingleLine]);
+      if lMatch.Success and (lMatch.Groups.Count > 1) then
+      begin
+        lIncludePath := Trim(lMatch.Groups[1].Value);
+        if lIncludePath <> '' then
+          lDprPath := TPath.GetFullPath(TPath.Combine(lDprojDir, lIncludePath));
+      end;
+    end;
+
+    if FileExists(lDprPath) then
+    begin
+      lDprDir := ExcludeTrailingPathDelimiter(ExtractFileDir(lDprPath));
+      lDprText := TFile.ReadAllText(lDprPath);
+      lMatches := TRegEx.Matches(lDprText, '([A-Za-z_][A-Za-z0-9_]*)\s+in\s+''([^'']+\.pas)''', [roIgnoreCase]);
+      for lMatch in lMatches do
+      begin
+        if (not lMatch.Success) or (lMatch.Groups.Count < 3) then
+          Continue;
+        lUnitName := UpperCase(Trim(lMatch.Groups[1].Value));
+        lIncludePath := Trim(lMatch.Groups[2].Value);
+        if (lUnitName = '') or (lIncludePath = '') then
+          Continue;
+        if aUnitNames.IndexOf(lUnitName) >= 0 then
+          Continue;
+        lPasPath := TPath.GetFullPath(TPath.Combine(lDprDir, lIncludePath));
+        if not FileExists(lPasPath) then
+          Continue;
+        lDfmPath := TPath.ChangeExtension(lPasPath, '.dfm');
+        if not FileExists(lDfmPath) then
+          Continue;
+        aUnitNames.Add(lUnitName);
+        aPasPaths.Add(lPasPath);
+        aDfmPaths.Add(lDfmPath);
+      end;
+    end;
+  end;
+
+  Result := True;
+end;
+
+function ContainsMatchingResourceName(const aResourceNames: TStrings; const aResourceName: string): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  if aResourceNames = nil then
+    Exit(False);
+  for i := 0 to aResourceNames.Count - 1 do
+  begin
+    if ResourceNamesMatch(aResourceNames[i], aResourceName) then
+      Exit(True);
+  end;
+end;
+
+function TryPrepareDfmCacheSelection(const aDprojPath: string; out aModules: TArray<TDfmCacheModule>;
+  out aFilterCsv: string; out aDisplay: string; out aStats: TDfmCacheStats; out aError: string): Boolean;
+var
+  lCachedDfmHash: string;
+  lCachedPasHash: string;
+  lCachedResourceName: string;
+  lCachedStatus: string;
+  lCacheIni: TMemIniFile;
+  lCacheSection: string;
+  lClassName: string;
+  lDfmPaths: TStringList;
+  lFilterList: TStringList;
+  lIndex: Integer;
+  lModule: TDfmCacheModule;
+  lPasPaths: TStringList;
+  lUnitNames: TStringList;
+begin
+  aError := '';
+  aFilterCsv := '';
+  aDisplay := '';
+  aModules := nil;
+  aStats := Default(TDfmCacheStats);
+  aStats.fEnabled := True;
+  aStats.fFilePath := BuildDfmCachePath(aDprojPath);
+
+  lUnitNames := TStringList.Create;
+  lPasPaths := TStringList.Create;
+  lDfmPaths := TStringList.Create;
+  lFilterList := TStringList.Create;
+  lCacheIni := TMemIniFile.Create(aStats.fFilePath);
+  try
+    lUnitNames.CaseSensitive := False;
+    lUnitNames.Sorted := False;
+    lUnitNames.Duplicates := TDuplicates.dupIgnore;
+    lPasPaths.CaseSensitive := False;
+    lPasPaths.Sorted := False;
+    lPasPaths.Duplicates := TDuplicates.dupIgnore;
+    lDfmPaths.CaseSensitive := False;
+    lDfmPaths.Sorted := False;
+    lDfmPaths.Duplicates := TDuplicates.dupIgnore;
+    lFilterList.CaseSensitive := False;
+    lFilterList.Sorted := True;
+    lFilterList.Duplicates := TDuplicates.dupIgnore;
+
+    if not TryCollectDfmModulePathsFromDproj(aDprojPath, lUnitNames, lPasPaths, lDfmPaths, aError) then
+      Exit(False);
+
+    SetLength(aModules, lUnitNames.Count);
+    aStats.fTotal := lUnitNames.Count;
+
+    for lIndex := 0 to lUnitNames.Count - 1 do
+    begin
+      if not TryComputeFileHash(lPasPaths[lIndex], lCachedPasHash, aError) then
+        Exit(False);
+      if not TryComputeFileHash(lDfmPaths[lIndex], lCachedDfmHash, aError) then
+        Exit(False);
+
+      lModule := Default(TDfmCacheModule);
+      lModule.fUnitName := lUnitNames[lIndex];
+      lModule.fPasPath := lPasPaths[lIndex];
+      lModule.fDfmPath := lDfmPaths[lIndex];
+      lModule.fPasHash := lCachedPasHash;
+      lModule.fDfmHash := lCachedDfmHash;
+      lModule.fNeedsValidation := True;
+
+      lCacheSection := 'Unit:' + lModule.fUnitName;
+      lCachedResourceName := NormalizeResourceToken(lCacheIni.ReadString(lCacheSection, 'ResourceName', ''));
+      lCachedStatus := UpperCase(Trim(lCacheIni.ReadString(lCacheSection, 'Status', '')));
+      lCachedPasHash := UpperCase(Trim(lCacheIni.ReadString(lCacheSection, 'PasHash', '')));
+      lCachedDfmHash := UpperCase(Trim(lCacheIni.ReadString(lCacheSection, 'DfmHash', '')));
+
+      if SameText(lCachedPasHash, lModule.fPasHash) and SameText(lCachedDfmHash, lModule.fDfmHash) and
+        (lCachedResourceName <> '') then
+      begin
+        lModule.fResourceName := lCachedResourceName;
+        if SameText(lCachedStatus, 'OK') then
+          lModule.fNeedsValidation := False;
+      end;
+
+      if lModule.fResourceName = '' then
+      begin
+        try
+          lClassName := Trim(ReadFormClassNameFromFile(lModule.fDfmPath));
+        except
+          on E: Exception do
+          begin
+            aError := 'Failed to read root form class from DFM (' + lModule.fDfmPath + '): ' + E.Message;
+            Exit(False);
+          end;
+        end;
+        lModule.fResourceName := NormalizeResourceToken(lClassName);
+      end;
+
+      if lModule.fResourceName = '' then
+      begin
+        aError := 'Could not determine form class/resource name from DFM: ' + lModule.fDfmPath;
+        Exit(False);
+      end;
+
+      if lModule.fNeedsValidation then
+        lFilterList.Add(lModule.fResourceName)
+      else
+        Inc(aStats.fSkippedUnchanged);
+
+      aModules[lIndex] := lModule;
+    end;
+
+    aStats.fToValidate := lFilterList.Count;
+    if lFilterList.Count > 0 then
+    begin
+      aFilterCsv := String.Join(',', lFilterList.ToStringArray);
+      aDisplay := aFilterCsv.Replace(',', ', ', [rfReplaceAll]);
+    end;
+
+    Result := True;
+  finally
+    lCacheIni.Free;
+    lFilterList.Free;
+    lDfmPaths.Free;
+    lPasPaths.Free;
+    lUnitNames.Free;
+  end;
+end;
+
+function TryWriteDfmCache(const aCachePath: string; const aModules: TArray<TDfmCacheModule>;
+  const aFailedResources: TStrings; out aError: string): Boolean;
+var
+  lCacheIni: TMemIniFile;
+  lCacheSection: string;
+  lIndex: Integer;
+  lKeepSections: TStringList;
+  lSections: TStringList;
+  lStatus: string;
+begin
+  aError := '';
+  lCacheIni := TMemIniFile.Create(aCachePath);
+  lSections := TStringList.Create;
+  lKeepSections := TStringList.Create;
+  try
+    try
+      lKeepSections.CaseSensitive := False;
+      lKeepSections.Sorted := True;
+      lKeepSections.Duplicates := TDuplicates.dupIgnore;
+
+      lCacheIni.WriteString('Meta', 'Version', '1');
+      for lIndex := Low(aModules) to High(aModules) do
+      begin
+        lCacheSection := 'Unit:' + aModules[lIndex].fUnitName;
+        lKeepSections.Add(lCacheSection);
+        lCacheIni.WriteString(lCacheSection, 'ResourceName', aModules[lIndex].fResourceName);
+        lCacheIni.WriteString(lCacheSection, 'PasHash', aModules[lIndex].fPasHash);
+        lCacheIni.WriteString(lCacheSection, 'DfmHash', aModules[lIndex].fDfmHash);
+        if aModules[lIndex].fNeedsValidation and ContainsMatchingResourceName(aFailedResources,
+          aModules[lIndex].fResourceName) then
+          lStatus := 'FAIL'
+        else
+          lStatus := 'OK';
+        lCacheIni.WriteString(lCacheSection, 'Status', lStatus);
+      end;
+
+      lCacheIni.ReadSections(lSections);
+      for lIndex := 0 to lSections.Count - 1 do
+      begin
+        lCacheSection := lSections[lIndex];
+        if not StartsText('Unit:', lCacheSection) then
+          Continue;
+        if lKeepSections.IndexOf(lCacheSection) >= 0 then
+          Continue;
+        lCacheIni.EraseSection(lCacheSection);
+      end;
+
+      lCacheIni.UpdateFile;
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        aError := 'Failed to write DFM cache file (' + aCachePath + '): ' + E.Message;
+        Result := False;
+      end;
+    end;
+  finally
+    lKeepSections.Free;
+    lSections.Free;
+    lCacheIni.Free;
+  end;
+end;
+
+function TryAppendDprojClassAliases(const aDprojPath: string; const aFilterList: TStringList; out aError: string): Boolean;
+var
+  lClassName: string;
+  lDfmPath: string;
+  lDprojDir: string;
+  lDprojText: string;
+  lFilterIndex: Integer;
+  lIncludePath: string;
+  lMatch: TMatch;
+  lMatches: TMatchCollection;
+  lPasPath: string;
+  lRequestedName: string;
+begin
+  aError := '';
+  if (aFilterList = nil) or (aFilterList.Count = 0) then
+    Exit(True);
+  if (Trim(aDprojPath) = '') or (not FileExists(aDprojPath)) then
+    Exit(True);
+
+  lDprojDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aDprojPath));
+  lDprojText := TFile.ReadAllText(aDprojPath);
+  lMatches := TRegEx.Matches(lDprojText, '<DCCReference\b[^>]*\bInclude\s*=\s*"([^"]+)"', [roIgnoreCase]);
+  for lMatch in lMatches do
+  begin
+    if (not lMatch.Success) or (lMatch.Groups.Count < 2) then
+      Continue;
+
+    lIncludePath := Trim(lMatch.Groups[1].Value);
+    if lIncludePath = '' then
+      Continue;
+    lIncludePath := lIncludePath.Replace('/', '\', [rfReplaceAll]);
+    if not SameText(TPath.GetExtension(lIncludePath), '.pas') then
+      Continue;
+
+    lRequestedName := UpperCase(TPath.GetFileNameWithoutExtension(lIncludePath));
+    if lRequestedName = '' then
+      Continue;
+    if aFilterList.IndexOf(lRequestedName) < 0 then
+      Continue;
+
+    lPasPath := TPath.GetFullPath(TPath.Combine(lDprojDir, lIncludePath));
+    lDfmPath := TPath.ChangeExtension(lPasPath, '.dfm');
+    if not FileExists(lDfmPath) then
+      Continue;
+
+    try
+      lClassName := UpperCase(Trim(ReadFormClassNameFromFile(lDfmPath)));
+    except
+      on E: Exception do
+      begin
+        aError := 'Failed to read root form class from DFM (' + lDfmPath + '): ' + E.Message;
+        Exit(False);
+      end;
+    end;
+
+    if lClassName <> '' then
+    begin
+      lFilterIndex := aFilterList.IndexOf(lRequestedName);
+      if lFilterIndex >= 0 then
+        aFilterList.Delete(lFilterIndex);
+      aFilterList.Add(lClassName);
+    end;
+  end;
+
+  Result := True;
+end;
+
+function TryBuildValidatorFilterCsv(const aFilterText: string; const aDprojPath: string; out aFilterCsv: string;
+  out aDisplay: string; out aError: string): Boolean;
+var
+  lFilterList: TStringList;
+  lPart: string;
+  lParts: TArray<string>;
+  lResourceName: string;
+begin
+  aError := '';
+  aFilterCsv := '';
+  aDisplay := '';
+  lFilterList := TStringList.Create;
+  try
+    lFilterList.CaseSensitive := False;
+    lFilterList.Sorted := True;
+    lFilterList.Duplicates := TDuplicates.dupIgnore;
+
+    lParts := aFilterText.Split([',', ';']);
+    for lPart in lParts do
+    begin
+      lResourceName := NormalizeRequestedDfmName(lPart);
+      if lResourceName <> '' then
+        lFilterList.Add(lResourceName);
+    end;
+
+    if lFilterList.Count = 0 then
+    begin
+      aError := 'No valid DFM names were provided for --dfm.';
+      Exit(False);
+    end;
+
+    if not TryAppendDprojClassAliases(aDprojPath, lFilterList, aError) then
+      Exit(False);
+
+    aFilterCsv := String.Join(',', lFilterList.ToStringArray);
+    aDisplay := aFilterCsv.Replace(',', ', ', [rfReplaceAll]);
+    Result := True;
+  finally
+    lFilterList.Free;
+  end;
+end;
+
+function TryBuildValidatorArguments(const aOptions: TAppOptions; const aDprojPath: string; out aValidatorArgs: string;
+  out aScopeText: string; out aError: string): Boolean;
+var
+  lFilterCsv: string;
+begin
+  aError := '';
+  aValidatorArgs := '--all';
+  aScopeText := 'all DFM resources';
+
+  if aOptions.fDfmCheckAll then
+    Exit(True);
+
+  if Trim(aOptions.fDfmCheckFilter) = '' then
+    Exit(True);
+
+  if not TryBuildValidatorFilterCsv(aOptions.fDfmCheckFilter, aDprojPath, lFilterCsv, aScopeText, aError) then
+    Exit(False);
+
+  aValidatorArgs := '--dfm=' + QuoteCmdArg(lFilterCsv);
+  aScopeText := 'selected DFM resources: ' + aScopeText;
+  Result := True;
+end;
+
+procedure EmitVerboseLine(const aVerbose: Boolean; const aOutput: TDfmCheckOutputProc; const aLine: string);
+begin
+  if not aVerbose then
+    Exit;
+  EmitLine(aOutput, aLine);
+end;
+
+function TryParseValidatorSummaryLine(const aLine: string; out aSummary: TDfmValidationSummary): Boolean;
+var
+  lMatch: TMatch;
+begin
+  Result := False;
+  if Pos('DFM stream validation summary:', aLine) <> 1 then
+    Exit(False);
+
+  lMatch := TRegEx.Match(aLine,
+    'streamed=(\d+)\s+skipped=(\d+)\s+failed=(\d+)\s+requested=(\d+)\s+matched=(\d+)', [roIgnoreCase]);
+  if not lMatch.Success then
+    Exit(False);
+
+  aSummary.fHasSummary := True;
+  aSummary.fStreamed := StrToIntDef(lMatch.Groups[1].Value, 0);
+  aSummary.fSkipped := StrToIntDef(lMatch.Groups[2].Value, 0);
+  aSummary.fFailed := StrToIntDef(lMatch.Groups[3].Value, 0);
+  aSummary.fRequested := StrToIntDef(lMatch.Groups[4].Value, 0);
+  aSummary.fMatched := StrToIntDef(lMatch.Groups[5].Value, 0);
+  Result := True;
+end;
+
+function ExtractFailedResourceName(const aLine: string): string;
+var
+  lArrowPos: Integer;
+  lTail: string;
+begin
+  Result := '';
+  if not StartsText('FAIL ', aLine) then
+    Exit('');
+  lTail := Trim(Copy(aLine, Length('FAIL ') + 1, MaxInt));
+  if lTail = '' then
+    Exit('');
+  lArrowPos := Pos('->', lTail);
+  if lArrowPos > 0 then
+    lTail := Trim(Copy(lTail, 1, lArrowPos - 1));
+  Result := NormalizeResourceToken(lTail);
+end;
+
+procedure EmitValidatorLog(const aLogPath: string; const aVerbose: Boolean; const aOutput: TDfmCheckOutputProc;
+  const aSuppressLineOutput: Boolean; const aFailedResources: TStrings; out aSummary: TDfmValidationSummary;
+  out aFailLines: Integer);
+var
+  lFailedResourceName: string;
+  lLine: string;
+  lLines: TStringList;
+  lParsedSummary: TDfmValidationSummary;
+  lTrimmedLine: string;
+begin
+  aSummary := Default(TDfmValidationSummary);
+  aFailLines := 0;
+  if (aLogPath = '') or (not FileExists(aLogPath)) then
+    Exit;
+
+  lLines := TStringList.Create;
+  try
+    lLines.LoadFromFile(aLogPath, TEncoding.UTF8);
+    for lLine in lLines do
+    begin
+      lTrimmedLine := Trim(lLine);
+      if lTrimmedLine = '' then
+        Continue;
+
+      if not aSuppressLineOutput then
+      begin
+        if aVerbose then
+          EmitLine(aOutput, lTrimmedLine)
+        else if StartsText('FAIL ', lTrimmedLine) then
+        begin
+          EmitLine(aOutput, lTrimmedLine);
+        end;
+      end;
+
+      if StartsText('FAIL ', lTrimmedLine) then
+      begin
+        Inc(aFailLines);
+        if aFailedResources <> nil then
+        begin
+          lFailedResourceName := ExtractFailedResourceName(lTrimmedLine);
+          if lFailedResourceName <> '' then
+            aFailedResources.Add(lFailedResourceName);
+        end;
+      end;
+
+      if TryParseValidatorSummaryLine(lTrimmedLine, lParsedSummary) then
+        aSummary := lParsedSummary;
+    end;
+  finally
+    lLines.Free;
+  end;
 end;
 
 function TryFindExecutableInPath(const aExeName: string; out aExePath: string): Boolean;
@@ -394,9 +1069,11 @@ begin
 end;
 
 procedure CleanupGeneratedArtifacts(const aPaths: TDfmCheckPaths; const aCopiedDfmStreamAll: Boolean;
-  const aValidatorExePath: string; const aOutput: TDfmCheckOutputProc);
+  const aValidatorExePath: string; const aOutput: TDfmCheckOutputProc; const aVerbose: Boolean);
 var
   lBasePath: string;
+  lBuildCmdPath: string;
+  lBuildLogPath: string;
   lCmdsPath: string;
   lDirectBasePath: string;
   lErrors: string;
@@ -420,6 +1097,11 @@ begin
   CleanupFile(lDirectBasePath + '.res', lErrors);
   CleanupFile(lDirectBasePath + '_Register.pas', lErrors);
   CleanupFile(aValidatorExePath, lErrors);
+  lBuildCmdPath := TPath.Combine(aPaths.fGeneratedDir, '_DfmCheckBuild.cmd');
+  lBuildLogPath := TPath.Combine(aPaths.fGeneratedDir, '_DfmCheckBuild.log');
+  CleanupFile(lBuildCmdPath, lErrors);
+  CleanupFile(lBuildLogPath, lErrors);
+  CleanupFile(TPath.Combine(aPaths.fGeneratedDir, '_DfmCheckValidator.log'), lErrors);
 
   if aCopiedDfmStreamAll then
     CleanupFile(TPath.Combine(aPaths.fGeneratedDir, 'DfmStreamAll.pas'), lErrors);
@@ -447,7 +1129,7 @@ begin
 
   if lErrors <> '' then
     EmitLine(aOutput, '[dfm-check] Cleanup warning: ' + lErrors)
-  else
+  else if aVerbose then
     EmitLine(aOutput, '[dfm-check] Cleanup complete.');
 end;
 
@@ -636,6 +1318,45 @@ function TryCopyDprojWithNewMainSource(const aSourceDprojPath: string; const aDe
 const
   cLineBreak = #13#10;
   cDfmCheckSymbol = 'DFMCheck';
+  cMadExceptSymbol = 'madExcept';
+  cNoLocalizationSymbol = 'NO_LOCALIZATION';
+  function EnsureDefineSymbol(const aDefines: string; const aSymbol: string): string;
+  begin
+    if TRegEx.IsMatch(aDefines, '(^|;)\s*' + TRegEx.Escape(aSymbol) + '\s*(;|$)', [roIgnoreCase]) then
+      Exit(aDefines);
+    if Trim(aDefines) = '' then
+      Exit(aSymbol);
+    if EndsText(';', TrimRight(aDefines)) then
+      Exit(aDefines + aSymbol);
+    Result := aDefines + ';' + aSymbol;
+  end;
+  function RemoveDefineSymbol(const aDefines: string; const aSymbol: string): string;
+  var
+    i: Integer;
+    lDefineList: TStringList;
+    lToken: string;
+  begin
+    lDefineList := TStringList.Create;
+    try
+      lDefineList.StrictDelimiter := True;
+      lDefineList.Delimiter := ';';
+      lDefineList.DelimitedText := aDefines;
+      Result := '';
+      for i := 0 to lDefineList.Count - 1 do
+      begin
+        lToken := Trim(lDefineList[i]);
+        if lToken = '' then
+          Continue;
+        if SameText(lToken, aSymbol) then
+          Continue;
+        if Result <> '' then
+          Result := Result + ';';
+        Result := Result + lToken;
+      end;
+    finally
+      lDefineList.Free;
+    end;
+  end;
   function XmlEscape(const aValue: string): string;
   begin
     Result := aValue;
@@ -651,6 +1372,7 @@ var
   lExistingDefines: string;
   lInsertText: string;
   lPropertyGroupMatch: TMatch;
+  lUpdatedDefines: string;
   lSourceText: string;
   lOutputText: string;
   lRegex: string;
@@ -684,16 +1406,19 @@ begin
   if lDefineMatch.Success and (lDefineMatch.Groups.Count > 1) then
   begin
     lExistingDefines := lDefineMatch.Groups[1].Value;
-    if Pos(UpperCase(cDfmCheckSymbol), UpperCase(lExistingDefines)) = 0 then
+    lUpdatedDefines := RemoveDefineSymbol(lExistingDefines, cMadExceptSymbol);
+    lUpdatedDefines := EnsureDefineSymbol(lUpdatedDefines, cDfmCheckSymbol);
+    lUpdatedDefines := EnsureDefineSymbol(lUpdatedDefines, cNoLocalizationSymbol);
+    if lUpdatedDefines <> lExistingDefines then
       lOutputText := TRegEx.Replace(lOutputText, '<DCC_Define>\s*([^<]*)\s*</DCC_Define>',
-        '<DCC_Define>$1;' + cDfmCheckSymbol + '</DCC_Define>', [roIgnoreCase]);
+        '<DCC_Define>' + lUpdatedDefines + '</DCC_Define>', [roIgnoreCase]);
   end else
   begin
     lPropertyGroupMatch := TRegEx.Match(lOutputText, '<PropertyGroup\b[^>]*>', [roIgnoreCase]);
     if lPropertyGroupMatch.Success then
     begin
       lInsertText := lPropertyGroupMatch.Value + cLineBreak +
-        '    <DCC_Define>' + cDfmCheckSymbol + '</DCC_Define>';
+        '    <DCC_Define>' + cDfmCheckSymbol + ';' + cNoLocalizationSymbol + '</DCC_Define>';
       lOutputText := Copy(lOutputText, 1, lPropertyGroupMatch.Index) + lInsertText +
         Copy(lOutputText, lPropertyGroupMatch.Index + lPropertyGroupMatch.Length + 1, MaxInt);
     end;
@@ -718,8 +1443,76 @@ begin
   end;
 end;
 
-function TryCollectFormModules(const aSourceProjectPath: string; const aUnitNames: TStrings;
+function TryCollectFormModulesFromDproj(const aDprojPath: string; const aUnitNames: TStrings;
   const aFormClassNames: TStrings; const aUnitSearchDirs: TStrings; out aError: string): Boolean;
+var
+  lDfmPath: string;
+  lDprojDir: string;
+  lDprojText: string;
+  lFormClassName: string;
+  lIncludePath: string;
+  lMatch: TMatch;
+  lMatches: TMatchCollection;
+  lModuleDir: string;
+  lModuleFilePath: string;
+  lUnitName: string;
+begin
+  Result := False;
+  aError := '';
+  if not FileExists(aDprojPath) then
+  begin
+    aError := 'Dproj file not found for module discovery: ' + aDprojPath;
+    Exit(False);
+  end;
+
+  lDprojDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aDprojPath));
+  lDprojText := TFile.ReadAllText(aDprojPath);
+  lMatches := TRegEx.Matches(lDprojText, '<DCCReference\b[^>]*\bInclude\s*=\s*"([^"]+)"', [roIgnoreCase]);
+  for lMatch in lMatches do
+  begin
+    if (not lMatch.Success) or (lMatch.Groups.Count < 2) then
+      Continue;
+    lIncludePath := Trim(lMatch.Groups[1].Value);
+    if lIncludePath = '' then
+      Continue;
+    lIncludePath := lIncludePath.Replace('/', '\', [rfReplaceAll]);
+    if not SameText(TPath.GetExtension(lIncludePath), '.pas') then
+      Continue;
+
+    lModuleFilePath := TPath.GetFullPath(TPath.Combine(lDprojDir, lIncludePath));
+    if not FileExists(lModuleFilePath) then
+      Continue;
+    lDfmPath := TPath.ChangeExtension(lModuleFilePath, '.dfm');
+    if not FileExists(lDfmPath) then
+      Continue;
+
+    lUnitName := TPath.GetFileNameWithoutExtension(lModuleFilePath);
+    lModuleDir := ExcludeTrailingPathDelimiter(ExtractFileDir(lModuleFilePath));
+    if lModuleDir <> '' then
+      aUnitSearchDirs.Add(lModuleDir);
+    if aUnitNames.IndexOf(lUnitName) >= 0 then
+      Continue;
+
+    try
+      lFormClassName := Trim(ReadFormClassNameFromFile(lDfmPath));
+    except
+      on E: Exception do
+      begin
+        aError := 'Failed to read root form class from DFM (' + lDfmPath + '): ' + E.Message;
+        Exit(False);
+      end;
+    end;
+
+    aUnitNames.Add(lUnitName);
+    aFormClassNames.Add(lFormClassName);
+  end;
+
+  Result := True;
+end;
+
+function TryCollectFormModules(const aSourceProjectPath: string; const aUnitNames: TStrings;
+  const aFormClassNames: TStrings; const aUnitSearchDirs: TStrings; const aSourceDprojPath: string;
+  out aError: string): Boolean;
 var
   i: Integer;
   lDfmPath: string;
@@ -773,7 +1566,7 @@ begin
     aUnitNames.Add(lUnitName);
     aFormClassNames.Add(lFormClassName);
   end;
-  Result := True;
+  Result := TryCollectFormModulesFromDproj(aSourceDprojPath, aUnitNames, aFormClassNames, aUnitSearchDirs, aError);
 end;
 
 function TryWriteRegisterUnit(const aRegisterUnitPath: string; const aUnitNames: TStrings;
@@ -805,7 +1598,9 @@ begin
     'uses' + cLineBreak +
     '  System.Classes';
   if aUnitNames.Count > 0 then
-    lContent := lContent + ',' + cLineBreak;
+    lContent := lContent + ',' + cLineBreak
+  else
+    lContent := lContent + ';' + cLineBreak;
   for i := 0 to aUnitNames.Count - 1 do
   begin
     lContent := lContent + '  ' + aUnitNames[i];
@@ -878,7 +1673,7 @@ begin
     lUnitSearchDirs.Sorted := True;
     lUnitSearchDirs.Duplicates := TDuplicates.dupIgnore;
 
-    if not TryCollectFormModules(lSourceProjectPath, lUnitNames, lFormClassNames, lUnitSearchDirs, aError) then
+    if not TryCollectFormModules(lSourceProjectPath, lUnitNames, lFormClassNames, lUnitSearchDirs, aDprojPath, aError) then
       Exit(False);
 
     lUnitSearchPath := BuildDelimitedPath(lUnitSearchDirs);
@@ -1014,7 +1809,7 @@ begin
 end;
 
 function TryPatchDfmCheckDpr(const aInputText: string; out aOutputText: string; out aChanged: Boolean;
-  out aError: string; const aRegisterUnitName: string): Boolean;
+  out aError: string; const aRegisterUnitName: string; const aProgramName: string): Boolean;
 const
   cLineBreak = #13#10;
 var
@@ -1023,15 +1818,20 @@ var
   lCharAfter: Char;
   lCharBefore: Char;
   lFoundUses: Boolean;
+  lMadExceptPattern: string;
   lInjectedUnits: string;
   lLowerText: string;
   lNeedsDfmStreamAll: Boolean;
   lNeedsRegisterUnit: Boolean;
+  lBomPrefix: string;
   lPos: Integer;
   lRegisterUnitName: string;
+  lReplacedText: string;
   lWorkText: string;
   lChangedUses: Boolean;
   lChangedValidatorStart: Boolean;
+  lChangedProgramName: Boolean;
+  lChangedMadExcept: Boolean;
   lUsesBody: string;
   lUsesText: string;
   lBeginPos: Integer;
@@ -1042,13 +1842,48 @@ begin
   aError := '';
   aChanged := False;
   lWorkText := aInputText;
+  lBomPrefix := '';
   lChangedUses := False;
   lChangedValidatorStart := False;
+  lChangedProgramName := False;
+  lChangedMadExcept := False;
   lClauseStart := 0;
   lClauseEnd := 0;
   lRegisterUnitName := Trim(aRegisterUnitName);
   lNeedsDfmStreamAll := not ContainsWord(lWorkText, 'DfmStreamAll');
   lNeedsRegisterUnit := (lRegisterUnitName <> '') and (not ContainsWord(lWorkText, lRegisterUnitName));
+
+  if (lWorkText <> '') and ((lWorkText[1] = #$FEFF) or (Ord(lWorkText[1]) > 127)) then
+  begin
+    lBomPrefix := lWorkText[1];
+    Delete(lWorkText, 1, 1);
+  end;
+
+  if Trim(aProgramName) <> '' then
+  begin
+    if not TRegEx.IsMatch(lWorkText, '(^[ \t]*program[ \t]+)([A-Za-z_][A-Za-z0-9_]*)([ \t]*;)',
+      [roIgnoreCase, roMultiLine]) then
+    begin
+      aError := 'Could not patch DPR: program declaration not found.';
+      Exit(False);
+    end;
+
+    lReplacedText := TRegEx.Replace(lWorkText, '(^[ \t]*program[ \t]+)([A-Za-z_][A-Za-z0-9_]*)([ \t]*;)',
+      '$1' + aProgramName + '$3', [roIgnoreCase, roMultiLine]);
+    if lReplacedText <> lWorkText then
+    begin
+      lWorkText := lReplacedText;
+      lChangedProgramName := True;
+    end;
+  end;
+
+  lMadExceptPattern := '\{\$IFDEF\s+madExcept\}.*?\{\$ENDIF(?:\s+madExcept)?\}';
+  lReplacedText := TRegEx.Replace(lWorkText, lMadExceptPattern, '', [roIgnoreCase, roSingleLine]);
+  if lReplacedText <> lWorkText then
+  begin
+    lWorkText := lReplacedText;
+    lChangedMadExcept := True;
+  end;
 
   if lNeedsDfmStreamAll or lNeedsRegisterUnit then
   begin
@@ -1134,7 +1969,10 @@ begin
     lChangedValidatorStart := True;
   end;
 
-  aChanged := lChangedUses or lChangedValidatorStart;
+  if lBomPrefix <> '' then
+    lWorkText := lBomPrefix + lWorkText;
+
+  aChanged := lChangedProgramName or lChangedMadExcept or lChangedUses or lChangedValidatorStart;
   aOutputText := lWorkText;
   Result := True;
 end;
@@ -1280,9 +2118,16 @@ end;
 function RunDfmCheckPipeline(const aOptions: TAppOptions; const aRunner: IDfmCheckProcessRunner;
   const aOutput: TDfmCheckOutputProc; out aCategory: TDfmCheckErrorCategory; out aError: string): Integer;
 var
+  lCacheDisplay: string;
+  lCacheError: string;
+  lCacheFilterCsv: string;
+  lCacheModules: TArray<TDfmCacheModule>;
+  lCacheStats: TDfmCacheStats;
   lCopiedDfmStreamAll: Boolean;
   lDelphiVersion: string;
   lDprojPath: string;
+  lEffectiveOptions: TAppOptions;
+  lFailedResources: TStringList;
   lPaths: TDfmCheckPaths;
   lText: string;
   lPatchedText: string;
@@ -1292,24 +2137,52 @@ var
   lBuildLines: TStringList;
   lBuildExePath: string;
   lBuildExeOverride: string;
+  lBuildArgs: string;
+  lBuildCmdPath: string;
+  lBuildLogPath: string;
+  lBuildVerbosity: string;
   lConfig: string;
+  lFailLines: Integer;
   lForcedDcuOutputDir: string;
   lForcedExeOutputDir: string;
   lRunGuid: TGUID;
   lRunSuffix: string;
+  lSummary: TDfmValidationSummary;
   lPlatform: string;
+  lValidatorArgs: string;
   lValidatorExePath: string;
+  lValidatorLogPath: string;
+  lValidatorScope: string;
+  lUseQuietValidator: Boolean;
+  lVerbose: Boolean;
   lWriterEncoding: TEncoding;
   lHadDfmStreamAll: Boolean;
+  lOriginalAllRequested: Boolean;
 begin
   Result := 1;
   aError := '';
   aCategory := TDfmCheckErrorCategory.ecNone;
   lCopiedDfmStreamAll := False;
+  lCacheStats := Default(TDfmCacheStats);
+  lCacheModules := nil;
+  lCacheFilterCsv := '';
+  lCacheDisplay := '';
+  lCacheError := '';
+  lEffectiveOptions := aOptions;
   lValidatorExePath := '';
+  lValidatorLogPath := '';
+  lSummary := Default(TDfmValidationSummary);
+  lFailLines := 0;
+  lVerbose := aOptions.fVerbose;
+  lOriginalAllRequested := aOptions.fDfmCheckAll or (Trim(aOptions.fDfmCheckFilter) = '');
   lBuildLines := TStringList.Create;
+  lFailedResources := TStringList.Create;
 
   try
+    lFailedResources.CaseSensitive := False;
+    lFailedResources.Sorted := True;
+    lFailedResources.Duplicates := TDuplicates.dupIgnore;
+
     if aRunner = nil then
     begin
       aCategory := TDfmCheckErrorCategory.ecInvalidInput;
@@ -1323,6 +2196,32 @@ begin
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
 
+    if lOriginalAllRequested then
+    begin
+      if not TryPrepareDfmCacheSelection(lDprojPath, lCacheModules, lCacheFilterCsv, lCacheDisplay, lCacheStats, aError)
+      then
+      begin
+        aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+        Exit(MapDfmCheckExitCode(aCategory, 0));
+      end;
+      EmitLine(aOutput, Format('[dfm-check] Cache: total=%d unchanged=%d validating=%d', [lCacheStats.fTotal,
+        lCacheStats.fSkippedUnchanged, lCacheStats.fToValidate]));
+      if lVerbose then
+        EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Cache file: ' + lCacheStats.fFilePath);
+      if lVerbose and (lCacheDisplay <> '') then
+        EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Cache selection: ' + lCacheDisplay);
+      if lCacheStats.fToValidate = 0 then
+      begin
+        EmitLine(aOutput, '[dfm-check] Summary: streamed=0 skipped=0 failed=0 requested=0 matched=0');
+        EmitLine(aOutput, '[dfm-check] Result: OK');
+        Result := 0;
+        Exit(0);
+      end;
+
+      lEffectiveOptions.fDfmCheckAll := False;
+      lEffectiveOptions.fDfmCheckFilter := lCacheFilterCsv;
+    end;
+
     lDelphiVersion := Trim(aOptions.fDelphiVersion);
     if lDelphiVersion = '' then
     begin
@@ -1333,14 +2232,20 @@ begin
         Exit(MapDfmCheckExitCode(aCategory, 0));
       end;
       if lDelphiVersion <> '' then
-        EmitLine(aOutput, '[dfm-check] Using Delphi version from dak.ini: ' + lDelphiVersion);
+        EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Using Delphi version from dak.ini: ' + lDelphiVersion);
+    end;
+    if lDelphiVersion = '' then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+      aError := 'Delphi version is required for dfm-check. Pass --delphi <major.minor> or set [Build] DelphiVersion in dak.ini.';
+      Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
     if (lDelphiVersion <> '') and (Pos('.', lDelphiVersion) = 0) then
       lDelphiVersion := lDelphiVersion + '.0';
 
     if aOptions.fHasRsVarsPath or (lDelphiVersion <> '') then
     begin
-      EmitLine(aOutput, '[dfm-check] Loading RAD Studio environment from rsvars.bat...');
+      EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Loading RAD Studio environment from rsvars.bat...');
       if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, aError) then
       begin
         aCategory := TDfmCheckErrorCategory.ecInvalidInput;
@@ -1370,7 +2275,7 @@ begin
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
 
-    EmitLine(aOutput, '[dfm-check] Generating DFMCheck project...');
+    EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Generating DFMCheck project...');
     if not TryGenerateDfmCheckProject(lDprojPath, lPaths, aError) then
     begin
       aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
@@ -1382,7 +2287,7 @@ begin
       aCategory := TDfmCheckErrorCategory.ecGeneratedProjectMissing;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
-    EmitLine(aOutput, '[dfm-check] Generated project: ' + lPaths.fGeneratedDproj);
+    EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Generated project: ' + lPaths.fGeneratedDproj);
 
     lHadDfmStreamAll := FileExists(TPath.Combine(lPaths.fGeneratedDir, 'DfmStreamAll.pas'));
     TFile.Copy(lPaths.fInjectDfmStreamAll, TPath.Combine(lPaths.fGeneratedDir, 'DfmStreamAll.pas'), True);
@@ -1390,7 +2295,8 @@ begin
 
     lText := TFile.ReadAllText(lPaths.fGeneratedDpr);
     if not TryPatchDfmCheckDpr(lText, lPatchedText, lChanged, aError,
-      TPath.GetFileNameWithoutExtension(lPaths.fGeneratedRegisterUnit)) then
+      TPath.GetFileNameWithoutExtension(lPaths.fGeneratedRegisterUnit),
+      TPath.GetFileNameWithoutExtension(lPaths.fGeneratedDpr)) then
     begin
       aCategory := TDfmCheckErrorCategory.ecDprPatchFailed;
       Exit(MapDfmCheckExitCode(aCategory, 0));
@@ -1412,7 +2318,7 @@ begin
       aError := lRunnerError;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
-    EmitLine(aOutput, '[dfm-check] Using MSBuild: ' + lBuildExePath);
+    EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Using MSBuild: ' + lBuildExePath);
 
     if CreateGUID(lRunGuid) = S_OK then
       lRunSuffix := GUIDToString(lRunGuid)
@@ -1429,22 +2335,40 @@ begin
     lPaths.fForcedExeOutputDir := lForcedExeOutputDir;
     lPaths.fForcedDcuOutputDir := lForcedDcuOutputDir;
 
-    EmitLine(aOutput, '[dfm-check] Building generated DfmCheck project via MSBuild...');
-    if not aRunner.Run(lBuildExePath,
+    EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Building generated DfmCheck project via MSBuild...');
+    if lVerbose then
+      lBuildVerbosity := '/v:m'
+    else
+      lBuildVerbosity := '/v:q';
+    lBuildArgs :=
       QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build /p:Config=' + lConfig + ' /p:Platform=' + lPlatform +
       ' /p:DCC_ForceExecute=true /p:DCC_ExeOutput=' + QuoteCmdArg(IncludeTrailingPathDelimiter(lForcedExeOutputDir)) +
       ' /p:DCC_DcuOutput=' + QuoteCmdArg(IncludeTrailingPathDelimiter(lForcedDcuOutputDir)) +
-      ' /v:m',
-      lPaths.fGeneratedDir,
-      procedure(const aLine: string)
-      begin
-        lBuildLines.Add(aLine);
-        EmitLine(aOutput, aLine);
-      end, lExitCode, lRunnerError) then
+      ' ' + lBuildVerbosity;
+    lBuildLogPath := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckBuild.log');
+    lBuildCmdPath := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckBuild.cmd');
+    TFile.WriteAllText(lBuildCmdPath,
+      '@echo off' + #13#10 +
+      QuoteCmdArg(lBuildExePath) + ' ' + lBuildArgs + ' > ' + QuoteCmdArg(lBuildLogPath) + ' 2>&1' + #13#10 +
+      'exit /b %errorlevel%' + #13#10, TEncoding.Default);
+    if not aRunner.Run(lBuildCmdPath, '', lPaths.fGeneratedDir, nil, lExitCode, lRunnerError) then
     begin
       aCategory := TDfmCheckErrorCategory.ecBuildFailed;
       aError := 'MSBuild failed to start: ' + lRunnerError;
       Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+    if FileExists(lBuildLogPath) then
+    begin
+      try
+        lBuildLines.LoadFromFile(lBuildLogPath, TEncoding.UTF8);
+      except
+        lBuildLines.LoadFromFile(lBuildLogPath, TEncoding.Default);
+      end;
+    end;
+    if lVerbose then
+    begin
+      for lText in lBuildLines do
+        EmitLine(aOutput, lText);
     end;
     if lExitCode <> 0 then
     begin
@@ -1467,22 +2391,70 @@ begin
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
 
-    EmitLine(aOutput, '[dfm-check] Running validator exe...');
-    if not aRunner.Run(lValidatorExePath, '', lPaths.fGeneratedDir, aOutput, lExitCode, lRunnerError) then
+    if not TryBuildValidatorArguments(lEffectiveOptions, lDprojPath, lValidatorArgs, lValidatorScope, aError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+
+    lValidatorLogPath := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckValidator.log');
+    if FileExists(lValidatorLogPath) then
+    begin
+      try
+        TFile.Delete(lValidatorLogPath);
+      except
+        // Best-effort cleanup before new run.
+      end;
+    end;
+    lUseQuietValidator := not lVerbose;
+    if lUseQuietValidator then
+      lValidatorArgs := Trim(lValidatorArgs + ' --quiet');
+    if lOriginalAllRequested and lVerbose then
+      lValidatorArgs := Trim(lValidatorArgs + ' --progress');
+    lValidatorArgs := Trim(lValidatorArgs + ' --log-file=' + QuoteCmdArg(lValidatorLogPath));
+
+    EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Validator scope: ' + lValidatorScope);
+    EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Running validator exe...');
+    if not aRunner.Run(lValidatorExePath, lValidatorArgs, lPaths.fGeneratedDir,
+      procedure(const aLine: string)
+      begin
+        EmitVerboseLine(lVerbose, aOutput, aLine);
+      end, lExitCode, lRunnerError) then
     begin
       aCategory := TDfmCheckErrorCategory.ecValidatorFailed;
       aError := 'Validator executable failed to start: ' + lRunnerError;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
 
+    EmitValidatorLog(lValidatorLogPath, lVerbose, aOutput, not lUseQuietValidator, lFailedResources, lSummary, lFailLines);
+    if lCacheStats.fEnabled then
+    begin
+      if not TryWriteDfmCache(lCacheStats.fFilePath, lCacheModules, lFailedResources, lCacheError) then
+        EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Cache warning: ' + lCacheError);
+    end;
+    if lSummary.fHasSummary then
+      EmitLine(aOutput, Format('[dfm-check] Summary: streamed=%d skipped=%d failed=%d requested=%d matched=%d',
+        [lSummary.fStreamed, lSummary.fSkipped, lSummary.fFailed, lSummary.fRequested, lSummary.fMatched]))
+    else
+      EmitLine(aOutput, Format('[dfm-check] Summary: failed=%d', [Integer(lExitCode)]));
+
+    if (lExitCode <> 0) and (not lVerbose) and (lFailLines = 0) then
+      EmitLine(aOutput, '[dfm-check] FAIL details hidden or unavailable. Re-run with --verbose.');
+
+    if lExitCode = 0 then
+      EmitLine(aOutput, '[dfm-check] Result: OK')
+    else
+      EmitLine(aOutput, Format('[dfm-check] Result: FAIL (%d error(s))', [Integer(lExitCode)]));
+
     // Propagate streaming validator result directly: 0 = success, >0 = number of failed resources.
     Result := Integer(lExitCode);
   finally
+    lFailedResources.Free;
     lBuildLines.Free;
     if ShouldKeepArtifacts then
-      EmitLine(aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).')
+      EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).')
     else
-      CleanupGeneratedArtifacts(lPaths, lCopiedDfmStreamAll, lValidatorExePath, aOutput);
+      CleanupGeneratedArtifacts(lPaths, lCopiedDfmStreamAll, lValidatorExePath, aOutput, lVerbose);
   end;
 end;
 
@@ -1517,6 +2489,8 @@ var
   lPreviousErrorMode: Cardinal;
   lCommandExe: string;
   lCommandScript: string;
+  lElapsedSec: Cardinal;
+  lHeartbeatTick: Cardinal;
   lUnusedOutput: TDfmCheckOutputProc;
 begin
   Result := False;
@@ -1542,6 +2516,7 @@ begin
   lIsolatedProcess := False;
   lStartTick := 0;
   lTimeoutMs := 0;
+  lHeartbeatTick := 0;
 
   if IsCmdScript(aExePath) then
   begin
@@ -1578,7 +2553,7 @@ begin
     lIsolatedDesktop := CreateDesktop(PChar(lIsolatedDesktopName), nil, nil, 0, GENERIC_ALL, nil);
     if lIsolatedDesktop <> 0 then
       lStartupInfo.lpDesktop := PChar(lIsolatedDesktopName);
-    lTimeoutMs := 120000;
+    lTimeoutMs := 0;
   end;
 
   lPreviousErrorMode := SetErrorMode(SEM_FAILCRITICALERRORS or SEM_NOGPFAULTERRORBOX or SEM_NOOPENFILEERRORBOX);
@@ -1603,6 +2578,7 @@ begin
   end;
   SetErrorMode(lPreviousErrorMode);
   lStartTick := GetTickCount;
+  lHeartbeatTick := lStartTick;
 
   try
     repeat
@@ -1610,6 +2586,12 @@ begin
       if lWaitResult = WAIT_TIMEOUT then
       begin
         CloseTopLevelWindowsForProcess(lProcessInfo.dwProcessId);
+        if lIsolatedProcess and Assigned(aOutput) and ((GetTickCount - lHeartbeatTick) >= 15000) then
+        begin
+          lElapsedSec := (GetTickCount - lStartTick) div 1000;
+          aOutput(Format('[dfm-check] Validator still running (%ds)...', [lElapsedSec]));
+          lHeartbeatTick := GetTickCount;
+        end;
         if (lTimeoutMs <> 0) and ((GetTickCount - lStartTick) >= lTimeoutMs) then
         begin
           TerminateProcess(lProcessInfo.hProcess, 146);

@@ -1,7 +1,7 @@
 ---
 name: delphi-build
 description: Build Delphi projects via DelphiAIKit from WSL or Windows. Use when asked to compile or rebuild a .dproj (or .dpr/.dpk with sibling .dproj), verify build output, or troubleshoot build failures.
-version: "1.1"
+version: "1.2"
 ---
 
 # Delphi Build
@@ -105,20 +105,33 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 - `--build-timeout-sec N`
 - `--test-output-dir "<path>"`
 - `--dfmcheck` (presence flag; when present, run DFM validation after a successful build)
+- `--dfm "<file.dfm[,file2.dfm]>"` (DFM scope for `--dfmcheck`; selected forms only)
+- `--all` (DFM scope for `--dfmcheck`; validate all forms, default when `--dfm` is omitted)
+- `--rsvars "<path>"` (overrides `rsvars.bat` for build and post-build DFM check)
 - `--show-warnings`, `--show-hints`
-- `--ai`, `--json`
+- `--ai`, `--json`, `--verbose [true|false]`
 
 ## Workflow
 
 1. Run build with `--ai`.
 2. Add `--dfmcheck` when we want build + DFM streaming validation in one call.
-3. If automation needs structured output, rerun with `--json`.
-4. If output is locked, either stop the locking process or use `--test-output-dir`.
-5. Report actionable diagnostics with exact failing unit/error line and next fix step.
+3. Use `--dfm "<...>"` for targeted checks or `--all` for full checks (default scope).
+4. If no Delphi version is passed to standalone `dfm-check`, ensure cascading `dak.ini` provides `[Build] DelphiVersion`.
+5. In full-scope validation, reruns may skip unchanged forms via `<Project>.dfmcheck.cache`.
+6. If automation needs structured output, rerun with `--json`.
+7. If output is locked, either stop the locking process or use `--test-output-dir`.
+8. Report actionable diagnostics with exact failing unit/error line and next fix step.
 
 Build plus DFM check example:
 
 ```bash
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
 "$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --dfmcheck --ai
+```
+
+Build plus targeted DFM check:
+
+```bash
+PROJECT_LINUX="_Source/ActiveAppView.dproj"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --dfmcheck --dfm "MainForm.dfm,Frames\\DetailSubEditDocs.dfm" --ai
 ```
