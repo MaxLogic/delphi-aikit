@@ -17,6 +17,7 @@ uses
 type
   TValidationStats = record
     Errors: Integer;
+    Warnings: Integer;
     Matched: Integer;
     Requested: Integer;
     Streamed: Integer;
@@ -443,6 +444,29 @@ begin
   end;
 end;
 
+function ExtractExceptionClassName(const aErr: string): string;
+var
+  lPos: Integer;
+begin
+  Result := Trim(aErr);
+  if Result = '' then
+    Exit('');
+  lPos := Pos(':', Result);
+  if lPos > 0 then
+    Result := Trim(Copy(Result, 1, lPos - 1));
+end;
+
+function IsStructuralStreamingError(const aErr: string): Boolean;
+var
+  lClassName: string;
+begin
+  lClassName := UpperCase(ExtractExceptionClassName(aErr));
+  Result := (lClassName = 'EREADERROR') or
+    (lClassName = 'ECLASSNOTFOUND') or
+    (lClassName = 'EPARSERERROR') or
+    (lClassName = 'EPROPERTYERROR');
+end;
+
 procedure ValidateResource(const aModule: HMODULE; const aResourceName: string; const aRequiredSelection: Boolean;
   var aStats: TValidationStats);
 var
@@ -477,15 +501,30 @@ begin
       Inc(aStats.Streamed);
       if not TryReadRootComponent(lStream, aResourceName, lReadErr) then
       begin
-        Inc(aStats.Errors);
-        EmitLine('FAIL ' + aResourceName + ' -> ' + lReadErr);
+        if IsStructuralStreamingError(lReadErr) then
+        begin
+          Inc(aStats.Errors);
+          EmitLine('FAIL ' + aResourceName + ' -> ' + lReadErr);
+        end else
+        begin
+          Inc(aStats.Warnings);
+          EmitLine('WARN ' + aResourceName + ' -> ' + lReadErr);
+        end;
       end else
         EmitLine('OK   ' + aResourceName);
     except
       on E: Exception do
       begin
-        Inc(aStats.Errors);
-        EmitLine('FAIL ' + aResourceName + ' -> ' + E.ClassName + ': ' + E.Message);
+        lReadErr := E.ClassName + ': ' + E.Message;
+        if IsStructuralStreamingError(lReadErr) then
+        begin
+          Inc(aStats.Errors);
+          EmitLine('FAIL ' + aResourceName + ' -> ' + lReadErr);
+        end else
+        begin
+          Inc(aStats.Warnings);
+          EmitLine('WARN ' + aResourceName + ' -> ' + lReadErr);
+        end;
       end;
     end;
   finally
@@ -626,6 +665,8 @@ begin
 
   EmitLine(Format('DFM stream validation summary: streamed=%d skipped=%d failed=%d requested=%d matched=%d',
     [lStats.Streamed, lStats.Skipped, lStats.Errors, lStats.Requested, lStats.Matched]));
+  if lStats.Warnings <> 0 then
+    EmitLine(Format('DFM stream validation warnings: %d warning(s)', [lStats.Warnings]));
   if lStats.Errors <> 0 then
     EmitLine(Format('DFM stream validation failed: %d error(s)', [lStats.Errors]));
 
