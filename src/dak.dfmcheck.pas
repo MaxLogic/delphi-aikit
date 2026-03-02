@@ -829,6 +829,88 @@ begin
   Result := True;
 end;
 
+function TryFindModuleByResourceName(const aModules: TArray<TDfmCacheModule>; const aResourceName: string;
+  out aModule: TDfmCacheModule): Boolean;
+var
+  i: Integer;
+  lResourceName: string;
+begin
+  Result := False;
+  aModule := Default(TDfmCacheModule);
+  lResourceName := NormalizeResourceToken(aResourceName);
+  if lResourceName = '' then
+    Exit(False);
+  for i := Low(aModules) to High(aModules) do
+  begin
+    if ResourceNamesMatch(aModules[i].fResourceName, lResourceName) then
+    begin
+      aModule := aModules[i];
+      Exit(True);
+    end;
+  end;
+end;
+
+function TryCollectDfmModuleMetadata(const aDprojPath: string; out aModules: TArray<TDfmCacheModule>;
+  out aError: string): Boolean;
+var
+  lClassName: string;
+  lDfmPaths: TStringList;
+  lIndex: Integer;
+  lModule: TDfmCacheModule;
+  lPasPaths: TStringList;
+  lUnitNames: TStringList;
+begin
+  aError := '';
+  aModules := nil;
+  lUnitNames := TStringList.Create;
+  lPasPaths := TStringList.Create;
+  lDfmPaths := TStringList.Create;
+  try
+    lUnitNames.CaseSensitive := False;
+    lUnitNames.Sorted := False;
+    lUnitNames.Duplicates := TDuplicates.dupIgnore;
+    lPasPaths.CaseSensitive := False;
+    lPasPaths.Sorted := False;
+    lPasPaths.Duplicates := TDuplicates.dupIgnore;
+    lDfmPaths.CaseSensitive := False;
+    lDfmPaths.Sorted := False;
+    lDfmPaths.Duplicates := TDuplicates.dupIgnore;
+
+    if not TryCollectDfmModulePathsFromDproj(aDprojPath, lUnitNames, lPasPaths, lDfmPaths, aError) then
+      Exit(False);
+
+    SetLength(aModules, lUnitNames.Count);
+    for lIndex := 0 to lUnitNames.Count - 1 do
+    begin
+      lClassName := '';
+      try
+        lClassName := Trim(ReadFormClassNameFromFile(lDfmPaths[lIndex]));
+      except
+        on E: Exception do
+        begin
+          aError := 'Failed to read root form class from DFM (' + lDfmPaths[lIndex] + '): ' + E.Message;
+          Exit(False);
+        end;
+      end;
+
+      lModule := Default(TDfmCacheModule);
+      lModule.fUnitName := lUnitNames[lIndex];
+      lModule.fPasPath := lPasPaths[lIndex];
+      lModule.fDfmPath := lDfmPaths[lIndex];
+      lModule.fResourceName := NormalizeResourceToken(lClassName);
+      if lModule.fResourceName = '' then
+        lModule.fResourceName := NormalizeResourceToken(TPath.GetFileNameWithoutExtension(lDfmPaths[lIndex]));
+      aModules[lIndex] := lModule;
+    end;
+
+    Result := True;
+  finally
+    lDfmPaths.Free;
+    lPasPaths.Free;
+    lUnitNames.Free;
+  end;
+end;
+
 procedure EmitVerboseLine(const aVerbose: Boolean; const aOutput: TDfmCheckOutputProc; const aLine: string);
 begin
   if not aVerbose then
@@ -875,10 +957,100 @@ begin
   Result := NormalizeResourceToken(lTail);
 end;
 
+function ExtractFailReasonText(const aLine: string): string;
+var
+  lArrowPos: Integer;
+begin
+  Result := '';
+  lArrowPos := Pos('->', aLine);
+  if lArrowPos <= 0 then
+    Exit('');
+  Result := Trim(Copy(aLine, lArrowPos + 2, MaxInt));
+end;
+
+function BuildFailLineWithModuleContext(const aFailLine: string; const aModules: TArray<TDfmCacheModule>): string;
+var
+  lModule: TDfmCacheModule;
+  lResourceName: string;
+begin
+  Result := aFailLine;
+  lResourceName := ExtractFailedResourceName(aFailLine);
+  if lResourceName = '' then
+    Exit(Result);
+  if not TryFindModuleByResourceName(aModules, lResourceName, lModule) then
+    Exit(Result);
+  Result := Result + Format(' [unit=%s pas=%s dfm=%s]', [lModule.fUnitName, lModule.fPasPath, lModule.fDfmPath]);
+end;
+
+function TryExtractFailMember(const aReason: string; out aMemberPath: string): Boolean;
+var
+  lMatch: TMatch;
+begin
+  aMemberPath := '';
+  lMatch := TRegEx.Match(aReason, 'Error\s+reading\s+([^:]+):', [roIgnoreCase]);
+  if not lMatch.Success then
+    Exit(False);
+  aMemberPath := Trim(lMatch.Groups[1].Value);
+  Result := aMemberPath <> '';
+end;
+
+function TryExtractFailMethodName(const aReason: string; out aMethodName: string): Boolean;
+var
+  lMatch: TMatch;
+begin
+  aMethodName := '';
+  lMatch := TRegEx.Match(aReason, 'method\s+''([^'']+)''', [roIgnoreCase]);
+  if not lMatch.Success then
+    Exit(False);
+  aMethodName := Trim(lMatch.Groups[1].Value);
+  Result := aMethodName <> '';
+end;
+
+procedure EmitFailedResourceGuidance(const aOutput: TDfmCheckOutputProc; const aFailedResources: TStrings;
+  const aFailReasons: TStrings; const aModules: TArray<TDfmCacheModule>);
+var
+  lFailReason: string;
+  lMemberPath: string;
+  lMethodName: string;
+  lModule: TDfmCacheModule;
+  lResourceName: string;
+  i: Integer;
+begin
+  if aFailedResources = nil then
+    Exit;
+
+  for i := 0 to aFailedResources.Count - 1 do
+  begin
+    lResourceName := NormalizeResourceToken(aFailedResources[i]);
+    if lResourceName = '' then
+      Continue;
+
+    if TryFindModuleByResourceName(aModules, lResourceName, lModule) then
+      EmitLine(aOutput, Format('[dfm-check] FAIL target: resource=%s unit=%s pas=%s dfm=%s',
+        [lResourceName, lModule.fUnitName, lModule.fPasPath, lModule.fDfmPath]))
+    else
+      EmitLine(aOutput, '[dfm-check] FAIL target: resource=' + lResourceName);
+
+    lFailReason := '';
+    if aFailReasons <> nil then
+      lFailReason := Trim(aFailReasons.Values[lResourceName]);
+    if lFailReason = '' then
+      Continue;
+
+    if TryExtractFailMember(lFailReason, lMemberPath) then
+      EmitLine(aOutput, '[dfm-check] FAIL clue: member=' + lMemberPath);
+    if TryExtractFailMethodName(lFailReason, lMethodName) then
+      EmitLine(aOutput, '[dfm-check] FAIL clue: handler=' + lMethodName + ' (check signature/visibility)');
+  end;
+end;
+
 procedure EmitValidatorLog(const aLogPath: string; const aVerbose: Boolean; const aOutput: TDfmCheckOutputProc;
   const aSuppressLineOutput: Boolean; const aEmitProgressLines: Boolean; const aFailedResources: TStrings;
+  const aFailReasons: TStrings; const aResourceModules: TArray<TDfmCacheModule>;
   out aSummary: TDfmValidationSummary; out aFailLines: Integer);
 var
+  lDisplayLine: string;
+  lFailReason: string;
   lFailedResourceName: string;
   lLine: string;
   lLines: TStringList;
@@ -902,10 +1074,15 @@ begin
       if not aSuppressLineOutput then
       begin
         if aVerbose then
-          EmitLine(aOutput, lTrimmedLine)
+        begin
+          lDisplayLine := lTrimmedLine;
+          if StartsText('FAIL ', lTrimmedLine) then
+            lDisplayLine := BuildFailLineWithModuleContext(lTrimmedLine, aResourceModules);
+          EmitLine(aOutput, lDisplayLine);
+        end
         else if StartsText('FAIL ', lTrimmedLine) then
         begin
-          EmitLine(aOutput, lTrimmedLine);
+          EmitLine(aOutput, BuildFailLineWithModuleContext(lTrimmedLine, aResourceModules));
         end else if aEmitProgressLines and StartsText('CHECK ', lTrimmedLine) then
         begin
           EmitLine(aOutput, lTrimmedLine);
@@ -920,6 +1097,12 @@ begin
           lFailedResourceName := ExtractFailedResourceName(lTrimmedLine);
           if lFailedResourceName <> '' then
             aFailedResources.Add(lFailedResourceName);
+          if (aFailReasons <> nil) and (lFailedResourceName <> '') then
+          begin
+            lFailReason := ExtractFailReasonText(lTrimmedLine);
+            if lFailReason <> '' then
+              aFailReasons.Values[lFailedResourceName] := lFailReason;
+          end;
         end;
       end;
 
@@ -2432,6 +2615,9 @@ var
   lUseQuietValidator: Boolean;
   lValidatorStreamingOutput: Boolean;
   lVerbose: Boolean;
+  lDiagnosticModules: TArray<TDfmCacheModule>;
+  lDiagnosticError: string;
+  lFailReasons: TStringList;
   lHadDfmStreamAll: Boolean;
   lHadRuntimeGuard: Boolean;
   lOriginalAllRequested: Boolean;
@@ -2453,14 +2639,21 @@ begin
   lSummary := Default(TDfmValidationSummary);
   lFailLines := 0;
   lVerbose := aOptions.fVerbose;
+  lDiagnosticModules := nil;
+  lDiagnosticError := '';
   lOriginalAllRequested := aOptions.fDfmCheckAll or (Trim(aOptions.fDfmCheckFilter) = '');
   lBuildLines := TStringList.Create;
   lFailedResources := TStringList.Create;
+  lFailReasons := TStringList.Create;
 
   try
     lFailedResources.CaseSensitive := False;
     lFailedResources.Sorted := True;
     lFailedResources.Duplicates := TDuplicates.dupIgnore;
+    lFailReasons.CaseSensitive := False;
+    lFailReasons.Sorted := False;
+    lFailReasons.Duplicates := TDuplicates.dupIgnore;
+    lFailReasons.NameValueSeparator := '=';
 
     if aRunner = nil then
     begin
@@ -2499,6 +2692,11 @@ begin
 
       lEffectiveOptions.fDfmCheckAll := False;
       lEffectiveOptions.fDfmCheckFilter := lCacheFilterCsv;
+      lDiagnosticModules := Copy(lCacheModules, 0, Length(lCacheModules));
+    end else
+    begin
+      if not TryCollectDfmModuleMetadata(lDprojPath, lDiagnosticModules, lDiagnosticError) then
+        EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Module metadata warning: ' + lDiagnosticError);
     end;
 
     if not TryBuildValidatorArguments(lEffectiveOptions, lDprojPath, lValidatorArgs, lValidatorScope, aError) then
@@ -2691,7 +2889,7 @@ begin
     end;
 
     EmitValidatorLog(lValidatorLogPath, lVerbose, aOutput, lValidatorStreamingOutput, lOriginalAllRequested,
-      lFailedResources, lSummary, lFailLines);
+      lFailedResources, lFailReasons, lDiagnosticModules, lSummary, lFailLines);
     if lCacheStats.fEnabled then
     begin
       if (lExitCode <> 0) and (lFailLines = 0) then
@@ -2713,6 +2911,8 @@ begin
 
     if (lExitCode <> 0) and (not lVerbose) and (lFailLines = 0) then
       EmitLine(aOutput, '[dfm-check] FAIL details hidden or unavailable. Re-run with --verbose.');
+    if lFailLines > 0 then
+      EmitFailedResourceGuidance(aOutput, lFailedResources, lFailReasons, lDiagnosticModules);
 
     if lExitCode = 0 then
       EmitLine(aOutput, '[dfm-check] Result: OK')
@@ -2727,6 +2927,7 @@ begin
     else
       Result := MapDfmCheckExitCode(TDfmCheckErrorCategory.ecValidatorFailed, 0);
   finally
+    lFailReasons.Free;
     lFailedResources.Free;
     lBuildLines.Free;
     if ShouldKeepArtifacts then
