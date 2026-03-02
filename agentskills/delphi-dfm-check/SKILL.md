@@ -1,7 +1,7 @@
 ---
 name: delphi-dfm-check
 description: Enforce Delphi DFM streaming validation for form-related changes via `dfm-check` or `build --dfmcheck`.
-version: "1.0"
+version: "1.1"
 ---
 
 # Delphi DFM Check
@@ -45,7 +45,11 @@ Standalone DFM validation:
 
 Optional:
 
+- `--delphi 23.0` (or provide `[Build] DelphiVersion` in cascading `dak.ini`)
 - `--rsvars "<path-to-rsvars.bat>"`
+- `--dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm"` (selected forms only)
+- `--all` (validate all forms; default when `--dfm` is omitted)
+- `--verbose true` (show stage logs and per-form progress in `--all` mode)
 
 Build with integrated DFM validation:
 
@@ -63,10 +67,13 @@ Defaults:
 
 ## Success/Failure Contract
 
-- Stage markers for generation/build/run phases.
-- Per-resource lines with `OK` or `FAIL`.
+- Non-verbose output is concise: `FAIL` lines + summary + final result.
+- Verbose output includes stage markers and full validator output.
+- In `--all --verbose`, validator prints progress lines as `CHECK <current>/<total> <resource>`.
 - Exit code `0`: all streamable DFM resources are valid.
 - Exit code `>0`: one or more DFM streams failed; this blocks completion.
+- In `--all`, unchanged forms may be skipped via `<Project>.dfmcheck.cache` in the `.dproj` directory.
+- Validator timeout is disabled; long runs continue until completion.
 
 ## Remediation Rules (required)
 

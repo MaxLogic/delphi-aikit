@@ -25,6 +25,8 @@ type
     fBuildAi: Boolean;
     fBuildJson: Boolean;
     fBuildRunDfmCheck: Boolean;
+    fDfmCheckFilter: string;
+    fDfmCheckAll: Boolean;
     fBuildTarget: string;
     fBuildMaxFindings: Integer;
     fBuildTimeoutSec: Integer;

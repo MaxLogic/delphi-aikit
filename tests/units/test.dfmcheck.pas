@@ -20,12 +20,18 @@ type
     fMode: TMockValidatorMode;
     fPlatform: string;
     fRunCount: Integer;
+    fValidatorArguments: string;
     function ReadFirstArg(const aArguments: string): string;
+    function TryReadMsBuildArgsFromBuildCmd(const aBuildCmdPath: string; out aMsBuildArgs: string;
+      out aBuildLogPath: string): Boolean;
+    function TrimMatchingQuotes(const aValue: string): string;
   public
     constructor Create(const aMode: TMockValidatorMode; const aConfig: string; const aPlatform: string);
     function Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
       const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
     property MsBuildArguments: string read fMsBuildArguments;
+    property RunCount: Integer read fRunCount;
+    property ValidatorArguments: string read fValidatorArguments;
   end;
 
   [TestFixture]
@@ -42,6 +48,10 @@ type
     [Test]
     procedure PatchDprIsIdempotentAndPreservesSyntax;
     [Test]
+    procedure PatchDprRewritesProgramNameAndRemovesMadExceptConditional;
+    [Test]
+    procedure PatchDprRewritesProgramNameWithUtf8Bom;
+    [Test]
     procedure PatchDprInjectsAtMainBeginNotNestedBegin;
     [Test]
     procedure MapExitCodePropagatesToolAndCategoryCodes;
@@ -54,9 +64,13 @@ type
     [Test]
     procedure PipelineBuildFailureInGeneratedUnitIsClassifiedAsGeneratorIncompatibility;
     [Test]
+    procedure PipelinePassesSelectedDfmFilterToValidator;
+    [Test]
     procedure PipelineFindsValidatorExeInParentBin;
     [Test]
     procedure PipelineCleansGeneratedArtifactsByDefault;
+    [Test]
+    procedure PipelineAllModeCacheSkipsUnchangedDfmValidation;
     [Test]
     procedure IntegrationWrongEventSignatureProducesDfmFailure;
   end;
@@ -70,6 +84,7 @@ begin
   fConfig := aConfig;
   fPlatform := aPlatform;
   fRunCount := 0;
+  fValidatorArguments := '';
 end;
 
 function TMockDfmCheckRunner.ReadFirstArg(const aArguments: string): string;
@@ -93,9 +108,89 @@ begin
     Result := lArgs;
 end;
 
+function TMockDfmCheckRunner.TrimMatchingQuotes(const aValue: string): string;
+var
+  lValue: string;
+begin
+  lValue := Trim(aValue);
+  if Length(lValue) >= 2 then
+  begin
+    if ((lValue[1] = '"') and (lValue[Length(lValue)] = '"')) or
+      ((lValue[1] = '''') and (lValue[Length(lValue)] = '''')) then
+      lValue := Copy(lValue, 2, Length(lValue) - 2);
+  end;
+  Result := Trim(lValue);
+end;
+
+function TMockDfmCheckRunner.TryReadMsBuildArgsFromBuildCmd(const aBuildCmdPath: string; out aMsBuildArgs: string;
+  out aBuildLogPath: string): Boolean;
+var
+  lCmdLine: string;
+  lCommandPart: string;
+  lLines: TStringList;
+  lLogPart: string;
+  lRedirectPos: Integer;
+  lTailPos: Integer;
+  lText: string;
+begin
+  aMsBuildArgs := '';
+  aBuildLogPath := '';
+  if not FileExists(aBuildCmdPath) then
+    Exit(False);
+
+  lLines := TStringList.Create;
+  try
+    lLines.LoadFromFile(aBuildCmdPath, TEncoding.Default);
+    for lText in lLines do
+    begin
+      lCmdLine := Trim(lText);
+      if lCmdLine = '' then
+        Continue;
+      if StartsText('@echo off', LowerCase(lCmdLine)) then
+        Continue;
+      if StartsText('exit /b', LowerCase(lCmdLine)) then
+        Continue;
+      if Pos('msbuild', LowerCase(lCmdLine)) > 0 then
+        Break;
+      lCmdLine := '';
+    end;
+  finally
+    lLines.Free;
+  end;
+  if lCmdLine = '' then
+    Exit(False);
+
+  lRedirectPos := Pos(' > ', lCmdLine);
+  if lRedirectPos <= 0 then
+    Exit(False);
+  lCommandPart := Trim(Copy(lCmdLine, 1, lRedirectPos - 1));
+  lLogPart := Trim(Copy(lCmdLine, lRedirectPos + 3, MaxInt));
+  lTailPos := Pos(' 2>&1', lLogPart);
+  if lTailPos > 0 then
+    lLogPart := Trim(Copy(lLogPart, 1, lTailPos - 1));
+  aBuildLogPath := TrimMatchingQuotes(lLogPart);
+
+  if (lCommandPart <> '') and (lCommandPart[1] = '"') then
+  begin
+    lTailPos := PosEx('"', lCommandPart, 2);
+    if lTailPos <= 0 then
+      Exit(False);
+    aMsBuildArgs := Trim(Copy(lCommandPart, lTailPos + 1, MaxInt));
+  end else
+  begin
+    lTailPos := Pos(' ', lCommandPart);
+    if lTailPos <= 0 then
+      Exit(False);
+    aMsBuildArgs := Trim(Copy(lCommandPart, lTailPos + 1, MaxInt));
+  end;
+  Result := aMsBuildArgs <> '';
+end;
+
 function TMockDfmCheckRunner.Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
   const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
 var
+  lBuildArgs: string;
+  lBuildLogPath: string;
   lDprojPath: string;
   lValidatorExePath: string;
   lValidatorDir: string;
@@ -107,25 +202,39 @@ begin
 
   if fRunCount = 1 then
   begin
-    if fMode = TMockValidatorMode.vmBuildFailGeneratedUnit then
+    lBuildArgs := aArguments;
+    lBuildLogPath := '';
+    if SameText(TPath.GetExtension(aExePath), '.cmd') then
     begin
-      if Assigned(aOutput) then
+      if not TryReadMsBuildArgsFromBuildCmd(aExePath, lBuildArgs, lBuildLogPath) then
       begin
-        aOutput('Sample_DfmCheck_Register.pas(42): error E2003: Undeclared identifier: ''TMainForm''');
-        aOutput('Sample_DfmCheck.dpr(88): error F2063: Could not compile used unit ''Sample_DfmCheck_Register.pas''');
+        aError := 'Mock expected build cmd file to contain msbuild invocation.';
+        Exit(False);
       end;
-      aExitCode := 1;
-      Exit(True);
     end;
 
-    fMsBuildArguments := aArguments;
-    lDprojPath := ReadFirstArg(aArguments);
+    fMsBuildArguments := lBuildArgs;
+    lDprojPath := ReadFirstArg(lBuildArgs);
     if lDprojPath = '' then
     begin
       aError := 'Mock expected generated dproj as first msbuild argument.';
       Exit(False);
     end;
     fGeneratedDproj := lDprojPath;
+
+    if fMode = TMockValidatorMode.vmBuildFailGeneratedUnit then
+    begin
+      if lBuildLogPath <> '' then
+        TFile.WriteAllText(lBuildLogPath,
+          'Sample_DfmCheck_Register.pas(42): error E2003: Undeclared identifier: ''TMainForm''' + #13#10 +
+          'Sample_DfmCheck.dpr(88): error F2063: Could not compile used unit ''Sample_DfmCheck_Register.pas''' +
+          #13#10, TEncoding.UTF8);
+      aExitCode := 1;
+      Exit(True);
+    end;
+
+    if lBuildLogPath <> '' then
+      TFile.WriteAllText(lBuildLogPath, '', TEncoding.UTF8);
     if fMode = TMockValidatorMode.vmHappyParentBin then
       lValidatorDir := TPath.Combine(TPath.Combine(TPath.Combine(ExtractFileDir(aWorkingDir), 'Bin'), fPlatform), fConfig)
     else
@@ -138,6 +247,7 @@ begin
 
   if fRunCount = 2 then
   begin
+    fValidatorArguments := aArguments;
     if Assigned(aOutput) then
     begin
       if fMode = TMockValidatorMode.vmBroken then
@@ -193,8 +303,17 @@ begin
     '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
     '  <PropertyGroup>' + #13#10 +
     '    <MainSource>Sample.dpr</MainSource>' + #13#10 +
+    '    <DCC_Define>madExcept;TRACE</DCC_Define>' + #13#10 +
     '  </PropertyGroup>' + #13#10 +
     '</Project>' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(TPath.Combine(lRoot, 'dak.ini'),
+    '[Build]' + #13#10 +
+    'DelphiVersion=23.0' + #13#10, TEncoding.ASCII);
+
+  TFile.WriteAllText(TPath.Combine(lRoot, 'rsvars.bat'),
+    '@echo off' + #13#10 +
+    'set DAK_TEST_RSVARS=1' + #13#10, TEncoding.ASCII);
 
   TFile.WriteAllText(lDprPath,
     'program Sample;' + #13#10 +
@@ -295,6 +414,68 @@ begin
   Assert.AreEqual(lPatchedText, lPatchedTwiceText);
 end;
 
+procedure TDfmCheckTests.PatchDprRewritesProgramNameAndRemovesMadExceptConditional;
+var
+  lChanged: Boolean;
+  lError: string;
+  lInputText: string;
+  lPatchedText: string;
+begin
+  lInputText :=
+    'program Sample;' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  Vcl.Forms,' + #13#10 +
+    '  {$IFDEF madExcept}' + #13#10 +
+    '  madExcept,' + #13#10 +
+    '  madLinkDisAsm,' + #13#10 +
+    '  madListHardware,' + #13#10 +
+    '  {$ENDIF madExcept}' + #13#10 +
+    '  MainForm in ''MainForm.pas'' {MainForm};' + #13#10 +
+    #13#10 +
+    'begin' + #13#10 +
+    'end.' + #13#10;
+
+  Assert.IsTrue(TryPatchDfmCheckDpr(lInputText, lPatchedText, lChanged, lError,
+    'Sample_DfmCheck_Register', 'Sample_DfmCheck'), 'Patch failed: ' + lError);
+  Assert.IsTrue(lChanged, 'Expected program declaration and madExcept block rewrite.');
+  Assert.IsTrue(ContainsText(lPatchedText, 'program Sample_DfmCheck;'),
+    'Expected program declaration to use generated suffix name.');
+  Assert.IsFalse(ContainsText(lPatchedText, '{$IFDEF madExcept}'),
+    'Expected madExcept compiler conditional to be removed from generated DPR.');
+  Assert.IsFalse(ContainsText(lPatchedText, 'madExcept,'),
+    'Expected madExcept unit references to be removed from generated DPR.');
+  Assert.IsTrue(ContainsText(lPatchedText, 'MainForm in ''MainForm.pas'' {MainForm};'),
+    'Expected regular form unit entries to remain in uses clause.');
+end;
+
+procedure TDfmCheckTests.PatchDprRewritesProgramNameWithUtf8Bom;
+var
+  lBom: string;
+  lChanged: Boolean;
+  lError: string;
+  lInputText: string;
+  lPatchedText: string;
+begin
+  lBom := #$FEFF;
+  lInputText := lBom +
+    'Program Sample;' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  Vcl.Forms;' + #13#10 +
+    #13#10 +
+    'begin' + #13#10 +
+    'end.' + #13#10;
+
+  Assert.IsTrue(TryPatchDfmCheckDpr(lInputText, lPatchedText, lChanged, lError,
+    'Sample_DfmCheck_Register', 'Sample_DfmCheck'), 'Patch failed: ' + lError);
+  Assert.IsTrue(lChanged, 'Expected program declaration rewrite for BOM-prefixed DPR.');
+  Assert.IsTrue(ContainsText(lPatchedText, 'Program Sample_DfmCheck;'),
+    'Expected BOM-prefixed DPR program declaration to be rewritten correctly.');
+  Assert.IsFalse(ContainsText(lPatchedText, 'PProgram'),
+    'Expected no duplicated leading character in rewritten program declaration.');
+end;
+
 procedure TDfmCheckTests.MapExitCodePropagatesToolAndCategoryCodes;
 begin
   Assert.AreEqual(3, MapDfmCheckExitCode(TDfmCheckErrorCategory.ecInvalidInput, 0));
@@ -383,6 +564,10 @@ begin
     lOptions.fDprojPath := lDprojPath;
     lOptions.fConfig := 'Release';
     lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
 
     lResult := RunDfmCheckPipeline(lOptions, lRunner,
       procedure(const aLine: string)
@@ -425,8 +610,14 @@ begin
         'Expected validator short-circuit to run before application startup path.');
 
     lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
-    Assert.IsTrue(Pos('<DCC_Define>DFMCheck</DCC_Define>', lGeneratedDprojText) > 0,
+    Assert.IsTrue(Pos('DFMCheck', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should define DFMCheck symbol.');
+    Assert.IsTrue(Pos('NO_LOCALIZATION', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should define NO_LOCALIZATION symbol.');
+    Assert.IsFalse(Pos('madExcept', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should remove madExcept symbol from defines.');
+    Assert.IsTrue(Pos('TRACE', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should preserve unrelated compiler define symbols.');
 
     lGeneratedUnitText := TFile.ReadAllText(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas'));
     Assert.IsTrue(Pos('unit Sample_DfmCheck_Register;', lGeneratedUnitText) > 0,
@@ -479,6 +670,10 @@ begin
     lOptions.fDprojPath := lDprojPath;
     lOptions.fConfig := 'Release';
     lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
 
     lResult := RunDfmCheckPipeline(lOptions, lRunner,
       procedure(const aLine: string)
@@ -542,6 +737,10 @@ begin
     lOptions.fDprojPath := lDprojPath;
     lOptions.fConfig := 'Release';
     lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
 
     lResult := RunDfmCheckPipeline(lOptions, lRunner,
       procedure(const aLine: string)
@@ -600,6 +799,10 @@ begin
     lOptions.fDprojPath := lDprojPath;
     lOptions.fConfig := 'Release';
     lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
 
     lResult := RunDfmCheckPipeline(lOptions, lRunner,
       procedure(const aLine: string)
@@ -619,6 +822,68 @@ begin
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelinePassesSelectedDfmFilterToValidator;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-filter');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm, Frames\DetailSubEditDocs.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected filtered validator run to complete successfully in mock mode.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, 'Unexpected error category for filtered validator run.');
+    Assert.IsTrue(Pos('--dfm=', lRunnerImpl.ValidatorArguments) > 0,
+      'Expected validator invocation to include a --dfm filter argument.');
+    Assert.IsTrue(Pos('DETAILSUBEDITDOCS', UpperCase(lRunnerImpl.ValidatorArguments)) > 0,
+      'Expected normalized DETAILSUBEDITDOCS resource name in validator filter argument.');
+    Assert.IsTrue(Pos('MAINFORM', UpperCase(lRunnerImpl.ValidatorArguments)) > 0,
+      'Expected normalized MAINFORM resource name in validator filter argument.');
+    Assert.IsFalse(Pos('--all', LowerCase(lRunnerImpl.ValidatorArguments)) > 0,
+      'Did not expect --all when an explicit --dfm filter list is provided.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
     lOutputLines.Free;
   end;
 end;
@@ -657,6 +922,10 @@ begin
     lOptions.fDprojPath := lDprojPath;
     lOptions.fConfig := 'Release';
     lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
 
     lResult := RunDfmCheckPipeline(lOptions, lRunner,
       procedure(const aLine: string)
@@ -714,6 +983,9 @@ begin
     lOptions.fDprojPath := lDprojPath;
     lOptions.fConfig := 'Release';
     lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
 
     lResult := RunDfmCheckPipeline(lOptions, lRunner,
       procedure(const aLine: string)
@@ -730,6 +1002,87 @@ begin
     Assert.IsFalse(FileExists(lPaths.fGeneratedDproj), 'Expected generated DPROJ to be cleaned up by default.');
     Assert.IsFalse(FileExists(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas')),
       'Expected generated register unit to be cleaned up by default.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineAllModeCacheSkipsUnchangedDfmValidation;
+var
+  lCachePath: string;
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lOutputText: string;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunner: IDfmCheckProcessRunner;
+  lRunnerFirst: TMockDfmCheckRunner;
+  lRunnerSecond: TMockDfmCheckRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-cache');
+  WriteInjectStubs(lInjectDir);
+  lCachePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.dfmcheck.cache');
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+    lOptions.fDfmCheckAll := True;
+    lOptions.fVerbose := True;
+
+    lRunnerFirst := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerFirst;
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected first all-mode run to pass and populate cache.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, 'Unexpected category for first all-mode cache run.');
+    Assert.AreEqual('', lError, 'Unexpected error for first all-mode cache run.');
+    Assert.IsTrue(FileExists(lCachePath), 'Expected all-mode run to create DFM cache file. Output: ' +
+      JoinOutput(lOutputLines));
+    Assert.IsTrue(lRunnerFirst.RunCount > 0, 'Expected first run to execute build/validator via runner.');
+
+    lOutputLines.Clear;
+    lRunnerSecond := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBuildFailGeneratedUnit, 'Release', 'Win32');
+    lRunner := lRunnerSecond;
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected second all-mode run to skip unchanged DFM validation via cache.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, 'Unexpected category for cached all-mode skip.');
+    Assert.AreEqual('', lError, 'Did not expect orchestration error for cached all-mode skip.');
+    Assert.AreEqual(0, lRunnerSecond.RunCount, 'Expected cached all-mode skip to avoid invoking process runner.');
+    lOutputText := JoinOutput(lOutputLines);
+    Assert.IsTrue(Pos('[dfm-check] Cache: total=1 unchanged=1 validating=0', lOutputText) > 0,
+      'Expected cache summary line for unchanged all-mode run.');
+    Assert.IsTrue(Pos('[dfm-check] Result: OK', lOutputText) > 0,
+      'Expected OK result for cached unchanged all-mode run.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
