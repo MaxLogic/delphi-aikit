@@ -95,3 +95,6 @@ zip-project.bat
 # Python caches (skill wrappers)
 __pycache__/
 docs/delphi-dfm-checker/
+.roundtable
+/tests/fixtures/KFZMeister_DfmCheck.$manifest
+/tests/fixtures/KFZMeister_DfmCheck.vrc
