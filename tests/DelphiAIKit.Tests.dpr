@@ -1,4 +1,4 @@
-program DelphiAIKit_Tests;
+﻿program DelphiAIKit_Tests;
 
 {$APPTYPE CONSOLE}
 {$STRONGLINKTYPES ON}
