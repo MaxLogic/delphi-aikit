@@ -8,7 +8,7 @@ resourcestring
     'Commands:' + #13#10 +
     '  resolve   Resolve FixInsight params (ini/xml/bat)' + #13#10 +
     '  analyze   Run FixInsight / Pascal Analyzer' + #13#10 +
-    '  build     Build a Delphi project (.dproj; or .dpr/.dpk with sibling .dproj) via build-delphi.bat' + #13#10 +
+    '  build     Build a Delphi project (.dproj; or .dpr/.dpk with sibling .dproj)' + #13#10 +
     '  dfm-check Validate DFM streaming via generated _DfmCheck harness project' + #13#10 +
     '  global-vars List project global variables and their routine usages' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';

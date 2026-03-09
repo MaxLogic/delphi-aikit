@@ -18,7 +18,8 @@ uses
   DfmCheck_Utils in '..\lib\DFMCheck\Source\DfmCheck_Utils.pas',
   ProjectFileReader in '..\lib\DFMCheck\Source\Console\ProjectFileReader.pas',
   ToolsAPIRepl in '..\lib\DFMCheck\Source\Console\ToolsAPIRepl.pas',
-  Dak.Analyze in '..\src\dak.analyze.pas', Dak.Cli in '..\src\dak.cli.pas',
+  Dak.Analyze in '..\src\dak.analyze.pas', Dak.Build in '..\src\dak.build.pas',
+  Dak.Cli in '..\src\dak.cli.pas',
   Dak.DfmCheck in '..\src\dak.dfmcheck.pas',
   Dak.Diagnostics in '..\src\dak.diagnostics.pas',
   Dak.FixInsight in '..\src\dak.fixinsight.pas',
@@ -151,119 +152,6 @@ begin
   Result := False;
 end;
 
-function QuoteCmdArg(const aValue: string): string;
-begin
-  if (aValue = '') or (Pos(' ', aValue) > 0) or (Pos('"', aValue) > 0) or (Pos(';', aValue) > 0) then
-    Result := '"' + StringReplace(aValue, '"', '""', [rfReplaceAll]) + '"'
-  else
-    Result := aValue;
-end;
-
-function NormalizeDelphiVerForBuild(const aValue: string): string;
-var
-  lDot: Integer;
-begin
-  Result := Trim(aValue);
-  lDot := Pos('.', Result);
-  if lDot > 0 then
-    Result := Copy(Result, 1, lDot - 1);
-end;
-
-function TryRunBuildDelphi(const aOptions: TAppOptions; out aExitCode: Integer; out aError: string): Boolean;
-var
-  lBatPath: string;
-  lRoot: string;
-  lProjectPath: string;
-  lCmdExe: string;
-  lCmdLine: string;
-  lWorkDir: string;
-  lSi: TStartupInfo;
-  lPi: TProcessInformation;
-  lWait: Cardinal;
-  lExit: Cardinal;
-  lDelphiVer: string;
-begin
-  Result := False;
-  aExitCode := 0;
-  aError := '';
-
-  lRoot := TPath.GetFullPath(TPath.Combine(ExcludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0))), '..'));
-  lBatPath := TPath.Combine(lRoot, 'build-delphi.bat');
-  if not FileExists(lBatPath) then
-  begin
-    aError := Format(SBuildBatMissing, [lBatPath]);
-    Exit(False);
-  end;
-
-  if not TryResolveDprojPath(aOptions.fDprojPath, lProjectPath, aError) then
-    Exit(False);
-  lProjectPath := TPath.GetFullPath(lProjectPath);
-  lDelphiVer := NormalizeDelphiVerForBuild(aOptions.fDelphiVersion);
-  if lDelphiVer = '' then
-    lDelphiVer := aOptions.fDelphiVersion;
-
-  lCmdExe := System.SysUtils.GetEnvironmentVariable('ComSpec');
-  if lCmdExe = '' then
-    lCmdExe := 'C:\Windows\System32\cmd.exe';
-
-  lCmdLine := QuoteCmdArg(lCmdExe) + ' /C "call ' + QuoteCmdArg(lBatPath) + ' ' +
-    QuoteCmdArg(lProjectPath) + ' -config ' + aOptions.fConfig + ' -platform ' + aOptions.fPlatform +
-    ' -ver ' + lDelphiVer;
-  if aOptions.fBuildTarget <> '' then
-    lCmdLine := lCmdLine + ' -target ' + aOptions.fBuildTarget;
-  if aOptions.fBuildJson then
-    lCmdLine := lCmdLine + ' -json';
-  if aOptions.fBuildMaxFindings > 0 then
-    lCmdLine := lCmdLine + ' -max-findings ' + IntToStr(aOptions.fBuildMaxFindings);
-  if aOptions.fBuildTimeoutSec > 0 then
-    lCmdLine := lCmdLine + ' -build-timeout-sec ' + IntToStr(aOptions.fBuildTimeoutSec);
-  if aOptions.fHasBuildTestOutputDir then
-    lCmdLine := lCmdLine + ' -test-output-dir ' + QuoteCmdArg(aOptions.fBuildTestOutputDir);
-  if aOptions.fBuildShowWarnings then
-    lCmdLine := lCmdLine + ' -show-warnings';
-  if aOptions.fBuildShowHints then
-    lCmdLine := lCmdLine + ' -show-hints';
-  if aOptions.fBuildAi then
-    lCmdLine := lCmdLine + ' -ai';
-  if aOptions.fHasBuildIgnoreWarnings then
-    lCmdLine := lCmdLine + ' -ignore-warnings ' + QuoteCmdArg(aOptions.fBuildIgnoreWarnings);
-  if aOptions.fHasBuildIgnoreHints then
-    lCmdLine := lCmdLine + ' -ignore-hints ' + QuoteCmdArg(aOptions.fBuildIgnoreHints);
-  if aOptions.fHasExcludePathMasks then
-    lCmdLine := lCmdLine + ' -exclude-path-masks ' + QuoteCmdArg(aOptions.fExcludePathMasks);
-  lCmdLine := lCmdLine + '"';
-  UniqueString(lCmdLine);
-  lWorkDir := ExtractFilePath(lBatPath);
-
-  FillChar(lSi, SizeOf(lSi), 0);
-  lSi.cb := SizeOf(lSi);
-  FillChar(lPi, SizeOf(lPi), 0);
-
-  if not CreateProcess(PChar(lCmdExe), PChar(lCmdLine), nil, nil, True, 0, nil, PChar(lWorkDir), lSi, lPi) then
-  begin
-    aError := SysErrorMessage(GetLastError);
-    Exit(False);
-  end;
-  try
-    lWait := WaitForSingleObject(lPi.hProcess, INFINITE);
-    if lWait <> WAIT_OBJECT_0 then
-    begin
-      aError := SysErrorMessage(GetLastError);
-      Exit(False);
-    end;
-    if not GetExitCodeProcess(lPi.hProcess, lExit) then
-    begin
-      aError := SysErrorMessage(GetLastError);
-      Exit(False);
-    end;
-    aExitCode := Integer(lExit);
-    Result := True;
-  finally
-    CloseHandle(lPi.hThread);
-    CloseHandle(lPi.hProcess);
-  end;
-end;
-
 var
   lOptions: TAppOptions;
   lParams: TFixInsightParams;
@@ -330,7 +218,7 @@ begin
       begin
         if lOptions.fCommand = TCommandKind.ckBuild then
         begin
-          if not TryRunBuildDelphi(lOptions, lBuildExitCode, lError) then
+          if not TryRunBuild(lOptions, lBuildExitCode, lError) then
           begin
             writeln(ErrOutput, lError);
             lExitCode := 6;

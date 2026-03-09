@@ -54,6 +54,8 @@ Or via the CLI:
 bin\DelphiAIKit.exe build --project "projects\DelphiAIKit.dproj" --delphi 23.0 --platform Win32 --config Debug
 ```
 
+`build` now runs through DelphiAIKit's native Delphi build pipeline. `build-delphi.bat` remains available as a compatibility/bootstrap wrapper, but `DelphiAIKit.exe build` no longer depends on batch/PowerShell helper scripts for normal operation.
+
 `build` defaults to incremental `Build`; use `--target Rebuild` (or `--rebuild true`) for a full rebuild.
 Additional build flags:
 - `--json` emits machine-readable build results.

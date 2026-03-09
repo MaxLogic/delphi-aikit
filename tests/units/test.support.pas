@@ -184,14 +184,32 @@ var
   lCmdArgs: string;
   lLogText: string;
   lLog: string;
+  lResolverExe: string;
   lTestOutputDir: string;
 begin
   if GResolverBuilt then
     Exit;
 
+  lResolverExe := Trim(GetEnvironmentVariable('DAK_TEST_RESOLVER_EXE'));
+  if lResolverExe <> '' then
+  begin
+    if not FileExists(lResolverExe) then
+      Assert.Fail('Resolver exe from DAK_TEST_RESOLVER_EXE not found: ' + lResolverExe);
+    GResolverExe := TPath.GetFullPath(lResolverExe);
+    GResolverBuilt := True;
+    Exit;
+  end;
+
+  lBinExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+  if FileExists(lBinExe) then
+  begin
+    GResolverExe := lBinExe;
+    GResolverBuilt := True;
+    Exit;
+  end;
+
   EnsureTempClean;
   lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
-  lBinExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
   lTestOutputDir := Trim(GetEnvironmentVariable('DAK_TEST_OUTPUT_DIR'));
   if lTestOutputDir = '' then
   begin
@@ -229,6 +247,8 @@ end;
 
 function ResolverExePath: string;
 begin
+  if GResolverExe = '' then
+    GResolverExe := Trim(GetEnvironmentVariable('DAK_TEST_RESOLVER_EXE'));
   if GResolverExe = '' then
     GResolverExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
   Result := GResolverExe;
