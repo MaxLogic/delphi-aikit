@@ -176,6 +176,7 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="..\src\dak.analyze.pas"/>
+        <DCCReference Include="..\src\dak.build.pas"/>
         <DCCReference Include="..\src\dak.cli.pas"/>
         <DCCReference Include="..\src\dak.diagnostics.pas"/>
         <DCCReference Include="..\src\dak.fixinsight.pas"/>

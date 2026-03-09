@@ -1,4 +1,4 @@
-unit Dak.RsVars;
+﻿unit Dak.RsVars;
 
 interface
 
@@ -28,12 +28,18 @@ begin
     lPath := TPath.Combine(lBase, 'Embarcadero\Studio\' + aDelphiVersion + '\bin\rsvars.bat');
     if FileExists(lPath) then
       Exit(lPath);
+    lPath := TPath.Combine(lBase, 'Embarcadero\RAD Studio\' + aDelphiVersion + '\bin\rsvars.bat');
+    if FileExists(lPath) then
+      Exit(lPath);
   end;
 
   lBase := System.SysUtils.GetEnvironmentVariable('ProgramFiles');
   if lBase <> '' then
   begin
     lPath := TPath.Combine(lBase, 'Embarcadero\Studio\' + aDelphiVersion + '\bin\rsvars.bat');
+    if FileExists(lPath) then
+      Exit(lPath);
+    lPath := TPath.Combine(lBase, 'Embarcadero\RAD Studio\' + aDelphiVersion + '\bin\rsvars.bat');
     if FileExists(lPath) then
       Exit(lPath);
   end;
