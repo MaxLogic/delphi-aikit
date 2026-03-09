@@ -1,11 +1,11 @@
-unit Dak.Types;
+﻿unit Dak.Types;
 
 interface
 
 {$SCOPEDENUMS ON}
 
 type
-  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck);
+  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckGlobalVars);
 
   TOutputKind = (okIni, okXml, okBat);
 
@@ -13,6 +13,9 @@ type
 
   TReportFormat = (rfText, rfXml, rfCsv);
   TReportFormatSet = set of TReportFormat;
+
+  TGlobalVarsFormat = (gvfText, gvfJson);
+  TGlobalVarsRefresh = (gvrAuto, gvrForce);
 
   TAppOptions = record
     fCommand: TCommandKind;
@@ -80,6 +83,19 @@ type
     fAnalyzePal: Boolean;
     fAnalyzeClean: Boolean;
     fAnalyzeWriteSummary: Boolean;
+    fGlobalVarsFormat: TGlobalVarsFormat;
+    fGlobalVarsOutputPath: string;
+    fHasGlobalVarsOutputPath: Boolean;
+    fGlobalVarsCachePath: string;
+    fHasGlobalVarsCachePath: Boolean;
+    fGlobalVarsRefresh: TGlobalVarsRefresh;
+    fGlobalVarsUnusedOnly: Boolean;
+    fGlobalVarsUnitFilter: string;
+    fHasGlobalVarsUnitFilter: Boolean;
+    fGlobalVarsNameFilter: string;
+    fHasGlobalVarsNameFilter: Boolean;
+    fGlobalVarsReadsOnly: Boolean;
+    fGlobalVarsWritesOnly: Boolean;
     fUnitPath: string;
   end;
 

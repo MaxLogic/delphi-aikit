@@ -39,6 +39,8 @@ Commands:
 - `resolve` — generate resolved FixInsight params output (ini/xml/bat)
 - `analyze` — run FixInsightCL and/or Pascal Analyzer with stable report output
 - `build` — build a `.dproj` via `build-delphi.bat`
+- `dfm-check` — validate DFM streaming via generated harness project
+- `global-vars` — report project globals, usages, and ambiguities
 
 ### 2.2 Global options (shared)
 
@@ -67,6 +69,11 @@ Commands:
   When used with `--log-file`, also write diagnostics to stderr/stdout.
 
 - `--verbose [true|false]` (optional)
+
+Notes:
+
+- `--delphi` is required for `resolve`, `analyze`, and `build`.
+- `--delphi` is optional for `dfm-check` and `global-vars`; when omitted, load `[Build] DelphiVersion` from cascading `dak.ini`.
 
 ### 2.3 `resolve` — generate params
 
@@ -121,7 +128,34 @@ DelphiAIKit.exe build --project "<path>\MyProject.dproj" --delphi 23.0 ^
 
 Implementation uses `build-delphi.bat` and propagates its exit code.
 
-### 2.6 Exit codes
+### 2.6 `dfm-check` — validate DFM streaming
+
+```
+DelphiAIKit.exe dfm-check --dproj "<path>\MyProject.dproj" ^
+  [--delphi 23.0] [--platform Win32] [--config Release] ^
+  [--dfm "<file1.dfm,file2.dfm>"] [--all] [--rsvars "<path>"] [--verbose [true|false]]
+```
+
+### 2.7 `global-vars` — analyze globals
+
+```
+DelphiAIKit.exe global-vars --project "<path>\MyProject.dproj" ^
+  [--delphi 23.0] [--platform Win32] [--config Release] ^
+  [--format text|json] [--output "<path>|-"] ^
+  [--cache "<path>"] [--refresh auto|force] ^
+  [--unused-only] [--unit "<pattern>"] [--name "<pattern>"] ^
+  [--reads-only] [--writes-only] [--verbose [true|false]]
+```
+
+Notes:
+
+- `--unused-only` cannot be combined with `--reads-only` or `--writes-only`.
+- `--reads-only` and `--writes-only` are mutually exclusive.
+- `--unit` and `--name` use wildcard matching (`*`, `?`). If no wildcard is present, treat the value as `*text*`.
+- `--cache` overrides the default sibling cache path under `.dak/<ProjectName>/global-vars/cache/`.
+- `--refresh force` bypasses cache reuse and rebuilds the analysis database.
+
+### 2.8 Exit codes
 
 - `0` success
 - `2` invalid CLI arguments
@@ -131,7 +165,7 @@ Implementation uses `build-delphi.bat` and propagates its exit code.
 - `6` unresolved required values (e.g., no MainSource / no paths)
 - `7` external tool not found (e.g., FixInsightCL / PALCMD when required)
 
-### 2.7 `dak.ini` defaults (cascading)
+### 2.9 `dak.ini` defaults (cascading)
 
 Defaults come from `dak.ini` files loaded in **cascading** order (lowest → highest precedence):
 
@@ -180,6 +214,10 @@ Path=
 Output=
 ; extra args passed verbatim to palcmd.exe (optional)
 Args=
+
+[Build]
+; optional default Delphi version used when --delphi is omitted by dfm-check/global-vars
+DelphiVersion=
 ```
 
 Notes:
@@ -213,6 +251,77 @@ Notes:
 - `SettingsFile` (optional; user may add later)
 
 ### 3.2 Output kinds
+
+### 3.3 `global-vars` output model
+
+`global-vars` reports unit-level declarations with these declaration kinds:
+
+- `var`
+- `threadvar`
+- `typedconst`
+- `classvar`
+
+JSON output shape:
+
+```json
+{
+  "summary": {
+    "total": 483,
+    "used": 447,
+    "unused": 36,
+    "ambiguities": 494,
+    "emitted": 4,
+    "filter": "writes-only;unit=*BTREES*"
+  },
+  "symbols": [
+    {
+      "declaringUnit": "BTREES",
+      "fileName": "F:\\path\\BTREES.pas",
+      "name": "HeapError",
+      "type": "Boolean",
+      "kind": "var",
+      "line": 17,
+      "column": 3,
+      "usedBy": [
+        {
+          "unit": "BTREES",
+          "routine": "InitHeap",
+          "file": "F:\\path\\BTREES.pas",
+          "line": 88,
+          "column": 9,
+          "access": "write"
+        }
+      ]
+    }
+  ],
+  "ambiguities": [
+    {
+      "name": "SomeGlobal",
+      "unit": "ConsumerUnit",
+      "routine": "RunWork",
+      "file": "F:\\path\\ConsumerUnit.pas",
+      "line": 42,
+      "column": 7,
+      "access": "read",
+      "candidates": "UnitA.SomeGlobal; UnitB.SomeGlobal"
+    }
+  ]
+}
+```
+
+Text output starts with:
+
+```text
+Summary: total=483 used=447 unused=36 ambiguities=494 emitted=4 filter=writes-only;unit=*BTREES*
+```
+
+Cache location:
+
+- sibling `.dak/<ProjectName>/global-vars/cache/global-vars-cache.sqlite3`
+
+Generated report location:
+
+- sibling `.dak/<ProjectName>/global-vars/reports/`
 
 #### A) `bat` (FixInsight runner)
 

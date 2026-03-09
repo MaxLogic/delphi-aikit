@@ -1,4 +1,4 @@
-program DelphiAIKit;
+﻿program DelphiAIKit;
 
 {$APPTYPE CONSOLE}
 
@@ -23,6 +23,7 @@ uses
   Dak.Diagnostics in '..\src\dak.diagnostics.pas',
   Dak.FixInsight in '..\src\dak.fixinsight.pas',
   Dak.FixInsightRunner in '..\src\dak.fixinsightrunner.pas',
+  Dak.GlobalVars in '..\src\dak.globalvars.pas',
   Dak.FixInsightSettings in '..\src\dak.fixinsightsettings.pas',
   Dak.Messages in '..\src\dak.messages.pas', Dak.MacroExpander in '..\src\dak.macroexpander.pas',
   Dak.MsBuild in '..\src\dak.msbuild.pas', Dak.Output in '..\src\dak.output.pas',
@@ -346,6 +347,10 @@ begin
         end else if lOptions.fCommand = TCommandKind.ckDfmCheck then
         begin
           lExitCode := RunDfmCheckCommand(lOptions);
+          lOk := False;
+        end else if lOptions.fCommand = TCommandKind.ckGlobalVars then
+        begin
+          lExitCode := RunGlobalVarsCommand(lOptions);
           lOk := False;
         end else if lOptions.fCommand <> TCommandKind.ckResolve then
         begin

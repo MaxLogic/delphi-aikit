@@ -6,3 +6,7 @@
 	path = lib/DFMCheck
 	url = https://github.com/MaxLogic/DFMCheck.git
 	branch = main
+[submodule "lib/DelphiAST"]
+	path = lib/DelphiAST
+	url = https://github.com/RomanYankovsky/DelphiAST.git
+	branch = master

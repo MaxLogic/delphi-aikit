@@ -20,6 +20,7 @@ set "DEFAULT_MAX_FINDINGS=5"
 set "DEFAULT_BUILD_TIMEOUT_SEC=0"
 
 set "ROOT="
+for %%i in ("%~dp0.") do set "TOOL_ROOT=%%~fi"
 set "EXITCODE=0"
 
 set "PROJECT="
@@ -191,8 +192,8 @@ set "INI_BUILD_IGNORE_WARNINGS="
 set "INI_BUILD_IGNORE_HINTS="
 set "INI_BUILD_EXCLUDE_PATH_MASKS="
 set "INI_MADEXCEPT_PATH="
-for /f "usebackq delims=" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$paths=New-Object 'System.Collections.Generic.List[string]'; $toolIni=[IO.Path]::Combine('%~dp0','bin','dak.ini'); if(Test-Path -LiteralPath $toolIni){ $paths.Add([IO.Path]::GetFullPath($toolIni)) }; $proj=[IO.Path]::GetFullPath('%PROJECT%'); $projDir=[IO.Path]::GetDirectoryName($proj); $root=[IO.Path]::GetFullPath('%ROOT%'); $chain=New-Object 'System.Collections.Generic.List[string]'; $cur=$projDir; while($cur){ $chain.Add($cur); if($cur.TrimEnd('\') -ieq $root.TrimEnd('\')){ break }; $parent=[IO.Directory]::GetParent($cur); if($parent -eq $null){ break }; $cur=$parent.FullName }; $chain.Reverse(); foreach($d in $chain){ $ini=[IO.Path]::Combine($d,'dak.ini'); if(Test-Path -LiteralPath $ini){ $paths.Add([IO.Path]::GetFullPath($ini)) } }; $warn=New-Object 'System.Collections.Generic.List[string]'; $hint=New-Object 'System.Collections.Generic.List[string]'; $mask=New-Object 'System.Collections.Generic.List[string]'; $warnSet=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); $hintSet=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); $maskSet=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($ini in $paths){ $section=''; foreach($line in Get-Content -LiteralPath $ini -ErrorAction SilentlyContinue){ $t=$line.Trim(); if(-not $t -or $t.StartsWith(';')){ continue }; if($t -match '^\\[(.+)\\]$'){ $section=$Matches[1]; continue }; if($section -eq 'BuildIgnore'){ $m=[regex]::Match($t,'^(Warnings|Hints|ExcludePathMasks)\\s*=\\s*(.*)$'); if(-not $m.Success){ continue }; $key=$m.Groups[1].Value; $val=$m.Groups[2].Value; foreach($part in $val.Split(';')){ $x=$part.Trim(); if(-not $x){ continue }; if($key -eq 'Warnings'){ if($warnSet.Add($x)){ $warn.Add($x) } } elseif($key -eq 'Hints'){ if($hintSet.Add($x)){ $hint.Add($x) } } else { if($maskSet.Add($x)){ $mask.Add($x) } } } ; continue }; if($section -eq 'ReportFilter'){ $m=[regex]::Match($t,'^ExcludePathMasks\\s*=\\s*(.*)$'); if(-not $m.Success){ continue }; $val=$m.Groups[1].Value; foreach($part in $val.Split(';')){ $x=$part.Trim(); if(-not $x){ continue }; if($maskSet.Add($x)){ $mask.Add($x) } } ; continue } } }; 'INI_BUILD_IGNORE_WARNINGS=' + ($warn -join ';'); 'INI_BUILD_IGNORE_HINTS=' + ($hint -join ';'); 'INI_BUILD_EXCLUDE_PATH_MASKS=' + ($mask -join ';')"`) do set "%%a"
-for /f "usebackq delims=" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$paths=New-Object 'System.Collections.Generic.List[string]'; $toolIni=[IO.Path]::Combine('%~dp0','bin','dak.ini'); if(Test-Path -LiteralPath $toolIni){ $paths.Add([IO.Path]::GetFullPath($toolIni)) }; $proj=[IO.Path]::GetFullPath('%PROJECT%'); $projDir=[IO.Path]::GetDirectoryName($proj); $root=[IO.Path]::GetFullPath('%ROOT%'); $chain=New-Object 'System.Collections.Generic.List[string]'; $cur=$projDir; while($cur){ $chain.Add($cur); if($cur.TrimEnd('\') -ieq $root.TrimEnd('\')){ break }; $parent=[IO.Directory]::GetParent($cur); if($parent -eq $null){ break }; $cur=$parent.FullName }; $chain.Reverse(); foreach($d in $chain){ $ini=[IO.Path]::Combine($d,'dak.ini'); if(Test-Path -LiteralPath $ini){ $paths.Add([IO.Path]::GetFullPath($ini)) } }; $mad=''; foreach($ini in $paths){ $section=''; foreach($line in Get-Content -LiteralPath $ini -ErrorAction SilentlyContinue){ $t=$line.Trim(); if(-not $t -or $t.StartsWith(';')){ continue }; if($t -match '^\\[(.+)\\]$'){ $section=$Matches[1]; continue }; if($section -eq 'MadExcept'){ $m=[regex]::Match($t,'^Path\\s*=\\s*(.*)$'); if(-not $m.Success){ continue }; $val=[Environment]::ExpandEnvironmentVariables($m.Groups[1].Value.Trim()); if($val){ if(-not [IO.Path]::IsPathRooted($val)){ $val=[IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $ini) $val)) }; $mad=$val } } } }; 'INI_MADEXCEPT_PATH=' + $mad"`) do set "%%a"
+for /f "usebackq delims=" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$paths=New-Object 'System.Collections.Generic.List[string]'; $toolIni=[IO.Path]::Combine('%TOOL_ROOT%','bin','dak.ini'); if(Test-Path -LiteralPath $toolIni){ $paths.Add([IO.Path]::GetFullPath($toolIni)) }; $proj=[IO.Path]::GetFullPath('%PROJECT%'); $projDir=[IO.Path]::GetDirectoryName($proj); $root=[IO.Path]::GetFullPath('%ROOT%'); $chain=New-Object 'System.Collections.Generic.List[string]'; $cur=$projDir; while($cur){ $chain.Add($cur); if($cur.TrimEnd('\') -ieq $root.TrimEnd('\')){ break }; $parent=[IO.Directory]::GetParent($cur); if($parent -eq $null){ break }; $cur=$parent.FullName }; $chain.Reverse(); foreach($d in $chain){ $ini=[IO.Path]::Combine($d,'dak.ini'); if(Test-Path -LiteralPath $ini){ $paths.Add([IO.Path]::GetFullPath($ini)) } }; $warn=New-Object 'System.Collections.Generic.List[string]'; $hint=New-Object 'System.Collections.Generic.List[string]'; $mask=New-Object 'System.Collections.Generic.List[string]'; $warnSet=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); $hintSet=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); $maskSet=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase); foreach($ini in $paths){ $section=''; foreach($line in Get-Content -LiteralPath $ini -ErrorAction SilentlyContinue){ $t=$line.Trim(); if(-not $t -or $t.StartsWith(';')){ continue }; if($t -match '^\\[(.+)\\]$'){ $section=$Matches[1]; continue }; if($section -eq 'BuildIgnore'){ $m=[regex]::Match($t,'^(Warnings|Hints|ExcludePathMasks)\\s*=\\s*(.*)$'); if(-not $m.Success){ continue }; $key=$m.Groups[1].Value; $val=$m.Groups[2].Value; foreach($part in $val.Split(';')){ $x=$part.Trim(); if(-not $x){ continue }; if($key -eq 'Warnings'){ if($warnSet.Add($x)){ $warn.Add($x) } } elseif($key -eq 'Hints'){ if($hintSet.Add($x)){ $hint.Add($x) } } else { if($maskSet.Add($x)){ $mask.Add($x) } } } ; continue }; if($section -eq 'ReportFilter'){ $m=[regex]::Match($t,'^ExcludePathMasks\\s*=\\s*(.*)$'); if(-not $m.Success){ continue }; $val=$m.Groups[1].Value; foreach($part in $val.Split(';')){ $x=$part.Trim(); if(-not $x){ continue }; if($maskSet.Add($x)){ $mask.Add($x) } } ; continue } } }; 'INI_BUILD_IGNORE_WARNINGS=' + ($warn -join ';'); 'INI_BUILD_IGNORE_HINTS=' + ($hint -join ';'); 'INI_BUILD_EXCLUDE_PATH_MASKS=' + ($mask -join ';')"`) do set "%%a"
+for /f "usebackq delims=" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$paths=New-Object 'System.Collections.Generic.List[string]'; $toolIni=[IO.Path]::Combine('%TOOL_ROOT%','bin','dak.ini'); if(Test-Path -LiteralPath $toolIni){ $paths.Add([IO.Path]::GetFullPath($toolIni)) }; $proj=[IO.Path]::GetFullPath('%PROJECT%'); $projDir=[IO.Path]::GetDirectoryName($proj); $root=[IO.Path]::GetFullPath('%ROOT%'); $chain=New-Object 'System.Collections.Generic.List[string]'; $cur=$projDir; while($cur){ $chain.Add($cur); if($cur.TrimEnd('\') -ieq $root.TrimEnd('\')){ break }; $parent=[IO.Directory]::GetParent($cur); if($parent -eq $null){ break }; $cur=$parent.FullName }; $chain.Reverse(); foreach($d in $chain){ $ini=[IO.Path]::Combine($d,'dak.ini'); if(Test-Path -LiteralPath $ini){ $paths.Add([IO.Path]::GetFullPath($ini)) } }; $mad=''; foreach($ini in $paths){ $section=''; foreach($line in Get-Content -LiteralPath $ini -ErrorAction SilentlyContinue){ $t=$line.Trim(); if(-not $t -or $t.StartsWith(';')){ continue }; if($t -match '^\\[(.+)\\]$'){ $section=$Matches[1]; continue }; if($section -eq 'MadExcept'){ $m=[regex]::Match($t,'^Path\\s*=\\s*(.*)$'); if(-not $m.Success){ continue }; $val=[Environment]::ExpandEnvironmentVariables($m.Groups[1].Value.Trim()); if($val){ if(-not [IO.Path]::IsPathRooted($val)){ $val=[IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $ini) $val)) }; $mad=$val } } } }; 'INI_MADEXCEPT_PATH=' + $mad"`) do set "%%a"
 set "BUILD_IGNORE_WARNINGS=%INI_BUILD_IGNORE_WARNINGS%"
 if defined CLI_BUILD_IGNORE_WARNINGS (
   if defined BUILD_IGNORE_WARNINGS (set "BUILD_IGNORE_WARNINGS=%BUILD_IGNORE_WARNINGS%;%CLI_BUILD_IGNORE_WARNINGS%") else set "BUILD_IGNORE_WARNINGS=%CLI_BUILD_IGNORE_WARNINGS%"
@@ -248,7 +249,7 @@ if not defined MSBUILD (
 )
 
 rem ---- 2b) Resolve environment.proj properties for command-line MSBuild
-set "MSBUILD_ENV_SCRIPT=%~dp0scripts\build-delphi-envprops.ps1"
+set "MSBUILD_ENV_SCRIPT=%TOOL_ROOT%\scripts\build-delphi-envprops.ps1"
 if exist "%MSBUILD_ENV_SCRIPT%" (
   for /f "usebackq delims=" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%MSBUILD_ENV_SCRIPT%" -BdsRoot "%BDS_ROOT%"`) do set "%%a"
 )
@@ -262,7 +263,7 @@ set "MADEXCEPT_TARGET_EXE="
 set "MADEXCEPT_DCC_DEFINE="
 set "MADEXCEPT_PATCH_EXE="
 set "MADEXCEPT_PATCH_SETTING_INVALID="
-set "MADEXCEPT_PROBE_SCRIPT=%~dp0scripts\build-delphi-madexcept-probe.ps1"
+set "MADEXCEPT_PROBE_SCRIPT=%TOOL_ROOT%\scripts\build-delphi-madexcept-probe.ps1"
 if not exist "%MADEXCEPT_PROBE_SCRIPT%" (
   if not defined JSON_MODE (
     call :print_elapsed
@@ -288,7 +289,7 @@ if defined BUILD_TARGET_EXE (
 )
 
 if "%MADEXCEPT_PATCH_REQUIRED%"=="1" (
-  set "MADEXCEPT_TOOL_SCRIPT=%~dp0scripts\build-delphi-madexcept-resolve-tool.ps1"
+  set "MADEXCEPT_TOOL_SCRIPT=%TOOL_ROOT%\scripts\build-delphi-madexcept-resolve-tool.ps1"
   if not exist "!MADEXCEPT_TOOL_SCRIPT!" (
     if not defined JSON_MODE (
       call :print_elapsed
@@ -337,7 +338,7 @@ if "%MADEXCEPT_PATCH_REQUIRED%"=="1" (
 )
 
 rem ---- 4) Logs
-for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss"') do set "TS=%%i"
+for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss_fff"') do set "TS=%%i_!RANDOM!"
 set "LOGDIR=%~dp0"
 set "FULLLOG=%LOGDIR%build_%TS%.log"
 set "OUTLOG=%LOGDIR%out_%TS%.log"
@@ -353,7 +354,7 @@ if defined TEST_OUTPUT_DIR (
 if defined MSBUILD_ENV_PROPS (
   set "ARGS=!ARGS! !MSBUILD_ENV_PROPS!"
 )
-set "RUN_MSBUILD_SCRIPT=%~dp0scripts\build-delphi-run-msbuild.ps1"
+set "RUN_MSBUILD_SCRIPT=%TOOL_ROOT%\scripts\build-delphi-run-msbuild.ps1"
 set "MSBUILD_ARGS_FILE=%TEMP%\dak-msbuild-args-%RANDOM%-%RANDOM%.txt"
 set "DAK_MSBUILD_ARGS=!ARGS!"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "[IO.File]::WriteAllText('%MSBUILD_ARGS_FILE%', [Environment]::GetEnvironmentVariable('DAK_MSBUILD_ARGS'))"
@@ -685,7 +686,7 @@ if defined JSON_MODE (
   set "JSON_INCLUDE_HINT=0"
   if defined SHOW_WARN_ON_SUCCESS set "JSON_INCLUDE_WARN=1"
   if defined SHOW_HINT_ON_SUCCESS set "JSON_INCLUDE_HINT=1"
-  set "JSON_SCRIPT=%~dp0scripts\build-delphi-emit-json.ps1"
+  set "JSON_SCRIPT=%TOOL_ROOT%\scripts\build-delphi-emit-json.ps1"
   if exist "!JSON_SCRIPT!" (
     powershell -NoProfile -ExecutionPolicy Bypass -File "!JSON_SCRIPT!" -Project "%PROJECT%" -Config "%BUILD_CONFIG%" -Platform "%BUILD_PLATFORM%" -Target "%MSBUILD_TARGET%" -ExitCode %EXITCODE% -ErrorCount %ERRCOUNT% -WarningCount %WARNCOUNT% -HintCount %HINTCOUNT% -MaxFindings %MAX_FINDINGS% -BuildStart "%BUILD_START%" -OutputPath "!BUILD_TARGET_EXE!" -OutputStale "%OUTPUT_STALE%" -OutputMessage "!OUTPUT_MESSAGE!" -OutLog "%OUTLOG%" -ErrLog "%ERRLOG%" -IncludeWarnings "!JSON_INCLUDE_WARN!" -IncludeHints "!JSON_INCLUDE_HINT!" -TimedOut "%BUILD_TIMED_OUT%" -Status "%RESULT_STATUS%"
   ) else (

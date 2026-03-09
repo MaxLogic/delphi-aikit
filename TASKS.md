@@ -1,13 +1,25 @@
 # Tasks
-Next task ID: T-079
+Next task ID: T-080
 
 ## Summary
-Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Open tasks: 1 (In Progress: 0, Next Today: 1, Next This Week: 0, Next Later: 0, Blocked: 0)
 Done tasks: 78
 
 ## In Progress
 
 ## Next - Today
+
+### T-079 [CLI] Canonicalize project-scoped tool state under sibling .dak folders
+Outcome: Review DelphiAIKit commands and shared path utilities, then move project-related caches, temp files, generated reports, and similar working artifacts to the canonical sibling `.dak/<dproj-base-name>/` directory next to the analyzed `.dproj` so multiple projects in one folder remain isolated and project state stops leaking into ad hoc locations.
+Proof:
+- Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Expect: Exit code `0`, including coverage for `.dak/<project-name>/` path resolution, same-directory multi-`.dproj` isolation, and updated command-specific work-directory behavior.
+- Command: timeout 1800 ./tests/run.sh
+- Expect: Exit code `0`.
+- Command: ./bin/DelphiAIKit.exe analyze --project /mnt/f/projects/OEC/TE5/maxTdb/src/maxtdb.dproj --output /tmp/dak-analyze-smoke
+- Expect: Project-scoped scratch and report state is created under `/mnt/f/projects/OEC/TE5/maxTdb/src/.dak/maxtdb/` instead of an ad hoc repo-root or machine-temp location.
+Touches: src/, tests/units/, AGENTS.md, TASKS.md, README.md
+Notes: Apply this directory convention across all DelphiAIKit tools, not only the planned global-vars feature.
 
 ## Next - This Week
 

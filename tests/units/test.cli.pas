@@ -1,4 +1,4 @@
-unit Test.Cli;
+﻿unit Test.Cli;
 
 interface
 
@@ -66,6 +66,14 @@ type
     procedure HelpCommandDoesNotTreatSwitchValueAsExplicitCommand;
     [Test]
     procedure HelpCommandDoesNotConsumeSwitchTokenAsRequiredValue;
+    [Test]
+    procedure ParseGlobalVarsDefaults;
+    [Test]
+    procedure ParseGlobalVarsOptions;
+    [Test]
+    procedure ParseGlobalVarsUnusedOnly;
+    [Test]
+    procedure ParseGlobalVarsFilters;
   end;
 
 implementation
@@ -545,6 +553,62 @@ begin
   Assert.IsTrue(lHasCommand, 'Expected explicit command detection when analyze token is present.');
   Assert.AreEqual(TCommandKind.ckAnalyzeProject, lCommand, 'Expected analyze command kind.');
   Assert.AreEqual('', lError, 'Expected empty error for help command detection.');
+end;
+
+procedure TCliTests.ParseGlobalVarsDefaults;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('global-vars --project c:\temp\sample.dproj');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected global-vars defaults to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckGlobalVars, lOptions.fCommand);
+  Assert.AreEqual(TGlobalVarsFormat.gvfText, lOptions.fGlobalVarsFormat);
+  Assert.IsFalse(lOptions.fHasGlobalVarsOutputPath);
+  Assert.AreEqual(TGlobalVarsRefresh.gvrAuto, lOptions.fGlobalVarsRefresh);
+  Assert.IsFalse(lOptions.fGlobalVarsUnusedOnly);
+end;
+
+procedure TCliTests.ParseGlobalVarsOptions;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('global-vars --project c:\temp\sample.dproj --format json --output out.json --cache cache.db --refresh force');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected global-vars options to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckGlobalVars, lOptions.fCommand);
+  Assert.AreEqual(TGlobalVarsFormat.gvfJson, lOptions.fGlobalVarsFormat);
+  Assert.IsTrue(lOptions.fHasGlobalVarsOutputPath);
+  Assert.AreEqual('out.json', lOptions.fGlobalVarsOutputPath);
+  Assert.IsTrue(lOptions.fHasGlobalVarsCachePath);
+  Assert.AreEqual('cache.db', lOptions.fGlobalVarsCachePath);
+  Assert.AreEqual(TGlobalVarsRefresh.gvrForce, lOptions.fGlobalVarsRefresh);
+end;
+
+procedure TCliTests.ParseGlobalVarsUnusedOnly;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('global-vars --project c:\temp\sample.dproj --unused-only');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected --unused-only to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckGlobalVars, lOptions.fCommand);
+  Assert.IsTrue(lOptions.fGlobalVarsUnusedOnly);
+end;
+
+procedure TCliTests.ParseGlobalVarsFilters;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('global-vars --project c:\temp\sample.dproj --unit foo* --name bar --reads-only');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected filters to parse. Error: ' + lError);
+  Assert.IsTrue(lOptions.fHasGlobalVarsUnitFilter);
+  Assert.AreEqual('foo*', lOptions.fGlobalVarsUnitFilter);
+  Assert.IsTrue(lOptions.fHasGlobalVarsNameFilter);
+  Assert.AreEqual('bar', lOptions.fGlobalVarsNameFilter);
+  Assert.IsTrue(lOptions.fGlobalVarsReadsOnly);
+  Assert.IsFalse(lOptions.fGlobalVarsWritesOnly);
 end;
 
 initialization
