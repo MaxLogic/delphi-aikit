@@ -1,4 +1,4 @@
-unit Dak.Messages;
+﻿unit Dak.Messages;
 
 interface
 
@@ -10,6 +10,7 @@ resourcestring
     '  analyze   Run FixInsight / Pascal Analyzer' + #13#10 +
     '  build     Build a Delphi project (.dproj; or .dpr/.dpk with sibling .dproj) via build-delphi.bat' + #13#10 +
     '  dfm-check Validate DFM streaming via generated _DfmCheck harness project' + #13#10 +
+    '  global-vars List project global variables and their routine usages' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
   SUsageResolve =
     'DelphiAIKit.exe resolve --project "<path>" --delphi <23.0> ' +
@@ -43,6 +44,10 @@ resourcestring
   SUsageDfmCheck =
     'DelphiAIKit.exe dfm-check --dproj "<path>" [--delphi <23.0>] [--config <Release|Debug>] [--platform <Win32|Win64>] ' +
     '[--dfm "<file.dfm[,file2.dfm]>"] [--all] [--rsvars "<path>"] [--verbose [true|false]]';
+  SUsageGlobalVars =
+    'DelphiAIKit.exe global-vars --project "<path>" [--format <text|json>] [--output "<path>|-"] ' +
+    '[--cache "<path>"] [--refresh <auto|force>] [--unused-only] [--unit "<pattern>"] [--name "<pattern>"] ' +
+    '[--reads-only] [--writes-only] [--verbose [true|false]]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -52,6 +57,10 @@ resourcestring
   SInvalidMaxFindings = 'Invalid --max-findings value: %s (expected integer >= 1).';
   SInvalidBuildTimeout = 'Invalid --build-timeout-sec value: %s (expected integer >= 0).';
   SInvalidFiFormats = 'Invalid --fi-formats value: %s';
+  SGlobalVarsInvalidFormat = 'Unsupported global-vars format: %s';
+  SGlobalVarsInvalidRefresh = 'Unsupported global-vars refresh mode: %s';
+  SGlobalVarsConflictingAccessFilters = 'Use either --reads-only or --writes-only (not both).';
+  SGlobalVarsUnusedAccessConflict = '--unused-only cannot be combined with --reads-only or --writes-only.';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
   SBuildBatMissing = 'build-delphi.bat not found: %s';
