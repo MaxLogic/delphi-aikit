@@ -1,4 +1,4 @@
-unit Test.Support;
+﻿unit Test.Support;
 
 interface
 
@@ -193,10 +193,14 @@ begin
   lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
   lBinExe := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
   lTestOutputDir := Trim(GetEnvironmentVariable('DAK_TEST_OUTPUT_DIR'));
+  if lTestOutputDir = '' then
+  begin
+    lTestOutputDir := TPath.Combine(TempRoot, 'resolver-build-out');
+  end;
+  ForceDirectories(lTestOutputDir);
   lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
     ' -config Release -platform Win32 -ver 23';
-  if lTestOutputDir <> '' then
-    lArgs := lArgs + ' -test-output-dir ' + QuoteArg(lTestOutputDir);
+  lArgs := lArgs + ' -test-output-dir ' + QuoteArg(lTestOutputDir);
   lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
   lLog := TPath.Combine(TempRoot, 'build-resolver.log');
 

@@ -9,6 +9,7 @@
 - Merge project search paths with the IDE library path
 - Emit FixInsightCL parameters as `ini`, `xml`, or a runnable `bat`
 - Validate compiled DFM resources via `dfm-check` (generated harness + DFM stream gate)
+- Analyze project-level globals via `global-vars` with JSON/text reports, ambiguity reporting, and SQLite caching
 
 ## Good use cases
 
@@ -110,6 +111,12 @@ To validate DFMs in CI using generated DFMCheck projects:
 bin\DelphiAIKit.exe dfm-check --dproj "C:\path\Project.dproj" --config Release --platform Win32 --all
 ```
 
+To analyze global variables used in a Delphi project:
+
+```
+bin\DelphiAIKit.exe global-vars --project "C:\path\Project.dproj" --format json
+```
+
 Optional:
 - `--delphi 23.0` selects Delphi version for automatic `rsvars.bat` resolution.
 - `--rsvars "C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat"` imports RAD Studio environment variables before `msbuild`.
@@ -123,6 +130,11 @@ Optional:
 - `--delphi` is provided, or
 - `dak.ini` provides `[Build] DelphiVersion=<version>` (cascading settings).
 If none of the above is available, `dfm-check` fails with a hard error (Delphi context is required).
+
+`global-vars` auto-loads `rsvars.bat` when either:
+- `--delphi` is provided, or
+- `dak.ini` provides `[Build] DelphiVersion=<version>` (cascading settings).
+If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-only traversal where possible, but search-path-sensitive projects may be less accurate.
 
 `dfm-check` stages:
 - generate a `_DfmCheck` harness project from the target `.dproj`/`.dpr` (no external `DFMCheck.exe`)
@@ -148,6 +160,87 @@ If none of the above is available, `dfm-check` fails with a hard error (Delphi c
   - `[dfm-check] FAIL clue: handler=...`
   - `[dfm-check] FAIL clue: handler declaration line=<N>: procedure ...`
   - `[dfm-check] FAIL clue: verify handler signature matches event type for <On...>.`
+
+## `global-vars`
+
+`global-vars` analyzes unit-level globals declared in project units and reports:
+- declaration unit/file/line
+- variable name and type
+- declaration kind: `var`, `threadvar`, `typedconst`, `classvar`
+- `usedBy` routines with access mode
+- ambiguity records when a usage matches multiple visible candidates
+
+Supported filters:
+- `--unused-only`
+- `--unit "<pattern>"`
+- `--name "<pattern>"`
+- `--reads-only`
+- `--writes-only`
+
+Examples:
+
+```
+bin\DelphiAIKit.exe global-vars --project "C:\path\Project.dproj" --format json --unused-only
+```
+
+```
+bin\DelphiAIKit.exe global-vars --project "C:\path\Project.dproj" --format json --unit "*Data*" --name "Cache"
+```
+
+```
+bin\DelphiAIKit.exe global-vars --project "C:\path\Project.dproj" --format text --writes-only
+```
+
+JSON output contract:
+
+```json
+{
+  "summary": {
+    "total": 483,
+    "used": 447,
+    "unused": 36,
+    "ambiguities": 494,
+    "emitted": 4,
+    "filter": "writes-only;unit=*BTREES*"
+  },
+  "symbols": [
+    {
+      "declaringUnit": "BTREES",
+      "fileName": "F:\\path\\BTREES.pas",
+      "name": "HeapError",
+      "type": "Boolean",
+      "kind": "var",
+      "line": 17,
+      "column": 3,
+      "usedBy": []
+    }
+  ],
+  "ambiguities": [
+    {
+      "name": "SomeGlobal",
+      "unit": "ConsumerUnit",
+      "routine": "RunWork",
+      "file": "F:\\path\\ConsumerUnit.pas",
+      "line": 88,
+      "column": 14,
+      "access": "read",
+      "candidates": "UnitA.SomeGlobal; UnitB.SomeGlobal"
+    }
+  ]
+}
+```
+
+Text output starts with a summary line:
+
+```text
+Summary: total=483 used=447 unused=36 ambiguities=494 emitted=4 filter=writes-only;unit=*BTREES*
+```
+
+Project cache location:
+- sibling `.dak/<ProjectName>/global-vars/cache/global-vars-cache.sqlite3`
+
+Generated reports location:
+- sibling `.dak/<ProjectName>/global-vars/reports/`
 
 To capture resolver diagnostics (warnings, missing paths, macro issues) into a log file:
 

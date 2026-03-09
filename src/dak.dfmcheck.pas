@@ -1,4 +1,4 @@
-unit Dak.DfmCheck;
+﻿unit Dak.DfmCheck;
 
 interface
 
@@ -1045,7 +1045,27 @@ var
   lLines: TStringList;
   lMatch: TMatch;
   lMethodToken: string;
-  lRegex: string;
+  lQualifiedRegex: string;
+  lUnqualifiedRegex: string;
+
+  function TryMatch(const aRegex: string): Boolean;
+  var
+    lIndex: Integer;
+  begin
+    Result := False;
+    for lIndex := 0 to lLines.Count - 1 do
+    begin
+      lMatch := TRegEx.Match(lLines[lIndex], aRegex, [roIgnoreCase]);
+      if not lMatch.Success then
+        Continue;
+
+      aLineNumber := lIndex + 1;
+      aDeclaration := BuildMethodDeclarationSnippet(lLines, lIndex);
+      if aDeclaration = '' then
+        aDeclaration := Trim(lLines[lIndex]);
+      Exit(True);
+    end;
+  end;
 begin
   Result := False;
   aLineNumber := 0;
@@ -1054,23 +1074,16 @@ begin
     Exit(False);
 
   lMethodToken := Trim(aMethodName);
-  lRegex := '^\s*(class\s+)?(procedure|function)\s+(?:[A-Za-z_][A-Za-z0-9_]*\.)*(' +
+  lQualifiedRegex := '^\s*(class\s+)?(procedure|function)\s+[A-Za-z_][A-Za-z0-9_]*\.(' +
+    TRegEx.Escape(lMethodToken) + ')\b';
+  lUnqualifiedRegex := '^\s*(class\s+)?(procedure|function)\s+(' +
     TRegEx.Escape(lMethodToken) + ')\b';
   lLines := TStringList.Create;
   try
     lLines.LoadFromFile(aPasPath);
-    for i := 0 to lLines.Count - 1 do
-    begin
-      lMatch := TRegEx.Match(lLines[i], lRegex, [roIgnoreCase]);
-      if not lMatch.Success then
-        Continue;
-
-      aLineNumber := i + 1;
-      aDeclaration := BuildMethodDeclarationSnippet(lLines, i);
-      if aDeclaration = '' then
-        aDeclaration := Trim(lLines[i]);
+    if TryMatch(lQualifiedRegex) then
       Exit(True);
-    end;
+    Result := TryMatch(lUnqualifiedRegex);
   finally
     lLines.Free;
   end;

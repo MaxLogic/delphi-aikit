@@ -1,4 +1,4 @@
-unit Dak.Cli;
+﻿unit Dak.Cli;
 
 interface
 
@@ -52,6 +52,8 @@ var
       aParsedCommand := TCommandKind.ckBuild
     else if SameText(aArg, 'dfm-check') then
       aParsedCommand := TCommandKind.ckDfmCheck
+    else if SameText(aArg, 'global-vars') then
+      aParsedCommand := TCommandKind.ckGlobalVars
     else
       Result := False;
   end;
@@ -210,6 +212,8 @@ begin
       WriteLn(ErrOutput, SUsageBuild);
     TCommandKind.ckDfmCheck:
       WriteLn(ErrOutput, SUsageDfmCheck);
+    TCommandKind.ckGlobalVars:
+      WriteLn(ErrOutput, SUsageGlobalVars);
   else
     WriteLn(ErrOutput, SUsageResolve);
   end;
@@ -253,6 +257,8 @@ type
       const aHasInlineValue: Boolean; out aHandled: Boolean): Boolean;
     function TryParseAnalyzePalSwitch(const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean; out aHandled: Boolean): Boolean;
+    function TryParseGlobalVarsSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+      const aHasInlineValue: Boolean): Boolean;
     function TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
     function TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
@@ -291,6 +297,11 @@ begin
   fOptions.fBuildTarget := 'Build';
   fOptions.fBuildMaxFindings := 5;
   fOptions.fBuildTimeoutSec := 0;
+  fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
+  fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
+  fOptions.fGlobalVarsUnusedOnly := False;
+  fOptions.fGlobalVarsReadsOnly := False;
+  fOptions.fGlobalVarsWritesOnly := False;
 end;
 
 function TOptionParser.TryParseOutKind(const aText: string; out aKind: TOutputKind): Boolean;
@@ -435,7 +446,10 @@ begin
     SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check') or
     SameText(aSwitch, 'dfm') or SameText(aSwitch, 'all') or
     SameText(aSwitch, 'ignore-warnings') or
-    SameText(aSwitch, 'ignore-hints');
+    SameText(aSwitch, 'ignore-hints') or
+    SameText(aSwitch, 'cache') or SameText(aSwitch, 'refresh') or
+    SameText(aSwitch, 'unused-only') or SameText(aSwitch, 'name') or
+    SameText(aSwitch, 'reads-only') or SameText(aSwitch, 'writes-only');
 end;
 
 function TOptionParser.IsSwitchParam(const aParam: string): Boolean;
@@ -488,6 +502,8 @@ begin
     fOptions.fCommand := TCommandKind.ckBuild
   else if SameText(aArg, 'dfm-check') then
     fOptions.fCommand := TCommandKind.ckDfmCheck
+  else if SameText(aArg, 'global-vars') then
+    fOptions.fCommand := TCommandKind.ckGlobalVars
   else
   begin
     fError := Format(SUnknownCommand, [aArg]);
@@ -556,6 +572,9 @@ begin
 
   if fOptions.fCommand = TCommandKind.ckDfmCheck then
     Exit(TryParseDfmCheckSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
+
+  if fOptions.fCommand = TCommandKind.ckGlobalVars then
+    Exit(TryParseGlobalVarsSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   Result := TryParseAnalyzeSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue);
 end;
@@ -900,6 +919,120 @@ begin
   Result := True;
 end;
 
+function TOptionParser.TryParseGlobalVarsSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+  const aHasInlineValue: Boolean): Boolean;
+var
+  lValue: string;
+begin
+  if SameText(aSwitch, 'format') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
+      Exit(False);
+    if SameText(lValue, 'json') then
+    begin
+      fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfJson;
+    end else if SameText(lValue, 'text') then
+    begin
+      fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
+    end else
+    begin
+      fError := Format(SGlobalVarsInvalidFormat, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'output') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--output') then
+      Exit(False);
+    fOptions.fGlobalVarsOutputPath := lValue;
+    fOptions.fHasGlobalVarsOutputPath := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'cache') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--cache') then
+      Exit(False);
+    fOptions.fGlobalVarsCachePath := lValue;
+    fOptions.fHasGlobalVarsCachePath := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'unit') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit') then
+      Exit(False);
+    fOptions.fGlobalVarsUnitFilter := lValue;
+    fOptions.fHasGlobalVarsUnitFilter := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'name') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--name') then
+      Exit(False);
+    fOptions.fGlobalVarsNameFilter := lValue;
+    fOptions.fHasGlobalVarsNameFilter := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'refresh') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--refresh') then
+      Exit(False);
+    if SameText(lValue, 'force') then
+    begin
+      fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrForce;
+    end else if SameText(lValue, 'auto') then
+    begin
+      fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
+    end else
+    begin
+      fError := Format(SGlobalVarsInvalidRefresh, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'unused-only') then
+  begin
+    if aHasInlineValue then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    fOptions.fGlobalVarsUnusedOnly := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'reads-only') then
+  begin
+    if aHasInlineValue then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    fOptions.fGlobalVarsReadsOnly := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'writes-only') then
+  begin
+    if aHasInlineValue then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    fOptions.fGlobalVarsWritesOnly := True;
+    Exit(True);
+  end;
+
+  fError := Format(SUnknownArg, [aArg]);
+  Result := False;
+end;
+
 function TOptionParser.TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
 var
@@ -1214,6 +1347,23 @@ begin
     if fOptions.fDprojPath = '' then
     begin
       fError := Format(SArgMissingValue, ['--dproj']);
+      Exit(False);
+    end;
+  end else if fOptions.fCommand = TCommandKind.ckGlobalVars then
+  begin
+    if fOptions.fDprojPath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--project']);
+      Exit(False);
+    end;
+    if fOptions.fGlobalVarsReadsOnly and fOptions.fGlobalVarsWritesOnly then
+    begin
+      fError := SGlobalVarsConflictingAccessFilters;
+      Exit(False);
+    end;
+    if fOptions.fGlobalVarsUnusedOnly and (fOptions.fGlobalVarsReadsOnly or fOptions.fGlobalVarsWritesOnly) then
+    begin
+      fError := SGlobalVarsUnusedAccessConflict;
       Exit(False);
     end;
   end;

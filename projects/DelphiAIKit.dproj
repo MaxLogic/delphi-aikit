@@ -7,6 +7,7 @@
         <ProjectName Condition="'$(ProjectName)'==''">DelphiAIKit</ProjectName>
         <TargetedPlatforms>693377</TargetedPlatforms>
         <AppType>Console</AppType>
+        <DCC_UnitSearchPath>..\src;..\lib\DFMCheck\Source;..\lib\DFMCheck\Source\Console;..\lib\DelphiAST\Source;..\lib\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <FrameworkType>None</FrameworkType>
         <ProjectVersion>20.2</ProjectVersion>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
