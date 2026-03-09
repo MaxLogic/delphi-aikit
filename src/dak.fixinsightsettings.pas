@@ -1,4 +1,4 @@
-unit Dak.FixInsightSettings;
+﻿unit Dak.FixInsightSettings;
 
 interface
 
@@ -14,6 +14,7 @@ function LoadSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
 function LoadSettings(aDiagnostics: TDiagnostics; out aFixInsight: TFixInsightExtraOptions;
   out aFixInsightIgnore: TFixInsightIgnoreDefaults; out aReportFilter: TReportFilterDefaults;
   out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean; overload;
+function BuildSettingsPaths(const aDprojPath: string): TArray<string>;
 function LoadDefaultDelphiVersion(const aDprojPath: string; out aDelphiVersion: string): Boolean;
 procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
   var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;

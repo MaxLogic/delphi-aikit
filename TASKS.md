@@ -1,11 +1,31 @@
 # Tasks
-Next task ID: T-080
+Next task ID: T-081
 
 ## Summary
-Open tasks: 1 (In Progress: 0, Next Today: 1, Next This Week: 0, Next Later: 0, Blocked: 0)
+Open tasks: 2 (In Progress: 1, Next Today: 1, Next This Week: 0, Next Later: 0, Blocked: 0)
 Done tasks: 78
 
 ## In Progress
+
+### T-080 [CLI] Replace batch-backed build pipeline with a native Delphi runner
+Outcome: Move `DelphiAIKit.exe build` off `build-delphi.bat` and onto a native Delphi build runner that handles MSBuild execution, timeout, log capture/filtering, JSON/plain/AI output shaping, project-scoped settings, and `madExcept` post-build patching without relying on bundled batch/PowerShell helper logic.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "cd /d F:\\projects\\MaxLogic\\DelphiAiKit && build-delphi.bat projects\\DelphiAIKit.dproj -config Release -platform Win32 -ver 23 -test-output-dir tests\\temp\\resolver-build-out"
+- Expect: Build exits `0` with `SUCCESS` and writes the current native-runner `DelphiAIKit.exe` to `projects\\tests\\temp\\resolver-build-out\\DelphiAIKit.exe`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "cd /d F:\\projects\\MaxLogic\\DelphiAiKit && build-delphi.bat projects\\DelphiAIKit.dproj -config Release -platform Win32 -ver 23 -test-output-dir tests\\temp\\resolver-build-out-native"
+- GREEN Expect: Build exits `0` with `SUCCESS` and writes the current native-runner `DelphiAIKit.exe` to `projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "cd /d F:\\projects\\MaxLogic\\DelphiAiKit && build-delphi.bat tests\\DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23 -test-output-dir tests\\temp\\test-bin-native"
+- GREEN Expect: Build exits `0` with `SUCCESS`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests -cm:Quiet"
+- GREEN Expect: Tests Found `4`, Passed `4`, Failed `0`, Leaked `0`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests -cm:Quiet"
+- GREEN Expect: Tests Found `28`, Passed `28`, Failed `0`, Leaked `0`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.MsBuild.TMsBuildTests -cm:Quiet"
+- GREEN Expect: Tests Found `6`, Passed `6`, Failed `0`, Leaked `0`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.DfmCheck.TDfmCheckTests -cm:Quiet"
+- GREEN Expect: Tests Found `19`, Passed `19`, Failed `0`, Leaked `0`.
+Touches: projects/DelphiAIKit.dpr, src/, tests/units/, README.md, spec.md, CHANGELOG.md, TASKS.md
+Notes: Keep `build-delphi.bat` only as a compatibility shim if external callers still need it; the CLI build engine itself must live in Delphi. Full-suite `DelphiAIKit.Tests.exe -cm:Quiet` still stalls in the pre-existing unrelated `Test.FixInsight.TFixInsightTests` area, so only the change-relevant suites above are green for this task.
 
 ## Next - Today
 
