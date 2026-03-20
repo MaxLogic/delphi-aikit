@@ -2,6 +2,14 @@
 
 “Utilities for AI-assisted Delphi code analysis and builds.”
 
+## Recent changes
+
+- `build` now uses DelphiAIKit's native Delphi runner instead of depending on helper batch/PowerShell logic for the main build path.
+- `dfm-inspect` adds lightweight text DFM inspection with `tree` and `summary` output.
+- Project-scoped tool artifacts now default to sibling `.dak/<ProjectName>/` working directories instead of legacy `_analysis` roots.
+- `build` and `dfm-check` can append bounded source context around resolved failures via `--source-context` / `--source-context-lines`.
+- Invalid `[Diagnostics]` `dak.ini` values for source-context settings now surface as warnings instead of being ignored silently.
+
 ## What it can do
 
 - Resolve project settings from `.dproj` and an optional `.optset`
