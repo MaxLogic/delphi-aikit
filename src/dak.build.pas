@@ -52,7 +52,8 @@ uses
   System.Classes, System.IniFiles, System.IOUtils, System.RegularExpressions, System.StrUtils,
   System.Win.Registry,
   Winapi.Windows,
-  Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.RsVars;
+  Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Project, Dak.RsVars,
+  Dak.SourceContext;
 
 const
   cStatusOk = 'ok';
@@ -462,6 +463,42 @@ begin
   end;
 end;
 
+function PrefixSourceContext(const aLines: TArray<string>): string;
+var
+  lIndex: Integer;
+  lParts: TArray<string>;
+begin
+  SetLength(lParts, Length(aLines));
+  for lIndex := 0 to High(aLines) do
+    lParts[lIndex] := '  ' + aLines[lIndex];
+  Result := String.Join(sLineBreak, lParts);
+end;
+
+function AppendSourceContextToFinding(const aFinding: string; const aLookup: TProjectSourceLookup;
+  aContextLines: Integer): string;
+var
+  lContext: TSourceContextSnippet;
+  lError: string;
+  lFileToken: string;
+  lLineNumber: Integer;
+begin
+  Result := aFinding;
+  if not TryParseFindingLocation(aFinding, lFileToken, lLineNumber) then
+    Exit(Result);
+  if not TryResolveSourceContext(aLookup, lFileToken, lLineNumber, aContextLines, lContext, lError) then
+    Exit(Result);
+  Result := Result + sLineBreak + PrefixSourceContext(FormatSourceContextLines(lContext));
+end;
+
+procedure EnrichBuildFindingsWithSourceContext(var aItems: TArray<string>; const aLookup: TProjectSourceLookup;
+  aContextLines: Integer);
+var
+  i: Integer;
+begin
+  for i := 0 to High(aItems) do
+    aItems[i] := AppendSourceContextToFinding(aItems[i], aLookup, aContextLines);
+end;
+
 function BuildSummaryAsJson(const aProjectPath: string; const aOptions: TAppOptions;
   const aSummary: TBuildSummary; const aTarget: string; aTimeMs: Int64): string;
 var
@@ -634,6 +671,87 @@ begin
       Exit(True);
 end;
 
+function TryParseIniBool(const aValue: string; out aEnabled: Boolean): Boolean;
+begin
+  if aValue = '' then
+    Exit(False);
+
+  if SameText(aValue, '1') or SameText(aValue, 'true') or SameText(aValue, 'yes') then
+    aEnabled := True
+  else if SameText(aValue, '0') or SameText(aValue, 'false') or SameText(aValue, 'no') then
+    aEnabled := False
+  else
+    Exit(False);
+
+  Result := True;
+end;
+
+function TryReadIniSectionValue(const aPath, aSection, aKey: string; out aValue: string): Boolean;
+var
+  lCurrentSection: string;
+  lEqualsPos: Integer;
+  lLine: string;
+  lLines: TStringList;
+  lName: string;
+  lTrimmedLine: string;
+begin
+  Result := False;
+  aValue := '';
+  if not FileExists(aPath) then
+    Exit(False);
+
+  lLines := TStringList.Create;
+  try
+    lLines.LoadFromFile(aPath);
+    lCurrentSection := '';
+    for lLine in lLines do
+    begin
+      lTrimmedLine := Trim(lLine);
+      if lTrimmedLine = '' then
+        Continue;
+      if (lTrimmedLine[1] = ';') or (lTrimmedLine[1] = '#') then
+        Continue;
+      if (lTrimmedLine[1] = '[') and (lTrimmedLine[Length(lTrimmedLine)] = ']') then
+      begin
+        lCurrentSection := Trim(Copy(lTrimmedLine, 2, Length(lTrimmedLine) - 2));
+        Continue;
+      end;
+      if not SameText(lCurrentSection, aSection) then
+        Continue;
+
+      lEqualsPos := Pos('=', lTrimmedLine);
+      if lEqualsPos <= 0 then
+        Continue;
+      lName := Trim(Copy(lTrimmedLine, 1, lEqualsPos - 1));
+      if not SameText(lName, aKey) then
+        Continue;
+
+      aValue := Trim(Copy(lTrimmedLine, lEqualsPos + 1, MaxInt));
+      Exit(True);
+    end;
+  finally
+    lLines.Free;
+  end;
+end;
+
+function MesFileDisablesMadExcept(const aMesPath: string): Boolean;
+var
+  lEnabled: Boolean;
+  lValue: string;
+begin
+  Result := False;
+  if not FileExists(aMesPath) then
+    Exit(False);
+
+  if TryReadIniSectionValue(aMesPath, 'GeneralSettings', 'LinkInCode', lValue) then
+    if TryParseIniBool(lValue, lEnabled) and (not lEnabled) then
+      Exit(True);
+
+  if TryReadIniSectionValue(aMesPath, 'GeneralSettings', 'HandleExceptions', lValue) then
+    if TryParseIniBool(lValue, lEnabled) and (not lEnabled) then
+      Exit(True);
+end;
+
 function ResolveOutputName(const aProps: TDictionary<string, string>; const aProjectName: string): string;
 begin
   if aProps.TryGetValue('SanitizedProjectName', Result) and (Trim(Result) <> '') then
@@ -699,6 +817,8 @@ begin
       Result.fMadExceptReason := 'name-mismatch'
     else if not HasMadExceptDefine(Result.fDefines) then
       Result.fMadExceptReason := 'define-missing'
+    else if MesFileDisablesMadExcept(Result.fMesPath) then
+      Result.fMadExceptReason := 'mes-disabled'
     else
     begin
       Result.fMadExceptRequired := True;
@@ -1188,10 +1308,12 @@ function TryRunBuild(const aOptions: TAppOptions; const aRunner: IBuildProcessRu
   out aExitCode: Integer; out aError: string): Boolean;
 var
   lBdsRoot: string;
+  lDiagnosticsDefaults: TDiagnosticsDefaults;
   lEnvVars: TDictionary<string, string>;
   lErrLog: string;
   lExtraProps: string;
   lJson: string;
+  lLookupError: string;
   lMadErrLog: string;
   lMadExceptExe: string;
   lMadExitCode: Integer;
@@ -1200,6 +1322,7 @@ var
   lOutputPostTicks: Int64;
   lOutputPreTicks: Int64;
   lProjectInfo: TBuildProjectInfo;
+  lProjectLookup: TProjectSourceLookup;
   lSettings: TBuildSettings;
   lStartTick: Int64;
   lSummary: TBuildSummary;
@@ -1231,6 +1354,8 @@ begin
   try
     PrintVerboseStep(lNormalizedOptions, 'load-settings');
     LoadBuildSettings(lNormalizedOptions.fDprojPath, lNormalizedOptions, lEnvVars, lSettings);
+    LoadDiagnosticsDefaults(nil, lNormalizedOptions.fDprojPath, lDiagnosticsDefaults);
+    ApplyDiagnosticsOverrides(lNormalizedOptions, lDiagnosticsDefaults);
 
     PrintVerboseStep(lNormalizedOptions, 'resolve-msbuild');
     lBdsRoot := ResolveBdsRoot(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath);
@@ -1272,6 +1397,42 @@ begin
     lSummaryOptions.fIncludeHints := lNormalizedOptions.fBuildShowHints;
 
     lSummary := ParseBuildLogs(lOutLog, lErrLog, lSummaryOptions);
+    if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) or
+      ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
+    begin
+      lLookupError := '';
+      lProjectLookup := Default(TProjectSourceLookup);
+      lProjectLookup.fProjectDproj := lNormalizedOptions.fDprojPath;
+      lProjectLookup.fProjectDir := lProjectInfo.fProjectDir;
+      lProjectLookup.fMainSourcePath := lProjectInfo.fMainSourcePath;
+      if TryBuildProjectSourceLookup(lNormalizedOptions.fDprojPath, lNormalizedOptions.fConfig,
+        lNormalizedOptions.fPlatform, lNormalizedOptions.fDelphiVersion, lEnvVars, nil, lProjectLookup, lLookupError)
+      then
+      begin
+        if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) then
+          EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lProjectLookup, lDiagnosticsDefaults.fSourceContextLines);
+        if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
+        begin
+          EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lProjectLookup,
+            lDiagnosticsDefaults.fSourceContextLines);
+          EnrichBuildFindingsWithSourceContext(lSummary.fHints, lProjectLookup,
+            lDiagnosticsDefaults.fSourceContextLines);
+        end;
+      end else
+      begin
+        if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) then
+          EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lProjectLookup, lDiagnosticsDefaults.fSourceContextLines);
+        if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
+        begin
+          EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lProjectLookup,
+            lDiagnosticsDefaults.fSourceContextLines);
+          EnrichBuildFindingsWithSourceContext(lSummary.fHints, lProjectLookup,
+            lDiagnosticsDefaults.fSourceContextLines);
+        end;
+        if lNormalizedOptions.fVerbose and (lLookupError <> '') then
+          Writeln('NOTE. Source context search paths unavailable: ' + lLookupError);
+      end;
+    end;
     lSummary.fExitCode := aExitCode;
     lSummary.fTimedOut := lTimedOut;
     lSummary.fOutputPath := lProjectInfo.fOutputPath;

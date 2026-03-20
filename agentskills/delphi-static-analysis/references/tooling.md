@@ -17,7 +17,7 @@ Common overrides:
 
 These are used by the skill wrappers to maintain baselines/deltas and optional CI gating:
 
-- `DAK_BASELINE=<path>` (default: `_analysis/<project>/baseline.json`)
+- `DAK_BASELINE=<path>` (default: `.dak/<ProjectName>/baseline.json`)
 - `DAK_UPDATE_BASELINE=1`
 - `DAK_GATE=1` (or `DAK_CI=1`)
 - `DAK_MAX_NEW_PAL_STRONG=0` (default)

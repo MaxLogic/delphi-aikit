@@ -1,45 +1,13 @@
 # Tasks
-Next task ID: T-081
+Next task ID: T-087
 
 ## Summary
-Open tasks: 2 (In Progress: 1, Next Today: 1, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 78
+Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 86
 
 ## In Progress
 
-### T-080 [CLI] Replace batch-backed build pipeline with a native Delphi runner
-Outcome: Move `DelphiAIKit.exe build` off `build-delphi.bat` and onto a native Delphi build runner that handles MSBuild execution, timeout, log capture/filtering, JSON/plain/AI output shaping, project-scoped settings, and `madExcept` post-build patching without relying on bundled batch/PowerShell helper logic.
-Proof:
-- Command: /mnt/c/Windows/System32/cmd.exe /C "cd /d F:\\projects\\MaxLogic\\DelphiAiKit && build-delphi.bat projects\\DelphiAIKit.dproj -config Release -platform Win32 -ver 23 -test-output-dir tests\\temp\\resolver-build-out"
-- Expect: Build exits `0` with `SUCCESS` and writes the current native-runner `DelphiAIKit.exe` to `projects\\tests\\temp\\resolver-build-out\\DelphiAIKit.exe`.
-- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "cd /d F:\\projects\\MaxLogic\\DelphiAiKit && build-delphi.bat projects\\DelphiAIKit.dproj -config Release -platform Win32 -ver 23 -test-output-dir tests\\temp\\resolver-build-out-native"
-- GREEN Expect: Build exits `0` with `SUCCESS` and writes the current native-runner `DelphiAIKit.exe` to `projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe`.
-- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "cd /d F:\\projects\\MaxLogic\\DelphiAiKit && build-delphi.bat tests\\DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23 -test-output-dir tests\\temp\\test-bin-native"
-- GREEN Expect: Build exits `0` with `SUCCESS`.
-- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests -cm:Quiet"
-- GREEN Expect: Tests Found `4`, Passed `4`, Failed `0`, Leaked `0`.
-- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests -cm:Quiet"
-- GREEN Expect: Tests Found `28`, Passed `28`, Failed `0`, Leaked `0`.
-- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.MsBuild.TMsBuildTests -cm:Quiet"
-- GREEN Expect: Tests Found `6`, Passed `6`, Failed `0`, Leaked `0`.
-- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.DfmCheck.TDfmCheckTests -cm:Quiet"
-- GREEN Expect: Tests Found `19`, Passed `19`, Failed `0`, Leaked `0`.
-Touches: projects/DelphiAIKit.dpr, src/, tests/units/, README.md, spec.md, CHANGELOG.md, TASKS.md
-Notes: Keep `build-delphi.bat` only as a compatibility shim if external callers still need it; the CLI build engine itself must live in Delphi. Full-suite `DelphiAIKit.Tests.exe -cm:Quiet` still stalls in the pre-existing unrelated `Test.FixInsight.TFixInsightTests` area, so only the change-relevant suites above are green for this task.
-
 ## Next - Today
-
-### T-079 [CLI] Canonicalize project-scoped tool state under sibling .dak folders
-Outcome: Review DelphiAIKit commands and shared path utilities, then move project-related caches, temp files, generated reports, and similar working artifacts to the canonical sibling `.dak/<dproj-base-name>/` directory next to the analyzed `.dproj` so multiple projects in one folder remain isolated and project state stops leaking into ad hoc locations.
-Proof:
-- Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
-- Expect: Exit code `0`, including coverage for `.dak/<project-name>/` path resolution, same-directory multi-`.dproj` isolation, and updated command-specific work-directory behavior.
-- Command: timeout 1800 ./tests/run.sh
-- Expect: Exit code `0`.
-- Command: ./bin/DelphiAIKit.exe analyze --project /mnt/f/projects/OEC/TE5/maxTdb/src/maxtdb.dproj --output /tmp/dak-analyze-smoke
-- Expect: Project-scoped scratch and report state is created under `/mnt/f/projects/OEC/TE5/maxTdb/src/.dak/maxtdb/` instead of an ad hoc repo-root or machine-temp location.
-Touches: src/, tests/units/, AGENTS.md, TASKS.md, README.md
-Notes: Apply this directory convention across all DelphiAIKit tools, not only the planned global-vars feature.
 
 ## Next - This Week
 
@@ -48,6 +16,146 @@ Notes: Apply this directory convention across all DelphiAIKit tools, not only th
 ## Blocked
 
 ## Done
+
+### T-083 [DOC] Refresh repo-local agent skills for current DAK capabilities
+Outcome:
+- Audit the repo-local skills under `agentskills/` against the current `DelphiAIKit.exe` command surface so no skill keeps stale command names, flags, output locations, or workflow assumptions.
+- Update the existing skill docs, setup notes, and helper scripts for the DAK capabilities we actively use from agents, including build, `dfm-check`, static analysis, and `global-vars`, with current examples and current repo conventions such as sibling `.dak/<ProjectName>/` working directories.
+- Fold `dfm-inspect` guidance from `T-081` into the existing DFM-oriented skill instead of creating a separate narrow skill, unless the inspection surface later grows beyond simple form inspection workflows.
+- Add or split skill coverage when a shipped DAK capability that agents should invoke directly is currently undocumented in `agentskills/`, instead of leaving that knowledge implicit.
+Proof:
+- Run: `./bin/DelphiAIKit.exe --help`
+  Expect: Exit code `0` and output lists the top-level commands referenced by the updated skill set.
+- Run: `rg -n "DelphiAIKit\\.exe (build|dfm-check|global-vars|analyze)|\\.dak/<ProjectName>|--dfmcheck|--test-output-dir|--refresh|dfm-inspect|source-context" agentskills`
+  Expect: Updated skill files reference the canonical current DAK commands, key flags, `dfm-inspect`, source-context options, and project-scoped `.dak` convention where relevant.
+- Run: `rg -n "build-delphi\\.bat|_analysis/<project>|\\.dproj directory" agentskills`
+  Expect: No stale skill guidance remains for superseded build flow or outdated project-output locations unless a file explicitly labels it as legacy compatibility behavior.
+Touches: agentskills/delphi-build/, agentskills/delphi-dfm-check/, agentskills/delphi-global-vars/, agentskills/delphi-static-analysis/, AGENTS.md, README.md
+Deps: T-079, T-081, T-082
+Verify: cli-proof, manual
+Notes: Keep repo-local skills aligned with what DAK actually ships now. If `dfm-inspect` from `T-081` lands during the same batch, either extend the relevant DFM skill in the same change or record a focused follow-up task instead of burying it here.
+Prefer extending `agentskills/delphi-dfm-check/SKILL.md` into an inspect-and-validate form workflow so `dfm-inspect` and `dfm-check` stay documented together. Only split out a dedicated inspection skill if `dfm-inspect` later gains a materially broader surface than `tree`/`summary` style form inspection.
+
+### T-082 [CLI] Add shared source-context snippets for resolved failures
+Outcome:
+- Add a reusable helper that resolves diagnostic file references against the analyzed project and returns a bounded source snippet around a target line.
+- Use that helper in failure paths where DAK already knows a file and line, including build-related findings and `dfm-check` clues, so actionable output includes nearby source when it can be resolved safely.
+- Keep snippet emission bounded and configurable so normal output stays concise while `--verbose` and explicit overrides can expand the context window.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.SourceContext.TSourceContextTests -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`, including absolute-path, project-relative, search-path, and missing-file cases.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests.BuildSummaryIncludesResolvedSourceContextForErrors -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.DfmCheck.TDfmCheckTests.DfmCheckFailureIncludesResolvedSourceContextWhenPascalLocationIsKnown -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -cm:Quiet`
+  Expect: Exit code `0`.
+Touches: src/dak.build.pas, src/dak.dfmcheck.pas, src/dak.messages.pas, src/dak.msbuild.pas, src/dak.project.pas, src/dak.types.pas, tests/units/, README.md, spec.md
+Verify: unit-test, cli-proof
+Notes: Reimplement the `read_source_context` and `resolve_error_file` ideas from `claude-pascal-mcp` on top of DAK's evaluated project model rather than a shallow `.dproj` scan. Start with text output; JSON shaping can stay a follow-up if needed.
+
+### T-079 [CLI] Canonicalize project-scoped tool state under sibling .dak folders
+Outcome: Review DelphiAIKit commands and shared path utilities, then move project-related caches, temp files, generated reports, and similar working artifacts to the canonical sibling `.dak/<dproj-base-name>/` directory next to the analyzed `.dproj` so multiple projects in one folder remain isolated and project state stops leaking into ad hoc locations.
+Proof:
+- Command: timeout 600 ./tests/DelphiAIKit.Tests.exe -cm:Quiet
+- Expect: Exit code `0`, including coverage for `.dak/<project-name>/` path resolution, same-directory multi-`.dproj` isolation, and updated command-specific work-directory behavior.
+- Command: timeout 1800 ./tests/run.sh
+- Expect: Exit code `0`.
+- Command: ./bin/DelphiAIKit.exe analyze --project /mnt/f/projects/OEC/TE5/maxTdb/src/maxtdb.dproj --platform Win32 --config Debug --delphi 23.0 --fixinsight false --pascal-analyzer false
+- Expect: Project-scoped scratch and report state is created under `/mnt/f/projects/OEC/TE5/maxTdb/src/.dak/maxtdb/` instead of an ad hoc repo-root or machine-temp location.
+Touches: src/, tests/units/, AGENTS.md, TASKS.md, README.md
+Notes: Apply this directory convention across all DelphiAIKit tools, not only the planned global-vars feature. Code review showed `global-vars` already used `.dak`, while `analyze` and the repo-local static-analysis wrappers still defaulted to `_analysis/...`. `T-086` and `T-085` closed those concrete migration gaps, and the broader proof surface has now been re-run and recorded here.
+
+### T-086 [CLI] Move `analyze` default output roots under sibling `.dak` working dirs
+Outcome:
+- Stop defaulting `analyze --project` outputs to `_analysis/<ProjectName>/` and instead place project-scoped reports, logs, and derived artifacts under the analyzed project's sibling `.dak/<ProjectName>/` working tree.
+- Align `analyze --unit` default output behavior with the repo `.dak` convention as well, so unit-mode runs no longer create ad hoc `_analysis/_unit/...` trees when no explicit `--out` is supplied.
+- Add regression coverage proving omitted `--out` now resolves through the `.dak` convention while explicit `--out` still wins unchanged.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.AnalyzeProjectDefaultOutRootUsesSiblingDakFolder -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.AnalyzeProjectDefaultOutRootUsesSiblingDprojFolderWhenMainSourceLivesElsewhere -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.AnalyzeUnitDefaultOutRootUsesDakConvention -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe analyze --project tests/fixtures/Sample.dproj --platform Win32 --config Debug --delphi 23.0 --fixinsight false --pascal-analyzer false`
+  Expect: When `--out` is omitted, default project-scoped artifacts are created under `tests/fixtures/.dak/Sample/` rather than `_analysis/`.
+Touches: src/dak.analyze.pas, src/dak.cli.pas, tests/units/test.cli.pas, README.md, spec.md
+Deps: T-079
+Verify: unit-test, cli-proof
+Notes: This task existed because code review found `BuildOutputRoot`/`BuildUnitOutputRoot` still hardcoded `_analysis/...` defaults in `src/dak.analyze.pas`. The regression coverage now also locks the split-layout case where the analyzed `.dproj` lives above the main `.dpr`.
+
+### T-085 [CLI] Move static-analysis wrapper defaults and docs off `_analysis`
+Outcome:
+- Update the repo-local static-analysis wrapper scripts and doctor tooling so their computed default output roots follow the `.dak` convention instead of generating `_analysis/...` trees.
+- Update the static-analysis skill docs and setup docs so examples, artifact paths, and troubleshooting steps match the post-`T-079` `.dak` layout rather than the legacy `_analysis` layout.
+- Keep explicit `DAK_OUT` / `--out` overrides working as-is while removing automatic `_analysis/` insertion and related `.gitignore` assumptions from the wrappers.
+Proof:
+- Run: `python3 agentskills/delphi-static-analysis/doctor.py /mnt/f/projects/MaxLogic/DelphiAiKit/projects/DelphiAIKit.dproj`
+  Expect: Default output root reported by the doctor uses `.dak/` naming rather than `_analysis/`.
+- Run: `rg -n "_analysis/|_analysis<|_analysis\\\\|ensure_gitignore_has_analysis_root" agentskills/delphi-static-analysis`
+  Expect: No default-path logic or user guidance still hardcodes legacy `_analysis` roots unless a file explicitly labels it as historical context.
+- Run: `rg -n "\\.dak/<ProjectName>|\\.dak/" agentskills/delphi-static-analysis`
+  Expect: The wrapper docs and scripts reference the canonical `.dak` project-scoped layout.
+Touches: agentskills/delphi-static-analysis/, AGENTS.md, README.md, spec.md
+Deps: T-079
+Verify: cli-proof, manual
+Notes: This was the repo-local wrapper half of the remaining `T-079` gap surfaced by code review. `postprocess.py` now skips `.dak` artifact trees as well so report normalization does not recurse into generated outputs.
+
+### T-081 [CLI] Add `dfm-inspect` command for lightweight form structure inspection
+Outcome:
+- Add a `dfm-inspect` CLI command that reads text DFM files and emits a structured view of the form tree without requiring a build or generated harness.
+- Support at least `tree` and `summary` output modes so we can inspect component hierarchy, key visual properties, and event-handler bindings from the command line.
+- Reuse the parsed form information to improve future `dfm-check` clueing and related diagnostics instead of reparsing ad hoc.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.DfmInspect.TDfmInspectTests -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe dfm-inspect --dfm tests/fixtures/MainForm.dfm --format tree`
+  Expect: Exit code `0` and stdout contains the root form name/class plus at least one child component entry.
+- Run: `./bin/DelphiAIKit.exe dfm-inspect --dfm tests/fixtures/MainForm.dfm --format summary`
+  Expect: Exit code `0` and stdout contains component counts and at least one discovered event binding when present.
+Touches: projects/DelphiAIKit.dpr, src/dak.cli.pas, src/dak.messages.pas, src/dak.types.pas, src/dak.dfmcheck.pas, tests/units/, README.md, spec.md
+Verify: unit-test, cli-proof
+Notes: Inspired by the MIT-licensed form parser in `claude-pascal-mcp`. Implement on top of DAK conventions and CLI contracts; text-form parsing only, not a replacement for compiled `dfm-check` validation.
+
+### T-084 [CLI] Respect `.mes` enablement before running madExcept patch
+Outcome:
+- Treat the sibling `.mes` file as structured configuration rather than a presence-only sentinel when deciding whether `madExceptPatch.exe` should run after build.
+- Skip the madExcept post-build patch step when the parsed `.mes` settings show madExcept is disabled for the effective project/build context, even if the file exists and the `madExcept` define is present.
+- Keep the current guards for missing `.mes`, main-source/project name mismatch, and missing `madExceptPatch.exe`, while adding regression coverage for disabled `HandleExceptions`, disabled `LinkInCode`, and UTF-8-with-BOM `.mes` files.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests.BuildSkipsMadExceptPatchWhenMesDisablesMadExcept -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests.BuildSkipsMadExceptPatchWhenMesDisablesLinkInCode -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests.BuildSkipsMadExceptPatchWhenUtf8BomMesDisablesMadExcept -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests.BuildStillRunsMadExceptPatchWhenMesEnablesMadExcept -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests -cm:Quiet`
+  Expect: Build-suite regression tests pass with `Tests Found 8`, `Failed 0`, `Leaked 0`.
+Touches: src/dak.build.pas, tests/units/test.build.pas, README.md, spec.md
+Deps: T-080
+Verify: unit-test, cli-proof
+Notes: `.mes` is an INI-style file. Review and parse it instead of assuming that mere file presence means madExcept patching is required.
+
+### T-080 [CLI] Replace batch-backed build pipeline with a native Delphi runner
+Outcome: Move `DelphiAIKit.exe build` off `build-delphi.bat` and onto a native Delphi build runner that handles MSBuild execution, timeout, log capture/filtering, JSON/plain/AI output shaping, project-scoped settings, and `madExcept` post-build patching without relying on bundled batch/PowerShell helper logic.
+Proof:
+- Command: /mnt/c/Windows/System32/cmd.exe /C "cd /d F:\\projects\\MaxLogic\\DelphiAiKit && build-delphi.bat projects\\DelphiAIKit.dproj -config Release -platform Win32 -ver 23 -test-output-dir tests\\temp\\resolver-build-out-native"
+- Expect: Build exits `0` with `SUCCESS` and writes the current native-runner `DelphiAIKit.exe` to `projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "cd /d F:\\projects\\MaxLogic\\DelphiAiKit && build-delphi.bat tests\\DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23 -test-output-dir tests\\temp\\test-bin-native"
+- GREEN Expect: Build exits `0` with `SUCCESS`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests -cm:Quiet"
+- GREEN Expect: Tests Found `8`, Passed `8`, Failed `0`, Leaked `0`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests -cm:Quiet"
+- GREEN Expect: Tests Found `28`, Passed `28`, Failed `0`, Leaked `0`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.MsBuild.TMsBuildTests -cm:Quiet"
+- GREEN Expect: Tests Found `6`, Passed `6`, Failed `0`, Leaked `0`.
+- GREEN Command: /mnt/c/Windows/System32/cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\\projects\\MaxLogic\\DelphiAiKit\\projects\\tests\\temp\\resolver-build-out-native\\DelphiAIKit.exe && F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\tests\\temp\\test-bin-native\\DelphiAIKit.Tests.exe -r:Test.DfmCheck.TDfmCheckTests -cm:Quiet"
+- GREEN Expect: Tests Found `19`, Passed `19`, Failed `0`, Leaked `0`.
+Touches: projects/DelphiAIKit.dpr, src/, tests/units/, README.md, spec.md, CHANGELOG.md, TASKS.md
+Notes: Keep `build-delphi.bat` only as a compatibility shim if external callers still need it; the CLI build engine itself must live in Delphi. Full-suite `DelphiAIKit.Tests.exe -cm:Quiet` still stalls in the pre-existing unrelated `Test.FixInsight.TFixInsightTests` area, so only the change-relevant suites above are green for this task, and they must be run serially because they share `tests/temp`.
 
 ### T-078 [CLI] Reject trailing unknown tokens after explicit help command
 Outcome: `TryGetCommand` now validates the full positional token stream in help mode after detecting an explicit command, so trailing unknown tokens (for example `--help analyze foo`) are rejected instead of being silently ignored.

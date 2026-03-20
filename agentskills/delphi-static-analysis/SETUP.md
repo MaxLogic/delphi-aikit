@@ -65,7 +65,7 @@ set FI_SETTINGS=C:\path\FixInsight.settings
 Project runs write to:
 
 ```
-./_analysis/{ProjectName}/
+./.dak/{ProjectName}/
   fixinsight/
   pascal-analyzer/
   summary.md
@@ -75,7 +75,7 @@ Project runs write to:
 Unit runs write to:
 
 ```
-./_analysis/_unit/{UnitName}/
+./.dak/_unit/{UnitName}/
   pascal-analyzer/
   summary.md
   run.log

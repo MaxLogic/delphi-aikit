@@ -41,6 +41,12 @@ type
     [Test]
     procedure DfmCheckCommandParsesAllFlag;
     [Test]
+    procedure DfmInspectCommandParsesRequiredFlagsAndDefaults;
+    [Test]
+    procedure DfmInspectCommandRequiresDfm;
+    [Test]
+    procedure DfmInspectCommandParsesSummaryFormat;
+    [Test]
     procedure BuildCommandParsesDfmCheckFlag;
     [Test]
     procedure BuildCommandParsesDfmSelectionFlags;
@@ -50,6 +56,12 @@ type
     procedure BuildCommandRejectsDfmCheckValue;
     [Test]
     procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
+    [Test]
+    procedure AnalyzeProjectDefaultOutRootUsesSiblingDakFolder;
+    [Test]
+    procedure AnalyzeProjectDefaultOutRootUsesSiblingDprojFolderWhenMainSourceLivesElsewhere;
+    [Test]
+    procedure AnalyzeUnitDefaultOutRootUsesDakConvention;
     [Test]
     procedure LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
     [Test]
@@ -66,6 +78,8 @@ type
     procedure HelpCommandDoesNotTreatSwitchValueAsExplicitCommand;
     [Test]
     procedure HelpCommandDoesNotConsumeSwitchTokenAsRequiredValue;
+    [Test]
+    procedure HelpCommandIgnoresDfmInspectSwitchValueTokens;
     [Test]
     procedure ParseGlobalVarsDefaults;
     [Test]
@@ -287,6 +301,39 @@ begin
   Assert.AreEqual('', lOptions.fDfmCheckFilter, 'Expected --all to clear explicit --dfm filter list.');
 end;
 
+procedure TCliTests.DfmInspectCommandParsesRequiredFlagsAndDefaults;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('dfm-inspect --dfm C:\repo\MainForm.dfm');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected dfm-inspect args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckDfmInspect, lOptions.fCommand, 'Expected dfm-inspect command kind.');
+  Assert.AreEqual('C:\repo\MainForm.dfm', lOptions.fDfmInspectPath, 'Unexpected --dfm parsing result.');
+  Assert.AreEqual('tree', lOptions.fDfmInspectFormat, 'Expected tree as the default dfm-inspect format.');
+end;
+
+procedure TCliTests.DfmInspectCommandRequiresDfm;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('dfm-inspect --format summary');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected dfm-inspect parsing to fail without --dfm.');
+  Assert.IsTrue(Pos('Missing value for parameter: --dfm', lError) > 0,
+    'Expected missing --dfm error. Actual: ' + lError);
+end;
+
+procedure TCliTests.DfmInspectCommandParsesSummaryFormat;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('dfm-inspect --dfm C:\repo\MainForm.dfm --format summary');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected dfm-inspect summary args to parse. Error: ' + lError);
+  Assert.AreEqual('summary', lOptions.fDfmInspectFormat, 'Unexpected parsed dfm-inspect format.');
+end;
+
 procedure TCliTests.BuildCommandParsesDfmCheckFlag;
 var
   lOptions: TAppOptions;
@@ -371,6 +418,122 @@ begin
     'Expected summary to ignore stale TXT findings when TXT report was not run. Summary: ' + lSummaryPath);
   Assert.IsFalse(Pos('- Top codes:', lSummaryText) > 0,
     'Expected summary to skip top code output when TXT report was not run. Summary: ' + lSummaryPath);
+end;
+
+procedure TCliTests.AnalyzeProjectDefaultOutRootUsesSiblingDakFolder;
+var
+  lArgs: string;
+  lDakRoot: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lLegacyRoot: string;
+  lRunLog: string;
+  lSummaryPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dproj');
+  lDakRoot := TPath.Combine(TPath.Combine(TPath.GetDirectoryName(lDprojPath), '.dak'), 'Sample');
+  lLegacyRoot := TPath.Combine(RepoRoot, '_analysis\Sample');
+  if TDirectory.Exists(lDakRoot) then
+    TDirectory.Delete(lDakRoot, True);
+  if TDirectory.Exists(lLegacyRoot) then
+    TDirectory.Delete(lLegacyRoot, True);
+
+  lRunLog := TPath.Combine(TempRoot, 'analyze-default-out-project.log');
+  lArgs := 'analyze --project ' + QuoteArg(lDprojPath) +
+    ' --platform Win32 --config Debug --delphi 23.0 --fixinsight false --pascal-analyzer false';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected analyze run to succeed. See: ' + lRunLog);
+
+  lSummaryPath := TPath.Combine(lDakRoot, 'summary.md');
+  Assert.IsTrue(FileExists(lSummaryPath), 'Expected default analyze output under sibling .dak root: ' + lSummaryPath);
+  Assert.IsFalse(TDirectory.Exists(lLegacyRoot), 'Did not expect legacy _analysis output root: ' + lLegacyRoot);
+end;
+
+procedure TCliTests.AnalyzeProjectDefaultOutRootUsesSiblingDprojFolderWhenMainSourceLivesElsewhere;
+var
+  lArgs: string;
+  lDakRoot: string;
+  lDprPath: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lProjectDir: string;
+  lRunLog: string;
+  lSplitRoot: string;
+  lSrcDir: string;
+  lSummaryPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lSplitRoot := TPath.Combine(TempRoot, 'analyze-split-layout');
+  if TDirectory.Exists(lSplitRoot) then
+    TDirectory.Delete(lSplitRoot, True);
+  lProjectDir := TPath.Combine(lSplitRoot, 'project');
+  lSrcDir := TPath.Combine(lProjectDir, 'src');
+  TDirectory.CreateDirectory(lSrcDir);
+
+  lDprojPath := TPath.Combine(lProjectDir, 'SplitLayout.dproj');
+  lDprPath := TPath.Combine(lSrcDir, 'SplitLayout.dpr');
+  TFile.WriteAllText(lDprPath, 'program SplitLayout;' + sLineBreak + 'begin' + sLineBreak + 'end.');
+  TFile.WriteAllText(TPath.Combine(lProjectDir, 'SplitLayout.optset'),
+    TFile.ReadAllText(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.optset')));
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>src\SplitLayout.dpr</MainSource>' + sLineBreak +
+    '    <CfgDependentOn>SplitLayout.optset</CfgDependentOn>' + sLineBreak +
+    '    <DCC_Define>BASE;$(DCC_Define)</DCC_Define>' + sLineBreak +
+    '    <DCC_UnitSearchPath>.\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + sLineBreak +
+    '    <DCC_Namespace>System;Vcl;$(DCC_Namespace)</DCC_Namespace>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+
+  lDakRoot := TPath.Combine(TPath.Combine(lProjectDir, '.dak'), 'SplitLayout');
+  lRunLog := TPath.Combine(TempRoot, 'analyze-split-layout.log');
+  lArgs := 'analyze --project ' + QuoteArg(lDprojPath) +
+    ' --platform Win32 --config Debug --delphi 23.0 --fixinsight false --pascal-analyzer false';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected split-layout analyze run to succeed. See: ' + lRunLog);
+
+  lSummaryPath := TPath.Combine(lDakRoot, 'summary.md');
+  Assert.IsTrue(FileExists(lSummaryPath),
+    'Expected default analyze output next to the .dproj even when MainSource lives elsewhere: ' + lSummaryPath);
+end;
+
+procedure TCliTests.AnalyzeUnitDefaultOutRootUsesDakConvention;
+var
+  lArgs: string;
+  lDakRoot: string;
+  lExitCode: Cardinal;
+  lLegacyRoot: string;
+  lRunLog: string;
+  lSummaryPath: string;
+  lUnitPath: string;
+  lUnitName: string;
+begin
+  EnsureResolverBuilt;
+
+  lUnitPath := TPath.Combine(RepoRoot, 'tests\fixtures\GlobalVarsFixture.Globals.pas');
+  lUnitName := TPath.GetFileNameWithoutExtension(lUnitPath);
+  lDakRoot := TPath.Combine(TPath.Combine(TPath.GetDirectoryName(lUnitPath), '.dak'), TPath.Combine('_unit', lUnitName));
+  lLegacyRoot := TPath.Combine(RepoRoot, TPath.Combine('_analysis\_unit', lUnitName));
+  if TDirectory.Exists(lDakRoot) then
+    TDirectory.Delete(lDakRoot, True);
+  if TDirectory.Exists(lLegacyRoot) then
+    TDirectory.Delete(lLegacyRoot, True);
+
+  lRunLog := TPath.Combine(TempRoot, 'analyze-default-out-unit.log');
+  lArgs := 'analyze --unit ' + QuoteArg(lUnitPath) + ' --delphi 23.0 --pascal-analyzer false';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyze-unit process.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected analyze-unit run to succeed. See: ' + lRunLog);
+
+  lSummaryPath := TPath.Combine(lDakRoot, 'summary.md');
+  Assert.IsTrue(FileExists(lSummaryPath), 'Expected default analyze-unit output under sibling .dak root: ' + lSummaryPath);
+  Assert.IsFalse(TDirectory.Exists(lLegacyRoot), 'Did not expect legacy _analysis unit root: ' + lLegacyRoot);
 end;
 
 procedure TCliTests.LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
@@ -553,6 +716,20 @@ begin
   Assert.IsTrue(lHasCommand, 'Expected explicit command detection when analyze token is present.');
   Assert.AreEqual(TCommandKind.ckAnalyzeProject, lCommand, 'Expected analyze command kind.');
   Assert.AreEqual('', lError, 'Expected empty error for help command detection.');
+end;
+
+procedure TCliTests.HelpCommandIgnoresDfmInspectSwitchValueTokens;
+var
+  lCommand: TCommandKind;
+  lHasCommand: Boolean;
+  lError: string;
+begin
+  SetParams('dfm-inspect --dfm tests\fixtures\MainForm.dfm --help');
+  Assert.IsTrue(TryGetCommand(lCommand, lHasCommand, lError),
+    'Expected help command detection to ignore --dfm values. Error: ' + lError);
+  Assert.IsTrue(lHasCommand, 'Expected explicit dfm-inspect command detection.');
+  Assert.AreEqual(TCommandKind.ckDfmInspect, lCommand, 'Expected dfm-inspect command kind.');
+  Assert.AreEqual('', lError, 'Expected empty error for dfm-inspect help command detection.');
 end;
 
 procedure TCliTests.ParseGlobalVarsDefaults;

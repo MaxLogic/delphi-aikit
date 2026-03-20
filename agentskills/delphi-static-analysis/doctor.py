@@ -244,12 +244,10 @@ def main(argv: list[str]) -> int:
             if not out_root.is_absolute():
                 out_root = (Path.cwd() / out_root).resolve()
         else:
-            vcs_root, _ = _find_vcs_root(target.parent)
-            base = vcs_root if vcs_root is not None else target.parent
             if target.suffix.lower() == ".pas":
-                out_root = base / "_analysis" / "_unit" / target.stem
+                out_root = target.parent / ".dak" / "_unit" / target.stem
             else:
-                out_root = base / "_analysis" / target.stem
+                out_root = target.parent / ".dak" / target.stem
         print(f"- Output root: {out_root}")
         print("- Parity check: after a run, inspect `run.log` for FixInsightCL args (`--libpath`, `--unitscopes`).")
 

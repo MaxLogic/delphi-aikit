@@ -38,8 +38,9 @@ Commands:
 
 - `resolve` — generate resolved FixInsight params output (ini/xml/bat)
 - `analyze` — run FixInsightCL and/or Pascal Analyzer with stable report output
-- `build` — build a `.dproj` via `build-delphi.bat`
+- `build` — build a `.dproj` via DAK's native Delphi build runner
 - `dfm-check` — validate DFM streaming via generated harness project
+- `dfm-inspect` — inspect text DFM structure, key properties, and event bindings
 - `global-vars` — report project globals, usages, and ambiguities
 
 ### 2.2 Global options (shared)
@@ -69,6 +70,11 @@ Commands:
   When used with `--log-file`, also write diagnostics to stderr/stdout.
 
 - `--verbose [true|false]` (optional)
+- `--source-context <auto|off|on>` (optional)
+  Controls whether build/`dfm-check` failures emit nearby source lines when DAK can resolve a file and line.
+
+- `--source-context-lines <N>` (optional)
+  Controls how many lines before/after the hit are shown. Default: `2`.
 
 Notes:
 
@@ -110,7 +116,7 @@ Defaults:
 - `--fixinsight` default: `true`
 - `--pascal-analyzer` default: `false`
 - `--fi-formats` default: `txt`
-- If `--out` is omitted, outputs go under `_analysis/<ProjectName>/`.
+- If `--out` is omitted, DAK writes analysis outputs under the target's `.dak` working tree rather than a legacy `_analysis/` folder.
 
 Unit analysis is supported via `--unit`:
 
@@ -123,20 +129,32 @@ DelphiAIKit.exe analyze --unit "<path>\Unit1.pas" --delphi 23.0 ^
 
 ```
 DelphiAIKit.exe build --project "<path>\MyProject.dproj" --delphi 23.0 ^
-  [--platform Win32] [--config Release]
+  [--platform Win32] [--config Release] ^
+  [--source-context auto|off|on] [--source-context-lines N]
 ```
 
-Implementation uses `build-delphi.bat` and propagates its exit code.
+Implementation uses DAK's native Delphi build runner. `build-delphi.bat` may remain as a compatibility/bootstrap wrapper, but the CLI `build` command does not rely on batch/PowerShell helper logic for normal execution.
 
 ### 2.6 `dfm-check` — validate DFM streaming
 
 ```
 DelphiAIKit.exe dfm-check --dproj "<path>\MyProject.dproj" ^
   [--delphi 23.0] [--platform Win32] [--config Release] ^
-  [--dfm "<file1.dfm,file2.dfm>"] [--all] [--rsvars "<path>"] [--verbose [true|false]]
+  [--dfm "<file1.dfm,file2.dfm>"] [--all] [--source-context auto|off|on] ^
+  [--source-context-lines N] [--rsvars "<path>"] [--verbose [true|false]]
 ```
 
-### 2.7 `global-vars` — analyze globals
+### 2.7 `dfm-inspect` — inspect text DFM files
+
+```
+DelphiAIKit.exe dfm-inspect --dfm "<path>\MainForm.dfm" [--format tree|summary]
+```
+
+- `--dfm` is required and must point to a text DFM file.
+- `--format tree` prints the component hierarchy with key properties and event bindings.
+- `--format summary` prints total component count, per-class counts, and discovered event bindings.
+
+### 2.8 `global-vars` — analyze globals
 
 ```
 DelphiAIKit.exe global-vars --project "<path>\MyProject.dproj" ^
@@ -218,6 +236,13 @@ Args=
 [Build]
 ; optional default Delphi version used when --delphi is omitted by dfm-check/global-vars
 DelphiVersion=
+
+[Diagnostics]
+; bounded source snippets for build/dfm-check failures
+; SourceContext = auto | off | on
+; SourceContextLines = lines shown before/after the hit (default 2)
+SourceContext=auto
+SourceContextLines=2
 ```
 
 Notes:

@@ -43,6 +43,7 @@ type
     fReportFilter: TReportFilterDefaults;
     fPascalAnalyzer: TPascalAnalyzerDefaults;
     fParams: TFixInsightParams;
+    fProjectDproj: string;
     fProjectName: string;
     fOutRoot: string;
     fFixDir: string;
@@ -512,6 +513,7 @@ end;
 function TryPrepareProjectParams(const aOptions: TAppOptions; aDiagnostics: TDiagnostics;
   out aParams: TFixInsightParams; out aFixOptions: TFixInsightExtraOptions; out aFixIgnoreDefaults: TFixInsightIgnoreDefaults;
   out aReportFilter: TReportFilterDefaults; out aPascalAnalyzer: TPascalAnalyzerDefaults; out aProjectName: string;
+  out aProjectDproj: string;
   out aError: string; out aErrorCode: Integer): Boolean;
 var
   lEnvVars: TDictionary<string, string>;
@@ -527,6 +529,7 @@ begin
   aError := '';
   aErrorCode := 6;
   aProjectName := '';
+  aProjectDproj := '';
 
   lOptions := aOptions;
   lInputPath := aOptions.fDprojPath;
@@ -547,6 +550,7 @@ begin
 
   lOptions.fDprojPath := lDprojPath;
   aProjectName := TPath.GetFileNameWithoutExtension(lDprojPath);
+  aProjectDproj := lDprojPath;
 
   if not TryLoadRsVars(lOptions.fDelphiVersion, lOptions.fRsVarsPath, aDiagnostics, lError) then
   begin
@@ -588,8 +592,9 @@ begin
   end;
 end;
 
-function BuildOutputRoot(const aBaseOut: string; const aProjectName: string): string;
+function BuildOutputRoot(const aBaseOut: string; const aProjectPath: string; const aProjectName: string): string;
 var
+  lProjectDir: string;
   lOut: string;
 begin
   if aBaseOut <> '' then
@@ -600,11 +605,13 @@ begin
     Exit(lOut);
   end;
 
-  Result := CombinePath([GetCurrentDir, '_analysis', aProjectName]);
+  lProjectDir := TPath.GetDirectoryName(TPath.GetFullPath(aProjectPath));
+  Result := TPath.Combine(TPath.Combine(lProjectDir, '.dak'), aProjectName);
 end;
 
-function BuildUnitOutputRoot(const aBaseOut: string; const aUnitName: string): string;
+function BuildUnitOutputRoot(const aBaseOut: string; const aUnitPath: string; const aUnitName: string): string;
 var
+  lUnitDir: string;
   lOut: string;
 begin
   if aBaseOut <> '' then
@@ -615,7 +622,8 @@ begin
     Exit(lOut);
   end;
 
-  Result := CombinePath([GetCurrentDir, '_analysis', '_unit', aUnitName]);
+  lUnitDir := TPath.GetDirectoryName(TPath.GetFullPath(aUnitPath));
+  Result := TPath.Combine(TPath.Combine(TPath.Combine(lUnitDir, '.dak'), '_unit'), aUnitName);
 end;
 
 function TryRunFixInsightLogged(const aParams: TFixInsightParams; const aRunLogPath: string;
@@ -918,7 +926,7 @@ var
   lErrorCode: Integer;
 begin
   if not TryPrepareProjectParams(fOptions, fDiagnostics, fParams, fFixOptions, fFixIgnoreDefaults, fReportFilter,
-    fPascalAnalyzer, fProjectName, lError, lErrorCode) then
+    fPascalAnalyzer, fProjectName, fProjectDproj, lError, lErrorCode) then
   begin
     WriteLn(ErrOutput, lError);
     fExitCode := lErrorCode;
@@ -929,7 +937,7 @@ end;
 
 procedure TAnalyzeProjectRunner.PrepareOutputTree;
 begin
-  fOutRoot := BuildOutputRoot(fOptions.fAnalyzeOutPath, fProjectName);
+  fOutRoot := BuildOutputRoot(fOptions.fAnalyzeOutPath, fProjectDproj, fProjectName);
   if fOptions.fAnalyzeClean and DirectoryExists(fOutRoot) then
     TDirectory.Delete(fOutRoot, True);
   TDirectory.CreateDirectory(fOutRoot);
@@ -1202,7 +1210,7 @@ end;
 
 procedure TAnalyzeUnitRunner.PrepareOutputTree;
 begin
-  fOutRoot := BuildUnitOutputRoot(fOptions.fAnalyzeOutPath, fUnitName);
+  fOutRoot := BuildUnitOutputRoot(fOptions.fAnalyzeOutPath, fUnitPath, fUnitName);
   if fOptions.fAnalyzeClean and DirectoryExists(fOutRoot) then
     TDirectory.Delete(fOutRoot, True);
   TDirectory.CreateDirectory(fOutRoot);

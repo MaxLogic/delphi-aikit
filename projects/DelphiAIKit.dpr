@@ -21,6 +21,7 @@ uses
   Dak.Analyze in '..\src\dak.analyze.pas', Dak.Build in '..\src\dak.build.pas',
   Dak.Cli in '..\src\dak.cli.pas',
   Dak.DfmCheck in '..\src\dak.dfmcheck.pas',
+  Dak.DfmInspect in '..\src\dak.dfminspect.pas',
   Dak.Diagnostics in '..\src\dak.diagnostics.pas',
   Dak.FixInsight in '..\src\dak.fixinsight.pas',
   Dak.FixInsightRunner in '..\src\dak.fixinsightrunner.pas',
@@ -235,6 +236,10 @@ begin
         end else if lOptions.fCommand = TCommandKind.ckDfmCheck then
         begin
           lExitCode := RunDfmCheckCommand(lOptions);
+          lOk := False;
+        end else if lOptions.fCommand = TCommandKind.ckDfmInspect then
+        begin
+          lExitCode := RunDfmInspectCommand(lOptions);
           lOk := False;
         end else if lOptions.fCommand = TCommandKind.ckGlobalVars then
         begin

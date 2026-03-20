@@ -10,7 +10,7 @@ Principles:
 
 ## Workflow (repeatable)
 
-1. Pick 3–5 high-signal items from `_analysis/<project>/triage.md`.
+1. Pick 3–5 high-signal items from `.dak/<ProjectName>/triage.md`.
 2. Fix one item (or a tight cluster in one unit).
 3. Build + run the relevant DUnitX tests.
 4. Re-run static analysis; confirm the finding disappears and deltas don’t regress.
@@ -19,8 +19,8 @@ Principles:
 
 FixInsight codes are useful for grouping, but the **message text is the source of truth**. Always read the exact message line in:
 
-- `_analysis/<project>/fixinsight/fixinsight.txt`
-- `_analysis/<project>/fixinsight/fi-findings.md`
+- `.dak/<ProjectName>/fixinsight/fixinsight.txt`
+- `.dak/<ProjectName>/fixinsight/fi-findings.md`
 
 ### Resource management / leaks
 
@@ -149,4 +149,3 @@ If we must suppress, do it **locally** and leave a short reason:
 - Specific sections: `//PALOFF STWA;WARN1;OPTI8`
 
 Prefer fixing root causes over suppression; suppress only when we understand and accept the behavior.
-
