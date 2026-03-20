@@ -52,7 +52,7 @@ uses
   System.Classes, System.IniFiles, System.IOUtils, System.RegularExpressions, System.StrUtils,
   System.Win.Registry,
   Winapi.Windows,
-  Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Project, Dak.RsVars,
+  Dak.Diagnostics, Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Project, Dak.RsVars,
   Dak.SourceContext;
 
 const
@@ -1308,6 +1308,7 @@ function TryRunBuild(const aOptions: TAppOptions; const aRunner: IBuildProcessRu
   out aExitCode: Integer; out aError: string): Boolean;
 var
   lBdsRoot: string;
+  lDiagnosticsWarnings: TDiagnostics;
   lDiagnosticsDefaults: TDiagnosticsDefaults;
   lEnvVars: TDictionary<string, string>;
   lErrLog: string;
@@ -1336,6 +1337,7 @@ begin
   aExitCode := 1;
   aError := '';
   lEnvVars := nil;
+  lDiagnosticsWarnings := nil;
   lExtraProps := '';
   lOutLog := '';
   lErrLog := '';
@@ -1352,10 +1354,16 @@ begin
   PrintVerboseStep(lNormalizedOptions, 'capture-environment');
   lEnvVars := CaptureEnvironment;
   try
+    lDiagnosticsWarnings := TDiagnostics.Create;
     PrintVerboseStep(lNormalizedOptions, 'load-settings');
     LoadBuildSettings(lNormalizedOptions.fDprojPath, lNormalizedOptions, lEnvVars, lSettings);
-    LoadDiagnosticsDefaults(nil, lNormalizedOptions.fDprojPath, lDiagnosticsDefaults);
+    LoadDiagnosticsDefaults(lDiagnosticsWarnings, lNormalizedOptions.fDprojPath, lDiagnosticsDefaults);
     ApplyDiagnosticsOverrides(lNormalizedOptions, lDiagnosticsDefaults);
+    lDiagnosticsWarnings.EmitWarnings(
+      procedure(const aMessage: string)
+      begin
+        WriteLn(aMessage);
+      end);
 
     PrintVerboseStep(lNormalizedOptions, 'resolve-msbuild');
     lBdsRoot := ResolveBdsRoot(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath);
@@ -1494,6 +1502,7 @@ begin
 
     Result := True;
   finally
+    lDiagnosticsWarnings.Free;
     lEnvVars.Free;
     if (lOutLog <> '') and FileExists(lOutLog) then
       System.SysUtils.DeleteFile(lOutLog);

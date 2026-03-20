@@ -69,6 +69,8 @@ type
     [Test]
     procedure DfmCheckFailureIncludesResolvedSourceContextWhenPascalLocationIsKnown;
     [Test]
+    procedure DfmCheckWarnsOnInvalidDiagnosticsIniValues;
+    [Test]
     procedure PipelineBuildFailureInGeneratedUnitIsClassifiedAsGeneratorIncompatibility;
     [Test]
     procedure PipelinePassesSelectedDfmFilterToValidator;
@@ -1067,6 +1069,77 @@ begin
       'Expected fail clue to include surrounding source context lines.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', nil);
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.DfmCheckWarnsOnInvalidDiagnosticsIniValues;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lOutputText: string;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+  lRoot: string;
+begin
+  CreateFixtureProject(lDprojPath);
+  lRoot := ExtractFileDir(lDprojPath);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'dak.ini'),
+    '[Build]' + #13#10 +
+    'DelphiVersion=23.0' + #13#10 +
+    '[Diagnostics]' + #13#10 +
+    'SourceContext=autoo' + #13#10 +
+    'SourceContextLines=abc' + #13#10, TEncoding.ASCII);
+
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-invalid-diagnostics');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(lRoot, 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected happy mock pipeline to succeed with warning-only diagnostics config issue.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, 'Unexpected error category for diagnostics warning case.');
+    Assert.AreEqual('', lError, 'Did not expect orchestration error text for diagnostics warning case.');
+
+    lOutputText := JoinOutput(lOutputLines);
+    Assert.IsTrue(Pos('[dfm-check] Warning: Invalid dak.ini SourceContext value: autoo', lOutputText) > 0,
+      'Expected invalid SourceContext warning in dfm-check output. Output: ' + lOutputText);
+    Assert.IsTrue(Pos('[dfm-check] Warning: Invalid dak.ini SourceContextLines value: abc', lOutputText) > 0,
+      'Expected invalid SourceContextLines warning in dfm-check output. Output: ' + lOutputText);
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
     lOutputLines.Free;
