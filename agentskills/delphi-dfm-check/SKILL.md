@@ -1,7 +1,7 @@
 ---
 name: delphi-dfm-check
-description: Enforce Delphi DFM streaming validation for form-related changes via `dfm-check` or `build --dfmcheck`.
-version: "1.1"
+description: Inspect and validate Delphi DFM forms via `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
+version: "1.2"
 ---
 
 # Delphi DFM Check
@@ -37,6 +37,16 @@ fi
 
 ## Canonical Commands
 
+Lightweight text-DFM inspection:
+
+```bash
+"$DAK_EXE" dfm-inspect --dfm "<path-to-form.dfm>" --format tree
+"$DAK_EXE" dfm-inspect --dfm "<path-to-form.dfm>" --format summary
+```
+
+Use `dfm-inspect` when we need to understand the component tree, key event bindings, or basic form shape before editing.
+It is not a substitute for `dfm-check`; inspection is optional, validation is mandatory.
+
 Standalone DFM validation:
 
 ```bash
@@ -49,6 +59,8 @@ Optional:
 - `--rsvars "<path-to-rsvars.bat>"`
 - `--dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm"` (selected forms only)
 - `--all` (validate all forms; default when `--dfm` is omitted)
+- `--source-context auto|off|on` (default `auto`; emit nearby source lines on failure when DAK can resolve them)
+- `--source-context-lines N` (default `2`; number of lines before/after the hit)
 - `--verbose true` (show stage logs and per-form progress in `--all` mode)
 
 Build with integrated DFM validation:
@@ -70,6 +82,7 @@ Defaults:
 - Non-verbose output is concise: `FAIL` lines + summary + final result.
 - Verbose output includes stage markers and full validator output.
 - In `--all --verbose`, validator prints progress lines as `CHECK <current>/<total> <resource>`.
+- When source context is enabled, handler/declaration failures append a bounded nearby snippet after the existing clue lines.
 - Exit code `0`: all streamable DFM resources are valid.
 - Exit code `>0`: one or more DFM streams failed; this blocks completion.
 - In `--all`, unchanged forms may be skipped via `<Project>.dfmcheck.cache` in the `.dproj` directory.

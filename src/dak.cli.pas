@@ -52,6 +52,8 @@ var
       aParsedCommand := TCommandKind.ckBuild
     else if SameText(aArg, 'dfm-check') then
       aParsedCommand := TCommandKind.ckDfmCheck
+    else if SameText(aArg, 'dfm-inspect') then
+      aParsedCommand := TCommandKind.ckDfmInspect
     else if SameText(aArg, 'global-vars') then
       aParsedCommand := TCommandKind.ckGlobalVars
     else
@@ -103,6 +105,7 @@ var
       SameText(aSwitch, 'project') or SameText(aSwitch, 'dproj') or
       SameText(aSwitch, 'platform') or SameText(aSwitch, 'config') or
       SameText(aSwitch, 'delphi') or SameText(aSwitch, 'rsvars') or
+      SameText(aSwitch, 'dfm') or
       SameText(aSwitch, 'envoptions') or SameText(aSwitch, 'log-file') or
       SameText(aSwitch, 'logfile') or SameText(aSwitch, 'format') or
       SameText(aSwitch, 'out-kind') or SameText(aSwitch, 'out-file') or
@@ -212,6 +215,8 @@ begin
       WriteLn(ErrOutput, SUsageBuild);
     TCommandKind.ckDfmCheck:
       WriteLn(ErrOutput, SUsageDfmCheck);
+    TCommandKind.ckDfmInspect:
+      WriteLn(ErrOutput, SUsageDfmInspect);
     TCommandKind.ckGlobalVars:
       WriteLn(ErrOutput, SUsageGlobalVars);
   else
@@ -231,6 +236,7 @@ type
     function TryParseOutKind(const aText: string; out aKind: TOutputKind): Boolean;
     function TryParseFiFormats(const aText: string; out aFormats: TReportFormatSet): Boolean;
     function TryParseBool(const aText: string; out aValue: Boolean): Boolean;
+    function TryParseSourceContextMode(const aText: string; out aMode: TSourceContextMode): Boolean;
     function TrySplitSwitch(const aParam: string; const aPrefixes: TSwitchPrefixes; out aSwitch: string;
       out aValue: string; out aHasValue: Boolean): Boolean;
     function IsKnownSwitchName(const aSwitch: string): Boolean;
@@ -265,6 +271,8 @@ type
       const aHasInlineValue: Boolean): Boolean;
     function TryParseDfmCheckSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
+    function TryParseDfmInspectSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+      const aHasInlineValue: Boolean): Boolean;
     function ValidateOptions: Boolean;
   public
     class function Create: TOptionParser; static;
@@ -297,6 +305,9 @@ begin
   fOptions.fBuildTarget := 'Build';
   fOptions.fBuildMaxFindings := 5;
   fOptions.fBuildTimeoutSec := 0;
+  fOptions.fSourceContextMode := TSourceContextMode.scmAuto;
+  fOptions.fSourceContextLines := 2;
+  fOptions.fDfmInspectFormat := 'tree';
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
   fOptions.fGlobalVarsUnusedOnly := False;
@@ -373,6 +384,19 @@ begin
   Result := True;
 end;
 
+function TOptionParser.TryParseSourceContextMode(const aText: string; out aMode: TSourceContextMode): Boolean;
+begin
+  if SameText(aText, 'auto') then
+    aMode := TSourceContextMode.scmAuto
+  else if SameText(aText, 'off') then
+    aMode := TSourceContextMode.scmOff
+  else if SameText(aText, 'on') then
+    aMode := TSourceContextMode.scmOn
+  else
+    Exit(False);
+  Result := True;
+end;
+
 function TOptionParser.TrySplitSwitch(const aParam: string; const aPrefixes: TSwitchPrefixes; out aSwitch: string;
   out aValue: string; out aHasValue: Boolean): Boolean;
 var
@@ -422,7 +446,8 @@ begin
     SameText(aSwitch, 'delphi') or SameText(aSwitch, 'rsvars') or
     SameText(aSwitch, 'envoptions') or SameText(aSwitch, 'log-file') or
     SameText(aSwitch, 'logfile') or SameText(aSwitch, 'log-tee') or
-    SameText(aSwitch, 'verbose') or SameText(aSwitch, 'help') or
+    SameText(aSwitch, 'verbose') or SameText(aSwitch, 'source-context') or
+    SameText(aSwitch, 'source-context-lines') or SameText(aSwitch, 'help') or
     SameText(aSwitch, 'h') or SameText(aSwitch, '?') or
     SameText(aSwitch, 'format') or SameText(aSwitch, 'out-kind') or
     SameText(aSwitch, 'out-file') or SameText(aSwitch, 'out') or
@@ -502,6 +527,8 @@ begin
     fOptions.fCommand := TCommandKind.ckBuild
   else if SameText(aArg, 'dfm-check') then
     fOptions.fCommand := TCommandKind.ckDfmCheck
+  else if SameText(aArg, 'dfm-inspect') then
+    fOptions.fCommand := TCommandKind.ckDfmInspect
   else if SameText(aArg, 'global-vars') then
     fOptions.fCommand := TCommandKind.ckGlobalVars
   else
@@ -572,6 +599,9 @@ begin
 
   if fOptions.fCommand = TCommandKind.ckDfmCheck then
     Exit(TryParseDfmCheckSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
+
+  if fOptions.fCommand = TCommandKind.ckDfmInspect then
+    Exit(TryParseDfmInspectSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   if fOptions.fCommand = TCommandKind.ckGlobalVars then
     Exit(TryParseGlobalVarsSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
@@ -644,6 +674,27 @@ begin
       fError := Format(SInvalidBoolValue, ['--verbose', lValue]);
       Exit(False);
     end;
+  end else if SameText(aSwitch, 'source-context') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--source-context') then
+      Exit(False);
+    if not TryParseSourceContextMode(lValue, fOptions.fSourceContextMode) then
+    begin
+      fError := Format(SInvalidSourceContext, [lValue]);
+      Exit(False);
+    end;
+    fOptions.fHasSourceContextMode := True;
+  end else if SameText(aSwitch, 'source-context-lines') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--source-context-lines') then
+      Exit(False);
+    fOptions.fSourceContextLines := StrToIntDef(lValue, -1);
+    if fOptions.fSourceContextLines < 0 then
+    begin
+      fError := Format(SInvalidSourceContextLines, [lValue]);
+      Exit(False);
+    end;
+    fOptions.fHasSourceContextLines := True;
   end else if SameText(aSwitch, 'help') or SameText(aSwitch, 'h') or SameText(aSwitch, '?') then
     aHandled := True // handled by IsHelpRequested
   else
@@ -1277,6 +1328,36 @@ begin
   Result := False;
 end;
 
+function TOptionParser.TryParseDfmInspectSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+  const aHasInlineValue: Boolean): Boolean;
+var
+  lValue: string;
+begin
+  if SameText(aSwitch, 'dfm') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--dfm') then
+      Exit(False);
+    fOptions.fDfmInspectPath := lValue;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'format') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
+      Exit(False);
+    if not SameText(lValue, 'tree') and not SameText(lValue, 'summary') then
+    begin
+      fError := 'Unsupported dfm-inspect format: ' + lValue;
+      Exit(False);
+    end;
+    fOptions.fDfmInspectFormat := LowerCase(lValue);
+    Exit(True);
+  end;
+
+  fError := Format(SUnknownArg, [aArg]);
+  Result := False;
+end;
+
 function TOptionParser.ValidateOptions: Boolean;
 begin
   if (fOptions.fCommand = TCommandKind.ckAnalyzeProject) and (fOptions.fUnitPath <> '') then
@@ -1347,6 +1428,13 @@ begin
     if fOptions.fDprojPath = '' then
     begin
       fError := Format(SArgMissingValue, ['--dproj']);
+      Exit(False);
+    end;
+  end else if fOptions.fCommand = TCommandKind.ckDfmInspect then
+  begin
+    if fOptions.fDfmInspectPath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--dfm']);
       Exit(False);
     end;
   end else if fOptions.fCommand = TCommandKind.ckGlobalVars then

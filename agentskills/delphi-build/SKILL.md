@@ -1,7 +1,7 @@
 ---
 name: delphi-build
 description: Build Delphi projects via DelphiAIKit from WSL or Windows. Use when asked to compile or rebuild a .dproj (or .dpr/.dpk with sibling .dproj), verify build output, or troubleshoot build failures.
-version: "1.2"
+version: "1.3"
 ---
 
 # Delphi Build
@@ -96,6 +96,7 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 - `platform=Win32`, `config=Release`, `target=Build`
 - `max-findings=5`
 - `build-timeout-sec=0`
+- `source-context=auto`, `source-context-lines=2`
 - warnings and hints hidden unless requested
 
 ## Key Flags
@@ -107,6 +108,8 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 - `--dfmcheck` (presence flag; when present, run DFM validation after a successful build)
 - `--dfm "<file.dfm[,file2.dfm]>"` (DFM scope for `--dfmcheck`; selected forms only)
 - `--all` (DFM scope for `--dfmcheck`; validate all forms, default when `--dfm` is omitted)
+- `--source-context auto|off|on`
+- `--source-context-lines N`
 - `--rsvars "<path>"` (overrides `rsvars.bat` for build and post-build DFM check)
 - `--show-warnings`, `--show-hints`
 - `--ai`, `--json`, `--verbose [true|false]`
@@ -120,7 +123,8 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 5. In full-scope validation, reruns may skip unchanged forms via `<Project>.dfmcheck.cache`.
 6. If automation needs structured output, rerun with `--json`.
 7. If output is locked, either stop the locking process or use `--test-output-dir`.
-8. Report actionable diagnostics with exact failing unit/error line and next fix step.
+8. Leave `--source-context` at `auto` unless we explicitly need more or less surrounding source.
+9. Report actionable diagnostics with exact failing unit/error line and next fix step.
 
 Build plus DFM check example:
 

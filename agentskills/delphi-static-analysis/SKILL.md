@@ -17,7 +17,7 @@ allowed-tools:
 
 ## Intent
 
-Use this skill when we need repeatable static analysis on Delphi code with deterministic output under `_analysis/`, followed by conservative fixes and build/test verification.
+Use this skill when we need repeatable static analysis on Delphi code with deterministic output under sibling `.dak/` working trees, followed by conservative fixes and build/test verification.
 
 Default policy:
 - Project analysis: `FixInsight=true`, `PascalAnalyzer=true`.
@@ -73,8 +73,8 @@ Path note:
 We do not call `FixInsightCL` or `PALCMD` directly in normal workflow.
 
 Default output root:
-- Project: `_analysis/<ProjectName>/`
-- Unit: `_analysis/_unit/<UnitName>/`
+- Project: `.dak/<ProjectName>/`
+- Unit: `.dak/_unit/<UnitName>/`
 
 Primary artifacts:
 - `summary.md`
@@ -89,13 +89,12 @@ Primary artifacts:
 3. Read `summary.md`, then `triage.md`.
 4. Apply only low-risk fixes in small batches.
 5. Verify with DAK build:
-   - WSL: `./build-delphi.sh <project.dproj> -config Debug -platform Win32 -ver 23 -ai`
-   - Windows: `build-delphi.bat <project.dproj> -config Debug -platform Win32 -ver 23 -ai`
+   - WSL/Windows: `"$DAK_EXE" build --project "<project.dproj>" --delphi 23.0 --platform Win32 --config Debug --ai`
 6. Re-run analysis and confirm no regression in `delta.md` / gate output.
 
 ## Report-Driven Fix Loop
 
-1. Start with `_analysis/<project>/summary.md` and `_analysis/<project>/triage.md`.
+1. Start with `.dak/<ProjectName>/summary.md` and `.dak/<ProjectName>/triage.md`.
 2. If triage is too broad, re-run with path/rule filters:
    - `DAK_EXCLUDE_PATH_MASKS="*\\3rdParty\\*;*\\lib\\*"`
    - `DAK_IGNORE_WARNING_IDS="W502;O801"`

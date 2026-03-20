@@ -26,5 +26,5 @@ Newer additions:
 - `doctor.*` preflight checks
 
 Defaults:
-- Outputs go to the analyzed project root (VCS root if we find `.git`/`.svn`, otherwise the `.dproj` directory).
-- If we detect Git, we ensure `_analysis/` is added to that repo’s `.gitignore`.
+- Project runs write under the analyzed `.dproj` directory in sibling `.dak/<ProjectName>/`.
+- Unit runs write under the analyzed unit directory in sibling `.dak/_unit/<UnitName>/`.

@@ -5,7 +5,7 @@ interface
 {$SCOPEDENUMS ON}
 
 type
-  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckGlobalVars);
+  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars);
 
   TOutputKind = (okIni, okXml, okBat);
 
@@ -16,6 +16,26 @@ type
 
   TGlobalVarsFormat = (gvfText, gvfJson);
   TGlobalVarsRefresh = (gvrAuto, gvrForce);
+  TSourceContextMode = (scmAuto, scmOff, scmOn);
+
+  TDiagnosticsDefaults = record
+    fSourceContextMode: TSourceContextMode;
+    fSourceContextLines: Integer;
+  end;
+
+  TProjectSourceLookup = record
+    fProjectDproj: string;
+    fProjectDir: string;
+    fMainSourcePath: string;
+    fSearchPaths: TArray<string>;
+  end;
+
+  TSourceContextSnippet = record
+    fFilePath: string;
+    fTargetLine: Integer;
+    fStartLine: Integer;
+    fLines: TArray<string>;
+  end;
 
   TAppOptions = record
     fCommand: TCommandKind;
@@ -30,6 +50,8 @@ type
     fBuildRunDfmCheck: Boolean;
     fDfmCheckFilter: string;
     fDfmCheckAll: Boolean;
+    fDfmInspectPath: string;
+    fDfmInspectFormat: string;
     fBuildTarget: string;
     fBuildMaxFindings: Integer;
     fBuildTimeoutSec: Integer;
@@ -44,6 +66,10 @@ type
     fHasOutPath: Boolean;
     fHasOutKind: Boolean;
     fVerbose: Boolean;
+    fSourceContextMode: TSourceContextMode;
+    fHasSourceContextMode: Boolean;
+    fSourceContextLines: Integer;
+    fHasSourceContextLines: Boolean;
     fRsVarsPath: string;
     fHasRsVarsPath: Boolean;
     fEnvOptionsPath: string;

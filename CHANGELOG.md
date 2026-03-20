@@ -12,6 +12,8 @@ All notable user-visible changes to this project will be documented in this file
 - Added `analyze` with `--project`/`--unit` to run FixInsight/PAL with stable `_analysis` output and summaries. (T-027, T-028)
 - Added build output controls: `--show-warnings`, `--show-hints`, `--ignore-warnings`, `--ignore-hints`, `--ai`. (T-058, T-060, T-061)
 - Added build options: `--target/--rebuild`, `--json`, `--max-findings`, `--build-timeout-sec`, and `--test-output-dir`. (T-062, T-063, T-064, T-065, T-066)
+- Added `dfm-inspect` with `tree` and `summary` output for lightweight text DFM inspection. (T-081)
+- Added shared source-context snippets for resolved build and `dfm-check` failures, with `--source-context` / `--source-context-lines` CLI overrides and `[Diagnostics]` `dak.ini` defaults. (T-082)
 - Added madExcept integration to `build-delphi.bat` with optional `dak.ini` key `[MadExcept].Path` and fallback discovery from common install locations.
 - Added FixInsightCL execution via `analyze --fixinsight true` (CreateProcess). (T-009)
 - Added `--log-file` (alias `--logfile`) to capture resolver diagnostics in a file. (T-010)
@@ -45,6 +47,9 @@ All notable user-visible changes to this project will be documented in this file
 - Fixed help-command detection so switch-consumed values that match command names (for example `--project analyze --help`) are no longer treated as explicit commands, and explicit command tokens are still detected correctly. (T-075)
 - Fixed FixInsight CSV delimiter/layout validation so numeric/rule-like message fragments cannot spoof headerless column layout and cause incorrect `--ignore-warning-ids` filtering. (T-075)
 - Fixed help command routing so `--help` no longer treats switch values (for example `--project C:\...`) as command tokens, and explicit commands after switch values are now detected correctly. (T-074)
+- Fixed native build madExcept gating so `.mes` `GeneralSettings` can disable post-build patching via `HandleExceptions=0` or `LinkInCode=0`, including UTF-8-with-BOM `.mes` files. (T-084)
+- Changed `analyze` so omitted `--out` now writes project/unit artifacts under sibling `.dak` working trees instead of legacy `_analysis` roots. (T-086)
+- Changed the repo-local static-analysis wrappers/docs to default to sibling `.dak` roots and to skip `.dak` artifact trees during report post-processing. (T-085)
 - Fixed `analyze` summary generation to ignore stale FixInsight TXT findings/top-codes when TXT report generation is skipped (for example `--fixinsight false --clean false`), preventing carry-over from previous runs. (T-073)
 - Fixed CLI argument validation so `analyze-unit` now rejects simultaneous `--project` and `--unit` inputs with a clear conflict error, matching `analyze` command behavior. (T-072)
 - Fixed MSBuild `Condition` parsing to treat single-quote boundaries as token delimiters for `and`/`or`, so valid expressions without surrounding whitespace (for example `'A'=='A'or'B'=='B'`) are accepted. (T-071)
