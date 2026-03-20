@@ -1,13 +1,14 @@
 # Tasks
-Next task ID: T-088
+Next task ID: T-092
 
 ## Summary
-Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 87
+Open tasks: 2 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 2)
+Done tasks: 89
 
 ## In Progress
 
 ## Next - Today
+
 
 ## Next - This Week
 
@@ -15,7 +16,67 @@ Done tasks: 87
 
 ## Blocked
 
+### T-090 Push the current local commit stack to the GitHub default branch
+Outcome:
+- The current local HEAD, including the resolved backlog, diagnostics warning follow-up, docs update, and submodule pointer update, is published to the default branch on `origin`.
+- The remote default branch points to the same commit as local HEAD after the push.
+Proof:
+- Run: `git push origin HEAD`
+  Expect: Exit code `0`.
+- Run: `git rev-parse HEAD && git rev-parse @{u}`
+  Expect: Both SHAs match after the push.
+Touches: .git/config
+Deps: T-088
+Verify: cli-proof, manual
+Notes: Blocked by `AGENTS.md`, which forbids this agent from running `git push`. `origin` now points to `https://github.com/MaxLogic/delphi-aikit.git`, so the remaining step is maintainer-initiated publish from local `master`.
+
+### T-091 Create a GitHub release for the current shipped state
+Outcome:
+- A version tag and GitHub release are created for the current published commit.
+- The release notes summarize the major shipped changes: native `build`, `dfm-inspect`, `.dak` migration, source-context diagnostics, and diagnostics warning surfacing.
+- The release is attached to the pushed default-branch commit rather than an unpublished local-only commit.
+Proof:
+- Run: `gh release create <tag> --target <published-sha> --notes-file <release-notes.md>`
+  Expect: Exit code `0`.
+- Run: `gh release view <tag>`
+  Expect: Release exists for the published target commit with the expected title/tag.
+Touches: CHANGELOG.md
+Deps: T-088, T-089, T-090
+Verify: cli-proof, manual
+Notes: Blocked until `T-090` publishes the local branch. The repo exists as `MaxLogic/delphi-aikit`, but GitHub still shows no default-branch commit because nothing has been pushed yet.
+
 ## Done
+
+### T-089 Create the GitHub repository `delphi-aikit`
+Outcome:
+- A new public GitHub repository exists at the canonical slug `MaxLogic/delphi-aikit`.
+- The local `origin` remote URL points to the new repository.
+- Any repo metadata/docs that must mention the canonical GitHub slug are updated to the new name.
+Proof:
+- Run: `gh repo view MaxLogic/delphi-aikit --json name,nameWithOwner,url`
+  Expect: `name` is `delphi-aikit` and the returned URL points to the created repository.
+- Run: `git remote get-url origin`
+  Expect: The remote URL targets `https://github.com/MaxLogic/delphi-aikit.git`.
+Touches: .git/config, README.md
+Deps: T-088
+Verify: cli-proof, manual
+Notes: Superseded the earlier rename plan after confirming this repository was local-only and had no existing GitHub remote to rename. Created the new public repo via `gh repo create MaxLogic/delphi-aikit --public --source=. --remote=origin` without pushing local commits.
+
+### T-088 Configure GitHub remote and CLI auth for repo admin operations
+Outcome:
+- The repo has a configured `origin` remote that points to the canonical GitHub repository.
+- `gh` is installed and authenticated in the maintainer environment with sufficient rights for repo rename and release operations.
+- The local environment can query repo metadata and release state non-interactively.
+Proof:
+- Run: `git remote -v`
+  Expect: `origin` fetch/push URLs are present and point to the canonical GitHub repo.
+- Run: `gh auth status`
+  Expect: Exit code `0` with an authenticated account that can administer the target repository.
+- Run: `gh repo view --json name,nameWithOwner,url`
+  Expect: Exit code `0` and repository metadata for the configured `origin`.
+Touches: .git/config
+Verify: cli-proof, manual
+Notes: Verified `gh` 2.88.1 is installed and authenticated as `MaxLogic`, then wired `origin` to the new `MaxLogic/delphi-aikit` repository.
 
 ### T-087 [CLI] Warn on invalid `[Diagnostics]` dak.ini values
 Outcome:
