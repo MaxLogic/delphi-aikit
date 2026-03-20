@@ -9,7 +9,7 @@ uses
   Winapi.Messages,
   Winapi.Windows,
   DfmCheck_Utils,
-  Dak.FixInsightSettings, Dak.Messages, Dak.RsVars, Dak.Types;
+  Dak.FixInsightSettings, Dak.Messages, Dak.RsVars, Dak.SourceContext, Dak.Types;
 
 type
   TDfmCheckErrorCategory = (
@@ -1112,8 +1112,13 @@ begin
 end;
 
 procedure EmitFailedResourceGuidance(const aOutput: TDfmCheckOutputProc; const aFailedResources: TStrings;
-  const aFailReasons: TStrings; const aModules: TArray<TDfmCacheModule>);
+  const aFailReasons: TStrings; const aModules: TArray<TDfmCacheModule>;
+  const aDiagnosticsDefaults: TDiagnosticsDefaults);
 var
+  lContext: TSourceContextSnippet;
+  lContextError: string;
+  lContextLine: string;
+  lContextLines: TArray<string>;
   lDeclaration: string;
   lDeclarationLine: Integer;
   lEventName: string;
@@ -1157,8 +1162,18 @@ begin
         lDeclarationLine := 0;
         lDeclaration := '';
         if TryFindHandlerDeclarationInPas(lModule.fPasPath, lMethodName, lDeclarationLine, lDeclaration) then
+        begin
           EmitLine(aOutput, Format('[dfm-check] FAIL clue: handler declaration line=%d: %s',
-            [lDeclarationLine, lDeclaration]))
+            [lDeclarationLine, lDeclaration]));
+          if ShouldEmitSourceContext(aDiagnosticsDefaults.fSourceContextMode, True) and
+            TryReadSourceContext(lModule.fPasPath, lDeclarationLine, aDiagnosticsDefaults.fSourceContextLines, lContext,
+            lContextError) then
+          begin
+            lContextLines := FormatSourceContextLines(lContext);
+            for lContextLine in lContextLines do
+              EmitLine(aOutput, '[dfm-check] FAIL clue: ' + lContextLine);
+          end;
+        end
         else
           EmitLine(aOutput, '[dfm-check] FAIL clue: handler declaration not found in ' + lModule.fPasPath);
       end;
@@ -2709,6 +2724,7 @@ var
   lCopiedDfmStreamAll: Boolean;
   lCopiedRuntimeGuard: Boolean;
   lDelphiVersion: string;
+  lDiagnosticsDefaults: TDiagnosticsDefaults;
   lDprojPath: string;
   lEffectiveOptions: TAppOptions;
   lFailedResources: TStringList;
@@ -2791,6 +2807,8 @@ begin
       aCategory := TDfmCheckErrorCategory.ecInvalidInput;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
+    LoadDiagnosticsDefaults(nil, lDprojPath, lDiagnosticsDefaults);
+    ApplyDiagnosticsOverrides(aOptions, lDiagnosticsDefaults);
 
     if lOriginalAllRequested then
     begin
@@ -3036,7 +3054,7 @@ begin
     if (lExitCode <> 0) and (not lVerbose) and (lFailLines = 0) then
       EmitLine(aOutput, '[dfm-check] FAIL details hidden or unavailable. Re-run with --verbose.');
     if lFailLines > 0 then
-      EmitFailedResourceGuidance(aOutput, lFailedResources, lFailReasons, lDiagnosticModules);
+      EmitFailedResourceGuidance(aOutput, lFailedResources, lFailReasons, lDiagnosticModules, lDiagnosticsDefaults);
 
     if lExitCode = 0 then
       EmitLine(aOutput, '[dfm-check] Result: OK')

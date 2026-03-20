@@ -687,7 +687,7 @@ def _repo_unique_basename_index(repo_root: Path) -> dict[str, str]:
         for p in repo_root.rglob(pat):
             # Skip analysis artifacts and VCS internals.
             parts = {x.lower() for x in p.parts}
-            if ".git" in parts or "_analysis" in parts:
+            if ".git" in parts or "_analysis" in parts or ".dak" in parts:
                 continue
             try:
                 rel = p.relative_to(repo_root).as_posix()
@@ -1347,7 +1347,7 @@ def _build_pascal_unit_index(repo_root: Path) -> dict[str, str]:
         for p in repo_root.rglob(pat):
             # Skip analysis artifacts and VCS internals.
             parts = {x.lower() for x in p.parts}
-            if ".git" in parts or "_analysis" in parts:
+            if ".git" in parts or "_analysis" in parts or ".dak" in parts:
                 continue
             try:
                 rel = p.relative_to(repo_root).as_posix()

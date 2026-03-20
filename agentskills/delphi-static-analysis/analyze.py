@@ -54,21 +54,6 @@ def _find_vcs_root(start_dir: Path) -> tuple[Optional[Path], str]:
         p = p.parent
 
 
-def _ensure_gitignore_has_analysis_root(repo_root: Path) -> None:
-    gitignore_path = repo_root / ".gitignore"
-    needle_re = re.compile(r"(?m)^[ \t]*_analysis/[ \t]*$")
-    try:
-        content = gitignore_path.read_text(encoding="utf-8", errors="replace") if gitignore_path.exists() else ""
-        if needle_re.search(content):
-            return
-        if content and not content.endswith("\n"):
-            content += "\n"
-        content += "_analysis/\n"
-        gitignore_path.write_text(content, encoding="utf-8", errors="replace")
-    except Exception as e:
-        print(f"WARNING: failed to update {gitignore_path}: {e}", file=sys.stderr)
-
-
 def _to_win_arg(p: Path) -> str:
     s = str(p)
     if not _is_wsl():
@@ -168,11 +153,7 @@ def _maybe_add_arg(args: list[str], flag: str, value: Optional[str]) -> None:
 def _resolve_out_root(repo_root: Path, dproj: Path) -> Path:
     raw = os.environ.get("DAK_OUT", "").strip()
     if not raw:
-        vcs_root, vcs = _find_vcs_root(dproj.parent)
-        base = vcs_root if vcs_root is not None else dproj.parent
-        if vcs == "git":
-            _ensure_gitignore_has_analysis_root(base)
-        return base / "_analysis" / dproj.stem
+        return dproj.parent / ".dak" / dproj.stem
     if _is_wsl() and _looks_like_windows_path(raw):
         p = Path(_wslpath_to_unix(raw))
     else:

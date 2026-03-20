@@ -2,9 +2,9 @@
 
 ## Generated triage.md (shortlist)
 
-Our `postprocess.py` emits `_analysis/<project>/triage.md` as a prioritized shortlist (top 20 by default; override with `DAK_TRIAGE_TOP=<N>`). It is intentionally a *short* "what to fix next" view; full detail remains in `fi-findings.*` and `pal-findings.*` / raw PAL XML.
+Our `postprocess.py` emits `.dak/<ProjectName>/triage.md` as a prioritized shortlist (top 20 by default; override with `DAK_TRIAGE_TOP=<N>`). It is intentionally a *short* "what to fix next" view; full detail remains in `fi-findings.*` and `pal-findings.*` / raw PAL XML.
 
-Optional: set `DAK_TRIAGE_SNIPPETS=1` to also emit `_analysis/<project>/triage-snippets.md` with small, bounded source snippets for the top triage items. This is meant to speed up fixing without opening files manually; it will only include snippets for repo-local paths that exist on disk.
+Optional: set `DAK_TRIAGE_SNIPPETS=1` to also emit `.dak/<ProjectName>/triage-snippets.md` with small, bounded source snippets for the top triage items. This is meant to speed up fixing without opening files manually; it will only include snippets for repo-local paths that exist on disk.
 
 ## FixInsight (signal first)
 

@@ -10,6 +10,7 @@ resourcestring
     '  analyze   Run FixInsight / Pascal Analyzer' + #13#10 +
     '  build     Build a Delphi project (.dproj; or .dpr/.dpk with sibling .dproj)' + #13#10 +
     '  dfm-check Validate DFM streaming via generated _DfmCheck harness project' + #13#10 +
+    '  dfm-inspect Inspect text DFM structure and event bindings' + #13#10 +
     '  global-vars List project global variables and their routine usages' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
   SUsageResolve =
@@ -40,10 +41,14 @@ resourcestring
     '[--json [true|false]] [--max-findings <N>] [--build-timeout-sec <N default 0>] [--test-output-dir "<path>"] ' +
     '[--ai] [--show-warnings] [--show-hints] [--dfmcheck] ' +
     '[--dfm "<file.dfm[,file2.dfm]>"] [--all] ' +
-    '[--ignore-warnings "<list>"] [--ignore-hints "<list>"] [--exclude-path-masks "<list>"] [--rsvars "<path>"]';
+    '[--ignore-warnings "<list>"] [--ignore-hints "<list>"] [--exclude-path-masks "<list>"] ' +
+    '[--source-context <auto|off|on>] [--source-context-lines <N>] [--rsvars "<path>"]';
   SUsageDfmCheck =
     'DelphiAIKit.exe dfm-check --dproj "<path>" [--delphi <23.0>] [--config <Release|Debug>] [--platform <Win32|Win64>] ' +
-    '[--dfm "<file.dfm[,file2.dfm]>"] [--all] [--rsvars "<path>"] [--verbose [true|false]]';
+    '[--dfm "<file.dfm[,file2.dfm]>"] [--all] [--source-context <auto|off|on>] ' +
+    '[--source-context-lines <N>] [--rsvars "<path>"] [--verbose [true|false]]';
+  SUsageDfmInspect =
+    'DelphiAIKit.exe dfm-inspect --dfm "<path>" [--format <tree|summary>]';
   SUsageGlobalVars =
     'DelphiAIKit.exe global-vars --project "<path>" [--format <text|json>] [--output "<path>|-"] ' +
     '[--cache "<path>"] [--refresh <auto|force>] [--unused-only] [--unit "<pattern>"] [--name "<pattern>"] ' +
@@ -56,6 +61,8 @@ resourcestring
   SInvalidBuildTarget = 'Invalid --target value: %s (expected Build or Rebuild).';
   SInvalidMaxFindings = 'Invalid --max-findings value: %s (expected integer >= 1).';
   SInvalidBuildTimeout = 'Invalid --build-timeout-sec value: %s (expected integer >= 0).';
+  SInvalidSourceContext = 'Invalid --source-context value: %s (expected auto, off, or on).';
+  SInvalidSourceContextLines = 'Invalid --source-context-lines value: %s (expected integer >= 0).';
   SInvalidFiFormats = 'Invalid --fi-formats value: %s';
   SGlobalVarsInvalidFormat = 'Unsupported global-vars format: %s';
   SGlobalVarsInvalidRefresh = 'Unsupported global-vars refresh mode: %s';

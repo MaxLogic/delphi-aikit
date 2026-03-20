@@ -14,11 +14,14 @@ function LoadSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
 function LoadSettings(aDiagnostics: TDiagnostics; out aFixInsight: TFixInsightExtraOptions;
   out aFixInsightIgnore: TFixInsightIgnoreDefaults; out aReportFilter: TReportFilterDefaults;
   out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean; overload;
+function LoadDiagnosticsDefaults(aDiagnostics: TDiagnostics; const aDprojPath: string;
+  out aDiagnosticsDefaults: TDiagnosticsDefaults): Boolean;
 function BuildSettingsPaths(const aDprojPath: string): TArray<string>;
 function LoadDefaultDelphiVersion(const aDprojPath: string; out aDelphiVersion: string): Boolean;
 procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
   var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
   var aPascalAnalyzer: TPascalAnalyzerDefaults);
+procedure ApplyDiagnosticsOverrides(const aOverrides: TAppOptions; var aDiagnosticsDefaults: TDiagnosticsDefaults);
 
 implementation
 
@@ -162,6 +165,19 @@ begin
     aResult := True
   else if SameText(aValue, 'false') or SameText(aValue, '0') or SameText(aValue, 'no') then
     aResult := False
+  else
+    Exit(False);
+  Result := True;
+end;
+
+function TryParseSourceContextModeText(const aValue: string; out aMode: TSourceContextMode): Boolean;
+begin
+  if SameText(aValue, 'auto') then
+    aMode := TSourceContextMode.scmAuto
+  else if SameText(aValue, 'off') then
+    aMode := TSourceContextMode.scmOff
+  else if SameText(aValue, 'on') then
+    aMode := TSourceContextMode.scmOn
   else
     Exit(False);
   Result := True;
@@ -349,6 +365,51 @@ begin
   end;
 end;
 
+function LoadDiagnosticsDefaults(aDiagnostics: TDiagnostics; const aDprojPath: string;
+  out aDiagnosticsDefaults: TDiagnosticsDefaults): Boolean;
+var
+  lIni: TIniFile;
+  lLines: Integer;
+  lMode: TSourceContextMode;
+  lPath: string;
+  lPaths: TArray<string>;
+  lValue: string;
+begin
+  aDiagnosticsDefaults := Default(TDiagnosticsDefaults);
+  aDiagnosticsDefaults.fSourceContextMode := TSourceContextMode.scmAuto;
+  aDiagnosticsDefaults.fSourceContextLines := 2;
+  Result := True;
+  lPaths := BuildSettingsPaths(aDprojPath);
+  for lPath in lPaths do
+  begin
+    if not FileExists(lPath) then
+      Continue;
+    lIni := TIniFile.Create(lPath);
+    try
+      lValue := Trim(lIni.ReadString(SDiagnosticsSection, 'SourceContext', ''));
+      if lValue <> '' then
+      begin
+        if TryParseSourceContextModeText(lValue, lMode) then
+          aDiagnosticsDefaults.fSourceContextMode := lMode
+        else if aDiagnostics <> nil then
+          aDiagnostics.AddWarning('Invalid dak.ini SourceContext value: ' + lValue);
+      end;
+
+      lValue := Trim(lIni.ReadString(SDiagnosticsSection, 'SourceContextLines', ''));
+      if lValue <> '' then
+      begin
+        lLines := StrToIntDef(lValue, -1);
+        if lLines >= 0 then
+          aDiagnosticsDefaults.fSourceContextLines := lLines
+        else if aDiagnostics <> nil then
+          aDiagnostics.AddWarning('Invalid dak.ini SourceContextLines value: ' + lValue);
+      end;
+    finally
+      lIni.Free;
+    end;
+  end;
+end;
+
 procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
   var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
   var aPascalAnalyzer: TPascalAnalyzerDefaults);
@@ -378,6 +439,14 @@ begin
     aPascalAnalyzer.fOutput := aOverrides.fPaOutput;
   if aOverrides.fHasPaArgs then
     aPascalAnalyzer.fArgs := aOverrides.fPaArgs;
+end;
+
+procedure ApplyDiagnosticsOverrides(const aOverrides: TAppOptions; var aDiagnosticsDefaults: TDiagnosticsDefaults);
+begin
+  if aOverrides.fHasSourceContextMode then
+    aDiagnosticsDefaults.fSourceContextMode := aOverrides.fSourceContextMode;
+  if aOverrides.fHasSourceContextLines then
+    aDiagnosticsDefaults.fSourceContextLines := aOverrides.fSourceContextLines;
 end;
 
 end.

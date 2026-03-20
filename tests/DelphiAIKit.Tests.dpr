@@ -16,6 +16,7 @@ uses
   Test.Support in 'units\\test.support.pas',
   Test.Build in 'units\\test.build.pas',
   Test.Cli in 'units\\test.cli.pas',
+  Test.DfmInspect in 'units\\test.dfminspect.pas',
   Test.DfmCheck in 'units\\test.dfmcheck.pas',
   Test.Diagnostics in 'units\\test.diagnostics.pas',
   Test.FixInsight in 'units\\test.fixinsight.pas',
@@ -23,6 +24,7 @@ uses
   Test.PalFindingNormalize in 'units\\test.palfindingnormalize.pas',
   Test.ReportPostProcess in 'units\\test.reportpostprocess.pas',
   Test.PascalAnalyzer in 'units\\test.pascalanalyzer.pas',
+  Test.SourceContext in 'units\\test.sourcecontext.pas',
   ToolsAPIRepl in '..\\lib\\DFMCheck\\Source\\Console\\ToolsAPIRepl.pas';
 
 var

@@ -9,6 +9,7 @@
 - Merge project search paths with the IDE library path
 - Emit FixInsightCL parameters as `ini`, `xml`, or a runnable `bat`
 - Validate compiled DFM resources via `dfm-check` (generated harness + DFM stream gate)
+- Inspect text DFM component trees and event bindings via `dfm-inspect`
 - Analyze project-level globals via `global-vars` with JSON/text reports, ambiguity reporting, and SQLite caching
 
 ## Good use cases
@@ -65,6 +66,8 @@ Additional build flags:
 - `--dfmcheck` runs DFM streaming validation after a successful build (presence flag; same as calling `dfm-check` separately).
 - `--dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm"` scopes post-build `--dfmcheck` to selected forms.
 - `--all` scopes post-build `--dfmcheck` to all forms (default when `--dfm` is omitted).
+- `--source-context auto|off|on` controls whether build/`dfm-check` failure output includes nearby source lines when a file and line can be resolved.
+- `--source-context-lines N` controls how many lines before/after the hit are shown (default `2`).
 - `--rsvars "<path>"` overrides `rsvars.bat` for build and post-build `--dfmcheck` validation.
 
 ## Quick start
@@ -107,10 +110,21 @@ To run FixInsightCL directly, use `analyze` (FixInsight is on by default):
 bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0
 ```
 
+When `--out` is omitted, `analyze` writes under the target's sibling `.dak` working tree:
+- project runs: `.dak/<ProjectName>/`
+- unit runs: `.dak/_unit/<UnitName>/`
+
 To validate DFMs in CI using generated DFMCheck projects:
 
 ```
 bin\DelphiAIKit.exe dfm-check --dproj "C:\path\Project.dproj" --config Release --platform Win32 --all
+```
+
+To inspect a text DFM without generating a harness project:
+
+```
+bin\DelphiAIKit.exe dfm-inspect --dfm "tests\fixtures\MainForm.dfm" --format tree
+bin\DelphiAIKit.exe dfm-inspect --dfm "tests\fixtures\MainForm.dfm" --format summary
 ```
 
 To analyze global variables used in a Delphi project:
@@ -124,6 +138,8 @@ Optional:
 - `--rsvars "C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat"` imports RAD Studio environment variables before `msbuild`.
 - `--dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm"` validates only selected DFM resources.
 - `--all` validates all DFM resources (default when `--dfm` is not provided).
+- `--source-context auto|off|on` controls whether failures emit nearby source lines when DAK can resolve the file.
+- `--source-context-lines N` controls the bounded source window (default `2`, meaning 2 lines before and after).
 - `--verbose true` shows stage logs and detailed per-resource output.
 - `tools\Validate-Dfm.ps1` is a thin wrapper around the same CLI command.
 
@@ -161,6 +177,7 @@ If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-onl
   - `[dfm-check] FAIL clue: member=...`
   - `[dfm-check] FAIL clue: handler=...`
   - `[dfm-check] FAIL clue: handler declaration line=<N>: procedure ...`
+  - `[dfm-check] FAIL clue: source context: <file>`
   - `[dfm-check] FAIL clue: verify handler signature matches event type for <On...>.`
 
 ## `global-vars`
@@ -343,11 +360,18 @@ Path=
 [Build]
 ; optional default Delphi version used when --delphi is omitted (for example: dfm-check)
 DelphiVersion=
+
+[Diagnostics]
+; bounded source snippets for build/dfm-check failures
+; SourceContext = auto | off | on
+; SourceContextLines = lines shown before/after the hit (default 2)
+SourceContext=auto
+SourceContextLines=2
 ```
 
 `Path` is optional and can point to FixInsightCL.exe (or its folder). Relative paths are resolved against the executable folder.
 
-`[MadExcept].Path` is optional and can point to `madExceptPatch.exe` (or its folder). If empty, `build-delphi.bat` tries `PATH` and common madExcept install folders.
+`[MadExcept].Path` is optional and can point to `madExceptPatch.exe` (or its folder). If empty, the native `build` runner falls back to `PATH` and common madExcept install folders.
 
 ## Report filtering (post-processing)
 
@@ -403,7 +427,7 @@ bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 -
 - If the IDE library path is not in the registry, we fall back to `EnvOptions.proj` from `BDSUSERDIR`.
   If `BDSUSERDIR` is missing, we derive it from `%APPDATA%\Embarcadero\BDS\<version>` and then `%USERPROFILE%\Documents\Embarcadero\Studio\<version>`.
 - We resolve `FixInsightCL.exe` from `dak.ini` (`Path`), then `PATH`, then FixInsight registry keys (HKCU/HKLM, 32/64-bit).
-- `build-delphi.bat` runs `madExceptPatch.exe` only when a sibling `.mes` exists, the `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected build config/platform.
+- The native `build` runner runs `madExceptPatch.exe` only when a sibling `.mes` exists, the `.dpr`/`.dproj` base names match, `madExcept` is defined for the selected build config/platform, and `.mes` `GeneralSettings` does not disable `LinkInCode` or `HandleExceptions`.
 - Sample inputs live in `tests\fixtures\` so we can quickly try the resolver.
 - `scripts\fixinsight-selftest\fixinsight-run.bat` runs FixInsight against this repo and can generate raw reports under `scripts\fixinsight-selftest\Reports\`.
 - `scripts\pascal-analyzer-selftest\pascal-analyzer-run.bat` runs Pascal Analyzer against this repo and writes reports under `scripts\pascal-analyzer-selftest\Reports\`.
