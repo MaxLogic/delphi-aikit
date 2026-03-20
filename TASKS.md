@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-087
+Next task ID: T-088
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 86
+Done tasks: 87
 
 ## In Progress
 
@@ -16,6 +16,22 @@ Done tasks: 86
 ## Blocked
 
 ## Done
+
+### T-087 [CLI] Warn on invalid `[Diagnostics]` dak.ini values
+Outcome:
+- Invalid `[Diagnostics]` values in `dak.ini` no longer fail silently in `build` and `dfm-check`; they are surfaced as warnings while DAK still falls back to safe defaults.
+- `build` emits warnings when `SourceContext` or `SourceContextLines` are invalid in layered `dak.ini` settings.
+- `dfm-check` emits structured warning lines for the same invalid diagnostics settings instead of silently ignoring them.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests.BuildWarnsOnInvalidDiagnosticsIniValues,Test.DfmCheck.TDfmCheckTests.DfmCheckWarnsOnInvalidDiagnosticsIniValues -cm:Quiet`
+  Expect: Tests Found `2`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -cm:Quiet`
+  Expect: Exit code `0`.
+- Run: `timeout 1800 ./tests/run.sh`
+  Expect: Exit code `0`.
+Touches: src/dak.build.pas, src/dak.dfmcheck.pas, src/dak.diagnostics.pas, tests/units/test.build.pas, tests/units/test.dfmcheck.pas
+Verify: unit-test, cli-proof
+Notes: Follow-up from the T-082 review. Keep invalid diagnostics config as a warning-only condition with fallback defaults rather than turning it into a hard failure.
 
 ### T-083 [DOC] Refresh repo-local agent skills for current DAK capabilities
 Outcome:
