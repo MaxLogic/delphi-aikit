@@ -49,6 +49,8 @@ type
     [Test]
     procedure BuildStillRunsMadExceptPatchWhenMesEnablesMadExcept;
     [Test]
+    procedure BuildWarnsOnInvalidDiagnosticsIniValues;
+    [Test]
     procedure BuildSummaryIncludesResolvedSourceContextForErrors;
     [Test]
     procedure ParseBuildLogsAppliesIgnoreAndExcludeFilters;
@@ -523,6 +525,62 @@ begin
   Assert.IsTrue(SameText(lCapturingRunner.fExePaths[1], lPatchExePath),
     'Expected the second process invocation to be madExceptPatch.exe. Calls: ' +
     DescribeCapturedProcesses(lCapturingRunner));
+end;
+
+procedure TBuildTests.BuildWarnsOnInvalidDiagnosticsIniValues;
+var
+  lCapturedOutput: string;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lPatchExePath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunnerImpl: TCapturingBuildRunner;
+  lRunner: IBuildProcessRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'build-invalid-diagnostics');
+  if TDirectory.Exists(lProjectRoot) then
+    TDirectory.Delete(lProjectRoot, True);
+  TDirectory.CreateDirectory(lProjectRoot);
+
+  PrepareMadExceptBuildFixture(lProjectRoot,
+    '[GeneralSettings]' + sLineBreak +
+    'HandleExceptions=0' + sLineBreak +
+    'LinkInCode=0' + sLineBreak,
+    lDprojPath, lRsVarsPath, lPatchExePath);
+  WriteIniTextFile(TPath.Combine(lProjectRoot, 'dak.ini'),
+    '[MadExcept]' + sLineBreak +
+    'Path=' + lPatchExePath + sLineBreak +
+    '[Diagnostics]' + sLineBreak +
+    'SourceContext=autoo' + sLineBreak +
+    'SourceContextLines=abc' + sLineBreak);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRsVarsPath := lRsVarsPath;
+  lOptions.fHasRsVarsPath := True;
+
+  lRunnerImpl := TCapturingBuildRunner.Create;
+  lRunner := lRunnerImpl;
+  lError := '';
+  lCapturedOutput := CaptureConsoleOutput(
+    procedure
+    begin
+      Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+        'Expected build run to complete. Error: ' + lError);
+    end);
+
+  Assert.AreEqual(0, lExitCode, 'Expected scripted build success for warning-only configuration issue.');
+  Assert.IsTrue(Pos('Invalid dak.ini SourceContext value: autoo', lCapturedOutput) > 0,
+    'Expected invalid SourceContext warning in build output. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('Invalid dak.ini SourceContextLines value: abc', lCapturedOutput) > 0,
+    'Expected invalid SourceContextLines warning in build output. Output: ' + lCapturedOutput);
 end;
 
 procedure TBuildTests.BuildSummaryIncludesResolvedSourceContextForErrors;

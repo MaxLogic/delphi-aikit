@@ -8,6 +8,8 @@ uses
   Dak.Messages;
 
 type
+  TDiagnosticsEmitProc = reference to procedure(const aMessage: string);
+
   TStringSet = class
   private
     fItems: TList<string>;
@@ -49,6 +51,7 @@ type
     procedure AddWarning(const aMessage: string);
     procedure AddNote(const aMessage: string);
     procedure AddInfo(const aMessage: string);
+    procedure EmitWarnings(const aEmit: TDiagnosticsEmitProc);
     procedure WriteToStderr;
     property Verbose: Boolean read fVerbose write fVerbose;
     property LogToStderr: Boolean read fLogToStderr write fLogToStderr;
@@ -346,6 +349,16 @@ begin
   if (not fVerbose) or (aMessage = '') then
     Exit;
   WriteLine(aMessage);
+end;
+
+procedure TDiagnostics.EmitWarnings(const aEmit: TDiagnosticsEmitProc);
+var
+  lItem: string;
+begin
+  if not Assigned(aEmit) then
+    Exit;
+  for lItem in fWarnings do
+    aEmit(lItem);
 end;
 
 procedure TDiagnostics.WriteToStderr;

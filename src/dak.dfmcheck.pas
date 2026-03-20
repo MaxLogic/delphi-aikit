@@ -9,7 +9,7 @@ uses
   Winapi.Messages,
   Winapi.Windows,
   DfmCheck_Utils,
-  Dak.FixInsightSettings, Dak.Messages, Dak.RsVars, Dak.SourceContext, Dak.Types;
+  Dak.Diagnostics, Dak.FixInsightSettings, Dak.Messages, Dak.RsVars, Dak.SourceContext, Dak.Types;
 
 type
   TDfmCheckErrorCategory = (
@@ -2724,6 +2724,7 @@ var
   lCopiedDfmStreamAll: Boolean;
   lCopiedRuntimeGuard: Boolean;
   lDelphiVersion: string;
+  lDiagnostics: TDiagnostics;
   lDiagnosticsDefaults: TDiagnosticsDefaults;
   lDprojPath: string;
   lEffectiveOptions: TAppOptions;
@@ -2783,6 +2784,7 @@ begin
   lDiagnosticError := '';
   lOriginalAllRequested := aOptions.fDfmCheckAll or (Trim(aOptions.fDfmCheckFilter) = '');
   lBuildLines := TStringList.Create;
+  lDiagnostics := nil;
   lFailedResources := TStringList.Create;
   lFailReasons := TStringList.Create;
 
@@ -2807,8 +2809,14 @@ begin
       aCategory := TDfmCheckErrorCategory.ecInvalidInput;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
-    LoadDiagnosticsDefaults(nil, lDprojPath, lDiagnosticsDefaults);
+    lDiagnostics := TDiagnostics.Create;
+    LoadDiagnosticsDefaults(lDiagnostics, lDprojPath, lDiagnosticsDefaults);
     ApplyDiagnosticsOverrides(aOptions, lDiagnosticsDefaults);
+    lDiagnostics.EmitWarnings(
+      procedure(const aMessage: string)
+      begin
+        EmitLine(aOutput, '[dfm-check] Warning: ' + aMessage);
+      end);
 
     if lOriginalAllRequested then
     begin
@@ -3069,6 +3077,7 @@ begin
     else
       Result := MapDfmCheckExitCode(TDfmCheckErrorCategory.ecValidatorFailed, 0);
   finally
+    lDiagnostics.Free;
     lFailReasons.Free;
     lFailedResources.Free;
     lBuildLines.Free;
