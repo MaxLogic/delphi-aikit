@@ -77,6 +77,7 @@ type
   end;
 
 function TryResolveDfmCheckProjectPath(const aInputPath: string; out aDprojPath: string; out aError: string): Boolean;
+function TryResolveBundledInjectDir(const aExePath: string; out aInjectDir: string; out aError: string): Boolean;
 function BuildExpectedDfmCheckPaths(const aDprojPath: string): TDfmCheckPaths;
 function TryLocateGeneratedDfmCheckProject(var aPaths: TDfmCheckPaths; out aError: string): Boolean;
 function TryPatchDfmCheckDpr(const aInputText: string; out aOutputText: string; out aChanged: Boolean;
@@ -1637,11 +1638,33 @@ end;
 
 function TryResolveInjectDir(out aInjectDir: string; out aError: string): Boolean;
 var
+  lInjectOverride: string;
+begin
+  aInjectDir := '';
+  aError := '';
+
+  lInjectOverride := Trim(GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR'));
+  if lInjectOverride <> '' then
+  begin
+    if not TryResolveAbsolutePath(lInjectOverride, aInjectDir, aError) then
+      Exit(False);
+    if not DirectoryExists(aInjectDir) then
+    begin
+      aError := 'Inject directory not found: ' + aInjectDir;
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  Result := TryResolveBundledInjectDir(ParamStr(0), aInjectDir, aError);
+end;
+
+function TryResolveBundledInjectDir(const aExePath: string; out aInjectDir: string; out aError: string): Boolean;
+var
   lCandidate: string;
   lCandidates: TList<string>;
   lCurrentDir: string;
   lExeDir: string;
-  lInjectOverride: string;
   lNextDir: string;
   lVisitedDirs: TList<string>;
   procedure AddCandidate(const aBaseDir: string; const aRelativePath: string);
@@ -1669,21 +1692,7 @@ var
 begin
   aInjectDir := '';
   aError := '';
-
-  lInjectOverride := Trim(GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR'));
-  if lInjectOverride <> '' then
-  begin
-    if not TryResolveAbsolutePath(lInjectOverride, aInjectDir, aError) then
-      Exit(False);
-    if not DirectoryExists(aInjectDir) then
-    begin
-      aError := 'Inject directory not found: ' + aInjectDir;
-      Exit(False);
-    end;
-    Exit(True);
-  end;
-
-  lExeDir := ExcludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)));
+  lExeDir := ExcludeTrailingPathDelimiter(ExtractFilePath(aExePath));
   lCandidates := TList<string>.Create;
   lVisitedDirs := TList<string>.Create;
   try
