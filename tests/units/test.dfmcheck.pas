@@ -49,6 +49,10 @@ type
     [Test]
     procedure BuildExpectedPathsIsDeterministic;
     [Test]
+    procedure ResolveBundledInjectDirWalksUpToAncestorToolsInject;
+    [Test]
+    procedure ResolveBundledInjectDirFallsBackToAncestorDocsInject;
+    [Test]
     procedure PatchDprIsIdempotentAndPreservesSyntax;
     [Test]
     procedure PatchDprRewritesProgramNameAndRemovesMadExceptConditional;
@@ -496,6 +500,50 @@ begin
     ExcludeTrailingPathDelimiter(lPaths.fGeneratedDir));
   Assert.AreEqual(TPath.Combine(lPaths.fGeneratedDir, 'Sample_DfmCheck.dproj'), lPaths.fGeneratedDproj);
   Assert.AreEqual(TPath.Combine(lPaths.fGeneratedDir, 'Sample_DfmCheck.dpr'), lPaths.fGeneratedDpr);
+end;
+
+procedure TDfmCheckTests.ResolveBundledInjectDirWalksUpToAncestorToolsInject;
+var
+  lError: string;
+  lExePath: string;
+  lExpectedInjectDir: string;
+  lResolvedInjectDir: string;
+  lRoot: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'dfm-check-bundled-inject-tools');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+
+  lExpectedInjectDir := TPath.Combine(lRoot, 'tools\inject');
+  WriteInjectStubs(lExpectedInjectDir);
+  lExePath := TPath.Combine(lRoot, '_build_verify\tests-after-inject-fix\DelphiAIKit.exe');
+  TDirectory.CreateDirectory(ExtractFileDir(lExePath));
+
+  Assert.IsTrue(TryResolveBundledInjectDir(lExePath, lResolvedInjectDir, lError),
+    'Expected ancestor tools\\inject to be discovered. Error: ' + lError);
+  Assert.AreEqual(ExcludeTrailingPathDelimiter(lExpectedInjectDir), ExcludeTrailingPathDelimiter(lResolvedInjectDir));
+end;
+
+procedure TDfmCheckTests.ResolveBundledInjectDirFallsBackToAncestorDocsInject;
+var
+  lError: string;
+  lExePath: string;
+  lExpectedInjectDir: string;
+  lResolvedInjectDir: string;
+  lRoot: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'dfm-check-bundled-inject-docs');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+
+  lExpectedInjectDir := TPath.Combine(lRoot, 'docs\delphi-dfm-checker\tools\inject');
+  WriteInjectStubs(lExpectedInjectDir);
+  lExePath := TPath.Combine(lRoot, '_build_verify\tests-after-inject-fix\DelphiAIKit.exe');
+  TDirectory.CreateDirectory(ExtractFileDir(lExePath));
+
+  Assert.IsTrue(TryResolveBundledInjectDir(lExePath, lResolvedInjectDir, lError),
+    'Expected ancestor docs\\delphi-dfm-checker\\tools\\inject fallback to be discovered. Error: ' + lError);
+  Assert.AreEqual(ExcludeTrailingPathDelimiter(lExpectedInjectDir), ExcludeTrailingPathDelimiter(lResolvedInjectDir));
 end;
 
 procedure TDfmCheckTests.PatchDprIsIdempotentAndPreservesSyntax;
