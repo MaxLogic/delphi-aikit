@@ -158,6 +158,7 @@ If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-onl
 - generate a `_DfmCheck` harness project from the target `.dproj`/`.dpr` (no external `DFMCheck.exe`)
 - generate `_DfmCheck_Register.pas` to register form classes required for streaming
 - inject `tools\inject\DfmStreamAll.pas` into the generated harness project
+- resolve bundled inject files by walking ancestor directories from `DelphiAIKit.exe` (`tools\inject` first, then `docs\delphi-dfm-checker\tools\inject`), so detached build/test binaries can still run `dfm-check`
 - run the harness entrypoint with `ExitCode := TDfmStreamAll.Run;`
 - build `_DfmCheck.dproj` via `msbuild`
 - run `_DfmCheck.exe` and propagate its exit code (`0` success, non-zero means streaming failures)
