@@ -77,6 +77,8 @@ resourcestring
   SAssociatedDprojMissing = 'Associated .dproj not found for: %s';
   SInfoAssociatedDproj = 'Using associated .dproj: %s';
   SRegistryBaseMissing = 'Delphi registry base key not found for version %s.';
+  SRegistryBaseMissingFallbackFailed =
+    'Delphi registry base key not found for version %s, and EnvOptions fallback failed: %s';
   SRegistryLibraryMissing = 'Library search path not found for platform %s.';
   SEnvOptionsNotFound = 'EnvOptions.proj not found at: %s';
   SEnvOptionsMissingLibPath = 'DelphiLibraryPath not found in EnvOptions.proj for platform %s.';
@@ -130,6 +132,7 @@ resourcestring
   SInfoPropertySet = 'Property %s = %s';
   SInfoRegistryLibraryFallback = 'Registry Search Path missing, falling back to EnvOptions.proj.';
   SInfoEnvOptionsOverride = 'EnvOptions override: %s';
+  SInfoEnvOptionsPlatformAlias = 'EnvOptions platform alias: %s -> %s';
   SInfoSettingsPath = 'dak.ini: %s';
   SInfoResolvedDefines = 'Defines resolved: %s';
   SInfoResolvedUnitScopes = 'Unit scopes resolved: %s';
@@ -145,6 +148,10 @@ resourcestring
   SFixInsightRunExit = 'FixInsightCL.exe exited with code %d.';
   SLogFileOpenFailed = 'Failed to open log file: %s';
   SSettingsInvalidBool = 'Invalid dak.ini boolean for %s: %s';
+  SBuildWarningMissingWinapiNamespace =
+    'Project %s for %s does not include Winapi in the effective DCC_Namespace. ' +
+    'Units like ''Windows'' may not resolve.';
+  SBuildPreflightSkipped = 'Build preflight warning check skipped: %s';
 
 implementation
 

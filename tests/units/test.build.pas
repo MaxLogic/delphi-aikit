@@ -3,12 +3,14 @@
 interface
 
 uses
+  System.Generics.Collections,
   System.IOUtils,
   System.StrUtils,
   System.SysUtils,
   Winapi.Windows,
   DUnitX.TestFramework,
   Dak.Build,
+  Dak.Registry,
   Dak.Types,
   Test.Support;
 
@@ -51,7 +53,11 @@ type
     [Test]
     procedure BuildWarnsOnInvalidDiagnosticsIniValues;
     [Test]
+    procedure BuildWarnsWhenWin64NamespacesOmitWinapi;
+    [Test]
     procedure BuildSummaryIncludesResolvedSourceContextForErrors;
+    [Test]
+    procedure IdeConfigFallsBackToEnvOptionsWin64Alias;
     [Test]
     procedure ParseBuildLogsAppliesIgnoreAndExcludeFilters;
   end;
@@ -583,6 +589,102 @@ begin
     'Expected invalid SourceContextLines warning in build output. Output: ' + lCapturedOutput);
 end;
 
+procedure TBuildTests.BuildWarnsWhenWin64NamespacesOmitWinapi;
+var
+  lAppData: string;
+  lCapturedOutput: string;
+  lCapturingRunner: TCapturingBuildRunner;
+  lDprPath: string;
+  lDprojPath: string;
+  lEnvOptionsPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lFakeBdsRoot: string;
+  lFakeLibPath: string;
+  lOptions: TAppOptions;
+  lPrevAppData: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'build-preflight-win64-no-winapi');
+  if TDirectory.Exists(lProjectRoot) then
+    TDirectory.Delete(lProjectRoot, True);
+  TDirectory.CreateDirectory(lProjectRoot);
+
+  lDprojPath := TPath.Combine(lProjectRoot, 'Win64NamespaceCheck.dproj');
+  lDprPath := TPath.ChangeExtension(lDprojPath, '.dpr');
+  WriteUtf8File(lDprojPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>Win64NamespaceCheck.dpr</MainSource>' + sLineBreak +
+    '    <DCC_ExeOutput>bin</DCC_ExeOutput>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <PropertyGroup Condition="''$(Base_Win64)''!=''''">' + sLineBreak +
+    '    <DCC_ConsoleTarget>true</DCC_ConsoleTarget>' + sLineBreak +
+    '    <DCC_Namespace>System.Win;Data.Win;$(DCC_Namespace)</DCC_Namespace>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+  WriteUtf8File(lDprPath,
+    'program Win64NamespaceCheck;' + sLineBreak +
+    'begin' + sLineBreak +
+    'end.' + sLineBreak);
+
+  lFakeBdsRoot := TPath.Combine(TempRoot, 'fake-bds-root-win64-warning');
+  ForceDirectories(TPath.Combine(lFakeBdsRoot, 'bin'));
+  lRsVarsPath := TPath.Combine(lFakeBdsRoot, 'bin\rsvars.bat');
+  TFile.WriteAllText(lRsVarsPath, '@echo off' + sLineBreak, TEncoding.ASCII);
+  WriteUtf8File(TPath.Combine(lFakeBdsRoot, 'bin\MSBuild.exe'), 'stub');
+
+  lFakeLibPath := TPath.Combine(lProjectRoot, 'fake-lib\win64');
+  ForceDirectories(lFakeLibPath);
+  lAppData := TPath.Combine(TempRoot, 'fake-appdata-win64-warning');
+  lEnvOptionsPath := TPath.Combine(lAppData, 'Embarcadero\BDS\99.9\EnvOptions.proj');
+  WriteUtf8File(lEnvOptionsPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup Condition="''$(Platform)''==''Win64x''">' + sLineBreak +
+    '    <DelphiLibraryPath>' + lFakeLibPath + '</DelphiLibraryPath>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+
+  lPrevAppData := GetEnvironmentVariable('APPDATA');
+  Winapi.Windows.SetEnvironmentVariable('APPDATA', PChar(lAppData));
+  try
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win64';
+    lOptions.fDelphiVersion := '99.9';
+    lOptions.fRsVarsPath := lRsVarsPath;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fEnvOptionsPath := lEnvOptionsPath;
+    lOptions.fHasEnvOptionsPath := True;
+
+    lCapturingRunner := TCapturingBuildRunner.Create;
+    lRunner := lCapturingRunner;
+    lCapturedOutput := CaptureConsoleOutput(
+      procedure
+      begin
+        lError := '';
+        Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+          'Expected build to succeed with fake toolchain. Error: ' + lError);
+      end);
+
+    Assert.AreEqual(0, lExitCode, 'Expected successful fake build.');
+    Assert.AreEqual(1, lCapturingRunner.fCallCount, 'Expected exactly one MSBuild launch.');
+    Assert.IsTrue(Pos('does not include Winapi in the effective DCC_Namespace', lCapturedOutput) > 0,
+      'Expected missing Winapi preflight warning. Output: ' + lCapturedOutput);
+  finally
+    lRunner := nil;
+    lCapturingRunner := nil;
+    if lPrevAppData <> '' then
+      Winapi.Windows.SetEnvironmentVariable('APPDATA', PChar(lPrevAppData))
+    else
+      Winapi.Windows.SetEnvironmentVariable('APPDATA', nil);
+  end;
+end;
+
 procedure TBuildTests.BuildSummaryIncludesResolvedSourceContextForErrors;
 var
   lCapturedOutput: string;
@@ -675,6 +777,51 @@ begin
     'Expected build output to include resolved source context. Output: ' + lCapturedOutput);
   Assert.IsTrue(Pos('MissingIdentifier := 1;', lCapturedOutput) > 0,
     'Expected build output to include the failing source line. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.IdeConfigFallsBackToEnvOptionsWin64Alias;
+var
+  lEnvOptionsPath: string;
+  lEnvVars: TDictionary<string, string>;
+  lError: string;
+  lFakeLibPath: string;
+  lLibraryPath: string;
+  lLibrarySource: TPropertySource;
+  lProjectRoot: string;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'ide-config-envoptions-alias');
+  if TDirectory.Exists(lProjectRoot) then
+    TDirectory.Delete(lProjectRoot, True);
+  TDirectory.CreateDirectory(lProjectRoot);
+
+  lFakeLibPath := TPath.Combine(lProjectRoot, 'fake-lib\win64');
+  ForceDirectories(lFakeLibPath);
+  lEnvOptionsPath := TPath.Combine(lProjectRoot, 'EnvOptions.proj');
+  WriteUtf8File(lEnvOptionsPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup Condition="''$(Platform)''==''Win64x''">' + sLineBreak +
+    '    <DelphiLibraryPath>' + lFakeLibPath + '</DelphiLibraryPath>' + sLineBreak +
+    '    <DCC_Namespace>Winapi;System.Win</DCC_Namespace>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+
+  lEnvVars := nil;
+  try
+    lError := '';
+    Assert.IsTrue(TryReadIdeConfig('99.9', 'Win64', lEnvOptionsPath, lEnvVars, lLibraryPath, lLibrarySource, nil,
+      lError), 'Expected EnvOptions fallback to succeed. Error: ' + lError);
+    Assert.IsTrue(SameText(lLibraryPath, lFakeLibPath),
+      'Expected DelphiLibraryPath from the Win64x EnvOptions block. Actual: ' + lLibraryPath);
+    Assert.AreEqual(Integer(TPropertySource.psEnvOptions), Integer(lLibrarySource),
+      'Expected EnvOptions to be reported as the library source.');
+    Assert.IsTrue(Assigned(lEnvVars), 'Expected EnvOptions environment values to be captured.');
+    Assert.IsTrue(lEnvVars.ContainsKey('DCC_Namespace'), 'Expected DCC_Namespace from EnvOptions to be captured.');
+    Assert.AreEqual('Winapi;System.Win', lEnvVars['DCC_Namespace'],
+      'Expected DCC_Namespace from the aliased Win64x block.');
+  finally
+    lEnvVars.Free;
+  end;
 end;
 
 procedure TBuildTests.ParseBuildLogsAppliesIgnoreAndExcludeFilters;

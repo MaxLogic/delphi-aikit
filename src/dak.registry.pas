@@ -15,10 +15,24 @@ function TryReadIdeConfig(const aDelphiVersion, aPlatform, aEnvOptionsOverride: 
 
 implementation
 
+function BuildEnvOptionsPlatformCandidates(const aPlatform: string): TArray<string>;
+var
+  lPlatform: string;
+begin
+  lPlatform := Trim(aPlatform);
+  if SameText(lPlatform, 'Win64') then
+    Exit(TArray<string>.Create('Win64', 'Win64x'));
+  if SameText(lPlatform, 'Win64x') then
+    Exit(TArray<string>.Create('Win64x', 'Win64'));
+  Result := TArray<string>.Create(lPlatform);
+end;
+
 function TryReadEnvOptionsLibraryPath(const aEnvOptionsFile, aPlatform, aDelphiVersion: string;
   aEnvVars: TDictionary<string, string>; aDiagnostics: TDiagnostics; out aLibraryPath: string;
   out aError: string): Boolean;
 var
+  lCandidatePlatform: string;
+  lCandidatePlatforms: TArray<string>;
   lProps: TDictionary<string, string>;
   lEvaluator: TMsBuildEvaluator;
   lValue: string;
@@ -48,33 +62,39 @@ begin
 
   lProps := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
-    lProps.AddOrSetValue('Platform', aPlatform);
-    lProps.AddOrSetValue('Config', '');
-    lProps.AddOrSetValue('DelphiVersion', aDelphiVersion);
-    lEvaluator := TMsBuildEvaluator.Create(lProps, aEnvVars, aDiagnostics);
-    try
-      if not lEvaluator.EvaluateFile(aEnvOptionsFile, aError) then
-        Exit(False);
-    finally
-      lEvaluator.Free;
-    end;
-
-    if not lProps.TryGetValue('DelphiLibraryPath', lValue) or (Trim(lValue) = '') then
+    lCandidatePlatforms := BuildEnvOptionsPlatformCandidates(aPlatform);
+    for lCandidatePlatform in lCandidatePlatforms do
     begin
-      aError := Format(SEnvOptionsMissingLibPath, [aPlatform]);
-      Exit(False);
+      lProps.Clear;
+      lProps.AddOrSetValue('Platform', lCandidatePlatform);
+      lProps.AddOrSetValue('Config', '');
+      lProps.AddOrSetValue('DelphiVersion', aDelphiVersion);
+      lEvaluator := TMsBuildEvaluator.Create(lProps, aEnvVars, aDiagnostics);
+      try
+        if not lEvaluator.EvaluateFile(aEnvOptionsFile, aError) then
+          Exit(False);
+      finally
+        lEvaluator.Free;
+      end;
+
+      if not lProps.TryGetValue('DelphiLibraryPath', lValue) or (Trim(lValue) = '') then
+        Continue;
+
+      if (aDiagnostics <> nil) and (not SameText(lCandidatePlatform, aPlatform)) then
+        aDiagnostics.AddInfo(Format(SInfoEnvOptionsPlatformAlias, [aPlatform, lCandidatePlatform]));
+      aLibraryPath := lValue;
+      CaptureOption('DCC_Define', True);
+      CaptureOption('DCC_UnitSearchPath', True);
+      CaptureOption('DCC_Namespace', True);
+      CaptureOption('DCC_UnitAliases', True);
+      CaptureOption('DCC_UnitAlias', True);
+      CaptureOption('BDSCatalogRepository');
+      CaptureOption('BDSUSERDIR');
+      CaptureOption('BDSLIB');
+      Exit(True);
     end;
 
-    aLibraryPath := lValue;
-    CaptureOption('DCC_Define', True);
-    CaptureOption('DCC_UnitSearchPath', True);
-    CaptureOption('DCC_Namespace', True);
-    CaptureOption('DCC_UnitAliases', True);
-    CaptureOption('DCC_UnitAlias', True);
-    CaptureOption('BDSCatalogRepository');
-    CaptureOption('BDSUSERDIR');
-    CaptureOption('BDSLIB');
-    Result := True;
+    aError := Format(SEnvOptionsMissingLibPath, [aPlatform]);
   finally
     lProps.Free;
   end;
@@ -226,17 +246,6 @@ begin
   if (not lRegistryLibFound) and TryReadRegistryView('32-bit', KEY_WOW64_32KEY) then
     lRegistryLibFound := True;
 
-  if not lBaseFound then
-  begin
-    if aDiagnostics <> nil then
-    begin
-      LogBdsVersions('64-bit', KEY_WOW64_64KEY);
-      LogBdsVersions('32-bit', KEY_WOW64_32KEY);
-    end;
-    aError := Format(SRegistryBaseMissing, [aDelphiVersion]);
-    Exit(False);
-  end;
-
   if not aEnvVars.TryGetValue('BDSUSERDIR', lBdsUserDir) then
     lBdsUserDir := System.SysUtils.GetEnvironmentVariable('BDSUSERDIR');
   if lBdsUserDir = '' then
@@ -272,7 +281,18 @@ begin
       aDiagnostics.AddInfo(Format(SInfoStep, ['Read EnvOptions.proj']));
     if not TryReadEnvOptionsLibraryPath(lEnvOptionsFile, aPlatform, aDelphiVersion, aEnvVars, aDiagnostics,
       aLibraryPath, aError) then
+    begin
+      if not lBaseFound then
+      begin
+        if aDiagnostics <> nil then
+        begin
+          LogBdsVersions('64-bit', KEY_WOW64_64KEY);
+          LogBdsVersions('32-bit', KEY_WOW64_32KEY);
+        end;
+        aError := Format(SRegistryBaseMissingFallbackFailed, [aDelphiVersion, aError]);
+      end;
       Exit(False);
+    end;
 
     aLibrarySource := TPropertySource.psEnvOptions;
     if aDiagnostics <> nil then
