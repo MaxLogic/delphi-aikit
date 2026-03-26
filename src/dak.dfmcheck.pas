@@ -1637,10 +1637,35 @@ end;
 
 function TryResolveInjectDir(out aInjectDir: string; out aError: string): Boolean;
 var
+  lCandidate: string;
+  lCandidates: TList<string>;
+  lCurrentDir: string;
   lExeDir: string;
   lInjectOverride: string;
-  lInjectCandidates: TArray<string>;
-  lCandidate: string;
+  lNextDir: string;
+  lVisitedDirs: TList<string>;
+  procedure AddCandidate(const aBaseDir: string; const aRelativePath: string);
+  var
+    lPath: string;
+  begin
+    if Trim(aBaseDir) = '' then
+      Exit;
+    lPath := TPath.Combine(aBaseDir, aRelativePath);
+    if lCandidates.IndexOf(lPath) < 0 then
+      lCandidates.Add(lPath);
+  end;
+  function NormalizeWalkDir(const aDir: string): string;
+  var
+    lDriveRoot: string;
+    lFullPath: string;
+  begin
+    lFullPath := TPath.GetFullPath(aDir);
+    lDriveRoot := IncludeTrailingPathDelimiter(ExtractFileDrive(lFullPath));
+    if SameText(IncludeTrailingPathDelimiter(lFullPath), lDriveRoot) then
+      Result := lDriveRoot
+    else
+      Result := ExcludeTrailingPathDelimiter(lFullPath);
+  end;
 begin
   aInjectDir := '';
   aError := '';
@@ -1659,19 +1684,34 @@ begin
   end;
 
   lExeDir := ExcludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0)));
-  lInjectCandidates := [
-    TPath.Combine(lExeDir, 'tools\inject'),
-    TPath.Combine(TPath.GetFullPath(TPath.Combine(lExeDir, '..')), 'tools\inject'),
-    TPath.Combine(TPath.GetFullPath(TPath.Combine(lExeDir, '..')), 'docs\delphi-dfm-checker\tools\inject')
-  ];
-
-  for lCandidate in lInjectCandidates do
-  begin
-    if DirectoryExists(lCandidate) then
+  lCandidates := TList<string>.Create;
+  lVisitedDirs := TList<string>.Create;
+  try
+    lCurrentDir := NormalizeWalkDir(lExeDir);
+    while Trim(lCurrentDir) <> '' do
     begin
-      aInjectDir := lCandidate;
-      Exit(True);
+      if lVisitedDirs.IndexOf(lCurrentDir) >= 0 then
+        Break;
+      lVisitedDirs.Add(lCurrentDir);
+      AddCandidate(lCurrentDir, 'tools\inject');
+      AddCandidate(lCurrentDir, 'docs\delphi-dfm-checker\tools\inject');
+      lNextDir := NormalizeWalkDir(TPath.Combine(lCurrentDir, '..'));
+      if SameText(lNextDir, lCurrentDir) then
+        Break;
+      lCurrentDir := lNextDir;
     end;
+
+    for lCandidate in lCandidates do
+    begin
+      if DirectoryExists(lCandidate) then
+      begin
+        aInjectDir := lCandidate;
+        Exit(True);
+      end;
+    end;
+  finally
+    lVisitedDirs.Free;
+    lCandidates.Free;
   end;
 
   aError := 'Inject directory not found. Expected tools\inject next to DelphiAIKit.';
