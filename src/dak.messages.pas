@@ -118,6 +118,8 @@ resourcestring
   SInfoRegistryView = 'Registry view: %s';
   SInfoRegistryBaseMissing = 'Registry base key missing in %s view.';
   SInfoRegistryVersions = 'Available BDS versions (%s view): %s';
+  SInfoRegistryLookupContext = 'Registry lookup context: user=%s appdata=%s bdsuserdir=%s envoptions=%s';
+  SInfoRegistryKeyPresence = 'Registry key presence (%s view): base=%s env=%s lib=%s';
   SInfoEnvOptionsPath = 'EnvOptions.proj path: %s';
   SInfoEnvVarCount = 'IDE env vars: %d';
   SInfoEnvVarCountView = 'IDE env vars (%s view): %d';
