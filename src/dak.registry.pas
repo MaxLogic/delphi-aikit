@@ -121,6 +121,14 @@ var
   lBdsRoot: string;
   lBdsLib: string;
 
+  function BoolText(const aValue: Boolean): string;
+  begin
+    if aValue then
+      Result := 'yes'
+    else
+      Result := 'no';
+  end;
+
   procedure EnsureEnvVar(const aName, aValue: string; aAllowEmpty: Boolean);
   var
     lExisting: string;
@@ -161,6 +169,34 @@ var
           lList.Free;
         end;
       end;
+    finally
+      lReg.Free;
+      lReg := nil;
+    end;
+  end;
+
+  procedure LogRegistryKeyPresence(const aViewLabel: string; aWowFlag: Cardinal);
+  var
+    lBasePresent: Boolean;
+    lEnvPresent: Boolean;
+    lLibPresent: Boolean;
+  begin
+    lReg := TRegistry.Create;
+    try
+      lReg.Access := KEY_READ or aWowFlag;
+      lReg.RootKey := HKEY_CURRENT_USER;
+      lBasePresent := lReg.OpenKeyReadOnly(lBaseKey);
+      if lBasePresent then
+        lReg.CloseKey;
+      lEnvPresent := lReg.OpenKeyReadOnly(lEnvKey);
+      if lEnvPresent then
+        lReg.CloseKey;
+      lLibPresent := lReg.OpenKeyReadOnly(lLibKey);
+      if lLibPresent then
+        lReg.CloseKey;
+      if aDiagnostics <> nil then
+        aDiagnostics.AddInfo(Format(SInfoRegistryKeyPresence,
+          [aViewLabel, BoolText(lBasePresent), BoolText(lEnvPresent), BoolText(lLibPresent)]));
     finally
       lReg.Free;
       lReg := nil;
@@ -274,7 +310,14 @@ begin
     else
       lEnvOptionsFile := TPath.Combine(lBdsUserDir, 'EnvOptions.proj');
     if aDiagnostics <> nil then
+    begin
+      aDiagnostics.AddInfo(Format(SInfoRegistryLookupContext,
+        [System.SysUtils.GetEnvironmentVariable('USERNAME'), System.SysUtils.GetEnvironmentVariable('APPDATA'),
+         lBdsUserDir, lEnvOptionsFile]));
+      LogRegistryKeyPresence('64-bit', KEY_WOW64_64KEY);
+      LogRegistryKeyPresence('32-bit', KEY_WOW64_32KEY);
       aDiagnostics.AddInfo(Format(SInfoEnvOptionsPath, [lEnvOptionsFile]));
+    end;
     if (aEnvOptionsOverride <> '') and (aDiagnostics <> nil) then
       aDiagnostics.AddInfo(Format(SInfoEnvOptionsOverride, [lEnvOptionsFile]));
     if aDiagnostics <> nil then
