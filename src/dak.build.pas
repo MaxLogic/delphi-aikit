@@ -53,7 +53,7 @@ uses
   System.Win.Registry,
   Winapi.Windows,
   Dak.Diagnostics, Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Project, Dak.RsVars,
-  Dak.SourceContext;
+  Dak.Registry, Dak.SourceContext;
 
 const
   cStatusOk = 'ok';
@@ -1173,6 +1173,58 @@ begin
       TEncoding.UTF8);
 end;
 
+function ContainsTextCI(const aItems: TArray<string>; const aValue: string): Boolean;
+var
+  lItem: string;
+begin
+  Result := False;
+  for lItem in aItems do
+    if SameText(Trim(lItem), aValue) then
+      Exit(True);
+end;
+
+procedure EmitBuildPreflightWarnings(const aOptions: TAppOptions; const aEnvVars: TDictionary<string, string>);
+var
+  lError: string;
+  lErrorCode: Integer;
+  lLibraryPath: string;
+  lLibrarySource: TPropertySource;
+  lParams: TFixInsightParams;
+  lPair: TPair<string, string>;
+  lPreflightEnvVars: TDictionary<string, string>;
+begin
+  if not SameText(Trim(aOptions.fPlatform), 'Win64') then
+    Exit;
+
+  lPreflightEnvVars := nil;
+  try
+    if not TryReadIdeConfig(aOptions.fDelphiVersion, aOptions.fPlatform, aOptions.fEnvOptionsPath, lPreflightEnvVars,
+      lLibraryPath, lLibrarySource, nil, lError) then
+    begin
+      if aOptions.fVerbose and (Trim(lError) <> '') then
+        Writeln('NOTE. ' + Format(SBuildPreflightSkipped, [lError]));
+      Exit;
+    end;
+
+    if aEnvVars <> nil then
+      for lPair in aEnvVars do
+        lPreflightEnvVars.AddOrSetValue(lPair.Key, lPair.Value);
+
+    if not TryBuildParams(aOptions, lPreflightEnvVars, lLibraryPath, lLibrarySource, nil, lParams, lError, lErrorCode)
+    then
+    begin
+      if aOptions.fVerbose and (Trim(lError) <> '') then
+        Writeln('NOTE. ' + Format(SBuildPreflightSkipped, [lError]));
+      Exit;
+    end;
+
+    if not ContainsTextCI(lParams.fUnitScopes, 'Winapi') then
+      Writeln('WARNING. ' + Format(SBuildWarningMissingWinapiNamespace, [aOptions.fDprojPath, aOptions.fPlatform]));
+  finally
+    lPreflightEnvVars.Free;
+  end;
+end;
+
 function TBuildProcessRunner.RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
   aTimeoutSec: Integer; out aExitCode: Integer; out aTimedOut: Boolean; out aError: string): Boolean;
 var
@@ -1375,6 +1427,8 @@ begin
 
     PrintVerboseStep(lNormalizedOptions, 'environment-props');
     ApplyEnvironmentProjProps(BuildEnvironmentProjPath(lNormalizedOptions.fDelphiVersion, lBdsRoot), lEnvVars, lExtraProps);
+    PrintVerboseStep(lNormalizedOptions, 'preflight');
+    EmitBuildPreflightWarnings(lNormalizedOptions, lEnvVars);
     PrintVerboseStep(lNormalizedOptions, 'project-info');
     lProjectInfo := BuildProjectInfo(lNormalizedOptions.fDprojPath, lNormalizedOptions.fConfig,
       lNormalizedOptions.fPlatform, lEnvVars, IfThen(lNormalizedOptions.fHasBuildTestOutputDir,
