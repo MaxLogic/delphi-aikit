@@ -24,8 +24,11 @@ type
     fWarningCount: Integer;
     fHintCount: Integer;
     fErrors: TArray<string>;
+    fErrorsRaw: TArray<string>;
     fWarnings: TArray<string>;
+    fWarningsRaw: TArray<string>;
     fHints: TArray<string>;
+    fHintsRaw: TArray<string>;
     fOutputPath: string;
     fOutputStale: Boolean;
     fOutputMessage: string;
@@ -385,6 +388,15 @@ begin
   aItems[lLength] := aLine;
 end;
 
+procedure AddFindingPair(var aDisplayItems, aRawItems: TArray<string>; const aDisplayLine, aRawLine: string;
+  const aLimit: Integer);
+begin
+  if (aLimit > 0) and (Length(aDisplayItems) >= aLimit) then
+    Exit;
+  AddFinding(aDisplayItems, aDisplayLine, 0);
+  AddFinding(aRawItems, aRawLine, 0);
+end;
+
 procedure ParseLogFile(const aLogPath: string; const aOptions: TBuildSummaryOptions;
   const aIgnoreWarnings, aIgnoreHints: THashSet<string>; var aSummary: TBuildSummary);
 var
@@ -409,7 +421,7 @@ begin
       if TRegEx.IsMatch(lNormalizedLine, ':\s+error\s+') or TRegEx.IsMatch(lNormalizedLine, ':\s+fatal\s+') then
       begin
         Inc(aSummary.fErrorCount);
-        AddFinding(aSummary.fErrors, lNormalizedLine.Trim, aOptions.fMaxFindings);
+        AddFindingPair(aSummary.fErrors, aSummary.fErrorsRaw, lNormalizedLine.Trim, lLine.Trim, aOptions.fMaxFindings);
         Continue;
       end;
 
@@ -421,7 +433,8 @@ begin
         begin
           Inc(aSummary.fWarningCount);
           if aOptions.fIncludeWarnings then
-            AddFinding(aSummary.fWarnings, lNormalizedLine.Trim, aOptions.fMaxFindings);
+            AddFindingPair(aSummary.fWarnings, aSummary.fWarningsRaw, lNormalizedLine.Trim, lLine.Trim,
+              aOptions.fMaxFindings);
         end;
         Continue;
       end;
@@ -436,7 +449,8 @@ begin
         begin
           Inc(aSummary.fHintCount);
           if aOptions.fIncludeHints then
-            AddFinding(aSummary.fHints, lNormalizedLine.Trim, aOptions.fMaxFindings);
+            AddFindingPair(aSummary.fHints, aSummary.fHintsRaw, lNormalizedLine.Trim, lLine.Trim,
+              aOptions.fMaxFindings);
         end;
       end;
     end;
@@ -474,29 +488,30 @@ begin
   Result := String.Join(sLineBreak, lParts);
 end;
 
-function AppendSourceContextToFinding(const aFinding: string; const aLookup: TProjectSourceLookup;
-  aContextLines: Integer): string;
+function AppendSourceContextToFinding(const aDisplayFinding, aLookupFinding: string;
+  const aLookup: TProjectSourceLookup; aContextLines: Integer): string;
 var
   lContext: TSourceContextSnippet;
   lError: string;
   lFileToken: string;
   lLineNumber: Integer;
 begin
-  Result := aFinding;
-  if not TryParseFindingLocation(aFinding, lFileToken, lLineNumber) then
+  Result := aDisplayFinding;
+  if not TryParseFindingLocation(aLookupFinding, lFileToken, lLineNumber) then
     Exit(Result);
   if not TryResolveSourceContext(aLookup, lFileToken, lLineNumber, aContextLines, lContext, lError) then
     Exit(Result);
   Result := Result + sLineBreak + PrefixSourceContext(FormatSourceContextLines(lContext));
 end;
 
-procedure EnrichBuildFindingsWithSourceContext(var aItems: TArray<string>; const aLookup: TProjectSourceLookup;
-  aContextLines: Integer);
+procedure EnrichBuildFindingsWithSourceContext(var aItems: TArray<string>; const aLookupItems: TArray<string>;
+  const aLookup: TProjectSourceLookup; aContextLines: Integer);
 var
   i: Integer;
 begin
   for i := 0 to High(aItems) do
-    aItems[i] := AppendSourceContextToFinding(aItems[i], aLookup, aContextLines);
+    if i <= High(aLookupItems) then
+      aItems[i] := AppendSourceContextToFinding(aItems[i], aLookupItems[i], aLookup, aContextLines);
 end;
 
 function BuildSummaryAsJson(const aProjectPath: string; const aOptions: TAppOptions;
@@ -1466,29 +1481,31 @@ begin
       lProjectLookup := Default(TProjectSourceLookup);
       lProjectLookup.fProjectDproj := lNormalizedOptions.fDprojPath;
       lProjectLookup.fProjectDir := lProjectInfo.fProjectDir;
-      lProjectLookup.fMainSourcePath := lProjectInfo.fMainSourcePath;
+        lProjectLookup.fMainSourcePath := lProjectInfo.fMainSourcePath;
       if TryBuildProjectSourceLookup(lNormalizedOptions.fDprojPath, lNormalizedOptions.fConfig,
         lNormalizedOptions.fPlatform, lNormalizedOptions.fDelphiVersion, lEnvVars, nil, lProjectLookup, lLookupError)
       then
       begin
         if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) then
-          EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lProjectLookup, lDiagnosticsDefaults.fSourceContextLines);
+          EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lSummary.fErrorsRaw, lProjectLookup,
+            lDiagnosticsDefaults.fSourceContextLines);
         if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
         begin
-          EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lProjectLookup,
+          EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lSummary.fWarningsRaw, lProjectLookup,
             lDiagnosticsDefaults.fSourceContextLines);
-          EnrichBuildFindingsWithSourceContext(lSummary.fHints, lProjectLookup,
+          EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintsRaw, lProjectLookup,
             lDiagnosticsDefaults.fSourceContextLines);
         end;
       end else
       begin
         if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) then
-          EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lProjectLookup, lDiagnosticsDefaults.fSourceContextLines);
+          EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lSummary.fErrorsRaw, lProjectLookup,
+            lDiagnosticsDefaults.fSourceContextLines);
         if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
         begin
-          EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lProjectLookup,
+          EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lSummary.fWarningsRaw, lProjectLookup,
             lDiagnosticsDefaults.fSourceContextLines);
-          EnrichBuildFindingsWithSourceContext(lSummary.fHints, lProjectLookup,
+          EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintsRaw, lProjectLookup,
             lDiagnosticsDefaults.fSourceContextLines);
         end;
         if lNormalizedOptions.fVerbose and (lLookupError <> '') then
