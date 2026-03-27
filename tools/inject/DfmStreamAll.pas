@@ -145,6 +145,16 @@ begin
   lComp.Free;
 end;
 
+function ShouldUseConstructorFallbackForFrame(const aResourceName: string; const aErr: string): Boolean;
+var
+  lPersistentClass: TPersistentClass;
+begin
+  lPersistentClass := GetClass(aResourceName);
+  if (lPersistentClass = nil) or (not lPersistentClass.InheritsFrom(TCustomFrame)) then
+    Exit(False);
+  Result := StartsText('EComponentError: A component named ', aErr) and EndsText(' already exists', aErr);
+end;
+
 function TryReadRootComponent(const aStream: TStream; const aResourceName: string; out aErr: string): Boolean;
 var
   lComp: TComponent;
@@ -174,6 +184,11 @@ begin
           if TryValidateByConstructor(aResourceName, lFallbackErr) then
             Exit(True);
           aErr := aErr + ' (constructor fallback: ' + lFallbackErr + ')';
+        end else if ShouldUseConstructorFallbackForFrame(aResourceName, aErr) then
+        begin
+          if TryValidateByConstructor(aResourceName, lFallbackErr) then
+            Exit(True);
+          aErr := aErr + ' (frame constructor fallback: ' + lFallbackErr + ')';
         end;
         Result := False;
       end;
