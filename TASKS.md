@@ -2,8 +2,8 @@
 Next task ID: T-096
 
 ## Summary
-Open tasks: 2 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 2)
-Done tasks: 93
+Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 95
 
 ## In Progress
 
@@ -15,35 +15,6 @@ Done tasks: 93
 ## Next - Later
 
 ## Blocked
-
-### T-090 Push the current local commit stack to the GitHub default branch
-Outcome:
-- The current local HEAD, including the resolved backlog, diagnostics warning follow-up, docs update, and submodule pointer update, is published to the default branch on `origin`.
-- The remote default branch points to the same commit as local HEAD after the push.
-Proof:
-- Run: `git push origin HEAD`
-  Expect: Exit code `0`.
-- Run: `git rev-parse HEAD && git rev-parse @{u}`
-  Expect: Both SHAs match after the push.
-Touches: .git/config
-Deps: T-088
-Verify: cli-proof, manual
-Notes: Blocked by `AGENTS.md`, which forbids this agent from running `git push`. `origin` now points to `https://github.com/MaxLogic/delphi-aikit.git`, so the remaining step is maintainer-initiated publish from local `master`.
-
-### T-091 Create a GitHub release for the current shipped state
-Outcome:
-- A version tag and GitHub release are created for the current published commit.
-- The release notes summarize the major shipped changes: native `build`, `dfm-inspect`, `.dak` migration, source-context diagnostics, and diagnostics warning surfacing.
-- The release is attached to the pushed default-branch commit rather than an unpublished local-only commit.
-Proof:
-- Run: `gh release create <tag> --target <published-sha> --notes-file <release-notes.md>`
-  Expect: Exit code `0`.
-- Run: `gh release view <tag>`
-  Expect: Release exists for the published target commit with the expected title/tag.
-Touches: CHANGELOG.md
-Deps: T-088, T-089, T-090
-Verify: cli-proof, manual
-Notes: Blocked until `T-090` publishes the local branch. The repo exists as `MaxLogic/delphi-aikit`, but GitHub still shows no default-branch commit because nothing has been pushed yet.
 
 ## Done
 
@@ -64,6 +35,35 @@ Touches: src/dak.types.pas, src/dak.cli.pas, src/dak.messages.pas, src/dak.build
 Deps: T-093, T-094, T-095
 Verify: unit-test, cli-proof
 Notes: Design plan: `.agents/resolved-plans/webcore-build-integration.md`. Sample project: `/mnt/f/projects/mecMeister/_SVN/Kfzmeister_workCopy/Mobile-Solution/FrontEnd/KFZMeisterPWA/KFZMeisterPWA.dproj`.
+
+### T-090 Push the current local commit stack to the GitHub default branch
+Outcome:
+- The current local HEAD, including the resolved backlog, diagnostics warning follow-up, docs update, and submodule pointer update, is published to the default branch on `origin`.
+- The remote default branch points to the same commit as local HEAD after the push.
+Proof:
+- Run: `git push origin HEAD`
+  Expect: Exit code `0`.
+- Run: `git rev-parse HEAD && git rev-parse @{u}`
+  Expect: Both SHAs match after the push.
+Touches: .git/config
+Deps: T-088
+Verify: cli-proof, manual
+Notes: Published `ad18a55abe09f7ce23ff1933e323e0f98ff49aea` to `origin/master`.
+
+### T-091 Create a GitHub release for the current shipped state
+Outcome:
+- A version tag and GitHub release are created for the current published commit.
+- The release notes summarize the major shipped changes: native `build`, `dfm-inspect`, `.dak` migration, source-context diagnostics, and diagnostics warning surfacing.
+- The release is attached to the pushed default-branch commit rather than an unpublished local-only commit.
+Proof:
+- Run: `gh release create <tag> --target <published-sha> --notes-file <release-notes.md>`
+  Expect: Exit code `0`.
+- Run: `gh release view <tag>`
+  Expect: Release exists for the published target commit with the expected title/tag.
+Touches: CHANGELOG.md
+Deps: T-088, T-089, T-090
+Verify: cli-proof, manual
+Notes: Updated the existing `v1.0.0` release to target `ad18a55abe09f7ce23ff1933e323e0f98ff49aea` and refreshed the release notes from `.agents/release-v1.0.0.md`.
 
 ### T-095 [DOC] Ignore repo-local dak.ini and seed the maintainer-local WebCore compiler path
 Outcome:
