@@ -8,6 +8,7 @@ type
   TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars);
 
   TOutputKind = (okIni, okXml, okBat);
+  TBuildBackend = (bbAuto, bbDelphi, bbWebCore);
 
   TPropertySource = (psUnknown, psDproj, psOptset, psRegistry, psEnvOptions);
 
@@ -47,6 +48,7 @@ type
     fBuildShowHints: Boolean;
     fBuildAi: Boolean;
     fBuildJson: Boolean;
+    fBuildBackend: TBuildBackend;
     fBuildRunDfmCheck: Boolean;
     fDfmCheckFilter: string;
     fDfmCheckAll: Boolean;
@@ -57,6 +59,8 @@ type
     fBuildTimeoutSec: Integer;
     fBuildTestOutputDir: string;
     fHasBuildTestOutputDir: Boolean;
+    fWebCoreCompilerPath: string;
+    fHasWebCoreCompilerPath: Boolean;
     fBuildIgnoreWarnings: string;
     fHasBuildIgnoreWarnings: Boolean;
     fBuildIgnoreHints: string;

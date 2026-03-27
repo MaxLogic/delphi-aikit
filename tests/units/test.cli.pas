@@ -55,6 +55,8 @@ type
     [Test]
     procedure BuildCommandRejectsDfmCheckValue;
     [Test]
+    procedure BuildCommandParsesWebCoreBuilderCompilerWithoutDelphi;
+    [Test]
     procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
     [Test]
     procedure AnalyzeProjectDefaultOutRootUsesSiblingDakFolder;
@@ -381,6 +383,22 @@ begin
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --dfmcheck value syntax to be rejected.');
   Assert.IsTrue(Pos('Unknown argument: --dfmcheck=false', lError) > 0,
     'Expected unknown-argument error for valued --dfmcheck. Actual: ' + lError);
+end;
+
+procedure TCliTests.BuildCommandParsesWebCoreBuilderCompilerWithoutDelphi;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --builder webcore --webcore-compiler C:\tools\TMSWebCompiler.exe');
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected explicit WebCore build args to parse without --delphi. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckBuild, lOptions.fCommand, 'Expected build command kind.');
+  Assert.AreEqual(Integer(TBuildBackend.bbWebCore), Integer(lOptions.fBuildBackend),
+    'Expected --builder webcore to select the WebCore backend.');
+  Assert.IsTrue(lOptions.fHasWebCoreCompilerPath, 'Expected --webcore-compiler to be tracked as explicit input.');
+  Assert.AreEqual('C:\tools\TMSWebCompiler.exe', lOptions.fWebCoreCompilerPath,
+    'Unexpected parsed WebCore compiler path.');
 end;
 
 procedure TCliTests.AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;

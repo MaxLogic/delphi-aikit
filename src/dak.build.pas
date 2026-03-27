@@ -68,9 +68,14 @@ const
   cStatusInternalError = 'internal_error';
   cMadExceptSymbol = 'madExcept';
   cMadExceptPatchExeName = 'madExceptPatch.exe';
+  cTmsWebCompilerExeName = 'TMSWebCompiler.exe';
+  cWebCoreCompilerEnvVar = 'DAK_TMSWEB_COMPILER';
   cMsBuildNotFound = 'MSBuild.exe not found.';
   cMadExceptPatchRequiredMessage = 'madExcept patch is required but madExceptPatch.exe was not found.';
   cMadExceptPatchFailedMessage = 'madExcept patch step failed.';
+  cWebCoreCompilerMissingMessage =
+    'TMSWebCompiler.exe not found. Checked --webcore-compiler, [WebCore].CompilerPath in dak.ini, ' +
+    'DAK_TMSWEB_COMPILER, and PATH.';
   cOutputLockedMessage =
     'Compilation succeeded but output file timestamp was not updated. The executable may be locked by another process.';
 
@@ -80,6 +85,7 @@ type
     fIgnoreHints: string;
     fExcludePathMasks: string;
     fMadExceptPath: string;
+    fWebCoreCompilerPath: string;
   end;
 
   TBuildProjectInfo = record
@@ -898,6 +904,10 @@ begin
       lValue := Trim(lIni.ReadString('MadExcept', 'Path', ''));
       if lValue <> '' then
         aSettings.fMadExceptPath := ExpandMadExceptSettingPath(lValue, lIniPath, aEnvVars);
+
+      lValue := Trim(lIni.ReadString('WebCore', 'CompilerPath', ''));
+      if lValue <> '' then
+        aSettings.fWebCoreCompilerPath := ExpandMadExceptSettingPath(lValue, lIniPath, aEnvVars);
     finally
       lIni.Free;
     end;
@@ -969,6 +979,54 @@ begin
     Exit(False);
   aExePath := string(PChar(lBuffer));
   Result := aExePath <> '';
+end;
+
+function NormalizeOptionalPath(const aInputPath: string; out aNormalizedPath: string): Boolean;
+var
+  lError: string;
+begin
+  aNormalizedPath := '';
+  if Trim(aInputPath) = '' then
+    Exit(False);
+  if not TryNormalizeInputPath(aInputPath, aNormalizedPath, lError) then
+    Exit(False);
+  aNormalizedPath := TPath.GetFullPath(aNormalizedPath);
+  Result := True;
+end;
+
+function ResolveWebCoreCompilerPath(const aOptions: TAppOptions; const aSettings: TBuildSettings;
+  out aCompilerPath: string): Boolean;
+var
+  lCandidatePath: string;
+begin
+  aCompilerPath := '';
+
+  if aOptions.fHasWebCoreCompilerPath and NormalizeOptionalPath(aOptions.fWebCoreCompilerPath, lCandidatePath) and
+    FileExists(lCandidatePath) then
+  begin
+    aCompilerPath := lCandidatePath;
+    Exit(True);
+  end;
+
+  if NormalizeOptionalPath(aSettings.fWebCoreCompilerPath, lCandidatePath) and FileExists(lCandidatePath) then
+  begin
+    aCompilerPath := lCandidatePath;
+    Exit(True);
+  end;
+
+  if NormalizeOptionalPath(GetEnvironmentVariable(cWebCoreCompilerEnvVar), lCandidatePath) and FileExists(lCandidatePath) then
+  begin
+    aCompilerPath := lCandidatePath;
+    Exit(True);
+  end;
+
+  if TryFindExecutableInPath(cTmsWebCompilerExeName, lCandidatePath) then
+  begin
+    aCompilerPath := TPath.GetFullPath(lCandidatePath);
+    Exit(True);
+  end;
+
+  Result := False;
 end;
 
 function TryFindMsBuildFromRegistry(out aMsBuildPath: string): Boolean;
@@ -1339,6 +1397,82 @@ begin
   Result := True;
 end;
 
+function BuildWebCoreArguments(const aOptions: TAppOptions; const aDprojPath: string): string;
+begin
+  Result := '/ParseDprojFile ' +
+    '/ProjectFile:' + QuoteCmdArg(aDprojPath) + ' ' +
+    '/Config:' + QuoteCmdArg(aOptions.fConfig);
+end;
+
+function TryRunWebCoreBuild(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
+  const aSettings: TBuildSettings; out aExitCode: Integer; out aError: string): Boolean;
+var
+  lCompilerPath: string;
+  lErrLog: string;
+  lOutLog: string;
+  lRootProjectName: string;
+  lStartTick: Int64;
+  lSummary: TBuildSummary;
+  lTempBase: string;
+  lTimeMs: Int64;
+  lTimedOut: Boolean;
+begin
+  Result := False;
+  aExitCode := 1;
+  aError := '';
+
+  if not ResolveWebCoreCompilerPath(aOptions, aSettings, lCompilerPath) then
+  begin
+    aError := cWebCoreCompilerMissingMessage;
+    Exit(False);
+  end;
+
+  lTempBase := TPath.Combine(TPath.GetTempPath,
+    'dak-webcore-' + IntToStr(GetCurrentProcessId) + '-' + IntToStr(GetTickCount));
+  lOutLog := lTempBase + '.out.log';
+  lErrLog := lTempBase + '.err.log';
+  lStartTick := GetTickCount64;
+
+  if not aRunner.RunProcess(lCompilerPath, BuildWebCoreArguments(aOptions, aOptions.fDprojPath),
+    TPath.GetDirectoryName(aOptions.fDprojPath), lOutLog, lErrLog, aOptions.fBuildTimeoutSec,
+    aExitCode, lTimedOut, aError) then
+    Exit(False);
+
+  lTimeMs := GetTickCount64 - lStartTick;
+  lSummary := Default(TBuildSummary);
+  lSummary.fExitCode := aExitCode;
+  lSummary.fTimedOut := lTimedOut;
+  if lTimedOut then
+    lSummary.fStatus := cStatusTimeout
+  else if aExitCode <> 0 then
+  begin
+    lSummary.fStatus := cStatusError;
+    lSummary.fErrorCount := 1;
+  end else
+    lSummary.fStatus := cStatusOk;
+
+  if aOptions.fBuildJson then
+    Writeln(BuildSummaryAsJson(aOptions.fDprojPath, aOptions, lSummary, aOptions.fBuildTarget, lTimeMs))
+  else if aOptions.fBuildAi then
+  begin
+    if lSummary.fTimedOut then
+      Writeln('FAILED. Build timed out after ' + IntToStr(aOptions.fBuildTimeoutSec) + 's.')
+    else if lSummary.fExitCode <> 0 then
+      Writeln('FAILED. Errors: ' + IntToStr(lSummary.fErrorCount))
+    else
+      Writeln('SUCCESS.');
+  end else
+  begin
+    lRootProjectName := TPath.GetFileName(aOptions.fDprojPath);
+    if lSummary.fExitCode <> 0 then
+      Writeln('Build FAILED.')
+    else
+      Writeln('Build succeeded: ' + lRootProjectName);
+  end;
+
+  Result := True;
+end;
+
 function NormalizeBuildOptions(const aOptions: TAppOptions; out aNormalizedOptions: TAppOptions;
   out aError: string): Boolean;
 begin
@@ -1351,6 +1485,9 @@ begin
 
   if Trim(aNormalizedOptions.fBuildTarget) = '' then
     aNormalizedOptions.fBuildTarget := 'Build';
+
+  if aNormalizedOptions.fBuildBackend = TBuildBackend.bbWebCore then
+    Exit(True);
 
   if Trim(aNormalizedOptions.fDelphiVersion) = '' then
   begin
@@ -1414,13 +1551,20 @@ begin
   if not NormalizeBuildOptions(aOptions, lNormalizedOptions, aError) then
     Exit(False);
 
-  PrintVerboseStep(lNormalizedOptions, 'load-rsvars');
-  if not TryLoadRsVars(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath, nil, aError) then
-    Exit(False);
-
-  PrintVerboseStep(lNormalizedOptions, 'capture-environment');
   lEnvVars := CaptureEnvironment;
   try
+    LoadBuildSettings(lNormalizedOptions.fDprojPath, lNormalizedOptions, lEnvVars, lSettings);
+
+    if lNormalizedOptions.fBuildBackend = TBuildBackend.bbWebCore then
+      Exit(TryRunWebCoreBuild(lNormalizedOptions, aRunner, lSettings, aExitCode, aError));
+
+    PrintVerboseStep(lNormalizedOptions, 'load-rsvars');
+    if not TryLoadRsVars(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath, nil, aError) then
+      Exit(False);
+
+    PrintVerboseStep(lNormalizedOptions, 'capture-environment');
+    lEnvVars.Free;
+    lEnvVars := CaptureEnvironment;
     lDiagnosticsWarnings := TDiagnostics.Create;
     PrintVerboseStep(lNormalizedOptions, 'load-settings');
     LoadBuildSettings(lNormalizedOptions.fDprojPath, lNormalizedOptions, lEnvVars, lSettings);
