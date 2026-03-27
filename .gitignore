@@ -81,6 +81,7 @@ pas-api-map.md
 sfx
 /tests/out
 /tests/temp
+/dak.ini
 *.log
 *.tmp
 .dak/
