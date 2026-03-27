@@ -42,6 +42,7 @@ type
   private
     procedure WriteInjectStubs(const aInjectDir: string);
     procedure CreateFixtureProject(out aProjectDproj: string);
+    procedure CreateFixtureProjectWithInheritedSearchPath(out aProjectDproj: string);
     function JoinOutput(const aLines: TStrings): string;
   public
     [Test]
@@ -65,6 +66,8 @@ type
     [Test]
     procedure PipelineHappyPathWithMockRunner;
     [Test]
+    procedure PipelineAddsUnitSearchPathWhenProjectInheritsOptsetSearchPath;
+    [Test]
     procedure PipelineGeneratedRegisterPreservesNamespacedUnitNames;
     [Test]
     procedure PipelineBrokenDfmPropagatesValidatorExitAndFailText;
@@ -76,6 +79,8 @@ type
     procedure DfmCheckWarnsOnInvalidDiagnosticsIniValues;
     [Test]
     procedure PipelineBuildFailureInGeneratedUnitIsClassifiedAsGeneratorIncompatibility;
+    [Test]
+    procedure PipelineBuildFailureCleansGeneratedArtifactsByDefault;
     [Test]
     procedure PipelinePassesSelectedDfmFilterToValidator;
     [Test]
@@ -472,6 +477,105 @@ begin
     'end' + #13#10, TEncoding.UTF8);
 end;
 
+procedure TDfmCheckTests.CreateFixtureProjectWithInheritedSearchPath(out aProjectDproj: string);
+var
+  lDprPath: string;
+  lMainFormDfmPath: string;
+  lMainFormPasPath: string;
+  lOptsetPath: string;
+  lRoot: string;
+  lSourceDir: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'dfm-check-fixture-inherited-search-path');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+
+  lSourceDir := TPath.Combine(lRoot, 'src');
+  TDirectory.CreateDirectory(lSourceDir);
+
+  aProjectDproj := TPath.Combine(lRoot, 'Sample.dproj');
+  lDprPath := TPath.ChangeExtension(aProjectDproj, '.dpr');
+  lOptsetPath := TPath.Combine(lRoot, 'Fixture.optset');
+  lMainFormPasPath := TPath.Combine(lSourceDir, 'MainForm.pas');
+  lMainFormDfmPath := TPath.Combine(lSourceDir, 'MainForm.dfm');
+
+  TFile.WriteAllText(aProjectDproj,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
+    '  <PropertyGroup>' + #13#10 +
+    '    <MainSource>Sample.dpr</MainSource>' + #13#10 +
+    '    <DCC_Define>madExcept;TRACE</DCC_Define>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '  <Import Project="Fixture.optset" Condition="Exists(''Fixture.optset'')"/>' + #13#10 +
+    '  <ItemGroup>' + #13#10 +
+    '    <DCCReference Include="src\MainForm.pas"/>' + #13#10 +
+    '  </ItemGroup>' + #13#10 +
+    '  <ProjectExtensions>' + #13#10 +
+    '    <BorlandProject>' + #13#10 +
+    '      <Delphi.Personality>' + #13#10 +
+    '        <Source>' + #13#10 +
+    '          <Source Name="MainSource">Sample.dpr</Source>' + #13#10 +
+    '        </Source>' + #13#10 +
+    '      </Delphi.Personality>' + #13#10 +
+    '    </BorlandProject>' + #13#10 +
+    '  </ProjectExtensions>' + #13#10 +
+    '</Project>' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(lOptsetPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
+    '  <PropertyGroup>' + #13#10 +
+    '    <DCC_UnitSearchPath>$(ProjectRoot)\Shared;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '</Project>' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(TPath.Combine(lRoot, 'dak.ini'),
+    '[Build]' + #13#10 +
+    'DelphiVersion=23.0' + #13#10, TEncoding.ASCII);
+
+  TFile.WriteAllText(TPath.Combine(lRoot, 'rsvars.bat'),
+    '@echo off' + #13#10 +
+    'set DAK_TEST_RSVARS=1' + #13#10, TEncoding.ASCII);
+
+  TFile.WriteAllText(lDprPath,
+    'program Sample;' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  Vcl.Forms,' + #13#10 +
+    '  MainForm in ''src\MainForm.pas'' {MainForm};' + #13#10 +
+    #13#10 +
+    'begin' + #13#10 +
+    'end.' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(lMainFormPasPath,
+    'unit MainForm;' + #13#10 +
+    #13#10 +
+    'interface' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  System.Classes, Vcl.Forms;' + #13#10 +
+    #13#10 +
+    'type' + #13#10 +
+    '  TMainForm = class(TForm)' + #13#10 +
+    '  public' + #13#10 +
+    '    procedure FormCreate(Sender: TObject);' + #13#10 +
+    '  end;' + #13#10 +
+    #13#10 +
+    'implementation' + #13#10 +
+    #13#10 +
+    '{$R *.dfm}' + #13#10 +
+    #13#10 +
+    'procedure TMainForm.FormCreate(Sender: TObject);' + #13#10 +
+    'begin' + #13#10 +
+    'end;' + #13#10 +
+    #13#10 +
+    'end.' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(lMainFormDfmPath,
+    'object MainForm: TMainForm' + #13#10 +
+    '  Caption = ''MainForm''' + #13#10 +
+    'end' + #13#10, TEncoding.UTF8);
+end;
+
 function TDfmCheckTests.JoinOutput(const aLines: TStrings): string;
 begin
   Result := String.Join(#13#10, aLines.ToStringArray);
@@ -804,6 +908,68 @@ begin
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
     lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineAddsUnitSearchPathWhenProjectInheritsOptsetSearchPath;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lGeneratedDprojText: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lPaths: TDfmCheckPaths;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+  lSourceDir: string;
+begin
+  CreateFixtureProjectWithInheritedSearchPath(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-inherited-search-path');
+  WriteInjectStubs(lInjectDir);
+  lSourceDir := TPath.Combine(ExtractFilePath(lDprojPath), 'src');
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected inherited-search-path fixture to complete with mock runner.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Unexpected error category for inherited-search-path fixture.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for inherited-search-path fixture.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
+    Assert.IsTrue(Pos('<DCC_UnitSearchPath>', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should synthesize DCC_UnitSearchPath when source project inherits it from an optset.');
+    Assert.IsTrue(Pos(lSourceDir, lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should prepend discovered form unit directories.');
+    Assert.IsTrue(Pos('$(DCC_UnitSearchPath)', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should still preserve inherited DCC_UnitSearchPath macros.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
   end;
 end;
 
@@ -1248,6 +1414,70 @@ begin
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineBuildFailureCleansGeneratedArtifactsByDefault;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lPaths: TDfmCheckPaths;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lKeepArtifactsEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-buildfail-cleanup');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', nil);
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBuildFailGeneratedUnit, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(1, lResult, 'Expected non-zero build exit code to be propagated.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecGeneratorIncompatible, lCategory,
+      'Expected generated checker unit compile failure to map to generator incompatibility.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsFalse(FileExists(lPaths.fGeneratedDpr),
+      'Expected generated DPR to be cleaned up after build failure when keep-artifacts mode is off.');
+    Assert.IsFalse(FileExists(lPaths.fGeneratedDproj),
+      'Expected generated DPROJ to be cleaned up after build failure when keep-artifacts mode is off.');
+    Assert.IsFalse(FileExists(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas')),
+      'Expected generated register unit to be cleaned up after build failure when keep-artifacts mode is off.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
     lOutputLines.Free;
   end;
 end;
