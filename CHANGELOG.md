@@ -41,6 +41,7 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed bundled `dfm-check` frame validation so injected `DfmStreamAll.pas` now retries VCL frames through the constructor path when stream validation hits duplicate-component false positives such as `A component named pnlFilter already exists`.
 - Fixed `dfm-check` helper-project generation so projects that inherit `DCC_UnitSearchPath` only from imported `.optset` files now get a synthesized search-path node in the generated `_DfmCheck.dproj`, preventing false `F2613 Unit not found` failures for form units such as `uMainForm`; cleanup-on-failure is regression-tested, and keep-artifacts mode now announces itself explicitly when `DAK_DFMCHECK_KEEP_ARTIFACTS=true`.
 - Fixed `dfm-check` bundled inject-file discovery so detached/copy-built `DelphiAIKit.exe` binaries can still find `tools\inject` (with `docs\delphi-dfm-checker\tools\inject` fallback) by walking ancestor directories from the executable.
 - Fixed `build` and `dfm-check` so invalid `[Diagnostics]` `dak.ini` values for `SourceContext` / `SourceContextLines` now surface as warnings instead of silently falling back to defaults. (T-087)
