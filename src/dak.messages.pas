@@ -8,7 +8,7 @@ resourcestring
     'Commands:' + #13#10 +
     '  resolve   Resolve FixInsight params (ini/xml/bat)' + #13#10 +
     '  analyze   Run FixInsight / Pascal Analyzer' + #13#10 +
-    '  build     Build a Delphi project (.dproj; or .dpr/.dpk with sibling .dproj)' + #13#10 +
+    '  build     Build a Delphi or TMS WEB Core project (.dproj; or .dpr/.dpk with sibling .dproj)' + #13#10 +
     '  dfm-check Validate DFM streaming via generated _DfmCheck harness project' + #13#10 +
     '  dfm-inspect Inspect text DFM structure and event bindings' + #13#10 +
     '  global-vars List project global variables and their routine usages' + #13#10 +
@@ -38,7 +38,7 @@ resourcestring
   SUsageBuild =
     'DelphiAIKit.exe build --project "<path>" [--delphi <23.0>] ' +
     '[--platform <Win32|Win64>] [--config <Debug|Release>] [--target <Build|Rebuild>] [--rebuild [true|false]] ' +
-    '[--builder <auto|delphi|webcore>] [--webcore-compiler "<path>"] ' +
+    '[--builder <auto|delphi|webcore>] [--webcore-compiler "<path>"] [--pwa] [--no-pwa] ' +
     '[--json [true|false]] [--max-findings <N>] [--build-timeout-sec <N default 0>] [--test-output-dir "<path>"] ' +
     '[--ai] [--show-warnings] [--show-hints] [--dfmcheck] ' +
     '[--dfm "<file.dfm[,file2.dfm]>"] [--all] ' +
@@ -61,6 +61,7 @@ resourcestring
   SInvalidBoolValue = 'Invalid value for %s: %s';
   SInvalidBuildTarget = 'Invalid --target value: %s (expected Build or Rebuild).';
   SInvalidBuildBackend = 'Invalid --builder value: %s (expected auto, delphi, or webcore).';
+  SBuildOptionDelphiOnly = '%s is only supported for Delphi/MSBuild builds.';
   SInvalidMaxFindings = 'Invalid --max-findings value: %s (expected integer >= 1).';
   SInvalidBuildTimeout = 'Invalid --build-timeout-sec value: %s (expected integer >= 0).';
   SInvalidSourceContext = 'Invalid --source-context value: %s (expected auto, off, or on).';

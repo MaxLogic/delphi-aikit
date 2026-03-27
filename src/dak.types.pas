@@ -61,6 +61,8 @@ type
     fHasBuildTestOutputDir: Boolean;
     fWebCoreCompilerPath: string;
     fHasWebCoreCompilerPath: Boolean;
+    fWebCorePwaEnabled: Boolean;
+    fHasWebCorePwaEnabled: Boolean;
     fBuildIgnoreWarnings: string;
     fHasBuildIgnoreWarnings: Boolean;
     fBuildIgnoreHints: string;

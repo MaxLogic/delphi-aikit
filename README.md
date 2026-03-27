@@ -66,9 +66,26 @@ Additional build flags:
 - `--dfmcheck` runs DFM streaming validation after a successful build (presence flag; same as calling `dfm-check` separately).
 - `--dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm"` scopes post-build `--dfmcheck` to selected forms.
 - `--all` scopes post-build `--dfmcheck` to all forms (default when `--dfm` is omitted).
+- `--builder auto|delphi|webcore` selects the build backend. `auto` is the default and now detects strong TMS WEB Core project markers from the target `.dproj`.
+- `--webcore-compiler "<path>"` overrides `TMSWebCompiler.exe` discovery for WebCore builds.
+- `--pwa` and `--no-pwa` force WebCore `/PWA` on or off. Without either flag, DAK follows the project's `TMSWebPWA` setting.
 - `--source-context auto|off|on` controls whether build/`dfm-check` failure output includes nearby source lines when a file and line can be resolved.
 - `--source-context-lines N` controls how many lines before/after the hit are shown (default `2`).
 - `--rsvars "<path>"` overrides `rsvars.bat` for build and post-build `--dfmcheck` validation.
+
+For TMS WEB Core projects, `build` can now call `TMSWebCompiler.exe` directly:
+
+```
+bin\DelphiAIKit.exe build --project "C:\path\WebApp.dproj" --builder webcore --config Debug --webcore-compiler "F:\TMS-SmartSetUp\Products\tms.webcore\Bin\Win64\TMSWebCompiler.exe" --ai
+```
+
+`--builder` can usually be omitted for WebCore projects because `auto` detects strong markers such as `TMSWebProject`, `TMSWebHTMLFile`, and `TMSWEBCorePkg...` package references:
+
+```
+bin\DelphiAIKit.exe build --project "C:\path\WebApp.dproj" --config Debug --webcore-compiler "F:\TMS-SmartSetUp\Products\tms.webcore\Bin\Win64\TMSWebCompiler.exe" --ai
+```
+
+For WebCore builds, Delphi-only options such as `--dfmcheck`, `--rsvars`, and `--envoptions` are rejected instead of being silently ignored.
 
 ## Quick start
 

@@ -55,7 +55,15 @@ type
     [Test]
     procedure BuildCommandRejectsDfmCheckValue;
     [Test]
+    procedure BuildCommandParsesWebCoreBuilder;
+    [Test]
+    procedure BuildCommandAutoDetectsWebCoreProject;
+    [Test]
+    procedure BuildCommandParsesWebCorePwaFlags;
+    [Test]
     procedure BuildCommandParsesWebCoreBuilderCompilerWithoutDelphi;
+    [Test]
+    procedure BuildCommandRejectsDfmCheckForWebCoreBuilder;
     [Test]
     procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
     [Test]
@@ -385,6 +393,66 @@ begin
     'Expected unknown-argument error for valued --dfmcheck. Actual: ' + lError);
 end;
 
+procedure TCliTests.BuildCommandParsesWebCoreBuilder;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --builder webcore --webcore-compiler C:\tools\TMSWebCompiler.exe');
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected explicit WebCore build args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckBuild, lOptions.fCommand, 'Expected build command kind.');
+  Assert.AreEqual(Integer(TBuildBackend.bbWebCore), Integer(lOptions.fBuildBackend),
+    'Expected --builder webcore to select the WebCore backend.');
+  Assert.IsTrue(lOptions.fHasWebCoreCompilerPath, 'Expected --webcore-compiler to be tracked as explicit input.');
+  Assert.AreEqual('C:\tools\TMSWebCompiler.exe', lOptions.fWebCoreCompilerPath,
+    'Unexpected parsed WebCore compiler path.');
+end;
+
+procedure TCliTests.BuildCommandAutoDetectsWebCoreProject;
+var
+  lDprojPath: string;
+  lFixtureRoot: string;
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  EnsureTempClean;
+  lFixtureRoot := TPath.Combine(TempRoot, 'cli-webcore-auto-detect');
+  ForceDirectories(lFixtureRoot);
+  lDprojPath := TPath.Combine(lFixtureRoot, 'WebCoreAuto.dproj');
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>WebCoreAuto.dpr</MainSource>' + sLineBreak +
+    '    <TMSWebProject>2</TMSWebProject>' + sLineBreak +
+    '    <TMSWebHTMLFile>index.html</TMSWebHTMLFile>' + sLineBreak +
+    '    <DCC_UsePackage>TMSWEBCorePkgDXE15;$(DCC_UsePackage)</DCC_UsePackage>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak,
+    TEncoding.UTF8);
+
+  SetParams('build --project ' + QuoteArg(lDprojPath) + ' --config Debug --webcore-compiler C:\tools\TMSWebCompiler.exe');
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected WebCore auto-detect build args to parse without --delphi. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckBuild, lOptions.fCommand, 'Expected build command kind.');
+end;
+
+procedure TCliTests.BuildCommandParsesWebCorePwaFlags;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --builder webcore --pwa');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected --pwa to parse. Error: ' + lError);
+  Assert.IsTrue(lOptions.fHasWebCorePwaEnabled, 'Expected --pwa to be tracked as explicit input.');
+  Assert.IsTrue(lOptions.fWebCorePwaEnabled, 'Expected --pwa to enable PWA mode.');
+
+  SetParams('build --project C:\repo\Sample.dproj --builder webcore --no-pwa');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected --no-pwa to parse. Error: ' + lError);
+  Assert.IsTrue(lOptions.fHasWebCorePwaEnabled, 'Expected --no-pwa to be tracked as explicit input.');
+  Assert.IsFalse(lOptions.fWebCorePwaEnabled, 'Expected --no-pwa to disable PWA mode.');
+end;
+
 procedure TCliTests.BuildCommandParsesWebCoreBuilderCompilerWithoutDelphi;
 var
   lOptions: TAppOptions;
@@ -399,6 +467,18 @@ begin
   Assert.IsTrue(lOptions.fHasWebCoreCompilerPath, 'Expected --webcore-compiler to be tracked as explicit input.');
   Assert.AreEqual('C:\tools\TMSWebCompiler.exe', lOptions.fWebCoreCompilerPath,
     'Unexpected parsed WebCore compiler path.');
+end;
+
+procedure TCliTests.BuildCommandRejectsDfmCheckForWebCoreBuilder;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --builder webcore --webcore-compiler C:\tools\TMSWebCompiler.exe --dfmcheck');
+  Assert.IsFalse(TryParseOptions(lOptions, lError),
+    'Expected WebCore builds to reject --dfmcheck.');
+  Assert.IsTrue(Pos('--dfmcheck', lError) > 0,
+    'Expected WebCore incompatibility error to mention --dfmcheck. Actual: ' + lError);
 end;
 
 procedure TCliTests.AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;

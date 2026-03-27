@@ -32,6 +32,7 @@ var
   lArgs: string;
   lExit: Cardinal;
   lLog: string;
+  lLogName: string;
 begin
   lOutRoot := TPath.Combine(TempRoot, 'fixinsight-' + aSuffix);
   if TDirectory.Exists(lOutRoot) then
@@ -47,7 +48,8 @@ begin
   if aIds <> '' then
     lArgs := lArgs + ' --ignore-warning-ids ' + QuoteArg(aIds);
 
-  lLog := TPath.Combine(lOutRoot, 'fixinsight-analyze.log');
+  lLogName := FormatDateTime('yyyymmddhhnnsszzz', Now) + '-fixinsight-analyze.log';
+  lLog := TPath.Combine(lOutRoot, lLogName);
   if not RunProcess(ResolverExePath, lArgs, RepoRoot, lLog, lExit) then
     Assert.Fail('Failed to start FixInsight analyze: ' + lLog);
   if lExit <> 0 then
