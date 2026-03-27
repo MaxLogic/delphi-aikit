@@ -2,8 +2,8 @@
 Next task ID: T-096
 
 ## Summary
-Open tasks: 3 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 1, Blocked: 2)
-Done tasks: 92
+Open tasks: 2 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 2)
+Done tasks: 93
 
 ## In Progress
 
@@ -13,26 +13,6 @@ Done tasks: 92
 ## Next - This Week
 
 ## Next - Later
-
-### T-092 [CLI] Add TMS WEB Core build backend to DAK
-Outcome:
-- `DelphiAIKit.exe build` can compile TMS WEB Core `.dproj` projects directly via `TMSWebCompiler.exe`, so we no longer need separate `build-webcore` wrapper scripts for normal WSL or Windows use.
-- Build backend selection is unified under one CLI surface with explicit `--builder <auto|delphi|webcore>` support, and `auto` conservatively detects WebCore projects from strong project markers such as `TMSWebProject` and `TMSWebHTMLFile`.
-- WebCore builds support compiler-path resolution, PWA toggling, clean AI/plain/JSON output, and the existing debug `patch-index-debug.ps1` hook without relying on external shell glue.
-- Delphi-only build behaviors such as `--dfmcheck`, `--rsvars`, `MSBuild`, and madExcept remain isolated to the Delphi backend and fail clearly when misapplied to WebCore builds.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.BuildCommandParsesWebCoreBuilder,Test.Cli.TCliTests.BuildCommandAutoDetectsWebCoreProject,Test.Build.TBuildTests.BuildWebCoreUsesCompilerFromCli,Test.Build.TBuildTests.BuildWebCoreRunsDebugPatchHook -cm:Quiet`
-  Expect: Tests Found `>=4`, Failed `0`, Leaked `0`.
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -cm:Quiet`
-  Expect: Exit code `0`.
-- Run: `./bin/DelphiAIKit.exe build --project /mnt/f/projects/mecMeister/_SVN/Kfzmeister_workCopy/Mobile-Solution/FrontEnd/KFZMeisterPWA/KFZMeisterPWA.dproj --builder webcore --config Debug --webcore-compiler "<path-to-TMSWebCompiler.exe>" --ai`
-  Expect: Exit code `0`; output ends with `SUCCESS.` and no wrapper scripts are involved.
-- Run: `./bin/DelphiAIKit.exe build --project /mnt/f/projects/mecMeister/_SVN/Kfzmeister_workCopy/Mobile-Solution/FrontEnd/KFZMeisterPWA/KFZMeisterPWA.dproj --config Debug --webcore-compiler "<path-to-TMSWebCompiler.exe>" --ai`
-  Expect: Exit code `0`; backend auto-detects WebCore from project markers and produces the same successful result.
-Touches: src/dak.types.pas, src/dak.cli.pas, src/dak.messages.pas, src/dak.build.pas, src/dak.project.pas, tests/units/test.cli.pas, tests/units/test.build.pas, README.md, spec.md, CHANGELOG.md, .agents/plans/webcore-build-integration.md
-Deps: T-093, T-094, T-095
-Verify: unit-test, cli-proof
-Notes: Design plan: `.agents/plans/webcore-build-integration.md`. Sample project: `/mnt/f/projects/mecMeister/_SVN/Kfzmeister_workCopy/Mobile-Solution/FrontEnd/KFZMeisterPWA/KFZMeisterPWA.dproj`.
 
 ## Blocked
 
@@ -66,6 +46,24 @@ Verify: cli-proof, manual
 Notes: Blocked until `T-090` publishes the local branch. The repo exists as `MaxLogic/delphi-aikit`, but GitHub still shows no default-branch commit because nothing has been pushed yet.
 
 ## Done
+
+### T-092 [CLI] Add TMS WEB Core build backend to DAK
+Outcome:
+- `DelphiAIKit.exe build` can compile TMS WEB Core `.dproj` projects directly via `TMSWebCompiler.exe`, so we no longer need separate `build-webcore` wrapper scripts for normal WSL or Windows use.
+- Build backend selection is unified under one CLI surface with explicit `--builder <auto|delphi|webcore>` support, and `auto` conservatively detects WebCore projects from strong project markers such as `TMSWebProject` and `TMSWebHTMLFile`.
+- WebCore builds support compiler-path resolution, PWA toggling, clean AI/plain/JSON output, and the existing debug `patch-index-debug.ps1` hook without relying on external shell glue.
+- Delphi-only build behaviors such as `--dfmcheck`, `--rsvars`, `MSBuild`, and madExcept remain isolated to the Delphi backend and fail clearly when misapplied to WebCore builds.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.BuildCommandParsesWebCoreBuilder,Test.Cli.TCliTests.BuildCommandAutoDetectsWebCoreProject,Test.Cli.TCliTests.BuildCommandParsesWebCorePwaFlags,Test.Cli.TCliTests.BuildCommandRejectsDfmCheckForWebCoreBuilder,Test.Build.TBuildTests.BuildWebCoreCompilerResolutionUsesPathWhenConfigMissing,Test.Build.TBuildTests.BuildWebCoreUsesCompilerFromCli,Test.Build.TBuildTests.BuildWebCoreRunsDebugPatchHook,Test.Build.TBuildTests.BuildWebCoreSkipsPatchHookOutsideDebug,Test.Build.TBuildTests.BuildWebCoreNoPwaOmitsPwaArgument,Test.Build.TBuildTests.BuildWebCoreAiBuildEmitsSuccessSummary,Test.Build.TBuildTests.BuildWebCorePlainBuildEmitsOutputPath,Test.Build.TBuildTests.BuildWebCoreJsonBuildEmitsSummary,Test.Build.TBuildTests.BuildAutoFallsBackToDelphiWhenWebCoreProbeNeedsEnvironment -cm:Quiet`
+  Expect: Tests Found `>=13`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe build --project /mnt/f/projects/mecMeister/_SVN/Kfzmeister_workCopy/Mobile-Solution/FrontEnd/KFZMeisterPWA/KFZMeisterPWA.dproj --builder webcore --config Debug --webcore-compiler "<path-to-TMSWebCompiler.exe>" --ai`
+  Expect: Exit code `0`; output ends with `SUCCESS.` and no wrapper scripts are involved.
+- Run: `./bin/DelphiAIKit.exe build --project /mnt/f/projects/mecMeister/_SVN/Kfzmeister_workCopy/Mobile-Solution/FrontEnd/KFZMeisterPWA/KFZMeisterPWA.dproj --config Debug --webcore-compiler "<path-to-TMSWebCompiler.exe>" --ai`
+  Expect: Exit code `0`; backend auto-detects WebCore from project markers and produces the same successful result.
+Touches: src/dak.types.pas, src/dak.cli.pas, src/dak.messages.pas, src/dak.build.pas, src/dak.project.pas, tests/units/test.cli.pas, tests/units/test.build.pas, README.md, spec.md, CHANGELOG.md, .agents/resolved-plans/webcore-build-integration.md
+Deps: T-093, T-094, T-095
+Verify: unit-test, cli-proof
+Notes: Design plan: `.agents/resolved-plans/webcore-build-integration.md`. Sample project: `/mnt/f/projects/mecMeister/_SVN/Kfzmeister_workCopy/Mobile-Solution/FrontEnd/KFZMeisterPWA/KFZMeisterPWA.dproj`.
 
 ### T-095 [DOC] Ignore repo-local dak.ini and seed the maintainer-local WebCore compiler path
 Outcome:

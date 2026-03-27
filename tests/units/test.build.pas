@@ -63,11 +63,27 @@ type
     [Test]
     procedure BuildWebCoreCompilerResolutionUsesEnvVarWhenDakIniMissing;
     [Test]
+    procedure BuildWebCoreCompilerResolutionUsesPathWhenConfigMissing;
+    [Test]
     procedure BuildWebCoreCompilerResolutionDoesNotProbeFixedPaths;
     [Test]
     procedure BuildWebCoreMissingCompilerReportsSupportedSources;
     [Test]
+    procedure BuildWebCoreUsesCompilerFromCli;
+    [Test]
+    procedure BuildWebCoreRunsDebugPatchHook;
+    [Test]
+    procedure BuildWebCoreSkipsPatchHookOutsideDebug;
+    [Test]
+    procedure BuildWebCoreNoPwaOmitsPwaArgument;
+    [Test]
     procedure BuildWebCoreAiBuildEmitsSuccessSummary;
+    [Test]
+    procedure BuildWebCorePlainBuildEmitsOutputPath;
+    [Test]
+    procedure BuildWebCoreJsonBuildEmitsSummary;
+    [Test]
+    procedure BuildAutoFallsBackToDelphiWhenWebCoreProbeNeedsEnvironment;
     [Test]
     procedure IdeConfigFallsBackToEnvOptionsWin64Alias;
     [Test]
@@ -612,8 +628,8 @@ begin
     '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
     '  <PropertyGroup>' + sLineBreak +
     '    <MainSource>WebCoreCheck.dpr</MainSource>' + sLineBreak +
-    '    <Config Condition=''''$(Config)''''==''''''''>Debug</Config>' + sLineBreak +
-    '    <Platform Condition=''''$(Platform)''''==''''''''>Win32</Platform>' + sLineBreak +
+    '    <Config Condition="' + '''$(Config)''==''''">Debug</Config>' + sLineBreak +
+    '    <Platform Condition="' + '''$(Platform)''==''''">Win32</Platform>' + sLineBreak +
     '    <TMSWebProject>2</TMSWebProject>' + sLineBreak +
     '    <TMSWebHTMLFile>index.html</TMSWebHTMLFile>' + sLineBreak +
     '    <TMSWebPWA>2</TMSWebPWA>' + sLineBreak +
@@ -624,6 +640,22 @@ begin
     'program WebCoreCheck;' + sLineBreak +
     'begin' + sLineBreak +
     'end.' + sLineBreak);
+end;
+
+procedure PrepareWebCoreDebugHookFixture(const aRootDir: string; out aDprojPath: string);
+var
+  lIndexPath: string;
+  lJsPath: string;
+begin
+  PrepareWebCoreBuildFixture(aRootDir, aDprojPath);
+  WriteUtf8File(TPath.Combine(aRootDir, 'tools\patch-index-debug.ps1'),
+    'param([string]$ProjectDir,[string]$Config,[string]$ProjectName)' + sLineBreak);
+
+  lIndexPath := TPath.Combine(aRootDir, 'TMSWeb\Debug\index.html');
+  lJsPath := TPath.Combine(aRootDir, 'TMSWeb\Debug\WebCoreCheck.js');
+  WriteUtf8File(lIndexPath,
+    '<html><body><script src="WebCoreCheck.js"></script></body></html>' + sLineBreak);
+  WriteUtf8File(lJsPath, 'console.log("ok");' + sLineBreak);
 end;
 
 procedure TBuildTests.BuildWarnsWhenWin64NamespacesOmitWinapi;
@@ -912,6 +944,9 @@ begin
   PrepareWebCoreBuildFixture(lProjectRoot, lDprojPath);
   lEnvCompilerPath := TPath.Combine(lProjectRoot, 'env\TMSWebCompiler.exe');
   WriteUtf8File(lEnvCompilerPath, 'stub');
+  WriteIniTextFile(TPath.Combine(lProjectRoot, 'dak.ini'),
+    '[WebCore]' + sLineBreak +
+    'CompilerPath=' + TPath.Combine(lProjectRoot, 'missing\TMSWebCompiler.exe') + sLineBreak);
 
   lPrevCompilerPath := GetEnvironmentVariable('DAK_TMSWEB_COMPILER');
   Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', PChar(lEnvCompilerPath));
@@ -940,6 +975,63 @@ begin
   end;
 end;
 
+procedure TBuildTests.BuildWebCoreCompilerResolutionUsesPathWhenConfigMissing;
+var
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lPathCompilerDir: string;
+  lPathCompilerPath: string;
+  lPreviousCompilerPath: string;
+  lPreviousPath: string;
+  lProjectRoot: string;
+  lRunner: IBuildProcessRunner;
+  lCapturingRunner: TCapturingBuildRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'webcore-compiler-path');
+  PrepareWebCoreBuildFixture(lProjectRoot, lDprojPath);
+  lPathCompilerDir := TPath.Combine(lProjectRoot, 'path-bin');
+  lPathCompilerPath := TPath.Combine(lPathCompilerDir, 'TMSWebCompiler.exe');
+  WriteUtf8File(lPathCompilerPath, 'stub');
+  WriteIniTextFile(TPath.Combine(lProjectRoot, 'dak.ini'),
+    '[WebCore]' + sLineBreak +
+    'CompilerPath=' + TPath.Combine(lProjectRoot, 'missing\TMSWebCompiler.exe') + sLineBreak);
+
+  lPreviousCompilerPath := GetEnvironmentVariable('DAK_TMSWEB_COMPILER');
+  lPreviousPath := GetEnvironmentVariable('PATH');
+  Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', nil);
+  Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lPathCompilerDir + ';' + lPreviousPath));
+  try
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Debug';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fBuildBackend := TBuildBackend.bbWebCore;
+
+    lCapturingRunner := TCapturingBuildRunner.Create;
+    lRunner := lCapturingRunner;
+    lError := '';
+    Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+      'Expected WebCore build to use TMSWebCompiler.exe from PATH. Error: ' + lError);
+    Assert.AreEqual(0, lExitCode, 'Expected fake WebCore build to succeed.');
+    Assert.AreEqual(1, lCapturingRunner.fCallCount, 'Expected exactly one WebCore compiler launch.');
+    Assert.IsTrue(SameText(lPathCompilerPath, lCapturingRunner.fExePaths[0]),
+      'Expected PATH compiler path to be used when CLI, dak.ini, and env var are unavailable. Calls: ' +
+      DescribeCapturedProcesses(lCapturingRunner));
+  finally
+    if lPreviousCompilerPath <> '' then
+      Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', PChar(lPreviousCompilerPath))
+    else
+      Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', nil);
+    if lPreviousPath <> '' then
+      Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lPreviousPath))
+    else
+      Winapi.Windows.SetEnvironmentVariable('PATH', nil);
+  end;
+end;
+
 procedure TBuildTests.BuildWebCoreCompilerResolutionDoesNotProbeFixedPaths;
 var
   lDprojPath: string;
@@ -955,6 +1047,9 @@ begin
   EnsureTempClean;
   lProjectRoot := TPath.Combine(TempRoot, 'webcore-compiler-no-fixed-probe');
   PrepareWebCoreBuildFixture(lProjectRoot, lDprojPath);
+  WriteIniTextFile(TPath.Combine(lProjectRoot, 'dak.ini'),
+    '[WebCore]' + sLineBreak +
+    'CompilerPath=' + TPath.Combine(lProjectRoot, 'missing\TMSWebCompiler.exe') + sLineBreak);
 
   lPrevCompilerPath := GetEnvironmentVariable('DAK_TMSWEB_COMPILER');
   lPrevPath := GetEnvironmentVariable('PATH');
@@ -1004,6 +1099,9 @@ begin
   EnsureTempClean;
   lProjectRoot := TPath.Combine(TempRoot, 'webcore-compiler-missing-message');
   PrepareWebCoreBuildFixture(lProjectRoot, lDprojPath);
+  WriteIniTextFile(TPath.Combine(lProjectRoot, 'dak.ini'),
+    '[WebCore]' + sLineBreak +
+    'CompilerPath=' + TPath.Combine(lProjectRoot, 'missing\TMSWebCompiler.exe') + sLineBreak);
 
   lPrevCompilerPath := GetEnvironmentVariable('DAK_TMSWEB_COMPILER');
   lPrevPath := GetEnvironmentVariable('PATH');
@@ -1039,6 +1137,242 @@ begin
       Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lPrevPath))
     else
       Winapi.Windows.SetEnvironmentVariable('PATH', nil);
+  end;
+end;
+
+procedure TBuildTests.BuildWebCoreUsesCompilerFromCli;
+var
+  lCompilerPath: string;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lProjectRoot: string;
+  lRunner: IBuildProcessRunner;
+  lCapturingRunner: TCapturingBuildRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'webcore-auto-cli-compiler');
+  PrepareWebCoreBuildFixture(lProjectRoot, lDprojPath);
+  lCompilerPath := TPath.Combine(lProjectRoot, 'cli\TMSWebCompiler.exe');
+  WriteUtf8File(lCompilerPath, 'stub');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fBuildBackend := TBuildBackend.bbAuto;
+  lOptions.fWebCoreCompilerPath := lCompilerPath;
+  lOptions.fHasWebCoreCompilerPath := True;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lRunner := lCapturingRunner;
+  lError := '';
+  Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+    'Expected WebCore auto build to use the CLI compiler path. Error: ' + lError);
+  Assert.AreEqual(0, lExitCode, 'Expected fake WebCore build to succeed.');
+  Assert.IsTrue(lCapturingRunner.fCallCount >= 1, 'Expected at least one WebCore process launch.');
+  Assert.IsTrue(SameText(lCompilerPath, lCapturingRunner.fExePaths[0]),
+    'Expected auto-detected WebCore build to launch the CLI compiler path. Calls: ' +
+    DescribeCapturedProcesses(lCapturingRunner));
+  Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[0], '/ParseDprojFile'),
+    'Expected WebCore compiler args to include /ParseDprojFile. Args: ' + lCapturingRunner.fArgumentsList[0]);
+  Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[0], '/Config:Debug'),
+    'Expected WebCore compiler args to include the selected config. Args: ' + lCapturingRunner.fArgumentsList[0]);
+  Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[0], '/PWA'),
+    'Expected WebCore builds to enable /PWA by default. Args: ' + lCapturingRunner.fArgumentsList[0]);
+end;
+
+procedure TBuildTests.BuildWebCoreRunsDebugPatchHook;
+var
+  lCompilerPath: string;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lProjectRoot: string;
+  lRunner: IBuildProcessRunner;
+  lCapturingRunner: TCapturingBuildRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'webcore-debug-hook');
+  PrepareWebCoreDebugHookFixture(lProjectRoot, lDprojPath);
+  lCompilerPath := TPath.Combine(lProjectRoot, 'cli\TMSWebCompiler.exe');
+  WriteUtf8File(lCompilerPath, 'stub');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fBuildBackend := TBuildBackend.bbAuto;
+  lOptions.fWebCoreCompilerPath := lCompilerPath;
+  lOptions.fHasWebCoreCompilerPath := True;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lRunner := lCapturingRunner;
+  lError := '';
+  Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+    'Expected WebCore build to run the debug patch hook. Error: ' + lError);
+  Assert.AreEqual(0, lExitCode, 'Expected fake WebCore build to succeed.');
+  Assert.AreEqual(2, lCapturingRunner.fCallCount,
+    'Expected compiler plus debug patch hook launches. Calls: ' + DescribeCapturedProcesses(lCapturingRunner));
+  Assert.IsTrue(ContainsText(ExtractFileName(lCapturingRunner.fExePaths[1]), 'powershell.exe'),
+    'Expected the second launch to invoke PowerShell. Calls: ' + DescribeCapturedProcesses(lCapturingRunner));
+  Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[1], 'patch-index-debug.ps1'),
+    'Expected PowerShell args to target patch-index-debug.ps1. Args: ' + lCapturingRunner.fArgumentsList[1]);
+  Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[1], '-ProjectDir'),
+    'Expected PowerShell args to pass -ProjectDir. Args: ' + lCapturingRunner.fArgumentsList[1]);
+  Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[1], '-Config') and
+    ContainsText(lCapturingRunner.fArgumentsList[1], 'Debug'),
+    'Expected PowerShell args to pass the build config. Args: ' + lCapturingRunner.fArgumentsList[1]);
+  Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[1], '-ProjectName') and
+    ContainsText(lCapturingRunner.fArgumentsList[1], 'WebCoreCheck'),
+    'Expected PowerShell args to pass the project name. Args: ' + lCapturingRunner.fArgumentsList[1]);
+end;
+
+procedure TBuildTests.BuildWebCoreSkipsPatchHookOutsideDebug;
+var
+  lCompilerPath: string;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lProjectRoot: string;
+  lRunner: IBuildProcessRunner;
+  lCapturingRunner: TCapturingBuildRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'webcore-release-hook-skip');
+  PrepareWebCoreDebugHookFixture(lProjectRoot, lDprojPath);
+  lCompilerPath := TPath.Combine(lProjectRoot, 'cli\TMSWebCompiler.exe');
+  WriteUtf8File(lCompilerPath, 'stub');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fBuildBackend := TBuildBackend.bbAuto;
+  lOptions.fWebCoreCompilerPath := lCompilerPath;
+  lOptions.fHasWebCoreCompilerPath := True;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lRunner := lCapturingRunner;
+  lError := '';
+  Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+    'Expected non-Debug WebCore build to skip the patch hook cleanly. Error: ' + lError);
+  Assert.AreEqual(0, lExitCode, 'Expected fake WebCore build to succeed.');
+  Assert.AreEqual(1, lCapturingRunner.fCallCount,
+    'Expected only the WebCore compiler launch outside Debug. Calls: ' + DescribeCapturedProcesses(lCapturingRunner));
+end;
+
+procedure TBuildTests.BuildWebCoreNoPwaOmitsPwaArgument;
+var
+  lCompilerPath: string;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lProjectRoot: string;
+  lRunner: IBuildProcessRunner;
+  lCapturingRunner: TCapturingBuildRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'webcore-no-pwa');
+  PrepareWebCoreBuildFixture(lProjectRoot, lDprojPath);
+  lCompilerPath := TPath.Combine(lProjectRoot, 'cli\TMSWebCompiler.exe');
+  WriteUtf8File(lCompilerPath, 'stub');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fBuildBackend := TBuildBackend.bbWebCore;
+  lOptions.fWebCoreCompilerPath := lCompilerPath;
+  lOptions.fHasWebCoreCompilerPath := True;
+  lOptions.fWebCorePwaEnabled := False;
+  lOptions.fHasWebCorePwaEnabled := True;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lRunner := lCapturingRunner;
+  lError := '';
+  Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+    'Expected WebCore build with --no-pwa to complete successfully. Error: ' + lError);
+  Assert.AreEqual(0, lExitCode, 'Expected fake WebCore build to succeed.');
+  Assert.IsFalse(ContainsText(lCapturingRunner.fArgumentsList[0], '/PWA'),
+    'Expected explicit --no-pwa to omit /PWA from compiler args. Args: ' + lCapturingRunner.fArgumentsList[0]);
+end;
+
+procedure TBuildTests.BuildAutoFallsBackToDelphiWhenWebCoreProbeNeedsEnvironment;
+var
+  lDprPath: string;
+  lDprojPath: string;
+  lEnvImportPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lFakeBdsRoot: string;
+  lOptions: TAppOptions;
+  lPreviousImportPath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+  lCapturingRunner: TCapturingBuildRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'auto-delphi-fallback');
+  ForceDirectories(lProjectRoot);
+  lDprojPath := TPath.Combine(lProjectRoot, 'AutoDelphiCheck.dproj');
+  lDprPath := TPath.ChangeExtension(lDprojPath, '.dpr');
+  lEnvImportPath := TPath.Combine(lProjectRoot, 'env-import.props');
+  WriteUtf8File(lEnvImportPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <ImportedFromEnv>1</ImportedFromEnv>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+  WriteUtf8File(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <Import Project="$(DAK_TEST_IMPORT)" />' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>AutoDelphiCheck.dpr</MainSource>' + sLineBreak +
+    '    <DCC_ExeOutput>bin</DCC_ExeOutput>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+  WriteUtf8File(lDprPath,
+    'program AutoDelphiCheck;' + sLineBreak +
+    'begin' + sLineBreak +
+    'end.' + sLineBreak);
+
+  lFakeBdsRoot := TPath.Combine(lProjectRoot, 'fake-bds-root');
+  ForceDirectories(TPath.Combine(lFakeBdsRoot, 'bin'));
+  lRsVarsPath := TPath.Combine(lFakeBdsRoot, 'bin\rsvars.bat');
+  TFile.WriteAllText(lRsVarsPath, '@echo off' + sLineBreak, TEncoding.ASCII);
+  WriteUtf8File(TPath.Combine(lFakeBdsRoot, 'bin\MSBuild.exe'), 'stub');
+
+  lPreviousImportPath := GetEnvironmentVariable('DAK_TEST_IMPORT');
+  Winapi.Windows.SetEnvironmentVariable('DAK_TEST_IMPORT', PChar(lEnvImportPath));
+  try
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Debug';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDelphiVersion := '23.0';
+    lOptions.fRsVarsPath := lRsVarsPath;
+    lOptions.fBuildBackend := TBuildBackend.bbAuto;
+
+    lCapturingRunner := TCapturingBuildRunner.Create;
+    lRunner := lCapturingRunner;
+    lError := '';
+    Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+      'Expected auto backend to fall back to Delphi when WebCore probing needs environment imports. Error: ' + lError);
+    Assert.AreEqual(0, lExitCode, 'Expected fake Delphi build to succeed.');
+    Assert.AreEqual(1, lCapturingRunner.fCallCount, 'Expected exactly one MSBuild launch.');
+    Assert.IsTrue(ContainsText(ExtractFileName(lCapturingRunner.fExePaths[0]), 'MSBuild.exe'),
+      'Expected auto backend fallback to launch MSBuild. Calls: ' + DescribeCapturedProcesses(lCapturingRunner));
+  finally
+    if lPreviousImportPath <> '' then
+      Winapi.Windows.SetEnvironmentVariable('DAK_TEST_IMPORT', PChar(lPreviousImportPath))
+    else
+      Winapi.Windows.SetEnvironmentVariable('DAK_TEST_IMPORT', nil);
   end;
 end;
 
@@ -1082,6 +1416,95 @@ begin
   Assert.AreEqual(0, lExitCode, 'Expected fake WebCore build to succeed.');
   Assert.IsTrue(Pos('SUCCESS.', lCapturedOutput) > 0,
     'Expected AI summary output for successful WebCore builds. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.BuildWebCorePlainBuildEmitsOutputPath;
+var
+  lCapturedOutput: string;
+  lCompilerPath: string;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lProjectRoot: string;
+  lRunner: IBuildProcessRunner;
+  lCapturingRunner: TCapturingBuildRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'webcore-plain-summary');
+  PrepareWebCoreBuildFixture(lProjectRoot, lDprojPath);
+  lCompilerPath := TPath.Combine(lProjectRoot, 'cli\TMSWebCompiler.exe');
+  WriteUtf8File(lCompilerPath, 'stub');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fBuildBackend := TBuildBackend.bbWebCore;
+  lOptions.fWebCoreCompilerPath := lCompilerPath;
+  lOptions.fHasWebCoreCompilerPath := True;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lRunner := lCapturingRunner;
+  lCapturedOutput := CaptureConsoleOutput(
+    procedure
+    begin
+      lError := '';
+      Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+        'Expected plain WebCore build summary to complete successfully. Error: ' + lError);
+    end);
+
+  Assert.AreEqual(0, lExitCode, 'Expected fake WebCore build to succeed.');
+  Assert.IsTrue(Pos('Build succeeded:', lCapturedOutput) > 0,
+    'Expected plain summary output to include the success banner. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('TMSWeb\Debug\index.html', lCapturedOutput) > 0,
+    'Expected plain summary output to include the WebCore output path. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.BuildWebCoreJsonBuildEmitsSummary;
+var
+  lCapturedOutput: string;
+  lCompilerPath: string;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lProjectRoot: string;
+  lRunner: IBuildProcessRunner;
+  lCapturingRunner: TCapturingBuildRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'webcore-json-summary');
+  PrepareWebCoreBuildFixture(lProjectRoot, lDprojPath);
+  lCompilerPath := TPath.Combine(lProjectRoot, 'cli\TMSWebCompiler.exe');
+  WriteUtf8File(lCompilerPath, 'stub');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fBuildBackend := TBuildBackend.bbWebCore;
+  lOptions.fWebCoreCompilerPath := lCompilerPath;
+  lOptions.fHasWebCoreCompilerPath := True;
+  lOptions.fBuildJson := True;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lRunner := lCapturingRunner;
+  lCapturedOutput := CaptureConsoleOutput(
+    procedure
+    begin
+      lError := '';
+      Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+        'Expected JSON WebCore build summary to complete successfully. Error: ' + lError);
+    end);
+
+  Assert.AreEqual(0, lExitCode, 'Expected fake WebCore build to succeed.');
+  Assert.IsTrue(Pos('"status":"ok"', lCapturedOutput) > 0,
+    'Expected JSON summary output to include the ok status. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('"output":"', lCapturedOutput) > 0,
+    'Expected JSON summary output to include the output path. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('index.html', lCapturedOutput) > 0,
+    'Expected JSON summary output to include the WebCore output file. Output: ' + lCapturedOutput);
 end;
 
 procedure TBuildTests.IdeConfigFallsBackToEnvOptionsWin64Alias;

@@ -38,7 +38,7 @@ Commands:
 
 - `resolve` — generate resolved FixInsight params output (ini/xml/bat)
 - `analyze` — run FixInsightCL and/or Pascal Analyzer with stable report output
-- `build` — build a `.dproj` via DAK's native Delphi build runner
+- `build` — build a `.dproj` via DAK's native Delphi or TMS WEB Core build runner
 - `dfm-check` — validate DFM streaming via generated harness project
 - `dfm-inspect` — inspect text DFM structure, key properties, and event bindings
 - `global-vars` — report project globals, usages, and ambiguities
@@ -54,7 +54,7 @@ Commands:
 - `--config <Debug|Release|...>` (optional)  
   Default: `Release`.
 
-- `--delphi <23.0>` (required)  
+- `--delphi <23.0>` (required for `resolve`, `analyze`, and Delphi/MSBuild builds)  
   Accept also `23` and normalize to `23.0` (append `.0` if missing).
 
 - `--rsvars <path>` (optional)  
@@ -78,7 +78,8 @@ Commands:
 
 Notes:
 
-- `--delphi` is required for `resolve`, `analyze`, and `build`.
+- `--delphi` is required for `resolve` and `analyze`.
+- `--delphi` is required for `build` only when DAK resolves the Delphi/MSBuild backend.
 - `--delphi` is optional for `dfm-check` and `global-vars`; when omitted, load `[Build] DelphiVersion` from cascading `dak.ini`.
 
 ### 2.3 `resolve` — generate params
@@ -129,11 +130,24 @@ DelphiAIKit.exe analyze --unit "<path>\Unit1.pas" --delphi 23.0 ^
 
 ```
 DelphiAIKit.exe build --project "<path>\MyProject.dproj" --delphi 23.0 ^
-  [--platform Win32] [--config Release] ^
+  [--platform Win32] [--config Release] [--builder auto|delphi|webcore] ^
+  [--webcore-compiler "<path>"] [--pwa] [--no-pwa] ^
   [--source-context auto|off|on] [--source-context-lines N]
 ```
 
-Implementation uses DAK's native Delphi build runner. `build-delphi.bat` may remain as a compatibility/bootstrap wrapper, but the CLI `build` command does not rely on batch/PowerShell helper logic for normal execution.
+Implementation uses DAK's native build runners:
+
+- Delphi backend: MSBuild + `rsvars.bat` + madExcept integration
+- WebCore backend: `TMSWebCompiler.exe` with optional `patch-index-debug.ps1` compatibility hook
+
+`build-delphi.bat` may remain as a compatibility/bootstrap wrapper, but the CLI `build` command does not rely on batch/PowerShell helper logic for normal execution.
+
+WebCore backend notes:
+
+- `auto` is the default backend and switches to WebCore only when strong project markers are present, such as `TMSWebProject`, `TMSWebHTMLFile`, or `TMSWEBCorePkg...`.
+- `TMSWebCompiler.exe` resolves from `--webcore-compiler`, cascading `dak.ini` `[WebCore].CompilerPath`, `DAK_TMSWEB_COMPILER`, then `PATH`.
+- `--pwa` / `--no-pwa` override the project `TMSWebPWA` setting.
+- Delphi-only flags such as `--dfmcheck`, `--rsvars`, and `--envoptions` are rejected for WebCore builds.
 
 ### 2.6 `dfm-check` — validate DFM streaming
 

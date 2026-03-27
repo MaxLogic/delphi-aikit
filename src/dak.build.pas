@@ -100,6 +100,17 @@ type
     fMadExceptReason: string;
   end;
 
+  TWebCoreProjectInfo = record
+    fIsWebCore: Boolean;
+    fProjectPath: string;
+    fProjectDir: string;
+    fProjectName: string;
+    fHtmlFile: string;
+    fOutputPath: string;
+    fPatchIndexDebugPath: string;
+    fPwaEnabled: Boolean;
+  end;
+
   TBuildProcessRunner = class(TInterfacedObject, IBuildProcessRunner)
   public
     function RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
@@ -431,6 +442,13 @@ begin
         Continue;
       end;
 
+      if TRegEx.IsMatch(lNormalizedLine, '(^|\s)(\[Fatal Error\]|\[Error\]|Fatal Error:|Error:)') then
+      begin
+        Inc(aSummary.fErrorCount);
+        AddFindingPair(aSummary.fErrors, aSummary.fErrorsRaw, lNormalizedLine.Trim, lLine.Trim, aOptions.fMaxFindings);
+        Continue;
+      end;
+
       lMatch := TRegEx.Match(lNormalizedLine, ':\s+warning\s+(W\d+):');
       if lMatch.Success then
       begin
@@ -442,6 +460,15 @@ begin
             AddFindingPair(aSummary.fWarnings, aSummary.fWarningsRaw, lNormalizedLine.Trim, lLine.Trim,
               aOptions.fMaxFindings);
         end;
+        Continue;
+      end;
+
+      if TRegEx.IsMatch(lNormalizedLine, '(^|\s)(\[Warning\]|Warning:)') then
+      begin
+        Inc(aSummary.fWarningCount);
+        if aOptions.fIncludeWarnings then
+          AddFindingPair(aSummary.fWarnings, aSummary.fWarningsRaw, lNormalizedLine.Trim, lLine.Trim,
+            aOptions.fMaxFindings);
         Continue;
       end;
 
@@ -458,6 +485,15 @@ begin
             AddFindingPair(aSummary.fHints, aSummary.fHintsRaw, lNormalizedLine.Trim, lLine.Trim,
               aOptions.fMaxFindings);
         end;
+        Continue;
+      end;
+
+      if TRegEx.IsMatch(lNormalizedLine, '(^|\s)(\[Hint\]|Hint:)') then
+      begin
+        Inc(aSummary.fHintCount);
+        if aOptions.fIncludeHints then
+          AddFindingPair(aSummary.fHints, aSummary.fHintsRaw, lNormalizedLine.Trim, lLine.Trim,
+            aOptions.fMaxFindings);
       end;
     end;
   finally
@@ -780,6 +816,135 @@ begin
   if aProps.TryGetValue('ProjectName', Result) and (Trim(Result) <> '') then
     Exit(Result);
   Result := aProjectName;
+end;
+
+function PropertyIsEnabled(const aValue: string): Boolean;
+var
+  lValue: string;
+begin
+  lValue := Trim(aValue);
+  if lValue = '' then
+    Exit(False);
+  Result :=
+    not SameText(lValue, '0') and
+    not SameText(lValue, 'false') and
+    not SameText(lValue, 'no');
+end;
+
+function TryEvaluateProjectProperties(const aProjectPath, aConfig, aPlatform: string;
+  const aEnvVars: TDictionary<string, string>; out aProps: TDictionary<string, string>; out aError: string): Boolean;
+var
+  lEnvVars: TDictionary<string, string>;
+  lEvaluator: TMsBuildEvaluator;
+  lEnvVarPair: TPair<string, string>;
+  lProjectDir: string;
+  lProjectName: string;
+begin
+  aError := '';
+  aProps := TDictionary<string, string>.Create;
+  lEnvVars := TDictionary<string, string>.Create;
+  try
+    try
+      lProjectDir := TPath.GetDirectoryName(aProjectPath);
+      lProjectName := TPath.GetFileNameWithoutExtension(aProjectPath);
+      aProps.AddOrSetValue('Config', aConfig);
+      aProps.AddOrSetValue('Platform', aPlatform);
+      aProps.AddOrSetValue('ProjectDir', lProjectDir);
+      aProps.AddOrSetValue('PROJECTDIR', IncludeTrailingPathDelimiter(lProjectDir));
+      aProps.AddOrSetValue('ProjectName', lProjectName);
+
+      if aEnvVars <> nil then
+      begin
+        for lEnvVarPair in aEnvVars do
+          lEnvVars.AddOrSetValue(lEnvVarPair.Key, lEnvVarPair.Value);
+      end;
+
+      lEvaluator := TMsBuildEvaluator.Create(aProps, lEnvVars, nil);
+      try
+        if not lEvaluator.EvaluateFile(aProjectPath, aError) then
+        begin
+          aProps.Free;
+          aProps := nil;
+          Exit(False);
+        end;
+      finally
+        lEvaluator.Free;
+      end;
+
+      Result := True;
+    except
+      aProps.Free;
+      aProps := nil;
+      raise;
+    end;
+  finally
+    lEnvVars.Free;
+  end;
+end;
+
+function LooksLikeWebCoreProject(const aProps: TDictionary<string, string>): Boolean;
+var
+  lHasHtmlFile: Boolean;
+  lHasProjectFlag: Boolean;
+  lHasTmsPackage: Boolean;
+  lPackages: string;
+  lProjectFlag: string;
+  lHtmlFile: string;
+begin
+  lProjectFlag := '';
+  lHtmlFile := '';
+  lPackages := '';
+  aProps.TryGetValue('TMSWebProject', lProjectFlag);
+  aProps.TryGetValue('TMSWebHTMLFile', lHtmlFile);
+  aProps.TryGetValue('DCC_UsePackage', lPackages);
+
+  lHasProjectFlag := PropertyIsEnabled(lProjectFlag);
+  lHasHtmlFile := Trim(lHtmlFile) <> '';
+  lHasTmsPackage := ContainsText(lPackages, 'TMSWEBCorePkg');
+
+  Result :=
+    (lHasProjectFlag and lHasHtmlFile) or
+    (lHasProjectFlag and lHasTmsPackage) or
+    (lHasHtmlFile and lHasTmsPackage);
+end;
+
+function TryReadWebCoreProjectInfo(const aProjectPath, aConfig, aPlatform: string;
+  const aEnvVars: TDictionary<string, string>; out aInfo: TWebCoreProjectInfo; out aError: string): Boolean;
+var
+  lHtmlFile: string;
+  lProps: TDictionary<string, string>;
+  lProjectName: string;
+  lPwaValue: string;
+begin
+  aInfo := Default(TWebCoreProjectInfo);
+  aError := '';
+  lProps := nil;
+  if not TryEvaluateProjectProperties(aProjectPath, aConfig, aPlatform, aEnvVars, lProps, aError) then
+    Exit(False);
+  try
+    aInfo.fProjectPath := TPath.GetFullPath(aProjectPath);
+    aInfo.fProjectDir := TPath.GetDirectoryName(aInfo.fProjectPath);
+    lProjectName := TPath.GetFileNameWithoutExtension(aInfo.fProjectPath);
+    if lProps.TryGetValue('ProjectName', aInfo.fProjectName) and (Trim(aInfo.fProjectName) <> '') then
+      lProjectName := aInfo.fProjectName
+    else
+      aInfo.fProjectName := lProjectName;
+
+    if not lProps.TryGetValue('TMSWebHTMLFile', lHtmlFile) or (Trim(lHtmlFile) = '') then
+      lHtmlFile := 'index.html';
+    aInfo.fHtmlFile := lHtmlFile;
+    aInfo.fOutputPath := TPath.Combine(TPath.Combine(aInfo.fProjectDir, 'TMSWeb\' + aConfig), aInfo.fHtmlFile);
+    aInfo.fPatchIndexDebugPath := TPath.Combine(aInfo.fProjectDir, 'tools\patch-index-debug.ps1');
+    aInfo.fIsWebCore := LooksLikeWebCoreProject(lProps);
+    if lProps.TryGetValue('TMSWebPWA', lPwaValue) then
+      aInfo.fPwaEnabled := PropertyIsEnabled(lPwaValue)
+    else
+      aInfo.fPwaEnabled := False;
+
+    Result := True;
+  finally
+    lProps.Free;
+  end;
 end;
 
 function BuildProjectInfo(const aProjectPath, aConfig, aPlatform: string;
@@ -1397,11 +1562,108 @@ begin
   Result := True;
 end;
 
-function BuildWebCoreArguments(const aOptions: TAppOptions; const aDprojPath: string): string;
+function ResolveDetectedBuildBackend(const aOptions: TAppOptions; out aBuildBackend: TBuildBackend;
+  out aError: string): Boolean;
+var
+  lDetectionError: string;
+  lWebCoreInfo: TWebCoreProjectInfo;
+begin
+  aError := '';
+  if aOptions.fBuildBackend <> TBuildBackend.bbAuto then
+  begin
+    aBuildBackend := aOptions.fBuildBackend;
+    Exit(True);
+  end;
+
+  lDetectionError := '';
+  if not TryReadWebCoreProjectInfo(aOptions.fDprojPath, aOptions.fConfig, aOptions.fPlatform, nil, lWebCoreInfo,
+    lDetectionError) then
+  begin
+    aBuildBackend := TBuildBackend.bbDelphi;
+    Exit(True);
+  end;
+
+  if lWebCoreInfo.fIsWebCore then
+    aBuildBackend := TBuildBackend.bbWebCore
+  else
+    aBuildBackend := TBuildBackend.bbDelphi;
+  Result := True;
+end;
+
+function ResolveWebCorePwaEnabled(const aOptions: TAppOptions; const aProjectInfo: TWebCoreProjectInfo): Boolean;
+begin
+  if aOptions.fHasWebCorePwaEnabled then
+    Exit(aOptions.fWebCorePwaEnabled);
+  Result := aProjectInfo.fPwaEnabled;
+end;
+
+function BuildWebCoreArguments(const aOptions: TAppOptions; const aProjectInfo: TWebCoreProjectInfo): string;
 begin
   Result := '/ParseDprojFile ' +
-    '/ProjectFile:' + QuoteCmdArg(aDprojPath) + ' ' +
+    '/ProjectFile:' + QuoteCmdArg(aProjectInfo.fProjectPath) + ' ' +
     '/Config:' + QuoteCmdArg(aOptions.fConfig);
+  if ResolveWebCorePwaEnabled(aOptions, aProjectInfo) then
+    Result := Result + ' /PWA';
+end;
+
+function ResolvePowerShellExe: string;
+var
+  lCandidate: string;
+begin
+  lCandidate := TPath.Combine(GetEnvironmentVariable('WINDIR'), 'System32\WindowsPowerShell\v1.0\powershell.exe');
+  if (lCandidate <> '') and FileExists(lCandidate) then
+    Exit(lCandidate);
+  Result := 'powershell.exe';
+end;
+
+procedure EmitWebCoreHookWarning(const aMessage: string);
+begin
+  Writeln(ErrOutput, 'WARNING. ' + aMessage);
+end;
+
+procedure RunWebCorePatchHook(const aRunner: IBuildProcessRunner; const aProjectInfo: TWebCoreProjectInfo;
+  const aOptions: TAppOptions);
+var
+  lArguments: string;
+  lError: string;
+  lErrLog: string;
+  lExitCode: Integer;
+  lOutLog: string;
+  lTempBase: string;
+  lTimedOut: Boolean;
+begin
+  if not SameText(Trim(aOptions.fConfig), 'Debug') then
+    Exit;
+
+  if not FileExists(aProjectInfo.fPatchIndexDebugPath) then
+    Exit;
+
+  lTempBase := TPath.Combine(TPath.GetTempPath,
+    'dak-webcore-hook-' + IntToStr(GetCurrentProcessId) + '-' + IntToStr(GetTickCount));
+  lOutLog := lTempBase + '.out.log';
+  lErrLog := lTempBase + '.err.log';
+  lArguments :=
+    '-NoProfile -ExecutionPolicy Bypass -File ' + QuoteCmdArg(aProjectInfo.fPatchIndexDebugPath) +
+    ' -ProjectDir ' + QuoteCmdArg(aProjectInfo.fProjectDir) +
+    ' -Config ' + QuoteCmdArg(aOptions.fConfig) +
+    ' -ProjectName ' + QuoteCmdArg(aProjectInfo.fProjectName);
+
+  lError := '';
+  if not aRunner.RunProcess(ResolvePowerShellExe(), lArguments, aProjectInfo.fProjectDir, lOutLog, lErrLog,
+    aOptions.fBuildTimeoutSec, lExitCode, lTimedOut, lError) then
+  begin
+    EmitWebCoreHookWarning('patch-index-debug.ps1 failed to start: ' + lError);
+    Exit;
+  end;
+
+  if lTimedOut then
+  begin
+    EmitWebCoreHookWarning('patch-index-debug.ps1 timed out.');
+    Exit;
+  end;
+
+  if lExitCode <> 0 then
+    EmitWebCoreHookWarning('patch-index-debug.ps1 exited with code ' + IntToStr(lExitCode) + '.');
 end;
 
 function TryRunWebCoreBuild(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
@@ -1410,12 +1672,14 @@ var
   lCompilerPath: string;
   lErrLog: string;
   lOutLog: string;
-  lRootProjectName: string;
+  lProjectInfo: TBuildProjectInfo;
+  lSummaryOptions: TBuildSummaryOptions;
   lStartTick: Int64;
   lSummary: TBuildSummary;
   lTempBase: string;
   lTimeMs: Int64;
   lTimedOut: Boolean;
+  lWebCoreInfo: TWebCoreProjectInfo;
 begin
   Result := False;
   aExitCode := 1;
@@ -1427,47 +1691,81 @@ begin
     Exit(False);
   end;
 
+  if not TryReadWebCoreProjectInfo(aOptions.fDprojPath, aOptions.fConfig, aOptions.fPlatform, nil, lWebCoreInfo, aError) then
+    Exit(False);
+
   lTempBase := TPath.Combine(TPath.GetTempPath,
     'dak-webcore-' + IntToStr(GetCurrentProcessId) + '-' + IntToStr(GetTickCount));
   lOutLog := lTempBase + '.out.log';
   lErrLog := lTempBase + '.err.log';
   lStartTick := GetTickCount64;
 
-  if not aRunner.RunProcess(lCompilerPath, BuildWebCoreArguments(aOptions, aOptions.fDprojPath),
-    TPath.GetDirectoryName(aOptions.fDprojPath), lOutLog, lErrLog, aOptions.fBuildTimeoutSec,
+  if not aRunner.RunProcess(lCompilerPath, BuildWebCoreArguments(aOptions, lWebCoreInfo),
+    lWebCoreInfo.fProjectDir, lOutLog, lErrLog, aOptions.fBuildTimeoutSec,
     aExitCode, lTimedOut, aError) then
     Exit(False);
 
   lTimeMs := GetTickCount64 - lStartTick;
-  lSummary := Default(TBuildSummary);
+  lSummaryOptions := Default(TBuildSummaryOptions);
+  lSummaryOptions.fProjectRoot := lWebCoreInfo.fProjectDir;
+  lSummaryOptions.fIgnoreWarnings := aSettings.fIgnoreWarnings;
+  lSummaryOptions.fIgnoreHints := aSettings.fIgnoreHints;
+  lSummaryOptions.fExcludePathMasks := aSettings.fExcludePathMasks;
+  lSummaryOptions.fMaxFindings := aOptions.fBuildMaxFindings;
+  lSummaryOptions.fIncludeWarnings := aOptions.fBuildShowWarnings;
+  lSummaryOptions.fIncludeHints := aOptions.fBuildShowHints;
+  lSummary := ParseBuildLogs(lOutLog, lErrLog, lSummaryOptions);
   lSummary.fExitCode := aExitCode;
   lSummary.fTimedOut := lTimedOut;
+  lSummary.fOutputPath := lWebCoreInfo.fOutputPath;
+
   if lTimedOut then
     lSummary.fStatus := cStatusTimeout
   else if aExitCode <> 0 then
-  begin
-    lSummary.fStatus := cStatusError;
-    lSummary.fErrorCount := 1;
-  end else
+    lSummary.fStatus := cStatusError
+  else if lSummary.fWarningCount > 0 then
+    lSummary.fStatus := cStatusWarnings
+  else if lSummary.fHintCount > 0 then
+    lSummary.fStatus := cStatusHints
+  else
     lSummary.fStatus := cStatusOk;
 
+  if (aExitCode = 0) and (not lTimedOut) then
+    RunWebCorePatchHook(aRunner, lWebCoreInfo, aOptions);
+
+  lProjectInfo := Default(TBuildProjectInfo);
+  lProjectInfo.fProjectPath := lWebCoreInfo.fProjectPath;
+  lProjectInfo.fProjectDir := lWebCoreInfo.fProjectDir;
+  lProjectInfo.fProjectName := lWebCoreInfo.fProjectName;
+  lProjectInfo.fOutputPath := lWebCoreInfo.fOutputPath;
+
   if aOptions.fBuildJson then
-    Writeln(BuildSummaryAsJson(aOptions.fDprojPath, aOptions, lSummary, aOptions.fBuildTarget, lTimeMs))
-  else if aOptions.fBuildAi then
+    Writeln(BuildSummaryAsJson(lProjectInfo.fProjectPath, aOptions, lSummary, aOptions.fBuildTarget, lTimeMs))
+  else
+    PrintSummary(aOptions, lProjectInfo, lSummary);
+
+  Result := True;
+end;
+
+function ValidateWebCoreBuildOptions(const aOptions: TAppOptions; out aError: string): Boolean;
+begin
+  aError := '';
+  if aOptions.fBuildRunDfmCheck then
   begin
-    if lSummary.fTimedOut then
-      Writeln('FAILED. Build timed out after ' + IntToStr(aOptions.fBuildTimeoutSec) + 's.')
-    else if lSummary.fExitCode <> 0 then
-      Writeln('FAILED. Errors: ' + IntToStr(lSummary.fErrorCount))
-    else
-      Writeln('SUCCESS.');
-  end else
+    aError := Format(SBuildOptionDelphiOnly, ['--dfmcheck']);
+    Exit(False);
+  end;
+
+  if aOptions.fHasRsVarsPath then
   begin
-    lRootProjectName := TPath.GetFileName(aOptions.fDprojPath);
-    if lSummary.fExitCode <> 0 then
-      Writeln('Build FAILED.')
-    else
-      Writeln('Build succeeded: ' + lRootProjectName);
+    aError := Format(SBuildOptionDelphiOnly, ['--rsvars']);
+    Exit(False);
+  end;
+
+  if aOptions.fHasEnvOptionsPath then
+  begin
+    aError := Format(SBuildOptionDelphiOnly, ['--envoptions']);
+    Exit(False);
   end;
 
   Result := True;
@@ -1475,6 +1773,8 @@ end;
 
 function NormalizeBuildOptions(const aOptions: TAppOptions; out aNormalizedOptions: TAppOptions;
   out aError: string): Boolean;
+var
+  lBuildBackend: TBuildBackend;
 begin
   Result := False;
   aError := '';
@@ -1486,8 +1786,16 @@ begin
   if Trim(aNormalizedOptions.fBuildTarget) = '' then
     aNormalizedOptions.fBuildTarget := 'Build';
 
+  if not ResolveDetectedBuildBackend(aNormalizedOptions, lBuildBackend, aError) then
+    Exit(False);
+  aNormalizedOptions.fBuildBackend := lBuildBackend;
+
   if aNormalizedOptions.fBuildBackend = TBuildBackend.bbWebCore then
+  begin
+    if not ValidateWebCoreBuildOptions(aNormalizedOptions, aError) then
+      Exit(False);
     Exit(True);
+  end;
 
   if Trim(aNormalizedOptions.fDelphiVersion) = '' then
   begin

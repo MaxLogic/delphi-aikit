@@ -471,6 +471,7 @@ begin
     SameText(aSwitch, 'max-findings') or SameText(aSwitch, 'build-timeout-sec') or
     SameText(aSwitch, 'test-output-dir') or
     SameText(aSwitch, 'builder') or SameText(aSwitch, 'webcore-compiler') or
+    SameText(aSwitch, 'pwa') or SameText(aSwitch, 'no-pwa') or
     SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check') or
     SameText(aSwitch, 'dfm') or SameText(aSwitch, 'all') or
     SameText(aSwitch, 'ignore-warnings') or
@@ -1246,6 +1247,30 @@ begin
     Exit(True);
   end;
 
+  if SameText(aSwitch, 'pwa') then
+  begin
+    if aHasInlineValue then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    fOptions.fWebCorePwaEnabled := True;
+    fOptions.fHasWebCorePwaEnabled := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'no-pwa') then
+  begin
+    if aHasInlineValue then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    fOptions.fWebCorePwaEnabled := False;
+    fOptions.fHasWebCorePwaEnabled := True;
+    Exit(True);
+  end;
+
   if SameText(aSwitch, 'rebuild') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--rebuild') then
@@ -1448,7 +1473,22 @@ begin
       fError := Format(SArgMissingValue, ['--project']);
       Exit(False);
     end;
-    if (fOptions.fBuildBackend <> TBuildBackend.bbWebCore) and (fOptions.fDelphiVersion = '') then
+    if (fOptions.fBuildBackend = TBuildBackend.bbWebCore) and fOptions.fBuildRunDfmCheck then
+    begin
+      fError := Format(SBuildOptionDelphiOnly, ['--dfmcheck']);
+      Exit(False);
+    end;
+    if (fOptions.fBuildBackend = TBuildBackend.bbWebCore) and fOptions.fHasRsVarsPath then
+    begin
+      fError := Format(SBuildOptionDelphiOnly, ['--rsvars']);
+      Exit(False);
+    end;
+    if (fOptions.fBuildBackend = TBuildBackend.bbWebCore) and fOptions.fHasEnvOptionsPath then
+    begin
+      fError := Format(SBuildOptionDelphiOnly, ['--envoptions']);
+      Exit(False);
+    end;
+    if (fOptions.fBuildBackend = TBuildBackend.bbDelphi) and (fOptions.fDelphiVersion = '') then
     begin
       fError := Format(SArgMissingValue, ['--delphi']);
       Exit(False);
