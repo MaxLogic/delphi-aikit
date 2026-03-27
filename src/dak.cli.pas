@@ -106,6 +106,7 @@ var
       SameText(aSwitch, 'platform') or SameText(aSwitch, 'config') or
       SameText(aSwitch, 'delphi') or SameText(aSwitch, 'rsvars') or
       SameText(aSwitch, 'dfm') or
+      SameText(aSwitch, 'builder') or SameText(aSwitch, 'webcore-compiler') or
       SameText(aSwitch, 'envoptions') or SameText(aSwitch, 'log-file') or
       SameText(aSwitch, 'logfile') or SameText(aSwitch, 'format') or
       SameText(aSwitch, 'out-kind') or SameText(aSwitch, 'out-file') or
@@ -302,6 +303,7 @@ begin
   fOptions.fAnalyzeClean := True;
   fOptions.fAnalyzeWriteSummary := True;
   fOptions.fBuildJson := False;
+  fOptions.fBuildBackend := TBuildBackend.bbAuto;
   fOptions.fBuildTarget := 'Build';
   fOptions.fBuildMaxFindings := 5;
   fOptions.fBuildTimeoutSec := 0;
@@ -468,6 +470,7 @@ begin
     SameText(aSwitch, 'target') or SameText(aSwitch, 'rebuild') or
     SameText(aSwitch, 'max-findings') or SameText(aSwitch, 'build-timeout-sec') or
     SameText(aSwitch, 'test-output-dir') or
+    SameText(aSwitch, 'builder') or SameText(aSwitch, 'webcore-compiler') or
     SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check') or
     SameText(aSwitch, 'dfm') or SameText(aSwitch, 'all') or
     SameText(aSwitch, 'ignore-warnings') or
@@ -1216,6 +1219,33 @@ begin
     Exit(True);
   end;
 
+  if SameText(aSwitch, 'builder') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--builder') then
+      Exit(False);
+    if SameText(lValue, 'auto') then
+      fOptions.fBuildBackend := TBuildBackend.bbAuto
+    else if SameText(lValue, 'delphi') then
+      fOptions.fBuildBackend := TBuildBackend.bbDelphi
+    else if SameText(lValue, 'webcore') then
+      fOptions.fBuildBackend := TBuildBackend.bbWebCore
+    else
+    begin
+      fError := Format(SInvalidBuildBackend, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'webcore-compiler') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--webcore-compiler') then
+      Exit(False);
+    fOptions.fWebCoreCompilerPath := lValue;
+    fOptions.fHasWebCoreCompilerPath := True;
+    Exit(True);
+  end;
+
   if SameText(aSwitch, 'rebuild') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--rebuild') then
@@ -1418,7 +1448,7 @@ begin
       fError := Format(SArgMissingValue, ['--project']);
       Exit(False);
     end;
-    if fOptions.fDelphiVersion = '' then
+    if (fOptions.fBuildBackend <> TBuildBackend.bbWebCore) and (fOptions.fDelphiVersion = '') then
     begin
       fError := Format(SArgMissingValue, ['--delphi']);
       Exit(False);
