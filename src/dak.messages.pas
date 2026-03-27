@@ -36,8 +36,9 @@ resourcestring
     'DelphiAIKit.exe analyze --unit "<path>" --delphi <23.0> [--out "<path>"] ' +
     '[--pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"]';
   SUsageBuild =
-    'DelphiAIKit.exe build --project "<path>" --delphi <23.0> ' +
+    'DelphiAIKit.exe build --project "<path>" [--delphi <23.0>] ' +
     '[--platform <Win32|Win64>] [--config <Debug|Release>] [--target <Build|Rebuild>] [--rebuild [true|false]] ' +
+    '[--builder <auto|delphi|webcore>] [--webcore-compiler "<path>"] ' +
     '[--json [true|false]] [--max-findings <N>] [--build-timeout-sec <N default 0>] [--test-output-dir "<path>"] ' +
     '[--ai] [--show-warnings] [--show-hints] [--dfmcheck] ' +
     '[--dfm "<file.dfm[,file2.dfm]>"] [--all] ' +
@@ -59,6 +60,7 @@ resourcestring
   SInvalidOutKind = 'Invalid --format value: %s';
   SInvalidBoolValue = 'Invalid value for %s: %s';
   SInvalidBuildTarget = 'Invalid --target value: %s (expected Build or Rebuild).';
+  SInvalidBuildBackend = 'Invalid --builder value: %s (expected auto, delphi, or webcore).';
   SInvalidMaxFindings = 'Invalid --max-findings value: %s (expected integer >= 1).';
   SInvalidBuildTimeout = 'Invalid --build-timeout-sec value: %s (expected integer >= 0).';
   SInvalidSourceContext = 'Invalid --source-context value: %s (expected auto, off, or on).';
