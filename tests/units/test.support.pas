@@ -97,12 +97,15 @@ end;
 
 function RunProcess(const aExe, aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
 var
+  lAttempt: Integer;
   lSi: TStartupInfo;
   lPi: TProcessInformation;
   lWait: Cardinal;
+  lCreateError: Cardinal;
   lLastError: Cardinal;
   lCmdLine: string;
   lOutHandle: THandle;
+  lOutputDir: string;
   lSa: TSecurityAttributes;
   lWorkDir: string;
 begin
@@ -116,10 +119,27 @@ begin
 
   if aOutputFile <> '' then
   begin
-    lOutHandle := CreateFile(PChar(aOutputFile), GENERIC_WRITE, FILE_SHARE_READ, @lSa, CREATE_ALWAYS,
-      FILE_ATTRIBUTE_NORMAL, 0);
+    lOutputDir := ExtractFileDir(aOutputFile);
+    if lOutputDir <> '' then
+      ForceDirectories(lOutputDir);
+    lCreateError := 0;
+    for lAttempt := 1 to 20 do
+    begin
+      lOutHandle := CreateFile(PChar(aOutputFile), GENERIC_WRITE, FILE_SHARE_READ, @lSa, CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL, 0);
+      if lOutHandle <> INVALID_HANDLE_VALUE then
+        Break;
+      lCreateError := GetLastError;
+      if (lCreateError <> ERROR_PATH_NOT_FOUND) and (lCreateError <> ERROR_FILE_NOT_FOUND) and
+        (lCreateError <> ERROR_ACCESS_DENIED) and (lCreateError <> ERROR_SHARING_VIOLATION) then
+        Break;
+      if lOutputDir <> '' then
+        ForceDirectories(lOutputDir);
+      Sleep(50);
+    end;
     if lOutHandle = INVALID_HANDLE_VALUE then
-      raise Exception.Create('Failed to create output file: ' + aOutputFile);
+      raise Exception.Create('Failed to create output file: ' + aOutputFile + ' (' +
+        SysErrorMessage(lCreateError) + ')');
   end;
 
   try

@@ -120,10 +120,26 @@ end;
 procedure AppendLogText(const aPath: string; const aText: string);
 var
   lEncoding: TEncoding;
+  lDir: string;
+  lRetry: Integer;
 begin
+  lDir := ExtractFileDir(aPath);
+  if lDir <> '' then
+    ForceDirectories(lDir);
   lEncoding := TUTF8Encoding.Create(False);
   try
-    TFile.AppendAllText(aPath, aText, lEncoding);
+    for lRetry := 1 to 20 do
+      try
+        TFile.AppendAllText(aPath, aText, lEncoding);
+        Exit;
+      except
+        on E: EInOutError do
+        begin
+          if lRetry = 20 then
+            raise;
+          Sleep(50);
+        end;
+      end;
   finally
     lEncoding.Free;
   end;
@@ -132,10 +148,26 @@ end;
 procedure WriteLogText(const aPath: string; const aText: string);
 var
   lEncoding: TEncoding;
+  lDir: string;
+  lRetry: Integer;
 begin
+  lDir := ExtractFileDir(aPath);
+  if lDir <> '' then
+    ForceDirectories(lDir);
   lEncoding := TUTF8Encoding.Create(False);
   try
-    TFile.WriteAllText(aPath, aText, lEncoding);
+    for lRetry := 1 to 20 do
+      try
+        TFile.WriteAllText(aPath, aText, lEncoding);
+        Exit;
+      except
+        on E: EInOutError do
+        begin
+          if lRetry = 20 then
+            raise;
+          Sleep(50);
+        end;
+      end;
   finally
     lEncoding.Free;
   end;
@@ -171,7 +203,8 @@ begin
   lSec.nLength := SizeOf(lSec);
   lSec.bInheritHandle := True;
 
-  lHandle := CreateFile(PChar(aLogPath), FILE_APPEND_DATA, FILE_SHARE_READ or FILE_SHARE_WRITE, @lSec,
+  lHandle := CreateFile(PChar(aLogPath), FILE_APPEND_DATA,
+    FILE_SHARE_READ or FILE_SHARE_WRITE or FILE_SHARE_DELETE, @lSec,
     OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
   if lHandle = INVALID_HANDLE_VALUE then
   begin

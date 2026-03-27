@@ -12,6 +12,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added `analyze` with `--project`/`--unit` to run FixInsight/PAL with stable `_analysis` output and summaries. (T-027, T-028)
 - Added build output controls: `--show-warnings`, `--show-hints`, `--ignore-warnings`, `--ignore-hints`, `--ai`. (T-058, T-060, T-061)
 - Added build options: `--target/--rebuild`, `--json`, `--max-findings`, `--build-timeout-sec`, and `--test-output-dir`. (T-062, T-063, T-064, T-065, T-066)
+- Added native TMS WEB Core builds to `DelphiAIKit.exe build`, including `--builder auto|delphi|webcore`, `--webcore-compiler`, `--pwa` / `--no-pwa`, compiler-path discovery from cascading config/env/PATH, and compatibility execution of `tools\patch-index-debug.ps1`. (T-092)
 - Added `dfm-inspect` with `tree` and `summary` output for lightweight text DFM inspection. (T-081)
 - Added shared source-context snippets for resolved build and `dfm-check` failures, with `--source-context` / `--source-context-lines` CLI overrides and `[Diagnostics]` `dak.ini` defaults. (T-082)
 - Added madExcept integration to `build-delphi.bat` with optional `dak.ini` key `[MadExcept].Path` and fallback discovery from common install locations.
@@ -36,6 +37,7 @@ All notable user-visible changes to this project will be documented in this file
 - Static-analysis skill scripts now call DAK analyze subcommands directly. (T-029)
 - Normalized `build` output paths to be repo-relative (VCS root when detected) for stable, machine-independent logs. (T-059)
 - `DelphiAIKit.exe build` now runs through a native Delphi build runner instead of delegating to `build-delphi.bat`, while the batch file remains as a compatibility/bootstrap wrapper. (T-080)
+- `DelphiAIKit.exe build` now auto-detects strong TMS WEB Core project markers and routes those projects through the WebCore backend instead of requiring separate wrapper scripts. (T-092)
 - JSON build output now includes output file metadata and stale-output indicators (`output_stale`, `output_message`) plus bounded findings arrays. (T-067)
 - `build-delphi.bat` now injects missing `environment.proj` variables into MSBuild as `/p:` properties when they are not already present in the process environment. (T-068)
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
