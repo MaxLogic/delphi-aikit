@@ -50,6 +50,8 @@ type
     [Test]
     procedure BuildExpectedPathsIsDeterministic;
     [Test]
+    procedure BundledDfmStreamAllSupportsFrameConstructorFallback;
+    [Test]
     procedure ResolveBundledInjectDirWalksUpToAncestorToolsInject;
     [Test]
     procedure ResolveBundledInjectDirFallsBackToAncestorDocsInject;
@@ -475,6 +477,23 @@ begin
     'object MainForm: TMainForm' + #13#10 +
     '  Caption = ''MainForm''' + #13#10 +
     'end' + #13#10, TEncoding.UTF8);
+end;
+
+procedure TDfmCheckTests.BundledDfmStreamAllSupportsFrameConstructorFallback;
+var
+  lInjectPath: string;
+  lInjectText: string;
+begin
+  lInjectPath := TPath.Combine(RepoRoot, 'tools\inject\DfmStreamAll.pas');
+  Assert.IsTrue(FileExists(lInjectPath), 'Expected bundled inject DfmStreamAll.pas file.');
+  lInjectText := TFile.ReadAllText(lInjectPath, TEncoding.UTF8);
+
+  Assert.IsTrue(Pos('function ShouldUseConstructorFallbackForFrame', lInjectText) > 0,
+    'Expected bundled inject file to expose frame constructor fallback logic.');
+  Assert.IsTrue(Pos('EComponentError: A component named ', lInjectText) > 0,
+    'Expected bundled inject file to detect duplicate-component frame streaming failures.');
+  Assert.IsTrue(Pos('frame constructor fallback', lInjectText) > 0,
+    'Expected bundled inject file to report constructor fallback context for frame retries.');
 end;
 
 procedure TDfmCheckTests.CreateFixtureProjectWithInheritedSearchPath(out aProjectDproj: string);
