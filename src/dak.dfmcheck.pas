@@ -1832,6 +1832,7 @@ var
   lEscapedSearchPathReplacement: string;
   lDefineMatch: TMatch;
   lExistingDefines: string;
+  lInsertedSearchPath: string;
   lInsertText: string;
   lPropertyGroupMatch: TMatch;
   lInsertPos: Integer;
@@ -1866,7 +1867,18 @@ begin
     lEscapedSearchPathReplacement := EscapeRegexReplacement(lEscapedSearchPath);
     if TRegEx.IsMatch(lOutputText, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>', [roIgnoreCase]) then
       lOutputText := TRegEx.Replace(lOutputText, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>',
-        '<DCC_UnitSearchPath>' + lEscapedSearchPathReplacement + ';$1</DCC_UnitSearchPath>', [roIgnoreCase]);
+        '<DCC_UnitSearchPath>' + lEscapedSearchPathReplacement + ';$1</DCC_UnitSearchPath>', [roIgnoreCase])
+    else
+    begin
+      lInsertedSearchPath := lEscapedSearchPath + ';$(DCC_UnitSearchPath)';
+      lPropertyGroupMatch := TRegEx.Match(lOutputText, '<PropertyGroup\b[^>]*>', [roIgnoreCase]);
+      if lPropertyGroupMatch.Success then
+      begin
+        lInsertPos := lPropertyGroupMatch.Index + lPropertyGroupMatch.Length;
+        lInsertText := cLineBreak + '    <DCC_UnitSearchPath>' + lInsertedSearchPath + '</DCC_UnitSearchPath>';
+        lOutputText := Copy(lOutputText, 1, lInsertPos) + lInsertText + Copy(lOutputText, lInsertPos + 1, MaxInt);
+      end;
+    end;
   end;
 
   lDefineMatch := TRegEx.Match(lOutputText, '<DCC_Define>\s*([^<]*)\s*</DCC_Define>', [roIgnoreCase]);
@@ -3131,7 +3143,7 @@ begin
     lFailedResources.Free;
     lBuildLines.Free;
     if ShouldKeepArtifacts then
-      EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).')
+      EmitLine(aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).')
     else
       CleanupGeneratedArtifacts(lPaths, lCopiedDfmStreamAll, lCopiedRuntimeGuard, lValidatorExePath, aOutput, lVerbose);
   end;
