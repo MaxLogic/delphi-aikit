@@ -317,6 +317,8 @@ repo/
       dak.ini
 ```
 
+The git-tracked reference file is `dak-template.ini`. Copy it to a repo-root `dak.ini` when we need machine-local overrides such as compiler paths. The repo-root `dak.ini` is intentionally untracked; nested project or fixture `dak.ini` files remain normal tracked inputs when we add them on purpose.
+
 Supported pass-through options:
 
 - `--fi-output`
@@ -326,7 +328,7 @@ Supported pass-through options:
 - `--fi-xml`
 - `--fi-csv`
 
-Sample `dak.ini`:
+Tracked `dak-template.ini`:
 
 ```
 [FixInsightCL]
@@ -368,6 +370,10 @@ DelphiVersion=
 ; SourceContextLines = lines shown before/after the hit (default 2)
 SourceContext=auto
 SourceContextLines=2
+
+[WebCore]
+; path to TMSWebCompiler.exe
+CompilerPath=
 ```
 
 `Path` is optional and can point to FixInsightCL.exe (or its folder). Relative paths are resolved against the executable folder.

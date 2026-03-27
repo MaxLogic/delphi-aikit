@@ -195,6 +195,8 @@ Repo root detection stops at the first folder that contains `.git` or `.svn` (th
 
 Each `dak.ini` is applied in order so more local settings override/extend more global ones.
 
+The repo ships a tracked `dak-template.ini` as the canonical starting point for machine-local settings. When we need repo-root overrides, copy it to `dak.ini`; that root-local `dak.ini` is intentionally untracked and may contain absolute machine-specific paths.
+
 If `dak.ini` exists next to the executable, read defaults from section `[FixInsightCL]`:
 
 ```
@@ -243,6 +245,10 @@ DelphiVersion=
 ; SourceContextLines = lines shown before/after the hit (default 2)
 SourceContext=auto
 SourceContextLines=2
+
+[WebCore]
+; path to TMSWebCompiler.exe
+CompilerPath=
 ```
 
 Notes:

@@ -2,8 +2,8 @@
 Next task ID: T-096
 
 ## Summary
-Open tasks: 5 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 3, Blocked: 2)
-Done tasks: 90
+Open tasks: 3 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 1, Blocked: 2)
+Done tasks: 92
 
 ## In Progress
 
@@ -13,39 +13,6 @@ Done tasks: 90
 ## Next - This Week
 
 ## Next - Later
-
-### T-094 [DOC] Add dak-template.ini as the canonical settings template
-Outcome:
-- A git-tracked `dak-template.ini` exists at repo root and serves as the canonical starting point for local machine configuration.
-- The template contains all supported settings sections in generic commented form, including `[WebCore].CompilerPath`, without any machine-specific absolute paths.
-- Repo docs point users to copy from `dak-template.ini` when creating a local `dak.ini`.
-Proof:
-- Run: `test -f dak-template.ini`
-  Expect: Exit code `0`.
-- Run: `rg -n "^\[FixInsightCL\]|^\[PascalAnalyzer\]|^\[MadExcept\]|^\[Build\]|^\[Diagnostics\]|^\[WebCore\]|^CompilerPath=" dak-template.ini`
-  Expect: Exit code `0`; the template includes the documented sections and WebCore compiler setting.
-- Run: `rg -n "dak-template\\.ini|copy .*dak-template|local dak\\.ini" README.md`
-  Expect: Exit code `0`; docs reference the template-driven local config workflow.
-Touches: dak-template.ini, README.md, spec.md
-Verify: cli-proof, manual
-Notes: Keep the template generic. It is reference material, not a machine-local config file.
-
-### T-095 [DOC] Ignore repo-local dak.ini and seed the maintainer-local WebCore compiler path
-Outcome:
-- The repo root `dak.ini` is ignored by git so local machine settings remain untracked.
-- On the maintainer machine, a local repo-root `dak.ini` exists and sets `[WebCore].CompilerPath=F:\TMS-SmartSetUp\Products\tms.webcore\Bin\Win64\TMSWebCompiler.exe`.
-- The template/docs make the split explicit: `dak-template.ini` is the canonical reference, `dak.ini` is local-only machine state.
-Proof:
-- Run: `git check-ignore -v dak.ini`
-  Expect: Exit code `0`; output shows the ignore rule covering `dak.ini`.
-- Run: `test -f dak.ini && rg -n "^\[WebCore\]$|^CompilerPath=F:\\\\TMS-SmartSetUp\\\\Products\\\\tms\\.webcore\\\\Bin\\\\Win64\\\\TMSWebCompiler\\.exe$" dak.ini`
-  Expect: Exit code `0`.
-- Run: `git status --short --ignored -- dak.ini`
-  Expect: Output contains `!! dak.ini`.
-Touches: .gitignore, dak-template.ini, README.md
-Deps: T-094
-Verify: cli-proof, manual
-Notes: This task is intentionally environment-specific. The local `dak.ini` must not be committed.
 
 ### T-092 [CLI] Add TMS WEB Core build backend to DAK
 Outcome:
@@ -99,6 +66,39 @@ Verify: cli-proof, manual
 Notes: Blocked until `T-090` publishes the local branch. The repo exists as `MaxLogic/delphi-aikit`, but GitHub still shows no default-branch commit because nothing has been pushed yet.
 
 ## Done
+
+### T-095 [DOC] Ignore repo-local dak.ini and seed the maintainer-local WebCore compiler path
+Outcome:
+- The repo root `dak.ini` is ignored by git so local machine settings remain untracked.
+- On the maintainer machine, a local repo-root `dak.ini` exists and sets `[WebCore].CompilerPath=F:\TMS-SmartSetUp\Products\tms.webcore\Bin\Win64\TMSWebCompiler.exe`.
+- The template/docs make the split explicit: `dak-template.ini` is the canonical reference, `dak.ini` is local-only machine state.
+Proof:
+- Run: `git check-ignore -v dak.ini`
+  Expect: Exit code `0`; output shows the ignore rule covering `dak.ini`.
+- Run: `test -f dak.ini && rg -n "^\[WebCore\]$|^CompilerPath=F:\\\\TMS-SmartSetUp\\\\Products\\\\tms\\.webcore\\\\Bin\\\\Win64\\\\TMSWebCompiler\\.exe$" dak.ini`
+  Expect: Exit code `0`.
+- Run: `git status --short --ignored -- dak.ini`
+  Expect: Output contains `!! dak.ini`.
+Touches: .gitignore, dak-template.ini, README.md
+Deps: T-094
+Verify: cli-proof, manual
+Notes: This task is intentionally environment-specific. The local `dak.ini` must not be committed.
+
+### T-094 [DOC] Add dak-template.ini as the canonical settings template
+Outcome:
+- A git-tracked `dak-template.ini` exists at repo root and serves as the canonical starting point for local machine configuration.
+- The template contains all supported settings sections in generic commented form, including `[WebCore].CompilerPath`, without any machine-specific absolute paths.
+- Repo docs point users to copy from `dak-template.ini` when creating a local `dak.ini`.
+Proof:
+- Run: `test -f dak-template.ini`
+  Expect: Exit code `0`.
+- Run: `rg -n "^\[FixInsightCL\]|^\[PascalAnalyzer\]|^\[MadExcept\]|^\[Build\]|^\[Diagnostics\]|^\[WebCore\]|^CompilerPath=" dak-template.ini`
+  Expect: Exit code `0`; the template includes the documented sections and WebCore compiler setting.
+- Run: `rg -n "dak-template\\.ini|copy .*dak-template|local dak\\.ini" README.md`
+  Expect: Exit code `0`; docs reference the template-driven local config workflow.
+Touches: dak-template.ini, README.md, spec.md
+Verify: cli-proof, manual
+Notes: Keep the template generic. It is reference material, not a machine-local config file.
 
 ### T-093 [CLI] Restrict WebCore compiler discovery to explicit config sources
 Outcome:
