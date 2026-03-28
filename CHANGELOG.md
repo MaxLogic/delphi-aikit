@@ -43,6 +43,7 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed CLI startup crash handling so true unhandled exceptions now reach madExcept, and startup applies the MaxLogic bugreport upload configuration from one executable-derived path. (T-099, T-100)
 - Fixed `dfm-check` so verbose Win32 runs no longer overflow when MSBuild reports a native exit code larger than `Integer`, and the CLI now preserves the unsigned and hexadecimal exit code text in diagnostics. (T-098)
 - Fixed bundled `dfm-check` frame validation so injected `DfmStreamAll.pas` now retries VCL frames through the constructor path when stream validation hits duplicate-component false positives such as `A component named pnlFilter already exists`.
 - Fixed `dfm-check` helper-project generation so projects that inherit `DCC_UnitSearchPath` only from imported `.optset` files now get a synthesized search-path node in the generated `_DfmCheck.dproj`, preventing false `F2613 Unit not found` failures for form units such as `uMainForm`; cleanup-on-failure is regression-tested, and keep-artifacts mode now announces itself explicitly when `DAK_DFMCHECK_KEEP_ARTIFACTS=true`.
