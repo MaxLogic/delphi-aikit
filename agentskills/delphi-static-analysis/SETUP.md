@@ -17,7 +17,8 @@ binary inside the skill; we build it in this repo and point the skill to it.
 The scripts find the resolver like this:
 
 1. `DAK_EXE` environment variable (absolute path is recommended)
-2. Default: `bin\DelphiAIKit.exe` under the repo root
+2. Windows `PATH` (`where DelphiAIKit.exe` on WSL / `where` on Windows)
+3. Repo-local `bin\DelphiAIKit.exe` under the current repo, the target repo, or the DAK repo
 
 If the resolver is not found, the scripts abort with a clear error.
 
@@ -40,11 +41,18 @@ WSL path note for direct DAK calls:
 
 ## Resolver configuration
 
-`DelphiAIKit.exe` reads `bin\dak.ini` by default when it needs
-configuration (FixInsightCL path, report filtering, Pascal Analyzer path, etc.).
-We should keep that file next to the resolver binary. The skill does not pass
-`--fi-settings` automatically, because that flag is a FixInsightCL setting file
-passthrough and is not the same as our `dak.ini`.
+`DelphiAIKit.exe` reads cascading `dak.ini` files when it needs configuration
+(FixInsightCL path, report filtering, Pascal Analyzer path, diagnostics settings, etc.).
+The lookup order is:
+
+1. `dak.ini` next to the executable
+2. repo-root `dak.ini` (folder containing `.git` or `.svn`)
+3. nested `dak.ini` files on the path down to the analyzed `.dproj`
+
+For repo-local machine settings, use repo-root `dak.ini` copied from
+`dak-template.ini`. The skill does not pass `--fi-settings` automatically,
+because that flag is a FixInsightCL settings file passthrough and is not the
+same as our cascading `dak.ini`.
 
 If we need a FixInsightCL settings file, set one explicitly via:
 
@@ -65,7 +73,7 @@ set FI_SETTINGS=C:\path\FixInsight.settings
 Project runs write to:
 
 ```
-./.dak/{ProjectName}/
+<path-to-project>/.dak/{ProjectName}/
   fixinsight/
   pascal-analyzer/
   summary.md
@@ -75,11 +83,15 @@ Project runs write to:
 Unit runs write to:
 
 ```
-./.dak/_unit/{UnitName}/
+<path-to-unit-directory>/.dak/_unit/{UnitName}/
   pascal-analyzer/
   summary.md
   run.log
 ```
+
+These are sibling working directories next to the analyzed target, not under the
+wrapper's current working directory unless we are already running from that same
+target location.
 
 ## Optional env vars
 

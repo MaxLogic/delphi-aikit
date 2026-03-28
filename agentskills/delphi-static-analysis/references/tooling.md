@@ -34,7 +34,9 @@ These are used by the skill wrappers to maintain baselines/deltas and optional C
 
 ## DAK diagnostics filters (dak.ini)
 
-DAK can suppress noisy “unknown macro” / “missing directory” diagnostics via `bin/dak.ini`:
+DAK can suppress noisy “unknown macro” / “missing directory” diagnostics via
+cascading `dak.ini` files (executable dir, repo root, then nested folders down to
+the analyzed `.dproj`):
 
 - `[Diagnostics] IgnoreUnknownMacros=` semicolon-separated list; supports `*` to ignore all
 - `[Diagnostics] IgnoreMissingPaths=` semicolon-separated masks; supports `*` / `?`
