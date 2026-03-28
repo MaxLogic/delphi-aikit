@@ -9,13 +9,17 @@ type
   TDelphiAIKitApp = class
   public
     class function Run: Integer; static;
-  private
+  protected
     fOptions: TAppOptions;
-    procedure InitializeProcess;
-    function HandleHelpIfRequested(out aExitCode: Integer): Boolean;
-    function TryParseOptions(out aExitCode: Integer): Boolean;
-    function DispatchCommand: Integer;
-    function Execute: Integer;
+    class function RunApp(aApp: TDelphiAIKitApp): Integer; static;
+    procedure InitializeProcess; virtual;
+    function HandleHelpIfRequested(out aExitCode: Integer): Boolean; virtual;
+    function TryParseOptions(out aExitCode: Integer): Boolean; virtual;
+    function DispatchCommand: Integer; virtual;
+    function Execute: Integer; virtual;
+    procedure ConfigureCrashReporting; virtual;
+    procedure ApplyMadExceptSettings(const aBugReportDir: string); virtual;
+    function ResolveBugReportDir: string; virtual;
   end;
 
 implementation
@@ -23,8 +27,9 @@ implementation
 uses
   System.SysUtils,
   Xml.omnixmldom, Xml.xmldom,
+  MaxMadExcept,
   Dak.Analyze, Dak.Build, Dak.Cli, Dak.DfmCheck, Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Messages,
-  Dak.Resolve;
+  Dak.Resolve, Dak.Utils;
 
 class function TDelphiAIKitApp.Run: Integer;
 var
@@ -32,23 +37,42 @@ var
 begin
   lApp := TDelphiAIKitApp.Create;
   try
-    try
-      Result := lApp.Execute;
-    except
-      on E: Exception do
-      begin
-        WriteLn(ErrOutput, Format(SUnhandledException, [E.ClassName, E.Message]));
-        Result := cExitUnhandledException;
-      end;
-    end;
+    Result := RunApp(lApp);
   finally
     lApp.Free;
   end;
 end;
 
+class function TDelphiAIKitApp.RunApp(aApp: TDelphiAIKitApp): Integer;
+begin
+  Result := aApp.Execute;
+end;
+
 procedure TDelphiAIKitApp.InitializeProcess;
 begin
   DefaultDOMVendor := sOmniXmlVendor;
+  ConfigureCrashReporting;
+end;
+
+procedure TDelphiAIKitApp.ConfigureCrashReporting;
+var
+  lBugReportDir: string;
+begin
+  lBugReportDir := ResolveBugReportDir;
+  if lBugReportDir = '' then
+    Exit;
+
+  ApplyMadExceptSettings(lBugReportDir);
+end;
+
+procedure TDelphiAIKitApp.ApplyMadExceptSettings(const aBugReportDir: string);
+begin
+  MaxMadExcept.AdjustMadExcept(aBugReportDir);
+end;
+
+function TDelphiAIKitApp.ResolveBugReportDir: string;
+begin
+  Result := ExeDir;
 end;
 
 function TDelphiAIKitApp.HandleHelpIfRequested(out aExitCode: Integer): Boolean;
