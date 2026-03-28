@@ -8,7 +8,7 @@ uses
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
   Winapi.Windows,
   maxLogic.StrUtils,
-  Dak.Types;
+  Dak.Types, Dak.Utils;
 
 function TryResolvePalCmdExe(const aOverridePath: string; out aExePath: string; out aError: string): Boolean;
 function BuildPalCmdCommandLine(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
@@ -87,22 +87,6 @@ begin
   finally
     lBuilder.Free;
   end;
-end;
-
-function ExpandEnvVars(const aValue: string): string;
-var
-  lRequired: Cardinal;
-  lBuffer: TArray<Char>;
-begin
-  if aValue = '' then
-    Exit('');
-  lRequired := ExpandEnvironmentStrings(PChar(aValue), nil, 0);
-  if lRequired = 0 then
-    Exit(aValue);
-  SetLength(lBuffer, lRequired);
-  if ExpandEnvironmentStrings(PChar(aValue), PChar(lBuffer), Length(lBuffer)) = 0 then
-    Exit(aValue);
-  Result := PChar(lBuffer);
 end;
 
 type
@@ -503,15 +487,8 @@ begin
 end;
 
 function NormalizeExePath(const aValue: string): string;
-var
-  lValue: string;
 begin
-  lValue := Trim(ExpandEnvVars(aValue));
-  if lValue = '' then
-    Exit('');
-  if not TPath.IsPathRooted(lValue) then
-    lValue := TPath.Combine(ExtractFilePath(ParamStr(0)), lValue);
-  Result := lValue;
+  Result := NormalizeConfiguredPath(aValue);
 end;
 
 function ChoosePalCmdExeInDir(const aDir: string): string;
