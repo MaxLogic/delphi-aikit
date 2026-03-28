@@ -5,7 +5,7 @@ interface
 uses
   System.IOUtils, System.SysUtils, System.Win.Registry,
   Winapi.Windows,
-  Dak.Diagnostics, Dak.Messages;
+  Dak.Diagnostics, Dak.Messages, Dak.Utils;
 
 function TryResolveFixInsightExe(aDiagnostics: TDiagnostics; out aExePath: string): Boolean;
 
@@ -18,22 +18,6 @@ const
     'Software\FixInsight',
     'Software\TMSSoftware\TMS FixInsight Pro'
   );
-
-function ExpandEnvVars(const aValue: string): string;
-var
-  lRequired: Cardinal;
-  lBuffer: TArray<Char>;
-begin
-  if aValue = '' then
-    Exit('');
-  lRequired := ExpandEnvironmentStrings(PChar(aValue), nil, 0);
-  if lRequired = 0 then
-    Exit(aValue);
-  SetLength(lBuffer, lRequired);
-  if ExpandEnvironmentStrings(PChar(aValue), PChar(lBuffer), Length(lBuffer)) = 0 then
-    Exit(aValue);
-  Result := PChar(lBuffer);
-end;
 
 function FindInPath(const aExeName: string; out aFullPath: string): Boolean;
 var
@@ -55,16 +39,8 @@ begin
 end;
 
 function BuildFromRegistry(const aBaseValue: string): string;
-var
-  lValue: string;
 begin
-  lValue := Trim(ExpandEnvVars(aBaseValue));
-  if lValue = '' then
-    Exit('');
-  if SameText(TPath.GetExtension(lValue), '.exe') then
-    Result := lValue
-  else
-    Result := TPath.Combine(lValue, SFixInsightExeName);
+  Result := ResolveExePathFromConfiguredValue(aBaseValue, SFixInsightExeName, '');
 end;
 
 function TryResolveFixInsightExe(aDiagnostics: TDiagnostics; out aExePath: string): Boolean;
