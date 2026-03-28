@@ -2,10 +2,20 @@
 Next task ID: T-101
 
 ## Summary
-Open tasks: 1 (In Progress: 1, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 99
+Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 100
 
 ## In Progress
+
+## Next - Today
+
+## Next - This Week
+
+## Next - Later
+
+## Blocked
+
+## Done
 
 ### T-097 [CLI] Normalize command-runner unit naming and layout across resolve/build/analyze
 Outcome:
@@ -17,21 +27,11 @@ Proof:
   Expect: Exit code `0`.
 - Run: `cmd.exe /C build-delphi.bat projects\DelphiAIKit.dproj -config Release -platform Win32 -ver 23 -test-output-dir tests\temp\resolver-bin`
   Expect: Exit code `0`.
- - Run: `cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\projects\MaxLogic\DelphiAiKit\projects\tests\temp\resolver-bin\DelphiAIKit.exe && F:\projects\MaxLogic\DelphiAiKit\tests\tests\temp\test-bin\DelphiAIKit.Tests.exe --consolemode:quiet"`
+- Run: `cmd.exe /C "set DAK_TEST_RESOLVER_EXE=F:\projects\MaxLogic\DelphiAiKit\projects\tests\temp\resolver-bin\DelphiAIKit.exe && F:\projects\MaxLogic\DelphiAiKit\tests\tests\temp\test-bin\DelphiAIKit.Tests.exe --consolemode:quiet"`
   Expect: Full suite passes with `Failed 0` and `Errored 0`.
 Touches: src/dak.app.pas, src/dak.resolve.pas, src/dak.build.pas, src/dak.build.runner.pas, src/dak.analyze.pas, src/dak.analyze.common.pas, src/dak.analyze.projectrunner.pas, src/dak.analyze.unitrunner.pas, tests/, README.md
 Verify: unit-test, build-only
-Notes: Follow-up cleanup after the current bootstrap and runner extraction. Prefer one naming scheme and document it once we settle it.
-
-## Next - Today
-
-## Next - This Week
-
-## Next - Later
-
-## Blocked
-
-## Done
+Notes: `Dak.Resolve` now mirrors the build/analyze layout as a thin facade over `Dak.Resolve.Runner`, and `README.md` documents the shared command-unit naming pattern once at the repo level.
 
 ### T-096 [CLI] Split Dak.Build public surface into dedicated summary/types units
 Outcome:

@@ -87,6 +87,13 @@ bin\DelphiAIKit.exe build --project "C:\path\WebApp.dproj" --config Debug --webc
 
 For WebCore builds, Delphi-only options such as `--dfmcheck`, `--rsvars`, and `--envoptions` are rejected instead of being silently ignored.
 
+## Command Unit Layout
+
+Command entry units now follow one naming pattern in `src/`:
+- `Dak.Build` and `Dak.Resolve` are thin facades that keep the public entry points.
+- `Dak.Build.Runner`, `Dak.Resolve.Runner`, `Dak.Analyze.ProjectRunner`, and `Dak.Analyze.UnitRunner` hold the command execution logic.
+- Shared command helpers stay in dedicated support units such as `Dak.Build.Summary`, `Dak.Build.Types`, and `Dak.Analyze.Common`.
+
 ## Quick start
 
 Build the console app, then run:
