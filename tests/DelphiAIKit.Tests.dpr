@@ -14,6 +14,7 @@ uses
   DfmCheck_Utils in '..\\lib\\DFMCheck\\Source\\DfmCheck_Utils.pas',
   ProjectFileReader in '..\\lib\\DFMCheck\\Source\\Console\\ProjectFileReader.pas',
   Test.Support in 'units\\test.support.pas',
+  Test.App in 'units\\test.app.pas',
   Test.Build in 'units\\test.build.pas',
   Test.Cli in 'units\\test.cli.pas',
   Test.DfmInspect in 'units\\test.dfminspect.pas',
