@@ -49,13 +49,14 @@
     <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
     <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
     <DCC_ExeOutput>.\</DCC_ExeOutput>
-    <DCC_UnitSearchPath>.\units;..\src;..\lib\DFMCheck\Source;..\lib\DFMCheck\Source\Console;..\lib\MaxLogicFoundation;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_UnitSearchPath>.\units;..\src;..\lib\DFMCheck\Source;..\lib\DFMCheck\Source\Console;..\lib\MaxLogicFoundation;..\lib\DelphiAST\Source;..\lib\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
   </PropertyGroup>
   <ItemGroup>
     <DelphiCompile Include="$(MainSource)">
       <MainSource>MainSource</MainSource>
     </DelphiCompile>
     <DCCReference Include="units\\test.support.pas"/>
+    <DCCReference Include="units\\test.app.pas"/>
     <DCCReference Include="units\\test.build.pas"/>
     <DCCReference Include="units\\test.fixinsight.pas"/>
     <DCCReference Include="units\\test.palfindingnormalize.pas"/>
