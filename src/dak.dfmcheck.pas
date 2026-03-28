@@ -1316,6 +1316,13 @@ begin
     Result := Result + ' (0x' + IntToHex(Int64(aExitCode), 8) + ')';
 end;
 
+function NormalizeNativeExitCode(const aExitCode: Cardinal): Integer;
+begin
+  if aExitCode <= Cardinal(High(Integer)) then
+    Exit(Integer(aExitCode));
+  Result := 0;
+end;
+
 function TryFindExecutableInPath(const aExeName: string; out aExePath: string): Boolean;
 var
   lFilePart: PChar;
@@ -2750,6 +2757,8 @@ var
   lFailReasons: TStringList;
   lHadDfmStreamAll: Boolean;
   lHadRuntimeGuard: Boolean;
+  lMappedExitCode: Integer;
+  lNativeExitCodeText: string;
   lOriginalAllRequested: Boolean;
 begin
   Result := 1;
@@ -2981,17 +2990,19 @@ begin
     if lExitCode <> 0 then
     begin
       EmitBuildFailureDiagnostics(lBuildLines, aOutput);
+      lNativeExitCodeText := FormatExitCodeForDisplay(lExitCode);
       if IsGeneratedUnitBuildFailure(lBuildLines, lPaths) then
       begin
         aCategory := TDfmCheckErrorCategory.ecGeneratorIncompatible;
-        aError := Format('Generated helper unit failed to compile (generator incompatibility). MSBuild exited with code %d.',
-          [lExitCode]);
+        aError := 'Generated helper unit failed to compile (generator incompatibility). MSBuild exited with code ' +
+          lNativeExitCodeText + '.';
       end else
       begin
         aCategory := TDfmCheckErrorCategory.ecBuildFailed;
-        aError := Format('MSBuild exited with code %d.', [lExitCode]);
+        aError := 'MSBuild exited with code ' + lNativeExitCodeText + '.';
       end;
-      Exit(MapDfmCheckExitCode(aCategory, Integer(lExitCode)));
+      lMappedExitCode := NormalizeNativeExitCode(lExitCode);
+      Exit(MapDfmCheckExitCode(aCategory, lMappedExitCode));
     end;
 
     if not TryFindValidatorExe(lPaths, lPlatform, lConfig, lValidatorExePath, aError) then

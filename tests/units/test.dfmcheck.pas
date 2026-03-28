@@ -11,7 +11,7 @@ uses
 
 type
   TMockValidatorMode = (vmHappy, vmHappyParentBin, vmBroken, vmBrokenEventSignature, vmBuildFailGeneratedUnit,
-    vmValidatorNonZeroNoFail);
+    vmBuildFailHighExitCode, vmValidatorNonZeroNoFail);
 
   TMockDfmCheckRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
   private
@@ -83,6 +83,8 @@ type
     procedure PipelineBuildFailureInGeneratedUnitIsClassifiedAsGeneratorIncompatibility;
     [Test]
     procedure PipelineBuildFailureCleansGeneratedArtifactsByDefault;
+    [Test]
+    procedure PipelineBuildFailureWithHighExitCodeDoesNotOverflow;
     [Test]
     procedure PipelinePassesSelectedDfmFilterToValidator;
     [Test]
@@ -313,6 +315,15 @@ begin
           'Sample_DfmCheck.dpr(88): error F2063: Could not compile used unit ''Sample_DfmCheck_Register.pas''' +
           #13#10, TEncoding.UTF8);
       aExitCode := 1;
+      Exit(True);
+    end;
+
+    if fMode = TMockValidatorMode.vmBuildFailHighExitCode then
+    begin
+      if lBuildLogPath <> '' then
+        TFile.WriteAllText(lBuildLogPath,
+          'MainForm.pas(42): error E2003: Undeclared identifier: ''BrokenSymbol''' + #13#10, TEncoding.UTF8);
+      aExitCode := Cardinal($C0000005);
       Exit(True);
     end;
 
@@ -1493,6 +1504,74 @@ begin
       'Expected generated DPROJ to be cleaned up after build failure when keep-artifacts mode is off.');
     Assert.IsFalse(FileExists(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas')),
       'Expected generated register unit to be cleaned up after build failure when keep-artifacts mode is off.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineBuildFailureWithHighExitCodeDoesNotOverflow;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lOutputText: string;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-high-exit');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBuildFailHighExitCode, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckAll := True;
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    try
+      lResult := RunDfmCheckPipeline(lOptions, lRunner,
+        procedure(const aLine: string)
+        begin
+          lOutputLines.Add(aLine);
+        end, lCategory, lError);
+    except
+      on E: Exception do
+        Assert.Fail('Expected high build exit code to avoid overflow, but got ' + E.ClassName + ': ' + E.Message);
+    end;
+
+    lOutputText := JoinOutput(lOutputLines);
+    Assert.AreEqual(TDfmCheckErrorCategory.ecBuildFailed, lCategory,
+      'Expected non-generator build failure category for high exit code path.');
+    Assert.AreEqual(34, lResult, 'Expected high build exit code to map to generic build failure exit code.');
+    Assert.AreEqual('MSBuild exited with code 3221225477 (0xC0000005).', lError,
+      'Expected exact high-exit-code error text.');
+    Assert.IsTrue(Pos('[dfm-check] Build diagnostics (errors):', lOutputText) > 0,
+      'Expected build diagnostics output for high build exit code path.');
+    Assert.IsTrue(Pos('MainForm.pas(42): error E2003: Undeclared identifier: ''BrokenSymbol''', lOutputText) > 0,
+      'Expected verbose build diagnostics to include the failing compiler error line.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
