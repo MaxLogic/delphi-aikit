@@ -4,7 +4,7 @@ interface
 
 uses
   System.Generics.Collections, System.IOUtils, System.SysUtils,
-  Dak.Build, Dak.Types;
+  Dak.Build.Types, Dak.Types;
 
 function TryRunBuildInternal(const aOptions: TAppOptions; out aExitCode: Integer; out aError: string): Boolean; overload;
 function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
@@ -16,6 +16,7 @@ uses
   System.Classes, System.IniFiles, System.RegularExpressions, System.StrUtils,
   System.Win.Registry,
   Winapi.Windows,
+  Dak.Build.Summary,
   Dak.Diagnostics, Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Project, Dak.RsVars,
   Dak.Registry, Dak.SourceContext, Dak.Utils;
 
