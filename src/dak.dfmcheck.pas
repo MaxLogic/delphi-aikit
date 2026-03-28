@@ -1,4 +1,4 @@
-﻿unit Dak.DfmCheck;
+unit Dak.DfmCheck;
 
 interface
 
@@ -9,7 +9,7 @@ uses
   Winapi.Messages,
   Winapi.Windows,
   DfmCheck_Utils,
-  Dak.Diagnostics, Dak.FixInsightSettings, Dak.Messages, Dak.RsVars, Dak.SourceContext, Dak.Types;
+  Dak.Diagnostics, Dak.FixInsightSettings, Dak.Messages, Dak.RsVars, Dak.SourceContext, Dak.Types, Dak.Utils;
 
 type
   TDfmCheckErrorCategory = (
@@ -1554,86 +1554,14 @@ begin
   Result.fGeneratedRegisterUnit := TPath.Combine(Result.fGeneratedDir, Result.fProjectName + '_DfmCheck_Register.pas');
 end;
 
-function TryNormalizeInputPath(const aPath: string; out aNormalizedPath: string; out aError: string): Boolean;
-var
-  lDrive: Char;
-  lPath: string;
-begin
-  aError := '';
-  lPath := Trim(aPath);
-  aNormalizedPath := lPath;
-  if lPath = '' then
-    Exit(True);
-  if lPath[1] <> '/' then
-    Exit(True);
-
-  if SameText(Copy(lPath, 1, 5), '/mnt/') then
-  begin
-    if (Length(lPath) < 6) or (not CharInSet(lPath[6], ['A'..'Z', 'a'..'z'])) or
-      ((Length(lPath) > 6) and (lPath[7] <> '/')) then
-    begin
-      aError := Format(SUnsupportedLinuxPath, [lPath]);
-      Exit(False);
-    end;
-
-    lDrive := UpCase(lPath[6]);
-    if Length(lPath) > 7 then
-      lPath := Copy(lPath, 8, MaxInt)
-    else
-      lPath := '';
-    lPath := lPath.Replace('/', '\', [rfReplaceAll]);
-    if lPath = '' then
-      aNormalizedPath := lDrive + ':\'
-    else
-      aNormalizedPath := lDrive + ':\' + lPath;
-    Exit(True);
-  end;
-
-  aError := Format(SUnsupportedLinuxPath, [lPath]);
-  Result := False;
-end;
-
 function TryResolveAbsolutePath(const aInputPath: string; out aOutputPath: string; out aError: string): Boolean;
-var
-  lNormalizedPath: string;
 begin
-  aOutputPath := '';
-  aError := '';
-  if not TryNormalizeInputPath(aInputPath, lNormalizedPath, aError) then
-    Exit(False);
-  aOutputPath := TPath.GetFullPath(lNormalizedPath);
-  Result := True;
+  Result := Dak.Utils.TryResolveAbsolutePath(aInputPath, aOutputPath, aError);
 end;
 
 function TryResolveDfmCheckProjectPath(const aInputPath: string; out aDprojPath: string; out aError: string): Boolean;
-var
-  lExt: string;
-  lCandidatePath: string;
 begin
-  aError := '';
-  if not TryResolveAbsolutePath(aInputPath, aDprojPath, aError) then
-    Exit(False);
-  lExt := TPath.GetExtension(aDprojPath);
-  if SameText(lExt, '.dproj') then
-  begin
-    Result := FileExists(aDprojPath);
-    if not Result then
-      aError := Format(SFileNotFound, [aDprojPath]);
-    Exit;
-  end;
-  if SameText(lExt, '.dpr') or SameText(lExt, '.dpk') then
-  begin
-    lCandidatePath := TPath.ChangeExtension(aDprojPath, '.dproj');
-    if FileExists(lCandidatePath) then
-    begin
-      aDprojPath := lCandidatePath;
-      Exit(True);
-    end;
-    aError := Format(SAssociatedDprojMissing, [aDprojPath]);
-    Exit(False);
-  end;
-  aError := Format(SUnsupportedProjectInput, [aDprojPath]);
-  Result := False;
+  Result := Dak.Utils.TryResolveDprojPath(aInputPath, aDprojPath, aError);
 end;
 
 function TryResolveInjectDir(out aInjectDir: string; out aError: string): Boolean;

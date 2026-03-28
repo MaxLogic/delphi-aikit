@@ -1,11 +1,11 @@
-﻿unit Dak.FixInsightSettings;
+unit Dak.FixInsightSettings;
 
 interface
 
 uses
   System.Generics.Collections,
   System.IniFiles, System.IOUtils, System.SysUtils,
-  maxLogic.StrUtils,
+  maxLogic.RichIniFile, maxLogic.StrUtils,
   Dak.Diagnostics, Dak.Messages, Dak.Types;
 
 function LoadSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
@@ -183,7 +183,18 @@ begin
   Result := True;
 end;
 
-procedure ReadBoolOption(const aIni: TIniFile; const aKey: string; var aTarget: Boolean;
+function OpenSettingsIni(const aPath: string): TCustomIniFile;
+var
+  lOptions: TRichIniOptions;
+  lIni: TRichIniFile;
+begin
+  lOptions := DefaultRichIniOptions;
+  lIni := TRichIniFile.Create(aPath, lOptions);
+  lIni.LoadFromFile(aPath);
+  Result := lIni;
+end;
+
+procedure ReadBoolOption(const aIni: TCustomIniFile; const aKey: string; var aTarget: Boolean;
   aDiagnostics: TDiagnostics);
 var
   lValue: string;
@@ -260,7 +271,7 @@ begin
   Result := LoadSettings(aDiagnostics, '', aFixInsight, aFixInsightIgnore, aReportFilter, aPascalAnalyzer);
 end;
 
-procedure ApplyIniSettings(const aIni: TIniFile; var aFixInsight: TFixInsightExtraOptions;
+procedure ApplyIniSettings(const aIni: TCustomIniFile; var aFixInsight: TFixInsightExtraOptions;
   var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
   var aPascalAnalyzer: TPascalAnalyzerDefaults; aDiagnostics: TDiagnostics);
 var
@@ -315,7 +326,7 @@ function LoadSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
   out aFixInsight: TFixInsightExtraOptions; out aFixInsightIgnore: TFixInsightIgnoreDefaults;
   out aReportFilter: TReportFilterDefaults; out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean;
 var
-  lIni: TIniFile;
+  lIni: TCustomIniFile;
   lPath: string;
   lPaths: TArray<string>;
 begin
@@ -331,7 +342,7 @@ begin
       aDiagnostics.AddInfo(Format(SInfoSettingsPath, [lPath]));
     if not FileExists(lPath) then
       Continue;
-    lIni := TIniFile.Create(lPath);
+    lIni := OpenSettingsIni(lPath);
     try
       ApplyIniSettings(lIni, aFixInsight, aFixInsightIgnore, aReportFilter, aPascalAnalyzer, aDiagnostics);
     finally
@@ -342,7 +353,7 @@ end;
 
 function LoadDefaultDelphiVersion(const aDprojPath: string; out aDelphiVersion: string): Boolean;
 var
-  lIni: TIniFile;
+  lIni: TCustomIniFile;
   lPath: string;
   lPaths: TArray<string>;
   lValue: string;
@@ -354,7 +365,7 @@ begin
   begin
     if not FileExists(lPath) then
       Continue;
-    lIni := TIniFile.Create(lPath);
+    lIni := OpenSettingsIni(lPath);
     try
       lValue := Trim(lIni.ReadString(SBuildSection, 'DelphiVersion', ''));
       if lValue <> '' then
@@ -368,7 +379,7 @@ end;
 function LoadDiagnosticsDefaults(aDiagnostics: TDiagnostics; const aDprojPath: string;
   out aDiagnosticsDefaults: TDiagnosticsDefaults): Boolean;
 var
-  lIni: TIniFile;
+  lIni: TCustomIniFile;
   lLines: Integer;
   lMode: TSourceContextMode;
   lPath: string;
@@ -384,7 +395,7 @@ begin
   begin
     if not FileExists(lPath) then
       Continue;
-    lIni := TIniFile.Create(lPath);
+    lIni := OpenSettingsIni(lPath);
     try
       lValue := Trim(lIni.ReadString(SDiagnosticsSection, 'SourceContext', ''));
       if lValue <> '' then

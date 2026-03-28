@@ -1,4 +1,4 @@
-﻿program DelphiAIKit_Tests;
+program DelphiAIKit_Tests;
 
 {$APPTYPE CONSOLE}
 {$STRONGLINKTYPES ON}
@@ -24,6 +24,7 @@ uses
   Test.PalFindingNormalize in 'units\\test.palfindingnormalize.pas',
   Test.ReportPostProcess in 'units\\test.reportpostprocess.pas',
   Test.PascalAnalyzer in 'units\\test.pascalanalyzer.pas',
+  Test.Utils in 'units\\test.utils.pas',
   Test.SourceContext in 'units\\test.sourcecontext.pas',
   ToolsAPIRepl in '..\\lib\\DFMCheck\\Source\\Console\\ToolsAPIRepl.pas';
 
