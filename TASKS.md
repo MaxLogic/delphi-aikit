@@ -2,39 +2,14 @@
 Next task ID: T-101
 
 ## Summary
-Open tasks: 4 (In Progress: 0, Next Today: 0, Next This Week: 2, Next Later: 2, Blocked: 0)
-Done tasks: 96
+Open tasks: 2 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 2, Blocked: 0)
+Done tasks: 98
 
 ## In Progress
 
 ## Next - Today
 
 ## Next - This Week
-
-### T-099 [CLI] Let unhandled CLI exceptions reach madExcept
-Outcome:
-- Top-level DAK failures are no longer swallowed by `src/dak.app.pas` without triggering madExcept bugreport handling.
-- True unhandled exceptions still return a non-success exit code, but they also produce the configured madExcept report path/output.
-- Existing structured validation failures stay handled where they already are; this task only changes true unhandled exceptions.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.App.TAppTests.RunUnhandledExceptionsThroughMadExcept -cm:Quiet`
-  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
-Touches: src/dak.app.pas, tests/units/test.app.pas
-Verify: unit-test, cli-proof
-Notes: Follow-up to the current top-level `try/except` in `src/dak.app.pas`. This is broader than `dfm-check`; keep the scope at app-level crash reporting.
-
-### T-100 [CLI] Wire MaxMadExcept upload configuration into startup
-Outcome:
-- DAK calls `MaxMadExcept.AdjustMadExcept(...)` during startup so madExcept bugreports use the MaxLogic upload configuration instead of default local-only behavior.
-- The upload target and bugreport path are configured from one startup path, not duplicated across error handlers.
-- The integration stays isolated to startup wiring and the MaxMadExcept helper units.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.App.TAppTests.ConfiguresMadExceptUploadOnStartup -cm:Quiet`
-  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
-Touches: projects/DelphiAIKit.dpr, src/dak.app.pas, lib/MaxLogicFoundation/MaxMadExcept.pas, lib/MaxLogicFoundation/maxLogic.MadExcept.pas, tests/units/test.app.pas
-Deps: T-099
-Verify: unit-test, cli-proof
-Notes: `lib/MaxLogicFoundation/MaxMadExcept.pas` already hardwires `SetUpWebUpload(...)`; this task is to invoke it from DAK startup and make the upload configuration effective for the shipped app. Use the maintainer-supplied endpoint/config if the hardcoded placeholder needs to move.
 
 ## Next - Later
 
@@ -73,6 +48,31 @@ Notes: Follow-up cleanup after the current bootstrap and runner extraction. Pref
 ## Blocked
 
 ## Done
+
+### T-100 [CLI] Wire MaxMadExcept upload configuration into startup
+Outcome:
+- DAK calls `MaxMadExcept.AdjustMadExcept(...)` during startup so madExcept bugreports use the MaxLogic upload configuration instead of default local-only behavior.
+- The upload target and bugreport path are configured from one startup path, not duplicated across error handlers.
+- The integration stays isolated to startup wiring and the MaxMadExcept helper units.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.App.TAppTests.ConfiguresMadExceptUploadOnStartup -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+Touches: projects/DelphiAIKit.dpr, src/dak.app.pas, lib/MaxLogicFoundation/MaxMadExcept.pas, lib/MaxLogicFoundation/maxLogic.MadExcept.pas, tests/units/test.app.pas
+Deps: T-099
+Verify: unit-test, cli-proof
+Notes: Startup now resolves one bugreport directory from `ExeDir` and applies `MaxMadExcept.AdjustMadExcept(...)` there during `InitializeProcess`, with regression coverage in `Test.App.TAppTests.ConfiguresMadExceptUploadOnStartup`.
+
+### T-099 [CLI] Let unhandled CLI exceptions reach madExcept
+Outcome:
+- Top-level DAK failures are no longer swallowed by `src/dak.app.pas` without triggering madExcept bugreport handling.
+- True unhandled exceptions still return a non-success exit code, but they also produce the configured madExcept report path/output.
+- Existing structured validation failures stay handled where they already are; this task only changes true unhandled exceptions.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.App.TAppTests.RunUnhandledExceptionsThroughMadExcept -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+Touches: src/dak.app.pas, tests/units/test.app.pas
+Verify: unit-test, cli-proof
+Notes: Replaced the old top-level `try/except` catch in `TDelphiAIKitApp.Run` with direct propagation via `RunApp`, while keeping structured parse/validation failures covered by `Test.App.TAppTests.StructuredParseFailuresStayHandled`.
 
 ### T-098 [CLI] Fix dfm-check integer overflow on verbose Win32 run
 Outcome:
