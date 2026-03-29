@@ -56,6 +56,8 @@ var
       aParsedCommand := TCommandKind.ckDfmInspect
     else if SameText(aArg, 'global-vars') then
       aParsedCommand := TCommandKind.ckGlobalVars
+    else if SameText(aArg, 'deps') then
+      aParsedCommand := TCommandKind.ckDeps
     else
       Result := False;
   end;
@@ -220,6 +222,8 @@ begin
       WriteLn(ErrOutput, SUsageDfmInspect);
     TCommandKind.ckGlobalVars:
       WriteLn(ErrOutput, SUsageGlobalVars);
+    TCommandKind.ckDeps:
+      WriteLn(ErrOutput, SUsageDeps);
   else
     WriteLn(ErrOutput, SUsageResolve);
   end;
@@ -266,6 +270,8 @@ type
       const aHasInlineValue: Boolean; out aHandled: Boolean): Boolean;
     function TryParseGlobalVarsSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
+    function TryParseDepsSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+      const aHasInlineValue: Boolean): Boolean;
     function TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
     function TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
@@ -310,6 +316,7 @@ begin
   fOptions.fSourceContextMode := TSourceContextMode.scmAuto;
   fOptions.fSourceContextLines := 2;
   fOptions.fDfmInspectFormat := 'tree';
+  fOptions.fDepsFormat := TDepsFormat.dfJson;
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
   fOptions.fGlobalVarsUnusedOnly := False;
@@ -535,6 +542,8 @@ begin
     fOptions.fCommand := TCommandKind.ckDfmInspect
   else if SameText(aArg, 'global-vars') then
     fOptions.fCommand := TCommandKind.ckGlobalVars
+  else if SameText(aArg, 'deps') then
+    fOptions.fCommand := TCommandKind.ckDeps
   else
   begin
     fError := Format(SUnknownCommand, [aArg]);
@@ -609,6 +618,9 @@ begin
 
   if fOptions.fCommand = TCommandKind.ckGlobalVars then
     Exit(TryParseGlobalVarsSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
+
+  if fOptions.fCommand = TCommandKind.ckDeps then
+    Exit(TryParseDepsSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   Result := TryParseAnalyzeSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue);
 end;
@@ -1088,6 +1100,51 @@ begin
   Result := False;
 end;
 
+function TOptionParser.TryParseDepsSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+  const aHasInlineValue: Boolean): Boolean;
+var
+  lValue: string;
+begin
+  if SameText(aSwitch, 'format') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
+      Exit(False);
+    if SameText(lValue, 'json') then
+    begin
+      fOptions.fDepsFormat := TDepsFormat.dfJson;
+    end else if SameText(lValue, 'text') then
+    begin
+      fOptions.fDepsFormat := TDepsFormat.dfText;
+    end else
+    begin
+      fError := Format(SDepsInvalidFormat, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'output') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--output') then
+      Exit(False);
+    fOptions.fDepsOutputPath := lValue;
+    fOptions.fHasDepsOutputPath := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'unit') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit') then
+      Exit(False);
+    fOptions.fDepsUnitName := lValue;
+    fOptions.fHasDepsUnitName := True;
+    Exit(True);
+  end;
+
+  fError := Format(SUnknownArg, [aArg]);
+  Result := False;
+end;
+
 function TOptionParser.TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
 var
@@ -1522,6 +1579,13 @@ begin
     if fOptions.fGlobalVarsUnusedOnly and (fOptions.fGlobalVarsReadsOnly or fOptions.fGlobalVarsWritesOnly) then
     begin
       fError := SGlobalVarsUnusedAccessConflict;
+      Exit(False);
+    end;
+  end else if fOptions.fCommand = TCommandKind.ckDeps then
+  begin
+    if fOptions.fDprojPath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--project']);
       Exit(False);
     end;
   end;

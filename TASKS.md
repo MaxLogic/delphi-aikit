@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-101
+Next task ID: T-104
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 100
+Done tasks: 103
 
 ## In Progress
 
@@ -16,6 +16,49 @@ Done tasks: 100
 ## Blocked
 
 ## Done
+
+### T-103 [DOC] Document deps command for AI debugging workflows
+Outcome:
+- README documents the new `deps` command, its JSON-first contract, and the `.dak/<ProjectName>/deps/` output location.
+- Repo docs explain when `deps` helps AI debugging and what it does not attempt to solve, so we do not oversell it as a call-graph or symbol-analysis tool.
+- The docs make the phased scope explicit: JSON/text topology analysis is shipped, DOT export is deferred.
+Proof:
+- Run: `rg -n "deps --project|\\.dak/<ProjectName>/deps|JSON-first|AI debugging|DOT export" README.md`
+  Expect: Exit code `0`; the documented command flow, output location, AI-debugging use case, and deferred DOT note are present.
+Touches: README.md, .agents/plans/deps-command.md
+Deps: T-101, T-102
+Verify: cli-proof, manual
+Ceremony: reduced
+Notes: Keep the docs aligned with the reduced V1/V2 scope from `.agents/plans/deps-command.md`.
+
+### T-102 [CLI] Add deps text summaries, unit focus mode, and cycle reporting
+Outcome:
+- `deps` adds an AI-friendly text summary mode that highlights high-signal topology details instead of dumping raw edges.
+- `deps` supports focused neighborhood output around a requested unit so we can inspect one problematic area without reading the whole graph.
+- `deps` reports cycles as SCCs computed only over resolved project units, keeping unresolved and external references out of cycle noise by default.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Deps.TDepsTests.DepsTextSummaryHighlightsCyclesAndUnresolvedUnits,Test.Deps.TDepsTests.DepsUnitFocusLimitsNeighborhood,Test.Deps.TDepsTests.DepsCyclesIgnoreUnresolvedAndExternalNodesByDefault -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe deps --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/DepsCycleFixture/DepsCycleFixture.dproj --format text --unit CycleA`
+  Expect: Exit code `0`; output includes a focused neighborhood for `CycleA` and a cycle/SCC summary.
+Touches: src/dak.deps.pas, src/dak.deps.runner.pas, src/dak.messages.pas, tests/units/test.deps.pas, tests/fixtures/DepsCycleFixture/
+Deps: T-101
+Verify: unit-test, cli-proof
+Notes: Design plan: `.agents/plans/deps-command.md`. DOT export remains deferred; this task is about useful summaries for humans and AI agents, not visualization.
+
+### T-101 [CLI] Add ProjectIndexer-backed deps command with deterministic JSON output
+Outcome:
+- Add a new `deps` command that analyzes unit dependencies for a target Delphi project using the same project-context bootstrap path we already use for `global-vars`.
+- `deps` emits deterministic JSON with project metadata, nodes, edges, unresolved units, parser problems, and summary counts, without relying on external regex parsing or Graphviz.
+- When `--output` is omitted, `deps` writes under sibling `.dak/<ProjectName>/deps/` in line with repo conventions.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.DepsCommandParsesJsonDefaults,Test.Deps.TDepsTests.DepsJsonEmitsNodesEdgesAndProblems,Test.Deps.TDepsTests.DepsJsonSurfacesUnresolvedUnits -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe deps --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/DepsFixture/DepsFixture.dproj --format json`
+  Expect: Exit code `0`; JSON includes `nodes`, `edges`, `unresolvedUnits`, and `parserProblems`.
+Touches: src/dak.cli.pas, src/dak.types.pas, src/dak.project.pas, src/dak.deps.pas, src/dak.deps.runner.pas, src/dak.globalvars.pas, tests/units/test.cli.pas, tests/units/test.deps.pas, tests/fixtures/DepsFixture/
+Verify: unit-test, cli-proof
+Notes: Design plan: `.agents/plans/deps-command.md`. Keep V1 JSON-first and reuse the existing `global-vars` / `ProjectIndexer` bootstrap path instead of adding a second dependency parser.
 
 ### T-097 [CLI] Normalize command-runner unit naming and layout across resolve/build/analyze
 Outcome:

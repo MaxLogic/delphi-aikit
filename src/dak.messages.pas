@@ -12,6 +12,7 @@ resourcestring
     '  dfm-check Validate DFM streaming via generated _DfmCheck harness project' + #13#10 +
     '  dfm-inspect Inspect text DFM structure and event bindings' + #13#10 +
     '  global-vars List project global variables and their routine usages' + #13#10 +
+    '  deps      Analyze project unit dependencies for AI debugging' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
   SUsageResolve =
     'DelphiAIKit.exe resolve --project "<path>" --delphi <23.0> ' +
@@ -54,6 +55,9 @@ resourcestring
     'DelphiAIKit.exe global-vars --project "<path>" [--format <text|json>] [--output "<path>|-"] ' +
     '[--cache "<path>"] [--refresh <auto|force>] [--unused-only] [--unit "<pattern>"] [--name "<pattern>"] ' +
     '[--reads-only] [--writes-only] [--verbose [true|false]]';
+  SUsageDeps =
+    'DelphiAIKit.exe deps --project "<path>" [--format <json|text>] [--output "<path>|-"] ' +
+    '[--unit "<UnitName>"]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -71,6 +75,7 @@ resourcestring
   SGlobalVarsInvalidRefresh = 'Unsupported global-vars refresh mode: %s';
   SGlobalVarsConflictingAccessFilters = 'Use either --reads-only or --writes-only (not both).';
   SGlobalVarsUnusedAccessConflict = '--unused-only cannot be combined with --reads-only or --writes-only.';
+  SDepsInvalidFormat = 'Unsupported deps format: %s';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
   SBuildBatMissing = 'build-delphi.bat not found: %s';
