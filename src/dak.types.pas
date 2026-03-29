@@ -5,7 +5,8 @@ interface
 {$SCOPEDENUMS ON}
 
 type
-  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars);
+  TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars,
+    ckDeps);
 
   TOutputKind = (okIni, okXml, okBat);
   TBuildBackend = (bbAuto, bbDelphi, bbWebCore);
@@ -17,6 +18,7 @@ type
 
   TGlobalVarsFormat = (gvfText, gvfJson);
   TGlobalVarsRefresh = (gvrAuto, gvrForce);
+  TDepsFormat = (dfJson, dfText);
   TSourceContextMode = (scmAuto, scmOff, scmOn);
 
   TDiagnosticsDefaults = record
@@ -29,6 +31,18 @@ type
     fProjectDir: string;
     fMainSourcePath: string;
     fSearchPaths: TArray<string>;
+  end;
+
+  TProjectAnalysisContext = record
+    fProjectPath: string;
+    fProjectName: string;
+    fProjectDir: string;
+    fMainSourcePath: string;
+    fParserDefines: string;
+    fParserSearchPath: string;
+    fDakProjectRoot: string;
+    fHasDelphiContext: Boolean;
+    fContextNote: string;
   end;
 
   TSourceContextSnippet = record
@@ -128,6 +142,11 @@ type
     fHasGlobalVarsNameFilter: Boolean;
     fGlobalVarsReadsOnly: Boolean;
     fGlobalVarsWritesOnly: Boolean;
+    fDepsFormat: TDepsFormat;
+    fDepsOutputPath: string;
+    fHasDepsOutputPath: Boolean;
+    fDepsUnitName: string;
+    fHasDepsUnitName: Boolean;
     fUnitPath: string;
   end;
 

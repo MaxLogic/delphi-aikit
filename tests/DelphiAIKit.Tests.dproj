@@ -58,9 +58,16 @@
     <DCCReference Include="units\\test.support.pas"/>
     <DCCReference Include="units\\test.app.pas"/>
     <DCCReference Include="units\\test.build.pas"/>
+    <DCCReference Include="units\\test.cli.pas"/>
+    <DCCReference Include="units\\test.deps.pas"/>
+    <DCCReference Include="units\\test.dfmcheck.pas"/>
+    <DCCReference Include="units\\test.dfminspect.pas"/>
     <DCCReference Include="units\\test.fixinsight.pas"/>
+    <DCCReference Include="units\\test.msbuild.pas"/>
     <DCCReference Include="units\\test.palfindingnormalize.pas"/>
     <DCCReference Include="units\\test.pascalanalyzer.pas"/>
+    <DCCReference Include="units\\test.reportpostprocess.pas"/>
+    <DCCReference Include="units\\test.sourcecontext.pas"/>
   </ItemGroup>
   <ItemGroup>
     <BuildConfiguration Include="Base">

@@ -91,6 +91,8 @@ type
     [Test]
     procedure HelpCommandIgnoresDfmInspectSwitchValueTokens;
     [Test]
+    procedure DepsCommandParsesJsonDefaults;
+    [Test]
     procedure ParseGlobalVarsDefaults;
     [Test]
     procedure ParseGlobalVarsOptions;
@@ -828,6 +830,19 @@ begin
   Assert.IsTrue(lHasCommand, 'Expected explicit dfm-inspect command detection.');
   Assert.AreEqual(TCommandKind.ckDfmInspect, lCommand, 'Expected dfm-inspect command kind.');
   Assert.AreEqual('', lError, 'Expected empty error for dfm-inspect help command detection.');
+end;
+
+procedure TCliTests.DepsCommandParsesJsonDefaults;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('deps --project c:\temp\sample.dproj');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected deps defaults to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckDeps, lOptions.fCommand);
+  Assert.AreEqual(TDepsFormat.dfJson, lOptions.fDepsFormat);
+  Assert.IsFalse(lOptions.fHasDepsOutputPath);
+  Assert.IsFalse(lOptions.fHasDepsUnitName);
 end;
 
 procedure TCliTests.ParseGlobalVarsDefaults;

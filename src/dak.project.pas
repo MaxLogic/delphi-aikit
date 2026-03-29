@@ -4,6 +4,7 @@ interface
 
 uses
   System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.RegularExpressions, System.SysUtils,
+  Xml.XMLDoc, Xml.XMLIntf,
   maxLogic.StrUtils,
   Dak.Diagnostics, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Types;
 
@@ -13,8 +14,13 @@ function TryBuildParams(const aOptions: TAppOptions; const aEnvVars: TDictionary
 function TryBuildProjectSourceLookup(const aDprojPath, aConfig, aPlatform, aDelphiVersion: string;
   const aEnvVars: TDictionary<string, string>; aDiagnostics: TDiagnostics; out aLookup: TProjectSourceLookup;
   out aError: string): Boolean;
+function TryBuildProjectAnalysisContext(const aOptions: TAppOptions; out aContext: TProjectAnalysisContext;
+  out aError: string): Boolean;
 
 implementation
+
+uses
+  Dak.FixInsightSettings, Dak.Registry, Dak.RsVars, Dak.Utils;
 
 type
   TSourceTracker = class
@@ -596,6 +602,160 @@ begin
     lSources.Free;
     lProps.Free;
   end;
+end;
+
+function TryExtractProjectMainSource(const aProjectPath: string; out aMainSourcePath: string; out aError: string): Boolean;
+var
+  lDoc: IXMLDocument;
+  lMainSource: string;
+  lNode: IXMLNode;
+  lRootDir: string;
+begin
+  Result := False;
+  aError := '';
+  aMainSourcePath := '';
+  try
+    lDoc := TXMLDocument.Create(nil);
+    lDoc.LoadFromFile(aProjectPath);
+    lDoc.Active := True;
+  except
+    on E: Exception do
+    begin
+      aError := Format(SDprojParseError, [E.Message]);
+      Exit(False);
+    end;
+  end;
+
+  lNode := lDoc.DocumentElement.ChildNodes.FindNode('PropertyGroup');
+  while lNode <> nil do
+  begin
+    if lNode.ChildNodes.FindNode('MainSource') <> nil then
+    begin
+      lMainSource := Trim(lNode.ChildNodes['MainSource'].Text);
+      if lMainSource <> '' then
+      begin
+        Break;
+      end;
+    end;
+    lNode := lNode.NextSibling;
+    while (lNode <> nil) and (not SameText(lNode.NodeName, 'PropertyGroup')) do
+    begin
+      lNode := lNode.NextSibling;
+    end;
+  end;
+
+  if lMainSource = '' then
+  begin
+    aError := Format(SMainSourceMissingFile, [aProjectPath]);
+    Exit(False);
+  end;
+
+  lRootDir := TPath.GetDirectoryName(aProjectPath);
+  aMainSourcePath := TPath.GetFullPath(TPath.Combine(lRootDir, lMainSource));
+  Result := True;
+end;
+
+function TryBuildProjectAnalysisContext(const aOptions: TAppOptions; out aContext: TProjectAnalysisContext;
+  out aError: string): Boolean;
+const
+  cDefaultContextNote = 'Using project-directory-only parser context; Delphi IDE context could not be resolved.';
+var
+  lBuildError: string;
+  lBuildOptions: TAppOptions;
+  lDelphiVersion: string;
+  lEnvVars: TDictionary<string, string>;
+  lErrorCode: Integer;
+  lLibraryPath: string;
+  lLibrarySource: TPropertySource;
+  lParams: TFixInsightParams;
+  lProjectPath: string;
+  lLookup: TProjectSourceLookup;
+  lSearchPaths: TArray<string>;
+begin
+  Result := False;
+  aError := '';
+  aContext := Default(TProjectAnalysisContext);
+
+  if not TryResolveDprojPath(aOptions.fDprojPath, lProjectPath, aError) then
+  begin
+    Exit(False);
+  end;
+
+  aContext.fProjectPath := lProjectPath;
+  aContext.fProjectDir := TPath.GetDirectoryName(lProjectPath);
+  aContext.fProjectName := TPath.GetFileNameWithoutExtension(lProjectPath);
+  aContext.fDakProjectRoot := TPath.Combine(TPath.Combine(aContext.fProjectDir, '.dak'), aContext.fProjectName);
+  aContext.fParserDefines := '';
+  aContext.fParserSearchPath := aContext.fProjectDir;
+  aContext.fHasDelphiContext := False;
+  aContext.fContextNote := cDefaultContextNote;
+
+  if not TryExtractProjectMainSource(lProjectPath, aContext.fMainSourcePath, aError) then
+  begin
+    Exit(False);
+  end;
+
+  if TryBuildProjectSourceLookup(lProjectPath, aOptions.fConfig, aOptions.fPlatform, '', nil, nil, lLookup, lBuildError) then
+  begin
+    if lLookup.fMainSourcePath <> '' then
+    begin
+      aContext.fMainSourcePath := lLookup.fMainSourcePath;
+    end;
+    lSearchPaths := ConcatDedup(lLookup.fSearchPaths, TArray<string>.Create(aContext.fProjectDir));
+    if Length(lSearchPaths) > 0 then
+    begin
+      aContext.fParserSearchPath := String.Join(';', lSearchPaths);
+    end;
+  end;
+
+  lDelphiVersion := Trim(aOptions.fDelphiVersion);
+  if (lDelphiVersion = '') and (not LoadDefaultDelphiVersion(lProjectPath, lDelphiVersion)) then
+  begin
+    Result := True;
+    Exit;
+  end;
+  if (lDelphiVersion <> '') and (Pos('.', lDelphiVersion) = 0) then
+  begin
+    lDelphiVersion := lDelphiVersion + '.0';
+  end;
+
+  if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, lBuildError) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  if not TryReadIdeConfig(lDelphiVersion, aOptions.fPlatform, aOptions.fEnvOptionsPath, lEnvVars, lLibraryPath,
+    lLibrarySource, nil, lBuildError) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  try
+    lBuildOptions := aOptions;
+    lBuildOptions.fDprojPath := lProjectPath;
+    lBuildOptions.fDelphiVersion := lDelphiVersion;
+    if TryBuildParams(lBuildOptions, lEnvVars, lLibraryPath, lLibrarySource, nil, lParams, lBuildError, lErrorCode) then
+    begin
+      aContext.fMainSourcePath := lParams.fProjectDpr;
+      aContext.fParserDefines := String.Join(';', lParams.fDefines);
+      aContext.fParserSearchPath := String.Join(';', lParams.fUnitSearchPath);
+      if aContext.fParserSearchPath = '' then
+      begin
+        aContext.fParserSearchPath := aContext.fProjectDir;
+      end else
+      begin
+        aContext.fParserSearchPath := aContext.fParserSearchPath + ';' + aContext.fProjectDir;
+      end;
+      aContext.fHasDelphiContext := True;
+      aContext.fContextNote := '';
+    end;
+  finally
+    lEnvVars.Free;
+  end;
+
+  Result := True;
 end;
 
 end.

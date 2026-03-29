@@ -13,6 +13,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added build output controls: `--show-warnings`, `--show-hints`, `--ignore-warnings`, `--ignore-hints`, `--ai`. (T-058, T-060, T-061)
 - Added build options: `--target/--rebuild`, `--json`, `--max-findings`, `--build-timeout-sec`, and `--test-output-dir`. (T-062, T-063, T-064, T-065, T-066)
 - Added native TMS WEB Core builds to `DelphiAIKit.exe build`, including `--builder auto|delphi|webcore`, `--webcore-compiler`, `--pwa` / `--no-pwa`, compiler-path discovery from cascading config/env/PATH, and compatibility execution of `tools\patch-index-debug.ps1`. (T-092)
+- Added `deps` for project dependency topology analysis, including deterministic JSON output, text summaries, focused unit views, cycle reporting over resolved project units, and default artifact copies under sibling `.dak/<ProjectName>/deps/`. (T-101, T-102)
 - Added `dfm-inspect` with `tree` and `summary` output for lightweight text DFM inspection. (T-081)
 - Added shared source-context snippets for resolved build and `dfm-check` failures, with `--source-context` / `--source-context-lines` CLI overrides and `[Diagnostics]` `dak.ini` defaults. (T-082)
 - Added madExcept integration to `build-delphi.bat` with optional `dak.ini` key `[MadExcept].Path` and fallback discovery from common install locations.

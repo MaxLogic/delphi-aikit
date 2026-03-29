@@ -26,11 +26,8 @@ function RunGlobalVarsCommand(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
-  Dak.FixInsightSettings,
   Dak.Messages,
   Dak.Project,
-  Dak.Registry,
-  Dak.RsVars,
   FireDAC.DApt,
   FireDAC.Comp.Client,
   FireDAC.Phys,
@@ -1631,70 +1628,20 @@ end;
 
 function BuildProjectInfo(const aOptions: TAppOptions): TProjectInfo;
 var
-  lEnvVars: TDictionary<string, string>;
+  lContext: TProjectAnalysisContext;
   lError: string;
-  lErrorCode: Integer;
-  lLibraryPath: string;
-  lLibrarySource: TPropertySource;
-  lParams: TFixInsightParams;
-  lProjectPath: string;
-  lProjectDir: string;
-  lProjectName: string;
-  lDakRoot: string;
-  lDelphiVersion: string;
-  lBuildOptions: TAppOptions;
 begin
-  lProjectPath := TPath.GetFullPath(aOptions.fDprojPath);
-  lProjectDir := TPath.GetDirectoryName(lProjectPath);
-  lProjectName := TPath.GetFileNameWithoutExtension(lProjectPath);
-  lDakRoot := TPath.Combine(TPath.Combine(lProjectDir, '.dak'), lProjectName);
-  Result.ProjectPath := lProjectPath;
-  Result.ProjectName := lProjectName;
-  Result.MainSourcePath := TSourceAnalyzer.ExtractProjectEntryPoint(lProjectPath);
-  Result.ParserDefines := '';
-  Result.ParserSearchPath := lProjectDir;
-  lDelphiVersion := Trim(aOptions.fDelphiVersion);
-  if lDelphiVersion = '' then
+  if not TryBuildProjectAnalysisContext(aOptions, lContext, lError) then
   begin
-    if not LoadDefaultDelphiVersion(lProjectPath, lDelphiVersion) then
-    begin
-      lDelphiVersion := '';
-    end;
+    raise Exception.Create(lError);
   end;
-  if (lDelphiVersion <> '') and (Pos('.', lDelphiVersion) = 0) then
-  begin
-    lDelphiVersion := lDelphiVersion + '.0';
-  end;
-  if lDelphiVersion <> '' then
-  begin
-    if TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, lError) then
-    begin
-      if TryReadIdeConfig(lDelphiVersion, aOptions.fPlatform, aOptions.fEnvOptionsPath, lEnvVars, lLibraryPath,
-        lLibrarySource, nil, lError) then
-      begin
-        try
-          lBuildOptions := aOptions;
-          lBuildOptions.fDelphiVersion := lDelphiVersion;
-          if TryBuildParams(lBuildOptions, lEnvVars, lLibraryPath, lLibrarySource, nil, lParams, lError, lErrorCode) then
-          begin
-            Result.MainSourcePath := lParams.fProjectDpr;
-            Result.ParserDefines := String.Join(';', lParams.fDefines);
-            Result.ParserSearchPath := String.Join(';', lParams.fUnitSearchPath);
-            if Result.ParserSearchPath = '' then
-            begin
-              Result.ParserSearchPath := lProjectDir;
-            end else
-            begin
-              Result.ParserSearchPath := Result.ParserSearchPath + ';' + lProjectDir;
-            end;
-          end;
-        finally
-          lEnvVars.Free;
-        end;
-      end;
-    end;
-  end;
-  Result.OutputPath := TPath.Combine(lDakRoot, 'global-vars');
+
+  Result.ProjectPath := lContext.fProjectPath;
+  Result.ProjectName := lContext.fProjectName;
+  Result.MainSourcePath := lContext.fMainSourcePath;
+  Result.ParserDefines := lContext.fParserDefines;
+  Result.ParserSearchPath := lContext.fParserSearchPath;
+  Result.OutputPath := TPath.Combine(lContext.fDakProjectRoot, 'global-vars');
   Result.CachePath := TPath.Combine(Result.OutputPath, 'cache');
   Result.ReportsPath := TPath.Combine(Result.OutputPath, 'reports');
   Result.TempPath := TPath.Combine(Result.OutputPath, 'tmp');
