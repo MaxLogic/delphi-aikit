@@ -102,6 +102,35 @@ type
   end;
   PWindowCloseContext = ^TWindowCloseContext;
 
+type
+  TDfmWarningPromotion = record
+    fActionName: string;
+    fActionObjectLine: Integer;
+    fActionParentClassName: string;
+    fActionPropertyLine: Integer;
+    fButtonClassName: string;
+    fButtonName: string;
+    fButtonObjectLine: Integer;
+    fImageName: string;
+    fImageNamePropertyLine: Integer;
+    fImagesName: string;
+    fImagesPropertyLine: Integer;
+  end;
+
+  TDfmTextObjectInfo = class
+  public
+    fClassName: string;
+    fEndLine: Integer;
+    fName: string;
+    fParentClassName: string;
+    fParentName: string;
+    fProperties: TStringList;
+    fPropertyLines: TStringList;
+    fStartLine: Integer;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
 function EnumCloseProcessWindowsProc(aWnd: HWND; aParam: LPARAM): BOOL; stdcall;
 var
   lProcessId: Cardinal;
@@ -125,6 +154,24 @@ begin
   if (lWindowStyle and WS_VISIBLE) <> 0 then
     ShowWindow(aWnd, SW_HIDE);
   PostMessage(aWnd, WM_CLOSE, 0, 0);
+end;
+
+constructor TDfmTextObjectInfo.Create;
+begin
+  inherited Create;
+  fProperties := TStringList.Create;
+  fProperties.CaseSensitive := False;
+  fProperties.NameValueSeparator := '=';
+  fPropertyLines := TStringList.Create;
+  fPropertyLines.CaseSensitive := False;
+  fPropertyLines.NameValueSeparator := '=';
+end;
+
+destructor TDfmTextObjectInfo.Destroy;
+begin
+  fPropertyLines.Free;
+  fProperties.Free;
+  inherited;
 end;
 
 procedure CloseTopLevelWindowsForProcess(const aProcessId: Cardinal; const aDesktop: HDESK = 0);
@@ -941,15 +988,27 @@ begin
   Result := True;
 end;
 
+function ExtractResourceNameFromDiagnosticLine(const aPrefix: string; const aLine: string): string; forward;
+
 function ExtractFailedResourceName(const aLine: string): string;
+begin
+  Result := ExtractResourceNameFromDiagnosticLine('FAIL', aLine);
+end;
+
+function ExtractWarnedResourceName(const aLine: string): string;
+begin
+  Result := ExtractResourceNameFromDiagnosticLine('WARN', aLine);
+end;
+
+function ExtractResourceNameFromDiagnosticLine(const aPrefix: string; const aLine: string): string;
 var
   lArrowPos: Integer;
   lTail: string;
 begin
   Result := '';
-  if not StartsText('FAIL ', aLine) then
+  if not StartsText(aPrefix + ' ', aLine) then
     Exit('');
-  lTail := Trim(Copy(aLine, Length('FAIL ') + 1, MaxInt));
+  lTail := Trim(Copy(aLine, Length(aPrefix) + 2, MaxInt));
   if lTail = '' then
     Exit('');
   lArrowPos := Pos('->', lTail);
@@ -969,18 +1028,29 @@ begin
   Result := Trim(Copy(aLine, lArrowPos + 2, MaxInt));
 end;
 
-function BuildFailLineWithModuleContext(const aFailLine: string; const aModules: TArray<TDfmCacheModule>): string;
+function BuildDiagnosticLineWithModuleContext(const aLine: string; const aPrefix: string;
+  const aModules: TArray<TDfmCacheModule>): string;
 var
   lModule: TDfmCacheModule;
   lResourceName: string;
 begin
-  Result := aFailLine;
-  lResourceName := ExtractFailedResourceName(aFailLine);
+  Result := aLine;
+  lResourceName := ExtractResourceNameFromDiagnosticLine(aPrefix, aLine);
   if lResourceName = '' then
     Exit(Result);
   if not TryFindModuleByResourceName(aModules, lResourceName, lModule) then
     Exit(Result);
   Result := Result + Format(' [unit=%s pas=%s dfm=%s]', [lModule.fUnitName, lModule.fPasPath, lModule.fDfmPath]);
+end;
+
+function BuildFailLineWithModuleContext(const aFailLine: string; const aModules: TArray<TDfmCacheModule>): string;
+begin
+  Result := BuildDiagnosticLineWithModuleContext(aFailLine, 'FAIL', aModules);
+end;
+
+function BuildWarnLineWithModuleContext(const aWarnLine: string; const aModules: TArray<TDfmCacheModule>): string;
+begin
+  Result := BuildDiagnosticLineWithModuleContext(aWarnLine, 'WARN', aModules);
 end;
 
 function TryExtractFailMember(const aReason: string; out aMemberPath: string): Boolean;
@@ -1112,6 +1182,359 @@ begin
   Result := True;
 end;
 
+function TryGetDfmPropertyValue(const aObject: TDfmTextObjectInfo; const aPropertyName: string; out aValue: string): Boolean;
+var
+  lIndex: Integer;
+begin
+  aValue := '';
+  if aObject = nil then
+    Exit(False);
+  lIndex := aObject.fProperties.IndexOfName(aPropertyName);
+  if lIndex < 0 then
+    Exit(False);
+  aValue := TrimMatchingQuotes(Trim(aObject.fProperties.ValueFromIndex[lIndex]));
+  Result := aValue <> '';
+end;
+
+function TryParseDfmTextObjects(const aDfmPath: string; const aObjects: TObjectList<TDfmTextObjectInfo>;
+  out aError: string): Boolean;
+var
+  lCurrentObject: TDfmTextObjectInfo;
+  lLine: string;
+  lLines: TStringList;
+  lMatch: TMatch;
+  lObjectStack: TList<TDfmTextObjectInfo>;
+  lPropertyName: string;
+  lPropertyValue: string;
+  lIndex: Integer;
+begin
+  Result := False;
+  aError := '';
+  if (Trim(aDfmPath) = '') or (not FileExists(aDfmPath)) then
+  begin
+    aError := 'DFM file not found: ' + aDfmPath;
+    Exit(False);
+  end;
+  if aObjects = nil then
+  begin
+    aError := 'Object list is not assigned.';
+    Exit(False);
+  end;
+
+  lLines := TStringList.Create;
+  lObjectStack := TList<TDfmTextObjectInfo>.Create;
+  try
+    try
+      lLines.LoadFromFile(aDfmPath);
+      for lIndex := 0 to lLines.Count - 1 do
+      begin
+        lLine := lLines[lIndex];
+        lMatch := TRegEx.Match(lLine,
+          '^\s*(object|inherited|inline)\s+([A-Za-z0-9_]+)\s*:\s*([A-Za-z0-9_.]+)', [roIgnoreCase]);
+        if lMatch.Success then
+        begin
+          lCurrentObject := TDfmTextObjectInfo.Create;
+          lCurrentObject.fName := lMatch.Groups[2].Value;
+          lCurrentObject.fClassName := lMatch.Groups[3].Value;
+          lCurrentObject.fStartLine := lIndex + 1;
+          if lObjectStack.Count > 0 then
+          begin
+            lCurrentObject.fParentName := lObjectStack.Last.fName;
+            lCurrentObject.fParentClassName := lObjectStack.Last.fClassName;
+          end;
+          aObjects.Add(lCurrentObject);
+          lObjectStack.Add(lCurrentObject);
+          Continue;
+        end;
+
+        if SameText(Trim(lLine), 'end') then
+        begin
+          if lObjectStack.Count > 0 then
+          begin
+            lObjectStack.Last.fEndLine := lIndex + 1;
+            lObjectStack.Delete(lObjectStack.Count - 1);
+          end;
+          Continue;
+        end;
+
+        if lObjectStack.Count = 0 then
+          Continue;
+        lMatch := TRegEx.Match(lLine, '^\s*([A-Za-z0-9_.]+)\s*=\s*(.+?)\s*$', [roIgnoreCase]);
+        if not lMatch.Success then
+          Continue;
+        lPropertyName := lMatch.Groups[1].Value;
+        lPropertyValue := lMatch.Groups[2].Value;
+        lObjectStack.Last.fProperties.Values[lPropertyName] := lPropertyValue;
+        lObjectStack.Last.fPropertyLines.Values[lPropertyName] := IntToStr(lIndex + 1);
+      end;
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        aError := E.ClassName + ': ' + E.Message;
+        Result := False;
+      end;
+    end;
+  finally
+    lObjectStack.Free;
+    lLines.Free;
+  end;
+end;
+
+function TryFindDfmObjectByName(const aObjects: TObjectList<TDfmTextObjectInfo>; const aObjectName: string;
+  out aObject: TDfmTextObjectInfo): Boolean;
+var
+  lCandidate: TDfmTextObjectInfo;
+begin
+  aObject := nil;
+  if aObjects = nil then
+    Exit(False);
+  for lCandidate in aObjects do
+  begin
+    if not SameText(lCandidate.fName, aObjectName) then
+      Continue;
+    aObject := lCandidate;
+    Exit(True);
+  end;
+  Result := False;
+end;
+
+function TryFindDfmObjectLine(const aDfmPath: string; const aObjectName: string; out aLineNumber: Integer): Boolean;
+var
+  lLine: string;
+  lLines: TStringList;
+  lMatch: TMatch;
+  lIndex: Integer;
+begin
+  Result := False;
+  aLineNumber := 0;
+  if (Trim(aDfmPath) = '') or (Trim(aObjectName) = '') or (not FileExists(aDfmPath)) then
+    Exit(False);
+  lLines := TStringList.Create;
+  try
+    lLines.LoadFromFile(aDfmPath);
+    for lIndex := 0 to lLines.Count - 1 do
+    begin
+      lLine := lLines[lIndex];
+      lMatch := TRegEx.Match(lLine, '^\s*(object|inherited|inline)\s+([A-Za-z0-9_]+)\s*:', [roIgnoreCase]);
+      if not lMatch.Success then
+        Continue;
+      if not SameText(lMatch.Groups[2].Value, aObjectName) then
+        Continue;
+      aLineNumber := lIndex + 1;
+      Exit(True);
+    end;
+  finally
+    lLines.Free;
+  end;
+end;
+
+function TryFindDfmPropertyLine(const aDfmPath: string; const aObjectName: string; const aPropertyName: string;
+  out aLineNumber: Integer): Boolean;
+var
+  lCurrentDepth: Integer;
+  lLine: string;
+  lLines: TStringList;
+  lMatch: TMatch;
+  lIndex: Integer;
+  lTargetDepth: Integer;
+begin
+  Result := False;
+  aLineNumber := 0;
+  if (Trim(aDfmPath) = '') or (Trim(aObjectName) = '') or (Trim(aPropertyName) = '') or (not FileExists(aDfmPath)) then
+    Exit(False);
+
+  lCurrentDepth := 0;
+  lTargetDepth := 0;
+  lLines := TStringList.Create;
+  try
+    lLines.LoadFromFile(aDfmPath);
+    for lIndex := 0 to lLines.Count - 1 do
+    begin
+      lLine := lLines[lIndex];
+      lMatch := TRegEx.Match(lLine, '^\s*(object|inherited|inline)\s+([A-Za-z0-9_]+)\s*:', [roIgnoreCase]);
+      if lMatch.Success then
+      begin
+        Inc(lCurrentDepth);
+        if (lTargetDepth = 0) and SameText(lMatch.Groups[2].Value, aObjectName) then
+          lTargetDepth := lCurrentDepth;
+        Continue;
+      end;
+
+      if SameText(Trim(lLine), 'end') then
+      begin
+        if lTargetDepth = lCurrentDepth then
+          lTargetDepth := 0;
+        Dec(lCurrentDepth);
+        Continue;
+      end;
+
+      if lTargetDepth = 0 then
+        Continue;
+      if lCurrentDepth <> lTargetDepth then
+        Continue;
+      if not TRegEx.IsMatch(lLine, '^\s*' + TRegEx.Escape(aPropertyName) + '\s*=', [roIgnoreCase]) then
+        Continue;
+      aLineNumber := lIndex + 1;
+      Exit(True);
+    end;
+  finally
+    lLines.Free;
+  end;
+end;
+
+procedure EmitSourceContextClue(const aOutput: TDfmCheckOutputProc; const aPrefix: string; const aFilePath: string;
+  const aLineNumber: Integer; const aDiagnosticsDefaults: TDiagnosticsDefaults);
+var
+  lContext: TSourceContextSnippet;
+  lContextError: string;
+  lContextLine: string;
+  lContextLines: TArray<string>;
+begin
+  if (aLineNumber <= 0) or (not ShouldEmitSourceContext(aDiagnosticsDefaults.fSourceContextMode, True)) then
+    Exit;
+  if not TryReadSourceContext(aFilePath, aLineNumber, aDiagnosticsDefaults.fSourceContextLines, lContext, lContextError) then
+    Exit;
+  lContextLines := FormatSourceContextLines(lContext);
+  for lContextLine in lContextLines do
+    EmitLine(aOutput, aPrefix + lContextLine);
+end;
+
+function TryDiagnoseStandaloneBitBtnActionWarning(const aModule: TDfmCacheModule; const aWarnReason: string;
+  out aPromotion: TDfmWarningPromotion; out aError: string): Boolean;
+var
+  lActionName: string;
+  lActionObject: TDfmTextObjectInfo;
+  lCandidateCount: Integer;
+  lDfmObject: TDfmTextObjectInfo;
+  lDfmObjects: TObjectList<TDfmTextObjectInfo>;
+  lImageName: string;
+  lImagesName: string;
+begin
+  Result := False;
+  aError := '';
+  aPromotion := Default(TDfmWarningPromotion);
+  if Pos('EAccessViolation', aWarnReason) <= 0 then
+    Exit(False);
+  if (Trim(aModule.fDfmPath) = '') or (not FileExists(aModule.fDfmPath)) then
+  begin
+    aError := 'DFM file not found for warning diagnosis: ' + aModule.fDfmPath;
+    Exit(False);
+  end;
+
+  lDfmObjects := TObjectList<TDfmTextObjectInfo>.Create(True);
+  try
+    if not TryParseDfmTextObjects(aModule.fDfmPath, lDfmObjects, aError) then
+      Exit(False);
+    lCandidateCount := 0;
+    for lDfmObject in lDfmObjects do
+    begin
+      if not SameText(lDfmObject.fClassName, 'TBitBtn') then
+        Continue;
+      if not TryGetDfmPropertyValue(lDfmObject, 'Action', lActionName) then
+        Continue;
+      if not TryGetDfmPropertyValue(lDfmObject, 'Images', lImagesName) then
+        Continue;
+      if not TryFindDfmObjectByName(lDfmObjects, lActionName, lActionObject) then
+        Continue;
+      if not SameText(lActionObject.fClassName, 'TAction') then
+        Continue;
+      if Pos('ACTIONLIST', UpperCase(lActionObject.fParentClassName)) > 0 then
+        Continue;
+
+      Inc(lCandidateCount);
+      if lCandidateCount <> 1 then
+        Continue;
+
+      aPromotion := Default(TDfmWarningPromotion);
+      aPromotion.fButtonName := lDfmObject.fName;
+      aPromotion.fButtonClassName := lDfmObject.fClassName;
+      aPromotion.fButtonObjectLine := lDfmObject.fStartLine;
+      aPromotion.fActionName := lActionName;
+      aPromotion.fActionParentClassName := lActionObject.fParentClassName;
+      aPromotion.fActionObjectLine := lActionObject.fStartLine;
+      aPromotion.fImagesName := lImagesName;
+      aPromotion.fActionPropertyLine := StrToIntDef(lDfmObject.fPropertyLines.Values['Action'], 0);
+      aPromotion.fImagesPropertyLine := StrToIntDef(lDfmObject.fPropertyLines.Values['Images'], 0);
+      TryGetDfmPropertyValue(lDfmObject, 'ImageName', lImageName);
+      aPromotion.fImageName := lImageName;
+      aPromotion.fImageNamePropertyLine := StrToIntDef(lDfmObject.fPropertyLines.Values['ImageName'], 0);
+    end;
+    Result := lCandidateCount = 1;
+  finally
+    lDfmObjects.Free;
+  end;
+end;
+
+function EmitPromotedWarningGuidance(const aOutput: TDfmCheckOutputProc; const aWarnedResources: TStrings;
+  const aWarnReasons: TStrings; const aModules: TArray<TDfmCacheModule>; const aDiagnosticsDefaults: TDiagnosticsDefaults;
+  const aFailedResources: TStrings): Integer;
+var
+  lDiagnosticError: string;
+  lHasModule: Boolean;
+  lModule: TDfmCacheModule;
+  lPromotion: TDfmWarningPromotion;
+  lResourceName: string;
+  lWarnReason: string;
+  lIndex: Integer;
+begin
+  Result := 0;
+  if aWarnedResources = nil then
+    Exit;
+
+  for lIndex := 0 to aWarnedResources.Count - 1 do
+  begin
+    lResourceName := NormalizeResourceToken(aWarnedResources[lIndex]);
+    if lResourceName = '' then
+      Continue;
+
+    lHasModule := TryFindModuleByResourceName(aModules, lResourceName, lModule);
+    if not lHasModule then
+      Continue;
+
+    lWarnReason := '';
+    if aWarnReasons <> nil then
+      lWarnReason := Trim(aWarnReasons.Values[lResourceName]);
+    if not TryDiagnoseStandaloneBitBtnActionWarning(lModule, lWarnReason, lPromotion, lDiagnosticError) then
+      Continue;
+
+    EmitLine(aOutput, Format('[dfm-check] FAIL diagnosis: resource=%s dfm=%s:%d component=%s action=%s cause=standalone TAction + TBitBtn Images/ImageName can AV during streaming',
+      [lResourceName, lModule.fDfmPath, lPromotion.fButtonObjectLine, lPromotion.fButtonName, lPromotion.fActionName]));
+    EmitLine(aOutput, Format('[dfm-check] WARN target: resource=%s unit=%s pas=%s dfm=%s',
+      [lResourceName, lModule.fUnitName, lModule.fPasPath, lModule.fDfmPath]));
+    EmitLine(aOutput, Format('[dfm-check] WARN clue: component=%s class=%s',
+      [lPromotion.fButtonName, lPromotion.fButtonClassName]));
+    if lPromotion.fButtonObjectLine > 0 then
+      EmitLine(aOutput, Format('[dfm-check] WARN clue: component declaration line=%d', [lPromotion.fButtonObjectLine]));
+    if lPromotion.fActionPropertyLine > 0 then
+      EmitLine(aOutput, Format('[dfm-check] WARN clue: component property line=%d: Action=%s',
+        [lPromotion.fActionPropertyLine, lPromotion.fActionName]));
+    if lPromotion.fImagesPropertyLine > 0 then
+      EmitLine(aOutput, Format('[dfm-check] WARN clue: component property line=%d: Images=%s',
+        [lPromotion.fImagesPropertyLine, lPromotion.fImagesName]));
+    if (lPromotion.fImageName <> '') and (lPromotion.fImageNamePropertyLine > 0) then
+      EmitLine(aOutput, Format('[dfm-check] WARN clue: component property line=%d: ImageName=%s',
+        [lPromotion.fImageNamePropertyLine, lPromotion.fImageName]));
+    if lPromotion.fActionParentClassName <> '' then
+      EmitLine(aOutput, Format('[dfm-check] WARN clue: action=%s is a standalone TAction (parent=%s).',
+        [lPromotion.fActionName, lPromotion.fActionParentClassName]))
+    else
+      EmitLine(aOutput, Format('[dfm-check] WARN clue: action=%s is a standalone TAction.', [lPromotion.fActionName]));
+    if lPromotion.fActionObjectLine > 0 then
+      EmitLine(aOutput, Format('[dfm-check] WARN clue: action declaration line=%d', [lPromotion.fActionObjectLine]));
+    EmitLine(aOutput,
+      '[dfm-check] WARN clue: TBitBtn with button-local Images/ImageName plus a standalone TAction can AV during VCL DFM fixups in TBitBtnActionLink.IsGlyphLinked when ActionList=nil.');
+    EmitLine(aOutput,
+      '[dfm-check] WARN clue: move the action into a TActionList or stop mixing Action with button-local Images/ImageName.');
+    EmitSourceContextClue(aOutput, '[dfm-check] WARN clue: ', lModule.fDfmPath, lPromotion.fButtonObjectLine, aDiagnosticsDefaults);
+    if (lPromotion.fActionObjectLine > 0) and (lPromotion.fActionObjectLine <> lPromotion.fButtonObjectLine) then
+      EmitSourceContextClue(aOutput, '[dfm-check] WARN clue: ', lModule.fDfmPath, lPromotion.fActionObjectLine, aDiagnosticsDefaults);
+    if aFailedResources <> nil then
+      aFailedResources.Add(lResourceName);
+    Inc(Result);
+  end;
+end;
+
 procedure EmitFailedResourceGuidance(const aOutput: TDfmCheckOutputProc; const aFailedResources: TStrings;
   const aFailReasons: TStrings; const aModules: TArray<TDfmCacheModule>;
   const aDiagnosticsDefaults: TDiagnosticsDefaults);
@@ -1186,8 +1609,9 @@ end;
 
 procedure EmitValidatorLog(const aLogPath: string; const aVerbose: Boolean; const aOutput: TDfmCheckOutputProc;
   const aSuppressLineOutput: Boolean; const aEmitProgressLines: Boolean; const aFailedResources: TStrings;
-  const aFailReasons: TStrings; const aResourceModules: TArray<TDfmCacheModule>;
-  out aSummary: TDfmValidationSummary; out aFailLines: Integer);
+  const aFailReasons: TStrings; const aWarnedResources: TStrings; const aWarnReasons: TStrings;
+  const aResourceModules: TArray<TDfmCacheModule>; out aSummary: TDfmValidationSummary; out aFailLines: Integer;
+  out aWarnLines: Integer);
 var
   lDisplayLine: string;
   lFailReason: string;
@@ -1199,6 +1623,7 @@ var
 begin
   aSummary := Default(TDfmValidationSummary);
   aFailLines := 0;
+  aWarnLines := 0;
   if (aLogPath = '') or (not FileExists(aLogPath)) then
     Exit;
 
@@ -1218,11 +1643,16 @@ begin
           lDisplayLine := lTrimmedLine;
           if StartsText('FAIL ', lTrimmedLine) then
             lDisplayLine := BuildFailLineWithModuleContext(lTrimmedLine, aResourceModules);
+          if StartsText('WARN ', lTrimmedLine) then
+            lDisplayLine := BuildWarnLineWithModuleContext(lTrimmedLine, aResourceModules);
           EmitLine(aOutput, lDisplayLine);
         end
         else if StartsText('FAIL ', lTrimmedLine) then
         begin
           EmitLine(aOutput, BuildFailLineWithModuleContext(lTrimmedLine, aResourceModules));
+        end else if StartsText('WARN ', lTrimmedLine) then
+        begin
+          EmitLine(aOutput, lTrimmedLine);
         end else if aEmitProgressLines and StartsText('CHECK ', lTrimmedLine) then
         begin
           EmitLine(aOutput, lTrimmedLine);
@@ -1242,6 +1672,23 @@ begin
             lFailReason := ExtractFailReasonText(lTrimmedLine);
             if lFailReason <> '' then
               aFailReasons.Values[lFailedResourceName] := lFailReason;
+          end;
+        end;
+      end;
+
+      if StartsText('WARN ', lTrimmedLine) then
+      begin
+        Inc(aWarnLines);
+        if aWarnedResources <> nil then
+        begin
+          lFailedResourceName := ExtractWarnedResourceName(lTrimmedLine);
+          if lFailedResourceName <> '' then
+            aWarnedResources.Add(lFailedResourceName);
+          if (aWarnReasons <> nil) and (lFailedResourceName <> '') then
+          begin
+            lFailReason := ExtractFailReasonText(lTrimmedLine);
+            if lFailReason <> '' then
+              aWarnReasons.Values[lFailedResourceName] := lFailReason;
           end;
         end;
       end;
@@ -2128,12 +2575,32 @@ begin
 end;
 
 function TryWriteGeneratedDpr(const aGeneratedDprPath: string; const aProgramName: string;
-  const aRegisterUnitName: string; out aError: string): Boolean;
+  const aRegisterUnitName: string; const aSourceDprText: string; out aError: string): Boolean;
 const
   cLineBreak = #13#10;
 var
   lContent: string;
   lEncoding: TEncoding;
+  lMadExceptAvailable: Boolean;
+  lMadExceptUses: string;
+  function IsMadExceptInstalled: Boolean;
+  var
+    lBaseDir: string;
+    lProgramFilesDir: string;
+    lProgramFilesX86Dir: string;
+  begin
+    lProgramFilesX86Dir := Trim(GetEnvironmentVariable('ProgramFiles(x86)'));
+    lProgramFilesDir := Trim(GetEnvironmentVariable('ProgramFiles'));
+
+    for lBaseDir in [lProgramFilesX86Dir, lProgramFilesDir] do
+    begin
+      if lBaseDir = '' then
+        Continue;
+      if TDirectory.Exists(TPath.Combine(lBaseDir, 'madCollection\madExcept')) then
+        Exit(True);
+    end;
+    Result := False;
+  end;
 begin
   aError := '';
   if Trim(aProgramName) = '' then
@@ -2147,21 +2614,51 @@ begin
     Exit(False);
   end;
 
+  lMadExceptUses := '';
+  lMadExceptAvailable := IsMadExceptInstalled;
+  if lMadExceptAvailable and ContainsWord(aSourceDprText, 'madExcept') then
+    lMadExceptUses := lMadExceptUses + '  madExcept,' + cLineBreak;
+  if lMadExceptAvailable and ContainsWord(aSourceDprText, 'madLinkDisAsm') then
+    lMadExceptUses := lMadExceptUses + '  madLinkDisAsm,' + cLineBreak;
+  if lMadExceptAvailable and ContainsWord(aSourceDprText, 'madListHardware') then
+    lMadExceptUses := lMadExceptUses + '  madListHardware,' + cLineBreak;
+  if lMadExceptAvailable and ContainsWord(aSourceDprText, 'madListProcesses') then
+    lMadExceptUses := lMadExceptUses + '  madListProcesses,' + cLineBreak;
+  if lMadExceptAvailable and ContainsWord(aSourceDprText, 'madListModules') then
+    lMadExceptUses := lMadExceptUses + '  madListModules,' + cLineBreak;
+
   lContent :=
     'program ' + aProgramName + ';' + cLineBreak + cLineBreak +
     '{$R *.res}' + cLineBreak + cLineBreak +
     'uses' + cLineBreak +
+    lMadExceptUses +
+    '  Winapi.Windows,' + cLineBreak +
     '  System.SysUtils,' + cLineBreak +
-    '  DfmCheckRuntimeGuard,' + cLineBreak +
-    '  DfmStreamAll,' + cLineBreak +
-    '  ' + aRegisterUnitName + ';' + cLineBreak + cLineBreak +
+    '  DfmStreamAll in ''DfmStreamAll.pas'',' + cLineBreak +
+    '  ' + aRegisterUnitName + ' in ''' + aRegisterUnitName + '.pas'',' + cLineBreak +
+    '  DfmCheckRuntimeGuard in ''DfmCheckRuntimeGuard.pas'';' + cLineBreak + cLineBreak +
+    'procedure EmitFatalInit(const aText: string);' + cLineBreak +
+    'var' + cLineBreak +
+    '  lBytesWritten: Cardinal;' + cLineBreak +
+    '  lLine: UTF8String;' + cLineBreak +
+    '  lStdErr: THandle;' + cLineBreak +
+    'begin' + cLineBreak +
+    '  lLine := UTF8String(aText + sLineBreak);' + cLineBreak +
+    '  lStdErr := GetStdHandle(STD_ERROR_HANDLE);' + cLineBreak +
+    '  if (lStdErr <> 0) and (lStdErr <> INVALID_HANDLE_VALUE) then' + cLineBreak +
+    '    WriteFile(lStdErr, Pointer(lLine)^, Length(lLine), lBytesWritten, nil)' + cLineBreak +
+    '  else' + cLineBreak +
+    '    OutputDebugString(PChar(aText));' + cLineBreak +
+    'end;' + cLineBreak + cLineBreak +
     'begin' + cLineBreak +
     '  try' + cLineBreak +
     '    ExitCode := TDfmStreamAll.Run;' + cLineBreak +
     '  except' + cLineBreak +
     '    on E: Exception do' + cLineBreak +
     '    begin' + cLineBreak +
-    '      Writeln(ErrOutput, ''FATAL INIT -> '' + E.ClassName + '': '' + E.Message);' + cLineBreak +
+    '      EmitFatalInit(''FATAL INIT -> '' + E.ClassName + '': '' + E.Message);' + cLineBreak +
+    '      if DebugHook <> 0 then' + cLineBreak +
+    '        raise;' + cLineBreak +
     '      ExitCode := 255;' + cLineBreak +
     '    end;' + cLineBreak +
     '  end;' + cLineBreak +
@@ -2188,6 +2685,7 @@ var
   lGeneratedDprojName: string;
   lIndex: Integer;
   lMainSourceRaw: string;
+  lSourceDprText: string;
   lResourceToken: string;
   lResourceName: string;
   lSourceCfgPath: string;
@@ -2208,6 +2706,8 @@ begin
     aError := 'Only Delphi .dpr MainSource projects are supported for dfm-check.';
     Exit(False);
   end;
+
+  lSourceDprText := TFile.ReadAllText(lSourceProjectPath, TEncoding.UTF8);
 
   lUnitNames := TStringList.Create;
   lFormClassNames := TStringList.Create;
@@ -2279,7 +2779,7 @@ begin
       Exit(False);
 
     if not TryWriteGeneratedDpr(aPaths.fGeneratedDpr, TPath.GetFileNameWithoutExtension(aPaths.fGeneratedDpr),
-      TPath.GetFileNameWithoutExtension(aPaths.fGeneratedRegisterUnit), aError) then
+      TPath.GetFileNameWithoutExtension(aPaths.fGeneratedRegisterUnit), lSourceDprText, aError) then
       Exit(False);
 
     lSourceCfgPath := TPath.ChangeExtension(lSourceProjectPath, '.cfg');
@@ -2755,11 +3255,15 @@ var
   lDiagnosticModules: TArray<TDfmCacheModule>;
   lDiagnosticError: string;
   lFailReasons: TStringList;
+  lPromotedWarnings: Integer;
   lHadDfmStreamAll: Boolean;
   lHadRuntimeGuard: Boolean;
   lMappedExitCode: Integer;
   lNativeExitCodeText: string;
   lOriginalAllRequested: Boolean;
+  lWarnLines: Integer;
+  lWarnReasons: TStringList;
+  lWarnedResources: TStringList;
 begin
   Result := 1;
   aError := '';
@@ -2777,14 +3281,18 @@ begin
   lValidatorLogPath := '';
   lSummary := Default(TDfmValidationSummary);
   lFailLines := 0;
+  lWarnLines := 0;
   lVerbose := aOptions.fVerbose;
   lDiagnosticModules := nil;
   lDiagnosticError := '';
+  lPromotedWarnings := 0;
   lOriginalAllRequested := aOptions.fDfmCheckAll or (Trim(aOptions.fDfmCheckFilter) = '');
   lBuildLines := TStringList.Create;
   lDiagnostics := nil;
   lFailedResources := TStringList.Create;
   lFailReasons := TStringList.Create;
+  lWarnedResources := TStringList.Create;
+  lWarnReasons := TStringList.Create;
 
   try
     lFailedResources.CaseSensitive := False;
@@ -2794,6 +3302,13 @@ begin
     lFailReasons.Sorted := False;
     lFailReasons.Duplicates := TDuplicates.dupIgnore;
     lFailReasons.NameValueSeparator := '=';
+    lWarnedResources.CaseSensitive := False;
+    lWarnedResources.Sorted := True;
+    lWarnedResources.Duplicates := TDuplicates.dupIgnore;
+    lWarnReasons.CaseSensitive := False;
+    lWarnReasons.Sorted := False;
+    lWarnReasons.Duplicates := TDuplicates.dupIgnore;
+    lWarnReasons.NameValueSeparator := '=';
 
     if aRunner = nil then
     begin
@@ -3039,7 +3554,10 @@ begin
     end;
 
     EmitValidatorLog(lValidatorLogPath, lVerbose, aOutput, lValidatorStreamingOutput, lOriginalAllRequested,
-      lFailedResources, lFailReasons, lDiagnosticModules, lSummary, lFailLines);
+      lFailedResources, lFailReasons, lWarnedResources, lWarnReasons, lDiagnosticModules, lSummary, lFailLines,
+      lWarnLines);
+    lPromotedWarnings := EmitPromotedWarningGuidance(aOutput, lWarnedResources, lWarnReasons, lDiagnosticModules,
+      lDiagnosticsDefaults, lFailedResources);
     if lCacheStats.fEnabled then
     begin
       if (lExitCode <> 0) and (lFailLines = 0) then
@@ -3058,26 +3576,34 @@ begin
       EmitLine(aOutput, '[dfm-check] Summary: failed=0')
     else
       EmitLine(aOutput, '[dfm-check] Summary: validator exit code=' + FormatExitCodeForDisplay(lExitCode));
+    if lPromotedWarnings > 0 then
+      EmitLine(aOutput, Format('[dfm-check] Warning diagnostics: promoted=%d', [lPromotedWarnings]));
 
     if (lExitCode <> 0) and (not lVerbose) and (lFailLines = 0) then
       EmitLine(aOutput, '[dfm-check] FAIL details hidden or unavailable. Re-run with --verbose.');
     if lFailLines > 0 then
       EmitFailedResourceGuidance(aOutput, lFailedResources, lFailReasons, lDiagnosticModules, lDiagnosticsDefaults);
 
-    if lExitCode = 0 then
+    if (lExitCode = 0) and (lPromotedWarnings = 0) then
       EmitLine(aOutput, '[dfm-check] Result: OK')
+    else if lPromotedWarnings > 0 then
+      EmitLine(aOutput, Format('[dfm-check] Result: FAIL (%d diagnosed warning(s))', [lPromotedWarnings]))
     else if (lFailLines = 0) and (lExitCode > Cardinal(High(Integer))) then
       EmitLine(aOutput, '[dfm-check] Result: FAIL (validator crashed, exit code ' + FormatExitCodeForDisplay(lExitCode) + ')')
     else
       EmitLine(aOutput, Format('[dfm-check] Result: FAIL (%s error(s))', [FormatExitCodeForDisplay(lExitCode)]));
 
     // Propagate streaming validator result directly: 0 = success, >0 = number of failed resources.
-    if lExitCode <= Cardinal(High(Integer)) then
+    if lPromotedWarnings > 0 then
+      Result := lPromotedWarnings
+    else if lExitCode <= Cardinal(High(Integer)) then
       Result := Integer(lExitCode)
     else
       Result := MapDfmCheckExitCode(TDfmCheckErrorCategory.ecValidatorFailed, 0);
   finally
     lDiagnostics.Free;
+    lWarnReasons.Free;
+    lWarnedResources.Free;
     lFailReasons.Free;
     lFailedResources.Free;
     lBuildLines.Free;
