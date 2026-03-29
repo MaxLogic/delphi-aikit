@@ -8,6 +8,7 @@
 - Expand IDE macros and environment variables
 - Merge project search paths with the IDE library path
 - Emit FixInsightCL parameters as `ini`, `xml`, or a runnable `bat`
+- Run static analysis via `analyze` with FixInsight and Pascal Analyzer orchestration
 - Validate compiled DFM resources via `dfm-check` (generated harness + DFM stream gate)
 - Inspect text DFM component trees and event bindings via `dfm-inspect`
 - Analyze project-level globals via `global-vars` with JSON/text reports, ambiguity reporting, and SQLite caching
@@ -19,6 +20,16 @@
 - Reproducing the exact IDE configuration in a headless environment
 - Comparing config differences between platforms or build types
 - Understanding which Delphi units a broken area depends on before we start AI-assisted debugging or refactoring
+
+## Repo-local AI skills
+
+The [`agentskills/`](agentskills/) folder contains repo-local skills that help AI agents use DelphiAIKit consistently instead of guessing workflows from scratch.
+
+- `delphi-build`: build or rebuild Delphi projects through the canonical DelphiAIKit build pipeline.
+- `delphi-static-analysis`: run Delphi static analysis through DelphiAIKit wrappers, then triage and apply conservative verified fixes.
+- `delphi-dfm-check`: inspect and validate `.dfm`-backed forms through `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
+- `delphi-global-vars`: analyze project-level globals, declaration sites, and read/write usage before refactoring shared state.
+- `delphi-project-unit-topology`: use `DelphiAIKit.exe deps` to inspect project unit topology, unresolved unit references, focused unit neighborhoods, and resolved project-unit cycles. Useful for questions like "why is this unit included?", "what fans into this area?", and "do we have cycles?"
 
 ## Requirements
 
