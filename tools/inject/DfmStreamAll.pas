@@ -27,6 +27,12 @@ type
 var
   GQuietOutput: Boolean = False;
   GLogFilePath: string = '';
+  GTraceEnabled: Boolean = False;
+
+function DefaultDebugTraceLogPath: string;
+begin
+  Result := TPath.Combine(ExtractFilePath(ParamStr(0)), TPath.GetFileNameWithoutExtension(ParamStr(0)) + '.trace.log');
+end;
 
 procedure AppendLogLine(const aText: string);
 begin
@@ -37,6 +43,13 @@ begin
   except
     // Log file output is best-effort and must never break validation.
   end;
+end;
+
+procedure TraceLine(const aText: string);
+begin
+  if not GTraceEnabled then
+    Exit;
+  AppendLogLine('TRACE ' + aText);
 end;
 
 procedure EmitLine(const aText: string);
@@ -54,33 +67,29 @@ begin
   if (lStdOut <> 0) and (lStdOut <> INVALID_HANDLE_VALUE) then
     WriteFile(lStdOut, Pointer(lLine)^, Length(lLine), lBytesWritten, nil)
   else
-  begin
-    Writeln(aText);
-    Flush(Output);
-  end;
+    OutputDebugString(PChar(aText));
+end;
+
+function ShouldReraiseUnderDebugger: Boolean;
+begin
+  Result := DebugHook <> 0;
 end;
 
 function IsComponentStream(const aStream: TStream; out aErr: string): Boolean;
 var
-  lReader: TReader;
+  lSig: array[0..3] of Byte;
 begin
   aErr := '';
   aStream.Position := 0;
-  lReader := TReader.Create(aStream, 4096);
-  try
-    try
-      lReader.ReadSignature;
-      Result := True;
-    except
-      on E: Exception do
-      begin
-        aErr := E.ClassName + ': ' + E.Message;
-        Result := False;
-      end;
-    end;
-  finally
-    lReader.Free;
+  if aStream.Read(lSig, SizeOf(lSig)) <> SizeOf(lSig) then
+  begin
+    aErr := 'Stream shorter than Delphi DFM signature.';
+    Exit(False);
   end;
+  aStream.Position := 0;
+  Result := (lSig[0] = Ord('T')) and (lSig[1] = Ord('P')) and (lSig[2] = Ord('F')) and (lSig[3] = Ord('0'));
+  if not Result then
+    aErr := Format('Unexpected DFM signature bytes: %.2x %.2x %.2x %.2x', [lSig[0], lSig[1], lSig[2], lSig[3]]);
 end;
 
 function TryCreateStreamingRootComponent(const aResourceName: string; out aRoot: TComponent; out aErr: string): Boolean;
@@ -164,36 +173,55 @@ var
 begin
   aErr := '';
   aStream.Position := 0;
+  TraceLine(aResourceName + ' TryReadRootComponent begin');
   if not TryCreateStreamingRootComponent(aResourceName, lComp, lRootCreateErr) then
   begin
     aErr := lRootCreateErr;
+    TraceLine(aResourceName + ' root-create failed: ' + aErr);
     Exit(False);
   end;
   lReader := TReader.Create(aStream, 4096);
   try
     try
+      TraceLine(aResourceName + ' reader.ReadRootComponent begin');
       // Missing published properties / missing event handlers typically raise here (EReadError).
       lComp := lReader.ReadRootComponent(lComp);
+      TraceLine(aResourceName + ' reader.ReadRootComponent success');
       Result := True;
     except
       on E: Exception do
       begin
         aErr := E.ClassName + ': ' + E.Message;
+        TraceLine(aResourceName + ' reader.ReadRootComponent exception: ' + aErr);
         if StartsText('EReadError: Ancestor for ', aErr) then
         begin
           if TryValidateByConstructor(aResourceName, lFallbackErr) then
+          begin
+            TraceLine(aResourceName + ' constructor fallback success');
             Exit(True);
+          end;
           aErr := aErr + ' (constructor fallback: ' + lFallbackErr + ')';
+          TraceLine(aResourceName + ' constructor fallback failed: ' + lFallbackErr);
         end else if ShouldUseConstructorFallbackForFrame(aResourceName, aErr) then
         begin
           if TryValidateByConstructor(aResourceName, lFallbackErr) then
+          begin
+            TraceLine(aResourceName + ' frame constructor fallback success');
             Exit(True);
+          end;
           aErr := aErr + ' (frame constructor fallback: ' + lFallbackErr + ')';
+          TraceLine(aResourceName + ' frame constructor fallback failed: ' + lFallbackErr);
+        end;
+        if ShouldReraiseUnderDebugger then
+        begin
+          TraceLine(aResourceName + ' re-raising under debugger');
+          raise;
         end;
         Result := False;
       end;
     end;
   finally
+    TraceLine(aResourceName + ' TryReadRootComponent cleanup');
     lComp.Free;
     lReader.Free;
   end;
@@ -398,6 +426,9 @@ begin
 
     Inc(lIndex);
   end;
+
+  if (aLogFilePath = '') and ShouldReraiseUnderDebugger then
+    aLogFilePath := DefaultDebugTraceLogPath;
 end;
 
 procedure LoadProgressOption(out aProgress: Boolean);
@@ -499,8 +530,10 @@ begin
 
   try
     try
+      TraceLine(aResourceName + ' IsComponentStream begin');
       if not IsComponentStream(lStream, lSigErr) then
       begin
+        TraceLine(aResourceName + ' IsComponentStream false: ' + lSigErr);
         if aRequiredSelection then
         begin
           Inc(aStats.Errors);
@@ -513,9 +546,11 @@ begin
         Exit;
       end;
 
+      TraceLine(aResourceName + ' IsComponentStream true');
       Inc(aStats.Streamed);
       if not TryReadRootComponent(lStream, aResourceName, lReadErr) then
       begin
+        TraceLine(aResourceName + ' TryReadRootComponent false: ' + lReadErr);
         if IsStructuralStreamingError(lReadErr) then
         begin
           Inc(aStats.Errors);
@@ -526,11 +561,15 @@ begin
           EmitLine('WARN ' + aResourceName + ' -> ' + lReadErr);
         end;
       end else
+      begin
+        TraceLine(aResourceName + ' validation OK');
         EmitLine('OK   ' + aResourceName);
+      end;
     except
       on E: Exception do
       begin
         lReadErr := E.ClassName + ': ' + E.Message;
+        TraceLine(aResourceName + ' ValidateResource exception: ' + lReadErr);
         if IsStructuralStreamingError(lReadErr) then
         begin
           Inc(aStats.Errors);
@@ -539,6 +578,8 @@ begin
         begin
           Inc(aStats.Warnings);
           EmitLine('WARN ' + aResourceName + ' -> ' + lReadErr);
+          if ShouldReraiseUnderDebugger then
+            raise;
         end;
       end;
     end;
@@ -571,6 +612,7 @@ begin
   LoadProgressOption(lProgress);
   GQuietOutput := lQuietOutput;
   GLogFilePath := lLogFilePath;
+  GTraceEnabled := ShouldReraiseUnderDebugger;
   if (GLogFilePath <> '') and FileExists(GLogFilePath) then
   begin
     try
@@ -581,6 +623,8 @@ begin
   end;
 
   lStats := Default(TValidationStats);
+  if GTraceEnabled then
+    TraceLine('Debugger trace enabled');
   EmitLine('DFM stream validation started...');
   lRequestedFilters := TStringList.Create;
   lMatchedFilters := TStringList.Create;
