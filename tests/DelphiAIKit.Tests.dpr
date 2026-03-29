@@ -17,6 +17,7 @@ uses
   Test.App in 'units\\test.app.pas',
   Test.Build in 'units\\test.build.pas',
   Test.Cli in 'units\\test.cli.pas',
+  Test.Deps in 'units\\test.deps.pas',
   Test.DfmInspect in 'units\\test.dfminspect.pas',
   Test.DfmCheck in 'units\\test.dfmcheck.pas',
   Test.Diagnostics in 'units\\test.diagnostics.pas',

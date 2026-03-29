@@ -11,12 +11,14 @@
 - Validate compiled DFM resources via `dfm-check` (generated harness + DFM stream gate)
 - Inspect text DFM component trees and event bindings via `dfm-inspect`
 - Analyze project-level globals via `global-vars` with JSON/text reports, ambiguity reporting, and SQLite caching
+- Analyze project unit dependencies via `deps` with JSON-first topology output, text summaries, focused unit views, and cycle reporting
 
 ## Good use cases
 
 - Running FixInsight in CI or scripted builds
 - Reproducing the exact IDE configuration in a headless environment
 - Comparing config differences between platforms or build types
+- Understanding which Delphi units a broken area depends on before we start AI-assisted debugging or refactoring
 
 ## Requirements
 
@@ -156,6 +158,28 @@ To analyze global variables used in a Delphi project:
 ```
 bin\DelphiAIKit.exe global-vars --project "C:\path\Project.dproj" --format json
 ```
+
+To inspect project unit dependencies for AI debugging:
+
+```
+bin\DelphiAIKit.exe deps --project "C:\path\Project.dproj" --format json
+bin\DelphiAIKit.exe deps --project "C:\path\Project.dproj" --format text --unit ProblemUnit
+```
+
+`deps` is JSON-first. The JSON contract is intended for tooling and AI agents and includes:
+- project metadata
+- `nodes` with resolution state and project-membership flag
+- `edges` labeled as `project`, `contains`, `interface`, or `implementation`
+- `unresolvedUnits`
+- `parserProblems`
+
+`deps` always writes the rendered report to stdout. When `--output` is omitted, it also persists a copy under the target project's sibling `.dak/<ProjectName>/deps/` folder (`deps.json` or `deps.txt`).
+
+`deps` is meant for topology debugging, not deep semantic analysis. It helps us answer questions like "what units fan into this area?", "what unresolved references exist in this project graph?", and "which resolved project units participate in cycles?" It does not try to build a call graph, symbol graph, or full semantic/reference model.
+
+Current scope:
+- shipped: deterministic JSON topology, AI-friendly text summaries, `--unit` focus mode, cycle/SCC reporting over resolved project units
+- deferred: DOT / Graphviz export
 
 Optional:
 - `--delphi 23.0` selects Delphi version for automatic `rsvars.bat` resolution.

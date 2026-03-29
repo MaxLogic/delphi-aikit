@@ -28,7 +28,7 @@ uses
   System.SysUtils,
   Xml.omnixmldom, Xml.xmldom,
   MaxMadExcept,
-  Dak.Analyze, Dak.Build, Dak.Cli, Dak.DfmCheck, Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Messages,
+  Dak.Analyze, Dak.Build, Dak.Cli, Dak.Deps, Dak.DfmCheck, Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Messages,
   Dak.Resolve, Dak.Utils;
 
 class function TDelphiAIKitApp.Run: Integer;
@@ -139,6 +139,8 @@ begin
       Result := RunDfmInspectCommand(fOptions);
     TCommandKind.ckGlobalVars:
       Result := RunGlobalVarsCommand(fOptions);
+    TCommandKind.ckDeps:
+      Result := RunDepsCommand(fOptions);
     TCommandKind.ckAnalyzeProject, TCommandKind.ckAnalyzeUnit:
       Result := RunAnalyzeCommand(fOptions);
   else
