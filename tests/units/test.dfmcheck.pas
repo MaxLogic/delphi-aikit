@@ -10,8 +10,8 @@ uses
   Test.Support;
 
 type
-  TMockValidatorMode = (vmHappy, vmHappyParentBin, vmBroken, vmBrokenEventSignature, vmBuildFailGeneratedUnit,
-    vmBuildFailHighExitCode, vmValidatorNonZeroNoFail);
+  TMockValidatorMode = (vmHappy, vmHappyParentBin, vmBroken, vmBrokenEventSignature,
+    vmWarnStandaloneActionImageBinding, vmBuildFailGeneratedUnit, vmBuildFailHighExitCode, vmValidatorNonZeroNoFail);
 
   TMockDfmCheckRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
   private
@@ -75,6 +75,8 @@ type
     procedure PipelineBrokenDfmPropagatesValidatorExitAndFailText;
     [Test]
     procedure PipelineBrokenEventSignaturePropagatesValidatorExitAndFailText;
+    [Test]
+    procedure PipelineWarningStandaloneActionImageBindingIsDiagnosedAsFailure;
     [Test]
     procedure DfmCheckFailureIncludesResolvedSourceContextWhenPascalLocationIsKnown;
     [Test]
@@ -357,6 +359,14 @@ begin
         lValidatorLines := ['FAIL MAINFORM -> EReadError: Error reading MainForm.OnCreate: Type mismatch for method ''FormCreate''',
           'DFM stream validation summary: streamed=1 skipped=0 failed=1 requested=1 matched=1'];
       end
+      else if fMode = TMockValidatorMode.vmWarnStandaloneActionImageBinding then
+      begin
+        aOutput('WARN MAINFORM -> EAccessViolation: Access violation at address 00B5A807 in module ' +
+          '''Sample_DfmCheck.exe'' (offset 2BA807). Read of address 00000074');
+        lValidatorLines := ['WARN MAINFORM -> EAccessViolation: Access violation at address 00B5A807 in module ' +
+          '''Sample_DfmCheck.exe'' (offset 2BA807). Read of address 00000074',
+          'DFM stream validation summary: streamed=1 skipped=0 failed=0 requested=1 matched=1'];
+      end
       else if fMode = TMockValidatorMode.vmValidatorNonZeroNoFail then
       begin
         aOutput('FATAL INIT -> EAccessViolation: Access violation at address 00000000');
@@ -374,6 +384,10 @@ begin
       else if fMode = TMockValidatorMode.vmBrokenEventSignature then
         lValidatorLines := ['FAIL MAINFORM -> EReadError: Error reading MainForm.OnCreate: Type mismatch for method ''FormCreate''',
           'DFM stream validation summary: streamed=1 skipped=0 failed=1 requested=1 matched=1']
+      else if fMode = TMockValidatorMode.vmWarnStandaloneActionImageBinding then
+        lValidatorLines := ['WARN MAINFORM -> EAccessViolation: Access violation at address 00B5A807 in module ' +
+          '''Sample_DfmCheck.exe'' (offset 2BA807). Read of address 00000074',
+          'DFM stream validation summary: streamed=1 skipped=0 failed=0 requested=1 matched=1']
       else if fMode = TMockValidatorMode.vmValidatorNonZeroNoFail then
         lValidatorLines := ['FATAL INIT -> EAccessViolation: Access violation at address 00000000']
       else
@@ -454,6 +468,11 @@ begin
     'program Sample;' + #13#10 +
     #13#10 +
     'uses' + #13#10 +
+    '  madExcept,' + #13#10 +
+    '  madLinkDisAsm,' + #13#10 +
+    '  madListHardware,' + #13#10 +
+    '  madListProcesses,' + #13#10 +
+    '  madListModules,' + #13#10 +
     '  Vcl.Forms,' + #13#10 +
     '  MainForm in ''MainForm.pas'' {MainForm};' + #13#10 +
     #13#10 +
@@ -505,6 +524,20 @@ begin
     'Expected bundled inject file to detect duplicate-component frame streaming failures.');
   Assert.IsTrue(Pos('frame constructor fallback', lInjectText) > 0,
     'Expected bundled inject file to report constructor fallback context for frame retries.');
+  Assert.IsTrue(Pos('OutputDebugString(PChar(aText));', lInjectText) > 0,
+    'Expected bundled inject file to use OutputDebugString when stdout is unavailable.');
+  Assert.IsTrue(Pos('if ShouldReraiseUnderDebugger then', lInjectText) > 0,
+    'Expected bundled inject file to re-raise streaming exceptions under the debugger.');
+  Assert.IsTrue(Pos('function DefaultDebugTraceLogPath: string;', lInjectText) > 0,
+    'Expected bundled inject file to declare a debugger-only trace log path helper.');
+  Assert.IsTrue(Pos('TRACE ', lInjectText) > 0,
+    'Expected bundled inject file to emit debugger trace log lines.');
+  Assert.IsFalse(Pos('lReader.ReadSignature;', lInjectText) > 0,
+    'Bundled inject file should not use exception-driven ReadSignature probing.');
+  Assert.IsTrue(Pos('Unexpected DFM signature bytes:', lInjectText) > 0,
+    'Expected bundled inject file to report signature bytes without raising exceptions.');
+  Assert.IsFalse(Pos('Writeln(aText);', lInjectText) > 0,
+    'Bundled inject file must not call Writeln when stdout is unavailable.');
 end;
 
 procedure TDfmCheckTests.CreateFixtureProjectWithInheritedSearchPath(out aProjectDproj: string);
@@ -845,6 +878,8 @@ var
   lGeneratedDprojText: string;
   lPatchedDprText: string;
   lGeneratedUnitText: string;
+  lWinapiPos: Integer;
+  lMadExceptPos: Integer;
 begin
   CreateFixtureProject(lDprojPath);
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-happy');
@@ -897,16 +932,27 @@ begin
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
     lPatchedDprText := TFile.ReadAllText(lPaths.fGeneratedDpr);
-    Assert.IsTrue(Pos('DfmStreamAll,', lPatchedDprText) > 0, 'Expected DfmStreamAll in patched DPR.');
-    Assert.IsTrue(Pos('DfmCheckRuntimeGuard,', lPatchedDprText) > 0,
-      'Expected runtime guard unit in generated checker DPR.');
-    Assert.IsTrue(Pos('Sample_DfmCheck_Register', lPatchedDprText) > 0,
-      'Expected generated register unit in patched DPR uses clause.');
     Assert.IsTrue(Pos('ExitCode := TDfmStreamAll.Run;', lPatchedDprText) > 0,
       'Expected ExitCode assignment in patched DPR.');
     Assert.IsTrue(Pos('Halt(ExitCode);', lPatchedDprText) > 0, 'Expected validator short-circuit halt in DPR.');
     Assert.IsFalse(Pos('Application.Initialize;', lPatchedDprText) > 0,
       'Generated checker DPR must not execute application startup.');
+    Assert.IsTrue(Pos('madExcept,', lPatchedDprText) > 0,
+      'Generated checker DPR should preserve madExcept startup units when source DPR uses them.');
+    lMadExceptPos := Pos('madExcept,', lPatchedDprText);
+    lWinapiPos := Pos('Winapi.Windows,', lPatchedDprText);
+    Assert.IsTrue((lMadExceptPos > 0) and (lWinapiPos > 0) and (lMadExceptPos < lWinapiPos),
+      'Generated checker DPR should place madExcept startup units before Winapi.Windows.');
+    Assert.IsFalse(Pos('Writeln(ErrOutput,', lPatchedDprText) > 0,
+      'Generated checker DPR must not write fatal-init diagnostics through ErrOutput when no console exists.');
+    Assert.IsTrue(Pos('OutputDebugString(', lPatchedDprText) > 0,
+      'Generated checker DPR should surface fatal-init diagnostics through OutputDebugString.');
+    Assert.IsTrue(Pos('DfmStreamAll in ''DfmStreamAll.pas'',', lPatchedDprText) > 0,
+      'Generated checker DPR should reference DfmStreamAll with an in-clause for IDE call stacks.');
+    Assert.IsTrue(Pos('Sample_DfmCheck_Register in ''Sample_DfmCheck_Register.pas'',', lPatchedDprText) > 0,
+      'Generated checker DPR should reference the register unit with an in-clause for IDE call stacks.');
+    Assert.IsTrue(Pos('DfmCheckRuntimeGuard in ''DfmCheckRuntimeGuard.pas'';', lPatchedDprText) > 0,
+      'Generated checker DPR should reference DfmCheckRuntimeGuard with an in-clause for IDE call stacks.');
     lInjectedPos := Pos('ExitCode := TDfmStreamAll.Run;', lPatchedDprText);
     Assert.IsTrue(lInjectedPos > 0, 'Expected generated checker DPR to execute validator entrypoint.');
 
@@ -946,6 +992,7 @@ var
   lCategory: TDfmCheckErrorCategory;
   lDprojPath: string;
   lError: string;
+  lGeneratedDprText: string;
   lGeneratedDprojText: string;
   lInjectDir: string;
   lKeepArtifactsEnv: string;
@@ -989,6 +1036,9 @@ begin
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lGeneratedDprText := TFile.ReadAllText(lPaths.fGeneratedDpr);
+    Assert.IsFalse(Pos('madExcept,', lGeneratedDprText) > 0,
+      'Generated checker DPR should not inject madExcept when the source DPR does not use it.');
     lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
     Assert.IsTrue(Pos('<DCC_UnitSearchPath>', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should synthesize DCC_UnitSearchPath when source project inherits it from an optset.');
@@ -1247,6 +1297,99 @@ begin
       'Expected fail clue to include handler declaration signature.');
     Assert.IsTrue(Pos('[dfm-check] FAIL clue: verify handler signature matches event type for OnCreate.', lOutputText) > 0,
       'Expected fail clue to include event-signature guidance.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineWarningStandaloneActionImageBindingIsDiagnosedAsFailure;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lOutputText: string;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+  lRootDir: string;
+begin
+  CreateFixtureProject(lDprojPath);
+  lRootDir := ExtractFilePath(lDprojPath);
+  TFile.WriteAllText(TPath.Combine(lRootDir, 'MainForm.dfm'),
+    'object MainForm: TMainForm' + #13#10 +
+    '  object btnCompleteTask: TBitBtn' + #13#10 +
+    '    Action = actCompleteTask' + #13#10 +
+    '    ImageName = ''task-complete''' + #13#10 +
+    '    Images = TaskButtonImages' + #13#10 +
+    '  end' + #13#10 +
+    '  object actCompleteTask: TAction' + #13#10 +
+    '    Caption = ''Complete task''' + #13#10 +
+    '  end' + #13#10 +
+    '  object TaskButtonImages: TVirtualImageList' + #13#10 +
+    '  end' + #13#10 +
+    'end' + #13#10, TEncoding.UTF8);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-warning-diagnosis');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmWarnStandaloneActionImageBinding, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    lOutputText := JoinOutput(lOutputLines);
+
+    Assert.AreEqual(1, lResult, 'Expected diagnosed warning to be promoted to a dfm-check failure. Output: ' +
+      lOutputText);
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Expected diagnosed warning to stay a validator result, not an orchestration failure.');
+    Assert.AreEqual('', lError, 'Did not expect orchestration error text for warning diagnosis.');
+    Assert.IsTrue(Pos('WARN MAINFORM -> EAccessViolation:', lOutputText) > 0,
+      'Expected original validator warning to remain visible.');
+    Assert.IsTrue(Pos('[dfm-check] FAIL diagnosis: resource=MAINFORM', lOutputText) > 0,
+      'Expected diagnosed warning to emit an explicit failure summary.');
+    Assert.IsTrue(Pos('MainForm.dfm:', lOutputText) > 0,
+      'Expected diagnosed warning summary to include the DFM file path and line.');
+    Assert.IsTrue(Pos('[dfm-check] WARN target: resource=MAINFORM', lOutputText) > 0,
+      'Expected warning diagnostics to identify the resource.');
+    Assert.IsTrue(Pos('component=btnCompleteTask', lOutputText) > 0,
+      'Expected warning diagnostics to identify the suspicious button.');
+    Assert.IsTrue(Pos('action=actcompletetask', LowerCase(lOutputText)) > 0,
+      'Expected warning diagnostics to include the referenced action.');
+    Assert.IsTrue(Pos('standalone taction', LowerCase(lOutputText)) > 0,
+      'Expected warning diagnostics to explain that the action is not hosted in a TActionList.');
+    Assert.IsTrue(Pos('TActionList', lOutputText) > 0,
+      'Expected warning diagnostics to suggest a TActionList-based fix.');
+    Assert.IsTrue(Pos('[dfm-check] Result: FAIL', lOutputText) > 0,
+      'Expected diagnosed warning to make the final result fail.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
