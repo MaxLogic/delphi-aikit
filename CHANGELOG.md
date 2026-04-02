@@ -44,6 +44,7 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed `deps` cycle reporting so SCC summaries now emit real representative traversal paths instead of alphabetically joined member lists, and the cycle builder now releases its temporary discovery state correctly under exception paths. (T-104)
 - Fixed CLI startup crash handling so true unhandled exceptions now reach madExcept, and startup applies the MaxLogic bugreport upload configuration from one executable-derived path. (T-099, T-100)
 - Fixed `dfm-check` so verbose Win32 runs no longer overflow when MSBuild reports a native exit code larger than `Integer`, and the CLI now preserves the unsigned and hexadecimal exit code text in diagnostics. (T-098)
 - Fixed bundled `dfm-check` frame validation so injected `DfmStreamAll.pas` now retries VCL frames through the constructor path when stream validation hits duplicate-component false positives such as `A component named pnlFilter already exists`.

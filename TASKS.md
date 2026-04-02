@@ -1,13 +1,51 @@
 # Tasks
-Next task ID: T-104
+Next task ID: T-107
 
 ## Summary
-Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 103
+Open tasks: 2 (In Progress: 0, Next Today: 2, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 104
 
 ## In Progress
 
 ## Next - Today
+
+### T-106 [CLI] Add deps hotspot text report and `--top` limiting
+Outcome:
+- `deps --format text` reports cycle components, ranked cycle units, and ranked cycle edges from the cached hotspot model instead of the old flat cycle list.
+- `deps` accepts `--top <N>` for text mode, defaults to a bounded list, treats `0` as unlimited, and orders equal-rank edges deterministically with `implementation` edges ahead of `interface` edges.
+- The committed text fixture under `.dak/<ProjectName>/deps/deps.txt` matches the new report shape, and the existing text-summary tests are updated where the old `Cycles` heading assumption no longer holds.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.DepsCommandParsesTopLimit,Test.Deps.TDepsTests.DepsTextSummaryHighlightsCyclesAndUnresolvedUnits,Test.Deps.TDepsTests.DepsTextHotspotsRespectTopLimit,Test.Deps.TDepsTests.DepsTextPrefersImplementationEdgesOnEqualRank -cm:Quiet`
+  Expect: Tests Found `>=4`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe deps --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/DepsCycleFixture/DepsCycleFixture.dproj --format text --top 1`
+  Expect: Exit code `0`; output includes `Cycle components` and emits at most one ranked unit and one ranked edge entry.
+- Run: `./bin/DelphiAIKit.exe deps --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/DepsCycleFixture/DepsCycleFixture.dproj --format text`
+  Expect: Exit code `0`; output uses the bounded default top limit and includes ranked hotspot sections.
+- Run: `./bin/DelphiAIKit.exe deps --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/DepsCycleFixture/DepsCycleFixture.dproj --format text --top 0`
+  Expect: Exit code `0`; output treats `0` as unlimited and does not truncate ranked hotspot sections.
+- Run: `rg -n "Cycle components|Top cycle units|Top cycle edges" tests/fixtures/DepsCycleFixture/.dak/DepsCycleFixture/deps/deps.txt`
+  Expect: Exit code `0`; the committed text fixture matches the new hotspot report sections.
+Touches: src/dak.cli.pas, src/dak.deps.runner.pas, src/dak.messages.pas, src/dak.types.pas, tests/units/test.cli.pas, tests/units/test.deps.pas, tests/fixtures/DepsCycleFixture/.dak/DepsCycleFixture/deps/deps.txt
+Deps: T-105
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/deps-hotspot-ranking.md`. Update the old text test expectation in the same change if the `Cycles` literal is replaced by `Cycle components`.
+
+### T-105 [CLI] Add cached SCC hotspot model and ranked deps JSON
+Outcome:
+- `TDepsGraphBuilder` computes SCC hotspot data once after `Build`, caches it on the builder instance, and reuses it across renderers instead of recomputing cycle analysis per output format.
+- `deps --format json` emits structured hotspot data via `cycleComponents`, `unitHotspots`, and `edgeHotspots`, while keeping the existing `cycles` key during the compatibility window and repopulating it with real traversal paths.
+- Node and edge records gain hotspot metadata (`unitCycleScore`, `sccId`, `isCycleEdge`) and the committed JSON fixture is refreshed to match the extended schema.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Deps.TDepsTests.DepsJsonIncludesCycleComponentsAndHotspots,Test.Deps.TDepsTests.DepsJsonKeepsCyclesCompatibilityArray,Test.Deps.TDepsTests.DepsJsonMarksCycleNodesAndEdges,Test.Deps.TDepsTests.DepsJsonExcludesUnresolvedUnitsFromHotspots -cm:Quiet`
+  Expect: Tests Found `>=4`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe deps --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/DepsCycleFixture/DepsCycleFixture.dproj --format json`
+  Expect: Exit code `0`; JSON includes `cycleComponents`, `unitHotspots`, `edgeHotspots`, and a compatibility `cycles` array with real cycle paths.
+- Run: `rg -n "\"cycleComponents\"|\"unitHotspots\"|\"edgeHotspots\"|\"unitCycleScore\"|\"isCycleEdge\"" tests/fixtures/DepsFixture/.dak/DepsFixture/deps/deps.json`
+  Expect: Exit code `0`; the committed JSON fixture includes the hotspot arrays and inline hotspot fields.
+Touches: src/dak.deps.runner.pas, tests/units/test.deps.pas, tests/fixtures/DepsFixture/.dak/DepsFixture/deps/deps.json, tests/fixtures/DepsCycleFixture/.dak/DepsCycleFixture/deps/deps.txt
+Deps: T-104
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/deps-hotspot-ranking.md`. Keep `TDepsHotspotResult` as a builder-owned class cache, not an interface-managed result.
 
 ## Next - This Week
 
@@ -16,6 +54,22 @@ Done tasks: 103
 ## Blocked
 
 ## Done
+
+### T-104 [CLI] Emit real representative cycles and fix BuildCycles lifetime handling
+Outcome:
+- Cycle output is derived from real graph traversal paths inside each SCC instead of alphabetically joining SCC members into fake cycle strings.
+- The current cycle-analysis lifetime bug is removed so temporary collections created during cycle/SCC discovery are always released under exception paths.
+- Existing cycle-focused `deps` behavior stays green after the fix, with regression coverage for the representative-cycle path.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Deps.TDepsTests.DepsTextSummaryHighlightsCyclesAndUnresolvedUnits,Test.Deps.TDepsTests.DepsCyclesIgnoreUnresolvedAndExternalNodesByDefault,Test.Deps.TDepsTests.DepsCyclesUseRealTraversalPaths -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe deps --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/DepsCycleFixture/DepsCycleFixture.dproj --format text`
+  Expect: Exit code `0`; output contains a real representative cycle such as `CycleA -> CycleB -> CycleA` and does not regress unresolved-unit reporting.
+- Run: `rg -n "CycleA -> CycleB -> CycleA" tests/fixtures/DepsCycleFixture/.dak/DepsCycleFixture/deps/deps.txt`
+  Expect: Exit code `0`; the committed text fixture contains the real representative cycle path.
+Touches: src/dak.deps.runner.pas, tests/units/test.deps.pas, tests/fixtures/DepsCycleFixture/.dak/DepsCycleFixture/deps/deps.txt
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/deps-hotspot-ranking.md`. This task fixes the pre-existing fake-cycle-string bug and the `BuildCycles` cleanup/lifetime issue before hotspot ranking lands.
 
 ### T-103 [DOC] Document deps command for AI debugging workflows
 Outcome:

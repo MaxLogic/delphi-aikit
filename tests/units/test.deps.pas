@@ -28,6 +28,7 @@ type
     [Test] procedure DepsUnitFocusLimitsNeighborhood;
     [Test] procedure DepsUnknownFocusDoesNotBorrowCycleComponentBySubstring;
     [Test] procedure DepsCyclesIgnoreUnresolvedAndExternalNodesByDefault;
+    [Test] procedure DepsCyclesUseRealTraversalPaths;
   end;
 
 implementation
@@ -288,6 +289,28 @@ begin
     'Expected cycle summary over resolved project units.');
   Assert.IsFalse(Pos('System.SysUtils', lOutputText) > 0,
     'Expected external units to stay out of cycle summaries by default.');
+end;
+
+procedure TDepsTests.DepsCyclesUseRealTraversalPaths;
+var
+  lArgs: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lOutputText: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, 'deps-cycle-real-path.log');
+  lArgs := 'deps --project ' + QuoteArg(CycleProjectPath) + ' --format text';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start resolver for deps real cycle path test.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected deps real cycle path run to succeed. See: ' + lLogPath);
+
+  lOutputText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('PathCycleA -> PathCycleC -> PathCycleB -> PathCycleA', lOutputText) > 0,
+    'Expected cycle output to use a real traversal path for PathCycle*.');
+  Assert.IsFalse(Pos('PathCycleA -> PathCycleB -> PathCycleC -> PathCycleA', lOutputText) > 0,
+    'Expected cycle output to avoid alphabetical SCC member joins that are not real paths.');
 end;
 
 initialization
