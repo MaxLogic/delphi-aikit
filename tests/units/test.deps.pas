@@ -15,6 +15,7 @@ type
     function CycleProjectPath: string;
     function CycleDakRoot: string;
     procedure DeleteFolderIfExists(const aFolderPath: string);
+    function FindEdgeByNames(const aEdges: TJSONArray; const aFromName, aToName: string): TJSONObject;
     function FindNodeByName(const aNodes: TJSONArray; const aNodeName: string): TJSONObject;
     function RunDepsJson(const aProjectPath: string; const aLogFileName: string): TJSONObject;
   public
@@ -29,6 +30,11 @@ type
     [Test] procedure DepsUnknownFocusDoesNotBorrowCycleComponentBySubstring;
     [Test] procedure DepsCyclesIgnoreUnresolvedAndExternalNodesByDefault;
     [Test] procedure DepsCyclesUseRealTraversalPaths;
+    [Test] procedure DepsJsonIncludesCycleComponentsAndHotspots;
+    [Test] procedure DepsJsonKeepsCyclesCompatibilityArray;
+    [Test] procedure DepsJsonMarksCycleNodesAndEdges;
+    [Test] procedure DepsJsonPrefersImplementationEdgesOnEqualRank;
+    [Test] procedure DepsJsonExcludesUnresolvedUnitsFromHotspots;
   end;
 
 implementation
@@ -64,6 +70,26 @@ begin
   begin
     TDirectory.Delete(aFolderPath, True);
   end;
+end;
+
+function TDepsTests.FindEdgeByNames(const aEdges: TJSONArray; const aFromName, aToName: string): TJSONObject;
+var
+  lEdge: TJSONObject;
+  lEdgeValue: TJSONValue;
+begin
+  for lEdgeValue in aEdges do
+  begin
+    if not (lEdgeValue is TJSONObject) then
+    begin
+      Continue;
+    end;
+    lEdge := TJSONObject(lEdgeValue);
+    if SameText(lEdge.GetValue('from').Value, aFromName) and SameText(lEdge.GetValue('to').Value, aToName) then
+    begin
+      Exit(lEdge);
+    end;
+  end;
+  Result := nil;
 end;
 
 function TDepsTests.FindNodeByName(const aNodes: TJSONArray; const aNodeName: string): TJSONObject;
@@ -311,6 +337,138 @@ begin
     'Expected cycle output to use a real traversal path for PathCycle*.');
   Assert.IsFalse(Pos('PathCycleA -> PathCycleB -> PathCycleC -> PathCycleA', lOutputText) > 0,
     'Expected cycle output to avoid alphabetical SCC member joins that are not real paths.');
+end;
+
+procedure TDepsTests.DepsJsonIncludesCycleComponentsAndHotspots;
+var
+  lCycleComponents: TJSONArray;
+  lEdgeHotspots: TJSONArray;
+  lJson: TJSONObject;
+  lUnitHotspots: TJSONArray;
+begin
+  lJson := RunDepsJson(CycleProjectPath, 'deps-json-hotspots.log');
+  try
+    lCycleComponents := lJson.GetValue('cycleComponents') as TJSONArray;
+    lUnitHotspots := lJson.GetValue('unitHotspots') as TJSONArray;
+    lEdgeHotspots := lJson.GetValue('edgeHotspots') as TJSONArray;
+    Assert.IsNotNull(lCycleComponents, 'Expected cycleComponents array.');
+    Assert.IsTrue(lCycleComponents.Count >= 2, 'Expected at least two cycle components.');
+    Assert.IsNotNull(lUnitHotspots, 'Expected unitHotspots array.');
+    Assert.IsTrue(lUnitHotspots.Count >= 4, 'Expected hotspot entries for cycle units.');
+    Assert.IsNotNull(lEdgeHotspots, 'Expected edgeHotspots array.');
+    Assert.IsTrue(lEdgeHotspots.Count >= 4, 'Expected hotspot entries for cycle-bearing edges.');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TDepsTests.DepsJsonKeepsCyclesCompatibilityArray;
+var
+  lCycles: TJSONArray;
+  lJson: TJSONObject;
+begin
+  lJson := RunDepsJson(CycleProjectPath, 'deps-json-cycles-compat.log');
+  try
+    lCycles := lJson.GetValue('cycles') as TJSONArray;
+    Assert.IsNotNull(lCycles, 'Expected compatibility cycles array.');
+    Assert.IsTrue(Pos('PathCycleA -> PathCycleC -> PathCycleB -> PathCycleA', lCycles.ToJSON) > 0,
+      'Expected cycles compatibility array to keep the real traversal path.');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TDepsTests.DepsJsonMarksCycleNodesAndEdges;
+var
+  lEdge: TJSONObject;
+  lEdges: TJSONArray;
+  lJson: TJSONObject;
+  lNode: TJSONObject;
+  lNodes: TJSONArray;
+begin
+  lJson := RunDepsJson(CycleProjectPath, 'deps-json-node-edge-marks.log');
+  try
+    lNodes := lJson.GetValue('nodes') as TJSONArray;
+    lEdges := lJson.GetValue('edges') as TJSONArray;
+    Assert.IsNotNull(lNodes);
+    Assert.IsNotNull(lEdges);
+
+    lNode := FindNodeByName(lNodes, 'PathCycleA');
+    Assert.IsNotNull(lNode, 'Expected PathCycleA node.');
+    Assert.AreEqual('2', lNode.GetValue('unitCycleScore').Value,
+      'Expected PathCycleA to report its internal SCC degree.');
+    Assert.IsNotNull(lNode.GetValue('sccId'), 'Expected PathCycleA to report an SCC id.');
+
+    lEdge := FindEdgeByNames(lEdges, 'PathCycleA', 'PathCycleC');
+    Assert.IsNotNull(lEdge, 'Expected PathCycleA -> PathCycleC edge.');
+    Assert.AreEqual('true', LowerCase(lEdge.GetValue('isCycleEdge').Value),
+      'Expected PathCycleA -> PathCycleC to be marked as cycle-bearing.');
+
+    lEdge := FindEdgeByNames(lEdges, 'CycleConsumer', 'CycleA');
+    Assert.IsNotNull(lEdge, 'Expected CycleConsumer -> CycleA edge.');
+    Assert.AreEqual('false', LowerCase(lEdge.GetValue('isCycleEdge').Value),
+      'Expected CycleConsumer -> CycleA to remain outside cycle-bearing edges.');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TDepsTests.DepsJsonPrefersImplementationEdgesOnEqualRank;
+var
+  lEdgeHotspots: TJSONArray;
+  lFirstEdge: TJSONObject;
+  lJson: TJSONObject;
+  lSecondEdge: TJSONObject;
+begin
+  lJson := RunDepsJson(CycleProjectPath, 'deps-json-edge-order.log');
+  try
+    lEdgeHotspots := lJson.GetValue('edgeHotspots') as TJSONArray;
+    Assert.IsNotNull(lEdgeHotspots, 'Expected edgeHotspots array.');
+    Assert.IsTrue(lEdgeHotspots.Count >= 2, 'Expected at least two cycle edge hotspots.');
+
+    lFirstEdge := lEdgeHotspots.Items[0] as TJSONObject;
+    lSecondEdge := lEdgeHotspots.Items[1] as TJSONObject;
+    Assert.IsNotNull(lFirstEdge, 'Expected first edge hotspot object.');
+    Assert.IsNotNull(lSecondEdge, 'Expected second edge hotspot object.');
+
+    Assert.AreEqual('CycleB', lFirstEdge.GetValue('from').Value,
+      'Expected equal-rank implementation edge to sort ahead of interface edges.');
+    Assert.AreEqual('CycleA', lFirstEdge.GetValue('to').Value,
+      'Expected first hotspot to be CycleB -> CycleA.');
+    Assert.AreEqual('implementation', lFirstEdge.GetValue('edgeKind').Value,
+      'Expected equal-rank implementation edge to sort first.');
+    Assert.AreEqual('CycleA', lSecondEdge.GetValue('from').Value,
+      'Expected interface edge to follow the implementation tie-break winner.');
+    Assert.AreEqual('CycleB', lSecondEdge.GetValue('to').Value,
+      'Expected second hotspot to be CycleA -> CycleB.');
+    Assert.AreEqual('interface', lSecondEdge.GetValue('edgeKind').Value,
+      'Expected interface edge to sort after the equal-rank implementation edge.');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TDepsTests.DepsJsonExcludesUnresolvedUnitsFromHotspots;
+var
+  lEdgeHotspots: TJSONArray;
+  lJson: TJSONObject;
+  lUnitHotspots: TJSONArray;
+begin
+  lJson := RunDepsJson(CycleProjectPath, 'deps-json-hotspot-filter.log');
+  try
+    lUnitHotspots := lJson.GetValue('unitHotspots') as TJSONArray;
+    lEdgeHotspots := lJson.GetValue('edgeHotspots') as TJSONArray;
+    Assert.IsNotNull(lUnitHotspots);
+    Assert.IsNotNull(lEdgeHotspots);
+    Assert.IsFalse(Pos('MissingCycle.Dependency', lUnitHotspots.ToJSON) > 0,
+      'Expected unresolved units to stay out of unitHotspots.');
+    Assert.IsFalse(Pos('MissingCycle.Dependency', lEdgeHotspots.ToJSON) > 0,
+      'Expected unresolved units to stay out of edgeHotspots.');
+    Assert.IsFalse(Pos('System.SysUtils', lUnitHotspots.ToJSON) > 0,
+      'Expected unresolved framework units to stay out of unitHotspots.');
+  finally
+    lJson.Free;
+  end;
 end;
 
 initialization

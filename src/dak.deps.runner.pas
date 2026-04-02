@@ -47,6 +47,29 @@ type
     fUnitName: string;
   end;
 
+  TDepsSccInfo = class
+  public
+    fInternalEdgeCount: Integer;
+    fMembers: TStringList;
+    fRepresentativeCycle: string;
+    fSccId: Integer;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
+  TDepsHotspotResult = class
+  public
+    fCycles: TStringList;
+    fCycleEdgeKeys: THashSet<string>;
+    fEdgeRanks: TDictionary<string, Integer>;
+    fEdgeSccIds: TDictionary<string, Integer>;
+    fNodeSccIds: TDictionary<string, Integer>;
+    fSccs: TObjectList<TDepsSccInfo>;
+    fUnitScores: TDictionary<string, Integer>;
+    constructor Create;
+    destructor Destroy; override;
+  end;
+
   TDepsGraphBuilder = class
   private
     fContext: TProjectAnalysisContext;
@@ -54,13 +77,13 @@ type
     fEdgeKeys: THashSet<string>;
     fNodes: TObjectDictionary<string, TDepsNodeInfo>;
     fParserProblems: TList<TDepsParserProblemInfo>;
+    fSccData: TDepsHotspotResult;
     fUnresolvedUnits: THashSet<string>;
     class procedure AddReachableNodes(const aStartNodeName: string;
       const aAdjacency: TObjectDictionary<string, TList<string>>; const aVisited: THashSet<string>); static;
+    class procedure AddScore(const aScores: TDictionary<string, Integer>; const aKey: string; const aDelta: Integer); static;
     class function BuildAdjacency(const aEdges: TList<TDepsEdgeInfo>; const aEligibleNodes: THashSet<string>;
       const aReverse: Boolean): TObjectDictionary<string, TList<string>>; static;
-    class function BuildCycles(const aEdges: TList<TDepsEdgeInfo>;
-      const aNodes: TObjectDictionary<string, TDepsNodeInfo>): TList<string>; static;
     class function BuildRepresentativeCycle(const aRootName: string; const aComponent: TStringList;
       const aAdjacency: TObjectDictionary<string, TList<string>>): string; static;
     class function BuildEdgeKey(const aEdge: TDepsEdgeInfo): string; static;
@@ -74,6 +97,7 @@ type
     class function TryFindPathToTarget(const aCurrentName, aTargetName: string;
       const aAdjacency: TObjectDictionary<string, TList<string>>; const aEligibleNodes: THashSet<string>;
       const aPath: TList<string>; const aVisited: THashSet<string>): Boolean; static;
+    function BuildSccData: TDepsHotspotResult;
     function GetSortedEdgeList: TList<TDepsEdgeInfo>;
     function GetSortedNodeNames: TStringList;
     function GetSortedParserProblems: TList<TDepsParserProblemInfo>;
@@ -137,6 +161,56 @@ begin
   end;
 end;
 
+class procedure TDepsGraphBuilder.AddScore(const aScores: TDictionary<string, Integer>; const aKey: string;
+  const aDelta: Integer);
+var
+  lScore: Integer;
+begin
+  if not aScores.TryGetValue(aKey, lScore) then
+  begin
+    lScore := 0;
+  end;
+  aScores.AddOrSetValue(aKey, lScore + aDelta);
+end;
+
+constructor TDepsHotspotResult.Create;
+begin
+  inherited Create;
+  fCycles := TStringList.Create;
+  fCycleEdgeKeys := THashSet<string>.Create;
+  fEdgeRanks := TDictionary<string, Integer>.Create;
+  fEdgeSccIds := TDictionary<string, Integer>.Create;
+  fNodeSccIds := TDictionary<string, Integer>.Create;
+  fSccs := TObjectList<TDepsSccInfo>.Create(True);
+  fUnitScores := TDictionary<string, Integer>.Create;
+end;
+
+destructor TDepsHotspotResult.Destroy;
+begin
+  fUnitScores.Free;
+  fSccs.Free;
+  fNodeSccIds.Free;
+  fEdgeSccIds.Free;
+  fEdgeRanks.Free;
+  fCycleEdgeKeys.Free;
+  fCycles.Free;
+  inherited Destroy;
+end;
+
+constructor TDepsSccInfo.Create;
+begin
+  inherited Create;
+  fMembers := TStringList.Create;
+  fMembers.Sorted := True;
+  fMembers.Duplicates := dupIgnore;
+end;
+
+destructor TDepsSccInfo.Destroy;
+begin
+  fMembers.Free;
+  inherited Destroy;
+end;
+
 class function TDepsGraphBuilder.BuildAdjacency(const aEdges: TList<TDepsEdgeInfo>; const aEligibleNodes: THashSet<string>;
   const aReverse: Boolean): TObjectDictionary<string, TList<string>>;
 var
@@ -173,13 +247,17 @@ begin
   end;
 end;
 
-class function TDepsGraphBuilder.BuildCycles(const aEdges: TList<TDepsEdgeInfo>;
-  const aNodes: TObjectDictionary<string, TDepsNodeInfo>): TList<string>;
+function TDepsGraphBuilder.BuildSccData: TDepsHotspotResult;
 var
   lBackwardReachable: THashSet<string>;
   lComponent: TStringList;
-  lCycles: TList<string>;
+  lComponentInfo: TDepsSccInfo;
+  lComponentName: string;
+  lComponentSet: THashSet<string>;
   lEdge: TDepsEdgeInfo;
+  lEdgeKey: string;
+  lEdgeRank: Integer;
+  lEdgeScore: Integer;
   lEligibleNodes: THashSet<string>;
   lForwardAdjacency: TObjectDictionary<string, TList<string>>;
   lForwardReachable: THashSet<string>;
@@ -187,10 +265,12 @@ var
   lHasSelfLoop: Boolean;
   lNode: TDepsNodeInfo;
   lNodeList: TStringList;
+  lResult: TDepsHotspotResult;
   lRootName: string;
   lReverseAdjacency: TObjectDictionary<string, TList<string>>;
+  lUnitScore: Integer;
 begin
-  lCycles := TList<string>.Create;
+  lResult := TDepsHotspotResult.Create;
   lEligibleNodes := THashSet<string>.Create;
   lHandled := THashSet<string>.Create;
   lNodeList := TStringList.Create;
@@ -198,7 +278,7 @@ begin
     try
       lNodeList.Sorted := True;
       lNodeList.Duplicates := dupIgnore;
-      for lNode in aNodes.Values do
+      for lNode in fNodes.Values do
       begin
         if lNode.fIsProjectUnit and (lNode.fResolution = TDepsNodeResolution.dnrResolved) then
         begin
@@ -207,9 +287,9 @@ begin
         end;
       end;
 
-      lForwardAdjacency := BuildAdjacency(aEdges, lEligibleNodes, False);
+      lForwardAdjacency := BuildAdjacency(fEdges, lEligibleNodes, False);
       try
-        lReverseAdjacency := BuildAdjacency(aEdges, lEligibleNodes, True);
+        lReverseAdjacency := BuildAdjacency(fEdges, lEligibleNodes, True);
         try
           for lRootName in lNodeList do
           begin
@@ -226,7 +306,7 @@ begin
               lComponent.Duplicates := dupIgnore;
               AddReachableNodes(lRootName, lForwardAdjacency, lForwardReachable);
               AddReachableNodes(lRootName, lReverseAdjacency, lBackwardReachable);
-              for lNode in aNodes.Values do
+              for lNode in fNodes.Values do
               begin
                 if lForwardReachable.Contains(lNode.fName) and lBackwardReachable.Contains(lNode.fName) then
                 begin
@@ -237,7 +317,7 @@ begin
               lHasSelfLoop := False;
               if lComponent.Count = 1 then
               begin
-                for lEdge in aEdges do
+                for lEdge in fEdges do
                 begin
                   if SameText(lEdge.fFromName, lRootName) and SameText(lEdge.fToName, lRootName) then
                   begin
@@ -247,7 +327,7 @@ begin
                 end;
               end;
 
-              for lNode in aNodes.Values do
+              for lNode in fNodes.Values do
               begin
                 if lComponent.IndexOf(lNode.fName) >= 0 then
                 begin
@@ -255,12 +335,51 @@ begin
                 end;
               end;
 
-              if lHasSelfLoop then
+              if not lHasSelfLoop and (lComponent.Count <= 1) then
               begin
-                lCycles.Add(lRootName + ' -> ' + lRootName);
-              end else if lComponent.Count > 1 then
-              begin
-                lCycles.Add(BuildRepresentativeCycle(lRootName, lComponent, lForwardAdjacency));
+                Continue;
+              end;
+
+              lComponentInfo := TDepsSccInfo.Create;
+              try
+                lComponentInfo.fSccId := lResult.fSccs.Count + 1;
+                lComponentInfo.fMembers.AddStrings(lComponent);
+                if lHasSelfLoop then
+                begin
+                  lComponentInfo.fRepresentativeCycle := lRootName + ' -> ' + lRootName;
+                end else
+                begin
+                  lComponentInfo.fRepresentativeCycle := BuildRepresentativeCycle(lRootName, lComponent, lForwardAdjacency);
+                end;
+                lResult.fCycles.Add(lComponentInfo.fRepresentativeCycle);
+                lResult.fSccs.Add(lComponentInfo);
+                lComponentSet := THashSet<string>.Create;
+                try
+                  for lComponentName in lComponentInfo.fMembers do
+                  begin
+                    lComponentSet.Add(lComponentName);
+                    lResult.fNodeSccIds.Add(lComponentName, lComponentInfo.fSccId);
+                  end;
+
+                  for lEdge in fEdges do
+                  begin
+                    if not lComponentSet.Contains(lEdge.fFromName) or not lComponentSet.Contains(lEdge.fToName) then
+                    begin
+                      Continue;
+                    end;
+                    Inc(lComponentInfo.fInternalEdgeCount);
+                    AddScore(lResult.fUnitScores, lEdge.fFromName, 1);
+                    AddScore(lResult.fUnitScores, lEdge.fToName, 1);
+                    lEdgeKey := BuildEdgeKey(lEdge);
+                    lResult.fCycleEdgeKeys.Add(lEdgeKey);
+                    lResult.fEdgeSccIds.Add(lEdgeKey, lComponentInfo.fSccId);
+                  end;
+                finally
+                  lComponentSet.Free;
+                end;
+                lComponentInfo := nil;
+              finally
+                lComponentInfo.Free;
               end;
             finally
               lComponent.Free;
@@ -275,11 +394,29 @@ begin
         lForwardAdjacency.Free;
       end;
 
-      Result := lCycles;
+      for lEdge in fEdges do
+      begin
+        lEdgeKey := BuildEdgeKey(lEdge);
+        if not lResult.fCycleEdgeKeys.Contains(lEdgeKey) then
+        begin
+          Continue;
+        end;
+        lEdgeRank := 0;
+        if lResult.fUnitScores.TryGetValue(lEdge.fFromName, lUnitScore) then
+        begin
+          Inc(lEdgeRank, lUnitScore);
+        end;
+        if lResult.fUnitScores.TryGetValue(lEdge.fToName, lEdgeScore) then
+        begin
+          Inc(lEdgeRank, lEdgeScore);
+        end;
+        lResult.fEdgeRanks.Add(lEdgeKey, lEdgeRank);
+      end;
     except
-      lCycles.Free;
+      lResult.Free;
       raise;
     end;
+    Result := lResult;
   finally
     lNodeList.Free;
     lHandled.Free;
@@ -417,6 +554,7 @@ end;
 
 destructor TDepsGraphBuilder.Destroy;
 begin
+  fSccData.Free;
   fUnresolvedUnits.Free;
   fParserProblems.Free;
   fNodes.Free;
@@ -671,6 +809,7 @@ var
   lUsesNode: TSyntaxNode;
   lProblemInfo: TDepsParserProblemInfo;
 begin
+  FreeAndNil(fSccData);
   lIndexer := TProjectIndexer.Create;
   try
     lIndexer.Defines := fContext.fParserDefines;
@@ -726,13 +865,24 @@ begin
   finally
     lIndexer.Free;
   end;
+  fSccData := BuildSccData;
 end;
 
 function TDepsGraphBuilder.RenderJson: string;
 var
-  lCycleList: TList<string>;
+  lCycleComponentJson: TJSONObject;
+  lCycleComponents: TJSONArray;
+  lCycleComponentValue: TDepsSccInfo;
+  lCycleText: string;
   lCyclesJson: TJSONArray;
   lEdge: TDepsEdgeInfo;
+  lEdgeIsCycleEdge: Boolean;
+  lEdgeHotspotEdge: TDepsEdgeInfo;
+  lEdgeHotspotJson: TJSONArray;
+  lEdgeHotspotList: TList<TDepsEdgeInfo>;
+  lEdgeKey: string;
+  lEdgeRank: Integer;
+  lEdgeSccId: Integer;
   lEdgeList: TList<TDepsEdgeInfo>;
   lEdges: TJSONArray;
   lNode: TDepsNodeInfo;
@@ -744,8 +894,16 @@ var
   lParserProblems: TJSONArray;
   lProjectJson: TJSONObject;
   lResolvedCount: Integer;
+  lRefactorabilityHint: string;
   lRoot: TJSONObject;
+  lSccId: Integer;
+  lSccList: TList<TDepsSccInfo>;
   lSummary: TJSONObject;
+  lUnitInCycle: Boolean;
+  lUnitHotspotJson: TJSONArray;
+  lUnitHotspotNames: TList<string>;
+  lUnitName: string;
+  lUnitScore: Integer;
   lUnresolvedJson: TJSONArray;
   lUnresolvedUnits: TStringList;
 begin
@@ -783,15 +941,44 @@ begin
     lRoot.AddPair('nodes', lNodes);
     lNodeNames := GetSortedNodeNames;
     try
-      for var lNodeName in lNodeNames do
+      for lUnitName in lNodeNames do
       begin
-        lNode := fNodes.Items[lNodeName];
+        lNode := fNodes.Items[lUnitName];
         lNodeJson := TJSONObject.Create;
         lNodeJson.AddPair('name', lNode.fName);
         if lNode.fPath <> '' then
+        begin
           lNodeJson.AddPair('path', lNode.fPath);
+        end;
         lNodeJson.AddPair('isProjectUnit', TJSONBool.Create(lNode.fIsProjectUnit));
         lNodeJson.AddPair('resolution', ResolutionToText(lNode.fResolution));
+        lUnitInCycle := False;
+        if Assigned(fSccData) then
+        begin
+          lUnitInCycle := fSccData.fUnitScores.TryGetValue(lNode.fName, lUnitScore);
+        end;
+        if lUnitInCycle then
+        begin
+          lNodeJson.AddPair('unitCycleScore', TJSONNumber.Create(lUnitScore));
+        end else
+        begin
+          lNodeJson.AddPair('unitCycleScore', TJSONNumber.Create(0));
+        end;
+        lSccId := 0;
+        if Assigned(fSccData) then
+        begin
+          lUnitInCycle := fSccData.fNodeSccIds.TryGetValue(lNode.fName, lSccId);
+        end else
+        begin
+          lUnitInCycle := False;
+        end;
+        if lUnitInCycle then
+        begin
+          lNodeJson.AddPair('sccId', TJSONNumber.Create(lSccId));
+        end else
+        begin
+          lNodeJson.AddPair('sccId', TJSONNull.Create);
+        end;
         lNodes.AddElement(lNodeJson);
       end;
     finally
@@ -804,10 +991,17 @@ begin
     try
       for lEdge in lEdgeList do
       begin
+        lEdgeKey := BuildEdgeKey(lEdge);
+        lEdgeIsCycleEdge := False;
+        if Assigned(fSccData) then
+        begin
+          lEdgeIsCycleEdge := fSccData.fCycleEdgeKeys.Contains(lEdgeKey);
+        end;
         lEdges.AddElement(TJSONObject.Create
           .AddPair('from', lEdge.fFromName)
           .AddPair('to', lEdge.fToName)
-          .AddPair('edgeKind', EdgeKindToText(lEdge.fEdgeKind)));
+          .AddPair('edgeKind', EdgeKindToText(lEdge.fEdgeKind))
+          .AddPair('isCycleEdge', TJSONBool.Create(lEdgeIsCycleEdge)));
       end;
     finally
       lEdgeList.Free;
@@ -817,7 +1011,7 @@ begin
     lRoot.AddPair('unresolvedUnits', lUnresolvedJson);
     lUnresolvedUnits := GetSortedUnresolvedUnits;
     try
-      for var lUnitName in lUnresolvedUnits do
+      for lUnitName in lUnresolvedUnits do
       begin
         lUnresolvedJson.AddElement(TJSONString.Create(lUnitName));
       end;
@@ -840,16 +1034,168 @@ begin
       lParserProblemList.Free;
     end;
 
-    lCyclesJson := TJSONArray.Create;
-    lRoot.AddPair('cycles', lCyclesJson);
-    lCycleList := BuildCycles(fEdges, fNodes);
+    lSccList := TList<TDepsSccInfo>.Create;
     try
-      for var lCycleText in lCycleList do
+      if Assigned(fSccData) then
       begin
-        lCyclesJson.AddElement(TJSONString.Create(lCycleText));
+        for lCycleComponentValue in fSccData.fSccs do
+        begin
+          lSccList.Add(lCycleComponentValue);
+        end;
+        lSccList.Sort(TComparer<TDepsSccInfo>.Construct(
+          function(const aLeft, aRight: TDepsSccInfo): Integer
+          begin
+            Result := aRight.fMembers.Count - aLeft.fMembers.Count;
+            if Result <> 0 then
+            begin
+              Exit;
+            end;
+            Result := aLeft.fSccId - aRight.fSccId;
+          end));
+      end;
+
+      lCyclesJson := TJSONArray.Create;
+      lRoot.AddPair('cycles', lCyclesJson);
+      for lCycleComponentValue in lSccList do
+      begin
+        lCyclesJson.AddElement(TJSONString.Create(lCycleComponentValue.fRepresentativeCycle));
+      end;
+
+      lCycleComponents := TJSONArray.Create;
+      lRoot.AddPair('cycleComponents', lCycleComponents);
+      for lCycleComponentValue in lSccList do
+      begin
+        lCycleComponentJson := TJSONObject.Create;
+        lCycleComponentJson.AddPair('sccId', TJSONNumber.Create(lCycleComponentValue.fSccId));
+        lCycleComponentJson.AddPair('sccSize', TJSONNumber.Create(lCycleComponentValue.fMembers.Count));
+        lCycleComponentJson.AddPair('sccInternalEdgeCount', TJSONNumber.Create(lCycleComponentValue.fInternalEdgeCount));
+        lCyclesJson := TJSONArray.Create;
+        lCycleComponentJson.AddPair('members', lCyclesJson);
+        for lUnitName in lCycleComponentValue.fMembers do
+        begin
+          lCyclesJson.AddElement(TJSONString.Create(lUnitName));
+        end;
+        lCycleComponentJson.AddPair('representativeCycle', lCycleComponentValue.fRepresentativeCycle);
+        lCycleComponents.AddElement(lCycleComponentJson);
       end;
     finally
-      lCycleList.Free;
+      lSccList.Free;
+    end;
+
+    lUnitHotspotJson := TJSONArray.Create;
+    lRoot.AddPair('unitHotspots', lUnitHotspotJson);
+    if Assigned(fSccData) then
+    begin
+      lUnitHotspotNames := TList<string>.Create;
+      try
+        for lUnitName in fSccData.fUnitScores.Keys do
+        begin
+          lUnitHotspotNames.Add(lUnitName);
+        end;
+        lUnitHotspotNames.Sort(TComparer<string>.Construct(
+          function(const aLeft, aRight: string): Integer
+          var
+            lLeftScore: Integer;
+            lRightScore: Integer;
+          begin
+            lLeftScore := fSccData.fUnitScores.Items[aLeft];
+            lRightScore := fSccData.fUnitScores.Items[aRight];
+            Result := lRightScore - lLeftScore;
+            if Result <> 0 then
+            begin
+              Exit;
+            end;
+            Result := CompareText(aLeft, aRight);
+          end));
+        for lUnitName in lUnitHotspotNames do
+        begin
+          lUnitScore := fSccData.fUnitScores.Items[lUnitName];
+          lSccId := fSccData.fNodeSccIds.Items[lUnitName];
+          lUnitHotspotJson.AddElement(TJSONObject.Create
+            .AddPair('name', lUnitName)
+            .AddPair('unitCycleScore', TJSONNumber.Create(lUnitScore))
+            .AddPair('sccId', TJSONNumber.Create(lSccId)));
+        end;
+      finally
+        lUnitHotspotNames.Free;
+      end;
+    end;
+
+    lEdgeHotspotJson := TJSONArray.Create;
+    lRoot.AddPair('edgeHotspots', lEdgeHotspotJson);
+    if Assigned(fSccData) then
+    begin
+      lEdgeHotspotList := TList<TDepsEdgeInfo>.Create;
+      try
+        for lEdge in fEdges do
+        begin
+          lEdgeKey := BuildEdgeKey(lEdge);
+          if fSccData.fEdgeRanks.ContainsKey(lEdgeKey) then
+          begin
+            lEdgeHotspotList.Add(lEdge);
+          end;
+        end;
+        lEdgeHotspotList.Sort(TComparer<TDepsEdgeInfo>.Construct(
+          function(const aLeft, aRight: TDepsEdgeInfo): Integer
+          var
+            lLeftKey: string;
+            lRightKey: string;
+          begin
+            lLeftKey := BuildEdgeKey(aLeft);
+            lRightKey := BuildEdgeKey(aRight);
+            Result := fSccData.fEdgeRanks.Items[lRightKey] - fSccData.fEdgeRanks.Items[lLeftKey];
+            if Result <> 0 then
+            begin
+              Exit;
+            end;
+            if aLeft.fEdgeKind = aRight.fEdgeKind then
+            begin
+              Result := 0;
+            end else if aLeft.fEdgeKind = TDepsEdgeKind.dekImplementation then
+            begin
+              Result := -1;
+            end else if aRight.fEdgeKind = TDepsEdgeKind.dekImplementation then
+            begin
+              Result := 1;
+            end else
+            begin
+              Result := Ord(aLeft.fEdgeKind) - Ord(aRight.fEdgeKind);
+            end;
+            if Result <> 0 then
+            begin
+              Exit;
+            end;
+            Result := CompareText(aLeft.fFromName, aRight.fFromName);
+            if Result <> 0 then
+            begin
+              Exit;
+            end;
+            Result := CompareText(aLeft.fToName, aRight.fToName);
+          end));
+        for lEdgeHotspotEdge in lEdgeHotspotList do
+        begin
+          lEdgeKey := BuildEdgeKey(lEdgeHotspotEdge);
+          lEdgeRank := fSccData.fEdgeRanks.Items[lEdgeKey];
+          lEdgeSccId := fSccData.fEdgeSccIds.Items[lEdgeKey];
+          case lEdgeHotspotEdge.fEdgeKind of
+            TDepsEdgeKind.dekImplementation:
+              lRefactorabilityHint := 'easier';
+            TDepsEdgeKind.dekInterface:
+              lRefactorabilityHint := 'harder';
+          else
+            lRefactorabilityHint := 'neutral';
+          end;
+          lEdgeHotspotJson.AddElement(TJSONObject.Create
+            .AddPair('from', lEdgeHotspotEdge.fFromName)
+            .AddPair('to', lEdgeHotspotEdge.fToName)
+            .AddPair('edgeKind', EdgeKindToText(lEdgeHotspotEdge.fEdgeKind))
+            .AddPair('edgeHotspotRank', TJSONNumber.Create(lEdgeRank))
+            .AddPair('refactorabilityHint', lRefactorabilityHint)
+            .AddPair('sccId', TJSONNumber.Create(lEdgeSccId)));
+        end;
+      finally
+        lEdgeHotspotList.Free;
+      end;
     end;
 
     Result := lRoot.Format(2);
@@ -861,13 +1207,15 @@ end;
 function TDepsGraphBuilder.RenderText(const aFocusUnitName: string): string;
 var
   lBuilder: TStringBuilder;
-  lCycleList: TList<string>;
+  lCycleText: string;
   lEdge: TDepsEdgeInfo;
   lEdgeList: TList<TDepsEdgeInfo>;
   lNode: TDepsNodeInfo;
+  lNodeName: string;
   lNodeNames: TStringList;
   lParserProblem: TDepsParserProblemInfo;
   lParserProblemList: TList<TDepsParserProblemInfo>;
+  lUnitName: string;
   lUnresolvedUnits: TStringList;
 begin
   lBuilder := TStringBuilder.Create;
@@ -885,7 +1233,7 @@ begin
       if lUnresolvedUnits.Count > 0 then
       begin
         lBuilder.AppendLine('Unresolved units:');
-        for var lUnitName in lUnresolvedUnits do
+        for lUnitName in lUnresolvedUnits do
         begin
           if not IsFrameworkUnitName(lUnitName) then
           begin
@@ -912,68 +1260,69 @@ begin
       lParserProblemList.Free;
     end;
 
-    lCycleList := BuildCycles(fEdges, fNodes);
-    try
-      if lCycleList.Count > 0 then
+    if Assigned(fSccData) then
+    begin
+      if fSccData.fCycles.Count > 0 then
       begin
         lBuilder.AppendLine('Cycles:');
-        for var lCycleText in lCycleList do
+        for lCycleText in fSccData.fCycles do
         begin
           lBuilder.AppendLine('  - ' + lCycleText);
         end;
       end;
+    end;
 
-      if aFocusUnitName <> '' then
+    if aFocusUnitName <> '' then
+    begin
+      lBuilder.AppendLine('Focus unit: ' + aFocusUnitName);
+      if fNodes.TryGetValue(aFocusUnitName, lNode) then
       begin
-        lBuilder.AppendLine('Focus unit: ' + aFocusUnitName);
-        if fNodes.TryGetValue(aFocusUnitName, lNode) then
+        lBuilder.AppendLine('  Resolution: ' + ResolutionToText(lNode.fResolution));
+        if lNode.fPath <> '' then
         begin
-          lBuilder.AppendLine('  Resolution: ' + ResolutionToText(lNode.fResolution));
-          if lNode.fPath <> '' then
+          lBuilder.AppendLine('  Path: ' + lNode.fPath);
+        end;
+      end;
+      lBuilder.AppendLine('  Outgoing:');
+      lEdgeList := GetSortedEdgeList;
+      try
+        for lEdge in lEdgeList do
+        begin
+          if SameText(lEdge.fFromName, aFocusUnitName) then
           begin
-            lBuilder.AppendLine('  Path: ' + lNode.fPath);
+            lBuilder.AppendLine(Format('    %s -> %s [%s]',
+              [lEdge.fFromName, lEdge.fToName, EdgeKindToText(lEdge.fEdgeKind)]));
           end;
         end;
-        lBuilder.AppendLine('  Outgoing:');
-        lEdgeList := GetSortedEdgeList;
-        try
-          for lEdge in lEdgeList do
-          begin
-            if SameText(lEdge.fFromName, aFocusUnitName) then
-            begin
-              lBuilder.AppendLine(Format('    %s -> %s [%s]',
-                [lEdge.fFromName, lEdge.fToName, EdgeKindToText(lEdge.fEdgeKind)]));
-            end;
-          end;
-        finally
-          lEdgeList.Free;
-        end;
-        for var lCycleText in lCycleList do
+      finally
+        lEdgeList.Free;
+      end;
+      if Assigned(fSccData) then
+      begin
+        for lCycleText in fSccData.fCycles do
         begin
           if CycleContainsUnit(lCycleText, aFocusUnitName) then
           begin
             lBuilder.AppendLine('  Cycle component: ' + lCycleText);
           end;
         end;
-      end else
-      begin
-        lBuilder.AppendLine('Resolved project units:');
-        lNodeNames := GetSortedNodeNames;
-        try
-          for var lNodeName in lNodeNames do
-          begin
-            lNode := fNodes.Items[lNodeName];
-            if lNode.fIsProjectUnit and (lNode.fResolution = TDepsNodeResolution.dnrResolved) then
-            begin
-              lBuilder.AppendLine('  - ' + lNode.fName);
-            end;
-          end;
-        finally
-          lNodeNames.Free;
-        end;
       end;
-    finally
-      lCycleList.Free;
+    end else
+    begin
+      lBuilder.AppendLine('Resolved project units:');
+      lNodeNames := GetSortedNodeNames;
+      try
+        for lNodeName in lNodeNames do
+        begin
+          lNode := fNodes.Items[lNodeName];
+          if lNode.fIsProjectUnit and (lNode.fResolution = TDepsNodeResolution.dnrResolved) then
+          begin
+            lBuilder.AppendLine('  - ' + lNode.fName);
+          end;
+        end;
+      finally
+        lNodeNames.Free;
+      end;
     end;
 
     Result := TrimRight(lBuilder.ToString);
