@@ -121,7 +121,8 @@ var
       SameText(aSwitch, 'pa-output') or SameText(aSwitch, 'pa-args') or
       SameText(aSwitch, 'target') or SameText(aSwitch, 'max-findings') or
       SameText(aSwitch, 'build-timeout-sec') or SameText(aSwitch, 'test-output-dir') or
-      SameText(aSwitch, 'ignore-warnings') or SameText(aSwitch, 'ignore-hints');
+      SameText(aSwitch, 'ignore-warnings') or SameText(aSwitch, 'ignore-hints') or
+      SameText(aSwitch, 'top');
   end;
 
   function SwitchAllowsBoolValue(const aSwitch: string): Boolean;
@@ -317,6 +318,7 @@ begin
   fOptions.fSourceContextLines := 2;
   fOptions.fDfmInspectFormat := 'tree';
   fOptions.fDepsFormat := TDepsFormat.dfJson;
+  fOptions.fDepsTopLimit := 20;
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
   fOptions.fGlobalVarsUnusedOnly := False;
@@ -1138,6 +1140,19 @@ begin
       Exit(False);
     fOptions.fDepsUnitName := lValue;
     fOptions.fHasDepsUnitName := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'top') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--top') then
+      Exit(False);
+    fOptions.fDepsTopLimit := StrToIntDef(lValue, -1);
+    if fOptions.fDepsTopLimit < 0 then
+    begin
+      fError := Format(SDepsInvalidTopLimit, [lValue]);
+      Exit(False);
+    end;
     Exit(True);
   end;
 

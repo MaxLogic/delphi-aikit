@@ -90,10 +90,15 @@ type
     class procedure CollectUsesEdges(const aOwnerName: string; const aUsesNode: TSyntaxNode;
       aEdgeKind: TDepsEdgeKind; const aEdges: TList<TDepsEdgeInfo>; const aEdgeKeys: THashSet<string>); static;
     class function CycleContainsUnit(const aCycleText, aUnitName: string): Boolean; static;
+    class function EdgeHotspotSortRank(aEdgeKind: TDepsEdgeKind): Integer; static;
+    class function EdgeRefactorabilityHint(aEdgeKind: TDepsEdgeKind): string; static;
     class function EdgeKindToText(aEdgeKind: TDepsEdgeKind): string; static;
     class function ExtractUnitNameFromFileName(const aFileName: string): string; static;
     class function FindFirstChildNode(const aNode: TSyntaxNode; aNodeType: TSyntaxNodeType): TSyntaxNode; static;
+    function GetSortedCycleComponents: TList<TDepsSccInfo>;
     class function IsFrameworkUnitName(const aUnitName: string): Boolean; static;
+    function GetSortedHotspotEdges: TList<TDepsEdgeInfo>;
+    function GetSortedHotspotUnitNames: TList<string>;
     class function TryFindPathToTarget(const aCurrentName, aTargetName: string;
       const aAdjacency: TObjectDictionary<string, TList<string>>; const aEligibleNodes: THashSet<string>;
       const aPath: TList<string>; const aVisited: THashSet<string>): Boolean; static;
@@ -111,7 +116,7 @@ type
     procedure Build;
     function DefaultOutputPath(aFormat: TDepsFormat): string;
     function RenderJson: string;
-    function RenderText(const aFocusUnitName: string): string;
+    function RenderText(const aFocusUnitName: string; aTopLimit: Integer): string;
   end;
 
   TDepsCommandRunner = class
@@ -533,6 +538,30 @@ begin
   Result := False;
 end;
 
+class function TDepsGraphBuilder.EdgeHotspotSortRank(aEdgeKind: TDepsEdgeKind): Integer;
+begin
+  case aEdgeKind of
+    TDepsEdgeKind.dekImplementation:
+      Result := 0;
+    TDepsEdgeKind.dekInterface:
+      Result := 1;
+  else
+    Result := 10 + Ord(aEdgeKind);
+  end;
+end;
+
+class function TDepsGraphBuilder.EdgeRefactorabilityHint(aEdgeKind: TDepsEdgeKind): string;
+begin
+  case aEdgeKind of
+    TDepsEdgeKind.dekImplementation:
+      Result := 'easier';
+    TDepsEdgeKind.dekInterface:
+      Result := 'harder';
+  else
+    Result := 'neutral';
+  end;
+end;
+
 constructor TDepsGraphBuilder.Create(const aContext: TProjectAnalysisContext);
 begin
   inherited Create;
@@ -575,6 +604,31 @@ begin
   else
     Result := 'implementation';
   end;
+end;
+
+function TDepsGraphBuilder.GetSortedCycleComponents: TList<TDepsSccInfo>;
+var
+  lSccInfo: TDepsSccInfo;
+begin
+  Result := TList<TDepsSccInfo>.Create;
+  if not Assigned(fSccData) then
+  begin
+    Exit;
+  end;
+  for lSccInfo in fSccData.fSccs do
+  begin
+    Result.Add(lSccInfo);
+  end;
+  Result.Sort(TComparer<TDepsSccInfo>.Construct(
+    function(const aLeft, aRight: TDepsSccInfo): Integer
+    begin
+      Result := aRight.fMembers.Count - aLeft.fMembers.Count;
+      if Result <> 0 then
+      begin
+        Exit;
+      end;
+      Result := aLeft.fSccId - aRight.fSccId;
+    end));
 end;
 
 class function TDepsGraphBuilder.ExtractUnitNameFromFileName(const aFileName: string): string;
@@ -707,6 +761,81 @@ begin
   begin
     Result.Add(lNodeName);
   end;
+end;
+
+function TDepsGraphBuilder.GetSortedHotspotEdges: TList<TDepsEdgeInfo>;
+var
+  lEdge: TDepsEdgeInfo;
+  lEdgeKey: string;
+begin
+  Result := TList<TDepsEdgeInfo>.Create;
+  if not Assigned(fSccData) then
+  begin
+    Exit;
+  end;
+  for lEdge in fEdges do
+  begin
+    lEdgeKey := BuildEdgeKey(lEdge);
+    if fSccData.fEdgeRanks.ContainsKey(lEdgeKey) then
+    begin
+      Result.Add(lEdge);
+    end;
+  end;
+  Result.Sort(TComparer<TDepsEdgeInfo>.Construct(
+    function(const aLeft, aRight: TDepsEdgeInfo): Integer
+    var
+      lLeftKey: string;
+      lRightKey: string;
+    begin
+      lLeftKey := BuildEdgeKey(aLeft);
+      lRightKey := BuildEdgeKey(aRight);
+      Result := fSccData.fEdgeRanks.Items[lRightKey] - fSccData.fEdgeRanks.Items[lLeftKey];
+      if Result <> 0 then
+      begin
+        Exit;
+      end;
+      Result := EdgeHotspotSortRank(aLeft.fEdgeKind) - EdgeHotspotSortRank(aRight.fEdgeKind);
+      if Result <> 0 then
+      begin
+        Exit;
+      end;
+      Result := CompareText(aLeft.fFromName, aRight.fFromName);
+      if Result <> 0 then
+      begin
+        Exit;
+      end;
+      Result := CompareText(aLeft.fToName, aRight.fToName);
+    end));
+end;
+
+function TDepsGraphBuilder.GetSortedHotspotUnitNames: TList<string>;
+var
+  lUnitName: string;
+begin
+  Result := TList<string>.Create;
+  if not Assigned(fSccData) then
+  begin
+    Exit;
+  end;
+  for lUnitName in fSccData.fUnitScores.Keys do
+  begin
+    Result.Add(lUnitName);
+  end;
+  Result.Sort(TComparer<string>.Construct(
+    function(const aLeft, aRight: string): Integer
+    var
+      lLeftScore: Integer;
+      lRightScore: Integer;
+    begin
+      lLeftScore := fSccData.fUnitScores.Items[aLeft];
+      lRightScore := fSccData.fUnitScores.Items[aRight];
+      Result := lRightScore - lLeftScore;
+      if Result <> 0 then
+      begin
+        Exit;
+      end;
+      Result := CompareText(aLeft, aRight);
+    end));
 end;
 
 function TDepsGraphBuilder.GetSortedParserProblems: TList<TDepsParserProblemInfo>;
@@ -1034,26 +1163,8 @@ begin
       lParserProblemList.Free;
     end;
 
-    lSccList := TList<TDepsSccInfo>.Create;
+    lSccList := GetSortedCycleComponents;
     try
-      if Assigned(fSccData) then
-      begin
-        for lCycleComponentValue in fSccData.fSccs do
-        begin
-          lSccList.Add(lCycleComponentValue);
-        end;
-        lSccList.Sort(TComparer<TDepsSccInfo>.Construct(
-          function(const aLeft, aRight: TDepsSccInfo): Integer
-          begin
-            Result := aRight.fMembers.Count - aLeft.fMembers.Count;
-            if Result <> 0 then
-            begin
-              Exit;
-            end;
-            Result := aLeft.fSccId - aRight.fSccId;
-          end));
-      end;
-
       lCyclesJson := TJSONArray.Create;
       lRoot.AddPair('cycles', lCyclesJson);
       for lCycleComponentValue in lSccList do
@@ -1084,118 +1195,41 @@ begin
 
     lUnitHotspotJson := TJSONArray.Create;
     lRoot.AddPair('unitHotspots', lUnitHotspotJson);
-    if Assigned(fSccData) then
-    begin
-      lUnitHotspotNames := TList<string>.Create;
-      try
-        for lUnitName in fSccData.fUnitScores.Keys do
-        begin
-          lUnitHotspotNames.Add(lUnitName);
-        end;
-        lUnitHotspotNames.Sort(TComparer<string>.Construct(
-          function(const aLeft, aRight: string): Integer
-          var
-            lLeftScore: Integer;
-            lRightScore: Integer;
-          begin
-            lLeftScore := fSccData.fUnitScores.Items[aLeft];
-            lRightScore := fSccData.fUnitScores.Items[aRight];
-            Result := lRightScore - lLeftScore;
-            if Result <> 0 then
-            begin
-              Exit;
-            end;
-            Result := CompareText(aLeft, aRight);
-          end));
-        for lUnitName in lUnitHotspotNames do
-        begin
-          lUnitScore := fSccData.fUnitScores.Items[lUnitName];
-          lSccId := fSccData.fNodeSccIds.Items[lUnitName];
-          lUnitHotspotJson.AddElement(TJSONObject.Create
-            .AddPair('name', lUnitName)
-            .AddPair('unitCycleScore', TJSONNumber.Create(lUnitScore))
-            .AddPair('sccId', TJSONNumber.Create(lSccId)));
-        end;
-      finally
-        lUnitHotspotNames.Free;
+    lUnitHotspotNames := GetSortedHotspotUnitNames;
+    try
+      for lUnitName in lUnitHotspotNames do
+      begin
+        lUnitScore := fSccData.fUnitScores.Items[lUnitName];
+        lSccId := fSccData.fNodeSccIds.Items[lUnitName];
+        lUnitHotspotJson.AddElement(TJSONObject.Create
+          .AddPair('name', lUnitName)
+          .AddPair('unitCycleScore', TJSONNumber.Create(lUnitScore))
+          .AddPair('sccId', TJSONNumber.Create(lSccId)));
       end;
+    finally
+      lUnitHotspotNames.Free;
     end;
 
     lEdgeHotspotJson := TJSONArray.Create;
     lRoot.AddPair('edgeHotspots', lEdgeHotspotJson);
-    if Assigned(fSccData) then
-    begin
-      lEdgeHotspotList := TList<TDepsEdgeInfo>.Create;
-      try
-        for lEdge in fEdges do
-        begin
-          lEdgeKey := BuildEdgeKey(lEdge);
-          if fSccData.fEdgeRanks.ContainsKey(lEdgeKey) then
-          begin
-            lEdgeHotspotList.Add(lEdge);
-          end;
-        end;
-        lEdgeHotspotList.Sort(TComparer<TDepsEdgeInfo>.Construct(
-          function(const aLeft, aRight: TDepsEdgeInfo): Integer
-          var
-            lLeftKey: string;
-            lRightKey: string;
-          begin
-            lLeftKey := BuildEdgeKey(aLeft);
-            lRightKey := BuildEdgeKey(aRight);
-            Result := fSccData.fEdgeRanks.Items[lRightKey] - fSccData.fEdgeRanks.Items[lLeftKey];
-            if Result <> 0 then
-            begin
-              Exit;
-            end;
-            if aLeft.fEdgeKind = aRight.fEdgeKind then
-            begin
-              Result := 0;
-            end else if aLeft.fEdgeKind = TDepsEdgeKind.dekImplementation then
-            begin
-              Result := -1;
-            end else if aRight.fEdgeKind = TDepsEdgeKind.dekImplementation then
-            begin
-              Result := 1;
-            end else
-            begin
-              Result := Ord(aLeft.fEdgeKind) - Ord(aRight.fEdgeKind);
-            end;
-            if Result <> 0 then
-            begin
-              Exit;
-            end;
-            Result := CompareText(aLeft.fFromName, aRight.fFromName);
-            if Result <> 0 then
-            begin
-              Exit;
-            end;
-            Result := CompareText(aLeft.fToName, aRight.fToName);
-          end));
-        for lEdgeHotspotEdge in lEdgeHotspotList do
-        begin
-          lEdgeKey := BuildEdgeKey(lEdgeHotspotEdge);
-          lEdgeRank := fSccData.fEdgeRanks.Items[lEdgeKey];
-          lEdgeSccId := fSccData.fEdgeSccIds.Items[lEdgeKey];
-          case lEdgeHotspotEdge.fEdgeKind of
-            TDepsEdgeKind.dekImplementation:
-              lRefactorabilityHint := 'easier';
-            TDepsEdgeKind.dekInterface:
-              lRefactorabilityHint := 'harder';
-          else
-            lRefactorabilityHint := 'neutral';
-          end;
-          lEdgeHotspotJson.AddElement(TJSONObject.Create
-            .AddPair('from', lEdgeHotspotEdge.fFromName)
-            .AddPair('to', lEdgeHotspotEdge.fToName)
-            .AddPair('edgeKind', EdgeKindToText(lEdgeHotspotEdge.fEdgeKind))
-            .AddPair('edgeHotspotRank', TJSONNumber.Create(lEdgeRank))
-            .AddPair('refactorabilityHint', lRefactorabilityHint)
-            .AddPair('sccId', TJSONNumber.Create(lEdgeSccId)));
-        end;
-      finally
-        lEdgeHotspotList.Free;
+    lEdgeHotspotList := GetSortedHotspotEdges;
+    try
+      for lEdgeHotspotEdge in lEdgeHotspotList do
+      begin
+        lEdgeKey := BuildEdgeKey(lEdgeHotspotEdge);
+        lEdgeRank := fSccData.fEdgeRanks.Items[lEdgeKey];
+        lEdgeSccId := fSccData.fEdgeSccIds.Items[lEdgeKey];
+        lRefactorabilityHint := EdgeRefactorabilityHint(lEdgeHotspotEdge.fEdgeKind);
+        lEdgeHotspotJson.AddElement(TJSONObject.Create
+          .AddPair('from', lEdgeHotspotEdge.fFromName)
+          .AddPair('to', lEdgeHotspotEdge.fToName)
+          .AddPair('edgeKind', EdgeKindToText(lEdgeHotspotEdge.fEdgeKind))
+          .AddPair('edgeHotspotRank', TJSONNumber.Create(lEdgeRank))
+          .AddPair('refactorabilityHint', lRefactorabilityHint)
+          .AddPair('sccId', TJSONNumber.Create(lEdgeSccId)));
       end;
+    finally
+      lEdgeHotspotList.Free;
     end;
 
     Result := lRoot.Format(2);
@@ -1204,20 +1238,32 @@ begin
   end;
 end;
 
-function TDepsGraphBuilder.RenderText(const aFocusUnitName: string): string;
+function TDepsGraphBuilder.RenderText(const aFocusUnitName: string; aTopLimit: Integer): string;
 var
   lBuilder: TStringBuilder;
+  lCycleComponents: TList<TDepsSccInfo>;
   lCycleText: string;
   lEdge: TDepsEdgeInfo;
   lEdgeList: TList<TDepsEdgeInfo>;
+  lHotspotEdges: TList<TDepsEdgeInfo>;
+  lHotspotUnits: TList<string>;
+  lHintLabel: string;
+  lLimitCount: Integer;
   lNode: TDepsNodeInfo;
   lNodeName: string;
   lNodeNames: TStringList;
   lParserProblem: TDepsParserProblemInfo;
   lParserProblemList: TList<TDepsParserProblemInfo>;
+  lRank: Integer;
   lUnitName: string;
+  lUnitScore: Integer;
   lUnresolvedUnits: TStringList;
 begin
+  if aTopLimit < 0 then
+  begin
+    aTopLimit := 0;
+  end;
+
   lBuilder := TStringBuilder.Create;
   try
     lBuilder.AppendLine('Project: ' + fContext.fProjectName);
@@ -1226,6 +1272,80 @@ begin
     if fContext.fContextNote <> '' then
     begin
       lBuilder.AppendLine('Context: ' + fContext.fContextNote);
+    end;
+
+    lCycleComponents := GetSortedCycleComponents;
+    try
+      lBuilder.AppendLine(Format('Cycle components (%d):', [lCycleComponents.Count]));
+      for var lSccInfo in lCycleComponents do
+      begin
+        lBuilder.AppendLine(Format('  SCC #%d  members=%d  internalEdges=%d',
+          [lSccInfo.fSccId, lSccInfo.fMembers.Count, lSccInfo.fInternalEdgeCount]));
+        lBuilder.AppendLine('    Representative cycle: ' + lSccInfo.fRepresentativeCycle);
+        lBuilder.AppendLine('    Members: ' + String.Join(', ', lSccInfo.fMembers.ToStringArray));
+      end;
+    finally
+      lCycleComponents.Free;
+    end;
+
+    if aTopLimit = 0 then
+    begin
+      lBuilder.AppendLine('Top cycle units (all):');
+    end else
+    begin
+      lBuilder.AppendLine(Format('Top cycle units (up to %d):', [aTopLimit]));
+    end;
+    lHotspotUnits := GetSortedHotspotUnitNames;
+    try
+      lLimitCount := lHotspotUnits.Count;
+      if (aTopLimit > 0) and (lLimitCount > aTopLimit) then
+      begin
+        lLimitCount := aTopLimit;
+      end;
+      for lRank := 0 to lLimitCount - 1 do
+      begin
+        lUnitName := lHotspotUnits[lRank];
+        lUnitScore := fSccData.fUnitScores.Items[lUnitName];
+        lBuilder.AppendLine(Format('  %d. %s  score=%d  scc=#%d',
+          [lRank + 1, lUnitName, lUnitScore, fSccData.fNodeSccIds.Items[lUnitName]]));
+      end;
+    finally
+      lHotspotUnits.Free;
+    end;
+
+    if aTopLimit = 0 then
+    begin
+      lBuilder.AppendLine('Top cycle edges (all):');
+    end else
+    begin
+      lBuilder.AppendLine(Format('Top cycle edges (up to %d):', [aTopLimit]));
+    end;
+    lHotspotEdges := GetSortedHotspotEdges;
+    try
+      lLimitCount := lHotspotEdges.Count;
+      if (aTopLimit > 0) and (lLimitCount > aTopLimit) then
+      begin
+        lLimitCount := aTopLimit;
+      end;
+      for lRank := 0 to lLimitCount - 1 do
+      begin
+        lEdge := lHotspotEdges[lRank];
+        if EdgeRefactorabilityHint(lEdge.fEdgeKind) = 'easier' then
+        begin
+          lHintLabel := 'preferred-cut';
+        end else if EdgeRefactorabilityHint(lEdge.fEdgeKind) = 'harder' then
+        begin
+          lHintLabel := 'harder-cut';
+        end else
+        begin
+          lHintLabel := 'neutral-cut';
+        end;
+        lBuilder.AppendLine(Format('  %d. %s -> %s [%s] rank=%d scc=#%d %s',
+          [lRank + 1, lEdge.fFromName, lEdge.fToName, EdgeKindToText(lEdge.fEdgeKind),
+            fSccData.fEdgeRanks.Items[BuildEdgeKey(lEdge)], fSccData.fEdgeSccIds.Items[BuildEdgeKey(lEdge)], lHintLabel]));
+      end;
+    finally
+      lHotspotEdges.Free;
     end;
 
     lUnresolvedUnits := GetSortedUnresolvedUnits;
@@ -1258,18 +1378,6 @@ begin
       end;
     finally
       lParserProblemList.Free;
-    end;
-
-    if Assigned(fSccData) then
-    begin
-      if fSccData.fCycles.Count > 0 then
-      begin
-        lBuilder.AppendLine('Cycles:');
-        for lCycleText in fSccData.fCycles do
-        begin
-          lBuilder.AppendLine('  - ' + lCycleText);
-        end;
-      end;
     end;
 
     if aFocusUnitName <> '' then
@@ -1366,7 +1474,7 @@ begin
   try
     lGraphBuilder.Build;
     if fOptions.fDepsFormat = TDepsFormat.dfText then
-      lOutputText := lGraphBuilder.RenderText(fOptions.fDepsUnitName)
+      lOutputText := lGraphBuilder.RenderText(fOptions.fDepsUnitName, fOptions.fDepsTopLimit)
     else
       lOutputText := lGraphBuilder.RenderJson;
     lOutputPath := ResolveOutputPath;

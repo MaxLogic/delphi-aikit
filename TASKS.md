@@ -2,12 +2,20 @@
 Next task ID: T-107
 
 ## Summary
-Open tasks: 2 (In Progress: 0, Next Today: 2, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 105
+Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 106
 
 ## In Progress
 
 ## Next - Today
+
+## Next - This Week
+
+## Next - Later
+
+## Blocked
+
+## Done
 
 ### T-106 [CLI] Add deps hotspot text report and `--top` limiting
 Outcome:
@@ -29,30 +37,6 @@ Touches: src/dak.cli.pas, src/dak.deps.runner.pas, src/dak.messages.pas, src/dak
 Deps: T-105
 Verify: unit-test, cli-proof
 Notes: Plan: `.agents/plans/deps-hotspot-ranking.md`. Update the old text test expectation in the same change if the `Cycles` literal is replaced by `Cycle components`.
-
-### T-105 [CLI] Add cached SCC hotspot model and ranked deps JSON
-Outcome:
-- `TDepsGraphBuilder` computes SCC hotspot data once after `Build`, caches it on the builder instance, and reuses it across renderers instead of recomputing cycle analysis per output format.
-- `deps --format json` emits structured hotspot data via `cycleComponents`, `unitHotspots`, and `edgeHotspots`, while keeping the existing `cycles` key during the compatibility window and repopulating it with real traversal paths.
-- Node and edge records gain hotspot metadata (`unitCycleScore`, `sccId`, `isCycleEdge`) and the committed JSON fixture is refreshed to match the extended schema.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Deps.TDepsTests.DepsJsonIncludesCycleComponentsAndHotspots,Test.Deps.TDepsTests.DepsJsonKeepsCyclesCompatibilityArray,Test.Deps.TDepsTests.DepsJsonMarksCycleNodesAndEdges,Test.Deps.TDepsTests.DepsJsonExcludesUnresolvedUnitsFromHotspots -cm:Quiet`
-  Expect: Tests Found `>=4`, Failed `0`, Leaked `0`.
-- Run: `./bin/DelphiAIKit.exe deps --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/DepsCycleFixture/DepsCycleFixture.dproj --format json`
-  Expect: Exit code `0`; JSON includes `cycleComponents`, `unitHotspots`, `edgeHotspots`, and a compatibility `cycles` array with real cycle paths.
-- Run: `rg -n "\"cycleComponents\"|\"unitHotspots\"|\"edgeHotspots\"|\"unitCycleScore\"|\"isCycleEdge\"" tests/fixtures/DepsFixture/.dak/DepsFixture/deps/deps.json`
-  Expect: Exit code `0`; the committed JSON fixture includes the hotspot arrays and inline hotspot fields.
-Touches: src/dak.deps.runner.pas, tests/units/test.deps.pas, tests/fixtures/DepsFixture/.dak/DepsFixture/deps/deps.json, tests/fixtures/DepsCycleFixture/.dak/DepsCycleFixture/deps/deps.txt
-Deps: T-104
-Verify: unit-test, cli-proof
-Notes: Plan: `.agents/plans/deps-hotspot-ranking.md`. Keep `TDepsHotspotResult` as a builder-owned class cache, not an interface-managed result.
-## Next - This Week
-
-## Next - Later
-
-## Blocked
-
-## Done
 
 ### T-105 [CLI] Add cached SCC hotspot model and ranked deps JSON
 Outcome:

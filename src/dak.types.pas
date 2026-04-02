@@ -147,6 +147,7 @@ type
     fHasDepsOutputPath: Boolean;
     fDepsUnitName: string;
     fHasDepsUnitName: Boolean;
+    fDepsTopLimit: Integer;
     fUnitPath: string;
   end;
 
