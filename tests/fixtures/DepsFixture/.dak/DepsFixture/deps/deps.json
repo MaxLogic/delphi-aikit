@@ -1,0 +1,129 @@
+﻿{
+  "project": {
+    "name": "DepsFixture",
+    "path": "F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\fixtures\\DepsFixture\\DepsFixture.dproj",
+    "mainSource": "F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\fixtures\\DepsFixture\\DepsFixture.dpr",
+    "contextMode": "degraded",
+    "contextNote": "Using project-directory-only parser context; Delphi IDE context could not be resolved."
+  },
+  "summary": {
+    "nodeCount": 7,
+    "resolvedNodeCount": 4,
+    "edgeCount": 6,
+    "unresolvedUnitCount": 2,
+    "parserProblemCount": 1
+  },
+  "nodes": [
+    {
+      "name": "DepsFixture",
+      "path": "F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\fixtures\\DepsFixture\\DepsFixture.dpr",
+      "isProjectUnit": true,
+      "resolution": "resolved",
+      "unitCycleScore": 0,
+      "sccId": null
+    },
+    {
+      "name": "DepsFixture.Broken",
+      "path": "F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\fixtures\\DepsFixture\\DepsFixture.Broken.pas",
+      "isProjectUnit": true,
+      "resolution": "parserProblem",
+      "unitCycleScore": 0,
+      "sccId": null
+    },
+    {
+      "name": "DepsFixture.Main",
+      "path": "F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\fixtures\\DepsFixture\\DepsFixture.Main.pas",
+      "isProjectUnit": true,
+      "resolution": "resolved",
+      "unitCycleScore": 0,
+      "sccId": null
+    },
+    {
+      "name": "DepsFixture.Shared",
+      "path": "F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\fixtures\\DepsFixture\\DepsFixture.Shared.pas",
+      "isProjectUnit": true,
+      "resolution": "resolved",
+      "unitCycleScore": 0,
+      "sccId": null
+    },
+    {
+      "name": "DepsFixtureSibling.External",
+      "path": "F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\fixtures\\DepsFixtureSibling\\DepsFixtureSibling.External.pas",
+      "isProjectUnit": false,
+      "resolution": "resolved",
+      "unitCycleScore": 0,
+      "sccId": null
+    },
+    {
+      "name": "MissingFixture.Dependency",
+      "isProjectUnit": false,
+      "resolution": "unresolved",
+      "unitCycleScore": 0,
+      "sccId": null
+    },
+    {
+      "name": "System.SysUtils",
+      "isProjectUnit": false,
+      "resolution": "unresolved",
+      "unitCycleScore": 0,
+      "sccId": null
+    }
+  ],
+  "edges": [
+    {
+      "from": "DepsFixture",
+      "to": "DepsFixture.Broken",
+      "edgeKind": "project",
+      "isCycleEdge": false
+    },
+    {
+      "from": "DepsFixture",
+      "to": "DepsFixture.Main",
+      "edgeKind": "project",
+      "isCycleEdge": false
+    },
+    {
+      "from": "DepsFixture.Main",
+      "to": "DepsFixture.Shared",
+      "edgeKind": "interface",
+      "isCycleEdge": false
+    },
+    {
+      "from": "DepsFixture.Main",
+      "to": "DepsFixtureSibling.External",
+      "edgeKind": "interface",
+      "isCycleEdge": false
+    },
+    {
+      "from": "DepsFixture.Main",
+      "to": "MissingFixture.Dependency",
+      "edgeKind": "implementation",
+      "isCycleEdge": false
+    },
+    {
+      "from": "DepsFixture.Main",
+      "to": "System.SysUtils",
+      "edgeKind": "interface",
+      "isCycleEdge": false
+    }
+  ],
+  "unresolvedUnits": [
+    "MissingFixture.Dependency",
+    "System.SysUtils"
+  ],
+  "parserProblems": [
+    {
+      "unitName": "DepsFixture.Broken",
+      "fileName": "F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\fixtures\\DepsFixture\\DepsFixture.Broken.pas",
+      "description": "Line 10, Column 1: 'RoundClose' expected found 'begin'"
+    }
+  ],
+  "cycles": [
+  ],
+  "cycleComponents": [
+  ],
+  "unitHotspots": [
+  ],
+  "edgeHotspots": [
+  ]
+}
