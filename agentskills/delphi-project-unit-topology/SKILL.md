@@ -55,7 +55,8 @@ Rules:
 
 1. `--top` affects text hotspot sections only. Default is `20`; `0` means unlimited.
 2. If `--output` is omitted, DAK still writes an artifact under `.dak/<ProjectName>/deps/`.
-3. Read `project.contextMode` and `project.contextNote` before making strong claims.
+3. Use `--output -` to redirect output to stdout instead of a file; useful when piping into a subsequent tool.
+4. Read `project.contextMode` and `project.contextNote` before making strong claims.
 
 ## What The JSON Means
 
@@ -122,7 +123,7 @@ Use these rules consistently:
 2. If `cycleComponents` is empty, report that the resolved project graph is acyclic and stop the hotspot analysis.
 3. `unitCycleScore` is intra-SCC degree, not a simple-cycle count. Do not say "appears in N cycles."
 4. `edgeHotspotRank` is the sum of endpoint scores. It is a heuristic for leverage, not proof that one cut breaks the SCC.
-5. Prefer `implementation` edges when ranks tie. They are usually cheaper to break in Delphi than `interface` edges.
+5. Prefer `implementation` edges when ranks tie. `implementation` edges are cheaper to break because the dependency is internal to the unit — only that unit's code needs changing. `interface` edges expose types or routines in the unit's public API, so breaking them ripples into all callers and often requires moving a shared type into a new neutral unit.
 6. Treat `refactorabilityHint=easier` as a first candidate, not a guarantee of low effort.
 7. Do not claim the hotspot list is exhaustive when unresolved units or parser problems are nearby.
 8. Re-run `deps` after a refactoring. Use the new SCC and hotspot output as proof of improvement.
