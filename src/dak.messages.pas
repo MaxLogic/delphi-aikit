@@ -57,7 +57,7 @@ resourcestring
     '[--reads-only] [--writes-only] [--verbose [true|false]]';
   SUsageDeps =
     'DelphiAIKit.exe deps --project "<path>" [--format <json|text>] [--output "<path>|-"] ' +
-    '[--unit "<UnitName>"]';
+    '[--unit "<UnitName>"] [--top <N, 0=unlimited>]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -76,6 +76,7 @@ resourcestring
   SGlobalVarsConflictingAccessFilters = 'Use either --reads-only or --writes-only (not both).';
   SGlobalVarsUnusedAccessConflict = '--unused-only cannot be combined with --reads-only or --writes-only.';
   SDepsInvalidFormat = 'Unsupported deps format: %s';
+  SDepsInvalidTopLimit = 'Invalid --top value: %s (expected integer >= 0).';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
   SBuildBatMissing = 'build-delphi.bat not found: %s';

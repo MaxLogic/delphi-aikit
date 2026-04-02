@@ -93,6 +93,8 @@ type
     [Test]
     procedure DepsCommandParsesJsonDefaults;
     [Test]
+    procedure DepsCommandParsesTopLimit;
+    [Test]
     procedure ParseGlobalVarsDefaults;
     [Test]
     procedure ParseGlobalVarsOptions;
@@ -843,6 +845,24 @@ begin
   Assert.AreEqual(TDepsFormat.dfJson, lOptions.fDepsFormat);
   Assert.IsFalse(lOptions.fHasDepsOutputPath);
   Assert.IsFalse(lOptions.fHasDepsUnitName);
+end;
+
+procedure TCliTests.DepsCommandParsesTopLimit;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('deps --project c:\temp\sample.dproj');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected deps defaults to parse. Error: ' + lError);
+  Assert.AreEqual(20, lOptions.fDepsTopLimit, 'Expected deps --top default to stay bounded.');
+
+  SetParams('deps --project c:\temp\sample.dproj --top 7');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected deps --top=7 to parse. Error: ' + lError);
+  Assert.AreEqual(7, lOptions.fDepsTopLimit, 'Expected explicit --top value to be captured.');
+
+  SetParams('deps --project c:\temp\sample.dproj --top 0');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected deps --top=0 to parse. Error: ' + lError);
+  Assert.AreEqual(0, lOptions.fDepsTopLimit, 'Expected --top=0 to mean unlimited.');
 end;
 
 procedure TCliTests.ParseGlobalVarsDefaults;
