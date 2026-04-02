@@ -2,15 +2,16 @@ unit CycleB;
 
 interface
 
-uses
-  CycleA;
-
 procedure TouchCycleB;
 
 implementation
 
+uses
+  CycleA;
+
 procedure TouchCycleB;
 begin
+  TouchCycleA;
 end;
 
 end.
