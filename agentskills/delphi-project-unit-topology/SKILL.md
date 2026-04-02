@@ -1,33 +1,13 @@
 ---
 name: delphi-project-unit-topology
-description: Use DelphiAIKit `deps` to inspect Delphi project unit topology, unresolved unit references, focused neighborhood views, and resolved project-unit cycles. Use this whenever the user asks what depends on what, why a unit is included, where cycles exist, which units fan into an area, or needs dependency/topology debugging for a Delphi `.dproj`, even if they do not explicitly mention `deps`.
-version: "1.0"
+description: "Inspect Delphi project unit topology with DelphiAIKit `deps`: resolved and unresolved units, project vs external edges, SCCs, cycle hotspots, and focused unit views. Use when Codex needs to answer what depends on what, why a unit is present, whether project-unit cycles exist, where to start reducing cycle debt, which `uses` edge is the best first candidate to cut, or when a Delphi `.dproj` needs dependency-topology diagnosis."
 ---
 
 # Delphi Project Unit Topology
 
-Use this skill to inspect project-level unit relationships in a Delphi `.dproj`.
-
-What it does:
-
-- exports deterministic unit-dependency topology
-- shows project units versus external resolved units
-- surfaces unresolved unit references
-- surfaces parser-problem-linked units
-- reports resolved project-unit cycles
-- provides focused text views around one unit
-
-Canonical interface:
-
-- always use `DelphiAIKit.exe deps`
-- prefer `--format json` for the first pass
-- use `--format text --unit "<UnitName>"` for a concise follow-up view
+Use `DelphiAIKit.exe deps` for project-level dependency shape and cycle triage.
 
 Load [setup.md](setup.md) first.
-
-Required environment:
-
-- `DAK_EXE`: absolute path to `DelphiAIKit.exe`
 
 Preflight:
 
@@ -35,176 +15,179 @@ Preflight:
 test -x "$DAK_EXE" || { echo "DAK_EXE not executable"; exit 1; }
 ```
 
-## When To Use It
+## Route The Request
 
-Use it when we need to:
+Use this routing before running commands:
 
-- see what units depend on a target area
-- explain why a unit is present in the project graph
-- inspect outgoing dependencies for one unit
-- find unresolved unit references in the indexed project graph
-- find resolved project-unit cycles
-- separate project-owned units from external search-path units
-- gather topology context before debugging or refactoring
-
-Do not use it as sole proof when we need to:
-
-- prove call flow between routines
-- prove symbol binding or member resolution
-- prove who reads or writes a variable
-- prove runtime initialization order beyond unit dependency shape
-- replace an actual build result
-
-If the question becomes symbol-usage or shared-state analysis, switch to `delphi-global-vars`.
-
-If the question becomes compile failure or build verification, switch to `delphi-build`.
-
-## Parameters
-
-| Switch | Required | Purpose |
+| User intent | Command | Read first |
 | --- | --- | --- |
-| `--project <file.dproj>` | yes | project to analyze |
-| `--format json\|text` | no | output format; prefer `json` |
-| `--output <path\|->` | no | write to file or terminal |
-| `--unit "<UnitName>"` | no | focus the text report on one unit |
+| "What depends on what?" / "Why is this unit here?" | `deps --format json` | `summary`, `nodes`, `edges` |
+| "Do we have cycles?" | `deps --format json` | `cycleComponents` |
+| "Where do we start fixing cycle debt?" | `deps --format json` | `cycleComponents`, `unitHotspots`, `edgeHotspots` |
+| "Show one unit in context" | `deps --format text --unit "<UnitName>"` | focused text report |
+| "Give me a short ranked list" | `deps --format text --top <N>` | hotspot text sections |
+| "Who reads or writes this global?" | switch skill | `delphi-global-vars` |
+| "Will this build succeed?" | switch skill | `delphi-build` |
 
-Rules:
-
-1. Start with `json` unless the user only needs a quick human-readable summary.
-2. Use `text` with `--unit` when the user asks about one specific unit.
-3. When `--output` is omitted, DAK still writes a sibling artifact under `.dak/<ProjectName>/deps/`.
-4. Read `project.contextMode` and `project.contextNote` before making strong claims; `degraded` means reduced confidence for search-path-sensitive projects.
+Start with JSON unless the user only wants a quick human-readable follow-up.
 
 ## Command Patterns
 
-Full project export:
+Full graph:
 
 ```bash
 "$DAK_EXE" deps --project "<path-to-project.dproj>" --format json
 ```
 
-Focused unit follow-up:
+Focused unit:
 
 ```bash
 "$DAK_EXE" deps --project "<path-to-project.dproj>" --format text --unit "ProblemUnit"
 ```
 
-Explicit artifact output:
+Compact hotspot summary:
 
 ```bash
-"$DAK_EXE" deps --project "<path-to-project.dproj>" --format json --output "<report.json>"
+"$DAK_EXE" deps --project "<path-to-project.dproj>" --format text --top 10
 ```
 
-## Output And Confidence
+Rules:
 
-Prefer JSON. The top-level object is:
+1. `--top` affects text hotspot sections only. Default is `20`; `0` means unlimited.
+2. If `--output` is omitted, DAK still writes an artifact under `.dak/<ProjectName>/deps/`.
+3. Read `project.contextMode` and `project.contextNote` before making strong claims.
+
+## What The JSON Means
+
+Treat JSON as the primary interface. The important fields are:
+
+- `project.contextMode`: `full` or `degraded`
+- `summary.*`: node, edge, unresolved, and parser-problem counts
+- `nodes[*].isProjectUnit`: project-owned vs external resolved unit
+- `nodes[*].resolution`: `resolved`, `unresolved`, or `parserProblem`
+- `nodes[*].unitCycleScore`: SCC-internal degree; `0` means not in a detected cycle
+- `nodes[*].sccId`: SCC membership; `null` means acyclic
+- `edges[*].edgeKind`: `project`, `contains`, `interface`, or `implementation`
+- `edges[*].isCycleEdge`: `true` if both endpoints are in the same SCC
+- `unresolvedUnits[*]`: unresolved referenced unit names
+- `parserProblems[*]`: units whose parsing failed
+- `cycleComponents[*]`: structured SCC records; prefer these over `cycles`
+- `cycleComponents[*].representativeCycle`: real traversal path, not a synthetic alphabetical join
+- `unitHotspots[*]`: ranked hub candidates inside SCCs
+- `edgeHotspots[*]`: ranked edge-cut candidates inside SCCs
+- `cycles[*]`: compatibility array only; do not use as the primary analysis surface
+
+Minimal shape:
 
 ```json
 {
-  "project": {
-    "name": "SampleProject",
-    "path": "F:\\projects\\SampleProject\\SampleProject.dproj",
-    "mainSource": "F:\\projects\\SampleProject\\SampleProject.dpr",
-    "contextMode": "full"
-  },
-  "summary": {
-    "nodeCount": 4,
-    "resolvedNodeCount": 3,
-    "edgeCount": 4,
-    "unresolvedUnitCount": 1,
-    "parserProblemCount": 1
-  },
+  "project": { "contextMode": "full" },
+  "summary": { "nodeCount": 4, "edgeCount": 4 },
   "nodes": [
-    {
-      "name": "SampleProject.Main",
-      "path": "F:\\projects\\SampleProject\\SampleProject.Main.pas",
-      "isProjectUnit": true,
-      "resolution": "resolved"
-    }
+    { "name": "Main", "resolution": "resolved", "unitCycleScore": 4, "sccId": 1 }
   ],
   "edges": [
+    { "from": "Main", "to": "Shared", "edgeKind": "interface", "isCycleEdge": true }
+  ],
+  "cycleComponents": [
     {
-      "from": "SampleProject.Main",
-      "to": "SampleProject.Shared",
-      "edgeKind": "interface"
+      "sccId": 1,
+      "sccSize": 2,
+      "sccInternalEdgeCount": 2,
+      "members": ["Main", "Shared"],
+      "representativeCycle": "Main -> Shared -> Main"
     }
   ],
-  "unresolvedUnits": ["Missing.Dependency"],
-  "parserProblems": [
-    {
-      "unitName": "Broken.Unit",
-      "fileName": "F:\\projects\\SampleProject\\Broken.Unit.pas",
-      "description": "..."
-    }
+  "unitHotspots": [
+    { "name": "Main", "unitCycleScore": 4, "sccId": 1 }
   ],
-  "cycles": ["CycleA -> CycleB -> CycleA"]
+  "edgeHotspots": [
+    {
+      "from": "Main",
+      "to": "Shared",
+      "edgeKind": "implementation",
+      "edgeHotspotRank": 7,
+      "refactorabilityHint": "easier",
+      "sccId": 1
+    }
+  ]
 }
 ```
 
-Key fields:
-
-- `project.contextMode`: `full` or `degraded`
-- `project.contextNote`: why the run is degraded, when present
-- `summary.*`: quick graph counts
-- `nodes[*].isProjectUnit`: whether the node belongs to the project-owned unit set
-- `nodes[*].resolution`: `resolved`, `unresolved`, or `parserProblem`
-- `edges[*].edgeKind`: `project`, `contains`, `interface`, or `implementation`
-- `unresolvedUnits[*]`: unresolved referenced unit names
-- `parserProblems[*]`: units whose parsing failed
-- `cycles[*]`: resolved project-unit cycle strings
-
-Confidence:
-
-- `high`: `contextMode=full`, target units are resolved, and the claim is only about graph shape
-- `medium`: `contextMode=degraded`, but the relevant units and edges still appear clearly
-- `low`: unresolved units, parser problems, or degraded context directly affect the claim
-
-Text output is acceptable for quick inspection, but JSON is the topology interface.
-
-Rule:
-
-- use `json` for any review, diagnosis, or tool-driven reasoning
-- use `text` for quick summaries and focused follow-up around one unit
-
-## Agent Workflow
-
-1. Run `deps --format json` for the full project.
-2. Read `project.contextMode` and `project.contextNote`.
-3. Inspect `summary`, then `nodes`, `edges`, `unresolvedUnits`, `parserProblems`, and `cycles`.
-4. If the user cares about one unit, rerun with `--format text --unit "<UnitName>"`.
-5. Quote exact unit names and edge kinds when explaining conclusions.
-6. If the graph shows ambiguity through unresolved units or parser problems, state that clearly instead of over-claiming.
-
 ## Interpretation Rules
 
-Use `deps` to answer questions like:
+Use these rules consistently:
 
-- "What fans into this area?"
-- "Why is this unit here?"
-- "Is this dependency internal or external?"
-- "Do we have a cycle among project units?"
-- "Which unresolved units are still in this graph?"
+1. If `contextMode=degraded`, lower confidence. Missing search-path edges can distort SCCs and hotspot scores.
+2. If `cycleComponents` is empty, report that the resolved project graph is acyclic and stop the hotspot analysis.
+3. `unitCycleScore` is intra-SCC degree, not a simple-cycle count. Do not say "appears in N cycles."
+4. `edgeHotspotRank` is the sum of endpoint scores. It is a heuristic for leverage, not proof that one cut breaks the SCC.
+5. Prefer `implementation` edges when ranks tie. They are usually cheaper to break in Delphi than `interface` edges.
+6. Treat `refactorabilityHint=easier` as a first candidate, not a guarantee of low effort.
+7. Do not claim the hotspot list is exhaustive when unresolved units or parser problems are nearby.
+8. Re-run `deps` after a refactoring. Use the new SCC and hotspot output as proof of improvement.
 
-Do not stretch `deps` into questions like:
+Use `deps` to answer:
 
-- "Which routine calls this method?"
-- "Does this property access bind to a field or a getter?"
-- "Who writes this global?"
-- "Will this build succeed?"
+- what depends on what
+- why a unit is present
+- whether a dependency is internal or external
+- whether project-unit cycles exist
+- where to start reducing cycle debt
+- which unit is the main hub in a cycle cluster
+- which `uses` edge is the best first candidate to cut
 
-Those require another tool or direct source/build evidence.
+Do not use `deps` alone to answer:
+
+- who reads or writes a variable
+- which routine calls a method
+- how a symbol binds
+- whether the project builds successfully
+
+## Operating Workflow
+
+For topology questions:
+
+1. Run `deps --format json`.
+2. Read `project.contextMode`, `summary`, `nodes`, `edges`, `unresolvedUnits`, `parserProblems`.
+3. Quote exact unit names and edge kinds.
+4. If the user asks about one unit, rerun with `--format text --unit`.
+
+For cycle-remediation questions:
+
+1. Run `deps --format json`.
+2. Read `cycleComponents` first.
+3. If there are no SCCs, report that there is no detected cycle debt in resolved project units.
+4. Read `unitHotspots` to identify the most connected hubs.
+5. Read `edgeHotspots` to identify likely first-cut edges.
+6. Prefer `implementation` edges over equal-rank `interface` edges.
+7. Recommend one concrete first cut and explain why it is a candidate.
+8. State that one cut may reduce hub connectivity without dissolving the whole SCC.
 
 ## Reporting Pattern
 
-When summarizing findings, prefer this structure:
+For topology findings, report:
 
-1. state the context mode and whether confidence is reduced
-2. name the target unit or subsystem
-3. cite the specific outgoing edges, unresolved units, or cycles
-4. say what `deps` does not prove if the user is pushing beyond topology
+1. context quality: `full` or `degraded`
+2. target unit or subsystem
+3. relevant edges, unresolved units, parser problems, or SCC membership
+4. what `deps` does not prove
 
-Example:
+For cycle-hotspot findings, report:
+
+1. number of SCCs and the largest component
+2. top unit hubs with `unitCycleScore`
+3. top edge candidates with `edgeKind`, `edgeHotspotRank`, and `refactorabilityHint`
+4. one concrete first-cut recommendation
+5. a caveat that the SCC may survive and should be re-checked with another `deps` run
+
+Example hotspot summary:
 
 ```text
-The topology run was full-context. `Order.Entry` depends on `Order.Shared` through an `interface` edge and on `Order.Import` through an `implementation` edge. `Legacy.OrderBridge` is resolved but external (`isProjectUnit=false`). One unresolved reference remains: `Missing.OrderTypes`. This proves project-unit topology, not call flow or symbol binding.
+The graph has 2 cycle components. The largest SCC has 11 units and 23 internal edges.
+`DataModule` is the main hub (`unitCycleScore=12`), followed by `GlobalVars` (`9`).
+The best first candidate is `DataModule -> GlobalVars` because it is an
+`implementation` edge with the highest reported rank. That makes it a cheaper first
+cut than an equal-rank `interface` dependency, but it is still only a candidate. Re-run
+`deps` after the change to confirm whether the SCC shrank or disappeared.
 ```
