@@ -30,6 +30,8 @@ type
     [Test] procedure DepsUnknownFocusDoesNotBorrowCycleComponentBySubstring;
     [Test] procedure DepsCyclesIgnoreUnresolvedAndExternalNodesByDefault;
     [Test] procedure DepsCyclesUseRealTraversalPaths;
+    [Test] procedure DepsTextHotspotsRespectTopLimit;
+    [Test] procedure DepsTextPrefersImplementationEdgesOnEqualRank;
     [Test] procedure DepsJsonIncludesCycleComponentsAndHotspots;
     [Test] procedure DepsJsonKeepsCyclesCompatibilityArray;
     [Test] procedure DepsJsonMarksCycleNodesAndEdges;
@@ -250,7 +252,9 @@ begin
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected deps text run to succeed. See: ' + lLogPath);
 
   lOutputText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  Assert.IsTrue(Pos('Cycles', lOutputText) > 0, 'Expected cycle summary in deps text output.');
+  Assert.IsTrue(Pos('Cycle components', lOutputText) > 0, 'Expected cycle component summary in deps text output.');
+  Assert.IsTrue(Pos('Top cycle units', lOutputText) > 0, 'Expected unit hotspot section in deps text output.');
+  Assert.IsTrue(Pos('Top cycle edges', lOutputText) > 0, 'Expected edge hotspot section in deps text output.');
   Assert.IsTrue(Pos('MissingCycle.Dependency', lOutputText) > 0, 'Expected unresolved unit in deps text output.');
 end;
 
@@ -337,6 +341,56 @@ begin
     'Expected cycle output to use a real traversal path for PathCycle*.');
   Assert.IsFalse(Pos('PathCycleA -> PathCycleB -> PathCycleC -> PathCycleA', lOutputText) > 0,
     'Expected cycle output to avoid alphabetical SCC member joins that are not real paths.');
+end;
+
+procedure TDepsTests.DepsTextHotspotsRespectTopLimit;
+var
+  lArgs: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lOutputText: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, 'deps-cycle-top-limit.log');
+  lArgs := 'deps --project ' + QuoteArg(CycleProjectPath) + ' --format text --top 1';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start resolver for deps top-limit text test.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected deps text run with --top 1 to succeed. See: ' + lLogPath);
+
+  lOutputText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('Top cycle units (up to 1):', lOutputText) > 0,
+    'Expected unit hotspot heading to reflect the requested top limit.');
+  Assert.IsTrue(Pos('Top cycle edges (up to 1):', lOutputText) > 0,
+    'Expected edge hotspot heading to reflect the requested top limit.');
+  Assert.IsFalse(Pos('  2. ', lOutputText) > 0,
+    'Expected both hotspot sections to truncate to one ranked entry when --top 1 is used.');
+end;
+
+procedure TDepsTests.DepsTextPrefersImplementationEdgesOnEqualRank;
+var
+  lArgs: string;
+  lExitCode: Cardinal;
+  lImplementationPos: Integer;
+  lInterfacePos: Integer;
+  lLogPath: string;
+  lOutputText: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, 'deps-cycle-edge-order.log');
+  lArgs := 'deps --project ' + QuoteArg(CycleProjectPath) + ' --format text';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start resolver for deps edge-order text test.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected deps text run to succeed. See: ' + lLogPath);
+
+  lOutputText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lImplementationPos := Pos('1. CycleB -> CycleA [implementation]', lOutputText);
+  lInterfacePos := Pos('2. CycleA -> CycleB [interface]', lOutputText);
+  Assert.IsTrue(lImplementationPos > 0, 'Expected implementation edge hotspot to rank first for the equal-score tie.');
+  Assert.IsTrue(lInterfacePos > 0, 'Expected interface edge hotspot to follow the equal-score implementation edge.');
+  Assert.IsTrue(lImplementationPos < lInterfacePos,
+    'Expected implementation edge hotspot to appear before the equal-rank interface edge hotspot.');
 end;
 
 procedure TDepsTests.DepsJsonIncludesCycleComponentsAndHotspots;
