@@ -61,6 +61,8 @@ type
       const aReverse: Boolean): TObjectDictionary<string, TList<string>>; static;
     class function BuildCycles(const aEdges: TList<TDepsEdgeInfo>;
       const aNodes: TObjectDictionary<string, TDepsNodeInfo>): TList<string>; static;
+    class function BuildRepresentativeCycle(const aRootName: string; const aComponent: TStringList;
+      const aAdjacency: TObjectDictionary<string, TList<string>>): string; static;
     class function BuildEdgeKey(const aEdge: TDepsEdgeInfo): string; static;
     class procedure CollectUsesEdges(const aOwnerName: string; const aUsesNode: TSyntaxNode;
       aEdgeKind: TDepsEdgeKind; const aEdges: TList<TDepsEdgeInfo>; const aEdgeKeys: THashSet<string>); static;
@@ -69,6 +71,9 @@ type
     class function ExtractUnitNameFromFileName(const aFileName: string): string; static;
     class function FindFirstChildNode(const aNode: TSyntaxNode; aNodeType: TSyntaxNodeType): TSyntaxNode; static;
     class function IsFrameworkUnitName(const aUnitName: string): Boolean; static;
+    class function TryFindPathToTarget(const aCurrentName, aTargetName: string;
+      const aAdjacency: TObjectDictionary<string, TList<string>>; const aEligibleNodes: THashSet<string>;
+      const aPath: TList<string>; const aVisited: THashSet<string>): Boolean; static;
     function GetSortedEdgeList: TList<TDepsEdgeInfo>;
     function GetSortedNodeNames: TStringList;
     function GetSortedParserProblems: TList<TDepsParserProblemInfo>;
@@ -190,90 +195,150 @@ begin
   lHandled := THashSet<string>.Create;
   lNodeList := TStringList.Create;
   try
-    lNodeList.Sorted := True;
-    lNodeList.Duplicates := dupIgnore;
-    for lNode in aNodes.Values do
-    begin
-      if lNode.fIsProjectUnit and (lNode.fResolution = TDepsNodeResolution.dnrResolved) then
+    try
+      lNodeList.Sorted := True;
+      lNodeList.Duplicates := dupIgnore;
+      for lNode in aNodes.Values do
       begin
-        lEligibleNodes.Add(lNode.fName);
-        lNodeList.Add(lNode.fName);
+        if lNode.fIsProjectUnit and (lNode.fResolution = TDepsNodeResolution.dnrResolved) then
+        begin
+          lEligibleNodes.Add(lNode.fName);
+          lNodeList.Add(lNode.fName);
+        end;
       end;
+
+      lForwardAdjacency := BuildAdjacency(aEdges, lEligibleNodes, False);
+      try
+        lReverseAdjacency := BuildAdjacency(aEdges, lEligibleNodes, True);
+        try
+          for lRootName in lNodeList do
+          begin
+            if lHandled.Contains(lRootName) then
+            begin
+              Continue;
+            end;
+
+            lForwardReachable := THashSet<string>.Create;
+            lBackwardReachable := THashSet<string>.Create;
+            lComponent := TStringList.Create;
+            try
+              lComponent.Sorted := True;
+              lComponent.Duplicates := dupIgnore;
+              AddReachableNodes(lRootName, lForwardAdjacency, lForwardReachable);
+              AddReachableNodes(lRootName, lReverseAdjacency, lBackwardReachable);
+              for lNode in aNodes.Values do
+              begin
+                if lForwardReachable.Contains(lNode.fName) and lBackwardReachable.Contains(lNode.fName) then
+                begin
+                  lComponent.Add(lNode.fName);
+                end;
+              end;
+
+              lHasSelfLoop := False;
+              if lComponent.Count = 1 then
+              begin
+                for lEdge in aEdges do
+                begin
+                  if SameText(lEdge.fFromName, lRootName) and SameText(lEdge.fToName, lRootName) then
+                  begin
+                    lHasSelfLoop := True;
+                    Break;
+                  end;
+                end;
+              end;
+
+              for lNode in aNodes.Values do
+              begin
+                if lComponent.IndexOf(lNode.fName) >= 0 then
+                begin
+                  lHandled.Add(lNode.fName);
+                end;
+              end;
+
+              if lHasSelfLoop then
+              begin
+                lCycles.Add(lRootName + ' -> ' + lRootName);
+              end else if lComponent.Count > 1 then
+              begin
+                lCycles.Add(BuildRepresentativeCycle(lRootName, lComponent, lForwardAdjacency));
+              end;
+            finally
+              lComponent.Free;
+              lBackwardReachable.Free;
+              lForwardReachable.Free;
+            end;
+          end;
+        finally
+          lReverseAdjacency.Free;
+        end;
+      finally
+        lForwardAdjacency.Free;
+      end;
+
+      Result := lCycles;
+    except
+      lCycles.Free;
+      raise;
+    end;
+  finally
+    lNodeList.Free;
+    lHandled.Free;
+    lEligibleNodes.Free;
+  end;
+end;
+
+class function TDepsGraphBuilder.BuildRepresentativeCycle(const aRootName: string; const aComponent: TStringList;
+  const aAdjacency: TObjectDictionary<string, TList<string>>): string;
+var
+  lComponentSet: THashSet<string>;
+  lNeighborName: string;
+  lNeighbors: TStringList;
+  lSourceNeighbors: TList<string>;
+  lPath: TList<string>;
+  lVisited: THashSet<string>;
+begin
+  lComponentSet := THashSet<string>.Create;
+  lPath := TList<string>.Create;
+  lVisited := THashSet<string>.Create;
+  try
+    for lNeighborName in aComponent do
+    begin
+      lComponentSet.Add(lNeighborName);
     end;
 
-    lForwardAdjacency := BuildAdjacency(aEdges, lEligibleNodes, False);
+    lNeighbors := TStringList.Create;
     try
-      lReverseAdjacency := BuildAdjacency(aEdges, lEligibleNodes, True);
-      try
-        for lRootName in lNodeList do
+      lNeighbors.Sorted := True;
+      lNeighbors.Duplicates := dupIgnore;
+      if aAdjacency.TryGetValue(aRootName, lSourceNeighbors) then
+      begin
+        for lNeighborName in lSourceNeighbors do
         begin
-          if lHandled.Contains(lRootName) then
+          lNeighbors.Add(lNeighborName);
+        end;
+        for lNeighborName in lNeighbors do
+        begin
+          if not lComponentSet.Contains(lNeighborName) then
           begin
             Continue;
           end;
-
-          lForwardReachable := THashSet<string>.Create;
-          lBackwardReachable := THashSet<string>.Create;
-          lComponent := TStringList.Create;
-          try
-            lComponent.Sorted := True;
-            lComponent.Duplicates := dupIgnore;
-            AddReachableNodes(lRootName, lForwardAdjacency, lForwardReachable);
-            AddReachableNodes(lRootName, lReverseAdjacency, lBackwardReachable);
-            for lNode in aNodes.Values do
-            begin
-              if lForwardReachable.Contains(lNode.fName) and lBackwardReachable.Contains(lNode.fName) then
-              begin
-                lComponent.Add(lNode.fName);
-              end;
-            end;
-
-            lHasSelfLoop := False;
-            if lComponent.Count = 1 then
-            begin
-              for lEdge in aEdges do
-              begin
-                if SameText(lEdge.fFromName, lRootName) and SameText(lEdge.fToName, lRootName) then
-                begin
-                  lHasSelfLoop := True;
-                  Break;
-                end;
-              end;
-            end;
-
-            for lNode in aNodes.Values do
-            begin
-              if lComponent.IndexOf(lNode.fName) >= 0 then
-              begin
-                lHandled.Add(lNode.fName);
-              end;
-            end;
-
-            if (lComponent.Count > 1) or lHasSelfLoop then
-            begin
-              lCycles.Add(String.Join(' -> ', lComponent.ToStringArray) + ' -> ' + lComponent[0]);
-            end;
-          finally
-            lComponent.Free;
-            lBackwardReachable.Free;
-            lForwardReachable.Free;
+          lPath.Clear;
+          lVisited.Clear;
+          if TryFindPathToTarget(lNeighborName, aRootName, aAdjacency, lComponentSet, lPath, lVisited) then
+          begin
+            Exit(aRootName + ' -> ' + String.Join(' -> ', lPath.ToArray));
           end;
         end;
-      finally
-        lReverseAdjacency.Free;
       end;
+      Result := String.Join(' -> ', aComponent.ToStringArray) + ' -> ' + aComponent[0];
     finally
-      lForwardAdjacency.Free;
+      lNeighbors.Free;
     end;
-
-    Result := lCycles;
-  except
-    lCycles.Free;
-    raise;
+  finally
+    lVisited.Free;
+    lPath.Free;
+    lComponentSet.Free;
   end;
-  lNodeList.Free;
-  lHandled.Free;
-  lEligibleNodes.Free;
 end;
 
 class function TDepsGraphBuilder.BuildEdgeKey(const aEdge: TDepsEdgeInfo): string;
@@ -407,6 +472,64 @@ begin
     StartsText('Datasnap.', aUnitName) or
     StartsText('Macapi.', aUnitName) or
     StartsText('Posix.', aUnitName);
+end;
+
+class function TDepsGraphBuilder.TryFindPathToTarget(const aCurrentName, aTargetName: string;
+  const aAdjacency: TObjectDictionary<string, TList<string>>; const aEligibleNodes: THashSet<string>;
+  const aPath: TList<string>; const aVisited: THashSet<string>): Boolean;
+var
+  lNeighborName: string;
+  lNeighbors: TStringList;
+  lSourceNeighbors: TList<string>;
+begin
+  if not aVisited.Add(aCurrentName) then
+  begin
+    Exit(False);
+  end;
+  aPath.Add(aCurrentName);
+  try
+    if SameText(aCurrentName, aTargetName) then
+    begin
+      Exit(True);
+    end;
+    lNeighbors := TStringList.Create;
+    try
+      lNeighbors.Sorted := True;
+      lNeighbors.Duplicates := dupIgnore;
+      if aAdjacency.TryGetValue(aCurrentName, lSourceNeighbors) then
+      begin
+        for lNeighborName in lSourceNeighbors do
+        begin
+          lNeighbors.Add(lNeighborName);
+        end;
+        for lNeighborName in lNeighbors do
+        begin
+          if not aEligibleNodes.Contains(lNeighborName) then
+          begin
+            Continue;
+          end;
+          if SameText(lNeighborName, aTargetName) then
+          begin
+            aPath.Add(aTargetName);
+            Exit(True);
+          end;
+          if TryFindPathToTarget(lNeighborName, aTargetName, aAdjacency, aEligibleNodes, aPath, aVisited) then
+          begin
+            Exit(True);
+          end;
+        end;
+      end;
+    finally
+      lNeighbors.Free;
+    end;
+  finally
+    if (aPath.Count > 0) and SameText(aPath[aPath.Count - 1], aCurrentName) then
+    begin
+      aPath.Delete(aPath.Count - 1);
+    end;
+    aVisited.Remove(aCurrentName);
+  end;
+  Result := False;
 end;
 
 function TDepsGraphBuilder.GetSortedEdgeList: TList<TDepsEdgeInfo>;
