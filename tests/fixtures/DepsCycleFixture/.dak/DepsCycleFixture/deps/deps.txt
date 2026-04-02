@@ -1,0 +1,16 @@
+Project: DepsCycleFixture
+Summary: nodes=9 edges=11 unresolved=2 parserProblems=0
+Context: Using project-directory-only parser context; Delphi IDE context could not be resolved.
+Unresolved units:
+  - MissingCycle.Dependency
+Cycles:
+  - CycleA -> CycleB -> CycleA
+  - PathCycleA -> PathCycleC -> PathCycleB -> PathCycleA
+Resolved project units:
+  - CycleA
+  - CycleB
+  - CycleConsumer
+  - DepsCycleFixture
+  - PathCycleA
+  - PathCycleB
+  - PathCycleC
