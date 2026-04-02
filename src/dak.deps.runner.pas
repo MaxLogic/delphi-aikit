@@ -257,6 +257,7 @@ var
   lBackwardReachable: THashSet<string>;
   lComponent: TStringList;
   lComponentInfo: TDepsSccInfo;
+  lComponentInfoRef: TDepsSccInfo;
   lComponentName: string;
   lComponentSet: THashSet<string>;
   lEdge: TDepsEdgeInfo;
@@ -358,12 +359,14 @@ begin
                 end;
                 lResult.fCycles.Add(lComponentInfo.fRepresentativeCycle);
                 lResult.fSccs.Add(lComponentInfo);
+                lComponentInfoRef := lComponentInfo;
+                lComponentInfo := nil;
                 lComponentSet := THashSet<string>.Create;
                 try
-                  for lComponentName in lComponentInfo.fMembers do
+                  for lComponentName in lComponentInfoRef.fMembers do
                   begin
                     lComponentSet.Add(lComponentName);
-                    lResult.fNodeSccIds.Add(lComponentName, lComponentInfo.fSccId);
+                    lResult.fNodeSccIds.Add(lComponentName, lComponentInfoRef.fSccId);
                   end;
 
                   for lEdge in fEdges do
@@ -372,17 +375,16 @@ begin
                     begin
                       Continue;
                     end;
-                    Inc(lComponentInfo.fInternalEdgeCount);
+                    Inc(lComponentInfoRef.fInternalEdgeCount);
                     AddScore(lResult.fUnitScores, lEdge.fFromName, 1);
                     AddScore(lResult.fUnitScores, lEdge.fToName, 1);
                     lEdgeKey := BuildEdgeKey(lEdge);
                     lResult.fCycleEdgeKeys.Add(lEdgeKey);
-                    lResult.fEdgeSccIds.Add(lEdgeKey, lComponentInfo.fSccId);
+                    lResult.fEdgeSccIds.Add(lEdgeKey, lComponentInfoRef.fSccId);
                   end;
                 finally
                   lComponentSet.Free;
                 end;
-                lComponentInfo := nil;
               finally
                 lComponentInfo.Free;
               end;
@@ -1004,6 +1006,7 @@ var
   lCycleComponentValue: TDepsSccInfo;
   lCycleText: string;
   lCyclesJson: TJSONArray;
+  lMembersJson: TJSONArray;
   lEdge: TDepsEdgeInfo;
   lEdgeIsCycleEdge: Boolean;
   lEdgeHotspotEdge: TDepsEdgeInfo;
@@ -1180,11 +1183,11 @@ begin
         lCycleComponentJson.AddPair('sccId', TJSONNumber.Create(lCycleComponentValue.fSccId));
         lCycleComponentJson.AddPair('sccSize', TJSONNumber.Create(lCycleComponentValue.fMembers.Count));
         lCycleComponentJson.AddPair('sccInternalEdgeCount', TJSONNumber.Create(lCycleComponentValue.fInternalEdgeCount));
-        lCyclesJson := TJSONArray.Create;
-        lCycleComponentJson.AddPair('members', lCyclesJson);
+        lMembersJson := TJSONArray.Create;
+        lCycleComponentJson.AddPair('members', lMembersJson);
         for lUnitName in lCycleComponentValue.fMembers do
         begin
-          lCyclesJson.AddElement(TJSONString.Create(lUnitName));
+          lMembersJson.AddElement(TJSONString.Create(lUnitName));
         end;
         lCycleComponentJson.AddPair('representativeCycle', lCycleComponentValue.fRepresentativeCycle);
         lCycleComponents.AddElement(lCycleComponentJson);
@@ -1276,73 +1279,83 @@ begin
 
     lCycleComponents := GetSortedCycleComponents;
     try
-      lBuilder.AppendLine(Format('Cycle components (%d):', [lCycleComponents.Count]));
-      for var lSccInfo in lCycleComponents do
+      if lCycleComponents.Count > 0 then
       begin
-        lBuilder.AppendLine(Format('  SCC #%d  members=%d  internalEdges=%d',
-          [lSccInfo.fSccId, lSccInfo.fMembers.Count, lSccInfo.fInternalEdgeCount]));
-        lBuilder.AppendLine('    Representative cycle: ' + lSccInfo.fRepresentativeCycle);
-        lBuilder.AppendLine('    Members: ' + String.Join(', ', lSccInfo.fMembers.ToStringArray));
+        lBuilder.AppendLine(Format('Cycle components (%d):', [lCycleComponents.Count]));
+        for var lSccInfo in lCycleComponents do
+        begin
+          lBuilder.AppendLine(Format('  SCC #%d  members=%d  internalEdges=%d',
+            [lSccInfo.fSccId, lSccInfo.fMembers.Count, lSccInfo.fInternalEdgeCount]));
+          lBuilder.AppendLine('    Representative cycle: ' + lSccInfo.fRepresentativeCycle);
+          lBuilder.AppendLine('    Members: ' + String.Join(', ', lSccInfo.fMembers.ToStringArray));
+        end;
       end;
     finally
       lCycleComponents.Free;
     end;
 
-    if aTopLimit = 0 then
-    begin
-      lBuilder.AppendLine('Top cycle units (all):');
-    end else
-    begin
-      lBuilder.AppendLine(Format('Top cycle units (up to %d):', [aTopLimit]));
-    end;
     lHotspotUnits := GetSortedHotspotUnitNames;
     try
-      lLimitCount := lHotspotUnits.Count;
-      if (aTopLimit > 0) and (lLimitCount > aTopLimit) then
+      if lHotspotUnits.Count > 0 then
       begin
-        lLimitCount := aTopLimit;
-      end;
-      for lRank := 0 to lLimitCount - 1 do
-      begin
-        lUnitName := lHotspotUnits[lRank];
-        lUnitScore := fSccData.fUnitScores.Items[lUnitName];
-        lBuilder.AppendLine(Format('  %d. %s  score=%d  scc=#%d',
-          [lRank + 1, lUnitName, lUnitScore, fSccData.fNodeSccIds.Items[lUnitName]]));
+        if aTopLimit = 0 then
+        begin
+          lBuilder.AppendLine('Top cycle units (all):');
+        end else
+        begin
+          lBuilder.AppendLine(Format('Top cycle units (up to %d):', [aTopLimit]));
+        end;
+        lLimitCount := lHotspotUnits.Count;
+        if (aTopLimit > 0) and (lLimitCount > aTopLimit) then
+        begin
+          lLimitCount := aTopLimit;
+        end;
+        for lRank := 0 to lLimitCount - 1 do
+        begin
+          lUnitName := lHotspotUnits[lRank];
+          lUnitScore := fSccData.fUnitScores.Items[lUnitName];
+          lBuilder.AppendLine(Format('  %d. %s  score=%d  scc=#%d',
+            [lRank + 1, lUnitName, lUnitScore, fSccData.fNodeSccIds.Items[lUnitName]]));
+        end;
       end;
     finally
       lHotspotUnits.Free;
     end;
 
-    if aTopLimit = 0 then
-    begin
-      lBuilder.AppendLine('Top cycle edges (all):');
-    end else
-    begin
-      lBuilder.AppendLine(Format('Top cycle edges (up to %d):', [aTopLimit]));
-    end;
     lHotspotEdges := GetSortedHotspotEdges;
     try
-      lLimitCount := lHotspotEdges.Count;
-      if (aTopLimit > 0) and (lLimitCount > aTopLimit) then
+      if lHotspotEdges.Count > 0 then
       begin
-        lLimitCount := aTopLimit;
-      end;
-      for lRank := 0 to lLimitCount - 1 do
-      begin
-        lEdge := lHotspotEdges[lRank];
-        if EdgeRefactorabilityHint(lEdge.fEdgeKind) = 'easier' then
+        if aTopLimit = 0 then
         begin
-          lHintLabel := 'preferred-cut';
-        end else if EdgeRefactorabilityHint(lEdge.fEdgeKind) = 'harder' then
-        begin
-          lHintLabel := 'harder-cut';
+          lBuilder.AppendLine('Top cycle edges (all):');
         end else
         begin
-          lHintLabel := 'neutral-cut';
+          lBuilder.AppendLine(Format('Top cycle edges (up to %d):', [aTopLimit]));
         end;
-        lBuilder.AppendLine(Format('  %d. %s -> %s [%s] rank=%d scc=#%d %s',
-          [lRank + 1, lEdge.fFromName, lEdge.fToName, EdgeKindToText(lEdge.fEdgeKind),
-            fSccData.fEdgeRanks.Items[BuildEdgeKey(lEdge)], fSccData.fEdgeSccIds.Items[BuildEdgeKey(lEdge)], lHintLabel]));
+        lLimitCount := lHotspotEdges.Count;
+        if (aTopLimit > 0) and (lLimitCount > aTopLimit) then
+        begin
+          lLimitCount := aTopLimit;
+        end;
+        for lRank := 0 to lLimitCount - 1 do
+        begin
+          lEdge := lHotspotEdges[lRank];
+          lHintLabel := EdgeRefactorabilityHint(lEdge.fEdgeKind);
+          if lHintLabel = 'easier' then
+          begin
+            lHintLabel := 'preferred-cut';
+          end else if lHintLabel = 'harder' then
+          begin
+            lHintLabel := 'harder-cut';
+          end else
+          begin
+            lHintLabel := 'neutral-cut';
+          end;
+          lBuilder.AppendLine(Format('  %d. %s -> %s [%s] rank=%d scc=#%d %s',
+            [lRank + 1, lEdge.fFromName, lEdge.fToName, EdgeKindToText(lEdge.fEdgeKind),
+              fSccData.fEdgeRanks.Items[BuildEdgeKey(lEdge)], fSccData.fEdgeSccIds.Items[BuildEdgeKey(lEdge)], lHintLabel]));
+        end;
       end;
     finally
       lHotspotEdges.Free;
