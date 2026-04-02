@@ -385,8 +385,8 @@ begin
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected deps text run to succeed. See: ' + lLogPath);
 
   lOutputText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lImplementationPos := Pos('1. CycleB -> CycleA [implementation]', lOutputText);
-  lInterfacePos := Pos('2. CycleA -> CycleB [interface]', lOutputText);
+  lImplementationPos := Pos('CycleB -> CycleA [implementation]', lOutputText);
+  lInterfacePos := Pos('CycleA -> CycleB [interface]', lOutputText);
   Assert.IsTrue(lImplementationPos > 0, 'Expected implementation edge hotspot to rank first for the equal-score tie.');
   Assert.IsTrue(lInterfacePos > 0, 'Expected interface edge hotspot to follow the equal-score implementation edge.');
   Assert.IsTrue(lImplementationPos < lInterfacePos,
