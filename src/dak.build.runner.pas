@@ -16,6 +16,7 @@ uses
   System.Classes, System.IniFiles, System.RegularExpressions, System.StrUtils,
   System.Win.Registry,
   Winapi.Windows,
+  maxLogic.StrUtils,
   Dak.Build.Summary,
   Dak.Diagnostics, Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Project, Dak.RsVars,
   Dak.Registry, Dak.SourceContext, Dak.Utils;
@@ -35,6 +36,7 @@ const
   cMsBuildNotFound = 'MSBuild.exe not found.';
   cMadExceptPatchRequiredMessage = 'madExcept patch is required but madExceptPatch.exe was not found.';
   cMadExceptPatchFailedMessage = 'madExcept patch step failed.';
+  cMadExceptOutputMissingMessage = 'Resolved build output path does not exist: %s';
   cWebCoreCompilerMissingMessage =
     'TMSWebCompiler.exe not found. Checked --webcore-compiler, [WebCore].CompilerPath in dak.ini, ' +
     'DAK_TMSWEB_COMPILER, and PATH.';
@@ -452,37 +454,123 @@ begin
     not SameText(lValue, 'no');
 end;
 
+procedure CopyProps(const aSource, aTarget: TDictionary<string, string>);
+var
+  lPair: TPair<string, string>;
+begin
+  for lPair in aSource do
+    aTarget.AddOrSetValue(lPair.Key, lPair.Value);
+end;
+
+procedure AddPropAliases(const aProps: TDictionary<string, string>; const aName, aValue: string);
+var
+  lLowerName: string;
+begin
+  aProps.AddOrSetValue(aName, aValue);
+  lLowerName := LowerCase(aName);
+  if lLowerName <> aName then
+    aProps.AddOrSetValue(lLowerName, aValue);
+end;
+
+function ResolveProjectFilePath(const aValue, aProjectDir: string; const aProps,
+  aEnvVars: TDictionary<string, string>): string;
+begin
+  Result := TMacroExpander.Expand(aValue, aProps, aEnvVars, nil, False);
+  if not TPath.IsPathRooted(Result) then
+    Result := TPath.GetFullPath(TPath.Combine(aProjectDir, Result))
+  else
+    Result := TPath.GetFullPath(Result);
+end;
+
 function TryEvaluateProjectProperties(const aProjectPath, aConfig, aPlatform: string;
   const aEnvVars: TDictionary<string, string>; out aProps: TDictionary<string, string>; out aError: string): Boolean;
 var
   lEnvVars: TDictionary<string, string>;
   lEvaluator: TMsBuildEvaluator;
   lEnvVarPair: TPair<string, string>;
+  lOptset: string;
+  lOptsetPath: string;
   lProjectDir: string;
+  lProjectFile: string;
+  lProjectFullPath: string;
   lProjectName: string;
+  lTempProps: TDictionary<string, string>;
 begin
   aError := '';
-  aProps := TDictionary<string, string>.Create;
-  lEnvVars := TDictionary<string, string>.Create;
+  aProps := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  lEnvVars := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
     try
-      lProjectDir := TPath.GetDirectoryName(aProjectPath);
-      lProjectName := TPath.GetFileNameWithoutExtension(aProjectPath);
-      aProps.AddOrSetValue('Config', aConfig);
-      aProps.AddOrSetValue('Platform', aPlatform);
-      aProps.AddOrSetValue('ProjectDir', lProjectDir);
-      aProps.AddOrSetValue('PROJECTDIR', IncludeTrailingPathDelimiter(lProjectDir));
-      aProps.AddOrSetValue('ProjectName', lProjectName);
+      lProjectFullPath := TPath.GetFullPath(aProjectPath);
+      lProjectDir := TPath.GetDirectoryName(lProjectFullPath);
+      lProjectFile := TPath.GetFileName(lProjectFullPath);
+      lProjectName := TPath.GetFileNameWithoutExtension(lProjectFullPath);
+      AddPropAliases(aProps, 'Config', aConfig);
+      AddPropAliases(aProps, 'Platform', aPlatform);
+      AddPropAliases(aProps, 'ProjectDir', IncludeTrailingPathDelimiter(lProjectDir));
+      AddPropAliases(aProps, 'PROJECTDIR', IncludeTrailingPathDelimiter(lProjectDir));
+      AddPropAliases(aProps, 'ProjectName', lProjectName);
+      AddPropAliases(aProps, 'MSBuildProjectName', lProjectName);
+      AddPropAliases(aProps, 'MSBuildProjectFullPath', lProjectFullPath);
+      AddPropAliases(aProps, 'MSBuildProjectDirectory', IncludeTrailingPathDelimiter(lProjectDir));
+      AddPropAliases(aProps, 'MSBuildProjectFile', lProjectFile);
 
       if aEnvVars <> nil then
       begin
         for lEnvVarPair in aEnvVars do
-          lEnvVars.AddOrSetValue(lEnvVarPair.Key, lEnvVarPair.Value);
+        begin
+          AddPropAliases(lEnvVars, lEnvVarPair.Key, lEnvVarPair.Value);
+          if not aProps.ContainsKey(lEnvVarPair.Key) then
+            AddPropAliases(aProps, lEnvVarPair.Key, lEnvVarPair.Value);
+        end;
+      end;
+
+      lTempProps := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+      try
+        CopyProps(aProps, lTempProps);
+        lEvaluator := TMsBuildEvaluator.Create(lTempProps, lEnvVars, nil);
+        try
+          if not lEvaluator.EvaluateFile(lProjectFullPath, aError) then
+          begin
+            aProps.Free;
+            aProps := nil;
+            Exit(False);
+          end;
+        finally
+          lEvaluator.Free;
+        end;
+        lTempProps.TryGetValue('CfgDependentOn', lOptset);
+      finally
+        lTempProps.Free;
+      end;
+
+      lOptsetPath := '';
+      lOptset := Trim(lOptset);
+      if lOptset <> '' then
+      begin
+        lOptsetPath := ResolveProjectFilePath(lOptset, lProjectDir, aProps, lEnvVars);
+        if not FileExists(lOptsetPath) then
+          lOptsetPath := '';
+      end;
+
+      if lOptsetPath <> '' then
+      begin
+        lEvaluator := TMsBuildEvaluator.Create(aProps, lEnvVars, nil);
+        try
+          if not lEvaluator.EvaluateFile(lOptsetPath, aError) then
+          begin
+            aProps.Free;
+            aProps := nil;
+            Exit(False);
+          end;
+        finally
+          lEvaluator.Free;
+        end;
       end;
 
       lEvaluator := TMsBuildEvaluator.Create(aProps, lEnvVars, nil);
       try
-        if not lEvaluator.EvaluateFile(aProjectPath, aError) then
+        if not lEvaluator.EvaluateFile(lProjectFullPath, aError) then
         begin
           aProps.Free;
           aProps := nil;
@@ -571,11 +659,10 @@ end;
 function BuildProjectInfo(const aProjectPath, aConfig, aPlatform: string;
   const aEnvVars: TDictionary<string, string>; const aTestOutputDir: string): TBuildProjectInfo;
 var
-  lDefines: string;
-  lEvaluator: TMsBuildEvaluator;
+  lError: string;
+  lProps: TDictionary<string, string>;
   lOutputDir: string;
   lOutputName: string;
-  lProps: TDictionary<string, string>;
 begin
   Result := Default(TBuildProjectInfo);
   Result.fProjectPath := TPath.GetFullPath(aProjectPath);
@@ -583,17 +670,10 @@ begin
   Result.fProjectName := TPath.GetFileNameWithoutExtension(Result.fProjectPath);
   Result.fMesPath := TPath.ChangeExtension(Result.fProjectPath, '.mes');
 
-  lProps := TDictionary<string, string>.Create;
+  lProps := nil;
   try
-    lProps.AddOrSetValue('Config', aConfig);
-    lProps.AddOrSetValue('Platform', aPlatform);
-
-    lEvaluator := TMsBuildEvaluator.Create(lProps, aEnvVars, nil);
-    try
-      lEvaluator.EvaluateFile(Result.fProjectPath, Result.fMadExceptReason);
-    finally
-      lEvaluator.Free;
-    end;
+    if not TryEvaluateProjectProperties(Result.fProjectPath, aConfig, aPlatform, aEnvVars, lProps, lError) then
+      lProps := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
 
     if not lProps.TryGetValue('MainSource', Result.fMainSourcePath) or (Trim(Result.fMainSourcePath) = '') then
       Result.fMainSourcePath := Result.fProjectName + '.dpr';
@@ -613,8 +693,7 @@ begin
     if aTestOutputDir <> '' then
       Result.fOutputPath := TPath.Combine(TPath.GetFullPath(aTestOutputDir), TPath.GetFileName(Result.fOutputPath));
 
-    if lProps.TryGetValue('DCC_Define', lDefines) then
-      Result.fDefines := lDefines;
+    lProps.TryGetValue('DCC_Define', Result.fDefines);
 
     if not FileExists(Result.fMainSourcePath) then
       Result.fMadExceptReason := 'main-source-missing'
@@ -1345,7 +1424,7 @@ begin
   else if aExitCode <> 0 then
     lSummary.fStatus := cStatusError
   else if lSummary.fWarningCount > 0 then
-    lSummary.fStatus := cStatusWarnings
+      lSummary.fStatus := cStatusWarnings
   else if lSummary.fHintCount > 0 then
     lSummary.fStatus := cStatusHints
   else
@@ -1612,23 +1691,32 @@ begin
     if (aExitCode = 0) and lProjectInfo.fMadExceptRequired then
     begin
       PrintVerboseStep(lNormalizedOptions, 'madexcept-patch');
-      lMadExceptExe := ResolveMadExceptPatchExe(lSettings.fMadExceptPath);
-      if lMadExceptExe = '' then
+      if not FileExists(lProjectInfo.fOutputPath) then
       begin
         lSummary.fStatus := cStatusInternalError;
         lSummary.fExitCode := 1;
         aExitCode := 1;
-        lSummary.fOutputMessage := cMadExceptPatchRequiredMessage;
-      end else if not aRunner.RunProcess(lMadExceptExe,
-        QuoteCmdArg(lProjectInfo.fOutputPath) + ' ' + QuoteCmdArg(lProjectInfo.fMesPath), lProjectInfo.fProjectDir,
-        lTempBase + '.mad.out.log', lMadErrLog, 0, lMadExitCode, lTimedOut, aError) then
-        Exit(False)
-      else if lMadExitCode <> 0 then
+        lSummary.fOutputMessage := Format(cMadExceptOutputMissingMessage, [lProjectInfo.fOutputPath]);
+      end else
       begin
-        lSummary.fStatus := cStatusInternalError;
-        lSummary.fExitCode := 1;
-        aExitCode := 1;
-        lSummary.fOutputMessage := cMadExceptPatchFailedMessage;
+        lMadExceptExe := ResolveMadExceptPatchExe(lSettings.fMadExceptPath);
+        if lMadExceptExe = '' then
+        begin
+          lSummary.fStatus := cStatusInternalError;
+          lSummary.fExitCode := 1;
+          aExitCode := 1;
+          lSummary.fOutputMessage := cMadExceptPatchRequiredMessage;
+        end else if not aRunner.RunProcess(lMadExceptExe,
+          QuoteCmdArg(lProjectInfo.fOutputPath) + ' ' + QuoteCmdArg(lProjectInfo.fMesPath), lProjectInfo.fProjectDir,
+          lTempBase + '.mad.out.log', lMadErrLog, 0, lMadExitCode, lTimedOut, aError) then
+          Exit(False)
+        else if lMadExitCode <> 0 then
+        begin
+          lSummary.fStatus := cStatusInternalError;
+          lSummary.fExitCode := 1;
+          aExitCode := 1;
+          lSummary.fOutputMessage := cMadExceptPatchFailedMessage;
+        end;
       end;
     end;
 
