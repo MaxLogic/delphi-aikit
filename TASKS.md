@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-108
+Next task ID: T-109
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 107
+Done tasks: 108
 
 ## In Progress
 
@@ -16,6 +16,28 @@ Done tasks: 107
 ## Blocked
 
 ## Done
+
+### T-108 [CLI] Isolate dfm-check generated artifacts under sibling `.dak` work roots
+Outcome:
+- `dfm-check` writes generated harness, forced build outputs, and validator logs under sibling `.dak/<ProjectName>/dfm-check/` work folders instead of next to the source `.dproj`.
+- Each `dfm-check` run gets its own owned run directory, and startup prunes stale prior run directories from earlier interrupted runs without touching unrelated project files.
+- Default cleanup removes the current run directory on success or failure, while `DAK_DFMCHECK_KEEP_ARTIFACTS=true` preserves only the owned `.dak` run workspace for debugging and still cleans legacy source-root sidecars.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.DfmCheck.TDfmCheckTests.BuildExpectedPathsUseDakWorkspace,Test.DfmCheck.TDfmCheckTests.PipelineKeepArtifactsStoresOwnedRunUnderDakWorkspace,Test.DfmCheck.TDfmCheckTests.PipelinePrunesStaleDakRunsBeforeGeneratingNewWorkspace,Test.DfmCheck.TDfmCheckTests.PipelineCleansGeneratedArtifactsByDefault -cm:Quiet`
+  Expect: Tests Found `>=4`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.DfmCheck.TDfmCheckTests -cm:Quiet`
+  Expect: Tests Found `>=31`, Failed `0`, Leaked `0`.
+- Run: `./build-delphi.sh tests/DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23`
+  Expect: Exit code `0`.
+- Run: `./build-delphi.sh projects/DelphiAIKit.dproj -config Debug -platform Win32 -ver 23`
+  Expect: Exit code `0`.
+- Run: `/mnt/c/Windows/System32/cmd.exe /C "set DAK_DFMCHECK_KEEP_ARTIFACTS=true&&F:\projects\MaxLogic\DelphiAiKit\bin\DelphiAIKit.exe dfm-check --dproj F:\projects\mecMeister\_SVN\Kfzmeister_workCopy\MeisterApp\_Source\KFZMeister.dproj --config Release --platform Win32 --dfm Frames\WelcomeFrame.dfm"`
+  Expect: Generated project/build artifacts are written under `F:\projects\mecMeister\_SVN\Kfzmeister_workCopy\MeisterApp\_Source\.dak\KFZMeister\dfm-check\runs\<RunId>\...`; command may still fail on project-local dependencies unrelated to temp-artifact ownership.
+- Run: `find /mnt/f/projects/mecMeister/_SVN/Kfzmeister_workCopy/MeisterApp/_Source -maxdepth 1 \( -name 'KFZMeister_DfmCheck*' -o -name 'KFZMeister_DfmCheck_Register.pas' -o -name 'KFZMeister_DfmCheck.dproj.local' -o -name 'KFZMeister_DfmCheck.identcache' \) -print`
+  Expect: No output.
+Touches: src/dak.dfmcheck.pas, tests/units/test.dfmcheck.pas, README.md, CHANGELOG.md
+Verify: unit-test, cli-proof
+Notes: Requested after repeated reports that `dfmcheck` temp files can be left behind. Use sibling `.dak/<ProjectName>/dfm-check/` instead of machine-global temp so stale-workspace pruning stays project-scoped and safe.
 
 ### T-107 [CLI] Resolve imported `.optset` output paths before madExcept patching
 Outcome:

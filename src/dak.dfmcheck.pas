@@ -30,6 +30,9 @@ type
     fProjectDproj: string;
     fProjectDir: string;
     fProjectName: string;
+    fDakRootDir: string;
+    fRunsDir: string;
+    fRunDir: string;
     fGeneratedDir: string;
     fGeneratedDproj: string;
     fGeneratedDpr: string;
@@ -399,6 +402,10 @@ begin
     Exit(False);
   end;
 
+{$IFOPT Q+}
+  {$DEFINE DFMCHECK_HASH_QPLUS}
+  {$Q-}
+{$ENDIF}
   lHash := cFNVOffsetBasis;
   lStream := TFileStream.Create(aFilePath, fmOpenRead or fmShareDenyNone);
   try
@@ -406,14 +413,15 @@ begin
     repeat
       lRead := lStream.Read(lBuffer[0], Length(lBuffer));
       for lIndex := 0 to lRead - 1 do
-      begin
-        lHash := lHash xor lBuffer[lIndex];
-        lHash := lHash * cFNVPrime;
-      end;
+        lHash := (lHash xor lBuffer[lIndex]) * cFNVPrime;
     until lRead = 0;
   finally
     lStream.Free;
   end;
+{$IFDEF DFMCHECK_HASH_QPLUS}
+  {$UNDEF DFMCHECK_HASH_QPLUS}
+  {$Q+}
+{$ENDIF}
 
   aHash := IntToHex(lHash, 16);
   Result := True;
@@ -1928,6 +1936,20 @@ begin
   end;
 end;
 
+procedure CleanupProjectRootArtifacts(const aPaths: TDfmCheckPaths; var aErrors: string);
+var
+  lDirectBasePath: string;
+begin
+  lDirectBasePath := TPath.Combine(aPaths.fProjectDir, aPaths.fProjectName + '_DfmCheck');
+  CleanupFile(lDirectBasePath + '.dpr', aErrors);
+  CleanupFile(lDirectBasePath + '.dproj', aErrors);
+  CleanupFile(lDirectBasePath + '.dproj.local', aErrors);
+  CleanupFile(lDirectBasePath + '.identcache', aErrors);
+  CleanupFile(lDirectBasePath + '.cfg', aErrors);
+  CleanupFile(lDirectBasePath + '.res', aErrors);
+  CleanupFile(lDirectBasePath + '_Register.pas', aErrors);
+end;
+
 procedure CleanupGeneratedArtifacts(const aPaths: TDfmCheckPaths; const aCopiedDfmStreamAll: Boolean;
   const aCopiedRuntimeGuard: Boolean; const aValidatorExePath: string; const aOutput: TDfmCheckOutputProc;
   const aVerbose: Boolean);
@@ -1942,21 +1964,31 @@ var
   lProjectDirNormalized: string;
   lGeneratedDirNormalized: string;
 begin
+  if aPaths.fRunDir <> '' then
+  begin
+    lErrors := '';
+    CleanupProjectRootArtifacts(aPaths, lErrors);
+    CleanupDirectory(aPaths.fRunDir, lErrors);
+    if lErrors <> '' then
+      EmitLine(aOutput, '[dfm-check] Cleanup warning: ' + lErrors)
+    else if aVerbose then
+      EmitLine(aOutput, '[dfm-check] Cleanup complete.');
+    Exit;
+  end;
+
   lErrors := '';
   lBasePath := TPath.ChangeExtension(aPaths.fGeneratedDpr, '');
   lDirectBasePath := TPath.Combine(aPaths.fProjectDir, aPaths.fProjectName + '_DfmCheck');
 
   CleanupFile(aPaths.fGeneratedDpr, lErrors);
   CleanupFile(aPaths.fGeneratedDproj, lErrors);
+  CleanupFile(aPaths.fGeneratedDproj + '.local', lErrors);
+  CleanupFile(TPath.ChangeExtension(aPaths.fGeneratedDproj, '.identcache'), lErrors);
   CleanupFile(TPath.ChangeExtension(aPaths.fGeneratedDpr, '.cfg'), lErrors);
   CleanupFile(TPath.ChangeExtension(aPaths.fGeneratedDpr, '.res'), lErrors);
   if aPaths.fGeneratedRegisterUnit <> '' then
     CleanupFile(aPaths.fGeneratedRegisterUnit, lErrors);
-  CleanupFile(lDirectBasePath + '.dpr', lErrors);
-  CleanupFile(lDirectBasePath + '.dproj', lErrors);
-  CleanupFile(lDirectBasePath + '.cfg', lErrors);
-  CleanupFile(lDirectBasePath + '.res', lErrors);
-  CleanupFile(lDirectBasePath + '_Register.pas', lErrors);
+  CleanupProjectRootArtifacts(aPaths, lErrors);
   CleanupFile(aValidatorExePath, lErrors);
   lBuildCmdPath := TPath.Combine(aPaths.fGeneratedDir, '_DfmCheckBuild.cmd');
   lBuildLogPath := TPath.Combine(aPaths.fGeneratedDir, '_DfmCheckBuild.log');
@@ -2002,10 +2034,44 @@ begin
   Result.fProjectDproj := TPath.GetFullPath(aDprojPath);
   Result.fProjectDir := ExcludeTrailingPathDelimiter(ExtractFilePath(Result.fProjectDproj));
   Result.fProjectName := TPath.GetFileNameWithoutExtension(Result.fProjectDproj);
-  Result.fGeneratedDir := TPath.Combine(Result.fProjectDir, Result.fProjectName + '_DfmCheck');
+  Result.fDakRootDir := TPath.Combine(Result.fProjectDir, '.dak\' + Result.fProjectName + '\dfm-check');
+  Result.fRunsDir := TPath.Combine(Result.fDakRootDir, 'runs');
+  Result.fGeneratedDir := TPath.Combine(Result.fDakRootDir, 'generated');
   Result.fGeneratedDproj := TPath.Combine(Result.fGeneratedDir, Result.fProjectName + '_DfmCheck.dproj');
   Result.fGeneratedDpr := TPath.Combine(Result.fGeneratedDir, Result.fProjectName + '_DfmCheck.dpr');
   Result.fGeneratedRegisterUnit := TPath.Combine(Result.fGeneratedDir, Result.fProjectName + '_DfmCheck_Register.pas');
+end;
+
+procedure AssignOwnedRunPaths(var aPaths: TDfmCheckPaths; const aRunSuffix: string);
+begin
+  aPaths.fRunDir := TPath.Combine(aPaths.fRunsDir, aRunSuffix);
+  aPaths.fGeneratedDir := TPath.Combine(aPaths.fRunDir, 'generated');
+  aPaths.fGeneratedDproj := TPath.Combine(aPaths.fGeneratedDir, aPaths.fProjectName + '_DfmCheck.dproj');
+  aPaths.fGeneratedDpr := TPath.Combine(aPaths.fGeneratedDir, aPaths.fProjectName + '_DfmCheck.dpr');
+  aPaths.fGeneratedRegisterUnit := TPath.Combine(aPaths.fGeneratedDir, aPaths.fProjectName + '_DfmCheck_Register.pas');
+end;
+
+procedure CleanupOwnedRunDirectories(const aRunsDir: string; const aRunDirToKeep: string; const aOutput: TDfmCheckOutputProc;
+  const aVerbose: Boolean);
+var
+  lDirPath: string;
+  lError: string;
+  lRunDirToKeepNormalized: string;
+begin
+  if not DirectoryExists(aRunsDir) then
+    Exit;
+
+  lRunDirToKeepNormalized := ExcludeTrailingPathDelimiter(aRunDirToKeep);
+  for lDirPath in TDirectory.GetDirectories(aRunsDir, '*', TSearchOption.soTopDirectoryOnly) do
+  begin
+    if SameText(ExcludeTrailingPathDelimiter(lDirPath), lRunDirToKeepNormalized) then
+      Continue;
+
+    lError := '';
+    CleanupDirectory(lDirPath, lError);
+    if (lError <> '') and aVerbose then
+      EmitLine(aOutput, '[dfm-check] Stale-run cleanup warning: ' + lError);
+  end;
 end;
 
 function TryResolveAbsolutePath(const aInputPath: string; out aOutputPath: string; out aError: string): Boolean;
@@ -2209,6 +2275,45 @@ const
   begin
     Result := StringReplace(aValue, '$', '$$', [rfReplaceAll]);
   end;
+  function NormalizeRelativePropertyPath(const aProjectText: string; const aPropertyName: string;
+    const aBaseDir: string): string;
+  var
+    lMatch: TMatch;
+    lMatches: TMatchCollection;
+    lMatchStart: Integer;
+    lPropertyPattern: string;
+    lPropertyValue: string;
+    lReplacement: string;
+    lResolvedPath: string;
+    lIndex: Integer;
+  begin
+    Result := aProjectText;
+    lPropertyPattern := '<' + aPropertyName + '>\s*([^<]+?)\s*</' + aPropertyName + '>';
+    lMatches := TRegEx.Matches(Result, lPropertyPattern, [roIgnoreCase, roSingleLine]);
+    for lIndex := lMatches.Count - 1 downto 0 do
+    begin
+      lMatch := lMatches.Item[lIndex];
+      if lMatch.Groups.Count < 2 then
+        Continue;
+      lPropertyValue := Trim(lMatch.Groups[1].Value);
+      if (lPropertyValue = '') or StartsText('$(', lPropertyValue) or TPath.IsPathRooted(lPropertyValue) then
+        Continue;
+
+      lResolvedPath := TPath.GetFullPath(TPath.Combine(aBaseDir, lPropertyValue));
+      if not FileExists(lResolvedPath) then
+        Continue;
+
+      lMatchStart := lMatch.Index;
+      lReplacement := '<' + aPropertyName + '>' + XmlEscape(lResolvedPath) + '</' + aPropertyName + '>';
+      Result := Copy(Result, 1, lMatchStart - 1) + lReplacement +
+        Copy(Result, lMatchStart + lMatch.Length, MaxInt);
+    end;
+  end;
+  function ClearBuildEventBlock(const aProjectText: string; const aTagName: string): string;
+  begin
+    Result := TRegEx.Replace(aProjectText, '<' + aTagName + '>\s*.*?\s*</' + aTagName + '>',
+      '<' + aTagName + '></' + aTagName + '>', [roIgnoreCase, roSingleLine]);
+  end;
 var
   lEscapedSearchPath: string;
   lEscapedSearchPathReplacement: string;
@@ -2221,12 +2326,14 @@ var
   lUpdatedDefines: string;
   lUpdatedDefinesReplacement: string;
   lSourceText: string;
+  lSourceDprojDir: string;
   lOutputText: string;
   lRegex: string;
 begin
   aError := '';
   lSourceText := TFile.ReadAllText(aSourceDprojPath);
   lOutputText := lSourceText;
+  lSourceDprojDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aSourceDprojPath));
   lRegex := '<MainSource>\s*' + TRegEx.Escape(aSourceMainSource) + '\s*</MainSource>';
 
   lOutputText := TRegEx.Replace(lOutputText, lRegex, '<MainSource>' + aGeneratedMainSource + '</MainSource>',
@@ -2287,6 +2394,11 @@ begin
       lOutputText := Copy(lOutputText, 1, lInsertPos) + lInsertText + Copy(lOutputText, lInsertPos + 1, MaxInt);
     end;
   end;
+
+  lOutputText := NormalizeRelativePropertyPath(lOutputText, 'Icon_MainIcon', lSourceDprojDir);
+  lOutputText := ClearBuildEventBlock(lOutputText, 'PreBuildEvent');
+  lOutputText := ClearBuildEventBlock(lOutputText, 'PreLinkEvent');
+  lOutputText := ClearBuildEventBlock(lOutputText, 'PostBuildEvent');
 
   TFile.WriteAllText(aDestDprojPath, lOutputText, TEncoding.UTF8);
   Result := True;
@@ -2769,9 +2881,10 @@ begin
       lUnitSearchPath := lUnitSearchPathDiscovered;
     lGeneratedDprName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dpr';
     lGeneratedDprojName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dproj';
-    aPaths.fGeneratedDpr := TPath.Combine(aPaths.fProjectDir, lGeneratedDprName);
-    aPaths.fGeneratedDproj := TPath.Combine(aPaths.fProjectDir, lGeneratedDprojName);
-    aPaths.fGeneratedRegisterUnit := TPath.Combine(aPaths.fProjectDir,
+    TDirectory.CreateDirectory(aPaths.fGeneratedDir);
+    aPaths.fGeneratedDpr := TPath.Combine(aPaths.fGeneratedDir, lGeneratedDprName);
+    aPaths.fGeneratedDproj := TPath.Combine(aPaths.fGeneratedDir, lGeneratedDprojName);
+    aPaths.fGeneratedRegisterUnit := TPath.Combine(aPaths.fGeneratedDir,
       TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck_Register.pas');
     lGeneratedCfgPath := TPath.ChangeExtension(aPaths.fGeneratedDpr, '.cfg');
 
@@ -2796,8 +2909,6 @@ begin
     lFormClassNames.Free;
     lUnitNames.Free;
   end;
-
-  aPaths.fGeneratedDir := aPaths.fProjectDir;
   Result := True;
 end;
 
@@ -2850,6 +2961,13 @@ begin
 
     if DirectoryExists(lExpectedDir) then
       lDirectoryList.Add(lExpectedDir);
+
+    if DirectoryExists(aPaths.fRunsDir) then
+    begin
+      lDirectoryArray := TDirectory.GetDirectories(aPaths.fRunsDir, '*', TSearchOption.soTopDirectoryOnly);
+      for lDirectoryPath in lDirectoryArray do
+        lDirectoryList.Add(TPath.Combine(lDirectoryPath, 'generated'));
+    end;
 
     lDirectoryArray := TDirectory.GetDirectories(aPaths.fProjectDir, '*_DfmCheck', TSearchOption.soTopDirectoryOnly);
     for lDirectoryPath in lDirectoryArray do
@@ -3116,12 +3234,14 @@ function TryFindValidatorExe(const aPaths: TDfmCheckPaths; const aPlatform: stri
 var
   lExeBaseName: string;
   lExpectedPathList: TStringList;
+  lGeneratedParentDir: string;
   lProjectParentDir: string;
   lCandidatePath: string;
 begin
   aError := '';
   aValidatorExePath := '';
   lExeBaseName := TPath.GetFileNameWithoutExtension(aPaths.fGeneratedDproj) + '.exe';
+  lGeneratedParentDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aPaths.fGeneratedDir));
   lProjectParentDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aPaths.fProjectDir));
 
   lExpectedPathList := TStringList.Create;
@@ -3135,6 +3255,12 @@ begin
     lExpectedPathList.Add(TPath.Combine(TPath.Combine(TPath.Combine(aPaths.fGeneratedDir, 'Bin'), aPlatform),
       TPath.Combine(aConfig, lExeBaseName)));
     lExpectedPathList.Add(TPath.Combine(TPath.Combine(aPaths.fGeneratedDir, 'Bin'), lExeBaseName));
+    if lGeneratedParentDir <> '' then
+    begin
+      lExpectedPathList.Add(TPath.Combine(TPath.Combine(TPath.Combine(lGeneratedParentDir, 'Bin'), aPlatform),
+        TPath.Combine(aConfig, lExeBaseName)));
+      lExpectedPathList.Add(TPath.Combine(TPath.Combine(lGeneratedParentDir, 'Bin'), lExeBaseName));
+    end;
     lExpectedPathList.Add(TPath.Combine(TPath.Combine(TPath.Combine(aPaths.fProjectDir, aPlatform), aConfig),
       lExeBaseName));
     lExpectedPathList.Add(TPath.Combine(TPath.Combine(TPath.Combine(aPaths.fProjectDir, 'Bin'), aPlatform),
@@ -3264,6 +3390,7 @@ var
   lWarnLines: Integer;
   lWarnReasons: TStringList;
   lWarnedResources: TStringList;
+  lCleanupErrors: string;
 begin
   Result := 1;
   aError := '';
@@ -3287,6 +3414,7 @@ begin
   lDiagnosticError := '';
   lPromotedWarnings := 0;
   lOriginalAllRequested := aOptions.fDfmCheckAll or (Trim(aOptions.fDfmCheckFilter) = '');
+  lCleanupErrors := '';
   lBuildLines := TStringList.Create;
   lDiagnostics := nil;
   lFailedResources := TStringList.Create;
@@ -3409,6 +3537,16 @@ begin
       lPlatform := 'Win32';
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    if CreateGUID(lRunGuid) = S_OK then
+      lRunSuffix := GUIDToString(lRunGuid)
+    else
+      lRunSuffix := FormatDateTime('yyyymmddhhnnsszzz', Now);
+    lRunSuffix := StringReplace(lRunSuffix, '{', '', [rfReplaceAll]);
+    lRunSuffix := StringReplace(lRunSuffix, '}', '', [rfReplaceAll]);
+    lRunSuffix := StringReplace(lRunSuffix, '-', '', [rfReplaceAll]);
+    AssignOwnedRunPaths(lPaths, lRunSuffix);
+    TDirectory.CreateDirectory(lPaths.fRunsDir);
+    CleanupOwnedRunDirectories(lPaths.fRunsDir, lPaths.fRunDir, aOutput, lVerbose);
 
     if not TryResolveInjectDir(lPaths.fInjectDir, aError) then
     begin
@@ -3460,16 +3598,8 @@ begin
     end;
     EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Using MSBuild: ' + lBuildExePath);
 
-    if CreateGUID(lRunGuid) = S_OK then
-      lRunSuffix := GUIDToString(lRunGuid)
-    else
-      lRunSuffix := FormatDateTime('yyyymmddhhnnsszzz', Now);
-    lRunSuffix := StringReplace(lRunSuffix, '{', '', [rfReplaceAll]);
-    lRunSuffix := StringReplace(lRunSuffix, '}', '', [rfReplaceAll]);
-    lRunSuffix := StringReplace(lRunSuffix, '-', '', [rfReplaceAll]);
-
-    lForcedExeOutputDir := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckBin_' + lRunSuffix);
-    lForcedDcuOutputDir := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckDcu_' + lRunSuffix);
+    lForcedExeOutputDir := TPath.Combine(lPaths.fRunDir, 'bin');
+    lForcedDcuOutputDir := TPath.Combine(lPaths.fRunDir, 'dcu');
     TDirectory.CreateDirectory(lForcedExeOutputDir);
     TDirectory.CreateDirectory(lForcedDcuOutputDir);
     lPaths.fForcedExeOutputDir := lForcedExeOutputDir;
@@ -3608,7 +3738,12 @@ begin
     lFailedResources.Free;
     lBuildLines.Free;
     if ShouldKeepArtifacts then
-      EmitLine(aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).')
+    begin
+      CleanupProjectRootArtifacts(lPaths, lCleanupErrors);
+      if lCleanupErrors <> '' then
+        EmitLine(aOutput, '[dfm-check] Cleanup warning: ' + lCleanupErrors);
+      EmitLine(aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).');
+    end
     else
       CleanupGeneratedArtifacts(lPaths, lCopiedDfmStreamAll, lCopiedRuntimeGuard, lValidatorExePath, aOutput, lVerbose);
   end;
