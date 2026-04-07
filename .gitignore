@@ -101,3 +101,5 @@ docs/delphi-dfm-checker/
 .roundtable
 /tests/fixtures/KFZMeister_DfmCheck.$manifest
 /tests/fixtures/KFZMeister_DfmCheck.vrc
+/docs/unit-cycle-fix-tool.md
+/.codex
