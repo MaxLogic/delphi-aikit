@@ -53,6 +53,13 @@ tests\DelphiAIKit.Tests.exe
 
 If `pawelspc=1` is set, missing FixInsight/PALCMD is treated as a failure; otherwise the relevant tests are skipped.
 
+Timing note:
+
+- The full DUnitX suite is not a fast smoke test. On Pawel's machine it took about 3.5 minutes on 2026-04-07 (`153` tests, all green).
+- `Test.FixInsight.TFixInsightTests` is the long pole. It runs FixInsight analysis three times (`base`, `exclude`, `ignore-ids`) and took about 190-200 seconds on 2026-04-07.
+- Avoid using a 120s or 240s watchdog for the full suite or the FixInsight fixture; those bounds are short enough to produce false "hang" diagnoses.
+- For bounded automation, prefer a full-suite timeout around `900s` and a FixInsight-fixture timeout around `420s`.
+
 ## Useful env vars
 
 - `DAK_PLATFORM` (default: `Win32`)
