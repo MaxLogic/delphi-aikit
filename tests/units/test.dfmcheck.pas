@@ -7,7 +7,8 @@ uses
   System.Classes, System.IniFiles, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
   Winapi.Windows,
   Dak.DfmCheck, Dak.Types,
-  Test.Support;
+  Test.Support,
+  Xml.XMLDoc, Xml.XMLIntf;
 
 type
   TMockValidatorMode = (vmHappy, vmHappyParentBin, vmBroken, vmBrokenEventSignature,
@@ -43,12 +44,14 @@ type
     procedure WriteInjectStubs(const aInjectDir: string);
     procedure CreateFixtureProject(out aProjectDproj: string);
     procedure CreateFixtureProjectWithInheritedSearchPath(out aProjectDproj: string);
+    function GetDfmCheckWorkRoot(const aProjectDproj: string): string;
+    function GetSingleChildDirectory(const aParentDir: string): string;
     function JoinOutput(const aLines: TStrings): string;
   public
     [Test]
     procedure ResolveProjectPathMapsDprToSiblingDproj;
     [Test]
-    procedure BuildExpectedPathsIsDeterministic;
+    procedure BuildExpectedPathsUseDakWorkspace;
     [Test]
     procedure BundledDfmStreamAllSupportsFrameConstructorFallback;
     [Test]
@@ -92,7 +95,13 @@ type
     [Test]
     procedure PipelineFindsValidatorExeInParentBin;
     [Test]
+    procedure PipelineKeepArtifactsStoresOwnedRunUnderDakWorkspace;
+    [Test]
+    procedure PipelinePrunesStaleDakRunsBeforeGeneratingNewWorkspace;
+    [Test]
     procedure PipelineCleansGeneratedArtifactsByDefault;
+    [Test]
+    procedure PipelineAllModeCacheHashingDoesNotOverflowWithDebugChecks;
     [Test]
     procedure PipelineAllModeCacheSkipsUnchangedDfmValidation;
     [Test]
@@ -434,13 +443,26 @@ begin
   lDprPath := TPath.ChangeExtension(aProjectDproj, '.dpr');
   lMainFormPasPath := TPath.Combine(lRoot, 'MainForm.pas');
   lMainFormDfmPath := TPath.Combine(lRoot, 'MainForm.dfm');
+  TFile.WriteAllText(TPath.Combine(lRoot, 'Sample.ico'), 'ico', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'Sample.Win32.ico'), 'ico', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'Sample.Win64.ico'), 'ico', TEncoding.ASCII);
 
   TFile.WriteAllText(aProjectDproj,
     '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
     '  <PropertyGroup>' + #13#10 +
     '    <MainSource>Sample.dpr</MainSource>' + #13#10 +
     '    <DCC_Define>madExcept;TRACE</DCC_Define>' + #13#10 +
+    '    <Icon_MainIcon>Sample.ico</Icon_MainIcon>' + #13#10 +
+    '    <PreBuildEvent><![CDATA[echo before' + #13#10 +
+    '$(PreBuildEvent)]]></PreBuildEvent>' + #13#10 +
+    '    <PostBuildEvent>echo after</PostBuildEvent>' + #13#10 +
     '    <DCC_UnitSearchPath>$(ProjectRoot)\Units;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '  <PropertyGroup Condition="''$(Base_Win32)''!=''''">' + #13#10 +
+    '    <Icon_MainIcon>Sample.Win32.ico</Icon_MainIcon>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '  <PropertyGroup Condition="''$(Base_Win64)''!=''''">' + #13#10 +
+    '    <Icon_MainIcon>Sample.Win64.ico</Icon_MainIcon>' + #13#10 +
     '  </PropertyGroup>' + #13#10 +
     '  <ItemGroup>' + #13#10 +
     '    <DCCReference Include="MainForm.pas"/>' + #13#10 +
@@ -644,6 +666,21 @@ begin
   Result := String.Join(#13#10, aLines.ToStringArray);
 end;
 
+function TDfmCheckTests.GetDfmCheckWorkRoot(const aProjectDproj: string): string;
+begin
+  Result := TPath.Combine(ExtractFilePath(aProjectDproj), '.dak\' +
+    TPath.GetFileNameWithoutExtension(aProjectDproj) + '\dfm-check');
+end;
+
+function TDfmCheckTests.GetSingleChildDirectory(const aParentDir: string): string;
+var
+  lDirectories: TArray<string>;
+begin
+  lDirectories := TDirectory.GetDirectories(aParentDir, '*', TSearchOption.soTopDirectoryOnly);
+  Assert.AreEqual(1, Length(lDirectories), 'Expected exactly one child directory under ' + aParentDir + '.');
+  Result := lDirectories[0];
+end;
+
 procedure TDfmCheckTests.ResolveProjectPathMapsDprToSiblingDproj;
 var
   lDprojPath: string;
@@ -656,17 +693,20 @@ begin
   Assert.AreEqual(lDprojPath, lResolvedPath);
 end;
 
-procedure TDfmCheckTests.BuildExpectedPathsIsDeterministic;
+procedure TDfmCheckTests.BuildExpectedPathsUseDakWorkspace;
 var
+  lDakRoot: string;
   lDprojPath: string;
   lPaths: TDfmCheckPaths;
 begin
   CreateFixtureProject(lDprojPath);
   lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
-  Assert.AreEqual(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck'),
+  lDakRoot := TPath.Combine(ExtractFilePath(lDprojPath), '.dak\Sample\dfm-check');
+  Assert.AreEqual(ExcludeTrailingPathDelimiter(TPath.Combine(lDakRoot, 'generated')),
     ExcludeTrailingPathDelimiter(lPaths.fGeneratedDir));
   Assert.AreEqual(TPath.Combine(lPaths.fGeneratedDir, 'Sample_DfmCheck.dproj'), lPaths.fGeneratedDproj);
   Assert.AreEqual(TPath.Combine(lPaths.fGeneratedDir, 'Sample_DfmCheck.dpr'), lPaths.fGeneratedDpr);
+  Assert.AreEqual(TPath.Combine(lPaths.fGeneratedDir, 'Sample_DfmCheck_Register.pas'), lPaths.fGeneratedRegisterUnit);
 end;
 
 procedure TDfmCheckTests.ResolveBundledInjectDirWalksUpToAncestorToolsInject;
@@ -876,6 +916,7 @@ var
   lRunner: IDfmCheckProcessRunner;
   lInjectedPos: Integer;
   lGeneratedDprojText: string;
+  lGeneratedXmlDoc: IXMLDocument;
   lPatchedDprText: string;
   lGeneratedUnitText: string;
   lWinapiPos: Integer;
@@ -957,6 +998,12 @@ begin
     Assert.IsTrue(lInjectedPos > 0, 'Expected generated checker DPR to execute validator entrypoint.');
 
     lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
+    lGeneratedXmlDoc := TXMLDocument.Create(nil);
+    lGeneratedXmlDoc.LoadFromXML(lGeneratedDprojText);
+    lGeneratedXmlDoc.Active := True;
+    Assert.IsNotNull(lGeneratedXmlDoc.DocumentElement, 'Generated checker DPROJ should remain valid XML.');
+    Assert.AreEqual('Project', lGeneratedXmlDoc.DocumentElement.NodeName,
+      'Generated checker DPROJ should keep the MSBuild Project root node.');
     Assert.IsTrue(Pos('DFMCheck', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should define DFMCheck symbol.');
     Assert.IsTrue(Pos('NO_LOCALIZATION', lGeneratedDprojText) > 0,
@@ -965,12 +1012,25 @@ begin
       'Generated checker DPROJ should remove madExcept symbol from defines.');
     Assert.IsTrue(Pos('<Source Name="MainSource">Sample_DfmCheck.dpr</Source>', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should rewrite project extension MainSource entry.');
+    Assert.IsTrue(Pos('<Icon_MainIcon>' + StringReplace(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.ico'),
+      '\', '\\', [rfReplaceAll]) + '</Icon_MainIcon>', StringReplace(lGeneratedDprojText, '\', '\\', [rfReplaceAll])) > 0,
+      'Generated checker DPROJ should rebase source-relative icon paths to the source project directory.');
+    Assert.IsTrue(Pos('<Icon_MainIcon>' + StringReplace(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.Win32.ico'),
+      '\', '\\', [rfReplaceAll]) + '</Icon_MainIcon>', StringReplace(lGeneratedDprojText, '\', '\\', [rfReplaceAll])) > 0,
+      'Generated checker DPROJ should rebase Win32 icon override paths to the source project directory.');
+    Assert.IsTrue(Pos('<Icon_MainIcon>' + StringReplace(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.Win64.ico'),
+      '\', '\\', [rfReplaceAll]) + '</Icon_MainIcon>', StringReplace(lGeneratedDprojText, '\', '\\', [rfReplaceAll])) > 0,
+      'Generated checker DPROJ should rebase Win64 icon override paths to the source project directory.');
+    Assert.IsFalse(Pos('<PreBuildEvent>echo before</PreBuildEvent>', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ must not keep source-project pre-build events.');
+    Assert.IsFalse(Pos('<PostBuildEvent>echo after</PostBuildEvent>', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ must not keep source-project post-build events.');
     Assert.IsTrue(Pos('$(DCC_UnitSearchPath)', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should preserve macro-based search path tokens.');
     Assert.IsTrue(Pos('TRACE', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should preserve unrelated compiler define symbols.');
 
-    lGeneratedUnitText := TFile.ReadAllText(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas'));
+    lGeneratedUnitText := TFile.ReadAllText(lPaths.fGeneratedRegisterUnit);
     Assert.IsTrue(Pos('unit Sample_DfmCheck_Register;', lGeneratedUnitText) > 0,
       'Expected generated register unit for streaming class registration.');
     Assert.IsTrue(Pos('uses', lGeneratedUnitText) > 0, 'Expected generated register unit to keep form-unit linkage.');
@@ -1145,7 +1205,7 @@ begin
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
-    lGeneratedUnitText := TFile.ReadAllText(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas'));
+    lGeneratedUnitText := TFile.ReadAllText(lPaths.fGeneratedRegisterUnit);
     Assert.IsTrue(Pos('sd3.WebBrowser', lGeneratedUnitText) > 0,
       'Expected generated register unit uses list to keep namespaced unit names.');
     Assert.IsTrue(Pos(#13#10 + '  WebBrowser,' + #13#10, lGeneratedUnitText) = 0,
@@ -1846,11 +1906,166 @@ begin
   end;
 end;
 
+procedure TDfmCheckTests.PipelineKeepArtifactsStoresOwnedRunUnderDakWorkspace;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lGeneratedDir: string;
+  lGeneratedIdentCachePath: string;
+  lGeneratedLocalPath: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunDir: string;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+  lRunsDir: string;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-keep-dak-run');
+  WriteInjectStubs(lInjectDir);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lGeneratedLocalPath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck.dproj.local');
+    lGeneratedIdentCachePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck.identcache');
+    TFile.WriteAllText(lGeneratedLocalPath, 'local', TEncoding.ASCII);
+    TFile.WriteAllText(lGeneratedIdentCachePath, 'identcache', TEncoding.ASCII);
+
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected keep-artifacts pipeline to return success.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, 'Unexpected error category for keep-artifacts path.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for keep-artifacts path.');
+
+    lRunsDir := TPath.Combine(GetDfmCheckWorkRoot(lDprojPath), 'runs');
+    Assert.IsTrue(DirectoryExists(lRunsDir), 'Expected owned dfm-check runs directory under sibling .dak root.');
+    lRunDir := GetSingleChildDirectory(lRunsDir);
+    lGeneratedDir := TPath.Combine(lRunDir, 'generated');
+    Assert.IsTrue(FileExists(TPath.Combine(lGeneratedDir, 'Sample_DfmCheck.dpr')),
+      'Expected generated DPR to stay under the preserved owned run workspace.');
+    Assert.IsTrue(FileExists(TPath.Combine(lGeneratedDir, 'Sample_DfmCheck.dproj')),
+      'Expected generated DPROJ to stay under the preserved owned run workspace.');
+    Assert.IsTrue(FileExists(TPath.Combine(lGeneratedDir, 'Sample_DfmCheck_Register.pas')),
+      'Expected generated register unit to stay under the preserved owned run workspace.');
+    Assert.IsFalse(FileExists(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck.dpr')),
+      'Did not expect generated DPR next to the source project when artifacts are kept.');
+    Assert.IsFalse(FileExists(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck.dproj')),
+      'Did not expect generated DPROJ next to the source project when artifacts are kept.');
+    Assert.IsFalse(FileExists(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck_Register.pas')),
+      'Did not expect generated register unit next to the source project when artifacts are kept.');
+    Assert.IsFalse(FileExists(lGeneratedLocalPath),
+      'Did not expect generated .dproj.local sidecar next to the source project when artifacts are kept.');
+    Assert.IsFalse(FileExists(lGeneratedIdentCachePath),
+      'Did not expect generated .identcache sidecar next to the source project when artifacts are kept.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelinePrunesStaleDakRunsBeforeGeneratingNewWorkspace;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunDir: string;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+  lRunsDir: string;
+  lStaleRunDir: string;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-stale-prune');
+  WriteInjectStubs(lInjectDir);
+
+  lRunsDir := TPath.Combine(GetDfmCheckWorkRoot(lDprojPath), 'runs');
+  lStaleRunDir := TPath.Combine(lRunsDir, 'stale-run');
+  TDirectory.CreateDirectory(TPath.Combine(lStaleRunDir, 'generated'));
+  TFile.WriteAllText(TPath.Combine(lStaleRunDir, 'generated\stale.txt'), 'stale', TEncoding.ASCII);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected stale-run pruning path to return success.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, 'Unexpected error category for stale-run pruning path.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for stale-run pruning path.');
+    Assert.IsFalse(DirectoryExists(lStaleRunDir), 'Expected stale owned run directory to be pruned before the new run.');
+    lRunDir := GetSingleChildDirectory(lRunsDir);
+    Assert.IsTrue(FileExists(TPath.Combine(lRunDir, 'generated\Sample_DfmCheck.dpr')),
+      'Expected current run workspace to remain after stale-run pruning.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
 procedure TDfmCheckTests.PipelineCleansGeneratedArtifactsByDefault;
 var
   lCategory: TDfmCheckErrorCategory;
   lDprojPath: string;
   lError: string;
+  lGeneratedIdentCachePath: string;
+  lGeneratedLocalPath: string;
   lInjectDir: string;
   lKeepArtifactsEnv: string;
   lOptions: TAppOptions;
@@ -1874,6 +2089,11 @@ begin
   SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', nil);
   lOutputLines := TStringList.Create;
   try
+    lGeneratedLocalPath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck.dproj.local');
+    lGeneratedIdentCachePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck.identcache');
+    TFile.WriteAllText(lGeneratedLocalPath, 'local', TEncoding.ASCII);
+    TFile.WriteAllText(lGeneratedIdentCachePath, 'identcache', TEncoding.ASCII);
+
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
     lRunner := lRunnerImpl;
     lOptions := Default(TAppOptions);
@@ -1899,6 +2119,64 @@ begin
     Assert.IsFalse(FileExists(lPaths.fGeneratedDproj), 'Expected generated DPROJ to be cleaned up by default.');
     Assert.IsFalse(FileExists(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas')),
       'Expected generated register unit to be cleaned up by default.');
+    Assert.IsFalse(FileExists(lGeneratedLocalPath), 'Expected generated .dproj.local sidecar to be cleaned up.');
+    Assert.IsFalse(FileExists(lGeneratedIdentCachePath), 'Expected generated .identcache sidecar to be cleaned up.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineAllModeCacheHashingDoesNotOverflowWithDebugChecks;
+var
+  lCachePath: string;
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lOutputLines: TStringList;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-cache-overflow');
+  WriteInjectStubs(lInjectDir);
+  lCachePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.dfmcheck.cache');
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lOutputLines := TStringList.Create;
+  try
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+    lOptions.fDfmCheckAll := True;
+    lOptions.fVerbose := True;
+
+    lRunner := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lResult := RunDfmCheckPipeline(lOptions, lRunner,
+      procedure(const aLine: string)
+      begin
+        lOutputLines.Add(aLine);
+      end, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected all-mode cache preparation to succeed without integer overflow.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory, 'Unexpected category for overflow regression path.');
+    Assert.AreEqual('', lError, 'Did not expect an orchestration error for overflow regression path.');
+    Assert.IsTrue(FileExists(lCachePath), 'Expected cache file to be written after successful hash computation.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));

@@ -214,8 +214,8 @@ If none of the above is available, `dfm-check` fails with a hard error (Delphi c
 If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-only traversal where possible, but search-path-sensitive projects may be less accurate.
 
 `dfm-check` stages:
-- generate a `_DfmCheck` harness project from the target `.dproj`/`.dpr` (no external `DFMCheck.exe`)
-- generate `_DfmCheck_Register.pas` to register form classes required for streaming
+- generate a `_DfmCheck` harness project under sibling `.dak/<ProjectName>/dfm-check/runs/<RunId>/generated/` (no external `DFMCheck.exe`)
+- generate `_DfmCheck_Register.pas` inside that owned run workspace so source roots stay clean
 - inject `tools\inject\DfmStreamAll.pas` into the generated harness project
 - resolve bundled inject files by walking ancestor directories from `DelphiAIKit.exe` (`tools\inject` first, then `docs\delphi-dfm-checker\tools\inject`), so detached build/test binaries can still run `dfm-check`
 - run the harness entrypoint with `ExitCode := TDfmStreamAll.Run;`
@@ -223,10 +223,11 @@ If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-onl
 - run `_DfmCheck.exe` and propagate its exit code (`0` success, non-zero means streaming failures)
 - force Delphi response-file build mode (`DCC_ForceExecute=true`) to avoid long command-line failures
 - isolate generated DCU/EXE output directories per run for deterministic CI behavior
+- prune stale owned run directories from earlier interrupted `dfm-check` runs before generating a new workspace
 - in full-scope mode (`--all` or no explicit `--dfm`), cache unchanged forms in `<Project>.dfmcheck.cache` and skip revalidation on later runs
 - in full-scope + verbose mode, print progress lines as `CHECK <current>/<total> <resource>`
 - validator timeout is disabled (large projects run until completion)
-- clean generated `_DfmCheck*` artifacts by default (set `DAK_DFMCHECK_KEEP_ARTIFACTS=true` to keep them for debugging)
+- clean the owned `.dak/.../runs/<RunId>/` workspace by default, and when `DAK_DFMCHECK_KEEP_ARTIFACTS=true` keep only that owned run while still removing legacy source-root `_DfmCheck*` sidecars
 
 `dfm-check` output contract:
 - non-verbose: actionable output only (`FAIL` lines + summary + final result)
