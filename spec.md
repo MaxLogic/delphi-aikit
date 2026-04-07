@@ -140,6 +140,8 @@ Implementation uses DAK's native build runners:
 - Delphi backend: MSBuild + `rsvars.bat` + madExcept integration
 - WebCore backend: `TMSWebCompiler.exe` with optional `patch-index-debug.ps1` compatibility hook
 
+For Delphi builds, output-path resolution uses the effective project properties after applying any active `CfgDependentOn` `.optset` baseline and then reapplying the `.dproj` overrides. When madExcept patching is required and the resolved output file is missing after a successful compile, `build` must fail with a specific output-path diagnostic instead of a generic madExcept patch failure.
+
 `build-delphi.bat` may remain as a compatibility/bootstrap wrapper, but the CLI `build` command does not rely on batch/PowerShell helper logic for normal execution.
 
 WebCore backend notes:

@@ -494,6 +494,7 @@ bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 -
   If `BDSUSERDIR` is missing, we derive it from `%APPDATA%\Embarcadero\BDS\<version>` and then `%USERPROFILE%\Documents\Embarcadero\Studio\<version>`.
 - We resolve `FixInsightCL.exe` from `dak.ini` (`Path`), then `PATH`, then FixInsight registry keys (HKCU/HKLM, 32/64-bit).
 - The native `build` runner runs `madExceptPatch.exe` only when a sibling `.mes` exists, the `.dpr`/`.dproj` base names match, `madExcept` is defined for the selected build config/platform, and `.mes` `GeneralSettings` does not disable `LinkInCode` or `HandleExceptions`.
+- When resolving build output paths for Delphi projects, the native `build` runner honors `CfgDependentOn` `.optset` baselines before applying `.dproj` overrides, so JSON output and madExcept patching use the effective `DCC_ExeOutput` value.
 - Sample inputs live in `tests\fixtures\` so we can quickly try the resolver.
 - `scripts\fixinsight-selftest\fixinsight-run.bat` runs FixInsight against this repo and can generate raw reports under `scripts\fixinsight-selftest\Reports\`.
 - `scripts\pascal-analyzer-selftest\pascal-analyzer-run.bat` runs Pascal Analyzer against this repo and writes reports under `scripts\pascal-analyzer-selftest\Reports\`.

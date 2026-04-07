@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-107
+Next task ID: T-108
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 106
+Done tasks: 107
 
 ## In Progress
 
@@ -16,6 +16,28 @@ Done tasks: 106
 ## Blocked
 
 ## Done
+
+### T-107 [CLI] Resolve imported `.optset` output paths before madExcept patching
+Outcome:
+- The Delphi build runner resolves `CfgDependentOn` option-set properties before computing the build output path, so imported `DCC_ExeOutput` values are honored for the active config/platform.
+- Project-local properties still override `.optset` baseline values, and missing option sets stay non-fatal.
+- When madExcept patching is required but the resolved output file does not exist, the build fails with a specific output-path diagnostic instead of a generic `madExcept patch step failed.` message.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests.BuildResolvesMadExceptOutputPathFromCfgDependentOnOptset -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests.BuildProjectPropertiesOverrideCfgDependentOnOptsetOutputPath -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests.BuildReportsSpecificErrorWhenResolvedMadExceptOutputIsMissing -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests.BuildIgnoresMissingCfgDependentOnOptsetWhenProjectOutputExists -cm:Quiet`
+  Expect: Tests Found `>=1`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Build.TBuildTests -cm:Quiet`
+  Expect: Build-suite regression tests pass with `Tests Found >=11`, `Failed 0`, `Leaked 0`.
+- Run: `bash -lc 'export DAK_EXE=\"/mnt/f/projects/MaxLogic/DelphiAiKit/bin/DelphiAIKit.exe\"; \"$DAK_EXE\" build --project \"/mnt/f/projects/mecMeister/_SVN/Kfzmeister_workCopy/Mobile-Solution/BackEnd/project/MecRestServerConsole.dproj\" --delphi 23.0 --platform Win32 --config Debug --target Rebuild --ai --json'`
+  Expect: Exit code `0`; JSON `output` resolves to `...\BackEnd\bin\Debug\Win32\MecRestServerConsole.exe`; `output_message` is empty.
+Touches: src/dak.build.runner.pas, tests/units/test.build.pas, README.md, spec.md, CHANGELOG.md
+Verify: unit-test, cli-proof
+Notes: Discovered while investigating a failing `MecRestServerConsole.dproj` build where `madExceptPatch.exe` was invoked with the `.dproj` directory fallback instead of the imported `.optset` `DCC_ExeOutput` path.
 
 ### T-106 [CLI] Add deps hotspot text report and `--top` limiting
 Outcome:
