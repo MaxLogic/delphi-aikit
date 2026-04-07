@@ -21,6 +21,8 @@ type
     fArgumentsList: TArray<string>;
     fCallCount: Integer;
     fExePaths: TArray<string>;
+    fFilesToCreateOnCall: TDictionary<Integer, string>;
+    destructor Destroy; override;
     function RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
       aTimeoutSec: Integer; out aExitCode: Integer; out aTimedOut: Boolean; out aError: string): Boolean;
   end;
@@ -50,6 +52,14 @@ type
     procedure BuildSkipsMadExceptPatchWhenUtf8BomMesDisablesMadExcept;
     [Test]
     procedure BuildStillRunsMadExceptPatchWhenMesEnablesMadExcept;
+    [Test]
+    procedure BuildResolvesMadExceptOutputPathFromCfgDependentOnOptset;
+    [Test]
+    procedure BuildProjectPropertiesOverrideCfgDependentOnOptsetOutputPath;
+    [Test]
+    procedure BuildReportsSpecificErrorWhenResolvedMadExceptOutputIsMissing;
+    [Test]
+    procedure BuildIgnoresMissingCfgDependentOnOptsetWhenProjectOutputExists;
     [Test]
     procedure BuildWarnsOnInvalidDiagnosticsIniValues;
     [Test]
@@ -92,9 +102,17 @@ type
 
 implementation
 
+destructor TCapturingBuildRunner.Destroy;
+begin
+  if Assigned(fFilesToCreateOnCall) then
+    fFilesToCreateOnCall.Free;
+  inherited;
+end;
+
 function TCapturingBuildRunner.RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
   aTimeoutSec: Integer; out aExitCode: Integer; out aTimedOut: Boolean; out aError: string): Boolean;
 var
+  lFileToCreate: string;
   lLength: Integer;
 begin
   Inc(fCallCount);
@@ -107,6 +125,11 @@ begin
   ForceDirectories(ExtractFileDir(aStdOutPath));
   TFile.WriteAllText(aStdOutPath, '', TEncoding.UTF8);
   TFile.WriteAllText(aStdErrPath, '', TEncoding.UTF8);
+  if Assigned(fFilesToCreateOnCall) and fFilesToCreateOnCall.TryGetValue(lLength, lFileToCreate) then
+  begin
+    ForceDirectories(ExtractFileDir(lFileToCreate));
+    TFile.WriteAllText(lFileToCreate, '', TEncoding.UTF8);
+  end;
   aExitCode := 0;
   aTimedOut := False;
   aError := '';
@@ -213,6 +236,90 @@ begin
     '  <PropertyGroup>' + sLineBreak +
     '    <MainSource>MesGateCheck.dpr</MainSource>' + sLineBreak +
     '    <DCC_Define>madExcept</DCC_Define>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+  WriteUtf8File(lDprPath,
+    'program MesGateCheck;' + sLineBreak +
+    'begin' + sLineBreak +
+    'end.' + sLineBreak);
+  WriteIniTextFile(TPath.ChangeExtension(aDprojPath, '.mes'), aMesText);
+  WriteIniTextFile(TPath.Combine(aRootDir, 'dak.ini'),
+    '[MadExcept]' + sLineBreak +
+    'Path=' + aPatchExePath + sLineBreak);
+  WriteUtf8File(aPatchExePath, 'stub' + sLineBreak);
+
+  lFakeBdsRoot := TPath.Combine(aRootDir, 'fake-bds-root');
+  ForceDirectories(TPath.Combine(lFakeBdsRoot, 'bin'));
+  aRsVarsPath := TPath.Combine(lFakeBdsRoot, 'bin\rsvars.bat');
+  TFile.WriteAllText(aRsVarsPath, '@echo off' + sLineBreak, TEncoding.ASCII);
+  WriteUtf8File(TPath.Combine(lFakeBdsRoot, 'bin\MSBuild.exe'), 'stub');
+end;
+
+procedure PrepareMadExceptBuildFixtureWithOptset(const aRootDir, aMesText, aOptsetText,
+  aProjectPropertyXml: string; out aDprojPath, aRsVarsPath, aPatchExePath: string);
+var
+  lDprPath: string;
+  lFakeBdsRoot: string;
+  lOptsetPath: string;
+begin
+  ForceDirectories(aRootDir);
+
+  aDprojPath := TPath.Combine(aRootDir, 'MesGateCheck.dproj');
+  lDprPath := TPath.ChangeExtension(aDprojPath, '.dpr');
+  lOptsetPath := TPath.Combine(aRootDir, 'MesGateCheck.optset');
+  aPatchExePath := TPath.Combine(aRootDir, 'madExceptPatch.exe');
+
+  WriteUtf8File(aDprojPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>MesGateCheck.dpr</MainSource>' + sLineBreak +
+    '    <CfgDependentOn>MesGateCheck.optset</CfgDependentOn>' + sLineBreak +
+    '    <DCC_Define>madExcept</DCC_Define>' + sLineBreak +
+         aProjectPropertyXml +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+  WriteUtf8File(lOptsetPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+         aOptsetText +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+  WriteUtf8File(lDprPath,
+    'program MesGateCheck;' + sLineBreak +
+    'begin' + sLineBreak +
+    'end.' + sLineBreak);
+  WriteIniTextFile(TPath.ChangeExtension(aDprojPath, '.mes'), aMesText);
+  WriteIniTextFile(TPath.Combine(aRootDir, 'dak.ini'),
+    '[MadExcept]' + sLineBreak +
+    'Path=' + aPatchExePath + sLineBreak);
+  WriteUtf8File(aPatchExePath, 'stub' + sLineBreak);
+
+  lFakeBdsRoot := TPath.Combine(aRootDir, 'fake-bds-root');
+  ForceDirectories(TPath.Combine(lFakeBdsRoot, 'bin'));
+  aRsVarsPath := TPath.Combine(lFakeBdsRoot, 'bin\rsvars.bat');
+  TFile.WriteAllText(aRsVarsPath, '@echo off' + sLineBreak, TEncoding.ASCII);
+  WriteUtf8File(TPath.Combine(lFakeBdsRoot, 'bin\MSBuild.exe'), 'stub');
+end;
+
+procedure PrepareMadExceptBuildFixtureWithMissingOptset(const aRootDir, aMesText, aProjectPropertyXml: string;
+  out aDprojPath, aRsVarsPath, aPatchExePath: string);
+var
+  lDprPath: string;
+  lFakeBdsRoot: string;
+begin
+  ForceDirectories(aRootDir);
+
+  aDprojPath := TPath.Combine(aRootDir, 'MesGateCheck.dproj');
+  lDprPath := TPath.ChangeExtension(aDprojPath, '.dpr');
+  aPatchExePath := TPath.Combine(aRootDir, 'madExceptPatch.exe');
+
+  WriteUtf8File(aDprojPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>MesGateCheck.dpr</MainSource>' + sLineBreak +
+    '    <CfgDependentOn>Missing.optset</CfgDependentOn>' + sLineBreak +
+    '    <DCC_Define>madExcept</DCC_Define>' + sLineBreak +
+         aProjectPropertyXml +
     '  </PropertyGroup>' + sLineBreak +
     '</Project>' + sLineBreak);
   WriteUtf8File(lDprPath,
@@ -526,6 +633,7 @@ var
   lDprojPath: string;
   lError: string;
   lExitCode: Integer;
+  lExpectedOutputPath: string;
   lOptions: TAppOptions;
   lPatchExePath: string;
   lProjectRoot: string;
@@ -539,6 +647,7 @@ begin
     'HandleExceptions=1' + sLineBreak +
     'LinkInCode=1' + sLineBreak,
     lDprojPath, lRsVarsPath, lPatchExePath);
+  lExpectedOutputPath := TPath.Combine(lProjectRoot, 'MesGateCheck.exe');
 
   lOptions := Default(TAppOptions);
   lOptions.fDprojPath := lDprojPath;
@@ -548,6 +657,8 @@ begin
   lOptions.fRsVarsPath := lRsVarsPath;
 
   lCapturingRunner := TCapturingBuildRunner.Create;
+  lCapturingRunner.fFilesToCreateOnCall := TDictionary<Integer, string>.Create;
+  lCapturingRunner.fFilesToCreateOnCall.AddOrSetValue(0, lExpectedOutputPath);
   lRunner := lCapturingRunner;
   lError := '';
   Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
@@ -558,6 +669,200 @@ begin
     DescribeCapturedProcesses(lCapturingRunner));
   Assert.IsTrue(SameText(lCapturingRunner.fExePaths[1], lPatchExePath),
     'Expected the second process invocation to be madExceptPatch.exe. Calls: ' +
+    DescribeCapturedProcesses(lCapturingRunner));
+end;
+
+procedure TBuildTests.BuildResolvesMadExceptOutputPathFromCfgDependentOnOptset;
+var
+  lCapturingRunner: TCapturingBuildRunner;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lExpectedOutputPath: string;
+  lOptions: TAppOptions;
+  lPatchExePath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'mes-optset-output-build');
+  PrepareMadExceptBuildFixtureWithOptset(lProjectRoot,
+    '[GeneralSettings]' + sLineBreak +
+    'HandleExceptions=1' + sLineBreak +
+    'LinkInCode=1' + sLineBreak,
+    '    <DCC_ExeOutput>bin\$(CONFIG)\$(PLATFORM)</DCC_ExeOutput>' + sLineBreak,
+    '', lDprojPath, lRsVarsPath, lPatchExePath);
+
+  lExpectedOutputPath := TPath.Combine(lProjectRoot, 'bin\Debug\Win32\MesGateCheck.exe');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRsVarsPath := lRsVarsPath;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lCapturingRunner.fFilesToCreateOnCall := TDictionary<Integer, string>.Create;
+  lCapturingRunner.fFilesToCreateOnCall.AddOrSetValue(0, lExpectedOutputPath);
+  lRunner := lCapturingRunner;
+  lError := '';
+  Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+    'Expected build to succeed with imported optset output path. Error: ' + lError);
+  Assert.AreEqual(0, lExitCode, 'Expected build to stay green when the imported optset output exists.');
+  Assert.AreEqual(2, lCapturingRunner.fCallCount,
+    'Expected MSBuild followed by madExcept patch. Calls: ' + DescribeCapturedProcesses(lCapturingRunner));
+  Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[1], 'bin\Debug\Win32\MesGateCheck.exe'),
+    'Expected madExcept patch to target the imported optset output path. Calls: ' +
+    DescribeCapturedProcesses(lCapturingRunner));
+end;
+
+procedure TBuildTests.BuildProjectPropertiesOverrideCfgDependentOnOptsetOutputPath;
+var
+  lCapturingRunner: TCapturingBuildRunner;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lExpectedOutputPath: string;
+  lOptions: TAppOptions;
+  lPatchExePath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'mes-optset-override-output-build');
+  PrepareMadExceptBuildFixtureWithOptset(lProjectRoot,
+    '[GeneralSettings]' + sLineBreak +
+    'HandleExceptions=1' + sLineBreak +
+    'LinkInCode=1' + sLineBreak,
+    '    <DCC_ExeOutput>optset-bin\$(Config)\$(Platform)</DCC_ExeOutput>' + sLineBreak,
+    '    <DCC_ExeOutput>project-bin\$(Config)\$(Platform)</DCC_ExeOutput>' + sLineBreak,
+    lDprojPath, lRsVarsPath, lPatchExePath);
+
+  lExpectedOutputPath := TPath.Combine(lProjectRoot, 'project-bin\Debug\Win32\MesGateCheck.exe');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRsVarsPath := lRsVarsPath;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lCapturingRunner.fFilesToCreateOnCall := TDictionary<Integer, string>.Create;
+  lCapturingRunner.fFilesToCreateOnCall.AddOrSetValue(0, lExpectedOutputPath);
+  lRunner := lCapturingRunner;
+  lError := '';
+  Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+    'Expected build to succeed when project output overrides imported optset output. Error: ' + lError);
+  Assert.AreEqual(0, lExitCode, 'Expected project-local DCC_ExeOutput override to stay green.');
+  Assert.AreEqual(2, lCapturingRunner.fCallCount,
+    'Expected MSBuild followed by madExcept patch. Calls: ' + DescribeCapturedProcesses(lCapturingRunner));
+  Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[1], 'project-bin\Debug\Win32\MesGateCheck.exe'),
+    'Expected madExcept patch to use the project-local output override. Calls: ' +
+    DescribeCapturedProcesses(lCapturingRunner));
+  Assert.IsFalse(ContainsText(lCapturingRunner.fArgumentsList[1], 'optset-bin\Debug\Win32\MesGateCheck.exe'),
+    'Expected imported optset output path to be overridden by the project file. Calls: ' +
+    DescribeCapturedProcesses(lCapturingRunner));
+end;
+
+procedure TBuildTests.BuildReportsSpecificErrorWhenResolvedMadExceptOutputIsMissing;
+var
+  lCapturedOutput: string;
+  lCapturingRunner: TCapturingBuildRunner;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lPatchExePath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'mes-optset-output-missing');
+  PrepareMadExceptBuildFixtureWithOptset(lProjectRoot,
+    '[GeneralSettings]' + sLineBreak +
+    'HandleExceptions=1' + sLineBreak +
+    'LinkInCode=1' + sLineBreak,
+    '    <DCC_ExeOutput>bin\$(Config)\$(Platform)</DCC_ExeOutput>' + sLineBreak,
+    '', lDprojPath, lRsVarsPath, lPatchExePath);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRsVarsPath := lRsVarsPath;
+  lOptions.fBuildJson := True;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lRunner := lCapturingRunner;
+  lCapturedOutput := CaptureConsoleOutput(
+    procedure
+    begin
+      lError := '';
+      Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+        'Expected build command to complete and emit JSON output. Error: ' + lError);
+    end);
+
+  Assert.AreEqual(1, lExitCode, 'Expected missing resolved output path to fail the build.');
+  Assert.AreEqual(1, lCapturingRunner.fCallCount,
+    'Expected madExcept patching to stop before invoking madExceptPatch.exe. Calls: ' +
+    DescribeCapturedProcesses(lCapturingRunner));
+  Assert.IsTrue(Pos('"status":"internal_error"', lCapturedOutput) > 0,
+    'Expected JSON summary to report internal_error. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('Resolved build output path does not exist: F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\temp\\mes-optset-output-missing\\bin\\Debug\\Win32\\MesGateCheck.exe',
+    lCapturedOutput) > 0,
+    'Expected JSON summary to include the missing resolved output path. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.BuildIgnoresMissingCfgDependentOnOptsetWhenProjectOutputExists;
+var
+  lCapturingRunner: TCapturingBuildRunner;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lExpectedOutputPath: string;
+  lOptions: TAppOptions;
+  lPatchExePath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'mes-missing-optset-output-build');
+  PrepareMadExceptBuildFixtureWithMissingOptset(lProjectRoot,
+    '[GeneralSettings]' + sLineBreak +
+    'HandleExceptions=1' + sLineBreak +
+    'LinkInCode=1' + sLineBreak,
+    '    <DCC_ExeOutput>project-bin\$(Config)\$(Platform)</DCC_ExeOutput>' + sLineBreak,
+    lDprojPath, lRsVarsPath, lPatchExePath);
+
+  lExpectedOutputPath := TPath.Combine(lProjectRoot, 'project-bin\Debug\Win32\MesGateCheck.exe');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRsVarsPath := lRsVarsPath;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lCapturingRunner.fFilesToCreateOnCall := TDictionary<Integer, string>.Create;
+  lCapturingRunner.fFilesToCreateOnCall.AddOrSetValue(0, lExpectedOutputPath);
+  lRunner := lCapturingRunner;
+  lError := '';
+  Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+    'Expected build to stay non-fatal when CfgDependentOn points to a missing optset. Error: ' + lError);
+  Assert.AreEqual(0, lExitCode, 'Expected missing CfgDependentOn optset to keep the build green.');
+  Assert.AreEqual(2, lCapturingRunner.fCallCount,
+    'Expected MSBuild followed by madExcept patch even when the optset file is missing. Calls: ' +
+    DescribeCapturedProcesses(lCapturingRunner));
+  Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[1], 'project-bin\Debug\Win32\MesGateCheck.exe'),
+    'Expected the fallback project output path to reach madExcept patching when the optset file is missing. Calls: ' +
     DescribeCapturedProcesses(lCapturingRunner));
 end;
 
