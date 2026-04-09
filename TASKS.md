@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-109
+Next task ID: T-110
 
 ## Summary
 Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 108
+Done tasks: 109
 
 ## In Progress
 
@@ -16,6 +16,28 @@ Done tasks: 108
 ## Blocked
 
 ## Done
+
+### T-109 [CLI] Preserve effective search paths in generated `dfm-check` projects
+Outcome:
+- `dfm-check` and `build --dfmcheck` generate harness projects that keep the source project's effective compile search path, not just discovered form-unit directories and direct `.dproj` reference folders.
+- Real projects that compile normally but depend on imported `.optset` paths, inherited `DCC_UnitSearchPath`, IDE/library-path units, or repo library folders no longer fail in the generated `_DfmCheck` project with false-negative `Unit ... not found` errors.
+- Regression coverage proves the generated checker project preserves the same effective path inputs that the normal project build uses, while keeping the owned `.dak/<ProjectName>/dfm-check/` workspace behavior intact.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.DfmCheck.TDfmCheckTests.PipelineAddsUnitSearchPathWhenProjectInheritsOptsetSearchPath,Test.DfmCheck.TDfmCheckTests.PipelinePreservesEffectiveSearchPathForGeneratedProject -cm:Quiet`
+  Expect: Tests Found `>=2`, Failed `0`, Leaked `0`.
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.DfmCheck.TDfmCheckTests -cm:Quiet`
+  Expect: Tests Found `>=32`, Failed `0`, Leaked `0`.
+- Run: `./build-delphi.sh tests/DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23`
+  Expect: Exit code `0`.
+- Run: `./build-delphi.sh projects/DelphiAIKit.dproj -config Debug -platform Win32 -ver 23`
+  Expect: Exit code `0`.
+- Run: `/mnt/f/projects/MaxLogic/DelphiAiKit/bin/DelphiAIKit.exe dfm-check --dproj /mnt/f/projects/MaxLogic/ToDoApp/Project/ToDoMax.dproj --delphi 23.0 --platform Win32 --config Release`
+  Expect: Exit code `0`; output does not contain `Unit 'MaxLogic.PortableTimer' not found` or `Unit 'maxLogic.DateUtils' not found`.
+- Run: `/mnt/f/projects/MaxLogic/DelphiAiKit/bin/DelphiAIKit.exe build --project /mnt/f/projects/MaxLogic/ToDoApp/Project/ToDoMax.dproj --delphi 23.0 --platform Win32 --config Release --dfmcheck`
+  Expect: Exit code `0`; integrated DFM validation reaches the validator stage instead of failing in the generated checker project build.
+Touches: src/dak.dfmcheck.pas, src/dak.project.pas, tests/units/test.dfmcheck.pas, README.md, spec.md, CHANGELOG.md
+Verify: unit-test, cli-proof
+Notes: Reproduced while verifying ToDoApp `T-066`/`T-068`: normal builds passed, but `dfm-check` failed in the generated `ToDoMax_DfmCheck.dproj` because it could not resolve repo library units like `MaxLogic.PortableTimer` and `maxLogic.DateUtils`. The current `dfm-check` path synthesis in `TryPrepareDfmCheckArtifacts` is too narrow because it reconstructs paths from `.dproj` references plus discovered form-unit folders instead of reusing the source project's evaluated effective search-path model. Best fix: derive the generated checker project's `DCC_UnitSearchPath` from the same resolved project/build path evaluation we already trust for normal builds, then append the generated-register unit directory without dropping inherited/imported paths.
 
 ### T-108 [CLI] Isolate dfm-check generated artifacts under sibling `.dak` work roots
 Outcome:

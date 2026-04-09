@@ -92,6 +92,9 @@ function RunDfmCheckCommand(const aOptions: TAppOptions): Integer;
 
 implementation
 
+uses
+  Dak.Project;
+
 type
   TWinProcessRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
   public
@@ -2419,6 +2422,72 @@ begin
   end;
 end;
 
+procedure AppendDelimitedPaths(const aPathList: string; const aPaths: TStrings);
+var
+  lItem: string;
+  lPath: string;
+  lPaths: TArray<string>;
+begin
+  if (aPaths = nil) or (Trim(aPathList) = '') then
+    Exit;
+
+  lPaths := aPathList.Split([';']);
+  for lPath in lPaths do
+  begin
+    lItem := Trim(lPath);
+    if lItem = '' then
+      Continue;
+    if aPaths.IndexOf(lItem) < 0 then
+      aPaths.Add(lItem);
+  end;
+end;
+
+function TryBuildEffectiveProjectSearchPath(const aOptions: TAppOptions; out aSearchPath: string): Boolean;
+var
+  lContext: TProjectAnalysisContext;
+  lPaths: TStringList;
+  lUnusedError: string;
+begin
+  aSearchPath := '';
+  if not TryBuildProjectAnalysisContext(aOptions, lContext, lUnusedError) then
+    Exit(False);
+  if Trim(lContext.fParserSearchPath) = '' then
+    Exit(True);
+
+  lPaths := TStringList.Create;
+  try
+    lPaths.CaseSensitive := False;
+    lPaths.Sorted := False;
+    lPaths.Duplicates := TDuplicates.dupIgnore;
+    AppendDelimitedPaths(lContext.fParserSearchPath, lPaths);
+    aSearchPath := BuildDelimitedPath(lPaths);
+  finally
+    lPaths.Free;
+  end;
+  Result := True;
+end;
+
+function BuildDfmCheckSearchPath(const aOptions: TAppOptions; const aReferenceDirs: TStrings;
+  const aDiscoveredUnitDirs: TStrings): string;
+var
+  lEffectiveSearchPath: string;
+  lPaths: TStringList;
+begin
+  lPaths := TStringList.Create;
+  try
+    lPaths.CaseSensitive := False;
+    lPaths.Sorted := False;
+    lPaths.Duplicates := TDuplicates.dupIgnore;
+    AppendDelimitedPaths(BuildDelimitedPath(aReferenceDirs), lPaths);
+    AppendDelimitedPaths(BuildDelimitedPath(aDiscoveredUnitDirs), lPaths);
+    if TryBuildEffectiveProjectSearchPath(aOptions, lEffectiveSearchPath) then
+      AppendDelimitedPaths(lEffectiveSearchPath, lPaths);
+    Result := BuildDelimitedPath(lPaths);
+  finally
+    lPaths.Free;
+  end;
+end;
+
 function TryCollectFormModulesFromDproj(const aDprojPath: string; const aUnitNames: TStrings;
   const aFormClassNames: TStrings; const aUnitSearchDirs: TStrings; out aError: string): Boolean;
 var
@@ -2786,9 +2855,10 @@ begin
   Result := True;
 end;
 
-function TryGenerateDfmCheckProject(const aDprojPath: string; const aFilterCsv: string; var aPaths: TDfmCheckPaths;
-  out aError: string): Boolean;
+function TryGenerateDfmCheckProject(const aOptions: TAppOptions; const aDprojPath: string; const aFilterCsv: string;
+  var aPaths: TDfmCheckPaths; out aError: string): Boolean;
 var
+  lContextOptions: TAppOptions;
   lDprojReferenceDirs: TStringList;
   lFilterList: TStringList;
   lFormClassNames: TStringList;
@@ -2804,7 +2874,6 @@ var
   lSourceProjectExt: string;
   lSourceProjectPath: string;
   lUnitNames: TStringList;
-  lUnitSearchPathDiscovered: string;
   lUnitSearchDirs: TStringList;
   lUnitSearchPath: string;
 begin
@@ -2873,12 +2942,13 @@ begin
       end;
     end;
 
-    lUnitSearchPath := BuildDelimitedPath(lDprojReferenceDirs);
-    lUnitSearchPathDiscovered := BuildDelimitedPath(lUnitSearchDirs);
-    if (Trim(lUnitSearchPath) <> '') and (Trim(lUnitSearchPathDiscovered) <> '') then
-      lUnitSearchPath := lUnitSearchPath + ';' + lUnitSearchPathDiscovered
-    else if Trim(lUnitSearchPath) = '' then
-      lUnitSearchPath := lUnitSearchPathDiscovered;
+    lContextOptions := aOptions;
+    lContextOptions.fDprojPath := aDprojPath;
+    if Trim(lContextOptions.fConfig) = '' then
+      lContextOptions.fConfig := 'Release';
+    if Trim(lContextOptions.fPlatform) = '' then
+      lContextOptions.fPlatform := 'Win32';
+    lUnitSearchPath := BuildDfmCheckSearchPath(lContextOptions, lDprojReferenceDirs, lUnitSearchDirs);
     lGeneratedDprName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dpr';
     lGeneratedDprojName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dproj';
     TDirectory.CreateDirectory(aPaths.fGeneratedDir);
@@ -3569,7 +3639,7 @@ begin
     end;
 
     EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Generating DFMCheck project...');
-    if not TryGenerateDfmCheckProject(lDprojPath, lGeneratorFilterCsv, lPaths, aError) then
+    if not TryGenerateDfmCheckProject(lEffectiveOptions, lDprojPath, lGeneratorFilterCsv, lPaths, aError) then
     begin
       aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
       Exit(MapDfmCheckExitCode(aCategory, 0));
