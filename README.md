@@ -215,6 +215,7 @@ If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-onl
 
 `dfm-check` stages:
 - generate a `_DfmCheck` harness project under sibling `.dak/<ProjectName>/dfm-check/runs/<RunId>/generated/` (no external `DFMCheck.exe`)
+- synthesize the generated harness `DCC_UnitSearchPath` from the source project's effective compile search path while keeping project/discovered form-unit directories ahead of inherited IDE/library-path entries so normal builds and generated validation builds resolve the same units
 - generate `_DfmCheck_Register.pas` inside that owned run workspace so source roots stay clean
 - inject `tools\inject\DfmStreamAll.pas` into the generated harness project
 - resolve bundled inject files by walking ancestor directories from `DelphiAIKit.exe` (`tools\inject` first, then `docs\delphi-dfm-checker\tools\inject`), so detached build/test binaries can still run `dfm-check`

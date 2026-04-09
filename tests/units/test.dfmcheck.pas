@@ -73,6 +73,8 @@ type
     [Test]
     procedure PipelineAddsUnitSearchPathWhenProjectInheritsOptsetSearchPath;
     [Test]
+    procedure PipelinePreservesEffectiveSearchPathForGeneratedProject;
+    [Test]
     procedure PipelineGeneratedRegisterPreservesNamespacedUnitNames;
     [Test]
     procedure PipelineBrokenDfmPropagatesValidatorExitAndFailText;
@@ -1008,7 +1010,8 @@ begin
       'Generated checker DPROJ should define DFMCheck symbol.');
     Assert.IsTrue(Pos('NO_LOCALIZATION', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should define NO_LOCALIZATION symbol.');
-    Assert.IsFalse(Pos('madExcept', lGeneratedDprojText) > 0,
+    Assert.IsFalse(TRegEx.IsMatch(lGeneratedDprojText,
+      '<DCC_Define>\s*[^<]*\bmadExcept\b[^<]*</DCC_Define>', [roIgnoreCase]),
       'Generated checker DPROJ should remove madExcept symbol from defines.');
     Assert.IsTrue(Pos('<Source Name="MainSource">Sample_DfmCheck.dpr</Source>', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should rewrite project extension MainSource entry.');
@@ -1107,6 +1110,107 @@ begin
     Assert.IsTrue(Pos('$(DCC_UnitSearchPath)', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should still preserve inherited DCC_UnitSearchPath macros.');
   finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+  end;
+end;
+
+procedure TDfmCheckTests.PipelinePreservesEffectiveSearchPathForGeneratedProject;
+var
+  lAppDataDir: string;
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lEnvOptionsPath: string;
+  lEnvSearchDir: string;
+  lError: string;
+  lGeneratedDprojText: string;
+  lIdeLibraryDir: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lPaths: TDfmCheckPaths;
+  lPrevAppDataEnv: string;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+  lSourceDir: string;
+  lEnvSearchPos: Integer;
+  lIdeLibraryPos: Integer;
+  lSourceDirPos: Integer;
+begin
+  CreateFixtureProjectWithInheritedSearchPath(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-effective-search-path');
+  WriteInjectStubs(lInjectDir);
+  lSourceDir := TPath.Combine(ExtractFilePath(lDprojPath), 'src');
+  lEnvSearchDir := TPath.Combine(ExtractFilePath(lDprojPath), 'EnvSearch');
+  lIdeLibraryDir := TPath.Combine(ExtractFilePath(lDprojPath), 'IdeLibrary');
+  TDirectory.CreateDirectory(lEnvSearchDir);
+  TDirectory.CreateDirectory(lIdeLibraryDir);
+  lEnvOptionsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'EnvOptions.proj');
+  TFile.WriteAllText(lEnvOptionsPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
+    '  <PropertyGroup>' + #13#10 +
+    '    <DelphiLibraryPath>' + lIdeLibraryDir + '</DelphiLibraryPath>' + #13#10 +
+    '    <DCC_UnitSearchPath>' + lEnvSearchDir + ';$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '</Project>' + #13#10, TEncoding.UTF8);
+
+  lPrevAppDataEnv := GetEnvironmentVariable('APPDATA');
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  lAppDataDir := TPath.Combine(ExtractFilePath(lDprojPath), 'fake-appdata');
+  SetEnvironmentVariable('APPDATA', PChar(lAppDataDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDelphiVersion := '99.9';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+    lOptions.fHasEnvOptionsPath := True;
+    lOptions.fEnvOptionsPath := lEnvOptionsPath;
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected effective-search-path fixture to complete with mock runner.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Unexpected error category for effective-search-path fixture.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for effective-search-path fixture.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
+    Assert.IsTrue(Pos('<DCC_UnitSearchPath>', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should synthesize DCC_UnitSearchPath from the effective project/build search path.');
+    lSourceDirPos := Pos(lSourceDir, lGeneratedDprojText);
+    lEnvSearchPos := Pos(lEnvSearchDir, lGeneratedDprojText);
+    lIdeLibraryPos := Pos(lIdeLibraryDir, lGeneratedDprojText);
+    Assert.IsTrue(lSourceDirPos > 0,
+      'Generated checker DPROJ should keep discovered form unit directories.');
+    Assert.IsTrue(lEnvSearchPos > 0,
+      'Generated checker DPROJ should keep EnvOptions DCC_UnitSearchPath entries used by the normal build model.');
+    Assert.IsTrue(lIdeLibraryPos > 0,
+      'Generated checker DPROJ should keep IDE/library-path entries used by the normal build model.');
+    Assert.IsTrue(lSourceDirPos < lEnvSearchPos,
+      'Generated checker DPROJ should keep project form-unit directories ahead of inherited EnvOptions search paths.');
+    Assert.IsTrue(lSourceDirPos < lIdeLibraryPos,
+      'Generated checker DPROJ should keep project form-unit directories ahead of IDE/library-path entries.');
+  finally
+    if lPrevAppDataEnv <> '' then
+      SetEnvironmentVariable('APPDATA', PChar(lPrevAppDataEnv))
+    else
+      SetEnvironmentVariable('APPDATA', nil);
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));

@@ -160,6 +160,8 @@ DelphiAIKit.exe dfm-check --dproj "<path>\MyProject.dproj" ^
   [--source-context-lines N] [--rsvars "<path>"] [--verbose [true|false]]
 ```
 
+- Generated `_DfmCheck` harness projects must preserve the source project's effective compile search path, including imported `.optset` / inherited `DCC_UnitSearchPath` inputs and IDE/library-path entries resolved from the active Delphi context, while keeping project/discovered form-unit directories ahead of inherited IDE/library paths so the generated register unit resolves the same project units as the normal build.
+
 ### 2.7 `dfm-inspect` — inspect text DFM files
 
 ```
