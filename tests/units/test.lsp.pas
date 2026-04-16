@@ -56,6 +56,14 @@ type
     procedure LspRunnerInitializesOpensRequestsAndShutsDownAgainstFakeServer;
     [Test]
     procedure LspRunnerReportsSpecificDiscoveryAndInitFailures;
+    [Test]
+    procedure LspDefinitionReturnsNormalizedLocations;
+    [Test]
+    procedure LspReferencesRespectIncludeDeclaration;
+    [Test]
+    procedure LspPositionConversionUsesOneBasedCliAndZeroBasedProtocol;
+    [Test]
+    procedure LspDefinitionNormalizesHostQualifiedPlusUris;
   end;
 
 implementation
@@ -1045,6 +1053,190 @@ begin
       'Expected initialize-specific lifecycle error. Actual: ' + lError);
     Assert.IsTrue(Pos('simulated init failure', lError) > 0,
       'Expected scripted initialize message. Actual: ' + lError);
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+
+
+procedure TLspRunnerTests.LspDefinitionReturnsNormalizedLocations;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lLocation: TJSONObject;
+  lLocations: TJSONArray;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-definition-normalized', lContext);
+  lScriptPath := CreateScriptFile('definition-normalized',
+    '{"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}]}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lOptions.fLspLine := 3;
+    lOptions.fLspCol := 5;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected normalized definition request to succeed. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      Assert.IsNotNull(lJson, 'Expected JSON response.');
+      Assert.IsTrue(lJson.Values['result'] is TJSONObject, 'Expected result object.');
+      lLocations := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations');
+      Assert.IsNotNull(lLocations, 'Expected locations array.');
+      Assert.AreEqual(1, lLocations.Count, 'Expected one normalized definition location.');
+      lLocation := lLocations.Items[0] as TJSONObject;
+      Assert.AreEqual<string>('C:\repo\Unit1.pas', lLocation.GetValue<string>('file'), 'Expected normalized Windows path.');
+      Assert.AreEqual<string>('file:///C:/repo/Unit1.pas', lLocation.GetValue<string>('uri'), 'Expected original URI.');
+      Assert.AreEqual(3, lLocation.GetValue<Integer>('line'), 'Expected 1-based start line.');
+      Assert.AreEqual(5, lLocation.GetValue<Integer>('col'), 'Expected 1-based start col.');
+      Assert.AreEqual(3, lLocation.GetValue<Integer>('endLine'), 'Expected 1-based end line.');
+      Assert.AreEqual(11, lLocation.GetValue<Integer>('endCol'), 'Expected 1-based end col.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspReferencesRespectIncludeDeclaration;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lOptions: TAppOptions;
+  lReferences: TJSONArray;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-references-normalized', lContext);
+  lScriptPath := CreateScriptFile('references-normalized',
+    '{"expect":{"textDocument/references":{"context":{"includeDeclaration":false}}},"responses":{"textDocument/references":[{"uri":"file:///C:/repo/Ref1.pas","range":{"start":{"line":6,"character":1},"end":{"line":6,"character":7}}}]}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loReferences;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lOptions.fLspLine := 3;
+    lOptions.fLspCol := 5;
+    lOptions.fLspIncludeDeclaration := False;
+    lOptions.fHasLspIncludeDeclaration := True;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected references request to succeed. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      Assert.IsNotNull(lJson, 'Expected JSON response.');
+      Assert.IsTrue(lJson.Values['result'] is TJSONObject, 'Expected result object.');
+      lReferences := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('references');
+      Assert.IsNotNull(lReferences, 'Expected references array.');
+      Assert.AreEqual(1, lReferences.Count, 'Expected declaration-free references result.');
+      Assert.AreEqual<string>('C:\repo\Ref1.pas', (lReferences.Items[0] as TJSONObject).GetValue<string>('file'),
+        'Expected normalized reference path.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspPositionConversionUsesOneBasedCliAndZeroBasedProtocol;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lLocations: TJSONArray;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-position-conversion', lContext);
+  lScriptPath := CreateScriptFile('position-conversion',
+    '{"expect":{"textDocument/definition":{"position":{"line":2,"character":4}}},"responses":{"textDocument/definition":[]}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lOptions.fLspLine := 3;
+    lOptions.fLspCol := 5;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected request position conversion to satisfy fake server expectation. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      lLocations := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations');
+      Assert.IsNotNull(lLocations, 'Expected normalized empty locations array.');
+      Assert.AreEqual(0, lLocations.Count, 'Expected empty location list from fake server.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspDefinitionNormalizesHostQualifiedPlusUris;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lLocation: TJSONObject;
+  lLocations: TJSONArray;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-host-qualified-uri', lContext);
+  lScriptPath := CreateScriptFile('host-qualified-uri',
+    '{"responses":{"textDocument/definition":[{"uri":"file://C:/repo/Foo%2BBar.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}},{"targetUri":"file://fileserver/share/Foo%2BBar.pas","targetRange":{"start":{"line":4,"character":1},"end":{"line":5,"character":8}},"targetSelectionRange":{"start":{"line":4,"character":3},"end":{"line":4,"character":6}}}]}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lOptions.fLspLine := 3;
+    lOptions.fLspCol := 5;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected host-qualified URI normalization request to succeed. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      lLocations := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations');
+      Assert.IsNotNull(lLocations, 'Expected normalized locations array.');
+      Assert.AreEqual(2, lLocations.Count, 'Expected both host-qualified locations to be preserved.');
+
+      lLocation := lLocations.Items[0] as TJSONObject;
+      Assert.AreEqual<string>('C:\repo\Foo+Bar.pas', lLocation.GetValue<string>('file'),
+        'Expected drive-qualified URI to normalize to a Windows drive path without changing +.');
+
+      lLocation := lLocations.Items[1] as TJSONObject;
+      Assert.AreEqual<string>('\\fileserver\share\Foo+Bar.pas', lLocation.GetValue<string>('file'),
+        'Expected authority URI to normalize to a UNC path without changing +.');
+      Assert.AreEqual(5, lLocation.GetValue<Integer>('line'), 'Expected LocationLink start line to use targetRange.');
+      Assert.AreEqual(2, lLocation.GetValue<Integer>('col'), 'Expected LocationLink start col to use targetRange.');
+      Assert.AreEqual(6, lLocation.GetValue<Integer>('endLine'), 'Expected LocationLink end line to use targetRange.');
+      Assert.AreEqual(9, lLocation.GetValue<Integer>('endCol'), 'Expected LocationLink end col to use targetRange.');
+    finally
+      lJson.Free;
+    end;
   finally
     Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
   end;

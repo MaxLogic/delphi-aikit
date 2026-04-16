@@ -2,36 +2,10 @@
 Next task ID: T-121
 
 ## Summary
-Open tasks: 5 (In Progress: 1, Next Today: 0, Next This Week: 4, Next Later: 0, Blocked: 0)
-Done tasks: 115
+Open tasks: 4 (In Progress: 1, Next Today: 0, Next This Week: 3, Next Later: 0, Blocked: 0)
+Done tasks: 116
 
 ## In Progress
-
-
-### T-116 [CLI] Implement `lsp definition` and `lsp references`
-Outcome:
-- `lsp definition` returns normalized definition locations with 1-based coordinates in the documented JSON/text contract.
-- `lsp references` returns normalized reference locations and respects `--include-declaration`.
-- Position-based requests use WSL-to-Windows path normalization and convert CLI 1-based coordinates to LSP 0-based coordinates correctly.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspDefinitionReturnsNormalizedLocations,Test.Lsp.TLspRunnerTests.LspReferencesRespectIncludeDeclaration,Test.Lsp.TLspRunnerTests.LspPositionConversionUsesOneBasedCliAndZeroBasedProtocol -cm:Quiet`
-  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
-- Run: `./bin/DelphiAIKit.exe lsp references --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --include-declaration false --format json`
-  Expect: Exit code `0`; JSON contains `references` and omits the declaration location.
-Touches: src/dak.lsp.runner.pas, src/dak.lsp.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
-Deps: T-115
-Verify: unit-test, cli-proof
-Notes: Plan: `.agents/plans/lsp.md`. Keep the location-shaped JSON contract stable because later tasks build on it.
-
-
-
-
-## Next - Today
-
-## Next - This Week
-
-
-
 
 
 ### T-117 [CLI] Implement `lsp hover`
@@ -48,6 +22,13 @@ Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, tests/units/test.lsp.pas,
 Deps: T-115
 Verify: unit-test, cli-proof
 Notes: Plan: `.agents/plans/lsp.md`. Keep hover as its own task because its response shape differs from location lists.
+
+## Next - Today
+
+## Next - This Week
+
+
+
 
 ### T-118 [CLI] Implement `lsp symbols`
 Outcome:
@@ -103,6 +84,20 @@ Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for 
 
 ## Done
 
+### T-116 [CLI] Implement `lsp definition` and `lsp references`
+Outcome:
+- `lsp definition` returns normalized definition locations with 1-based coordinates in the documented JSON/text contract.
+- `lsp references` returns normalized reference locations and respects `--include-declaration`.
+- Position-based requests use WSL-to-Windows path normalization and convert CLI 1-based coordinates to LSP 0-based coordinates correctly.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspDefinitionReturnsNormalizedLocations,Test.Lsp.TLspRunnerTests.LspReferencesRespectIncludeDeclaration,Test.Lsp.TLspRunnerTests.LspPositionConversionUsesOneBasedCliAndZeroBasedProtocol,Test.Lsp.TLspRunnerTests.LspDefinitionNormalizesHostQualifiedPlusUris -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp references --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --include-declaration false --format json`
+  Expect: Exit code `0`; JSON contains `references` and omits the declaration location.
+Touches: src/dak.lsp.runner.pas, src/dak.lsp.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
+Deps: T-115
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. Keep the location-shaped JSON contract stable because later tasks build on it.
 
 ### T-115 [CLI] Add `DelphiLSP.exe` discovery and one-shot transport lifecycle
 Outcome:
