@@ -31,10 +31,24 @@ type
     procedure LspReportsWorkspaceWriteFailureCleanly;
   end;
 
+  [TestFixture]
+  TLspFixtureTests = class
+  private
+    function CreateScriptFile(const aScenarioName, aScriptJson: string): string;
+  public
+    [Test]
+    procedure FakeServerSupportsInitializeAndShutdown;
+    [Test]
+    procedure FakeServerReturnsScriptedDefinitionAndHoverPayloads;
+    [Test]
+    procedure FakeServerCanSimulateEmptyAndErrorResponses;
+  end;
+
 implementation
 
 uses
-  System.IOUtils, System.SysUtils,
+  System.Classes, System.IOUtils, System.JSON, System.SysUtils,
+  Winapi.Windows,
   Dak.Types,
   Test.Support;
 
@@ -48,6 +62,345 @@ procedure WriteAsciiFile(const aPath, aText: string);
 begin
   ForceDirectories(ExtractFileDir(aPath));
   TFile.WriteAllText(aPath, aText, TEncoding.ASCII);
+end;
+
+var
+  GFakeLspBuilt: Boolean = False;
+  GFakeLspExePath: string = '';
+
+function CmdExePath: string;
+begin
+  Result := GetEnvironmentVariable('ComSpec');
+  if Result = '' then
+    Result := 'C:\Windows\System32\cmd.exe';
+end;
+
+function FakeLspFixtureDir: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspFixture');
+end;
+
+function FakeLspProjectPath: string;
+begin
+  Result := TPath.Combine(FakeLspFixtureDir, 'FakeDelphiLsp.dproj');
+end;
+
+function FakeLspExePath: string;
+begin
+  Result := TPath.Combine(FakeLspFixtureDir, 'bin\FakeDelphiLsp.exe');
+end;
+
+procedure EnsureFakeLspFixtureBuilt;
+var
+  lArgs: string;
+  lBat: string;
+  lCmdArgs: string;
+  lExit: Cardinal;
+  lLog: string;
+begin
+  GFakeLspExePath := FakeLspExePath;
+  if GFakeLspBuilt and FileExists(GFakeLspExePath) then
+    Exit;
+  if FileExists(GFakeLspExePath) then
+  begin
+    GFakeLspBuilt := True;
+    Exit;
+  end;
+
+  lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
+  lArgs := QuoteArg(FakeLspProjectPath) + ' -config Release -platform Win32 -ver 23';
+  lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
+  lLog := TPath.Combine(TempRoot, 'build-fake-delphi-lsp.log');
+
+  if not RunProcess(CmdExePath, lCmdArgs, RepoRoot, lLog, lExit) then
+    Assert.Fail('Failed to start FakeDelphiLsp build.');
+  if lExit <> 0 then
+    Assert.Fail('FakeDelphiLsp build failed, exit=' + lExit.ToString + '. See: ' + lLog);
+  if not FileExists(GFakeLspExePath) then
+    Assert.Fail('FakeDelphiLsp.exe missing after build: ' + GFakeLspExePath);
+  GFakeLspBuilt := True;
+end;
+
+type
+  TLspJsonRpcClient = class
+  private
+    fInput: THandleStream;
+    fOutput: THandleStream;
+    fProcessHandle: THandle;
+    fThreadHandle: THandle;
+    function ReadLine(out aLine: string; out aError: string): Boolean;
+    function ReadMessage(out aBody: string; out aError: string): Boolean;
+    function WriteMessage(const aBody: string; out aError: string): Boolean;
+  public
+    destructor Destroy; override;
+    function Start(const aExePath, aArguments, aWorkDir: string; out aError: string): Boolean;
+    function SendNotification(const aMethod, aParamsJson: string; out aError: string): Boolean;
+    function SendRequest(aId: Integer; const aMethod, aParamsJson: string; out aResponse: TJSONObject;
+      out aError: string): Boolean;
+    function ShutdownAndExit(out aError: string): Boolean;
+  end;
+
+function TLspJsonRpcClient.ReadLine(out aLine: string; out aError: string): Boolean;
+var
+  lBuilder: TStringBuilder;
+  lByte: Byte;
+  lCount: Integer;
+begin
+  Result := False;
+  aLine := '';
+  aError := '';
+  lBuilder := TStringBuilder.Create;
+  try
+    while True do
+    begin
+      lCount := fOutput.Read(lByte, 1);
+      if lCount <> 1 then
+      begin
+        aError := 'Unexpected end of stream while reading LSP header.';
+        Exit(False);
+      end;
+      if lByte = Ord(#10) then
+        Break;
+      if lByte <> Ord(#13) then
+        lBuilder.Append(Char(lByte));
+    end;
+    aLine := lBuilder.ToString;
+    Result := True;
+  finally
+    lBuilder.Free;
+  end;
+end;
+
+function TLspJsonRpcClient.ReadMessage(out aBody: string; out aError: string): Boolean;
+var
+  lBodyBytes: TBytes;
+  lContentLength: Integer;
+  lLine: string;
+  lOffset: Integer;
+  lRead: Integer;
+begin
+  Result := False;
+  aBody := '';
+  aError := '';
+  lContentLength := -1;
+  while True do
+  begin
+    if not ReadLine(lLine, aError) then
+      Exit(False);
+    if lLine = '' then
+      Break;
+    if SameText(Copy(lLine, 1, Length('Content-Length:')), 'Content-Length:') then
+      lContentLength := StrToIntDef(Trim(Copy(lLine, Length('Content-Length:') + 1, MaxInt)), -1);
+  end;
+  if lContentLength < 0 then
+  begin
+    aError := 'Missing Content-Length header in LSP response.';
+    Exit(False);
+  end;
+  SetLength(lBodyBytes, lContentLength);
+  lOffset := 0;
+  while lOffset < lContentLength do
+  begin
+    lRead := fOutput.Read(lBodyBytes[lOffset], lContentLength - lOffset);
+    if lRead <= 0 then
+    begin
+      aError := 'Unexpected end of stream while reading LSP body.';
+      Exit(False);
+    end;
+    Inc(lOffset, lRead);
+  end;
+  aBody := TEncoding.UTF8.GetString(lBodyBytes);
+  Result := True;
+end;
+
+function TLspJsonRpcClient.WriteMessage(const aBody: string; out aError: string): Boolean;
+var
+  lBodyBytes: TBytes;
+  lHeaderBytes: TBytes;
+  lHeaderText: string;
+begin
+  Result := False;
+  aError := '';
+  lBodyBytes := TEncoding.UTF8.GetBytes(aBody);
+  lHeaderText := 'Content-Length: ' + IntToStr(Length(lBodyBytes)) + #13#10#13#10;
+  lHeaderBytes := TEncoding.ASCII.GetBytes(lHeaderText);
+  try
+    if Length(lHeaderBytes) > 0 then
+      fInput.WriteBuffer(lHeaderBytes[0], Length(lHeaderBytes));
+    if Length(lBodyBytes) > 0 then
+      fInput.WriteBuffer(lBodyBytes[0], Length(lBodyBytes));
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      aError := 'Failed to write LSP message: ' + E.Message;
+    end;
+  end;
+end;
+
+destructor TLspJsonRpcClient.Destroy;
+begin
+  fInput.Free;
+  fOutput.Free;
+  if fProcessHandle <> 0 then
+  begin
+    if WaitForSingleObject(fProcessHandle, 0) = WAIT_TIMEOUT then
+      TerminateProcess(fProcessHandle, 1);
+    CloseHandle(fProcessHandle);
+  end;
+  if fThreadHandle <> 0 then
+    CloseHandle(fThreadHandle);
+  inherited Destroy;
+end;
+
+function TLspJsonRpcClient.Start(const aExePath, aArguments, aWorkDir: string; out aError: string): Boolean;
+var
+  lChildStdInRead: THandle;
+  lChildStdInWrite: THandle;
+  lChildStdOutRead: THandle;
+  lChildStdOutWrite: THandle;
+  lCmdLine: string;
+  lLastError: Cardinal;
+  lPi: TProcessInformation;
+  lSa: TSecurityAttributes;
+  lSi: TStartupInfo;
+begin
+  Result := False;
+  aError := '';
+  lChildStdInRead := 0;
+  lChildStdInWrite := 0;
+  lChildStdOutRead := 0;
+  lChildStdOutWrite := 0;
+
+  FillChar(lSa, SizeOf(lSa), 0);
+  lSa.nLength := SizeOf(lSa);
+  lSa.bInheritHandle := True;
+
+  if not CreatePipe(lChildStdOutRead, lChildStdOutWrite, @lSa, 0) then
+  begin
+    aError := 'Failed to create fake LSP stdout pipe.';
+    Exit(False);
+  end;
+  if not CreatePipe(lChildStdInRead, lChildStdInWrite, @lSa, 0) then
+  begin
+    aError := 'Failed to create fake LSP stdin pipe.';
+    CloseHandle(lChildStdOutRead);
+    CloseHandle(lChildStdOutWrite);
+    Exit(False);
+  end;
+
+  try
+    SetHandleInformation(lChildStdOutRead, HANDLE_FLAG_INHERIT, 0);
+    SetHandleInformation(lChildStdInWrite, HANDLE_FLAG_INHERIT, 0);
+
+    FillChar(lSi, SizeOf(lSi), 0);
+    lSi.cb := SizeOf(lSi);
+    lSi.dwFlags := STARTF_USESTDHANDLES;
+    lSi.hStdInput := lChildStdInRead;
+    lSi.hStdOutput := lChildStdOutWrite;
+    lSi.hStdError := GetStdHandle(STD_ERROR_HANDLE);
+
+    FillChar(lPi, SizeOf(lPi), 0);
+    lCmdLine := QuoteArg(aExePath);
+    if aArguments <> '' then
+      lCmdLine := lCmdLine + ' ' + aArguments;
+    UniqueString(lCmdLine);
+
+    if not CreateProcess(PChar(aExePath), PChar(lCmdLine), nil, nil, True, CREATE_NO_WINDOW, nil, PChar(aWorkDir), lSi, lPi) then
+    begin
+      lLastError := GetLastError;
+      aError := 'Failed to start fake LSP server: ' + SysErrorMessage(lLastError);
+      Exit(False);
+    end;
+
+    CloseHandle(lChildStdInRead);
+    lChildStdInRead := 0;
+    CloseHandle(lChildStdOutWrite);
+    lChildStdOutWrite := 0;
+
+    fInput := THandleStream.Create(lChildStdInWrite);
+    fOutput := THandleStream.Create(lChildStdOutRead);
+    fProcessHandle := lPi.hProcess;
+    fThreadHandle := lPi.hThread;
+    Result := True;
+  finally
+    if lChildStdInRead <> 0 then
+      CloseHandle(lChildStdInRead);
+    if lChildStdOutWrite <> 0 then
+      CloseHandle(lChildStdOutWrite);
+    if (not Result) then
+    begin
+      if lChildStdInWrite <> 0 then
+        CloseHandle(lChildStdInWrite);
+      if lChildStdOutRead <> 0 then
+        CloseHandle(lChildStdOutRead);
+    end;
+  end;
+end;
+
+function TLspJsonRpcClient.SendNotification(const aMethod, aParamsJson: string; out aError: string): Boolean;
+var
+  lBody: string;
+  lParamsJson: string;
+begin
+  lParamsJson := aParamsJson;
+  if Trim(lParamsJson) = '' then
+    lParamsJson := '{}';
+  lBody := '{"jsonrpc":"2.0","method":"' + aMethod + '","params":' + lParamsJson + '}';
+  Result := WriteMessage(lBody, aError);
+end;
+
+function TLspJsonRpcClient.SendRequest(aId: Integer; const aMethod, aParamsJson: string; out aResponse: TJSONObject;
+  out aError: string): Boolean;
+var
+  lBody: string;
+  lParamsJson: string;
+  lResponseText: string;
+  lValue: TJSONValue;
+begin
+  Result := False;
+  aError := '';
+  aResponse := nil;
+  lParamsJson := aParamsJson;
+  if Trim(lParamsJson) = '' then
+    lParamsJson := '{}';
+  lBody := '{"jsonrpc":"2.0","id":' + IntToStr(aId) + ',"method":"' + aMethod + '","params":' + lParamsJson + '}';
+  if not WriteMessage(lBody, aError) then
+    Exit(False);
+  if not ReadMessage(lResponseText, aError) then
+    Exit(False);
+  lValue := TJSONObject.ParseJSONValue(lResponseText);
+  if not (lValue is TJSONObject) then
+  begin
+    lValue.Free;
+    aError := 'Invalid JSON-RPC response: ' + lResponseText;
+    Exit(False);
+  end;
+  aResponse := lValue as TJSONObject;
+  Result := True;
+end;
+
+function TLspJsonRpcClient.ShutdownAndExit(out aError: string): Boolean;
+var
+  lResponse: TJSONObject;
+  lWait: Cardinal;
+begin
+  lResponse := nil;
+  try
+    if not SendRequest(9001, 'shutdown', '{}', lResponse, aError) then
+      Exit(False);
+  finally
+    lResponse.Free;
+  end;
+  if not SendNotification('exit', '{}', aError) then
+    Exit(False);
+  lWait := WaitForSingleObject(fProcessHandle, 5000);
+  if lWait <> WAIT_OBJECT_0 then
+  begin
+    aError := 'Fake LSP server did not exit cleanly.';
+    Exit(False);
+  end;
+  Result := True;
 end;
 
 function TLspContextTests.ArrayContainsValue(const aValues: TArray<string>; const aExpected: string): Boolean;
@@ -375,7 +728,169 @@ begin
     'Expected a clean workspace-write error. Actual: ' + lError);
 end;
 
+
+function TLspFixtureTests.CreateScriptFile(const aScenarioName, aScriptJson: string): string;
+var
+  lDir: string;
+begin
+  EnsureTempClean;
+  lDir := TPath.Combine(TempRoot, 'lsp-fixture-scripts');
+  TDirectory.CreateDirectory(lDir);
+  Result := TPath.Combine(lDir, aScenarioName + '.json');
+  WriteUtf8File(Result, aScriptJson);
+end;
+
+procedure TLspFixtureTests.FakeServerSupportsInitializeAndShutdown;
+var
+  lClient: TLspJsonRpcClient;
+  lDefinitionArray: TJSONArray;
+  lError: string;
+  lResponse: TJSONObject;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lScriptPath := CreateScriptFile('fixture-init',
+    '{"requireOpenedDocuments":true,"initializeResult":{"capabilities":{"hoverProvider":true}},"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}]}}');
+  lClient := TLspJsonRpcClient.Create;
+  lResponse := nil;
+  try
+    lError := '';
+    Assert.IsTrue(lClient.Start(FakeLspExePath, '--script ' + QuoteArg(lScriptPath), FakeLspFixtureDir, lError),
+      'Expected fake LSP server to start. Error: ' + lError);
+    Assert.IsTrue(lClient.SendRequest(1, 'initialize', '{"processId":1}', lResponse, lError),
+      'Expected initialize request to succeed. Error: ' + lError);
+    Assert.IsTrue(Assigned(lResponse.Values['result']), 'Expected initialize result payload.');
+    Assert.IsTrue(Assigned((lResponse.Values['result'] as TJSONObject).Values['capabilities']),
+      'Expected initialize result to expose capabilities.');
+    lResponse.Free;
+    lResponse := nil;
+    Assert.IsTrue(lClient.SendNotification('textDocument/didOpen',
+      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas","languageId":"delphi","version":1,"text":"unit Unit1;"}}', lError),
+      'Expected didOpen notification to succeed. Error: ' + lError);
+    Assert.IsTrue(lClient.SendRequest(2, 'textDocument/definition',
+      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas"},"position":{"line":2,"character":4}}', lResponse, lError),
+      'Expected definition request after didOpen to succeed. Error: ' + lError);
+    Assert.IsTrue(lResponse.Values['result'] is TJSONArray, 'Expected definition result array after didOpen.');
+    lDefinitionArray := lResponse.Values['result'] as TJSONArray;
+    Assert.AreEqual(1, lDefinitionArray.Count, 'Expected one scripted definition result after didOpen.');
+    lResponse.Free;
+    lResponse := nil;
+    Assert.IsTrue(lClient.ShutdownAndExit(lError), 'Expected fake LSP server shutdown to succeed. Error: ' + lError);
+  finally
+    lResponse.Free;
+    lClient.Free;
+  end;
+end;
+
+procedure TLspFixtureTests.FakeServerReturnsScriptedDefinitionAndHoverPayloads;
+var
+  lClient: TLspJsonRpcClient;
+  lDefinitionArray: TJSONArray;
+  lError: string;
+  lHoverObject: TJSONObject;
+  lResponse: TJSONObject;
+  lScriptPath: string;
+  lSymbolsArray: TJSONArray;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lScriptPath := CreateScriptFile('fixture-definition-hover',
+    '{"requireOpenedDocuments":true,"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}],"textDocument/hover":{"contents":{"kind":"markdown","value":"TFixtureType"},"range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}},"workspace/symbol":[{"name":"TFixtureType","kind":5,"containerName":"Unit1","location":{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}}]}}');
+  lClient := TLspJsonRpcClient.Create;
+  lResponse := nil;
+  try
+    lError := '';
+    Assert.IsTrue(lClient.Start(FakeLspExePath, '--script ' + QuoteArg(lScriptPath), FakeLspFixtureDir, lError),
+      'Expected fake LSP server to start. Error: ' + lError);
+    Assert.IsTrue(lClient.SendRequest(1, 'initialize', '{"processId":1}', lResponse, lError),
+      'Expected initialize request to succeed. Error: ' + lError);
+    lResponse.Free;
+    lResponse := nil;
+    Assert.IsTrue(lClient.SendNotification('textDocument/didOpen',
+      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas","languageId":"delphi","version":1,"text":"unit Unit1;"}}', lError),
+      'Expected didOpen notification to succeed. Error: ' + lError);
+
+    Assert.IsTrue(lClient.SendRequest(2, 'textDocument/definition',
+      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas"},"position":{"line":2,"character":4}}', lResponse, lError),
+      'Expected definition request to succeed. Error: ' + lError);
+    Assert.IsTrue(lResponse.Values['result'] is TJSONArray, 'Expected definition result array.');
+    lDefinitionArray := lResponse.Values['result'] as TJSONArray;
+    Assert.AreEqual(1, lDefinitionArray.Count, 'Expected one scripted definition result.');
+    Assert.AreEqual<string>('file:///C:/repo/Unit1.pas',
+      (lDefinitionArray.Items[0] as TJSONObject).GetValue<string>('uri'), 'Expected scripted definition uri.');
+    lResponse.Free;
+    lResponse := nil;
+
+    Assert.IsTrue(lClient.SendRequest(3, 'textDocument/hover',
+      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas"},"position":{"line":2,"character":4}}', lResponse, lError),
+      'Expected hover request to succeed. Error: ' + lError);
+    Assert.IsTrue(lResponse.Values['result'] is TJSONObject, 'Expected hover result object.');
+    lHoverObject := lResponse.Values['result'] as TJSONObject;
+    Assert.AreEqual<string>('TFixtureType',
+      ((lHoverObject.Values['contents'] as TJSONObject).GetValue<string>('value')), 'Expected scripted hover contents.');
+    lResponse.Free;
+    lResponse := nil;
+
+    Assert.IsTrue(lClient.SendRequest(4, 'workspace/symbol', '{"query":"Fixture"}', lResponse, lError),
+      'Expected workspace/symbol request to succeed. Error: ' + lError);
+    Assert.IsTrue(lResponse.Values['result'] is TJSONArray, 'Expected workspace/symbol result array.');
+    lSymbolsArray := lResponse.Values['result'] as TJSONArray;
+    Assert.AreEqual(1, lSymbolsArray.Count, 'Expected one scripted symbol result.');
+    Assert.AreEqual<string>('TFixtureType',
+      (lSymbolsArray.Items[0] as TJSONObject).GetValue<string>('name'), 'Expected scripted symbol name.');
+    Assert.IsTrue(lClient.ShutdownAndExit(lError), 'Expected fake LSP server shutdown to succeed. Error: ' + lError);
+  finally
+    lResponse.Free;
+    lClient.Free;
+  end;
+end;
+
+procedure TLspFixtureTests.FakeServerCanSimulateEmptyAndErrorResponses;
+var
+  lClient: TLspJsonRpcClient;
+  lError: string;
+  lErrorObject: TJSONObject;
+  lResponse: TJSONObject;
+  lResultArray: TJSONArray;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lScriptPath := CreateScriptFile('fixture-empty-error',
+    '{"responses":{"textDocument/references":[]},"errors":{"workspace/symbol":{"code":-32001,"message":"simulated failure"}}}');
+  lClient := TLspJsonRpcClient.Create;
+  lResponse := nil;
+  try
+    lError := '';
+    Assert.IsTrue(lClient.Start(FakeLspExePath, '--script ' + QuoteArg(lScriptPath), FakeLspFixtureDir, lError),
+      'Expected fake LSP server to start. Error: ' + lError);
+    Assert.IsTrue(lClient.SendRequest(1, 'initialize', '{"processId":1}', lResponse, lError),
+      'Expected initialize request to succeed. Error: ' + lError);
+    lResponse.Free;
+    lResponse := nil;
+
+    Assert.IsTrue(lClient.SendRequest(2, 'textDocument/references',
+      '{"textDocument":{"uri":"file:///C:/repo/Unit1.pas"},"position":{"line":2,"character":4}}', lResponse, lError),
+      'Expected references request to succeed. Error: ' + lError);
+    Assert.IsTrue(lResponse.Values['result'] is TJSONArray, 'Expected references result array.');
+    lResultArray := lResponse.Values['result'] as TJSONArray;
+    Assert.AreEqual(0, lResultArray.Count, 'Expected empty scripted references result.');
+    lResponse.Free;
+    lResponse := nil;
+
+    Assert.IsTrue(lClient.SendRequest(3, 'workspace/symbol', '{"query":"Foo"}', lResponse, lError),
+      'Expected workspace/symbol request to return a scripted error response. Error: ' + lError);
+    Assert.IsTrue(lResponse.Values['error'] is TJSONObject, 'Expected error object in scripted failure response.');
+    lErrorObject := lResponse.Values['error'] as TJSONObject;
+    Assert.AreEqual<string>('-32001', lErrorObject.GetValue<string>('code'), 'Expected scripted error code.');
+    Assert.AreEqual<string>('simulated failure', lErrorObject.GetValue<string>('message'), 'Expected scripted error message.');
+    Assert.IsTrue(lClient.ShutdownAndExit(lError), 'Expected fake LSP server shutdown to succeed. Error: ' + lError);
+  finally
+    lResponse.Free;
+    lClient.Free;
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TLspContextTests);
+  TDUnitX.RegisterTestFixture(TLspFixtureTests);
 
 end.
