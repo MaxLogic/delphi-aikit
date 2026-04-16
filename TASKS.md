@@ -2,30 +2,10 @@
 Next task ID: T-121
 
 ## Summary
-Open tasks: 7 (In Progress: 1, Next Today: 0, Next This Week: 6, Next Later: 0, Blocked: 0)
-Done tasks: 113
+Open tasks: 6 (In Progress: 1, Next Today: 0, Next This Week: 5, Next Later: 0, Blocked: 0)
+Done tasks: 114
 
 ## In Progress
-
-### T-114 [TEST] Add fake LSP server fixture for deterministic `lsp` tests
-Outcome:
-- Tests gain a deterministic fake LSP server fixture that simulates initialize/open/request/shutdown without depending on an installed `DelphiLSP.exe`.
-- The fixture can return scripted payloads for `definition`, `references`, `hover`, and `symbols`.
-- The fixture can simulate empty-result and failure cases so transport and output tests stay deterministic.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspFixtureTests.FakeServerSupportsInitializeAndShutdown,Test.Lsp.TLspFixtureTests.FakeServerReturnsScriptedDefinitionAndHoverPayloads,Test.Lsp.TLspFixtureTests.FakeServerCanSimulateEmptyAndErrorResponses -cm:Quiet`
-  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
-- Run: `./build-delphi.sh tests/DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23`
-  Expect: Exit code `0`.
-Touches: tests/fixtures/LspFixture/, tests/units/test.lsp.pas, tests/DelphiAIKit.Tests.dproj
-Verify: unit-test, build-only
-Notes: Plan: `.agents/plans/lsp.md`. This fixture is the foundation for deterministic transport and operation tests.
-
-
-## Next - Today
-
-## Next - This Week
-
 
 
 ### T-115 [CLI] Add `DelphiLSP.exe` discovery and one-shot transport lifecycle
@@ -42,6 +22,15 @@ Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, src/dak.lsp.context.pas, 
 Deps: T-112, T-113, T-114
 Verify: unit-test, cli-proof
 Notes: Plan: `.agents/plans/lsp.md`. This task covers one-shot process lifecycle only, not operation-specific output contracts.
+
+
+
+## Next - Today
+
+## Next - This Week
+
+
+
 
 ### T-116 [CLI] Implement `lsp definition` and `lsp references`
 Outcome:
@@ -126,6 +115,22 @@ Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for 
 ## Blocked
 
 ## Done
+
+
+### T-114 [TEST] Add fake LSP server fixture for deterministic `lsp` tests
+Outcome:
+- Tests gain a deterministic fake LSP server fixture that simulates initialize/open/request/shutdown without depending on an installed `DelphiLSP.exe`.
+- The fixture can return scripted payloads for `definition`, `references`, `hover`, and `symbols`.
+- The fixture can simulate empty-result and failure cases so transport and output tests stay deterministic.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspFixtureTests.FakeServerSupportsInitializeAndShutdown,Test.Lsp.TLspFixtureTests.FakeServerReturnsScriptedDefinitionAndHoverPayloads,Test.Lsp.TLspFixtureTests.FakeServerCanSimulateEmptyAndErrorResponses -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./build-delphi.sh tests/DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23`
+  Expect: Exit code `0`.
+Touches: tests/fixtures/LspFixture/, tests/units/test.lsp.pas, tests/DelphiAIKit.Tests.dproj
+Verify: unit-test, build-only
+Notes: Plan: `.agents/plans/lsp.md`. This fixture is the foundation for deterministic transport and operation tests.
+
 
 ### T-113 [CLI] Write owned `lsp` context artifacts under sibling `.dak/`
 Outcome:
