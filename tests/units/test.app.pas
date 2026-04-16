@@ -15,13 +15,15 @@ type
     procedure StructuredParseFailuresStayHandled;
     [Test]
     procedure ConfiguresMadExceptUploadOnStartup;
+    [Test]
+    procedure DispatchesLspCommandThroughDedicatedRunner;
   end;
 
 implementation
 
 uses
   System.SysUtils,
-  Dak.App, Dak.ExitCodes;
+  Dak.App, Dak.ExitCodes, Dak.Types;
 
 type
   TAppTestScenario = (atsDispatchSuccess, atsDispatchException, atsParseFailure);
@@ -44,9 +46,67 @@ type
     class function RunInstance(aApp: TAppUnderTest): Integer; static;
   end;
 
+  TLspDispatchAppUnderTest = class(TDelphiAIKitApp)
+  protected
+    fCrashReportingConfigured: Boolean;
+    fConfiguredBugReportDir: string;
+    fLspDispatchCalled: Boolean;
+    fLspExitCode: Integer;
+    fObservedCommand: TCommandKind;
+    fObservedOperation: TLspOperation;
+    fObservedFilePath: string;
+    function HandleHelpIfRequested(out aExitCode: Integer): Boolean; override;
+    function TryParseOptions(out aExitCode: Integer): Boolean; override;
+    function RunLspCommand: Integer; override;
+    function ResolveBugReportDir: string; override;
+    procedure ApplyMadExceptSettings(const aBugReportDir: string); override;
+  public
+    class function RunLspInstance(aApp: TLspDispatchAppUnderTest): Integer; static;
+  end;
+
 class function TAppUnderTest.RunInstance(aApp: TAppUnderTest): Integer;
 begin
   Result := RunApp(aApp);
+end;
+
+class function TLspDispatchAppUnderTest.RunLspInstance(aApp: TLspDispatchAppUnderTest): Integer;
+begin
+  Result := RunApp(aApp);
+end;
+
+function TLspDispatchAppUnderTest.HandleHelpIfRequested(out aExitCode: Integer): Boolean;
+begin
+  aExitCode := cExitSuccess;
+  Result := False;
+end;
+
+function TLspDispatchAppUnderTest.TryParseOptions(out aExitCode: Integer): Boolean;
+begin
+  fOptions.fCommand := TCommandKind.ckLsp;
+  fOptions.fLspOperation := TLspOperation.loHover;
+  fOptions.fLspFilePath := 'C:\repo\Unit1.pas';
+  aExitCode := cExitSuccess;
+  Result := True;
+end;
+
+function TLspDispatchAppUnderTest.RunLspCommand: Integer;
+begin
+  fLspDispatchCalled := True;
+  fObservedCommand := fOptions.fCommand;
+  fObservedOperation := fOptions.fLspOperation;
+  fObservedFilePath := fOptions.fLspFilePath;
+  Result := fLspExitCode;
+end;
+
+function TLspDispatchAppUnderTest.ResolveBugReportDir: string;
+begin
+  Result := 'C:\dak-bugreports\';
+end;
+
+procedure TLspDispatchAppUnderTest.ApplyMadExceptSettings(const aBugReportDir: string);
+begin
+  fCrashReportingConfigured := True;
+  fConfiguredBugReportDir := aBugReportDir;
 end;
 
 function TAppUnderTest.HandleHelpIfRequested(out aExitCode: Integer): Boolean;
@@ -139,6 +199,29 @@ begin
     lExitCode := TAppUnderTest.RunInstance(lApp);
 
     Assert.AreEqual(17, lExitCode);
+    Assert.IsTrue(lApp.fCrashReportingConfigured, 'Expected startup to configure madExcept upload settings.');
+    Assert.AreEqual('C:\dak-bugreports\', lApp.fConfiguredBugReportDir);
+  finally
+    lApp.Free;
+  end;
+end;
+
+procedure TAppTests.DispatchesLspCommandThroughDedicatedRunner;
+var
+  lApp: TLspDispatchAppUnderTest;
+  lExitCode: Integer;
+begin
+  lApp := TLspDispatchAppUnderTest.Create;
+  try
+    lApp.fLspExitCode := 23;
+
+    lExitCode := TLspDispatchAppUnderTest.RunLspInstance(lApp);
+
+    Assert.AreEqual(23, lExitCode);
+    Assert.IsTrue(lApp.fLspDispatchCalled, 'Expected ckLsp to dispatch through RunLspCommand.');
+    Assert.AreEqual(TCommandKind.ckLsp, lApp.fObservedCommand);
+    Assert.AreEqual(TLspOperation.loHover, lApp.fObservedOperation);
+    Assert.AreEqual('C:\repo\Unit1.pas', lApp.fObservedFilePath);
     Assert.IsTrue(lApp.fCrashReportingConfigured, 'Expected startup to configure madExcept upload settings.');
     Assert.AreEqual('C:\dak-bugreports\', lApp.fConfiguredBugReportDir);
   finally

@@ -2,29 +2,14 @@
 Next task ID: T-121
 
 ## Summary
-Open tasks: 10 (In Progress: 0, Next Today: 0, Next This Week: 10, Next Later: 0, Blocked: 0)
-Done tasks: 110
+Open tasks: 9 (In Progress: 0, Next Today: 0, Next This Week: 9, Next Later: 0, Blocked: 0)
+Done tasks: 111
 
 ## In Progress
 
 ## Next - Today
 
 ## Next - This Week
-
-### T-111 [CLI] Wire `lsp` options and app dispatch
-Outcome:
-- `TAppOptions` carries the `lsp` command, operation, and operation-specific fields without breaking existing commands.
-- `TDelphiAIKitApp` dispatches `lsp` through a dedicated runner entrypoint.
-- Invalid `lsp` invocations fail through the normal DAK CLI error path instead of bypassing command dispatch.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.LspCommandParsesProjectAndOperationFields,Test.App.TAppTests.DispatchesLspCommandThroughDedicatedRunner -cm:Quiet`
-  Expect: Tests Found `>=2`, Failed `0`, Leaked `0`.
-- Run: `./build-delphi.sh tests/DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23`
-  Expect: Exit code `0`.
-Touches: src/dak.types.pas, src/dak.app.pas, src/dak.cli.pas, src/dak.lsp.pas, tests/units/test.cli.pas, tests/units/test.app.pas
-Deps: T-110
-Verify: unit-test, build-only
-Notes: Plan: `.agents/plans/lsp.md`. Keep the runner boundary thin and command-specific.
 
 ### T-112 [CLI] Add strict Delphi context resolution for `lsp`
 Outcome:
@@ -168,6 +153,21 @@ Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for 
 ## Blocked
 
 ## Done
+
+### T-111 [CLI] Wire `lsp` options and app dispatch
+Outcome:
+- `TAppOptions` carries the `lsp` command, operation, and operation-specific fields without breaking existing commands.
+- `TDelphiAIKitApp` dispatches `lsp` through a dedicated runner entrypoint.
+- Invalid `lsp` invocations fail through the normal DAK CLI error path instead of bypassing command dispatch.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.LspCommandParsesProjectAndOperationFields,Test.App.TAppTests.DispatchesLspCommandThroughDedicatedRunner -cm:Quiet`
+  Expect: Tests Found `>=2`, Failed `0`, Leaked `0`.
+- Run: `./build-delphi.sh tests/DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23`
+  Expect: Exit code `0`.
+Touches: src/dak.types.pas, src/dak.app.pas, src/dak.cli.pas, src/dak.lsp.pas, tests/units/test.cli.pas, tests/units/test.app.pas
+Deps: T-110
+Verify: unit-test, build-only
+Notes: Plan: `.agents/plans/lsp.md`. Keep the runner boundary thin and command-specific.
 
 ### T-110 [CLI] Add `lsp` command parsing and help text
 Outcome:

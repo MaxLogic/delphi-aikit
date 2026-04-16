@@ -16,6 +16,7 @@ type
     function HandleHelpIfRequested(out aExitCode: Integer): Boolean; virtual;
     function TryParseOptions(out aExitCode: Integer): Boolean; virtual;
     function DispatchCommand: Integer; virtual;
+    function RunLspCommand: Integer; virtual;
     function Execute: Integer; virtual;
     procedure ConfigureCrashReporting; virtual;
     procedure ApplyMadExceptSettings(const aBugReportDir: string); virtual;
@@ -28,8 +29,8 @@ uses
   System.SysUtils,
   Xml.omnixmldom, Xml.xmldom,
   MaxMadExcept,
-  Dak.Analyze, Dak.Build, Dak.Cli, Dak.Deps, Dak.DfmCheck, Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Messages,
-  Dak.Resolve, Dak.Utils;
+  Dak.Analyze, Dak.Build, Dak.Cli, Dak.Deps, Dak.DfmCheck, Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Lsp,
+  Dak.Messages, Dak.Resolve, Dak.Utils;
 
 class function TDelphiAIKitApp.Run: Integer;
 var
@@ -116,6 +117,11 @@ begin
   aExitCode := cExitInvalidArgs;
 end;
 
+function TDelphiAIKitApp.RunLspCommand: Integer;
+begin
+  Result := Dak.Lsp.RunLspCommand(fOptions);
+end;
+
 function TDelphiAIKitApp.DispatchCommand: Integer;
 var
   lError: string;
@@ -141,6 +147,8 @@ begin
       Result := RunGlobalVarsCommand(fOptions);
     TCommandKind.ckDeps:
       Result := RunDepsCommand(fOptions);
+    TCommandKind.ckLsp:
+      Result := RunLspCommand;
     TCommandKind.ckAnalyzeProject, TCommandKind.ckAnalyzeUnit:
       Result := RunAnalyzeCommand(fOptions);
   else
