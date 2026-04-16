@@ -6,7 +6,7 @@ interface
 
 type
   TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars,
-    ckDeps);
+    ckDeps, ckLsp);
 
   TOutputKind = (okIni, okXml, okBat);
   TBuildBackend = (bbAuto, bbDelphi, bbWebCore);
@@ -20,6 +20,8 @@ type
   TGlobalVarsRefresh = (gvrAuto, gvrForce);
   TDepsFormat = (dfJson, dfText);
   TSourceContextMode = (scmAuto, scmOff, scmOn);
+  TLspOperation = (loNone, loDefinition, loReferences, loHover, loSymbols);
+  TLspFormat = (lfJson, lfText);
 
   TDiagnosticsDefaults = record
     fSourceContextMode: TSourceContextMode;
@@ -148,6 +150,17 @@ type
     fDepsUnitName: string;
     fHasDepsUnitName: Boolean;
     fDepsTopLimit: Integer;
+    fLspOperation: TLspOperation;
+    fLspFormat: TLspFormat;
+    fLspPath: string;
+    fHasLspPath: Boolean;
+    fLspFilePath: string;
+    fLspLine: Integer;
+    fLspCol: Integer;
+    fLspQuery: string;
+    fLspLimit: Integer;
+    fLspIncludeDeclaration: Boolean;
+    fHasLspIncludeDeclaration: Boolean;
     fUnitPath: string;
   end;
 
