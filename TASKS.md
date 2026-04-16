@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-110
+Next task ID: T-121
 
 ## Summary
-Open tasks: 0 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
-Done tasks: 109
+Open tasks: 10 (In Progress: 0, Next Today: 0, Next This Week: 10, Next Later: 0, Blocked: 0)
+Done tasks: 110
 
 ## In Progress
 
@@ -11,11 +11,177 @@ Done tasks: 109
 
 ## Next - This Week
 
+### T-111 [CLI] Wire `lsp` options and app dispatch
+Outcome:
+- `TAppOptions` carries the `lsp` command, operation, and operation-specific fields without breaking existing commands.
+- `TDelphiAIKitApp` dispatches `lsp` through a dedicated runner entrypoint.
+- Invalid `lsp` invocations fail through the normal DAK CLI error path instead of bypassing command dispatch.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.LspCommandParsesProjectAndOperationFields,Test.App.TAppTests.DispatchesLspCommandThroughDedicatedRunner -cm:Quiet`
+  Expect: Tests Found `>=2`, Failed `0`, Leaked `0`.
+- Run: `./build-delphi.sh tests/DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23`
+  Expect: Exit code `0`.
+Touches: src/dak.types.pas, src/dak.app.pas, src/dak.cli.pas, src/dak.lsp.pas, tests/units/test.cli.pas, tests/units/test.app.pas
+Deps: T-110
+Verify: unit-test, build-only
+Notes: Plan: `.agents/plans/lsp.md`. Keep the runner boundary thin and command-specific.
+
+### T-112 [CLI] Add strict Delphi context resolution for `lsp`
+Outcome:
+- `lsp` resolves Delphi version from `--delphi` or the existing cascading `dak.ini` fallback, not from parsing the `.dproj`.
+- `lsp` accepts optional advanced overrides `--rsvars` and `--envoptions` with the same semantics as existing DAK commands.
+- `lsp` hard-fails with a precise diagnostic when a real Delphi IDE/compiler context cannot be built, instead of silently degrading to parser-only context.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspContextTests.LspUsesDakIniDelphiVersionFallback,Test.Lsp.TLspContextTests.LspUsesRsvarsAndEnvOptionsOverrides,Test.Lsp.TLspContextTests.LspHardFailsWhenRealDelphiContextCannotBeBuilt -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp definition --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 1 --col 1`
+  Expect: Exit code non-zero when no Delphi context can be resolved; output names the missing prerequisite.
+Touches: src/dak.project.pas, src/dak.fixinsightsettings.pas, src/dak.registry.pas, src/dak.rsvars.pas, src/dak.lsp.context.pas, tests/units/test.lsp.pas, tests/fixtures/LspProjectFixture/
+Deps: T-111
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. This task introduces the `lsp`-specific hard-fail context helper rather than reusing the existing soft-fail analysis-context path as-is.
+
+### T-113 [CLI] Write owned `lsp` context artifacts under sibling `.dak/`
+Outcome:
+- `lsp` writes its generated context file under sibling `.dak/<ProjectName>/lsp/context.delphilsp.json` and not beside the source `.dproj`.
+- `lsp` keeps any logs or scratch data under the same owned `.dak/<ProjectName>/lsp/` workspace.
+- Repeated `lsp` runs reuse the same project-scoped workspace without splattering project directories with temporary files.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspContextTests.LspWritesGeneratedContextUnderDakWorkspace,Test.Lsp.TLspContextTests.LspDoesNotWriteContextBesideSourceProject -cm:Quiet`
+  Expect: Tests Found `>=2`, Failed `0`, Leaked `0`.
+- Run: `find /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture -maxdepth 1 -name '*.delphilsp.json' -print`
+  Expect: No output.
+Touches: src/dak.lsp.context.pas, src/dak.project.pas, tests/units/test.lsp.pas, tests/fixtures/LspProjectFixture/
+Deps: T-112
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. Follow the existing `.dak/<ProjectName>/...` ownership rule used by other DAK features.
+
+### T-114 [TEST] Add fake LSP server fixture for deterministic `lsp` tests
+Outcome:
+- Tests gain a deterministic fake LSP server fixture that simulates initialize/open/request/shutdown without depending on an installed `DelphiLSP.exe`.
+- The fixture can return scripted payloads for `definition`, `references`, `hover`, and `symbols`.
+- The fixture can simulate empty-result and failure cases so transport and output tests stay deterministic.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspFixtureTests.FakeServerSupportsInitializeAndShutdown,Test.Lsp.TLspFixtureTests.FakeServerReturnsScriptedDefinitionAndHoverPayloads,Test.Lsp.TLspFixtureTests.FakeServerCanSimulateEmptyAndErrorResponses -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./build-delphi.sh tests/DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23`
+  Expect: Exit code `0`.
+Touches: tests/fixtures/LspFixture/, tests/units/test.lsp.pas, tests/DelphiAIKit.Tests.dproj
+Verify: unit-test, build-only
+Notes: Plan: `.agents/plans/lsp.md`. This fixture is the foundation for deterministic transport and operation tests.
+
+### T-115 [CLI] Add `DelphiLSP.exe` discovery and one-shot transport lifecycle
+Outcome:
+- `lsp` resolves `DelphiLSP.exe` by explicit `--lsp-path`, then Delphi-version-derived install path, then the existing `dak.ini` defaulting model.
+- `lsp` starts the LSP process, initializes it, opens the target file, executes one request, and shuts down cleanly once per command.
+- Missing executable, initialization failure, and request-lifecycle failures return specific diagnostics instead of generic process errors.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspDiscoveryPrefersExplicitPathThenResolvedInstall,Test.Lsp.TLspRunnerTests.LspRunnerInitializesOpensRequestsAndShutsDownAgainstFakeServer,Test.Lsp.TLspRunnerTests.LspRunnerReportsSpecificDiscoveryAndInitFailures -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp definition --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --format json`
+  Expect: Exit code `0`; JSON contains an `operation` field and no process-lifecycle error.
+Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, src/dak.lsp.context.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
+Deps: T-112, T-113, T-114
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. This task covers one-shot process lifecycle only, not operation-specific output contracts.
+
+### T-116 [CLI] Implement `lsp definition` and `lsp references`
+Outcome:
+- `lsp definition` returns normalized definition locations with 1-based coordinates in the documented JSON/text contract.
+- `lsp references` returns normalized reference locations and respects `--include-declaration`.
+- Position-based requests use WSL-to-Windows path normalization and convert CLI 1-based coordinates to LSP 0-based coordinates correctly.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspDefinitionReturnsNormalizedLocations,Test.Lsp.TLspRunnerTests.LspReferencesRespectIncludeDeclaration,Test.Lsp.TLspRunnerTests.LspPositionConversionUsesOneBasedCliAndZeroBasedProtocol -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp references --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --include-declaration false --format json`
+  Expect: Exit code `0`; JSON contains `references` and omits the declaration location.
+Touches: src/dak.lsp.runner.pas, src/dak.lsp.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
+Deps: T-115
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. Keep the location-shaped JSON contract stable because later tasks build on it.
+
+### T-117 [CLI] Implement `lsp hover`
+Outcome:
+- `lsp hover` returns `contentsText`, optional `contentsMarkdown`, and optional range data in the documented output contract.
+- `lsp hover` supports both JSON and compact text rendering without changing the transport lifecycle.
+- Empty hover results are represented explicitly instead of being misreported as transport failures.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspHoverReturnsContentsAndOptionalRange,Test.Lsp.TLspRunnerTests.LspHoverTextOutputStaysCompact,Test.Lsp.TLspRunnerTests.LspHoverRepresentsEmptyResultsExplicitly -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp hover --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --format json`
+  Expect: Exit code `0`; JSON contains `contentsText`.
+Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
+Deps: T-115
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. Keep hover as its own task because its response shape differs from location lists.
+
+### T-118 [CLI] Implement `lsp symbols`
+Outcome:
+- `lsp symbols` returns normalized symbol matches with `name`, `kind`, `containerName`, `file`, `line`, and `col`.
+- `lsp symbols` respects `--limit` and keeps output deterministic when the server returns more symbols than requested.
+- `lsp symbols` reports empty query results cleanly without being confused with discovery or initialization failure.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspSymbolsReturnNormalizedMatches,Test.Lsp.TLspRunnerTests.LspSymbolsRespectLimit,Test.Lsp.TLspRunnerTests.LspSymbolsRepresentEmptyResultsExplicitly -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp symbols --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --query Foo --limit 1 --format json`
+  Expect: Exit code `0`; JSON contains `symbols` with at most one entry.
+Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
+Deps: T-115
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. Symbols are split from hover because they depend on a different result contract and limit handling.
+
+### T-119 [DOC] Add `delphi-lsp` repo skill and command docs
+Outcome:
+- A repo-local `delphi-lsp` skill teaches agents when to use `lsp` versus `deps`, `global-vars`, and text search.
+- README documents the new `lsp` verb, its core operations, and the `.dak/<ProjectName>/lsp/` artifact ownership rule.
+- Docs mention that `--rsvars` and `--envoptions` are optional advanced overrides rather than normal-use requirements.
+Proof:
+- Run: `rg -n "delphi-lsp|DelphiAIKit.exe lsp|\.dak/<ProjectName>/lsp|--rsvars|--envoptions" README.md agentskills`
+  Expect: Exit code `0`; the skill and command docs are present.
+Touches: agentskills/delphi-lsp/, README.md, CHANGELOG.md
+Deps: T-116, T-117, T-118
+Verify: cli-proof, manual
+Ceremony: reduced
+Notes: Plan: `.agents/plans/lsp.md`. Keep the skill routing-only; it should not teach agents to emulate raw JSON-RPC.
+
+### T-120 [CLI] Verify `lsp` end-to-end against a real `DelphiLSP.exe`
+Outcome:
+- DAK `lsp` works end-to-end against a real installed `DelphiLSP.exe` and a real Delphi project instead of only the fake test fixture.
+- At least one real `definition`, `references`, `hover`, and `symbols` query returns a semantically plausible non-empty result.
+- Any real-world context/discovery diagnostics surfaced by the proof run are hardened into clear user-facing error messages before the task is closed.
+Proof:
+- Run: `./bin/DelphiAIKit.exe lsp definition --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --format json`
+  Expect: Exit code `0`; JSON `result.locations` is non-empty.
+- Run: `./bin/DelphiAIKit.exe lsp references --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --format json`
+  Expect: Exit code `0`; JSON `result.references` is non-empty.
+- Run: `./bin/DelphiAIKit.exe lsp hover --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --format json`
+  Expect: Exit code `0`; JSON `result.contentsText` is non-empty.
+- Run: `./bin/DelphiAIKit.exe lsp symbols --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --query Foo --format json`
+  Expect: Exit code `0`; JSON `result.symbols` is non-empty.
+Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, tests/fixtures/LspProjectFixture/, README.md, CHANGELOG.md
+Deps: T-116, T-117, T-118
+Verify: cli-proof, manual
+Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for the wrapper after the fake-server-backed contract tests are green.
+
 ## Next - Later
 
 ## Blocked
 
 ## Done
+
+### T-110 [CLI] Add `lsp` command parsing and help text
+Outcome:
+- `DelphiAIKit.exe` recognizes the `lsp` verb and the planned operations `definition`, `references`, `hover`, and `symbols`.
+- `lsp` validates required operation arguments, including 1-based `--line` and `--col` for position-based operations and `--query` for `symbols`.
+- Help text documents the new verb, its operations, and the advanced override options without changing existing command help output.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Cli.TCliTests.LspCommandParsesOperationsAndRequiredArgs,Test.Cli.TCliTests.LspCommandRejectsMissingOperationArguments,Test.Cli.TCliTests.LspHelpShowsVerbOperationsAndAdvancedOverrides -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp --help`
+  Expect: Exit code `0`; output contains `definition`, `references`, `hover`, `symbols`, `--rsvars`, and `--envoptions`.
+Touches: src/dak.cli.pas, src/dak.messages.pas, tests/units/test.cli.pas
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. Keep the `lsp` parser branch isolated so we do not spread special-casing into unrelated commands.
 
 ### T-109 [CLI] Preserve effective search paths in generated `dfm-check` projects
 Outcome:

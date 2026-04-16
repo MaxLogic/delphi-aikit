@@ -13,6 +13,7 @@ resourcestring
     '  dfm-inspect Inspect text DFM structure and event bindings' + #13#10 +
     '  global-vars List project global variables and their routine usages' + #13#10 +
     '  deps      Analyze project unit dependencies for AI debugging' + #13#10 +
+    '  lsp       Query Delphi semantic navigation via DelphiLSP.exe' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
   SUsageResolve =
     'DelphiAIKit.exe resolve --project "<path>" --delphi <23.0> ' +
@@ -58,6 +59,13 @@ resourcestring
   SUsageDeps =
     'DelphiAIKit.exe deps --project "<path>" [--format <json|text>] [--output "<path>|-"] ' +
     '[--unit "<UnitName>"] [--top <N, 0=unlimited>]';
+  SUsageLsp =
+    'DelphiAIKit.exe lsp <definition|references|hover|symbols> --project "<path>" ' +
+    '[--platform <Win32|Win64>] [--config <Debug|Release>] [--delphi <23.0>]' + #13#10 +
+    '  [--rsvars "<path>"] [--envoptions "<path>"] [--lsp-path "<path>"] [--format <json|text>]' + #13#10 +
+    '  definition|references|hover: --file "<path>" --line <N 1-based> --col <N 1-based>' + #13#10 +
+    '  references: [--include-declaration [true|false]]' + #13#10 +
+    '  symbols: --query "<text>" [--limit <N>]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -77,6 +85,11 @@ resourcestring
   SGlobalVarsUnusedAccessConflict = '--unused-only cannot be combined with --reads-only or --writes-only.';
   SDepsInvalidFormat = 'Unsupported deps format: %s';
   SDepsInvalidTopLimit = 'Invalid --top value: %s (expected integer >= 0).';
+  SLspMissingOperation = 'Missing lsp operation. Expected one of: definition, references, hover, symbols.';
+  SLspInvalidOperation = 'Unsupported lsp operation: %s';
+  SLspInvalidFormat = 'Unsupported lsp format: %s';
+  SLspInvalidPosition = 'Invalid %s value: %s (expected integer >= 1).';
+  SLspInvalidLimit = 'Invalid --limit value: %s (expected integer >= 1).';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
   SBuildBatMissing = 'build-delphi.bat not found: %s';

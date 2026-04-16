@@ -58,6 +58,8 @@ var
       aParsedCommand := TCommandKind.ckGlobalVars
     else if SameText(aArg, 'deps') then
       aParsedCommand := TCommandKind.ckDeps
+    else if SameText(aArg, 'lsp') then
+      aParsedCommand := TCommandKind.ckLsp
     else
       Result := False;
   end;
@@ -122,7 +124,10 @@ var
       SameText(aSwitch, 'target') or SameText(aSwitch, 'max-findings') or
       SameText(aSwitch, 'build-timeout-sec') or SameText(aSwitch, 'test-output-dir') or
       SameText(aSwitch, 'ignore-warnings') or SameText(aSwitch, 'ignore-hints') or
-      SameText(aSwitch, 'top');
+      SameText(aSwitch, 'top') or SameText(aSwitch, 'file') or
+      SameText(aSwitch, 'line') or SameText(aSwitch, 'col') or
+      SameText(aSwitch, 'query') or SameText(aSwitch, 'limit') or
+      SameText(aSwitch, 'lsp-path');
   end;
 
   function SwitchAllowsBoolValue(const aSwitch: string): Boolean;
@@ -138,7 +143,7 @@ var
       SameText(aSwitch, 'clean') or SameText(aSwitch, 'write-summary') or
       SameText(aSwitch, 'show-warnings') or SameText(aSwitch, 'show-hints') or
       SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
-      SameText(aSwitch, 'rebuild');
+      SameText(aSwitch, 'rebuild') or SameText(aSwitch, 'include-declaration');
   end;
 
   function IsBoolToken(const aArg: string): Boolean;
@@ -225,6 +230,8 @@ begin
       WriteLn(ErrOutput, SUsageGlobalVars);
     TCommandKind.ckDeps:
       WriteLn(ErrOutput, SUsageDeps);
+    TCommandKind.ckLsp:
+      WriteLn(ErrOutput, SUsageLsp);
   else
     WriteLn(ErrOutput, SUsageResolve);
   end;
@@ -273,6 +280,9 @@ type
       const aHasInlineValue: Boolean): Boolean;
     function TryParseDepsSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
+    function TryParseLspOperation(const aArg: string): Boolean;
+    function TryParseLspSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+      const aHasInlineValue: Boolean): Boolean;
     function TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
     function TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
@@ -319,6 +329,9 @@ begin
   fOptions.fDfmInspectFormat := 'tree';
   fOptions.fDepsFormat := TDepsFormat.dfJson;
   fOptions.fDepsTopLimit := 20;
+  fOptions.fLspFormat := TLspFormat.lfJson;
+  fOptions.fLspIncludeDeclaration := True;
+  fOptions.fLspLimit := 50;
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
   fOptions.fGlobalVarsUnusedOnly := False;
@@ -487,7 +500,11 @@ begin
     SameText(aSwitch, 'ignore-hints') or
     SameText(aSwitch, 'cache') or SameText(aSwitch, 'refresh') or
     SameText(aSwitch, 'unused-only') or SameText(aSwitch, 'name') or
-    SameText(aSwitch, 'reads-only') or SameText(aSwitch, 'writes-only');
+    SameText(aSwitch, 'reads-only') or SameText(aSwitch, 'writes-only') or
+    SameText(aSwitch, 'file') or SameText(aSwitch, 'line') or
+    SameText(aSwitch, 'col') or SameText(aSwitch, 'query') or
+    SameText(aSwitch, 'limit') or SameText(aSwitch, 'include-declaration') or
+    SameText(aSwitch, 'lsp-path');
 end;
 
 function TOptionParser.IsSwitchParam(const aParam: string): Boolean;
@@ -546,6 +563,8 @@ begin
     fOptions.fCommand := TCommandKind.ckGlobalVars
   else if SameText(aArg, 'deps') then
     fOptions.fCommand := TCommandKind.ckDeps
+  else if SameText(aArg, 'lsp') then
+    fOptions.fCommand := TCommandKind.ckLsp
   else
   begin
     fError := Format(SUnknownCommand, [aArg]);
@@ -586,6 +605,13 @@ begin
     lArg := fList[fIndex];
     if not TrySplitSwitch(lArg, fParams.SwitchPrefixes, lSwitch, lInlineValue, lHasInlineValue) then
     begin
+      if (fOptions.fCommand = TCommandKind.ckLsp) and (fOptions.fLspOperation = TLspOperation.loNone) then
+      begin
+        if not TryParseLspOperation(lArg) then
+          Exit(False);
+        Inc(fIndex);
+        Continue;
+      end;
       fError := Format(SUnknownArg, [lArg]);
       Exit(False);
     end;
@@ -623,6 +649,9 @@ begin
 
   if fOptions.fCommand = TCommandKind.ckDeps then
     Exit(TryParseDepsSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
+
+  if fOptions.fCommand = TCommandKind.ckLsp then
+    Exit(TryParseLspSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   Result := TryParseAnalyzeSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue);
 end;
@@ -1160,6 +1189,128 @@ begin
   Result := False;
 end;
 
+function TOptionParser.TryParseLspOperation(const aArg: string): Boolean;
+begin
+  if SameText(aArg, 'definition') then
+    fOptions.fLspOperation := TLspOperation.loDefinition
+  else if SameText(aArg, 'references') then
+    fOptions.fLspOperation := TLspOperation.loReferences
+  else if SameText(aArg, 'hover') then
+    fOptions.fLspOperation := TLspOperation.loHover
+  else if SameText(aArg, 'symbols') then
+    fOptions.fLspOperation := TLspOperation.loSymbols
+  else
+  begin
+    fError := Format(SLspInvalidOperation, [aArg]);
+    Exit(False);
+  end;
+  Result := True;
+end;
+
+function TOptionParser.TryParseLspSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+  const aHasInlineValue: Boolean): Boolean;
+var
+  lBoolValue: Boolean;
+  lValue: string;
+begin
+  if SameText(aSwitch, 'file') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--file') then
+      Exit(False);
+    fOptions.fLspFilePath := lValue;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'line') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--line') then
+      Exit(False);
+    fOptions.fLspLine := StrToIntDef(lValue, -1);
+    if fOptions.fLspLine < 1 then
+    begin
+      fError := Format(SLspInvalidPosition, ['--line', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'col') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--col') then
+      Exit(False);
+    fOptions.fLspCol := StrToIntDef(lValue, -1);
+    if fOptions.fLspCol < 1 then
+    begin
+      fError := Format(SLspInvalidPosition, ['--col', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'query') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--query') then
+      Exit(False);
+    fOptions.fLspQuery := lValue;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'limit') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--limit') then
+      Exit(False);
+    fOptions.fLspLimit := StrToIntDef(lValue, -1);
+    if fOptions.fLspLimit < 1 then
+    begin
+      fError := Format(SLspInvalidLimit, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'format') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
+      Exit(False);
+    if SameText(lValue, 'json') then
+      fOptions.fLspFormat := TLspFormat.lfJson
+    else if SameText(lValue, 'text') then
+      fOptions.fLspFormat := TLspFormat.lfText
+    else
+    begin
+      fError := Format(SLspInvalidFormat, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'include-declaration') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--include-declaration') then
+      Exit(False);
+    if not TryParseBool(lValue, lBoolValue) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--include-declaration', lValue]);
+      Exit(False);
+    end;
+    fOptions.fLspIncludeDeclaration := lBoolValue;
+    fOptions.fHasLspIncludeDeclaration := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'lsp-path') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--lsp-path') then
+      Exit(False);
+    fOptions.fLspPath := lValue;
+    fOptions.fHasLspPath := True;
+    Exit(True);
+  end;
+
+  fError := Format(SUnknownArg, [aArg]);
+  Result := False;
+end;
+
 function TOptionParser.TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
 var
@@ -1537,6 +1688,43 @@ begin
     begin
       fError := Format(SArgMissingValue, ['--delphi']);
       Exit(False);
+    end;
+  end else if fOptions.fCommand = TCommandKind.ckLsp then
+  begin
+    if fOptions.fDprojPath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--project']);
+      Exit(False);
+    end;
+    if fOptions.fLspOperation = TLspOperation.loNone then
+    begin
+      fError := SLspMissingOperation;
+      Exit(False);
+    end;
+    if fOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover] then
+    begin
+      if fOptions.fLspFilePath = '' then
+      begin
+        fError := Format(SArgMissingValue, ['--file']);
+        Exit(False);
+      end;
+      if fOptions.fLspLine < 1 then
+      begin
+        fError := Format(SArgMissingValue, ['--line']);
+        Exit(False);
+      end;
+      if fOptions.fLspCol < 1 then
+      begin
+        fError := Format(SArgMissingValue, ['--col']);
+        Exit(False);
+      end;
+    end else if fOptions.fLspOperation = TLspOperation.loSymbols then
+    begin
+      if fOptions.fLspQuery = '' then
+      begin
+        fError := Format(SArgMissingValue, ['--query']);
+        Exit(False);
+      end;
     end;
   end else if fOptions.fCommand = TCommandKind.ckBuild then
   begin
