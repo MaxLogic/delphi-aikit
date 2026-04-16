@@ -2,31 +2,10 @@
 Next task ID: T-121
 
 ## Summary
-Open tasks: 8 (In Progress: 1, Next Today: 0, Next This Week: 7, Next Later: 0, Blocked: 0)
-Done tasks: 112
+Open tasks: 7 (In Progress: 1, Next Today: 0, Next This Week: 6, Next Later: 0, Blocked: 0)
+Done tasks: 113
 
 ## In Progress
-
-### T-113 [CLI] Write owned `lsp` context artifacts under sibling `.dak/`
-Outcome:
-- `lsp` writes its generated context file under sibling `.dak/<ProjectName>/lsp/context.delphilsp.json` and not beside the source `.dproj`.
-- `lsp` keeps any logs or scratch data under the same owned `.dak/<ProjectName>/lsp/` workspace.
-- Repeated `lsp` runs reuse the same project-scoped workspace without splattering project directories with temporary files.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspContextTests.LspWritesGeneratedContextUnderDakWorkspace,Test.Lsp.TLspContextTests.LspDoesNotWriteContextBesideSourceProject -cm:Quiet`
-  Expect: Tests Found `>=2`, Failed `0`, Leaked `0`.
-- Run: `find /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture -maxdepth 1 -name '*.delphilsp.json' -print`
-  Expect: No output.
-Touches: src/dak.lsp.context.pas, src/dak.project.pas, tests/units/test.lsp.pas, tests/fixtures/LspProjectFixture/
-Deps: T-112
-Verify: unit-test, cli-proof
-Notes: Plan: `.agents/plans/lsp.md`. Follow the existing `.dak/<ProjectName>/...` ownership rule used by other DAK features.
-
-
-## Next - Today
-
-## Next - This Week
-
 
 ### T-114 [TEST] Add fake LSP server fixture for deterministic `lsp` tests
 Outcome:
@@ -41,6 +20,13 @@ Proof:
 Touches: tests/fixtures/LspFixture/, tests/units/test.lsp.pas, tests/DelphiAIKit.Tests.dproj
 Verify: unit-test, build-only
 Notes: Plan: `.agents/plans/lsp.md`. This fixture is the foundation for deterministic transport and operation tests.
+
+
+## Next - Today
+
+## Next - This Week
+
+
 
 ### T-115 [CLI] Add `DelphiLSP.exe` discovery and one-shot transport lifecycle
 Outcome:
@@ -140,6 +126,21 @@ Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for 
 ## Blocked
 
 ## Done
+
+### T-113 [CLI] Write owned `lsp` context artifacts under sibling `.dak/`
+Outcome:
+- `lsp` writes its generated context file under sibling `.dak/<ProjectName>/lsp/context.delphilsp.json` and not beside the source `.dproj`.
+- `lsp` keeps any logs or scratch data under the same owned `.dak/<ProjectName>/lsp/` workspace.
+- Repeated `lsp` runs reuse the same project-scoped workspace without splattering project directories with temporary files.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspContextTests.LspWritesGeneratedContextUnderDakWorkspace,Test.Lsp.TLspContextTests.LspDoesNotWriteContextBesideSourceProject -cm:Quiet`
+  Expect: Tests Found `>=2`, Failed `0`, Leaked `0`.
+- Run: `find /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture -maxdepth 1 -name '*.delphilsp.json' -print`
+  Expect: No output.
+Touches: src/dak.lsp.context.pas, src/dak.project.pas, tests/units/test.lsp.pas, tests/fixtures/LspProjectFixture/
+Deps: T-112
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. Follow the existing `.dak/<ProjectName>/...` ownership rule used by other DAK features.
 
 ### T-112 [CLI] Add strict Delphi context resolution for `lsp`
 Outcome:
