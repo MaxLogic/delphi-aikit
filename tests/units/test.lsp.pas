@@ -3,7 +3,8 @@ unit Test.Lsp;
 interface
 
 uses
-  DUnitX.TestFramework;
+  DUnitX.TestFramework,
+  Dak.Lsp.Context;
 
 type
   [TestFixture]
@@ -12,6 +13,7 @@ type
     function ArrayContainsValue(const aValues: TArray<string>; const aExpected: string): Boolean;
     function CreateFixtureProject(const aScenarioName: string; const aProjectDefine: string;
       const aDefaultDelphiVersion: string = ''): string;
+    function PrepareResolvedContext(const aScenarioName: string; out aContext: TLspContext): string;
     procedure WriteEnvOptionsFile(const aPath, aLibraryPath, aSearchPath, aDefineValue: string);
     procedure WriteRsVarsFile(const aPath, aBdsRoot: string);
   public
@@ -21,13 +23,19 @@ type
     procedure LspUsesRsvarsAndEnvOptionsOverrides;
     [Test]
     procedure LspHardFailsWhenRealDelphiContextCannotBeBuilt;
+    [Test]
+    procedure LspWritesGeneratedContextUnderDakWorkspace;
+    [Test]
+    procedure LspDoesNotWriteContextBesideSourceProject;
+    [Test]
+    procedure LspReportsWorkspaceWriteFailureCleanly;
   end;
 
 implementation
 
 uses
   System.IOUtils, System.SysUtils,
-  Dak.Lsp.Context, Dak.Types,
+  Dak.Types,
   Test.Support;
 
 procedure WriteUtf8File(const aPath, aText: string);
@@ -109,6 +117,45 @@ begin
       'DelphiVersion=' + aDefaultDelphiVersion + sLineBreak);
   end;
 
+  Result := lDprojPath;
+end;
+
+function TLspContextTests.PrepareResolvedContext(const aScenarioName: string; out aContext: TLspContext): string;
+var
+  lBdsRoot: string;
+  lDprojPath: string;
+  lEnvOptionsPath: string;
+  lEnvSearchDir: string;
+  lError: string;
+  lLibraryDir: string;
+  lOptions: TAppOptions;
+  lRsVarsPath: string;
+begin
+  lDprojPath := CreateFixtureProject(aScenarioName, 'PROJECT_DEFINE', '99.9');
+  lBdsRoot := TPath.Combine(ExtractFilePath(lDprojPath), 'FakeBds');
+  lLibraryDir := TPath.Combine(ExtractFilePath(lDprojPath), 'IdeLibrary');
+  lEnvSearchDir := TPath.Combine(ExtractFilePath(lDprojPath), 'EnvSearch');
+  TDirectory.CreateDirectory(TPath.Combine(lBdsRoot, 'Source'));
+  TDirectory.CreateDirectory(TPath.Combine(lBdsRoot, 'lib'));
+  TDirectory.CreateDirectory(lLibraryDir);
+  TDirectory.CreateDirectory(lEnvSearchDir);
+  lRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+  lEnvOptionsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'EnvOptions.proj');
+  WriteRsVarsFile(lRsVarsPath, lBdsRoot);
+  WriteEnvOptionsFile(lEnvOptionsPath, lLibraryDir, lEnvSearchDir, 'ENV_DEFINE');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fPlatform := 'Win32';
+  lOptions.fConfig := 'Debug';
+  lOptions.fRsVarsPath := lRsVarsPath;
+  lOptions.fHasRsVarsPath := True;
+  lOptions.fEnvOptionsPath := lEnvOptionsPath;
+  lOptions.fHasEnvOptionsPath := True;
+
+  lError := '';
+  Assert.IsTrue(TryBuildStrictLspContext(lOptions, aContext, lError),
+    'Expected strict lsp context to resolve. Error: ' + lError);
   Result := lDprojPath;
 end;
 
@@ -248,6 +295,84 @@ begin
     'Expected strict lsp context to fail when the Delphi toolchain cannot be resolved.');
   Assert.IsTrue(Pos('rsvars.bat not found', lError) > 0,
     'Expected missing rsvars prerequisite in the error. Actual: ' + lError);
+end;
+
+procedure TLspContextTests.LspWritesGeneratedContextUnderDakWorkspace;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lText: string;
+  lWorkspaceRoot: string;
+begin
+  lDprojPath := PrepareResolvedContext('lsp-dak-workspace', lContext);
+  lWorkspaceRoot := TPath.Combine(TPath.Combine(ExtractFilePath(lDprojPath), '.dak'), 'LspFixture');
+
+  Assert.AreEqual<string>(TPath.Combine(TPath.Combine(lWorkspaceRoot, 'lsp'), 'context.delphilsp.json'),
+    lContext.fContextFilePath, 'Expected generated LSP context file to live under the sibling .dak workspace.');
+  Assert.IsTrue(FileExists(lContext.fContextFilePath),
+    'Expected generated LSP context file to be written.');
+  Assert.AreEqual<string>(TPath.Combine(TPath.Combine(lWorkspaceRoot, 'lsp'), 'logs'), lContext.fLogsDir,
+    'Expected logs directory to stay under the same owned workspace.');
+  Assert.IsTrue(TDirectory.Exists(lContext.fLogsDir),
+    'Expected logs directory to be created under the owned workspace.');
+
+  lText := TFile.ReadAllText(lContext.fContextFilePath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('context.delphilsp.json', lText) > 0,
+    'Expected generated context metadata to mention the owned context file path.');
+  Assert.IsTrue(Pos('"project"', lText) > 0,
+    'Expected generated context metadata to include the project block.');
+end;
+
+procedure TLspContextTests.LspDoesNotWriteContextBesideSourceProject;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lSidecarPath: string;
+begin
+  lDprojPath := PrepareResolvedContext('lsp-no-sidecar', lContext);
+  lSidecarPath := TPath.Combine(ExtractFilePath(lDprojPath), 'context.delphilsp.json');
+
+  Assert.IsFalse(FileExists(lSidecarPath),
+    'Did not expect an LSP context sidecar beside the source project.');
+  Assert.IsTrue(FileExists(lContext.fContextFilePath),
+    'Expected the owned workspace context file to exist.');
+end;
+
+procedure TLspContextTests.LspReportsWorkspaceWriteFailureCleanly;
+var
+  lContext: TLspContext;
+  lDakFilePath: string;
+  lDprojPath: string;
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lDprojPath := CreateFixtureProject('lsp-workspace-write-failure', 'PROJECT_DEFINE', '99.9');
+  lDakFilePath := TPath.Combine(ExtractFilePath(lDprojPath), '.dak');
+  WriteAsciiFile(lDakFilePath, 'blocked');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fPlatform := 'Win32';
+  lOptions.fConfig := 'Debug';
+  lOptions.fDelphiVersion := '99.9';
+  lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'missing', 'rsvars.bat');
+  lOptions.fHasRsVarsPath := True;
+
+  WriteRsVarsFile(TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat'), TPath.Combine(ExtractFilePath(lDprojPath), 'FakeBds'));
+  TDirectory.CreateDirectory(TPath.Combine(ExtractFilePath(lDprojPath), 'FakeBds', 'Source'));
+  TDirectory.CreateDirectory(TPath.Combine(ExtractFilePath(lDprojPath), 'FakeBds', 'lib'));
+  WriteEnvOptionsFile(TPath.Combine(ExtractFilePath(lDprojPath), 'EnvOptions.proj'),
+    TPath.Combine(ExtractFilePath(lDprojPath), 'IdeLibrary'), TPath.Combine(ExtractFilePath(lDprojPath), 'EnvSearch'),
+    'ENV_DEFINE');
+  lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+  lOptions.fEnvOptionsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'EnvOptions.proj');
+  lOptions.fHasEnvOptionsPath := True;
+
+  lError := '';
+  Assert.IsFalse(TryBuildStrictLspContext(lOptions, lContext, lError),
+    'Expected strict lsp context to fail cleanly when the owned workspace path is blocked.');
+  Assert.IsTrue(Pos('Failed to write lsp context artifacts', lError) > 0,
+    'Expected a clean workspace-write error. Actual: ' + lError);
 end;
 
 initialization
