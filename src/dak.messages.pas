@@ -90,6 +90,7 @@ resourcestring
   SLspInvalidFormat = 'Unsupported lsp format: %s';
   SLspInvalidPosition = 'Invalid %s value: %s (expected integer >= 1).';
   SLspInvalidLimit = 'Invalid --limit value: %s (expected integer >= 1).';
+  SLspOptionOnlyForOperation = '%s is only supported for lsp %s.';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
   SBuildBatMissing = 'build-delphi.bat not found: %s';

@@ -159,6 +159,7 @@ type
     fLspCol: Integer;
     fLspQuery: string;
     fLspLimit: Integer;
+    fHasLspLimit: Boolean;
     fLspIncludeDeclaration: Boolean;
     fHasLspIncludeDeclaration: Boolean;
     fUnitPath: string;
