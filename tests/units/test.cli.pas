@@ -91,6 +91,12 @@ type
     [Test]
     procedure HelpCommandIgnoresDfmInspectSwitchValueTokens;
     [Test]
+    procedure LspCommandParsesOperationsAndRequiredArgs;
+    [Test]
+    procedure LspCommandRejectsMissingOperationArguments;
+    [Test]
+    procedure LspHelpShowsVerbOperationsAndAdvancedOverrides;
+    [Test]
     procedure DepsCommandParsesJsonDefaults;
     [Test]
     procedure DepsCommandParsesTopLimit;
@@ -832,6 +838,97 @@ begin
   Assert.IsTrue(lHasCommand, 'Expected explicit dfm-inspect command detection.');
   Assert.AreEqual(TCommandKind.ckDfmInspect, lCommand, 'Expected dfm-inspect command kind.');
   Assert.AreEqual('', lError, 'Expected empty error for dfm-inspect help command detection.');
+end;
+
+
+procedure TCliTests.LspCommandParsesOperationsAndRequiredArgs;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('lsp definition --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 3 --col 5');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected lsp definition args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckLsp, lOptions.fCommand);
+  Assert.AreEqual(TLspOperation.loDefinition, lOptions.fLspOperation);
+  Assert.AreEqual('c:\temp\unit1.pas', lOptions.fLspFilePath);
+  Assert.AreEqual(3, lOptions.fLspLine);
+  Assert.AreEqual(5, lOptions.fLspCol);
+
+  SetParams('lsp references --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 7 --col 9 --include-declaration false');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected lsp references args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckLsp, lOptions.fCommand);
+  Assert.AreEqual(TLspOperation.loReferences, lOptions.fLspOperation);
+  Assert.AreEqual(7, lOptions.fLspLine);
+  Assert.AreEqual(9, lOptions.fLspCol);
+  Assert.IsTrue(lOptions.fHasLspIncludeDeclaration, 'Expected explicit include-declaration flag to be recorded.');
+  Assert.IsFalse(lOptions.fLspIncludeDeclaration, 'Expected include-declaration=false to be captured.');
+
+  SetParams('lsp hover --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 11 --col 13');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected lsp hover args to parse. Error: ' + lError);
+  Assert.AreEqual(TLspOperation.loHover, lOptions.fLspOperation);
+  Assert.AreEqual(11, lOptions.fLspLine);
+  Assert.AreEqual(13, lOptions.fLspCol);
+
+  SetParams('lsp symbols --project c:\temp\sample.dproj --query Foo --limit 7');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected lsp symbols args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckLsp, lOptions.fCommand);
+  Assert.AreEqual(TLspOperation.loSymbols, lOptions.fLspOperation);
+  Assert.AreEqual('Foo', lOptions.fLspQuery);
+  Assert.AreEqual(7, lOptions.fLspLimit);
+end;
+
+procedure TCliTests.LspCommandRejectsMissingOperationArguments;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('lsp definition --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 3');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected missing lsp --col to be rejected.');
+  Assert.IsTrue(Pos('--col', lError) > 0, 'Expected missing --col error. Actual: ' + lError);
+
+  SetParams('lsp hover --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 0 --col 2');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected 1-based lsp --line validation to reject 0.');
+  Assert.IsTrue(Pos('--line', lError) > 0, 'Expected invalid --line error. Actual: ' + lError);
+
+  SetParams('lsp symbols --project c:\temp\sample.dproj');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected missing lsp --query to be rejected.');
+  Assert.IsTrue(Pos('--query', lError) > 0, 'Expected missing --query error. Actual: ' + lError);
+end;
+
+procedure TCliTests.LspHelpShowsVerbOperationsAndAdvancedOverrides;
+var
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lLogText: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, 'lsp-help.log');
+
+  Assert.IsTrue(RunProcess(ResolverExePath, 'lsp --help', RepoRoot, lLogPath, lExitCode),
+    'Failed to start lsp help command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected lsp --help to succeed. See: ' + lLogPath);
+
+  lLogText := '';
+  if FileExists(lLogPath) then
+    lLogText := TFile.ReadAllText(lLogPath);
+
+  Assert.IsTrue(Pos('definition', lLogText) > 0, 'Expected lsp help to mention definition.');
+  Assert.IsTrue(Pos('references', lLogText) > 0, 'Expected lsp help to mention references.');
+  Assert.IsTrue(Pos('hover', lLogText) > 0, 'Expected lsp help to mention hover.');
+  Assert.IsTrue(Pos('symbols', lLogText) > 0, 'Expected lsp help to mention symbols.');
+  Assert.IsTrue(Pos('--rsvars', lLogText) > 0, 'Expected lsp help to mention --rsvars.');
+  Assert.IsTrue(Pos('--envoptions', lLogText) > 0, 'Expected lsp help to mention --envoptions.');
+
+  lLogPath := TPath.Combine(TempRoot, 'resolve-help-regression.log');
+  Assert.IsTrue(RunProcess(ResolverExePath, 'resolve --help', RepoRoot, lLogPath, lExitCode),
+    'Failed to start resolve help regression command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected resolve --help to keep working. See: ' + lLogPath);
+
+  lLogText := '';
+  if FileExists(lLogPath) then
+    lLogText := TFile.ReadAllText(lLogPath);
+  Assert.IsTrue(Pos('DelphiAIKit.exe resolve --project', lLogText) > 0,
+    'Expected existing resolve help output to remain intact.');
 end;
 
 procedure TCliTests.DepsCommandParsesJsonDefaults;
