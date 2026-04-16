@@ -93,6 +93,8 @@ type
     [Test]
     procedure LspCommandParsesOperationsAndRequiredArgs;
     [Test]
+    procedure LspCommandParsesProjectAndOperationFields;
+    [Test]
     procedure LspCommandRejectsMissingOperationArguments;
     [Test]
     procedure LspHelpShowsVerbOperationsAndAdvancedOverrides;
@@ -877,6 +879,24 @@ begin
   Assert.AreEqual(7, lOptions.fLspLimit);
 end;
 
+procedure TCliTests.LspCommandParsesProjectAndOperationFields;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('lsp hover --project c:\temp\sample.dproj --platform Win64 --config Debug --file c:\temp\unit1.pas --line 21 --col 34 --format text');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected lsp hover fields to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckLsp, lOptions.fCommand);
+  Assert.AreEqual('c:\temp\sample.dproj', lOptions.fDprojPath);
+  Assert.AreEqual('Win64', lOptions.fPlatform);
+  Assert.AreEqual('Debug', lOptions.fConfig);
+  Assert.AreEqual(TLspOperation.loHover, lOptions.fLspOperation);
+  Assert.AreEqual('c:\temp\unit1.pas', lOptions.fLspFilePath);
+  Assert.AreEqual(21, lOptions.fLspLine);
+  Assert.AreEqual(34, lOptions.fLspCol);
+  Assert.AreEqual(TLspFormat.lfText, lOptions.fLspFormat);
+end;
+
 procedure TCliTests.LspCommandRejectsMissingOperationArguments;
 var
   lError: string;
@@ -893,6 +913,14 @@ begin
   SetParams('lsp symbols --project c:\temp\sample.dproj');
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected missing lsp --query to be rejected.');
   Assert.IsTrue(Pos('--query', lError) > 0, 'Expected missing --query error. Actual: ' + lError);
+
+  SetParams('lsp definition --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 3 --col 5 --limit 10');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --limit outside lsp symbols to be rejected.');
+  Assert.IsTrue(Pos('--limit', lError) > 0, 'Expected invalid --limit operation error. Actual: ' + lError);
+
+  SetParams('lsp hover --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 3 --col 5 --include-declaration false');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --include-declaration outside lsp references to be rejected.');
+  Assert.IsTrue(Pos('--include-declaration', lError) > 0, 'Expected invalid include-declaration operation error. Actual: ' + lError);
 end;
 
 procedure TCliTests.LspHelpShowsVerbOperationsAndAdvancedOverrides;

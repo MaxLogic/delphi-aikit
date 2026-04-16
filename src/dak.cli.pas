@@ -1260,6 +1260,7 @@ begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--limit') then
       Exit(False);
     fOptions.fLspLimit := StrToIntDef(lValue, -1);
+    fOptions.fHasLspLimit := True;
     if fOptions.fLspLimit < 1 then
     begin
       fError := Format(SLspInvalidLimit, [lValue]);
@@ -1725,6 +1726,16 @@ begin
         fError := Format(SArgMissingValue, ['--query']);
         Exit(False);
       end;
+    end;
+    if fOptions.fHasLspIncludeDeclaration and (fOptions.fLspOperation <> TLspOperation.loReferences) then
+    begin
+      fError := Format(SLspOptionOnlyForOperation, ['--include-declaration', 'references']);
+      Exit(False);
+    end;
+    if fOptions.fHasLspLimit and (fOptions.fLspOperation <> TLspOperation.loSymbols) then
+    begin
+      fError := Format(SLspOptionOnlyForOperation, ['--limit', 'symbols']);
+      Exit(False);
     end;
   end else if fOptions.fCommand = TCommandKind.ckBuild then
   begin
