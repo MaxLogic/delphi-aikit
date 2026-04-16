@@ -2,29 +2,10 @@
 Next task ID: T-121
 
 ## Summary
-Open tasks: 9 (In Progress: 0, Next Today: 0, Next This Week: 9, Next Later: 0, Blocked: 0)
-Done tasks: 111
+Open tasks: 8 (In Progress: 1, Next Today: 0, Next This Week: 7, Next Later: 0, Blocked: 0)
+Done tasks: 112
 
 ## In Progress
-
-## Next - Today
-
-## Next - This Week
-
-### T-112 [CLI] Add strict Delphi context resolution for `lsp`
-Outcome:
-- `lsp` resolves Delphi version from `--delphi` or the existing cascading `dak.ini` fallback, not from parsing the `.dproj`.
-- `lsp` accepts optional advanced overrides `--rsvars` and `--envoptions` with the same semantics as existing DAK commands.
-- `lsp` hard-fails with a precise diagnostic when a real Delphi IDE/compiler context cannot be built, instead of silently degrading to parser-only context.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspContextTests.LspUsesDakIniDelphiVersionFallback,Test.Lsp.TLspContextTests.LspUsesRsvarsAndEnvOptionsOverrides,Test.Lsp.TLspContextTests.LspHardFailsWhenRealDelphiContextCannotBeBuilt -cm:Quiet`
-  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
-- Run: `./bin/DelphiAIKit.exe lsp definition --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 1 --col 1`
-  Expect: Exit code non-zero when no Delphi context can be resolved; output names the missing prerequisite.
-Touches: src/dak.project.pas, src/dak.fixinsightsettings.pas, src/dak.registry.pas, src/dak.rsvars.pas, src/dak.lsp.context.pas, tests/units/test.lsp.pas, tests/fixtures/LspProjectFixture/
-Deps: T-111
-Verify: unit-test, cli-proof
-Notes: Plan: `.agents/plans/lsp.md`. This task introduces the `lsp`-specific hard-fail context helper rather than reusing the existing soft-fail analysis-context path as-is.
 
 ### T-113 [CLI] Write owned `lsp` context artifacts under sibling `.dak/`
 Outcome:
@@ -40,6 +21,12 @@ Touches: src/dak.lsp.context.pas, src/dak.project.pas, tests/units/test.lsp.pas,
 Deps: T-112
 Verify: unit-test, cli-proof
 Notes: Plan: `.agents/plans/lsp.md`. Follow the existing `.dak/<ProjectName>/...` ownership rule used by other DAK features.
+
+
+## Next - Today
+
+## Next - This Week
+
 
 ### T-114 [TEST] Add fake LSP server fixture for deterministic `lsp` tests
 Outcome:
@@ -153,6 +140,21 @@ Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for 
 ## Blocked
 
 ## Done
+
+### T-112 [CLI] Add strict Delphi context resolution for `lsp`
+Outcome:
+- `lsp` resolves Delphi version from `--delphi` or the existing cascading `dak.ini` fallback, not from parsing the `.dproj`.
+- `lsp` accepts optional advanced overrides `--rsvars` and `--envoptions` with the same semantics as existing DAK commands.
+- `lsp` hard-fails with a precise diagnostic when a real Delphi IDE/compiler context cannot be built, instead of silently degrading to parser-only context.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspContextTests.LspUsesDakIniDelphiVersionFallback,Test.Lsp.TLspContextTests.LspUsesRsvarsAndEnvOptionsOverrides,Test.Lsp.TLspContextTests.LspHardFailsWhenRealDelphiContextCannotBeBuilt -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp definition --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 1 --col 1`
+  Expect: Exit code non-zero when no Delphi context can be resolved; output names the missing prerequisite.
+Touches: src/dak.project.pas, src/dak.fixinsightsettings.pas, src/dak.registry.pas, src/dak.rsvars.pas, src/dak.lsp.context.pas, tests/units/test.lsp.pas, tests/fixtures/LspProjectFixture/
+Deps: T-111
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. This task introduces the `lsp`-specific hard-fail context helper rather than reusing the existing soft-fail analysis-context path as-is.
 
 ### T-111 [CLI] Wire `lsp` options and app dispatch
 Outcome:
