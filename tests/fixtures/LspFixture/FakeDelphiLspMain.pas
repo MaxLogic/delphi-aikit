@@ -217,6 +217,73 @@ begin
   Result := aUri <> '';
 end;
 
+function JsonValuesMatch(aExpected, aActual: TJSONValue): Boolean;
+var
+  i: Integer;
+  lActualArray: TJSONArray;
+  lActualObject: TJSONObject;
+  lExpectedArray: TJSONArray;
+  lExpectedObject: TJSONObject;
+  lExpectedPair: TJSONPair;
+begin
+  if aExpected = nil then
+    Exit(aActual = nil);
+  if aActual = nil then
+    Exit(False);
+
+  if aExpected is TJSONObject then
+  begin
+    if not (aActual is TJSONObject) then
+      Exit(False);
+    lExpectedObject := aExpected as TJSONObject;
+    lActualObject := aActual as TJSONObject;
+    for lExpectedPair in lExpectedObject do
+    begin
+      if not JsonValuesMatch(lExpectedPair.JsonValue, lActualObject.Values[lExpectedPair.JsonString.Value]) then
+        Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if aExpected is TJSONArray then
+  begin
+    if not (aActual is TJSONArray) then
+      Exit(False);
+    lExpectedArray := aExpected as TJSONArray;
+    lActualArray := aActual as TJSONArray;
+    if lExpectedArray.Count <> lActualArray.Count then
+      Exit(False);
+    for i := 0 to lExpectedArray.Count - 1 do
+    begin
+      if not JsonValuesMatch(lExpectedArray.Items[i], lActualArray.Items[i]) then
+        Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  Result := aExpected.ToJSON = aActual.ToJSON;
+end;
+
+function TryCheckScriptExpectation(aScript: TJSONObject; const aMethod: string; aMessage: TJSONObject;
+  out aErrorMessage: string): Boolean;
+var
+  lExpectations: TJSONObject;
+  lExpectedValue: TJSONValue;
+  lParamsValue: TJSONValue;
+begin
+  Result := True;
+  aErrorMessage := '';
+  lExpectations := FindScriptSection(aScript, 'expect');
+  if (lExpectations = nil) or (lExpectations.Values[aMethod] = nil) then
+    Exit(True);
+  lExpectedValue := lExpectations.Values[aMethod];
+  lParamsValue := aMessage.Values['params'];
+  if JsonValuesMatch(lExpectedValue, lParamsValue) then
+    Exit(True);
+  aErrorMessage := 'Request expectation failed for ' + aMethod + '.';
+  Result := False;
+end;
+
 procedure SendResult(aOutput: THandleStream; aId: TJSONValue; aResult: TJSONValue);
 var
   lResponse: TJSONObject;
@@ -268,6 +335,7 @@ var
   lScriptPath: string;
   lShouldExit: Boolean;
   lUri: string;
+  lExpectationError: string;
 begin
   Result := 0;
   lScriptPath := ResolveScriptPath;
@@ -329,6 +397,12 @@ begin
           TryGetTextDocumentUri(lMessage, lUri) and (not lOpenedDocuments.ContainsKey(lUri)) then
         begin
           SendError(lOutput, lIdValue, -32002, 'Document not opened: ' + lUri);
+          Continue;
+        end;
+
+        if not TryCheckScriptExpectation(lScript, lMethod, lMessage, lExpectationError) then
+        begin
+          SendError(lOutput, lIdValue, -32003, lExpectationError);
           Continue;
         end;
 

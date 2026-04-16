@@ -20,7 +20,7 @@ function TryRunLspRequest(const aOptions: TAppOptions; const aContext: TLspConte
 implementation
 
 uses
-  System.Classes, System.Generics.Collections, System.IOUtils, System.JSON, System.SysUtils,
+  System.Classes, System.Generics.Collections, System.IOUtils, System.JSON, System.NetEncoding, System.SysUtils,
   Winapi.Windows,
   maxLogic.ioUtils,
   Dak.Utils;
@@ -301,6 +301,160 @@ end;
 function FileExistsAt(const aPath: string): Boolean;
 begin
   Result := (Trim(aPath) <> '') and FileExists(aPath);
+end;
+
+function TryDecodeFileUri(const aUri: string; out aFilePath: string): Boolean;
+var
+  lAuthority: string;
+  lDecodedPath: string;
+  lEncodedPath: string;
+  lPathStart: Integer;
+  lUri: string;
+begin
+  aFilePath := '';
+  lUri := Trim(aUri);
+  if not SameText(Copy(lUri, 1, 7), 'file://') then
+    Exit(False);
+
+  lUri := Copy(lUri, 8, MaxInt);
+  lPathStart := Pos('/', lUri);
+  if lPathStart = 0 then
+    Exit(False);
+
+  lAuthority := Copy(lUri, 1, lPathStart - 1);
+  lEncodedPath := Copy(lUri, lPathStart, MaxInt);
+  lDecodedPath := TNetEncoding.URL.Decode(StringReplace(lEncodedPath, '+', '%2B', [rfReplaceAll]));
+  lDecodedPath := StringReplace(lDecodedPath, '/', '\', [rfReplaceAll]);
+
+  if (Length(lAuthority) = 2) and CharInSet(lAuthority[1], ['A'..'Z', 'a'..'z']) and (lAuthority[2] = ':') then
+  begin
+    aFilePath := lAuthority + lDecodedPath;
+    Exit(True);
+  end;
+
+  if (lAuthority = '') or SameText(lAuthority, 'localhost') then
+  begin
+    if (Length(lDecodedPath) >= 3) and (lDecodedPath[1] = '\') and
+      CharInSet(lDecodedPath[2], ['A'..'Z', 'a'..'z']) and (lDecodedPath[3] = ':') then
+      Delete(lDecodedPath, 1, 1);
+    aFilePath := lDecodedPath;
+    Exit(True);
+  end;
+
+  if (lDecodedPath <> '') and (lDecodedPath[1] = '\') then
+    Delete(lDecodedPath, 1, 1);
+  aFilePath := '\\' + lAuthority + '\' + lDecodedPath;
+  Result := True;
+end;
+
+function BuildNormalizedLocationObject(aLocationValue: TJSONValue): TJSONObject;
+var
+  lEndObject: TJSONObject;
+  lFilePath: string;
+  lLocationObject: TJSONObject;
+  lRangeObject: TJSONObject;
+  lResult: TJSONObject;
+  lStartObject: TJSONObject;
+  lUri: string;
+begin
+  Result := nil;
+  if not (aLocationValue is TJSONObject) then
+    Exit(nil);
+
+  lLocationObject := aLocationValue as TJSONObject;
+  lUri := lLocationObject.GetValue<string>('uri', '');
+  lRangeObject := nil;
+  if lUri <> '' then
+  begin
+    if lLocationObject.Values['range'] is TJSONObject then
+      lRangeObject := lLocationObject.Values['range'] as TJSONObject;
+  end else
+  begin
+    lUri := lLocationObject.GetValue<string>('targetUri', '');
+    if lLocationObject.Values['targetRange'] is TJSONObject then
+      lRangeObject := lLocationObject.Values['targetRange'] as TJSONObject
+    else if lLocationObject.Values['targetSelectionRange'] is TJSONObject then
+      lRangeObject := lLocationObject.Values['targetSelectionRange'] as TJSONObject;
+  end;
+
+  if (lUri = '') or (lRangeObject = nil) then
+    Exit(nil);
+  if not (lRangeObject.Values['start'] is TJSONObject) or not (lRangeObject.Values['end'] is TJSONObject) then
+    Exit(nil);
+
+  lStartObject := lRangeObject.Values['start'] as TJSONObject;
+  lEndObject := lRangeObject.Values['end'] as TJSONObject;
+  lFilePath := lUri;
+  TryDecodeFileUri(lUri, lFilePath);
+
+  lResult := TJSONObject.Create;
+  AddJsonStringPair(lResult, 'file', lFilePath);
+  AddJsonStringPair(lResult, 'uri', lUri);
+  lResult.AddPair('line', TJSONNumber.Create(lStartObject.GetValue<Integer>('line', 0) + 1));
+  lResult.AddPair('col', TJSONNumber.Create(lStartObject.GetValue<Integer>('character', 0) + 1));
+  lResult.AddPair('endLine', TJSONNumber.Create(lEndObject.GetValue<Integer>('line', 0) + 1));
+  lResult.AddPair('endCol', TJSONNumber.Create(lEndObject.GetValue<Integer>('character', 0) + 1));
+  Result := lResult;
+end;
+
+function BuildNormalizedLocationsArray(aResultValue: TJSONValue): TJSONArray;
+
+  procedure AppendLocation(aTarget: TJSONArray; aLocationValue: TJSONValue);
+  var
+    lLocationObject: TJSONObject;
+  begin
+    lLocationObject := BuildNormalizedLocationObject(aLocationValue);
+    if lLocationObject <> nil then
+      aTarget.AddElement(lLocationObject);
+  end;
+
+var
+  lItemValue: TJSONValue;
+  lResult: TJSONArray;
+begin
+  lResult := TJSONArray.Create;
+  if (aResultValue = nil) or (aResultValue is TJSONNull) then
+    Exit(lResult);
+
+  if aResultValue is TJSONArray then
+  begin
+    for lItemValue in aResultValue as TJSONArray do
+      AppendLocation(lResult, lItemValue);
+    Exit(lResult);
+  end;
+
+  AppendLocation(lResult, aResultValue);
+  Result := lResult;
+end;
+
+function BuildNormalizedLocationsResult(const aCollectionName: string; aResultValue: TJSONValue): string;
+var
+  lLocations: TJSONArray;
+  lResultObject: TJSONObject;
+begin
+  lResultObject := TJSONObject.Create;
+  try
+    lLocations := BuildNormalizedLocationsArray(aResultValue);
+    lResultObject.AddPair(aCollectionName, lLocations);
+    Result := lResultObject.ToJSON;
+  finally
+    lResultObject.Free;
+  end;
+end;
+
+function BuildOperationResultText(const aOptions: TAppOptions; aResponse: TJSONObject): string;
+var
+  lResultValue: TJSONValue;
+begin
+  lResultValue := aResponse.Values['result'];
+  case aOptions.fLspOperation of
+    TLspOperation.loDefinition:
+      Result := BuildNormalizedLocationsResult('locations', lResultValue);
+    TLspOperation.loReferences:
+      Result := BuildNormalizedLocationsResult('references', lResultValue);
+  else
+    Result := ExtractRawResultText(aResponse);
+  end;
 end;
 
 function TryFindLspExeInRoot(const aRootPath: string; out aExePath: string): Boolean;
@@ -840,7 +994,7 @@ begin
       Exit(False);
     end;
 
-    lResponseText := ExtractRawResultText(lRequestResponse);
+    lResponseText := BuildOperationResultText(aOptions, lRequestResponse);
     aResult.fLspPath := lLspPath;
     aResult.fResponseText := BuildOperationEnvelope(aOptions, aContext, lLspPath, lOperationName, lRequestFilePath,
       lResponseText);
