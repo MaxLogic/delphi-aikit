@@ -4,12 +4,12 @@ interface
 
 uses
   DUnitX.TestFramework,
-  Dak.Lsp.Context;
+  Dak.Lsp.Context, Dak.Types;
 
 type
   [TestFixture]
   TLspContextTests = class
-  private
+  protected
     function ArrayContainsValue(const aValues: TArray<string>; const aExpected: string): Boolean;
     function CreateFixtureProject(const aScenarioName: string; const aProjectDefine: string;
       const aDefaultDelphiVersion: string = ''): string;
@@ -44,12 +44,26 @@ type
     procedure FakeServerCanSimulateEmptyAndErrorResponses;
   end;
 
+  [TestFixture]
+  TLspRunnerTests = class(TLspContextTests)
+  private
+    function BuildRunnerOptions(const aDprojPath: string): TAppOptions;
+    function CreateScriptFile(const aScenarioName, aScriptJson: string): string;
+  public
+    [Test]
+    procedure LspDiscoveryPrefersExplicitPathThenResolvedInstall;
+    [Test]
+    procedure LspRunnerInitializesOpensRequestsAndShutsDownAgainstFakeServer;
+    [Test]
+    procedure LspRunnerReportsSpecificDiscoveryAndInitFailures;
+  end;
+
 implementation
 
 uses
   System.Classes, System.IOUtils, System.JSON, System.SysUtils,
   Winapi.Windows,
-  Dak.Types,
+  Dak.Lsp.Runner,
   Test.Support;
 
 procedure WriteUtf8File(const aPath, aText: string);
@@ -63,6 +77,9 @@ begin
   ForceDirectories(ExtractFileDir(aPath));
   TFile.WriteAllText(aPath, aText, TEncoding.ASCII);
 end;
+
+const
+  CFakeLspScriptEnvVar = 'DAK_FAKE_LSP_SCRIPT';
 
 var
   GFakeLspBuilt: Boolean = False;
@@ -889,8 +906,153 @@ begin
   end;
 end;
 
+
+
+function TLspRunnerTests.BuildRunnerOptions(const aDprojPath: string): TAppOptions;
+begin
+  Result := Default(TAppOptions);
+  Result.fDprojPath := aDprojPath;
+  Result.fPlatform := 'Win32';
+  Result.fConfig := 'Debug';
+  Result.fLspOperation := TLspOperation.loDefinition;
+  Result.fLspFormat := TLspFormat.lfJson;
+  Result.fLspFilePath := TPath.Combine(ExtractFilePath(aDprojPath), 'Unit1.pas');
+  Result.fLspLine := 1;
+  Result.fLspCol := 1;
+end;
+
+function TLspRunnerTests.CreateScriptFile(const aScenarioName, aScriptJson: string): string;
+var
+  lDir: string;
+begin
+  EnsureTempClean;
+  lDir := TPath.Combine(TempRoot, 'lsp-runner-scripts');
+  TDirectory.CreateDirectory(lDir);
+  Result := TPath.Combine(lDir, aScenarioName + '.json');
+  WriteUtf8File(Result, aScriptJson);
+end;
+
+procedure TLspRunnerTests.LspDiscoveryPrefersExplicitPathThenResolvedInstall;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lExePath: string;
+  lExplicitExePath: string;
+  lOptions: TAppOptions;
+  lResolvedExePath: string;
+begin
+  lDprojPath := PrepareResolvedContext('lsp-runner-discovery', lContext);
+  lResolvedExePath := TPath.Combine(TPath.Combine(ExtractFilePath(lDprojPath), 'FakeBds'), 'bin64\DelphiLSP.exe');
+  lExplicitExePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Tools\DelphiLSP.exe');
+  WriteUtf8File(lResolvedExePath, 'resolved');
+  WriteUtf8File(lExplicitExePath, 'explicit');
+
+  lOptions := BuildRunnerOptions(lDprojPath);
+  lOptions.fLspPath := lExplicitExePath;
+  lOptions.fHasLspPath := True;
+  lError := '';
+  Assert.IsTrue(TryResolveDelphiLspExe(lOptions, lContext, lExePath, lError),
+    'Expected explicit lsp path to resolve. Error: ' + lError);
+  Assert.AreEqual(TPath.GetFullPath(lExplicitExePath), lExePath, 'Expected explicit path to win.');
+
+  lOptions.fLspPath := TPath.Combine(ExtractFilePath(lDprojPath), 'FakeBds');
+  lOptions.fHasLspPath := True;
+  lError := '';
+  Assert.IsTrue(TryResolveDelphiLspExe(lOptions, lContext, lExePath, lError),
+    'Expected Delphi install root passed via --lsp-path to resolve. Error: ' + lError);
+  Assert.AreEqual(TPath.GetFullPath(lResolvedExePath), lExePath, 'Expected install root override to resolve bin64 executable.');
+
+  lOptions.fLspPath := '';
+  lOptions.fHasLspPath := False;
+  lError := '';
+  Assert.IsTrue(TryResolveDelphiLspExe(lOptions, lContext, lExePath, lError),
+    'Expected Delphi-version-derived install path to resolve. Error: ' + lError);
+  Assert.AreEqual(TPath.GetFullPath(lResolvedExePath), lExePath, 'Expected resolved install path to be used.');
+end;
+
+procedure TLspRunnerTests.LspRunnerInitializesOpensRequestsAndShutsDownAgainstFakeServer;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lLspObject: TJSONObject;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-runner-lifecycle', lContext);
+  lScriptPath := CreateScriptFile('runner-success',
+    '{"requireOpenedDocuments":true,"initializeResult":{"capabilities":{"definitionProvider":true}},"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}]}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected one-shot lsp lifecycle to succeed. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      Assert.IsNotNull(lJson, 'Expected lifecycle response JSON.');
+      Assert.AreEqual<string>('definition', lJson.GetValue<string>('operation'), 'Expected operation field.');
+      lLspObject := lJson.GetValue<TJSONObject>('lsp');
+      Assert.IsNotNull(lLspObject, 'Expected lsp metadata object.');
+      Assert.AreEqual(TPath.GetFullPath(GFakeLspExePath), lLspObject.GetValue<string>('path'), 'Expected fake server path.');
+      Assert.IsTrue(lJson.Values['result'] is TJSONArray, 'Expected raw result array from fake server.');
+      Assert.AreEqual(1, (lJson.Values['result'] as TJSONArray).Count, 'Expected one fake definition result.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspRunnerReportsSpecificDiscoveryAndInitFailures;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  lDprojPath := PrepareResolvedContext('lsp-runner-failures', lContext);
+
+  lOptions := BuildRunnerOptions(lDprojPath);
+  lOptions.fLspPath := TPath.Combine(ExtractFilePath(lDprojPath), 'missing\DelphiLSP.exe');
+  lOptions.fHasLspPath := True;
+  lError := '';
+  Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError),
+    'Expected missing lsp executable to fail.');
+  Assert.IsTrue(Pos('DelphiLSP', lError) > 0, 'Expected DelphiLSP-specific discovery error. Actual: ' + lError);
+
+  EnsureFakeLspFixtureBuilt;
+  lScriptPath := CreateScriptFile('runner-init-failure',
+    '{"errors":{"initialize":{"code":-32001,"message":"simulated init failure"}}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lError := '';
+    Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected initialize failure to surface.');
+    Assert.IsTrue(Pos('initialize', LowerCase(lError)) > 0,
+      'Expected initialize-specific lifecycle error. Actual: ' + lError);
+    Assert.IsTrue(Pos('simulated init failure', lError) > 0,
+      'Expected scripted initialize message. Actual: ' + lError);
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
 initialization
   TDUnitX.RegisterTestFixture(TLspContextTests);
   TDUnitX.RegisterTestFixture(TLspFixtureTests);
+  TDUnitX.RegisterTestFixture(TLspRunnerTests);
 
 end.

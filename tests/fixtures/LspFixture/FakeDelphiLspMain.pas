@@ -31,6 +31,13 @@ begin
   end;
 end;
 
+function ResolveScriptPath: string;
+begin
+  Result := ReadCommandLineValue('--script');
+  if Trim(Result) = '' then
+    Result := Trim(GetEnvironmentVariable('DAK_FAKE_LSP_SCRIPT'));
+end;
+
 function ReadLine(aStream: THandleStream; out aLine: string): Boolean;
 var
   lBuilder: TStringBuilder;
@@ -263,7 +270,7 @@ var
   lUri: string;
 begin
   Result := 0;
-  lScriptPath := ReadCommandLineValue('--script');
+  lScriptPath := ResolveScriptPath;
   lScript := nil;
   lInput := nil;
   lOpenedDocuments := nil;
@@ -303,6 +310,11 @@ begin
 
         if SameText(lMethod, 'initialize') then
         begin
+          if TryFindScriptError(lScript, lMethod, lErrorCode, lErrorMessage) then
+          begin
+            SendError(lOutput, lIdValue, lErrorCode, lErrorMessage);
+            Continue;
+          end;
           SendResult(lOutput, lIdValue, BuildInitializeResult(lScript));
           Continue;
         end;

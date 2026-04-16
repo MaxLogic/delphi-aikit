@@ -2,34 +2,10 @@
 Next task ID: T-121
 
 ## Summary
-Open tasks: 6 (In Progress: 1, Next Today: 0, Next This Week: 5, Next Later: 0, Blocked: 0)
-Done tasks: 114
+Open tasks: 5 (In Progress: 1, Next Today: 0, Next This Week: 4, Next Later: 0, Blocked: 0)
+Done tasks: 115
 
 ## In Progress
-
-
-### T-115 [CLI] Add `DelphiLSP.exe` discovery and one-shot transport lifecycle
-Outcome:
-- `lsp` resolves `DelphiLSP.exe` by explicit `--lsp-path`, then Delphi-version-derived install path, then the existing `dak.ini` defaulting model.
-- `lsp` starts the LSP process, initializes it, opens the target file, executes one request, and shuts down cleanly once per command.
-- Missing executable, initialization failure, and request-lifecycle failures return specific diagnostics instead of generic process errors.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspDiscoveryPrefersExplicitPathThenResolvedInstall,Test.Lsp.TLspRunnerTests.LspRunnerInitializesOpensRequestsAndShutsDownAgainstFakeServer,Test.Lsp.TLspRunnerTests.LspRunnerReportsSpecificDiscoveryAndInitFailures -cm:Quiet`
-  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
-- Run: `./bin/DelphiAIKit.exe lsp definition --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --format json`
-  Expect: Exit code `0`; JSON contains an `operation` field and no process-lifecycle error.
-Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, src/dak.lsp.context.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
-Deps: T-112, T-113, T-114
-Verify: unit-test, cli-proof
-Notes: Plan: `.agents/plans/lsp.md`. This task covers one-shot process lifecycle only, not operation-specific output contracts.
-
-
-
-## Next - Today
-
-## Next - This Week
-
-
 
 
 ### T-116 [CLI] Implement `lsp definition` and `lsp references`
@@ -46,6 +22,17 @@ Touches: src/dak.lsp.runner.pas, src/dak.lsp.pas, tests/units/test.lsp.pas, test
 Deps: T-115
 Verify: unit-test, cli-proof
 Notes: Plan: `.agents/plans/lsp.md`. Keep the location-shaped JSON contract stable because later tasks build on it.
+
+
+
+
+## Next - Today
+
+## Next - This Week
+
+
+
+
 
 ### T-117 [CLI] Implement `lsp hover`
 Outcome:
@@ -115,6 +102,23 @@ Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for 
 ## Blocked
 
 ## Done
+
+
+### T-115 [CLI] Add `DelphiLSP.exe` discovery and one-shot transport lifecycle
+Outcome:
+- `lsp` resolves `DelphiLSP.exe` by explicit `--lsp-path`, then Delphi-version-derived install path, then the existing `dak.ini` defaulting model.
+- `lsp` starts the LSP process, initializes it, opens the target file, executes one request, and shuts down cleanly once per command.
+- Missing executable, initialization failure, and request-lifecycle failures return specific diagnostics instead of generic process errors.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspDiscoveryPrefersExplicitPathThenResolvedInstall,Test.Lsp.TLspRunnerTests.LspRunnerInitializesOpensRequestsAndShutsDownAgainstFakeServer,Test.Lsp.TLspRunnerTests.LspRunnerReportsSpecificDiscoveryAndInitFailures -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp definition --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --format json`
+  Expect: Exit code `0`; JSON contains an `operation` field and no process-lifecycle error.
+Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, src/dak.lsp.context.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
+Deps: T-112, T-113, T-114
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. This task covers one-shot process lifecycle only, not operation-specific output contracts.
+
 
 
 ### T-114 [TEST] Add fake LSP server fixture for deterministic `lsp` tests

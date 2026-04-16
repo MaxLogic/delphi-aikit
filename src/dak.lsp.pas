@@ -1,4 +1,4 @@
-﻿unit Dak.Lsp;
+unit Dak.Lsp;
 
 interface
 
@@ -11,12 +11,13 @@ implementation
 
 uses
   System.SysUtils,
-  Dak.ExitCodes, Dak.Lsp.Context;
+  Dak.ExitCodes, Dak.Lsp.Context, Dak.Lsp.Runner;
 
 function RunLspCommand(const aOptions: TAppOptions): Integer;
 var
   lContext: TLspContext;
   lError: string;
+  lResult: TLspRunnerResult;
 begin
   lError := '';
   if not TryBuildStrictLspContext(aOptions, lContext, lError) then
@@ -25,8 +26,17 @@ begin
     Exit(cExitToolFailure);
   end;
 
-  WriteLn(ErrOutput, 'lsp command is not implemented yet.');
-  Result := cExitToolFailure;
+  if not TryRunLspRequest(aOptions, lContext, lResult, lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(cExitToolFailure);
+  end;
+
+  if aOptions.fLspFormat = TLspFormat.lfText then
+    WriteLn(lResult.fTextResponse)
+  else
+    WriteLn(lResult.fResponseText);
+  Result := cExitSuccess;
 end;
 
 end.
