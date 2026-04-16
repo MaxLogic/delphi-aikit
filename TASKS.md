@@ -2,33 +2,10 @@
 Next task ID: T-121
 
 ## Summary
-Open tasks: 4 (In Progress: 1, Next Today: 0, Next This Week: 3, Next Later: 0, Blocked: 0)
-Done tasks: 116
+Open tasks: 3 (In Progress: 1, Next Today: 0, Next This Week: 2, Next Later: 0, Blocked: 0)
+Done tasks: 117
 
 ## In Progress
-
-
-### T-117 [CLI] Implement `lsp hover`
-Outcome:
-- `lsp hover` returns `contentsText`, optional `contentsMarkdown`, and optional range data in the documented output contract.
-- `lsp hover` supports both JSON and compact text rendering without changing the transport lifecycle.
-- Empty hover results are represented explicitly instead of being misreported as transport failures.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspHoverReturnsContentsAndOptionalRange,Test.Lsp.TLspRunnerTests.LspHoverTextOutputStaysCompact,Test.Lsp.TLspRunnerTests.LspHoverRepresentsEmptyResultsExplicitly -cm:Quiet`
-  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
-- Run: `./bin/DelphiAIKit.exe lsp hover --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --format json`
-  Expect: Exit code `0`; JSON contains `contentsText`.
-Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
-Deps: T-115
-Verify: unit-test, cli-proof
-Notes: Plan: `.agents/plans/lsp.md`. Keep hover as its own task because its response shape differs from location lists.
-
-## Next - Today
-
-## Next - This Week
-
-
-
 
 ### T-118 [CLI] Implement `lsp symbols`
 Outcome:
@@ -44,6 +21,10 @@ Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, tests/units/test.lsp.pas,
 Deps: T-115
 Verify: unit-test, cli-proof
 Notes: Plan: `.agents/plans/lsp.md`. Symbols are split from hover because they depend on a different result contract and limit handling.
+
+## Next - Today
+
+## Next - This Week
 
 ### T-119 [DOC] Add `delphi-lsp` repo skill and command docs
 Outcome:
@@ -83,6 +64,21 @@ Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for 
 ## Blocked
 
 ## Done
+
+### T-117 [CLI] Implement `lsp hover`
+Outcome:
+- `lsp hover` returns `contentsText`, optional `contentsMarkdown`, and optional range data in the documented output contract.
+- `lsp hover` supports both JSON and compact text rendering without changing the transport lifecycle.
+- Empty hover results are represented explicitly instead of being misreported as transport failures.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspHoverReturnsContentsAndOptionalRange,Test.Lsp.TLspRunnerTests.LspHoverTextOutputStaysCompact,Test.Lsp.TLspRunnerTests.LspHoverRepresentsEmptyResultsExplicitly -cm:Quiet`
+  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp hover --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --format json`
+  Expect: Exit code `0`; JSON contains `contentsText`.
+Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
+Deps: T-115
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. Keep hover as its own task because its response shape differs from location lists.
 
 ### T-116 [CLI] Implement `lsp definition` and `lsp references`
 Outcome:

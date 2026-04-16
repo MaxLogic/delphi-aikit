@@ -184,11 +184,16 @@ begin
   end;
 end;
 
+function BuildHoverText(const aResultJson: string): string; forward;
+
 function BuildOperationText(const aOptions: TAppOptions; const aContext: TLspContext; const aLspPath,
   aOperationName: string; const aRequestFilePath: string; const aRawResultJson: string): string;
 var
   lLines: TStringBuilder;
 begin
+  if aOptions.fLspOperation = TLspOperation.loHover then
+    Exit(BuildHoverText(aRawResultJson));
+
   lLines := TStringBuilder.Create;
   try
     lLines.AppendLine('operation: ' + aOperationName);
@@ -442,6 +447,162 @@ begin
   end;
 end;
 
+function BuildNormalizedRangeObject(aRangeValue: TJSONValue): TJSONObject;
+var
+  lEndObject: TJSONObject;
+  lRangeObject: TJSONObject;
+  lResult: TJSONObject;
+  lStartObject: TJSONObject;
+begin
+  Result := nil;
+  if not (aRangeValue is TJSONObject) then
+    Exit(nil);
+
+  lRangeObject := aRangeValue as TJSONObject;
+  if not (lRangeObject.Values['start'] is TJSONObject) or not (lRangeObject.Values['end'] is TJSONObject) then
+    Exit(nil);
+
+  lStartObject := lRangeObject.Values['start'] as TJSONObject;
+  lEndObject := lRangeObject.Values['end'] as TJSONObject;
+  lResult := TJSONObject.Create;
+  lResult.AddPair('line', TJSONNumber.Create(lStartObject.GetValue<Integer>('line', 0) + 1));
+  lResult.AddPair('col', TJSONNumber.Create(lStartObject.GetValue<Integer>('character', 0) + 1));
+  lResult.AddPair('endLine', TJSONNumber.Create(lEndObject.GetValue<Integer>('line', 0) + 1));
+  lResult.AddPair('endCol', TJSONNumber.Create(lEndObject.GetValue<Integer>('character', 0) + 1));
+  Result := lResult;
+end;
+
+procedure AppendHoverSegment(aBuilder: TStringBuilder; const aValue: string);
+begin
+  if aValue = '' then
+    Exit;
+  if aBuilder.Length > 0 then
+    aBuilder.AppendLine.AppendLine;
+  aBuilder.Append(aValue);
+end;
+
+procedure ExtractHoverContent(aContentsValue: TJSONValue; aTextBuilder: TStringBuilder; aMarkdownBuilder: TStringBuilder);
+var
+  lContentsArray: TJSONArray;
+  lContentsObject: TJSONObject;
+  lItemValue: TJSONValue;
+  lKind: string;
+  lValue: string;
+begin
+  if (aContentsValue = nil) or (aContentsValue is TJSONNull) then
+    Exit;
+
+  if aContentsValue is TJSONString then
+  begin
+    AppendHoverSegment(aTextBuilder, aContentsValue.Value);
+    Exit;
+  end;
+
+  if aContentsValue is TJSONArray then
+  begin
+    lContentsArray := aContentsValue as TJSONArray;
+    for lItemValue in lContentsArray do
+      ExtractHoverContent(lItemValue, aTextBuilder, aMarkdownBuilder);
+    Exit;
+  end;
+
+  if not (aContentsValue is TJSONObject) then
+    Exit;
+
+  lContentsObject := aContentsValue as TJSONObject;
+  lValue := lContentsObject.GetValue<string>('value', '');
+  if lValue = '' then
+    Exit;
+
+  AppendHoverSegment(aTextBuilder, lValue);
+  lKind := lContentsObject.GetValue<string>('kind', '');
+  if SameText(lKind, 'markdown') then
+    AppendHoverSegment(aMarkdownBuilder, lValue);
+end;
+
+function BuildNormalizedHoverResult(aResultValue: TJSONValue): string;
+var
+  lContentsValue: TJSONValue;
+  lHoverObject: TJSONObject;
+  lMarkdownBuilder: TStringBuilder;
+  lRangeObject: TJSONObject;
+  lRangeValue: TJSONValue;
+  lResultObject: TJSONObject;
+  lTextBuilder: TStringBuilder;
+begin
+  lTextBuilder := TStringBuilder.Create;
+  lMarkdownBuilder := TStringBuilder.Create;
+  lResultObject := TJSONObject.Create;
+  try
+    lContentsValue := aResultValue;
+    lRangeValue := nil;
+    if aResultValue is TJSONObject then
+    begin
+      lHoverObject := aResultValue as TJSONObject;
+      if Assigned(lHoverObject.Values['contents']) then
+        lContentsValue := lHoverObject.Values['contents'];
+      lRangeValue := lHoverObject.Values['range'];
+    end;
+
+    ExtractHoverContent(lContentsValue, lTextBuilder, lMarkdownBuilder);
+    lResultObject.AddPair('contentsText', lTextBuilder.ToString);
+    if lMarkdownBuilder.Length > 0 then
+      lResultObject.AddPair('contentsMarkdown', lMarkdownBuilder.ToString);
+
+    lRangeObject := BuildNormalizedRangeObject(lRangeValue);
+    if lRangeObject <> nil then
+      lResultObject.AddPair('range', lRangeObject);
+
+    if lTextBuilder.Length = 0 then
+      lResultObject.AddPair('isEmpty', TJSONBool.Create(True));
+
+    Result := lResultObject.ToJSON;
+  finally
+    lResultObject.Free;
+    lMarkdownBuilder.Free;
+    lTextBuilder.Free;
+  end;
+end;
+
+function BuildHoverText(const aResultJson: string): string;
+var
+  lBuilder: TStringBuilder;
+  lJsonValue: TJSONValue;
+  lRangeObject: TJSONObject;
+  lResultObject: TJSONObject;
+begin
+  lJsonValue := TJSONObject.ParseJSONValue(aResultJson);
+  if not (lJsonValue is TJSONObject) then
+  begin
+    lJsonValue.Free;
+    Exit('Hover: ' + aResultJson);
+  end;
+
+  lBuilder := TStringBuilder.Create;
+  try
+    lResultObject := lJsonValue as TJSONObject;
+    if lResultObject.GetValue<Boolean>('isEmpty', False) then
+      lBuilder.Append('Hover: empty')
+    else
+    begin
+      lBuilder.AppendLine('Hover:');
+      lBuilder.Append(lResultObject.GetValue<string>('contentsText', ''));
+      if lResultObject.Values['range'] is TJSONObject then
+      begin
+        lRangeObject := lResultObject.Values['range'] as TJSONObject;
+        lBuilder.AppendLine;
+        lBuilder.Append(Format('Range: %d:%d-%d:%d',
+          [lRangeObject.GetValue<Integer>('line', 0), lRangeObject.GetValue<Integer>('col', 0),
+           lRangeObject.GetValue<Integer>('endLine', 0), lRangeObject.GetValue<Integer>('endCol', 0)]));
+      end;
+    end;
+    Result := lBuilder.ToString;
+  finally
+    lBuilder.Free;
+    lJsonValue.Free;
+  end;
+end;
+
 function BuildOperationResultText(const aOptions: TAppOptions; aResponse: TJSONObject): string;
 var
   lResultValue: TJSONValue;
@@ -452,6 +613,8 @@ begin
       Result := BuildNormalizedLocationsResult('locations', lResultValue);
     TLspOperation.loReferences:
       Result := BuildNormalizedLocationsResult('references', lResultValue);
+    TLspOperation.loHover:
+      Result := BuildNormalizedHoverResult(lResultValue);
   else
     Result := ExtractRawResultText(aResponse);
   end;

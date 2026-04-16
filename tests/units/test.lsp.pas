@@ -64,6 +64,12 @@ type
     procedure LspPositionConversionUsesOneBasedCliAndZeroBasedProtocol;
     [Test]
     procedure LspDefinitionNormalizesHostQualifiedPlusUris;
+    [Test]
+    procedure LspHoverReturnsContentsAndOptionalRange;
+    [Test]
+    procedure LspHoverTextOutputStaysCompact;
+    [Test]
+    procedure LspHoverRepresentsEmptyResultsExplicitly;
   end;
 
 implementation
@@ -1234,6 +1240,126 @@ begin
       Assert.AreEqual(2, lLocation.GetValue<Integer>('col'), 'Expected LocationLink start col to use targetRange.');
       Assert.AreEqual(6, lLocation.GetValue<Integer>('endLine'), 'Expected LocationLink end line to use targetRange.');
       Assert.AreEqual(9, lLocation.GetValue<Integer>('endCol'), 'Expected LocationLink end col to use targetRange.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspHoverReturnsContentsAndOptionalRange;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lOptions: TAppOptions;
+  lRange: TJSONObject;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-hover-normalized', lContext);
+  lScriptPath := CreateScriptFile('hover-normalized',
+    '{"responses":{"textDocument/hover":{"contents":{"kind":"markdown","value":"Fixture **hover**"},"range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loHover;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lOptions.fLspLine := 3;
+    lOptions.fLspCol := 5;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected hover request to succeed. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      Assert.AreEqual<string>('Fixture **hover**', (lJson.Values['result'] as TJSONObject).GetValue<string>('contentsText'),
+        'Expected hover contentsText.');
+      Assert.AreEqual<string>('Fixture **hover**', (lJson.Values['result'] as TJSONObject).GetValue<string>('contentsMarkdown'),
+        'Expected markdown payload to be preserved.');
+      lRange := (lJson.Values['result'] as TJSONObject).GetValue<TJSONObject>('range');
+      Assert.IsNotNull(lRange, 'Expected hover range.');
+      Assert.AreEqual(3, lRange.GetValue<Integer>('line'), 'Expected 1-based hover start line.');
+      Assert.AreEqual(5, lRange.GetValue<Integer>('col'), 'Expected 1-based hover start col.');
+      Assert.AreEqual(3, lRange.GetValue<Integer>('endLine'), 'Expected 1-based hover end line.');
+      Assert.AreEqual(17, lRange.GetValue<Integer>('endCol'), 'Expected 1-based hover end col.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspHoverTextOutputStaysCompact;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-hover-text', lContext);
+  lScriptPath := CreateScriptFile('hover-text',
+    '{"responses":{"textDocument/hover":{"contents":{"kind":"plaintext","value":"Fixture hover details"},"range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loHover;
+    lOptions.fLspFormat := TLspFormat.lfText;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lOptions.fLspLine := 3;
+    lOptions.fLspCol := 5;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected hover text request to succeed. Error: ' + lError);
+    Assert.IsTrue(Pos('Hover:', lResult.fTextResponse) = 1, 'Expected compact hover heading.');
+    Assert.IsTrue(Pos('Fixture hover details', lResult.fTextResponse) > 0, 'Expected hover text body.');
+    Assert.IsTrue(Pos('Range: 3:5-3:17', lResult.fTextResponse) > 0, 'Expected compact hover range.');
+    Assert.AreEqual(0, Pos('operation:', LowerCase(lResult.fTextResponse)), 'Did not expect generic debug envelope text.');
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspHoverRepresentsEmptyResultsExplicitly;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-hover-empty', lContext);
+  lScriptPath := CreateScriptFile('hover-empty',
+    '{"responses":{"textDocument/hover":null}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loHover;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lOptions.fLspLine := 3;
+    lOptions.fLspCol := 5;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected empty hover request to succeed. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      Assert.IsTrue((lJson.Values['result'] as TJSONObject).GetValue<Boolean>('isEmpty', False),
+        'Expected empty hover to be marked explicitly.');
+      Assert.AreEqual<string>('', (lJson.Values['result'] as TJSONObject).GetValue<string>('contentsText'),
+        'Expected empty hover contentsText.');
+      Assert.IsFalse(Assigned((lJson.Values['result'] as TJSONObject).Values['range']), 'Did not expect hover range for empty result.');
     finally
       lJson.Free;
     end;
