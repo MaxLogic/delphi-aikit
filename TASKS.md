@@ -2,29 +2,10 @@
 Next task ID: T-121
 
 ## Summary
-Open tasks: 3 (In Progress: 1, Next Today: 0, Next This Week: 2, Next Later: 0, Blocked: 0)
-Done tasks: 117
+Open tasks: 2 (In Progress: 1, Next Today: 0, Next This Week: 1, Next Later: 0, Blocked: 0)
+Done tasks: 118
 
 ## In Progress
-
-### T-118 [CLI] Implement `lsp symbols`
-Outcome:
-- `lsp symbols` returns normalized symbol matches with `name`, `kind`, `containerName`, `file`, `line`, and `col`.
-- `lsp symbols` respects `--limit` and keeps output deterministic when the server returns more symbols than requested.
-- `lsp symbols` reports empty query results cleanly without being confused with discovery or initialization failure.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspSymbolsReturnNormalizedMatches,Test.Lsp.TLspRunnerTests.LspSymbolsRespectLimit,Test.Lsp.TLspRunnerTests.LspSymbolsRepresentEmptyResultsExplicitly -cm:Quiet`
-  Expect: Tests Found `>=3`, Failed `0`, Leaked `0`.
-- Run: `./bin/DelphiAIKit.exe lsp symbols --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --query Foo --limit 1 --format json`
-  Expect: Exit code `0`; JSON contains `symbols` with at most one entry.
-Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
-Deps: T-115
-Verify: unit-test, cli-proof
-Notes: Plan: `.agents/plans/lsp.md`. Symbols are split from hover because they depend on a different result contract and limit handling.
-
-## Next - Today
-
-## Next - This Week
 
 ### T-119 [DOC] Add `delphi-lsp` repo skill and command docs
 Outcome:
@@ -39,6 +20,10 @@ Deps: T-116, T-117, T-118
 Verify: cli-proof, manual
 Ceremony: reduced
 Notes: Plan: `.agents/plans/lsp.md`. Keep the skill routing-only; it should not teach agents to emulate raw JSON-RPC.
+
+## Next - Today
+
+## Next - This Week
 
 ### T-120 [CLI] Verify `lsp` end-to-end against a real `DelphiLSP.exe`
 Outcome:
@@ -64,6 +49,21 @@ Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for 
 ## Blocked
 
 ## Done
+
+### T-118 [CLI] Implement `lsp symbols`
+Outcome:
+- `lsp symbols` returns normalized symbol matches with `name`, `kind`, `containerName`, `file`, `line`, and `col`.
+- `lsp symbols` respects `--limit` and keeps output deterministic when the server returns more symbols than requested.
+- `lsp symbols` reports empty query results cleanly without being confused with discovery or initialization failure.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspSymbolsReturnNormalizedMatches,Test.Lsp.TLspRunnerTests.LspSymbolsRespectLimit,Test.Lsp.TLspRunnerTests.LspSymbolsLimitUsesStableOrderingBeforeTrim,Test.Lsp.TLspRunnerTests.LspSymbolsRepresentEmptyResultsExplicitly -cm:Quiet`
+  Expect: Tests Found `>=4`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp symbols --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --query Foo --limit 1 --format json`
+  Expect: Exit code `0`; JSON contains `symbols` with at most one entry.
+Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/, tests/fixtures/LspProjectFixture/
+Deps: T-115
+Verify: unit-test, cli-proof
+Notes: Plan: `.agents/plans/lsp.md`. Symbols are split from hover because they depend on a different result contract and deterministic limit handling.
 
 ### T-117 [CLI] Implement `lsp hover`
 Outcome:

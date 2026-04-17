@@ -20,7 +20,7 @@ function TryRunLspRequest(const aOptions: TAppOptions; const aContext: TLspConte
 implementation
 
 uses
-  System.Classes, System.Generics.Collections, System.IOUtils, System.JSON, System.NetEncoding, System.SysUtils,
+  System.Classes, System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.NetEncoding, System.SysUtils,
   Winapi.Windows,
   maxLogic.ioUtils,
   Dak.Utils;
@@ -603,6 +603,136 @@ begin
   end;
 end;
 
+function BuildNormalizedSymbolObject(aSymbolValue: TJSONValue): TJSONObject;
+var
+  lLocationObject: TJSONObject;
+  lLocationValue: TJSONValue;
+  lResult: TJSONObject;
+  lSymbolObject: TJSONObject;
+begin
+  Result := nil;
+  if not (aSymbolValue is TJSONObject) then
+    Exit(nil);
+
+  lSymbolObject := aSymbolValue as TJSONObject;
+  lLocationValue := lSymbolObject.Values['location'];
+  if lLocationValue = nil then
+    lLocationValue := aSymbolValue;
+
+  lLocationObject := BuildNormalizedLocationObject(lLocationValue);
+  if lLocationObject = nil then
+    Exit(nil);
+  try
+    lResult := TJSONObject.Create;
+    AddJsonStringPair(lResult, 'name', lSymbolObject.GetValue<string>('name', ''));
+    lResult.AddPair('kind', TJSONNumber.Create(lSymbolObject.GetValue<Integer>('kind', 0)));
+    AddJsonStringPair(lResult, 'containerName', lSymbolObject.GetValue<string>('containerName', ''));
+    AddJsonStringPair(lResult, 'file', lLocationObject.GetValue<string>('file', ''));
+    lResult.AddPair('line', TJSONNumber.Create(lLocationObject.GetValue<Integer>('line', 0)));
+    lResult.AddPair('col', TJSONNumber.Create(lLocationObject.GetValue<Integer>('col', 0)));
+    Result := lResult;
+  finally
+    lLocationObject.Free;
+  end;
+end;
+
+function CompareIntegerValues(aLeft, aRight: Integer): Integer;
+begin
+  if aLeft < aRight then
+    Exit(-1);
+  if aLeft > aRight then
+    Exit(1);
+  Result := 0;
+end;
+
+function CompareOrdinalStrings(const aLeft, aRight: string): Integer;
+var
+  lIndex: Integer;
+  lLimit: Integer;
+  lLeftLength: Integer;
+  lRightLength: Integer;
+begin
+  lLeftLength := Length(aLeft);
+  lRightLength := Length(aRight);
+  if lLeftLength < lRightLength then
+    lLimit := lLeftLength
+  else
+    lLimit := lRightLength;
+
+  for lIndex := 1 to lLimit do
+  begin
+    if aLeft[lIndex] < aRight[lIndex] then
+      Exit(-1);
+    if aLeft[lIndex] > aRight[lIndex] then
+      Exit(1);
+  end;
+
+  Result := CompareIntegerValues(lLeftLength, lRightLength);
+end;
+
+function CompareNormalizedSymbols(const aLeft, aRight: TJSONObject): Integer;
+begin
+  Result := CompareOrdinalStrings(aLeft.GetValue<string>('file', ''), aRight.GetValue<string>('file', ''));
+  if Result <> 0 then
+    Exit(Result);
+
+  Result := CompareIntegerValues(aLeft.GetValue<Integer>('line', 0), aRight.GetValue<Integer>('line', 0));
+  if Result <> 0 then
+    Exit(Result);
+
+  Result := CompareIntegerValues(aLeft.GetValue<Integer>('col', 0), aRight.GetValue<Integer>('col', 0));
+  if Result <> 0 then
+    Exit(Result);
+
+  Result := CompareOrdinalStrings(aLeft.GetValue<string>('name', ''), aRight.GetValue<string>('name', ''));
+  if Result <> 0 then
+    Exit(Result);
+
+  Result := CompareIntegerValues(aLeft.GetValue<Integer>('kind', 0), aRight.GetValue<Integer>('kind', 0));
+  if Result <> 0 then
+    Exit(Result);
+
+  Result := CompareOrdinalStrings(aLeft.GetValue<string>('containerName', ''), aRight.GetValue<string>('containerName', ''));
+end;
+
+function BuildNormalizedSymbolsResult(aLimit: Integer; aResultValue: TJSONValue): string;
+var
+  lResultObject: TJSONObject;
+  lSymbolList: TObjectList<TJSONObject>;
+  lSymbolObject: TJSONObject;
+  lSymbolsArray: TJSONArray;
+  lSymbolValue: TJSONValue;
+begin
+  lResultObject := TJSONObject.Create;
+  lSymbolList := TObjectList<TJSONObject>.Create(True);
+  try
+    lSymbolsArray := TJSONArray.Create;
+    lResultObject.AddPair('symbols', lSymbolsArray);
+    if aResultValue is TJSONArray then
+    begin
+      for lSymbolValue in aResultValue as TJSONArray do
+      begin
+        lSymbolObject := BuildNormalizedSymbolObject(lSymbolValue);
+        if lSymbolObject <> nil then
+          lSymbolList.Add(lSymbolObject);
+      end;
+
+      lSymbolList.Sort(TComparer<TJSONObject>.Construct(CompareNormalizedSymbols));
+      while lSymbolList.Count > 0 do
+      begin
+        lSymbolObject := lSymbolList.Extract(lSymbolList[0]);
+        lSymbolsArray.AddElement(lSymbolObject);
+        if (aLimit > 0) and (lSymbolsArray.Count >= aLimit) then
+          Break;
+      end;
+    end;
+    Result := lResultObject.ToJSON;
+  finally
+    lSymbolList.Free;
+    lResultObject.Free;
+  end;
+end;
+
 function BuildOperationResultText(const aOptions: TAppOptions; aResponse: TJSONObject): string;
 var
   lResultValue: TJSONValue;
@@ -615,6 +745,8 @@ begin
       Result := BuildNormalizedLocationsResult('references', lResultValue);
     TLspOperation.loHover:
       Result := BuildNormalizedHoverResult(lResultValue);
+    TLspOperation.loSymbols:
+      Result := BuildNormalizedSymbolsResult(aOptions.fLspLimit, lResultValue);
   else
     Result := ExtractRawResultText(aResponse);
   end;
