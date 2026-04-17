@@ -29,6 +29,8 @@ type
     procedure LspDoesNotWriteContextBesideSourceProject;
     [Test]
     procedure LspReportsWorkspaceWriteFailureCleanly;
+    [Test]
+    procedure LspWritesProbeSettingsFileWithFileUris;
   end;
 
   [TestFixture]
@@ -42,6 +44,10 @@ type
     procedure FakeServerReturnsScriptedDefinitionAndHoverPayloads;
     [Test]
     procedure FakeServerCanSimulateEmptyAndErrorResponses;
+    [Test]
+    procedure FakeServerAssertsContextFileHandshakeAndNotifications;
+    [Test]
+    procedure FakeServerAssertsSettingsFileHandshakeAndNotifications;
   end;
 
   [TestFixture]
@@ -80,6 +86,10 @@ type
     procedure LspSymbolsRespectQueryAndLimitAfterFlattening;
     [Test]
     procedure LspSymbolsRepresentEmptyResultsExplicitly;
+    [Test]
+    procedure LspProbeContextFileModeUsesOwnedHandshake;
+    [Test]
+    procedure LspProbeSettingsFileModeUsesSettingsHandshake;
   end;
 
 implementation
@@ -87,6 +97,7 @@ implementation
 uses
   System.Classes, System.IOUtils, System.JSON, System.SysUtils,
   Winapi.Windows,
+  maxLogic.ioUtils,
   Dak.Lsp.Runner,
   Test.Support;
 
@@ -104,7 +115,13 @@ end;
 
 function FilePathToUri(const aPath: string): string;
 begin
-  Result := 'file:///' + StringReplace(aPath, '\', '/', [rfReplaceAll]);
+  Result := FilePathToURL(aPath);
+end;
+
+function JsonEscape(const aValue: string): string;
+begin
+  Result := StringReplace(aValue, '\', '\\', [rfReplaceAll]);
+  Result := StringReplace(Result, '"', '\"', [rfReplaceAll]);
 end;
 
 const
@@ -449,6 +466,90 @@ begin
   Result := True;
 end;
 
+
+function CreateProbeResolvedContext(const aScenarioName: string; out aContext: TLspContext): string;
+var
+  lBdsRoot: string;
+  lDprojPath: string;
+  lEnvOptionsPath: string;
+  lEnvSearchDir: string;
+  lError: string;
+  lLibraryDir: string;
+  lOptions: TAppOptions;
+  lRoot: string;
+  lRsVarsPath: string;
+  lUnit1Path: string;
+begin
+  EnsureTempClean;
+  lRoot := TPath.Combine(TempRoot, aScenarioName);
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+
+  lDprojPath := TPath.Combine(lRoot, 'LspFixture.dproj');
+  WriteUtf8File(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>LspFixture.dpr</MainSource>' + sLineBreak +
+    '    <DCC_Define>PROJECT_DEFINE;$(DCC_Define)</DCC_Define>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+  WriteUtf8File(TPath.ChangeExtension(lDprojPath, '.dpr'),
+    'program LspFixture;' + sLineBreak + sLineBreak +
+    'uses' + sLineBreak +
+    '  Unit1 in ''Unit1.pas'';' + sLineBreak + sLineBreak +
+    'begin' + sLineBreak +
+    'end.' + sLineBreak);
+  lUnit1Path := TPath.Combine(lRoot, 'Unit1.pas');
+  WriteUtf8File(lUnit1Path,
+    'unit Unit1;' + sLineBreak + sLineBreak +
+    'interface' + sLineBreak + sLineBreak +
+    'procedure TouchUnit1;' + sLineBreak + sLineBreak +
+    'implementation' + sLineBreak + sLineBreak +
+    'procedure TouchUnit1;' + sLineBreak +
+    'begin' + sLineBreak +
+    'end;' + sLineBreak + sLineBreak +
+    'end.' + sLineBreak);
+  TDirectory.CreateDirectory(TPath.Combine(lRoot, 'src'));
+
+  lBdsRoot := TPath.Combine(lRoot, 'FakeBds');
+  lLibraryDir := TPath.Combine(lRoot, 'IdeLibrary');
+  lEnvSearchDir := TPath.Combine(lRoot, 'EnvSearch');
+  TDirectory.CreateDirectory(TPath.Combine(lBdsRoot, 'Source'));
+  TDirectory.CreateDirectory(TPath.Combine(lBdsRoot, 'lib'));
+  TDirectory.CreateDirectory(lLibraryDir);
+  TDirectory.CreateDirectory(lEnvSearchDir);
+  lRsVarsPath := TPath.Combine(lRoot, 'rsvars.bat');
+  WriteAsciiFile(lRsVarsPath,
+    '@echo off' + sLineBreak +
+    'set BDS=' + lBdsRoot + sLineBreak +
+    'set BDSLIB=' + TPath.Combine(lBdsRoot, 'lib') + sLineBreak +
+    'set DAK_TEST_RSVARS=1' + sLineBreak);
+  lEnvOptionsPath := TPath.Combine(lRoot, 'EnvOptions.proj');
+  WriteUtf8File(lEnvOptionsPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <DelphiLibraryPath>' + lLibraryDir + '</DelphiLibraryPath>' + sLineBreak +
+    '    <DCC_UnitSearchPath>' + lEnvSearchDir + '</DCC_UnitSearchPath>' + sLineBreak +
+    '    <DCC_Define>ENV_DEFINE</DCC_Define>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fPlatform := 'Win32';
+  lOptions.fConfig := 'Debug';
+  lOptions.fRsVarsPath := lRsVarsPath;
+  lOptions.fHasRsVarsPath := True;
+  lOptions.fEnvOptionsPath := lEnvOptionsPath;
+  lOptions.fHasEnvOptionsPath := True;
+
+  lError := '';
+  Assert.IsTrue(TryBuildStrictLspContext(lOptions, aContext, lError),
+    'Expected strict lsp context to resolve for the probe handshake tests. Error: ' + lError);
+  Result := lDprojPath;
+end;
+
 function TLspContextTests.ArrayContainsValue(const aValues: TArray<string>; const aExpected: string): Boolean;
 var
   lValue: string;
@@ -774,6 +875,60 @@ begin
     'Expected a clean workspace-write error. Actual: ' + lError);
 end;
 
+procedure TLspContextTests.LspWritesProbeSettingsFileWithFileUris;
+var
+  lBrowsingPaths: TJSONArray;
+  lContext: TLspContext;
+  lError: string;
+  lFoundUnitSearchPath: Boolean;
+  lJson: TJSONObject;
+  lPath: string;
+  lProjectJson: string;
+  lSettingsFilePath: string;
+  lSettingsJson: TJSONObject;
+begin
+  PrepareResolvedContext('lsp probe settings json', lContext);
+
+  lError := '';
+  Assert.IsTrue(TryWriteOfficialLspSettingsFile(lContext, lSettingsFilePath, lError),
+    'Expected official probe settings file to be written. Error: ' + lError);
+  Assert.AreEqual<string>(TPath.Combine(lContext.fDakLspRoot, 'probe.delphilsp.json'), lSettingsFilePath,
+    'Expected probe settings file to live under the owned .dak workspace.');
+  Assert.IsTrue(FileExists(lSettingsFilePath), 'Expected probe settings file to exist.');
+
+  lJson := TJSONObject.ParseJSONValue(TFile.ReadAllText(lSettingsFilePath, TEncoding.UTF8)) as TJSONObject;
+  try
+    Assert.IsNotNull(lJson, 'Expected probe settings file to contain valid JSON.');
+    lSettingsJson := lJson.GetValue<TJSONObject>('settings');
+    Assert.IsNotNull(lSettingsJson, 'Expected settings block in probe settings file.');
+
+    lProjectJson := lSettingsJson.GetValue<string>('project', '');
+    Assert.AreEqual<string>(FilePathToUri(lContext.fMainSourcePath), lProjectJson,
+      'Expected project path to be written as the exact main-source file URI.');
+
+    lBrowsingPaths := lSettingsJson.GetValue<TJSONArray>('browsingPaths');
+    Assert.IsNotNull(lBrowsingPaths, 'Expected browsingPaths in probe settings file.');
+    Assert.IsTrue(lBrowsingPaths.Count > 0, 'Expected at least one browsing path in probe settings file.');
+    Assert.IsTrue(lBrowsingPaths.Count >= Length(lContext.fParams.fUnitSearchPath),
+      'Expected probe browsing paths to include the unit search path entries.');
+    lFoundUnitSearchPath := False;
+    for var i := 0 to lBrowsingPaths.Count - 1 do
+    begin
+      lPath := lBrowsingPaths.Items[i].Value;
+      Assert.IsTrue(lPath.StartsWith('file:///'),
+        'Expected browsing path to be expressed as a file URI. Actual: ' + lPath);
+      Assert.IsTrue(Pos('\\', lPath) = 0,
+        'Expected browsing path URI to use forward slashes only. Actual: ' + lPath);
+      if SameText(lPath, FilePathToUri(lContext.fParams.fUnitSearchPath[0])) then
+        lFoundUnitSearchPath := True;
+    end;
+    Assert.IsTrue(lFoundUnitSearchPath,
+      'Expected probe browsing paths to include the first unit search path as a file URI.');
+  finally
+    lJson.Free;
+  end;
+end;
+
 
 function TLspFixtureTests.CreateScriptFile(const aScenarioName, aScriptJson: string): string;
 var
@@ -936,6 +1091,102 @@ begin
 end;
 
 
+
+
+procedure TLspFixtureTests.FakeServerAssertsContextFileHandshakeAndNotifications;
+var
+  lClient: TLspJsonRpcClient;
+  lContext: TLspContext;
+  lError: string;
+  lExpectedInit: string;
+  lExpectedNotifications: string;
+  lProjectDirUri: string;
+  lResponse: TJSONObject;
+  lScriptPath: string;
+  lSettingsFileUri: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  CreateProbeResolvedContext('probe-contextfile', lContext);
+  lProjectDirUri := FilePathToUri(lContext.fProjectDir);
+  lSettingsFileUri := FilePathToUri(lContext.fContextFilePath);
+  lExpectedInit := '{"processId":1,"rootUri":"' + JsonEscape(lProjectDirUri) + '","capabilities":{},"clientInfo":{"name":"DelphiAIKit"},' +
+    '"workspaceFolders":[{"uri":"' + JsonEscape(lProjectDirUri) + '","name":"' + JsonEscape(lContext.fProjectName) + '"}],"initializationOptions":' +
+    '{"contextFile":"' + JsonEscape(lContext.fContextFilePath) + '","contextFileUri":"' + JsonEscape(lSettingsFileUri) + '","logsDir":"' +
+    JsonEscape(lContext.fLogsDir) + '"}}';
+  lExpectedNotifications := '[{"method":"initialized","params":{}},{"method":"workspace/didChangeConfiguration","params":{"settings":{"mode":"contextFile","contextFile":"' +
+    JsonEscape(lContext.fContextFilePath) + '"}}}]';
+  lScriptPath := CreateScriptFile('probe-contextfile', '{"expect":{"initialize":' + lExpectedInit + '},"expectNotifications":' +
+    lExpectedNotifications + '}');
+  lClient := TLspJsonRpcClient.Create;
+  lResponse := nil;
+  try
+    lError := '';
+    Assert.IsTrue(lClient.Start(FakeLspExePath, '--script ' + QuoteArg(lScriptPath), FakeLspFixtureDir, lError),
+      'Expected fake LSP server to start. Error: ' + lError);
+    Assert.IsTrue(lClient.SendRequest(1, 'initialize', lExpectedInit, lResponse, lError),
+      'Expected contextFile initialize handshake to succeed. Error: ' + lError);
+    lResponse.Free;
+    lResponse := nil;
+    Assert.IsTrue(lClient.SendNotification('initialized', '{}', lError),
+      'Expected initialized notification to satisfy the contextFile handshake. Error: ' + lError);
+    Assert.IsTrue(lClient.SendNotification('workspace/didChangeConfiguration',
+      '{"settings":{"mode":"contextFile","contextFile":"' + JsonEscape(lContext.fContextFilePath) + '"}}', lError),
+      'Expected didChangeConfiguration notification to satisfy the contextFile handshake. Error: ' + lError);
+    Assert.IsTrue(lClient.SendRequest(2, 'shutdown', '{}', lResponse, lError),
+      'Expected shutdown to succeed after the contextFile handshake. Error: ' + lError);
+  finally
+    lResponse.Free;
+    lClient.Free;
+  end;
+end;
+
+procedure TLspFixtureTests.FakeServerAssertsSettingsFileHandshakeAndNotifications;
+var
+  lClient: TLspJsonRpcClient;
+  lContext: TLspContext;
+  lError: string;
+  lExpectedInit: string;
+  lExpectedNotifications: string;
+  lProjectDirUri: string;
+  lResponse: TJSONObject;
+  lScriptPath: string;
+  lSettingsPath: string;
+  lSettingsPathUri: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  CreateProbeResolvedContext('probe-settingsfile', lContext);
+  lProjectDirUri := FilePathToUri(lContext.fProjectDir);
+  lSettingsPath := TPath.Combine(ExtractFilePath(lContext.fProjectPath), 'LspFixture.delphilsp.json');
+  lSettingsPathUri := FilePathToUri(lSettingsPath);
+  lExpectedInit := '{"processId":1,"rootUri":"' + JsonEscape(lProjectDirUri) + '","capabilities":{},"clientInfo":{"name":"DelphiAIKit"},' +
+    '"workspaceFolders":[{"uri":"' + JsonEscape(lProjectDirUri) + '","name":"' + JsonEscape(lContext.fProjectName) + '"}],"initializationOptions":' +
+    '{"settingsFile":"' + JsonEscape(lSettingsPath) + '","settingsFileUri":"' + JsonEscape(lSettingsPathUri) + '"}}';
+  lExpectedNotifications := '[{"method":"initialized","params":{}},{"method":"workspace/didChangeConfiguration","params":{"settings":{"mode":"settingsFile","settingsFile":"' +
+    JsonEscape(lSettingsPath) + '"}}}]';
+  lScriptPath := CreateScriptFile('probe-settingsfile', '{"expect":{"initialize":' + lExpectedInit + '},"expectNotifications":' +
+    lExpectedNotifications + '}');
+  lClient := TLspJsonRpcClient.Create;
+  lResponse := nil;
+  try
+    lError := '';
+    Assert.IsTrue(lClient.Start(FakeLspExePath, '--script ' + QuoteArg(lScriptPath), FakeLspFixtureDir, lError),
+      'Expected fake LSP server to start. Error: ' + lError);
+    Assert.IsTrue(lClient.SendRequest(1, 'initialize', lExpectedInit, lResponse, lError),
+      'Expected settingsFile initialize handshake to succeed. Error: ' + lError);
+    lResponse.Free;
+    lResponse := nil;
+    Assert.IsTrue(lClient.SendNotification('initialized', '{}', lError),
+      'Expected initialized notification to satisfy the settingsFile handshake. Error: ' + lError);
+    Assert.IsTrue(lClient.SendNotification('workspace/didChangeConfiguration',
+      '{"settings":{"mode":"settingsFile","settingsFile":"' + JsonEscape(lSettingsPath) + '"}}', lError),
+      'Expected didChangeConfiguration notification to satisfy the settingsFile handshake. Error: ' + lError);
+    Assert.IsTrue(lClient.SendRequest(2, 'shutdown', '{}', lResponse, lError),
+      'Expected shutdown to succeed after the settingsFile handshake. Error: ' + lError);
+  finally
+    lResponse.Free;
+    lClient.Free;
+  end;
+end;
 
 function TLspRunnerTests.BuildRunnerOptions(const aDprojPath: string): TAppOptions;
 begin
@@ -1574,6 +1825,114 @@ begin
       Assert.AreEqual(1, lSymbols.Count, 'Expected query filter and limit to be applied after flattening.');
       Assert.AreEqual<string>('TAlphaFixture', (lSymbols.Items[0] as TJSONObject).GetValue<string>('name'),
         'Expected the first sorted matching symbol after flattening and filtering.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspProbeContextFileModeUsesOwnedHandshake;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lModeObject: TJSONObject;
+  lModes: TJSONArray;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-probe-context-file', lContext);
+  lScriptPath := CreateScriptFile('probe-context-file',
+    '{"expect":{"initialize":{"initializationOptions":{"contextFile":"' + StringReplace(lContext.fContextFilePath, '\', '\\', [rfReplaceAll]) + '","contextFileUri":"' + FilePathToUri(lContext.fContextFilePath) + '","logsDir":"' + StringReplace(lContext.fLogsDir, '\', '\\', [rfReplaceAll]) + '"}}},' +
+    '"expectNotifications":[{"method":"initialized","params":{}}],' +
+    '"initializeResult":{"capabilities":{"documentSymbolProvider":true,"hoverProvider":true}}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loProbe;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lOptions.fLspProbeModes := [TLspProbeMode.lpmContextFile];
+    lOptions.fLspShowInitOptions := True;
+    lOptions.fHasLspShowInitOptions := True;
+
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected contextFile probe to succeed. Error: ' + lError);
+
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      lModes := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('modes');
+      Assert.AreEqual(1, lModes.Count, 'Expected one probe mode result.');
+      lModeObject := lModes.Items[0] as TJSONObject;
+      Assert.AreEqual<string>('contextFile', lModeObject.GetValue<string>('mode', ''), 'Expected contextFile mode.');
+      Assert.IsTrue(Assigned(lModeObject.Values['initializationOptions']), 'Expected initialization options when show-init-options is enabled.');
+      Assert.IsFalse(Assigned((lModeObject.Values['initializationOptions'] as TJSONObject).Values['settingsFile']),
+        'Did not expect settingsFile in contextFile mode.');
+      Assert.IsTrue(Assigned((lModeObject.Values['initializationOptions'] as TJSONObject).Values['contextFile']),
+        'Expected contextFile in contextFile mode.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspProbeSettingsFileModeUsesSettingsHandshake;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lModeObject: TJSONObject;
+  lModes: TJSONArray;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+  lSettingsFilePath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-probe-settings-file', lContext);
+  lSettingsFilePath := TPath.Combine(lContext.fDakLspRoot, 'probe.delphilsp.json');
+  lScriptPath := CreateScriptFile('probe-settings-file',
+    '{"expect":{"initialize":{"initializationOptions":{"settingsFile":"' + StringReplace(lSettingsFilePath, '\', '\\', [rfReplaceAll]) + '","settingsFileUri":"' + FilePathToUri(lSettingsFilePath) + '"}}},' +
+    '"expectNotifications":[{"method":"initialized","params":{}},{"method":"workspace/didChangeConfiguration","params":{"settings":{"settingsFile":"' + StringReplace(lSettingsFilePath, '\', '\\', [rfReplaceAll]) + '","settingsFileUri":"' + FilePathToUri(lSettingsFilePath) + '"}}}],' +
+    '"initializeResult":{"capabilities":{"definitionProvider":true,"hoverProvider":true}}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loProbe;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lOptions.fLspProbeModes := [TLspProbeMode.lpmSettingsFile];
+    lOptions.fLspShowInitOptions := True;
+    lOptions.fHasLspShowInitOptions := True;
+
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected settingsFile probe to succeed. Error: ' + lError);
+    Assert.IsTrue(FileExists(lSettingsFilePath), 'Expected probe settings file to be written under the owned .dak workspace.');
+
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      lModes := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('modes');
+      Assert.AreEqual(1, lModes.Count, 'Expected one probe mode result.');
+      lModeObject := lModes.Items[0] as TJSONObject;
+      Assert.AreEqual<string>('settingsFile', lModeObject.GetValue<string>('mode', ''), 'Expected settingsFile mode.');
+      Assert.AreEqual<string>(lSettingsFilePath, lModeObject.GetValue<string>('settingsFile', ''), 'Expected reported settings file path.');
+      Assert.IsTrue(Assigned(lModeObject.Values['initializationOptions']), 'Expected initialization options when show-init-options is enabled.');
+      Assert.IsFalse(Assigned((lModeObject.Values['initializationOptions'] as TJSONObject).Values['contextFile']),
+        'Did not expect contextFile in settingsFile mode.');
+      Assert.IsTrue(Assigned((lModeObject.Values['initializationOptions'] as TJSONObject).Values['settingsFile']),
+        'Expected settingsFile in settingsFile mode.');
+      Assert.IsTrue(Assigned(lModeObject.Values['configurationNotification']),
+        'Expected configuration notification payload for settingsFile mode.');
     finally
       lJson.Free;
     end;

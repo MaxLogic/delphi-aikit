@@ -127,7 +127,7 @@ var
       SameText(aSwitch, 'top') or SameText(aSwitch, 'file') or
       SameText(aSwitch, 'line') or SameText(aSwitch, 'col') or
       SameText(aSwitch, 'query') or SameText(aSwitch, 'limit') or
-      SameText(aSwitch, 'lsp-path');
+      SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode');
   end;
 
   function SwitchAllowsBoolValue(const aSwitch: string): Boolean;
@@ -136,7 +136,7 @@ var
       SameText(aSwitch, 'log-tee') or SameText(aSwitch, 'verbose') or
       SameText(aSwitch, 'help') or SameText(aSwitch, 'h') or
       SameText(aSwitch, '?') or SameText(aSwitch, 'fi-silent') or
-      SameText(aSwitch, 'silent') or SameText(aSwitch, 'fi-xml') or
+      SameText(aSwitch, 'silent') or SameText(aSwitch, 'show-init-options') or SameText(aSwitch, 'fi-xml') or
       SameText(aSwitch, 'xml') or SameText(aSwitch, 'fi-csv') or
       SameText(aSwitch, 'csv') or SameText(aSwitch, 'fixinsight') or
       SameText(aSwitch, 'pascal-analyzer') or SameText(aSwitch, 'pal') or
@@ -504,7 +504,7 @@ begin
     SameText(aSwitch, 'file') or SameText(aSwitch, 'line') or
     SameText(aSwitch, 'col') or SameText(aSwitch, 'query') or
     SameText(aSwitch, 'limit') or SameText(aSwitch, 'include-declaration') or
-    SameText(aSwitch, 'lsp-path');
+    SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or SameText(aSwitch, 'show-init-options');
 end;
 
 function TOptionParser.IsSwitchParam(const aParam: string): Boolean;
@@ -1199,6 +1199,8 @@ begin
     fOptions.fLspOperation := TLspOperation.loHover
   else if SameText(aArg, 'symbols') then
     fOptions.fLspOperation := TLspOperation.loSymbols
+  else if SameText(aArg, 'probe') then
+    fOptions.fLspOperation := TLspOperation.loProbe
   else
   begin
     fError := Format(SLspInvalidOperation, [aArg]);
@@ -1305,6 +1307,36 @@ begin
       Exit(False);
     fOptions.fLspPath := lValue;
     fOptions.fHasLspPath := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'mode') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--mode') then
+      Exit(False);
+    if SameText(lValue, 'contextFile') then
+      Include(fOptions.fLspProbeModes, TLspProbeMode.lpmContextFile)
+    else if SameText(lValue, 'settingsFile') then
+      Include(fOptions.fLspProbeModes, TLspProbeMode.lpmSettingsFile)
+    else
+    begin
+      fError := Format(SLspInvalidProbeMode, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'show-init-options') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--show-init-options') then
+      Exit(False);
+    if not TryParseBool(lValue, lBoolValue) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--show-init-options', lValue]);
+      Exit(False);
+    end;
+    fOptions.fLspShowInitOptions := lBoolValue;
+    fOptions.fHasLspShowInitOptions := True;
     Exit(True);
   end;
 
@@ -1710,7 +1742,11 @@ begin
         Exit(False);
       end;
     end;
-    if fOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover] then
+    if fOptions.fLspOperation = TLspOperation.loProbe then
+    begin
+      if fOptions.fLspProbeModes = [] then
+        fOptions.fLspProbeModes := [TLspProbeMode.lpmContextFile, TLspProbeMode.lpmSettingsFile];
+    end else if fOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover] then
     begin
       if fOptions.fLspLine < 1 then
       begin
@@ -1738,6 +1774,16 @@ begin
     if fOptions.fHasLspLimit and (fOptions.fLspOperation <> TLspOperation.loSymbols) then
     begin
       fError := Format(SLspOptionOnlyForOperation, ['--limit', 'symbols']);
+      Exit(False);
+    end;
+    if (fOptions.fLspProbeModes <> []) and (fOptions.fLspOperation <> TLspOperation.loProbe) then
+    begin
+      fError := Format(SLspOptionOnlyForOperation, ['--mode', 'probe']);
+      Exit(False);
+    end;
+    if fOptions.fHasLspShowInitOptions and (fOptions.fLspOperation <> TLspOperation.loProbe) then
+    begin
+      fError := Format(SLspOptionOnlyForOperation, ['--show-init-options', 'probe']);
       Exit(False);
     end;
   end else if fOptions.fCommand = TCommandKind.ckBuild then
