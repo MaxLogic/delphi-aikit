@@ -2,8 +2,8 @@
 Next task ID: T-126
 
 ## Summary
-Open tasks: 5 (In Progress: 0, Next Today: 0, Next This Week: 3, Next Later: 0, Blocked: 2)
-Done tasks: 120
+Open tasks: 3 (In Progress: 0, Next Today: 0, Next This Week: 1, Next Later: 0, Blocked: 2)
+Done tasks: 122
 
 ## In Progress
 
@@ -11,34 +11,6 @@ Done tasks: 120
 
 ## Next - This Week
 
-
-### T-122 [CLI] Rework `lsp symbols` around `textDocument/documentSymbol`
-Outcome:
-- `lsp symbols` becomes file-scoped and uses `textDocument/documentSymbol` instead of `workspace/symbol` on the external Delphi LSP path.
-- Symbol output stays normalized as flat deterministic rows with `name`, `kind`, `containerName`, `file`, `line`, and `col`.
-- Hierarchical document-symbol trees, empty results, `--query`, and `--limit` are handled correctly.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspSymbolsRequestDocumentSymbolsForFile,Test.Lsp.TLspRunnerTests.LspSymbolsFlattenHierarchicalDocumentSymbols,Test.Lsp.TLspRunnerTests.LspSymbolsRespectQueryAndLimitAfterFlattening,Test.Lsp.TLspRunnerTests.LspSymbolsRepresentEmptyResultsExplicitly -cm:Quiet`
-  Expect: Tests Found `>=4`, Failed `0`, Leaked `0`.
-- Run: `./bin/DelphiAIKit.exe lsp symbols --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --query Fixture --limit 1 --format json`
-  Expect: Exit code `0`; JSON contains `result.symbols` with at most one normalized entry.
-Touches: src/dak.cli.pas, src/dak.lsp.runner.pas, src/dak.messages.pas, tests/units/test.cli.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/
-Verify: unit-test, cli-proof
-Notes: Rebased from workspace-wide search after confirming Delphi 23 external `DelphiLSP.exe` does not implement `workspace/symbol`.
-
-### T-123 [CLI] Improve unsupported `lsp references` guidance for Delphi 23
-Outcome:
-- When `referencesProvider` is missing, the error names the unsupported method and includes practical fallback guidance such as `deps` or `rg`.
-- The diagnostic includes enough resolved context to show which installed external Delphi LSP surface failed the request.
-- CLI help and command docs mark `references` as version-dependent on the external DelphiLSP capability set.
-Proof:
-- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspRunnerUnsupportedReferencesDiagnosticIncludesFallbackGuidance,Test.Cli.TCliTests.LspHelpMarksReferencesAsVersionDependent -cm:Quiet`
-  Expect: Tests Found `>=2`, Failed `0`, Leaked `0`.
-- Run: `./bin/DelphiAIKit.exe lsp references --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 8 --col 21 --format json`
-  Expect: Exit code `6`; output mentions `textDocument/references` plus fallback guidance such as `deps` or `rg`.
-Touches: src/dak.cli.pas, src/dak.lsp.runner.pas, src/dak.messages.pas, README.md, tests/units/test.cli.pas, tests/units/test.lsp.pas
-Verify: unit-test, cli-proof
-Notes: This task is about contract clarity, not about inventing a semantic references fallback yet.
 
 ### T-124 [TEST] Add a repeatable DelphiLSP capability probe
 Outcome:
@@ -84,16 +56,44 @@ Proof:
   Expect: Exit code `0`; JSON `result.references` is non-empty.
 - Run: `./bin/DelphiAIKit.exe lsp hover --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 3 --col 5 --format json`
   Expect: Exit code `0`; JSON `result.contentsText` is non-empty.
-- Run: `./bin/DelphiAIKit.exe lsp symbols --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --query Foo --format json`
+- Run: `./bin/DelphiAIKit.exe lsp symbols --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --query Fixture --format json`
   Expect: Exit code `0`; JSON `result.symbols` is non-empty.
 Touches: src/dak.lsp.runner.pas, src/dak.messages.pas, tests/fixtures/LspProjectFixture/, README.md, CHANGELOG.md
 Deps: T-116, T-117, T-118
 Verify: cli-proof, manual
 Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for the wrapper after the fake-server-backed contract tests are green.
 
-Blocked: The installed Delphi 23.0 `DelphiLSP.exe` advertises `definitionProvider`, `declarationProvider`, `implementationProvider`, `documentSymbolProvider`, and `hoverProvider`, but not `referencesProvider` or `workspaceSymbolProvider`. Real proof on 2026-04-17: `definition` at `Unit1.pas:8:21` returns a non-empty location; `references` fails with `Installed DelphiLSP does not advertise support for textDocument/references ...`; `symbols` fails with `Installed DelphiLSP does not advertise support for workspace/symbol ...`; `hover` returns an explicit empty result on the fixture query. DAK now surfaces those unsupported capabilities clearly, but full T-120 acceptance remains blocked on upstream DelphiLSP capability expansion or a separately planned fallback design.
+Blocked: The installed Delphi 23.0 `DelphiLSP.exe` advertises `definitionProvider`, `declarationProvider`, `implementationProvider`, `documentSymbolProvider`, and `hoverProvider`, but not `referencesProvider` or `workspaceSymbolProvider`. Real proof on 2026-04-17: `definition` at `Unit1.pas:8:21` returns a non-empty location; `symbols` for `Unit1.pas` with query `Fixture` returns non-empty file-scoped document symbols; `references` fails with `Installed DelphiLSP at ... does not advertise support for textDocument/references ...`; `hover` still returns an explicit empty result on the fixture query. DAK now surfaces unsupported capabilities clearly, and file-scoped `symbols` is validated against the real server, but full T-120 acceptance remains blocked on upstream `references` capability expansion and a real hover proof that returns semantically useful content.
 
 ## Done
+
+### T-123 [CLI] Improve unsupported `lsp references` guidance for Delphi 23
+Outcome:
+- When `referencesProvider` is missing, the error names the unsupported method and includes practical fallback guidance such as `deps` or `rg`.
+- The diagnostic includes enough resolved context to show which installed external Delphi LSP surface failed the request.
+- CLI help and command docs mark `references` as version-dependent on the external DelphiLSP capability set.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspRunnerUnsupportedReferencesDiagnosticIncludesFallbackGuidance,Test.Cli.TCliTests.LspHelpMarksReferencesAsVersionDependent -cm:Quiet`
+  Expect: Tests Found `>=2`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp references --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 8 --col 21 --format json`
+  Expect: Exit code `6`; output mentions `textDocument/references` plus fallback guidance such as `deps` or `rg`.
+Touches: src/dak.cli.pas, src/dak.lsp.runner.pas, src/dak.messages.pas, README.md, tests/units/test.cli.pas, tests/units/test.lsp.pas
+Verify: unit-test, cli-proof
+Notes: This task is about contract clarity, not about inventing a semantic references fallback yet.
+
+### T-122 [CLI] Rework `lsp symbols` around `textDocument/documentSymbol`
+Outcome:
+- `lsp symbols` becomes file-scoped and uses `textDocument/documentSymbol` instead of `workspace/symbol` on the external Delphi LSP path.
+- Symbol output stays normalized as flat deterministic rows with `name`, `kind`, `containerName`, `file`, `line`, and `col`.
+- Hierarchical document-symbol trees, empty results, `--query`, and `--limit` are handled correctly.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TLspRunnerTests.LspSymbolsRequestDocumentSymbolsForFile,Test.Lsp.TLspRunnerTests.LspSymbolsFlattenHierarchicalDocumentSymbols,Test.Lsp.TLspRunnerTests.LspSymbolsRespectQueryAndLimitAfterFlattening,Test.Lsp.TLspRunnerTests.LspSymbolsRepresentEmptyResultsExplicitly -cm:Quiet`
+  Expect: Tests Found `>=4`, Failed `0`, Leaked `0`.
+- Run: `./bin/DelphiAIKit.exe lsp symbols --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspFixture/bin/FakeDelphiLsp.exe --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --query Fixture --limit 1 --format json`
+  Expect: Exit code `0`; JSON contains `result.symbols` with at most one normalized entry.
+Touches: src/dak.cli.pas, src/dak.lsp.runner.pas, src/dak.messages.pas, tests/units/test.cli.pas, tests/units/test.lsp.pas, tests/fixtures/LspFixture/
+Verify: unit-test, cli-proof
+Notes: Rebased from workspace-wide search after confirming Delphi 23 external `DelphiLSP.exe` does not implement `workspace/symbol`.
 
 ### T-121 [DOC] Update public `lsp` docs for Delphi 23 external capability limits
 Outcome:
