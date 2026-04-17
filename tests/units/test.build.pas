@@ -774,6 +774,7 @@ var
   lCapturingRunner: TCapturingBuildRunner;
   lDprojPath: string;
   lError: string;
+  lExpectedMessage: string;
   lExitCode: Integer;
   lOptions: TAppOptions;
   lPatchExePath: string;
@@ -814,8 +815,9 @@ begin
     DescribeCapturedProcesses(lCapturingRunner));
   Assert.IsTrue(Pos('"status":"internal_error"', lCapturedOutput) > 0,
     'Expected JSON summary to report internal_error. Output: ' + lCapturedOutput);
-  Assert.IsTrue(Pos('Resolved build output path does not exist: F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\temp\\mes-optset-output-missing\\bin\\Debug\\Win32\\MesGateCheck.exe',
-    lCapturedOutput) > 0,
+  lExpectedMessage := 'Resolved build output path does not exist: ' +
+    StringReplace(TPath.Combine(lProjectRoot, 'bin\Debug\Win32\MesGateCheck.exe'), '\', '\\', [rfReplaceAll]);
+  Assert.IsTrue(Pos(lExpectedMessage, lCapturedOutput) > 0,
     'Expected JSON summary to include the missing resolved output path. Output: ' + lCapturedOutput);
 end;
 
