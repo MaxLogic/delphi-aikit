@@ -2,28 +2,10 @@
 Next task ID: T-121
 
 ## Summary
-Open tasks: 2 (In Progress: 1, Next Today: 0, Next This Week: 1, Next Later: 0, Blocked: 0)
-Done tasks: 118
+Open tasks: 1 (In Progress: 1, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Done tasks: 119
 
 ## In Progress
-
-### T-119 [DOC] Add `delphi-lsp` repo skill and command docs
-Outcome:
-- A repo-local `delphi-lsp` skill teaches agents when to use `lsp` versus `deps`, `global-vars`, and text search.
-- README documents the new `lsp` verb, its core operations, and the `.dak/<ProjectName>/lsp/` artifact ownership rule.
-- Docs mention that `--rsvars` and `--envoptions` are optional advanced overrides rather than normal-use requirements.
-Proof:
-- Run: `rg -n "delphi-lsp|DelphiAIKit.exe lsp|\.dak/<ProjectName>/lsp|--rsvars|--envoptions" README.md agentskills`
-  Expect: Exit code `0`; the skill and command docs are present.
-Touches: agentskills/delphi-lsp/, README.md, CHANGELOG.md
-Deps: T-116, T-117, T-118
-Verify: cli-proof, manual
-Ceremony: reduced
-Notes: Plan: `.agents/plans/lsp.md`. Keep the skill routing-only; it should not teach agents to emulate raw JSON-RPC.
-
-## Next - Today
-
-## Next - This Week
 
 ### T-120 [CLI] Verify `lsp` end-to-end against a real `DelphiLSP.exe`
 Outcome:
@@ -44,11 +26,29 @@ Deps: T-116, T-117, T-118
 Verify: cli-proof, manual
 Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for the wrapper after the fake-server-backed contract tests are green.
 
+## Next - Today
+
+## Next - This Week
+
 ## Next - Later
 
 ## Blocked
 
 ## Done
+
+### T-119 [DOC] Add `delphi-lsp` repo skill and command docs
+Outcome:
+- A repo-local `delphi-lsp` skill teaches agents when to use `lsp` versus `deps`, `global-vars`, and text search.
+- README documents the new `lsp` verb, its core operations, and the `.dak/<ProjectName>/lsp/` artifact ownership rule.
+- Docs mention that `--rsvars` and `--envoptions` are optional advanced overrides rather than normal-use requirements.
+Proof:
+- Run: `rg -n "delphi-lsp|DelphiAIKit.exe lsp|\.dak/<ProjectName>/lsp|--rsvars|--envoptions" README.md agentskills`
+  Expect: Exit code `0`; the skill and command docs are present.
+Touches: agentskills/delphi-lsp/, README.md, CHANGELOG.md
+Deps: T-116, T-117, T-118
+Verify: cli-proof, manual
+Ceremony: reduced
+Notes: Plan: `.agents/plans/lsp.md`. Keep the skill routing-only; it should not teach agents to emulate raw JSON-RPC.
 
 ### T-118 [CLI] Implement `lsp symbols`
 Outcome:
