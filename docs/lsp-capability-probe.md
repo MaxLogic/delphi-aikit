@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`tools/lsp-capability-probe.py` compares the installed external `DelphiLSP.exe` capability matrix across two handshake modes:
+`DelphiAIKit.exe lsp probe` compares the installed external `DelphiLSP.exe` capability matrix across two handshake modes:
 
 - `contextFile`: DAK's current owned `.dak/<ProjectName>/lsp/context.delphilsp.json` flow
 - `settingsFile`: an official-style `.delphilsp.json` file plus `workspace/didChangeConfiguration`
@@ -44,7 +44,7 @@ On the locally installed Delphi 23.0 server, the missing external capabilities a
 Capability comparison:
 
 ```bash
-python3 tools/lsp-capability-probe.py \
+./bin/DelphiAIKit.exe lsp probe \
   --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj \
   --delphi 23.0 \
   --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" \
@@ -55,7 +55,7 @@ python3 tools/lsp-capability-probe.py \
 Official-style handshake details:
 
 ```bash
-python3 tools/lsp-capability-probe.py \
+./bin/DelphiAIKit.exe lsp probe \
   --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj \
   --delphi 23.0 \
   --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" \
