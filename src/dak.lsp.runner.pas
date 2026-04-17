@@ -155,6 +155,7 @@ begin
     lQueryObject := TJSONObject.Create;
     if aOptions.fLspOperation = TLspOperation.loSymbols then
     begin
+      AddJsonStringPair(lQueryObject, 'file', aRequestFilePath);
       AddJsonStringPair(lQueryObject, 'query', aOptions.fLspQuery);
       lQueryObject.AddPair('limit', TJSONNumber.Create(aOptions.fLspLimit));
     end else
@@ -199,8 +200,11 @@ begin
     lLines.AppendLine('operation: ' + aOperationName);
     lLines.AppendLine('project: ' + aContext.fProjectPath);
     if aOptions.fLspOperation = TLspOperation.loSymbols then
-      lLines.AppendLine('query: ' + aOptions.fLspQuery)
-    else
+    begin
+      lLines.AppendLine('file: ' + aRequestFilePath);
+      lLines.AppendLine('query: ' + aOptions.fLspQuery);
+      lLines.AppendLine('limit: ' + IntToStr(aOptions.fLspLimit));
+    end else
       lLines.AppendLine(Format('query: %s:%d:%d', [aRequestFilePath, aOptions.fLspLine, aOptions.fLspCol]));
     lLines.AppendLine('lsp: ' + aLspPath);
     lLines.Append('result: ' + aRawResultJson);
@@ -241,20 +245,29 @@ begin
   end;
 end;
 
-function BuildRequestParams(const aOptions: TAppOptions; const aFileUri: string): string;
+function BuildDocumentSymbolParams(const aFileUri: string): string;
 var
   lParams: TJSONObject;
+  lTextDocumentObject: TJSONObject;
 begin
-  if aOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover] then
-    Exit(BuildPositionParams(aOptions, aFileUri));
-
   lParams := TJSONObject.Create;
   try
-    AddJsonStringPair(lParams, 'query', aOptions.fLspQuery);
+    lTextDocumentObject := TJSONObject.Create;
+    AddJsonStringPair(lTextDocumentObject, 'uri', aFileUri);
+    lParams.AddPair('textDocument', lTextDocumentObject);
     Result := lParams.ToJSON;
   finally
     lParams.Free;
   end;
+end;
+
+function BuildRequestParams(const aOptions: TAppOptions; const aFileUri: string): string;
+begin
+  if aOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover] then
+    Exit(BuildPositionParams(aOptions, aFileUri));
+  if aOptions.fLspOperation = TLspOperation.loSymbols then
+    Exit(BuildDocumentSymbolParams(aFileUri));
+  Result := '{}';
 end;
 
 function BuildDidOpenParams(const aFilePath: string): string;
@@ -603,7 +616,7 @@ begin
   end;
 end;
 
-function BuildNormalizedSymbolObject(aSymbolValue: TJSONValue): TJSONObject;
+function BuildNormalizedSymbolInformationObject(aSymbolValue: TJSONValue): TJSONObject;
 var
   lLocationObject: TJSONObject;
   lLocationValue: TJSONValue;
@@ -634,6 +647,86 @@ begin
   finally
     lLocationObject.Free;
   end;
+end;
+
+function BuildNormalizedDocumentSymbolObject(const aFilePath, aContainerName: string;
+  aSymbolObject: TJSONObject): TJSONObject;
+var
+  lRangeObject: TJSONObject;
+  lRangeValue: TJSONValue;
+  lResult: TJSONObject;
+begin
+  Result := nil;
+  if aSymbolObject = nil then
+    Exit(nil);
+
+  lRangeValue := aSymbolObject.Values['selectionRange'];
+  if lRangeValue = nil then
+    lRangeValue := aSymbolObject.Values['range'];
+
+  lRangeObject := BuildNormalizedRangeObject(lRangeValue);
+  if lRangeObject = nil then
+    Exit(nil);
+  try
+    lResult := TJSONObject.Create;
+    AddJsonStringPair(lResult, 'name', aSymbolObject.GetValue<string>('name', ''));
+    lResult.AddPair('kind', TJSONNumber.Create(aSymbolObject.GetValue<Integer>('kind', 0)));
+    AddJsonStringPair(lResult, 'containerName', aContainerName);
+    AddJsonStringPair(lResult, 'file', aFilePath);
+    lResult.AddPair('line', TJSONNumber.Create(lRangeObject.GetValue<Integer>('line', 0)));
+    lResult.AddPair('col', TJSONNumber.Create(lRangeObject.GetValue<Integer>('col', 0)));
+    Result := lResult;
+  finally
+    lRangeObject.Free;
+  end;
+end;
+
+procedure CollectNormalizedSymbols(aTarget: TObjectList<TJSONObject>; aResultValue: TJSONValue;
+  const aFilePath, aContainerName: string);
+var
+  lChildrenValue: TJSONValue;
+  lItemValue: TJSONValue;
+  lNextContainerName: string;
+  lSymbolObject: TJSONObject;
+  lValueObject: TJSONObject;
+begin
+  if (aResultValue = nil) or (aResultValue is TJSONNull) then
+    Exit;
+
+  if aResultValue is TJSONArray then
+  begin
+    for lItemValue in aResultValue as TJSONArray do
+      CollectNormalizedSymbols(aTarget, lItemValue, aFilePath, aContainerName);
+    Exit;
+  end;
+
+  if not (aResultValue is TJSONObject) then
+    Exit;
+  lValueObject := aResultValue as TJSONObject;
+
+  if lValueObject.Values['location'] <> nil then
+    lSymbolObject := BuildNormalizedSymbolInformationObject(aResultValue)
+  else
+    lSymbolObject := BuildNormalizedDocumentSymbolObject(aFilePath, aContainerName, lValueObject);
+  if lSymbolObject <> nil then
+    aTarget.Add(lSymbolObject);
+
+  lChildrenValue := lValueObject.Values['children'];
+  if lChildrenValue <> nil then
+  begin
+    lNextContainerName := lValueObject.GetValue<string>('name', aContainerName);
+    CollectNormalizedSymbols(aTarget, lChildrenValue, aFilePath, lNextContainerName);
+  end;
+end;
+
+function SymbolMatchesQuery(aSymbolObject: TJSONObject; const aQuery: string): Boolean;
+var
+  lQuery: string;
+begin
+  lQuery := Trim(aQuery);
+  if lQuery = '' then
+    Exit(True);
+  Result := Pos(LowerCase(lQuery), LowerCase(aSymbolObject.GetValue<string>('name', ''))) > 0;
 end;
 
 function CompareIntegerValues(aLeft, aRight: Integer): Integer;
@@ -695,36 +788,32 @@ begin
   Result := CompareOrdinalStrings(aLeft.GetValue<string>('containerName', ''), aRight.GetValue<string>('containerName', ''));
 end;
 
-function BuildNormalizedSymbolsResult(aLimit: Integer; aResultValue: TJSONValue): string;
+function BuildNormalizedSymbolsResult(const aFilePath, aQuery: string; aLimit: Integer;
+  aResultValue: TJSONValue): string;
 var
   lResultObject: TJSONObject;
   lSymbolList: TObjectList<TJSONObject>;
   lSymbolObject: TJSONObject;
   lSymbolsArray: TJSONArray;
-  lSymbolValue: TJSONValue;
 begin
   lResultObject := TJSONObject.Create;
   lSymbolList := TObjectList<TJSONObject>.Create(True);
   try
     lSymbolsArray := TJSONArray.Create;
     lResultObject.AddPair('symbols', lSymbolsArray);
-    if aResultValue is TJSONArray then
+    CollectNormalizedSymbols(lSymbolList, aResultValue, aFilePath, '');
+    lSymbolList.Sort(TComparer<TJSONObject>.Construct(CompareNormalizedSymbols));
+    while lSymbolList.Count > 0 do
     begin
-      for lSymbolValue in aResultValue as TJSONArray do
+      lSymbolObject := lSymbolList.Extract(lSymbolList[0]);
+      if not SymbolMatchesQuery(lSymbolObject, aQuery) then
       begin
-        lSymbolObject := BuildNormalizedSymbolObject(lSymbolValue);
-        if lSymbolObject <> nil then
-          lSymbolList.Add(lSymbolObject);
+        lSymbolObject.Free;
+        Continue;
       end;
-
-      lSymbolList.Sort(TComparer<TJSONObject>.Construct(CompareNormalizedSymbols));
-      while lSymbolList.Count > 0 do
-      begin
-        lSymbolObject := lSymbolList.Extract(lSymbolList[0]);
-        lSymbolsArray.AddElement(lSymbolObject);
-        if (aLimit > 0) and (lSymbolsArray.Count >= aLimit) then
-          Break;
-      end;
+      lSymbolsArray.AddElement(lSymbolObject);
+      if (aLimit > 0) and (lSymbolsArray.Count >= aLimit) then
+        Break;
     end;
     Result := lResultObject.ToJSON;
   finally
@@ -733,7 +822,8 @@ begin
   end;
 end;
 
-function BuildOperationResultText(const aOptions: TAppOptions; aResponse: TJSONObject): string;
+function BuildOperationResultText(const aOptions: TAppOptions; const aRequestFilePath: string;
+  aResponse: TJSONObject): string;
 var
   lResultValue: TJSONValue;
 begin
@@ -746,7 +836,7 @@ begin
     TLspOperation.loHover:
       Result := BuildNormalizedHoverResult(lResultValue);
     TLspOperation.loSymbols:
-      Result := BuildNormalizedSymbolsResult(aOptions.fLspLimit, lResultValue);
+      Result := BuildNormalizedSymbolsResult(aRequestFilePath, aOptions.fLspQuery, aOptions.fLspLimit, lResultValue);
   else
     Result := ExtractRawResultText(aResponse);
   end;
@@ -808,7 +898,7 @@ begin
     TLspOperation.loHover:
       Result := 'textDocument/hover';
     TLspOperation.loSymbols:
-      Result := 'workspace/symbol';
+      Result := 'textDocument/documentSymbol';
   else
     Result := '';
   end;
@@ -820,19 +910,64 @@ begin
     TLspOperation.loReferences:
       Result := 'referencesProvider';
     TLspOperation.loSymbols:
-      Result := 'workspaceSymbolProvider';
+      Result := 'documentSymbolProvider';
   else
     Result := '';
   end;
 end;
 
-function TryEnsureOperationSupported(const aInitResponse: TJSONObject; aOperation: TLspOperation;
-  out aError: string): Boolean;
+function BuildAdvertisedCapabilitiesText(const aInitResponse: TJSONObject): string;
+var
+  lCapabilitiesObject: TJSONObject;
+  lPair: TJSONPair;
+  lResultObject: TJSONObject;
+  lValues: TList<string>;
+begin
+  Result := '';
+  if not (aInitResponse.Values['result'] is TJSONObject) then
+    Exit('');
+  lResultObject := aInitResponse.Values['result'] as TJSONObject;
+  if not (lResultObject.Values['capabilities'] is TJSONObject) then
+    Exit('');
+  lCapabilitiesObject := lResultObject.Values['capabilities'] as TJSONObject;
+  lValues := TList<string>.Create;
+  try
+    for lPair in lCapabilitiesObject do
+    begin
+      if (lPair.JsonValue <> nil) and not (lPair.JsonValue is TJSONFalse) then
+        lValues.Add(lPair.JsonString.Value);
+    end;
+    Result := String.Join(', ', lValues.ToArray);
+  finally
+    lValues.Free;
+  end;
+end;
+
+function BuildUnsupportedCapabilityError(const aInitResponse: TJSONObject; const aContext: TLspContext;
+  const aLspPath: string; aOperation: TLspOperation; const aReason: string): string;
+var
+  lAdvertised: string;
+  lFallback: string;
+  lRequestMethod: string;
+begin
+  lRequestMethod := LspRequestMethod(aOperation);
+  lAdvertised := BuildAdvertisedCapabilitiesText(aInitResponse);
+  lFallback := '';
+  if aOperation = TLspOperation.loReferences then
+    lFallback := ' Use deps, global-vars, or rg as a fallback.';
+  Result := Format('Installed DelphiLSP at %s for Delphi %s does not advertise support for %s (%s).',
+    [aLspPath, aContext.fDelphiVersion, lRequestMethod, aReason]);
+  if lAdvertised <> '' then
+    Result := Result + ' Advertised capabilities: ' + lAdvertised + '.';
+  Result := Result + lFallback;
+end;
+
+function TryEnsureOperationSupported(const aInitResponse: TJSONObject; const aContext: TLspContext;
+  const aLspPath: string; aOperation: TLspOperation; out aError: string): Boolean;
 var
   lCapabilitiesObject: TJSONObject;
   lCapabilityName: string;
   lCapabilityValue: TJSONValue;
-  lRequestMethod: string;
   lResultObject: TJSONObject;
 begin
   aError := '';
@@ -841,18 +976,25 @@ begin
     Exit(True);
 
   if not (aInitResponse.Values['result'] is TJSONObject) then
-    Exit(True);
+  begin
+    aError := BuildUnsupportedCapabilityError(aInitResponse, aContext, aLspPath, aOperation,
+      'initialize result omitted capabilities');
+    Exit(False);
+  end;
   lResultObject := aInitResponse.Values['result'] as TJSONObject;
   if not (lResultObject.Values['capabilities'] is TJSONObject) then
-    Exit(True);
+  begin
+    aError := BuildUnsupportedCapabilityError(aInitResponse, aContext, aLspPath, aOperation,
+      'initialize result omitted capabilities');
+    Exit(False);
+  end;
   lCapabilitiesObject := lResultObject.Values['capabilities'] as TJSONObject;
   lCapabilityValue := lCapabilitiesObject.Values[lCapabilityName];
   if (lCapabilityValue <> nil) and not (lCapabilityValue is TJSONFalse) then
     Exit(True);
 
-  lRequestMethod := LspRequestMethod(aOperation);
-  aError := Format('Installed DelphiLSP does not advertise support for %s (missing %s in initialize capabilities).',
-    [lRequestMethod, lCapabilityName]);
+  aError := BuildUnsupportedCapabilityError(aInitResponse, aContext, aLspPath, aOperation,
+    Format('missing %s in initialize capabilities', [lCapabilityName]));
   Result := False;
 end;
 
@@ -860,8 +1002,6 @@ function TryResolveRequestFilePath(const aOptions: TAppOptions; out aFilePath: s
 begin
   aFilePath := '';
   aError := '';
-  if aOptions.fLspOperation = TLspOperation.loSymbols then
-    Exit(True);
   if not TryResolveAbsolutePath(aOptions.fLspFilePath, aFilePath, aError) then
     Exit(False);
   if not FileExists(aFilePath) then
@@ -1183,8 +1323,10 @@ begin
         FILE_ATTRIBUTE_NORMAL, 0);
       if lStdErrHandle = INVALID_HANDLE_VALUE then
       begin
-        aError := 'Failed to create DelphiLSP stderr log.';
-        Exit(False);
+        lStdErrHandle := CreateFile('NUL', GENERIC_WRITE, FILE_SHARE_READ or FILE_SHARE_WRITE, @lSa, OPEN_EXISTING,
+          FILE_ATTRIBUTE_NORMAL, 0);
+        if lStdErrHandle = INVALID_HANDLE_VALUE then
+          lStdErrHandle := GetStdHandle(STD_ERROR_HANDLE);
       end;
     end else
       lStdErrHandle := GetStdHandle(STD_ERROR_HANDLE);
@@ -1297,7 +1439,7 @@ begin
       Exit(False);
     end;
 
-    if not TryEnsureOperationSupported(lInitResponse, aOptions.fLspOperation, lError) then
+    if not TryEnsureOperationSupported(lInitResponse, aContext, lLspPath, aOptions.fLspOperation, lError) then
     begin
       aError := lError;
       Exit(False);
@@ -1309,16 +1451,12 @@ begin
       Exit(False);
     end;
 
-    if aOptions.fLspOperation <> TLspOperation.loSymbols then
+    if not lClient.SendNotification('textDocument/didOpen', BuildDidOpenParams(lRequestFilePath), lError) then
     begin
-      if not lClient.SendNotification('textDocument/didOpen', BuildDidOpenParams(lRequestFilePath), lError) then
-      begin
-        aError := 'DelphiLSP didOpen failed: ' + lError;
-        Exit(False);
-      end;
-      lRequestParams := BuildRequestParams(aOptions, FilePathToURL(lRequestFilePath));
-    end else
-      lRequestParams := BuildRequestParams(aOptions, '');
+      aError := 'DelphiLSP didOpen failed: ' + lError;
+      Exit(False);
+    end;
+    lRequestParams := BuildRequestParams(aOptions, FilePathToURL(lRequestFilePath));
 
     if not lClient.SendRequest(2, lRequestMethod, lRequestParams, lRequestResponse, lError) then
     begin
@@ -1337,7 +1475,7 @@ begin
       Exit(False);
     end;
 
-    lResponseText := BuildOperationResultText(aOptions, lRequestResponse);
+    lResponseText := BuildOperationResultText(aOptions, lRequestFilePath, lRequestResponse);
     aResult.fLspPath := lLspPath;
     aResult.fResponseText := BuildOperationEnvelope(aOptions, aContext, lLspPath, lOperationName, lRequestFilePath,
       lResponseText);

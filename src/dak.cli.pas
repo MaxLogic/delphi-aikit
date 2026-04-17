@@ -1702,13 +1702,16 @@ begin
       fError := SLspMissingOperation;
       Exit(False);
     end;
-    if fOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover] then
+    if fOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover, TLspOperation.loSymbols] then
     begin
       if fOptions.fLspFilePath = '' then
       begin
         fError := Format(SArgMissingValue, ['--file']);
         Exit(False);
       end;
+    end;
+    if fOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover] then
+    begin
       if fOptions.fLspLine < 1 then
       begin
         fError := Format(SArgMissingValue, ['--line']);
