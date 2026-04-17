@@ -70,6 +70,14 @@ type
     procedure LspHoverTextOutputStaysCompact;
     [Test]
     procedure LspHoverRepresentsEmptyResultsExplicitly;
+    [Test]
+    procedure LspSymbolsReturnNormalizedMatches;
+    [Test]
+    procedure LspSymbolsRespectLimit;
+    [Test]
+    procedure LspSymbolsLimitUsesStableOrderingBeforeTrim;
+    [Test]
+    procedure LspSymbolsRepresentEmptyResultsExplicitly;
   end;
 
 implementation
@@ -1360,6 +1368,173 @@ begin
       Assert.AreEqual<string>('', (lJson.Values['result'] as TJSONObject).GetValue<string>('contentsText'),
         'Expected empty hover contentsText.');
       Assert.IsFalse(Assigned((lJson.Values['result'] as TJSONObject).Values['range']), 'Did not expect hover range for empty result.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspSymbolsReturnNormalizedMatches;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+  lSymbols: TJSONArray;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-symbols-normalized', lContext);
+  lScriptPath := CreateScriptFile('symbols-normalized',
+    '{"responses":{"workspace/symbol":[{"name":"TFixtureType","kind":5,"containerName":"Unit1","location":{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}},{"name":"TFixtureHelper","kind":5,"containerName":"Unit1","location":{"uri":"file:///C:/repo/Unit2.pas","range":{"start":{"line":6,"character":1},"end":{"line":6,"character":12}}}}]}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loSymbols;
+    lOptions.fLspQuery := 'Fixture';
+    lOptions.fLspLimit := 10;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected symbols request to succeed. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
+      Assert.IsNotNull(lSymbols, 'Expected normalized symbols array.');
+      Assert.AreEqual(2, lSymbols.Count, 'Expected all scripted symbols.');
+      Assert.AreEqual<string>('TFixtureType', (lSymbols.Items[0] as TJSONObject).GetValue<string>('name'), 'Expected symbol name.');
+      Assert.AreEqual(5, (lSymbols.Items[0] as TJSONObject).GetValue<Integer>('kind'), 'Expected symbol kind.');
+      Assert.AreEqual<string>('Unit1', (lSymbols.Items[0] as TJSONObject).GetValue<string>('containerName'), 'Expected container name.');
+      Assert.AreEqual<string>('C:\repo\Unit1.pas', (lSymbols.Items[0] as TJSONObject).GetValue<string>('file'), 'Expected normalized file path.');
+      Assert.AreEqual(3, (lSymbols.Items[0] as TJSONObject).GetValue<Integer>('line'), 'Expected 1-based line.');
+      Assert.AreEqual(5, (lSymbols.Items[0] as TJSONObject).GetValue<Integer>('col'), 'Expected 1-based col.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspSymbolsRespectLimit;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+  lSymbols: TJSONArray;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-symbols-limit', lContext);
+  lScriptPath := CreateScriptFile('symbols-limit',
+    '{"responses":{"workspace/symbol":[{"name":"MalformedSymbol","kind":5,"containerName":"Unit1"},{"name":"TFixtureType","kind":5,"containerName":"Unit1","location":{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}},{"name":"TFixtureHelper","kind":5,"containerName":"Unit1","location":{"uri":"file:///C:/repo/Unit2.pas","range":{"start":{"line":6,"character":1},"end":{"line":6,"character":12}}}}]}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loSymbols;
+    lOptions.fLspQuery := 'Fixture';
+    lOptions.fLspLimit := 1;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected limited symbols request to succeed. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
+      Assert.IsNotNull(lSymbols, 'Expected normalized symbols array.');
+      Assert.AreEqual(1, lSymbols.Count, 'Expected symbols limit to trim the result set.');
+      Assert.AreEqual<string>('TFixtureType', (lSymbols.Items[0] as TJSONObject).GetValue<string>('name'), 'Expected first symbol to be preserved.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspSymbolsLimitUsesStableOrderingBeforeTrim;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+  lSymbols: TJSONArray;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-symbols-stable-limit', lContext);
+  lScriptPath := CreateScriptFile('symbols-stable-limit',
+    '{"responses":{"workspace/symbol":[{"name":"TBeta","kind":5,"containerName":"UnitZ","location":{"uri":"file:///C:/repo/UnitZ.pas","range":{"start":{"line":8,"character":2},"end":{"line":8,"character":9}}}},{"name":"TAlpha","kind":5,"containerName":"UnitA","location":{"uri":"file:///C:/repo/UnitA.pas","range":{"start":{"line":1,"character":1},"end":{"line":1,"character":8}}}},{"name":"TGamma","kind":5,"containerName":"UnitM","location":{"uri":"file:///C:/repo/UnitM.pas","range":{"start":{"line":4,"character":3},"end":{"line":4,"character":10}}}}]}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loSymbols;
+    lOptions.fLspQuery := 'T';
+    lOptions.fLspLimit := 2;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected stable limited symbols request to succeed. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
+      Assert.IsNotNull(lSymbols, 'Expected normalized symbols array.');
+      Assert.AreEqual(2, lSymbols.Count, 'Expected symbols limit to trim the result set.');
+      Assert.AreEqual<string>('TAlpha', (lSymbols.Items[0] as TJSONObject).GetValue<string>('name'),
+        'Expected stable ordering to sort before trimming.');
+      Assert.AreEqual<string>('TGamma', (lSymbols.Items[1] as TJSONObject).GetValue<string>('name'),
+        'Expected stable ordering to keep the next sorted symbol.');
+    finally
+      lJson.Free;
+    end;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspSymbolsRepresentEmptyResultsExplicitly;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lJson: TJSONObject;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+  lSymbols: TJSONArray;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lDprojPath := PrepareResolvedContext('lsp-symbols-empty', lContext);
+  lScriptPath := CreateScriptFile('symbols-empty',
+    '{"responses":{"workspace/symbol":[]}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loSymbols;
+    lOptions.fLspQuery := 'Missing';
+    lOptions.fLspLimit := 10;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lError := '';
+    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected empty symbols request to succeed. Error: ' + lError);
+    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    try
+      lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
+      Assert.IsNotNull(lSymbols, 'Expected explicit empty symbols array.');
+      Assert.AreEqual(0, lSymbols.Count, 'Expected empty symbols result.');
     finally
       lJson.Free;
     end;
