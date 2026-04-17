@@ -18,6 +18,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added one-shot `lsp` execution for `definition`/`references`/`hover`/`symbols`, including DelphiLSP discovery from explicit path or resolved Delphi install, JSON/text envelopes, owned `.dak/<ProjectName>/lsp/` context artifacts, and deterministic fake-server-backed lifecycle coverage. (T-110, T-111, T-112, T-113, T-114, T-115)
 - Added normalized `lsp definition` and `lsp references` results with stable DAK location objects, 1-based coordinates, support for host-qualified file URIs, and `--include-declaration` filtering. (T-116)
 - Added normalized `lsp hover` results with `contentsText`, optional markdown/range data, explicit empty-result signaling, and compact text output. (T-117)
+- Added normalized `lsp symbols` results with stable symbol rows, explicit empty arrays, and deterministic ordinal sorting before `--limit` trimming. (T-118)
 - Added `dfm-inspect` with `tree` and `summary` output for lightweight text DFM inspection. (T-081)
 - Added shared source-context snippets for resolved build and `dfm-check` failures, with `--source-context` / `--source-context-lines` CLI overrides and `[Diagnostics]` `dak.ini` defaults. (T-082)
 - Added madExcept integration to `build-delphi.bat` with optional `dak.ini` key `[MadExcept].Path` and fallback discovery from common install locations.
