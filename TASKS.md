@@ -2,8 +2,8 @@
 Next task ID: T-126
 
 ## Summary
-Open tasks: 6 (In Progress: 0, Next Today: 0, Next This Week: 4, Next Later: 0, Blocked: 2)
-Done tasks: 119
+Open tasks: 5 (In Progress: 0, Next Today: 0, Next This Week: 3, Next Later: 0, Blocked: 2)
+Done tasks: 120
 
 ## In Progress
 
@@ -11,18 +11,6 @@ Done tasks: 119
 
 ## Next - This Week
 
-### T-121 [DOC] Update public `lsp` docs for Delphi 23 external capability limits
-Outcome:
-- README and the repo-local `delphi-lsp` skill describe the verified Delphi 23 external capability matrix: `definition`, `hover`, and file-scoped `documentSymbol`-backed `symbols` are supported; `references` is version-gated.
-- Public docs stop describing `symbols` as a workspace-wide search on Delphi 23.
-- Public docs mention that we will revisit Delphi 13.x as soon as it is installed locally.
-Proof:
-- Run: `rg -n "documentSymbol|file-scoped|version-gated|Delphi 13" README.md agentskills/delphi-lsp`
-  Expect: Exit code `0`; the updated capability guidance is present in user-facing docs.
-Touches: README.md, agentskills/delphi-lsp/SKILL.md, agentskills/delphi-lsp/setup.md
-Verify: manual
-Ceremony: reduced
-Notes: Internal plan already rebaselined in `.agents/plans/lsp.md`; this task is the public-doc follow-through.
 
 ### T-122 [CLI] Rework `lsp symbols` around `textDocument/documentSymbol`
 Outcome:
@@ -106,6 +94,20 @@ Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for 
 Blocked: The installed Delphi 23.0 `DelphiLSP.exe` advertises `definitionProvider`, `declarationProvider`, `implementationProvider`, `documentSymbolProvider`, and `hoverProvider`, but not `referencesProvider` or `workspaceSymbolProvider`. Real proof on 2026-04-17: `definition` at `Unit1.pas:8:21` returns a non-empty location; `references` fails with `Installed DelphiLSP does not advertise support for textDocument/references ...`; `symbols` fails with `Installed DelphiLSP does not advertise support for workspace/symbol ...`; `hover` returns an explicit empty result on the fixture query. DAK now surfaces those unsupported capabilities clearly, but full T-120 acceptance remains blocked on upstream DelphiLSP capability expansion or a separately planned fallback design.
 
 ## Done
+
+### T-121 [DOC] Update public `lsp` docs for Delphi 23 external capability limits
+Outcome:
+- README and the repo-local `delphi-lsp` skill describe the verified Delphi 23 external capability matrix: `definition`, `hover`, and file-scoped `documentSymbol`-backed `symbols` are supported; `references` is version-gated.
+- Public docs stop describing `symbols` as a workspace-wide search on Delphi 23.
+- Public docs mention that we will revisit Delphi 13.x as soon as it is installed locally.
+Proof:
+- Run: `rg -n "documentSymbol|file-scoped|version-gated|Delphi 13" README.md agentskills/delphi-lsp`
+  Expect: Exit code `0`; the updated capability guidance is present in user-facing docs.
+Touches: README.md, agentskills/delphi-lsp/SKILL.md, agentskills/delphi-lsp/setup.md
+Verify: manual
+Ceremony: reduced
+Notes: Internal plan already rebaselined in `.agents/plans/lsp.md`; this task is the public-doc follow-through.
+
 
 ### T-119 [DOC] Add `delphi-lsp` repo skill and command docs
 Outcome:
