@@ -13,7 +13,7 @@
 - Inspect text DFM component trees and event bindings via `dfm-inspect`
 - Analyze project-level globals via `global-vars` with JSON/text reports, ambiguity reporting, and SQLite caching
 - Analyze project unit dependencies via `deps` with JSON-first topology output, text summaries, focused unit views, and cycle reporting
-- Navigate Delphi symbols semantically via `lsp` with `definition`, `references`, `hover`, and `symbols` queries backed by `DelphiLSP.exe`
+- Navigate Delphi symbols semantically via `lsp` with `definition`, `hover`, file-scoped `symbols`, and version-gated `references` queries backed by `DelphiLSP.exe`
 
 ## Good use cases
 
@@ -21,7 +21,7 @@
 - Reproducing the exact IDE configuration in a headless environment
 - Comparing config differences between platforms or build types
 - Understanding which Delphi units a broken area depends on before we start AI-assisted debugging or refactoring
-- Jumping from a symbol use site to its definition, references, hover text, or matching workspace symbols without guessing from raw text search
+- Jumping from a symbol use site to its definition, hover text, file-scoped document symbols, or version-gated references without guessing from raw text search
 
 ## Repo-local AI skills
 
@@ -32,7 +32,7 @@ The [`agentskills/`](agentskills/) folder contains repo-local skills that help A
 - `delphi-dfm-check`: inspect and validate `.dfm`-backed forms through `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
 - `delphi-global-vars`: analyze project-level globals, declaration sites, and read/write usage before refactoring shared state.
 - `delphi-project-unit-topology`: use `DelphiAIKit.exe deps` to inspect project unit topology, unresolved unit references, focused unit neighborhoods, and resolved project-unit cycles. Useful for questions like "why is this unit included?", "what fans into this area?", and "do we have cycles?"
-- `delphi-lsp`: use `DelphiAIKit.exe lsp` for semantic symbol navigation. Prefer it for definition/reference/hover/symbol lookup; switch back to `deps`, `global-vars`, or `rg` when the question is not semantic navigation.
+- `delphi-lsp`: use `DelphiAIKit.exe lsp` for semantic symbol navigation. Prefer it for definition/hover and file-scoped symbol lookup; use `references` only when the external DelphiLSP capability set supports it, and switch back to `deps`, `global-vars`, or `rg` when the question is not semantic navigation.
 
 ## Requirements
 
@@ -184,7 +184,7 @@ To navigate Delphi symbols semantically:
 
 ```
 bin\DelphiAIKit.exe lsp definition --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --line 42 --col 17 --format json
-bin\DelphiAIKit.exe lsp symbols --project "C:\path\Project.dproj" --query "Customer" --format json
+bin\DelphiAIKit.exe lsp symbols --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --query "Customer" --format json
 ```
 
 `deps` is JSON-first. The JSON contract is intended for tooling and AI agents and includes:
@@ -258,15 +258,15 @@ If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-onl
 
 Use it for:
 - symbol definition lookup
-- reference lookup
 - hover/type information
-- workspace symbol search
+- file-scoped symbol search via `textDocument/documentSymbol`
+- reference lookup when the external DelphiLSP build advertises `referencesProvider`
 
 Core operations:
 - `definition`
-- `references`
+- `references` (version-gated on the external DelphiLSP capability set)
 - `hover`
-- `symbols`
+- `symbols` (file-scoped on Delphi 23 external `DelphiLSP.exe`)
 
 Examples:
 
@@ -283,15 +283,18 @@ bin\DelphiAIKit.exe lsp hover --project "C:\path\Project.dproj" --file "C:\path\
 ```
 
 ```
-bin\DelphiAIKit.exe lsp symbols --project "C:\path\Project.dproj" --query "Customer" --limit 20 --format json
+bin\DelphiAIKit.exe lsp symbols --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --query "Customer" --limit 20 --format json
 ```
 
 Rules:
 - prefer `--format json` for agent/tool consumption
 - `--line` and `--col` are 1-based
+- `symbols` is file-scoped on Delphi 23 external `DelphiLSP.exe`; pass `--file` and treat results as `documentSymbol` output, not workspace-wide search
+- `references` is version-gated on the external DelphiLSP capability set; if `referencesProvider` is absent, use `deps`, `global-vars`, or `rg` instead
 - generated context and logs live under sibling `.dak/<ProjectName>/lsp/`
 - `--rsvars` and `--envoptions` are optional advanced overrides, not normal-use requirements
 - unlike `deps` or `global-vars`, `lsp` hard-fails when DAK cannot build a real Delphi semantic context
+- Delphi 13.x will be rechecked as soon as it is installed locally; current external-server guidance is based on verified Delphi 23 behavior
 
 Routing guidance:
 - use `lsp` for semantic navigation questions
@@ -301,9 +304,9 @@ Routing guidance:
 
 The JSON result contract is operation-specific:
 - `definition` returns `result.locations[]`
-- `references` returns `result.references[]`
+- `references` returns `result.references[]` when the external DelphiLSP build supports `textDocument/references`
 - `hover` returns `result.contentsText` plus optional markdown/range data
-- `symbols` returns `result.symbols[]`
+- `symbols` returns `result.symbols[]` from file-scoped `documentSymbol` data
 
 ## `global-vars`
 
