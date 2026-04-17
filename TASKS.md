@@ -2,10 +2,18 @@
 Next task ID: T-121
 
 ## Summary
-Open tasks: 1 (In Progress: 1, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 0)
+Open tasks: 1 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 1)
 Done tasks: 119
 
 ## In Progress
+
+## Next - Today
+
+## Next - This Week
+
+## Next - Later
+
+## Blocked
 
 ### T-120 [CLI] Verify `lsp` end-to-end against a real `DelphiLSP.exe`
 Outcome:
@@ -26,13 +34,7 @@ Deps: T-116, T-117, T-118
 Verify: cli-proof, manual
 Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for the wrapper after the fake-server-backed contract tests are green.
 
-## Next - Today
-
-## Next - This Week
-
-## Next - Later
-
-## Blocked
+Blocked: The installed Delphi 23.0 `DelphiLSP.exe` advertises `definitionProvider`, `declarationProvider`, `implementationProvider`, `documentSymbolProvider`, and `hoverProvider`, but not `referencesProvider` or `workspaceSymbolProvider`. Real proof on 2026-04-17: `definition` at `Unit1.pas:8:21` returns a non-empty location; `references` fails with `Installed DelphiLSP does not advertise support for textDocument/references ...`; `symbols` fails with `Installed DelphiLSP does not advertise support for workspace/symbol ...`; `hover` returns an explicit empty result on the fixture query. DAK now surfaces those unsupported capabilities clearly, but full T-120 acceptance remains blocked on upstream DelphiLSP capability expansion or a separately planned fallback design.
 
 ## Done
 
