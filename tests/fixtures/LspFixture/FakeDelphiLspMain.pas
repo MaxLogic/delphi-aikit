@@ -290,6 +290,48 @@ begin
   Result := False;
 end;
 
+function TryCheckNotificationExpectation(aScript: TJSONObject; const aMethod: string; aMessage: TJSONObject;
+  aNotificationIndex: Integer; out aErrorMessage: string): Boolean;
+var
+  lExpectedItem: TJSONValue;
+  lExpectedMethod: string;
+  lExpectedObject: TJSONObject;
+  lExpectations: TJSONArray;
+  lValue: TJSONValue;
+begin
+  Result := True;
+  aErrorMessage := '';
+  lValue := nil;
+  if aScript <> nil then
+    lValue := aScript.Values['expectNotifications'];
+  if not (lValue is TJSONArray) then
+    Exit(True);
+  lExpectations := lValue as TJSONArray;
+  if (aNotificationIndex < 0) then
+    Exit(True);
+  if aNotificationIndex >= lExpectations.Count then
+  begin
+    aErrorMessage := 'Unexpected notification received for ' + aMethod + '.';
+    Exit(False);
+  end;
+
+  lExpectedItem := lExpectations.Items[aNotificationIndex];
+  if not (lExpectedItem is TJSONObject) then
+    Exit(True);
+  lExpectedObject := lExpectedItem as TJSONObject;
+  lExpectedMethod := lExpectedObject.GetValue<string>('method', '');
+  if (lExpectedMethod <> '') and not SameText(lExpectedMethod, aMethod) then
+  begin
+    aErrorMessage := 'Notification expectation failed for ' + aMethod + '.';
+    Exit(False);
+  end;
+  if not JsonValuesMatch(lExpectedObject.Values['params'], aMessage.Values['params']) then
+  begin
+    aErrorMessage := 'Notification expectation failed for ' + aMethod + '.';
+    Exit(False);
+  end;
+end;
+
 procedure SendResult(aOutput: THandleStream; aId: TJSONValue; aResult: TJSONValue);
 var
   lResponse: TJSONObject;
@@ -334,6 +376,7 @@ var
   lMessage: TJSONObject;
   lMethod: string;
   lOpenedDocuments: TDictionary<string, Boolean>;
+  lNotificationIndex: Integer;
   lOutput: THandleStream;
   lRequireOpenedDocuments: Boolean;
   lResultValue: TJSONValue;
@@ -355,6 +398,7 @@ begin
     lInput := THandleStream.Create(GetStdHandle(STD_INPUT_HANDLE));
     lOpenedDocuments := TDictionary<string, Boolean>.Create;
     lOutput := THandleStream.Create(GetStdHandle(STD_OUTPUT_HANDLE));
+    lNotificationIndex := 0;
     lShouldExit := False;
     while not lShouldExit do
     begin
@@ -371,16 +415,19 @@ begin
           Continue;
         end;
 
-        if SameText(lMethod, 'textDocument/didOpen') then
-        begin
-          if TryGetTextDocumentUri(lMessage, lUri) then
-            lOpenedDocuments.AddOrSetValue(lUri, True);
-          Continue;
-        end;
-
         lIdValue := lMessage.Values['id'];
         if lIdValue = nil then
+        begin
+          if SameText(lMethod, 'textDocument/didOpen') then
+          begin
+            if TryGetTextDocumentUri(lMessage, lUri) then
+              lOpenedDocuments.AddOrSetValue(lUri, True);
+          end;
+          if not TryCheckNotificationExpectation(lScript, lMethod, lMessage, lNotificationIndex, lExpectationError) then
+            raise Exception.Create(lExpectationError);
+          Inc(lNotificationIndex);
           Continue;
+        end;
 
         if SameText(lMethod, 'initialize') then
         begin
@@ -389,12 +436,23 @@ begin
             SendError(lOutput, lIdValue, lErrorCode, lErrorMessage);
             Continue;
           end;
+          if not TryCheckScriptExpectation(lScript, lMethod, lMessage, lExpectationError) then
+          begin
+            SendError(lOutput, lIdValue, -32003, lExpectationError);
+            Continue;
+          end;
           SendResult(lOutput, lIdValue, BuildInitializeResult(lScript));
           Continue;
         end;
 
         if SameText(lMethod, 'shutdown') then
         begin
+          if (lScript.Values['expectNotifications'] is TJSONArray) and
+            (lNotificationIndex < (lScript.Values['expectNotifications'] as TJSONArray).Count) then
+          begin
+            SendError(lOutput, lIdValue, -32004, 'Missing expected notifications.');
+            Continue;
+          end;
           SendResult(lOutput, lIdValue, TJSONNull.Create);
           Continue;
         end;

@@ -20,8 +20,10 @@ type
   TGlobalVarsRefresh = (gvrAuto, gvrForce);
   TDepsFormat = (dfJson, dfText);
   TSourceContextMode = (scmAuto, scmOff, scmOn);
-  TLspOperation = (loNone, loDefinition, loReferences, loHover, loSymbols);
+  TLspOperation = (loNone, loDefinition, loReferences, loHover, loSymbols, loProbe);
   TLspFormat = (lfJson, lfText);
+  TLspProbeMode = (lpmContextFile, lpmSettingsFile);
+  TLspProbeModeSet = set of TLspProbeMode;
 
   TDiagnosticsDefaults = record
     fSourceContextMode: TSourceContextMode;
@@ -162,6 +164,9 @@ type
     fHasLspLimit: Boolean;
     fLspIncludeDeclaration: Boolean;
     fHasLspIncludeDeclaration: Boolean;
+    fLspProbeModes: TLspProbeModeSet;
+    fLspShowInitOptions: Boolean;
+    fHasLspShowInitOptions: Boolean;
     fUnitPath: string;
   end;
 
