@@ -10,7 +10,10 @@ uses
   Winapi.Windows,
   DUnitX.TestFramework,
   Dak.FixInsight,
-  Dak.PascalAnalyzerRunner;
+  Dak.Lsp.Context,
+  Dak.Lsp.Runner,
+  Dak.PascalAnalyzerRunner,
+  Dak.Types;
 
 function RepoRoot: string;
 function TempRoot: string;
@@ -20,6 +23,7 @@ function ResolverExePath: string;
 function IsPawelMachine: Boolean;
 procedure RequireFixInsightOrSkip(out aExePath: string);
 procedure RequirePalCmdOrSkip(out aExePath: string);
+procedure RequireRealDelphiLsp23OrSkip(out aExePath: string);
 function RunProcess(const aExe, aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
 function QuoteArg(const aValue: string): string;
 
@@ -306,6 +310,36 @@ begin
   begin
     aExePath := '';
     Assert.Pass('PALCMD not found; skipping Pascal Analyzer tests.');
+  end;
+end;
+
+procedure RequireRealDelphiLsp23OrSkip(out aExePath: string);
+var
+  lContext: TLspContext;
+  lError: string;
+  lOptions: TAppOptions;
+  lOverride: string;
+begin
+  aExePath := '';
+  lContext := Default(TLspContext);
+  lContext.fDelphiVersion := '23.0';
+  lOptions := Default(TAppOptions);
+  lOverride := Trim(GetEnvironmentVariable('DAK_REAL_LSP_EXE'));
+  if lOverride <> '' then
+  begin
+    lOptions.fLspPath := lOverride;
+    lOptions.fHasLspPath := True;
+  end;
+
+  if TryResolveDelphiLspExe(lOptions, lContext, aExePath, lError) then
+    Exit;
+
+  if IsPawelMachine then
+    Assert.Fail('DelphiLSP.exe for Delphi 23.0 not found, but pawelspc=1 requires it. ' + lError)
+  else
+  begin
+    aExePath := '';
+    Assert.Pass('DelphiLSP.exe for Delphi 23.0 not found; skipping real LSP acceptance tests. ' + lError);
   end;
 end;
 
