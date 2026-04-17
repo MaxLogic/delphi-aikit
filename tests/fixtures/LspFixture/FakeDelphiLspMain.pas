@@ -184,6 +184,7 @@ begin
       .AddPair('definitionProvider', TJSONBool.Create(True))
       .AddPair('referencesProvider', TJSONBool.Create(True))
       .AddPair('hoverProvider', TJSONBool.Create(True))
+      .AddPair('documentSymbolProvider', TJSONBool.Create(True))
       .AddPair('workspaceSymbolProvider', TJSONBool.Create(True)));
   Result := lResult;
 end;

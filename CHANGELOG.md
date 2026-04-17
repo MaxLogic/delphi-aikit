@@ -36,6 +36,7 @@ All notable user-visible changes to this project will be documented in this file
 
 ### Changed
 - Clarified external `lsp` docs for Delphi 23: `symbols` is file-scoped `documentSymbol`, `references` is version-gated, and Delphi 13.x will be rechecked once installed. (T-121)
+- Reworked external `lsp symbols` to use file-scoped `textDocument/documentSymbol`, require `--file`, and flatten hierarchical document symbols into deterministic rows. (T-122)
 - Defaulted CLI `--platform` to `Win32` and `--config` to `Release` when omitted. (T-002)
 - Generated FixInsight bat now uses one argument per line and no command echo. (T-002)
 - Auto-detect FixInsightCL.exe via `PATH`, then `HKCU\Software\FixInsight\Path` for bat output. (T-003)
@@ -54,7 +55,7 @@ All notable user-visible changes to this project will be documented in this file
 - Fixed `dfm-check` generated helper projects so they now reuse the source build's effective compile search path, preserving EnvOptions/IDE library-path entries and imported search-path context alongside discovered form-unit directories instead of failing early with false `Unit ... not found` errors in the generated `_DfmCheck.dproj`. (T-109)
 - Fixed `dfm-check` temp-artifact ownership so generated harness files, forced build outputs, and preserved debug artifacts now live under sibling `.dak/<ProjectName>/dfm-check/runs/<RunId>/...`; startup prunes stale run folders, keep-artifacts mode preserves only that owned run workspace, and copied `.dproj` files with multiple relative `Icon_MainIcon` entries remain valid XML. (T-108)
 - Fixed `deps` JSON output so it now caches SCC hotspot analysis once per build, emits structured cycle/hotspot sections with inline node and edge metadata, keeps the compatibility `cycles` array, and ranks equal-impact cycle edges with `implementation` dependencies ahead of `interface` ones. (T-105)
-- Improved `lsp` unsupported-method diagnostics during the real `DelphiLSP.exe` verification work, so DAK now fails early with clear capability messages when an installed server does not advertise `textDocument/references` or `workspace/symbol`, instead of surfacing a later raw JSON-RPC method-not-found failure. (T-120)
+- Improved `lsp` unsupported-method diagnostics during the real `DelphiLSP.exe` verification work, so DAK now fails early with clear capability messages when an installed server does not advertise `textDocument/references`, instead of surfacing a later raw JSON-RPC method-not-found failure. (T-120, T-123)
 - Fixed `deps` cycle reporting so SCC summaries now emit real representative traversal paths instead of alphabetically joined member lists, and the cycle builder now releases its temporary discovery state correctly under exception paths. (T-104)
 - Fixed CLI startup crash handling so true unhandled exceptions now reach madExcept, and startup applies the MaxLogic bugreport upload configuration from one executable-derived path. (T-099, T-100)
 - Fixed `dfm-check` so verbose Win32 runs no longer overflow when MSBuild reports a native exit code larger than `Integer`, and the CLI now preserves the unsigned and hexadecimal exit code text in diagnostics. (T-098)

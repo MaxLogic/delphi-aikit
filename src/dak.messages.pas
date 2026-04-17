@@ -63,9 +63,10 @@ resourcestring
     'DelphiAIKit.exe lsp <definition|references|hover|symbols> --project "<path>" ' +
     '[--platform <Win32|Win64>] [--config <Debug|Release>] [--delphi <23.0>]' + #13#10 +
     '  [--rsvars "<path>"] [--envoptions "<path>"] [--lsp-path "<path>"] [--format <json|text>]' + #13#10 +
-    '  definition|references|hover: --file "<path>" --line <N 1-based> --col <N 1-based>' + #13#10 +
-    '  references: [--include-declaration [true|false]]' + #13#10 +
-    '  symbols: --query "<text>" [--limit <N>]';
+    '  definition|hover: --file "<path>" --line <N 1-based> --col <N 1-based>' + #13#10 +
+    '  references: --file "<path>" --line <N 1-based> --col <N 1-based> [--include-declaration [true|false]]' + #13#10 +
+    '    version-dependent on external DelphiLSP capabilities; if unsupported, use deps, global-vars, or rg' + #13#10 +
+    '  symbols: --file "<path>" --query "<text>" [--limit <N>]  (file-scoped via textDocument/documentSymbol)';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';

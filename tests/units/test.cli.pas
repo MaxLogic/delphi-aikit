@@ -97,7 +97,7 @@ type
     [Test]
     procedure LspCommandRejectsMissingOperationArguments;
     [Test]
-    procedure LspHelpShowsVerbOperationsAndAdvancedOverrides;
+    procedure LspHelpMarksReferencesAsVersionDependent;
     [Test]
     procedure DepsCommandParsesJsonDefaults;
     [Test]
@@ -871,10 +871,11 @@ begin
   Assert.AreEqual(11, lOptions.fLspLine);
   Assert.AreEqual(13, lOptions.fLspCol);
 
-  SetParams('lsp symbols --project c:\temp\sample.dproj --query Foo --limit 7');
+  SetParams('lsp symbols --project c:\temp\sample.dproj --file c:\temp\unit1.pas --query Foo --limit 7');
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected lsp symbols args to parse. Error: ' + lError);
   Assert.AreEqual(TCommandKind.ckLsp, lOptions.fCommand);
   Assert.AreEqual(TLspOperation.loSymbols, lOptions.fLspOperation);
+  Assert.AreEqual('c:\temp\unit1.pas', lOptions.fLspFilePath);
   Assert.AreEqual('Foo', lOptions.fLspQuery);
   Assert.AreEqual(7, lOptions.fLspLimit);
 end;
@@ -910,7 +911,11 @@ begin
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected 1-based lsp --line validation to reject 0.');
   Assert.IsTrue(Pos('--line', lError) > 0, 'Expected invalid --line error. Actual: ' + lError);
 
-  SetParams('lsp symbols --project c:\temp\sample.dproj');
+  SetParams('lsp symbols --project c:\temp\sample.dproj --query Foo');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected missing lsp --file for symbols to be rejected.');
+  Assert.IsTrue(Pos('--file', lError) > 0, 'Expected missing --file error. Actual: ' + lError);
+
+  SetParams('lsp symbols --project c:\temp\sample.dproj --file c:\temp\unit1.pas');
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected missing lsp --query to be rejected.');
   Assert.IsTrue(Pos('--query', lError) > 0, 'Expected missing --query error. Actual: ' + lError);
 
@@ -923,7 +928,7 @@ begin
   Assert.IsTrue(Pos('--include-declaration', lError) > 0, 'Expected invalid include-declaration operation error. Actual: ' + lError);
 end;
 
-procedure TCliTests.LspHelpShowsVerbOperationsAndAdvancedOverrides;
+procedure TCliTests.LspHelpMarksReferencesAsVersionDependent;
 var
   lExitCode: Cardinal;
   lLogPath: string;
@@ -942,8 +947,12 @@ begin
 
   Assert.IsTrue(Pos('definition', lLogText) > 0, 'Expected lsp help to mention definition.');
   Assert.IsTrue(Pos('references', lLogText) > 0, 'Expected lsp help to mention references.');
-  Assert.IsTrue(Pos('hover', lLogText) > 0, 'Expected lsp help to mention hover.');
-  Assert.IsTrue(Pos('symbols', lLogText) > 0, 'Expected lsp help to mention symbols.');
+  Assert.IsTrue(Pos('version', LowerCase(lLogText)) > 0,
+    'Expected lsp help to mark references as version-dependent.');
+  Assert.IsTrue(Pos('deps', LowerCase(lLogText)) > 0, 'Expected lsp help to mention deps fallback guidance.');
+  Assert.IsTrue(Pos('global-vars', LowerCase(lLogText)) > 0, 'Expected lsp help to mention global-vars fallback guidance.');
+  Assert.IsTrue(Pos('rg', LowerCase(lLogText)) > 0, 'Expected lsp help to mention rg fallback guidance.');
+  Assert.IsTrue(Pos('symbols: --file', LowerCase(lLogText)) > 0, 'Expected lsp help to mention file-scoped symbols usage.');
   Assert.IsTrue(Pos('--rsvars', lLogText) > 0, 'Expected lsp help to mention --rsvars.');
   Assert.IsTrue(Pos('--envoptions', lLogText) > 0, 'Expected lsp help to mention --envoptions.');
 
