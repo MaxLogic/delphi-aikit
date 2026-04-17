@@ -13,6 +13,7 @@
 - Inspect text DFM component trees and event bindings via `dfm-inspect`
 - Analyze project-level globals via `global-vars` with JSON/text reports, ambiguity reporting, and SQLite caching
 - Analyze project unit dependencies via `deps` with JSON-first topology output, text summaries, focused unit views, and cycle reporting
+- Navigate Delphi symbols semantically via `lsp` with `definition`, `references`, `hover`, and `symbols` queries backed by `DelphiLSP.exe`
 
 ## Good use cases
 
@@ -20,6 +21,7 @@
 - Reproducing the exact IDE configuration in a headless environment
 - Comparing config differences between platforms or build types
 - Understanding which Delphi units a broken area depends on before we start AI-assisted debugging or refactoring
+- Jumping from a symbol use site to its definition, references, hover text, or matching workspace symbols without guessing from raw text search
 
 ## Repo-local AI skills
 
@@ -30,6 +32,7 @@ The [`agentskills/`](agentskills/) folder contains repo-local skills that help A
 - `delphi-dfm-check`: inspect and validate `.dfm`-backed forms through `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
 - `delphi-global-vars`: analyze project-level globals, declaration sites, and read/write usage before refactoring shared state.
 - `delphi-project-unit-topology`: use `DelphiAIKit.exe deps` to inspect project unit topology, unresolved unit references, focused unit neighborhoods, and resolved project-unit cycles. Useful for questions like "why is this unit included?", "what fans into this area?", and "do we have cycles?"
+- `delphi-lsp`: use `DelphiAIKit.exe lsp` for semantic symbol navigation. Prefer it for definition/reference/hover/symbol lookup; switch back to `deps`, `global-vars`, or `rg` when the question is not semantic navigation.
 
 ## Requirements
 
@@ -177,6 +180,13 @@ bin\DelphiAIKit.exe deps --project "C:\path\Project.dproj" --format json
 bin\DelphiAIKit.exe deps --project "C:\path\Project.dproj" --format text --unit ProblemUnit
 ```
 
+To navigate Delphi symbols semantically:
+
+```
+bin\DelphiAIKit.exe lsp definition --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --line 42 --col 17 --format json
+bin\DelphiAIKit.exe lsp symbols --project "C:\path\Project.dproj" --query "Customer" --format json
+```
+
 `deps` is JSON-first. The JSON contract is intended for tooling and AI agents and includes:
 - project metadata
 - `nodes` with resolution state and project-membership flag
@@ -241,6 +251,59 @@ If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-onl
   - `[dfm-check] FAIL clue: handler declaration line=<N>: procedure ...`
   - `[dfm-check] FAIL clue: source context: <file>`
   - `[dfm-check] FAIL clue: verify handler signature matches event type for <On...>.`
+
+## `lsp`
+
+`lsp` is DAK's one-shot semantic wrapper around `DelphiLSP.exe`.
+
+Use it for:
+- symbol definition lookup
+- reference lookup
+- hover/type information
+- workspace symbol search
+
+Core operations:
+- `definition`
+- `references`
+- `hover`
+- `symbols`
+
+Examples:
+
+```
+bin\DelphiAIKit.exe lsp definition --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --line 42 --col 17 --format json
+```
+
+```
+bin\DelphiAIKit.exe lsp references --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --line 42 --col 17 --include-declaration false --format json
+```
+
+```
+bin\DelphiAIKit.exe lsp hover --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --line 42 --col 17 --format json
+```
+
+```
+bin\DelphiAIKit.exe lsp symbols --project "C:\path\Project.dproj" --query "Customer" --limit 20 --format json
+```
+
+Rules:
+- prefer `--format json` for agent/tool consumption
+- `--line` and `--col` are 1-based
+- generated context and logs live under sibling `.dak/<ProjectName>/lsp/`
+- `--rsvars` and `--envoptions` are optional advanced overrides, not normal-use requirements
+- unlike `deps` or `global-vars`, `lsp` hard-fails when DAK cannot build a real Delphi semantic context
+
+Routing guidance:
+- use `lsp` for semantic navigation questions
+- use `deps` for project topology and cycle questions
+- use `global-vars` for shared-state inventory and read/write usage
+- use `rg` or other text search when the request is raw pattern matching instead of semantic binding
+
+The JSON result contract is operation-specific:
+- `definition` returns `result.locations[]`
+- `references` returns `result.references[]`
+- `hover` returns `result.contentsText` plus optional markdown/range data
+- `symbols` returns `result.symbols[]`
 
 ## `global-vars`
 
