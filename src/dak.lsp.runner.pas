@@ -814,6 +814,48 @@ begin
   end;
 end;
 
+function LspCapabilityName(aOperation: TLspOperation): string;
+begin
+  case aOperation of
+    TLspOperation.loReferences:
+      Result := 'referencesProvider';
+    TLspOperation.loSymbols:
+      Result := 'workspaceSymbolProvider';
+  else
+    Result := '';
+  end;
+end;
+
+function TryEnsureOperationSupported(const aInitResponse: TJSONObject; aOperation: TLspOperation;
+  out aError: string): Boolean;
+var
+  lCapabilitiesObject: TJSONObject;
+  lCapabilityName: string;
+  lCapabilityValue: TJSONValue;
+  lRequestMethod: string;
+  lResultObject: TJSONObject;
+begin
+  aError := '';
+  lCapabilityName := LspCapabilityName(aOperation);
+  if lCapabilityName = '' then
+    Exit(True);
+
+  if not (aInitResponse.Values['result'] is TJSONObject) then
+    Exit(True);
+  lResultObject := aInitResponse.Values['result'] as TJSONObject;
+  if not (lResultObject.Values['capabilities'] is TJSONObject) then
+    Exit(True);
+  lCapabilitiesObject := lResultObject.Values['capabilities'] as TJSONObject;
+  lCapabilityValue := lCapabilitiesObject.Values[lCapabilityName];
+  if (lCapabilityValue <> nil) and not (lCapabilityValue is TJSONFalse) then
+    Exit(True);
+
+  lRequestMethod := LspRequestMethod(aOperation);
+  aError := Format('Installed DelphiLSP does not advertise support for %s (missing %s in initialize capabilities).',
+    [lRequestMethod, lCapabilityName]);
+  Result := False;
+end;
+
 function TryResolveRequestFilePath(const aOptions: TAppOptions; out aFilePath: string; out aError: string): Boolean;
 begin
   aFilePath := '';
@@ -1252,6 +1294,12 @@ begin
     if Assigned(lInitResponse.Values['error']) then
     begin
       aError := BuildResponseError('initialize', lInitResponse);
+      Exit(False);
+    end;
+
+    if not TryEnsureOperationSupported(lInitResponse, aOptions.fLspOperation, lError) then
+    begin
+      aError := lError;
       Exit(False);
     end;
 

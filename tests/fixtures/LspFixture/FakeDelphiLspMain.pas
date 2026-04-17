@@ -179,7 +179,12 @@ begin
   if lValue <> nil then
     Exit(CloneJsonValue(lValue));
   lResult := TJSONObject.Create;
-  lResult.AddPair('capabilities', TJSONObject.Create);
+  lResult.AddPair('capabilities',
+    TJSONObject.Create
+      .AddPair('definitionProvider', TJSONBool.Create(True))
+      .AddPair('referencesProvider', TJSONBool.Create(True))
+      .AddPair('hoverProvider', TJSONBool.Create(True))
+      .AddPair('workspaceSymbolProvider', TJSONBool.Create(True)));
   Result := lResult;
 end;
 

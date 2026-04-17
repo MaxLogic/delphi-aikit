@@ -57,6 +57,8 @@ type
     [Test]
     procedure LspRunnerReportsSpecificDiscoveryAndInitFailures;
     [Test]
+    procedure LspRunnerReportsUnsupportedCapabilitiesBeforeRequest;
+    [Test]
     procedure LspDefinitionReturnsNormalizedLocations;
     [Test]
     procedure LspReferencesRespectIncludeDeclaration;
@@ -1023,8 +1025,9 @@ begin
       lLspObject := lJson.GetValue<TJSONObject>('lsp');
       Assert.IsNotNull(lLspObject, 'Expected lsp metadata object.');
       Assert.AreEqual(TPath.GetFullPath(GFakeLspExePath), lLspObject.GetValue<string>('path'), 'Expected fake server path.');
-      Assert.IsTrue(lJson.Values['result'] is TJSONArray, 'Expected raw result array from fake server.');
-      Assert.AreEqual(1, (lJson.Values['result'] as TJSONArray).Count, 'Expected one fake definition result.');
+      Assert.IsTrue(lJson.Values['result'] is TJSONObject, 'Expected normalized result object.');
+      Assert.AreEqual(1, (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations').Count,
+        'Expected one fake definition result.');
     finally
       lJson.Free;
     end;
@@ -1073,6 +1076,53 @@ begin
 end;
 
 
+
+procedure TLspRunnerTests.LspRunnerReportsUnsupportedCapabilitiesBeforeRequest;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  lScriptPath := CreateScriptFile('runner-unsupported-capabilities',
+    '{"initializeResult":{"capabilities":{"definitionProvider":true,"hoverProvider":true}},"responses":{"textDocument/definition":[]}}');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lDprojPath := PrepareResolvedContext('lsp-runner-unsupported-capabilities-references', lContext);
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loReferences;
+    lOptions.fLspIncludeDeclaration := False;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lError := '';
+    Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected unsupported references capability to fail before request dispatch.');
+    Assert.IsTrue(Pos('textDocument/references', lError) > 0,
+      'Expected references method name in error. Actual: ' + lError);
+    Assert.IsTrue(Pos('capabil', LowerCase(lError)) > 0,
+      'Expected capability-specific error. Actual: ' + lError);
+
+    lDprojPath := PrepareResolvedContext('lsp-runner-unsupported-capabilities-symbols', lContext);
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspOperation := TLspOperation.loSymbols;
+    lOptions.fLspQuery := 'Fixture';
+    lOptions.fLspLimit := 10;
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+    lError := '';
+    Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected unsupported workspace symbol capability to fail before request dispatch.');
+    Assert.IsTrue(Pos('workspace/symbol', lError) > 0,
+      'Expected workspace/symbol method name in error. Actual: ' + lError);
+    Assert.IsTrue(Pos('capabil', LowerCase(lError)) > 0,
+      'Expected capability-specific error. Actual: ' + lError);
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
 
 procedure TLspRunnerTests.LspDefinitionReturnsNormalizedLocations;
 var
