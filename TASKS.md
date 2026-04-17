@@ -22,7 +22,7 @@ Outcome:
 - Real end-to-end proofs are rerun for `definition`, `references`, `hover`, and `symbols` against the same fixture project.
 - `TASKS.md`, docs, and the `lsp` plan are updated to match the observed Delphi 13.x capability matrix.
 Proof:
-- Run: `python3 tools/lsp-capability-probe.py --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 13.1 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/37.0/bin64/DelphiLSP.exe"`
+- Run: `./bin/DelphiAIKit.exe lsp probe --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 13.1 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/37.0/bin64/DelphiLSP.exe"`
   Expect: Exit code `0`; capability output is captured for the installed Delphi 13.x server.
 - Run: `./bin/DelphiAIKit.exe lsp definition --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 13.1 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/37.0/bin64/DelphiLSP.exe" --file /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/Unit1.pas --line 8 --col 21 --format json`
   Expect: Exit code `0`; result is documented and compared against the Delphi 23 baseline.
@@ -59,9 +59,9 @@ Outcome:
 - The probe compares both handshake modes: the current DAK `contextFile` path and the official external-editor `.delphilsp.json` + `settingsFile` flow.
 - Current Delphi 23 results are captured as the known baseline for future Delphi 13 comparisons.
 Proof:
-- Run: `python3 tools/lsp-capability-probe.py --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --mode contextFile --mode settingsFile`
+- Run: `./bin/DelphiAIKit.exe lsp probe --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --mode contextFile --mode settingsFile`
   Expect: Exit code `0`; output reports the advertised capability matrix for both handshake modes.
-- Run: `python3 tools/lsp-capability-probe.py --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --mode settingsFile --show-init-options`
+- Run: `./bin/DelphiAIKit.exe lsp probe --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --mode settingsFile --show-init-options`
   Expect: Exit code `0`; output shows the generated official-style `.delphilsp.json` path and the handshake used for the external-editor flow.
 Touches: tools/, docs/, src/dak.lsp.runner.pas, tests/fixtures/LspProjectFixture/
 Verify: cli-proof, manual
