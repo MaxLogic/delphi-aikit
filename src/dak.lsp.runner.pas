@@ -94,11 +94,26 @@ begin
   end;
 end;
 
-function BuildInitializeParams(const aContext: TLspContext): string;
+function BuildContextFileInitializeOptions(const aContext: TLspContext): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  AddJsonStringPair(Result, 'contextFile', aContext.fContextFilePath);
+  AddJsonStringPair(Result, 'contextFileUri', FilePathToURL(aContext.fContextFilePath));
+  AddJsonStringPair(Result, 'logsDir', aContext.fLogsDir);
+end;
+
+function BuildSettingsFileInitializeOptions(const aContext: TLspContext; const aSettingsFilePath: string): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  AddJsonStringPair(Result, 'settingsFile', aSettingsFilePath);
+  AddJsonStringPair(Result, 'settingsFileUri', FilePathToURL(aSettingsFilePath));
+  AddJsonStringPair(Result, 'logsDir', aContext.fLogsDir);
+end;
+
+function BuildInitializeParamsWithOptions(const aContext: TLspContext; aInitializeOptions: TJSONObject): string;
 var
   lClientInfo: TJSONObject;
   lFolders: TJSONArray;
-  lInitializeOptions: TJSONObject;
   lParams: TJSONObject;
   lWorkspaceFolder: TJSONObject;
 begin
@@ -119,17 +134,36 @@ begin
     lFolders.AddElement(lWorkspaceFolder);
     lParams.AddPair('workspaceFolders', lFolders);
 
-    lInitializeOptions := TJSONObject.Create;
-    AddJsonStringPair(lInitializeOptions, 'contextFile', aContext.fContextFilePath);
-    AddJsonStringPair(lInitializeOptions, 'contextFileUri', FilePathToURL(aContext.fContextFilePath));
-    AddJsonStringPair(lInitializeOptions, 'logsDir', aContext.fLogsDir);
-    lParams.AddPair('initializationOptions', lInitializeOptions);
+    lParams.AddPair('initializationOptions', aInitializeOptions);
 
     Result := lParams.ToJSON;
   finally
     lParams.Free;
   end;
 end;
+
+function BuildInitializeParams(const aContext: TLspContext): string;
+begin
+  Result := BuildInitializeParamsWithOptions(aContext, BuildContextFileInitializeOptions(aContext));
+end;
+
+function BuildProbeConfigurationParams(const aSettingsFilePath: string): string;
+var
+  lRoot: TJSONObject;
+  lSettings: TJSONObject;
+begin
+  lRoot := TJSONObject.Create;
+  try
+    lSettings := TJSONObject.Create;
+    AddJsonStringPair(lSettings, 'settingsFile', aSettingsFilePath);
+    AddJsonStringPair(lSettings, 'settingsFileUri', FilePathToURL(aSettingsFilePath));
+    lRoot.AddPair('settings', lSettings);
+    Result := lRoot.ToJSON;
+  finally
+    lRoot.Free;
+  end;
+end;
+
 
 function BuildOperationEnvelope(const aOptions: TAppOptions; const aContext: TLspContext; const aLspPath,
   aOperationName: string; const aRequestFilePath: string; const aRawResultJson: string): string;
@@ -883,6 +917,8 @@ begin
       Result := 'hover';
     TLspOperation.loSymbols:
       Result := 'symbols';
+    TLspOperation.loProbe:
+      Result := 'probe';
   else
     Result := 'unknown';
   end;
@@ -940,6 +976,254 @@ begin
     Result := String.Join(', ', lValues.ToArray);
   finally
     lValues.Free;
+  end;
+end;
+
+function ProbeModeName(aMode: TLspProbeMode): string;
+begin
+  case aMode of
+    TLspProbeMode.lpmContextFile:
+      Result := 'contextFile';
+    TLspProbeMode.lpmSettingsFile:
+      Result := 'settingsFile';
+  else
+    Result := 'unknown';
+  end;
+end;
+
+function BuildAdvertisedCapabilitiesArray(const aInitResponse: TJSONObject): TJSONArray;
+var
+  lAdvertised: string;
+  lArray: TJSONArray;
+  lItem: string;
+begin
+  lArray := TJSONArray.Create;
+  lAdvertised := BuildAdvertisedCapabilitiesText(aInitResponse);
+  if lAdvertised <> '' then
+    for lItem in lAdvertised.Split([',']) do
+      lArray.Add(Trim(lItem));
+  Result := lArray;
+end;
+
+function CloneJsonObject(aValue: TJSONValue): TJSONObject;
+begin
+  Result := nil;
+  if aValue = nil then
+    Exit(nil);
+  Result := TJSONObject.ParseJSONValue(aValue.ToJSON) as TJSONObject;
+end;
+
+function BuildProbeModeObject(const aInitResponse: TJSONObject; aMode: TLspProbeMode; const aSettingsFilePath: string;
+  aShowInitOptions: Boolean; aInitializationOptions, aConfigurationParams: TJSONObject): TJSONObject;
+var
+  lCapabilities: TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  AddJsonStringPair(Result, 'mode', ProbeModeName(aMode));
+  Result.AddPair('advertisedCapabilities', BuildAdvertisedCapabilitiesArray(aInitResponse));
+  if (aInitResponse.Values['result'] is TJSONObject) and
+    ((aInitResponse.Values['result'] as TJSONObject).Values['capabilities'] is TJSONObject) then
+    lCapabilities := CloneJsonObject((aInitResponse.Values['result'] as TJSONObject).Values['capabilities'])
+  else
+    lCapabilities := TJSONObject.Create;
+  Result.AddPair('capabilities', lCapabilities);
+  if aSettingsFilePath <> '' then
+    AddJsonStringPair(Result, 'settingsFile', aSettingsFilePath);
+  if aShowInitOptions and (aInitializationOptions <> nil) then
+    Result.AddPair('initializationOptions', CloneJsonObject(aInitializationOptions));
+  if aShowInitOptions and (aConfigurationParams <> nil) then
+    Result.AddPair('configurationNotification', CloneJsonObject(aConfigurationParams));
+end;
+
+function BuildProbeEnvelope(const aContext: TLspContext; const aLspPath: string; aModes: TJSONArray): string;
+var
+  lLspObject: TJSONObject;
+  lProjectObject: TJSONObject;
+  lRoot: TJSONObject;
+begin
+  lRoot := TJSONObject.Create;
+  try
+    AddJsonStringPair(lRoot, 'operation', 'probe');
+    lProjectObject := TJSONObject.Create;
+    AddJsonStringPair(lProjectObject, 'path', aContext.fProjectPath);
+    AddJsonStringPair(lProjectObject, 'platform', aContext.fParams.fPlatform);
+    AddJsonStringPair(lProjectObject, 'config', aContext.fParams.fConfig);
+    AddJsonStringPair(lProjectObject, 'contextMode', 'full');
+    lRoot.AddPair('project', lProjectObject);
+
+    lLspObject := TJSONObject.Create;
+    AddJsonStringPair(lLspObject, 'path', aLspPath);
+    lRoot.AddPair('lsp', lLspObject);
+    lRoot.AddPair('result', TJSONObject.Create.AddPair('modes', TJSONObject.ParseJSONValue(aModes.ToJSON) as TJSONArray));
+    lRoot.AddPair('warnings', TJSONArray.Create);
+    Result := lRoot.ToJSON;
+  finally
+    lRoot.Free;
+  end;
+end;
+
+function JsonArrayToDelimitedText(aArray: TJSONArray): string;
+var
+  lValues: TList<string>;
+  lValue: TJSONValue;
+begin
+  lValues := TList<string>.Create;
+  try
+    if aArray <> nil then
+      for lValue in aArray do
+        lValues.Add(lValue.Value);
+    Result := String.Join(', ', lValues.ToArray);
+  finally
+    lValues.Free;
+  end;
+end;
+
+function BuildProbeText(const aModes: TJSONArray; aShowInitOptions: Boolean): string;
+var
+  lBuilder: TStringBuilder;
+  lModeObject: TJSONObject;
+  i: Integer;
+begin
+  lBuilder := TStringBuilder.Create;
+  try
+    for i := 0 to aModes.Count - 1 do
+    begin
+      lModeObject := aModes.Items[i] as TJSONObject;
+      if i > 0 then
+        lBuilder.AppendLine;
+      lBuilder.AppendLine('mode: ' + lModeObject.GetValue<string>('mode', ''));
+      if lModeObject.Values['settingsFile'] <> nil then
+        lBuilder.AppendLine('settingsFile: ' + lModeObject.GetValue<string>('settingsFile', ''));
+      lBuilder.AppendLine('advertisedCapabilities: ' +
+        JsonArrayToDelimitedText(lModeObject.GetValue<TJSONArray>('advertisedCapabilities')));
+      if aShowInitOptions and (lModeObject.Values['initializationOptions'] <> nil) then
+        lBuilder.AppendLine('initializationOptions: ' + lModeObject.Values['initializationOptions'].ToJSON);
+      if aShowInitOptions and (lModeObject.Values['configurationNotification'] <> nil) then
+        lBuilder.AppendLine('configurationNotification: ' + lModeObject.Values['configurationNotification'].ToJSON);
+    end;
+    Result := lBuilder.ToString.TrimRight;
+  finally
+    lBuilder.Free;
+  end;
+end;
+
+function ProbeModesFromOptions(const aOptions: TAppOptions): TArray<TLspProbeMode>;
+begin
+  Result := nil;
+  if TLspProbeMode.lpmContextFile in aOptions.fLspProbeModes then
+  begin
+    SetLength(Result, Length(Result) + 1);
+    Result[High(Result)] := TLspProbeMode.lpmContextFile;
+  end;
+  if TLspProbeMode.lpmSettingsFile in aOptions.fLspProbeModes then
+  begin
+    SetLength(Result, Length(Result) + 1);
+    Result[High(Result)] := TLspProbeMode.lpmSettingsFile;
+  end;
+  if Length(Result) = 0 then
+  begin
+    SetLength(Result, 2);
+    Result[0] := TLspProbeMode.lpmContextFile;
+    Result[1] := TLspProbeMode.lpmSettingsFile;
+  end;
+end;
+
+function TryRunLspProbe(const aOptions: TAppOptions; const aContext: TLspContext; const aLspPath: string;
+  out aResult: TLspRunnerResult; out aError: string): Boolean;
+var
+  lClient: TLspJsonRpcClient;
+  lConfigObject: TJSONObject;
+  lConfigParams: string;
+  lError: string;
+  lInitOptions: TJSONObject;
+  lInitResponse: TJSONObject;
+  lMode: TLspProbeMode;
+  lModeObject: TJSONObject;
+  lModes: TJSONArray;
+  lSettingsFilePath: string;
+begin
+  Result := False;
+  aResult := Default(TLspRunnerResult);
+  aError := '';
+  lModes := TJSONArray.Create;
+  try
+    for lMode in ProbeModesFromOptions(aOptions) do
+    begin
+      lSettingsFilePath := '';
+      lInitResponse := nil;
+      lInitOptions := nil;
+      lConfigObject := nil;
+      lClient := TLspJsonRpcClient.Create;
+      try
+        if lMode = TLspProbeMode.lpmSettingsFile then
+        begin
+          if not TryWriteOfficialLspSettingsFile(aContext, lSettingsFilePath, lError) then
+          begin
+            aError := lError;
+            Exit(False);
+          end;
+          lInitOptions := BuildSettingsFileInitializeOptions(aContext, lSettingsFilePath);
+        end else
+          lInitOptions := BuildContextFileInitializeOptions(aContext);
+
+        if not lClient.Start(aLspPath, '', aContext.fDakLspRoot,
+          TPath.Combine(aContext.fLogsDir, 'DelphiLSP.' + ProbeModeName(lMode) + '.stderr.log'), lError) then
+        begin
+          aError := lError;
+          Exit(False);
+        end;
+
+        if not lClient.SendRequest(1, 'initialize', BuildInitializeParamsWithOptions(aContext, CloneJsonObject(lInitOptions)), lInitResponse, lError) then
+        begin
+          aError := lError;
+          Exit(False);
+        end;
+        if Assigned(lInitResponse.Values['error']) then
+        begin
+          aError := BuildResponseError('probe initialize ' + ProbeModeName(lMode), lInitResponse);
+          Exit(False);
+        end;
+
+        if not lClient.SendNotification('initialized', '{}', lError) then
+        begin
+          aError := 'DelphiLSP initialized notification failed: ' + lError;
+          Exit(False);
+        end;
+
+        if lMode = TLspProbeMode.lpmSettingsFile then
+        begin
+          lConfigParams := BuildProbeConfigurationParams(lSettingsFilePath);
+          lConfigObject := TJSONObject.ParseJSONValue(lConfigParams) as TJSONObject;
+          if not lClient.SendNotification('workspace/didChangeConfiguration', lConfigParams, lError) then
+          begin
+            aError := 'DelphiLSP didChangeConfiguration failed: ' + lError;
+            Exit(False);
+          end;
+        end;
+
+        if not lClient.ShutdownAndExit(lError) then
+        begin
+          aError := lError;
+          Exit(False);
+        end;
+
+        lModeObject := BuildProbeModeObject(lInitResponse, lMode, lSettingsFilePath, aOptions.fLspShowInitOptions,
+          lInitOptions, lConfigObject);
+        lModes.AddElement(lModeObject);
+      finally
+        lConfigObject.Free;
+        lInitOptions.Free;
+        lInitResponse.Free;
+        lClient.Free;
+      end;
+    end;
+
+    aResult.fLspPath := aLspPath;
+    aResult.fResponseText := BuildProbeEnvelope(aContext, aLspPath, lModes);
+    aResult.fTextResponse := BuildProbeText(lModes, aOptions.fLspShowInitOptions);
+    Result := True;
+  finally
+    lModes.Free;
   end;
 end;
 
@@ -1407,6 +1691,13 @@ begin
 
   if not TryResolveDelphiLspExe(aOptions, aContext, lLspPath, aError) then
     Exit(False);
+  if aOptions.fLspOperation = TLspOperation.loProbe then
+  begin
+    if not TryRunLspProbe(aOptions, aContext, lLspPath, aResult, aError) then
+      Exit(False);
+    Exit(True);
+  end;
+
   if not TryResolveRequestFilePath(aOptions, lRequestFilePath, aError) then
     Exit(False);
 

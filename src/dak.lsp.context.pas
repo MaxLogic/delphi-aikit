@@ -23,12 +23,20 @@ type
   end;
 
 function TryBuildStrictLspContext(const aOptions: TAppOptions; out aContext: TLspContext; out aError: string): Boolean;
+function TryWriteOfficialLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
+  out aError: string): Boolean;
 
 implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.JSON, System.SysUtils,
+  maxLogic.ioUtils,
   Dak.FixInsightSettings, Dak.Messages, Dak.Project, Dak.Registry, Dak.RsVars, Dak.Utils;
+
+function FilePathToUri(const aPath: string): string;
+begin
+  Result := FilePathToURL(aPath);
+end;
 
 function NormalizeDelphiVersion(const aValue: string): string;
 begin
@@ -114,6 +122,104 @@ begin
     Result := lRoot.ToJSON;
   finally
     lRoot.Free;
+  end;
+end;
+
+function QuoteCompilerPath(const aPath: string): string;
+begin
+  Result := aPath;
+  if (Pos(' ', Result) > 0) and (not Result.StartsWith('"')) then
+    Result := '"' + Result + '"';
+end;
+
+function JoinCompilerPaths(const aValues: TArray<string>): string;
+var
+  lValue: string;
+  lValues: TArray<string>;
+begin
+  SetLength(lValues, Length(aValues));
+  for var i := 0 to High(aValues) do
+    lValues[i] := QuoteCompilerPath(aValues[i]);
+  Result := String.Join(';', lValues);
+end;
+
+function BuildProbeDccOptions(const aContext: TLspContext): string;
+var
+  lParts: TList<string>;
+begin
+  lParts := TList<string>.Create;
+  try
+    if Length(aContext.fParams.fDefines) > 0 then
+      lParts.Add('-D' + String.Join(';', aContext.fParams.fDefines));
+    if Length(aContext.fParams.fUnitSearchPath) > 0 then
+      lParts.Add('-U' + JoinCompilerPaths(aContext.fParams.fUnitSearchPath));
+    if Length(aContext.fParams.fLibraryPath) > 0 then
+      lParts.Add('-I' + JoinCompilerPaths(aContext.fParams.fLibraryPath));
+    if Length(aContext.fParams.fUnitScopes) > 0 then
+      lParts.Add('-NS' + String.Join(';', aContext.fParams.fUnitScopes));
+    if Length(aContext.fParams.fUnitAliases) > 0 then
+      lParts.Add('-A' + String.Join(';', aContext.fParams.fUnitAliases));
+    Result := String.Join(' ', lParts.ToArray);
+  finally
+    lParts.Free;
+  end;
+end;
+
+function BuildOfficialSettingsJson(const aContext: TLspContext): string;
+var
+  lRoot: TJSONObject;
+  lSettings: TJSONObject;
+  lBrowsingPaths: TList<string>;
+  lValue: string;
+begin
+  lRoot := TJSONObject.Create;
+  try
+    lSettings := TJSONObject.Create;
+    lSettings.AddPair('project', FilePathToUri(aContext.fMainSourcePath));
+    lSettings.AddPair('dccOptions', BuildProbeDccOptions(aContext));
+    lSettings.AddPair('projectFiles', TJSONArray.Create);
+    lSettings.AddPair('includeDCUsInUsesCompletion', TJSONBool.Create(True));
+    lSettings.AddPair('enableKeyWordCompletion', TJSONBool.Create(False));
+
+    lBrowsingPaths := TList<string>.Create;
+    try
+      for lValue in aContext.fParams.fUnitSearchPath do
+        if not lBrowsingPaths.Contains(lValue) then
+          lBrowsingPaths.Add(lValue);
+      for lValue in aContext.fParams.fLibraryPath do
+        if not lBrowsingPaths.Contains(lValue) then
+          lBrowsingPaths.Add(lValue);
+      for var i := 0 to lBrowsingPaths.Count - 1 do
+        lBrowsingPaths[i] := FilePathToUri(lBrowsingPaths[i]);
+      AddStringArray(lSettings, 'browsingPaths', lBrowsingPaths.ToArray);
+    finally
+      lBrowsingPaths.Free;
+    end;
+
+    lRoot.AddPair('settings', lSettings);
+    Result := lRoot.ToJSON;
+  finally
+    lRoot.Free;
+  end;
+end;
+
+function TryWriteOfficialLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
+  out aError: string): Boolean;
+begin
+  Result := False;
+  aError := '';
+  aSettingsFilePath := TPath.Combine(aContext.fDakLspRoot, 'probe.delphilsp.json');
+  try
+    ForceDirectories(aContext.fDakLspRoot);
+    TFile.WriteAllText(aSettingsFilePath, BuildOfficialSettingsJson(aContext), TEncoding.UTF8);
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      if FileExists(aSettingsFilePath) then
+        System.SysUtils.DeleteFile(aSettingsFilePath);
+      aError := Format(SLspContextArtifactsWriteFailed, [E.Message]);
+    end;
   end;
 end;
 

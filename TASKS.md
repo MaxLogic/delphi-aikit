@@ -2,8 +2,8 @@
 Next task ID: T-126
 
 ## Summary
-Open tasks: 3 (In Progress: 0, Next Today: 0, Next This Week: 1, Next Later: 0, Blocked: 2)
-Done tasks: 122
+Open tasks: 2 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 2)
+Done tasks: 123
 
 ## In Progress
 
@@ -11,20 +11,6 @@ Done tasks: 122
 
 ## Next - This Week
 
-
-### T-124 [TEST] Add a repeatable DelphiLSP capability probe
-Outcome:
-- The repo gains a repeatable probe command or script that prints the initialize capability matrix for a chosen `DelphiLSP.exe` against a chosen project context.
-- The probe compares both handshake modes: the current DAK `contextFile` path and the official external-editor `.delphilsp.json` + `settingsFile` flow.
-- Current Delphi 23 results are captured as the known baseline for future Delphi 13 comparisons.
-Proof:
-- Run: `python3 tools/lsp-capability-probe.py --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --mode contextFile --mode settingsFile`
-  Expect: Exit code `0`; output reports the advertised capability matrix for both handshake modes.
-- Run: `python3 tools/lsp-capability-probe.py --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --mode settingsFile --show-init-options`
-  Expect: Exit code `0`; output shows the generated official-style `.delphilsp.json` path and the handshake used for the external-editor flow.
-Touches: tools/, docs/, src/dak.lsp.runner.pas, tests/fixtures/LspProjectFixture/
-Verify: cli-proof, manual
-Notes: This probe settles whether Delphi 23 capability limits are version-related, handshake-related, or both, and it becomes the baseline instrument for the planned Delphi 13 revisit.
 
 ## Next - Later
 
@@ -63,9 +49,23 @@ Deps: T-116, T-117, T-118
 Verify: cli-proof, manual
 Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for the wrapper after the fake-server-backed contract tests are green.
 
-Blocked: The installed Delphi 23.0 `DelphiLSP.exe` advertises `definitionProvider`, `declarationProvider`, `implementationProvider`, `documentSymbolProvider`, and `hoverProvider`, but not `referencesProvider` or `workspaceSymbolProvider`. Real proof on 2026-04-17: `definition` at `Unit1.pas:8:21` returns a non-empty location; `symbols` for `Unit1.pas` with query `Fixture` returns non-empty file-scoped document symbols; `references` fails with `Installed DelphiLSP at ... does not advertise support for textDocument/references ...`; `hover` still returns an explicit empty result on the fixture query. DAK now surfaces unsupported capabilities clearly, and file-scoped `symbols` is validated against the real server, but full T-120 acceptance remains blocked on upstream `references` capability expansion and a real hover proof that returns semantically useful content.
+Blocked: The installed Delphi 23.0 `DelphiLSP.exe` advertises `definitionProvider`, `declarationProvider`, `implementationProvider`, `documentSymbolProvider`, and `hoverProvider`, but not `referencesProvider` or `workspaceSymbolProvider`. Real proof on 2026-04-17: `definition` at `Unit1.pas:8:21` returns a non-empty location; `symbols` for `Unit1.pas` with query `Fixture` returns non-empty file-scoped document symbols; `references` fails with `Installed DelphiLSP at ... does not advertise support for textDocument/references ...`; `hover` still returns an explicit empty result on the fixture query. The new probe confirms that Delphi 23.0 advertises the same capability matrix in both `contextFile` and `settingsFile` modes, so the missing external features are not explained by DAK handshake differences. Full T-120 acceptance remains blocked on upstream `references` capability expansion and a real hover proof that returns semantically useful content.
 
 ## Done
+
+### T-124 [TEST] Add a repeatable DelphiLSP capability probe
+Outcome:
+- The repo gains a repeatable probe command or script that prints the initialize capability matrix for a chosen `DelphiLSP.exe` against a chosen project context.
+- The probe compares both handshake modes: the current DAK `contextFile` path and the official external-editor `.delphilsp.json` + `settingsFile` flow.
+- Current Delphi 23 results are captured as the known baseline for future Delphi 13 comparisons.
+Proof:
+- Run: `python3 tools/lsp-capability-probe.py --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --mode contextFile --mode settingsFile`
+  Expect: Exit code `0`; output reports the advertised capability matrix for both handshake modes.
+- Run: `python3 tools/lsp-capability-probe.py --project /mnt/f/projects/MaxLogic/DelphiAiKit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path "/mnt/c/Program Files (x86)/Embarcadero/Studio/23.0/bin64/DelphiLSP.exe" --mode settingsFile --show-init-options`
+  Expect: Exit code `0`; output shows the generated official-style `.delphilsp.json` path and the handshake used for the external-editor flow.
+Touches: tools/, docs/, src/dak.lsp.runner.pas, tests/fixtures/LspProjectFixture/
+Verify: cli-proof, manual
+Notes: This probe settles whether Delphi 23 capability limits are version-related, handshake-related, or both, and it becomes the baseline instrument for the planned Delphi 13 revisit.
 
 ### T-123 [CLI] Improve unsupported `lsp references` guidance for Delphi 23
 Outcome:

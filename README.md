@@ -267,6 +267,7 @@ Core operations:
 - `references` (version-gated on the external DelphiLSP capability set)
 - `hover`
 - `symbols` (file-scoped on Delphi 23 external `DelphiLSP.exe`)
+- `probe` (compare `contextFile` and `settingsFile` capability handshakes)
 
 Examples:
 
@@ -305,6 +306,7 @@ Routing guidance:
 The JSON result contract is operation-specific:
 - `definition` returns `result.locations[]`
 - `references` returns `result.references[]` when the external DelphiLSP build supports `textDocument/references`
+- `probe` returns per-mode capability matrices for `contextFile` and `settingsFile`, and can show the generated init/config payloads with `--show-init-options`
 - `hover` returns `result.contentsText` plus optional markdown/range data
 - `symbols` returns `result.symbols[]` from file-scoped `documentSymbol` data
 

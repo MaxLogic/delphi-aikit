@@ -95,6 +95,8 @@ type
     [Test]
     procedure LspCommandParsesProjectAndOperationFields;
     [Test]
+    procedure LspProbeCommandParsesModesAndShowInitOptions;
+    [Test]
     procedure LspCommandRejectsMissingOperationArguments;
     [Test]
     procedure LspHelpMarksReferencesAsVersionDependent;
@@ -898,6 +900,21 @@ begin
   Assert.AreEqual(TLspFormat.lfText, lOptions.fLspFormat);
 end;
 
+procedure TCliTests.LspProbeCommandParsesModesAndShowInitOptions;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('lsp probe --project c:\temp\sample.dproj --mode contextFile --mode settingsFile --show-init-options --format text');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected lsp probe args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckLsp, lOptions.fCommand);
+  Assert.AreEqual(TLspOperation.loProbe, lOptions.fLspOperation);
+  Assert.IsTrue(TLspProbeMode.lpmContextFile in lOptions.fLspProbeModes, 'Expected contextFile probe mode.');
+  Assert.IsTrue(TLspProbeMode.lpmSettingsFile in lOptions.fLspProbeModes, 'Expected settingsFile probe mode.');
+  Assert.IsTrue(lOptions.fLspShowInitOptions, 'Expected show-init-options to be captured.');
+  Assert.AreEqual(TLspFormat.lfText, lOptions.fLspFormat);
+end;
+
 procedure TCliTests.LspCommandRejectsMissingOperationArguments;
 var
   lError: string;
@@ -947,6 +964,7 @@ begin
 
   Assert.IsTrue(Pos('definition', lLogText) > 0, 'Expected lsp help to mention definition.');
   Assert.IsTrue(Pos('references', lLogText) > 0, 'Expected lsp help to mention references.');
+  Assert.IsTrue(Pos('probe', lLogText) > 0, 'Expected lsp help to mention probe.');
   Assert.IsTrue(Pos('version', LowerCase(lLogText)) > 0,
     'Expected lsp help to mark references as version-dependent.');
   Assert.IsTrue(Pos('deps', LowerCase(lLogText)) > 0, 'Expected lsp help to mention deps fallback guidance.');
