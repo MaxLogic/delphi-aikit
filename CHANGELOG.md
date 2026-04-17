@@ -35,6 +35,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- Clarified external `lsp` docs for Delphi 23: `symbols` is file-scoped `documentSymbol`, `references` is version-gated, and Delphi 13.x will be rechecked once installed. (T-121)
 - Defaulted CLI `--platform` to `Win32` and `--config` to `Release` when omitted. (T-002)
 - Generated FixInsight bat now uses one argument per line and no command echo. (T-002)
 - Auto-detect FixInsightCL.exe via `PATH`, then `HKCU\Software\FixInsight\Path` for bat output. (T-003)
