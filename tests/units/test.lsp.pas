@@ -3,6 +3,7 @@ unit Test.Lsp;
 interface
 
 uses
+  System.JSON,
   DUnitX.TestFramework,
   Dak.Lsp.Context, Dak.Types;
 
@@ -92,14 +93,30 @@ type
     procedure LspProbeSettingsFileModeUsesSettingsHandshake;
   end;
 
+  [TestFixture]
+  TRealLspAcceptanceTests = class
+  private
+    function FixtureDprojPath: string;
+    function FixtureUnit1Path: string;
+    function RunLspCommand(const aScenarioName, aArgs: string; out aJson: TJSONObject): Cardinal;
+  public
+    [Test]
+    procedure RealDelphi23DefinitionMatchesFixtureGoldenAnswer;
+    [Test]
+    procedure RealDelphi23SymbolsMatchFixtureGoldenAnswer;
+  end;
+
 implementation
 
 uses
-  System.Classes, System.IOUtils, System.JSON, System.SysUtils,
+  System.Classes, System.IOUtils, System.SysUtils,
   Winapi.Windows,
   maxLogic.ioUtils,
   Dak.Lsp.Runner,
   Test.Support;
+
+var
+  GRealLspAcceptanceLock: TObject;
 
 procedure WriteUtf8File(const aPath, aText: string);
 begin
@@ -539,6 +556,7 @@ begin
   lOptions.fDprojPath := lDprojPath;
   lOptions.fPlatform := 'Win32';
   lOptions.fConfig := 'Debug';
+  lOptions.fDelphiVersion := '23.0';
   lOptions.fRsVarsPath := lRsVarsPath;
   lOptions.fHasRsVarsPath := True;
   lOptions.fEnvOptionsPath := lEnvOptionsPath;
@@ -1210,6 +1228,55 @@ begin
   TDirectory.CreateDirectory(lDir);
   Result := TPath.Combine(lDir, aScenarioName + '.json');
   WriteUtf8File(Result, aScriptJson);
+end;
+
+function TRealLspAcceptanceTests.FixtureDprojPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspProjectFixture\LspProjectFixture.dproj');
+end;
+
+function TRealLspAcceptanceTests.FixtureUnit1Path: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspProjectFixture\Unit1.pas');
+end;
+
+function TRealLspAcceptanceTests.RunLspCommand(const aScenarioName, aArgs: string; out aJson: TJSONObject): Cardinal;
+var
+  lAttempt: Integer;
+  lLogPath: string;
+  lLogText: string;
+  lValue: TJSONValue;
+begin
+  TMonitor.Enter(GRealLspAcceptanceLock);
+  try
+    EnsureResolverBuilt;
+    EnsureTempClean;
+    lLogPath := TPath.Combine(TempRoot,
+      Format('%s-%d-%d.json', [aScenarioName, GetCurrentThreadId, GetTickCount]));
+    for lAttempt := 1 to 5 do
+    begin
+      Assert.IsTrue(RunProcess(ResolverExePath, aArgs, RepoRoot, lLogPath, Result),
+        'Expected DelphiAIKit.exe lsp process to start for ' + aScenarioName + '.');
+      Assert.IsTrue(FileExists(lLogPath), 'Expected JSON log output for ' + aScenarioName + '.');
+      lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+      lValue := TJSONObject.ParseJSONValue(lLogText);
+      if lValue is TJSONObject then
+      begin
+        aJson := lValue as TJSONObject;
+        Exit(Result);
+      end;
+      lValue.Free;
+      if (lAttempt < 5) and SameText(Trim(lLogText), 'DelphiLSP did not exit cleanly.') then
+      begin
+        Sleep(1000);
+        Continue;
+      end;
+      Assert.Fail('Expected JSON output for ' + aScenarioName + ': ' + lLogText);
+    end;
+    Assert.Fail('Expected JSON output for ' + aScenarioName + ' after retrying transient DelphiLSP shutdown failures.');
+  finally
+    TMonitor.Exit(GRealLspAcceptanceLock);
+  end;
 end;
 
 procedure TLspRunnerTests.LspDiscoveryPrefersExplicitPathThenResolvedInstall;
@@ -1980,9 +2047,98 @@ begin
   end;
 end;
 
+procedure TRealLspAcceptanceTests.RealDelphi23DefinitionMatchesFixtureGoldenAnswer;
+var
+  lJson: TJSONObject;
+  lLocations: TJSONArray;
+  lArgs: string;
+  lLspPath: string;
+  lLocation: TJSONObject;
+begin
+  RequireRealDelphiLsp23OrSkip(lLspPath);
+  lArgs := 'lsp definition --project ' + QuoteArg(FixtureDprojPath) +
+    ' --delphi 23.0 --lsp-path ' + QuoteArg(lLspPath) +
+    ' --file ' + QuoteArg(FixtureUnit1Path) +
+    ' --line 8 --col 21 --format json';
+  lJson := nil;
+  try
+    Assert.AreEqual<Cardinal>(0, RunLspCommand('real-lsp-definition-golden', lArgs, lJson),
+      'Expected real Delphi 23 definition golden query to succeed.');
+    lLocations := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations');
+    Assert.IsNotNull(lLocations, 'Expected real definition locations array.');
+    Assert.AreEqual(1, lLocations.Count, 'Expected one real definition location.');
+    lLocation := lLocations.Items[0] as TJSONObject;
+    Assert.AreEqual<string>(FixtureUnit1Path, lLocation.GetValue<string>('file'),
+      'Expected definition to stay inside the fixture unit.');
+    Assert.AreEqual(13, lLocation.GetValue<Integer>('line'),
+      'Expected definition to resolve to the implementation of TFixtureType.Run.');
+    Assert.AreEqual(1, lLocation.GetValue<Integer>('col'),
+      'Expected definition column for TFixtureType.Run implementation.');
+    Assert.AreEqual(13, lLocation.GetValue<Integer>('endLine'),
+      'Expected definition end line for TFixtureType.Run implementation.');
+    Assert.AreEqual(1, lLocation.GetValue<Integer>('endCol'),
+      'Expected definition end column for TFixtureType.Run implementation.');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TRealLspAcceptanceTests.RealDelphi23SymbolsMatchFixtureGoldenAnswer;
+var
+  lArgs: string;
+  lJson: TJSONObject;
+  lLspPath: string;
+  lSymbols: TJSONArray;
+begin
+  RequireRealDelphiLsp23OrSkip(lLspPath);
+  lArgs := 'lsp symbols --project ' + QuoteArg(FixtureDprojPath) +
+    ' --delphi 23.0 --lsp-path ' + QuoteArg(lLspPath) +
+    ' --file ' + QuoteArg(FixtureUnit1Path) +
+    ' --query Fixture --format json';
+  lJson := nil;
+  try
+    Assert.AreEqual<Cardinal>(0, RunLspCommand('real-lsp-symbols-golden', lArgs, lJson),
+      'Expected real Delphi 23 symbols golden query to succeed.');
+    lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
+    Assert.IsNotNull(lSymbols, 'Expected real symbols array.');
+    Assert.AreEqual(2, lSymbols.Count, 'Expected two real golden symbol rows.');
+    Assert.AreEqual<string>('TFixtureType', (lSymbols.Items[0] as TJSONObject).GetValue<string>('name'),
+      'Expected class symbol first.');
+    Assert.AreEqual(5, (lSymbols.Items[0] as TJSONObject).GetValue<Integer>('kind'),
+      'Expected class symbol kind.');
+    Assert.AreEqual<string>('interface', (lSymbols.Items[0] as TJSONObject).GetValue<string>('containerName'),
+      'Expected class symbol container.');
+    Assert.AreEqual<string>(FixtureUnit1Path, (lSymbols.Items[0] as TJSONObject).GetValue<string>('file'),
+      'Expected class symbol file.');
+    Assert.AreEqual(6, (lSymbols.Items[0] as TJSONObject).GetValue<Integer>('line'),
+      'Expected class symbol line.');
+    Assert.AreEqual(18, (lSymbols.Items[0] as TJSONObject).GetValue<Integer>('col'),
+      'Expected class symbol column.');
+    Assert.AreEqual<string>('TFixtureType.Run', (lSymbols.Items[1] as TJSONObject).GetValue<string>('name'),
+      'Expected method symbol second.');
+    Assert.AreEqual(6, (lSymbols.Items[1] as TJSONObject).GetValue<Integer>('kind'),
+      'Expected method symbol kind.');
+    Assert.AreEqual<string>('implementation', (lSymbols.Items[1] as TJSONObject).GetValue<string>('containerName'),
+      'Expected method symbol container.');
+    Assert.AreEqual<string>(FixtureUnit1Path, (lSymbols.Items[1] as TJSONObject).GetValue<string>('file'),
+      'Expected method symbol file.');
+    Assert.AreEqual(13, (lSymbols.Items[1] as TJSONObject).GetValue<Integer>('line'),
+      'Expected method symbol line.');
+    Assert.AreEqual(1, (lSymbols.Items[1] as TJSONObject).GetValue<Integer>('col'),
+      'Expected method symbol column.');
+  finally
+    lJson.Free;
+  end;
+end;
+
 initialization
+  GRealLspAcceptanceLock := TObject.Create;
   TDUnitX.RegisterTestFixture(TLspContextTests);
   TDUnitX.RegisterTestFixture(TLspFixtureTests);
   TDUnitX.RegisterTestFixture(TLspRunnerTests);
+  TDUnitX.RegisterTestFixture(TRealLspAcceptanceTests);
+
+finalization
+  GRealLspAcceptanceLock.Free;
 
 end.

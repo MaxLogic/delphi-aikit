@@ -1,9 +1,9 @@
 # Tasks
-Next task ID: T-126
+Next task ID: T-127
 
 ## Summary
 Open tasks: 2 (In Progress: 0, Next Today: 0, Next This Week: 0, Next Later: 0, Blocked: 2)
-Done tasks: 123
+Done tasks: 124
 
 ## In Progress
 
@@ -49,9 +49,26 @@ Deps: T-116, T-117, T-118
 Verify: cli-proof, manual
 Notes: Plan: `.agents/plans/lsp.md`. This is the real-world acceptance gate for the wrapper after the fake-server-backed contract tests are green.
 
-Blocked: The installed Delphi 23.0 `DelphiLSP.exe` advertises `definitionProvider`, `declarationProvider`, `implementationProvider`, `documentSymbolProvider`, and `hoverProvider`, but not `referencesProvider` or `workspaceSymbolProvider`. Real proof on 2026-04-17: `definition` at `Unit1.pas:8:21` returns a non-empty location; `symbols` for `Unit1.pas` with query `Fixture` returns non-empty file-scoped document symbols; `references` fails with `Installed DelphiLSP at ... does not advertise support for textDocument/references ...`; `hover` still returns an explicit empty result on the fixture query. The new probe confirms that Delphi 23.0 advertises the same capability matrix in both `contextFile` and `settingsFile` modes, so the missing external features are not explained by DAK handshake differences. Full T-120 acceptance remains blocked on upstream `references` capability expansion and a real hover proof that returns semantically useful content.
+Blocked: The installed Delphi 23.0 `DelphiLSP.exe` advertises `definitionProvider`, `declarationProvider`, `implementationProvider`, `documentSymbolProvider`, and `hoverProvider`, but not `referencesProvider` or `workspaceSymbolProvider`. Real proof on 2026-04-17: `definition` at `Unit1.pas:8:21` returns a non-empty location; `symbols` for `Unit1.pas` with query `Fixture` returns non-empty file-scoped document symbols; `references` fails with `Installed DelphiLSP at ... does not advertise support for textDocument/references ...`; `hover` still returns an explicit empty result on the fixture query. T-126 adds golden real-server coverage for the supported `definition` and `symbols` queries, but full T-120 acceptance remains blocked on upstream `references` capability expansion and a real hover proof that returns semantically useful content.
 
 ## Done
+
+### T-126 [TEST] Add real DelphiLSP golden acceptance queries for supported operations
+Outcome:
+- The repo has a stable real-server acceptance slice for the Delphi 23 external `DelphiLSP.exe` operations that actually return useful fixture answers today.
+- The fixture project and proof queries assert exact known answers for at least `definition` and file-scoped `symbols`, instead of only checking for non-empty output.
+- The task ledger records which real-server operations are now golden-covered and which remain blocked or version-gated.
+Proof:
+- Run: `timeout 600 ./tests/DelphiAIKit.Tests.exe -r:Test.Lsp.TRealLspAcceptanceTests.RealDelphi23DefinitionMatchesFixtureGoldenAnswer,Test.Lsp.TRealLspAcceptanceTests.RealDelphi23SymbolsMatchFixtureGoldenAnswer -cm:Quiet`
+  Expect: Tests Found `>=2`, Failed `0`, Leaked `0`.
+- Prereq: real Delphi 23 `DelphiLSP.exe` is discoverable by DAK or passed explicitly via `--lsp-path <path-to-DelphiLSP.exe>`; the test fixture also accepts `DAK_REAL_LSP_EXE` for the same override.
+- Run: `./bin/DelphiAIKit.exe lsp definition --project /mnt/f/projects/maxlogic/delphiaikit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path <path-to-DelphiLSP.exe> --file /mnt/f/projects/maxlogic/delphiaikit/tests/fixtures/LspProjectFixture/Unit1.pas --line 8 --col 21 --format json`
+  Expect: Exit code `0`; JSON points at `Unit1.pas:13:1` for the `TFixtureType.Run` implementation line.
+- Run: `./bin/DelphiAIKit.exe lsp symbols --project /mnt/f/projects/maxlogic/delphiaikit/tests/fixtures/LspProjectFixture/LspProjectFixture.dproj --delphi 23.0 --lsp-path <path-to-DelphiLSP.exe> --file /mnt/f/projects/maxlogic/delphiaikit/tests/fixtures/LspProjectFixture/Unit1.pas --query Fixture --format json`
+  Expect: Exit code `0`; JSON contains deterministic file-scoped symbol rows for `TFixtureType` and `TFixtureType.Run` in `Unit1.pas`.
+Touches: tests/units/test.lsp.pas, tests/units/test.support.pas, tests/units/test.build.pas, tests/fixtures/LspProjectFixture/, TASKS.md
+Verify: unit-test, cli-proof
+Notes: This strengthens real-server acceptance without pretending Delphi 23 external `references` or useful `hover` answers are already available. The real-server tests skip cleanly when Delphi 23 `DelphiLSP.exe` is unavailable off maintainer machines, while still failing on Pawel's machine.
 
 ### T-124 [TEST] Add a repeatable DelphiLSP capability probe
 Outcome:
