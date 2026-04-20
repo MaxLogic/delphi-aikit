@@ -99,7 +99,7 @@ type
     [Test]
     procedure LspCommandRejectsMissingOperationArguments;
     [Test]
-    procedure LspHelpMarksReferencesAsVersionDependent;
+    procedure LspHelpListsSupportedOperationsOnly;
     [Test]
     procedure DepsCommandParsesJsonDefaults;
     [Test]
@@ -858,15 +858,6 @@ begin
   Assert.AreEqual(3, lOptions.fLspLine);
   Assert.AreEqual(5, lOptions.fLspCol);
 
-  SetParams('lsp references --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 7 --col 9 --include-declaration false');
-  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected lsp references args to parse. Error: ' + lError);
-  Assert.AreEqual(TCommandKind.ckLsp, lOptions.fCommand);
-  Assert.AreEqual(TLspOperation.loReferences, lOptions.fLspOperation);
-  Assert.AreEqual(7, lOptions.fLspLine);
-  Assert.AreEqual(9, lOptions.fLspCol);
-  Assert.IsTrue(lOptions.fHasLspIncludeDeclaration, 'Expected explicit include-declaration flag to be recorded.');
-  Assert.IsFalse(lOptions.fLspIncludeDeclaration, 'Expected include-declaration=false to be captured.');
-
   SetParams('lsp hover --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 11 --col 13');
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected lsp hover args to parse. Error: ' + lError);
   Assert.AreEqual(TLspOperation.loHover, lOptions.fLspOperation);
@@ -940,12 +931,16 @@ begin
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --limit outside lsp symbols to be rejected.');
   Assert.IsTrue(Pos('--limit', lError) > 0, 'Expected invalid --limit operation error. Actual: ' + lError);
 
+  SetParams('lsp references --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 7 --col 9');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected unsupported lsp references operation to be rejected.');
+  Assert.IsTrue(Pos('references', LowerCase(lError)) > 0, 'Expected unsupported references error. Actual: ' + lError);
+
   SetParams('lsp hover --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 3 --col 5 --include-declaration false');
-  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --include-declaration outside lsp references to be rejected.');
-  Assert.IsTrue(Pos('--include-declaration', lError) > 0, 'Expected invalid include-declaration operation error. Actual: ' + lError);
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected unsupported --include-declaration switch to be rejected.');
+  Assert.IsTrue(Pos('--include-declaration', lError) > 0, 'Expected unsupported include-declaration error. Actual: ' + lError);
 end;
 
-procedure TCliTests.LspHelpMarksReferencesAsVersionDependent;
+procedure TCliTests.LspHelpListsSupportedOperationsOnly;
 var
   lExitCode: Cardinal;
   lLogPath: string;
@@ -963,13 +958,10 @@ begin
     lLogText := TFile.ReadAllText(lLogPath);
 
   Assert.IsTrue(Pos('definition', lLogText) > 0, 'Expected lsp help to mention definition.');
-  Assert.IsTrue(Pos('references', lLogText) > 0, 'Expected lsp help to mention references.');
+  Assert.IsTrue(Pos('hover', lLogText) > 0, 'Expected lsp help to mention hover.');
+  Assert.IsTrue(Pos('symbols', lLogText) > 0, 'Expected lsp help to mention symbols.');
   Assert.IsTrue(Pos('probe', lLogText) > 0, 'Expected lsp help to mention probe.');
-  Assert.IsTrue(Pos('version', LowerCase(lLogText)) > 0,
-    'Expected lsp help to mark references as version-dependent.');
-  Assert.IsTrue(Pos('deps', LowerCase(lLogText)) > 0, 'Expected lsp help to mention deps fallback guidance.');
-  Assert.IsTrue(Pos('global-vars', LowerCase(lLogText)) > 0, 'Expected lsp help to mention global-vars fallback guidance.');
-  Assert.IsTrue(Pos('rg', LowerCase(lLogText)) > 0, 'Expected lsp help to mention rg fallback guidance.');
+  Assert.AreEqual(0, Pos('references', LowerCase(lLogText)), 'Expected lsp help to omit unsupported references.');
   Assert.IsTrue(Pos('symbols: --file', LowerCase(lLogText)) > 0, 'Expected lsp help to mention file-scoped symbols usage.');
   Assert.IsTrue(Pos('--rsvars', lLogText) > 0, 'Expected lsp help to mention --rsvars.');
   Assert.IsTrue(Pos('--envoptions', lLogText) > 0, 'Expected lsp help to mention --envoptions.');

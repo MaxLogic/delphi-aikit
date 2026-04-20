@@ -266,13 +266,6 @@ begin
     lPositionObject.AddPair('character', TJSONNumber.Create(aOptions.fLspCol - 1));
     lParams.AddPair('position', lPositionObject);
 
-    if aOptions.fLspOperation = TLspOperation.loReferences then
-    begin
-      lContextObject := TJSONObject.Create;
-      lContextObject.AddPair('includeDeclaration', TJSONBool.Create(aOptions.fLspIncludeDeclaration));
-      lParams.AddPair('context', lContextObject);
-    end;
-
     Result := lParams.ToJSON;
   finally
     lParams.Free;
@@ -297,7 +290,7 @@ end;
 
 function BuildRequestParams(const aOptions: TAppOptions; const aFileUri: string): string;
 begin
-  if aOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover] then
+  if aOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loHover] then
     Exit(BuildPositionParams(aOptions, aFileUri));
   if aOptions.fLspOperation = TLspOperation.loSymbols then
     Exit(BuildDocumentSymbolParams(aFileUri));
@@ -865,8 +858,6 @@ begin
   case aOptions.fLspOperation of
     TLspOperation.loDefinition:
       Result := BuildNormalizedLocationsResult('locations', lResultValue);
-    TLspOperation.loReferences:
-      Result := BuildNormalizedLocationsResult('references', lResultValue);
     TLspOperation.loHover:
       Result := BuildNormalizedHoverResult(lResultValue);
     TLspOperation.loSymbols:
@@ -911,8 +902,6 @@ begin
   case aOperation of
     TLspOperation.loDefinition:
       Result := 'definition';
-    TLspOperation.loReferences:
-      Result := 'references';
     TLspOperation.loHover:
       Result := 'hover';
     TLspOperation.loSymbols:
@@ -929,8 +918,6 @@ begin
   case aOperation of
     TLspOperation.loDefinition:
       Result := 'textDocument/definition';
-    TLspOperation.loReferences:
-      Result := 'textDocument/references';
     TLspOperation.loHover:
       Result := 'textDocument/hover';
     TLspOperation.loSymbols:
@@ -943,8 +930,6 @@ end;
 function LspCapabilityName(aOperation: TLspOperation): string;
 begin
   case aOperation of
-    TLspOperation.loReferences:
-      Result := 'referencesProvider';
     TLspOperation.loSymbols:
       Result := 'documentSymbolProvider';
   else
@@ -1237,8 +1222,6 @@ begin
   lRequestMethod := LspRequestMethod(aOperation);
   lAdvertised := BuildAdvertisedCapabilitiesText(aInitResponse);
   lFallback := '';
-  if aOperation = TLspOperation.loReferences then
-    lFallback := ' Use deps, global-vars, or rg as a fallback.';
   Result := Format('Installed DelphiLSP at %s for Delphi %s does not advertise support for %s (%s).',
     [aLspPath, aContext.fDelphiVersion, lRequestMethod, aReason]);
   if lAdvertised <> '' then
