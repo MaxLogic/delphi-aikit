@@ -98,6 +98,7 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 - `build-timeout-sec=0`
 - `source-context=auto`, `source-context-lines=2`
 - warnings and hints hidden unless requested
+- when `--ai` is enabled, DAK may append best-effort `lsp` semantic hints to build failures; missing or empty LSP data is expected and must not fail the build
 
 ## Key Flags
 
@@ -125,6 +126,7 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 7. If output is locked, either stop the locking process or use `--test-output-dir`.
 8. Leave `--source-context` at `auto` unless we explicitly need more or less surrounding source.
 9. Report actionable diagnostics with exact failing unit/error line and next fix step.
+10. If `--ai` emits no semantic hints, keep the original compiler failure intact and continue with the source-context evidence we already have.
 
 Build plus DFM check example:
 

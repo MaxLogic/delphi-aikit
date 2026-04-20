@@ -87,6 +87,7 @@ Additional build flags:
 - `--pwa` and `--no-pwa` force WebCore `/PWA` on or off. Without either flag, DAK follows the project's `TMSWebPWA` setting.
 - `--source-context auto|off|on` controls whether build/`dfm-check` failure output includes nearby source lines when a file and line can be resolved.
 - `--source-context-lines N` controls how many lines before/after the hit are shown (default `2`).
+- When `--ai` is enabled, build failures can append optional `lsp` semantic hints when DAK can resolve a meaningful token or enclosing symbol. Missing, unsupported, or empty LSP data leaves the original compiler failure untouched.
 - `--rsvars "<path>"` overrides `rsvars.bat` for build and post-build `--dfmcheck` validation.
 
 For TMS WEB Core projects, `build` can now call `TMSWebCompiler.exe` directly:

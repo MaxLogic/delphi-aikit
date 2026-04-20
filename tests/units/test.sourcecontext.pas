@@ -13,6 +13,8 @@ type
   TSourceContextTests = class
   private
     procedure CreateFixtureProject(out aDprojPath: string; out aProjectFilePath: string; out aSearchFilePath: string);
+    procedure CreateCandidateFixtureProject(out aDprojPath: string; out aTokenFilePath: string;
+      out aSymbolFilePath: string; out aNoCandidateFilePath: string);
     function LoadLookup(const aDprojPath: string): TProjectSourceLookup;
   public
     [Test]
@@ -25,6 +27,16 @@ type
     procedure SearchPathSourceContextResolves;
     [Test]
     procedure MissingSourceContextFileReturnsFalse;
+    [Test]
+    procedure ParseFindingLocationExtractsColumn;
+    [Test]
+    procedure SourceContextCandidateUsesTokenAtColumn;
+    [Test]
+    procedure SourceContextCandidateUsesFirstIdentifierWithoutColumn;
+    [Test]
+    procedure SourceContextCandidateFallsBackToEnclosingSymbol;
+    [Test]
+    procedure SourceContextCandidateReturnsFalseWithoutReasonableCandidate;
   end;
 
 implementation
@@ -83,6 +95,59 @@ begin
     'begin' + #13#10 +
     '  SearchPathValue := 1;' + #13#10 +
     'end;' + #13#10 +
+    'end.' + #13#10);
+end;
+
+procedure TSourceContextTests.CreateCandidateFixtureProject(out aDprojPath: string; out aTokenFilePath: string;
+  out aSymbolFilePath: string; out aNoCandidateFilePath: string);
+var
+  lRoot: string;
+begin
+  EnsureTempClean;
+  lRoot := TPath.Combine(TempRoot, 'source-context-candidate-fixture');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+
+  aDprojPath := TPath.Combine(lRoot, 'SourceContextCandidateFixture.dproj');
+  aTokenFilePath := TPath.Combine(lRoot, 'TokenUnit.pas');
+  aSymbolFilePath := TPath.Combine(lRoot, 'SymbolUnit.pas');
+  aNoCandidateFilePath := TPath.Combine(lRoot, 'NoCandidateUnit.pas');
+
+  WriteFixtureFile(aDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
+    '  <PropertyGroup>' + #13#10 +
+    '    <MainSource>SourceContextCandidateFixture.dpr</MainSource>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '</Project>' + #13#10);
+  WriteFixtureFile(TPath.ChangeExtension(aDprojPath, '.dpr'),
+    'program SourceContextCandidateFixture;' + #13#10 +
+    'begin' + #13#10 +
+    'end.' + #13#10);
+  WriteFixtureFile(aTokenFilePath,
+    'unit TokenUnit;' + #13#10 +
+    'interface' + #13#10 +
+    'procedure TokenExample;' + #13#10 +
+    'implementation' + #13#10 +
+    'procedure TokenExample;' + #13#10 +
+    'begin' + #13#10 +
+    '  MissingIdentifier := 1;' + #13#10 +
+    'end;' + #13#10 +
+    'end.' + #13#10);
+  WriteFixtureFile(aSymbolFilePath,
+    'unit SymbolUnit;' + #13#10 +
+    'interface' + #13#10 +
+    'procedure Trigger;' + #13#10 +
+    'implementation' + #13#10 +
+    'procedure Trigger;' + #13#10 +
+    'begin' + #13#10 +
+    '  ;' + #13#10 +
+    'end;' + #13#10 +
+    'end.' + #13#10);
+  WriteFixtureFile(aNoCandidateFilePath,
+    'unit NoCandidateUnit;' + #13#10 +
+    'interface' + #13#10 +
+    'implementation' + #13#10 +
     'end.' + #13#10);
 end;
 
@@ -209,6 +274,111 @@ begin
   Assert.IsFalse(TryResolveSourceContext(lLookup, 'MissingUnit.pas', 7, 1, lContext, lError),
     'Expected missing source file to stay unresolved.');
   Assert.IsTrue(Pos('Could not resolve source file', lError) > 0, 'Expected missing-file error text.');
+end;
+
+procedure TSourceContextTests.ParseFindingLocationExtractsColumn;
+var
+  lColNumber: Integer;
+  lFileToken: string;
+  lFinding: string;
+  lLineNumber: Integer;
+begin
+  lFinding := 'TokenUnit.pas(7,5): error E2003: Undeclared identifier: ''MissingIdentifier''';
+
+  Assert.IsTrue(TryParseFindingLocationWithColumn(lFinding, lFileToken, lLineNumber, lColNumber),
+    'Expected file/line/column parser to accept compiler-style failure text.');
+  Assert.AreEqual('TokenUnit.pas', lFileToken);
+  Assert.AreEqual(7, lLineNumber);
+  Assert.AreEqual(5, lColNumber);
+end;
+
+procedure TSourceContextTests.SourceContextCandidateUsesTokenAtColumn;
+var
+  lContext: TSourceContextSnippet;
+  lDprojPath: string;
+  lError: string;
+  lLookup: TProjectSourceLookup;
+  lEnclosingSymbol: string;
+  lNoCandidateFilePath: string;
+  lSymbolFilePath: string;
+  lTokenFilePath: string;
+  lToken: string;
+begin
+  CreateCandidateFixtureProject(lDprojPath, lTokenFilePath, lSymbolFilePath, lNoCandidateFilePath);
+  lLookup := LoadLookup(lDprojPath);
+
+  Assert.IsTrue(TryResolveSourceContextCandidate(lLookup, 'TokenUnit.pas(7,5): error E2003: Undeclared identifier',
+    1, lContext, lToken, lEnclosingSymbol, lError), 'Expected candidate extraction to succeed. Error: ' + lError);
+  Assert.AreEqual('MissingIdentifier', lToken);
+  Assert.AreEqual('', lEnclosingSymbol);
+  Assert.AreEqual(TPath.GetFullPath(lTokenFilePath), lContext.fFilePath);
+  Assert.AreEqual(7, lContext.fTargetLine);
+end;
+
+procedure TSourceContextTests.SourceContextCandidateUsesFirstIdentifierWithoutColumn;
+var
+  lContext: TSourceContextSnippet;
+  lDprojPath: string;
+  lError: string;
+  lLookup: TProjectSourceLookup;
+  lEnclosingSymbol: string;
+  lNoCandidateFilePath: string;
+  lSymbolFilePath: string;
+  lTokenFilePath: string;
+  lToken: string;
+begin
+  CreateCandidateFixtureProject(lDprojPath, lTokenFilePath, lSymbolFilePath, lNoCandidateFilePath);
+  lLookup := LoadLookup(lDprojPath);
+
+  Assert.IsTrue(TryResolveSourceContextCandidate(lLookup, 'TokenUnit.pas(7): error E2003: Undeclared identifier',
+    1, lContext, lToken, lEnclosingSymbol, lError), 'Expected identifier extraction without a column to succeed. Error: ' + lError);
+  Assert.AreEqual('MissingIdentifier', lToken);
+  Assert.AreEqual('', lEnclosingSymbol);
+  Assert.AreEqual(TPath.GetFullPath(lTokenFilePath), lContext.fFilePath);
+  Assert.AreEqual(7, lContext.fTargetLine);
+end;
+
+procedure TSourceContextTests.SourceContextCandidateFallsBackToEnclosingSymbol;
+var
+  lContext: TSourceContextSnippet;
+  lDprojPath: string;
+  lError: string;
+  lLookup: TProjectSourceLookup;
+  lEnclosingSymbol: string;
+  lNoCandidateFilePath: string;
+  lSymbolFilePath: string;
+  lTokenFilePath: string;
+  lToken: string;
+begin
+  CreateCandidateFixtureProject(lDprojPath, lTokenFilePath, lSymbolFilePath, lNoCandidateFilePath);
+  lLookup := LoadLookup(lDprojPath);
+
+  Assert.IsTrue(TryResolveSourceContextCandidate(lLookup, 'SymbolUnit.pas(7,3): error E2029: Record not allowed here',
+    3, lContext, lToken, lEnclosingSymbol, lError), 'Expected enclosing-symbol fallback to succeed. Error: ' + lError);
+  Assert.AreEqual('', lToken);
+  Assert.AreEqual('Trigger', lEnclosingSymbol);
+  Assert.AreEqual(TPath.GetFullPath(lSymbolFilePath), lContext.fFilePath);
+  Assert.AreEqual(7, lContext.fTargetLine);
+end;
+
+procedure TSourceContextTests.SourceContextCandidateReturnsFalseWithoutReasonableCandidate;
+var
+  lContext: TSourceContextSnippet;
+  lDprojPath: string;
+  lError: string;
+  lLookup: TProjectSourceLookup;
+  lEnclosingSymbol: string;
+  lNoCandidateFilePath: string;
+  lSymbolFilePath: string;
+  lTokenFilePath: string;
+  lToken: string;
+begin
+  CreateCandidateFixtureProject(lDprojPath, lTokenFilePath, lSymbolFilePath, lNoCandidateFilePath);
+  lLookup := LoadLookup(lDprojPath);
+
+  Assert.IsFalse(TryResolveSourceContextCandidate(lLookup, 'NoCandidateUnit.pas(3,1): error E2010: Syntax error', 1,
+    lContext, lToken, lEnclosingSymbol, lError), 'Expected no reasonable candidate to fail cleanly.');
+  Assert.IsTrue(Pos('candidate', LowerCase(lError)) > 0, 'Expected candidate failure text. Error: ' + lError);
 end;
 
 initialization
