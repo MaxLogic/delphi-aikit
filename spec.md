@@ -161,6 +161,7 @@ DelphiAIKit.exe dfm-check --dproj "<path>\MyProject.dproj" ^
 ```
 
 - Generated `_DfmCheck` harness projects must preserve the source project's effective compile search path, including imported `.optset` / inherited `DCC_UnitSearchPath` inputs and IDE/library-path entries resolved from the active Delphi context, while keeping project/discovered form-unit directories ahead of inherited IDE/library paths so the generated register unit resolves the same project units as the normal build.
+- When the generated checker project is relocated under `.dak/...`, DAK must also rebase relative MSBuild `<Import Project="...">` references and relative `Exists('...')` import conditions to the source-project directory so inherited property sets continue to resolve during the checker build.
 
 ### 2.7 `dfm-inspect` — inspect text DFM files
 

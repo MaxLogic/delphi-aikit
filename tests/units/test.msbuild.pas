@@ -23,11 +23,15 @@ type
     [Test]
     procedure AcceptsConditionWithoutWhitespaceAroundOr;
     [Test]
+    procedure AcceptsExistsConditionForRelativeImportPath;
+    [Test]
     procedure RejectsTrailingUnknownTokenInCondition;
     [Test]
     procedure RejectsTrailingInvalidOperatorInCondition;
     [Test]
     procedure RejectsUnterminatedQuotedLiteralInCondition;
+    [Test]
+    procedure EvaluatesImportedPropertyGroupsWhenImportConditionMatches;
     [Test]
     procedure SelfReferenceFallsBackToEmptyWhenPropertyWasUndefined;
   end;
@@ -75,6 +79,40 @@ begin
     lProjectXml.AppendLine('  <PropertyGroup>');
     lProjectXml.AppendLine('    <' + aPropertyName + '>' + aPropertyValue + '</' + aPropertyName + '>');
     lProjectXml.AppendLine('  </PropertyGroup>');
+    lProjectXml.AppendLine('</Project>');
+    TFile.WriteAllText(aProjectPath, lProjectXml.ToString, TEncoding.UTF8);
+  finally
+    lProjectXml.Free;
+  end;
+end;
+
+procedure BuildImportProject(out aProjectPath: string; out aImportedPropsPath: string);
+var
+  lProjectXml: TStringBuilder;
+  lRoot: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'msbuild-imports');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+
+  aProjectPath := TPath.Combine(lRoot, 'ImportCheck.dproj');
+  aImportedPropsPath := TPath.Combine(lRoot, 'Imported.props');
+  TFile.WriteAllText(aImportedPropsPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <ImportedValue>from-import</ImportedValue>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak, TEncoding.UTF8);
+
+  lProjectXml := TStringBuilder.Create;
+  try
+    lProjectXml.AppendLine('<Project>');
+    lProjectXml.AppendLine('  <PropertyGroup>');
+    lProjectXml.AppendLine('    <EnableImportedProps>true</EnableImportedProps>');
+    lProjectXml.AppendLine('  </PropertyGroup>');
+    lProjectXml.AppendLine(
+      '  <Import Project="Imported.props" Condition="''$(EnableImportedProps)''==''true'' And Exists(''Imported.props'')"/>');
     lProjectXml.AppendLine('</Project>');
     TFile.WriteAllText(aProjectPath, lProjectXml.ToString, TEncoding.UTF8);
   finally
@@ -155,6 +193,15 @@ begin
     #39 + 'Release' + #39 + '==' + #39 + 'Debug' + #39);
 end;
 
+procedure TMsBuildTests.AcceptsExistsConditionForRelativeImportPath;
+var
+  lCondition: string;
+begin
+  lCondition := '''Debug''==''Debug'' and Exists(''' + TPath.Combine(TempRoot, 'msbuild-exists-check.txt') + ''')';
+  TFile.WriteAllText(TPath.Combine(TempRoot, 'msbuild-exists-check.txt'), 'ok', TEncoding.ASCII);
+  AssertConditionAccepted(lCondition);
+end;
+
 procedure TMsBuildTests.RejectsTrailingUnknownTokenInCondition;
 begin
   AssertConditionRejected('''Debug''==''Debug'' trailing');
@@ -168,6 +215,44 @@ end;
 procedure TMsBuildTests.RejectsUnterminatedQuotedLiteralInCondition;
 begin
   AssertConditionRejected(#39 + 'Debug' + #39 + '==' + #39 + 'Debug');
+end;
+
+procedure TMsBuildTests.EvaluatesImportedPropertyGroupsWhenImportConditionMatches;
+var
+  lDiagnostics: TDiagnostics;
+  lEnv: TDictionary<string, string>;
+  lError: string;
+  lEvaluator: TMsBuildEvaluator;
+  lImportedPropsPath: string;
+  lImportedValue: string;
+  lProjectPath: string;
+  lProps: TDictionary<string, string>;
+begin
+  BuildImportProject(lProjectPath, lImportedPropsPath);
+  Assert.IsTrue(FileExists(lImportedPropsPath), 'Expected imported props fixture file to exist.');
+
+  lProps := TDictionary<string, string>.Create;
+  lEnv := TDictionary<string, string>.Create;
+  lDiagnostics := TDiagnostics.Create;
+  try
+    lEvaluator := TMsBuildEvaluator.Create(lProps, lEnv, lDiagnostics);
+    try
+      lError := '';
+      Assert.IsTrue(lEvaluator.EvaluateFile(lProjectPath, lError),
+        'Expected import-aware evaluation to succeed. Error: ' + lError);
+    finally
+      lEvaluator.Free;
+    end;
+
+    Assert.IsTrue(lProps.TryGetValue('ImportedValue', lImportedValue),
+      'Expected imported property group to be evaluated.');
+    Assert.AreEqual('from-import', lImportedValue,
+      'Expected imported property to come from the imported props file.');
+  finally
+    lDiagnostics.Free;
+    lEnv.Free;
+    lProps.Free;
+  end;
 end;
 
 procedure TMsBuildTests.SelfReferenceFallsBackToEmptyWhenPropertyWasUndefined;

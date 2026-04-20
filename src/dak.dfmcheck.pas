@@ -2312,6 +2312,112 @@ const
         Copy(Result, lMatchStart + lMatch.Length, MaxInt);
     end;
   end;
+  function NormalizeRelativeImportPaths(const aProjectText: string; const aBaseDir: string): string;
+  var
+    lImportPattern: string;
+    lIndex: Integer;
+    lMatch: TMatch;
+    lMatchCollection: TMatchCollection;
+    lMatchStart: Integer;
+    lProjectValue: string;
+    lReplacement: string;
+    lResolvedPath: string;
+    lValueEnd: Integer;
+    lValueStart: Integer;
+  begin
+    Result := aProjectText;
+    lImportPattern := '<Import\b([^>]*\bProject\s*=\s*")([^"]+)(")';
+    lMatchCollection := TRegEx.Matches(Result, lImportPattern, [roIgnoreCase, roSingleLine]);
+    for lIndex := lMatchCollection.Count - 1 downto 0 do
+    begin
+      lMatch := lMatchCollection.Item[lIndex];
+      if lMatch.Groups.Count < 4 then
+        Continue;
+      lProjectValue := Trim(lMatch.Groups[2].Value);
+      if (lProjectValue = '') or StartsText('$(', lProjectValue) or TPath.IsPathRooted(lProjectValue) then
+        Continue;
+
+      lResolvedPath := TPath.GetFullPath(TPath.Combine(aBaseDir, lProjectValue));
+      if not FileExists(lResolvedPath) then
+        Continue;
+
+      lMatchStart := lMatch.Index;
+      lValueStart := lMatch.Groups[2].Index - lMatch.Index + 1;
+      lValueEnd := lValueStart + lMatch.Groups[2].Length - 1;
+      lReplacement := '<Import' + Copy(lMatch.Value, 8, lValueStart - 8) + XmlEscape(lResolvedPath) +
+        Copy(lMatch.Value, lValueEnd + 1, MaxInt);
+      Result := Copy(Result, 1, lMatchStart - 1) + lReplacement +
+        Copy(Result, lMatchStart + lMatch.Length, MaxInt);
+    end;
+  end;
+  function RewriteExistsConditionValue(const aConditionValue: string; const aConditionBaseDir: string): string;
+  var
+    lEndPos: Integer;
+    lPathStart: Integer;
+    lPathValue: string;
+    lPos: Integer;
+    lResolvedPath: string;
+    lSearchPos: Integer;
+    lSegmentLength: Integer;
+  const
+    cExistsPrefix = 'exists(''';
+  begin
+    Result := aConditionValue;
+    lSearchPos := 1;
+    repeat
+      lPos := PosEx(cExistsPrefix, LowerCase(Result), lSearchPos);
+      if lPos <= 0 then
+        Break;
+
+      lPathStart := lPos + Length(cExistsPrefix);
+      lEndPos := PosEx(''')', Result, lPathStart);
+      if lEndPos <= 0 then
+        Break;
+
+      lPathValue := Trim(Copy(Result, lPathStart, lEndPos - lPathStart));
+      if (lPathValue = '') or StartsText('$(', lPathValue) or TPath.IsPathRooted(lPathValue) then
+      begin
+        lSearchPos := lEndPos + 2;
+        Continue;
+      end;
+
+      lResolvedPath := TPath.GetFullPath(TPath.Combine(aConditionBaseDir, lPathValue));
+      if not FileExists(lResolvedPath) then
+      begin
+        lSearchPos := lEndPos + 2;
+        Continue;
+      end;
+
+      lSegmentLength := (lEndPos - lPos) + 2;
+      Result := Copy(Result, 1, lPos - 1) + 'Exists(''' + lResolvedPath + ''')' +
+        Copy(Result, lPos + lSegmentLength, MaxInt);
+      lSearchPos := lPos + 1;
+    until False;
+  end;
+  function NormalizeRelativeImportConditionPaths(const aProjectText: string; const aBaseDir: string): string;
+  var
+    lConditionValue: string;
+    lIndex: Integer;
+    lMatch: TMatch;
+    lMatches: TMatchCollection;
+    lReplacement: string;
+    lUpdatedValue: string;
+  begin
+    Result := aProjectText;
+    lMatches := TRegEx.Matches(Result, '<Import\b([^>]*\bCondition=")([^"]+)(")', [roIgnoreCase, roSingleLine]);
+    for lIndex := lMatches.Count - 1 downto 0 do
+    begin
+      lMatch := lMatches.Item[lIndex];
+      if lMatch.Groups.Count < 4 then
+        Continue;
+      lConditionValue := lMatch.Groups[2].Value;
+      lUpdatedValue := RewriteExistsConditionValue(lConditionValue, aBaseDir);
+      if lUpdatedValue = lConditionValue then
+        Continue;
+      lReplacement := '<Import' + lMatch.Groups[1].Value + XmlEscape(lUpdatedValue) + lMatch.Groups[3].Value;
+      Result := Copy(Result, 1, lMatch.Index - 1) + lReplacement + Copy(Result, lMatch.Index + lMatch.Length, MaxInt);
+    end;
+  end;
   function ClearBuildEventBlock(const aProjectText: string; const aTagName: string): string;
   begin
     Result := TRegEx.Replace(aProjectText, '<' + aTagName + '>\s*.*?\s*</' + aTagName + '>',
@@ -2399,6 +2505,10 @@ begin
   end;
 
   lOutputText := NormalizeRelativePropertyPath(lOutputText, 'Icon_MainIcon', lSourceDprojDir);
+  lOutputText := NormalizeRelativePropertyPath(lOutputText, 'CfgDependentOn', lSourceDprojDir);
+  lOutputText := NormalizeRelativePropertyPath(lOutputText, 'DependentOn', lSourceDprojDir);
+  lOutputText := NormalizeRelativeImportPaths(lOutputText, lSourceDprojDir);
+  lOutputText := NormalizeRelativeImportConditionPaths(lOutputText, lSourceDprojDir);
   lOutputText := ClearBuildEventBlock(lOutputText, 'PreBuildEvent');
   lOutputText := ClearBuildEventBlock(lOutputText, 'PreLinkEvent');
   lOutputText := ClearBuildEventBlock(lOutputText, 'PostBuildEvent');

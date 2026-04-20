@@ -73,6 +73,8 @@ type
     [Test]
     procedure PipelineAddsUnitSearchPathWhenProjectInheritsOptsetSearchPath;
     [Test]
+    procedure PipelineRebasesRelativeProjectImportsForGeneratedProject;
+    [Test]
     procedure PipelinePreservesEffectiveSearchPathForGeneratedProject;
     [Test]
     procedure PipelineGeneratedRegisterPreservesNamespacedUnitNames;
@@ -1109,6 +1111,70 @@ begin
       'Generated checker DPROJ should prepend discovered form unit directories.');
     Assert.IsTrue(Pos('$(DCC_UnitSearchPath)', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should still preserve inherited DCC_UnitSearchPath macros.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineRebasesRelativeProjectImportsForGeneratedProject;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lGeneratedDprojText: string;
+  lImportPath: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lPaths: TDfmCheckPaths;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProjectWithInheritedSearchPath(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-import-rebase');
+  WriteInjectStubs(lInjectDir);
+  lImportPath := TPath.Combine(ExtractFilePath(lDprojPath), 'Fixture.optset');
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected import-rebase fixture to complete with mock runner.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Unexpected error category for import-rebase fixture.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for import-rebase fixture.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
+    Assert.IsTrue(Pos('<Import Project="' + lImportPath + '"', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should rewrite relative import paths to the source project location.');
+    Assert.IsFalse(Pos('<Import Project="Fixture.optset"', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should not keep source-relative import paths after relocation.');
+    Assert.IsTrue(Pos('Exists(&apos;' + lImportPath + '&apos;)', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should rewrite relative Exists(...) import conditions to the source project location.');
+    Assert.IsFalse(Pos('Exists(''Fixture.optset'')', lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should not keep relative Exists(...) import conditions after relocation.');
   finally
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
