@@ -17,5 +17,6 @@ test -x "$DAK_EXE"
 ```
 Version note:
 
-- Verified today against external Delphi 23 `DelphiLSP.exe`: `definition`, `hover`, and file-scoped `documentSymbol`-backed `symbols` are available; `references` remains version-gated.
-- We will revisit Delphi 13.x as soon as it is installed locally.
+- Verified against external Delphi 23 (`23.0`) and Delphi 13 (`37.0`) `DelphiLSP.exe`: `definition`, `hover`, and file-scoped `documentSymbol`-backed `symbols` are available.
+- Verified absent on both versions: `textDocument/references` (`referencesProvider`) and `workspace/symbol` (`workspaceSymbolProvider`). Direct raw JSON-RPC requests return `-32601 Method not found`.
+- Prefer `deps`, `global-vars`, or `rg` when we need usages or broad search instead of semantic definition/hover/file-symbol navigation.

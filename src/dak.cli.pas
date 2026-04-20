@@ -143,7 +143,7 @@ var
       SameText(aSwitch, 'clean') or SameText(aSwitch, 'write-summary') or
       SameText(aSwitch, 'show-warnings') or SameText(aSwitch, 'show-hints') or
       SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
-      SameText(aSwitch, 'rebuild') or SameText(aSwitch, 'include-declaration');
+      SameText(aSwitch, 'rebuild');
   end;
 
   function IsBoolToken(const aArg: string): Boolean;
@@ -330,7 +330,6 @@ begin
   fOptions.fDepsFormat := TDepsFormat.dfJson;
   fOptions.fDepsTopLimit := 20;
   fOptions.fLspFormat := TLspFormat.lfJson;
-  fOptions.fLspIncludeDeclaration := True;
   fOptions.fLspLimit := 50;
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
@@ -503,7 +502,7 @@ begin
     SameText(aSwitch, 'reads-only') or SameText(aSwitch, 'writes-only') or
     SameText(aSwitch, 'file') or SameText(aSwitch, 'line') or
     SameText(aSwitch, 'col') or SameText(aSwitch, 'query') or
-    SameText(aSwitch, 'limit') or SameText(aSwitch, 'include-declaration') or
+    SameText(aSwitch, 'limit') or
     SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or SameText(aSwitch, 'show-init-options');
 end;
 
@@ -1193,8 +1192,6 @@ function TOptionParser.TryParseLspOperation(const aArg: string): Boolean;
 begin
   if SameText(aArg, 'definition') then
     fOptions.fLspOperation := TLspOperation.loDefinition
-  else if SameText(aArg, 'references') then
-    fOptions.fLspOperation := TLspOperation.loReferences
   else if SameText(aArg, 'hover') then
     fOptions.fLspOperation := TLspOperation.loHover
   else if SameText(aArg, 'symbols') then
@@ -1284,20 +1281,6 @@ begin
       fError := Format(SLspInvalidFormat, [lValue]);
       Exit(False);
     end;
-    Exit(True);
-  end;
-
-  if SameText(aSwitch, 'include-declaration') then
-  begin
-    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--include-declaration') then
-      Exit(False);
-    if not TryParseBool(lValue, lBoolValue) then
-    begin
-      fError := Format(SInvalidBoolValue, ['--include-declaration', lValue]);
-      Exit(False);
-    end;
-    fOptions.fLspIncludeDeclaration := lBoolValue;
-    fOptions.fHasLspIncludeDeclaration := True;
     Exit(True);
   end;
 
@@ -1734,7 +1717,7 @@ begin
       fError := SLspMissingOperation;
       Exit(False);
     end;
-    if fOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover, TLspOperation.loSymbols] then
+    if fOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loHover, TLspOperation.loSymbols] then
     begin
       if fOptions.fLspFilePath = '' then
       begin
@@ -1746,7 +1729,7 @@ begin
     begin
       if fOptions.fLspProbeModes = [] then
         fOptions.fLspProbeModes := [TLspProbeMode.lpmContextFile, TLspProbeMode.lpmSettingsFile];
-    end else if fOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loReferences, TLspOperation.loHover] then
+    end else if fOptions.fLspOperation in [TLspOperation.loDefinition, TLspOperation.loHover] then
     begin
       if fOptions.fLspLine < 1 then
       begin
@@ -1765,11 +1748,6 @@ begin
         fError := Format(SArgMissingValue, ['--query']);
         Exit(False);
       end;
-    end;
-    if fOptions.fHasLspIncludeDeclaration and (fOptions.fLspOperation <> TLspOperation.loReferences) then
-    begin
-      fError := Format(SLspOptionOnlyForOperation, ['--include-declaration', 'references']);
-      Exit(False);
     end;
     if fOptions.fHasLspLimit and (fOptions.fLspOperation <> TLspOperation.loSymbols) then
     begin
