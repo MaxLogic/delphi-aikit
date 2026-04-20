@@ -64,11 +64,7 @@ type
     [Test]
     procedure LspRunnerReportsSpecificDiscoveryAndInitFailures;
     [Test]
-    procedure LspRunnerUnsupportedReferencesDiagnosticIncludesFallbackGuidance;
-    [Test]
     procedure LspDefinitionReturnsNormalizedLocations;
-    [Test]
-    procedure LspReferencesRespectIncludeDeclaration;
     [Test]
     procedure LspPositionConversionUsesOneBasedCliAndZeroBasedProtocol;
     [Test]
@@ -1400,44 +1396,6 @@ end;
 
 
 
-procedure TLspRunnerTests.LspRunnerUnsupportedReferencesDiagnosticIncludesFallbackGuidance;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lOptions: TAppOptions;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lScriptPath := CreateScriptFile('runner-unsupported-capabilities-references',
-    '{"initializeResult":{"capabilities":{"definitionProvider":true,"hoverProvider":true,"documentSymbolProvider":true}},"responses":{"textDocument/definition":[]}}');
-  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
-  try
-    lDprojPath := PrepareResolvedContext('lsp-runner-unsupported-capabilities-references', lContext);
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspOperation := TLspOperation.loReferences;
-    lOptions.fLspIncludeDeclaration := False;
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lError := '';
-    Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected unsupported references capability to fail before request dispatch.');
-    Assert.IsTrue(Pos('textDocument/references', lError) > 0,
-      'Expected references method name in error. Actual: ' + lError);
-    Assert.IsTrue(Pos('deps', LowerCase(lError)) > 0,
-      'Expected deps fallback guidance in error. Actual: ' + lError);
-    Assert.IsTrue(Pos('global-vars', LowerCase(lError)) > 0,
-      'Expected global-vars fallback guidance in error. Actual: ' + lError);
-    Assert.IsTrue(Pos('rg', LowerCase(lError)) > 0,
-      'Expected rg fallback guidance in error. Actual: ' + lError);
-    Assert.IsTrue(Pos(GFakeLspExePath, lError) > 0,
-      'Expected resolved external DelphiLSP path in error. Actual: ' + lError);
-  finally
-    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
-  end;
-end;
-
 procedure TLspRunnerTests.LspDefinitionReturnsNormalizedLocations;
 var
   lContext: TLspContext;
@@ -1478,51 +1436,6 @@ begin
       Assert.AreEqual(5, lLocation.GetValue<Integer>('col'), 'Expected 1-based start col.');
       Assert.AreEqual(3, lLocation.GetValue<Integer>('endLine'), 'Expected 1-based end line.');
       Assert.AreEqual(11, lLocation.GetValue<Integer>('endCol'), 'Expected 1-based end col.');
-    finally
-      lJson.Free;
-    end;
-  finally
-    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
-  end;
-end;
-
-procedure TLspRunnerTests.LspReferencesRespectIncludeDeclaration;
-var
-  lContext: TLspContext;
-  lDprojPath: string;
-  lError: string;
-  lJson: TJSONObject;
-  lOptions: TAppOptions;
-  lReferences: TJSONArray;
-  lResult: TLspRunnerResult;
-  lScriptPath: string;
-begin
-  EnsureFakeLspFixtureBuilt;
-  lDprojPath := PrepareResolvedContext('lsp-references-normalized', lContext);
-  lScriptPath := CreateScriptFile('references-normalized',
-    '{"expect":{"textDocument/references":{"context":{"includeDeclaration":false}}},"responses":{"textDocument/references":[{"uri":"file:///C:/repo/Ref1.pas","range":{"start":{"line":6,"character":1},"end":{"line":6,"character":7}}}]}}');
-  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
-  try
-    lOptions := BuildRunnerOptions(lDprojPath);
-    lOptions.fLspOperation := TLspOperation.loReferences;
-    lOptions.fLspPath := GFakeLspExePath;
-    lOptions.fHasLspPath := True;
-    lOptions.fLspLine := 3;
-    lOptions.fLspCol := 5;
-    lOptions.fLspIncludeDeclaration := False;
-    lOptions.fHasLspIncludeDeclaration := True;
-    lError := '';
-    Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
-      'Expected references request to succeed. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
-    try
-      Assert.IsNotNull(lJson, 'Expected JSON response.');
-      Assert.IsTrue(lJson.Values['result'] is TJSONObject, 'Expected result object.');
-      lReferences := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('references');
-      Assert.IsNotNull(lReferences, 'Expected references array.');
-      Assert.AreEqual(1, lReferences.Count, 'Expected declaration-free references result.');
-      Assert.AreEqual<string>('C:\repo\Ref1.pas', (lReferences.Items[0] as TJSONObject).GetValue<string>('file'),
-        'Expected normalized reference path.');
     finally
       lJson.Free;
     end;

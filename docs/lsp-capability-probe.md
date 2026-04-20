@@ -7,19 +7,20 @@
 - `contextFile`: DAK's current owned `.dak/<ProjectName>/lsp/context.delphilsp.json` flow
 - `settingsFile`: an official-style `.delphilsp.json` file plus `workspace/didChangeConfiguration`
 
-This gives us a repeatable baseline before revisiting Delphi 13.x.
+This gives us a repeatable baseline across Delphi versions and handshake styles.
 
-## Current Delphi 23.0 Baseline
+## Current Baseline
 
-Date: 2026-04-17
+Date: 2026-04-20
 
 Project fixture:
 `tests/fixtures/LspProjectFixture/LspProjectFixture.dproj`
 
-Server:
+Servers:
 `C:\Program Files (x86)\Embarcadero\Studio\23.0\bin64\DelphiLSP.exe`
+`C:\Program Files (x86)\Embarcadero\Studio\37.0\bin64\DelphiLSP.exe`
 
-Both handshake modes currently advertise the same capability matrix:
+Both Delphi 23.0 and Delphi 13 (`37.0`) advertise the same capability matrix in both handshake modes:
 
 - `textDocumentSync`
 - `definitionProvider`
@@ -37,7 +38,14 @@ Not advertised in either mode:
 - `workspaceSymbolProvider`
 
 Conclusion:
-On the locally installed Delphi 23.0 server, the missing external capabilities are not explained by the `contextFile` versus `settingsFile` handshake difference. We should treat them as version or upstream-surface limits until Delphi 13.x is installed and rechecked.
+On the locally installed Delphi 23.0 and Delphi 13 servers, the missing external capabilities are not explained by the `contextFile` versus `settingsFile` handshake difference. Delphi 13 also does not add them.
+
+Direct raw JSON-RPC checks against Delphi 13 confirm the same result:
+
+- `textDocument/references` returns `-32601 Method not found`
+- `workspace/symbol` returns `-32601 Method not found`
+
+Even the documented `serverType: "controller"` startup mode does not expose those methods. We should treat `references` and `workspace/symbol` as unsupported on the external Delphi LSP surface unless Embarcadero documents and ships them later.
 
 ## Commands
 

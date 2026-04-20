@@ -60,12 +60,10 @@ resourcestring
     'DelphiAIKit.exe deps --project "<path>" [--format <json|text>] [--output "<path>|-"] ' +
     '[--unit "<UnitName>"] [--top <N, 0=unlimited>]';
   SUsageLsp =
-    'DelphiAIKit.exe lsp <definition|references|hover|symbols|probe> --project "<path>" ' +
+    'DelphiAIKit.exe lsp <definition|hover|symbols|probe> --project "<path>" ' +
     '[--platform <Win32|Win64>] [--config <Debug|Release>] [--delphi <23.0>]' + #13#10 +
     '  [--rsvars "<path>"] [--envoptions "<path>"] [--lsp-path "<path>"] [--format <json|text>]' + #13#10 +
     '  definition|hover: --file "<path>" --line <N 1-based> --col <N 1-based>' + #13#10 +
-    '  references: --file "<path>" --line <N 1-based> --col <N 1-based> [--include-declaration [true|false]]' + #13#10 +
-    '    version-dependent on external DelphiLSP capabilities; if unsupported, use deps, global-vars, or rg' + #13#10 +
     '  symbols: --file "<path>" --query "<text>" [--limit <N>]  (file-scoped via textDocument/documentSymbol)' + #13#10 +
     '  probe: [--mode <contextFile|settingsFile>]... [--show-init-options [true|false]]';
   SInvalidArgs = 'Invalid command line arguments.';
@@ -87,7 +85,7 @@ resourcestring
   SGlobalVarsUnusedAccessConflict = '--unused-only cannot be combined with --reads-only or --writes-only.';
   SDepsInvalidFormat = 'Unsupported deps format: %s';
   SDepsInvalidTopLimit = 'Invalid --top value: %s (expected integer >= 0).';
-  SLspMissingOperation = 'Missing lsp operation. Expected one of: definition, references, hover, symbols, probe.';
+  SLspMissingOperation = 'Missing lsp operation. Expected one of: definition, hover, symbols, probe.';
   SLspInvalidOperation = 'Unsupported lsp operation: %s';
   SLspInvalidFormat = 'Unsupported lsp format: %s';
   SLspInvalidPosition = 'Invalid %s value: %s (expected integer >= 1).';
