@@ -13,13 +13,13 @@ function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildP
 implementation
 
 uses
-  System.Classes, System.IniFiles, System.RegularExpressions, System.StrUtils,
+  System.Classes, System.IniFiles, System.JSON, System.RegularExpressions, System.StrUtils,
   System.Win.Registry,
   Winapi.Windows,
   maxLogic.StrUtils,
   Dak.Build.Summary,
   Dak.Diagnostics, Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Project, Dak.RsVars,
-  Dak.Registry, Dak.SourceContext, Dak.Utils;
+  Dak.Registry, Dak.SourceContext, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.Utils;
 
 const
   cStatusOk = 'ok';
@@ -225,6 +225,233 @@ begin
   for i := 0 to High(aItems) do
     if i <= High(aLookupItems) then
       aItems[i] := AppendSourceContextToFinding(aItems[i], aLookupItems[i], aLookup, aContextLines);
+end;
+
+function LspHintCacheKey(const aOperation, aFilePath: string; aLineNumber, aColNumber: Integer;
+  const aCandidate: string): string;
+begin
+  Result := Format('%s|%s|%d|%d|%s', [aOperation, aFilePath, aLineNumber, aColNumber, aCandidate]);
+end;
+
+function EnrichmentOperationName(aOperation: TLspOperation): string;
+begin
+  case aOperation of
+    TLspOperation.loDefinition:
+      Result := 'definition';
+    TLspOperation.loHover:
+      Result := 'hover';
+    TLspOperation.loSymbols:
+      Result := 'symbols';
+  else
+    Result := 'unknown';
+  end;
+end;
+
+function SelectEnrichmentOperation(const aFinding, aToken, aEnclosingSymbol: string; out aOperation: TLspOperation): Boolean;
+begin
+  Result := False;
+  aOperation := TLspOperation.loNone;
+  if aToken = '' then
+  begin
+    if aEnclosingSymbol <> '' then
+    begin
+      aOperation := TLspOperation.loSymbols;
+      Exit(True);
+    end;
+    Exit(False);
+  end;
+
+  if ContainsText(aFinding, 'Undeclared identifier') or
+    ContainsText(aFinding, 'Identifier not found') or
+    ContainsText(aFinding, 'Undeclared field') or
+    ContainsText(aFinding, 'Undeclared method') or
+    ContainsText(aFinding, 'Undeclared member') then
+  begin
+    aOperation := TLspOperation.loDefinition;
+    Exit(True);
+  end;
+
+  if ContainsText(aFinding, 'Incompatible types') or
+    ContainsText(aFinding, 'Type mismatch') or
+    ContainsText(aFinding, 'Cannot convert') or
+    ContainsText(aFinding, 'Not enough actual parameters') or
+    ContainsText(aFinding, 'No overloaded method') then
+  begin
+    aOperation := TLspOperation.loHover;
+    Exit(True);
+  end;
+
+  aOperation := TLspOperation.loHover;
+  Result := True;
+end;
+
+function FindCandidateColumn(const aContext: TSourceContextSnippet; const aCandidate: string): Integer;
+var
+  lIndex: Integer;
+  lLineText: string;
+  lPos: Integer;
+begin
+  Result := 1;
+  if (aCandidate = '') or (Length(aContext.fLines) = 0) then
+    Exit(1);
+
+  lIndex := aContext.fTargetLine - aContext.fStartLine;
+  if (lIndex < 0) or (lIndex > High(aContext.fLines)) then
+    Exit(1);
+
+  lLineText := aContext.fLines[lIndex];
+  lPos := Pos(LowerCase(aCandidate), LowerCase(lLineText));
+  if lPos > 0 then
+    Exit(lPos);
+  Exit(1);
+end;
+
+function BuildSemanticHintText(const aOperation: TLspOperation; const aResponseText: string; out aHintText: string): Boolean;
+var
+  lItem: TJSONObject;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLocationArray: TJSONArray;
+  lResultObject: TJSONObject;
+  lSymbolsArray: TJSONArray;
+  lSummary: TStringBuilder;
+begin
+  Result := False;
+  aHintText := '';
+  lJsonValue := TJSONValue.ParseJSONValue(aResponseText);
+  if not (lJsonValue is TJSONObject) then
+  begin
+    lJsonValue.Free;
+    Exit(False);
+  end;
+  lJson := lJsonValue as TJSONObject;
+  try
+    if not (lJson.Values['result'] is TJSONObject) then
+      Exit(False);
+    lResultObject := lJson.Values['result'] as TJSONObject;
+    case aOperation of
+      TLspOperation.loDefinition:
+        begin
+          lLocationArray := lResultObject.GetValue<TJSONArray>('locations');
+          if (lLocationArray = nil) or (lLocationArray.Count = 0) then
+            Exit(False);
+          if not (lLocationArray.Items[0] is TJSONObject) then
+            Exit(False);
+          lItem := lLocationArray.Items[0] as TJSONObject;
+          aHintText := Format('semantic hint: %s -> %s(%d,%d)', [EnrichmentOperationName(aOperation),
+            lItem.GetValue<string>('file', ''),
+            lItem.GetValue<Integer>('line', 0),
+            lItem.GetValue<Integer>('col', 0)]);
+          Exit(aHintText <> '');
+        end;
+      TLspOperation.loHover:
+        begin
+          aHintText := Trim(lResultObject.GetValue<string>('contentsText', ''));
+          if aHintText = '' then
+            Exit(False);
+          aHintText := 'semantic hint: hover -> ' + aHintText;
+          Exit(True);
+        end;
+      TLspOperation.loSymbols:
+        begin
+          lSymbolsArray := lResultObject.GetValue<TJSONArray>('symbols');
+          if (lSymbolsArray = nil) or (lSymbolsArray.Count = 0) then
+            Exit(False);
+          lSummary := TStringBuilder.Create;
+          try
+            for var i := 0 to lSymbolsArray.Count - 1 do
+            begin
+              if i > 2 then
+                Break;
+              if not (lSymbolsArray.Items[i] is TJSONObject) then
+                Continue;
+              lItem := lSymbolsArray.Items[i] as TJSONObject;
+              if lSummary.Length > 0 then
+                lSummary.Append(', ');
+              lSummary.Append(lItem.GetValue<string>('name', ''));
+            end;
+            aHintText := Trim(lSummary.ToString);
+          finally
+            lSummary.Free;
+          end;
+          if aHintText = '' then
+            Exit(False);
+          aHintText := 'semantic hint: symbols -> ' + aHintText;
+          Exit(True);
+        end;
+    end;
+  finally
+    lJson.Free;
+  end;
+end;
+
+function TryBuildLspEnrichmentText(const aOptions: TAppOptions; const aContext: TLspContext;
+  const aLookup: TProjectSourceLookup; const aFinding: string; aContextLines: Integer;
+  const aCache: TDictionary<string, string>; out aHintText: string; out aError: string): Boolean;
+var
+  lCandidate: string;
+  lColNumber: Integer;
+  lEnclosingSymbol: string;
+  lFileToken: string;
+  lHintResult: TLspRunnerResult;
+  lLineNumber: Integer;
+  lLspOptions: TAppOptions;
+  lOperation: TLspOperation;
+  lResolvedContext: TSourceContextSnippet;
+  lCacheKey: string;
+begin
+  Result := False;
+  aHintText := '';
+  aError := '';
+  lResolvedContext := Default(TSourceContextSnippet);
+  if not TryResolveSourceContextCandidate(aLookup, aFinding, aContextLines, lResolvedContext, lCandidate,
+    lEnclosingSymbol, aError) then
+    Exit(False);
+
+  if not TryParseFindingLocationWithColumn(aFinding, lFileToken, lLineNumber, lColNumber) then
+  begin
+    aError := 'Could not parse compiler failure location: ' + aFinding;
+    Exit(False);
+  end;
+  if not SelectEnrichmentOperation(aFinding, lCandidate, lEnclosingSymbol, lOperation) then
+  begin
+    aError := '';
+    Exit(False);
+  end;
+
+  lCacheKey := LspHintCacheKey(EnrichmentOperationName(lOperation), lFileToken, lLineNumber, lColNumber, lCandidate);
+  if aCache.ContainsKey(lCacheKey) then
+  begin
+    aHintText := aCache[lCacheKey];
+    Exit(aHintText <> '');
+  end;
+
+  lLspOptions := aOptions;
+  lLspOptions.fLspOperation := lOperation;
+  lLspOptions.fLspFilePath := lResolvedContext.fFilePath;
+  lLspOptions.fLspLine := lLineNumber;
+  if lColNumber > 0 then
+    lLspOptions.fLspCol := lColNumber
+  else
+    lLspOptions.fLspCol := FindCandidateColumn(lResolvedContext, lCandidate);
+  lLspOptions.fLspQuery := lCandidate;
+  lLspOptions.fLspLimit := 3;
+  lLspOptions.fHasLspLimit := True;
+
+  if not TryRunLspRequest(lLspOptions, aContext, lHintResult, aError) then
+  begin
+    aCache.AddOrSetValue(lCacheKey, '');
+    Exit(False);
+  end;
+
+  if not BuildSemanticHintText(lOperation, lHintResult.fResponseText, aHintText) then
+  begin
+    aCache.AddOrSetValue(lCacheKey, '');
+    Exit(False);
+  end;
+
+  aCache.AddOrSetValue(lCacheKey, aHintText);
+  Result := True;
 end;
 
 function CaptureEnvironment: TDictionary<string, string>;
@@ -1530,6 +1757,13 @@ var
   lMadErrLog: string;
   lMadExceptExe: string;
   lMadExitCode: Integer;
+  lLspContext: TLspContext;
+  lLspHintCache: TDictionary<string, string>;
+  lLspHintError: string;
+  lLspHintText: string;
+  lLspLookup: TProjectSourceLookup;
+  lLspLookupError: string;
+  lLspNotePrinted: Boolean;
   lNormalizedOptions: TAppOptions;
   lOutLog: string;
   lOutputPostTicks: Int64;
@@ -1662,6 +1896,53 @@ begin
         end;
         if lNormalizedOptions.fVerbose and (lLookupError <> '') then
           Writeln('NOTE. Source context search paths unavailable: ' + lLookupError);
+    end;
+  end;
+    if lNormalizedOptions.fBuildAi and (lSummary.fErrorCount > 0) then
+    begin
+      lLspLookup := lProjectLookup;
+      if (lLspLookup.fProjectDir = '') or (Length(lLspLookup.fSearchPaths) = 0) then
+      begin
+        lLspLookupError := '';
+        lLspLookup.fProjectDproj := lNormalizedOptions.fDprojPath;
+        lLspLookup.fProjectDir := lProjectInfo.fProjectDir;
+        lLspLookup.fMainSourcePath := lProjectInfo.fMainSourcePath;
+        if not TryBuildProjectSourceLookup(lNormalizedOptions.fDprojPath, lNormalizedOptions.fConfig,
+          lNormalizedOptions.fPlatform, lNormalizedOptions.fDelphiVersion, lEnvVars, nil, lLspLookup, lLspLookupError)
+        then
+        begin
+          if lNormalizedOptions.fVerbose and (lLspLookupError <> '') then
+            Writeln('NOTE. LSP enrichment skipped: ' + lLspLookupError);
+        end;
+      end;
+
+      if (lLspLookup.fProjectDir <> '') and (Length(lLspLookup.fSearchPaths) > 0) then
+      begin
+        lLspHintCache := TDictionary<string, string>.Create;
+        try
+          lLspHintError := '';
+          lLspNotePrinted := False;
+          if TryBuildStrictLspContext(lNormalizedOptions, lLspContext, lLspHintError) then
+          begin
+            for var i := 0 to High(lSummary.fErrors) do
+            begin
+              if i > High(lSummary.fErrorsRaw) then
+                Break;
+              lLspHintText := '';
+              if TryBuildLspEnrichmentText(lNormalizedOptions, lLspContext, lLspLookup, lSummary.fErrorsRaw[i],
+                lDiagnosticsDefaults.fSourceContextLines, lLspHintCache, lLspHintText, lLspHintError) then
+                lSummary.fErrors[i] := lSummary.fErrors[i] + sLineBreak + lLspHintText
+              else if lNormalizedOptions.fVerbose and (lLspHintError <> '') and (not lLspNotePrinted) then
+              begin
+                Writeln('NOTE. LSP enrichment skipped: ' + lLspHintError);
+                lLspNotePrinted := True;
+              end;
+            end;
+          end else if lNormalizedOptions.fVerbose and (lLspHintError <> '') then
+            Writeln('NOTE. LSP enrichment skipped: ' + lLspHintError);
+        finally
+          lLspHintCache.Free;
+        end;
       end;
     end;
     lSummary.fExitCode := aExitCode;
