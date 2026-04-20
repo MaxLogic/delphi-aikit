@@ -67,6 +67,14 @@ type
     [Test]
     procedure BuildSummaryIncludesResolvedSourceContextForErrors;
     [Test]
+    procedure BuildEnrichmentPolicyPrefersHoverForTypeErrors;
+    [Test]
+    procedure BuildEnrichmentPolicyPrefersDefinitionForSymbolMismatch;
+    [Test]
+    procedure BuildEnrichmentHelperReturnsSemanticHint;
+    [Test]
+    procedure BuildEnrichmentHelperFallsBackSilently;
+    [Test]
     procedure BuildWebCoreCompilerResolutionPrefersCliOverDakIni;
     [Test]
     procedure BuildWebCoreCompilerResolutionUsesDakIniWhenCliMissing;
@@ -99,6 +107,12 @@ type
     [Test]
     procedure ParseBuildLogsAppliesIgnoreAndExcludeFilters;
   end;
+
+const
+  CFakeLspScriptEnvVar = 'DAK_FAKE_LSP_SCRIPT';
+
+var
+  GFakeLspBuilt: Boolean = False;
 
 implementation
 
@@ -216,6 +230,188 @@ begin
       CloseHandle(lWriteHandle);
     if lReadHandle <> 0 then
       CloseHandle(lReadHandle);
+  end;
+end;
+
+procedure PrepareMadExceptBuildFixture(const aRootDir, aMesText: string; out aDprojPath, aRsVarsPath,
+  aPatchExePath: string); forward;
+
+function CmdExePath: string;
+begin
+  Result := GetEnvironmentVariable('ComSpec');
+  if Result = '' then
+    Result := 'C:\Windows\System32\cmd.exe';
+end;
+
+function FakeLspFixtureDir: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspFixture');
+end;
+
+function FakeLspProjectPath: string;
+begin
+  Result := TPath.Combine(FakeLspFixtureDir, 'FakeDelphiLsp.dproj');
+end;
+
+function FakeLspExePath: string;
+begin
+  Result := TPath.Combine(FakeLspFixtureDir, 'bin\FakeDelphiLsp.exe');
+end;
+
+procedure EnsureFakeLspFixtureBuilt;
+var
+  lArgs: string;
+  lBat: string;
+  lCmdArgs: string;
+  lExit: Cardinal;
+  lLog: string;
+begin
+  if GFakeLspBuilt and FileExists(FakeLspExePath) then
+    Exit;
+  if FileExists(FakeLspExePath) then
+  begin
+    GFakeLspBuilt := True;
+    Exit;
+  end;
+
+  lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
+  lArgs := QuoteArg(FakeLspProjectPath) + ' -config Release -platform Win32 -ver 23';
+  lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
+  lLog := TPath.Combine(TempRoot, 'build-fake-delphi-lsp.log');
+
+  Assert.IsTrue(RunProcess(CmdExePath, lCmdArgs, RepoRoot, lLog, lExit),
+    'Failed to start FakeDelphiLsp build.');
+  Assert.AreEqual<Cardinal>(0, lExit, 'FakeDelphiLsp build failed. See: ' + lLog);
+  Assert.IsTrue(FileExists(FakeLspExePath), 'FakeDelphiLsp.exe missing after build: ' + FakeLspExePath);
+  GFakeLspBuilt := True;
+end;
+
+function CreateScriptFile(const aScenarioName, aScriptJson: string): string;
+begin
+  Result := TPath.Combine(TPath.Combine(TempRoot, 'build-lsp-scripts'), aScenarioName + '.json');
+  WriteUtf8File(Result, aScriptJson);
+end;
+
+procedure PrepareBuildEnrichmentFixture(const aScenarioName: string; out aProjectRoot, aDprojPath, aRsVarsPath,
+  aEnvOptionsPath, aPatchExePath, aDprPath, aBrokenUnitPath: string);
+var
+  lLibraryDir: string;
+begin
+  EnsureTempClean;
+  aProjectRoot := TPath.Combine(TempRoot, aScenarioName);
+  if TDirectory.Exists(aProjectRoot) then
+    TDirectory.Delete(aProjectRoot, True);
+  TDirectory.CreateDirectory(aProjectRoot);
+
+  PrepareMadExceptBuildFixture(aProjectRoot,
+    '[GeneralSettings]' + sLineBreak +
+    'HandleExceptions=0' + sLineBreak +
+    'LinkInCode=0' + sLineBreak,
+    aDprojPath, aRsVarsPath, aPatchExePath);
+  aDprPath := TPath.ChangeExtension(aDprojPath, '.dpr');
+  WriteUtf8File(aDprojPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>' + TPath.GetFileName(aDprPath) + '</MainSource>' + sLineBreak +
+    '    <DCC_UnitSearchPath>src</DCC_UnitSearchPath>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+  WriteIniTextFile(TPath.Combine(aProjectRoot, 'dak.ini'),
+    '[MadExcept]' + sLineBreak +
+    'Path=' + aPatchExePath + sLineBreak +
+    '[Diagnostics]' + sLineBreak +
+    'SourceContext=on' + sLineBreak +
+    'SourceContextLines=1' + sLineBreak);
+  lLibraryDir := TPath.Combine(aProjectRoot, 'IdeLibrary');
+  ForceDirectories(lLibraryDir);
+  aEnvOptionsPath := TPath.Combine(aProjectRoot, 'EnvOptions.proj');
+  WriteUtf8File(aEnvOptionsPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <DelphiLibraryPath>' + lLibraryDir + '</DelphiLibraryPath>' + sLineBreak +
+    '    <DCC_UnitSearchPath>src</DCC_UnitSearchPath>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+  WriteUtf8File(aDprPath,
+    'program MesGateCheck;' + sLineBreak +
+    sLineBreak +
+    'uses' + sLineBreak +
+    '  BrokenUnit;' + sLineBreak +
+    sLineBreak +
+    'begin' + sLineBreak +
+    '  Trigger;' + sLineBreak +
+    'end.' + sLineBreak);
+  aBrokenUnitPath := TPath.Combine(aProjectRoot, 'BrokenUnit.pas');
+  WriteUtf8File(aBrokenUnitPath,
+    'unit BrokenUnit;' + sLineBreak +
+    sLineBreak +
+    'interface' + sLineBreak +
+    sLineBreak +
+    'procedure Trigger;' + sLineBreak +
+    sLineBreak +
+    'implementation' + sLineBreak +
+    sLineBreak +
+    'procedure Trigger;' + sLineBreak +
+    'begin' + sLineBreak +
+    '  MissingIdentifier := 1;' + sLineBreak +
+    'end;' + sLineBreak +
+    sLineBreak +
+    'end.' + sLineBreak);
+end;
+
+function RunBuildEnrichmentScenario(const aScenarioName, aStdErrText, aScriptJson: string; out aCapturedOutput: string;
+  out aExitCode: Integer; out aError: string): Boolean;
+var
+  lBrokenUnitPath: string;
+  lDprPath: string;
+  lDprojPath: string;
+  lFailingRunner: TFailingBuildRunner;
+  lEnvOptionsPath: string;
+  lPatchExePath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+  lScriptPath: string;
+  lOptions: TAppOptions;
+  lExitCode: Integer;
+  lError: string;
+begin
+  EnsureFakeLspFixtureBuilt;
+  PrepareBuildEnrichmentFixture(aScenarioName, lProjectRoot, lDprojPath, lRsVarsPath, lEnvOptionsPath, lPatchExePath,
+    lDprPath, lBrokenUnitPath);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRsVarsPath := lRsVarsPath;
+  lOptions.fHasRsVarsPath := True;
+  lOptions.fEnvOptionsPath := lEnvOptionsPath;
+  lOptions.fHasEnvOptionsPath := True;
+  lOptions.fBuildAi := True;
+  lOptions.fVerbose := True;
+  lOptions.fLspPath := FakeLspExePath;
+  lOptions.fHasLspPath := True;
+
+  lScriptPath := CreateScriptFile(aScenarioName, aScriptJson);
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  try
+    lFailingRunner := TFailingBuildRunner.Create;
+    lFailingRunner.fStdErrText := aStdErrText;
+    lRunner := lFailingRunner;
+    lError := '';
+    aCapturedOutput := CaptureConsoleOutput(
+      procedure
+      begin
+        Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+          'Expected scripted build run to complete. Error: ' + lError);
+      end);
+    aExitCode := lExitCode;
+    aError := lError;
+    Result := True;
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
   end;
 end;
 
@@ -1153,6 +1349,88 @@ begin
     'Expected build output to include resolved source context. Output: ' + lCapturedOutput);
   Assert.IsTrue(Pos('MissingIdentifier := 1;', lCapturedOutput) > 0,
     'Expected build output to include the failing source line. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.BuildEnrichmentPolicyPrefersHoverForTypeErrors;
+var
+  lCapturedOutput: string;
+  lError: string;
+  lExitCode: Integer;
+begin
+  Assert.IsTrue(RunBuildEnrichmentScenario('build-lsp-hover',
+    TPath.Combine(TPath.Combine(TempRoot, 'build-lsp-hover'), 'BrokenUnit.pas') +
+    '(11,3): error E2010: Type mismatch: ''Integer'' and ''string''' + sLineBreak,
+    '{"requireOpenedDocuments":true,"initializeResult":{"capabilities":{"definitionProvider":true,"hoverProvider":true,' +
+    '"documentSymbolProvider":true}},"responses":{"textDocument/hover":{"contents":{"kind":"plaintext","value":"Integer"}}}}',
+    lCapturedOutput, lExitCode, lError), 'Expected hover enrichment scenario to run.');
+
+  Assert.AreEqual(1, lExitCode, 'Expected scripted build failure exit code.');
+  Assert.IsTrue(Pos('semantic hint: hover -> Integer', lCapturedOutput) > 0,
+    'Expected hover policy to emit a semantic hint. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('source context:', LowerCase(lCapturedOutput)) > 0,
+    'Expected hover build output to keep the compiler source context primary. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.BuildEnrichmentPolicyPrefersDefinitionForSymbolMismatch;
+var
+  lCapturedOutput: string;
+  lError: string;
+  lExitCode: Integer;
+begin
+  Assert.IsTrue(RunBuildEnrichmentScenario('build-lsp-definition',
+    TPath.Combine(TPath.Combine(TempRoot, 'build-lsp-definition'), 'BrokenUnit.pas') +
+    '(11): error E2003: Undeclared identifier: ''MissingIdentifier''' + sLineBreak,
+    '{"requireOpenedDocuments":true,"initializeResult":{"capabilities":{"definitionProvider":true,"hoverProvider":true,' +
+    '"documentSymbolProvider":true}},"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/BrokenUnit.pas",' +
+    '"range":{"start":{"line":12,"character":0},"end":{"line":12,"character":0}}}]}}',
+    lCapturedOutput, lExitCode, lError), 'Expected definition enrichment scenario to run.');
+
+  Assert.AreEqual(1, lExitCode, 'Expected scripted build failure exit code.');
+  Assert.IsTrue(Pos('semantic hint: definition ->', lCapturedOutput) > 0,
+    'Expected definition policy to emit a semantic hint. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('BrokenUnit.pas', lCapturedOutput) > 0,
+    'Expected definition hint to include the resolved file. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.BuildEnrichmentHelperReturnsSemanticHint;
+var
+  lCapturedOutput: string;
+  lError: string;
+  lExitCode: Integer;
+begin
+  Assert.IsTrue(RunBuildEnrichmentScenario('build-lsp-helper-hint',
+    TPath.Combine(TPath.Combine(TempRoot, 'build-lsp-helper-hint'), 'BrokenUnit.pas') +
+    '(11): error E2003: Undeclared identifier: ''MissingIdentifier''' + sLineBreak,
+    '{"requireOpenedDocuments":true,"initializeResult":{"capabilities":{"definitionProvider":true,"hoverProvider":true,' +
+    '"documentSymbolProvider":true}},"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/BrokenUnit.pas",' +
+    '"range":{"start":{"line":12,"character":0},"end":{"line":12,"character":0}}}]}}',
+    lCapturedOutput, lExitCode, lError), 'Expected enrichment helper scenario to run.');
+
+  Assert.AreEqual(1, lExitCode, 'Expected scripted build failure exit code.');
+  Assert.IsTrue(Pos('semantic hint: definition ->', lCapturedOutput) > 0,
+    'Expected build enrichment helper to append a semantic hint. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('source context:', LowerCase(lCapturedOutput)) > 0,
+    'Expected primary compiler/source-context output to remain. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.BuildEnrichmentHelperFallsBackSilently;
+var
+  lCapturedOutput: string;
+  lError: string;
+  lExitCode: Integer;
+begin
+  Assert.IsTrue(RunBuildEnrichmentScenario('build-lsp-helper-empty',
+    TPath.Combine(TPath.Combine(TempRoot, 'build-lsp-helper-empty'), 'BrokenUnit.pas') +
+    '(11): error E2003: Undeclared identifier: ''MissingIdentifier''' + sLineBreak,
+    '{"requireOpenedDocuments":true,"initializeResult":{"capabilities":{"definitionProvider":true,"hoverProvider":true,' +
+    '"documentSymbolProvider":true}},"responses":{"textDocument/definition":[]}}',
+    lCapturedOutput, lExitCode, lError), 'Expected empty enrichment helper scenario to run.');
+
+  Assert.AreEqual(1, lExitCode, 'Expected scripted build failure exit code.');
+  Assert.IsTrue(Pos('semantic hint:', LowerCase(lCapturedOutput)) = 0,
+    'Expected empty LSP response to fall back silently. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('source context:', LowerCase(lCapturedOutput)) > 0,
+    'Expected fallback output to keep the compiler source context. Output: ' + lCapturedOutput);
 end;
 
 procedure TBuildTests.BuildWebCoreCompilerResolutionPrefersCliOverDakIni;
