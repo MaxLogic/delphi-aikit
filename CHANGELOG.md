@@ -54,6 +54,7 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed MSBuild condition parsing so RAD Studio targets using unary `!`, `Exists(...)`, `HasTrailingSlash(...)`, and quoted empty property values no longer block `analyze` project parsing. (T-135)
 - Fixed `dfm-check` generated helper projects so they now reuse the source build's effective compile search path, preserving EnvOptions/IDE library-path entries and imported search-path context alongside discovered form-unit directories instead of failing early with false `Unit ... not found` errors in the generated `_DfmCheck.dproj`. (T-109)
 - Fixed `dfm-check` temp-artifact ownership so generated harness files, forced build outputs, and preserved debug artifacts now live under sibling `.dak/<ProjectName>/dfm-check/runs/<RunId>/...`; startup prunes stale run folders, keep-artifacts mode preserves only that owned run workspace, and copied `.dproj` files with multiple relative `Icon_MainIcon` entries remain valid XML. (T-108)
 - Fixed `deps` JSON output so it now caches SCC hotspot analysis once per build, emits structured cycle/hotspot sections with inline node and edge metadata, keeps the compatibility `cycles` array, and ranks equal-impact cycle edges with `implementation` dependencies ahead of `interface` ones. (T-105)
