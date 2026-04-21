@@ -19,7 +19,6 @@ type
     fDiagnostics: TDiagnostics;
     fOnPropertySet: TPropertySetProc;
     function EvaluateFileInternal(const aFileName: string; out aError: string): Boolean;
-    function NormalizeConditionFunctions(const aCondition: string; const aBaseDir: string): string;
     function ResolveImportFilePath(const aImportProject: string; const aBaseDir: string): string;
     function TryEvaluateCondition(const aCondition: string; const aBaseDir: string; out aResult: Boolean;
       out aError: string): Boolean;
@@ -34,7 +33,7 @@ type
 implementation
 
 type
-  TTokenKind = (tkText, tkEqual, tkNotEqual, tkAnd, tkOr, tkLParen, tkRParen, tkUnknown, tkEof);
+  TTokenKind = (tkText, tkIdentifier, tkEqual, tkNotEqual, tkAnd, tkOr, tkNot, tkLParen, tkRParen, tkUnknown, tkEof);
 
   TToken = record
     fKind: TTokenKind;
@@ -43,32 +42,67 @@ type
 
   TConditionParser = class
   private
+    fBaseDir: string;
     fText: string;
     fPos: Integer;
     fToken: TToken;
+    function CurrentTokenStartsFunctionCall: Boolean;
+    function EvaluateFunction(const aName, aArgument: string; out aValue: Boolean): Boolean;
     procedure NextToken;
     function ParseExpr(out aValue: Boolean): Boolean;
     function ParseTerm(out aValue: Boolean): Boolean;
     function ParseFactor(out aValue: Boolean): Boolean;
     function ParseComparison(out aValue: Boolean): Boolean;
+    function ParseFunctionCall(out aValue: Boolean): Boolean;
+    function ReadFunctionArgument(out aValue: string): Boolean;
+    function ParseStringOperand(out aValue: string): Boolean;
   public
-    constructor Create(const aText: string);
+    constructor Create(const aText, aBaseDir: string);
     function TryEvaluate(out aValue: Boolean; out aError: string): Boolean;
   end;
 
 { TConditionParser }
 
-constructor TConditionParser.Create(const aText: string);
+constructor TConditionParser.Create(const aText, aBaseDir: string);
 begin
   inherited Create;
   fText := aText;
+  fBaseDir := aBaseDir;
   fPos := 1;
+end;
+
+function TConditionParser.CurrentTokenStartsFunctionCall: Boolean;
+var
+  lPos: Integer;
+begin
+  lPos := fPos;
+  while (lPos <= Length(fText)) and (fText[lPos] <= ' ') do
+    Inc(lPos);
+  Result := (lPos <= Length(fText)) and (fText[lPos] = '(');
+end;
+
+function TConditionParser.EvaluateFunction(const aName, aArgument: string; out aValue: Boolean): Boolean;
+var
+  lPath: string;
+begin
+  Result := True;
+  if SameText(aName, 'Exists') then
+  begin
+    lPath := aArgument;
+    if (lPath <> '') and (not TPath.IsPathRooted(lPath)) then
+      lPath := TPath.GetFullPath(TPath.Combine(fBaseDir, lPath));
+    aValue := (lPath <> '') and (FileExists(lPath) or DirectoryExists(lPath));
+  end else if SameText(aName, 'HasTrailingSlash') then
+    aValue := (aArgument <> '') and CharInSet(aArgument[Length(aArgument)], ['\', '/'])
+  else
+    Result := False;
 end;
 
 procedure TConditionParser.NextToken;
 var
   lStart: Integer;
   lCh: Char;
+  lValue: TStringBuilder;
   lWord: string;
 begin
   while (fPos <= Length(fText)) and (fText[fPos] <= ' ') do
@@ -98,19 +132,36 @@ begin
     '''':
       begin
         Inc(fPos);
-        lStart := fPos;
-        while (fPos <= Length(fText)) and (fText[fPos] <> '''') do
-          Inc(fPos);
-        if fPos > Length(fText) then
-        begin
-          fToken.fKind := TTokenKind.tkUnknown;
-          fToken.fText := Copy(fText, lStart - 1, MaxInt);
-          Exit;
+        lValue := TStringBuilder.Create;
+        try
+          while fPos <= Length(fText) do
+          begin
+            if fText[fPos] = '''' then
+            begin
+              if (fPos < Length(fText)) and (fText[fPos + 1] = '''') then
+              begin
+                lValue.Append('''');
+                Inc(fPos, 2);
+                Continue;
+              end;
+              Break;
+            end;
+            lValue.Append(fText[fPos]);
+            Inc(fPos);
+          end;
+          if fPos > Length(fText) then
+          begin
+            fToken.fKind := TTokenKind.tkUnknown;
+            fToken.fText := '''' + lValue.ToString;
+            Exit;
+          end;
+          fToken.fKind := TTokenKind.tkText;
+          fToken.fText := lValue.ToString;
+          if fPos <= Length(fText) then
+            Inc(fPos);
+        finally
+          lValue.Free;
         end;
-        fToken.fKind := TTokenKind.tkText;
-        fToken.fText := Copy(fText, lStart, fPos - lStart);
-        if fPos <= Length(fText) then
-          Inc(fPos);
       end;
     '=':
       begin
@@ -135,7 +186,7 @@ begin
           Inc(fPos, 2);
         end else
         begin
-          fToken.fKind := TTokenKind.tkUnknown;
+          fToken.fKind := TTokenKind.tkNot;
           fToken.fText := lCh;
           Inc(fPos);
         end;
@@ -152,10 +203,20 @@ begin
       else if SameText(lWord, 'or') then
         fToken.fKind := TTokenKind.tkOr
       else
-        fToken.fKind := TTokenKind.tkUnknown;
+        fToken.fKind := TTokenKind.tkIdentifier;
       fToken.fText := lWord;
     end;
   end;
+end;
+
+function TConditionParser.ParseStringOperand(out aValue: string): Boolean;
+begin
+  Result := False;
+  if (fToken.fKind <> TTokenKind.tkText) and (fToken.fKind <> TTokenKind.tkIdentifier) then
+    Exit;
+  aValue := fToken.fText;
+  NextToken;
+  Result := True;
 end;
 
 function TConditionParser.ParseComparison(out aValue: Boolean): Boolean;
@@ -165,18 +226,14 @@ var
   lOp: TTokenKind;
 begin
   Result := False;
-  if fToken.fKind <> TTokenKind.tkText then
+  if not ParseStringOperand(lLeft) then
     Exit;
-  lLeft := fToken.fText;
-  NextToken;
   if (fToken.fKind <> TTokenKind.tkEqual) and (fToken.fKind <> TTokenKind.tkNotEqual) then
     Exit;
   lOp := fToken.fKind;
   NextToken;
-  if fToken.fKind <> TTokenKind.tkText then
+  if not ParseStringOperand(lRight) then
     Exit;
-  lRight := fToken.fText;
-  NextToken;
   if lOp = TTokenKind.tkEqual then
     aValue := SameText(lLeft, lRight)
   else
@@ -184,9 +241,85 @@ begin
   Result := True;
 end;
 
-function TConditionParser.ParseFactor(out aValue: Boolean): Boolean;
+function TConditionParser.ParseFunctionCall(out aValue: Boolean): Boolean;
+var
+  lArgument: string;
+  lName: string;
 begin
   Result := False;
+  if fToken.fKind <> TTokenKind.tkIdentifier then
+    Exit;
+  lName := fToken.fText;
+  NextToken;
+  if fToken.fKind <> TTokenKind.tkLParen then
+    Exit;
+  if not ReadFunctionArgument(lArgument) then
+    Exit;
+  Result := EvaluateFunction(lName, lArgument, aValue);
+end;
+
+function TConditionParser.ReadFunctionArgument(out aValue: string): Boolean;
+var
+  lValue: TStringBuilder;
+begin
+  Result := False;
+  aValue := '';
+  lValue := TStringBuilder.Create;
+  try
+    while fPos <= Length(fText) do
+    begin
+      if fText[fPos] = ')' then
+      begin
+        Inc(fPos);
+        aValue := Trim(lValue.ToString);
+        NextToken;
+        Exit(True);
+      end;
+
+      if fText[fPos] = '''' then
+      begin
+        Inc(fPos);
+        while fPos <= Length(fText) do
+        begin
+          if fText[fPos] = '''' then
+          begin
+            if (fPos < Length(fText)) and (fText[fPos + 1] = '''') then
+            begin
+              lValue.Append('''');
+              Inc(fPos, 2);
+              Continue;
+            end;
+            Inc(fPos);
+            Break;
+          end;
+          lValue.Append(fText[fPos]);
+          Inc(fPos);
+        end;
+      end else
+      begin
+        lValue.Append(fText[fPos]);
+        Inc(fPos);
+      end;
+    end;
+  finally
+    lValue.Free;
+  end;
+end;
+
+function TConditionParser.ParseFactor(out aValue: Boolean): Boolean;
+var
+  lValue: Boolean;
+begin
+  Result := False;
+  if fToken.fKind = TTokenKind.tkNot then
+  begin
+    NextToken;
+    if not ParseFactor(lValue) then
+      Exit;
+    aValue := not lValue;
+    Exit(True);
+  end;
+
   if fToken.fKind = TTokenKind.tkLParen then
   begin
     NextToken;
@@ -197,6 +330,23 @@ begin
     NextToken;
     Exit(True);
   end;
+
+  if fToken.fKind = TTokenKind.tkIdentifier then
+  begin
+    if SameText(fToken.fText, 'true') then
+    begin
+      aValue := True;
+      NextToken;
+      Exit(True);
+    end else if SameText(fToken.fText, 'false') then
+    begin
+      aValue := False;
+      NextToken;
+      Exit(True);
+    end else if CurrentTokenStartsFunctionCall then
+      Exit(ParseFunctionCall(aValue));
+  end;
+
   Result := ParseComparison(aValue);
 end;
 
@@ -271,46 +421,6 @@ begin
   inherited;
 end;
 
-function TMsBuildEvaluator.NormalizeConditionFunctions(const aCondition: string; const aBaseDir: string): string;
-var
-  lEndPos: Integer;
-  lPos: Integer;
-  lQuotedPath: string;
-  lResolvedPath: string;
-  lReplacementText: string;
-  lSearchPos: Integer;
-  lSegmentLength: Integer;
-const
-  cExistsPrefix = 'exists(''';
-begin
-  Result := aCondition;
-  lSearchPos := 1;
-  repeat
-    lPos := PosEx(cExistsPrefix, LowerCase(Result), lSearchPos);
-    if lPos <= 0 then
-      Break;
-
-    lEndPos := PosEx(''')', Result, lPos + Length(cExistsPrefix));
-    if lEndPos <= 0 then
-      Break;
-
-    lQuotedPath := Trim(Copy(Result, lPos + Length(cExistsPrefix), lEndPos - (lPos + Length(cExistsPrefix))));
-    lResolvedPath := lQuotedPath;
-    if (lResolvedPath <> '') and (Pos('$(', lResolvedPath) = 0) then
-    begin
-      if not TPath.IsPathRooted(lResolvedPath) then
-        lResolvedPath := TPath.GetFullPath(TPath.Combine(aBaseDir, lResolvedPath));
-      lReplacementText := BoolToStr(FileExists(lResolvedPath) or DirectoryExists(lResolvedPath), True);
-    end else
-      lReplacementText := BoolToStr(False, True);
-
-    lSegmentLength := (lEndPos - lPos) + 2;
-    Result := Copy(Result, 1, lPos - 1) + '''' + lReplacementText + '''==''true''' +
-      Copy(Result, lPos + lSegmentLength, MaxInt);
-    lSearchPos := lPos + 1;
-  until False;
-end;
-
 function TMsBuildEvaluator.ResolveImportFilePath(const aImportProject: string; const aBaseDir: string): string;
 var
   lExpanded: string;
@@ -336,8 +446,7 @@ begin
     Exit(True);
 
   lExpanded := TMacroExpander.Expand(aCondition, fProps, fEnvVars, fDiagnostics, True);
-  lExpanded := NormalizeConditionFunctions(lExpanded, aBaseDir);
-  lParser := TConditionParser.Create(lExpanded);
+  lParser := TConditionParser.Create(lExpanded, aBaseDir);
   try
     Result := lParser.TryEvaluate(aResult, aError);
   finally
