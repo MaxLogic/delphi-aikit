@@ -16,6 +16,7 @@ type
   TMsBuildTests = class
   private
     procedure AssertConditionAccepted(const aCondition: string);
+    procedure AssertConditionSetsMainSource(const aCondition: string);
     procedure AssertConditionRejected(const aCondition: string);
   public
     [Test]
@@ -23,7 +24,17 @@ type
     [Test]
     procedure AcceptsConditionWithoutWhitespaceAroundOr;
     [Test]
+    procedure AcceptsComparisonWithWhitespaceAroundNotEqualOperator;
+    [Test]
     procedure AcceptsExistsConditionForRelativeImportPath;
+    [Test]
+    procedure AcceptsNegatedExistsConditionForMissingPath;
+    [Test]
+    procedure AcceptsNegatedHasTrailingSlashCondition;
+    [Test]
+    procedure AcceptsHasTrailingSlashConditionWhenPathAlreadyEndsWithSlash;
+    [Test]
+    procedure AcceptsUnquotedHasTrailingSlashArgumentWithSpaces;
     [Test]
     procedure RejectsTrailingUnknownTokenInCondition;
     [Test]
@@ -32,6 +43,8 @@ type
     procedure RejectsUnterminatedQuotedLiteralInCondition;
     [Test]
     procedure EvaluatesImportedPropertyGroupsWhenImportConditionMatches;
+    [Test]
+    procedure PropertyValueWithQuotedEmptyLiteralDoesNotBreakLaterCondition;
     [Test]
     procedure SelfReferenceFallsBackToEmptyWhenPropertyWasUndefined;
   end;
@@ -150,6 +163,40 @@ begin
   end;
 end;
 
+procedure TMsBuildTests.AssertConditionSetsMainSource(const aCondition: string);
+var
+  lMainSource: string;
+  lProjectPath: string;
+  lProps: TDictionary<string, string>;
+  lEnv: TDictionary<string, string>;
+  lDiagnostics: TDiagnostics;
+  lEvaluator: TMsBuildEvaluator;
+  lError: string;
+begin
+  BuildConditionProject(aCondition, lProjectPath);
+
+  lProps := TDictionary<string, string>.Create;
+  lEnv := TDictionary<string, string>.Create;
+  lDiagnostics := TDiagnostics.Create;
+  try
+    lEvaluator := TMsBuildEvaluator.Create(lProps, lEnv, lDiagnostics);
+    try
+      lError := '';
+      Assert.IsTrue(lEvaluator.EvaluateFile(lProjectPath, lError),
+        'Expected valid condition to be accepted: ' + aCondition + ' Error: ' + lError);
+    finally
+      lEvaluator.Free;
+    end;
+    Assert.IsTrue(lProps.TryGetValue('MainSource', lMainSource),
+      'Expected condition to evaluate true and set MainSource: ' + aCondition);
+    Assert.AreEqual('ConditionCheck.dpr', lMainSource);
+  finally
+    lDiagnostics.Free;
+    lEnv.Free;
+    lProps.Free;
+  end;
+end;
+
 procedure TMsBuildTests.AssertConditionRejected(const aCondition: string);
 var
   lProjectPath: string;
@@ -193,13 +240,41 @@ begin
     #39 + 'Release' + #39 + '==' + #39 + 'Debug' + #39);
 end;
 
+procedure TMsBuildTests.AcceptsComparisonWithWhitespaceAroundNotEqualOperator;
+begin
+  AssertConditionAccepted('''Debug'' != ''Release''');
+end;
+
 procedure TMsBuildTests.AcceptsExistsConditionForRelativeImportPath;
 var
   lCondition: string;
 begin
   lCondition := '''Debug''==''Debug'' and Exists(''' + TPath.Combine(TempRoot, 'msbuild-exists-check.txt') + ''')';
   TFile.WriteAllText(TPath.Combine(TempRoot, 'msbuild-exists-check.txt'), 'ok', TEncoding.ASCII);
-  AssertConditionAccepted(lCondition);
+  AssertConditionSetsMainSource(lCondition);
+end;
+
+procedure TMsBuildTests.AcceptsNegatedExistsConditionForMissingPath;
+var
+  lCondition: string;
+begin
+  lCondition := '''Debug''==''Debug'' and !Exists(''' + TPath.Combine(TempRoot, 'msbuild-missing-check.txt') + ''')';
+  AssertConditionSetsMainSource(lCondition);
+end;
+
+procedure TMsBuildTests.AcceptsNegatedHasTrailingSlashCondition;
+begin
+  AssertConditionSetsMainSource('''bin''!='''' and !HasTrailingSlash(''bin'')');
+end;
+
+procedure TMsBuildTests.AcceptsHasTrailingSlashConditionWhenPathAlreadyEndsWithSlash;
+begin
+  AssertConditionSetsMainSource('''bin\''!='''' and HasTrailingSlash(''bin\'')');
+end;
+
+procedure TMsBuildTests.AcceptsUnquotedHasTrailingSlashArgumentWithSpaces;
+begin
+  AssertConditionSetsMainSource('''C:\Build Output''!='''' and !HasTrailingSlash(C:\Build Output)');
 end;
 
 procedure TMsBuildTests.RejectsTrailingUnknownTokenInCondition;
@@ -248,6 +323,50 @@ begin
       'Expected imported property group to be evaluated.');
     Assert.AreEqual('from-import', lImportedValue,
       'Expected imported property to come from the imported props file.');
+  finally
+    lDiagnostics.Free;
+    lEnv.Free;
+    lProps.Free;
+  end;
+end;
+
+procedure TMsBuildTests.PropertyValueWithQuotedEmptyLiteralDoesNotBreakLaterCondition;
+var
+  lProjectPath: string;
+  lRoot: string;
+  lProps: TDictionary<string, string>;
+  lEnv: TDictionary<string, string>;
+  lDiagnostics: TDiagnostics;
+  lEvaluator: TMsBuildEvaluator;
+  lError: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'msbuild-quoted-empty-property');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+  lProjectPath := TPath.Combine(lRoot, 'QuotedEmptyProperty.dproj');
+  TFile.WriteAllText(lProjectPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <LANGDIR>''''</LANGDIR>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <DCC_TranslatedLibraryPath Condition="''$(LANGDIR)'' != ''''">translated</DCC_TranslatedLibraryPath>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak, TEncoding.UTF8);
+
+  lProps := TDictionary<string, string>.Create;
+  lEnv := TDictionary<string, string>.Create;
+  lDiagnostics := TDiagnostics.Create;
+  try
+    lEvaluator := TMsBuildEvaluator.Create(lProps, lEnv, lDiagnostics);
+    try
+      lError := '';
+      Assert.IsTrue(lEvaluator.EvaluateFile(lProjectPath, lError),
+        'Expected quoted empty literal property condition to parse. Error: ' + lError);
+    finally
+      lEvaluator.Free;
+    end;
   finally
     lDiagnostics.Free;
     lEnv.Free;
