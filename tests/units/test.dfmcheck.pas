@@ -75,6 +75,8 @@ type
     [Test]
     procedure PipelineRebasesRelativeProjectImportsForGeneratedProject;
     [Test]
+    procedure PipelinePreservesBackslashDigitSearchPathsForGeneratedProject;
+    [Test]
     procedure PipelinePreservesEffectiveSearchPathForGeneratedProject;
     [Test]
     procedure PipelineGeneratedRegisterPreservesNamespacedUnitNames;
@@ -925,6 +927,7 @@ var
   lGeneratedUnitText: string;
   lWinapiPos: Integer;
   lMadExceptPos: Integer;
+  lSourceDprText: string;
 begin
   CreateFixtureProject(lDprojPath);
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-happy');
@@ -982,12 +985,13 @@ begin
     Assert.IsTrue(Pos('Halt(ExitCode);', lPatchedDprText) > 0, 'Expected validator short-circuit halt in DPR.');
     Assert.IsFalse(Pos('Application.Initialize;', lPatchedDprText) > 0,
       'Generated checker DPR must not execute application startup.');
-    Assert.IsTrue(Pos('madExcept,', lPatchedDprText) > 0,
-      'Generated checker DPR should preserve madExcept startup units when source DPR uses them.');
-    lMadExceptPos := Pos('madExcept,', lPatchedDprText);
+    Assert.IsFalse(Pos('madExcept,', lPatchedDprText) > 0,
+      'Generated checker DPR should not add optional madExcept startup units.');
+    lSourceDprText := TFile.ReadAllText(TPath.ChangeExtension(lDprojPath, '.dpr'));
+    lMadExceptPos := Pos('madExcept,', lSourceDprText);
     lWinapiPos := Pos('Winapi.Windows,', lPatchedDprText);
-    Assert.IsTrue((lMadExceptPos > 0) and (lWinapiPos > 0) and (lMadExceptPos < lWinapiPos),
-      'Generated checker DPR should place madExcept startup units before Winapi.Windows.');
+    Assert.IsTrue((lMadExceptPos > 0) and (lWinapiPos > 0),
+      'Expected fixture source DPR to use madExcept while generated DPR still uses Winapi.Windows.');
     Assert.IsFalse(Pos('Writeln(ErrOutput,', lPatchedDprText) > 0,
       'Generated checker DPR must not write fatal-init diagnostics through ErrOutput when no console exists.');
     Assert.IsTrue(Pos('OutputDebugString(', lPatchedDprText) > 0,
@@ -1012,9 +1016,9 @@ begin
       'Generated checker DPROJ should define DFMCheck symbol.');
     Assert.IsTrue(Pos('NO_LOCALIZATION', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should define NO_LOCALIZATION symbol.');
-    Assert.IsFalse(TRegEx.IsMatch(lGeneratedDprojText,
+    Assert.IsTrue(TRegEx.IsMatch(lGeneratedDprojText,
       '<DCC_Define>\s*[^<]*\bmadExcept\b[^<]*</DCC_Define>', [roIgnoreCase]),
-      'Generated checker DPROJ should remove madExcept symbol from defines.');
+      'Generated checker DPROJ should preserve madExcept symbol for project units that compile madExcept-aware code.');
     Assert.IsTrue(Pos('<Source Name="MainSource">Sample_DfmCheck.dpr</Source>', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should rewrite project extension MainSource entry.');
     Assert.IsTrue(Pos('<Icon_MainIcon>' + StringReplace(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.ico'),
@@ -1176,6 +1180,89 @@ begin
     Assert.IsFalse(Pos('Exists(''Fixture.optset'')', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should not keep relative Exists(...) import conditions after relocation.');
   finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+  end;
+end;
+
+procedure TDfmCheckTests.PipelinePreservesBackslashDigitSearchPathsForGeneratedProject;
+var
+  lAppDataDir: string;
+  lBackslashDigitDir: string;
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lEnvOptionsPath: string;
+  lError: string;
+  lGeneratedDprojText: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lPaths: TDfmCheckPaths;
+  lPrevAppDataEnv: string;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-backslash-digit-path');
+  WriteInjectStubs(lInjectDir);
+  lBackslashDigitDir := TPath.Combine(ExtractFilePath(lDprojPath), '3rdParty');
+  TDirectory.CreateDirectory(lBackslashDigitDir);
+  lEnvOptionsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'EnvOptions.proj');
+  TFile.WriteAllText(lEnvOptionsPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
+    '  <PropertyGroup>' + #13#10 +
+    '    <DelphiLibraryPath>' + lBackslashDigitDir + '</DelphiLibraryPath>' + #13#10 +
+    '    <DCC_UnitSearchPath>' + lBackslashDigitDir + ';$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '</Project>' + #13#10, TEncoding.UTF8);
+
+  lPrevAppDataEnv := GetEnvironmentVariable('APPDATA');
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  lAppDataDir := TPath.Combine(ExtractFilePath(lDprojPath), 'fake-appdata');
+  SetEnvironmentVariable('APPDATA', PChar(lAppDataDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDelphiVersion := '99.9';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+    lOptions.fHasEnvOptionsPath := True;
+    lOptions.fEnvOptionsPath := lEnvOptionsPath;
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected backslash-digit path fixture to complete with mock runner.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Unexpected error category for backslash-digit path fixture.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for backslash-digit path fixture.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
+    Assert.IsTrue(Pos(lBackslashDigitDir, lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should preserve paths containing backslash followed by a digit. Output: ' +
+      lGeneratedDprojText);
+    Assert.IsFalse(Pos(StringReplace(lBackslashDigitDir, '\3', '', [rfIgnoreCase]), lGeneratedDprojText) > 0,
+      'Generated checker DPROJ should not corrupt \3 path segments. Output: ' + lGeneratedDprojText);
+  finally
+    if lPrevAppDataEnv <> '' then
+      SetEnvironmentVariable('APPDATA', PChar(lPrevAppDataEnv))
+    else
+      SetEnvironmentVariable('APPDATA', nil);
     SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
@@ -1911,6 +1998,7 @@ begin
   SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
   SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
   SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lResult := -1;
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBuildFailHighExitCode, 'Release', 'Win32');

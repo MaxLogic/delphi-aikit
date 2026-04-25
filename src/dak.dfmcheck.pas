@@ -2226,7 +2226,6 @@ function TryCopyDprojWithNewMainSource(const aSourceDprojPath: string; const aDe
 const
   cLineBreak = #13#10;
   cDfmCheckSymbol = 'DFMCheck';
-  cMadExceptSymbol = 'madExcept';
   cNoLocalizationSymbol = 'NO_LOCALIZATION';
   function EnsureDefineSymbol(const aDefines: string; const aSymbol: string): string;
   begin
@@ -2237,33 +2236,6 @@ const
     if EndsText(';', TrimRight(aDefines)) then
       Exit(aDefines + aSymbol);
     Result := aDefines + ';' + aSymbol;
-  end;
-  function RemoveDefineSymbol(const aDefines: string; const aSymbol: string): string;
-  var
-    i: Integer;
-    lDefineList: TStringList;
-    lToken: string;
-  begin
-    lDefineList := TStringList.Create;
-    try
-      lDefineList.StrictDelimiter := True;
-      lDefineList.Delimiter := ';';
-      lDefineList.DelimitedText := aDefines;
-      Result := '';
-      for i := 0 to lDefineList.Count - 1 do
-      begin
-        lToken := Trim(lDefineList[i]);
-        if lToken = '' then
-          Continue;
-        if SameText(lToken, aSymbol) then
-          Continue;
-        if Result <> '' then
-          Result := Result + ';';
-        Result := Result + lToken;
-      end;
-    finally
-      lDefineList.Free;
-    end;
   end;
   function XmlEscape(const aValue: string): string;
   begin
@@ -2277,6 +2249,30 @@ const
   function EscapeRegexReplacement(const aValue: string): string;
   begin
     Result := StringReplace(aValue, '$', '$$', [rfReplaceAll]);
+  end;
+  function PrefixUnitSearchPathNodes(const aProjectText: string; const aSearchPath: string): string;
+  var
+    lExistingValue: string;
+    lIndex: Integer;
+    lMatch: TMatch;
+    lMatches: TMatchCollection;
+    lMatchStart: Integer;
+    lReplacement: string;
+  begin
+    Result := aProjectText;
+    lMatches := TRegEx.Matches(Result, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>',
+      [roIgnoreCase]);
+    for lIndex := lMatches.Count - 1 downto 0 do
+    begin
+      lMatch := lMatches.Item[lIndex];
+      if lMatch.Groups.Count < 2 then
+        Continue;
+      lExistingValue := lMatch.Groups[1].Value;
+      lMatchStart := lMatch.Index;
+      lReplacement := '<DCC_UnitSearchPath>' + aSearchPath + ';' + lExistingValue + '</DCC_UnitSearchPath>';
+      Result := Copy(Result, 1, lMatchStart - 1) + lReplacement +
+        Copy(Result, lMatchStart + lMatch.Length, MaxInt);
+    end;
   end;
   function NormalizeRelativePropertyPath(const aProjectText: string; const aPropertyName: string;
     const aBaseDir: string): string;
@@ -2462,10 +2458,8 @@ begin
   if Trim(aAdditionalUnitSearchPath) <> '' then
   begin
     lEscapedSearchPath := XmlEscape(aAdditionalUnitSearchPath);
-    lEscapedSearchPathReplacement := EscapeRegexReplacement(lEscapedSearchPath);
     if TRegEx.IsMatch(lOutputText, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>', [roIgnoreCase]) then
-      lOutputText := TRegEx.Replace(lOutputText, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>',
-        '<DCC_UnitSearchPath>' + lEscapedSearchPathReplacement + ';$1</DCC_UnitSearchPath>', [roIgnoreCase])
+      lOutputText := PrefixUnitSearchPathNodes(lOutputText, lEscapedSearchPath)
     else
     begin
       lInsertedSearchPath := lEscapedSearchPath + ';$(DCC_UnitSearchPath)';
@@ -2483,7 +2477,7 @@ begin
   if lDefineMatch.Success and (lDefineMatch.Groups.Count > 1) then
   begin
     lExistingDefines := lDefineMatch.Groups[1].Value;
-    lUpdatedDefines := RemoveDefineSymbol(lExistingDefines, cMadExceptSymbol);
+    lUpdatedDefines := lExistingDefines;
     lUpdatedDefines := EnsureDefineSymbol(lUpdatedDefines, cDfmCheckSymbol);
     lUpdatedDefines := EnsureDefineSymbol(lUpdatedDefines, cNoLocalizationSymbol);
     if lUpdatedDefines <> lExistingDefines then
@@ -2866,32 +2860,12 @@ begin
 end;
 
 function TryWriteGeneratedDpr(const aGeneratedDprPath: string; const aProgramName: string;
-  const aRegisterUnitName: string; const aSourceDprText: string; out aError: string): Boolean;
+  const aRegisterUnitName: string; out aError: string): Boolean;
 const
   cLineBreak = #13#10;
 var
   lContent: string;
   lEncoding: TEncoding;
-  lMadExceptAvailable: Boolean;
-  lMadExceptUses: string;
-  function IsMadExceptInstalled: Boolean;
-  var
-    lBaseDir: string;
-    lProgramFilesDir: string;
-    lProgramFilesX86Dir: string;
-  begin
-    lProgramFilesX86Dir := Trim(GetEnvironmentVariable('ProgramFiles(x86)'));
-    lProgramFilesDir := Trim(GetEnvironmentVariable('ProgramFiles'));
-
-    for lBaseDir in [lProgramFilesX86Dir, lProgramFilesDir] do
-    begin
-      if lBaseDir = '' then
-        Continue;
-      if TDirectory.Exists(TPath.Combine(lBaseDir, 'madCollection\madExcept')) then
-        Exit(True);
-    end;
-    Result := False;
-  end;
 begin
   aError := '';
   if Trim(aProgramName) = '' then
@@ -2905,24 +2879,10 @@ begin
     Exit(False);
   end;
 
-  lMadExceptUses := '';
-  lMadExceptAvailable := IsMadExceptInstalled;
-  if lMadExceptAvailable and ContainsWord(aSourceDprText, 'madExcept') then
-    lMadExceptUses := lMadExceptUses + '  madExcept,' + cLineBreak;
-  if lMadExceptAvailable and ContainsWord(aSourceDprText, 'madLinkDisAsm') then
-    lMadExceptUses := lMadExceptUses + '  madLinkDisAsm,' + cLineBreak;
-  if lMadExceptAvailable and ContainsWord(aSourceDprText, 'madListHardware') then
-    lMadExceptUses := lMadExceptUses + '  madListHardware,' + cLineBreak;
-  if lMadExceptAvailable and ContainsWord(aSourceDprText, 'madListProcesses') then
-    lMadExceptUses := lMadExceptUses + '  madListProcesses,' + cLineBreak;
-  if lMadExceptAvailable and ContainsWord(aSourceDprText, 'madListModules') then
-    lMadExceptUses := lMadExceptUses + '  madListModules,' + cLineBreak;
-
   lContent :=
     'program ' + aProgramName + ';' + cLineBreak + cLineBreak +
     '{$R *.res}' + cLineBreak + cLineBreak +
     'uses' + cLineBreak +
-    lMadExceptUses +
     '  Winapi.Windows,' + cLineBreak +
     '  System.SysUtils,' + cLineBreak +
     '  DfmStreamAll in ''DfmStreamAll.pas'',' + cLineBreak +
@@ -2977,7 +2937,6 @@ var
   lGeneratedDprojName: string;
   lIndex: Integer;
   lMainSourceRaw: string;
-  lSourceDprText: string;
   lResourceToken: string;
   lResourceName: string;
   lSourceCfgPath: string;
@@ -2997,8 +2956,6 @@ begin
     aError := 'Only Delphi .dpr MainSource projects are supported for dfm-check.';
     Exit(False);
   end;
-
-  lSourceDprText := TFile.ReadAllText(lSourceProjectPath, TEncoding.UTF8);
 
   lUnitNames := TStringList.Create;
   lFormClassNames := TStringList.Create;
@@ -3072,7 +3029,7 @@ begin
       Exit(False);
 
     if not TryWriteGeneratedDpr(aPaths.fGeneratedDpr, TPath.GetFileNameWithoutExtension(aPaths.fGeneratedDpr),
-      TPath.GetFileNameWithoutExtension(aPaths.fGeneratedRegisterUnit), lSourceDprText, aError) then
+      TPath.GetFileNameWithoutExtension(aPaths.fGeneratedRegisterUnit), aError) then
       Exit(False);
 
     lSourceCfgPath := TPath.ChangeExtension(lSourceProjectPath, '.cfg');

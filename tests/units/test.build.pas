@@ -59,6 +59,8 @@ type
     [Test]
     procedure BuildReportsSpecificErrorWhenResolvedMadExceptOutputIsMissing;
     [Test]
+    procedure BuildDfmCheckFailureReportsSkippedValidationAndMadExceptGuidance;
+    [Test]
     procedure BuildIgnoresMissingCfgDependentOnOptsetWhenProjectOutputExists;
     [Test]
     procedure BuildWarnsOnInvalidDiagnosticsIniValues;
@@ -1015,6 +1017,60 @@ begin
     StringReplace(TPath.Combine(lProjectRoot, 'bin\Debug\Win32\MesGateCheck.exe'), '\', '\\', [rfReplaceAll]);
   Assert.IsTrue(Pos(lExpectedMessage, lCapturedOutput) > 0,
     'Expected JSON summary to include the missing resolved output path. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.BuildDfmCheckFailureReportsSkippedValidationAndMadExceptGuidance;
+var
+  lCapturedOutput: string;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lFailingRunner: TFailingBuildRunner;
+  lOptions: TAppOptions;
+  lPatchExePath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+begin
+  lProjectRoot := TPath.Combine(TempRoot, 'build-dfmcheck-madexcept-missing-dcu');
+  if TDirectory.Exists(lProjectRoot) then
+    TDirectory.Delete(lProjectRoot, True);
+  PrepareMadExceptBuildFixture(lProjectRoot,
+    '[GeneralSettings]' + sLineBreak +
+    'HandleExceptions=1' + sLineBreak +
+    'LinkInCode=1' + sLineBreak,
+    lDprojPath, lRsVarsPath, lPatchExePath);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fHasRsVarsPath := True;
+  lOptions.fRsVarsPath := lRsVarsPath;
+  lOptions.fBuildRunDfmCheck := True;
+
+  lFailingRunner := TFailingBuildRunner.Create;
+  lFailingRunner.fStdOutText :=
+    lDprojPath + '(1): message: fake build started' + sLineBreak +
+    'MesGateCheck.dpr(6): error F1026: File not found: ' +
+    '''C:\Program Files (x86)\madCollection\madExcept\BDS23\win32\madExcept.dcu''' + sLineBreak;
+  lRunner := lFailingRunner;
+
+  lCapturedOutput := CaptureConsoleOutput(
+    procedure
+    begin
+      Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+        'Expected failing build process to be summarized. Error: ' + lError);
+    end);
+
+  Assert.AreEqual(1, lExitCode, 'Expected build exit code to remain the source build failure.');
+  Assert.IsTrue(Pos('dfm-check was not run because the source build failed', lCapturedOutput) > 0,
+    'Expected build output to explain that post-build DFM validation was skipped. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('madExcept.dcu', lCapturedOutput) > 0,
+    'Expected original missing madExcept.dcu compiler error to remain visible. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('madExcept is enabled by DCC_Define', lCapturedOutput) > 0,
+    'Expected targeted madExcept guidance for missing madExcept.dcu. Output: ' + lCapturedOutput);
 end;
 
 procedure TBuildTests.BuildIgnoresMissingCfgDependentOnOptsetWhenProjectOutputExists;
