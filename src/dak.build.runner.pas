@@ -1270,6 +1270,9 @@ begin
   end;
 end;
 
+function BuildMadExceptMissingDcuGuidance(const aErrors: TArray<string>): string; forward;
+procedure PrintPostBuildDfmCheckNotes(const aOptions: TAppOptions; const aSummary: TBuildSummary); forward;
+
 procedure PrintSummary(const aOptions: TAppOptions; const aProjectInfo: TBuildProjectInfo;
   const aSummary: TBuildSummary);
 var
@@ -1301,6 +1304,7 @@ begin
         Writeln(lLine);
     if aSummary.fOutputStale and (aSummary.fOutputMessage <> '') then
       Writeln('WARNING. ' + aSummary.fOutputMessage);
+    PrintPostBuildDfmCheckNotes(aOptions, aSummary);
     Exit;
   end;
 
@@ -1319,6 +1323,7 @@ begin
       Writeln(lLine);
   if aSummary.fOutputStale and (aSummary.fOutputMessage <> '') then
     Writeln(aSummary.fOutputMessage);
+  PrintPostBuildDfmCheckNotes(aOptions, aSummary);
 end;
 
 function CurrentTicks: Int64;
@@ -1346,6 +1351,32 @@ begin
   for lItem in aItems do
     if SameText(Trim(lItem), aValue) then
       Exit(True);
+end;
+
+function BuildMadExceptMissingDcuGuidance(const aErrors: TArray<string>): string;
+var
+  lError: string;
+begin
+  for lError in aErrors do
+    if ContainsText(lError, 'madExcept.dcu') and ContainsText(lError, 'File not found') then
+      Exit('HINT. madExcept is enabled by DCC_Define; restore the madExcept install/library path for this ' +
+        'Delphi platform/config, or disable that define only for builds that do not compile madExcept-aware code.');
+  Result := '';
+end;
+
+procedure PrintPostBuildDfmCheckNotes(const aOptions: TAppOptions; const aSummary: TBuildSummary);
+var
+  lGuidance: string;
+begin
+  if aSummary.fExitCode = 0 then
+    Exit;
+
+  if aOptions.fBuildRunDfmCheck then
+    Writeln('NOTE. dfm-check was not run because the source build failed.');
+
+  lGuidance := BuildMadExceptMissingDcuGuidance(aSummary.fErrors);
+  if lGuidance <> '' then
+    Writeln(lGuidance);
 end;
 
 procedure EmitBuildPreflightWarnings(const aOptions: TAppOptions; const aEnvVars: TDictionary<string, string>);
@@ -1601,7 +1632,7 @@ var
   lOutLog: string;
   lProjectInfo: TBuildProjectInfo;
   lSummaryOptions: TBuildSummaryOptions;
-  lStartTick: Int64;
+  lStartTick: UInt64;
   lSummary: TBuildSummary;
   lTempBase: string;
   lTimeMs: Int64;
@@ -1632,7 +1663,7 @@ begin
     aExitCode, lTimedOut, aError) then
     Exit(False);
 
-  lTimeMs := GetTickCount64 - lStartTick;
+  lTimeMs := Int64(GetTickCount64 - lStartTick);
   lSummaryOptions := Default(TBuildSummaryOptions);
   lSummaryOptions.fProjectRoot := lWebCoreInfo.fProjectDir;
   lSummaryOptions.fIgnoreWarnings := aSettings.fIgnoreWarnings;
