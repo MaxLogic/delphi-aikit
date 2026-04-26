@@ -37,6 +37,21 @@ type
     procedure TextReportShowsSkippedFailuresAndVerification;
   end;
 
+  [TestFixture]
+  TRemoveWithDiscoveryTests = class(TRemoveWithTestBase)
+  private
+    function RunDiscoveryFixture(const aTargetArgs, aLogName: string; out aExitCode: Cardinal): string;
+  public
+    [Test]
+    procedure ScanFindsSingleMultipleAndNestedWithStatements;
+    [Test]
+    procedure ScanCliReportsDiscoveryFixtureStatements;
+    [Test]
+    procedure ScanUnitTargetFiltersFilesAndWarnings;
+    [Test]
+    procedure ScanDirTargetKeepsScopedWarnings;
+  end;
+
 implementation
 
 function TRemoveWithTestBase.RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal): string;
@@ -242,6 +257,148 @@ begin
   Assert.IsTrue(Pos('skipped=0', lOutput) > 0, 'Expected skipped count in text report.');
   Assert.IsTrue(Pos('failed=0', lOutput) > 0, 'Expected failed count in text report.');
   Assert.IsTrue(Pos('verification=not-run', lOutput) > 0, 'Expected verification status in text report.');
+end;
+
+function TRemoveWithDiscoveryTests.RunDiscoveryFixture(const aTargetArgs, aLogName: string; out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithDiscoveryFixture\RemoveWithDiscoveryFixture.dproj');
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' ' + aTargetArgs + ' --mode scan --format json';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+    'Failed to start remove-with discovery process.');
+  Result := '';
+  if FileExists(lLogPath) then
+    Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithDiscoveryTests.ScanFindsSingleMultipleAndNestedWithStatements;
+var
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lRoot: TJSONObject;
+  lStatement: TJSONObject;
+  lStatements: TJSONArray;
+  lSummary: TJSONObject;
+  i: Integer;
+  lHasMultipleSelector: Boolean;
+  lHasNestedStatement: Boolean;
+begin
+  lOutput := RunDiscoveryFixture('--all', 'remove-with-discovery-all.json', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected discovery scan to succeed.');
+
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected discovery output to be JSON object.');
+    lRoot := lJson as TJSONObject;
+    AssertJsonArrayKey(lRoot, 'withStatements', lStatements);
+    Assert.AreEqual(4, lStatements.Count, 'Expected all single, multiple, outer, and nested with statements.');
+
+    lHasMultipleSelector := False;
+    lHasNestedStatement := False;
+    for i := 0 to lStatements.Count - 1 do
+    begin
+      Assert.IsTrue(lStatements.Items[i] is TJSONObject, 'Expected with statement item to be an object.');
+      lStatement := lStatements.Items[i] as TJSONObject;
+      AssertJsonStringKey(lStatement, 'selectorText');
+      AssertJsonNumberKey(lStatement, 'selectorCount');
+      AssertJsonNumberKey(lStatement, 'nestingDepth');
+      AssertJsonObjectKey(lStatement, 'bodyRange', lSummary);
+      AssertJsonNumberKey(lSummary, 'startLine');
+      AssertJsonNumberKey(lSummary, 'endLine');
+
+      if lStatement.Values['selectorText'].Value = 'lLeft, lRight' then
+      begin
+        lHasMultipleSelector := True;
+        Assert.AreEqual('2', lStatement.Values['selectorCount'].Value, 'Expected two selectors.');
+      end;
+      if lStatement.Values['nestingDepth'].Value = '1' then
+      begin
+        lHasNestedStatement := True;
+        Assert.AreEqual('lRight', lStatement.Values['selectorText'].Value, 'Expected nested selector.');
+      end;
+    end;
+
+    Assert.IsTrue(lHasMultipleSelector, 'Expected multiple-selector with statement.');
+    Assert.IsTrue(lHasNestedStatement, 'Expected nested with statement.');
+    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    Assert.AreEqual('4', lSummary.Values['withStatements'].Value, 'Expected summary with count.');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TRemoveWithDiscoveryTests.ScanCliReportsDiscoveryFixtureStatements;
+var
+  lExitCode: Cardinal;
+  lOutput: string;
+begin
+  lOutput := RunDiscoveryFixture('--all', 'remove-with-discovery-cli.json', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected discovery CLI proof to succeed.');
+  Assert.IsTrue(Pos('"withStatements":[', lOutput) > 0, 'Expected withStatements array in output.');
+  Assert.IsTrue(Pos('"selectorText":"lLeft, lRight"', lOutput) > 0, 'Expected multiple selector in output.');
+  Assert.IsTrue(Pos('"nestingDepth":1', lOutput) > 0, 'Expected nested with depth in output.');
+end;
+
+procedure TRemoveWithDiscoveryTests.ScanUnitTargetFiltersFilesAndWarnings;
+var
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lRoot: TJSONObject;
+  lFiles: TJSONArray;
+  lStatements: TJSONArray;
+  lUnitPath: string;
+  lWarnings: TJSONArray;
+begin
+  lUnitPath := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithDiscoveryFixture\DiscoveryUnit.pas');
+  lOutput := RunDiscoveryFixture('--unit ' + QuoteArg(lUnitPath), 'remove-with-discovery-unit.json', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected unit-target discovery scan to succeed.');
+
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected unit-target discovery output to be JSON object.');
+    lRoot := lJson as TJSONObject;
+    AssertJsonArrayKey(lRoot, 'files', lFiles);
+    Assert.AreEqual(1, lFiles.Count, 'Expected --unit to scan only the selected unit.');
+    AssertJsonArrayKey(lRoot, 'withStatements', lStatements);
+    Assert.AreEqual(4, lStatements.Count, 'Expected selected unit with statements only.');
+    AssertJsonArrayKey(lRoot, 'warnings', lWarnings);
+    Assert.AreEqual(0, lWarnings.Count, 'Expected unrelated missing-unit warning to be filtered for --unit.');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TRemoveWithDiscoveryTests.ScanDirTargetKeepsScopedWarnings;
+var
+  lDirPath: string;
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lRoot: TJSONObject;
+  lWarnings: TJSONArray;
+begin
+  lDirPath := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithDiscoveryFixture');
+  lOutput := RunDiscoveryFixture('--dir ' + QuoteArg(lDirPath), 'remove-with-discovery-dir.json', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected dir-target discovery scan to succeed.');
+
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected dir-target discovery output to be JSON object.');
+    lRoot := lJson as TJSONObject;
+    AssertJsonArrayKey(lRoot, 'warnings', lWarnings);
+    Assert.IsTrue(lWarnings.Count > 0, 'Expected missing project unit warning to stay visible for scoped --dir.');
+  finally
+    lJson.Free;
+  end;
 end;
 
 end.
