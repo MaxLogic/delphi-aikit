@@ -20,7 +20,7 @@ uses
   System.IOUtils, System.JSON, System.SysUtils;
 
 const
-  cRemoveWithSchemaVersion = 1;
+  cRemoveWithSchemaVersion = 2;
 
 function RemoveWithModeToText(const aMode: TRemoveWithMode): string;
 begin
@@ -152,6 +152,7 @@ begin
       .AddPair('selectorText', lStatement.fSelectorText)
       .AddPair('selectorCount', TJSONNumber.Create(lStatement.fSelectorCount))
       .AddPair('nestingDepth', TJSONNumber.Create(lStatement.fNestingDepth))
+      .AddPair('selectorRange', BuildRangeObject(lStatement.fSelectorRange))
       .AddPair('range', BuildRangeObject(lStatement.fRange))
       .AddPair('bodyRange', BuildRangeObject(lStatement.fBodyRange)));
   end;

@@ -26,6 +26,7 @@ type
     fColumn: Integer;
     fSelectorText: string;
     fSelectorCount: Integer;
+    fSelectorRange: TRemoveWithRange;
     fNestingDepth: Integer;
     fRange: TRemoveWithRange;
     fBodyRange: TRemoveWithRange;
@@ -51,30 +52,45 @@ function DiscoverRemoveWithStatements(const aOptions: TAppOptions; const aProjec
 implementation
 
 uses
-  System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer,
-  Dak.Project, Dak.Utils;
+  Dak.Project, Dak.RemoveWith.Source, Dak.Utils;
 
 type
   TRemoveWithDiscoveryHelper = record
   private
     class function NormalizePathKey(const aPath: string): string; static;
+    class function IsWhitespace(const aValue: Char): Boolean; static;
     class function IsCommentNode(const aNode: TSyntaxNode): Boolean; static;
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
-    class function FindWithKeyword(const aLine: string; const aStartColumn: Integer): Integer; static;
+    class function IsWordAt(const aText: string; const aOffset: Integer; const aWord: string): Boolean; static;
+    class function NextNonWhitespaceOffset(const aText: string; const aOffset: Integer): Integer; static;
     class function CountSelectors(const aSelectorText: string): Integer; static;
     class function IsRootedPath(const aPath: string): Boolean; static;
-    class function ExtractSelectorText(const aLines: TArray<string>; const aLine, aColumn: Integer): string; static;
+    class function NormalizeSelectorText(const aText: string): string; static;
+    class procedure SkipString(const aText: string; var aOffset: Integer); static;
+    class procedure SkipBraceComment(const aText: string; var aOffset: Integer); static;
+    class procedure SkipParenComment(const aText: string; var aOffset: Integer); static;
+    class procedure SkipLineComment(const aText: string; var aOffset: Integer); static;
+    class function FindWithKeywordOffset(const aSource: TRemoveWithSourceBuffer; const aLine,
+      aColumn: Integer; out aOffset: Integer): Boolean; static;
+    class function ExtractSelectorInfo(const aSource: TRemoveWithSourceBuffer; const aLine,
+      aColumn: Integer; out aSelectorText: string; out aSelectorRange: TRemoveWithRange;
+      out aSelectorCount: Integer; out aWithRangeStart: TRemoveWithRange): Boolean; static;
     class function FindBodyNode(const aWithNode: TSyntaxNode): TSyntaxNode; static;
-    class function NodeRange(const aNode: TSyntaxNode): TRemoveWithRange; static;
+    class function SemicolonContinuesStatement(const aText: string; const aOffset: Integer): Boolean; static;
+    class function FindStatementEndOffset(const aSource: TRemoveWithSourceBuffer;
+      const aStartOffset: Integer): Integer; static;
+    class function NodeRange(const aNode: TSyntaxNode; const aSource: TRemoveWithSourceBuffer): TRemoveWithRange;
+      static;
     class procedure AddFile(var aScanResult: TRemoveWithScanResult; const aPath: string; const aWithCount: Integer);
       static;
     class procedure AddWarning(var aScanResult: TRemoveWithScanResult; const aPath: string; const aLine,
       aColumn: Integer; const aCode, aMessage: string); static;
     class procedure AddWithStatement(var aScanResult: TRemoveWithScanResult; const aInfo: TRemoveWithStatementInfo);
       static;
-    class procedure CollectFromNode(const aNode: TSyntaxNode; const aFilePath: string; const aLines: TArray<string>;
-      const aDepth: Integer; var aScanResult: TRemoveWithScanResult); static;
+    class procedure CollectFromNode(const aNode: TSyntaxNode; const aFilePath: string;
+      const aSource: TRemoveWithSourceBuffer; const aDepth: Integer; var aScanResult: TRemoveWithScanResult); static;
     class function ShouldScanPath(const aOptions: TAppOptions; const aPath, aDirKey, aUnitKey: string): Boolean; static;
     class function ShouldReportProblem(const aOptions: TAppOptions; const aProblemPath, aProjectDir, aDirKey,
       aUnitKey: string): Boolean; static;
@@ -84,6 +100,11 @@ type
 class function TRemoveWithDiscoveryHelper.NormalizePathKey(const aPath: string): string;
 begin
   Result := AnsiLowerCase(TPath.GetFullPath(aPath));
+end;
+
+class function TRemoveWithDiscoveryHelper.IsWhitespace(const aValue: Char): Boolean;
+begin
+  Result := CharInSet(aValue, [#9, #10, #13, ' ']);
 end;
 
 class function TRemoveWithDiscoveryHelper.IsCommentNode(const aNode: TSyntaxNode): Boolean;
@@ -97,23 +118,27 @@ begin
   Result := CharInSet(aValue, ['A'..'Z', 'a'..'z', '0'..'9', '_']);
 end;
 
-class function TRemoveWithDiscoveryHelper.FindWithKeyword(const aLine: string; const aStartColumn: Integer): Integer;
+class function TRemoveWithDiscoveryHelper.IsWordAt(const aText: string; const aOffset: Integer;
+  const aWord: string): Boolean;
 var
-  lIndex: Integer;
-  lStart: Integer;
+  lAfterOffset: Integer;
 begin
-  Result := 0;
-  lStart := aStartColumn;
-  if lStart < 1 then
-    lStart := 1;
+  Result := False;
+  if (aOffset < 1) or (aOffset + Length(aWord) - 1 > Length(aText)) then
+    Exit;
 
-  for lIndex := lStart to Length(aLine) - 3 do
-  begin
-    if SameText(Copy(aLine, lIndex, 4), 'with') and
-      ((lIndex = 1) or (not IsIdentifierChar(aLine[lIndex - 1]))) and
-      ((lIndex + 4 > Length(aLine)) or (not IsIdentifierChar(aLine[lIndex + 4]))) then
-      Exit(lIndex);
-  end;
+  lAfterOffset := aOffset + Length(aWord);
+  Result := SameText(Copy(aText, aOffset, Length(aWord)), aWord) and
+    ((aOffset = 1) or (not IsIdentifierChar(aText[aOffset - 1]))) and
+    ((lAfterOffset > Length(aText)) or (not IsIdentifierChar(aText[lAfterOffset])));
+end;
+
+class function TRemoveWithDiscoveryHelper.NextNonWhitespaceOffset(const aText: string;
+  const aOffset: Integer): Integer;
+begin
+  Result := aOffset;
+  while (Result <= Length(aText)) and IsWhitespace(aText[Result]) do
+    Inc(Result);
 end;
 
 class function TRemoveWithDiscoveryHelper.CountSelectors(const aSelectorText: string): Integer;
@@ -130,16 +155,54 @@ begin
   lParenDepth := 0;
   lBracketDepth := 0;
   lQuoteOpen := False;
-  for lIndex := 1 to Length(aSelectorText) do
+  lIndex := 1;
+  while lIndex <= Length(aSelectorText) do
   begin
+    if (not lQuoteOpen) and (aSelectorText[lIndex] = '{') then
+    begin
+      while (lIndex <= Length(aSelectorText)) and (aSelectorText[lIndex] <> '}') do
+        Inc(lIndex);
+      Inc(lIndex);
+      Continue;
+    end;
+
+    if (not lQuoteOpen) and (lIndex < Length(aSelectorText)) and (aSelectorText[lIndex] = '(') and
+      (aSelectorText[lIndex + 1] = '*') then
+    begin
+      Inc(lIndex, 2);
+      while (lIndex < Length(aSelectorText)) and
+        ((aSelectorText[lIndex] <> '*') or (aSelectorText[lIndex + 1] <> ')')) do
+        Inc(lIndex);
+      Inc(lIndex, 2);
+      Continue;
+    end;
+
+    if (not lQuoteOpen) and (lIndex < Length(aSelectorText)) and (aSelectorText[lIndex] = '/') and
+      (aSelectorText[lIndex + 1] = '/') then
+    begin
+      Inc(lIndex, 2);
+      while (lIndex <= Length(aSelectorText)) and not CharInSet(aSelectorText[lIndex], [#10, #13]) do
+        Inc(lIndex);
+      Continue;
+    end;
+
     if aSelectorText[lIndex] = '''' then
     begin
-      lQuoteOpen := not lQuoteOpen;
+      if lQuoteOpen and (lIndex < Length(aSelectorText)) and (aSelectorText[lIndex + 1] = '''') then
+      begin
+        Inc(lIndex, 2);
+        Continue;
+      end else
+        lQuoteOpen := not lQuoteOpen;
+      Inc(lIndex);
       Continue;
     end;
 
     if lQuoteOpen then
+    begin
+      Inc(lIndex);
       Continue;
+    end;
     if aSelectorText[lIndex] = '(' then
       Inc(lParenDepth)
     else if (aSelectorText[lIndex] = ')') and (lParenDepth > 0) then
@@ -150,6 +213,7 @@ begin
       Dec(lBracketDepth)
     else if (aSelectorText[lIndex] = ',') and (lParenDepth = 0) and (lBracketDepth = 0) then
       Inc(Result);
+    Inc(lIndex);
   end;
 end;
 
@@ -158,89 +222,188 @@ begin
   Result := (aPath <> '') and (TPath.IsPathRooted(aPath) or ((Length(aPath) >= 3) and (aPath[2] = ':')));
 end;
 
-class function TRemoveWithDiscoveryHelper.ExtractSelectorText(const aLines: TArray<string>; const aLine,
-  aColumn: Integer): string;
+class function TRemoveWithDiscoveryHelper.NormalizeSelectorText(const aText: string): string;
 var
-  lBracketDepth: Integer;
   lBuilder: TStringBuilder;
-  lCharIndex: Integer;
-  lLineIndex: Integer;
-  lLineText: string;
-  lParenDepth: Integer;
-  lQuoteOpen: Boolean;
-  lStartColumn: Integer;
-  lWithIndex: Integer;
+  lIndex: Integer;
+  lPendingSpace: Boolean;
 begin
-  Result := '';
-  if (aLine < 1) or (aLine > Length(aLines)) then
-    Exit;
-
-  lLineText := aLines[aLine - 1];
-  lWithIndex := FindWithKeyword(lLineText, aColumn);
-  if lWithIndex = 0 then
-    Exit;
-
   lBuilder := TStringBuilder.Create;
   try
-    lParenDepth := 0;
-    lBracketDepth := 0;
-    lQuoteOpen := False;
-    for lLineIndex := aLine to Length(aLines) do
+    lPendingSpace := False;
+    for lIndex := 1 to Length(aText) do
     begin
-      lLineText := aLines[lLineIndex - 1];
-      if lLineIndex = aLine then
-        lStartColumn := lWithIndex + 4
-      else
+      if IsWhitespace(aText[lIndex]) then
       begin
-        lStartColumn := 1;
         if lBuilder.Length > 0 then
-          lBuilder.Append(' ');
+          lPendingSpace := True;
+        Continue;
       end;
 
-      lCharIndex := lStartColumn;
-      while (lLineIndex > aLine) and (lCharIndex <= Length(lLineText)) and CharInSet(lLineText[lCharIndex], [#9, ' ']) do
-        Inc(lCharIndex);
-
-      while lCharIndex <= Length(lLineText) do
+      if lPendingSpace then
       begin
-        if lLineText[lCharIndex] = '''' then
-        begin
-          lBuilder.Append(lLineText[lCharIndex]);
-          if (lCharIndex < Length(lLineText)) and (lLineText[lCharIndex + 1] = '''') then
-          begin
-            Inc(lCharIndex);
-            lBuilder.Append(lLineText[lCharIndex]);
-          end else
-            lQuoteOpen := not lQuoteOpen;
-          Inc(lCharIndex);
-          Continue;
-        end;
-
-        if not lQuoteOpen then
-        begin
-          if (lParenDepth = 0) and (lBracketDepth = 0) and SameText(Copy(lLineText, lCharIndex, 2), 'do') and
-            ((lCharIndex = 1) or (not IsIdentifierChar(lLineText[lCharIndex - 1]))) and
-            ((lCharIndex + 2 > Length(lLineText)) or (not IsIdentifierChar(lLineText[lCharIndex + 2]))) then
-            Exit(Trim(lBuilder.ToString));
-
-          if lLineText[lCharIndex] = '(' then
-            Inc(lParenDepth)
-          else if (lLineText[lCharIndex] = ')') and (lParenDepth > 0) then
-            Dec(lParenDepth)
-          else if lLineText[lCharIndex] = '[' then
-            Inc(lBracketDepth)
-          else if (lLineText[lCharIndex] = ']') and (lBracketDepth > 0) then
-            Dec(lBracketDepth);
-        end;
-
-        lBuilder.Append(lLineText[lCharIndex]);
-        Inc(lCharIndex);
+        lBuilder.Append(' ');
+        lPendingSpace := False;
       end;
+      lBuilder.Append(aText[lIndex]);
     end;
     Result := Trim(lBuilder.ToString);
   finally
     lBuilder.Free;
   end;
+end;
+
+class procedure TRemoveWithDiscoveryHelper.SkipString(const aText: string; var aOffset: Integer);
+begin
+  Inc(aOffset);
+  while aOffset <= Length(aText) do
+  begin
+    if aText[aOffset] = '''' then
+    begin
+      if (aOffset < Length(aText)) and (aText[aOffset + 1] = '''') then
+      begin
+        Inc(aOffset, 2);
+        Continue;
+      end;
+      Inc(aOffset);
+      Exit;
+    end;
+    Inc(aOffset);
+  end;
+end;
+
+class procedure TRemoveWithDiscoveryHelper.SkipBraceComment(const aText: string; var aOffset: Integer);
+begin
+  Inc(aOffset);
+  while (aOffset <= Length(aText)) and (aText[aOffset] <> '}') do
+    Inc(aOffset);
+  if aOffset <= Length(aText) then
+    Inc(aOffset);
+end;
+
+class procedure TRemoveWithDiscoveryHelper.SkipParenComment(const aText: string; var aOffset: Integer);
+begin
+  Inc(aOffset, 2);
+  while (aOffset < Length(aText)) and ((aText[aOffset] <> '*') or (aText[aOffset + 1] <> ')')) do
+    Inc(aOffset);
+  if aOffset < Length(aText) then
+    Inc(aOffset, 2);
+end;
+
+class procedure TRemoveWithDiscoveryHelper.SkipLineComment(const aText: string; var aOffset: Integer);
+begin
+  Inc(aOffset, 2);
+  while (aOffset <= Length(aText)) and not CharInSet(aText[aOffset], [#10, #13]) do
+    Inc(aOffset);
+end;
+
+class function TRemoveWithDiscoveryHelper.FindWithKeywordOffset(const aSource: TRemoveWithSourceBuffer;
+  const aLine, aColumn: Integer; out aOffset: Integer): Boolean;
+var
+  lOffset: Integer;
+begin
+  aOffset := 0;
+  Result := False;
+  if not RemoveWithOffsetForLineColumn(aSource, aLine, aColumn, lOffset) then
+    Exit;
+
+  while (lOffset <= Length(aSource.fText)) and not CharInSet(aSource.fText[lOffset], [#10, #13]) do
+  begin
+    if IsWordAt(aSource.fText, lOffset, 'with') then
+    begin
+      aOffset := lOffset;
+      Exit(True);
+    end;
+    Inc(lOffset);
+  end;
+end;
+
+class function TRemoveWithDiscoveryHelper.ExtractSelectorInfo(const aSource: TRemoveWithSourceBuffer;
+  const aLine, aColumn: Integer; out aSelectorText: string; out aSelectorRange: TRemoveWithRange;
+  out aSelectorCount: Integer; out aWithRangeStart: TRemoveWithRange): Boolean;
+var
+  lBracketDepth: Integer;
+  lEndOffset: Integer;
+  lOffset: Integer;
+  lParenDepth: Integer;
+  lSelectorStartOffset: Integer;
+  lStartOffset: Integer;
+  lWithOffset: Integer;
+begin
+  aSelectorText := '';
+  aSelectorRange := Default(TRemoveWithRange);
+  aSelectorCount := 0;
+  aWithRangeStart := Default(TRemoveWithRange);
+  Result := False;
+  if not FindWithKeywordOffset(aSource, aLine, aColumn, lWithOffset) then
+    Exit;
+
+  RemoveWithLineColumnForOffset(aSource, lWithOffset, aWithRangeStart.fStartLine, aWithRangeStart.fStartColumn);
+  lOffset := lWithOffset + Length('with');
+  lSelectorStartOffset := lOffset;
+  lParenDepth := 0;
+  lBracketDepth := 0;
+
+  while lOffset <= Length(aSource.fText) do
+  begin
+    if aSource.fText[lOffset] = '''' then
+    begin
+      SkipString(aSource.fText, lOffset);
+      Continue;
+    end;
+
+    if aSource.fText[lOffset] = '{' then
+    begin
+      SkipBraceComment(aSource.fText, lOffset);
+      Continue;
+    end;
+
+    if (lOffset < Length(aSource.fText)) and (aSource.fText[lOffset] = '(') and
+      (aSource.fText[lOffset + 1] = '*') then
+    begin
+      SkipParenComment(aSource.fText, lOffset);
+      Continue;
+    end;
+
+    if (lOffset < Length(aSource.fText)) and (aSource.fText[lOffset] = '/') and
+      (aSource.fText[lOffset + 1] = '/') then
+    begin
+      SkipLineComment(aSource.fText, lOffset);
+      Continue;
+    end;
+
+    if (lParenDepth = 0) and (lBracketDepth = 0) and IsWordAt(aSource.fText, lOffset, 'do') then
+      Break;
+
+    if aSource.fText[lOffset] = '(' then
+      Inc(lParenDepth)
+    else if (aSource.fText[lOffset] = ')') and (lParenDepth > 0) then
+      Dec(lParenDepth)
+    else if aSource.fText[lOffset] = '[' then
+      Inc(lBracketDepth)
+    else if (aSource.fText[lOffset] = ']') and (lBracketDepth > 0) then
+      Dec(lBracketDepth);
+    Inc(lOffset);
+  end;
+
+  if lOffset > Length(aSource.fText) then
+    Exit;
+
+  lStartOffset := lSelectorStartOffset;
+  lEndOffset := lOffset - 1;
+  while (lStartOffset <= lEndOffset) and IsWhitespace(aSource.fText[lStartOffset]) do
+    Inc(lStartOffset);
+  while (lEndOffset >= lStartOffset) and IsWhitespace(aSource.fText[lEndOffset]) do
+    Dec(lEndOffset);
+  if lEndOffset < lStartOffset then
+    Exit;
+
+  RemoveWithLineColumnForOffset(aSource, lStartOffset, aSelectorRange.fStartLine, aSelectorRange.fStartColumn);
+  RemoveWithLineColumnForOffset(aSource, lEndOffset, aSelectorRange.fEndLine, aSelectorRange.fEndColumn);
+  aSelectorText := RemoveWithTextSlice(aSource, lStartOffset, lEndOffset);
+  aSelectorCount := CountSelectors(aSelectorText);
+  aSelectorText := NormalizeSelectorText(aSelectorText);
+  Result := True;
 end;
 
 class function TRemoveWithDiscoveryHelper.FindBodyNode(const aWithNode: TSyntaxNode): TSyntaxNode;
@@ -256,7 +419,94 @@ begin
   end;
 end;
 
-class function TRemoveWithDiscoveryHelper.NodeRange(const aNode: TSyntaxNode): TRemoveWithRange;
+class function TRemoveWithDiscoveryHelper.SemicolonContinuesStatement(const aText: string;
+  const aOffset: Integer): Boolean;
+var
+  lNextOffset: Integer;
+begin
+  lNextOffset := NextNonWhitespaceOffset(aText, aOffset + 1);
+  Result := IsWordAt(aText, lNextOffset, 'else');
+end;
+
+class function TRemoveWithDiscoveryHelper.FindStatementEndOffset(const aSource: TRemoveWithSourceBuffer;
+  const aStartOffset: Integer): Integer;
+var
+  lBlockDepth: Integer;
+  lBracketDepth: Integer;
+  lOffset: Integer;
+  lParenDepth: Integer;
+begin
+  Result := aStartOffset;
+  lOffset := aStartOffset;
+  lBlockDepth := 0;
+  lParenDepth := 0;
+  lBracketDepth := 0;
+  while lOffset <= Length(aSource.fText) do
+  begin
+    if aSource.fText[lOffset] = '''' then
+    begin
+      SkipString(aSource.fText, lOffset);
+      Continue;
+    end;
+
+    if aSource.fText[lOffset] = '{' then
+    begin
+      SkipBraceComment(aSource.fText, lOffset);
+      Continue;
+    end;
+
+    if (lOffset < Length(aSource.fText)) and (aSource.fText[lOffset] = '(') and
+      (aSource.fText[lOffset + 1] = '*') then
+    begin
+      SkipParenComment(aSource.fText, lOffset);
+      Continue;
+    end;
+
+    if (lOffset < Length(aSource.fText)) and (aSource.fText[lOffset] = '/') and
+      (aSource.fText[lOffset + 1] = '/') then
+    begin
+      SkipLineComment(aSource.fText, lOffset);
+      Continue;
+    end;
+
+    if (lParenDepth = 0) and (lBracketDepth = 0) and
+      (IsWordAt(aSource.fText, lOffset, 'begin') or IsWordAt(aSource.fText, lOffset, 'case') or
+      IsWordAt(aSource.fText, lOffset, 'try') or IsWordAt(aSource.fText, lOffset, 'repeat')) then
+    begin
+      Inc(lBlockDepth);
+      Inc(lOffset);
+      Continue;
+    end;
+
+    if (lParenDepth = 0) and (lBracketDepth = 0) and
+      (IsWordAt(aSource.fText, lOffset, 'end') or IsWordAt(aSource.fText, lOffset, 'until')) and
+      (lBlockDepth > 0) then
+    begin
+      Dec(lBlockDepth);
+      Inc(lOffset);
+      Continue;
+    end;
+
+    if aSource.fText[lOffset] = '(' then
+      Inc(lParenDepth)
+    else if (aSource.fText[lOffset] = ')') and (lParenDepth > 0) then
+      Dec(lParenDepth)
+    else if aSource.fText[lOffset] = '[' then
+      Inc(lBracketDepth)
+    else if (aSource.fText[lOffset] = ']') and (lBracketDepth > 0) then
+      Dec(lBracketDepth)
+    else if (aSource.fText[lOffset] = ';') and (lParenDepth = 0) and (lBracketDepth = 0) and
+      (lBlockDepth = 0) and not SemicolonContinuesStatement(aSource.fText, lOffset) then
+      Exit(lOffset);
+    Inc(lOffset);
+  end;
+end;
+
+class function TRemoveWithDiscoveryHelper.NodeRange(const aNode: TSyntaxNode;
+  const aSource: TRemoveWithSourceBuffer): TRemoveWithRange;
+var
+  lEndOffset: Integer;
+  lStartOffset: Integer;
 begin
   Result := Default(TRemoveWithRange);
   if not Assigned(aNode) then
@@ -270,8 +520,15 @@ begin
     Result.fEndColumn := TCompoundSyntaxNode(aNode).EndCol;
   end else
   begin
-    Result.fEndLine := aNode.Line;
-    Result.fEndColumn := aNode.Col;
+    if RemoveWithOffsetForLineColumn(aSource, aNode.Line, aNode.Col, lStartOffset) then
+    begin
+      lEndOffset := FindStatementEndOffset(aSource, lStartOffset);
+      RemoveWithLineColumnForOffset(aSource, lEndOffset, Result.fEndLine, Result.fEndColumn);
+    end else
+    begin
+      Result.fEndLine := aNode.Line;
+      Result.fEndColumn := aNode.Col;
+    end;
   end;
 end;
 
@@ -312,7 +569,7 @@ begin
 end;
 
 class procedure TRemoveWithDiscoveryHelper.CollectFromNode(const aNode: TSyntaxNode; const aFilePath: string;
-  const aLines: TArray<string>; const aDepth: Integer; var aScanResult: TRemoveWithScanResult);
+  const aSource: TRemoveWithSourceBuffer; const aDepth: Integer; var aScanResult: TRemoveWithScanResult);
 var
   lBodyNode: TSyntaxNode;
   lChild: TSyntaxNode;
@@ -331,12 +588,21 @@ begin
     lInfo.fFilePath := aFilePath;
     lInfo.fLine := aNode.Line;
     lInfo.fColumn := aNode.Col;
-    lInfo.fSelectorText := ExtractSelectorText(aLines, aNode.Line, aNode.Col);
-    lInfo.fSelectorCount := CountSelectors(lInfo.fSelectorText);
+    if ExtractSelectorInfo(aSource, aNode.Line, aNode.Col, lInfo.fSelectorText, lInfo.fSelectorRange,
+      lInfo.fSelectorCount,
+      lInfo.fRange) then
+    begin
+      lInfo.fLine := lInfo.fRange.fStartLine;
+      lInfo.fColumn := lInfo.fRange.fStartColumn;
+    end else
+      lInfo.fSelectorCount := CountSelectors(lInfo.fSelectorText);
     lInfo.fNestingDepth := aDepth;
-    lInfo.fBodyRange := NodeRange(lBodyNode);
-    lInfo.fRange.fStartLine := aNode.Line;
-    lInfo.fRange.fStartColumn := aNode.Col;
+    lInfo.fBodyRange := NodeRange(lBodyNode, aSource);
+    if lInfo.fRange.fStartLine = 0 then
+    begin
+      lInfo.fRange.fStartLine := aNode.Line;
+      lInfo.fRange.fStartColumn := aNode.Col;
+    end;
     lInfo.fRange.fEndLine := lInfo.fBodyRange.fEndLine;
     lInfo.fRange.fEndColumn := lInfo.fBodyRange.fEndColumn;
     AddWithStatement(aScanResult, lInfo);
@@ -345,7 +611,7 @@ begin
 
   for lChild in aNode.ChildNodes do
   begin
-    CollectFromNode(lChild, aFilePath, aLines, lNextDepth, aScanResult);
+    CollectFromNode(lChild, aFilePath, aSource, lNextDepth, aScanResult);
   end;
 end;
 
@@ -403,6 +669,8 @@ var
   lIndexer: TProjectIndexer;
   lInitialWithCount: Integer;
   lProblem: TProjectIndexer.TProblemInfo;
+  lSource: TRemoveWithSourceBuffer;
+  lSourceError: string;
   lUnit: TProjectIndexer.TUnitInfo;
   lUnitKey: string;
 begin
@@ -453,8 +721,14 @@ begin
 
       lInitialWithCount := Length(aScanResult.fWithStatements);
       if Assigned(lUnit.SyntaxTree) then
-        TRemoveWithDiscoveryHelper.CollectFromNode(lUnit.SyntaxTree, lFilePath, TFile.ReadAllLines(lFilePath), 0,
-          aScanResult)
+      begin
+        if TRemoveWithDiscoveryHelper.ShouldScanPath(aOptions, lFilePath, lDirKey, lUnitKey) and
+          LoadRemoveWithSource(lFilePath, lSource, lSourceError) then
+          TRemoveWithDiscoveryHelper.CollectFromNode(lUnit.SyntaxTree, lFilePath, lSource, 0, aScanResult)
+        else
+          TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lFilePath, 0, 0, 'source-read-failed',
+            'Could not read source text for range extraction: ' + lSourceError);
+      end
       else
         TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lFilePath, 0, 0, 'missing-syntax-tree',
           'DelphiAST did not return a syntax tree for the selected file.');
