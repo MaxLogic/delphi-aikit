@@ -1,0 +1,9 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MainSource>RemoveWithDiscoveryFixture.dpr</MainSource>
+    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <DCCReference Include="DiscoveryUnit.pas"/>
+  </ItemGroup>
+</Project>

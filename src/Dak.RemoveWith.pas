@@ -11,7 +11,7 @@ implementation
 
 uses
   System.IOUtils, System.SysUtils,
-  Dak.ExitCodes, Dak.RemoveWith.Output, Dak.Utils;
+  Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Output, Dak.Utils;
 
 function NewRemoveWithRunId: string;
 var
@@ -79,6 +79,7 @@ var
   lProjectName: string;
   lProjectPath: string;
   lRunId: string;
+  lScanResult: TRemoveWithScanResult;
   lUnitPath: string;
   lWorkspaceRoot: string;
 begin
@@ -100,10 +101,18 @@ begin
     TPath.Combine('remove-with', lRunId));
   TDirectory.CreateDirectory(lWorkspaceRoot);
 
+  if not DiscoverRemoveWithStatements(aOptions, lProjectPath, lScanResult, lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(cExitToolFailure);
+  end;
+
   if aOptions.fRemoveWithFormat = TRemoveWithFormat.rwfText then
-    lOutputText := BuildRemoveWithTextReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath)
+    lOutputText := BuildRemoveWithTextReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
+      lScanResult)
   else
-    lOutputText := BuildRemoveWithJsonReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath);
+    lOutputText := BuildRemoveWithJsonReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
+      lScanResult);
   WriteRemoveWithOutput(aOptions, lOutputText);
   Result := cExitSuccess;
 end;
