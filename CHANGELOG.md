@@ -26,6 +26,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added a stable `remove-with` base report schema for files, `with` statements, resolver classifications, planned edits, skipped reasons, warnings, verification gates, and text summaries. (T-149)
 - Added `remove-with` scan discovery for project-selected units, including selector text/counts, body ranges, nesting depth, and scoped parser warnings. (T-137)
 - Added exact `remove-with` source ranges for selector lists, bodies, and whole `with` statements, preserving CRLF, UTF-8 BOM line mapping, comments, directives, and single control-statement bodies. (T-146)
+- Added compiler-backed `remove-with` precedence fixtures for selector order, nested `with`, local/parameter/current/global fallback, inherited members, helpers, and overload call sites. (T-138)
 - Added `dfm-inspect` with `tree` and `summary` output for lightweight text DFM inspection. (T-081)
 - Added shared source-context snippets for resolved build and `dfm-check` failures, with `--source-context` / `--source-context-lines` CLI overrides and `[Diagnostics]` `dak.ini` defaults. (T-082)
 - Added madExcept integration to `build-delphi.bat` with optional `dak.ini` key `[MadExcept].Path` and fallback discovery from common install locations.

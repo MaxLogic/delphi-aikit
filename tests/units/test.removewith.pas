@@ -68,6 +68,19 @@ type
     procedure ScanKeepsUtf8BomLineOneColumnMapping;
   end;
 
+  [TestFixture]
+  TRemoveWithPrecedenceTests = class(TRemoveWithTestBase)
+  private
+    procedure CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
+    function CommandExePath: string;
+    function RunPrecedenceFixture(out aExitCode: Cardinal): string;
+    function BuildExpectedPrecedenceOutput: string;
+    function NormalizePrecedenceOutput(const aOutput: string): string;
+  public
+    [Test]
+    procedure CompilerFixtureReportsExpectedWithLookupPrecedence;
+  end;
+
 implementation
 
 function TRemoveWithTestBase.RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal): string;
@@ -620,6 +633,120 @@ begin
   finally
     lJson.Free;
   end;
+end;
+
+procedure TRemoveWithPrecedenceTests.CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
+var
+  lPath: string;
+begin
+  for lPath in [
+    TPath.Combine(aFixtureDir, 'PrecedenceMain.dcu'),
+    TPath.Combine(aFixtureDir, 'RemoveWithPrecedenceFixture.res'),
+    TPath.Combine(aFixtureDir, 'msbuild.log')
+  ] do
+  begin
+    if TFile.Exists(lPath) then
+      TFile.Delete(lPath);
+  end;
+end;
+
+function TRemoveWithPrecedenceTests.CommandExePath: string;
+begin
+  Result := GetEnvironmentVariable('ComSpec');
+  if Result = '' then
+    Result := 'C:\Windows\System32\cmd.exe';
+end;
+
+function TRemoveWithPrecedenceTests.RunPrecedenceFixture(out aExitCode: Cardinal): string;
+var
+  lBuildArgs: string;
+  lCmdArgs: string;
+  lBuildExitCode: Cardinal;
+  lBuildLogPath: string;
+  lDprojPath: string;
+  lExeFiles: TArray<string>;
+  lExePath: string;
+  lFixtureDir: string;
+  lOutputDir: string;
+  lRsVarsPath: string;
+  lRunLogPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithPrecedenceFixture\RemoveWithPrecedenceFixture.dproj');
+  lFixtureDir := ExtractFileDir(lDprojPath);
+  CleanPrecedenceFixtureArtifacts(lFixtureDir);
+  lOutputDir := TPath.Combine(TempRoot, 'remove-with-precedence-build');
+  if TDirectory.Exists(lOutputDir) then
+    TDirectory.Delete(lOutputDir, True);
+  ForceDirectories(lOutputDir);
+
+  try
+    lBuildLogPath := TPath.Combine(TempRoot, 'remove-with-precedence-build.log');
+    lRsVarsPath := 'C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat';
+    if not TFile.Exists(lRsVarsPath) then
+      lRsVarsPath := TPath.Combine(GetEnvironmentVariable('ProgramFiles(x86)'),
+        'Embarcadero\Studio\23.0\bin\rsvars.bat');
+    lBuildArgs := 'build --project ' + QuoteArg(lDprojPath) +
+      ' --config Debug --platform Win32 --delphi 23.0 --rsvars ' + QuoteArg(lRsVarsPath) +
+      ' --test-output-dir ' + QuoteArg(lOutputDir);
+    lCmdArgs := '/C set "BDS=" & set "BDSLIB=" & set "DCC_UnitSearchPath=" & ' +
+      'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(ResolverExePath) + ' ' + lBuildArgs;
+    Assert.IsTrue(RunProcess(CommandExePath, lCmdArgs, RepoRoot, lBuildLogPath, lBuildExitCode),
+      'Failed to start remove-with precedence build.');
+    Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected precedence fixture to build. Log: ' + lBuildLogPath);
+
+    lExeFiles := TDirectory.GetFiles(lOutputDir, 'RemoveWithPrecedenceFixture.exe', TSearchOption.soAllDirectories);
+    Assert.AreEqual(1, Length(lExeFiles), 'Expected one built precedence fixture exe under: ' + lOutputDir);
+    lExePath := lExeFiles[0];
+    lRunLogPath := TPath.Combine(TempRoot, 'remove-with-precedence-output.txt');
+
+    Assert.IsTrue(RunProcess(lExePath, '', ExtractFileDir(lExePath), lRunLogPath, aExitCode),
+      'Failed to run remove-with precedence fixture.');
+    Result := '';
+    if FileExists(lRunLogPath) then
+      Result := TFile.ReadAllText(lRunLogPath, TEncoding.UTF8);
+  finally
+    CleanPrecedenceFixtureArtifacts(lFixtureDir);
+  end;
+end;
+
+function TRemoveWithPrecedenceTests.BuildExpectedPrecedenceOutput: string;
+begin
+  Result :=
+    'selector-order=right' + #10 +
+    'nested-inner=inner' + #10 +
+    'nested-fallback=outer-only' + #10 +
+    'selector-beats-local=receiver' + #10 +
+    'local-fallback=local-only' + #10 +
+    'selector-beats-param=receiver' + #10 +
+    'param-fallback=param-only' + #10 +
+    'selector-beats-current=receiver' + #10 +
+    'current-fallback=current-only' + #10 +
+    'selector-beats-global=receiver' + #10 +
+    'global-fallback=global-only' + #10 +
+    'inherited-member=ancestor' + #10 +
+    'helper-member=helper' + #10 +
+    'overload-int=receiver-int' + #10 +
+    'overload-string=receiver-string' + #10;
+end;
+
+function TRemoveWithPrecedenceTests.NormalizePrecedenceOutput(const aOutput: string): string;
+begin
+  Result := StringReplace(aOutput, #13#10, #10, [rfReplaceAll]);
+  Result := StringReplace(Result, #13, #10, [rfReplaceAll]);
+end;
+
+procedure TRemoveWithPrecedenceTests.CompilerFixtureReportsExpectedWithLookupPrecedence;
+var
+  lExitCode: Cardinal;
+  lOutput: string;
+begin
+  lOutput := RunPrecedenceFixture(lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected precedence fixture executable to succeed.');
+
+  Assert.AreEqual(BuildExpectedPrecedenceOutput, NormalizePrecedenceOutput(lOutput),
+    'Expected exact compiler-observed with precedence output.');
 end;
 
 end.
