@@ -22,6 +22,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added normalized `lsp hover` results with `contentsText`, optional markdown/range data, explicit empty-result signaling, and compact text output. (T-117)
 - Added normalized `lsp symbols` results with stable symbol rows, explicit empty arrays, and deterministic ordinal sorting before `--limit` trimming. (T-118)
 - Added repo-local `delphi-lsp` skill guidance plus README `lsp` command docs covering semantic-routing, `.dak/<ProjectName>/lsp/` ownership, and optional `--rsvars`/`--envoptions` overrides. (T-119)
+- Added the initial `remove-with` CLI shell with `scan`, `plan`, and `apply` modes, mutually exclusive `--unit`/`--dir`/`--all` targets, and a non-mutating JSON report skeleton under `.dak/<ProjectName>/remove-with/`. (T-136)
 - Added `dfm-inspect` with `tree` and `summary` output for lightweight text DFM inspection. (T-081)
 - Added shared source-context snippets for resolved build and `dfm-check` failures, with `--source-context` / `--source-context-lines` CLI overrides and `[Diagnostics]` `dak.ini` defaults. (T-082)
 - Added madExcept integration to `build-delphi.bat` with optional `dak.ini` key `[MadExcept].Path` and fallback discovery from common install locations.

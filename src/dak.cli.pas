@@ -60,6 +60,8 @@ var
       aParsedCommand := TCommandKind.ckDeps
     else if SameText(aArg, 'lsp') then
       aParsedCommand := TCommandKind.ckLsp
+    else if SameText(aArg, 'remove-with') then
+      aParsedCommand := TCommandKind.ckRemoveWith
     else
       Result := False;
   end;
@@ -127,7 +129,8 @@ var
       SameText(aSwitch, 'top') or SameText(aSwitch, 'file') or
       SameText(aSwitch, 'line') or SameText(aSwitch, 'col') or
       SameText(aSwitch, 'query') or SameText(aSwitch, 'limit') or
-      SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode');
+      SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or
+      SameText(aSwitch, 'dir');
   end;
 
   function SwitchAllowsBoolValue(const aSwitch: string): Boolean;
@@ -232,6 +235,8 @@ begin
       WriteLn(ErrOutput, SUsageDeps);
     TCommandKind.ckLsp:
       WriteLn(ErrOutput, SUsageLsp);
+    TCommandKind.ckRemoveWith:
+      WriteLn(ErrOutput, SUsageRemoveWith);
   else
     WriteLn(ErrOutput, SUsageResolve);
   end;
@@ -283,6 +288,8 @@ type
     function TryParseLspOperation(const aArg: string): Boolean;
     function TryParseLspSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
+    function TryParseRemoveWithSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+      const aHasInlineValue: Boolean): Boolean;
     function TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
     function TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
@@ -331,6 +338,9 @@ begin
   fOptions.fDepsTopLimit := 20;
   fOptions.fLspFormat := TLspFormat.lfJson;
   fOptions.fLspLimit := 50;
+  fOptions.fRemoveWithMode := TRemoveWithMode.rwmPlan;
+  fOptions.fRemoveWithFormat := TRemoveWithFormat.rwfJson;
+  fOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtNone;
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
   fOptions.fGlobalVarsUnusedOnly := False;
@@ -503,7 +513,8 @@ begin
     SameText(aSwitch, 'file') or SameText(aSwitch, 'line') or
     SameText(aSwitch, 'col') or SameText(aSwitch, 'query') or
     SameText(aSwitch, 'limit') or
-    SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or SameText(aSwitch, 'show-init-options');
+    SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or SameText(aSwitch, 'show-init-options') or
+    SameText(aSwitch, 'dir');
 end;
 
 function TOptionParser.IsSwitchParam(const aParam: string): Boolean;
@@ -564,6 +575,8 @@ begin
     fOptions.fCommand := TCommandKind.ckDeps
   else if SameText(aArg, 'lsp') then
     fOptions.fCommand := TCommandKind.ckLsp
+  else if SameText(aArg, 'remove-with') then
+    fOptions.fCommand := TCommandKind.ckRemoveWith
   else
   begin
     fError := Format(SUnknownCommand, [aArg]);
@@ -651,6 +664,9 @@ begin
 
   if fOptions.fCommand = TCommandKind.ckLsp then
     Exit(TryParseLspSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
+
+  if fOptions.fCommand = TCommandKind.ckRemoveWith then
+    Exit(TryParseRemoveWithSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   Result := TryParseAnalyzeSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue);
 end;
@@ -1327,6 +1343,88 @@ begin
   Result := False;
 end;
 
+function TOptionParser.TryParseRemoveWithSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+  const aHasInlineValue: Boolean): Boolean;
+var
+  lValue: string;
+begin
+  if SameText(aSwitch, 'mode') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--mode') then
+      Exit(False);
+    if SameText(lValue, 'scan') then
+      fOptions.fRemoveWithMode := TRemoveWithMode.rwmScan
+    else if SameText(lValue, 'plan') then
+      fOptions.fRemoveWithMode := TRemoveWithMode.rwmPlan
+    else if SameText(lValue, 'apply') then
+      fOptions.fRemoveWithMode := TRemoveWithMode.rwmApply
+    else
+    begin
+      fError := Format(SRemoveWithInvalidMode, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'format') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
+      Exit(False);
+    if SameText(lValue, 'json') then
+      fOptions.fRemoveWithFormat := TRemoveWithFormat.rwfJson
+    else if SameText(lValue, 'text') then
+      fOptions.fRemoveWithFormat := TRemoveWithFormat.rwfText
+    else
+    begin
+      fError := Format(SRemoveWithInvalidFormat, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'unit') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit') then
+      Exit(False);
+    fOptions.fRemoveWithUnitPath := lValue;
+    fOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtUnit;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'dir') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--dir') then
+      Exit(False);
+    fOptions.fRemoveWithDirPath := lValue;
+    fOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtDir;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'all') then
+  begin
+    if aHasInlineValue then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    fOptions.fRemoveWithAll := True;
+    fOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'output') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--output') then
+      Exit(False);
+    fOptions.fRemoveWithOutputPath := lValue;
+    fOptions.fHasRemoveWithOutputPath := True;
+    Exit(True);
+  end;
+
+  fError := Format(SUnknownArg, [aArg]);
+  Result := False;
+end;
+
 function TOptionParser.TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
 var
@@ -1653,6 +1751,8 @@ begin
 end;
 
 function TOptionParser.ValidateOptions: Boolean;
+var
+  lRemoveWithTargetCount: Integer;
 begin
   if (fOptions.fCommand = TCommandKind.ckAnalyzeProject) and (fOptions.fUnitPath <> '') then
   begin
@@ -1762,6 +1862,26 @@ begin
     if fOptions.fHasLspShowInitOptions and (fOptions.fLspOperation <> TLspOperation.loProbe) then
     begin
       fError := Format(SLspOptionOnlyForOperation, ['--show-init-options', 'probe']);
+      Exit(False);
+    end;
+  end else if fOptions.fCommand = TCommandKind.ckRemoveWith then
+  begin
+    if fOptions.fDprojPath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--project']);
+      Exit(False);
+    end;
+
+    lRemoveWithTargetCount := 0;
+    if fOptions.fRemoveWithUnitPath <> '' then
+      Inc(lRemoveWithTargetCount);
+    if fOptions.fRemoveWithDirPath <> '' then
+      Inc(lRemoveWithTargetCount);
+    if fOptions.fRemoveWithAll then
+      Inc(lRemoveWithTargetCount);
+    if lRemoveWithTargetCount <> 1 then
+    begin
+      fError := SRemoveWithInvalidTarget;
       Exit(False);
     end;
   end else if fOptions.fCommand = TCommandKind.ckBuild then

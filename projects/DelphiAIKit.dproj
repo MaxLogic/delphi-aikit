@@ -188,6 +188,7 @@
         <DCCReference Include="..\src\dak.output.pas"/>
         <DCCReference Include="..\src\dak.project.pas"/>
         <DCCReference Include="..\src\dak.registry.pas"/>
+        <DCCReference Include="..\src\Dak.RemoveWith.pas"/>
         <DCCReference Include="..\src\dak.pascalanalyzerrunner.pas"/>
         <DCCReference Include="..\src\dak.reportpostprocess.pas"/>
         <DCCReference Include="..\src\dak.rsvars.pas"/>
