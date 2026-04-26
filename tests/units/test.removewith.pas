@@ -5,7 +5,7 @@ interface
 uses
   System.IOUtils, System.JSON, System.SysUtils,
   DUnitX.TestFramework,
-  Test.Support;
+  Dak.RemoveWith.Symbols, Test.Support;
 
 type
   TRemoveWithTestBase = class
@@ -81,7 +81,32 @@ type
     procedure CompilerFixtureReportsExpectedWithLookupPrecedence;
   end;
 
+  [TestFixture]
+  TRemoveWithSymbolTests = class(TRemoveWithTestBase)
+  private
+    procedure BuildSymbolFixture(out aInventory: TRemoveWithSymbolInventory);
+    function CountSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): Integer;
+    function DescribeSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): string;
+    function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string;
+      out aSymbol: TRemoveWithSymbolInfo): Boolean;
+    procedure AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName, aTypeName: string);
+  public
+    [Test]
+    procedure InventoryReportsRoutineScopesAndDeclarationLocations;
+    [Test]
+    procedure InventoryReportsUnitAndDirectTypeDeclarations;
+    [Test]
+    procedure InventoryReportsMissingSourceUnitsAsExternal;
+  end;
+
 implementation
+
+uses
+  Dak.Types;
 
 function TRemoveWithTestBase.RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal): string;
 var
@@ -747,6 +772,161 @@ begin
 
   Assert.AreEqual(BuildExpectedPrecedenceOutput, NormalizePrecedenceOutput(lOutput),
     'Expected exact compiler-observed with precedence output.');
+end;
+
+procedure TRemoveWithSymbolTests.BuildSymbolFixture(out aInventory: TRemoveWithSymbolInventory);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithSymbolsFixture\RemoveWithSymbolsFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+    'Expected symbol inventory build to succeed: ' + lError);
+  Assert.IsTrue(Length(aInventory.fSymbols) > 0, 'Expected symbol inventory to contain fixture declarations.');
+end;
+
+function TRemoveWithSymbolTests.CountSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+  const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): Integer;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := 0;
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fName, aName) and (lSymbol.fKind = aKind) and
+      ((aOwnerType = '') or SameText(lSymbol.fOwnerType, aOwnerType)) and
+      ((aRoutineName = '') or SameText(lSymbol.fRoutineName, aRoutineName)) then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithSymbolTests.DescribeSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+  const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): string;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := '';
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fName, aName) and (lSymbol.fKind = aKind) and
+      ((aOwnerType = '') or SameText(lSymbol.fOwnerType, aOwnerType)) and
+      ((aRoutineName = '') or SameText(lSymbol.fRoutineName, aRoutineName)) then
+      Result := Result + Format('%s:%d:%d owner=%s routine=%s type=%s; ', [lSymbol.fFilePath, lSymbol.fLine,
+        lSymbol.fColumn, lSymbol.fOwnerType, lSymbol.fRoutineName, lSymbol.fTypeName]);
+  end;
+end;
+
+function TRemoveWithSymbolTests.FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+  const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string;
+  out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fName, aName) and (lSymbol.fKind = aKind) and
+      ((aOwnerType = '') or SameText(lSymbol.fOwnerType, aOwnerType)) and
+      ((aRoutineName = '') or SameText(lSymbol.fRoutineName, aRoutineName)) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+end;
+
+procedure TRemoveWithSymbolTests.AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+  const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName, aTypeName: string);
+var
+  lLines: TArray<string>;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Assert.IsTrue(FindSymbol(aInventory, aName, aKind, aOwnerType, aRoutineName, lSymbol),
+    'Expected ' + RemoveWithSymbolKindToText(aKind) + ' symbol: ' + aName);
+  if aTypeName <> '' then
+    Assert.AreEqual(aTypeName, lSymbol.fTypeName, 'Unexpected type for symbol: ' + aName);
+  Assert.AreNotEqual(0, lSymbol.fLine, 'Expected declaration line for symbol: ' + aName);
+  Assert.AreNotEqual(0, lSymbol.fColumn, 'Expected declaration column for symbol: ' + aName);
+  if TFile.Exists(lSymbol.fFilePath) then
+  begin
+    lLines := TFile.ReadAllLines(lSymbol.fFilePath, TEncoding.UTF8);
+    Assert.IsTrue((lSymbol.fLine <= Length(lLines)) and (Pos(aName, lLines[lSymbol.fLine - 1]) > 0),
+      'Expected declaration line to contain symbol name: ' + aName);
+  end;
+  Assert.IsTrue(SameText('SymbolUnit', lSymbol.fUnitName) or (aKind = TRemoveWithSymbolKind.rwskExternal),
+    'Expected fixture unit for symbol: ' + aName);
+end;
+
+procedure TRemoveWithSymbolTests.InventoryReportsRoutineScopesAndDeclarationLocations;
+var
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildSymbolFixture(lInventory);
+
+  AssertSymbol(lInventory, 'aParamName', TRemoveWithSymbolKind.rwskParameter, '', 'TSymbolClass.Touch', 'string');
+  AssertSymbol(lInventory, 'aCount', TRemoveWithSymbolKind.rwskParameter, '', 'TSymbolClass.Touch', 'Integer');
+  AssertSymbol(lInventory, 'aExternal', TRemoveWithSymbolKind.rwskParameter, '', 'TSymbolClass.Touch',
+    'TStringList');
+  Assert.AreEqual(1, CountSymbols(lInventory, 'aParamName', TRemoveWithSymbolKind.rwskParameter, '',
+    'TSymbolClass.Touch'), 'Expected only implementation-scope parameter rows for TSymbolClass.Touch: ' +
+    DescribeSymbols(lInventory, 'aParamName', TRemoveWithSymbolKind.rwskParameter, '', 'TSymbolClass.Touch'));
+  AssertSymbol(lInventory, 'lLocalName', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TSymbolClass.Touch', 'string');
+  AssertSymbol(lInventory, 'lLocalRecord', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TSymbolClass.Touch',
+    'TSymbolRecord');
+  AssertSymbol(lInventory, 'lSecondRecord', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TSymbolClass.Touch',
+    'TSymbolRecord');
+  AssertSymbol(lInventory, 'lExternalList', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TSymbolClass.Touch',
+    'TStringList');
+  AssertSymbol(lInventory, 'FClassField', TRemoveWithSymbolKind.rwskCurrentClassMember, 'TSymbolClass',
+    'TSymbolClass.Touch', 'string');
+  AssertSymbol(lInventory, 'ClassProp', TRemoveWithSymbolKind.rwskCurrentClassMember, 'TSymbolClass',
+    'TSymbolClass.Touch', 'string');
+  AssertSymbol(lInventory, 'Touch', TRemoveWithSymbolKind.rwskCurrentClassMember, 'TSymbolClass',
+    'TSymbolClass.Touch', '');
+end;
+
+procedure TRemoveWithSymbolTests.InventoryReportsUnitAndDirectTypeDeclarations;
+var
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildSymbolFixture(lInventory);
+
+  AssertSymbol(lInventory, 'UnitGlobal', TRemoveWithSymbolKind.rwskUnitGlobal, '', '', 'TSymbolRecord');
+  AssertSymbol(lInventory, 'ExternalGlobal', TRemoveWithSymbolKind.rwskUnitGlobal, '', '', 'TStringList');
+  AssertSymbol(lInventory, 'ImplGlobal', TRemoveWithSymbolKind.rwskUnitGlobal, '', '', 'Integer');
+  AssertSymbol(lInventory, 'UnitConst', TRemoveWithSymbolKind.rwskConstant, '', '', '');
+  AssertSymbol(lInventory, 'ImplConst', TRemoveWithSymbolKind.rwskConstant, '', '', 'string');
+  AssertSymbol(lInventory, 'RecordField', TRemoveWithSymbolKind.rwskField, 'TSymbolRecord', '', 'string');
+  AssertSymbol(lInventory, 'RecordProp', TRemoveWithSymbolKind.rwskProperty, 'TSymbolRecord', '', 'string');
+  AssertSymbol(lInventory, 'RecordMethod', TRemoveWithSymbolKind.rwskMethod, 'TSymbolRecord', '', '');
+  AssertSymbol(lInventory, 'FClassField', TRemoveWithSymbolKind.rwskField, 'TSymbolClass', '', 'string');
+  AssertSymbol(lInventory, 'SharedValue', TRemoveWithSymbolKind.rwskClassVar, 'TSymbolClass', '', 'Integer');
+  AssertSymbol(lInventory, 'ClassConst', TRemoveWithSymbolKind.rwskConstant, 'TSymbolClass', '', '');
+  AssertSymbol(lInventory, 'Touch', TRemoveWithSymbolKind.rwskMethod, 'TSymbolClass', '', '');
+  AssertSymbol(lInventory, 'Run', TRemoveWithSymbolKind.rwskMethod, 'TSymbolClass', '', '');
+  AssertSymbol(lInventory, 'ClassProp', TRemoveWithSymbolKind.rwskProperty, 'TSymbolClass', '', 'string');
+end;
+
+procedure TRemoveWithSymbolTests.InventoryReportsMissingSourceUnitsAsExternal;
+var
+  lInventory: TRemoveWithSymbolInventory;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  BuildSymbolFixture(lInventory);
+
+  Assert.IsTrue(FindSymbol(lInventory, 'MissingSymbolUnit', TRemoveWithSymbolKind.rwskExternal, '', '', lSymbol),
+    'Expected missing unit to be reported as external.');
+  Assert.AreEqual('', lSymbol.fUnitName, 'External missing source should not be assigned to a parsed unit.');
+  Assert.IsTrue(FindSymbol(lInventory, 'TStringList', TRemoveWithSymbolKind.rwskExternal, '', '', lSymbol),
+    'Expected source-unavailable library type to be reported as external.');
+  Assert.AreEqual('', lSymbol.fUnitName, 'External library type should not be assigned to a parsed unit.');
 end;
 
 end.
