@@ -52,6 +52,22 @@ type
     procedure ScanDirTargetKeepsScopedWarnings;
   end;
 
+  [TestFixture]
+  TRemoveWithRangeTests = class(TRemoveWithTestBase)
+  private
+    function RunRangeFixture(const aTargetArgs, aLogName: string; out aExitCode: Cardinal): string;
+    function ReadSourceText(const aPath: string): string;
+    function OffsetForLineColumn(const aSourceText: string; const aLine, aColumn: Integer): Integer;
+    function ExtractRangeText(const aSourceText: string; const aRange: TJSONObject): string;
+    function FindStatementContaining(const aStatements: TJSONArray; const aText: string): TJSONObject;
+    function FindStatementAtLine(const aStatements: TJSONArray; const aLine: Integer): TJSONObject;
+  public
+    [Test]
+    procedure ScanReportsExactSelectorBodyAndWholeWithRanges;
+    [Test]
+    procedure ScanKeepsUtf8BomLineOneColumnMapping;
+  end;
+
 implementation
 
 function TRemoveWithTestBase.RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal): string;
@@ -396,6 +412,211 @@ begin
     lRoot := lJson as TJSONObject;
     AssertJsonArrayKey(lRoot, 'warnings', lWarnings);
     Assert.IsTrue(lWarnings.Count > 0, 'Expected missing project unit warning to stay visible for scoped --dir.');
+  finally
+    lJson.Free;
+  end;
+end;
+
+function TRemoveWithRangeTests.RunRangeFixture(const aTargetArgs, aLogName: string; out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithRangeFixture\RemoveWithRangeFixture.dproj');
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' ' + aTargetArgs + ' --mode scan --format json';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+    'Failed to start remove-with range process.');
+  Result := '';
+  if FileExists(lLogPath) then
+    Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+function TRemoveWithRangeTests.ReadSourceText(const aPath: string): string;
+begin
+  Result := TFile.ReadAllText(aPath, TEncoding.UTF8);
+  if (Result <> '') and (Result[1] = #$FEFF) then
+    Delete(Result, 1, 1);
+end;
+
+function TRemoveWithRangeTests.OffsetForLineColumn(const aSourceText: string; const aLine,
+  aColumn: Integer): Integer;
+var
+  lIndex: Integer;
+  lLine: Integer;
+begin
+  lLine := 1;
+  lIndex := 1;
+  while (lIndex <= Length(aSourceText)) and (lLine < aLine) do
+  begin
+    if aSourceText[lIndex] = #13 then
+    begin
+      Inc(lLine);
+      if (lIndex < Length(aSourceText)) and (aSourceText[lIndex + 1] = #10) then
+        Inc(lIndex);
+    end else if aSourceText[lIndex] = #10 then
+      Inc(lLine);
+    Inc(lIndex);
+  end;
+  Result := lIndex + aColumn - 1;
+end;
+
+function TRemoveWithRangeTests.ExtractRangeText(const aSourceText: string; const aRange: TJSONObject): string;
+var
+  lEndOffset: Integer;
+  lStartOffset: Integer;
+begin
+  lStartOffset := OffsetForLineColumn(aSourceText, aRange.GetValue<Integer>('startLine'),
+    aRange.GetValue<Integer>('startColumn'));
+  lEndOffset := OffsetForLineColumn(aSourceText, aRange.GetValue<Integer>('endLine'),
+    aRange.GetValue<Integer>('endColumn'));
+  Result := Copy(aSourceText, lStartOffset, lEndOffset - lStartOffset + 1);
+end;
+
+function TRemoveWithRangeTests.FindStatementContaining(const aStatements: TJSONArray; const aText: string): TJSONObject;
+var
+  i: Integer;
+  lStatement: TJSONObject;
+begin
+  for i := 0 to aStatements.Count - 1 do
+  begin
+    Assert.IsTrue(aStatements.Items[i] is TJSONObject, 'Expected with statement item to be an object.');
+    lStatement := aStatements.Items[i] as TJSONObject;
+    if Pos(aText, lStatement.Values['selectorText'].Value) > 0 then
+      Exit(lStatement);
+  end;
+  Assert.Fail('Expected with statement containing selector text: ' + aText);
+  Result := nil;
+end;
+
+function TRemoveWithRangeTests.FindStatementAtLine(const aStatements: TJSONArray; const aLine: Integer): TJSONObject;
+var
+  i: Integer;
+  lStatement: TJSONObject;
+begin
+  for i := 0 to aStatements.Count - 1 do
+  begin
+    Assert.IsTrue(aStatements.Items[i] is TJSONObject, 'Expected with statement item to be an object.');
+    lStatement := aStatements.Items[i] as TJSONObject;
+    if lStatement.GetValue<Integer>('line') = aLine then
+      Exit(lStatement);
+  end;
+  Assert.Fail('Expected with statement at line: ' + aLine.ToString);
+  Result := nil;
+end;
+
+procedure TRemoveWithRangeTests.ScanReportsExactSelectorBodyAndWholeWithRanges;
+var
+  lBodyRange: TJSONObject;
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lRange: TJSONObject;
+  lRoot: TJSONObject;
+  lSelectorRange: TJSONObject;
+  lSourceText: string;
+  lStatementWithComment: TJSONObject;
+  lStatementWithIf: TJSONObject;
+  lStatementWithLineComment: TJSONObject;
+  lStatementWithDirective: TJSONObject;
+  lStatement: TJSONObject;
+  lStatements: TJSONArray;
+begin
+  lOutput := RunRangeFixture('--all', 'remove-with-ranges.json', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected range fixture scan to succeed.');
+
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected range output to be JSON object.');
+    lRoot := lJson as TJSONObject;
+    AssertJsonArrayKey(lRoot, 'withStatements', lStatements);
+    lStatement := FindStatementContaining(lStatements, 'lMatrix');
+
+    AssertJsonObjectKey(lStatement, 'selectorRange', lSelectorRange);
+    AssertJsonObjectKey(lStatement, 'bodyRange', lBodyRange);
+    AssertJsonObjectKey(lStatement, 'range', lRange);
+    Assert.AreEqual('2', lStatement.Values['selectorCount'].Value, 'Expected two top-level selectors.');
+
+    lSourceText := ReadSourceText(lStatement.Values['file'].Value);
+    Assert.AreEqual('lMatrix[lIndex, 0],' + #13#10 + '    lFactory.Make(''a,b'')',
+      ExtractRangeText(lSourceText, lSelectorRange), 'Expected exact selector-list source span.');
+    Assert.AreEqual('begin' + #13#10 + '    Name := ''comma,inside'';' + #13#10 + '    Save;' + #13#10 + '  end;',
+      ExtractRangeText(lSourceText, lBodyRange), 'Expected exact compound body source span.');
+    Assert.AreEqual('with lMatrix[lIndex, 0],' + #13#10 + '    lFactory.Make(''a,b'') do' + #13#10 +
+      '  begin' + #13#10 + '    Name := ''comma,inside'';' + #13#10 + '    Save;' + #13#10 + '  end;',
+      ExtractRangeText(lSourceText, lRange), 'Expected exact whole-with source span.');
+
+    lStatementWithComment := FindStatementContaining(lStatements, 'selector comment');
+    AssertJsonObjectKey(lStatementWithComment, 'selectorRange', lSelectorRange);
+    AssertJsonObjectKey(lStatementWithComment, 'bodyRange', lBodyRange);
+    AssertJsonObjectKey(lStatementWithComment, 'range', lRange);
+    lSourceText := ReadSourceText(lStatementWithComment.Values['file'].Value);
+    Assert.AreEqual('lLeft,' + #13#10 + '    {selector comment}' + #13#10 + '    lRight',
+      ExtractRangeText(lSourceText, lSelectorRange), 'Expected selector range to preserve comments.');
+    Assert.AreEqual('Save;', ExtractRangeText(lSourceText, lBodyRange),
+      'Expected single-statement body range to include the semicolon.');
+    Assert.AreEqual('with lLeft,' + #13#10 + '    {selector comment}' + #13#10 + '    lRight do' + #13#10 +
+      '    Save;', ExtractRangeText(lSourceText, lRange), 'Expected whole-with range to include single body.');
+
+    lStatementWithLineComment := FindStatementContaining(lStatements, 'selector line comment');
+    AssertJsonObjectKey(lStatementWithLineComment, 'selectorRange', lSelectorRange);
+    Assert.AreEqual('2', lStatementWithLineComment.Values['selectorCount'].Value,
+      'Expected comma in line comment not to count as a selector.');
+    Assert.AreEqual('lLeft, // selector line comment, with comma' + #13#10 + '    lRight',
+      ExtractRangeText(lSourceText, lSelectorRange), 'Expected selector range to preserve line comments.');
+
+    lStatementWithDirective := FindStatementContaining(lStatements, 'MSWINDOWS');
+    AssertJsonObjectKey(lStatementWithDirective, 'selectorRange', lSelectorRange);
+    lSourceText := ReadSourceText(lStatementWithDirective.Values['file'].Value);
+    Assert.AreEqual('lLeft' + #13#10 + '    {$IFDEF MSWINDOWS}' + #13#10 + '    {$ENDIF}',
+      ExtractRangeText(lSourceText, lSelectorRange), 'Expected selector range to preserve directives.');
+
+    lStatementWithIf := FindStatementAtLine(lStatements, 72);
+    AssertJsonObjectKey(lStatementWithIf, 'bodyRange', lBodyRange);
+    AssertJsonObjectKey(lStatementWithIf, 'range', lRange);
+    lSourceText := ReadSourceText(lStatementWithIf.Values['file'].Value);
+    Assert.AreEqual('if lIndex = 0 then' + #13#10 + '    begin' + #13#10 + '      Name := ''if-body'';' +
+      #13#10 + '      Save;' + #13#10 + '    end;', ExtractRangeText(lSourceText, lBodyRange),
+      'Expected control-statement body range to include the nested block.');
+    Assert.AreEqual('with lLeft do' + #13#10 + '    if lIndex = 0 then' + #13#10 + '    begin' + #13#10 +
+      '      Name := ''if-body'';' + #13#10 + '      Save;' + #13#10 + '    end;',
+      ExtractRangeText(lSourceText, lRange), 'Expected whole-with range to include the full control statement.');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TRemoveWithRangeTests.ScanKeepsUtf8BomLineOneColumnMapping;
+var
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lRoot: TJSONObject;
+  lSelectorRange: TJSONObject;
+  lSourceText: string;
+  lStatement: TJSONObject;
+  lStatements: TJSONArray;
+begin
+  lOutput := RunRangeFixture('--all', 'remove-with-ranges-bom.json', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected range fixture scan to succeed.');
+
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected range output to be JSON object.');
+    lRoot := lJson as TJSONObject;
+    AssertJsonArrayKey(lRoot, 'withStatements', lStatements);
+    lStatement := FindStatementContaining(lStatements, 'lBom');
+    AssertJsonObjectKey(lStatement, 'selectorRange', lSelectorRange);
+
+    Assert.AreEqual('21', lStatement.Values['line'].Value, 'Expected BOM unit line numbers to ignore the BOM.');
+    Assert.AreEqual('3', lStatement.Values['column'].Value, 'Expected BOM unit column numbers to ignore the BOM.');
+    lSourceText := ReadSourceText(lStatement.Values['file'].Value);
+    Assert.AreEqual('lBom', ExtractRangeText(lSourceText, lSelectorRange),
+      'Expected selector extraction to ignore the UTF-8 BOM at file start.');
   finally
     lJson.Free;
   end;

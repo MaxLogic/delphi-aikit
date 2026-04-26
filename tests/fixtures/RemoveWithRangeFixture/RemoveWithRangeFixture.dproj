@@ -1,0 +1,10 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MainSource>RemoveWithRangeFixture.dpr</MainSource>
+    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <DCCReference Include="RangeMainUnit.pas"/>
+    <DCCReference Include="RangeBomUnit.pas"/>
+  </ItemGroup>
+</Project>
