@@ -6,7 +6,7 @@ interface
 
 type
   TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars,
-    ckDeps, ckLsp);
+    ckDeps, ckLsp, ckRemoveWith);
 
   TOutputKind = (okIni, okXml, okBat);
   TBuildBackend = (bbAuto, bbDelphi, bbWebCore);
@@ -24,6 +24,9 @@ type
   TLspFormat = (lfJson, lfText);
   TLspProbeMode = (lpmContextFile, lpmSettingsFile);
   TLspProbeModeSet = set of TLspProbeMode;
+  TRemoveWithMode = (rwmScan, rwmPlan, rwmApply);
+  TRemoveWithFormat = (rwfJson, rwfText);
+  TRemoveWithTargetKind = (rwtNone, rwtUnit, rwtDir, rwtAll);
 
   TDiagnosticsDefaults = record
     fSourceContextMode: TSourceContextMode;
@@ -165,6 +168,14 @@ type
     fLspProbeModes: TLspProbeModeSet;
     fLspShowInitOptions: Boolean;
     fHasLspShowInitOptions: Boolean;
+    fRemoveWithMode: TRemoveWithMode;
+    fRemoveWithFormat: TRemoveWithFormat;
+    fRemoveWithTargetKind: TRemoveWithTargetKind;
+    fRemoveWithUnitPath: string;
+    fRemoveWithDirPath: string;
+    fRemoveWithAll: Boolean;
+    fRemoveWithOutputPath: string;
+    fHasRemoveWithOutputPath: Boolean;
     fUnitPath: string;
   end;
 

@@ -91,6 +91,20 @@ type
     [Test]
     procedure HelpCommandIgnoresDfmInspectSwitchValueTokens;
     [Test]
+    procedure RemoveWithCommandParsesScanUnitTarget;
+    [Test]
+    procedure RemoveWithCommandParsesPlanDirTarget;
+    [Test]
+    procedure RemoveWithCommandParsesApplyAllTarget;
+    [Test]
+    procedure RemoveWithCommandRejectsMissingTarget;
+    [Test]
+    procedure RemoveWithCommandRejectsMultipleTargets;
+    [Test]
+    procedure RemoveWithCommandRejectsInvalidMode;
+    [Test]
+    procedure RemoveWithCommandRejectsInvalidFormat;
+    [Test]
     procedure LspCommandParsesOperationsAndRequiredArgs;
     [Test]
     procedure LspCommandParsesProjectAndOperationFields;
@@ -842,6 +856,90 @@ begin
   Assert.IsTrue(lHasCommand, 'Expected explicit dfm-inspect command detection.');
   Assert.AreEqual(TCommandKind.ckDfmInspect, lCommand, 'Expected dfm-inspect command kind.');
   Assert.AreEqual('', lError, 'Expected empty error for dfm-inspect help command detection.');
+end;
+
+procedure TCliTests.RemoveWithCommandParsesScanUnitTarget;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('remove-with --project c:\temp\sample.dproj --unit c:\temp\unit1.pas --mode scan --format json');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected remove-with scan args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckRemoveWith, lOptions.fCommand);
+  Assert.AreEqual(TRemoveWithMode.rwmScan, lOptions.fRemoveWithMode);
+  Assert.AreEqual(TRemoveWithFormat.rwfJson, lOptions.fRemoveWithFormat);
+  Assert.AreEqual(TRemoveWithTargetKind.rwtUnit, lOptions.fRemoveWithTargetKind);
+  Assert.AreEqual('c:\temp\unit1.pas', lOptions.fRemoveWithUnitPath);
+end;
+
+procedure TCliTests.RemoveWithCommandParsesPlanDirTarget;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('remove-with --project c:\temp\sample.dproj --dir c:\temp\src --mode plan --format text');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected remove-with plan args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckRemoveWith, lOptions.fCommand);
+  Assert.AreEqual(TRemoveWithMode.rwmPlan, lOptions.fRemoveWithMode);
+  Assert.AreEqual(TRemoveWithFormat.rwfText, lOptions.fRemoveWithFormat);
+  Assert.AreEqual(TRemoveWithTargetKind.rwtDir, lOptions.fRemoveWithTargetKind);
+  Assert.AreEqual('c:\temp\src', lOptions.fRemoveWithDirPath);
+end;
+
+procedure TCliTests.RemoveWithCommandParsesApplyAllTarget;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('remove-with --project c:\temp\sample.dproj --all --mode apply');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected remove-with apply args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckRemoveWith, lOptions.fCommand);
+  Assert.AreEqual(TRemoveWithMode.rwmApply, lOptions.fRemoveWithMode);
+  Assert.AreEqual(TRemoveWithFormat.rwfJson, lOptions.fRemoveWithFormat);
+  Assert.AreEqual(TRemoveWithTargetKind.rwtAll, lOptions.fRemoveWithTargetKind);
+  Assert.IsTrue(lOptions.fRemoveWithAll);
+end;
+
+procedure TCliTests.RemoveWithCommandRejectsMissingTarget;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('remove-with --project c:\temp\sample.dproj --mode scan');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected remove-with to require a target filter.');
+  Assert.IsTrue(Pos('--unit, --dir, or --all', lError) > 0,
+    'Expected remove-with target validation error. Actual: ' + lError);
+end;
+
+procedure TCliTests.RemoveWithCommandRejectsMultipleTargets;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('remove-with --project c:\temp\sample.dproj --unit c:\temp\unit1.pas --all');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected remove-with to reject multiple target filters.');
+  Assert.IsTrue(Pos('--unit, --dir, or --all', lError) > 0,
+    'Expected remove-with target validation error. Actual: ' + lError);
+end;
+
+procedure TCliTests.RemoveWithCommandRejectsInvalidMode;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('remove-with --project c:\temp\sample.dproj --all --mode rewrite');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected remove-with to reject invalid modes.');
+  Assert.IsTrue(Pos('rewrite', lError) > 0, 'Expected invalid mode value in error. Actual: ' + lError);
+end;
+
+procedure TCliTests.RemoveWithCommandRejectsInvalidFormat;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('remove-with --project c:\temp\sample.dproj --all --format xml');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected remove-with to reject invalid formats.');
+  Assert.IsTrue(Pos('xml', lError) > 0, 'Expected invalid format value in error. Actual: ' + lError);
 end;
 
 

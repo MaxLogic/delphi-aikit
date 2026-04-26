@@ -70,6 +70,7 @@
     <DCCReference Include="units\\test.palfindingnormalize.pas"/>
     <DCCReference Include="units\\test.pascalanalyzer.pas"/>
     <DCCReference Include="units\\test.reportpostprocess.pas"/>
+    <DCCReference Include="units\\test.removewith.pas"/>
     <DCCReference Include="units\\test.sourcecontext.pas"/>
   </ItemGroup>
   <ItemGroup>

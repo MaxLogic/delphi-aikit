@@ -14,6 +14,7 @@ resourcestring
     '  global-vars List project global variables and their routine usages' + #13#10 +
     '  deps      Analyze project unit dependencies for AI debugging' + #13#10 +
     '  lsp       Query Delphi semantic navigation and capability probes via DelphiLSP.exe' + #13#10 +
+    '  remove-with Remove Delphi with statements through scan, plan, and apply modes' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
   SUsageResolve =
     'DelphiAIKit.exe resolve --project "<path>" --delphi <23.0> ' +
@@ -66,6 +67,9 @@ resourcestring
     '  definition|hover: --file "<path>" --line <N 1-based> --col <N 1-based>' + #13#10 +
     '  symbols: --file "<path>" --query "<text>" [--limit <N>]  (file-scoped via textDocument/documentSymbol)' + #13#10 +
     '  probe: [--mode <contextFile|settingsFile>]... [--show-init-options [true|false]]';
+  SUsageRemoveWith =
+    'DelphiAIKit.exe remove-with --project "<path>" (--unit "<path>"|--dir "<path>"|--all) ' +
+    '[--mode <scan|plan|apply>] [--format <json|text>] [--output "<path>|-"]';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -93,6 +97,9 @@ resourcestring
   SLspInvalidProbeMode = 'Unsupported --mode value: %s (expected contextFile or settingsFile).';
   SLspOptionOnlyForOperation = '%s is only supported for lsp %s.';
   SLspContextArtifactsWriteFailed = 'Failed to write lsp context artifacts: %s';
+  SRemoveWithInvalidMode = 'Unsupported remove-with mode: %s (expected scan, plan, or apply).';
+  SRemoveWithInvalidFormat = 'Unsupported remove-with format: %s (expected json or text).';
+  SRemoveWithInvalidTarget = 'Use exactly one of --unit, --dir, or --all for remove-with.';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
   SBuildBatMissing = 'build-delphi.bat not found: %s';
