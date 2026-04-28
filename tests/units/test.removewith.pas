@@ -307,11 +307,14 @@ type
     function CommandExePath: string;
     procedure CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string; out aDprojPath,
       aUnitPath: string);
+    function CountOccurrences(const aText, aNeedle: string): Integer;
     function RunApplyFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): TJSONObject;
     function RunBuildFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
   public
     [Test]
     procedure BeginEndAndSingleStatementBodiesRewriteSafely;
+    [Test]
+    procedure MultipleSelectorsRewriteWithCompilerPrecedence;
   end;
 
   [TestFixture]
@@ -2660,6 +2663,22 @@ begin
   aUnitPath := TPath.Combine(lDestinationDir, aUnitName);
 end;
 
+function TRemoveWithRewriteShapeTests.CountOccurrences(const aText, aNeedle: string): Integer;
+var
+  lOffset: Integer;
+begin
+  Result := 0;
+  if aNeedle = '' then
+    Exit;
+
+  lOffset := Pos(aNeedle, aText);
+  while lOffset > 0 do
+  begin
+    Inc(Result);
+    lOffset := Pos(aNeedle, aText, lOffset + Length(aNeedle));
+  end;
+end;
+
 function TRemoveWithRewriteShapeTests.RunApplyFixture(const aDprojPath, aLogName: string;
   out aExitCode: Cardinal): TJSONObject;
 var
@@ -2712,7 +2731,9 @@ var
   lBuildOutput: string;
   lDprojPath: string;
   lExitCode: Cardinal;
+  lPlan: TJSONObject;
   lRoot: TJSONObject;
+  lTemps: TJSONArray;
   lUnitPath: string;
   lUnitText: string;
 begin
@@ -2740,6 +2761,63 @@ begin
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-rewrite-shapes-build.log', lBuildExitCode);
   Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited rewrite-shape fixture to build. Output: ' +
+    lBuildOutput);
+end;
+
+procedure TRemoveWithRewriteShapeTests.MultipleSelectorsRewriteWithCompilerPrecedence;
+var
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lPlan: TJSONObject;
+  lRoot: TJSONObject;
+  lTemps: TJSONArray;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CopyFixtureToTemp('RemoveWithMultipleSelectorRewriteFixture', 'remove-with-multiple-selectors',
+    'MultipleSelectorUnit.pas', lDprojPath, lUnitPath);
+
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-multiple-selectors.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected multiple-selector apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied multiple-selector status.');
+    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected one multiple-selector rewrite plan.');
+    lPlan := (lRoot.Values['plannedEdits'] as TJSONArray).Items[0] as TJSONObject;
+    lTemps := lPlan.Values['temps'] as TJSONArray;
+    Assert.AreEqual(2, lTemps.Count, 'Expected exactly two selector temps.');
+    Assert.AreEqual('lPair.fLeft', (lTemps.Items[0] as TJSONObject).Values['selector'].Value,
+      'Expected first temp to capture the earlier selector.');
+    Assert.AreEqual('lWithMultiLeft := lPair.fLeft;',
+      (lTemps.Items[0] as TJSONObject).Values['initialization'].Value,
+      'Expected one initialization for the earlier selector.');
+    Assert.AreEqual('lPair.fRight', (lTemps.Items[1] as TJSONObject).Values['selector'].Value,
+      'Expected second temp to capture the later selector.');
+    Assert.AreEqual('lWithMultiRight := lPair.fRight;',
+      (lTemps.Items[1] as TJSONObject).Values['initialization'].Value,
+      'Expected one initialization for the later selector.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('with lPair.fLeft, lPair.fRight do', lUnitText) = 0,
+    'Expected multiple-selector with statement to be removed.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, 'lWithMultiLeft := lPair.fLeft;'),
+    'Expected left selector to be captured exactly once.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, 'lWithMultiRight := lPair.fRight;'),
+    'Expected right selector to be captured exactly once.');
+  Assert.IsTrue(Pos('lWithMultiRight.Common := ''right'';', lUnitText) > 0,
+    'Expected later selector to win shared member lookup.');
+  Assert.IsTrue(Pos('lWithMultiLeft.LeftOnly := ''left'';', lUnitText) > 0,
+    'Expected earlier selector to qualify left-only member lookup.');
+  Assert.IsTrue(Pos('lWithMultiRight.RightOnly := ''right-only'';', lUnitText) > 0,
+    'Expected later selector to qualify right-only member lookup.');
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-multiple-selectors-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited multiple-selector fixture to build. Output: ' +
     lBuildOutput);
 end;
 
