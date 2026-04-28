@@ -321,6 +321,8 @@ type
     procedure ControlledNestedWithStatementsRemainSkipped;
     [Test]
     procedure NestedMultipleSelectorsRewriteOrBlockPrecisely;
+    [Test]
+    procedure TempPolicyRewriteEdgesApplyOrSkipSafely;
   end;
 
   [TestFixture]
@@ -3021,6 +3023,102 @@ begin
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-combined-selectors-build.log', lBuildExitCode);
   Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited combined selector fixture to build. Output: ' +
+    lBuildOutput);
+end;
+
+procedure TRemoveWithRewriteShapeTests.TempPolicyRewriteEdgesApplyOrSkipSafely;
+var
+  i: Integer;
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lCallBlock: string;
+  lCallSkipCount: Integer;
+  lCastBlock: string;
+  lCastSkipCount: Integer;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lPropertyBlock: string;
+  lPropertyRecordBlock: string;
+  lPropertySkipCount: Integer;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lSkippedItem: TJSONObject;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CopyFixtureToTemp('RemoveWithTempRewriteFixture', 'remove-with-temp-rewrite', 'TempRewriteUnit.pas',
+    lDprojPath, lUnitPath);
+  lPropertyBlock := 'with lObject.ChildObject do' + sLineBreak +
+    '    begin' + sLineBreak +
+    '      Name := ''property'';' + sLineBreak +
+    '    end;';
+  lPropertyRecordBlock := 'with lObject.RecordValue do' + sLineBreak +
+    '    begin' + sLineBreak +
+    '      Touch;' + sLineBreak +
+    '    end;';
+  lCastBlock := 'with TTempRewriteObject(lObject) do' + sLineBreak +
+    '    begin' + sLineBreak +
+    '      Name := ''cast'';' + sLineBreak +
+    '    end;';
+  lCallBlock := 'with MakeObject do' + sLineBreak +
+    '    begin' + sLineBreak +
+    '      Name := ''function'';' + sLineBreak +
+    '      Free;' + sLineBreak +
+    '    end;';
+
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-temp-rewrite.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected temp-policy rewrite apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied temp-policy rewrite status.');
+    Assert.AreEqual(3, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected direct pointer, record pointer temp, and object temp rewrites.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    lPropertySkipCount := 0;
+    lCallSkipCount := 0;
+    lCastSkipCount := 0;
+    for i := 0 to lSkipped.Count - 1 do
+    begin
+      lSkippedItem := lSkipped.Items[i] as TJSONObject;
+      if lSkippedItem.Values['reason'].Value = 'property-selector' then
+        Inc(lPropertySkipCount);
+      if lSkippedItem.Values['reason'].Value = 'call-selector' then
+        Inc(lCallSkipCount);
+      if lSkippedItem.Values['reason'].Value = 'cast-selector' then
+        Inc(lCastSkipCount);
+    end;
+    Assert.IsTrue(lPropertySkipCount >= 2, 'Expected object and record property selectors to be skipped explicitly.');
+    Assert.IsTrue(lCastSkipCount >= 1, 'Expected cast selector to be skipped explicitly.');
+    Assert.IsTrue(lCallSkipCount >= 1, 'Expected function selector to be skipped explicitly.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('with aRecordPtr^ do', lUnitText) = 0,
+    'Expected pointer-qualified record with to be removed.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name := ''direct'';', lUnitText) > 0,
+    'Expected pointer-qualified selector to stay directly qualified.');
+  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr := @lRecord;', lUnitText) > 0,
+    'Expected addressable record selector to be captured by pointer temp.');
+  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr^.Name := ''record'';', lUnitText) > 0,
+    'Expected record member write to use pointer temp.');
+  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr^.Count := lWithTempRewriteRecordPtr^.Count + 1;', lUnitText) > 0,
+    'Expected repeated record member use to preserve aliasing through pointer temp.');
+  Assert.IsTrue(Pos('lWithTempRewriteObject1 := lObject;', lUnitText) > 0,
+    'Expected class receiver temp to avoid the existing local name.');
+  Assert.IsTrue(Pos('lWithTempRewriteObject1.Name := ''object'';', lUnitText) > 0,
+    'Expected class receiver member to use the collision-free reference temp.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, lPropertyBlock),
+    'Expected object property selector with block to remain unchanged.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, lPropertyRecordBlock),
+    'Expected non-addressable record property selector with block to remain unchanged.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, lCastBlock),
+    'Expected cast selector with block to remain unchanged.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, lCallBlock),
+    'Expected call selector with block to remain unchanged.');
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-temp-rewrite-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited temp-policy fixture to build. Output: ' +
     lBuildOutput);
 end;
 
