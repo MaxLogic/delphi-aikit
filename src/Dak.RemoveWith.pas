@@ -11,7 +11,7 @@ implementation
 
 uses
   System.IOUtils, System.SysUtils,
-  Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Output, Dak.RemoveWith.Resolver,
+  Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Output, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver,
   Dak.RemoveWith.Symbols, Dak.Utils;
 
 function NewRemoveWithRunId: string;
@@ -77,6 +77,7 @@ var
   lDirPath: string;
   lError: string;
   lOutputText: string;
+  lPlanResult: TRemoveWithPlanResult;
   lProjectName: string;
   lProjectPath: string;
   lResolverResult: TRemoveWithResolverResult;
@@ -122,6 +123,11 @@ begin
       WriteLn(ErrOutput, lError);
       Exit(cExitToolFailure);
     end;
+    if not PlanRemoveWithRewrites(lSymbolInventory, lScanResult, lResolverResult, lPlanResult, lError) then
+    begin
+      WriteLn(ErrOutput, lError);
+      Exit(cExitToolFailure);
+    end;
   end;
 
   if aOptions.fRemoveWithFormat = TRemoveWithFormat.rwfText then
@@ -129,7 +135,7 @@ begin
       lScanResult)
   else
     lOutputText := BuildRemoveWithJsonReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
-      lScanResult, lResolverResult);
+      lScanResult, lResolverResult, lPlanResult);
   WriteRemoveWithOutput(aOptions, lOutputText);
   Result := cExitSuccess;
 end;
