@@ -47,6 +47,7 @@ type
     class function TryDeclaration(const aLine: string; out aNames: TArray<string>; out aTypeName: string): Boolean;
       static;
     class function TryConstDeclaration(const aLine: string; out aName: string; out aTypeName: string): Boolean; static;
+    class function TryTypeAlias(const aLine: string; out aName: string; out aTypeName: string): Boolean; static;
     class function TryTypeStart(const aLine: string; out aName: string): Boolean; static;
     class function TryRoutineName(const aLine: string; out aName: string): Boolean; static;
     class function TryRoutineOwner(const aRoutineName: string; out aOwnerType: string): Boolean; static;
@@ -221,6 +222,30 @@ begin
     aTypeName := '';
   end;
   Result := aName <> '';
+end;
+
+class function TRemoveWithSymbolBuilder.TryTypeAlias(const aLine: string; out aName: string;
+  out aTypeName: string): Boolean;
+var
+  lEqualsPos: Integer;
+  lRight: string;
+  lSemiPos: Integer;
+begin
+  Result := False;
+  aName := '';
+  aTypeName := '';
+  lEqualsPos := Pos('=', aLine);
+  if lEqualsPos = 0 then
+    Exit;
+
+  aName := Trim(Copy(aLine, 1, lEqualsPos - 1));
+  lRight := Trim(Copy(aLine, lEqualsPos + 1, MaxInt));
+  lSemiPos := Pos(';', lRight);
+  if lSemiPos > 0 then
+    lRight := Trim(Copy(lRight, 1, lSemiPos - 1));
+
+  aTypeName := lRight;
+  Result := (aName <> '') and (aTypeName <> '');
 end;
 
 class function TRemoveWithSymbolBuilder.TryTypeStart(const aLine: string; out aName: string): Boolean;
@@ -593,6 +618,10 @@ begin
         lInClassVar := False;
         lInConst := False;
         AddNamedSymbols(aInventory, [lCurrentType], '', '', '', aUnitName, aFilePath, i + 1, aLines[i],
+          TRemoveWithSymbolKind.rwskTypeMember);
+      end else if TryTypeAlias(lLine, lMemberName, lTypeName) then
+      begin
+        AddNamedSymbols(aInventory, [lMemberName], lTypeName, '', '', aUnitName, aFilePath, i + 1, aLines[i],
           TRemoveWithSymbolKind.rwskTypeMember);
       end;
       Continue;

@@ -5,7 +5,7 @@ interface
 uses
   System.IOUtils, System.JSON, System.SysUtils,
   DUnitX.TestFramework,
-  Dak.RemoveWith.Symbols, Test.Support;
+  Dak.RemoveWith.Expressions, Dak.RemoveWith.Symbols, Test.Support;
 
 type
   TRemoveWithTestBase = class
@@ -101,6 +101,20 @@ type
     procedure InventoryReportsUnitAndDirectTypeDeclarations;
     [Test]
     procedure InventoryReportsMissingSourceUnitsAsExternal;
+  end;
+
+  [TestFixture]
+  TRemoveWithExpressionTypeTests = class(TRemoveWithTestBase)
+  private
+    procedure BuildExpressionFixture(out aInventory: TRemoveWithSymbolInventory);
+    procedure AssertSelector(const aInventory: TRemoveWithSymbolInventory; const aSelectorText: string;
+      const aStatus: TRemoveWithSelectorTypeStatus; const aTypeName, aReason: string;
+      const aAddressable: Boolean);
+  public
+    [Test]
+    procedure ResolvesSupportedSelectorShapes;
+    [Test]
+    procedure ClassifiesUnsupportedAndExternalSelectors;
   end;
 
 implementation
@@ -927,6 +941,84 @@ begin
   Assert.IsTrue(FindSymbol(lInventory, 'TStringList', TRemoveWithSymbolKind.rwskExternal, '', '', lSymbol),
     'Expected source-unavailable library type to be reported as external.');
   Assert.AreEqual('', lSymbol.fUnitName, 'External library type should not be assigned to a parsed unit.');
+end;
+
+procedure TRemoveWithExpressionTypeTests.BuildExpressionFixture(out aInventory: TRemoveWithSymbolInventory);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithExpressionFixture\RemoveWithExpressionFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+    'Expected expression fixture inventory build to succeed: ' + lError);
+end;
+
+procedure TRemoveWithExpressionTypeTests.AssertSelector(const aInventory: TRemoveWithSymbolInventory;
+  const aSelectorText: string; const aStatus: TRemoveWithSelectorTypeStatus; const aTypeName, aReason: string;
+  const aAddressable: Boolean);
+var
+  lInfo: TRemoveWithSelectorTypeInfo;
+begin
+  Assert.IsTrue(ResolveRemoveWithSelectorType(aInventory, 'TExpressionScope.Run', aSelectorText, lInfo),
+    'Expected selector resolver to handle: ' + aSelectorText);
+  Assert.AreEqual(RemoveWithSelectorTypeStatusToText(aStatus), RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
+    'Unexpected selector status for: ' + aSelectorText);
+  Assert.AreEqual(aTypeName, lInfo.fTypeName, 'Unexpected selector type for: ' + aSelectorText);
+  Assert.AreEqual(aReason, lInfo.fReason, 'Unexpected selector reason for: ' + aSelectorText);
+  Assert.AreEqual(aAddressable, lInfo.fAddressable, 'Unexpected addressability for: ' + aSelectorText);
+end;
+
+procedure TRemoveWithExpressionTypeTests.ResolvesSupportedSelectorShapes;
+var
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildExpressionFixture(lInventory);
+
+  AssertSelector(lInventory, 'lLocalRecord', TRemoveWithSelectorTypeStatus.rwstsResolved, 'TExpressionRecord', '',
+    True);
+  AssertSelector(lInventory, 'aParamRecord', TRemoveWithSelectorTypeStatus.rwstsResolved, 'TExpressionRecord', '',
+    True);
+  AssertSelector(lInventory, 'FRecord', TRemoveWithSelectorTypeStatus.rwstsResolved, 'TExpressionRecord', '', True);
+  AssertSelector(lInventory, 'Self.FRecord', TRemoveWithSelectorTypeStatus.rwstsResolved, 'TExpressionRecord', '',
+    True);
+  AssertSelector(lInventory, 'lAliasPtr^', TRemoveWithSelectorTypeStatus.rwstsResolved, 'TExpressionRecord', '',
+    True);
+  AssertSelector(lInventory, 'lRecordPtr^', TRemoveWithSelectorTypeStatus.rwstsResolved, 'TExpressionRecord', '',
+    True);
+  AssertSelector(lInventory, 'lRecords[0]', TRemoveWithSelectorTypeStatus.rwstsResolved, 'TExpressionRecord', '',
+    True);
+  AssertSelector(lInventory, 'lLocalRecord.Child', TRemoveWithSelectorTypeStatus.rwstsResolved, 'TExpressionChild',
+    '', True);
+  AssertSelector(lInventory, 'lLocalRecord.Child.Name', TRemoveWithSelectorTypeStatus.rwstsResolved, 'string', '',
+    True);
+end;
+
+procedure TRemoveWithExpressionTypeTests.ClassifiesUnsupportedAndExternalSelectors;
+var
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildExpressionFixture(lInventory);
+
+  AssertSelector(lInventory, 'ClassProp', TRemoveWithSelectorTypeStatus.rwstsUnsupported, '', 'property-selector',
+    False);
+  AssertSelector(lInventory, 'MakeRecord()', TRemoveWithSelectorTypeStatus.rwstsUnsupported, '', 'call-selector',
+    False);
+  AssertSelector(lInventory, 'TExpressionRecord(lLocalRecord)', TRemoveWithSelectorTypeStatus.rwstsUnsupported, '',
+    'cast-selector', False);
+  AssertSelector(lInventory, 'lExternalList', TRemoveWithSelectorTypeStatus.rwstsExternal, 'TStringList',
+    'type-source-not-indexed', False);
+  AssertSelector(lInventory, 'lExternalList.ClassName', TRemoveWithSelectorTypeStatus.rwstsExternal, 'TStringList',
+    'type-source-not-indexed', False);
+  AssertSelector(lInventory, 'OtherRecord', TRemoveWithSelectorTypeStatus.rwstsUnresolved, '', 'symbol-not-found',
+    False);
+  AssertSelector(lInventory, 'lOtherOnly', TRemoveWithSelectorTypeStatus.rwstsUnresolved, '', 'symbol-not-found',
+    False);
 end;
 
 end.
