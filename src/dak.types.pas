@@ -69,6 +69,7 @@ type
     fBuildShowHints: Boolean;
     fBuildAi: Boolean;
     fBuildJson: Boolean;
+    fBuildQuiet: Boolean;
     fBuildBackend: TBuildBackend;
     fBuildRunDfmCheck: Boolean;
     fDfmCheckFilter: string;
