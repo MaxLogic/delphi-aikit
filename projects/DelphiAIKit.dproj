@@ -190,6 +190,7 @@
         <DCCReference Include="..\src\dak.registry.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Discovery.pas"/>
+        <DCCReference Include="..\src\Dak.RemoveWith.Expressions.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Output.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Source.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Symbols.pas"/>
