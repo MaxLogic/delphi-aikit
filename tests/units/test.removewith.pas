@@ -117,6 +117,25 @@ type
     procedure ClassifiesUnsupportedAndExternalSelectors;
   end;
 
+  [TestFixture]
+  TRemoveWithSourceModelGoldenTests = class(TRemoveWithTestBase)
+  private
+    procedure BuildSourceModelFixture(out aInventory: TRemoveWithSymbolInventory);
+    function DescribeSymbols(const aInventory: TRemoveWithSymbolInventory): string;
+    function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string;
+      out aSymbol: TRemoveWithSymbolInfo): Boolean;
+    procedure AssertSelector(const aInventory: TRemoveWithSymbolInventory; const aSelectorText,
+      aTypeName: string);
+    procedure AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName, aTypeName, aLineText: string);
+  public
+    [Test]
+    procedure RecordsAndClassesExposeExpectedSourceModel;
+    [Test]
+    procedure SelectorShapesResolveThroughSourceModel;
+  end;
+
 implementation
 
 uses
@@ -1019,6 +1038,138 @@ begin
     False);
   AssertSelector(lInventory, 'lOtherOnly', TRemoveWithSelectorTypeStatus.rwstsUnresolved, '', 'symbol-not-found',
     False);
+end;
+
+procedure TRemoveWithSourceModelGoldenTests.BuildSourceModelFixture(out aInventory: TRemoveWithSymbolInventory);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithSourceModelGoldenFixture\RemoveWithSourceModelGoldenFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+    'Expected source-model golden fixture inventory build to succeed: ' + lError);
+end;
+
+function TRemoveWithSourceModelGoldenTests.FindSymbol(const aInventory: TRemoveWithSymbolInventory;
+  const aName: string; const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string;
+  out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fName, aName) and (lSymbol.fKind = aKind) and
+      ((aOwnerType = '') or SameText(lSymbol.fOwnerType, aOwnerType)) and
+      ((aRoutineName = '') or SameText(lSymbol.fRoutineName, aRoutineName)) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+end;
+
+function TRemoveWithSourceModelGoldenTests.DescribeSymbols(const aInventory: TRemoveWithSymbolInventory): string;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := '';
+  for lSymbol in aInventory.fSymbols do
+    Result := Result + Format('%s:%s:%s:%s; ', [lSymbol.fName, RemoveWithSymbolKindToText(lSymbol.fKind),
+      lSymbol.fOwnerType, lSymbol.fTypeName]);
+end;
+
+procedure TRemoveWithSourceModelGoldenTests.AssertSelector(const aInventory: TRemoveWithSymbolInventory;
+  const aSelectorText, aTypeName: string);
+var
+  lInfo: TRemoveWithSelectorTypeInfo;
+begin
+  Assert.IsTrue(ResolveRemoveWithSelectorType(aInventory, 'TGoldenScope.Run', aSelectorText, lInfo),
+    'Expected selector resolver to handle: ' + aSelectorText);
+  Assert.AreEqual(RemoveWithSelectorTypeStatusToText(TRemoveWithSelectorTypeStatus.rwstsResolved),
+    RemoveWithSelectorTypeStatusToText(lInfo.fStatus), 'Unexpected selector status for: ' + aSelectorText);
+  Assert.AreEqual(aTypeName, lInfo.fTypeName, 'Unexpected selector type for: ' + aSelectorText);
+  Assert.IsTrue(lInfo.fAddressable, 'Expected source-model selector to be addressable: ' + aSelectorText);
+end;
+
+procedure TRemoveWithSourceModelGoldenTests.AssertSymbol(const aInventory: TRemoveWithSymbolInventory;
+  const aName: string; const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName, aTypeName,
+  aLineText: string);
+var
+  lLines: TArray<string>;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Assert.IsTrue(FindSymbol(aInventory, aName, aKind, aOwnerType, aRoutineName, lSymbol),
+    'Expected ' + RemoveWithSymbolKindToText(aKind) + ' symbol: ' + aName + ' inventory=' +
+    DescribeSymbols(aInventory));
+  if aTypeName <> '' then
+    Assert.AreEqual(aTypeName, lSymbol.fTypeName, 'Unexpected type for symbol: ' + aName);
+  Assert.AreNotEqual(0, lSymbol.fLine, 'Expected declaration line for symbol: ' + aName);
+  Assert.AreNotEqual(0, lSymbol.fColumn, 'Expected declaration column for symbol: ' + aName);
+  Assert.IsTrue(TFile.Exists(lSymbol.fFilePath), 'Expected symbol file to exist: ' + aName);
+  lLines := TFile.ReadAllLines(lSymbol.fFilePath, TEncoding.UTF8);
+  Assert.IsTrue(lSymbol.fLine <= Length(lLines), 'Expected declaration line inside file for symbol: ' + aName);
+  Assert.IsTrue(Pos(aLineText, lLines[lSymbol.fLine - 1]) > 0,
+    'Expected declaration line text for symbol: ' + aName);
+end;
+
+procedure TRemoveWithSourceModelGoldenTests.RecordsAndClassesExposeExpectedSourceModel;
+var
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildSourceModelFixture(lInventory);
+
+  AssertSymbol(lInventory, 'TGoldenChild', TRemoveWithSymbolKind.rwskTypeMember, '', '', '', 'TGoldenChild = record');
+  AssertSymbol(lInventory, 'TGoldenRecord', TRemoveWithSymbolKind.rwskTypeMember, '', '', '', 'TGoldenRecord = record');
+  AssertSymbol(lInventory, 'RecordName', TRemoveWithSymbolKind.rwskField, 'TGoldenRecord', '', 'string',
+    'RecordName: string;');
+  AssertSymbol(lInventory, 'Child', TRemoveWithSymbolKind.rwskField, 'TGoldenRecord', '', 'TGoldenChild',
+    'Child: TGoldenChild;');
+  AssertSymbol(lInventory, 'RecordTitle', TRemoveWithSymbolKind.rwskProperty, 'TGoldenRecord', '', 'string',
+    'property RecordTitle: string read RecordName write RecordName;');
+  AssertSymbol(lInventory, 'Touch', TRemoveWithSymbolKind.rwskMethod, 'TGoldenRecord', '', '', 'procedure Touch;');
+  AssertSymbol(lInventory, 'Name', TRemoveWithSymbolKind.rwskField, 'TGoldenChild', '', 'string', 'Name: string;');
+  AssertSymbol(lInventory, 'ClassLimit', TRemoveWithSymbolKind.rwskConstant, 'TGoldenClass', '', 'Integer',
+    'ClassLimit: Integer = 7;');
+  AssertSymbol(lInventory, 'SharedCount', TRemoveWithSymbolKind.rwskClassVar, 'TGoldenClass', '', 'Integer',
+    'SharedCount: Integer;');
+  AssertSymbol(lInventory, 'FClassRecord', TRemoveWithSymbolKind.rwskField, 'TGoldenClass', '', 'TGoldenRecord',
+    'FClassRecord: TGoldenRecord;');
+  AssertSymbol(lInventory, 'ClassRecord', TRemoveWithSymbolKind.rwskProperty, 'TGoldenClass', '', 'TGoldenRecord',
+    'property ClassRecord: TGoldenRecord read FClassRecord write FClassRecord;');
+  AssertSymbol(lInventory, 'Touch', TRemoveWithSymbolKind.rwskMethod, 'TGoldenClass', '', '', 'procedure Touch;');
+  AssertSymbol(lInventory, 'Run', TRemoveWithSymbolKind.rwskMethod, 'TGoldenScope', '', '', 'class procedure Run;');
+end;
+
+procedure TRemoveWithSourceModelGoldenTests.SelectorShapesResolveThroughSourceModel;
+var
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildSourceModelFixture(lInventory);
+
+  AssertSymbol(lInventory, 'lObject', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
+    'TGoldenClass', 'lObject: TGoldenClass;');
+  AssertSymbol(lInventory, 'lRecord', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
+    'TGoldenRecord', 'lRecord: TGoldenRecord;');
+  AssertSymbol(lInventory, 'lRecordPtr', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
+    'PGoldenRecord', 'lRecordPtr: PGoldenRecord;');
+  AssertSymbol(lInventory, 'lRecords', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
+    'TArray<TGoldenRecord>', 'lRecords: TArray<TGoldenRecord>;');
+
+  AssertSelector(lInventory, 'lRecord', 'TGoldenRecord');
+  AssertSelector(lInventory, 'lObject', 'TGoldenClass');
+  AssertSelector(lInventory, 'lRecordPtr^', 'TGoldenRecord');
+  AssertSelector(lInventory, 'lRecords[0]', 'TGoldenRecord');
+  AssertSelector(lInventory, 'lRecord.Child', 'TGoldenChild');
+  AssertSelector(lInventory, 'lRecord.Child.Name', 'string');
+  AssertSelector(lInventory, 'lObject.FClassRecord.Child', 'TGoldenChild');
 end;
 
 end.
