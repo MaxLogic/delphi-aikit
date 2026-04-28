@@ -32,6 +32,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added standalone `remove-with` temp-policy decisions for direct qualification, object/interface reference temps, addressable record pointer temps, reserved temp-name allocation, and unsafe selector skips. (T-148)
 - Added `remove-with --mode plan` source edit plans for standalone safe `with` rewrites, including temp declaration/replacement edits and skipped reasons for unsafe selectors or controlled statement contexts. (T-142)
 - Added transactional `remove-with --mode apply` with run-scoped backups/manifests, quiet build verification, exact-byte rollback on failed verification, and applied/rolledBack reporting. (T-143)
+- Added stable `remove-with --mode apply` report details for verification gates, transaction manifest paths, and per-file changed/restored statuses. (T-150)
 - Added `dfm-inspect` with `tree` and `summary` output for lightweight text DFM inspection. (T-081)
 - Added shared source-context snippets for resolved build and `dfm-check` failures, with `--source-context` / `--source-context-lines` CLI overrides and `[Diagnostics]` `dak.ini` defaults. (T-082)
 - Added madExcept integration to `build-delphi.bat` with optional `dak.ini` key `[MadExcept].Path` and fallback discovery from common install locations.

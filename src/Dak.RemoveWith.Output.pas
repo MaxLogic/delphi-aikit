@@ -164,6 +164,23 @@ begin
   Result.AddPair('gates', TJSONArray.Create);
 end;
 
+function BuildApplyVerificationObject(const aTransactionResult: TRemoveWithTransactionResult): TJSONObject;
+var
+  lGates: TJSONArray;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('status', aTransactionResult.fVerificationStatus);
+  lGates := TJSONArray.Create;
+  if aTransactionResult.fVerificationStatus <> 'not-run' then
+  begin
+    lGates.AddElement(TJSONObject.Create
+      .AddPair('name', 'build')
+      .AddPair('status', aTransactionResult.fVerificationStatus)
+      .AddPair('error', aTransactionResult.fVerificationError));
+  end;
+  Result.AddPair('gates', lGates);
+end;
+
 function BuildTransactionFilesArray(const aTransactionResult: TRemoveWithTransactionResult): TJSONArray;
 var
   lFile: TRemoveWithTransactionFile;
@@ -175,6 +192,7 @@ begin
       .AddPair('path', lFile.fPath)
       .AddPair('backupPath', lFile.fBackupPath)
       .AddPair('hash', lFile.fHash)
+      .AddPair('status', lFile.fStatus)
       .AddPair('size', TJSONNumber.Create(lFile.fSize))
       .AddPair('lineEnding', lFile.fLineEnding)
       .AddPair('encoding', lFile.fEncoding));
@@ -407,7 +425,10 @@ begin
     lRoot.AddPair('plannedEdits', BuildPlannedEditsArray(aPlanResult));
     lRoot.AddPair('skipped', BuildSkippedArray(aPlanResult));
     lRoot.AddPair('warnings', BuildWarningsArray(aScanResult));
-    lRoot.AddPair('verification', BuildVerificationObject);
+    if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
+      lRoot.AddPair('verification', BuildApplyVerificationObject(aTransactionResult))
+    else
+      lRoot.AddPair('verification', BuildVerificationObject);
     lRoot.AddPair('transaction', BuildTransactionObject(aTransactionResult));
     lRoot.AddPair('summary', BuildSummaryObject(aOptions, aScanResult, aPlanResult, aTransactionResult));
     Result := lRoot.ToJSON;
@@ -426,9 +447,13 @@ var
   lSkippedCount: Integer;
   lStatusText: string;
   lTargetValue: string;
+  lVerificationText: string;
 begin
   CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount);
   lStatusText := BuildRootStatus(aOptions, aTransactionResult);
+  lVerificationText := aTransactionResult.fVerificationStatus;
+  if lVerificationText = '' then
+    lVerificationText := 'not-run';
   lAppliedCount := 0;
   lRolledBackCount := 0;
   if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
@@ -462,7 +487,7 @@ begin
     'failed=0' + sLineBreak +
     'rolledBack=' + IntToStr(lRolledBackCount) + sLineBreak +
     'transactionManifest=' + aTransactionResult.fManifestPath + sLineBreak +
-    'verification=' + RemoveWithTransactionStatusToText(aTransactionResult.fStatus);
+    'verification=' + lVerificationText;
 end;
 
 end.

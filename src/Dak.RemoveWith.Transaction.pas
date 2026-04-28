@@ -14,6 +14,7 @@ type
     fHash: string;
     fLineEnding: string;
     fEncoding: string;
+    fStatus: string;
     fSize: Int64;
   end;
 
@@ -21,6 +22,8 @@ type
     fBackupRoot: string;
     fError: string;
     fManifestPath: string;
+    fVerificationError: string;
+    fVerificationStatus: string;
     fFiles: TArray<TRemoveWithTransactionFile>;
     fStatus: TRemoveWithTransactionStatus;
   end;
@@ -57,6 +60,8 @@ type
     class function Rollback(const aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean;
       static;
     class procedure SortEditsDescending(var aEdits: TArray<TRemoveWithPlannedTextEdit>); static;
+    class procedure SetFileStatuses(var aTransactionResult: TRemoveWithTransactionResult;
+      const aStatus: string); static;
     class function ApplyFileEdits(const aPath: string; const aEdits: TArray<TRemoveWithPlannedTextEdit>;
       out aError: string): Boolean; static;
     class function ApplyEdits(const aPlanResult: TRemoveWithPlanResult;
@@ -206,6 +211,7 @@ begin
     lFile.fHash := FileHash(lBytes);
     lFile.fLineEnding := DetectLineEnding(lBytes);
     lFile.fEncoding := DetectEncoding(lBytes);
+    lFile.fStatus := 'backed-up';
     lFile.fSize := Length(lBytes);
     TDirectory.CreateDirectory(TPath.GetDirectoryName(lFile.fBackupPath));
     TFile.WriteAllBytes(lFile.fBackupPath, lBytes);
@@ -274,6 +280,15 @@ begin
       end;
     end;
   until not lChanged;
+end;
+
+class procedure TRemoveWithTransaction.SetFileStatuses(var aTransactionResult: TRemoveWithTransactionResult;
+  const aStatus: string);
+var
+  i: Integer;
+begin
+  for i := 0 to High(aTransactionResult.fFiles) do
+    aTransactionResult.fFiles[i].fStatus := aStatus;
 end;
 
 class function TRemoveWithTransaction.ApplyFileEdits(const aPath: string;
@@ -389,11 +404,14 @@ begin
         .AddPair('path', lFile.fPath)
         .AddPair('backupPath', lFile.fBackupPath)
         .AddPair('hash', lFile.fHash)
+        .AddPair('status', lFile.fStatus)
         .AddPair('size', TJSONNumber.Create(lFile.fSize))
         .AddPair('lineEnding', lFile.fLineEnding)
         .AddPair('encoding', lFile.fEncoding));
     end;
     lRoot.AddPair('files', lFiles);
+    lRoot.AddPair('verificationStatus', aTransactionResult.fVerificationStatus);
+    lRoot.AddPair('verificationError', aTransactionResult.fVerificationError);
     TDirectory.CreateDirectory(TPath.GetDirectoryName(aManifestPath));
     TFile.WriteAllText(aManifestPath, lRoot.ToJSON, TEncoding.UTF8);
     Result := True;
@@ -450,6 +468,7 @@ begin
   aTransactionResult.fBackupRoot := TPath.Combine(aWorkspaceRoot, 'backup');
   aTransactionResult.fManifestPath := TPath.Combine(aWorkspaceRoot, 'manifest.json');
   aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxNotRun;
+  aTransactionResult.fVerificationStatus := 'not-run';
   aError := '';
 
   if not HasPlannedEdits(aPlanResult) then
@@ -458,16 +477,26 @@ begin
     Exit(WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, aError));
   end;
 
-  if ApplyEdits(aPlanResult, aTransactionResult, aError) and VerifyBuild(aOptions, aProjectPath, aError) then
+  if ApplyEdits(aPlanResult, aTransactionResult, aError) then
   begin
-    aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxApplied;
-    if WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, aError) then
-      Exit(True);
+    if VerifyBuild(aOptions, aProjectPath, aError) then
+    begin
+      aTransactionResult.fVerificationStatus := 'passed';
+      SetFileStatuses(aTransactionResult, 'changed');
+      aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxApplied;
+      if WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, aError) then
+        Exit(True);
+    end else
+    begin
+      aTransactionResult.fVerificationStatus := 'failed';
+      aTransactionResult.fVerificationError := aError;
+    end;
   end;
 
   aTransactionResult.fError := aError;
   if Rollback(aTransactionResult, aError) then
   begin
+    SetFileStatuses(aTransactionResult, 'restored');
     aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxRolledBack;
     if aTransactionResult.fError = '' then
       aTransactionResult.fError := aError;
