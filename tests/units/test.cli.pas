@@ -105,6 +105,8 @@ type
     [Test]
     procedure RemoveWithCommandRejectsInvalidFormat;
     [Test]
+    procedure RemoveWithHelpDocumentsModesAndTargets;
+    [Test]
     procedure LspCommandParsesOperationsAndRequiredArgs;
     [Test]
     procedure LspCommandParsesProjectAndOperationFields;
@@ -940,6 +942,35 @@ begin
   SetParams('remove-with --project c:\temp\sample.dproj --all --format xml');
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected remove-with to reject invalid formats.');
   Assert.IsTrue(Pos('xml', lError) > 0, 'Expected invalid format value in error. Actual: ' + lError);
+end;
+
+procedure TCliTests.RemoveWithHelpDocumentsModesAndTargets;
+var
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lLogText: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-help.log');
+
+  Assert.IsTrue(RunProcess(ResolverExePath, 'remove-with --help', RepoRoot, lLogPath, lExitCode),
+    'Failed to start remove-with help command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with --help to succeed. See: ' + lLogPath);
+
+  lLogText := '';
+  if FileExists(lLogPath) then
+    lLogText := TFile.ReadAllText(lLogPath);
+
+  Assert.IsTrue(Pos('scan', lLogText) > 0, 'Expected remove-with help to mention scan mode.');
+  Assert.IsTrue(Pos('plan', lLogText) > 0, 'Expected remove-with help to mention plan mode.');
+  Assert.IsTrue(Pos('apply', lLogText) > 0, 'Expected remove-with help to mention apply mode.');
+  Assert.IsTrue(Pos('--unit', lLogText) > 0, 'Expected remove-with help to mention --unit.');
+  Assert.IsTrue(Pos('--dir', lLogText) > 0, 'Expected remove-with help to mention --dir.');
+  Assert.IsTrue(Pos('--all', lLogText) > 0, 'Expected remove-with help to mention --all.');
+  Assert.IsTrue(Pos('rollback', LowerCase(lLogText)) > 0, 'Expected remove-with help to mention rollback.');
+  Assert.IsTrue(Pos('safe', LowerCase(lLogText)) > 0, 'Expected remove-with help to mention safety defaults.');
+  Assert.IsTrue(Pos('default: plan', LowerCase(lLogText)) > 0,
+    'Expected remove-with help to document the non-mutating default mode.');
 end;
 
 

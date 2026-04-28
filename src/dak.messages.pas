@@ -69,7 +69,11 @@ resourcestring
     '  probe: [--mode <contextFile|settingsFile>]... [--show-init-options [true|false]]';
   SUsageRemoveWith =
     'DelphiAIKit.exe remove-with --project "<path>" (--unit "<path>"|--dir "<path>"|--all) ' +
-    '[--mode <scan|plan|apply>] [--format <json|text>] [--output "<path>|-"]';
+    '[--mode <scan|plan|apply>] [--format <json|text>] [--output "<path>|-"]' + #13#10 +
+    '  modes: scan reports with statements; plan adds resolver classifications and planned safe edits ' +
+    '(default: plan, non-mutating); apply writes edits transactionally' + #13#10 +
+    '  targets: choose exactly one of --unit, --dir, or --all within the project' + #13#10 +
+    '  safety: apply backs up changed files, runs build verification, and performs exact-byte rollback on failure';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';

@@ -188,6 +188,29 @@ bin\DelphiAIKit.exe lsp definition --project "C:\path\Project.dproj" --file "C:\
 bin\DelphiAIKit.exe lsp symbols --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --query "Customer" --format json
 ```
 
+To inspect or remove Delphi `with` statements:
+
+```
+bin\DelphiAIKit.exe remove-with --project "C:\path\Project.dproj" --all --mode scan --format json
+bin\DelphiAIKit.exe remove-with --project "C:\path\Project.dproj" --dir "C:\path\Project\src" --mode plan --format json
+bin\DelphiAIKit.exe remove-with --project "C:\path\Project.dproj" --unit "C:\path\Project\CustomerUnit.pas" --mode apply --format json
+```
+
+`remove-with` is a with refactoring command with three modes:
+- `scan` parses selected project units and reports each `with` statement, selector text, source ranges, selector counts, and nesting depth.
+- `plan` adds AST-backed symbol resolution, resolver classifications, planned source edits, skipped statements, and warnings without changing source files.
+- `apply` writes planned safe edits transactionally, then runs build verification.
+
+Target exactly one scope with `--unit`, `--dir`, or `--all`. Output defaults to JSON and can be written with `--output "<path>"`; `--output -` keeps stdout output.
+
+The safety model is intentionally conservative. DAK parses the project source with AST-backed inventories for local variables, parameters, current-class members, unit globals/constants, source-available ancestors, interfaces, helpers, indexed/default properties, and active nested `with` receiver stacks. It qualifies only identifiers it can resolve safely. Ambiguous or unproven bindings are reported as skipped, including classifications such as `external`, `unsupported`, `unresolved`, and `ambiguous-to-DAK`.
+
+Record selectors that require preserved aliasing use pointer temps where the planner can prove the selector is addressable. Object and interface selectors can use reference temps. Non-addressable selectors, property selectors, call selectors, controlled statement contexts, and source-unavailable member lookups are skipped instead of guessed.
+
+`apply` creates a run workspace under `.dak/<ProjectName>/remove-with/<RunId>/`, backs up every changed file, writes a manifest with hashes and encoding/line-ending facts, and performs exact-byte rollback if verification fails. Successful and rolled-back runs report verification gates, transaction status, manifest paths, and per-file changed/restored status.
+
+`LSP` is not the primary resolver for this feature. The current DelphiLSP integration remains useful for navigation and future probes, but `remove-with` relies on the local AST/source model for deterministic bulk refactoring and build/rollback verification.
+
 `deps` is JSON-first. The JSON contract is intended for tooling and AI agents and includes:
 - project metadata
 - `nodes` with resolution state and project-membership flag
