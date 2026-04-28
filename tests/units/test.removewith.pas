@@ -6,7 +6,7 @@ uses
   System.IOUtils, System.JSON, System.SysUtils,
   DUnitX.TestFramework,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
-  Test.Support;
+  Dak.RemoveWith.TempPolicy, Test.Support;
 
 type
   TRemoveWithTestBase = class
@@ -256,6 +256,21 @@ type
     procedure SymbolInventoryParsesIndexedAndDefaultProperties;
     [Test]
     procedure PlanReportDistinguishesIndexedVariablesAndUnsafeIndexedProperties;
+  end;
+
+  [TestFixture]
+  TRemoveWithTempPolicyTests = class(TRemoveWithTestBase)
+  private
+    procedure BuildTempPolicyFixture(out aInventory: TRemoveWithSymbolInventory);
+    procedure AssertPolicy(const aInventory: TRemoveWithSymbolInventory; const aSelectorText: string;
+      const aStrategy: TRemoveWithTempStrategy; const aReceiverType, aQualifierText, aReason: string);
+  public
+    [Test]
+    procedure ChoosesDirectReferenceRecordPointerAndSkipStrategies;
+    [Test]
+    procedure GeneratesCollisionFreeTempDeclarations;
+    [Test]
+    procedure ReservesGeneratedNamesAcrossSequentialPlans;
   end;
 
 implementation
@@ -2104,6 +2119,107 @@ begin
   finally
     lJson.Free;
   end;
+end;
+
+procedure TRemoveWithTempPolicyTests.BuildTempPolicyFixture(out aInventory: TRemoveWithSymbolInventory);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithTempPolicyFixture\RemoveWithTempPolicyFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+    'Expected temp policy fixture inventory build to succeed: ' + lError);
+end;
+
+procedure TRemoveWithTempPolicyTests.AssertPolicy(const aInventory: TRemoveWithSymbolInventory;
+  const aSelectorText: string; const aStrategy: TRemoveWithTempStrategy; const aReceiverType, aQualifierText,
+  aReason: string);
+var
+  lDecision: TRemoveWithTempDecision;
+begin
+  Assert.IsTrue(PlanRemoveWithTempPolicy(aInventory, 'TTempPolicyScope.Run', aSelectorText, lDecision),
+    'Expected temp policy to inspect selector: ' + aSelectorText);
+  Assert.AreEqual(RemoveWithTempStrategyToText(aStrategy), RemoveWithTempStrategyToText(lDecision.fStrategy),
+    'Unexpected temp strategy for selector: ' + aSelectorText);
+  Assert.AreEqual(aReceiverType, lDecision.fReceiverType, 'Unexpected receiver type for selector: ' + aSelectorText);
+  Assert.AreEqual(aQualifierText, lDecision.fQualifierText, 'Unexpected qualifier for selector: ' + aSelectorText);
+  Assert.AreEqual(aReason, lDecision.fReason, 'Unexpected reason for selector: ' + aSelectorText);
+end;
+
+procedure TRemoveWithTempPolicyTests.ChoosesDirectReferenceRecordPointerAndSkipStrategies;
+var
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildTempPolicyFixture(lInventory);
+
+  AssertPolicy(lInventory, 'lRecord', TRemoveWithTempStrategy.rwtsRecordPointerTemp, 'TTempPolicyRecord',
+    'lWithTempPolicyRecordPtr2^', 'record-pointer-preserves-alias');
+  AssertPolicy(lInventory, 'lRecordPtr^', TRemoveWithTempStrategy.rwtsDirectQualification, 'TTempPolicyRecord',
+    'lRecordPtr^', 'already-pointer-qualified');
+  AssertPolicy(lInventory, 'lRecords[lIndex]', TRemoveWithTempStrategy.rwtsRecordPointerTemp, 'TTempPolicyRecord',
+    'lWithTempPolicyRecordPtr2^', 'record-pointer-preserves-alias');
+  AssertPolicy(lInventory, 'lObject', TRemoveWithTempStrategy.rwtsReferenceTemp, 'TTempPolicyClass',
+    'lWithTempPolicyClass', 'reference-temp-preserves-evaluation');
+  AssertPolicy(lInventory, 'lObjects[lIndex]', TRemoveWithTempStrategy.rwtsReferenceTemp, 'TTempPolicyClass',
+    'lWithTempPolicyClass', 'reference-temp-preserves-evaluation');
+  AssertPolicy(lInventory, 'lScope.RecordProp', TRemoveWithTempStrategy.rwtsSkip, '', '', 'property-selector');
+  AssertPolicy(lInventory, 'MakeRecord()', TRemoveWithTempStrategy.rwtsSkip, '', '', 'call-selector');
+  AssertPolicy(lInventory, 'TTempPolicyRecord(lRecord)', TRemoveWithTempStrategy.rwtsSkip, '', '', 'cast-selector');
+end;
+
+procedure TRemoveWithTempPolicyTests.GeneratesCollisionFreeTempDeclarations;
+var
+  lDecision: TRemoveWithTempDecision;
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildTempPolicyFixture(lInventory);
+
+  Assert.IsTrue(PlanRemoveWithTempPolicy(lInventory, 'TTempPolicyScope.Run', 'lRecord', lDecision),
+    'Expected record selector to produce a temp decision.');
+  Assert.AreEqual('lWithTempPolicyRecordPtr2', lDecision.fTempName, 'Expected local temp collision avoidance.');
+  Assert.AreEqual('lWithTempPolicyRecordPtr2: ^TTempPolicyRecord;', lDecision.fDeclarationText,
+    'Expected legal method-level pointer declaration.');
+  Assert.AreEqual('lWithTempPolicyRecordPtr2 := @lRecord;', lDecision.fInitializationText,
+    'Expected address initialization for record temp.');
+
+  Assert.IsTrue(PlanRemoveWithTempPolicy(lInventory, 'TTempPolicyScope.Run', 'lObjects[lIndex]', lDecision),
+    'Expected object selector to produce a temp decision.');
+  Assert.AreEqual('lWithTempPolicyClass: TTempPolicyClass;', lDecision.fDeclarationText,
+    'Expected legal method-level object reference declaration.');
+  Assert.AreEqual('lWithTempPolicyClass := lObjects[lIndex];', lDecision.fInitializationText,
+    'Expected single-evaluation initialization for indexed object temp.');
+end;
+
+procedure TRemoveWithTempPolicyTests.ReservesGeneratedNamesAcrossSequentialPlans;
+var
+  lDecision: TRemoveWithTempDecision;
+  lInventory: TRemoveWithSymbolInventory;
+  lReservedNames: TRemoveWithReservedTempNames;
+begin
+  BuildTempPolicyFixture(lInventory);
+  lReservedNames := Default(TRemoveWithReservedTempNames);
+
+  Assert.IsTrue(PlanRemoveWithTempPolicy(lInventory, 'TTempPolicyScope.Run', 'lRecord', lReservedNames, lDecision),
+    'Expected first record selector to produce a temp decision.');
+  Assert.AreEqual('lWithTempPolicyRecordPtr2', lDecision.fTempName, 'Expected first record temp name.');
+
+  Assert.IsTrue(PlanRemoveWithTempPolicy(lInventory, 'TTempPolicyScope.Run', 'lRecords[lIndex]', lReservedNames,
+    lDecision), 'Expected second record selector to produce a temp decision.');
+  Assert.AreEqual('lWithTempPolicyRecordPtr3', lDecision.fTempName, 'Expected second record temp name.');
+
+  Assert.IsTrue(PlanRemoveWithTempPolicy(lInventory, 'TTempPolicyScope.Run', 'lObject', lReservedNames, lDecision),
+    'Expected first object selector to produce a temp decision.');
+  Assert.AreEqual('lWithTempPolicyClass', lDecision.fTempName, 'Expected first class temp name.');
+
+  Assert.IsTrue(PlanRemoveWithTempPolicy(lInventory, 'TTempPolicyScope.Run', 'lObjects[lIndex]', lReservedNames,
+    lDecision), 'Expected second object selector to produce a temp decision.');
+  Assert.AreEqual('lWithTempPolicyClass1', lDecision.fTempName, 'Expected second class temp name.');
 end;
 
 end.
