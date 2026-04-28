@@ -7,7 +7,8 @@ uses
 
 type
   TRemoveWithSymbolKind = (rwskLocalVariable, rwskParameter, rwskCurrentClassMember, rwskUnitGlobal,
-    rwskTypeMember, rwskField, rwskProperty, rwskMethod, rwskConstant, rwskClassVar, rwskRoutine, rwskExternal);
+    rwskTypeMember, rwskField, rwskProperty, rwskMethod, rwskConstant, rwskClassVar, rwskRoutine, rwskUnitName,
+    rwskExternal);
 
   TRemoveWithSymbolInfo = record
     fName: string;
@@ -90,6 +91,7 @@ type
       const aUnitName, aFilePath: string); static;
     class procedure ParseUnit(var aInventory: TRemoveWithSymbolInventory; const aUnitName, aFilePath: string);
       static;
+    class procedure AddExternalUnitSymbols(var aInventory: TRemoveWithSymbolInventory); static;
     class procedure AddExternalTypeSymbols(var aInventory: TRemoveWithSymbolInventory); static;
   end;
 
@@ -118,6 +120,8 @@ begin
       Result := 'class-var';
     TRemoveWithSymbolKind.rwskRoutine:
       Result := 'routine';
+    TRemoveWithSymbolKind.rwskUnitName:
+      Result := 'unit';
   else
     Result := 'external';
   end;
@@ -1065,11 +1069,122 @@ class procedure TRemoveWithSymbolBuilder.ParseUnit(var aInventory: TRemoveWithSy
   aFilePath: string);
 var
   lLines: TArray<string>;
+  lSymbol: TRemoveWithSymbolInfo;
 begin
+  lSymbol := Default(TRemoveWithSymbolInfo);
+  lSymbol.fName := aUnitName;
+  lSymbol.fUnitName := aUnitName;
+  lSymbol.fFilePath := aFilePath;
+  lSymbol.fLine := 1;
+  lSymbol.fColumn := 1;
+  lSymbol.fKind := TRemoveWithSymbolKind.rwskUnitName;
+  AddSymbol(aInventory, lSymbol);
+
   lLines := TFile.ReadAllLines(aFilePath, TEncoding.UTF8);
   ParseTypeMembers(aInventory, lLines, aUnitName, aFilePath);
   ParseUnitGlobals(aInventory, lLines, aUnitName, aFilePath);
   ParseRoutines(aInventory, lLines, aUnitName, aFilePath);
+end;
+
+class procedure TRemoveWithSymbolBuilder.AddExternalUnitSymbols(var aInventory: TRemoveWithSymbolInventory);
+var
+  lBlockText: string;
+  lCleanLine: string;
+  lExistingUnits: TDictionary<string, Byte>;
+  lExternalSymbol: TRemoveWithSymbolInfo;
+  lExternalUnits: TDictionary<string, Byte>;
+  lInUses: Boolean;
+  lLine: string;
+  lLines: TArray<string>;
+  lPart: string;
+  lParts: TArray<string>;
+  lSourceSymbol: TRemoveWithSymbolInfo;
+  lSourceSymbols: TList<TRemoveWithSymbolInfo>;
+  lSymbol: TRemoveWithSymbolInfo;
+  lUnitKey: string;
+  lUnitName: string;
+begin
+  lExistingUnits := TDictionary<string, Byte>.Create;
+  try
+    lExternalUnits := TDictionary<string, Byte>.Create;
+    try
+      lSourceSymbols := TList<TRemoveWithSymbolInfo>.Create;
+      try
+        for lSymbol in aInventory.fSymbols do
+        begin
+          if lSymbol.fKind = TRemoveWithSymbolKind.rwskUnitName then
+          begin
+            lExistingUnits.AddOrSetValue(UpperCase(lSymbol.fName), 1);
+            lSourceSymbols.Add(lSymbol);
+          end else if lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal then
+            lExternalUnits.AddOrSetValue(UpperCase(lSymbol.fName), 1);
+        end;
+
+        for lSourceSymbol in lSourceSymbols do
+        begin
+          if (lSourceSymbol.fKind <> TRemoveWithSymbolKind.rwskUnitName) or
+            (not TFile.Exists(lSourceSymbol.fFilePath)) then
+            Continue;
+
+        lLines := TFile.ReadAllLines(lSourceSymbol.fFilePath, TEncoding.UTF8);
+        lInUses := False;
+        lBlockText := '';
+        for lLine in lLines do
+        begin
+          lCleanLine := CleanLine(lLine);
+          if lCleanLine = '' then
+            Continue;
+
+          if not lInUses then
+          begin
+            if not StartsText('uses', LowerCase(lCleanLine)) then
+              Continue;
+            if (Length(lCleanLine) > 4) and IsIdentifierChar(lCleanLine[5]) then
+              Continue;
+            lInUses := True;
+            lBlockText := Trim(Copy(lCleanLine, 5, MaxInt));
+          end else
+            lBlockText := Trim(lBlockText + ' ' + lCleanLine);
+
+          if Pos(';', lCleanLine) = 0 then
+            Continue;
+
+          lParts := lBlockText.Replace(';', ',').Split([',']);
+          for lPart in lParts do
+          begin
+            lUnitName := Trim(lPart);
+            if ContainsText(lUnitName, ' in ') then
+              lUnitName := Trim(Copy(lUnitName, 1, Pos(' in ', LowerCase(lUnitName)) - 1));
+            if ContainsText(lUnitName, '=') then
+              lUnitName := Trim(Copy(lUnitName, Pos('=', lUnitName) + 1, MaxInt));
+            if lUnitName = '' then
+              Continue;
+
+            lUnitKey := UpperCase(lUnitName);
+            if lExistingUnits.ContainsKey(lUnitKey) or lExternalUnits.ContainsKey(lUnitKey) then
+              Continue;
+            lExternalUnits.Add(lUnitKey, 1);
+            lExternalSymbol := Default(TRemoveWithSymbolInfo);
+            lExternalSymbol.fName := lUnitName;
+            lExternalSymbol.fUnitName := lSourceSymbol.fName;
+            lExternalSymbol.fFilePath := lSourceSymbol.fFilePath;
+            lExternalSymbol.fKind := TRemoveWithSymbolKind.rwskExternal;
+            AddSymbol(aInventory, lExternalSymbol);
+          end;
+
+          lInUses := False;
+          lBlockText := '';
+        end;
+        end;
+      finally
+        lSourceSymbols.Free;
+      end;
+    finally
+      lExternalUnits.Free;
+    end;
+  finally
+    lExistingUnits.Free;
+  end;
 end;
 
 class procedure TRemoveWithSymbolBuilder.AddExternalTypeSymbols(var aInventory: TRemoveWithSymbolInventory);
@@ -1171,6 +1286,7 @@ begin
 
     TRemoveWithSymbolBuilder.AddRelatedTypeMemberSymbols(aInventory);
     TRemoveWithSymbolBuilder.AddRelatedCurrentClassSymbols(aInventory);
+    TRemoveWithSymbolBuilder.AddExternalUnitSymbols(aInventory);
     TRemoveWithSymbolBuilder.AddExternalTypeSymbols(aInventory);
 
     for lProblem in lIndexer.Problems do

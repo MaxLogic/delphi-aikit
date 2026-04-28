@@ -227,6 +227,18 @@ type
     procedure PlanReportDistinguishesDirectHelperAmbiguousAndExternalHelpers;
   end;
 
+  [TestFixture]
+  TRemoveWithGlobalScopeGoldenTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    function RunGlobalScopeFixture(out aExitCode: Cardinal): string;
+    procedure AssertJsonClassification(const aClassifications: TJSONArray; const aStatementId,
+      aIdentifier, aStatus, aResolutionKind, aMemberKind: string);
+  public
+    [Test]
+    procedure PlanReportDistinguishesWithReceiversAndOuterScopes;
+  end;
+
 implementation
 
 uses
@@ -1821,6 +1833,95 @@ begin
     AssertJsonClassification(lClassifications, 'with-5', 'HelperData', 'resolved', 'helper',
       'TClassHelperTargetHelper');
     AssertJsonClassification(lClassifications, 'with-6', 'ExternalHelper', 'external', 'external-only', '');
+  finally
+    lJson.Free;
+  end;
+end;
+
+function TRemoveWithGlobalScopeGoldenTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+function TRemoveWithGlobalScopeGoldenTests.RunGlobalScopeFixture(out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithGlobalScopeFixture\RemoveWithGlobalScopeFixture.dproj');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-global-scope-plan.json');
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
+
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+    aExitCode), 'Failed to start remove-with global scope process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithGlobalScopeGoldenTests.AssertJsonClassification(const aClassifications: TJSONArray;
+  const aStatementId, aIdentifier, aStatus, aResolutionKind, aMemberKind: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('statementId', ''), aStatementId) and
+      SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) and
+      SameText(lObject.GetValue<string>('status', ''), aStatus) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), aResolutionKind) and
+      SameText(lObject.GetValue<string>('memberKind', ''), aMemberKind) then
+      Exit;
+  end;
+  Assert.Fail('Expected global-scope classification ' + aStatementId + ':' + aIdentifier + ':' + aStatus + ':' +
+    aResolutionKind + ':' + aMemberKind);
+end;
+
+procedure TRemoveWithGlobalScopeGoldenTests.PlanReportDistinguishesWithReceiversAndOuterScopes;
+var
+  lClassifications: TJSONArray;
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+begin
+  lOutput := RunGlobalScopeFixture(lExitCode);
+
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected global scope plan report to succeed.');
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected global scope output to be a JSON object.');
+    lRoot := lJson as TJSONObject;
+    lResolver := lRoot.GetValue<TJSONObject>('resolver');
+    Assert.IsNotNull(lResolver, 'Expected resolver object.');
+    lClassifications := lResolver.GetValue<TJSONArray>('classifications');
+    Assert.IsNotNull(lClassifications, 'Expected resolver classifications.');
+
+    AssertJsonClassification(lClassifications, 'with-1', 'Marker', 'resolved', 'direct', 'field');
+    AssertJsonClassification(lClassifications, 'with-1', 'lLocalOnly', 'unchanged', 'unchanged', 'local-variable');
+    AssertJsonClassification(lClassifications, 'with-1', 'aParamOnly', 'unchanged', 'unchanged', 'parameter');
+    AssertJsonClassification(lClassifications, 'with-1', 'CurrentOnly', 'unchanged', 'unchanged',
+      'current-class-member');
+    AssertJsonClassification(lClassifications, 'with-1', 'UnitGlobalOnly', 'unchanged', 'unchanged', 'unit-global');
+    AssertJsonClassification(lClassifications, 'with-1', 'ImplGlobalOnly', 'unchanged', 'unchanged', 'unit-global');
+    AssertJsonClassification(lClassifications, 'with-1', 'UnitConstOnly', 'unchanged', 'unchanged', 'constant');
+    AssertJsonClassification(lClassifications, 'with-1', 'ClassShared', 'unchanged', 'unchanged',
+      'current-class-member');
+    AssertJsonClassification(lClassifications, 'with-2', 'ShadowName', 'resolved', 'direct', 'field');
+    AssertJsonClassification(lClassifications, 'with-3', 'GlobalScopeSupport', 'unchanged', 'qualified-unit',
+      'unit');
+    AssertJsonClassification(lClassifications, 'with-3', 'UnitGlobalOnly', 'unchanged', 'unchanged', 'unit-global');
+    AssertJsonClassification(lClassifications, 'with-4', 'MissingGlobalScopeSupport', 'external', 'external-unit',
+      'external');
+    AssertJsonClassification(lClassifications, 'with-4', 'UnitGlobalOnly', 'unchanged', 'unchanged', 'unit-global');
+    AssertJsonClassification(lClassifications, 'with-5', 'TStringList', 'unresolved', 'unresolved',
+      'local-variable');
   finally
     lJson.Free;
   end;

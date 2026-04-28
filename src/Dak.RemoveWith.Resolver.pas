@@ -82,6 +82,10 @@ type
       aName: string): TArray<TRemoveWithSymbolInfo>; static;
     class function FindScopeSymbol(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
       aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
+    class function FindUnitNameSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
+    class function FindExternalUnitSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
     class function HasSourceType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
       static;
     class function IsExternalType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
@@ -98,6 +102,8 @@ type
     class function CandidatesShareSourceOwner(const aCandidates: TArray<TRemoveWithSymbolInfo>): Boolean; static;
     class function IsCallUse(const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse): Boolean;
       static;
+    class function IsQualifiedUse(const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse):
+      Boolean; static;
     class function ResolveSelectorFromReceivers(const aInventory: TRemoveWithSymbolInventory;
       const aReceivers: TArray<TRemoveWithReceiverScope>; const aSelectorText: string;
       out aInfo: TRemoveWithSelectorTypeInfo): Boolean; static;
@@ -408,6 +414,41 @@ begin
   end;
 end;
 
+class function TRemoveWithIdentifierResolver.FindUnitNameSymbol(const aInventory: TRemoveWithSymbolInventory;
+  const aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskUnitName) and SameText(lSymbol.fName, aName) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+end;
+
+class function TRemoveWithIdentifierResolver.FindExternalUnitSymbol(const aInventory: TRemoveWithSymbolInventory;
+  const aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal) and (lSymbol.fTypeName = '') and
+      SameText(lSymbol.fName, aName) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+end;
+
 class function TRemoveWithIdentifierResolver.HasSourceType(const aInventory: TRemoveWithSymbolInventory;
   const aTypeName: string): Boolean;
 var
@@ -576,6 +617,12 @@ class function TRemoveWithIdentifierResolver.IsCallUse(const aSource: TRemoveWit
   const aUse: TRemoveWithIdentifierUse): Boolean;
 begin
   Result := NextNonWhitespaceChar(aSource.fText, aUse.fEndOffset + 1) = '(';
+end;
+
+class function TRemoveWithIdentifierResolver.IsQualifiedUse(const aSource: TRemoveWithSourceBuffer;
+  const aUse: TRemoveWithIdentifierUse): Boolean;
+begin
+  Result := NextNonWhitespaceChar(aSource.fText, aUse.fEndOffset + 1) = '.';
 end;
 
 class function TRemoveWithIdentifierResolver.ResolveSelectorFromReceivers(
@@ -974,6 +1021,24 @@ begin
       end;
       Exit(True);
     end;
+  end;
+
+  if IsQualifiedUse(aSource, aUse) and FindUnitNameSymbol(aInventory, aUse.fName, lSymbol) then
+  begin
+    aClassification.fMemberKind := lSymbol.fKind;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
+    aClassification.fResolutionKind := 'qualified-unit';
+    aClassification.fReason := 'unit-qualifier';
+    Exit(True);
+  end;
+
+  if IsQualifiedUse(aSource, aUse) and FindExternalUnitSymbol(aInventory, aUse.fName, lSymbol) then
+  begin
+    aClassification.fMemberKind := lSymbol.fKind;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
+    aClassification.fResolutionKind := 'external-unit';
+    aClassification.fReason := 'unit-source-not-indexed';
+    Exit(True);
   end;
 
   if FindScopeSymbol(aInventory, aRoutineName, aUse.fName, lSymbol) then
