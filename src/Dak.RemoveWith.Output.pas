@@ -3,14 +3,15 @@ unit Dak.RemoveWith.Output;
 interface
 
 uses
-  Dak.RemoveWith.Discovery,
+  Dak.RemoveWith.Discovery, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
   Dak.Types;
 
 function RemoveWithModeToText(const aMode: TRemoveWithMode): string;
 function RemoveWithFormatToText(const aFormat: TRemoveWithFormat): string;
 function RemoveWithTargetKindToText(const aKind: TRemoveWithTargetKind): string;
 function BuildRemoveWithJsonReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
-  aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult): string;
+  aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
+  const aResolverResult: TRemoveWithResolverResult): string;
 function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult): string;
 
@@ -90,20 +91,65 @@ begin
   Result.AddPair('manifest', TPath.Combine(aWorkspaceRoot, 'manifest.json'));
 end;
 
-function BuildResolverObject: TJSONObject;
+function BuildResolverObject(const aResolverResult: TRemoveWithResolverResult): TJSONObject;
 var
+  lClassification: TRemoveWithIdentifierClassification;
+  lClassifications: TJSONArray;
   lCounts: TJSONObject;
+  lExternalCount: Integer;
+  lResolvedCount: Integer;
+  lUnchangedCount: Integer;
+  lUnsupportedCount: Integer;
+  lUnresolvedCount: Integer;
+  lAmbiguousCount: Integer;
 begin
   Result := TJSONObject.Create;
-  Result.AddPair('classifications', TJSONArray.Create);
+  lResolvedCount := 0;
+  lUnchangedCount := 0;
+  lExternalCount := 0;
+  lUnsupportedCount := 0;
+  lUnresolvedCount := 0;
+  lAmbiguousCount := 0;
+
+  lClassifications := TJSONArray.Create;
+  for lClassification in aResolverResult.fClassifications do
+  begin
+    case lClassification.fStatus of
+      TRemoveWithIdentifierStatus.rwisResolved:
+        Inc(lResolvedCount);
+      TRemoveWithIdentifierStatus.rwisUnchanged:
+        Inc(lUnchangedCount);
+      TRemoveWithIdentifierStatus.rwisExternal:
+        Inc(lExternalCount);
+      TRemoveWithIdentifierStatus.rwisUnsupported:
+        Inc(lUnsupportedCount);
+      TRemoveWithIdentifierStatus.rwisAmbiguousToDak:
+        Inc(lAmbiguousCount);
+    else
+      Inc(lUnresolvedCount);
+    end;
+
+    lClassifications.AddElement(TJSONObject.Create
+      .AddPair('statementId', lClassification.fStatementId)
+      .AddPair('file', lClassification.fFilePath)
+      .AddPair('line', TJSONNumber.Create(lClassification.fLine))
+      .AddPair('column', TJSONNumber.Create(lClassification.fColumn))
+      .AddPair('identifier', lClassification.fIdentifier)
+      .AddPair('status', RemoveWithIdentifierStatusToText(lClassification.fStatus))
+      .AddPair('receiver', lClassification.fReceiverText)
+      .AddPair('receiverType', lClassification.fReceiverType)
+      .AddPair('memberKind', RemoveWithSymbolKindToText(lClassification.fMemberKind))
+      .AddPair('reason', lClassification.fReason));
+  end;
+  Result.AddPair('classifications', lClassifications);
 
   lCounts := TJSONObject.Create;
-  lCounts.AddPair('resolved', TJSONNumber.Create(0));
-  lCounts.AddPair('unchanged', TJSONNumber.Create(0));
-  lCounts.AddPair('external', TJSONNumber.Create(0));
-  lCounts.AddPair('unsupported', TJSONNumber.Create(0));
-  lCounts.AddPair('unresolved', TJSONNumber.Create(0));
-  lCounts.AddPair('ambiguousToDak', TJSONNumber.Create(0));
+  lCounts.AddPair('resolved', TJSONNumber.Create(lResolvedCount));
+  lCounts.AddPair('unchanged', TJSONNumber.Create(lUnchangedCount));
+  lCounts.AddPair('external', TJSONNumber.Create(lExternalCount));
+  lCounts.AddPair('unsupported', TJSONNumber.Create(lUnsupportedCount));
+  lCounts.AddPair('unresolved', TJSONNumber.Create(lUnresolvedCount));
+  lCounts.AddPair('ambiguousToDak', TJSONNumber.Create(lAmbiguousCount));
   Result.AddPair('counts', lCounts);
 end;
 
@@ -174,12 +220,13 @@ begin
   end;
 end;
 
-function BuildSummaryObject(const aScanResult: TRemoveWithScanResult): TJSONObject;
+function BuildSummaryObject(const aOptions: TAppOptions; const aScanResult: TRemoveWithScanResult): TJSONObject;
 begin
   Result := TJSONObject.Create;
   Result.AddPair('filesScanned', TJSONNumber.Create(Length(aScanResult.fFiles)));
   Result.AddPair('withStatements', TJSONNumber.Create(Length(aScanResult.fWithStatements)));
-  Result.AddPair('plannedEdits', TJSONNumber.Create(0));
+  if aOptions.fRemoveWithMode <> TRemoveWithMode.rwmPlan then
+    Result.AddPair('plannedEdits', TJSONNumber.Create(0));
   Result.AddPair('appliedEdits', TJSONNumber.Create(0));
   Result.AddPair('skipped', TJSONNumber.Create(0));
   Result.AddPair('failed', TJSONNumber.Create(0));
@@ -187,7 +234,8 @@ begin
 end;
 
 function BuildRemoveWithJsonReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
-  aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult): string;
+  aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
+  const aResolverResult: TRemoveWithResolverResult): string;
 var
   lRoot: TJSONObject;
 begin
@@ -204,12 +252,13 @@ begin
     lRoot.AddPair('workspace', BuildWorkspaceObject(aWorkspaceRoot));
     lRoot.AddPair('files', BuildFilesArray(aScanResult));
     lRoot.AddPair('withStatements', BuildWithStatementsArray(aScanResult));
-    lRoot.AddPair('resolver', BuildResolverObject);
-    lRoot.AddPair('plannedEdits', TJSONArray.Create);
+    lRoot.AddPair('resolver', BuildResolverObject(aResolverResult));
+    if aOptions.fRemoveWithMode <> TRemoveWithMode.rwmPlan then
+      lRoot.AddPair('plannedEdits', TJSONArray.Create);
     lRoot.AddPair('skipped', TJSONArray.Create);
     lRoot.AddPair('warnings', BuildWarningsArray(aScanResult));
     lRoot.AddPair('verification', BuildVerificationObject);
-    lRoot.AddPair('summary', BuildSummaryObject(aScanResult));
+    lRoot.AddPair('summary', BuildSummaryObject(aOptions, aScanResult));
     Result := lRoot.ToJSON;
   finally
     lRoot.Free;
