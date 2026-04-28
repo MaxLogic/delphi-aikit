@@ -21,6 +21,7 @@
     <DelphiCompile Include="$(MainSource)">
       <MainSource>MainSource</MainSource>
     </DelphiCompile>
+    <DCCReference Include="RollbackSkippedUnit.pas"/>
     <DCCReference Include="RollbackUnit.pas"/>
   </ItemGroup>
   <ProjectExtensions>
