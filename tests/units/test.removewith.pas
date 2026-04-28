@@ -319,6 +319,8 @@ type
     procedure NestedWithBodiesRewriteByScopeStack;
     [Test]
     procedure ControlledNestedWithStatementsRemainSkipped;
+    [Test]
+    procedure NestedMultipleSelectorsRewriteOrBlockPrecisely;
   end;
 
   [TestFixture]
@@ -2933,6 +2935,93 @@ begin
   Assert.AreEqual(lUnitTextBefore, lUnitTextAfter, 'Expected controlled nested fixture source to remain unchanged.');
   Assert.IsTrue(Pos('if lCondition then', lUnitTextAfter) > 0, 'Expected controlling statement to remain.');
   Assert.IsTrue(Pos('with lInner do', lUnitTextAfter) > 0, 'Expected controlled inner with to remain.');
+end;
+
+procedure TRemoveWithRewriteShapeTests.NestedMultipleSelectorsRewriteOrBlockPrecisely;
+var
+  i: Integer;
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lHasAncestorSkippedAmbiguous: Boolean;
+  lHasAmbiguousOuter: Boolean;
+  lPlan: TJSONObject;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lSkippedItem: TJSONObject;
+  lTemps: TJSONArray;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CopyFixtureToTemp('RemoveWithCombinedSelectorRewriteFixture', 'remove-with-combined-selectors',
+    'CombinedSelectorUnit.pas', lDprojPath, lUnitPath);
+
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-combined-selectors.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected combined selector apply to succeed for safe edits.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied combined selector status.');
+    Assert.AreEqual(2, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected safe nested and unrelated safe rewrite plans.');
+    lPlan := (lRoot.Values['plannedEdits'] as TJSONArray).Items[0] as TJSONObject;
+    lTemps := lPlan.Values['temps'] as TJSONArray;
+    Assert.AreEqual(4, lTemps.Count, 'Expected outer and inner multiple-selector temps.');
+    Assert.AreEqual('lOuterLeft', (lTemps.Items[0] as TJSONObject).Values['selector'].Value,
+      'Expected first outer selector temp.');
+    Assert.AreEqual('lOuterRight', (lTemps.Items[1] as TJSONObject).Values['selector'].Value,
+      'Expected second outer selector temp.');
+    Assert.AreEqual('lInnerLeft', (lTemps.Items[2] as TJSONObject).Values['selector'].Value,
+      'Expected first inner selector temp.');
+    Assert.AreEqual('lInnerRight', (lTemps.Items[3] as TJSONObject).Values['selector'].Value,
+      'Expected second inner selector temp.');
+
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    lHasAmbiguousOuter := False;
+    lHasAncestorSkippedAmbiguous := False;
+    for i := 0 to lSkipped.Count - 1 do
+    begin
+      lSkippedItem := lSkipped.Items[i] as TJSONObject;
+      if (lSkippedItem.Values['statementId'].Value = 'with-3') and
+        (lSkippedItem.Values['reason'].Value = 'multiple-member-candidates') then
+        lHasAmbiguousOuter := True;
+      if (lSkippedItem.Values['statementId'].Value = 'with-4') and
+        (lSkippedItem.Values['reason'].Value = 'ancestor-with-not-planned') then
+        lHasAncestorSkippedAmbiguous := True;
+    end;
+    Assert.IsTrue(lHasAmbiguousOuter, 'Expected ambiguous nested multiple-selector parent to be skipped.');
+    Assert.IsTrue(lHasAncestorSkippedAmbiguous, 'Expected ambiguous child to stay blocked with its parent.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.AreEqual(1, CountOccurrences(lUnitText, 'with lOuterLeft, lOuterRight do'),
+    'Expected only the ambiguous outer multiple-selector with to remain.');
+  Assert.IsTrue(Pos('with lInnerLeft, lInnerRight do', lUnitText) = 0,
+    'Expected safe inner multiple-selector with to be removed.');
+  Assert.IsTrue(Pos('lWithCombinedOuterRight.SharedOuter := ''outer-right'';', lUnitText) > 0,
+    'Expected rightmost outer selector to win shared member lookup.');
+  Assert.IsTrue(Pos('lWithCombinedOuterLeft.LeftOuterOnly := ''outer-left'';', lUnitText) > 0,
+    'Expected left outer selector member to be qualified.');
+  Assert.IsTrue(Pos('lWithCombinedInnerRight.InnerShared := ''inner-right'';', lUnitText) > 0,
+    'Expected rightmost inner selector to win shared member lookup.');
+  Assert.IsTrue(Pos('lWithCombinedInnerLeft.LeftInnerOnly := ''inner-left'';', lUnitText) > 0,
+    'Expected left inner selector member to be qualified.');
+  Assert.IsTrue(Pos('lWithCombinedInnerRight.RightInnerOnly := ''inner-right'';', lUnitText) > 0,
+    'Expected right inner selector member to be qualified.');
+  Assert.IsTrue(Pos('lWithCombinedOuterRight.RightOuterOnly := ''outer-fallback'';', lUnitText) > 0,
+    'Expected inner body fallback to qualify against the active outer receiver.');
+  Assert.IsTrue(Pos('with lAmbiguous do', lUnitText) > 0,
+    'Expected ambiguous nested child to remain unchanged.');
+  Assert.IsTrue(Pos('Clash();', lUnitText) > 0, 'Expected ambiguous call to remain unchanged.');
+  Assert.IsTrue(Pos('with lSafeLeft, lSafeRight do', lUnitText) = 0,
+    'Expected unrelated safe rewrite in same file to proceed.');
+  Assert.IsTrue(Pos('lWithCombinedOuterRight.RightOuterOnly := ''safe-unrelated'';', lUnitText) > 0,
+    'Expected unrelated safe rewrite to qualify the rightmost safe receiver.');
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-combined-selectors-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited combined selector fixture to build. Output: ' +
+    lBuildOutput);
 end;
 
 function TRemoveWithTransactionTests.CommandExePath: string;
