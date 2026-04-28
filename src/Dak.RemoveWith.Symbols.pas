@@ -590,28 +590,49 @@ var
   lCurrentType: string;
   lInClassVar: Boolean;
   lInConst: Boolean;
+  lInTypeSection: Boolean;
   lLine: string;
   lLower: string;
   lMemberName: string;
   lNames: TArray<string>;
   lPropertyType: string;
   lPropertyTypeEnd: Integer;
+  lRawLine: string;
+  lTopLevelLine: Boolean;
   lTypeName: string;
   i: Integer;
 begin
   lCurrentType := '';
   lInClassVar := False;
   lInConst := False;
+  lInTypeSection := False;
   for i := 0 to High(aLines) do
   begin
-    lLine := CleanLine(aLines[i]);
+    lRawLine := aLines[i];
+    lLine := CleanLine(lRawLine);
     lLower := LowerCase(lLine);
     if lLine = '' then
       Continue;
+    lTopLevelLine := IsTopLevelLine(lRawLine);
+
+    if lTopLevelLine and SameText(lLine, 'type') then
+    begin
+      lInTypeSection := True;
+      Continue;
+    end;
+    if lTopLevelLine and (SameText(lLine, 'implementation') or SameText(lLine, 'const') or
+      SameText(lLine, 'var') or SameText(lLine, 'threadvar') or IsRoutineStart(lLine)) then
+    begin
+      lCurrentType := '';
+      lInTypeSection := False;
+      lInClassVar := False;
+      lInConst := False;
+      Continue;
+    end;
 
     if lCurrentType = '' then
     begin
-      if SameText(lLine, 'type') then
+      if not lInTypeSection then
         Continue;
       if TryTypeStart(CollectTypeStartText(aLines, i), lCurrentType) then
       begin
