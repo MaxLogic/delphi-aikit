@@ -272,7 +272,7 @@ begin
     Exit;
 
   lLower := LowerCase(aLine);
-  if (Pos(' record', lLower) = 0) and (Pos(' class', lLower) = 0) then
+  if (Pos(' record', lLower) = 0) and (Pos(' class', lLower) = 0) and (Pos(' interface', lLower) = 0) then
     Exit;
 
   aName := Trim(Copy(aLine, 1, lEqualsPos - 1));
@@ -316,6 +316,20 @@ begin
     lClosePos := PosEx(')', lText, lStartPos);
     if lClosePos > lStartPos then
       aRelatedTypeName := Trim(Copy(lText, lStartPos, lClosePos - lStartPos));
+    lClosePos := Pos(',', aRelatedTypeName);
+    if lClosePos > 0 then
+      aRelatedTypeName := Trim(Copy(aRelatedTypeName, 1, lClosePos - 1));
+  end;
+  if aRelatedTypeName = '' then
+  begin
+    lStartPos := Pos('interface(', lLower);
+    if lStartPos > 0 then
+    begin
+      Inc(lStartPos, Length('interface('));
+      lClosePos := PosEx(')', lText, lStartPos);
+      if lClosePos > lStartPos then
+        aRelatedTypeName := Trim(Copy(lText, lStartPos, lClosePos - lStartPos));
+    end;
   end;
   Result := aRelatedTypeName <> '';
 end;
@@ -416,7 +430,8 @@ begin
         Result := Result + ' ';
       Result := Result + lLine;
       lText := LowerCase(Result);
-      if (Pos(' class', lText) > 0) or (Pos(' record', lText) > 0) or (Pos(';', lLine) > 0) then
+      if (Pos(' class', lText) > 0) or (Pos(' record', lText) > 0) or (Pos(' interface', lText) > 0) or
+        (Pos(';', lLine) > 0) then
         Exit;
     end;
   end;
