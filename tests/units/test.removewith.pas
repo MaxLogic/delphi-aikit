@@ -5,7 +5,8 @@ interface
 uses
   System.IOUtils, System.JSON, System.SysUtils,
   DUnitX.TestFramework,
-  Dak.RemoveWith.Expressions, Dak.RemoveWith.Symbols, Test.Support;
+  Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
+  Test.Support;
 
 type
   TRemoveWithTestBase = class
@@ -166,6 +167,28 @@ type
     procedure InventoryReportsSourceAvailableHelperMembers;
     [Test]
     procedure InventoryReportsUnsupportedAndExternalHelperCases;
+  end;
+
+  [TestFixture]
+  TRemoveWithResolverTests = class(TRemoveWithTestBase)
+  private
+    procedure BuildResolverFixture(out aInventory: TRemoveWithSymbolInventory;
+      out aScanResult: TRemoveWithScanResult);
+    function CommandExePath: string;
+    function FindClassification(const aResult: TRemoveWithResolverResult; const aStatementId,
+      aIdentifier: string; const aStatus: TRemoveWithIdentifierStatus;
+      out aClassification: TRemoveWithIdentifierClassification): Boolean;
+    function RunResolverFixtureCli(out aExitCode: Cardinal): string;
+    procedure AssertClassification(const aResult: TRemoveWithResolverResult; const aStatementId,
+      aIdentifier: string; const aStatus: TRemoveWithIdentifierStatus; const aReceiverText,
+      aReason: string);
+  public
+    [Test]
+    procedure ResolvesSingleMultipleAndNestedWithScopeStack;
+    [Test]
+    procedure ReportsExternalUnsupportedUnresolvedAndAmbiguousCases;
+    [Test]
+    procedure PlanCliEmitsResolverOnlyClassifications;
   end;
 
 implementation
@@ -358,7 +381,7 @@ begin
     Assert.AreEqual('plan', lRoot.Values['mode'].Value, 'Expected plan mode in report.');
     AssertJsonArrayKey(lRoot, 'withStatements', lChildArray);
     AssertJsonObjectKey(lRoot, 'resolver', lChildObject);
-    AssertJsonArrayKey(lRoot, 'plannedEdits', lChildArray);
+    Assert.IsFalse(Assigned(lRoot.Values['plannedEdits']), 'Resolver-only plan report should not include edits yet.');
     AssertJsonArrayKey(lRoot, 'skipped', lChildArray);
     AssertJsonObjectKey(lRoot, 'verification', lChildObject);
   finally
@@ -1365,6 +1388,158 @@ begin
     'TStringListVisibleHelper', '');
   Assert.IsTrue(FindSymbol(lInventory, 'TStringList', TRemoveWithSymbolKind.rwskExternal, '', '', lSymbol),
     'Expected external helper target to be reported as external.');
+end;
+
+procedure TRemoveWithResolverTests.BuildResolverFixture(out aInventory: TRemoveWithSymbolInventory;
+  out aScanResult: TRemoveWithScanResult);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithResolverFixture\RemoveWithResolverFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+    'Expected resolver fixture inventory build to succeed: ' + lError);
+  Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, aScanResult, lError),
+    'Expected resolver fixture discovery to succeed: ' + lError);
+end;
+
+function TRemoveWithResolverTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+function TRemoveWithResolverTests.FindClassification(const aResult: TRemoveWithResolverResult;
+  const aStatementId, aIdentifier: string; const aStatus: TRemoveWithIdentifierStatus;
+  out aClassification: TRemoveWithIdentifierClassification): Boolean;
+var
+  lClassification: TRemoveWithIdentifierClassification;
+begin
+  Result := False;
+  aClassification := Default(TRemoveWithIdentifierClassification);
+  for lClassification in aResult.fClassifications do
+  begin
+    if SameText(lClassification.fStatementId, aStatementId) and SameText(lClassification.fIdentifier, aIdentifier)
+      and (lClassification.fStatus = aStatus) then
+    begin
+      aClassification := lClassification;
+      Exit(True);
+    end;
+  end;
+end;
+
+function TRemoveWithResolverTests.RunResolverFixtureCli(out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithResolverFixture\RemoveWithResolverFixture.dproj');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-resolver-plan.json');
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
+
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+    aExitCode), 'Failed to start remove-with resolver process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithResolverTests.AssertClassification(const aResult: TRemoveWithResolverResult;
+  const aStatementId, aIdentifier: string; const aStatus: TRemoveWithIdentifierStatus;
+  const aReceiverText, aReason: string);
+var
+  lClassification: TRemoveWithIdentifierClassification;
+begin
+  Assert.IsTrue(FindClassification(aResult, aStatementId, aIdentifier, aStatus, lClassification),
+    'Expected resolver classification ' + aStatementId + ':' + aIdentifier + ':' +
+    RemoveWithIdentifierStatusToText(aStatus));
+  Assert.AreEqual(aReceiverText, lClassification.fReceiverText, 'Unexpected receiver for ' + aIdentifier);
+  Assert.AreEqual(aReason, lClassification.fReason, 'Unexpected reason for ' + aIdentifier);
+  Assert.AreNotEqual(0, lClassification.fLine, 'Expected source line for ' + aIdentifier);
+  Assert.AreNotEqual(0, lClassification.fColumn, 'Expected source column for ' + aIdentifier);
+end;
+
+procedure TRemoveWithResolverTests.ResolvesSingleMultipleAndNestedWithScopeStack;
+var
+  lError: string;
+  lInfo: TRemoveWithSelectorTypeInfo;
+  lInventory: TRemoveWithSymbolInventory;
+  lResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+begin
+  BuildResolverFixture(lInventory, lScanResult);
+
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'TResolverScope.Run', 'lExternal', lInfo),
+    'Expected lExternal selector to be inspected.');
+  Assert.AreEqual(RemoveWithSelectorTypeStatusToText(TRemoveWithSelectorTypeStatus.rwstsExternal),
+    RemoveWithSelectorTypeStatusToText(lInfo.fStatus), 'Expected lExternal selector to be external.');
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'TResolverScope.Run', 'MakeCustomer()', lInfo),
+    'Expected MakeCustomer selector to be inspected.');
+  Assert.AreEqual(RemoveWithSelectorTypeStatusToText(TRemoveWithSelectorTypeStatus.rwstsUnsupported),
+    RemoveWithSelectorTypeStatusToText(lInfo.fStatus), 'Expected MakeCustomer selector to be unsupported.');
+
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResult, lError),
+    'Expected resolver to succeed: ' + lError);
+
+  AssertClassification(lResult, 'with-1', 'Name', TRemoveWithIdentifierStatus.rwisResolved, 'lCustomer', '');
+  AssertClassification(lResult, 'with-1', 'Pick', TRemoveWithIdentifierStatus.rwisResolved, 'lCustomer', '');
+  AssertClassification(lResult, 'with-1', 'Save', TRemoveWithIdentifierStatus.rwisResolved, 'lCustomer', '');
+  AssertClassification(lResult, 'with-1', 'lLocalOnly', TRemoveWithIdentifierStatus.rwisUnchanged, '',
+    'routine-scope');
+  AssertClassification(lResult, 'with-2', 'Shared', TRemoveWithIdentifierStatus.rwisResolved, 'lAddress', '');
+  AssertClassification(lResult, 'with-2', 'City', TRemoveWithIdentifierStatus.rwisResolved, 'lAddress', '');
+  AssertClassification(lResult, 'with-2', 'Name', TRemoveWithIdentifierStatus.rwisResolved, 'lCustomer', '');
+  AssertClassification(lResult, 'with-4', 'City', TRemoveWithIdentifierStatus.rwisResolved, 'Address', '');
+  AssertClassification(lResult, 'with-4', 'Name', TRemoveWithIdentifierStatus.rwisResolved, 'lCustomer', '');
+  AssertClassification(lResult, 'with-6', 'City', TRemoveWithIdentifierStatus.rwisUnsupported, 'AddressProp',
+    'property-selector');
+end;
+
+procedure TRemoveWithResolverTests.ReportsExternalUnsupportedUnresolvedAndAmbiguousCases;
+var
+  lError: string;
+  lInventory: TRemoveWithSymbolInventory;
+  lResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+begin
+  BuildResolverFixture(lInventory, lScanResult);
+
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResult, lError),
+    'Expected resolver to succeed: ' + lError);
+
+  AssertClassification(lResult, 'with-7', 'Count', TRemoveWithIdentifierStatus.rwisExternal, 'lExternal',
+    'type-source-not-indexed');
+  AssertClassification(lResult, 'with-8', 'Name', TRemoveWithIdentifierStatus.rwisUnsupported, 'MakeCustomer()',
+    'call-selector');
+  AssertClassification(lResult, 'with-8', 'Pick', TRemoveWithIdentifierStatus.rwisUnsupported, 'MakeCustomer()',
+    'call-selector');
+  AssertClassification(lResult, 'with-9', 'MissingMember', TRemoveWithIdentifierStatus.rwisUnresolved, '',
+    'symbol-not-found');
+  AssertClassification(lResult, 'with-10', 'Clash', TRemoveWithIdentifierStatus.rwisAmbiguousToDak, 'lDuplicate',
+    'multiple-member-candidates');
+end;
+
+procedure TRemoveWithResolverTests.PlanCliEmitsResolverOnlyClassifications;
+var
+  lExitCode: Cardinal;
+  lOutput: string;
+begin
+  lOutput := RunResolverFixtureCli(lExitCode);
+
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with resolver plan report to succeed.');
+  Assert.IsTrue(Pos('"resolved"', lOutput) > 0, 'Expected resolved classifications in plan output.');
+  Assert.IsTrue(Pos('"unchanged"', lOutput) > 0, 'Expected unchanged classifications in plan output.');
+  Assert.IsTrue(Pos('"ambiguous-to-DAK"', lOutput) > 0, 'Expected ambiguous classifications in plan output.');
+  Assert.IsTrue(Pos('"plannedEdits"', lOutput) = 0, 'Resolver-only plan output must not include plannedEdits.');
 end;
 
 end.

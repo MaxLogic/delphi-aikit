@@ -192,6 +192,7 @@
         <DCCReference Include="..\src\Dak.RemoveWith.Discovery.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Expressions.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Output.pas"/>
+        <DCCReference Include="..\src\Dak.RemoveWith.Resolver.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Source.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Symbols.pas"/>
         <DCCReference Include="..\src\dak.pascalanalyzerrunner.pas"/>

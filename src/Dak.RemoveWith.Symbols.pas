@@ -7,7 +7,7 @@ uses
 
 type
   TRemoveWithSymbolKind = (rwskLocalVariable, rwskParameter, rwskCurrentClassMember, rwskUnitGlobal,
-    rwskTypeMember, rwskField, rwskProperty, rwskMethod, rwskConstant, rwskClassVar, rwskExternal);
+    rwskTypeMember, rwskField, rwskProperty, rwskMethod, rwskConstant, rwskClassVar, rwskRoutine, rwskExternal);
 
   TRemoveWithSymbolInfo = record
     fName: string;
@@ -115,6 +115,8 @@ begin
       Result := 'constant';
     TRemoveWithSymbolKind.rwskClassVar:
       Result := 'class-var';
+    TRemoveWithSymbolKind.rwskRoutine:
+      Result := 'routine';
   else
     Result := 'external';
   end;
@@ -925,6 +927,8 @@ begin
     if not TryRoutineName(lSignature, lRoutineName) then
       Continue;
 
+    AddNamedSymbols(aInventory, [lRoutineName], '', '', '', aUnitName, aFilePath, i + 1, aLines[i],
+      TRemoveWithSymbolKind.rwskRoutine);
     ParseParams(aInventory, aLines, i, lSignature, lRoutineName, aUnitName, aFilePath);
     ParseLocals(aInventory, aLines, i + 1, lRoutineName, aUnitName, aFilePath);
     if TryRoutineOwner(lRoutineName, lOwnerType) then

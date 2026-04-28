@@ -11,7 +11,8 @@ implementation
 
 uses
   System.IOUtils, System.SysUtils,
-  Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Output, Dak.Utils;
+  Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Output, Dak.RemoveWith.Resolver,
+  Dak.RemoveWith.Symbols, Dak.Utils;
 
 function NewRemoveWithRunId: string;
 var
@@ -78,8 +79,10 @@ var
   lOutputText: string;
   lProjectName: string;
   lProjectPath: string;
+  lResolverResult: TRemoveWithResolverResult;
   lRunId: string;
   lScanResult: TRemoveWithScanResult;
+  lSymbolInventory: TRemoveWithSymbolInventory;
   lUnitPath: string;
   lWorkspaceRoot: string;
 begin
@@ -106,13 +109,27 @@ begin
     WriteLn(ErrOutput, lError);
     Exit(cExitToolFailure);
   end;
+  lResolverResult := Default(TRemoveWithResolverResult);
+  if aOptions.fRemoveWithMode <> TRemoveWithMode.rwmScan then
+  begin
+    if not BuildRemoveWithSymbolInventory(aOptions, lSymbolInventory, lError) then
+    begin
+      WriteLn(ErrOutput, lError);
+      Exit(cExitToolFailure);
+    end;
+    if not ResolveRemoveWithIdentifiers(lSymbolInventory, lScanResult, lResolverResult, lError) then
+    begin
+      WriteLn(ErrOutput, lError);
+      Exit(cExitToolFailure);
+    end;
+  end;
 
   if aOptions.fRemoveWithFormat = TRemoveWithFormat.rwfText then
     lOutputText := BuildRemoveWithTextReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
       lScanResult)
   else
     lOutputText := BuildRemoveWithJsonReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
-      lScanResult);
+      lScanResult, lResolverResult);
   WriteRemoveWithOutput(aOptions, lOutputText);
   Result := cExitSuccess;
 end;
