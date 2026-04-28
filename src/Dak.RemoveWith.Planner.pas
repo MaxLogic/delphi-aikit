@@ -50,6 +50,11 @@ type
     fDecision: TRemoveWithTempDecision;
   end;
 
+  TRemoveWithNestedReplacement = record
+    fOffsets: TRemoveWithPlanOffsetRange;
+    fReplacementText: string;
+  end;
+
   TRemoveWithPlanner = record
   private
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
@@ -73,8 +78,14 @@ type
       const aSource: TRemoveWithSourceBuffer; const aStatement: TRemoveWithStatementInfo;
       const aRoutineName: string; const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
       out aEdit: TRemoveWithPlannedTextEdit): Boolean; static;
-    class function HasNestedWith(const aScanResult: TRemoveWithScanResult;
+    class function HasPlannedAncestorWith(const aScanResult: TRemoveWithScanResult;
+      const aPlanResult: TRemoveWithPlanResult; const aStatement: TRemoveWithStatementInfo): Boolean; static;
+    class function HasAncestorWith(const aScanResult: TRemoveWithScanResult;
       const aStatement: TRemoveWithStatementInfo): Boolean; static;
+    class function IsDirectNestedStatement(const aScanResult: TRemoveWithScanResult;
+      const aOuter, aInner: TRemoveWithStatementInfo): Boolean; static;
+    class function NestedReplacementAtOffset(const aNestedReplacements: TArray<TRemoveWithNestedReplacement>;
+      const aOffset: Integer; out aNestedReplacement: TRemoveWithNestedReplacement): Boolean; static;
     class function FindClassification(const aResolverResult: TRemoveWithResolverResult; const aStatementId,
       aIdentifier: string; const aLine, aColumn: Integer;
       out aClassification: TRemoveWithIdentifierClassification): Boolean; static;
@@ -88,14 +99,23 @@ type
       const aDecision: TRemoveWithTempDecision); static;
     class procedure AddSelectorTemp(var aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
       const aSelectorTemp: TRemoveWithSelectorTemp); static;
+    class procedure AddSelectorTemps(var aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
+      const aSourceTemps: TArray<TRemoveWithSelectorTemp>); static;
     class procedure SkipStatement(var aPlanResult: TRemoveWithPlanResult; const aStatement: TRemoveWithStatementInfo;
       const aReason: string); static;
     class function BuildSelectorTemps(const aInventory: TRemoveWithSymbolInventory;
       const aStatement: TRemoveWithStatementInfo; const aRoutineName: string;
       out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean; static;
     class function RewrittenBodyText(const aSource: TRemoveWithSourceBuffer;
-      const aStatement: TRemoveWithStatementInfo; const aResolverResult: TRemoveWithResolverResult;
+      const aStatement: TRemoveWithStatementInfo;
+      const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aResolverResult: TRemoveWithResolverResult;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText, aReason: string): Boolean; static;
+    class function BuildStatementReplacement(const aInventory: TRemoveWithSymbolInventory;
+      const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
+      const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
+      const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>;
+      out aReplacementText: string;
+      out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean; static;
     class procedure PlanStatement(const aInventory: TRemoveWithSymbolInventory;
       const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
       const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
@@ -425,17 +445,73 @@ begin
   Result := True;
 end;
 
-class function TRemoveWithPlanner.HasNestedWith(const aScanResult: TRemoveWithScanResult;
+class function TRemoveWithPlanner.HasPlannedAncestorWith(const aScanResult: TRemoveWithScanResult;
+  const aPlanResult: TRemoveWithPlanResult; const aStatement: TRemoveWithStatementInfo): Boolean;
+var
+  lPlannedStatement: TRemoveWithPlannedStatement;
+  lStatement: TRemoveWithStatementInfo;
+begin
+  for lPlannedStatement in aPlanResult.fStatements do
+  begin
+    if lPlannedStatement.fStatus <> 'planned' then
+      Continue;
+    for lStatement in aScanResult.fWithStatements do
+    begin
+      if SameText(lStatement.fId, lPlannedStatement.fStatementId) and StatementContains(lStatement, aStatement) then
+        Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+class function TRemoveWithPlanner.HasAncestorWith(const aScanResult: TRemoveWithScanResult;
   const aStatement: TRemoveWithStatementInfo): Boolean;
 var
   lStatement: TRemoveWithStatementInfo;
 begin
   for lStatement in aScanResult.fWithStatements do
   begin
-    if StatementContains(aStatement, lStatement) then
+    if StatementContains(lStatement, aStatement) then
       Exit(True);
   end;
   Result := False;
+end;
+
+class function TRemoveWithPlanner.IsDirectNestedStatement(const aScanResult: TRemoveWithScanResult;
+  const aOuter, aInner: TRemoveWithStatementInfo): Boolean;
+var
+  lStatement: TRemoveWithStatementInfo;
+begin
+  Result := False;
+  if not StatementContains(aOuter, aInner) then
+    Exit;
+
+  for lStatement in aScanResult.fWithStatements do
+  begin
+    if SameText(lStatement.fId, aOuter.fId) or SameText(lStatement.fId, aInner.fId) then
+      Continue;
+    if StatementContains(aOuter, lStatement) and StatementContains(lStatement, aInner) then
+      Exit(False);
+  end;
+  Result := True;
+end;
+
+class function TRemoveWithPlanner.NestedReplacementAtOffset(
+  const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aOffset: Integer;
+  out aNestedReplacement: TRemoveWithNestedReplacement): Boolean;
+var
+  lReplacement: TRemoveWithNestedReplacement;
+begin
+  Result := False;
+  aNestedReplacement := Default(TRemoveWithNestedReplacement);
+  for lReplacement in aNestedReplacements do
+  begin
+    if (aOffset >= lReplacement.fOffsets.fStartOffset) and (aOffset <= lReplacement.fOffsets.fEndOffset) then
+    begin
+      aNestedReplacement := lReplacement;
+      Exit(True);
+    end;
+  end;
 end;
 
 class function TRemoveWithPlanner.FindClassification(const aResolverResult: TRemoveWithResolverResult;
@@ -516,6 +592,15 @@ begin
   aSelectorTemps[lIndex] := aSelectorTemp;
 end;
 
+class procedure TRemoveWithPlanner.AddSelectorTemps(var aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
+  const aSourceTemps: TArray<TRemoveWithSelectorTemp>);
+var
+  lSelectorTemp: TRemoveWithSelectorTemp;
+begin
+  for lSelectorTemp in aSourceTemps do
+    AddSelectorTemp(aSelectorTemps, lSelectorTemp);
+end;
+
 class procedure TRemoveWithPlanner.SkipStatement(var aPlanResult: TRemoveWithPlanResult;
   const aStatement: TRemoveWithStatementInfo; const aReason: string);
 var
@@ -567,7 +652,8 @@ begin
 end;
 
 class function TRemoveWithPlanner.RewrittenBodyText(const aSource: TRemoveWithSourceBuffer;
-  const aStatement: TRemoveWithStatementInfo; const aResolverResult: TRemoveWithResolverResult;
+  const aStatement: TRemoveWithStatementInfo;
+  const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aResolverResult: TRemoveWithResolverResult;
   const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText, aReason: string): Boolean;
 var
   lBodyOffsets: TRemoveWithPlanOffsetRange;
@@ -575,8 +661,10 @@ var
   lIdentifier: string;
   lLine: Integer;
   lColumn: Integer;
+  lNestedReplacement: TRemoveWithNestedReplacement;
   lOffset: Integer;
   lQualifierText: string;
+  lRelativeStart: Integer;
   lSelectorTemp: TRemoveWithSelectorTemp;
   i: Integer;
 begin
@@ -593,6 +681,16 @@ begin
   i := Length(aReplacementText);
   while i >= 1 do
   begin
+    if NestedReplacementAtOffset(aNestedReplacements, lBodyOffsets.fStartOffset + i, lNestedReplacement) then
+    begin
+      lRelativeStart := lNestedReplacement.fOffsets.fStartOffset - lBodyOffsets.fStartOffset + 1;
+      Delete(aReplacementText, lRelativeStart,
+        lNestedReplacement.fOffsets.fEndOffset - lNestedReplacement.fOffsets.fStartOffset + 1);
+      Insert(lNestedReplacement.fReplacementText, aReplacementText, lRelativeStart);
+      i := lRelativeStart - 2;
+      Continue;
+    end;
+
     if not CharInSet(aReplacementText[i], ['A'..'Z', 'a'..'z', '_']) then
     begin
       Dec(i);
@@ -630,6 +728,75 @@ begin
   Result := True;
 end;
 
+class function TRemoveWithPlanner.BuildStatementReplacement(const aInventory: TRemoveWithSymbolInventory;
+  const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
+  const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
+  const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText: string;
+  out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean;
+var
+  lChildReplacementText: string;
+  lChildTemps: TArray<TRemoveWithSelectorTemp>;
+  lCurrentTemps: TArray<TRemoveWithSelectorTemp>;
+  lEditRange: TRemoveWithRange;
+  lIndex: Integer;
+  lNestedStatements: TArray<TRemoveWithStatementInfo>;
+  lReplacement: TRemoveWithNestedReplacement;
+  lReplacements: TArray<TRemoveWithNestedReplacement>;
+  lStatement: TRemoveWithStatementInfo;
+  lVisibleTemps: TArray<TRemoveWithSelectorTemp>;
+begin
+  Result := False;
+  aReplacementText := '';
+  aSelectorTemps := nil;
+  aReason := '';
+
+  if not StatementIsStandalone(aSource, aStatement, aReason) then
+    Exit;
+  if not BuildSelectorTemps(aInventory, aStatement, aRoutineName, lCurrentTemps, aReason) then
+    Exit;
+  AddSelectorTemps(lVisibleTemps, aInheritedTemps);
+  AddSelectorTemps(lVisibleTemps, lCurrentTemps);
+
+  for lStatement in aScanResult.fWithStatements do
+  begin
+    if not IsDirectNestedStatement(aScanResult, aStatement, lStatement) then
+      Continue;
+    lIndex := Length(lNestedStatements);
+    SetLength(lNestedStatements, lIndex + 1);
+    lNestedStatements[lIndex] := lStatement;
+  end;
+
+  AddSelectorTemps(aSelectorTemps, lCurrentTemps);
+  for lStatement in lNestedStatements do
+  begin
+    if not BuildStatementReplacement(aInventory, aScanResult, aResolverResult, lStatement, aSource, aRoutineName,
+      lVisibleTemps, lChildReplacementText, lChildTemps, aReason) then
+      Exit;
+
+    lEditRange := lStatement.fRange;
+    lEditRange.fStartColumn := 1;
+    lReplacement := Default(TRemoveWithNestedReplacement);
+    if not RangeOffsets(aSource, lEditRange, lReplacement.fOffsets) then
+    begin
+      aReason := 'nested-statement-range-not-resolved';
+      Exit;
+    end;
+    lReplacement.fReplacementText := lChildReplacementText;
+    lIndex := Length(lReplacements);
+    SetLength(lReplacements, lIndex + 1);
+    lReplacements[lIndex] := lReplacement;
+    AddSelectorTemps(aSelectorTemps, lChildTemps);
+  end;
+
+  if not RewrittenBodyText(aSource, aStatement, lReplacements, aResolverResult, lVisibleTemps,
+    aReplacementText, aReason) then
+    Exit;
+
+  aReplacementText := TempInitializationText(aStatement, lCurrentTemps) + IndentText(aStatement.fColumn) +
+    aReplacementText;
+  Result := True;
+end;
+
 class procedure TRemoveWithPlanner.PlanStatement(const aInventory: TRemoveWithSymbolInventory;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
@@ -644,26 +811,10 @@ var
   lSelectorTemp: TRemoveWithSelectorTemp;
   lSelectorTemps: TArray<TRemoveWithSelectorTemp>;
 begin
-  if HasNestedWith(aScanResult, aStatement) then
-  begin
-    SkipStatement(aPlanResult, aStatement, 'nested-with-not-planned');
-    Exit;
-  end;
-  if not StatementIsStandalone(aSource, aStatement, lReason) then
-  begin
-    SkipStatement(aPlanResult, aStatement, lReason);
-    Exit;
-  end;
-
   if not FindRoutineForStatement(aInventory, aStatement, lRoutineName) then
     lRoutineName := '';
-  if not BuildSelectorTemps(aInventory, aStatement, lRoutineName, lSelectorTemps, lReason) then
-  begin
-    SkipStatement(aPlanResult, aStatement, lReason);
-    Exit;
-  end;
-
-  if not RewrittenBodyText(aSource, aStatement, aResolverResult, lSelectorTemps, lReplacementText, lReason) then
+  if not BuildStatementReplacement(aInventory, aScanResult, aResolverResult, aStatement, aSource, lRoutineName, nil,
+    lReplacementText, lSelectorTemps, lReason) then
   begin
     SkipStatement(aPlanResult, aStatement, lReason);
     Exit;
@@ -673,8 +824,7 @@ begin
   lPlannedStatement.fStatementId := aStatement.fId;
   lPlannedStatement.fFilePath := aStatement.fFilePath;
   lPlannedStatement.fStatus := 'planned';
-  lPlannedStatement.fReplacementText := TempInitializationText(aStatement, lSelectorTemps) +
-    IndentText(aStatement.fColumn) + lReplacementText;
+  lPlannedStatement.fReplacementText := lReplacementText;
   for lSelectorTemp in lSelectorTemps do
     AddTemp(lPlannedStatement, lSelectorTemp.fDecision);
 
@@ -708,6 +858,13 @@ begin
   try
     for lStatement in aScanResult.fWithStatements do
     begin
+      if HasPlannedAncestorWith(aScanResult, aPlanResult, lStatement) then
+        Continue;
+      if HasAncestorWith(aScanResult, lStatement) then
+      begin
+        SkipStatement(aPlanResult, lStatement, 'ancestor-with-not-planned');
+        Continue;
+      end;
       if not SameText(lCurrentPath, lStatement.fFilePath) then
       begin
         if not LoadRemoveWithSource(lStatement.fFilePath, lSource, aError) then

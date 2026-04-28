@@ -315,6 +315,10 @@ type
     procedure BeginEndAndSingleStatementBodiesRewriteSafely;
     [Test]
     procedure MultipleSelectorsRewriteWithCompilerPrecedence;
+    [Test]
+    procedure NestedWithBodiesRewriteByScopeStack;
+    [Test]
+    procedure ControlledNestedWithStatementsRemainSkipped;
   end;
 
   [TestFixture]
@@ -2819,6 +2823,116 @@ begin
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-multiple-selectors-build.log', lBuildExitCode);
   Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited multiple-selector fixture to build. Output: ' +
     lBuildOutput);
+end;
+
+procedure TRemoveWithRewriteShapeTests.NestedWithBodiesRewriteByScopeStack;
+var
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lPlan: TJSONObject;
+  lRoot: TJSONObject;
+  lTemps: TJSONArray;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CopyFixtureToTemp('RemoveWithNestedRewriteFixture', 'remove-with-nested-rewrite', 'NestedWithUnit.pas',
+    lDprojPath, lUnitPath);
+
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-nested-rewrite.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected nested rewrite apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied nested rewrite status.');
+    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected one outer rewrite plan containing the nested rewrite.');
+    lPlan := (lRoot.Values['plannedEdits'] as TJSONArray).Items[0] as TJSONObject;
+    lTemps := lPlan.Values['temps'] as TJSONArray;
+    Assert.AreEqual(2, lTemps.Count, 'Expected outer and inner selector temps.');
+    Assert.AreEqual('lOuter', (lTemps.Items[0] as TJSONObject).Values['selector'].Value,
+      'Expected first temp to capture the outer receiver.');
+    Assert.AreEqual('lInner', (lTemps.Items[1] as TJSONObject).Values['selector'].Value,
+      'Expected second temp to capture the inner receiver.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('with lOuter do', lUnitText) = 0, 'Expected outer with statement to be removed.');
+  Assert.IsTrue(Pos('with lInner do', lUnitText) = 0, 'Expected inner with statement to be removed.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, 'lWithNestedOuter := lOuter;'),
+    'Expected outer selector to be captured exactly once.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, 'lWithNestedInner := lInner;'),
+    'Expected inner selector to be captured exactly once.');
+  Assert.IsTrue(Pos('lWithNestedOuter.Shared := lMarker;', lUnitText) > 0,
+    'Expected outer body member to qualify against the outer receiver.');
+  Assert.IsTrue(Pos('lWithNestedInner.Shared := lMarker;', lUnitText) > 0,
+    'Expected inner receiver to win shared member lookup.');
+  Assert.IsTrue(Pos('lWithNestedInner.InnerOnly := lWithNestedInner.Shared;', lUnitText) > 0,
+    'Expected inner-only and repeated inner identifiers to qualify against the inner receiver.');
+  Assert.IsTrue(Pos('lWithNestedOuter.OuterOnly := ''outer-from-inner'';', lUnitText) > 0,
+    'Expected unresolved-in-inner member to fall back to the outer receiver.');
+  Assert.IsTrue(Pos('lWithNestedOuter.OuterOnly := lMarker;', lUnitText) > 0,
+    'Expected outer member after the nested body to remain in order.');
+  Assert.IsTrue(Pos('lMarker := ''between'';', lUnitText) > 0,
+    'Expected local statement before the nested body to remain unqualified.');
+  Assert.IsTrue(Pos('lMarker := ''after-inner'';', lUnitText) > 0,
+    'Expected local statement after the nested body to remain unqualified.');
+  Assert.IsTrue(Pos('lMarker := ''after'';', lUnitText) > 0,
+    'Expected statement after the outer with body to remain in place.');
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-nested-rewrite-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited nested rewrite fixture to build. Output: ' +
+    lBuildOutput);
+end;
+
+procedure TRemoveWithRewriteShapeTests.ControlledNestedWithStatementsRemainSkipped;
+var
+  i: Integer;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lHasAncestorSkippedInner: Boolean;
+  lHasControlledOuter: Boolean;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lSkippedItem: TJSONObject;
+  lUnitPath: string;
+  lUnitTextAfter: string;
+  lUnitTextBefore: string;
+begin
+  CopyFixtureToTemp('RemoveWithNestedControlledRewriteFixture', 'remove-with-nested-controlled-rewrite',
+    'NestedControlledUnit.pas', lDprojPath, lUnitPath);
+  lUnitTextBefore := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-nested-controlled-rewrite.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected controlled nested rewrite apply to finish without edits.');
+    Assert.AreEqual(0, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected no planned edits for controlled nested with statements.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(2, lSkipped.Count, 'Expected outer and inner controlled nested with statements to be skipped.');
+    lHasControlledOuter := False;
+    lHasAncestorSkippedInner := False;
+    for i := 0 to lSkipped.Count - 1 do
+    begin
+      lSkippedItem := lSkipped.Items[i] as TJSONObject;
+      if (lSkippedItem.Values['statementId'].Value = 'with-1') and
+        (lSkippedItem.Values['reason'].Value = 'controlled-with-statement') then
+        lHasControlledOuter := True;
+      if (lSkippedItem.Values['statementId'].Value = 'with-2') and
+        (lSkippedItem.Values['reason'].Value = 'ancestor-with-not-planned') then
+        lHasAncestorSkippedInner := True;
+    end;
+    Assert.IsTrue(lHasControlledOuter, 'Expected outer nested rewrite to be blocked by controlled child.');
+    Assert.IsTrue(lHasAncestorSkippedInner, 'Expected inner nested rewrite to be skipped with its unplanned ancestor.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitTextAfter := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.AreEqual(lUnitTextBefore, lUnitTextAfter, 'Expected controlled nested fixture source to remain unchanged.');
+  Assert.IsTrue(Pos('if lCondition then', lUnitTextAfter) > 0, 'Expected controlling statement to remain.');
+  Assert.IsTrue(Pos('with lInner do', lUnitTextAfter) > 0, 'Expected controlled inner with to remain.');
 end;
 
 function TRemoveWithTransactionTests.CommandExePath: string;
