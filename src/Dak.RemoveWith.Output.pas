@@ -3,15 +3,15 @@ unit Dak.RemoveWith.Output;
 interface
 
 uses
-  Dak.RemoveWith.Discovery, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
-  Dak.Types;
+  Dak.RemoveWith.Discovery, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
+  Dak.RemoveWith.TempPolicy, Dak.Types;
 
 function RemoveWithModeToText(const aMode: TRemoveWithMode): string;
 function RemoveWithFormatToText(const aFormat: TRemoveWithFormat): string;
 function RemoveWithTargetKindToText(const aKind: TRemoveWithTargetKind): string;
 function BuildRemoveWithJsonReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
-  const aResolverResult: TRemoveWithResolverResult): string;
+  const aResolverResult: TRemoveWithResolverResult; const aPlanResult: TRemoveWithPlanResult): string;
 function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult): string;
 
@@ -222,22 +222,120 @@ begin
   end;
 end;
 
-function BuildSummaryObject(const aOptions: TAppOptions; const aScanResult: TRemoveWithScanResult): TJSONObject;
+function BuildPlannedEditRangeObject(const aRange: TRemoveWithRange): TJSONObject;
 begin
+  Result := TJSONObject.Create;
+  Result.AddPair('startLine', TJSONNumber.Create(aRange.fStartLine));
+  Result.AddPair('startColumn', TJSONNumber.Create(aRange.fStartColumn));
+  Result.AddPair('endLine', TJSONNumber.Create(aRange.fEndLine));
+  Result.AddPair('endColumn', TJSONNumber.Create(aRange.fEndColumn));
+end;
+
+function BuildTempDecisionObject(const aDecision: TRemoveWithTempDecision): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('selector', aDecision.fSelectorText);
+  Result.AddPair('strategy', RemoveWithTempStrategyToText(aDecision.fStrategy));
+  Result.AddPair('receiverType', aDecision.fReceiverType);
+  Result.AddPair('tempName', aDecision.fTempName);
+  Result.AddPair('declaration', aDecision.fDeclarationText);
+  Result.AddPair('initialization', aDecision.fInitializationText);
+  Result.AddPair('qualifier', aDecision.fQualifierText);
+  Result.AddPair('reason', aDecision.fReason);
+end;
+
+function BuildPlannedEditsArray(const aPlanResult: TRemoveWithPlanResult): TJSONArray;
+var
+  lEdit: TRemoveWithPlannedTextEdit;
+  lEditObject: TJSONObject;
+  lEdits: TJSONArray;
+  lStatement: TRemoveWithPlannedStatement;
+  lTemp: TRemoveWithTempDecision;
+  lTemps: TJSONArray;
+begin
+  Result := TJSONArray.Create;
+  for lStatement in aPlanResult.fStatements do
+  begin
+    if lStatement.fStatus <> 'planned' then
+      Continue;
+
+    lEdits := TJSONArray.Create;
+    for lEdit in lStatement.fEdits do
+    begin
+      lEditObject := TJSONObject.Create;
+      lEditObject.AddPair('kind', lEdit.fKind);
+      lEditObject.AddPair('file', lEdit.fFilePath);
+      lEditObject.AddPair('statementId', lEdit.fStatementId);
+      lEditObject.AddPair('range', BuildPlannedEditRangeObject(lEdit.fRange));
+      lEditObject.AddPair('replacementText', lEdit.fReplacementText);
+      lEdits.AddElement(lEditObject);
+    end;
+
+    lTemps := TJSONArray.Create;
+    for lTemp in lStatement.fTemps do
+      lTemps.AddElement(BuildTempDecisionObject(lTemp));
+
+    Result.AddElement(TJSONObject.Create
+      .AddPair('statementId', lStatement.fStatementId)
+      .AddPair('file', lStatement.fFilePath)
+      .AddPair('status', lStatement.fStatus)
+      .AddPair('replacementText', lStatement.fReplacementText)
+      .AddPair('temps', lTemps)
+      .AddPair('edits', lEdits));
+  end;
+end;
+
+function BuildSkippedArray(const aPlanResult: TRemoveWithPlanResult): TJSONArray;
+var
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  Result := TJSONArray.Create;
+  for lStatement in aPlanResult.fStatements do
+  begin
+    if lStatement.fStatus <> 'skipped' then
+      Continue;
+    Result.AddElement(TJSONObject.Create
+      .AddPair('statementId', lStatement.fStatementId)
+      .AddPair('file', lStatement.fFilePath)
+      .AddPair('reason', lStatement.fReason));
+  end;
+end;
+
+procedure CountPlanResult(const aPlanResult: TRemoveWithPlanResult; out aPlannedCount, aSkippedCount: Integer);
+var
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  aPlannedCount := 0;
+  aSkippedCount := 0;
+  for lStatement in aPlanResult.fStatements do
+  begin
+    if lStatement.fStatus = 'planned' then
+      Inc(aPlannedCount)
+    else if lStatement.fStatus = 'skipped' then
+      Inc(aSkippedCount);
+  end;
+end;
+
+function BuildSummaryObject(const aScanResult: TRemoveWithScanResult; const aPlanResult: TRemoveWithPlanResult):
+  TJSONObject;
+var
+  lPlannedCount: Integer;
+  lSkippedCount: Integer;
+begin
+  CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount);
   Result := TJSONObject.Create;
   Result.AddPair('filesScanned', TJSONNumber.Create(Length(aScanResult.fFiles)));
   Result.AddPair('withStatements', TJSONNumber.Create(Length(aScanResult.fWithStatements)));
-  if aOptions.fRemoveWithMode <> TRemoveWithMode.rwmPlan then
-    Result.AddPair('plannedEdits', TJSONNumber.Create(0));
+  Result.AddPair('plannedEdits', TJSONNumber.Create(lPlannedCount));
   Result.AddPair('appliedEdits', TJSONNumber.Create(0));
-  Result.AddPair('skipped', TJSONNumber.Create(0));
+  Result.AddPair('skipped', TJSONNumber.Create(lSkippedCount));
   Result.AddPair('failed', TJSONNumber.Create(0));
   Result.AddPair('rolledBack', TJSONNumber.Create(0));
 end;
 
 function BuildRemoveWithJsonReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
-  const aResolverResult: TRemoveWithResolverResult): string;
+  const aResolverResult: TRemoveWithResolverResult; const aPlanResult: TRemoveWithPlanResult): string;
 var
   lRoot: TJSONObject;
 begin
@@ -255,12 +353,11 @@ begin
     lRoot.AddPair('files', BuildFilesArray(aScanResult));
     lRoot.AddPair('withStatements', BuildWithStatementsArray(aScanResult));
     lRoot.AddPair('resolver', BuildResolverObject(aResolverResult));
-    if aOptions.fRemoveWithMode <> TRemoveWithMode.rwmPlan then
-      lRoot.AddPair('plannedEdits', TJSONArray.Create);
-    lRoot.AddPair('skipped', TJSONArray.Create);
+    lRoot.AddPair('plannedEdits', BuildPlannedEditsArray(aPlanResult));
+    lRoot.AddPair('skipped', BuildSkippedArray(aPlanResult));
     lRoot.AddPair('warnings', BuildWarningsArray(aScanResult));
     lRoot.AddPair('verification', BuildVerificationObject);
-    lRoot.AddPair('summary', BuildSummaryObject(aOptions, aScanResult));
+    lRoot.AddPair('summary', BuildSummaryObject(aScanResult, aPlanResult));
     Result := lRoot.ToJSON;
   finally
     lRoot.Free;

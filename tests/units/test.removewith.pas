@@ -5,8 +5,8 @@ interface
 uses
   System.IOUtils, System.JSON, System.SysUtils,
   DUnitX.TestFramework,
-  Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
-  Dak.RemoveWith.TempPolicy, Test.Support;
+  Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver,
+  Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy, Test.Support;
 
 type
   TRemoveWithTestBase = class
@@ -273,6 +273,21 @@ type
     procedure ReservesGeneratedNamesAcrossSequentialPlans;
   end;
 
+  [TestFixture]
+  TRemoveWithPlannerTests = class(TRemoveWithTestBase)
+  private
+    procedure BuildPlannerFixture(out aInventory: TRemoveWithSymbolInventory; out aScanResult: TRemoveWithScanResult;
+      out aResolverResult: TRemoveWithResolverResult; out aPlanResult: TRemoveWithPlanResult);
+    function CommandExePath: string;
+    function FindPlannedStatement(const aPlanResult: TRemoveWithPlanResult; const aStatementId: string;
+      out aStatement: TRemoveWithPlannedStatement): Boolean;
+  public
+    [Test]
+    procedure PlansSafeRecordAndClassRewritesAndSkipsUnsafeSelectors;
+    [Test]
+    procedure PlanCliEmitsPlannedEditsWithoutChangingFixture;
+  end;
+
 implementation
 
 uses
@@ -463,9 +478,11 @@ begin
     Assert.AreEqual('plan', lRoot.Values['mode'].Value, 'Expected plan mode in report.');
     AssertJsonArrayKey(lRoot, 'withStatements', lChildArray);
     AssertJsonObjectKey(lRoot, 'resolver', lChildObject);
-    Assert.IsFalse(Assigned(lRoot.Values['plannedEdits']), 'Resolver-only plan report should not include edits yet.');
+    AssertJsonArrayKey(lRoot, 'plannedEdits', lChildArray);
     AssertJsonArrayKey(lRoot, 'skipped', lChildArray);
     AssertJsonObjectKey(lRoot, 'verification', lChildObject);
+    AssertJsonObjectKey(lRoot, 'summary', lChildObject);
+    AssertJsonNumberKey(lChildObject, 'plannedEdits');
   finally
     lJson.Free;
   end;
@@ -1621,7 +1638,7 @@ begin
   Assert.IsTrue(Pos('"resolved"', lOutput) > 0, 'Expected resolved classifications in plan output.');
   Assert.IsTrue(Pos('"unchanged"', lOutput) > 0, 'Expected unchanged classifications in plan output.');
   Assert.IsTrue(Pos('"ambiguous-to-DAK"', lOutput) > 0, 'Expected ambiguous classifications in plan output.');
-  Assert.IsTrue(Pos('"plannedEdits"', lOutput) = 0, 'Resolver-only plan output must not include plannedEdits.');
+  Assert.IsTrue(Pos('"plannedEdits"', lOutput) > 0, 'Expected plannedEdits key in plan output.');
 end;
 
 function TRemoveWithInheritedOverrideGoldenTests.CommandExePath: string;
@@ -2220,6 +2237,146 @@ begin
   Assert.IsTrue(PlanRemoveWithTempPolicy(lInventory, 'TTempPolicyScope.Run', 'lObjects[lIndex]', lReservedNames,
     lDecision), 'Expected second object selector to produce a temp decision.');
   Assert.AreEqual('lWithTempPolicyClass1', lDecision.fTempName, 'Expected second class temp name.');
+end;
+
+procedure TRemoveWithPlannerTests.BuildPlannerFixture(out aInventory: TRemoveWithSymbolInventory;
+  out aScanResult: TRemoveWithScanResult; out aResolverResult: TRemoveWithResolverResult;
+  out aPlanResult: TRemoveWithPlanResult);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithPlannerFixture\RemoveWithPlannerFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, aScanResult, lError),
+    'Expected planner fixture discovery to succeed: ' + lError);
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+    'Expected planner fixture inventory build to succeed: ' + lError);
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(aInventory, aScanResult, aResolverResult, lError),
+    'Expected planner fixture resolver to succeed: ' + lError);
+  Assert.IsTrue(PlanRemoveWithRewrites(aInventory, aScanResult, aResolverResult, aPlanResult, lError),
+    'Expected planner fixture planning to succeed: ' + lError);
+end;
+
+function TRemoveWithPlannerTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+function TRemoveWithPlannerTests.FindPlannedStatement(const aPlanResult: TRemoveWithPlanResult;
+  const aStatementId: string; out aStatement: TRemoveWithPlannedStatement): Boolean;
+var
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  Result := False;
+  aStatement := Default(TRemoveWithPlannedStatement);
+  for lStatement in aPlanResult.fStatements do
+  begin
+    if SameText(lStatement.fStatementId, aStatementId) then
+    begin
+      aStatement := lStatement;
+      Exit(True);
+    end;
+  end;
+end;
+
+procedure TRemoveWithPlannerTests.PlansSafeRecordAndClassRewritesAndSkipsUnsafeSelectors;
+var
+  lInventory: TRemoveWithSymbolInventory;
+  lPlanResult: TRemoveWithPlanResult;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  BuildPlannerFixture(lInventory, lScanResult, lResolverResult, lPlanResult);
+
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-1', lStatement), 'Expected record statement plan.');
+  Assert.AreEqual('planned', lStatement.fStatus, 'Expected record statement to be planned.');
+  Assert.IsTrue(Pos('lWithPlannerRecordPtr^.Name', lStatement.fReplacementText) > 0,
+    'Expected record member qualification in replacement text.');
+  Assert.IsTrue(Pos('lWithPlannerRecordPtr := @lRecord;', lStatement.fReplacementText) > 0,
+    'Expected record temp initialization in replacement text.');
+  Assert.IsTrue(Pos('lWithPlannerRecordPtr^.Count := lWithPlannerRecordPtr^.Count + 1',
+    lStatement.fReplacementText) > 0, 'Expected repeated record member qualification in replacement text.');
+  Assert.AreEqual(1, Length(lStatement.fTemps), 'Expected record pointer temp.');
+  Assert.AreEqual('record-pointer-temp', RemoveWithTempStrategyToText(lStatement.fTemps[0].fStrategy),
+    'Expected record pointer temp strategy.');
+  Assert.AreEqual('declare-temp', lStatement.fEdits[0].fKind, 'Expected record temp declaration edit.');
+  Assert.IsTrue(Pos('lWithPlannerRecordPtr: ^TPlannerRecord;', lStatement.fEdits[0].fReplacementText) > 0,
+    'Expected record temp declaration text.');
+
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-2', lStatement), 'Expected object statement plan.');
+  Assert.AreEqual('planned', lStatement.fStatus, 'Expected object statement to be planned.');
+  Assert.IsTrue(Pos('lWithPlannerObject.Name', lStatement.fReplacementText) > 0,
+    'Expected object member qualification in replacement text.');
+  Assert.IsTrue(Pos('lWithPlannerObject := lObject;', lStatement.fReplacementText) > 0,
+    'Expected object temp initialization in replacement text.');
+  Assert.AreEqual('reference-temp', RemoveWithTempStrategyToText(lStatement.fTemps[0].fStrategy),
+    'Expected object reference temp strategy.');
+
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-3', lStatement), 'Expected property statement result.');
+  Assert.AreEqual('skipped', lStatement.fStatus, 'Expected property selector to be skipped.');
+  Assert.AreEqual('property-selector', lStatement.fReason, 'Expected property selector skip reason.');
+
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-4', lStatement), 'Expected call statement result.');
+  Assert.AreEqual('skipped', lStatement.fStatus, 'Expected call selector to be skipped.');
+  Assert.AreEqual('call-selector', lStatement.fReason, 'Expected call selector skip reason.');
+
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-5', lStatement), 'Expected controlled statement result.');
+  Assert.AreEqual('skipped', lStatement.fStatus, 'Expected controlled with to be skipped.');
+  Assert.AreEqual('controlled-with-statement', lStatement.fReason, 'Expected controlled with skip reason.');
+
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-6', lStatement), 'Expected case-label statement result.');
+  Assert.AreEqual('skipped', lStatement.fStatus, 'Expected case-label with to be skipped.');
+  Assert.AreEqual('controlled-with-statement', lStatement.fReason, 'Expected case-label with skip reason.');
+
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-7', lStatement), 'Expected pointer statement plan.');
+  Assert.AreEqual('planned', lStatement.fStatus, 'Expected pointer statement to be planned.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name', lStatement.fReplacementText) > 0,
+    'Expected direct pointer qualification in replacement text.');
+  Assert.AreEqual(0, Length(lStatement.fTemps), 'Expected no temp declaration for direct pointer qualification.');
+  Assert.AreEqual(1, Length(lStatement.fEdits), 'Expected only replacement edit for direct pointer qualification.');
+  Assert.AreEqual('replace-statement', lStatement.fEdits[0].fKind,
+    'Expected no declaration edit for direct pointer qualification.');
+end;
+
+procedure TRemoveWithPlannerTests.PlanCliEmitsPlannedEditsWithoutChangingFixture;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lOutput: string;
+  lUnitPath: string;
+  lUnitTextAfter: string;
+  lUnitTextBefore: string;
+begin
+  EnsureResolverBuilt;
+  lDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithPlannerFixture\RemoveWithPlannerFixture.dproj');
+  lUnitPath := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithPlannerFixture\PlannerUnit.pas');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-planner-plan.json');
+  lUnitTextBefore := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
+
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, lExitCode),
+    'Failed to start remove-with planner process.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with planner plan report to succeed.');
+
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('"plannedEdits"', lOutput) > 0, 'Expected planned edits in plan output.');
+  Assert.IsTrue(Pos('lWithPlannerRecordPtr^.Name', lOutput) > 0, 'Expected record rewrite in plan output.');
+  Assert.IsTrue(Pos('"property-selector"', lOutput) > 0, 'Expected skipped property selector in plan output.');
+
+  lUnitTextAfter := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.AreEqual(lUnitTextBefore, lUnitTextAfter, 'Plan mode must not modify the planner fixture.');
 end;
 
 end.
