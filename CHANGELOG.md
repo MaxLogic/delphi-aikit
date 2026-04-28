@@ -28,7 +28,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added exact `remove-with` source ranges for selector lists, bodies, and whole `with` statements, preserving CRLF, UTF-8 BOM line mapping, comments, directives, and single control-statement bodies. (T-146)
 - Added compiler-backed `remove-with` precedence fixtures for selector order, nested `with`, local/parameter/current/global fallback, inherited members, helpers, and overload call sites. (T-138)
 - Added the source-backed `remove-with` symbol inventory core for locals, parameters, current-class context, unit globals, direct class/record members, constants, class vars, and external source classification. (T-139)
-- Added `remove-with --mode plan` resolver classifications for identifiers inside single, multiple, and nested `with` statements, including unchanged, external, unsupported, unresolved, ambiguous, direct, inherited, hidden, overridden, helper-origin, and source-owner cases. (T-141, T-152)
+- Added `remove-with --mode plan` resolver classifications for identifiers inside single, multiple, and nested `with` statements, including unchanged, external, unsupported, unresolved, ambiguous, direct, inherited, hidden, overridden, helper-origin, interface-contract, and source-owner cases. (T-141, T-152, T-153)
 - Added `dfm-inspect` with `tree` and `summary` output for lightweight text DFM inspection. (T-081)
 - Added shared source-context snippets for resolved build and `dfm-check` failures, with `--source-context` / `--source-context-lines` CLI overrides and `[Diagnostics]` `dak.ini` defaults. (T-082)
 - Added madExcept integration to `build-delphi.bat` with optional `dak.ini` key `[MadExcept].Path` and fallback discovery from common install locations.

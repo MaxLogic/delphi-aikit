@@ -203,6 +203,18 @@ type
     procedure PlanReportDistinguishesInheritedOverrideHiddenAndExternalMembers;
   end;
 
+  [TestFixture]
+  TRemoveWithInterfaceResolverTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    function RunInterfaceFixture(out aExitCode: Cardinal): string;
+    procedure AssertJsonClassification(const aClassifications: TJSONArray; const aStatementId,
+      aIdentifier, aStatus, aResolutionKind, aSourceOwnerType: string);
+  public
+    [Test]
+    procedure PlanReportUsesDeclaredInterfaceContract;
+  end;
+
 implementation
 
 uses
@@ -1634,6 +1646,84 @@ begin
     AssertJsonClassification(lClassifications, 'with-2', 'DerivedField', 'resolved', 'inherited', 'TDerivedGolden');
     AssertJsonClassification(lClassifications, 'with-2', 'MissingMember', 'unresolved', 'unresolved', '');
     AssertJsonClassification(lClassifications, 'with-3', 'Count', 'external', 'external-only', '');
+  finally
+    lJson.Free;
+  end;
+end;
+
+function TRemoveWithInterfaceResolverTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+function TRemoveWithInterfaceResolverTests.RunInterfaceFixture(out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithInterfaceResolverFixture\RemoveWithInterfaceResolverFixture.dproj');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-interface-plan.json');
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
+
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+    aExitCode), 'Failed to start remove-with interface resolver process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithInterfaceResolverTests.AssertJsonClassification(const aClassifications: TJSONArray;
+  const aStatementId, aIdentifier, aStatus, aResolutionKind, aSourceOwnerType: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('statementId', ''), aStatementId) and
+      SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) and
+      SameText(lObject.GetValue<string>('status', ''), aStatus) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), aResolutionKind) and
+      SameText(lObject.GetValue<string>('sourceOwnerType', ''), aSourceOwnerType) then
+      Exit;
+  end;
+  Assert.Fail('Expected interface classification ' + aStatementId + ':' + aIdentifier + ':' + aStatus + ':' +
+    aResolutionKind + ':' + aSourceOwnerType);
+end;
+
+procedure TRemoveWithInterfaceResolverTests.PlanReportUsesDeclaredInterfaceContract;
+var
+  lClassifications: TJSONArray;
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+begin
+  lOutput := RunInterfaceFixture(lExitCode);
+
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected interface resolver plan report to succeed.');
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected interface resolver output to be a JSON object.');
+    lRoot := lJson as TJSONObject;
+    lResolver := lRoot.GetValue<TJSONObject>('resolver');
+    Assert.IsNotNull(lResolver, 'Expected resolver object.');
+    lClassifications := lResolver.GetValue<TJSONArray>('classifications');
+    Assert.IsNotNull(lClassifications, 'Expected resolver classifications.');
+
+    AssertJsonClassification(lClassifications, 'with-1', 'BaseTouch', 'resolved', 'inherited', 'IBaseContact');
+    AssertJsonClassification(lClassifications, 'with-1', 'BaseName', 'resolved', 'inherited', 'IBaseContact');
+    AssertJsonClassification(lClassifications, 'with-1', 'ChildTouch', 'resolved', 'direct', '');
+    AssertJsonClassification(lClassifications, 'with-1', 'ChildName', 'resolved', 'direct', '');
+    AssertJsonClassification(lClassifications, 'with-1', 'ConcreteOnly', 'unresolved', 'unresolved', '');
+    AssertJsonClassification(lClassifications, 'with-2', 'ConcreteOnly', 'resolved', 'direct', '');
+    AssertJsonClassification(lClassifications, 'with-2', 'ChildTouch', 'resolved', 'direct', '');
   finally
     lJson.Free;
   end;
