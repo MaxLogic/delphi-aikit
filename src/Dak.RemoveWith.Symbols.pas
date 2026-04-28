@@ -6,6 +6,8 @@ uses
   Dak.Types;
 
 type
+  TRemoveWithTypeCategory = (rwtcUnknown, rwtcRecord, rwtcClass, rwtcInterface);
+
   TRemoveWithSymbolKind = (rwskLocalVariable, rwskParameter, rwskCurrentClassMember, rwskUnitGlobal,
     rwskTypeMember, rwskField, rwskProperty, rwskMethod, rwskConstant, rwskClassVar, rwskRoutine, rwskUnitName,
     rwskExternal);
@@ -24,6 +26,7 @@ type
     fIsHelper: Boolean;
     fIsOverride: Boolean;
     fIsDefault: Boolean;
+    fTypeCategory: TRemoveWithTypeCategory;
     fKind: TRemoveWithSymbolKind;
   end;
 
@@ -32,6 +35,7 @@ type
   end;
 
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
+function RemoveWithTypeCategoryToText(const aCategory: TRemoveWithTypeCategory): string;
 function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; out aInventory: TRemoveWithSymbolInventory;
   out aError: string): Boolean;
 
@@ -56,7 +60,8 @@ type
     class function TryPropertyDeclaration(const aLine: string; out aName, aTypeName: string;
       out aIsDefault: Boolean): Boolean; static;
     class function TryTypeAlias(const aLine: string; out aName: string; out aTypeName: string): Boolean; static;
-    class function TryTypeStart(const aLine: string; out aName: string): Boolean; static;
+    class function TryTypeStart(const aLine: string; out aName: string;
+      out aCategory: TRemoveWithTypeCategory): Boolean; static;
     class function TryTypeRelation(const aLine: string; out aRelatedTypeName: string; out aIsHelper: Boolean): Boolean;
       static;
     class function TryRoutineName(const aLine: string; out aName: string): Boolean; static;
@@ -127,6 +132,20 @@ begin
       Result := 'unit';
   else
     Result := 'external';
+  end;
+end;
+
+function RemoveWithTypeCategoryToText(const aCategory: TRemoveWithTypeCategory): string;
+begin
+  case aCategory of
+    TRemoveWithTypeCategory.rwtcRecord:
+      Result := 'record';
+    TRemoveWithTypeCategory.rwtcClass:
+      Result := 'class';
+    TRemoveWithTypeCategory.rwtcInterface:
+      Result := 'interface';
+  else
+    Result := 'unknown';
   end;
 end;
 
@@ -328,13 +347,15 @@ begin
   Result := (aName <> '') and (aTypeName <> '');
 end;
 
-class function TRemoveWithSymbolBuilder.TryTypeStart(const aLine: string; out aName: string): Boolean;
+class function TRemoveWithSymbolBuilder.TryTypeStart(const aLine: string; out aName: string;
+  out aCategory: TRemoveWithTypeCategory): Boolean;
 var
   lEqualsPos: Integer;
   lLower: string;
 begin
   Result := False;
   aName := '';
+  aCategory := TRemoveWithTypeCategory.rwtcUnknown;
   lEqualsPos := Pos('=', aLine);
   if lEqualsPos = 0 then
     Exit;
@@ -342,6 +363,13 @@ begin
   lLower := LowerCase(aLine);
   if (Pos(' record', lLower) = 0) and (Pos(' class', lLower) = 0) and (Pos(' interface', lLower) = 0) then
     Exit;
+
+  if Pos(' record', lLower) > 0 then
+    aCategory := TRemoveWithTypeCategory.rwtcRecord
+  else if Pos(' interface', lLower) > 0 then
+    aCategory := TRemoveWithTypeCategory.rwtcInterface
+  else if Pos(' class', lLower) > 0 then
+    aCategory := TRemoveWithTypeCategory.rwtcClass;
 
   aName := Trim(Copy(aLine, 1, lEqualsPos - 1));
   Result := aName <> '';
@@ -598,7 +626,8 @@ begin
       SameText(lSymbol.fRoutineName, aSymbol.fRoutineName) and SameText(lSymbol.fUnitName, aSymbol.fUnitName) and
       SameText(lSymbol.fFilePath, aSymbol.fFilePath) and (lSymbol.fLine = aSymbol.fLine) and
       (lSymbol.fColumn = aSymbol.fColumn) and (lSymbol.fIsHelper = aSymbol.fIsHelper) and
-      (lSymbol.fIsOverride = aSymbol.fIsOverride) and (lSymbol.fIsDefault = aSymbol.fIsDefault) then
+      (lSymbol.fIsOverride = aSymbol.fIsOverride) and (lSymbol.fIsDefault = aSymbol.fIsDefault) and
+      (lSymbol.fTypeCategory = aSymbol.fTypeCategory) then
       Exit;
   end;
 
@@ -753,6 +782,7 @@ var
   lRelatedTypeName: string;
   lTypeText: string;
   lTypeSymbol: TRemoveWithSymbolInfo;
+  lTypeCategory: TRemoveWithTypeCategory;
   lTopLevelLine: Boolean;
   lTypeIsHelper: Boolean;
   lPropertyIsDefault: Boolean;
@@ -792,7 +822,7 @@ begin
       if not lInTypeSection then
         Continue;
       lTypeText := CollectTypeStartText(aLines, i);
-      if TryTypeStart(lTypeText, lCurrentType) then
+      if TryTypeStart(lTypeText, lCurrentType, lTypeCategory) then
       begin
         lInClassVar := False;
         lInConst := False;
@@ -801,6 +831,7 @@ begin
         lTypeSymbol.fName := lCurrentType;
         lTypeSymbol.fRelatedTypeName := lRelatedTypeName;
         lTypeSymbol.fIsHelper := lTypeIsHelper;
+        lTypeSymbol.fTypeCategory := lTypeCategory;
         lTypeSymbol.fUnitName := aUnitName;
         lTypeSymbol.fFilePath := aFilePath;
         lTypeSymbol.fLine := i + 1;
