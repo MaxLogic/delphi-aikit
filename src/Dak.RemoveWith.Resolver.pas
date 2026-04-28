@@ -15,6 +15,8 @@ type
     fIdentifier: string;
     fReceiverText: string;
     fReceiverType: string;
+    fResolutionKind: string;
+    fSourceOwnerType: string;
     fMemberKind: TRemoveWithSymbolKind;
     fReason: string;
     fLine: Integer;
@@ -84,6 +86,14 @@ type
       static;
     class function IsExternalType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
       static;
+    class function HasExternalAncestor(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
+      static;
+    class function IsHelperType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
+      static;
+    class function FindAncestorMember(const aInventory: TRemoveWithSymbolInventory; const aOwnerType,
+      aName: string; out aSourceOwnerType: string): Boolean; static;
+    class function ResolutionKindForCandidate(const aInventory: TRemoveWithSymbolInventory; const aReceiverType: string;
+      const aCandidate: TRemoveWithSymbolInfo; out aSourceOwnerType: string): string; static;
     class function AllCandidatesAreMethods(const aCandidates: TArray<TRemoveWithSymbolInfo>): Boolean; static;
     class function IsCallUse(const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse): Boolean;
       static;
@@ -430,6 +440,106 @@ begin
   Result := False;
 end;
 
+class function TRemoveWithIdentifierResolver.HasExternalAncestor(const aInventory: TRemoveWithSymbolInventory;
+  const aTypeName: string): Boolean;
+var
+  lCurrentType: string;
+  lRelatedType: string;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  lCurrentType := DirectTypeName(aTypeName);
+  while lCurrentType <> '' do
+  begin
+    lRelatedType := '';
+    for lSymbol in aInventory.fSymbols do
+    begin
+      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and (not lSymbol.fIsHelper) and
+        SameText(lSymbol.fName, lCurrentType) then
+      begin
+        lRelatedType := DirectTypeName(lSymbol.fRelatedTypeName);
+        Break;
+      end;
+    end;
+    if lRelatedType = '' then
+      Exit(False);
+    if IsExternalType(aInventory, lRelatedType) then
+      Exit(True);
+    lCurrentType := lRelatedType;
+  end;
+end;
+
+class function TRemoveWithIdentifierResolver.FindAncestorMember(const aInventory: TRemoveWithSymbolInventory;
+  const aOwnerType, aName: string; out aSourceOwnerType: string): Boolean;
+var
+  lCandidates: TArray<TRemoveWithSymbolInfo>;
+  lCurrentType: string;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  aSourceOwnerType := '';
+  lCurrentType := DirectTypeName(aOwnerType);
+  while lCurrentType <> '' do
+  begin
+    aSourceOwnerType := '';
+    for lSymbol in aInventory.fSymbols do
+    begin
+      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and (not lSymbol.fIsHelper) and
+        SameText(lSymbol.fName, lCurrentType) then
+      begin
+        aSourceOwnerType := DirectTypeName(lSymbol.fRelatedTypeName);
+        Break;
+      end;
+    end;
+    if aSourceOwnerType = '' then
+      Exit(False);
+
+    lCandidates := FindMemberCandidates(aInventory, aSourceOwnerType, aName);
+    if Length(lCandidates) > 0 then
+      Exit(True);
+    lCurrentType := aSourceOwnerType;
+  end;
+end;
+
+class function TRemoveWithIdentifierResolver.IsHelperType(const aInventory: TRemoveWithSymbolInventory;
+  const aTypeName: string): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+  lTypeName: string;
+begin
+  lTypeName := DirectTypeName(aTypeName);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName) and
+      lSymbol.fIsHelper then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
+class function TRemoveWithIdentifierResolver.ResolutionKindForCandidate(
+  const aInventory: TRemoveWithSymbolInventory; const aReceiverType: string;
+  const aCandidate: TRemoveWithSymbolInfo; out aSourceOwnerType: string): string;
+begin
+  aSourceOwnerType := aCandidate.fSourceOwnerType;
+  if aSourceOwnerType <> '' then
+  begin
+    if IsHelperType(aInventory, aSourceOwnerType) then
+      Exit('helper');
+    Exit('inherited');
+  end;
+
+  if FindAncestorMember(aInventory, aReceiverType, aCandidate.fName, aSourceOwnerType) then
+  begin
+    aSourceOwnerType := '';
+    if (aCandidate.fKind = TRemoveWithSymbolKind.rwskMethod) and aCandidate.fIsOverride then
+      Exit('overridden');
+    Exit('hidden');
+  end;
+
+  Result := 'direct';
+end;
+
 class function TRemoveWithIdentifierResolver.AllCandidatesAreMethods(
   const aCandidates: TArray<TRemoveWithSymbolInfo>): Boolean;
 var
@@ -733,6 +843,7 @@ class function TRemoveWithIdentifierResolver.ClassifyUse(const aInventory: TRemo
 var
   lCandidates: TArray<TRemoveWithSymbolInfo>;
   lReceiver: TRemoveWithReceiverScope;
+  lSourceOwnerType: string;
   lSymbol: TRemoveWithSymbolInfo;
   i: Integer;
 begin
@@ -741,6 +852,7 @@ begin
   aClassification.fLine := aUse.fLine;
   aClassification.fColumn := aUse.fColumn;
   aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnresolved;
+  aClassification.fResolutionKind := 'unresolved';
   aClassification.fReason := 'symbol-not-found';
   Result := True;
 
@@ -754,6 +866,9 @@ begin
         aClassification.fReceiverText := aReceivers[i].fSelectorText;
         aClassification.fReceiverType := aReceivers[i].fTypeName;
         aClassification.fMemberKind := lCandidates[0].fKind;
+        aClassification.fResolutionKind := ResolutionKindForCandidate(aInventory, aReceivers[i].fTypeName,
+          lCandidates[0], lSourceOwnerType);
+        aClassification.fSourceOwnerType := lSourceOwnerType;
         aClassification.fStatus := TRemoveWithIdentifierStatus.rwisResolved;
         aClassification.fReason := '';
         Exit(True);
@@ -762,6 +877,9 @@ begin
         aClassification.fReceiverText := aReceivers[i].fSelectorText;
         aClassification.fReceiverType := aReceivers[i].fTypeName;
         aClassification.fMemberKind := lCandidates[0].fKind;
+        aClassification.fResolutionKind := ResolutionKindForCandidate(aInventory, aReceivers[i].fTypeName,
+          lCandidates[0], lSourceOwnerType);
+        aClassification.fSourceOwnerType := lSourceOwnerType;
         if AllCandidatesAreMethods(lCandidates) and IsCallUse(aSource, aUse) then
         begin
           aClassification.fStatus := TRemoveWithIdentifierStatus.rwisResolved;
@@ -772,17 +890,27 @@ begin
           aClassification.fReason := 'multiple-member-candidates';
         end;
         Exit(True);
+      end else if HasExternalAncestor(aInventory, aReceivers[i].fTypeName) then
+      begin
+        aClassification.fReceiverText := aReceivers[i].fSelectorText;
+        aClassification.fReceiverType := aReceivers[i].fTypeName;
+        aClassification.fResolutionKind := 'external-only';
+        aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
+        aClassification.fReason := 'type-source-not-indexed';
+        Exit(True);
       end;
     end else if aReceivers[i].fStatus = TRemoveWithSelectorTypeStatus.rwstsExternal then
     begin
       aClassification.fReceiverText := aReceivers[i].fSelectorText;
       aClassification.fReceiverType := aReceivers[i].fTypeName;
+      aClassification.fResolutionKind := 'external-only';
       aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
       aClassification.fReason := aReceivers[i].fReason;
       Exit(True);
     end else if aReceivers[i].fStatus = TRemoveWithSelectorTypeStatus.rwstsUnsupported then
     begin
       aClassification.fReceiverText := aReceivers[i].fSelectorText;
+      aClassification.fResolutionKind := 'unsupported';
       aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnsupported;
       aClassification.fReason := aReceivers[i].fReason;
       Exit(True);
@@ -792,11 +920,13 @@ begin
       if MatchText(aReceivers[i].fReason, ['type-not-found', 'type-not-resolved']) then
       begin
         aClassification.fReceiverType := aReceivers[i].fTypeName;
+        aClassification.fResolutionKind := 'external-only';
         aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
         aClassification.fReason := 'type-source-not-indexed';
       end else
       begin
         aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnresolved;
+        aClassification.fResolutionKind := 'unresolved';
         aClassification.fReason := aReceivers[i].fReason;
       end;
       Exit(True);
@@ -812,10 +942,12 @@ begin
       if Pos('(', lReceiver.fSelectorText) > 0 then
       begin
         aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnsupported;
+        aClassification.fResolutionKind := 'unsupported';
         aClassification.fReason := 'call-selector';
       end else
       begin
         aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
+        aClassification.fResolutionKind := 'external-only';
         aClassification.fReason := 'type-source-not-indexed';
       end;
       Exit(True);
@@ -826,6 +958,7 @@ begin
   begin
     aClassification.fMemberKind := lSymbol.fKind;
     aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
+    aClassification.fResolutionKind := 'unchanged';
     aClassification.fReason := 'routine-scope';
   end;
 end;

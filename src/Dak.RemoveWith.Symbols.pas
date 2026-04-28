@@ -21,6 +21,7 @@ type
     fLine: Integer;
     fColumn: Integer;
     fIsHelper: Boolean;
+    fIsOverride: Boolean;
     fKind: TRemoveWithSymbolKind;
   end;
 
@@ -513,7 +514,8 @@ begin
       SameText(lSymbol.fRelatedTypeName, aSymbol.fRelatedTypeName) and
       SameText(lSymbol.fRoutineName, aSymbol.fRoutineName) and SameText(lSymbol.fUnitName, aSymbol.fUnitName) and
       SameText(lSymbol.fFilePath, aSymbol.fFilePath) and (lSymbol.fLine = aSymbol.fLine) and
-      (lSymbol.fColumn = aSymbol.fColumn) and (lSymbol.fIsHelper = aSymbol.fIsHelper) then
+      (lSymbol.fColumn = aSymbol.fColumn) and (lSymbol.fIsHelper = aSymbol.fIsHelper) and
+      (lSymbol.fIsOverride = aSymbol.fIsOverride) then
       Exit;
   end;
 
@@ -788,8 +790,16 @@ begin
     begin
       if Pos('.', lMemberName) > 0 then
         lMemberName := Copy(lMemberName, LastDelimiter('.', lMemberName) + 1, MaxInt);
-      AddNamedSymbols(aInventory, [lMemberName], '', lCurrentType, '', aUnitName, aFilePath, i + 1, aLines[i],
-        TRemoveWithSymbolKind.rwskMethod);
+      lTypeSymbol := Default(TRemoveWithSymbolInfo);
+      lTypeSymbol.fName := lMemberName;
+      lTypeSymbol.fOwnerType := lCurrentType;
+      lTypeSymbol.fUnitName := aUnitName;
+      lTypeSymbol.fFilePath := aFilePath;
+      lTypeSymbol.fLine := i + 1;
+      lTypeSymbol.fColumn := FindColumn(aLines[i], lMemberName);
+      lTypeSymbol.fIsOverride := Pos(' override', lLower) > 0;
+      lTypeSymbol.fKind := TRemoveWithSymbolKind.rwskMethod;
+      AddSymbol(aInventory, lTypeSymbol);
       Continue;
     end;
 
