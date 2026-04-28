@@ -62,6 +62,7 @@ type
   TRemoveWithIdentifierResolver = record
   private
     class function DirectTypeName(const aTypeName: string): string; static;
+    class function ElementTypeName(const aTypeName: string): string; static;
     class function IsDirectMemberKind(const aKind: TRemoveWithSymbolKind): Boolean; static;
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
     class function IsKeyword(const aName: string): Boolean; static;
@@ -69,6 +70,8 @@ type
     class function PreviousNonWhitespaceChar(const aText: string; const aOffset: Integer): Char; static;
     class function NextNonWhitespaceChar(const aText: string; const aOffset: Integer): Char; static;
     class function LastIdentifierSegment(const aText: string): string; static;
+    class function SelectorSegmentName(const aText: string): string; static;
+    class function SelectorSegmentIndexed(const aText: string): Boolean; static;
     class function StatementContains(const aOuter, aInner: TRemoveWithStatementInfo): Boolean; static;
     class function RangeOffsets(const aSource: TRemoveWithSourceBuffer; const aRange: TRemoveWithRange;
       out aOffsets: TRemoveWithOffsetRange): Boolean; static;
@@ -80,6 +83,8 @@ type
       const aStatement: TRemoveWithStatementInfo; out aRoutineName: string): Boolean; static;
     class function FindMemberCandidates(const aInventory: TRemoveWithSymbolInventory; const aOwnerType,
       aName: string): TArray<TRemoveWithSymbolInfo>; static;
+    class function FindDefaultPropertyCandidate(const aInventory: TRemoveWithSymbolInventory;
+      const aOwnerType: string): Boolean; static;
     class function FindScopeSymbol(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
       aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
     class function FindUnitNameSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
@@ -107,6 +112,8 @@ type
     class function ResolveSelectorFromReceivers(const aInventory: TRemoveWithSymbolInventory;
       const aReceivers: TArray<TRemoveWithReceiverScope>; const aSelectorText: string;
       out aInfo: TRemoveWithSelectorTypeInfo): Boolean; static;
+    class function SelectorUsesUnsupportedProperty(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+      aSelectorText: string): Boolean; static;
     class procedure NormalizeSelectorInfo(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
       aSelectorText: string; var aInfo: TRemoveWithSelectorTypeInfo); static;
     class procedure AddClassification(var aResult: TRemoveWithResolverResult;
@@ -157,6 +164,23 @@ begin
   lDelimiterPos := LastDelimiter('.', Result);
   if lDelimiterPos > 0 then
     Result := Copy(Result, lDelimiterPos + 1, MaxInt);
+end;
+
+class function TRemoveWithIdentifierResolver.ElementTypeName(const aTypeName: string): string;
+var
+  lEndPos: Integer;
+  lStartPos: Integer;
+  lText: string;
+begin
+  Result := '';
+  lText := Trim(aTypeName);
+  if StartsText('array of ', LowerCase(lText)) then
+    Exit(Trim(Copy(lText, Length('array of ') + 1, MaxInt)));
+
+  lStartPos := Pos('<', lText);
+  lEndPos := LastDelimiter('>', lText);
+  if (lStartPos > 0) and (lEndPos > lStartPos) then
+    Result := Trim(Copy(lText, lStartPos + 1, lEndPos - lStartPos - 1));
 end;
 
 class function TRemoveWithIdentifierResolver.IsDirectMemberKind(const aKind: TRemoveWithSymbolKind): Boolean;
@@ -220,6 +244,25 @@ begin
   while (i >= 1) and IsIdentifierChar(lText[i]) do
     Dec(i);
   Result := Copy(lText, i + 1, MaxInt);
+end;
+
+class function TRemoveWithIdentifierResolver.SelectorSegmentName(const aText: string): string;
+var
+  lBracketPos: Integer;
+  lText: string;
+begin
+  lText := Trim(aText);
+  lBracketPos := Pos('[', lText);
+  if lBracketPos > 0 then
+    lText := Trim(Copy(lText, 1, lBracketPos - 1));
+  if EndsText('^', lText) then
+    Delete(lText, Length(lText), 1);
+  Result := LastIdentifierSegment(lText);
+end;
+
+class function TRemoveWithIdentifierResolver.SelectorSegmentIndexed(const aText: string): Boolean;
+begin
+  Result := Pos('[', aText) > 0;
 end;
 
 class function TRemoveWithIdentifierResolver.StatementContains(const aOuter,
@@ -380,6 +423,22 @@ begin
   finally
     lList.Free;
   end;
+end;
+
+class function TRemoveWithIdentifierResolver.FindDefaultPropertyCandidate(
+  const aInventory: TRemoveWithSymbolInventory; const aOwnerType: string): Boolean;
+var
+  lOwnerType: string;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  lOwnerType := DirectTypeName(aOwnerType);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fOwnerType, lOwnerType) and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
+      lSymbol.fIsDefault then
+      Exit(True);
+  end;
+  Result := False;
 end;
 
 class function TRemoveWithIdentifierResolver.FindScopeSymbol(const aInventory: TRemoveWithSymbolInventory;
@@ -631,6 +690,7 @@ class function TRemoveWithIdentifierResolver.ResolveSelectorFromReceivers(
 var
   lCandidates: TArray<TRemoveWithSymbolInfo>;
   lCurrentType: string;
+  lIndexedTypeName: string;
   lName: string;
   lPaths: TArray<string>;
   i: Integer;
@@ -642,7 +702,7 @@ begin
   if Length(lPaths) = 0 then
     Exit(False);
 
-  lName := LastIdentifierSegment(lPaths[0]);
+  lName := SelectorSegmentName(lPaths[0]);
   if lName = '' then
     Exit(False);
 
@@ -670,9 +730,24 @@ begin
     end;
 
     lCurrentType := lCandidates[0].fTypeName;
+    if SelectorSegmentIndexed(lPaths[0]) then
+    begin
+      lIndexedTypeName := ElementTypeName(lCurrentType);
+      if lIndexedTypeName <> '' then
+        lCurrentType := lIndexedTypeName
+      else if FindDefaultPropertyCandidate(aInventory, lCurrentType) then
+      begin
+        aInfo.fReason := 'property-selector';
+        aInfo.fStatus := TRemoveWithSelectorTypeStatus.rwstsUnsupported;
+        aInfo.fAddressable := False;
+        Exit(True);
+      end else
+        lCurrentType := '';
+    end;
+
     for j := 1 to High(lPaths) do
     begin
-      lName := LastIdentifierSegment(lPaths[j]);
+      lName := SelectorSegmentName(lPaths[j]);
       lCandidates := FindMemberCandidates(aInventory, lCurrentType, lName);
       if Length(lCandidates) <> 1 then
       begin
@@ -694,6 +769,20 @@ begin
         Exit(True);
       end;
       lCurrentType := lCandidates[0].fTypeName;
+      if SelectorSegmentIndexed(lPaths[j]) then
+      begin
+        lIndexedTypeName := ElementTypeName(lCurrentType);
+        if lIndexedTypeName <> '' then
+          lCurrentType := lIndexedTypeName
+        else if FindDefaultPropertyCandidate(aInventory, lCurrentType) then
+        begin
+          aInfo.fReason := 'property-selector';
+          aInfo.fStatus := TRemoveWithSelectorTypeStatus.rwstsUnsupported;
+          aInfo.fAddressable := False;
+          Exit(True);
+        end else
+          lCurrentType := '';
+      end;
     end;
 
     if lCurrentType <> '' then
@@ -715,12 +804,85 @@ begin
   Result := False;
 end;
 
+class function TRemoveWithIdentifierResolver.SelectorUsesUnsupportedProperty(
+  const aInventory: TRemoveWithSymbolInventory; const aRoutineName, aSelectorText: string): Boolean;
+var
+  lCandidates: TArray<TRemoveWithSymbolInfo>;
+  lCurrentType: string;
+  lName: string;
+  lOwnerDot: Integer;
+  lOwnerType: string;
+  lPaths: TArray<string>;
+  lSymbol: TRemoveWithSymbolInfo;
+  i: Integer;
+begin
+  Result := False;
+  lPaths := SplitSelectorPath(aSelectorText);
+  if Length(lPaths) = 0 then
+    Exit;
+
+  lName := SelectorSegmentName(lPaths[0]);
+  if lName = '' then
+    Exit;
+
+  lOwnerDot := LastDelimiter('.', aRoutineName);
+  if lOwnerDot > 0 then
+    lOwnerType := Copy(aRoutineName, 1, lOwnerDot - 1)
+  else
+    lOwnerType := '';
+
+  if SameText(lName, 'Self') then
+    lCurrentType := lOwnerType
+  else
+  begin
+    if not FindScopeSymbol(aInventory, aRoutineName, lName, lSymbol) then
+    begin
+      lCandidates := FindMemberCandidates(aInventory, lOwnerType, lName);
+      if Length(lCandidates) <> 1 then
+        Exit;
+      lSymbol := lCandidates[0];
+    end;
+    lCurrentType := lSymbol.fTypeName;
+  end;
+
+  if SelectorSegmentIndexed(lPaths[0]) and FindDefaultPropertyCandidate(aInventory, lCurrentType) then
+    Exit(True);
+
+  for i := 1 to High(lPaths) do
+  begin
+    lName := SelectorSegmentName(lPaths[i]);
+    if lName = '' then
+      Exit;
+    lCandidates := FindMemberCandidates(aInventory, lCurrentType, lName);
+    if Length(lCandidates) <> 1 then
+      Exit;
+    if lCandidates[0].fKind = TRemoveWithSymbolKind.rwskProperty then
+      Exit(True);
+    lCurrentType := lCandidates[0].fTypeName;
+    if SelectorSegmentIndexed(lPaths[i]) and FindDefaultPropertyCandidate(aInventory, lCurrentType) then
+      Exit(True);
+  end;
+end;
+
 class procedure TRemoveWithIdentifierResolver.NormalizeSelectorInfo(const aInventory: TRemoveWithSymbolInventory;
   const aRoutineName, aSelectorText: string; var aInfo: TRemoveWithSelectorTypeInfo);
 var
   lRootName: string;
   lSymbol: TRemoveWithSymbolInfo;
 begin
+  if ((aInfo.fStatus in [TRemoveWithSelectorTypeStatus.rwstsExternal,
+    TRemoveWithSelectorTypeStatus.rwstsUnresolved]) or
+    ((aInfo.fStatus = TRemoveWithSelectorTypeStatus.rwstsResolved) and (aInfo.fTypeName = ''))) and
+    SelectorUsesUnsupportedProperty(aInventory, aRoutineName, aSelectorText) then
+  begin
+    aInfo.fSelectorText := aSelectorText;
+    aInfo.fTypeName := '';
+    aInfo.fReason := 'property-selector';
+    aInfo.fStatus := TRemoveWithSelectorTypeStatus.rwstsUnsupported;
+    aInfo.fAddressable := False;
+    Exit;
+  end;
+
   if (aInfo.fStatus <> TRemoveWithSelectorTypeStatus.rwstsResolved) or (aInfo.fTypeName <> '') then
     Exit;
 
@@ -988,10 +1150,18 @@ begin
       aClassification.fReceiverText := aReceivers[i].fSelectorText;
       if MatchText(aReceivers[i].fReason, ['type-not-found', 'type-not-resolved']) then
       begin
-        aClassification.fReceiverType := aReceivers[i].fTypeName;
-        aClassification.fResolutionKind := 'external-only';
-        aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
-        aClassification.fReason := 'type-source-not-indexed';
+        if (aReceivers[i].fTypeName = '') and SelectorSegmentIndexed(aReceivers[i].fSelectorText) then
+        begin
+          aClassification.fResolutionKind := 'unsupported';
+          aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnsupported;
+          aClassification.fReason := 'property-selector';
+        end else
+        begin
+          aClassification.fReceiverType := aReceivers[i].fTypeName;
+          aClassification.fResolutionKind := 'external-only';
+          aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
+          aClassification.fReason := 'type-source-not-indexed';
+        end;
       end else
       begin
         aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnresolved;
@@ -1015,9 +1185,17 @@ begin
         aClassification.fReason := 'call-selector';
       end else
       begin
-        aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
-        aClassification.fResolutionKind := 'external-only';
-        aClassification.fReason := 'type-source-not-indexed';
+        if SelectorSegmentIndexed(lReceiver.fSelectorText) then
+        begin
+          aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnsupported;
+          aClassification.fResolutionKind := 'unsupported';
+          aClassification.fReason := 'property-selector';
+        end else
+        begin
+          aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
+          aClassification.fResolutionKind := 'external-only';
+          aClassification.fReason := 'type-source-not-indexed';
+        end;
       end;
       Exit(True);
     end;

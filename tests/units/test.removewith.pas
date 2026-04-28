@@ -239,6 +239,25 @@ type
     procedure PlanReportDistinguishesWithReceiversAndOuterScopes;
   end;
 
+  [TestFixture]
+  TRemoveWithIndexedPropertyTests = class(TRemoveWithTestBase)
+  private
+    procedure BuildIndexedPropertyFixture(out aInventory: TRemoveWithSymbolInventory);
+    function CommandExePath: string;
+    function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
+    function RunIndexedPropertyFixture(out aExitCode: Cardinal): string;
+    procedure AssertResolvedName(const aClassifications: TJSONArray; const aStatementId, aReceiverText,
+      aReceiverType: string);
+    procedure AssertUnsupportedName(const aClassifications: TJSONArray; const aStatementId, aReceiverText,
+      aReason: string);
+  public
+    [Test]
+    procedure SymbolInventoryParsesIndexedAndDefaultProperties;
+    [Test]
+    procedure PlanReportDistinguishesIndexedVariablesAndUnsafeIndexedProperties;
+  end;
+
 implementation
 
 uses
@@ -1922,6 +1941,166 @@ begin
     AssertJsonClassification(lClassifications, 'with-4', 'UnitGlobalOnly', 'unchanged', 'unchanged', 'unit-global');
     AssertJsonClassification(lClassifications, 'with-5', 'TStringList', 'unresolved', 'unresolved',
       'local-variable');
+  finally
+    lJson.Free;
+  end;
+end;
+
+function TRemoveWithIndexedPropertyTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithIndexedPropertyTests.BuildIndexedPropertyFixture(out aInventory: TRemoveWithSymbolInventory);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithIndexedPropertyFixture\RemoveWithIndexedPropertyFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+    'Expected indexed property fixture inventory build to succeed: ' + lError);
+end;
+
+function TRemoveWithIndexedPropertyTests.FindSymbol(const aInventory: TRemoveWithSymbolInventory;
+  const aName: string; const aKind: TRemoveWithSymbolKind; const aOwnerType: string;
+  out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fName, aName) and (lSymbol.fKind = aKind) and
+      SameText(lSymbol.fOwnerType, aOwnerType) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+end;
+
+function TRemoveWithIndexedPropertyTests.RunIndexedPropertyFixture(out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithIndexedPropertyFixture\RemoveWithIndexedPropertyFixture.dproj');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-indexed-property-plan.json');
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
+
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+    aExitCode), 'Failed to start remove-with indexed property process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithIndexedPropertyTests.AssertResolvedName(const aClassifications: TJSONArray;
+  const aStatementId, aReceiverText, aReceiverType: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('statementId', ''), aStatementId) and
+      SameText(lObject.GetValue<string>('identifier', ''), 'Name') and
+      SameText(lObject.GetValue<string>('status', ''), 'resolved') and
+      SameText(lObject.GetValue<string>('receiver', ''), aReceiverText) and
+      SameText(lObject.GetValue<string>('receiverType', ''), aReceiverType) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), 'direct') and
+      SameText(lObject.GetValue<string>('memberKind', ''), 'field') then
+      Exit;
+  end;
+  Assert.Fail('Expected indexed selector to resolve Name for ' + aStatementId + ':' + aReceiverText);
+end;
+
+procedure TRemoveWithIndexedPropertyTests.AssertUnsupportedName(const aClassifications: TJSONArray;
+  const aStatementId, aReceiverText, aReason: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('statementId', ''), aStatementId) and
+      SameText(lObject.GetValue<string>('identifier', ''), 'Name') and
+      SameText(lObject.GetValue<string>('status', ''), 'unsupported') and
+      SameText(lObject.GetValue<string>('receiver', ''), aReceiverText) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), 'unsupported') and
+      SameText(lObject.GetValue<string>('reason', ''), aReason) then
+      Exit;
+  end;
+  Assert.Fail('Expected indexed selector to be unsupported for ' + aStatementId + ':' + aReceiverText + ':' +
+    aReason);
+end;
+
+procedure TRemoveWithIndexedPropertyTests.SymbolInventoryParsesIndexedAndDefaultProperties;
+var
+  lInfo: TRemoveWithSelectorTypeInfo;
+  lInventory: TRemoveWithSymbolInventory;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  BuildIndexedPropertyFixture(lInventory);
+
+  Assert.IsTrue(FindSymbol(lInventory, 'Items', TRemoveWithSymbolKind.rwskProperty, 'TIndexedBox', lSymbol),
+    'Expected indexed Items property symbol.');
+  Assert.AreEqual('TIndexedRecord', lSymbol.fTypeName, 'Expected indexed property result type.');
+  Assert.IsTrue(lSymbol.fIsDefault, 'Expected indexed Items property to be marked default.');
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'TIndexedScope.Run', 'lBox.Items[0]', lInfo),
+    'Expected selector resolver to handle indexed property selector.');
+  Assert.AreEqual('unsupported', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
+    'Expected indexed property selector to be unsupported.');
+  Assert.AreEqual('property-selector', lInfo.fReason, 'Expected indexed property selector reason.');
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'TIndexedScope.Run', 'lBox[0]', lInfo),
+    'Expected selector resolver to handle default property selector.');
+  Assert.AreEqual('unsupported', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
+    'Expected default property selector to be unsupported.');
+  Assert.AreEqual('property-selector', lInfo.fReason, 'Expected default property selector reason.');
+end;
+
+procedure TRemoveWithIndexedPropertyTests.PlanReportDistinguishesIndexedVariablesAndUnsafeIndexedProperties;
+var
+  lClassifications: TJSONArray;
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+begin
+  lOutput := RunIndexedPropertyFixture(lExitCode);
+
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected indexed property plan report to succeed.');
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected indexed property output to be a JSON object.');
+    lRoot := lJson as TJSONObject;
+    lResolver := lRoot.GetValue<TJSONObject>('resolver');
+    Assert.IsNotNull(lResolver, 'Expected resolver object.');
+    lClassifications := lResolver.GetValue<TJSONArray>('classifications');
+    Assert.IsNotNull(lClassifications, 'Expected resolver classifications.');
+
+    AssertResolvedName(lClassifications, 'with-1', 'lRecords[0]', 'TIndexedRecord');
+    AssertResolvedName(lClassifications, 'with-2', 'lNested[0].Items[0]', 'TIndexedRecord');
+    AssertUnsupportedName(lClassifications, 'with-3', 'lBox.Items[0]', 'property-selector');
+    AssertUnsupportedName(lClassifications, 'with-4', 'lBox[0]', 'property-selector');
+    AssertUnsupportedName(lClassifications, 'with-5', 'MakeBox()[0]', 'call-selector');
+    AssertResolvedName(lClassifications, 'with-7', 'Items[0]', 'TIndexedRecord');
   finally
     lJson.Free;
   end;

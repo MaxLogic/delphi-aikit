@@ -23,6 +23,7 @@ type
     fColumn: Integer;
     fIsHelper: Boolean;
     fIsOverride: Boolean;
+    fIsDefault: Boolean;
     fKind: TRemoveWithSymbolKind;
   end;
 
@@ -52,6 +53,8 @@ type
     class function TryDeclaration(const aLine: string; out aNames: TArray<string>; out aTypeName: string): Boolean;
       static;
     class function TryConstDeclaration(const aLine: string; out aName: string; out aTypeName: string): Boolean; static;
+    class function TryPropertyDeclaration(const aLine: string; out aName, aTypeName: string;
+      out aIsDefault: Boolean): Boolean; static;
     class function TryTypeAlias(const aLine: string; out aName: string; out aTypeName: string): Boolean; static;
     class function TryTypeStart(const aLine: string; out aName: string): Boolean; static;
     class function TryTypeRelation(const aLine: string; out aRelatedTypeName: string; out aIsHelper: Boolean): Boolean;
@@ -237,6 +240,67 @@ begin
     aName := Trim(Copy(aLine, 1, lEqualsPos - 1));
     aTypeName := '';
   end;
+  Result := aName <> '';
+end;
+
+class function TRemoveWithSymbolBuilder.TryPropertyDeclaration(const aLine: string; out aName, aTypeName: string;
+  out aIsDefault: Boolean): Boolean;
+var
+  lBracketDepth: Integer;
+  lMemberText: string;
+  lNameEnd: Integer;
+  lPropertyTypeEnd: Integer;
+  lTypePos: Integer;
+  i: Integer;
+begin
+  Result := False;
+  aName := '';
+  aTypeName := '';
+  aIsDefault := False;
+  if not StartsText('property ', LowerCase(aLine)) then
+    Exit;
+
+  lMemberText := Trim(Copy(aLine, Length('property ') + 1, MaxInt));
+  aIsDefault := ContainsText(LowerCase(lMemberText), ' default');
+  lBracketDepth := 0;
+  lTypePos := 0;
+  for i := 1 to Length(lMemberText) do
+  begin
+    if lMemberText[i] = '[' then
+      Inc(lBracketDepth)
+    else if (lMemberText[i] = ']') and (lBracketDepth > 0) then
+      Dec(lBracketDepth)
+    else if (lMemberText[i] = ':') and (lBracketDepth = 0) then
+    begin
+      lTypePos := i;
+      Break;
+    end;
+  end;
+
+  if lTypePos > 0 then
+  begin
+    aTypeName := Trim(Copy(lMemberText, lTypePos + 1, MaxInt));
+    lPropertyTypeEnd := Pos(' read ', LowerCase(aTypeName));
+    if lPropertyTypeEnd = 0 then
+      lPropertyTypeEnd := Pos(' write ', LowerCase(aTypeName));
+    if lPropertyTypeEnd = 0 then
+      lPropertyTypeEnd := Pos(' index ', LowerCase(aTypeName));
+    if lPropertyTypeEnd = 0 then
+      lPropertyTypeEnd := Pos(' default', LowerCase(aTypeName));
+    if lPropertyTypeEnd = 0 then
+      lPropertyTypeEnd := Pos(';', aTypeName);
+    if lPropertyTypeEnd > 0 then
+      aTypeName := Trim(Copy(aTypeName, 1, lPropertyTypeEnd - 1));
+    lMemberText := Trim(Copy(lMemberText, 1, lTypePos - 1));
+  end;
+
+  lNameEnd := Pos('[', lMemberText);
+  if lNameEnd = 0 then
+    lNameEnd := Pos(';', lMemberText);
+  if lNameEnd > 0 then
+    aName := Trim(Copy(lMemberText, 1, lNameEnd - 1))
+  else
+    aName := Trim(lMemberText);
   Result := aName <> '';
 end;
 
@@ -534,7 +598,7 @@ begin
       SameText(lSymbol.fRoutineName, aSymbol.fRoutineName) and SameText(lSymbol.fUnitName, aSymbol.fUnitName) and
       SameText(lSymbol.fFilePath, aSymbol.fFilePath) and (lSymbol.fLine = aSymbol.fLine) and
       (lSymbol.fColumn = aSymbol.fColumn) and (lSymbol.fIsHelper = aSymbol.fIsHelper) and
-      (lSymbol.fIsOverride = aSymbol.fIsOverride) then
+      (lSymbol.fIsOverride = aSymbol.fIsOverride) and (lSymbol.fIsDefault = aSymbol.fIsDefault) then
       Exit;
   end;
 
@@ -685,13 +749,13 @@ var
   lMemberName: string;
   lNames: TArray<string>;
   lPropertyType: string;
-  lPropertyTypeEnd: Integer;
   lRawLine: string;
   lRelatedTypeName: string;
   lTypeText: string;
   lTypeSymbol: TRemoveWithSymbolInfo;
   lTopLevelLine: Boolean;
   lTypeIsHelper: Boolean;
+  lPropertyIsDefault: Boolean;
   lTypeName: string;
   i: Integer;
 begin
@@ -784,24 +848,19 @@ begin
       Continue;
     end;
 
-    if StartsText('property ', lLower) then
+    if TryPropertyDeclaration(lLine, lMemberName, lPropertyType, lPropertyIsDefault) then
     begin
-      lMemberName := Trim(Copy(lLine, Length('property ') + 1, MaxInt));
-      if Pos(':', lMemberName) > 0 then
-      begin
-        lPropertyType := Trim(Copy(lMemberName, Pos(':', lMemberName) + 1, MaxInt));
-        lPropertyTypeEnd := Pos(' read ', LowerCase(lPropertyType));
-        if lPropertyTypeEnd = 0 then
-          lPropertyTypeEnd := Pos(' write ', LowerCase(lPropertyType));
-        if lPropertyTypeEnd = 0 then
-          lPropertyTypeEnd := Pos(';', lPropertyType);
-        if lPropertyTypeEnd > 0 then
-          lPropertyType := Trim(Copy(lPropertyType, 1, lPropertyTypeEnd - 1));
-        lMemberName := Trim(Copy(lMemberName, 1, Pos(':', lMemberName) - 1));
-      end else
-        lPropertyType := '';
-      AddNamedSymbols(aInventory, [lMemberName], lPropertyType, lCurrentType, '', aUnitName, aFilePath, i + 1,
-        aLines[i], TRemoveWithSymbolKind.rwskProperty);
+      lTypeSymbol := Default(TRemoveWithSymbolInfo);
+      lTypeSymbol.fName := lMemberName;
+      lTypeSymbol.fTypeName := lPropertyType;
+      lTypeSymbol.fOwnerType := lCurrentType;
+      lTypeSymbol.fUnitName := aUnitName;
+      lTypeSymbol.fFilePath := aFilePath;
+      lTypeSymbol.fLine := i + 1;
+      lTypeSymbol.fColumn := FindColumn(aLines[i], lMemberName);
+      lTypeSymbol.fIsDefault := lPropertyIsDefault;
+      lTypeSymbol.fKind := TRemoveWithSymbolKind.rwskProperty;
+      AddSymbol(aInventory, lTypeSymbol);
       Continue;
     end;
 
