@@ -191,6 +191,18 @@ type
     procedure PlanCliEmitsResolverOnlyClassifications;
   end;
 
+  [TestFixture]
+  TRemoveWithInheritedOverrideGoldenTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    function RunInheritedOverrideFixture(out aExitCode: Cardinal): string;
+    procedure AssertJsonClassification(const aClassifications: TJSONArray; const aStatementId,
+      aIdentifier, aStatus, aResolutionKind, aSourceOwnerType: string);
+  public
+    [Test]
+    procedure PlanReportDistinguishesInheritedOverrideHiddenAndExternalMembers;
+  end;
+
 implementation
 
 uses
@@ -1540,6 +1552,91 @@ begin
   Assert.IsTrue(Pos('"unchanged"', lOutput) > 0, 'Expected unchanged classifications in plan output.');
   Assert.IsTrue(Pos('"ambiguous-to-DAK"', lOutput) > 0, 'Expected ambiguous classifications in plan output.');
   Assert.IsTrue(Pos('"plannedEdits"', lOutput) = 0, 'Resolver-only plan output must not include plannedEdits.');
+end;
+
+function TRemoveWithInheritedOverrideGoldenTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+function TRemoveWithInheritedOverrideGoldenTests.RunInheritedOverrideFixture(out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithInheritedOverrideFixture\RemoveWithInheritedOverrideFixture.dproj');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-inherited-override-plan.json');
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
+
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+    aExitCode), 'Failed to start remove-with inherited override process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithInheritedOverrideGoldenTests.AssertJsonClassification(const aClassifications: TJSONArray;
+  const aStatementId, aIdentifier, aStatus, aResolutionKind, aSourceOwnerType: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('statementId', ''), aStatementId) and
+      SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) and
+      SameText(lObject.GetValue<string>('status', ''), aStatus) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), aResolutionKind) and
+      SameText(lObject.GetValue<string>('sourceOwnerType', ''), aSourceOwnerType) then
+      Exit;
+  end;
+  Assert.Fail('Expected classification ' + aStatementId + ':' + aIdentifier + ':' + aStatus + ':' +
+    aResolutionKind + ':' + aSourceOwnerType);
+end;
+
+procedure TRemoveWithInheritedOverrideGoldenTests.PlanReportDistinguishesInheritedOverrideHiddenAndExternalMembers;
+var
+  lClassifications: TJSONArray;
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+begin
+  lOutput := RunInheritedOverrideFixture(lExitCode);
+
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected inherited override plan report to succeed.');
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected inherited override output to be a JSON object.');
+    lRoot := lJson as TJSONObject;
+    lResolver := lRoot.GetValue<TJSONObject>('resolver');
+    Assert.IsNotNull(lResolver, 'Expected resolver object.');
+    lClassifications := lResolver.GetValue<TJSONArray>('classifications');
+    Assert.IsNotNull(lClassifications, 'Expected resolver classifications.');
+
+    AssertJsonClassification(lClassifications, 'with-1', 'BaseField', 'resolved', 'inherited', 'TBaseGolden');
+    AssertJsonClassification(lClassifications, 'with-1', 'DerivedField', 'resolved', 'direct', '');
+    AssertJsonClassification(lClassifications, 'with-1', 'DerivedProp', 'resolved', 'direct', '');
+    AssertJsonClassification(lClassifications, 'with-1', 'DerivedOnly', 'resolved', 'direct', '');
+    AssertJsonClassification(lClassifications, 'with-1', 'HiddenProp', 'resolved', 'hidden', '');
+    AssertJsonClassification(lClassifications, 'with-1', 'HiddenMethod', 'resolved', 'hidden', '');
+    AssertJsonClassification(lClassifications, 'with-1', 'OverrideMe', 'resolved', 'overridden', '');
+    AssertJsonClassification(lClassifications, 'with-2', 'BaseProp', 'resolved', 'inherited', 'TBaseGolden');
+    AssertJsonClassification(lClassifications, 'with-2', 'BaseOnly', 'resolved', 'inherited', 'TBaseGolden');
+    AssertJsonClassification(lClassifications, 'with-2', 'BaseCount', 'resolved', 'inherited', 'TBaseGolden');
+    AssertJsonClassification(lClassifications, 'with-2', 'BaseLimit', 'resolved', 'inherited', 'TBaseGolden');
+    AssertJsonClassification(lClassifications, 'with-2', 'DerivedField', 'resolved', 'inherited', 'TDerivedGolden');
+    AssertJsonClassification(lClassifications, 'with-2', 'MissingMember', 'unresolved', 'unresolved', '');
+    AssertJsonClassification(lClassifications, 'with-3', 'Count', 'external', 'external-only', '');
+  finally
+    lJson.Free;
+  end;
 end;
 
 end.

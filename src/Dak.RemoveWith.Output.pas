@@ -138,6 +138,8 @@ begin
       .AddPair('status', RemoveWithIdentifierStatusToText(lClassification.fStatus))
       .AddPair('receiver', lClassification.fReceiverText)
       .AddPair('receiverType', lClassification.fReceiverType)
+      .AddPair('resolutionKind', lClassification.fResolutionKind)
+      .AddPair('sourceOwnerType', lClassification.fSourceOwnerType)
       .AddPair('memberKind', RemoveWithSymbolKindToText(lClassification.fMemberKind))
       .AddPair('reason', lClassification.fReason));
   end;
