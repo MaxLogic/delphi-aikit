@@ -13,11 +13,14 @@ type
     fName: string;
     fTypeName: string;
     fOwnerType: string;
+    fSourceOwnerType: string;
+    fRelatedTypeName: string;
     fRoutineName: string;
     fUnitName: string;
     fFilePath: string;
     fLine: Integer;
     fColumn: Integer;
+    fIsHelper: Boolean;
     fKind: TRemoveWithSymbolKind;
   end;
 
@@ -49,6 +52,8 @@ type
     class function TryConstDeclaration(const aLine: string; out aName: string; out aTypeName: string): Boolean; static;
     class function TryTypeAlias(const aLine: string; out aName: string; out aTypeName: string): Boolean; static;
     class function TryTypeStart(const aLine: string; out aName: string): Boolean; static;
+    class function TryTypeRelation(const aLine: string; out aRelatedTypeName: string; out aIsHelper: Boolean): Boolean;
+      static;
     class function TryRoutineName(const aLine: string; out aName: string): Boolean; static;
     class function TryRoutineOwner(const aRoutineName: string; out aOwnerType: string): Boolean; static;
     class function CollectDeclarationText(const aLines: TArray<string>; const aStartLine: Integer): string; static;
@@ -56,6 +61,8 @@ type
     class function FindColumn(const aLine, aName: string): Integer; static;
     class function IsDirectMemberKind(const aKind: TRemoveWithSymbolKind): Boolean; static;
     class function IsBuiltInTypeName(const aTypeName: string): Boolean; static;
+    class function OwnerHasOwnMember(const aInventory: TRemoveWithSymbolInventory; const aOwnerType,
+      aName: string): Boolean; static;
     class function SimpleTypeName(const aTypeName: string): string; static;
     class function FindNameSource(const aLines: TArray<string>; const aStartIndex, aEndIndex: Integer;
       const aName: string; out aLineNumber: Integer; out aLineText: string): Boolean; static;
@@ -68,6 +75,8 @@ type
       const aNames: TArray<string>; const aTypeName, aOwnerType, aRoutineName, aUnitName, aFilePath: string;
       const aLines: TArray<string>; const aStartIndex, aEndIndex: Integer; const aKind: TRemoveWithSymbolKind);
       static;
+    class procedure AddRelatedTypeMemberSymbols(var aInventory: TRemoveWithSymbolInventory); static;
+    class procedure AddRelatedCurrentClassSymbols(var aInventory: TRemoveWithSymbolInventory); static;
     class procedure ParseParams(var aInventory: TRemoveWithSymbolInventory; const aLines: TArray<string>;
       const aStartIndex: Integer; const aSignature, aRoutineName, aUnitName, aFilePath: string); static;
     class procedure ParseLocals(var aInventory: TRemoveWithSymbolInventory; const aLines: TArray<string>;
@@ -267,6 +276,47 @@ begin
   Result := aName <> '';
 end;
 
+class function TRemoveWithSymbolBuilder.TryTypeRelation(const aLine: string; out aRelatedTypeName: string;
+  out aIsHelper: Boolean): Boolean;
+var
+  lClosePos: Integer;
+  lLower: string;
+  lRelationPos: Integer;
+  lStartPos: Integer;
+  lText: string;
+begin
+  aRelatedTypeName := '';
+  aIsHelper := False;
+  lText := Trim(aLine);
+  lLower := LowerCase(lText);
+
+  lRelationPos := Pos(' helper for ', lLower);
+  if lRelationPos > 0 then
+  begin
+    aIsHelper := True;
+    aRelatedTypeName := Trim(Copy(lText, lRelationPos + Length(' helper for '), MaxInt));
+    lClosePos := Pos(';', aRelatedTypeName);
+    if lClosePos > 0 then
+      aRelatedTypeName := Trim(Copy(aRelatedTypeName, 1, lClosePos - 1));
+    Exit(aRelatedTypeName <> '');
+  end;
+  if Pos(' helper(', lLower) > 0 then
+  begin
+    aIsHelper := True;
+    Exit(False);
+  end;
+
+  lStartPos := Pos('class(', lLower);
+  if lStartPos > 0 then
+  begin
+    Inc(lStartPos, Length('class('));
+    lClosePos := PosEx(')', lText, lStartPos);
+    if lClosePos > lStartPos then
+      aRelatedTypeName := Trim(Copy(lText, lStartPos, lClosePos - lStartPos));
+  end;
+  Result := aRelatedTypeName <> '';
+end;
+
 class function TRemoveWithSymbolBuilder.TryRoutineName(const aLine: string; out aName: string): Boolean;
 var
   lNameEnd: Integer;
@@ -389,6 +439,20 @@ begin
     'ShortInt', 'Single', 'SmallInt', 'String', 'UInt64', 'Variant', 'WideChar', 'WideString', 'Word']);
 end;
 
+class function TRemoveWithSymbolBuilder.OwnerHasOwnMember(const aInventory: TRemoveWithSymbolInventory;
+  const aOwnerType, aName: string): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fOwnerType, aOwnerType) and (lSymbol.fSourceOwnerType = '') and
+      SameText(lSymbol.fName, aName) and IsDirectMemberKind(lSymbol.fKind) then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
 class function TRemoveWithSymbolBuilder.SimpleTypeName(const aTypeName: string): string;
 var
   lDelimiterPos: Integer;
@@ -443,9 +507,11 @@ begin
   begin
     if (lSymbol.fKind = aSymbol.fKind) and SameText(lSymbol.fName, aSymbol.fName) and
       SameText(lSymbol.fTypeName, aSymbol.fTypeName) and SameText(lSymbol.fOwnerType, aSymbol.fOwnerType) and
+      SameText(lSymbol.fSourceOwnerType, aSymbol.fSourceOwnerType) and
+      SameText(lSymbol.fRelatedTypeName, aSymbol.fRelatedTypeName) and
       SameText(lSymbol.fRoutineName, aSymbol.fRoutineName) and SameText(lSymbol.fUnitName, aSymbol.fUnitName) and
       SameText(lSymbol.fFilePath, aSymbol.fFilePath) and (lSymbol.fLine = aSymbol.fLine) and
-      (lSymbol.fColumn = aSymbol.fColumn) then
+      (lSymbol.fColumn = aSymbol.fColumn) and (lSymbol.fIsHelper = aSymbol.fIsHelper) then
       Exit;
   end;
 
@@ -598,7 +664,11 @@ var
   lPropertyType: string;
   lPropertyTypeEnd: Integer;
   lRawLine: string;
+  lRelatedTypeName: string;
+  lTypeText: string;
+  lTypeSymbol: TRemoveWithSymbolInfo;
   lTopLevelLine: Boolean;
+  lTypeIsHelper: Boolean;
   lTypeName: string;
   i: Integer;
 begin
@@ -634,12 +704,22 @@ begin
     begin
       if not lInTypeSection then
         Continue;
-      if TryTypeStart(CollectTypeStartText(aLines, i), lCurrentType) then
+      lTypeText := CollectTypeStartText(aLines, i);
+      if TryTypeStart(lTypeText, lCurrentType) then
       begin
         lInClassVar := False;
         lInConst := False;
-        AddNamedSymbols(aInventory, [lCurrentType], '', '', '', aUnitName, aFilePath, i + 1, aLines[i],
-          TRemoveWithSymbolKind.rwskTypeMember);
+        TryTypeRelation(lTypeText, lRelatedTypeName, lTypeIsHelper);
+        lTypeSymbol := Default(TRemoveWithSymbolInfo);
+        lTypeSymbol.fName := lCurrentType;
+        lTypeSymbol.fRelatedTypeName := lRelatedTypeName;
+        lTypeSymbol.fIsHelper := lTypeIsHelper;
+        lTypeSymbol.fUnitName := aUnitName;
+        lTypeSymbol.fFilePath := aFilePath;
+        lTypeSymbol.fLine := i + 1;
+        lTypeSymbol.fColumn := FindColumn(aLines[i], lCurrentType);
+        lTypeSymbol.fKind := TRemoveWithSymbolKind.rwskTypeMember;
+        AddSymbol(aInventory, lTypeSymbol);
       end else if TryTypeAlias(lLine, lMemberName, lTypeName) then
       begin
         AddNamedSymbols(aInventory, [lMemberName], lTypeName, '', '', aUnitName, aFilePath, i + 1, aLines[i],
@@ -865,6 +945,93 @@ begin
   end;
 end;
 
+class procedure TRemoveWithSymbolBuilder.AddRelatedTypeMemberSymbols(var aInventory: TRemoveWithSymbolInventory);
+var
+  lAdded: Boolean;
+  lBeforeCount: Integer;
+  lMember: TRemoveWithSymbolInfo;
+  lSourceOwnerType: string;
+  lSymbol: TRemoveWithSymbolInfo;
+  lTypeSymbol: TRemoveWithSymbolInfo;
+  i: Integer;
+  j: Integer;
+begin
+  repeat
+    lAdded := False;
+    lBeforeCount := Length(aInventory.fSymbols);
+    for i := 0 to lBeforeCount - 1 do
+    begin
+      lTypeSymbol := aInventory.fSymbols[i];
+      if (lTypeSymbol.fKind <> TRemoveWithSymbolKind.rwskTypeMember) or
+        (lTypeSymbol.fRelatedTypeName = '') then
+        Continue;
+
+      for j := 0 to lBeforeCount - 1 do
+      begin
+        lMember := aInventory.fSymbols[j];
+        if (lMember.fRoutineName <> '') or (not IsDirectMemberKind(lMember.fKind)) then
+          Continue;
+
+        if lTypeSymbol.fIsHelper then
+        begin
+          if not SameText(lMember.fOwnerType, lTypeSymbol.fName) then
+            Continue;
+          lSymbol := lMember;
+          lSymbol.fOwnerType := lTypeSymbol.fRelatedTypeName;
+          lSymbol.fSourceOwnerType := lTypeSymbol.fName;
+        end else
+        begin
+          if not SameText(lMember.fOwnerType, lTypeSymbol.fRelatedTypeName) then
+            Continue;
+          lSymbol := lMember;
+          lSymbol.fOwnerType := lTypeSymbol.fName;
+          lSourceOwnerType := lMember.fSourceOwnerType;
+          if lSourceOwnerType = '' then
+            lSourceOwnerType := lMember.fOwnerType;
+          lSymbol.fSourceOwnerType := lSourceOwnerType;
+        end;
+
+        if OwnerHasOwnMember(aInventory, lSymbol.fOwnerType, lSymbol.fName) then
+          Continue;
+        AddSymbol(aInventory, lSymbol);
+        lAdded := lAdded or (Length(aInventory.fSymbols) > lBeforeCount);
+      end;
+    end;
+  until not lAdded;
+end;
+
+class procedure TRemoveWithSymbolBuilder.AddRelatedCurrentClassSymbols(var aInventory: TRemoveWithSymbolInventory);
+var
+  lCurrentMember: TRemoveWithSymbolInfo;
+  lMember: TRemoveWithSymbolInfo;
+  lSymbol: TRemoveWithSymbolInfo;
+  lSymbolCount: Integer;
+  i: Integer;
+  j: Integer;
+begin
+  lSymbolCount := Length(aInventory.fSymbols);
+  for i := 0 to lSymbolCount - 1 do
+  begin
+    lCurrentMember := aInventory.fSymbols[i];
+    if (lCurrentMember.fKind <> TRemoveWithSymbolKind.rwskCurrentClassMember) or
+      (lCurrentMember.fOwnerType = '') or (lCurrentMember.fRoutineName = '') then
+      Continue;
+
+    for j := 0 to lSymbolCount - 1 do
+    begin
+      lMember := aInventory.fSymbols[j];
+      if SameText(lMember.fOwnerType, lCurrentMember.fOwnerType) and (lMember.fRoutineName = '') and
+        IsDirectMemberKind(lMember.fKind) then
+      begin
+        lSymbol := lMember;
+        lSymbol.fKind := TRemoveWithSymbolKind.rwskCurrentClassMember;
+        lSymbol.fRoutineName := lCurrentMember.fRoutineName;
+        AddSymbol(aInventory, lSymbol);
+      end;
+    end;
+  end;
+end;
+
 class procedure TRemoveWithSymbolBuilder.ParseUnit(var aInventory: TRemoveWithSymbolInventory; const aUnitName,
   aFilePath: string);
 var
@@ -898,13 +1065,27 @@ begin
       for lSymbol in aInventory.fSymbols do
       begin
         lTypeName := SimpleTypeName(lSymbol.fTypeName);
+        if (lTypeName <> '') and (not IsBuiltInTypeName(lTypeName)) then
+        begin
+          lTypeKey := UpperCase(lTypeName);
+          if (not lSourceTypes.ContainsKey(lTypeKey)) and (not lExternalTypes.ContainsKey(lTypeKey)) then
+          begin
+            lExternalTypes.Add(lTypeKey, 1);
+            lExternalSymbol := Default(TRemoveWithSymbolInfo);
+            lExternalSymbol.fName := lTypeName;
+            lExternalSymbol.fTypeName := lTypeName;
+            lExternalSymbol.fKind := TRemoveWithSymbolKind.rwskExternal;
+            AddSymbol(aInventory, lExternalSymbol);
+          end;
+        end;
+
+        lTypeName := SimpleTypeName(lSymbol.fRelatedTypeName);
         if (lTypeName = '') or IsBuiltInTypeName(lTypeName) then
           Continue;
         lTypeKey := UpperCase(lTypeName);
         if lSourceTypes.ContainsKey(lTypeKey) or lExternalTypes.ContainsKey(lTypeKey) then
           Continue;
         lExternalTypes.Add(lTypeKey, 1);
-
         lExternalSymbol := Default(TRemoveWithSymbolInfo);
         lExternalSymbol.fName := lTypeName;
         lExternalSymbol.fTypeName := lTypeName;
@@ -953,12 +1134,14 @@ begin
         if lParsedPaths.ContainsKey(UpperCase(lUnitPath)) then
           Continue;
         lParsedPaths.Add(UpperCase(lUnitPath), 1);
-        TRemoveWithSymbolBuilder.ParseUnit(aInventory, lUnit.Name, lUnitPath);
+    TRemoveWithSymbolBuilder.ParseUnit(aInventory, lUnit.Name, lUnitPath);
       end;
     finally
       lParsedPaths.Free;
     end;
 
+    TRemoveWithSymbolBuilder.AddRelatedTypeMemberSymbols(aInventory);
+    TRemoveWithSymbolBuilder.AddRelatedCurrentClassSymbols(aInventory);
     TRemoveWithSymbolBuilder.AddExternalTypeSymbols(aInventory);
 
     for lProblem in lIndexer.Problems do

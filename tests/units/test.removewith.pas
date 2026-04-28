@@ -136,6 +136,38 @@ type
     procedure SelectorShapesResolveThroughSourceModel;
   end;
 
+  [TestFixture]
+  TRemoveWithAncestorTests = class(TRemoveWithTestBase)
+  private
+    procedure BuildAncestorHelperFixture(out aInventory: TRemoveWithSymbolInventory);
+    function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType: string;
+      out aSymbol: TRemoveWithSymbolInfo): Boolean;
+    procedure AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType, aTypeName: string);
+  public
+    [Test]
+    procedure InventoryReportsSourceAvailableAncestorMembers;
+    [Test]
+    procedure InventoryReportsExternalAncestorWithoutGuessing;
+  end;
+
+  [TestFixture]
+  TRemoveWithHelperTests = class(TRemoveWithTestBase)
+  private
+    procedure BuildAncestorHelperFixture(out aInventory: TRemoveWithSymbolInventory);
+    function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType: string;
+      out aSymbol: TRemoveWithSymbolInfo): Boolean;
+    procedure AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType, aTypeName: string);
+  public
+    [Test]
+    procedure InventoryReportsSourceAvailableHelperMembers;
+    [Test]
+    procedure InventoryReportsUnsupportedAndExternalHelperCases;
+  end;
+
 implementation
 
 uses
@@ -1170,6 +1202,169 @@ begin
   AssertSelector(lInventory, 'lRecord.Child', 'TGoldenChild');
   AssertSelector(lInventory, 'lRecord.Child.Name', 'string');
   AssertSelector(lInventory, 'lObject.FClassRecord.Child', 'TGoldenChild');
+end;
+
+procedure TRemoveWithAncestorTests.BuildAncestorHelperFixture(out aInventory: TRemoveWithSymbolInventory);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithHelpersFixture\RemoveWithHelpersFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+    'Expected ancestor/helper fixture inventory build to succeed: ' + lError);
+end;
+
+function TRemoveWithAncestorTests.FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+  const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType: string;
+  out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fName, aName) and (lSymbol.fKind = aKind) and
+      SameText(lSymbol.fOwnerType, aOwnerType) and SameText(lSymbol.fSourceOwnerType, aSourceOwnerType) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+end;
+
+procedure TRemoveWithAncestorTests.AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+  const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType, aTypeName: string);
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Assert.IsTrue(FindSymbol(aInventory, aName, aKind, aOwnerType, aSourceOwnerType, lSymbol),
+    'Expected ' + RemoveWithSymbolKindToText(aKind) + ' symbol: ' + aName);
+  if aTypeName <> '' then
+    Assert.AreEqual(aTypeName, lSymbol.fTypeName, 'Unexpected type for symbol: ' + aName);
+end;
+
+procedure TRemoveWithAncestorTests.InventoryReportsSourceAvailableAncestorMembers;
+var
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildAncestorHelperFixture(lInventory);
+
+  AssertSymbol(lInventory, 'BaseName', TRemoveWithSymbolKind.rwskProperty, 'TDerivedWithClass', 'TBaseWithClass',
+    'string');
+  AssertSymbol(lInventory, 'BaseName', TRemoveWithSymbolKind.rwskCurrentClassMember, 'TDerivedWithClass',
+    'TBaseWithClass', 'string');
+  AssertSymbol(lInventory, 'BaseTouch', TRemoveWithSymbolKind.rwskMethod, 'TDerivedWithClass', 'TBaseWithClass', '');
+  AssertSymbol(lInventory, 'BaseCount', TRemoveWithSymbolKind.rwskClassVar, 'TDerivedWithClass', 'TBaseWithClass',
+    'Integer');
+  AssertSymbol(lInventory, 'BaseLimit', TRemoveWithSymbolKind.rwskConstant, 'TDerivedWithClass', 'TBaseWithClass',
+    'Integer');
+  AssertSymbol(lInventory, 'BaseName', TRemoveWithSymbolKind.rwskProperty, 'TGrandDerivedWithClass',
+    'TBaseWithClass', 'string');
+  AssertSymbol(lInventory, 'DerivedName', TRemoveWithSymbolKind.rwskProperty, 'TGrandDerivedWithClass',
+    'TDerivedWithClass', 'string');
+end;
+
+procedure TRemoveWithAncestorTests.InventoryReportsExternalAncestorWithoutGuessing;
+var
+  lInventory: TRemoveWithSymbolInventory;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  BuildAncestorHelperFixture(lInventory);
+
+  Assert.IsFalse(FindSymbol(lInventory, 'Count', TRemoveWithSymbolKind.rwskProperty, 'TExternalDerivedList',
+    'TStringList', lSymbol), 'Expected external ancestor members to stay unresolved.');
+  Assert.IsTrue(FindSymbol(lInventory, 'TStringList', TRemoveWithSymbolKind.rwskExternal, '', '', lSymbol),
+    'Expected source-unavailable ancestor type to be reported as external.');
+end;
+
+procedure TRemoveWithHelperTests.BuildAncestorHelperFixture(out aInventory: TRemoveWithSymbolInventory);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithHelpersFixture\RemoveWithHelpersFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+    'Expected ancestor/helper fixture inventory build to succeed: ' + lError);
+end;
+
+function TRemoveWithHelperTests.FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+  const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType: string;
+  out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fName, aName) and (lSymbol.fKind = aKind) and
+      SameText(lSymbol.fOwnerType, aOwnerType) and SameText(lSymbol.fSourceOwnerType, aSourceOwnerType) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+end;
+
+procedure TRemoveWithHelperTests.AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+  const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType, aTypeName: string);
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Assert.IsTrue(FindSymbol(aInventory, aName, aKind, aOwnerType, aSourceOwnerType, lSymbol),
+    'Expected ' + RemoveWithSymbolKindToText(aKind) + ' symbol: ' + aName);
+  if aTypeName <> '' then
+    Assert.AreEqual(aTypeName, lSymbol.fTypeName, 'Unexpected type for symbol: ' + aName);
+end;
+
+procedure TRemoveWithHelperTests.InventoryReportsSourceAvailableHelperMembers;
+var
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildAncestorHelperFixture(lInventory);
+
+  AssertSymbol(lInventory, 'Normalize', TRemoveWithSymbolKind.rwskMethod, 'THelperRecordTarget',
+    'THelperRecordTargetHelper', '');
+  AssertSymbol(lInventory, 'HelperValue', TRemoveWithSymbolKind.rwskProperty, 'THelperRecordTarget',
+    'THelperRecordTargetHelper', 'string');
+  AssertSymbol(lInventory, 'ClearData', TRemoveWithSymbolKind.rwskMethod, 'THelperClassTarget',
+    'THelperClassTargetHelper', '');
+  AssertSymbol(lInventory, 'HelperData', TRemoveWithSymbolKind.rwskProperty, 'THelperClassTarget',
+    'THelperClassTargetHelper', 'string');
+end;
+
+procedure TRemoveWithHelperTests.InventoryReportsUnsupportedAndExternalHelperCases;
+var
+  lInventory: TRemoveWithSymbolInventory;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  BuildAncestorHelperFixture(lInventory);
+
+  Assert.IsTrue(FindSymbol(lInventory, 'TInheritedClassTargetHelper', TRemoveWithSymbolKind.rwskTypeMember, '',
+    '', lSymbol), 'Expected unsupported helper type to be inventoried.');
+  Assert.IsTrue(lSymbol.fIsHelper, 'Expected unsupported helper shape to be reported as a helper.');
+  Assert.AreEqual('', lSymbol.fRelatedTypeName, 'Unsupported inherited helper target should not be guessed.');
+  Assert.IsFalse(FindSymbol(lInventory, 'UnsupportedInheritedHelper', TRemoveWithSymbolKind.rwskMethod,
+    'THelperClassTarget', 'TInheritedClassTargetHelper', lSymbol),
+    'Expected unsupported helper members not to be materialized onto the target.');
+
+  AssertSymbol(lInventory, 'ExternalTargetHelper', TRemoveWithSymbolKind.rwskMethod, 'TStringList',
+    'TStringListVisibleHelper', '');
+  Assert.IsTrue(FindSymbol(lInventory, 'TStringList', TRemoveWithSymbolKind.rwskExternal, '', '', lSymbol),
+    'Expected external helper target to be reported as external.');
 end;
 
 end.
