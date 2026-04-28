@@ -307,6 +307,20 @@ type
     procedure ApplyModeTextReportsTransactionStatus;
   end;
 
+  [TestFixture]
+  TRemoveWithApplyReportTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath: string);
+    function RunApplyReport(const aDprojPath, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+    procedure AssertFileStatus(const aFiles: TJSONArray; const aExpectedStatus: string);
+  public
+    [Test]
+    procedure ApplySuccessReportIncludesVerificationAndChangedFiles;
+    [Test]
+    procedure RollbackReportIncludesFailedVerificationAndRestoredFiles;
+  end;
+
 implementation
 
 uses
@@ -2620,7 +2634,137 @@ begin
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected text apply mode to succeed. Output: ' + lOutput);
   Assert.IsTrue(Pos('status=applied', lOutput) > 0, 'Expected text output to report applied status.');
   Assert.IsTrue(Pos('appliedEdits=1', lOutput) > 0, 'Expected text output to report applied edit count.');
-  Assert.IsTrue(Pos('verification=applied', lOutput) > 0, 'Expected text output to report transaction status.');
+  Assert.IsTrue(Pos('verification=passed', lOutput) > 0, 'Expected text output to report verification status.');
+end;
+
+function TRemoveWithApplyReportTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithApplyReportTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+end;
+
+function TRemoveWithApplyReportTests.RunApplyReport(const aDprojPath, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with apply report process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable apply report JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithApplyReportTests.AssertFileStatus(const aFiles: TJSONArray; const aExpectedStatus: string);
+var
+  lFileObject: TJSONObject;
+begin
+  Assert.AreEqual(1, aFiles.Count, 'Expected one transaction file.');
+  Assert.IsTrue(aFiles.Items[0] is TJSONObject, 'Expected transaction file object.');
+  lFileObject := aFiles.Items[0] as TJSONObject;
+  Assert.AreEqual(aExpectedStatus, lFileObject.Values['status'].Value, 'Expected transaction file status.');
+  AssertJsonStringKey(lFileObject, 'path');
+  AssertJsonStringKey(lFileObject, 'backupPath');
+  AssertJsonStringKey(lFileObject, 'hash');
+  AssertJsonNumberKey(lFileObject, 'size');
+  AssertJsonStringKey(lFileObject, 'lineEnding');
+  AssertJsonStringKey(lFileObject, 'encoding');
+end;
+
+procedure TRemoveWithApplyReportTests.ApplySuccessReportIncludesVerificationAndChangedFiles;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFiles: TJSONArray;
+  lGates: TJSONArray;
+  lRoot: TJSONObject;
+  lTransaction: TJSONObject;
+  lVerification: TJSONObject;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-report', lDprojPath);
+  lRoot := RunApplyReport(lDprojPath, 'remove-with-apply-report.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected apply report fixture to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
+    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    Assert.AreEqual('passed', lVerification.Values['status'].Value, 'Expected passed verification status.');
+    AssertJsonArrayKey(lVerification, 'gates', lGates);
+    Assert.AreEqual(1, lGates.Count, 'Expected one verification gate.');
+    Assert.AreEqual('build', (lGates.Items[0] as TJSONObject).Values['name'].Value, 'Expected build gate.');
+    Assert.AreEqual('passed', (lGates.Items[0] as TJSONObject).Values['status'].Value,
+      'Expected passed build gate.');
+
+    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
+    AssertJsonStringKey(lTransaction, 'manifestPath');
+    AssertJsonArrayKey(lTransaction, 'files', lFiles);
+    AssertFileStatus(lFiles, 'changed');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+procedure TRemoveWithApplyReportTests.RollbackReportIncludesFailedVerificationAndRestoredFiles;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFiles: TJSONArray;
+  lGates: TJSONArray;
+  lRoot: TJSONObject;
+  lTransaction: TJSONObject;
+  lVerification: TJSONObject;
+begin
+  CopyFixtureToTemp('RemoveWithRollbackFixture', 'remove-with-rollback-report', lDprojPath);
+  lRoot := RunApplyReport(lDprojPath, 'remove-with-rollback-report.json', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, 'Expected rollback report fixture to fail verification.');
+    Assert.AreEqual('rolledBack', lRoot.Values['status'].Value, 'Expected rolledBack root status.');
+    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    Assert.AreEqual('failed', lVerification.Values['status'].Value, 'Expected failed verification status.');
+    AssertJsonArrayKey(lVerification, 'gates', lGates);
+    Assert.AreEqual(1, lGates.Count, 'Expected one verification gate.');
+    Assert.AreEqual('build', (lGates.Items[0] as TJSONObject).Values['name'].Value, 'Expected build gate.');
+    Assert.AreEqual('failed', (lGates.Items[0] as TJSONObject).Values['status'].Value,
+      'Expected failed build gate.');
+
+    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
+    AssertJsonStringKey(lTransaction, 'manifestPath');
+    AssertJsonArrayKey(lTransaction, 'files', lFiles);
+    AssertFileStatus(lFiles, 'restored');
+  finally
+    lRoot.Free;
+  end;
 end;
 
 end.
