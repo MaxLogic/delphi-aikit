@@ -1,0 +1,10 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MainSource>RemoveWithGlobalScopeFixture.dpr</MainSource>
+    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <DCCReference Include="GlobalScopeMain.pas"/>
+    <DCCReference Include="GlobalScopeSupport.pas"/>
+  </ItemGroup>
+</Project>
