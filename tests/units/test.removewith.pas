@@ -302,6 +302,19 @@ type
   end;
 
   [TestFixture]
+  TRemoveWithRewriteShapeTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string; out aDprojPath,
+      aUnitPath: string);
+    function RunApplyFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+    function RunBuildFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
+  public
+    [Test]
+    procedure BeginEndAndSingleStatementBodiesRewriteSafely;
+  end;
+
+  [TestFixture]
   TRemoveWithTransactionTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -2613,6 +2626,121 @@ begin
   for i := 0 to High(lRollbackUnitBytesBefore) do
     Assert.AreEqual(lRollbackUnitBytesBefore[i], lRollbackUnitBytesAfter[i],
       'Expected rollback fixture source bytes to be restored.');
+end;
+
+function TRemoveWithRewriteShapeTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithRewriteShapeTests.CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string;
+  out aDprojPath, aUnitPath: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aUnitPath := TPath.Combine(lDestinationDir, aUnitName);
+end;
+
+function TRemoveWithRewriteShapeTests.RunApplyFixture(const aDprojPath, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with apply process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+function TRemoveWithRewriteShapeTests.RunBuildFixture(const aDprojPath, aLogName: string;
+  out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lCmdArgs: string;
+  lCmdExe: string;
+  lLogPath: string;
+  lRsVarsPath: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lRsVarsPath := 'C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat';
+  if not TFile.Exists(lRsVarsPath) then
+    lRsVarsPath := TPath.Combine(GetEnvironmentVariable('ProgramFiles(x86)'),
+      'Embarcadero\Studio\23.0\bin\rsvars.bat');
+  lArgs := 'build --project ' + QuoteArg(aDprojPath) +
+    ' --delphi 23.0 --platform Win32 --config Debug --builder delphi --rsvars ' + QuoteArg(lRsVarsPath);
+  lCmdExe := GetEnvironmentVariable('ComSpec');
+  if lCmdExe = '' then
+    lCmdExe := 'C:\Windows\System32\cmd.exe';
+  lCmdArgs := '/C set "BDS=" & set "BDSLIB=" & set "DCC_Namespace=" & set "DCC_UnitSearchPath=" & ' +
+    'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
+  Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
+    'Failed to start build process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithRewriteShapeTests.BeginEndAndSingleStatementBodiesRewriteSafely;
+var
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lRoot: TJSONObject;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CopyFixtureToTemp('RemoveWithRewriteShapeFixture', 'remove-with-rewrite-shapes', 'RewriteShapeUnit.pas',
+    lDprojPath, lUnitPath);
+
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-rewrite-shapes.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected rewrite-shape apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied rewrite-shape status.');
+    Assert.AreEqual(2, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected block and single-statement rewrite plans.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('with aRecordPtr^ do', lUnitText) = 0, 'Expected all with statements to be removed.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name := ''block'';', lUnitText) > 0,
+    'Expected begin-end body to be qualified.');
+  Assert.IsTrue(Pos('aRecordPtr^.Count := aRecordPtr^.Count + 1;', lUnitText) > 0,
+    'Expected repeated begin-end identifier to be qualified.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name := ''single'';', lUnitText) > 0,
+    'Expected single-statement body to be qualified.');
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-rewrite-shapes-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited rewrite-shape fixture to build. Output: ' +
+    lBuildOutput);
 end;
 
 function TRemoveWithTransactionTests.CommandExePath: string;
