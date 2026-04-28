@@ -95,6 +95,7 @@ type
     class function ResolutionKindForCandidate(const aInventory: TRemoveWithSymbolInventory; const aReceiverType: string;
       const aCandidate: TRemoveWithSymbolInfo; out aSourceOwnerType: string): string; static;
     class function AllCandidatesAreMethods(const aCandidates: TArray<TRemoveWithSymbolInfo>): Boolean; static;
+    class function CandidatesShareSourceOwner(const aCandidates: TArray<TRemoveWithSymbolInfo>): Boolean; static;
     class function IsCallUse(const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse): Boolean;
       static;
     class function ResolveSelectorFromReceivers(const aInventory: TRemoveWithSymbolInventory;
@@ -553,6 +554,24 @@ begin
   end;
 end;
 
+class function TRemoveWithIdentifierResolver.CandidatesShareSourceOwner(
+  const aCandidates: TArray<TRemoveWithSymbolInfo>): Boolean;
+var
+  lSourceOwnerType: string;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  if Length(aCandidates) = 0 then
+    Exit(False);
+
+  lSourceOwnerType := aCandidates[0].fSourceOwnerType;
+  for lSymbol in aCandidates do
+  begin
+    if not SameText(lSymbol.fSourceOwnerType, lSourceOwnerType) then
+      Exit(False);
+  end;
+  Result := True;
+end;
+
 class function TRemoveWithIdentifierResolver.IsCallUse(const aSource: TRemoveWithSourceBuffer;
   const aUse: TRemoveWithIdentifierUse): Boolean;
 begin
@@ -880,13 +899,16 @@ begin
         aClassification.fResolutionKind := ResolutionKindForCandidate(aInventory, aReceivers[i].fTypeName,
           lCandidates[0], lSourceOwnerType);
         aClassification.fSourceOwnerType := lSourceOwnerType;
-        if AllCandidatesAreMethods(lCandidates) and IsCallUse(aSource, aUse) then
+        if AllCandidatesAreMethods(lCandidates) and CandidatesShareSourceOwner(lCandidates) and
+          IsCallUse(aSource, aUse) then
         begin
           aClassification.fStatus := TRemoveWithIdentifierStatus.rwisResolved;
           aClassification.fReason := '';
         end else
         begin
           aClassification.fStatus := TRemoveWithIdentifierStatus.rwisAmbiguousToDak;
+          aClassification.fResolutionKind := 'ambiguous';
+          aClassification.fSourceOwnerType := '';
           aClassification.fReason := 'multiple-member-candidates';
         end;
         Exit(True);

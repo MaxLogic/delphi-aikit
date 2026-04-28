@@ -215,6 +215,18 @@ type
     procedure PlanReportUsesDeclaredInterfaceContract;
   end;
 
+  [TestFixture]
+  TRemoveWithHelperPrecedenceGoldenTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    function RunHelperPrecedenceFixture(out aExitCode: Cardinal): string;
+    procedure AssertJsonClassification(const aClassifications: TJSONArray; const aStatementId,
+      aIdentifier, aStatus, aResolutionKind, aSourceOwnerType: string);
+  public
+    [Test]
+    procedure PlanReportDistinguishesDirectHelperAmbiguousAndExternalHelpers;
+  end;
+
 implementation
 
 uses
@@ -1724,6 +1736,91 @@ begin
     AssertJsonClassification(lClassifications, 'with-1', 'ConcreteOnly', 'unresolved', 'unresolved', '');
     AssertJsonClassification(lClassifications, 'with-2', 'ConcreteOnly', 'resolved', 'direct', '');
     AssertJsonClassification(lClassifications, 'with-2', 'ChildTouch', 'resolved', 'direct', '');
+  finally
+    lJson.Free;
+  end;
+end;
+
+function TRemoveWithHelperPrecedenceGoldenTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+function TRemoveWithHelperPrecedenceGoldenTests.RunHelperPrecedenceFixture(out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithHelperPrecedenceFixture\RemoveWithHelperPrecedenceFixture.dproj');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-helper-precedence-plan.json');
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
+
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+    aExitCode), 'Failed to start remove-with helper precedence process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithHelperPrecedenceGoldenTests.AssertJsonClassification(const aClassifications: TJSONArray;
+  const aStatementId, aIdentifier, aStatus, aResolutionKind, aSourceOwnerType: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('statementId', ''), aStatementId) and
+      SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) and
+      SameText(lObject.GetValue<string>('status', ''), aStatus) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), aResolutionKind) and
+      SameText(lObject.GetValue<string>('sourceOwnerType', ''), aSourceOwnerType) then
+      Exit;
+  end;
+  Assert.Fail('Expected helper classification ' + aStatementId + ':' + aIdentifier + ':' + aStatus + ':' +
+    aResolutionKind + ':' + aSourceOwnerType);
+end;
+
+procedure TRemoveWithHelperPrecedenceGoldenTests.PlanReportDistinguishesDirectHelperAmbiguousAndExternalHelpers;
+var
+  lClassifications: TJSONArray;
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+begin
+  lOutput := RunHelperPrecedenceFixture(lExitCode);
+
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected helper precedence plan report to succeed.');
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected helper precedence output to be a JSON object.');
+    lRoot := lJson as TJSONObject;
+    lResolver := lRoot.GetValue<TJSONObject>('resolver');
+    Assert.IsNotNull(lResolver, 'Expected resolver object.');
+    lClassifications := lResolver.GetValue<TJSONArray>('classifications');
+    Assert.IsNotNull(lClassifications, 'Expected resolver classifications.');
+
+    AssertJsonClassification(lClassifications, 'with-1', 'SharedName', 'resolved', 'direct', '');
+    AssertJsonClassification(lClassifications, 'with-1', 'DirectMethod', 'resolved', 'direct', '');
+    AssertJsonClassification(lClassifications, 'with-2', 'Normalize', 'resolved', 'helper',
+      'THelperOnlyRecordHelper');
+    AssertJsonClassification(lClassifications, 'with-2', 'HelperValue', 'resolved', 'helper',
+      'THelperOnlyRecordHelper');
+    AssertJsonClassification(lClassifications, 'with-3', 'Clash', 'ambiguous-to-DAK', 'ambiguous', '');
+    AssertJsonClassification(lClassifications, 'with-4', 'HelperValue', 'resolved', 'helper',
+      'THelperOnlyRecordHelper');
+    AssertJsonClassification(lClassifications, 'with-5', 'ClearData', 'resolved', 'helper',
+      'TClassHelperTargetHelper');
+    AssertJsonClassification(lClassifications, 'with-5', 'HelperData', 'resolved', 'helper',
+      'TClassHelperTargetHelper');
+    AssertJsonClassification(lClassifications, 'with-6', 'ExternalHelper', 'external', 'external-only', '');
   finally
     lJson.Free;
   end;
