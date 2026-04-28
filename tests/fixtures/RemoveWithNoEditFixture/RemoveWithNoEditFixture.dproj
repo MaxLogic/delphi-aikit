@@ -1,10 +1,10 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <ProjectGuid>{AE4C27EC-2F0C-464E-B278-489378D32315}</ProjectGuid>
-    <MainSource>RemoveWithRollbackFixture.dpr</MainSource>
+    <ProjectGuid>{9BF977D0-7EC2-4D90-BB97-912693CE54B7}</ProjectGuid>
+    <MainSource>RemoveWithNoEditFixture.dpr</MainSource>
     <Base>True</Base>
     <Config Condition="'$(Config)'==''">Release</Config>
-    <ProjectName Condition="'$(ProjectName)'==''">RemoveWithRollbackFixture</ProjectName>
+    <ProjectName Condition="'$(ProjectName)'==''">RemoveWithNoEditFixture</ProjectName>
     <TargetedPlatforms>1</TargetedPlatforms>
     <AppType>Console</AppType>
     <FrameworkType>None</FrameworkType>
@@ -21,8 +21,8 @@
     <DelphiCompile Include="$(MainSource)">
       <MainSource>MainSource</MainSource>
     </DelphiCompile>
-    <DCCReference Include="RollbackSkippedUnit.pas"/>
-    <DCCReference Include="RollbackUnit.pas"/>
+    <DCCReference Include="NoEditBlockedUnit.pas"/>
+    <DCCReference Include="NoEditSkippedUnit.pas"/>
   </ItemGroup>
   <ProjectExtensions>
     <Borland.Personality>Delphi.Personality.12</Borland.Personality>
@@ -30,7 +30,7 @@
     <BorlandProject>
       <Delphi.Personality>
         <Source>
-          <Source Name="MainSource">RemoveWithRollbackFixture.dpr</Source>
+          <Source Name="MainSource">RemoveWithNoEditFixture.dpr</Source>
         </Source>
       </Delphi.Personality>
       <Platforms>

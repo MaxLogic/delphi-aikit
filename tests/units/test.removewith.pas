@@ -358,6 +358,23 @@ type
     procedure RollbackReportIncludesFailedVerificationAndRestoredFiles;
   end;
 
+  [TestFixture]
+  TRemoveWithNoEditAndRollbackTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+    procedure AssertTransactionFileStatus(const aFiles: TJSONArray; const aExpectedStatus: string);
+  public
+    [Test]
+    procedure PlanModeLeavesSafeSkippedAndBlockedSourcesUnchanged;
+    [Test]
+    procedure ApplyModeLeavesAllSkippedAndBlockedSourcesUnchanged;
+    [Test]
+    procedure RollbackRestoresMixedSafeAndSkippedSourcesExactly;
+  end;
+
 implementation
 
 uses
@@ -3475,6 +3492,216 @@ begin
   finally
     lRoot.Free;
   end;
+end;
+
+function TRemoveWithNoEditAndRollbackTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithNoEditAndRollbackTests.AssertBytesEqual(const aExpected, aActual: TBytes;
+  const aMessage: string);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(Length(aExpected), Length(aActual), aMessage + ' Size differs.');
+  for i := 0 to High(aExpected) do
+    Assert.AreEqual(aExpected[i], aActual[i], aMessage + ' Byte differs at index ' + i.ToString + '.');
+end;
+
+procedure TRemoveWithNoEditAndRollbackTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithNoEditAndRollbackTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithNoEditAndRollbackTests.AssertTransactionFileStatus(const aFiles: TJSONArray;
+  const aExpectedStatus: string);
+var
+  lFileObject: TJSONObject;
+begin
+  Assert.AreEqual(1, aFiles.Count, 'Expected one transaction file.');
+  Assert.IsTrue(aFiles.Items[0] is TJSONObject, 'Expected transaction file object.');
+  lFileObject := aFiles.Items[0] as TJSONObject;
+  Assert.AreEqual(aExpectedStatus, lFileObject.Values['status'].Value, 'Expected transaction file status.');
+  AssertJsonStringKey(lFileObject, 'path');
+  AssertJsonStringKey(lFileObject, 'backupPath');
+  AssertJsonStringKey(lFileObject, 'hash');
+end;
+
+procedure TRemoveWithNoEditAndRollbackTests.PlanModeLeavesSafeSkippedAndBlockedSourcesUnchanged;
+var
+  lBlockedBefore: TBytes;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSafeBefore: TBytes;
+  lSafeUnitPath: string;
+  lSkippedBefore: TBytes;
+  lSkippedUnitPath: string;
+  lBlockedUnitPath: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-noedit-plan-safe', lDprojPath, lFixtureDir);
+  lSafeUnitPath := TPath.Combine(lFixtureDir, 'ApplyUnit.pas');
+  lSafeBefore := TFile.ReadAllBytes(lSafeUnitPath);
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-noedit-plan-safe.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected plan mode on safe fixture to succeed.');
+    Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected non-apply plan status.');
+    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected safe fixture to produce a plan without applying it.');
+  finally
+    lRoot.Free;
+  end;
+  AssertBytesEqual(lSafeBefore, TFile.ReadAllBytes(lSafeUnitPath), 'Plan mode must not edit safe source.');
+
+  CopyFixtureToTemp('RemoveWithNoEditFixture', 'remove-with-noedit-plan-skipped', lDprojPath, lFixtureDir);
+  lSkippedUnitPath := TPath.Combine(lFixtureDir, 'NoEditSkippedUnit.pas');
+  lBlockedUnitPath := TPath.Combine(lFixtureDir, 'NoEditBlockedUnit.pas');
+  lSkippedBefore := TFile.ReadAllBytes(lSkippedUnitPath);
+  lBlockedBefore := TFile.ReadAllBytes(lBlockedUnitPath);
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-noedit-plan-skipped.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected plan mode on skipped fixture to succeed.');
+    Assert.AreEqual(0, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected skipped and blocked fixture to produce no safe edit.');
+    Assert.AreEqual(2, (lRoot.Values['skipped'] as TJSONArray).Count,
+      'Expected property selector and controlled statement skips.');
+  finally
+    lRoot.Free;
+  end;
+  AssertBytesEqual(lSkippedBefore, TFile.ReadAllBytes(lSkippedUnitPath),
+    'Plan mode must not edit skipped source.');
+  AssertBytesEqual(lBlockedBefore, TFile.ReadAllBytes(lBlockedUnitPath),
+    'Plan mode must not edit blocked source.');
+end;
+
+procedure TRemoveWithNoEditAndRollbackTests.ApplyModeLeavesAllSkippedAndBlockedSourcesUnchanged;
+var
+  lBlockedBefore: TBytes;
+  lBlockedUnitPath: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFiles: TJSONArray;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSkippedBefore: TBytes;
+  lSkippedUnitPath: string;
+  lTransaction: TJSONObject;
+  lVerification: TJSONObject;
+begin
+  CopyFixtureToTemp('RemoveWithNoEditFixture', 'remove-with-noedit-apply', lDprojPath, lFixtureDir);
+  lSkippedUnitPath := TPath.Combine(lFixtureDir, 'NoEditSkippedUnit.pas');
+  lBlockedUnitPath := TPath.Combine(lFixtureDir, 'NoEditBlockedUnit.pas');
+  lSkippedBefore := TFile.ReadAllBytes(lSkippedUnitPath);
+  lBlockedBefore := TFile.ReadAllBytes(lBlockedUnitPath);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'apply', 'remove-with-noedit-apply.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected no-edit apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected no-edit apply status.');
+    Assert.AreEqual(0, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected no safe edits for skipped and blocked fixture.');
+    Assert.AreEqual(2, (lRoot.Values['skipped'] as TJSONArray).Count,
+      'Expected skipped and blocked reports.');
+    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    Assert.AreEqual('not-run', lVerification.Values['status'].Value,
+      'Expected no build verification when there are no edits.');
+    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
+    AssertJsonArrayKey(lTransaction, 'files', lFiles);
+    Assert.AreEqual(0, lFiles.Count, 'Expected no transaction files when nothing is edited.');
+  finally
+    lRoot.Free;
+  end;
+
+  AssertBytesEqual(lSkippedBefore, TFile.ReadAllBytes(lSkippedUnitPath),
+    'Apply mode must not edit skipped source.');
+  AssertBytesEqual(lBlockedBefore, TFile.ReadAllBytes(lBlockedUnitPath),
+    'Apply mode must not edit blocked source.');
+end;
+
+procedure TRemoveWithNoEditAndRollbackTests.RollbackRestoresMixedSafeAndSkippedSourcesExactly;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFiles: TJSONArray;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSafeBefore: TBytes;
+  lSafeUnitPath: string;
+  lSkippedBefore: TBytes;
+  lSkippedUnitPath: string;
+  lTransaction: TJSONObject;
+  lVerification: TJSONObject;
+begin
+  CopyFixtureToTemp('RemoveWithRollbackFixture', 'remove-with-noedit-rollback', lDprojPath, lFixtureDir);
+  lSafeUnitPath := TPath.Combine(lFixtureDir, 'RollbackUnit.pas');
+  lSkippedUnitPath := TPath.Combine(lFixtureDir, 'RollbackSkippedUnit.pas');
+  lSafeBefore := TFile.ReadAllBytes(lSafeUnitPath);
+  lSkippedBefore := TFile.ReadAllBytes(lSkippedUnitPath);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'apply', 'remove-with-noedit-rollback.json', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, 'Expected mixed rollback fixture to fail verification.');
+    Assert.AreEqual('rolledBack', lRoot.Values['status'].Value, 'Expected rolledBack root status.');
+    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected one safe edit before rollback.');
+    Assert.AreEqual(1, (lRoot.Values['skipped'] as TJSONArray).Count,
+      'Expected one unsafe selector to remain skipped.');
+    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    Assert.AreEqual('failed', lVerification.Values['status'].Value, 'Expected failed build verification.');
+    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
+    AssertJsonArrayKey(lTransaction, 'files', lFiles);
+    AssertTransactionFileStatus(lFiles, 'restored');
+  finally
+    lRoot.Free;
+  end;
+
+  AssertBytesEqual(lSafeBefore, TFile.ReadAllBytes(lSafeUnitPath),
+    'Rollback must restore edited source exactly.');
+  AssertBytesEqual(lSkippedBefore, TFile.ReadAllBytes(lSkippedUnitPath),
+    'Rollback must leave skipped source unchanged.');
 end;
 
 end.
