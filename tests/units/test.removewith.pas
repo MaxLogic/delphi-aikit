@@ -289,6 +289,19 @@ type
   end;
 
   [TestFixture]
+  TRemoveWithCliTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function RunBuildFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+    function SkippedReportContains(const aSkipped: TJSONArray; const aFileName, aReason: string): Boolean;
+  public
+    [Test]
+    procedure ScanPlanApplyAndRollbackAcrossCopiedFixtures;
+  end;
+
+  [TestFixture]
   TRemoveWithTransactionTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -2410,6 +2423,196 @@ begin
 
   lUnitTextAfter := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
   Assert.AreEqual(lUnitTextBefore, lUnitTextAfter, 'Plan mode must not modify the planner fixture.');
+end;
+
+function TRemoveWithCliTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithCliTests.CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath,
+  aFixtureDir: string);
+var
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  aFixtureDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(aFixtureDir) then
+    TDirectory.Delete(aFixtureDir, True);
+  TDirectory.CreateDirectory(aFixtureDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(aFixtureDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(aFixtureDir, aFixtureName + '.dproj');
+end;
+
+function TRemoveWithCliTests.RunBuildFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lCmdArgs: string;
+  lCmdExe: string;
+  lLogPath: string;
+  lRsVarsPath: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lRsVarsPath := 'C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat';
+  if not TFile.Exists(lRsVarsPath) then
+    lRsVarsPath := TPath.Combine(GetEnvironmentVariable('ProgramFiles(x86)'),
+      'Embarcadero\Studio\23.0\bin\rsvars.bat');
+  lArgs := 'build --project ' + QuoteArg(aDprojPath) +
+    ' --delphi 23.0 --platform Win32 --config Debug --builder delphi --rsvars ' + QuoteArg(lRsVarsPath);
+  lCmdExe := GetEnvironmentVariable('ComSpec');
+  if lCmdExe = '' then
+    lCmdExe := 'C:\Windows\System32\cmd.exe';
+  lCmdArgs := '/C set "BDS=" & set "BDSLIB=" & set "DCC_Namespace=" & set "DCC_UnitSearchPath=" & ' +
+    'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
+  Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
+    'Failed to start build process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+function TRemoveWithCliTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with CLI process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+function TRemoveWithCliTests.SkippedReportContains(const aSkipped: TJSONArray; const aFileName,
+  aReason: string): Boolean;
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  Result := False;
+  for lItem in aSkipped do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+
+    lObject := lItem as TJSONObject;
+    if (Pos(aFileName, lObject.GetValue<string>('file', '')) > 0) and
+      SameText(lObject.GetValue<string>('reason', ''), aReason) then
+      Exit(True);
+  end;
+end;
+
+procedure TRemoveWithCliTests.ScanPlanApplyAndRollbackAcrossCopiedFixtures;
+var
+  lApplyRoot: TJSONObject;
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lExternalUnitPath: string;
+  lExternalUnitTextBefore: string;
+  lFixtureDir: string;
+  lPlanRoot: TJSONObject;
+  lRollbackDprojPath: string;
+  lRollbackDir: string;
+  lRollbackRoot: TJSONObject;
+  lRollbackUnitBytesAfter: TBytes;
+  lRollbackUnitBytesBefore: TBytes;
+  lSafeUnitPath: string;
+  lSafeUnitText: string;
+  lScanRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lSkippedUnitPath: string;
+  lSkippedUnitTextAfter: string;
+  lSkippedUnitTextBefore: string;
+  i: Integer;
+begin
+  CopyFixtureToTemp('RemoveWithE2EFixture', 'remove-with-e2e', lDprojPath, lFixtureDir);
+  lSafeUnitPath := TPath.Combine(lFixtureDir, 'E2ESafeUnit.pas');
+  lSkippedUnitPath := TPath.Combine(lFixtureDir, 'E2ESkippedUnit.pas');
+  lExternalUnitPath := TPath.Combine(lFixtureDir, 'E2EExternalUnit.pas');
+  lSkippedUnitTextBefore := TFile.ReadAllText(lSkippedUnitPath, TEncoding.UTF8);
+  lExternalUnitTextBefore := TFile.ReadAllText(lExternalUnitPath, TEncoding.UTF8);
+
+  lScanRoot := RunRemoveWithFixture(lDprojPath, 'scan', 'remove-with-e2e-scan.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected e2e scan to succeed.');
+    Assert.AreEqual('3', (lScanRoot.Values['summary'] as TJSONObject).Values['withStatements'].Value,
+      'Expected safe, skipped, and external with statements in scan report.');
+  finally
+    lScanRoot.Free;
+  end;
+
+  lPlanRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-e2e-plan.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected e2e plan to succeed.');
+    Assert.AreEqual(1, (lPlanRoot.Values['plannedEdits'] as TJSONArray).Count, 'Expected one safe edit plan.');
+    lSkipped := lPlanRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(2, lSkipped.Count, 'Expected unsafe and external with statements to be skipped.');
+    Assert.IsTrue(SkippedReportContains(lSkipped, 'E2ESkippedUnit.pas', 'controlled-with-statement'),
+      'Expected skipped property-selector file and reason in plan report.');
+    Assert.IsTrue(SkippedReportContains(lSkipped, 'E2EExternalUnit.pas', 'type-source-not-indexed'),
+      'Expected skipped external-member file and reason in plan report.');
+  finally
+    lPlanRoot.Free;
+  end;
+  Assert.AreEqual(lSkippedUnitTextBefore, TFile.ReadAllText(lSkippedUnitPath, TEncoding.UTF8),
+    'Plan mode must not edit skipped source.');
+  Assert.AreEqual(lExternalUnitTextBefore, TFile.ReadAllText(lExternalUnitPath, TEncoding.UTF8),
+    'Plan mode must not edit external source.');
+
+  lApplyRoot := RunRemoveWithFixture(lDprojPath, 'apply', 'remove-with-e2e-apply.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected e2e apply to succeed.');
+    Assert.AreEqual('applied', lApplyRoot.Values['status'].Value, 'Expected applied e2e status.');
+  finally
+    lApplyRoot.Free;
+  end;
+  lSafeUnitText := TFile.ReadAllText(lSafeUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('with aCustomerPtr^ do', lSafeUnitText) = 0, 'Expected safe with to be removed.');
+  Assert.IsTrue(Pos('aCustomerPtr^.Name := ''e2e'';', lSafeUnitText) > 0, 'Expected safe receiver qualification.');
+  lSkippedUnitTextAfter := TFile.ReadAllText(lSkippedUnitPath, TEncoding.UTF8);
+  Assert.AreEqual(lSkippedUnitTextBefore, lSkippedUnitTextAfter, 'Skipped unsafe unit must remain unchanged.');
+  Assert.AreEqual(lExternalUnitTextBefore, TFile.ReadAllText(lExternalUnitPath, TEncoding.UTF8),
+    'Skipped external unit must remain unchanged.');
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-e2e-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited e2e fixture to build. Output: ' + lBuildOutput);
+
+  CopyFixtureToTemp('RemoveWithRollbackFixture', 'remove-with-e2e-rollback', lRollbackDprojPath, lRollbackDir);
+  lRollbackUnitBytesBefore := TFile.ReadAllBytes(TPath.Combine(lRollbackDir, 'RollbackUnit.pas'));
+
+  lRollbackRoot := RunRemoveWithFixture(lRollbackDprojPath, 'apply', 'remove-with-e2e-rollback.json', lExitCode);
+  try
+    Assert.AreNotEqual(Cardinal(0), lExitCode, 'Expected rollback fixture apply to fail verification.');
+    Assert.AreEqual('rolledBack', lRollbackRoot.Values['status'].Value, 'Expected rolledBack e2e status.');
+  finally
+    lRollbackRoot.Free;
+  end;
+
+  lRollbackUnitBytesAfter := TFile.ReadAllBytes(TPath.Combine(lRollbackDir, 'RollbackUnit.pas'));
+  Assert.AreEqual(Length(lRollbackUnitBytesBefore), Length(lRollbackUnitBytesAfter),
+    'Expected rollback fixture source size to be restored.');
+  for i := 0 to High(lRollbackUnitBytesBefore) do
+    Assert.AreEqual(lRollbackUnitBytesBefore[i], lRollbackUnitBytesAfter[i],
+      'Expected rollback fixture source bytes to be restored.');
 end;
 
 function TRemoveWithTransactionTests.CommandExePath: string;
