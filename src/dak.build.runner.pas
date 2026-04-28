@@ -1278,6 +1278,9 @@ procedure PrintSummary(const aOptions: TAppOptions; const aProjectInfo: TBuildPr
 var
   lLine: string;
 begin
+  if aOptions.fBuildQuiet then
+    Exit;
+
   if aOptions.fBuildJson then
     Exit;
 
@@ -1335,7 +1338,7 @@ procedure PrintVerboseStep(const aOptions: TAppOptions; const aStep: string);
 var
   lTracePath: string;
 begin
-  if aOptions.fVerbose then
+  if aOptions.fVerbose and (not aOptions.fBuildQuiet) then
     Writeln(ErrOutput, '[build] ' + aStep);
   lTracePath := Trim(GetEnvironmentVariable('DAK_TRACE_BUILD'));
   if lTracePath <> '' then
@@ -1389,6 +1392,9 @@ var
   lPair: TPair<string, string>;
   lPreflightEnvVars: TDictionary<string, string>;
 begin
+  if aOptions.fBuildQuiet then
+    Exit;
+
   if not SameText(Trim(aOptions.fPlatform), 'Win64') then
     Exit;
 
@@ -1697,10 +1703,13 @@ begin
   lProjectInfo.fProjectName := lWebCoreInfo.fProjectName;
   lProjectInfo.fOutputPath := lWebCoreInfo.fOutputPath;
 
-  if aOptions.fBuildJson then
-    Writeln(BuildSummaryAsJson(lProjectInfo.fProjectPath, aOptions, lSummary, aOptions.fBuildTarget, lTimeMs))
-  else
-    PrintSummary(aOptions, lProjectInfo, lSummary);
+  if not aOptions.fBuildQuiet then
+  begin
+    if aOptions.fBuildJson then
+      Writeln(BuildSummaryAsJson(lProjectInfo.fProjectPath, aOptions, lSummary, aOptions.fBuildTarget, lTimeMs))
+    else
+      PrintSummary(aOptions, lProjectInfo, lSummary);
+  end;
 
   Result := True;
 end;
@@ -1843,11 +1852,14 @@ begin
     LoadBuildSettings(lNormalizedOptions.fDprojPath, lNormalizedOptions, lEnvVars, lSettings);
     LoadDiagnosticsDefaults(lDiagnosticsWarnings, lNormalizedOptions.fDprojPath, lDiagnosticsDefaults);
     ApplyDiagnosticsOverrides(lNormalizedOptions, lDiagnosticsDefaults);
-    lDiagnosticsWarnings.EmitWarnings(
-      procedure(const aMessage: string)
-      begin
-        WriteLn(aMessage);
-      end);
+    if not lNormalizedOptions.fBuildQuiet then
+    begin
+      lDiagnosticsWarnings.EmitWarnings(
+        procedure(const aMessage: string)
+        begin
+          WriteLn(aMessage);
+        end);
+    end;
 
     PrintVerboseStep(lNormalizedOptions, 'resolve-msbuild');
     lBdsRoot := ResolveBdsRoot(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath);
@@ -1925,7 +1937,7 @@ begin
           EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintsRaw, lProjectLookup,
             lDiagnosticsDefaults.fSourceContextLines);
         end;
-        if lNormalizedOptions.fVerbose and (lLookupError <> '') then
+        if lNormalizedOptions.fVerbose and (not lNormalizedOptions.fBuildQuiet) and (lLookupError <> '') then
           Writeln('NOTE. Source context search paths unavailable: ' + lLookupError);
     end;
   end;
@@ -2032,16 +2044,19 @@ begin
       end;
     end;
 
-    if lNormalizedOptions.fBuildJson then
+    if not lNormalizedOptions.fBuildQuiet then
     begin
-      PrintVerboseStep(lNormalizedOptions, 'emit-json');
-      lJson := BuildSummaryAsJson(lProjectInfo.fProjectPath, lNormalizedOptions, lSummary,
-        lNormalizedOptions.fBuildTarget, lTimeMs);
-      Writeln(lJson);
-    end else
-    begin
-      PrintVerboseStep(lNormalizedOptions, 'print-summary');
-      PrintSummary(lNormalizedOptions, lProjectInfo, lSummary);
+      if lNormalizedOptions.fBuildJson then
+      begin
+        PrintVerboseStep(lNormalizedOptions, 'emit-json');
+        lJson := BuildSummaryAsJson(lProjectInfo.fProjectPath, lNormalizedOptions, lSummary,
+          lNormalizedOptions.fBuildTarget, lTimeMs);
+        Writeln(lJson);
+      end else
+      begin
+        PrintVerboseStep(lNormalizedOptions, 'print-summary');
+        PrintSummary(lNormalizedOptions, lProjectInfo, lSummary);
+      end;
     end;
 
     Result := True;

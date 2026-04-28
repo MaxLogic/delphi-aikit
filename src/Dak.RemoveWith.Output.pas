@@ -4,16 +4,18 @@ interface
 
 uses
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
-  Dak.RemoveWith.TempPolicy, Dak.Types;
+  Dak.RemoveWith.TempPolicy, Dak.RemoveWith.Transaction, Dak.Types;
 
 function RemoveWithModeToText(const aMode: TRemoveWithMode): string;
 function RemoveWithFormatToText(const aFormat: TRemoveWithFormat): string;
 function RemoveWithTargetKindToText(const aKind: TRemoveWithTargetKind): string;
 function BuildRemoveWithJsonReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
-  const aResolverResult: TRemoveWithResolverResult; const aPlanResult: TRemoveWithPlanResult): string;
+  const aResolverResult: TRemoveWithResolverResult; const aPlanResult: TRemoveWithPlanResult;
+  const aTransactionResult: TRemoveWithTransactionResult): string;
 function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
-  aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult): string;
+  aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
+  const aPlanResult: TRemoveWithPlanResult; const aTransactionResult: TRemoveWithTransactionResult): string;
 
 implementation
 
@@ -160,6 +162,33 @@ begin
   Result := TJSONObject.Create;
   Result.AddPair('status', 'not-run');
   Result.AddPair('gates', TJSONArray.Create);
+end;
+
+function BuildTransactionFilesArray(const aTransactionResult: TRemoveWithTransactionResult): TJSONArray;
+var
+  lFile: TRemoveWithTransactionFile;
+begin
+  Result := TJSONArray.Create;
+  for lFile in aTransactionResult.fFiles do
+  begin
+    Result.AddElement(TJSONObject.Create
+      .AddPair('path', lFile.fPath)
+      .AddPair('backupPath', lFile.fBackupPath)
+      .AddPair('hash', lFile.fHash)
+      .AddPair('size', TJSONNumber.Create(lFile.fSize))
+      .AddPair('lineEnding', lFile.fLineEnding)
+      .AddPair('encoding', lFile.fEncoding));
+  end;
+end;
+
+function BuildTransactionObject(const aTransactionResult: TRemoveWithTransactionResult): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('status', RemoveWithTransactionStatusToText(aTransactionResult.fStatus));
+  Result.AddPair('backupRoot', aTransactionResult.fBackupRoot);
+  Result.AddPair('manifestPath', aTransactionResult.fManifestPath);
+  Result.AddPair('error', aTransactionResult.fError);
+  Result.AddPair('files', BuildTransactionFilesArray(aTransactionResult));
 end;
 
 function BuildFilesArray(const aScanResult: TRemoveWithScanResult): TJSONArray;
@@ -316,26 +345,48 @@ begin
   end;
 end;
 
-function BuildSummaryObject(const aScanResult: TRemoveWithScanResult; const aPlanResult: TRemoveWithPlanResult):
-  TJSONObject;
+function BuildSummaryObject(const aOptions: TAppOptions; const aScanResult: TRemoveWithScanResult;
+  const aPlanResult: TRemoveWithPlanResult; const aTransactionResult: TRemoveWithTransactionResult): TJSONObject;
 var
+  lAppliedCount: Integer;
   lPlannedCount: Integer;
+  lRolledBackCount: Integer;
   lSkippedCount: Integer;
 begin
   CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount);
+  lAppliedCount := 0;
+  lRolledBackCount := 0;
+  if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
+  begin
+    if aTransactionResult.fStatus = TRemoveWithTransactionStatus.rwtxApplied then
+      lAppliedCount := lPlannedCount
+    else if aTransactionResult.fStatus = TRemoveWithTransactionStatus.rwtxRolledBack then
+      lRolledBackCount := Length(aTransactionResult.fFiles);
+  end;
+
   Result := TJSONObject.Create;
   Result.AddPair('filesScanned', TJSONNumber.Create(Length(aScanResult.fFiles)));
   Result.AddPair('withStatements', TJSONNumber.Create(Length(aScanResult.fWithStatements)));
   Result.AddPair('plannedEdits', TJSONNumber.Create(lPlannedCount));
-  Result.AddPair('appliedEdits', TJSONNumber.Create(0));
+  Result.AddPair('appliedEdits', TJSONNumber.Create(lAppliedCount));
   Result.AddPair('skipped', TJSONNumber.Create(lSkippedCount));
   Result.AddPair('failed', TJSONNumber.Create(0));
-  Result.AddPair('rolledBack', TJSONNumber.Create(0));
+  Result.AddPair('rolledBack', TJSONNumber.Create(lRolledBackCount));
+end;
+
+function BuildRootStatus(const aOptions: TAppOptions;
+  const aTransactionResult: TRemoveWithTransactionResult): string;
+begin
+  if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
+    Exit(RemoveWithTransactionStatusToText(aTransactionResult.fStatus));
+
+  Result := 'ok';
 end;
 
 function BuildRemoveWithJsonReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
-  const aResolverResult: TRemoveWithResolverResult; const aPlanResult: TRemoveWithPlanResult): string;
+  const aResolverResult: TRemoveWithResolverResult; const aPlanResult: TRemoveWithPlanResult;
+  const aTransactionResult: TRemoveWithTransactionResult): string;
 var
   lRoot: TJSONObject;
 begin
@@ -343,7 +394,7 @@ begin
   try
     lRoot.AddPair('schemaVersion', TJSONNumber.Create(cRemoveWithSchemaVersion));
     lRoot.AddPair('operation', 'remove-with');
-    lRoot.AddPair('status', 'ok');
+    lRoot.AddPair('status', BuildRootStatus(aOptions, aTransactionResult));
     lRoot.AddPair('mode', RemoveWithModeToText(aOptions.fRemoveWithMode));
     lRoot.AddPair('format', RemoveWithFormatToText(aOptions.fRemoveWithFormat));
     lRoot.AddPair('project', BuildProjectObject(aProjectPath));
@@ -357,7 +408,8 @@ begin
     lRoot.AddPair('skipped', BuildSkippedArray(aPlanResult));
     lRoot.AddPair('warnings', BuildWarningsArray(aScanResult));
     lRoot.AddPair('verification', BuildVerificationObject);
-    lRoot.AddPair('summary', BuildSummaryObject(aScanResult, aPlanResult));
+    lRoot.AddPair('transaction', BuildTransactionObject(aTransactionResult));
+    lRoot.AddPair('summary', BuildSummaryObject(aOptions, aScanResult, aPlanResult, aTransactionResult));
     Result := lRoot.ToJSON;
   finally
     lRoot.Free;
@@ -365,10 +417,29 @@ begin
 end;
 
 function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
-  aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult): string;
+  aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
+  const aPlanResult: TRemoveWithPlanResult; const aTransactionResult: TRemoveWithTransactionResult): string;
 var
+  lAppliedCount: Integer;
+  lPlannedCount: Integer;
+  lRolledBackCount: Integer;
+  lSkippedCount: Integer;
+  lStatusText: string;
   lTargetValue: string;
 begin
+  CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount);
+  lStatusText := BuildRootStatus(aOptions, aTransactionResult);
+  lAppliedCount := 0;
+  lRolledBackCount := 0;
+  if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
+  begin
+    if aTransactionResult.fStatus = TRemoveWithTransactionStatus.rwtxApplied then
+      lAppliedCount := lPlannedCount
+    else if aTransactionResult.fStatus in [TRemoveWithTransactionStatus.rwtxRolledBack,
+      TRemoveWithTransactionStatus.rwtxRollbackFailed] then
+      lRolledBackCount := Length(aTransactionResult.fFiles);
+  end;
+
   lTargetValue := aUnitPath;
   if aOptions.fRemoveWithTargetKind = TRemoveWithTargetKind.rwtDir then
     lTargetValue := aDirPath
@@ -377,7 +448,7 @@ begin
 
   Result := 'schemaVersion=' + IntToStr(cRemoveWithSchemaVersion) + sLineBreak +
     'operation=remove-with' + sLineBreak +
-    'status=ok' + sLineBreak +
+    'status=' + lStatusText + sLineBreak +
     'mode=' + RemoveWithModeToText(aOptions.fRemoveWithMode) + sLineBreak +
     'project=' + aProjectPath + sLineBreak +
     'run=' + aRunId + sLineBreak +
@@ -385,12 +456,13 @@ begin
     'workspace=' + aWorkspaceRoot + sLineBreak +
     'filesScanned=' + IntToStr(Length(aScanResult.fFiles)) + sLineBreak +
     'withStatements=' + IntToStr(Length(aScanResult.fWithStatements)) + sLineBreak +
-    'plannedEdits=0' + sLineBreak +
-    'appliedEdits=0' + sLineBreak +
-    'skipped=0' + sLineBreak +
+    'plannedEdits=' + IntToStr(lPlannedCount) + sLineBreak +
+    'appliedEdits=' + IntToStr(lAppliedCount) + sLineBreak +
+    'skipped=' + IntToStr(lSkippedCount) + sLineBreak +
     'failed=0' + sLineBreak +
-    'rolledBack=0' + sLineBreak +
-    'verification=not-run';
+    'rolledBack=' + IntToStr(lRolledBackCount) + sLineBreak +
+    'transactionManifest=' + aTransactionResult.fManifestPath + sLineBreak +
+    'verification=' + RemoveWithTransactionStatusToText(aTransactionResult.fStatus);
 end;
 
 end.

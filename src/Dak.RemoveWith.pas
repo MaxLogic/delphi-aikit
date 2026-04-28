@@ -12,7 +12,7 @@ implementation
 uses
   System.IOUtils, System.SysUtils,
   Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Output, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver,
-  Dak.RemoveWith.Symbols, Dak.Utils;
+  Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
 
 function NewRemoveWithRunId: string;
 var
@@ -75,6 +75,7 @@ end;
 function RunRemoveWithCommand(const aOptions: TAppOptions): Integer;
 var
   lDirPath: string;
+  lApplySucceeded: Boolean;
   lError: string;
   lOutputText: string;
   lPlanResult: TRemoveWithPlanResult;
@@ -84,9 +85,15 @@ var
   lRunId: string;
   lScanResult: TRemoveWithScanResult;
   lSymbolInventory: TRemoveWithSymbolInventory;
+  lTransactionResult: TRemoveWithTransactionResult;
   lUnitPath: string;
   lWorkspaceRoot: string;
 begin
+  lApplySucceeded := True;
+  lPlanResult := Default(TRemoveWithPlanResult);
+  lResolverResult := Default(TRemoveWithResolverResult);
+  lTransactionResult := Default(TRemoveWithTransactionResult);
+
   if not TryResolveDprojPath(aOptions.fDprojPath, lProjectPath, lError) then
   begin
     WriteLn(ErrOutput, lError);
@@ -110,7 +117,6 @@ begin
     WriteLn(ErrOutput, lError);
     Exit(cExitToolFailure);
   end;
-  lResolverResult := Default(TRemoveWithResolverResult);
   if aOptions.fRemoveWithMode <> TRemoveWithMode.rwmScan then
   begin
     if not BuildRemoveWithSymbolInventory(aOptions, lSymbolInventory, lError) then
@@ -128,15 +134,25 @@ begin
       WriteLn(ErrOutput, lError);
       Exit(cExitToolFailure);
     end;
+
+    if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
+    begin
+      lApplySucceeded := ApplyRemoveWithPlanTransactionally(aOptions, lProjectPath, lWorkspaceRoot, lPlanResult,
+        lTransactionResult, lError);
+      if (not lApplySucceeded) and (lTransactionResult.fError = '') then
+        lTransactionResult.fError := lError;
+    end;
   end;
 
   if aOptions.fRemoveWithFormat = TRemoveWithFormat.rwfText then
     lOutputText := BuildRemoveWithTextReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
-      lScanResult)
+      lScanResult, lPlanResult, lTransactionResult)
   else
     lOutputText := BuildRemoveWithJsonReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
-      lScanResult, lResolverResult, lPlanResult);
+      lScanResult, lResolverResult, lPlanResult, lTransactionResult);
   WriteRemoveWithOutput(aOptions, lOutputText);
+  if not lApplySucceeded then
+    Exit(cExitToolFailure);
   Result := cExitSuccess;
 end;
 

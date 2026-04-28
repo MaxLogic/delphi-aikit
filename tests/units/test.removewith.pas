@@ -288,6 +288,25 @@ type
     procedure PlanCliEmitsPlannedEditsWithoutChangingFixture;
   end;
 
+  [TestFixture]
+  TRemoveWithTransactionTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string; out aDprojPath,
+      aUnitPath: string);
+    function FindSingleManifest(const aProjectDir, aProjectName: string): string;
+    function RunApplyFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
+    function RunBuildFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
+  public
+    [Test]
+    procedure ApplyModeBacksUpManifestsEditsAndBuildsFixture;
+    [Test]
+    procedure ApplyModeRollsBackExactBytesWhenBuildVerificationFails;
+    [Test]
+    procedure ApplyModeTextReportsTransactionStatus;
+  end;
+
 implementation
 
 uses
@@ -2377,6 +2396,231 @@ begin
 
   lUnitTextAfter := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
   Assert.AreEqual(lUnitTextBefore, lUnitTextAfter, 'Plan mode must not modify the planner fixture.');
+end;
+
+function TRemoveWithTransactionTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithTransactionTests.AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(Length(aExpected), Length(aActual), aMessage + ' Size differs.');
+  for i := 0 to High(aExpected) do
+    Assert.AreEqual(aExpected[i], aActual[i], aMessage + ' Byte differs at index ' + i.ToString + '.');
+end;
+
+procedure TRemoveWithTransactionTests.CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string;
+  out aDprojPath, aUnitPath: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aUnitPath := TPath.Combine(lDestinationDir, aUnitName);
+end;
+
+function TRemoveWithTransactionTests.FindSingleManifest(const aProjectDir, aProjectName: string): string;
+var
+  lFiles: TArray<string>;
+  lRoot: string;
+begin
+  lRoot := TPath.Combine(TPath.Combine(TPath.Combine(aProjectDir, '.dak'), aProjectName), 'remove-with');
+  lFiles := TDirectory.GetFiles(lRoot, 'manifest.json', TSearchOption.soAllDirectories);
+  Assert.AreEqual(1, Length(lFiles), 'Expected exactly one transaction manifest under ' + lRoot + '.');
+  Result := lFiles[0];
+end;
+
+function TRemoveWithTransactionTests.RunApplyFixture(const aDprojPath, aLogName: string;
+  out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with apply process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+function TRemoveWithTransactionTests.RunBuildFixture(const aDprojPath, aLogName: string;
+  out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lCmdArgs: string;
+  lCmdExe: string;
+  lLogPath: string;
+  lRsVarsPath: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lRsVarsPath := 'C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat';
+  if not TFile.Exists(lRsVarsPath) then
+    lRsVarsPath := TPath.Combine(GetEnvironmentVariable('ProgramFiles(x86)'),
+      'Embarcadero\Studio\23.0\bin\rsvars.bat');
+  lArgs := 'build --project ' + QuoteArg(aDprojPath) +
+    ' --delphi 23.0 --platform Win32 --config Debug --builder delphi --rsvars ' + QuoteArg(lRsVarsPath);
+  lCmdExe := GetEnvironmentVariable('ComSpec');
+  if lCmdExe = '' then
+    lCmdExe := 'C:\Windows\System32\cmd.exe';
+  lCmdArgs := '/C set "BDS=" & set "BDSLIB=" & set "DCC_Namespace=" & set "DCC_UnitSearchPath=" & ' +
+    'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
+  Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
+    'Failed to start build process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithTransactionTests.ApplyModeBacksUpManifestsEditsAndBuildsFixture;
+var
+  lBackupPath: string;
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFiles: TJSONArray;
+  lManifest: TJSONObject;
+  lManifestPath: string;
+  lManifestValue: TJSONValue;
+  lOriginalBytes: TBytes;
+  lOutput: string;
+  lOutputValue: TJSONValue;
+  lProjectDir: string;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-transaction', 'ApplyUnit.pas', lDprojPath,
+    lUnitPath);
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+
+  lOutput := RunApplyFixture(lDprojPath, 'remove-with-apply-transaction.json', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected apply mode to succeed. Output: ' + lOutput);
+  lOutputValue := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lOutputValue is TJSONObject, 'Expected apply output to be a single JSON object. Output: ' +
+      lOutput);
+    Assert.AreEqual('applied', (lOutputValue as TJSONObject).Values['status'].Value,
+      'Expected applied status in apply output.');
+  finally
+    lOutputValue.Free;
+  end;
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('with aRecordPtr^ do', lUnitText) = 0, 'Expected with statement to be removed.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name := ''applied'';', lUnitText) > 0, 'Expected direct pointer qualification.');
+
+  lProjectDir := TPath.GetDirectoryName(lDprojPath);
+  lManifestPath := FindSingleManifest(lProjectDir, 'RemoveWithApplyFixture');
+  lManifestValue := TJSONObject.ParseJSONValue(TFile.ReadAllText(lManifestPath, TEncoding.UTF8));
+  try
+    Assert.IsTrue(lManifestValue is TJSONObject, 'Expected manifest JSON object.');
+    lManifest := lManifestValue as TJSONObject;
+    Assert.AreEqual('applied', lManifest.Values['status'].Value, 'Expected applied manifest status.');
+    Assert.IsTrue(lManifest.Values['files'] is TJSONArray, 'Expected manifest files array.');
+    lFiles := lManifest.Values['files'] as TJSONArray;
+    Assert.AreEqual(1, lFiles.Count, 'Expected one backed up file.');
+    Assert.AreEqual('crlf', (lFiles.Items[0] as TJSONObject).Values['lineEnding'].Value,
+      'Expected CRLF manifest line-ending fact.');
+    Assert.AreEqual('utf-8', (lFiles.Items[0] as TJSONObject).Values['encoding'].Value,
+      'Expected UTF-8 manifest encoding fact.');
+    lBackupPath := (lFiles.Items[0] as TJSONObject).Values['backupPath'].Value;
+    Assert.IsTrue(FileExists(lBackupPath), 'Expected backup file to exist.');
+    AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lBackupPath), 'Backup must preserve exact original bytes.');
+  finally
+    lManifestValue.Free;
+  end;
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-apply-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited apply fixture to build. Output: ' + lBuildOutput);
+end;
+
+procedure TRemoveWithTransactionTests.ApplyModeRollsBackExactBytesWhenBuildVerificationFails;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lManifest: TJSONObject;
+  lManifestPath: string;
+  lManifestValue: TJSONValue;
+  lOriginalBytes: TBytes;
+  lOutput: string;
+  lOutputValue: TJSONValue;
+  lProjectDir: string;
+  lUnitPath: string;
+begin
+  CopyFixtureToTemp('RemoveWithRollbackFixture', 'remove-with-rollback-transaction', 'RollbackUnit.pas',
+    lDprojPath, lUnitPath);
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+
+  lOutput := RunApplyFixture(lDprojPath, 'remove-with-rollback-transaction.json', lExitCode);
+  Assert.AreNotEqual(Cardinal(0), lExitCode, 'Expected apply mode to fail after build verification.');
+  lOutputValue := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lOutputValue is TJSONObject, 'Expected rollback output to be a single JSON object. Output: ' +
+      lOutput);
+    Assert.AreEqual('rolledBack', (lOutputValue as TJSONObject).Values['status'].Value,
+      'Expected rollback status in failed apply output.');
+  finally
+    lOutputValue.Free;
+  end;
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath), 'Rollback must restore exact original bytes.');
+
+  lProjectDir := TPath.GetDirectoryName(lDprojPath);
+  lManifestPath := FindSingleManifest(lProjectDir, 'RemoveWithRollbackFixture');
+  lManifestValue := TJSONObject.ParseJSONValue(TFile.ReadAllText(lManifestPath, TEncoding.UTF8));
+  try
+    Assert.IsTrue(lManifestValue is TJSONObject, 'Expected rollback manifest JSON object.');
+    lManifest := lManifestValue as TJSONObject;
+    Assert.AreEqual('rolledBack', lManifest.Values['status'].Value, 'Expected rolledBack manifest status.');
+    Assert.IsTrue(lManifest.Values['files'] is TJSONArray, 'Expected rollback manifest files array.');
+    Assert.AreEqual(1, (lManifest.Values['files'] as TJSONArray).Count, 'Expected one restored file.');
+  finally
+    lManifestValue.Free;
+  end;
+end;
+
+procedure TRemoveWithTransactionTests.ApplyModeTextReportsTransactionStatus;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lOutput: string;
+  lUnitPath: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-text-transaction', 'ApplyUnit.pas', lDprojPath,
+    lUnitPath);
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-apply-transaction.txt');
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode apply --format text';
+
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, lExitCode),
+    'Failed to start remove-with apply text process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected text apply mode to succeed. Output: ' + lOutput);
+  Assert.IsTrue(Pos('status=applied', lOutput) > 0, 'Expected text output to report applied status.');
+  Assert.IsTrue(Pos('appliedEdits=1', lOutput) > 0, 'Expected text output to report applied edit count.');
+  Assert.IsTrue(Pos('verification=applied', lOutput) > 0, 'Expected text output to report transaction status.');
 end;
 
 end.
