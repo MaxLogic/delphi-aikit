@@ -40,6 +40,8 @@ type
     class function ElementTypeName(const aTypeName: string): string; static;
     class function FindDirectMember(const aInventory: TRemoveWithSymbolInventory; const aOwnerType,
       aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
+    class function FindDefaultProperty(const aInventory: TRemoveWithSymbolInventory; const aOwnerType: string;
+      out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
     class function FindRoutineSymbol(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
       aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
     class function HasSourceType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
@@ -132,6 +134,24 @@ begin
     if SameText(lSymbol.fOwnerType, aOwnerType) and (lSymbol.fRoutineName = '') and SameText(lSymbol.fName, aName)
       and (lSymbol.fKind in [TRemoveWithSymbolKind.rwskField, TRemoveWithSymbolKind.rwskProperty,
         TRemoveWithSymbolKind.rwskMethod, TRemoveWithSymbolKind.rwskConstant, TRemoveWithSymbolKind.rwskClassVar]) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+class function TRemoveWithExpressionResolver.FindDefaultProperty(const aInventory: TRemoveWithSymbolInventory;
+  const aOwnerType: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fOwnerType, aOwnerType) and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
+      lSymbol.fIsDefault then
     begin
       aSymbol := lSymbol;
       Exit(True);
@@ -329,6 +349,7 @@ var
   lSegment: TSelectorSegment;
   lSegments: TArray<string>;
   lDirectSymbol: TRemoveWithSymbolInfo;
+  lIndexedTypeName: string;
   lSymbol: TRemoveWithSymbolInfo;
   lOwnerType: string;
   lTypeName: string;
@@ -382,7 +403,18 @@ begin
   if lSegment.fDeref then
     lTypeName := PointerTargetType(aInventory, lTypeName);
   if lSegment.fIndexed then
-    lTypeName := ElementTypeName(lTypeName);
+  begin
+    lIndexedTypeName := ElementTypeName(lTypeName);
+    if lIndexedTypeName <> '' then
+      lTypeName := lIndexedTypeName
+    else if FindDefaultProperty(aInventory, DirectTypeName(lTypeName), lSymbol) then
+    begin
+      SetInfo(aInfo, aSelectorText, '', 'property-selector', TRemoveWithSelectorTypeStatus.rwstsUnsupported,
+        False);
+      Exit(True);
+    end else
+      lTypeName := '';
+  end;
 
   for i := 1 to High(lSegments) do
   begin
@@ -411,7 +443,18 @@ begin
     if lSegment.fDeref then
       lTypeName := PointerTargetType(aInventory, lTypeName);
     if lSegment.fIndexed then
-      lTypeName := ElementTypeName(lTypeName);
+    begin
+      lIndexedTypeName := ElementTypeName(lTypeName);
+      if lIndexedTypeName <> '' then
+        lTypeName := lIndexedTypeName
+      else if FindDefaultProperty(aInventory, DirectTypeName(lTypeName), lSymbol) then
+      begin
+        SetInfo(aInfo, aSelectorText, '', 'property-selector', TRemoveWithSelectorTypeStatus.rwstsUnsupported,
+          False);
+        Exit(True);
+      end else
+        lTypeName := '';
+    end;
   end;
 
   if (lTypeName = '') then

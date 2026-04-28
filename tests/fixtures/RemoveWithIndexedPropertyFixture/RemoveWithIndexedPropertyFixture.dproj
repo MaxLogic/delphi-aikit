@@ -1,0 +1,10 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{8C2F47E4-98AA-4F0C-9B4E-95B39AF7B121}</ProjectGuid>
+    <MainSource>RemoveWithIndexedPropertyFixture.dpr</MainSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)"/>
+    <DCCReference Include="IndexedPropertyMain.pas"/>
+  </ItemGroup>
+</Project>
