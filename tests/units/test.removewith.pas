@@ -88,6 +88,31 @@ type
   end;
 
   [TestFixture]
+  TRemoveWithUnitModelExtractorTests = class(TRemoveWithTestBase)
+  private
+    function BuildUnitModelFixture: TRemoveWithProjectModel;
+    function FindUnitModel(const aModel: TRemoveWithProjectModel; const aUnitName: string;
+      out aUnitModel: TRemoveWithUnitModel): Boolean;
+    function HasUse(const aUnitModel: TRemoveWithUnitModel; const aName: string): Boolean;
+    function HasType(const aUnitModel: TRemoveWithUnitModel; const aName: string;
+      const aKind: TRemoveWithModelTypeKind): Boolean;
+    function HasMember(const aUnitModel: TRemoveWithUnitModel; const aOwnerType, aName: string;
+      const aKind: TRemoveWithModelMemberKind): Boolean;
+    function FindMember(const aUnitModel: TRemoveWithUnitModel; const aOwnerType, aName: string;
+      const aKind: TRemoveWithModelMemberKind; out aMember: TRemoveWithModelMemberInfo): Boolean;
+    function HasRoutineSymbol(const aUnitModel: TRemoveWithUnitModel; const aRoutineName, aName: string;
+      const aKind: TRemoveWithModelRoutineSymbolKind): Boolean;
+    function HasIdentifierReference(const aUnitModel: TRemoveWithUnitModel; const aRoutineName,
+      aName: string): Boolean;
+    function HasWithSelector(const aUnitModel: TRemoveWithUnitModel; const aRoutineName, aSelectorText: string;
+      const aSelectorCount: Integer): Boolean;
+    function MaxWithDepth(const aUnitModel: TRemoveWithUnitModel): Integer;
+  public
+    [Test]
+    procedure AstExtractorCapturesUnitDeclarationsScopesAndWithStatements;
+  end;
+
+  [TestFixture]
   TRemoveWithPrecedenceTests = class(TRemoveWithTestBase)
   private
     procedure CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
@@ -1311,6 +1336,208 @@ begin
     Assert.AreEqual(cDiscoveryFixtureWithCount, Length(lScanResult.fWithStatements),
       'Expected discovery to read with statements from the shared model.');
     Assert.IsTrue(Length(lInventory.fSymbols) > 0, 'Expected symbol inventory to read units from the shared model.');
+  finally
+    lModel.Free;
+  end;
+end;
+
+function TRemoveWithUnitModelExtractorTests.BuildUnitModelFixture: TRemoveWithProjectModel;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithUnitModelFixture\RemoveWithUnitModelFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Result := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lOptions.fDprojPath, Result, lError), lError);
+end;
+
+function TRemoveWithUnitModelExtractorTests.FindUnitModel(const aModel: TRemoveWithProjectModel;
+  const aUnitName: string; out aUnitModel: TRemoveWithUnitModel): Boolean;
+var
+  lUnitModel: TRemoveWithUnitModel;
+begin
+  Result := False;
+  aUnitModel := Default(TRemoveWithUnitModel);
+  for lUnitModel in aModel.UnitModels do
+  begin
+    if SameText(lUnitModel.fUnitName, aUnitName) then
+    begin
+      aUnitModel := lUnitModel;
+      Exit(True);
+    end;
+  end;
+end;
+
+function TRemoveWithUnitModelExtractorTests.HasUse(const aUnitModel: TRemoveWithUnitModel;
+  const aName: string): Boolean;
+var
+  lName: string;
+begin
+  Result := False;
+  for lName in aUnitModel.fUses do
+  begin
+    if SameText(lName, aName) then
+      Exit(True);
+  end;
+end;
+
+function TRemoveWithUnitModelExtractorTests.HasType(const aUnitModel: TRemoveWithUnitModel; const aName: string;
+  const aKind: TRemoveWithModelTypeKind): Boolean;
+var
+  lTypeInfo: TRemoveWithModelTypeInfo;
+begin
+  Result := False;
+  for lTypeInfo in aUnitModel.fTypes do
+  begin
+    if SameText(lTypeInfo.fName, aName) and (lTypeInfo.fKind = aKind) then
+      Exit(True);
+  end;
+end;
+
+function TRemoveWithUnitModelExtractorTests.HasMember(const aUnitModel: TRemoveWithUnitModel;
+  const aOwnerType, aName: string; const aKind: TRemoveWithModelMemberKind): Boolean;
+var
+  lMember: TRemoveWithModelMemberInfo;
+begin
+  Result := FindMember(aUnitModel, aOwnerType, aName, aKind, lMember);
+end;
+
+function TRemoveWithUnitModelExtractorTests.FindMember(const aUnitModel: TRemoveWithUnitModel;
+  const aOwnerType, aName: string; const aKind: TRemoveWithModelMemberKind;
+  out aMember: TRemoveWithModelMemberInfo): Boolean;
+var
+  lMember: TRemoveWithModelMemberInfo;
+begin
+  Result := False;
+  aMember := Default(TRemoveWithModelMemberInfo);
+  for lMember in aUnitModel.fMembers do
+  begin
+    if SameText(lMember.fOwnerType, aOwnerType) and SameText(lMember.fName, aName) and
+      (lMember.fKind = aKind) then
+    begin
+      aMember := lMember;
+      Exit(True);
+    end;
+  end;
+end;
+
+function TRemoveWithUnitModelExtractorTests.HasRoutineSymbol(const aUnitModel: TRemoveWithUnitModel;
+  const aRoutineName, aName: string; const aKind: TRemoveWithModelRoutineSymbolKind): Boolean;
+var
+  lSymbol: TRemoveWithModelRoutineSymbolInfo;
+begin
+  Result := False;
+  for lSymbol in aUnitModel.fRoutineSymbols do
+  begin
+    if SameText(lSymbol.fRoutineName, aRoutineName) and SameText(lSymbol.fName, aName) and
+      (lSymbol.fKind = aKind) then
+      Exit(True);
+  end;
+end;
+
+function TRemoveWithUnitModelExtractorTests.HasIdentifierReference(const aUnitModel: TRemoveWithUnitModel;
+  const aRoutineName, aName: string): Boolean;
+var
+  lReference: TRemoveWithModelIdentifierReference;
+begin
+  Result := False;
+  for lReference in aUnitModel.fIdentifierReferences do
+  begin
+    if SameText(lReference.fRoutineName, aRoutineName) and SameText(lReference.fName, aName) then
+      Exit(True);
+  end;
+end;
+
+function TRemoveWithUnitModelExtractorTests.HasWithSelector(const aUnitModel: TRemoveWithUnitModel;
+  const aRoutineName, aSelectorText: string; const aSelectorCount: Integer): Boolean;
+var
+  lStatement: TRemoveWithModelWithStatementInfo;
+begin
+  Result := False;
+  for lStatement in aUnitModel.fWithStatements do
+  begin
+    if SameText(lStatement.fRoutineName, aRoutineName) and SameText(lStatement.fSelectorText, aSelectorText) and
+      (lStatement.fSelectorCount = aSelectorCount) then
+      Exit(True);
+  end;
+end;
+
+function TRemoveWithUnitModelExtractorTests.MaxWithDepth(const aUnitModel: TRemoveWithUnitModel): Integer;
+var
+  lStatement: TRemoveWithModelWithStatementInfo;
+begin
+  Result := 0;
+  for lStatement in aUnitModel.fWithStatements do
+  begin
+    if lStatement.fNestingDepth > Result then
+      Result := lStatement.fNestingDepth;
+  end;
+end;
+
+procedure TRemoveWithUnitModelExtractorTests.AstExtractorCapturesUnitDeclarationsScopesAndWithStatements;
+var
+  lMember: TRemoveWithModelMemberInfo;
+  lModel: TRemoveWithProjectModel;
+  lUnitModel: TRemoveWithUnitModel;
+begin
+  lModel := BuildUnitModelFixture;
+  try
+    Assert.IsTrue(FindUnitModel(lModel, 'UnitModelMain', lUnitModel), 'Expected UnitModelMain model.');
+    Assert.IsTrue(HasUse(lUnitModel, 'System.SysUtils'), 'Expected uses clause extraction.');
+
+    Assert.IsTrue(HasType(lUnitModel, 'IUnitModelFace', TRemoveWithModelTypeKind.rwmtInterface),
+      'Expected interface type.');
+    Assert.IsTrue(HasType(lUnitModel, 'TUnitModelAlias', TRemoveWithModelTypeKind.rwmtAlias),
+      'Expected alias type.');
+    Assert.IsTrue(HasType(lUnitModel, 'TUnitModelMultilineRecord', TRemoveWithModelTypeKind.rwmtRecord),
+      'Expected multiline record type.');
+    Assert.IsTrue(HasType(lUnitModel, 'TUnitModelRecord', TRemoveWithModelTypeKind.rwmtRecord),
+      'Expected record type.');
+    Assert.IsTrue(HasType(lUnitModel, 'PUnitModelRecord', TRemoveWithModelTypeKind.rwmtAlias),
+      'Expected pointer alias type.');
+    Assert.IsTrue(HasType(lUnitModel, 'TUnitModelClass', TRemoveWithModelTypeKind.rwmtClass),
+      'Expected class type.');
+    Assert.IsTrue(HasType(lUnitModel, 'TUnitModelRecordHelper', TRemoveWithModelTypeKind.rwmtHelper),
+      'Expected record helper type.');
+
+    Assert.IsTrue(HasMember(lUnitModel, 'TUnitModelRecord', 'FieldName', TRemoveWithModelMemberKind.rwmmField),
+      'Expected record field.');
+    Assert.IsTrue(HasMember(lUnitModel, 'TUnitModelRecord', 'Caption', TRemoveWithModelMemberKind.rwmmProperty),
+      'Expected record property.');
+    Assert.IsTrue(HasMember(lUnitModel, 'TUnitModelClass', 'DefaultSize', TRemoveWithModelMemberKind.rwmmConstant),
+      'Expected class constant.');
+    Assert.IsTrue(HasMember(lUnitModel, 'TUnitModelClass', 'Shared', TRemoveWithModelMemberKind.rwmmClassVar),
+      'Expected class var.');
+    Assert.IsTrue(HasMember(lUnitModel, 'TUnitModelClass', 'Items', TRemoveWithModelMemberKind.rwmmProperty),
+      'Expected indexed property.');
+    Assert.IsTrue(FindMember(lUnitModel, 'TUnitModelClass', 'Items', TRemoveWithModelMemberKind.rwmmProperty,
+      lMember), 'Expected indexed default Items property.');
+    Assert.IsTrue(lMember.fIsIndexed, 'Expected Items to be marked indexed.');
+    Assert.IsTrue(lMember.fIsDefault, 'Expected Items to be marked default.');
+    Assert.AreEqual(1, lMember.fIndexParameterCount, 'Expected Items index parameter count.');
+    Assert.IsTrue(HasMember(lUnitModel, 'TUnitModelRecordHelper', 'HelperText',
+      TRemoveWithModelMemberKind.rwmmMethod));
+
+    Assert.IsTrue(HasRoutineSymbol(lUnitModel, 'TUnitModelScope.Run', 'aParam',
+      TRemoveWithModelRoutineSymbolKind.rwmrsParameter));
+    Assert.IsTrue(HasRoutineSymbol(lUnitModel, 'TUnitModelScope.Run', 'lRecord',
+      TRemoveWithModelRoutineSymbolKind.rwmrsLocal));
+    Assert.IsTrue(HasRoutineSymbol(lUnitModel, 'TUnitModelScope.Run', 'lInline',
+      TRemoveWithModelRoutineSymbolKind.rwmrsInlineLocal));
+
+    Assert.AreEqual(4, Length(lUnitModel.fWithStatements), 'Expected multiple and nested with statements.');
+    Assert.AreEqual(2, MaxWithDepth(lUnitModel), 'Expected three-level nested with depth.');
+    Assert.IsTrue(HasWithSelector(lUnitModel, 'TUnitModelScope.Run', 'lRecord, lClass', 2),
+      'Expected multi-line selector text/count extraction.');
+    Assert.IsTrue(Length(lUnitModel.fIdentifierReferences) > 0, 'Expected identifier references from routine bodies.');
+    Assert.IsTrue(HasIdentifierReference(lUnitModel, 'TUnitModelScope.Run', 'FieldName'),
+      'Expected FieldName identifier reference.');
   finally
     lModel.Free;
   end;
