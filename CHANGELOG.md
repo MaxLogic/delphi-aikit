@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added an AST-backed `remove-with` unit model extractor that captures uses, types, members, routines, scoped symbols, `with` statements, and identifier references from the shared project model. (T-172)
 - Added verbose `remove-with` progress diagnostics for discovery, symbol inventory, resolver, planner, and apply stages, including deeper symbol-inventory timing when `--verbose true` is used.
 - Added optional `remove-with` smoke coverage for the proprietary local `tests/fixtures/test-projects/maxTdb` fixture, running only when the folder exists and scanning a temp clone so original sources stay untouched.
 - Added transactional apply/build proof coverage across the `remove-with` hardening fixtures, including skipped-only byte preservation and explicit skipped-reason assertions. (T-169)
