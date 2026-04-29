@@ -3,7 +3,7 @@ unit Dak.RemoveWith.Symbols;
 interface
 
 uses
-  Dak.Types;
+  Dak.RemoveWith.Model, Dak.Types;
 
 type
   TRemoveWithTypeCategory = (rwtcUnknown, rwtcRecord, rwtcClass, rwtcInterface);
@@ -38,15 +38,16 @@ type
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
 function RemoveWithTypeCategoryToText(const aCategory: TRemoveWithTypeCategory): string;
 function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; out aInventory: TRemoveWithSymbolInventory;
-  out aError: string): Boolean;
+  out aError: string): Boolean; overload;
+function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
+  out aInventory: TRemoveWithSymbolInventory; out aError: string): Boolean; overload;
 
 implementation
 
 uses
   System.Classes, System.Diagnostics, System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiAST.ProjectIndexer,
-  MaxLogic.StrUtils,
-  Dak.Project;
+  MaxLogic.StrUtils;
 
 procedure LogRemoveWithSymbolProgress(const aOptions: TAppOptions; const aMessage: string);
 begin
@@ -1629,12 +1630,23 @@ end;
 function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; out aInventory: TRemoveWithSymbolInventory;
   out aError: string): Boolean;
 var
-  lContext: TProjectAnalysisContext;
-  lIndexer: TProjectIndexer;
+  lModel: TRemoveWithProjectModel;
+begin
+  lModel := nil;
+  if not BuildRemoveWithProjectModel(aOptions, aOptions.fDprojPath, lModel, aError) then
+    Exit(False);
+  try
+    Result := BuildRemoveWithSymbolInventory(aOptions, lModel, aInventory, aError);
+  finally
+    lModel.Free;
+  end;
+end;
+
+function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
+  out aInventory: TRemoveWithSymbolInventory; out aError: string): Boolean;
+var
   lParsedPaths: TDictionary<string, Byte>;
-  lParsedUnitCount: Integer;
   lProblem: TProjectIndexer.TProblemInfo;
-  lProblemCount: Integer;
   lSymbolKeys: TDictionary<string, Byte>;
   lStopwatch: TStopwatch;
   lSymbol: TRemoveWithSymbolInfo;
@@ -1644,102 +1656,81 @@ var
 begin
   aInventory := Default(TRemoveWithSymbolInventory);
   aError := '';
-  LogRemoveWithSymbolProgress(aOptions, 'project-context start');
-  lStopwatch := TStopwatch.StartNew;
-  if not TryBuildProjectAnalysisContext(aOptions, lContext, aError) then
+
+  if not Assigned(aProjectModel) then
+  begin
+    aError := 'Remove-with project model is not assigned.';
     Exit(False);
-  lStopwatch.Stop;
-  LogRemoveWithSymbolProgress(aOptions, Format('project-context done elapsedMs=%d main=%s',
-    [lStopwatch.ElapsedMilliseconds, lContext.fMainSourcePath]));
+  end;
 
-  lIndexer := TProjectIndexer.Create;
+  lSymbolKeys := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
-    lIndexer.Defines := lContext.fParserDefines;
-    lIndexer.SearchPath := lContext.fParserSearchPath;
-    LogRemoveWithSymbolProgress(aOptions, 'project-index start');
-    lStopwatch := TStopwatch.StartNew;
-    lIndexer.Index(lContext.fMainSourcePath);
-    lStopwatch.Stop;
-    lParsedUnitCount := 0;
-    for lUnit in lIndexer.ParsedUnits do
-      Inc(lParsedUnitCount);
-    lProblemCount := 0;
-    for lProblem in lIndexer.Problems do
-      Inc(lProblemCount);
-    LogRemoveWithSymbolProgress(aOptions, Format('project-index done elapsedMs=%d parsedUnits=%d problems=%d',
-      [lStopwatch.ElapsedMilliseconds, lParsedUnitCount, lProblemCount]));
-
-    lSymbolKeys := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    GRemoveWithSymbolKeys := lSymbolKeys;
+    lParsedPaths := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
     try
-      GRemoveWithSymbolKeys := lSymbolKeys;
-      lParsedPaths := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-      try
-        lUnitIndex := 0;
-        for lUnit in lIndexer.ParsedUnits do
-        begin
-          lUnitPath := Trim(lUnit.Path);
-          if (lUnitPath = '') or (not SameText(TPath.GetExtension(lUnitPath), '.pas')) or
-            (not TFile.Exists(lUnitPath)) then
-            Continue;
-          lUnitPath := TPath.GetFullPath(lUnitPath);
-          if lParsedPaths.ContainsKey(lUnitPath) then
-            Continue;
-          lParsedPaths.Add(lUnitPath, 1);
-          Inc(lUnitIndex);
-          LogRemoveWithSymbolProgress(aOptions, Format('parse-unit start index=%d unit=%s path=%s',
-            [lUnitIndex, lUnit.Name, lUnitPath]));
-          lStopwatch := TStopwatch.StartNew;
-          TRemoveWithSymbolBuilder.ParseUnit(aInventory, lUnit.Name, lUnitPath);
-          lStopwatch.Stop;
-          LogRemoveWithSymbolProgress(aOptions, Format('parse-unit done index=%d elapsedMs=%d symbols=%d',
-            [lUnitIndex, lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
-        end;
-      finally
-        lParsedPaths.Free;
-      end;
-
-      LogRemoveWithSymbolProgress(aOptions, 'related-type-members start');
-      lStopwatch := TStopwatch.StartNew;
-      TRemoveWithSymbolBuilder.AddRelatedTypeMemberSymbols(aInventory);
-      lStopwatch.Stop;
-      LogRemoveWithSymbolProgress(aOptions, Format('related-type-members done elapsedMs=%d symbols=%d',
-        [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
-
-      LogRemoveWithSymbolProgress(aOptions, 'current-class-members start');
-      lStopwatch := TStopwatch.StartNew;
-      TRemoveWithSymbolBuilder.AddRelatedCurrentClassSymbols(aInventory);
-      lStopwatch.Stop;
-      LogRemoveWithSymbolProgress(aOptions, Format('current-class-members done elapsedMs=%d symbols=%d',
-        [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
-
-      LogRemoveWithSymbolProgress(aOptions, 'external-units start');
-      lStopwatch := TStopwatch.StartNew;
-      TRemoveWithSymbolBuilder.AddExternalUnitSymbols(aInventory);
-      lStopwatch.Stop;
-      LogRemoveWithSymbolProgress(aOptions, Format('external-units done elapsedMs=%d symbols=%d',
-        [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
-
-      LogRemoveWithSymbolProgress(aOptions, 'external-types start');
-      lStopwatch := TStopwatch.StartNew;
-      TRemoveWithSymbolBuilder.AddExternalTypeSymbols(aInventory);
-      lStopwatch.Stop;
-      LogRemoveWithSymbolProgress(aOptions, Format('external-types done elapsedMs=%d symbols=%d',
-        [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
-
-      for lProblem in lIndexer.Problems do
+      lUnitIndex := 0;
+      for lUnit in aProjectModel.Indexer.ParsedUnits do
       begin
-        lSymbol := Default(TRemoveWithSymbolInfo);
-        lSymbol.fName := TPath.GetFileNameWithoutExtension(lProblem.FileName);
-        lSymbol.fFilePath := lProblem.FileName;
-        lSymbol.fKind := TRemoveWithSymbolKind.rwskExternal;
-        TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
+        lUnitPath := Trim(lUnit.Path);
+        if (lUnitPath = '') or (not SameText(TPath.GetExtension(lUnitPath), '.pas')) or
+          (not TFile.Exists(lUnitPath)) then
+          Continue;
+        lUnitPath := TPath.GetFullPath(lUnitPath);
+        if lParsedPaths.ContainsKey(lUnitPath) then
+          Continue;
+        lParsedPaths.Add(lUnitPath, 1);
+        Inc(lUnitIndex);
+        LogRemoveWithSymbolProgress(aOptions, Format('parse-unit start index=%d unit=%s path=%s',
+          [lUnitIndex, lUnit.Name, lUnitPath]));
+        lStopwatch := TStopwatch.StartNew;
+        TRemoveWithSymbolBuilder.ParseUnit(aInventory, lUnit.Name, lUnitPath);
+        lStopwatch.Stop;
+        LogRemoveWithSymbolProgress(aOptions, Format('parse-unit done index=%d elapsedMs=%d symbols=%d',
+          [lUnitIndex, lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
       end;
     finally
-      GRemoveWithSymbolKeys := nil;
-      lSymbolKeys.Free;
+      lParsedPaths.Free;
+    end;
+
+    LogRemoveWithSymbolProgress(aOptions, 'related-type-members start');
+    lStopwatch := TStopwatch.StartNew;
+    TRemoveWithSymbolBuilder.AddRelatedTypeMemberSymbols(aInventory);
+    lStopwatch.Stop;
+    LogRemoveWithSymbolProgress(aOptions, Format('related-type-members done elapsedMs=%d symbols=%d',
+      [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
+
+    LogRemoveWithSymbolProgress(aOptions, 'current-class-members start');
+    lStopwatch := TStopwatch.StartNew;
+    TRemoveWithSymbolBuilder.AddRelatedCurrentClassSymbols(aInventory);
+    lStopwatch.Stop;
+    LogRemoveWithSymbolProgress(aOptions, Format('current-class-members done elapsedMs=%d symbols=%d',
+      [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
+
+    LogRemoveWithSymbolProgress(aOptions, 'external-units start');
+    lStopwatch := TStopwatch.StartNew;
+    TRemoveWithSymbolBuilder.AddExternalUnitSymbols(aInventory);
+    lStopwatch.Stop;
+    LogRemoveWithSymbolProgress(aOptions, Format('external-units done elapsedMs=%d symbols=%d',
+      [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
+
+    LogRemoveWithSymbolProgress(aOptions, 'external-types start');
+    lStopwatch := TStopwatch.StartNew;
+    TRemoveWithSymbolBuilder.AddExternalTypeSymbols(aInventory);
+    lStopwatch.Stop;
+    LogRemoveWithSymbolProgress(aOptions, Format('external-types done elapsedMs=%d symbols=%d',
+      [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
+
+    for lProblem in aProjectModel.Indexer.Problems do
+    begin
+      lSymbol := Default(TRemoveWithSymbolInfo);
+      lSymbol.fName := TPath.GetFileNameWithoutExtension(lProblem.FileName);
+      lSymbol.fFilePath := lProblem.FileName;
+      lSymbol.fKind := TRemoveWithSymbolKind.rwskExternal;
+      TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
     end;
   finally
-    lIndexer.Free;
+    GRemoveWithSymbolKeys := nil;
+    lSymbolKeys.Free;
   end;
   Result := True;
 end;

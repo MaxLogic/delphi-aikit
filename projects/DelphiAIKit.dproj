@@ -191,6 +191,7 @@
         <DCCReference Include="..\src\Dak.RemoveWith.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Discovery.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Expressions.pas"/>
+        <DCCReference Include="..\src\Dak.RemoveWith.Model.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Output.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Planner.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Resolver.pas"/>

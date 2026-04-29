@@ -5,8 +5,8 @@ interface
 uses
   System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
   DUnitX.TestFramework,
-  Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver,
-  Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy, Test.Support;
+  Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Planner,
+  Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy, Test.Support;
 
 type
   TRemoveWithTestBase = class
@@ -78,6 +78,13 @@ type
     procedure ReadOnlySharedAstTraversalMatchesSerialWithCounts;
     [Test]
     procedure IndependentProjectIndexersMatchSerialWithCounts;
+  end;
+
+  [TestFixture]
+  TRemoveWithProjectModelTests = class(TRemoveWithTestBase)
+  public
+    [Test]
+    procedure SharedProjectModelFeedsDiscoveryAndSymbolInventory;
   end;
 
   [TestFixture]
@@ -1275,6 +1282,38 @@ begin
         end);
       AssertAllCounts(lExpected, lCounts, 'Independent project indexers must match serial indexing.');
     end);
+end;
+
+procedure TRemoveWithProjectModelTests.SharedProjectModelFeedsDiscoveryAndSymbolInventory;
+var
+  lError: string;
+  lInventory: TRemoveWithSymbolInventory;
+  lModel: TRemoveWithProjectModel;
+  lOptions: TAppOptions;
+  lScanResult: TRemoveWithScanResult;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithDiscoveryFixture\RemoveWithDiscoveryFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+
+  lModel := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lOptions.fDprojPath, lModel, lError), lError);
+  try
+    Assert.AreEqual(1, lModel.IndexCount, 'Expected one project index during model bootstrap.');
+    Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lModel, lScanResult, lError), lError);
+    Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, lModel, lInventory, lError), lError);
+
+    Assert.AreEqual(1, lModel.IndexCount, 'Discovery and symbol inventory must reuse the already indexed model.');
+    Assert.AreEqual(cDiscoveryFixtureWithCount, Length(lScanResult.fWithStatements),
+      'Expected discovery to read with statements from the shared model.');
+    Assert.IsTrue(Length(lInventory.fSymbols) > 0, 'Expected symbol inventory to read units from the shared model.');
+  finally
+    lModel.Free;
+  end;
 end;
 
 procedure TRemoveWithPrecedenceTests.CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);

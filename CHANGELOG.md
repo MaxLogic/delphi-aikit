@@ -53,6 +53,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- `remove-with` now bootstraps one shared project model per command and reuses that indexed project data for discovery and symbol inventory, removing the previous duplicate project-index pass in plan/apply mode. (T-171)
 - Clarified external `lsp` docs for Delphi 23: `symbols` is file-scoped `documentSymbol`, `references` is version-gated, and Delphi 13.x will be rechecked once installed. (T-121)
 - Reworked external `lsp symbols` to use file-scoped `textDocument/documentSymbol`, require `--file`, and flatten hierarchical document symbols into deterministic rows. (T-122)
 - Defaulted CLI `--platform` to `Win32` and `--config` to `Release` when omitted. (T-002)

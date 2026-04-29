@@ -3,7 +3,7 @@ unit Dak.RemoveWith.Discovery;
 interface
 
 uses
-  Dak.Types;
+  Dak.RemoveWith.Model, Dak.Types;
 
 type
   TRemoveWithRange = record
@@ -50,14 +50,16 @@ type
   end;
 
 function DiscoverRemoveWithStatements(const aOptions: TAppOptions; const aProjectPath: string;
-  out aScanResult: TRemoveWithScanResult; out aError: string): Boolean;
+  out aScanResult: TRemoveWithScanResult; out aError: string): Boolean; overload;
+function DiscoverRemoveWithStatements(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
+  out aScanResult: TRemoveWithScanResult; out aError: string): Boolean; overload;
 
 implementation
 
 uses
   System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer,
-  Dak.Project, Dak.RemoveWith.Source, Dak.Utils;
+  Dak.RemoveWith.Source, Dak.Utils;
 
 type
   TRemoveWithDiscoveryHelper = record
@@ -817,10 +819,24 @@ end;
 function DiscoverRemoveWithStatements(const aOptions: TAppOptions; const aProjectPath: string;
   out aScanResult: TRemoveWithScanResult; out aError: string): Boolean;
 var
+  lModel: TRemoveWithProjectModel;
+begin
+  lModel := nil;
+  if not BuildRemoveWithProjectModel(aOptions, aProjectPath, lModel, aError) then
+    Exit(False);
+  try
+    Result := DiscoverRemoveWithStatements(aOptions, lModel, aScanResult, aError);
+  finally
+    lModel.Free;
+  end;
+end;
+
+function DiscoverRemoveWithStatements(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
+  out aScanResult: TRemoveWithScanResult; out aError: string): Boolean;
+var
   lContext: TProjectAnalysisContext;
   lDirKey: string;
   lFilePath: string;
-  lIndexer: TProjectIndexer;
   lInitialWithCount: Integer;
   lProblem: TProjectIndexer.TProblemInfo;
   lSource: TRemoveWithSourceBuffer;
@@ -833,8 +849,13 @@ begin
   lDirKey := '';
   lUnitKey := '';
 
-  if not TryBuildProjectAnalysisContext(aOptions, lContext, aError) then
+  if not Assigned(aProjectModel) then
+  begin
+    aError := 'Remove-with project model is not assigned.';
     Exit(False);
+  end;
+
+  lContext := aProjectModel.Context;
 
   if aOptions.fRemoveWithTargetKind = TRemoveWithTargetKind.rwtUnit then
   begin
@@ -848,49 +869,40 @@ begin
     lDirKey := IncludeTrailingPathDelimiter(TRemoveWithDiscoveryHelper.NormalizePathKey(lFilePath));
   end;
 
-  lIndexer := TProjectIndexer.Create;
-  try
-    lIndexer.Defines := lContext.fParserDefines;
-    lIndexer.SearchPath := lContext.fParserSearchPath;
-    lIndexer.Index(lContext.fMainSourcePath);
-
-    for lProblem in lIndexer.Problems do
+  for lProblem in aProjectModel.Indexer.Problems do
+  begin
+    if TRemoveWithDiscoveryHelper.ShouldReportProblem(aOptions, lProblem.FileName, lContext.fProjectDir, lDirKey,
+      lUnitKey) then
     begin
-      if TRemoveWithDiscoveryHelper.ShouldReportProblem(aOptions, lProblem.FileName, lContext.fProjectDir, lDirKey,
-        lUnitKey) then
-      begin
-        TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lProblem.FileName, 0, 0,
-          TRemoveWithDiscoveryHelper.ProblemCode(lProblem.ProblemType), lProblem.Description);
-      end;
+      TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lProblem.FileName, 0, 0,
+        TRemoveWithDiscoveryHelper.ProblemCode(lProblem.ProblemType), lProblem.Description);
     end;
+  end;
 
-    for lUnit in lIndexer.ParsedUnits do
+  for lUnit in aProjectModel.Indexer.ParsedUnits do
+  begin
+    lFilePath := Trim(lUnit.Path);
+    if (lFilePath = '') or (not TFile.Exists(lFilePath)) then
+      Continue;
+    lFilePath := TPath.GetFullPath(lFilePath);
+    if not TRemoveWithDiscoveryHelper.ShouldScanPath(aOptions, lFilePath, lDirKey, lUnitKey) then
+      Continue;
+
+    lInitialWithCount := Length(aScanResult.fWithStatements);
+    if Assigned(lUnit.SyntaxTree) then
     begin
-      lFilePath := Trim(lUnit.Path);
-      if (lFilePath = '') or (not TFile.Exists(lFilePath)) then
-        Continue;
-      lFilePath := TPath.GetFullPath(lFilePath);
-      if not TRemoveWithDiscoveryHelper.ShouldScanPath(aOptions, lFilePath, lDirKey, lUnitKey) then
-        Continue;
-
-      lInitialWithCount := Length(aScanResult.fWithStatements);
-      if Assigned(lUnit.SyntaxTree) then
-      begin
-        if TRemoveWithDiscoveryHelper.ShouldScanPath(aOptions, lFilePath, lDirKey, lUnitKey) and
-          LoadRemoveWithSource(lFilePath, lSource, lSourceError) then
-          TRemoveWithDiscoveryHelper.CollectFromNode(lUnit.SyntaxTree, lFilePath, lSource, 0, aScanResult)
-        else
-          TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lFilePath, 0, 0, 'source-read-failed',
-            'Could not read source text for range extraction: ' + lSourceError);
-      end
+      if TRemoveWithDiscoveryHelper.ShouldScanPath(aOptions, lFilePath, lDirKey, lUnitKey) and
+        LoadRemoveWithSource(lFilePath, lSource, lSourceError) then
+        TRemoveWithDiscoveryHelper.CollectFromNode(lUnit.SyntaxTree, lFilePath, lSource, 0, aScanResult)
       else
-        TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lFilePath, 0, 0, 'missing-syntax-tree',
-          'DelphiAST did not return a syntax tree for the selected file.');
-      TRemoveWithDiscoveryHelper.AddFile(aScanResult, lFilePath,
-        Length(aScanResult.fWithStatements) - lInitialWithCount);
-    end;
-  finally
-    lIndexer.Free;
+        TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lFilePath, 0, 0, 'source-read-failed',
+          'Could not read source text for range extraction: ' + lSourceError);
+    end
+    else
+      TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lFilePath, 0, 0, 'missing-syntax-tree',
+        'DelphiAST did not return a syntax tree for the selected file.');
+    TRemoveWithDiscoveryHelper.AddFile(aScanResult, lFilePath,
+      Length(aScanResult.fWithStatements) - lInitialWithCount);
   end;
 
   Result := True;
