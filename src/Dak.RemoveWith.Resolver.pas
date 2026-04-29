@@ -36,6 +36,7 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  MaxLogic.StrUtils,
   Dak.RemoveWith.Expressions, Dak.RemoveWith.Source;
 
 type
@@ -59,6 +60,16 @@ type
     fEndOffset: Integer;
   end;
 
+  TRemoveWithSymbolLookup = record
+    fFound: Boolean;
+    fSymbol: TRemoveWithSymbolInfo;
+  end;
+
+  TRemoveWithTextLookup = record
+    fFound: Boolean;
+    fText: string;
+  end;
+
   TRemoveWithIdentifierResolver = record
   private
     class function DirectTypeName(const aTypeName: string): string; static;
@@ -70,7 +81,11 @@ type
     class function PreviousNonWhitespaceChar(const aText: string; const aOffset: Integer): Char; static;
     class function NextNonWhitespaceChar(const aText: string; const aOffset: Integer): Char; static;
     class function LastIdentifierSegment(const aText: string): string; static;
+    class function ArrayElementTypeName(const aInventory: TRemoveWithSymbolInventory;
+      const aTypeName: string): string; static;
     class function SelectorSegmentName(const aText: string): string; static;
+    class function SelectorSegmentDerefAfterIndex(const aText: string): Boolean; static;
+    class function SelectorSegmentDerefBeforeIndex(const aText: string): Boolean; static;
     class function SelectorSegmentIndexed(const aText: string): Boolean; static;
     class function StatementContains(const aOuter, aInner: TRemoveWithStatementInfo): Boolean; static;
     class function RangeOffsets(const aSource: TRemoveWithSourceBuffer; const aRange: TRemoveWithRange;
@@ -98,6 +113,8 @@ type
     class function IsExternalType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
       static;
     class function HasExternalAncestor(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
+      static;
+    class function PointerTargetType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): string;
       static;
     class function IsHelperType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
       static;
@@ -140,6 +157,109 @@ type
       out aResult: TRemoveWithResolverResult; out aError: string): Boolean; static;
   end;
 
+var
+  GResolverAncestorMemberCache: TDictionary<string, TRemoveWithTextLookup>;
+  GResolverBoolCache: TDictionary<string, Boolean>;
+  GResolverExternalUnitCache: TDictionary<string, TRemoveWithSymbolLookup>;
+  GResolverMemberCandidateCache: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  GResolverScopeSymbolCache: TDictionary<string, TRemoveWithSymbolLookup>;
+  GResolverSymbolNameIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  GResolverTypeNameCache: TDictionary<string, TRemoveWithSymbolLookup>;
+  GResolverUnitNameCache: TDictionary<string, TRemoveWithSymbolLookup>;
+
+function ResolverCacheKey(const aFirst, aSecond: string): string; overload;
+const
+  cSeparator = #31;
+begin
+  Result := aFirst + cSeparator + aSecond;
+end;
+
+function ResolverCacheKey(const aFirst, aSecond, aThird: string): string; overload;
+const
+  cSeparator = #31;
+begin
+  Result := aFirst + cSeparator + aSecond + cSeparator + aThird;
+end;
+
+procedure BeginResolverCache;
+begin
+  GResolverAncestorMemberCache := TDictionary<string, TRemoveWithTextLookup>.Create(
+    TFastCaseAwareComparer.OrdinalIgnoreCase);
+  GResolverBoolCache := TDictionary<string, Boolean>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  GResolverExternalUnitCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
+    TFastCaseAwareComparer.OrdinalIgnoreCase);
+  GResolverMemberCandidateCache := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(
+    TFastCaseAwareComparer.OrdinalIgnoreCase);
+  GResolverScopeSymbolCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
+    TFastCaseAwareComparer.OrdinalIgnoreCase);
+  GResolverSymbolNameIndex := nil;
+  GResolverTypeNameCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
+    TFastCaseAwareComparer.OrdinalIgnoreCase);
+  GResolverUnitNameCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
+    TFastCaseAwareComparer.OrdinalIgnoreCase);
+end;
+
+procedure EndResolverCache;
+begin
+  GResolverUnitNameCache.Free;
+  GResolverUnitNameCache := nil;
+  GResolverTypeNameCache.Free;
+  GResolverTypeNameCache := nil;
+  GResolverScopeSymbolCache.Free;
+  GResolverScopeSymbolCache := nil;
+  GResolverSymbolNameIndex.Free;
+  GResolverSymbolNameIndex := nil;
+  GResolverMemberCandidateCache.Free;
+  GResolverMemberCandidateCache := nil;
+  GResolverExternalUnitCache.Free;
+  GResolverExternalUnitCache := nil;
+  GResolverBoolCache.Free;
+  GResolverBoolCache := nil;
+  GResolverAncestorMemberCache.Free;
+  GResolverAncestorMemberCache := nil;
+end;
+
+procedure EnsureResolverSymbolNameIndex(const aInventory: TRemoveWithSymbolInventory);
+var
+  lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
+  lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  lList: TList<TRemoveWithSymbolInfo>;
+  lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  if GResolverSymbolNameIndex <> nil then
+    Exit;
+
+  lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    for lSymbol in aInventory.fSymbols do
+    begin
+      if lSymbol.fName = '' then
+        Continue;
+      if not lBuckets.TryGetValue(lSymbol.fName, lList) then
+      begin
+        lList := TList<TRemoveWithSymbolInfo>.Create;
+        lBuckets.Add(lSymbol.fName, lList);
+      end;
+      lList.Add(lSymbol);
+    end;
+
+    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    try
+      for lPair in lBuckets do
+        lIndex.Add(lPair.Key, lPair.Value.ToArray);
+      GResolverSymbolNameIndex := lIndex;
+      lIndex := nil;
+    finally
+      lIndex.Free;
+    end;
+  finally
+    for lPair in lBuckets do
+      lPair.Value.Free;
+    lBuckets.Free;
+  end;
+end;
+
 function RemoveWithIdentifierStatusToText(const aStatus: TRemoveWithIdentifierStatus): string;
 begin
   case aStatus of
@@ -180,6 +300,7 @@ end;
 class function TRemoveWithIdentifierResolver.ElementTypeName(const aTypeName: string): string;
 var
   lEndPos: Integer;
+  lOfPos: Integer;
   lStartPos: Integer;
   lText: string;
 begin
@@ -187,11 +308,44 @@ begin
   lText := Trim(aTypeName);
   if StartsText('array of ', LowerCase(lText)) then
     Exit(Trim(Copy(lText, Length('array of ') + 1, MaxInt)));
+  if StartsText('array[', LowerCase(lText)) or StartsText('array [', LowerCase(lText)) then
+  begin
+    lEndPos := Pos(']', lText);
+    if lEndPos > 0 then
+    begin
+      lOfPos := Pos(' of ', LowerCase(Copy(lText, lEndPos + 1, MaxInt)));
+      if lOfPos > 0 then
+        Exit(Trim(Copy(lText, lEndPos + lOfPos + Length(' of '), MaxInt)));
+    end;
+  end;
 
   lStartPos := Pos('<', lText);
   lEndPos := LastDelimiter('>', lText);
   if (lStartPos > 0) and (lEndPos > lStartPos) then
     Result := Trim(Copy(lText, lStartPos + 1, lEndPos - lStartPos - 1));
+end;
+
+class function TRemoveWithIdentifierResolver.ArrayElementTypeName(const aInventory: TRemoveWithSymbolInventory;
+  const aTypeName: string): string;
+var
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+  lSymbol: TRemoveWithSymbolInfo;
+  lTypeName: string;
+begin
+  Result := ElementTypeName(aTypeName);
+  if Result <> '' then
+    Exit;
+
+  lTypeName := DirectTypeName(aTypeName);
+  EnsureResolverSymbolNameIndex(aInventory);
+  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  begin
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(ElementTypeName(lSymbol.fTypeName));
+    end;
+  end;
 end;
 
 class function TRemoveWithIdentifierResolver.IsDirectMemberKind(const aKind: TRemoveWithSymbolKind): Boolean;
@@ -208,10 +362,10 @@ end;
 class function TRemoveWithIdentifierResolver.IsKeyword(const aName: string): Boolean;
 begin
   Result := MatchText(aName, ['and', 'array', 'as', 'begin', 'case', 'class', 'const', 'constructor',
-    'destructor', 'div', 'do', 'downto', 'else', 'end', 'except', 'false', 'finally', 'for', 'function', 'if',
-    'implementation', 'in', 'inherited', 'interface', 'is', 'mod', 'nil', 'not', 'of', 'or', 'out', 'procedure',
-    'program', 'property', 'record', 'repeat', 'result', 'self', 'set', 'shl', 'shr', 'then', 'to', 'true', 'try',
-    'type', 'unit', 'until', 'uses', 'var', 'while', 'with', 'xor']);
+    'destructor', 'div', 'do', 'downto', 'else', 'end', 'except', 'exit', 'false', 'finally', 'for', 'function',
+    'if', 'implementation', 'in', 'inherited', 'interface', 'is', 'mod', 'nil', 'not', 'of', 'or', 'out',
+    'procedure', 'program', 'property', 'record', 'repeat', 'result', 'self', 'set', 'shl', 'shr', 'then', 'to',
+    'true', 'try', 'type', 'unit', 'until', 'uses', 'var', 'while', 'with', 'xor']);
 end;
 
 class function TRemoveWithIdentifierResolver.IsWhitespace(const aValue: Char): Boolean;
@@ -260,15 +414,37 @@ end;
 class function TRemoveWithIdentifierResolver.SelectorSegmentName(const aText: string): string;
 var
   lBracketPos: Integer;
+  lCaretPos: Integer;
   lText: string;
 begin
   lText := Trim(aText);
+  lCaretPos := Pos('^', lText);
   lBracketPos := Pos('[', lText);
-  if lBracketPos > 0 then
+  if (lBracketPos > 0) and ((lCaretPos = 0) or (lBracketPos < lCaretPos)) then
     lText := Trim(Copy(lText, 1, lBracketPos - 1));
-  if EndsText('^', lText) then
-    Delete(lText, Length(lText), 1);
+  if (lCaretPos > 0) and ((lBracketPos = 0) or (lCaretPos < lBracketPos)) then
+    lText := Trim(Copy(lText, 1, lCaretPos - 1));
   Result := LastIdentifierSegment(lText);
+end;
+
+class function TRemoveWithIdentifierResolver.SelectorSegmentDerefAfterIndex(const aText: string): Boolean;
+var
+  lBracketPos: Integer;
+  lCaretPos: Integer;
+begin
+  lCaretPos := Pos('^', aText);
+  lBracketPos := Pos('[', aText);
+  Result := (lCaretPos > 0) and (lBracketPos > 0) and (lCaretPos > lBracketPos);
+end;
+
+class function TRemoveWithIdentifierResolver.SelectorSegmentDerefBeforeIndex(const aText: string): Boolean;
+var
+  lBracketPos: Integer;
+  lCaretPos: Integer;
+begin
+  lCaretPos := Pos('^', aText);
+  lBracketPos := Pos('[', aText);
+  Result := (lCaretPos > 0) and ((lBracketPos = 0) or (lCaretPos < lBracketPos));
 end;
 
 class function TRemoveWithIdentifierResolver.SelectorSegmentIndexed(const aText: string): Boolean;
@@ -417,20 +593,32 @@ end;
 class function TRemoveWithIdentifierResolver.FindMemberCandidates(const aInventory: TRemoveWithSymbolInventory;
   const aOwnerType, aName: string): TArray<TRemoveWithSymbolInfo>;
 var
+  lKey: string;
   lList: TList<TRemoveWithSymbolInfo>;
   lOwnerType: string;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
+  lKey := ResolverCacheKey('member', DirectTypeName(aOwnerType), aName);
+  if (GResolverMemberCandidateCache <> nil) and GResolverMemberCandidateCache.TryGetValue(lKey, Result) then
+    Exit;
+
   lList := TList<TRemoveWithSymbolInfo>.Create;
   try
     lOwnerType := DirectTypeName(aOwnerType);
-    for lSymbol in aInventory.fSymbols do
+    EnsureResolverSymbolNameIndex(aInventory);
+    if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
     begin
-      if SameText(lSymbol.fOwnerType, lOwnerType) and (lSymbol.fRoutineName = '') and
-        SameText(lSymbol.fName, aName) and IsDirectMemberKind(lSymbol.fKind) then
-        lList.Add(lSymbol);
+      for lSymbol in lSymbols do
+      begin
+        if SameText(lSymbol.fOwnerType, lOwnerType) and (lSymbol.fRoutineName = '') and
+          IsDirectMemberKind(lSymbol.fKind) then
+          lList.Add(lSymbol);
+      end;
     end;
     Result := lList.ToArray;
+    if GResolverMemberCandidateCache <> nil then
+      GResolverMemberCandidateCache.Add(lKey, Result);
   finally
     lList.Free;
   end;
@@ -439,17 +627,28 @@ end;
 class function TRemoveWithIdentifierResolver.FindDefaultPropertyCandidate(
   const aInventory: TRemoveWithSymbolInventory; const aOwnerType: string): Boolean;
 var
+  lKey: string;
   lOwnerType: string;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   lOwnerType := DirectTypeName(aOwnerType);
+  lKey := ResolverCacheKey('default-property', lOwnerType);
+  if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
+    Exit;
+
   for lSymbol in aInventory.fSymbols do
   begin
     if SameText(lSymbol.fOwnerType, lOwnerType) and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
       lSymbol.fIsDefault then
+    begin
+      if GResolverBoolCache <> nil then
+        GResolverBoolCache.Add(lKey, True);
       Exit(True);
+    end;
   end;
   Result := False;
+  if GResolverBoolCache <> nil then
+    GResolverBoolCache.Add(lKey, Result);
 end;
 
 class function TRemoveWithIdentifierResolver.FindScopeSymbol(const aInventory: TRemoveWithSymbolInventory;
@@ -459,16 +658,36 @@ const
     TRemoveWithSymbolKind.rwskParameter, TRemoveWithSymbolKind.rwskCurrentClassMember,
     TRemoveWithSymbolKind.rwskUnitGlobal, TRemoveWithSymbolKind.rwskConstant, TRemoveWithSymbolKind.rwskRoutine);
 var
+  lKey: string;
   lKind: TRemoveWithSymbolKind;
+  lLookup: TRemoveWithSymbolLookup;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
+  lKey := ResolverCacheKey('scope', aRoutineName, aName);
+  if (GResolverScopeSymbolCache <> nil) and GResolverScopeSymbolCache.TryGetValue(lKey, lLookup) then
+  begin
+    aSymbol := lLookup.fSymbol;
+    Exit(lLookup.fFound);
+  end;
+
   Result := False;
   aSymbol := Default(TRemoveWithSymbolInfo);
+  EnsureResolverSymbolNameIndex(aInventory);
+  if not GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
+  begin
+    if GResolverScopeSymbolCache <> nil then
+    begin
+      lLookup := Default(TRemoveWithSymbolLookup);
+      GResolverScopeSymbolCache.Add(lKey, lLookup);
+    end;
+    Exit(False);
+  end;
   for lKind in cKinds do
   begin
-    for lSymbol in aInventory.fSymbols do
+    for lSymbol in lSymbols do
     begin
-      if not SameText(lSymbol.fName, aName) or (lSymbol.fKind <> lKind) then
+      if lSymbol.fKind <> lKind then
         Continue;
       if lKind in [TRemoveWithSymbolKind.rwskLocalVariable, TRemoveWithSymbolKind.rwskParameter,
         TRemoveWithSymbolKind.rwskCurrentClassMember] then
@@ -479,123 +698,276 @@ begin
         Continue;
 
       aSymbol := lSymbol;
+      if GResolverScopeSymbolCache <> nil then
+      begin
+        lLookup.fFound := True;
+        lLookup.fSymbol := aSymbol;
+        GResolverScopeSymbolCache.Add(lKey, lLookup);
+      end;
       Exit(True);
     end;
+  end;
+  if GResolverScopeSymbolCache <> nil then
+  begin
+    lLookup := Default(TRemoveWithSymbolLookup);
+    GResolverScopeSymbolCache.Add(lKey, lLookup);
   end;
 end;
 
 class function TRemoveWithIdentifierResolver.FindUnitNameSymbol(const aInventory: TRemoveWithSymbolInventory;
   const aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
+  lLookup: TRemoveWithSymbolLookup;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
+  if (GResolverUnitNameCache <> nil) and GResolverUnitNameCache.TryGetValue(aName, lLookup) then
+  begin
+    aSymbol := lLookup.fSymbol;
+    Exit(lLookup.fFound);
+  end;
+
   Result := False;
   aSymbol := Default(TRemoveWithSymbolInfo);
-  for lSymbol in aInventory.fSymbols do
+  EnsureResolverSymbolNameIndex(aInventory);
+  if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskUnitName) and SameText(lSymbol.fName, aName) then
+    for lSymbol in lSymbols do
     begin
-      aSymbol := lSymbol;
-      Exit(True);
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskUnitName then
+      begin
+        aSymbol := lSymbol;
+        if GResolverUnitNameCache <> nil then
+        begin
+          lLookup.fFound := True;
+          lLookup.fSymbol := aSymbol;
+          GResolverUnitNameCache.Add(aName, lLookup);
+        end;
+        Exit(True);
+      end;
     end;
+  end;
+  if GResolverUnitNameCache <> nil then
+  begin
+    lLookup := Default(TRemoveWithSymbolLookup);
+    GResolverUnitNameCache.Add(aName, lLookup);
   end;
 end;
 
 class function TRemoveWithIdentifierResolver.FindExternalUnitSymbol(const aInventory: TRemoveWithSymbolInventory;
   const aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
+  lLookup: TRemoveWithSymbolLookup;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
+  if (GResolverExternalUnitCache <> nil) and GResolverExternalUnitCache.TryGetValue(aName, lLookup) then
+  begin
+    aSymbol := lLookup.fSymbol;
+    Exit(lLookup.fFound);
+  end;
+
   Result := False;
   aSymbol := Default(TRemoveWithSymbolInfo);
-  for lSymbol in aInventory.fSymbols do
+  EnsureResolverSymbolNameIndex(aInventory);
+  if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal) and (lSymbol.fTypeName = '') and
-      SameText(lSymbol.fName, aName) then
+    for lSymbol in lSymbols do
     begin
-      aSymbol := lSymbol;
-      Exit(True);
+      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal) and (lSymbol.fTypeName = '') then
+      begin
+        aSymbol := lSymbol;
+        if GResolverExternalUnitCache <> nil then
+        begin
+          lLookup.fFound := True;
+          lLookup.fSymbol := aSymbol;
+          GResolverExternalUnitCache.Add(aName, lLookup);
+        end;
+        Exit(True);
+      end;
     end;
+  end;
+  if GResolverExternalUnitCache <> nil then
+  begin
+    lLookup := Default(TRemoveWithSymbolLookup);
+    GResolverExternalUnitCache.Add(aName, lLookup);
   end;
 end;
 
 class function TRemoveWithIdentifierResolver.FindTypeNameSymbol(const aInventory: TRemoveWithSymbolInventory;
   const aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
+  lLookup: TRemoveWithSymbolLookup;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
+  if (GResolverTypeNameCache <> nil) and GResolverTypeNameCache.TryGetValue(aName, lLookup) then
+  begin
+    aSymbol := lLookup.fSymbol;
+    Exit(lLookup.fFound);
+  end;
+
   Result := False;
   aSymbol := Default(TRemoveWithSymbolInfo);
-  for lSymbol in aInventory.fSymbols do
+  EnsureResolverSymbolNameIndex(aInventory);
+  if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, aName) then
+    for lSymbol in lSymbols do
     begin
-      aSymbol := lSymbol;
-      Exit(True);
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+      begin
+        aSymbol := lSymbol;
+        if GResolverTypeNameCache <> nil then
+        begin
+          lLookup.fFound := True;
+          lLookup.fSymbol := aSymbol;
+          GResolverTypeNameCache.Add(aName, lLookup);
+        end;
+        Exit(True);
+      end;
     end;
+  end;
+  if GResolverTypeNameCache <> nil then
+  begin
+    lLookup := Default(TRemoveWithSymbolLookup);
+    GResolverTypeNameCache.Add(aName, lLookup);
   end;
 end;
 
 class function TRemoveWithIdentifierResolver.HasSourceType(const aInventory: TRemoveWithSymbolInventory;
   const aTypeName: string): Boolean;
 var
+  lKey: string;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
   lTypeName: string;
 begin
   lTypeName := DirectTypeName(aTypeName);
   if lTypeName = '' then
     Exit(False);
+  lKey := ResolverCacheKey('source-type', lTypeName);
+  if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
+    Exit;
 
-  for lSymbol in aInventory.fSymbols do
+  EnsureResolverSymbolNameIndex(aInventory);
+  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName) then
-      Exit(True);
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+      begin
+        if GResolverBoolCache <> nil then
+          GResolverBoolCache.Add(lKey, True);
+        Exit(True);
+      end;
+    end;
   end;
   Result := False;
+  if GResolverBoolCache <> nil then
+    GResolverBoolCache.Add(lKey, Result);
 end;
 
 class function TRemoveWithIdentifierResolver.IsExternalType(const aInventory: TRemoveWithSymbolInventory;
   const aTypeName: string): Boolean;
 var
+  lKey: string;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
   lTypeName: string;
 begin
   lTypeName := DirectTypeName(aTypeName);
-  for lSymbol in aInventory.fSymbols do
+  lKey := ResolverCacheKey('external-type', lTypeName);
+  if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
+    Exit;
+
+  EnsureResolverSymbolNameIndex(aInventory);
+  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal) and SameText(lSymbol.fName, lTypeName) then
-      Exit(True);
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal then
+      begin
+        if GResolverBoolCache <> nil then
+          GResolverBoolCache.Add(lKey, True);
+        Exit(True);
+      end;
+    end;
   end;
   Result := False;
+  if GResolverBoolCache <> nil then
+    GResolverBoolCache.Add(lKey, Result);
 end;
 
 class function TRemoveWithIdentifierResolver.HasExternalAncestor(const aInventory: TRemoveWithSymbolInventory;
   const aTypeName: string): Boolean;
 var
   lCurrentType: string;
+  lKey: string;
   lRelatedType: string;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   Result := False;
   lCurrentType := DirectTypeName(aTypeName);
+  lKey := ResolverCacheKey('external-ancestor', lCurrentType);
+  if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
+    Exit;
+
   while lCurrentType <> '' do
   begin
     lRelatedType := '';
-    for lSymbol in aInventory.fSymbols do
+    EnsureResolverSymbolNameIndex(aInventory);
+    if GResolverSymbolNameIndex.TryGetValue(lCurrentType, lSymbols) then
     begin
-      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and (not lSymbol.fIsHelper) and
-        SameText(lSymbol.fName, lCurrentType) then
+      for lSymbol in lSymbols do
       begin
-        lRelatedType := DirectTypeName(lSymbol.fRelatedTypeName);
-        Break;
+        if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and (not lSymbol.fIsHelper) then
+        begin
+          lRelatedType := DirectTypeName(lSymbol.fRelatedTypeName);
+          Break;
+        end;
       end;
     end;
     if lRelatedType = '' then
+    begin
+      if GResolverBoolCache <> nil then
+        GResolverBoolCache.Add(lKey, False);
       Exit(False);
+    end;
     if IsExternalType(aInventory, lRelatedType) then
+    begin
+      if GResolverBoolCache <> nil then
+        GResolverBoolCache.Add(lKey, True);
       Exit(True);
+    end;
     lCurrentType := lRelatedType;
   end;
+  if GResolverBoolCache <> nil then
+    GResolverBoolCache.Add(lKey, Result);
+end;
+
+class function TRemoveWithIdentifierResolver.PointerTargetType(const aInventory: TRemoveWithSymbolInventory;
+  const aTypeName: string): string;
+var
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+  lSymbol: TRemoveWithSymbolInfo;
+  lTypeName: string;
+begin
+  lTypeName := Trim(aTypeName);
+  if StartsText('^', lTypeName) then
+    Exit(Trim(Copy(lTypeName, 2, MaxInt)));
+
+  lTypeName := DirectTypeName(lTypeName);
+  EnsureResolverSymbolNameIndex(aInventory);
+  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  begin
+    for lSymbol in lSymbols do
+    begin
+      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and StartsText('^', Trim(lSymbol.fTypeName)) then
+        Exit(Trim(Copy(Trim(lSymbol.fTypeName), 2, MaxInt)));
+    end;
+  end;
+  Result := '';
 end;
 
 class function TRemoveWithIdentifierResolver.FindAncestorMember(const aInventory: TRemoveWithSymbolInventory;
@@ -603,47 +975,95 @@ class function TRemoveWithIdentifierResolver.FindAncestorMember(const aInventory
 var
   lCandidates: TArray<TRemoveWithSymbolInfo>;
   lCurrentType: string;
+  lKey: string;
+  lLookup: TRemoveWithTextLookup;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   Result := False;
   aSourceOwnerType := '';
   lCurrentType := DirectTypeName(aOwnerType);
+  lKey := ResolverCacheKey('ancestor-member', lCurrentType, aName);
+  if (GResolverAncestorMemberCache <> nil) and GResolverAncestorMemberCache.TryGetValue(lKey, lLookup) then
+  begin
+    aSourceOwnerType := lLookup.fText;
+    Exit(lLookup.fFound);
+  end;
+
   while lCurrentType <> '' do
   begin
     aSourceOwnerType := '';
-    for lSymbol in aInventory.fSymbols do
+    EnsureResolverSymbolNameIndex(aInventory);
+    if GResolverSymbolNameIndex.TryGetValue(lCurrentType, lSymbols) then
     begin
-      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and (not lSymbol.fIsHelper) and
-        SameText(lSymbol.fName, lCurrentType) then
+      for lSymbol in lSymbols do
       begin
-        aSourceOwnerType := DirectTypeName(lSymbol.fRelatedTypeName);
-        Break;
+        if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and (not lSymbol.fIsHelper) then
+        begin
+          aSourceOwnerType := DirectTypeName(lSymbol.fRelatedTypeName);
+          Break;
+        end;
       end;
     end;
     if aSourceOwnerType = '' then
+    begin
+      if GResolverAncestorMemberCache <> nil then
+      begin
+        lLookup := Default(TRemoveWithTextLookup);
+        GResolverAncestorMemberCache.Add(lKey, lLookup);
+      end;
       Exit(False);
+    end;
 
     lCandidates := FindMemberCandidates(aInventory, aSourceOwnerType, aName);
     if Length(lCandidates) > 0 then
+    begin
+      if GResolverAncestorMemberCache <> nil then
+      begin
+        lLookup.fFound := True;
+        lLookup.fText := aSourceOwnerType;
+        GResolverAncestorMemberCache.Add(lKey, lLookup);
+      end;
       Exit(True);
+    end;
     lCurrentType := aSourceOwnerType;
+  end;
+  if GResolverAncestorMemberCache <> nil then
+  begin
+    lLookup := Default(TRemoveWithTextLookup);
+    GResolverAncestorMemberCache.Add(lKey, lLookup);
   end;
 end;
 
 class function TRemoveWithIdentifierResolver.IsHelperType(const aInventory: TRemoveWithSymbolInventory;
   const aTypeName: string): Boolean;
 var
+  lKey: string;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
   lTypeName: string;
 begin
   lTypeName := DirectTypeName(aTypeName);
-  for lSymbol in aInventory.fSymbols do
+  lKey := ResolverCacheKey('helper-type', lTypeName);
+  if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
+    Exit;
+
+  EnsureResolverSymbolNameIndex(aInventory);
+  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName) and
-      lSymbol.fIsHelper then
-      Exit(True);
+    for lSymbol in lSymbols do
+    begin
+      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and lSymbol.fIsHelper then
+      begin
+        if GResolverBoolCache <> nil then
+          GResolverBoolCache.Add(lKey, True);
+        Exit(True);
+      end;
+    end;
   end;
   Result := False;
+  if GResolverBoolCache <> nil then
+    GResolverBoolCache.Add(lKey, Result);
 end;
 
 class function TRemoveWithIdentifierResolver.ResolutionKindForCandidate(
@@ -709,8 +1129,9 @@ end;
 class function TRemoveWithIdentifierResolver.IsKnownExternalRoutineCall(const aSource: TRemoveWithSourceBuffer;
   const aUse: TRemoveWithIdentifierUse): Boolean;
 begin
-  Result := IsCallUse(aSource, aUse) and MatchText(aUse.fName, ['Assigned', 'Dec', 'Exclude', 'High', 'Inc',
-    'Include', 'Length', 'Low', 'SetLength']);
+  Result := IsCallUse(aSource, aUse) and MatchText(aUse.fName, ['Abs', 'Addr', 'Assigned', 'Copy', 'Dec',
+    'Dispose', 'Exclude', 'FillChar', 'FreeMem', 'GetMem', 'High', 'Inc', 'Include', 'IOResult', 'Length', 'Low',
+    'Move', 'New', 'Ord', 'Pred', 'Seek', 'SetLength', 'SizeOf', 'Str']);
 end;
 
 class function TRemoveWithIdentifierResolver.IsQualifiedUse(const aSource: TRemoveWithSourceBuffer;
@@ -765,9 +1186,11 @@ begin
     end;
 
     lCurrentType := lCandidates[0].fTypeName;
+    if SelectorSegmentDerefBeforeIndex(lPaths[0]) then
+      lCurrentType := PointerTargetType(aInventory, lCurrentType);
     if SelectorSegmentIndexed(lPaths[0]) then
     begin
-      lIndexedTypeName := ElementTypeName(lCurrentType);
+      lIndexedTypeName := ArrayElementTypeName(aInventory, lCurrentType);
       if lIndexedTypeName <> '' then
         lCurrentType := lIndexedTypeName
       else if FindDefaultPropertyCandidate(aInventory, lCurrentType) then
@@ -779,6 +1202,8 @@ begin
       end else
         lCurrentType := '';
     end;
+    if SelectorSegmentDerefAfterIndex(lPaths[0]) then
+      lCurrentType := PointerTargetType(aInventory, lCurrentType);
 
     for j := 1 to High(lPaths) do
     begin
@@ -804,9 +1229,11 @@ begin
         Exit(True);
       end;
       lCurrentType := lCandidates[0].fTypeName;
+      if SelectorSegmentDerefBeforeIndex(lPaths[j]) then
+        lCurrentType := PointerTargetType(aInventory, lCurrentType);
       if SelectorSegmentIndexed(lPaths[j]) then
       begin
-        lIndexedTypeName := ElementTypeName(lCurrentType);
+        lIndexedTypeName := ArrayElementTypeName(aInventory, lCurrentType);
         if lIndexedTypeName <> '' then
           lCurrentType := lIndexedTypeName
         else if FindDefaultPropertyCandidate(aInventory, lCurrentType) then
@@ -818,6 +1245,8 @@ begin
         end else
           lCurrentType := '';
       end;
+      if SelectorSegmentDerefAfterIndex(lPaths[j]) then
+        lCurrentType := PointerTargetType(aInventory, lCurrentType);
     end;
 
     if lCurrentType <> '' then
@@ -1336,21 +1765,26 @@ begin
   Result := False;
   lCurrentPath := '';
   lSource := Default(TRemoveWithSourceBuffer);
+  BeginResolverCache;
   try
-    for lStatement in aScanResult.fWithStatements do
-    begin
-      if not SameText(lCurrentPath, lStatement.fFilePath) then
+    try
+      for lStatement in aScanResult.fWithStatements do
       begin
-        if not LoadRemoveWithSource(lStatement.fFilePath, lSource, aError) then
-          Exit(False);
-        lCurrentPath := lStatement.fFilePath;
+        if not SameText(lCurrentPath, lStatement.fFilePath) then
+        begin
+          if not LoadRemoveWithSource(lStatement.fFilePath, lSource, aError) then
+            Exit(False);
+          lCurrentPath := lStatement.fFilePath;
+        end;
+        ResolveStatement(aInventory, aScanResult, lStatement, lSource, aResult);
       end;
-      ResolveStatement(aInventory, aScanResult, lStatement, lSource, aResult);
+      Result := True;
+    except
+      on E: Exception do
+        aError := E.Message;
     end;
-    Result := True;
-  except
-    on E: Exception do
-      aError := E.Message;
+  finally
+    EndResolverCache;
   end;
 end;
 

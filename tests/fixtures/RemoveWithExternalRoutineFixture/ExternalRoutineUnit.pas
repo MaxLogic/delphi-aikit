@@ -13,6 +13,8 @@ type
     Items: TArray<string>;
     Name: string;
     Ref: TObject;
+    Source: Integer;
+    Target: Integer;
   end;
 
   TExternalRoutineScope = class
@@ -29,6 +31,10 @@ var
 begin
   with lKnown do
   begin
+    FillChar(Target, SizeOf(Target), 0);
+    Move(Source, Target, SizeOf(Target));
+    if Target < 0 then
+      Exit;
     Inc(Count);
     Dec(Count);
     if Assigned(Ref) then

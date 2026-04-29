@@ -43,13 +43,25 @@ function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; out aInvent
 implementation
 
 uses
-  System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  System.Classes, System.Diagnostics, System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiAST.ProjectIndexer,
+  MaxLogic.StrUtils,
   Dak.Project;
+
+procedure LogRemoveWithSymbolProgress(const aOptions: TAppOptions; const aMessage: string);
+begin
+  if not aOptions.fVerbose then
+    Exit;
+  WriteLn(ErrOutput, FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz', Now) + ' [remove-with:symbols] ' +
+    aMessage);
+  Flush(ErrOutput);
+end;
 
 type
   TRemoveWithSymbolBuilder = record
   private
+    class function SameSymbol(const aLeft, aRight: TRemoveWithSymbolInfo): Boolean; static;
+    class function SymbolIdentityKey(const aSymbol: TRemoveWithSymbolInfo): string; static;
     class function CleanLine(const aLine: string): string; static;
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
     class function IsTopLevelLine(const aLine: string): Boolean; static;
@@ -84,6 +96,8 @@ type
       const aConditionalDepth: Integer): string; static;
     class function FindNameSource(const aLines: TArray<string>; const aStartIndex, aEndIndex: Integer;
       const aName: string; out aLineNumber: Integer; out aLineText: string): Boolean; static;
+    class function DecodeSourceText(const aBytes: TBytes): string; static;
+    class function ReadSourceLines(const aFilePath: string): TArray<string>; static;
     class procedure AddSymbol(var aInventory: TRemoveWithSymbolInventory; const aSymbol: TRemoveWithSymbolInfo);
       static;
     class procedure MarkTypeUnsupported(var aInventory: TRemoveWithSymbolInventory; const aTypeName,
@@ -112,6 +126,9 @@ type
     class procedure AddExternalUnitSymbols(var aInventory: TRemoveWithSymbolInventory); static;
     class procedure AddExternalTypeSymbols(var aInventory: TRemoveWithSymbolInventory); static;
   end;
+
+var
+  GRemoveWithSymbolKeys: TDictionary<string, Byte>;
 
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
 begin
@@ -162,8 +179,47 @@ end;
 class function TRemoveWithSymbolBuilder.CleanLine(const aLine: string): string;
 var
   lCommentPos: Integer;
+  lEndPos: Integer;
+  lStartPos: Integer;
 begin
   Result := Trim(aLine);
+  if Result = '' then
+    Exit;
+  if StartsText('{$', Result) or StartsText('(*$', Result) then
+    Exit;
+
+  repeat
+    lStartPos := Pos('{', Result);
+    if lStartPos = 0 then
+      Break;
+    if Copy(Result, lStartPos, 2) = '{$' then
+      Break;
+    lEndPos := PosEx('}', Result, lStartPos + 1);
+    if lEndPos = 0 then
+    begin
+      Delete(Result, lStartPos, MaxInt);
+      Break;
+    end;
+    Delete(Result, lStartPos, lEndPos - lStartPos + 1);
+    Result := Trim(Result);
+  until False;
+
+  repeat
+    lStartPos := Pos('(*', Result);
+    if lStartPos = 0 then
+      Break;
+    if Copy(Result, lStartPos, 3) = '(*$' then
+      Break;
+    lEndPos := PosEx('*)', Result, lStartPos + 2);
+    if lEndPos = 0 then
+    begin
+      Delete(Result, lStartPos, MaxInt);
+      Break;
+    end;
+    Delete(Result, lStartPos, lEndPos - lStartPos + 2);
+    Result := Trim(Result);
+  until False;
+
   lCommentPos := Pos('//', Result);
   if lCommentPos > 0 then
     Result := Trim(Copy(Result, 1, lCommentPos - 1));
@@ -672,25 +728,87 @@ begin
   end;
 end;
 
+class function TRemoveWithSymbolBuilder.DecodeSourceText(const aBytes: TBytes): string;
+var
+  lOffset: Integer;
+begin
+  lOffset := 0;
+  if (Length(aBytes) >= 3) and (aBytes[0] = $EF) and (aBytes[1] = $BB) and (aBytes[2] = $BF) then
+    lOffset := 3;
+
+  try
+    Result := TEncoding.UTF8.GetString(aBytes, lOffset, Length(aBytes) - lOffset);
+  except
+    on E: EEncodingError do
+      Result := TEncoding.Default.GetString(aBytes, lOffset, Length(aBytes) - lOffset);
+  end;
+end;
+
+class function TRemoveWithSymbolBuilder.ReadSourceLines(const aFilePath: string): TArray<string>;
+var
+  i: Integer;
+  lLines: TStringList;
+  lText: string;
+begin
+  lText := DecodeSourceText(TFile.ReadAllBytes(aFilePath));
+  lLines := TStringList.Create;
+  try
+    lLines.Text := lText;
+    SetLength(Result, lLines.Count);
+    for i := 0 to lLines.Count - 1 do
+      Result[i] := lLines[i];
+  finally
+    lLines.Free;
+  end;
+end;
+
+class function TRemoveWithSymbolBuilder.SameSymbol(const aLeft, aRight: TRemoveWithSymbolInfo): Boolean;
+begin
+  Result := (aLeft.fKind = aRight.fKind) and SameText(aLeft.fName, aRight.fName) and
+    SameText(aLeft.fTypeName, aRight.fTypeName) and SameText(aLeft.fOwnerType, aRight.fOwnerType) and
+    SameText(aLeft.fSourceOwnerType, aRight.fSourceOwnerType) and
+    SameText(aLeft.fRelatedTypeName, aRight.fRelatedTypeName) and
+    SameText(aLeft.fRoutineName, aRight.fRoutineName) and SameText(aLeft.fUnitName, aRight.fUnitName) and
+    SameText(aLeft.fFilePath, aRight.fFilePath) and (aLeft.fLine = aRight.fLine) and
+    (aLeft.fColumn = aRight.fColumn) and (aLeft.fIsHelper = aRight.fIsHelper) and
+    (aLeft.fIsOverride = aRight.fIsOverride) and (aLeft.fIsDefault = aRight.fIsDefault) and
+    (aLeft.fTypeCategory = aRight.fTypeCategory) and
+    SameText(aLeft.fUnsupportedReason, aRight.fUnsupportedReason);
+end;
+
+class function TRemoveWithSymbolBuilder.SymbolIdentityKey(const aSymbol: TRemoveWithSymbolInfo): string;
+const
+  cSeparator = #31;
+begin
+  Result := IntToStr(Ord(aSymbol.fKind)) + cSeparator + aSymbol.fName + cSeparator + aSymbol.fTypeName +
+    cSeparator + aSymbol.fOwnerType + cSeparator + aSymbol.fSourceOwnerType + cSeparator +
+    aSymbol.fRelatedTypeName + cSeparator + aSymbol.fRoutineName + cSeparator + aSymbol.fUnitName +
+    cSeparator + aSymbol.fFilePath + cSeparator + IntToStr(aSymbol.fLine) + cSeparator +
+    IntToStr(aSymbol.fColumn) + cSeparator + IntToStr(Ord(aSymbol.fIsHelper)) + cSeparator +
+    IntToStr(Ord(aSymbol.fIsOverride)) + cSeparator + IntToStr(Ord(aSymbol.fIsDefault)) + cSeparator +
+    IntToStr(Ord(aSymbol.fTypeCategory)) + cSeparator + aSymbol.fUnsupportedReason;
+end;
+
 class procedure TRemoveWithSymbolBuilder.AddSymbol(var aInventory: TRemoveWithSymbolInventory;
   const aSymbol: TRemoveWithSymbolInfo);
 var
   lIndex: Integer;
+  lKey: string;
   lSymbol: TRemoveWithSymbolInfo;
 begin
-  for lSymbol in aInventory.fSymbols do
+  if GRemoveWithSymbolKeys <> nil then
   begin
-    if (lSymbol.fKind = aSymbol.fKind) and SameText(lSymbol.fName, aSymbol.fName) and
-      SameText(lSymbol.fTypeName, aSymbol.fTypeName) and SameText(lSymbol.fOwnerType, aSymbol.fOwnerType) and
-      SameText(lSymbol.fSourceOwnerType, aSymbol.fSourceOwnerType) and
-      SameText(lSymbol.fRelatedTypeName, aSymbol.fRelatedTypeName) and
-      SameText(lSymbol.fRoutineName, aSymbol.fRoutineName) and SameText(lSymbol.fUnitName, aSymbol.fUnitName) and
-      SameText(lSymbol.fFilePath, aSymbol.fFilePath) and (lSymbol.fLine = aSymbol.fLine) and
-      (lSymbol.fColumn = aSymbol.fColumn) and (lSymbol.fIsHelper = aSymbol.fIsHelper) and
-      (lSymbol.fIsOverride = aSymbol.fIsOverride) and (lSymbol.fIsDefault = aSymbol.fIsDefault) and
-      (lSymbol.fTypeCategory = aSymbol.fTypeCategory) and
-      SameText(lSymbol.fUnsupportedReason, aSymbol.fUnsupportedReason) then
+    lKey := SymbolIdentityKey(aSymbol);
+    if GRemoveWithSymbolKeys.ContainsKey(lKey) then
       Exit;
+    GRemoveWithSymbolKeys.Add(lKey, 1);
+  end else
+  begin
+    for lSymbol in aInventory.fSymbols do
+    begin
+      if SameSymbol(lSymbol, aSymbol) then
+        Exit;
+    end;
   end;
 
   lIndex := Length(aInventory.fSymbols);
@@ -702,6 +820,8 @@ class procedure TRemoveWithSymbolBuilder.MarkTypeUnsupported(var aInventory: TRe
   const aTypeName, aReason: string);
 var
   i: Integer;
+  lKey: string;
+  lSymbol: TRemoveWithSymbolInfo;
   lTypeName: string;
 begin
   if aReason = '' then
@@ -713,7 +833,18 @@ begin
       SameText(aInventory.fSymbols[i].fName, lTypeName) then
     begin
       if aInventory.fSymbols[i].fUnsupportedReason = '' then
+      begin
+        lSymbol := aInventory.fSymbols[i];
+        if GRemoveWithSymbolKeys <> nil then
+          GRemoveWithSymbolKeys.Remove(SymbolIdentityKey(lSymbol));
         aInventory.fSymbols[i].fUnsupportedReason := aReason;
+        if GRemoveWithSymbolKeys <> nil then
+        begin
+          lKey := SymbolIdentityKey(aInventory.fSymbols[i]);
+          if not GRemoveWithSymbolKeys.ContainsKey(lKey) then
+            GRemoveWithSymbolKeys.Add(lKey, 1);
+        end;
+      end;
       Exit;
     end;
   end;
@@ -1269,24 +1400,39 @@ class procedure TRemoveWithSymbolBuilder.AddRelatedCurrentClassSymbols(var aInve
 var
   lCurrentMember: TRemoveWithSymbolInfo;
   lMember: TRemoveWithSymbolInfo;
+  lMembers: TList<TRemoveWithSymbolInfo>;
+  lMembersByOwner: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
+  lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
   lSymbol: TRemoveWithSymbolInfo;
   lSymbolCount: Integer;
   i: Integer;
-  j: Integer;
 begin
   lSymbolCount := Length(aInventory.fSymbols);
-  for i := 0 to lSymbolCount - 1 do
-  begin
-    lCurrentMember := aInventory.fSymbols[i];
-    if (lCurrentMember.fKind <> TRemoveWithSymbolKind.rwskCurrentClassMember) or
-      (lCurrentMember.fOwnerType = '') or (lCurrentMember.fRoutineName = '') then
-      Continue;
-
-    for j := 0 to lSymbolCount - 1 do
+  lMembersByOwner := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    for i := 0 to lSymbolCount - 1 do
     begin
-      lMember := aInventory.fSymbols[j];
-      if SameText(lMember.fOwnerType, lCurrentMember.fOwnerType) and (lMember.fRoutineName = '') and
-        IsDirectMemberKind(lMember.fKind) then
+      lMember := aInventory.fSymbols[i];
+      if (lMember.fOwnerType = '') or (lMember.fRoutineName <> '') or (not IsDirectMemberKind(lMember.fKind)) then
+        Continue;
+      if not lMembersByOwner.TryGetValue(lMember.fOwnerType, lMembers) then
+      begin
+        lMembers := TList<TRemoveWithSymbolInfo>.Create;
+        lMembersByOwner.Add(lMember.fOwnerType, lMembers);
+      end;
+      lMembers.Add(lMember);
+    end;
+
+    for i := 0 to lSymbolCount - 1 do
+    begin
+      lCurrentMember := aInventory.fSymbols[i];
+      if (lCurrentMember.fKind <> TRemoveWithSymbolKind.rwskCurrentClassMember) or
+        (lCurrentMember.fOwnerType = '') or (lCurrentMember.fRoutineName = '') then
+        Continue;
+      if not lMembersByOwner.TryGetValue(lCurrentMember.fOwnerType, lMembers) then
+        Continue;
+
+      for lMember in lMembers do
       begin
         lSymbol := lMember;
         lSymbol.fKind := TRemoveWithSymbolKind.rwskCurrentClassMember;
@@ -1294,6 +1440,10 @@ begin
         AddSymbol(aInventory, lSymbol);
       end;
     end;
+  finally
+    for lPair in lMembersByOwner do
+      lPair.Value.Free;
+    lMembersByOwner.Free;
   end;
 end;
 
@@ -1312,7 +1462,7 @@ begin
   lSymbol.fKind := TRemoveWithSymbolKind.rwskUnitName;
   AddSymbol(aInventory, lSymbol);
 
-  lLines := TFile.ReadAllLines(aFilePath, TEncoding.UTF8);
+  lLines := ReadSourceLines(aFilePath);
   ParseTypeMembers(aInventory, lLines, aUnitName, aFilePath);
   ParseUnitGlobals(aInventory, lLines, aUnitName, aFilePath);
   ParseRoutines(aInventory, lLines, aUnitName, aFilePath);
@@ -1358,7 +1508,7 @@ begin
             (not TFile.Exists(lSourceSymbol.fFilePath)) then
             Continue;
 
-        lLines := TFile.ReadAllLines(lSourceSymbol.fFilePath, TEncoding.UTF8);
+        lLines := ReadSourceLines(lSourceSymbol.fFilePath);
         lInUses := False;
         lBlockText := '';
         for lLine in lLines do
@@ -1482,52 +1632,111 @@ var
   lContext: TProjectAnalysisContext;
   lIndexer: TProjectIndexer;
   lParsedPaths: TDictionary<string, Byte>;
+  lParsedUnitCount: Integer;
   lProblem: TProjectIndexer.TProblemInfo;
+  lProblemCount: Integer;
+  lSymbolKeys: TDictionary<string, Byte>;
+  lStopwatch: TStopwatch;
   lSymbol: TRemoveWithSymbolInfo;
+  lUnitIndex: Integer;
   lUnit: TProjectIndexer.TUnitInfo;
   lUnitPath: string;
 begin
   aInventory := Default(TRemoveWithSymbolInventory);
   aError := '';
+  LogRemoveWithSymbolProgress(aOptions, 'project-context start');
+  lStopwatch := TStopwatch.StartNew;
   if not TryBuildProjectAnalysisContext(aOptions, lContext, aError) then
     Exit(False);
+  lStopwatch.Stop;
+  LogRemoveWithSymbolProgress(aOptions, Format('project-context done elapsedMs=%d main=%s',
+    [lStopwatch.ElapsedMilliseconds, lContext.fMainSourcePath]));
 
   lIndexer := TProjectIndexer.Create;
   try
     lIndexer.Defines := lContext.fParserDefines;
     lIndexer.SearchPath := lContext.fParserSearchPath;
+    LogRemoveWithSymbolProgress(aOptions, 'project-index start');
+    lStopwatch := TStopwatch.StartNew;
     lIndexer.Index(lContext.fMainSourcePath);
+    lStopwatch.Stop;
+    lParsedUnitCount := 0;
+    for lUnit in lIndexer.ParsedUnits do
+      Inc(lParsedUnitCount);
+    lProblemCount := 0;
+    for lProblem in lIndexer.Problems do
+      Inc(lProblemCount);
+    LogRemoveWithSymbolProgress(aOptions, Format('project-index done elapsedMs=%d parsedUnits=%d problems=%d',
+      [lStopwatch.ElapsedMilliseconds, lParsedUnitCount, lProblemCount]));
 
-    lParsedPaths := TDictionary<string, Byte>.Create;
+    lSymbolKeys := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
     try
-      for lUnit in lIndexer.ParsedUnits do
+      GRemoveWithSymbolKeys := lSymbolKeys;
+      lParsedPaths := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+      try
+        lUnitIndex := 0;
+        for lUnit in lIndexer.ParsedUnits do
+        begin
+          lUnitPath := Trim(lUnit.Path);
+          if (lUnitPath = '') or (not SameText(TPath.GetExtension(lUnitPath), '.pas')) or
+            (not TFile.Exists(lUnitPath)) then
+            Continue;
+          lUnitPath := TPath.GetFullPath(lUnitPath);
+          if lParsedPaths.ContainsKey(lUnitPath) then
+            Continue;
+          lParsedPaths.Add(lUnitPath, 1);
+          Inc(lUnitIndex);
+          LogRemoveWithSymbolProgress(aOptions, Format('parse-unit start index=%d unit=%s path=%s',
+            [lUnitIndex, lUnit.Name, lUnitPath]));
+          lStopwatch := TStopwatch.StartNew;
+          TRemoveWithSymbolBuilder.ParseUnit(aInventory, lUnit.Name, lUnitPath);
+          lStopwatch.Stop;
+          LogRemoveWithSymbolProgress(aOptions, Format('parse-unit done index=%d elapsedMs=%d symbols=%d',
+            [lUnitIndex, lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
+        end;
+      finally
+        lParsedPaths.Free;
+      end;
+
+      LogRemoveWithSymbolProgress(aOptions, 'related-type-members start');
+      lStopwatch := TStopwatch.StartNew;
+      TRemoveWithSymbolBuilder.AddRelatedTypeMemberSymbols(aInventory);
+      lStopwatch.Stop;
+      LogRemoveWithSymbolProgress(aOptions, Format('related-type-members done elapsedMs=%d symbols=%d',
+        [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
+
+      LogRemoveWithSymbolProgress(aOptions, 'current-class-members start');
+      lStopwatch := TStopwatch.StartNew;
+      TRemoveWithSymbolBuilder.AddRelatedCurrentClassSymbols(aInventory);
+      lStopwatch.Stop;
+      LogRemoveWithSymbolProgress(aOptions, Format('current-class-members done elapsedMs=%d symbols=%d',
+        [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
+
+      LogRemoveWithSymbolProgress(aOptions, 'external-units start');
+      lStopwatch := TStopwatch.StartNew;
+      TRemoveWithSymbolBuilder.AddExternalUnitSymbols(aInventory);
+      lStopwatch.Stop;
+      LogRemoveWithSymbolProgress(aOptions, Format('external-units done elapsedMs=%d symbols=%d',
+        [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
+
+      LogRemoveWithSymbolProgress(aOptions, 'external-types start');
+      lStopwatch := TStopwatch.StartNew;
+      TRemoveWithSymbolBuilder.AddExternalTypeSymbols(aInventory);
+      lStopwatch.Stop;
+      LogRemoveWithSymbolProgress(aOptions, Format('external-types done elapsedMs=%d symbols=%d',
+        [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
+
+      for lProblem in lIndexer.Problems do
       begin
-        lUnitPath := Trim(lUnit.Path);
-        if (lUnitPath = '') or (not SameText(TPath.GetExtension(lUnitPath), '.pas')) or
-          (not TFile.Exists(lUnitPath)) then
-          Continue;
-        lUnitPath := TPath.GetFullPath(lUnitPath);
-        if lParsedPaths.ContainsKey(UpperCase(lUnitPath)) then
-          Continue;
-        lParsedPaths.Add(UpperCase(lUnitPath), 1);
-    TRemoveWithSymbolBuilder.ParseUnit(aInventory, lUnit.Name, lUnitPath);
+        lSymbol := Default(TRemoveWithSymbolInfo);
+        lSymbol.fName := TPath.GetFileNameWithoutExtension(lProblem.FileName);
+        lSymbol.fFilePath := lProblem.FileName;
+        lSymbol.fKind := TRemoveWithSymbolKind.rwskExternal;
+        TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
       end;
     finally
-      lParsedPaths.Free;
-    end;
-
-    TRemoveWithSymbolBuilder.AddRelatedTypeMemberSymbols(aInventory);
-    TRemoveWithSymbolBuilder.AddRelatedCurrentClassSymbols(aInventory);
-    TRemoveWithSymbolBuilder.AddExternalUnitSymbols(aInventory);
-    TRemoveWithSymbolBuilder.AddExternalTypeSymbols(aInventory);
-
-    for lProblem in lIndexer.Problems do
-    begin
-      lSymbol := Default(TRemoveWithSymbolInfo);
-      lSymbol.fName := TPath.GetFileNameWithoutExtension(lProblem.FileName);
-      lSymbol.fFilePath := lProblem.FileName;
-      lSymbol.fKind := TRemoveWithSymbolKind.rwskExternal;
-      TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
+      GRemoveWithSymbolKeys := nil;
+      lSymbolKeys.Free;
     end;
   finally
     lIndexer.Free;

@@ -5,6 +5,8 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added verbose `remove-with` progress diagnostics for discovery, symbol inventory, resolver, planner, and apply stages, including deeper symbol-inventory timing when `--verbose true` is used.
+- Added optional `remove-with` smoke coverage for the proprietary local `tests/fixtures/test-projects/maxTdb` fixture, running only when the folder exists and scanning a temp clone so original sources stay untouched.
 - Added transactional apply/build proof coverage across the `remove-with` hardening fixtures, including skipped-only byte preservation and explicit skipped-reason assertions. (T-169)
 - Added a multi-unit `remove-with` corpus smoke fixture that plan-scans representative messy Delphi syntax and asserts stable JSON counts plus unchanged sources. (T-168)
 - Added DelphiAIKit CLI to resolve FixInsight params from .dproj/.optset. (T-001)
@@ -68,6 +70,10 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed `remove-with` source inventory comment handling so ordinary `{...}` and `(*...*)` comments before type declarations no longer corrupt resolved owner type names, restoring selector resolution for cases such as maxTdb `DF[d]^`.
+- Fixed `remove-with` large-project planning throughput by building a resolver-scoped symbol name index and broadening safe known compiler/RTL calls such as `FillChar`, `Move`, `SizeOf`, and `Exit`.
+- Fixed `remove-with` plan-mode timeouts on large projects by indexing symbol de-duplication, current-class member expansion, and resolver lookup caches with case-insensitive dictionaries.
+- Fixed `remove-with` parsing for ANSI-encoded Delphi units by falling back from UTF-8 to the Windows default source encoding during read-only source loading and symbol extraction.
 - Fixed `remove-with` resolver handling for known compiler/RTL calls (`Inc`, `Dec`, `Assigned`, `Length`, `SetLength`, `Low`, `High`, `Include`, `Exclude`) so safe `with` rewrites can proceed while unknown external calls still block. (T-167)
 - Fixed `remove-with` source-model hardening so attributes, conditional regions, multiline member declarations, generic declarations, and nested type declarations are conservatively skipped with explicit `unsupported-source-model-*` reasons instead of being guessed by the line parser. (T-166)
 - Fixed `remove-with` expression-role safety so labels, case labels, declaration-like bodies, type qualifiers, and unit/type qualifier collisions are skipped or preserved with explicit role details instead of being lexically rewritten as receiver members. (T-165)

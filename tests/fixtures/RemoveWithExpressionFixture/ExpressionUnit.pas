@@ -14,6 +14,9 @@ type
     Child: TExpressionChild;
   end;
 
+  PExpressionRecord = ^TExpressionRecord;
+  TExpressionRecordPtrArray = array[0..1] of PExpressionRecord;
+
   TOtherExpression = record
     OtherRecord: TExpressionRecord;
   end;
@@ -27,8 +30,10 @@ type
     class procedure OtherRun;
   end;
 
-  PExpressionRecord = ^TExpressionRecord;
   PExpressionAlias = ^TExpressionRecord;
+
+var
+  GlobalRecordPtrs: TExpressionRecordPtrArray;
 
 implementation
 
@@ -43,6 +48,7 @@ begin
   lLocalRecord := aParamRecord;
   lAliasPtr := @lLocalRecord;
   lRecordPtr := @lLocalRecord;
+  GlobalRecordPtrs[0] := lRecordPtr;
   SetLength(lRecords, 1);
   lRecords[0] := lRecordPtr^;
   lExternalList := aExternalList;

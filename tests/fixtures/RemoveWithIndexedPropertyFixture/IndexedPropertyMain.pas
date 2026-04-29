@@ -7,8 +7,12 @@ type
     Name: string;
   end;
 
+  TStaticRecordArray = array[0..1] of TIndexedRecord;
+  PStaticRecordArray = ^TStaticRecordArray;
+
   TIndexedChild = record
     Items: TArray<TIndexedRecord>;
+    StaticItems: TStaticRecordArray;
   end;
 
   TIndexedBox = class
@@ -43,11 +47,14 @@ var
   lBox: TIndexedBox;
   lNested: TArray<TIndexedChild>;
   lRecords: TArray<TIndexedRecord>;
+  lStaticRecordPtr: PStaticRecordArray;
+  lStaticRecords: TStaticRecordArray;
 begin
   SetLength(lRecords, 1);
   SetLength(lNested, 1);
   SetLength(lNested[0].Items, 1);
   lBox := MakeBox;
+  lStaticRecordPtr := @lStaticRecords;
 
   with lRecords[0] do
   begin
@@ -80,6 +87,16 @@ begin
     begin
       Name := 'relative indexed field';
     end;
+  end;
+
+  with lStaticRecords[0] do
+  begin
+    Name := 'static array';
+  end;
+
+  with lStaticRecordPtr^[0] do
+  begin
+    Name := 'pointer static array';
   end;
 end;
 

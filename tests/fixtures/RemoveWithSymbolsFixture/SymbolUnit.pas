@@ -6,6 +6,7 @@ uses
   System.Classes;
 
 type
+  { Full-line comments before type declarations must not become type names. }
   TSymbolRecord =
     record
       RecordField: string;
