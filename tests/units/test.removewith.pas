@@ -453,6 +453,24 @@ type
     procedure PlanReportsStableCorpusCountsAndLeavesSourcesUnchanged;
   end;
 
+  [TestFixture]
+  TRemoveWithHardeningApplyTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+    procedure AssertApplySummary(const aRoot: TJSONObject; const aExpectedPlanned, aExpectedSkipped: Integer);
+    procedure AssertVerificationPassed(const aRoot: TJSONObject);
+    procedure AssertTransactionFileCount(const aRoot: TJSONObject; const aExpectedCount: Integer);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunApplyFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure ApplyBuildsMixedHardeningFixtures;
+    [Test]
+    procedure ApplyLeavesSkippedOnlyFixtureUnchanged;
+  end;
+
 implementation
 
 uses
@@ -4588,6 +4606,248 @@ begin
   AssertBytesEqual(lMainBefore, TFile.ReadAllBytes(lMainPath), 'Plan mode must leave corpus main unit unchanged.');
   AssertBytesEqual(lSupportBefore, TFile.ReadAllBytes(lSupportPath),
     'Plan mode must leave corpus support unit unchanged.');
+end;
+
+function TRemoveWithHardeningApplyTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithHardeningApplyTests.AssertBytesEqual(const aExpected, aActual: TBytes;
+  const aMessage: string);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(Length(aExpected), Length(aActual), aMessage + ' Size differs.');
+  for i := 0 to High(aExpected) do
+    Assert.AreEqual(aExpected[i], aActual[i], aMessage + ' Byte differs at index ' + i.ToString + '.');
+end;
+
+procedure TRemoveWithHardeningApplyTests.AssertApplySummary(const aRoot: TJSONObject;
+  const aExpectedPlanned, aExpectedSkipped: Integer);
+begin
+  Assert.AreEqual('applied', aRoot.Values['status'].Value, 'Expected applied root status.');
+  Assert.AreEqual(aExpectedPlanned, (aRoot.Values['plannedEdits'] as TJSONArray).Count,
+    'Expected planned edit count.');
+  Assert.AreEqual(aExpectedSkipped, (aRoot.Values['skipped'] as TJSONArray).Count, 'Expected skipped count.');
+end;
+
+procedure TRemoveWithHardeningApplyTests.AssertVerificationPassed(const aRoot: TJSONObject);
+var
+  lGates: TJSONArray;
+  lVerification: TJSONObject;
+begin
+  AssertJsonObjectKey(aRoot, 'verification', lVerification);
+  Assert.AreEqual('passed', lVerification.Values['status'].Value, 'Expected build verification to pass.');
+  AssertJsonArrayKey(lVerification, 'gates', lGates);
+  Assert.AreEqual(1, lGates.Count, 'Expected one build verification gate.');
+  Assert.AreEqual('build', (lGates.Items[0] as TJSONObject).Values['name'].Value, 'Expected build gate.');
+  Assert.AreEqual('passed', (lGates.Items[0] as TJSONObject).Values['status'].Value,
+    'Expected passed build gate.');
+  Assert.AreEqual('', (lGates.Items[0] as TJSONObject).Values['error'].Value, 'Expected empty build gate error.');
+end;
+
+procedure TRemoveWithHardeningApplyTests.AssertTransactionFileCount(const aRoot: TJSONObject;
+  const aExpectedCount: Integer);
+var
+  lFiles: TJSONArray;
+  lFileObject: TJSONObject;
+  lTransaction: TJSONObject;
+begin
+  AssertJsonObjectKey(aRoot, 'transaction', lTransaction);
+  Assert.AreEqual('applied', lTransaction.Values['status'].Value, 'Expected applied transaction status.');
+  Assert.IsTrue(TFile.Exists(lTransaction.Values['manifestPath'].Value), 'Expected transaction manifest to exist.');
+  AssertJsonArrayKey(lTransaction, 'files', lFiles);
+  Assert.AreEqual(aExpectedCount, lFiles.Count, 'Expected transaction file count.');
+  if aExpectedCount = 0 then
+    Exit;
+
+  lFileObject := lFiles.Items[0] as TJSONObject;
+  Assert.AreEqual('changed', lFileObject.Values['status'].Value, 'Expected changed transaction file.');
+  AssertJsonStringKey(lFileObject, 'path');
+  AssertJsonStringKey(lFileObject, 'backupPath');
+  Assert.IsTrue(TFile.Exists(lFileObject.Values['backupPath'].Value), 'Expected transaction backup file to exist.');
+  AssertJsonStringKey(lFileObject, 'hash');
+  AssertJsonNumberKey(lFileObject, 'size');
+  AssertJsonStringKey(lFileObject, 'lineEnding');
+  AssertJsonStringKey(lFileObject, 'encoding');
+end;
+
+procedure TRemoveWithHardeningApplyTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithHardeningApplyTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithHardeningApplyTests.RunApplyFixture(const aDprojPath, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with apply process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithHardeningApplyTests.ApplyBuildsMixedHardeningFixtures;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+begin
+  CopyFixtureToTemp('RemoveWithTempAggregationFixture', 'remove-with-hardening-temp-aggregation', lDprojPath,
+    lFixtureDir);
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-hardening-temp-aggregation.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected temp aggregation hardening apply to succeed.');
+    AssertApplySummary(lRoot, 8, 0);
+    AssertVerificationPassed(lRoot);
+    AssertTransactionFileCount(lRoot, 1);
+  finally
+    lRoot.Free;
+  end;
+
+  CopyFixtureToTemp('RemoveWithExpressionRoleFixture', 'remove-with-hardening-expression-roles', lDprojPath,
+    lFixtureDir);
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-hardening-expression-roles.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected expression-role hardening apply to succeed.');
+    AssertApplySummary(lRoot, 1, 4);
+    AssertVerificationPassed(lRoot);
+    AssertTransactionFileCount(lRoot, 1);
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(3, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
+      'Expected expression-role unsupported skips.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
+      'Expected expression-role scoped declaration skip.');
+  finally
+    lRoot.Free;
+  end;
+
+  CopyFixtureToTemp('RemoveWithComplexSourceModelFixture', 'remove-with-hardening-complex-source', lDprojPath,
+    lFixtureDir);
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-hardening-complex-source.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected complex source-model hardening apply to succeed.');
+    AssertApplySummary(lRoot, 1, 5);
+    AssertVerificationPassed(lRoot);
+    AssertTransactionFileCount(lRoot, 1);
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-attribute'),
+      'Expected attributed source-model skip.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-conditional-region'),
+      'Expected conditional source-model skip.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-multiline-declaration'),
+      'Expected multiline source-model skip.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-generic-declaration'),
+      'Expected generic source-model skip.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-nested-type'),
+      'Expected nested type source-model skip.');
+  finally
+    lRoot.Free;
+  end;
+
+  CopyFixtureToTemp('RemoveWithExternalRoutineFixture', 'remove-with-hardening-external-routines', lDprojPath,
+    lFixtureDir);
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-hardening-external-routines.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected external-routine hardening apply to succeed.');
+    AssertApplySummary(lRoot, 1, 1);
+    AssertVerificationPassed(lRoot);
+    AssertTransactionFileCount(lRoot, 1);
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'), 'Expected unknown external call skip.');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+procedure TRemoveWithHardeningApplyTests.ApplyLeavesSkippedOnlyFixtureUnchanged;
+var
+  lDprBefore: TBytes;
+  lBefore: TBytes;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lVerification: TJSONObject;
+  lUnitPath: string;
+begin
+  CopyFixtureToTemp('RemoveWithScopedDeclarationFixture', 'remove-with-hardening-scoped-declarations',
+    lDprojPath, lFixtureDir);
+  lUnitPath := TPath.Combine(lFixtureDir, 'ScopedDeclarationUnit.pas');
+  lDprBefore := TFile.ReadAllBytes(TPath.Combine(lFixtureDir, 'RemoveWithScopedDeclarationFixture.dpr'));
+  lBefore := TFile.ReadAllBytes(lUnitPath);
+
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-hardening-scoped-declarations.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected scoped declaration hardening apply to succeed.');
+    AssertApplySummary(lRoot, 0, 3);
+    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    Assert.AreEqual('not-run', lVerification.Values['status'].Value,
+      'Expected no build verification when no edits are planned.');
+    Assert.AreEqual(0, (lVerification.Values['gates'] as TJSONArray).Count,
+      'Expected no verification gates when no edits are planned.');
+    AssertTransactionFileCount(lRoot, 0);
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(3, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
+      'Expected every scoped-declaration body to be skipped explicitly.');
+  finally
+    lRoot.Free;
+  end;
+
+  AssertBytesEqual(lDprBefore, TFile.ReadAllBytes(TPath.Combine(lFixtureDir, 'RemoveWithScopedDeclarationFixture.dpr')),
+    'Skipped-only scoped declaration DPR must remain byte-for-byte unchanged.');
+  AssertBytesEqual(lBefore, TFile.ReadAllBytes(lUnitPath),
+    'Skipped-only scoped declaration fixture must remain byte-for-byte unchanged.');
 end;
 
 end.
