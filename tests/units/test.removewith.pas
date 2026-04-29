@@ -70,6 +70,17 @@ type
   end;
 
   [TestFixture]
+  TRemoveWithAstParallelSafetyTests = class(TRemoveWithTestBase)
+  public
+    [Test]
+    procedure IndependentBuildersMatchSerialWithCounts;
+    [Test]
+    procedure ReadOnlySharedAstTraversalMatchesSerialWithCounts;
+    [Test]
+    procedure IndependentProjectIndexersMatchSerialWithCounts;
+  end;
+
+  [TestFixture]
   TRemoveWithPrecedenceTests = class(TRemoveWithTestBase)
   private
     procedure CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
@@ -497,7 +508,140 @@ type
 implementation
 
 uses
+  System.Threading,
+  DelphiAST, DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer,
   Dak.Types;
+
+const
+  cAstParallelIterations = 24;
+  cDiscoveryFixtureWithCount = 4;
+
+function DiscoveryFixtureDprPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithDiscoveryFixture\RemoveWithDiscoveryFixture.dpr');
+end;
+
+function DiscoveryFixtureUnitPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithDiscoveryFixture\DiscoveryUnit.pas');
+end;
+
+function DiscoveryFixtureRoot: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithDiscoveryFixture');
+end;
+
+function CountWithNodes(const aNode: TSyntaxNode): Integer;
+var
+  lChild: TSyntaxNode;
+begin
+  Result := 0;
+  if aNode = nil then
+    Exit;
+
+  if aNode.Typ = TSyntaxNodeType.ntWith then
+    Inc(Result);
+  for lChild in aNode.ChildNodes do
+    Inc(Result, CountWithNodes(lChild));
+end;
+
+function CountWithNodesInUnitFile(const aFilePath: string): Integer;
+var
+  lSyntaxTree: TSyntaxNode;
+begin
+  lSyntaxTree := TPasSyntaxTreeBuilder.Run(aFilePath);
+  try
+    Result := CountWithNodes(lSyntaxTree);
+  finally
+    lSyntaxTree.Free;
+  end;
+end;
+
+function CountWithNodesInProjectIndex(const aMainSourcePath: string): Integer;
+var
+  lIndexer: TProjectIndexer;
+  lUnit: TProjectIndexer.TUnitInfo;
+begin
+  Result := 0;
+  lIndexer := TProjectIndexer.Create;
+  try
+    lIndexer.Index(aMainSourcePath);
+    for lUnit in lIndexer.ParsedUnits do
+      Inc(Result, CountWithNodes(lUnit.SyntaxTree));
+  finally
+    lIndexer.Free;
+  end;
+end;
+
+function ParallelCounts(const aIterations: Integer; const aCounter: TFunc<Integer>): TArray<Integer>;
+var
+  lCounts: TArray<Integer>;
+begin
+  SetLength(lCounts, aIterations);
+  TParallel.&For(0, aIterations - 1,
+    procedure(aIndex: Integer)
+    begin
+      lCounts[aIndex] := aCounter();
+    end);
+  Result := lCounts;
+end;
+
+procedure SnapshotDiscoveryFixture(out aPaths: TArray<string>; out aBytes: TArray<TBytes>);
+var
+  lCount: Integer;
+  lFile: string;
+begin
+  SetLength(aPaths, 0);
+  SetLength(aBytes, 0);
+  lCount := 0;
+  for lFile in TDirectory.GetFiles(DiscoveryFixtureRoot, '*', TSearchOption.soAllDirectories) do
+  begin
+    if not MatchText(TPath.GetExtension(lFile), ['.dpr', '.dproj', '.pas']) then
+      Continue;
+
+    SetLength(aPaths, lCount + 1);
+    SetLength(aBytes, lCount + 1);
+    aPaths[lCount] := lFile;
+    aBytes[lCount] := TFile.ReadAllBytes(lFile);
+    Inc(lCount);
+  end;
+end;
+
+procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(Length(aExpected), Length(aActual), aMessage + ' Size differs.');
+  for i := 0 to High(aExpected) do
+    Assert.AreEqual(aExpected[i], aActual[i], aMessage + ' Byte differs at index ' + i.ToString + '.');
+end;
+
+procedure AssertDiscoveryFixtureUnchanged(const aProc: TProc);
+var
+  i: Integer;
+  lBytes: TArray<TBytes>;
+  lPaths: TArray<string>;
+begin
+  SnapshotDiscoveryFixture(lPaths, lBytes);
+  Assert.IsTrue(Length(lPaths) > 0, 'Expected discovery fixture files to snapshot.');
+
+  aProc();
+
+  for i := 0 to High(lPaths) do
+  begin
+    Assert.IsTrue(TFile.Exists(lPaths[i]), 'Discovery fixture file disappeared: ' + lPaths[i]);
+    AssertBytesEqual(lBytes[i], TFile.ReadAllBytes(lPaths[i]), 'Discovery fixture changed: ' + lPaths[i]);
+  end;
+end;
+
+procedure AssertAllCounts(const aExpected: Integer; const aCounts: TArray<Integer>; const aMessage: string);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(cAstParallelIterations, Length(aCounts), aMessage + ' Iteration count mismatch.');
+  for i := 0 to High(aCounts) do
+    Assert.AreEqual(aExpected, aCounts[i], aMessage + ' Iteration ' + i.ToString + ' mismatch.');
+end;
 
 function TRemoveWithTestBase.RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal): string;
 var
@@ -1052,6 +1196,85 @@ begin
   finally
     lJson.Free;
   end;
+end;
+
+procedure TRemoveWithAstParallelSafetyTests.IndependentBuildersMatchSerialWithCounts;
+begin
+  AssertDiscoveryFixtureUnchanged(
+    procedure
+    var
+      lCounts: TArray<Integer>;
+      lExpected: Integer;
+    begin
+      lExpected := CountWithNodesInUnitFile(DiscoveryFixtureUnitPath);
+      Assert.AreEqual(cDiscoveryFixtureWithCount, lExpected, 'Expected stable serial discovery fixture count.');
+
+      lCounts := ParallelCounts(cAstParallelIterations,
+        function: Integer
+        begin
+          Result := CountWithNodesInUnitFile(DiscoveryFixtureUnitPath);
+        end);
+      AssertAllCounts(lExpected, lCounts, 'Independent parser instances must match serial parsing.');
+    end);
+end;
+
+procedure TRemoveWithAstParallelSafetyTests.ReadOnlySharedAstTraversalMatchesSerialWithCounts;
+begin
+  AssertDiscoveryFixtureUnchanged(
+    procedure
+    var
+      lCounts: TArray<Integer>;
+      lExpected: Integer;
+      lIndexer: TProjectIndexer;
+      lRoots: TArray<TSyntaxNode>;
+      lUnit: TProjectIndexer.TUnitInfo;
+    begin
+      lIndexer := TProjectIndexer.Create;
+      try
+        lExpected := 0;
+        lIndexer.Index(DiscoveryFixtureDprPath);
+        for lUnit in lIndexer.ParsedUnits do
+        begin
+          SetLength(lRoots, Length(lRoots) + 1);
+          lRoots[High(lRoots)] := lUnit.SyntaxTree;
+          Inc(lExpected, CountWithNodes(lUnit.SyntaxTree));
+        end;
+        Assert.AreEqual(cDiscoveryFixtureWithCount, lExpected, 'Expected stable project-index fixture count.');
+
+        lCounts := ParallelCounts(cAstParallelIterations,
+          function: Integer
+          var
+            lRoot: TSyntaxNode;
+          begin
+            Result := 0;
+            for lRoot in lRoots do
+              Inc(Result, CountWithNodes(lRoot));
+          end);
+        AssertAllCounts(lExpected, lCounts, 'Shared AST traversal must remain read-only and deterministic.');
+      finally
+        lIndexer.Free;
+      end;
+    end);
+end;
+
+procedure TRemoveWithAstParallelSafetyTests.IndependentProjectIndexersMatchSerialWithCounts;
+begin
+  AssertDiscoveryFixtureUnchanged(
+    procedure
+    var
+      lCounts: TArray<Integer>;
+      lExpected: Integer;
+    begin
+      lExpected := CountWithNodesInProjectIndex(DiscoveryFixtureDprPath);
+      Assert.AreEqual(cDiscoveryFixtureWithCount, lExpected, 'Expected stable serial project-index fixture count.');
+
+      lCounts := ParallelCounts(cAstParallelIterations,
+        function: Integer
+        begin
+          Result := CountWithNodesInProjectIndex(DiscoveryFixtureDprPath);
+        end);
+      AssertAllCounts(lExpected, lCounts, 'Independent project indexers must match serial indexing.');
+    end);
 end;
 
 procedure TRemoveWithPrecedenceTests.CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
