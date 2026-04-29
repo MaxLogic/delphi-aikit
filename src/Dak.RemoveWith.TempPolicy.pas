@@ -24,6 +24,8 @@ type
   end;
 
 function RemoveWithTempStrategyToText(const aStrategy: TRemoveWithTempStrategy): string;
+procedure BeginRemoveWithTempPolicyCache(const aInventory: TRemoveWithSymbolInventory);
+procedure EndRemoveWithTempPolicyCache;
 function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
   aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean; overload;
 function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
@@ -33,8 +35,9 @@ function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithSymbolInventory; 
 implementation
 
 uses
-  System.StrUtils, System.SysUtils,
-  Dak.RemoveWith.Expressions;
+  System.Generics.Collections, System.StrUtils, System.SysUtils,
+  MaxLogic.StrUtils,
+  Dak.RemoveWith.Expressions, Dak.RemoveWith.Model;
 
 type
   TRemoveWithTempPolicy = record
@@ -63,6 +66,88 @@ type
       aSelectorText: string; var aReservedNames: TRemoveWithReservedTempNames;
       out aDecision: TRemoveWithTempDecision): Boolean; overload; static;
   end;
+
+var
+  GTempPolicyCacheDepth: Integer;
+  GTempPolicySymbolNameIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+
+procedure EnsureTempPolicySymbolNameIndex(const aInventory: TRemoveWithSymbolInventory);
+var
+  lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
+  lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  lList: TList<TRemoveWithSymbolInfo>;
+  lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  if GTempPolicySymbolNameIndex <> nil then
+    Exit;
+
+  lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    for lSymbol in aInventory.fSymbols do
+    begin
+      if lSymbol.fName = '' then
+        Continue;
+      if not lBuckets.TryGetValue(lSymbol.fName, lList) then
+      begin
+        lList := TList<TRemoveWithSymbolInfo>.Create;
+        lBuckets.Add(lSymbol.fName, lList);
+      end;
+      lList.Add(lSymbol);
+    end;
+
+    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    try
+      for lPair in lBuckets do
+        lIndex.Add(lPair.Key, lPair.Value.ToArray);
+      GTempPolicySymbolNameIndex := lIndex;
+      lIndex := nil;
+    finally
+      lIndex.Free;
+    end;
+  finally
+    for lPair in lBuckets do
+      lPair.Value.Free;
+    lBuckets.Free;
+  end;
+end;
+
+procedure BeginRemoveWithTempPolicyCache(const aInventory: TRemoveWithSymbolInventory);
+begin
+  if GTempPolicyCacheDepth = 0 then
+  begin
+    GTempPolicySymbolNameIndex.Free;
+    GTempPolicySymbolNameIndex := nil;
+    EnsureTempPolicySymbolNameIndex(aInventory);
+  end;
+  Inc(GTempPolicyCacheDepth);
+end;
+
+procedure EndRemoveWithTempPolicyCache;
+begin
+  if GTempPolicyCacheDepth <= 0 then
+    Exit;
+  Dec(GTempPolicyCacheDepth);
+  if GTempPolicyCacheDepth = 0 then
+  begin
+    GTempPolicySymbolNameIndex.Free;
+    GTempPolicySymbolNameIndex := nil;
+  end;
+end;
+
+function TypeCategoryForModelKind(const aKind: TRemoveWithModelTypeKind): TRemoveWithTypeCategory;
+begin
+  case aKind of
+    TRemoveWithModelTypeKind.rwmtRecord:
+      Result := TRemoveWithTypeCategory.rwtcRecord;
+    TRemoveWithModelTypeKind.rwmtClass:
+      Result := TRemoveWithTypeCategory.rwtcClass;
+    TRemoveWithModelTypeKind.rwmtInterface:
+      Result := TRemoveWithTypeCategory.rwtcInterface;
+  else
+    Result := TRemoveWithTypeCategory.rwtcUnknown;
+  end;
+end;
 
 function RemoveWithTempStrategyToText(const aStrategy: TRemoveWithTempStrategy): string;
 begin
@@ -124,13 +209,22 @@ class function TRemoveWithTempPolicy.TypeCategory(const aInventory: TRemoveWithS
   const aTypeName: string): TRemoveWithTypeCategory;
 var
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   lTypeName := DirectTypeName(aTypeName);
-  for lSymbol in aInventory.fSymbols do
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(lTypeName, lTypeInfo) then
+    Exit(TypeCategoryForModelKind(lTypeInfo.fKind));
+
+  EnsureTempPolicySymbolNameIndex(aInventory);
+  if GTempPolicySymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName) then
-      Exit(lSymbol.fTypeCategory);
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(lSymbol.fTypeCategory);
+    end;
   end;
   Result := TRemoveWithTypeCategory.rwtcUnknown;
 end;
@@ -169,14 +263,18 @@ class function TRemoveWithTempPolicy.NameExists(const aInventory: TRemoveWithSym
   const aRoutineName, aName: string; const aReservedNames: TRemoveWithReservedTempNames): Boolean;
 var
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
 begin
   if ReservedNameExists(aReservedNames, aName) then
     Exit(True);
-  for lSymbol in aInventory.fSymbols do
+  EnsureTempPolicySymbolNameIndex(aInventory);
+  if GTempPolicySymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
-    if SameText(lSymbol.fName, aName) and ((lSymbol.fRoutineName = '') or SameText(lSymbol.fRoutineName,
-      aRoutineName)) then
-      Exit(True);
+    for lSymbol in lSymbols do
+    begin
+      if (lSymbol.fRoutineName = '') or SameText(lSymbol.fRoutineName, aRoutineName) then
+        Exit(True);
+    end;
   end;
   Result := False;
 end;
@@ -301,14 +399,24 @@ end;
 function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
   aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean; overload;
 begin
-  Result := TRemoveWithTempPolicy.Plan(aInventory, aRoutineName, aSelectorText, aDecision);
+  BeginRemoveWithTempPolicyCache(aInventory);
+  try
+    Result := TRemoveWithTempPolicy.Plan(aInventory, aRoutineName, aSelectorText, aDecision);
+  finally
+    EndRemoveWithTempPolicyCache;
+  end;
 end;
 
 function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
   aSelectorText: string; var aReservedNames: TRemoveWithReservedTempNames;
   out aDecision: TRemoveWithTempDecision): Boolean; overload;
 begin
-  Result := TRemoveWithTempPolicy.Plan(aInventory, aRoutineName, aSelectorText, aReservedNames, aDecision);
+  BeginRemoveWithTempPolicyCache(aInventory);
+  try
+    Result := TRemoveWithTempPolicy.Plan(aInventory, aRoutineName, aSelectorText, aReservedNames, aDecision);
+  finally
+    EndRemoveWithTempPolicyCache;
+  end;
 end;
 
 end.

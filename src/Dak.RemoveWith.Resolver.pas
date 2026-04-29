@@ -37,7 +37,7 @@ implementation
 uses
   System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
   MaxLogic.StrUtils,
-  Dak.RemoveWith.Expressions, Dak.RemoveWith.Source;
+  Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Source;
 
 type
   TRemoveWithReceiverScope = record
@@ -160,8 +160,10 @@ type
 var
   GResolverAncestorMemberCache: TDictionary<string, TRemoveWithTextLookup>;
   GResolverBoolCache: TDictionary<string, Boolean>;
+  GResolverDefaultPropertyByOwner: TDictionary<string, TRemoveWithSymbolInfo>;
   GResolverExternalUnitCache: TDictionary<string, TRemoveWithSymbolLookup>;
   GResolverMemberCandidateCache: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  GResolverRoutinesByFile: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GResolverScopeSymbolCache: TDictionary<string, TRemoveWithSymbolLookup>;
   GResolverSymbolNameIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GResolverTypeNameCache: TDictionary<string, TRemoveWithSymbolLookup>;
@@ -181,15 +183,98 @@ begin
   Result := aFirst + cSeparator + aSecond + cSeparator + aThird;
 end;
 
+function SymbolKindForModelMemberKind(const aKind: TRemoveWithModelMemberKind): TRemoveWithSymbolKind;
+begin
+  case aKind of
+    TRemoveWithModelMemberKind.rwmmProperty:
+      Result := TRemoveWithSymbolKind.rwskProperty;
+    TRemoveWithModelMemberKind.rwmmMethod:
+      Result := TRemoveWithSymbolKind.rwskMethod;
+    TRemoveWithModelMemberKind.rwmmConstant:
+      Result := TRemoveWithSymbolKind.rwskConstant;
+    TRemoveWithModelMemberKind.rwmmClassVar:
+      Result := TRemoveWithSymbolKind.rwskClassVar;
+  else
+    Result := TRemoveWithSymbolKind.rwskField;
+  end;
+end;
+
+function SymbolKindForModelRoutineSymbolKind(
+  const aKind: TRemoveWithModelRoutineSymbolKind): TRemoveWithSymbolKind;
+begin
+  case aKind of
+    TRemoveWithModelRoutineSymbolKind.rwmrsParameter:
+      Result := TRemoveWithSymbolKind.rwskParameter;
+  else
+    Result := TRemoveWithSymbolKind.rwskLocalVariable;
+  end;
+end;
+
+function TypeCategoryForModelKind(const aKind: TRemoveWithModelTypeKind): TRemoveWithTypeCategory;
+begin
+  case aKind of
+    TRemoveWithModelTypeKind.rwmtRecord:
+      Result := TRemoveWithTypeCategory.rwtcRecord;
+    TRemoveWithModelTypeKind.rwmtClass:
+      Result := TRemoveWithTypeCategory.rwtcClass;
+    TRemoveWithModelTypeKind.rwmtInterface:
+      Result := TRemoveWithTypeCategory.rwtcInterface;
+  else
+    Result := TRemoveWithTypeCategory.rwtcUnknown;
+  end;
+end;
+
+function SymbolFromModelMember(const aMember: TRemoveWithModelMemberInfo): TRemoveWithSymbolInfo;
+begin
+  Result := Default(TRemoveWithSymbolInfo);
+  Result.fName := aMember.fName;
+  Result.fTypeName := aMember.fTypeName;
+  Result.fOwnerType := aMember.fOwnerType;
+  Result.fSourceOwnerType := aMember.fOwnerType;
+  Result.fIsDefault := aMember.fIsDefault;
+  Result.fKind := SymbolKindForModelMemberKind(aMember.fKind);
+end;
+
+function SymbolFromModelRoutineSymbol(const aSymbol: TRemoveWithModelRoutineSymbolInfo): TRemoveWithSymbolInfo;
+begin
+  Result := Default(TRemoveWithSymbolInfo);
+  Result.fName := aSymbol.fName;
+  Result.fTypeName := aSymbol.fTypeName;
+  Result.fRoutineName := aSymbol.fRoutineName;
+  Result.fKind := SymbolKindForModelRoutineSymbolKind(aSymbol.fKind);
+end;
+
+function SymbolFromModelType(const aTypeInfo: TRemoveWithModelTypeInfo): TRemoveWithSymbolInfo;
+begin
+  Result := Default(TRemoveWithSymbolInfo);
+  Result.fName := aTypeInfo.fName;
+  Result.fTypeName := aTypeInfo.fName;
+  Result.fRelatedTypeName := aTypeInfo.fRelatedTypeName;
+  Result.fIsHelper := aTypeInfo.fKind = TRemoveWithModelTypeKind.rwmtHelper;
+  Result.fTypeCategory := TypeCategoryForModelKind(aTypeInfo.fKind);
+  Result.fKind := TRemoveWithSymbolKind.rwskTypeMember;
+end;
+
+function SymbolFromModelUnit(const aUnitModel: TRemoveWithUnitModel): TRemoveWithSymbolInfo;
+begin
+  Result := Default(TRemoveWithSymbolInfo);
+  Result.fName := aUnitModel.fUnitName;
+  Result.fUnitName := aUnitModel.fUnitName;
+  Result.fFilePath := aUnitModel.fFilePath;
+  Result.fKind := TRemoveWithSymbolKind.rwskUnitName;
+end;
+
 procedure BeginResolverCache;
 begin
   GResolverAncestorMemberCache := TDictionary<string, TRemoveWithTextLookup>.Create(
     TFastCaseAwareComparer.OrdinalIgnoreCase);
   GResolverBoolCache := TDictionary<string, Boolean>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  GResolverDefaultPropertyByOwner := nil;
   GResolverExternalUnitCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
     TFastCaseAwareComparer.OrdinalIgnoreCase);
   GResolverMemberCandidateCache := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(
     TFastCaseAwareComparer.OrdinalIgnoreCase);
+  GResolverRoutinesByFile := nil;
   GResolverScopeSymbolCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
     TFastCaseAwareComparer.OrdinalIgnoreCase);
   GResolverSymbolNameIndex := nil;
@@ -211,10 +296,14 @@ begin
   GResolverSymbolNameIndex := nil;
   GResolverMemberCandidateCache.Free;
   GResolverMemberCandidateCache := nil;
+  GResolverRoutinesByFile.Free;
+  GResolverRoutinesByFile := nil;
   GResolverExternalUnitCache.Free;
   GResolverExternalUnitCache := nil;
   GResolverBoolCache.Free;
   GResolverBoolCache := nil;
+  GResolverDefaultPropertyByOwner.Free;
+  GResolverDefaultPropertyByOwner := nil;
   GResolverAncestorMemberCache.Free;
   GResolverAncestorMemberCache := nil;
 end;
@@ -230,12 +319,17 @@ begin
   if GResolverSymbolNameIndex <> nil then
     Exit;
 
+  GResolverDefaultPropertyByOwner := TDictionary<string, TRemoveWithSymbolInfo>.Create(
+    TFastCaseAwareComparer.OrdinalIgnoreCase);
   lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
     for lSymbol in aInventory.fSymbols do
     begin
       if lSymbol.fName = '' then
         Continue;
+      if (lSymbol.fOwnerType <> '') and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
+        lSymbol.fIsDefault then
+        GResolverDefaultPropertyByOwner.AddOrSetValue(lSymbol.fOwnerType, lSymbol);
       if not lBuckets.TryGetValue(lSymbol.fName, lList) then
       begin
         lList := TList<TRemoveWithSymbolInfo>.Create;
@@ -249,6 +343,47 @@ begin
       for lPair in lBuckets do
         lIndex.Add(lPair.Key, lPair.Value.ToArray);
       GResolverSymbolNameIndex := lIndex;
+      lIndex := nil;
+    finally
+      lIndex.Free;
+    end;
+  finally
+    for lPair in lBuckets do
+      lPair.Value.Free;
+    lBuckets.Free;
+  end;
+end;
+
+procedure EnsureResolverRoutinesByFile(const aInventory: TRemoveWithSymbolInventory);
+var
+  lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
+  lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  lList: TList<TRemoveWithSymbolInfo>;
+  lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  if GResolverRoutinesByFile <> nil then
+    Exit;
+
+  lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    for lSymbol in aInventory.fSymbols do
+    begin
+      if (lSymbol.fKind <> TRemoveWithSymbolKind.rwskRoutine) or (lSymbol.fFilePath = '') then
+        Continue;
+      if not lBuckets.TryGetValue(lSymbol.fFilePath, lList) then
+      begin
+        lList := TList<TRemoveWithSymbolInfo>.Create;
+        lBuckets.Add(lSymbol.fFilePath, lList);
+      end;
+      lList.Add(lSymbol);
+    end;
+
+    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    try
+      for lPair in lBuckets do
+        lIndex.Add(lPair.Key, lPair.Value.ToArray);
+      GResolverRoutinesByFile := lIndex;
       lIndex := nil;
     finally
       lIndex.Free;
@@ -319,6 +454,8 @@ begin
     end;
   end;
 
+  if not StartsText('TArray<', lText) then
+    Exit;
   lStartPos := Pos('<', lText);
   lEndPos := LastDelimiter('>', lText);
   if (lStartPos > 0) and (lEndPos > lStartPos) then
@@ -330,6 +467,7 @@ class function TRemoveWithIdentifierResolver.ArrayElementTypeName(const aInvento
 var
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
+  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   Result := ElementTypeName(aTypeName);
@@ -337,6 +475,13 @@ begin
     Exit;
 
   lTypeName := DirectTypeName(aTypeName);
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(lTypeName, lTypeInfo) then
+  begin
+    if aInventory.fSemanticIndex.TryResolveArrayElement(lTypeName, lTypeInfo) then
+      Exit(lTypeInfo.fRelatedTypeName);
+    Exit('');
+  end;
+
   EnsureResolverSymbolNameIndex(aInventory);
   if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
@@ -573,15 +718,18 @@ class function TRemoveWithIdentifierResolver.FindRoutineForStatement(const aInve
   const aStatement: TRemoveWithStatementInfo; out aRoutineName: string): Boolean;
 var
   lBestLine: Integer;
+  lRoutines: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   Result := False;
   aRoutineName := '';
   lBestLine := 0;
-  for lSymbol in aInventory.fSymbols do
+  EnsureResolverRoutinesByFile(aInventory);
+  if not GResolverRoutinesByFile.TryGetValue(aStatement.fFilePath, lRoutines) then
+    Exit(False);
+  for lSymbol in lRoutines do
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskRoutine) and SameText(lSymbol.fFilePath, aStatement.fFilePath) and
-      (lSymbol.fLine <= aStatement.fLine) and (lSymbol.fLine > lBestLine) then
+    if (lSymbol.fLine <= aStatement.fLine) and (lSymbol.fLine > lBestLine) then
     begin
       lBestLine := lSymbol.fLine;
       aRoutineName := lSymbol.fName;
@@ -595,6 +743,8 @@ class function TRemoveWithIdentifierResolver.FindMemberCandidates(const aInvento
 var
   lKey: string;
   lList: TList<TRemoveWithSymbolInfo>;
+  lMember: TRemoveWithModelMemberInfo;
+  lModelMembers: TArray<TRemoveWithModelMemberInfo>;
   lOwnerType: string;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
@@ -616,6 +766,15 @@ begin
           lList.Add(lSymbol);
       end;
     end;
+    if (lList.Count = 0) and Assigned(aInventory.fSemanticIndex) and
+      aInventory.fSemanticIndex.TryFindMembers(lOwnerType, aName, lModelMembers) then
+    begin
+      for lMember in lModelMembers do
+      begin
+        if IsDirectMemberKind(SymbolKindForModelMemberKind(lMember.fKind)) then
+          lList.Add(SymbolFromModelMember(lMember));
+      end;
+    end;
     Result := lList.ToArray;
     if GResolverMemberCandidateCache <> nil then
       GResolverMemberCandidateCache.Add(lKey, Result);
@@ -628,25 +787,24 @@ class function TRemoveWithIdentifierResolver.FindDefaultPropertyCandidate(
   const aInventory: TRemoveWithSymbolInventory; const aOwnerType: string): Boolean;
 var
   lKey: string;
+  lMember: TRemoveWithModelMemberInfo;
   lOwnerType: string;
-  lSymbol: TRemoveWithSymbolInfo;
 begin
   lOwnerType := DirectTypeName(aOwnerType);
   lKey := ResolverCacheKey('default-property', lOwnerType);
   if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
     Exit;
 
-  for lSymbol in aInventory.fSymbols do
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindDefaultProperty(lOwnerType,
+    lMember) then
   begin
-    if SameText(lSymbol.fOwnerType, lOwnerType) and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
-      lSymbol.fIsDefault then
-    begin
-      if GResolverBoolCache <> nil then
-        GResolverBoolCache.Add(lKey, True);
-      Exit(True);
-    end;
+    if GResolverBoolCache <> nil then
+      GResolverBoolCache.Add(lKey, True);
+    Exit(True);
   end;
-  Result := False;
+
+  EnsureResolverSymbolNameIndex(aInventory);
+  Result := GResolverDefaultPropertyByOwner.ContainsKey(lOwnerType);
   if GResolverBoolCache <> nil then
     GResolverBoolCache.Add(lKey, Result);
 end;
@@ -661,6 +819,7 @@ var
   lKey: string;
   lKind: TRemoveWithSymbolKind;
   lLookup: TRemoveWithSymbolLookup;
+  lModelSymbol: TRemoveWithModelRoutineSymbolInfo;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
@@ -673,6 +832,23 @@ begin
 
   Result := False;
   aSymbol := Default(TRemoveWithSymbolInfo);
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindRoutineSymbol(aRoutineName,
+    aName, lModelSymbol) then
+  begin
+    aSymbol := SymbolFromModelRoutineSymbol(lModelSymbol);
+    if aSymbol.fTypeName <> '' then
+    begin
+      Result := True;
+      if GResolverScopeSymbolCache <> nil then
+      begin
+        lLookup.fFound := True;
+        lLookup.fSymbol := aSymbol;
+        GResolverScopeSymbolCache.Add(lKey, lLookup);
+      end;
+      Exit;
+    end;
+  end;
+
   EnsureResolverSymbolNameIndex(aInventory);
   if not GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
@@ -720,6 +896,7 @@ var
   lLookup: TRemoveWithSymbolLookup;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
+  lUnitModel: TRemoveWithUnitModel;
 begin
   if (GResolverUnitNameCache <> nil) and GResolverUnitNameCache.TryGetValue(aName, lLookup) then
   begin
@@ -729,6 +906,18 @@ begin
 
   Result := False;
   aSymbol := Default(TRemoveWithSymbolInfo);
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindUnit(aName, lUnitModel) then
+  begin
+    aSymbol := SymbolFromModelUnit(lUnitModel);
+    if GResolverUnitNameCache <> nil then
+    begin
+      lLookup.fFound := True;
+      lLookup.fSymbol := aSymbol;
+      GResolverUnitNameCache.Add(aName, lLookup);
+    end;
+    Exit(True);
+  end;
+
   EnsureResolverSymbolNameIndex(aInventory);
   if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
@@ -800,6 +989,7 @@ var
   lLookup: TRemoveWithSymbolLookup;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
+  lTypeInfo: TRemoveWithModelTypeInfo;
 begin
   if (GResolverTypeNameCache <> nil) and GResolverTypeNameCache.TryGetValue(aName, lLookup) then
   begin
@@ -809,6 +999,18 @@ begin
 
   Result := False;
   aSymbol := Default(TRemoveWithSymbolInfo);
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(aName, lTypeInfo) then
+  begin
+    aSymbol := SymbolFromModelType(lTypeInfo);
+    if GResolverTypeNameCache <> nil then
+    begin
+      lLookup.fFound := True;
+      lLookup.fSymbol := aSymbol;
+      GResolverTypeNameCache.Add(aName, lLookup);
+    end;
+    Exit(True);
+  end;
+
   EnsureResolverSymbolNameIndex(aInventory);
   if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
@@ -840,6 +1042,7 @@ var
   lKey: string;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
+  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   lTypeName := DirectTypeName(aTypeName);
@@ -848,6 +1051,13 @@ begin
   lKey := ResolverCacheKey('source-type', lTypeName);
   if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
     Exit;
+
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(lTypeName, lTypeInfo) then
+  begin
+    if GResolverBoolCache <> nil then
+      GResolverBoolCache.Add(lKey, True);
+    Exit(True);
+  end;
 
   EnsureResolverSymbolNameIndex(aInventory);
   if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
@@ -951,6 +1161,7 @@ class function TRemoveWithIdentifierResolver.PointerTargetType(const aInventory:
 var
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
+  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   lTypeName := Trim(aTypeName);
@@ -958,6 +1169,10 @@ begin
     Exit(Trim(Copy(lTypeName, 2, MaxInt)));
 
   lTypeName := DirectTypeName(lTypeName);
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryResolvePointerTarget(lTypeName,
+    lTypeInfo) then
+    Exit(lTypeInfo.fRelatedTypeName);
+
   EnsureResolverSymbolNameIndex(aInventory);
   if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
@@ -1041,12 +1256,21 @@ var
   lKey: string;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
+  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   lTypeName := DirectTypeName(aTypeName);
   lKey := ResolverCacheKey('helper-type', lTypeName);
   if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
     Exit;
+
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindHelperForType(lTypeName,
+    lTypeInfo) then
+  begin
+    if GResolverBoolCache <> nil then
+      GResolverBoolCache.Add(lKey, True);
+    Exit(True);
+  end;
 
   EnsureResolverSymbolNameIndex(aInventory);
   if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
@@ -1766,6 +1990,7 @@ begin
   lCurrentPath := '';
   lSource := Default(TRemoveWithSourceBuffer);
   BeginResolverCache;
+  BeginRemoveWithSelectorTypeCache(aInventory);
   try
     try
       for lStatement in aScanResult.fWithStatements do
@@ -1784,6 +2009,7 @@ begin
         aError := E.Message;
     end;
   finally
+    EndRemoveWithSelectorTypeCache;
     EndResolverCache;
   end;
 end;

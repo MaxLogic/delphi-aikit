@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added dictionary-backed `remove-with` semantic indexes for units, types, members, routines, scoped symbols, helpers, aliases, pointer aliases, array aliases, inheritance, and default/indexed properties, including coverage for pointer-alias syntax and non-array generic aliases. (T-173)
 - Added an AST-backed `remove-with` unit model extractor that captures uses, types, members, routines, scoped symbols, `with` statements, and identifier references from the shared project model. (T-172)
 - Added verbose `remove-with` progress diagnostics for discovery, symbol inventory, resolver, planner, and apply stages, including deeper symbol-inventory timing when `--verbose true` is used.
 - Added optional `remove-with` smoke coverage for the proprietary local `tests/fixtures/test-projects/maxTdb` fixture, running only when the folder exists and scanning a temp clone so original sources stay untouched.
@@ -54,6 +55,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- `remove-with` resolver, selector-expression, temp-policy, and planner lookups now use scoped dictionaries and the live project-model semantic index where complete, while preserving compatibility fallback behavior for existing resolver metadata. (T-173)
 - `remove-with` now bootstraps one shared project model per command and reuses that indexed project data for discovery and symbol inventory, removing the previous duplicate project-index pass in plan/apply mode. (T-171)
 - Clarified external `lsp` docs for Delphi 23: `symbols` is file-scoped `documentSymbol`, `references` is version-gated, and Delphi 13.x will be rechecked once installed. (T-121)
 - Reworked external `lsp symbols` to use file-scoped `textDocument/documentSymbol`, require `--file`, and flatten hierarchical document symbols into deterministic rows. (T-122)

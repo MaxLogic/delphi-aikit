@@ -3,13 +3,15 @@ unit ResolverUnit;
 interface
 
 uses
-  System.Classes;
+  System.Classes, System.Generics.Collections;
 
 type
   TResolverAddress = record
     City: string;
     Shared: string;
   end;
+
+  TResolverMapAlias = TDictionary<string, Integer>;
 
   TResolverCustomer = record
     Address: TResolverAddress;
@@ -80,6 +82,7 @@ var
   lDuplicate: TDuplicateTarget;
   lExternal: TMissingReceiver;
   lLocalOnly: string;
+  lMap: TResolverMapAlias;
 begin
   with lCustomer do
   begin
