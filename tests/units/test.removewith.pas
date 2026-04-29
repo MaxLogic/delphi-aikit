@@ -440,6 +440,19 @@ type
     procedure ApplyPreservesKnownExternalCallsAndSkipsUnknownCalls;
   end;
 
+  [TestFixture]
+  TRemoveWithCorpusSmokeTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure PlanReportsStableCorpusCountsAndLeavesSourcesUnchanged;
+  end;
+
 implementation
 
 uses
@@ -4441,6 +4454,140 @@ begin
     lUnitText) > 0, 'Expected Exclude call to remain a routine call.');
   Assert.IsTrue(Pos('lWithExternalRoutineRecordPtr^.Inc', lUnitText) = 0,
     'Expected known routine names not to be receiver-qualified.');
+end;
+
+function TRemoveWithCorpusSmokeTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithCorpusSmokeTests.AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(Length(aExpected), Length(aActual), aMessage + ' Size differs.');
+  for i := 0 to High(aExpected) do
+    Assert.AreEqual(aExpected[i], aActual[i], aMessage + ' Byte differs at index ' + i.ToString + '.');
+end;
+
+procedure TRemoveWithCorpusSmokeTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithCorpusSmokeTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithCorpusSmokeTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithCorpusSmokeTests.PlanReportsStableCorpusCountsAndLeavesSourcesUnchanged;
+var
+  lDprBefore: TBytes;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lMainBefore: TBytes;
+  lMainPath: string;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lSummary: TJSONObject;
+  lSupportBefore: TBytes;
+  lSupportPath: string;
+  lWithStatements: TJSONArray;
+begin
+  CopyFixtureToTemp('RemoveWithCorpusSmokeFixture', 'remove-with-corpus-smoke', lDprojPath, lFixtureDir);
+  lMainPath := TPath.Combine(lFixtureDir, 'CorpusSmokeMainUnit.pas');
+  lSupportPath := TPath.Combine(lFixtureDir, 'CorpusSmokeSupportUnit.pas');
+  lDprBefore := TFile.ReadAllBytes(TPath.Combine(lFixtureDir, 'RemoveWithCorpusSmokeFixture.dpr'));
+  lMainBefore := TFile.ReadAllBytes(lMainPath);
+  lSupportBefore := TFile.ReadAllBytes(lSupportPath);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-corpus-smoke-plan.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected corpus plan to succeed.');
+    Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok root status.');
+    lWithStatements := lRoot.Values['withStatements'] as TJSONArray;
+    Assert.AreEqual(5, lWithStatements.Count, 'Expected stable corpus with-statement count.');
+    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected only the safe multi-selector statement to be planned.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(4, lSkipped.Count, 'Expected risky corpus statements to be skipped.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-attribute'),
+      'Expected attributed declaration skip.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-conditional-region'),
+      'Expected conditional declaration skip.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
+      'Expected type-qualified body skip.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'), 'Expected unknown call skip.');
+    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    Assert.AreEqual(3, (lSummary.Values['filesScanned'] as TJSONNumber).AsInt,
+      'Expected the multi-unit corpus project to scan all project files.');
+    Assert.AreEqual(5, (lSummary.Values['withStatements'] as TJSONNumber).AsInt,
+      'Expected stable summary statement count.');
+    Assert.AreEqual(1, (lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+      'Expected stable summary plan count.');
+    Assert.AreEqual(4, (lSummary.Values['skipped'] as TJSONNumber).AsInt,
+      'Expected stable summary skip count.');
+  finally
+    lRoot.Free;
+  end;
+
+  AssertBytesEqual(lDprBefore, TFile.ReadAllBytes(TPath.Combine(lFixtureDir, 'RemoveWithCorpusSmokeFixture.dpr')),
+    'Plan mode must leave corpus DPR unchanged.');
+  AssertBytesEqual(lMainBefore, TFile.ReadAllBytes(lMainPath), 'Plan mode must leave corpus main unit unchanged.');
+  AssertBytesEqual(lSupportBefore, TFile.ReadAllBytes(lSupportPath),
+    'Plan mode must leave corpus support unit unchanged.');
 end;
 
 end.

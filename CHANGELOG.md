@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added a multi-unit `remove-with` corpus smoke fixture that plan-scans representative messy Delphi syntax and asserts stable JSON counts plus unchanged sources. (T-168)
 - Added DelphiAIKit CLI to resolve FixInsight params from .dproj/.optset. (T-001)
 - Added a `--verbose` flag to emit detailed diagnostics for troubleshooting. (T-001)
 - Added `--rsvars` to override the `rsvars.bat` location for IDE environment setup. (T-001)
