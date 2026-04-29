@@ -828,6 +828,11 @@ begin
 
   if not StatementIsStandalone(aSource, aStatement, aReason) then
     Exit;
+  if aStatement.fHasScopedDeclarationInBody then
+  begin
+    aReason := 'scoped-declaration-in-with-body';
+    Exit;
+  end;
   if not BuildSelectorTemps(aInventory, aStatement, aRoutineName, aReservedNames, lCurrentTemps, aReason) then
     Exit;
   AddSelectorTemps(lVisibleTemps, aInheritedTemps);
@@ -981,6 +986,11 @@ begin
       if HasAncestorWith(aScanResult, lStatement) then
       begin
         SkipStatement(aPlanResult, lStatement, 'ancestor-with-not-planned');
+        Continue;
+      end;
+      if lStatement.fHasScopedDeclarationInBody then
+      begin
+        SkipStatement(aPlanResult, lStatement, 'scoped-declaration-in-with-body');
         Continue;
       end;
       if not SameText(lCurrentPath, lStatement.fFilePath) then

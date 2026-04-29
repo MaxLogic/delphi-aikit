@@ -390,6 +390,19 @@ type
     procedure RollbackRestoresMixedSafeAndSkippedSourcesExactly;
   end;
 
+  [TestFixture]
+  TRemoveWithScopedDeclarationSafetyTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure ApplySkipsScopedDeclarationsAndLeavesSourceUnchanged;
+  end;
+
 implementation
 
 uses
@@ -653,6 +666,7 @@ begin
       AssertJsonStringKey(lStatement, 'selectorText');
       AssertJsonNumberKey(lStatement, 'selectorCount');
       AssertJsonNumberKey(lStatement, 'nestingDepth');
+      AssertJsonBoolKey(lStatement, 'hasScopedDeclarationInBody');
       AssertJsonObjectKey(lStatement, 'bodyRange', lSummary);
       AssertJsonNumberKey(lSummary, 'startLine');
       AssertJsonNumberKey(lSummary, 'endLine');
@@ -3924,6 +3938,118 @@ begin
     'Rollback must restore edited source exactly.');
   AssertBytesEqual(lSkippedBefore, TFile.ReadAllBytes(lSkippedUnitPath),
     'Rollback must leave skipped source unchanged.');
+end;
+
+function TRemoveWithScopedDeclarationSafetyTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithScopedDeclarationSafetyTests.AssertBytesEqual(const aExpected, aActual: TBytes;
+  const aMessage: string);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(Length(aExpected), Length(aActual), aMessage + ' Size differs.');
+  for i := 0 to High(aExpected) do
+    Assert.AreEqual(aExpected[i], aActual[i], aMessage + ' Byte differs at index ' + i.ToString + '.');
+end;
+
+procedure TRemoveWithScopedDeclarationSafetyTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithScopedDeclarationSafetyTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithScopedDeclarationSafetyTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithScopedDeclarationSafetyTests.ApplySkipsScopedDeclarationsAndLeavesSourceUnchanged;
+var
+  lBefore: TBytes;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lTransaction: TJSONObject;
+  lUnitPath: string;
+begin
+  CopyFixtureToTemp('RemoveWithScopedDeclarationFixture', 'remove-with-scoped-declarations', lDprojPath,
+    lFixtureDir);
+  lUnitPath := TPath.Combine(lFixtureDir, 'ScopedDeclarationUnit.pas');
+  lBefore := TFile.ReadAllBytes(lUnitPath);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'apply', 'remove-with-scoped-declarations.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected scoped-declaration apply to finish without edits.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
+    Assert.AreEqual(0, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected no planned edits for scoped declaration bodies.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(3, lSkipped.Count, 'Expected all scoped declaration with statements to be skipped.');
+    Assert.AreEqual(3, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
+      'Expected explicit scoped declaration skip reasons.');
+    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
+    Assert.AreEqual(0, (lTransaction.Values['files'] as TJSONArray).Count,
+      'Expected no transaction files when all statements are skipped.');
+  finally
+    lRoot.Free;
+  end;
+
+  AssertBytesEqual(lBefore, TFile.ReadAllBytes(lUnitPath), 'Apply must leave scoped declaration fixture unchanged.');
 end;
 
 end.
