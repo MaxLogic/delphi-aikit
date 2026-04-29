@@ -1244,6 +1244,8 @@ var
 begin
   if not RangeOffsets(aSource, aStatement.fBodyRange, lBodyOffsets) then
     Exit;
+  if aStatement.fHasScopedDeclarationInBody then
+    Exit;
   if not FindRoutineForStatement(aInventory, aStatement, lRoutineName) then
     lRoutineName := '';
 

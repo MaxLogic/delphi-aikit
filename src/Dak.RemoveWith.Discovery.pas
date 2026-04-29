@@ -28,6 +28,7 @@ type
     fSelectorCount: Integer;
     fSelectorRange: TRemoveWithRange;
     fNestingDepth: Integer;
+    fHasScopedDeclarationInBody: Boolean;
     fRange: TRemoveWithRange;
     fBodyRange: TRemoveWithRange;
   end;
@@ -78,6 +79,7 @@ type
       aColumn: Integer; out aSelectorText: string; out aSelectorRange: TRemoveWithRange;
       out aSelectorCount: Integer; out aWithRangeStart: TRemoveWithRange): Boolean; static;
     class function FindBodyNode(const aWithNode: TSyntaxNode): TSyntaxNode; static;
+    class function BodyContainsScopedDeclaration(const aNode: TSyntaxNode): Boolean; static;
     class function SemicolonContinuesStatement(const aText: string; const aOffset: Integer): Boolean; static;
     class function FindStatementEndOffset(const aSource: TRemoveWithSourceBuffer;
       const aStartOffset: Integer): Integer; static;
@@ -419,6 +421,22 @@ begin
   end;
 end;
 
+class function TRemoveWithDiscoveryHelper.BodyContainsScopedDeclaration(const aNode: TSyntaxNode): Boolean;
+var
+  lChild: TSyntaxNode;
+begin
+  Result := False;
+  if not Assigned(aNode) then
+    Exit;
+  if aNode.Typ in [TSyntaxNodeType.ntVariables, TSyntaxNodeType.ntExceptionHandler] then
+    Exit(True);
+  for lChild in aNode.ChildNodes do
+  begin
+    if BodyContainsScopedDeclaration(lChild) then
+      Exit(True);
+  end;
+end;
+
 class function TRemoveWithDiscoveryHelper.SemicolonContinuesStatement(const aText: string;
   const aOffset: Integer): Boolean;
 var
@@ -598,6 +616,7 @@ begin
       lInfo.fSelectorCount := CountSelectors(lInfo.fSelectorText);
     lInfo.fNestingDepth := aDepth;
     lInfo.fBodyRange := NodeRange(lBodyNode, aSource);
+    lInfo.fHasScopedDeclarationInBody := BodyContainsScopedDeclaration(lBodyNode);
     if lInfo.fRange.fStartLine = 0 then
     begin
       lInfo.fRange.fStartLine := aNode.Line;

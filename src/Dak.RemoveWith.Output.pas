@@ -247,6 +247,7 @@ begin
       .AddPair('selectorText', lStatement.fSelectorText)
       .AddPair('selectorCount', TJSONNumber.Create(lStatement.fSelectorCount))
       .AddPair('nestingDepth', TJSONNumber.Create(lStatement.fNestingDepth))
+      .AddPair('hasScopedDeclarationInBody', TJSONBool.Create(lStatement.fHasScopedDeclarationInBody))
       .AddPair('selectorRange', BuildRangeObject(lStatement.fSelectorRange))
       .AddPair('range', BuildRangeObject(lStatement.fRange))
       .AddPair('bodyRange', BuildRangeObject(lStatement.fBodyRange)));
