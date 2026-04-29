@@ -109,6 +109,8 @@ type
     class function CandidatesShareSourceOwner(const aCandidates: TArray<TRemoveWithSymbolInfo>): Boolean; static;
     class function IsCallUse(const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse): Boolean;
       static;
+    class function IsKnownExternalRoutineCall(const aSource: TRemoveWithSourceBuffer;
+      const aUse: TRemoveWithIdentifierUse): Boolean; static;
     class function IsQualifiedUse(const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse):
       Boolean; static;
     class function ResolveSelectorFromReceivers(const aInventory: TRemoveWithSymbolInventory;
@@ -704,6 +706,13 @@ begin
   Result := NextNonWhitespaceChar(aSource.fText, aUse.fEndOffset + 1) = '(';
 end;
 
+class function TRemoveWithIdentifierResolver.IsKnownExternalRoutineCall(const aSource: TRemoveWithSourceBuffer;
+  const aUse: TRemoveWithIdentifierUse): Boolean;
+begin
+  Result := IsCallUse(aSource, aUse) and MatchText(aUse.fName, ['Assigned', 'Dec', 'Exclude', 'High', 'Inc',
+    'Include', 'Length', 'Low', 'SetLength']);
+end;
+
 class function TRemoveWithIdentifierResolver.IsQualifiedUse(const aSource: TRemoveWithSourceBuffer;
   const aUse: TRemoveWithIdentifierUse): Boolean;
 begin
@@ -1260,6 +1269,12 @@ begin
     aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
     aClassification.fResolutionKind := 'unchanged';
     aClassification.fReason := 'routine-scope';
+  end else if IsKnownExternalRoutineCall(aSource, aUse) then
+  begin
+    aClassification.fMemberKind := TRemoveWithSymbolKind.rwskRoutine;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
+    aClassification.fResolutionKind := 'known-external-routine';
+    aClassification.fReason := 'known-external-routine';
   end;
 end;
 
