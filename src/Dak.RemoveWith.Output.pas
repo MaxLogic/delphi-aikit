@@ -248,6 +248,9 @@ begin
       .AddPair('selectorCount', TJSONNumber.Create(lStatement.fSelectorCount))
       .AddPair('nestingDepth', TJSONNumber.Create(lStatement.fNestingDepth))
       .AddPair('hasScopedDeclarationInBody', TJSONBool.Create(lStatement.fHasScopedDeclarationInBody))
+      .AddPair('hasUnsupportedIdentifierRoleInBody',
+        TJSONBool.Create(lStatement.fHasUnsupportedIdentifierRoleInBody))
+      .AddPair('unsupportedIdentifierRole', lStatement.fUnsupportedIdentifierRole)
       .AddPair('selectorRange', BuildRangeObject(lStatement.fSelectorRange))
       .AddPair('range', BuildRangeObject(lStatement.fRange))
       .AddPair('bodyRange', BuildRangeObject(lStatement.fBodyRange)));
@@ -345,7 +348,8 @@ begin
     Result.AddElement(TJSONObject.Create
       .AddPair('statementId', lStatement.fStatementId)
       .AddPair('file', lStatement.fFilePath)
-      .AddPair('reason', lStatement.fReason));
+      .AddPair('reason', lStatement.fReason)
+      .AddPair('unsupportedIdentifierRole', lStatement.fUnsupportedIdentifierRole));
   end;
 end;
 

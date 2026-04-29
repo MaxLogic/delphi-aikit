@@ -91,6 +91,8 @@ type
       out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
     class function FindExternalUnitSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
       out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
+    class function FindTypeNameSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
     class function HasSourceType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
       static;
     class function IsExternalType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
@@ -501,6 +503,23 @@ begin
   begin
     if (lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal) and (lSymbol.fTypeName = '') and
       SameText(lSymbol.fName, aName) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+end;
+
+class function TRemoveWithIdentifierResolver.FindTypeNameSymbol(const aInventory: TRemoveWithSymbolInventory;
+  const aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, aName) then
     begin
       aSymbol := lSymbol;
       Exit(True);
@@ -1084,6 +1103,33 @@ begin
   aClassification.fReason := 'symbol-not-found';
   Result := True;
 
+  if IsQualifiedUse(aSource, aUse) and FindUnitNameSymbol(aInventory, aUse.fName, lSymbol) then
+  begin
+    aClassification.fMemberKind := lSymbol.fKind;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
+    aClassification.fResolutionKind := 'qualified-unit';
+    aClassification.fReason := 'unit-qualifier';
+    Exit(True);
+  end;
+
+  if IsQualifiedUse(aSource, aUse) and FindExternalUnitSymbol(aInventory, aUse.fName, lSymbol) then
+  begin
+    aClassification.fMemberKind := lSymbol.fKind;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
+    aClassification.fResolutionKind := 'external-unit';
+    aClassification.fReason := 'unit-source-not-indexed';
+    Exit(True);
+  end;
+
+  if IsQualifiedUse(aSource, aUse) and FindTypeNameSymbol(aInventory, aUse.fName, lSymbol) then
+  begin
+    aClassification.fMemberKind := lSymbol.fKind;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnsupported;
+    aClassification.fResolutionKind := 'type-qualifier';
+    aClassification.fReason := 'unsupported-identifier-role';
+    Exit(True);
+  end;
+
   for i := High(aReceivers) downto 0 do
   begin
     if aReceivers[i].fStatus = TRemoveWithSelectorTypeStatus.rwstsResolved then
@@ -1201,24 +1247,6 @@ begin
     end;
   end;
 
-  if IsQualifiedUse(aSource, aUse) and FindUnitNameSymbol(aInventory, aUse.fName, lSymbol) then
-  begin
-    aClassification.fMemberKind := lSymbol.fKind;
-    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
-    aClassification.fResolutionKind := 'qualified-unit';
-    aClassification.fReason := 'unit-qualifier';
-    Exit(True);
-  end;
-
-  if IsQualifiedUse(aSource, aUse) and FindExternalUnitSymbol(aInventory, aUse.fName, lSymbol) then
-  begin
-    aClassification.fMemberKind := lSymbol.fKind;
-    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
-    aClassification.fResolutionKind := 'external-unit';
-    aClassification.fReason := 'unit-source-not-indexed';
-    Exit(True);
-  end;
-
   if FindScopeSymbol(aInventory, aRoutineName, aUse.fName, lSymbol) then
   begin
     aClassification.fMemberKind := lSymbol.fKind;
@@ -1245,6 +1273,8 @@ begin
   if not RangeOffsets(aSource, aStatement.fBodyRange, lBodyOffsets) then
     Exit;
   if aStatement.fHasScopedDeclarationInBody then
+    Exit;
+  if aStatement.fHasUnsupportedIdentifierRoleInBody then
     Exit;
   if not FindRoutineForStatement(aInventory, aStatement, lRoutineName) then
     lRoutineName := '';

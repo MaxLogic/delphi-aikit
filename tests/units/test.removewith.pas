@@ -403,6 +403,19 @@ type
     procedure ApplySkipsScopedDeclarationsAndLeavesSourceUnchanged;
   end;
 
+  [TestFixture]
+  TRemoveWithExpressionRoleRewriteTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function CountSkippedUnsupportedRole(const aSkipped: TJSONArray; const aRole: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure ApplySkipsUnsafeRolesAndRewritesSafeQualifiedCall;
+  end;
+
 implementation
 
 uses
@@ -4050,6 +4063,137 @@ begin
   end;
 
   AssertBytesEqual(lBefore, TFile.ReadAllBytes(lUnitPath), 'Apply must leave scoped declaration fixture unchanged.');
+end;
+
+function TRemoveWithExpressionRoleRewriteTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithExpressionRoleRewriteTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithExpressionRoleRewriteTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithExpressionRoleRewriteTests.CountSkippedUnsupportedRole(const aSkipped: TJSONArray;
+  const aRole: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['unsupportedIdentifierRole'].Value = aRole then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithExpressionRoleRewriteTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithExpressionRoleRewriteTests.ApplySkipsUnsafeRolesAndRewritesSafeQualifiedCall;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lUnitPath: string;
+  lUnitText: string;
+  lVerification: TJSONObject;
+begin
+  CopyFixtureToTemp('RemoveWithExpressionRoleFixture', 'remove-with-expression-roles', lDprojPath, lFixtureDir);
+  lUnitPath := TPath.Combine(lFixtureDir, 'ExpressionRoleUnit.pas');
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'apply', 'remove-with-expression-roles.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected expression-role apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
+    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected one safe expression rewrite in a source-unit-qualified call.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(4, lSkipped.Count, 'Expected unsafe expression-role with statements to be skipped.');
+    Assert.AreEqual(3, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
+      'Expected explicit unsupported identifier role skip reasons.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
+      'Expected declaration-like bodies to keep the scoped-declaration skip reason.');
+    Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'label'),
+      'Expected label role detail in skipped report.');
+    Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'case-label'),
+      'Expected case-label role detail in skipped report.');
+    Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'type-qualifier'),
+      'Expected type-qualifier role detail in skipped report.');
+    Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'variable-declaration'),
+      'Expected declaration-like role detail in skipped report.');
+    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    Assert.AreEqual('passed', lVerification.Values['status'].Value,
+      'Expected edited expression-role fixture to build after apply.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('ExpressionRoleSupportUnit.TouchName(aItemPtr^.Name);', lUnitText) > 0,
+    'Expected the safe member argument to be qualified.');
+  Assert.IsTrue(Pos('aItemPtr^.ExpressionRoleSupportUnit', lUnitText) = 0,
+    'Expected the source-unit qualifier to remain unchanged.');
+  Assert.IsTrue(Pos('TExpressionRoleScope.DefaultName', lUnitText) > 0,
+    'Expected skipped type-qualified body to remain unchanged.');
 end;
 
 end.

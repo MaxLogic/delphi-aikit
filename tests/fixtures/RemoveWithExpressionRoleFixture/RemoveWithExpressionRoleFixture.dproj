@@ -1,0 +1,44 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{0847D488-3FE3-4EC8-B647-EFE8AC65481D}</ProjectGuid>
+    <MainSource>RemoveWithExpressionRoleFixture.dpr</MainSource>
+    <Base>True</Base>
+    <Config Condition="'$(Config)'==''">Release</Config>
+    <ProjectName Condition="'$(ProjectName)'==''">RemoveWithExpressionRoleFixture</ProjectName>
+    <TargetedPlatforms>1</TargetedPlatforms>
+    <AppType>Console</AppType>
+    <FrameworkType>None</FrameworkType>
+    <ProjectVersion>20.2</ProjectVersion>
+    <Platform Condition="'$(Platform)'==''">Win32</Platform>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Base)'!=''">
+    <DCC_ExeOutput>.\bin</DCC_ExeOutput>
+    <DCC_DcuOutput>$(DCC_ExeOutput)</DCC_DcuOutput>
+    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    <DCC_Namespace>System;System.Win;$(DCC_Namespace)</DCC_Namespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <DelphiCompile Include="$(MainSource)">
+      <MainSource>MainSource</MainSource>
+    </DelphiCompile>
+    <DCCReference Include="ExpressionRoleUnit.pas"/>
+    <DCCReference Include="ExpressionRoleSupportUnit.pas"/>
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality.12</Borland.Personality>
+    <Borland.ProjectType/>
+    <BorlandProject>
+      <Delphi.Personality>
+        <Source>
+          <Source Name="MainSource">RemoveWithExpressionRoleFixture.dpr</Source>
+        </Source>
+      </Delphi.Personality>
+      <Platforms>
+        <Platform value="Win32">True</Platform>
+        <Platform value="Win64">False</Platform>
+      </Platforms>
+    </BorlandProject>
+    <ProjectFileVersion>12</ProjectFileVersion>
+  </ProjectExtensions>
+  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+</Project>

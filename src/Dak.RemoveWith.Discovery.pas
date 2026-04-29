@@ -29,6 +29,8 @@ type
     fSelectorRange: TRemoveWithRange;
     fNestingDepth: Integer;
     fHasScopedDeclarationInBody: Boolean;
+    fHasUnsupportedIdentifierRoleInBody: Boolean;
+    fUnsupportedIdentifierRole: string;
     fRange: TRemoveWithRange;
     fBodyRange: TRemoveWithRange;
   end;
@@ -80,6 +82,11 @@ type
       out aSelectorCount: Integer; out aWithRangeStart: TRemoveWithRange): Boolean; static;
     class function FindBodyNode(const aWithNode: TSyntaxNode): TSyntaxNode; static;
     class function BodyContainsScopedDeclaration(const aNode: TSyntaxNode): Boolean; static;
+    class function UnsupportedIdentifierRoleForNode(const aNode: TSyntaxNode): string; static;
+    class function BodyContainsUnsupportedIdentifierRole(const aNode: TSyntaxNode; out aRole: string): Boolean;
+      static;
+    class function BodySourceContainsUnsupportedIdentifierRole(const aSource: TRemoveWithSourceBuffer;
+      const aRange: TRemoveWithRange; out aRole: string): Boolean; static;
     class function SemicolonContinuesStatement(const aText: string; const aOffset: Integer): Boolean; static;
     class function FindStatementEndOffset(const aSource: TRemoveWithSourceBuffer;
       const aStartOffset: Integer): Integer; static;
@@ -437,6 +444,125 @@ begin
   end;
 end;
 
+class function TRemoveWithDiscoveryHelper.UnsupportedIdentifierRoleForNode(const aNode: TSyntaxNode): string;
+begin
+  Result := '';
+  if not Assigned(aNode) then
+    Exit;
+
+  case aNode.Typ of
+    TSyntaxNodeType.ntAttribute, TSyntaxNodeType.ntAttributes:
+      Result := 'attribute';
+    TSyntaxNodeType.ntCaseLabel, TSyntaxNodeType.ntCaseLabels:
+      Result := 'case-label';
+    TSyntaxNodeType.ntConstant, TSyntaxNodeType.ntConstants:
+      Result := 'constant-declaration';
+    TSyntaxNodeType.ntField, TSyntaxNodeType.ntFields:
+      Result := 'field-declaration';
+    TSyntaxNodeType.ntGoto:
+      Result := 'goto-label';
+    TSyntaxNodeType.ntLabel:
+      Result := 'label';
+    TSyntaxNodeType.ntMethod:
+      Result := 'method-declaration';
+    TSyntaxNodeType.ntNamedArgument:
+      Result := 'named-argument';
+    TSyntaxNodeType.ntParameter, TSyntaxNodeType.ntParameters:
+      Result := 'parameter-declaration';
+    TSyntaxNodeType.ntProperty:
+      Result := 'property-declaration';
+    TSyntaxNodeType.ntType, TSyntaxNodeType.ntTypeArgs, TSyntaxNodeType.ntTypeDecl, TSyntaxNodeType.ntTypeParam,
+      TSyntaxNodeType.ntTypeParams, TSyntaxNodeType.ntTypeSection:
+      Result := 'type-name';
+    TSyntaxNodeType.ntVariable, TSyntaxNodeType.ntVariables:
+      Result := 'variable-declaration';
+  end;
+end;
+
+class function TRemoveWithDiscoveryHelper.BodyContainsUnsupportedIdentifierRole(const aNode: TSyntaxNode;
+  out aRole: string): Boolean;
+var
+  lChild: TSyntaxNode;
+begin
+  Result := False;
+  aRole := '';
+  if not Assigned(aNode) then
+    Exit;
+
+  aRole := UnsupportedIdentifierRoleForNode(aNode);
+  if aRole <> '' then
+    Exit(True);
+
+  for lChild in aNode.ChildNodes do
+  begin
+    if BodyContainsUnsupportedIdentifierRole(lChild, aRole) then
+      Exit(True);
+  end;
+end;
+
+class function TRemoveWithDiscoveryHelper.BodySourceContainsUnsupportedIdentifierRole(
+  const aSource: TRemoveWithSourceBuffer; const aRange: TRemoveWithRange; out aRole: string): Boolean;
+var
+  lEndOffset: Integer;
+  lIdentifierEndOffset: Integer;
+  lNextOffset: Integer;
+  lStartOffset: Integer;
+  i: Integer;
+begin
+  Result := False;
+  aRole := '';
+  if not RemoveWithOffsetForLineColumn(aSource, aRange.fStartLine, aRange.fStartColumn, lStartOffset) then
+    Exit;
+  if not RemoveWithOffsetForLineColumn(aSource, aRange.fEndLine, aRange.fEndColumn, lEndOffset) then
+    Exit;
+
+  i := lStartOffset;
+  while i <= lEndOffset do
+  begin
+    if aSource.fText[i] = '''' then
+    begin
+      SkipString(aSource.fText, i);
+      Continue;
+    end;
+
+    if aSource.fText[i] = '{' then
+    begin
+      SkipBraceComment(aSource.fText, i);
+      Continue;
+    end;
+
+    if (i < lEndOffset) and (aSource.fText[i] = '(') and (aSource.fText[i + 1] = '*') then
+    begin
+      SkipParenComment(aSource.fText, i);
+      Continue;
+    end;
+
+    if (i < lEndOffset) and (aSource.fText[i] = '/') and (aSource.fText[i + 1] = '/') then
+    begin
+      SkipLineComment(aSource.fText, i);
+      Continue;
+    end;
+
+    if CharInSet(aSource.fText[i], ['A'..'Z', 'a'..'z', '_']) then
+    begin
+      lIdentifierEndOffset := i;
+      while (lIdentifierEndOffset <= lEndOffset) and IsIdentifierChar(aSource.fText[lIdentifierEndOffset]) do
+        Inc(lIdentifierEndOffset);
+      lNextOffset := NextNonWhitespaceOffset(aSource.fText, lIdentifierEndOffset);
+      if (lNextOffset <= lEndOffset) and (aSource.fText[lNextOffset] = ':') and
+        ((lNextOffset = lEndOffset) or (aSource.fText[lNextOffset + 1] <> '=')) then
+      begin
+        aRole := 'label';
+        Exit(True);
+      end;
+      i := lIdentifierEndOffset;
+      Continue;
+    end;
+
+    Inc(i);
+  end;
+end;
+
 class function TRemoveWithDiscoveryHelper.SemicolonContinuesStatement(const aText: string;
   const aOffset: Integer): Boolean;
 var
@@ -593,6 +719,7 @@ var
   lChild: TSyntaxNode;
   lInfo: TRemoveWithStatementInfo;
   lNextDepth: Integer;
+  lUnsupportedRole: string;
 begin
   if not Assigned(aNode) then
     Exit;
@@ -617,6 +744,14 @@ begin
     lInfo.fNestingDepth := aDepth;
     lInfo.fBodyRange := NodeRange(lBodyNode, aSource);
     lInfo.fHasScopedDeclarationInBody := BodyContainsScopedDeclaration(lBodyNode);
+    lInfo.fHasUnsupportedIdentifierRoleInBody := BodyContainsUnsupportedIdentifierRole(lBodyNode,
+      lInfo.fUnsupportedIdentifierRole);
+    if (not lInfo.fHasUnsupportedIdentifierRoleInBody) and
+      BodySourceContainsUnsupportedIdentifierRole(aSource, lInfo.fBodyRange, lUnsupportedRole) then
+    begin
+      lInfo.fHasUnsupportedIdentifierRoleInBody := True;
+      lInfo.fUnsupportedIdentifierRole := lUnsupportedRole;
+    end;
     if lInfo.fRange.fStartLine = 0 then
     begin
       lInfo.fRange.fStartLine := aNode.Line;

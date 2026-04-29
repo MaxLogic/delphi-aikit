@@ -19,6 +19,7 @@ type
     fFilePath: string;
     fStatus: string;
     fReason: string;
+    fUnsupportedIdentifierRole: string;
     fReplacementText: string;
     fEdits: TArray<TRemoveWithPlannedTextEdit>;
     fTemps: TArray<TRemoveWithTempDecision>;
@@ -113,8 +114,10 @@ type
       const aSourceTemps: TArray<TRemoveWithSelectorTemp>); static;
     class function SelectorTempsNeedDeclaration(const aSelectorTemps: TArray<TRemoveWithSelectorTemp>): Boolean;
       static;
+    class function UnsupportedRoleForStatement(const aResolverResult: TRemoveWithResolverResult;
+      const aStatement: TRemoveWithStatementInfo): string; static;
     class procedure SkipStatement(var aPlanResult: TRemoveWithPlanResult; const aStatement: TRemoveWithStatementInfo;
-      const aReason: string); static;
+      const aReason, aUnsupportedIdentifierRole: string); static;
     class function CopyReservedNames(const aReservedNames: TRemoveWithReservedTempNames): TRemoveWithReservedTempNames;
       static;
     class function SameRoutineState(const aState: TRemoveWithRoutinePlanState; const aFilePath: string;
@@ -644,8 +647,30 @@ begin
   Result := False;
 end;
 
+class function TRemoveWithPlanner.UnsupportedRoleForStatement(const aResolverResult: TRemoveWithResolverResult;
+  const aStatement: TRemoveWithStatementInfo): string;
+var
+  lClassification: TRemoveWithIdentifierClassification;
+begin
+  Result := aStatement.fUnsupportedIdentifierRole;
+  if Result <> '' then
+    Exit;
+
+  for lClassification in aResolverResult.fClassifications do
+  begin
+    if SameText(lClassification.fStatementId, aStatement.fId) and
+      SameText(lClassification.fReason, 'unsupported-identifier-role') then
+    begin
+      Result := lClassification.fResolutionKind;
+      if Result = '' then
+        Result := 'unclassified';
+      Exit;
+    end;
+  end;
+end;
+
 class procedure TRemoveWithPlanner.SkipStatement(var aPlanResult: TRemoveWithPlanResult;
-  const aStatement: TRemoveWithStatementInfo; const aReason: string);
+  const aStatement: TRemoveWithStatementInfo; const aReason, aUnsupportedIdentifierRole: string);
 var
   lPlannedStatement: TRemoveWithPlannedStatement;
 begin
@@ -654,6 +679,7 @@ begin
   lPlannedStatement.fFilePath := aStatement.fFilePath;
   lPlannedStatement.fStatus := 'skipped';
   lPlannedStatement.fReason := aReason;
+  lPlannedStatement.fUnsupportedIdentifierRole := aUnsupportedIdentifierRole;
   AddStatement(aPlanResult, lPlannedStatement);
 end;
 
@@ -833,6 +859,11 @@ begin
     aReason := 'scoped-declaration-in-with-body';
     Exit;
   end;
+  if aStatement.fHasUnsupportedIdentifierRoleInBody then
+  begin
+    aReason := 'unsupported-identifier-role';
+    Exit;
+  end;
   if not BuildSelectorTemps(aInventory, aStatement, aRoutineName, aReservedNames, lCurrentTemps, aReason) then
     Exit;
   AddSelectorTemps(lVisibleTemps, aInheritedTemps);
@@ -936,7 +967,7 @@ begin
   if not BuildStatementReplacement(aInventory, aScanResult, aResolverResult, aStatement, aSource, lRoutineName, nil,
     lReservedNames, lReplacementText, lSelectorTemps, lReason) then
   begin
-    SkipStatement(aPlanResult, aStatement, lReason);
+    SkipStatement(aPlanResult, aStatement, lReason, UnsupportedRoleForStatement(aResolverResult, aStatement));
     Exit;
   end;
 
@@ -985,12 +1016,18 @@ begin
         Continue;
       if HasAncestorWith(aScanResult, lStatement) then
       begin
-        SkipStatement(aPlanResult, lStatement, 'ancestor-with-not-planned');
+        SkipStatement(aPlanResult, lStatement, 'ancestor-with-not-planned', '');
         Continue;
       end;
       if lStatement.fHasScopedDeclarationInBody then
       begin
-        SkipStatement(aPlanResult, lStatement, 'scoped-declaration-in-with-body');
+        SkipStatement(aPlanResult, lStatement, 'scoped-declaration-in-with-body',
+          lStatement.fUnsupportedIdentifierRole);
+        Continue;
+      end;
+      if lStatement.fHasUnsupportedIdentifierRoleInBody then
+      begin
+        SkipStatement(aPlanResult, lStatement, 'unsupported-identifier-role', lStatement.fUnsupportedIdentifierRole);
         Continue;
       end;
       if not SameText(lCurrentPath, lStatement.fFilePath) then
