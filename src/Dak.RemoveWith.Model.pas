@@ -3,6 +3,7 @@ unit Dak.RemoveWith.Model;
 interface
 
 uses
+  System.Generics.Collections,
   DelphiAST.ProjectIndexer,
   Dak.Types;
 
@@ -21,6 +22,9 @@ type
   TRemoveWithModelTypeInfo = record
     fName: string;
     fRelatedTypeName: string;
+    fRelatedTypeNames: TArray<string>;
+    fIsArrayAlias: Boolean;
+    fIsPointerAlias: Boolean;
     fKind: TRemoveWithModelTypeKind;
     fRange: TRemoveWithModelRange;
   end;
@@ -79,12 +83,56 @@ type
     fIdentifierReferences: TArray<TRemoveWithModelIdentifierReference>;
   end;
 
+  TRemoveWithSemanticIndex = class
+  private
+    fAliasesByName: TDictionary<string, TRemoveWithModelTypeInfo>;
+    fAncestorsByType: TDictionary<string, TArray<string>>;
+    fArrayElementsByName: TDictionary<string, TRemoveWithModelTypeInfo>;
+    fDefaultPropertiesByOwner: TDictionary<string, TRemoveWithModelMemberInfo>;
+    fHelpersByTargetType: TDictionary<string, TRemoveWithModelTypeInfo>;
+    fIndexedPropertiesByOwnerName: TDictionary<string, TRemoveWithModelMemberInfo>;
+    fMembersByOwnerName: TDictionary<string, TArray<TRemoveWithModelMemberInfo>>;
+    fPointerTargetsByName: TDictionary<string, TRemoveWithModelTypeInfo>;
+    fRoutinesByName: TDictionary<string, TRemoveWithModelRoutineInfo>;
+    fRoutineSymbolsByName: TDictionary<string, TRemoveWithModelRoutineSymbolInfo>;
+    fTypesByName: TDictionary<string, TRemoveWithModelTypeInfo>;
+    fUnitsByName: TDictionary<string, TRemoveWithUnitModel>;
+    class function Key(const aValue: string): string; static;
+    class function OwnerNameKey(const aOwner, aName: string): string; static;
+    class function RoutineNameKey(const aRoutine, aName: string): string; static;
+    class function ArrayElementTypeName(const aTypeName: string): string; static;
+    class procedure AddMember(var aDictionary: TDictionary<string, TArray<TRemoveWithModelMemberInfo>>;
+      const aKey: string; const aMember: TRemoveWithModelMemberInfo); static;
+    procedure AddType(const aTypeInfo: TRemoveWithModelTypeInfo);
+    procedure AddMemberIndexes(const aMember: TRemoveWithModelMemberInfo);
+    procedure AddRoutine(const aRoutine: TRemoveWithModelRoutineInfo);
+    procedure AddRoutineSymbol(const aSymbol: TRemoveWithModelRoutineSymbolInfo);
+  public
+    constructor Create(const aUnitModels: TArray<TRemoveWithUnitModel>);
+    destructor Destroy; override;
+    function TryFindUnit(const aName: string; out aUnitModel: TRemoveWithUnitModel): Boolean;
+    function TryFindType(const aName: string; out aTypeInfo: TRemoveWithModelTypeInfo): Boolean;
+    function TryFindMembers(const aOwnerType, aName: string;
+      out aMembers: TArray<TRemoveWithModelMemberInfo>): Boolean;
+    function TryFindRoutine(const aName: string; out aRoutine: TRemoveWithModelRoutineInfo): Boolean;
+    function TryFindRoutineSymbol(const aRoutineName, aName: string;
+      out aSymbol: TRemoveWithModelRoutineSymbolInfo): Boolean;
+    function TryFindHelperForType(const aTargetType: string; out aTypeInfo: TRemoveWithModelTypeInfo): Boolean;
+    function TryResolveAlias(const aTypeName: string; out aTypeInfo: TRemoveWithModelTypeInfo): Boolean;
+    function TryResolvePointerTarget(const aTypeName: string; out aTypeInfo: TRemoveWithModelTypeInfo): Boolean;
+    function TryResolveArrayElement(const aTypeName: string; out aTypeInfo: TRemoveWithModelTypeInfo): Boolean;
+    function TryFindAncestors(const aTypeName: string; out aAncestors: TArray<string>): Boolean;
+    function TryFindDefaultProperty(const aOwnerType: string; out aMember: TRemoveWithModelMemberInfo): Boolean;
+    function TryFindIndexedProperty(const aOwnerType, aName: string; out aMember: TRemoveWithModelMemberInfo): Boolean;
+  end;
+
   TRemoveWithProjectModel = class
   private
     fContext: TProjectAnalysisContext;
     fIndexer: TProjectIndexer;
     fIndexCount: Integer;
     fProjectPath: string;
+    fSemanticIndex: TRemoveWithSemanticIndex;
     fUnitModels: TArray<TRemoveWithUnitModel>;
     procedure ExtractUnitModels;
   public
@@ -97,6 +145,7 @@ type
     property IndexCount: Integer read fIndexCount;
     property Indexer: TProjectIndexer read fIndexer;
     property ProjectPath: string read fProjectPath;
+    property SemanticIndex: TRemoveWithSemanticIndex read fSemanticIndex;
     property UnitModels: TArray<TRemoveWithUnitModel> read fUnitModels;
   end;
 
@@ -106,7 +155,7 @@ function BuildRemoveWithProjectModel(const aOptions: TAppOptions; const aProject
 implementation
 
 uses
-  System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiAST.Classes, DelphiAST.Consts,
   Dak.Project, Dak.RemoveWith.Source;
 
@@ -494,6 +543,125 @@ begin
     Exit(TRemoveWithModelTypeKind.rwmtRecord);
 end;
 
+function TakeIdentifierPrefix(const aText: string): string;
+var
+  i: Integer;
+begin
+  Result := '';
+  i := 1;
+  while (i <= Length(aText)) and CharInSet(aText[i], [' ', #9, #10, #13, '^']) do
+    Inc(i);
+  while (i <= Length(aText)) and IsIdentifierChar(aText[i]) do
+  begin
+    Result := Result + aText[i];
+    Inc(i);
+  end;
+end;
+
+function SplitRelatedTypeNames(const aText: string): TArray<string>;
+var
+  lList: TList<string>;
+  lName: string;
+  lPart: string;
+  lParts: TArray<string>;
+begin
+  lList := TList<string>.Create;
+  try
+    lParts := aText.Split([',']);
+    for lPart in lParts do
+    begin
+      lName := TakeIdentifierPrefix(lPart);
+      if lName <> '' then
+        lList.Add(lName);
+    end;
+    Result := lList.ToArray;
+  finally
+    lList.Free;
+  end;
+end;
+
+function AliasTargetTextFromSource(const aNode: TSyntaxNode; const aSource: TRemoveWithSourceBuffer): string;
+var
+  lEqualsPos: Integer;
+  lSemicolonPos: Integer;
+  lSlice: string;
+begin
+  Result := '';
+  lSlice := SourceSliceForRange(aSource, ModelRangeForNode(aNode));
+  lEqualsPos := Pos('=', lSlice);
+  if lEqualsPos = 0 then
+    Exit;
+
+  Result := Trim(Copy(lSlice, lEqualsPos + 1, MaxInt));
+  lSemicolonPos := Pos(';', Result);
+  if lSemicolonPos > 0 then
+    Result := Trim(Copy(Result, 1, lSemicolonPos - 1));
+end;
+
+function RelatedTypeNamesFromSource(const aNode: TSyntaxNode; const aKind: TRemoveWithModelTypeKind;
+  const aSource: TRemoveWithSourceBuffer): TArray<string>;
+var
+  lClosePos: Integer;
+  lForPos: Integer;
+  lOpenPos: Integer;
+  lSlice: string;
+  lText: string;
+  lTargetText: string;
+begin
+  SetLength(Result, 0);
+  lSlice := SourceSliceForRange(aSource, ModelRangeForNode(aNode));
+  lText := LowerCase(lSlice);
+  if aKind = TRemoveWithModelTypeKind.rwmtHelper then
+  begin
+    lForPos := Pos(' helper for ', lText);
+    if lForPos > 0 then
+      Result := SplitRelatedTypeNames(Copy(lSlice, lForPos + Length(' helper for '), MaxInt));
+    Exit;
+  end;
+
+  if aKind = TRemoveWithModelTypeKind.rwmtClass then
+  begin
+    lOpenPos := Pos('(', lSlice);
+    lClosePos := PosEx(')', lSlice, lOpenPos + 1);
+    if (lOpenPos > 0) and (lClosePos > lOpenPos) then
+      Result := SplitRelatedTypeNames(Copy(lSlice, lOpenPos + 1, lClosePos - lOpenPos - 1));
+    Exit;
+  end;
+
+  if aKind = TRemoveWithModelTypeKind.rwmtAlias then
+  begin
+    lTargetText := AliasTargetTextFromSource(aNode, aSource);
+    if StartsText('^', Trim(lTargetText)) then
+      lTargetText := Trim(Copy(Trim(lTargetText), 2, MaxInt));
+    SetLength(Result, 1);
+    Result[0] := lTargetText;
+  end;
+end;
+
+function IsPointerAliasFromSource(const aNode: TSyntaxNode; const aSource: TRemoveWithSourceBuffer): Boolean;
+begin
+  Result := StartsText('^', Trim(AliasTargetTextFromSource(aNode, aSource)));
+end;
+
+function IsArrayAliasTypeName(const aTypeName: string): Boolean;
+var
+  lTypeName: string;
+begin
+  lTypeName := LowerCase(Trim(aTypeName));
+  Result := StartsText('array', lTypeName) or StartsText('tarray<', lTypeName);
+end;
+
+function RelatedTypeNameFromSource(const aNode: TSyntaxNode; const aKind: TRemoveWithModelTypeKind;
+  const aSource: TRemoveWithSourceBuffer): string;
+var
+  lTypeNames: TArray<string>;
+begin
+  Result := '';
+  lTypeNames := RelatedTypeNamesFromSource(aNode, aKind, aSource);
+  if Length(lTypeNames) > 0 then
+    Result := lTypeNames[0];
+end;
+
 function TypeOwnerName(const aNode: TSyntaxNode): string;
 var
   lTypeNode: TSyntaxNode;
@@ -681,6 +849,7 @@ procedure ExtractTypes(const aRoot: TSyntaxNode; const aSource: TRemoveWithSourc
 var
   lNode: TSyntaxNode;
   lNodes: TList<TSyntaxNode>;
+  lRelatedTypeNames: TArray<string>;
   lTypeInfo: TRemoveWithModelTypeInfo;
 begin
   lNodes := TList<TSyntaxNode>.Create;
@@ -692,6 +861,24 @@ begin
       lTypeInfo.fName := ExtractNodeName(lNode);
       lTypeInfo.fRelatedTypeName := ExtractTypeName(lNode);
       lTypeInfo.fKind := TypeKindFromNode(lNode);
+      if (lTypeInfo.fRelatedTypeName = '') or (lTypeInfo.fKind in
+        [TRemoveWithModelTypeKind.rwmtAlias, TRemoveWithModelTypeKind.rwmtClass,
+        TRemoveWithModelTypeKind.rwmtHelper]) then
+      begin
+        lRelatedTypeNames := RelatedTypeNamesFromSource(lNode, lTypeInfo.fKind, aSource);
+        lTypeInfo.fRelatedTypeNames := lRelatedTypeNames;
+        if Length(lRelatedTypeNames) > 0 then
+          lTypeInfo.fRelatedTypeName := lRelatedTypeNames[0]
+        else
+          lTypeInfo.fRelatedTypeName := RelatedTypeNameFromSource(lNode, lTypeInfo.fKind, aSource);
+      end else begin
+        SetLength(lTypeInfo.fRelatedTypeNames, 1);
+        lTypeInfo.fRelatedTypeNames[0] := lTypeInfo.fRelatedTypeName;
+      end;
+      lTypeInfo.fIsPointerAlias := (lTypeInfo.fKind = TRemoveWithModelTypeKind.rwmtAlias) and
+        IsPointerAliasFromSource(lNode, aSource);
+      lTypeInfo.fIsArrayAlias := (lTypeInfo.fKind = TRemoveWithModelTypeKind.rwmtAlias) and
+        IsArrayAliasTypeName(lTypeInfo.fRelatedTypeName);
       lTypeInfo.fRange := ModelRangeForNode(lNode);
       AddType(aUnitModel, lTypeInfo);
     end;
@@ -865,6 +1052,240 @@ begin
   ExtractRoutines(aUnit.SyntaxTree, lSource, Result);
 end;
 
+class function TRemoveWithSemanticIndex.Key(const aValue: string): string;
+begin
+  Result := UpperCase(Trim(aValue));
+end;
+
+class function TRemoveWithSemanticIndex.OwnerNameKey(const aOwner, aName: string): string;
+begin
+  Result := Key(aOwner) + #31 + Key(aName);
+end;
+
+class function TRemoveWithSemanticIndex.RoutineNameKey(const aRoutine, aName: string): string;
+begin
+  Result := Key(aRoutine) + #31 + Key(aName);
+end;
+
+class function TRemoveWithSemanticIndex.ArrayElementTypeName(const aTypeName: string): string;
+var
+  lOfPos: Integer;
+  lEndPos: Integer;
+  lStartPos: Integer;
+  lText: string;
+begin
+  Result := '';
+  lText := Trim(aTypeName);
+  if StartsText('array of ', LowerCase(lText)) then
+    Exit(Trim(Copy(lText, Length('array of ') + 1, MaxInt)));
+  if StartsText('array[', LowerCase(lText)) or StartsText('array [', LowerCase(lText)) then
+  begin
+    lEndPos := Pos(']', lText);
+    if lEndPos > 0 then
+    begin
+      lOfPos := Pos(' of ', LowerCase(Copy(lText, lEndPos + 1, MaxInt)));
+      if lOfPos > 0 then
+        Exit(Trim(Copy(lText, lEndPos + lOfPos + Length(' of '), MaxInt)));
+    end;
+  end;
+
+  lStartPos := Pos('<', lText);
+  lEndPos := LastDelimiter('>', lText);
+  if (lStartPos > 0) and (lEndPos > lStartPos) then
+    Result := Trim(Copy(lText, lStartPos + 1, lEndPos - lStartPos - 1));
+end;
+
+class procedure TRemoveWithSemanticIndex.AddMember(
+  var aDictionary: TDictionary<string, TArray<TRemoveWithModelMemberInfo>>; const aKey: string;
+  const aMember: TRemoveWithModelMemberInfo);
+var
+  lMembers: TArray<TRemoveWithModelMemberInfo>;
+begin
+  if not aDictionary.TryGetValue(aKey, lMembers) then
+    SetLength(lMembers, 0);
+  SetLength(lMembers, Length(lMembers) + 1);
+  lMembers[High(lMembers)] := aMember;
+  aDictionary.AddOrSetValue(aKey, lMembers);
+end;
+
+constructor TRemoveWithSemanticIndex.Create(const aUnitModels: TArray<TRemoveWithUnitModel>);
+var
+  lMember: TRemoveWithModelMemberInfo;
+  lRoutine: TRemoveWithModelRoutineInfo;
+  lSymbol: TRemoveWithModelRoutineSymbolInfo;
+  lTypeInfo: TRemoveWithModelTypeInfo;
+  lUnitModel: TRemoveWithUnitModel;
+begin
+  inherited Create;
+  fAliasesByName := TDictionary<string, TRemoveWithModelTypeInfo>.Create;
+  fAncestorsByType := TDictionary<string, TArray<string>>.Create;
+  fArrayElementsByName := TDictionary<string, TRemoveWithModelTypeInfo>.Create;
+  fDefaultPropertiesByOwner := TDictionary<string, TRemoveWithModelMemberInfo>.Create;
+  fHelpersByTargetType := TDictionary<string, TRemoveWithModelTypeInfo>.Create;
+  fIndexedPropertiesByOwnerName := TDictionary<string, TRemoveWithModelMemberInfo>.Create;
+  fMembersByOwnerName := TDictionary<string, TArray<TRemoveWithModelMemberInfo>>.Create;
+  fPointerTargetsByName := TDictionary<string, TRemoveWithModelTypeInfo>.Create;
+  fRoutinesByName := TDictionary<string, TRemoveWithModelRoutineInfo>.Create;
+  fRoutineSymbolsByName := TDictionary<string, TRemoveWithModelRoutineSymbolInfo>.Create;
+  fTypesByName := TDictionary<string, TRemoveWithModelTypeInfo>.Create;
+  fUnitsByName := TDictionary<string, TRemoveWithUnitModel>.Create;
+
+  for lUnitModel in aUnitModels do
+  begin
+    fUnitsByName.AddOrSetValue(Key(lUnitModel.fUnitName), lUnitModel);
+    for lTypeInfo in lUnitModel.fTypes do
+      AddType(lTypeInfo);
+    for lMember in lUnitModel.fMembers do
+      AddMemberIndexes(lMember);
+    for lRoutine in lUnitModel.fRoutines do
+      AddRoutine(lRoutine);
+    for lSymbol in lUnitModel.fRoutineSymbols do
+      AddRoutineSymbol(lSymbol);
+  end;
+end;
+
+destructor TRemoveWithSemanticIndex.Destroy;
+begin
+  fUnitsByName.Free;
+  fTypesByName.Free;
+  fRoutineSymbolsByName.Free;
+  fRoutinesByName.Free;
+  fPointerTargetsByName.Free;
+  fMembersByOwnerName.Free;
+  fIndexedPropertiesByOwnerName.Free;
+  fHelpersByTargetType.Free;
+  fDefaultPropertiesByOwner.Free;
+  fArrayElementsByName.Free;
+  fAncestorsByType.Free;
+  fAliasesByName.Free;
+  inherited;
+end;
+
+procedure TRemoveWithSemanticIndex.AddType(const aTypeInfo: TRemoveWithModelTypeInfo);
+var
+  lAncestors: TArray<string>;
+  lElementTypeName: string;
+  lRelatedTypeName: string;
+  lTypeInfo: TRemoveWithModelTypeInfo;
+begin
+  if aTypeInfo.fName = '' then
+    Exit;
+  fTypesByName.AddOrSetValue(Key(aTypeInfo.fName), aTypeInfo);
+
+  lRelatedTypeName := Trim(aTypeInfo.fRelatedTypeName);
+  if aTypeInfo.fKind = TRemoveWithModelTypeKind.rwmtAlias then
+  begin
+    fAliasesByName.AddOrSetValue(Key(aTypeInfo.fName), aTypeInfo);
+    if aTypeInfo.fIsPointerAlias and (lRelatedTypeName <> '') then
+      fPointerTargetsByName.AddOrSetValue(Key(aTypeInfo.fName), aTypeInfo);
+    lElementTypeName := ArrayElementTypeName(lRelatedTypeName);
+    if aTypeInfo.fIsArrayAlias and (lElementTypeName <> '') then
+    begin
+      lTypeInfo := aTypeInfo;
+      lTypeInfo.fRelatedTypeName := lElementTypeName;
+      fArrayElementsByName.AddOrSetValue(Key(aTypeInfo.fName), lTypeInfo);
+    end;
+  end else if aTypeInfo.fKind = TRemoveWithModelTypeKind.rwmtClass then
+  begin
+    lAncestors := aTypeInfo.fRelatedTypeNames;
+    if Length(lAncestors) = 0 then
+    begin
+      SetLength(lAncestors, 1);
+      lAncestors[0] := lRelatedTypeName;
+    end;
+    if (Length(lAncestors) > 0) and (lAncestors[0] <> '') then
+      fAncestorsByType.AddOrSetValue(Key(aTypeInfo.fName), lAncestors);
+  end else if (aTypeInfo.fKind = TRemoveWithModelTypeKind.rwmtHelper) and (lRelatedTypeName <> '') then
+    fHelpersByTargetType.AddOrSetValue(Key(lRelatedTypeName), aTypeInfo);
+end;
+
+procedure TRemoveWithSemanticIndex.AddMemberIndexes(const aMember: TRemoveWithModelMemberInfo);
+begin
+  AddMember(fMembersByOwnerName, OwnerNameKey(aMember.fOwnerType, aMember.fName), aMember);
+  if aMember.fIsDefault then
+    fDefaultPropertiesByOwner.AddOrSetValue(Key(aMember.fOwnerType), aMember);
+  if aMember.fIsIndexed then
+    fIndexedPropertiesByOwnerName.AddOrSetValue(OwnerNameKey(aMember.fOwnerType, aMember.fName), aMember);
+end;
+
+procedure TRemoveWithSemanticIndex.AddRoutine(const aRoutine: TRemoveWithModelRoutineInfo);
+begin
+  fRoutinesByName.AddOrSetValue(Key(aRoutine.fName), aRoutine);
+end;
+
+procedure TRemoveWithSemanticIndex.AddRoutineSymbol(const aSymbol: TRemoveWithModelRoutineSymbolInfo);
+begin
+  fRoutineSymbolsByName.AddOrSetValue(RoutineNameKey(aSymbol.fRoutineName, aSymbol.fName), aSymbol);
+end;
+
+function TRemoveWithSemanticIndex.TryFindUnit(const aName: string; out aUnitModel: TRemoveWithUnitModel): Boolean;
+begin
+  Result := fUnitsByName.TryGetValue(Key(aName), aUnitModel);
+end;
+
+function TRemoveWithSemanticIndex.TryFindType(const aName: string; out aTypeInfo: TRemoveWithModelTypeInfo): Boolean;
+begin
+  Result := fTypesByName.TryGetValue(Key(aName), aTypeInfo);
+end;
+
+function TRemoveWithSemanticIndex.TryFindMembers(const aOwnerType, aName: string;
+  out aMembers: TArray<TRemoveWithModelMemberInfo>): Boolean;
+begin
+  Result := fMembersByOwnerName.TryGetValue(OwnerNameKey(aOwnerType, aName), aMembers);
+end;
+
+function TRemoveWithSemanticIndex.TryFindRoutine(const aName: string; out aRoutine: TRemoveWithModelRoutineInfo): Boolean;
+begin
+  Result := fRoutinesByName.TryGetValue(Key(aName), aRoutine);
+end;
+
+function TRemoveWithSemanticIndex.TryFindRoutineSymbol(const aRoutineName, aName: string;
+  out aSymbol: TRemoveWithModelRoutineSymbolInfo): Boolean;
+begin
+  Result := fRoutineSymbolsByName.TryGetValue(RoutineNameKey(aRoutineName, aName), aSymbol);
+end;
+
+function TRemoveWithSemanticIndex.TryFindHelperForType(const aTargetType: string;
+  out aTypeInfo: TRemoveWithModelTypeInfo): Boolean;
+begin
+  Result := fHelpersByTargetType.TryGetValue(Key(aTargetType), aTypeInfo);
+end;
+
+function TRemoveWithSemanticIndex.TryResolveAlias(const aTypeName: string;
+  out aTypeInfo: TRemoveWithModelTypeInfo): Boolean;
+begin
+  Result := fAliasesByName.TryGetValue(Key(aTypeName), aTypeInfo);
+end;
+
+function TRemoveWithSemanticIndex.TryResolvePointerTarget(const aTypeName: string;
+  out aTypeInfo: TRemoveWithModelTypeInfo): Boolean;
+begin
+  Result := fPointerTargetsByName.TryGetValue(Key(aTypeName), aTypeInfo);
+end;
+
+function TRemoveWithSemanticIndex.TryResolveArrayElement(const aTypeName: string;
+  out aTypeInfo: TRemoveWithModelTypeInfo): Boolean;
+begin
+  Result := fArrayElementsByName.TryGetValue(Key(aTypeName), aTypeInfo);
+end;
+
+function TRemoveWithSemanticIndex.TryFindAncestors(const aTypeName: string; out aAncestors: TArray<string>): Boolean;
+begin
+  Result := fAncestorsByType.TryGetValue(Key(aTypeName), aAncestors);
+end;
+
+function TRemoveWithSemanticIndex.TryFindDefaultProperty(const aOwnerType: string;
+  out aMember: TRemoveWithModelMemberInfo): Boolean;
+begin
+  Result := fDefaultPropertiesByOwner.TryGetValue(Key(aOwnerType), aMember);
+end;
+
+function TRemoveWithSemanticIndex.TryFindIndexedProperty(const aOwnerType, aName: string;
+  out aMember: TRemoveWithModelMemberInfo): Boolean;
+begin
+  Result := fIndexedPropertiesByOwnerName.TryGetValue(OwnerNameKey(aOwnerType, aName), aMember);
+end;
+
 constructor TRemoveWithProjectModel.Create(const aProjectPath: string; const aContext: TProjectAnalysisContext);
 begin
   inherited Create;
@@ -877,6 +1298,7 @@ end;
 
 destructor TRemoveWithProjectModel.Destroy;
 begin
+  fSemanticIndex.Free;
   fIndexer.Free;
   inherited;
 end;
@@ -914,6 +1336,8 @@ begin
   finally
     lParsedPaths.Free;
   end;
+  FreeAndNil(fSemanticIndex);
+  fSemanticIndex := TRemoveWithSemanticIndex.Create(fUnitModels);
 end;
 
 function TRemoveWithProjectModel.ParsedUnitCount: Integer;

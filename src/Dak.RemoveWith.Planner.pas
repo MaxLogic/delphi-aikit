@@ -37,7 +37,8 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
-  Dak.RemoveWith.Source;
+  MaxLogic.StrUtils,
+  Dak.RemoveWith.Expressions, Dak.RemoveWith.Source;
 
 type
   TRemoveWithPlanOffsetRange = record
@@ -151,6 +152,55 @@ type
       out aError: string): Boolean; static;
   end;
 
+var
+  GPlannerRoutinesByFile: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+
+procedure BeginPlannerSymbolCache(const aInventory: TRemoveWithSymbolInventory);
+var
+  lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
+  lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  lList: TList<TRemoveWithSymbolInfo>;
+  lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  GPlannerRoutinesByFile.Free;
+  GPlannerRoutinesByFile := nil;
+  lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    for lSymbol in aInventory.fSymbols do
+    begin
+      if (lSymbol.fKind <> TRemoveWithSymbolKind.rwskRoutine) or (lSymbol.fFilePath = '') then
+        Continue;
+      if not lBuckets.TryGetValue(lSymbol.fFilePath, lList) then
+      begin
+        lList := TList<TRemoveWithSymbolInfo>.Create;
+        lBuckets.Add(lSymbol.fFilePath, lList);
+      end;
+      lList.Add(lSymbol);
+    end;
+
+    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    try
+      for lPair in lBuckets do
+        lIndex.Add(lPair.Key, lPair.Value.ToArray);
+      GPlannerRoutinesByFile := lIndex;
+      lIndex := nil;
+    finally
+      lIndex.Free;
+    end;
+  finally
+    for lPair in lBuckets do
+      lPair.Value.Free;
+    lBuckets.Free;
+  end;
+end;
+
+procedure EndPlannerSymbolCache;
+begin
+  GPlannerRoutinesByFile.Free;
+  GPlannerRoutinesByFile := nil;
+end;
+
 class function TRemoveWithPlanner.IsIdentifierChar(const aValue: Char): Boolean;
 begin
   Result := CharInSet(aValue, ['A'..'Z', 'a'..'z', '0'..'9', '_']);
@@ -224,16 +274,20 @@ class function TRemoveWithPlanner.FindRoutineForStatement(const aInventory: TRem
   const aStatement: TRemoveWithStatementInfo; out aRoutineName: string; out aRoutineLine: Integer): Boolean;
 var
   lBestLine: Integer;
+  lRoutines: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   Result := False;
   aRoutineName := '';
   aRoutineLine := 0;
   lBestLine := 0;
-  for lSymbol in aInventory.fSymbols do
+  if GPlannerRoutinesByFile = nil then
+    BeginPlannerSymbolCache(aInventory);
+  if not GPlannerRoutinesByFile.TryGetValue(aStatement.fFilePath, lRoutines) then
+    Exit(False);
+  for lSymbol in lRoutines do
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskRoutine) and SameText(lSymbol.fFilePath, aStatement.fFilePath) and
-      (lSymbol.fLine <= aStatement.fLine) and (lSymbol.fLine > lBestLine) then
+    if (lSymbol.fLine <= aStatement.fLine) and (lSymbol.fLine > lBestLine) then
     begin
       lBestLine := lSymbol.fLine;
       aRoutineName := lSymbol.fName;
@@ -1009,41 +1063,50 @@ begin
   Result := False;
   lCurrentPath := '';
   lSource := Default(TRemoveWithSourceBuffer);
+  BeginPlannerSymbolCache(aInventory);
+  BeginRemoveWithSelectorTypeCache(aInventory);
+  BeginRemoveWithTempPolicyCache(aInventory);
   try
-    for lStatement in aScanResult.fWithStatements do
-    begin
-      if HasPlannedAncestorWith(aScanResult, aPlanResult, lStatement) then
-        Continue;
-      if HasAncestorWith(aScanResult, lStatement) then
+    try
+      for lStatement in aScanResult.fWithStatements do
       begin
-        SkipStatement(aPlanResult, lStatement, 'ancestor-with-not-planned', '');
-        Continue;
+        if HasPlannedAncestorWith(aScanResult, aPlanResult, lStatement) then
+          Continue;
+        if HasAncestorWith(aScanResult, lStatement) then
+        begin
+          SkipStatement(aPlanResult, lStatement, 'ancestor-with-not-planned', '');
+          Continue;
+        end;
+        if lStatement.fHasScopedDeclarationInBody then
+        begin
+          SkipStatement(aPlanResult, lStatement, 'scoped-declaration-in-with-body',
+            lStatement.fUnsupportedIdentifierRole);
+          Continue;
+        end;
+        if lStatement.fHasUnsupportedIdentifierRoleInBody then
+        begin
+          SkipStatement(aPlanResult, lStatement, 'unsupported-identifier-role', lStatement.fUnsupportedIdentifierRole);
+          Continue;
+        end;
+        if not SameText(lCurrentPath, lStatement.fFilePath) then
+        begin
+          if not LoadRemoveWithSource(lStatement.fFilePath, lSource, aError) then
+            Exit(False);
+          lCurrentPath := lStatement.fFilePath;
+        end;
+        PlanStatement(aInventory, aScanResult, aResolverResult, lStatement, lSource, lRoutineStates, aPlanResult);
       end;
-      if lStatement.fHasScopedDeclarationInBody then
-      begin
-        SkipStatement(aPlanResult, lStatement, 'scoped-declaration-in-with-body',
-          lStatement.fUnsupportedIdentifierRole);
-        Continue;
-      end;
-      if lStatement.fHasUnsupportedIdentifierRoleInBody then
-      begin
-        SkipStatement(aPlanResult, lStatement, 'unsupported-identifier-role', lStatement.fUnsupportedIdentifierRole);
-        Continue;
-      end;
-      if not SameText(lCurrentPath, lStatement.fFilePath) then
-      begin
-        if not LoadRemoveWithSource(lStatement.fFilePath, lSource, aError) then
-          Exit(False);
-        lCurrentPath := lStatement.fFilePath;
-      end;
-      PlanStatement(aInventory, aScanResult, aResolverResult, lStatement, lSource, lRoutineStates, aPlanResult);
+      if not AddRoutineDeclarationEdits(lRoutineStates, aPlanResult, aError) then
+        Exit(False);
+      Result := True;
+    except
+      on E: Exception do
+        aError := E.Message;
     end;
-    if not AddRoutineDeclarationEdits(lRoutineStates, aPlanResult, aError) then
-      Exit(False);
-    Result := True;
-  except
-    on E: Exception do
-      aError := E.Message;
+  finally
+    EndRemoveWithTempPolicyCache;
+    EndRemoveWithSelectorTypeCache;
+    EndPlannerSymbolCache;
   end;
 end;
 

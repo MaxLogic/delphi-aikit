@@ -3,7 +3,7 @@ unit UnitModelMain;
 interface
 
 uses
-  System.SysUtils;
+  System.Generics.Collections, System.SysUtils;
 
 type
   IUnitModelFace = interface
@@ -27,6 +27,14 @@ type
   end;
 
   PUnitModelRecord = ^TUnitModelRecord;
+
+  TUnitModelRecordPtr = ^TUnitModelRecord;
+
+  PUnitModelAmount = Integer;
+
+  TUnitModelRecordArray = TArray<TUnitModelRecord>;
+
+  TUnitModelMapAlias = TDictionary<string, Integer>;
 
   TUnitModelClass = class(TInterfacedObject, IUnitModelFace)
   private
@@ -84,9 +92,11 @@ var
   lClass: TUnitModelClass;
   lPtr: PUnitModelRecord;
   lRecord: TUnitModelRecord;
+  lRecords: TUnitModelRecordArray;
 begin
   var lInline: Integer := 1;
   lRecord := aParam;
+  lRecords := nil;
   lPtr := @lRecord;
   lClass := TUnitModelClass.Create;
   try

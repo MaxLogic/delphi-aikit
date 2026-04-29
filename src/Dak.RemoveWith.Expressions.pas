@@ -17,13 +17,17 @@ type
   end;
 
 function RemoveWithSelectorTypeStatusToText(const aStatus: TRemoveWithSelectorTypeStatus): string;
+procedure BeginRemoveWithSelectorTypeCache(const aInventory: TRemoveWithSymbolInventory);
+procedure EndRemoveWithSelectorTypeCache;
 function ResolveRemoveWithSelectorType(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
   aSelectorText: string; out aInfo: TRemoveWithSelectorTypeInfo): Boolean;
 
 implementation
 
 uses
-  System.Generics.Collections, System.StrUtils, System.SysUtils;
+  System.Generics.Collections, System.StrUtils, System.SysUtils,
+  MaxLogic.StrUtils,
+  Dak.RemoveWith.Model;
 
 type
   TSelectorSegment = record
@@ -66,6 +70,131 @@ type
     class function Resolve(const aInventory: TRemoveWithSymbolInventory; const aRoutineName, aSelectorText: string;
       out aInfo: TRemoveWithSelectorTypeInfo): Boolean; static;
   end;
+
+var
+  GExpressionCacheDepth: Integer;
+  GExpressionDefaultPropertyByOwner: TDictionary<string, TRemoveWithSymbolInfo>;
+  GExpressionSymbolNameIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+
+procedure EnsureExpressionSymbolNameIndex(const aInventory: TRemoveWithSymbolInventory);
+var
+  lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
+  lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  lList: TList<TRemoveWithSymbolInfo>;
+  lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  if GExpressionSymbolNameIndex <> nil then
+    Exit;
+
+  GExpressionDefaultPropertyByOwner := TDictionary<string, TRemoveWithSymbolInfo>.Create(
+    TFastCaseAwareComparer.OrdinalIgnoreCase);
+  lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    for lSymbol in aInventory.fSymbols do
+    begin
+      if lSymbol.fName = '' then
+        Continue;
+      if (lSymbol.fOwnerType <> '') and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
+        lSymbol.fIsDefault then
+        GExpressionDefaultPropertyByOwner.AddOrSetValue(lSymbol.fOwnerType, lSymbol);
+      if not lBuckets.TryGetValue(lSymbol.fName, lList) then
+      begin
+        lList := TList<TRemoveWithSymbolInfo>.Create;
+        lBuckets.Add(lSymbol.fName, lList);
+      end;
+      lList.Add(lSymbol);
+    end;
+
+    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    try
+      for lPair in lBuckets do
+        lIndex.Add(lPair.Key, lPair.Value.ToArray);
+      GExpressionSymbolNameIndex := lIndex;
+      lIndex := nil;
+    finally
+      lIndex.Free;
+    end;
+  finally
+    for lPair in lBuckets do
+      lPair.Value.Free;
+    lBuckets.Free;
+  end;
+end;
+
+procedure BeginRemoveWithSelectorTypeCache(const aInventory: TRemoveWithSymbolInventory);
+begin
+  if GExpressionCacheDepth = 0 then
+  begin
+    GExpressionDefaultPropertyByOwner.Free;
+    GExpressionDefaultPropertyByOwner := nil;
+    GExpressionSymbolNameIndex.Free;
+    GExpressionSymbolNameIndex := nil;
+    EnsureExpressionSymbolNameIndex(aInventory);
+  end;
+  Inc(GExpressionCacheDepth);
+end;
+
+procedure EndRemoveWithSelectorTypeCache;
+begin
+  if GExpressionCacheDepth <= 0 then
+    Exit;
+  Dec(GExpressionCacheDepth);
+  if GExpressionCacheDepth = 0 then
+  begin
+    GExpressionSymbolNameIndex.Free;
+    GExpressionSymbolNameIndex := nil;
+    GExpressionDefaultPropertyByOwner.Free;
+    GExpressionDefaultPropertyByOwner := nil;
+  end;
+end;
+
+function ModelMemberKindToSymbolKind(const aKind: TRemoveWithModelMemberKind): TRemoveWithSymbolKind;
+begin
+  case aKind of
+    TRemoveWithModelMemberKind.rwmmProperty:
+      Result := TRemoveWithSymbolKind.rwskProperty;
+    TRemoveWithModelMemberKind.rwmmMethod:
+      Result := TRemoveWithSymbolKind.rwskMethod;
+    TRemoveWithModelMemberKind.rwmmConstant:
+      Result := TRemoveWithSymbolKind.rwskConstant;
+    TRemoveWithModelMemberKind.rwmmClassVar:
+      Result := TRemoveWithSymbolKind.rwskClassVar;
+  else
+    Result := TRemoveWithSymbolKind.rwskField;
+  end;
+end;
+
+function ModelRoutineSymbolKindToSymbolKind(
+  const aKind: TRemoveWithModelRoutineSymbolKind): TRemoveWithSymbolKind;
+begin
+  case aKind of
+    TRemoveWithModelRoutineSymbolKind.rwmrsParameter:
+      Result := TRemoveWithSymbolKind.rwskParameter;
+  else
+    Result := TRemoveWithSymbolKind.rwskLocalVariable;
+  end;
+end;
+
+function SymbolFromModelMember(const aMember: TRemoveWithModelMemberInfo): TRemoveWithSymbolInfo;
+begin
+  Result := Default(TRemoveWithSymbolInfo);
+  Result.fName := aMember.fName;
+  Result.fTypeName := aMember.fTypeName;
+  Result.fOwnerType := aMember.fOwnerType;
+  Result.fIsDefault := aMember.fIsDefault;
+  Result.fKind := ModelMemberKindToSymbolKind(aMember.fKind);
+end;
+
+function SymbolFromModelRoutineSymbol(
+  const aSymbol: TRemoveWithModelRoutineSymbolInfo): TRemoveWithSymbolInfo;
+begin
+  Result := Default(TRemoveWithSymbolInfo);
+  Result.fName := aSymbol.fName;
+  Result.fTypeName := aSymbol.fTypeName;
+  Result.fRoutineName := aSymbol.fRoutineName;
+  Result.fKind := ModelRoutineSymbolKindToSymbolKind(aSymbol.fKind);
+end;
 
 function RemoveWithSelectorTypeStatusToText(const aStatus: TRemoveWithSelectorTypeStatus): string;
 begin
@@ -140,6 +269,8 @@ begin
     end;
   end;
 
+  if not StartsText('TArray<', lText) then
+    Exit;
   lStartPos := Pos('<', lText);
   lEndPos := LastDelimiter('>', lText);
   if (lStartPos > 0) and (lEndPos > lStartPos) then
@@ -149,7 +280,9 @@ end;
 class function TRemoveWithExpressionResolver.ArrayElementTypeName(const aInventory: TRemoveWithSymbolInventory;
   const aTypeName: string): string;
 var
+  lTypeInfo: TRemoveWithModelTypeInfo;
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lTypeName: string;
 begin
   Result := ElementTypeName(aTypeName);
@@ -157,27 +290,57 @@ begin
     Exit;
 
   lTypeName := DirectTypeName(aTypeName);
-  for lSymbol in aInventory.fSymbols do
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryResolveArrayElement(lTypeName,
+    lTypeInfo) then
+    Exit(lTypeInfo.fRelatedTypeName);
+
+  EnsureExpressionSymbolNameIndex(aInventory);
+  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName) then
-      Exit(ElementTypeName(lSymbol.fTypeName));
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(ElementTypeName(lSymbol.fTypeName));
+    end;
   end;
 end;
 
 class function TRemoveWithExpressionResolver.FindDirectMember(const aInventory: TRemoveWithSymbolInventory;
   const aOwnerType, aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
+  lMember: TRemoveWithModelMemberInfo;
+  lMembers: TArray<TRemoveWithModelMemberInfo>;
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
 begin
   aSymbol := Default(TRemoveWithSymbolInfo);
-  for lSymbol in aInventory.fSymbols do
+  EnsureExpressionSymbolNameIndex(aInventory);
+  if GExpressionSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
-    if SameText(lSymbol.fOwnerType, aOwnerType) and (lSymbol.fRoutineName = '') and SameText(lSymbol.fName, aName)
-      and (lSymbol.fKind in [TRemoveWithSymbolKind.rwskField, TRemoveWithSymbolKind.rwskProperty,
-        TRemoveWithSymbolKind.rwskMethod, TRemoveWithSymbolKind.rwskConstant, TRemoveWithSymbolKind.rwskClassVar]) then
+    for lSymbol in lSymbols do
     begin
-      aSymbol := lSymbol;
-      Exit(True);
+      if SameText(lSymbol.fOwnerType, aOwnerType) and (lSymbol.fRoutineName = '') and
+        (lSymbol.fKind in [TRemoveWithSymbolKind.rwskField, TRemoveWithSymbolKind.rwskProperty,
+        TRemoveWithSymbolKind.rwskMethod, TRemoveWithSymbolKind.rwskConstant, TRemoveWithSymbolKind.rwskClassVar]) then
+      begin
+        aSymbol := lSymbol;
+        Exit(True);
+      end;
+    end;
+  end;
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindMembers(aOwnerType, aName,
+    lMembers) then
+  begin
+    for lMember in lMembers do
+    begin
+      if ModelMemberKindToSymbolKind(lMember.fKind) in [TRemoveWithSymbolKind.rwskField,
+        TRemoveWithSymbolKind.rwskProperty, TRemoveWithSymbolKind.rwskMethod,
+        TRemoveWithSymbolKind.rwskConstant, TRemoveWithSymbolKind.rwskClassVar] then
+      begin
+        aSymbol := SymbolFromModelMember(lMember);
+        if aSymbol.fTypeName <> '' then
+          Exit(True);
+      end;
     end;
   end;
   Result := False;
@@ -186,19 +349,19 @@ end;
 class function TRemoveWithExpressionResolver.FindDefaultProperty(const aInventory: TRemoveWithSymbolInventory;
   const aOwnerType: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
-  lSymbol: TRemoveWithSymbolInfo;
+  lMember: TRemoveWithModelMemberInfo;
 begin
   aSymbol := Default(TRemoveWithSymbolInfo);
-  for lSymbol in aInventory.fSymbols do
+  EnsureExpressionSymbolNameIndex(aInventory);
+  Result := GExpressionDefaultPropertyByOwner.TryGetValue(aOwnerType, aSymbol);
+  if Result then
+    Exit;
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindDefaultProperty(aOwnerType,
+    lMember) then
   begin
-    if SameText(lSymbol.fOwnerType, aOwnerType) and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
-      lSymbol.fIsDefault then
-    begin
-      aSymbol := lSymbol;
-      Exit(True);
-    end;
+    aSymbol := SymbolFromModelMember(lMember);
+    Exit(True);
   end;
-  Result := False;
 end;
 
 class function TRemoveWithExpressionResolver.FindRoutineSymbol(const aInventory: TRemoveWithSymbolInventory;
@@ -209,20 +372,33 @@ const
     TRemoveWithSymbolKind.rwskUnitGlobal, TRemoveWithSymbolKind.rwskConstant);
 var
   lKind: TRemoveWithSymbolKind;
+  lModelSymbol: TRemoveWithModelRoutineSymbolInfo;
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
 begin
   aSymbol := Default(TRemoveWithSymbolInfo);
-  for lKind in cKinds do
+  EnsureExpressionSymbolNameIndex(aInventory);
+  if GExpressionSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
-    for lSymbol in aInventory.fSymbols do
+    for lKind in cKinds do
     begin
-      if SameText(lSymbol.fName, aName) and (lSymbol.fKind = lKind) and
-        ((lSymbol.fRoutineName = '') or SameText(lSymbol.fRoutineName, aRoutineName)) then
+      for lSymbol in lSymbols do
       begin
-        aSymbol := lSymbol;
-        Exit(True);
+        if (lSymbol.fKind = lKind) and ((lSymbol.fRoutineName = '') or SameText(lSymbol.fRoutineName,
+          aRoutineName)) then
+        begin
+          aSymbol := lSymbol;
+          Exit(True);
+        end;
       end;
     end;
+  end;
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindRoutineSymbol(aRoutineName,
+    aName, lModelSymbol) then
+  begin
+    aSymbol := SymbolFromModelRoutineSymbol(lModelSymbol);
+    if aSymbol.fTypeName <> '' then
+      Exit(True);
   end;
   Result := False;
 end;
@@ -231,16 +407,24 @@ class function TRemoveWithExpressionResolver.HasSourceType(const aInventory: TRe
   const aTypeName: string): Boolean;
 var
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   lTypeName := DirectTypeName(aTypeName);
   if (lTypeName = '') or BuiltInTypeName(lTypeName) then
     Exit(True);
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(lTypeName, lTypeInfo) then
+    Exit(True);
 
-  for lSymbol in aInventory.fSymbols do
+  EnsureExpressionSymbolNameIndex(aInventory);
+  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName) then
-      Exit(True);
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(True);
+    end;
   end;
   Result := False;
 end;
@@ -249,13 +433,19 @@ class function TRemoveWithExpressionResolver.IsExternalType(const aInventory: TR
   const aTypeName: string): Boolean;
 var
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   lTypeName := DirectTypeName(aTypeName);
-  for lSymbol in aInventory.fSymbols do
+  EnsureExpressionSymbolNameIndex(aInventory);
+  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal) and SameText(lSymbol.fName, lTypeName) then
-      Exit(True);
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal then
+        Exit(True);
+    end;
   end;
   Result := False;
 end;
@@ -264,6 +454,8 @@ class function TRemoveWithExpressionResolver.UnsupportedSourceTypeReason(
   const aInventory: TRemoveWithSymbolInventory; const aTypeName: string; out aReason: string): Boolean;
 var
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   aReason := '';
@@ -271,13 +463,16 @@ begin
   if lTypeName = '' then
     Exit(False);
 
-  for lSymbol in aInventory.fSymbols do
+  EnsureExpressionSymbolNameIndex(aInventory);
+  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName) and
-      (lSymbol.fUnsupportedReason <> '') then
+    for lSymbol in lSymbols do
     begin
-      aReason := lSymbol.fUnsupportedReason;
-      Exit(True);
+      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and (lSymbol.fUnsupportedReason <> '') then
+      begin
+        aReason := lSymbol.fUnsupportedReason;
+        Exit(True);
+      end;
     end;
   end;
   Result := False;
@@ -313,6 +508,8 @@ class function TRemoveWithExpressionResolver.PointerTargetType(const aInventory:
   const aTypeName: string): string;
 var
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   lTypeName := Trim(aTypeName);
@@ -320,11 +517,18 @@ begin
     Exit(Trim(Copy(lTypeName, 2, MaxInt)));
 
   lTypeName := DirectTypeName(lTypeName);
-  for lSymbol in aInventory.fSymbols do
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryResolvePointerTarget(lTypeName,
+    lTypeInfo) then
+    Exit(lTypeInfo.fRelatedTypeName);
+
+  EnsureExpressionSymbolNameIndex(aInventory);
+  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName) and
-      StartsText('^', Trim(lSymbol.fTypeName)) then
-      Exit(Trim(Copy(Trim(lSymbol.fTypeName), 2, MaxInt)));
+    for lSymbol in lSymbols do
+    begin
+      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and StartsText('^', Trim(lSymbol.fTypeName)) then
+        Exit(Trim(Copy(Trim(lSymbol.fTypeName), 2, MaxInt)));
+    end;
   end;
   Result := '';
 end;
@@ -559,7 +763,12 @@ end;
 function ResolveRemoveWithSelectorType(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
   aSelectorText: string; out aInfo: TRemoveWithSelectorTypeInfo): Boolean;
 begin
-  Result := TRemoveWithExpressionResolver.Resolve(aInventory, aRoutineName, aSelectorText, aInfo);
+  BeginRemoveWithSelectorTypeCache(aInventory);
+  try
+    Result := TRemoveWithExpressionResolver.Resolve(aInventory, aRoutineName, aSelectorText, aInfo);
+  finally
+    EndRemoveWithSelectorTypeCache;
+  end;
 end;
 
 end.

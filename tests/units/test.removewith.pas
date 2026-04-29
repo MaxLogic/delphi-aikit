@@ -113,6 +113,15 @@ type
   end;
 
   [TestFixture]
+  TRemoveWithSemanticIndexTests = class(TRemoveWithTestBase)
+  private
+    function BuildUnitModelFixture: TRemoveWithProjectModel;
+  public
+    [Test]
+    procedure SemanticIndexResolvesUnitsTypesMembersAndScopeSymbols;
+  end;
+
+  [TestFixture]
   TRemoveWithPrecedenceTests = class(TRemoveWithTestBase)
   private
     procedure CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
@@ -1543,6 +1552,88 @@ begin
   end;
 end;
 
+function TRemoveWithSemanticIndexTests.BuildUnitModelFixture: TRemoveWithProjectModel;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithUnitModelFixture\RemoveWithUnitModelFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Result := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lOptions.fDprojPath, Result, lError), lError);
+end;
+
+procedure TRemoveWithSemanticIndexTests.SemanticIndexResolvesUnitsTypesMembersAndScopeSymbols;
+var
+  lAncestors: TArray<string>;
+  lIndex: TRemoveWithSemanticIndex;
+  lMember: TRemoveWithModelMemberInfo;
+  lMembers: TArray<TRemoveWithModelMemberInfo>;
+  lModel: TRemoveWithProjectModel;
+  lRoutine: TRemoveWithModelRoutineInfo;
+  lSymbol: TRemoveWithModelRoutineSymbolInfo;
+  lTypeInfo: TRemoveWithModelTypeInfo;
+  lUnitModel: TRemoveWithUnitModel;
+begin
+  lModel := BuildUnitModelFixture;
+  try
+    lIndex := lModel.SemanticIndex;
+
+    Assert.IsTrue(lIndex.TryFindUnit('UnitModelMain', lUnitModel), 'Expected unit lookup.');
+    Assert.IsTrue(lIndex.TryFindType('TUnitModelRecord', lTypeInfo), 'Expected record type lookup.');
+    Assert.AreEqual(Ord(TRemoveWithModelTypeKind.rwmtRecord), Ord(lTypeInfo.fKind), 'Expected record kind.');
+    Assert.IsTrue(lIndex.TryFindMembers('TUnitModelClass', 'RecordValue', lMembers),
+      'Expected member lookup.');
+    Assert.AreEqual(1, Length(lMembers), 'Expected one RecordValue member.');
+    Assert.IsTrue(lIndex.TryFindRoutineSymbol('TUnitModelScope.Run', 'lRecord', lSymbol),
+      'Expected local lookup.');
+    Assert.AreEqual(Ord(TRemoveWithModelRoutineSymbolKind.rwmrsLocal), Ord(lSymbol.fKind),
+      'Expected local symbol kind.');
+    Assert.IsTrue(lIndex.TryFindRoutine('TUnitModelScope.Run', lRoutine), 'Expected routine lookup.');
+    Assert.IsTrue(lRoutine.fHasBody, 'Expected routine body flag.');
+    Assert.IsTrue(lIndex.TryFindRoutineSymbol('TUnitModelScope.Run', 'aParam', lSymbol),
+      'Expected parameter lookup.');
+    Assert.AreEqual(Ord(TRemoveWithModelRoutineSymbolKind.rwmrsParameter), Ord(lSymbol.fKind),
+      'Expected parameter symbol kind.');
+    Assert.IsTrue(lIndex.TryFindRoutineSymbol('TUnitModelScope.Run', 'lInline', lSymbol),
+      'Expected inline local lookup.');
+    Assert.AreEqual(Ord(TRemoveWithModelRoutineSymbolKind.rwmrsInlineLocal), Ord(lSymbol.fKind),
+      'Expected inline local symbol kind.');
+
+    Assert.IsTrue(lIndex.TryFindHelperForType('TUnitModelRecord', lTypeInfo), 'Expected helper lookup.');
+    Assert.AreEqual('TUnitModelRecordHelper', lTypeInfo.fName, 'Expected helper type.');
+    Assert.IsTrue(lIndex.TryResolveAlias('TUnitModelAlias', lTypeInfo), 'Expected alias lookup.');
+    Assert.AreEqual('string', lTypeInfo.fRelatedTypeName, 'Expected alias target.');
+    Assert.IsTrue(lIndex.TryResolvePointerTarget('PUnitModelRecord', lTypeInfo), 'Expected pointer target.');
+    Assert.AreEqual('TUnitModelRecord', lTypeInfo.fRelatedTypeName, 'Expected pointer target type.');
+    Assert.IsTrue(lIndex.TryResolvePointerTarget('TUnitModelRecordPtr', lTypeInfo),
+      'Expected non-P pointer alias target.');
+    Assert.AreEqual('TUnitModelRecord', lTypeInfo.fRelatedTypeName, 'Expected non-P pointer target type.');
+    Assert.IsFalse(lIndex.TryResolvePointerTarget('PUnitModelAmount', lTypeInfo),
+      'P-prefixed non-pointer alias must not be treated as a pointer.');
+    Assert.IsTrue(lIndex.TryResolveArrayElement('TUnitModelRecordArray', lTypeInfo), 'Expected array element.');
+    Assert.AreEqual('TUnitModelRecord', lTypeInfo.fRelatedTypeName, 'Expected array element type.');
+    Assert.IsFalse(lIndex.TryResolveArrayElement('TUnitModelMapAlias', lTypeInfo),
+      'Non-array generic aliases must not be treated as array aliases.');
+    Assert.IsTrue(lIndex.TryFindAncestors('TUnitModelClass', lAncestors), 'Expected ancestor lookup.');
+    Assert.AreEqual(2, Length(lAncestors), 'Expected class ancestor and interface.');
+    Assert.AreEqual('TInterfacedObject', lAncestors[0], 'Expected class ancestor.');
+    Assert.AreEqual('IUnitModelFace', lAncestors[1], 'Expected implemented interface.');
+    Assert.IsTrue(lIndex.TryFindDefaultProperty('TUnitModelClass', lMember), 'Expected default property.');
+    Assert.AreEqual('Items', lMember.fName, 'Expected Items default property.');
+    Assert.IsTrue(lIndex.TryFindIndexedProperty('TUnitModelClass', 'Items', lMember),
+      'Expected indexed property.');
+    Assert.AreEqual(1, lMember.fIndexParameterCount, 'Expected indexed property parameter count.');
+  finally
+    lModel.Free;
+  end;
+end;
+
 procedure TRemoveWithPrecedenceTests.CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
 var
   lPath: string;
@@ -2357,6 +2448,12 @@ begin
     'Expected MakeCustomer selector to be inspected.');
   Assert.AreEqual(RemoveWithSelectorTypeStatusToText(TRemoveWithSelectorTypeStatus.rwstsUnsupported),
     RemoveWithSelectorTypeStatusToText(lInfo.fStatus), 'Expected MakeCustomer selector to be unsupported.');
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'TResolverScope.Run', 'lMap[1]', lInfo),
+    'Expected generic map alias selector to be inspected.');
+  Assert.AreEqual(RemoveWithSelectorTypeStatusToText(TRemoveWithSelectorTypeStatus.rwstsUnresolved),
+    RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
+    'Expected non-array generic aliases not to resolve as array elements.');
+  Assert.AreNotEqual('string, Integer', lInfo.fTypeName, 'Generic map arguments must not be treated as an element.');
 
   Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResult, lError),
     'Expected resolver to succeed: ' + lError);

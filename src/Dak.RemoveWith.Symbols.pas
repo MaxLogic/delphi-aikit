@@ -33,6 +33,7 @@ type
 
   TRemoveWithSymbolInventory = record
     fSymbols: TArray<TRemoveWithSymbolInfo>;
+    fSemanticIndex: TRemoveWithSemanticIndex;
   end;
 
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
@@ -1637,6 +1638,7 @@ begin
     Exit(False);
   try
     Result := BuildRemoveWithSymbolInventory(aOptions, lModel, aInventory, aError);
+    aInventory.fSemanticIndex := nil;
   finally
     lModel.Free;
   end;
@@ -1662,6 +1664,7 @@ begin
     aError := 'Remove-with project model is not assigned.';
     Exit(False);
   end;
+  aInventory.fSemanticIndex := aProjectModel.SemanticIndex;
 
   lSymbolKeys := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
