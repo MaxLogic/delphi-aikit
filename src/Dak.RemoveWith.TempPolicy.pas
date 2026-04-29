@@ -85,6 +85,13 @@ begin
   Result := Trim(aTypeName);
   if StartsText('^', Result) then
     Delete(Result, 1, 1);
+  lDelimiterPos := Pos('<', Result);
+  if lDelimiterPos = 0 then
+    lDelimiterPos := Pos('[', Result);
+  if lDelimiterPos = 0 then
+    lDelimiterPos := Pos(' ', Result);
+  if lDelimiterPos > 0 then
+    Result := Trim(Copy(Result, 1, lDelimiterPos - 1));
   lDelimiterPos := LastDelimiter('.', Result);
   if lDelimiterPos > 0 then
     Result := Copy(Result, lDelimiterPos + 1, MaxInt);

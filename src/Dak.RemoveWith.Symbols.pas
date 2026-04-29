@@ -23,6 +23,7 @@ type
     fFilePath: string;
     fLine: Integer;
     fColumn: Integer;
+    fUnsupportedReason: string;
     fIsHelper: Boolean;
     fIsOverride: Boolean;
     fIsDefault: Boolean;
@@ -54,6 +55,11 @@ type
     class function IsTopLevelLine(const aLine: string): Boolean; static;
     class function IsVisibilityLine(const aLine: string): Boolean; static;
     class function IsRoutineStart(const aLine: string): Boolean; static;
+    class function IsAttributeLine(const aLine: string): Boolean; static;
+    class function IsConditionalDirectiveLine(const aLine: string): Boolean; static;
+    class function IsConditionalStartDirective(const aLine: string): Boolean; static;
+    class function IsConditionalEndDirective(const aLine: string): Boolean; static;
+    class function IsMultilineDeclarationStart(const aLine: string): Boolean; static;
     class function TryDeclaration(const aLine: string; out aNames: TArray<string>; out aTypeName: string): Boolean;
       static;
     class function TryConstDeclaration(const aLine: string; out aName: string; out aTypeName: string): Boolean; static;
@@ -74,10 +80,14 @@ type
     class function OwnerHasOwnMember(const aInventory: TRemoveWithSymbolInventory; const aOwnerType,
       aName: string): Boolean; static;
     class function SimpleTypeName(const aTypeName: string): string; static;
+    class function UnsupportedReasonForTypeStart(const aTypeName, aPendingReason: string;
+      const aConditionalDepth: Integer): string; static;
     class function FindNameSource(const aLines: TArray<string>; const aStartIndex, aEndIndex: Integer;
       const aName: string; out aLineNumber: Integer; out aLineText: string): Boolean; static;
     class procedure AddSymbol(var aInventory: TRemoveWithSymbolInventory; const aSymbol: TRemoveWithSymbolInfo);
       static;
+    class procedure MarkTypeUnsupported(var aInventory: TRemoveWithSymbolInventory; const aTypeName,
+      aReason: string); static;
     class procedure AddNamedSymbols(var aInventory: TRemoveWithSymbolInventory; const aNames: TArray<string>;
       const aTypeName, aOwnerType, aRoutineName, aUnitName, aFilePath: string; const aLineNumber: Integer;
       const aLineText: string; const aKind: TRemoveWithSymbolKind); static;
@@ -183,6 +193,45 @@ begin
   Result := StartsText('procedure ', lText) or StartsText('function ', lText) or
     StartsText('class procedure ', lText) or StartsText('class function ', lText) or
     StartsText('constructor ', lText) or StartsText('destructor ', lText);
+end;
+
+class function TRemoveWithSymbolBuilder.IsAttributeLine(const aLine: string): Boolean;
+begin
+  Result := StartsText('[', Trim(aLine));
+end;
+
+class function TRemoveWithSymbolBuilder.IsConditionalDirectiveLine(const aLine: string): Boolean;
+var
+  lText: string;
+begin
+  lText := UpperCase(Trim(aLine));
+  Result := StartsText('{$IF', lText) or StartsText('{$ELSE', lText) or StartsText('{$ELSEIF', lText) or
+    StartsText('{$ENDIF', lText) or StartsText('{$IFEND', lText);
+end;
+
+class function TRemoveWithSymbolBuilder.IsConditionalStartDirective(const aLine: string): Boolean;
+var
+  lText: string;
+begin
+  lText := UpperCase(Trim(aLine));
+  Result := StartsText('{$IF', lText) and (not StartsText('{$IFEND', lText));
+end;
+
+class function TRemoveWithSymbolBuilder.IsConditionalEndDirective(const aLine: string): Boolean;
+var
+  lText: string;
+begin
+  lText := UpperCase(Trim(aLine));
+  Result := StartsText('{$ENDIF', lText) or StartsText('{$IFEND', lText);
+end;
+
+class function TRemoveWithSymbolBuilder.IsMultilineDeclarationStart(const aLine: string): Boolean;
+var
+  lText: string;
+begin
+  lText := Trim(aLine);
+  Result := (Pos(',', lText) > 0) and (Pos(':', lText) = 0) and (Pos(';', lText) = 0) and
+    (not IsRoutineStart(lText));
 end;
 
 class function TRemoveWithSymbolBuilder.TryDeclaration(const aLine: string; out aNames: TArray<string>;
@@ -588,6 +637,18 @@ begin
   Result := lTypeName;
 end;
 
+class function TRemoveWithSymbolBuilder.UnsupportedReasonForTypeStart(const aTypeName, aPendingReason: string;
+  const aConditionalDepth: Integer): string;
+begin
+  if aPendingReason <> '' then
+    Exit(aPendingReason);
+  if aConditionalDepth > 0 then
+    Exit('unsupported-source-model-conditional-region');
+  if Pos('<', aTypeName) > 0 then
+    Exit('unsupported-source-model-generic-declaration');
+  Result := '';
+end;
+
 class function TRemoveWithSymbolBuilder.FindNameSource(const aLines: TArray<string>; const aStartIndex,
   aEndIndex: Integer; const aName: string; out aLineNumber: Integer; out aLineText: string): Boolean;
 var
@@ -627,13 +688,35 @@ begin
       SameText(lSymbol.fFilePath, aSymbol.fFilePath) and (lSymbol.fLine = aSymbol.fLine) and
       (lSymbol.fColumn = aSymbol.fColumn) and (lSymbol.fIsHelper = aSymbol.fIsHelper) and
       (lSymbol.fIsOverride = aSymbol.fIsOverride) and (lSymbol.fIsDefault = aSymbol.fIsDefault) and
-      (lSymbol.fTypeCategory = aSymbol.fTypeCategory) then
+      (lSymbol.fTypeCategory = aSymbol.fTypeCategory) and
+      SameText(lSymbol.fUnsupportedReason, aSymbol.fUnsupportedReason) then
       Exit;
   end;
 
   lIndex := Length(aInventory.fSymbols);
   SetLength(aInventory.fSymbols, lIndex + 1);
   aInventory.fSymbols[lIndex] := aSymbol;
+end;
+
+class procedure TRemoveWithSymbolBuilder.MarkTypeUnsupported(var aInventory: TRemoveWithSymbolInventory;
+  const aTypeName, aReason: string);
+var
+  i: Integer;
+  lTypeName: string;
+begin
+  if aReason = '' then
+    Exit;
+  lTypeName := SimpleTypeName(aTypeName);
+  for i := 0 to High(aInventory.fSymbols) do
+  begin
+    if (aInventory.fSymbols[i].fKind = TRemoveWithSymbolKind.rwskTypeMember) and
+      SameText(aInventory.fSymbols[i].fName, lTypeName) then
+    begin
+      if aInventory.fSymbols[i].fUnsupportedReason = '' then
+        aInventory.fSymbols[i].fUnsupportedReason := aReason;
+      Exit;
+    end;
+  end;
 end;
 
 class procedure TRemoveWithSymbolBuilder.AddNamedSymbols(var aInventory: TRemoveWithSymbolInventory;
@@ -768,8 +851,10 @@ end;
 class procedure TRemoveWithSymbolBuilder.ParseTypeMembers(var aInventory: TRemoveWithSymbolInventory;
   const aLines: TArray<string>; const aUnitName, aFilePath: string);
 var
+  lConditionalDepth: Integer;
   lConstName: string;
   lCurrentType: string;
+  lCurrentTypeUnsupportedReason: string;
   lInClassVar: Boolean;
   lInConst: Boolean;
   lInTypeSection: Boolean;
@@ -777,9 +862,11 @@ var
   lLower: string;
   lMemberName: string;
   lNames: TArray<string>;
+  lPendingUnsupportedReason: string;
   lPropertyType: string;
   lRawLine: string;
   lRelatedTypeName: string;
+  lRawTypeName: string;
   lTypeText: string;
   lTypeSymbol: TRemoveWithSymbolInfo;
   lTypeCategory: TRemoveWithTypeCategory;
@@ -789,10 +876,13 @@ var
   lTypeName: string;
   i: Integer;
 begin
+  lConditionalDepth := 0;
   lCurrentType := '';
+  lCurrentTypeUnsupportedReason := '';
   lInClassVar := False;
   lInConst := False;
   lInTypeSection := False;
+  lPendingUnsupportedReason := '';
   for i := 0 to High(aLines) do
   begin
     lRawLine := aLines[i];
@@ -801,6 +891,33 @@ begin
     if lLine = '' then
       Continue;
     lTopLevelLine := IsTopLevelLine(lRawLine);
+
+    if IsConditionalDirectiveLine(lLine) then
+    begin
+      if lCurrentType <> '' then
+      begin
+        lCurrentTypeUnsupportedReason := 'unsupported-source-model-conditional-region';
+        MarkTypeUnsupported(aInventory, lCurrentType, lCurrentTypeUnsupportedReason);
+      end else if lInTypeSection and (not IsConditionalEndDirective(lLine)) then
+        lPendingUnsupportedReason := 'unsupported-source-model-conditional-region';
+
+      if IsConditionalStartDirective(lLine) then
+        Inc(lConditionalDepth)
+      else if IsConditionalEndDirective(lLine) and (lConditionalDepth > 0) then
+        Dec(lConditionalDepth);
+      Continue;
+    end;
+
+    if IsAttributeLine(lLine) then
+    begin
+      if lCurrentType <> '' then
+      begin
+        lCurrentTypeUnsupportedReason := 'unsupported-source-model-attribute';
+        MarkTypeUnsupported(aInventory, lCurrentType, lCurrentTypeUnsupportedReason);
+      end else if lInTypeSection then
+        lPendingUnsupportedReason := 'unsupported-source-model-attribute';
+      Continue;
+    end;
 
     if lTopLevelLine and SameText(lLine, 'type') then
     begin
@@ -811,9 +928,11 @@ begin
       SameText(lLine, 'var') or SameText(lLine, 'threadvar') or IsRoutineStart(lLine)) then
     begin
       lCurrentType := '';
+      lCurrentTypeUnsupportedReason := '';
       lInTypeSection := False;
       lInClassVar := False;
       lInConst := False;
+      lPendingUnsupportedReason := '';
       Continue;
     end;
 
@@ -822,8 +941,11 @@ begin
       if not lInTypeSection then
         Continue;
       lTypeText := CollectTypeStartText(aLines, i);
-      if TryTypeStart(lTypeText, lCurrentType, lTypeCategory) then
+      if TryTypeStart(lTypeText, lRawTypeName, lTypeCategory) then
       begin
+        lCurrentType := SimpleTypeName(lRawTypeName);
+        lCurrentTypeUnsupportedReason := UnsupportedReasonForTypeStart(lRawTypeName, lPendingUnsupportedReason,
+          lConditionalDepth);
         lInClassVar := False;
         lInConst := False;
         TryTypeRelation(lTypeText, lRelatedTypeName, lTypeIsHelper);
@@ -836,12 +958,15 @@ begin
         lTypeSymbol.fFilePath := aFilePath;
         lTypeSymbol.fLine := i + 1;
         lTypeSymbol.fColumn := FindColumn(aLines[i], lCurrentType);
+        lTypeSymbol.fUnsupportedReason := lCurrentTypeUnsupportedReason;
         lTypeSymbol.fKind := TRemoveWithSymbolKind.rwskTypeMember;
         AddSymbol(aInventory, lTypeSymbol);
+        lPendingUnsupportedReason := '';
       end else if TryTypeAlias(lLine, lMemberName, lTypeName) then
       begin
         AddNamedSymbols(aInventory, [lMemberName], lTypeName, '', '', aUnitName, aFilePath, i + 1, aLines[i],
           TRemoveWithSymbolKind.rwskTypeMember);
+        lPendingUnsupportedReason := '';
       end;
       Continue;
     end;
@@ -849,9 +974,24 @@ begin
     if SameText(lLine, 'end;') or SameText(lLine, 'end') then
     begin
       lCurrentType := '';
+      lCurrentTypeUnsupportedReason := '';
       Continue;
     end;
     if IsVisibilityLine(lLine) then
+      Continue;
+    if SameText(lLine, 'type') then
+    begin
+      lCurrentTypeUnsupportedReason := 'unsupported-source-model-nested-type';
+      MarkTypeUnsupported(aInventory, lCurrentType, lCurrentTypeUnsupportedReason);
+      Continue;
+    end;
+    if IsMultilineDeclarationStart(lLine) then
+    begin
+      lCurrentTypeUnsupportedReason := 'unsupported-source-model-multiline-declaration';
+      MarkTypeUnsupported(aInventory, lCurrentType, lCurrentTypeUnsupportedReason);
+      Continue;
+    end;
+    if lCurrentTypeUnsupportedReason <> '' then
       Continue;
     if StartsText('class var', lLower) then
     begin
@@ -1088,7 +1228,7 @@ begin
     begin
       lTypeSymbol := aInventory.fSymbols[i];
       if (lTypeSymbol.fKind <> TRemoveWithSymbolKind.rwskTypeMember) or
-        (lTypeSymbol.fRelatedTypeName = '') then
+        (lTypeSymbol.fRelatedTypeName = '') or (lTypeSymbol.fUnsupportedReason <> '') then
         Continue;
 
       for j := 0 to lBeforeCount - 1 do
