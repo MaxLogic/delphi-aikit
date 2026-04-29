@@ -326,6 +326,21 @@ type
   end;
 
   [TestFixture]
+  TRemoveWithTempAggregationTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string; out aDprojPath,
+      aUnitPath: string);
+    function CountDeclareTempEdits(const aPlans: TJSONArray): Integer;
+    function CountOccurrences(const aText, aNeedle: string): Integer;
+    function RunApplyFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+    function RunBuildFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
+  public
+    [Test]
+    procedure ApplyAggregatesRoutineTempsAndBuilds;
+  end;
+
+  [TestFixture]
   TRemoveWithTransactionTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -3136,6 +3151,213 @@ begin
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-temp-rewrite-build.log', lBuildExitCode);
   Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited temp-policy fixture to build. Output: ' +
+    lBuildOutput);
+end;
+
+function TRemoveWithTempAggregationTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithTempAggregationTests.CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string;
+  out aDprojPath, aUnitPath: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aUnitPath := TPath.Combine(lDestinationDir, aUnitName);
+end;
+
+function TRemoveWithTempAggregationTests.CountDeclareTempEdits(const aPlans: TJSONArray): Integer;
+var
+  i: Integer;
+  j: Integer;
+  lEdit: TJSONObject;
+  lEdits: TJSONArray;
+  lPlan: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aPlans.Count - 1 do
+  begin
+    lPlan := aPlans.Items[i] as TJSONObject;
+    lEdits := lPlan.Values['edits'] as TJSONArray;
+    for j := 0 to lEdits.Count - 1 do
+    begin
+      lEdit := lEdits.Items[j] as TJSONObject;
+      if lEdit.Values['kind'].Value = 'declare-temp' then
+        Inc(Result);
+    end;
+  end;
+end;
+
+function TRemoveWithTempAggregationTests.CountOccurrences(const aText, aNeedle: string): Integer;
+var
+  lOffset: Integer;
+begin
+  Result := 0;
+  if aNeedle = '' then
+    Exit;
+
+  lOffset := Pos(aNeedle, aText);
+  while lOffset > 0 do
+  begin
+    Inc(Result);
+    lOffset := Pos(aNeedle, aText, lOffset + Length(aNeedle));
+  end;
+end;
+
+function TRemoveWithTempAggregationTests.RunApplyFixture(const aDprojPath, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with apply process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+function TRemoveWithTempAggregationTests.RunBuildFixture(const aDprojPath, aLogName: string;
+  out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lCmdArgs: string;
+  lCmdExe: string;
+  lLogPath: string;
+  lRsVarsPath: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lRsVarsPath := 'C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat';
+  if not TFile.Exists(lRsVarsPath) then
+    lRsVarsPath := TPath.Combine(GetEnvironmentVariable('ProgramFiles(x86)'),
+      'Embarcadero\Studio\23.0\bin\rsvars.bat');
+  lArgs := 'build --project ' + QuoteArg(aDprojPath) +
+    ' --delphi 23.0 --platform Win32 --config Debug --builder delphi --rsvars ' + QuoteArg(lRsVarsPath);
+  lCmdExe := GetEnvironmentVariable('ComSpec');
+  if lCmdExe = '' then
+    lCmdExe := 'C:\Windows\System32\cmd.exe';
+  lCmdArgs := '/C set "BDS=" & set "BDSLIB=" & set "DCC_Namespace=" & set "DCC_UnitSearchPath=" & ' +
+    'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
+  Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
+    'Failed to start build process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithTempAggregationTests.ApplyAggregatesRoutineTempsAndBuilds;
+var
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lPlans: TJSONArray;
+  lRoot: TJSONObject;
+  lTemps: TJSONArray;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CopyFixtureToTemp('RemoveWithTempAggregationFixture', 'remove-with-temp-aggregation',
+    'TempAggregationUnit.pas', lDprojPath, lUnitPath);
+
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-temp-aggregation.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected temp aggregation apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied temp aggregation status.');
+    lPlans := lRoot.Values['plannedEdits'] as TJSONArray;
+    Assert.AreEqual(8, lPlans.Count, 'Expected all same-routine with statements to be planned.');
+    Assert.AreEqual(3, CountDeclareTempEdits(lPlans), 'Expected one declaration edit per routine.');
+
+    lTemps := (lPlans.Items[4] as TJSONObject).Values['temps'] as TJSONArray;
+    Assert.AreEqual('lWithTempAggregationRecordPtr', (lTemps.Items[0] as TJSONObject).Values['tempName'].Value,
+      'Expected first record temp name.');
+    Assert.AreEqual('lWithTempAggregationRecordPtr := @aFirstRecord;',
+      (lTemps.Items[0] as TJSONObject).Values['initialization'].Value,
+      'Expected first record temp initialization.');
+
+    lTemps := (lPlans.Items[5] as TJSONObject).Values['temps'] as TJSONArray;
+    Assert.AreEqual('lWithTempAggregationRecordPtr1', (lTemps.Items[0] as TJSONObject).Values['tempName'].Value,
+      'Expected second record temp name to reserve across the routine.');
+    Assert.AreEqual('lWithTempAggregationRecordPtr1 := @aSecondRecord;',
+      (lTemps.Items[0] as TJSONObject).Values['initialization'].Value,
+      'Expected second record temp initialization.');
+
+    lTemps := (lPlans.Items[6] as TJSONObject).Values['temps'] as TJSONArray;
+    Assert.AreEqual('lWithTempAggregationObject', (lTemps.Items[0] as TJSONObject).Values['tempName'].Value,
+      'Expected first object temp name.');
+
+    lTemps := (lPlans.Items[7] as TJSONObject).Values['temps'] as TJSONArray;
+    Assert.AreEqual('lWithTempAggregationObject1', (lTemps.Items[0] as TJSONObject).Values['tempName'].Value,
+      'Expected second object temp name to reserve across the routine.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.AreEqual(0, CountOccurrences(lUnitText, 'with aFirstRecord do'),
+    'Expected first record with statement to be removed.');
+  Assert.AreEqual(0, CountOccurrences(lUnitText, 'with aSecondRecord do'),
+    'Expected second record with statement to be removed.');
+  Assert.AreEqual(0, CountOccurrences(lUnitText, 'with aFirstObject do'),
+    'Expected first object with statement to be removed.');
+  Assert.AreEqual(0, CountOccurrences(lUnitText, 'with aSecondObject do'),
+    'Expected second object with statement to be removed.');
+  Assert.AreEqual(3, CountOccurrences(lUnitText, sLineBreak + 'var' + sLineBreak),
+    'Expected one var section per fixture routine.');
+  Assert.AreEqual(3, CountOccurrences(lUnitText, 'lWithTempAggregationRecordPtr: ^TTempAggregationRecord;'),
+    'Expected first record declaration once per routine.');
+  Assert.AreEqual(3, CountOccurrences(lUnitText, 'lWithTempAggregationRecordPtr1: ^TTempAggregationRecord;'),
+    'Expected second record declaration once per routine.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, 'lWithTempAggregationObject: TTempAggregationObject;'),
+    'Expected first object declaration once.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, 'lWithTempAggregationObject1: TTempAggregationObject;'),
+    'Expected second object declaration once.');
+  Assert.IsTrue(Pos('lWithTempAggregationRecordPtr^.Count := lWithTempAggregationRecordPtr^.Count + 1;',
+    lUnitText) > 0, 'Expected first record body to use the pointer temp.');
+  Assert.IsTrue(Pos('lWithTempAggregationRecordPtr1^.Count := lWithTempAggregationRecordPtr1^.Count + 1;',
+    lUnitText) > 0, 'Expected second record body to use the pointer temp.');
+  Assert.IsTrue(Pos('lWithTempAggregationObject.Count := lWithTempAggregationObject.Count + 1;',
+    lUnitText) > 0, 'Expected first object body to use the reference temp.');
+  Assert.IsTrue(Pos('lWithTempAggregationObject1.Count := lWithTempAggregationObject1.Count + 1;',
+    lUnitText) > 0, 'Expected second object body to use the reference temp.');
+  Assert.IsTrue(Pos('var' + sLineBreak +
+    '  lMarker: Integer;' + sLineBreak +
+    '  lWithTempAggregationRecordPtr: ^TTempAggregationRecord;' + sLineBreak +
+    '  lWithTempAggregationRecordPtr1: ^TTempAggregationRecord;' + sLineBreak +
+    'begin', lUnitText) > 0, 'Expected existing var section to receive aggregated declarations.');
+  Assert.IsTrue(Pos('var' + sLineBreak +
+    '  lWithTempAggregationRecordPtr: ^TTempAggregationRecord;' + sLineBreak +
+    '  lWithTempAggregationRecordPtr1: ^TTempAggregationRecord;' + sLineBreak +
+    '  procedure TouchLocal;', lUnitText) > 0,
+    'Expected declarations before the local routine, not inside it.');
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-temp-aggregation-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited temp aggregation fixture to build. Output: ' +
     lBuildOutput);
 end;
 

@@ -55,29 +55,37 @@ type
     fReplacementText: string;
   end;
 
+  TRemoveWithRoutinePlanState = record
+    fFilePath: string;
+    fRoutineName: string;
+    fRoutineLine: Integer;
+    fFirstPlanIndex: Integer;
+    fReservedNames: TRemoveWithReservedTempNames;
+    fSelectorTemps: TArray<TRemoveWithSelectorTemp>;
+  end;
+
   TRemoveWithPlanner = record
   private
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
     class function SplitSelectorList(const aSelectorText: string): TArray<string>; static;
     class function StatementContains(const aOuter, aInner: TRemoveWithStatementInfo): Boolean; static;
     class function FindRoutineForStatement(const aInventory: TRemoveWithSymbolInventory;
-      const aStatement: TRemoveWithStatementInfo; out aRoutineName: string): Boolean; static;
-    class function FindRoutineLine(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
-      aFilePath: string): Integer; static;
+      const aStatement: TRemoveWithStatementInfo; out aRoutineName: string; out aRoutineLine: Integer): Boolean;
+      static;
     class function RangeOffsets(const aSource: TRemoveWithSourceBuffer; const aRange: TRemoveWithRange;
       out aOffsets: TRemoveWithPlanOffsetRange): Boolean; static;
     class function SourceLineText(const aSource: TRemoveWithSourceBuffer; const aLine: Integer): string; static;
     class function IndentText(const aColumn: Integer): string; static;
+    class function IsLocalRoutineDeclaration(const aText: string): Boolean; static;
     class function PreviousSignificantToken(const aSource: TRemoveWithSourceBuffer; const aOffset: Integer): string;
       static;
     class function StatementIsStandalone(const aSource: TRemoveWithSourceBuffer;
       const aStatement: TRemoveWithStatementInfo; out aReason: string): Boolean; static;
     class function TempInitializationText(const aStatement: TRemoveWithStatementInfo;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>): string; static;
-    class function TempDeclarationEdit(const aInventory: TRemoveWithSymbolInventory;
-      const aSource: TRemoveWithSourceBuffer; const aStatement: TRemoveWithStatementInfo;
-      const aRoutineName: string; const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
-      out aEdit: TRemoveWithPlannedTextEdit): Boolean; static;
+    class function TempDeclarationEdit(const aSource: TRemoveWithSourceBuffer;
+      const aFilePath, aStatementId: string; const aRoutineLine: Integer;
+      const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aEdit: TRemoveWithPlannedTextEdit): Boolean; static;
     class function HasPlannedAncestorWith(const aScanResult: TRemoveWithScanResult;
       const aPlanResult: TRemoveWithPlanResult; const aStatement: TRemoveWithStatementInfo): Boolean; static;
     class function HasAncestorWith(const aScanResult: TRemoveWithScanResult;
@@ -95,16 +103,27 @@ type
       const aStatement: TRemoveWithPlannedStatement); static;
     class procedure AddEdit(var aStatement: TRemoveWithPlannedStatement;
       const aEdit: TRemoveWithPlannedTextEdit); static;
+    class procedure PrependEdit(var aStatement: TRemoveWithPlannedStatement;
+      const aEdit: TRemoveWithPlannedTextEdit); static;
     class procedure AddTemp(var aStatement: TRemoveWithPlannedStatement;
       const aDecision: TRemoveWithTempDecision); static;
     class procedure AddSelectorTemp(var aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
       const aSelectorTemp: TRemoveWithSelectorTemp); static;
     class procedure AddSelectorTemps(var aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
       const aSourceTemps: TArray<TRemoveWithSelectorTemp>); static;
+    class function SelectorTempsNeedDeclaration(const aSelectorTemps: TArray<TRemoveWithSelectorTemp>): Boolean;
+      static;
     class procedure SkipStatement(var aPlanResult: TRemoveWithPlanResult; const aStatement: TRemoveWithStatementInfo;
       const aReason: string); static;
+    class function CopyReservedNames(const aReservedNames: TRemoveWithReservedTempNames): TRemoveWithReservedTempNames;
+      static;
+    class function SameRoutineState(const aState: TRemoveWithRoutinePlanState; const aFilePath: string;
+      const aRoutineLine: Integer): Boolean; static;
+    class function EnsureRoutineState(var aStates: TArray<TRemoveWithRoutinePlanState>; const aFilePath,
+      aRoutineName: string; const aRoutineLine: Integer): Integer; static;
     class function BuildSelectorTemps(const aInventory: TRemoveWithSymbolInventory;
       const aStatement: TRemoveWithStatementInfo; const aRoutineName: string;
+      var aReservedNames: TRemoveWithReservedTempNames;
       out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean; static;
     class function RewrittenBodyText(const aSource: TRemoveWithSourceBuffer;
       const aStatement: TRemoveWithStatementInfo;
@@ -114,12 +133,15 @@ type
       const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
       const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
       const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>;
+      var aReservedNames: TRemoveWithReservedTempNames;
       out aReplacementText: string;
       out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean; static;
+    class function AddRoutineDeclarationEdits(const aRoutineStates: TArray<TRemoveWithRoutinePlanState>;
+      var aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean; static;
     class procedure PlanStatement(const aInventory: TRemoveWithSymbolInventory;
       const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
       const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
-      var aPlanResult: TRemoveWithPlanResult); static;
+      var aRoutineStates: TArray<TRemoveWithRoutinePlanState>; var aPlanResult: TRemoveWithPlanResult); static;
   public
     class function Plan(const aInventory: TRemoveWithSymbolInventory; const aScanResult: TRemoveWithScanResult;
       const aResolverResult: TRemoveWithResolverResult; out aPlanResult: TRemoveWithPlanResult;
@@ -196,13 +218,14 @@ begin
 end;
 
 class function TRemoveWithPlanner.FindRoutineForStatement(const aInventory: TRemoveWithSymbolInventory;
-  const aStatement: TRemoveWithStatementInfo; out aRoutineName: string): Boolean;
+  const aStatement: TRemoveWithStatementInfo; out aRoutineName: string; out aRoutineLine: Integer): Boolean;
 var
   lBestLine: Integer;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   Result := False;
   aRoutineName := '';
+  aRoutineLine := 0;
   lBestLine := 0;
   for lSymbol in aInventory.fSymbols do
   begin
@@ -211,23 +234,10 @@ begin
     begin
       lBestLine := lSymbol.fLine;
       aRoutineName := lSymbol.fName;
+      aRoutineLine := lSymbol.fLine;
       Result := True;
     end;
   end;
-end;
-
-class function TRemoveWithPlanner.FindRoutineLine(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
-  aFilePath: string): Integer;
-var
-  lSymbol: TRemoveWithSymbolInfo;
-begin
-  for lSymbol in aInventory.fSymbols do
-  begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskRoutine) and SameText(lSymbol.fName, aRoutineName) and
-      SameText(lSymbol.fFilePath, aFilePath) then
-      Exit(lSymbol.fLine);
-  end;
-  Result := 0;
 end;
 
 class function TRemoveWithPlanner.RangeOffsets(const aSource: TRemoveWithSourceBuffer;
@@ -263,6 +273,12 @@ begin
   if aColumn <= 1 then
     Exit('');
   Result := StringOfChar(' ', aColumn - 1);
+end;
+
+class function TRemoveWithPlanner.IsLocalRoutineDeclaration(const aText: string): Boolean;
+begin
+  Result := StartsText('procedure ', aText) or StartsText('function ', aText) or
+    StartsText('constructor ', aText) or StartsText('destructor ', aText);
 end;
 
 class function TRemoveWithPlanner.PreviousSignificantToken(const aSource: TRemoveWithSourceBuffer;
@@ -383,8 +399,8 @@ begin
   end;
 end;
 
-class function TRemoveWithPlanner.TempDeclarationEdit(const aInventory: TRemoveWithSymbolInventory;
-  const aSource: TRemoveWithSourceBuffer; const aStatement: TRemoveWithStatementInfo; const aRoutineName: string;
+class function TRemoveWithPlanner.TempDeclarationEdit(const aSource: TRemoveWithSourceBuffer;
+  const aFilePath, aStatementId: string; const aRoutineLine: Integer;
   const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aEdit: TRemoveWithPlannedTextEdit): Boolean;
 var
   lBeginLine: Integer;
@@ -392,7 +408,6 @@ var
   lDeclarationText: string;
   lHasVarSection: Boolean;
   lLine: Integer;
-  lRoutineLine: Integer;
   lSelectorTemp: TRemoveWithSelectorTemp;
   lText: string;
 begin
@@ -401,17 +416,21 @@ begin
   if Length(aSelectorTemps) = 0 then
     Exit(False);
 
-  lRoutineLine := FindRoutineLine(aInventory, aRoutineName, aStatement.fFilePath);
-  if lRoutineLine = 0 then
+  if aRoutineLine = 0 then
     Exit(False);
 
   lBeginLine := 0;
   lHasVarSection := False;
-  for lLine := lRoutineLine + 1 to aStatement.fLine do
+  for lLine := aRoutineLine + 1 to Length(aSource.fLineStarts) do
   begin
     lText := Trim(SourceLineText(aSource, lLine));
     if SameText(lText, 'var') then
       lHasVarSection := True
+    else if IsLocalRoutineDeclaration(lText) then
+    begin
+      lBeginLine := lLine;
+      Break;
+    end
     else if SameText(lText, 'begin') then
     begin
       lBeginLine := lLine;
@@ -435,8 +454,8 @@ begin
     lDeclarationText := lDeclarations;
 
   aEdit.fKind := 'declare-temp';
-  aEdit.fFilePath := aStatement.fFilePath;
-  aEdit.fStatementId := aStatement.fId;
+  aEdit.fFilePath := aFilePath;
+  aEdit.fStatementId := aStatementId;
   aEdit.fRange.fStartLine := lBeginLine;
   aEdit.fRange.fStartColumn := 1;
   aEdit.fRange.fEndLine := lBeginLine;
@@ -570,6 +589,17 @@ begin
   aStatement.fEdits[lIndex] := aEdit;
 end;
 
+class procedure TRemoveWithPlanner.PrependEdit(var aStatement: TRemoveWithPlannedStatement;
+  const aEdit: TRemoveWithPlannedTextEdit);
+var
+  i: Integer;
+begin
+  SetLength(aStatement.fEdits, Length(aStatement.fEdits) + 1);
+  for i := High(aStatement.fEdits) downto 1 do
+    aStatement.fEdits[i] := aStatement.fEdits[i - 1];
+  aStatement.fEdits[0] := aEdit;
+end;
+
 class procedure TRemoveWithPlanner.AddTemp(var aStatement: TRemoveWithPlannedStatement;
   const aDecision: TRemoveWithTempDecision);
 var
@@ -601,6 +631,19 @@ begin
     AddSelectorTemp(aSelectorTemps, lSelectorTemp);
 end;
 
+class function TRemoveWithPlanner.SelectorTempsNeedDeclaration(
+  const aSelectorTemps: TArray<TRemoveWithSelectorTemp>): Boolean;
+var
+  lSelectorTemp: TRemoveWithSelectorTemp;
+begin
+  for lSelectorTemp in aSelectorTemps do
+  begin
+    if lSelectorTemp.fDecision.fDeclarationText <> '' then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
 class procedure TRemoveWithPlanner.SkipStatement(var aPlanResult: TRemoveWithPlanResult;
   const aStatement: TRemoveWithStatementInfo; const aReason: string);
 var
@@ -614,12 +657,45 @@ begin
   AddStatement(aPlanResult, lPlannedStatement);
 end;
 
+class function TRemoveWithPlanner.CopyReservedNames(
+  const aReservedNames: TRemoveWithReservedTempNames): TRemoveWithReservedTempNames;
+begin
+  Result := Default(TRemoveWithReservedTempNames);
+  Result.fNames := Copy(aReservedNames.fNames);
+end;
+
+class function TRemoveWithPlanner.SameRoutineState(const aState: TRemoveWithRoutinePlanState;
+  const aFilePath: string; const aRoutineLine: Integer): Boolean;
+begin
+  Result := SameText(aState.fFilePath, aFilePath) and (aState.fRoutineLine = aRoutineLine);
+end;
+
+class function TRemoveWithPlanner.EnsureRoutineState(var aStates: TArray<TRemoveWithRoutinePlanState>;
+  const aFilePath, aRoutineName: string; const aRoutineLine: Integer): Integer;
+var
+  i: Integer;
+begin
+  for i := 0 to High(aStates) do
+  begin
+    if SameRoutineState(aStates[i], aFilePath, aRoutineLine) then
+      Exit(i);
+  end;
+
+  Result := Length(aStates);
+  SetLength(aStates, Result + 1);
+  aStates[Result] := Default(TRemoveWithRoutinePlanState);
+  aStates[Result].fFilePath := aFilePath;
+  aStates[Result].fRoutineName := aRoutineName;
+  aStates[Result].fRoutineLine := aRoutineLine;
+  aStates[Result].fFirstPlanIndex := -1;
+end;
+
 class function TRemoveWithPlanner.BuildSelectorTemps(const aInventory: TRemoveWithSymbolInventory;
   const aStatement: TRemoveWithStatementInfo; const aRoutineName: string;
-  out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean;
+  var aReservedNames: TRemoveWithReservedTempNames; out aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
+  out aReason: string): Boolean;
 var
   lDecision: TRemoveWithTempDecision;
-  lReservedNames: TRemoveWithReservedTempNames;
   lSelector: string;
   lSelectorTemp: TRemoveWithSelectorTemp;
   lSelectors: TArray<string>;
@@ -627,11 +703,10 @@ begin
   Result := False;
   aReason := '';
   aSelectorTemps := nil;
-  lReservedNames := Default(TRemoveWithReservedTempNames);
   lSelectors := SplitSelectorList(aStatement.fSelectorText);
   for lSelector in lSelectors do
   begin
-    if not PlanRemoveWithTempPolicy(aInventory, aRoutineName, lSelector, lReservedNames, lDecision) then
+    if not PlanRemoveWithTempPolicy(aInventory, aRoutineName, lSelector, aReservedNames, lDecision) then
     begin
       aReason := 'selector-type-not-resolved';
       Exit;
@@ -731,7 +806,8 @@ end;
 class function TRemoveWithPlanner.BuildStatementReplacement(const aInventory: TRemoveWithSymbolInventory;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
-  const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText: string;
+  const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>;
+  var aReservedNames: TRemoveWithReservedTempNames; out aReplacementText: string;
   out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean;
 var
   lChildReplacementText: string;
@@ -752,7 +828,7 @@ begin
 
   if not StatementIsStandalone(aSource, aStatement, aReason) then
     Exit;
-  if not BuildSelectorTemps(aInventory, aStatement, aRoutineName, lCurrentTemps, aReason) then
+  if not BuildSelectorTemps(aInventory, aStatement, aRoutineName, aReservedNames, lCurrentTemps, aReason) then
     Exit;
   AddSelectorTemps(lVisibleTemps, aInheritedTemps);
   AddSelectorTemps(lVisibleTemps, lCurrentTemps);
@@ -770,7 +846,7 @@ begin
   for lStatement in lNestedStatements do
   begin
     if not BuildStatementReplacement(aInventory, aScanResult, aResolverResult, lStatement, aSource, aRoutineName,
-      lVisibleTemps, lChildReplacementText, lChildTemps, aReason) then
+      lVisibleTemps, aReservedNames, lChildReplacementText, lChildTemps, aReason) then
       Exit;
 
     lEditRange := lStatement.fRange;
@@ -797,24 +873,63 @@ begin
   Result := True;
 end;
 
+class function TRemoveWithPlanner.AddRoutineDeclarationEdits(
+  const aRoutineStates: TArray<TRemoveWithRoutinePlanState>; var aPlanResult: TRemoveWithPlanResult;
+  out aError: string): Boolean;
+var
+  lDeclarationEdit: TRemoveWithPlannedTextEdit;
+  lSource: TRemoveWithSourceBuffer;
+  lState: TRemoveWithRoutinePlanState;
+begin
+  Result := False;
+  aError := '';
+  lSource := Default(TRemoveWithSourceBuffer);
+  for lState in aRoutineStates do
+  begin
+    if (lState.fFirstPlanIndex < 0) or (lState.fFirstPlanIndex > High(aPlanResult.fStatements)) then
+      Continue;
+    if not SelectorTempsNeedDeclaration(lState.fSelectorTemps) then
+      Continue;
+    if not LoadRemoveWithSource(lState.fFilePath, lSource, aError) then
+      Exit(False);
+    if not TempDeclarationEdit(lSource, lState.fFilePath,
+      aPlanResult.fStatements[lState.fFirstPlanIndex].fStatementId, lState.fRoutineLine, lState.fSelectorTemps,
+      lDeclarationEdit) then
+    begin
+      aError := 'temp-declaration-insertion-not-resolved';
+      Exit(False);
+    end;
+    PrependEdit(aPlanResult.fStatements[lState.fFirstPlanIndex], lDeclarationEdit);
+  end;
+  Result := True;
+end;
+
 class procedure TRemoveWithPlanner.PlanStatement(const aInventory: TRemoveWithSymbolInventory;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
-  var aPlanResult: TRemoveWithPlanResult);
+  var aRoutineStates: TArray<TRemoveWithRoutinePlanState>; var aPlanResult: TRemoveWithPlanResult);
 var
   lEdit: TRemoveWithPlannedTextEdit;
   lPlannedStatement: TRemoveWithPlannedStatement;
-  lDeclarationEdit: TRemoveWithPlannedTextEdit;
+  lPlanIndex: Integer;
   lReason: string;
   lReplacementText: string;
+  lReservedNames: TRemoveWithReservedTempNames;
+  lRoutineIndex: Integer;
+  lRoutineLine: Integer;
   lRoutineName: string;
   lSelectorTemp: TRemoveWithSelectorTemp;
   lSelectorTemps: TArray<TRemoveWithSelectorTemp>;
 begin
-  if not FindRoutineForStatement(aInventory, aStatement, lRoutineName) then
+  if not FindRoutineForStatement(aInventory, aStatement, lRoutineName, lRoutineLine) then
+  begin
     lRoutineName := '';
+    lRoutineLine := 0;
+  end;
+  lRoutineIndex := EnsureRoutineState(aRoutineStates, aStatement.fFilePath, lRoutineName, lRoutineLine);
+  lReservedNames := CopyReservedNames(aRoutineStates[lRoutineIndex].fReservedNames);
   if not BuildStatementReplacement(aInventory, aScanResult, aResolverResult, aStatement, aSource, lRoutineName, nil,
-    lReplacementText, lSelectorTemps, lReason) then
+    lReservedNames, lReplacementText, lSelectorTemps, lReason) then
   begin
     SkipStatement(aPlanResult, aStatement, lReason);
     Exit;
@@ -828,9 +943,6 @@ begin
   for lSelectorTemp in lSelectorTemps do
     AddTemp(lPlannedStatement, lSelectorTemp.fDecision);
 
-  if TempDeclarationEdit(aInventory, aSource, aStatement, lRoutineName, lSelectorTemps, lDeclarationEdit) then
-    AddEdit(lPlannedStatement, lDeclarationEdit);
-
   lEdit := Default(TRemoveWithPlannedTextEdit);
   lEdit.fKind := 'replace-statement';
   lEdit.fFilePath := aStatement.fFilePath;
@@ -839,7 +951,12 @@ begin
   lEdit.fRange.fStartColumn := 1;
   lEdit.fReplacementText := lPlannedStatement.fReplacementText;
   AddEdit(lPlannedStatement, lEdit);
+  lPlanIndex := Length(aPlanResult.fStatements);
   AddStatement(aPlanResult, lPlannedStatement);
+  aRoutineStates[lRoutineIndex].fReservedNames := lReservedNames;
+  if aRoutineStates[lRoutineIndex].fFirstPlanIndex < 0 then
+    aRoutineStates[lRoutineIndex].fFirstPlanIndex := lPlanIndex;
+  AddSelectorTemps(aRoutineStates[lRoutineIndex].fSelectorTemps, lSelectorTemps);
 end;
 
 class function TRemoveWithPlanner.Plan(const aInventory: TRemoveWithSymbolInventory;
@@ -847,6 +964,7 @@ class function TRemoveWithPlanner.Plan(const aInventory: TRemoveWithSymbolInvent
   out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
 var
   lCurrentPath: string;
+  lRoutineStates: TArray<TRemoveWithRoutinePlanState>;
   lSource: TRemoveWithSourceBuffer;
   lStatement: TRemoveWithStatementInfo;
 begin
@@ -871,8 +989,10 @@ begin
           Exit(False);
         lCurrentPath := lStatement.fFilePath;
       end;
-      PlanStatement(aInventory, aScanResult, aResolverResult, lStatement, lSource, aPlanResult);
+      PlanStatement(aInventory, aScanResult, aResolverResult, lStatement, lSource, lRoutineStates, aPlanResult);
     end;
+    if not AddRoutineDeclarationEdits(lRoutineStates, aPlanResult, aError) then
+      Exit(False);
     Result := True;
   except
     on E: Exception do

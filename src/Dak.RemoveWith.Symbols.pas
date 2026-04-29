@@ -1043,6 +1043,8 @@ begin
       Continue;
 
     lSignature := CollectDeclarationText(aLines, i);
+    if not lTopLevelLine then
+      Continue;
     if not TryRoutineName(lSignature, lRoutineName) then
       Continue;
 

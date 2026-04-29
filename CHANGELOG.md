@@ -66,6 +66,7 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed `remove-with --mode apply` temp handling so repeated record/object selectors in the same routine reserve unique temp names and aggregate declarations into one legal routine-level insertion point, including existing `var` sections and local routine declarations. (T-163)
 - Fixed post-build `--dfmcheck` diagnostics so source-build failures clearly report that DFM validation was skipped, and missing `madExcept.dcu` failures explain the `madExcept` define/library-path cause.
 - Fixed generated `dfm-check` helper projects so optional madExcept startup units are not injected into the checker DPR, while existing madExcept defines/search paths remain available for project units that intentionally use madExcept.
 - Fixed generated `dfm-check` `DCC_UnitSearchPath` insertion so Windows paths containing backslash-digit segments such as `\3rdParty` or `\23.0` are not corrupted by regex replacement.
