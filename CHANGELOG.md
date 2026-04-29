@@ -66,6 +66,7 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed `remove-with` resolver handling for known compiler/RTL calls (`Inc`, `Dec`, `Assigned`, `Length`, `SetLength`, `Low`, `High`, `Include`, `Exclude`) so safe `with` rewrites can proceed while unknown external calls still block. (T-167)
 - Fixed `remove-with` source-model hardening so attributes, conditional regions, multiline member declarations, generic declarations, and nested type declarations are conservatively skipped with explicit `unsupported-source-model-*` reasons instead of being guessed by the line parser. (T-166)
 - Fixed `remove-with` expression-role safety so labels, case labels, declaration-like bodies, type qualifiers, and unit/type qualifier collisions are skipped or preserved with explicit role details instead of being lexically rewritten as receiver members. (T-165)
 - Fixed `remove-with` planning so `with` bodies containing inline scoped declarations (`var`, `for var`, or `except on`) are skipped with an explicit `scoped-declaration-in-with-body` reason and apply mode leaves those sources unchanged. (T-164)

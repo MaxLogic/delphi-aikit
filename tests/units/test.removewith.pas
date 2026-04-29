@@ -428,6 +428,18 @@ type
     procedure PlanSkipsComplexDeclarationsWithExplicitReasons;
   end;
 
+  [TestFixture]
+  TRemoveWithExternalRoutineTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure ApplyPreservesKnownExternalCallsAndSkipsUnknownCalls;
+  end;
+
 implementation
 
 uses
@@ -4307,6 +4319,128 @@ begin
   finally
     lRoot.Free;
   end;
+end;
+
+function TRemoveWithExternalRoutineTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithExternalRoutineTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithExternalRoutineTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithExternalRoutineTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithExternalRoutineTests.ApplyPreservesKnownExternalCallsAndSkipsUnknownCalls;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lUnitPath: string;
+  lUnitText: string;
+  lVerification: TJSONObject;
+begin
+  CopyFixtureToTemp('RemoveWithExternalRoutineFixture', 'remove-with-external-routines', lDprojPath, lFixtureDir);
+  lUnitPath := TPath.Combine(lFixtureDir, 'ExternalRoutineUnit.pas');
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'apply', 'remove-with-external-routines.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected external-routine apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied external-routine status.');
+    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected the known-routine with body to be planned.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(1, lSkipped.Count, 'Expected the unknown external call body to be skipped.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected unknown external calls to keep blocking the rewrite.');
+    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    Assert.AreEqual('passed', lVerification.Values['status'].Value,
+      'Expected edited external-routine fixture to build after apply.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('with lKnown do', lUnitText) = 0, 'Expected known-routine with to be removed.');
+  Assert.IsTrue(Pos('with lUnknown do', lUnitText) > 0, 'Expected unknown-routine with to remain.');
+  Assert.IsTrue(Pos('Inc(lWithExternalRoutineRecordPtr^.Count);', lUnitText) > 0,
+    'Expected Inc call to remain a routine call while its member argument is qualified.');
+  Assert.IsTrue(Pos('Dec(lWithExternalRoutineRecordPtr^.Count);', lUnitText) > 0,
+    'Expected Dec call to remain a routine call while its member argument is qualified.');
+  Assert.IsTrue(Pos('Assigned(lWithExternalRoutineRecordPtr^.Ref)', lUnitText) > 0,
+    'Expected Assigned call to remain a routine call.');
+  Assert.IsTrue(Pos('Length(lWithExternalRoutineRecordPtr^.Items)', lUnitText) > 0,
+    'Expected Length call to remain a routine call.');
+  Assert.IsTrue(Pos('SetLength(lWithExternalRoutineRecordPtr^.Items, lWithExternalRoutineRecordPtr^.Count + 1);',
+    lUnitText) > 0, 'Expected SetLength call to remain a routine call.');
+  Assert.IsTrue(Pos('Low(lWithExternalRoutineRecordPtr^.Items)', lUnitText) > 0,
+    'Expected Low call to remain a routine call.');
+  Assert.IsTrue(Pos('High(lWithExternalRoutineRecordPtr^.Items)', lUnitText) > 0,
+    'Expected High call to remain a routine call.');
+  Assert.IsTrue(Pos('Include(lWithExternalRoutineRecordPtr^.Flags, lWithExternalRoutineRecordPtr^.Flag);',
+    lUnitText) > 0, 'Expected Include call to remain a routine call.');
+  Assert.IsTrue(Pos('Exclude(lWithExternalRoutineRecordPtr^.Flags, lWithExternalRoutineRecordPtr^.Flag);',
+    lUnitText) > 0, 'Expected Exclude call to remain a routine call.');
+  Assert.IsTrue(Pos('lWithExternalRoutineRecordPtr^.Inc', lUnitText) = 0,
+    'Expected known routine names not to be receiver-qualified.');
 end;
 
 end.
