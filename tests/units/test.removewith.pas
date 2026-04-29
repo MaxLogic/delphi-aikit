@@ -416,6 +416,18 @@ type
     procedure ApplySkipsUnsafeRolesAndRewritesSafeQualifiedCall;
   end;
 
+  [TestFixture]
+  TRemoveWithComplexSourceModelTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure PlanSkipsComplexDeclarationsWithExplicitReasons;
+  end;
+
 implementation
 
 uses
@@ -4194,6 +4206,107 @@ begin
     'Expected the source-unit qualifier to remain unchanged.');
   Assert.IsTrue(Pos('TExpressionRoleScope.DefaultName', lUnitText) > 0,
     'Expected skipped type-qualified body to remain unchanged.');
+end;
+
+function TRemoveWithComplexSourceModelTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithComplexSourceModelTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithComplexSourceModelTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithComplexSourceModelTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithComplexSourceModelTests.PlanSkipsComplexDeclarationsWithExplicitReasons;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lPlannedEdits: TJSONArray;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+begin
+  CopyFixtureToTemp('RemoveWithComplexSourceModelFixture', 'remove-with-complex-source-model', lDprojPath,
+    lFixtureDir);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-complex-source-model-plan.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected complex source-model plan to succeed.');
+    Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok root status.');
+    lPlannedEdits := lRoot.Values['plannedEdits'] as TJSONArray;
+    Assert.AreEqual(1, lPlannedEdits.Count, 'Expected only the simple safe record to be planned.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(5, lSkipped.Count, 'Expected each complex source-model statement to be skipped.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-attribute'),
+      'Expected attributed type declaration to be reported explicitly.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-conditional-region'),
+      'Expected conditional type declaration to be reported explicitly.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-multiline-declaration'),
+      'Expected multiline member declaration to be reported explicitly.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-generic-declaration'),
+      'Expected generic type declaration to be reported explicitly.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-nested-type'),
+      'Expected nested type declaration to be reported explicitly.');
+  finally
+    lRoot.Free;
+  end;
 end;
 
 end.

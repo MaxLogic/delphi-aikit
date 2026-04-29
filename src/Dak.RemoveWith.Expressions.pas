@@ -48,6 +48,8 @@ type
       static;
     class function IsExternalType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
       static;
+    class function UnsupportedSourceTypeReason(const aInventory: TRemoveWithSymbolInventory;
+      const aTypeName: string; out aReason: string): Boolean; static;
     class function ParseSegment(const aText: string; out aSegment: TSelectorSegment): Boolean; static;
     class function PointerTargetType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): string;
       static;
@@ -101,6 +103,13 @@ begin
   Result := Trim(aTypeName);
   if StartsText('^', Result) then
     Delete(Result, 1, 1);
+  lDelimiterPos := Pos('<', Result);
+  if lDelimiterPos = 0 then
+    lDelimiterPos := Pos('[', Result);
+  if lDelimiterPos = 0 then
+    lDelimiterPos := Pos(' ', Result);
+  if lDelimiterPos > 0 then
+    Result := Trim(Copy(Result, 1, lDelimiterPos - 1));
   lDelimiterPos := LastDelimiter('.', Result);
   if lDelimiterPos > 0 then
     Result := Copy(Result, lDelimiterPos + 1, MaxInt);
@@ -215,6 +224,29 @@ begin
   begin
     if (lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal) and SameText(lSymbol.fName, lTypeName) then
       Exit(True);
+  end;
+  Result := False;
+end;
+
+class function TRemoveWithExpressionResolver.UnsupportedSourceTypeReason(
+  const aInventory: TRemoveWithSymbolInventory; const aTypeName: string; out aReason: string): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+  lTypeName: string;
+begin
+  aReason := '';
+  lTypeName := DirectTypeName(aTypeName);
+  if lTypeName = '' then
+    Exit(False);
+
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName) and
+      (lSymbol.fUnsupportedReason <> '') then
+    begin
+      aReason := lSymbol.fUnsupportedReason;
+      Exit(True);
+    end;
   end;
   Result := False;
 end;
@@ -415,12 +447,24 @@ begin
     end else
       lTypeName := '';
   end;
+  if UnsupportedSourceTypeReason(aInventory, lTypeName, lReason) then
+  begin
+    SetInfo(aInfo, aSelectorText, DirectTypeName(lTypeName), lReason,
+      TRemoveWithSelectorTypeStatus.rwstsUnsupported, False);
+    Exit(True);
+  end;
 
   for i := 1 to High(lSegments) do
   begin
     if not ParseSegment(lSegments[i], lSegment) then
     begin
       SetInfo(aInfo, aSelectorText, '', 'invalid-selector', TRemoveWithSelectorTypeStatus.rwstsUnresolved, False);
+      Exit(True);
+    end;
+    if UnsupportedSourceTypeReason(aInventory, lTypeName, lReason) then
+    begin
+      SetInfo(aInfo, aSelectorText, DirectTypeName(lTypeName), lReason,
+        TRemoveWithSelectorTypeStatus.rwstsUnsupported, False);
       Exit(True);
     end;
     if (not HasSourceType(aInventory, lTypeName)) and IsExternalType(aInventory, lTypeName) then
@@ -454,6 +498,12 @@ begin
         Exit(True);
       end else
         lTypeName := '';
+    end;
+    if UnsupportedSourceTypeReason(aInventory, lTypeName, lReason) then
+    begin
+      SetInfo(aInfo, aSelectorText, DirectTypeName(lTypeName), lReason,
+        TRemoveWithSelectorTypeStatus.rwstsUnsupported, False);
+      Exit(True);
     end;
   end;
 
