@@ -73,7 +73,12 @@ begin
       lOffset := 3;
 
     aSource.fPath := aPath;
-    aSource.fText := TEncoding.UTF8.GetString(lBytes, lOffset, Length(lBytes) - lOffset);
+    try
+      aSource.fText := TEncoding.UTF8.GetString(lBytes, lOffset, Length(lBytes) - lOffset);
+    except
+      on E: EEncodingError do
+        aSource.fText := TEncoding.Default.GetString(lBytes, lOffset, Length(lBytes) - lOffset);
+    end;
     BuildLineStarts(aSource);
     Result := True;
   except

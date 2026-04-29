@@ -10,9 +10,43 @@ function RunRemoveWithCommand(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
-  System.IOUtils, System.SysUtils,
+  System.Diagnostics, System.IOUtils, System.SysUtils,
   Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Output, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver,
   Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
+
+procedure LogRemoveWithProgress(const aOptions: TAppOptions; const aMessage: string);
+begin
+  if not aOptions.fVerbose then
+    Exit;
+  WriteLn(ErrOutput, FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz', Now) + ' [remove-with] ' + aMessage);
+  Flush(ErrOutput);
+end;
+
+procedure LogRemoveWithDone(const aOptions: TAppOptions; const aStepName, aDetails: string;
+  const aStopwatch: TStopwatch);
+var
+  lMessage: string;
+begin
+  if not aOptions.fVerbose then
+    Exit;
+
+  lMessage := Format('%s done elapsedMs=%d', [aStepName, aStopwatch.ElapsedMilliseconds]);
+  if aDetails <> '' then
+    lMessage := lMessage + ' ' + aDetails;
+  LogRemoveWithProgress(aOptions, lMessage);
+end;
+
+function CountRemoveWithPlannedStatements(const aPlanResult: TRemoveWithPlanResult; const aStatus: string): Integer;
+var
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  Result := 0;
+  for lStatement in aPlanResult.fStatements do
+  begin
+    if SameText(lStatement.fStatus, aStatus) then
+      Inc(Result);
+  end;
+end;
 
 function NewRemoveWithRunId: string;
 var
@@ -84,6 +118,7 @@ var
   lResolverResult: TRemoveWithResolverResult;
   lRunId: string;
   lScanResult: TRemoveWithScanResult;
+  lStopwatch: TStopwatch;
   lSymbolInventory: TRemoveWithSymbolInventory;
   lTransactionResult: TRemoveWithTransactionResult;
   lUnitPath: string;
@@ -111,34 +146,67 @@ begin
   lWorkspaceRoot := TPath.Combine(TPath.Combine(TPath.Combine(TPath.GetDirectoryName(lProjectPath), '.dak'), lProjectName),
     TPath.Combine('remove-with', lRunId));
   TDirectory.CreateDirectory(lWorkspaceRoot);
+  LogRemoveWithProgress(aOptions, Format('start mode=%s project=%s workspace=%s',
+    [RemoveWithModeToText(aOptions.fRemoveWithMode), lProjectPath, lWorkspaceRoot]));
 
+  LogRemoveWithProgress(aOptions, 'discovery start');
+  lStopwatch := TStopwatch.StartNew;
   if not DiscoverRemoveWithStatements(aOptions, lProjectPath, lScanResult, lError) then
   begin
     WriteLn(ErrOutput, lError);
     Exit(cExitToolFailure);
   end;
+  lStopwatch.Stop;
+  LogRemoveWithDone(aOptions, 'discovery',
+    Format('files=%d withStatements=%d warnings=%d', [Length(lScanResult.fFiles),
+    Length(lScanResult.fWithStatements), Length(lScanResult.fWarnings)]), lStopwatch);
   if aOptions.fRemoveWithMode <> TRemoveWithMode.rwmScan then
   begin
+    LogRemoveWithProgress(aOptions, 'symbol-inventory start');
+    lStopwatch := TStopwatch.StartNew;
     if not BuildRemoveWithSymbolInventory(aOptions, lSymbolInventory, lError) then
     begin
       WriteLn(ErrOutput, lError);
       Exit(cExitToolFailure);
     end;
+    lStopwatch.Stop;
+    LogRemoveWithDone(aOptions, 'symbol-inventory',
+      Format('symbols=%d', [Length(lSymbolInventory.fSymbols)]), lStopwatch);
+
+    LogRemoveWithProgress(aOptions, 'resolver start');
+    lStopwatch := TStopwatch.StartNew;
     if not ResolveRemoveWithIdentifiers(lSymbolInventory, lScanResult, lResolverResult, lError) then
     begin
       WriteLn(ErrOutput, lError);
       Exit(cExitToolFailure);
     end;
+    lStopwatch.Stop;
+    LogRemoveWithDone(aOptions, 'resolver',
+      Format('classifications=%d', [Length(lResolverResult.fClassifications)]), lStopwatch);
+
+    LogRemoveWithProgress(aOptions, 'planner start');
+    lStopwatch := TStopwatch.StartNew;
     if not PlanRemoveWithRewrites(lSymbolInventory, lScanResult, lResolverResult, lPlanResult, lError) then
     begin
       WriteLn(ErrOutput, lError);
       Exit(cExitToolFailure);
     end;
+    lStopwatch.Stop;
+    LogRemoveWithDone(aOptions, 'planner',
+      Format('statements=%d planned=%d skipped=%d', [Length(lPlanResult.fStatements),
+      CountRemoveWithPlannedStatements(lPlanResult, 'planned'), CountRemoveWithPlannedStatements(lPlanResult,
+      'skipped')]), lStopwatch);
 
     if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
     begin
+      LogRemoveWithProgress(aOptions, 'apply start');
+      lStopwatch := TStopwatch.StartNew;
       lApplySucceeded := ApplyRemoveWithPlanTransactionally(aOptions, lProjectPath, lWorkspaceRoot, lPlanResult,
         lTransactionResult, lError);
+      lStopwatch.Stop;
+      LogRemoveWithDone(aOptions, 'apply', Format('status=%s files=%d',
+        [RemoveWithTransactionStatusToText(lTransactionResult.fStatus), Length(lTransactionResult.fFiles)]),
+        lStopwatch);
       if (not lApplySucceeded) and (lTransactionResult.fError = '') then
         lTransactionResult.fError := lError;
     end;
@@ -151,6 +219,7 @@ begin
     lOutputText := BuildRemoveWithJsonReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
       lScanResult, lResolverResult, lPlanResult, lTransactionResult);
   WriteRemoveWithOutput(aOptions, lOutputText);
+  LogRemoveWithProgress(aOptions, 'report written');
   if not lApplySucceeded then
     Exit(cExitToolFailure);
   Result := cExitSuccess;

@@ -3,7 +3,7 @@ unit Test.RemoveWith;
 interface
 
 uses
-  System.IOUtils, System.JSON, System.SysUtils,
+  System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
   DUnitX.TestFramework,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver,
   Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy, Test.Support;
@@ -102,6 +102,8 @@ type
     procedure InventoryReportsUnitAndDirectTypeDeclarations;
     [Test]
     procedure InventoryReportsMissingSourceUnitsAsExternal;
+    [Test]
+    procedure InventoryReadsAnsiEncodedSource;
   end;
 
   [TestFixture]
@@ -469,6 +471,27 @@ type
     procedure ApplyBuildsMixedHardeningFixtures;
     [Test]
     procedure ApplyLeavesSkippedOnlyFixtureUnchanged;
+  end;
+
+  [TestFixture]
+  TRemoveWithProprietaryProjectTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+    procedure AssertSnapshotUnchanged(const aPaths: TArray<string>; const aBytes: TArray<TBytes>;
+      const aMessage: string);
+    procedure CopyDirectoryToTemp(const aSourceDir, aTempName: string; out aCloneDir: string);
+    function FindMaxTdbProject(const aFixtureDir: string): string;
+    function IsIgnoredProjectArtifact(const aRelativePath: string): Boolean;
+    function IsSourceSnapshotFile(const aPath: string): Boolean;
+    function RunRemoveWithScan(const aDprojPath, aTargetDir, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+    procedure SnapshotSourceFiles(const aRootDir: string; out aPaths: TArray<string>;
+      out aBytes: TArray<TBytes>);
+  public
+    [Test]
+    procedure ScanCloneOfMaxTdbWhenFixtureExists;
+    [Test]
+    procedure SymbolInventoryResolvesMaxTdbGlobalPointerArrayWhenFixtureExists;
   end;
 
 implementation
@@ -1300,6 +1323,80 @@ begin
   Assert.AreEqual('', lSymbol.fUnitName, 'External library type should not be assigned to a parsed unit.');
 end;
 
+procedure TRemoveWithSymbolTests.InventoryReadsAnsiEncodedSource;
+var
+  i: Integer;
+  lAnsiPath: string;
+  lBytes: TBytes;
+  lDir: string;
+  lDprPath: string;
+  lDprojPath: string;
+  lError: string;
+  lHead: TBytes;
+  lInventory: TRemoveWithSymbolInventory;
+  lOptions: TAppOptions;
+  lSymbol: TRemoveWithSymbolInfo;
+  lTail: TBytes;
+begin
+  lDir := TPath.Combine(TempRoot, 'remove-with-ansi-symbols');
+  if TDirectory.Exists(lDir) then
+    TDirectory.Delete(lDir, True);
+  TDirectory.CreateDirectory(lDir);
+
+  lDprojPath := TPath.Combine(lDir, 'RemoveWithAnsiSymbolsFixture.dproj');
+  lDprPath := TPath.Combine(lDir, 'RemoveWithAnsiSymbolsFixture.dpr');
+  lAnsiPath := TPath.Combine(lDir, 'AnsiSymbolUnit.pas');
+
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>RemoveWithAnsiSymbolsFixture.dpr</MainSource>' + sLineBreak +
+    '    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <ItemGroup>' + sLineBreak +
+    '    <DCCReference Include="AnsiSymbolUnit.pas"/>' + sLineBreak +
+    '  </ItemGroup>' + sLineBreak +
+    '</Project>' + sLineBreak, TEncoding.UTF8);
+  TFile.WriteAllText(lDprPath,
+    'program RemoveWithAnsiSymbolsFixture;' + sLineBreak + sLineBreak +
+    'uses' + sLineBreak +
+    '  AnsiSymbolUnit in ''AnsiSymbolUnit.pas'';' + sLineBreak + sLineBreak +
+    'begin' + sLineBreak +
+    'end.' + sLineBreak, TEncoding.UTF8);
+
+  lHead := TEncoding.ASCII.GetBytes(
+    'unit AnsiSymbolUnit;' + #13#10 + #13#10 +
+    'interface' + #13#10 + #13#10 +
+    'type' + #13#10 +
+    '  TAnsiSymbolRecord = record' + #13#10 +
+    '    Name: string;' + #13#10 +
+    '  end;' + #13#10 + #13#10 +
+    'var' + #13#10 +
+    '  AnsiGlobal: TAnsiSymbolRecord;' + #13#10 + #13#10 +
+    'implementation' + #13#10 + #13#10 +
+    '// Latin-1 byte follows: ');
+  lTail := TEncoding.ASCII.GetBytes(#13#10 + #13#10 + 'end.' + #13#10);
+  SetLength(lBytes, Length(lHead) + 1 + Length(lTail));
+  for i := 0 to High(lHead) do
+    lBytes[i] := lHead[i];
+  lBytes[Length(lHead)] := $FC;
+  for i := 0 to High(lTail) do
+    lBytes[Length(lHead) + 1 + i] := lTail[i];
+  TFile.WriteAllBytes(lAnsiPath, lBytes);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, lInventory, lError),
+    'Expected ANSI source symbol inventory build to succeed: ' + lError);
+  Assert.IsTrue(FindSymbol(lInventory, 'AnsiGlobal', TRemoveWithSymbolKind.rwskUnitGlobal, '', '', lSymbol),
+    'Expected symbol inventory to parse declarations from ANSI source.');
+  Assert.AreEqual('TAnsiSymbolRecord', lSymbol.fTypeName, 'Expected ANSI source declaration type.');
+end;
+
 procedure TRemoveWithExpressionTypeTests.BuildExpressionFixture(out aInventory: TRemoveWithSymbolInventory);
 var
   lError: string;
@@ -1350,6 +1447,8 @@ begin
     True);
   AssertSelector(lInventory, 'lRecords[0]', TRemoveWithSelectorTypeStatus.rwstsResolved, 'TExpressionRecord', '',
     True);
+  AssertSelector(lInventory, 'GlobalRecordPtrs[0]^', TRemoveWithSelectorTypeStatus.rwstsResolved,
+    'TExpressionRecord', '', True);
   AssertSelector(lInventory, 'lLocalRecord.Child', TRemoveWithSelectorTypeStatus.rwstsResolved, 'TExpressionChild',
     '', True);
   AssertSelector(lInventory, 'lLocalRecord.Child.Name', TRemoveWithSelectorTypeStatus.rwstsResolved, 'string', '',
@@ -2317,6 +2416,8 @@ begin
     AssertUnsupportedName(lClassifications, 'with-4', 'lBox[0]', 'property-selector');
     AssertUnsupportedName(lClassifications, 'with-5', 'MakeBox()[0]', 'call-selector');
     AssertResolvedName(lClassifications, 'with-7', 'Items[0]', 'TIndexedRecord');
+    AssertResolvedName(lClassifications, 'with-8', 'lStaticRecords[0]', 'TIndexedRecord');
+    AssertResolvedName(lClassifications, 'with-9', 'lStaticRecordPtr^[0]', 'TIndexedRecord');
   finally
     lJson.Free;
   end;
@@ -4452,6 +4553,13 @@ begin
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
   Assert.IsTrue(Pos('with lKnown do', lUnitText) = 0, 'Expected known-routine with to be removed.');
   Assert.IsTrue(Pos('with lUnknown do', lUnitText) > 0, 'Expected unknown-routine with to remain.');
+  Assert.IsTrue(Pos('FillChar(lWithExternalRoutineRecordPtr^.Target, SizeOf(lWithExternalRoutineRecordPtr^.Target), 0);',
+    lUnitText) > 0, 'Expected FillChar and SizeOf calls to remain routine calls.');
+  Assert.IsTrue(Pos('Move(lWithExternalRoutineRecordPtr^.Source, lWithExternalRoutineRecordPtr^.Target, ' +
+    'SizeOf(lWithExternalRoutineRecordPtr^.Target));', lUnitText) > 0,
+    'Expected Move call to remain a routine call.');
+  Assert.IsTrue(Pos('lWithExternalRoutineRecordPtr^.Exit', lUnitText) = 0,
+    'Expected Exit statement not to be receiver-qualified.');
   Assert.IsTrue(Pos('Inc(lWithExternalRoutineRecordPtr^.Count);', lUnitText) > 0,
     'Expected Inc call to remain a routine call while its member argument is qualified.');
   Assert.IsTrue(Pos('Dec(lWithExternalRoutineRecordPtr^.Count);', lUnitText) > 0,
@@ -4848,6 +4956,249 @@ begin
     'Skipped-only scoped declaration DPR must remain byte-for-byte unchanged.');
   AssertBytesEqual(lBefore, TFile.ReadAllBytes(lUnitPath),
     'Skipped-only scoped declaration fixture must remain byte-for-byte unchanged.');
+end;
+
+function TRemoveWithProprietaryProjectTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithProprietaryProjectTests.AssertBytesEqual(const aExpected, aActual: TBytes;
+  const aMessage: string);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(Length(aExpected), Length(aActual), aMessage + ' Size differs.');
+  for i := 0 to High(aExpected) do
+    Assert.AreEqual(aExpected[i], aActual[i], aMessage + ' Byte differs at index ' + i.ToString + '.');
+end;
+
+procedure TRemoveWithProprietaryProjectTests.AssertSnapshotUnchanged(const aPaths: TArray<string>;
+  const aBytes: TArray<TBytes>; const aMessage: string);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(Length(aPaths), Length(aBytes), aMessage + ' Snapshot shape differs.');
+  for i := 0 to High(aPaths) do
+  begin
+    Assert.IsTrue(TFile.Exists(aPaths[i]), aMessage + ' Snapshot file disappeared: ' + aPaths[i]);
+    AssertBytesEqual(aBytes[i], TFile.ReadAllBytes(aPaths[i]), aMessage + ' File changed: ' + aPaths[i]);
+  end;
+end;
+
+procedure TRemoveWithProprietaryProjectTests.CopyDirectoryToTemp(const aSourceDir, aTempName: string;
+  out aCloneDir: string);
+var
+  lFile: string;
+  lRelativePath: string;
+  lTargetFile: string;
+begin
+  aCloneDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(aCloneDir) then
+    TDirectory.Delete(aCloneDir, True);
+  TDirectory.CreateDirectory(aCloneDir);
+
+  for lFile in TDirectory.GetFiles(aSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(aSourceDir) + 2, MaxInt);
+    if IsIgnoredProjectArtifact(lRelativePath) then
+      Continue;
+
+    lTargetFile := TPath.Combine(aCloneDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+end;
+
+function TRemoveWithProprietaryProjectTests.FindMaxTdbProject(const aFixtureDir: string): string;
+var
+  lProjectFile: string;
+  lProjectFiles: TArray<string>;
+  lPreferredPath: string;
+begin
+  lPreferredPath := TPath.Combine(TPath.Combine(aFixtureDir, 'src'), 'maxtdb.dproj');
+  if TFile.Exists(lPreferredPath) then
+    Exit(lPreferredPath);
+
+  lProjectFiles := TDirectory.GetFiles(aFixtureDir, '*.dproj', TSearchOption.soAllDirectories);
+  Assert.IsTrue(Length(lProjectFiles) > 0, 'Expected at least one maxTdb project file in: ' + aFixtureDir);
+  for lProjectFile in lProjectFiles do
+  begin
+    if SameText(TPath.GetFileName(lProjectFile), 'maxtdb.dproj') then
+      Exit(lProjectFile);
+  end;
+  Result := lProjectFiles[0];
+end;
+
+function TRemoveWithProprietaryProjectTests.IsIgnoredProjectArtifact(const aRelativePath: string): Boolean;
+var
+  lPath: string;
+begin
+  lPath := LowerCase(StringReplace(aRelativePath, '/', '\', [rfReplaceAll]));
+  Result := StartsText('.dak\', lPath) or ContainsText(lPath, '\.dak\') or StartsText('.git\', lPath) or
+    ContainsText(lPath, '\.git\') or StartsText('__history\', lPath) or ContainsText(lPath, '\__history\');
+end;
+
+function TRemoveWithProprietaryProjectTests.IsSourceSnapshotFile(const aPath: string): Boolean;
+var
+  lExt: string;
+begin
+  lExt := LowerCase(TPath.GetExtension(aPath));
+  Result := (lExt = '.pas') or (lExt = '.dpr') or (lExt = '.dpk') or (lExt = '.inc') or (lExt = '.dfm') or
+    (lExt = '.fmx') or (lExt = '.dproj') or (lExt = '.deployproj');
+end;
+
+function TRemoveWithProprietaryProjectTests.RunRemoveWithScan(const aDprojPath, aTargetDir, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --dir ' + QuoteArg(aTargetDir) +
+    ' --mode scan --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with maxTdb scan process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable maxTdb remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithProprietaryProjectTests.SnapshotSourceFiles(const aRootDir: string;
+  out aPaths: TArray<string>; out aBytes: TArray<TBytes>);
+var
+  lCount: Integer;
+  lFile: string;
+  lRelativePath: string;
+begin
+  SetLength(aPaths, 0);
+  SetLength(aBytes, 0);
+  lCount := 0;
+  for lFile in TDirectory.GetFiles(aRootDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(aRootDir) + 2, MaxInt);
+    if IsIgnoredProjectArtifact(lRelativePath) or not IsSourceSnapshotFile(lFile) then
+      Continue;
+
+    SetLength(aPaths, lCount + 1);
+    SetLength(aBytes, lCount + 1);
+    aPaths[lCount] := lFile;
+    aBytes[lCount] := TFile.ReadAllBytes(lFile);
+    Inc(lCount);
+  end;
+end;
+
+procedure TRemoveWithProprietaryProjectTests.ScanCloneOfMaxTdbWhenFixtureExists;
+var
+  lCloneBytes: TArray<TBytes>;
+  lCloneDir: string;
+  lClonePaths: TArray<string>;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lOriginalBytes: TArray<TBytes>;
+  lOriginalPaths: TArray<string>;
+  lRoot: TJSONObject;
+  lSourceDir: string;
+  lSummary: TJSONObject;
+  lTargetDir: string;
+  lWithStatements: TJSONArray;
+begin
+  lSourceDir := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
+  if not TDirectory.Exists(lSourceDir) then
+  begin
+    Assert.Pass('Optional proprietary maxTdb fixture is absent; no maxTdb remove-with check was run.');
+    Exit;
+  end;
+
+  SnapshotSourceFiles(lSourceDir, lOriginalPaths, lOriginalBytes);
+  Assert.IsTrue(Length(lOriginalPaths) > 0, 'Expected maxTdb source files to snapshot.');
+
+  CopyDirectoryToTemp(lSourceDir, 'remove-with-maxtdb-clone', lCloneDir);
+  lDprojPath := FindMaxTdbProject(lCloneDir);
+  lTargetDir := TPath.Combine(lCloneDir, 'src');
+  SnapshotSourceFiles(lCloneDir, lClonePaths, lCloneBytes);
+
+  lRoot := RunRemoveWithScan(lDprojPath, lTargetDir, 'remove-with-maxtdb-scan.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected maxTdb scan mode to succeed.');
+    Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok maxTdb scan status.');
+    Assert.AreEqual('scan', lRoot.Values['mode'].Value, 'Expected maxTdb dry-run scan mode.');
+    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    Assert.IsTrue((lSummary.Values['filesScanned'] as TJSONNumber).AsInt > 0,
+      'Expected maxTdb scan to scan project files.');
+    Assert.IsTrue((lSummary.Values['withStatements'] as TJSONNumber).AsInt > 0,
+      'Expected maxTdb scan to discover with statements.');
+    AssertJsonArrayKey(lRoot, 'withStatements', lWithStatements);
+    Assert.IsTrue(lWithStatements.Count > 0, 'Expected concrete maxTdb with statement records.');
+  finally
+    lRoot.Free;
+  end;
+
+  AssertSnapshotUnchanged(lOriginalPaths, lOriginalBytes,
+    'Original proprietary maxTdb fixture must never be edited.');
+  AssertSnapshotUnchanged(lClonePaths, lCloneBytes, 'Scan mode must leave cloned maxTdb sources unchanged.');
+end;
+
+procedure TRemoveWithProprietaryProjectTests.SymbolInventoryResolvesMaxTdbGlobalPointerArrayWhenFixtureExists;
+var
+  lCloneDir: string;
+  lDprojPath: string;
+  lError: string;
+  lInfo: TRemoveWithSelectorTypeInfo;
+  lInventory: TRemoveWithSymbolInventory;
+  lOptions: TAppOptions;
+  lSourceDir: string;
+  lSymbol: TRemoveWithSymbolInfo;
+  lFoundDatFile: Boolean;
+  lFoundDatFilePtr: Boolean;
+  lFoundDf: Boolean;
+begin
+  lSourceDir := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
+  if not TDirectory.Exists(lSourceDir) then
+  begin
+    Assert.Pass('Optional proprietary maxTdb fixture is absent; no maxTdb symbol inventory check was run.');
+    Exit;
+  end;
+
+  CopyDirectoryToTemp(lSourceDir, 'remove-with-maxtdb-symbols-clone', lCloneDir);
+  lDprojPath := FindMaxTdbProject(lCloneDir);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, lInventory, lError),
+    'Expected maxTdb symbol inventory build to succeed: ' + lError);
+
+  lFoundDatFile := False;
+  lFoundDatFilePtr := False;
+  lFoundDf := False;
+  for lSymbol in lInventory.fSymbols do
+  begin
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, 'DatFile') then
+      lFoundDatFile := True;
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, 'DatFilePtr') and
+      SameText(lSymbol.fTypeName, '^DatFile') then
+      lFoundDatFilePtr := True;
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskUnitGlobal) and SameText(lSymbol.fName, 'DF') and
+      SameText(lSymbol.fTypeName, 'array[1..cMaxFilesAllowed + 1] of DatFilePtr') then
+      lFoundDf := True;
+  end;
+
+  Assert.IsTrue(lFoundDatFile, 'Expected maxTdb DatFile record type to be indexed.');
+  Assert.IsTrue(lFoundDatFilePtr, 'Expected maxTdb DatFilePtr alias to be indexed.');
+  Assert.IsTrue(lFoundDf, 'Expected maxTdb DF global pointer array to be indexed.');
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, '', 'DF[d]^', lInfo),
+    'Expected maxTdb DF selector resolver to run.');
+  Assert.AreEqual('resolved', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
+    'Expected maxTdb DF selector status. Type=' + lInfo.fTypeName + ' Reason=' + lInfo.fReason);
+  Assert.AreEqual('DatFile', lInfo.fTypeName, 'Expected maxTdb DF selector receiver type.');
 end;
 
 end.

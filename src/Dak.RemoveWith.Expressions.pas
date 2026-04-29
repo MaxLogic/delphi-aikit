@@ -29,6 +29,7 @@ type
   TSelectorSegment = record
     fName: string;
     fDeref: Boolean;
+    fDerefBeforeIndex: Boolean;
     fIndexed: Boolean;
   end;
 
@@ -37,6 +38,8 @@ type
     class function BuiltInTypeName(const aTypeName: string): Boolean; static;
     class function CurrentOwnerType(const aRoutineName: string): string; static;
     class function DirectTypeName(const aTypeName: string): string; static;
+    class function ArrayElementTypeName(const aInventory: TRemoveWithSymbolInventory;
+      const aTypeName: string): string; static;
     class function ElementTypeName(const aTypeName: string): string; static;
     class function FindDirectMember(const aInventory: TRemoveWithSymbolInventory; const aOwnerType,
       aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
@@ -118,6 +121,7 @@ end;
 class function TRemoveWithExpressionResolver.ElementTypeName(const aTypeName: string): string;
 var
   lEndPos: Integer;
+  lOfPos: Integer;
   lStartPos: Integer;
   lText: string;
 begin
@@ -125,11 +129,39 @@ begin
   lText := Trim(aTypeName);
   if StartsText('array of ', LowerCase(lText)) then
     Exit(Trim(Copy(lText, Length('array of ') + 1, MaxInt)));
+  if StartsText('array[', LowerCase(lText)) or StartsText('array [', LowerCase(lText)) then
+  begin
+    lEndPos := Pos(']', lText);
+    if lEndPos > 0 then
+    begin
+      lOfPos := Pos(' of ', LowerCase(Copy(lText, lEndPos + 1, MaxInt)));
+      if lOfPos > 0 then
+        Exit(Trim(Copy(lText, lEndPos + lOfPos + Length(' of '), MaxInt)));
+    end;
+  end;
 
   lStartPos := Pos('<', lText);
   lEndPos := LastDelimiter('>', lText);
   if (lStartPos > 0) and (lEndPos > lStartPos) then
     Result := Trim(Copy(lText, lStartPos + 1, lEndPos - lStartPos - 1));
+end;
+
+class function TRemoveWithExpressionResolver.ArrayElementTypeName(const aInventory: TRemoveWithSymbolInventory;
+  const aTypeName: string): string;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+  lTypeName: string;
+begin
+  Result := ElementTypeName(aTypeName);
+  if Result <> '' then
+    Exit;
+
+  lTypeName := DirectTypeName(aTypeName);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName) then
+      Exit(ElementTypeName(lSymbol.fTypeName));
+  end;
 end;
 
 class function TRemoveWithExpressionResolver.FindDirectMember(const aInventory: TRemoveWithSymbolInventory;
@@ -254,6 +286,8 @@ end;
 class function TRemoveWithExpressionResolver.ParseSegment(const aText: string; out aSegment: TSelectorSegment): Boolean;
 var
   lBracketPos: Integer;
+  lCaretPos: Integer;
+  lNameEnd: Integer;
   lText: string;
 begin
   aSegment := Default(TSelectorSegment);
@@ -261,20 +295,17 @@ begin
   if lText = '' then
     Exit(False);
 
-  if EndsText('^', lText) then
-  begin
-    aSegment.fDeref := True;
-    Delete(lText, Length(lText), 1);
-  end;
-
+  lCaretPos := Pos('^', lText);
   lBracketPos := Pos('[', lText);
-  if lBracketPos > 0 then
-  begin
-    aSegment.fIndexed := True;
-    lText := Trim(Copy(lText, 1, lBracketPos - 1));
-  end;
+  lNameEnd := 1;
+  while (lNameEnd <= Length(lText)) and
+    (CharInSet(lText[lNameEnd], ['A'..'Z', 'a'..'z', '0'..'9', '_'])) do
+    Inc(lNameEnd);
 
-  aSegment.fName := lText;
+  aSegment.fName := Copy(lText, 1, lNameEnd - 1);
+  aSegment.fDeref := lCaretPos > 0;
+  aSegment.fDerefBeforeIndex := aSegment.fDeref and ((lBracketPos = 0) or (lCaretPos < lBracketPos));
+  aSegment.fIndexed := lBracketPos > 0;
   Result := aSegment.fName <> '';
 end;
 
@@ -432,11 +463,11 @@ begin
     lTypeName := lSymbol.fTypeName;
   end;
 
-  if lSegment.fDeref then
+  if lSegment.fDeref and lSegment.fDerefBeforeIndex then
     lTypeName := PointerTargetType(aInventory, lTypeName);
   if lSegment.fIndexed then
   begin
-    lIndexedTypeName := ElementTypeName(lTypeName);
+    lIndexedTypeName := ArrayElementTypeName(aInventory, lTypeName);
     if lIndexedTypeName <> '' then
       lTypeName := lIndexedTypeName
     else if FindDefaultProperty(aInventory, DirectTypeName(lTypeName), lSymbol) then
@@ -447,6 +478,8 @@ begin
     end else
       lTypeName := '';
   end;
+  if lSegment.fDeref and (not lSegment.fDerefBeforeIndex) then
+    lTypeName := PointerTargetType(aInventory, lTypeName);
   if UnsupportedSourceTypeReason(aInventory, lTypeName, lReason) then
   begin
     SetInfo(aInfo, aSelectorText, DirectTypeName(lTypeName), lReason,
@@ -484,11 +517,11 @@ begin
       Exit(True);
     end;
     lTypeName := lSymbol.fTypeName;
-    if lSegment.fDeref then
+    if lSegment.fDeref and lSegment.fDerefBeforeIndex then
       lTypeName := PointerTargetType(aInventory, lTypeName);
     if lSegment.fIndexed then
     begin
-      lIndexedTypeName := ElementTypeName(lTypeName);
+      lIndexedTypeName := ArrayElementTypeName(aInventory, lTypeName);
       if lIndexedTypeName <> '' then
         lTypeName := lIndexedTypeName
       else if FindDefaultProperty(aInventory, DirectTypeName(lTypeName), lSymbol) then
@@ -499,6 +532,8 @@ begin
       end else
         lTypeName := '';
     end;
+    if lSegment.fDeref and (not lSegment.fDerefBeforeIndex) then
+      lTypeName := PointerTargetType(aInventory, lTypeName);
     if UnsupportedSourceTypeReason(aInventory, lTypeName, lReason) then
     begin
       SetInfo(aInfo, aSelectorText, DirectTypeName(lTypeName), lReason,
