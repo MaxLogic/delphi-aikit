@@ -22,7 +22,6 @@ begin
   begin
     Name := 'rolled back';
   end;
-  DoesNotCompile;
 end;
 
 end.

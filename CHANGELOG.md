@@ -74,6 +74,7 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed `remove-with` planning for selector expressions that depend on earlier `with` selectors, and for identifiers ending in digits, so generated rewrites qualify those references instead of leaving undeclared names such as `fd`, `f1`, or `Code1`.
 - Fixed `remove-with` source inventory comment handling so ordinary `{...}` and `(*...*)` comments before type declarations no longer corrupt resolved owner type names, restoring selector resolution for cases such as maxTdb `DF[d]^`.
 - Fixed `remove-with` large-project planning throughput by building a resolver-scoped symbol name index and broadening safe known compiler/RTL calls such as `FillChar`, `Move`, `SizeOf`, and `Exit`.
 - Fixed `remove-with` plan-mode timeouts on large projects by indexing symbol de-duplication, current-class member expansion, and resolver lookup caches with case-insensitive dictionaries.

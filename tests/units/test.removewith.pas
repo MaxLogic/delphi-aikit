@@ -399,6 +399,7 @@ type
   private
     function CommandExePath: string;
     procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+    function ByteSequenceExists(const aBytes, aNeedle: TBytes): Boolean;
     procedure CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string; out aDprojPath,
       aUnitPath: string);
     function FindSingleManifest(const aProjectDir, aProjectName: string): string;
@@ -407,6 +408,10 @@ type
   public
     [Test]
     procedure ApplyModeBacksUpManifestsEditsAndBuildsFixture;
+    [Test]
+    procedure ApplyModeStopsBeforeEditingWhenPreflightBuildFails;
+    [Test]
+    procedure ApplyModePreservesAnsiEncodedSource;
     [Test]
     procedure ApplyModeRollsBackExactBytesWhenBuildVerificationFails;
     [Test]
@@ -3577,6 +3582,8 @@ procedure TRemoveWithRewriteShapeTests.MultipleSelectorsRewriteWithCompilerPrece
 var
   lBuildExitCode: Cardinal;
   lBuildOutput: string;
+  lDependentPlan: TJSONObject;
+  lDependentTemps: TJSONArray;
   lDprojPath: string;
   lExitCode: Cardinal;
   lPlan: TJSONObject;
@@ -3592,8 +3599,8 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected multiple-selector apply to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied multiple-selector status.');
-    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected one multiple-selector rewrite plan.');
+    Assert.AreEqual(2, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected independent and dependent multiple-selector rewrite plans.');
     lPlan := (lRoot.Values['plannedEdits'] as TJSONArray).Items[0] as TJSONObject;
     lTemps := lPlan.Values['temps'] as TJSONArray;
     Assert.AreEqual(2, lTemps.Count, 'Expected exactly two selector temps.');
@@ -3607,6 +3614,15 @@ begin
     Assert.AreEqual('lWithMultiRight := lPair.fRight;',
       (lTemps.Items[1] as TJSONObject).Values['initialization'].Value,
       'Expected one initialization for the later selector.');
+    lDependentPlan := (lRoot.Values['plannedEdits'] as TJSONArray).Items[1] as TJSONObject;
+    lDependentTemps := lDependentPlan.Values['temps'] as TJSONArray;
+    Assert.AreEqual(2, lDependentTemps.Count, 'Expected dependent selector temps.');
+    Assert.AreEqual('lWithMultiIndexRecordPtr := @lIndex;',
+      (lDependentTemps.Items[0] as TJSONObject).Values['initialization'].Value,
+      'Expected one initialization for the earlier record selector.');
+    Assert.AreEqual('lWithMultiRight := lItems[lWithMultiIndexRecordPtr^.Index];',
+      (lDependentTemps.Items[1] as TJSONObject).Values['initialization'].Value,
+      'Expected later selector initialization to qualify the earlier selector member.');
   finally
     lRoot.Free;
   end;
@@ -3620,10 +3636,20 @@ begin
     'Expected right selector to be captured exactly once.');
   Assert.IsTrue(Pos('lWithMultiRight.Common := ''right'';', lUnitText) > 0,
     'Expected later selector to win shared member lookup.');
+  Assert.IsTrue(Pos('lWithMultiRight.Code1 := ''right-code'';', lUnitText) > 0,
+    'Expected digit-suffixed member lookup to be qualified.');
   Assert.IsTrue(Pos('lWithMultiLeft.LeftOnly := ''left'';', lUnitText) > 0,
     'Expected earlier selector to qualify left-only member lookup.');
   Assert.IsTrue(Pos('lWithMultiRight.RightOnly := ''right-only'';', lUnitText) > 0,
     'Expected later selector to qualify right-only member lookup.');
+  Assert.IsTrue(Pos('with lIndex, lItems[Index] do', lUnitText) = 0,
+    'Expected dependent selector with statement to be removed.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, 'lWithMultiIndexRecordPtr := @lIndex;'),
+    'Expected dependent record selector to be captured exactly once.');
+  Assert.AreEqual(1, CountOccurrences(lUnitText, 'lWithMultiRight := lItems[lWithMultiIndexRecordPtr^.Index];'),
+    'Expected dependent class selector to be captured with qualified index exactly once.');
+  Assert.IsTrue(Pos('lWithMultiRight.RightOnly := ''dependent'';', lUnitText) > 0,
+    'Expected dependent selector body to qualify against the later selector.');
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-multiple-selectors-build.log', lBuildExitCode);
   Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited multiple-selector fixture to build. Output: ' +
@@ -4144,6 +4170,34 @@ begin
     Assert.AreEqual(aExpected[i], aActual[i], aMessage + ' Byte differs at index ' + i.ToString + '.');
 end;
 
+function TRemoveWithTransactionTests.ByteSequenceExists(const aBytes, aNeedle: TBytes): Boolean;
+var
+  i: Integer;
+  j: Integer;
+  lMatched: Boolean;
+begin
+  Result := False;
+  if Length(aNeedle) = 0 then
+    Exit(True);
+  if Length(aNeedle) > Length(aBytes) then
+    Exit(False);
+
+  for i := 0 to Length(aBytes) - Length(aNeedle) do
+  begin
+    lMatched := True;
+    for j := 0 to High(aNeedle) do
+    begin
+      if aBytes[i + j] <> aNeedle[j] then
+      begin
+        lMatched := False;
+        Break;
+      end;
+    end;
+    if lMatched then
+      Exit(True);
+  end;
+end;
+
 procedure TRemoveWithTransactionTests.CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string;
   out aDprojPath, aUnitPath: string);
 var
@@ -4284,6 +4338,136 @@ begin
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-apply-build.log', lBuildExitCode);
   Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited apply fixture to build. Output: ' + lBuildOutput);
+end;
+
+procedure TRemoveWithTransactionTests.ApplyModeStopsBeforeEditingWhenPreflightBuildFails;
+var
+  lDprojPath: string;
+  lDprPath: string;
+  lDprText: string;
+  lExitCode: Cardinal;
+  lOutput: string;
+  lOutputValue: TJSONValue;
+  lRoot: TJSONObject;
+  lSummary: TJSONObject;
+  lTransaction: TJSONObject;
+  lUnitOriginalBytes: TBytes;
+  lUnitPath: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-preflight-fails', 'ApplyUnit.pas',
+    lDprojPath, lUnitPath);
+  lUnitOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+
+  lDprPath := TPath.Combine(TPath.GetDirectoryName(lDprojPath), 'RemoveWithApplyFixture.dpr');
+  lDprText := TFile.ReadAllText(lDprPath, TEncoding.UTF8);
+  lDprText := StringReplace(lDprText, 'uses' + sLineBreak + '  ApplyUnit in ''ApplyUnit.pas'';',
+    'uses' + sLineBreak + '  MissingPreflightUnit in ''MissingPreflightUnit.pas'',' + sLineBreak +
+    '  ApplyUnit in ''ApplyUnit.pas'';', []);
+  TFile.WriteAllText(lDprPath, lDprText, TEncoding.UTF8);
+
+  lOutput := RunApplyFixture(lDprojPath, 'remove-with-apply-preflight-fails.json', lExitCode);
+  Assert.AreNotEqual(Cardinal(0), lExitCode, 'Expected apply mode to fail before edits. Output: ' + lOutput);
+  AssertBytesEqual(lUnitOriginalBytes, TFile.ReadAllBytes(lUnitPath),
+    'Preflight failure must not change the planned source file.');
+
+  lOutputValue := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lOutputValue is TJSONObject, 'Expected preflight output to be a single JSON object. Output: ' +
+      lOutput);
+    lRoot := lOutputValue as TJSONObject;
+    Assert.AreEqual('preflight-build-failed', lRoot.Values['status'].Value,
+      'Expected explicit preflight failure root status.');
+    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
+    Assert.AreEqual('preflight-build-failed', lTransaction.Values['status'].Value,
+      'Expected explicit preflight failure transaction status.');
+    Assert.AreEqual(0, (lTransaction.Values['files'] as TJSONArray).Count,
+      'Expected no transaction files because no edits were attempted.');
+    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    Assert.AreEqual(0, (lSummary.Values['appliedEdits'] as TJSONNumber).AsInt,
+      'Expected no applied edits on preflight failure.');
+    Assert.AreEqual(0, (lSummary.Values['rolledBack'] as TJSONNumber).AsInt,
+      'Expected no rollback because no file was changed.');
+  finally
+    lOutputValue.Free;
+  end;
+end;
+
+procedure TRemoveWithTransactionTests.ApplyModePreservesAnsiEncodedSource;
+var
+  lAnsiBytes: TBytes;
+  lAppliedBytes: TBytes;
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFiles: TJSONArray;
+  lManifest: TJSONObject;
+  lManifestPath: string;
+  lManifestValue: TJSONValue;
+  lMarker: string;
+  lMarkerBytes: TBytes;
+  lOutput: string;
+  lOutputValue: TJSONValue;
+  lProjectDir: string;
+  lText: string;
+  lUnitPath: string;
+  lUtf8MarkerBytes: TBytes;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-ansi-transaction', 'ApplyUnit.pas',
+    lDprojPath, lUnitPath);
+
+  lMarker := WideChar($00E4);
+  lText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  lText := StringReplace(lText, 'unit ApplyUnit;', 'unit ApplyUnit;' + sLineBreak +
+    '// ansi marker: ' + lMarker, []);
+  lMarkerBytes := TEncoding.Default.GetBytes(lMarker);
+  lUtf8MarkerBytes := TEncoding.UTF8.GetBytes(lMarker);
+  lAnsiBytes := TEncoding.Default.GetBytes(lText);
+  TFile.WriteAllBytes(lUnitPath, lAnsiBytes);
+  Assert.IsTrue(ByteSequenceExists(lAnsiBytes, lMarkerBytes), 'Expected fixture to contain local ANSI bytes.');
+
+  lOutput := RunApplyFixture(lDprojPath, 'remove-with-apply-ansi-transaction.json', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected ANSI apply mode to succeed. Output: ' + lOutput);
+  lOutputValue := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lOutputValue is TJSONObject, 'Expected apply output to be a single JSON object. Output: ' +
+      lOutput);
+    Assert.AreEqual('applied', (lOutputValue as TJSONObject).Values['status'].Value,
+      'Expected applied status in ANSI apply output.');
+  finally
+    lOutputValue.Free;
+  end;
+
+  lAppliedBytes := TFile.ReadAllBytes(lUnitPath);
+  Assert.IsTrue(ByteSequenceExists(lAppliedBytes, lMarkerBytes),
+    'Expected ANSI marker bytes to remain in the edited file.');
+  if not ByteSequenceExists(lMarkerBytes, lUtf8MarkerBytes) then
+    Assert.IsFalse(ByteSequenceExists(lAppliedBytes, lUtf8MarkerBytes),
+      'Expected edited ANSI file not to be rewritten as UTF-8.');
+
+  lText := TFile.ReadAllText(lUnitPath, TEncoding.Default);
+  Assert.IsTrue(Pos('with aRecordPtr^ do', lText) = 0, 'Expected with statement to be removed from ANSI file.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name := ''applied'';', lText) > 0,
+    'Expected ANSI file to contain direct pointer qualification.');
+  Assert.IsTrue(Pos('// ansi marker: ' + lMarker, lText) > 0, 'Expected ANSI marker comment to remain.');
+
+  lProjectDir := TPath.GetDirectoryName(lDprojPath);
+  lManifestPath := FindSingleManifest(lProjectDir, 'RemoveWithApplyFixture');
+  lManifestValue := TJSONObject.ParseJSONValue(TFile.ReadAllText(lManifestPath, TEncoding.UTF8));
+  try
+    Assert.IsTrue(lManifestValue is TJSONObject, 'Expected ANSI manifest JSON object.');
+    lManifest := lManifestValue as TJSONObject;
+    lFiles := lManifest.Values['files'] as TJSONArray;
+    Assert.AreEqual(1, lFiles.Count, 'Expected one backed up ANSI file.');
+    Assert.AreEqual('ansi', (lFiles.Items[0] as TJSONObject).Values['encoding'].Value,
+      'Expected manifest to report ANSI encoding.');
+  finally
+    lManifestValue.Free;
+  end;
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-apply-ansi-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited ANSI apply fixture to build. Output: ' +
+    lBuildOutput);
 end;
 
 procedure TRemoveWithTransactionTests.ApplyModeRollsBackExactBytesWhenBuildVerificationFails;
