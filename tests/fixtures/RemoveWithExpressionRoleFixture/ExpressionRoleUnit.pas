@@ -5,7 +5,6 @@ interface
 type
   TExpressionRoleItem = record
     Count: Integer;
-    ExpressionRoleSupportUnit: string;
     Name: string;
   end;
 

@@ -6,7 +6,8 @@ uses
   Dak.RemoveWith.Planner, Dak.Types;
 
 type
-  TRemoveWithTransactionStatus = (rwtxNotRun, rwtxApplied, rwtxRolledBack, rwtxRollbackFailed);
+  TRemoveWithTransactionStatus = (rwtxNotRun, rwtxApplied, rwtxPreflightBuildFailed, rwtxRolledBack,
+    rwtxRollbackFailed);
 
   TRemoveWithTransactionFile = record
     fPath: string;
@@ -43,15 +44,23 @@ uses
 const
   cRemoveWithFallbackDelphiVersion = '23.0';
   cBuildRequiresDelphiVersion = 'Delphi version is required';
+  cBuildVerificationMutexName = 'Local\DakRemoveWithBuildVerification';
+  cPreflightBuildFailed = 'preflight-build-failed';
+  cBuildEnvironmentVariableNames: array[0..5] of string = ('BDS', 'BDSLIB', 'DCC_Namespace',
+    'DCC_UnitSearchPath', 'DelphiLibraryPath', 'EnvOptions');
 
 type
+  TRemoveWithEnvironmentVariableState = record
+    fName: string;
+    fValue: string;
+    fExisted: Boolean;
+  end;
+
   TRemoveWithTransaction = record
   private
-    class function BytesToText(const aBytes: TBytes; const aHasUtf8Bom: Boolean): string; static;
     class function FileHash(const aBytes: TBytes): string; static;
     class function DetectEncoding(const aBytes: TBytes): string; static;
     class function DetectLineEnding(const aBytes: TBytes): string; static;
-    class function TextToBytes(const aText: string; const aHasUtf8Bom: Boolean): TBytes; static;
     class function FileAlreadyTracked(const aTransactionResult: TRemoveWithTransactionResult;
       const aPath: string): Boolean; static;
     class function HasPlannedEdits(const aPlanResult: TRemoveWithPlanResult): Boolean; static;
@@ -68,6 +77,11 @@ type
       var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
     class function WriteManifest(const aManifestPath: string;
       const aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
+    class function CaptureEnvironment: TArray<TRemoveWithEnvironmentVariableState>; static;
+    class procedure AddEnvironmentVariable(var aEnvironment: TArray<TRemoveWithEnvironmentVariableState>;
+      const aName, aValue: string); static;
+    class procedure RestoreEnvironment(const aEnvironment: TArray<TRemoveWithEnvironmentVariableState>); static;
+    class procedure RestoreEnvironmentVariable(const aName, aValue: string; const aExisted: Boolean); static;
     class procedure ClearInheritedBuildEnvironment; static;
     class function VerifyBuild(const aOptions: TAppOptions; const aProjectPath: string; out aError: string): Boolean;
       static;
@@ -82,6 +96,8 @@ begin
   case aStatus of
     TRemoveWithTransactionStatus.rwtxApplied:
       Result := 'applied';
+    TRemoveWithTransactionStatus.rwtxPreflightBuildFailed:
+      Result := cPreflightBuildFailed;
     TRemoveWithTransactionStatus.rwtxRolledBack:
       Result := 'rolledBack';
     TRemoveWithTransactionStatus.rwtxRollbackFailed:
@@ -89,16 +105,6 @@ begin
   else
     Result := 'not-run';
   end;
-end;
-
-class function TRemoveWithTransaction.BytesToText(const aBytes: TBytes; const aHasUtf8Bom: Boolean): string;
-var
-  lOffset: Integer;
-begin
-  lOffset := 0;
-  if aHasUtf8Bom then
-    lOffset := 3;
-  Result := TEncoding.UTF8.GetString(aBytes, lOffset, Length(aBytes) - lOffset);
 end;
 
 class function TRemoveWithTransaction.FileHash(const aBytes: TBytes): string;
@@ -114,9 +120,14 @@ end;
 class function TRemoveWithTransaction.DetectEncoding(const aBytes: TBytes): string;
 begin
   if (Length(aBytes) >= 3) and (aBytes[0] = $EF) and (aBytes[1] = $BB) and (aBytes[2] = $BF) then
-    Result := 'utf-8-bom'
-  else
-    Result := 'utf-8';
+    Exit(RemoveWithSourceEncodingToText(TRemoveWithSourceEncoding.rwseUtf8, True));
+  try
+    TEncoding.UTF8.GetString(aBytes);
+    Result := RemoveWithSourceEncodingToText(TRemoveWithSourceEncoding.rwseUtf8, False);
+  except
+    on E: EEncodingError do
+      Result := RemoveWithSourceEncodingToText(TRemoveWithSourceEncoding.rwseAnsi, False);
+  end;
 end;
 
 class function TRemoveWithTransaction.DetectLineEnding(const aBytes: TBytes): string;
@@ -148,21 +159,6 @@ begin
     Result := 'lf'
   else
     Result := 'none';
-end;
-
-class function TRemoveWithTransaction.TextToBytes(const aText: string; const aHasUtf8Bom: Boolean): TBytes;
-var
-  lBody: TBytes;
-begin
-  lBody := TEncoding.UTF8.GetBytes(aText);
-  if not aHasUtf8Bom then
-    Exit(lBody);
-  SetLength(Result, Length(lBody) + 3);
-  Result[0] := $EF;
-  Result[1] := $BB;
-  Result[2] := $BF;
-  if Length(lBody) > 0 then
-    Move(lBody[0], Result[3], Length(lBody));
 end;
 
 class function TRemoveWithTransaction.FileAlreadyTracked(
@@ -294,11 +290,9 @@ end;
 class function TRemoveWithTransaction.ApplyFileEdits(const aPath: string;
   const aEdits: TArray<TRemoveWithPlannedTextEdit>; out aError: string): Boolean;
 var
-  lBytes: TBytes;
   lEdits: TArray<TRemoveWithPlannedTextEdit>;
   lEdit: TRemoveWithPlannedTextEdit;
   lEndOffset: Integer;
-  lHasBom: Boolean;
   lSource: TRemoveWithSourceBuffer;
   lStartOffset: Integer;
   lText: string;
@@ -306,14 +300,9 @@ begin
   Result := False;
   aError := '';
   try
-    lBytes := TFile.ReadAllBytes(aPath);
-    lHasBom := DetectEncoding(lBytes) = 'utf-8-bom';
-    lText := BytesToText(lBytes, lHasBom);
-    lSource := Default(TRemoveWithSourceBuffer);
-    lSource.fPath := aPath;
-    lSource.fText := lText;
     if not LoadRemoveWithSource(aPath, lSource, aError) then
       Exit(False);
+    lText := lSource.fText;
     lEdits := Copy(aEdits);
     SortEditsDescending(lEdits);
     for lEdit in lEdits do
@@ -337,7 +326,7 @@ begin
         Insert(lEdit.fReplacementText, lText, lStartOffset);
       end;
     end;
-    TFile.WriteAllBytes(aPath, TextToBytes(lText, lHasBom));
+    TFile.WriteAllBytes(aPath, RemoveWithTextToBytes(lText, lSource.fEncoding, lSource.fHasUtf8Bom));
     Result := True;
   except
     on E: Exception do
@@ -422,21 +411,93 @@ begin
   lRoot.Free;
 end;
 
-class procedure TRemoveWithTransaction.ClearInheritedBuildEnvironment;
+class procedure TRemoveWithTransaction.AddEnvironmentVariable(
+  var aEnvironment: TArray<TRemoveWithEnvironmentVariableState>; const aName, aValue: string);
+var
+  lIndex: Integer;
 begin
-  Winapi.Windows.SetEnvironmentVariable(PChar('BDS'), nil);
-  Winapi.Windows.SetEnvironmentVariable(PChar('BDSLIB'), nil);
-  Winapi.Windows.SetEnvironmentVariable(PChar('DCC_Namespace'), nil);
-  Winapi.Windows.SetEnvironmentVariable(PChar('DCC_UnitSearchPath'), nil);
-  Winapi.Windows.SetEnvironmentVariable(PChar('DelphiLibraryPath'), nil);
-  Winapi.Windows.SetEnvironmentVariable(PChar('EnvOptions'), nil);
+  lIndex := Length(aEnvironment);
+  SetLength(aEnvironment, lIndex + 1);
+  aEnvironment[lIndex].fName := aName;
+  aEnvironment[lIndex].fValue := aValue;
+  aEnvironment[lIndex].fExisted := True;
+end;
+
+class function TRemoveWithTransaction.CaptureEnvironment: TArray<TRemoveWithEnvironmentVariableState>;
+var
+  lBlock: PChar;
+  lCursor: PChar;
+  lLine: string;
+  lName: string;
+  lPos: Integer;
+  lValue: string;
+begin
+  Result := nil;
+  lBlock := Winapi.Windows.GetEnvironmentStrings;
+  if lBlock = nil then
+    Exit;
+
+  try
+    lCursor := lBlock;
+    while lCursor^ <> #0 do
+    begin
+      lLine := string(lCursor);
+      if (lLine <> '') and (lLine[1] <> '=') then
+      begin
+        lPos := Pos('=', lLine);
+        if lPos > 1 then
+        begin
+          lName := Copy(lLine, 1, lPos - 1);
+          lValue := Copy(lLine, lPos + 1, MaxInt);
+          AddEnvironmentVariable(Result, lName, lValue);
+        end;
+      end;
+      Inc(lCursor, StrLen(lCursor) + 1);
+    end;
+  finally
+    Winapi.Windows.FreeEnvironmentStrings(lBlock);
+  end;
+end;
+
+class procedure TRemoveWithTransaction.RestoreEnvironmentVariable(const aName, aValue: string;
+  const aExisted: Boolean);
+begin
+  if aExisted then
+    Winapi.Windows.SetEnvironmentVariable(PChar(aName), PChar(aValue))
+  else
+    Winapi.Windows.SetEnvironmentVariable(PChar(aName), nil);
+end;
+
+class procedure TRemoveWithTransaction.RestoreEnvironment(
+  const aEnvironment: TArray<TRemoveWithEnvironmentVariableState>);
+var
+  lCurrent: TArray<TRemoveWithEnvironmentVariableState>;
+  lState: TRemoveWithEnvironmentVariableState;
+begin
+  lCurrent := CaptureEnvironment;
+  for lState in lCurrent do
+    RestoreEnvironmentVariable(lState.fName, '', False);
+  for lState in aEnvironment do
+    RestoreEnvironmentVariable(lState.fName, lState.fValue, True);
+end;
+
+class procedure TRemoveWithTransaction.ClearInheritedBuildEnvironment;
+var
+  lName: string;
+begin
+  for lName in cBuildEnvironmentVariableNames do
+    Winapi.Windows.SetEnvironmentVariable(PChar(lName), nil);
 end;
 
 class function TRemoveWithTransaction.VerifyBuild(const aOptions: TAppOptions; const aProjectPath: string;
   out aError: string): Boolean;
 var
   lBuildOptions: TAppOptions;
+  lEnvironment: TArray<TRemoveWithEnvironmentVariableState>;
   lExitCode: Integer;
+  lMutex: THandle;
+  lMutexAcquired: Boolean;
+  lWaitResult: DWORD;
 begin
   lBuildOptions := aOptions;
   lBuildOptions.fDprojPath := aProjectPath;
@@ -447,22 +508,42 @@ begin
   lBuildOptions.fBuildQuiet := True;
   lBuildOptions.fBuildAi := False;
   lBuildOptions.fVerbose := False;
-  ClearInheritedBuildEnvironment;
-  Result := TryRunBuildInternal(lBuildOptions, lExitCode, aError) and (lExitCode = 0);
-  if (not Result) and (Trim(lBuildOptions.fDelphiVersion) = '') and
-    (Pos(cBuildRequiresDelphiVersion, aError) > 0) then
-  begin
-    lBuildOptions.fDelphiVersion := cRemoveWithFallbackDelphiVersion;
-    aError := '';
+
+  lEnvironment := CaptureEnvironment;
+  lMutex := Winapi.Windows.CreateMutex(nil, False, PChar(cBuildVerificationMutexName));
+  lMutexAcquired := False;
+  try
+    if lMutex <> 0 then
+    begin
+      lWaitResult := Winapi.Windows.WaitForSingleObject(lMutex, Winapi.Windows.INFINITE);
+      lMutexAcquired := lWaitResult in [Winapi.Windows.WAIT_OBJECT_0, Winapi.Windows.WAIT_ABANDONED];
+    end;
+
+    ClearInheritedBuildEnvironment;
     Result := TryRunBuildInternal(lBuildOptions, lExitCode, aError) and (lExitCode = 0);
+    if (not Result) and (Trim(lBuildOptions.fDelphiVersion) = '') and
+      (Pos(cBuildRequiresDelphiVersion, aError) > 0) then
+    begin
+      lBuildOptions.fDelphiVersion := cRemoveWithFallbackDelphiVersion;
+      aError := '';
+      Result := TryRunBuildInternal(lBuildOptions, lExitCode, aError) and (lExitCode = 0);
+    end;
+    if (not Result) and (aError = '') then
+      aError := 'build-verification-failed';
+  finally
+    if lMutexAcquired then
+      Winapi.Windows.ReleaseMutex(lMutex);
+    if lMutex <> 0 then
+      Winapi.Windows.CloseHandle(lMutex);
+    RestoreEnvironment(lEnvironment);
   end;
-  if (not Result) and (aError = '') then
-    aError := 'build-verification-failed';
 end;
 
 class function TRemoveWithTransaction.Apply(const aOptions: TAppOptions; const aProjectPath,
   aWorkspaceRoot: string; const aPlanResult: TRemoveWithPlanResult;
   out aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean;
+var
+  lManifestError: string;
 begin
   aTransactionResult := Default(TRemoveWithTransactionResult);
   aTransactionResult.fBackupRoot := TPath.Combine(aWorkspaceRoot, 'backup');
@@ -475,6 +556,20 @@ begin
   begin
     aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxApplied;
     Exit(WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, aError));
+  end;
+
+  if not VerifyBuild(aOptions, aProjectPath, aError) then
+  begin
+    if aError <> '' then
+      aError := cPreflightBuildFailed + ': ' + aError
+    else
+      aError := cPreflightBuildFailed;
+    aTransactionResult.fError := aError;
+    aTransactionResult.fVerificationStatus := 'failed';
+    aTransactionResult.fVerificationError := aError;
+    aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxPreflightBuildFailed;
+    WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, lManifestError);
+    Exit(False);
   end;
 
   if ApplyEdits(aPlanResult, aTransactionResult, aError) then

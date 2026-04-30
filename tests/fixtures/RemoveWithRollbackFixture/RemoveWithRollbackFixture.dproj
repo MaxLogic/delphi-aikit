@@ -41,4 +41,11 @@
     <ProjectFileVersion>12</ProjectFileVersion>
   </ProjectExtensions>
   <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+  <Target Name="FailAfterRemoveWithRewrite" BeforeTargets="_PasCoreCompile">
+    <Exec Command="findstr /C:&quot;with aRecordPtr&quot; RollbackUnit.pas &gt;nul" IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="RollbackFixtureWithExitCode"/>
+    </Exec>
+    <Error Condition="'$(RollbackFixtureWithExitCode)'!='0'"
+      Text="Intentional rollback fixture failure after remove-with rewrites RollbackUnit.pas."/>
+  </Target>
 </Project>

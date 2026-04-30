@@ -6,14 +6,21 @@ uses
   System.SysUtils;
 
 type
+  TRemoveWithSourceEncoding = (rwseUtf8, rwseAnsi);
+
   TRemoveWithSourceBuffer = record
     fPath: string;
     fText: string;
+    fEncoding: TRemoveWithSourceEncoding;
     fHasUtf8Bom: Boolean;
     fLineStarts: TArray<Integer>;
   end;
 
 function LoadRemoveWithSource(const aPath: string; out aSource: TRemoveWithSourceBuffer; out aError: string): Boolean;
+function RemoveWithSourceEncodingToText(const aEncoding: TRemoveWithSourceEncoding;
+  const aHasUtf8Bom: Boolean): string;
+function RemoveWithTextToBytes(const aText: string; const aEncoding: TRemoveWithSourceEncoding;
+  const aHasUtf8Bom: Boolean): TBytes;
 function RemoveWithOffsetForLineColumn(const aSource: TRemoveWithSourceBuffer; const aLine,
   aColumn: Integer; out aOffset: Integer): Boolean;
 function RemoveWithLineColumnForOffset(const aSource: TRemoveWithSourceBuffer; const aOffset: Integer;
@@ -58,6 +65,7 @@ end;
 
 function LoadRemoveWithSource(const aPath: string; out aSource: TRemoveWithSourceBuffer; out aError: string): Boolean;
 var
+  lBodyLength: Integer;
   lBytes: TBytes;
   lOffset: Integer;
 begin
@@ -73,11 +81,16 @@ begin
       lOffset := 3;
 
     aSource.fPath := aPath;
+    lBodyLength := Length(lBytes) - lOffset;
     try
-      aSource.fText := TEncoding.UTF8.GetString(lBytes, lOffset, Length(lBytes) - lOffset);
+      aSource.fText := TEncoding.UTF8.GetString(lBytes, lOffset, lBodyLength);
+      aSource.fEncoding := TRemoveWithSourceEncoding.rwseUtf8;
     except
       on E: EEncodingError do
-        aSource.fText := TEncoding.Default.GetString(lBytes, lOffset, Length(lBytes) - lOffset);
+      begin
+        aSource.fText := TEncoding.Default.GetString(lBytes, lOffset, lBodyLength);
+        aSource.fEncoding := TRemoveWithSourceEncoding.rwseAnsi;
+      end;
     end;
     BuildLineStarts(aSource);
     Result := True;
@@ -85,6 +98,35 @@ begin
     on E: Exception do
       aError := E.Message;
   end;
+end;
+
+function RemoveWithSourceEncodingToText(const aEncoding: TRemoveWithSourceEncoding;
+  const aHasUtf8Bom: Boolean): string;
+begin
+  if aEncoding = TRemoveWithSourceEncoding.rwseAnsi then
+    Exit('ansi');
+  if aHasUtf8Bom then
+    Exit('utf-8-bom');
+  Result := 'utf-8';
+end;
+
+function RemoveWithTextToBytes(const aText: string; const aEncoding: TRemoveWithSourceEncoding;
+  const aHasUtf8Bom: Boolean): TBytes;
+var
+  lBody: TBytes;
+begin
+  if aEncoding = TRemoveWithSourceEncoding.rwseAnsi then
+    Exit(TEncoding.Default.GetBytes(aText));
+
+  lBody := TEncoding.UTF8.GetBytes(aText);
+  if not aHasUtf8Bom then
+    Exit(lBody);
+  SetLength(Result, Length(lBody) + 3);
+  Result[0] := $EF;
+  Result[1] := $BB;
+  Result[2] := $BF;
+  if Length(lBody) > 0 then
+    Move(lBody[0], Result[3], Length(lBody));
 end;
 
 function RemoveWithOffsetForLineColumn(const aSource: TRemoveWithSourceBuffer; const aLine,

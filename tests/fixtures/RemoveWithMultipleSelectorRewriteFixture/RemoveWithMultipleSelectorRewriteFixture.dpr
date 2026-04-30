@@ -5,4 +5,5 @@ uses
 
 begin
   TMultiPair.Run;
+  TMultiPair.RunDependentSelector;
 end.
