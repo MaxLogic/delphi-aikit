@@ -13,6 +13,21 @@ uses
 
 type
   [TestFixture]
+  TSymbolMapContextTests = class
+  private
+    function FixtureProjectPath: string;
+  public
+    [Test]
+    procedure ResolvesProjectAndProjectCacheRoot;
+    [Test]
+    procedure CacheRootOptionOverridesCentralRoot;
+    [Test]
+    procedure CacheRootEnvironmentOverridesCentralRoot;
+    [Test]
+    procedure StatsJsonReportsCacheRoots;
+  end;
+
+  [TestFixture]
   TSymbolMapCliTests = class
   private
     procedure SetParams(const aCmdLine: string);
@@ -30,6 +45,128 @@ type
   end;
 
 implementation
+
+uses
+  Winapi.Windows,
+  Dak.SymbolMap.Context;
+
+function TSymbolMapContextTests.FixtureProjectPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspProjectFixture\LspProjectFixture.dproj');
+end;
+
+procedure TSymbolMapContextTests.ResolvesProjectAndProjectCacheRoot;
+var
+  lContext: TSymbolMapContext;
+  lError: string;
+  lOptions: TAppOptions;
+  lProjectDir: string;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23';
+
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, lContext, lError), 'Expected context to resolve. Error: ' + lError);
+  lProjectDir := TPath.GetDirectoryName(FixtureProjectPath);
+  Assert.AreEqual(TPath.GetFullPath(FixtureProjectPath), lContext.fProject.fProjectPath);
+  Assert.AreEqual('LspProjectFixture', lContext.fProject.fProjectName);
+  Assert.AreEqual('23.0', lContext.fDelphiVersion);
+  Assert.AreEqual(TPath.Combine(TPath.Combine(TPath.Combine(lProjectDir, '.dak'), 'LspProjectFixture'), 'symbol-map'),
+    lContext.fProjectCacheRoot);
+  Assert.IsTrue(Pos('symbol-map', LowerCase(lContext.fCentralCacheRoot)) > 0,
+    'Expected default central cache root to include symbol-map. Actual: ' + lContext.fCentralCacheRoot);
+end;
+
+procedure TSymbolMapContextTests.CacheRootOptionOverridesCentralRoot;
+var
+  lContext: TSymbolMapContext;
+  lError: string;
+  lOptions: TAppOptions;
+  lRoot: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'symbol-map-cache-option');
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fSymbolMapCacheRoot := lRoot;
+  lOptions.fHasSymbolMapCacheRoot := True;
+
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, lContext, lError), 'Expected context to resolve. Error: ' + lError);
+  Assert.AreEqual(TPath.GetFullPath(lRoot), lContext.fCentralCacheRoot);
+end;
+
+procedure TSymbolMapContextTests.CacheRootEnvironmentOverridesCentralRoot;
+var
+  lContext: TSymbolMapContext;
+  lError: string;
+  lOldRoot: string;
+  lOptions: TAppOptions;
+  lRoot: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'symbol-map-cache-env');
+  lOldRoot := GetEnvironmentVariable('DAK_SYMBOL_MAP_CACHE_ROOT');
+  SetEnvironmentVariable('DAK_SYMBOL_MAP_CACHE_ROOT', PChar(lRoot));
+  try
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := FixtureProjectPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+
+    Assert.IsTrue(TryBuildSymbolMapContext(lOptions, lContext, lError), 'Expected context to resolve. Error: ' + lError);
+    Assert.AreEqual(TPath.GetFullPath(lRoot), lContext.fCentralCacheRoot);
+  finally
+    if lOldRoot = '' then
+      SetEnvironmentVariable('DAK_SYMBOL_MAP_CACHE_ROOT', nil)
+    else
+      SetEnvironmentVariable('DAK_SYMBOL_MAP_CACHE_ROOT', PChar(lOldRoot));
+  end;
+end;
+
+procedure TSymbolMapContextTests.StatsJsonReportsCacheRoots;
+var
+  lArgs: string;
+  lCacheRoot: string;
+  lContext: TJSONObject;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLogPath: string;
+  lLogText: string;
+begin
+  EnsureResolverBuilt;
+  lCacheRoot := TPath.Combine(TempRoot, 'symbol-map-cache-cli');
+  lLogPath := TPath.Combine(TempRoot, 'symbol-map-stats-context-json.log');
+  lArgs := 'symbol-map stats --project ' + QuoteArg(FixtureProjectPath) + ' --cache-root ' + QuoteArg(lCacheRoot) +
+    ' --format json';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start symbol-map stats command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map stats to succeed. See: ' + lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath);
+  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lJsonValue);
+    Assert.AreEqual(TPath.GetFullPath(lCacheRoot), (lJson.GetValue('cache') as TJSONObject).GetValue<string>('centralRoot'));
+    Assert.IsTrue(Pos('\.dak\LspProjectFixture\symbol-map',
+      (lJson.GetValue('cache') as TJSONObject).GetValue<string>('projectRoot')) > 0,
+      'Expected project symbol-map cache root. Actual: ' + lLogText);
+    Assert.AreEqual('Release', (lJson.GetValue('project') as TJSONObject).GetValue<string>('config'));
+    Assert.AreEqual('Win32', (lJson.GetValue('project') as TJSONObject).GetValue<string>('platform'));
+    lContext := lJson.GetValue('context') as TJSONObject;
+    Assert.IsTrue(lContext.GetValue('defines') is TJSONArray, 'Expected defines array.');
+    Assert.IsTrue(lContext.GetValue('unitSearchPath') is TJSONArray, 'Expected unitSearchPath array.');
+    Assert.IsTrue(lContext.GetValue('libraryPath') is TJSONArray, 'Expected libraryPath array.');
+    Assert.IsTrue(lContext.GetValue('unitScopes') is TJSONArray, 'Expected unitScopes array.');
+    Assert.IsTrue(lContext.GetValue('unitAliases') is TJSONArray, 'Expected unitAliases array.');
+  finally
+    lJsonValue.Free;
+  end;
+end;
 
 procedure TSymbolMapCliTests.SetParams(const aCmdLine: string);
 var
@@ -221,6 +358,7 @@ begin
 end;
 
 initialization
+  TDUnitX.RegisterTestFixture(TSymbolMapContextTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCliTests);
 
 end.
