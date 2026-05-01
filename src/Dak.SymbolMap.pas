@@ -11,7 +11,7 @@ implementation
 
 uses
   System.SysUtils,
-  Dak.ExitCodes, Dak.SymbolMap.Context;
+  Dak.ExitCodes, Dak.SymbolMap.Cache, Dak.SymbolMap.Context;
 
 function SymbolMapOperationToText(const aOperation: TSymbolMapOperation): string;
 begin
@@ -80,7 +80,8 @@ begin
   Result := Result + ']';
 end;
 
-procedure WriteSymbolMapJsonShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext);
+procedure WriteSymbolMapJsonShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
+  const aCacheStatus: TSymbolMapCacheStatus);
 var
   lOperation: string;
 begin
@@ -93,7 +94,11 @@ begin
       '","mainSource":"' + JsonEscape(aContext.fProject.fMainSourcePath) + '","platform":"' +
       JsonEscape(aContext.fPlatform) + '","config":"' + JsonEscape(aContext.fConfig) + '"}' +
     ',"cache":{"centralRoot":"' + JsonEscape(aContext.fCentralCacheRoot) + '","projectRoot":"' +
-      JsonEscape(aContext.fProjectCacheRoot) + '"}' +
+      JsonEscape(aContext.fProjectCacheRoot) + '","centralDbPath":"' + JsonEscape(aCacheStatus.fCentralDbPath) +
+      '","projectDbPath":"' + JsonEscape(aCacheStatus.fProjectDbPath) + '","schemaVersion":' +
+      aCacheStatus.fSchemaVersion.ToString + ',"centralCreated":' +
+      LowerCase(BoolToStr(aCacheStatus.fCentralCreated, True)) + ',"projectCreated":' +
+      LowerCase(BoolToStr(aCacheStatus.fProjectCreated, True)) + '}' +
     ',"context":{"delphiVersion":"' + JsonEscape(aContext.fDelphiVersion) + '","hasDelphiContext":' +
       LowerCase(BoolToStr(aContext.fProject.fHasDelphiContext, True)) + ',"parserDefines":"' +
       JsonEscape(aContext.fProject.fParserDefines) + '","parserSearchPath":"' +
@@ -108,16 +113,21 @@ begin
     ',"timings":{"totalMs":0}}');
 end;
 
-procedure WriteSymbolMapTextShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext);
+procedure WriteSymbolMapTextShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
+  const aCacheStatus: TSymbolMapCacheStatus);
 begin
   WriteLn('symbol-map ', SymbolMapOperationToText(aOptions.fSymbolMapOperation), ': ok');
   WriteLn('project: ', aContext.fProject.fProjectPath);
   WriteLn('central-cache-root: ', aContext.fCentralCacheRoot);
   WriteLn('project-cache-root: ', aContext.fProjectCacheRoot);
+  WriteLn('central-cache-db: ', aCacheStatus.fCentralDbPath);
+  WriteLn('project-cache-db: ', aCacheStatus.fProjectDbPath);
+  WriteLn('schema-version: ', aCacheStatus.fSchemaVersion);
 end;
 
 function RunSymbolMapCommand(const aOptions: TAppOptions): Integer;
 var
+  lCacheStatus: TSymbolMapCacheStatus;
   lContext: TSymbolMapContext;
   lError: string;
 begin
@@ -126,11 +136,16 @@ begin
     WriteLn(ErrOutput, lError);
     Exit(cExitInvalidProjectInput);
   end;
+  if not EnsureSymbolMapCaches(lContext, lCacheStatus, lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(cExitToolFailure);
+  end;
 
   if aOptions.fSymbolMapFormat = TSymbolMapFormat.smfText then
-    WriteSymbolMapTextShell(aOptions, lContext)
+    WriteSymbolMapTextShell(aOptions, lContext, lCacheStatus)
   else
-    WriteSymbolMapJsonShell(aOptions, lContext);
+    WriteSymbolMapJsonShell(aOptions, lContext, lCacheStatus);
 
   Result := cExitSuccess;
 end;

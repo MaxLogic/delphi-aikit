@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added Symbol Map SQLite cache initialization for central and project caches, including schema version reporting, created/reused flags, unsupported-version protection, and process-level central-cache serialization. (T-187)
 - Added Symbol Map project-context and cache-root reporting, including `.dak/<ProjectName>/symbol-map` project roots, central cache-root overrides, and compiler-context fields in `symbol-map stats` JSON. (T-186)
 - Added the initial `symbol-map` CLI shell with `index`, `find-definition`, `find-references`, `search-symbols`, `describe-symbol`, and `stats` operations, command help, validation, and stable JSON/text shell output. (T-185)
 - Added dictionary-backed `remove-with` semantic indexes for units, types, members, routines, scoped symbols, helpers, aliases, pointer aliases, array aliases, inheritance, and default/indexed properties, including coverage for pointer-alias syntax and non-array generic aliases. (T-173)
