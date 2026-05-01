@@ -177,6 +177,8 @@ type
   private
     procedure BuildSourceModelFixture(out aInventory: TRemoveWithSymbolInventory);
     function DescribeSymbols(const aInventory: TRemoveWithSymbolInventory): string;
+    function CountSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): Integer;
     function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string;
       out aSymbol: TRemoveWithSymbolInfo): Boolean;
@@ -372,7 +374,7 @@ type
     [Test]
     procedure NestedWithBodiesRewriteByScopeStack;
     [Test]
-    procedure ControlledNestedWithStatementsRemainSkipped;
+    procedure ControlledNestedWithStatementsRewriteInnerSafely;
     [Test]
     procedure NestedMultipleSelectorsRewriteOrBlockPrecisely;
     [Test]
@@ -497,6 +499,98 @@ type
   public
     [Test]
     procedure ApplyPreservesKnownExternalCallsAndSkipsUnknownCalls;
+  end;
+
+  [TestFixture]
+  TRemoveWithIntrinsicSymbolTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertClassification(const aClassifications: TJSONArray; const aIdentifier, aStatus,
+      aResolutionKind, aReason: string);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure PlanPreservesModeledIntrinsicsAndBlocksUnknownCalls;
+  end;
+
+  [TestFixture]
+  TRemoveWithControlCharacterLiteralTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertNoClassification(const aClassifications: TJSONArray; const aIdentifier: string);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure PlanIgnoresControlCharacterLiteralsAndKeepsPointerSyntax;
+  end;
+
+  [TestFixture]
+  TRemoveWithImplementationGlobalTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertClassification(const aClassifications: TJSONArray; const aIdentifier, aStatus,
+      aResolutionKind, aReason: string);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure PlanResolvesGlobalsDeclaredAfterImplementationRoutines;
+  end;
+
+  [TestFixture]
+  TRemoveWithNestedRoutineScopeTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertClassification(const aClassifications: TJSONArray; const aIdentifier, aStatus,
+      aResolutionKind, aReason: string);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure PlanResolvesOuterRoutineSymbolsCapturedByNestedRoutine;
+  end;
+
+  [TestFixture]
+  TRemoveWithEnumConstTypeAliasTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure AssertClassification(const aClassifications: TJSONArray; const aIdentifier, aStatus,
+      aResolutionKind, aReason: string);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure PlanResolvesEnumConstantsTypedConstantsAndAliases;
+  end;
+
+  [TestFixture]
+  TRemoveWithConditionalDirectiveTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure PlanIgnoresInactiveConditionalBranches;
+  end;
+
+  [TestFixture]
+  TRemoveWithUnresolvedReasonReportTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure PlanReportsDetailedUnresolvedReasonBuckets;
   end;
 
   [TestFixture]
@@ -2108,6 +2202,21 @@ begin
       lSymbol.fOwnerType, lSymbol.fTypeName]);
 end;
 
+function TRemoveWithSourceModelGoldenTests.CountSymbols(const aInventory: TRemoveWithSymbolInventory;
+  const aName: string; const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): Integer;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := 0;
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameText(lSymbol.fName, aName) and (lSymbol.fKind = aKind) and
+      ((aOwnerType = '') or SameText(lSymbol.fOwnerType, aOwnerType)) and
+      ((aRoutineName = '') or SameText(lSymbol.fRoutineName, aRoutineName)) then
+      Inc(Result);
+  end;
+end;
+
 procedure TRemoveWithSourceModelGoldenTests.AssertSelector(const aInventory: TRemoveWithSymbolInventory;
   const aSelectorText, aTypeName: string);
 var
@@ -2145,11 +2254,38 @@ end;
 procedure TRemoveWithSourceModelGoldenTests.RecordsAndClassesExposeExpectedSourceModel;
 var
   lInventory: TRemoveWithSymbolInventory;
+  lSymbol: TRemoveWithSymbolInfo;
 begin
   BuildSourceModelFixture(lInventory);
 
   AssertSymbol(lInventory, 'TGoldenChild', TRemoveWithSymbolKind.rwskTypeMember, '', '', '', 'TGoldenChild = record');
+  AssertSymbol(lInventory, 'TGoldenVariant', TRemoveWithSymbolKind.rwskTypeMember, '', '', '',
+    'TGoldenVariant = record');
+  AssertSymbol(lInventory, 'TGoldenDefaultList', TRemoveWithSymbolKind.rwskTypeMember, '', '', '',
+    'TGoldenDefaultList = class');
   AssertSymbol(lInventory, 'TGoldenRecord', TRemoveWithSymbolKind.rwskTypeMember, '', '', '', 'TGoldenRecord = record');
+  AssertSymbol(lInventory, 'Mode', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', '', 'Integer',
+    'case Mode: Integer of');
+  AssertSymbol(lInventory, 'MultiA', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', '', 'Integer',
+    'MultiA,');
+  AssertSymbol(lInventory, 'MultiB', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', '', 'Integer',
+    'MultiA,');
+  Assert.AreEqual(1, CountSymbols(lInventory, 'MultiB', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', ''),
+    'Expected multiline continuation fields to be indexed once.');
+  AssertSymbol(lInventory, 'RealValue', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', '', 'Double',
+    '(RealValue, ExtraReal: Double;');
+  AssertSymbol(lInventory, 'ExtraReal', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', '', 'Double',
+    '(RealValue, ExtraReal: Double;');
+  AssertSymbol(lInventory, 'HasReal', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', '', 'Boolean',
+    'HasReal: Boolean);');
+  AssertSymbol(lInventory, 'TextValue', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', '', 'string',
+    '(TextValue: string; Offset, Size: Integer)');
+  AssertSymbol(lInventory, 'Offset', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', '', 'Integer',
+    '(TextValue: string; Offset, Size: Integer)');
+  AssertSymbol(lInventory, 'Size', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', '', 'Integer',
+    '(TextValue: string; Offset, Size: Integer)');
+  Assert.IsFalse(FindSymbol(lInventory, 'cGoldenVariantReal', TRemoveWithSymbolKind.rwskField, 'TGoldenVariant', '',
+    lSymbol), 'Expected variant arm labels not to be indexed as fields.');
   AssertSymbol(lInventory, 'RecordName', TRemoveWithSymbolKind.rwskField, 'TGoldenRecord', '', 'string',
     'RecordName: string;');
   AssertSymbol(lInventory, 'Child', TRemoveWithSymbolKind.rwskField, 'TGoldenRecord', '', 'TGoldenChild',
@@ -2158,6 +2294,8 @@ begin
     'property RecordTitle: string read RecordName write RecordName;');
   AssertSymbol(lInventory, 'Touch', TRemoveWithSymbolKind.rwskMethod, 'TGoldenRecord', '', '', 'procedure Touch;');
   AssertSymbol(lInventory, 'Name', TRemoveWithSymbolKind.rwskField, 'TGoldenChild', '', 'string', 'Name: string;');
+  AssertSymbol(lInventory, 'Items', TRemoveWithSymbolKind.rwskProperty, 'TGoldenDefaultList', '', 'PGoldenRecord',
+    'property Items[aIndex: Integer]: PGoldenRecord read GetItem; default;');
   AssertSymbol(lInventory, 'ClassLimit', TRemoveWithSymbolKind.rwskConstant, 'TGoldenClass', '', 'Integer',
     'ClassLimit: Integer = 7;');
   AssertSymbol(lInventory, 'SharedCount', TRemoveWithSymbolKind.rwskClassVar, 'TGoldenClass', '', 'Integer',
@@ -2172,23 +2310,37 @@ end;
 
 procedure TRemoveWithSourceModelGoldenTests.SelectorShapesResolveThroughSourceModel;
 var
+  lInfo: TRemoveWithSelectorTypeInfo;
   lInventory: TRemoveWithSymbolInventory;
 begin
   BuildSourceModelFixture(lInventory);
 
   AssertSymbol(lInventory, 'lObject', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
     'TGoldenClass', 'lObject: TGoldenClass;');
+  AssertSymbol(lInventory, 'lDefaultList', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
+    'TGoldenDefaultList', 'lDefaultList: TGoldenDefaultList;');
   AssertSymbol(lInventory, 'lRecord', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
     'TGoldenRecord', 'lRecord: TGoldenRecord;');
   AssertSymbol(lInventory, 'lRecordPtr', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
     'PGoldenRecord', 'lRecordPtr: PGoldenRecord;');
   AssertSymbol(lInventory, 'lRecords', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
     'TArray<TGoldenRecord>', 'lRecords: TArray<TGoldenRecord>;');
+  AssertSymbol(lInventory, 'lStaticRecordPtrs', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
+    'array[1..2] of PGoldenRecord', 'lStaticRecordPtrs: array[1..2] of PGoldenRecord;');
+  AssertSymbol(lInventory, 'lStaticRecords', TRemoveWithSymbolKind.rwskLocalVariable, '', 'TGoldenScope.Run',
+    'array [1 .. 2] of TGoldenRecord', 'lStaticRecords: array [1 .. 2] of TGoldenRecord;');
 
   AssertSelector(lInventory, 'lRecord', 'TGoldenRecord');
   AssertSelector(lInventory, 'lObject', 'TGoldenClass');
   AssertSelector(lInventory, 'lRecordPtr^', 'TGoldenRecord');
   AssertSelector(lInventory, 'lRecords[0]', 'TGoldenRecord');
+  AssertSelector(lInventory, 'lStaticRecords[1]', 'TGoldenRecord');
+  AssertSelector(lInventory, 'lStaticRecordPtrs[1]^', 'TGoldenRecord');
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'TGoldenScope.Run', 'lDefaultList[0]^', lInfo),
+    'Expected selector resolver to handle default property selector.');
+  Assert.AreEqual(RemoveWithSelectorTypeStatusToText(TRemoveWithSelectorTypeStatus.rwstsUnsupported),
+    RemoveWithSelectorTypeStatusToText(lInfo.fStatus), 'Expected default property selector to stay unsupported.');
+  Assert.AreEqual('property-selector', lInfo.fReason, 'Expected default property selector reason.');
   AssertSelector(lInventory, 'lRecord.Child', 'TGoldenChild');
   AssertSelector(lInventory, 'lRecord.Child.Name', 'string');
   AssertSelector(lInventory, 'lObject.FClassRecord.Child', 'TGoldenChild');
@@ -3206,8 +3358,9 @@ begin
   Assert.AreEqual('call-selector', lStatement.fReason, 'Expected call selector skip reason.');
 
   Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-5', lStatement), 'Expected controlled statement result.');
-  Assert.AreEqual('skipped', lStatement.fStatus, 'Expected controlled with to be skipped.');
-  Assert.AreEqual('controlled-with-statement', lStatement.fReason, 'Expected controlled with skip reason.');
+  Assert.AreEqual('planned', lStatement.fStatus, 'Expected if-controlled with to be planned.');
+  Assert.IsTrue(Pos('lWithPlannerRecordPtr^.Name', lStatement.fReplacementText) > 0,
+    'Expected controlled record member qualification in replacement text.');
 
   Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-6', lStatement), 'Expected case-label statement result.');
   Assert.AreEqual('skipped', lStatement.fStatus, 'Expected case-label with to be skipped.');
@@ -3558,8 +3711,8 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected rewrite-shape apply to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied rewrite-shape status.');
-    Assert.AreEqual(2, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected block and single-statement rewrite plans.');
+    Assert.AreEqual(14, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected block, controlled, controlled-block, value-record, single-statement, and variant-record rewrite plans.');
   finally
     lRoot.Free;
   end;
@@ -3570,8 +3723,72 @@ begin
     'Expected begin-end body to be qualified.');
   Assert.IsTrue(Pos('aRecordPtr^.Count := aRecordPtr^.Count + 1;', lUnitText) > 0,
     'Expected repeated begin-end identifier to be qualified.');
+  Assert.IsTrue(Pos('if aRecordPtr <> nil then' + sLineBreak + '    begin', lUnitText) > 0,
+    'Expected controlled with to be wrapped in a begin-end block.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name := ''controlled'';', lUnitText) > 0,
+    'Expected controlled with body to be qualified.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name := ''controlled-block'';', lUnitText) > 0,
+    'Expected controlled begin-end body to be qualified.');
+  Assert.IsTrue(Pos('aRecordPtr^.Count := aRecordPtr^.Count + 3;', lUnitText) > 0,
+    'Expected controlled begin-end repeated identifier to be qualified.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name := ''controlled-if'';', lUnitText) > 0,
+    'Expected controlled if-body with to be qualified.');
+  Assert.IsTrue(Pos('aRecordPtr^.Count := aRecordPtr^.Count + i;', lUnitText) > 0,
+    'Expected controlled for-body with to be qualified.');
+  Assert.IsTrue(Pos('if (aRecordPtr^.Count and $7FFF) > 0 then', lUnitText) > 0,
+    'Expected hex literals not to block identifier resolution.');
+  Assert.IsTrue(Pos('aRecordPtr^.Count := aRecordPtr^.Count + $FFFF;', lUnitText) > 0,
+    'Expected hex literal assignment to be qualified.');
+  Assert.IsTrue(Pos('lWithRewriteShapeImplementationItemPtr^.LocalName := ''implementation-array'';', lUnitText) > 0,
+    'Expected implementation-section record array selector body to be qualified.');
+  Assert.IsTrue(Pos('lWithRewriteShapeImplementationItemPtr^.LocalCount := ' +
+    'lWithRewriteShapeImplementationItemPtr^.LocalCount + 1;', lUnitText) > 0,
+    'Expected implementation-section record array repeated identifiers to be qualified.');
+  Assert.IsTrue(Pos('lWithRewriteShapeImplementationItemPtr := @lItems[LocalIndex];', lUnitText) > 0,
+    'Expected implementation-section record array selector to survive nested local routine declarations.');
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr := @aRecord;', lUnitText) > 0,
+    'Expected record value selector to be captured before the body.');
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''record-value'';', lUnitText) > 0,
+    'Expected record value body to be qualified.');
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Count := lWithRewriteShapeRecordPtr^.Count + 2;', lUnitText) > 0,
+    'Expected repeated record value body identifier to be qualified.');
+  Assert.IsTrue(Pos('class procedure TRewriteShapeScope.RunRecordValueWithOnlyLabel(var aRecord: ' +
+    'TRewriteShapeRecord);' + sLineBreak + 'var' + sLineBreak +
+    '  lWithRewriteShapeRecordPtr: ^TRewriteShapeRecord;' + sLineBreak + 'label', lUnitText) > 0,
+    'Expected new temp var section before a label-only routine declaration section.');
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''record-only-label'';', lUnitText) > 0,
+    'Expected label-only record value body to be qualified.');
+  Assert.IsTrue(Pos('function LocalCount(var aLocalRecord: TRewriteShapeRecord): Integer;' + sLineBreak + 'var' +
+    sLineBreak + '  lWithRewriteShapeRecordPtr: ^TRewriteShapeRecord;', lUnitText) > 0,
+    'Expected local routine temp declaration inside the local routine.');
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''local-routine'';', lUnitText) > 0,
+    'Expected local routine with body to be qualified.');
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''after-local-routine'';', lUnitText) > 0,
+    'Expected outer routine with after a local routine to be qualified.');
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Count := lWithRewriteShapeRecordPtr^.Count + 6;', lUnitText) > 0,
+    'Expected outer routine with after a local routine to qualify repeated identifiers.');
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''record-label'';', lUnitText) > 0,
+    'Expected labeled record value body to be qualified.');
+  Assert.IsTrue(Pos('lFlag: Boolean;' + sLineBreak + '  lWithRewriteShapeRecordPtr: ^TRewriteShapeRecord;' +
+    sLineBreak + 'label', lUnitText) > 0, 'Expected record temp declaration before label section.');
   Assert.IsTrue(Pos('aRecordPtr^.Name := ''single'';', lUnitText) > 0,
     'Expected single-statement body to be qualified.');
+  Assert.IsTrue(Pos('with aLeftPtr^ do', lUnitText) > 0,
+    'Expected unsafe single-statement range before else to be left untouched.');
+  Assert.IsTrue(Pos('with aRightPtr^ do', lUnitText) > 0,
+    'Expected descendant of unsafe single-statement range before else to be left untouched.');
+  Assert.IsTrue(Pos('aVariantPtr^.Mode := 1;', lUnitText) > 0,
+    'Expected variant tag field to be qualified.');
+  Assert.IsTrue(Pos('aVariantPtr^.Handle := aVariantPtr^.Prefix + 1;', lUnitText) > 0,
+    'Expected variant record fields to be qualified.');
+  Assert.IsTrue(Pos('aVariantPtr^.Ptr := nil;', lUnitText) > 0,
+    'Expected second variant record field to be qualified.');
+  Assert.IsTrue(Pos('if aVariantPtr^.Mode = cRewriteShapeVariantPointer then', lUnitText) > 0,
+    'Expected variant arm label constants to remain unqualified.');
+  Assert.IsTrue(Pos('aVariantPtr^.Offset := aVariantPtr^.Size;', lUnitText) > 0,
+    'Expected compound variant record fields to be qualified.');
+  Assert.IsTrue(Pos('aVariantPtr^.cRewriteShapeVariantPointer', lUnitText) = 0,
+    'Expected variant labels not to be treated as fields.');
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-rewrite-shapes-build.log', lBuildExitCode);
   Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited rewrite-shape fixture to build. Output: ' +
@@ -3717,13 +3934,13 @@ begin
     lBuildOutput);
 end;
 
-procedure TRemoveWithRewriteShapeTests.ControlledNestedWithStatementsRemainSkipped;
+procedure TRemoveWithRewriteShapeTests.ControlledNestedWithStatementsRewriteInnerSafely;
 var
   i: Integer;
   lDprojPath: string;
   lExitCode: Cardinal;
-  lHasAncestorSkippedInner: Boolean;
   lHasControlledOuter: Boolean;
+  lPlan: TJSONObject;
   lRoot: TJSONObject;
   lSkipped: TJSONArray;
   lSkippedItem: TJSONObject;
@@ -3738,32 +3955,35 @@ begin
   lRoot := RunApplyFixture(lDprojPath, 'remove-with-nested-controlled-rewrite.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected controlled nested rewrite apply to finish without edits.');
-    Assert.AreEqual(0, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected no planned edits for controlled nested with statements.');
+    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected safe controlled nested with statement to be planned.');
+    lPlan := (lRoot.Values['plannedEdits'] as TJSONArray).Items[0] as TJSONObject;
+    Assert.AreEqual('with-1', lPlan.Values['statementId'].Value,
+      'Expected the outer controlled nested with to be planned with its inner child.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(2, lSkipped.Count, 'Expected outer and inner controlled nested with statements to be skipped.');
+    Assert.AreEqual(0, lSkipped.Count, 'Expected controlled nested with statements to be planned.');
     lHasControlledOuter := False;
-    lHasAncestorSkippedInner := False;
     for i := 0 to lSkipped.Count - 1 do
     begin
       lSkippedItem := lSkipped.Items[i] as TJSONObject;
       if (lSkippedItem.Values['statementId'].Value = 'with-1') and
         (lSkippedItem.Values['reason'].Value = 'controlled-with-statement') then
         lHasControlledOuter := True;
-      if (lSkippedItem.Values['statementId'].Value = 'with-2') and
-        (lSkippedItem.Values['reason'].Value = 'ancestor-with-not-planned') then
-        lHasAncestorSkippedInner := True;
     end;
-    Assert.IsTrue(lHasControlledOuter, 'Expected outer nested rewrite to be blocked by controlled child.');
-    Assert.IsTrue(lHasAncestorSkippedInner, 'Expected inner nested rewrite to be skipped with its unplanned ancestor.');
+    Assert.IsFalse(lHasControlledOuter, 'Expected outer nested rewrite to be planned.');
   finally
     lRoot.Free;
   end;
 
   lUnitTextAfter := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
-  Assert.AreEqual(lUnitTextBefore, lUnitTextAfter, 'Expected controlled nested fixture source to remain unchanged.');
+  Assert.AreNotEqual(lUnitTextBefore, lUnitTextAfter, 'Expected controlled nested fixture source to change.');
   Assert.IsTrue(Pos('if lCondition then', lUnitTextAfter) > 0, 'Expected controlling statement to remain.');
-  Assert.IsTrue(Pos('with lInner do', lUnitTextAfter) > 0, 'Expected controlled inner with to remain.');
+  Assert.IsTrue(Pos('with lOuter do', lUnitTextAfter) = 0, 'Expected outer with to be removed.');
+  Assert.IsTrue(Pos('with lInner do', lUnitTextAfter) = 0, 'Expected controlled inner with to be removed.');
+  Assert.IsTrue(Pos('lWithNestedControlledInner := lInner;', lUnitTextAfter) > 0,
+    'Expected inner selector to be captured.');
+  Assert.IsTrue(Pos('lWithNestedControlledInner.Shared := ''controlled'';', lUnitTextAfter) > 0,
+    'Expected inner controlled body to be qualified.');
 end;
 
 procedure TRemoveWithRewriteShapeTests.NestedMultipleSelectorsRewriteOrBlockPrecisely;
@@ -3790,8 +4010,8 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected combined selector apply to succeed for safe edits.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied combined selector status.');
-    Assert.AreEqual(2, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected safe nested and unrelated safe rewrite plans.');
+    Assert.AreEqual(3, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected safe nested, safe child under blocked parent, and unrelated safe rewrite plans.');
     lPlan := (lRoot.Values['plannedEdits'] as TJSONArray).Items[0] as TJSONObject;
     lTemps := lPlan.Values['temps'] as TJSONArray;
     Assert.AreEqual(4, lTemps.Count, 'Expected outer and inner multiple-selector temps.');
@@ -3813,8 +4033,8 @@ begin
       if (lSkippedItem.Values['statementId'].Value = 'with-3') and
         (lSkippedItem.Values['reason'].Value = 'multiple-member-candidates') then
         lHasAmbiguousOuter := True;
-      if (lSkippedItem.Values['statementId'].Value = 'with-4') and
-        (lSkippedItem.Values['reason'].Value = 'ancestor-with-not-planned') then
+      if (lSkippedItem.Values['statementId'].Value = 'with-5') and
+        (lSkippedItem.Values['reason'].Value = 'multiple-member-candidates') then
         lHasAncestorSkippedAmbiguous := True;
     end;
     Assert.IsTrue(lHasAmbiguousOuter, 'Expected ambiguous nested multiple-selector parent to be skipped.');
@@ -3843,9 +4063,13 @@ begin
   Assert.IsTrue(Pos('with lAmbiguous do', lUnitText) > 0,
     'Expected ambiguous nested child to remain unchanged.');
   Assert.IsTrue(Pos('Clash();', lUnitText) > 0, 'Expected ambiguous call to remain unchanged.');
+  Assert.IsTrue(Pos('with lSafeRight do', lUnitText) = 0,
+    'Expected safe nested child under blocked parent to be removed.');
+  Assert.IsTrue(Pos('lWithCombinedOuterRight.RightOuterOnly := ''safe-under-blocked-parent'';', lUnitText) > 0,
+    'Expected safe nested child under blocked parent to be qualified.');
   Assert.IsTrue(Pos('with lSafeLeft, lSafeRight do', lUnitText) = 0,
     'Expected unrelated safe rewrite in same file to proceed.');
-  Assert.IsTrue(Pos('lWithCombinedOuterRight.RightOuterOnly := ''safe-unrelated'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithCombinedOuterRight1.RightOuterOnly := ''safe-unrelated'';', lUnitText) > 0,
     'Expected unrelated safe rewrite to qualify the rightmost safe receiver.');
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-combined-selectors-build.log', lBuildExitCode);
@@ -5090,18 +5314,14 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected expression-role apply to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
-    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected one safe expression rewrite in a source-unit-qualified call.');
+    Assert.AreEqual(3, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected label, case-label, and source-unit-qualified rewrites.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(4, lSkipped.Count, 'Expected unsafe expression-role with statements to be skipped.');
-    Assert.AreEqual(3, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
+    Assert.AreEqual(2, lSkipped.Count, 'Expected only unsafe expression-role with statements to be skipped.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
       'Expected explicit unsupported identifier role skip reasons.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
       'Expected declaration-like bodies to keep the scoped-declaration skip reason.');
-    Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'label'),
-      'Expected label role detail in skipped report.');
-    Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'case-label'),
-      'Expected case-label role detail in skipped report.');
     Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'type-qualifier'),
       'Expected type-qualifier role detail in skipped report.');
     Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'variable-declaration'),
@@ -5114,6 +5334,14 @@ begin
   end;
 
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('goto LocalLabel;', lUnitText) > 0,
+    'Expected goto target to remain unqualified.');
+  Assert.IsTrue(Pos('LocalLabel:', lUnitText) > 0,
+    'Expected label declaration to remain unqualified.');
+  Assert.IsTrue(Pos('aItemPtr^.Name := ''label'';', lUnitText) > 0,
+    'Expected labeled with body to be qualified.');
+  Assert.IsTrue(Pos('0:' + sLineBreak + '        aItemPtr^.Name := ''case'';', lUnitText) > 0,
+    'Expected case label to remain unqualified while the case body is qualified.');
   Assert.IsTrue(Pos('ExpressionRoleSupportUnit.TouchName(aItemPtr^.Name);', lUnitText) > 0,
     'Expected the safe member argument to be qualified.');
   Assert.IsTrue(Pos('aItemPtr^.ExpressionRoleSupportUnit', lUnitText) = 0,
@@ -5205,15 +5433,13 @@ begin
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected complex source-model plan to succeed.');
     Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok root status.');
     lPlannedEdits := lRoot.Values['plannedEdits'] as TJSONArray;
-    Assert.AreEqual(1, lPlannedEdits.Count, 'Expected only the simple safe record to be planned.');
+    Assert.AreEqual(2, lPlannedEdits.Count, 'Expected multiline and simple safe records to be planned.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(5, lSkipped.Count, 'Expected each complex source-model statement to be skipped.');
+    Assert.AreEqual(4, lSkipped.Count, 'Expected unsupported complex source-model statements to be skipped.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-attribute'),
       'Expected attributed type declaration to be reported explicitly.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-conditional-region'),
       'Expected conditional type declaration to be reported explicitly.');
-    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-multiline-declaration'),
-      'Expected multiline member declaration to be reported explicitly.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-generic-declaration'),
       'Expected generic type declaration to be reported explicitly.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-nested-type'),
@@ -5308,11 +5534,10 @@ begin
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected external-routine apply to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied external-routine status.');
     Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected the known-routine with body to be planned.');
+      'Expected only modeled external routine-call with body to be planned.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(1, lSkipped.Count, 'Expected the unknown external call body to be skipped.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'),
-      'Expected unknown external calls to keep blocking the rewrite.');
+      'Expected unknown routine-call roots to block rewrite.');
     AssertJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('passed', lVerification.Values['status'].Value,
       'Expected edited external-routine fixture to build after apply.');
@@ -5322,7 +5547,7 @@ begin
 
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
   Assert.IsTrue(Pos('with lKnown do', lUnitText) = 0, 'Expected known-routine with to be removed.');
-  Assert.IsTrue(Pos('with lUnknown do', lUnitText) > 0, 'Expected unknown-routine with to remain.');
+  Assert.IsTrue(Pos('with lUnknown do', lUnitText) > 0, 'Expected unknown routine-call with to stay unchanged.');
   Assert.IsTrue(Pos('FillChar(lWithExternalRoutineRecordPtr^.Target, SizeOf(lWithExternalRoutineRecordPtr^.Target), 0);',
     lUnitText) > 0, 'Expected FillChar and SizeOf calls to remain routine calls.');
   Assert.IsTrue(Pos('Move(lWithExternalRoutineRecordPtr^.Source, lWithExternalRoutineRecordPtr^.Target, ' +
@@ -5350,6 +5575,817 @@ begin
     lUnitText) > 0, 'Expected Exclude call to remain a routine call.');
   Assert.IsTrue(Pos('lWithExternalRoutineRecordPtr^.Inc', lUnitText) = 0,
     'Expected known routine names not to be receiver-qualified.');
+  Assert.IsTrue(Pos('Count := Random(Count) + cBoost;', lUnitText) > 0,
+    'Expected skipped unknown routine-call body to stay unchanged.');
+  Assert.IsTrue(Pos('if Flag = erfOne then', lUnitText) > 0,
+    'Expected skipped enum expression to stay unchanged.');
+  Assert.IsTrue(Pos('Count := Count + SizeOf(TExternalRoutineRecord);', lUnitText) > 0,
+    'Expected skipped type-name expression to stay unchanged.');
+  Assert.IsTrue(Pos('lWithExternalRoutineRecordPtr1^.Random', lUnitText) = 0,
+    'Expected unknown routine call root not to be receiver-qualified.');
+end;
+
+function TRemoveWithIntrinsicSymbolTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithIntrinsicSymbolTests.AssertClassification(const aClassifications: TJSONArray;
+  const aIdentifier, aStatus, aResolutionKind, aReason: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) and
+      SameText(lObject.GetValue<string>('status', ''), aStatus) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), aResolutionKind) and
+      SameText(lObject.GetValue<string>('reason', ''), aReason) then
+      Exit;
+  end;
+  Assert.Fail('Expected classification ' + aIdentifier + ':' + aStatus + ':' + aResolutionKind + ':' + aReason);
+end;
+
+procedure TRemoveWithIntrinsicSymbolTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithIntrinsicSymbolTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithIntrinsicSymbolTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithIntrinsicSymbolTests.PlanPreservesModeledIntrinsicsAndBlocksUnknownCalls;
+var
+  lClassifications: TJSONArray;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lPlannedEdits: TJSONArray;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+begin
+  CopyFixtureToTemp('RemoveWithIntrinsicSymbolFixture', 'remove-with-intrinsic-symbols', lDprojPath, lFixtureDir);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-intrinsic-symbols.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected intrinsic-symbol plan to succeed.');
+    Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok root status.');
+    lPlannedEdits := lRoot.Values['plannedEdits'] as TJSONArray;
+    Assert.AreEqual(1, lPlannedEdits.Count, 'Expected only modeled intrinsic statement to be planned.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected arbitrary unknown project routine calls to remain blocked.');
+
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    AssertClassification(lClassifications, 'IOResult', 'unchanged', 'external-routine-call',
+      'external-routine-call');
+    AssertClassification(lClassifications, 'System', 'unchanged', 'qualified-unit', 'unit-qualifier');
+    AssertClassification(lClassifications, 'Int32', 'unchanged', 'type-name', 'type-name');
+    AssertClassification(lClassifications, 'High', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Low', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Inc', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Dec', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Addr', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'GetMem', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'FreeMem', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'New', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Dispose', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Seek', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'BlockRead', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'BlockWrite', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Assign', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Rewrite', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Write', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Writeln', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Read', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Readln', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Flush', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Close', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'FilePos', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Copy', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Pred', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'EOF', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'UnknownProjectRoutine', 'unresolved', 'unresolved', 'symbol-not-found');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+function TRemoveWithControlCharacterLiteralTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithControlCharacterLiteralTests.AssertNoClassification(const aClassifications: TJSONArray;
+  const aIdentifier: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) then
+      Assert.Fail('Unexpected classification for control-character literal ' + aIdentifier);
+  end;
+end;
+
+procedure TRemoveWithControlCharacterLiteralTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithControlCharacterLiteralTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithControlCharacterLiteralTests.RunRemoveWithFixture(const aDprojPath, aMode,
+  aLogName: string; out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithControlCharacterLiteralTests.PlanIgnoresControlCharacterLiteralsAndKeepsPointerSyntax;
+var
+  lClassifications: TJSONArray;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lPlannedEdits: TJSONArray;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CopyFixtureToTemp('RemoveWithControlCharacterLiteralFixture', 'remove-with-control-character-literals',
+    lDprojPath, lFixtureDir);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'apply', 'remove-with-control-character-literals.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected control-character literal apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
+    lPlannedEdits := lRoot.Values['plannedEdits'] as TJSONArray;
+    Assert.AreEqual(1, lPlannedEdits.Count, 'Expected control-character literal statement to be planned.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected control-character literals not to be reported as missing symbols.');
+
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    AssertNoClassification(lClassifications, 'J');
+    AssertNoClassification(lClassifications, 'M');
+    AssertNoClassification(lClassifications, 'I');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitPath := TPath.Combine(lFixtureDir, 'ControlCharacterLiteralUnit.pas');
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('with lKnown do', lUnitText) = 0, 'Expected with statement to be removed.');
+  Assert.IsTrue(Pos('''row'' + ^J + ^m + ^I', lUnitText) > 0,
+    'Expected control-character literals to stay unchanged.');
+  Assert.IsTrue(Pos('lOtherPtr^.Count + lWithControlCharacterRecordPtr^.Count', lUnitText) > 0,
+    'Expected pointer dereference syntax to stay intact while receiver member is qualified.');
+end;
+
+function TRemoveWithImplementationGlobalTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithImplementationGlobalTests.AssertClassification(const aClassifications: TJSONArray;
+  const aIdentifier, aStatus, aResolutionKind, aReason: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) and
+      SameText(lObject.GetValue<string>('status', ''), aStatus) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), aResolutionKind) and
+      SameText(lObject.GetValue<string>('reason', ''), aReason) then
+      Exit;
+  end;
+  Assert.Fail('Expected classification ' + aIdentifier + ':' + aStatus + ':' + aResolutionKind + ':' + aReason);
+end;
+
+procedure TRemoveWithImplementationGlobalTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithImplementationGlobalTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithImplementationGlobalTests.RunRemoveWithFixture(const aDprojPath, aMode,
+  aLogName: string; out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithImplementationGlobalTests.PlanResolvesGlobalsDeclaredAfterImplementationRoutines;
+var
+  lClassifications: TJSONArray;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lPlannedEdits: TJSONArray;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+begin
+  CopyFixtureToTemp('RemoveWithImplementationGlobalFixture', 'remove-with-implementation-globals', lDprojPath,
+    lFixtureDir);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-implementation-globals.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected implementation-global plan to succeed.');
+    lPlannedEdits := lRoot.Values['plannedEdits'] as TJSONArray;
+    Assert.AreEqual(1, lPlannedEdits.Count, 'Expected implementation globals after routines to be resolved.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected implementation globals after routines not to be missing symbols.');
+
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    AssertClassification(lClassifications, 'gCounter', 'unchanged', 'unchanged', 'routine-scope');
+    AssertClassification(lClassifications, 'cAfterRoutine', 'unchanged', 'unchanged', 'routine-scope');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+function TRemoveWithNestedRoutineScopeTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithNestedRoutineScopeTests.AssertClassification(const aClassifications: TJSONArray;
+  const aIdentifier, aStatus, aResolutionKind, aReason: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) and
+      SameText(lObject.GetValue<string>('status', ''), aStatus) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), aResolutionKind) and
+      SameText(lObject.GetValue<string>('reason', ''), aReason) then
+      Exit;
+  end;
+  Assert.Fail('Expected classification ' + aIdentifier + ':' + aStatus + ':' + aResolutionKind + ':' + aReason);
+end;
+
+procedure TRemoveWithNestedRoutineScopeTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithNestedRoutineScopeTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithNestedRoutineScopeTests.RunRemoveWithFixture(const aDprojPath, aMode,
+  aLogName: string; out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithNestedRoutineScopeTests.PlanResolvesOuterRoutineSymbolsCapturedByNestedRoutine;
+var
+  lClassifications: TJSONArray;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lPlannedEdits: TJSONArray;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+begin
+  CopyFixtureToTemp('RemoveWithNestedRoutineScopeFixture', 'remove-with-nested-routine-scope', lDprojPath,
+    lFixtureDir);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-nested-routine-scope.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected nested-routine scope plan to succeed.');
+    lPlannedEdits := lRoot.Values['plannedEdits'] as TJSONArray;
+    Assert.AreEqual(1, lPlannedEdits.Count, 'Expected captured outer routine locals to be resolved.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected captured outer routine locals not to be missing symbols.');
+
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    AssertClassification(lClassifications, 'i0', 'unchanged', 'unchanged', 'routine-scope');
+    AssertClassification(lClassifications, 'ErrorFlag', 'unchanged', 'unchanged', 'routine-scope');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+function TRemoveWithEnumConstTypeAliasTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithEnumConstTypeAliasTests.AssertClassification(const aClassifications: TJSONArray;
+  const aIdentifier, aStatus, aResolutionKind, aReason: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) and
+      SameText(lObject.GetValue<string>('status', ''), aStatus) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), aResolutionKind) and
+      SameText(lObject.GetValue<string>('reason', ''), aReason) then
+      Exit;
+  end;
+  Assert.Fail('Expected classification ' + aIdentifier + ':' + aStatus + ':' + aResolutionKind + ':' + aReason);
+end;
+
+procedure TRemoveWithEnumConstTypeAliasTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithEnumConstTypeAliasTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithEnumConstTypeAliasTests.RunRemoveWithFixture(const aDprojPath, aMode,
+  aLogName: string; out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithEnumConstTypeAliasTests.PlanResolvesEnumConstantsTypedConstantsAndAliases;
+var
+  lClassifications: TJSONArray;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lPlannedEdits: TJSONArray;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+begin
+  CopyFixtureToTemp('RemoveWithEnumConstTypeAliasFixture', 'remove-with-enum-const-type-alias', lDprojPath,
+    lFixtureDir);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-enum-const-type-alias.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected enum/const/type-alias plan to succeed.');
+    lPlannedEdits := lRoot.Values['plannedEdits'] as TJSONArray;
+    Assert.AreEqual(1, lPlannedEdits.Count, 'Expected enum constants, typed constants, and aliases to resolve.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected enum constants, typed constants, and aliases not to be missing symbols.');
+
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    AssertClassification(lClassifications, 'P_JZ', 'unchanged', 'unchanged', 'routine-scope');
+    AssertClassification(lClassifications, 'P_JMP', 'unchanged', 'unchanged', 'routine-scope');
+    AssertClassification(lClassifications, '_FALLS', 'unchanged', 'unchanged', 'routine-scope');
+    AssertClassification(lClassifications, 'TypedLimit', 'unchanged', 'unchanged', 'routine-scope');
+    AssertClassification(lClassifications, 'TAliasInt', 'unchanged', 'type-name', 'type-name');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+function TRemoveWithConditionalDirectiveTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithConditionalDirectiveTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithConditionalDirectiveTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithConditionalDirectiveTests.RunRemoveWithFixture(const aDprojPath, aMode,
+  aLogName: string; out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithConditionalDirectiveTests.PlanIgnoresInactiveConditionalBranches;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lWithStatements: TJSONArray;
+begin
+  CopyFixtureToTemp('RemoveWithConditionalDirectiveFixture', 'remove-with-conditional-directives', lDprojPath,
+    lFixtureDir);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-conditional-directives.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected conditional-directive plan to succeed.');
+    lWithStatements := lRoot.Values['withStatements'] as TJSONArray;
+    Assert.AreEqual(1, lWithStatements.Count, 'Expected inactive with statement to be excluded.');
+    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected active statement with inactive branch text to be planned.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected inactive branch identifiers not to be scanned.');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+function TRemoveWithUnresolvedReasonReportTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithUnresolvedReasonReportTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithUnresolvedReasonReportTests.RunRemoveWithFixture(const aDprojPath, aMode,
+  aLogName: string; out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithUnresolvedReasonReportTests.PlanReportsDetailedUnresolvedReasonBuckets;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lResolver: TJSONObject;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lSkippedItem: TJSONObject;
+  lUnresolvedReasons: TJSONObject;
+begin
+  CopyFixtureToTemp('RemoveWithUnresolvedReasonFixture', 'remove-with-unresolved-reason', lDprojPath,
+    lFixtureDir);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-unresolved-reason.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected unresolved-reason plan to succeed.');
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonObjectKey(lResolver, 'unresolvedReasons', lUnresolvedReasons);
+    Assert.AreEqual(1, lUnresolvedReasons.GetValue<Integer>('true-symbol-not-found'),
+      'Expected true unknown symbols to be counted separately.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(1, lSkipped.Count, 'Expected one skipped statement.');
+    lSkippedItem := lSkipped.Items[0] as TJSONObject;
+    Assert.AreEqual('true-symbol-not-found', lSkippedItem.GetValue<string>('detailedReason', ''),
+      'Expected skipped statement to keep detailed blocking reason.');
+  finally
+    lRoot.Free;
+  end;
 end;
 
 function TRemoveWithCorpusSmokeTests.CommandExePath: string;
@@ -5456,7 +6492,7 @@ begin
     lWithStatements := lRoot.Values['withStatements'] as TJSONArray;
     Assert.AreEqual(5, lWithStatements.Count, 'Expected stable corpus with-statement count.');
     Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected only the safe multi-selector statement to be planned.');
+      'Expected multi-selector statement to be planned.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
     Assert.AreEqual(4, lSkipped.Count, 'Expected risky corpus statements to be skipped.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-attribute'),
@@ -5465,7 +6501,8 @@ begin
       'Expected conditional declaration skip.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
       'Expected type-qualified body skip.');
-    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'), 'Expected unknown call skip.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected unknown routine-call body skip.');
     AssertJsonObjectKey(lRoot, 'summary', lSummary);
     Assert.AreEqual(3, (lSummary.Values['filesScanned'] as TJSONNumber).AsInt,
       'Expected the multi-unit corpus project to scan all project files.');
@@ -5637,11 +6674,11 @@ begin
   lRoot := RunApplyFixture(lDprojPath, 'remove-with-hardening-expression-roles.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected expression-role hardening apply to succeed.');
-    AssertApplySummary(lRoot, 1, 4);
+    AssertApplySummary(lRoot, 3, 2);
     AssertVerificationPassed(lRoot);
     AssertTransactionFileCount(lRoot, 1);
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(3, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
       'Expected expression-role unsupported skips.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
       'Expected expression-role scoped declaration skip.');
@@ -5654,7 +6691,7 @@ begin
   lRoot := RunApplyFixture(lDprojPath, 'remove-with-hardening-complex-source.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected complex source-model hardening apply to succeed.');
-    AssertApplySummary(lRoot, 1, 5);
+    AssertApplySummary(lRoot, 2, 4);
     AssertVerificationPassed(lRoot);
     AssertTransactionFileCount(lRoot, 1);
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
@@ -5662,8 +6699,6 @@ begin
       'Expected attributed source-model skip.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-conditional-region'),
       'Expected conditional source-model skip.');
-    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-multiline-declaration'),
-      'Expected multiline source-model skip.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-generic-declaration'),
       'Expected generic source-model skip.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-nested-type'),
@@ -5681,7 +6716,8 @@ begin
     AssertVerificationPassed(lRoot);
     AssertTransactionFileCount(lRoot, 1);
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'), 'Expected unknown external call skip.');
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected unknown external routine calls to stay skipped.');
   finally
     lRoot.Free;
   end;

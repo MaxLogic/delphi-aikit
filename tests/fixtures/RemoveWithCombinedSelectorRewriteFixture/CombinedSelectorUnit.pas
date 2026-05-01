@@ -117,6 +117,10 @@ begin
     lOuterRight.RightOuterOnly := 'before-mixed';
     with lOuterLeft, lOuterRight do
     begin
+      with lSafeRight do
+      begin
+        RightOuterOnly := 'safe-under-blocked-parent';
+      end;
       with lAmbiguous do
       begin
         Clash();

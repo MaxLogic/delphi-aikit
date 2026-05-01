@@ -92,10 +92,18 @@ type
     class function IsLocalRoutineDeclaration(const aText: string): Boolean; static;
     class function PreviousSignificantToken(const aSource: TRemoveWithSourceBuffer; const aOffset: Integer): string;
       static;
+    class function NextSignificantToken(const aSource: TRemoveWithSourceBuffer; const aOffset: Integer): string;
+      static;
     class function StatementIsStandalone(const aSource: TRemoveWithSourceBuffer;
       const aStatement: TRemoveWithStatementInfo; out aReason: string): Boolean; static;
+    class function StatementIsControlled(const aSource: TRemoveWithSourceBuffer;
+      const aStatement: TRemoveWithStatementInfo; out aReason: string): Boolean; static;
+    class function ControlledStatementTerminator(const aSource: TRemoveWithSourceBuffer;
+      const aStatement: TRemoveWithStatementInfo): string; static;
+    class function ControlledWrapperTerminator(const aSource: TRemoveWithSourceBuffer;
+      const aStatement: TRemoveWithStatementInfo): string; static;
     class function TempInitializationText(const aStatement: TRemoveWithStatementInfo;
-      const aSelectorTemps: TArray<TRemoveWithSelectorTemp>): string; static;
+      const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIndentColumn: Integer): string; static;
     class function TempDeclarationEdit(const aSource: TRemoveWithSourceBuffer;
       const aFilePath, aStatementId: string; const aRoutineLine: Integer;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aEdit: TRemoveWithPlannedTextEdit): Boolean; static;
@@ -103,6 +111,8 @@ type
       const aPlanResult: TRemoveWithPlanResult; const aStatement: TRemoveWithStatementInfo): Boolean; static;
     class function HasAncestorWith(const aScanResult: TRemoveWithScanResult;
       const aStatement: TRemoveWithStatementInfo): Boolean; static;
+    class function HasNonBlockAncestorWith(const aScanResult: TRemoveWithScanResult;
+      const aSource: TRemoveWithSourceBuffer; const aStatement: TRemoveWithStatementInfo): Boolean; static;
     class function IsDirectNestedStatement(const aScanResult: TRemoveWithScanResult;
       const aOuter, aInner: TRemoveWithStatementInfo): Boolean; static;
     class function NestedReplacementAtOffset(const aNestedReplacements: TArray<TRemoveWithNestedReplacement>;
@@ -501,7 +511,8 @@ begin
     Exit(False);
   for lSymbol in lRoutines do
   begin
-    if (lSymbol.fLine <= aStatement.fLine) and (lSymbol.fLine > lBestLine) then
+    if (lSymbol.fLine <= aStatement.fLine) and ((lSymbol.fEndLine = 0) or
+      (aStatement.fLine <= lSymbol.fEndLine)) and (lSymbol.fLine > lBestLine) then
     begin
       lBestLine := lSymbol.fLine;
       aRoutineName := lSymbol.fName;
@@ -622,6 +633,74 @@ begin
   end;
 end;
 
+class function TRemoveWithPlanner.NextSignificantToken(const aSource: TRemoveWithSourceBuffer;
+  const aOffset: Integer): string;
+var
+  i: Integer;
+  lStartOffset: Integer;
+begin
+  Result := '';
+  i := aOffset;
+  while i <= Length(aSource.fText) do
+  begin
+    if CharInSet(aSource.fText[i], [#9, #10, #13, ' ']) then
+    begin
+      Inc(i);
+      Continue;
+    end;
+    if aSource.fText[i] = '''' then
+    begin
+      Inc(i);
+      while i <= Length(aSource.fText) do
+      begin
+        if aSource.fText[i] = '''' then
+        begin
+          Inc(i);
+          if (i <= Length(aSource.fText)) and (aSource.fText[i] = '''') then
+          begin
+            Inc(i);
+            Continue;
+          end;
+          Break;
+        end;
+        Inc(i);
+      end;
+      Continue;
+    end;
+    if aSource.fText[i] = '{' then
+    begin
+      Inc(i);
+      while (i <= Length(aSource.fText)) and (aSource.fText[i] <> '}') do
+        Inc(i);
+      Inc(i);
+      Continue;
+    end;
+    if (i < Length(aSource.fText)) and (aSource.fText[i] = '(') and (aSource.fText[i + 1] = '*') then
+    begin
+      Inc(i, 2);
+      while (i < Length(aSource.fText)) and ((aSource.fText[i] <> '*') or (aSource.fText[i + 1] <> ')')) do
+        Inc(i);
+      Inc(i, 2);
+      Continue;
+    end;
+    if (i < Length(aSource.fText)) and (aSource.fText[i] = '/') and (aSource.fText[i + 1] = '/') then
+    begin
+      Inc(i, 2);
+      while (i <= Length(aSource.fText)) and not CharInSet(aSource.fText[i], [#10, #13]) do
+        Inc(i);
+      Continue;
+    end;
+    if CharInSet(aSource.fText[i], ['A'..'Z', 'a'..'z', '_']) then
+    begin
+      lStartOffset := i;
+      while (i <= Length(aSource.fText)) and IsIdentifierChar(aSource.fText[i]) do
+        Inc(i);
+      Exit(LowerCase(Copy(aSource.fText, lStartOffset, i - lStartOffset)));
+    end;
+    Exit(aSource.fText[i]);
+  end;
+end;
+
 class function TRemoveWithPlanner.StatementIsStandalone(const aSource: TRemoveWithSourceBuffer;
   const aStatement: TRemoveWithStatementInfo; out aReason: string): Boolean;
 var
@@ -655,14 +734,78 @@ begin
   Result := True;
 end;
 
+class function TRemoveWithPlanner.StatementIsControlled(const aSource: TRemoveWithSourceBuffer;
+  const aStatement: TRemoveWithStatementInfo; out aReason: string): Boolean;
+var
+  lLineText: string;
+  lOffsets: TRemoveWithPlanOffsetRange;
+  lPrefix: string;
+  lToken: string;
+begin
+  aReason := '';
+  Result := False;
+  lLineText := SourceLineText(aSource, aStatement.fLine);
+  lPrefix := Trim(Copy(lLineText, 1, aStatement.fColumn - 1));
+  if lPrefix <> '' then
+  begin
+    aReason := 'prefixed-with-statement';
+    Exit;
+  end;
+
+  if not RangeOffsets(aSource, aStatement.fRange, lOffsets) then
+  begin
+    aReason := 'statement-range-not-resolved';
+    Exit;
+  end;
+
+  lToken := PreviousSignificantToken(aSource, lOffsets.fStartOffset);
+  if not MatchText(lToken, ['then', 'do', 'else']) then
+  begin
+    aReason := 'controlled-with-statement';
+    Exit;
+  end;
+
+  Result := True;
+end;
+
+class function TRemoveWithPlanner.ControlledStatementTerminator(const aSource: TRemoveWithSourceBuffer;
+  const aStatement: TRemoveWithStatementInfo): string;
+var
+  lEndOffset: Integer;
+begin
+  Result := ';';
+  if not RemoveWithOffsetForLineColumn(aSource, aStatement.fRange.fEndLine, aStatement.fRange.fEndColumn,
+    lEndOffset) then
+    Exit;
+  lEndOffset := RemoveWithInclusiveEndOffset(aSource, lEndOffset);
+  if (lEndOffset <= Length(aSource.fText)) and (aSource.fText[lEndOffset] = ';') then
+    Exit('');
+  if SameText(NextSignificantToken(aSource, lEndOffset + 1), 'else') then
+    Result := '';
+end;
+
+class function TRemoveWithPlanner.ControlledWrapperTerminator(const aSource: TRemoveWithSourceBuffer;
+  const aStatement: TRemoveWithStatementInfo): string;
+var
+  lEndOffset: Integer;
+begin
+  Result := ';';
+  if not RemoveWithOffsetForLineColumn(aSource, aStatement.fRange.fEndLine, aStatement.fRange.fEndColumn,
+    lEndOffset) then
+    Exit;
+  lEndOffset := RemoveWithInclusiveEndOffset(aSource, lEndOffset);
+  if SameText(NextSignificantToken(aSource, lEndOffset + 1), 'else') then
+    Result := '';
+end;
+
 class function TRemoveWithPlanner.TempInitializationText(const aStatement: TRemoveWithStatementInfo;
-  const aSelectorTemps: TArray<TRemoveWithSelectorTemp>): string;
+  const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIndentColumn: Integer): string;
 var
   lSelectorTemp: TRemoveWithSelectorTemp;
   lStatementIndent: string;
 begin
   Result := '';
-  lStatementIndent := IndentText(aStatement.fColumn);
+  lStatementIndent := IndentText(aIndentColumn);
   for lSelectorTemp in aSelectorTemps do
   begin
     if lSelectorTemp.fDecision.fInitializationText <> '' then
@@ -678,6 +821,7 @@ var
   lDeclarations: string;
   lDeclarationText: string;
   lHasVarSection: Boolean;
+  lInsertLine: Integer;
   lLine: Integer;
   lSelectorTemp: TRemoveWithSelectorTemp;
   lText: string;
@@ -692,23 +836,41 @@ begin
 
   lBeginLine := 0;
   lHasVarSection := False;
+  lInsertLine := 0;
   for lLine := aRoutineLine + 1 to Length(aSource.fLineStarts) do
   begin
     lText := Trim(SourceLineText(aSource, lLine));
     if SameText(lText, 'var') then
+    begin
       lHasVarSection := True
+    end
+    else if lHasVarSection and (SameText(lText, 'label') or SameText(lText, 'const') or
+      SameText(lText, 'type') or IsLocalRoutineDeclaration(lText)) then
+    begin
+      lInsertLine := lLine;
+      Break;
+    end
+    else if (not lHasVarSection) and (SameText(lText, 'label') or SameText(lText, 'const') or
+      SameText(lText, 'type')) then
+    begin
+      lBeginLine := lLine;
+      lInsertLine := lLine;
+      Break;
+    end
     else if IsLocalRoutineDeclaration(lText) then
     begin
       lBeginLine := lLine;
+      lInsertLine := lLine;
       Break;
     end
     else if SameText(lText, 'begin') then
     begin
       lBeginLine := lLine;
+      lInsertLine := lLine;
       Break;
     end;
   end;
-  if lBeginLine = 0 then
+  if (lBeginLine = 0) and (lInsertLine = 0) then
     Exit(False);
 
   lDeclarations := '';
@@ -727,9 +889,9 @@ begin
   aEdit.fKind := 'declare-temp';
   aEdit.fFilePath := aFilePath;
   aEdit.fStatementId := aStatementId;
-  aEdit.fRange.fStartLine := lBeginLine;
+  aEdit.fRange.fStartLine := lInsertLine;
   aEdit.fRange.fStartColumn := 1;
-  aEdit.fRange.fEndLine := lBeginLine;
+  aEdit.fRange.fEndLine := lInsertLine;
   aEdit.fRange.fEndColumn := 1;
   aEdit.fReplacementText := lDeclarationText;
   Result := True;
@@ -762,6 +924,24 @@ begin
   for lStatement in aScanResult.fWithStatements do
   begin
     if StatementContains(lStatement, aStatement) then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
+class function TRemoveWithPlanner.HasNonBlockAncestorWith(const aScanResult: TRemoveWithScanResult;
+  const aSource: TRemoveWithSourceBuffer; const aStatement: TRemoveWithStatementInfo): Boolean;
+var
+  lBodyOffsets: TRemoveWithPlanOffsetRange;
+  lStatement: TRemoveWithStatementInfo;
+begin
+  for lStatement in aScanResult.fWithStatements do
+  begin
+    if not StatementContains(lStatement, aStatement) then
+      Continue;
+    if not RangeOffsets(aSource, lStatement.fBodyRange, lBodyOffsets) then
+      Exit(True);
+    if not SameText(NextSignificantToken(aSource, lBodyOffsets.fStartOffset), 'begin') then
       Exit(True);
   end;
   Result := False;
@@ -1005,10 +1185,19 @@ begin
   begin
     if not RewrittenSelectorText(aInventory, lSelector, lVisibleTemps, lRewrittenSelector, aReason) then
       Exit;
-    if not PlanRemoveWithTempPolicy(aInventory, aRoutineName, lSelector, aReservedNames, lDecision) then
+    if not PlanRemoveWithTempPolicy(aInventory, aRoutineName, lRewrittenSelector, aReservedNames, lDecision) then
     begin
       aReason := 'selector-type-not-resolved';
       Exit;
+    end;
+    if (lDecision.fStrategy = TRemoveWithTempStrategy.rwtsSkip) and SameText(lDecision.fReason,
+      'type-not-resolved') and (not SameText(lRewrittenSelector, lSelector)) then
+    begin
+      if not PlanRemoveWithTempPolicy(aInventory, aRoutineName, lSelector, aReservedNames, lDecision) then
+      begin
+        aReason := 'selector-type-not-resolved';
+        Exit;
+      end;
     end;
     if lDecision.fStrategy = TRemoveWithTempStrategy.rwtsSkip then
     begin
@@ -1052,6 +1241,7 @@ begin
     aReason := 'body-range-not-resolved';
     Exit;
   end;
+  lBodyOffsets.fEndOffset := RemoveWithInclusiveEndOffset(aSource, lBodyOffsets.fEndOffset);
 
   aReplacementText := RemoveWithTextSlice(aSource, lBodyOffsets.fStartOffset, lBodyOffsets.fEndOffset);
   i := Length(aReplacementText);
@@ -1113,24 +1303,44 @@ class function TRemoveWithPlanner.BuildStatementReplacement(const aInventory: TR
   var aReservedNames: TRemoveWithReservedTempNames; out aReplacementText: string;
   out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean;
 var
+  lBodyIsBlock: Boolean;
+  lBodyOffsets: TRemoveWithPlanOffsetRange;
   lChildReplacementText: string;
   lChildTemps: TArray<TRemoveWithSelectorTemp>;
   lCurrentTemps: TArray<TRemoveWithSelectorTemp>;
+  lControlledStatement: Boolean;
   lEditRange: TRemoveWithRange;
+  lIndentColumn: Integer;
   lIndex: Integer;
+  lStatementIndent: string;
   lNestedStatements: TArray<TRemoveWithStatementInfo>;
   lReplacement: TRemoveWithNestedReplacement;
   lReplacements: TArray<TRemoveWithNestedReplacement>;
   lStatement: TRemoveWithStatementInfo;
   lVisibleTemps: TArray<TRemoveWithSelectorTemp>;
+  lTempText: string;
 begin
   Result := False;
   aReplacementText := '';
   aSelectorTemps := nil;
   aReason := '';
 
+  lControlledStatement := False;
   if not StatementIsStandalone(aSource, aStatement, aReason) then
+  begin
+    if not StatementIsControlled(aSource, aStatement, aReason) then
+      Exit;
+    lControlledStatement := True;
+  end;
+
+  if lControlledStatement then
+    lIndentColumn := aStatement.fColumn + 2
+  else
+    lIndentColumn := aStatement.fColumn;
+
+  if lIndentColumn < 1 then
     Exit;
+  lStatementIndent := IndentText(aStatement.fColumn);
   if aStatement.fHasScopedDeclarationInBody then
   begin
     aReason := 'scoped-declaration-in-with-body';
@@ -1147,6 +1357,10 @@ begin
   AddSelectorTemps(lVisibleTemps, aInheritedTemps);
   AddSelectorTemps(lVisibleTemps, lCurrentTemps);
 
+  lBodyIsBlock := False;
+  if RangeOffsets(aSource, aStatement.fBodyRange, lBodyOffsets) then
+    lBodyIsBlock := SameText(NextSignificantToken(aSource, lBodyOffsets.fStartOffset), 'begin');
+
   for lStatement in aScanResult.fWithStatements do
   begin
     if not IsDirectNestedStatement(aScanResult, aStatement, lStatement) then
@@ -1155,7 +1369,11 @@ begin
     SetLength(lNestedStatements, lIndex + 1);
     lNestedStatements[lIndex] := lStatement;
   end;
-
+  if (Length(lNestedStatements) > 0) and (not lBodyIsBlock) then
+  begin
+    aReason := 'single-statement-range-overlaps-nested-with';
+    Exit;
+  end;
   AddSelectorTemps(aSelectorTemps, lCurrentTemps);
   for lStatement in lNestedStatements do
   begin
@@ -1171,6 +1389,7 @@ begin
       aReason := 'nested-statement-range-not-resolved';
       Exit;
     end;
+    lReplacement.fOffsets.fEndOffset := RemoveWithInclusiveEndOffset(aSource, lReplacement.fOffsets.fEndOffset);
     lReplacement.fReplacementText := lChildReplacementText;
     lIndex := Length(lReplacements);
     SetLength(lReplacements, lIndex + 1);
@@ -1182,8 +1401,16 @@ begin
     aReplacementText, aReason) then
     Exit;
 
-  aReplacementText := TempInitializationText(aStatement, lCurrentTemps) + IndentText(aStatement.fColumn) +
-    aReplacementText;
+  lTempText := TempInitializationText(aStatement, lCurrentTemps, lIndentColumn);
+  if lControlledStatement and lBodyIsBlock and (lTempText = '') then
+    aReplacementText := lStatementIndent + aReplacementText + ControlledStatementTerminator(aSource, aStatement)
+  else
+  begin
+    aReplacementText := lTempText + IndentText(lIndentColumn) + aReplacementText;
+    if lControlledStatement then
+      aReplacementText := lStatementIndent + 'begin' + sLineBreak + aReplacementText + sLineBreak +
+        lStatementIndent + 'end' + ControlledWrapperTerminator(aSource, aStatement);
+  end;
   Result := True;
 end;
 
@@ -1210,7 +1437,9 @@ begin
       aPlanResult.fStatements[lState.fFirstPlanIndex].fStatementId, lState.fRoutineLine, lState.fSelectorTemps,
       lDeclarationEdit) then
     begin
-      aError := 'temp-declaration-insertion-not-resolved';
+      aError := Format('temp-declaration-insertion-not-resolved file=%s routine=%s line=%d statement=%s',
+        [lState.fFilePath, lState.fRoutineName, lState.fRoutineLine,
+        aPlanResult.fStatements[lState.fFirstPlanIndex].fStatementId]);
       Exit(False);
     end;
     PrependEdit(aPlanResult.fStatements[lState.fFirstPlanIndex], lDeclarationEdit);
@@ -1246,6 +1475,12 @@ begin
     lReservedNames, lReplacementText, lSelectorTemps, lReason) then
   begin
     SkipStatement(aPlanResult, aStatement, lReason, UnsupportedRoleForStatement(aResolverResult, aStatement));
+    Exit;
+  end;
+  if (lRoutineLine = 0) and SelectorTempsNeedDeclaration(lSelectorTemps) then
+  begin
+    SkipStatement(aPlanResult, aStatement, 'temp-declaration-insertion-not-resolved',
+      UnsupportedRoleForStatement(aResolverResult, aStatement));
     Exit;
   end;
 
@@ -1296,11 +1531,6 @@ begin
       begin
         if HasPlannedAncestorWith(aScanResult, aPlanResult, lStatement) then
           Continue;
-        if HasAncestorWith(aScanResult, lStatement) then
-        begin
-          SkipStatement(aPlanResult, lStatement, 'ancestor-with-not-planned', '');
-          Continue;
-        end;
         if lStatement.fHasScopedDeclarationInBody then
         begin
           SkipStatement(aPlanResult, lStatement, 'scoped-declaration-in-with-body',
@@ -1317,6 +1547,11 @@ begin
           if not LoadRemoveWithSource(lStatement.fFilePath, lSource, aError) then
             Exit(False);
           lCurrentPath := lStatement.fFilePath;
+        end;
+        if HasNonBlockAncestorWith(aScanResult, lSource, lStatement) then
+        begin
+          SkipStatement(aPlanResult, lStatement, 'ancestor-single-statement-range-overlaps-nested-with', '');
+          Continue;
         end;
         PlanStatement(aInventory, aScanResult, aResolverResult, lStatement, lSource, lRoutineStates, aPlanResult);
       end;

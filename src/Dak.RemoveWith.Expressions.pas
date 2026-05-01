@@ -384,8 +384,19 @@ begin
     begin
       for lSymbol in lSymbols do
       begin
-        if (lSymbol.fKind = lKind) and ((lSymbol.fRoutineName = '') or SameText(lSymbol.fRoutineName,
-          aRoutineName)) then
+        if lSymbol.fKind <> lKind then
+          Continue;
+        if lKind in [TRemoveWithSymbolKind.rwskLocalVariable, TRemoveWithSymbolKind.rwskParameter,
+          TRemoveWithSymbolKind.rwskCurrentClassMember] then
+        begin
+          if not SameText(lSymbol.fRoutineName, aRoutineName) then
+            Continue;
+          if Trim(lSymbol.fTypeName) = '' then
+            Continue;
+        end else if (lSymbol.fRoutineName <> '') and (not SameText(lSymbol.fRoutineName, aRoutineName)) then
+          Continue;
+
+        if lSymbol.fKind = lKind then
         begin
           aSymbol := lSymbol;
           Exit(True);
@@ -676,8 +687,7 @@ begin
       lTypeName := lIndexedTypeName
     else if FindDefaultProperty(aInventory, DirectTypeName(lTypeName), lSymbol) then
     begin
-      SetInfo(aInfo, aSelectorText, '', 'property-selector', TRemoveWithSelectorTypeStatus.rwstsUnsupported,
-        False);
+      SetInfo(aInfo, aSelectorText, '', 'property-selector', TRemoveWithSelectorTypeStatus.rwstsUnsupported, False);
       Exit(True);
     end else
       lTypeName := '';

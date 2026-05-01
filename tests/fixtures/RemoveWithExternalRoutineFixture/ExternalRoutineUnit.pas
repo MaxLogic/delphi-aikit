@@ -25,6 +25,8 @@ type
 implementation
 
 class procedure TExternalRoutineScope.Run;
+const
+  cBoost = 3;
 var
   lKnown: TExternalRoutineRecord;
   lUnknown: TExternalRoutineRecord;
@@ -48,7 +50,10 @@ begin
 
   with lUnknown do
   begin
-    Count := Random(Count);
+    Count := Random(Count) + cBoost;
+    if Flag = erfOne then
+      Count := Count + 1;
+    Count := Count + SizeOf(TExternalRoutineRecord);
     Name := 'blocked';
   end;
 end;

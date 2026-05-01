@@ -101,7 +101,8 @@ type
     class procedure AddWithStatement(var aScanResult: TRemoveWithScanResult; const aInfo: TRemoveWithStatementInfo);
       static;
     class procedure CollectFromNode(const aNode: TSyntaxNode; const aFilePath: string;
-      const aSource: TRemoveWithSourceBuffer; const aDepth: Integer; var aScanResult: TRemoveWithScanResult); static;
+      const aSource: TRemoveWithSourceBuffer; const aInactiveRanges: TArray<TRemoveWithInactiveRange>;
+      const aDepth: Integer; var aScanResult: TRemoveWithScanResult); static;
     class function ShouldScanPath(const aOptions: TAppOptions; const aPath, aDirKey, aUnitKey: string): Boolean; static;
     class function ShouldReportProblem(const aOptions: TAppOptions; const aProblemPath, aProjectDir, aDirKey,
       aUnitKey: string): Boolean; static;
@@ -455,16 +456,10 @@ begin
   case aNode.Typ of
     TSyntaxNodeType.ntAttribute, TSyntaxNodeType.ntAttributes:
       Result := 'attribute';
-    TSyntaxNodeType.ntCaseLabel, TSyntaxNodeType.ntCaseLabels:
-      Result := 'case-label';
     TSyntaxNodeType.ntConstant, TSyntaxNodeType.ntConstants:
       Result := 'constant-declaration';
     TSyntaxNodeType.ntField, TSyntaxNodeType.ntFields:
       Result := 'field-declaration';
-    TSyntaxNodeType.ntGoto:
-      Result := 'goto-label';
-    TSyntaxNodeType.ntLabel:
-      Result := 'label';
     TSyntaxNodeType.ntMethod:
       Result := 'method-declaration';
     TSyntaxNodeType.ntNamedArgument:
@@ -550,13 +545,6 @@ begin
       lIdentifierEndOffset := i;
       while (lIdentifierEndOffset <= lEndOffset) and IsIdentifierChar(aSource.fText[lIdentifierEndOffset]) do
         Inc(lIdentifierEndOffset);
-      lNextOffset := NextNonWhitespaceOffset(aSource.fText, lIdentifierEndOffset);
-      if (lNextOffset <= lEndOffset) and (aSource.fText[lNextOffset] = ':') and
-        ((lNextOffset = lEndOffset) or (aSource.fText[lNextOffset + 1] <> '=')) then
-      begin
-        aRole := 'label';
-        Exit(True);
-      end;
       i := lIdentifierEndOffset;
       Continue;
     end;
@@ -715,15 +703,20 @@ begin
 end;
 
 class procedure TRemoveWithDiscoveryHelper.CollectFromNode(const aNode: TSyntaxNode; const aFilePath: string;
-  const aSource: TRemoveWithSourceBuffer; const aDepth: Integer; var aScanResult: TRemoveWithScanResult);
+  const aSource: TRemoveWithSourceBuffer; const aInactiveRanges: TArray<TRemoveWithInactiveRange>;
+  const aDepth: Integer; var aScanResult: TRemoveWithScanResult);
 var
   lBodyNode: TSyntaxNode;
   lChild: TSyntaxNode;
   lInfo: TRemoveWithStatementInfo;
   lNextDepth: Integer;
+  lNodeOffset: Integer;
   lUnsupportedRole: string;
 begin
   if not Assigned(aNode) then
+    Exit;
+  if RemoveWithOffsetForLineColumn(aSource, aNode.Line, aNode.Col, lNodeOffset) and
+    RemoveWithOffsetInInactiveRanges(lNodeOffset, aInactiveRanges) then
     Exit;
 
   lNextDepth := aDepth;
@@ -767,7 +760,7 @@ begin
 
   for lChild in aNode.ChildNodes do
   begin
-    CollectFromNode(lChild, aFilePath, aSource, lNextDepth, aScanResult);
+    CollectFromNode(lChild, aFilePath, aSource, aInactiveRanges, lNextDepth, aScanResult);
   end;
 end;
 
@@ -838,6 +831,7 @@ var
   lDirKey: string;
   lFilePath: string;
   lInitialWithCount: Integer;
+  lInactiveRanges: TArray<TRemoveWithInactiveRange>;
   lProblem: TProjectIndexer.TProblemInfo;
   lSource: TRemoveWithSourceBuffer;
   lSourceError: string;
@@ -893,7 +887,11 @@ begin
     begin
       if TRemoveWithDiscoveryHelper.ShouldScanPath(aOptions, lFilePath, lDirKey, lUnitKey) and
         LoadRemoveWithSource(lFilePath, lSource, lSourceError) then
-        TRemoveWithDiscoveryHelper.CollectFromNode(lUnit.SyntaxTree, lFilePath, lSource, 0, aScanResult)
+      begin
+        lInactiveRanges := RemoveWithInactiveDirectiveRanges(lSource, lContext.fParserDefines);
+        TRemoveWithDiscoveryHelper.CollectFromNode(lUnit.SyntaxTree, lFilePath, lSource, lInactiveRanges, 0,
+          aScanResult);
+      end
       else
         TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lFilePath, 0, 0, 'source-read-failed',
           'Could not read source text for range extraction: ' + lSourceError);
