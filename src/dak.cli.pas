@@ -62,6 +62,8 @@ var
       aParsedCommand := TCommandKind.ckLsp
     else if SameText(aArg, 'remove-with') then
       aParsedCommand := TCommandKind.ckRemoveWith
+    else if SameText(aArg, 'symbol-map') then
+      aParsedCommand := TCommandKind.ckSymbolMap
     else
       Result := False;
   end;
@@ -128,7 +130,8 @@ var
       SameText(aSwitch, 'ignore-warnings') or SameText(aSwitch, 'ignore-hints') or
       SameText(aSwitch, 'top') or SameText(aSwitch, 'file') or
       SameText(aSwitch, 'line') or SameText(aSwitch, 'col') or
-      SameText(aSwitch, 'query') or SameText(aSwitch, 'limit') or
+      SameText(aSwitch, 'query') or SameText(aSwitch, 'symbol') or SameText(aSwitch, 'owner') or
+      SameText(aSwitch, 'cache-root') or SameText(aSwitch, 'limit') or
       SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or
       SameText(aSwitch, 'dir');
   end;
@@ -237,6 +240,8 @@ begin
       WriteLn(ErrOutput, SUsageLsp);
     TCommandKind.ckRemoveWith:
       WriteLn(ErrOutput, SUsageRemoveWith);
+    TCommandKind.ckSymbolMap:
+      WriteLn(ErrOutput, SUsageSymbolMap);
   else
     WriteLn(ErrOutput, SUsageResolve);
   end;
@@ -290,6 +295,9 @@ type
       const aHasInlineValue: Boolean): Boolean;
     function TryParseRemoveWithSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
+    function TryParseSymbolMapOperation(const aArg: string): Boolean;
+    function TryParseSymbolMapSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+      const aHasInlineValue: Boolean): Boolean;
     function TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
     function TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
@@ -341,6 +349,8 @@ begin
   fOptions.fRemoveWithMode := TRemoveWithMode.rwmPlan;
   fOptions.fRemoveWithFormat := TRemoveWithFormat.rwfJson;
   fOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtNone;
+  fOptions.fSymbolMapFormat := TSymbolMapFormat.smfJson;
+  fOptions.fSymbolMapLimit := 50;
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
   fOptions.fGlobalVarsUnusedOnly := False;
@@ -512,7 +522,8 @@ begin
     SameText(aSwitch, 'reads-only') or SameText(aSwitch, 'writes-only') or
     SameText(aSwitch, 'file') or SameText(aSwitch, 'line') or
     SameText(aSwitch, 'col') or SameText(aSwitch, 'query') or
-    SameText(aSwitch, 'limit') or
+    SameText(aSwitch, 'symbol') or SameText(aSwitch, 'owner') or
+    SameText(aSwitch, 'cache-root') or SameText(aSwitch, 'limit') or
     SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or SameText(aSwitch, 'show-init-options') or
     SameText(aSwitch, 'dir');
 end;
@@ -577,6 +588,8 @@ begin
     fOptions.fCommand := TCommandKind.ckLsp
   else if SameText(aArg, 'remove-with') then
     fOptions.fCommand := TCommandKind.ckRemoveWith
+  else if SameText(aArg, 'symbol-map') then
+    fOptions.fCommand := TCommandKind.ckSymbolMap
   else
   begin
     fError := Format(SUnknownCommand, [aArg]);
@@ -624,6 +637,14 @@ begin
         Inc(fIndex);
         Continue;
       end;
+      if (fOptions.fCommand = TCommandKind.ckSymbolMap) and
+        (fOptions.fSymbolMapOperation = TSymbolMapOperation.smoNone) then
+      begin
+        if not TryParseSymbolMapOperation(lArg) then
+          Exit(False);
+        Inc(fIndex);
+        Continue;
+      end;
       fError := Format(SUnknownArg, [lArg]);
       Exit(False);
     end;
@@ -667,6 +688,9 @@ begin
 
   if fOptions.fCommand = TCommandKind.ckRemoveWith then
     Exit(TryParseRemoveWithSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
+
+  if fOptions.fCommand = TCommandKind.ckSymbolMap then
+    Exit(TryParseSymbolMapSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   Result := TryParseAnalyzeSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue);
 end;
@@ -1425,6 +1449,134 @@ begin
   Result := False;
 end;
 
+function TOptionParser.TryParseSymbolMapOperation(const aArg: string): Boolean;
+begin
+  if SameText(aArg, 'index') then
+    fOptions.fSymbolMapOperation := TSymbolMapOperation.smoIndex
+  else if SameText(aArg, 'find-definition') then
+    fOptions.fSymbolMapOperation := TSymbolMapOperation.smoFindDefinition
+  else if SameText(aArg, 'find-references') then
+    fOptions.fSymbolMapOperation := TSymbolMapOperation.smoFindReferences
+  else if SameText(aArg, 'search-symbols') then
+    fOptions.fSymbolMapOperation := TSymbolMapOperation.smoSearchSymbols
+  else if SameText(aArg, 'describe-symbol') then
+    fOptions.fSymbolMapOperation := TSymbolMapOperation.smoDescribeSymbol
+  else if SameText(aArg, 'stats') then
+    fOptions.fSymbolMapOperation := TSymbolMapOperation.smoStats
+  else
+  begin
+    fError := Format(SSymbolMapInvalidOperation, [aArg]);
+    Exit(False);
+  end;
+  Result := True;
+end;
+
+function TOptionParser.TryParseSymbolMapSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+  const aHasInlineValue: Boolean): Boolean;
+var
+  lValue: string;
+begin
+  if SameText(aSwitch, 'format') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
+      Exit(False);
+    if SameText(lValue, 'json') then
+      fOptions.fSymbolMapFormat := TSymbolMapFormat.smfJson
+    else if SameText(lValue, 'text') then
+      fOptions.fSymbolMapFormat := TSymbolMapFormat.smfText
+    else
+    begin
+      fError := Format(SSymbolMapInvalidFormat, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'file') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--file') then
+      Exit(False);
+    fOptions.fSymbolMapFilePath := lValue;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'line') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--line') then
+      Exit(False);
+    fOptions.fSymbolMapLine := StrToIntDef(lValue, -1);
+    if fOptions.fSymbolMapLine < 1 then
+    begin
+      fError := Format(SSymbolMapInvalidPosition, ['--line', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'col') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--col') then
+      Exit(False);
+    fOptions.fSymbolMapCol := StrToIntDef(lValue, -1);
+    if fOptions.fSymbolMapCol < 1 then
+    begin
+      fError := Format(SSymbolMapInvalidPosition, ['--col', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'query') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--query') then
+      Exit(False);
+    fOptions.fSymbolMapQuery := lValue;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'symbol') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--symbol') then
+      Exit(False);
+    fOptions.fSymbolMapSymbol := lValue;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'owner') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--owner') then
+      Exit(False);
+    fOptions.fSymbolMapOwner := lValue;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'cache-root') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--cache-root') then
+      Exit(False);
+    fOptions.fSymbolMapCacheRoot := lValue;
+    fOptions.fHasSymbolMapCacheRoot := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'limit') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--limit') then
+      Exit(False);
+    fOptions.fSymbolMapLimit := StrToIntDef(lValue, -1);
+    fOptions.fHasSymbolMapLimit := True;
+    if fOptions.fSymbolMapLimit < 1 then
+    begin
+      fError := Format(SSymbolMapInvalidLimit, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  fError := Format(SUnknownArg, [aArg]);
+  Result := False;
+end;
+
 function TOptionParser.TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
 var
@@ -1882,6 +2034,85 @@ begin
     if lRemoveWithTargetCount <> 1 then
     begin
       fError := SRemoveWithInvalidTarget;
+      Exit(False);
+    end;
+  end else if fOptions.fCommand = TCommandKind.ckSymbolMap then
+  begin
+    if fOptions.fDprojPath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--project']);
+      Exit(False);
+    end;
+    if fOptions.fSymbolMapOperation = TSymbolMapOperation.smoNone then
+    begin
+      fError := SSymbolMapMissingOperation;
+      Exit(False);
+    end;
+    if fOptions.fSymbolMapOperation = TSymbolMapOperation.smoFindDefinition then
+    begin
+      if fOptions.fSymbolMapFilePath = '' then
+      begin
+        fError := Format(SArgMissingValue, ['--file']);
+        Exit(False);
+      end;
+      if fOptions.fSymbolMapLine < 1 then
+      begin
+        fError := Format(SArgMissingValue, ['--line']);
+        Exit(False);
+      end;
+      if fOptions.fSymbolMapCol < 1 then
+      begin
+        fError := Format(SArgMissingValue, ['--col']);
+        Exit(False);
+      end;
+    end else if fOptions.fSymbolMapOperation = TSymbolMapOperation.smoFindReferences then
+    begin
+      if fOptions.fSymbolMapSymbol = '' then
+      begin
+        fError := Format(SArgMissingValue, ['--symbol']);
+        Exit(False);
+      end;
+    end else if fOptions.fSymbolMapOperation = TSymbolMapOperation.smoSearchSymbols then
+    begin
+      if fOptions.fSymbolMapQuery = '' then
+      begin
+        fError := Format(SArgMissingValue, ['--query']);
+        Exit(False);
+      end;
+    end else if fOptions.fSymbolMapOperation = TSymbolMapOperation.smoDescribeSymbol then
+    begin
+      if fOptions.fSymbolMapSymbol = '' then
+      begin
+        fError := Format(SArgMissingValue, ['--symbol']);
+        Exit(False);
+      end;
+    end;
+    if fOptions.fHasSymbolMapLimit and not (fOptions.fSymbolMapOperation in
+      [TSymbolMapOperation.smoFindReferences, TSymbolMapOperation.smoSearchSymbols]) then
+    begin
+      fError := Format(SSymbolMapOptionOnlyForOperation, ['--limit', 'find-references or search-symbols']);
+      Exit(False);
+    end;
+    if ((fOptions.fSymbolMapFilePath <> '') or (fOptions.fSymbolMapLine > 0) or (fOptions.fSymbolMapCol > 0)) and
+      (fOptions.fSymbolMapOperation <> TSymbolMapOperation.smoFindDefinition) then
+    begin
+      fError := Format(SSymbolMapOptionOnlyForOperation, ['--file/--line/--col', 'find-definition']);
+      Exit(False);
+    end;
+    if (fOptions.fSymbolMapQuery <> '') and (fOptions.fSymbolMapOperation <> TSymbolMapOperation.smoSearchSymbols) then
+    begin
+      fError := Format(SSymbolMapOptionOnlyForOperation, ['--query', 'search-symbols']);
+      Exit(False);
+    end;
+    if (fOptions.fSymbolMapSymbol <> '') and not (fOptions.fSymbolMapOperation in
+      [TSymbolMapOperation.smoFindReferences, TSymbolMapOperation.smoDescribeSymbol]) then
+    begin
+      fError := Format(SSymbolMapOptionOnlyForOperation, ['--symbol', 'find-references or describe-symbol']);
+      Exit(False);
+    end;
+    if (fOptions.fSymbolMapOwner <> '') and (fOptions.fSymbolMapOperation <> TSymbolMapOperation.smoDescribeSymbol) then
+    begin
+      fError := Format(SSymbolMapOptionOnlyForOperation, ['--owner', 'describe-symbol']);
       Exit(False);
     end;
   end else if fOptions.fCommand = TCommandKind.ckBuild then
