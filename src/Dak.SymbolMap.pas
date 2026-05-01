@@ -10,8 +10,8 @@ function RunSymbolMapCommand(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
-  System.SysUtils,
-  Dak.ExitCodes, Dak.SymbolMap.Cache, Dak.SymbolMap.Context;
+  System.IOUtils, System.SysUtils,
+  Dak.ExitCodes, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer;
 
 function SymbolMapOperationToText(const aOperation: TSymbolMapOperation): string;
 begin
@@ -80,8 +80,45 @@ begin
   Result := Result + ']';
 end;
 
+function SymbolMapUseNames(const aModel: TSymbolMapUnitModel; const aSectionKind: string): TArray<string>;
+var
+  i: Integer;
+  lIndex: Integer;
+begin
+  SetLength(Result, 0);
+  for i := 0 to High(aModel.fUses) do
+  begin
+    if not SameText(aModel.fUses[i].fSectionKind, aSectionKind) then
+      Continue;
+    lIndex := Length(Result);
+    SetLength(Result, lIndex + 1);
+    Result[lIndex] := aModel.fUses[i].fUnitName;
+  end;
+end;
+
+function SymbolMapDiagnosticsJson(const aValues: TArray<string>): string;
+begin
+  Result := JsonStringArray(aValues);
+end;
+
+function BuildIndexResultJson(const aModel: TSymbolMapUnitModel; const aHasUnit: Boolean): string;
+begin
+  if not aHasUnit then
+    Exit('{"unitCount":0,"fatalDiagnostics":0,"indexedUnits":[]}');
+
+  Result := '{"unitCount":1,"fatalDiagnostics":0,"indexedUnits":[{' +
+    '"unitName":"' + JsonEscape(aModel.fUnitName) + '",' +
+    '"filePath":"' + JsonEscape(aModel.fFilePath) + '",' +
+    '"encoding":"' + JsonEscape(aModel.fEncodingName) + '",' +
+    '"usesCount":' + Length(aModel.fUses).ToString + ',' +
+    '"interfaceUses":' + JsonStringArray(SymbolMapUseNames(aModel, 'interface')) + ',' +
+    '"implementationUses":' + JsonStringArray(SymbolMapUseNames(aModel, 'implementation')) + ',' +
+    '"diagnostics":' + SymbolMapDiagnosticsJson(aModel.fDiagnostics) +
+    '}]}';
+end;
+
 procedure WriteSymbolMapJsonShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
-  const aCacheStatus: TSymbolMapCacheStatus);
+  const aCacheStatus: TSymbolMapCacheStatus; const aResultJson, aDiagnosticsJson: string);
 var
   lOperation: string;
 begin
@@ -108,13 +145,13 @@ begin
       ',"libraryPath":' + JsonStringArray(aContext.fLibraryPath) + ',"unitScopes":' +
       JsonStringArray(aContext.fUnitScopes) + ',"unitAliases":' + JsonStringArray(aContext.fUnitAliases) + '}' +
     ',"query":{}' +
-    ',"result":{}' +
-    ',"diagnostics":[]' +
+    ',"result":' + aResultJson +
+    ',"diagnostics":' + aDiagnosticsJson +
     ',"timings":{"totalMs":0}}');
 end;
 
 procedure WriteSymbolMapTextShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
-  const aCacheStatus: TSymbolMapCacheStatus);
+  const aCacheStatus: TSymbolMapCacheStatus; const aIndexModel: TSymbolMapUnitModel; const aHasIndexUnit: Boolean);
 begin
   WriteLn('symbol-map ', SymbolMapOperationToText(aOptions.fSymbolMapOperation), ': ok');
   WriteLn('project: ', aContext.fProject.fProjectPath);
@@ -123,6 +160,11 @@ begin
   WriteLn('central-cache-db: ', aCacheStatus.fCentralDbPath);
   WriteLn('project-cache-db: ', aCacheStatus.fProjectDbPath);
   WriteLn('schema-version: ', aCacheStatus.fSchemaVersion);
+  if aHasIndexUnit then
+  begin
+    WriteLn('indexed-unit: ', aIndexModel.fUnitName);
+    WriteLn('uses-count: ', Length(aIndexModel.fUses));
+  end;
 end;
 
 function RunSymbolMapCommand(const aOptions: TAppOptions): Integer;
@@ -130,7 +172,14 @@ var
   lCacheStatus: TSymbolMapCacheStatus;
   lContext: TSymbolMapContext;
   lError: string;
+  lHasIndexUnit: Boolean;
+  lIndexModel: TSymbolMapUnitModel;
+  lResultJson: string;
+  lUnitPath: string;
 begin
+  lHasIndexUnit := False;
+  lIndexModel := Default(TSymbolMapUnitModel);
+  lResultJson := '{}';
   if not TryBuildSymbolMapContext(aOptions, lContext, lError) then
   begin
     WriteLn(ErrOutput, lError);
@@ -141,11 +190,23 @@ begin
     WriteLn(ErrOutput, lError);
     Exit(cExitToolFailure);
   end;
+  if (aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex) and (aOptions.fSymbolMapUnitPath <> '') then
+  begin
+    lUnitPath := TPath.GetFullPath(aOptions.fSymbolMapUnitPath);
+    if not TryExtractSymbolMapUnitModel(lUnitPath, lIndexModel, lError) then
+    begin
+      WriteLn(ErrOutput, lError);
+      Exit(cExitInvalidProjectInput);
+    end;
+    lHasIndexUnit := True;
+    lResultJson := BuildIndexResultJson(lIndexModel, True);
+  end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex then
+    lResultJson := BuildIndexResultJson(lIndexModel, False);
 
   if aOptions.fSymbolMapFormat = TSymbolMapFormat.smfText then
-    WriteSymbolMapTextShell(aOptions, lContext, lCacheStatus)
+    WriteSymbolMapTextShell(aOptions, lContext, lCacheStatus, lIndexModel, lHasIndexUnit)
   else
-    WriteSymbolMapJsonShell(aOptions, lContext, lCacheStatus);
+    WriteSymbolMapJsonShell(aOptions, lContext, lCacheStatus, lResultJson, '[]');
 
   Result := cExitSuccess;
 end;

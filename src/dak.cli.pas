@@ -1500,6 +1500,14 @@ begin
     Exit(True);
   end;
 
+  if SameText(aSwitch, 'unit') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit') then
+      Exit(False);
+    fOptions.fSymbolMapUnitPath := lValue;
+    Exit(True);
+  end;
+
   if SameText(aSwitch, 'line') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--line') then
@@ -2091,6 +2099,11 @@ begin
       [TSymbolMapOperation.smoFindReferences, TSymbolMapOperation.smoSearchSymbols]) then
     begin
       fError := Format(SSymbolMapOptionOnlyForOperation, ['--limit', 'find-references or search-symbols']);
+      Exit(False);
+    end;
+    if (fOptions.fSymbolMapUnitPath <> '') and (fOptions.fSymbolMapOperation <> TSymbolMapOperation.smoIndex) then
+    begin
+      fError := Format(SSymbolMapOptionOnlyForOperation, ['--unit', 'index']);
       Exit(False);
     end;
     if ((fOptions.fSymbolMapFilePath <> '') or (fOptions.fSymbolMapLine > 0) or (fOptions.fSymbolMapCol > 0)) and

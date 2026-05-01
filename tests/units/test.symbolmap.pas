@@ -51,6 +51,24 @@ type
   end;
 
   [TestFixture]
+  TSymbolMapSourceUnitTests = class
+  private
+    function FixtureProjectPath: string;
+    function FixtureUnitPath: string;
+  public
+    [Test]
+    procedure LoadsAnsiFallbackWhenUtf8Fails;
+    [Test]
+    procedure LoadsAnsiFallbackForInvalidUtf8SurrogateSequence;
+    [Test]
+    procedure ExtractsUnitNameAndUsesSections;
+    [Test]
+    procedure ExtractsNamespacedUnitName;
+    [Test]
+    procedure IndexUnitCommandReportsOneIndexedUnit;
+  end;
+
+  [TestFixture]
   TSymbolMapCliTests = class
   private
     procedure SetParams(const aCmdLine: string);
@@ -74,7 +92,7 @@ uses
   Winapi.Windows,
   FireDAC.Comp.Client,
   FireDAC.Phys.SQLite,
-  Dak.SymbolMap.Cache;
+  Dak.SymbolMap.Cache, Dak.SymbolMap.Indexer;
 
 function TSymbolMapContextTests.FixtureProjectPath: string;
 begin
@@ -367,6 +385,140 @@ begin
   end;
 end;
 
+function TSymbolMapSourceUnitTests.FixtureProjectPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
+end;
+
+function TSymbolMapSourceUnitTests.FixtureUnitPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
+end;
+
+procedure TSymbolMapSourceUnitTests.LoadsAnsiFallbackWhenUtf8Fails;
+var
+  lBytes: TBytes;
+  lEncoding: string;
+  lError: string;
+  lPath: string;
+  lText: string;
+begin
+  lPath := TPath.Combine(TempRoot, 'symbol-map-ansi-source.pas');
+  lBytes := TBytes.Create($75, $6E, $69, $74, $20, $41, $6E, $73, $69, $46, $61, $6C, $6C, $62, $61, $63,
+    $6B, $3B, $0D, $0A, $69, $6E, $74, $65, $72, $66, $61, $63, $65, $0D, $0A, $2F, $2F, $20, $E4,
+    $0D, $0A, $75, $73, $65, $73, $20, $53, $79, $73, $74, $65, $6D, $2E, $53, $79, $73, $55, $74,
+    $69, $6C, $73, $3B, $0D, $0A, $69, $6D, $70, $6C, $65, $6D, $65, $6E, $74, $61, $74, $69, $6F,
+    $6E, $0D, $0A, $65, $6E, $64, $2E);
+  TFile.WriteAllBytes(lPath, lBytes);
+
+  Assert.IsTrue(TryLoadSymbolMapSourceFile(lPath, lText, lEncoding, lError),
+    'Expected source loading to succeed. Error: ' + lError);
+  Assert.AreEqual('ansi', lEncoding);
+  Assert.IsTrue(Pos('AnsiFallback', lText) > 0, 'Expected decoded ANSI source text.');
+end;
+
+procedure TSymbolMapSourceUnitTests.LoadsAnsiFallbackForInvalidUtf8SurrogateSequence;
+var
+  lBytes: TBytes;
+  lEncoding: string;
+  lError: string;
+  lPath: string;
+  lText: string;
+begin
+  lPath := TPath.Combine(TempRoot, 'symbol-map-invalid-utf8-source.pas');
+  lBytes := TBytes.Create($75, $6E, $69, $74, $20, $42, $61, $64, $55, $74, $66, $38, $3B, $0D, $0A,
+    $69, $6E, $74, $65, $72, $66, $61, $63, $65, $0D, $0A, $2F, $2F, $20, $ED, $A0, $A0, $0D, $0A,
+    $69, $6D, $70, $6C, $65, $6D, $65, $6E, $74, $61, $74, $69, $6F, $6E, $0D, $0A, $65, $6E,
+    $64, $2E);
+  TFile.WriteAllBytes(lPath, lBytes);
+
+  Assert.IsTrue(TryLoadSymbolMapSourceFile(lPath, lText, lEncoding, lError),
+    'Expected source loading to succeed. Error: ' + lError);
+  Assert.AreEqual('ansi', lEncoding);
+  Assert.IsTrue(Pos('BadUtf8', lText) > 0, 'Expected decoded fallback source text.');
+end;
+
+procedure TSymbolMapSourceUnitTests.ExtractsUnitNameAndUsesSections;
+var
+  lError: string;
+  lModel: TSymbolMapUnitModel;
+begin
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected unit model extraction to succeed. Error: ' + lError);
+  Assert.AreEqual('SymbolMapUnit', lModel.fUnitName);
+  Assert.AreEqual(TPath.GetFullPath(FixtureUnitPath), lModel.fFilePath);
+  Assert.AreEqual('utf-8', lModel.fEncodingName);
+  Assert.AreEqual(4, Length(lModel.fUses));
+  Assert.AreEqual('System.SysUtils', lModel.fUses[0].fUnitName);
+  Assert.AreEqual('interface', lModel.fUses[0].fSectionKind);
+  Assert.AreEqual('Winapi.Windows', lModel.fUses[1].fUnitName);
+  Assert.AreEqual('interface', lModel.fUses[1].fSectionKind);
+  Assert.AreEqual('System.Classes', lModel.fUses[2].fUnitName);
+  Assert.AreEqual('implementation', lModel.fUses[2].fSectionKind);
+  Assert.AreEqual('System.Generics.Collections', lModel.fUses[3].fUnitName);
+  Assert.AreEqual('implementation', lModel.fUses[3].fSectionKind);
+end;
+
+procedure TSymbolMapSourceUnitTests.ExtractsNamespacedUnitName;
+var
+  lError: string;
+  lModel: TSymbolMapUnitModel;
+  lPath: string;
+begin
+  lPath := TPath.Combine(TempRoot, 'symbol-map-namespaced-unit.pas');
+  TFile.WriteAllText(lPath, 'unit Foo.Bar;' + sLineBreak + 'interface' + sLineBreak +
+    'uses System.SysUtils;' + sLineBreak + 'implementation' + sLineBreak + 'end.', TEncoding.UTF8);
+
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(lPath, lModel, lError),
+    'Expected unit model extraction to succeed. Error: ' + lError);
+  Assert.AreEqual('Foo.Bar', lModel.fUnitName);
+  Assert.AreEqual('System.SysUtils', lModel.fUses[0].fUnitName);
+end;
+
+procedure TSymbolMapSourceUnitTests.IndexUnitCommandReportsOneIndexedUnit;
+var
+  lArgs: string;
+  lCacheRoot: string;
+  lExitCode: Cardinal;
+  lIndexedUnits: TJSONArray;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLogPath: string;
+  lLogText: string;
+  lResult: TJSONObject;
+  lUnitObject: TJSONObject;
+begin
+  EnsureResolverBuilt;
+  lCacheRoot := TPath.Combine(TempRoot, 'symbol-map-source-cache');
+  if TDirectory.Exists(lCacheRoot) then
+    TDirectory.Delete(lCacheRoot, True);
+  lLogPath := TPath.Combine(TempRoot, 'symbol-map-source-index-json.log');
+  lArgs := 'symbol-map index --project ' + QuoteArg(FixtureProjectPath) + ' --unit ' + QuoteArg(FixtureUnitPath) +
+    ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start symbol-map index command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map index to succeed. See: ' + lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath);
+  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lJsonValue);
+    lResult := lJson.GetValue('result') as TJSONObject;
+    Assert.AreEqual(1, lResult.GetValue<Integer>('unitCount'));
+    Assert.AreEqual(0, lResult.GetValue<Integer>('fatalDiagnostics'));
+    lIndexedUnits := lResult.GetValue('indexedUnits') as TJSONArray;
+    Assert.AreEqual(1, lIndexedUnits.Count);
+    lUnitObject := lIndexedUnits.Items[0] as TJSONObject;
+    Assert.AreEqual('SymbolMapUnit', lUnitObject.GetValue<string>('unitName'));
+    Assert.AreEqual(2, (lUnitObject.GetValue('interfaceUses') as TJSONArray).Count);
+    Assert.AreEqual(2, (lUnitObject.GetValue('implementationUses') as TJSONArray).Count);
+  finally
+    lJsonValue.Free;
+  end;
+end;
+
 procedure TSymbolMapContextTests.ResolvesProjectAndProjectCacheRoot;
 var
   lContext: TSymbolMapContext;
@@ -506,9 +658,10 @@ var
   lError: string;
   lOptions: TAppOptions;
 begin
-  SetParams('symbol-map index --project c:\temp\sample.dproj --cache-root c:\cache --format text');
+  SetParams('symbol-map index --project c:\temp\sample.dproj --unit c:\temp\unit1.pas --cache-root c:\cache --format text');
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected symbol-map index to parse. Error: ' + lError);
   Assert.AreEqual(TSymbolMapOperation.smoIndex, lOptions.fSymbolMapOperation);
+  Assert.AreEqual('c:\temp\unit1.pas', lOptions.fSymbolMapUnitPath);
   Assert.AreEqual('c:\cache', lOptions.fSymbolMapCacheRoot);
   Assert.IsTrue(lOptions.fHasSymbolMapCacheRoot);
   Assert.AreEqual(TSymbolMapFormat.smfText, lOptions.fSymbolMapFormat);
@@ -580,6 +733,10 @@ begin
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --limit outside query operations to be rejected.');
   Assert.IsTrue(Pos('--limit', lError) > 0, 'Expected invalid --limit operation error. Actual: ' + lError);
 
+  SetParams('symbol-map stats --project c:\temp\sample.dproj --unit c:\temp\unit1.pas');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --unit outside index to be rejected.');
+  Assert.IsTrue(Pos('--unit', lError) > 0, 'Expected invalid --unit operation error. Actual: ' + lError);
+
   SetParams('symbol-map stats --project c:\temp\sample.dproj --file c:\temp\unit1.pas');
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --file outside find-definition to be rejected.');
   Assert.IsTrue(Pos('--file', lError) > 0, 'Expected invalid --file operation error. Actual: ' + lError);
@@ -621,6 +778,7 @@ begin
   Assert.IsTrue(Pos('describe-symbol', lLogText) > 0, 'Expected symbol-map help to mention describe-symbol.');
   Assert.IsTrue(Pos('stats', lLogText) > 0, 'Expected symbol-map help to mention stats.');
   Assert.IsTrue(Pos('--project', lLogText) > 0, 'Expected symbol-map help to mention --project.');
+  Assert.IsTrue(Pos('--unit', lLogText) > 0, 'Expected symbol-map help to mention --unit.');
   Assert.IsTrue(Pos('--file', lLogText) > 0, 'Expected symbol-map help to mention --file.');
   Assert.IsTrue(Pos('--line', lLogText) > 0, 'Expected symbol-map help to mention --line.');
   Assert.IsTrue(Pos('--col', lLogText) > 0, 'Expected symbol-map help to mention --col.');
@@ -672,6 +830,7 @@ end;
 initialization
   TDUnitX.RegisterTestFixture(TSymbolMapContextTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCacheTests);
+  TDUnitX.RegisterTestFixture(TSymbolMapSourceUnitTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCliTests);
 
 end.
