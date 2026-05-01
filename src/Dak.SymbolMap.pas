@@ -11,7 +11,7 @@ implementation
 
 uses
   System.SysUtils,
-  Dak.ExitCodes;
+  Dak.ExitCodes, Dak.SymbolMap.Context;
 
 function SymbolMapOperationToText(const aOperation: TSymbolMapOperation): string;
 begin
@@ -66,7 +66,21 @@ begin
   end;
 end;
 
-procedure WriteSymbolMapJsonShell(const aOptions: TAppOptions);
+function JsonStringArray(const aValues: TArray<string>): string;
+var
+  i: Integer;
+begin
+  Result := '[';
+  for i := 0 to High(aValues) do
+  begin
+    if i > 0 then
+      Result := Result + ',';
+    Result := Result + '"' + JsonEscape(aValues[i]) + '"';
+  end;
+  Result := Result + ']';
+end;
+
+procedure WriteSymbolMapJsonShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext);
 var
   lOperation: string;
 begin
@@ -74,29 +88,49 @@ begin
   WriteLn(
     '{"operation":"' + JsonEscape(lOperation) + '"' +
     ',"status":"ok"' +
-    ',"project":{"path":"' + JsonEscape(aOptions.fDprojPath) + '","platform":"' +
-      JsonEscape(aOptions.fPlatform) + '","config":"' + JsonEscape(aOptions.fConfig) + '"}' +
-    ',"cache":{"centralRoot":"' + JsonEscape(aOptions.fSymbolMapCacheRoot) + '","projectRoot":""}' +
+    ',"project":{"path":"' + JsonEscape(aContext.fProject.fProjectPath) + '","name":"' +
+      JsonEscape(aContext.fProject.fProjectName) + '","dir":"' + JsonEscape(aContext.fProject.fProjectDir) +
+      '","mainSource":"' + JsonEscape(aContext.fProject.fMainSourcePath) + '","platform":"' +
+      JsonEscape(aContext.fPlatform) + '","config":"' + JsonEscape(aContext.fConfig) + '"}' +
+    ',"cache":{"centralRoot":"' + JsonEscape(aContext.fCentralCacheRoot) + '","projectRoot":"' +
+      JsonEscape(aContext.fProjectCacheRoot) + '"}' +
+    ',"context":{"delphiVersion":"' + JsonEscape(aContext.fDelphiVersion) + '","hasDelphiContext":' +
+      LowerCase(BoolToStr(aContext.fProject.fHasDelphiContext, True)) + ',"parserDefines":"' +
+      JsonEscape(aContext.fProject.fParserDefines) + '","parserSearchPath":"' +
+      JsonEscape(aContext.fProject.fParserSearchPath) + '","hasCompilerParams":' +
+      LowerCase(BoolToStr(aContext.fHasCompilerParams, True)) + ',"defines":' +
+      JsonStringArray(aContext.fDefines) + ',"unitSearchPath":' + JsonStringArray(aContext.fUnitSearchPath) +
+      ',"libraryPath":' + JsonStringArray(aContext.fLibraryPath) + ',"unitScopes":' +
+      JsonStringArray(aContext.fUnitScopes) + ',"unitAliases":' + JsonStringArray(aContext.fUnitAliases) + '}' +
     ',"query":{}' +
     ',"result":{}' +
     ',"diagnostics":[]' +
     ',"timings":{"totalMs":0}}');
 end;
 
-procedure WriteSymbolMapTextShell(const aOptions: TAppOptions);
+procedure WriteSymbolMapTextShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext);
 begin
   WriteLn('symbol-map ', SymbolMapOperationToText(aOptions.fSymbolMapOperation), ': ok');
-  WriteLn('project: ', aOptions.fDprojPath);
-  if aOptions.fSymbolMapCacheRoot <> '' then
-    WriteLn('cache-root: ', aOptions.fSymbolMapCacheRoot);
+  WriteLn('project: ', aContext.fProject.fProjectPath);
+  WriteLn('central-cache-root: ', aContext.fCentralCacheRoot);
+  WriteLn('project-cache-root: ', aContext.fProjectCacheRoot);
 end;
 
 function RunSymbolMapCommand(const aOptions: TAppOptions): Integer;
+var
+  lContext: TSymbolMapContext;
+  lError: string;
 begin
+  if not TryBuildSymbolMapContext(aOptions, lContext, lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(cExitInvalidProjectInput);
+  end;
+
   if aOptions.fSymbolMapFormat = TSymbolMapFormat.smfText then
-    WriteSymbolMapTextShell(aOptions)
+    WriteSymbolMapTextShell(aOptions, lContext)
   else
-    WriteSymbolMapJsonShell(aOptions);
+    WriteSymbolMapJsonShell(aOptions, lContext);
 
   Result := cExitSuccess;
 end;
