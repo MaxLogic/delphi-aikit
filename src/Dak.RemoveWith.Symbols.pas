@@ -22,6 +22,7 @@ type
     fUnitName: string;
     fFilePath: string;
     fLine: Integer;
+    fEndLine: Integer;
     fColumn: Integer;
     fUnsupportedReason: string;
     fIsHelper: Boolean;
@@ -34,6 +35,7 @@ type
   TRemoveWithSymbolInventory = record
     fSymbols: TArray<TRemoveWithSymbolInfo>;
     fSemanticIndex: TRemoveWithSemanticIndex;
+    fParserDefines: string;
   end;
 
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
@@ -79,14 +81,23 @@ type
     class function TryConstDeclaration(const aLine: string; out aName: string; out aTypeName: string): Boolean; static;
     class function TryPropertyDeclaration(const aLine: string; out aName, aTypeName: string;
       out aIsDefault: Boolean): Boolean; static;
+    class function TryEnumValues(const aTypeText: string; out aNames: TArray<string>): Boolean; static;
     class function TryTypeAlias(const aLine: string; out aName: string; out aTypeName: string): Boolean; static;
     class function TryTypeStart(const aLine: string; out aName: string;
       out aCategory: TRemoveWithTypeCategory): Boolean; static;
+    class function TryVariantTagDeclaration(const aLine: string; out aName, aTypeName: string): Boolean; static;
+    class function VariantFieldDeclarationLine(const aLine: string): string; static;
     class function TryTypeRelation(const aLine: string; out aRelatedTypeName: string; out aIsHelper: Boolean): Boolean;
       static;
     class function TryRoutineName(const aLine: string; out aName: string): Boolean; static;
     class function TryRoutineOwner(const aRoutineName: string; out aOwnerType: string): Boolean; static;
-    class function CollectDeclarationText(const aLines: TArray<string>; const aStartLine: Integer): string; static;
+    class function EndTerminatedBlockOpenCount(const aText: string): Integer; static;
+    class function TokenCount(const aText, aToken: string): Integer; static;
+    class function FindRoutineEndLine(const aLines: TArray<string>; const aStartIndex: Integer): Integer; static;
+    class function CollectDeclarationText(const aLines: TArray<string>; const aStartLine: Integer): string; overload;
+      static;
+    class function CollectDeclarationText(const aLines: TArray<string>; const aStartLine: Integer;
+      out aEndLine: Integer): string; overload; static;
     class function CollectTypeStartText(const aLines: TArray<string>; const aStartLine: Integer): string; static;
     class function FindColumn(const aLine, aName: string): Integer; static;
     class function IsDirectMemberKind(const aKind: TRemoveWithSymbolKind): Boolean; static;
@@ -369,6 +380,57 @@ begin
   Result := aName <> '';
 end;
 
+class function TRemoveWithSymbolBuilder.TryEnumValues(const aTypeText: string;
+  out aNames: TArray<string>): Boolean;
+var
+  lClosePos: Integer;
+  lEqualsPos: Integer;
+  lList: TList<string>;
+  lName: string;
+  lOpenPos: Integer;
+  lPart: string;
+  lParts: TArray<string>;
+  lPrefix: string;
+  lRawPart: string;
+  lText: string;
+  i: Integer;
+begin
+  Result := False;
+  SetLength(aNames, 0);
+  lText := Trim(aTypeText);
+  lEqualsPos := Pos('=', lText);
+  lOpenPos := Pos('(', lText);
+  lClosePos := PosEx(')', lText, lOpenPos + 1);
+  if (lEqualsPos = 0) or (lOpenPos <= lEqualsPos) or (lClosePos <= lOpenPos) then
+    Exit;
+
+  lPrefix := Copy(lText, 1, lOpenPos - 1);
+  if ContainsText(lPrefix, 'procedure') or ContainsText(lPrefix, 'function') then
+    Exit;
+
+  lList := TList<string>.Create;
+  try
+    lParts := Copy(lText, lOpenPos + 1, lClosePos - lOpenPos - 1).Split([',']);
+    for lRawPart in lParts do
+    begin
+      lPart := Trim(lRawPart);
+      lName := '';
+      i := 1;
+      while (i <= Length(lPart)) and IsIdentifierChar(lPart[i]) do
+      begin
+        lName := lName + lPart[i];
+        Inc(i);
+      end;
+      if lName <> '' then
+        lList.Add(lName);
+    end;
+    aNames := lList.ToArray;
+    Result := Length(aNames) > 0;
+  finally
+    lList.Free;
+  end;
+end;
+
 class function TRemoveWithSymbolBuilder.TryPropertyDeclaration(const aLine: string; out aName, aTypeName: string;
   out aIsDefault: Boolean): Boolean;
 var
@@ -482,6 +544,62 @@ begin
   Result := aName <> '';
 end;
 
+class function TRemoveWithSymbolBuilder.TryVariantTagDeclaration(const aLine: string; out aName,
+  aTypeName: string): Boolean;
+var
+  lColonPos: Integer;
+  lOfPos: Integer;
+  lRest: string;
+  lRestLower: string;
+  lText: string;
+begin
+  Result := False;
+  aName := '';
+  aTypeName := '';
+  lText := Trim(aLine);
+  if not StartsText('case ', LowerCase(lText)) then
+    Exit;
+
+  lRest := Trim(Copy(lText, Length('case ') + 1, MaxInt));
+  lRestLower := LowerCase(lRest);
+  lColonPos := Pos(':', lRest);
+  lOfPos := Pos(' of', lRestLower);
+  if (lColonPos = 0) or (lOfPos = 0) or (lOfPos < lColonPos) then
+    Exit;
+
+  aName := Trim(Copy(lRest, 1, lColonPos - 1));
+  aTypeName := Trim(Copy(lRest, lColonPos + 1, lOfPos - lColonPos - 1));
+  Result := (aName <> '') and (aTypeName <> '');
+end;
+
+class function TRemoveWithSymbolBuilder.VariantFieldDeclarationLine(const aLine: string): string;
+var
+  lInnerText: string;
+  lOpenPos: Integer;
+  lText: string;
+begin
+  Result := aLine;
+  lText := Trim(aLine);
+  lOpenPos := Pos('(', lText);
+  if (lOpenPos > 1) and (Pos(':', Copy(lText, 1, lOpenPos - 1)) > 0) then
+  begin
+    lInnerText := Copy(lText, lOpenPos + 1, MaxInt);
+    if Pos(':', lInnerText) > 0 then
+      lText := Trim(Copy(lText, lOpenPos, MaxInt));
+  end;
+  if StartsText('(', lText) then
+  begin
+    lText := Trim(Copy(lText, 2, MaxInt));
+    if EndsText(');', lText) then
+      Result := Trim(Copy(lText, 1, Length(lText) - 2)) + ';'
+    else if EndsText(')', lText) then
+      Result := Trim(Copy(lText, 1, Length(lText) - 1)) + ';'
+    else
+      Result := lText;
+  end else if EndsText(');', lText) then
+    Result := Trim(Copy(lText, 1, Length(lText) - 2)) + ';';
+end;
+
 class function TRemoveWithSymbolBuilder.TryTypeRelation(const aLine: string; out aRelatedTypeName: string;
   out aIsHelper: Boolean): Boolean;
 var
@@ -585,8 +703,96 @@ begin
     aOwnerType := '';
 end;
 
+class function TRemoveWithSymbolBuilder.TokenCount(const aText, aToken: string): Integer;
+var
+  lEndPos: Integer;
+  lStartPos: Integer;
+  i: Integer;
+begin
+  Result := 0;
+  i := 1;
+  while i <= Length(aText) do
+  begin
+    if not IsIdentifierChar(aText[i]) then
+    begin
+      Inc(i);
+      Continue;
+    end;
+    lStartPos := i;
+    while (i <= Length(aText)) and IsIdentifierChar(aText[i]) do
+      Inc(i);
+    lEndPos := i - 1;
+    if SameText(Copy(aText, lStartPos, lEndPos - lStartPos + 1), aToken) then
+      Inc(Result);
+  end;
+end;
+
+class function TRemoveWithSymbolBuilder.EndTerminatedBlockOpenCount(const aText: string): Integer;
+begin
+  Result := TokenCount(aText, 'begin') + TokenCount(aText, 'case') + TokenCount(aText, 'try') +
+    TokenCount(aText, 'asm');
+end;
+
+class function TRemoveWithSymbolBuilder.FindRoutineEndLine(const aLines: TArray<string>;
+  const aStartIndex: Integer): Integer;
+var
+  lDepth: Integer;
+  lLine: string;
+  lNestedEndLine: Integer;
+  lStarted: Boolean;
+  i: Integer;
+begin
+  Result := 0;
+  lDepth := 0;
+  lStarted := False;
+  i := aStartIndex + 1;
+  while i <= High(aLines) do
+  begin
+    lLine := LowerCase(CleanLine(aLines[i]));
+    if lLine = '' then
+    begin
+      Inc(i);
+      Continue;
+    end;
+    if not lStarted then
+    begin
+      if IsTopLevelLine(aLines[i]) and (IsRoutineStart(lLine) or SameText(lLine, 'implementation') or
+        SameText(lLine, 'interface')) then
+        Exit(0);
+      if IsRoutineStart(lLine) then
+      begin
+        lNestedEndLine := FindRoutineEndLine(aLines, i);
+        if lNestedEndLine > 0 then
+        begin
+          i := lNestedEndLine;
+          Continue;
+        end;
+      end;
+      if EndTerminatedBlockOpenCount(lLine) = 0 then
+      begin
+        Inc(i);
+        Continue;
+      end;
+      lStarted := True;
+    end;
+    Inc(lDepth, EndTerminatedBlockOpenCount(lLine));
+    Dec(lDepth, TokenCount(lLine, 'end'));
+    if lStarted and (lDepth <= 0) then
+      Exit(i + 1);
+    Inc(i);
+  end;
+end;
+
 class function TRemoveWithSymbolBuilder.CollectDeclarationText(const aLines: TArray<string>;
   const aStartLine: Integer): string;
+var
+  lEndLine: Integer;
+begin
+  Result := CollectDeclarationText(aLines, aStartLine, lEndLine);
+end;
+
+class function TRemoveWithSymbolBuilder.CollectDeclarationText(const aLines: TArray<string>;
+  const aStartLine: Integer; out aEndLine: Integer): string;
 var
   lLine: string;
   lParenDepth: Integer;
@@ -594,9 +800,11 @@ var
   j: Integer;
 begin
   Result := '';
+  aEndLine := aStartLine;
   lParenDepth := 0;
   for i := aStartLine to High(aLines) do
   begin
+    aEndLine := i;
     lLine := CleanLine(aLines[i]);
     if lLine <> '' then
     begin
@@ -939,8 +1147,10 @@ end;
 class procedure TRemoveWithSymbolBuilder.ParseLocals(var aInventory: TRemoveWithSymbolInventory;
   const aLines: TArray<string>; const aStartLine: Integer; const aRoutineName, aUnitName, aFilePath: string);
 var
+  lConstName: string;
   lDeclaration: string;
   lDeclarationLine: Integer;
+  lInConst: Boolean;
   lInVar: Boolean;
   lLine: string;
   lNames: TArray<string>;
@@ -949,17 +1159,37 @@ var
 begin
   lDeclaration := '';
   lDeclarationLine := 0;
+  lInConst := False;
   lInVar := False;
   for i := aStartLine to High(aLines) do
   begin
     lLine := CleanLine(aLines[i]);
+    if SameText(lLine, 'const') then
+    begin
+      lInConst := True;
+      lInVar := False;
+      Continue;
+    end;
     if SameText(lLine, 'var') then
     begin
+      lInConst := False;
       lInVar := True;
       Continue;
     end;
     if SameText(lLine, 'begin') then
       Exit;
+    if StartsText('const ', LowerCase(lLine)) then
+    begin
+      lInConst := True;
+      lInVar := False;
+      lLine := Trim(Copy(lLine, Length('const ') + 1, MaxInt));
+    end;
+    if lInConst and (lLine <> '') and TryConstDeclaration(lLine, lConstName, lTypeName) then
+    begin
+      AddNamedSymbols(aInventory, [lConstName], lTypeName, '', aRoutineName, aUnitName, aFilePath, i + 1,
+        aLines[i], TRemoveWithSymbolKind.rwskConstant);
+      Continue;
+    end;
     if lInVar and (lLine <> '') then
     begin
       if lDeclaration = '' then
@@ -988,6 +1218,10 @@ var
   lConstName: string;
   lCurrentType: string;
   lCurrentTypeUnsupportedReason: string;
+  lDeclaration: string;
+  lDeclarationAdded: Boolean;
+  lDeclarationParts: TArray<string>;
+  lEnumNames: TArray<string>;
   lInClassVar: Boolean;
   lInConst: Boolean;
   lInTypeSection: Boolean;
@@ -998,6 +1232,7 @@ var
   lPendingUnsupportedReason: string;
   lPropertyType: string;
   lRawLine: string;
+  lRawDeclaration: string;
   lRelatedTypeName: string;
   lRawTypeName: string;
   lTypeText: string;
@@ -1007,6 +1242,8 @@ var
   lTypeIsHelper: Boolean;
   lPropertyIsDefault: Boolean;
   lTypeName: string;
+  lCollectedEndLine: Integer;
+  lSkipUntilLine: Integer;
   i: Integer;
 begin
   lConditionalDepth := 0;
@@ -1016,8 +1253,11 @@ begin
   lInConst := False;
   lInTypeSection := False;
   lPendingUnsupportedReason := '';
+  lSkipUntilLine := 0;
   for i := 0 to High(aLines) do
   begin
+    if i < lSkipUntilLine then
+      Continue;
     lRawLine := aLines[i];
     lLine := CleanLine(lRawLine);
     lLower := LowerCase(lLine);
@@ -1054,6 +1294,7 @@ begin
 
     if lTopLevelLine and SameText(lLine, 'type') then
     begin
+      lConditionalDepth := 0;
       lInTypeSection := True;
       Continue;
     end;
@@ -1094,11 +1335,17 @@ begin
         lTypeSymbol.fUnsupportedReason := lCurrentTypeUnsupportedReason;
         lTypeSymbol.fKind := TRemoveWithSymbolKind.rwskTypeMember;
         AddSymbol(aInventory, lTypeSymbol);
+        if TryEnumValues(lTypeText, lEnumNames) then
+          AddNamedSymbols(aInventory, lEnumNames, lCurrentType, '', '', aUnitName, aFilePath, i + 1, aLines[i],
+            TRemoveWithSymbolKind.rwskConstant);
         lPendingUnsupportedReason := '';
-      end else if TryTypeAlias(lLine, lMemberName, lTypeName) then
+      end else if TryTypeAlias(lTypeText, lMemberName, lTypeName) then
       begin
         AddNamedSymbols(aInventory, [lMemberName], lTypeName, '', '', aUnitName, aFilePath, i + 1, aLines[i],
           TRemoveWithSymbolKind.rwskTypeMember);
+        if TryEnumValues(lTypeText, lEnumNames) then
+          AddNamedSymbols(aInventory, lEnumNames, lMemberName, '', '', aUnitName, aFilePath, i + 1, aLines[i],
+            TRemoveWithSymbolKind.rwskConstant);
         lPendingUnsupportedReason := '';
       end;
       Continue;
@@ -1120,12 +1367,19 @@ begin
     end;
     if IsMultilineDeclarationStart(lLine) then
     begin
-      lCurrentTypeUnsupportedReason := 'unsupported-source-model-multiline-declaration';
-      MarkTypeUnsupported(aInventory, lCurrentType, lCurrentTypeUnsupportedReason);
-      Continue;
+      lLine := CollectDeclarationText(aLines, i, lCollectedEndLine);
+      lSkipUntilLine := lCollectedEndLine + 1;
     end;
     if lCurrentTypeUnsupportedReason <> '' then
       Continue;
+    lLine := VariantFieldDeclarationLine(lLine);
+    lLower := LowerCase(lLine);
+    if TryVariantTagDeclaration(lLine, lMemberName, lTypeName) then
+    begin
+      AddNamedSymbols(aInventory, [lMemberName], lTypeName, lCurrentType, '', aUnitName, aFilePath, i + 1,
+        aLines[i], TRemoveWithSymbolKind.rwskField);
+      Continue;
+    end;
     if StartsText('class var', lLower) then
     begin
       lInClassVar := True;
@@ -1185,6 +1439,27 @@ begin
       Continue;
     end;
 
+    lDeclarationAdded := False;
+    lDeclarationParts := lLine.Split([';']);
+    for lRawDeclaration in lDeclarationParts do
+    begin
+      lDeclaration := Trim(lRawDeclaration);
+      if lDeclaration = '' then
+        Continue;
+      if not TryDeclaration(lDeclaration + ';', lNames, lTypeName) then
+        Continue;
+
+      if lInClassVar then
+        AddNamedSymbols(aInventory, lNames, lTypeName, lCurrentType, '', aUnitName, aFilePath, i + 1, aLines[i],
+          TRemoveWithSymbolKind.rwskClassVar)
+      else
+        AddNamedSymbols(aInventory, lNames, lTypeName, lCurrentType, '', aUnitName, aFilePath, i + 1, aLines[i],
+          TRemoveWithSymbolKind.rwskField);
+      lDeclarationAdded := True;
+    end;
+    if lDeclarationAdded then
+      Continue;
+
     if TryDeclaration(lLine, lNames, lTypeName) then
     begin
       if lInClassVar then
@@ -1202,96 +1477,102 @@ class procedure TRemoveWithSymbolBuilder.ParseUnitGlobals(var aInventory: TRemov
 var
   lConstName: string;
   lInConst: Boolean;
-  lInRoutine: Boolean;
   lInType: Boolean;
   lInVar: Boolean;
   lLine: string;
   lNames: TArray<string>;
   lRawLine: string;
+  lRoutineEndLine: Integer;
   lTopLevelLine: Boolean;
   lTypeName: string;
   i: Integer;
 begin
   lInConst := False;
-  lInRoutine := False;
   lInType := False;
   lInVar := False;
-  for i := 0 to High(aLines) do
+  i := 0;
+  while i <= High(aLines) do
   begin
-    lRawLine := aLines[i];
-    lLine := CleanLine(lRawLine);
-    if lLine = '' then
-      Continue;
-    lTopLevelLine := IsTopLevelLine(lRawLine);
+    try
+      lRawLine := aLines[i];
+      lLine := CleanLine(lRawLine);
+      if lLine = '' then
+        Continue;
+      lTopLevelLine := IsTopLevelLine(lRawLine);
 
-    if lTopLevelLine and SameText(lLine, 'implementation') then
-    begin
-      lInRoutine := False;
-      lInType := False;
-      lInVar := False;
-      lInConst := False;
-      Continue;
-    end;
+      if lTopLevelLine and SameText(lLine, 'implementation') then
+      begin
+        lInType := False;
+        lInVar := False;
+        lInConst := False;
+        Continue;
+      end;
 
-    if lTopLevelLine and SameText(lLine, 'type') then
-    begin
-      lInType := True;
-      lInVar := False;
-      lInConst := False;
-      Continue;
-    end;
-    if lTopLevelLine and (SameText(lLine, 'var') or SameText(lLine, 'threadvar')) then
-    begin
-      lInType := False;
-      lInVar := True;
-      lInConst := False;
-      Continue;
-    end;
-    if lTopLevelLine and SameText(lLine, 'const') then
-    begin
-      lInType := False;
-      lInConst := True;
-      lInVar := False;
-      Continue;
-    end;
+      if lTopLevelLine and SameText(lLine, 'type') then
+      begin
+        lInType := True;
+        lInVar := False;
+        lInConst := False;
+        Continue;
+      end;
+      if lTopLevelLine and (SameText(lLine, 'var') or SameText(lLine, 'threadvar')) then
+      begin
+        lInType := False;
+        lInVar := True;
+        lInConst := False;
+        Continue;
+      end;
+      if lTopLevelLine and SameText(lLine, 'const') then
+      begin
+        lInType := False;
+        lInConst := True;
+        lInVar := False;
+        Continue;
+      end;
 
-    if lInType then
-      Continue;
+      if lInType then
+        Continue;
 
-    if IsRoutineStart(lLine) then
-    begin
-      lInRoutine := True;
-      lInVar := False;
-      lInConst := False;
-      Continue;
+      if IsRoutineStart(lLine) then
+      begin
+        lInVar := False;
+        lInConst := False;
+        lRoutineEndLine := FindRoutineEndLine(aLines, i);
+        if lRoutineEndLine > 0 then
+          i := lRoutineEndLine - 1;
+        Continue;
+      end;
+
+      if lInVar and TryDeclaration(lLine, lNames, lTypeName) then
+        AddNamedSymbols(aInventory, lNames, lTypeName, '', '', aUnitName, aFilePath, i + 1, aLines[i],
+          TRemoveWithSymbolKind.rwskUnitGlobal)
+      else if lInConst and TryConstDeclaration(lLine, lConstName, lTypeName) then
+        AddNamedSymbols(aInventory, [lConstName], lTypeName, '', '', aUnitName, aFilePath, i + 1, aLines[i],
+          TRemoveWithSymbolKind.rwskConstant);
+    finally
+      Inc(i);
     end;
-    if lInRoutine then
-      Continue;
-
-    if lInVar and TryDeclaration(lLine, lNames, lTypeName) then
-      AddNamedSymbols(aInventory, lNames, lTypeName, '', '', aUnitName, aFilePath, i + 1, aLines[i],
-        TRemoveWithSymbolKind.rwskUnitGlobal)
-    else if lInConst and TryConstDeclaration(lLine, lConstName, lTypeName) then
-      AddNamedSymbols(aInventory, [lConstName], lTypeName, '', '', aUnitName, aFilePath, i + 1, aLines[i],
-        TRemoveWithSymbolKind.rwskConstant);
   end;
 end;
 
 class procedure TRemoveWithSymbolBuilder.ParseRoutines(var aInventory: TRemoveWithSymbolInventory;
   const aLines: TArray<string>; const aUnitName, aFilePath: string);
 var
+  lInImplementation: Boolean;
   lInType: Boolean;
   lMember: TRemoveWithSymbolInfo;
   lMemberCount: Integer;
   lLine: string;
   lOwnerType: string;
   lRawLine: string;
+  lRoutine: TRemoveWithSymbolInfo;
   lRoutineName: string;
   lSignature: string;
   lTopLevelLine: Boolean;
   i: Integer;
   j: Integer;
 begin
+  lInImplementation := False;
   lInType := False;
   for i := 0 to High(aLines) do
   begin
@@ -1310,19 +1591,33 @@ begin
     begin
       lInType := False;
       if SameText(lLine, 'implementation') then
+      begin
+        lInImplementation := True;
         Continue;
+      end;
     end;
+    if lInImplementation and lTopLevelLine and IsRoutineStart(lLine) then
+      lInType := False;
     if lInType then
       Continue;
 
-    lSignature := CollectDeclarationText(aLines, i);
-    if not lTopLevelLine then
+    if (not lTopLevelLine) and (not IsRoutineStart(lLine)) then
       Continue;
+    lSignature := CollectDeclarationText(aLines, i);
     if not TryRoutineName(lSignature, lRoutineName) then
       Continue;
 
-    AddNamedSymbols(aInventory, [lRoutineName], '', '', '', aUnitName, aFilePath, i + 1, aLines[i],
-      TRemoveWithSymbolKind.rwskRoutine);
+    lRoutine := Default(TRemoveWithSymbolInfo);
+    lRoutine.fName := lRoutineName;
+    lRoutine.fUnitName := aUnitName;
+    lRoutine.fFilePath := aFilePath;
+    lRoutine.fLine := i + 1;
+    lRoutine.fEndLine := FindRoutineEndLine(aLines, i);
+    if lRoutine.fEndLine = 0 then
+      Continue;
+    lRoutine.fColumn := FindColumn(aLines[i], lRoutineName);
+    lRoutine.fKind := TRemoveWithSymbolKind.rwskRoutine;
+    AddSymbol(aInventory, lRoutine);
     ParseParams(aInventory, aLines, i, lSignature, lRoutineName, aUnitName, aFilePath);
     ParseLocals(aInventory, aLines, i + 1, lRoutineName, aUnitName, aFilePath);
     if TryRoutineOwner(lRoutineName, lOwnerType) then
@@ -1665,6 +1960,7 @@ begin
     Exit(False);
   end;
   aInventory.fSemanticIndex := aProjectModel.SemanticIndex;
+  aInventory.fParserDefines := aProjectModel.Context.fParserDefines;
 
   lSymbolKeys := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try

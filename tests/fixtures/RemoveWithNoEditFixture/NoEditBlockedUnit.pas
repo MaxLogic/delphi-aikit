@@ -17,12 +17,17 @@ type
 implementation
 
 class procedure TNoEditBlockedScope.KeepBlocked(aRecordPtr: PNoEditBlockedRecord);
+var
+  lKind: Integer;
 begin
-  if aRecordPtr <> nil then
-    with aRecordPtr^ do
-    begin
-      Name := 'blocked';
-    end;
+  lKind := 1;
+  case lKind of
+    1:
+      with aRecordPtr^ do
+      begin
+        Name := 'blocked';
+      end;
+  end;
 end;
 
 end.

@@ -322,6 +322,7 @@ begin
           aError := 'edit-end-not-resolved';
           Exit(False);
         end;
+        lEndOffset := RemoveWithInclusiveEndOffset(lSource, lEndOffset);
         Delete(lText, lStartOffset, lEndOffset - lStartOffset + 1);
         Insert(lEdit.fReplacementText, lText, lStartOffset);
       end;

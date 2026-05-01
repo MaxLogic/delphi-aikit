@@ -93,12 +93,40 @@ begin
   Result.AddPair('manifest', TPath.Combine(aWorkspaceRoot, 'manifest.json'));
 end;
 
+function RemoveWithDetailedReason(const aStatus: TRemoveWithIdentifierStatus; const aReason: string): string;
+begin
+  Result := aReason;
+  if (aStatus = TRemoveWithIdentifierStatus.rwisUnresolved) and SameText(aReason, 'symbol-not-found') then
+    Result := 'true-symbol-not-found';
+end;
+
+procedure AddReasonCount(const aObject: TJSONObject; const aReason: string);
+var
+  lCount: Integer;
+  lPair: TJSONPair;
+  lReason: string;
+begin
+  lReason := aReason;
+  if lReason = '' then
+    lReason := 'unclassified';
+  lPair := aObject.Get(lReason);
+  if Assigned(lPair) and (lPair.JsonValue is TJSONNumber) then
+    lCount := (lPair.JsonValue as TJSONNumber).AsInt
+  else
+    lCount := 0;
+  if Assigned(lPair) then
+    aObject.RemovePair(lReason).Free;
+  aObject.AddPair(lReason, TJSONNumber.Create(lCount + 1));
+end;
+
 function BuildResolverObject(const aResolverResult: TRemoveWithResolverResult): TJSONObject;
 var
   lClassification: TRemoveWithIdentifierClassification;
   lClassifications: TJSONArray;
   lCounts: TJSONObject;
+  lDetailedReason: string;
   lExternalCount: Integer;
+  lUnresolvedReasons: TJSONObject;
   lResolvedCount: Integer;
   lUnchangedCount: Integer;
   lUnsupportedCount: Integer;
@@ -112,10 +140,12 @@ begin
   lUnsupportedCount := 0;
   lUnresolvedCount := 0;
   lAmbiguousCount := 0;
+  lUnresolvedReasons := TJSONObject.Create;
 
   lClassifications := TJSONArray.Create;
   for lClassification in aResolverResult.fClassifications do
   begin
+    lDetailedReason := RemoveWithDetailedReason(lClassification.fStatus, lClassification.fReason);
     case lClassification.fStatus of
       TRemoveWithIdentifierStatus.rwisResolved:
         Inc(lResolvedCount);
@@ -128,7 +158,10 @@ begin
       TRemoveWithIdentifierStatus.rwisAmbiguousToDak:
         Inc(lAmbiguousCount);
     else
+    begin
       Inc(lUnresolvedCount);
+      AddReasonCount(lUnresolvedReasons, lDetailedReason);
+    end;
     end;
 
     lClassifications.AddElement(TJSONObject.Create
@@ -143,7 +176,8 @@ begin
       .AddPair('resolutionKind', lClassification.fResolutionKind)
       .AddPair('sourceOwnerType', lClassification.fSourceOwnerType)
       .AddPair('memberKind', RemoveWithSymbolKindToText(lClassification.fMemberKind))
-      .AddPair('reason', lClassification.fReason));
+      .AddPair('reason', lClassification.fReason)
+      .AddPair('detailedReason', lDetailedReason));
   end;
   Result.AddPair('classifications', lClassifications);
 
@@ -155,6 +189,7 @@ begin
   lCounts.AddPair('unresolved', TJSONNumber.Create(lUnresolvedCount));
   lCounts.AddPair('ambiguousToDak', TJSONNumber.Create(lAmbiguousCount));
   Result.AddPair('counts', lCounts);
+  Result.AddPair('unresolvedReasons', lUnresolvedReasons);
 end;
 
 function BuildVerificationObject: TJSONObject;
@@ -349,6 +384,8 @@ begin
       .AddPair('statementId', lStatement.fStatementId)
       .AddPair('file', lStatement.fFilePath)
       .AddPair('reason', lStatement.fReason)
+      .AddPair('detailedReason', RemoveWithDetailedReason(TRemoveWithIdentifierStatus.rwisUnresolved,
+      lStatement.fReason))
       .AddPair('unsupportedIdentifierRole', lStatement.fUnsupportedIdentifierRole));
   end;
 end;

@@ -230,8 +230,21 @@ begin
 end;
 
 class function TRemoveWithTempPolicy.SelectorUsesPointerDeref(const aSelectorText: string): Boolean;
+var
+  lBracketDepth: Integer;
+  i: Integer;
 begin
-  Result := Pos('^', aSelectorText) > 0;
+  lBracketDepth := 0;
+  for i := 1 to Length(aSelectorText) do
+  begin
+    if aSelectorText[i] = '[' then
+      Inc(lBracketDepth)
+    else if (aSelectorText[i] = ']') and (lBracketDepth > 0) then
+      Dec(lBracketDepth)
+    else if (aSelectorText[i] = '^') and (lBracketDepth = 0) then
+      Exit(True);
+  end;
+  Result := False;
 end;
 
 class function TRemoveWithTempPolicy.TempBaseName(const aTypeName: string): string;

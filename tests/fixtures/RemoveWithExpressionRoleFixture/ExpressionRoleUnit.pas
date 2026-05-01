@@ -33,6 +33,7 @@ label
 begin
   with aItemPtr^ do
   begin
+    goto LocalLabel;
 LocalLabel:
     Name := 'label';
   end;
