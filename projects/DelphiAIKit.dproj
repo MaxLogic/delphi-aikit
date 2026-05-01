@@ -199,6 +199,7 @@
         <DCCReference Include="..\src\Dak.RemoveWith.Symbols.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.TempPolicy.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Transaction.pas"/>
+        <DCCReference Include="..\src\Dak.SymbolMap.pas"/>
         <DCCReference Include="..\src\dak.pascalanalyzerrunner.pas"/>
         <DCCReference Include="..\src\dak.reportpostprocess.pas"/>
         <DCCReference Include="..\src\dak.rsvars.pas"/>

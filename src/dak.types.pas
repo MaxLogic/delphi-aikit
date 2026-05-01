@@ -6,7 +6,7 @@ interface
 
 type
   TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars,
-    ckDeps, ckLsp, ckRemoveWith);
+    ckDeps, ckLsp, ckRemoveWith, ckSymbolMap);
 
   TOutputKind = (okIni, okXml, okBat);
   TBuildBackend = (bbAuto, bbDelphi, bbWebCore);
@@ -27,6 +27,9 @@ type
   TRemoveWithMode = (rwmScan, rwmPlan, rwmApply);
   TRemoveWithFormat = (rwfJson, rwfText);
   TRemoveWithTargetKind = (rwtNone, rwtUnit, rwtDir, rwtAll);
+  TSymbolMapOperation = (smoNone, smoIndex, smoFindDefinition, smoFindReferences, smoSearchSymbols,
+    smoDescribeSymbol, smoStats);
+  TSymbolMapFormat = (smfJson, smfText);
 
   TDiagnosticsDefaults = record
     fSourceContextMode: TSourceContextMode;
@@ -177,6 +180,18 @@ type
     fRemoveWithAll: Boolean;
     fRemoveWithOutputPath: string;
     fHasRemoveWithOutputPath: Boolean;
+    fSymbolMapOperation: TSymbolMapOperation;
+    fSymbolMapFormat: TSymbolMapFormat;
+    fSymbolMapFilePath: string;
+    fSymbolMapLine: Integer;
+    fSymbolMapCol: Integer;
+    fSymbolMapQuery: string;
+    fSymbolMapSymbol: string;
+    fSymbolMapOwner: string;
+    fSymbolMapCacheRoot: string;
+    fHasSymbolMapCacheRoot: Boolean;
+    fSymbolMapLimit: Integer;
+    fHasSymbolMapLimit: Boolean;
     fUnitPath: string;
   end;
 

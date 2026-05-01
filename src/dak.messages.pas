@@ -15,6 +15,7 @@ resourcestring
     '  deps      Analyze project unit dependencies for AI debugging' + #13#10 +
     '  lsp       Query Delphi semantic navigation and capability probes via DelphiLSP.exe' + #13#10 +
     '  remove-with Remove Delphi with statements through scan, plan, and apply modes' + #13#10 +
+    '  symbol-map Build and query DAK source symbol caches' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
   SUsageResolve =
     'DelphiAIKit.exe resolve --project "<path>" --delphi <23.0> ' +
@@ -74,6 +75,16 @@ resourcestring
     '(default: plan, non-mutating); apply writes edits transactionally' + #13#10 +
     '  targets: choose exactly one of --unit, --dir, or --all within the project' + #13#10 +
     '  safety: apply backs up changed files, runs build verification, and performs exact-byte rollback on failure';
+  SUsageSymbolMap =
+    'DelphiAIKit.exe symbol-map <index|find-definition|find-references|search-symbols|describe-symbol|stats> ' +
+    '--project "<path>" [--platform <Win32|Win64>] [--config <Debug|Release>] [--delphi <23.0>]' + #13#10 +
+    '  [--cache-root "<path>"] [--format <json|text>]' + #13#10 +
+    '  index: indexes the current project context in later Symbol Map slices' + #13#10 +
+    '  find-definition: --file "<path>" --line <N 1-based> --col <N 1-based>' + #13#10 +
+    '  find-references: --symbol "<name>" [--limit <N>]' + #13#10 +
+    '  search-symbols: --query "<text>" [--limit <N>]' + #13#10 +
+    '  describe-symbol: --symbol "<name>" [--owner "<type>"]' + #13#10 +
+    '  stats: reports project/cache shell status without indexing source yet';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -104,6 +115,13 @@ resourcestring
   SRemoveWithInvalidMode = 'Unsupported remove-with mode: %s (expected scan, plan, or apply).';
   SRemoveWithInvalidFormat = 'Unsupported remove-with format: %s (expected json or text).';
   SRemoveWithInvalidTarget = 'Use exactly one of --unit, --dir, or --all for remove-with.';
+  SSymbolMapMissingOperation =
+    'Missing symbol-map operation. Expected one of: index, find-definition, find-references, search-symbols, describe-symbol, stats.';
+  SSymbolMapInvalidOperation = 'Unsupported symbol-map operation: %s';
+  SSymbolMapInvalidFormat = 'Unsupported symbol-map format: %s';
+  SSymbolMapInvalidPosition = 'Invalid %s value: %s (expected integer >= 1).';
+  SSymbolMapInvalidLimit = 'Invalid --limit value: %s (expected integer >= 1).';
+  SSymbolMapOptionOnlyForOperation = '%s is only supported for symbol-map %s.';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
   SBuildBatMissing = 'build-delphi.bat not found: %s';
