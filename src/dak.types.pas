@@ -182,6 +182,7 @@ type
     fHasRemoveWithOutputPath: Boolean;
     fSymbolMapOperation: TSymbolMapOperation;
     fSymbolMapFormat: TSymbolMapFormat;
+    fSymbolMapUnitPath: string;
     fSymbolMapFilePath: string;
     fSymbolMapLine: Integer;
     fSymbolMapCol: Integer;
