@@ -6,9 +6,10 @@ uses
   System.IOUtils,
   System.JSON,
   System.SysUtils,
+  System.Variants,
   DUnitX.TestFramework,
   maxLogic.CmdLineParams,
-  Dak.Cli, Dak.Types,
+  Dak.Cli, Dak.SymbolMap.Context, Dak.Types,
   Test.Support;
 
 type
@@ -25,6 +26,28 @@ type
     procedure CacheRootEnvironmentOverridesCentralRoot;
     [Test]
     procedure StatsJsonReportsCacheRoots;
+  end;
+
+  [TestFixture]
+  TSymbolMapCacheTests = class
+  private
+    function BuildContext(const aCacheName: string; out aContext: TSymbolMapContext): string;
+    procedure CopyFixtureProject(const aTargetDir: string; out aProjectPath: string);
+    function MetaValue(const aDbPath, aKey: string): string;
+    function TableExists(const aDbPath, aTableName: string): Boolean;
+    function UniqueTempPath(const aPrefix: string): string;
+    procedure WriteSchemaVersion(const aDbPath, aVersion: string);
+  public
+    [Test]
+    procedure EnsuresCentralAndProjectCacheSchema;
+    [Test]
+    procedure ReusesExistingCachesIdempotently;
+    [Test]
+    procedure StatsCommandCreatesCachesAndReportsSchema;
+    [Test]
+    procedure RejectsUnsupportedSchemaWithoutApplyingV1Tables;
+    [Test]
+    procedure ConcurrentCentralCacheCreationIsSerialized;
   end;
 
   [TestFixture]
@@ -47,12 +70,301 @@ type
 implementation
 
 uses
+  System.Threading,
   Winapi.Windows,
-  Dak.SymbolMap.Context;
+  FireDAC.Comp.Client,
+  FireDAC.Phys.SQLite,
+  Dak.SymbolMap.Cache;
 
 function TSymbolMapContextTests.FixtureProjectPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspProjectFixture\LspProjectFixture.dproj');
+end;
+
+function TSymbolMapCacheTests.BuildContext(const aCacheName: string; out aContext: TSymbolMapContext): string;
+var
+  lError: string;
+  lOptions: TAppOptions;
+  lProjectDir: string;
+  lProjectPath: string;
+begin
+  Result := UniqueTempPath(aCacheName);
+  if TDirectory.Exists(Result) then
+    TDirectory.Delete(Result, True);
+  lProjectDir := UniqueTempPath(aCacheName + '-project');
+  CopyFixtureProject(lProjectDir, lProjectPath);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lProjectPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fSymbolMapCacheRoot := Result;
+  lOptions.fHasSymbolMapCacheRoot := True;
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, aContext, lError), 'Expected context to resolve. Error: ' + lError);
+  if TDirectory.Exists(aContext.fProjectCacheRoot) then
+    TDirectory.Delete(aContext.fProjectCacheRoot, True);
+end;
+
+procedure TSymbolMapCacheTests.CopyFixtureProject(const aTargetDir: string; out aProjectPath: string);
+var
+  lFixtureDir: string;
+begin
+  if TDirectory.Exists(aTargetDir) then
+    TDirectory.Delete(aTargetDir, True);
+  ForceDirectories(aTargetDir);
+  lFixtureDir := TPath.Combine(RepoRoot, 'tests\fixtures\LspProjectFixture');
+  TFile.Copy(TPath.Combine(lFixtureDir, 'LspProjectFixture.dproj'),
+    TPath.Combine(aTargetDir, 'LspProjectFixture.dproj'), True);
+  TFile.Copy(TPath.Combine(lFixtureDir, 'LspProjectFixture.dpr'),
+    TPath.Combine(aTargetDir, 'LspProjectFixture.dpr'), True);
+  TFile.Copy(TPath.Combine(lFixtureDir, 'Unit1.pas'), TPath.Combine(aTargetDir, 'Unit1.pas'), True);
+  aProjectPath := TPath.Combine(aTargetDir, 'LspProjectFixture.dproj');
+end;
+
+function TSymbolMapCacheTests.MetaValue(const aDbPath, aKey: string): string;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  Result := '';
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    Result := VarToStr(lConnection.ExecSQLScalar('select value_text from meta where key_name = ?', [aKey]));
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+function TSymbolMapCacheTests.TableExists(const aDbPath, aTableName: string): Boolean;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    Result := lConnection.ExecSQLScalar(
+      'select count(*) from sqlite_master where type = ''table'' and name = ?', [aTableName]) > 0;
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+function TSymbolMapCacheTests.UniqueTempPath(const aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
+end;
+
+procedure TSymbolMapCacheTests.WriteSchemaVersion(const aDbPath, aVersion: string);
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  ForceDirectories(TPath.GetDirectoryName(aDbPath));
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    lConnection.ExecSQL('create table meta (key_name text primary key not null, value_text text not null)');
+    lConnection.ExecSQL('insert into meta(key_name, value_text) values (''schema_version'', ?)', [aVersion]);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+procedure TSymbolMapCacheTests.EnsuresCentralAndProjectCacheSchema;
+var
+  lContext: TSymbolMapContext;
+  lError: string;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  BuildContext('symbol-map-schema-create', lContext);
+
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches to be created. Error: ' + lError);
+  Assert.IsTrue(TFile.Exists(lStatus.fCentralDbPath), 'Expected central SQLite cache file.');
+  Assert.IsTrue(TFile.Exists(lStatus.fProjectDbPath), 'Expected project SQLite cache file.');
+  Assert.IsTrue(lStatus.fCentralCreated, 'Expected first central cache creation to be reported.');
+  Assert.IsTrue(lStatus.fProjectCreated, 'Expected first project cache creation to be reported.');
+  Assert.AreEqual(1, lStatus.fSchemaVersion);
+  Assert.AreEqual('1', MetaValue(lStatus.fCentralDbPath, 'schema_version'));
+  Assert.AreEqual('1', MetaValue(lStatus.fProjectDbPath, 'schema_version'));
+end;
+
+procedure TSymbolMapCacheTests.ReusesExistingCachesIdempotently;
+var
+  lContext: TSymbolMapContext;
+  lError: string;
+  lFirstStatus: TSymbolMapCacheStatus;
+  lSecondStatus: TSymbolMapCacheStatus;
+begin
+  BuildContext('symbol-map-schema-reuse', lContext);
+
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lFirstStatus, lError), 'Expected first cache creation. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lSecondStatus, lError), 'Expected second cache open. Error: ' + lError);
+  Assert.IsFalse(lSecondStatus.fCentralCreated, 'Expected central cache reuse to be reported.');
+  Assert.IsFalse(lSecondStatus.fProjectCreated, 'Expected project cache reuse to be reported.');
+  Assert.AreEqual(lFirstStatus.fCentralDbPath, lSecondStatus.fCentralDbPath);
+  Assert.AreEqual(lFirstStatus.fProjectDbPath, lSecondStatus.fProjectDbPath);
+  Assert.AreEqual(1, lSecondStatus.fSchemaVersion);
+end;
+
+procedure TSymbolMapCacheTests.RejectsUnsupportedSchemaWithoutApplyingV1Tables;
+var
+  lContext: TSymbolMapContext;
+  lDbPath: string;
+  lError: string;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  BuildContext('symbol-map-schema-version-mismatch', lContext);
+  lDbPath := TPath.Combine(lContext.fCentralCacheRoot, 'symbol-map.sqlite3');
+  WriteSchemaVersion(lDbPath, '99');
+
+  Assert.IsFalse(EnsureSymbolMapCaches(lContext, lStatus, lError),
+    'Expected unsupported schema version to fail.');
+  Assert.IsTrue(Pos('Unsupported Symbol Map cache schema version: 99', lError) > 0,
+    'Expected actionable schema-version error. Actual: ' + lError);
+  Assert.IsFalse(TableExists(lDbPath, 'source_files'), 'Expected v1 tables not to be applied to newer cache.');
+end;
+
+procedure TSymbolMapCacheTests.ConcurrentCentralCacheCreationIsSerialized;
+const
+  cProcessCount = 4;
+var
+  lArgs: TArray<string>;
+  lCache: TJSONObject;
+  lCacheRoot: string;
+  lCreatedCount: Integer;
+  lExitCodes: TArray<Cardinal>;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLogPaths: TArray<string>;
+  lLogText: string;
+  lProjectDir: string;
+  lProjectPath: string;
+  lResults: TArray<Boolean>;
+  lTasks: TArray<ITask>;
+  i: Integer;
+
+  function StartTask(const aIndex: Integer): ITask;
+  begin
+    Result := TTask.Run(
+      procedure
+      begin
+        lResults[aIndex] := RunProcess(ResolverExePath, lArgs[aIndex], RepoRoot, lLogPaths[aIndex],
+          lExitCodes[aIndex]);
+      end);
+  end;
+
+begin
+  EnsureResolverBuilt;
+  lCacheRoot := UniqueTempPath('symbol-map-cache-concurrent');
+  if TDirectory.Exists(lCacheRoot) then
+    TDirectory.Delete(lCacheRoot, True);
+  SetLength(lArgs, cProcessCount);
+  SetLength(lExitCodes, cProcessCount);
+  SetLength(lLogPaths, cProcessCount);
+  SetLength(lResults, cProcessCount);
+  SetLength(lTasks, cProcessCount);
+
+  for i := 0 to cProcessCount - 1 do
+  begin
+    lProjectDir := UniqueTempPath('symbol-map-cache-concurrent-project-' + i.ToString);
+    CopyFixtureProject(lProjectDir, lProjectPath);
+    lLogPaths[i] := UniqueTempPath('symbol-map-cache-concurrent-' + i.ToString) + '.log';
+    lArgs[i] := 'symbol-map stats --project ' + QuoteArg(lProjectPath) + ' --cache-root ' + QuoteArg(lCacheRoot) +
+      ' --format json';
+  end;
+
+  for i := 0 to cProcessCount - 1 do
+    lTasks[i] := StartTask(i);
+  TTask.WaitForAll(lTasks);
+
+  lCreatedCount := 0;
+  for i := 0 to cProcessCount - 1 do
+  begin
+    Assert.IsTrue(lResults[i], 'Expected concurrent symbol-map process to start.');
+    Assert.AreEqual(Cardinal(0), lExitCodes[i], 'Expected concurrent symbol-map process to succeed. See: ' +
+      lLogPaths[i]);
+    lLogText := TFile.ReadAllText(lLogPaths[i]);
+    lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+    try
+      Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+      lJson := TJSONObject(lJsonValue);
+      lCache := lJson.GetValue('cache') as TJSONObject;
+      Assert.AreEqual(1, lCache.GetValue<Integer>('schemaVersion'));
+      Assert.IsTrue(TFile.Exists(lCache.GetValue<string>('centralDbPath')), 'Expected shared central cache file.');
+      Assert.IsTrue(TFile.Exists(lCache.GetValue<string>('projectDbPath')), 'Expected project cache file.');
+      if lCache.GetValue<Boolean>('centralCreated') then
+        Inc(lCreatedCount);
+    finally
+      lJsonValue.Free;
+    end;
+  end;
+  Assert.AreEqual(1, lCreatedCount, 'Expected exactly one central cache creator.');
+  Assert.AreEqual('1', MetaValue(TPath.Combine(lCacheRoot, 'symbol-map.sqlite3'), 'schema_version'));
+end;
+
+procedure TSymbolMapCacheTests.StatsCommandCreatesCachesAndReportsSchema;
+var
+  lArgs: string;
+  lCacheRoot: string;
+  lCache: TJSONObject;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLogPath: string;
+  lLogText: string;
+  lProjectDir: string;
+  lProjectPath: string;
+begin
+  EnsureResolverBuilt;
+  lCacheRoot := UniqueTempPath('symbol-map-cache-cli-schema');
+  if TDirectory.Exists(lCacheRoot) then
+    TDirectory.Delete(lCacheRoot, True);
+  lProjectDir := UniqueTempPath('symbol-map-cache-cli-project');
+  CopyFixtureProject(lProjectDir, lProjectPath);
+  lLogPath := UniqueTempPath('symbol-map-cache-schema-json') + '.log';
+  lArgs := 'symbol-map stats --project ' + QuoteArg(lProjectPath) + ' --cache-root ' + QuoteArg(lCacheRoot) +
+    ' --format json';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start symbol-map stats command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map stats to succeed. See: ' + lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath);
+  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lJsonValue);
+    lCache := lJson.GetValue('cache') as TJSONObject;
+    Assert.AreEqual(1, lCache.GetValue<Integer>('schemaVersion'));
+    Assert.IsTrue(lCache.GetValue<Boolean>('centralCreated'), 'Expected central cache creation in first CLI run.');
+    Assert.IsTrue(lCache.GetValue<Boolean>('projectCreated'), 'Expected project cache creation in first CLI run.');
+    Assert.IsTrue(TFile.Exists(lCache.GetValue<string>('centralDbPath')), 'Expected central SQLite cache file.');
+    Assert.IsTrue(TFile.Exists(lCache.GetValue<string>('projectDbPath')), 'Expected project SQLite cache file.');
+  finally
+    lJsonValue.Free;
+  end;
 end;
 
 procedure TSymbolMapContextTests.ResolvesProjectAndProjectCacheRoot;
@@ -359,6 +671,7 @@ end;
 
 initialization
   TDUnitX.RegisterTestFixture(TSymbolMapContextTests);
+  TDUnitX.RegisterTestFixture(TSymbolMapCacheTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCliTests);
 
 end.
