@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added Symbol Map member extraction for class, record, interface, and helper fields, methods, properties, indexed/default property metadata, source locations, JSON output, and central cache member rows. (T-190)
 - Added Symbol Map top-level declaration extraction for types, aliases, enum values, constants, globals, routines, source locations, signatures, and JSON symbol output. (T-189)
 - Added a focused `remove-with` semantic binder proof suite covering receiver precedence, outer scopes, helpers, inheritance, interfaces, overloads, missing receiver members, and unknown routine-call safety. (T-174)
 - Added targeted `symbol-map index --unit` source-unit extraction with UTF-8/ANSI fallback loading, unit-name detection, interface/implementation uses reporting, and source fixture coverage. (T-188)

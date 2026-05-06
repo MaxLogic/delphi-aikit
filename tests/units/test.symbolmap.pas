@@ -84,6 +84,21 @@ type
   end;
 
   [TestFixture]
+  TSymbolMapMemberExtractionTests = class
+  private
+    function FixtureProjectPath: string;
+    function FixtureUnitPath: string;
+    function FindMember(const aModel: TSymbolMapUnitModel; const aOwnerName, aMemberName, aKind: string;
+      out aMember: TSymbolMapMemberModel): Boolean;
+    function MemberCacheCount(const aDbPath, aOwnerName, aMemberName: string): Integer;
+  public
+    [Test]
+    procedure ExtractsMembersPropertiesAndMetadata;
+    [Test]
+    procedure StoresMembersInCentralCacheRows;
+  end;
+
+  [TestFixture]
   TSymbolMapCliTests = class
   private
     procedure SetParams(const aCmdLine: string);
@@ -418,6 +433,129 @@ end;
 function TSymbolMapTopLevelDeclarationTests.FixtureUnitPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapDeclarations.pas');
+end;
+
+function TSymbolMapMemberExtractionTests.FixtureProjectPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
+end;
+
+function TSymbolMapMemberExtractionTests.FixtureUnitPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapMembers.pas');
+end;
+
+function TSymbolMapMemberExtractionTests.FindMember(const aModel: TSymbolMapUnitModel; const aOwnerName,
+  aMemberName, aKind: string; out aMember: TSymbolMapMemberModel): Boolean;
+var
+  lMember: TSymbolMapMemberModel;
+begin
+  Result := False;
+  aMember := Default(TSymbolMapMemberModel);
+  for lMember in aModel.fMembers do
+  begin
+    if SameText(lMember.fOwnerName, aOwnerName) and SameText(lMember.fMemberName, aMemberName) and
+      SameText(lMember.fKind, aKind) then
+    begin
+      aMember := lMember;
+      Exit(True);
+    end;
+  end;
+end;
+
+function TSymbolMapMemberExtractionTests.MemberCacheCount(const aDbPath, aOwnerName, aMemberName: string): Integer;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    Result := lConnection.ExecSQLScalar(
+      'select count(*) from members where owner_name = ? and member_name = ?', [aOwnerName, aMemberName]);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+procedure TSymbolMapMemberExtractionTests.ExtractsMembersPropertiesAndMetadata;
+var
+  lError: string;
+  lMember: TSymbolMapMemberModel;
+  lModel: TSymbolMapUnitModel;
+begin
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected member unit extraction to succeed. Error: ' + lError);
+
+  Assert.AreEqual('SymbolMapMembers', lModel.fUnitName);
+  Assert.AreEqual(22, Length(lModel.fMembers));
+  Assert.IsTrue(FindMember(lModel, 'TMemberRecord', 'RecordField', 'field', lMember), 'Expected record field.');
+  Assert.AreEqual('Integer', lMember.fTypeName);
+  Assert.IsTrue(FindMember(lModel, 'TMemberRecord', 'Reset', 'method', lMember), 'Expected record method.');
+  Assert.IsTrue(FindMember(lModel, 'TMemberClass', 'FName', 'field', lMember), 'Expected private field.');
+  Assert.AreEqual('private', lMember.fVisibility);
+  Assert.IsTrue(FindMember(lModel, 'TMemberClass', 'Run', 'method', lMember), 'Expected class method.');
+  Assert.IsTrue(Pos('const aName: string', lMember.fSignature) > 0, 'Expected method signature.');
+  Assert.IsTrue(FindMember(lModel, 'TMemberClass', 'Name', 'property', lMember), 'Expected property.');
+  Assert.AreEqual('string', lMember.fTypeName);
+  Assert.IsFalse(lMember.fIsIndexed, 'Expected scalar property.');
+  Assert.IsTrue(FindMember(lModel, 'TMemberClass', 'Enabled', 'property', lMember),
+    'Expected stored-default property.');
+  Assert.IsFalse(lMember.fIsDefault, 'Stored default values are not default properties.');
+  Assert.IsTrue(FindMember(lModel, 'TMemberClass', 'Items', 'property', lMember), 'Expected indexed property.');
+  Assert.IsTrue(lMember.fIsIndexed, 'Expected indexed metadata.');
+  Assert.IsTrue(lMember.fIsDefault, 'Expected default property metadata.');
+  Assert.IsTrue(FindMember(lModel, 'TMemberClass', 'MultiItems', 'property', lMember),
+    'Expected indexed property with semicolon in parameter list.');
+  Assert.AreEqual('string', lMember.fTypeName);
+  Assert.IsTrue(lMember.fIsIndexed, 'Expected indexed metadata with semicolon in parameter list.');
+  Assert.IsFalse(lMember.fIsDefault, 'Expected no default-property metadata.');
+  Assert.IsTrue(FindMember(lModel, 'TDefaultVisibilityClass', 'DefaultField', 'field', lMember),
+    'Expected class member before explicit visibility.');
+  Assert.AreEqual('public', lMember.fVisibility);
+  Assert.IsTrue(FindMember(lModel, 'IMemberInterface', 'Touch', 'method', lMember), 'Expected interface method.');
+  Assert.AreEqual('public', lMember.fVisibility);
+  Assert.IsTrue(FindMember(lModel, 'TMemberRecordHelper', 'Normalize', 'method', lMember),
+    'Expected helper method.');
+  Assert.AreNotEqual(0, lMember.fLine, 'Expected source line.');
+  Assert.AreNotEqual(0, lMember.fCol, 'Expected source column.');
+end;
+
+procedure TSymbolMapMemberExtractionTests.StoresMembersInCentralCacheRows;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lModel: TSymbolMapUnitModel;
+  lOptions: TAppOptions;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := TPath.Combine(TempRoot, 'symbol-map-members-cache');
+  if TDirectory.Exists(lCacheRoot) then
+    TDirectory.Delete(lCacheRoot, True);
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fSymbolMapCacheRoot := lCacheRoot;
+  lOptions.fHasSymbolMapCacheRoot := True;
+
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, lContext, lError), 'Expected context. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected member unit extraction. Error: ' + lError);
+  Assert.IsTrue(StoreSymbolMapUnitModel(lContext, lStatus, lModel, lError),
+    'Expected member cache write. Error: ' + lError);
+
+  Assert.AreEqual(1, MemberCacheCount(lStatus.fCentralDbPath, 'TMemberClass', 'Items'),
+    'Expected indexed property row in central cache.');
+  Assert.AreEqual(1, MemberCacheCount(lStatus.fCentralDbPath, 'TDefaultVisibilityClass', 'DefaultField'),
+    'Expected default visibility field row in central cache.');
 end;
 
 function TSymbolMapTopLevelDeclarationTests.FindSymbol(const aModel: TSymbolMapUnitModel; const aName, aKind,
@@ -977,6 +1115,8 @@ initialization
   TDUnitX.RegisterTestFixture(TSymbolMapContextTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCacheTests);
   TDUnitX.RegisterTestFixture(TSymbolMapSourceUnitTests);
+  TDUnitX.RegisterTestFixture(TSymbolMapTopLevelDeclarationTests);
+  TDUnitX.RegisterTestFixture(TSymbolMapMemberExtractionTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCliTests);
 
 end.
