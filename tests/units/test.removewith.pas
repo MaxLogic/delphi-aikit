@@ -699,10 +699,13 @@ type
     function FindMaxTdbProject(const aFixtureDir: string): string;
     function IsIgnoredProjectArtifact(const aRelativePath: string): Boolean;
     function IsSourceSnapshotFile(const aPath: string): Boolean;
+    function RunRemoveWithPlan(const aDprojPath, aTargetDir, aLogName: string; out aExitCode: Cardinal): TJSONObject;
     function RunRemoveWithScan(const aDprojPath, aTargetDir, aLogName: string; out aExitCode: Cardinal): TJSONObject;
     procedure SnapshotSourceFiles(const aRootDir: string; out aPaths: TArray<string>;
       out aBytes: TArray<TBytes>);
   public
+    [Test]
+    procedure PlanCloneOfMaxTdbWhenFixtureExistsReportsTelemetryAndPerformance;
     [Test]
     procedure ScanCloneOfMaxTdbWhenFixtureExists;
     [Test]
@@ -7458,6 +7461,29 @@ begin
     (lExt = '.fmx') or (lExt = '.dproj') or (lExt = '.deployproj');
 end;
 
+function TRemoveWithProprietaryProjectTests.RunRemoveWithPlan(const aDprojPath, aTargetDir, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lJsonPath: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lJsonPath := TPath.Combine(TempRoot, aLogName);
+  lLogPath := TPath.ChangeExtension(lJsonPath, '.stdout.log');
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --dir ' + QuoteArg(aTargetDir) +
+    ' --mode plan --format json --output ' + QuoteArg(lJsonPath) + ' --verbose true';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with maxTdb plan process.');
+  Assert.IsTrue(TFile.Exists(lJsonPath), 'Expected maxTdb plan JSON output file: ' + lJsonPath);
+  lOutput := TFile.ReadAllText(lJsonPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable maxTdb remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
 function TRemoveWithProprietaryProjectTests.RunRemoveWithScan(const aDprojPath, aTargetDir, aLogName: string;
   out aExitCode: Cardinal): TJSONObject;
 var
@@ -7500,6 +7526,80 @@ begin
     aBytes[lCount] := TFile.ReadAllBytes(lFile);
     Inc(lCount);
   end;
+end;
+
+procedure TRemoveWithProprietaryProjectTests.PlanCloneOfMaxTdbWhenFixtureExistsReportsTelemetryAndPerformance;
+var
+  lCloneBytes: TArray<TBytes>;
+  lCloneDir: string;
+  lClonePaths: TArray<string>;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lOriginalBytes: TArray<TBytes>;
+  lOriginalPaths: TArray<string>;
+  lRoot: TJSONObject;
+  lSourceDir: string;
+  lSummary: TJSONObject;
+  lTargetDir: string;
+  lTelemetry: TJSONObject;
+begin
+  lSourceDir := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
+  if not TDirectory.Exists(lSourceDir) then
+  begin
+    Assert.Pass('Optional proprietary maxTdb fixture is absent; no maxTdb remove-with plan check was run.');
+    Exit;
+  end;
+
+  SnapshotSourceFiles(lSourceDir, lOriginalPaths, lOriginalBytes);
+  Assert.IsTrue(Length(lOriginalPaths) > 0, 'Expected maxTdb source files to snapshot.');
+
+  CopyDirectoryToTemp(lSourceDir, 'remove-with-maxtdb-semantic-gate', lCloneDir);
+  lDprojPath := FindMaxTdbProject(lCloneDir);
+  lTargetDir := TPath.Combine(lCloneDir, 'src');
+  SnapshotSourceFiles(lCloneDir, lClonePaths, lCloneBytes);
+
+  lRoot := RunRemoveWithPlan(lDprojPath, lTargetDir, 'remove-with-maxtdb-semantic-gate.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected maxTdb plan mode to succeed.');
+    Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok maxTdb plan status.');
+    Assert.AreEqual('plan', lRoot.Values['mode'].Value, 'Expected maxTdb plan mode.');
+    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    AssertJsonObjectKey(lRoot, 'migrationTelemetry', lTelemetry);
+    Assert.IsTrue((lSummary.Values['withStatements'] as TJSONNumber).AsInt >= 200,
+      'Expected maxTdb plan to retain broad with-statement coverage.');
+    Assert.IsTrue((lSummary.Values['withStatements'] as TJSONNumber).AsInt <= 250,
+      'Expected maxTdb with-statement coverage to stay near the current active-code baseline.');
+    Assert.IsTrue((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt >= 110,
+      'Expected maxTdb plan to retain the current semantic rewrite baseline.');
+    Assert.IsTrue((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt <= 140,
+      'Expected maxTdb planned edits to stay near the current semantic rewrite baseline.');
+    Assert.IsTrue((lSummary.Values['skipped'] as TJSONNumber).AsInt >= 50,
+      'Expected maxTdb skipped count to stay near the current semantic baseline.');
+    Assert.IsTrue((lSummary.Values['skipped'] as TJSONNumber).AsInt <= 90,
+      'Expected maxTdb skipped count not to regress materially.');
+    Assert.AreEqual((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+      lTelemetry.GetValue<Integer>('plannedEdits'), 'Expected planned telemetry to match summary.');
+    Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt,
+      lTelemetry.GetValue<Integer>('skippedStatements'), 'Expected skipped telemetry to match summary.');
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('localModelHits') >= 3000,
+      'Expected local model hit telemetry to stay populated.');
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks') >= 300,
+      'Expected intrinsic fallback telemetry to stay populated.');
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('trueUnknowns') >= 1,
+      'Expected true unknown telemetry to stay populated.');
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('trueUnknowns') <= 25,
+      'Expected true unknowns not to regress materially.');
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') > 0,
+      'Expected planner elapsed telemetry.');
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') < 10000,
+      'Expected planner elapsed telemetry to stay inside the documented maxTdb tolerance.');
+  finally
+    lRoot.Free;
+  end;
+
+  AssertSnapshotUnchanged(lOriginalPaths, lOriginalBytes,
+    'Original proprietary maxTdb fixture must never be edited.');
+  AssertSnapshotUnchanged(lClonePaths, lCloneBytes, 'Plan mode must leave cloned maxTdb sources unchanged.');
 end;
 
 procedure TRemoveWithProprietaryProjectTests.ScanCloneOfMaxTdbWhenFixtureExists;
