@@ -80,7 +80,7 @@ const
   cCentralDbFileName = 'symbol-map.sqlite3';
   cProjectDbFileName = 'project-index.sqlite3';
   cCentralCacheMutexName = 'Local\DelphiAIKit.SymbolMap.Cache.v1';
-  cSymbolMapParserVersion = 'symbol-map-parser-v1';
+  cSymbolMapParserVersion = 'symbol-map-parser-v2';
   cSymbolMapIncludeGraphHash = 'no-includes-v1';
   cSymbolMapIntrinsicSeedVersion = 'delphi-intrinsics-v1';
 
@@ -152,6 +152,10 @@ begin
     'unit_cache_key text not null, owner_name text not null, member_name text not null, ' +
     'normalized_member_name text not null, kind text not null, type_name text not null, visibility text not null, ' +
     'is_default integer not null, is_indexed integer not null, line_no integer not null, col_no integer not null)');
+  aConnection.ExecSQL('create table if not exists unit_references (' +
+    'unit_cache_key text not null, name text not null, normalized_name text not null, role text not null, ' +
+    'section_kind text not null, line_no integer not null, col_no integer not null, end_line_no integer not null, ' +
+    'end_col_no integer not null)');
   aConnection.ExecSQL('create table if not exists compiler_profiles (' +
     'profile_key text primary key not null, delphi_version text not null, platform text not null, ' +
     'bds_root text not null, source_roots_hash text not null, intrinsic_seed_version text not null, ' +
@@ -164,6 +168,7 @@ begin
     'compiler_intrinsics(profile_key, name)');
   aConnection.ExecSQL('create index if not exists idx_symbols_name on symbols(normalized_name)');
   aConnection.ExecSQL('create index if not exists idx_members_name on members(normalized_member_name)');
+  aConnection.ExecSQL('create index if not exists idx_unit_references_name on unit_references(normalized_name)');
 end;
 
 procedure EnsureProjectSchema(const aConnection: TFDConnection);
@@ -929,6 +934,22 @@ begin
   end;
 end;
 
+procedure StoreUnitReferences(const aConnection: TFDConnection; const aUnitCacheKey: string;
+  const aModel: TSymbolMapUnitModel);
+var
+  lReference: TSymbolMapReferenceModel;
+begin
+  aConnection.ExecSQL('delete from unit_references where unit_cache_key = ?', [aUnitCacheKey]);
+  for lReference in aModel.fReferences do
+  begin
+    aConnection.ExecSQL('insert into unit_references(' +
+      'unit_cache_key, name, normalized_name, role, section_kind, line_no, col_no, end_line_no, end_col_no) ' +
+      'values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [aUnitCacheKey, lReference.fName, LowerCase(lReference.fName), lReference.fRole, lReference.fSectionKind,
+      lReference.fLine, lReference.fCol, lReference.fEndLine, lReference.fEndCol]);
+  end;
+end;
+
 procedure StoreProjectUnitReference(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; const aUnitCacheKey: string; out aError: string);
 var
@@ -1015,6 +1036,7 @@ begin
             [aResult.fFileHash, TFile.GetSize(aModel.fFilePath), DateTimeToStr(Now), DateTimeToStr(Now)]);
           StoreUnitUses(lConnection, lUnitCacheKey, aModel);
           StoreSymbols(lConnection, lUnitCacheKey, aModel);
+          StoreUnitReferences(lConnection, lUnitCacheKey, aModel);
           lConnection.ExecSQL('delete from members where unit_cache_key = ?', [lUnitCacheKey]);
           for lMember in aModel.fMembers do
           begin

@@ -258,6 +258,42 @@ begin
     ',"definitions":' + SymbolMapDefinitionsJson(aDefinitions) + '}';
 end;
 
+function SymbolMapReferenceJson(const aReference: TSymbolMapReference): string;
+begin
+  Result := '{"name":"' + JsonEscape(aReference.fName) + '",' +
+    '"unitName":"' + JsonEscape(aReference.fUnitName) + '",' +
+    '"filePath":"' + JsonEscape(aReference.fFilePath) + '",' +
+    '"sourceKind":"' + JsonEscape(aReference.fSourceKind) + '",' +
+    '"confidence":"' + JsonEscape(aReference.fConfidence) + '",' +
+    '"role":"' + JsonEscape(aReference.fRole) + '",' +
+    '"sectionKind":"' + JsonEscape(aReference.fSectionKind) + '",' +
+    '"line":' + aReference.fLine.ToString + ',' +
+    '"col":' + aReference.fCol.ToString + ',' +
+    '"endLine":' + aReference.fEndLine.ToString + ',' +
+    '"endCol":' + aReference.fEndCol.ToString +
+    '}';
+end;
+
+function SymbolMapReferencesJson(const aReferences: TArray<TSymbolMapReference>): string;
+var
+  i: Integer;
+begin
+  Result := '[';
+  for i := 0 to High(aReferences) do
+  begin
+    if i > 0 then
+      Result := Result + ',';
+    Result := Result + SymbolMapReferenceJson(aReferences[i]);
+  end;
+  Result := Result + ']';
+end;
+
+function BuildReferencesResultJson(const aSymbol: string; const aReferences: TArray<TSymbolMapReference>): string;
+begin
+  Result := '{"symbol":"' + JsonEscape(aSymbol) + '","count":' + Length(aReferences).ToString +
+    ',"references":' + SymbolMapReferencesJson(aReferences) + '}';
+end;
+
 function CompilerProfileJson(const aCompilerProfile: TSymbolMapCompilerProfileResult): string;
 begin
   Result := '{"profileKey":"' + JsonEscape(aCompilerProfile.fProfileKey) + '",' +
@@ -430,11 +466,6 @@ function EnsureSymbolMapProjectIndexedForQuery(const aContext: TSymbolMapContext
   const aCacheStatus: TSymbolMapCacheStatus; var aIndexedUnits: TArray<TSymbolMapIndexedUnit>;
   out aError: string): Boolean;
 begin
-  Result := False;
-  if SymbolMapProjectHasIndexedUnits(aContext, aCacheStatus, aError) then
-    Exit(True);
-  if aError <> '' then
-    Exit(False);
   Result := TryIndexSymbolMapProject(aContext, aCacheStatus, aIndexedUnits, aError);
 end;
 
@@ -457,6 +488,7 @@ var
   lIndexedUnit: TSymbolMapIndexedUnit;
   lIndexedUnits: TArray<TSymbolMapIndexedUnit>;
   lQueryDefinitions: TArray<TSymbolMapDefinition>;
+  lReferences: TArray<TSymbolMapReference>;
   lResultJson: string;
   lRtlSource: TSymbolMapRtlIndexResult;
 begin
@@ -506,7 +538,8 @@ begin
     end;
     lResultJson := BuildIndexResultJson(lIndexedUnits);
   end else if aOptions.fSymbolMapOperation in [TSymbolMapOperation.smoFindDefinition,
-    TSymbolMapOperation.smoSearchSymbols, TSymbolMapOperation.smoDescribeSymbol] then
+    TSymbolMapOperation.smoFindReferences, TSymbolMapOperation.smoSearchSymbols,
+    TSymbolMapOperation.smoDescribeSymbol] then
   begin
     if not EnsureSymbolMapProjectIndexedForQuery(lContext, lCacheStatus, lIndexedUnits, lError) then
     begin
@@ -522,6 +555,15 @@ begin
         Exit(cExitToolFailure);
       end;
       lResultJson := BuildDefinitionResultJson(lDefinition);
+    end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoFindReferences then
+    begin
+      if not FindSymbolMapReferences(lContext, lCacheStatus, lCompilerProfile, aOptions.fSymbolMapSymbol,
+        aOptions.fSymbolMapLimit, lReferences, lError) then
+      begin
+        WriteLn(ErrOutput, lError);
+        Exit(cExitToolFailure);
+      end;
+      lResultJson := BuildReferencesResultJson(aOptions.fSymbolMapSymbol, lReferences);
     end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoSearchSymbols then
     begin
       if not SearchSymbolMapDefinitions(lContext, lCacheStatus, lCompilerProfile, aOptions.fSymbolMapQuery,
