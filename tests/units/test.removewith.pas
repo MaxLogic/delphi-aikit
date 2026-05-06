@@ -659,6 +659,18 @@ type
   end;
 
   [TestFixture]
+  TRemoveWithBoundRewriteTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunApplyFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure ApplyUsesBoundReferencesAndLeavesNonReferencesUnqualified;
+  end;
+
+  [TestFixture]
   TRemoveWithHardeningApplyTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -7006,6 +7018,113 @@ begin
   AssertBytesEqual(lMainBefore, TFile.ReadAllBytes(lMainPath), 'Plan mode must leave corpus main unit unchanged.');
   AssertBytesEqual(lSupportBefore, TFile.ReadAllBytes(lSupportPath),
     'Plan mode must leave corpus support unit unchanged.');
+end;
+
+function TRemoveWithBoundRewriteTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithBoundRewriteTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithBoundRewriteTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lSkippedItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    lSkippedItem := aSkipped.Items[i] as TJSONObject;
+    if lSkippedItem.Values['reason'].Value = aReason then
+      Inc(Result);
+  end;
+end;
+
+function TRemoveWithBoundRewriteTests.RunApplyFixture(const aDprojPath, aLogName: string;
+  out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with apply process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithBoundRewriteTests.ApplyUsesBoundReferencesAndLeavesNonReferencesUnqualified;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CopyFixtureToTemp('RemoveWithBoundRewriteFixture', 'remove-with-bound-rewrite', lDprojPath, lFixtureDir);
+  lUnitPath := TPath.Combine(lFixtureDir, 'BoundRewriteUnit.pas');
+
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-bound-rewrite.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected bound-rewrite apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
+    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected only the semantically bound with statement to be planned.');
+    lSkipped := lRoot.Values['skipped'] as TJSONArray;
+    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
+      'Expected inline declaration body to stay skipped.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('with lRecord do' + sLineBreak + '  begin' + sLineBreak +
+    '    var Name := ''local'';', lUnitText) > 0, 'Expected declaration body to remain unchanged.');
+  Assert.IsTrue(Pos('goto BoundLabel;', lUnitText) > 0, 'Expected goto target to remain unqualified.');
+  Assert.IsTrue(Pos('BoundLabel:', lUnitText) > 0, 'Expected label declaration to remain unqualified.');
+  Assert.IsTrue(Pos('TBoundRewriteCast(lCast).Name', lUnitText) > 0,
+    'Expected typecast target to remain unqualified.');
+  Assert.IsTrue(Pos('.TBoundRewriteCast(lCast)', lUnitText) = 0,
+    'Planner must not qualify type names that only look like receiver members lexically.');
+  Assert.IsTrue(Pos('.Name := TBoundRewriteCast(lCast).Name;', lUnitText) > 0,
+    'Expected bound receiver member assignment to be qualified.');
+  Assert.IsTrue(Pos('.Count := .Count + 1;', lUnitText) = 0,
+    'Expected both count references to use an explicit qualifier.');
 end;
 
 function TRemoveWithHardeningApplyTests.CommandExePath: string;

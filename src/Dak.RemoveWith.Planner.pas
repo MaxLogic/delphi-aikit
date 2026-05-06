@@ -58,6 +58,11 @@ type
     fReplacementText: string;
   end;
 
+  TRemoveWithBodyEdit = record
+    fOffsets: TRemoveWithPlanOffsetRange;
+    fReplacementText: string;
+  end;
+
   TRemoveWithRoutinePlanState = record
     fFilePath: string;
     fRoutineName: string;
@@ -116,11 +121,12 @@ type
       const aSource: TRemoveWithSourceBuffer; const aStatement: TRemoveWithStatementInfo): Boolean; static;
     class function IsDirectNestedStatement(const aScanResult: TRemoveWithScanResult;
       const aOuter, aInner: TRemoveWithStatementInfo): Boolean; static;
-    class function NestedReplacementAtOffset(const aNestedReplacements: TArray<TRemoveWithNestedReplacement>;
-      const aOffset: Integer; out aNestedReplacement: TRemoveWithNestedReplacement): Boolean; static;
-    class function FindClassification(const aResolverResult: TRemoveWithResolverResult; const aStatementId,
-      aIdentifier: string; const aLine, aColumn: Integer;
-      out aClassification: TRemoveWithIdentifierClassification): Boolean; static;
+    class function OffsetInsideNestedReplacement(const aNestedReplacements: TArray<TRemoveWithNestedReplacement>;
+      const aOffset: Integer): Boolean; static;
+    class procedure AddBodyEdit(var aEdits: TArray<TRemoveWithBodyEdit>; const aOffsets: TRemoveWithPlanOffsetRange;
+      const aReplacementText: string); static;
+    class procedure ApplyBodyEdits(const aBodyOffsets: TRemoveWithPlanOffsetRange;
+      const aEdits: TArray<TRemoveWithBodyEdit>; var aReplacementText: string); static;
     class function FindSelectorTemp(const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
       const aSelectorText: string; out aSelectorTemp: TRemoveWithSelectorTemp): Boolean; static;
     class procedure AddStatement(var aPlanResult: TRemoveWithPlanResult;
@@ -967,40 +973,58 @@ begin
   Result := True;
 end;
 
-class function TRemoveWithPlanner.NestedReplacementAtOffset(
-  const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aOffset: Integer;
-  out aNestedReplacement: TRemoveWithNestedReplacement): Boolean;
+class function TRemoveWithPlanner.OffsetInsideNestedReplacement(
+  const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aOffset: Integer): Boolean;
 var
   lReplacement: TRemoveWithNestedReplacement;
 begin
   Result := False;
-  aNestedReplacement := Default(TRemoveWithNestedReplacement);
   for lReplacement in aNestedReplacements do
   begin
     if (aOffset >= lReplacement.fOffsets.fStartOffset) and (aOffset <= lReplacement.fOffsets.fEndOffset) then
-    begin
-      aNestedReplacement := lReplacement;
       Exit(True);
-    end;
   end;
 end;
 
-class function TRemoveWithPlanner.FindClassification(const aResolverResult: TRemoveWithResolverResult;
-  const aStatementId, aIdentifier: string; const aLine, aColumn: Integer;
-  out aClassification: TRemoveWithIdentifierClassification): Boolean;
+class procedure TRemoveWithPlanner.AddBodyEdit(var aEdits: TArray<TRemoveWithBodyEdit>;
+  const aOffsets: TRemoveWithPlanOffsetRange; const aReplacementText: string);
 var
-  lClassification: TRemoveWithIdentifierClassification;
+  lIndex: Integer;
 begin
-  Result := False;
-  aClassification := Default(TRemoveWithIdentifierClassification);
-  for lClassification in aResolverResult.fClassifications do
+  lIndex := Length(aEdits);
+  SetLength(aEdits, lIndex + 1);
+  aEdits[lIndex].fOffsets := aOffsets;
+  aEdits[lIndex].fReplacementText := aReplacementText;
+end;
+
+class procedure TRemoveWithPlanner.ApplyBodyEdits(const aBodyOffsets: TRemoveWithPlanOffsetRange;
+  const aEdits: TArray<TRemoveWithBodyEdit>; var aReplacementText: string);
+var
+  lApplied: TArray<Boolean>;
+  lBestIndex: Integer;
+  lEdit: TRemoveWithBodyEdit;
+  lRelativeStart: Integer;
+  i: Integer;
+begin
+  SetLength(lApplied, Length(aEdits));
+  while True do
   begin
-    if SameText(lClassification.fStatementId, aStatementId) and SameText(lClassification.fIdentifier, aIdentifier) and
-      (lClassification.fLine = aLine) and (lClassification.fColumn = aColumn) then
+    lBestIndex := -1;
+    for i := 0 to High(aEdits) do
     begin
-      aClassification := lClassification;
-      Exit(True);
+      if lApplied[i] then
+        Continue;
+      if (lBestIndex < 0) or (aEdits[i].fOffsets.fStartOffset > aEdits[lBestIndex].fOffsets.fStartOffset) then
+        lBestIndex := i;
     end;
+    if lBestIndex < 0 then
+      Break;
+
+    lApplied[lBestIndex] := True;
+    lEdit := aEdits[lBestIndex];
+    lRelativeStart := lEdit.fOffsets.fStartOffset - aBodyOffsets.fStartOffset + 1;
+    Delete(aReplacementText, lRelativeStart, lEdit.fOffsets.fEndOffset - lEdit.fOffsets.fStartOffset + 1);
+    Insert(lEdit.fReplacementText, aReplacementText, lRelativeStart);
   end;
 end;
 
@@ -1222,17 +1246,13 @@ class function TRemoveWithPlanner.RewrittenBodyText(const aSource: TRemoveWithSo
   const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aResolverResult: TRemoveWithResolverResult;
   const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText, aReason: string): Boolean;
 var
+  lBodyEdit: TRemoveWithBodyEdit;
+  lBodyEdits: TArray<TRemoveWithBodyEdit>;
   lBodyOffsets: TRemoveWithPlanOffsetRange;
   lClassification: TRemoveWithIdentifierClassification;
-  lIdentifier: string;
-  lLine: Integer;
-  lColumn: Integer;
   lNestedReplacement: TRemoveWithNestedReplacement;
-  lOffset: Integer;
   lQualifierText: string;
-  lRelativeStart: Integer;
   lSelectorTemp: TRemoveWithSelectorTemp;
-  i: Integer;
 begin
   Result := False;
   aReplacementText := '';
@@ -1245,55 +1265,53 @@ begin
   lBodyOffsets.fEndOffset := RemoveWithInclusiveEndOffset(aSource, lBodyOffsets.fEndOffset);
 
   aReplacementText := RemoveWithTextSlice(aSource, lBodyOffsets.fStartOffset, lBodyOffsets.fEndOffset);
-  i := Length(aReplacementText);
-  while i >= 1 do
+  for lNestedReplacement in aNestedReplacements do
   begin
-    if NestedReplacementAtOffset(aNestedReplacements, lBodyOffsets.fStartOffset + i, lNestedReplacement) then
-    begin
-      lRelativeStart := lNestedReplacement.fOffsets.fStartOffset - lBodyOffsets.fStartOffset + 1;
-      Delete(aReplacementText, lRelativeStart,
-        lNestedReplacement.fOffsets.fEndOffset - lNestedReplacement.fOffsets.fStartOffset + 1);
-      Insert(lNestedReplacement.fReplacementText, aReplacementText, lRelativeStart);
-      i := lRelativeStart - 2;
-      Continue;
-    end;
+    lBodyEdit := Default(TRemoveWithBodyEdit);
+    lBodyEdit.fOffsets := lNestedReplacement.fOffsets;
+    lBodyEdit.fReplacementText := lNestedReplacement.fReplacementText;
+    AddBodyEdit(lBodyEdits, lBodyEdit.fOffsets, lBodyEdit.fReplacementText);
+  end;
 
-    if not IsIdentifierChar(aReplacementText[i]) then
-    begin
-      Dec(i);
+  for lClassification in aResolverResult.fClassifications do
+  begin
+    if not SameText(lClassification.fStatementId, aStatement.fId) then
       Continue;
-    end;
-
-    lOffset := i;
-    while (i >= 1) and IsIdentifierChar(aReplacementText[i]) do
-      Dec(i);
-    lIdentifier := Copy(aReplacementText, i + 1, lOffset - i);
-    if (lIdentifier = '') or (not CharInSet(lIdentifier[1], ['A'..'Z', 'a'..'z', '_'])) then
-      Continue;
-    if not RemoveWithLineColumnForOffset(aSource, lBodyOffsets.fStartOffset + i, lLine, lColumn) then
+    if not RemoveWithOffsetForLineColumn(aSource, lClassification.fLine, lClassification.fColumn,
+      lBodyEdit.fOffsets.fStartOffset) then
     begin
       aReason := 'identifier-range-not-resolved';
       Exit;
     end;
-    if FindClassification(aResolverResult, aStatement.fId, lIdentifier, lLine, lColumn, lClassification) then
+    lBodyEdit.fOffsets.fEndOffset := lBodyEdit.fOffsets.fStartOffset + Length(lClassification.fIdentifier) - 1;
+    if (lBodyEdit.fOffsets.fStartOffset < lBodyOffsets.fStartOffset) or
+      (lBodyEdit.fOffsets.fEndOffset > lBodyOffsets.fEndOffset) or
+      OffsetInsideNestedReplacement(aNestedReplacements, lBodyEdit.fOffsets.fStartOffset) then
+      Continue;
+    if not SameText(RemoveWithTextSlice(aSource, lBodyEdit.fOffsets.fStartOffset, lBodyEdit.fOffsets.fEndOffset),
+      lClassification.fIdentifier) then
     begin
-      if lClassification.fStatus = TRemoveWithIdentifierStatus.rwisResolved then
-      begin
-        if FindSelectorTemp(aSelectorTemps, lClassification.fReceiverText, lSelectorTemp) then
-          lQualifierText := lSelectorTemp.fQualifierText
-        else
-          lQualifierText := lClassification.fReceiverText;
-        Delete(aReplacementText, i + 1, lOffset - i);
-        Insert(lQualifierText + '.' + lIdentifier, aReplacementText, i + 1);
-      end else if lClassification.fStatus <> TRemoveWithIdentifierStatus.rwisUnchanged then
-      begin
-        aReason := lClassification.fReason;
-        if aReason = '' then
-          aReason := RemoveWithIdentifierStatusToText(lClassification.fStatus);
-        Exit;
-      end;
+      aReason := 'identifier-range-not-resolved';
+      Exit;
+    end;
+
+    if lClassification.fStatus = TRemoveWithIdentifierStatus.rwisResolved then
+    begin
+      if FindSelectorTemp(aSelectorTemps, lClassification.fReceiverText, lSelectorTemp) then
+        lQualifierText := lSelectorTemp.fQualifierText
+      else
+        lQualifierText := lClassification.fReceiverText;
+      lBodyEdit.fReplacementText := lQualifierText + '.' + lClassification.fIdentifier;
+      AddBodyEdit(lBodyEdits, lBodyEdit.fOffsets, lBodyEdit.fReplacementText);
+    end else if lClassification.fStatus <> TRemoveWithIdentifierStatus.rwisUnchanged then
+    begin
+      aReason := lClassification.fReason;
+      if aReason = '' then
+        aReason := RemoveWithIdentifierStatusToText(lClassification.fStatus);
+      Exit;
     end;
   end;
+  ApplyBodyEdits(lBodyOffsets, lBodyEdits, aReplacementText);
   Result := True;
 end;
 
