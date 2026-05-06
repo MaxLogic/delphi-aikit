@@ -100,6 +100,17 @@ begin
     Result := 'true-symbol-not-found';
 end;
 
+function BuildSymbolMapClassificationObject(const aClassification: TRemoveWithIdentifierClassification): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('found', TJSONBool.Create(aClassification.fSymbolMapFound));
+  Result.AddPair('kind', aClassification.fSymbolMapKind);
+  Result.AddPair('sourceKind', aClassification.fSymbolMapSourceKind);
+  Result.AddPair('confidence', aClassification.fSymbolMapConfidence);
+  Result.AddPair('ownerName', aClassification.fSymbolMapOwnerName);
+  Result.AddPair('reason', aClassification.fSymbolMapReason);
+end;
+
 procedure AddReasonCount(const aObject: TJSONObject; const aReason: string);
 var
   lCount: Integer;
@@ -175,6 +186,7 @@ begin
       .AddPair('receiverType', lClassification.fReceiverType)
       .AddPair('resolutionKind', lClassification.fResolutionKind)
       .AddPair('sourceOwnerType', lClassification.fSourceOwnerType)
+      .AddPair('symbolMap', BuildSymbolMapClassificationObject(lClassification))
       .AddPair('memberKind', RemoveWithSymbolKindToText(lClassification.fMemberKind))
       .AddPair('reason', lClassification.fReason)
       .AddPair('detailedReason', lDetailedReason));

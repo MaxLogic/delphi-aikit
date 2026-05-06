@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added an internal `remove-with` Symbol Map lookup bridge that prepares a project Symbol Map session once per command, exposes compiler/profile/project lookup metadata in resolver JSON, and keeps current rewrite decisions unchanged. (T-199)
 - Documented Symbol Map CLI usage, central and project cache behavior, cleanup/invalidation, cache-root overrides, and relationship to LSP and `remove-with`. (T-197)
 - Added a direct Symbol Map resolver API for definition lookups by name or source position with cache/compiler-profile status reporting. (T-196)
 - Added Symbol Map token-reference indexing and `find-references` query output with explicit non-semantic `token-name-match` confidence. (T-195)

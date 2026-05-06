@@ -6,7 +6,8 @@ uses
   System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
   DUnitX.TestFramework,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Planner,
-  Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy, Test.Support;
+  Dak.RemoveWith.Resolver, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy,
+  Test.Support;
 
 type
   TRemoveWithTestBase = class
@@ -85,6 +86,15 @@ type
   public
     [Test]
     procedure SharedProjectModelFeedsDiscoveryAndSymbolInventory;
+  end;
+
+  [TestFixture]
+  TRemoveWithSymbolMapBridgeTests = class(TRemoveWithTestBase)
+  private
+    function UniqueTempPath(const aPrefix: string): string;
+  public
+    [Test]
+    procedure PreparesOnceAndLooksUpCompilerProjectAndMemberSymbols;
   end;
 
   [TestFixture]
@@ -1475,6 +1485,68 @@ begin
     Assert.IsTrue(Length(lInventory.fSymbols) > 0, 'Expected symbol inventory to read units from the shared model.');
   finally
     lModel.Free;
+  end;
+end;
+
+function TRemoveWithSymbolMapBridgeTests.UniqueTempPath(const aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
+end;
+
+procedure TRemoveWithSymbolMapBridgeTests.PreparesOnceAndLooksUpCompilerProjectAndMemberSymbols;
+var
+  lBridge: TRemoveWithSymbolMapBridge;
+  lError: string;
+  lLookup: TRemoveWithSymbolMapLookup;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fSymbolMapCacheRoot := UniqueTempPath('remove-with-symbol-map-bridge-cache');
+  lOptions.fHasSymbolMapCacheRoot := True;
+
+  Assert.IsTrue(PrepareRemoveWithSymbolMapBridge(lOptions, lBridge, lError),
+    'Expected bridge prepare. Error: ' + lError);
+  try
+    Assert.IsTrue(lBridge.fPrepared, 'Expected prepared bridge.');
+    Assert.AreEqual(1, lBridge.fPrepareCount, 'Expected one Symbol Map prepare/open for the bridge.');
+    Assert.IsTrue(lBridge.fStatus.fProjectIndexed, 'Expected project units to be indexed once for bridge lookups.');
+
+    Assert.IsTrue(FindRemoveWithSymbolMapDefinition(lBridge, 'SizeOf', '', lLookup, lError),
+      'Expected intrinsic lookup. Error: ' + lError);
+    Assert.IsTrue(lLookup.fFound, 'Expected SizeOf to be found.');
+    Assert.AreEqual('routine', lLookup.fKind);
+    Assert.AreEqual('compiler-intrinsic', lLookup.fSourceKind);
+    Assert.AreEqual('exact', lLookup.fConfidence);
+
+    Assert.IsTrue(FindRemoveWithSymbolMapDefinition(lBridge, 'GDeclarationGlobal', '', lLookup, lError),
+      'Expected project global lookup. Error: ' + lError);
+    Assert.IsTrue(lLookup.fFound, 'Expected global to be found.');
+    Assert.AreEqual('var', lLookup.fKind);
+    Assert.AreEqual('project', lLookup.fSourceKind);
+
+    Assert.IsTrue(FindRemoveWithSymbolMapDefinition(lBridge, 'TDeclarationRecord', '', lLookup, lError),
+      'Expected type lookup. Error: ' + lError);
+    Assert.IsTrue(lLookup.fFound, 'Expected type to be found.');
+    Assert.AreEqual('type', lLookup.fKind);
+    Assert.AreEqual('project', lLookup.fSourceKind);
+
+    Assert.IsTrue(FindRemoveWithSymbolMapDefinition(lBridge, 'Name', 'TMemberClass', lLookup, lError),
+      'Expected member lookup. Error: ' + lError);
+    Assert.IsTrue(lLookup.fFound, 'Expected member to be found.');
+    Assert.AreEqual('property', lLookup.fKind);
+    Assert.AreEqual('TMemberClass', lLookup.fOwnerName);
+    Assert.AreEqual(1, lBridge.fPrepareCount, 'Lookups must not refresh or reopen Symbol Map.');
+  finally
+    FinalizeRemoveWithSymbolMapBridge(lBridge);
   end;
 end;
 

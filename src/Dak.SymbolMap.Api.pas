@@ -3,7 +3,7 @@ unit Dak.SymbolMap.Api;
 interface
 
 uses
-  Dak.SymbolMap.Cache, Dak.SymbolMap.Query, Dak.Types;
+  Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Query, Dak.Types;
 
 type
   TSymbolMapApiStatus = record
@@ -18,6 +18,18 @@ type
     fStatus: TSymbolMapApiStatus;
   end;
 
+  TSymbolMapApiSession = record
+    fContext: TSymbolMapContext;
+    fStatus: TSymbolMapApiStatus;
+    fPrepared: Boolean;
+  end;
+
+function PrepareSymbolMapApiSession(const aOptions: TAppOptions; out aSession: TSymbolMapApiSession;
+  out aError: string): Boolean;
+function LookupSymbolMapDefinitionByName(const aSession: TSymbolMapApiSession; const aName, aOwnerName: string;
+  out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
+function LookupSymbolMapDefinitionByPosition(const aSession: TSymbolMapApiSession; const aFilePath: string;
+  const aLine, aCol: Integer; out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
 function ResolveSymbolMapDefinitionByName(const aOptions: TAppOptions; const aName, aOwnerName: string;
   out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
 function ResolveSymbolMapDefinitionByPosition(const aOptions: TAppOptions; const aFilePath: string;
@@ -27,7 +39,7 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.SysUtils,
-  Dak.SymbolMap.Context, Dak.SymbolMap.Indexer;
+  Dak.SymbolMap.Indexer;
 
 type
   TSymbolMapIndexedUnit = record
@@ -131,30 +143,72 @@ begin
   Result := True;
 end;
 
-function ResolveSymbolMapDefinitionByName(const aOptions: TAppOptions; const aName, aOwnerName: string;
+function PrepareSymbolMapApiSession(const aOptions: TAppOptions; out aSession: TSymbolMapApiSession;
+  out aError: string): Boolean;
+begin
+  aSession := Default(TSymbolMapApiSession);
+  Result := PrepareSymbolMapApi(aOptions, aSession.fContext, aSession.fStatus, aError);
+  aSession.fPrepared := Result;
+end;
+
+function LookupSymbolMapDefinitionByName(const aSession: TSymbolMapApiSession; const aName, aOwnerName: string;
   out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
-var
-  lContext: TSymbolMapContext;
 begin
   Result := False;
   aResult := Default(TSymbolMapApiLookupResult);
-  if not PrepareSymbolMapApi(aOptions, lContext, aResult.fStatus, aError) then
+  aResult.fStatus := aSession.fStatus;
+  if not aSession.fPrepared then
+  begin
+    aError := 'Symbol Map API session is not prepared.';
     Exit(False);
-  Result := FindSymbolMapDefinitionByName(lContext, aResult.fStatus.fCacheStatus, aResult.fStatus.fCompilerProfile,
-    aName, aOwnerName, aResult.fDefinition, aError);
+  end;
+  Result := FindSymbolMapDefinitionByName(aSession.fContext, aSession.fStatus.fCacheStatus,
+    aSession.fStatus.fCompilerProfile, aName, aOwnerName, aResult.fDefinition, aError);
+end;
+
+function LookupSymbolMapDefinitionByPosition(const aSession: TSymbolMapApiSession; const aFilePath: string;
+  const aLine, aCol: Integer; out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
+begin
+  Result := False;
+  aResult := Default(TSymbolMapApiLookupResult);
+  aResult.fStatus := aSession.fStatus;
+  if not aSession.fPrepared then
+  begin
+    aError := 'Symbol Map API session is not prepared.';
+    Exit(False);
+  end;
+  Result := FindSymbolMapDefinitionByPosition(aSession.fContext, aSession.fStatus.fCacheStatus,
+    aSession.fStatus.fCompilerProfile, aFilePath, aLine, aCol, aResult.fDefinition, aError);
+end;
+
+function ResolveSymbolMapDefinitionByName(const aOptions: TAppOptions; const aName, aOwnerName: string;
+  out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
+var
+  lSession: TSymbolMapApiSession;
+begin
+  Result := False;
+  aResult := Default(TSymbolMapApiLookupResult);
+  if not PrepareSymbolMapApiSession(aOptions, lSession, aError) then
+  begin
+    aResult.fStatus := lSession.fStatus;
+    Exit(False);
+  end;
+  Result := LookupSymbolMapDefinitionByName(lSession, aName, aOwnerName, aResult, aError);
 end;
 
 function ResolveSymbolMapDefinitionByPosition(const aOptions: TAppOptions; const aFilePath: string;
   const aLine, aCol: Integer; out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
 var
-  lContext: TSymbolMapContext;
+  lSession: TSymbolMapApiSession;
 begin
   Result := False;
   aResult := Default(TSymbolMapApiLookupResult);
-  if not PrepareSymbolMapApi(aOptions, lContext, aResult.fStatus, aError) then
+  if not PrepareSymbolMapApiSession(aOptions, lSession, aError) then
+  begin
+    aResult.fStatus := lSession.fStatus;
     Exit(False);
-  Result := FindSymbolMapDefinitionByPosition(lContext, aResult.fStatus.fCacheStatus,
-    aResult.fStatus.fCompilerProfile, aFilePath, aLine, aCol, aResult.fDefinition, aError);
+  end;
+  Result := LookupSymbolMapDefinitionByPosition(lSession, aFilePath, aLine, aCol, aResult, aError);
 end;
 
 end.
