@@ -128,6 +128,7 @@ begin
   with lCustomer do
   begin
     MissingMember := Name;
+    UnknownProcedure;
   end;
 
   with lDuplicate do
