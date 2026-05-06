@@ -24,8 +24,19 @@ type
     fCacheHit: Boolean;
   end;
 
+  TSymbolMapCompilerProfileResult = record
+    fProfileKey: string;
+    fDelphiVersion: string;
+    fPlatform: string;
+    fIntrinsicSeedVersion: string;
+    fIntrinsicCount: Integer;
+    fCacheHit: Boolean;
+  end;
+
 function EnsureSymbolMapCaches(const aContext: TSymbolMapContext; out aStatus: TSymbolMapCacheStatus;
   out aError: string): Boolean;
+function EnsureSymbolMapCompilerProfile(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  out aResult: TSymbolMapCompilerProfileResult; out aError: string): Boolean;
 function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; overload;
 function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
@@ -38,12 +49,21 @@ uses
   Winapi.Windows,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite;
 
+type
+  TSymbolMapIntrinsicSeed = record
+    fName: string;
+    fKind: string;
+    fSignature: string;
+    fNotes: string;
+  end;
+
 const
   cCentralDbFileName = 'symbol-map.sqlite3';
   cProjectDbFileName = 'project-index.sqlite3';
   cCentralCacheMutexName = 'Local\DelphiAIKit.SymbolMap.Cache.v1';
   cSymbolMapParserVersion = 'symbol-map-parser-v1';
   cSymbolMapIncludeGraphHash = 'no-includes-v1';
+  cSymbolMapIntrinsicSeedVersion = 'delphi-intrinsics-v1';
 
 function OpenCacheConnection(const aDbPath: string; out aDriverLink: TFDPhysSQLiteDriverLink;
   out aConnection: TFDConnection; out aError: string): Boolean;
@@ -121,6 +141,8 @@ begin
     'profile_key text not null, unit_name text not null, unit_cache_key text not null, source_kind text not null)');
   aConnection.ExecSQL('create table if not exists compiler_intrinsics (' +
     'profile_key text not null, name text not null, kind text not null, signature text not null, notes text not null)');
+  aConnection.ExecSQL('create index if not exists idx_compiler_intrinsics_name on ' +
+    'compiler_intrinsics(profile_key, name)');
   aConnection.ExecSQL('create index if not exists idx_symbols_name on symbols(normalized_name)');
   aConnection.ExecSQL('create index if not exists idx_members_name on members(normalized_member_name)');
 end;
@@ -261,6 +283,13 @@ begin
     Result := 0;
 end;
 
+function NormalizeProfilePart(const aValue, aFallback: string): string;
+begin
+  Result := Trim(aValue);
+  if Result = '' then
+    Result := aFallback;
+end;
+
 function HashBytes(const aBytes: TBytes): string;
 var
   lHash: THashSHA2;
@@ -343,10 +372,178 @@ begin
     aFileHash + '|' + cSymbolMapIncludeGraphHash + '|' + aContextHash);
 end;
 
+procedure AddIntrinsicSeed(var aSeeds: TArray<TSymbolMapIntrinsicSeed>; const aName, aKind, aSignature,
+  aNotes: string);
+var
+  lIndex: Integer;
+begin
+  lIndex := Length(aSeeds);
+  SetLength(aSeeds, lIndex + 1);
+  aSeeds[lIndex].fName := aName;
+  aSeeds[lIndex].fKind := aKind;
+  aSeeds[lIndex].fSignature := aSignature;
+  aSeeds[lIndex].fNotes := aNotes;
+end;
+
+function BuildIntrinsicSeeds: TArray<TSymbolMapIntrinsicSeed>;
+begin
+  SetLength(Result, 0);
+  AddIntrinsicSeed(Result, 'Abs', 'routine', 'function Abs(X): numeric', 'compiler/RTL intrinsic');
+  AddIntrinsicSeed(Result, 'Assigned', 'routine', 'function Assigned(P): Boolean', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Assert', 'routine', 'procedure Assert(Expression: Boolean)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Break', 'routine', 'procedure Break', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Continue', 'routine', 'procedure Continue', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Copy', 'routine', 'function Copy(S; Index, Count: Integer)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Dec', 'routine', 'procedure Dec(var X; N: Integer = 1)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Default', 'routine', 'function Default(T): T', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Dispose', 'routine', 'procedure Dispose(P)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Exclude', 'routine', 'procedure Exclude(var S; I)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Exit', 'routine', 'procedure Exit', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'FillChar', 'routine', 'procedure FillChar(var X; Count: NativeInt; Value)',
+    'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'FreeAndNil', 'routine', 'procedure FreeAndNil(var Obj)', 'RTL helper');
+  AddIntrinsicSeed(Result, 'High', 'routine', 'function High(X)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Inc', 'routine', 'procedure Inc(var X; N: Integer = 1)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Include', 'routine', 'procedure Include(var S; I)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'IOResult', 'routine', 'function IOResult: Integer', 'compiler/RTL intrinsic');
+  AddIntrinsicSeed(Result, 'Length', 'routine', 'function Length(S): Integer', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Low', 'routine', 'function Low(X)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Move', 'routine', 'procedure Move(const Source; var Dest; Count: NativeInt)',
+    'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'New', 'routine', 'procedure New(var P)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Ord', 'routine', 'function Ord(X): Integer', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'ParamCount', 'routine', 'function ParamCount: Integer', 'System routine');
+  AddIntrinsicSeed(Result, 'ParamStr', 'routine', 'function ParamStr(Index: Integer): string', 'System routine');
+  AddIntrinsicSeed(Result, 'Pred', 'routine', 'function Pred(X)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Read', 'routine', 'procedure Read(var V)', 'System routine');
+  AddIntrinsicSeed(Result, 'ReadLn', 'routine', 'procedure ReadLn(var V)', 'System routine');
+  AddIntrinsicSeed(Result, 'Round', 'routine', 'function Round(X): Integer', 'compiler/RTL intrinsic');
+  AddIntrinsicSeed(Result, 'SetLength', 'routine', 'procedure SetLength(var S; NewLength: Integer)',
+    'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'SizeOf', 'routine', 'function SizeOf(X): NativeInt', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Sqr', 'routine', 'function Sqr(X): numeric', 'compiler/RTL intrinsic');
+  AddIntrinsicSeed(Result, 'Succ', 'routine', 'function Succ(X)', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'System', 'unit', 'unit System', 'implicitly available unit');
+  AddIntrinsicSeed(Result, 'Trunc', 'routine', 'function Trunc(X): Integer', 'compiler/RTL intrinsic');
+  AddIntrinsicSeed(Result, 'TypeInfo', 'routine', 'function TypeInfo(TypeIdentifier): Pointer', 'compiler intrinsic');
+  AddIntrinsicSeed(Result, 'Val', 'routine', 'procedure Val(S; var V; var Code: Integer)', 'System routine');
+  AddIntrinsicSeed(Result, 'Write', 'routine', 'procedure Write(Args)', 'System routine');
+  AddIntrinsicSeed(Result, 'WriteLn', 'routine', 'procedure WriteLn(Args)', 'System routine');
+  AddIntrinsicSeed(Result, 'Boolean', 'type', 'type Boolean', 'compiler intrinsic type');
+  AddIntrinsicSeed(Result, 'Byte', 'type', 'type Byte', 'compiler intrinsic type');
+  AddIntrinsicSeed(Result, 'Char', 'type', 'type Char', 'compiler intrinsic type');
+  AddIntrinsicSeed(Result, 'Double', 'type', 'type Double', 'compiler intrinsic type');
+  AddIntrinsicSeed(Result, 'Integer', 'type', 'type Integer', 'compiler intrinsic type');
+  AddIntrinsicSeed(Result, 'Int32', 'type', 'type Int32', 'compiler intrinsic type');
+  AddIntrinsicSeed(Result, 'NativeInt', 'type', 'type NativeInt', 'compiler intrinsic type');
+  AddIntrinsicSeed(Result, 'Pointer', 'type', 'type Pointer', 'compiler intrinsic type');
+  AddIntrinsicSeed(Result, 'Single', 'type', 'type Single', 'compiler intrinsic type');
+  AddIntrinsicSeed(Result, 'string', 'type', 'type string', 'compiler intrinsic type');
+end;
+
+function BuildCompilerProfileKey(const aContext: TSymbolMapContext; out aDelphiVersion, aPlatform: string): string;
+begin
+  aDelphiVersion := NormalizeProfilePart(aContext.fDelphiVersion, 'unknown');
+  aPlatform := NormalizeProfilePart(aContext.fPlatform, 'Win32');
+  Result := HashText('compiler-profile|' + cSymbolMapSchemaVersion.ToString + '|' +
+    cSymbolMapIntrinsicSeedVersion + '|' + LowerCase(aDelphiVersion) + '|' + LowerCase(aPlatform));
+end;
+
 function CentralUnitModelExists(const aConnection: TFDConnection; const aUnitCacheKey: string): Boolean;
 begin
   Result := aConnection.ExecSQLScalar('select count(*) from unit_models where unit_cache_key = ?',
     [aUnitCacheKey]) > 0;
+end;
+
+function CentralCompilerProfileExists(const aConnection: TFDConnection; const aProfileKey: string): Boolean;
+begin
+  Result := aConnection.ExecSQLScalar(
+    'select count(*) from compiler_profiles where profile_key = ? and intrinsic_seed_version = ?',
+    [aProfileKey, cSymbolMapIntrinsicSeedVersion]) > 0;
+end;
+
+function CountCompilerIntrinsics(const aConnection: TFDConnection; const aProfileKey: string): Integer;
+begin
+  Result := aConnection.ExecSQLScalar('select count(*) from compiler_intrinsics where profile_key = ?',
+    [aProfileKey]);
+end;
+
+procedure StoreCompilerIntrinsics(const aConnection: TFDConnection; const aProfileKey: string;
+  out aIntrinsicCount: Integer);
+var
+  lSeed: TSymbolMapIntrinsicSeed;
+  lSeeds: TArray<TSymbolMapIntrinsicSeed>;
+begin
+  lSeeds := BuildIntrinsicSeeds;
+  aConnection.ExecSQL('delete from compiler_intrinsics where profile_key = ?', [aProfileKey]);
+  for lSeed in lSeeds do
+  begin
+    aConnection.ExecSQL('insert into compiler_intrinsics(profile_key, name, kind, signature, notes) ' +
+      'values (?, ?, ?, ?, ?)', [aProfileKey, lSeed.fName, lSeed.fKind, lSeed.fSignature, lSeed.fNotes]);
+  end;
+  aIntrinsicCount := Length(lSeeds);
+end;
+
+function EnsureSymbolMapCompilerProfile(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  out aResult: TSymbolMapCompilerProfileResult; out aError: string): Boolean;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lExistingIntrinsicCount: Integer;
+  lExpectedIntrinsicCount: Integer;
+  lMutexHandle: THandle;
+begin
+  Result := False;
+  aResult := Default(TSymbolMapCompilerProfileResult);
+  aError := '';
+  aResult.fIntrinsicSeedVersion := cSymbolMapIntrinsicSeedVersion;
+  aResult.fProfileKey := BuildCompilerProfileKey(aContext, aResult.fDelphiVersion, aResult.fPlatform);
+  if not AcquireCentralCacheMutex(lMutexHandle, aError) then
+    Exit(False);
+  try
+    if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
+      Exit(False);
+    try
+      try
+        lExpectedIntrinsicCount := Length(BuildIntrinsicSeeds);
+        lExistingIntrinsicCount := CountCompilerIntrinsics(lConnection, aResult.fProfileKey);
+        aResult.fCacheHit := CentralCompilerProfileExists(lConnection, aResult.fProfileKey) and
+          (lExistingIntrinsicCount = lExpectedIntrinsicCount);
+        if aResult.fCacheHit then
+        begin
+          aResult.fIntrinsicCount := lExistingIntrinsicCount;
+          Exit(True);
+        end;
+
+        lConnection.StartTransaction;
+        try
+          StoreCompilerIntrinsics(lConnection, aResult.fProfileKey, aResult.fIntrinsicCount);
+          lConnection.ExecSQL('insert or replace into compiler_profiles(' +
+            'profile_key, delphi_version, platform, bds_root, source_roots_hash, intrinsic_seed_version, ' +
+            'indexed_at_utc) values (?, ?, ?, ?, ?, ?, ?)',
+            [aResult.fProfileKey, aResult.fDelphiVersion, aResult.fPlatform, '', 'none',
+            aResult.fIntrinsicSeedVersion, DateTimeToStr(Now)]);
+          lConnection.Commit;
+        except
+          lConnection.Rollback;
+          raise;
+        end;
+        Result := True;
+      except
+        on E: Exception do
+          aError := E.Message;
+      end;
+    finally
+      lConnection.Free;
+      lDriverLink.Free;
+    end;
+  finally
+    if lMutexHandle <> 0 then
+    begin
+      ReleaseMutex(lMutexHandle);
+      CloseHandle(lMutexHandle);
+    end;
+  end;
 end;
 
 procedure StoreUnitUses(const aConnection: TFDConnection; const aUnitCacheKey: string;

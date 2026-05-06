@@ -117,6 +117,29 @@ type
   end;
 
   [TestFixture]
+  TSymbolMapIntrinsicProfileTests = class
+  private
+    function BuildFreshResolverExe: string;
+    function BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext): string;
+    function CompilerProfileCount(const aDbPath, aProfileKey: string): Integer;
+    procedure DeleteIntrinsics(const aDbPath, aProfileKey: string);
+    function FixtureProjectPath: string;
+    function IntrinsicCount(const aDbPath, aProfileKey: string): Integer;
+    function IntrinsicExists(const aDbPath, aProfileKey, aName: string): Boolean;
+    function WindowsCmdExePath: string;
+    function UniqueTempPath(const aPrefix: string): string;
+  public
+    [Test]
+    procedure SeedsCompilerProfileAndIntrinsicRows;
+    [Test]
+    procedure ReusesSeededCompilerProfile;
+    [Test]
+    procedure RepairsProfileWhenIntrinsicRowsAreMissing;
+    [Test]
+    procedure IndexCommandReportsCompilerProfileStatus;
+  end;
+
+  [TestFixture]
   TSymbolMapCliTests = class
   private
     procedure SetParams(const aCmdLine: string);
@@ -750,6 +773,272 @@ begin
   Assert.IsFalse(lSecond.fCacheHit, 'Expected changed defines to produce a cache miss.');
 end;
 
+function TSymbolMapIntrinsicProfileTests.BuildFreshResolverExe: string;
+var
+  lArgs: string;
+  lBat: string;
+  lCmdArgs: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lLogText: string;
+  lOutputDir: string;
+begin
+  lOutputDir := UniqueTempPath('symbol-map-intrinsic-resolver');
+  ForceDirectories(lOutputDir);
+  lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
+  lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
+    ' -config Release -platform Win32 -ver 23 -test-output-dir ' + QuoteArg(lOutputDir);
+  lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
+  lLogPath := UniqueTempPath('symbol-map-intrinsic-resolver-build') + '.log';
+  Assert.IsTrue(RunProcess(WindowsCmdExePath, lCmdArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start resolver build.');
+  if lExitCode <> 0 then
+  begin
+    lLogText := '';
+    if TFile.Exists(lLogPath) then
+      lLogText := TFile.ReadAllText(lLogPath);
+    Assert.Fail('Expected resolver build to succeed. See: ' + lLogPath + sLineBreak + lLogText);
+  end;
+  Result := TPath.Combine(lOutputDir, 'DelphiAIKit.exe');
+  Assert.IsTrue(TFile.Exists(Result), 'Expected fresh resolver exe: ' + Result);
+end;
+
+function TSymbolMapIntrinsicProfileTests.BuildContext(const aCacheRoot: string;
+  out aContext: TSymbolMapContext): string;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23';
+  lOptions.fSymbolMapCacheRoot := aCacheRoot;
+  lOptions.fHasSymbolMapCacheRoot := True;
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, aContext, lError), 'Expected context. Error: ' + lError);
+  Result := FixtureProjectPath;
+end;
+
+procedure TSymbolMapIntrinsicProfileTests.DeleteIntrinsics(const aDbPath, aProfileKey: string);
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    lConnection.ExecSQL('delete from compiler_intrinsics where profile_key = ?', [aProfileKey]);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+function TSymbolMapIntrinsicProfileTests.CompilerProfileCount(const aDbPath, aProfileKey: string): Integer;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    Result := lConnection.ExecSQLScalar('select count(*) from compiler_profiles where profile_key = ?',
+      [aProfileKey]);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+function TSymbolMapIntrinsicProfileTests.FixtureProjectPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
+end;
+
+function TSymbolMapIntrinsicProfileTests.WindowsCmdExePath: string;
+begin
+  Result := Trim(GetEnvironmentVariable('ComSpec'));
+  if Result = '' then
+    Result := 'C:\Windows\System32\cmd.exe';
+end;
+
+function TSymbolMapIntrinsicProfileTests.IntrinsicCount(const aDbPath, aProfileKey: string): Integer;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    Result := lConnection.ExecSQLScalar('select count(*) from compiler_intrinsics where profile_key = ?',
+      [aProfileKey]);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+function TSymbolMapIntrinsicProfileTests.IntrinsicExists(const aDbPath, aProfileKey, aName: string): Boolean;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    Result := lConnection.ExecSQLScalar(
+      'select count(*) from compiler_intrinsics where profile_key = ? and lower(name) = lower(?)',
+      [aProfileKey, aName]) > 0;
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+function TSymbolMapIntrinsicProfileTests.UniqueTempPath(const aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
+end;
+
+procedure TSymbolMapIntrinsicProfileTests.SeedsCompilerProfileAndIntrinsicRows;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-intrinsic-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile seed. Error: ' + lError);
+
+  Assert.AreEqual('23.0', lProfile.fDelphiVersion);
+  Assert.AreEqual('Win32', lProfile.fPlatform);
+  Assert.IsFalse(lProfile.fCacheHit, 'Expected first profile seed to miss.');
+  Assert.IsTrue(lProfile.fIntrinsicCount >= 20, 'Expected seeded Delphi intrinsics.');
+  Assert.AreEqual(1, CompilerProfileCount(lStatus.fCentralDbPath, lProfile.fProfileKey));
+  Assert.AreEqual(lProfile.fIntrinsicCount, IntrinsicCount(lStatus.fCentralDbPath, lProfile.fProfileKey));
+  Assert.IsTrue(IntrinsicExists(lStatus.fCentralDbPath, lProfile.fProfileKey, 'SizeOf'),
+    'Expected SizeOf intrinsic.');
+  Assert.IsTrue(IntrinsicExists(lStatus.fCentralDbPath, lProfile.fProfileKey, 'High'), 'Expected High intrinsic.');
+  Assert.IsTrue(IntrinsicExists(lStatus.fCentralDbPath, lProfile.fProfileKey, 'IOResult'),
+    'Expected IOResult intrinsic.');
+  Assert.IsTrue(IntrinsicExists(lStatus.fCentralDbPath, lProfile.fProfileKey, 'sizeof'),
+    'Expected case-insensitive intrinsic lookup support.');
+end;
+
+procedure TSymbolMapIntrinsicProfileTests.ReusesSeededCompilerProfile;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lFirst: TSymbolMapCompilerProfileResult;
+  lSecond: TSymbolMapCompilerProfileResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-intrinsic-reuse-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lFirst, lError),
+    'Expected first compiler profile seed. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lSecond, lError),
+    'Expected second compiler profile seed. Error: ' + lError);
+
+  Assert.AreEqual(lFirst.fProfileKey, lSecond.fProfileKey);
+  Assert.IsTrue(lSecond.fCacheHit, 'Expected second seed to reuse the compiler profile.');
+  Assert.AreEqual(1, CompilerProfileCount(lStatus.fCentralDbPath, lFirst.fProfileKey));
+  Assert.AreEqual(lFirst.fIntrinsicCount, IntrinsicCount(lStatus.fCentralDbPath, lFirst.fProfileKey));
+end;
+
+procedure TSymbolMapIntrinsicProfileTests.RepairsProfileWhenIntrinsicRowsAreMissing;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lFirst: TSymbolMapCompilerProfileResult;
+  lSecond: TSymbolMapCompilerProfileResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-intrinsic-repair-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lFirst, lError),
+    'Expected first compiler profile seed. Error: ' + lError);
+
+  DeleteIntrinsics(lStatus.fCentralDbPath, lFirst.fProfileKey);
+
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lSecond, lError),
+    'Expected compiler profile repair. Error: ' + lError);
+  Assert.AreEqual(lFirst.fProfileKey, lSecond.fProfileKey);
+  Assert.IsFalse(lSecond.fCacheHit, 'Expected missing intrinsic rows to force repair.');
+  Assert.AreEqual(lFirst.fIntrinsicCount, IntrinsicCount(lStatus.fCentralDbPath, lFirst.fProfileKey));
+end;
+
+procedure TSymbolMapIntrinsicProfileTests.IndexCommandReportsCompilerProfileStatus;
+var
+  lArgs: string;
+  lCacheRoot: string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLogPath: string;
+  lLogText: string;
+  lProfile: TJSONObject;
+  lResolverExe: string;
+begin
+  lResolverExe := BuildFreshResolverExe;
+  lCacheRoot := UniqueTempPath('symbol-map-intrinsic-cli-cache');
+  lLogPath := UniqueTempPath('symbol-map-intrinsic-cli') + '.log';
+  lArgs := 'symbol-map index --project ' + QuoteArg(FixtureProjectPath) + ' --cache-root ' +
+    QuoteArg(lCacheRoot) + ' --format json --delphi 23 --verbose true';
+
+  Assert.IsTrue(RunProcess(lResolverExe, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start symbol-map index command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map index to succeed. See: ' + lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath);
+  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lJsonValue);
+    Assert.IsTrue(lJson.GetValue('compilerProfile') is TJSONObject, 'Expected compilerProfile object.');
+    lProfile := lJson.GetValue('compilerProfile') as TJSONObject;
+    Assert.AreEqual('23.0', lProfile.GetValue<string>('delphiVersion'));
+    Assert.AreEqual('Win32', lProfile.GetValue<string>('platform'));
+    Assert.IsTrue(lProfile.GetValue<Integer>('syntheticIntrinsicCount') >= 20,
+      'Expected synthetic intrinsic count.');
+    Assert.IsFalse(lProfile.GetValue<Boolean>('cacheHit'), 'Expected first profile seed to miss.');
+  finally
+    lJsonValue.Free;
+  end;
+end;
+
 function TSymbolMapTopLevelDeclarationTests.FindSymbol(const aModel: TSymbolMapUnitModel; const aName, aKind,
   aSectionKind: string; out aSymbol: TSymbolMapSymbolModel): Boolean;
 var
@@ -1310,6 +1599,7 @@ initialization
   TDUnitX.RegisterTestFixture(TSymbolMapTopLevelDeclarationTests);
   TDUnitX.RegisterTestFixture(TSymbolMapMemberExtractionTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCentralCacheReuseTests);
+  TDUnitX.RegisterTestFixture(TSymbolMapIntrinsicProfileTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCliTests);
 
 end.
