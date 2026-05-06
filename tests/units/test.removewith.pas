@@ -635,6 +635,17 @@ type
   end;
 
   [TestFixture]
+  TRemoveWithSymbolMapParityReportTests = class(TRemoveWithTestBase)
+  private
+    function CommandExePath: string;
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
+    function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure PlanReportsLookupSourceCountsAndFallbackAccounting;
+  end;
+
+  [TestFixture]
   TRemoveWithCorpusSmokeTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -6769,6 +6780,94 @@ begin
     lSkippedItem := lSkipped.Items[0] as TJSONObject;
     Assert.AreEqual('true-symbol-not-found', lSkippedItem.GetValue<string>('detailedReason', ''),
       'Expected skipped statement to keep detailed blocking reason.');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+function TRemoveWithSymbolMapParityReportTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithSymbolMapParityReportTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aFixtureDir := lDestinationDir;
+end;
+
+function TRemoveWithSymbolMapParityReportTests.RunRemoveWithFixture(const aDprojPath, aMode,
+  aLogName: string; out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+procedure TRemoveWithSymbolMapParityReportTests.PlanReportsLookupSourceCountsAndFallbackAccounting;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lRoot: TJSONObject;
+  lSummary: TJSONObject;
+  lTelemetry: TJSONObject;
+begin
+  CopyFixtureToTemp('RemoveWithIntrinsicSymbolFixture', 'remove-with-symbol-map-parity', lDprojPath, lFixtureDir);
+
+  lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-symbol-map-parity.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected parity plan to succeed.');
+    AssertJsonObjectKey(lRoot, 'migrationTelemetry', lTelemetry);
+    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('localModelHits') > 0,
+      'Expected local model hit telemetry.');
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('symbolMapHits') > 0,
+      'Expected Symbol Map hit telemetry.');
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('symbolMapMisses') > 0,
+      'Expected Symbol Map miss telemetry.');
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks') > 0,
+      'Expected intrinsic allowlist fallback telemetry.');
+    Assert.AreEqual(1, lTelemetry.GetValue<Integer>('trueUnknowns'),
+      'Expected true unknown telemetry.');
+    Assert.AreEqual(lSummary.GetValue<Integer>('plannedEdits'), lTelemetry.GetValue<Integer>('plannedEdits'),
+      'Expected planned telemetry to match summary.');
+    Assert.AreEqual(lSummary.GetValue<Integer>('skipped'), lTelemetry.GetValue<Integer>('skippedStatements'),
+      'Expected skipped telemetry to match summary.');
+    Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') >= 0,
+      'Expected planning elapsed time telemetry.');
   finally
     lRoot.Free;
   end;

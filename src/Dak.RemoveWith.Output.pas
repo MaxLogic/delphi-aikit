@@ -20,7 +20,7 @@ function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPa
 implementation
 
 uses
-  System.IOUtils, System.JSON, System.SysUtils;
+  System.IOUtils, System.JSON, System.StrUtils, System.SysUtils;
 
 const
   cRemoveWithSchemaVersion = 2;
@@ -417,6 +417,79 @@ begin
   end;
 end;
 
+function IsIntrinsicAllowlistFallback(const aClassification: TRemoveWithIdentifierClassification): Boolean;
+begin
+  Result := (aClassification.fStatus = TRemoveWithIdentifierStatus.rwisUnchanged) and
+    SameText(aClassification.fResolutionKind, 'external-routine-call') and
+    (aClassification.fMemberKind = TRemoveWithSymbolKind.rwskRoutine) and
+    (not aClassification.fSymbolMapFound) and
+    (not SameText(aClassification.fSymbolMapSourceKind, 'compiler-intrinsic'));
+end;
+
+function IsLocalModelHit(const aClassification: TRemoveWithIdentifierClassification): Boolean;
+begin
+  Result := False;
+  if aClassification.fStatus = TRemoveWithIdentifierStatus.rwisResolved then
+    Exit(True);
+
+  if aClassification.fStatus <> TRemoveWithIdentifierStatus.rwisUnchanged then
+    Exit;
+  if aClassification.fSymbolMapFound and SameText(aClassification.fSymbolMapSourceKind, 'compiler-intrinsic') then
+    Exit;
+  if IsIntrinsicAllowlistFallback(aClassification) then
+    Exit;
+
+  Result := MatchText(aClassification.fReason, ['routine-scope', 'unit-qualifier', 'unit-source-not-indexed',
+    'type-name']);
+end;
+
+function BuildMigrationTelemetryObject(const aResolverResult: TRemoveWithResolverResult;
+  const aPlanResult: TRemoveWithPlanResult): TJSONObject;
+var
+  lClassification: TRemoveWithIdentifierClassification;
+  lIntrinsicAllowlistFallbacks: Integer;
+  lLocalModelHits: Integer;
+  lPlannedCount: Integer;
+  lSkippedCount: Integer;
+  lSymbolMapHits: Integer;
+  lSymbolMapMisses: Integer;
+  lTrueUnknowns: Integer;
+begin
+  lIntrinsicAllowlistFallbacks := 0;
+  lLocalModelHits := 0;
+  lSymbolMapHits := 0;
+  lSymbolMapMisses := 0;
+  lTrueUnknowns := 0;
+  CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount);
+
+  for lClassification in aResolverResult.fClassifications do
+  begin
+    if IsLocalModelHit(lClassification) then
+      Inc(lLocalModelHits)
+    else if SameText(RemoveWithDetailedReason(lClassification.fStatus, lClassification.fReason),
+      'true-symbol-not-found') then
+      Inc(lTrueUnknowns);
+
+    if lClassification.fSymbolMapFound then
+      Inc(lSymbolMapHits)
+    else if SameText(lClassification.fSymbolMapReason, 'miss') then
+      Inc(lSymbolMapMisses);
+
+    if IsIntrinsicAllowlistFallback(lClassification) then
+      Inc(lIntrinsicAllowlistFallbacks);
+  end;
+
+  Result := TJSONObject.Create;
+  Result.AddPair('localModelHits', TJSONNumber.Create(lLocalModelHits));
+  Result.AddPair('symbolMapHits', TJSONNumber.Create(lSymbolMapHits));
+  Result.AddPair('symbolMapMisses', TJSONNumber.Create(lSymbolMapMisses));
+  Result.AddPair('intrinsicAllowlistFallbacks', TJSONNumber.Create(lIntrinsicAllowlistFallbacks));
+  Result.AddPair('trueUnknowns', TJSONNumber.Create(lTrueUnknowns));
+  Result.AddPair('plannedEdits', TJSONNumber.Create(lPlannedCount));
+  Result.AddPair('skippedStatements', TJSONNumber.Create(lSkippedCount));
+  Result.AddPair('elapsedPlanningMs', TJSONNumber.Create(aPlanResult.fElapsedPlanningMs));
+end;
+
 function BuildSummaryObject(const aOptions: TAppOptions; const aScanResult: TRemoveWithScanResult;
   const aPlanResult: TRemoveWithPlanResult; const aTransactionResult: TRemoveWithTransactionResult): TJSONObject;
 var
@@ -484,6 +557,7 @@ begin
     else
       lRoot.AddPair('verification', BuildVerificationObject);
     lRoot.AddPair('transaction', BuildTransactionObject(aTransactionResult));
+    lRoot.AddPair('migrationTelemetry', BuildMigrationTelemetryObject(aResolverResult, aPlanResult));
     lRoot.AddPair('summary', BuildSummaryObject(aOptions, aScanResult, aPlanResult, aTransactionResult));
     Result := lRoot.ToJSON;
   finally
