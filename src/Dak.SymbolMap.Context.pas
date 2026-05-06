@@ -20,6 +20,7 @@ type
     fLibraryPath: TArray<string>;
     fUnitScopes: TArray<string>;
     fUnitAliases: TArray<string>;
+    fRtlSourceRoot: string;
     fCentralCacheRoot: string;
     fProjectCacheRoot: string;
   end;
@@ -78,6 +79,21 @@ begin
   Result := NormalizeCacheRoot(ResolveDefaultCentralCacheRoot);
 end;
 
+function ResolveDefaultRtlSourceRoot(const aDelphiVersion: string): string;
+var
+  lBdsRoot: string;
+  lVersion: string;
+begin
+  lBdsRoot := Trim(GetEnvironmentVariable('BDS'));
+  if lBdsRoot <> '' then
+    Exit(TPath.Combine(lBdsRoot, 'source'));
+
+  lVersion := NormalizeDelphiVersion(aDelphiVersion);
+  if lVersion = '' then
+    lVersion := '23.0';
+  Result := TPath.Combine('C:\Program Files (x86)\Embarcadero\Studio\' + lVersion, 'source');
+end;
+
 procedure TryPopulateCompilerParams(const aOptions: TAppOptions; var aContext: TSymbolMapContext);
 var
   lEnvVars: TDictionary<string, string>;
@@ -105,6 +121,7 @@ begin
   aContext.fDelphiVersion := lOptions.fDelphiVersion;
   if not TryLoadRsVars(lOptions.fDelphiVersion, lOptions.fRsVarsPath, nil, lError) then
     Exit;
+  aContext.fRtlSourceRoot := NormalizeCacheRoot(ResolveDefaultRtlSourceRoot(aContext.fDelphiVersion));
 
   lEnvVars := nil;
   try
@@ -146,6 +163,7 @@ begin
   aContext.fConfig := lOptions.fConfig;
   aContext.fPlatform := lOptions.fPlatform;
   aContext.fDelphiVersion := NormalizeDelphiVersion(lOptions.fDelphiVersion);
+  aContext.fRtlSourceRoot := NormalizeCacheRoot(ResolveDefaultRtlSourceRoot(aContext.fDelphiVersion));
   aContext.fCentralCacheRoot := ResolveSymbolMapCentralCacheRoot(lOptions);
   aContext.fProjectCacheRoot := TPath.Combine(aContext.fProject.fDakProjectRoot, 'symbol-map');
   TryPopulateCompilerParams(lOptions, aContext);

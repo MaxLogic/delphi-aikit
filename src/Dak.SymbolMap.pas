@@ -225,9 +225,23 @@ begin
     '}';
 end;
 
+function RtlSourceJson(const aRtlSource: TSymbolMapRtlIndexResult): string;
+begin
+  Result := '{"status":"' + JsonEscape(aRtlSource.fStatus) + '",' +
+    '"sourceRoot":"' + JsonEscape(aRtlSource.fSourceRoot) + '",' +
+    '"unitsDiscovered":' + aRtlSource.fUnitsDiscovered.ToString + ',' +
+    '"unitsIndexed":' + aRtlSource.fUnitsIndexed.ToString + ',' +
+    '"cacheHit":' + LowerCase(BoolToStr(aRtlSource.fCacheHit, True)) + ',' +
+    '"unitCacheHits":' + aRtlSource.fUnitCacheHits.ToString + ',' +
+    '"unitCacheMisses":' + aRtlSource.fUnitCacheMisses.ToString + ',' +
+    '"diagnosticsCount":' + aRtlSource.fDiagnosticsCount.ToString + ',' +
+    '"diagnostics":' + aRtlSource.fDiagnosticsJson +
+    '}';
+end;
+
 procedure WriteSymbolMapJsonShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
   const aCacheStatus: TSymbolMapCacheStatus; const aCompilerProfile: TSymbolMapCompilerProfileResult;
-  const aResultJson, aDiagnosticsJson: string);
+  const aRtlSource: TSymbolMapRtlIndexResult; const aResultJson, aDiagnosticsJson: string);
 var
   lOperation: string;
 begin
@@ -252,8 +266,10 @@ begin
       LowerCase(BoolToStr(aContext.fHasCompilerParams, True)) + ',"defines":' +
       JsonStringArray(aContext.fDefines) + ',"unitSearchPath":' + JsonStringArray(aContext.fUnitSearchPath) +
       ',"libraryPath":' + JsonStringArray(aContext.fLibraryPath) + ',"unitScopes":' +
-      JsonStringArray(aContext.fUnitScopes) + ',"unitAliases":' + JsonStringArray(aContext.fUnitAliases) + '}' +
+      JsonStringArray(aContext.fUnitScopes) + ',"unitAliases":' + JsonStringArray(aContext.fUnitAliases) +
+      ',"rtlSourceRoot":"' + JsonEscape(aContext.fRtlSourceRoot) + '"}' +
     ',"compilerProfile":' + CompilerProfileJson(aCompilerProfile) +
+    ',"rtlSource":' + RtlSourceJson(aRtlSource) +
     ',"query":{}' +
     ',"result":' + aResultJson +
     ',"diagnostics":' + aDiagnosticsJson +
@@ -262,7 +278,7 @@ end;
 
 procedure WriteSymbolMapTextShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
   const aCacheStatus: TSymbolMapCacheStatus; const aCompilerProfile: TSymbolMapCompilerProfileResult;
-  const aIndexedUnits: TArray<TSymbolMapIndexedUnit>);
+  const aRtlSource: TSymbolMapRtlIndexResult; const aIndexedUnits: TArray<TSymbolMapIndexedUnit>);
 var
   lUnit: TSymbolMapIndexedUnit;
 begin
@@ -276,6 +292,11 @@ begin
   WriteLn('compiler-profile-key: ', aCompilerProfile.fProfileKey);
   WriteLn('compiler-profile-hit: ', LowerCase(BoolToStr(aCompilerProfile.fCacheHit, True)));
   WriteLn('synthetic-intrinsic-count: ', aCompilerProfile.fIntrinsicCount);
+  WriteLn('rtl-source-status: ', aRtlSource.fStatus);
+  WriteLn('rtl-source-root: ', aRtlSource.fSourceRoot);
+  WriteLn('rtl-units-indexed: ', aRtlSource.fUnitsIndexed);
+  WriteLn('rtl-unit-cache-hits: ', aRtlSource.fUnitCacheHits);
+  WriteLn('rtl-unit-cache-misses: ', aRtlSource.fUnitCacheMisses);
   WriteLn('indexed-units: ', Length(aIndexedUnits));
   for lUnit in aIndexedUnits do
   begin
@@ -359,6 +380,7 @@ var
   lIndexedUnit: TSymbolMapIndexedUnit;
   lIndexedUnits: TArray<TSymbolMapIndexedUnit>;
   lResultJson: string;
+  lRtlSource: TSymbolMapRtlIndexResult;
   lUnitPaths: TArray<string>;
   lUnitPath: string;
 begin
@@ -378,6 +400,16 @@ begin
   begin
     WriteLn(ErrOutput, lError);
     Exit(cExitToolFailure);
+  end;
+  lRtlSource.fStatus := 'not-indexed';
+  lRtlSource.fDiagnosticsJson := '[]';
+  if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex then
+  begin
+    if not IndexSymbolMapRtlSources(lContext, lCacheStatus, '', lCompilerProfile, lRtlSource, lError) then
+    begin
+      WriteLn(ErrOutput, lError);
+      Exit(cExitToolFailure);
+    end;
   end;
   if (aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex) and (aOptions.fSymbolMapUnitPath <> '') then
   begin
@@ -404,9 +436,9 @@ begin
   end;
 
   if aOptions.fSymbolMapFormat = TSymbolMapFormat.smfText then
-    WriteSymbolMapTextShell(aOptions, lContext, lCacheStatus, lCompilerProfile, lIndexedUnits)
+    WriteSymbolMapTextShell(aOptions, lContext, lCacheStatus, lCompilerProfile, lRtlSource, lIndexedUnits)
   else
-    WriteSymbolMapJsonShell(aOptions, lContext, lCacheStatus, lCompilerProfile, lResultJson, '[]');
+    WriteSymbolMapJsonShell(aOptions, lContext, lCacheStatus, lCompilerProfile, lRtlSource, lResultJson, '[]');
 
   Result := cExitSuccess;
 end;

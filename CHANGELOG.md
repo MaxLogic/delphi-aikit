@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added Symbol Map RTL source indexing into compiler profiles, including root-aware profile cache identity, non-fatal missing-root diagnostics, and `rtlSource` hit/miss reporting. (T-193)
 - Added Symbol Map compiler profile seeding with reusable synthetic Delphi intrinsic rows and JSON/text compiler-profile reporting. (T-192)
 - Added Symbol Map central unit cache reuse with content/context unit keys, project-level `DCCReference` indexing, cache hit/miss reporting, and normalized define handling across equivalent project contexts. (T-191)
 - Added Symbol Map member extraction for class, record, interface, and helper fields, methods, properties, indexed/default property metadata, source locations, JSON output, and central cache member rows. (T-190)
