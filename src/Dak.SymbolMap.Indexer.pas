@@ -25,12 +25,28 @@ type
     fEndCol: Integer;
   end;
 
+  TSymbolMapMemberModel = record
+    fOwnerName: string;
+    fMemberName: string;
+    fKind: string;
+    fTypeName: string;
+    fVisibility: string;
+    fSignature: string;
+    fIsDefault: Boolean;
+    fIsIndexed: Boolean;
+    fLine: Integer;
+    fCol: Integer;
+    fEndLine: Integer;
+    fEndCol: Integer;
+  end;
+
   TSymbolMapUnitModel = record
     fUnitName: string;
     fFilePath: string;
     fEncodingName: string;
     fUses: TArray<TSymbolMapUnitUse>;
     fSymbols: TArray<TSymbolMapSymbolModel>;
+    fMembers: TArray<TSymbolMapMemberModel>;
     fDiagnostics: TArray<string>;
   end;
 
@@ -44,7 +60,8 @@ uses
   System.IOUtils, System.StrUtils, System.SysUtils;
 
 type
-  TSymbolMapTokenKind = (smtIdentifier, smtDot, smtComma, smtSemicolon, smtColon, smtEqual, smtLParen, smtRParen);
+  TSymbolMapTokenKind = (smtIdentifier, smtDot, smtComma, smtSemicolon, smtColon, smtEqual, smtLParen, smtRParen,
+    smtLBracket, smtRBracket);
 
   TSymbolMapToken = record
     fKind: TSymbolMapTokenKind;
@@ -305,6 +322,10 @@ begin
         AddToken(aTokens, smtLParen, lChar, lLine, lCol, lIndex, lIndex);
       ')':
         AddToken(aTokens, smtRParen, lChar, lLine, lCol, lIndex, lIndex);
+      '[':
+        AddToken(aTokens, smtLBracket, lChar, lLine, lCol, lIndex, lIndex);
+      ']':
+        AddToken(aTokens, smtRBracket, lChar, lLine, lCol, lIndex, lIndex);
     end;
     AdvanceChar(aText, lIndex, lLine, lCol);
   end;
@@ -354,6 +375,30 @@ begin
   aModel.fSymbols[lIndex].fCol := aCol;
   aModel.fSymbols[lIndex].fEndLine := aEndLine;
   aModel.fSymbols[lIndex].fEndCol := aEndCol;
+end;
+
+procedure AddMember(var aModel: TSymbolMapUnitModel; const aOwnerName, aMemberName, aKind, aTypeName,
+  aVisibility, aSignature: string; const aIsDefault, aIsIndexed: Boolean; const aLine, aCol, aEndLine,
+  aEndCol: Integer);
+var
+  lIndex: Integer;
+begin
+  if (aOwnerName = '') or (aMemberName = '') or (aKind = '') then
+    Exit;
+  lIndex := Length(aModel.fMembers);
+  SetLength(aModel.fMembers, lIndex + 1);
+  aModel.fMembers[lIndex].fOwnerName := aOwnerName;
+  aModel.fMembers[lIndex].fMemberName := aMemberName;
+  aModel.fMembers[lIndex].fKind := aKind;
+  aModel.fMembers[lIndex].fTypeName := aTypeName;
+  aModel.fMembers[lIndex].fVisibility := aVisibility;
+  aModel.fMembers[lIndex].fSignature := aSignature;
+  aModel.fMembers[lIndex].fIsDefault := aIsDefault;
+  aModel.fMembers[lIndex].fIsIndexed := aIsIndexed;
+  aModel.fMembers[lIndex].fLine := aLine;
+  aModel.fMembers[lIndex].fCol := aCol;
+  aModel.fMembers[lIndex].fEndLine := aEndLine;
+  aModel.fMembers[lIndex].fEndCol := aEndCol;
 end;
 
 function TokenIsIdentifierText(const aToken: TSymbolMapToken; const aText: string): Boolean;
@@ -412,11 +457,294 @@ begin
     Inc(aIndex);
 end;
 
+function TokenIsVisibility(const aToken: TSymbolMapToken): Boolean;
+begin
+  Result := (aToken.fKind = smtIdentifier) and MatchText(aToken.fText,
+    ['private', 'protected', 'public', 'published']);
+end;
+
+function TokenIsMemberRoutineKeyword(const aToken: TSymbolMapToken): Boolean;
+begin
+  Result := (aToken.fKind = smtIdentifier) and MatchText(aToken.fText,
+    ['constructor', 'destructor', 'function', 'procedure']);
+end;
+
+procedure MoveToBalancedSemicolon(const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer);
+var
+  lBracketDepth: Integer;
+  lParenDepth: Integer;
+begin
+  lBracketDepth := 0;
+  lParenDepth := 0;
+  while aIndex <= High(aTokens) do
+  begin
+    if aTokens[aIndex].fKind = smtLParen then
+      Inc(lParenDepth)
+    else if (aTokens[aIndex].fKind = smtRParen) and (lParenDepth > 0) then
+      Dec(lParenDepth)
+    else if aTokens[aIndex].fKind = smtLBracket then
+      Inc(lBracketDepth)
+    else if (aTokens[aIndex].fKind = smtRBracket) and (lBracketDepth > 0) then
+      Dec(lBracketDepth)
+    else if (lParenDepth = 0) and (lBracketDepth = 0) and (aTokens[aIndex].fKind = smtSemicolon) then
+      Exit;
+    Inc(aIndex);
+  end;
+end;
+
+procedure ParseMemberRoutine(const aSource: string; const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer;
+  const aOwnerName, aVisibility: string; var aModel: TSymbolMapUnitModel);
+var
+  lEndCol: Integer;
+  lEndLine: Integer;
+  lEndOffset: Integer;
+  lIsFunction: Boolean;
+  lMemberName: string;
+  lNameCol: Integer;
+  lNameLine: Integer;
+  lParenDepth: Integer;
+  lRoutineStart: Integer;
+  lSignature: string;
+  lTypeIndex: Integer;
+  lTypeName: string;
+begin
+  lRoutineStart := aIndex;
+  lIsFunction := TokenIsIdentifierText(aTokens[aIndex], 'function');
+  Inc(aIndex);
+  if (aIndex > High(aTokens)) or (aTokens[aIndex].fKind <> smtIdentifier) then
+    Exit;
+  lMemberName := aTokens[aIndex].fText;
+  lNameLine := aTokens[aIndex].fLine;
+  lNameCol := aTokens[aIndex].fCol;
+  Inc(aIndex);
+  lTypeName := '';
+  lParenDepth := 0;
+  while aIndex <= High(aTokens) do
+  begin
+    if aTokens[aIndex].fKind = smtLParen then
+      Inc(lParenDepth)
+    else if (aTokens[aIndex].fKind = smtRParen) and (lParenDepth > 0) then
+      Dec(lParenDepth)
+    else if lIsFunction and (lParenDepth = 0) and (aTokens[aIndex].fKind = smtColon) then
+    begin
+      Inc(aIndex);
+      lTypeIndex := aIndex;
+      TryReadTypeName(aTokens, lTypeIndex, lTypeName);
+      Continue;
+    end else if (lParenDepth = 0) and (aTokens[aIndex].fKind = smtSemicolon) then
+      Break;
+    Inc(aIndex);
+  end;
+  MoveToBalancedSemicolon(aTokens, aIndex);
+  if aIndex <= High(aTokens) then
+  begin
+    lEndLine := aTokens[aIndex].fLine;
+    lEndCol := aTokens[aIndex].fCol;
+    lEndOffset := aTokens[aIndex].fEndOffset;
+  end else begin
+    lEndLine := lNameLine;
+    lEndCol := lNameCol;
+    lEndOffset := aTokens[lRoutineStart].fEndOffset;
+  end;
+  lSignature := TrimSourceFragment(aSource, aTokens[lRoutineStart].fOffset, lEndOffset);
+  AddMember(aModel, aOwnerName, lMemberName, 'method', lTypeName, aVisibility, lSignature, False, False,
+    lNameLine, lNameCol, lEndLine, lEndCol);
+  if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtSemicolon) then
+    Inc(aIndex);
+end;
+
+procedure ParseMemberProperty(const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer; const aOwnerName,
+  aVisibility: string; var aModel: TSymbolMapUnitModel);
+var
+  lBracketDepth: Integer;
+  lEndCol: Integer;
+  lEndLine: Integer;
+  lIsDefault: Boolean;
+  lIsIndexed: Boolean;
+  lMemberName: string;
+  lNameCol: Integer;
+  lNameLine: Integer;
+  lParenDepth: Integer;
+  lTypeIndex: Integer;
+  lTypeName: string;
+begin
+  Inc(aIndex);
+  if (aIndex > High(aTokens)) or (aTokens[aIndex].fKind <> smtIdentifier) then
+    Exit;
+  lMemberName := aTokens[aIndex].fText;
+  lNameLine := aTokens[aIndex].fLine;
+  lNameCol := aTokens[aIndex].fCol;
+  lTypeName := '';
+  lIsDefault := False;
+  lIsIndexed := False;
+  lBracketDepth := 0;
+  lParenDepth := 0;
+  Inc(aIndex);
+  while aIndex <= High(aTokens) do
+  begin
+    if aTokens[aIndex].fKind = smtLBracket then
+    begin
+      lIsIndexed := True;
+      Inc(lBracketDepth);
+    end else if (aTokens[aIndex].fKind = smtRBracket) and (lBracketDepth > 0) then
+      Dec(lBracketDepth)
+    else if aTokens[aIndex].fKind = smtLParen then
+      Inc(lParenDepth)
+    else if (aTokens[aIndex].fKind = smtRParen) and (lParenDepth > 0) then
+      Dec(lParenDepth)
+    else if (lBracketDepth = 0) and (lParenDepth = 0) and (aTokens[aIndex].fKind = smtColon) then
+    begin
+      Inc(aIndex);
+      lTypeIndex := aIndex;
+      TryReadTypeName(aTokens, lTypeIndex, lTypeName);
+      Continue;
+    end else if (lBracketDepth = 0) and (lParenDepth = 0) and (aTokens[aIndex].fKind = smtSemicolon) then
+      Break;
+    Inc(aIndex);
+  end;
+  MoveToBalancedSemicolon(aTokens, aIndex);
+  if aIndex <= High(aTokens) then
+  begin
+    lEndLine := aTokens[aIndex].fLine;
+    lEndCol := aTokens[aIndex].fCol;
+    if (aIndex + 1 <= High(aTokens)) and TokenIsIdentifierText(aTokens[aIndex + 1], 'default') then
+    begin
+      lIsDefault := True;
+      Inc(aIndex, 2);
+      MoveToBalancedSemicolon(aTokens, aIndex);
+      if aIndex <= High(aTokens) then
+      begin
+        lEndLine := aTokens[aIndex].fLine;
+        lEndCol := aTokens[aIndex].fCol;
+      end;
+    end;
+  end else begin
+    lEndLine := lNameLine;
+    lEndCol := lNameCol;
+  end;
+  AddMember(aModel, aOwnerName, lMemberName, 'property', lTypeName, aVisibility, '', lIsDefault, lIsIndexed,
+    lNameLine, lNameCol, lEndLine, lEndCol);
+  if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtSemicolon) then
+    Inc(aIndex);
+end;
+
+procedure ParseMemberFields(const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer; const aOwnerName,
+  aVisibility: string; var aModel: TSymbolMapUnitModel);
+var
+  lEndCol: Integer;
+  lEndLine: Integer;
+  lNameCols: TArray<Integer>;
+  lNameLines: TArray<Integer>;
+  lNames: TArray<string>;
+  lTypeIndex: Integer;
+  lTypeName: string;
+  i: Integer;
+begin
+  SetLength(lNames, 0);
+  SetLength(lNameLines, 0);
+  SetLength(lNameCols, 0);
+  while (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind <> smtColon) and
+    (aTokens[aIndex].fKind <> smtSemicolon) do
+  begin
+    if aTokens[aIndex].fKind = smtIdentifier then
+    begin
+      i := Length(lNames);
+      SetLength(lNames, i + 1);
+      SetLength(lNameLines, i + 1);
+      SetLength(lNameCols, i + 1);
+      lNames[i] := aTokens[aIndex].fText;
+      lNameLines[i] := aTokens[aIndex].fLine;
+      lNameCols[i] := aTokens[aIndex].fCol;
+    end;
+    Inc(aIndex);
+  end;
+  if Length(lNames) = 0 then
+  begin
+    MoveToBalancedSemicolon(aTokens, aIndex);
+    if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtSemicolon) then
+      Inc(aIndex);
+    Exit;
+  end;
+  lTypeName := '';
+  if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtColon) then
+  begin
+    Inc(aIndex);
+    lTypeIndex := aIndex;
+    TryReadTypeName(aTokens, lTypeIndex, lTypeName);
+  end;
+  MoveToBalancedSemicolon(aTokens, aIndex);
+  if aIndex <= High(aTokens) then
+  begin
+    lEndLine := aTokens[aIndex].fLine;
+    lEndCol := aTokens[aIndex].fCol;
+  end else begin
+    lEndLine := 0;
+    lEndCol := 0;
+  end;
+  for i := 0 to High(lNames) do
+    AddMember(aModel, aOwnerName, lNames[i], 'field', lTypeName, aVisibility, '', False, False, lNameLines[i],
+      lNameCols[i], lEndLine, lEndCol);
+  if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtSemicolon) then
+    Inc(aIndex);
+end;
+
+procedure ParseStructuredTypeMembers(const aSource: string; const aTokens: TArray<TSymbolMapToken>;
+  const aStartIndex, aEndIndex: Integer; const aOwnerName, aDefaultVisibility: string;
+  var aModel: TSymbolMapUnitModel);
+var
+  lIndex: Integer;
+  lVisibility: string;
+begin
+  lIndex := aStartIndex;
+  lVisibility := aDefaultVisibility;
+  while (lIndex <= aEndIndex) and (lIndex <= High(aTokens)) do
+  begin
+    if (aTokens[lIndex].fKind <> smtIdentifier) or TokenIsIdentifierText(aTokens[lIndex], 'end') then
+    begin
+      Inc(lIndex);
+      Continue;
+    end;
+    if TokenIsIdentifierText(aTokens[lIndex], 'strict') and (lIndex + 1 <= aEndIndex) and
+      TokenIsVisibility(aTokens[lIndex + 1]) then
+    begin
+      lVisibility := 'strict ' + LowerCase(aTokens[lIndex + 1].fText);
+      Inc(lIndex, 2);
+      Continue;
+    end;
+    if TokenIsVisibility(aTokens[lIndex]) then
+    begin
+      lVisibility := LowerCase(aTokens[lIndex].fText);
+      Inc(lIndex);
+      Continue;
+    end;
+    if TokenIsMemberRoutineKeyword(aTokens[lIndex]) then
+    begin
+      ParseMemberRoutine(aSource, aTokens, lIndex, aOwnerName, lVisibility, aModel);
+      Continue;
+    end;
+    if TokenIsIdentifierText(aTokens[lIndex], 'property') then
+    begin
+      ParseMemberProperty(aTokens, lIndex, aOwnerName, lVisibility, aModel);
+      Continue;
+    end;
+    if (lIndex + 1 <= aEndIndex) and ((aTokens[lIndex + 1].fKind = smtColon) or
+      (aTokens[lIndex + 1].fKind = smtComma)) then
+    begin
+      ParseMemberFields(aTokens, lIndex, aOwnerName, lVisibility, aModel);
+      Continue;
+    end;
+    Inc(lIndex);
+  end;
+end;
+
 procedure ParseTypeSection(const aSource: string; const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer;
   const aSectionKind: string; var aModel: TSymbolMapUnitModel);
 var
   lAliasName: string;
+  lBodyEndIndex: Integer;
+  lBodyStartIndex: Integer;
   lCol: Integer;
+  lDefaultVisibility: string;
   lEndCol: Integer;
   lEndLine: Integer;
   lEnumName: string;
@@ -449,6 +777,15 @@ begin
     Inc(aIndex, 2);
     if (aIndex <= High(aTokens)) and TokenIsIdentifierText(aTokens[aIndex], 'record') then
     begin
+      lTypeName := 'record';
+      if (aIndex + 1 <= High(aTokens)) and TokenIsIdentifierText(aTokens[aIndex + 1], 'helper') then
+      begin
+        lTypeName := 'record-helper';
+        Inc(aIndex, 4);
+      end else
+        Inc(aIndex);
+      lBodyStartIndex := aIndex;
+      lBodyEndIndex := aIndex - 1;
       lEndLine := aTokens[aIndex].fLine;
       lEndCol := aTokens[aIndex].fCol;
       while aIndex <= High(aTokens) do
@@ -457,6 +794,7 @@ begin
         lEndCol := aTokens[aIndex].fCol;
         if TokenIsIdentifierText(aTokens[aIndex], 'end') then
         begin
+          lBodyEndIndex := aIndex - 1;
           while (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind <> smtSemicolon) do
           begin
             lEndLine := aTokens[aIndex].fLine;
@@ -472,11 +810,36 @@ begin
         end;
         Inc(aIndex);
       end;
-      AddSymbol(aModel, lName, 'type', '', 'record', '', aSectionKind, lNameLine, lNameCol, lEndLine, lEndCol);
+      ParseStructuredTypeMembers(aSource, aTokens, lBodyStartIndex, lBodyEndIndex, lName, 'public', aModel);
+      AddSymbol(aModel, lName, 'type', '', lTypeName, '', aSectionKind, lNameLine, lNameCol, lEndLine, lEndCol);
     end else if (aIndex <= High(aTokens)) and
       (TokenIsIdentifierText(aTokens[aIndex], 'class') or TokenIsIdentifierText(aTokens[aIndex], 'interface')) then
     begin
       lTypeName := LowerCase(aTokens[aIndex].fText);
+      lDefaultVisibility := 'public';
+      if (aIndex + 1 <= High(aTokens)) and TokenIsIdentifierText(aTokens[aIndex + 1], 'helper') then
+      begin
+        lTypeName := lTypeName + '-helper';
+        lDefaultVisibility := 'public';
+        Inc(aIndex, 4);
+      end else
+        Inc(aIndex);
+      if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtLParen) then
+      begin
+        while (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind <> smtRParen) do
+          Inc(aIndex);
+        if aIndex <= High(aTokens) then
+          Inc(aIndex);
+      end;
+      if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtLBracket) then
+      begin
+        while (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind <> smtRBracket) do
+          Inc(aIndex);
+        if aIndex <= High(aTokens) then
+          Inc(aIndex);
+      end;
+      lBodyStartIndex := aIndex;
+      lBodyEndIndex := aIndex - 1;
       lEndLine := aTokens[aIndex].fLine;
       lEndCol := aTokens[aIndex].fCol;
       while aIndex <= High(aTokens) do
@@ -485,6 +848,7 @@ begin
         lEndCol := aTokens[aIndex].fCol;
         if TokenIsIdentifierText(aTokens[aIndex], 'end') then
         begin
+          lBodyEndIndex := aIndex - 1;
           while (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind <> smtSemicolon) do
           begin
             lEndLine := aTokens[aIndex].fLine;
@@ -500,6 +864,7 @@ begin
         end;
         Inc(aIndex);
       end;
+      ParseStructuredTypeMembers(aSource, aTokens, lBodyStartIndex, lBodyEndIndex, lName, lDefaultVisibility, aModel);
       AddSymbol(aModel, lName, 'type', '', lTypeName, '', aSectionKind, lNameLine, lNameCol, lEndLine, lEndCol);
     end else if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtLParen) then
     begin

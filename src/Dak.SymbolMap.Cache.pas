@@ -3,7 +3,7 @@
 interface
 
 uses
-  Dak.SymbolMap.Context;
+  Dak.SymbolMap.Context, Dak.SymbolMap.Indexer;
 
 const
   cSymbolMapSchemaVersion = 1;
@@ -19,6 +19,8 @@ type
 
 function EnsureSymbolMapCaches(const aContext: TSymbolMapContext; out aStatus: TSymbolMapCacheStatus;
   out aError: string): Boolean;
+function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModel: TSymbolMapUnitModel; out aError: string): Boolean;
 
 implementation
 
@@ -238,6 +240,63 @@ begin
     Exit(False);
 
   Result := True;
+end;
+
+function BoolToDbInt(const aValue: Boolean): Integer;
+begin
+  if aValue then
+    Result := 1
+  else
+    Result := 0;
+end;
+
+function BuildTemporaryUnitCacheKey(const aContext: TSymbolMapContext; const aModel: TSymbolMapUnitModel): string;
+begin
+  Result := LowerCase(TPath.GetFullPath(aContext.fProject.fProjectPath)) + '|' +
+    LowerCase(TPath.GetFullPath(aModel.fFilePath));
+end;
+
+function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModel: TSymbolMapUnitModel; out aError: string): Boolean;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lMember: TSymbolMapMemberModel;
+  lUnitCacheKey: string;
+begin
+  Result := False;
+  aError := '';
+  if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
+    Exit(False);
+  try
+    try
+      lUnitCacheKey := BuildTemporaryUnitCacheKey(aContext, aModel);
+      lConnection.StartTransaction;
+      try
+        lConnection.ExecSQL('delete from members where unit_cache_key = ?', [lUnitCacheKey]);
+        for lMember in aModel.fMembers do
+        begin
+          lConnection.ExecSQL('insert into members(' +
+            'unit_cache_key, owner_name, member_name, normalized_member_name, kind, type_name, visibility, ' +
+            'is_default, is_indexed, line_no, col_no) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [lUnitCacheKey, lMember.fOwnerName, lMember.fMemberName, LowerCase(lMember.fMemberName), lMember.fKind,
+            lMember.fTypeName, lMember.fVisibility, BoolToDbInt(lMember.fIsDefault),
+            BoolToDbInt(lMember.fIsIndexed), lMember.fLine, lMember.fCol]);
+        end;
+        lConnection.Commit;
+      except
+        lConnection.Rollback;
+        raise;
+      end;
+      Result := True;
+    except
+      on E: Exception do
+        aError := E.Message;
+    end;
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
 end;
 
 end.

@@ -130,10 +130,39 @@ begin
   Result := Result + ']';
 end;
 
+function SymbolMapMembersJson(const aMembers: TArray<TSymbolMapMemberModel>): string;
+var
+  i: Integer;
+  lMember: TSymbolMapMemberModel;
+begin
+  Result := '[';
+  for i := 0 to High(aMembers) do
+  begin
+    if i > 0 then
+      Result := Result + ',';
+    lMember := aMembers[i];
+    Result := Result + '{' +
+      '"ownerName":"' + JsonEscape(lMember.fOwnerName) + '",' +
+      '"memberName":"' + JsonEscape(lMember.fMemberName) + '",' +
+      '"kind":"' + JsonEscape(lMember.fKind) + '",' +
+      '"typeName":"' + JsonEscape(lMember.fTypeName) + '",' +
+      '"visibility":"' + JsonEscape(lMember.fVisibility) + '",' +
+      '"signature":"' + JsonEscape(lMember.fSignature) + '",' +
+      '"isDefault":' + LowerCase(BoolToStr(lMember.fIsDefault, True)) + ',' +
+      '"isIndexed":' + LowerCase(BoolToStr(lMember.fIsIndexed, True)) + ',' +
+      '"line":' + lMember.fLine.ToString + ',' +
+      '"col":' + lMember.fCol.ToString + ',' +
+      '"endLine":' + lMember.fEndLine.ToString + ',' +
+      '"endCol":' + lMember.fEndCol.ToString +
+      '}';
+  end;
+  Result := Result + ']';
+end;
+
 function BuildIndexResultJson(const aModel: TSymbolMapUnitModel; const aHasUnit: Boolean): string;
 begin
   if not aHasUnit then
-    Exit('{"unitCount":0,"fatalDiagnostics":0,"symbolCount":0,"indexedUnits":[]}');
+    Exit('{"unitCount":0,"fatalDiagnostics":0,"symbolCount":0,"memberCount":0,"indexedUnits":[]}');
 
   Result := '{"unitCount":1,"fatalDiagnostics":0,"indexedUnits":[{' +
     '"unitName":"' + JsonEscape(aModel.fUnitName) + '",' +
@@ -141,11 +170,14 @@ begin
     '"encoding":"' + JsonEscape(aModel.fEncodingName) + '",' +
     '"usesCount":' + Length(aModel.fUses).ToString + ',' +
     '"symbolCount":' + Length(aModel.fSymbols).ToString + ',' +
+    '"memberCount":' + Length(aModel.fMembers).ToString + ',' +
     '"interfaceUses":' + JsonStringArray(SymbolMapUseNames(aModel, 'interface')) + ',' +
     '"implementationUses":' + JsonStringArray(SymbolMapUseNames(aModel, 'implementation')) + ',' +
     '"symbols":' + SymbolMapSymbolsJson(aModel.fSymbols) + ',' +
+    '"members":' + SymbolMapMembersJson(aModel.fMembers) + ',' +
     '"diagnostics":' + SymbolMapDiagnosticsJson(aModel.fDiagnostics) +
-    '}],"symbolCount":' + Length(aModel.fSymbols).ToString + '}';
+    '}],"symbolCount":' + Length(aModel.fSymbols).ToString + ',"memberCount":' +
+    Length(aModel.fMembers).ToString + '}';
 end;
 
 procedure WriteSymbolMapJsonShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
@@ -195,6 +227,8 @@ begin
   begin
     WriteLn('indexed-unit: ', aIndexModel.fUnitName);
     WriteLn('uses-count: ', Length(aIndexModel.fUses));
+    WriteLn('symbol-count: ', Length(aIndexModel.fSymbols));
+    WriteLn('member-count: ', Length(aIndexModel.fMembers));
   end;
 end;
 
@@ -228,6 +262,11 @@ begin
     begin
       WriteLn(ErrOutput, lError);
       Exit(cExitInvalidProjectInput);
+    end;
+    if not StoreSymbolMapUnitModel(lContext, lCacheStatus, lIndexModel, lError) then
+    begin
+      WriteLn(ErrOutput, lError);
+      Exit(cExitToolFailure);
     end;
     lHasIndexUnit := True;
     lResultJson := BuildIndexResultJson(lIndexModel, True);

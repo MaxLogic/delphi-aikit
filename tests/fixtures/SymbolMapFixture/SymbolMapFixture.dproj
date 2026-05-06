@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <DCCReference Include="SymbolMapDeclarations.pas"/>
+    <DCCReference Include="SymbolMapMembers.pas"/>
     <DCCReference Include="SymbolMapUnit.pas"/>
   </ItemGroup>
 </Project>
