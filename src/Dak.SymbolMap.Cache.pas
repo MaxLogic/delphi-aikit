@@ -54,6 +54,7 @@ function EnsureSymbolMapCompilerProfileForRoot(const aContext: TSymbolMapContext
 function IndexSymbolMapRtlSources(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aSourceRoot: string; var aProfile: TSymbolMapCompilerProfileResult; out aResult: TSymbolMapRtlIndexResult;
   out aError: string): Boolean;
+function BuildSymbolMapProjectKey(const aContext: TSymbolMapContext): string;
 function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; overload;
 function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
@@ -388,6 +389,27 @@ begin
   aContextHash := BuildContextHash(aContext);
   aUnitCacheKey := HashText('unit|' + cSymbolMapSchemaVersion.ToString + '|' + cSymbolMapParserVersion + '|' +
     aFileHash + '|' + cSymbolMapIncludeGraphHash + '|' + aContextHash);
+end;
+
+function BuildSymbolMapProjectKey(const aContext: TSymbolMapContext): string;
+var
+  lBuilder: TStringBuilder;
+begin
+  lBuilder := TStringBuilder.Create;
+  try
+    lBuilder.AppendLine('project=' + LowerCase(Trim(aContext.fProject.fProjectPath)));
+    lBuilder.AppendLine('config=' + LowerCase(Trim(aContext.fConfig)));
+    lBuilder.AppendLine('platform=' + LowerCase(Trim(aContext.fPlatform)));
+    lBuilder.AppendLine('delphi=' + LowerCase(Trim(aContext.fDelphiVersion)));
+    lBuilder.AppendLine('defines=' + NormalizeDefines(aContext.fDefines, aContext.fProject.fParserDefines));
+    lBuilder.AppendLine('search=' + NormalizeStringArray(aContext.fUnitSearchPath, False));
+    lBuilder.AppendLine('scopes=' + NormalizeStringArray(aContext.fUnitScopes, False));
+    lBuilder.AppendLine('aliases=' + NormalizeStringArray(aContext.fUnitAliases, False));
+    lBuilder.AppendLine('central=' + LowerCase(Trim(aContext.fCentralCacheRoot)));
+    Result := HashText(lBuilder.ToString);
+  finally
+    lBuilder.Free;
+  end;
 end;
 
 procedure AddIntrinsicSeed(var aSeeds: TArray<TSymbolMapIntrinsicSeed>; const aName, aKind, aSignature,
@@ -907,6 +929,61 @@ begin
   end;
 end;
 
+procedure StoreProjectUnitReference(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModel: TSymbolMapUnitModel; const aUnitCacheKey: string; out aError: string);
+var
+  i: Integer;
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lProjectKey: string;
+  lSymbol: TSymbolMapSymbolModel;
+  lVisibilityRank: Integer;
+begin
+  if not OpenCacheConnection(aStatus.fProjectDbPath, lDriverLink, lConnection, aError) then
+    raise Exception.Create(aError);
+  try
+    lProjectKey := BuildSymbolMapProjectKey(aContext);
+    lConnection.StartTransaction;
+    try
+      lConnection.ExecSQL('insert or replace into project_context(' +
+        'project_key, project_path, config, platform, delphi_version, defines_hash, search_path_hash, ' +
+        'unit_scope_hash, alias_hash, central_cache_path, indexed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [lProjectKey, aContext.fProject.fProjectPath, aContext.fConfig, aContext.fPlatform,
+        aContext.fDelphiVersion, HashText(NormalizeDefines(aContext.fDefines, aContext.fProject.fParserDefines)),
+        HashText(NormalizeStringArray(aContext.fUnitSearchPath, False)),
+        HashText(NormalizeStringArray(aContext.fUnitScopes, False)),
+        HashText(NormalizeStringArray(aContext.fUnitAliases, False)), aStatus.fCentralDbPath, DateTimeToStr(Now)]);
+      lConnection.ExecSQL('delete from project_units where project_key = ? and file_path = ?',
+        [lProjectKey, aModel.fFilePath]);
+      lConnection.ExecSQL('insert into project_units(' +
+        'project_key, unit_name, file_path, unit_cache_key, source_kind, resolution_rank) values (?, ?, ?, ?, ?, ?)',
+        [lProjectKey, aModel.fUnitName, aModel.fFilePath, aUnitCacheKey, 'project', 0]);
+      lConnection.ExecSQL('delete from project_symbols where project_key = ? and unit_cache_key = ?',
+        [lProjectKey, aUnitCacheKey]);
+      for i := 0 to High(aModel.fSymbols) do
+      begin
+        lSymbol := aModel.fSymbols[i];
+        if SameText(lSymbol.fSectionKind, 'interface') then
+          lVisibilityRank := 0
+        else
+          lVisibilityRank := 1;
+        lConnection.ExecSQL('insert into project_symbols(' +
+          'project_key, normalized_name, unit_cache_key, symbol_id, visibility_rank, source_kind) ' +
+          'values (?, ?, ?, ?, ?, ?)',
+          [lProjectKey, LowerCase(lSymbol.fName), aUnitCacheKey, aUnitCacheKey + ':' + i.ToString,
+          lVisibilityRank, 'project']);
+      end;
+      lConnection.Commit;
+    except
+      lConnection.Rollback;
+      raise;
+    end;
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
 function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean;
 var
@@ -929,35 +1006,37 @@ begin
   try
     try
       aResult.fCacheHit := CentralUnitModelExists(lConnection, lUnitCacheKey);
-      if aResult.fCacheHit then
-        Exit(True);
-      lConnection.StartTransaction;
-      try
-        lConnection.ExecSQL('insert or replace into source_files(' +
-          'file_hash, size_bytes, first_seen_utc, last_seen_utc) values (?, ?, ?, ?)',
-          [aResult.fFileHash, TFile.GetSize(aModel.fFilePath), DateTimeToStr(Now), DateTimeToStr(Now)]);
-        StoreUnitUses(lConnection, lUnitCacheKey, aModel);
-        StoreSymbols(lConnection, lUnitCacheKey, aModel);
-        lConnection.ExecSQL('delete from members where unit_cache_key = ?', [lUnitCacheKey]);
-        for lMember in aModel.fMembers do
-        begin
-          lConnection.ExecSQL('insert into members(' +
-            'unit_cache_key, owner_name, member_name, normalized_member_name, kind, type_name, visibility, ' +
-            'is_default, is_indexed, line_no, col_no) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [lUnitCacheKey, lMember.fOwnerName, lMember.fMemberName, LowerCase(lMember.fMemberName), lMember.fKind,
-            lMember.fTypeName, lMember.fVisibility, BoolToDbInt(lMember.fIsDefault),
-            BoolToDbInt(lMember.fIsIndexed), lMember.fLine, lMember.fCol]);
+      if not aResult.fCacheHit then
+      begin
+        lConnection.StartTransaction;
+        try
+          lConnection.ExecSQL('insert or replace into source_files(' +
+            'file_hash, size_bytes, first_seen_utc, last_seen_utc) values (?, ?, ?, ?)',
+            [aResult.fFileHash, TFile.GetSize(aModel.fFilePath), DateTimeToStr(Now), DateTimeToStr(Now)]);
+          StoreUnitUses(lConnection, lUnitCacheKey, aModel);
+          StoreSymbols(lConnection, lUnitCacheKey, aModel);
+          lConnection.ExecSQL('delete from members where unit_cache_key = ?', [lUnitCacheKey]);
+          for lMember in aModel.fMembers do
+          begin
+            lConnection.ExecSQL('insert into members(' +
+              'unit_cache_key, owner_name, member_name, normalized_member_name, kind, type_name, visibility, ' +
+              'is_default, is_indexed, line_no, col_no) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [lUnitCacheKey, lMember.fOwnerName, lMember.fMemberName, LowerCase(lMember.fMemberName), lMember.fKind,
+              lMember.fTypeName, lMember.fVisibility, BoolToDbInt(lMember.fIsDefault),
+              BoolToDbInt(lMember.fIsIndexed), lMember.fLine, lMember.fCol]);
+          end;
+          lConnection.ExecSQL('insert into unit_models(' +
+            'unit_cache_key, unit_name, file_hash, file_path_sample, context_hash, parser_version, schema_version, ' +
+            'diagnostics_json, parsed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [lUnitCacheKey, aModel.fUnitName, aResult.fFileHash, aModel.fFilePath, aResult.fContextHash,
+            cSymbolMapParserVersion, cSymbolMapSchemaVersion, '', DateTimeToStr(Now)]);
+          lConnection.Commit;
+        except
+          lConnection.Rollback;
+          raise;
         end;
-        lConnection.ExecSQL('insert into unit_models(' +
-          'unit_cache_key, unit_name, file_hash, file_path_sample, context_hash, parser_version, schema_version, ' +
-          'diagnostics_json, parsed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [lUnitCacheKey, aModel.fUnitName, aResult.fFileHash, aModel.fFilePath, aResult.fContextHash,
-          cSymbolMapParserVersion, cSymbolMapSchemaVersion, '', DateTimeToStr(Now)]);
-        lConnection.Commit;
-      except
-        lConnection.Rollback;
-        raise;
       end;
+      StoreProjectUnitReference(aContext, aStatus, aModel, lUnitCacheKey, aError);
       Result := True;
     except
       on E: Exception do

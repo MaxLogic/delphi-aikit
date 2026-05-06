@@ -11,7 +11,7 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.SysUtils,
-  Dak.ExitCodes, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer;
+  Dak.ExitCodes, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer, Dak.SymbolMap.Query;
 
 type
   TSymbolMapIndexedUnit = record
@@ -214,6 +214,50 @@ begin
     ',"centralCacheHits":' + lHits.ToString + ',"centralCacheMisses":' + lMisses.ToString + '}';
 end;
 
+function SymbolMapDefinitionJson(const aDefinition: TSymbolMapDefinition): string;
+begin
+  Result := '{"found":' + LowerCase(BoolToStr(aDefinition.fFound, True)) + ',' +
+    '"name":"' + JsonEscape(aDefinition.fName) + '",' +
+    '"kind":"' + JsonEscape(aDefinition.fKind) + '",' +
+    '"ownerName":"' + JsonEscape(aDefinition.fOwnerName) + '",' +
+    '"unitName":"' + JsonEscape(aDefinition.fUnitName) + '",' +
+    '"filePath":"' + JsonEscape(aDefinition.fFilePath) + '",' +
+    '"sourceKind":"' + JsonEscape(aDefinition.fSourceKind) + '",' +
+    '"confidence":"' + JsonEscape(aDefinition.fConfidence) + '",' +
+    '"signature":"' + JsonEscape(aDefinition.fSignature) + '",' +
+    '"typeName":"' + JsonEscape(aDefinition.fTypeName) + '",' +
+    '"line":' + aDefinition.fLine.ToString + ',' +
+    '"col":' + aDefinition.fCol.ToString + ',' +
+    '"endLine":' + aDefinition.fEndLine.ToString + ',' +
+    '"endCol":' + aDefinition.fEndCol.ToString +
+    '}';
+end;
+
+function SymbolMapDefinitionsJson(const aDefinitions: TArray<TSymbolMapDefinition>): string;
+var
+  i: Integer;
+begin
+  Result := '[';
+  for i := 0 to High(aDefinitions) do
+  begin
+    if i > 0 then
+      Result := Result + ',';
+    Result := Result + SymbolMapDefinitionJson(aDefinitions[i]);
+  end;
+  Result := Result + ']';
+end;
+
+function BuildDefinitionResultJson(const aDefinition: TSymbolMapDefinition): string;
+begin
+  Result := '{"definition":' + SymbolMapDefinitionJson(aDefinition) + '}';
+end;
+
+function BuildSearchResultJson(const aQuery: string; const aDefinitions: TArray<TSymbolMapDefinition>): string;
+begin
+  Result := '{"query":"' + JsonEscape(aQuery) + '","count":' + Length(aDefinitions).ToString +
+    ',"definitions":' + SymbolMapDefinitionsJson(aDefinitions) + '}';
+end;
+
 function CompilerProfileJson(const aCompilerProfile: TSymbolMapCompilerProfileResult): string;
 begin
   Result := '{"profileKey":"' + JsonEscape(aCompilerProfile.fProfileKey) + '",' +
@@ -362,6 +406,38 @@ begin
   Result := True;
 end;
 
+procedure AddIndexedUnit(var aUnits: TArray<TSymbolMapIndexedUnit>; const aUnit: TSymbolMapIndexedUnit); forward;
+
+function TryIndexSymbolMapProject(const aContext: TSymbolMapContext; const aCacheStatus: TSymbolMapCacheStatus;
+  var aIndexedUnits: TArray<TSymbolMapIndexedUnit>; out aError: string): Boolean;
+var
+  lIndexedUnit: TSymbolMapIndexedUnit;
+  lUnitPath: string;
+  lUnitPaths: TArray<string>;
+begin
+  Result := False;
+  lUnitPaths := CollectProjectIndexUnitPaths(aContext);
+  for lUnitPath in lUnitPaths do
+  begin
+    if not TryIndexSymbolMapUnit(aContext, aCacheStatus, lUnitPath, lIndexedUnit, aError) then
+      Exit(False);
+    AddIndexedUnit(aIndexedUnits, lIndexedUnit);
+  end;
+  Result := True;
+end;
+
+function EnsureSymbolMapProjectIndexedForQuery(const aContext: TSymbolMapContext;
+  const aCacheStatus: TSymbolMapCacheStatus; var aIndexedUnits: TArray<TSymbolMapIndexedUnit>;
+  out aError: string): Boolean;
+begin
+  Result := False;
+  if SymbolMapProjectHasIndexedUnits(aContext, aCacheStatus, aError) then
+    Exit(True);
+  if aError <> '' then
+    Exit(False);
+  Result := TryIndexSymbolMapProject(aContext, aCacheStatus, aIndexedUnits, aError);
+end;
+
 procedure AddIndexedUnit(var aUnits: TArray<TSymbolMapIndexedUnit>; const aUnit: TSymbolMapIndexedUnit);
 var
   lIndex: Integer;
@@ -376,13 +452,13 @@ var
   lCacheStatus: TSymbolMapCacheStatus;
   lCompilerProfile: TSymbolMapCompilerProfileResult;
   lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
   lError: string;
   lIndexedUnit: TSymbolMapIndexedUnit;
   lIndexedUnits: TArray<TSymbolMapIndexedUnit>;
+  lQueryDefinitions: TArray<TSymbolMapDefinition>;
   lResultJson: string;
   lRtlSource: TSymbolMapRtlIndexResult;
-  lUnitPaths: TArray<string>;
-  lUnitPath: string;
 begin
   SetLength(lIndexedUnits, 0);
   lResultJson := '{}';
@@ -401,6 +477,7 @@ begin
     WriteLn(ErrOutput, lError);
     Exit(cExitToolFailure);
   end;
+  lRtlSource := Default(TSymbolMapRtlIndexResult);
   lRtlSource.fStatus := 'not-indexed';
   lRtlSource.fDiagnosticsJson := '[]';
   if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex then
@@ -422,17 +499,48 @@ begin
     lResultJson := BuildIndexResultJson(lIndexedUnits);
   end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex then
   begin
-    lUnitPaths := CollectProjectIndexUnitPaths(lContext);
-    for lUnitPath in lUnitPaths do
+    if not TryIndexSymbolMapProject(lContext, lCacheStatus, lIndexedUnits, lError) then
     begin
-      if not TryIndexSymbolMapUnit(lContext, lCacheStatus, lUnitPath, lIndexedUnit, lError) then
+      WriteLn(ErrOutput, lError);
+      Exit(cExitToolFailure);
+    end;
+    lResultJson := BuildIndexResultJson(lIndexedUnits);
+  end else if aOptions.fSymbolMapOperation in [TSymbolMapOperation.smoFindDefinition,
+    TSymbolMapOperation.smoSearchSymbols, TSymbolMapOperation.smoDescribeSymbol] then
+  begin
+    if not EnsureSymbolMapProjectIndexedForQuery(lContext, lCacheStatus, lIndexedUnits, lError) then
+    begin
+      WriteLn(ErrOutput, lError);
+      Exit(cExitToolFailure);
+    end;
+    if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoFindDefinition then
+    begin
+      if not FindSymbolMapDefinitionByPosition(lContext, lCacheStatus, lCompilerProfile,
+        aOptions.fSymbolMapFilePath, aOptions.fSymbolMapLine, aOptions.fSymbolMapCol, lDefinition, lError) then
       begin
         WriteLn(ErrOutput, lError);
         Exit(cExitToolFailure);
       end;
-      AddIndexedUnit(lIndexedUnits, lIndexedUnit);
+      lResultJson := BuildDefinitionResultJson(lDefinition);
+    end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoSearchSymbols then
+    begin
+      if not SearchSymbolMapDefinitions(lContext, lCacheStatus, lCompilerProfile, aOptions.fSymbolMapQuery,
+        aOptions.fSymbolMapLimit, lQueryDefinitions, lError) then
+      begin
+        WriteLn(ErrOutput, lError);
+        Exit(cExitToolFailure);
+      end;
+      lResultJson := BuildSearchResultJson(aOptions.fSymbolMapQuery, lQueryDefinitions);
+    end else
+    begin
+      if not DescribeSymbolMapDefinition(lContext, lCacheStatus, lCompilerProfile, aOptions.fSymbolMapSymbol,
+        aOptions.fSymbolMapOwner, lDefinition, lError) then
+      begin
+        WriteLn(ErrOutput, lError);
+        Exit(cExitToolFailure);
+      end;
+      lResultJson := BuildDefinitionResultJson(lDefinition);
     end;
-    lResultJson := BuildIndexResultJson(lIndexedUnits);
   end;
 
   if aOptions.fSymbolMapFormat = TSymbolMapFormat.smfText then
