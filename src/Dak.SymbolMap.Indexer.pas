@@ -10,11 +10,27 @@ type
     fCol: Integer;
   end;
 
+  TSymbolMapSymbolModel = record
+    fName: string;
+    fKind: string;
+    fUnitName: string;
+    fFilePath: string;
+    fOwnerName: string;
+    fTypeName: string;
+    fSignature: string;
+    fSectionKind: string;
+    fLine: Integer;
+    fCol: Integer;
+    fEndLine: Integer;
+    fEndCol: Integer;
+  end;
+
   TSymbolMapUnitModel = record
     fUnitName: string;
     fFilePath: string;
     fEncodingName: string;
     fUses: TArray<TSymbolMapUnitUse>;
+    fSymbols: TArray<TSymbolMapSymbolModel>;
     fDiagnostics: TArray<string>;
   end;
 
@@ -25,16 +41,18 @@ function TryExtractSymbolMapUnitModel(const aFilePath: string; out aModel: TSymb
 implementation
 
 uses
-  System.IOUtils, System.SysUtils;
+  System.IOUtils, System.StrUtils, System.SysUtils;
 
 type
-  TSymbolMapTokenKind = (smtIdentifier, smtDot, smtComma, smtSemicolon);
+  TSymbolMapTokenKind = (smtIdentifier, smtDot, smtComma, smtSemicolon, smtColon, smtEqual, smtLParen, smtRParen);
 
   TSymbolMapToken = record
     fKind: TSymbolMapTokenKind;
     fText: string;
     fLine: Integer;
     fCol: Integer;
+    fOffset: Integer;
+    fEndOffset: Integer;
   end;
 
 function IsIdentifierStart(const aChar: Char): Boolean;
@@ -172,7 +190,7 @@ begin
 end;
 
 procedure AddToken(var aTokens: TArray<TSymbolMapToken>; const aKind: TSymbolMapTokenKind; const aText: string;
-  const aLine, aCol: Integer);
+  const aLine, aCol, aOffset, aEndOffset: Integer);
 var
   lIndex: Integer;
 begin
@@ -182,6 +200,8 @@ begin
   aTokens[lIndex].fText := aText;
   aTokens[lIndex].fLine := aLine;
   aTokens[lIndex].fCol := aCol;
+  aTokens[lIndex].fOffset := aOffset;
+  aTokens[lIndex].fEndOffset := aEndOffset;
 end;
 
 procedure TokenizeSource(const aText: string; out aTokens: TArray<TSymbolMapToken>);
@@ -265,17 +285,26 @@ begin
       lStartCol := lCol;
       while (lIndex <= Length(aText)) and IsIdentifierChar(aText[lIndex]) do
         AdvanceChar(aText, lIndex, lLine, lCol);
-      AddToken(aTokens, smtIdentifier, Copy(aText, lStart, lIndex - lStart), lLine, lStartCol);
+      AddToken(aTokens, smtIdentifier, Copy(aText, lStart, lIndex - lStart), lLine, lStartCol, lStart,
+        lIndex - 1);
       Continue;
     end;
 
     case lChar of
       '.':
-        AddToken(aTokens, smtDot, lChar, lLine, lCol);
+        AddToken(aTokens, smtDot, lChar, lLine, lCol, lIndex, lIndex);
       ',':
-        AddToken(aTokens, smtComma, lChar, lLine, lCol);
+        AddToken(aTokens, smtComma, lChar, lLine, lCol, lIndex, lIndex);
       ';':
-        AddToken(aTokens, smtSemicolon, lChar, lLine, lCol);
+        AddToken(aTokens, smtSemicolon, lChar, lLine, lCol, lIndex, lIndex);
+      ':':
+        AddToken(aTokens, smtColon, lChar, lLine, lCol, lIndex, lIndex);
+      '=':
+        AddToken(aTokens, smtEqual, lChar, lLine, lCol, lIndex, lIndex);
+      '(':
+        AddToken(aTokens, smtLParen, lChar, lLine, lCol, lIndex, lIndex);
+      ')':
+        AddToken(aTokens, smtRParen, lChar, lLine, lCol, lIndex, lIndex);
     end;
     AdvanceChar(aText, lIndex, lLine, lCol);
   end;
@@ -304,6 +333,48 @@ begin
   aModel.fDiagnostics[lIndex] := aMessage;
 end;
 
+procedure AddSymbol(var aModel: TSymbolMapUnitModel; const aName, aKind, aOwnerName, aTypeName, aSignature,
+  aSectionKind: string; const aLine, aCol, aEndLine, aEndCol: Integer);
+var
+  lIndex: Integer;
+begin
+  if (aName = '') or (aKind = '') then
+    Exit;
+  lIndex := Length(aModel.fSymbols);
+  SetLength(aModel.fSymbols, lIndex + 1);
+  aModel.fSymbols[lIndex].fName := aName;
+  aModel.fSymbols[lIndex].fKind := aKind;
+  aModel.fSymbols[lIndex].fUnitName := aModel.fUnitName;
+  aModel.fSymbols[lIndex].fFilePath := aModel.fFilePath;
+  aModel.fSymbols[lIndex].fOwnerName := aOwnerName;
+  aModel.fSymbols[lIndex].fTypeName := aTypeName;
+  aModel.fSymbols[lIndex].fSignature := aSignature;
+  aModel.fSymbols[lIndex].fSectionKind := aSectionKind;
+  aModel.fSymbols[lIndex].fLine := aLine;
+  aModel.fSymbols[lIndex].fCol := aCol;
+  aModel.fSymbols[lIndex].fEndLine := aEndLine;
+  aModel.fSymbols[lIndex].fEndCol := aEndCol;
+end;
+
+function TokenIsIdentifierText(const aToken: TSymbolMapToken; const aText: string): Boolean;
+begin
+  Result := (aToken.fKind = smtIdentifier) and SameText(aToken.fText, aText);
+end;
+
+function TokenStartsDeclarationSection(const aToken: TSymbolMapToken): Boolean;
+begin
+  Result := (aToken.fKind = smtIdentifier) and MatchText(aToken.fText,
+    ['const', 'exports', 'finalization', 'function', 'implementation', 'initialization', 'procedure', 'resourcestring',
+    'threadvar', 'type', 'var']);
+end;
+
+function TrimSourceFragment(const aSource: string; const aStartOffset, aEndOffset: Integer): string;
+begin
+  if (aStartOffset <= 0) or (aEndOffset < aStartOffset) or (aEndOffset > Length(aSource)) then
+    Exit('');
+  Result := Trim(Copy(aSource, aStartOffset, aEndOffset - aStartOffset + 1));
+end;
+
 function TryReadDottedName(const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer; out aName: string;
   out aLine, aCol: Integer): Boolean;
 begin
@@ -325,6 +396,346 @@ begin
     Inc(aIndex, 2);
   end;
   Result := True;
+end;
+
+function TryReadTypeName(const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer; out aName: string): Boolean;
+var
+  lCol: Integer;
+  lLine: Integer;
+begin
+  Result := TryReadDottedName(aTokens, aIndex, aName, lLine, lCol);
+end;
+
+procedure MoveToSemicolon(const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer);
+begin
+  while (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind <> smtSemicolon) do
+    Inc(aIndex);
+end;
+
+procedure ParseTypeSection(const aSource: string; const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer;
+  const aSectionKind: string; var aModel: TSymbolMapUnitModel);
+var
+  lAliasName: string;
+  lCol: Integer;
+  lEndCol: Integer;
+  lEndLine: Integer;
+  lEnumName: string;
+  lLine: Integer;
+  lName: string;
+  lNameCol: Integer;
+  lNameLine: Integer;
+  lStartIndex: Integer;
+  lTypeName: string;
+begin
+  Inc(aIndex);
+  while aIndex <= High(aTokens) do
+  begin
+    if TokenStartsDeclarationSection(aTokens[aIndex]) then
+      Exit;
+    if aTokens[aIndex].fKind <> smtIdentifier then
+    begin
+      Inc(aIndex);
+      Continue;
+    end;
+    lName := aTokens[aIndex].fText;
+    lNameLine := aTokens[aIndex].fLine;
+    lNameCol := aTokens[aIndex].fCol;
+    if (aIndex + 1 > High(aTokens)) or (aTokens[aIndex + 1].fKind <> smtEqual) then
+    begin
+      Inc(aIndex);
+      Continue;
+    end;
+
+    Inc(aIndex, 2);
+    if (aIndex <= High(aTokens)) and TokenIsIdentifierText(aTokens[aIndex], 'record') then
+    begin
+      lEndLine := aTokens[aIndex].fLine;
+      lEndCol := aTokens[aIndex].fCol;
+      while aIndex <= High(aTokens) do
+      begin
+        lEndLine := aTokens[aIndex].fLine;
+        lEndCol := aTokens[aIndex].fCol;
+        if TokenIsIdentifierText(aTokens[aIndex], 'end') then
+        begin
+          while (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind <> smtSemicolon) do
+          begin
+            lEndLine := aTokens[aIndex].fLine;
+            lEndCol := aTokens[aIndex].fCol;
+            Inc(aIndex);
+          end;
+          if aIndex <= High(aTokens) then
+          begin
+            lEndLine := aTokens[aIndex].fLine;
+            lEndCol := aTokens[aIndex].fCol;
+          end;
+          Break;
+        end;
+        Inc(aIndex);
+      end;
+      AddSymbol(aModel, lName, 'type', '', 'record', '', aSectionKind, lNameLine, lNameCol, lEndLine, lEndCol);
+    end else if (aIndex <= High(aTokens)) and
+      (TokenIsIdentifierText(aTokens[aIndex], 'class') or TokenIsIdentifierText(aTokens[aIndex], 'interface')) then
+    begin
+      lTypeName := LowerCase(aTokens[aIndex].fText);
+      lEndLine := aTokens[aIndex].fLine;
+      lEndCol := aTokens[aIndex].fCol;
+      while aIndex <= High(aTokens) do
+      begin
+        lEndLine := aTokens[aIndex].fLine;
+        lEndCol := aTokens[aIndex].fCol;
+        if TokenIsIdentifierText(aTokens[aIndex], 'end') then
+        begin
+          while (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind <> smtSemicolon) do
+          begin
+            lEndLine := aTokens[aIndex].fLine;
+            lEndCol := aTokens[aIndex].fCol;
+            Inc(aIndex);
+          end;
+          if aIndex <= High(aTokens) then
+          begin
+            lEndLine := aTokens[aIndex].fLine;
+            lEndCol := aTokens[aIndex].fCol;
+          end;
+          Break;
+        end;
+        Inc(aIndex);
+      end;
+      AddSymbol(aModel, lName, 'type', '', lTypeName, '', aSectionKind, lNameLine, lNameCol, lEndLine, lEndCol);
+    end else if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtLParen) then
+    begin
+      AddSymbol(aModel, lName, 'type', '', 'enum', '', aSectionKind, lNameLine, lNameCol, lNameLine, lNameCol);
+      Inc(aIndex);
+      while (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind <> smtRParen) do
+      begin
+        if aTokens[aIndex].fKind = smtIdentifier then
+        begin
+          lEnumName := aTokens[aIndex].fText;
+          AddSymbol(aModel, lEnumName, 'enum-value', lName, '', '', aSectionKind, aTokens[aIndex].fLine,
+            aTokens[aIndex].fCol, aTokens[aIndex].fLine, aTokens[aIndex].fCol);
+        end;
+        Inc(aIndex);
+      end;
+      MoveToSemicolon(aTokens, aIndex);
+    end else begin
+      lStartIndex := aIndex;
+      if not TryReadTypeName(aTokens, aIndex, lAliasName) then
+        lAliasName := '';
+      lEndLine := aTokens[lStartIndex].fLine;
+      lEndCol := aTokens[lStartIndex].fCol;
+      MoveToSemicolon(aTokens, aIndex);
+      if aIndex <= High(aTokens) then
+      begin
+        lEndLine := aTokens[aIndex].fLine;
+        lEndCol := aTokens[aIndex].fCol;
+      end;
+      AddSymbol(aModel, lName, 'type-alias', '', lAliasName, '', aSectionKind, lNameLine, lNameCol, lEndLine,
+        lEndCol);
+    end;
+    if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtSemicolon) then
+      Inc(aIndex);
+  end;
+end;
+
+procedure ParseConstSection(const aSource: string; const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer;
+  const aSectionKind: string; var aModel: TSymbolMapUnitModel);
+var
+  lEndCol: Integer;
+  lEndLine: Integer;
+  lKind: string;
+  lName: string;
+  lNameCol: Integer;
+  lNameLine: Integer;
+  lTypeIndex: Integer;
+  lTypeName: string;
+begin
+  Inc(aIndex);
+  while aIndex <= High(aTokens) do
+  begin
+    if TokenStartsDeclarationSection(aTokens[aIndex]) then
+      Exit;
+    if aTokens[aIndex].fKind <> smtIdentifier then
+    begin
+      Inc(aIndex);
+      Continue;
+    end;
+    lName := aTokens[aIndex].fText;
+    lNameLine := aTokens[aIndex].fLine;
+    lNameCol := aTokens[aIndex].fCol;
+    Inc(aIndex);
+    lKind := 'const';
+    lTypeName := '';
+    if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtColon) then
+    begin
+      lKind := 'typed-const';
+      Inc(aIndex);
+      lTypeIndex := aIndex;
+      TryReadTypeName(aTokens, lTypeIndex, lTypeName);
+    end;
+    MoveToSemicolon(aTokens, aIndex);
+    if aIndex <= High(aTokens) then
+    begin
+      lEndLine := aTokens[aIndex].fLine;
+      lEndCol := aTokens[aIndex].fCol;
+    end else begin
+      lEndLine := lNameLine;
+      lEndCol := lNameCol;
+    end;
+    AddSymbol(aModel, lName, lKind, '', lTypeName, '', aSectionKind, lNameLine, lNameCol, lEndLine, lEndCol);
+    if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtSemicolon) then
+      Inc(aIndex);
+  end;
+end;
+
+procedure ParseVarSection(const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer; const aSectionKind: string;
+  var aModel: TSymbolMapUnitModel);
+var
+  lEndCol: Integer;
+  lEndLine: Integer;
+  lNameCols: TArray<Integer>;
+  lNameLines: TArray<Integer>;
+  lNames: TArray<string>;
+  lTypeIndex: Integer;
+  lTypeName: string;
+  i: Integer;
+begin
+  Inc(aIndex);
+  while aIndex <= High(aTokens) do
+  begin
+    if TokenStartsDeclarationSection(aTokens[aIndex]) then
+      Exit;
+    SetLength(lNames, 0);
+    SetLength(lNameLines, 0);
+    SetLength(lNameCols, 0);
+    while (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind <> smtColon) and
+      (aTokens[aIndex].fKind <> smtSemicolon) do
+    begin
+      if aTokens[aIndex].fKind = smtIdentifier then
+      begin
+        i := Length(lNames);
+        SetLength(lNames, i + 1);
+        SetLength(lNameLines, i + 1);
+        SetLength(lNameCols, i + 1);
+        lNames[i] := aTokens[aIndex].fText;
+        lNameLines[i] := aTokens[aIndex].fLine;
+        lNameCols[i] := aTokens[aIndex].fCol;
+      end;
+      Inc(aIndex);
+    end;
+    lTypeName := '';
+    if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtColon) then
+    begin
+      Inc(aIndex);
+      lTypeIndex := aIndex;
+      TryReadTypeName(aTokens, lTypeIndex, lTypeName);
+    end;
+    MoveToSemicolon(aTokens, aIndex);
+    if aIndex <= High(aTokens) then
+    begin
+      lEndLine := aTokens[aIndex].fLine;
+      lEndCol := aTokens[aIndex].fCol;
+    end else begin
+      lEndLine := 0;
+      lEndCol := 0;
+    end;
+    for i := 0 to High(lNames) do
+      AddSymbol(aModel, lNames[i], 'var', '', lTypeName, '', aSectionKind, lNameLines[i], lNameCols[i], lEndLine,
+        lEndCol);
+    if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtSemicolon) then
+      Inc(aIndex);
+  end;
+end;
+
+procedure ParseRoutineDeclaration(const aSource: string; const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer;
+  const aSectionKind: string; var aModel: TSymbolMapUnitModel);
+var
+  lEndOffset: Integer;
+  lEndCol: Integer;
+  lEndLine: Integer;
+  lIsFunction: Boolean;
+  lName: string;
+  lNameCol: Integer;
+  lNameLine: Integer;
+  lParenDepth: Integer;
+  lRoutineStart: Integer;
+  lSignature: string;
+  lTypeIndex: Integer;
+  lTypeName: string;
+begin
+  lRoutineStart := aIndex;
+  lIsFunction := TokenIsIdentifierText(aTokens[aIndex], 'function');
+  Inc(aIndex);
+  if (aIndex > High(aTokens)) or (aTokens[aIndex].fKind <> smtIdentifier) then
+    Exit;
+  lName := aTokens[aIndex].fText;
+  lNameLine := aTokens[aIndex].fLine;
+  lNameCol := aTokens[aIndex].fCol;
+  Inc(aIndex);
+  lTypeName := '';
+  lParenDepth := 0;
+  while aIndex <= High(aTokens) do
+  begin
+    if (lParenDepth = 0) and (aTokens[aIndex].fKind = smtSemicolon) then
+      Break;
+    if aTokens[aIndex].fKind = smtLParen then
+      Inc(lParenDepth)
+    else if (aTokens[aIndex].fKind = smtRParen) and (lParenDepth > 0) then
+      Dec(lParenDepth)
+    else if lIsFunction and (lParenDepth = 0) and (aTokens[aIndex].fKind = smtColon) then
+    begin
+      Inc(aIndex);
+      lTypeIndex := aIndex;
+      TryReadTypeName(aTokens, lTypeIndex, lTypeName);
+      Continue;
+    end;
+    Inc(aIndex);
+  end;
+  if aIndex <= High(aTokens) then
+  begin
+    lEndLine := aTokens[aIndex].fLine;
+    lEndCol := aTokens[aIndex].fCol;
+    lEndOffset := aTokens[aIndex].fEndOffset;
+  end else begin
+    lEndLine := lNameLine;
+    lEndCol := lNameCol;
+    lEndOffset := aTokens[lRoutineStart].fEndOffset;
+  end;
+  lSignature := TrimSourceFragment(aSource, aTokens[lRoutineStart].fOffset, lEndOffset);
+  AddSymbol(aModel, lName, 'routine', '', lTypeName, lSignature, aSectionKind, lNameLine, lNameCol, lEndLine,
+    lEndCol);
+  if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtSemicolon) then
+    Inc(aIndex);
+end;
+
+procedure SkipImplementationRoutineBody(const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer);
+var
+  lBeginDepth: Integer;
+begin
+  while (aIndex <= High(aTokens)) and not TokenIsIdentifierText(aTokens[aIndex], 'begin') do
+    Inc(aIndex);
+  if aIndex > High(aTokens) then
+    Exit;
+
+  lBeginDepth := 0;
+  while aIndex <= High(aTokens) do
+  begin
+    if TokenIsIdentifierText(aTokens[aIndex], 'begin') or TokenIsIdentifierText(aTokens[aIndex], 'try') or
+      TokenIsIdentifierText(aTokens[aIndex], 'case') then
+      Inc(lBeginDepth)
+    else if TokenIsIdentifierText(aTokens[aIndex], 'end') then
+    begin
+      Dec(lBeginDepth);
+      if lBeginDepth <= 0 then
+      begin
+        Inc(aIndex);
+        if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtDot) then
+          Exit;
+        if (aIndex <= High(aTokens)) and (aTokens[aIndex].fKind = smtSemicolon) then
+          Inc(aIndex);
+        Exit;
+      end;
+    end;
+    Inc(aIndex);
+  end;
 end;
 
 procedure ParseUsesClause(const aTokens: TArray<TSymbolMapToken>; var aIndex: Integer; const aSectionKind: string;
@@ -355,7 +766,8 @@ begin
   end;
 end;
 
-procedure ExtractUnitModelFromTokens(const aTokens: TArray<TSymbolMapToken>; var aModel: TSymbolMapUnitModel);
+procedure ExtractUnitModelFromTokens(const aSource: string; const aTokens: TArray<TSymbolMapToken>;
+  var aModel: TSymbolMapUnitModel);
 var
   lIndex: Integer;
   lNameCol: Integer;
@@ -380,7 +792,26 @@ begin
       else if SameText(aTokens[lIndex].fText, 'implementation') then
         lSectionKind := 'implementation'
       else if SameText(aTokens[lIndex].fText, 'uses') then
-        ParseUsesClause(aTokens, lIndex, lSectionKind, aModel);
+        ParseUsesClause(aTokens, lIndex, lSectionKind, aModel)
+      else if SameText(aTokens[lIndex].fText, 'type') then
+      begin
+        ParseTypeSection(aSource, aTokens, lIndex, lSectionKind, aModel);
+        Continue;
+      end else if SameText(aTokens[lIndex].fText, 'const') then
+      begin
+        ParseConstSection(aSource, aTokens, lIndex, lSectionKind, aModel);
+        Continue;
+      end else if SameText(aTokens[lIndex].fText, 'var') then
+      begin
+        ParseVarSection(aTokens, lIndex, lSectionKind, aModel);
+        Continue;
+      end else if SameText(aTokens[lIndex].fText, 'procedure') or SameText(aTokens[lIndex].fText, 'function') then
+      begin
+        ParseRoutineDeclaration(aSource, aTokens, lIndex, lSectionKind, aModel);
+        if SameText(lSectionKind, 'implementation') then
+          SkipImplementationRoutineBody(aTokens, lIndex);
+        Continue;
+      end;
     end;
     Inc(lIndex);
   end;
@@ -401,7 +832,7 @@ begin
   if not TryLoadSymbolMapSourceFile(aFilePath, lSourceText, aModel.fEncodingName, aError) then
     Exit(False);
   TokenizeSource(lSourceText, lTokens);
-  ExtractUnitModelFromTokens(lTokens, aModel);
+  ExtractUnitModelFromTokens(lSourceText, lTokens, aModel);
   Result := True;
 end;
 

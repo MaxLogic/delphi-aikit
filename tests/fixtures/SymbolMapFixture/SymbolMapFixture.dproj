@@ -3,6 +3,7 @@
     <MainSource>SymbolMapFixture.dpr</MainSource>
   </PropertyGroup>
   <ItemGroup>
+    <DCCReference Include="SymbolMapDeclarations.pas"/>
     <DCCReference Include="SymbolMapUnit.pas"/>
   </ItemGroup>
 </Project>
