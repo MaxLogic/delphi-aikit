@@ -9,8 +9,8 @@ uses
   System.Variants,
   DUnitX.TestFramework,
   maxLogic.CmdLineParams,
-  Dak.Cli, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer, Dak.SymbolMap.Query, Dak.Types,
-  Test.Support;
+  Dak.Cli, Dak.SymbolMap.Api, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer,
+  Dak.SymbolMap.Query, Dak.Types, Test.Support;
 
 type
   [TestFixture]
@@ -190,6 +190,19 @@ type
     procedure FindsTokenReferencesInProjectScope;
     [Test]
     procedure LimitsTokenReferenceResults;
+  end;
+
+  [TestFixture]
+  TSymbolMapApiTests = class
+  private
+    function BaseOptions(const aCacheRoot: string): TAppOptions;
+    function FixtureProjectPath: string;
+    function UniqueTempPath(const aPrefix: string): string;
+  public
+    [Test]
+    procedure ResolvesCoreSymbolKindsWithoutShellingOut;
+    [Test]
+    procedure ResolvesSourcePositionAndReportsCacheStatus;
   end;
 
   [TestFixture]
@@ -1470,6 +1483,86 @@ begin
   Assert.AreEqual(2, Length(lReferences));
 end;
 
+function TSymbolMapApiTests.BaseOptions(const aCacheRoot: string): TAppOptions;
+begin
+  Result := Default(TAppOptions);
+  Result.fDprojPath := FixtureProjectPath;
+  Result.fConfig := 'Release';
+  Result.fPlatform := 'Win32';
+  Result.fDelphiVersion := '23';
+  Result.fSymbolMapCacheRoot := aCacheRoot;
+  Result.fHasSymbolMapCacheRoot := True;
+end;
+
+function TSymbolMapApiTests.FixtureProjectPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
+end;
+
+function TSymbolMapApiTests.UniqueTempPath(const aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
+end;
+
+procedure TSymbolMapApiTests.ResolvesCoreSymbolKindsWithoutShellingOut;
+var
+  lCacheRoot: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lResult: TSymbolMapApiLookupResult;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-api-cache');
+  lOptions := BaseOptions(lCacheRoot);
+
+  Assert.IsTrue(ResolveSymbolMapDefinitionByName(lOptions, 'TDeclarationRecord', '', lResult, lError),
+    'Expected type lookup. Error: ' + lError);
+  Assert.AreEqual('type', lResult.fDefinition.fKind);
+  Assert.AreEqual('project', lResult.fDefinition.fSourceKind);
+
+  Assert.IsTrue(ResolveSymbolMapDefinitionByName(lOptions, 'Name', 'TMemberClass', lResult, lError),
+    'Expected member lookup. Error: ' + lError);
+  Assert.AreEqual('property', lResult.fDefinition.fKind);
+  Assert.AreEqual('TMemberClass', lResult.fDefinition.fOwnerName);
+
+  Assert.IsTrue(ResolveSymbolMapDefinitionByName(lOptions, 'DeclarationFunction', '', lResult, lError),
+    'Expected routine lookup. Error: ' + lError);
+  Assert.AreEqual('routine', lResult.fDefinition.fKind);
+
+  Assert.IsTrue(ResolveSymbolMapDefinitionByName(lOptions, 'GDeclarationGlobal', '', lResult, lError),
+    'Expected global lookup. Error: ' + lError);
+  Assert.AreEqual('var', lResult.fDefinition.fKind);
+
+  Assert.IsTrue(ResolveSymbolMapDefinitionByName(lOptions, 'SizeOf', '', lResult, lError),
+    'Expected intrinsic lookup. Error: ' + lError);
+  Assert.AreEqual('compiler-intrinsic', lResult.fDefinition.fSourceKind);
+end;
+
+procedure TSymbolMapApiTests.ResolvesSourcePositionAndReportsCacheStatus;
+var
+  lCacheRoot: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lResult: TSymbolMapApiLookupResult;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-api-position-cache');
+  lOptions := BaseOptions(lCacheRoot);
+
+  Assert.IsTrue(ResolveSymbolMapDefinitionByPosition(lOptions,
+    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas'), 1, 1, lResult, lError),
+    'Expected source-position lookup. Error: ' + lError);
+
+  Assert.AreEqual('SymbolMapUnit', lResult.fDefinition.fName);
+  Assert.AreEqual('unit', lResult.fDefinition.fKind);
+  Assert.IsTrue(lResult.fStatus.fProjectIndexed, 'Expected project indexing status.');
+  Assert.IsNotEmpty(lResult.fStatus.fCacheStatus.fCentralDbPath, 'Expected central cache path.');
+  Assert.IsNotEmpty(lResult.fStatus.fCompilerProfile.fProfileKey, 'Expected compiler profile key.');
+end;
+
 function TSymbolMapRtlIndexTests.ProfileSourceKind(const aDbPath, aProfileKey, aUnitName: string): string;
 var
   lConnection: TFDConnection;
@@ -2166,6 +2259,7 @@ initialization
   TDUnitX.RegisterTestFixture(TSymbolMapRtlIndexTests);
   TDUnitX.RegisterTestFixture(TSymbolMapDefinitionQueryTests);
   TDUnitX.RegisterTestFixture(TSymbolMapReferenceQueryTests);
+  TDUnitX.RegisterTestFixture(TSymbolMapApiTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCliTests);
 
 end.
