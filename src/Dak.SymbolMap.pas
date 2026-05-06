@@ -10,8 +10,14 @@ function RunSymbolMapCommand(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
-  System.IOUtils, System.SysUtils,
+  System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.SysUtils,
   Dak.ExitCodes, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer;
+
+type
+  TSymbolMapIndexedUnit = record
+    fModel: TSymbolMapUnitModel;
+    fStoreResult: TSymbolMapCacheStoreResult;
+  end;
 
 function SymbolMapOperationToText(const aOperation: TSymbolMapOperation): string;
 begin
@@ -159,25 +165,53 @@ begin
   Result := Result + ']';
 end;
 
-function BuildIndexResultJson(const aModel: TSymbolMapUnitModel; const aHasUnit: Boolean): string;
+function SymbolMapIndexedUnitJson(const aUnit: TSymbolMapIndexedUnit): string;
 begin
-  if not aHasUnit then
-    Exit('{"unitCount":0,"fatalDiagnostics":0,"symbolCount":0,"memberCount":0,"indexedUnits":[]}');
+  Result := '{"unitName":"' + JsonEscape(aUnit.fModel.fUnitName) + '",' +
+    '"filePath":"' + JsonEscape(aUnit.fModel.fFilePath) + '",' +
+    '"encoding":"' + JsonEscape(aUnit.fModel.fEncodingName) + '",' +
+    '"unitCacheKey":"' + JsonEscape(aUnit.fStoreResult.fUnitCacheKey) + '",' +
+    '"fileHash":"' + JsonEscape(aUnit.fStoreResult.fFileHash) + '",' +
+    '"contextHash":"' + JsonEscape(aUnit.fStoreResult.fContextHash) + '",' +
+    '"centralCacheHit":' + LowerCase(BoolToStr(aUnit.fStoreResult.fCacheHit, True)) + ',' +
+    '"usesCount":' + Length(aUnit.fModel.fUses).ToString + ',' +
+    '"symbolCount":' + Length(aUnit.fModel.fSymbols).ToString + ',' +
+    '"memberCount":' + Length(aUnit.fModel.fMembers).ToString + ',' +
+    '"interfaceUses":' + JsonStringArray(SymbolMapUseNames(aUnit.fModel, 'interface')) + ',' +
+    '"implementationUses":' + JsonStringArray(SymbolMapUseNames(aUnit.fModel, 'implementation')) + ',' +
+    '"symbols":' + SymbolMapSymbolsJson(aUnit.fModel.fSymbols) + ',' +
+    '"members":' + SymbolMapMembersJson(aUnit.fModel.fMembers) + ',' +
+    '"diagnostics":' + SymbolMapDiagnosticsJson(aUnit.fModel.fDiagnostics) +
+    '}';
+end;
 
-  Result := '{"unitCount":1,"fatalDiagnostics":0,"indexedUnits":[{' +
-    '"unitName":"' + JsonEscape(aModel.fUnitName) + '",' +
-    '"filePath":"' + JsonEscape(aModel.fFilePath) + '",' +
-    '"encoding":"' + JsonEscape(aModel.fEncodingName) + '",' +
-    '"usesCount":' + Length(aModel.fUses).ToString + ',' +
-    '"symbolCount":' + Length(aModel.fSymbols).ToString + ',' +
-    '"memberCount":' + Length(aModel.fMembers).ToString + ',' +
-    '"interfaceUses":' + JsonStringArray(SymbolMapUseNames(aModel, 'interface')) + ',' +
-    '"implementationUses":' + JsonStringArray(SymbolMapUseNames(aModel, 'implementation')) + ',' +
-    '"symbols":' + SymbolMapSymbolsJson(aModel.fSymbols) + ',' +
-    '"members":' + SymbolMapMembersJson(aModel.fMembers) + ',' +
-    '"diagnostics":' + SymbolMapDiagnosticsJson(aModel.fDiagnostics) +
-    '}],"symbolCount":' + Length(aModel.fSymbols).ToString + ',"memberCount":' +
-    Length(aModel.fMembers).ToString + '}';
+function BuildIndexResultJson(const aUnits: TArray<TSymbolMapIndexedUnit>): string;
+var
+  i: Integer;
+  lHits: Integer;
+  lMembers: Integer;
+  lMisses: Integer;
+  lSymbols: Integer;
+begin
+  lHits := 0;
+  lMisses := 0;
+  lSymbols := 0;
+  lMembers := 0;
+  Result := '{"unitCount":' + Length(aUnits).ToString + ',"fatalDiagnostics":0,"indexedUnits":[';
+  for i := 0 to High(aUnits) do
+  begin
+    if i > 0 then
+      Result := Result + ',';
+    if aUnits[i].fStoreResult.fCacheHit then
+      Inc(lHits)
+    else
+      Inc(lMisses);
+    Inc(lSymbols, Length(aUnits[i].fModel.fSymbols));
+    Inc(lMembers, Length(aUnits[i].fModel.fMembers));
+    Result := Result + SymbolMapIndexedUnitJson(aUnits[i]);
+  end;
+  Result := Result + '],"symbolCount":' + lSymbols.ToString + ',"memberCount":' + lMembers.ToString +
+    ',"centralCacheHits":' + lHits.ToString + ',"centralCacheMisses":' + lMisses.ToString + '}';
 end;
 
 procedure WriteSymbolMapJsonShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
@@ -214,7 +248,9 @@ begin
 end;
 
 procedure WriteSymbolMapTextShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
-  const aCacheStatus: TSymbolMapCacheStatus; const aIndexModel: TSymbolMapUnitModel; const aHasIndexUnit: Boolean);
+  const aCacheStatus: TSymbolMapCacheStatus; const aIndexedUnits: TArray<TSymbolMapIndexedUnit>);
+var
+  lUnit: TSymbolMapIndexedUnit;
 begin
   WriteLn('symbol-map ', SymbolMapOperationToText(aOptions.fSymbolMapOperation), ': ok');
   WriteLn('project: ', aContext.fProject.fProjectPath);
@@ -223,13 +259,78 @@ begin
   WriteLn('central-cache-db: ', aCacheStatus.fCentralDbPath);
   WriteLn('project-cache-db: ', aCacheStatus.fProjectDbPath);
   WriteLn('schema-version: ', aCacheStatus.fSchemaVersion);
-  if aHasIndexUnit then
+  WriteLn('indexed-units: ', Length(aIndexedUnits));
+  for lUnit in aIndexedUnits do
   begin
-    WriteLn('indexed-unit: ', aIndexModel.fUnitName);
-    WriteLn('uses-count: ', Length(aIndexModel.fUses));
-    WriteLn('symbol-count: ', Length(aIndexModel.fSymbols));
-    WriteLn('member-count: ', Length(aIndexModel.fMembers));
+    WriteLn('indexed-unit: ', lUnit.fModel.fUnitName);
+    WriteLn('unit-cache-key: ', lUnit.fStoreResult.fUnitCacheKey);
+    WriteLn('central-cache-hit: ', LowerCase(BoolToStr(lUnit.fStoreResult.fCacheHit, True)));
   end;
+end;
+
+function CollectProjectIndexUnitPaths(const aContext: TSymbolMapContext): TArray<string>;
+var
+  lDprojText: string;
+  lIncludePath: string;
+  lMatch: TMatch;
+  lMatches: TMatchCollection;
+  lPath: string;
+  lPaths: TList<string>;
+  lSeen: TDictionary<string, Boolean>;
+begin
+  SetLength(Result, 0);
+  if not TFile.Exists(aContext.fProject.fProjectPath) then
+    Exit;
+  lDprojText := TFile.ReadAllText(aContext.fProject.fProjectPath);
+  lMatches := TRegEx.Matches(lDprojText, '<DCCReference\b[^>]*\bInclude\s*=\s*"([^"]+)"', [roIgnoreCase]);
+  lPaths := TList<string>.Create;
+  lSeen := TDictionary<string, Boolean>.Create;
+  try
+    for lMatch in lMatches do
+    begin
+      if (not lMatch.Success) or (lMatch.Groups.Count < 2) then
+        Continue;
+      lIncludePath := Trim(lMatch.Groups[1].Value);
+      if not SameText(TPath.GetExtension(lIncludePath), '.pas') then
+        Continue;
+      if TPath.IsPathRooted(lIncludePath) then
+        lPath := TPath.GetFullPath(lIncludePath)
+      else
+        lPath := TPath.GetFullPath(TPath.Combine(aContext.fProject.fProjectDir, lIncludePath));
+      if (not TFile.Exists(lPath)) or lSeen.ContainsKey(LowerCase(lPath)) then
+        Continue;
+      lSeen.Add(LowerCase(lPath), True);
+      lPaths.Add(lPath);
+    end;
+    Result := lPaths.ToArray;
+  finally
+    lSeen.Free;
+    lPaths.Free;
+  end;
+end;
+
+function TryIndexSymbolMapUnit(const aContext: TSymbolMapContext; const aCacheStatus: TSymbolMapCacheStatus;
+  const aUnitPath: string; out aIndexedUnit: TSymbolMapIndexedUnit; out aError: string): Boolean;
+var
+  lUnitPath: string;
+begin
+  Result := False;
+  aIndexedUnit := Default(TSymbolMapIndexedUnit);
+  lUnitPath := TPath.GetFullPath(aUnitPath);
+  if not TryExtractSymbolMapUnitModel(lUnitPath, aIndexedUnit.fModel, aError) then
+    Exit(False);
+  if not StoreSymbolMapUnitModel(aContext, aCacheStatus, aIndexedUnit.fModel, aIndexedUnit.fStoreResult, aError) then
+    Exit(False);
+  Result := True;
+end;
+
+procedure AddIndexedUnit(var aUnits: TArray<TSymbolMapIndexedUnit>; const aUnit: TSymbolMapIndexedUnit);
+var
+  lIndex: Integer;
+begin
+  lIndex := Length(aUnits);
+  SetLength(aUnits, lIndex + 1);
+  aUnits[lIndex] := aUnit;
 end;
 
 function RunSymbolMapCommand(const aOptions: TAppOptions): Integer;
@@ -237,13 +338,13 @@ var
   lCacheStatus: TSymbolMapCacheStatus;
   lContext: TSymbolMapContext;
   lError: string;
-  lHasIndexUnit: Boolean;
-  lIndexModel: TSymbolMapUnitModel;
+  lIndexedUnit: TSymbolMapIndexedUnit;
+  lIndexedUnits: TArray<TSymbolMapIndexedUnit>;
   lResultJson: string;
+  lUnitPaths: TArray<string>;
   lUnitPath: string;
 begin
-  lHasIndexUnit := False;
-  lIndexModel := Default(TSymbolMapUnitModel);
+  SetLength(lIndexedUnits, 0);
   lResultJson := '{}';
   if not TryBuildSymbolMapContext(aOptions, lContext, lError) then
   begin
@@ -257,24 +358,30 @@ begin
   end;
   if (aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex) and (aOptions.fSymbolMapUnitPath <> '') then
   begin
-    lUnitPath := TPath.GetFullPath(aOptions.fSymbolMapUnitPath);
-    if not TryExtractSymbolMapUnitModel(lUnitPath, lIndexModel, lError) then
-    begin
-      WriteLn(ErrOutput, lError);
-      Exit(cExitInvalidProjectInput);
-    end;
-    if not StoreSymbolMapUnitModel(lContext, lCacheStatus, lIndexModel, lError) then
+    if not TryIndexSymbolMapUnit(lContext, lCacheStatus, aOptions.fSymbolMapUnitPath, lIndexedUnit, lError) then
     begin
       WriteLn(ErrOutput, lError);
       Exit(cExitToolFailure);
     end;
-    lHasIndexUnit := True;
-    lResultJson := BuildIndexResultJson(lIndexModel, True);
+    AddIndexedUnit(lIndexedUnits, lIndexedUnit);
+    lResultJson := BuildIndexResultJson(lIndexedUnits);
   end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex then
-    lResultJson := BuildIndexResultJson(lIndexModel, False);
+  begin
+    lUnitPaths := CollectProjectIndexUnitPaths(lContext);
+    for lUnitPath in lUnitPaths do
+    begin
+      if not TryIndexSymbolMapUnit(lContext, lCacheStatus, lUnitPath, lIndexedUnit, lError) then
+      begin
+        WriteLn(ErrOutput, lError);
+        Exit(cExitToolFailure);
+      end;
+      AddIndexedUnit(lIndexedUnits, lIndexedUnit);
+    end;
+    lResultJson := BuildIndexResultJson(lIndexedUnits);
+  end;
 
   if aOptions.fSymbolMapFormat = TSymbolMapFormat.smfText then
-    WriteSymbolMapTextShell(aOptions, lContext, lCacheStatus, lIndexModel, lHasIndexUnit)
+    WriteSymbolMapTextShell(aOptions, lContext, lCacheStatus, lIndexedUnits)
   else
     WriteSymbolMapJsonShell(aOptions, lContext, lCacheStatus, lResultJson, '[]');
 
