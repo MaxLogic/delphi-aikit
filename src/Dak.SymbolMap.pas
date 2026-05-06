@@ -214,8 +214,20 @@ begin
     ',"centralCacheHits":' + lHits.ToString + ',"centralCacheMisses":' + lMisses.ToString + '}';
 end;
 
+function CompilerProfileJson(const aCompilerProfile: TSymbolMapCompilerProfileResult): string;
+begin
+  Result := '{"profileKey":"' + JsonEscape(aCompilerProfile.fProfileKey) + '",' +
+    '"delphiVersion":"' + JsonEscape(aCompilerProfile.fDelphiVersion) + '",' +
+    '"platform":"' + JsonEscape(aCompilerProfile.fPlatform) + '",' +
+    '"intrinsicSeedVersion":"' + JsonEscape(aCompilerProfile.fIntrinsicSeedVersion) + '",' +
+    '"syntheticIntrinsicCount":' + aCompilerProfile.fIntrinsicCount.ToString + ',' +
+    '"cacheHit":' + LowerCase(BoolToStr(aCompilerProfile.fCacheHit, True)) +
+    '}';
+end;
+
 procedure WriteSymbolMapJsonShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
-  const aCacheStatus: TSymbolMapCacheStatus; const aResultJson, aDiagnosticsJson: string);
+  const aCacheStatus: TSymbolMapCacheStatus; const aCompilerProfile: TSymbolMapCompilerProfileResult;
+  const aResultJson, aDiagnosticsJson: string);
 var
   lOperation: string;
 begin
@@ -241,6 +253,7 @@ begin
       JsonStringArray(aContext.fDefines) + ',"unitSearchPath":' + JsonStringArray(aContext.fUnitSearchPath) +
       ',"libraryPath":' + JsonStringArray(aContext.fLibraryPath) + ',"unitScopes":' +
       JsonStringArray(aContext.fUnitScopes) + ',"unitAliases":' + JsonStringArray(aContext.fUnitAliases) + '}' +
+    ',"compilerProfile":' + CompilerProfileJson(aCompilerProfile) +
     ',"query":{}' +
     ',"result":' + aResultJson +
     ',"diagnostics":' + aDiagnosticsJson +
@@ -248,7 +261,8 @@ begin
 end;
 
 procedure WriteSymbolMapTextShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
-  const aCacheStatus: TSymbolMapCacheStatus; const aIndexedUnits: TArray<TSymbolMapIndexedUnit>);
+  const aCacheStatus: TSymbolMapCacheStatus; const aCompilerProfile: TSymbolMapCompilerProfileResult;
+  const aIndexedUnits: TArray<TSymbolMapIndexedUnit>);
 var
   lUnit: TSymbolMapIndexedUnit;
 begin
@@ -259,6 +273,9 @@ begin
   WriteLn('central-cache-db: ', aCacheStatus.fCentralDbPath);
   WriteLn('project-cache-db: ', aCacheStatus.fProjectDbPath);
   WriteLn('schema-version: ', aCacheStatus.fSchemaVersion);
+  WriteLn('compiler-profile-key: ', aCompilerProfile.fProfileKey);
+  WriteLn('compiler-profile-hit: ', LowerCase(BoolToStr(aCompilerProfile.fCacheHit, True)));
+  WriteLn('synthetic-intrinsic-count: ', aCompilerProfile.fIntrinsicCount);
   WriteLn('indexed-units: ', Length(aIndexedUnits));
   for lUnit in aIndexedUnits do
   begin
@@ -336,6 +353,7 @@ end;
 function RunSymbolMapCommand(const aOptions: TAppOptions): Integer;
 var
   lCacheStatus: TSymbolMapCacheStatus;
+  lCompilerProfile: TSymbolMapCompilerProfileResult;
   lContext: TSymbolMapContext;
   lError: string;
   lIndexedUnit: TSymbolMapIndexedUnit;
@@ -352,6 +370,11 @@ begin
     Exit(cExitInvalidProjectInput);
   end;
   if not EnsureSymbolMapCaches(lContext, lCacheStatus, lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(cExitToolFailure);
+  end;
+  if not EnsureSymbolMapCompilerProfile(lContext, lCacheStatus, lCompilerProfile, lError) then
   begin
     WriteLn(ErrOutput, lError);
     Exit(cExitToolFailure);
@@ -381,9 +404,9 @@ begin
   end;
 
   if aOptions.fSymbolMapFormat = TSymbolMapFormat.smfText then
-    WriteSymbolMapTextShell(aOptions, lContext, lCacheStatus, lIndexedUnits)
+    WriteSymbolMapTextShell(aOptions, lContext, lCacheStatus, lCompilerProfile, lIndexedUnits)
   else
-    WriteSymbolMapJsonShell(aOptions, lContext, lCacheStatus, lResultJson, '[]');
+    WriteSymbolMapJsonShell(aOptions, lContext, lCacheStatus, lCompilerProfile, lResultJson, '[]');
 
   Result := cExitSuccess;
 end;
