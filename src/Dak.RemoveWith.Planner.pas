@@ -27,6 +27,7 @@ type
 
   TRemoveWithPlanResult = record
     fStatements: TArray<TRemoveWithPlannedStatement>;
+    fElapsedPlanningMs: Integer;
   end;
 
 function PlanRemoveWithRewrites(const aInventory: TRemoveWithSymbolInventory;

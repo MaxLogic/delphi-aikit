@@ -223,6 +223,10 @@ begin
         Exit(cExitToolFailure);
       end;
       lStopwatch.Stop;
+      if lStopwatch.ElapsedMilliseconds > High(Integer) then
+        lPlanResult.fElapsedPlanningMs := High(Integer)
+      else
+        lPlanResult.fElapsedPlanningMs := Integer(lStopwatch.ElapsedMilliseconds);
       LogRemoveWithDone(aOptions, 'planner',
         Format('statements=%d planned=%d skipped=%d', [Length(lPlanResult.fStatements),
         CountRemoveWithPlannedStatements(lPlanResult, 'planned'), CountRemoveWithPlannedStatements(lPlanResult,
