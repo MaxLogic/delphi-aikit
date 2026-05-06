@@ -40,6 +40,16 @@ type
     fEndCol: Integer;
   end;
 
+  TSymbolMapReferenceModel = record
+    fName: string;
+    fSectionKind: string;
+    fRole: string;
+    fLine: Integer;
+    fCol: Integer;
+    fEndLine: Integer;
+    fEndCol: Integer;
+  end;
+
   TSymbolMapUnitModel = record
     fUnitName: string;
     fFilePath: string;
@@ -47,6 +57,7 @@ type
     fUses: TArray<TSymbolMapUnitUse>;
     fSymbols: TArray<TSymbolMapSymbolModel>;
     fMembers: TArray<TSymbolMapMemberModel>;
+    fReferences: TArray<TSymbolMapReferenceModel>;
     fDiagnostics: TArray<string>;
   end;
 
@@ -401,9 +412,62 @@ begin
   aModel.fMembers[lIndex].fEndCol := aEndCol;
 end;
 
+procedure AddReference(var aModel: TSymbolMapUnitModel; const aName, aSectionKind, aRole: string; const aLine,
+  aCol, aEndLine, aEndCol: Integer);
+var
+  lIndex: Integer;
+begin
+  if aName = '' then
+    Exit;
+  lIndex := Length(aModel.fReferences);
+  SetLength(aModel.fReferences, lIndex + 1);
+  aModel.fReferences[lIndex].fName := aName;
+  aModel.fReferences[lIndex].fSectionKind := aSectionKind;
+  aModel.fReferences[lIndex].fRole := aRole;
+  aModel.fReferences[lIndex].fLine := aLine;
+  aModel.fReferences[lIndex].fCol := aCol;
+  aModel.fReferences[lIndex].fEndLine := aEndLine;
+  aModel.fReferences[lIndex].fEndCol := aEndCol;
+end;
+
 function TokenIsIdentifierText(const aToken: TSymbolMapToken; const aText: string): Boolean;
 begin
   Result := (aToken.fKind = smtIdentifier) and SameText(aToken.fText, aText);
+end;
+
+function TokenIsReferenceKeyword(const aToken: TSymbolMapToken): Boolean;
+begin
+  Result := (aToken.fKind = smtIdentifier) and MatchText(aToken.fText,
+    ['absolute', 'abstract', 'and', 'array', 'as', 'asm', 'begin', 'case', 'class', 'const', 'constructor',
+    'destructor', 'dispinterface', 'div', 'do', 'downto', 'else', 'end', 'except', 'exports', 'file',
+    'finalization', 'finally', 'for', 'function', 'goto', 'helper', 'if', 'implementation', 'in', 'inherited',
+    'initialization', 'inline', 'interface', 'is', 'label', 'mod', 'nil', 'not', 'object', 'of', 'or', 'out',
+    'packed', 'private', 'procedure', 'program', 'property', 'protected', 'public', 'published', 'raise', 'record',
+    'repeat', 'resourcestring', 'set', 'shl', 'shr', 'strict', 'string', 'then', 'threadvar', 'to', 'try', 'type',
+    'unit', 'until', 'uses', 'var', 'while', 'with', 'xor']);
+end;
+
+procedure ExtractIdentifierReferences(const aTokens: TArray<TSymbolMapToken>; var aModel: TSymbolMapUnitModel);
+var
+  lIndex: Integer;
+  lSectionKind: string;
+begin
+  lSectionKind := '';
+  lIndex := 0;
+  while lIndex <= High(aTokens) do
+  begin
+    if aTokens[lIndex].fKind = smtIdentifier then
+    begin
+      if SameText(aTokens[lIndex].fText, 'interface') then
+        lSectionKind := 'interface'
+      else if SameText(aTokens[lIndex].fText, 'implementation') then
+        lSectionKind := 'implementation';
+      if not TokenIsReferenceKeyword(aTokens[lIndex]) then
+        AddReference(aModel, aTokens[lIndex].fText, lSectionKind, 'token', aTokens[lIndex].fLine,
+          aTokens[lIndex].fCol, aTokens[lIndex].fLine, aTokens[lIndex].fCol + Length(aTokens[lIndex].fText) - 1);
+    end;
+    Inc(lIndex);
+  end;
 end;
 
 function TokenStartsDeclarationSection(const aToken: TSymbolMapToken): Boolean;
@@ -1198,6 +1262,7 @@ begin
     Exit(False);
   TokenizeSource(lSourceText, lTokens);
   ExtractUnitModelFromTokens(lSourceText, lTokens, aModel);
+  ExtractIdentifierReferences(lTokens, aModel);
   Result := True;
 end;
 

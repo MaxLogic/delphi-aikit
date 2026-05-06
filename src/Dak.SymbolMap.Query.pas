@@ -23,6 +23,20 @@ type
     fEndCol: Integer;
   end;
 
+  TSymbolMapReference = record
+    fName: string;
+    fUnitName: string;
+    fFilePath: string;
+    fSourceKind: string;
+    fConfidence: string;
+    fRole: string;
+    fSectionKind: string;
+    fLine: Integer;
+    fCol: Integer;
+    fEndLine: Integer;
+    fEndCol: Integer;
+  end;
+
 function SymbolMapProjectHasIndexedUnits(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   out aError: string): Boolean;
 function FindSymbolMapDefinitionByName(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
@@ -37,6 +51,9 @@ function SearchSymbolMapDefinitions(const aContext: TSymbolMapContext; const aSt
 function DescribeSymbolMapDefinition(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aProfile: TSymbolMapCompilerProfileResult; const aName, aOwnerName: string;
   out aDefinition: TSymbolMapDefinition; out aError: string): Boolean;
+function FindSymbolMapReferences(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aProfile: TSymbolMapCompilerProfileResult; const aSymbol: string; const aLimit: Integer;
+  out aReferences: TArray<TSymbolMapReference>; out aError: string): Boolean;
 
 implementation
 
@@ -99,6 +116,18 @@ begin
   lIndex := Length(aDefinitions);
   SetLength(aDefinitions, lIndex + 1);
   aDefinitions[lIndex] := aDefinition;
+end;
+
+procedure AddReference(var aReferences: TArray<TSymbolMapReference>; const aReference: TSymbolMapReference;
+  const aLimit: Integer);
+var
+  lIndex: Integer;
+begin
+  if (aLimit > 0) and (Length(aReferences) >= aLimit) then
+    Exit;
+  lIndex := Length(aReferences);
+  SetLength(aReferences, lIndex + 1);
+  aReferences[lIndex] := aReference;
 end;
 
 function LoadProjectUnitScopes(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
@@ -259,6 +288,21 @@ begin
   Result.fSourceKind := 'compiler-intrinsic';
   Result.fConfidence := aConfidence;
   Result.fSignature := aQuery.FieldByName('signature').AsString;
+end;
+
+function ReferenceFromRow(const aQuery: TFDQuery; const aScope: TSymbolMapUnitScope): TSymbolMapReference;
+begin
+  Result.fName := aQuery.FieldByName('name').AsString;
+  Result.fUnitName := aScope.fUnitName;
+  Result.fFilePath := aScope.fFilePath;
+  Result.fSourceKind := aScope.fSourceKind;
+  Result.fConfidence := 'token-name-match';
+  Result.fRole := aQuery.FieldByName('role').AsString;
+  Result.fSectionKind := aQuery.FieldByName('section_kind').AsString;
+  Result.fLine := aQuery.FieldByName('line_no').AsInteger;
+  Result.fCol := aQuery.FieldByName('col_no').AsInteger;
+  Result.fEndLine := aQuery.FieldByName('end_line_no').AsInteger;
+  Result.fEndCol := aQuery.FieldByName('end_col_no').AsInteger;
 end;
 
 function TryUnitDefinitionByFile(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
@@ -600,6 +644,53 @@ begin
       FirstDefinition(lDefinitions, aDefinition);
     end;
     Result := True;
+  finally
+    lScopes.Free;
+  end;
+end;
+
+function FindSymbolMapReferences(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aProfile: TSymbolMapCompilerProfileResult; const aSymbol: string; const aLimit: Integer;
+  out aReferences: TArray<TSymbolMapReference>; out aError: string): Boolean;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lQuery: TFDQuery;
+  lReference: TSymbolMapReference;
+  lScope: TSymbolMapUnitScope;
+  lScopes: TDictionary<string, TSymbolMapUnitScope>;
+begin
+  Result := False;
+  SetLength(aReferences, 0);
+  if not LoadProjectUnitScopes(aContext, aStatus, lScopes, aError) then
+    Exit(False);
+  try
+    if not OpenQueryConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
+      Exit(False);
+    try
+      lQuery := TFDQuery.Create(nil);
+      try
+        lQuery.Connection := lConnection;
+        lQuery.SQL.Text := 'select * from unit_references where normalized_name = :name order by line_no, col_no';
+        lQuery.ParamByName('name').AsString := LowerCase(Trim(aSymbol));
+        lQuery.Open;
+        while not lQuery.Eof do
+        begin
+          if lScopes.TryGetValue(lQuery.FieldByName('unit_cache_key').AsString, lScope) then
+          begin
+            lReference := ReferenceFromRow(lQuery, lScope);
+            AddReference(aReferences, lReference, aLimit);
+          end;
+          lQuery.Next;
+        end;
+        Result := True;
+      finally
+        lQuery.Free;
+      end;
+    finally
+      lConnection.Free;
+      lDriverLink.Free;
+    end;
   finally
     lScopes.Free;
   end;

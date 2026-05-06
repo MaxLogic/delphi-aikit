@@ -179,6 +179,20 @@ type
   end;
 
   [TestFixture]
+  TSymbolMapReferenceQueryTests = class
+  private
+    function BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext): string;
+    function FixtureProjectPath: string;
+    procedure IndexFixtureProject(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus);
+    function UniqueTempPath(const aPrefix: string): string;
+  public
+    [Test]
+    procedure FindsTokenReferencesInProjectScope;
+    [Test]
+    procedure LimitsTokenReferenceResults;
+  end;
+
+  [TestFixture]
   TSymbolMapCliTests = class
   private
     procedure SetParams(const aCmdLine: string);
@@ -1354,6 +1368,108 @@ begin
   end;
 end;
 
+function TSymbolMapReferenceQueryTests.BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext):
+  string;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23';
+  lOptions.fSymbolMapCacheRoot := aCacheRoot;
+  lOptions.fHasSymbolMapCacheRoot := True;
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, aContext, lError), 'Expected context. Error: ' + lError);
+  Result := FixtureProjectPath;
+end;
+
+function TSymbolMapReferenceQueryTests.FixtureProjectPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
+end;
+
+procedure TSymbolMapReferenceQueryTests.IndexFixtureProject(const aContext: TSymbolMapContext;
+  const aStatus: TSymbolMapCacheStatus);
+var
+  lError: string;
+  lModel: TSymbolMapUnitModel;
+  lUnitPath: string;
+  lUnitPaths: TArray<string>;
+begin
+  lUnitPaths := [
+    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapDeclarations.pas'),
+    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapMembers.pas'),
+    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas')];
+  for lUnitPath in lUnitPaths do
+  begin
+    Assert.IsTrue(TryExtractSymbolMapUnitModel(lUnitPath, lModel, lError),
+      'Expected source extraction. Error: ' + lError);
+    Assert.IsTrue(StoreSymbolMapUnitModel(aContext, aStatus, lModel, lError),
+      'Expected unit model storage. Error: ' + lError);
+  end;
+end;
+
+function TSymbolMapReferenceQueryTests.UniqueTempPath(const aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
+end;
+
+procedure TSymbolMapReferenceQueryTests.FindsTokenReferencesInProjectScope;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lReferences: TArray<TSymbolMapReference>;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-reference-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile. Error: ' + lError);
+  IndexFixtureProject(lContext, lStatus);
+
+  Assert.IsTrue(FindSymbolMapReferences(lContext, lStatus, lProfile, 'TSymbolMapFixtureType', 10, lReferences,
+    lError), 'Expected reference query. Error: ' + lError);
+
+  Assert.IsTrue(Length(lReferences) >= 4, 'Expected several token references.');
+  Assert.AreEqual('TSymbolMapFixtureType', lReferences[0].fName);
+  Assert.AreEqual('project', lReferences[0].fSourceKind);
+  Assert.AreEqual('token-name-match', lReferences[0].fConfidence);
+  Assert.IsTrue(lReferences[0].fFilePath.EndsWith('SymbolMapUnit.pas'), 'Expected fixture source file.');
+  Assert.IsTrue(lReferences[0].fLine > 0, 'Expected source line.');
+end;
+
+procedure TSymbolMapReferenceQueryTests.LimitsTokenReferenceResults;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lReferences: TArray<TSymbolMapReference>;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-reference-limit-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile. Error: ' + lError);
+  IndexFixtureProject(lContext, lStatus);
+
+  Assert.IsTrue(FindSymbolMapReferences(lContext, lStatus, lProfile, 'TSymbolMapFixtureType', 2, lReferences,
+    lError), 'Expected limited reference query. Error: ' + lError);
+
+  Assert.AreEqual(2, Length(lReferences));
+end;
+
 function TSymbolMapRtlIndexTests.ProfileSourceKind(const aDbPath, aProfileKey, aUnitName: string): string;
 var
   lConnection: TFDConnection;
@@ -2049,6 +2165,7 @@ initialization
   TDUnitX.RegisterTestFixture(TSymbolMapIntrinsicProfileTests);
   TDUnitX.RegisterTestFixture(TSymbolMapRtlIndexTests);
   TDUnitX.RegisterTestFixture(TSymbolMapDefinitionQueryTests);
+  TDUnitX.RegisterTestFixture(TSymbolMapReferenceQueryTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCliTests);
 
 end.
