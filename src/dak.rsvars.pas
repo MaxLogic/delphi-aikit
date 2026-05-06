@@ -17,6 +17,30 @@ begin
   Result := '"' + StringReplace(aValue, '"', '""', [rfReplaceAll]) + '"';
 end;
 
+function CoreWindowsPath: string;
+var
+  lSystemRoot: string;
+begin
+  lSystemRoot := System.SysUtils.GetEnvironmentVariable('SystemRoot');
+  if lSystemRoot = '' then
+    lSystemRoot := 'C:\Windows';
+  Result := TPath.Combine(lSystemRoot, 'System32') + ';' + lSystemRoot + ';' +
+    TPath.Combine(lSystemRoot, 'System32\Wbem') + ';' +
+    TPath.Combine(lSystemRoot, 'System32\WindowsPowerShell\v1.0');
+end;
+
+function BuildRsVarsEnvironmentPrefix: string;
+var
+  lPath: string;
+begin
+  Result := 'set "BDS=" & set "BDSLIB=" & set "DCC_Namespace=" & set "DCC_UnitSearchPath=" & ' +
+    'set "DelphiLibraryPath=" & set "EnvOptions=" & ';
+
+  lPath := System.SysUtils.GetEnvironmentVariable('PATH');
+  if Length(lPath) > 6000 then
+    Result := Result + 'set "PATH=' + CoreWindowsPath + '" & ';
+end;
+
 function DefaultRsVarsPath(const aDelphiVersion: string): string;
 var
   lBase: string;
@@ -121,8 +145,8 @@ begin
     if lComSpec = '' then
       lComSpec := 'cmd.exe';
 
-    lCmd := QuoteCmd(lComSpec) + ' /s /c "call ' + QuoteCmd(lPath) + ' >nul & set > ' +
-      QuoteCmd(lTempFile) + '"';
+    lCmd := QuoteCmd(lComSpec) + ' /s /c "' + BuildRsVarsEnvironmentPrefix + 'call ' + QuoteCmd(lPath) +
+      ' >nul & set > ' + QuoteCmd(lTempFile) + '"';
     if not RunCmdToFile(lCmd, lExitCode) then
     begin
       aError := Format(SRsVarsFailed, [Cardinal(1)]);

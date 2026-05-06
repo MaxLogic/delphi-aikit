@@ -11,6 +11,7 @@ uses
   DUnitX.TestFramework,
   Dak.Build,
   Dak.Registry,
+  Dak.RsVars,
   Dak.Types,
   Test.Support;
 
@@ -44,6 +45,8 @@ type
     procedure BuildCommandUsesNativeRunnerForExternalRepoProjects;
     [Test]
     procedure BuildCommandAddsEnvironmentProjPropsToMsBuildArgs;
+    [Test]
+    procedure RsVarsLoaderIgnoresStaleRadEnvironmentAndOverlongPath;
     [Test]
     procedure BuildSkipsMadExceptPatchWhenMesDisablesMadExcept;
     [Test]
@@ -698,6 +701,62 @@ begin
       Winapi.Windows.SetEnvironmentVariable('ExistingProp', PChar(lPrevExistingProp))
     else
       Winapi.Windows.SetEnvironmentVariable('ExistingProp', nil);
+  end;
+end;
+
+procedure TBuildTests.RsVarsLoaderIgnoresStaleRadEnvironmentAndOverlongPath;
+var
+  lError: string;
+  lOldBds: string;
+  lOldBdsLib: string;
+  lOldDccNamespace: string;
+  lOldDccUnitSearchPath: string;
+  lOldPath: string;
+  lPathCapture: string;
+  lRoot: string;
+  lRsVarsPath: string;
+  lScriptText: string;
+begin
+  EnsureTempClean;
+  lRoot := TPath.Combine(TempRoot, 'rsvars-clean-env');
+  ForceDirectories(lRoot);
+  lRsVarsPath := TPath.Combine(lRoot, 'rsvars.bat');
+  lPathCapture := TPath.Combine(lRoot, 'path.txt');
+  lScriptText := '@echo off' + sLineBreak +
+    'if defined BDS exit /b 17' + sLineBreak +
+    'if defined BDSLIB exit /b 18' + sLineBreak +
+    'if defined DCC_Namespace exit /b 19' + sLineBreak +
+    'if defined DCC_UnitSearchPath exit /b 20' + sLineBreak +
+    'echo %PATH%>' + QuoteArg(lPathCapture) + sLineBreak +
+    'if not "%PATH:stale-path-marker=%"=="%PATH%" exit /b 21' + sLineBreak +
+    'set BDS=clean-bds' + sLineBreak +
+    'set BDSLIB=clean-lib' + sLineBreak;
+  TFile.WriteAllText(lRsVarsPath, lScriptText, TEncoding.ASCII);
+
+  lOldBds := GetEnvironmentVariable('BDS');
+  lOldBdsLib := GetEnvironmentVariable('BDSLIB');
+  lOldDccNamespace := GetEnvironmentVariable('DCC_Namespace');
+  lOldDccUnitSearchPath := GetEnvironmentVariable('DCC_UnitSearchPath');
+  lOldPath := GetEnvironmentVariable('PATH');
+  Winapi.Windows.SetEnvironmentVariable('BDS', 'stale-bds');
+  Winapi.Windows.SetEnvironmentVariable('BDSLIB', 'stale-bdslib');
+  Winapi.Windows.SetEnvironmentVariable('DCC_Namespace', 'stale-namespace');
+  Winapi.Windows.SetEnvironmentVariable('DCC_UnitSearchPath', 'stale-search-path');
+  Winapi.Windows.SetEnvironmentVariable('PATH', PChar('C:\stale-path-marker;' + StringOfChar('x', 7000)));
+  try
+    Assert.IsTrue(TryLoadRsVars('', lRsVarsPath, nil, lError),
+      'Expected rsvars loader to sanitize stale child environment. Error: ' + lError);
+    Assert.AreEqual('clean-bds', GetEnvironmentVariable('BDS'));
+    Assert.AreEqual('clean-lib', GetEnvironmentVariable('BDSLIB'));
+    Assert.IsTrue(TFile.Exists(lPathCapture), 'Expected fake rsvars to capture PATH.');
+    Assert.IsFalse(ContainsText(TFile.ReadAllText(lPathCapture, TEncoding.ASCII), 'stale-path-marker'),
+      'Expected long inherited PATH to be trimmed before rsvars.bat.');
+  finally
+    Winapi.Windows.SetEnvironmentVariable('BDS', PChar(lOldBds));
+    Winapi.Windows.SetEnvironmentVariable('BDSLIB', PChar(lOldBdsLib));
+    Winapi.Windows.SetEnvironmentVariable('DCC_Namespace', PChar(lOldDccNamespace));
+    Winapi.Windows.SetEnvironmentVariable('DCC_UnitSearchPath', PChar(lOldDccUnitSearchPath));
+    Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lOldPath));
   end;
 end;
 

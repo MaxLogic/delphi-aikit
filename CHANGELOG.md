@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Documented Symbol Map CLI usage, central and project cache behavior, cleanup/invalidation, cache-root overrides, and relationship to LSP and `remove-with`. (T-197)
 - Added a direct Symbol Map resolver API for definition lookups by name or source position with cache/compiler-profile status reporting. (T-196)
 - Added Symbol Map token-reference indexing and `find-references` query output with explicit non-semantic `token-name-match` confidence. (T-195)
 - Added Symbol Map `find-definition`, `search-symbols`, and `describe-symbol` query results over project-indexed units, source-available profile units, and synthetic compiler intrinsics. (T-194)
@@ -68,6 +69,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- Hardened `rsvars.bat` imports in both the build script and Delphi runner against stale RAD/DCC environment variables, overlong inherited PATH values, and oversized MSBuild environment-prop command lines. (T-197)
 - `remove-with` resolver, selector-expression, temp-policy, and planner lookups now use scoped dictionaries and the live project-model semantic index where complete, while preserving compatibility fallback behavior for existing resolver metadata. (T-173)
 - `remove-with` now bootstraps one shared project model per command and reuses that indexed project data for discovery and symbol inventory, removing the previous duplicate project-index pass in plan/apply mode. (T-171)
 - Clarified external `lsp` docs for Delphi 23: `symbols` is file-scoped `documentSymbol`, `references` is version-gated, and Delphi 13.x will be rechecked once installed. (T-121)

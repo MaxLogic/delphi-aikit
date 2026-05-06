@@ -1,6 +1,9 @@
 param(
   [Parameter(Mandatory = $true)]
-  [string]$BdsRoot
+  [string]$BdsRoot,
+
+  [Parameter(Mandatory = $false)]
+  [string]$OutFile = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -66,4 +69,10 @@ try {
 } catch {
 }
 
-Write-Output ('MSBUILD_ENV_PROPS=' + $props)
+if (-not [string]::IsNullOrWhiteSpace($OutFile)) {
+  [IO.File]::WriteAllText($OutFile, $props)
+  Write-Output ('MSBUILD_ENV_PROPS_FILE=' + $OutFile)
+  Write-Output 'MSBUILD_ENV_PROPS='
+} else {
+  Write-Output ('MSBUILD_ENV_PROPS=' + $props)
+}

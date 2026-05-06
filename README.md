@@ -14,6 +14,7 @@
 - Analyze project-level globals via `global-vars` with JSON/text reports, ambiguity reporting, and SQLite caching
 - Analyze project unit dependencies via `deps` with JSON-first topology output, text summaries, focused unit views, and cycle reporting
 - Navigate Delphi symbols semantically via `lsp` with `definition`, `hover`, file-scoped `symbols`, and version-gated `references` queries backed by `DelphiLSP.exe`
+- Build and query a reusable local Symbol Map via `symbol-map` with project/RTL/compiler-intrinsic indexing, definition lookup, symbol search, description, references, and central/project SQLite caches
 
 ## Good use cases
 
@@ -22,6 +23,7 @@
 - Comparing config differences between platforms or build types
 - Understanding which Delphi units a broken area depends on before we start AI-assisted debugging or refactoring
 - Jumping from a symbol use site to its definition, hover text, file-scoped document symbols, or version-gated references without guessing from raw text search
+- Looking up project, source-available RTL, and compiler-intrinsic symbols through a deterministic cache when LSP is unavailable, incomplete, or too expensive for bulk work
 
 ## Repo-local AI skills
 
@@ -187,6 +189,28 @@ To navigate Delphi symbols semantically:
 bin\DelphiAIKit.exe lsp definition --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --line 42 --col 17 --format json
 bin\DelphiAIKit.exe lsp symbols --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --query "Customer" --format json
 ```
+
+To build and query DAK's local Symbol Map:
+
+```
+bin\DelphiAIKit.exe symbol-map stats --project "C:\path\Project.dproj" --format json
+bin\DelphiAIKit.exe symbol-map stats --project "C:\path\Project.dproj" --cache-root "C:\dak-cache\symbol-map" --format json
+bin\DelphiAIKit.exe symbol-map index --project "C:\path\Project.dproj" --format json
+bin\DelphiAIKit.exe symbol-map find-definition --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --line 42 --col 17 --format json
+bin\DelphiAIKit.exe symbol-map search-symbols --project "C:\path\Project.dproj" --query "Customer" --limit 20 --format json
+bin\DelphiAIKit.exe symbol-map describe-symbol --project "C:\path\Project.dproj" --symbol "Name" --owner "TCustomer" --format json
+bin\DelphiAIKit.exe symbol-map find-references --project "C:\path\Project.dproj" --symbol "TCustomer" --limit 20 --format json
+```
+
+`symbol-map` is DAK's own deterministic source index. It is not a DelphiLSP wrapper and it is not a clone of `delphi-lookup`: LSP remains useful for semantic editor-style probes, while Symbol Map is optimized for reusable project indexing, cacheable source inventories, and future bulk refactoring support such as `remove-with`.
+
+The central cache stores reusable unit models by content and compiler context. By default it is created under `%LOCALAPPDATA%\DelphiAIKit\symbol-map\v1\symbol-map.sqlite3`, with `%USERPROFILE%\.dak\symbol-map\v1\symbol-map.sqlite3` as the fallback. Override it with `--cache-root "<path>"` or the `DAK_SYMBOL_MAP_CACHE_ROOT` environment variable; JSON output reports the resolved cache paths so WSL/Windows path confusion is visible.
+
+Each project also gets a lightweight project cache under the `.dproj` sibling `.dak/<ProjectName>/symbol-map/project-index.sqlite3`. That project cache records the resolved project context and links project units to central cache rows, but it does not duplicate the central unit model. Deleting the project `.dak/<ProjectName>/symbol-map/` folder forces project relinking on the next query. Deleting the central cache forces all shared unit models, compiler intrinsics, and source-available RTL rows to be rebuilt. Both cleanup operations are safe because Symbol Map is derived data.
+
+Normal invalidation is content/context based: changed source content or compiler profile context creates new central unit keys, and changed project context relinks project rows on the next index/query pass.
+
+`symbol-map index` scans project units and, when source roots are available for the selected Delphi context, indexes source-available RTL units into the compiler profile. Missing RTL roots are non-fatal diagnostics because compiler intrinsics are seeded synthetically. Query commands refresh the project index when needed before answering. `find-references` currently reports token-name matches with explicit `confidence="token-name-match"` metadata; it is useful as an indexed search result, not yet a compiler-proven semantic reference identity.
 
 To inspect or remove Delphi `with` statements:
 
