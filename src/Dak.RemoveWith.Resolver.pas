@@ -148,6 +148,10 @@ type
       const aUse: TRemoveWithIdentifierUse): Boolean; static;
     class function IsDelphiIntrinsicTypeName(const aName: string): Boolean; static;
     class function IsDelphiIntrinsicUnitName(const aName: string): Boolean; static;
+    class function FindSymbolMapCompilerIntrinsic(const aBridge: TRemoveWithSymbolMapBridge; const aName,
+      aKind: string; out aLookup: TRemoveWithSymbolMapLookup): Boolean; static;
+    class function ShouldLookupSymbolMapRoutineIntrinsic(const aSource: TRemoveWithSourceBuffer;
+      const aUse: TRemoveWithIdentifierUse): Boolean; static;
     class function IsExternalRoutineCall(const aSource: TRemoveWithSourceBuffer;
       const aUse: TRemoveWithIdentifierUse): Boolean; static;
     class function ReceiversAllowUnresolvedFallback(const aInventory: TRemoveWithSymbolInventory;
@@ -175,8 +179,8 @@ type
       const aRoutineName: string; out aReceivers: TArray<TRemoveWithReceiverScope>); static;
     class function ClassifyUse(const aInventory: TRemoveWithSymbolInventory; const aSource: TRemoveWithSourceBuffer;
       const aRoutineName: string; const aReceivers: TArray<TRemoveWithReceiverScope>;
-      const aUse: TRemoveWithIdentifierUse; out aClassification: TRemoveWithIdentifierClassification): Boolean;
-      static;
+      const aUse: TRemoveWithIdentifierUse; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
+      out aClassification: TRemoveWithIdentifierClassification): Boolean; static;
     class procedure ResolveStatement(const aInventory: TRemoveWithSymbolInventory;
       const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
       const aSource: TRemoveWithSourceBuffer; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
@@ -1530,6 +1534,28 @@ begin
   Result := SameText(aName, 'System');
 end;
 
+class function TRemoveWithIdentifierResolver.FindSymbolMapCompilerIntrinsic(
+  const aBridge: TRemoveWithSymbolMapBridge; const aName, aKind: string;
+  out aLookup: TRemoveWithSymbolMapLookup): Boolean;
+var
+  lError: string;
+begin
+  aLookup := Default(TRemoveWithSymbolMapLookup);
+  if not aBridge.fPrepared then
+    Exit(False);
+  if not FindRemoveWithSymbolMapDefinition(aBridge, aName, '', aLookup, lError) then
+    Exit(False);
+
+  Result := aLookup.fFound and SameText(aLookup.fSourceKind, 'compiler-intrinsic') and
+    SameText(aLookup.fConfidence, 'exact') and SameText(aLookup.fKind, aKind);
+end;
+
+class function TRemoveWithIdentifierResolver.ShouldLookupSymbolMapRoutineIntrinsic(
+  const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse): Boolean;
+begin
+  Result := IsCallUse(aSource, aUse) or SameText(aUse.fName, 'IOResult');
+end;
+
 class function TRemoveWithIdentifierResolver.IsExternalRoutineCall(const aSource: TRemoveWithSourceBuffer;
   const aUse: TRemoveWithIdentifierUse): Boolean;
 begin
@@ -2038,7 +2064,8 @@ end;
 class function TRemoveWithIdentifierResolver.ClassifyUse(const aInventory: TRemoveWithSymbolInventory;
   const aSource: TRemoveWithSourceBuffer; const aRoutineName: string;
   const aReceivers: TArray<TRemoveWithReceiverScope>; const aUse: TRemoveWithIdentifierUse;
-  out aClassification: TRemoveWithIdentifierClassification): Boolean;
+  const aSymbolMapBridge: TRemoveWithSymbolMapBridge; out aClassification: TRemoveWithIdentifierClassification):
+  Boolean;
 var
   lCandidates: TArray<TRemoveWithSymbolInfo>;
   lHadResolvedReceiver: Boolean;
@@ -2046,6 +2073,7 @@ var
   lResolvedReceiverText: string;
   lResolvedReceiverType: string;
   lSourceOwnerType: string;
+  lSymbolMapLookup: TRemoveWithSymbolMapLookup;
   lSymbol: TRemoveWithSymbolInfo;
   i: Integer;
 begin
@@ -2060,6 +2088,16 @@ begin
   lResolvedReceiverText := '';
   lResolvedReceiverType := '';
   Result := True;
+
+  if IsQualifiedUse(aSource, aUse) and
+    FindSymbolMapCompilerIntrinsic(aSymbolMapBridge, aUse.fName, 'unit', lSymbolMapLookup) then
+  begin
+    aClassification.fMemberKind := TRemoveWithSymbolKind.rwskExternal;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
+    aClassification.fResolutionKind := 'qualified-unit';
+    aClassification.fReason := 'unit-qualifier';
+    Exit(True);
+  end;
 
   if IsQualifiedUse(aSource, aUse) and IsDelphiIntrinsicUnitName(aUse.fName) then
   begin
@@ -2231,6 +2269,19 @@ begin
     aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
     aClassification.fResolutionKind := 'type-name';
     aClassification.fReason := 'type-name';
+  end else if FindSymbolMapCompilerIntrinsic(aSymbolMapBridge, aUse.fName, 'type', lSymbolMapLookup) then
+  begin
+    aClassification.fMemberKind := TRemoveWithSymbolKind.rwskTypeMember;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
+    aClassification.fResolutionKind := 'type-name';
+    aClassification.fReason := 'type-name';
+  end else if ShouldLookupSymbolMapRoutineIntrinsic(aSource, aUse) and
+    FindSymbolMapCompilerIntrinsic(aSymbolMapBridge, aUse.fName, 'routine', lSymbolMapLookup) then
+  begin
+    aClassification.fMemberKind := TRemoveWithSymbolKind.rwskRoutine;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
+    aClassification.fResolutionKind := 'external-routine-call';
+    aClassification.fReason := 'external-routine-call';
   end else if IsExternalRoutineCall(aSource, aUse) then
   begin
     aClassification.fMemberKind := TRemoveWithSymbolKind.rwskRoutine;
@@ -2295,7 +2346,7 @@ begin
 
   for lUse in lUses do
   begin
-    if not ClassifyUse(aInventory, aSource, lRoutineName, lReceivers, lUse, lClassification) then
+    if not ClassifyUse(aInventory, aSource, lRoutineName, lReceivers, lUse, aSymbolMapBridge, lClassification) then
       Continue;
     EnrichWithSymbolMap(aSymbolMapBridge, lClassification);
     lClassification.fStatementId := aStatement.fId;

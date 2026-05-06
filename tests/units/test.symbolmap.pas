@@ -122,6 +122,7 @@ type
     function BuildFreshResolverExe: string;
     function BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext): string;
     function CompilerProfileCount(const aDbPath, aProfileKey: string): Integer;
+    procedure CorruptIntrinsicPreservingCount(const aDbPath, aProfileKey: string);
     procedure DeleteIntrinsics(const aDbPath, aProfileKey: string);
     function FixtureProjectPath: string;
     function IntrinsicCount(const aDbPath, aProfileKey: string): Integer;
@@ -135,6 +136,8 @@ type
     procedure ReusesSeededCompilerProfile;
     [Test]
     procedure RepairsProfileWhenIntrinsicRowsAreMissing;
+    [Test]
+    procedure RepairsProfileWhenIntrinsicSeedRowsAreStale;
     [Test]
     procedure IndexCommandReportsCompilerProfileStatus;
   end;
@@ -924,6 +927,28 @@ begin
   end;
 end;
 
+procedure TSymbolMapIntrinsicProfileTests.CorruptIntrinsicPreservingCount(const aDbPath, aProfileKey: string);
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    lConnection.ExecSQL(
+      'update compiler_intrinsics set name = ?, kind = ?, signature = ?, notes = ? ' +
+      'where profile_key = ? and lower(name) = lower(?)',
+      ['StaleIntrinsic', 'routine', 'procedure StaleIntrinsic', 'stale test row', aProfileKey, 'Abs']);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
 function TSymbolMapIntrinsicProfileTests.FixtureProjectPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
@@ -1062,6 +1087,33 @@ begin
     'Expected compiler profile repair. Error: ' + lError);
   Assert.AreEqual(lFirst.fProfileKey, lSecond.fProfileKey);
   Assert.IsFalse(lSecond.fCacheHit, 'Expected missing intrinsic rows to force repair.');
+  Assert.AreEqual(lFirst.fIntrinsicCount, IntrinsicCount(lStatus.fCentralDbPath, lFirst.fProfileKey));
+end;
+
+procedure TSymbolMapIntrinsicProfileTests.RepairsProfileWhenIntrinsicSeedRowsAreStale;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lFirst: TSymbolMapCompilerProfileResult;
+  lSecond: TSymbolMapCompilerProfileResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-intrinsic-stale-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lFirst, lError),
+    'Expected first compiler profile seed. Error: ' + lError);
+
+  CorruptIntrinsicPreservingCount(lStatus.fCentralDbPath, lFirst.fProfileKey);
+
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lSecond, lError),
+    'Expected compiler profile stale-row repair. Error: ' + lError);
+  Assert.AreEqual(lFirst.fProfileKey, lSecond.fProfileKey);
+  Assert.IsFalse(lSecond.fCacheHit, 'Expected stale intrinsic rows to force repair.');
+  Assert.IsTrue(IntrinsicExists(lStatus.fCentralDbPath, lFirst.fProfileKey, 'Abs'), 'Expected Abs to be restored.');
+  Assert.IsFalse(IntrinsicExists(lStatus.fCentralDbPath, lFirst.fProfileKey, 'StaleIntrinsic'),
+    'Expected stale intrinsic row to be removed.');
   Assert.AreEqual(lFirst.fIntrinsicCount, IntrinsicCount(lStatus.fCentralDbPath, lFirst.fProfileKey));
 end;
 

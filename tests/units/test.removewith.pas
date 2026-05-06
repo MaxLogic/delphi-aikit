@@ -546,6 +546,8 @@ type
     function CommandExePath: string;
     procedure AssertClassification(const aClassifications: TJSONArray; const aIdentifier, aStatus,
       aResolutionKind, aReason: string);
+    procedure AssertClassificationSymbolMap(const aClassifications: TJSONArray; const aIdentifier, aKind,
+      aSourceKind: string);
     procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
     function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
     function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
@@ -5960,6 +5962,32 @@ begin
   Assert.Fail('Expected classification ' + aIdentifier + ':' + aStatus + ':' + aResolutionKind + ':' + aReason);
 end;
 
+procedure TRemoveWithIntrinsicSymbolTests.AssertClassificationSymbolMap(const aClassifications: TJSONArray;
+  const aIdentifier, aKind, aSourceKind: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+  lSymbolMap: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if not SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) then
+      Continue;
+    AssertJsonObjectKey(lObject, 'symbolMap', lSymbolMap);
+    Assert.IsTrue(lSymbolMap.GetValue<Boolean>('found', False), 'Expected Symbol Map hit for ' + aIdentifier);
+    Assert.AreEqual(aKind, lSymbolMap.GetValue<string>('kind', ''), 'Unexpected Symbol Map kind for ' + aIdentifier);
+    Assert.AreEqual(aSourceKind, lSymbolMap.GetValue<string>('sourceKind', ''),
+      'Unexpected Symbol Map source kind for ' + aIdentifier);
+    Assert.AreEqual('exact', lSymbolMap.GetValue<string>('confidence', ''),
+      'Expected exact Symbol Map confidence for ' + aIdentifier);
+    Exit;
+  end;
+  Assert.Fail('Expected Symbol Map classification for ' + aIdentifier);
+end;
+
 procedure TRemoveWithIntrinsicSymbolTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
   out aDprojPath, aFixtureDir: string);
 var
@@ -6073,6 +6101,14 @@ begin
     AssertClassification(lClassifications, 'FilePos', 'unchanged', 'external-routine-call', 'external-routine-call');
     AssertClassification(lClassifications, 'Copy', 'unchanged', 'external-routine-call', 'external-routine-call');
     AssertClassification(lClassifications, 'Pred', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Abs', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Sqr', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Succ', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Assert', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassificationSymbolMap(lClassifications, 'Abs', 'routine', 'compiler-intrinsic');
+    AssertClassificationSymbolMap(lClassifications, 'Sqr', 'routine', 'compiler-intrinsic');
+    AssertClassificationSymbolMap(lClassifications, 'Succ', 'routine', 'compiler-intrinsic');
+    AssertClassificationSymbolMap(lClassifications, 'Assert', 'routine', 'compiler-intrinsic');
     AssertClassification(lClassifications, 'EOF', 'unchanged', 'external-routine-call', 'external-routine-call');
     AssertClassification(lClassifications, 'UnknownProjectRoutine', 'unresolved', 'unresolved', 'symbol-not-found');
   finally

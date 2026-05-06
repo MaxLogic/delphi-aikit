@@ -52,6 +52,8 @@ begin
     Flush(lTextFile);
     Close(lTextFile);
     Target := FilePos(lUntypedFile) + Copy(Text, 1, 1).Length + Pred(Count);
+    Target := Abs(Count) + Sqr(Count) + Succ(Count);
+    Assert(Target >= 0);
     if EOF(lTextFile) then
       Target := Target + 1;
   end;
