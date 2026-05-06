@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added Symbol Map top-level declaration extraction for types, aliases, enum values, constants, globals, routines, source locations, signatures, and JSON symbol output. (T-189)
 - Added a focused `remove-with` semantic binder proof suite covering receiver precedence, outer scopes, helpers, inheritance, interfaces, overloads, missing receiver members, and unknown routine-call safety. (T-174)
 - Added targeted `symbol-map index --unit` source-unit extraction with UTF-8/ANSI fallback loading, unit-name detection, interface/implementation uses reporting, and source fixture coverage. (T-188)
 - Added Symbol Map SQLite cache initialization for central and project caches, including schema version reporting, created/reused flags, unsupported-version protection, and process-level central-cache serialization. (T-187)

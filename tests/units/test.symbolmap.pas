@@ -9,7 +9,7 @@ uses
   System.Variants,
   DUnitX.TestFramework,
   maxLogic.CmdLineParams,
-  Dak.Cli, Dak.SymbolMap.Context, Dak.Types,
+  Dak.Cli, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer, Dak.Types,
   Test.Support;
 
 type
@@ -69,6 +69,21 @@ type
   end;
 
   [TestFixture]
+  TSymbolMapTopLevelDeclarationTests = class
+  private
+    function FixtureProjectPath: string;
+    function FixtureUnitPath: string;
+    function FindSymbol(const aModel: TSymbolMapUnitModel; const aName, aKind, aSectionKind: string;
+      out aSymbol: TSymbolMapSymbolModel): Boolean;
+    function RunIndexUnitCommand(out aExitCode: Cardinal): TJSONObject;
+  public
+    [Test]
+    procedure ExtractsTopLevelDeclarationsAndEnumValues;
+    [Test]
+    procedure IndexUnitCommandReportsTopLevelDeclarationCounts;
+  end;
+
+  [TestFixture]
   TSymbolMapCliTests = class
   private
     procedure SetParams(const aCmdLine: string);
@@ -92,7 +107,7 @@ uses
   Winapi.Windows,
   FireDAC.Comp.Client,
   FireDAC.Phys.SQLite,
-  Dak.SymbolMap.Cache, Dak.SymbolMap.Indexer;
+  Dak.SymbolMap.Cache;
 
 function TSymbolMapContextTests.FixtureProjectPath: string;
 begin
@@ -393,6 +408,137 @@ end;
 function TSymbolMapSourceUnitTests.FixtureUnitPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
+end;
+
+function TSymbolMapTopLevelDeclarationTests.FixtureProjectPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
+end;
+
+function TSymbolMapTopLevelDeclarationTests.FixtureUnitPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapDeclarations.pas');
+end;
+
+function TSymbolMapTopLevelDeclarationTests.FindSymbol(const aModel: TSymbolMapUnitModel; const aName, aKind,
+  aSectionKind: string; out aSymbol: TSymbolMapSymbolModel): Boolean;
+var
+  lSymbol: TSymbolMapSymbolModel;
+begin
+  Result := False;
+  aSymbol := Default(TSymbolMapSymbolModel);
+  for lSymbol in aModel.fSymbols do
+  begin
+    if SameText(lSymbol.fName, aName) and SameText(lSymbol.fKind, aKind) and
+      SameText(lSymbol.fSectionKind, aSectionKind) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+end;
+
+function TSymbolMapTopLevelDeclarationTests.RunIndexUnitCommand(out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lCacheRoot: string;
+  lJson: TJSONValue;
+  lLogPath: string;
+  lLogText: string;
+begin
+  EnsureResolverBuilt;
+  lCacheRoot := TPath.Combine(TempRoot, 'symbol-map-declarations-cache');
+  if TDirectory.Exists(lCacheRoot) then
+    TDirectory.Delete(lCacheRoot, True);
+  lLogPath := TPath.Combine(TempRoot, 'symbol-map-declarations-index-json.log');
+  lArgs := 'symbol-map index --project ' + QuoteArg(FixtureProjectPath) + ' --unit ' + QuoteArg(FixtureUnitPath) +
+    ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+    'Failed to start symbol-map declaration index command.');
+  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lJson := TJSONObject.ParseJSONValue(lLogText);
+  Assert.IsTrue(lJson is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+  Result := lJson as TJSONObject;
+end;
+
+procedure TSymbolMapTopLevelDeclarationTests.ExtractsTopLevelDeclarationsAndEnumValues;
+var
+  lError: string;
+  lModel: TSymbolMapUnitModel;
+  lSymbol: TSymbolMapSymbolModel;
+begin
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected declaration unit extraction to succeed. Error: ' + lError);
+
+  Assert.AreEqual('SymbolMapDeclarations', lModel.fUnitName);
+  Assert.IsTrue(FindSymbol(lModel, 'TDeclarationEnum', 'type', 'interface', lSymbol), 'Expected enum type.');
+  Assert.AreEqual('enum', lSymbol.fTypeName);
+  Assert.IsTrue(FindSymbol(lModel, 'deOne', 'enum-value', 'interface', lSymbol), 'Expected enum value.');
+  Assert.AreEqual('TDeclarationEnum', lSymbol.fOwnerName);
+  Assert.IsTrue(FindSymbol(lModel, 'TDeclarationAlias', 'type-alias', 'interface', lSymbol),
+    'Expected alias type.');
+  Assert.AreEqual('string', lSymbol.fTypeName);
+  Assert.IsTrue(FindSymbol(lModel, 'TDeclarationRecord', 'type', 'interface', lSymbol), 'Expected record type.');
+  Assert.AreEqual('record', lSymbol.fTypeName);
+  Assert.IsTrue(FindSymbol(lModel, 'TDeclarationClass', 'type', 'interface', lSymbol), 'Expected class type.');
+  Assert.AreEqual('class', lSymbol.fTypeName);
+  Assert.IsTrue(FindSymbol(lModel, 'cDeclarationConst', 'const', 'interface', lSymbol), 'Expected const.');
+  Assert.IsTrue(FindSymbol(lModel, 'cDeclarationTyped', 'typed-const', 'interface', lSymbol),
+    'Expected typed const.');
+  Assert.AreEqual('Integer', lSymbol.fTypeName);
+  Assert.IsTrue(FindSymbol(lModel, 'GDeclarationGlobal', 'var', 'interface', lSymbol), 'Expected var.');
+  Assert.AreEqual('Integer', lSymbol.fTypeName);
+  Assert.IsTrue(FindSymbol(lModel, 'DeclarationProcedure', 'routine', 'interface', lSymbol),
+    'Expected procedure.');
+  Assert.IsTrue(Pos('const aName: string', lSymbol.fSignature) > 0, 'Expected procedure signature.');
+  Assert.IsTrue(FindSymbol(lModel, 'DeclarationFunction', 'routine', 'interface', lSymbol),
+    'Expected function.');
+  Assert.AreEqual('Integer', lSymbol.fTypeName);
+  Assert.IsTrue(FindSymbol(lModel, 'DeclarationMultiParam', 'routine', 'interface', lSymbol),
+    'Expected multi-parameter function.');
+  Assert.AreEqual('Boolean', lSymbol.fTypeName);
+  Assert.IsTrue(Pos('const aName: string; const aValue: Integer', lSymbol.fSignature) > 0,
+    'Expected semicolon inside parameter list to stay in signature.');
+  Assert.IsTrue(FindSymbol(lModel, 'ImplementationOnlyProcedure', 'routine', 'implementation', lSymbol),
+    'Expected implementation routine.');
+  Assert.IsTrue(FindSymbol(lModel, 'GImplementationGlobal', 'var', 'implementation', lSymbol),
+    'Expected implementation var.');
+  Assert.AreEqual(TPath.GetFullPath(FixtureUnitPath), lSymbol.fFilePath);
+  Assert.AreNotEqual(0, lSymbol.fLine, 'Expected line number.');
+  Assert.AreNotEqual(0, lSymbol.fCol, 'Expected column number.');
+  Assert.AreNotEqual(0, lSymbol.fEndLine, 'Expected end line.');
+  Assert.IsFalse(FindSymbol(lModel, 'cLocalConst', 'const', 'implementation', lSymbol),
+    'Local consts inside routine bodies must not be indexed as top-level declarations.');
+  Assert.IsFalse(FindSymbol(lModel, 'TLocalType', 'type-alias', 'implementation', lSymbol),
+    'Local types inside routine bodies must not be indexed as top-level declarations.');
+  Assert.IsFalse(FindSymbol(lModel, 'lLocalValue', 'var', 'implementation', lSymbol),
+    'Local vars inside routine bodies must not be indexed as top-level declarations.');
+end;
+
+procedure TSymbolMapTopLevelDeclarationTests.IndexUnitCommandReportsTopLevelDeclarationCounts;
+var
+  lExitCode: Cardinal;
+  lIndexedUnits: TJSONArray;
+  lResult: TJSONObject;
+  lRoot: TJSONObject;
+  lUnitObject: TJSONObject;
+begin
+  lRoot := RunIndexUnitCommand(lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map index to succeed.');
+    lResult := lRoot.GetValue('result') as TJSONObject;
+    Assert.AreEqual(1, lResult.GetValue<Integer>('unitCount'));
+    Assert.AreEqual(0, lResult.GetValue<Integer>('fatalDiagnostics'));
+    Assert.AreEqual(18, lResult.GetValue<Integer>('symbolCount'));
+    lIndexedUnits := lResult.GetValue('indexedUnits') as TJSONArray;
+    lUnitObject := lIndexedUnits.Items[0] as TJSONObject;
+    Assert.AreEqual(18, lUnitObject.GetValue<Integer>('symbolCount'));
+    Assert.IsTrue(Pos('"TDeclarationAlias"', lUnitObject.GetValue('symbols').ToJSON) > 0,
+      'Expected declaration symbols in JSON.');
+  finally
+    lRoot.Free;
+  end;
 end;
 
 procedure TSymbolMapSourceUnitTests.LoadsAnsiFallbackWhenUtf8Fails;

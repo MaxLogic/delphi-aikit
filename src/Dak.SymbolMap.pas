@@ -101,20 +101,51 @@ begin
   Result := JsonStringArray(aValues);
 end;
 
+function SymbolMapSymbolsJson(const aSymbols: TArray<TSymbolMapSymbolModel>): string;
+var
+  i: Integer;
+  lSymbol: TSymbolMapSymbolModel;
+begin
+  Result := '[';
+  for i := 0 to High(aSymbols) do
+  begin
+    if i > 0 then
+      Result := Result + ',';
+    lSymbol := aSymbols[i];
+    Result := Result + '{' +
+      '"name":"' + JsonEscape(lSymbol.fName) + '",' +
+      '"kind":"' + JsonEscape(lSymbol.fKind) + '",' +
+      '"unitName":"' + JsonEscape(lSymbol.fUnitName) + '",' +
+      '"filePath":"' + JsonEscape(lSymbol.fFilePath) + '",' +
+      '"ownerName":"' + JsonEscape(lSymbol.fOwnerName) + '",' +
+      '"typeName":"' + JsonEscape(lSymbol.fTypeName) + '",' +
+      '"signature":"' + JsonEscape(lSymbol.fSignature) + '",' +
+      '"sectionKind":"' + JsonEscape(lSymbol.fSectionKind) + '",' +
+      '"line":' + lSymbol.fLine.ToString + ',' +
+      '"col":' + lSymbol.fCol.ToString + ',' +
+      '"endLine":' + lSymbol.fEndLine.ToString + ',' +
+      '"endCol":' + lSymbol.fEndCol.ToString +
+      '}';
+  end;
+  Result := Result + ']';
+end;
+
 function BuildIndexResultJson(const aModel: TSymbolMapUnitModel; const aHasUnit: Boolean): string;
 begin
   if not aHasUnit then
-    Exit('{"unitCount":0,"fatalDiagnostics":0,"indexedUnits":[]}');
+    Exit('{"unitCount":0,"fatalDiagnostics":0,"symbolCount":0,"indexedUnits":[]}');
 
   Result := '{"unitCount":1,"fatalDiagnostics":0,"indexedUnits":[{' +
     '"unitName":"' + JsonEscape(aModel.fUnitName) + '",' +
     '"filePath":"' + JsonEscape(aModel.fFilePath) + '",' +
     '"encoding":"' + JsonEscape(aModel.fEncodingName) + '",' +
     '"usesCount":' + Length(aModel.fUses).ToString + ',' +
+    '"symbolCount":' + Length(aModel.fSymbols).ToString + ',' +
     '"interfaceUses":' + JsonStringArray(SymbolMapUseNames(aModel, 'interface')) + ',' +
     '"implementationUses":' + JsonStringArray(SymbolMapUseNames(aModel, 'implementation')) + ',' +
+    '"symbols":' + SymbolMapSymbolsJson(aModel.fSymbols) + ',' +
     '"diagnostics":' + SymbolMapDiagnosticsJson(aModel.fDiagnostics) +
-    '}]}';
+    '}],"symbolCount":' + Length(aModel.fSymbols).ToString + '}';
 end;
 
 procedure WriteSymbolMapJsonShell(const aOptions: TAppOptions; const aContext: TSymbolMapContext;
