@@ -99,6 +99,24 @@ type
   end;
 
   [TestFixture]
+  TSymbolMapCentralCacheReuseTests = class
+  private
+    function BuildContext(const aProjectName, aCacheRoot: string; out aContext: TSymbolMapContext): string;
+    function FixtureUnitPath: string;
+    function UniqueTempPath(const aPrefix: string): string;
+    function UnitModelCount(const aDbPath, aUnitCacheKey: string): Integer;
+  public
+    [Test]
+    procedure RepeatedStoreReportsHitAndKeepsSingleUnitModel;
+    [Test]
+    procedure SharedSourceAcrossProjectsReusesUnitCacheKey;
+    [Test]
+    procedure EquivalentProjectDefineTextReusesUnitCacheKey;
+    [Test]
+    procedure ChangedDefinesProduceDifferentUnitCacheKey;
+  end;
+
+  [TestFixture]
   TSymbolMapCliTests = class
   private
     procedure SetParams(const aCmdLine: string);
@@ -556,6 +574,180 @@ begin
     'Expected indexed property row in central cache.');
   Assert.AreEqual(1, MemberCacheCount(lStatus.fCentralDbPath, 'TDefaultVisibilityClass', 'DefaultField'),
     'Expected default visibility field row in central cache.');
+end;
+
+function TSymbolMapCentralCacheReuseTests.BuildContext(const aProjectName, aCacheRoot: string;
+  out aContext: TSymbolMapContext): string;
+var
+  lDprPath: string;
+  lDprojPath: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lProjectDir: string;
+begin
+  lProjectDir := UniqueTempPath(aProjectName);
+  ForceDirectories(lProjectDir);
+  lDprPath := TPath.Combine(lProjectDir, aProjectName + '.dpr');
+  lDprojPath := TPath.Combine(lProjectDir, aProjectName + '.dproj');
+  TFile.WriteAllText(lDprPath, 'program ' + aProjectName + ';' + sLineBreak + 'begin' + sLineBreak + 'end.',
+    TEncoding.UTF8);
+  TFile.WriteAllText(lDprojPath, '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
+    '<PropertyGroup><MainSource>' + aProjectName + '.dpr</MainSource></PropertyGroup></Project>',
+    TEncoding.UTF8);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fSymbolMapCacheRoot := aCacheRoot;
+  lOptions.fHasSymbolMapCacheRoot := True;
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, aContext, lError), 'Expected context. Error: ' + lError);
+  Result := lDprojPath;
+end;
+
+function TSymbolMapCentralCacheReuseTests.FixtureUnitPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapMembers.pas');
+end;
+
+function TSymbolMapCentralCacheReuseTests.UniqueTempPath(const aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
+end;
+
+function TSymbolMapCentralCacheReuseTests.UnitModelCount(const aDbPath, aUnitCacheKey: string): Integer;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    Result := lConnection.ExecSQLScalar(
+      'select count(*) from unit_models where unit_cache_key = ?', [aUnitCacheKey]);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+procedure TSymbolMapCentralCacheReuseTests.RepeatedStoreReportsHitAndKeepsSingleUnitModel;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lFirst: TSymbolMapCacheStoreResult;
+  lModel: TSymbolMapUnitModel;
+  lSecond: TSymbolMapCacheStoreResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-reuse-cache');
+  BuildContext('SymbolMapReuseA', lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected member unit extraction. Error: ' + lError);
+
+  Assert.IsTrue(StoreSymbolMapUnitModel(lContext, lStatus, lModel, lFirst, lError),
+    'Expected first store. Error: ' + lError);
+  Assert.IsFalse(lFirst.fCacheHit, 'Expected first store to miss.');
+  Assert.IsTrue(StoreSymbolMapUnitModel(lContext, lStatus, lModel, lSecond, lError),
+    'Expected second store. Error: ' + lError);
+  Assert.IsTrue(lSecond.fCacheHit, 'Expected second store to hit.');
+  Assert.AreEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
+  Assert.AreEqual(1, UnitModelCount(lStatus.fCentralDbPath, lFirst.fUnitCacheKey));
+end;
+
+procedure TSymbolMapCentralCacheReuseTests.SharedSourceAcrossProjectsReusesUnitCacheKey;
+var
+  lCacheRoot: string;
+  lContextA: TSymbolMapContext;
+  lContextB: TSymbolMapContext;
+  lError: string;
+  lFirst: TSymbolMapCacheStoreResult;
+  lModel: TSymbolMapUnitModel;
+  lSecond: TSymbolMapCacheStoreResult;
+  lStatusA: TSymbolMapCacheStatus;
+  lStatusB: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-shared-cache');
+  BuildContext('SymbolMapSharedA', lCacheRoot, lContextA);
+  BuildContext('SymbolMapSharedB', lCacheRoot, lContextB);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContextA, lStatusA, lError), 'Expected cache A. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContextB, lStatusB, lError), 'Expected cache B. Error: ' + lError);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected member unit extraction. Error: ' + lError);
+
+  Assert.IsTrue(StoreSymbolMapUnitModel(lContextA, lStatusA, lModel, lFirst, lError),
+    'Expected first store. Error: ' + lError);
+  Assert.IsTrue(StoreSymbolMapUnitModel(lContextB, lStatusB, lModel, lSecond, lError),
+    'Expected shared store. Error: ' + lError);
+  Assert.AreEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
+  Assert.IsTrue(lSecond.fCacheHit, 'Expected second project to reuse the central unit model.');
+end;
+
+procedure TSymbolMapCentralCacheReuseTests.EquivalentProjectDefineTextReusesUnitCacheKey;
+var
+  lCacheRoot: string;
+  lContextA: TSymbolMapContext;
+  lContextB: TSymbolMapContext;
+  lError: string;
+  lFirst: TSymbolMapCacheStoreResult;
+  lModel: TSymbolMapUnitModel;
+  lSecond: TSymbolMapCacheStoreResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-equivalent-defines-cache');
+  BuildContext('SymbolMapEquivalentDefinesA', lCacheRoot, lContextA);
+  lContextA.fDefines := TArray<string>.Create('NET', 'DLL');
+  lContextA.fProject.fParserDefines := 'NET;DLL';
+  lContextB := lContextA;
+  lContextB.fProject.fParserDefines := ' DLL ; NET ';
+  Assert.IsTrue(EnsureSymbolMapCaches(lContextA, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected member unit extraction. Error: ' + lError);
+
+  Assert.IsTrue(StoreSymbolMapUnitModel(lContextA, lStatus, lModel, lFirst, lError),
+    'Expected first store. Error: ' + lError);
+  Assert.IsTrue(StoreSymbolMapUnitModel(lContextB, lStatus, lModel, lSecond, lError),
+    'Expected equivalent define store. Error: ' + lError);
+  Assert.AreEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
+  Assert.IsTrue(lSecond.fCacheHit, 'Expected equivalent define text to reuse the central unit model.');
+end;
+
+procedure TSymbolMapCentralCacheReuseTests.ChangedDefinesProduceDifferentUnitCacheKey;
+var
+  lCacheRoot: string;
+  lContextA: TSymbolMapContext;
+  lContextB: TSymbolMapContext;
+  lError: string;
+  lFirst: TSymbolMapCacheStoreResult;
+  lModel: TSymbolMapUnitModel;
+  lSecond: TSymbolMapCacheStoreResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-define-cache');
+  BuildContext('SymbolMapDefineA', lCacheRoot, lContextA);
+  lContextB := lContextA;
+  lContextB.fDefines := TArray<string>.Create('NET');
+  Assert.IsTrue(EnsureSymbolMapCaches(lContextA, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected member unit extraction. Error: ' + lError);
+
+  Assert.IsTrue(StoreSymbolMapUnitModel(lContextA, lStatus, lModel, lFirst, lError),
+    'Expected first store. Error: ' + lError);
+  Assert.IsTrue(StoreSymbolMapUnitModel(lContextB, lStatus, lModel, lSecond, lError),
+    'Expected define-specific store. Error: ' + lError);
+  Assert.AreNotEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
+  Assert.IsFalse(lSecond.fCacheHit, 'Expected changed defines to produce a cache miss.');
 end;
 
 function TSymbolMapTopLevelDeclarationTests.FindSymbol(const aModel: TSymbolMapUnitModel; const aName, aKind,
@@ -1117,6 +1309,7 @@ initialization
   TDUnitX.RegisterTestFixture(TSymbolMapSourceUnitTests);
   TDUnitX.RegisterTestFixture(TSymbolMapTopLevelDeclarationTests);
   TDUnitX.RegisterTestFixture(TSymbolMapMemberExtractionTests);
+  TDUnitX.RegisterTestFixture(TSymbolMapCentralCacheReuseTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCliTests);
 
 end.

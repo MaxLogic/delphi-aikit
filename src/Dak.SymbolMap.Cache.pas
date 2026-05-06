@@ -17,15 +17,24 @@ type
     fProjectCreated: Boolean;
   end;
 
+  TSymbolMapCacheStoreResult = record
+    fUnitCacheKey: string;
+    fFileHash: string;
+    fContextHash: string;
+    fCacheHit: Boolean;
+  end;
+
 function EnsureSymbolMapCaches(const aContext: TSymbolMapContext; out aStatus: TSymbolMapCacheStatus;
   out aError: string): Boolean;
 function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
-  const aModel: TSymbolMapUnitModel; out aError: string): Boolean;
+  const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; overload;
+function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModel: TSymbolMapUnitModel; out aError: string): Boolean; overload;
 
 implementation
 
 uses
-  System.IOUtils, System.SysUtils, System.Variants,
+  System.Classes, System.Hash, System.IOUtils, System.SysUtils, System.Variants,
   Winapi.Windows,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite;
 
@@ -33,6 +42,8 @@ const
   cCentralDbFileName = 'symbol-map.sqlite3';
   cProjectDbFileName = 'project-index.sqlite3';
   cCentralCacheMutexName = 'Local\DelphiAIKit.SymbolMap.Cache.v1';
+  cSymbolMapParserVersion = 'symbol-map-parser-v1';
+  cSymbolMapIncludeGraphHash = 'no-includes-v1';
 
 function OpenCacheConnection(const aDbPath: string; out aDriverLink: TFDPhysSQLiteDriverLink;
   out aConnection: TFDConnection; out aError: string): Boolean;
@@ -250,29 +261,163 @@ begin
     Result := 0;
 end;
 
-function BuildTemporaryUnitCacheKey(const aContext: TSymbolMapContext; const aModel: TSymbolMapUnitModel): string;
+function HashBytes(const aBytes: TBytes): string;
+var
+  lHash: THashSHA2;
 begin
-  Result := LowerCase(TPath.GetFullPath(aContext.fProject.fProjectPath)) + '|' +
-    LowerCase(TPath.GetFullPath(aModel.fFilePath));
+  lHash := THashSHA2.Create;
+  if Length(aBytes) > 0 then
+    lHash.Update(aBytes);
+  Result := lHash.HashAsString;
+end;
+
+function HashText(const aText: string): string;
+begin
+  Result := THashSHA2.GetHashString(aText);
+end;
+
+function NormalizeStringArray(const aValues: TArray<string>; const aSortValues: Boolean): string;
+var
+  lList: TStringList;
+  lNormalized: string;
+  lValue: string;
+begin
+  lList := TStringList.Create;
+  try
+    lList.CaseSensitive := False;
+    lList.Sorted := aSortValues;
+    if aSortValues then
+      lList.Duplicates := dupIgnore;
+    for lValue in aValues do
+    begin
+      lNormalized := LowerCase(Trim(lValue));
+      if lNormalized <> '' then
+        lList.Add(lNormalized);
+    end;
+    Result := lList.Text;
+  finally
+    lList.Free;
+  end;
+end;
+
+function NormalizeDefines(const aDefines: TArray<string>; const aParserDefines: string): string;
+var
+  lParserDefines: TArray<string>;
+begin
+  if Length(aDefines) > 0 then
+    Exit(NormalizeStringArray(aDefines, True));
+
+  lParserDefines := aParserDefines.Split([';']);
+  Result := NormalizeStringArray(lParserDefines, True);
+end;
+
+function BuildContextHash(const aContext: TSymbolMapContext): string;
+var
+  lBuilder: TStringBuilder;
+begin
+  lBuilder := TStringBuilder.Create;
+  try
+    lBuilder.AppendLine('schema=' + cSymbolMapSchemaVersion.ToString);
+    lBuilder.AppendLine('parser=' + cSymbolMapParserVersion);
+    lBuilder.AppendLine('includeGraph=' + cSymbolMapIncludeGraphHash);
+    lBuilder.AppendLine('delphi=' + LowerCase(Trim(aContext.fDelphiVersion)));
+    lBuilder.AppendLine('platform=' + LowerCase(Trim(aContext.fPlatform)));
+    lBuilder.AppendLine('defines=' + NormalizeDefines(aContext.fDefines, aContext.fProject.fParserDefines));
+    lBuilder.AppendLine('unitScopes=' + NormalizeStringArray(aContext.fUnitScopes, False));
+    lBuilder.AppendLine('unitAliases=' + NormalizeStringArray(aContext.fUnitAliases, False));
+    Result := HashText(lBuilder.ToString);
+  finally
+    lBuilder.Free;
+  end;
+end;
+
+procedure BuildUnitCacheIdentity(const aContext: TSymbolMapContext; const aModel: TSymbolMapUnitModel;
+  out aFileHash, aContextHash, aUnitCacheKey: string);
+var
+  lBytes: TBytes;
+begin
+  lBytes := TFile.ReadAllBytes(aModel.fFilePath);
+  aFileHash := HashBytes(lBytes);
+  aContextHash := BuildContextHash(aContext);
+  aUnitCacheKey := HashText('unit|' + cSymbolMapSchemaVersion.ToString + '|' + cSymbolMapParserVersion + '|' +
+    aFileHash + '|' + cSymbolMapIncludeGraphHash + '|' + aContextHash);
+end;
+
+function CentralUnitModelExists(const aConnection: TFDConnection; const aUnitCacheKey: string): Boolean;
+begin
+  Result := aConnection.ExecSQLScalar('select count(*) from unit_models where unit_cache_key = ?',
+    [aUnitCacheKey]) > 0;
+end;
+
+procedure StoreUnitUses(const aConnection: TFDConnection; const aUnitCacheKey: string;
+  const aModel: TSymbolMapUnitModel);
+var
+  lUse: TSymbolMapUnitUse;
+begin
+  aConnection.ExecSQL('delete from unit_uses where unit_cache_key = ?', [aUnitCacheKey]);
+  for lUse in aModel.fUses do
+  begin
+    aConnection.ExecSQL('insert into unit_uses(unit_cache_key, used_unit_name, section_kind, line_no, col_no) ' +
+      'values (?, ?, ?, ?, ?)', [aUnitCacheKey, lUse.fUnitName, lUse.fSectionKind, lUse.fLine, lUse.fCol]);
+  end;
+end;
+
+procedure StoreSymbols(const aConnection: TFDConnection; const aUnitCacheKey: string;
+  const aModel: TSymbolMapUnitModel);
+var
+  i: Integer;
+  lFullName: string;
+  lSymbol: TSymbolMapSymbolModel;
+begin
+  aConnection.ExecSQL('delete from symbols where unit_cache_key = ?', [aUnitCacheKey]);
+  for i := 0 to High(aModel.fSymbols) do
+  begin
+    lSymbol := aModel.fSymbols[i];
+    if lSymbol.fOwnerName <> '' then
+      lFullName := lSymbol.fOwnerName + '.' + lSymbol.fName
+    else
+      lFullName := lSymbol.fName;
+    aConnection.ExecSQL('insert into symbols(' +
+      'unit_cache_key, symbol_id, name, normalized_name, full_name, kind, owner_name, type_name, signature, ' +
+      'visibility, section_kind, flags, line_no, col_no, end_line_no, end_col_no) ' +
+      'values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [aUnitCacheKey, aUnitCacheKey + ':' + i.ToString, lSymbol.fName, LowerCase(lSymbol.fName), lFullName,
+      lSymbol.fKind, lSymbol.fOwnerName, lSymbol.fTypeName, lSymbol.fSignature, '', lSymbol.fSectionKind, '',
+      lSymbol.fLine, lSymbol.fCol, lSymbol.fEndLine, lSymbol.fEndCol]);
+  end;
 end;
 
 function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
-  const aModel: TSymbolMapUnitModel; out aError: string): Boolean;
+  const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean;
 var
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
   lMember: TSymbolMapMemberModel;
+  lMutexHandle: THandle;
   lUnitCacheKey: string;
 begin
   Result := False;
+  aResult := Default(TSymbolMapCacheStoreResult);
   aError := '';
+  BuildUnitCacheIdentity(aContext, aModel, aResult.fFileHash, aResult.fContextHash, aResult.fUnitCacheKey);
+  lUnitCacheKey := aResult.fUnitCacheKey;
+  if not AcquireCentralCacheMutex(lMutexHandle, aError) then
+    Exit(False);
+  try
   if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
     Exit(False);
   try
     try
-      lUnitCacheKey := BuildTemporaryUnitCacheKey(aContext, aModel);
+      aResult.fCacheHit := CentralUnitModelExists(lConnection, lUnitCacheKey);
+      if aResult.fCacheHit then
+        Exit(True);
       lConnection.StartTransaction;
       try
+        lConnection.ExecSQL('insert or replace into source_files(' +
+          'file_hash, size_bytes, first_seen_utc, last_seen_utc) values (?, ?, ?, ?)',
+          [aResult.fFileHash, TFile.GetSize(aModel.fFilePath), DateTimeToStr(Now), DateTimeToStr(Now)]);
+        StoreUnitUses(lConnection, lUnitCacheKey, aModel);
+        StoreSymbols(lConnection, lUnitCacheKey, aModel);
         lConnection.ExecSQL('delete from members where unit_cache_key = ?', [lUnitCacheKey]);
         for lMember in aModel.fMembers do
         begin
@@ -283,6 +428,11 @@ begin
             lMember.fTypeName, lMember.fVisibility, BoolToDbInt(lMember.fIsDefault),
             BoolToDbInt(lMember.fIsIndexed), lMember.fLine, lMember.fCol]);
         end;
+        lConnection.ExecSQL('insert into unit_models(' +
+          'unit_cache_key, unit_name, file_hash, file_path_sample, context_hash, parser_version, schema_version, ' +
+          'diagnostics_json, parsed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [lUnitCacheKey, aModel.fUnitName, aResult.fFileHash, aModel.fFilePath, aResult.fContextHash,
+          cSymbolMapParserVersion, cSymbolMapSchemaVersion, '', DateTimeToStr(Now)]);
         lConnection.Commit;
       except
         lConnection.Rollback;
@@ -294,9 +444,24 @@ begin
         aError := E.Message;
     end;
   finally
-    lConnection.Free;
-    lDriverLink.Free;
+      lConnection.Free;
+      lDriverLink.Free;
+    end;
+  finally
+    if lMutexHandle <> 0 then
+    begin
+      ReleaseMutex(lMutexHandle);
+      CloseHandle(lMutexHandle);
+    end;
   end;
+end;
+
+function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModel: TSymbolMapUnitModel; out aError: string): Boolean;
+var
+  lResult: TSymbolMapCacheStoreResult;
+begin
+  Result := StoreSymbolMapUnitModel(aContext, aStatus, aModel, lResult, aError);
 end;
 
 end.
