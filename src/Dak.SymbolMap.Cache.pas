@@ -520,6 +520,27 @@ begin
     [aProfileKey]);
 end;
 
+function CompilerIntrinsicsMatchSeeds(const aConnection: TFDConnection; const aProfileKey: string): Boolean;
+var
+  lSeed: TSymbolMapIntrinsicSeed;
+  lSeeds: TArray<TSymbolMapIntrinsicSeed>;
+begin
+  lSeeds := BuildIntrinsicSeeds;
+  if CountCompilerIntrinsics(aConnection, aProfileKey) <> Length(lSeeds) then
+    Exit(False);
+
+  for lSeed in lSeeds do
+  begin
+    if aConnection.ExecSQLScalar(
+      'select count(*) from compiler_intrinsics where profile_key = ? and lower(name) = lower(?) ' +
+      'and kind = ? and signature = ? and notes = ?',
+      [aProfileKey, lSeed.fName, lSeed.fKind, lSeed.fSignature, lSeed.fNotes]) <> 1 then
+      Exit(False);
+  end;
+
+  Result := True;
+end;
+
 procedure StoreCompilerIntrinsics(const aConnection: TFDConnection; const aProfileKey: string;
   out aIntrinsicCount: Integer);
 var
@@ -669,8 +690,6 @@ function EnsureSymbolMapCompilerProfileForRoot(const aContext: TSymbolMapContext
 var
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
-  lExistingIntrinsicCount: Integer;
-  lExpectedIntrinsicCount: Integer;
   lMutexHandle: THandle;
 begin
   Result := False;
@@ -685,13 +704,11 @@ begin
       Exit(False);
     try
       try
-        lExpectedIntrinsicCount := Length(BuildIntrinsicSeeds);
-        lExistingIntrinsicCount := CountCompilerIntrinsics(lConnection, aResult.fProfileKey);
         aResult.fCacheHit := CentralCompilerProfileExists(lConnection, aResult.fProfileKey) and
-          (lExistingIntrinsicCount = lExpectedIntrinsicCount);
+          CompilerIntrinsicsMatchSeeds(lConnection, aResult.fProfileKey);
         if aResult.fCacheHit then
         begin
-          aResult.fIntrinsicCount := lExistingIntrinsicCount;
+          aResult.fIntrinsicCount := CountCompilerIntrinsics(lConnection, aResult.fProfileKey);
           Exit(True);
         end;
 

@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added Symbol Map-backed `remove-with` recognition for compiler/RTL intrinsics and a stale-intrinsic cache repair check, so seeded compiler symbols such as `Abs`, `Sqr`, `Succ`, and `Assert` resolve without expanding the legacy allowlist. (T-178)
 - Added an internal `remove-with` Symbol Map lookup bridge that prepares a project Symbol Map session once per command, exposes compiler/profile/project lookup metadata in resolver JSON, and keeps current rewrite decisions unchanged. (T-199)
 - Documented Symbol Map CLI usage, central and project cache behavior, cleanup/invalidation, cache-root overrides, and relationship to LSP and `remove-with`. (T-197)
 - Added a direct Symbol Map resolver API for definition lookups by name or source position with cache/compiler-profile status reporting. (T-196)
