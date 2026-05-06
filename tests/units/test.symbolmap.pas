@@ -9,7 +9,7 @@ uses
   System.Variants,
   DUnitX.TestFramework,
   maxLogic.CmdLineParams,
-  Dak.Cli, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer, Dak.Types,
+  Dak.Cli, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer, Dak.SymbolMap.Query, Dak.Types,
   Test.Support;
 
 type
@@ -158,6 +158,27 @@ type
   end;
 
   [TestFixture]
+  TSymbolMapDefinitionQueryTests = class
+  private
+    function BuildFreshResolverExe: string;
+    function BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext): string;
+    function FixtureProjectPath: string;
+    procedure IndexFixtureProject(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus);
+    function UniqueTempPath(const aPrefix: string): string;
+    function WindowsCmdExePath: string;
+    procedure WriteRtlUnit(const aRoot, aRelativePath, aUnitName: string);
+  public
+    [Test]
+    procedure FindsProjectDefinitionByPositionAndName;
+    [Test]
+    procedure SearchesProjectMembersRtlSourceAndIntrinsics;
+    [Test]
+    procedure DescribesOwnedMembersAndIntrinsics;
+    [Test]
+    procedure CliFindDefinitionReturnsJsonResult;
+  end;
+
+  [TestFixture]
   TSymbolMapCliTests = class
   private
     procedure SetParams(const aCmdLine: string);
@@ -180,8 +201,7 @@ uses
   System.Threading,
   Winapi.Windows,
   FireDAC.Comp.Client,
-  FireDAC.Phys.SQLite,
-  Dak.SymbolMap.Cache;
+  FireDAC.Phys.SQLite;
 
 function TSymbolMapContextTests.FixtureProjectPath: string;
 begin
@@ -1098,6 +1118,242 @@ begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
 end;
 
+function TSymbolMapDefinitionQueryTests.BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext):
+  string;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23';
+  lOptions.fSymbolMapCacheRoot := aCacheRoot;
+  lOptions.fHasSymbolMapCacheRoot := True;
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, aContext, lError), 'Expected context. Error: ' + lError);
+  Result := FixtureProjectPath;
+end;
+
+function TSymbolMapDefinitionQueryTests.BuildFreshResolverExe: string;
+var
+  lArgs: string;
+  lBat: string;
+  lCmdArgs: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lLogText: string;
+  lOutputDir: string;
+begin
+  lOutputDir := UniqueTempPath('symbol-map-query-resolver');
+  ForceDirectories(lOutputDir);
+  lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
+  lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
+    ' -config Release -platform Win32 -ver 23 -test-output-dir ' + QuoteArg(lOutputDir);
+  lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
+  lLogPath := UniqueTempPath('symbol-map-query-resolver-build') + '.log';
+  Assert.IsTrue(RunProcess(WindowsCmdExePath, lCmdArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start resolver build.');
+  if lExitCode <> 0 then
+  begin
+    lLogText := '';
+    if TFile.Exists(lLogPath) then
+      lLogText := TFile.ReadAllText(lLogPath);
+    Assert.Fail('Expected resolver build to succeed. See: ' + lLogPath + sLineBreak + lLogText);
+  end;
+  Result := TPath.Combine(lOutputDir, 'DelphiAIKit.exe');
+  Assert.IsTrue(TFile.Exists(Result), 'Expected fresh resolver exe: ' + Result);
+end;
+
+function TSymbolMapDefinitionQueryTests.FixtureProjectPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
+end;
+
+procedure TSymbolMapDefinitionQueryTests.IndexFixtureProject(const aContext: TSymbolMapContext;
+  const aStatus: TSymbolMapCacheStatus);
+var
+  lError: string;
+  lModel: TSymbolMapUnitModel;
+  lUnitPath: string;
+  lUnitPaths: TArray<string>;
+begin
+  lUnitPaths := [
+    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapDeclarations.pas'),
+    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapMembers.pas'),
+    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas')];
+  for lUnitPath in lUnitPaths do
+  begin
+    Assert.IsTrue(TryExtractSymbolMapUnitModel(lUnitPath, lModel, lError),
+      'Expected source extraction. Error: ' + lError);
+    Assert.IsTrue(StoreSymbolMapUnitModel(aContext, aStatus, lModel, lError),
+      'Expected unit model storage. Error: ' + lError);
+  end;
+end;
+
+function TSymbolMapDefinitionQueryTests.UniqueTempPath(const aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
+end;
+
+function TSymbolMapDefinitionQueryTests.WindowsCmdExePath: string;
+begin
+  Result := TPath.Combine(GetEnvironmentVariable('SystemRoot'), 'System32\cmd.exe');
+  if not TFile.Exists(Result) then
+    Result := 'cmd.exe';
+end;
+
+procedure TSymbolMapDefinitionQueryTests.WriteRtlUnit(const aRoot, aRelativePath, aUnitName: string);
+var
+  lPath: string;
+begin
+  lPath := TPath.Combine(aRoot, aRelativePath);
+  ForceDirectories(TPath.GetDirectoryName(lPath));
+  TFile.WriteAllText(lPath, 'unit ' + aUnitName + ';' + sLineBreak + sLineBreak + 'interface' + sLineBreak +
+    'type' + sLineBreak + '  T' + StringReplace(aUnitName, '.', '', [rfReplaceAll]) + 'Fixture = record' +
+    sLineBreak + '    Value: Integer;' + sLineBreak + '  end;' + sLineBreak + sLineBreak + 'implementation' +
+    sLineBreak + sLineBreak + 'end.', TEncoding.UTF8);
+end;
+
+procedure TSymbolMapDefinitionQueryTests.FindsProjectDefinitionByPositionAndName;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
+  lError: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-query-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile. Error: ' + lError);
+  IndexFixtureProject(lContext, lStatus);
+
+  Assert.IsTrue(FindSymbolMapDefinitionByPosition(lContext, lStatus, lProfile,
+    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas'), 10, 3, lDefinition, lError),
+    'Expected position lookup. Error: ' + lError);
+
+  Assert.IsTrue(lDefinition.fFound, 'Expected definition at TSymbolMapFixture declaration.');
+  Assert.AreEqual('TSymbolMapFixture', lDefinition.fName);
+  Assert.AreEqual('type', lDefinition.fKind);
+  Assert.AreEqual('project', lDefinition.fSourceKind);
+  Assert.AreEqual('exact', lDefinition.fConfidence);
+  Assert.IsTrue(lDefinition.fFilePath.EndsWith('SymbolMapUnit.pas'), 'Expected fixture unit file.');
+
+  Assert.IsTrue(FindSymbolMapDefinitionByName(lContext, lStatus, lProfile, 'TDeclarationRecord', '',
+    lDefinition, lError), 'Expected name lookup. Error: ' + lError);
+  Assert.AreEqual('TDeclarationRecord', lDefinition.fName);
+  Assert.AreEqual('type', lDefinition.fKind);
+end;
+
+procedure TSymbolMapDefinitionQueryTests.SearchesProjectMembersRtlSourceAndIntrinsics;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lResults: TArray<TSymbolMapDefinition>;
+  lRoot: string;
+  lRtl: TSymbolMapRtlIndexResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-search-cache');
+  lRoot := UniqueTempPath('symbol-map-search-rtl');
+  WriteRtlUnit(lRoot, 'rtl\sys\System.pas', 'System');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile. Error: ' + lError);
+  IndexFixtureProject(lContext, lStatus);
+  Assert.IsTrue(IndexSymbolMapRtlSources(lContext, lStatus, lRoot, lProfile, lRtl, lError),
+    'Expected RTL source index. Error: ' + lError);
+
+  Assert.IsTrue(SearchSymbolMapDefinitions(lContext, lStatus, lProfile, 'enabled', 20, lResults, lError),
+    'Expected member search. Error: ' + lError);
+  Assert.IsTrue(Length(lResults) > 0, 'Expected search results.');
+  Assert.AreEqual('Enabled', lResults[0].fName);
+  Assert.AreEqual('property', lResults[0].fKind);
+  Assert.AreEqual('TMemberClass', lResults[0].fOwnerName);
+
+  Assert.IsTrue(SearchSymbolMapDefinitions(lContext, lStatus, lProfile, 'TSystemFixture', 20, lResults, lError),
+    'Expected RTL source search. Error: ' + lError);
+  Assert.IsTrue(Length(lResults) > 0, 'Expected RTL source result.');
+  Assert.AreEqual('rtl-source', lResults[0].fSourceKind);
+
+  Assert.IsTrue(SearchSymbolMapDefinitions(lContext, lStatus, lProfile, 'sizeof', 20, lResults, lError),
+    'Expected intrinsic search. Error: ' + lError);
+  Assert.IsTrue(Length(lResults) > 0, 'Expected intrinsic result.');
+  Assert.AreEqual('SizeOf', lResults[0].fName);
+  Assert.AreEqual('compiler-intrinsic', lResults[0].fSourceKind);
+end;
+
+procedure TSymbolMapDefinitionQueryTests.DescribesOwnedMembersAndIntrinsics;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
+  lError: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-describe-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile. Error: ' + lError);
+  IndexFixtureProject(lContext, lStatus);
+
+  Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'Name', 'TMemberClass', lDefinition,
+    lError), 'Expected member describe. Error: ' + lError);
+  Assert.IsTrue(lDefinition.fFound, 'Expected owned member.');
+  Assert.AreEqual('Name', lDefinition.fName);
+  Assert.AreEqual('property', lDefinition.fKind);
+  Assert.AreEqual('TMemberClass', lDefinition.fOwnerName);
+
+  Assert.IsTrue(DescribeSymbolMapDefinition(lContext, lStatus, lProfile, 'SizeOf', '', lDefinition, lError),
+    'Expected intrinsic describe. Error: ' + lError);
+  Assert.AreEqual('SizeOf', lDefinition.fName);
+  Assert.AreEqual('compiler-intrinsic', lDefinition.fSourceKind);
+end;
+
+procedure TSymbolMapDefinitionQueryTests.CliFindDefinitionReturnsJsonResult;
+var
+  lArgs: string;
+  lCacheRoot: string;
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lLogPath: string;
+  lLogText: string;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-cli-definition-cache');
+  lLogPath := UniqueTempPath('symbol-map-cli-definition') + '.log';
+  lArgs := 'symbol-map find-definition --project ' + QuoteArg(FixtureProjectPath) + ' --file ' +
+    QuoteArg(TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas')) +
+    ' --line 1 --col 1 --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
+
+  Assert.IsTrue(RunProcess(BuildFreshResolverExe, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start symbol-map find-definition command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected find-definition to succeed. See: ' + lLogPath);
+  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lJson := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    Assert.AreEqual('find-definition', TJSONObject(lJson).GetValue<string>('operation'));
+    Assert.AreEqual('SymbolMapUnit', TJSONObject(lJson).GetValue<string>('result.definition.name'));
+    Assert.AreEqual('unit', TJSONObject(lJson).GetValue<string>('result.definition.kind'));
+    Assert.AreEqual('project', TJSONObject(lJson).GetValue<string>('result.definition.sourceKind'));
+  finally
+    lJson.Free;
+  end;
+end;
+
 function TSymbolMapRtlIndexTests.ProfileSourceKind(const aDbPath, aProfileKey, aUnitName: string): string;
 var
   lConnection: TFDConnection;
@@ -1792,6 +2048,7 @@ initialization
   TDUnitX.RegisterTestFixture(TSymbolMapCentralCacheReuseTests);
   TDUnitX.RegisterTestFixture(TSymbolMapIntrinsicProfileTests);
   TDUnitX.RegisterTestFixture(TSymbolMapRtlIndexTests);
+  TDUnitX.RegisterTestFixture(TSymbolMapDefinitionQueryTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCliTests);
 
 end.
