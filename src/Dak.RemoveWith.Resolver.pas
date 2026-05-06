@@ -132,6 +132,8 @@ type
     class function CandidatesShareSourceOwner(const aCandidates: TArray<TRemoveWithSymbolInfo>): Boolean; static;
     class function IsCallUse(const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse): Boolean;
       static;
+    class function IsAssignmentTargetUse(const aSource: TRemoveWithSourceBuffer;
+      const aUse: TRemoveWithIdentifierUse): Boolean; static;
     class function IsDelphiIntrinsicRoutineUse(const aSource: TRemoveWithSourceBuffer;
       const aUse: TRemoveWithIdentifierUse): Boolean; static;
     class function IsDelphiIntrinsicTypeName(const aName: string): Boolean; static;
@@ -1472,6 +1474,18 @@ begin
   Result := NextNonWhitespaceChar(aSource.fText, aUse.fEndOffset + 1) = '(';
 end;
 
+class function TRemoveWithIdentifierResolver.IsAssignmentTargetUse(const aSource: TRemoveWithSourceBuffer;
+  const aUse: TRemoveWithIdentifierUse): Boolean;
+var
+  lOffset: Integer;
+begin
+  lOffset := aUse.fEndOffset + 1;
+  while (lOffset <= Length(aSource.fText)) and CharInSet(aSource.fText[lOffset], [#9, #10, #13, ' ']) do
+    Inc(lOffset);
+  Result := (lOffset < Length(aSource.fText)) and (aSource.fText[lOffset] = ':') and
+    (aSource.fText[lOffset + 1] = '=');
+end;
+
 class function TRemoveWithIdentifierResolver.IsDelphiIntrinsicRoutineUse(const aSource: TRemoveWithSourceBuffer;
   const aUse: TRemoveWithIdentifierUse): Boolean;
 begin
@@ -1952,7 +1966,10 @@ class function TRemoveWithIdentifierResolver.ClassifyUse(const aInventory: TRemo
   out aClassification: TRemoveWithIdentifierClassification): Boolean;
 var
   lCandidates: TArray<TRemoveWithSymbolInfo>;
+  lHadResolvedReceiver: Boolean;
   lReceiver: TRemoveWithReceiverScope;
+  lResolvedReceiverText: string;
+  lResolvedReceiverType: string;
   lSourceOwnerType: string;
   lSymbol: TRemoveWithSymbolInfo;
   i: Integer;
@@ -1964,6 +1981,9 @@ begin
   aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnresolved;
   aClassification.fResolutionKind := 'unresolved';
   aClassification.fReason := 'symbol-not-found';
+  lHadResolvedReceiver := False;
+  lResolvedReceiverText := '';
+  lResolvedReceiverType := '';
   Result := True;
 
   if IsQualifiedUse(aSource, aUse) and IsDelphiIntrinsicUnitName(aUse.fName) then
@@ -2047,6 +2067,11 @@ begin
         aClassification.fStatus := TRemoveWithIdentifierStatus.rwisExternal;
         aClassification.fReason := 'type-source-not-indexed';
         Exit(True);
+      end else if not lHadResolvedReceiver then
+      begin
+        lHadResolvedReceiver := True;
+        lResolvedReceiverText := aReceivers[i].fSelectorText;
+        lResolvedReceiverType := aReceivers[i].fTypeName;
       end;
     end else if aReceivers[i].fStatus = TRemoveWithSelectorTypeStatus.rwstsExternal then
     begin
@@ -2137,6 +2162,13 @@ begin
     aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
     aClassification.fResolutionKind := 'external-routine-call';
     aClassification.fReason := 'external-routine-call';
+  end else if lHadResolvedReceiver and IsAssignmentTargetUse(aSource, aUse) then
+  begin
+    aClassification.fReceiverText := lResolvedReceiverText;
+    aClassification.fReceiverType := lResolvedReceiverType;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnresolved;
+    aClassification.fResolutionKind := 'unresolved';
+    aClassification.fReason := 'receiver-member-not-found';
   end;
 end;
 

@@ -122,6 +122,35 @@ type
   end;
 
   [TestFixture]
+  TRemoveWithSemanticBinderTests = class(TRemoveWithTestBase)
+  private
+    procedure BuildResolverFixture(out aInventory: TRemoveWithSymbolInventory;
+      out aScanResult: TRemoveWithScanResult);
+    function CommandExePath: string;
+    function FindClassification(const aResult: TRemoveWithResolverResult; const aStatementId,
+      aIdentifier: string; const aStatus: TRemoveWithIdentifierStatus;
+      out aClassification: TRemoveWithIdentifierClassification): Boolean;
+    function RunFixtureJson(const aFixtureName, aProjectName, aLogName: string;
+      out aExitCode: Cardinal): TJSONObject;
+    procedure AssertClassification(const aResult: TRemoveWithResolverResult; const aStatementId,
+      aIdentifier: string; const aStatus: TRemoveWithIdentifierStatus; const aReceiverText,
+      aReason: string);
+    procedure AssertJsonClassification(const aClassifications: TJSONArray; const aStatementId,
+      aIdentifier, aStatus, aResolutionKind, aMemberKind: string);
+    procedure AssertJsonSourceClassification(const aClassifications: TJSONArray; const aStatementId,
+      aIdentifier, aStatus, aResolutionKind, aSourceOwnerType: string);
+  public
+    [Test]
+    procedure BindsReceiverStackBeforeOuterScopes;
+    [Test]
+    procedure BindsRoutineCurrentClassAndGlobalScopes;
+    [Test]
+    procedure BindsHelpersInheritanceInterfacesAndOverloads;
+    [Test]
+    procedure ReportsResolvedReceiverMissingMemberPrecisely;
+  end;
+
+  [TestFixture]
   TRemoveWithPrecedenceTests = class(TRemoveWithTestBase)
   private
     procedure CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
@@ -1733,6 +1762,255 @@ begin
   end;
 end;
 
+function TRemoveWithSemanticBinderTests.CommandExePath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
+end;
+
+procedure TRemoveWithSemanticBinderTests.BuildResolverFixture(out aInventory: TRemoveWithSymbolInventory;
+  out aScanResult: TRemoveWithScanResult);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithResolverFixture\RemoveWithResolverFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+    'Expected resolver fixture inventory build to succeed: ' + lError);
+  Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, aScanResult, lError),
+    'Expected resolver fixture discovery to succeed: ' + lError);
+end;
+
+function TRemoveWithSemanticBinderTests.RunFixtureJson(const aFixtureName, aProjectName,
+  aLogName: string; out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lDprojPath := TPath.Combine(TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName),
+    aProjectName + '.dproj');
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
+
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start semantic binder fixture process.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
+function TRemoveWithSemanticBinderTests.FindClassification(const aResult: TRemoveWithResolverResult;
+  const aStatementId, aIdentifier: string; const aStatus: TRemoveWithIdentifierStatus;
+  out aClassification: TRemoveWithIdentifierClassification): Boolean;
+var
+  lClassification: TRemoveWithIdentifierClassification;
+begin
+  Result := False;
+  aClassification := Default(TRemoveWithIdentifierClassification);
+  for lClassification in aResult.fClassifications do
+  begin
+    if SameText(lClassification.fStatementId, aStatementId) and SameText(lClassification.fIdentifier, aIdentifier)
+      and (lClassification.fStatus = aStatus) then
+    begin
+      aClassification := lClassification;
+      Exit(True);
+    end;
+  end;
+end;
+
+procedure TRemoveWithSemanticBinderTests.AssertClassification(const aResult: TRemoveWithResolverResult;
+  const aStatementId, aIdentifier: string; const aStatus: TRemoveWithIdentifierStatus; const aReceiverText,
+  aReason: string);
+var
+  lClassification: TRemoveWithIdentifierClassification;
+begin
+  Assert.IsTrue(FindClassification(aResult, aStatementId, aIdentifier, aStatus, lClassification),
+    'Expected semantic binder classification ' + aStatementId + ':' + aIdentifier + ':' +
+    RemoveWithIdentifierStatusToText(aStatus));
+  Assert.AreEqual(aReceiverText, lClassification.fReceiverText, 'Unexpected receiver for ' + aIdentifier);
+  Assert.AreEqual(aReason, lClassification.fReason, 'Unexpected reason for ' + aIdentifier);
+  Assert.AreNotEqual(0, lClassification.fLine, 'Expected source line for ' + aIdentifier);
+  Assert.AreNotEqual(0, lClassification.fColumn, 'Expected source column for ' + aIdentifier);
+end;
+
+procedure TRemoveWithSemanticBinderTests.AssertJsonClassification(const aClassifications: TJSONArray;
+  const aStatementId, aIdentifier, aStatus, aResolutionKind, aMemberKind: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('statementId', ''), aStatementId) and
+      SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) and
+      SameText(lObject.GetValue<string>('status', ''), aStatus) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), aResolutionKind) and
+      SameText(lObject.GetValue<string>('memberKind', ''), aMemberKind) then
+      Exit;
+  end;
+  Assert.Fail('Expected semantic binder JSON classification ' + aStatementId + ':' + aIdentifier + ':' +
+    aStatus + ':' + aResolutionKind + ':' + aMemberKind);
+end;
+
+procedure TRemoveWithSemanticBinderTests.AssertJsonSourceClassification(const aClassifications: TJSONArray;
+  const aStatementId, aIdentifier, aStatus, aResolutionKind, aSourceOwnerType: string);
+var
+  lItem: TJSONValue;
+  lObject: TJSONObject;
+begin
+  for lItem in aClassifications do
+  begin
+    if not (lItem is TJSONObject) then
+      Continue;
+    lObject := lItem as TJSONObject;
+    if SameText(lObject.GetValue<string>('statementId', ''), aStatementId) and
+      SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) and
+      SameText(lObject.GetValue<string>('status', ''), aStatus) and
+      SameText(lObject.GetValue<string>('resolutionKind', ''), aResolutionKind) and
+      SameText(lObject.GetValue<string>('sourceOwnerType', ''), aSourceOwnerType) then
+      Exit;
+  end;
+  Assert.Fail('Expected semantic binder source classification ' + aStatementId + ':' + aIdentifier + ':' +
+    aStatus + ':' + aResolutionKind + ':' + aSourceOwnerType);
+end;
+
+procedure TRemoveWithSemanticBinderTests.BindsReceiverStackBeforeOuterScopes;
+var
+  lError: string;
+  lInventory: TRemoveWithSymbolInventory;
+  lResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+begin
+  BuildResolverFixture(lInventory, lScanResult);
+
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResult, lError),
+    'Expected resolver to succeed: ' + lError);
+
+  AssertClassification(lResult, 'with-1', 'Name', TRemoveWithIdentifierStatus.rwisResolved, 'lCustomer', '');
+  AssertClassification(lResult, 'with-1', 'Pick', TRemoveWithIdentifierStatus.rwisResolved, 'lCustomer', '');
+  AssertClassification(lResult, 'with-1', 'lLocalOnly', TRemoveWithIdentifierStatus.rwisUnchanged, '',
+    'routine-scope');
+  AssertClassification(lResult, 'with-2', 'Shared', TRemoveWithIdentifierStatus.rwisResolved, 'lAddress', '');
+  AssertClassification(lResult, 'with-2', 'Name', TRemoveWithIdentifierStatus.rwisResolved, 'lCustomer', '');
+  AssertClassification(lResult, 'with-4', 'City', TRemoveWithIdentifierStatus.rwisResolved, 'Address', '');
+  AssertClassification(lResult, 'with-6', 'City', TRemoveWithIdentifierStatus.rwisUnsupported, 'AddressProp',
+    'property-selector');
+end;
+
+procedure TRemoveWithSemanticBinderTests.BindsRoutineCurrentClassAndGlobalScopes;
+var
+  lClassifications: TJSONArray;
+  lExitCode: Cardinal;
+  lRoot: TJSONObject;
+  lResolver: TJSONObject;
+begin
+  lRoot := RunFixtureJson('RemoveWithGlobalScopeFixture', 'RemoveWithGlobalScopeFixture',
+    'remove-with-semantic-binder-global-scope.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected global scope binder fixture to succeed.');
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+
+    AssertJsonClassification(lClassifications, 'with-1', 'Marker', 'resolved', 'direct', 'field');
+    AssertJsonClassification(lClassifications, 'with-1', 'lLocalOnly', 'unchanged', 'unchanged',
+      'local-variable');
+    AssertJsonClassification(lClassifications, 'with-1', 'aParamOnly', 'unchanged', 'unchanged', 'parameter');
+    AssertJsonClassification(lClassifications, 'with-1', 'CurrentOnly', 'unchanged', 'unchanged',
+      'current-class-member');
+    AssertJsonClassification(lClassifications, 'with-1', 'UnitGlobalOnly', 'unchanged', 'unchanged',
+      'unit-global');
+    AssertJsonClassification(lClassifications, 'with-1', 'ImplGlobalOnly', 'unchanged', 'unchanged',
+      'unit-global');
+    AssertJsonClassification(lClassifications, 'with-1', 'UnitConstOnly', 'unchanged', 'unchanged', 'constant');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+procedure TRemoveWithSemanticBinderTests.BindsHelpersInheritanceInterfacesAndOverloads;
+var
+  lClassifications: TJSONArray;
+  lExitCode: Cardinal;
+  lRoot: TJSONObject;
+  lResolver: TJSONObject;
+begin
+  lRoot := RunFixtureJson('RemoveWithHelperPrecedenceFixture', 'RemoveWithHelperPrecedenceFixture',
+    'remove-with-semantic-binder-helper.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected helper binder fixture to succeed.');
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    AssertJsonSourceClassification(lClassifications, 'with-2', 'Normalize', 'resolved', 'helper',
+      'THelperOnlyRecordHelper');
+    AssertJsonSourceClassification(lClassifications, 'with-2', 'HelperValue', 'resolved', 'helper',
+      'THelperOnlyRecordHelper');
+    AssertJsonClassification(lClassifications, 'with-3', 'Clash', 'ambiguous-to-DAK', 'ambiguous', 'method');
+  finally
+    lRoot.Free;
+  end;
+
+  lRoot := RunFixtureJson('RemoveWithInheritedOverrideFixture', 'RemoveWithInheritedOverrideFixture',
+    'remove-with-semantic-binder-inherited.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected inherited binder fixture to succeed.');
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    AssertJsonSourceClassification(lClassifications, 'with-1', 'BaseField', 'resolved', 'inherited',
+      'TBaseGolden');
+    AssertJsonSourceClassification(lClassifications, 'with-1', 'OverrideMe', 'resolved', 'overridden', '');
+    AssertJsonSourceClassification(lClassifications, 'with-1', 'HiddenMethod', 'resolved', 'hidden', '');
+  finally
+    lRoot.Free;
+  end;
+
+  lRoot := RunFixtureJson('RemoveWithInterfaceResolverFixture', 'RemoveWithInterfaceResolverFixture',
+    'remove-with-semantic-binder-interface.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected interface binder fixture to succeed.');
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    AssertJsonSourceClassification(lClassifications, 'with-1', 'BaseTouch', 'resolved', 'inherited',
+      'IBaseContact');
+    AssertJsonSourceClassification(lClassifications, 'with-1', 'ChildTouch', 'resolved', 'direct', '');
+    AssertJsonSourceClassification(lClassifications, 'with-1', 'ConcreteOnly', 'unresolved', 'unresolved', '');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+procedure TRemoveWithSemanticBinderTests.ReportsResolvedReceiverMissingMemberPrecisely;
+var
+  lError: string;
+  lInventory: TRemoveWithSymbolInventory;
+  lResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+begin
+  BuildResolverFixture(lInventory, lScanResult);
+
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResult, lError),
+    'Expected resolver to succeed: ' + lError);
+
+  AssertClassification(lResult, 'with-9', 'MissingMember', TRemoveWithIdentifierStatus.rwisUnresolved, 'lCustomer',
+    'receiver-member-not-found');
+  AssertClassification(lResult, 'with-9', 'UnknownProcedure', TRemoveWithIdentifierStatus.rwisUnresolved, '',
+    'symbol-not-found');
+end;
+
 procedure TRemoveWithPrecedenceTests.CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
 var
   lPath: string;
@@ -2647,8 +2925,8 @@ begin
     'call-selector');
   AssertClassification(lResult, 'with-8', 'Pick', TRemoveWithIdentifierStatus.rwisUnsupported, 'MakeCustomer()',
     'call-selector');
-  AssertClassification(lResult, 'with-9', 'MissingMember', TRemoveWithIdentifierStatus.rwisUnresolved, '',
-    'symbol-not-found');
+  AssertClassification(lResult, 'with-9', 'MissingMember', TRemoveWithIdentifierStatus.rwisUnresolved, 'lCustomer',
+    'receiver-member-not-found');
   AssertClassification(lResult, 'with-10', 'Clash', TRemoveWithIdentifierStatus.rwisAmbiguousToDak, 'lDuplicate',
     'multiple-member-candidates');
 end;
