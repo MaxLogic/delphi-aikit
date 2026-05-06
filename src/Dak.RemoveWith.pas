@@ -12,7 +12,7 @@ implementation
 uses
   System.Diagnostics, System.IOUtils, System.SysUtils,
   Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Model, Dak.RemoveWith.Output, Dak.RemoveWith.Planner,
-  Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
+  Dak.RemoveWith.Resolver, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
 
 procedure LogRemoveWithProgress(const aOptions: TAppOptions; const aMessage: string);
 begin
@@ -120,6 +120,7 @@ var
   lRunId: string;
   lScanResult: TRemoveWithScanResult;
   lStopwatch: TStopwatch;
+  lSymbolMapBridge: TRemoveWithSymbolMapBridge;
   lSymbolInventory: TRemoveWithSymbolInventory;
   lTransactionResult: TRemoveWithTransactionResult;
   lUnitPath: string;
@@ -129,6 +130,7 @@ begin
   lProjectModel := nil;
   lPlanResult := Default(TRemoveWithPlanResult);
   lResolverResult := Default(TRemoveWithResolverResult);
+  lSymbolMapBridge := Default(TRemoveWithSymbolMapBridge);
   lTransactionResult := Default(TRemoveWithTransactionResult);
 
   if not TryResolveDprojPath(aOptions.fDprojPath, lProjectPath, lError) then
@@ -189,9 +191,22 @@ begin
       LogRemoveWithDone(aOptions, 'symbol-inventory',
         Format('symbols=%d', [Length(lSymbolInventory.fSymbols)]), lStopwatch);
 
+      LogRemoveWithProgress(aOptions, 'symbol-map-bridge start');
+      lStopwatch := TStopwatch.StartNew;
+      if not PrepareRemoveWithSymbolMapBridge(aOptions, lSymbolMapBridge, lError) then
+      begin
+        LogRemoveWithProgress(aOptions, 'symbol-map-bridge warning error=' + lError);
+        lError := '';
+      end;
+      lStopwatch.Stop;
+      LogRemoveWithDone(aOptions, 'symbol-map-bridge',
+        Format('prepared=%s projectIndexed=%s', [BoolToStr(lSymbolMapBridge.fPrepared, True),
+        BoolToStr(lSymbolMapBridge.fStatus.fProjectIndexed, True)]), lStopwatch);
+
       LogRemoveWithProgress(aOptions, 'resolver start');
       lStopwatch := TStopwatch.StartNew;
-      if not ResolveRemoveWithIdentifiers(lSymbolInventory, lScanResult, lResolverResult, lError) then
+      if not ResolveRemoveWithIdentifiers(lSymbolInventory, lScanResult, lSymbolMapBridge, lResolverResult,
+        lError) then
       begin
         WriteLn(ErrOutput, lError);
         Exit(cExitToolFailure);
@@ -240,6 +255,7 @@ begin
       Exit(cExitToolFailure);
     Result := cExitSuccess;
   finally
+    FinalizeRemoveWithSymbolMapBridge(lSymbolMapBridge);
     lProjectModel.Free;
   end;
 end;

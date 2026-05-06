@@ -3,7 +3,7 @@ unit Dak.RemoveWith.Resolver;
 interface
 
 uses
-  Dak.RemoveWith.Discovery, Dak.RemoveWith.Symbols;
+  Dak.RemoveWith.Discovery, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols;
 
 type
   TRemoveWithIdentifierStatus = (rwisResolved, rwisUnchanged, rwisExternal, rwisUnsupported, rwisUnresolved,
@@ -17,10 +17,16 @@ type
     fReceiverType: string;
     fResolutionKind: string;
     fSourceOwnerType: string;
+    fSymbolMapKind: string;
+    fSymbolMapSourceKind: string;
+    fSymbolMapConfidence: string;
+    fSymbolMapOwnerName: string;
+    fSymbolMapReason: string;
     fMemberKind: TRemoveWithSymbolKind;
     fReason: string;
     fLine: Integer;
     fColumn: Integer;
+    fSymbolMapFound: Boolean;
     fStatus: TRemoveWithIdentifierStatus;
   end;
 
@@ -31,6 +37,10 @@ type
 function RemoveWithIdentifierStatusToText(const aStatus: TRemoveWithIdentifierStatus): string;
 function ResolveRemoveWithIdentifiers(const aInventory: TRemoveWithSymbolInventory;
   const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult; out aError: string): Boolean;
+  overload;
+function ResolveRemoveWithIdentifiers(const aInventory: TRemoveWithSymbolInventory;
+  const aScanResult: TRemoveWithScanResult; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
+  out aResult: TRemoveWithResolverResult; out aError: string): Boolean; overload;
 
 implementation
 
@@ -153,6 +163,10 @@ type
       aSelectorText: string; var aInfo: TRemoveWithSelectorTypeInfo); static;
     class procedure AddClassification(var aResult: TRemoveWithResolverResult;
       const aClassification: TRemoveWithIdentifierClassification); static;
+    class function ShouldEnrichWithSymbolMap(const aClassification: TRemoveWithIdentifierClassification): Boolean;
+      static;
+    class procedure EnrichWithSymbolMap(const aBridge: TRemoveWithSymbolMapBridge;
+      var aClassification: TRemoveWithIdentifierClassification); static;
     class procedure CollectIdentifierUses(const aSource: TRemoveWithSourceBuffer;
       const aBodyOffsets: TRemoveWithOffsetRange; const aSkipRanges: TArray<TRemoveWithOffsetRange>;
       out aUses: TArray<TRemoveWithIdentifierUse>); static;
@@ -165,10 +179,14 @@ type
       static;
     class procedure ResolveStatement(const aInventory: TRemoveWithSymbolInventory;
       const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
-      const aSource: TRemoveWithSourceBuffer; var aResult: TRemoveWithResolverResult); static;
+      const aSource: TRemoveWithSourceBuffer; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
+      var aResult: TRemoveWithResolverResult); static;
   public
     class function Resolve(const aInventory: TRemoveWithSymbolInventory; const aScanResult: TRemoveWithScanResult;
-      out aResult: TRemoveWithResolverResult; out aError: string): Boolean; static;
+      out aResult: TRemoveWithResolverResult; out aError: string): Boolean; overload; static;
+    class function Resolve(const aInventory: TRemoveWithSymbolInventory; const aScanResult: TRemoveWithScanResult;
+      const aSymbolMapBridge: TRemoveWithSymbolMapBridge; out aResult: TRemoveWithResolverResult;
+      out aError: string): Boolean; overload; static;
   end;
 
 var
@@ -1777,6 +1795,63 @@ begin
   aResult.fClassifications[lIndex] := aClassification;
 end;
 
+class function TRemoveWithIdentifierResolver.ShouldEnrichWithSymbolMap(
+  const aClassification: TRemoveWithIdentifierClassification): Boolean;
+begin
+  Result := False;
+  if aClassification.fIdentifier = '' then
+    Exit;
+  if (aClassification.fReceiverType <> '') and
+    (aClassification.fStatus = TRemoveWithIdentifierStatus.rwisResolved) then
+    Exit(True);
+
+  case aClassification.fMemberKind of
+    TRemoveWithSymbolKind.rwskUnitGlobal, TRemoveWithSymbolKind.rwskTypeMember,
+    TRemoveWithSymbolKind.rwskConstant, TRemoveWithSymbolKind.rwskRoutine, TRemoveWithSymbolKind.rwskUnitName,
+    TRemoveWithSymbolKind.rwskExternal:
+      Exit(True);
+  end;
+
+  Result := MatchText(aClassification.fResolutionKind, ['external-routine-call', 'type-name', 'qualified-unit',
+    'external-unit', 'type-qualifier']);
+end;
+
+class procedure TRemoveWithIdentifierResolver.EnrichWithSymbolMap(const aBridge: TRemoveWithSymbolMapBridge;
+  var aClassification: TRemoveWithIdentifierClassification);
+var
+  lError: string;
+  lLookup: TRemoveWithSymbolMapLookup;
+  lOwnerName: string;
+begin
+  if (not aBridge.fPrepared) or (not ShouldEnrichWithSymbolMap(aClassification)) then
+    Exit;
+
+  lOwnerName := DirectTypeName(aClassification.fReceiverType);
+  if not FindRemoveWithSymbolMapDefinition(aBridge, aClassification.fIdentifier, lOwnerName, lLookup, lError) then
+  begin
+    aClassification.fSymbolMapReason := 'lookup-error';
+    Exit;
+  end;
+  if (not lLookup.fFound) and (lOwnerName <> '') and
+    FindRemoveWithSymbolMapDefinition(aBridge, aClassification.fIdentifier, '', lLookup, lError) and
+    lLookup.fFound then
+    lOwnerName := '';
+
+  aClassification.fSymbolMapFound := lLookup.fFound;
+  if lLookup.fFound then
+  begin
+    aClassification.fSymbolMapKind := lLookup.fKind;
+    aClassification.fSymbolMapSourceKind := lLookup.fSourceKind;
+    aClassification.fSymbolMapConfidence := lLookup.fConfidence;
+    aClassification.fSymbolMapOwnerName := lLookup.fOwnerName;
+    aClassification.fSymbolMapReason := '';
+  end else begin
+    aClassification.fSymbolMapReason := 'miss';
+    if lOwnerName <> '' then
+      aClassification.fSymbolMapOwnerName := lOwnerName;
+  end;
+end;
+
 class procedure TRemoveWithIdentifierResolver.CollectIdentifierUses(const aSource: TRemoveWithSourceBuffer;
   const aBodyOffsets: TRemoveWithOffsetRange; const aSkipRanges: TArray<TRemoveWithOffsetRange>;
   out aUses: TArray<TRemoveWithIdentifierUse>);
@@ -2174,7 +2249,8 @@ end;
 
 class procedure TRemoveWithIdentifierResolver.ResolveStatement(const aInventory: TRemoveWithSymbolInventory;
   const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
-  const aSource: TRemoveWithSourceBuffer; var aResult: TRemoveWithResolverResult);
+  const aSource: TRemoveWithSourceBuffer; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
+  var aResult: TRemoveWithResolverResult);
 var
   lBodyOffsets: TRemoveWithOffsetRange;
   lClassification: TRemoveWithIdentifierClassification;
@@ -2221,6 +2297,7 @@ begin
   begin
     if not ClassifyUse(aInventory, aSource, lRoutineName, lReceivers, lUse, lClassification) then
       Continue;
+    EnrichWithSymbolMap(aSymbolMapBridge, lClassification);
     lClassification.fStatementId := aStatement.fId;
     lClassification.fFilePath := aStatement.fFilePath;
     AddClassification(aResult, lClassification);
@@ -2229,6 +2306,16 @@ end;
 
 class function TRemoveWithIdentifierResolver.Resolve(const aInventory: TRemoveWithSymbolInventory;
   const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult; out aError: string): Boolean;
+var
+  lBridge: TRemoveWithSymbolMapBridge;
+begin
+  lBridge := Default(TRemoveWithSymbolMapBridge);
+  Result := Resolve(aInventory, aScanResult, lBridge, aResult, aError);
+end;
+
+class function TRemoveWithIdentifierResolver.Resolve(const aInventory: TRemoveWithSymbolInventory;
+  const aScanResult: TRemoveWithScanResult; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
+  out aResult: TRemoveWithResolverResult; out aError: string): Boolean;
 var
   lCurrentPath: string;
   lSource: TRemoveWithSourceBuffer;
@@ -2251,7 +2338,7 @@ begin
             Exit(False);
           lCurrentPath := lStatement.fFilePath;
         end;
-        ResolveStatement(aInventory, aScanResult, lStatement, lSource, aResult);
+        ResolveStatement(aInventory, aScanResult, lStatement, lSource, aSymbolMapBridge, aResult);
       end;
       Result := True;
     except
@@ -2266,8 +2353,18 @@ end;
 
 function ResolveRemoveWithIdentifiers(const aInventory: TRemoveWithSymbolInventory;
   const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult; out aError: string): Boolean;
+var
+  lBridge: TRemoveWithSymbolMapBridge;
 begin
-  Result := TRemoveWithIdentifierResolver.Resolve(aInventory, aScanResult, aResult, aError);
+  lBridge := Default(TRemoveWithSymbolMapBridge);
+  Result := TRemoveWithIdentifierResolver.Resolve(aInventory, aScanResult, lBridge, aResult, aError);
+end;
+
+function ResolveRemoveWithIdentifiers(const aInventory: TRemoveWithSymbolInventory;
+  const aScanResult: TRemoveWithScanResult; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
+  out aResult: TRemoveWithResolverResult; out aError: string): Boolean;
+begin
+  Result := TRemoveWithIdentifierResolver.Resolve(aInventory, aScanResult, aSymbolMapBridge, aResult, aError);
 end;
 
 end.
