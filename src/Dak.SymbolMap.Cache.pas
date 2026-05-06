@@ -33,10 +33,27 @@ type
     fCacheHit: Boolean;
   end;
 
+  TSymbolMapRtlIndexResult = record
+    fStatus: string;
+    fSourceRoot: string;
+    fUnitsDiscovered: Integer;
+    fUnitsIndexed: Integer;
+    fCacheHit: Boolean;
+    fUnitCacheHits: Integer;
+    fUnitCacheMisses: Integer;
+    fDiagnosticsCount: Integer;
+    fDiagnosticsJson: string;
+  end;
+
 function EnsureSymbolMapCaches(const aContext: TSymbolMapContext; out aStatus: TSymbolMapCacheStatus;
   out aError: string): Boolean;
 function EnsureSymbolMapCompilerProfile(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   out aResult: TSymbolMapCompilerProfileResult; out aError: string): Boolean;
+function EnsureSymbolMapCompilerProfileForRoot(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aRtlSourceRoot: string; out aResult: TSymbolMapCompilerProfileResult; out aError: string): Boolean;
+function IndexSymbolMapRtlSources(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aSourceRoot: string; var aProfile: TSymbolMapCompilerProfileResult; out aResult: TSymbolMapRtlIndexResult;
+  out aError: string): Boolean;
 function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; overload;
 function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
@@ -45,7 +62,8 @@ function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatu
 implementation
 
 uses
-  System.Classes, System.Hash, System.IOUtils, System.SysUtils, System.Variants,
+  System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.StrUtils, System.SysUtils,
+  System.Variants,
   Winapi.Windows,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite;
 
@@ -441,12 +459,19 @@ begin
   AddIntrinsicSeed(Result, 'string', 'type', 'type string', 'compiler intrinsic type');
 end;
 
-function BuildCompilerProfileKey(const aContext: TSymbolMapContext; out aDelphiVersion, aPlatform: string): string;
+function BuildCompilerProfileKey(const aContext: TSymbolMapContext; const aRtlSourceRoot: string;
+  out aDelphiVersion, aPlatform: string): string;
+var
+  lSourceRoot: string;
 begin
   aDelphiVersion := NormalizeProfilePart(aContext.fDelphiVersion, 'unknown');
   aPlatform := NormalizeProfilePart(aContext.fPlatform, 'Win32');
+  lSourceRoot := LowerCase(Trim(aRtlSourceRoot));
+  if lSourceRoot = '' then
+    lSourceRoot := LowerCase(Trim(aContext.fRtlSourceRoot));
   Result := HashText('compiler-profile|' + cSymbolMapSchemaVersion.ToString + '|' +
-    cSymbolMapIntrinsicSeedVersion + '|' + LowerCase(aDelphiVersion) + '|' + LowerCase(aPlatform));
+    cSymbolMapIntrinsicSeedVersion + '|' + LowerCase(aDelphiVersion) + '|' + LowerCase(aPlatform) + '|' +
+    lSourceRoot);
 end;
 
 function CentralUnitModelExists(const aConnection: TFDConnection; const aUnitCacheKey: string): Boolean;
@@ -484,8 +509,136 @@ begin
   aIntrinsicCount := Length(lSeeds);
 end;
 
+function JsonEscape(const aValue: string): string;
+var
+  ch: Char;
+  i: Integer;
+begin
+  Result := '';
+  for i := 1 to Length(aValue) do
+  begin
+    ch := aValue[i];
+    case ch of
+      '"':
+        Result := Result + '\"';
+      '\':
+        Result := Result + '\\';
+      #8:
+        Result := Result + '\b';
+      #9:
+        Result := Result + '\t';
+      #10:
+        Result := Result + '\n';
+      #12:
+        Result := Result + '\f';
+      #13:
+        Result := Result + '\r';
+    else
+      if Ord(ch) < 32 then
+        Result := Result + '\u' + IntToHex(Ord(ch), 4)
+      else
+        Result := Result + ch;
+    end;
+  end;
+end;
+
+procedure AddDiagnostic(var aDiagnostics: TArray<string>; const aMessage: string);
+var
+  lIndex: Integer;
+begin
+  if aMessage = '' then
+    Exit;
+  lIndex := Length(aDiagnostics);
+  SetLength(aDiagnostics, lIndex + 1);
+  aDiagnostics[lIndex] := aMessage;
+end;
+
+function DiagnosticsJson(const aDiagnostics: TArray<string>): string;
+var
+  i: Integer;
+begin
+  Result := '[';
+  for i := 0 to High(aDiagnostics) do
+  begin
+    if i > 0 then
+      Result := Result + ',';
+    Result := Result + '"' + JsonEscape(aDiagnostics[i]) + '"';
+  end;
+  Result := Result + ']';
+end;
+
+function NormalizeRtlSourceRoot(const aContext: TSymbolMapContext; const aSourceRoot: string): string;
+begin
+  Result := Trim(aSourceRoot);
+  if Result <> '' then
+    Exit(TPath.GetFullPath(Result));
+
+  Result := Trim(aContext.fRtlSourceRoot);
+  if Result <> '' then
+    Exit(TPath.GetFullPath(Result));
+
+  Result := TPath.GetFullPath('C:\Program Files (x86)\Embarcadero\Studio\23.0\source');
+end;
+
+function IsRtlSourceCandidate(const aFilePath: string): Boolean;
+var
+  lName: string;
+begin
+  lName := TPath.GetFileNameWithoutExtension(aFilePath);
+  Result := SameText(lName, 'System') or StartsText('System.', lName) or SameText(lName, 'SysInit') or
+    SameText(lName, 'Variants') or SameText(lName, 'TypInfo');
+end;
+
+function CollectRtlSourceFiles(const aSourceRoot: string; out aDiagnostics: TArray<string>): TArray<string>;
+var
+  lFiles: TList<string>;
+  lIndexRoot: string;
+  lRtlRoot: string;
+
+  procedure AddRootFiles(const aRoot: string);
+  var
+    lRootFile: string;
+  begin
+    if not TDirectory.Exists(aRoot) then
+      Exit;
+    for lRootFile in TDirectory.GetFiles(aRoot, '*.pas', TSearchOption.soTopDirectoryOnly) do
+    begin
+      if IsRtlSourceCandidate(lRootFile) then
+        lFiles.Add(TPath.GetFullPath(lRootFile));
+    end;
+  end;
+
+begin
+  SetLength(Result, 0);
+  SetLength(aDiagnostics, 0);
+  lRtlRoot := TPath.Combine(aSourceRoot, 'rtl');
+  if not TDirectory.Exists(lRtlRoot) then
+  begin
+    AddDiagnostic(aDiagnostics, 'missing-rtl-source-root: ' + lRtlRoot);
+    Exit;
+  end;
+
+  lFiles := TList<string>.Create;
+  try
+    AddRootFiles(TPath.Combine(lRtlRoot, 'sys'));
+    AddRootFiles(TPath.Combine(lRtlRoot, 'common'));
+    if lFiles.Count = 0 then
+      AddRootFiles(lRtlRoot);
+    lFiles.Sort;
+    Result := lFiles.ToArray;
+  finally
+    lFiles.Free;
+  end;
+end;
+
 function EnsureSymbolMapCompilerProfile(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   out aResult: TSymbolMapCompilerProfileResult; out aError: string): Boolean;
+begin
+  Result := EnsureSymbolMapCompilerProfileForRoot(aContext, aStatus, aContext.fRtlSourceRoot, aResult, aError);
+end;
+
+function EnsureSymbolMapCompilerProfileForRoot(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aRtlSourceRoot: string; out aResult: TSymbolMapCompilerProfileResult; out aError: string): Boolean;
 var
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
@@ -497,7 +650,7 @@ begin
   aResult := Default(TSymbolMapCompilerProfileResult);
   aError := '';
   aResult.fIntrinsicSeedVersion := cSymbolMapIntrinsicSeedVersion;
-  aResult.fProfileKey := BuildCompilerProfileKey(aContext, aResult.fDelphiVersion, aResult.fPlatform);
+  aResult.fProfileKey := BuildCompilerProfileKey(aContext, aRtlSourceRoot, aResult.fDelphiVersion, aResult.fPlatform);
   if not AcquireCentralCacheMutex(lMutexHandle, aError) then
     Exit(False);
   try
@@ -536,6 +689,176 @@ begin
     finally
       lConnection.Free;
       lDriverLink.Free;
+    end;
+  finally
+    if lMutexHandle <> 0 then
+    begin
+      ReleaseMutex(lMutexHandle);
+      CloseHandle(lMutexHandle);
+    end;
+  end;
+end;
+
+function CompilerProfileUnitCount(const aConnection: TFDConnection; const aProfileKey: string): Integer;
+begin
+  Result := aConnection.ExecSQLScalar('select count(*) from compiler_profile_units where profile_key = ?',
+    [aProfileKey]);
+end;
+
+function CompilerProfileSourceRootsHash(const aConnection: TFDConnection; const aProfileKey: string): string;
+begin
+  Result := VarToStr(aConnection.ExecSQLScalar(
+    'select source_roots_hash from compiler_profiles where profile_key = ?', [aProfileKey]));
+end;
+
+function BuildRtlSourceRootsHash(const aSourceRoot: string; const aUnitFiles: TArray<string>): string;
+var
+  lBuilder: TStringBuilder;
+  lFile: string;
+begin
+  lBuilder := TStringBuilder.Create;
+  try
+    lBuilder.AppendLine(TPath.GetFullPath(aSourceRoot));
+    for lFile in aUnitFiles do
+      lBuilder.AppendLine(TPath.GetFileName(lFile) + '=' + HashBytes(TFile.ReadAllBytes(lFile)));
+    Result := HashText(lBuilder.ToString);
+  finally
+    lBuilder.Free;
+  end;
+end;
+
+procedure ClearCompilerProfileUnits(const aConnection: TFDConnection; const aProfileKey: string);
+begin
+  aConnection.ExecSQL('delete from compiler_profile_units where profile_key = ?', [aProfileKey]);
+end;
+
+procedure UpdateCompilerProfileSourceRootsHash(const aConnection: TFDConnection; const aProfileKey,
+  aSourceRootsHash: string);
+begin
+  aConnection.ExecSQL('update compiler_profiles set source_roots_hash = ?, indexed_at_utc = ? where profile_key = ?',
+    [aSourceRootsHash, DateTimeToStr(Now), aProfileKey]);
+end;
+
+procedure StoreCompilerProfileUnit(const aStatus: TSymbolMapCacheStatus; const aProfileKey: string;
+  const aUnitModel: TSymbolMapUnitModel; const aUnitCacheKey: string);
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lError: string;
+begin
+  if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, lError) then
+    raise Exception.Create(lError);
+  try
+    lConnection.ExecSQL('insert into compiler_profile_units(profile_key, unit_name, unit_cache_key, source_kind) ' +
+      'values (?, ?, ?, ?)', [aProfileKey, aUnitModel.fUnitName, aUnitCacheKey, 'rtl-source']);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+function IndexSymbolMapRtlSources(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aSourceRoot: string; var aProfile: TSymbolMapCompilerProfileResult; out aResult: TSymbolMapRtlIndexResult;
+  out aError: string): Boolean;
+var
+  lConnection: TFDConnection;
+  lDiagnostics: TArray<string>;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lExistingCount: Integer;
+  lFile: string;
+  lModel: TSymbolMapUnitModel;
+  lMutexHandle: THandle;
+  lRoot: string;
+  lRtlContext: TSymbolMapContext;
+  lSourceRootsHash: string;
+  lStoredSourceRootsHash: string;
+  lStoreResult: TSymbolMapCacheStoreResult;
+  lUnitFiles: TArray<string>;
+begin
+  Result := False;
+  aResult := Default(TSymbolMapRtlIndexResult);
+  aError := '';
+  lRoot := NormalizeRtlSourceRoot(aContext, aSourceRoot);
+  aResult.fSourceRoot := lRoot;
+  if not EnsureSymbolMapCompilerProfileForRoot(aContext, aStatus, lRoot, aProfile, aError) then
+    Exit(False);
+  lRtlContext := aContext;
+  lRtlContext.fRtlSourceRoot := lRoot;
+  lRtlContext.fProject.fParserDefines := '';
+  SetLength(lRtlContext.fDefines, 0);
+  SetLength(lRtlContext.fUnitScopes, 0);
+  SetLength(lRtlContext.fUnitAliases, 0);
+  if not AcquireCentralCacheMutex(lMutexHandle, aError) then
+    Exit(False);
+  try
+    try
+      lUnitFiles := CollectRtlSourceFiles(lRoot, lDiagnostics);
+      aResult.fDiagnosticsJson := DiagnosticsJson(lDiagnostics);
+      aResult.fDiagnosticsCount := Length(lDiagnostics);
+      aResult.fUnitsDiscovered := Length(lUnitFiles);
+      if Length(lUnitFiles) = 0 then
+      begin
+        if aResult.fDiagnosticsCount > 0 then
+          aResult.fStatus := 'missing-source-root'
+        else
+          aResult.fStatus := 'no-rtl-units';
+        Exit(True);
+      end;
+
+      lSourceRootsHash := BuildRtlSourceRootsHash(lRoot, lUnitFiles);
+      if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
+        Exit(False);
+      try
+        lExistingCount := CompilerProfileUnitCount(lConnection, aProfile.fProfileKey);
+        lStoredSourceRootsHash := CompilerProfileSourceRootsHash(lConnection, aProfile.fProfileKey);
+      finally
+        lConnection.Free;
+        lDriverLink.Free;
+      end;
+      aResult.fCacheHit := (lExistingCount = Length(lUnitFiles)) and (lStoredSourceRootsHash = lSourceRootsHash);
+      if aResult.fCacheHit then
+      begin
+        aResult.fStatus := 'cache-hit';
+        aResult.fUnitsIndexed := lExistingCount;
+        aResult.fUnitCacheHits := lExistingCount;
+        Exit(True);
+      end;
+
+      if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
+        Exit(False);
+      try
+        ClearCompilerProfileUnits(lConnection, aProfile.fProfileKey);
+      finally
+        lConnection.Free;
+        lDriverLink.Free;
+      end;
+
+      for lFile in lUnitFiles do
+      begin
+        if not TryExtractSymbolMapUnitModel(lFile, lModel, aError) then
+          Exit(False);
+        if not StoreSymbolMapUnitModel(lRtlContext, aStatus, lModel, lStoreResult, aError) then
+          Exit(False);
+        if lStoreResult.fCacheHit then
+          Inc(aResult.fUnitCacheHits)
+        else
+          Inc(aResult.fUnitCacheMisses);
+        StoreCompilerProfileUnit(aStatus, aProfile.fProfileKey, lModel, lStoreResult.fUnitCacheKey);
+        Inc(aResult.fUnitsIndexed);
+      end;
+      if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
+        Exit(False);
+      try
+        UpdateCompilerProfileSourceRootsHash(lConnection, aProfile.fProfileKey, lSourceRootsHash);
+      finally
+        lConnection.Free;
+        lDriverLink.Free;
+      end;
+      aResult.fStatus := 'indexed';
+      Result := True;
+    except
+      on E: Exception do
+        aError := E.Message;
     end;
   finally
     if lMutexHandle <> 0 then

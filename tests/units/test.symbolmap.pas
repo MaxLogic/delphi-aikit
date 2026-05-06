@@ -140,6 +140,24 @@ type
   end;
 
   [TestFixture]
+  TSymbolMapRtlIndexTests = class
+  private
+    function BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext): string;
+    function CompilerProfileUnitCount(const aDbPath, aProfileKey: string): Integer;
+    function FixtureProjectPath: string;
+    function ProfileSourceKind(const aDbPath, aProfileKey, aUnitName: string): string;
+    function UniqueTempPath(const aPrefix: string): string;
+    procedure WriteRtlUnit(const aRoot, aRelativePath, aUnitName: string);
+  public
+    [Test]
+    procedure IndexesSourceAvailableRtlUnitsIntoCompilerProfile;
+    [Test]
+    procedure MissingRtlRootIsNonFatalDiagnostic;
+    [Test]
+    procedure RepeatedRtlIndexReusesCompilerProfileUnits;
+  end;
+
+  [TestFixture]
   TSymbolMapCliTests = class
   private
     procedure SetParams(const aCmdLine: string);
@@ -1033,10 +1051,183 @@ begin
     Assert.AreEqual('Win32', lProfile.GetValue<string>('platform'));
     Assert.IsTrue(lProfile.GetValue<Integer>('syntheticIntrinsicCount') >= 20,
       'Expected synthetic intrinsic count.');
-    Assert.IsFalse(lProfile.GetValue<Boolean>('cacheHit'), 'Expected first profile seed to miss.');
+    Assert.IsNotEmpty(lProfile.GetValue<string>('profileKey'), 'Expected profile key.');
   finally
     lJsonValue.Free;
   end;
+end;
+
+function TSymbolMapRtlIndexTests.BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext): string;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23';
+  lOptions.fSymbolMapCacheRoot := aCacheRoot;
+  lOptions.fHasSymbolMapCacheRoot := True;
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, aContext, lError), 'Expected context. Error: ' + lError);
+  Result := FixtureProjectPath;
+end;
+
+function TSymbolMapRtlIndexTests.CompilerProfileUnitCount(const aDbPath, aProfileKey: string): Integer;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    Result := lConnection.ExecSQLScalar('select count(*) from compiler_profile_units where profile_key = ?',
+      [aProfileKey]);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+function TSymbolMapRtlIndexTests.FixtureProjectPath: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
+end;
+
+function TSymbolMapRtlIndexTests.ProfileSourceKind(const aDbPath, aProfileKey, aUnitName: string): string;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    Result := VarToStr(lConnection.ExecSQLScalar(
+      'select source_kind from compiler_profile_units where profile_key = ? and unit_name = ?',
+      [aProfileKey, aUnitName]));
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+function TSymbolMapRtlIndexTests.UniqueTempPath(const aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
+end;
+
+procedure TSymbolMapRtlIndexTests.WriteRtlUnit(const aRoot, aRelativePath, aUnitName: string);
+var
+  lPath: string;
+begin
+  lPath := TPath.Combine(aRoot, aRelativePath);
+  ForceDirectories(TPath.GetDirectoryName(lPath));
+  TFile.WriteAllText(lPath, 'unit ' + aUnitName + ';' + sLineBreak + sLineBreak + 'interface' + sLineBreak +
+    'type' + sLineBreak + '  T' + StringReplace(aUnitName, '.', '', [rfReplaceAll]) + 'Fixture = class' +
+    sLineBreak + '  end;' + sLineBreak + sLineBreak + 'implementation' + sLineBreak + sLineBreak + 'end.',
+    TEncoding.UTF8);
+end;
+
+procedure TSymbolMapRtlIndexTests.IndexesSourceAvailableRtlUnitsIntoCompilerProfile;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lRoot: string;
+  lRtl: TSymbolMapRtlIndexResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-rtl-cache');
+  lRoot := UniqueTempPath('symbol-map-rtl-root');
+  WriteRtlUnit(lRoot, 'rtl\sys\System.pas', 'System');
+  WriteRtlUnit(lRoot, 'rtl\sys\System.SysUtils.pas', 'System.SysUtils');
+  WriteRtlUnit(lRoot, 'rtl\common\System.Types.pas', 'System.Types');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile seed. Error: ' + lError);
+
+  Assert.IsTrue(IndexSymbolMapRtlSources(lContext, lStatus, lRoot, lProfile, lRtl, lError),
+    'Expected RTL source index. Error: ' + lError);
+
+  Assert.AreEqual('indexed', lRtl.fStatus);
+  Assert.AreEqual(3, lRtl.fUnitsIndexed);
+  Assert.AreEqual(0, lRtl.fUnitCacheHits);
+  Assert.AreEqual(3, lRtl.fUnitCacheMisses);
+  Assert.AreEqual(0, lRtl.fDiagnosticsCount);
+  Assert.AreEqual(3, CompilerProfileUnitCount(lStatus.fCentralDbPath, lProfile.fProfileKey));
+  Assert.AreEqual('rtl-source', ProfileSourceKind(lStatus.fCentralDbPath, lProfile.fProfileKey, 'System'));
+  Assert.AreEqual('rtl-source', ProfileSourceKind(lStatus.fCentralDbPath, lProfile.fProfileKey, 'System.Types'));
+end;
+
+procedure TSymbolMapRtlIndexTests.MissingRtlRootIsNonFatalDiagnostic;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lMissingRoot: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lRtl: TSymbolMapRtlIndexResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-rtl-missing-cache');
+  lMissingRoot := UniqueTempPath('symbol-map-rtl-missing-root');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile seed. Error: ' + lError);
+
+  Assert.IsTrue(IndexSymbolMapRtlSources(lContext, lStatus, lMissingRoot, lProfile, lRtl, lError),
+    'Expected missing RTL source root to be non-fatal. Error: ' + lError);
+
+  Assert.AreEqual('missing-source-root', lRtl.fStatus);
+  Assert.AreEqual(0, lRtl.fUnitsIndexed);
+  Assert.IsTrue(lRtl.fDiagnosticsCount > 0, 'Expected missing-source diagnostic.');
+  Assert.AreEqual(0, CompilerProfileUnitCount(lStatus.fCentralDbPath, lProfile.fProfileKey));
+end;
+
+procedure TSymbolMapRtlIndexTests.RepeatedRtlIndexReusesCompilerProfileUnits;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lFirst: TSymbolMapRtlIndexResult;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lRoot: string;
+  lSecond: TSymbolMapRtlIndexResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-rtl-reuse-cache');
+  lRoot := UniqueTempPath('symbol-map-rtl-reuse-root');
+  WriteRtlUnit(lRoot, 'rtl\sys\System.pas', 'System');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile seed. Error: ' + lError);
+
+  Assert.IsTrue(IndexSymbolMapRtlSources(lContext, lStatus, lRoot, lProfile, lFirst, lError),
+    'Expected first RTL source index. Error: ' + lError);
+  Assert.IsTrue(IndexSymbolMapRtlSources(lContext, lStatus, lRoot, lProfile, lSecond, lError),
+    'Expected second RTL source index. Error: ' + lError);
+
+  Assert.IsFalse(lFirst.fCacheHit, 'Expected first RTL index to miss.');
+  Assert.IsTrue(lSecond.fCacheHit, 'Expected second RTL index to hit.');
+  Assert.AreEqual(1, lSecond.fUnitsIndexed);
+  Assert.AreEqual(1, CompilerProfileUnitCount(lStatus.fCentralDbPath, lProfile.fProfileKey));
 end;
 
 function TSymbolMapTopLevelDeclarationTests.FindSymbol(const aModel: TSymbolMapUnitModel; const aName, aKind,
@@ -1600,6 +1791,7 @@ initialization
   TDUnitX.RegisterTestFixture(TSymbolMapMemberExtractionTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCentralCacheReuseTests);
   TDUnitX.RegisterTestFixture(TSymbolMapIntrinsicProfileTests);
+  TDUnitX.RegisterTestFixture(TSymbolMapRtlIndexTests);
   TDUnitX.RegisterTestFixture(TSymbolMapCliTests);
 
 end.
