@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added a direct Symbol Map resolver API for definition lookups by name or source position with cache/compiler-profile status reporting. (T-196)
 - Added Symbol Map token-reference indexing and `find-references` query output with explicit non-semantic `token-name-match` confidence. (T-195)
 - Added Symbol Map `find-definition`, `search-symbols`, and `describe-symbol` query results over project-indexed units, source-available profile units, and synthetic compiler intrinsics. (T-194)
 - Added Symbol Map RTL source indexing into compiler profiles, including root-aware profile cache identity, non-fatal missing-root diagnostics, and `rtlSource` hit/miss reporting. (T-193)
