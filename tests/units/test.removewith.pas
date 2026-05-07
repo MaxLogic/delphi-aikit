@@ -177,6 +177,7 @@ type
   TRemoveWithSymbolTests = class(TRemoveWithTestBase)
   private
     procedure BuildSymbolFixture(out aInventory: TRemoveWithSymbolInventory);
+    function RunVerboseSymbolInventoryLog(out aExitCode: Cardinal): string;
     function CountSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): Integer;
     function DescribeSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
@@ -195,6 +196,8 @@ type
     procedure InventoryReportsMissingSourceUnitsAsExternal;
     [Test]
     procedure InventoryReadsAnsiEncodedSource;
+    [Test]
+    procedure InventoryBuildUsesProjectModelInsteadOfLineScanner;
   end;
 
   [TestFixture]
@@ -2242,6 +2245,27 @@ begin
   Assert.IsTrue(Length(aInventory.fSymbols) > 0, 'Expected symbol inventory to contain fixture declarations.');
 end;
 
+function TRemoveWithSymbolTests.RunVerboseSymbolInventoryLog(out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lDprojPath: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+
+  lDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithSymbolsFixture\RemoveWithSymbolsFixture.dproj');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-symbol-model-inventory.log');
+
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json --verbose true';
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+    'Failed to start remove-with process.');
+
+  Result := '';
+  if TFile.Exists(lLogPath) then
+    Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
 function TRemoveWithSymbolTests.CountSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
   const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): Integer;
 var
@@ -2452,6 +2476,20 @@ begin
   Assert.IsTrue(FindSymbol(lInventory, 'AnsiGlobal', TRemoveWithSymbolKind.rwskUnitGlobal, '', '', lSymbol),
     'Expected symbol inventory to parse declarations from ANSI source.');
   Assert.AreEqual('TAnsiSymbolRecord', lSymbol.fTypeName, 'Expected ANSI source declaration type.');
+end;
+
+procedure TRemoveWithSymbolTests.InventoryBuildUsesProjectModelInsteadOfLineScanner;
+var
+  lExitCode: Cardinal;
+  lLogText: string;
+begin
+  lLogText := RunVerboseSymbolInventoryLog(lExitCode);
+
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected verbose remove-with plan to succeed.');
+  Assert.Contains(lLogText, '[remove-with:symbols] model-unit start',
+    'Expected symbol inventory to build from the AST-backed project model.');
+  Assert.IsFalse(ContainsText(lLogText, '[remove-with:symbols] parse-unit start'),
+    'Line-scanner inventory must not run in the remove-with semantic path.');
 end;
 
 procedure TRemoveWithExpressionTypeTests.BuildExpressionFixture(out aInventory: TRemoveWithSymbolInventory);
