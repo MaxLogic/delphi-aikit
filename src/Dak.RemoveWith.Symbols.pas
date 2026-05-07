@@ -1942,14 +1942,12 @@ end;
 function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
   out aInventory: TRemoveWithSymbolInventory; out aError: string): Boolean;
 var
-  lParsedPaths: TDictionary<string, Byte>;
   lProblem: TProjectIndexer.TProblemInfo;
   lSymbolKeys: TDictionary<string, Byte>;
   lStopwatch: TStopwatch;
   lSymbol: TRemoveWithSymbolInfo;
   lUnitIndex: Integer;
-  lUnit: TProjectIndexer.TUnitInfo;
-  lUnitPath: string;
+  lUnitModel: TRemoveWithUnitModel;
 begin
   aInventory := Default(TRemoveWithSymbolInventory);
   aError := '';
@@ -1965,30 +1963,20 @@ begin
   lSymbolKeys := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
     GRemoveWithSymbolKeys := lSymbolKeys;
-    lParsedPaths := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-    try
-      lUnitIndex := 0;
-      for lUnit in aProjectModel.Indexer.ParsedUnits do
-      begin
-        lUnitPath := Trim(lUnit.Path);
-        if (lUnitPath = '') or (not SameText(TPath.GetExtension(lUnitPath), '.pas')) or
-          (not TFile.Exists(lUnitPath)) then
-          Continue;
-        lUnitPath := TPath.GetFullPath(lUnitPath);
-        if lParsedPaths.ContainsKey(lUnitPath) then
-          Continue;
-        lParsedPaths.Add(lUnitPath, 1);
-        Inc(lUnitIndex);
-        LogRemoveWithSymbolProgress(aOptions, Format('parse-unit start index=%d unit=%s path=%s',
-          [lUnitIndex, lUnit.Name, lUnitPath]));
-        lStopwatch := TStopwatch.StartNew;
-        TRemoveWithSymbolBuilder.ParseUnit(aInventory, lUnit.Name, lUnitPath);
-        lStopwatch.Stop;
-        LogRemoveWithSymbolProgress(aOptions, Format('parse-unit done index=%d elapsedMs=%d symbols=%d',
-          [lUnitIndex, lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
-      end;
-    finally
-      lParsedPaths.Free;
+    lUnitIndex := 0;
+    for lUnitModel in aProjectModel.UnitModels do
+    begin
+      if (Trim(lUnitModel.fFilePath) = '') or (not SameText(TPath.GetExtension(lUnitModel.fFilePath), '.pas')) then
+        Continue;
+      Inc(lUnitIndex);
+      LogRemoveWithSymbolProgress(aOptions, Format('model-unit start index=%d unit=%s path=%s',
+        [lUnitIndex, lUnitModel.fUnitName, lUnitModel.fFilePath]));
+      lStopwatch := TStopwatch.StartNew;
+      if TFile.Exists(lUnitModel.fFilePath) then
+        TRemoveWithSymbolBuilder.ParseUnit(aInventory, lUnitModel.fUnitName, lUnitModel.fFilePath);
+      lStopwatch.Stop;
+      LogRemoveWithSymbolProgress(aOptions, Format('model-unit done index=%d elapsedMs=%d symbols=%d',
+        [lUnitIndex, lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
     end;
 
     LogRemoveWithSymbolProgress(aOptions, 'related-type-members start');

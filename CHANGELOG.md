@@ -73,6 +73,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- `remove-with` symbol inventory now runs under the shared AST-backed project model phase and logs `model-unit` inventory progress, while the legacy declaration scanner is isolated as flat compatibility inventory until semantic model reporting parity is complete. (T-177)
 - Reworked `remove-with` body rewriting to apply resolver-bound source ranges instead of rescanning replacement text, with regression coverage for labels, type names, scoped declarations, nested replacement ordering, and transactional apply safety. (T-175)
 - Hardened `rsvars.bat` imports in both the build script and Delphi runner against stale RAD/DCC environment variables, overlong inherited PATH values, and oversized MSBuild environment-prop command lines. (T-197)
 - `remove-with` resolver, selector-expression, temp-policy, and planner lookups now use scoped dictionaries and the live project-model semantic index where complete, while preserving compatibility fallback behavior for existing resolver metadata. (T-173)

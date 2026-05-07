@@ -17,6 +17,7 @@ type
 
   TRemoveWithModelTypeKind = (rwmtUnknown, rwmtAlias, rwmtRecord, rwmtClass, rwmtInterface, rwmtHelper);
   TRemoveWithModelMemberKind = (rwmmField, rwmmProperty, rwmmMethod, rwmmConstant, rwmmClassVar);
+  TRemoveWithModelGlobalKind = (rwmgVariable, rwmgConstant);
   TRemoveWithModelRoutineSymbolKind = (rwmrsParameter, rwmrsLocal, rwmrsInlineLocal);
 
   TRemoveWithModelTypeInfo = record
@@ -37,6 +38,13 @@ type
     fIsIndexed: Boolean;
     fIndexParameterCount: Integer;
     fKind: TRemoveWithModelMemberKind;
+    fRange: TRemoveWithModelRange;
+  end;
+
+  TRemoveWithModelGlobalInfo = record
+    fName: string;
+    fTypeName: string;
+    fKind: TRemoveWithModelGlobalKind;
     fRange: TRemoveWithModelRange;
   end;
 
@@ -77,6 +85,7 @@ type
     fUses: TArray<string>;
     fTypes: TArray<TRemoveWithModelTypeInfo>;
     fMembers: TArray<TRemoveWithModelMemberInfo>;
+    fGlobals: TArray<TRemoveWithModelGlobalInfo>;
     fRoutines: TArray<TRemoveWithModelRoutineInfo>;
     fRoutineSymbols: TArray<TRemoveWithModelRoutineSymbolInfo>;
     fWithStatements: TArray<TRemoveWithModelWithStatementInfo>;
@@ -777,6 +786,17 @@ begin
   aUnitModel.fMembers[lIndex] := aMember;
 end;
 
+procedure AddGlobal(var aUnitModel: TRemoveWithUnitModel; const aGlobal: TRemoveWithModelGlobalInfo);
+var
+  lIndex: Integer;
+begin
+  if aGlobal.fName = '' then
+    Exit;
+  lIndex := Length(aUnitModel.fGlobals);
+  SetLength(aUnitModel.fGlobals, lIndex + 1);
+  aUnitModel.fGlobals[lIndex] := aGlobal;
+end;
+
 procedure AddRoutine(var aUnitModel: TRemoveWithUnitModel; const aRoutine: TRemoveWithModelRoutineInfo);
 var
   lIndex: Integer;
@@ -932,6 +952,41 @@ begin
   end;
 end;
 
+procedure ExtractGlobals(const aRoot: TSyntaxNode; var aUnitModel: TRemoveWithUnitModel);
+var
+  lGlobal: TRemoveWithModelGlobalInfo;
+  lNode: TSyntaxNode;
+  lNodes: TList<TSyntaxNode>;
+begin
+  lNodes := TList<TSyntaxNode>.Create;
+  try
+    CollectNodes(aRoot, ntVariable, lNodes);
+    CollectNodes(aRoot, ntConstant, lNodes);
+    for lNode in lNodes do
+    begin
+      if Assigned(FindAncestorNode(lNode.ParentNode, ntTypeDecl)) or
+        Assigned(FindAncestorNode(lNode.ParentNode, ntMethod)) then
+        Continue;
+
+      lGlobal := Default(TRemoveWithModelGlobalInfo);
+      lGlobal.fName := ExtractNodeName(FindChildNode(lNode, ntName));
+      if lGlobal.fName = '' then
+        lGlobal.fName := ExtractNodeName(lNode);
+      if not IsIdentifierName(lGlobal.fName) then
+        Continue;
+      lGlobal.fTypeName := TypeNameForNode(lNode);
+      lGlobal.fRange := ModelRangeForNode(lNode);
+      if lNode.Typ = ntConstant then
+        lGlobal.fKind := TRemoveWithModelGlobalKind.rwmgConstant
+      else
+        lGlobal.fKind := TRemoveWithModelGlobalKind.rwmgVariable;
+      AddGlobal(aUnitModel, lGlobal);
+    end;
+  finally
+    lNodes.Free;
+  end;
+end;
+
 procedure ExtractRoutineDetails(const aMethodNode: TSyntaxNode; const aSource: TRemoveWithSourceBuffer;
   var aUnitModel: TRemoveWithUnitModel);
 var
@@ -1049,6 +1104,7 @@ begin
   ExtractUses(aUnit.SyntaxTree, Result);
   ExtractTypes(aUnit.SyntaxTree, lSource, Result);
   ExtractMembers(aUnit.SyntaxTree, lSource, Result);
+  ExtractGlobals(aUnit.SyntaxTree, Result);
   ExtractRoutines(aUnit.SyntaxTree, lSource, Result);
 end;
 
