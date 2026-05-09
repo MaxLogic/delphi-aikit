@@ -20,6 +20,8 @@ uses
   DelphiAST.Classes,
   DelphiAST.Consts,
   DelphiAST.ProjectIndexer,
+  DelphiSemantics.Graph,
+  DelphiSemantics.Model,
   Dak.ExitCodes,
   Dak.Project;
 
@@ -97,6 +99,9 @@ type
     class function FindFirstChildNode(const aNode: TSyntaxNode; aNodeType: TSyntaxNodeType): TSyntaxNode; static;
     function GetSortedCycleComponents: TList<TDepsSccInfo>;
     class function IsFrameworkUnitName(const aUnitName: string): Boolean; static;
+    class function SemanticEdgeKind(const aSectionKind: string): TDepsEdgeKind; static;
+    class function SemanticNodeResolution(const aStatus: string): TDepsNodeResolution; static;
+    class function SplitListText(const aText: string): TArray<string>; static;
     function GetSortedHotspotEdges: TList<TDepsEdgeInfo>;
     function GetSortedHotspotUnitNames: TList<string>;
     class function TryFindPathToTarget(const aCurrentName, aTargetName: string;
@@ -108,6 +113,8 @@ type
     function GetSortedParserProblems: TList<TDepsParserProblemInfo>;
     function GetSortedUnresolvedUnits: TStringList;
     function IsProjectUnitPath(const aFileName: string): Boolean;
+    procedure MergeEdge(const aFromName, aToName: string; aEdgeKind: TDepsEdgeKind);
+    procedure MergeSemanticGraph(const aGraph: TDelphiSemanticDependencyGraph);
     procedure MergeNode(const aNodeName, aPath: string; aResolution: TDepsNodeResolution);
     class function ResolutionToText(aResolution: TDepsNodeResolution): string; static;
   public
@@ -668,6 +675,50 @@ begin
     StartsText('Posix.', aUnitName);
 end;
 
+class function TDepsGraphBuilder.SemanticEdgeKind(const aSectionKind: string): TDepsEdgeKind;
+begin
+  if SameText(aSectionKind, 'implementation') then
+  begin
+    Result := TDepsEdgeKind.dekImplementation;
+  end else
+  begin
+    Result := TDepsEdgeKind.dekInterface;
+  end;
+end;
+
+class function TDepsGraphBuilder.SemanticNodeResolution(const aStatus: string): TDepsNodeResolution;
+begin
+  if SameText(aStatus, 'unresolved') then
+  begin
+    Result := TDepsNodeResolution.dnrUnresolved;
+  end else
+  begin
+    Result := TDepsNodeResolution.dnrResolved;
+  end;
+end;
+
+class function TDepsGraphBuilder.SplitListText(const aText: string): TArray<string>;
+var
+  lItems: TArray<string>;
+  lPart: string;
+  lResult: TList<string>;
+begin
+  lResult := TList<string>.Create;
+  try
+    lItems := SplitString(aText, ';');
+    for lPart in lItems do
+    begin
+      if Trim(lPart) <> '' then
+      begin
+        lResult.Add(Trim(lPart));
+      end;
+    end;
+    Result := lResult.ToArray;
+  finally
+    lResult.Free;
+  end;
+end;
+
 class function TDepsGraphBuilder.TryFindPathToTarget(const aCurrentName, aTargetName: string;
   const aAdjacency: TObjectDictionary<string, TList<string>>; const aEligibleNodes: THashSet<string>;
   const aPath: TList<string>; const aVisited: THashSet<string>): Boolean;
@@ -890,6 +941,46 @@ begin
   Result := SameText(Copy(lFileDir, 1, Length(lProjectDir)), lProjectDir);
 end;
 
+procedure TDepsGraphBuilder.MergeEdge(const aFromName, aToName: string; aEdgeKind: TDepsEdgeKind);
+var
+  lEdge: TDepsEdgeInfo;
+  lEdgeKey: string;
+begin
+  if (Trim(aFromName) = '') or (Trim(aToName) = '') then
+  begin
+    Exit;
+  end;
+  lEdge.fFromName := aFromName;
+  lEdge.fToName := aToName;
+  lEdge.fEdgeKind := aEdgeKind;
+  lEdgeKey := BuildEdgeKey(lEdge);
+  if fEdgeKeys.Add(lEdgeKey) then
+  begin
+    fEdges.Add(lEdge);
+  end;
+end;
+
+procedure TDepsGraphBuilder.MergeSemanticGraph(const aGraph: TDelphiSemanticDependencyGraph);
+var
+  lEdge: TDelphiSemanticDependencyEdge;
+  lNode: TDelphiSemanticDependencyNode;
+  lUnitName: string;
+begin
+  for lNode in aGraph.Nodes do
+  begin
+    MergeNode(lNode.UnitName, lNode.FileName, SemanticNodeResolution(lNode.Status));
+  end;
+  for lEdge in aGraph.Edges do
+  begin
+    MergeEdge(lEdge.SourceUnit, lEdge.TargetUnit, SemanticEdgeKind(lEdge.SectionKind));
+  end;
+  for lUnitName in aGraph.UnresolvedUnits do
+  begin
+    fUnresolvedUnits.Add(lUnitName);
+    MergeNode(lUnitName, '', TDepsNodeResolution.dnrUnresolved);
+  end;
+end;
+
 procedure TDepsGraphBuilder.MergeNode(const aNodeName, aPath: string; aResolution: TDepsNodeResolution);
 var
   lNode: TDepsNodeInfo;
@@ -934,6 +1025,12 @@ var
   lInterfaceNode: TSyntaxNode;
   lIsProjectSource: Boolean;
   lProblem: TProjectIndexer.TProblemInfo;
+  lSemanticGraph: TDelphiSemanticDependencyGraph;
+  lSemanticModel: TDelphiSemanticUnitModel;
+  lSemanticModels: TArray<TDelphiSemanticUnitModel>;
+  lSemanticModelOptions: TDelphiSemanticModelOptions;
+  lSemanticGraphOptions: TDelphiSemanticDependencyGraphOptions;
+  lSemanticModelIndex: Integer;
   lUnitInfo: TProjectIndexer.TUnitInfo;
   lUnitNode: TSyntaxNode;
   lUnitName: string;
@@ -946,10 +1043,26 @@ begin
     lIndexer.Defines := fContext.fParserDefines;
     lIndexer.SearchPath := fContext.fParserSearchPath;
     lIndexer.Index(fContext.fMainSourcePath);
+    SetLength(lSemanticModels, 0);
 
     for lUnitInfo in lIndexer.ParsedUnits do
     begin
       MergeNode(lUnitInfo.Name, lUnitInfo.Path, TDepsNodeResolution.dnrResolved);
+      if SameText(TPath.GetExtension(lUnitInfo.Path), '.pas') and TFile.Exists(lUnitInfo.Path) then
+      begin
+        lSemanticModelOptions := Default(TDelphiSemanticModelOptions);
+        lSemanticModelOptions.SourceFileName := lUnitInfo.Path;
+        lSemanticModelOptions.ProjectContextApplied := True;
+        lSemanticModelOptions.Defines := SplitListText(fContext.fParserDefines);
+        lSemanticModelOptions.SearchPaths := SplitListText(fContext.fParserSearchPath);
+        lSemanticModel := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lSemanticModelOptions);
+        if lSemanticModel.Success and (lSemanticModel.UnitName <> '') then
+        begin
+          lSemanticModelIndex := Length(lSemanticModels);
+          SetLength(lSemanticModels, lSemanticModelIndex + 1);
+          lSemanticModels[lSemanticModelIndex] := lSemanticModel;
+        end;
+      end;
       lIsProjectSource := SameText(TPath.GetExtension(lUnitInfo.Path), '.dpr');
       lUnitNode := FindFirstChildNode(lUnitInfo.SyntaxTree, TSyntaxNodeType.ntUnit);
       if not Assigned(lUnitNode) then
@@ -993,6 +1106,10 @@ begin
       fParserProblems.Add(lProblemInfo);
       MergeNode(lProblemInfo.fUnitName, lProblemInfo.fFileName, TDepsNodeResolution.dnrParserProblem);
     end;
+    lSemanticGraphOptions := Default(TDelphiSemanticDependencyGraphOptions);
+    lSemanticGraphOptions.SearchPaths := SplitListText(fContext.fParserSearchPath);
+    lSemanticGraph := TDelphiSemanticDependencyGraphBuilder.Build(lSemanticModels, lSemanticGraphOptions);
+    MergeSemanticGraph(lSemanticGraph);
   finally
     lIndexer.Free;
   end;

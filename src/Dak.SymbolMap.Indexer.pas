@@ -68,7 +68,8 @@ function TryExtractSymbolMapUnitModel(const aFilePath: string; out aModel: TSymb
 implementation
 
 uses
-  System.IOUtils, System.StrUtils, System.SysUtils;
+  System.IOUtils, System.StrUtils, System.SysUtils,
+  DelphiSemantics.Model;
 
 type
   TSymbolMapTokenKind = (smtIdentifier, smtDot, smtComma, smtSemicolon, smtColon, smtEqual, smtLParen, smtRParen,
@@ -428,6 +429,149 @@ begin
   aModel.fReferences[lIndex].fCol := aCol;
   aModel.fReferences[lIndex].fEndLine := aEndLine;
   aModel.fReferences[lIndex].fEndCol := aEndCol;
+end;
+
+function ContainsUse(const aModel: TSymbolMapUnitModel; const aUnitName, aSectionKind: string): Boolean;
+var
+  lUse: TSymbolMapUnitUse;
+begin
+  for lUse in aModel.fUses do
+  begin
+    if SameText(lUse.fUnitName, aUnitName) and SameText(lUse.fSectionKind, aSectionKind) then
+    begin
+      Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+function ContainsSymbol(const aModel: TSymbolMapUnitModel; const aName, aKind, aSectionKind: string): Boolean;
+var
+  lSymbol: TSymbolMapSymbolModel;
+begin
+  for lSymbol in aModel.fSymbols do
+  begin
+    if SameText(lSymbol.fName, aName) and SameText(lSymbol.fKind, aKind) and
+      SameText(lSymbol.fSectionKind, aSectionKind) then
+    begin
+      Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+function ContainsMember(const aModel: TSymbolMapUnitModel; const aOwnerName, aMemberName, aKind: string): Boolean;
+var
+  lMember: TSymbolMapMemberModel;
+begin
+  for lMember in aModel.fMembers do
+  begin
+    if SameText(lMember.fOwnerName, aOwnerName) and SameText(lMember.fMemberName, aMemberName) and
+      SameText(lMember.fKind, aKind) then
+    begin
+      Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+function SemanticDeclarationOwnerName(const aDeclaration: TDelphiSemanticDeclaration): string;
+begin
+  if SameText(aDeclaration.Kind, 'enum-value') then
+  begin
+    Result := aDeclaration.TypeName;
+  end else
+  begin
+    Result := '';
+  end;
+end;
+
+function SemanticDeclarationTypeName(const aDeclaration: TDelphiSemanticDeclaration): string;
+begin
+  if SameText(aDeclaration.Kind, 'enum-value') then
+  begin
+    Result := '';
+  end else
+  begin
+    Result := aDeclaration.TypeName;
+  end;
+end;
+
+procedure MergeDelphiSemanticModel(var aModel: TSymbolMapUnitModel; const aSemanticModel: TDelphiSemanticUnitModel);
+var
+  lDeclaration: TDelphiSemanticDeclaration;
+  lMember: TDelphiSemanticMember;
+  lRoutine: TDelphiSemanticRoutine;
+  lUseName: string;
+begin
+  if aModel.fUnitName = '' then
+  begin
+    aModel.fUnitName := aSemanticModel.UnitName;
+  end;
+
+  for lUseName in aSemanticModel.InterfaceUses do
+  begin
+    if not ContainsUse(aModel, lUseName, 'interface') then
+    begin
+      AddUse(aModel, lUseName, 'interface', 0, 0);
+    end;
+  end;
+  for lUseName in aSemanticModel.ImplementationUses do
+  begin
+    if not ContainsUse(aModel, lUseName, 'implementation') then
+    begin
+      AddUse(aModel, lUseName, 'implementation', 0, 0);
+    end;
+  end;
+
+  for lDeclaration in aSemanticModel.Declarations do
+  begin
+    if not ContainsSymbol(aModel, lDeclaration.Name, lDeclaration.Kind, lDeclaration.SectionKind) then
+    begin
+      AddSymbol(aModel, lDeclaration.Name, lDeclaration.Kind, SemanticDeclarationOwnerName(lDeclaration),
+        SemanticDeclarationTypeName(lDeclaration), '', lDeclaration.SectionKind, lDeclaration.Line,
+        lDeclaration.Column, lDeclaration.Line, lDeclaration.Column);
+    end;
+  end;
+
+  for lRoutine in aSemanticModel.Routines do
+  begin
+    if not ContainsSymbol(aModel, lRoutine.Name, 'routine', lRoutine.SectionKind) then
+    begin
+      AddSymbol(aModel, lRoutine.Name, 'routine', lRoutine.OwnerName, lRoutine.ReturnType, lRoutine.Signature,
+        lRoutine.SectionKind, lRoutine.Line, lRoutine.Column, lRoutine.Line, lRoutine.Column);
+    end;
+  end;
+
+  for lMember in aSemanticModel.Members do
+  begin
+    if not ContainsMember(aModel, lMember.OwnerName, lMember.Name, lMember.Kind) then
+    begin
+      AddMember(aModel, lMember.OwnerName, lMember.Name, lMember.Kind, lMember.TypeName,
+        lMember.Visibility, lMember.Signature, lMember.IsDefault, lMember.IsIndexed, lMember.Line,
+        lMember.Column, lMember.Line, lMember.Column);
+    end;
+  end;
+end;
+
+procedure MergeDelphiSemanticExtraction(const aFilePath: string; var aModel: TSymbolMapUnitModel);
+var
+  lOptions: TDelphiSemanticModelOptions;
+  lSemanticModel: TDelphiSemanticUnitModel;
+begin
+  if (aModel.fUnitName <> '') and ((Length(aModel.fSymbols) > 0) or (Length(aModel.fMembers) > 0)) then
+  begin
+    Exit;
+  end;
+
+  lOptions := Default(TDelphiSemanticModelOptions);
+  lOptions.SourceFileName := aFilePath;
+  lOptions.ProjectContextApplied := False;
+  lSemanticModel := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
+  if lSemanticModel.Success then
+  begin
+    MergeDelphiSemanticModel(aModel, lSemanticModel);
+  end;
 end;
 
 function TokenIsIdentifierText(const aToken: TSymbolMapToken; const aText: string): Boolean;
@@ -1263,6 +1407,7 @@ begin
   TokenizeSource(lSourceText, lTokens);
   ExtractUnitModelFromTokens(lSourceText, lTokens, aModel);
   ExtractIdentifierReferences(lTokens, aModel);
+  MergeDelphiSemanticExtraction(aModel.fFilePath, aModel);
   Result := True;
 end;
 

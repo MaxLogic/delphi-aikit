@@ -19,6 +19,7 @@ uses
   DelphiAST.Classes,
   DelphiAST.Consts,
   DelphiAST.ProjectIndexer,
+  DelphiSemantics.Model,
   Dak.Types;
 
 function RunGlobalVarsCommand(const aOptions: TAppOptions): Integer;
@@ -154,6 +155,7 @@ type
     class function IsSectionKeyword(const aText: string): Boolean; static;
     class function IsRoutineStart(const aText: string): Boolean; static;
     procedure LoadUnitRecursive(const aFileName: string);
+    procedure MergeDelphiSemanticGlobals(const aUnit: TUnitInfo);
     function ParseUnit(const aFileName: string; const aSyntaxTree: TSyntaxNode = nil): TUnitInfo;
     class function ParseUsesUnits(const aText: string): TArray<string>; static;
     class procedure ParseUsesFromAst(const aUnit: TUnitInfo; const aSyntaxTree: TSyntaxNode); static;
@@ -217,7 +219,7 @@ begin
   fProject := aProject;
   fUnitsByName := TObjectDictionary<string, TUnitInfo>.Create([doOwnsValues]);
   fVisitedFiles := TDictionary<string, Byte>.Create;
-  fSymbols := TObjectList<TGlobalVarSymbol>.Create(False);
+  fSymbols := TObjectList<TGlobalVarSymbol>.Create(True);
   fAmbiguities := TList<TGlobalVarAmbiguity>.Create;
 end;
 
@@ -1474,6 +1476,7 @@ begin
     ParseClassVars(Result, lLines);
     ParseRoutines(Result, lLines);
   end;
+  MergeDelphiSemanticGlobals(Result);
   for lSymbol in Result.Symbols do
   begin
     fSymbols.Add(lSymbol);
@@ -1586,6 +1589,100 @@ begin
       Result := 'typedconst';
   else
     Result := 'classvar';
+  end;
+end;
+
+function GlobalVarKindForSemanticDeclaration(const aDeclaration: TDelphiSemanticDeclaration;
+  out aKind: TGlobalVarKind): Boolean;
+begin
+  if SameText(aDeclaration.Kind, 'var') then
+  begin
+    aKind := TGlobalVarKind.gvkVar;
+    Exit(True);
+  end;
+  if SameText(aDeclaration.Kind, 'typed-const') then
+  begin
+    aKind := TGlobalVarKind.gvkTypedConst;
+    Exit(True);
+  end;
+  Result := False;
+end;
+
+function UnitContainsGlobalSymbol(const aUnit: TUnitInfo; const aName: string): Boolean;
+var
+  lSymbol: TGlobalVarSymbol;
+begin
+  for lSymbol in aUnit.Symbols do
+  begin
+    if SameText(lSymbol.Name, aName) then
+    begin
+      Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+function SplitSemanticListText(const aText: string): TArray<string>;
+var
+  lItems: TArray<string>;
+  lPart: string;
+  lResult: TList<string>;
+begin
+  lResult := TList<string>.Create;
+  try
+    lItems := SplitString(aText, ';');
+    for lPart in lItems do
+    begin
+      if Trim(lPart) <> '' then
+      begin
+        lResult.Add(Trim(lPart));
+      end;
+    end;
+    Result := lResult.ToArray;
+  finally
+    lResult.Free;
+  end;
+end;
+
+procedure TSourceAnalyzer.MergeDelphiSemanticGlobals(const aUnit: TUnitInfo);
+var
+  lDeclaration: TDelphiSemanticDeclaration;
+  lKind: TGlobalVarKind;
+  lOptions: TDelphiSemanticModelOptions;
+  lSemanticModel: TDelphiSemanticUnitModel;
+  lSymbol: TGlobalVarSymbol;
+begin
+  lOptions := Default(TDelphiSemanticModelOptions);
+  lOptions.SourceFileName := aUnit.FileName;
+  lOptions.ProjectContextApplied := True;
+  lOptions.Defines := SplitSemanticListText(fProject.ParserDefines);
+  lOptions.SearchPaths := SplitSemanticListText(fProject.ParserSearchPath);
+  lSemanticModel := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
+  if not lSemanticModel.Success then
+  begin
+    Exit;
+  end;
+
+  for lDeclaration in lSemanticModel.Declarations do
+  begin
+    if not GlobalVarKindForSemanticDeclaration(lDeclaration, lKind) then
+    begin
+      Continue;
+    end;
+    if UnitContainsGlobalSymbol(aUnit, lDeclaration.Name) then
+    begin
+      Continue;
+    end;
+
+    lSymbol := TGlobalVarSymbol.Create;
+    lSymbol.Name := lDeclaration.Name;
+    lSymbol.UnitName := aUnit.UnitName;
+    lSymbol.FileName := aUnit.FileName;
+    lSymbol.Line := lDeclaration.Line;
+    lSymbol.Column := lDeclaration.Column;
+    lSymbol.TypeName := lDeclaration.TypeName;
+    lSymbol.Kind := lKind;
+    aUnit.Symbols.Add(lSymbol);
   end;
 end;
 

@@ -30,11 +30,13 @@ uses
   System.JSON,
   System.SysUtils,
   Dak.GlobalVars,
-  Dak.Types;
+  Dak.Types,
+  MaxLogic.ioUtils;
 
 function TGlobalVarsTests.FixtureProjectPath: string;
 begin
-  Result := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\fixtures\GlobalVarsFixture.dproj'));
+  Result := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)), 'fixtures',
+    'GlobalVarsFixture.dproj']));
 end;
 
 function TGlobalVarsTests.DakRoot: string;

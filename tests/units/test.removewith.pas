@@ -1514,6 +1514,10 @@ begin
     Assert.AreEqual(cDiscoveryFixtureWithCount, Length(lScanResult.fWithStatements),
       'Expected discovery to read with statements from the shared model.');
     Assert.IsTrue(Length(lInventory.fSymbols) > 0, 'Expected symbol inventory to read units from the shared model.');
+    Assert.IsTrue(Length(lInventory.fDelphiSemanticUnitModels) > 0,
+      'Expected remove-with inventory to consume DelphiSemantics unit models.');
+    Assert.IsTrue(Length(lInventory.fDelphiSemanticWithBindings) > 0,
+      'Expected remove-with inventory to consume DelphiSemantics with bindings.');
   finally
     lModel.Free;
   end;
