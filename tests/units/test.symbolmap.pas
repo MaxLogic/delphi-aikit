@@ -1,4 +1,4 @@
-﻿unit Test.SymbolMap;
+unit Test.SymbolMap;
 
 interface
 
@@ -174,6 +174,8 @@ type
     [Test]
     procedure FindsProjectDefinitionByPositionAndName;
     [Test]
+    procedure FindsMemberDefinitionBySourcePosition;
+    [Test]
     procedure SearchesProjectMembersRtlSourceAndIntrinsics;
     [Test]
     procedure DescribesOwnedMembersAndIntrinsics;
@@ -188,9 +190,12 @@ type
     function FixtureProjectPath: string;
     procedure IndexFixtureProject(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus);
     function UniqueTempPath(const aPrefix: string): string;
+    procedure WriteRtlReferenceUnit(const aRoot: string);
   public
     [Test]
     procedure FindsTokenReferencesInProjectScope;
+    [Test]
+    procedure ExcludesRtlReferencesFromProjectReferenceLookup;
     [Test]
     procedure LimitsTokenReferenceResults;
   end;
@@ -1334,6 +1339,33 @@ begin
   Assert.AreEqual('type', lDefinition.fKind);
 end;
 
+procedure TSymbolMapDefinitionQueryTests.FindsMemberDefinitionBySourcePosition;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
+  lError: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-member-position-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile. Error: ' + lError);
+  IndexFixtureProject(lContext, lStatus);
+
+  Assert.IsTrue(FindSymbolMapDefinitionByPosition(lContext, lStatus, lProfile,
+    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas'), 36, 3, lDefinition,
+    lError), 'Expected position lookup. Error: ' + lError);
+
+  Assert.IsTrue(lDefinition.fFound, 'Expected definition at FValue member reference.');
+  Assert.AreEqual('FValue', lDefinition.fName);
+  Assert.AreEqual('field', lDefinition.fKind);
+  Assert.AreEqual('TSymbolMapReferenceHolder', lDefinition.fOwnerName);
+  Assert.AreEqual('project', lDefinition.fSourceKind);
+end;
+
 procedure TSymbolMapDefinitionQueryTests.SearchesProjectMembersRtlSourceAndIntrinsics;
 var
   lCacheRoot: string;
@@ -1362,6 +1394,11 @@ begin
   Assert.AreEqual('Enabled', lResults[0].fName);
   Assert.AreEqual('property', lResults[0].fKind);
   Assert.AreEqual('TMemberClass', lResults[0].fOwnerName);
+
+  Assert.IsTrue(SearchSymbolMapDefinitions(lContext, lStatus, lProfile, 'enabled', 1, lResults, lError),
+    'Expected limited member search. Error: ' + lError);
+  Assert.AreEqual(1, Length(lResults));
+  Assert.AreEqual('Enabled', lResults[0].fName);
 
   Assert.IsTrue(SearchSymbolMapDefinitions(lContext, lStatus, lProfile, 'TSystemFixture', 20, lResults, lError),
     'Expected RTL source search. Error: ' + lError);
@@ -1488,6 +1525,18 @@ begin
   Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
 end;
 
+procedure TSymbolMapReferenceQueryTests.WriteRtlReferenceUnit(const aRoot: string);
+var
+  lPath: string;
+begin
+  lPath := TPath.Combine(aRoot, 'rtl\sys\System.pas');
+  ForceDirectories(TPath.GetDirectoryName(lPath));
+  TFile.WriteAllText(lPath, 'unit System;' + sLineBreak + sLineBreak + 'interface' + sLineBreak +
+    'type' + sLineBreak + '  TRtlFixtureReference = record' + sLineBreak +
+    '    Value: TSymbolMapFixtureType;' + sLineBreak + '  end;' + sLineBreak + sLineBreak +
+    'implementation' + sLineBreak + sLineBreak + 'end.', TEncoding.UTF8);
+end;
+
 procedure TSymbolMapReferenceQueryTests.FindsTokenReferencesInProjectScope;
 var
   lCacheRoot: string;
@@ -1511,8 +1560,41 @@ begin
   Assert.AreEqual('TSymbolMapFixtureType', lReferences[0].fName);
   Assert.AreEqual('project', lReferences[0].fSourceKind);
   Assert.AreEqual('token-name-match', lReferences[0].fConfidence);
+  Assert.AreEqual('interface', lReferences[0].fSectionKind);
   Assert.IsTrue(lReferences[0].fFilePath.EndsWith('SymbolMapUnit.pas'), 'Expected fixture source file.');
   Assert.IsTrue(lReferences[0].fLine > 0, 'Expected source line.');
+  Assert.IsTrue(lReferences[0].fEndCol >= lReferences[0].fCol, 'Expected cached reference end column.');
+end;
+
+procedure TSymbolMapReferenceQueryTests.ExcludesRtlReferencesFromProjectReferenceLookup;
+var
+  i: Integer;
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lReferences: TArray<TSymbolMapReference>;
+  lRoot: string;
+  lRtl: TSymbolMapRtlIndexResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-reference-project-scope-cache');
+  lRoot := UniqueTempPath('symbol-map-reference-project-scope-rtl');
+  WriteRtlReferenceUnit(lRoot);
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile. Error: ' + lError);
+  IndexFixtureProject(lContext, lStatus);
+  Assert.IsTrue(IndexSymbolMapRtlSources(lContext, lStatus, lRoot, lProfile, lRtl, lError),
+    'Expected RTL source index. Error: ' + lError);
+
+  Assert.IsTrue(FindSymbolMapReferences(lContext, lStatus, lProfile, 'TSymbolMapFixtureType', 20, lReferences,
+    lError), 'Expected reference query. Error: ' + lError);
+
+  Assert.IsTrue(Length(lReferences) >= 4, 'Expected project references.');
+  for i := 0 to High(lReferences) do
+    Assert.AreEqual('project', lReferences[i].fSourceKind);
 end;
 
 procedure TSymbolMapReferenceQueryTests.LimitsTokenReferenceResults;
