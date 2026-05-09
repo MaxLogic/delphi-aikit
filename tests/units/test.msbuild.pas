@@ -8,7 +8,7 @@ uses
   System.IOUtils,
   System.SysUtils,
   Xml.omnixmldom, Xml.xmldom,
-  Dak.Diagnostics, Dak.MsBuild,
+  Dak.Diagnostics, Dak.MsBuild, Dak.Project, Dak.Types,
   Test.Support;
 
 type
@@ -47,6 +47,8 @@ type
     procedure PropertyValueWithQuotedEmptyLiteralDoesNotBreakLaterCondition;
     [Test]
     procedure SelfReferenceFallsBackToEmptyWhenPropertyWasUndefined;
+    [Test]
+    procedure ProjectSourceLookupExposesStableMetadataForSemanticConsumers;
   end;
 
 implementation
@@ -126,6 +128,45 @@ begin
     lProjectXml.AppendLine('  </PropertyGroup>');
     lProjectXml.AppendLine(
       '  <Import Project="Imported.props" Condition="''$(EnableImportedProps)''==''true'' And Exists(''Imported.props'')"/>');
+    lProjectXml.AppendLine('</Project>');
+    TFile.WriteAllText(aProjectPath, lProjectXml.ToString, TEncoding.UTF8);
+  finally
+    lProjectXml.Free;
+  end;
+end;
+
+procedure BuildProjectMetadataProject(out aProjectPath, aMainSourcePath, aReferenceDir, aSearchDir: string);
+var
+  lProjectXml: TStringBuilder;
+  lRoot: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'msbuild-project-metadata');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+
+  aReferenceDir := TPath.Combine(lRoot, 'src');
+  aSearchDir := TPath.Combine(lRoot, 'shared');
+  TDirectory.CreateDirectory(aReferenceDir);
+  TDirectory.CreateDirectory(aSearchDir);
+  aProjectPath := TPath.Combine(lRoot, 'MetadataCheck.dproj');
+  aMainSourcePath := TPath.Combine(lRoot, 'MetadataCheck.dpr');
+  TFile.WriteAllText(aMainSourcePath, 'program MetadataCheck;' + sLineBreak + 'begin' + sLineBreak + 'end.',
+    TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(aReferenceDir, 'MetadataUnit.pas'),
+    'unit MetadataUnit;' + sLineBreak + 'interface' + sLineBreak + 'implementation' + sLineBreak + 'end.',
+    TEncoding.UTF8);
+
+  lProjectXml := TStringBuilder.Create;
+  try
+    lProjectXml.AppendLine('<Project>');
+    lProjectXml.AppendLine('  <PropertyGroup Condition="''$(Config)''==''Debug'' and ''$(Platform)''==''Win32''">');
+    lProjectXml.AppendLine('    <MainSource>MetadataCheck.dpr</MainSource>');
+    lProjectXml.AppendLine('    <DCC_UnitSearchPath>shared</DCC_UnitSearchPath>');
+    lProjectXml.AppendLine('  </PropertyGroup>');
+    lProjectXml.AppendLine('  <ItemGroup>');
+    lProjectXml.AppendLine('    <DCCReference Include="src\MetadataUnit.pas"/>');
+    lProjectXml.AppendLine('  </ItemGroup>');
     lProjectXml.AppendLine('</Project>');
     TFile.WriteAllText(aProjectPath, lProjectXml.ToString, TEncoding.UTF8);
   finally
@@ -406,6 +447,29 @@ begin
     lEnv.Free;
     lProps.Free;
   end;
+end;
+
+procedure TMsBuildTests.ProjectSourceLookupExposesStableMetadataForSemanticConsumers;
+var
+  lError: string;
+  lLookup: TProjectSourceLookup;
+  lMainSourcePath: string;
+  lProjectPath: string;
+  lReferenceDir: string;
+  lSearchDir: string;
+  lSearchPathText: string;
+begin
+  BuildProjectMetadataProject(lProjectPath, lMainSourcePath, lReferenceDir, lSearchDir);
+  Assert.IsTrue(TryBuildProjectSourceLookup(lProjectPath, 'Debug', 'Win32', '23.0', nil, nil, lLookup, lError),
+    'Expected project source lookup. Error: ' + lError);
+  Assert.AreEqual(TPath.GetFullPath(lProjectPath), lLookup.fProjectDproj);
+  Assert.AreEqual(TPath.GetDirectoryName(lProjectPath), lLookup.fProjectDir);
+  Assert.AreEqual(TPath.GetFullPath(lMainSourcePath), lLookup.fMainSourcePath);
+  lSearchPathText := String.Join(';', lLookup.fSearchPaths);
+  Assert.IsTrue(Pos(TPath.GetFullPath(lReferenceDir), lSearchPathText) > 0,
+    'Expected DCCReference directory in search paths: ' + lSearchPathText);
+  Assert.IsTrue(Pos(TPath.GetFullPath(lSearchDir), lSearchPathText) > 0,
+    'Expected DCC_UnitSearchPath directory in search paths: ' + lSearchPathText);
 end;
 
 initialization

@@ -22,6 +22,7 @@ type
     [Setup] procedure Setup;
     [TearDown] procedure TearDown;
     [Test] procedure DepsJsonEmitsNodesEdgesAndProblems;
+    [Test] procedure DepsJsonKeepsStableCompatibilityShape;
     [Test] procedure DepsJsonSurfacesUnresolvedUnits;
     [Test] procedure DepsJsonMarksSearchPathUnitsAsExternal;
     [Test] procedure DepsOutputAcceptsBareFileName;
@@ -176,6 +177,64 @@ begin
 
   lOutputPath := TPath.Combine(TPath.GetDirectoryName(FixtureProjectPath), '.dak\DepsFixture\deps\deps.json');
   Assert.IsTrue(TFile.Exists(lOutputPath), 'Expected default deps output file under sibling .dak folder.');
+end;
+
+procedure TDepsTests.DepsJsonKeepsStableCompatibilityShape;
+var
+  lEdge: TJSONObject;
+  lEdges: TJSONArray;
+  lJson: TJSONObject;
+  lNode: TJSONObject;
+  lNodes: TJSONArray;
+  lParserProblem: TJSONObject;
+  lParserProblems: TJSONArray;
+  lProjectJson: TJSONObject;
+  lSummary: TJSONObject;
+begin
+  lJson := RunDepsJson(FixtureProjectPath, 'deps-json-shape.log');
+  try
+    lProjectJson := lJson.GetValue<TJSONObject>('project');
+    Assert.IsNotNull(lProjectJson);
+    Assert.AreEqual('DepsFixture', lProjectJson.GetValue<string>('name'));
+    Assert.IsNotEmpty(lProjectJson.GetValue<string>('path'));
+    Assert.IsNotEmpty(lProjectJson.GetValue<string>('mainSource'));
+    Assert.IsNotEmpty(lProjectJson.GetValue<string>('contextMode'));
+
+    lSummary := lJson.GetValue<TJSONObject>('summary');
+    Assert.IsNotNull(lSummary);
+    Assert.IsTrue(lSummary.GetValue<Integer>('nodeCount') >= 3);
+    Assert.IsTrue(lSummary.GetValue<Integer>('resolvedNodeCount') >= 2);
+    Assert.IsTrue(lSummary.GetValue<Integer>('edgeCount') >= 2);
+    Assert.IsTrue(lSummary.GetValue<Integer>('unresolvedUnitCount') >= 1);
+    Assert.IsTrue(lSummary.GetValue<Integer>('parserProblemCount') >= 1);
+
+    lNodes := lJson.GetValue<TJSONArray>('nodes');
+    lNode := FindNodeByName(lNodes, 'DepsFixture.Main');
+    Assert.IsNotNull(lNode, 'Expected main fixture node.');
+    Assert.AreEqual('DepsFixture.Main', lNode.GetValue<string>('name'));
+    Assert.IsNotEmpty(lNode.GetValue<string>('path'));
+    Assert.AreEqual('true', LowerCase(lNode.GetValue<string>('isProjectUnit')));
+    Assert.AreEqual('resolved', lNode.GetValue<string>('resolution'));
+    Assert.IsNotNull(lNode.GetValue('unitCycleScore'), 'Expected stable unitCycleScore field.');
+    Assert.IsNotNull(lNode.GetValue('sccId'), 'Expected stable sccId field.');
+
+    lEdges := lJson.GetValue<TJSONArray>('edges');
+    lEdge := FindEdgeByNames(lEdges, 'DepsFixture.Main', 'DepsFixture.Shared');
+    Assert.IsNotNull(lEdge, 'Expected main-to-shared edge.');
+    Assert.AreEqual('DepsFixture.Main', lEdge.GetValue<string>('from'));
+    Assert.AreEqual('DepsFixture.Shared', lEdge.GetValue<string>('to'));
+    Assert.IsNotEmpty(lEdge.GetValue<string>('edgeKind'));
+    Assert.IsNotNull(lEdge.GetValue('isCycleEdge'), 'Expected stable isCycleEdge field.');
+
+    lParserProblems := lJson.GetValue<TJSONArray>('parserProblems');
+    Assert.IsTrue(lParserProblems.Count > 0, 'Expected parser problem compatibility payload.');
+    lParserProblem := lParserProblems.Items[0] as TJSONObject;
+    Assert.IsNotEmpty(lParserProblem.GetValue<string>('unitName'));
+    Assert.IsNotEmpty(lParserProblem.GetValue<string>('fileName'));
+    Assert.IsNotEmpty(lParserProblem.GetValue<string>('description'));
+  finally
+    lJson.Free;
+  end;
 end;
 
 procedure TDepsTests.DepsJsonSurfacesUnresolvedUnits;

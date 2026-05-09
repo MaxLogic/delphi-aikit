@@ -206,6 +206,8 @@ type
     procedure ResolvesCoreSymbolKindsWithoutShellingOut;
     [Test]
     procedure ResolvesSourcePositionAndReportsCacheStatus;
+    [Test]
+    procedure PreparedSessionKeepsStableStatusAcrossLookups;
   end;
 
   [TestFixture]
@@ -1613,6 +1615,41 @@ begin
   Assert.IsTrue(lResult.fStatus.fProjectIndexed, 'Expected project indexing status.');
   Assert.IsNotEmpty(lResult.fStatus.fCacheStatus.fCentralDbPath, 'Expected central cache path.');
   Assert.IsNotEmpty(lResult.fStatus.fCompilerProfile.fProfileKey, 'Expected compiler profile key.');
+end;
+
+procedure TSymbolMapApiTests.PreparedSessionKeepsStableStatusAcrossLookups;
+var
+  lCacheRoot: string;
+  lError: string;
+  lMemberResult: TSymbolMapApiLookupResult;
+  lOptions: TAppOptions;
+  lSession: TSymbolMapApiSession;
+  lTypeResult: TSymbolMapApiLookupResult;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-api-session-cache');
+  lOptions := BaseOptions(lCacheRoot);
+
+  Assert.IsTrue(PrepareSymbolMapApiSession(lOptions, lSession, lError),
+    'Expected prepared SymbolMap API session. Error: ' + lError);
+  Assert.IsTrue(lSession.fPrepared, 'Expected prepared session flag.');
+  Assert.IsTrue(lSession.fStatus.fProjectIndexed, 'Expected project indexing status.');
+  Assert.IsNotEmpty(lSession.fStatus.fCacheStatus.fCentralDbPath, 'Expected central cache path.');
+  Assert.IsNotEmpty(lSession.fStatus.fCacheStatus.fProjectDbPath, 'Expected project cache path.');
+  Assert.IsNotEmpty(lSession.fStatus.fCompilerProfile.fProfileKey, 'Expected compiler profile key.');
+
+  Assert.IsTrue(LookupSymbolMapDefinitionByName(lSession, 'TDeclarationRecord', '', lTypeResult, lError),
+    'Expected type lookup from prepared session. Error: ' + lError);
+  Assert.IsTrue(LookupSymbolMapDefinitionByName(lSession, 'Name', 'TMemberClass', lMemberResult, lError),
+    'Expected member lookup from prepared session. Error: ' + lError);
+
+  Assert.AreEqual('TDeclarationRecord', lTypeResult.fDefinition.fName);
+  Assert.AreEqual('type', lTypeResult.fDefinition.fKind);
+  Assert.AreEqual('Name', lMemberResult.fDefinition.fName);
+  Assert.AreEqual('property', lMemberResult.fDefinition.fKind);
+  Assert.AreEqual(lSession.fStatus.fCacheStatus.fCentralDbPath,
+    lMemberResult.fStatus.fCacheStatus.fCentralDbPath);
+  Assert.AreEqual(lSession.fStatus.fCompilerProfile.fProfileKey,
+    lTypeResult.fStatus.fCompilerProfile.fProfileKey);
 end;
 
 function TSymbolMapRtlIndexTests.ProfileSourceKind(const aDbPath, aProfileKey, aUnitName: string): string;
