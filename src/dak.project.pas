@@ -20,6 +20,7 @@ function TryBuildProjectAnalysisContext(const aOptions: TAppOptions; out aContex
 implementation
 
 uses
+  DelphiSemantics.ProjectContext,
   Dak.FixInsightSettings, Dak.Registry, Dak.RsVars, Dak.Utils;
 
 type
@@ -246,144 +247,82 @@ begin
   end;
 end;
 
+function SemanticEnvironmentProperties(const aEnvVars: TDictionary<string, string>):
+  TArray<TDelphiSemanticProperty>;
+var
+  i: Integer;
+  lPair: TPair<string, string>;
+begin
+  if aEnvVars = nil then
+  begin
+    SetLength(Result, 0);
+    Exit;
+  end;
+
+  SetLength(Result, aEnvVars.Count);
+  i := 0;
+  for lPair in aEnvVars do
+  begin
+    Result[i].Name := lPair.Key;
+    Result[i].Value := lPair.Value;
+    Inc(i);
+  end;
+end;
+
+procedure AddSemanticDiagnostics(const aDiagnostics: TDiagnostics;
+  const aResult: TDelphiSemanticContextResult);
+var
+  lDiagnostic: TDelphiSemanticDiagnostic;
+begin
+  if aDiagnostics = nil then
+    Exit;
+
+  for lDiagnostic in aResult.Diagnostics do
+    if lDiagnostic.Message <> '' then
+      aDiagnostics.AddWarning(lDiagnostic.Message);
+end;
+
+function FirstSemanticErrorMessage(const aResult: TDelphiSemanticContextResult): string;
+var
+  lDiagnostic: TDelphiSemanticDiagnostic;
+begin
+  for lDiagnostic in aResult.Diagnostics do
+    if lDiagnostic.Severity = dsError then
+      Exit(lDiagnostic.Message);
+
+  Result := '';
+end;
+
 function TryBuildProjectSourceLookup(const aDprojPath, aConfig, aPlatform, aDelphiVersion: string;
   const aEnvVars: TDictionary<string, string>; aDiagnostics: TDiagnostics; out aLookup: TProjectSourceLookup;
   out aError: string): Boolean;
 var
-  lEnvPair: TPair<string, string>;
-  lEvalEnvVars: TDictionary<string, string>;
-  lEvaluator: TMsBuildEvaluator;
-  lMainSource: string;
-  lOptset: string;
-  lOptsetPath: string;
-  lProjectDir: string;
-  lProjectFile: string;
-  lProjectFullPath: string;
-  lProjectName: string;
-  lProjPaths: TArray<string>;
-  lReferenceDirs: TArray<string>;
-  lSearchPath: string;
-  lSources: TDictionary<string, TPropertySource>;
-  lTempProps: TDictionary<string, string>;
-  lTracker: TSourceTracker;
-  lProps: TDictionary<string, string>;
+  lOptions: TDelphiSemanticOptions;
+  lResult: TDelphiSemanticContextResult;
 begin
-  Result := False;
   aError := '';
   aLookup := Default(TProjectSourceLookup);
-  lEvalEnvVars := nil;
+  lOptions := Default(TDelphiSemanticOptions);
+  lOptions.Configuration := aConfig;
+  lOptions.Platform := aPlatform;
+  lOptions.DelphiVersion := aDelphiVersion;
+  lOptions.EnvironmentVariables := SemanticEnvironmentProperties(aEnvVars);
 
-  lProjectFullPath := TPath.GetFullPath(aDprojPath);
-  lProjectDir := TPath.GetDirectoryName(lProjectFullPath);
-  lProjectFile := TPath.GetFileName(lProjectFullPath);
-  lProjectName := TPath.GetFileNameWithoutExtension(lProjectFullPath);
-
-  if aEnvVars <> nil then
-    lEvalEnvVars := aEnvVars
-  else
-    lEvalEnvVars := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-
-  lProps := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-  lSources := TDictionary<string, TPropertySource>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-  try
-    lProps.AddOrSetValue('Config', aConfig);
-    lProps.AddOrSetValue('Platform', aPlatform);
-    lProps.AddOrSetValue('DelphiVersion', aDelphiVersion);
-    lProps.AddOrSetValue('ProjectDir', IncludeTrailingPathDelimiter(lProjectDir));
-    lProps.AddOrSetValue('PROJECTDIR', IncludeTrailingPathDelimiter(lProjectDir));
-    lProps.AddOrSetValue('ProjectName', lProjectName);
-    lProps.AddOrSetValue('MSBuildProjectName', lProjectName);
-    lProps.AddOrSetValue('MSBuildProjectFullPath', lProjectFullPath);
-    lProps.AddOrSetValue('MSBuildProjectDirectory', IncludeTrailingPathDelimiter(lProjectDir));
-    lProps.AddOrSetValue('MSBuildProjectFile', lProjectFile);
-
-    if aEnvVars <> nil then
-      for lEnvPair in aEnvVars do
-        if not lProps.ContainsKey(lEnvPair.Key) then
-          lProps.AddOrSetValue(lEnvPair.Key, lEnvPair.Value);
-
-    lTempProps := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-    try
-      CopyProps(lProps, lTempProps);
-      lEvaluator := TMsBuildEvaluator.Create(lTempProps, lEvalEnvVars, aDiagnostics);
-      try
-        if not lEvaluator.EvaluateFile(aDprojPath, aError) then
-        begin
-          aError := Format(SDprojParseError, [aError]);
-          Exit(False);
-        end;
-      finally
-        lEvaluator.Free;
-      end;
-      lTempProps.TryGetValue('CfgDependentOn', lOptset);
-      lOptset := Trim(lOptset);
-    finally
-      lTempProps.Free;
-    end;
-
-    lOptsetPath := '';
-    if lOptset <> '' then
-    begin
-      lOptsetPath := ResolveFilePath(lOptset, lProjectDir, lProps, lEvalEnvVars, aDiagnostics);
-      if not FileExists(lOptsetPath) then
-        lOptsetPath := '';
-    end;
-
-    if lOptsetPath <> '' then
-    begin
-      lTracker := TSourceTracker.Create(lSources, TPropertySource.psOptset);
-      try
-        lEvaluator := TMsBuildEvaluator.Create(lProps, lEvalEnvVars, aDiagnostics);
-        lEvaluator.OnPropertySet := lTracker.OnPropertySet;
-        try
-          if not lEvaluator.EvaluateFile(lOptsetPath, aError) then
-          begin
-            aError := Format(SOptsetParseError, [aError]);
-            Exit(False);
-          end;
-        finally
-          lEvaluator.Free;
-        end;
-      finally
-        lTracker.Free;
-      end;
-    end;
-
-    lTracker := TSourceTracker.Create(lSources, TPropertySource.psDproj);
-    try
-      lEvaluator := TMsBuildEvaluator.Create(lProps, lEvalEnvVars, aDiagnostics);
-      lEvaluator.OnPropertySet := lTracker.OnPropertySet;
-      try
-        if not lEvaluator.EvaluateFile(aDprojPath, aError) then
-        begin
-          aError := Format(SDprojParseError, [aError]);
-          Exit(False);
-        end;
-      finally
-        lEvaluator.Free;
-      end;
-    finally
-      lTracker.Free;
-    end;
-
-    if not lProps.TryGetValue('MainSource', lMainSource) or (Trim(lMainSource) = '') then
-      lMainSource := lProjectName + '.dpr';
-
-    aLookup.fProjectDproj := lProjectFullPath;
-    aLookup.fProjectDir := lProjectDir;
-    aLookup.fMainSourcePath := ResolveFilePath(lMainSource, lProjectDir, lProps, lEvalEnvVars, aDiagnostics);
-    if not lProps.TryGetValue('DCC_UnitSearchPath', lSearchPath) then
-      lSearchPath := '';
-    lProjPaths := NormalizePathList(lSearchPath, lProjectDir, 'SearchPath', lProps, lEvalEnvVars, aDiagnostics);
-    lReferenceDirs := CollectReferenceDirs(aDprojPath, lProjectDir, lProps, lEvalEnvVars, aDiagnostics);
-    aLookup.fSearchPaths := ConcatDedup(lReferenceDirs, lProjPaths);
-    Result := True;
-  finally
-    lSources.Free;
-    lProps.Free;
-    if (aEnvVars = nil) and (lEvalEnvVars <> nil) then
-      lEvalEnvVars.Free;
+  lResult := TDelphiSemanticProject.Load(aDprojPath, lOptions);
+  AddSemanticDiagnostics(aDiagnostics, lResult);
+  if not lResult.Success then
+  begin
+    aError := FirstSemanticErrorMessage(lResult);
+    if aError = '' then
+      aError := 'Failed to load project context.';
+    Exit(False);
   end;
+
+  aLookup.fProjectDproj := lResult.Project.ProjectFileName;
+  aLookup.fProjectDir := lResult.Project.ProjectDirectory;
+  aLookup.fMainSourcePath := lResult.Project.MainSourceFileName;
+  aLookup.fSearchPaths := lResult.Project.SourceLookupPaths;
+  Result := True;
 end;
 
 function TryBuildParams(const aOptions: TAppOptions; const aEnvVars: TDictionary<string, string>;
