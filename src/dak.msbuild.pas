@@ -6,6 +6,7 @@ uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.StrUtils,
   System.SysUtils, System.Variants,
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
+  DelphiSemantics.ProjectContext,
   Dak.Diagnostics, Dak.MacroExpander, Dak.Messages;
 
 type
@@ -60,6 +61,28 @@ type
     constructor Create(const aText, aBaseDir: string);
     function TryEvaluate(out aValue: Boolean; out aError: string): Boolean;
   end;
+
+function DictionaryToSemanticProperties(const aValues: TDictionary<string, string>): TArray<TDelphiSemanticProperty>;
+var
+  lPair: TPair<string, string>;
+  lProperty: TDelphiSemanticProperty;
+  lResult: TList<TDelphiSemanticProperty>;
+begin
+  lResult := TList<TDelphiSemanticProperty>.Create;
+  try
+    if aValues <> nil then
+      for lPair in aValues do
+      begin
+        lProperty.Name := lPair.Key;
+        lProperty.Value := lPair.Value;
+        lResult.Add(lProperty);
+      end;
+
+    Result := lResult.ToArray;
+  finally
+    lResult.Free;
+  end;
+end;
 
 { TConditionParser }
 
@@ -437,21 +460,16 @@ end;
 function TMsBuildEvaluator.TryEvaluateCondition(const aCondition: string; const aBaseDir: string; out aResult: Boolean;
   out aError: string): Boolean;
 var
-  lExpanded: string;
-  lParser: TConditionParser;
+  lDiagnostics: TArray<TDelphiSemanticDiagnostic>;
 begin
   aResult := True;
   aError := '';
   if Trim(aCondition) = '' then
     Exit(True);
 
-  lExpanded := TMacroExpander.Expand(aCondition, fProps, fEnvVars, fDiagnostics, True);
-  lParser := TConditionParser.Create(lExpanded, aBaseDir);
-  try
-    Result := lParser.TryEvaluate(aResult, aError);
-  finally
-    lParser.Free;
-  end;
+  Result := TDelphiSemanticMsBuild.TryEvaluateCondition(aCondition, aBaseDir,
+    DictionaryToSemanticProperties(fProps), DictionaryToSemanticProperties(fEnvVars), aResult, aError,
+    lDiagnostics);
   if not Result then
     aError := Format(SConditionParseError, [aCondition]);
 end;
