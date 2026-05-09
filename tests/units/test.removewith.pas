@@ -7,6 +7,7 @@ uses
   DUnitX.TestFramework,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Planner,
   Dak.RemoveWith.Resolver, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy,
+  DelphiSemantics.Model, DelphiSemantics.WithBinding,
   Test.Support;
 
 type
@@ -1491,9 +1492,13 @@ procedure TRemoveWithProjectModelTests.SharedProjectModelFeedsDiscoveryAndSymbol
 var
   lError: string;
   lInventory: TRemoveWithSymbolInventory;
+  lSemanticBinding: TDelphiSemanticWithBinding;
+  lSemanticModel: TDelphiSemanticUnitModel;
   lModel: TRemoveWithProjectModel;
   lOptions: TAppOptions;
   lScanResult: TRemoveWithScanResult;
+  lFoundBindingWithSelector: Boolean;
+  lFoundDiscoveryUnitModel: Boolean;
 begin
   lOptions := Default(TAppOptions);
   lOptions.fDprojPath := TPath.Combine(RepoRoot,
@@ -1518,6 +1523,33 @@ begin
       'Expected remove-with inventory to consume DelphiSemantics unit models.');
     Assert.IsTrue(Length(lInventory.fDelphiSemanticWithBindings) > 0,
       'Expected remove-with inventory to consume DelphiSemantics with bindings.');
+    lFoundDiscoveryUnitModel := False;
+    for lSemanticModel in lInventory.fDelphiSemanticUnitModels do
+    begin
+      if SameText(lSemanticModel.UnitName, 'DiscoveryUnit') then
+      begin
+        lFoundDiscoveryUnitModel := True;
+        Assert.IsTrue(lSemanticModel.Success, 'Expected successful DelphiSemantics unit model.');
+        Assert.IsTrue(Length(lSemanticModel.WithStatements) > 0,
+          'Expected DelphiSemantics unit model to expose with statements.');
+      end;
+    end;
+    Assert.IsTrue(lFoundDiscoveryUnitModel, 'Expected semantic model for discovery fixture main unit.');
+
+    lFoundBindingWithSelector := False;
+    for lSemanticBinding in lInventory.fDelphiSemanticWithBindings do
+    begin
+      Assert.IsTrue(lSemanticBinding.Line > 0, 'Expected binding line to be populated.');
+      Assert.IsTrue(lSemanticBinding.Column > 0, 'Expected binding column to be populated.');
+      Assert.IsNotEmpty(lSemanticBinding.Status, 'Expected binding status to be populated.');
+      if Length(lSemanticBinding.Selectors) > 0 then
+      begin
+        lFoundBindingWithSelector := True;
+        Assert.IsNotEmpty(lSemanticBinding.Selectors[0].SelectorText,
+          'Expected selector text to be preserved for DAK adapters.');
+      end;
+    end;
+    Assert.IsTrue(lFoundBindingWithSelector, 'Expected at least one semantic binding with selector payload.');
   finally
     lModel.Free;
   end;

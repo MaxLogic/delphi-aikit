@@ -16,6 +16,7 @@ type
     [Setup] procedure Setup;
     [TearDown] procedure TearDown;
     [Test] procedure RunGlobalVarsJsonOutputIncludesSupportedKinds;
+    [Test] procedure RunGlobalVarsJsonOutputKeepsSymbolLocationAndUsageShape;
     [Test] procedure RunGlobalVarsJsonOutputSupportsUnusedOnlyFilter;
     [Test] procedure RunGlobalVarsJsonOutputSupportsUnitAndNameFilter;
     [Test] procedure RunGlobalVarsJsonOutputSupportsAccessFilters;
@@ -28,6 +29,7 @@ uses
   System.Classes,
   System.IOUtils,
   System.JSON,
+  System.StrUtils,
   System.SysUtils,
   Dak.GlobalVars,
   Dak.Types,
@@ -145,6 +147,65 @@ begin
     Assert.AreEqual('sCache', lFoundNames[4]);
   finally
     lFoundNames.Free;
+    lJson.Free;
+  end;
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsJsonOutputKeepsSymbolLocationAndUsageShape;
+var
+  lContent: string;
+  lItem: TJSONObject;
+  lItemValue: TJSONValue;
+  lJson: TJSONObject;
+  lOptions: TAppOptions;
+  lOutputFileName: string;
+  lUsedBy: TJSONArray;
+  lUsage: TJSONObject;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfJson;
+  lOutputFileName := TPath.Combine(TPath.GetTempPath, 'global-vars-fixture-shape.json');
+  lOptions.fGlobalVarsOutputPath := lOutputFileName;
+  lOptions.fHasGlobalVarsOutputPath := True;
+
+  if TFile.Exists(lOutputFileName) then
+  begin
+    TFile.Delete(lOutputFileName);
+  end;
+
+  Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+  lContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
+  lJson := TJSONObject.ParseJSONValue(lContent) as TJSONObject;
+  try
+    Assert.IsNotNull(lJson);
+    for lItemValue in lJson.GetValue<TJSONArray>('symbols') do
+    begin
+      lItem := lItemValue as TJSONObject;
+      if SameText(lItem.GetValue<string>('name'), 'GCounter') then
+      begin
+        Assert.AreEqual('GlobalVarsFixture.Globals', lItem.GetValue<string>('declaringUnit'));
+        Assert.IsTrue(EndsText('GlobalVarsFixture.Globals.pas', lItem.GetValue<string>('fileName')));
+        Assert.AreEqual('Integer', lItem.GetValue<string>('type'));
+        Assert.AreEqual('var', lItem.GetValue<string>('kind'));
+        Assert.AreEqual(12, lItem.GetValue<Integer>('line'));
+        Assert.AreEqual(3, lItem.GetValue<Integer>('column'));
+        lUsedBy := lItem.GetValue<TJSONArray>('usedBy');
+        Assert.IsNotNull(lUsedBy);
+        Assert.IsTrue(lUsedBy.Count > 0, 'Expected usage payloads for GCounter.');
+        lUsage := lUsedBy.Items[0] as TJSONObject;
+        Assert.IsNotEmpty(lUsage.GetValue<string>('unit'));
+        Assert.IsNotEmpty(lUsage.GetValue<string>('routine'));
+        Assert.IsTrue(EndsText('.pas', lUsage.GetValue<string>('file')));
+        Assert.IsTrue(lUsage.GetValue<Integer>('line') > 0);
+        Assert.IsTrue(lUsage.GetValue<Integer>('column') > 0);
+        Assert.IsTrue(MatchText(lUsage.GetValue<string>('access'), ['read', 'write', 'readwrite']),
+          'Expected stable usage access classification.');
+        Exit;
+      end;
+    end;
+    Assert.Fail('Expected GCounter symbol payload.');
+  finally
     lJson.Free;
   end;
 end;
