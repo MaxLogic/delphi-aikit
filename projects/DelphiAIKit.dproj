@@ -1,4 +1,4 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{E239EF88-8D00-4A85-B80B-DB47036542E8}</ProjectGuid>
         <MainSource>DelphiAIKit.dpr</MainSource>
@@ -189,6 +189,7 @@
         <DCCReference Include="..\src\dak.project.pas"/>
         <DCCReference Include="..\src\dak.registry.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Graph.pas"/>
+        <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.GlobalVars.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Model.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Version.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.WithBinding.pas"/>

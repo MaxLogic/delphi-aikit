@@ -1,4 +1,4 @@
-﻿unit Test.GlobalVars;
+unit Test.GlobalVars;
 
 interface
 
@@ -21,6 +21,7 @@ type
     [Test] procedure RunGlobalVarsJsonOutputSupportsUnitAndNameFilter;
     [Test] procedure RunGlobalVarsJsonOutputSupportsAccessFilters;
     [Test] procedure RunGlobalVarsTextOutputCreatesProjectCache;
+    [Test] procedure RunGlobalVarsUsesDelphiSemanticsGlobalAnalyzer;
   end;
 
 implementation
@@ -31,6 +32,10 @@ uses
   System.JSON,
   System.StrUtils,
   System.SysUtils,
+  System.Variants,
+  FireDAC.Comp.Client,
+  FireDAC.Phys.SQLite,
+  FireDAC.Phys.SQLiteDef,
   Dak.GlobalVars,
   Dak.Types,
   MaxLogic.ioUtils;
@@ -62,6 +67,49 @@ end;
 procedure TGlobalVarsTests.TearDown;
 begin
   DeleteDakRoot;
+end;
+
+procedure OpenSqliteCache(const aCacheFileName: string; out aDriverLink: TFDPhysSQLiteDriverLink;
+  out aConnection: TFDConnection);
+begin
+  aDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  aConnection := TFDConnection.Create(nil);
+  aConnection.LoginPrompt := False;
+  aConnection.Params.Values['DriverID'] := 'SQLite';
+  aConnection.Params.Values['Database'] := aCacheFileName;
+  aConnection.Params.Values['LockingMode'] := 'Normal';
+  aConnection.Params.Values['OpenMode'] := 'CreateUTF8';
+  aConnection.Connected := True;
+end;
+
+function ReadCacheSchemaVersion(const aCacheFileName: string): string;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  OpenSqliteCache(aCacheFileName, lDriverLink, lConnection);
+  try
+    Result := VarToStr(lConnection.ExecSQLScalar(
+      'select value_text from meta where key_name = ?', ['schema_version']));
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+procedure WriteCacheSchemaVersion(const aCacheFileName, aSchemaVersion: string);
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  OpenSqliteCache(aCacheFileName, lDriverLink, lConnection);
+  try
+    lConnection.ExecSQL('update meta set value_text = ? where key_name = ?',
+      [aSchemaVersion, 'schema_version']);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
 end;
 
 procedure TGlobalVarsTests.RunGlobalVarsJsonOutputIncludesSupportedKinds;
@@ -358,6 +406,24 @@ begin
   lCacheFileName := TPath.Combine(lProjectDakRoot, 'global-vars\cache\global-vars-cache.sqlite3');
   Assert.IsTrue(TDirectory.Exists(lProjectDakRoot));
   Assert.IsTrue(TFile.Exists(lCacheFileName));
+  Assert.AreEqual('2', ReadCacheSchemaVersion(lCacheFileName));
+
+  WriteCacheSchemaVersion(lCacheFileName, '1');
+  Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+  Assert.AreEqual('2', ReadCacheSchemaVersion(lCacheFileName));
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsUsesDelphiSemanticsGlobalAnalyzer;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)),
+    '..', 'src', 'dak.globalvars.pas']));
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticGlobalAnalyzer.AnalyzeUnits'),
+    'GlobalVars production analysis must call DelphiSemantics.GlobalVars.');
 end;
 
 initialization

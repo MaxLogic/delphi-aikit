@@ -19,6 +19,7 @@ uses
   DelphiAST.Classes,
   DelphiAST.Consts,
   DelphiAST.ProjectIndexer,
+  DelphiSemantics.GlobalVars,
   DelphiSemantics.Model,
   Dak.Types;
 
@@ -40,6 +41,9 @@ uses
   FireDAC.Stan.ExprFuncs,
   FireDAC.Stan.Intf,
   FireDAC.Stan.Option;
+
+const
+  cGlobalVarsCacheSchemaVersion = '2';
 
 type
   TGlobalVarKind = (gvkVar, gvkThreadVar, gvkTypedConst, gvkClassVar);
@@ -154,6 +158,7 @@ type
     class function IsWordBoundary(const aText: string; const aIndex: Integer): Boolean; static;
     class function IsSectionKeyword(const aText: string): Boolean; static;
     class function IsRoutineStart(const aText: string): Boolean; static;
+    // Legacy extractors are retained only for T-045 classification; Analyze uses DelphiSemantics.GlobalVars.
     procedure LoadUnitRecursive(const aFileName: string);
     procedure MergeDelphiSemanticGlobals(const aUnit: TUnitInfo);
     function ParseUnit(const aFileName: string; const aSyntaxTree: TSyntaxNode = nil): TUnitInfo;
@@ -1686,27 +1691,169 @@ begin
   end;
 end;
 
+function GlobalVarKindForSemanticGlobalKind(const aKind: string; out aGlobalKind: TGlobalVarKind): Boolean;
+begin
+  if SameText(aKind, 'var') then
+  begin
+    aGlobalKind := TGlobalVarKind.gvkVar;
+    Exit(True);
+  end;
+  if SameText(aKind, 'threadvar') then
+  begin
+    aGlobalKind := TGlobalVarKind.gvkThreadVar;
+    Exit(True);
+  end;
+  if SameText(aKind, 'typedconst') then
+  begin
+    aGlobalKind := TGlobalVarKind.gvkTypedConst;
+    Exit(True);
+  end;
+  if SameText(aKind, 'classvar') then
+  begin
+    aGlobalKind := TGlobalVarKind.gvkClassVar;
+    Exit(True);
+  end;
+  Result := False;
+end;
+
+function AccessKindForSemanticAccess(const aAccess: string): TAccessKind;
+begin
+  if SameText(aAccess, 'read') then
+    Result := TAccessKind.akRead
+  else if SameText(aAccess, 'write') then
+    Result := TAccessKind.akWrite
+  else
+    Result := TAccessKind.akReadWrite;
+end;
+
+function SemanticGlobalKey(const aUnitName, aName: string): string;
+begin
+  Result := AnsiLowerCase(Trim(aUnitName)) + '.' + AnsiLowerCase(Trim(aName));
+end;
+
+procedure AddSemanticUsage(const aSymbolsByKey: TDictionary<string, TGlobalVarSymbol>;
+  const aUsage: TDelphiSemanticGlobalUsage);
+var
+  lRef: TGlobalVarRef;
+  lSymbol: TGlobalVarSymbol;
+begin
+  if not aSymbolsByKey.TryGetValue(SemanticGlobalKey(aUsage.DeclaringUnitName, aUsage.Name),
+    lSymbol) then
+    Exit;
+
+  lRef.UnitName := aUsage.UnitName;
+  lRef.RoutineName := aUsage.RoutineName;
+  lRef.FileName := aUsage.FileName;
+  lRef.Line := aUsage.Line;
+  lRef.Column := aUsage.Column;
+  lRef.Access := AccessKindForSemanticAccess(aUsage.Access);
+  lSymbol.UsedBy.Add(lRef);
+end;
+
+procedure AddSemanticAmbiguity(const aAmbiguities: TList<TGlobalVarAmbiguity>;
+  const aAmbiguity: TDelphiSemanticGlobalAmbiguity);
+var
+  lAmbiguity: TGlobalVarAmbiguity;
+begin
+  lAmbiguity.Name := aAmbiguity.Name;
+  lAmbiguity.UnitName := aAmbiguity.UnitName;
+  lAmbiguity.RoutineName := aAmbiguity.RoutineName;
+  lAmbiguity.FileName := aAmbiguity.FileName;
+  lAmbiguity.Line := aAmbiguity.Line;
+  lAmbiguity.Column := aAmbiguity.Column;
+  lAmbiguity.Access := AccessKindForSemanticAccess(aAmbiguity.Access);
+  lAmbiguity.Candidates := aAmbiguity.Candidates;
+  aAmbiguities.Add(lAmbiguity);
+end;
+
 function TSourceAnalyzer.Analyze(out aInputHash: string): TObjectList<TGlobalVarSymbol>;
 var
+  lAnalysis: TDelphiSemanticGlobalAnalysis;
+  lDeclaration: TDelphiSemanticGlobalDeclaration;
   lFiles: TArray<string>;
   lIndex: Integer;
-  lPair: TPair<string, Byte>;
-  lUnitPair: TPair<string, TUnitInfo>;
+  lIndexer: TProjectIndexer;
+  lIndexedUnit: TProjectIndexer.TUnitInfo;
+  lKind: TGlobalVarKind;
+  lModels: TList<TDelphiSemanticUnitModel>;
+  lOptions: TDelphiSemanticModelOptions;
+  lSymbol: TGlobalVarSymbol;
+  lSymbolsByKey: TDictionary<string, TGlobalVarSymbol>;
+  lUsage: TDelphiSemanticGlobalUsage;
+  lAmbiguity: TDelphiSemanticGlobalAmbiguity;
+  lFullName: string;
 begin
-  LoadIndexedUnits;
-  for lUnitPair in fUnitsByName do
-  begin
-    ResolveUsages(lUnitPair.Value);
+  lModels := nil;
+  lIndexer := nil;
+  lSymbolsByKey := nil;
+  try
+    lModels := TList<TDelphiSemanticUnitModel>.Create;
+    lIndexer := TProjectIndexer.Create;
+    lSymbolsByKey := TDictionary<string, TGlobalVarSymbol>.Create;
+
+    lIndexer.Defines := fProject.ParserDefines;
+    lIndexer.SearchPath := fProject.ParserSearchPath;
+    lIndexer.Index(fProject.MainSourcePath);
+    for lIndexedUnit in lIndexer.ParsedUnits do
+    begin
+      lFullName := Trim(lIndexedUnit.Path);
+      if lFullName = '' then
+        Continue;
+
+      lFullName := TPath.GetFullPath(lFullName);
+      if not TFile.Exists(lFullName) then
+        Continue;
+
+      if fVisitedFiles.ContainsKey(NormalizeKey(lFullName)) then
+        Continue;
+
+      fVisitedFiles.Add(NormalizeKey(lFullName), 1);
+      lOptions := Default(TDelphiSemanticModelOptions);
+      lOptions.SourceFileName := lFullName;
+      lOptions.ProjectContextApplied := True;
+      lOptions.Defines := SplitSemanticListText(fProject.ParserDefines);
+      lOptions.SearchPaths := SplitSemanticListText(fProject.ParserSearchPath);
+      lModels.Add(TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions));
+    end;
+
+    lAnalysis := TDelphiSemanticGlobalAnalyzer.AnalyzeUnits(lModels.ToArray);
+    for lDeclaration in lAnalysis.Declarations do
+    begin
+      if not GlobalVarKindForSemanticGlobalKind(lDeclaration.Kind, lKind) then
+        Continue;
+
+      lSymbol := TGlobalVarSymbol.Create;
+      lSymbol.Name := lDeclaration.Name;
+      lSymbol.UnitName := lDeclaration.UnitName;
+      lSymbol.FileName := lDeclaration.FileName;
+      lSymbol.Line := lDeclaration.Line;
+      lSymbol.Column := lDeclaration.Column;
+      lSymbol.TypeName := lDeclaration.TypeName;
+      lSymbol.Kind := lKind;
+      fSymbols.Add(lSymbol);
+      lSymbolsByKey.AddOrSetValue(SemanticGlobalKey(lSymbol.UnitName, lSymbol.Name), lSymbol);
+    end;
+
+    for lUsage in lAnalysis.Usages do
+      AddSemanticUsage(lSymbolsByKey, lUsage);
+
+    for lAmbiguity in lAnalysis.Ambiguities do
+      AddSemanticAmbiguity(fAmbiguities, lAmbiguity);
+
+    SetLength(lFiles, fVisitedFiles.Count);
+    lIndex := 0;
+    for lFullName in fVisitedFiles.Keys do
+    begin
+      lFiles[lIndex] := lFullName;
+      Inc(lIndex);
+    end;
+    aInputHash := BuildInputHash(fProject.ProjectPath, lFiles);
+    Result := fSymbols;
+  finally
+    lSymbolsByKey.Free;
+    lIndexer.Free;
+    lModels.Free;
   end;
-  SetLength(lFiles, fVisitedFiles.Count);
-  lIndex := 0;
-  for lPair in fVisitedFiles do
-  begin
-    lFiles[lIndex] := lPair.Key;
-    Inc(lIndex);
-  end;
-  aInputHash := BuildInputHash(fProject.ProjectPath, lFiles);
-  Result := fSymbols;
 end;
 
 function TSourceAnalyzer.GetVisitedFiles: TArray<string>;
@@ -1817,7 +1964,8 @@ begin
       lConnection.ExecSQL('delete from refs');
       lConnection.ExecSQL('delete from symbols');
       lConnection.ExecSQL('delete from ambiguities');
-      lConnection.ExecSQL('insert into meta(key_name, value_text) values (?, ?)', ['schema_version', '1']);
+      lConnection.ExecSQL('insert into meta(key_name, value_text) values (?, ?)',
+        ['schema_version', cGlobalVarsCacheSchemaVersion]);
       lConnection.ExecSQL('insert into meta(key_name, value_text) values (?, ?)', ['project_path', TPath.GetFullPath(aProjectPath)]);
       lConnection.ExecSQL('insert into meta(key_name, value_text) values (?, ?)', ['input_hash', aInputHash]);
       lConnection.ExecSQL('insert into files(path, stamp_utc, size_bytes) values (?, ?, ?)',
@@ -1881,7 +2029,15 @@ begin
   lQuery := TFDQuery.Create(nil);
   try
     lQuery.Connection := lConnection;
-    lExpected := VarToStr(lConnection.ExecSQLScalar('select value_text from meta where key_name = ?', ['project_path']));
+    EnsureCacheSchema(lConnection);
+    lExpected := VarToStr(lConnection.ExecSQLScalar(
+      'select value_text from meta where key_name = ?', ['schema_version']));
+    if lExpected <> cGlobalVarsCacheSchemaVersion then
+    begin
+      Exit;
+    end;
+    lExpected := VarToStr(lConnection.ExecSQLScalar(
+      'select value_text from meta where key_name = ?', ['project_path']));
     if not SameText(TPath.GetFullPath(aProjectPath), lExpected) then
     begin
       Exit;
