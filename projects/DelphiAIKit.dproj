@@ -7,7 +7,7 @@
         <ProjectName Condition="'$(ProjectName)'==''">DelphiAIKit</ProjectName>
         <TargetedPlatforms>693377</TargetedPlatforms>
         <AppType>Console</AppType>
-        <DCC_UnitSearchPath>..\src;..\lib\DFMCheck\Source;..\lib\DFMCheck\Source\Console;..\lib\DelphiAST\Source;..\lib\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\src;..\..\DelphiSemantics\src;..\lib\DFMCheck\Source;..\lib\DFMCheck\Source\Console;..\lib\DelphiAST\Source;..\lib\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <FrameworkType>None</FrameworkType>
         <ProjectVersion>20.2</ProjectVersion>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
@@ -188,6 +188,7 @@
         <DCCReference Include="..\src\dak.output.pas"/>
         <DCCReference Include="..\src\dak.project.pas"/>
         <DCCReference Include="..\src\dak.registry.pas"/>
+        <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Version.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Discovery.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Expressions.pas"/>

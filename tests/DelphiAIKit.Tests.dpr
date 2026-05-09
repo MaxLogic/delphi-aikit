@@ -17,6 +17,7 @@ uses
   Test.App in 'units\\test.app.pas',
   Test.Build in 'units\\test.build.pas',
   Test.Cli in 'units\\test.cli.pas',
+  Test.DelphiSemanticsIntegration in 'units\\test.delphisemanticsintegration.pas',
   Test.Deps in 'units\\test.deps.pas',
   Test.DfmInspect in 'units\\test.dfminspect.pas',
   Test.DfmCheck in 'units\\test.dfmcheck.pas',
