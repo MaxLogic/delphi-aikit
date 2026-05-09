@@ -62,6 +62,7 @@
     <DCCReference Include="units\\test.build.pas"/>
     <DCCReference Include="units\\test.cli.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Graph.pas"/>
+    <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.GlobalVars.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Model.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Version.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.WithBinding.pas"/>
