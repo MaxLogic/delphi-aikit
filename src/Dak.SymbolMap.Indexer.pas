@@ -475,6 +475,64 @@ begin
   Result := False;
 end;
 
+function ContainsReference(const aModel: TSymbolMapUnitModel; const aReference: TSymbolMapReferenceModel): Boolean;
+var
+  lReference: TSymbolMapReferenceModel;
+begin
+  for lReference in aModel.fReferences do
+    if SameText(lReference.fName, aReference.fName) and (lReference.fLine = aReference.fLine) and
+      (lReference.fCol = aReference.fCol) then
+      Exit(True);
+
+  Result := False;
+end;
+
+function TryUpdateReference(var aModel: TSymbolMapUnitModel;
+  const aReference: TSymbolMapReferenceModel): Boolean;
+var
+  i: Integer;
+begin
+  for i := 0 to High(aModel.fReferences) do
+    if SameText(aModel.fReferences[i].fName, aReference.fName) and
+      (aModel.fReferences[i].fLine = aReference.fLine) and
+      (aModel.fReferences[i].fCol = aReference.fCol) then
+    begin
+      aModel.fReferences[i].fSectionKind := aReference.fSectionKind;
+      aModel.fReferences[i].fRole := aReference.fRole;
+      aModel.fReferences[i].fEndLine := aReference.fEndLine;
+      aModel.fReferences[i].fEndCol := aReference.fEndCol;
+      Exit(True);
+    end;
+
+  Result := False;
+end;
+
+procedure MergeLegacyCompatibilityModel(var aModel: TSymbolMapUnitModel;
+  const aLegacyModel: TSymbolMapUnitModel);
+var
+  i: Integer;
+  lLegacyReference: TSymbolMapReferenceModel;
+  lLegacySymbol: TSymbolMapSymbolModel;
+begin
+  for i := 0 to High(aModel.fSymbols) do
+    if aModel.fSymbols[i].fSignature = '' then
+      for lLegacySymbol in aLegacyModel.fSymbols do
+        if SameText(aModel.fSymbols[i].fName, lLegacySymbol.fName) and
+          SameText(aModel.fSymbols[i].fKind, lLegacySymbol.fKind) and
+          SameText(aModel.fSymbols[i].fSectionKind, lLegacySymbol.fSectionKind) then
+        begin
+          aModel.fSymbols[i].fSignature := lLegacySymbol.fSignature;
+          Break;
+        end;
+
+  for lLegacyReference in aLegacyModel.fReferences do
+    if not TryUpdateReference(aModel, lLegacyReference) and
+      not ContainsReference(aModel, lLegacyReference) then
+      AddReference(aModel, lLegacyReference.fName, lLegacyReference.fSectionKind,
+        lLegacyReference.fRole, lLegacyReference.fLine, lLegacyReference.fCol,
+        lLegacyReference.fEndLine, lLegacyReference.fEndCol);
+end;
+
 function SemanticDeclarationOwnerName(const aDeclaration: TDelphiSemanticDeclaration): string;
 begin
   if SameText(aDeclaration.Kind, 'enum-value') then
@@ -500,7 +558,9 @@ end;
 procedure MergeDelphiSemanticModel(var aModel: TSymbolMapUnitModel; const aSemanticModel: TDelphiSemanticUnitModel);
 var
   lDeclaration: TDelphiSemanticDeclaration;
+  lDiagnostic: TDelphiSemanticModelDiagnostic;
   lMember: TDelphiSemanticMember;
+  lReference: TDelphiSemanticReference;
   lRoutine: TDelphiSemanticRoutine;
   lUseName: string;
 begin
@@ -552,6 +612,18 @@ begin
         lMember.Column, lMember.Line, lMember.Column);
     end;
   end;
+
+  for lReference in aSemanticModel.References do
+  begin
+    AddReference(aModel, lReference.Name, 'implementation', 'token', lReference.Line,
+      lReference.Column, lReference.Line, lReference.Column);
+  end;
+
+  for lDiagnostic in aSemanticModel.Diagnostics do
+  begin
+    if not SameText(lDiagnostic.Code, 'NO_PROJECT_CONTEXT') then
+      AddDiagnostic(aModel, lDiagnostic.Message);
+  end;
 end;
 
 procedure MergeDelphiSemanticExtraction(const aFilePath: string; var aModel: TSymbolMapUnitModel);
@@ -572,6 +644,36 @@ begin
   begin
     MergeDelphiSemanticModel(aModel, lSemanticModel);
   end;
+end;
+
+procedure ExtractIdentifierReferences(const aTokens: TArray<TSymbolMapToken>; var aModel: TSymbolMapUnitModel); forward;
+procedure ExtractUnitModelFromTokens(const aSource: string; const aTokens: TArray<TSymbolMapToken>;
+  var aModel: TSymbolMapUnitModel); forward;
+
+function TryExtractLegacySymbolMapUnitModel(const aFilePath: string; out aModel: TSymbolMapUnitModel;
+  out aError: string): Boolean;
+var
+  lSourceText: string;
+  lTokens: TArray<TSymbolMapToken>;
+begin
+  Result := False;
+  aModel := Default(TSymbolMapUnitModel);
+  aError := '';
+  aModel.fFilePath := TPath.GetFullPath(aFilePath);
+  if not TryLoadSymbolMapSourceFile(aFilePath, lSourceText, aModel.fEncodingName, aError) then
+    Exit(False);
+  TokenizeSource(lSourceText, lTokens);
+  ExtractUnitModelFromTokens(lSourceText, lTokens, aModel);
+  ExtractIdentifierReferences(lTokens, aModel);
+  Result := True;
+end;
+
+function IsCompilerRtlSourcePath(const aFilePath: string): Boolean;
+var
+  lPath: string;
+begin
+  lPath := LowerCase(TPath.GetFullPath(aFilePath));
+  Result := (Pos('\embarcadero\studio\', lPath) > 0) and (Pos('\source\', lPath) > 0);
 end;
 
 function TokenIsIdentifierText(const aToken: TSymbolMapToken; const aText: string): Boolean;
@@ -1395,19 +1497,44 @@ end;
 function TryExtractSymbolMapUnitModel(const aFilePath: string; out aModel: TSymbolMapUnitModel;
   out aError: string): Boolean;
 var
-  lSourceText: string;
-  lTokens: TArray<TSymbolMapToken>;
+  lOptions: TDelphiSemanticModelOptions;
+  lLegacyModel: TSymbolMapUnitModel;
+  lLegacyError: string;
+  lSemanticDiagnostic: TDelphiSemanticModelDiagnostic;
+  lSemanticModel: TDelphiSemanticUnitModel;
 begin
   Result := False;
   aModel := Default(TSymbolMapUnitModel);
   aError := '';
   aModel.fFilePath := TPath.GetFullPath(aFilePath);
-  if not TryLoadSymbolMapSourceFile(aFilePath, lSourceText, aModel.fEncodingName, aError) then
+  if IsCompilerRtlSourcePath(aModel.fFilePath) then
+    Exit(TryExtractLegacySymbolMapUnitModel(aFilePath, aModel, aError));
+
+  lOptions := Default(TDelphiSemanticModelOptions);
+  lOptions.SourceFileName := aModel.fFilePath;
+  lOptions.ProjectContextApplied := False;
+  lSemanticModel := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
+  if not lSemanticModel.Success then
+  begin
+    if TryExtractLegacySymbolMapUnitModel(aFilePath, aModel, aError) then
+      Exit(True);
+
+    for lSemanticDiagnostic in lSemanticModel.Diagnostics do
+      if lSemanticDiagnostic.Message <> '' then
+      begin
+        aError := lSemanticDiagnostic.Message;
+        Break;
+      end;
+    if aError = '' then
+      aError := 'Failed to extract Delphi semantic unit model.';
     Exit(False);
-  TokenizeSource(lSourceText, lTokens);
-  ExtractUnitModelFromTokens(lSourceText, lTokens, aModel);
-  ExtractIdentifierReferences(lTokens, aModel);
-  MergeDelphiSemanticExtraction(aModel.fFilePath, aModel);
+  end;
+
+  aModel.fFilePath := lSemanticModel.FileName;
+  aModel.fEncodingName := lSemanticModel.EncodingName;
+  MergeDelphiSemanticModel(aModel, lSemanticModel);
+  if TryExtractLegacySymbolMapUnitModel(aFilePath, lLegacyModel, lLegacyError) then
+    MergeLegacyCompatibilityModel(aModel, lLegacyModel);
   Result := True;
 end;
 
