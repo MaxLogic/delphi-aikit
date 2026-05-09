@@ -215,6 +215,131 @@ begin
   end;
 end;
 
+function DelphiSemanticKindToRemoveWithKind(const aSymbolClass: string;
+  out aKind: TRemoveWithSymbolKind): Boolean;
+begin
+  Result := True;
+  if SameText(aSymbolClass, 'local') then
+    aKind := TRemoveWithSymbolKind.rwskLocalVariable
+  else if SameText(aSymbolClass, 'parameter') then
+    aKind := TRemoveWithSymbolKind.rwskParameter
+  else if SameText(aSymbolClass, 'current-class-member') then
+    aKind := TRemoveWithSymbolKind.rwskCurrentClassMember
+  else if SameText(aSymbolClass, 'unit-global') then
+    aKind := TRemoveWithSymbolKind.rwskUnitGlobal
+  else if SameText(aSymbolClass, 'type-member') then
+    aKind := TRemoveWithSymbolKind.rwskTypeMember
+  else if SameText(aSymbolClass, 'field') then
+    aKind := TRemoveWithSymbolKind.rwskField
+  else if SameText(aSymbolClass, 'property') then
+    aKind := TRemoveWithSymbolKind.rwskProperty
+  else if SameText(aSymbolClass, 'method') then
+    aKind := TRemoveWithSymbolKind.rwskMethod
+  else if SameText(aSymbolClass, 'constant') then
+    aKind := TRemoveWithSymbolKind.rwskConstant
+  else if SameText(aSymbolClass, 'class-var') then
+    aKind := TRemoveWithSymbolKind.rwskClassVar
+  else if SameText(aSymbolClass, 'routine') then
+    aKind := TRemoveWithSymbolKind.rwskRoutine
+  else if SameText(aSymbolClass, 'unit') then
+    aKind := TRemoveWithSymbolKind.rwskUnitName
+  else if SameText(aSymbolClass, 'external') then
+    aKind := TRemoveWithSymbolKind.rwskExternal
+  else
+    Result := False;
+end;
+
+function DelphiSemanticTypeCategoryToRemoveWithCategory(const aTypeCategory: string):
+  TRemoveWithTypeCategory;
+begin
+  if SameText(aTypeCategory, 'record') then
+    Result := TRemoveWithTypeCategory.rwtcRecord
+  else if SameText(aTypeCategory, 'class') then
+    Result := TRemoveWithTypeCategory.rwtcClass
+  else if SameText(aTypeCategory, 'interface') then
+    Result := TRemoveWithTypeCategory.rwtcInterface
+  else
+    Result := TRemoveWithTypeCategory.rwtcUnknown;
+end;
+
+function ShouldTranslateDelphiSemanticSymbol(const aSymbol: TDelphiSemanticInventorySymbol):
+  Boolean;
+begin
+  Result := True;
+  if SameText(aSymbol.SymbolClass, 'declaration') or SameText(aSymbol.SymbolClass, 'member') then
+    Exit(False);
+  if SameText(aSymbol.SymbolClass, 'local') or SameText(aSymbol.SymbolClass, 'parameter') then
+    Exit(aSymbol.Line > 0);
+  if SameText(aSymbol.SymbolClass, 'routine') and (aSymbol.SectionKind <> '') then
+    Exit(False);
+end;
+
+procedure AppendDelphiSemanticSymbols(var aInventory: TRemoveWithSymbolInventory;
+  const aSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>); forward;
+
+procedure AppendDelphiSemanticInventorySymbols(var aInventory: TRemoveWithSymbolInventory;
+  const aSemanticInventory: TDelphiSemanticRemoveWithInventory);
+begin
+  AppendDelphiSemanticSymbols(aInventory, aSemanticInventory.Symbols);
+end;
+
+procedure AppendDelphiSemanticSymbols(var aInventory: TRemoveWithSymbolInventory;
+  const aSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>);
+var
+  lKind: TRemoveWithSymbolKind;
+  lSemanticSymbol: TDelphiSemanticInventorySymbol;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  for lSemanticSymbol in aSemanticSymbols do
+  begin
+    if not ShouldTranslateDelphiSemanticSymbol(lSemanticSymbol) then
+      Continue;
+    if not DelphiSemanticKindToRemoveWithKind(lSemanticSymbol.SymbolClass, lKind) then
+      Continue;
+
+    lSymbol := Default(TRemoveWithSymbolInfo);
+    lSymbol.fName := lSemanticSymbol.Name;
+    lSymbol.fTypeName := lSemanticSymbol.TypeName;
+    lSymbol.fOwnerType := lSemanticSymbol.OwnerType;
+    if lSymbol.fOwnerType = '' then
+      lSymbol.fOwnerType := lSemanticSymbol.OwnerName;
+    lSymbol.fSourceOwnerType := lSemanticSymbol.SourceOwnerType;
+    lSymbol.fRelatedTypeName := lSemanticSymbol.RelatedTypeName;
+    lSymbol.fRoutineName := lSemanticSymbol.RoutineName;
+    lSymbol.fUnitName := lSemanticSymbol.UnitName;
+    lSymbol.fFilePath := lSemanticSymbol.FileName;
+    lSymbol.fLine := lSemanticSymbol.Line;
+    lSymbol.fEndLine := lSemanticSymbol.EndLine;
+    lSymbol.fColumn := lSemanticSymbol.Column;
+    lSymbol.fUnsupportedReason := lSemanticSymbol.UnsupportedReason;
+    lSymbol.fIsHelper := lSemanticSymbol.IsHelper;
+    lSymbol.fIsOverride := lSemanticSymbol.IsOverride;
+    lSymbol.fIsDefault := lSemanticSymbol.IsDefault;
+    lSymbol.fTypeCategory := DelphiSemanticTypeCategoryToRemoveWithCategory(lSemanticSymbol.TypeCategory);
+    lSymbol.fKind := lKind;
+    TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
+  end;
+end;
+
+procedure AppendExpandedDelphiSemanticInventorySymbols(var aInventory: TRemoveWithSymbolInventory);
+var
+  lAllSymbols: TList<TDelphiSemanticInventorySymbol>;
+  lExpandedSymbols: TArray<TDelphiSemanticInventorySymbol>;
+  lSemanticInventory: TDelphiSemanticRemoveWithInventory;
+  lSymbol: TDelphiSemanticInventorySymbol;
+begin
+  lAllSymbols := TList<TDelphiSemanticInventorySymbol>.Create;
+  try
+    for lSemanticInventory in aInventory.fDelphiSemanticInventories do
+      for lSymbol in lSemanticInventory.Symbols do
+        lAllSymbols.Add(lSymbol);
+    lExpandedSymbols := TDelphiSemanticWithBinder.ExpandInventorySymbols(lAllSymbols.ToArray);
+    AppendDelphiSemanticSymbols(aInventory, lExpandedSymbols);
+  finally
+    lAllSymbols.Free;
+  end;
+end;
+
 procedure BuildDelphiSemanticBindings(const aProjectModel: TRemoveWithProjectModel;
   var aInventory: TRemoveWithSymbolInventory);
 var
@@ -225,7 +350,7 @@ var
 begin
   for lUnitModel in aProjectModel.UnitModels do
   begin
-    if (Length(lUnitModel.fWithStatements) = 0) or (Trim(lUnitModel.fFilePath) = '') or
+    if (Trim(lUnitModel.fFilePath) = '') or
       (not SameText(TPath.GetExtension(lUnitModel.fFilePath), '.pas')) or
       (not TFile.Exists(lUnitModel.fFilePath)) then
     begin
@@ -238,16 +363,17 @@ begin
     lOptions.Defines := SplitSemanticListText(aProjectModel.Context.fParserDefines);
     lOptions.SearchPaths := SplitSemanticListText(aProjectModel.Context.fParserSearchPath);
     lSemanticModel := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
-    if not lSemanticModel.Success then
-    begin
-      Continue;
-    end;
+    if lSemanticModel.FileName = '' then
+      lSemanticModel.FileName := lUnitModel.fFilePath;
+    if lSemanticModel.UnitName = '' then
+      lSemanticModel.UnitName := lUnitModel.fUnitName;
 
     AppendDelphiSemanticModel(aInventory, lSemanticModel);
     lSemanticInventory := TDelphiSemanticWithBinder.BuildInventory(lSemanticModel);
     AppendDelphiSemanticInventory(aInventory, lSemanticInventory);
     AppendDelphiSemanticBindings(aInventory, lSemanticInventory.Bindings);
   end;
+  AppendExpandedDelphiSemanticInventorySymbols(aInventory);
 end;
 
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
@@ -2030,6 +2156,68 @@ begin
   end;
 end;
 
+procedure AddExternalUsesUnits(var aInventory: TRemoveWithSymbolInventory;
+  const aExistingUnits, aExternalUnits: TDictionary<string, Byte>; const aUnits: TArray<string>;
+  const aSourceUnitName, aFilePath: string);
+var
+  lExternalSymbol: TRemoveWithSymbolInfo;
+  lUnitKey: string;
+  lUnitName: string;
+  lUsedUnit: string;
+begin
+  for lUsedUnit in aUnits do
+  begin
+    lUnitName := Trim(lUsedUnit);
+    if lUnitName = '' then
+      Continue;
+
+    lUnitKey := UpperCase(lUnitName);
+    if aExistingUnits.ContainsKey(lUnitKey) or aExternalUnits.ContainsKey(lUnitKey) then
+      Continue;
+    aExternalUnits.Add(lUnitKey, 1);
+    lExternalSymbol := Default(TRemoveWithSymbolInfo);
+    lExternalSymbol.fName := lUnitName;
+    lExternalSymbol.fUnitName := aSourceUnitName;
+    lExternalSymbol.fFilePath := aFilePath;
+    lExternalSymbol.fKind := TRemoveWithSymbolKind.rwskExternal;
+    TRemoveWithSymbolBuilder.AddSymbol(aInventory, lExternalSymbol);
+  end;
+end;
+
+procedure AddExternalUnitSymbolsFromDelphiSemanticModels(var aInventory: TRemoveWithSymbolInventory);
+var
+  lExistingUnits: TDictionary<string, Byte>;
+  lExternalUnits: TDictionary<string, Byte>;
+  lModel: TDelphiSemanticUnitModel;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  lExistingUnits := TDictionary<string, Byte>.Create;
+  try
+    lExternalUnits := TDictionary<string, Byte>.Create;
+    try
+      for lSymbol in aInventory.fSymbols do
+      begin
+        if lSymbol.fKind = TRemoveWithSymbolKind.rwskUnitName then
+          lExistingUnits.AddOrSetValue(UpperCase(lSymbol.fName), 1)
+        else if lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal then
+          lExternalUnits.AddOrSetValue(UpperCase(lSymbol.fName), 1);
+      end;
+
+      for lModel in aInventory.fDelphiSemanticUnitModels do
+      begin
+        AddExternalUsesUnits(aInventory, lExistingUnits, lExternalUnits, lModel.InterfaceUses,
+          lModel.UnitName, lModel.FileName);
+        AddExternalUsesUnits(aInventory, lExistingUnits, lExternalUnits, lModel.ImplementationUses,
+          lModel.UnitName, lModel.FileName);
+      end;
+    finally
+      lExternalUnits.Free;
+    end;
+  finally
+    lExistingUnits.Free;
+  end;
+end;
+
 function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; out aInventory: TRemoveWithSymbolInventory;
   out aError: string): Boolean;
 var
@@ -2066,11 +2254,12 @@ begin
   end;
   aInventory.fSemanticIndex := aProjectModel.SemanticIndex;
   aInventory.fParserDefines := aProjectModel.Context.fParserDefines;
-  BuildDelphiSemanticBindings(aProjectModel, aInventory);
 
   lSymbolKeys := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
     GRemoveWithSymbolKeys := lSymbolKeys;
+    BuildDelphiSemanticBindings(aProjectModel, aInventory);
+
     lUnitIndex := 0;
     for lUnitModel in aProjectModel.UnitModels do
     begin
@@ -2080,30 +2269,14 @@ begin
       LogRemoveWithSymbolProgress(aOptions, Format('model-unit start index=%d unit=%s path=%s',
         [lUnitIndex, lUnitModel.fUnitName, lUnitModel.fFilePath]));
       lStopwatch := TStopwatch.StartNew;
-      if TFile.Exists(lUnitModel.fFilePath) then
-        TRemoveWithSymbolBuilder.ParseUnit(aInventory, lUnitModel.fUnitName, lUnitModel.fFilePath);
       lStopwatch.Stop;
       LogRemoveWithSymbolProgress(aOptions, Format('model-unit done index=%d elapsedMs=%d symbols=%d',
         [lUnitIndex, lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
     end;
 
-    LogRemoveWithSymbolProgress(aOptions, 'related-type-members start');
-    lStopwatch := TStopwatch.StartNew;
-    TRemoveWithSymbolBuilder.AddRelatedTypeMemberSymbols(aInventory);
-    lStopwatch.Stop;
-    LogRemoveWithSymbolProgress(aOptions, Format('related-type-members done elapsedMs=%d symbols=%d',
-      [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
-
-    LogRemoveWithSymbolProgress(aOptions, 'current-class-members start');
-    lStopwatch := TStopwatch.StartNew;
-    TRemoveWithSymbolBuilder.AddRelatedCurrentClassSymbols(aInventory);
-    lStopwatch.Stop;
-    LogRemoveWithSymbolProgress(aOptions, Format('current-class-members done elapsedMs=%d symbols=%d',
-      [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
-
     LogRemoveWithSymbolProgress(aOptions, 'external-units start');
     lStopwatch := TStopwatch.StartNew;
-    TRemoveWithSymbolBuilder.AddExternalUnitSymbols(aInventory);
+    AddExternalUnitSymbolsFromDelphiSemanticModels(aInventory);
     lStopwatch.Stop;
     LogRemoveWithSymbolProgress(aOptions, Format('external-units done elapsedMs=%d symbols=%d',
       [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
