@@ -33,11 +33,17 @@ type
     fKind: TRemoveWithSymbolKind;
   end;
 
+  TRemoveWithSemanticWithBinding = record
+    fFilePath: string;
+    fBinding: TDelphiSemanticWithBinding;
+  end;
+
   TRemoveWithSymbolInventory = record
     fSymbols: TArray<TRemoveWithSymbolInfo>;
     fSemanticIndex: TRemoveWithSemanticIndex;
     fDelphiSemanticUnitModels: TArray<TDelphiSemanticUnitModel>;
     fDelphiSemanticWithBindings: TArray<TDelphiSemanticWithBinding>;
+    fDelphiSemanticWithBindingEntries: TArray<TRemoveWithSemanticWithBinding>;
     fParserDefines: string;
   end;
 
@@ -178,10 +184,11 @@ begin
   aInventory.fDelphiSemanticUnitModels[lIndex] := aModel;
 end;
 
-procedure AppendDelphiSemanticBindings(var aInventory: TRemoveWithSymbolInventory;
+procedure AppendDelphiSemanticBindings(var aInventory: TRemoveWithSymbolInventory; const aFilePath: string;
   const aBindings: TArray<TDelphiSemanticWithBinding>);
 var
   lBinding: TDelphiSemanticWithBinding;
+  lEntryIndex: Integer;
   lIndex: Integer;
 begin
   for lBinding in aBindings do
@@ -189,6 +196,11 @@ begin
     lIndex := Length(aInventory.fDelphiSemanticWithBindings);
     SetLength(aInventory.fDelphiSemanticWithBindings, lIndex + 1);
     aInventory.fDelphiSemanticWithBindings[lIndex] := lBinding;
+
+    lEntryIndex := Length(aInventory.fDelphiSemanticWithBindingEntries);
+    SetLength(aInventory.fDelphiSemanticWithBindingEntries, lEntryIndex + 1);
+    aInventory.fDelphiSemanticWithBindingEntries[lEntryIndex].fFilePath := aFilePath;
+    aInventory.fDelphiSemanticWithBindingEntries[lEntryIndex].fBinding := lBinding;
   end;
 end;
 
@@ -222,7 +234,7 @@ begin
 
     AppendDelphiSemanticModel(aInventory, lSemanticModel);
     lBindings := TDelphiSemanticWithBinder.BindModel(lSemanticModel);
-    AppendDelphiSemanticBindings(aInventory, lBindings);
+    AppendDelphiSemanticBindings(aInventory, lUnitModel.fFilePath, lBindings);
   end;
 end;
 

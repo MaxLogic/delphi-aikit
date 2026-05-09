@@ -159,6 +159,8 @@ type
     procedure BindsHelpersInheritanceInterfacesAndOverloads;
     [Test]
     procedure ReportsResolvedReceiverMissingMemberPrecisely;
+    [Test]
+    procedure ResolverUsesSemanticBindingScopedDeclarationGate;
   end;
 
   [TestFixture]
@@ -2148,6 +2150,94 @@ begin
     'receiver-member-not-found');
   AssertClassification(lResult, 'with-9', 'UnknownProcedure', TRemoveWithIdentifierStatus.rwisUnresolved, '',
     'symbol-not-found');
+end;
+
+procedure TRemoveWithSemanticBinderTests.ResolverUsesSemanticBindingScopedDeclarationGate;
+var
+  lBinding: TDelphiSemanticWithBinding;
+  lError: string;
+  lEntry: TRemoveWithSemanticWithBinding;
+  lFoundScopedBinding: Boolean;
+  lInventory: TRemoveWithSymbolInventory;
+  lMismatchedInventory: TRemoveWithSymbolInventory;
+  lOptions: TAppOptions;
+  lResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+  lScopedColumn: Integer;
+  lScopedLine: Integer;
+  lStatement: TRemoveWithStatementInfo;
+  lStatementIndex: Integer;
+  i: Integer;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithScopedDeclarationFixture\RemoveWithScopedDeclarationFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, lInventory, lError),
+    'Expected scoped-declaration fixture inventory build to succeed: ' + lError);
+  Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, lScanResult, lError),
+    'Expected scoped-declaration fixture discovery to succeed: ' + lError);
+
+  lFoundScopedBinding := False;
+  lScopedColumn := 0;
+  lScopedLine := 0;
+  for lEntry in lInventory.fDelphiSemanticWithBindingEntries do
+  begin
+    lBinding := lEntry.fBinding;
+    if lBinding.HasScopedDeclaration then
+    begin
+      lFoundScopedBinding := True;
+      Assert.IsTrue(SameText(TPath.GetFullPath(lEntry.fFilePath),
+        TPath.GetFullPath(TPath.Combine(RepoRoot,
+        'tests\fixtures\RemoveWithScopedDeclarationFixture\ScopedDeclarationUnit.pas'))),
+        'Expected semantic binding entry file path.');
+      lScopedColumn := lBinding.Column;
+      lScopedLine := lBinding.Line;
+      Break;
+    end;
+  end;
+  Assert.IsTrue(lFoundScopedBinding, 'Expected DelphiSemantics to report scoped declarations.');
+
+  for i := 0 to High(lScanResult.fWithStatements) do
+  begin
+    lScanResult.fWithStatements[i].fHasScopedDeclarationInBody := False;
+    lScanResult.fWithStatements[i].fHasUnsupportedIdentifierRoleInBody := False;
+  end;
+  lStatementIndex := -1;
+  for i := 0 to High(lScanResult.fWithStatements) do
+  begin
+    if (lScanResult.fWithStatements[i].fLine = lScopedLine) and
+      (lScanResult.fWithStatements[i].fColumn = lScopedColumn) then
+    begin
+      lStatementIndex := i;
+      Break;
+    end;
+  end;
+  Assert.AreNotEqual(-1, lStatementIndex, 'Expected discovery statement for semantic binding line.');
+  lStatement := lScanResult.fWithStatements[lStatementIndex];
+  SetLength(lScanResult.fWithStatements, 1);
+  lScanResult.fWithStatements[0] := lStatement;
+
+  lMismatchedInventory := lInventory;
+  lMismatchedInventory.fDelphiSemanticWithBindingEntries :=
+    Copy(lInventory.fDelphiSemanticWithBindingEntries);
+  for i := 0 to High(lMismatchedInventory.fDelphiSemanticWithBindingEntries) do
+    lMismatchedInventory.fDelphiSemanticWithBindingEntries[i].fFilePath :=
+      TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithResolverFixture\ResolverUnit.pas');
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lMismatchedInventory, lScanResult, lResult, lError),
+    'Expected resolver to finish with mismatched semantic binding file: ' + lError);
+  Assert.IsTrue(Length(lResult.fClassifications) > 0,
+    'Semantic with-binding safety data must not block a statement from a different file.');
+
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResult, lError),
+    'Expected resolver to finish with semantic scoped-declaration gate: ' + lError);
+  Assert.AreEqual(0, Length(lResult.fClassifications),
+    'Semantic with-binding safety data must block scoped-declaration bodies even when legacy scan flags are absent.');
 end;
 
 procedure TRemoveWithPrecedenceTests.CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
