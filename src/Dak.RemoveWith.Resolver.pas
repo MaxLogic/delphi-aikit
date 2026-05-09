@@ -46,6 +46,7 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  DelphiSemantics.WithBinding,
   MaxLogic.StrUtils,
   Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Source;
 
@@ -158,6 +159,12 @@ type
       const aReceivers: TArray<TRemoveWithReceiverScope>): Boolean; static;
     class function IsQualifiedUse(const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse):
       Boolean; static;
+    class function SemanticBindingMatchesStatement(const aEntry: TRemoveWithSemanticWithBinding;
+      const aStatement: TRemoveWithStatementInfo): Boolean; static;
+    class function TryFindSemanticBindingForStatement(const aInventory: TRemoveWithSymbolInventory;
+      const aStatement: TRemoveWithStatementInfo; out aBinding: TDelphiSemanticWithBinding): Boolean; static;
+    class function SemanticBindingBlocksStatement(const aInventory: TRemoveWithSymbolInventory;
+      const aStatement: TRemoveWithStatementInfo): Boolean; static;
     class function ResolveSelectorFromReceivers(const aInventory: TRemoveWithSymbolInventory;
       const aReceivers: TArray<TRemoveWithReceiverScope>; const aSelectorText: string;
       out aInfo: TRemoveWithSelectorTypeInfo): Boolean; static;
@@ -1585,6 +1592,41 @@ begin
   Result := NextNonWhitespaceChar(aSource.fText, aUse.fEndOffset + 1) = '.';
 end;
 
+class function TRemoveWithIdentifierResolver.SemanticBindingMatchesStatement(
+  const aEntry: TRemoveWithSemanticWithBinding; const aStatement: TRemoveWithStatementInfo): Boolean;
+begin
+  Result := SameText(TPath.GetFullPath(aEntry.fFilePath), TPath.GetFullPath(aStatement.fFilePath)) and
+    SameText(Trim(aEntry.fBinding.SelectorText), Trim(aStatement.fSelectorText)) and
+    (aEntry.fBinding.Line = aStatement.fLine) and (aEntry.fBinding.Column = aStatement.fColumn);
+end;
+
+class function TRemoveWithIdentifierResolver.TryFindSemanticBindingForStatement(
+  const aInventory: TRemoveWithSymbolInventory; const aStatement: TRemoveWithStatementInfo;
+  out aBinding: TDelphiSemanticWithBinding): Boolean;
+var
+  lEntry: TRemoveWithSemanticWithBinding;
+begin
+  aBinding := Default(TDelphiSemanticWithBinding);
+  for lEntry in aInventory.fDelphiSemanticWithBindingEntries do
+  begin
+    if SemanticBindingMatchesStatement(lEntry, aStatement) then
+    begin
+      aBinding := lEntry.fBinding;
+      Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+class function TRemoveWithIdentifierResolver.SemanticBindingBlocksStatement(
+  const aInventory: TRemoveWithSymbolInventory; const aStatement: TRemoveWithStatementInfo): Boolean;
+var
+  lBinding: TDelphiSemanticWithBinding;
+begin
+  Result := TryFindSemanticBindingForStatement(aInventory, aStatement, lBinding) and
+    lBinding.HasScopedDeclaration;
+end;
+
 class function TRemoveWithIdentifierResolver.ResolveSelectorFromReceivers(
   const aInventory: TRemoveWithSymbolInventory; const aReceivers: TArray<TRemoveWithReceiverScope>;
   const aSelectorText: string; out aInfo: TRemoveWithSelectorTypeInfo): Boolean;
@@ -2316,6 +2358,8 @@ var
   lWithOffsets: TRemoveWithOffsetRange;
 begin
   if not RangeOffsets(aSource, aStatement.fBodyRange, lBodyOffsets) then
+    Exit;
+  if SemanticBindingBlocksStatement(aInventory, aStatement) then
     Exit;
   if aStatement.fHasScopedDeclarationInBody then
     Exit;
