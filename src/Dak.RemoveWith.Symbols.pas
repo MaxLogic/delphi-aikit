@@ -3,6 +3,7 @@ unit Dak.RemoveWith.Symbols;
 interface
 
 uses
+  DelphiSemantics.Model, DelphiSemantics.WithBinding,
   Dak.RemoveWith.Model, Dak.Types;
 
 type
@@ -35,6 +36,8 @@ type
   TRemoveWithSymbolInventory = record
     fSymbols: TArray<TRemoveWithSymbolInfo>;
     fSemanticIndex: TRemoveWithSemanticIndex;
+    fDelphiSemanticUnitModels: TArray<TDelphiSemanticUnitModel>;
+    fDelphiSemanticWithBindings: TArray<TDelphiSemanticWithBinding>;
     fParserDefines: string;
   end;
 
@@ -59,6 +62,28 @@ begin
   WriteLn(ErrOutput, FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz', Now) + ' [remove-with:symbols] ' +
     aMessage);
   Flush(ErrOutput);
+end;
+
+function SplitSemanticListText(const aText: string): TArray<string>;
+var
+  lItems: TArray<string>;
+  lPart: string;
+  lResult: TList<string>;
+begin
+  lResult := TList<string>.Create;
+  try
+    lItems := SplitString(aText, ';');
+    for lPart in lItems do
+    begin
+      if Trim(lPart) <> '' then
+      begin
+        lResult.Add(Trim(lPart));
+      end;
+    end;
+    Result := lResult.ToArray;
+  finally
+    lResult.Free;
+  end;
 end;
 
 type
@@ -142,6 +167,64 @@ type
 
 var
   GRemoveWithSymbolKeys: TDictionary<string, Byte>;
+
+procedure AppendDelphiSemanticModel(var aInventory: TRemoveWithSymbolInventory;
+  const aModel: TDelphiSemanticUnitModel);
+var
+  lIndex: Integer;
+begin
+  lIndex := Length(aInventory.fDelphiSemanticUnitModels);
+  SetLength(aInventory.fDelphiSemanticUnitModels, lIndex + 1);
+  aInventory.fDelphiSemanticUnitModels[lIndex] := aModel;
+end;
+
+procedure AppendDelphiSemanticBindings(var aInventory: TRemoveWithSymbolInventory;
+  const aBindings: TArray<TDelphiSemanticWithBinding>);
+var
+  lBinding: TDelphiSemanticWithBinding;
+  lIndex: Integer;
+begin
+  for lBinding in aBindings do
+  begin
+    lIndex := Length(aInventory.fDelphiSemanticWithBindings);
+    SetLength(aInventory.fDelphiSemanticWithBindings, lIndex + 1);
+    aInventory.fDelphiSemanticWithBindings[lIndex] := lBinding;
+  end;
+end;
+
+procedure BuildDelphiSemanticBindings(const aProjectModel: TRemoveWithProjectModel;
+  var aInventory: TRemoveWithSymbolInventory);
+var
+  lBindings: TArray<TDelphiSemanticWithBinding>;
+  lOptions: TDelphiSemanticModelOptions;
+  lSemanticModel: TDelphiSemanticUnitModel;
+  lUnitModel: TRemoveWithUnitModel;
+begin
+  for lUnitModel in aProjectModel.UnitModels do
+  begin
+    if (Length(lUnitModel.fWithStatements) = 0) or (Trim(lUnitModel.fFilePath) = '') or
+      (not SameText(TPath.GetExtension(lUnitModel.fFilePath), '.pas')) or
+      (not TFile.Exists(lUnitModel.fFilePath)) then
+    begin
+      Continue;
+    end;
+
+    lOptions := Default(TDelphiSemanticModelOptions);
+    lOptions.SourceFileName := lUnitModel.fFilePath;
+    lOptions.ProjectContextApplied := True;
+    lOptions.Defines := SplitSemanticListText(aProjectModel.Context.fParserDefines);
+    lOptions.SearchPaths := SplitSemanticListText(aProjectModel.Context.fParserSearchPath);
+    lSemanticModel := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
+    if not lSemanticModel.Success then
+    begin
+      Continue;
+    end;
+
+    AppendDelphiSemanticModel(aInventory, lSemanticModel);
+    lBindings := TDelphiSemanticWithBinder.BindModel(lSemanticModel);
+    AppendDelphiSemanticBindings(aInventory, lBindings);
+  end;
+end;
 
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
 begin
@@ -1959,6 +2042,7 @@ begin
   end;
   aInventory.fSemanticIndex := aProjectModel.SemanticIndex;
   aInventory.fParserDefines := aProjectModel.Context.fParserDefines;
+  BuildDelphiSemanticBindings(aProjectModel, aInventory);
 
   lSymbolKeys := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try

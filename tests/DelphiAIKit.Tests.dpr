@@ -23,6 +23,7 @@ uses
   Test.DfmCheck in 'units\\test.dfmcheck.pas',
   Test.Diagnostics in 'units\\test.diagnostics.pas',
   Test.FixInsight in 'units\\test.fixinsight.pas',
+  Test.GlobalVars in 'units\\test.globalvars.pas',
   Test.Lsp in 'units\\test.lsp.pas',
   Test.MsBuild in 'units\\test.msbuild.pas',
   Test.PalFindingNormalize in 'units\\test.palfindingnormalize.pas',
