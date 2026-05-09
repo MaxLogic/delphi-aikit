@@ -4,6 +4,7 @@ interface
 
 uses
   System.Generics.Collections, System.SysUtils,
+  DelphiSemantics.ProjectContext,
   Dak.Diagnostics;
 
 type
@@ -14,107 +15,73 @@ type
 
 implementation
 
+function DictionaryToSemanticProperties(const aValues: TDictionary<string, string>): TArray<TDelphiSemanticProperty>;
+var
+  lPair: TPair<string, string>;
+  lProperty: TDelphiSemanticProperty;
+  lResult: TList<TDelphiSemanticProperty>;
+begin
+  lResult := TList<TDelphiSemanticProperty>.Create;
+  try
+    if aValues <> nil then
+      for lPair in aValues do
+      begin
+        lProperty.Name := lPair.Key;
+        lProperty.Value := lPair.Value;
+        lResult.Add(lProperty);
+      end;
+
+    Result := lResult.ToArray;
+  finally
+    lResult.Free;
+  end;
+end;
+
+function DiagnosticMacroName(const aMessage: string): string;
+var
+  lEndPos: Integer;
+  lStartPos: Integer;
+begin
+  lStartPos := Pos('$(', aMessage);
+  if lStartPos = 0 then
+    Exit('');
+
+  lEndPos := Pos(')', aMessage, lStartPos + 2);
+  if lEndPos = 0 then
+    Exit('');
+
+  Result := Copy(aMessage, lStartPos + 2, lEndPos - lStartPos - 2);
+end;
+
+procedure AddSemanticDiagnostics(aDiagnostics: TDiagnostics;
+  const aSemanticDiagnostics: TArray<TDelphiSemanticDiagnostic>);
+var
+  lDiagnostic: TDelphiSemanticDiagnostic;
+  lMacroName: string;
+begin
+  if aDiagnostics = nil then
+    Exit;
+
+  for lDiagnostic in aSemanticDiagnostics do
+  begin
+    lMacroName := DiagnosticMacroName(lDiagnostic.Message);
+    if SameText(lDiagnostic.Code, 'UNRESOLVED_MSBUILD_MACRO') then
+      aDiagnostics.AddUnknownMacro(lMacroName)
+    else if SameText(lDiagnostic.Code, 'CYCLE_MSBUILD_MACRO') then
+      aDiagnostics.AddCycleMacro(lMacroName)
+    else if lDiagnostic.Message <> '' then
+      aDiagnostics.AddWarning(lDiagnostic.Message);
+  end;
+end;
+
 class function TMacroExpander.Expand(const aValue: string; const aProps, aEnv: TDictionary<string, string>;
   aDiagnostics: TDiagnostics; aUnknownAsEmpty: Boolean): string;
 var
-  lStack: TList<string>;
-
-  function TryGetMacroValue(const aName: string; out aValue: string): Boolean;
-  begin
-    if aProps.TryGetValue(aName, aValue) then
-      Exit(True);
-    if aEnv.TryGetValue(aName, aValue) then
-      Exit(True);
-    aValue := System.SysUtils.GetEnvironmentVariable(aName);
-    Result := aValue <> '';
-  end;
-
-  function StackContains(const aName: string): Boolean;
-  var
-    lItem: string;
-  begin
-    for lItem in lStack do
-      if SameText(lItem, aName) then
-        Exit(True);
-    Result := False;
-  end;
-
-  function ExpandText(const aText: string): string;
-  var
-    lIndex: Integer;
-    lStart: Integer;
-    lName: string;
-    lMacroValue: string;
-    lValue: string;
-    lResult: TStringBuilder;
-  begin
-    lResult := TStringBuilder.Create;
-    try
-      lIndex := 1;
-      while lIndex <= Length(aText) do
-      begin
-        if (aText[lIndex] = '$') and (lIndex < Length(aText)) and (aText[lIndex + 1] = '(') then
-        begin
-          lStart := lIndex + 2;
-          Inc(lIndex, 2);
-          while (lIndex <= Length(aText)) and (aText[lIndex] <> ')') do
-            Inc(lIndex);
-          if lIndex <= Length(aText) then
-          begin
-            lName := Copy(aText, lStart, lIndex - lStart);
-            if StackContains(lName) then
-            begin
-              if (aDiagnostics <> nil) and (not aUnknownAsEmpty) then
-                aDiagnostics.AddCycleMacro(lName);
-              if aUnknownAsEmpty then
-                lValue := ''
-              else
-                lValue := '$(' + lName + ')';
-            end else if TryGetMacroValue(lName, lMacroValue) then
-            begin
-              lStack.Add(lName);
-              try
-                lValue := ExpandText(lMacroValue);
-              finally
-                lStack.Delete(lStack.Count - 1);
-              end;
-            end else
-            begin
-              if (aDiagnostics <> nil) and (not aUnknownAsEmpty) then
-                aDiagnostics.AddUnknownMacro(lName);
-              if aUnknownAsEmpty then
-                lValue := ''
-              else
-                lValue := '$(' + lName + ')';
-            end;
-            lResult.Append(lValue);
-            Inc(lIndex);
-          end else
-          begin
-            lResult.Append(aText[lStart - 2]);
-            lResult.Append(aText[lStart - 1]);
-            lResult.Append(Copy(aText, lStart, Length(aText) - lStart + 1));
-            Break;
-          end;
-        end else
-        begin
-          lResult.Append(aText[lIndex]);
-          Inc(lIndex);
-        end;
-      end;
-      Result := lResult.ToString;
-    finally
-      lResult.Free;
-    end;
-  end;
-
+  lSemanticDiagnostics: TArray<TDelphiSemanticDiagnostic>;
 begin
-  lStack := TList<string>.Create;
-  try
-    Result := ExpandText(aValue);
-  finally
-    lStack.Free;
-  end;
+  Result := TDelphiSemanticMsBuild.ExpandMacros(aValue, DictionaryToSemanticProperties(aProps),
+    DictionaryToSemanticProperties(aEnv), aUnknownAsEmpty, lSemanticDiagnostics);
+  AddSemanticDiagnostics(aDiagnostics, lSemanticDiagnostics);
 end;
 
 end.
