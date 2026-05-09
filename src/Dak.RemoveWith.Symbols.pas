@@ -154,6 +154,7 @@ type
       const aNames: TArray<string>; const aTypeName, aOwnerType, aRoutineName, aUnitName, aFilePath: string;
       const aLines: TArray<string>; const aStartIndex, aEndIndex: Integer; const aKind: TRemoveWithSymbolKind);
       static;
+    {$IFDEF DAK_LEGACY_REMOVEWITH_SYMBOL_PARSER}
     class procedure AddRelatedTypeMemberSymbols(var aInventory: TRemoveWithSymbolInventory); static;
     class procedure AddRelatedCurrentClassSymbols(var aInventory: TRemoveWithSymbolInventory); static;
     class procedure ParseParams(var aInventory: TRemoveWithSymbolInventory; const aLines: TArray<string>;
@@ -169,6 +170,7 @@ type
     class procedure ParseUnit(var aInventory: TRemoveWithSymbolInventory; const aUnitName, aFilePath: string);
       static;
     class procedure AddExternalUnitSymbols(var aInventory: TRemoveWithSymbolInventory); static;
+    {$ENDIF}
     class procedure AddExternalTypeSymbols(var aInventory: TRemoveWithSymbolInventory); static;
   end;
 
@@ -1339,6 +1341,7 @@ begin
   end;
 end;
 
+{$IFDEF DAK_LEGACY_REMOVEWITH_SYMBOL_PARSER}
 class procedure TRemoveWithSymbolBuilder.ParseParams(var aInventory: TRemoveWithSymbolInventory;
   const aLines: TArray<string>; const aStartIndex: Integer; const aSignature, aRoutineName, aUnitName,
   aFilePath: string);
@@ -2098,6 +2101,7 @@ begin
     lExistingUnits.Free;
   end;
 end;
+{$ENDIF}
 
 class procedure TRemoveWithSymbolBuilder.AddExternalTypeSymbols(var aInventory: TRemoveWithSymbolInventory);
 var

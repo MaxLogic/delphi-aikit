@@ -22,6 +22,7 @@ type
     [Test] procedure RunGlobalVarsJsonOutputSupportsAccessFilters;
     [Test] procedure RunGlobalVarsTextOutputCreatesProjectCache;
     [Test] procedure RunGlobalVarsUsesDelphiSemanticsGlobalAnalyzer;
+    [Test] procedure RunGlobalVarsLegacyExtractorIsNotCompiled;
   end;
 
 implementation
@@ -424,6 +425,19 @@ begin
 
   Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticGlobalAnalyzer.AnalyzeUnits'),
     'GlobalVars production analysis must call DelphiSemantics.GlobalVars.');
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsLegacyExtractorIsNotCompiled;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)),
+    '..', 'src', 'dak.globalvars.pas']));
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, '{$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}'),
+    'Legacy GlobalVars extractor must be excluded from normal compilation.');
 end;
 
 initialization
