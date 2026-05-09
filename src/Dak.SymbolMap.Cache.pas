@@ -1,4 +1,4 @@
-﻿unit Dak.SymbolMap.Cache;
+unit Dak.SymbolMap.Cache;
 
 interface
 
@@ -66,7 +66,8 @@ uses
   System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.StrUtils, System.SysUtils,
   System.Variants,
   Winapi.Windows,
-  FireDAC.Comp.Client, FireDAC.Phys.SQLite;
+  FireDAC.Comp.Client, FireDAC.Phys.SQLite,
+  DelphiSemantics.Cache, DelphiSemantics.CompilerProfile;
 
 type
   TSymbolMapIntrinsicSeed = record
@@ -82,7 +83,24 @@ const
   cCentralCacheMutexName = 'Local\DelphiAIKit.SymbolMap.Cache.v1';
   cSymbolMapParserVersion = 'symbol-map-parser-v2';
   cSymbolMapIncludeGraphHash = 'no-includes-v1';
-  cSymbolMapIntrinsicSeedVersion = 'delphi-intrinsics-v1';
+
+function SemanticIdentityContext(const aContext: TSymbolMapContext): TDelphiSemanticCacheIdentityContext;
+begin
+  Result := Default(TDelphiSemanticCacheIdentityContext);
+  Result.SchemaVersion := cSymbolMapSchemaVersion.ToString;
+  Result.ParserVersion := cSymbolMapParserVersion;
+  Result.IncludeGraphHash := cSymbolMapIncludeGraphHash;
+  Result.DelphiVersion := aContext.fDelphiVersion;
+  Result.Platform := aContext.fPlatform;
+  Result.ParserDefines := aContext.fProject.fParserDefines;
+  Result.Defines := aContext.fDefines;
+  Result.UnitScopes := aContext.fUnitScopes;
+  Result.UnitAliases := aContext.fUnitAliases;
+  Result.ProjectPath := aContext.fProject.fProjectPath;
+  Result.Configuration := aContext.fConfig;
+  Result.SearchPaths := aContext.fUnitSearchPath;
+  Result.CentralCacheRoot := aContext.fCentralCacheRoot;
+end;
 
 function OpenCacheConnection(const aDbPath: string; out aDriverLink: TFDPhysSQLiteDriverLink;
   out aConnection: TFDConnection; out aError: string): Boolean;
@@ -329,92 +347,27 @@ begin
   Result := THashSHA2.GetHashString(aText);
 end;
 
-function NormalizeStringArray(const aValues: TArray<string>; const aSortValues: Boolean): string;
-var
-  lList: TStringList;
-  lNormalized: string;
-  lValue: string;
-begin
-  lList := TStringList.Create;
-  try
-    lList.CaseSensitive := False;
-    lList.Sorted := aSortValues;
-    if aSortValues then
-      lList.Duplicates := dupIgnore;
-    for lValue in aValues do
-    begin
-      lNormalized := LowerCase(Trim(lValue));
-      if lNormalized <> '' then
-        lList.Add(lNormalized);
-    end;
-    Result := lList.Text;
-  finally
-    lList.Free;
-  end;
-end;
-
-function NormalizeDefines(const aDefines: TArray<string>; const aParserDefines: string): string;
-var
-  lParserDefines: TArray<string>;
-begin
-  if Length(aDefines) > 0 then
-    Exit(NormalizeStringArray(aDefines, True));
-
-  lParserDefines := aParserDefines.Split([';']);
-  Result := NormalizeStringArray(lParserDefines, True);
-end;
-
 function BuildContextHash(const aContext: TSymbolMapContext): string;
-var
-  lBuilder: TStringBuilder;
 begin
-  lBuilder := TStringBuilder.Create;
-  try
-    lBuilder.AppendLine('schema=' + cSymbolMapSchemaVersion.ToString);
-    lBuilder.AppendLine('parser=' + cSymbolMapParserVersion);
-    lBuilder.AppendLine('includeGraph=' + cSymbolMapIncludeGraphHash);
-    lBuilder.AppendLine('delphi=' + LowerCase(Trim(aContext.fDelphiVersion)));
-    lBuilder.AppendLine('platform=' + LowerCase(Trim(aContext.fPlatform)));
-    lBuilder.AppendLine('defines=' + NormalizeDefines(aContext.fDefines, aContext.fProject.fParserDefines));
-    lBuilder.AppendLine('unitScopes=' + NormalizeStringArray(aContext.fUnitScopes, False));
-    lBuilder.AppendLine('unitAliases=' + NormalizeStringArray(aContext.fUnitAliases, False));
-    Result := HashText(lBuilder.ToString);
-  finally
-    lBuilder.Free;
-  end;
+  Result := TDelphiSemanticCacheIdentityBuilder.BuildContextHash(SemanticIdentityContext(aContext));
 end;
 
 procedure BuildUnitCacheIdentity(const aContext: TSymbolMapContext; const aModel: TSymbolMapUnitModel;
   out aFileHash, aContextHash, aUnitCacheKey: string);
 var
-  lBytes: TBytes;
+  lIdentity: TDelphiSemanticUnitCacheIdentity;
 begin
-  lBytes := TFile.ReadAllBytes(aModel.fFilePath);
-  aFileHash := HashBytes(lBytes);
-  aContextHash := BuildContextHash(aContext);
-  aUnitCacheKey := HashText('unit|' + cSymbolMapSchemaVersion.ToString + '|' + cSymbolMapParserVersion + '|' +
-    aFileHash + '|' + cSymbolMapIncludeGraphHash + '|' + aContextHash);
+  lIdentity := TDelphiSemanticCacheIdentityBuilder.BuildUnitIdentity(aModel.fFilePath,
+    SemanticIdentityContext(aContext));
+  aFileHash := lIdentity.FileHash;
+  aContextHash := lIdentity.ContextHash;
+  aUnitCacheKey := lIdentity.UnitCacheKey;
 end;
 
 function BuildSymbolMapProjectKey(const aContext: TSymbolMapContext): string;
-var
-  lBuilder: TStringBuilder;
 begin
-  lBuilder := TStringBuilder.Create;
-  try
-    lBuilder.AppendLine('project=' + LowerCase(Trim(aContext.fProject.fProjectPath)));
-    lBuilder.AppendLine('config=' + LowerCase(Trim(aContext.fConfig)));
-    lBuilder.AppendLine('platform=' + LowerCase(Trim(aContext.fPlatform)));
-    lBuilder.AppendLine('delphi=' + LowerCase(Trim(aContext.fDelphiVersion)));
-    lBuilder.AppendLine('defines=' + NormalizeDefines(aContext.fDefines, aContext.fProject.fParserDefines));
-    lBuilder.AppendLine('search=' + NormalizeStringArray(aContext.fUnitSearchPath, False));
-    lBuilder.AppendLine('scopes=' + NormalizeStringArray(aContext.fUnitScopes, False));
-    lBuilder.AppendLine('aliases=' + NormalizeStringArray(aContext.fUnitAliases, False));
-    lBuilder.AppendLine('central=' + LowerCase(Trim(aContext.fCentralCacheRoot)));
-    Result := HashText(lBuilder.ToString);
-  finally
-    lBuilder.Free;
-  end;
+  Result := TDelphiSemanticCacheIdentityBuilder.BuildProjectIdentity(
+    SemanticIdentityContext(aContext)).ProjectKey;
 end;
 
 procedure AddIntrinsicSeed(var aSeeds: TArray<TSymbolMapIntrinsicSeed>; const aName, aKind, aSignature,
@@ -431,63 +384,32 @@ begin
 end;
 
 function BuildIntrinsicSeeds: TArray<TSymbolMapIntrinsicSeed>;
+var
+  lProfile: TDelphiSemanticCompilerProfile;
+  lSymbol: TDelphiSemanticIntrinsicSymbol;
+
+  function LegacyKind(const aKind: string): string;
+  begin
+    if SameText(aKind, 'intrinsic-routine') then
+      Exit('routine');
+    if SameText(aKind, 'intrinsic-type') then
+      Exit('type');
+    if SameText(aKind, 'intrinsic-unit') then
+      Exit('unit');
+    Result := aKind;
+  end;
+
 begin
   SetLength(Result, 0);
-  AddIntrinsicSeed(Result, 'Abs', 'routine', 'function Abs(X): numeric', 'compiler/RTL intrinsic');
-  AddIntrinsicSeed(Result, 'Assigned', 'routine', 'function Assigned(P): Boolean', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Assert', 'routine', 'procedure Assert(Expression: Boolean)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Break', 'routine', 'procedure Break', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Continue', 'routine', 'procedure Continue', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Copy', 'routine', 'function Copy(S; Index, Count: Integer)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Dec', 'routine', 'procedure Dec(var X; N: Integer = 1)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Default', 'routine', 'function Default(T): T', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Dispose', 'routine', 'procedure Dispose(P)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Exclude', 'routine', 'procedure Exclude(var S; I)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Exit', 'routine', 'procedure Exit', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'FillChar', 'routine', 'procedure FillChar(var X; Count: NativeInt; Value)',
-    'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'FreeAndNil', 'routine', 'procedure FreeAndNil(var Obj)', 'RTL helper');
-  AddIntrinsicSeed(Result, 'High', 'routine', 'function High(X)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Inc', 'routine', 'procedure Inc(var X; N: Integer = 1)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Include', 'routine', 'procedure Include(var S; I)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'IOResult', 'routine', 'function IOResult: Integer', 'compiler/RTL intrinsic');
-  AddIntrinsicSeed(Result, 'Length', 'routine', 'function Length(S): Integer', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Low', 'routine', 'function Low(X)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Move', 'routine', 'procedure Move(const Source; var Dest; Count: NativeInt)',
-    'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'New', 'routine', 'procedure New(var P)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Ord', 'routine', 'function Ord(X): Integer', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'ParamCount', 'routine', 'function ParamCount: Integer', 'System routine');
-  AddIntrinsicSeed(Result, 'ParamStr', 'routine', 'function ParamStr(Index: Integer): string', 'System routine');
-  AddIntrinsicSeed(Result, 'Pred', 'routine', 'function Pred(X)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Read', 'routine', 'procedure Read(var V)', 'System routine');
-  AddIntrinsicSeed(Result, 'ReadLn', 'routine', 'procedure ReadLn(var V)', 'System routine');
-  AddIntrinsicSeed(Result, 'Round', 'routine', 'function Round(X): Integer', 'compiler/RTL intrinsic');
-  AddIntrinsicSeed(Result, 'SetLength', 'routine', 'procedure SetLength(var S; NewLength: Integer)',
-    'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'SizeOf', 'routine', 'function SizeOf(X): NativeInt', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Sqr', 'routine', 'function Sqr(X): numeric', 'compiler/RTL intrinsic');
-  AddIntrinsicSeed(Result, 'Succ', 'routine', 'function Succ(X)', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'System', 'unit', 'unit System', 'implicitly available unit');
-  AddIntrinsicSeed(Result, 'Trunc', 'routine', 'function Trunc(X): Integer', 'compiler/RTL intrinsic');
-  AddIntrinsicSeed(Result, 'TypeInfo', 'routine', 'function TypeInfo(TypeIdentifier): Pointer', 'compiler intrinsic');
-  AddIntrinsicSeed(Result, 'Val', 'routine', 'procedure Val(S; var V; var Code: Integer)', 'System routine');
-  AddIntrinsicSeed(Result, 'Write', 'routine', 'procedure Write(Args)', 'System routine');
-  AddIntrinsicSeed(Result, 'WriteLn', 'routine', 'procedure WriteLn(Args)', 'System routine');
-  AddIntrinsicSeed(Result, 'Boolean', 'type', 'type Boolean', 'compiler intrinsic type');
-  AddIntrinsicSeed(Result, 'Byte', 'type', 'type Byte', 'compiler intrinsic type');
-  AddIntrinsicSeed(Result, 'Char', 'type', 'type Char', 'compiler intrinsic type');
-  AddIntrinsicSeed(Result, 'Double', 'type', 'type Double', 'compiler intrinsic type');
-  AddIntrinsicSeed(Result, 'Integer', 'type', 'type Integer', 'compiler intrinsic type');
-  AddIntrinsicSeed(Result, 'Int32', 'type', 'type Int32', 'compiler intrinsic type');
-  AddIntrinsicSeed(Result, 'NativeInt', 'type', 'type NativeInt', 'compiler intrinsic type');
-  AddIntrinsicSeed(Result, 'Pointer', 'type', 'type Pointer', 'compiler intrinsic type');
-  AddIntrinsicSeed(Result, 'Single', 'type', 'type Single', 'compiler intrinsic type');
-  AddIntrinsicSeed(Result, 'string', 'type', 'type string', 'compiler intrinsic type');
+  lProfile := TDelphiSemanticCompilerProfileBuilder.ProfileForTarget('', '', '', '');
+  for lSymbol in lProfile.IntrinsicSymbols do
+    AddIntrinsicSeed(Result, lSymbol.Name, LegacyKind(lSymbol.Kind), lSymbol.Signature,
+      lSymbol.Notes);
 end;
 
-function BuildCompilerProfileKey(const aContext: TSymbolMapContext; const aRtlSourceRoot: string;
-  out aDelphiVersion, aPlatform: string): string;
+function BuildSemanticCompilerProfile(const aContext: TSymbolMapContext;
+  const aRtlSourceRoot: string; out aDelphiVersion, aPlatform: string):
+  TDelphiSemanticCompilerProfile;
 var
   lSourceRoot: string;
 begin
@@ -496,9 +418,8 @@ begin
   lSourceRoot := LowerCase(Trim(aRtlSourceRoot));
   if lSourceRoot = '' then
     lSourceRoot := LowerCase(Trim(aContext.fRtlSourceRoot));
-  Result := HashText('compiler-profile|' + cSymbolMapSchemaVersion.ToString + '|' +
-    cSymbolMapIntrinsicSeedVersion + '|' + LowerCase(aDelphiVersion) + '|' + LowerCase(aPlatform) + '|' +
-    lSourceRoot);
+  Result := TDelphiSemanticCompilerProfileBuilder.ProfileForTarget('', aDelphiVersion,
+    aPlatform, lSourceRoot);
 end;
 
 function CentralUnitModelExists(const aConnection: TFDConnection; const aUnitCacheKey: string): Boolean;
@@ -507,11 +428,12 @@ begin
     [aUnitCacheKey]) > 0;
 end;
 
-function CentralCompilerProfileExists(const aConnection: TFDConnection; const aProfileKey: string): Boolean;
+function CentralCompilerProfileExists(const aConnection: TFDConnection; const aProfileKey,
+  aIntrinsicSeedVersion: string): Boolean;
 begin
   Result := aConnection.ExecSQLScalar(
     'select count(*) from compiler_profiles where profile_key = ? and intrinsic_seed_version = ?',
-    [aProfileKey, cSymbolMapIntrinsicSeedVersion]) > 0;
+    [aProfileKey, aIntrinsicSeedVersion]) > 0;
 end;
 
 function CountCompilerIntrinsics(const aConnection: TFDConnection; const aProfileKey: string): Integer;
@@ -691,12 +613,15 @@ var
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
   lMutexHandle: THandle;
+  lProfile: TDelphiSemanticCompilerProfile;
 begin
   Result := False;
   aResult := Default(TSymbolMapCompilerProfileResult);
   aError := '';
-  aResult.fIntrinsicSeedVersion := cSymbolMapIntrinsicSeedVersion;
-  aResult.fProfileKey := BuildCompilerProfileKey(aContext, aRtlSourceRoot, aResult.fDelphiVersion, aResult.fPlatform);
+  lProfile := BuildSemanticCompilerProfile(aContext, aRtlSourceRoot, aResult.fDelphiVersion,
+    aResult.fPlatform);
+  aResult.fIntrinsicSeedVersion := lProfile.IntrinsicSeedVersion;
+  aResult.fProfileKey := lProfile.ProfileKey;
   if not AcquireCentralCacheMutex(lMutexHandle, aError) then
     Exit(False);
   try
@@ -704,7 +629,8 @@ begin
       Exit(False);
     try
       try
-        aResult.fCacheHit := CentralCompilerProfileExists(lConnection, aResult.fProfileKey) and
+        aResult.fCacheHit := CentralCompilerProfileExists(lConnection, aResult.fProfileKey,
+          aResult.fIntrinsicSeedVersion) and
           CompilerIntrinsicsMatchSeeds(lConnection, aResult.fProfileKey);
         if aResult.fCacheHit then
         begin
@@ -973,6 +899,7 @@ var
   i: Integer;
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
+  lProjectIdentity: TDelphiSemanticProjectCacheIdentity;
   lProjectKey: string;
   lSymbol: TSymbolMapSymbolModel;
   lVisibilityRank: Integer;
@@ -980,17 +907,18 @@ begin
   if not OpenCacheConnection(aStatus.fProjectDbPath, lDriverLink, lConnection, aError) then
     raise Exception.Create(aError);
   try
-    lProjectKey := BuildSymbolMapProjectKey(aContext);
+    lProjectIdentity := TDelphiSemanticCacheIdentityBuilder.BuildProjectIdentity(
+      SemanticIdentityContext(aContext));
+    lProjectKey := lProjectIdentity.ProjectKey;
     lConnection.StartTransaction;
     try
       lConnection.ExecSQL('insert or replace into project_context(' +
         'project_key, project_path, config, platform, delphi_version, defines_hash, search_path_hash, ' +
         'unit_scope_hash, alias_hash, central_cache_path, indexed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [lProjectKey, aContext.fProject.fProjectPath, aContext.fConfig, aContext.fPlatform,
-        aContext.fDelphiVersion, HashText(NormalizeDefines(aContext.fDefines, aContext.fProject.fParserDefines)),
-        HashText(NormalizeStringArray(aContext.fUnitSearchPath, False)),
-        HashText(NormalizeStringArray(aContext.fUnitScopes, False)),
-        HashText(NormalizeStringArray(aContext.fUnitAliases, False)), aStatus.fCentralDbPath, DateTimeToStr(Now)]);
+        aContext.fDelphiVersion, lProjectIdentity.DefinesHash, lProjectIdentity.SearchPathHash,
+        lProjectIdentity.UnitScopeHash, lProjectIdentity.AliasHash, aStatus.fCentralDbPath,
+        DateTimeToStr(Now)]);
       lConnection.ExecSQL('delete from project_units where project_key = ? and file_path = ?',
         [lProjectKey, aModel.fFilePath]);
       lConnection.ExecSQL('insert into project_units(' +
