@@ -1495,12 +1495,14 @@ var
   lError: string;
   lInventory: TRemoveWithSymbolInventory;
   lSemanticBinding: TDelphiSemanticWithBinding;
+  lSemanticInventory: TDelphiSemanticRemoveWithInventory;
   lSemanticModel: TDelphiSemanticUnitModel;
   lModel: TRemoveWithProjectModel;
   lOptions: TAppOptions;
   lScanResult: TRemoveWithScanResult;
   lFoundBindingWithSelector: Boolean;
   lFoundDiscoveryUnitModel: Boolean;
+  lFoundInventoryWithSymbols: Boolean;
 begin
   lOptions := Default(TAppOptions);
   lOptions.fDprojPath := TPath.Combine(RepoRoot,
@@ -1523,6 +1525,8 @@ begin
     Assert.IsTrue(Length(lInventory.fSymbols) > 0, 'Expected symbol inventory to read units from the shared model.');
     Assert.IsTrue(Length(lInventory.fDelphiSemanticUnitModels) > 0,
       'Expected remove-with inventory to consume DelphiSemantics unit models.');
+    Assert.IsTrue(Length(lInventory.fDelphiSemanticInventories) > 0,
+      'Expected remove-with inventory to retain DelphiSemantics remove-with inventories.');
     Assert.IsTrue(Length(lInventory.fDelphiSemanticWithBindings) > 0,
       'Expected remove-with inventory to consume DelphiSemantics with bindings.');
     lFoundDiscoveryUnitModel := False;
@@ -1538,9 +1542,27 @@ begin
     end;
     Assert.IsTrue(lFoundDiscoveryUnitModel, 'Expected semantic model for discovery fixture main unit.');
 
+    lFoundInventoryWithSymbols := False;
+    for lSemanticInventory in lInventory.fDelphiSemanticInventories do
+    begin
+      Assert.IsNotEmpty(lSemanticInventory.FileName, 'Expected semantic inventory file name.');
+      Assert.IsNotEmpty(lSemanticInventory.UnitName, 'Expected semantic inventory unit name.');
+      if SameText(lSemanticInventory.UnitName, 'DiscoveryUnit') then
+      begin
+        lFoundInventoryWithSymbols := Length(lSemanticInventory.Symbols) > 0;
+        Assert.IsTrue(Length(lSemanticInventory.Bindings) > 0,
+          'Expected semantic inventory to expose with bindings.');
+      end;
+    end;
+    Assert.IsTrue(lFoundInventoryWithSymbols,
+      'Expected semantic remove-with inventory symbols for discovery fixture main unit.');
+
     lFoundBindingWithSelector := False;
     for lSemanticBinding in lInventory.fDelphiSemanticWithBindings do
     begin
+      Assert.IsNotEmpty(lSemanticBinding.FileName, 'Expected binding file name to come from DelphiSemantics.');
+      Assert.IsNotEmpty(lSemanticBinding.UnitName, 'Expected binding unit name to come from DelphiSemantics.');
+      Assert.IsNotEmpty(lSemanticBinding.RoutineName, 'Expected binding routine name to come from DelphiSemantics.');
       Assert.IsTrue(lSemanticBinding.Line > 0, 'Expected binding line to be populated.');
       Assert.IsTrue(lSemanticBinding.Column > 0, 'Expected binding column to be populated.');
       Assert.IsNotEmpty(lSemanticBinding.Status, 'Expected binding status to be populated.');
@@ -2158,6 +2180,7 @@ var
   lError: string;
   lEntry: TRemoveWithSemanticWithBinding;
   lFoundScopedBinding: Boolean;
+  lDirectInventory: TRemoveWithSymbolInventory;
   lInventory: TRemoveWithSymbolInventory;
   lMismatchedInventory: TRemoveWithSymbolInventory;
   lOptions: TAppOptions;
@@ -2233,6 +2256,13 @@ begin
     'Expected resolver to finish with mismatched semantic binding file: ' + lError);
   Assert.IsTrue(Length(lResult.fClassifications) > 0,
     'Semantic with-binding safety data must not block a statement from a different file.');
+
+  lDirectInventory := lInventory;
+  lDirectInventory.fDelphiSemanticWithBindingEntries := nil;
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lDirectInventory, lScanResult, lResult, lError),
+    'Expected resolver to finish with direct DelphiSemantics binding metadata: ' + lError);
+  Assert.AreEqual(0, Length(lResult.fClassifications),
+    'Direct DelphiSemantics with-binding metadata must block scoped-declaration bodies.');
 
   Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResult, lError),
     'Expected resolver to finish with semantic scoped-declaration gate: ' + lError);

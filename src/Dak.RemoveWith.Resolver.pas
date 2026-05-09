@@ -159,8 +159,10 @@ type
       const aReceivers: TArray<TRemoveWithReceiverScope>): Boolean; static;
     class function IsQualifiedUse(const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse):
       Boolean; static;
+    class function SemanticBindingMatchesStatement(const aBinding: TDelphiSemanticWithBinding;
+      const aStatement: TRemoveWithStatementInfo): Boolean; overload; static;
     class function SemanticBindingMatchesStatement(const aEntry: TRemoveWithSemanticWithBinding;
-      const aStatement: TRemoveWithStatementInfo): Boolean; static;
+      const aStatement: TRemoveWithStatementInfo): Boolean; overload; static;
     class function TryFindSemanticBindingForStatement(const aInventory: TRemoveWithSymbolInventory;
       const aStatement: TRemoveWithStatementInfo; out aBinding: TDelphiSemanticWithBinding): Boolean; static;
     class function SemanticBindingBlocksStatement(const aInventory: TRemoveWithSymbolInventory;
@@ -1593,17 +1595,25 @@ begin
 end;
 
 class function TRemoveWithIdentifierResolver.SemanticBindingMatchesStatement(
+  const aBinding: TDelphiSemanticWithBinding; const aStatement: TRemoveWithStatementInfo): Boolean;
+begin
+  Result := SameText(TPath.GetFullPath(aBinding.FileName), TPath.GetFullPath(aStatement.fFilePath)) and
+    SameText(Trim(aBinding.SelectorText), Trim(aStatement.fSelectorText)) and
+    (aBinding.Line = aStatement.fLine) and (aBinding.Column = aStatement.fColumn);
+end;
+
+class function TRemoveWithIdentifierResolver.SemanticBindingMatchesStatement(
   const aEntry: TRemoveWithSemanticWithBinding; const aStatement: TRemoveWithStatementInfo): Boolean;
 begin
   Result := SameText(TPath.GetFullPath(aEntry.fFilePath), TPath.GetFullPath(aStatement.fFilePath)) and
-    SameText(Trim(aEntry.fBinding.SelectorText), Trim(aStatement.fSelectorText)) and
-    (aEntry.fBinding.Line = aStatement.fLine) and (aEntry.fBinding.Column = aStatement.fColumn);
+    SemanticBindingMatchesStatement(aEntry.fBinding, aStatement);
 end;
 
 class function TRemoveWithIdentifierResolver.TryFindSemanticBindingForStatement(
   const aInventory: TRemoveWithSymbolInventory; const aStatement: TRemoveWithStatementInfo;
   out aBinding: TDelphiSemanticWithBinding): Boolean;
 var
+  lBinding: TDelphiSemanticWithBinding;
   lEntry: TRemoveWithSemanticWithBinding;
 begin
   aBinding := Default(TDelphiSemanticWithBinding);
@@ -1612,6 +1622,17 @@ begin
     if SemanticBindingMatchesStatement(lEntry, aStatement) then
     begin
       aBinding := lEntry.fBinding;
+      Exit(True);
+    end;
+  end;
+  if Length(aInventory.fDelphiSemanticWithBindingEntries) > 0 then
+    Exit(False);
+
+  for lBinding in aInventory.fDelphiSemanticWithBindings do
+  begin
+    if SemanticBindingMatchesStatement(lBinding, aStatement) then
+    begin
+      aBinding := lBinding;
       Exit(True);
     end;
   end;
