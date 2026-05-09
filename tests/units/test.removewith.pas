@@ -27,6 +27,8 @@ type
   public
     [Test]
     procedure ScanModeWritesJsonShellWithoutEditingSource;
+    [Test]
+    procedure LegacySymbolParserIsNotCompiled;
   end;
 
   [TestFixture]
@@ -941,6 +943,18 @@ begin
 
   lSourceAfter := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
   Assert.AreEqual(lSourceBefore, lSourceAfter, 'Scan mode must not modify the target unit.');
+end;
+
+procedure TRemoveWithCommandTests.LegacySymbolParserIsNotCompiled;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, '{$IFDEF DAK_LEGACY_REMOVEWITH_SYMBOL_PARSER}'),
+    'Legacy RemoveWith symbol parser must be excluded from normal compilation.');
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;

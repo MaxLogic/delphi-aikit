@@ -58,14 +58,12 @@ type
     Access: TAccessKind;
   end;
 
-  {$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
   TIdentifierUsage = record
     Name: string;
     Line: Integer;
     Column: Integer;
     Access: TAccessKind;
   end;
-  {$ENDIF}
 
   TGlobalVarAmbiguity = record
     Name: string;
@@ -92,7 +90,6 @@ type
     destructor Destroy; override;
   end;
 
-  {$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
   TRoutineInfo = record
     UnitName: string;
     FileName: string;
@@ -114,7 +111,6 @@ type
     constructor Create;
     destructor Destroy; override;
   end;
-  {$ENDIF}
 
   TProjectInfo = record
     ProjectPath: string;
@@ -131,17 +127,12 @@ type
   TSourceAnalyzer = class
   private
     fProject: TProjectInfo;
-    {$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
     fUnitsByName: TObjectDictionary<string, TUnitInfo>;
-    {$ENDIF}
     fVisitedFiles: TDictionary<string, Byte>;
     fSymbols: TObjectList<TGlobalVarSymbol>;
     fAmbiguities: TList<TGlobalVarAmbiguity>;
-    {$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
     class function StripCommentPrefix(const aLine: string): string; static;
-    {$ENDIF}
     class function NormalizeKey(const aValue: string): string; static;
-    {$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
     class function FindChildNode(const aParent: TSyntaxNode; const aNodeType: TSyntaxNodeType): TSyntaxNode; static;
     class function FindAncestorNode(const aNode: TSyntaxNode; const aNodeType: TSyntaxNodeType): TSyntaxNode; static;
     class procedure CollectNodes(const aRoot: TSyntaxNode; const aNodeType: TSyntaxNodeType; const aNodes: TList<TSyntaxNode>); static;
@@ -183,7 +174,6 @@ type
     class procedure ParseClassVars(const aUnit: TUnitInfo; const aLines: TArray<string>); static;
     class procedure ParseRoutines(const aUnit: TUnitInfo; const aLines: TArray<string>); static;
     procedure ResolveUsages(const aUnit: TUnitInfo);
-    {$ENDIF}
     class function BuildInputHash(const aProjectPath: string; const aFiles: TArray<string>): string; static;
     class function AccessToText(const aAccess: TAccessKind): string; static;
     class function KindToText(const aKind: TGlobalVarKind): string; static;
@@ -207,7 +197,6 @@ begin
   inherited Destroy;
 end;
 
-{$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
 constructor TUnitInfo.Create;
 begin
   inherited Create;
@@ -228,15 +217,12 @@ begin
   Symbols.Free;
   inherited Destroy;
 end;
-{$ENDIF}
 
 constructor TSourceAnalyzer.Create(const aProject: TProjectInfo);
 begin
   inherited Create;
   fProject := aProject;
-  {$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
   fUnitsByName := TObjectDictionary<string, TUnitInfo>.Create([doOwnsValues]);
-  {$ENDIF}
   fVisitedFiles := TDictionary<string, Byte>.Create;
   fSymbols := TObjectList<TGlobalVarSymbol>.Create(True);
   fAmbiguities := TList<TGlobalVarAmbiguity>.Create;
@@ -247,9 +233,7 @@ begin
   fAmbiguities.Free;
   fSymbols.Free;
   fVisitedFiles.Free;
-  {$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
   fUnitsByName.Free;
-  {$ENDIF}
   inherited Destroy;
 end;
 
@@ -258,7 +242,6 @@ begin
   Result := AnsiLowerCase(Trim(aValue));
 end;
 
-{$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
 class function TSourceAnalyzer.FindChildNode(const aParent: TSyntaxNode; const aNodeType: TSyntaxNodeType): TSyntaxNode;
 var
   lChildNode: TSyntaxNode;
@@ -1555,7 +1538,6 @@ begin
     lIndexer.Free;
   end;
 end;
-{$ENDIF}
 
 class function TSourceAnalyzer.BuildInputHash(const aProjectPath: string; const aFiles: TArray<string>): string;
 var
@@ -1615,7 +1597,6 @@ begin
   end;
 end;
 
-{$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
 function GlobalVarKindForSemanticDeclaration(const aDeclaration: TDelphiSemanticDeclaration;
   out aKind: TGlobalVarKind): Boolean;
 begin
@@ -1645,7 +1626,6 @@ begin
   end;
   Result := False;
 end;
-{$ENDIF}
 
 function SplitSemanticListText(const aText: string): TArray<string>;
 var
@@ -1669,7 +1649,6 @@ begin
   end;
 end;
 
-{$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}
 procedure TSourceAnalyzer.MergeDelphiSemanticGlobals(const aUnit: TUnitInfo);
 var
   lDeclaration: TDelphiSemanticDeclaration;
@@ -1711,7 +1690,6 @@ begin
     aUnit.Symbols.Add(lSymbol);
   end;
 end;
-{$ENDIF}
 
 function GlobalVarKindForSemanticGlobalKind(const aKind: string; out aGlobalKind: TGlobalVarKind): Boolean;
 begin
