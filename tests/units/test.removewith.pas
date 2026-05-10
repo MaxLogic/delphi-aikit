@@ -6303,7 +6303,7 @@ begin
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected intrinsic-symbol plan to succeed.');
     Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok root status.');
     lPlannedEdits := lRoot.Values['plannedEdits'] as TJSONArray;
-    Assert.AreEqual(1, lPlannedEdits.Count, 'Expected only modeled intrinsic statement to be planned.');
+    Assert.AreEqual(2, lPlannedEdits.Count, 'Expected modeled intrinsic statements to be planned.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected arbitrary unknown project routine calls to remain blocked.');
@@ -6314,6 +6314,7 @@ begin
       'external-routine-call');
     AssertClassification(lClassifications, 'System', 'unchanged', 'qualified-unit', 'unit-qualifier');
     AssertClassification(lClassifications, 'Int32', 'unchanged', 'type-name', 'type-name');
+    AssertClassification(lClassifications, 'PByte', 'unchanged', 'type-name', 'type-name');
     AssertClassification(lClassifications, 'High', 'unchanged', 'external-routine-call', 'external-routine-call');
     AssertClassification(lClassifications, 'Low', 'unchanged', 'external-routine-call', 'external-routine-call');
     AssertClassification(lClassifications, 'Inc', 'unchanged', 'external-routine-call', 'external-routine-call');
@@ -6340,12 +6341,15 @@ begin
     AssertClassification(lClassifications, 'Abs', 'unchanged', 'external-routine-call', 'external-routine-call');
     AssertClassification(lClassifications, 'Sqr', 'unchanged', 'external-routine-call', 'external-routine-call');
     AssertClassification(lClassifications, 'Succ', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Max', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'Min', 'unchanged', 'external-routine-call', 'external-routine-call');
     AssertClassification(lClassifications, 'Assert', 'unchanged', 'external-routine-call', 'external-routine-call');
     AssertClassificationSymbolMap(lClassifications, 'Abs', 'routine', 'compiler-intrinsic');
     AssertClassificationSymbolMap(lClassifications, 'Sqr', 'routine', 'compiler-intrinsic');
     AssertClassificationSymbolMap(lClassifications, 'Succ', 'routine', 'compiler-intrinsic');
     AssertClassificationSymbolMap(lClassifications, 'Assert', 'routine', 'compiler-intrinsic');
     AssertClassification(lClassifications, 'EOF', 'unchanged', 'external-routine-call', 'external-routine-call');
+    AssertClassification(lClassifications, 'aValue', 'unchanged', 'unchanged', 'routine-scope');
     AssertClassification(lClassifications, 'UnknownProjectRoutine', 'unresolved', 'unresolved', 'symbol-not-found');
   finally
     lRoot.Free;
@@ -7873,6 +7877,7 @@ var
   lOptions: TAppOptions;
   lSourceDir: string;
   lSymbol: TRemoveWithSymbolInfo;
+  lFoundBitArrayListPtr: Boolean;
   lFoundDatFile: Boolean;
   lFoundDatFilePtr: Boolean;
   lFoundDf: Boolean;
@@ -7896,11 +7901,15 @@ begin
   Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, lInventory, lError),
     'Expected maxTdb symbol inventory build to succeed: ' + lError);
 
+  lFoundBitArrayListPtr := False;
   lFoundDatFile := False;
   lFoundDatFilePtr := False;
   lFoundDf := False;
   for lSymbol in lInventory.fSymbols do
   begin
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, 'TBitArrayListPtr') and
+      SameText(lSymbol.fTypeName, '^TBitArrayList') then
+      lFoundBitArrayListPtr := True;
     if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, 'DatFile') then
       lFoundDatFile := True;
     if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, 'DatFilePtr') and
@@ -7911,6 +7920,7 @@ begin
       lFoundDf := True;
   end;
 
+  Assert.IsTrue(lFoundBitArrayListPtr, 'Expected maxTdb TBitArrayListPtr alias to be indexed.');
   Assert.IsTrue(lFoundDatFile, 'Expected maxTdb DatFile record type to be indexed.');
   Assert.IsTrue(lFoundDatFilePtr, 'Expected maxTdb DatFilePtr alias to be indexed.');
   Assert.IsTrue(lFoundDf, 'Expected maxTdb DF global pointer array to be indexed.');
@@ -7919,6 +7929,11 @@ begin
   Assert.AreEqual('resolved', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
     'Expected maxTdb DF selector status. Type=' + lInfo.fTypeName + ' Reason=' + lInfo.fReason);
   Assert.AreEqual('DatFile', lInfo.fTypeName, 'Expected maxTdb DF selector receiver type.');
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'BitArraySum', 'BitArrayListPtr^[c]', lInfo),
+    'Expected maxTdb pointer-array selector resolver to run.');
+  Assert.AreEqual('resolved', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
+    'Expected maxTdb pointer-array selector status. Type=' + lInfo.fTypeName + ' Reason=' + lInfo.fReason);
+  Assert.AreEqual('TBitArray', lInfo.fTypeName, 'Expected pointer-array selector receiver type.');
 end;
 
 end.

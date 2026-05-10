@@ -954,7 +954,7 @@ begin
     aName, lModelSymbol) then
   begin
     aSymbol := SymbolFromModelRoutineSymbol(lModelSymbol);
-    if aSymbol.fTypeName <> '' then
+    if aSymbol.fKind in [TRemoveWithSymbolKind.rwskLocalVariable, TRemoveWithSymbolKind.rwskParameter] then
     begin
       Result := True;
       if GResolverScopeSymbolCache <> nil then
@@ -1004,8 +1004,6 @@ begin
         TRemoveWithSymbolKind.rwskCurrentClassMember] then
       begin
         if not SameText(lSymbol.fRoutineName, aRoutineName) then
-          Continue;
-        if Trim(lSymbol.fTypeName) = '' then
           Continue;
       end else if lKind = TRemoveWithSymbolKind.rwskConstant then
       begin
@@ -1523,8 +1521,8 @@ begin
   if IsCallUse(aSource, aUse) then
     Exit(MatchText(aUse.fName, ['Addr', 'Assign', 'Assigned', 'BlockRead', 'BlockWrite', 'Close', 'Copy', 'Dec',
       'Dispose', 'EOF', 'Exclude', 'FilePos', 'FillChar', 'Flush', 'FreeMem', 'GetMem', 'High', 'Inc', 'Include',
-      'Length', 'Low', 'Move', 'New', 'Ord', 'Pred', 'Read', 'Readln', 'Rewrite', 'Seek', 'SetLength', 'SizeOf',
-      'Val', 'Write', 'Writeln']));
+      'Length', 'Low', 'Max', 'Min', 'Move', 'New', 'Ord', 'Pred', 'Read', 'Readln', 'Rewrite', 'Seek',
+      'SetLength', 'SizeOf', 'Val', 'Write', 'Writeln']));
 
   Result := MatchText(aUse.fName, ['IOResult']);
 end;
@@ -1533,7 +1531,7 @@ class function TRemoveWithIdentifierResolver.IsDelphiIntrinsicTypeName(const aNa
 begin
   Result := MatchText(aName, ['AnsiChar', 'AnsiString', 'Array', 'Boolean', 'Byte', 'Cardinal', 'Char', 'Currency',
     'Date', 'DateTime', 'Double', 'Extended', 'Int8', 'Int16', 'Int32', 'Int64', 'Integer', 'LongInt', 'LongWord',
-    'NativeInt', 'NativeUInt', 'PAnsiChar', 'PChar', 'Pointer', 'PWideChar', 'Real', 'ShortInt', 'ShortString',
+    'NativeInt', 'NativeUInt', 'PAnsiChar', 'PByte', 'PChar', 'Pointer', 'PWideChar', 'Real', 'ShortInt', 'ShortString',
     'Single', 'SmallInt', 'String', 'UInt8', 'UInt16', 'UInt32', 'UInt64', 'Variant', 'WideChar', 'WideString',
     'Word']);
 end;

@@ -14,6 +14,7 @@ type
   TIntrinsicScope = class
   public
     class procedure Run;
+    class procedure RunUntyped(const aValue);
   end;
 
 implementation
@@ -36,6 +37,7 @@ begin
     if Low(Text) <= High(Text) then
       Target := Count;
     Addr(Count);
+    Ptr := PByte(Ptr);
     GetMem(Ptr, SizeOf(Integer));
     FreeMem(Ptr);
     New(Ptr);
@@ -53,6 +55,7 @@ begin
     Close(lTextFile);
     Target := FilePos(lUntypedFile) + Copy(Text, 1, 1).Length + Pred(Count);
     Target := Abs(Count) + Sqr(Count) + Succ(Count);
+    Target := Max(Target, Min(Count, Target));
     Assert(Target >= 0);
     if EOF(lTextFile) then
       Target := Target + 1;
@@ -61,6 +64,16 @@ begin
   with lUnknown do
   begin
     Count := UnknownProjectRoutine(Count);
+  end;
+end;
+
+class procedure TIntrinsicScope.RunUntyped(const aValue);
+var
+  lKnown: TIntrinsicRecord;
+begin
+  with lKnown do
+  begin
+    Move(aValue, Target, SizeOf(Target));
   end;
 end;
 

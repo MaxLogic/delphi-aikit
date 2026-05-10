@@ -214,7 +214,7 @@ class function TRemoveWithExpressionResolver.BuiltInTypeName(const aTypeName: st
 begin
   Result := MatchText(aTypeName, ['AnsiString', 'Boolean', 'Byte', 'Cardinal', 'Char', 'Currency', 'Date',
     'DateTime', 'Double', 'Extended', 'Integer', 'Int64', 'NativeInt', 'NativeUInt', 'Pointer', 'Real', 'ShortInt',
-    'Single', 'SmallInt', 'String', 'UInt64', 'Variant', 'WideChar', 'WideString', 'Word']);
+    'Single', 'SmallInt', 'String', 'PByte', 'UInt64', 'Variant', 'WideChar', 'WideString', 'Word']);
 end;
 
 class function TRemoveWithExpressionResolver.CurrentOwnerType(const aRoutineName: string): string;
