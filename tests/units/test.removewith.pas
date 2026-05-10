@@ -953,8 +953,10 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, '{$IFDEF DAK_LEGACY_REMOVEWITH_SYMBOL_PARSER}'),
-    'Legacy RemoveWith symbol parser must be excluded from normal compilation.');
+  Assert.IsFalse(ContainsText(lSourceText, 'DAK_LEGACY_REMOVEWITH_SYMBOL_PARSER'),
+    'Legacy RemoveWith symbol parser block must be removed from DAK source.');
+  Assert.IsFalse(ContainsText(lSourceText, 'ParseUnitGlobals'),
+    'Legacy RemoveWith unit-global parser must be removed from DAK source.');
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;
