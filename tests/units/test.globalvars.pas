@@ -436,8 +436,10 @@ begin
     '..', 'src', 'dak.globalvars.pas']));
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, '{$IFDEF DAK_LEGACY_GLOBALVARS_EXTRACTOR}'),
-    'Legacy GlobalVars extractor must be excluded from normal compilation.');
+  Assert.IsFalse(ContainsText(lSourceText, 'DAK_LEGACY_GLOBALVARS_EXTRACTOR'),
+    'Legacy GlobalVars extractor block must be removed from DAK source.');
+  Assert.IsFalse(ContainsText(lSourceText, 'ParseGlobalVarsFromAst'),
+    'Legacy GlobalVars AST extraction must be removed from DAK source.');
 end;
 
 initialization
