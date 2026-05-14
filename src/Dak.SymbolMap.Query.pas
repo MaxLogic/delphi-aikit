@@ -567,6 +567,47 @@ begin
   Result.fEndCol := aResult.EndColumn;
 end;
 
+function TryFindCompilerIntrinsicDefinition(const aStatus: TSymbolMapCacheStatus;
+  const aProfile: TSymbolMapCompilerProfileResult; const aName: string;
+  out aDefinition: TSymbolMapDefinition; out aError: string): Boolean;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lQuery: TFDQuery;
+begin
+  Result := False;
+  aDefinition := Default(TSymbolMapDefinition);
+  if not OpenQueryConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
+    Exit(False);
+  try
+    lQuery := TFDQuery.Create(nil);
+    try
+      lQuery.Connection := lConnection;
+      lQuery.SQL.Text := 'select name, kind, signature from compiler_intrinsics ' +
+        'where profile_key = :profile_key and lower(name) = lower(:name)';
+      lQuery.ParamByName('profile_key').AsString := aProfile.fProfileKey;
+      lQuery.ParamByName('name').AsString := aName;
+      lQuery.Open;
+      if lQuery.Eof then
+        Exit(False);
+
+      aDefinition.fFound := True;
+      aDefinition.fName := lQuery.FieldByName('name').AsWideString;
+      aDefinition.fKind := lQuery.FieldByName('kind').AsWideString;
+      aDefinition.fOwnerName := 'compiler';
+      aDefinition.fSourceKind := 'compiler-intrinsic';
+      aDefinition.fConfidence := 'exact';
+      aDefinition.fSignature := lQuery.FieldByName('signature').AsWideString;
+      Result := True;
+    finally
+      lQuery.Free;
+    end;
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
 function SearchDefinitionFromSemanticResult(const aResult: TDelphiSemanticSymbolQueryResult):
   TSymbolMapDefinition;
 begin
@@ -743,6 +784,9 @@ var
 begin
   Result := False;
   aDefinition := Default(TSymbolMapDefinition);
+  if (aOwnerName = '') and TryFindCompilerIntrinsicDefinition(aStatus, aProfile, aName, aDefinition, aError) then
+    Exit(True);
+
   if not BuildSemanticQueryContext(aContext, aStatus, aProfile, lSemanticContext, aError) then
     Exit(False);
   if aOwnerName <> '' then

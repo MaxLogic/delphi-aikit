@@ -17,6 +17,7 @@ type
   TTempAggregationScope = class
   public
     class procedure ExistingVarSection(aFirstRecord, aSecondRecord: TTempAggregationRecord);
+    class procedure ExistingVarSectionWithBeginComment(aFirstRecord: TTempAggregationRecord);
     class procedure LocalRoutineBeforeBegin(aFirstRecord, aSecondRecord: TTempAggregationRecord);
     class procedure Run(aFirstRecord, aSecondRecord: TTempAggregationRecord; aFirstObject,
       aSecondObject: TTempAggregationObject);
@@ -35,6 +36,17 @@ begin
   end;
 
   with aSecondRecord do
+  begin
+    Count := lMarker + Count;
+  end;
+end;
+
+class procedure TTempAggregationScope.ExistingVarSectionWithBeginComment(aFirstRecord: TTempAggregationRecord);
+var
+  lMarker: Integer;
+begin {comment after begin must still terminate the var section}
+  lMarker := 1;
+  with aFirstRecord do
   begin
     Count := lMarker + Count;
   end;

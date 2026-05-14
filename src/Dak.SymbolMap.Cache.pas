@@ -81,7 +81,7 @@ const
   cCentralDbFileName = 'symbol-map.sqlite3';
   cProjectDbFileName = 'project-index.sqlite3';
   cCentralCacheMutexName = 'Local\DelphiAIKit.SymbolMap.Cache.v1';
-  cSymbolMapParserVersion = 'symbol-map-parser-v2';
+  cSymbolMapParserVersion = 'symbol-map-parser-v3';
   cSymbolMapIncludeGraphHash = 'no-includes-v1';
 
 function SemanticIdentityContext(const aContext: TSymbolMapContext): TDelphiSemanticCacheIdentityContext;
@@ -537,6 +537,12 @@ begin
   Result := Result + ']';
 end;
 
+function DefaultRtlSourceUnits: TArray<string>;
+begin
+  Result := ['System', 'SysUtils', 'Classes', 'Math', 'Types', 'Variants', 'TypInfo', 'SysInit',
+    'UITypes'];
+end;
+
 function NormalizeRtlSourceRoot(const aContext: TSymbolMapContext; const aSourceRoot: string): string;
 begin
   Result := Trim(aSourceRoot);
@@ -550,34 +556,9 @@ begin
   Result := TPath.GetFullPath('C:\Program Files (x86)\Embarcadero\Studio\23.0\source');
 end;
 
-function IsRtlSourceCandidate(const aFilePath: string): Boolean;
-var
-  lName: string;
-begin
-  lName := TPath.GetFileNameWithoutExtension(aFilePath);
-  Result := SameText(lName, 'System') or StartsText('System.', lName) or SameText(lName, 'SysInit') or
-    SameText(lName, 'Variants') or SameText(lName, 'TypInfo');
-end;
-
 function CollectRtlSourceFiles(const aSourceRoot: string; out aDiagnostics: TArray<string>): TArray<string>;
 var
-  lFiles: TList<string>;
-  lIndexRoot: string;
   lRtlRoot: string;
-
-  procedure AddRootFiles(const aRoot: string);
-  var
-    lRootFile: string;
-  begin
-    if not TDirectory.Exists(aRoot) then
-      Exit;
-    for lRootFile in TDirectory.GetFiles(aRoot, '*.pas', TSearchOption.soTopDirectoryOnly) do
-    begin
-      if IsRtlSourceCandidate(lRootFile) then
-        lFiles.Add(TPath.GetFullPath(lRootFile));
-    end;
-  end;
-
 begin
   SetLength(Result, 0);
   SetLength(aDiagnostics, 0);
@@ -588,17 +569,8 @@ begin
     Exit;
   end;
 
-  lFiles := TList<string>.Create;
-  try
-    AddRootFiles(TPath.Combine(lRtlRoot, 'sys'));
-    AddRootFiles(TPath.Combine(lRtlRoot, 'common'));
-    if lFiles.Count = 0 then
-      AddRootFiles(lRtlRoot);
-    lFiles.Sort;
-    Result := lFiles.ToArray;
-  finally
-    lFiles.Free;
-  end;
+  Result := TDelphiSemanticCompilerProfileBuilder.DiscoverRtlSourceFiles(aSourceRoot,
+    DefaultRtlSourceUnits);
 end;
 
 function EnsureSymbolMapCompilerProfile(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;

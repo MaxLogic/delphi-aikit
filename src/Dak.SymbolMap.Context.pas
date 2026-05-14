@@ -1,4 +1,4 @@
-﻿unit Dak.SymbolMap.Context;
+unit Dak.SymbolMap.Context;
 
 interface
 
@@ -33,6 +33,7 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.SysUtils,
+  DelphiSemantics.CompilerProfile,
   Dak.FixInsightSettings, Dak.Project, Dak.Registry, Dak.RsVars;
 
 function NormalizeDelphiVersion(const aValue: string): string;
@@ -79,19 +80,10 @@ begin
   Result := NormalizeCacheRoot(ResolveDefaultCentralCacheRoot);
 end;
 
-function ResolveDefaultRtlSourceRoot(const aDelphiVersion: string): string;
-var
-  lBdsRoot: string;
-  lVersion: string;
+function ResolveDefaultRtlSourceRoot(const aDelphiVersion, aRsVarsPath: string): string;
 begin
-  lBdsRoot := Trim(GetEnvironmentVariable('BDS'));
-  if lBdsRoot <> '' then
-    Exit(TPath.Combine(lBdsRoot, 'source'));
-
-  lVersion := NormalizeDelphiVersion(aDelphiVersion);
-  if lVersion = '' then
-    lVersion := '23.0';
-  Result := TPath.Combine('C:\Program Files (x86)\Embarcadero\Studio\' + lVersion, 'source');
+  Result := TDelphiSemanticCompilerProfileBuilder.ResolveRtlSourceRoot(
+    NormalizeDelphiVersion(aDelphiVersion), aRsVarsPath);
 end;
 
 procedure TryPopulateCompilerParams(const aOptions: TAppOptions; var aContext: TSymbolMapContext);
@@ -121,7 +113,8 @@ begin
   aContext.fDelphiVersion := lOptions.fDelphiVersion;
   if not TryLoadRsVars(lOptions.fDelphiVersion, lOptions.fRsVarsPath, nil, lError) then
     Exit;
-  aContext.fRtlSourceRoot := NormalizeCacheRoot(ResolveDefaultRtlSourceRoot(aContext.fDelphiVersion));
+  aContext.fRtlSourceRoot := NormalizeCacheRoot(ResolveDefaultRtlSourceRoot(aContext.fDelphiVersion,
+    lOptions.fRsVarsPath));
 
   lEnvVars := nil;
   try
@@ -163,7 +156,8 @@ begin
   aContext.fConfig := lOptions.fConfig;
   aContext.fPlatform := lOptions.fPlatform;
   aContext.fDelphiVersion := NormalizeDelphiVersion(lOptions.fDelphiVersion);
-  aContext.fRtlSourceRoot := NormalizeCacheRoot(ResolveDefaultRtlSourceRoot(aContext.fDelphiVersion));
+  aContext.fRtlSourceRoot := NormalizeCacheRoot(ResolveDefaultRtlSourceRoot(aContext.fDelphiVersion,
+    lOptions.fRsVarsPath));
   aContext.fCentralCacheRoot := ResolveSymbolMapCentralCacheRoot(lOptions);
   aContext.fProjectCacheRoot := TPath.Combine(aContext.fProject.fDakProjectRoot, 'symbol-map');
   TryPopulateCompilerParams(lOptions, aContext);

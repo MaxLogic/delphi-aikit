@@ -6,5 +6,6 @@
   <ItemGroup>
     <DCCReference Include="GlobalScopeMain.pas"/>
     <DCCReference Include="GlobalScopeSupport.pas"/>
+    <DCCReference Include="ScopedSupport.Nested.pas"/>
   </ItemGroup>
 </Project>

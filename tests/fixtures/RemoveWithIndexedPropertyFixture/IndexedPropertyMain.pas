@@ -23,6 +23,16 @@ type
     property Items[const aIndex: Integer]: TIndexedRecord read GetItem; default;
   end;
 
+  PIndexedRecord = ^TIndexedRecord;
+
+  TPointerIndexedBox = class
+  private
+    FItems: TArray<PIndexedRecord>;
+    function GetItem(const aIndex: Integer): PIndexedRecord;
+  public
+    property Items[const aIndex: Integer]: PIndexedRecord read GetItem; default;
+  end;
+
   TIndexedScope = class
   private
     class function MakeBox: TIndexedBox; static;
@@ -37,6 +47,11 @@ begin
   Result := FItems[aIndex];
 end;
 
+function TPointerIndexedBox.GetItem(const aIndex: Integer): PIndexedRecord;
+begin
+  Result := FItems[aIndex];
+end;
+
 class function TIndexedScope.MakeBox: TIndexedBox;
 begin
   Result := TIndexedBox.Create;
@@ -46,6 +61,8 @@ class procedure TIndexedScope.Run;
 var
   lBox: TIndexedBox;
   lNested: TArray<TIndexedChild>;
+  lPointerBox: TPointerIndexedBox;
+  lPointerRecord: TIndexedRecord;
   lRecords: TArray<TIndexedRecord>;
   lStaticRecordPtr: PStaticRecordArray;
   lStaticRecords: TStaticRecordArray;
@@ -54,6 +71,9 @@ begin
   SetLength(lNested, 1);
   SetLength(lNested[0].Items, 1);
   lBox := MakeBox;
+  lPointerBox := TPointerIndexedBox.Create;
+  SetLength(lPointerBox.FItems, 1);
+  lPointerBox.FItems[0] := @lPointerRecord;
   lStaticRecordPtr := @lStaticRecords;
 
   with lRecords[0] do
@@ -97,6 +117,11 @@ begin
   with lStaticRecordPtr^[0] do
   begin
     Name := 'pointer static array';
+  end;
+
+  with lPointerBox[0]^ do
+  begin
+    Name := 'default pointer property';
   end;
 end;
 

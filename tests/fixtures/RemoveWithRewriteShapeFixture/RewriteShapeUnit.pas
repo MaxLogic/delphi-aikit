@@ -2,6 +2,9 @@ unit RewriteShapeUnit;
 
 interface
 
+uses
+  System.SysUtils;
+
 const
   cRewriteShapeVariantHandle = 0;
   cRewriteShapeVariantPointer = 1;
@@ -10,6 +13,21 @@ type
   TRewriteShapeRecord = record
     Count: Integer;
     Name: string;
+  end;
+
+  TRewriteShapeNestedOuter = record
+    OuterOnly: string;
+  end;
+
+  TRewriteShapeNestedInner = record
+    InnerOnly: string;
+  end;
+
+  TRewriteShapeAnonymousOuter = record
+    OuterOnly: string;
+    Struktur: packed record
+      InnerOnly: string;
+    end;
   end;
 
   TRewriteShapeVariant = record
@@ -28,17 +46,26 @@ type
   public
     class procedure RunBlock(aRecordPtr: PRewriteShapeRecord);
     class procedure RunControlledBlock(aRecordPtr: PRewriteShapeRecord);
+    class procedure RunControlledBlockValueBeforeElse(var aRecord: TRewriteShapeRecord;
+      aRecordPtr: PRewriteShapeRecord);
     class procedure RunControlled(aRecordPtr: PRewriteShapeRecord);
     class procedure RunControlledFor(aRecordPtr: PRewriteShapeRecord);
     class procedure RunControlledIf(aRecordPtr: PRewriteShapeRecord);
+    class procedure RunControlledIfElseBody(aRecordPtr: PRewriteShapeRecord);
     class procedure RunHexLiteral(aRecordPtr: PRewriteShapeRecord);
     class procedure RunImplementationArray;
+    class procedure RunAfterLabel(aRecordPtr: PRewriteShapeRecord);
     class procedure RunLocalRoutine(var aRecord: TRewriteShapeRecord);
     class procedure RunRecordValue(var aRecord: TRewriteShapeRecord);
     class procedure RunRecordValueWithOnlyLabel(var aRecord: TRewriteShapeRecord);
     class procedure RunRecordValueWithLabel(var aRecord: TRewriteShapeRecord);
     class procedure RunSingle(aRecordPtr: PRewriteShapeRecord);
     class procedure RunSingleBeforeElse(aLeftPtr, aRightPtr: PRewriteShapeRecord);
+    class procedure RunControlledSingleBeforeElse(aLeftPtr, aRightPtr: PRewriteShapeRecord);
+    class procedure RunAnonymousNestedSelector(var aOuter: TRewriteShapeAnonymousOuter);
+    class procedure RunSingleNestedFor(var aOuter: TRewriteShapeNestedOuter;
+      var aInner: TRewriteShapeNestedInner);
+    class procedure RunSingleNested(var aOuter: TRewriteShapeNestedOuter; var aInner: TRewriteShapeNestedInner);
     class procedure RunVariant(aVariantPtr: PRewriteShapeVariant);
   end;
 
@@ -78,6 +105,19 @@ begin
     aRecordPtr^.Name := 'else';
 end;
 
+class procedure TRewriteShapeScope.RunControlledBlockValueBeforeElse(var aRecord: TRewriteShapeRecord;
+  aRecordPtr: PRewriteShapeRecord);
+begin
+  if aRecordPtr <> nil then
+    with aRecord do
+    begin
+      Name := 'controlled-block-value-before-else';
+      Count := Count + 11;
+    end
+  else
+    aRecordPtr^.Name := 'else';
+end;
+
 class procedure TRewriteShapeScope.RunControlledFor(aRecordPtr: PRewriteShapeRecord);
 var
   i: Integer;
@@ -94,6 +134,16 @@ begin
     with aRecordPtr^ do
       if Count > 0 then
         Name := 'controlled-if';
+end;
+
+class procedure TRewriteShapeScope.RunControlledIfElseBody(aRecordPtr: PRewriteShapeRecord);
+begin
+  if aRecordPtr <> nil then
+    with aRecordPtr^ do
+      if Count > 0 then
+        Name := 'controlled-inner-if'
+      else
+        Name := 'controlled-inner-else';
 end;
 
 class procedure TRewriteShapeScope.RunHexLiteral(aRecordPtr: PRewriteShapeRecord);
@@ -121,6 +171,18 @@ begin
   begin
     LocalName := 'implementation-array';
     LocalCount := LocalCount + 1;
+  end;
+end;
+
+class procedure TRewriteShapeScope.RunAfterLabel(aRecordPtr: PRewriteShapeRecord);
+label
+  Restore;
+begin
+Restore:
+  with aRecordPtr^ do
+  begin
+    Name := 'after-label';
+    Count := Count + 9;
   end;
 end;
 
@@ -200,6 +262,43 @@ begin
     with aRightPtr^ do
       Name := 'right';
   end;
+end;
+
+class procedure TRewriteShapeScope.RunControlledSingleBeforeElse(aLeftPtr, aRightPtr: PRewriteShapeRecord);
+begin
+  if aLeftPtr <> nil then
+    with aLeftPtr^ do
+      Name := 'controlled-left-before-else'
+  else
+    with aRightPtr^ do
+      Name := 'controlled-right-before-else';
+end;
+
+class procedure TRewriteShapeScope.RunAnonymousNestedSelector(var aOuter: TRewriteShapeAnonymousOuter);
+begin
+  with aOuter, Struktur do
+  begin
+    InnerOnly := OuterOnly;
+  end;
+end;
+
+class procedure TRewriteShapeScope.RunSingleNestedFor(var aOuter: TRewriteShapeNestedOuter;
+  var aInner: TRewriteShapeNestedInner);
+var
+  i: Integer;
+begin
+  with aOuter do
+    for i := 1 to 1 do
+      with aInner do
+        InnerOnly := OuterOnly + IntToStr(i);
+end;
+
+class procedure TRewriteShapeScope.RunSingleNested(var aOuter: TRewriteShapeNestedOuter;
+  var aInner: TRewriteShapeNestedInner);
+begin
+  with aOuter do
+    with aInner do
+      InnerOnly := OuterOnly;
 end;
 
 class procedure TRewriteShapeScope.RunVariant(aVariantPtr: PRewriteShapeVariant);

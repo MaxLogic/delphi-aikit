@@ -24,6 +24,8 @@ type
     fError: string;
     fManifestPath: string;
     fVerificationError: string;
+    fVerificationStdErrLogPath: string;
+    fVerificationStdOutLogPath: string;
     fVerificationStatus: string;
     fFiles: TArray<TRemoveWithTransactionFile>;
     fStatus: TRemoveWithTransactionStatus;
@@ -45,6 +47,7 @@ const
   cRemoveWithFallbackDelphiVersion = '23.0';
   cBuildRequiresDelphiVersion = 'Delphi version is required';
   cBuildVerificationMutexName = 'Local\DakRemoveWithBuildVerification';
+  cBuildDiagnosticsDirEnvVar = 'DAK_BUILD_DIAGNOSTICS_DIR';
   cPreflightBuildFailed = 'preflight-build-failed';
   cBuildEnvironmentVariableNames: array[0..5] of string = ('BDS', 'BDSLIB', 'DCC_Namespace',
     'DCC_UnitSearchPath', 'DelphiLibraryPath', 'EnvOptions');
@@ -83,8 +86,8 @@ type
     class procedure RestoreEnvironment(const aEnvironment: TArray<TRemoveWithEnvironmentVariableState>); static;
     class procedure RestoreEnvironmentVariable(const aName, aValue: string; const aExisted: Boolean); static;
     class procedure ClearInheritedBuildEnvironment; static;
-    class function VerifyBuild(const aOptions: TAppOptions; const aProjectPath: string; out aError: string): Boolean;
-      static;
+    class function VerifyBuild(const aOptions: TAppOptions; const aProjectPath, aDiagnosticsDir: string;
+      var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
   public
     class function Apply(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot: string;
       const aPlanResult: TRemoveWithPlanResult; out aTransactionResult: TRemoveWithTransactionResult;
@@ -402,6 +405,8 @@ begin
     lRoot.AddPair('files', lFiles);
     lRoot.AddPair('verificationStatus', aTransactionResult.fVerificationStatus);
     lRoot.AddPair('verificationError', aTransactionResult.fVerificationError);
+    lRoot.AddPair('verificationStdOutLog', aTransactionResult.fVerificationStdOutLogPath);
+    lRoot.AddPair('verificationStdErrLog', aTransactionResult.fVerificationStdErrLogPath);
     TDirectory.CreateDirectory(TPath.GetDirectoryName(aManifestPath));
     TFile.WriteAllText(aManifestPath, lRoot.ToJSON, TEncoding.UTF8);
     Result := True;
@@ -490,7 +495,8 @@ begin
     Winapi.Windows.SetEnvironmentVariable(PChar(lName), nil);
 end;
 
-class function TRemoveWithTransaction.VerifyBuild(const aOptions: TAppOptions; const aProjectPath: string;
+class function TRemoveWithTransaction.VerifyBuild(const aOptions: TAppOptions;
+  const aProjectPath, aDiagnosticsDir: string; var aTransactionResult: TRemoveWithTransactionResult;
   out aError: string): Boolean;
 var
   lBuildOptions: TAppOptions;
@@ -498,6 +504,8 @@ var
   lExitCode: Integer;
   lMutex: THandle;
   lMutexAcquired: Boolean;
+  lStdErrLogPath: string;
+  lStdOutLogPath: string;
   lWaitResult: DWORD;
 begin
   lBuildOptions := aOptions;
@@ -510,6 +518,8 @@ begin
   lBuildOptions.fBuildAi := False;
   lBuildOptions.fVerbose := False;
 
+  lStdOutLogPath := TPath.Combine(aDiagnosticsDir, 'stdout.log');
+  lStdErrLogPath := TPath.Combine(aDiagnosticsDir, 'stderr.log');
   lEnvironment := CaptureEnvironment;
   lMutex := Winapi.Windows.CreateMutex(nil, False, PChar(cBuildVerificationMutexName));
   lMutexAcquired := False;
@@ -521,16 +531,22 @@ begin
     end;
 
     ClearInheritedBuildEnvironment;
+    Winapi.Windows.SetEnvironmentVariable(PChar(cBuildDiagnosticsDirEnvVar), PChar(aDiagnosticsDir));
     Result := TryRunBuildInternal(lBuildOptions, lExitCode, aError) and (lExitCode = 0);
     if (not Result) and (Trim(lBuildOptions.fDelphiVersion) = '') and
       (Pos(cBuildRequiresDelphiVersion, aError) > 0) then
     begin
       lBuildOptions.fDelphiVersion := cRemoveWithFallbackDelphiVersion;
       aError := '';
+      Winapi.Windows.SetEnvironmentVariable(PChar(cBuildDiagnosticsDirEnvVar), PChar(aDiagnosticsDir));
       Result := TryRunBuildInternal(lBuildOptions, lExitCode, aError) and (lExitCode = 0);
     end;
     if (not Result) and (aError = '') then
       aError := 'build-verification-failed';
+    if FileExists(lStdOutLogPath) then
+      aTransactionResult.fVerificationStdOutLogPath := lStdOutLogPath;
+    if FileExists(lStdErrLogPath) then
+      aTransactionResult.fVerificationStdErrLogPath := lStdErrLogPath;
   finally
     if lMutexAcquired then
       Winapi.Windows.ReleaseMutex(lMutex);
@@ -559,7 +575,8 @@ begin
     Exit(WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, aError));
   end;
 
-  if not VerifyBuild(aOptions, aProjectPath, aError) then
+  if not VerifyBuild(aOptions, aProjectPath, TPath.Combine(aWorkspaceRoot, 'verification-preflight'),
+    aTransactionResult, aError) then
   begin
     if aError <> '' then
       aError := cPreflightBuildFailed + ': ' + aError
@@ -575,7 +592,8 @@ begin
 
   if ApplyEdits(aPlanResult, aTransactionResult, aError) then
   begin
-    if VerifyBuild(aOptions, aProjectPath, aError) then
+    if VerifyBuild(aOptions, aProjectPath, TPath.Combine(aWorkspaceRoot, 'verification-apply'),
+      aTransactionResult, aError) then
     begin
       aTransactionResult.fVerificationStatus := 'passed';
       SetFileStatuses(aTransactionResult, 'changed');

@@ -19,6 +19,9 @@ type
 
 implementation
 
+uses
+  System.SysUtils;
+
 class procedure TIntrinsicScope.Run;
 var
   lCode: Integer;
@@ -46,6 +49,7 @@ begin
     BlockRead(lUntypedFile, Data, SizeOf(Data));
     BlockWrite(lUntypedFile, Data, SizeOf(Data));
     Assign(lTextFile, Text);
+    Reset(lTextFile);
     Rewrite(lTextFile);
     Write(lTextFile, Text);
     Writeln(lTextFile, Text);
@@ -56,6 +60,9 @@ begin
     Target := FilePos(lUntypedFile) + Copy(Text, 1, 1).Length + Pred(Count);
     Target := Abs(Count) + Sqr(Count) + Succ(Count);
     Target := Max(Target, Min(Count, Target));
+    Target := Round(FileDateToDateTime(0)) + abs(Count) + succ(Count);
+    Text := ExpandFileName(Text);
+    ReallocMem(Ptr, SizeOf(Integer));
     Assert(Target >= 0);
     if EOF(lTextFile) then
       Target := Target + 1;

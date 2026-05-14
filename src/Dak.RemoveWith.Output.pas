@@ -223,8 +223,12 @@ begin
     lGates.AddElement(TJSONObject.Create
       .AddPair('name', 'build')
       .AddPair('status', aTransactionResult.fVerificationStatus)
-      .AddPair('error', aTransactionResult.fVerificationError));
+      .AddPair('error', aTransactionResult.fVerificationError)
+      .AddPair('stdoutLog', aTransactionResult.fVerificationStdOutLogPath)
+      .AddPair('stderrLog', aTransactionResult.fVerificationStdErrLogPath));
   end;
+  Result.AddPair('stdoutLog', aTransactionResult.fVerificationStdOutLogPath);
+  Result.AddPair('stderrLog', aTransactionResult.fVerificationStdErrLogPath);
   Result.AddPair('gates', lGates);
 end;
 

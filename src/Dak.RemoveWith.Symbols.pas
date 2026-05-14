@@ -60,6 +60,7 @@ implementation
 uses
   System.Classes, System.Diagnostics, System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiAST.ProjectIndexer,
+  DelphiSemantics.Cache, DelphiSemantics.CompilerProfile,
   MaxLogic.StrUtils;
 
 procedure LogRemoveWithSymbolProgress(const aOptions: TAppOptions; const aMessage: string);
@@ -97,6 +98,7 @@ type
   TRemoveWithSymbolBuilder = record
   private
     class function SameSymbol(const aLeft, aRight: TRemoveWithSymbolInfo): Boolean; static;
+    class function SameLogicalNonRoutineSymbol(const aLeft, aRight: TRemoveWithSymbolInfo): Boolean; static;
     class function SymbolIdentityKey(const aSymbol: TRemoveWithSymbolInfo): string; static;
     class function CleanLine(const aLine: string): string; static;
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
@@ -251,8 +253,6 @@ function ShouldTranslateDelphiSemanticSymbol(const aSymbol: TDelphiSemanticInven
   Boolean;
 begin
   Result := True;
-  if SameText(aSymbol.SymbolClass, 'declaration') or SameText(aSymbol.SymbolClass, 'member') then
-    Exit(False);
   if SameText(aSymbol.SymbolClass, 'local') or SameText(aSymbol.SymbolClass, 'parameter') then
     Exit(aSymbol.Line > 0);
   if SameText(aSymbol.SymbolClass, 'routine') and (aSymbol.SectionKind <> '') then
@@ -279,7 +279,16 @@ begin
   begin
     if not ShouldTranslateDelphiSemanticSymbol(lSemanticSymbol) then
       Continue;
-    if not DelphiSemanticKindToRemoveWithKind(lSemanticSymbol.SymbolClass, lKind) then
+    if SameText(lSemanticSymbol.SymbolClass, 'declaration') then
+    begin
+      if not (SameText(lSemanticSymbol.Kind, 'type') or SameText(lSemanticSymbol.Kind, 'type-alias')) then
+        Continue;
+      lKind := TRemoveWithSymbolKind.rwskTypeMember;
+    end else if SameText(lSemanticSymbol.SymbolClass, 'member') then
+    begin
+      if not DelphiSemanticKindToRemoveWithKind(lSemanticSymbol.Kind, lKind) then
+        Continue;
+    end else if not DelphiSemanticKindToRemoveWithKind(lSemanticSymbol.SymbolClass, lKind) then
       Continue;
 
     lSymbol := Default(TRemoveWithSymbolInfo);
@@ -325,7 +334,284 @@ begin
   end;
 end;
 
-procedure BuildDelphiSemanticBindings(const aProjectModel: TRemoveWithProjectModel;
+function IsRtlSourceCandidateUnit(const aUnitName: string): Boolean;
+begin
+  if SameText(aUnitName, 'Classes') or SameText(aUnitName, 'System.Classes') then
+    Exit(False);
+
+  Result := (Pos('.', aUnitName) > 0) and MatchText(Copy(aUnitName, 1, Pos('.', aUnitName) - 1),
+    ['System', 'Winapi', 'Vcl', 'FMX']);
+  if Result then
+    Exit;
+
+  Result := MatchText(aUnitName, ['Contnrs', 'DateUtils', 'Generics.Collections',
+    'IOUtils', 'Masks', 'Math', 'StrUtils', 'SysUtils', 'Types', 'Variants', 'Windows']);
+end;
+
+procedure AddRtlUnitName(const aUnitNames: TDictionary<string, Byte>; const aUnitName: string);
+var
+  lUnitName: string;
+begin
+  lUnitName := Trim(aUnitName);
+  if (lUnitName = '') or not IsRtlSourceCandidateUnit(lUnitName) then
+    Exit;
+
+  aUnitNames.AddOrSetValue(lUnitName, 1);
+end;
+
+function CollectRtlUnitNames(const aProjectModel: TRemoveWithProjectModel;
+  const aInventory: TRemoveWithSymbolInventory): TArray<string>;
+var
+  lUnitName: string;
+  lUnitNames: TDictionary<string, Byte>;
+  lUnitModel: TRemoveWithUnitModel;
+  lSemanticModel: TDelphiSemanticUnitModel;
+begin
+  lUnitNames := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    for lUnitModel in aProjectModel.UnitModels do
+      for lUnitName in lUnitModel.fUses do
+        AddRtlUnitName(lUnitNames, lUnitName);
+    for lSemanticModel in aInventory.fDelphiSemanticUnitModels do
+    begin
+      for lUnitName in lSemanticModel.InterfaceUses do
+        AddRtlUnitName(lUnitNames, lUnitName);
+      for lUnitName in lSemanticModel.ImplementationUses do
+        AddRtlUnitName(lUnitNames, lUnitName);
+    end;
+    Result := lUnitNames.Keys.ToArray;
+  finally
+    lUnitNames.Free;
+  end;
+end;
+
+function HasUsableDelphiSemanticModel(const aModel: TDelphiSemanticUnitModel): Boolean;
+begin
+  Result := aModel.Success or (Length(aModel.Declarations) > 0) or (Length(aModel.Members) > 0) or
+    (Length(aModel.Routines) > 0) or (Length(aModel.Locals) > 0);
+end;
+
+procedure AddRtlSourceTypeSymbol(var aInventory: TRemoveWithSymbolInventory; const aName, aTypeName,
+  aRelatedTypeName, aUnitName, aFileName, aLineText: string; const aLine: Integer;
+  const aCategory: TRemoveWithTypeCategory);
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  lSymbol := Default(TRemoveWithSymbolInfo);
+  lSymbol.fName := aName;
+  lSymbol.fTypeName := aTypeName;
+  lSymbol.fRelatedTypeName := aRelatedTypeName;
+  lSymbol.fUnitName := aUnitName;
+  lSymbol.fFilePath := aFileName;
+  lSymbol.fLine := aLine;
+  lSymbol.fColumn := Pos(aName, aLineText);
+  if lSymbol.fColumn = 0 then
+    lSymbol.fColumn := 1;
+  lSymbol.fKind := TRemoveWithSymbolKind.rwskTypeMember;
+  lSymbol.fTypeCategory := aCategory;
+  TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
+end;
+
+procedure AddRtlSourceFieldSymbols(var aInventory: TRemoveWithSymbolInventory; const aNames: TArray<string>;
+  const aTypeName, aOwnerType, aUnitName, aFileName, aLineText: string; const aLine: Integer);
+var
+  lName: string;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  for lName in aNames do
+  begin
+    lSymbol := Default(TRemoveWithSymbolInfo);
+    lSymbol.fName := lName;
+    lSymbol.fTypeName := aTypeName;
+    lSymbol.fOwnerType := aOwnerType;
+    lSymbol.fUnitName := aUnitName;
+    lSymbol.fFilePath := aFileName;
+    lSymbol.fLine := aLine;
+    lSymbol.fColumn := Pos(lName, aLineText);
+    if lSymbol.fColumn = 0 then
+      lSymbol.fColumn := 1;
+    lSymbol.fKind := TRemoveWithSymbolKind.rwskField;
+    TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
+  end;
+end;
+
+procedure AddRtlSourceRoutineSymbol(var aInventory: TRemoveWithSymbolInventory; const aName, aUnitName,
+  aFileName, aLineText: string; const aLine: Integer);
+var
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  lSymbol := Default(TRemoveWithSymbolInfo);
+  lSymbol.fName := aName;
+  lSymbol.fUnitName := aUnitName;
+  lSymbol.fFilePath := aFileName;
+  lSymbol.fLine := aLine;
+  lSymbol.fColumn := Pos(aName, aLineText);
+  if lSymbol.fColumn = 0 then
+    lSymbol.fColumn := 1;
+  lSymbol.fKind := TRemoveWithSymbolKind.rwskRoutine;
+  TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
+end;
+
+function RtlSourceUnitNameFromLines(const aLines: TArray<string>): string;
+var
+  lLine: string;
+  lText: string;
+begin
+  for lLine in aLines do
+  begin
+    lText := TRemoveWithSymbolBuilder.CleanLine(lLine);
+    if StartsText('unit ', lText) then
+    begin
+      Result := Trim(Copy(lText, Length('unit ') + 1, MaxInt));
+      if EndsText(';', Result) then
+        Delete(Result, Length(Result), 1);
+      Exit(Trim(Result));
+    end;
+  end;
+  Result := TPath.GetFileNameWithoutExtension(aLines[0]);
+end;
+
+procedure AppendLightweightRtlSourceSymbols(var aInventory: TRemoveWithSymbolInventory;
+  const aSourceFileName: string);
+var
+  i: Integer;
+  lCategory: TRemoveWithTypeCategory;
+  lCurrentCategory: TRemoveWithTypeCategory;
+  lCurrentType: string;
+  lInTypeSection: Boolean;
+  lLine: string;
+  lLines: TArray<string>;
+  lNames: TArray<string>;
+  lRoutineName: string;
+  lTypeName: string;
+  lUnitName: string;
+begin
+  lLines := TFile.ReadAllLines(aSourceFileName, TEncoding.Default);
+  if Length(lLines) = 0 then
+    Exit;
+
+  lUnitName := RtlSourceUnitNameFromLines(lLines);
+  lCurrentType := '';
+  lCurrentCategory := TRemoveWithTypeCategory.rwtcUnknown;
+  lInTypeSection := False;
+  for i := 0 to High(lLines) do
+  begin
+    lLine := TRemoveWithSymbolBuilder.CleanLine(lLines[i]);
+    if lLine = '' then
+      Continue;
+
+    if SameText(lLine, 'type') then
+    begin
+      lInTypeSection := True;
+      Continue;
+    end;
+
+    if (lCurrentType = '') and (SameText(lLine, 'implementation') or SameText(lLine, 'const') or
+      SameText(lLine, 'var') or SameText(lLine, 'threadvar')) then
+    begin
+      lInTypeSection := False;
+      Continue;
+    end;
+
+    if (lCurrentType = '') and TRemoveWithSymbolBuilder.TryRoutineName(lLine, lRoutineName) then
+    begin
+      AddRtlSourceRoutineSymbol(aInventory, lRoutineName, lUnitName, aSourceFileName, lLines[i],
+        i + 1);
+      Continue;
+    end;
+
+    if lCurrentType = '' then
+    begin
+      if not lInTypeSection then
+        Continue;
+      if TRemoveWithSymbolBuilder.TryTypeStart(lLine, lTypeName, lCategory) then
+      begin
+        lTypeName := TRemoveWithSymbolBuilder.SimpleTypeName(lTypeName);
+        AddRtlSourceTypeSymbol(aInventory, lTypeName, RemoveWithTypeCategoryToText(lCategory), '', lUnitName,
+          aSourceFileName, lLines[i], i + 1, lCategory);
+        lCurrentType := lTypeName;
+        lCurrentCategory := lCategory;
+      end else if TRemoveWithSymbolBuilder.TryTypeAlias(lLine, lRoutineName, lTypeName) then
+        AddRtlSourceTypeSymbol(aInventory, TRemoveWithSymbolBuilder.SimpleTypeName(lRoutineName),
+          TRemoveWithSymbolBuilder.SimpleTypeName(lTypeName),
+          TRemoveWithSymbolBuilder.SimpleTypeName(lTypeName), lUnitName, aSourceFileName, lLines[i],
+          i + 1, TRemoveWithTypeCategory.rwtcUnknown);
+      Continue;
+    end;
+
+    if SameText(lLine, 'end;') or SameText(lLine, 'end') then
+    begin
+      lCurrentType := '';
+      lCurrentCategory := TRemoveWithTypeCategory.rwtcUnknown;
+      Continue;
+    end;
+
+    if (lCurrentCategory = TRemoveWithTypeCategory.rwtcRecord) and
+      TRemoveWithSymbolBuilder.TryDeclaration(lLine, lNames, lTypeName) then
+      AddRtlSourceFieldSymbols(aInventory, lNames, lTypeName, lCurrentType, lUnitName,
+        aSourceFileName, lLines[i], i + 1);
+  end;
+end;
+
+procedure AppendDelphiSemanticRtlSourceModels(const aOptions: TAppOptions;
+  const aProjectModel: TRemoveWithProjectModel; var aInventory: TRemoveWithSymbolInventory);
+var
+  lCache: TDelphiSemanticUnitCache;
+  lCacheOptions: TDelphiSemanticCacheOptions;
+  lProfile: TDelphiSemanticCompilerProfile;
+  lRtlSourceRoot: string;
+  lSemanticInventory: TDelphiSemanticRemoveWithInventory;
+  lSemanticModel: TDelphiSemanticUnitModel;
+  lSourceFileName: string;
+  lSourceFileNames: TArray<string>;
+  lUnitNames: TArray<string>;
+begin
+  lUnitNames := CollectRtlUnitNames(aProjectModel, aInventory);
+  LogRemoveWithSymbolProgress(aOptions, Format('rtl-source units=%d', [Length(lUnitNames)]));
+  if Length(lUnitNames) = 0 then
+    Exit;
+
+  lRtlSourceRoot := TDelphiSemanticCompilerProfileBuilder.ResolveRtlSourceRoot(
+    aOptions.fDelphiVersion, aOptions.fRsVarsPath);
+  LogRemoveWithSymbolProgress(aOptions, 'rtl-source root=' + lRtlSourceRoot);
+  if lRtlSourceRoot = '' then
+    Exit;
+
+  lSourceFileNames := TDelphiSemanticCompilerProfileBuilder.DiscoverRtlSourceFiles(lRtlSourceRoot,
+    lUnitNames);
+  for lSourceFileName in lSourceFileNames do
+    AppendLightweightRtlSourceSymbols(aInventory, lSourceFileName);
+  Exit;
+
+  lCacheOptions := Default(TDelphiSemanticCacheOptions);
+  lCacheOptions.CompilerProfileName := Format('DAK-%s-%s-%s', [aOptions.fDelphiVersion,
+    aOptions.fPlatform, aOptions.fConfig]);
+  lCache := TDelphiSemanticUnitCache.Create(lCacheOptions);
+  try
+    lProfile := TDelphiSemanticCompilerProfileBuilder.ProfileForTargetFromRtlSourceRoot(lCache,
+      lCacheOptions.CompilerProfileName, aOptions.fDelphiVersion, aOptions.fPlatform,
+    lRtlSourceRoot, lUnitNames);
+    LogRemoveWithSymbolProgress(aOptions, Format('rtl-source models=%d',
+      [Length(lProfile.RtlSourceUnitModels)]));
+    for lSemanticModel in lProfile.RtlSourceUnitModels do
+    begin
+      LogRemoveWithSymbolProgress(aOptions, Format('rtl-source model unit=%s success=%s declarations=%d members=%d',
+        [lSemanticModel.UnitName, BoolToStr(lSemanticModel.Success, True),
+        Length(lSemanticModel.Declarations), Length(lSemanticModel.Members)]));
+      if not HasUsableDelphiSemanticModel(lSemanticModel) then
+        Continue;
+      AppendDelphiSemanticModel(aInventory, lSemanticModel);
+      lSemanticInventory := TDelphiSemanticWithBinder.BuildInventory(lSemanticModel);
+      AppendDelphiSemanticInventory(aInventory, lSemanticInventory);
+      AppendDelphiSemanticBindings(aInventory, lSemanticInventory.Bindings);
+    end;
+  finally
+    lCache.Free;
+  end;
+end;
+
+procedure BuildDelphiSemanticBindings(const aOptions: TAppOptions;
+  const aProjectModel: TRemoveWithProjectModel;
   var aInventory: TRemoveWithSymbolInventory);
 var
   lOptions: TDelphiSemanticModelOptions;
@@ -358,6 +644,7 @@ begin
     AppendDelphiSemanticInventory(aInventory, lSemanticInventory);
     AppendDelphiSemanticBindings(aInventory, lSemanticInventory.Bindings);
   end;
+  AppendDelphiSemanticRtlSourceModels(aOptions, aProjectModel, aInventory);
   AppendExpandedDelphiSemanticInventorySymbols(aInventory);
 end;
 
@@ -986,7 +1273,7 @@ begin
           Continue;
         end;
       end;
-      if EndTerminatedBlockOpenCount(lLine) = 0 then
+      if (TokenCount(lLine, 'begin') = 0) and (TokenCount(lLine, 'asm') = 0) then
       begin
         Inc(i);
         Continue;
@@ -1198,10 +1485,27 @@ begin
     SameText(aLeft.fRelatedTypeName, aRight.fRelatedTypeName) and
     SameText(aLeft.fRoutineName, aRight.fRoutineName) and SameText(aLeft.fUnitName, aRight.fUnitName) and
     SameText(aLeft.fFilePath, aRight.fFilePath) and (aLeft.fLine = aRight.fLine) and
-    (aLeft.fColumn = aRight.fColumn) and (aLeft.fIsHelper = aRight.fIsHelper) and
+    (aLeft.fEndLine = aRight.fEndLine) and (aLeft.fColumn = aRight.fColumn) and
+    (aLeft.fIsHelper = aRight.fIsHelper) and
     (aLeft.fIsOverride = aRight.fIsOverride) and (aLeft.fIsDefault = aRight.fIsDefault) and
     (aLeft.fTypeCategory = aRight.fTypeCategory) and
     SameText(aLeft.fUnsupportedReason, aRight.fUnsupportedReason);
+end;
+
+class function TRemoveWithSymbolBuilder.SameLogicalNonRoutineSymbol(const aLeft,
+  aRight: TRemoveWithSymbolInfo): Boolean;
+begin
+  if aLeft.fKind in [TRemoveWithSymbolKind.rwskMethod, TRemoveWithSymbolKind.rwskRoutine] then
+    Exit(False);
+
+  Result := (aLeft.fKind = aRight.fKind) and SameText(aLeft.fName, aRight.fName) and
+    SameText(aLeft.fTypeName, aRight.fTypeName) and SameText(aLeft.fOwnerType, aRight.fOwnerType) and
+    SameText(aLeft.fSourceOwnerType, aRight.fSourceOwnerType) and
+    SameText(aLeft.fRelatedTypeName, aRight.fRelatedTypeName) and
+    SameText(aLeft.fRoutineName, aRight.fRoutineName) and SameText(aLeft.fUnitName, aRight.fUnitName) and
+    SameText(aLeft.fFilePath, aRight.fFilePath) and (aLeft.fIsHelper = aRight.fIsHelper) and
+    (aLeft.fIsOverride = aRight.fIsOverride) and (aLeft.fIsDefault = aRight.fIsDefault) and
+    (aLeft.fTypeCategory = aRight.fTypeCategory) and SameText(aLeft.fUnsupportedReason, aRight.fUnsupportedReason);
 end;
 
 class function TRemoveWithSymbolBuilder.SymbolIdentityKey(const aSymbol: TRemoveWithSymbolInfo): string;
@@ -1212,9 +1516,10 @@ begin
     cSeparator + aSymbol.fOwnerType + cSeparator + aSymbol.fSourceOwnerType + cSeparator +
     aSymbol.fRelatedTypeName + cSeparator + aSymbol.fRoutineName + cSeparator + aSymbol.fUnitName +
     cSeparator + aSymbol.fFilePath + cSeparator + IntToStr(aSymbol.fLine) + cSeparator +
-    IntToStr(aSymbol.fColumn) + cSeparator + IntToStr(Ord(aSymbol.fIsHelper)) + cSeparator +
-    IntToStr(Ord(aSymbol.fIsOverride)) + cSeparator + IntToStr(Ord(aSymbol.fIsDefault)) + cSeparator +
-    IntToStr(Ord(aSymbol.fTypeCategory)) + cSeparator + aSymbol.fUnsupportedReason;
+    IntToStr(aSymbol.fEndLine) + cSeparator + IntToStr(aSymbol.fColumn) + cSeparator +
+    IntToStr(Ord(aSymbol.fIsHelper)) + cSeparator + IntToStr(Ord(aSymbol.fIsOverride)) + cSeparator +
+    IntToStr(Ord(aSymbol.fIsDefault)) + cSeparator + IntToStr(Ord(aSymbol.fTypeCategory)) + cSeparator +
+    aSymbol.fUnsupportedReason;
 end;
 
 class procedure TRemoveWithSymbolBuilder.AddSymbol(var aInventory: TRemoveWithSymbolInventory;
@@ -1224,6 +1529,12 @@ var
   lKey: string;
   lSymbol: TRemoveWithSymbolInfo;
 begin
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if SameLogicalNonRoutineSymbol(lSymbol, aSymbol) then
+      Exit;
+  end;
+
   if GRemoveWithSymbolKeys <> nil then
   begin
     lKey := SymbolIdentityKey(aSymbol);
@@ -1482,7 +1793,7 @@ begin
   lSymbolKeys := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
     GRemoveWithSymbolKeys := lSymbolKeys;
-    BuildDelphiSemanticBindings(aProjectModel, aInventory);
+    BuildDelphiSemanticBindings(aOptions, aProjectModel, aInventory);
 
     lUnitIndex := 0;
     for lUnitModel in aProjectModel.UnitModels do

@@ -76,13 +76,21 @@ type
   private
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
     class function DirectTypeName(const aTypeName: string): string; static;
+    class function CanonicalSourceTypeName(const aInventory: TRemoveWithSymbolInventory;
+      const aTypeName: string): string; static;
+    class function HasSourceType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
+      static;
     class function IsDirectMemberKind(const aKind: TRemoveWithSymbolKind): Boolean; static;
+    class function IsSimpleIdentifier(const aText: string): Boolean; static;
     class function SplitSelectorList(const aSelectorText: string): TArray<string>; static;
     class function PreviousNonWhitespaceTextChar(const aText: string; const aOffset: Integer): Char; static;
     class function SelectorIdentifierIsCode(const aText: string; const aStartOffset: Integer): Boolean; static;
     class function FindVisibleSelectorTempForMember(const aInventory: TRemoveWithSymbolInventory;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIdentifier: string;
-      out aSelectorTemp: TRemoveWithSelectorTemp; out aReason: string): Boolean; static;
+      out aSelectorTemp: TRemoveWithSelectorTemp; out aMemberTypeName, aReason: string): Boolean; static;
+    class function TryBuildDependentSelectorDecision(const aInventory: TRemoveWithSymbolInventory;
+      const aSelectorText: string; const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
+      out aRewrittenText: string; out aDecision: TRemoveWithTempDecision; out aReason: string): Boolean; static;
     class function RewrittenSelectorText(const aInventory: TRemoveWithSymbolInventory; const aSelectorText: string;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aRewrittenText, aReason: string): Boolean; static;
     class procedure RewriteDecisionSelectorText(const aSelectorText: string; var aDecision: TRemoveWithTempDecision);
@@ -95,6 +103,7 @@ type
       out aOffsets: TRemoveWithPlanOffsetRange): Boolean; static;
     class function SourceLineText(const aSource: TRemoveWithSourceBuffer; const aLine: Integer): string; static;
     class function IndentText(const aColumn: Integer): string; static;
+    class function IsBeginLine(const aText: string): Boolean; static;
     class function IsLocalRoutineDeclaration(const aText: string): Boolean; static;
     class function PreviousSignificantToken(const aSource: TRemoveWithSourceBuffer; const aOffset: Integer): string;
       static;
@@ -102,12 +111,16 @@ type
       static;
     class function StatementIsStandalone(const aSource: TRemoveWithSourceBuffer;
       const aStatement: TRemoveWithStatementInfo; out aReason: string): Boolean; static;
+    class function StatementFollowsIdentifierLabel(const aSource: TRemoveWithSourceBuffer;
+      const aStatement: TRemoveWithStatementInfo): Boolean; static;
     class function StatementIsControlled(const aSource: TRemoveWithSourceBuffer;
       const aStatement: TRemoveWithStatementInfo; out aReason: string): Boolean; static;
     class function ControlledStatementTerminator(const aSource: TRemoveWithSourceBuffer;
       const aStatement: TRemoveWithStatementInfo): string; static;
     class function ControlledWrapperTerminator(const aSource: TRemoveWithSourceBuffer;
       const aStatement: TRemoveWithStatementInfo): string; static;
+    class function EnsureGeneratedStatementTerminated(const aText: string): string; static;
+    class function SplitControlledElseText(const aText: string; out aThenText, aElseText: string): Boolean; static;
     class function TempInitializationText(const aStatement: TRemoveWithStatementInfo;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIndentColumn: Integer): string; static;
     class function TempDeclarationEdit(const aSource: TRemoveWithSourceBuffer;
@@ -153,8 +166,12 @@ type
       const aRoutineLine: Integer): Boolean; static;
     class function EnsureRoutineState(var aStates: TArray<TRemoveWithRoutinePlanState>; const aFilePath,
       aRoutineName: string; const aRoutineLine: Integer): Integer; static;
+    class function TryBuildDirectSelectorDecisionFromClassifications(
+      const aResolverResult: TRemoveWithResolverResult; const aStatement: TRemoveWithStatementInfo;
+      const aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean; static;
     class function BuildSelectorTemps(const aInventory: TRemoveWithSymbolInventory;
       const aStatement: TRemoveWithStatementInfo; const aRoutineName: string;
+      const aResolverResult: TRemoveWithResolverResult;
       const aInheritedTemps: TArray<TRemoveWithSelectorTemp>; var aReservedNames: TRemoveWithReservedTempNames;
       out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean; static;
     class function RewrittenBodyText(const aSource: TRemoveWithSourceBuffer;
@@ -253,10 +270,59 @@ begin
     Result := Copy(Result, lDelimiterPos + 1, MaxInt);
 end;
 
+class function TRemoveWithPlanner.CanonicalSourceTypeName(const aInventory: TRemoveWithSymbolInventory;
+  const aTypeName: string): string;
+begin
+  Result := Trim(aTypeName);
+  if StartsText('^', Result) then
+    Delete(Result, 1, 1);
+  if Result = '' then
+    Exit('');
+  if Pos('.', Result) > 0 then
+    Exit;
+  Result := DirectTypeName(Result);
+end;
+
+class function TRemoveWithPlanner.HasSourceType(const aInventory: TRemoveWithSymbolInventory;
+  const aTypeName: string): Boolean;
+var
+  lDirectTypeName: string;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  lDirectTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
+  if lDirectTypeName = '' then
+    Exit(False);
+  for lSymbol in aInventory.fSymbols do
+  begin
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lDirectTypeName) then
+      Exit(True);
+    if SameText(lSymbol.fOwnerType, lDirectTypeName) and IsDirectMemberKind(lSymbol.fKind) then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
 class function TRemoveWithPlanner.IsDirectMemberKind(const aKind: TRemoveWithSymbolKind): Boolean;
 begin
   Result := aKind in [TRemoveWithSymbolKind.rwskField, TRemoveWithSymbolKind.rwskProperty,
     TRemoveWithSymbolKind.rwskMethod, TRemoveWithSymbolKind.rwskConstant, TRemoveWithSymbolKind.rwskClassVar];
+end;
+
+class function TRemoveWithPlanner.IsSimpleIdentifier(const aText: string): Boolean;
+var
+  i: Integer;
+begin
+  Result := False;
+  if aText = '' then
+    Exit;
+  if not CharInSet(aText[1], ['A'..'Z', 'a'..'z', '_']) then
+    Exit;
+  for i := 2 to Length(aText) do
+  begin
+    if not IsIdentifierChar(aText[i]) then
+      Exit;
+  end;
+  Result := True;
 end;
 
 class function TRemoveWithPlanner.SplitSelectorList(const aSelectorText: string): TArray<string>;
@@ -398,27 +464,64 @@ end;
 
 class function TRemoveWithPlanner.FindVisibleSelectorTempForMember(const aInventory: TRemoveWithSymbolInventory;
   const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIdentifier: string;
-  out aSelectorTemp: TRemoveWithSelectorTemp; out aReason: string): Boolean;
+  out aSelectorTemp: TRemoveWithSelectorTemp; out aMemberTypeName, aReason: string): Boolean;
 var
   lCandidateCount: Integer;
+  lCandidateKey: string;
+  lCandidateKeys: TDictionary<string, Byte>;
+  lCandidateTypeName: string;
+  lNestedTypeName: string;
   lOwnerType: string;
   lSymbol: TRemoveWithSymbolInfo;
+  lTypeSymbol: TRemoveWithSymbolInfo;
   i: Integer;
 begin
   Result := False;
   aSelectorTemp := Default(TRemoveWithSelectorTemp);
+  aMemberTypeName := '';
   aReason := '';
   for i := High(aSelectorTemps) downto 0 do
   begin
-    lOwnerType := DirectTypeName(aSelectorTemps[i].fDecision.fReceiverType);
+    lOwnerType := CanonicalSourceTypeName(aInventory, aSelectorTemps[i].fDecision.fReceiverType);
     if lOwnerType = '' then
       Continue;
     lCandidateCount := 0;
-    for lSymbol in aInventory.fSymbols do
-    begin
-      if SameText(DirectTypeName(lSymbol.fOwnerType), lOwnerType) and SameText(lSymbol.fName, aIdentifier) and
-        (lSymbol.fRoutineName = '') and IsDirectMemberKind(lSymbol.fKind) then
-        Inc(lCandidateCount);
+    lCandidateKeys := TDictionary<string, Byte>.Create;
+    try
+      for lSymbol in aInventory.fSymbols do
+      begin
+        if SameText(CanonicalSourceTypeName(aInventory, lSymbol.fOwnerType), lOwnerType) and
+          SameText(lSymbol.fName, aIdentifier) and (lSymbol.fRoutineName = '') and
+          IsDirectMemberKind(lSymbol.fKind) then
+        begin
+          lCandidateTypeName := CanonicalSourceTypeName(aInventory, lSymbol.fTypeName);
+          if SameText(lCandidateTypeName, lSymbol.fName) then
+          begin
+            lNestedTypeName := lSymbol.fOwnerType + '.' + lSymbol.fName;
+            for lTypeSymbol in aInventory.fSymbols do
+            begin
+              if (lTypeSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and
+                SameText(lTypeSymbol.fName, lNestedTypeName) then
+              begin
+                lCandidateTypeName := lNestedTypeName;
+                Break;
+              end;
+            end;
+          end;
+          if MatchText(lCandidateTypeName, ['PACKED', 'RECORD']) then
+            Continue;
+          lCandidateKey := UpperCase(lCandidateTypeName) + #31 +
+            IntToStr(Ord(lSymbol.fKind));
+          if not lCandidateKeys.ContainsKey(lCandidateKey) then
+          begin
+            lCandidateKeys.Add(lCandidateKey, 1);
+            aMemberTypeName := lCandidateTypeName;
+            Inc(lCandidateCount);
+          end;
+        end;
+      end;
+    finally
+      lCandidateKeys.Free;
     end;
     if lCandidateCount = 1 then
     begin
@@ -433,11 +536,44 @@ begin
   end;
 end;
 
+class function TRemoveWithPlanner.TryBuildDependentSelectorDecision(const aInventory: TRemoveWithSymbolInventory;
+  const aSelectorText: string; const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
+  out aRewrittenText: string; out aDecision: TRemoveWithTempDecision; out aReason: string): Boolean;
+var
+  lMemberTypeName: string;
+  lSelectorTemp: TRemoveWithSelectorTemp;
+begin
+  Result := False;
+  aRewrittenText := aSelectorText;
+  aDecision := Default(TRemoveWithTempDecision);
+  aReason := '';
+  if not IsSimpleIdentifier(aSelectorText) then
+    Exit;
+  if not FindVisibleSelectorTempForMember(aInventory, aSelectorTemps, aSelectorText, lSelectorTemp,
+    lMemberTypeName, aReason) then
+    Exit;
+  if (lMemberTypeName = '') or MatchText(lMemberTypeName, ['PACKED', 'RECORD']) or
+    (not HasSourceType(aInventory, lMemberTypeName)) then
+  begin
+    aReason := 'selector-type-not-resolved';
+    Exit;
+  end;
+
+  aRewrittenText := lSelectorTemp.fQualifierText + '.' + aSelectorText;
+  aDecision.fSelectorText := aSelectorText;
+  aDecision.fReceiverType := lMemberTypeName;
+  aDecision.fQualifierText := aRewrittenText;
+  aDecision.fReason := 'dependent-selector-direct-qualification';
+  aDecision.fStrategy := TRemoveWithTempStrategy.rwtsDirectQualification;
+  Result := True;
+end;
+
 class function TRemoveWithPlanner.RewrittenSelectorText(const aInventory: TRemoveWithSymbolInventory;
   const aSelectorText: string; const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
   out aRewrittenText, aReason: string): Boolean;
 var
   lIdentifier: string;
+  lMemberTypeName: string;
   lOffset: Integer;
   lSelectorTemp: TRemoveWithSelectorTemp;
   i: Integer;
@@ -464,7 +600,8 @@ begin
       (not SelectorIdentifierIsCode(aRewrittenText, i + 1)) then
       Continue;
 
-    if FindVisibleSelectorTempForMember(aInventory, aSelectorTemps, lIdentifier, lSelectorTemp, aReason) then
+    if FindVisibleSelectorTempForMember(aInventory, aSelectorTemps, lIdentifier, lSelectorTemp, lMemberTypeName,
+      aReason) then
     begin
       Delete(aRewrittenText, i + 1, lOffset - i);
       Insert(lSelectorTemp.fQualifierText + '.' + lIdentifier, aRewrittenText, i + 1);
@@ -562,6 +699,18 @@ begin
   if aColumn <= 1 then
     Exit('');
   Result := StringOfChar(' ', aColumn - 1);
+end;
+
+class function TRemoveWithPlanner.IsBeginLine(const aText: string): Boolean;
+var
+  lRest: string;
+  lText: string;
+begin
+  lText := Trim(aText);
+  if not StartsText('begin', lText) then
+    Exit(False);
+  lRest := Trim(Copy(lText, Length('begin') + 1, MaxInt));
+  Result := (lRest = '') or StartsText('{', lRest) or StartsText('//', lRest);
 end;
 
 class function TRemoveWithPlanner.IsLocalRoutineDeclaration(const aText: string): Boolean;
@@ -733,12 +882,35 @@ begin
   end;
 
   lToken := PreviousSignificantToken(aSource, lOffsets.fStartOffset);
-  if not MatchText(lToken, [';', 'begin']) then
+  if (not MatchText(lToken, [';', 'begin'])) and
+    ((lToken <> ':') or (not StatementFollowsIdentifierLabel(aSource, aStatement))) then
   begin
     aReason := 'controlled-with-statement';
     Exit;
   end;
   Result := True;
+end;
+
+class function TRemoveWithPlanner.StatementFollowsIdentifierLabel(const aSource: TRemoveWithSourceBuffer;
+  const aStatement: TRemoveWithStatementInfo): Boolean;
+var
+  lLabelText: string;
+  lLine: Integer;
+begin
+  Result := False;
+  lLine := aStatement.fLine - 1;
+  while lLine >= 1 do
+  begin
+    lLabelText := Trim(SourceLineText(aSource, lLine));
+    if lLabelText = '' then
+    begin
+      Dec(lLine);
+      Continue;
+    end;
+    if (Length(lLabelText) > 1) and (lLabelText[Length(lLabelText)] = ':') then
+      Exit(CharInSet(lLabelText[1], ['A'..'Z', 'a'..'z', '_']));
+    Exit(False);
+  end;
 end;
 
 class function TRemoveWithPlanner.StatementIsControlled(const aSource: TRemoveWithSourceBuffer;
@@ -802,7 +974,52 @@ begin
     Exit;
   lEndOffset := RemoveWithInclusiveEndOffset(aSource, lEndOffset);
   if SameText(NextSignificantToken(aSource, lEndOffset + 1), 'else') then
-    Result := '';
+    Result := sLineBreak;
+end;
+
+class function TRemoveWithPlanner.EnsureGeneratedStatementTerminated(const aText: string): string;
+var
+  lTrailingText: string;
+  lText: string;
+begin
+  Result := aText;
+  lText := TrimRight(aText);
+  if (lText <> '') and (lText[Length(lText)] <> ';') then
+  begin
+    lTrailingText := Copy(aText, Length(lText) + 1, MaxInt);
+    Result := lText + ';' + lTrailingText;
+  end;
+end;
+
+class function TRemoveWithPlanner.SplitControlledElseText(const aText: string; out aThenText,
+  aElseText: string): Boolean;
+var
+  lLineEnd: Integer;
+  lLineStart: Integer;
+  lLineText: string;
+begin
+  Result := False;
+  aThenText := '';
+  aElseText := '';
+  lLineStart := 1;
+  while lLineStart <= Length(aText) do
+  begin
+    lLineEnd := lLineStart;
+    while (lLineEnd <= Length(aText)) and not CharInSet(aText[lLineEnd], [#10, #13]) do
+      Inc(lLineEnd);
+    lLineText := TrimLeft(Copy(aText, lLineStart, lLineEnd - lLineStart));
+    if SameText(lLineText, 'else') or StartsText('else ', lLineText) or StartsText('else' + #9, lLineText) then
+    begin
+      aThenText := Copy(aText, 1, lLineStart - 1);
+      while (aThenText <> '') and CharInSet(aThenText[Length(aThenText)], [#10, #13]) do
+        Delete(aThenText, Length(aThenText), 1);
+      aElseText := Copy(aText, lLineStart, MaxInt);
+      Exit(True);
+    end;
+    while (lLineEnd <= Length(aText)) and CharInSet(aText[lLineEnd], [#10, #13]) do
+      Inc(lLineEnd);
+    lLineStart := lLineEnd;
+  end;
 end;
 
 class function TRemoveWithPlanner.TempInitializationText(const aStatement: TRemoveWithStatementInfo;
@@ -870,7 +1087,7 @@ begin
       lInsertLine := lLine;
       Break;
     end
-    else if SameText(lText, 'begin') then
+    else if IsBeginLine(lText) then
     begin
       lBeginLine := lLine;
       lInsertLine := lLine;
@@ -1146,14 +1363,47 @@ class procedure TRemoveWithPlanner.SkipStatement(var aPlanResult: TRemoveWithPla
   const aStatement: TRemoveWithStatementInfo; const aReason, aUnsupportedIdentifierRole: string);
 var
   lPlannedStatement: TRemoveWithPlannedStatement;
+  lReason: string;
 begin
+  lReason := aReason;
+  if lReason = '' then
+    lReason := 'planner-rewrite-not-produced';
+
   lPlannedStatement := Default(TRemoveWithPlannedStatement);
   lPlannedStatement.fStatementId := aStatement.fId;
   lPlannedStatement.fFilePath := aStatement.fFilePath;
   lPlannedStatement.fStatus := 'skipped';
-  lPlannedStatement.fReason := aReason;
+  lPlannedStatement.fReason := lReason;
   lPlannedStatement.fUnsupportedIdentifierRole := aUnsupportedIdentifierRole;
   AddStatement(aPlanResult, lPlannedStatement);
+end;
+
+class function TRemoveWithPlanner.TryBuildDirectSelectorDecisionFromClassifications(
+  const aResolverResult: TRemoveWithResolverResult; const aStatement: TRemoveWithStatementInfo;
+  const aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean;
+var
+  lClassification: TRemoveWithIdentifierClassification;
+begin
+  aDecision := Default(TRemoveWithTempDecision);
+  Result := False;
+
+  for lClassification in aResolverResult.fClassifications do
+  begin
+    if SameText(lClassification.fStatementId, aStatement.fId) and
+      (lClassification.fStatus = TRemoveWithIdentifierStatus.rwisResolved) and
+      SameText(lClassification.fReceiverText, aSelectorText) and (lClassification.fReceiverType <> '') then
+    begin
+      aDecision.fSelectorText := aSelectorText;
+      aDecision.fReceiverType := lClassification.fReceiverType;
+      aDecision.fQualifierText := aSelectorText;
+      if Pos('^', aSelectorText) > 0 then
+        aDecision.fReason := 'already-pointer-qualified'
+      else
+        aDecision.fReason := 'resolver-proven-direct-qualification';
+      aDecision.fStrategy := TRemoveWithTempStrategy.rwtsDirectQualification;
+      Exit(True);
+    end;
+  end;
 end;
 
 class function TRemoveWithPlanner.CopyReservedNames(
@@ -1191,6 +1441,7 @@ end;
 
 class function TRemoveWithPlanner.BuildSelectorTemps(const aInventory: TRemoveWithSymbolInventory;
   const aStatement: TRemoveWithStatementInfo; const aRoutineName: string;
+  const aResolverResult: TRemoveWithResolverResult;
   const aInheritedTemps: TArray<TRemoveWithSelectorTemp>; var aReservedNames: TRemoveWithReservedTempNames;
   out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean;
 var
@@ -1208,26 +1459,66 @@ begin
   lSelectors := SplitSelectorList(aStatement.fSelectorText);
   for lSelector in lSelectors do
   begin
-    if not RewrittenSelectorText(aInventory, lSelector, lVisibleTemps, lRewrittenSelector, aReason) then
-      Exit;
-    if not PlanRemoveWithTempPolicy(aInventory, aRoutineName, lRewrittenSelector, aReservedNames, lDecision) then
+    if not TryBuildDependentSelectorDecision(aInventory, lSelector, lVisibleTemps, lRewrittenSelector, lDecision,
+      aReason) then
     begin
-      aReason := 'selector-type-not-resolved';
-      Exit;
-    end;
-    if (lDecision.fStrategy = TRemoveWithTempStrategy.rwtsSkip) and SameText(lDecision.fReason,
-      'type-not-resolved') and (not SameText(lRewrittenSelector, lSelector)) then
-    begin
-      if not PlanRemoveWithTempPolicy(aInventory, aRoutineName, lSelector, aReservedNames, lDecision) then
+      if aReason <> '' then
       begin
-        aReason := 'selector-type-not-resolved';
-        Exit;
+        if TryBuildDirectSelectorDecisionFromClassifications(aResolverResult, aStatement, lSelector,
+          lDecision) then
+        begin
+          lRewrittenSelector := lSelector;
+          aReason := '';
+        end else
+          Exit;
+      end;
+      if (lDecision.fStrategy <> TRemoveWithTempStrategy.rwtsDirectQualification) and
+        not RewrittenSelectorText(aInventory, lSelector, lVisibleTemps, lRewrittenSelector, aReason) then
+      begin
+        if TryBuildDirectSelectorDecisionFromClassifications(aResolverResult, aStatement, lSelector,
+          lDecision) then
+          lRewrittenSelector := lSelector
+        else
+          Exit;
+      end;
+      if (lDecision.fStrategy <> TRemoveWithTempStrategy.rwtsDirectQualification) and
+        not PlanRemoveWithTempPolicy(aInventory, aRoutineName, lRewrittenSelector, aReservedNames, lDecision) then
+      begin
+        if TryBuildDirectSelectorDecisionFromClassifications(aResolverResult, aStatement, lSelector,
+          lDecision) then
+          lRewrittenSelector := lSelector
+        else begin
+          aReason := 'selector-type-not-resolved';
+          Exit;
+        end;
+      end;
+      if (lDecision.fStrategy <> TRemoveWithTempStrategy.rwtsDirectQualification) and
+        (lDecision.fStrategy = TRemoveWithTempStrategy.rwtsSkip) and SameText(lDecision.fReason,
+        'type-not-resolved') and (not SameText(lRewrittenSelector, lSelector)) then
+      begin
+        if not PlanRemoveWithTempPolicy(aInventory, aRoutineName, lSelector, aReservedNames, lDecision) then
+        begin
+          if TryBuildDirectSelectorDecisionFromClassifications(aResolverResult, aStatement, lSelector,
+            lDecision) then
+            lRewrittenSelector := lSelector
+          else begin
+            aReason := 'selector-type-not-resolved';
+            Exit;
+          end;
+        end;
       end;
     end;
     if lDecision.fStrategy = TRemoveWithTempStrategy.rwtsSkip then
     begin
-      aReason := lDecision.fReason;
-      Exit;
+      if (not MatchText(lDecision.fReason, ['type-not-resolved', 'symbol-not-found', 'type-not-found'])) or
+        (not TryBuildDirectSelectorDecisionFromClassifications(aResolverResult, aStatement, lSelector,
+        lDecision)) then
+      begin
+        aReason := lDecision.fReason;
+        if aReason = '' then
+          aReason := 'selector-type-not-resolved';
+        Exit;
+      end;
     end;
     RewriteDecisionSelectorText(lRewrittenSelector, lDecision);
 
@@ -1323,12 +1614,14 @@ class function TRemoveWithPlanner.BuildStatementReplacement(const aInventory: TR
   out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean;
 var
   lBodyIsBlock: Boolean;
+  lBodyFirstToken: string;
   lBodyOffsets: TRemoveWithPlanOffsetRange;
   lChildReplacementText: string;
   lChildTemps: TArray<TRemoveWithSelectorTemp>;
   lCurrentTemps: TArray<TRemoveWithSelectorTemp>;
   lControlledStatement: Boolean;
   lEditRange: TRemoveWithRange;
+  lElseText: string;
   lIndentColumn: Integer;
   lIndex: Integer;
   lStatementIndent: string;
@@ -1336,6 +1629,7 @@ var
   lReplacement: TRemoveWithNestedReplacement;
   lReplacements: TArray<TRemoveWithNestedReplacement>;
   lStatement: TRemoveWithStatementInfo;
+  lThenText: string;
   lVisibleTemps: TArray<TRemoveWithSelectorTemp>;
   lTempText: string;
 begin
@@ -1370,15 +1664,19 @@ begin
     aReason := 'unsupported-identifier-role';
     Exit;
   end;
-  if not BuildSelectorTemps(aInventory, aStatement, aRoutineName, aInheritedTemps, aReservedNames, lCurrentTemps,
-    aReason) then
+  if not BuildSelectorTemps(aInventory, aStatement, aRoutineName, aResolverResult, aInheritedTemps, aReservedNames,
+    lCurrentTemps, aReason) then
     Exit;
   AddSelectorTemps(lVisibleTemps, aInheritedTemps);
   AddSelectorTemps(lVisibleTemps, lCurrentTemps);
 
   lBodyIsBlock := False;
+  lBodyFirstToken := '';
   if RangeOffsets(aSource, aStatement.fBodyRange, lBodyOffsets) then
-    lBodyIsBlock := SameText(NextSignificantToken(aSource, lBodyOffsets.fStartOffset), 'begin');
+  begin
+    lBodyFirstToken := NextSignificantToken(aSource, lBodyOffsets.fStartOffset);
+    lBodyIsBlock := SameText(lBodyFirstToken, 'begin');
+  end;
 
   for lStatement in aScanResult.fWithStatements do
   begin
@@ -1388,11 +1686,6 @@ begin
     SetLength(lNestedStatements, lIndex + 1);
     lNestedStatements[lIndex] := lStatement;
   end;
-  if (Length(lNestedStatements) > 0) and (not lBodyIsBlock) then
-  begin
-    aReason := 'single-statement-range-overlaps-nested-with';
-    Exit;
-  end;
   AddSelectorTemps(aSelectorTemps, lCurrentTemps);
   for lStatement in lNestedStatements do
   begin
@@ -1401,7 +1694,8 @@ begin
       Exit;
 
     lEditRange := lStatement.fRange;
-    lEditRange.fStartColumn := 1;
+    if lBodyIsBlock then
+      lEditRange.fStartColumn := 1;
     lReplacement := Default(TRemoveWithNestedReplacement);
     if not RangeOffsets(aSource, lEditRange, lReplacement.fOffsets) then
     begin
@@ -1426,9 +1720,18 @@ begin
   else
   begin
     aReplacementText := lTempText + IndentText(lIndentColumn) + aReplacementText;
+    if lControlledStatement and lBodyIsBlock and (lTempText <> '') then
+      aReplacementText := EnsureGeneratedStatementTerminated(aReplacementText);
     if lControlledStatement then
-      aReplacementText := lStatementIndent + 'begin' + sLineBreak + aReplacementText + sLineBreak +
-        lStatementIndent + 'end' + ControlledWrapperTerminator(aSource, aStatement);
+    begin
+      if (not lBodyIsBlock) and (not SameText(lBodyFirstToken, 'if')) and
+        SplitControlledElseText(aReplacementText, lThenText, lElseText) then
+        aReplacementText := lStatementIndent + 'begin' + sLineBreak + lThenText + sLineBreak +
+          lStatementIndent + 'end' + sLineBreak + lElseText
+      else
+        aReplacementText := lStatementIndent + 'begin' + sLineBreak + aReplacementText + sLineBreak +
+          lStatementIndent + 'end' + ControlledWrapperTerminator(aSource, aStatement);
+    end;
   end;
   Result := True;
 end;
@@ -1498,7 +1801,7 @@ begin
   end;
   if (lRoutineLine = 0) and SelectorTempsNeedDeclaration(lSelectorTemps) then
   begin
-    SkipStatement(aPlanResult, aStatement, 'temp-declaration-insertion-not-resolved',
+    SkipStatement(aPlanResult, aStatement, 'temp-declaration-requires-routine-var-section',
       UnsupportedRoleForStatement(aResolverResult, aStatement));
     Exit;
   end;
@@ -1566,11 +1869,6 @@ begin
           if not LoadRemoveWithSource(lStatement.fFilePath, lSource, aError) then
             Exit(False);
           lCurrentPath := lStatement.fFilePath;
-        end;
-        if HasNonBlockAncestorWith(aScanResult, lSource, lStatement) then
-        begin
-          SkipStatement(aPlanResult, lStatement, 'ancestor-single-statement-range-overlaps-nested-with', '');
-          Continue;
         end;
         PlanStatement(aInventory, aScanResult, aResolverResult, lStatement, lSource, lRoutineStates, aPlanResult);
       end;

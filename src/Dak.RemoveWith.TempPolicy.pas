@@ -43,6 +43,8 @@ type
   TRemoveWithTempPolicy = record
   private
     class function DirectTypeName(const aTypeName: string): string; static;
+    class function CanonicalSourceTypeName(const aInventory: TRemoveWithSymbolInventory;
+      const aTypeName: string): string; static;
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
     class function IsSimpleIdentifier(const aText: string): Boolean; static;
     class function TypeCategory(const aInventory: TRemoveWithSymbolInventory;
@@ -182,6 +184,36 @@ begin
     Result := Copy(Result, lDelimiterPos + 1, MaxInt);
 end;
 
+class function TRemoveWithTempPolicy.CanonicalSourceTypeName(const aInventory: TRemoveWithSymbolInventory;
+  const aTypeName: string): string;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+  lTypeInfo: TRemoveWithModelTypeInfo;
+  lTypeName: string;
+begin
+  lTypeName := Trim(aTypeName);
+  if StartsText('^', lTypeName) then
+    Delete(lTypeName, 1, 1);
+  if lTypeName = '' then
+    Exit('');
+
+  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(lTypeName, lTypeInfo) then
+    Exit(lTypeName);
+
+  EnsureTempPolicySymbolNameIndex(aInventory);
+  if GTempPolicySymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  begin
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(lTypeName);
+    end;
+  end;
+
+  Result := DirectTypeName(lTypeName);
+end;
+
 class function TRemoveWithTempPolicy.IsIdentifierChar(const aValue: Char): Boolean;
 begin
   Result := CharInSet(aValue, ['A'..'Z', 'a'..'z', '0'..'9', '_']);
@@ -213,7 +245,7 @@ var
   lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
-  lTypeName := DirectTypeName(aTypeName);
+  lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
   if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(lTypeName, lTypeInfo) then
     Exit(TypeCategoryForModelKind(lTypeInfo.fKind));
 
@@ -380,18 +412,27 @@ begin
     Exit(True);
   end;
 
-  lTypeName := DirectTypeName(lInfo.fTypeName);
+  lTypeName := CanonicalSourceTypeName(aInventory, lInfo.fTypeName);
   lCategory := TypeCategory(aInventory, lTypeName);
   aDecision.fReceiverType := lTypeName;
   lTempBaseName := TempBaseName(lTypeName);
   if lCategory = TRemoveWithTypeCategory.rwtcRecord then
   begin
-    aDecision.fTempName := ReserveUniqueTempName(aInventory, aRoutineName, lTempBaseName + 'Ptr', aReservedNames);
-    aDecision.fDeclarationText := aDecision.fTempName + ': ^' + lTypeName + ';';
-    aDecision.fInitializationText := aDecision.fTempName + ' := @' + aSelectorText + ';';
-    aDecision.fQualifierText := aDecision.fTempName + '^';
-    aDecision.fReason := 'record-pointer-preserves-alias';
-    aDecision.fStrategy := TRemoveWithTempStrategy.rwtsRecordPointerTemp;
+    if Pos('.', lTypeName) > 0 then
+    begin
+      aDecision.fQualifierText := aSelectorText;
+      aDecision.fReason := 'anonymous-record-direct-qualification';
+      aDecision.fStrategy := TRemoveWithTempStrategy.rwtsDirectQualification;
+    end else
+    begin
+      aDecision.fTempName := ReserveUniqueTempName(aInventory, aRoutineName, lTempBaseName + 'Ptr',
+        aReservedNames);
+      aDecision.fDeclarationText := aDecision.fTempName + ': ^' + lTypeName + ';';
+      aDecision.fInitializationText := aDecision.fTempName + ' := @' + aSelectorText + ';';
+      aDecision.fQualifierText := aDecision.fTempName + '^';
+      aDecision.fReason := 'record-pointer-preserves-alias';
+      aDecision.fStrategy := TRemoveWithTempStrategy.rwtsRecordPointerTemp;
+    end;
   end else if lCategory in [TRemoveWithTypeCategory.rwtcClass, TRemoveWithTypeCategory.rwtcInterface] then
   begin
     aDecision.fTempName := ReserveUniqueTempName(aInventory, aRoutineName, lTempBaseName, aReservedNames);

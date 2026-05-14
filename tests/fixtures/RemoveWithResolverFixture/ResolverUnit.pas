@@ -11,12 +11,19 @@ type
     Shared: string;
   end;
 
+  TResolverRange = record
+    B_Nr: Integer;
+    B_von: Double;
+  end;
+
   TResolverMapAlias = TDictionary<string, Integer>;
 
   TResolverCustomer = record
     Address: TResolverAddress;
+    b: TResolverRange;
     Name: string;
     Shared: string;
+    Size: Integer;
     function Pick(aValue: Integer): string; overload;
     function Pick(const aValue: string): string; overload;
     property AddressProp: TResolverAddress read Address;
@@ -77,6 +84,7 @@ end;
 
 class procedure TResolverScope.Run;
 var
+  b: Byte;
   lAddress: TResolverAddress;
   lCustomer: TResolverCustomer;
   lDuplicate: TDuplicateTarget;
@@ -84,10 +92,16 @@ var
   lLocalOnly: string;
   lMap: TResolverMapAlias;
 begin
+  b := 0;
+
   with lCustomer do
   begin
     Name := lLocalOnly;
     lLocalOnly := Name;
+    Abs(Succ(0));
+    Round(1.0);
+    Count := Min(Max(Count, 1), 10);
+    Str(Size: 10, lLocalOnly);
     Pick(1);
     Save;
   end;
@@ -134,6 +148,12 @@ begin
   with lDuplicate do
   begin
     Clash;
+  end;
+
+  with lCustomer, b do
+  begin
+    B_Nr := 1;
+    B_von := lLocalOnly.Length;
   end;
 end;
 

@@ -126,6 +126,8 @@ end;
 
 function PrepareSymbolMapApi(const aOptions: TAppOptions; out aContext: TSymbolMapContext;
   out aStatus: TSymbolMapApiStatus; out aError: string): Boolean;
+var
+  lRtlSource: TSymbolMapRtlIndexResult;
 begin
   Result := False;
   aStatus := Default(TSymbolMapApiStatus);
@@ -136,6 +138,11 @@ begin
     Exit(False);
   if not EnsureSymbolMapCompilerProfile(aContext, aStatus.fCacheStatus, aStatus.fCompilerProfile, aError) then
     Exit(False);
+  if not IndexSymbolMapRtlSources(aContext, aStatus.fCacheStatus, '', aStatus.fCompilerProfile, lRtlSource,
+    aError) then
+    Exit(False);
+  if lRtlSource.fStatus = 'missing-source-root' then
+    AddDiagnostic(aStatus.fDiagnostics, lRtlSource.fDiagnosticsJson);
   if not IndexSymbolMapProject(aContext, aStatus.fCacheStatus, aStatus, aError) then
     Exit(False);
   if aStatus.fCompilerProfile.fProfileKey = '' then
