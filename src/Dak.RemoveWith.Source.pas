@@ -313,6 +313,7 @@ var
   lDefine: string;
   lDefines: TDictionary<string, Byte>;
   lDirectiveEndOffset: Integer;
+  lDirectiveLineEndOffset: Integer;
   lDirectiveStartOffset: Integer;
   lDirectiveText: string;
   lFrame: TDirectiveFrame;
@@ -357,7 +358,7 @@ begin
             lDirectiveEndOffset := lCloseOffset + 1;
           lDirectiveText := Copy(aSource.fText, lDirectiveStartOffset,
             lDirectiveEndOffset - lDirectiveStartOffset + 1);
-          RemoveWithDirectiveLineRange(aSource, lDirectiveStartOffset, lLineStartOffset, lDirectiveEndOffset);
+          RemoveWithDirectiveLineRange(aSource, lDirectiveStartOffset, lLineStartOffset, lDirectiveLineEndOffset);
 
           if (RemoveWithDirectiveSymbol(lDirectiveText, 'IFDEF') <> '') or
             (RemoveWithDirectiveSymbol(lDirectiveText, 'IFNDEF') <> '') then
@@ -379,7 +380,7 @@ begin
             lFrameIndex := lFrames.Count - 1;
             lFrame := lFrames[lFrameIndex];
             if not lFrame.fCurrentActive then
-              RemoveWithAddInactiveRange(Result, lFrame.fInactiveStartOffset, lLineStartOffset - 1)
+              RemoveWithAddInactiveRange(Result, lFrame.fInactiveStartOffset, lDirectiveStartOffset - 1)
             else
               lFrame.fInactiveStartOffset := lDirectiveEndOffset + 1;
             lConditionActive := lFrame.fParentActive and (not lFrame.fBranchTaken) and
@@ -396,7 +397,7 @@ begin
             lFrameIndex := lFrames.Count - 1;
             lFrame := lFrames[lFrameIndex];
             if not lFrame.fCurrentActive then
-              RemoveWithAddInactiveRange(Result, lFrame.fInactiveStartOffset, lLineStartOffset - 1)
+              RemoveWithAddInactiveRange(Result, lFrame.fInactiveStartOffset, lDirectiveStartOffset - 1)
             else
               lFrame.fInactiveStartOffset := lDirectiveEndOffset + 1;
             lFrame.fCurrentActive := lFrame.fParentActive and (not lFrame.fBranchTaken);
@@ -411,7 +412,7 @@ begin
             lFrameIndex := lFrames.Count - 1;
             lFrame := lFrames[lFrameIndex];
             if not lFrame.fCurrentActive then
-              RemoveWithAddInactiveRange(Result, lFrame.fInactiveStartOffset, lLineStartOffset - 1);
+              RemoveWithAddInactiveRange(Result, lFrame.fInactiveStartOffset, lDirectiveStartOffset - 1);
             lFrames.Delete(lFrameIndex);
           end;
 

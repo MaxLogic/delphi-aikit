@@ -15,6 +15,7 @@ begin
     lSecondObject := TTempAggregationObject.Create;
     try
       TTempAggregationScope.ExistingVarSection(lFirstRecord, lSecondRecord);
+      TTempAggregationScope.ExistingVarSectionWithBeginComment(lFirstRecord);
       TTempAggregationScope.LocalRoutineBeforeBegin(lFirstRecord, lSecondRecord);
       TTempAggregationScope.Run(lFirstRecord, lSecondRecord, lFirstObject, lSecondObject);
     finally

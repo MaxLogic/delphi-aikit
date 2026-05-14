@@ -42,6 +42,7 @@ const
     'DAK_TMSWEB_COMPILER, and PATH.';
   cOutputLockedMessage =
     'Compilation succeeded but output file timestamp was not updated. The executable may be locked by another process.';
+  cBuildDiagnosticsDirEnvVar = 'DAK_BUILD_DIAGNOSTICS_DIR';
 
 type
   TBuildSettings = record
@@ -1585,6 +1586,20 @@ begin
   Writeln(ErrOutput, 'WARNING. ' + aMessage);
 end;
 
+procedure PreserveBuildDiagnosticLog(const aSourcePath, aTargetName: string);
+var
+  lDiagnosticsDir: string;
+  lTargetPath: string;
+begin
+  lDiagnosticsDir := Trim(GetEnvironmentVariable(cBuildDiagnosticsDirEnvVar));
+  if (lDiagnosticsDir = '') or (aSourcePath = '') or (not FileExists(aSourcePath)) then
+    Exit;
+
+  TDirectory.CreateDirectory(lDiagnosticsDir);
+  lTargetPath := TPath.Combine(lDiagnosticsDir, aTargetName);
+  TFile.Copy(aSourcePath, lTargetPath, True);
+end;
+
 procedure RunWebCorePatchHook(const aRunner: IBuildProcessRunner; const aProjectInfo: TWebCoreProjectInfo;
   const aOptions: TAppOptions);
 var
@@ -2063,6 +2078,8 @@ begin
   finally
     lDiagnosticsWarnings.Free;
     lEnvVars.Free;
+    PreserveBuildDiagnosticLog(lOutLog, 'stdout.log');
+    PreserveBuildDiagnosticLog(lErrLog, 'stderr.log');
     if (lOutLog <> '') and FileExists(lOutLog) then
       System.SysUtils.DeleteFile(lOutLog);
     if (lErrLog <> '') and FileExists(lErrLog) then

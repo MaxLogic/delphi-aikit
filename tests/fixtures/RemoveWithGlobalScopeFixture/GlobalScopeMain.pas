@@ -28,7 +28,7 @@ implementation
 
 uses
   System.Classes,
-  GlobalScopeSupport, MissingGlobalScopeSupport;
+  GlobalScopeSupport, MissingGlobalScopeSupport, ScopedSupport.Nested;
 
 var
   ImplGlobalOnly: string;
@@ -53,6 +53,7 @@ begin
   with lEmpty do
   begin
     GlobalScopeSupport.SupportGlobal := UnitGlobalOnly;
+    ScopedSupport.Nested.SupportGlobal := UnitGlobalOnly;
   end;
 
   with lEmpty do

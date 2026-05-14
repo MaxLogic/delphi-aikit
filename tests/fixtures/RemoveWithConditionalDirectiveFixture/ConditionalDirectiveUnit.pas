@@ -22,7 +22,10 @@ begin
   with lActive do
   begin
     Count := Count + 1;
+    {$IFDEF NEVER_DEFINED_REMOVE_WITH}InlineMissingSymbol := Count;
+    {$ENDIF}
     {$IFDEF NEVER_DEFINED_REMOVE_WITH}
+    ProgFun := Count;
     MissingInactiveSymbol := Count;
     {$ENDIF}
   end;
@@ -30,6 +33,7 @@ begin
   {$IFDEF NEVER_DEFINED_REMOVE_WITH}
   with lInactive do
   begin
+    ProgFun := Count;
     MissingInactiveSymbol := Count;
   end;
   {$ENDIF}

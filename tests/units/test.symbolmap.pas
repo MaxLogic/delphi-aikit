@@ -213,6 +213,8 @@ type
     procedure ResolvesSourcePositionAndReportsCacheStatus;
     [Test]
     procedure PreparedSessionKeepsStableStatusAcrossLookups;
+    [Test]
+    procedure PreparedSessionIndexesRtlSourceForMathRoutine;
   end;
 
   [TestFixture]
@@ -2416,6 +2418,57 @@ begin
     Assert.IsTrue(lJson.GetValue('timings') is TJSONObject, 'Expected timings object.');
   finally
     lJsonValue.Free;
+  end;
+end;
+
+procedure TSymbolMapApiTests.PreparedSessionIndexesRtlSourceForMathRoutine;
+var
+  lCacheRoot: string;
+  lError: string;
+  lLookup: TSymbolMapApiLookupResult;
+  lMathPath: string;
+  lOldBds: string;
+  lOptions: TAppOptions;
+  lRoot: string;
+  lRsVarsPath: string;
+  lSession: TSymbolMapApiSession;
+  lSourceRoot: string;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-api-rtl-cache');
+  lRoot := UniqueTempPath('symbol-map-api-fake-bds');
+  lSourceRoot := TPath.Combine(lRoot, 'source');
+  lMathPath := TPath.Combine(lSourceRoot, 'rtl\common\System.Math.pas');
+  lRsVarsPath := TPath.Combine(lRoot, 'bin\rsvars.bat');
+  ForceDirectories(TPath.GetDirectoryName(lMathPath));
+  ForceDirectories(TPath.GetDirectoryName(lRsVarsPath));
+  TFile.WriteAllText(lMathPath, 'unit System.Math;' + sLineBreak + 'interface' + sLineBreak +
+    'function Min(const A, B: Integer): Integer;' + sLineBreak +
+    'implementation' + sLineBreak + 'end.', TEncoding.UTF8);
+  TFile.WriteAllText(lRsVarsPath, '@echo off' + sLineBreak + 'set BDS=' + lRoot + sLineBreak,
+    TEncoding.ASCII);
+
+  lOldBds := GetEnvironmentVariable('BDS');
+  SetEnvironmentVariable('BDS', PChar(lRoot));
+  try
+    lOptions := BaseOptions(lCacheRoot);
+    lOptions.fRsVarsPath := lRsVarsPath;
+    lOptions.fHasRsVarsPath := True;
+
+    Assert.IsTrue(PrepareSymbolMapApiSession(lOptions, lSession, lError),
+      'Expected API session. Error: ' + lError);
+    Assert.IsTrue(LookupSymbolMapDefinitionByName(lSession, 'Min', '', lLookup, lError),
+      'Expected lookup. Error: ' + lError);
+
+    Assert.IsTrue(lLookup.fDefinition.fFound, 'Expected Math.Min to resolve from RTL source.');
+    Assert.AreEqual('Min', lLookup.fDefinition.fName);
+    Assert.AreEqual('routine', lLookup.fDefinition.fKind);
+    Assert.AreEqual('rtl-source', lLookup.fDefinition.fSourceKind);
+    Assert.AreEqual('System.Math', lLookup.fDefinition.fUnitName);
+  finally
+    if lOldBds = '' then
+      SetEnvironmentVariable('BDS', nil)
+    else
+      SetEnvironmentVariable('BDS', PChar(lOldBds));
   end;
 end;
 

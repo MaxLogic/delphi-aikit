@@ -20,6 +20,8 @@ end;
 
 var
   gCounter: Integer;
+  gSplitCounter:
+    Integer;
 
 const
   cAfterRoutine = 7;
@@ -30,7 +32,7 @@ var
 begin
   with lItem do
   begin
-    Count := gCounter + cAfterRoutine;
+    Count := gCounter + gSplitCounter + cAfterRoutine;
   end;
 end;
 
