@@ -10,17 +10,21 @@ type
   TDelphiSemanticsIntegrationTests = class
   public
     [Test]
-    procedure DAKCanReferenceDelphiSemanticsVersionUnit;
+    procedure DAKCanReferenceDelphiSemanticsApiFacade;
   end;
 
 implementation
 
 uses
-  DelphiSemantics.Version;
+  DelphiSemantics.Api, DelphiSemantics.Version;
 
-procedure TDelphiSemanticsIntegrationTests.DAKCanReferenceDelphiSemanticsVersionUnit;
+procedure TDelphiSemanticsIntegrationTests.DAKCanReferenceDelphiSemanticsApiFacade;
+var
+  lOptions: TDelphiSemanticApiOptions;
 begin
+  lOptions := Default(TDelphiSemanticApiOptions);
   Assert.AreEqual('0.1.0', DelphiSemanticsVersionText);
+  Assert.AreEqual('', lOptions.Cache.SqliteCacheFileName);
 end;
 
 initialization

@@ -3,7 +3,7 @@ unit Dak.RemoveWith.Symbols;
 interface
 
 uses
-  DelphiSemantics.Model, DelphiSemantics.WithBinding,
+  DelphiSemantics.Api,
   Dak.RemoveWith.Model, Dak.Types;
 
 type
@@ -614,7 +614,8 @@ procedure BuildDelphiSemanticBindings(const aOptions: TAppOptions;
   const aProjectModel: TRemoveWithProjectModel;
   var aInventory: TRemoveWithSymbolInventory);
 var
-  lOptions: TDelphiSemanticModelOptions;
+  lIndex: TDelphiSemanticUnitIndex;
+  lOptions: TDelphiSemanticApiOptions;
   lSemanticInventory: TDelphiSemanticRemoveWithInventory;
   lSemanticModel: TDelphiSemanticUnitModel;
   lUnitModel: TRemoveWithUnitModel;
@@ -628,21 +629,22 @@ begin
       Continue;
     end;
 
-    lOptions := Default(TDelphiSemanticModelOptions);
+    lOptions := Default(TDelphiSemanticApiOptions);
     lOptions.SourceFileName := lUnitModel.fFilePath;
     lOptions.ProjectContextApplied := True;
     lOptions.Defines := SplitSemanticListText(aProjectModel.Context.fParserDefines);
     lOptions.SearchPaths := SplitSemanticListText(aProjectModel.Context.fParserSearchPath);
-    lSemanticModel := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
+    lIndex := TDelphiSemanticApi.BuildUnitIndex(lOptions);
+    lSemanticModel := lIndex.Model;
     if lSemanticModel.FileName = '' then
       lSemanticModel.FileName := lUnitModel.fFilePath;
     if lSemanticModel.UnitName = '' then
       lSemanticModel.UnitName := lUnitModel.fUnitName;
 
     AppendDelphiSemanticModel(aInventory, lSemanticModel);
-    lSemanticInventory := TDelphiSemanticWithBinder.BuildInventory(lSemanticModel);
+    lSemanticInventory := lIndex.Inventory;
     AppendDelphiSemanticInventory(aInventory, lSemanticInventory);
-    AppendDelphiSemanticBindings(aInventory, lSemanticInventory.Bindings);
+    AppendDelphiSemanticBindings(aInventory, lIndex.Bindings);
   end;
   AppendDelphiSemanticRtlSourceModels(aOptions, aProjectModel, aInventory);
   AppendExpandedDelphiSemanticInventorySymbols(aInventory);

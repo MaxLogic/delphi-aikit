@@ -188,6 +188,7 @@
         <DCCReference Include="..\src\dak.output.pas"/>
         <DCCReference Include="..\src\dak.project.pas"/>
         <DCCReference Include="..\src\dak.registry.pas"/>
+        <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Api.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Graph.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.GlobalVars.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Model.pas"/>

@@ -20,7 +20,7 @@ function TryBuildProjectAnalysisContext(const aOptions: TAppOptions; out aContex
 implementation
 
 uses
-  DelphiSemantics.ProjectContext,
+  DelphiSemantics.Api,
   Dak.FixInsightSettings, Dak.Registry, Dak.RsVars, Dak.Utils;
 
 type
@@ -297,18 +297,18 @@ function TryBuildProjectSourceLookup(const aDprojPath, aConfig, aPlatform, aDelp
   const aEnvVars: TDictionary<string, string>; aDiagnostics: TDiagnostics; out aLookup: TProjectSourceLookup;
   out aError: string): Boolean;
 var
-  lOptions: TDelphiSemanticOptions;
+  lOptions: TDelphiSemanticApiOptions;
   lResult: TDelphiSemanticContextResult;
 begin
   aError := '';
   aLookup := Default(TProjectSourceLookup);
-  lOptions := Default(TDelphiSemanticOptions);
+  lOptions := Default(TDelphiSemanticApiOptions);
   lOptions.Configuration := aConfig;
   lOptions.Platform := aPlatform;
   lOptions.DelphiVersion := aDelphiVersion;
   lOptions.EnvironmentVariables := SemanticEnvironmentProperties(aEnvVars);
 
-  lResult := TDelphiSemanticProject.Load(aDprojPath, lOptions);
+  lResult := TDelphiSemanticApi.LoadProjectContext(aDprojPath, lOptions);
   AddSemanticDiagnostics(aDiagnostics, lResult);
   if not lResult.Success then
   begin
