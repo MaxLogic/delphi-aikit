@@ -24,6 +24,7 @@ uses
 
 const
   cRemoveWithSchemaVersion = 2;
+  cVerificationDiagnosticLineLimit = 40;
 
 function RemoveWithModeToText(const aMode: TRemoveWithMode): string;
 begin
@@ -211,8 +212,56 @@ begin
   Result.AddPair('gates', TJSONArray.Create);
 end;
 
+procedure AddVerificationDiagnosticLine(const aDiagnostics: TJSONArray; const aText: string;
+  var aCount: Integer);
+var
+  lText: string;
+begin
+  if aCount >= cVerificationDiagnosticLineLimit then
+    Exit;
+
+  lText := Trim(aText);
+  if lText = '' then
+    Exit;
+
+  aDiagnostics.AddElement(TJSONString.Create(lText));
+  Inc(aCount);
+end;
+
+procedure AddVerificationDiagnosticsFromFile(const aDiagnostics: TJSONArray; const aFileName: string;
+  var aCount: Integer);
+var
+  lLine: string;
+  lLines: TArray<string>;
+begin
+  if (aFileName = '') or (not TFile.Exists(aFileName)) then
+    Exit;
+
+  try
+    lLines := TFile.ReadAllLines(aFileName, TEncoding.UTF8);
+    for lLine in lLines do
+      AddVerificationDiagnosticLine(aDiagnostics, lLine, aCount);
+  except
+    on E: Exception do
+      AddVerificationDiagnosticLine(aDiagnostics, 'log-read-failed: ' + aFileName + ': ' + E.Message,
+        aCount);
+  end;
+end;
+
+function BuildVerificationDiagnosticsArray(const aTransactionResult: TRemoveWithTransactionResult): TJSONArray;
+var
+  lCount: Integer;
+begin
+  Result := TJSONArray.Create;
+  lCount := 0;
+  AddVerificationDiagnosticLine(Result, aTransactionResult.fVerificationError, lCount);
+  AddVerificationDiagnosticsFromFile(Result, aTransactionResult.fVerificationStdOutLogPath, lCount);
+  AddVerificationDiagnosticsFromFile(Result, aTransactionResult.fVerificationStdErrLogPath, lCount);
+end;
+
 function BuildApplyVerificationObject(const aTransactionResult: TRemoveWithTransactionResult): TJSONObject;
 var
+  lDiagnostics: TJSONArray;
   lGates: TJSONArray;
 begin
   Result := TJSONObject.Create;
@@ -220,12 +269,14 @@ begin
   lGates := TJSONArray.Create;
   if aTransactionResult.fVerificationStatus <> 'not-run' then
   begin
+    lDiagnostics := BuildVerificationDiagnosticsArray(aTransactionResult);
     lGates.AddElement(TJSONObject.Create
       .AddPair('name', 'build')
       .AddPair('status', aTransactionResult.fVerificationStatus)
       .AddPair('error', aTransactionResult.fVerificationError)
       .AddPair('stdoutLog', aTransactionResult.fVerificationStdOutLogPath)
-      .AddPair('stderrLog', aTransactionResult.fVerificationStdErrLogPath));
+      .AddPair('stderrLog', aTransactionResult.fVerificationStdErrLogPath)
+      .AddPair('diagnostics', lDiagnostics));
   end;
   Result.AddPair('stdoutLog', aTransactionResult.fVerificationStdOutLogPath);
   Result.AddPair('stderrLog', aTransactionResult.fVerificationStdErrLogPath);

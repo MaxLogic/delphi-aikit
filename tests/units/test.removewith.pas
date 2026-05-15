@@ -5870,6 +5870,8 @@ end;
 
 procedure TRemoveWithApplyReportTests.RollbackReportIncludesFailedVerificationAndRestoredFiles;
 var
+  lDiagnostics: TJSONArray;
+  lDiagnosticText: string;
   lDprojPath: string;
   lExitCode: Cardinal;
   lFiles: TJSONArray;
@@ -5890,6 +5892,11 @@ begin
     Assert.AreEqual('build', (lGates.Items[0] as TJSONObject).Values['name'].Value, 'Expected build gate.');
     Assert.AreEqual('failed', (lGates.Items[0] as TJSONObject).Values['status'].Value,
       'Expected failed build gate.');
+    AssertJsonArrayKey(lGates.Items[0] as TJSONObject, 'diagnostics', lDiagnostics);
+    Assert.IsTrue(lDiagnostics.Count > 0, 'Expected failed build diagnostics in JSON report.');
+    lDiagnosticText := lDiagnostics.ToJSON;
+    Assert.Contains(lDiagnosticText, 'Intentional rollback fixture failure after remove-with rewrites RollbackUnit.pas',
+      'Expected JSON diagnostics to contain the compiler/build failure message.');
 
     AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
     AssertJsonStringKey(lTransaction, 'manifestPath');
