@@ -67,7 +67,7 @@ uses
   System.Variants,
   Winapi.Windows,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite,
-  DelphiSemantics.Cache, DelphiSemantics.CompilerProfile;
+  DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.Model;
 
 type
   TSymbolMapIntrinsicSeed = record
@@ -704,14 +704,17 @@ function IndexSymbolMapRtlSources(const aContext: TSymbolMapContext; const aStat
   out aError: string): Boolean;
 var
   lConnection: TFDConnection;
+  lCache: TDelphiSemanticUnitCache;
+  lCacheOptions: TDelphiSemanticCacheOptions;
   lDiagnostics: TArray<string>;
   lDriverLink: TFDPhysSQLiteDriverLink;
   lExistingCount: Integer;
-  lFile: string;
   lModel: TSymbolMapUnitModel;
   lMutexHandle: THandle;
+  lProfileModels: TDelphiSemanticCompilerProfile;
   lRoot: string;
   lRtlContext: TSymbolMapContext;
+  lSemanticModel: TDelphiSemanticUnitModel;
   lSourceRootsHash: string;
   lStoredSourceRootsHash: string;
   lStoreResult: TSymbolMapCacheStoreResult;
@@ -775,10 +778,20 @@ begin
         lDriverLink.Free;
       end;
 
-      for lFile in lUnitFiles do
+      lCacheOptions := Default(TDelphiSemanticCacheOptions);
+      lCacheOptions.CompilerProfileName := aProfile.fProfileKey;
+      lCache := TDelphiSemanticUnitCache.Create(lCacheOptions);
+      try
+        lProfileModels := TDelphiSemanticCompilerProfileBuilder.ProfileForTargetFromRtlSourceRoot(
+          lCache, aProfile.fProfileKey, aProfile.fDelphiVersion, aProfile.fPlatform, lRoot,
+          DefaultRtlSourceUnits);
+      finally
+        lCache.Free;
+      end;
+
+      for lSemanticModel in lProfileModels.RtlSourceUnitModels do
       begin
-        if not TryExtractSymbolMapUnitModel(lFile, lModel, aError) then
-          Exit(False);
+        lModel := SymbolMapUnitModelFromDelphiSemanticModel(lSemanticModel);
         if not StoreSymbolMapUnitModel(lRtlContext, aStatus, lModel, lStoreResult, aError) then
           Exit(False);
         if lStoreResult.fCacheHit then

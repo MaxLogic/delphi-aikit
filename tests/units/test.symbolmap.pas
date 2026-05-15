@@ -5,6 +5,7 @@ interface
 uses
   System.IOUtils,
   System.JSON,
+  System.StrUtils,
   System.SysUtils,
   System.Variants,
   DUnitX.TestFramework,
@@ -154,6 +155,8 @@ type
   public
     [Test]
     procedure IndexesSourceAvailableRtlUnitsIntoCompilerProfile;
+    [Test]
+    procedure RtlSourceIndexUsesDelphiSemanticsCompilerProfile;
     [Test]
     procedure MissingRtlRootIsNonFatalDiagnostic;
     [Test]
@@ -1810,6 +1813,20 @@ begin
   Assert.AreEqual(3, CompilerProfileUnitCount(lStatus.fCentralDbPath, lProfile.fProfileKey));
   Assert.AreEqual('rtl-source', ProfileSourceKind(lStatus.fCentralDbPath, lProfile.fProfileKey, 'System'));
   Assert.AreEqual('rtl-source', ProfileSourceKind(lStatus.fCentralDbPath, lProfile.fProfileKey, 'System.Types'));
+end;
+
+procedure TSymbolMapRtlIndexTests.RtlSourceIndexUsesDelphiSemanticsCompilerProfile;
+var
+  lSourceText: string;
+begin
+  lSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Cache.pas'),
+    TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText,
+    'TDelphiSemanticCompilerProfileBuilder.ProfileForTargetFromRtlSourceRoot'),
+    'SymbolMap RTL source indexing must route through DelphiSemantics compiler profiles.');
+  Assert.IsFalse(ContainsText(lSourceText, 'TryExtractSymbolMapUnitModel(lFile'),
+    'SymbolMap RTL source indexing must not feed compiler RTL source files to the legacy DAK extractor.');
 end;
 
 procedure TSymbolMapRtlIndexTests.MissingRtlRootIsNonFatalDiagnostic;
