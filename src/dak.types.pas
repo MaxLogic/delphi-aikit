@@ -1,4 +1,4 @@
-﻿unit Dak.Types;
+unit Dak.Types;
 
 interface
 
@@ -180,6 +180,8 @@ type
     fRemoveWithAll: Boolean;
     fRemoveWithOutputPath: string;
     fHasRemoveWithOutputPath: Boolean;
+    fRemoveWithSemanticCachePath: string;
+    fHasRemoveWithSemanticCachePath: Boolean;
     fSymbolMapOperation: TSymbolMapOperation;
     fSymbolMapFormat: TSymbolMapFormat;
     fSymbolMapUnitPath: string;

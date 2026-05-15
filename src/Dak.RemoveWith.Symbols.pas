@@ -513,6 +513,7 @@ procedure BuildDelphiSemanticBindings(const aOptions: TAppOptions;
   const aProjectModel: TRemoveWithProjectModel;
   var aInventory: TRemoveWithSymbolInventory);
 var
+  lCacheDir: string;
   lIndex: TDelphiSemanticUnitIndex;
   lOptions: TDelphiSemanticApiOptions;
   lSemanticInventory: TDelphiSemanticRemoveWithInventory;
@@ -533,12 +534,25 @@ begin
     lOptions.ProjectContextApplied := True;
     lOptions.Defines := SplitSemanticListText(aProjectModel.Context.fParserDefines);
     lOptions.SearchPaths := SplitSemanticListText(aProjectModel.Context.fParserSearchPath);
+    if aOptions.fHasRemoveWithSemanticCachePath and
+      (Trim(aOptions.fRemoveWithSemanticCachePath) <> '') then
+    begin
+      lOptions.Cache.SqliteCacheFileName := aOptions.fRemoveWithSemanticCachePath;
+      lCacheDir := TPath.GetDirectoryName(lOptions.Cache.SqliteCacheFileName);
+      if lCacheDir <> '' then
+        TDirectory.CreateDirectory(lCacheDir);
+    end;
     lIndex := TDelphiSemanticApi.BuildUnitIndex(lOptions);
     lSemanticModel := lIndex.Model;
     if lSemanticModel.FileName = '' then
       lSemanticModel.FileName := lUnitModel.fFilePath;
     if lSemanticModel.UnitName = '' then
       lSemanticModel.UnitName := lUnitModel.fUnitName;
+    LogRemoveWithSymbolProgress(aOptions, Format(
+      'semantic-cache unit=%s kind=%s hits=%d misses=%d invalidations=%d file=%s',
+      [lSemanticModel.UnitName, lIndex.CacheMetrics.CacheKind, lIndex.CacheMetrics.CacheHits,
+      lIndex.CacheMetrics.CacheMisses, lIndex.CacheMetrics.Invalidations,
+      lIndex.CacheMetrics.CacheFileName]));
 
     AppendDelphiSemanticModel(aInventory, lSemanticModel);
     lSemanticInventory := lIndex.Inventory;
