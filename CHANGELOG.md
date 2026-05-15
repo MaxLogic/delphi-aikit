@@ -102,6 +102,8 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Failed `remove-with --mode apply` build verification reports now include bounded
+  diagnostic lines in the JSON build gate, not only links to stdout/stderr logs.
 - Fixed `remove-with` resolution for Delphi compiler intrinsics, built-in type aliases, implicit `System` qualifiers, inactive conditional branches, implementation globals after routines, captured outer locals in nested routines, legacy `^J`/`^M` literals, and multiline enum/type-alias declarations. Added detailed unresolved-reason buckets to JSON reports.
 - Fixed `remove-with` planning for selector expressions that depend on earlier `with` selectors, and for identifiers ending in digits, so generated rewrites qualify those references instead of leaving undeclared names such as `fd`, `f1`, or `Code1`.
 - Fixed `remove-with` source inventory comment handling so ordinary `{...}` and `(*...*)` comments before type declarations no longer corrupt resolved owner type names, restoring selector resolution for cases such as maxTdb `DF[d]^`.
