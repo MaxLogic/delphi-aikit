@@ -1,4 +1,4 @@
-﻿unit Dak.Cli;
+unit Dak.Cli;
 
 interface
 
@@ -133,7 +133,7 @@ var
       SameText(aSwitch, 'query') or SameText(aSwitch, 'symbol') or SameText(aSwitch, 'owner') or
       SameText(aSwitch, 'cache-root') or SameText(aSwitch, 'limit') or
       SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or
-      SameText(aSwitch, 'dir');
+      SameText(aSwitch, 'dir') or SameText(aSwitch, 'semantic-cache');
   end;
 
   function SwitchAllowsBoolValue(const aSwitch: string): Boolean;
@@ -1442,6 +1442,15 @@ begin
       Exit(False);
     fOptions.fRemoveWithOutputPath := lValue;
     fOptions.fHasRemoveWithOutputPath := True;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'semantic-cache') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--semantic-cache') then
+      Exit(False);
+    fOptions.fRemoveWithSemanticCachePath := lValue;
+    fOptions.fHasRemoveWithSemanticCachePath := True;
     Exit(True);
   end;
 

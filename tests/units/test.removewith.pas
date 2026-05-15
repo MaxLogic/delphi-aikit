@@ -24,6 +24,11 @@ type
 
   [TestFixture]
   TRemoveWithCommandTests = class(TRemoveWithTestBase)
+  private
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath,
+      aFixtureDir: string);
+    function RunSemanticCacheFixture(const aDprojPath, aCacheFileName, aLogName: string;
+      out aExitCode: Cardinal): string;
   public
     [Test]
     procedure ScanModeWritesJsonShellWithoutEditingSource;
@@ -35,6 +40,8 @@ type
     procedure SymbolInventoryUsesDuplicateKeyIndexes;
     [Test]
     procedure RtlSourceModelsSkipWithBinderInventoryBuild;
+    [Test]
+    procedure SemanticCacheOptionReusesAndInvalidatesUnitModels;
   end;
 
   [TestFixture]
@@ -1028,6 +1035,76 @@ begin
   Assert.IsFalse(ContainsText(Copy(lSourceText, Pos(lMarker, lSourceText), 3000),
     'TDelphiSemanticWithBinder.BuildInventory(lSemanticModel)'),
     'RTL source models must not run the full with-binder inventory builder.');
+end;
+
+procedure TRemoveWithCommandTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
+  out aDprojPath, aFixtureDir: string);
+var
+  lSourceDir: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  aFixtureDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(aFixtureDir) then
+    TDirectory.Delete(aFixtureDir, True);
+  TDirectory.Copy(lSourceDir, aFixtureDir);
+  aDprojPath := TPath.Combine(aFixtureDir, aFixtureName + '.dproj');
+end;
+
+function TRemoveWithCommandTests.RunSemanticCacheFixture(const aDprojPath, aCacheFileName,
+  aLogName: string; out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lLogPath: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode plan --format json ' +
+    '--verbose true --semantic-cache ' + QuoteArg(aCacheFileName);
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+    'Failed to start remove-with semantic cache process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
+procedure TRemoveWithCommandTests.SemanticCacheOptionReusesAndInvalidatesUnitModels;
+var
+  lCacheFileName: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lLogText: string;
+  lUnitPath: string;
+begin
+  CopyFixtureToTemp('SymbolMapFixture', 'remove-with-semantic-cache', lDprojPath, lFixtureDir);
+  lCacheFileName := TPath.Combine(TPath.Combine(lFixtureDir, '.dak'), 'semantic-cache.sqlite3');
+
+  lLogText := RunSemanticCacheFixture(lDprojPath, lCacheFileName, 'remove-with-semantic-cache-first.log',
+    lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected first semantic cache run to succeed.');
+  Assert.IsTrue(TFile.Exists(lCacheFileName), 'Expected remove-with to create the semantic cache file.');
+  Assert.IsTrue(ContainsText(lLogText,
+    'semantic-cache unit=SymbolMapUnit kind=sqlite hits=0 misses=1 invalidations=0'),
+    'Expected first run to parse and cache SymbolMapUnit.');
+
+  lLogText := RunSemanticCacheFixture(lDprojPath, lCacheFileName, 'remove-with-semantic-cache-second.log',
+    lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected second semantic cache run to succeed.');
+  Assert.IsTrue(ContainsText(lLogText,
+    'semantic-cache unit=SymbolMapUnit kind=sqlite hits=1 misses=0 invalidations=0'),
+    'Expected second run to reuse cached SymbolMapUnit.');
+
+  lUnitPath := TPath.Combine(lFixtureDir, 'SymbolMapUnit.pas');
+  TFile.AppendAllText(lUnitPath, sLineBreak + '// cache invalidation probe' + sLineBreak,
+    TEncoding.UTF8);
+  lLogText := RunSemanticCacheFixture(lDprojPath, lCacheFileName, 'remove-with-semantic-cache-third.log',
+    lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected changed-source semantic cache run to succeed.');
+  Assert.IsTrue(ContainsText(lLogText,
+    'semantic-cache unit=SymbolMapUnit kind=sqlite hits=0 misses=1 invalidations=1'),
+    'Expected changed SymbolMapUnit to be invalidated and rebuilt.');
+  Assert.IsTrue(ContainsText(lLogText,
+    'semantic-cache unit=SymbolMapMembers kind=sqlite hits=1 misses=0 invalidations=0'),
+    'Expected unchanged units to remain cache hits after one source changes.');
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;

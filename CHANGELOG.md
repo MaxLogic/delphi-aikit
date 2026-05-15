@@ -5,6 +5,9 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added `remove-with --semantic-cache "<sqlite-path>"` to persist DelphiSemantics
+  unit-model parsing across runs, with verbose per-unit cache hit/miss/invalidation
+  telemetry.
 - Added an optional maxTdb `remove-with` performance and telemetry gate that clones the proprietary fixture, runs plan mode with JSON `--output`, asserts current resolution/timing baselines, and verifies original sources remain unchanged. (T-176)
 - Added `remove-with` migration telemetry for local-model hits, Symbol Map hits/misses, intrinsic allowlist fallbacks, true unknowns, planned/skipped counts, and planner elapsed time, with a current maxTdb temp-clone baseline. (T-200)
 - Added Symbol Map-backed `remove-with` recognition for compiler/RTL intrinsics and a stale-intrinsic cache repair check, so seeded compiler symbols such as `Abs`, `Sqr`, `Succ`, and `Assert` resolve without expanding the legacy allowlist. (T-178)
