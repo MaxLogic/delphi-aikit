@@ -87,17 +87,22 @@ var
   lMapSource: string;
   lMapTarget: string;
   lCopiedMap: Boolean;
+  lPhase: string;
 begin
-  RequirePalCmdOrSkip(lPalCmdExe);
-  lMapSource := TPath.Combine(RepoRoot, 'bin\\palcmd-map.json');
-  lMapTarget := TPath.Combine(ExtractFilePath(ParamStr(0)), 'palcmd-map.json');
+  lPhase := 'resolve PALCMD';
   lCopiedMap := False;
-  if FileExists(lMapSource) then
-  begin
-    TFile.Copy(lMapSource, lMapTarget, True);
-    lCopiedMap := True;
-  end;
   try
+    RequirePalCmdOrSkip(lPalCmdExe);
+    lMapSource := TPath.Combine(RepoRoot, 'bin\\palcmd-map.json');
+    lMapTarget := TPath.Combine(ExtractFilePath(ParamStr(0)), 'palcmd-map.json');
+    lPhase := 'copy PALCMD map';
+    if FileExists(lMapSource) and (not SameText(TPath.GetFullPath(lMapSource),
+      TPath.GetFullPath(lMapTarget))) then
+    begin
+      TFile.Copy(lMapSource, lMapTarget, True);
+      lCopiedMap := True;
+    end;
+    lPhase := 'build command line';
     lParams := Default(TFixInsightParams);
     lParams.fProjectDpr := TPath.Combine(RepoRoot, 'projects\\DelphiAIKit.dpr');
     lParams.fDelphiVersion := '23.0';
@@ -110,6 +115,7 @@ begin
     if not BuildPalCmdCommandLine(lParams, lPa, lExe, lCmdLine, lError) then
       Assert.Fail('BuildPalCmdCommandLine failed: ' + lError);
 
+    lPhase := 'extract PALCMD flag';
     lFlag := '';
     lPos := Pos('/CD', UpperCase(lCmdLine));
     if lPos > 0 then
@@ -121,12 +127,21 @@ begin
     end;
 
     Assert.IsTrue(lFlag <> '', 'PALCMD flag selection returned empty flag.');
+    lPhase := 'verify PALCMD selected flag';
     Assert.IsTrue(PalCmdSupportsFlag(lPalCmdExe, lFlag), 'PALCMD help does not list flag: ' + lFlag);
+    lPhase := 'verify Delphi 12 PALCMD flag';
     if PalCmdSupportsFlag(lPalCmdExe, '/CD12W32') then
       Assert.AreEqual('/CD12W32', lFlag, 'PALCMD supports Delphi 12, but a different flag was selected.');
-  finally
+  except
+    on E: Exception do
+      Assert.Fail(lPhase + ' failed: ' + E.Message);
+  end;
+  try
     if lCopiedMap and FileExists(lMapTarget) then
       System.SysUtils.DeleteFile(lMapTarget);
+  except
+    on E: Exception do
+      Assert.Fail('cleanup PALCMD map failed: ' + E.Message);
   end;
 end;
 

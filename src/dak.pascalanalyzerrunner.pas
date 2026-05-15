@@ -3,8 +3,8 @@ unit Dak.PascalAnalyzerRunner;
 interface
 
 uses
-  System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.StrUtils,
-  System.SysUtils, System.Types, System.Variants,
+  System.Classes, System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON,
+  System.StrUtils, System.SysUtils, System.Types, System.Variants,
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
   Winapi.Windows,
   maxLogic.StrUtils,
@@ -121,6 +121,24 @@ begin
   Result := TPath.Combine(ExtractFilePath(ParamStr(0)), SPalCmdMapFileName);
 end;
 
+function ReadSharedUtf8TextFile(const aPath: string): string;
+var
+  lReader: TStreamReader;
+  lStream: TFileStream;
+begin
+  lStream := TFileStream.Create(aPath, fmOpenRead or fmShareDenyNone);
+  try
+    lReader := TStreamReader.Create(lStream, TEncoding.UTF8, True);
+    try
+      Result := lReader.ReadToEnd;
+    finally
+      lReader.Free;
+    end;
+  finally
+    lStream.Free;
+  end;
+end;
+
 function JsonGetString(const aObj: TJSONObject; const aName: string; const aDefault: string): string;
 var
   lValue: TJSONValue;
@@ -176,7 +194,7 @@ begin
       Exit(False);
     end;
 
-    lText := TFile.ReadAllText(lPath, TEncoding.UTF8);
+    lText := ReadSharedUtf8TextFile(lPath);
     lJsonValue := TJSONObject.ParseJSONValue(lText);
     if lJsonValue = nil then
     begin

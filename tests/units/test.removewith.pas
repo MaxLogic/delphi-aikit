@@ -29,6 +29,12 @@ type
     procedure ScanModeWritesJsonShellWithoutEditingSource;
     [Test]
     procedure LegacySymbolParserIsNotCompiled;
+    [Test]
+    procedure RtlSourceSymbolsUseDelphiSemanticsProfile;
+    [Test]
+    procedure SymbolInventoryUsesDuplicateKeyIndexes;
+    [Test]
+    procedure RtlSourceModelsSkipWithBinderInventoryBuild;
   end;
 
   [TestFixture]
@@ -973,6 +979,55 @@ begin
     'Legacy RemoveWith symbol parser block must be removed from DAK source.');
   Assert.IsFalse(ContainsText(lSourceText, 'ParseUnitGlobals'),
     'Legacy RemoveWith unit-global parser must be removed from DAK source.');
+end;
+
+procedure TRemoveWithCommandTests.RtlSourceSymbolsUseDelphiSemanticsProfile;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticCompilerProfileBuilder.ProfileForTargetFromRtlSourceRoot'),
+    'RemoveWith RTL source enrichment must route through DelphiSemantics compiler profiles.');
+  Assert.IsFalse(ContainsText(lSourceText, 'AppendLightweightRtlSourceSymbols'),
+    'RemoveWith must not keep a duplicate lightweight RTL source parser in DAK.');
+  Assert.IsFalse(ContainsText(lSourceText, 'AddRtlSourceTypeSymbol'),
+    'RemoveWith must not keep duplicate DAK RTL source type extraction helpers.');
+end;
+
+procedure TRemoveWithCommandTests.SymbolInventoryUsesDuplicateKeyIndexes;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'GRemoveWithLogicalSymbolKeys'),
+    'Symbol inventory must use a keyed logical duplicate index for large semantic inventories.');
+  Assert.IsFalse(ContainsText(lSourceText,
+    'for lSymbol in aInventory.fSymbols do' + sLineBreak + '  begin' + sLineBreak +
+    '    if SameLogicalNonRoutineSymbol'),
+    'Symbol inventory must not linearly scan every existing symbol before keyed duplicate checks.');
+end;
+
+procedure TRemoveWithCommandTests.RtlSourceModelsSkipWithBinderInventoryBuild;
+var
+  lMarker: string;
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+  lMarker := 'procedure AppendDelphiSemanticRtlSourceModels';
+
+  Assert.IsTrue(ContainsText(lSourceText, 'AppendRtlSourceModelSymbols'),
+    'RTL source models must be translated directly into RemoveWith symbols.');
+  Assert.IsFalse(ContainsText(Copy(lSourceText, Pos(lMarker, lSourceText), 3000),
+    'TDelphiSemanticWithBinder.BuildInventory(lSemanticModel)'),
+    'RTL source models must not run the full with-binder inventory builder.');
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;

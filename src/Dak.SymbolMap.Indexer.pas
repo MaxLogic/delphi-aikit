@@ -2,6 +2,9 @@ unit Dak.SymbolMap.Indexer;
 
 interface
 
+uses
+  DelphiSemantics.Model;
+
 type
   TSymbolMapUnitUse = record
     fUnitName: string;
@@ -62,14 +65,15 @@ type
   end;
 
 function TryLoadSymbolMapSourceFile(const aFilePath: string; out aText, aEncodingName, aError: string): Boolean;
+function SymbolMapUnitModelFromDelphiSemanticModel(const aSemanticModel: TDelphiSemanticUnitModel):
+  TSymbolMapUnitModel;
 function TryExtractSymbolMapUnitModel(const aFilePath: string; out aModel: TSymbolMapUnitModel;
   out aError: string): Boolean;
 
 implementation
 
 uses
-  System.IOUtils, System.StrUtils, System.SysUtils,
-  DelphiSemantics.Model;
+  System.IOUtils, System.StrUtils, System.SysUtils;
 
 type
   TSymbolMapTokenKind = (smtIdentifier, smtDot, smtComma, smtSemicolon, smtColon, smtEqual, smtLParen, smtRParen,
@@ -626,6 +630,15 @@ begin
   end;
 end;
 
+function SymbolMapUnitModelFromDelphiSemanticModel(const aSemanticModel: TDelphiSemanticUnitModel):
+  TSymbolMapUnitModel;
+begin
+  Result := Default(TSymbolMapUnitModel);
+  Result.fFilePath := aSemanticModel.FileName;
+  Result.fEncodingName := aSemanticModel.EncodingName;
+  MergeDelphiSemanticModel(Result, aSemanticModel);
+end;
+
 procedure MergeDelphiSemanticExtraction(const aFilePath: string; var aModel: TSymbolMapUnitModel);
 var
   lOptions: TDelphiSemanticModelOptions;
@@ -666,14 +679,6 @@ begin
   ExtractUnitModelFromTokens(lSourceText, lTokens, aModel);
   ExtractIdentifierReferences(lTokens, aModel);
   Result := True;
-end;
-
-function IsCompilerRtlSourcePath(const aFilePath: string): Boolean;
-var
-  lPath: string;
-begin
-  lPath := LowerCase(TPath.GetFullPath(aFilePath));
-  Result := (Pos('\embarcadero\studio\', lPath) > 0) and (Pos('\source\', lPath) > 0);
 end;
 
 function TokenIsIdentifierText(const aToken: TSymbolMapToken; const aText: string): Boolean;
@@ -1507,8 +1512,6 @@ begin
   aModel := Default(TSymbolMapUnitModel);
   aError := '';
   aModel.fFilePath := TPath.GetFullPath(aFilePath);
-  if IsCompilerRtlSourcePath(aModel.fFilePath) then
-    Exit(TryExtractLegacySymbolMapUnitModel(aFilePath, aModel, aError));
 
   lOptions := Default(TDelphiSemanticModelOptions);
   lOptions.SourceFileName := aModel.fFilePath;
