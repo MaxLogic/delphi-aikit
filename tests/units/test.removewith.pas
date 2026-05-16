@@ -738,6 +738,9 @@ type
     function IsSourceSnapshotFile(const aPath: string): Boolean;
     function RunRemoveWithPlan(const aDprojPath, aTargetDir, aLogName: string; out aExitCode: Cardinal): TJSONObject;
     function RunRemoveWithScan(const aDprojPath, aTargetDir, aLogName: string; out aExitCode: Cardinal): TJSONObject;
+    function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    procedure AssertSkippedReasonBetween(const aSkipped: TJSONArray; const aReason: string; const aMin,
+      aMax: Integer);
     procedure SnapshotSourceFiles(const aRootDir: string; out aPaths: TArray<string>;
       out aBytes: TArray<TBytes>);
   public
@@ -8207,6 +8210,36 @@ begin
   end;
 end;
 
+function TRemoveWithProprietaryProjectTests.CountSkippedReason(const aSkipped: TJSONArray;
+  const aReason: string): Integer;
+var
+  i: Integer;
+  lItem: TJSONObject;
+begin
+  Result := 0;
+  for i := 0 to aSkipped.Count - 1 do
+  begin
+    if not (aSkipped.Items[i] is TJSONObject) then
+      Continue;
+    lItem := aSkipped.Items[i] as TJSONObject;
+    if SameText(lItem.GetValue<string>('reason', ''), aReason) or
+      SameText(lItem.GetValue<string>('detailedReason', ''), aReason) then
+      Inc(Result);
+  end;
+end;
+
+procedure TRemoveWithProprietaryProjectTests.AssertSkippedReasonBetween(const aSkipped: TJSONArray;
+  const aReason: string; const aMin, aMax: Integer);
+var
+  lCount: Integer;
+begin
+  lCount := CountSkippedReason(aSkipped, aReason);
+  Assert.IsTrue(lCount >= aMin,
+    Format('Expected maxTdb skip bucket %s count >= %d, got %d.', [aReason, aMin, lCount]));
+  Assert.IsTrue(lCount <= aMax,
+    Format('Expected maxTdb skip bucket %s count <= %d, got %d.', [aReason, aMax, lCount]));
+end;
+
 procedure TRemoveWithProprietaryProjectTests.PlanCloneOfMaxTdbWhenFixtureExistsReportsTelemetryAndPerformance;
 var
   lCloneBytes: TArray<TBytes>;
@@ -8218,6 +8251,7 @@ var
   lOriginalPaths: TArray<string>;
   lRoot: TJSONObject;
   lSourceDir: string;
+  lSkipped: TJSONArray;
   lSummary: TJSONObject;
   lTargetDir: string;
   lTelemetry: TJSONObject;
@@ -8254,6 +8288,16 @@ begin
       'Expected maxTdb planned edits to stay near the current semantic rewrite baseline.');
     Assert.IsTrue((lSummary.Values['skipped'] as TJSONNumber).AsInt <= 25,
       'Expected maxTdb skipped count not to regress materially.');
+    AssertJsonArrayKey(lRoot, 'skipped', lSkipped);
+    Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt, lSkipped.Count,
+      'Expected skipped array count to match summary.');
+    AssertSkippedReasonBetween(lSkipped, 'scoped-declaration-in-with-body', 1, 6);
+    AssertSkippedReasonBetween(lSkipped, 'unsupported-identifier-role', 1, 5);
+    AssertSkippedReasonBetween(lSkipped, 'controlled-with-statement', 0, 3);
+    AssertSkippedReasonBetween(lSkipped, 'temp-declaration-requires-routine-var-section', 0, 3);
+    AssertSkippedReasonBetween(lSkipped, 'type-source-not-indexed', 0, 3);
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected maxTdb plan to keep generic symbol-not-found skips eliminated.');
     Assert.AreEqual((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
       lTelemetry.GetValue<Integer>('plannedEdits'), 'Expected planned telemetry to match summary.');
     Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt,
