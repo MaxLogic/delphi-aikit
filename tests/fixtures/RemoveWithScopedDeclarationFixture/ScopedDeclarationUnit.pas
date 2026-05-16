@@ -24,8 +24,24 @@ class procedure TScopedDeclarationScope.Run(aItemPtr: PScopedDeclarationItem);
 begin
   with aItemPtr^ do
   begin
+    Count := Count + 1;
     var Count := 1;
     Name := IntToStr(Count);
+  end;
+
+  with aItemPtr^ do
+  begin
+    var Name := 'local';
+    if Count > 0 then
+    begin
+      Count := Count + 1;
+    end;
+    try
+      Count := Count + 1;
+    finally
+      Count := Count + 1;
+    end;
+    Name := Name + 'x';
   end;
 
   with aItemPtr^ do

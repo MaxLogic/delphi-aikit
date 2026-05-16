@@ -246,6 +246,11 @@ begin
   GPlannerRoutinesByFile := nil;
 end;
 
+function UnsupportedRoleCanRemainUnchanged(const aRole: string): Boolean;
+begin
+  Result := MatchText(aRole, ['type-name', 'variable-declaration']);
+end;
+
 class function TRemoveWithPlanner.IsIdentifierChar(const aValue: Char): Boolean;
 begin
   Result := CharInSet(aValue, ['A'..'Z', 'a'..'z', '0'..'9', '_']);
@@ -1654,12 +1659,8 @@ begin
   if lIndentColumn < 1 then
     Exit;
   lStatementIndent := IndentText(aStatement.fColumn);
-  if aStatement.fHasScopedDeclarationInBody then
-  begin
-    aReason := 'scoped-declaration-in-with-body';
-    Exit;
-  end;
-  if aStatement.fHasUnsupportedIdentifierRoleInBody then
+  if aStatement.fHasUnsupportedIdentifierRoleInBody and
+    not UnsupportedRoleCanRemainUnchanged(aStatement.fUnsupportedIdentifierRole) then
   begin
     aReason := 'unsupported-identifier-role';
     Exit;
@@ -1853,13 +1854,8 @@ begin
       begin
         if HasPlannedAncestorWith(aScanResult, aPlanResult, lStatement) then
           Continue;
-        if lStatement.fHasScopedDeclarationInBody then
-        begin
-          SkipStatement(aPlanResult, lStatement, 'scoped-declaration-in-with-body',
-            lStatement.fUnsupportedIdentifierRole);
-          Continue;
-        end;
-        if lStatement.fHasUnsupportedIdentifierRoleInBody then
+        if lStatement.fHasUnsupportedIdentifierRoleInBody and
+          not UnsupportedRoleCanRemainUnchanged(lStatement.fUnsupportedIdentifierRole) then
         begin
           SkipStatement(aPlanResult, lStatement, 'unsupported-identifier-role', lStatement.fUnsupportedIdentifierRole);
           Continue;

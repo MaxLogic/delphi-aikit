@@ -533,10 +533,11 @@ type
     procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
     procedure CopyFixtureToTemp(const aFixtureName, aTempName: string; out aDprojPath, aFixtureDir: string);
     function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    function RunBuildFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
     function RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string; out aExitCode: Cardinal): TJSONObject;
   public
     [Test]
-    procedure ApplySkipsScopedDeclarationsAndLeavesSourceUnchanged;
+    procedure ApplyRewritesSafeScopedDeclarationBodies;
   end;
 
   [TestFixture]
@@ -722,7 +723,7 @@ type
     [Test]
     procedure ApplyBuildsMixedHardeningFixtures;
     [Test]
-    procedure ApplyLeavesSkippedOnlyFixtureUnchanged;
+    procedure ApplyRewritesScopedDeclarationFixture;
   end;
 
   [TestFixture]
@@ -2428,13 +2429,13 @@ begin
   lDirectInventory.fDelphiSemanticWithBindingEntries := nil;
   Assert.IsTrue(ResolveRemoveWithIdentifiers(lDirectInventory, lScanResult, lResult, lError),
     'Expected resolver to finish with direct DelphiSemantics binding metadata: ' + lError);
-  Assert.AreEqual(0, Length(lResult.fClassifications),
-    'Direct DelphiSemantics with-binding metadata must block scoped-declaration bodies.');
+  Assert.IsTrue(Length(lResult.fClassifications) > 0,
+    'Direct DelphiSemantics with-binding metadata must still classify safe scoped-declaration bodies.');
 
   Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResult, lError),
-    'Expected resolver to finish with semantic scoped-declaration gate: ' + lError);
-  Assert.AreEqual(0, Length(lResult.fClassifications),
-    'Semantic with-binding safety data must block scoped-declaration bodies even when legacy scan flags are absent.');
+    'Expected resolver to finish with semantic scoped-declaration metadata: ' + lError);
+  Assert.IsTrue(Length(lResult.fClassifications) > 0,
+    'Semantic with-binding safety data must classify safe scoped-declaration bodies even when legacy scan flags are absent.');
 end;
 
 procedure TRemoveWithPrecedenceTests.CleanPrecedenceFixtureArtifacts(const aFixtureDir: string);
@@ -6175,6 +6176,33 @@ begin
   end;
 end;
 
+function TRemoveWithScopedDeclarationSafetyTests.RunBuildFixture(const aDprojPath, aLogName: string;
+  out aExitCode: Cardinal): string;
+var
+  lArgs: string;
+  lCmdArgs: string;
+  lCmdExe: string;
+  lLogPath: string;
+  lRsVarsPath: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, aLogName);
+  lRsVarsPath := 'C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat';
+  if not TFile.Exists(lRsVarsPath) then
+    lRsVarsPath := TPath.Combine(GetEnvironmentVariable('ProgramFiles(x86)'),
+      'Embarcadero\Studio\23.0\bin\rsvars.bat');
+  lArgs := 'build --project ' + QuoteArg(aDprojPath) +
+    ' --delphi 23.0 --platform Win32 --config Debug --builder delphi --rsvars ' + QuoteArg(lRsVarsPath);
+  lCmdExe := GetEnvironmentVariable('ComSpec');
+  if lCmdExe = '' then
+    lCmdExe := 'C:\Windows\System32\cmd.exe';
+  lCmdArgs := '/C set "BDS=" & set "BDSLIB=" & set "DCC_Namespace=" & set "DCC_UnitSearchPath=" & ' +
+    'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
+  Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
+    'Failed to start build process.');
+  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+end;
+
 function TRemoveWithScopedDeclarationSafetyTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
   out aExitCode: Cardinal): TJSONObject;
 var
@@ -6194,40 +6222,64 @@ begin
   Result := lValue as TJSONObject;
 end;
 
-procedure TRemoveWithScopedDeclarationSafetyTests.ApplySkipsScopedDeclarationsAndLeavesSourceUnchanged;
+procedure TRemoveWithScopedDeclarationSafetyTests.ApplyRewritesSafeScopedDeclarationBodies;
 var
-  lBefore: TBytes;
+  lBeforeText: string;
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
   lDprojPath: string;
   lExitCode: Cardinal;
   lFixtureDir: string;
   lRoot: TJSONObject;
-  lSkipped: TJSONArray;
-  lTransaction: TJSONObject;
   lUnitPath: string;
+  lUnitText: string;
+  lVerification: TJSONObject;
 begin
   CopyFixtureToTemp('RemoveWithScopedDeclarationFixture', 'remove-with-scoped-declarations', lDprojPath,
     lFixtureDir);
   lUnitPath := TPath.Combine(lFixtureDir, 'ScopedDeclarationUnit.pas');
-  lBefore := TFile.ReadAllBytes(lUnitPath);
+  lBeforeText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
 
   lRoot := RunRemoveWithFixture(lDprojPath, 'apply', 'remove-with-scoped-declarations.json', lExitCode);
   try
-    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected scoped-declaration apply to finish without edits.');
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected scoped-declaration apply to finish.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
-    Assert.AreEqual(0, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected no planned edits for scoped declaration bodies.');
-    lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(3, lSkipped.Count, 'Expected all scoped declaration with statements to be skipped.');
-    Assert.AreEqual(3, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
-      'Expected explicit scoped declaration skip reasons.');
-    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
-    Assert.AreEqual(0, (lTransaction.Values['files'] as TJSONArray).Count,
-      'Expected no transaction files when all statements are skipped.');
+    Assert.AreEqual(4, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected every scoped declaration body to be planned.');
+    Assert.AreEqual(0, CountSkippedReason(lRoot.Values['skipped'] as TJSONArray,
+      'scoped-declaration-in-with-body'), 'Expected no wholesale scoped-declaration skips.');
+    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    Assert.AreEqual('passed', lVerification.Values['status'].Value,
+      'Expected edited scoped-declaration fixture to build after apply.');
   finally
     lRoot.Free;
   end;
 
-  AssertBytesEqual(lBefore, TFile.ReadAllBytes(lUnitPath), 'Apply must leave scoped declaration fixture unchanged.');
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.AreNotEqual(lBeforeText, lUnitText, 'Apply must edit safe scoped declaration bodies.');
+  Assert.IsTrue(Pos('var Count := 1;', lUnitText) > 0, 'Expected inline local variable declaration to stay local.');
+  Assert.IsTrue(Pos('aItemPtr^.Count := aItemPtr^.Count + 1;', lUnitText) > 0,
+    'Expected member uses before a same-name inline local declaration to be qualified.');
+  Assert.IsTrue(Pos('aItemPtr^.Name := IntToStr(Count);', lUnitText) > 0,
+    'Expected member assignment to be qualified while local Count remains unqualified.');
+  Assert.IsTrue(Pos('var Name := ''local'';', lUnitText) > 0,
+    'Expected same-name inline local after a member use to stay local.');
+  Assert.IsTrue(Pos('Name := Name + ''x'';', lUnitText) > 0,
+    'Expected same-name inline local use after a nested block to stay local.');
+  Assert.IsTrue(Pos('aItemPtr^.Name := aItemPtr^.Name + ''x'';', lUnitText) = 0,
+    'Expected nested blocks after a local declaration not to end the local range too early.');
+  Assert.IsTrue(Pos('for var i := 0 to aItemPtr^.Count do', lUnitText) > 0,
+    'Expected inline for variable to stay local while member Count is qualified.');
+  Assert.IsTrue(Pos('aItemPtr^.Name := IntToStr(i);', lUnitText) > 0,
+    'Expected for body member assignment to be qualified while local i remains unqualified.');
+  Assert.IsTrue(Pos('aItemPtr^.Count := aItemPtr^.Count + 1;', lUnitText) > 0,
+    'Expected try body member references to be qualified.');
+  Assert.IsTrue(Pos('aItemPtr^.Name := E.Message;', lUnitText) > 0,
+    'Expected exception body member assignment to be qualified while exception variable remains local.');
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-scoped-declarations-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited scoped-declaration fixture to build. Output: ' +
+    lBuildOutput);
 end;
 
 function TRemoveWithExpressionRoleRewriteTests.CommandExePath: string;
@@ -6329,18 +6381,18 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected expression-role apply to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
-    Assert.AreEqual(3, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected label, case-label, and source-unit-qualified rewrites.');
+    Assert.AreEqual(4, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected label, case-label, declaration-like, and source-unit-qualified rewrites.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(2, lSkipped.Count, 'Expected only unsafe expression-role with statements to be skipped.');
+    Assert.AreEqual(1, lSkipped.Count, 'Expected only unsafe type-qualified expression-role statement to be skipped.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
       'Expected explicit unsupported identifier role skip reasons.');
-    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
-      'Expected declaration-like bodies to keep the scoped-declaration skip reason.');
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
+      'Expected declaration-like bodies to be rewritten when local declarations can remain unchanged.');
     Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'type-qualifier'),
       'Expected type-qualifier role detail in skipped report.');
-    Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'variable-declaration'),
-      'Expected declaration-like role detail in skipped report.');
+    Assert.AreEqual(0, CountSkippedUnsupportedRole(lSkipped, 'variable-declaration'),
+      'Expected declaration-like role to be planned instead of skipped.');
     AssertJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('passed', lVerification.Values['status'].Value,
       'Expected edited expression-role fixture to build after apply.');
@@ -6359,6 +6411,10 @@ begin
     'Expected case label to remain unqualified while the case body is qualified.');
   Assert.IsTrue(Pos('ExpressionRoleSupportUnit.TouchName(aItemPtr^.Name);', lUnitText) > 0,
     'Expected the safe member argument to be qualified.');
+  Assert.IsTrue(Pos('var Name := ''local'';', lUnitText) > 0,
+    'Expected local inline variable declaration to remain unqualified.');
+  Assert.IsTrue(Pos('aItemPtr^.Count := Length(Name);', lUnitText) > 0,
+    'Expected declaration-like body member assignment to be qualified while local Name remains unqualified.');
   Assert.IsTrue(Pos('aItemPtr^.ExpressionRoleSupportUnit', lUnitText) = 0,
     'Expected the source-unit qualifier to remain unchanged.');
   Assert.IsTrue(Pos('TExpressionRoleScope.DefaultName', lUnitText) > 0,
@@ -7786,18 +7842,26 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected bound-rewrite apply to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
-    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected only the semantically bound with statement to be planned.');
+    Assert.AreEqual(4, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected the semantically bound, declaration-like, and comparison with statements to be planned.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
-      'Expected inline declaration body to stay skipped.');
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
+      'Expected inline declaration body to be planned when local declarations can remain unchanged.');
   finally
     lRoot.Free;
   end;
 
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
-  Assert.IsTrue(Pos('with lRecord do' + sLineBreak + '  begin' + sLineBreak +
-    '    var Name := ''local'';', lUnitText) > 0, 'Expected declaration body to remain unchanged.');
+  Assert.IsTrue(Pos('var Name := ''local'';', lUnitText) > 0,
+    'Expected declaration identifier to remain local.');
+  Assert.IsTrue(Pos('.Count := Length(Name);', lUnitText) > 0,
+    'Expected declaration body member assignment to be qualified while local Name remains unqualified.');
+  Assert.IsTrue(Pos('.Child <> nil', lUnitText) > 0,
+    'Expected not-equal comparison member to be qualified, not treated as a generic type name.');
+  Assert.IsTrue(Pos('.Count<', lUnitText) > 0,
+    'Expected compact less-than comparison left member to be qualified, not treated as a generic type name.');
+  Assert.IsTrue(Pos('<' + 'lWithBoundRewriteRecordPtr', lUnitText) > 0,
+    'Expected compact less-than comparison right member to be qualified.');
   Assert.IsTrue(Pos('goto BoundLabel;', lUnitText) > 0, 'Expected goto target to remain unqualified.');
   Assert.IsTrue(Pos('BoundLabel:', lUnitText) > 0, 'Expected label declaration to remain unqualified.');
   Assert.IsTrue(Pos('TBoundRewriteCast(lCast).Name', lUnitText) > 0,
@@ -7961,14 +8025,14 @@ begin
   lRoot := RunApplyFixture(lDprojPath, 'remove-with-hardening-expression-roles.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected expression-role hardening apply to succeed.');
-    AssertApplySummary(lRoot, 3, 2);
+    AssertApplySummary(lRoot, 4, 1);
     AssertVerificationPassed(lRoot);
     AssertTransactionFileCount(lRoot, 1);
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
       'Expected expression-role unsupported skips.');
-    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
-      'Expected expression-role scoped declaration skip.');
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
+      'Expected expression-role scoped declaration body to be planned.');
   finally
     lRoot.Free;
   end;
@@ -8010,45 +8074,40 @@ begin
   end;
 end;
 
-procedure TRemoveWithHardeningApplyTests.ApplyLeavesSkippedOnlyFixtureUnchanged;
+procedure TRemoveWithHardeningApplyTests.ApplyRewritesScopedDeclarationFixture;
 var
   lDprBefore: TBytes;
-  lBefore: TBytes;
+  lBeforeText: string;
   lDprojPath: string;
   lExitCode: Cardinal;
   lFixtureDir: string;
   lRoot: TJSONObject;
   lSkipped: TJSONArray;
-  lVerification: TJSONObject;
   lUnitPath: string;
 begin
   CopyFixtureToTemp('RemoveWithScopedDeclarationFixture', 'remove-with-hardening-scoped-declarations',
     lDprojPath, lFixtureDir);
   lUnitPath := TPath.Combine(lFixtureDir, 'ScopedDeclarationUnit.pas');
   lDprBefore := TFile.ReadAllBytes(TPath.Combine(lFixtureDir, 'RemoveWithScopedDeclarationFixture.dpr'));
-  lBefore := TFile.ReadAllBytes(lUnitPath);
+  lBeforeText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
 
   lRoot := RunApplyFixture(lDprojPath, 'remove-with-hardening-scoped-declarations.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected scoped declaration hardening apply to succeed.');
-    AssertApplySummary(lRoot, 0, 3);
-    AssertJsonObjectKey(lRoot, 'verification', lVerification);
-    Assert.AreEqual('not-run', lVerification.Values['status'].Value,
-      'Expected no build verification when no edits are planned.');
-    Assert.AreEqual(0, (lVerification.Values['gates'] as TJSONArray).Count,
-      'Expected no verification gates when no edits are planned.');
-    AssertTransactionFileCount(lRoot, 0);
+    AssertApplySummary(lRoot, 4, 0);
+    AssertVerificationPassed(lRoot);
+    AssertTransactionFileCount(lRoot, 1);
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(3, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
-      'Expected every scoped-declaration body to be skipped explicitly.');
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
+      'Expected scoped-declaration bodies to be rewritten when local declarations can remain unchanged.');
   finally
     lRoot.Free;
   end;
 
   AssertBytesEqual(lDprBefore, TFile.ReadAllBytes(TPath.Combine(lFixtureDir, 'RemoveWithScopedDeclarationFixture.dpr')),
-    'Skipped-only scoped declaration DPR must remain byte-for-byte unchanged.');
-  AssertBytesEqual(lBefore, TFile.ReadAllBytes(lUnitPath),
-    'Skipped-only scoped declaration fixture must remain byte-for-byte unchanged.');
+    'Scoped declaration DPR must remain byte-for-byte unchanged.');
+  Assert.AreNotEqual(lBeforeText, TFile.ReadAllText(lUnitPath, TEncoding.UTF8),
+    'Scoped declaration unit should be edited after safe rewrite.');
 end;
 
 function TRemoveWithProprietaryProjectTests.CommandExePath: string;
@@ -8289,7 +8348,7 @@ begin
     AssertJsonArrayKey(lRoot, 'skipped', lSkipped);
     Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt, lSkipped.Count,
       'Expected skipped array count to match summary.');
-    AssertSkippedReasonBetween(lSkipped, 'scoped-declaration-in-with-body', 1, 6);
+    AssertSkippedReasonBetween(lSkipped, 'scoped-declaration-in-with-body', 0, 0);
     AssertSkippedReasonBetween(lSkipped, 'unsupported-identifier-role', 1, 5);
     AssertSkippedReasonBetween(lSkipped, 'controlled-with-statement', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'temp-declaration-requires-routine-var-section', 0, 3);
