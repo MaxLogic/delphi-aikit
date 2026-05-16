@@ -3421,9 +3421,7 @@ begin
     'external-routine-call');
   AssertClassification(lResult, 'with-1', 'Round', TRemoveWithIdentifierStatus.rwisUnchanged, '',
     'external-routine-call');
-  AssertClassification(lResult, 'with-1', 'Min', TRemoveWithIdentifierStatus.rwisUnchanged, '',
-    'external-routine-call');
-  AssertClassification(lResult, 'with-1', 'Max', TRemoveWithIdentifierStatus.rwisUnchanged, '',
+  AssertClassification(lResult, 'with-1', 'Pred', TRemoveWithIdentifierStatus.rwisUnchanged, '',
     'external-routine-call');
   AssertClassification(lResult, 'with-1', 'Str', TRemoveWithIdentifierStatus.rwisUnchanged, '',
     'external-routine-call');

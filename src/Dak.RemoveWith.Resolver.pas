@@ -1809,7 +1809,7 @@ begin
   if IsCallUse(aSource, aUse) then
     Exit(MatchText(aUse.fName, ['Abs', 'Addr', 'Assert', 'Assign', 'Assigned', 'BlockRead', 'BlockWrite', 'Close',
       'Copy', 'Dec', 'Dispose', 'EOF', 'Exclude', 'ExpandFileName', 'FileDateToDateTime', 'FilePos', 'FillChar',
-      'Flush', 'FreeMem', 'GetMem', 'Halt', 'High', 'Inc', 'Include', 'Length', 'Low', 'Max', 'Min', 'Move', 'New',
+      'Flush', 'FreeMem', 'GetMem', 'Halt', 'High', 'Inc', 'Include', 'Length', 'Low', 'Move', 'New',
       'Ord', 'Pred', 'Read', 'Readln', 'ReallocMem', 'Reset', 'Rewrite', 'Round', 'Seek', 'SetLength', 'SizeOf',
       'Sqr', 'Str', 'Succ', 'Swap', 'UpCase', 'Val', 'Write', 'Writeln']));
 
@@ -1904,9 +1904,6 @@ begin
   Result := False;
   if not IsCallUse(aSource, aUse) then
     Exit;
-
-  if MatchText(aUse.fName, ['Min', 'Max']) then
-    Exit(SourceFileUsesUnit(aInventory, aSource.fPath, 'Math'));
 
   if MatchText(aUse.fName, ['ExpandFileName', 'FileDateToDateTime']) then
     Exit(SourceFileUsesUnit(aInventory, aSource.fPath, 'SysUtils') or
