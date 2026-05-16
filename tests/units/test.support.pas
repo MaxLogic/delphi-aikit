@@ -1,4 +1,4 @@
-﻿unit Test.Support;
+unit Test.Support;
 
 interface
 
@@ -73,9 +73,17 @@ begin
 end;
 
 function TempRoot: string;
+var
+  lEnvRoot: string;
 begin
   if GTempRoot = '' then
-    GTempRoot := TPath.Combine(RepoRoot, 'tests\temp');
+  begin
+    lEnvRoot := Trim(GetEnvironmentVariable('DAK_TEST_OUTPUT_ROOT'));
+    if lEnvRoot <> '' then
+      GTempRoot := TPath.GetFullPath(lEnvRoot)
+    else
+      GTempRoot := TPath.Combine(RepoRoot, 'tests\temp');
+  end;
   Result := GTempRoot;
 end;
 

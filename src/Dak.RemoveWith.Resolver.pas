@@ -71,6 +71,12 @@ type
     fEndOffset: Integer;
   end;
 
+  TRemoveWithScopedLocalRange = record
+    fName: string;
+    fStartOffset: Integer;
+    fEndOffset: Integer;
+  end;
+
   TRemoveWithSymbolLookup = record
     fFound: Boolean;
     fSymbol: TRemoveWithSymbolInfo;
@@ -479,6 +485,289 @@ begin
   end;
 end;
 
+function UnsupportedRoleCanRemainUnchanged(const aRole: string): Boolean;
+begin
+  Result := MatchText(aRole, ['type-name', 'variable-declaration']);
+end;
+
+procedure AddScopedLocalName(var aNames: TArray<TRemoveWithScopedLocalRange>; const aName: string;
+  const aStartOffset, aEndOffset: Integer);
+var
+  lIndex: Integer;
+  lNameRange: TRemoveWithScopedLocalRange;
+begin
+  if aName = '' then
+    Exit;
+  for lNameRange in aNames do
+  begin
+    if SameText(lNameRange.fName, aName) and (lNameRange.fStartOffset = aStartOffset) and
+      (lNameRange.fEndOffset = aEndOffset) then
+      Exit;
+  end;
+  lIndex := Length(aNames);
+  SetLength(aNames, lIndex + 1);
+  aNames[lIndex].fName := aName;
+  aNames[lIndex].fStartOffset := aStartOffset;
+  aNames[lIndex].fEndOffset := aEndOffset;
+end;
+
+function ScopedLocalNameExistsAt(const aNames: TArray<TRemoveWithScopedLocalRange>; const aName: string;
+  const aOffset: Integer): Boolean;
+var
+  lNameRange: TRemoveWithScopedLocalRange;
+begin
+  Result := False;
+  for lNameRange in aNames do
+  begin
+    if SameText(lNameRange.fName, aName) and (aOffset >= lNameRange.fStartOffset) and
+      (aOffset <= lNameRange.fEndOffset) then
+      Exit(True);
+  end;
+end;
+
+function IsGenericTypeNameUse(const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse): Boolean;
+var
+  lDepth: Integer;
+  lLessThanOffset: Integer;
+  lNextOffset: Integer;
+begin
+  Result := False;
+  lLessThanOffset := aUse.fEndOffset + 1;
+  if (lLessThanOffset > Length(aSource.fText)) or (aSource.fText[lLessThanOffset] <> '<') then
+    Exit;
+
+  lNextOffset := lLessThanOffset + 1;
+  while (lNextOffset <= Length(aSource.fText)) and
+    CharInSet(aSource.fText[lNextOffset], [#9, #10, #13, ' ']) do
+    Inc(lNextOffset);
+  if (lNextOffset > Length(aSource.fText)) or
+    not CharInSet(aSource.fText[lNextOffset], ['A'..'Z', 'a'..'z', '_']) then
+    Exit;
+
+  lDepth := 1;
+  lNextOffset := lLessThanOffset + 1;
+  while lNextOffset <= Length(aSource.fText) do
+  begin
+    if aSource.fText[lNextOffset] = '''' then
+    begin
+      Inc(lNextOffset);
+      while lNextOffset <= Length(aSource.fText) do
+      begin
+        if aSource.fText[lNextOffset] = '''' then
+        begin
+          Inc(lNextOffset);
+          if (lNextOffset <= Length(aSource.fText)) and (aSource.fText[lNextOffset] = '''') then
+          begin
+            Inc(lNextOffset);
+            Continue;
+          end;
+          Break;
+        end;
+        Inc(lNextOffset);
+      end;
+      Continue;
+    end;
+    if CharInSet(aSource.fText[lNextOffset], [';', #10, #13]) then
+      Exit;
+    if aSource.fText[lNextOffset] = '<' then
+      Inc(lDepth)
+    else if aSource.fText[lNextOffset] = '>' then
+    begin
+      Dec(lDepth);
+      if lDepth = 0 then
+      begin
+        Inc(lNextOffset);
+        while (lNextOffset <= Length(aSource.fText)) and
+          CharInSet(aSource.fText[lNextOffset], [#9, #10, #13, ' ']) do
+          Inc(lNextOffset);
+        Exit((lNextOffset > Length(aSource.fText)) or
+          CharInSet(aSource.fText[lNextOffset], ['.', '(', ')', ',', ';', ']', ':', '=']));
+      end;
+    end;
+    Inc(lNextOffset);
+  end;
+end;
+
+function ReadIdentifierAt(const aText: string; var aOffset: Integer; const aEndOffset: Integer): string;
+var
+  lStartOffset: Integer;
+begin
+  Result := '';
+  while (aOffset <= aEndOffset) and CharInSet(aText[aOffset], [#9, #10, #13, ' ']) do
+    Inc(aOffset);
+  if (aOffset > aEndOffset) or not CharInSet(aText[aOffset], ['A'..'Z', 'a'..'z', '_']) then
+    Exit;
+  lStartOffset := aOffset;
+  while (aOffset <= aEndOffset) and CharInSet(aText[aOffset], ['A'..'Z', 'a'..'z', '_', '0'..'9']) do
+    Inc(aOffset);
+  Result := Copy(aText, lStartOffset, aOffset - lStartOffset);
+end;
+
+procedure SkipDelimitedText(const aText: string; var aOffset: Integer; const aEndOffset: Integer);
+begin
+  Inc(aOffset);
+  while aOffset <= aEndOffset do
+  begin
+    if aText[aOffset] = '''' then
+    begin
+      Inc(aOffset);
+      if (aOffset <= aEndOffset) and (aText[aOffset] = '''') then
+      begin
+        Inc(aOffset);
+        Continue;
+      end;
+      Break;
+    end;
+    Inc(aOffset);
+  end;
+end;
+
+procedure SkipBraceText(const aText: string; var aOffset: Integer; const aEndOffset: Integer);
+begin
+  while (aOffset <= aEndOffset) and (aText[aOffset] <> '}') do
+    Inc(aOffset);
+  Inc(aOffset);
+end;
+
+procedure SkipParenText(const aText: string; var aOffset: Integer; const aEndOffset: Integer);
+begin
+  Inc(aOffset, 2);
+  while (aOffset < aEndOffset) and ((aText[aOffset] <> '*') or (aText[aOffset + 1] <> ')')) do
+    Inc(aOffset);
+  Inc(aOffset, 2);
+end;
+
+procedure SkipLineText(const aText: string; var aOffset: Integer; const aEndOffset: Integer);
+begin
+  Inc(aOffset, 2);
+  while (aOffset <= aEndOffset) and not CharInSet(aText[aOffset], [#10, #13]) do
+    Inc(aOffset);
+end;
+
+function FindScopedLocalEndOffset(const aSource: TRemoveWithSourceBuffer; const aBodyOffsets: TRemoveWithOffsetRange;
+  const aDeclarationOffset: Integer): Integer;
+var
+  lDeclarationDepth: Integer;
+  lDepth: Integer;
+  lEndOffset: Integer;
+  lOffset: Integer;
+  lTokenStartOffset: Integer;
+  lToken: string;
+begin
+  Result := RemoveWithInclusiveEndOffset(aSource, aBodyOffsets.fEndOffset);
+  lDeclarationDepth := -1;
+  lDepth := 0;
+  lEndOffset := Result;
+  lOffset := aBodyOffsets.fStartOffset;
+  while lOffset <= lEndOffset do
+  begin
+    if aSource.fText[lOffset] = '''' then
+    begin
+      SkipDelimitedText(aSource.fText, lOffset, lEndOffset);
+      Continue;
+    end;
+    if aSource.fText[lOffset] = '{' then
+    begin
+      SkipBraceText(aSource.fText, lOffset, lEndOffset);
+      Continue;
+    end;
+    if (lOffset < lEndOffset) and (aSource.fText[lOffset] = '(') and (aSource.fText[lOffset + 1] = '*') then
+    begin
+      SkipParenText(aSource.fText, lOffset, lEndOffset);
+      Continue;
+    end;
+    if (lOffset < lEndOffset) and (aSource.fText[lOffset] = '/') and (aSource.fText[lOffset + 1] = '/') then
+    begin
+      SkipLineText(aSource.fText, lOffset, lEndOffset);
+      Continue;
+    end;
+    if not CharInSet(aSource.fText[lOffset], ['A'..'Z', 'a'..'z', '_']) then
+    begin
+      Inc(lOffset);
+      Continue;
+    end;
+
+    lTokenStartOffset := lOffset;
+    lToken := ReadIdentifierAt(aSource.fText, lOffset, lEndOffset);
+    if (lDeclarationDepth < 0) and (lTokenStartOffset >= aDeclarationOffset) then
+      lDeclarationDepth := lDepth;
+
+    if MatchText(lToken, ['begin', 'case', 'try']) then
+    begin
+      Inc(lDepth)
+    end
+    else if SameText(lToken, 'end') then
+    begin
+      if (lTokenStartOffset > aDeclarationOffset) and (lDeclarationDepth >= 0) and
+        (lDepth <= lDeclarationDepth) then
+        Exit(lTokenStartOffset - 1);
+      if lDepth > 0 then
+        Dec(lDepth);
+    end;
+  end;
+end;
+
+procedure CollectScopedLocalNames(const aSource: TRemoveWithSourceBuffer;
+  const aBodyOffsets: TRemoveWithOffsetRange; out aNames: TArray<TRemoveWithScopedLocalRange>);
+var
+  lDeclarationEndOffset: Integer;
+  lDeclarationStartOffset: Integer;
+  lEndOffset: Integer;
+  lName: string;
+  lNextOffset: Integer;
+  lToken: string;
+  i: Integer;
+begin
+  aNames := nil;
+  lEndOffset := RemoveWithInclusiveEndOffset(aSource, aBodyOffsets.fEndOffset);
+  i := aBodyOffsets.fStartOffset;
+  while i <= lEndOffset do
+  begin
+    if aSource.fText[i] = '''' then
+    begin
+      SkipDelimitedText(aSource.fText, i, lEndOffset);
+      Continue;
+    end;
+    if aSource.fText[i] = '{' then
+    begin
+      SkipBraceText(aSource.fText, i, lEndOffset);
+      Continue;
+    end;
+    if (i < lEndOffset) and (aSource.fText[i] = '(') and (aSource.fText[i + 1] = '*') then
+    begin
+      SkipParenText(aSource.fText, i, lEndOffset);
+      Continue;
+    end;
+    if (i < lEndOffset) and (aSource.fText[i] = '/') and (aSource.fText[i + 1] = '/') then
+    begin
+      SkipLineText(aSource.fText, i, lEndOffset);
+      Continue;
+    end;
+    if not CharInSet(aSource.fText[i], ['A'..'Z', 'a'..'z', '_']) then
+    begin
+      Inc(i);
+      Continue;
+    end;
+
+    lToken := ReadIdentifierAt(aSource.fText, i, lEndOffset);
+    if SameText(lToken, 'var') then
+    begin
+      lNextOffset := i;
+      lDeclarationStartOffset := lNextOffset;
+      lName := ReadIdentifierAt(aSource.fText, lNextOffset, lEndOffset);
+      lDeclarationEndOffset := FindScopedLocalEndOffset(aSource, aBodyOffsets, lDeclarationStartOffset);
+      AddScopedLocalName(aNames, lName, lDeclarationStartOffset, lDeclarationEndOffset);
+    end else if SameText(lToken, 'on') then
+    begin
+      lNextOffset := i;
+      lDeclarationStartOffset := lNextOffset;
+      lName := ReadIdentifierAt(aSource.fText, lNextOffset, lEndOffset);
+      lDeclarationEndOffset := FindScopedLocalEndOffset(aSource, aBodyOffsets, lDeclarationStartOffset);
+      AddScopedLocalName(aNames, lName, lDeclarationStartOffset, lDeclarationEndOffset);
+    end;
+  end;
+end;
+
 class function TRemoveWithIdentifierResolver.DirectTypeName(const aTypeName: string): string;
 var
   lDelimiterPos: Integer;
@@ -616,7 +905,7 @@ class function TRemoveWithIdentifierResolver.IsKeyword(const aName: string): Boo
 begin
   Result := MatchText(aName, ['and', 'array', 'as', 'begin', 'case', 'class', 'const', 'constructor',
     'destructor', 'div', 'do', 'downto', 'else', 'end', 'except', 'exit', 'false', 'finally', 'for', 'function',
-    'if', 'implementation', 'in', 'inherited', 'interface', 'is', 'mod', 'nil', 'not', 'of', 'or', 'out',
+    'if', 'implementation', 'in', 'inherited', 'interface', 'is', 'mod', 'nil', 'not', 'of', 'on', 'or', 'out',
     'procedure', 'program', 'property', 'record', 'repeat', 'result', 'self', 'set', 'shl', 'shr', 'then', 'to',
     'true', 'try', 'type', 'unit', 'until', 'uses', 'var', 'while', 'with', 'xor']);
 end;
@@ -2658,6 +2947,15 @@ begin
     end;
   end;
 
+  if IsGenericTypeNameUse(aSource, aUse) then
+  begin
+    aClassification.fMemberKind := TRemoveWithSymbolKind.rwskTypeMember;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
+    aClassification.fResolutionKind := 'type-name';
+    aClassification.fReason := 'type-name';
+    Exit(True);
+  end;
+
   for i := High(aReceivers) downto 0 do
   begin
     if aReceivers[i].fStatus = TRemoveWithSelectorTypeStatus.rwstsResolved then
@@ -2887,6 +3185,7 @@ var
   lReceivers: TArray<TRemoveWithReceiverScope>;
   lRoutineName: string;
   lSkipRanges: TList<TRemoveWithOffsetRange>;
+  lScopedLocalNames: TArray<TRemoveWithScopedLocalRange>;
   lStatement: TRemoveWithStatementInfo;
   lUse: TRemoveWithIdentifierUse;
   lUses: TArray<TRemoveWithIdentifierUse>;
@@ -2896,11 +3195,8 @@ begin
     Exit;
   if not TryFindSemanticBindingForStatement(aInventory, aStatement, lBinding) then
     lBinding := Default(TDelphiSemanticWithBinding);
-  if lBinding.HasScopedDeclaration then
-    Exit;
-  if aStatement.fHasScopedDeclarationInBody then
-    Exit;
-  if aStatement.fHasUnsupportedIdentifierRoleInBody then
+  if aStatement.fHasUnsupportedIdentifierRoleInBody and
+    not UnsupportedRoleCanRemainUnchanged(aStatement.fUnsupportedIdentifierRole) then
     Exit;
   if not FindRoutineForStatement(aInventory, aStatement, lRoutineName) then
     lRoutineName := '';
@@ -2921,12 +3217,15 @@ begin
         lSkipRanges.Add(lWithOffsets);
     end;
     CollectIdentifierUses(aSource, lBodyOffsets, lSkipRanges.ToArray, lUses);
+    CollectScopedLocalNames(aSource, lBodyOffsets, lScopedLocalNames);
   finally
     lSkipRanges.Free;
   end;
 
   for lUse in lUses do
   begin
+    if ScopedLocalNameExistsAt(lScopedLocalNames, lUse.fName, lUse.fStartOffset) then
+      Continue;
     if not ClassifyUse(aInventory, aSource, lRoutineName, lReceivers, lBinding, lUse, aSymbolMapBridge,
       lClassification) then
       Continue;

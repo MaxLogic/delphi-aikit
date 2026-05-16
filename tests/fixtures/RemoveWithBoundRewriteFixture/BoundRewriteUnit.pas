@@ -8,7 +8,9 @@ type
   end;
 
   TBoundRewriteRecord = record
+    Child: ^TBoundRewriteRecord;
     Count: Integer;
+    Limit: Integer;
     Name: string;
   end;
 
@@ -40,6 +42,20 @@ BoundLabel:
   begin
     var Name := 'local';
     Count := Length(Name);
+  end;
+
+  with lRecord do
+  begin
+    if Child <> nil then
+      Count := Count + 1;
+  end;
+
+  with lRecord do
+  begin
+    if Count<Limit then
+      Count := Limit
+    else if Limit>0 then
+      Count := 0;
   end;
 end;
 
