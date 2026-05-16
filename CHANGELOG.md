@@ -76,6 +76,8 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- `remove-with` now relies on Symbol Map/RTL-source provenance for `Math.Min` and
+  `Math.Max` instead of treating them as generic compiler-intrinsic fallbacks.
 - DAK project metadata and remove-with semantic inventory integration now route through
   the stable `DelphiSemantics.Api` facade where that facade covers the needed behavior.
 - DAK RTL source symbol inventory and Symbol Map indexing now use DelphiSemantics

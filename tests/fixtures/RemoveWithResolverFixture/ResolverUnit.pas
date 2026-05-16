@@ -100,7 +100,7 @@ begin
     lLocalOnly := Name;
     Abs(Succ(0));
     Round(1.0);
-    Count := Min(Max(Count, 1), 10);
+    Count := Pred(Count);
     Str(Size: 10, lLocalOnly);
     Pick(1);
     Save;
