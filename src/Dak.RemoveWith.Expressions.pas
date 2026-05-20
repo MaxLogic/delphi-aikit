@@ -285,7 +285,13 @@ begin
     for lSymbol in lSymbols do
     begin
       if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+      begin
+        if (lSymbol.fTypeCategory = TRemoveWithTypeCategory.rwtcUnknown) and (lSymbol.fTypeName <> '') and
+          not MatchText(lSymbol.fTypeName, ['class', 'interface', 'record', 'object', 'enum']) and
+          not SameText(lSymbol.fTypeName, lTypeName) then
+          Exit(CanonicalSourceTypeName(aInventory, lSymbol.fTypeName));
         Exit(lTypeName);
+      end;
     end;
   end;
 
@@ -653,13 +659,20 @@ var
   lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
+  EnsureExpressionSymbolNameIndex(aInventory);
+  if GExpressionSymbolNameIndex.TryGetValue(DirectTypeName(aTypeName), lSymbols) then
+  begin
+    for lSymbol in lSymbols do
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(True);
+  end;
+
   lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
   if (lTypeName = '') or BuiltInTypeName(lTypeName) then
     Exit(True);
   if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(lTypeName, lTypeInfo) then
     Exit(True);
 
-  EnsureExpressionSymbolNameIndex(aInventory);
   if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
@@ -679,8 +692,15 @@ var
   lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
-  lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
   EnsureExpressionSymbolNameIndex(aInventory);
+  if GExpressionSymbolNameIndex.TryGetValue(DirectTypeName(aTypeName), lSymbols) then
+  begin
+    for lSymbol in lSymbols do
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(False);
+  end;
+
+  lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
   if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
@@ -1056,7 +1076,7 @@ begin
     SetInfo(aInfo, aSelectorText, CanonicalSourceTypeName(aInventory, lTypeName), 'type-not-found',
       TRemoveWithSelectorTypeStatus.rwstsUnresolved, False)
   else
-    SetInfo(aInfo, aSelectorText, CanonicalSourceTypeName(aInventory, lTypeName), '',
+    SetInfo(aInfo, aSelectorText, Trim(lTypeName), '',
       TRemoveWithSelectorTypeStatus.rwstsResolved, True);
 
   Result := True;

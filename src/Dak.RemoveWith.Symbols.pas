@@ -487,6 +487,9 @@ begin
   lCacheOptions := Default(TDelphiSemanticCacheOptions);
   lCacheOptions.CompilerProfileName := Format('DAK-%s-%s-%s', [aOptions.fDelphiVersion,
     aOptions.fPlatform, aOptions.fConfig]);
+  lCacheOptions.DelphiVersion := aOptions.fDelphiVersion;
+  lCacheOptions.Configuration := aOptions.fConfig;
+  lCacheOptions.Platform := aOptions.fPlatform;
   lCache := TDelphiSemanticUnitCache.Create(lCacheOptions);
   try
     lProfile := TDelphiSemanticCompilerProfileBuilder.ProfileForTargetFromRtlSourceRoot(lCache,
@@ -534,6 +537,9 @@ begin
     lOptions.ProjectContextApplied := True;
     lOptions.Defines := SplitSemanticListText(aProjectModel.Context.fParserDefines);
     lOptions.SearchPaths := SplitSemanticListText(aProjectModel.Context.fParserSearchPath);
+    lOptions.Cache.DelphiVersion := aOptions.fDelphiVersion;
+    lOptions.Cache.Configuration := aOptions.fConfig;
+    lOptions.Cache.Platform := aOptions.fPlatform;
     if aOptions.fHasRemoveWithSemanticCachePath and
       (Trim(aOptions.fRemoveWithSemanticCachePath) <> '') then
     begin

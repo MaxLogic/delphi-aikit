@@ -47,6 +47,7 @@ type
       const aTypeName: string): string; static;
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
     class function IsSimpleIdentifier(const aText: string): Boolean; static;
+    class function IsPureUnitLevelSelector(const aText: string): Boolean; static;
     class function TypeCategory(const aInventory: TRemoveWithSymbolInventory;
       const aTypeName: string): TRemoveWithTypeCategory; static;
     class function SelectorUsesPointerDeref(const aSelectorText: string): Boolean; static;
@@ -207,7 +208,13 @@ begin
     for lSymbol in lSymbols do
     begin
       if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+      begin
+        if (lSymbol.fTypeCategory = TRemoveWithTypeCategory.rwtcUnknown) and (lSymbol.fTypeName <> '') and
+          not MatchText(lSymbol.fTypeName, ['class', 'interface', 'record', 'object', 'enum']) and
+          not SameText(lSymbol.fTypeName, lTypeName) then
+          Exit(CanonicalSourceTypeName(aInventory, lSymbol.fTypeName));
         Exit(lTypeName);
+      end;
     end;
   end;
 
@@ -235,6 +242,65 @@ begin
       Exit(False);
   end;
   Result := True;
+end;
+
+class function TRemoveWithTempPolicy.IsPureUnitLevelSelector(const aText: string): Boolean;
+var
+  lBracketDepth: Integer;
+  lPreviousWasDot: Boolean;
+  lSawCode: Boolean;
+  lText: string;
+  i: Integer;
+begin
+  lText := Trim(aText);
+  if lText = '' then
+    Exit(False);
+
+  lBracketDepth := 0;
+  lPreviousWasDot := False;
+  lSawCode := False;
+  for i := 1 to Length(lText) do
+  begin
+    if CharInSet(lText[i], [#9, ' ']) then
+      Continue;
+
+    if lBracketDepth > 0 then
+    begin
+      if lText[i] = ']' then
+      begin
+        Dec(lBracketDepth);
+        lPreviousWasDot := False;
+        Continue;
+      end;
+      if not CharInSet(lText[i], ['0'..'9', ',']) then
+        Exit(False);
+      Continue;
+    end;
+
+    if lText[i] = '[' then
+    begin
+      if not lSawCode then
+        Exit(False);
+      Inc(lBracketDepth);
+      lPreviousWasDot := False;
+      Continue;
+    end;
+
+    if lText[i] = '.' then
+    begin
+      if (not lSawCode) or lPreviousWasDot then
+        Exit(False);
+      lPreviousWasDot := True;
+      Continue;
+    end;
+
+    if not IsIdentifierChar(lText[i]) then
+      Exit(False);
+    lSawCode := True;
+    lPreviousWasDot := False;
+  end;
+
+  Result := lSawCode and (lBracketDepth = 0) and not lPreviousWasDot;
 end;
 
 class function TRemoveWithTempPolicy.TypeCategory(const aInventory: TRemoveWithSymbolInventory;
@@ -418,7 +484,12 @@ begin
   lTempBaseName := TempBaseName(lTypeName);
   if lCategory = TRemoveWithTypeCategory.rwtcRecord then
   begin
-    if Pos('.', lTypeName) > 0 then
+    if (aRoutineName = '') and IsPureUnitLevelSelector(aSelectorText) then
+    begin
+      aDecision.fQualifierText := aSelectorText;
+      aDecision.fReason := 'unit-level-pure-selector';
+      aDecision.fStrategy := TRemoveWithTempStrategy.rwtsDirectQualification;
+    end else if Pos('.', lTypeName) > 0 then
     begin
       aDecision.fQualifierText := aSelectorText;
       aDecision.fReason := 'anonymous-record-direct-qualification';
