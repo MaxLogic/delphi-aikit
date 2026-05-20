@@ -393,6 +393,8 @@ type
     [Test]
     procedure ChoosesDirectReferenceRecordPointerAndSkipStrategies;
     [Test]
+    procedure UnitLevelPureIndexedRecordSelectorUsesDirectQualification;
+    [Test]
     procedure GeneratesCollisionFreeTempDeclarations;
     [Test]
     procedure ReservesGeneratedNamesAcrossSequentialPlans;
@@ -4054,6 +4056,23 @@ begin
   AssertPolicy(lInventory, 'TTempPolicyRecord(lRecord)', TRemoveWithTempStrategy.rwtsSkip, '', '', 'cast-selector');
 end;
 
+procedure TRemoveWithTempPolicyTests.UnitLevelPureIndexedRecordSelectorUsesDirectQualification;
+var
+  lDecision: TRemoveWithTempDecision;
+  lInventory: TRemoveWithSymbolInventory;
+begin
+  BuildTempPolicyFixture(lInventory);
+
+  Assert.IsTrue(PlanRemoveWithTempPolicy(lInventory, '', 'GRecords[0]', lDecision),
+    'Expected unit-level indexed record selector policy to resolve.');
+  Assert.AreEqual(RemoveWithTempStrategyToText(TRemoveWithTempStrategy.rwtsDirectQualification),
+    RemoveWithTempStrategyToText(lDecision.fStrategy), 'Expected direct qualification without a routine var section.');
+  Assert.AreEqual('GRecords[0]', lDecision.fQualifierText, 'Expected pure indexed selector qualifier.');
+  Assert.AreEqual('', lDecision.fDeclarationText, 'Expected no temp declaration for unit-level pure selector.');
+  Assert.AreEqual('unit-level-pure-selector', lDecision.fReason,
+    'Expected explicit reason for conservative unit-level direct qualification.');
+end;
+
 procedure TRemoveWithTempPolicyTests.GeneratesCollisionFreeTempDeclarations;
 var
   lDecision: TRemoveWithTempDecision;
@@ -4199,8 +4218,9 @@ begin
     'Expected controlled record member qualification in replacement text.');
 
   Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-6', lStatement), 'Expected case-label statement result.');
-  Assert.AreEqual('skipped', lStatement.fStatus, 'Expected case-label with to be skipped.');
-  Assert.AreEqual('controlled-with-statement', lStatement.fReason, 'Expected case-label with skip reason.');
+  Assert.AreEqual('planned', lStatement.fStatus, 'Expected case-label with to be planned.');
+  Assert.IsTrue(Pos('^.Name := ''case controlled''', lStatement.fReplacementText) > 0,
+    'Expected case-label record member qualification in replacement text.');
 
   Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-7', lStatement), 'Expected pointer statement plan.');
   Assert.AreEqual('planned', lStatement.fStatus, 'Expected pointer statement to be planned.');
@@ -6022,7 +6042,7 @@ begin
     Assert.AreEqual(0, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
       'Expected skipped and blocked fixture to produce no safe edit.');
     Assert.AreEqual(2, (lRoot.Values['skipped'] as TJSONArray).Count,
-      'Expected property selector and controlled statement skips.');
+      'Expected property selector and call-selector skips.');
   finally
     lRoot.Free;
   end;
@@ -6059,7 +6079,7 @@ begin
     Assert.AreEqual(0, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
       'Expected no safe edits for skipped and blocked fixture.');
     Assert.AreEqual(2, (lRoot.Values['skipped'] as TJSONArray).Count,
-      'Expected skipped and blocked reports.');
+      'Expected property selector and call-selector reports.');
     AssertJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('not-run', lVerification.Values['status'].Value,
       'Expected no build verification when there are no edits.');
@@ -6381,16 +6401,16 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected expression-role apply to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
-    Assert.AreEqual(4, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected label, case-label, declaration-like, and source-unit-qualified rewrites.');
+    Assert.AreEqual(5, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected label, case-label, type-qualified, declaration-like, and source-unit-qualified rewrites.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(1, lSkipped.Count, 'Expected only unsafe type-qualified expression-role statement to be skipped.');
-    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
-      'Expected explicit unsupported identifier role skip reasons.');
+    Assert.AreEqual(0, lSkipped.Count, 'Expected safe expression-role statements to be planned.');
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
+      'Expected known type-qualified calls to remain unchanged instead of blocking the statement.');
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
       'Expected declaration-like bodies to be rewritten when local declarations can remain unchanged.');
-    Assert.AreEqual(1, CountSkippedUnsupportedRole(lSkipped, 'type-qualifier'),
-      'Expected type-qualifier role detail in skipped report.');
+    Assert.AreEqual(0, CountSkippedUnsupportedRole(lSkipped, 'type-qualifier'),
+      'Expected known type-qualified calls to remain unchanged instead of reported as unsupported.');
     Assert.AreEqual(0, CountSkippedUnsupportedRole(lSkipped, 'variable-declaration'),
       'Expected declaration-like role to be planned instead of skipped.');
     AssertJsonObjectKey(lRoot, 'verification', lVerification);
@@ -6409,6 +6429,8 @@ begin
     'Expected labeled with body to be qualified.');
   Assert.IsTrue(Pos('0:' + sLineBreak + '        aItemPtr^.Name := ''case'';', lUnitText) > 0,
     'Expected case label to remain unqualified while the case body is qualified.');
+  Assert.IsTrue(Pos('aItemPtr^.Name := TExpressionRoleScope.DefaultName;', lUnitText) > 0,
+    'Expected type-qualified call to stay unchanged while the receiver member is qualified.');
   Assert.IsTrue(Pos('ExpressionRoleSupportUnit.TouchName(aItemPtr^.Name);', lUnitText) > 0,
     'Expected the safe member argument to be qualified.');
   Assert.IsTrue(Pos('var Name := ''local'';', lUnitText) > 0,
@@ -6417,8 +6439,8 @@ begin
     'Expected declaration-like body member assignment to be qualified while local Name remains unqualified.');
   Assert.IsTrue(Pos('aItemPtr^.ExpressionRoleSupportUnit', lUnitText) = 0,
     'Expected the source-unit qualifier to remain unchanged.');
-  Assert.IsTrue(Pos('TExpressionRoleScope.DefaultName', lUnitText) > 0,
-    'Expected skipped type-qualified body to remain unchanged.');
+  Assert.IsTrue(Pos('aItemPtr^.TExpressionRoleScope', lUnitText) = 0,
+    'Expected the type qualifier to remain unchanged.');
 end;
 
 function TRemoveWithComplexSourceModelTests.CommandExePath: string;
@@ -7727,16 +7749,16 @@ begin
     Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok root status.');
     lWithStatements := lRoot.Values['withStatements'] as TJSONArray;
     Assert.AreEqual(5, lWithStatements.Count, 'Expected stable corpus with-statement count.');
-    Assert.AreEqual(2, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected multi-selector and RTL Random statements to be planned.');
+    Assert.AreEqual(3, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected multi-selector, RTL Random, and type-qualified statements to be planned.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(3, lSkipped.Count, 'Expected risky corpus statements to be skipped.');
+    Assert.AreEqual(2, lSkipped.Count, 'Expected risky corpus statements to be skipped.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-attribute'),
       'Expected attributed declaration skip.');
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-source-model-conditional-region'),
       'Expected conditional declaration skip.');
-    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
-      'Expected type-qualified body skip.');
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
+      'Expected type-qualified body references to remain unqualified instead of skipped.');
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected RTL Random call body to resolve.');
     AssertJsonObjectKey(lRoot, 'summary', lSummary);
@@ -7744,9 +7766,9 @@ begin
       'Expected the multi-unit corpus project to scan all project files.');
     Assert.AreEqual(5, (lSummary.Values['withStatements'] as TJSONNumber).AsInt,
       'Expected stable summary statement count.');
-    Assert.AreEqual(2, (lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+    Assert.AreEqual(3, (lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
       'Expected stable summary plan count.');
-    Assert.AreEqual(3, (lSummary.Values['skipped'] as TJSONNumber).AsInt,
+    Assert.AreEqual(2, (lSummary.Values['skipped'] as TJSONNumber).AsInt,
       'Expected stable summary skip count.');
   finally
     lRoot.Free;
@@ -8025,12 +8047,12 @@ begin
   lRoot := RunApplyFixture(lDprojPath, 'remove-with-hardening-expression-roles.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected expression-role hardening apply to succeed.');
-    AssertApplySummary(lRoot, 4, 1);
+    AssertApplySummary(lRoot, 5, 0);
     AssertVerificationPassed(lRoot);
     AssertTransactionFileCount(lRoot, 1);
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
-    Assert.AreEqual(1, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
-      'Expected expression-role unsupported skips.');
+    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'unsupported-identifier-role'),
+      'Expected expression-role type-qualified references to be preserved without skips.');
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'scoped-declaration-in-with-body'),
       'Expected expression-role scoped declaration body to be planned.');
   finally
@@ -8349,7 +8371,7 @@ begin
     Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt, lSkipped.Count,
       'Expected skipped array count to match summary.');
     AssertSkippedReasonBetween(lSkipped, 'scoped-declaration-in-with-body', 0, 0);
-    AssertSkippedReasonBetween(lSkipped, 'unsupported-identifier-role', 1, 5);
+    AssertSkippedReasonBetween(lSkipped, 'unsupported-identifier-role', 0, 0);
     AssertSkippedReasonBetween(lSkipped, 'controlled-with-statement', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'temp-declaration-requires-routine-var-section', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'type-source-not-indexed', 0, 3);

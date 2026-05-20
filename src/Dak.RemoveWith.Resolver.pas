@@ -822,7 +822,13 @@ begin
     for lSymbol in lSymbols do
     begin
       if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+      begin
+        if (lSymbol.fTypeCategory = TRemoveWithTypeCategory.rwtcUnknown) and (lSymbol.fTypeName <> '') and
+          not MatchText(lSymbol.fTypeName, ['class', 'interface', 'record', 'object', 'enum']) and
+          not SameText(lSymbol.fTypeName, lTypeName) then
+          Exit(CanonicalSourceTypeName(aInventory, lSymbol.fTypeName));
         Exit(lTypeName);
+      end;
     end;
   end;
 
@@ -2912,9 +2918,9 @@ begin
   if IsQualifiedUse(aSource, aUse) and FindTypeNameSymbol(aInventory, aUse.fName, lSymbol) then
   begin
     aClassification.fMemberKind := lSymbol.fKind;
-    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnsupported;
+    aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
     aClassification.fResolutionKind := 'type-qualifier';
-    aClassification.fReason := 'unsupported-identifier-role';
+    aClassification.fReason := 'type-qualifier';
     Exit(True);
   end;
 

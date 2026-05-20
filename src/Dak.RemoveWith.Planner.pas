@@ -199,10 +199,14 @@ type
 
 var
   GPlannerRoutinesByFile: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  GPlannerSymbolsByName: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  GPlannerSymbolsByOwnerType: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
 
 procedure BeginPlannerSymbolCache(const aInventory: TRemoveWithSymbolInventory);
 var
-  lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
+  lNameBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
+  lOwnerBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
+  lRoutineBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
   lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   lList: TList<TRemoveWithSymbolInfo>;
   lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
@@ -210,38 +214,94 @@ var
 begin
   GPlannerRoutinesByFile.Free;
   GPlannerRoutinesByFile := nil;
-  lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  GPlannerSymbolsByName.Free;
+  GPlannerSymbolsByName := nil;
+  GPlannerSymbolsByOwnerType.Free;
+  GPlannerSymbolsByOwnerType := nil;
+
+  lRoutineBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  lNameBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  lOwnerBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
     for lSymbol in aInventory.fSymbols do
     begin
-      if (lSymbol.fKind <> TRemoveWithSymbolKind.rwskRoutine) or (lSymbol.fFilePath = '') then
-        Continue;
-      if not lBuckets.TryGetValue(lSymbol.fFilePath, lList) then
+      if lSymbol.fName <> '' then
       begin
-        lList := TList<TRemoveWithSymbolInfo>.Create;
-        lBuckets.Add(lSymbol.fFilePath, lList);
+        if not lNameBuckets.TryGetValue(lSymbol.fName, lList) then
+        begin
+          lList := TList<TRemoveWithSymbolInfo>.Create;
+          lNameBuckets.Add(lSymbol.fName, lList);
+        end;
+        lList.Add(lSymbol);
       end;
-      lList.Add(lSymbol);
+      if lSymbol.fOwnerType <> '' then
+      begin
+        if not lOwnerBuckets.TryGetValue(lSymbol.fOwnerType, lList) then
+        begin
+          lList := TList<TRemoveWithSymbolInfo>.Create;
+          lOwnerBuckets.Add(lSymbol.fOwnerType, lList);
+        end;
+        lList.Add(lSymbol);
+      end;
+      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskRoutine) and (lSymbol.fFilePath <> '') then
+      begin
+        if not lRoutineBuckets.TryGetValue(lSymbol.fFilePath, lList) then
+        begin
+          lList := TList<TRemoveWithSymbolInfo>.Create;
+          lRoutineBuckets.Add(lSymbol.fFilePath, lList);
+        end;
+        lList.Add(lSymbol);
+      end;
     end;
 
     lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
     try
-      for lPair in lBuckets do
+      for lPair in lRoutineBuckets do
         lIndex.Add(lPair.Key, lPair.Value.ToArray);
       GPlannerRoutinesByFile := lIndex;
       lIndex := nil;
     finally
       lIndex.Free;
     end;
+
+    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    try
+      for lPair in lNameBuckets do
+        lIndex.Add(lPair.Key, lPair.Value.ToArray);
+      GPlannerSymbolsByName := lIndex;
+      lIndex := nil;
+    finally
+      lIndex.Free;
+    end;
+
+    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    try
+      for lPair in lOwnerBuckets do
+        lIndex.Add(lPair.Key, lPair.Value.ToArray);
+      GPlannerSymbolsByOwnerType := lIndex;
+      lIndex := nil;
+    finally
+      lIndex.Free;
+    end;
   finally
-    for lPair in lBuckets do
+    for lPair in lOwnerBuckets do
       lPair.Value.Free;
-    lBuckets.Free;
+    lOwnerBuckets.Free;
+    for lPair in lNameBuckets do
+      lPair.Value.Free;
+    lNameBuckets.Free;
+    for lPair in lRoutineBuckets do
+      lPair.Value.Free;
+    lRoutineBuckets.Free;
   end;
 end;
 
 procedure EndPlannerSymbolCache;
 begin
+  GPlannerSymbolsByOwnerType.Free;
+  GPlannerSymbolsByOwnerType := nil;
+  GPlannerSymbolsByName.Free;
+  GPlannerSymbolsByName := nil;
   GPlannerRoutinesByFile.Free;
   GPlannerRoutinesByFile := nil;
 end;
@@ -277,6 +337,9 @@ end;
 
 class function TRemoveWithPlanner.CanonicalSourceTypeName(const aInventory: TRemoveWithSymbolInventory;
   const aTypeName: string): string;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
 begin
   Result := Trim(aTypeName);
   if StartsText('^', Result) then
@@ -285,6 +348,17 @@ begin
     Exit('');
   if Pos('.', Result) > 0 then
     Exit;
+  if GPlannerSymbolsByName = nil then
+    BeginPlannerSymbolCache(aInventory);
+  if Assigned(GPlannerSymbolsByName) and GPlannerSymbolsByName.TryGetValue(Result, lSymbols) then
+    for lSymbol in lSymbols do
+    begin
+      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and
+      (lSymbol.fTypeCategory = TRemoveWithTypeCategory.rwtcUnknown) and (lSymbol.fTypeName <> '') and
+      not MatchText(lSymbol.fTypeName, ['class', 'interface', 'record', 'object', 'enum']) and
+      not SameText(lSymbol.fTypeName, Result) then
+        Exit(CanonicalSourceTypeName(aInventory, lSymbol.fTypeName));
+    end;
   Result := DirectTypeName(Result);
 end;
 
@@ -293,17 +367,22 @@ class function TRemoveWithPlanner.HasSourceType(const aInventory: TRemoveWithSym
 var
   lDirectTypeName: string;
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
 begin
   lDirectTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
   if lDirectTypeName = '' then
     Exit(False);
-  for lSymbol in aInventory.fSymbols do
-  begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lDirectTypeName) then
-      Exit(True);
-    if SameText(lSymbol.fOwnerType, lDirectTypeName) and IsDirectMemberKind(lSymbol.fKind) then
-      Exit(True);
-  end;
+  if GPlannerSymbolsByName = nil then
+    BeginPlannerSymbolCache(aInventory);
+  if Assigned(GPlannerSymbolsByName) and GPlannerSymbolsByName.TryGetValue(lDirectTypeName, lSymbols) then
+    for lSymbol in lSymbols do
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(True);
+  if Assigned(GPlannerSymbolsByOwnerType) and
+    GPlannerSymbolsByOwnerType.TryGetValue(lDirectTypeName, lSymbols) then
+    for lSymbol in lSymbols do
+      if IsDirectMemberKind(lSymbol.fKind) then
+        Exit(True);
   Result := False;
 end;
 
@@ -901,6 +980,7 @@ class function TRemoveWithPlanner.StatementFollowsIdentifierLabel(const aSource:
 var
   lLabelText: string;
   lLine: Integer;
+  lTrimmedLabel: string;
 begin
   Result := False;
   lLine := aStatement.fLine - 1;
@@ -913,7 +993,10 @@ begin
       Continue;
     end;
     if (Length(lLabelText) > 1) and (lLabelText[Length(lLabelText)] = ':') then
-      Exit(CharInSet(lLabelText[1], ['A'..'Z', 'a'..'z', '_']));
+    begin
+      lTrimmedLabel := Trim(Copy(lLabelText, 1, Length(lLabelText) - 1));
+      Exit((lTrimmedLabel <> '') and CharInSet(lTrimmedLabel[1], ['A'..'Z', 'a'..'z', '_', '0'..'9', '+', '-', '''', '#']));
+    end;
     Exit(False);
   end;
 end;
@@ -1629,6 +1712,7 @@ var
   lElseText: string;
   lIndentColumn: Integer;
   lIndex: Integer;
+  lLabelStatement: Boolean;
   lStatementIndent: string;
   lNestedStatements: TArray<TRemoveWithStatementInfo>;
   lReplacement: TRemoveWithNestedReplacement;
@@ -1644,21 +1728,17 @@ begin
   aReason := '';
 
   lControlledStatement := False;
+  lLabelStatement := False;
   if not StatementIsStandalone(aSource, aStatement, aReason) then
   begin
     if not StatementIsControlled(aSource, aStatement, aReason) then
       Exit;
     lControlledStatement := True;
+  end else if RangeOffsets(aSource, aStatement.fRange, lBodyOffsets) then
+  begin
+    lLabelStatement := SameText(PreviousSignificantToken(aSource, lBodyOffsets.fStartOffset), ':') and
+      StatementFollowsIdentifierLabel(aSource, aStatement);
   end;
-
-  if lControlledStatement then
-    lIndentColumn := aStatement.fColumn + 2
-  else
-    lIndentColumn := aStatement.fColumn;
-
-  if lIndentColumn < 1 then
-    Exit;
-  lStatementIndent := IndentText(aStatement.fColumn);
   if aStatement.fHasUnsupportedIdentifierRoleInBody and
     not UnsupportedRoleCanRemainUnchanged(aStatement.fUnsupportedIdentifierRole) then
   begin
@@ -1668,6 +1748,16 @@ begin
   if not BuildSelectorTemps(aInventory, aStatement, aRoutineName, aResolverResult, aInheritedTemps, aReservedNames,
     lCurrentTemps, aReason) then
     Exit;
+  if lLabelStatement and SelectorTempsNeedDeclaration(lCurrentTemps) then
+    lControlledStatement := True;
+  if lControlledStatement then
+    lIndentColumn := aStatement.fColumn + 2
+  else
+    lIndentColumn := aStatement.fColumn;
+
+  if lIndentColumn < 1 then
+    Exit;
+  lStatementIndent := IndentText(aStatement.fColumn);
   AddSelectorTemps(lVisibleTemps, aInheritedTemps);
   AddSelectorTemps(lVisibleTemps, lCurrentTemps);
 

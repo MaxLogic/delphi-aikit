@@ -26,6 +26,9 @@ type
 
 implementation
 
+var
+  GRecords: array[0..1] of TTempPolicyRecord;
+
 function TTempPolicyScope.GetRecordProp: TTempPolicyRecord;
 begin
   Result := FRecordProp;

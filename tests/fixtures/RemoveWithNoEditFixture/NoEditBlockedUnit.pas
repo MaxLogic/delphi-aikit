@@ -11,10 +11,16 @@ type
 
   TNoEditBlockedScope = class
   public
+    class function MakeRecord: TNoEditBlockedRecord; static;
     class procedure KeepBlocked(aRecordPtr: PNoEditBlockedRecord);
   end;
 
 implementation
+
+class function TNoEditBlockedScope.MakeRecord: TNoEditBlockedRecord;
+begin
+  Result.Name := 'blocked';
+end;
 
 class procedure TNoEditBlockedScope.KeepBlocked(aRecordPtr: PNoEditBlockedRecord);
 var
@@ -23,9 +29,9 @@ begin
   lKind := 1;
   case lKind of
     1:
-      with aRecordPtr^ do
+      with MakeRecord do
       begin
-        Name := 'blocked';
+        aRecordPtr^.Name := Name;
       end;
   end;
 end;
