@@ -15,6 +15,7 @@
 - Analyze project unit dependencies via `deps` with JSON-first topology output, text summaries, focused unit views, and cycle reporting
 - Navigate Delphi symbols semantically via `lsp` with `definition`, `hover`, file-scoped `symbols`, and version-gated `references` queries backed by `DelphiLSP.exe`
 - Build and query a reusable local Symbol Map via `symbol-map` with project/RTL/compiler-intrinsic indexing, definition lookup, symbol search, description, references, and central/project SQLite caches
+- Inspect, plan, and transactionally remove Delphi `with` statements via `remove-with`
 
 ## Good use cases
 
@@ -24,17 +25,20 @@
 - Understanding which Delphi units a broken area depends on before we start AI-assisted debugging or refactoring
 - Jumping from a symbol use site to its definition, hover text, file-scoped document symbols, or version-gated references without guessing from raw text search
 - Looking up project, source-available RTL, and compiler-intrinsic symbols through a deterministic cache when LSP is unavailable, incomplete, or too expensive for bulk work
+- Planning conservative `with` statement cleanup with JSON reports, safe skips, build verification, and rollback
 
 ## Repo-local AI skills
 
 The [`agentskills/`](agentskills/) folder contains repo-local skills that help AI agents use DelphiAIKit consistently instead of guessing workflows from scratch.
 
+- `delphi-aikit`: start here when the task is about choosing the right DelphiAIKit workflow; it routes to the focused skills below without duplicating their command contracts.
 - `delphi-build`: build or rebuild Delphi projects through the canonical DelphiAIKit build pipeline.
 - `delphi-static-analysis`: run Delphi static analysis through DelphiAIKit wrappers, then triage and apply conservative verified fixes.
 - `delphi-dfm-check`: inspect and validate `.dfm`-backed forms through `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
 - `delphi-global-vars`: analyze project-level globals, declaration sites, and read/write usage before refactoring shared state.
 - `delphi-project-unit-topology`: use `DelphiAIKit.exe deps` to inspect project unit topology, unresolved unit references, focused unit neighborhoods, and resolved project-unit cycles. Useful for questions like "why is this unit included?", "what fans into this area?", and "do we have cycles?"
 - `delphi-lsp`: use `DelphiAIKit.exe lsp` for semantic symbol navigation. Prefer it for definition/hover and file-scoped symbol lookup; use `references` only when the external DelphiLSP capability set supports it, and switch back to `deps`, `global-vars`, or `rg` when the question is not semantic navigation.
+- `delphi-remove-with`: use `DelphiAIKit.exe remove-with` to scan, plan, or apply conservative Delphi `with` statement rewrites with JSON reports, transactional backups, build verification, and rollback.
 
 ## Requirements
 
