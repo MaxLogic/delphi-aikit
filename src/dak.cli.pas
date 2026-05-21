@@ -64,6 +64,10 @@ var
       aParsedCommand := TCommandKind.ckRemoveWith
     else if SameText(aArg, 'symbol-map') then
       aParsedCommand := TCommandKind.ckSymbolMap
+    else if SameText(aArg, 'find-usages') then
+      aParsedCommand := TCommandKind.ckFindUsages
+    else if SameText(aArg, 'rename') then
+      aParsedCommand := TCommandKind.ckRename
     else
       Result := False;
   end;
@@ -133,7 +137,7 @@ var
       SameText(aSwitch, 'query') or SameText(aSwitch, 'symbol') or SameText(aSwitch, 'owner') or
       SameText(aSwitch, 'cache-root') or SameText(aSwitch, 'limit') or
       SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or
-      SameText(aSwitch, 'dir') or SameText(aSwitch, 'semantic-cache');
+      SameText(aSwitch, 'dir') or SameText(aSwitch, 'semantic-cache') or SameText(aSwitch, 'new-name');
   end;
 
   function SwitchAllowsBoolValue(const aSwitch: string): Boolean;
@@ -149,7 +153,7 @@ var
       SameText(aSwitch, 'clean') or SameText(aSwitch, 'write-summary') or
       SameText(aSwitch, 'show-warnings') or SameText(aSwitch, 'show-hints') or
       SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
-      SameText(aSwitch, 'rebuild');
+      SameText(aSwitch, 'rebuild') or SameText(aSwitch, 'apply');
   end;
 
   function IsBoolToken(const aArg: string): Boolean;
@@ -242,6 +246,10 @@ begin
       WriteLn(ErrOutput, SUsageRemoveWith);
     TCommandKind.ckSymbolMap:
       WriteLn(ErrOutput, SUsageSymbolMap);
+    TCommandKind.ckFindUsages:
+      WriteLn(ErrOutput, SUsageFindUsages);
+    TCommandKind.ckRename:
+      WriteLn(ErrOutput, SUsageRename);
   else
     WriteLn(ErrOutput, SUsageResolve);
   end;
@@ -298,6 +306,8 @@ type
     function TryParseSymbolMapOperation(const aArg: string): Boolean;
     function TryParseSymbolMapSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
+    function TryParseRefactorSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+      const aHasInlineValue: Boolean): Boolean;
     function TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
     function TryParseBuildSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
@@ -351,6 +361,7 @@ begin
   fOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtNone;
   fOptions.fSymbolMapFormat := TSymbolMapFormat.smfJson;
   fOptions.fSymbolMapLimit := 50;
+  fOptions.fRefactorFormat := TRefactorFormat.rffText;
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
   fOptions.fGlobalVarsUnusedOnly := False;
@@ -590,6 +601,10 @@ begin
     fOptions.fCommand := TCommandKind.ckRemoveWith
   else if SameText(aArg, 'symbol-map') then
     fOptions.fCommand := TCommandKind.ckSymbolMap
+  else if SameText(aArg, 'find-usages') then
+    fOptions.fCommand := TCommandKind.ckFindUsages
+  else if SameText(aArg, 'rename') then
+    fOptions.fCommand := TCommandKind.ckRename
   else
   begin
     fError := Format(SUnknownCommand, [aArg]);
@@ -691,6 +706,9 @@ begin
 
   if fOptions.fCommand = TCommandKind.ckSymbolMap then
     Exit(TryParseSymbolMapSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
+
+  if fOptions.fCommand in [TCommandKind.ckFindUsages, TCommandKind.ckRename] then
+    Exit(TryParseRefactorSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   Result := TryParseAnalyzeSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue);
 end;
@@ -1594,6 +1612,96 @@ begin
   Result := False;
 end;
 
+function TOptionParser.TryParseRefactorSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
+  const aHasInlineValue: Boolean): Boolean;
+var
+  lBoolValue: Boolean;
+  lValue: string;
+begin
+  if SameText(aSwitch, 'format') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
+      Exit(False);
+    if SameText(lValue, 'json') then
+      fOptions.fRefactorFormat := TRefactorFormat.rffJson
+    else if SameText(lValue, 'text') then
+      fOptions.fRefactorFormat := TRefactorFormat.rffText
+    else
+    begin
+      fError := Format(SRefactorInvalidFormat, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'symbol') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--symbol') then
+      Exit(False);
+    fOptions.fRefactorSymbol := lValue;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'file') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--file') then
+      Exit(False);
+    fOptions.fRefactorFilePath := lValue;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'line') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--line') then
+      Exit(False);
+    fOptions.fRefactorLine := StrToIntDef(lValue, -1);
+    if fOptions.fRefactorLine < 1 then
+    begin
+      fError := Format(SRefactorInvalidPosition, ['--line', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'col') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--col') then
+      Exit(False);
+    fOptions.fRefactorCol := StrToIntDef(lValue, -1);
+    if fOptions.fRefactorCol < 1 then
+    begin
+      fError := Format(SRefactorInvalidPosition, ['--col', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'new-name') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--new-name') then
+      Exit(False);
+    fOptions.fRefactorNewName := lValue;
+    Exit(True);
+  end;
+
+  if SameText(aSwitch, 'apply') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--apply') then
+      Exit(False);
+    if not TryParseBool(lValue, lBoolValue) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--apply', lValue]);
+      Exit(False);
+    end;
+    fOptions.fRefactorApply := lBoolValue;
+    fOptions.fHasRefactorApply := True;
+    Exit(True);
+  end;
+
+  fError := Format(SUnknownArg, [aArg]);
+  Result := False;
+end;
+
 function TOptionParser.TryParseAnalyzeSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
 var
@@ -2135,6 +2243,58 @@ begin
     if (fOptions.fSymbolMapOwner <> '') and (fOptions.fSymbolMapOperation <> TSymbolMapOperation.smoDescribeSymbol) then
     begin
       fError := Format(SSymbolMapOptionOnlyForOperation, ['--owner', 'describe-symbol']);
+      Exit(False);
+    end;
+  end else if fOptions.fCommand = TCommandKind.ckFindUsages then
+  begin
+    if fOptions.fDprojPath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--project']);
+      Exit(False);
+    end;
+    if fOptions.fRefactorSymbol <> '' then
+    begin
+      if (fOptions.fRefactorFilePath <> '') or (fOptions.fRefactorLine > 0) or
+        (fOptions.fRefactorCol > 0) then
+      begin
+        fError := SRefactorFindUsagesTarget;
+        Exit(False);
+      end;
+    end else
+    begin
+      if (fOptions.fRefactorFilePath = '') or (fOptions.fRefactorLine < 1) or
+        (fOptions.fRefactorCol < 1) then
+      begin
+        fError := SRefactorFindUsagesTarget;
+        Exit(False);
+      end;
+    end;
+    if (fOptions.fRefactorNewName <> '') or fOptions.fHasRefactorApply then
+    begin
+      fError := Format(SUnknownArg, ['--new-name/--apply']);
+      Exit(False);
+    end;
+  end else if fOptions.fCommand = TCommandKind.ckRename then
+  begin
+    if fOptions.fDprojPath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--project']);
+      Exit(False);
+    end;
+    if fOptions.fRefactorSymbol = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--symbol']);
+      Exit(False);
+    end;
+    if fOptions.fRefactorNewName = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--new-name']);
+      Exit(False);
+    end;
+    if (fOptions.fRefactorFilePath <> '') or (fOptions.fRefactorLine > 0) or
+      (fOptions.fRefactorCol > 0) then
+    begin
+      fError := Format(SUnknownArg, ['--file/--line/--col']);
       Exit(False);
     end;
   end else if fOptions.fCommand = TCommandKind.ckBuild then

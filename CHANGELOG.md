@@ -5,6 +5,9 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added `find-usages` and `rename` project-scoped refactoring commands backed by
+  DelphiSemantics, including JSON/text output, dry-run rename by default, and
+  apply mode with per-file backups plus rollback on edit failure.
 - Added `remove-with --semantic-cache "<sqlite-path>"` to persist DelphiSemantics
   unit-model parsing across runs, with verbose per-unit cache hit/miss/invalidation
   telemetry.
