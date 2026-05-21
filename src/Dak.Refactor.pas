@@ -7,6 +7,7 @@ uses
 
 function RunFindUsagesCommand(const aOptions: TAppOptions): Integer;
 function RunRenameCommand(const aOptions: TAppOptions): Integer;
+function RunDeadCodeCommand(const aOptions: TAppOptions): Integer;
 
 implementation
 
@@ -54,6 +55,33 @@ begin
       else
         Result := Result + ch;
     end;
+  end;
+end;
+
+function JsonStringArray(const aValues: array of string): string;
+var
+  i: Integer;
+begin
+  Result := '[';
+  for i := 0 to High(aValues) do
+  begin
+    if i > 0 then
+      Result := Result + ',';
+    Result := Result + '"' + JsonEscape(aValues[i]) + '"';
+  end;
+  Result := Result + ']';
+end;
+
+function CommaText(const aValues: array of string): string;
+var
+  i: Integer;
+begin
+  Result := '';
+  for i := 0 to High(aValues) do
+  begin
+    if Result <> '' then
+      Result := Result + ',';
+    Result := Result + aValues[i];
   end;
 end;
 
@@ -336,6 +364,52 @@ begin
     for lAppliedFile in aAppliedFiles do
       lBuilder.AppendLine('backup: ' + lAppliedFile.BackupFileName);
     Result := TrimRight(lBuilder.ToString);
+  finally
+    lBuilder.Free;
+  end;
+end;
+
+function DeadCodeReportJson(const aReport: TDelphiSemanticDeadCodeReport): string;
+var
+  i: Integer;
+  lCandidate: TDelphiSemanticDeadCodeCandidate;
+begin
+  Result := '{"status":"ok","profile":"' + JsonEscape(aReport.Profile) + '","count":' +
+    IntToStr(Length(aReport.Candidates)) + ',"candidates":[';
+  for i := 0 to High(aReport.Candidates) do
+  begin
+    if i > 0 then
+      Result := Result + ',';
+    lCandidate := aReport.Candidates[i];
+    Result := Result + '{"name":"' + JsonEscape(lCandidate.Name) + '","kind":"' +
+      JsonEscape(lCandidate.Kind) + '","unit":"' + JsonEscape(lCandidate.UnitName) +
+      '","owner":"' + JsonEscape(lCandidate.OwnerName) + '","file":"' +
+      JsonEscape(lCandidate.FileName) + '","line":' + IntToStr(lCandidate.Line) +
+      ',"column":' + IntToStr(lCandidate.Column) + ',"status":"' +
+      JsonEscape(lCandidate.Status) + '","reason":"' + JsonEscape(lCandidate.Reason) +
+      '","safetyProfile":"' + JsonEscape(lCandidate.SafetyProfile) +
+      '","referenceCount":' + IntToStr(lCandidate.ReferenceCount) + ',"blockers":' +
+      JsonStringArray(lCandidate.Blockers) + '}';
+  end;
+  Result := Result + ']}';
+end;
+
+function DeadCodeReportText(const aReport: TDelphiSemanticDeadCodeReport): string;
+var
+  lBuilder: TStringBuilder;
+  lCandidate: TDelphiSemanticDeadCodeCandidate;
+begin
+  lBuilder := TStringBuilder.Create;
+  try
+    lBuilder.AppendLine('dead-code: report');
+    lBuilder.AppendLine('profile: ' + aReport.Profile);
+    lBuilder.AppendLine('candidates: ' + IntToStr(Length(aReport.Candidates)));
+    for lCandidate in aReport.Candidates do
+      lBuilder.AppendLine(Format('%s %s %s %s:%d:%d refs=%d profile=%s reason=%s blockers=%s',
+        [lCandidate.Status, lCandidate.Kind, lCandidate.Name, lCandidate.FileName,
+        lCandidate.Line, lCandidate.Column, lCandidate.ReferenceCount, lCandidate.SafetyProfile,
+        lCandidate.Reason, CommaText(lCandidate.Blockers)]));
+    Result := lBuilder.ToString.TrimRight;
   finally
     lBuilder.Free;
   end;
@@ -641,6 +715,32 @@ begin
     Result := cExitSuccess
   else
     Result := cExitToolFailure;
+end;
+
+function RunDeadCodeCommand(const aOptions: TAppOptions): Integer;
+var
+  lContext: TDelphiSemanticSymbolQueryContext;
+  lError: string;
+  lOutput: string;
+  lProfile: string;
+  lReport: TDelphiSemanticDeadCodeReport;
+begin
+  if not BuildSemanticContext(aOptions, lContext, lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(cExitInvalidProjectInput);
+  end;
+
+  lProfile := aOptions.fDeadCodeProfile;
+  if lProfile = '' then
+    lProfile := 'conservative';
+  lReport := TDelphiSemanticApi.ReportDeadCode(lContext, lProfile);
+  if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
+    lOutput := DeadCodeReportJson(lReport)
+  else
+    lOutput := DeadCodeReportText(lReport);
+  WriteLn(lOutput);
+  Result := cExitSuccess;
 end;
 
 end.

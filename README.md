@@ -15,7 +15,7 @@
 - Analyze project unit dependencies via `deps` with JSON-first topology output, text summaries, focused unit views, and cycle reporting
 - Navigate Delphi symbols semantically via `lsp` with `definition`, `hover`, file-scoped `symbols`, and version-gated `references` queries backed by `DelphiLSP.exe`
 - Build and query a reusable local Symbol Map via `symbol-map` with project/RTL/compiler-intrinsic indexing, definition lookup, symbol search, description, references, and central/project SQLite caches
-- Find project-scoped Delphi symbol usages and plan or apply project-scoped renames via `find-usages` and `rename`
+- Find project-scoped Delphi symbol usages, plan or apply project-scoped renames, and report conservative dead-code candidates via `find-usages`, `rename`, and `dead-code`
 - Inspect, plan, and transactionally remove Delphi `with` statements via `remove-with`
 
 ## Good use cases
@@ -27,6 +27,7 @@
 - Jumping from a symbol use site to its definition, hover text, file-scoped document symbols, or version-gated references without guessing from raw text search
 - Looking up project, source-available RTL, and compiler-intrinsic symbols through a deterministic cache when LSP is unavailable, incomplete, or too expensive for bulk work
 - Reviewing exact project-scoped symbol usages before making a rename, then applying the rename with backups and rollback behavior
+- Inspecting dead-code findings as review evidence before making any source edits
 - Planning conservative `with` statement cleanup with JSON reports, safe skips, build verification, and rollback
 
 ## Repo-local AI skills
@@ -216,9 +217,11 @@ To inspect and rename a project-scoped symbol through DelphiSemantics:
 bin\DelphiAIKit.exe find-usages --project "C:\path\Project.dproj" --symbol "OldName" --format json
 bin\DelphiAIKit.exe rename --project "C:\path\Project.dproj" --symbol "OldName" --new-name "NewName" --format text
 bin\DelphiAIKit.exe rename --project "C:\path\Project.dproj" --symbol "OldName" --new-name "NewName" --apply --format json
+bin\DelphiAIKit.exe dead-code --project "C:\path\Project.dproj" --profile conservative --format json
 ```
 
 `rename` is non-mutating by default. `--apply` creates per-file `.bak` backups and restores original bytes if edit application fails.
+`dead-code` is report-only and never rewrites source files; use `audit`, `conservative`, or `legacy-static` profiles to control how aggressively candidates are classified.
 
 The central cache stores reusable unit models by content and compiler context. By default it is created under `%LOCALAPPDATA%\DelphiAIKit\symbol-map\v1\symbol-map.sqlite3`, with `%USERPROFILE%\.dak\symbol-map\v1\symbol-map.sqlite3` as the fallback. Override it with `--cache-root "<path>"` or the `DAK_SYMBOL_MAP_CACHE_ROOT` environment variable; JSON output reports the resolved cache paths so WSL/Windows path confusion is visible.
 

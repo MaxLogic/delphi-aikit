@@ -6,7 +6,7 @@ interface
 
 type
   TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars,
-    ckDeps, ckLsp, ckRemoveWith, ckSymbolMap, ckFindUsages, ckRename);
+    ckDeps, ckLsp, ckRemoveWith, ckSymbolMap, ckFindUsages, ckRename, ckDeadCode);
 
   TOutputKind = (okIni, okXml, okBat);
   TBuildBackend = (bbAuto, bbDelphi, bbWebCore);
@@ -204,6 +204,7 @@ type
     fRefactorNewName: string;
     fRefactorApply: Boolean;
     fHasRefactorApply: Boolean;
+    fDeadCodeProfile: string;
     fUnitPath: string;
   end;
 
