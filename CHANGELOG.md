@@ -5,6 +5,9 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added maxTdb semantic rename dogfood coverage that clones the fixture, applies
+  real project-scoped renames, verifies `.dak` backups/manifests, compiles the
+  renamed clone, and byte-checks that the original fixture stays unchanged.
 - Added `find-usages` and `rename` project-scoped refactoring commands backed by
   DelphiSemantics, including JSON/text output, dry-run rename by default, and
   apply mode with per-file backups plus rollback on edit failure.

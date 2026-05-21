@@ -2308,20 +2308,26 @@ begin
       fError := Format(SArgMissingValue, ['--project']);
       Exit(False);
     end;
-    if fOptions.fRefactorSymbol = '' then
+    if fOptions.fRefactorSymbol <> '' then
     begin
-      fError := Format(SArgMissingValue, ['--symbol']);
-      Exit(False);
+      if (fOptions.fRefactorFilePath <> '') or (fOptions.fRefactorLine > 0) or
+        (fOptions.fRefactorCol > 0) then
+      begin
+        fError := SRefactorFindUsagesTarget;
+        Exit(False);
+      end;
+    end else
+    begin
+      if (fOptions.fRefactorFilePath = '') or (fOptions.fRefactorLine < 1) or
+        (fOptions.fRefactorCol < 1) then
+      begin
+        fError := Format(SArgMissingValue, ['--symbol']);
+        Exit(False);
+      end;
     end;
     if fOptions.fRefactorNewName = '' then
     begin
       fError := Format(SArgMissingValue, ['--new-name']);
-      Exit(False);
-    end;
-    if (fOptions.fRefactorFilePath <> '') or (fOptions.fRefactorLine > 0) or
-      (fOptions.fRefactorCol > 0) then
-    begin
-      fError := Format(SUnknownArg, ['--file/--line/--col']);
       Exit(False);
     end;
   end else if fOptions.fCommand = TCommandKind.ckDeadCode then
