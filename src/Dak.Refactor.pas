@@ -11,7 +11,7 @@ function RunRenameCommand(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
-  System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.SysUtils,
+  System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiAST.ProjectIndexer,
   DelphiSemantics.Api, DelphiSemantics.Model, DelphiSemantics.Query,
   DelphiSemantics.Refactor, DelphiSemantics.Usage,
@@ -96,6 +96,18 @@ begin
   end;
 end;
 
+function IsPathUnderDirectory(const aFileName, aDirectory: string): Boolean;
+var
+  lDirectory: string;
+  lFileName: string;
+begin
+  if (aFileName = '') or (aDirectory = '') then
+    Exit(False);
+  lFileName := IncludeTrailingPathDelimiter(TPath.GetFullPath(aFileName));
+  lDirectory := IncludeTrailingPathDelimiter(TPath.GetFullPath(aDirectory));
+  Result := StartsText(lDirectory, lFileName);
+end;
+
 function ExtractUnitModel(const aFileName: string; const aProject: TProjectAnalysisContext):
   TDelphiSemanticUnitModel;
 var
@@ -107,6 +119,21 @@ begin
   lOptions.Defines := SplitSemanticListText(aProject.fParserDefines);
   lOptions.SearchPaths := SplitSemanticListText(aProject.fParserSearchPath);
   Result := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
+end;
+
+function ModelDiagnosticsText(const aModel: TDelphiSemanticUnitModel): string;
+var
+  lDiagnostic: TDelphiSemanticModelDiagnostic;
+begin
+  Result := '';
+  for lDiagnostic in aModel.Diagnostics do
+  begin
+    if Result <> '' then
+      Result := Result + '; ';
+    Result := Result + lDiagnostic.Code + ': ' + lDiagnostic.Message;
+    if lDiagnostic.Line > 0 then
+      Result := Result + Format(' (line %d)', [lDiagnostic.Line]);
+  end;
 end;
 
 function BuildSemanticContext(const aOptions: TAppOptions;
@@ -145,10 +172,14 @@ begin
         aError := 'Project unit not found: ' + lUnitPath;
         Exit(False);
       end;
+      if not IsPathUnderDirectory(lUnitPath, lProject.fProjectDir) then
+        Continue;
       lModel := ExtractUnitModel(lUnitPath, lProject);
       if not lModel.Success then
       begin
         aError := 'Failed to build semantic model for project unit: ' + lUnitPath;
+        if ModelDiagnosticsText(lModel) <> '' then
+          aError := aError + sLineBreak + ModelDiagnosticsText(lModel);
         Exit(False);
       end;
       lModels.Add(lModel);
