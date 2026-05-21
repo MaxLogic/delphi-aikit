@@ -16,6 +16,8 @@ resourcestring
     '  lsp       Query Delphi semantic navigation and capability probes via DelphiLSP.exe' + #13#10 +
     '  remove-with Remove Delphi with statements through scan, plan, and apply modes' + #13#10 +
     '  symbol-map Build and query DAK source symbol caches' + #13#10 +
+    '  find-usages Find project-scoped references for a resolved Delphi symbol' + #13#10 +
+    '  rename    Plan or apply a project-scoped Delphi symbol rename' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
   SUsageResolve =
     'DelphiAIKit.exe resolve --project "<path>" --delphi <23.0> ' +
@@ -86,6 +88,15 @@ resourcestring
     '  search-symbols: --query "<text>" [--limit <N>]' + #13#10 +
     '  describe-symbol: --symbol "<name>" [--owner "<type>"]' + #13#10 +
     '  stats: reports project/cache shell status without indexing source yet';
+  SUsageFindUsages =
+    'DelphiAIKit.exe find-usages --project "<path>" [--platform <Win32|Win64>] [--config <Debug|Release>] ' +
+    '[--format <json|text>]' + #13#10 +
+    '  by name: --symbol "<identifier>"' + #13#10 +
+    '  by position: --file "<path>" --line <N 1-based> --col <N 1-based>';
+  SUsageRename =
+    'DelphiAIKit.exe rename --project "<path>" --symbol "<identifier>" --new-name "<identifier>" ' +
+    '[--format <json|text>] [--apply [true|false]]' + #13#10 +
+    '  default is non-mutating dry-run; --apply writes edits with per-file backups and rollback on failure';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -123,6 +134,9 @@ resourcestring
   SSymbolMapInvalidPosition = 'Invalid %s value: %s (expected integer >= 1).';
   SSymbolMapInvalidLimit = 'Invalid --limit value: %s (expected integer >= 1).';
   SSymbolMapOptionOnlyForOperation = '%s is only supported for symbol-map %s.';
+  SRefactorInvalidFormat = 'Unsupported refactor format: %s';
+  SRefactorInvalidPosition = 'Invalid %s value: %s (expected integer >= 1).';
+  SRefactorFindUsagesTarget = 'Use either --symbol or --file/--line/--col for find-usages.';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
   SBuildBatMissing = 'build-delphi.bat not found: %s';

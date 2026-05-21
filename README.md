@@ -15,6 +15,7 @@
 - Analyze project unit dependencies via `deps` with JSON-first topology output, text summaries, focused unit views, and cycle reporting
 - Navigate Delphi symbols semantically via `lsp` with `definition`, `hover`, file-scoped `symbols`, and version-gated `references` queries backed by `DelphiLSP.exe`
 - Build and query a reusable local Symbol Map via `symbol-map` with project/RTL/compiler-intrinsic indexing, definition lookup, symbol search, description, references, and central/project SQLite caches
+- Find project-scoped Delphi symbol usages and plan or apply project-scoped renames via `find-usages` and `rename`
 - Inspect, plan, and transactionally remove Delphi `with` statements via `remove-with`
 
 ## Good use cases
@@ -25,6 +26,7 @@
 - Understanding which Delphi units a broken area depends on before we start AI-assisted debugging or refactoring
 - Jumping from a symbol use site to its definition, hover text, file-scoped document symbols, or version-gated references without guessing from raw text search
 - Looking up project, source-available RTL, and compiler-intrinsic symbols through a deterministic cache when LSP is unavailable, incomplete, or too expensive for bulk work
+- Reviewing exact project-scoped symbol usages before making a rename, then applying the rename with backups and rollback behavior
 - Planning conservative `with` statement cleanup with JSON reports, safe skips, build verification, and rollback
 
 ## Repo-local AI skills
@@ -207,6 +209,16 @@ bin\DelphiAIKit.exe symbol-map find-references --project "C:\path\Project.dproj"
 ```
 
 `symbol-map` is DAK's own deterministic source index. It is not a DelphiLSP wrapper and it is not a clone of `delphi-lookup`: LSP remains useful for semantic editor-style probes, while Symbol Map is optimized for reusable project indexing, cacheable source inventories, and future bulk refactoring support such as `remove-with`.
+
+To inspect and rename a project-scoped symbol through DelphiSemantics:
+
+```
+bin\DelphiAIKit.exe find-usages --project "C:\path\Project.dproj" --symbol "OldName" --format json
+bin\DelphiAIKit.exe rename --project "C:\path\Project.dproj" --symbol "OldName" --new-name "NewName" --format text
+bin\DelphiAIKit.exe rename --project "C:\path\Project.dproj" --symbol "OldName" --new-name "NewName" --apply --format json
+```
+
+`rename` is non-mutating by default. `--apply` creates per-file `.bak` backups and restores original bytes if edit application fails.
 
 The central cache stores reusable unit models by content and compiler context. By default it is created under `%LOCALAPPDATA%\DelphiAIKit\symbol-map\v1\symbol-map.sqlite3`, with `%USERPROFILE%\.dak\symbol-map\v1\symbol-map.sqlite3` as the fallback. Override it with `--cache-root "<path>"` or the `DAK_SYMBOL_MAP_CACHE_ROOT` environment variable; JSON output reports the resolved cache paths so WSL/Windows path confusion is visible.
 
@@ -623,6 +635,11 @@ bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 -
 
 ## Tests
 
-There are no automated unit tests in this repo. Manual checks live in `tests\README.md`.
-We can also run `tests\run.bat`, which executes the resolver against all fixture `.dproj` files and writes outputs to `tests\out`.
-It expects `bin\DelphiAIKit.exe` to exist and accepts optional `RSVARS` and `ENVOPTIONS` environment variables for overrides.
+Automated DUnitX tests live in `tests\DelphiAIKit.Tests.dproj`.
+
+```
+build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win32 -target Rebuild
+tests\DelphiAIKit.Tests.exe --hidebanner --consolemode:quiet
+```
+
+Manual fixture checks live in `tests\README.md`. We can also run `tests\run.bat`, which executes the resolver against all fixture `.dproj` files and writes outputs to `tests\out`. It expects `bin\DelphiAIKit.exe` to exist and accepts optional `RSVARS` and `ENVOPTIONS` environment variables for overrides.

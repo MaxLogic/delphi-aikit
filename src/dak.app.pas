@@ -30,7 +30,7 @@ uses
   Xml.omnixmldom, Xml.xmldom,
   MaxMadExcept,
   Dak.Analyze, Dak.Build, Dak.Cli, Dak.Deps, Dak.DfmCheck, Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Lsp,
-  Dak.Messages, Dak.RemoveWith, Dak.Resolve, Dak.SymbolMap, Dak.Utils;
+  Dak.Messages, Dak.Refactor, Dak.RemoveWith, Dak.Resolve, Dak.SymbolMap, Dak.Utils;
 
 class function TDelphiAIKitApp.Run: Integer;
 var
@@ -153,6 +153,10 @@ begin
       Result := RunRemoveWithCommand(fOptions);
     TCommandKind.ckSymbolMap:
       Result := RunSymbolMapCommand(fOptions);
+    TCommandKind.ckFindUsages:
+      Result := RunFindUsagesCommand(fOptions);
+    TCommandKind.ckRename:
+      Result := RunRenameCommand(fOptions);
     TCommandKind.ckAnalyzeProject, TCommandKind.ckAnalyzeUnit:
       Result := RunAnalyzeCommand(fOptions);
   else

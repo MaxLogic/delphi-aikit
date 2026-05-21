@@ -6,7 +6,7 @@ interface
 
 type
   TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars,
-    ckDeps, ckLsp, ckRemoveWith, ckSymbolMap);
+    ckDeps, ckLsp, ckRemoveWith, ckSymbolMap, ckFindUsages, ckRename);
 
   TOutputKind = (okIni, okXml, okBat);
   TBuildBackend = (bbAuto, bbDelphi, bbWebCore);
@@ -30,6 +30,7 @@ type
   TSymbolMapOperation = (smoNone, smoIndex, smoFindDefinition, smoFindReferences, smoSearchSymbols,
     smoDescribeSymbol, smoStats);
   TSymbolMapFormat = (smfJson, smfText);
+  TRefactorFormat = (rffJson, rffText);
 
   TDiagnosticsDefaults = record
     fSourceContextMode: TSourceContextMode;
@@ -195,6 +196,14 @@ type
     fHasSymbolMapCacheRoot: Boolean;
     fSymbolMapLimit: Integer;
     fHasSymbolMapLimit: Boolean;
+    fRefactorFormat: TRefactorFormat;
+    fRefactorSymbol: string;
+    fRefactorFilePath: string;
+    fRefactorLine: Integer;
+    fRefactorCol: Integer;
+    fRefactorNewName: string;
+    fRefactorApply: Boolean;
+    fHasRefactorApply: Boolean;
     fUnitPath: string;
   end;
 
