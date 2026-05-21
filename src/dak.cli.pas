@@ -68,6 +68,8 @@ var
       aParsedCommand := TCommandKind.ckFindUsages
     else if SameText(aArg, 'rename') then
       aParsedCommand := TCommandKind.ckRename
+    else if SameText(aArg, 'dead-code') then
+      aParsedCommand := TCommandKind.ckDeadCode
     else
       Result := False;
   end;
@@ -137,7 +139,8 @@ var
       SameText(aSwitch, 'query') or SameText(aSwitch, 'symbol') or SameText(aSwitch, 'owner') or
       SameText(aSwitch, 'cache-root') or SameText(aSwitch, 'limit') or
       SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or
-      SameText(aSwitch, 'dir') or SameText(aSwitch, 'semantic-cache') or SameText(aSwitch, 'new-name');
+      SameText(aSwitch, 'dir') or SameText(aSwitch, 'semantic-cache') or SameText(aSwitch, 'new-name') or
+      SameText(aSwitch, 'profile');
   end;
 
   function SwitchAllowsBoolValue(const aSwitch: string): Boolean;
@@ -250,6 +253,8 @@ begin
       WriteLn(ErrOutput, SUsageFindUsages);
     TCommandKind.ckRename:
       WriteLn(ErrOutput, SUsageRename);
+    TCommandKind.ckDeadCode:
+      WriteLn(ErrOutput, SUsageDeadCode);
   else
     WriteLn(ErrOutput, SUsageResolve);
   end;
@@ -362,6 +367,7 @@ begin
   fOptions.fSymbolMapFormat := TSymbolMapFormat.smfJson;
   fOptions.fSymbolMapLimit := 50;
   fOptions.fRefactorFormat := TRefactorFormat.rffText;
+  fOptions.fDeadCodeProfile := 'conservative';
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
   fOptions.fGlobalVarsUnusedOnly := False;
@@ -605,6 +611,8 @@ begin
     fOptions.fCommand := TCommandKind.ckFindUsages
   else if SameText(aArg, 'rename') then
     fOptions.fCommand := TCommandKind.ckRename
+  else if SameText(aArg, 'dead-code') then
+    fOptions.fCommand := TCommandKind.ckDeadCode
   else
   begin
     fError := Format(SUnknownCommand, [aArg]);
@@ -707,7 +715,7 @@ begin
   if fOptions.fCommand = TCommandKind.ckSymbolMap then
     Exit(TryParseSymbolMapSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
-  if fOptions.fCommand in [TCommandKind.ckFindUsages, TCommandKind.ckRename] then
+  if fOptions.fCommand in [TCommandKind.ckFindUsages, TCommandKind.ckRename, TCommandKind.ckDeadCode] then
     Exit(TryParseRefactorSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
 
   Result := TryParseAnalyzeSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue);
@@ -1684,6 +1692,25 @@ begin
     Exit(True);
   end;
 
+  if SameText(aSwitch, 'profile') then
+  begin
+    if fOptions.fCommand <> TCommandKind.ckDeadCode then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--profile') then
+      Exit(False);
+    if not (SameText(lValue, 'audit') or SameText(lValue, 'conservative') or
+      SameText(lValue, 'legacy-static')) then
+    begin
+      fError := Format(SInvalidDeadCodeProfile, [lValue]);
+      Exit(False);
+    end;
+    fOptions.fDeadCodeProfile := lValue;
+    Exit(True);
+  end;
+
   if SameText(aSwitch, 'apply') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--apply') then
@@ -2295,6 +2322,20 @@ begin
       (fOptions.fRefactorCol > 0) then
     begin
       fError := Format(SUnknownArg, ['--file/--line/--col']);
+      Exit(False);
+    end;
+  end else if fOptions.fCommand = TCommandKind.ckDeadCode then
+  begin
+    if fOptions.fDprojPath = '' then
+    begin
+      fError := Format(SArgMissingValue, ['--project']);
+      Exit(False);
+    end;
+    if (fOptions.fRefactorSymbol <> '') or (fOptions.fRefactorFilePath <> '') or
+      (fOptions.fRefactorLine > 0) or (fOptions.fRefactorCol > 0) or
+      (fOptions.fRefactorNewName <> '') or fOptions.fHasRefactorApply then
+    begin
+      fError := Format(SUnknownArg, ['--symbol/--file/--line/--col/--new-name/--apply']);
       Exit(False);
     end;
   end else if fOptions.fCommand = TCommandKind.ckBuild then

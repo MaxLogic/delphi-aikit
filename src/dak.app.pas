@@ -157,6 +157,8 @@ begin
       Result := RunFindUsagesCommand(fOptions);
     TCommandKind.ckRename:
       Result := RunRenameCommand(fOptions);
+    TCommandKind.ckDeadCode:
+      Result := RunDeadCodeCommand(fOptions);
     TCommandKind.ckAnalyzeProject, TCommandKind.ckAnalyzeUnit:
       Result := RunAnalyzeCommand(fOptions);
   else

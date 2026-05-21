@@ -97,6 +97,10 @@ resourcestring
     'DelphiAIKit.exe rename --project "<path>" --symbol "<identifier>" --new-name "<identifier>" ' +
     '[--format <json|text>] [--apply [true|false]]' + #13#10 +
     '  default is non-mutating dry-run; --apply writes edits with per-file backups and rollback on failure';
+  SUsageDeadCode =
+    'DelphiAIKit.exe dead-code --project "<path>" [--profile <audit|conservative|legacy-static>] ' +
+    '[--format <json|text>]' + #13#10 +
+    '  report-only; does not rewrite source files';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -109,6 +113,7 @@ resourcestring
   SInvalidBuildTimeout = 'Invalid --build-timeout-sec value: %s (expected integer >= 0).';
   SInvalidSourceContext = 'Invalid --source-context value: %s (expected auto, off, or on).';
   SInvalidSourceContextLines = 'Invalid --source-context-lines value: %s (expected integer >= 0).';
+  SInvalidDeadCodeProfile = 'Invalid --profile value: %s (expected audit, conservative, or legacy-static).';
   SInvalidFiFormats = 'Invalid --fi-formats value: %s';
   SGlobalVarsInvalidFormat = 'Unsupported global-vars format: %s';
   SGlobalVarsInvalidRefresh = 'Unsupported global-vars refresh mode: %s';
