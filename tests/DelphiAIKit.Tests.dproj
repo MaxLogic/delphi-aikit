@@ -80,6 +80,7 @@
     <DCCReference Include="units\\test.pascalanalyzer.pas"/>
     <DCCReference Include="units\\test.reportpostprocess.pas"/>
     <DCCReference Include="units\\test.refactor.pas"/>
+    <DCCReference Include="units\\test.refactor.proprietaryrename.pas"/>
     <DCCReference Include="units\\test.removewith.pas"/>
     <DCCReference Include="units\\test.symbolmap.pas"/>
     <DCCReference Include="units\\test.sourcecontext.pas"/>

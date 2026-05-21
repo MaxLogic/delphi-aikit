@@ -681,6 +681,8 @@ var
   lError: string;
   lOutput: string;
   lPlan: TDelphiSemanticRenamePlan;
+  lSymbol: string;
+  lUsageResult: TDelphiSemanticUsageResult;
 begin
   SetLength(lAppliedFiles, 0);
   if not BuildSemanticContext(aOptions, lContext, lError) then
@@ -689,12 +691,24 @@ begin
     Exit(cExitInvalidProjectInput);
   end;
 
-  lPlan := TDelphiSemanticApi.PlanRename(lContext, aOptions.fRefactorSymbol,
-    aOptions.fRefactorNewName);
+  if aOptions.fRefactorSymbol <> '' then
+  begin
+    lSymbol := aOptions.fRefactorSymbol;
+    lPlan := TDelphiSemanticApi.PlanRename(lContext, lSymbol, aOptions.fRefactorNewName);
+  end else begin
+    lUsageResult := TDelphiSemanticApi.FindUsagesAtPosition(lContext, aOptions.fRefactorFilePath,
+      aOptions.fRefactorLine, aOptions.fRefactorCol);
+    if lUsageResult.Status = 'resolved' then
+      lSymbol := lUsageResult.Symbol.Name
+    else
+      lSymbol := '';
+    lPlan := TDelphiSemanticApi.PlanRenameAtPosition(lContext, aOptions.fRefactorFilePath,
+      aOptions.fRefactorLine, aOptions.fRefactorCol, aOptions.fRefactorNewName);
+  end;
   if SameText(lPlan.Status, 'planned') and aOptions.fRefactorApply then
   begin
     try
-      ApplyRenamePlan(aOptions, lPlan, aOptions.fRefactorSymbol, lAppliedFiles);
+      ApplyRenamePlan(aOptions, lPlan, lSymbol, lAppliedFiles);
     except
       on E: Exception do
       begin
@@ -705,10 +719,10 @@ begin
   end;
 
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
-    lOutput := RenameResultJson(aOptions.fRefactorSymbol, lPlan, aOptions.fRefactorApply,
+    lOutput := RenameResultJson(lSymbol, lPlan, aOptions.fRefactorApply,
       lAppliedFiles)
   else
-    lOutput := RenameResultText(aOptions.fRefactorSymbol, lPlan, aOptions.fRefactorApply,
+    lOutput := RenameResultText(lSymbol, lPlan, aOptions.fRefactorApply,
       lAppliedFiles);
   WriteLn(lOutput);
   if SameText(lPlan.Status, 'planned') then

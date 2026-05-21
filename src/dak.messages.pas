@@ -94,8 +94,10 @@ resourcestring
     '  by name: --symbol "<identifier>"' + #13#10 +
     '  by position: --file "<path>" --line <N 1-based> --col <N 1-based>';
   SUsageRename =
-    'DelphiAIKit.exe rename --project "<path>" --symbol "<identifier>" --new-name "<identifier>" ' +
-    '[--format <json|text>] [--apply [true|false]]' + #13#10 +
+    'DelphiAIKit.exe rename --project "<path>" --new-name "<identifier>" [--format <json|text>] ' +
+    '[--apply [true|false]]' + #13#10 +
+    '  by name: --symbol "<identifier>"' + #13#10 +
+    '  by position: --file "<path>" --line <N 1-based> --col <N 1-based>' + #13#10 +
     '  default is non-mutating dry-run; --apply writes edits with per-file backups and rollback on failure';
   SUsageDeadCode =
     'DelphiAIKit.exe dead-code --project "<path>" [--profile <audit|conservative|legacy-static>] ' +

@@ -31,6 +31,7 @@ uses
   Test.ReportPostProcess in 'units\\test.reportpostprocess.pas',
   Test.PascalAnalyzer in 'units\\test.pascalanalyzer.pas',
   Test.Refactor in 'units\\test.refactor.pas',
+  Test.Refactor.ProprietaryRename in 'units\\test.refactor.proprietaryrename.pas',
   Test.RemoveWith in 'units\\test.removewith.pas',
   Test.SymbolMap in 'units\\test.symbolmap.pas',
   Test.Utils in 'units\\test.utils.pas',

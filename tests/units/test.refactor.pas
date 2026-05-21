@@ -21,6 +21,8 @@ type
     procedure RenameCommandDefaultsToDryRun;
     [Test]
     procedure RenameCommandAppliesEditsAndCreatesBackups;
+    [Test]
+    procedure RenameCommandAcceptsSourcePositionTarget;
   end;
 
 implementation
@@ -193,6 +195,36 @@ begin
     'Expected run-scoped rename transaction backup path. See: ' + lLogPath);
   Assert.IsTrue(Pos('UnitOne.pas.bak', lLogText) > 0, 'Expected backup for declaration file.');
   Assert.IsTrue(Pos('UnitTwo.pas.bak', lLogText) > 0, 'Expected backup for usage file.');
+end;
+
+procedure TRefactorCommandTests.RenameCommandAcceptsSourcePositionTarget;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lLogText: string;
+  lRoot: string;
+  lUnitOnePath: string;
+  lUnitTwoPath: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-position');
+  CreateFixtureProject(lRoot, lDprojPath, lUnitOnePath, lUnitTwoPath);
+  lLogPath := TPath.Combine(TempRoot, 'refactor-rename-position.log');
+
+  Assert.IsTrue(RunProcess(ResolverExePath,
+    'rename --project ' + QuoteArg(lDprojPath) +
+    ' --file ' + QuoteArg(lUnitOnePath) + ' --line 6 --col 3' +
+    ' --new-name RenamedValue --format json',
+    RepoRoot, lLogPath, lExitCode), 'Failed to start rename position command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected position rename dry-run to succeed. See: ' + lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('"status":"planned"', lLogText) > 0, 'Expected planned status. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"symbol":"SharedValue"', lLogText) > 0, 'Expected resolved symbol. See: ' + lLogPath);
+  Assert.IsTrue(Pos('RenamedValue', lLogText) > 0, 'Expected planned rename text. See: ' + lLogPath);
+  Assert.IsTrue(Pos('SharedValue', TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8)) > 0,
+    'Dry-run position rename must not edit declaration file.');
 end;
 
 initialization
