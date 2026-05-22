@@ -288,6 +288,24 @@ begin
     lRoot.Free;
   end;
 
+  lRoot := RunRenameApply(lDprojPath, 'AllFiles', 'RenameDogfoodAllFiles',
+    'refactor-maxtdb-rename-allfiles.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected AllFiles rename to succeed.');
+    AssertAppliedRename(lRoot, 'AllFiles', 'RenameDogfoodAllFiles');
+  finally
+    lRoot.Free;
+  end;
+
+  lRoot := RunRenameApply(lDprojPath, 'SourceVarRecPtr', 'TRenameDogfoodSourceVarRecPtr',
+    'refactor-maxtdb-rename-sourcevarrecptr.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected SourceVarRecPtr rename to succeed.');
+    AssertAppliedRename(lRoot, 'SourceVarRecPtr', 'TRenameDogfoodSourceVarRecPtr');
+  finally
+    lRoot.Free;
+  end;
+
   lBuildOutput := RunBuild(lDprojPath, 'refactor-maxtdb-rename-build.log', lBuildExitCode);
   Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected renamed maxTdb clone to build. Output: ' + lBuildOutput);
 
