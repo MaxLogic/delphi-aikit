@@ -125,6 +125,8 @@ begin
   lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
   Assert.IsTrue(Pos('"status":"resolved"', lLogText) > 0, 'Expected resolved JSON status. See: ' + lLogPath);
   Assert.IsTrue(Pos('"symbol":"SharedValue"', lLogText) > 0, 'Expected queried symbol in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"referenceReconciliationFallbackCount":', lLogText) > 0,
+    'Expected reference reconciliation fallback metric in JSON. See: ' + lLogPath);
   Assert.IsTrue(Pos('"count":3', lLogText) > 0, 'Expected declaration plus two references. See: ' + lLogPath);
   Assert.IsTrue(Pos('UnitTwo.pas', lLogText) > 0, 'Expected cross-unit usage in JSON. See: ' + lLogPath);
 end;
@@ -183,6 +185,8 @@ begin
   lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
   Assert.IsTrue(Pos('"apply":true', lLogText) > 0, 'Expected JSON apply flag. See: ' + lLogPath);
   Assert.IsTrue(Pos('"status":"applied"', lLogText) > 0, 'Expected applied status. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"referenceReconciliationFallbackCount":', lLogText) > 0,
+    'Expected reference reconciliation fallback metric in JSON. See: ' + lLogPath);
   Assert.IsTrue(Pos('RenamedValue', TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8)) > 0,
     'Expected declaration file to be renamed.');
   Assert.IsTrue(Pos('RenamedValue', TFile.ReadAllText(lUnitTwoPath, TEncoding.UTF8)) > 0,
@@ -222,6 +226,8 @@ begin
   lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
   Assert.IsTrue(Pos('"status":"planned"', lLogText) > 0, 'Expected planned status. See: ' + lLogPath);
   Assert.IsTrue(Pos('"symbol":"SharedValue"', lLogText) > 0, 'Expected resolved symbol. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"referenceReconciliationFallbackCount":', lLogText) > 0,
+    'Expected reference reconciliation fallback metric in JSON. See: ' + lLogPath);
   Assert.IsTrue(Pos('RenamedValue', lLogText) > 0, 'Expected planned rename text. See: ' + lLogPath);
   Assert.IsTrue(Pos('SharedValue', TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8)) > 0,
     'Dry-run position rename must not edit declaration file.');

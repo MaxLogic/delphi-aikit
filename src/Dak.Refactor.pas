@@ -203,6 +203,7 @@ begin
   Result := False;
   aError := '';
   aContext := Default(TDelphiSemanticSymbolQueryContext);
+  TDelphiSemanticUnitModelExtractor.ResetReferenceReconciliationFallbackCount;
   if not TryBuildProjectAnalysisContext(aOptions, lProject, aError) then
     Exit(False);
 
@@ -281,14 +282,15 @@ begin
     ',"endLine":' + aUsage.EndLine.ToString + ',"endColumn":' + aUsage.EndColumn.ToString + '}';
 end;
 
-function UsageResultJson(const aSymbol: string; const aResult: TDelphiSemanticUsageResult):
-  string;
+function UsageResultJson(const aSymbol: string; const aResult: TDelphiSemanticUsageResult;
+  const aReferenceFallbackCount: Integer): string;
 var
   i: Integer;
 begin
   Result := '{"status":"' + JsonEscape(aResult.Status) + '","symbol":"' + JsonEscape(aSymbol) +
     '","diagnostic":"' + JsonEscape(aResult.Diagnostic) + '","count":' +
-    Length(aResult.Usages).ToString + ',"usages":[';
+    Length(aResult.Usages).ToString + ',"referenceReconciliationFallbackCount":' +
+    aReferenceFallbackCount.ToString + ',"usages":[';
   for i := 0 to High(aResult.Usages) do
   begin
     if i > 0 then
@@ -344,7 +346,8 @@ begin
 end;
 
 function RenameResultJson(const aSymbol: string; const aPlan: TDelphiSemanticRenamePlan;
-  const aApply: Boolean; const aAppliedFiles: TArray<TAppliedFile>): string;
+  const aApply: Boolean; const aAppliedFiles: TArray<TAppliedFile>;
+  const aReferenceFallbackCount: Integer): string;
 var
   i: Integer;
   lStatus: string;
@@ -355,6 +358,7 @@ begin
   Result := '{"status":"' + JsonEscape(lStatus) + '","symbol":"' + JsonEscape(aSymbol) +
     '","apply":' + LowerCase(BoolToStr(aApply, True)) + ',"diagnostic":"' +
     JsonEscape(aPlan.Diagnostic) + '","editCount":' + Length(aPlan.Edits).ToString +
+    ',"referenceReconciliationFallbackCount":' + aReferenceFallbackCount.ToString +
     ',"edits":[';
   for i := 0 to High(aPlan.Edits) do
   begin
@@ -395,13 +399,15 @@ begin
   end;
 end;
 
-function DeadCodeReportJson(const aReport: TDelphiSemanticDeadCodeReport): string;
+function DeadCodeReportJson(const aReport: TDelphiSemanticDeadCodeReport;
+  const aReferenceFallbackCount: Integer): string;
 var
   i: Integer;
   lCandidate: TDelphiSemanticDeadCodeCandidate;
 begin
   Result := '{"status":"ok","profile":"' + JsonEscape(aReport.Profile) + '","count":' +
-    IntToStr(Length(aReport.Candidates)) + ',"candidates":[';
+    IntToStr(Length(aReport.Candidates)) + ',"referenceReconciliationFallbackCount":' +
+    aReferenceFallbackCount.ToString + ',"candidates":[';
   for i := 0 to High(aReport.Candidates) do
   begin
     if i > 0 then
@@ -670,6 +676,7 @@ var
   lContext: TDelphiSemanticSymbolQueryContext;
   lError: string;
   lOutput: string;
+  lReferenceFallbackCount: Integer;
   lResult: TDelphiSemanticUsageResult;
   lSymbol: string;
 begin
@@ -688,9 +695,11 @@ begin
       aOptions.fRefactorLine, aOptions.fRefactorCol);
     lSymbol := lResult.Symbol.Name;
   end;
+  lReferenceFallbackCount :=
+    TDelphiSemanticUnitModelExtractor.ReferenceReconciliationFallbackCount;
 
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
-    lOutput := UsageResultJson(lSymbol, lResult)
+    lOutput := UsageResultJson(lSymbol, lResult, lReferenceFallbackCount)
   else
     lOutput := UsageResultText(lSymbol, lResult);
   WriteLn(lOutput);
@@ -707,6 +716,7 @@ var
   lError: string;
   lOutput: string;
   lPlan: TDelphiSemanticRenamePlan;
+  lReferenceFallbackCount: Integer;
   lSymbol: string;
   lUsageResult: TDelphiSemanticUsageResult;
 begin
@@ -743,10 +753,12 @@ begin
       end;
     end;
   end;
+  lReferenceFallbackCount :=
+    TDelphiSemanticUnitModelExtractor.ReferenceReconciliationFallbackCount;
 
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
     lOutput := RenameResultJson(lSymbol, lPlan, aOptions.fRefactorApply,
-      lAppliedFiles)
+      lAppliedFiles, lReferenceFallbackCount)
   else
     lOutput := RenameResultText(lSymbol, lPlan, aOptions.fRefactorApply,
       lAppliedFiles);
@@ -763,6 +775,7 @@ var
   lError: string;
   lOutput: string;
   lProfile: string;
+  lReferenceFallbackCount: Integer;
   lReport: TDelphiSemanticDeadCodeReport;
 begin
   if not BuildSemanticContext(aOptions, lContext, lError) then
@@ -775,8 +788,10 @@ begin
   if lProfile = '' then
     lProfile := 'conservative';
   lReport := TDelphiSemanticApi.ReportDeadCode(lContext, lProfile);
+  lReferenceFallbackCount :=
+    TDelphiSemanticUnitModelExtractor.ReferenceReconciliationFallbackCount;
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
-    lOutput := DeadCodeReportJson(lReport)
+    lOutput := DeadCodeReportJson(lReport, lReferenceFallbackCount)
   else
     lOutput := DeadCodeReportText(lReport);
   WriteLn(lOutput);
