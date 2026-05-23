@@ -1711,6 +1711,15 @@ begin
     Exit(True);
   end;
 
+  if SameText(aSwitch, 'semantic-cache') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--semantic-cache') then
+      Exit(False);
+    fOptions.fRefactorSemanticCachePath := lValue;
+    fOptions.fHasRefactorSemanticCachePath := True;
+    Exit(True);
+  end;
+
   if SameText(aSwitch, 'apply') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--apply') then
