@@ -166,6 +166,11 @@ begin
 
   lOptions := Default(TDelphiSemanticCacheOptions);
   lOptions.SqliteCacheFileName := TPath.GetFullPath(aOptions.fRefactorSemanticCachePath);
+  lOptions.CompilerProfileName := Format('DAK-%s-%s-%s', [aOptions.fDelphiVersion,
+    aOptions.fPlatform, aOptions.fConfig]);
+  lOptions.DelphiVersion := aOptions.fDelphiVersion;
+  lOptions.Platform := aOptions.fPlatform;
+  lOptions.Configuration := aOptions.fConfig;
   lCacheDir := TPath.GetDirectoryName(lOptions.SqliteCacheFileName);
   if lCacheDir <> '' then
     TDirectory.CreateDirectory(lCacheDir);
@@ -188,7 +193,8 @@ begin
 end;
 
 function BuildSemanticContext(const aOptions: TAppOptions;
-  out aContext: TDelphiSemanticSymbolQueryContext; out aError: string): Boolean;
+  out aContext: TDelphiSemanticSymbolQueryContext; out aCacheMetrics: TDelphiSemanticCacheMetrics;
+  out aError: string): Boolean;
 var
   i: Integer;
   lIndexedUnit: TProjectIndexer.TUnitInfo;
@@ -203,6 +209,7 @@ begin
   Result := False;
   aError := '';
   aContext := Default(TDelphiSemanticSymbolQueryContext);
+  aCacheMetrics := Default(TDelphiSemanticCacheMetrics);
   TDelphiSemanticUnitModelExtractor.ResetReferenceReconciliationFallbackCount;
   if not TryBuildProjectAnalysisContext(aOptions, lProject, aError) then
     Exit(False);
@@ -263,6 +270,8 @@ begin
         aContext.IndexedUnitSourceKinds[i - 1] := lSourceKinds[i];
       end;
     end;
+    if Assigned(lCache) then
+      aCacheMetrics := lCache.Metrics;
     Result := True;
   finally
     lSourceKinds.Free;
@@ -283,14 +292,18 @@ begin
 end;
 
 function UsageResultJson(const aSymbol: string; const aResult: TDelphiSemanticUsageResult;
-  const aReferenceFallbackCount: Integer): string;
+  const aReferenceFallbackCount: Integer; const aCacheMetrics: TDelphiSemanticCacheMetrics):
+  string;
 var
   i: Integer;
 begin
   Result := '{"status":"' + JsonEscape(aResult.Status) + '","symbol":"' + JsonEscape(aSymbol) +
     '","diagnostic":"' + JsonEscape(aResult.Diagnostic) + '","count":' +
     Length(aResult.Usages).ToString + ',"referenceReconciliationFallbackCount":' +
-    aReferenceFallbackCount.ToString + ',"usages":[';
+    aReferenceFallbackCount.ToString + ',"semanticCacheHits":' +
+    aCacheMetrics.CacheHits.ToString + ',"semanticCacheMisses":' +
+    aCacheMetrics.CacheMisses.ToString + ',"semanticCacheInvalidations":' +
+    aCacheMetrics.Invalidations.ToString + ',"usages":[';
   for i := 0 to High(aResult.Usages) do
   begin
     if i > 0 then
@@ -347,7 +360,8 @@ end;
 
 function RenameResultJson(const aSymbol: string; const aPlan: TDelphiSemanticRenamePlan;
   const aApply: Boolean; const aAppliedFiles: TArray<TAppliedFile>;
-  const aReferenceFallbackCount: Integer): string;
+  const aReferenceFallbackCount: Integer; const aCacheMetrics: TDelphiSemanticCacheMetrics):
+  string;
 var
   i: Integer;
   lStatus: string;
@@ -359,6 +373,9 @@ begin
     '","apply":' + LowerCase(BoolToStr(aApply, True)) + ',"diagnostic":"' +
     JsonEscape(aPlan.Diagnostic) + '","editCount":' + Length(aPlan.Edits).ToString +
     ',"referenceReconciliationFallbackCount":' + aReferenceFallbackCount.ToString +
+    ',"semanticCacheHits":' + aCacheMetrics.CacheHits.ToString +
+    ',"semanticCacheMisses":' + aCacheMetrics.CacheMisses.ToString +
+    ',"semanticCacheInvalidations":' + aCacheMetrics.Invalidations.ToString +
     ',"edits":[';
   for i := 0 to High(aPlan.Edits) do
   begin
@@ -400,14 +417,18 @@ begin
 end;
 
 function DeadCodeReportJson(const aReport: TDelphiSemanticDeadCodeReport;
-  const aReferenceFallbackCount: Integer): string;
+  const aReferenceFallbackCount: Integer; const aCacheMetrics: TDelphiSemanticCacheMetrics):
+  string;
 var
   i: Integer;
   lCandidate: TDelphiSemanticDeadCodeCandidate;
 begin
   Result := '{"status":"ok","profile":"' + JsonEscape(aReport.Profile) + '","count":' +
     IntToStr(Length(aReport.Candidates)) + ',"referenceReconciliationFallbackCount":' +
-    aReferenceFallbackCount.ToString + ',"candidates":[';
+    aReferenceFallbackCount.ToString + ',"semanticCacheHits":' +
+    aCacheMetrics.CacheHits.ToString + ',"semanticCacheMisses":' +
+    aCacheMetrics.CacheMisses.ToString + ',"semanticCacheInvalidations":' +
+    aCacheMetrics.Invalidations.ToString + ',"candidates":[';
   for i := 0 to High(aReport.Candidates) do
   begin
     if i > 0 then
@@ -674,13 +695,14 @@ end;
 function RunFindUsagesCommand(const aOptions: TAppOptions): Integer;
 var
   lContext: TDelphiSemanticSymbolQueryContext;
+  lCacheMetrics: TDelphiSemanticCacheMetrics;
   lError: string;
   lOutput: string;
   lReferenceFallbackCount: Integer;
   lResult: TDelphiSemanticUsageResult;
   lSymbol: string;
 begin
-  if not BuildSemanticContext(aOptions, lContext, lError) then
+  if not BuildSemanticContext(aOptions, lContext, lCacheMetrics, lError) then
   begin
     WriteLn(ErrOutput, lError);
     Exit(cExitInvalidProjectInput);
@@ -699,7 +721,7 @@ begin
     TDelphiSemanticUnitModelExtractor.ReferenceReconciliationFallbackCount;
 
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
-    lOutput := UsageResultJson(lSymbol, lResult, lReferenceFallbackCount)
+    lOutput := UsageResultJson(lSymbol, lResult, lReferenceFallbackCount, lCacheMetrics)
   else
     lOutput := UsageResultText(lSymbol, lResult);
   WriteLn(lOutput);
@@ -712,6 +734,7 @@ end;
 function RunRenameCommand(const aOptions: TAppOptions): Integer;
 var
   lAppliedFiles: TArray<TAppliedFile>;
+  lCacheMetrics: TDelphiSemanticCacheMetrics;
   lContext: TDelphiSemanticSymbolQueryContext;
   lError: string;
   lOutput: string;
@@ -721,7 +744,7 @@ var
   lUsageResult: TDelphiSemanticUsageResult;
 begin
   SetLength(lAppliedFiles, 0);
-  if not BuildSemanticContext(aOptions, lContext, lError) then
+  if not BuildSemanticContext(aOptions, lContext, lCacheMetrics, lError) then
   begin
     WriteLn(ErrOutput, lError);
     Exit(cExitInvalidProjectInput);
@@ -758,7 +781,7 @@ begin
 
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
     lOutput := RenameResultJson(lSymbol, lPlan, aOptions.fRefactorApply,
-      lAppliedFiles, lReferenceFallbackCount)
+      lAppliedFiles, lReferenceFallbackCount, lCacheMetrics)
   else
     lOutput := RenameResultText(lSymbol, lPlan, aOptions.fRefactorApply,
       lAppliedFiles);
@@ -771,6 +794,7 @@ end;
 
 function RunDeadCodeCommand(const aOptions: TAppOptions): Integer;
 var
+  lCacheMetrics: TDelphiSemanticCacheMetrics;
   lContext: TDelphiSemanticSymbolQueryContext;
   lError: string;
   lOutput: string;
@@ -778,7 +802,7 @@ var
   lReferenceFallbackCount: Integer;
   lReport: TDelphiSemanticDeadCodeReport;
 begin
-  if not BuildSemanticContext(aOptions, lContext, lError) then
+  if not BuildSemanticContext(aOptions, lContext, lCacheMetrics, lError) then
   begin
     WriteLn(ErrOutput, lError);
     Exit(cExitInvalidProjectInput);
@@ -791,7 +815,7 @@ begin
   lReferenceFallbackCount :=
     TDelphiSemanticUnitModelExtractor.ReferenceReconciliationFallbackCount;
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
-    lOutput := DeadCodeReportJson(lReport, lReferenceFallbackCount)
+    lOutput := DeadCodeReportJson(lReport, lReferenceFallbackCount, lCacheMetrics)
   else
     lOutput := DeadCodeReportText(lReport);
   WriteLn(lOutput);
