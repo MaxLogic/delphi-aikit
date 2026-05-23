@@ -23,6 +23,8 @@ type
     procedure RenameCommandAppliesEditsAndCreatesBackups;
     [Test]
     procedure RenameCommandAcceptsSourcePositionTarget;
+    [Test]
+    procedure RenameSemanticCacheUsesToolchainIdentity;
   end;
 
 implementation
@@ -231,6 +233,57 @@ begin
   Assert.IsTrue(Pos('RenamedValue', lLogText) > 0, 'Expected planned rename text. See: ' + lLogPath);
   Assert.IsTrue(Pos('SharedValue', TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8)) > 0,
     'Dry-run position rename must not edit declaration file.');
+end;
+
+procedure TRefactorCommandTests.RenameSemanticCacheUsesToolchainIdentity;
+var
+  lCachePath: string;
+  lDebugLogPath: string;
+  lDebugLogText: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lReleaseLogPath: string;
+  lReleaseLogText: string;
+  lRoot: string;
+  lUnitOnePath: string;
+  lUnitTwoPath: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-cache-toolchain');
+  CreateFixtureProject(lRoot, lDprojPath, lUnitOnePath, lUnitTwoPath);
+  lCachePath := TPath.Combine(lRoot, 'semantic-cache.sqlite3');
+  lDebugLogPath := TPath.Combine(TempRoot, 'refactor-rename-cache-debug.log');
+  lReleaseLogPath := TPath.Combine(TempRoot, 'refactor-rename-cache-release.log');
+
+  Assert.IsTrue(RunProcess(ResolverExePath,
+    'rename --project ' + QuoteArg(lDprojPath) +
+    ' --symbol SharedValue --new-name RenamedValue --format json' +
+    ' --semantic-cache ' + QuoteArg(lCachePath) +
+    ' --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lDebugLogPath, lExitCode), 'Failed to start debug rename command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected debug rename to succeed. See: ' + lDebugLogPath);
+
+  lDebugLogText := TFile.ReadAllText(lDebugLogPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('"semanticCacheHits":0', lDebugLogText) > 0,
+    'Expected cold debug cache run to avoid hits. See: ' + lDebugLogPath);
+  Assert.IsFalse(Pos('"semanticCacheMisses":0', lDebugLogText) > 0,
+    'Expected cold debug cache run to record misses. See: ' + lDebugLogPath);
+
+  Assert.IsTrue(RunProcess(ResolverExePath,
+    'rename --project ' + QuoteArg(lDprojPath) +
+    ' --symbol SharedValue --new-name RenamedValue --format json' +
+    ' --semantic-cache ' + QuoteArg(lCachePath) +
+    ' --delphi 23.0 --platform Win32 --config Release',
+    RepoRoot, lReleaseLogPath, lExitCode), 'Failed to start release rename command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected release rename to succeed. See: ' + lReleaseLogPath);
+
+  lReleaseLogText := TFile.ReadAllText(lReleaseLogPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('"semanticCacheHits":0', lReleaseLogText) > 0,
+    'Changing config must not hit entries created for another toolchain identity. See: ' + lReleaseLogPath);
+  Assert.IsFalse(Pos('"semanticCacheMisses":0', lReleaseLogText) > 0,
+    'Changing config should rebuild semantic unit models. See: ' + lReleaseLogPath);
+  Assert.IsFalse(Pos('"semanticCacheInvalidations":0', lReleaseLogText) > 0,
+    'Changing config should invalidate same-unit cache entries with different keys. See: ' + lReleaseLogPath);
 end;
 
 initialization
