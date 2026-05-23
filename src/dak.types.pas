@@ -204,6 +204,8 @@ type
     fRefactorNewName: string;
     fRefactorApply: Boolean;
     fHasRefactorApply: Boolean;
+    fRefactorSemanticCachePath: string;
+    fHasRefactorSemanticCachePath: Boolean;
     fDeadCodeProfile: string;
     fUnitPath: string;
   end;

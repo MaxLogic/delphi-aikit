@@ -14,7 +14,8 @@ implementation
 uses
   System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiAST.ProjectIndexer,
-  DelphiSemantics.Api, DelphiSemantics.Model, DelphiSemantics.Query,
+  DelphiSemantics.Api, DelphiSemantics.Cache, DelphiSemantics.Cache.Sqlite,
+  DelphiSemantics.Model, DelphiSemantics.Query,
   DelphiSemantics.Refactor, DelphiSemantics.Usage,
   Dak.ExitCodes, Dak.Project, Dak.RemoveWith.Source;
 
@@ -136,7 +137,8 @@ begin
   Result := StartsText(lDirectory, lFileName);
 end;
 
-function ExtractUnitModel(const aFileName: string; const aProject: TProjectAnalysisContext):
+function ExtractUnitModel(const aFileName: string; const aProject: TProjectAnalysisContext;
+  const aCache: TDelphiSemanticUnitCache):
   TDelphiSemanticUnitModel;
 var
   lOptions: TDelphiSemanticModelOptions;
@@ -146,7 +148,28 @@ begin
   lOptions.ProjectContextApplied := True;
   lOptions.Defines := SplitSemanticListText(aProject.fParserDefines);
   lOptions.SearchPaths := SplitSemanticListText(aProject.fParserSearchPath);
-  Result := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
+  if Assigned(aCache) then
+    Result := aCache.GetOrExtractUnitModel(lOptions)
+  else
+    Result := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
+end;
+
+function CreateRefactorSemanticCache(const aOptions: TAppOptions): TDelphiSemanticUnitCache;
+var
+  lCacheDir: string;
+  lOptions: TDelphiSemanticCacheOptions;
+begin
+  Result := nil;
+  if (not aOptions.fHasRefactorSemanticCachePath) or
+    (Trim(aOptions.fRefactorSemanticCachePath) = '') then
+    Exit;
+
+  lOptions := Default(TDelphiSemanticCacheOptions);
+  lOptions.SqliteCacheFileName := TPath.GetFullPath(aOptions.fRefactorSemanticCachePath);
+  lCacheDir := TPath.GetDirectoryName(lOptions.SqliteCacheFileName);
+  if lCacheDir <> '' then
+    TDirectory.CreateDirectory(lCacheDir);
+  Result := TDelphiSemanticSqliteUnitCache.Create(lOptions);
 end;
 
 function ModelDiagnosticsText(const aModel: TDelphiSemanticUnitModel): string;
@@ -170,6 +193,7 @@ var
   i: Integer;
   lIndexedUnit: TProjectIndexer.TUnitInfo;
   lIndexer: TProjectIndexer;
+  lCache: TDelphiSemanticUnitCache;
   lModel: TDelphiSemanticUnitModel;
   lModels: TList<TDelphiSemanticUnitModel>;
   lProject: TProjectAnalysisContext;
@@ -183,6 +207,7 @@ begin
     Exit(False);
 
   lIndexer := TProjectIndexer.Create;
+  lCache := CreateRefactorSemanticCache(aOptions);
   lModels := TList<TDelphiSemanticUnitModel>.Create;
   lSourceKinds := TList<string>.Create;
   try
@@ -202,7 +227,7 @@ begin
       end;
       if not IsPathUnderDirectory(lUnitPath, lProject.fProjectDir) then
         Continue;
-      lModel := ExtractUnitModel(lUnitPath, lProject);
+      lModel := ExtractUnitModel(lUnitPath, lProject, lCache);
       if not lModel.Success then
       begin
         aError := 'Failed to build semantic model for project unit: ' + lUnitPath;
@@ -216,7 +241,7 @@ begin
 
     if lModels.Count = 0 then
     begin
-      lModel := ExtractUnitModel(lProject.fMainSourcePath, lProject);
+      lModel := ExtractUnitModel(lProject.fMainSourcePath, lProject, lCache);
       if not lModel.Success then
       begin
         aError := 'Failed to build semantic model for project main source.';
@@ -241,6 +266,7 @@ begin
   finally
     lSourceKinds.Free;
     lModels.Free;
+    lCache.Free;
     lIndexer.Free;
   end;
 end;

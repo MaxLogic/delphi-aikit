@@ -90,18 +90,18 @@ resourcestring
     '  stats: reports project/cache shell status without indexing source yet';
   SUsageFindUsages =
     'DelphiAIKit.exe find-usages --project "<path>" [--platform <Win32|Win64>] [--config <Debug|Release>] ' +
-    '[--format <json|text>]' + #13#10 +
+    '[--format <json|text>] [--semantic-cache "<sqlite-path>"]' + #13#10 +
     '  by name: --symbol "<identifier>"' + #13#10 +
     '  by position: --file "<path>" --line <N 1-based> --col <N 1-based>';
   SUsageRename =
     'DelphiAIKit.exe rename --project "<path>" --new-name "<identifier>" [--format <json|text>] ' +
-    '[--apply [true|false]]' + #13#10 +
+    '[--apply [true|false]] [--semantic-cache "<sqlite-path>"]' + #13#10 +
     '  by name: --symbol "<identifier>"' + #13#10 +
     '  by position: --file "<path>" --line <N 1-based> --col <N 1-based>' + #13#10 +
     '  default is non-mutating dry-run; --apply writes edits with per-file backups and rollback on failure';
   SUsageDeadCode =
     'DelphiAIKit.exe dead-code --project "<path>" [--profile <audit|conservative|legacy-static>] ' +
-    '[--format <json|text>]' + #13#10 +
+    '[--format <json|text>] [--semantic-cache "<sqlite-path>"]' + #13#10 +
     '  report-only; does not rewrite source files';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
