@@ -24,6 +24,8 @@ type
     [Test]
     procedure RenameCommandAcceptsSourcePositionTarget;
     [Test]
+    procedure RenameCommandReportsSemanticPhaseMetricsAsJson;
+    [Test]
     procedure RenameSemanticCacheUsesToolchainIdentity;
   end;
 
@@ -233,6 +235,54 @@ begin
   Assert.IsTrue(Pos('RenamedValue', lLogText) > 0, 'Expected planned rename text. See: ' + lLogPath);
   Assert.IsTrue(Pos('SharedValue', TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8)) > 0,
     'Dry-run position rename must not edit declaration file.');
+end;
+
+procedure TRefactorCommandTests.RenameCommandReportsSemanticPhaseMetricsAsJson;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lLogText: string;
+  lRoot: string;
+  lUnitOnePath: string;
+  lUnitTwoPath: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-phase-metrics');
+  CreateFixtureProject(lRoot, lDprojPath, lUnitOnePath, lUnitTwoPath);
+  lLogPath := TPath.Combine(TempRoot, 'refactor-rename-phase-metrics.log');
+
+  Assert.IsTrue(RunProcess(ResolverExePath,
+    'rename --project ' + QuoteArg(lDprojPath) +
+    ' --symbol SharedValue --new-name RenamedValue --format json',
+    RepoRoot, lLogPath, lExitCode), 'Failed to start rename command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected rename to succeed. See: ' + lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('"semanticPhaseMetrics":{', lLogText) > 0,
+    'Expected semantic phase metrics object in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"status":"planned"', lLogText) > 0,
+    'Existing rename status contract must remain present. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"editCount":3', lLogText) > 0,
+    'Existing edit count contract must remain present. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"projectContextMs":', lLogText) > 0,
+    'Expected project context timing in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"projectUnitIndexMs":', lLogText) > 0,
+    'Expected project unit index timing in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"projectUnitCount":', lLogText) > 0,
+    'Expected indexed project unit count in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"unitModelExtractionMs":', lLogText) > 0,
+    'Expected unit model extraction timing in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"unitModelExtractionCount":', lLogText) > 0,
+    'Expected unit model extraction count in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"projectSymbolIndexBuildMs":', lLogText) > 0,
+    'Expected project symbol index timing in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"projectSymbolIndexBuildCount":', lLogText) > 0,
+    'Expected project symbol index build count in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"commandPlanningMs":', lLogText) > 0,
+    'Expected command planning timing in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"commandPlanningCount":1', lLogText) > 0,
+    'Expected command planning count in JSON. See: ' + lLogPath);
 end;
 
 procedure TRefactorCommandTests.RenameSemanticCacheUsesToolchainIdentity;
