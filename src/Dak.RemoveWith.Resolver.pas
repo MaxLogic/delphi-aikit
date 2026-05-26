@@ -238,6 +238,7 @@ var
   GResolverRoutinesByFile: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GResolverScopeSymbolCache: TDictionary<string, TRemoveWithSymbolLookup>;
   GResolverSymbolNameIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  GResolverSymbolsByOwnerType: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GResolverTypeNameCache: TDictionary<string, TRemoveWithSymbolLookup>;
   GResolverUnitNameCache: TDictionary<string, TRemoveWithSymbolLookup>;
 
@@ -350,6 +351,7 @@ begin
   GResolverScopeSymbolCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
     TFastCaseAwareComparer.OrdinalIgnoreCase);
   GResolverSymbolNameIndex := nil;
+  GResolverSymbolsByOwnerType := nil;
   GResolverTypeNameCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
     TFastCaseAwareComparer.OrdinalIgnoreCase);
   GResolverUnitNameCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
@@ -366,6 +368,8 @@ begin
   GResolverScopeSymbolCache := nil;
   GResolverSymbolNameIndex.Free;
   GResolverSymbolNameIndex := nil;
+  GResolverSymbolsByOwnerType.Free;
+  GResolverSymbolsByOwnerType := nil;
   GResolverMemberCandidateCache.Free;
   GResolverMemberCandidateCache := nil;
   GResolverRoutinesByFile.Free;
@@ -385,6 +389,7 @@ var
   lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
   lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   lList: TList<TRemoveWithSymbolInfo>;
+  lOwnerBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
   lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
@@ -395,29 +400,57 @@ begin
     TFastCaseAwareComparer.OrdinalIgnoreCase);
   lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
-    for lSymbol in aInventory.fSymbols do
-    begin
-      if lSymbol.fName = '' then
-        Continue;
-      if (lSymbol.fOwnerType <> '') and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
-        lSymbol.fIsDefault then
-        GResolverDefaultPropertyByOwner.AddOrSetValue(lSymbol.fOwnerType, lSymbol);
-      if not lBuckets.TryGetValue(lSymbol.fName, lList) then
-      begin
-        lList := TList<TRemoveWithSymbolInfo>.Create;
-        lBuckets.Add(lSymbol.fName, lList);
-      end;
-      lList.Add(lSymbol);
-    end;
-
-    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    lOwnerBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(
+      TFastCaseAwareComparer.OrdinalIgnoreCase);
     try
-      for lPair in lBuckets do
-        lIndex.Add(lPair.Key, lPair.Value.ToArray);
-      GResolverSymbolNameIndex := lIndex;
-      lIndex := nil;
+      for lSymbol in aInventory.fSymbols do
+      begin
+        if (lSymbol.fOwnerType <> '') and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
+          lSymbol.fIsDefault then
+          GResolverDefaultPropertyByOwner.AddOrSetValue(lSymbol.fOwnerType, lSymbol);
+        if lSymbol.fName <> '' then
+        begin
+          if not lBuckets.TryGetValue(lSymbol.fName, lList) then
+          begin
+            lList := TList<TRemoveWithSymbolInfo>.Create;
+            lBuckets.Add(lSymbol.fName, lList);
+          end;
+          lList.Add(lSymbol);
+        end;
+        if lSymbol.fOwnerType <> '' then
+        begin
+          if not lOwnerBuckets.TryGetValue(lSymbol.fOwnerType, lList) then
+          begin
+            lList := TList<TRemoveWithSymbolInfo>.Create;
+            lOwnerBuckets.Add(lSymbol.fOwnerType, lList);
+          end;
+          lList.Add(lSymbol);
+        end;
+      end;
+
+      lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+      try
+        for lPair in lBuckets do
+          lIndex.Add(lPair.Key, lPair.Value.ToArray);
+        GResolverSymbolNameIndex := lIndex;
+        lIndex := nil;
+      finally
+        lIndex.Free;
+      end;
+
+      lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+      try
+        for lPair in lOwnerBuckets do
+          lIndex.Add(lPair.Key, lPair.Value.ToArray);
+        GResolverSymbolsByOwnerType := lIndex;
+        lIndex := nil;
+      finally
+        lIndex.Free;
+      end;
     finally
-      lIndex.Free;
+      for lPair in lOwnerBuckets do
+        lPair.Value.Free;
+      lOwnerBuckets.Free;
     end;
   finally
     for lPair in lBuckets do
@@ -806,17 +839,21 @@ begin
   if lTypeName = '' then
     Exit('');
 
-  for lSymbol in aInventory.fSymbols do
+  EnsureResolverSymbolNameIndex(aInventory);
+  if Assigned(GResolverSymbolsByOwnerType) and GResolverSymbolsByOwnerType.TryGetValue(lTypeName, lSymbols) and
+    (Length(lSymbols) > 0) then
+    Exit(lTypeName);
+
+  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
-    if SameText(lSymbol.fOwnerType, lTypeName) or
-      ((lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, lTypeName)) then
-      Exit(lTypeName);
+    for lSymbol in lSymbols do
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(lTypeName);
   end;
 
   if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(lTypeName, lTypeInfo) then
     Exit(lTypeName);
 
-  EnsureResolverSymbolNameIndex(aInventory);
   if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
@@ -1782,13 +1819,16 @@ begin
       end;
     end;
   end;
-  for lSymbol in aInventory.fSymbols do
+  if Assigned(GResolverSymbolsByOwnerType) and GResolverSymbolsByOwnerType.TryGetValue(lTypeName, lSymbols) then
   begin
-    if SameText(lSymbol.fOwnerType, lTypeName) and IsDirectMemberKind(lSymbol.fKind) then
+    for lSymbol in lSymbols do
     begin
-      if GResolverBoolCache <> nil then
-        GResolverBoolCache.Add(lKey, True);
-      Exit(True);
+      if IsDirectMemberKind(lSymbol.fKind) then
+      begin
+        if GResolverBoolCache <> nil then
+          GResolverBoolCache.Add(lKey, True);
+        Exit(True);
+      end;
     end;
   end;
   Result := False;

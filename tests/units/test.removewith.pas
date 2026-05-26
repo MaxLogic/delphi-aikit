@@ -39,6 +39,8 @@ type
     [Test]
     procedure SymbolInventoryUsesDuplicateKeyIndexes;
     [Test]
+    procedure ResolverUsesOwnerTypeIndex;
+    [Test]
     procedure RtlSourceModelsSkipWithBinderInventoryBuild;
     [Test]
     procedure SemanticCacheOptionReusesAndInvalidatesUnitModels;
@@ -1026,6 +1028,20 @@ begin
     'for lSymbol in aInventory.fSymbols do' + sLineBreak + '  begin' + sLineBreak +
     '    if SameLogicalNonRoutineSymbol'),
     'Symbol inventory must not linearly scan every existing symbol before keyed duplicate checks.');
+end;
+
+procedure TRemoveWithCommandTests.ResolverUsesOwnerTypeIndex;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'GResolverSymbolsByOwnerType'),
+    'Remove-with resolver must index symbols by owner type for hot member/type lookups.');
+  Assert.IsTrue(ContainsText(lSourceText, 'GResolverSymbolsByOwnerType.TryGetValue(lTypeName, lSymbols)'),
+    'Remove-with resolver must use the owner-type index for source-type checks.');
 end;
 
 procedure TRemoveWithCommandTests.RtlSourceModelsSkipWithBinderInventoryBuild;
