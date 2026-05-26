@@ -6,13 +6,33 @@ uses
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
   Dak.RemoveWith.TempPolicy, Dak.RemoveWith.Transaction, Dak.Types;
 
+type
+  TRemoveWithPlannerPhaseMetrics = record
+    fTotalMs: Int64;
+    fProjectModelMs: Int64;
+    fDiscoveryMs: Int64;
+    fSymbolInventoryMs: Int64;
+    fSymbolMapBridgeMs: Int64;
+    fResolverMs: Int64;
+    fPlannerMs: Int64;
+    fOutputSerializationMs: Int64;
+    fProjectUnitCount: Integer;
+    fParsedUnitCount: Integer;
+    fProjectProblemCount: Integer;
+    fWithStatementCount: Integer;
+    fSymbolCount: Integer;
+    fClassificationCount: Integer;
+    fPlannedEditCount: Integer;
+    fSkippedStatementCount: Integer;
+  end;
+
 function RemoveWithModeToText(const aMode: TRemoveWithMode): string;
 function RemoveWithFormatToText(const aFormat: TRemoveWithFormat): string;
 function RemoveWithTargetKindToText(const aKind: TRemoveWithTargetKind): string;
 function BuildRemoveWithJsonReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
   const aResolverResult: TRemoveWithResolverResult; const aPlanResult: TRemoveWithPlanResult;
-  const aTransactionResult: TRemoveWithTransactionResult): string;
+  const aTransactionResult: TRemoveWithTransactionResult; const aMetrics: TRemoveWithPlannerPhaseMetrics): string;
 function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
   const aPlanResult: TRemoveWithPlanResult; const aTransactionResult: TRemoveWithTransactionResult): string;
@@ -20,7 +40,7 @@ function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPa
 implementation
 
 uses
-  System.IOUtils, System.JSON, System.StrUtils, System.SysUtils;
+  System.Diagnostics, System.IOUtils, System.JSON, System.StrUtils, System.SysUtils;
 
 const
   cRemoveWithSchemaVersion = 2;
@@ -574,6 +594,27 @@ begin
   Result.AddPair('rolledBack', TJSONNumber.Create(lRolledBackCount));
 end;
 
+function BuildPlannerPhaseMetricsObject(const aMetrics: TRemoveWithPlannerPhaseMetrics): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('totalMs', TJSONNumber.Create(aMetrics.fTotalMs));
+  Result.AddPair('projectModelMs', TJSONNumber.Create(aMetrics.fProjectModelMs));
+  Result.AddPair('discoveryMs', TJSONNumber.Create(aMetrics.fDiscoveryMs));
+  Result.AddPair('symbolInventoryMs', TJSONNumber.Create(aMetrics.fSymbolInventoryMs));
+  Result.AddPair('symbolMapBridgeMs', TJSONNumber.Create(aMetrics.fSymbolMapBridgeMs));
+  Result.AddPair('resolverMs', TJSONNumber.Create(aMetrics.fResolverMs));
+  Result.AddPair('plannerMs', TJSONNumber.Create(aMetrics.fPlannerMs));
+  Result.AddPair('outputSerializationMs', TJSONNumber.Create(aMetrics.fOutputSerializationMs));
+  Result.AddPair('projectUnitCount', TJSONNumber.Create(aMetrics.fProjectUnitCount));
+  Result.AddPair('parsedUnitCount', TJSONNumber.Create(aMetrics.fParsedUnitCount));
+  Result.AddPair('projectProblemCount', TJSONNumber.Create(aMetrics.fProjectProblemCount));
+  Result.AddPair('withStatementCount', TJSONNumber.Create(aMetrics.fWithStatementCount));
+  Result.AddPair('symbolCount', TJSONNumber.Create(aMetrics.fSymbolCount));
+  Result.AddPair('classificationCount', TJSONNumber.Create(aMetrics.fClassificationCount));
+  Result.AddPair('plannedEditCount', TJSONNumber.Create(aMetrics.fPlannedEditCount));
+  Result.AddPair('skippedStatementCount', TJSONNumber.Create(aMetrics.fSkippedStatementCount));
+end;
+
 function BuildRootStatus(const aOptions: TAppOptions;
   const aTransactionResult: TRemoveWithTransactionResult): string;
 begin
@@ -586,10 +627,15 @@ end;
 function BuildRemoveWithJsonReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
   const aResolverResult: TRemoveWithResolverResult; const aPlanResult: TRemoveWithPlanResult;
-  const aTransactionResult: TRemoveWithTransactionResult): string;
+  const aTransactionResult: TRemoveWithTransactionResult; const aMetrics: TRemoveWithPlannerPhaseMetrics): string;
 var
+  lMetrics: TRemoveWithPlannerPhaseMetrics;
+  lMetricsPair: TJSONPair;
   lRoot: TJSONObject;
+  lStopwatch: TStopwatch;
 begin
+  lMetrics := aMetrics;
+  lStopwatch := TStopwatch.StartNew;
   lRoot := TJSONObject.Create;
   try
     lRoot.AddPair('schemaVersion', TJSONNumber.Create(cRemoveWithSchemaVersion));
@@ -614,6 +660,12 @@ begin
     lRoot.AddPair('transaction', BuildTransactionObject(aTransactionResult));
     lRoot.AddPair('migrationTelemetry', BuildMigrationTelemetryObject(aResolverResult, aPlanResult));
     lRoot.AddPair('summary', BuildSummaryObject(aOptions, aScanResult, aPlanResult, aTransactionResult));
+    lRoot.AddPair('plannerPhaseMetrics', BuildPlannerPhaseMetricsObject(lMetrics));
+    Result := lRoot.ToJSON;
+    lMetrics.fOutputSerializationMs := lStopwatch.ElapsedMilliseconds;
+    lMetricsPair := lRoot.RemovePair('plannerPhaseMetrics');
+    lMetricsPair.Free;
+    lRoot.AddPair('plannerPhaseMetrics', BuildPlannerPhaseMetricsObject(lMetrics));
     Result := lRoot.ToJSON;
   finally
     lRoot.Free;

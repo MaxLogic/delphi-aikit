@@ -112,6 +112,7 @@ var
   lApplySucceeded: Boolean;
   lError: string;
   lOutputText: string;
+  lMetrics: TRemoveWithPlannerPhaseMetrics;
   lPlanResult: TRemoveWithPlanResult;
   lProjectModel: TRemoveWithProjectModel;
   lProjectName: string;
@@ -123,10 +124,12 @@ var
   lSymbolMapBridge: TRemoveWithSymbolMapBridge;
   lSymbolInventory: TRemoveWithSymbolInventory;
   lTransactionResult: TRemoveWithTransactionResult;
+  lTotalStopwatch: TStopwatch;
   lUnitPath: string;
   lWorkspaceRoot: string;
 begin
   lApplySucceeded := True;
+  lMetrics := Default(TRemoveWithPlannerPhaseMetrics);
   lProjectModel := nil;
   lPlanResult := Default(TRemoveWithPlanResult);
   lResolverResult := Default(TRemoveWithResolverResult);
@@ -146,6 +149,7 @@ begin
   end;
 
   lProjectName := TPath.GetFileNameWithoutExtension(lProjectPath);
+  lTotalStopwatch := TStopwatch.StartNew;
   lRunId := NewRemoveWithRunId;
   lWorkspaceRoot := TPath.Combine(TPath.Combine(TPath.Combine(TPath.GetDirectoryName(lProjectPath), '.dak'), lProjectName),
     TPath.Combine('remove-with', lRunId));
@@ -162,6 +166,10 @@ begin
   end;
   try
     lStopwatch.Stop;
+    lMetrics.fProjectModelMs := lStopwatch.ElapsedMilliseconds;
+    lMetrics.fProjectUnitCount := lProjectModel.IndexCount;
+    lMetrics.fParsedUnitCount := lProjectModel.ParsedUnitCount;
+    lMetrics.fProjectProblemCount := lProjectModel.ProblemCount;
     LogRemoveWithDone(aOptions, 'project-model',
       Format('indexCount=%d parsedUnits=%d problems=%d main=%s',
       [lProjectModel.IndexCount, lProjectModel.ParsedUnitCount, lProjectModel.ProblemCount,
@@ -175,6 +183,8 @@ begin
       Exit(cExitToolFailure);
     end;
     lStopwatch.Stop;
+    lMetrics.fDiscoveryMs := lStopwatch.ElapsedMilliseconds;
+    lMetrics.fWithStatementCount := Length(lScanResult.fWithStatements);
     LogRemoveWithDone(aOptions, 'discovery',
       Format('files=%d withStatements=%d warnings=%d', [Length(lScanResult.fFiles),
       Length(lScanResult.fWithStatements), Length(lScanResult.fWarnings)]), lStopwatch);
@@ -188,6 +198,8 @@ begin
         Exit(cExitToolFailure);
       end;
       lStopwatch.Stop;
+      lMetrics.fSymbolInventoryMs := lStopwatch.ElapsedMilliseconds;
+      lMetrics.fSymbolCount := Length(lSymbolInventory.fSymbols);
       LogRemoveWithDone(aOptions, 'symbol-inventory',
         Format('symbols=%d', [Length(lSymbolInventory.fSymbols)]), lStopwatch);
 
@@ -199,6 +211,7 @@ begin
         lError := '';
       end;
       lStopwatch.Stop;
+      lMetrics.fSymbolMapBridgeMs := lStopwatch.ElapsedMilliseconds;
       LogRemoveWithDone(aOptions, 'symbol-map-bridge',
         Format('prepared=%s projectIndexed=%s', [BoolToStr(lSymbolMapBridge.fPrepared, True),
         BoolToStr(lSymbolMapBridge.fStatus.fProjectIndexed, True)]), lStopwatch);
@@ -212,6 +225,8 @@ begin
         Exit(cExitToolFailure);
       end;
       lStopwatch.Stop;
+      lMetrics.fResolverMs := lStopwatch.ElapsedMilliseconds;
+      lMetrics.fClassificationCount := Length(lResolverResult.fClassifications);
       LogRemoveWithDone(aOptions, 'resolver',
         Format('classifications=%d', [Length(lResolverResult.fClassifications)]), lStopwatch);
 
@@ -223,6 +238,9 @@ begin
         Exit(cExitToolFailure);
       end;
       lStopwatch.Stop;
+      lMetrics.fPlannerMs := lStopwatch.ElapsedMilliseconds;
+      lMetrics.fPlannedEditCount := CountRemoveWithPlannedStatements(lPlanResult, 'planned');
+      lMetrics.fSkippedStatementCount := CountRemoveWithPlannedStatements(lPlanResult, 'skipped');
       if lStopwatch.ElapsedMilliseconds > High(Integer) then
         lPlanResult.fElapsedPlanningMs := High(Integer)
       else
@@ -247,12 +265,14 @@ begin
       end;
     end;
 
+    lTotalStopwatch.Stop;
+    lMetrics.fTotalMs := lTotalStopwatch.ElapsedMilliseconds;
     if aOptions.fRemoveWithFormat = TRemoveWithFormat.rwfText then
       lOutputText := BuildRemoveWithTextReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
         lScanResult, lPlanResult, lTransactionResult)
     else
       lOutputText := BuildRemoveWithJsonReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
-        lScanResult, lResolverResult, lPlanResult, lTransactionResult);
+        lScanResult, lResolverResult, lPlanResult, lTransactionResult, lMetrics);
     WriteRemoveWithOutput(aOptions, lOutputText);
     LogRemoveWithProgress(aOptions, 'report written');
     if not lApplySucceeded then
