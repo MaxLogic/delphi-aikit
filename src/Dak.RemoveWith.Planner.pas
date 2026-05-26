@@ -557,6 +557,7 @@ var
   lNestedTypeName: string;
   lOwnerType: string;
   lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
   lTypeSymbol: TRemoveWithSymbolInfo;
   i: Integer;
 begin
@@ -572,35 +573,40 @@ begin
     lCandidateCount := 0;
     lCandidateKeys := TDictionary<string, Byte>.Create;
     try
-      for lSymbol in aInventory.fSymbols do
+      if GPlannerSymbolsByOwnerType = nil then
+        BeginPlannerSymbolCache(aInventory);
+      if Assigned(GPlannerSymbolsByOwnerType) and
+        GPlannerSymbolsByOwnerType.TryGetValue(lOwnerType, lSymbols) then
       begin
-        if SameText(CanonicalSourceTypeName(aInventory, lSymbol.fOwnerType), lOwnerType) and
-          SameText(lSymbol.fName, aIdentifier) and (lSymbol.fRoutineName = '') and
-          IsDirectMemberKind(lSymbol.fKind) then
+        for lSymbol in lSymbols do
         begin
-          lCandidateTypeName := CanonicalSourceTypeName(aInventory, lSymbol.fTypeName);
-          if SameText(lCandidateTypeName, lSymbol.fName) then
+          if SameText(lSymbol.fName, aIdentifier) and (lSymbol.fRoutineName = '') and
+            IsDirectMemberKind(lSymbol.fKind) then
           begin
-            lNestedTypeName := lSymbol.fOwnerType + '.' + lSymbol.fName;
-            for lTypeSymbol in aInventory.fSymbols do
+            lCandidateTypeName := CanonicalSourceTypeName(aInventory, lSymbol.fTypeName);
+            if SameText(lCandidateTypeName, lSymbol.fName) then
             begin
-              if (lTypeSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and
-                SameText(lTypeSymbol.fName, lNestedTypeName) then
+              lNestedTypeName := lSymbol.fOwnerType + '.' + lSymbol.fName;
+              for lTypeSymbol in aInventory.fSymbols do
               begin
-                lCandidateTypeName := lNestedTypeName;
-                Break;
+                if (lTypeSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and
+                  SameText(lTypeSymbol.fName, lNestedTypeName) then
+                begin
+                  lCandidateTypeName := lNestedTypeName;
+                  Break;
+                end;
               end;
             end;
-          end;
-          if MatchText(lCandidateTypeName, ['PACKED', 'RECORD']) then
-            Continue;
-          lCandidateKey := UpperCase(lCandidateTypeName) + #31 +
-            IntToStr(Ord(lSymbol.fKind));
-          if not lCandidateKeys.ContainsKey(lCandidateKey) then
-          begin
-            lCandidateKeys.Add(lCandidateKey, 1);
-            aMemberTypeName := lCandidateTypeName;
-            Inc(lCandidateCount);
+            if MatchText(lCandidateTypeName, ['PACKED', 'RECORD']) then
+              Continue;
+            lCandidateKey := UpperCase(lCandidateTypeName) + #31 +
+              IntToStr(Ord(lSymbol.fKind));
+            if not lCandidateKeys.ContainsKey(lCandidateKey) then
+            begin
+              lCandidateKeys.Add(lCandidateKey, 1);
+              aMemberTypeName := lCandidateTypeName;
+              Inc(lCandidateCount);
+            end;
           end;
         end;
       end;

@@ -41,6 +41,8 @@ type
     [Test]
     procedure ResolverUsesOwnerTypeIndex;
     [Test]
+    procedure PlannerUsesOwnerTypeIndexForVisibleSelectors;
+    [Test]
     procedure RtlSourceModelsSkipWithBinderInventoryBuild;
     [Test]
     procedure SemanticCacheOptionReusesAndInvalidatesUnitModels;
@@ -1042,6 +1044,22 @@ begin
     'Remove-with resolver must index symbols by owner type for hot member/type lookups.');
   Assert.IsTrue(ContainsText(lSourceText, 'GResolverSymbolsByOwnerType.TryGetValue(lTypeName, lSymbols)'),
     'Remove-with resolver must use the owner-type index for source-type checks.');
+end;
+
+procedure TRemoveWithCommandTests.PlannerUsesOwnerTypeIndexForVisibleSelectors;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Planner.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'GPlannerSymbolsByOwnerType.TryGetValue(lOwnerType, lSymbols)'),
+    'Remove-with planner must use the owner-type index for visible selector member lookups.');
+  Assert.IsFalse(ContainsText(lSourceText,
+    'for lSymbol in aInventory.fSymbols do' + sLineBreak + '      begin' + sLineBreak +
+    '        if SameText(CanonicalSourceTypeName(aInventory, lSymbol.fOwnerType), lOwnerType)'),
+    'Visible selector lookup must not scan every symbol for each identifier.');
 end;
 
 procedure TRemoveWithCommandTests.RtlSourceModelsSkipWithBinderInventoryBuild;
