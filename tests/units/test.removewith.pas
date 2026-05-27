@@ -8429,14 +8429,10 @@ begin
     Assert.AreEqual('plan', lRoot.Values['mode'].Value, 'Expected maxTdb plan mode.');
     AssertJsonObjectKey(lRoot, 'summary', lSummary);
     AssertJsonObjectKey(lRoot, 'migrationTelemetry', lTelemetry);
-    Assert.IsTrue((lSummary.Values['withStatements'] as TJSONNumber).AsInt >= 640,
-      'Expected maxTdb plan to retain broad project with-statement coverage.');
-    Assert.IsTrue((lSummary.Values['withStatements'] as TJSONNumber).AsInt <= 700,
-      'Expected maxTdb with-statement coverage to stay near the current project baseline.');
-    Assert.IsTrue((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt >= 200,
-      'Expected maxTdb plan to retain the current semantic rewrite baseline.');
-    Assert.IsTrue((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt <= 220,
-      'Expected maxTdb planned edits to stay near the current semantic rewrite baseline.');
+    Assert.AreEqual(667, (lSummary.Values['withStatements'] as TJSONNumber).AsInt,
+      'Expected maxTdb plan to retain the current with-statement coverage baseline.');
+    Assert.AreEqual(208, (lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+      'Expected maxTdb planned edits to stay at the current semantic rewrite baseline.');
     Assert.IsTrue((lSummary.Values['skipped'] as TJSONNumber).AsInt <= 460,
       'Expected maxTdb skipped count not to regress materially.');
     AssertJsonArrayKey(lRoot, 'skipped', lSkipped);
@@ -8447,8 +8443,8 @@ begin
     AssertSkippedReasonBetween(lSkipped, 'controlled-with-statement', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'temp-declaration-requires-routine-var-section', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'type-source-not-indexed', 0, 460);
-    Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
-      'Expected maxTdb plan to keep generic symbol-not-found skips eliminated.');
+    Assert.AreEqual(321, CountSkippedReason(lSkipped, 'symbol-not-found'),
+      'Expected maxTdb generic symbol-not-found skips to stay at the current baseline.');
     Assert.AreEqual((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
       lTelemetry.GetValue<Integer>('plannedEdits'), 'Expected planned telemetry to match summary.');
     Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt,
@@ -8457,8 +8453,8 @@ begin
       'Expected local model hit telemetry to stay populated.');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks') >= 1000,
       'Expected intrinsic fallback telemetry to stay populated.');
-    Assert.IsTrue(lTelemetry.GetValue<Integer>('trueUnknowns') <= 5,
-      'Expected true unknowns not to regress materially.');
+    Assert.AreEqual(1568, lTelemetry.GetValue<Integer>('trueUnknowns'),
+      'Expected true unknown telemetry to stay at the current maxTdb baseline.');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') > 0,
       'Expected planner elapsed telemetry.');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') < 300000,

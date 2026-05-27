@@ -184,10 +184,14 @@ type
       const aStatement: TRemoveWithStatementInfo): Boolean; overload; static;
     class function SemanticBindingMatchesStatement(const aEntry: TRemoveWithSemanticWithBinding;
       const aStatement: TRemoveWithStatementInfo): Boolean; overload; static;
+    class function NormalizedSemanticSelectorText(const aSelectorText: string): string; static;
     class function TryFindSemanticBindingForStatement(const aInventory: TRemoveWithSymbolInventory;
       const aStatement: TRemoveWithStatementInfo; out aBinding: TDelphiSemanticWithBinding): Boolean; static;
     class function SemanticBindingBlocksStatement(const aInventory: TRemoveWithSymbolInventory;
       const aStatement: TRemoveWithStatementInfo): Boolean; static;
+    class function TryApplySemanticSelectorInfo(const aInventory: TRemoveWithSymbolInventory;
+      const aBinding: TDelphiSemanticWithBinding;
+      const aSelectorText: string; var aInfo: TRemoveWithSelectorTypeInfo): Boolean; static;
     class function TryFindSemanticReferenceForUse(const aBinding: TDelphiSemanticWithBinding;
       const aUse: TRemoveWithIdentifierUse; out aReference: TDelphiSemanticBoundReference): Boolean; static;
     class function SemanticKindToRemoveWithKind(const aKind: string): TRemoveWithSymbolKind; static;
@@ -211,7 +215,8 @@ type
       out aUses: TArray<TRemoveWithIdentifierUse>); static;
     class procedure BuildReceiverStack(const aInventory: TRemoveWithSymbolInventory;
       const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
-      const aRoutineName: string; out aReceivers: TArray<TRemoveWithReceiverScope>); static;
+      const aRoutineName, aSelectorRoutineName: string; const aBinding: TDelphiSemanticWithBinding;
+      out aReceivers: TArray<TRemoveWithReceiverScope>); static;
     class function ClassifyUse(const aInventory: TRemoveWithSymbolInventory; const aSource: TRemoveWithSourceBuffer;
       const aRoutineName: string; const aReceivers: TArray<TRemoveWithReceiverScope>;
       const aBinding: TDelphiSemanticWithBinding; const aUse: TRemoveWithIdentifierUse;
@@ -2280,10 +2285,8 @@ var
   lBindingSelector: string;
   lStatementSelector: string;
 begin
-  lBindingSelector := StringReplace(Trim(aBinding.SelectorText), ' ', '', [rfReplaceAll]);
-  lBindingSelector := StringReplace(lBindingSelector, #9, '', [rfReplaceAll]);
-  lStatementSelector := StringReplace(Trim(aStatement.fSelectorText), ' ', '', [rfReplaceAll]);
-  lStatementSelector := StringReplace(lStatementSelector, #9, '', [rfReplaceAll]);
+  lBindingSelector := NormalizedSemanticSelectorText(aBinding.SelectorText);
+  lStatementSelector := NormalizedSemanticSelectorText(aStatement.fSelectorText);
   Result := SameText(TPath.GetFullPath(aBinding.FileName), TPath.GetFullPath(aStatement.fFilePath)) and
     SameText(lBindingSelector, lStatementSelector) and
     (aBinding.Line = aStatement.fLine) and (aBinding.Column = aStatement.fColumn);
@@ -2294,6 +2297,12 @@ class function TRemoveWithIdentifierResolver.SemanticBindingMatchesStatement(
 begin
   Result := SameText(TPath.GetFullPath(aEntry.fFilePath), TPath.GetFullPath(aStatement.fFilePath)) and
     SemanticBindingMatchesStatement(aEntry.fBinding, aStatement);
+end;
+
+class function TRemoveWithIdentifierResolver.NormalizedSemanticSelectorText(const aSelectorText: string): string;
+begin
+  Result := StringReplace(Trim(aSelectorText), ' ', '', [rfReplaceAll]);
+  Result := StringReplace(Result, #9, '', [rfReplaceAll]);
 end;
 
 class function TRemoveWithIdentifierResolver.TryFindSemanticBindingForStatement(
@@ -2333,6 +2342,31 @@ var
 begin
   Result := TryFindSemanticBindingForStatement(aInventory, aStatement, lBinding) and
     lBinding.HasScopedDeclaration;
+end;
+
+class function TRemoveWithIdentifierResolver.TryApplySemanticSelectorInfo(
+  const aInventory: TRemoveWithSymbolInventory; const aBinding: TDelphiSemanticWithBinding; const aSelectorText: string;
+  var aInfo: TRemoveWithSelectorTypeInfo): Boolean;
+var
+  lSelector: TDelphiSemanticWithSelectorBinding;
+  lSelectorText: string;
+begin
+  Result := False;
+  lSelectorText := NormalizedSemanticSelectorText(aSelectorText);
+  for lSelector in aBinding.Selectors do
+  begin
+    if SameText(NormalizedSemanticSelectorText(lSelector.SelectorText), lSelectorText) and
+      SameText(lSelector.Status, 'resolved') and (Trim(lSelector.TypeName) <> '') and
+      HasSourceType(aInventory, lSelector.TypeName) and (not IsExternalType(aInventory, lSelector.TypeName)) then
+    begin
+      aInfo.fSelectorText := aSelectorText;
+      aInfo.fTypeName := Trim(lSelector.TypeName);
+      aInfo.fReason := '';
+      aInfo.fAddressable := True;
+      aInfo.fStatus := TRemoveWithSelectorTypeStatus.rwstsResolved;
+      Exit(True);
+    end;
+  end;
 end;
 
 class function TRemoveWithIdentifierResolver.TryFindSemanticReferenceForUse(
@@ -2820,7 +2854,8 @@ end;
 
 class procedure TRemoveWithIdentifierResolver.BuildReceiverStack(const aInventory: TRemoveWithSymbolInventory;
   const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
-  const aRoutineName: string; out aReceivers: TArray<TRemoveWithReceiverScope>);
+  const aRoutineName, aSelectorRoutineName: string; const aBinding: TDelphiSemanticWithBinding;
+  out aReceivers: TArray<TRemoveWithReceiverScope>);
 var
   lInfo: TRemoveWithSelectorTypeInfo;
   lList: TList<TRemoveWithReceiverScope>;
@@ -2850,6 +2885,11 @@ begin
             ResolveSelectorFromReceivers(aInventory, lList.ToArray, lSelector, lInfo) then
           begin
           end;
+          if (lInfo.fStatus = TRemoveWithSelectorTypeStatus.rwstsResolved) and (lInfo.fTypeName = '') and
+            (aSelectorRoutineName <> '') and
+            TryApplySemanticSelectorInfo(aInventory, aBinding, lSelector, lInfo) then
+          begin
+          end;
         end;
         lReceiver := Default(TRemoveWithReceiverScope);
         lReceiver.fSelectorText := lSelector;
@@ -2873,6 +2913,11 @@ begin
         NormalizeSelectorInfo(aInventory, aRoutineName, lSelector, lInfo);
         if (lInfo.fStatus <> TRemoveWithSelectorTypeStatus.rwstsResolved) and
           ResolveSelectorFromReceivers(aInventory, lList.ToArray, lSelector, lInfo) then
+        begin
+        end;
+        if (lInfo.fStatus = TRemoveWithSelectorTypeStatus.rwstsResolved) and (lInfo.fTypeName = '') and
+          (aSelectorRoutineName <> '') and
+          TryApplySemanticSelectorInfo(aInventory, aBinding, lSelector, lInfo) then
         begin
         end;
       end;
@@ -3230,6 +3275,7 @@ var
   lInactiveRanges: TArray<TRemoveWithInactiveRange>;
   lReceivers: TArray<TRemoveWithReceiverScope>;
   lRoutineName: string;
+  lSelectorRoutineName: string;
   lSkipRanges: TList<TRemoveWithOffsetRange>;
   lScopedLocalNames: TArray<TRemoveWithScopedLocalRange>;
   lStatement: TRemoveWithStatementInfo;
@@ -3246,8 +3292,12 @@ begin
     Exit;
   if not FindRoutineForStatement(aInventory, aStatement, lRoutineName) then
     lRoutineName := '';
+  lSelectorRoutineName := '';
+  if (lBinding.RoutineName <> '') and (not SameText(lBinding.RoutineName, lRoutineName)) and
+    (Pos('.', lRoutineName) > 0) and (Pos('.', lBinding.RoutineName) = 0) then
+    lSelectorRoutineName := lBinding.RoutineName;
 
-  BuildReceiverStack(aInventory, aScanResult, aStatement, lRoutineName, lReceivers);
+  BuildReceiverStack(aInventory, aScanResult, aStatement, lRoutineName, lSelectorRoutineName, lBinding, lReceivers);
   lSkipRanges := TList<TRemoveWithOffsetRange>.Create;
   try
     lInactiveRanges := RemoveWithInactiveDirectiveRanges(aSource, aInventory.fParserDefines);
