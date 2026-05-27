@@ -7,7 +7,7 @@ uses
   DUnitX.TestFramework,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Planner,
   Dak.RemoveWith.Resolver, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy,
-  DelphiSemantics.Model, DelphiSemantics.WithBinding,
+  Dak.RemoveWith.Transaction, Dak.Types, DelphiSemantics.Model, DelphiSemantics.WithBinding,
   Test.Support;
 
 type
@@ -504,6 +504,23 @@ type
   end;
 
   [TestFixture]
+  TRemoveWithApplyCompileGateTests = class(TRemoveWithTestBase)
+  private
+    procedure AssertBytesEqual(const aExpected, aActual: TBytes; const aMessage: string);
+    procedure CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string; out aDprojPath,
+      aUnitPath: string);
+    procedure BuildPlanForFixture(const aDprojPath: string; out aOptions: TAppOptions;
+      out aPlanResult: TRemoveWithPlanResult; out aApplyContext: TRemoveWithPlanApplyContext);
+  public
+    [Test]
+    procedure ApplyRefusesWhenPlannedSourceFingerprintIsStale;
+    [Test]
+    procedure ApplyRefusesPlannedEditsWhenContextFingerprintIsMissing;
+    [Test]
+    procedure LegacyApplyOverloadRefusesPlannedEditsWithoutContext;
+  end;
+
+  [TestFixture]
   TRemoveWithApplyReportTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;
@@ -765,8 +782,7 @@ implementation
 
 uses
   System.Threading,
-  DelphiAST, DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer,
-  Dak.Types;
+  DelphiAST, DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer;
 
 const
   cAstParallelIterations = 24;
@@ -5870,6 +5886,185 @@ begin
   Assert.IsTrue(Pos('status=applied', lOutput) > 0, 'Expected text output to report applied status.');
   Assert.IsTrue(Pos('appliedEdits=1', lOutput) > 0, 'Expected text output to report applied edit count.');
   Assert.IsTrue(Pos('verification=passed', lOutput) > 0, 'Expected text output to report verification status.');
+end;
+
+procedure TRemoveWithApplyCompileGateTests.AssertBytesEqual(const aExpected, aActual: TBytes;
+  const aMessage: string);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(Length(aExpected), Length(aActual), aMessage + ' Size differs.');
+  for i := 0 to High(aExpected) do
+    Assert.AreEqual(aExpected[i], aActual[i], aMessage + ' Byte differs at index ' + i.ToString + '.');
+end;
+
+procedure TRemoveWithApplyCompileGateTests.CopyFixtureToTemp(const aFixtureName, aTempName,
+  aUnitName: string; out aDprojPath, aUnitPath: string);
+var
+  lDestinationDir: string;
+  lFile: string;
+  lRelativePath: string;
+  lSourceDir: string;
+  lTargetFile: string;
+begin
+  lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
+  lDestinationDir := TPath.Combine(TempRoot, aTempName);
+  if TDirectory.Exists(lDestinationDir) then
+    TDirectory.Delete(lDestinationDir, True);
+  TDirectory.CreateDirectory(lDestinationDir);
+
+  for lFile in TDirectory.GetFiles(lSourceDir, '*', TSearchOption.soAllDirectories) do
+  begin
+    lRelativePath := Copy(lFile, Length(lSourceDir) + 2, MaxInt);
+    lTargetFile := TPath.Combine(lDestinationDir, lRelativePath);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lTargetFile));
+    TFile.Copy(lFile, lTargetFile, True);
+  end;
+
+  aDprojPath := TPath.Combine(lDestinationDir, aFixtureName + '.dproj');
+  aUnitPath := TPath.Combine(lDestinationDir, aUnitName);
+end;
+
+procedure TRemoveWithApplyCompileGateTests.BuildPlanForFixture(const aDprojPath: string;
+  out aOptions: TAppOptions; out aPlanResult: TRemoveWithPlanResult;
+  out aApplyContext: TRemoveWithPlanApplyContext);
+var
+  lError: string;
+  lInventory: TRemoveWithSymbolInventory;
+  lModel: TRemoveWithProjectModel;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+  lSymbolMapBridge: TRemoveWithSymbolMapBridge;
+begin
+  aOptions := Default(TAppOptions);
+  aOptions.fDprojPath := aDprojPath;
+  aOptions.fConfig := 'Debug';
+  aOptions.fPlatform := 'Win32';
+  aOptions.fDelphiVersion := '23.0';
+  aOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lModel := nil;
+  lSymbolMapBridge := Default(TRemoveWithSymbolMapBridge);
+  Assert.IsTrue(BuildRemoveWithProjectModel(aOptions, aDprojPath, lModel, lError), lError);
+  try
+    Assert.IsTrue(DiscoverRemoveWithStatements(aOptions, lModel, lScanResult, lError), lError);
+    Assert.IsTrue(BuildRemoveWithSymbolInventory(aOptions, lModel, lInventory, lError), lError);
+    Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lSymbolMapBridge, lResolverResult,
+      lError), lError);
+    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, aPlanResult, lError),
+      lError);
+    Assert.IsTrue(BuildRemoveWithPlanApplyContext(aPlanResult, aApplyContext, lError), lError);
+    Assert.AreEqual(1, Length(aApplyContext.fSourceFingerprints),
+      'Expected the DAK apply context to fingerprint the source file it will edit.');
+    Assert.IsNotEmpty(aApplyContext.fContextFingerprint,
+      'Expected the DAK apply context to carry a context fingerprint.');
+  finally
+    FinalizeRemoveWithSymbolMapBridge(lSymbolMapBridge);
+    lModel.Free;
+  end;
+end;
+
+procedure TRemoveWithApplyCompileGateTests.ApplyRefusesWhenPlannedSourceFingerprintIsStale;
+var
+  lDprojPath: string;
+  lError: string;
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lManifestValue: TJSONValue;
+  lMutatedBytes: TBytes;
+  lOptions: TAppOptions;
+  lPlanResult: TRemoveWithPlanResult;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-stale-fingerprint', 'ApplyUnit.pas',
+    lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+
+  TFile.AppendAllText(lUnitPath, sLineBreak + '// context changed after planning' + sLineBreak,
+    TEncoding.UTF8);
+  lMutatedBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath), '.dak\RemoveWithApplyFixture\remove-with\stale');
+
+  Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot, lPlanResult,
+    lApplyContext, lTransactionResult, lError), 'Expected stale source context to refuse apply mode.');
+  Assert.AreEqual('context-fingerprint-mismatch', RemoveWithTransactionStatusToText(lTransactionResult.fStatus),
+    'Expected explicit context fingerprint mismatch status.');
+  Assert.Contains(lError, 'context-fingerprint-mismatch',
+    'Expected stale context error to be reported.');
+  Assert.AreEqual(0, Length(lTransactionResult.fFiles),
+    'Expected stale context preflight to refuse before backing up or editing files.');
+  AssertBytesEqual(lMutatedBytes, TFile.ReadAllBytes(lUnitPath),
+    'Context mismatch must preserve the changed source bytes exactly.');
+  Assert.IsTrue(TFile.Exists(lTransactionResult.fManifestPath), 'Expected refusal manifest to be written.');
+
+  lManifestValue := TJSONObject.ParseJSONValue(TFile.ReadAllText(lTransactionResult.fManifestPath,
+    TEncoding.UTF8));
+  try
+    Assert.IsTrue(lManifestValue is TJSONObject, 'Expected manifest JSON object.');
+    Assert.AreEqual('context-fingerprint-mismatch', (lManifestValue as TJSONObject).Values['status'].Value,
+      'Expected manifest to record context mismatch.');
+  finally
+    lManifestValue.Free;
+  end;
+end;
+
+procedure TRemoveWithApplyCompileGateTests.ApplyRefusesPlannedEditsWhenContextFingerprintIsMissing;
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lDprojPath: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-missing-fingerprint', 'ApplyUnit.pas',
+    lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+  lApplyContext := Default(TRemoveWithPlanApplyContext);
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\missing-context');
+
+  Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot, lPlanResult,
+    lApplyContext, lTransactionResult, lError), 'Expected missing source context to refuse apply mode.');
+  Assert.AreEqual('context-fingerprint-missing', RemoveWithTransactionStatusToText(lTransactionResult.fStatus),
+    'Expected explicit missing context fingerprint status.');
+  Assert.Contains(lError, 'context-fingerprint-missing', 'Expected missing context error to be reported.');
+  Assert.AreEqual(0, Length(lTransactionResult.fFiles),
+    'Expected missing context preflight to refuse before backing up or editing files.');
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
+    'Missing context refusal must preserve source bytes exactly.');
+end;
+
+procedure TRemoveWithApplyCompileGateTests.LegacyApplyOverloadRefusesPlannedEditsWithoutContext;
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lDprojPath: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-legacy-missing-context', 'ApplyUnit.pas',
+    lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\legacy-missing-context');
+
+  Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot, lPlanResult,
+    lTransactionResult, lError), 'Expected legacy apply overload to fail closed for planned edits.');
+  Assert.AreEqual('context-fingerprint-missing', RemoveWithTransactionStatusToText(lTransactionResult.fStatus),
+    'Expected explicit missing context fingerprint status.');
+  Assert.Contains(lError, 'context-fingerprint-missing', 'Expected missing context error to be reported.');
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
+    'Legacy overload refusal must preserve source bytes exactly.');
 end;
 
 function TRemoveWithApplyReportTests.CommandExePath: string;
