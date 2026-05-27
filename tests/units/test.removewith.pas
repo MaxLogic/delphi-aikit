@@ -1264,6 +1264,7 @@ var
   lOutput: string;
   lRoot: TJSONObject;
   lMetrics: TJSONObject;
+  lSubphaseMetrics: TJSONObject;
 begin
   lOutput := RunRemoveWith('plan', 'json', 'remove-with-report-plan-metrics.json', lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan report to succeed.');
@@ -1278,6 +1279,13 @@ begin
     AssertJsonNumberKey(lMetrics, 'projectModelMs');
     AssertJsonNumberKey(lMetrics, 'discoveryMs');
     AssertJsonNumberKey(lMetrics, 'symbolInventoryMs');
+    AssertJsonObjectKey(lMetrics, 'symbolInventorySubphaseMetrics', lSubphaseMetrics);
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticBindingIndexBuildMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticInventoryExpansionMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'rtlSourceEnrichmentMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'externalUnitSymbolsMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'externalTypeSymbolsMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'problemSymbolAssemblyMs');
     AssertJsonNumberKey(lMetrics, 'symbolMapBridgeMs');
     AssertJsonNumberKey(lMetrics, 'resolverMs');
     AssertJsonNumberKey(lMetrics, 'plannerMs');

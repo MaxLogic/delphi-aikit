@@ -123,6 +123,7 @@ var
   lStopwatch: TStopwatch;
   lSymbolMapBridge: TRemoveWithSymbolMapBridge;
   lSymbolInventory: TRemoveWithSymbolInventory;
+  lSymbolInventoryPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics;
   lTransactionResult: TRemoveWithTransactionResult;
   lTotalStopwatch: TStopwatch;
   lUnitPath: string;
@@ -192,13 +193,15 @@ begin
     begin
       LogRemoveWithProgress(aOptions, 'symbol-inventory start');
       lStopwatch := TStopwatch.StartNew;
-      if not BuildRemoveWithSymbolInventory(aOptions, lProjectModel, lSymbolInventory, lError) then
+      if not BuildRemoveWithSymbolInventory(aOptions, lProjectModel, lSymbolInventory, lError,
+        lSymbolInventoryPhaseMetrics) then
       begin
         WriteLn(ErrOutput, lError);
         Exit(cExitToolFailure);
       end;
       lStopwatch.Stop;
       lMetrics.fSymbolInventoryMs := lStopwatch.ElapsedMilliseconds;
+      lMetrics.fSymbolInventoryPhaseMetrics := lSymbolInventoryPhaseMetrics;
       lMetrics.fSymbolCount := Length(lSymbolInventory.fSymbols);
       LogRemoveWithDone(aOptions, 'symbol-inventory',
         Format('symbols=%d', [Length(lSymbolInventory.fSymbols)]), lStopwatch);

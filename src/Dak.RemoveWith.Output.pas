@@ -12,6 +12,7 @@ type
     fProjectModelMs: Int64;
     fDiscoveryMs: Int64;
     fSymbolInventoryMs: Int64;
+    fSymbolInventoryPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics;
     fSymbolMapBridgeMs: Int64;
     fResolverMs: Int64;
     fPlannerMs: Int64;
@@ -594,6 +595,20 @@ begin
   Result.AddPair('rolledBack', TJSONNumber.Create(lRolledBackCount));
 end;
 
+function BuildSymbolInventoryPhaseMetricsObject(
+  const aMetrics: TRemoveWithSymbolInventoryPhaseMetrics): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('semanticBindingIndexBuildMs',
+    TJSONNumber.Create(aMetrics.fSemanticBindingIndexBuildMs));
+  Result.AddPair('semanticInventoryExpansionMs',
+    TJSONNumber.Create(aMetrics.fSemanticInventoryExpansionMs));
+  Result.AddPair('rtlSourceEnrichmentMs', TJSONNumber.Create(aMetrics.fRtlSourceEnrichmentMs));
+  Result.AddPair('externalUnitSymbolsMs', TJSONNumber.Create(aMetrics.fExternalUnitSymbolsMs));
+  Result.AddPair('externalTypeSymbolsMs', TJSONNumber.Create(aMetrics.fExternalTypeSymbolsMs));
+  Result.AddPair('problemSymbolAssemblyMs', TJSONNumber.Create(aMetrics.fProblemSymbolAssemblyMs));
+end;
+
 function BuildPlannerPhaseMetricsObject(const aMetrics: TRemoveWithPlannerPhaseMetrics): TJSONObject;
 begin
   Result := TJSONObject.Create;
@@ -601,6 +616,8 @@ begin
   Result.AddPair('projectModelMs', TJSONNumber.Create(aMetrics.fProjectModelMs));
   Result.AddPair('discoveryMs', TJSONNumber.Create(aMetrics.fDiscoveryMs));
   Result.AddPair('symbolInventoryMs', TJSONNumber.Create(aMetrics.fSymbolInventoryMs));
+  Result.AddPair('symbolInventorySubphaseMetrics',
+    BuildSymbolInventoryPhaseMetricsObject(aMetrics.fSymbolInventoryPhaseMetrics));
   Result.AddPair('symbolMapBridgeMs', TJSONNumber.Create(aMetrics.fSymbolMapBridgeMs));
   Result.AddPair('resolverMs', TJSONNumber.Create(aMetrics.fResolverMs));
   Result.AddPair('plannerMs', TJSONNumber.Create(aMetrics.fPlannerMs));
