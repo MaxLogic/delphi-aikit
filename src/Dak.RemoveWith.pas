@@ -117,6 +117,7 @@ var
   lProjectModel: TRemoveWithProjectModel;
   lProjectName: string;
   lProjectPath: string;
+  lApplyContext: TRemoveWithPlanApplyContext;
   lResolverResult: TRemoveWithResolverResult;
   lRunId: string;
   lScanResult: TRemoveWithScanResult;
@@ -257,8 +258,11 @@ begin
       begin
         LogRemoveWithProgress(aOptions, 'apply start');
         lStopwatch := TStopwatch.StartNew;
-        lApplySucceeded := ApplyRemoveWithPlanTransactionally(aOptions, lProjectPath, lWorkspaceRoot, lPlanResult,
-          lTransactionResult, lError);
+        if BuildRemoveWithPlanApplyContext(lPlanResult, lApplyContext, lError) then
+          lApplySucceeded := ApplyRemoveWithPlanTransactionally(aOptions, lProjectPath, lWorkspaceRoot, lPlanResult,
+            lApplyContext, lTransactionResult, lError)
+        else
+          lApplySucceeded := False;
         lStopwatch.Stop;
         LogRemoveWithDone(aOptions, 'apply', Format('status=%s files=%d',
           [RemoveWithTransactionStatusToText(lTransactionResult.fStatus), Length(lTransactionResult.fFiles)]),

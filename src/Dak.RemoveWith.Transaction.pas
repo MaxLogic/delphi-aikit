@@ -6,8 +6,18 @@ uses
   Dak.RemoveWith.Planner, Dak.Types;
 
 type
+  TRemoveWithSourceFingerprint = record
+    fFilePath: string;
+    fHash: string;
+  end;
+
+  TRemoveWithPlanApplyContext = record
+    fContextFingerprint: string;
+    fSourceFingerprints: TArray<TRemoveWithSourceFingerprint>;
+  end;
+
   TRemoveWithTransactionStatus = (rwtxNotRun, rwtxApplied, rwtxPreflightBuildFailed, rwtxRolledBack,
-    rwtxRollbackFailed);
+    rwtxRollbackFailed, rwtxContextFingerprintMismatch, rwtxContextFingerprintMissing);
 
   TRemoveWithTransactionFile = record
     fPath: string;
@@ -23,6 +33,8 @@ type
     fBackupRoot: string;
     fError: string;
     fManifestPath: string;
+    fContextFingerprint: string;
+    fCurrentContextFingerprint: string;
     fVerificationError: string;
     fVerificationStdErrLogPath: string;
     fVerificationStdOutLogPath: string;
@@ -32,15 +44,21 @@ type
   end;
 
 function RemoveWithTransactionStatusToText(const aStatus: TRemoveWithTransactionStatus): string;
+function BuildRemoveWithPlanApplyContext(const aPlanResult: TRemoveWithPlanResult;
+  out aContext: TRemoveWithPlanApplyContext; out aError: string): Boolean;
+function ApplyRemoveWithPlanTransactionally(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot: string;
+  const aPlanResult: TRemoveWithPlanResult; const aApplyContext: TRemoveWithPlanApplyContext;
+  out aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; overload;
 function ApplyRemoveWithPlanTransactionally(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot: string;
   const aPlanResult: TRemoveWithPlanResult; out aTransactionResult: TRemoveWithTransactionResult;
-  out aError: string): Boolean;
+  out aError: string): Boolean; overload;
 
 implementation
 
 uses
   System.Generics.Collections, System.Hash, System.IOUtils, System.JSON, System.SysUtils,
   Winapi.Windows,
+  MaxLogic.StrUtils,
   Dak.Build.Runner, Dak.RemoveWith.Discovery, Dak.RemoveWith.Source;
 
 const
@@ -80,6 +98,8 @@ type
       var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
     class function WriteManifest(const aManifestPath: string;
       const aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
+    class function ValidatePlanContext(const aApplyContext: TRemoveWithPlanApplyContext;
+      var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
     class function CaptureEnvironment: TArray<TRemoveWithEnvironmentVariableState>; static;
     class procedure AddEnvironmentVariable(var aEnvironment: TArray<TRemoveWithEnvironmentVariableState>;
       const aName, aValue: string); static;
@@ -90,8 +110,8 @@ type
       var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
   public
     class function Apply(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot: string;
-      const aPlanResult: TRemoveWithPlanResult; out aTransactionResult: TRemoveWithTransactionResult;
-      out aError: string): Boolean; static;
+      const aPlanResult: TRemoveWithPlanResult; const aApplyContext: TRemoveWithPlanApplyContext;
+      out aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
   end;
 
 function RemoveWithTransactionStatusToText(const aStatus: TRemoveWithTransactionStatus): string;
@@ -105,9 +125,105 @@ begin
       Result := 'rolledBack';
     TRemoveWithTransactionStatus.rwtxRollbackFailed:
       Result := 'rollbackFailed';
+    TRemoveWithTransactionStatus.rwtxContextFingerprintMismatch:
+      Result := 'context-fingerprint-mismatch';
+    TRemoveWithTransactionStatus.rwtxContextFingerprintMissing:
+      Result := 'context-fingerprint-missing';
   else
     Result := 'not-run';
   end;
+end;
+
+procedure AddUniquePlanFile(const aFiles: TList<string>; const aFileName: string);
+var
+  lFileName: string;
+begin
+  lFileName := TPath.GetFullPath(aFileName);
+  if aFiles.Contains(lFileName) then
+    Exit;
+  aFiles.Add(lFileName);
+end;
+
+function PlannedSourceFiles(const aPlanResult: TRemoveWithPlanResult): TArray<string>;
+var
+  lEdit: TRemoveWithPlannedTextEdit;
+  lFiles: TList<string>;
+  lSeen: TDictionary<string, Byte>;
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  lFiles := nil;
+  lSeen := nil;
+  try
+    lFiles := TList<string>.Create;
+    lSeen := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    for lStatement in aPlanResult.fStatements do
+    begin
+      if lStatement.fStatus <> 'planned' then
+        Continue;
+      for lEdit in lStatement.fEdits do
+        if lEdit.fFilePath <> '' then
+        begin
+          if lSeen.ContainsKey(lEdit.fFilePath) then
+            Continue;
+          lSeen.Add(lEdit.fFilePath, 0);
+          AddUniquePlanFile(lFiles, lEdit.fFilePath);
+        end;
+    end;
+    Result := lFiles.ToArray;
+  finally
+    lSeen.Free;
+    lFiles.Free;
+  end;
+end;
+
+function BuildRemoveWithPlanApplyContextForFiles(const aFileNames: TArray<string>;
+  out aContext: TRemoveWithPlanApplyContext; out aError: string): Boolean;
+var
+  lBuilder: TStringBuilder;
+  lFileName: string;
+  lFingerprint: TRemoveWithSourceFingerprint;
+  lIndex: Integer;
+begin
+  Result := False;
+  aContext := Default(TRemoveWithPlanApplyContext);
+  aError := '';
+  lBuilder := TStringBuilder.Create;
+  try
+    try
+      for lFileName in aFileNames do
+      begin
+        if not TFile.Exists(lFileName) then
+        begin
+          aError := 'planned-source-missing: ' + lFileName;
+          Exit(False);
+        end;
+        lIndex := Length(aContext.fSourceFingerprints);
+        SetLength(aContext.fSourceFingerprints, lIndex + 1);
+        lFingerprint := Default(TRemoveWithSourceFingerprint);
+        lFingerprint.fFilePath := TPath.GetFullPath(lFileName);
+        lFingerprint.fHash := THashSHA2.GetHashStringFromFile(lFingerprint.fFilePath);
+        aContext.fSourceFingerprints[lIndex] := lFingerprint;
+        lBuilder.Append(AnsiLowerCase(lFingerprint.fFilePath));
+        lBuilder.Append('=');
+        lBuilder.Append(lFingerprint.fHash);
+        lBuilder.AppendLine;
+      end;
+      if lBuilder.Length > 0 then
+        aContext.fContextFingerprint := THashSHA2.GetHashString(lBuilder.ToString);
+      Result := True;
+    except
+      on E: Exception do
+        aError := E.Message;
+    end;
+  finally
+    lBuilder.Free;
+  end;
+end;
+
+function BuildRemoveWithPlanApplyContext(const aPlanResult: TRemoveWithPlanResult;
+  out aContext: TRemoveWithPlanApplyContext; out aError: string): Boolean;
+begin
+  Result := BuildRemoveWithPlanApplyContextForFiles(PlannedSourceFiles(aPlanResult), aContext, aError);
 end;
 
 class function TRemoveWithTransaction.FileHash(const aBytes: TBytes): string;
@@ -390,6 +506,8 @@ begin
   try
     lRoot.AddPair('status', RemoveWithTransactionStatusToText(aTransactionResult.fStatus));
     lRoot.AddPair('backupRoot', aTransactionResult.fBackupRoot);
+    lRoot.AddPair('contextFingerprint', aTransactionResult.fContextFingerprint);
+    lRoot.AddPair('currentContextFingerprint', aTransactionResult.fCurrentContextFingerprint);
     lFiles := TJSONArray.Create;
     for lFile in aTransactionResult.fFiles do
     begin
@@ -495,6 +613,40 @@ begin
     Winapi.Windows.SetEnvironmentVariable(PChar(lName), nil);
 end;
 
+class function TRemoveWithTransaction.ValidatePlanContext(const aApplyContext: TRemoveWithPlanApplyContext;
+  var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean;
+var
+  lCurrentContext: TRemoveWithPlanApplyContext;
+  lCurrentFingerprint: string;
+  lFileNames: TArray<string>;
+  i: Integer;
+begin
+  Result := False;
+  aError := '';
+  aTransactionResult.fContextFingerprint := aApplyContext.fContextFingerprint;
+  if (aApplyContext.fContextFingerprint = '') or (Length(aApplyContext.fSourceFingerprints) = 0) then
+  begin
+    aError := 'context-fingerprint-missing';
+    Exit(False);
+  end;
+
+  SetLength(lFileNames, Length(aApplyContext.fSourceFingerprints));
+  for i := 0 to High(aApplyContext.fSourceFingerprints) do
+    lFileNames[i] := aApplyContext.fSourceFingerprints[i].fFilePath;
+
+  if not BuildRemoveWithPlanApplyContextForFiles(lFileNames, lCurrentContext, aError) then
+    Exit(False);
+
+  lCurrentFingerprint := lCurrentContext.fContextFingerprint;
+  aTransactionResult.fCurrentContextFingerprint := lCurrentFingerprint;
+  if not SameText(aApplyContext.fContextFingerprint, lCurrentFingerprint) then
+  begin
+    aError := 'context-fingerprint-mismatch';
+    Exit(False);
+  end;
+  Result := True;
+end;
+
 class function TRemoveWithTransaction.VerifyBuild(const aOptions: TAppOptions;
   const aProjectPath, aDiagnosticsDir: string; var aTransactionResult: TRemoveWithTransactionResult;
   out aError: string): Boolean;
@@ -558,9 +710,11 @@ end;
 
 class function TRemoveWithTransaction.Apply(const aOptions: TAppOptions; const aProjectPath,
   aWorkspaceRoot: string; const aPlanResult: TRemoveWithPlanResult;
-  out aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean;
+  const aApplyContext: TRemoveWithPlanApplyContext; out aTransactionResult: TRemoveWithTransactionResult;
+  out aError: string): Boolean;
 var
   lManifestError: string;
+  lValidationError: string;
 begin
   aTransactionResult := Default(TRemoveWithTransactionResult);
   aTransactionResult.fBackupRoot := TPath.Combine(aWorkspaceRoot, 'backup');
@@ -573,6 +727,29 @@ begin
   begin
     aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxApplied;
     Exit(WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, aError));
+  end;
+
+  if not ValidatePlanContext(aApplyContext, aTransactionResult, lValidationError) then
+  begin
+    if SameText(lValidationError, 'context-fingerprint-missing') then
+    begin
+      aError := lValidationError;
+      aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxContextFingerprintMissing;
+    end else if lValidationError <> '' then
+    begin
+      aError := 'context-fingerprint-mismatch: ' + lValidationError;
+      aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxContextFingerprintMismatch;
+    end
+    else
+    begin
+      aError := 'context-fingerprint-mismatch';
+      aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxContextFingerprintMismatch;
+    end;
+    aTransactionResult.fError := aError;
+    aTransactionResult.fVerificationStatus := 'not-run';
+    aTransactionResult.fVerificationError := aError;
+    WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, lManifestError);
+    Exit(False);
   end;
 
   if not VerifyBuild(aOptions, aProjectPath, TPath.Combine(aWorkspaceRoot, 'verification-preflight'),
@@ -627,11 +804,22 @@ begin
 end;
 
 function ApplyRemoveWithPlanTransactionally(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot: string;
+  const aPlanResult: TRemoveWithPlanResult; const aApplyContext: TRemoveWithPlanApplyContext;
+  out aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean;
+begin
+  Result := TRemoveWithTransaction.Apply(aOptions, aProjectPath, aWorkspaceRoot, aPlanResult, aApplyContext,
+    aTransactionResult, aError);
+end;
+
+function ApplyRemoveWithPlanTransactionally(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot: string;
   const aPlanResult: TRemoveWithPlanResult; out aTransactionResult: TRemoveWithTransactionResult;
   out aError: string): Boolean;
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
 begin
-  Result := TRemoveWithTransaction.Apply(aOptions, aProjectPath, aWorkspaceRoot, aPlanResult, aTransactionResult,
-    aError);
+  lApplyContext := Default(TRemoveWithPlanApplyContext);
+  Result := ApplyRemoveWithPlanTransactionally(aOptions, aProjectPath, aWorkspaceRoot, aPlanResult,
+    lApplyContext, aTransactionResult, aError);
 end;
 
 end.
