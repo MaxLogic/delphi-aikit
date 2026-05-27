@@ -48,12 +48,26 @@ type
     fParserDefines: string;
   end;
 
+  TRemoveWithSymbolInventoryPhaseMetrics = record
+    fSemanticBindingIndexBuildMs: Int64;
+    fSemanticInventoryExpansionMs: Int64;
+    fRtlSourceEnrichmentMs: Int64;
+    fExternalUnitSymbolsMs: Int64;
+    fExternalTypeSymbolsMs: Int64;
+    fProblemSymbolAssemblyMs: Int64;
+  end;
+
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
 function RemoveWithTypeCategoryToText(const aCategory: TRemoveWithTypeCategory): string;
 function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; out aInventory: TRemoveWithSymbolInventory;
   out aError: string): Boolean; overload;
+function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; out aInventory: TRemoveWithSymbolInventory;
+  out aError: string; out aPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics): Boolean; overload;
 function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
   out aInventory: TRemoveWithSymbolInventory; out aError: string): Boolean; overload;
+function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
+  out aInventory: TRemoveWithSymbolInventory; out aError: string;
+  out aPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics): Boolean; overload;
 
 implementation
 
@@ -514,15 +528,18 @@ end;
 
 procedure BuildDelphiSemanticBindings(const aOptions: TAppOptions;
   const aProjectModel: TRemoveWithProjectModel;
-  var aInventory: TRemoveWithSymbolInventory);
+  var aInventory: TRemoveWithSymbolInventory;
+  var aPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics);
 var
   lCacheDir: string;
   lIndex: TDelphiSemanticUnitIndex;
   lOptions: TDelphiSemanticApiOptions;
   lSemanticInventory: TDelphiSemanticRemoveWithInventory;
   lSemanticModel: TDelphiSemanticUnitModel;
+  lStopwatch: TStopwatch;
   lUnitModel: TRemoveWithUnitModel;
 begin
+  lStopwatch := TStopwatch.StartNew;
   for lUnitModel in aProjectModel.UnitModels do
   begin
     if (Trim(lUnitModel.fFilePath) = '') or
@@ -565,8 +582,18 @@ begin
     AppendDelphiSemanticInventory(aInventory, lSemanticInventory);
     AppendDelphiSemanticBindings(aInventory, lIndex.Bindings);
   end;
+  lStopwatch.Stop;
+  aPhaseMetrics.fSemanticBindingIndexBuildMs := lStopwatch.ElapsedMilliseconds;
+
+  lStopwatch := TStopwatch.StartNew;
   AppendDelphiSemanticRtlSourceModels(aOptions, aProjectModel, aInventory);
+  lStopwatch.Stop;
+  aPhaseMetrics.fRtlSourceEnrichmentMs := lStopwatch.ElapsedMilliseconds;
+
+  lStopwatch := TStopwatch.StartNew;
   AppendExpandedDelphiSemanticInventorySymbols(aInventory);
+  lStopwatch.Stop;
+  aPhaseMetrics.fSemanticInventoryExpansionMs := lStopwatch.ElapsedMilliseconds;
 end;
 
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
@@ -1711,13 +1738,22 @@ end;
 function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; out aInventory: TRemoveWithSymbolInventory;
   out aError: string): Boolean;
 var
+  lPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics;
+begin
+  Result := BuildRemoveWithSymbolInventory(aOptions, aInventory, aError, lPhaseMetrics);
+end;
+
+function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; out aInventory: TRemoveWithSymbolInventory;
+  out aError: string; out aPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics): Boolean;
+var
   lModel: TRemoveWithProjectModel;
 begin
   lModel := nil;
+  aPhaseMetrics := Default(TRemoveWithSymbolInventoryPhaseMetrics);
   if not BuildRemoveWithProjectModel(aOptions, aOptions.fDprojPath, lModel, aError) then
     Exit(False);
   try
-    Result := BuildRemoveWithSymbolInventory(aOptions, lModel, aInventory, aError);
+    Result := BuildRemoveWithSymbolInventory(aOptions, lModel, aInventory, aError, aPhaseMetrics);
     aInventory.fSemanticIndex := nil;
   finally
     lModel.Free;
@@ -1726,6 +1762,15 @@ end;
 
 function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
   out aInventory: TRemoveWithSymbolInventory; out aError: string): Boolean;
+var
+  lPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics;
+begin
+  Result := BuildRemoveWithSymbolInventory(aOptions, aProjectModel, aInventory, aError, lPhaseMetrics);
+end;
+
+function BuildRemoveWithSymbolInventory(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
+  out aInventory: TRemoveWithSymbolInventory; out aError: string;
+  out aPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics): Boolean;
 var
   lProblem: TProjectIndexer.TProblemInfo;
   lLogicalSymbolKeys: TDictionary<string, Byte>;
@@ -1737,6 +1782,7 @@ var
 begin
   aInventory := Default(TRemoveWithSymbolInventory);
   aError := '';
+  aPhaseMetrics := Default(TRemoveWithSymbolInventoryPhaseMetrics);
 
   if not Assigned(aProjectModel) then
   begin
@@ -1752,7 +1798,7 @@ begin
     try
       GRemoveWithSymbolKeys := lSymbolKeys;
       GRemoveWithLogicalSymbolKeys := lLogicalSymbolKeys;
-      BuildDelphiSemanticBindings(aOptions, aProjectModel, aInventory);
+      BuildDelphiSemanticBindings(aOptions, aProjectModel, aInventory, aPhaseMetrics);
 
       lUnitIndex := 0;
       for lUnitModel in aProjectModel.UnitModels do
@@ -1772,6 +1818,7 @@ begin
       lStopwatch := TStopwatch.StartNew;
       AddExternalUnitSymbolsFromDelphiSemanticModels(aInventory);
       lStopwatch.Stop;
+      aPhaseMetrics.fExternalUnitSymbolsMs := lStopwatch.ElapsedMilliseconds;
       LogRemoveWithSymbolProgress(aOptions, Format('external-units done elapsedMs=%d symbols=%d',
         [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
 
@@ -1779,9 +1826,11 @@ begin
       lStopwatch := TStopwatch.StartNew;
       TRemoveWithSymbolBuilder.AddExternalTypeSymbols(aInventory);
       lStopwatch.Stop;
+      aPhaseMetrics.fExternalTypeSymbolsMs := lStopwatch.ElapsedMilliseconds;
       LogRemoveWithSymbolProgress(aOptions, Format('external-types done elapsedMs=%d symbols=%d',
         [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
 
+      lStopwatch := TStopwatch.StartNew;
       for lProblem in aProjectModel.Indexer.Problems do
       begin
         lSymbol := Default(TRemoveWithSymbolInfo);
@@ -1790,6 +1839,8 @@ begin
         lSymbol.fKind := TRemoveWithSymbolKind.rwskExternal;
         TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
       end;
+      lStopwatch.Stop;
+      aPhaseMetrics.fProblemSymbolAssemblyMs := lStopwatch.ElapsedMilliseconds;
     finally
       GRemoveWithLogicalSymbolKeys := nil;
       lLogicalSymbolKeys.Free;
