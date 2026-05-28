@@ -123,8 +123,8 @@ var
   lScanResult: TRemoveWithScanResult;
   lStopwatch: TStopwatch;
   lSymbolMapBridge: TRemoveWithSymbolMapBridge;
-  lSymbolInventory: TRemoveWithSymbolInventory;
-  lSymbolInventoryPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics;
+  lSymbolInventory: TRemoveWithFactSet;
+  lSymbolInventoryPhaseMetrics: TRemoveWithFactSetPhaseMetrics;
   lTransactionResult: TRemoveWithTransactionResult;
   lTotalStopwatch: TStopwatch;
   lUnitPath: string;
@@ -194,7 +194,7 @@ begin
     begin
       LogRemoveWithProgress(aOptions, 'symbol-inventory start');
       lStopwatch := TStopwatch.StartNew;
-      if not BuildRemoveWithSymbolInventory(aOptions, lProjectModel, lSymbolInventory, lError,
+      if not BuildRemoveWithFactSet(aOptions, lProjectModel, lSymbolInventory, lError,
         lSymbolInventoryPhaseMetrics) then
       begin
         WriteLn(ErrOutput, lError);
@@ -203,6 +203,11 @@ begin
       lStopwatch.Stop;
       lMetrics.fSymbolInventoryMs := lStopwatch.ElapsedMilliseconds;
       lMetrics.fSymbolInventoryPhaseMetrics := lSymbolInventoryPhaseMetrics;
+      lMetrics.fSemanticProjectFactsMs := lSymbolInventoryPhaseMetrics.fSemanticProjectFactsMs;
+      lMetrics.fSemanticCompatibilityFactsMs :=
+        lSymbolInventoryPhaseMetrics.fSemanticCompatibilityFactsMs;
+      lMetrics.fSemanticBindingMs := lSymbolInventoryPhaseMetrics.fSemanticBindingMs;
+      lMetrics.fSemanticPlanDtoMs := lSymbolInventoryPhaseMetrics.fSemanticPlanDtoMs;
       lMetrics.fContextFingerprint := lSymbolInventory.fContextFingerprint;
       lMetrics.fSymbolCount := Length(lSymbolInventory.fSymbols);
       LogRemoveWithDone(aOptions, 'symbol-inventory',
@@ -213,7 +218,7 @@ begin
 
       LogRemoveWithProgress(aOptions, 'resolver start');
       lStopwatch := TStopwatch.StartNew;
-      if not ResolveRemoveWithIdentifiers(lSymbolInventory, lScanResult, lSymbolMapBridge, lResolverResult,
+      if not ResolveRemoveWithIdentifiersFromSemanticFacts(lSymbolInventory, lScanResult, lResolverResult,
         lError) then
       begin
         WriteLn(ErrOutput, lError);
@@ -221,6 +226,12 @@ begin
       end;
       lStopwatch.Stop;
       lMetrics.fResolverMs := lStopwatch.ElapsedMilliseconds;
+      lMetrics.fDakLookupIndexMs := RemoveWithFactSetLookupCacheBuildMilliseconds;
+      lMetrics.fDakLookupCacheHits := RemoveWithFactSetLookupCacheHitCount;
+      lMetrics.fDakLookupCacheMisses := RemoveWithFactSetLookupCacheMissCount;
+      lMetrics.fDakResolverClassifyMs := lMetrics.fResolverMs - lMetrics.fDakLookupIndexMs;
+      if lMetrics.fDakResolverClassifyMs < 0 then
+        lMetrics.fDakResolverClassifyMs := 0;
       lMetrics.fClassificationCount := Length(lResolverResult.fClassifications);
       LogRemoveWithDone(aOptions, 'resolver',
         Format('classifications=%d', [Length(lResolverResult.fClassifications)]), lStopwatch);
@@ -235,6 +246,7 @@ begin
       end;
       lStopwatch.Stop;
       lMetrics.fPlannerMs := lStopwatch.ElapsedMilliseconds;
+      lMetrics.fDakPlannerRewriteMs := lMetrics.fPlannerMs;
       lMetrics.fPlannedEditCount := CountRemoveWithPlannedStatements(lPlanResult, 'planned');
       lMetrics.fSkippedStatementCount := CountRemoveWithPlannedStatements(lPlanResult, 'skipped');
       if lStopwatch.ElapsedMilliseconds > High(Integer) then

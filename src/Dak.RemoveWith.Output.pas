@@ -12,7 +12,16 @@ type
     fProjectModelMs: Int64;
     fDiscoveryMs: Int64;
     fSymbolInventoryMs: Int64;
-    fSymbolInventoryPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics;
+    fSymbolInventoryPhaseMetrics: TRemoveWithFactSetPhaseMetrics;
+    fSemanticProjectFactsMs: Int64;
+    fSemanticCompatibilityFactsMs: Int64;
+    fSemanticBindingMs: Int64;
+    fSemanticPlanDtoMs: Int64;
+    fDakLookupIndexMs: Int64;
+    fDakLookupCacheHits: Int64;
+    fDakLookupCacheMisses: Int64;
+    fDakResolverClassifyMs: Int64;
+    fDakPlannerRewriteMs: Int64;
     fSymbolMapBridgeMs: Int64;
     fResolverMs: Int64;
     fPlannerMs: Int64;
@@ -597,9 +606,18 @@ begin
 end;
 
 function BuildSymbolInventoryPhaseMetricsObject(
-  const aMetrics: TRemoveWithSymbolInventoryPhaseMetrics): TJSONObject;
+  const aMetrics: TRemoveWithFactSetPhaseMetrics): TJSONObject;
 begin
   Result := TJSONObject.Create;
+  Result.AddPair('semanticProjectFactsMs',
+    TJSONNumber.Create(aMetrics.fSemanticProjectFactsMs));
+  Result.AddPair('semanticCompatibilityFactsMs',
+    TJSONNumber.Create(aMetrics.fSemanticCompatibilityFactsMs));
+  Result.AddPair('semanticBindingMs', TJSONNumber.Create(aMetrics.fSemanticBindingMs));
+  Result.AddPair('semanticPlanDtoMs', TJSONNumber.Create(aMetrics.fSemanticPlanDtoMs));
+  Result.AddPair('dakLookupIndexMs', TJSONNumber.Create(aMetrics.fDakLookupIndexMs));
+  Result.AddPair('dakLookupCacheHits', TJSONNumber.Create(aMetrics.fDakLookupCacheHits));
+  Result.AddPair('dakLookupCacheMisses', TJSONNumber.Create(aMetrics.fDakLookupCacheMisses));
   Result.AddPair('semanticBindingIndexBuildMs',
     TJSONNumber.Create(aMetrics.fSemanticBindingIndexBuildMs));
   Result.AddPair('semanticInventoryExpansionMs',
@@ -619,6 +637,17 @@ begin
   Result.AddPair('symbolInventoryMs', TJSONNumber.Create(aMetrics.fSymbolInventoryMs));
   Result.AddPair('symbolInventorySubphaseMetrics',
     BuildSymbolInventoryPhaseMetricsObject(aMetrics.fSymbolInventoryPhaseMetrics));
+  Result.AddPair('semanticProjectFactsMs',
+    TJSONNumber.Create(aMetrics.fSemanticProjectFactsMs));
+  Result.AddPair('semanticCompatibilityFactsMs',
+    TJSONNumber.Create(aMetrics.fSemanticCompatibilityFactsMs));
+  Result.AddPair('semanticBindingMs', TJSONNumber.Create(aMetrics.fSemanticBindingMs));
+  Result.AddPair('semanticPlanDtoMs', TJSONNumber.Create(aMetrics.fSemanticPlanDtoMs));
+  Result.AddPair('dakLookupIndexMs', TJSONNumber.Create(aMetrics.fDakLookupIndexMs));
+  Result.AddPair('dakLookupCacheHits', TJSONNumber.Create(aMetrics.fDakLookupCacheHits));
+  Result.AddPair('dakLookupCacheMisses', TJSONNumber.Create(aMetrics.fDakLookupCacheMisses));
+  Result.AddPair('dakResolverClassifyMs', TJSONNumber.Create(aMetrics.fDakResolverClassifyMs));
+  Result.AddPair('dakPlannerRewriteMs', TJSONNumber.Create(aMetrics.fDakPlannerRewriteMs));
   Result.AddPair('symbolMapBridgeMs', TJSONNumber.Create(aMetrics.fSymbolMapBridgeMs));
   Result.AddPair('resolverMs', TJSONNumber.Create(aMetrics.fResolverMs));
   Result.AddPair('plannerMs', TJSONNumber.Create(aMetrics.fPlannerMs));
