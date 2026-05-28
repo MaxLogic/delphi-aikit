@@ -43,6 +43,18 @@ type
     [Test]
     procedure PlannerUsesOwnerTypeIndexForVisibleSelectors;
     [Test]
+    procedure PlannerUsesClassificationIndex;
+    [Test]
+    procedure FactSetLookupCacheStoresNegativeResults;
+    [Test]
+    procedure SemanticResolverIndexesStatementsByRange;
+    [Test]
+    procedure SemanticResolverBatchesSemanticClassifications;
+    [Test]
+    procedure ResolverIndexesLexicalParentRoutines;
+    [Test]
+    procedure ResolverIndexesStatementContainment;
+    [Test]
     procedure RtlSourceModelsSkipWithBinderInventoryBuild;
     [Test]
     procedure SemanticCacheOptionReusesAndInvalidatesUnitModels;
@@ -145,18 +157,9 @@ type
   end;
 
   [TestFixture]
-  TRemoveWithSemanticIndexTests = class(TRemoveWithTestBase)
-  private
-    function BuildUnitModelFixture: TRemoveWithProjectModel;
-  public
-    [Test]
-    procedure SemanticIndexResolvesUnitsTypesMembersAndScopeSymbols;
-  end;
-
-  [TestFixture]
   TRemoveWithSemanticBinderTests = class(TRemoveWithTestBase)
   private
-    procedure BuildResolverFixture(out aInventory: TRemoveWithSymbolInventory;
+    procedure BuildResolverFixture(out aInventory: TRemoveWithFactSet;
       out aScanResult: TRemoveWithScanResult);
     function CommandExePath: string;
     function FindClassification(const aResult: TRemoveWithResolverResult; const aStatementId,
@@ -200,16 +203,16 @@ type
   [TestFixture]
   TRemoveWithSymbolTests = class(TRemoveWithTestBase)
   private
-    procedure BuildSymbolFixture(out aInventory: TRemoveWithSymbolInventory);
+    procedure BuildSymbolFixture(out aInventory: TRemoveWithFactSet);
     function RunVerboseSymbolInventoryLog(out aExitCode: Cardinal): string;
-    function CountSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    function CountSymbols(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): Integer;
-    function DescribeSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    function DescribeSymbols(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): string;
-    function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    function FindSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string;
       out aSymbol: TRemoveWithSymbolInfo): Boolean;
-    procedure AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    procedure AssertSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName, aTypeName: string);
   public
     [Test]
@@ -227,11 +230,11 @@ type
   [TestFixture]
   TRemoveWithExpressionTypeTests = class(TRemoveWithTestBase)
   private
-    procedure BuildExpressionFixture(out aInventory: TRemoveWithSymbolInventory);
-    procedure AssertSelectorInRoutine(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+    procedure BuildExpressionFixture(out aInventory: TRemoveWithFactSet);
+    procedure AssertSelectorInRoutine(const aInventory: TRemoveWithFactSet; const aRoutineName,
       aSelectorText: string; const aStatus: TRemoveWithSelectorTypeStatus; const aTypeName, aReason: string;
       const aAddressable: Boolean);
-    procedure AssertSelector(const aInventory: TRemoveWithSymbolInventory; const aSelectorText: string;
+    procedure AssertSelector(const aInventory: TRemoveWithFactSet; const aSelectorText: string;
       const aStatus: TRemoveWithSelectorTypeStatus; const aTypeName, aReason: string;
       const aAddressable: Boolean);
   public
@@ -244,16 +247,16 @@ type
   [TestFixture]
   TRemoveWithSourceModelGoldenTests = class(TRemoveWithTestBase)
   private
-    procedure BuildSourceModelFixture(out aInventory: TRemoveWithSymbolInventory);
-    function DescribeSymbols(const aInventory: TRemoveWithSymbolInventory): string;
-    function CountSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    procedure BuildSourceModelFixture(out aInventory: TRemoveWithFactSet);
+    function DescribeSymbols(const aInventory: TRemoveWithFactSet): string;
+    function CountSymbols(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): Integer;
-    function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    function FindSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string;
       out aSymbol: TRemoveWithSymbolInfo): Boolean;
-    procedure AssertSelector(const aInventory: TRemoveWithSymbolInventory; const aSelectorText,
+    procedure AssertSelector(const aInventory: TRemoveWithFactSet; const aSelectorText,
       aTypeName: string);
-    procedure AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    procedure AssertSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName, aTypeName, aLineText: string);
   public
     [Test]
@@ -265,11 +268,11 @@ type
   [TestFixture]
   TRemoveWithAncestorTests = class(TRemoveWithTestBase)
   private
-    procedure BuildAncestorHelperFixture(out aInventory: TRemoveWithSymbolInventory);
-    function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    procedure BuildAncestorHelperFixture(out aInventory: TRemoveWithFactSet);
+    function FindSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType: string;
       out aSymbol: TRemoveWithSymbolInfo): Boolean;
-    procedure AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    procedure AssertSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType, aTypeName: string);
   public
     [Test]
@@ -281,11 +284,11 @@ type
   [TestFixture]
   TRemoveWithHelperTests = class(TRemoveWithTestBase)
   private
-    procedure BuildAncestorHelperFixture(out aInventory: TRemoveWithSymbolInventory);
-    function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    procedure BuildAncestorHelperFixture(out aInventory: TRemoveWithFactSet);
+    function FindSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType: string;
       out aSymbol: TRemoveWithSymbolInfo): Boolean;
-    procedure AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    procedure AssertSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType, aTypeName: string);
   public
     [Test]
@@ -297,7 +300,7 @@ type
   [TestFixture]
   TRemoveWithResolverTests = class(TRemoveWithTestBase)
   private
-    procedure BuildResolverFixture(out aInventory: TRemoveWithSymbolInventory;
+    procedure BuildResolverFixture(out aInventory: TRemoveWithFactSet;
       out aScanResult: TRemoveWithScanResult);
     function CommandExePath: string;
     function FindClassification(const aResult: TRemoveWithResolverResult; const aStatementId,
@@ -371,9 +374,9 @@ type
   [TestFixture]
   TRemoveWithIndexedPropertyTests = class(TRemoveWithTestBase)
   private
-    procedure BuildIndexedPropertyFixture(out aInventory: TRemoveWithSymbolInventory);
+    procedure BuildIndexedPropertyFixture(out aInventory: TRemoveWithFactSet);
     function CommandExePath: string;
-    function FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+    function FindSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
       const aKind: TRemoveWithSymbolKind; const aOwnerType: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
     function RunIndexedPropertyFixture(out aExitCode: Cardinal): string;
     procedure AssertResolvedName(const aClassifications: TJSONArray; const aStatementId, aReceiverText,
@@ -392,8 +395,8 @@ type
   [TestFixture]
   TRemoveWithTempPolicyTests = class(TRemoveWithTestBase)
   private
-    procedure BuildTempPolicyFixture(out aInventory: TRemoveWithSymbolInventory);
-    procedure AssertPolicy(const aInventory: TRemoveWithSymbolInventory; const aSelectorText: string;
+    procedure BuildTempPolicyFixture(out aInventory: TRemoveWithFactSet);
+    procedure AssertPolicy(const aInventory: TRemoveWithFactSet; const aSelectorText: string;
       const aStrategy: TRemoveWithTempStrategy; const aReceiverType, aQualifierText, aReason: string);
   public
     [Test]
@@ -409,7 +412,7 @@ type
   [TestFixture]
   TRemoveWithPlannerTests = class(TRemoveWithTestBase)
   private
-    procedure BuildPlannerFixture(out aInventory: TRemoveWithSymbolInventory; out aScanResult: TRemoveWithScanResult;
+    procedure BuildPlannerFixture(out aInventory: TRemoveWithFactSet; out aScanResult: TRemoveWithScanResult;
       out aResolverResult: TRemoveWithResolverResult; out aPlanResult: TRemoveWithPlanResult);
     function CommandExePath: string;
     function FindPlannedStatement(const aPlanResult: TRemoveWithPlanResult; const aStatementId: string;
@@ -1078,6 +1081,113 @@ begin
     'Visible selector lookup must not scan every symbol for each identifier.');
 end;
 
+procedure TRemoveWithCommandTests.PlannerUsesClassificationIndex;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Planner.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'GPlannerClassificationsByStatement'),
+    'Remove-with planner must index resolver classifications by statement id.');
+  Assert.IsFalse(ContainsText(lSourceText,
+    'for lClassification in aResolverResult.fClassifications do'),
+    'Planner hot paths must not rescan every classification for each statement.');
+end;
+
+procedure TRemoveWithCommandTests.FactSetLookupCacheStoresNegativeResults;
+var
+  lInventory: TRemoveWithFactSet;
+  lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+begin
+  lInventory := Default(TRemoveWithFactSet);
+  BeginRemoveWithFactSetLookupCache(lInventory);
+  try
+    Assert.IsFalse(FindRemoveWithFactSetMembers(lInventory, 'TMissingOwner', 'MissingMember',
+      lSymbols));
+    Assert.IsFalse(FindRemoveWithFactSetMembers(lInventory, 'TMissingOwner', 'MissingMember',
+      lSymbols));
+    Assert.IsFalse(FindRemoveWithFactSetRoutineSymbol(lInventory, 'MissingRoutine',
+      'MissingLocal', lSymbol));
+    Assert.IsFalse(FindRemoveWithFactSetRoutineSymbol(lInventory, 'MissingRoutine',
+      'MissingLocal', lSymbol));
+    Assert.AreEqual('', RemoveWithFactSetPointerTargetType(lInventory, 'PMissingRecord'));
+    Assert.AreEqual('', RemoveWithFactSetPointerTargetType(lInventory, 'PMissingRecord'));
+
+    Assert.AreEqual(Int64(3), RemoveWithFactSetLookupCacheMissCount,
+      'Expected only first misses to scan the semantic fact set.');
+    Assert.AreEqual(Int64(3), RemoveWithFactSetLookupCacheHitCount,
+      'Expected repeated negative lookups to hit the command-local cache.');
+  finally
+    EndRemoveWithFactSetLookupCache;
+  end;
+end;
+
+procedure TRemoveWithCommandTests.SemanticResolverIndexesStatementsByRange;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'BuildSemanticStatementIndex'),
+    'Semantic resolver must index scanned statements by file/range instead of nested scans.');
+  Assert.IsFalse(ContainsText(lSourceText,
+    'for lStatement in aScanResult.fWithStatements do' + sLineBreak +
+    '        if SameText(TPath.GetFullPath(lStatement.fFilePath)'),
+    'Semantic resolver must not rescan every statement for every semantic binding.');
+end;
+
+procedure TRemoveWithCommandTests.SemanticResolverBatchesSemanticClassifications;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'TList<TRemoveWithIdentifierClassification>'),
+    'Semantic resolver must batch high-volume semantic classifications.');
+  Assert.IsFalse(ContainsText(lSourceText,
+    'SetLength(aResult.fClassifications, lIndex + 1);' + sLineBreak +
+    '  aResult.fClassifications[lIndex] := lClassification;'),
+    'Semantic resolver must not resize the classification array for every semantic reference.');
+end;
+
+procedure TRemoveWithCommandTests.ResolverIndexesLexicalParentRoutines;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'GResolverParentRoutineByName'),
+    'Resolver must cache lexical parent routine names instead of scanning all symbols per scope lookup.');
+  Assert.IsFalse(ContainsText(lSourceText,
+    'for lSymbol in aInventory.fSymbols do' + sLineBreak +
+    '  begin' + sLineBreak +
+    '    if (lSymbol.fKind <> TRemoveWithSymbolKind.rwskRoutine)'),
+    'Lexical parent lookup must not rescan the full symbol set per lookup.');
+end;
+
+procedure TRemoveWithCommandTests.ResolverIndexesStatementContainment;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'GResolverContainingStatementsById'),
+    'Resolver must index containing with statements by statement id.');
+  Assert.IsTrue(ContainsText(lSourceText, 'GResolverNestedStatementsById'),
+    'Resolver must index nested with statements by statement id.');
+end;
+
 procedure TRemoveWithCommandTests.RtlSourceModelsSkipWithBinderInventoryBuild;
 var
   lMarker: string;
@@ -1141,15 +1251,15 @@ begin
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected first semantic cache run to succeed.');
   Assert.IsTrue(TFile.Exists(lCacheFileName), 'Expected remove-with to create the semantic cache file.');
   Assert.IsTrue(ContainsText(lLogText,
-    'semantic-project-facts graph=True'),
-    'Expected first run to build semantic project facts through DelphiSemantics.');
+    'semantic-project-facts graph=False'),
+    'Expected first run to build graph-free semantic project facts through DelphiSemantics.');
 
   lLogText := RunSemanticCacheFixture(lDprojPath, lCacheFileName, 'remove-with-semantic-cache-second.log',
     lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected second semantic cache run to succeed.');
   Assert.IsTrue(ContainsText(lLogText,
-    'semantic-project-facts graph=True'),
-    'Expected second run to reuse the project semantic-facts path.');
+    'semantic-project-facts graph=False'),
+    'Expected second run to reuse the graph-free project semantic-facts path.');
 
   lUnitPath := TPath.Combine(lFixtureDir, 'SymbolMapUnit.pas');
   TFile.AppendAllText(lUnitPath, sLineBreak + '// cache invalidation probe' + sLineBreak,
@@ -1158,8 +1268,8 @@ begin
     lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected changed-source semantic cache run to succeed.');
   Assert.IsTrue(ContainsText(lLogText,
-    'semantic-project-facts graph=True'),
-    'Expected changed-source run to rebuild project semantic facts.');
+    'semantic-project-facts graph=False'),
+    'Expected changed-source run to rebuild graph-free project semantic facts.');
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;
@@ -1293,6 +1403,13 @@ begin
     AssertJsonNumberKey(lMetrics, 'discoveryMs');
     AssertJsonNumberKey(lMetrics, 'symbolInventoryMs');
     AssertJsonObjectKey(lMetrics, 'symbolInventorySubphaseMetrics', lSubphaseMetrics);
+    AssertJsonNumberKey(lMetrics, 'semanticProjectFactsMs');
+    AssertJsonNumberKey(lMetrics, 'semanticCompatibilityFactsMs');
+    AssertJsonNumberKey(lMetrics, 'semanticBindingMs');
+    AssertJsonNumberKey(lMetrics, 'semanticPlanDtoMs');
+    AssertJsonNumberKey(lMetrics, 'dakLookupIndexMs');
+    AssertJsonNumberKey(lMetrics, 'dakResolverClassifyMs');
+    AssertJsonNumberKey(lMetrics, 'dakPlannerRewriteMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'semanticBindingIndexBuildMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'semanticInventoryExpansionMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'rtlSourceEnrichmentMs');
@@ -1756,7 +1873,7 @@ end;
 procedure TRemoveWithProjectModelTests.SharedProjectModelFeedsDiscoveryAndSymbolInventory;
 var
   lError: string;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lSemanticBinding: TRemoveWithSemanticWithBinding;
   lModel: TRemoveWithProjectModel;
   lOptions: TAppOptions;
@@ -1778,7 +1895,7 @@ begin
   try
     Assert.AreEqual(1, lModel.IndexCount, 'Expected one project index during model bootstrap.');
     Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lModel, lScanResult, lError), lError);
-    Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, lModel, lInventory, lError), lError);
+    Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lModel, lInventory, lError), lError);
 
     Assert.AreEqual(1, lModel.IndexCount, 'Discovery and symbol inventory must reuse the already indexed model.');
     Assert.AreEqual(cDiscoveryFixtureWithCount, Length(lScanResult.fWithStatements),
@@ -2098,94 +2215,12 @@ begin
   end;
 end;
 
-function TRemoveWithSemanticIndexTests.BuildUnitModelFixture: TRemoveWithProjectModel;
-var
-  lError: string;
-  lOptions: TAppOptions;
-begin
-  lOptions := Default(TAppOptions);
-  lOptions.fDprojPath := TPath.Combine(RepoRoot,
-    'tests\fixtures\RemoveWithUnitModelFixture\RemoveWithUnitModelFixture.dproj');
-  lOptions.fConfig := 'Debug';
-  lOptions.fPlatform := 'Win32';
-  lOptions.fDelphiVersion := '23.0';
-
-  Result := nil;
-  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lOptions.fDprojPath, Result, lError), lError);
-end;
-
-procedure TRemoveWithSemanticIndexTests.SemanticIndexResolvesUnitsTypesMembersAndScopeSymbols;
-var
-  lAncestors: TArray<string>;
-  lIndex: TRemoveWithSemanticIndex;
-  lMember: TRemoveWithModelMemberInfo;
-  lMembers: TArray<TRemoveWithModelMemberInfo>;
-  lModel: TRemoveWithProjectModel;
-  lRoutine: TRemoveWithModelRoutineInfo;
-  lSymbol: TRemoveWithModelRoutineSymbolInfo;
-  lTypeInfo: TRemoveWithModelTypeInfo;
-  lUnitModel: TRemoveWithUnitModel;
-begin
-  lModel := BuildUnitModelFixture;
-  try
-    lIndex := lModel.SemanticIndex;
-
-    Assert.IsTrue(lIndex.TryFindUnit('UnitModelMain', lUnitModel), 'Expected unit lookup.');
-    Assert.IsTrue(lIndex.TryFindType('TUnitModelRecord', lTypeInfo), 'Expected record type lookup.');
-    Assert.AreEqual(Ord(TRemoveWithModelTypeKind.rwmtRecord), Ord(lTypeInfo.fKind), 'Expected record kind.');
-    Assert.IsTrue(lIndex.TryFindMembers('TUnitModelClass', 'RecordValue', lMembers),
-      'Expected member lookup.');
-    Assert.AreEqual(1, Length(lMembers), 'Expected one RecordValue member.');
-    Assert.IsTrue(lIndex.TryFindRoutineSymbol('TUnitModelScope.Run', 'lRecord', lSymbol),
-      'Expected local lookup.');
-    Assert.AreEqual(Ord(TRemoveWithModelRoutineSymbolKind.rwmrsLocal), Ord(lSymbol.fKind),
-      'Expected local symbol kind.');
-    Assert.IsTrue(lIndex.TryFindRoutine('TUnitModelScope.Run', lRoutine), 'Expected routine lookup.');
-    Assert.IsTrue(lRoutine.fHasBody, 'Expected routine body flag.');
-    Assert.IsTrue(lIndex.TryFindRoutineSymbol('TUnitModelScope.Run', 'aParam', lSymbol),
-      'Expected parameter lookup.');
-    Assert.AreEqual(Ord(TRemoveWithModelRoutineSymbolKind.rwmrsParameter), Ord(lSymbol.fKind),
-      'Expected parameter symbol kind.');
-    Assert.IsTrue(lIndex.TryFindRoutineSymbol('TUnitModelScope.Run', 'lInline', lSymbol),
-      'Expected inline local lookup.');
-    Assert.AreEqual(Ord(TRemoveWithModelRoutineSymbolKind.rwmrsInlineLocal), Ord(lSymbol.fKind),
-      'Expected inline local symbol kind.');
-
-    Assert.IsTrue(lIndex.TryFindHelperForType('TUnitModelRecord', lTypeInfo), 'Expected helper lookup.');
-    Assert.AreEqual('TUnitModelRecordHelper', lTypeInfo.fName, 'Expected helper type.');
-    Assert.IsTrue(lIndex.TryResolveAlias('TUnitModelAlias', lTypeInfo), 'Expected alias lookup.');
-    Assert.AreEqual('string', lTypeInfo.fRelatedTypeName, 'Expected alias target.');
-    Assert.IsTrue(lIndex.TryResolvePointerTarget('PUnitModelRecord', lTypeInfo), 'Expected pointer target.');
-    Assert.AreEqual('TUnitModelRecord', lTypeInfo.fRelatedTypeName, 'Expected pointer target type.');
-    Assert.IsTrue(lIndex.TryResolvePointerTarget('TUnitModelRecordPtr', lTypeInfo),
-      'Expected non-P pointer alias target.');
-    Assert.AreEqual('TUnitModelRecord', lTypeInfo.fRelatedTypeName, 'Expected non-P pointer target type.');
-    Assert.IsFalse(lIndex.TryResolvePointerTarget('PUnitModelAmount', lTypeInfo),
-      'P-prefixed non-pointer alias must not be treated as a pointer.');
-    Assert.IsTrue(lIndex.TryResolveArrayElement('TUnitModelRecordArray', lTypeInfo), 'Expected array element.');
-    Assert.AreEqual('TUnitModelRecord', lTypeInfo.fRelatedTypeName, 'Expected array element type.');
-    Assert.IsFalse(lIndex.TryResolveArrayElement('TUnitModelMapAlias', lTypeInfo),
-      'Non-array generic aliases must not be treated as array aliases.');
-    Assert.IsTrue(lIndex.TryFindAncestors('TUnitModelClass', lAncestors), 'Expected ancestor lookup.');
-    Assert.AreEqual(2, Length(lAncestors), 'Expected class ancestor and interface.');
-    Assert.AreEqual('TInterfacedObject', lAncestors[0], 'Expected class ancestor.');
-    Assert.AreEqual('IUnitModelFace', lAncestors[1], 'Expected implemented interface.');
-    Assert.IsTrue(lIndex.TryFindDefaultProperty('TUnitModelClass', lMember), 'Expected default property.');
-    Assert.AreEqual('Items', lMember.fName, 'Expected Items default property.');
-    Assert.IsTrue(lIndex.TryFindIndexedProperty('TUnitModelClass', 'Items', lMember),
-      'Expected indexed property.');
-    Assert.AreEqual(1, lMember.fIndexParameterCount, 'Expected indexed property parameter count.');
-  finally
-    lModel.Free;
-  end;
-end;
-
 function TRemoveWithSemanticBinderTests.CommandExePath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
 end;
 
-procedure TRemoveWithSemanticBinderTests.BuildResolverFixture(out aInventory: TRemoveWithSymbolInventory;
+procedure TRemoveWithSemanticBinderTests.BuildResolverFixture(out aInventory: TRemoveWithFactSet;
   out aScanResult: TRemoveWithScanResult);
 var
   lError: string;
@@ -2200,7 +2235,7 @@ begin
   lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
   lOptions.fRemoveWithAll := True;
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, aInventory, lError),
     'Expected resolver fixture inventory build to succeed: ' + lError);
   Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, aScanResult, lError),
     'Expected resolver fixture discovery to succeed: ' + lError);
@@ -2310,7 +2345,7 @@ end;
 procedure TRemoveWithSemanticBinderTests.BindsReceiverStackBeforeOuterScopes;
 var
   lError: string;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
 begin
@@ -2414,7 +2449,7 @@ end;
 procedure TRemoveWithSemanticBinderTests.ReportsResolvedReceiverMissingMemberPrecisely;
 var
   lError: string;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
 begin
@@ -2435,9 +2470,9 @@ var
   lError: string;
   lEntry: TRemoveWithSemanticWithBinding;
   lFoundScopedBinding: Boolean;
-  lDirectInventory: TRemoveWithSymbolInventory;
-  lInventory: TRemoveWithSymbolInventory;
-  lMismatchedInventory: TRemoveWithSymbolInventory;
+  lDirectInventory: TRemoveWithFactSet;
+  lInventory: TRemoveWithFactSet;
+  lMismatchedInventory: TRemoveWithFactSet;
   lOptions: TAppOptions;
   lResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
@@ -2456,7 +2491,7 @@ begin
   lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
   lOptions.fRemoveWithAll := True;
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, lInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lInventory, lError),
     'Expected scoped-declaration fixture inventory build to succeed: ' + lError);
   Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, lScanResult, lError),
     'Expected scoped-declaration fixture discovery to succeed: ' + lError);
@@ -2639,7 +2674,7 @@ begin
     'Expected exact compiler-observed with precedence output.');
 end;
 
-procedure TRemoveWithSymbolTests.BuildSymbolFixture(out aInventory: TRemoveWithSymbolInventory);
+procedure TRemoveWithSymbolTests.BuildSymbolFixture(out aInventory: TRemoveWithFactSet);
 var
   lError: string;
   lOptions: TAppOptions;
@@ -2651,7 +2686,7 @@ begin
   lOptions.fPlatform := 'Win32';
   lOptions.fDelphiVersion := '23.0';
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, aInventory, lError),
     'Expected symbol inventory build to succeed: ' + lError);
   Assert.IsTrue(Length(aInventory.fSymbols) > 0, 'Expected symbol inventory to contain fixture declarations.');
 end;
@@ -2677,7 +2712,7 @@ begin
     Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
 end;
 
-function TRemoveWithSymbolTests.CountSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+function TRemoveWithSymbolTests.CountSymbols(const aInventory: TRemoveWithFactSet; const aName: string;
   const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): Integer;
 var
   lSymbol: TRemoveWithSymbolInfo;
@@ -2692,7 +2727,7 @@ begin
   end;
 end;
 
-function TRemoveWithSymbolTests.DescribeSymbols(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+function TRemoveWithSymbolTests.DescribeSymbols(const aInventory: TRemoveWithFactSet; const aName: string;
   const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): string;
 var
   lSymbol: TRemoveWithSymbolInfo;
@@ -2708,7 +2743,7 @@ begin
   end;
 end;
 
-function TRemoveWithSymbolTests.FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+function TRemoveWithSymbolTests.FindSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
   const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string;
   out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
@@ -2728,7 +2763,7 @@ begin
   end;
 end;
 
-procedure TRemoveWithSymbolTests.AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+procedure TRemoveWithSymbolTests.AssertSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
   const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName, aTypeName: string);
 var
   lLines: TArray<string>;
@@ -2752,7 +2787,7 @@ end;
 
 procedure TRemoveWithSymbolTests.InventoryReportsRoutineScopesAndDeclarationLocations;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildSymbolFixture(lInventory);
 
@@ -2780,7 +2815,7 @@ end;
 
 procedure TRemoveWithSymbolTests.InventoryReportsUnitAndDirectTypeDeclarations;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildSymbolFixture(lInventory);
 
@@ -2802,7 +2837,7 @@ end;
 
 procedure TRemoveWithSymbolTests.InventoryReportsMissingSourceUnitsAsExternal;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   BuildSymbolFixture(lInventory);
@@ -2825,7 +2860,7 @@ var
   lDprojPath: string;
   lError: string;
   lHead: TBytes;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lOptions: TAppOptions;
   lSymbol: TRemoveWithSymbolInfo;
   lTail: TBytes;
@@ -2882,7 +2917,7 @@ begin
   lOptions.fPlatform := 'Win32';
   lOptions.fDelphiVersion := '23.0';
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, lInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lInventory, lError),
     'Expected ANSI source symbol inventory build to succeed: ' + lError);
   Assert.IsTrue(FindSymbol(lInventory, 'AnsiGlobal', TRemoveWithSymbolKind.rwskUnitGlobal, '', '', lSymbol),
     'Expected symbol inventory to parse declarations from ANSI source.');
@@ -2903,7 +2938,7 @@ begin
     'Line-scanner inventory must not run in the remove-with semantic path.');
 end;
 
-procedure TRemoveWithExpressionTypeTests.BuildExpressionFixture(out aInventory: TRemoveWithSymbolInventory);
+procedure TRemoveWithExpressionTypeTests.BuildExpressionFixture(out aInventory: TRemoveWithFactSet);
 var
   lError: string;
   lOptions: TAppOptions;
@@ -2915,11 +2950,11 @@ begin
   lOptions.fPlatform := 'Win32';
   lOptions.fDelphiVersion := '23.0';
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, aInventory, lError),
     'Expected expression fixture inventory build to succeed: ' + lError);
 end;
 
-procedure TRemoveWithExpressionTypeTests.AssertSelector(const aInventory: TRemoveWithSymbolInventory;
+procedure TRemoveWithExpressionTypeTests.AssertSelector(const aInventory: TRemoveWithFactSet;
   const aSelectorText: string; const aStatus: TRemoveWithSelectorTypeStatus; const aTypeName, aReason: string;
   const aAddressable: Boolean);
 begin
@@ -2927,7 +2962,7 @@ begin
     aAddressable);
 end;
 
-procedure TRemoveWithExpressionTypeTests.AssertSelectorInRoutine(const aInventory: TRemoveWithSymbolInventory;
+procedure TRemoveWithExpressionTypeTests.AssertSelectorInRoutine(const aInventory: TRemoveWithFactSet;
   const aRoutineName, aSelectorText: string; const aStatus: TRemoveWithSelectorTypeStatus; const aTypeName,
   aReason: string; const aAddressable: Boolean);
 var
@@ -2944,7 +2979,7 @@ end;
 
 procedure TRemoveWithExpressionTypeTests.ResolvesSupportedSelectorShapes;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildExpressionFixture(lInventory);
 
@@ -2997,7 +3032,7 @@ end;
 
 procedure TRemoveWithExpressionTypeTests.ClassifiesUnsupportedAndExternalSelectors;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildExpressionFixture(lInventory);
 
@@ -3017,7 +3052,7 @@ begin
     False);
 end;
 
-procedure TRemoveWithSourceModelGoldenTests.BuildSourceModelFixture(out aInventory: TRemoveWithSymbolInventory);
+procedure TRemoveWithSourceModelGoldenTests.BuildSourceModelFixture(out aInventory: TRemoveWithFactSet);
 var
   lError: string;
   lOptions: TAppOptions;
@@ -3029,11 +3064,11 @@ begin
   lOptions.fPlatform := 'Win32';
   lOptions.fDelphiVersion := '23.0';
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, aInventory, lError),
     'Expected source-model golden fixture inventory build to succeed: ' + lError);
 end;
 
-function TRemoveWithSourceModelGoldenTests.FindSymbol(const aInventory: TRemoveWithSymbolInventory;
+function TRemoveWithSourceModelGoldenTests.FindSymbol(const aInventory: TRemoveWithFactSet;
   const aName: string; const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string;
   out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
@@ -3053,7 +3088,7 @@ begin
   end;
 end;
 
-function TRemoveWithSourceModelGoldenTests.DescribeSymbols(const aInventory: TRemoveWithSymbolInventory): string;
+function TRemoveWithSourceModelGoldenTests.DescribeSymbols(const aInventory: TRemoveWithFactSet): string;
 var
   lSymbol: TRemoveWithSymbolInfo;
 begin
@@ -3063,7 +3098,7 @@ begin
       lSymbol.fOwnerType, lSymbol.fTypeName]);
 end;
 
-function TRemoveWithSourceModelGoldenTests.CountSymbols(const aInventory: TRemoveWithSymbolInventory;
+function TRemoveWithSourceModelGoldenTests.CountSymbols(const aInventory: TRemoveWithFactSet;
   const aName: string; const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName: string): Integer;
 var
   lSymbol: TRemoveWithSymbolInfo;
@@ -3078,7 +3113,7 @@ begin
   end;
 end;
 
-procedure TRemoveWithSourceModelGoldenTests.AssertSelector(const aInventory: TRemoveWithSymbolInventory;
+procedure TRemoveWithSourceModelGoldenTests.AssertSelector(const aInventory: TRemoveWithFactSet;
   const aSelectorText, aTypeName: string);
 var
   lInfo: TRemoveWithSelectorTypeInfo;
@@ -3091,7 +3126,7 @@ begin
   Assert.IsTrue(lInfo.fAddressable, 'Expected source-model selector to be addressable: ' + aSelectorText);
 end;
 
-procedure TRemoveWithSourceModelGoldenTests.AssertSymbol(const aInventory: TRemoveWithSymbolInventory;
+procedure TRemoveWithSourceModelGoldenTests.AssertSymbol(const aInventory: TRemoveWithFactSet;
   const aName: string; const aKind: TRemoveWithSymbolKind; const aOwnerType, aRoutineName, aTypeName,
   aLineText: string);
 var
@@ -3114,7 +3149,7 @@ end;
 
 procedure TRemoveWithSourceModelGoldenTests.RecordsAndClassesExposeExpectedSourceModel;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   BuildSourceModelFixture(lInventory);
@@ -3172,7 +3207,7 @@ end;
 procedure TRemoveWithSourceModelGoldenTests.SelectorShapesResolveThroughSourceModel;
 var
   lInfo: TRemoveWithSelectorTypeInfo;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildSourceModelFixture(lInventory);
 
@@ -3208,7 +3243,7 @@ begin
   AssertSelector(lInventory, 'lObject.FClassRecord.Child', 'TGoldenChild');
 end;
 
-procedure TRemoveWithAncestorTests.BuildAncestorHelperFixture(out aInventory: TRemoveWithSymbolInventory);
+procedure TRemoveWithAncestorTests.BuildAncestorHelperFixture(out aInventory: TRemoveWithFactSet);
 var
   lError: string;
   lOptions: TAppOptions;
@@ -3220,11 +3255,11 @@ begin
   lOptions.fPlatform := 'Win32';
   lOptions.fDelphiVersion := '23.0';
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, aInventory, lError),
     'Expected ancestor/helper fixture inventory build to succeed: ' + lError);
 end;
 
-function TRemoveWithAncestorTests.FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+function TRemoveWithAncestorTests.FindSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
   const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType: string;
   out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
@@ -3243,7 +3278,7 @@ begin
   end;
 end;
 
-procedure TRemoveWithAncestorTests.AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+procedure TRemoveWithAncestorTests.AssertSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
   const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType, aTypeName: string);
 var
   lSymbol: TRemoveWithSymbolInfo;
@@ -3256,7 +3291,7 @@ end;
 
 procedure TRemoveWithAncestorTests.InventoryReportsSourceAvailableAncestorMembers;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildAncestorHelperFixture(lInventory);
 
@@ -3277,7 +3312,7 @@ end;
 
 procedure TRemoveWithAncestorTests.InventoryReportsExternalAncestorWithoutGuessing;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   BuildAncestorHelperFixture(lInventory);
@@ -3288,7 +3323,7 @@ begin
     'Expected source-unavailable ancestor type to be reported as external.');
 end;
 
-procedure TRemoveWithHelperTests.BuildAncestorHelperFixture(out aInventory: TRemoveWithSymbolInventory);
+procedure TRemoveWithHelperTests.BuildAncestorHelperFixture(out aInventory: TRemoveWithFactSet);
 var
   lError: string;
   lOptions: TAppOptions;
@@ -3300,11 +3335,11 @@ begin
   lOptions.fPlatform := 'Win32';
   lOptions.fDelphiVersion := '23.0';
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, aInventory, lError),
     'Expected ancestor/helper fixture inventory build to succeed: ' + lError);
 end;
 
-function TRemoveWithHelperTests.FindSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+function TRemoveWithHelperTests.FindSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
   const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType: string;
   out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
@@ -3323,7 +3358,7 @@ begin
   end;
 end;
 
-procedure TRemoveWithHelperTests.AssertSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+procedure TRemoveWithHelperTests.AssertSymbol(const aInventory: TRemoveWithFactSet; const aName: string;
   const aKind: TRemoveWithSymbolKind; const aOwnerType, aSourceOwnerType, aTypeName: string);
 var
   lSymbol: TRemoveWithSymbolInfo;
@@ -3336,7 +3371,7 @@ end;
 
 procedure TRemoveWithHelperTests.InventoryReportsSourceAvailableHelperMembers;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildAncestorHelperFixture(lInventory);
 
@@ -3352,7 +3387,7 @@ end;
 
 procedure TRemoveWithHelperTests.InventoryReportsUnsupportedAndExternalHelperCases;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   BuildAncestorHelperFixture(lInventory);
@@ -3371,7 +3406,7 @@ begin
     'Expected external helper target to be reported as external.');
 end;
 
-procedure TRemoveWithResolverTests.BuildResolverFixture(out aInventory: TRemoveWithSymbolInventory;
+procedure TRemoveWithResolverTests.BuildResolverFixture(out aInventory: TRemoveWithFactSet;
   out aScanResult: TRemoveWithScanResult);
 var
   lError: string;
@@ -3386,7 +3421,7 @@ begin
   lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
   lOptions.fRemoveWithAll := True;
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, aInventory, lError),
     'Expected resolver fixture inventory build to succeed: ' + lError);
   Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, aScanResult, lError),
     'Expected resolver fixture discovery to succeed: ' + lError);
@@ -3453,7 +3488,7 @@ procedure TRemoveWithResolverTests.ResolvesSingleMultipleAndNestedWithScopeStack
 var
   lError: string;
   lInfo: TRemoveWithSelectorTypeInfo;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
 begin
@@ -3494,7 +3529,7 @@ end;
 procedure TRemoveWithResolverTests.ClassifiesCompilerRoutineCallsInsideResolvedReceiverStack;
 var
   lError: string;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
 begin
@@ -3520,7 +3555,7 @@ end;
 procedure TRemoveWithResolverTests.ResolvesDependentSelectorBeforeLocalShadow;
 var
   lError: string;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
 begin
@@ -3538,7 +3573,7 @@ end;
 procedure TRemoveWithResolverTests.ReportsExternalUnsupportedUnresolvedAndAmbiguousCases;
 var
   lError: string;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
 begin
@@ -3917,7 +3952,7 @@ begin
   Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
 end;
 
-procedure TRemoveWithIndexedPropertyTests.BuildIndexedPropertyFixture(out aInventory: TRemoveWithSymbolInventory);
+procedure TRemoveWithIndexedPropertyTests.BuildIndexedPropertyFixture(out aInventory: TRemoveWithFactSet);
 var
   lError: string;
   lOptions: TAppOptions;
@@ -3929,11 +3964,11 @@ begin
   lOptions.fPlatform := 'Win32';
   lOptions.fDelphiVersion := '23.0';
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, aInventory, lError),
     'Expected indexed property fixture inventory build to succeed: ' + lError);
 end;
 
-function TRemoveWithIndexedPropertyTests.FindSymbol(const aInventory: TRemoveWithSymbolInventory;
+function TRemoveWithIndexedPropertyTests.FindSymbol(const aInventory: TRemoveWithFactSet;
   const aName: string; const aKind: TRemoveWithSymbolKind; const aOwnerType: string;
   out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
@@ -4019,7 +4054,7 @@ end;
 procedure TRemoveWithIndexedPropertyTests.SymbolInventoryParsesIndexedAndDefaultProperties;
 var
   lInfo: TRemoveWithSelectorTypeInfo;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   BuildIndexedPropertyFixture(lInventory);
@@ -4043,7 +4078,7 @@ end;
 procedure TRemoveWithIndexedPropertyTests.DefaultIndexedPointerPropertyDereferencesToAddressableRecord;
 var
   lInfo: TRemoveWithSelectorTypeInfo;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildIndexedPropertyFixture(lInventory);
 
@@ -4090,7 +4125,7 @@ begin
   end;
 end;
 
-procedure TRemoveWithTempPolicyTests.BuildTempPolicyFixture(out aInventory: TRemoveWithSymbolInventory);
+procedure TRemoveWithTempPolicyTests.BuildTempPolicyFixture(out aInventory: TRemoveWithFactSet);
 var
   lError: string;
   lOptions: TAppOptions;
@@ -4102,11 +4137,11 @@ begin
   lOptions.fPlatform := 'Win32';
   lOptions.fDelphiVersion := '23.0';
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, aInventory, lError),
     'Expected temp policy fixture inventory build to succeed: ' + lError);
 end;
 
-procedure TRemoveWithTempPolicyTests.AssertPolicy(const aInventory: TRemoveWithSymbolInventory;
+procedure TRemoveWithTempPolicyTests.AssertPolicy(const aInventory: TRemoveWithFactSet;
   const aSelectorText: string; const aStrategy: TRemoveWithTempStrategy; const aReceiverType, aQualifierText,
   aReason: string);
 var
@@ -4123,7 +4158,7 @@ end;
 
 procedure TRemoveWithTempPolicyTests.ChoosesDirectReferenceRecordPointerAndSkipStrategies;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildTempPolicyFixture(lInventory);
 
@@ -4145,7 +4180,7 @@ end;
 procedure TRemoveWithTempPolicyTests.UnitLevelPureIndexedRecordSelectorUsesDirectQualification;
 var
   lDecision: TRemoveWithTempDecision;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildTempPolicyFixture(lInventory);
 
@@ -4162,7 +4197,7 @@ end;
 procedure TRemoveWithTempPolicyTests.GeneratesCollisionFreeTempDeclarations;
 var
   lDecision: TRemoveWithTempDecision;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
 begin
   BuildTempPolicyFixture(lInventory);
 
@@ -4185,7 +4220,7 @@ end;
 procedure TRemoveWithTempPolicyTests.ReservesGeneratedNamesAcrossSequentialPlans;
 var
   lDecision: TRemoveWithTempDecision;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lReservedNames: TRemoveWithReservedTempNames;
 begin
   BuildTempPolicyFixture(lInventory);
@@ -4208,7 +4243,7 @@ begin
   Assert.AreEqual('lWithTempPolicyClass1', lDecision.fTempName, 'Expected second class temp name.');
 end;
 
-procedure TRemoveWithPlannerTests.BuildPlannerFixture(out aInventory: TRemoveWithSymbolInventory;
+procedure TRemoveWithPlannerTests.BuildPlannerFixture(out aInventory: TRemoveWithFactSet;
   out aScanResult: TRemoveWithScanResult; out aResolverResult: TRemoveWithResolverResult;
   out aPlanResult: TRemoveWithPlanResult);
 var
@@ -4226,7 +4261,7 @@ begin
 
   Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, aScanResult, lError),
     'Expected planner fixture discovery to succeed: ' + lError);
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, aInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, aInventory, lError),
     'Expected planner fixture inventory build to succeed: ' + lError);
   Assert.IsTrue(ResolveRemoveWithIdentifiers(aInventory, aScanResult, aResolverResult, lError),
     'Expected planner fixture resolver to succeed: ' + lError);
@@ -4258,7 +4293,7 @@ end;
 
 procedure TRemoveWithPlannerTests.PlansSafeRecordAndClassRewritesAndSkipsUnsafeSelectors;
 var
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lPlanResult: TRemoveWithPlanResult;
   lResolverResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
@@ -5920,7 +5955,7 @@ procedure TRemoveWithApplyCompileGateTests.BuildPlanForFixture(const aDprojPath:
   out aApplyContext: TRemoveWithPlanApplyContext);
 var
   lError: string;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lModel: TRemoveWithProjectModel;
   lResolverResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
@@ -5937,7 +5972,7 @@ begin
   Assert.IsTrue(BuildRemoveWithProjectModel(aOptions, aDprojPath, lModel, lError), lError);
   try
     Assert.IsTrue(DiscoverRemoveWithStatements(aOptions, lModel, lScanResult, lError), lError);
-    Assert.IsTrue(BuildRemoveWithSymbolInventory(aOptions, lModel, lInventory, lError), lError);
+    Assert.IsTrue(BuildRemoveWithFactSet(aOptions, lModel, lInventory, lError), lError);
     Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lSymbolMapBridge, lResolverResult,
       lError), lError);
     Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, aPlanResult, lError),
@@ -8624,8 +8659,8 @@ begin
     AssertJsonObjectKey(lRoot, 'migrationTelemetry', lTelemetry);
     Assert.AreEqual(667, (lSummary.Values['withStatements'] as TJSONNumber).AsInt,
       'Expected maxTdb plan to retain the current with-statement coverage baseline.');
-    Assert.AreEqual(208, (lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
-      'Expected maxTdb planned edits to stay at the current semantic rewrite baseline.');
+    Assert.AreEqual(215, (lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+      'Expected maxTdb planned edits to stay at the evidence-backed semantic rewrite baseline.');
     Assert.IsTrue((lSummary.Values['skipped'] as TJSONNumber).AsInt <= 460,
       'Expected maxTdb skipped count not to regress materially.');
     AssertJsonArrayKey(lRoot, 'skipped', lSkipped);
@@ -8636,7 +8671,7 @@ begin
     AssertSkippedReasonBetween(lSkipped, 'controlled-with-statement', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'temp-declaration-requires-routine-var-section', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'type-source-not-indexed', 0, 460);
-    Assert.AreEqual(321, CountSkippedReason(lSkipped, 'symbol-not-found'),
+    Assert.AreEqual(338, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected maxTdb generic symbol-not-found skips to stay at the current baseline.');
     Assert.AreEqual((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
       lTelemetry.GetValue<Integer>('plannedEdits'), 'Expected planned telemetry to match summary.');
@@ -8646,7 +8681,7 @@ begin
       'Expected local model hit telemetry to stay populated.');
     Assert.AreEqual(0, lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks'),
       'Expected external routine facts to come from DelphiSemantics rather than DAK fallback allowlists.');
-    Assert.AreEqual(1566, lTelemetry.GetValue<Integer>('trueUnknowns'),
+    Assert.AreEqual(1659, lTelemetry.GetValue<Integer>('trueUnknowns'),
       'Expected true unknown telemetry to stay at the current maxTdb baseline.');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') > 0,
       'Expected planner elapsed telemetry.');
@@ -8719,7 +8754,7 @@ var
   lDprojPath: string;
   lError: string;
   lInfo: TRemoveWithSelectorTypeInfo;
-  lInventory: TRemoveWithSymbolInventory;
+  lInventory: TRemoveWithFactSet;
   lOptions: TAppOptions;
   lSourceDir: string;
   lSymbol: TRemoveWithSymbolInfo;
@@ -8727,6 +8762,7 @@ var
   lFoundDatFile: Boolean;
   lFoundDatFilePtr: Boolean;
   lFoundDf: Boolean;
+  lFoundRelFiles: Boolean;
   function DescribeMaxTdbSelectorSymbols(const aNames: array of string): string;
   var
     lName: string;
@@ -8763,13 +8799,15 @@ begin
   lOptions.fPlatform := 'Win32';
   lOptions.fDelphiVersion := '23.0';
 
-  Assert.IsTrue(BuildRemoveWithSymbolInventory(lOptions, lInventory, lError),
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lInventory, lError),
     'Expected maxTdb symbol inventory build to succeed: ' + lError);
 
   lFoundBitArrayListPtr := False;
   lFoundDatFile := False;
   lFoundDatFilePtr := False;
   lFoundDf := False;
+  lFoundRelFiles := False;
+  lSymbol := Default(TRemoveWithSymbolInfo);
   for lSymbol in lInventory.fSymbols do
   begin
     if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and SameText(lSymbol.fName, 'TBitArrayListPtr') and
@@ -8789,6 +8827,15 @@ begin
   Assert.IsTrue(lFoundDatFile, 'Expected maxTdb DatFile record type to be indexed.');
   Assert.IsTrue(lFoundDatFilePtr, 'Expected maxTdb DatFilePtr alias to be indexed.');
   Assert.IsTrue(lFoundDf, 'Expected maxTdb DF global pointer array to be indexed.');
+  for lSymbol in lInventory.fSymbols do
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskParameter) and SameText(lSymbol.fName, 'RelFiles') and
+      SameText(lSymbol.fRoutineName, 'DoMarkBits') then
+    begin
+      Assert.AreEqual('', lSymbol.fTypeName, 'Expected untyped RelFiles parameter to keep an empty type.');
+      lFoundRelFiles := True;
+    end;
+  Assert.IsTrue(lFoundRelFiles,
+    'Expected maxTdb untyped RelFiles parameter to be available through semantic facts.');
   Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, '', 'DF[d]^', lInfo),
     'Expected maxTdb DF selector resolver to run.');
   Assert.AreEqual('resolved', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),

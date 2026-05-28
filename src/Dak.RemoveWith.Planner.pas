@@ -32,11 +32,11 @@ type
     fSemanticPlan: TDelphiSemanticRemoveWithPlan;
   end;
 
-function PlanRemoveWithRewrites(const aInventory: TRemoveWithSymbolInventory;
+function PlanRemoveWithRewrites(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
   overload;
-function PlanRemoveWithRewrites(const aInventory: TRemoveWithSymbolInventory;
+function PlanRemoveWithRewrites(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aSemanticPlan: TDelphiSemanticRemoveWithPlan; out aPlanResult: TRemoveWithPlanResult;
   out aError: string): Boolean; overload;
@@ -83,27 +83,27 @@ type
   private
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
     class function DirectTypeName(const aTypeName: string): string; static;
-    class function CanonicalSourceTypeName(const aInventory: TRemoveWithSymbolInventory;
+    class function CanonicalSourceTypeName(const aInventory: TRemoveWithFactSet;
       const aTypeName: string): string; static;
-    class function HasSourceType(const aInventory: TRemoveWithSymbolInventory; const aTypeName: string): Boolean;
+    class function HasSourceType(const aInventory: TRemoveWithFactSet; const aTypeName: string): Boolean;
       static;
     class function IsDirectMemberKind(const aKind: TRemoveWithSymbolKind): Boolean; static;
     class function IsSimpleIdentifier(const aText: string): Boolean; static;
     class function SplitSelectorList(const aSelectorText: string): TArray<string>; static;
     class function PreviousNonWhitespaceTextChar(const aText: string; const aOffset: Integer): Char; static;
     class function SelectorIdentifierIsCode(const aText: string; const aStartOffset: Integer): Boolean; static;
-    class function FindVisibleSelectorTempForMember(const aInventory: TRemoveWithSymbolInventory;
+    class function FindVisibleSelectorTempForMember(const aInventory: TRemoveWithFactSet;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIdentifier: string;
       out aSelectorTemp: TRemoveWithSelectorTemp; out aMemberTypeName, aReason: string): Boolean; static;
-    class function TryBuildDependentSelectorDecision(const aInventory: TRemoveWithSymbolInventory;
+    class function TryBuildDependentSelectorDecision(const aInventory: TRemoveWithFactSet;
       const aSelectorText: string; const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
       out aRewrittenText: string; out aDecision: TRemoveWithTempDecision; out aReason: string): Boolean; static;
-    class function RewrittenSelectorText(const aInventory: TRemoveWithSymbolInventory; const aSelectorText: string;
+    class function RewrittenSelectorText(const aInventory: TRemoveWithFactSet; const aSelectorText: string;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aRewrittenText, aReason: string): Boolean; static;
     class procedure RewriteDecisionSelectorText(const aSelectorText: string; var aDecision: TRemoveWithTempDecision);
       static;
     class function StatementContains(const aOuter, aInner: TRemoveWithStatementInfo): Boolean; static;
-    class function FindRoutineForStatement(const aInventory: TRemoveWithSymbolInventory;
+    class function FindRoutineForStatement(const aInventory: TRemoveWithFactSet;
       const aStatement: TRemoveWithStatementInfo; out aRoutineName: string; out aRoutineLine: Integer): Boolean;
       static;
     class function RangeOffsets(const aSource: TRemoveWithSourceBuffer; const aRange: TRemoveWithRange;
@@ -180,7 +180,7 @@ type
     class function TryBuildDirectSelectorDecisionFromClassifications(
       const aResolverResult: TRemoveWithResolverResult; const aStatement: TRemoveWithStatementInfo;
       const aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean; static;
-    class function BuildSelectorTemps(const aInventory: TRemoveWithSymbolInventory;
+    class function BuildSelectorTemps(const aInventory: TRemoveWithFactSet;
       const aStatement: TRemoveWithStatementInfo; const aRoutineName: string;
       const aResolverResult: TRemoveWithResolverResult;
       const aInheritedTemps: TArray<TRemoveWithSelectorTemp>; var aReservedNames: TRemoveWithReservedTempNames;
@@ -189,7 +189,7 @@ type
       const aStatement: TRemoveWithStatementInfo;
       const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aResolverResult: TRemoveWithResolverResult;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText, aReason: string): Boolean; static;
-    class function BuildStatementReplacement(const aInventory: TRemoveWithSymbolInventory;
+    class function BuildStatementReplacement(const aInventory: TRemoveWithFactSet;
       const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
       const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
       const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>;
@@ -198,26 +198,79 @@ type
       out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean; static;
     class function AddRoutineDeclarationEdits(const aRoutineStates: TArray<TRemoveWithRoutinePlanState>;
       var aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean; static;
-    class procedure PlanStatement(const aInventory: TRemoveWithSymbolInventory;
+    class procedure PlanStatement(const aInventory: TRemoveWithFactSet;
       const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
       const aSemanticPlan: TDelphiSemanticRemoveWithPlan; const aStatement: TRemoveWithStatementInfo;
       const aSource: TRemoveWithSourceBuffer;
       var aRoutineStates: TArray<TRemoveWithRoutinePlanState>; var aPlanResult: TRemoveWithPlanResult); static;
   public
-    class function Plan(const aInventory: TRemoveWithSymbolInventory; const aScanResult: TRemoveWithScanResult;
+    class function Plan(const aInventory: TRemoveWithFactSet; const aScanResult: TRemoveWithScanResult;
       const aResolverResult: TRemoveWithResolverResult; out aPlanResult: TRemoveWithPlanResult;
       out aError: string): Boolean; overload; static;
-    class function Plan(const aInventory: TRemoveWithSymbolInventory; const aScanResult: TRemoveWithScanResult;
+    class function Plan(const aInventory: TRemoveWithFactSet; const aScanResult: TRemoveWithScanResult;
       const aResolverResult: TRemoveWithResolverResult; const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
       out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean; overload; static;
   end;
 
 var
+  GPlannerClassificationsByStatement: TDictionary<string, TArray<TRemoveWithIdentifierClassification>>;
   GPlannerRoutinesByFile: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GPlannerSymbolsByName: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GPlannerSymbolsByOwnerType: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
 
-procedure BeginPlannerSymbolCache(const aInventory: TRemoveWithSymbolInventory);
+procedure BeginPlannerClassificationCache(const aResolverResult: TRemoveWithResolverResult);
+var
+  i: Integer;
+  lBuckets: TDictionary<string, TList<TRemoveWithIdentifierClassification>>;
+  lClassification: TRemoveWithIdentifierClassification;
+  lIndex: TDictionary<string, TArray<TRemoveWithIdentifierClassification>>;
+  lList: TList<TRemoveWithIdentifierClassification>;
+  lPair: TPair<string, TList<TRemoveWithIdentifierClassification>>;
+begin
+  GPlannerClassificationsByStatement.Free;
+  GPlannerClassificationsByStatement := nil;
+  lBuckets := TDictionary<string, TList<TRemoveWithIdentifierClassification>>.Create(
+    TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    for i := 0 to High(aResolverResult.fClassifications) do
+    begin
+      lClassification := aResolverResult.fClassifications[i];
+      if not lBuckets.TryGetValue(lClassification.fStatementId, lList) then
+      begin
+        lList := TList<TRemoveWithIdentifierClassification>.Create;
+        lBuckets.Add(lClassification.fStatementId, lList);
+      end;
+      lList.Add(lClassification);
+    end;
+
+    lIndex := TDictionary<string, TArray<TRemoveWithIdentifierClassification>>.Create(
+      TFastCaseAwareComparer.OrdinalIgnoreCase);
+    for lPair in lBuckets do
+      lIndex.Add(lPair.Key, lPair.Value.ToArray);
+    GPlannerClassificationsByStatement := lIndex;
+  finally
+    for lPair in lBuckets do
+      lPair.Value.Free;
+    lBuckets.Free;
+  end;
+end;
+
+procedure EndPlannerClassificationCache;
+begin
+  GPlannerClassificationsByStatement.Free;
+  GPlannerClassificationsByStatement := nil;
+end;
+
+function PlannerClassificationsForStatement(const aStatementId: string):
+  TArray<TRemoveWithIdentifierClassification>;
+begin
+  Result := nil;
+  if GPlannerClassificationsByStatement = nil then
+    Exit;
+  GPlannerClassificationsByStatement.TryGetValue(aStatementId, Result);
+end;
+
+procedure BeginPlannerSymbolCache(const aInventory: TRemoveWithFactSet);
 var
   lNameBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
   lOwnerBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
@@ -350,7 +403,7 @@ begin
     Result := Copy(Result, lDelimiterPos + 1, MaxInt);
 end;
 
-class function TRemoveWithPlanner.CanonicalSourceTypeName(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithPlanner.CanonicalSourceTypeName(const aInventory: TRemoveWithFactSet;
   const aTypeName: string): string;
 var
   lSymbol: TRemoveWithSymbolInfo;
@@ -377,7 +430,7 @@ begin
   Result := DirectTypeName(Result);
 end;
 
-class function TRemoveWithPlanner.HasSourceType(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithPlanner.HasSourceType(const aInventory: TRemoveWithFactSet;
   const aTypeName: string): Boolean;
 var
   lDirectTypeName: string;
@@ -561,7 +614,7 @@ begin
   Result := not (lBraceComment or lLineComment or lParenComment or lStringOpen);
 end;
 
-class function TRemoveWithPlanner.FindVisibleSelectorTempForMember(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithPlanner.FindVisibleSelectorTempForMember(const aInventory: TRemoveWithFactSet;
   const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIdentifier: string;
   out aSelectorTemp: TRemoveWithSelectorTemp; out aMemberTypeName, aReason: string): Boolean;
 var
@@ -641,7 +694,7 @@ begin
   end;
 end;
 
-class function TRemoveWithPlanner.TryBuildDependentSelectorDecision(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithPlanner.TryBuildDependentSelectorDecision(const aInventory: TRemoveWithFactSet;
   const aSelectorText: string; const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
   out aRewrittenText: string; out aDecision: TRemoveWithTempDecision; out aReason: string): Boolean;
 var
@@ -673,7 +726,7 @@ begin
   Result := True;
 end;
 
-class function TRemoveWithPlanner.RewrittenSelectorText(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithPlanner.RewrittenSelectorText(const aInventory: TRemoveWithFactSet;
   const aSelectorText: string; const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
   out aRewrittenText, aReason: string): Boolean;
 var
@@ -743,7 +796,7 @@ begin
     (aOuter.fRange.fEndColumn >= aInner.fRange.fEndColumn)));
 end;
 
-class function TRemoveWithPlanner.FindRoutineForStatement(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithPlanner.FindRoutineForStatement(const aInventory: TRemoveWithFactSet;
   const aStatement: TRemoveWithStatementInfo; out aRoutineName: string; out aRoutineLine: Integer): Boolean;
 var
   lBestLine: Integer;
@@ -1492,7 +1545,7 @@ begin
   if Result <> '' then
     Exit;
 
-  for lClassification in aResolverResult.fClassifications do
+  for lClassification in PlannerClassificationsForStatement(aStatement.fId) do
   begin
     if SameText(lClassification.fStatementId, aStatement.fId) and
       SameText(lClassification.fReason, 'unsupported-identifier-role') then
@@ -1533,7 +1586,7 @@ begin
   aDecision := Default(TRemoveWithTempDecision);
   Result := False;
 
-  for lClassification in aResolverResult.fClassifications do
+  for lClassification in PlannerClassificationsForStatement(aStatement.fId) do
   begin
     if SameText(lClassification.fStatementId, aStatement.fId) and
       (lClassification.fStatus = TRemoveWithIdentifierStatus.rwisResolved) and
@@ -1585,7 +1638,7 @@ begin
   aStates[Result].fFirstPlanIndex := -1;
 end;
 
-class function TRemoveWithPlanner.BuildSelectorTemps(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithPlanner.BuildSelectorTemps(const aInventory: TRemoveWithFactSet;
   const aStatement: TRemoveWithStatementInfo; const aRoutineName: string;
   const aResolverResult: TRemoveWithResolverResult;
   const aInheritedTemps: TArray<TRemoveWithSelectorTemp>; var aReservedNames: TRemoveWithReservedTempNames;
@@ -1710,7 +1763,7 @@ begin
     AddBodyEdit(lBodyEdits, lBodyEdit.fOffsets, lBodyEdit.fReplacementText);
   end;
 
-  for lClassification in aResolverResult.fClassifications do
+  for lClassification in PlannerClassificationsForStatement(aStatement.fId) do
   begin
     if not SameText(lClassification.fStatementId, aStatement.fId) then
       Continue;
@@ -1752,7 +1805,7 @@ begin
   Result := True;
 end;
 
-class function TRemoveWithPlanner.BuildStatementReplacement(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithPlanner.BuildStatementReplacement(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
   const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>;
@@ -1918,7 +1971,7 @@ begin
   Result := True;
 end;
 
-class procedure TRemoveWithPlanner.PlanStatement(const aInventory: TRemoveWithSymbolInventory;
+class procedure TRemoveWithPlanner.PlanStatement(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aSemanticPlan: TDelphiSemanticRemoveWithPlan; const aStatement: TRemoveWithStatementInfo;
   const aSource: TRemoveWithSourceBuffer;
@@ -1987,7 +2040,7 @@ begin
   AddSelectorTemps(aRoutineStates[lRoutineIndex].fSelectorTemps, lSelectorTemps);
 end;
 
-class function TRemoveWithPlanner.Plan(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithPlanner.Plan(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
 var
@@ -1997,7 +2050,7 @@ begin
   Result := Plan(aInventory, aScanResult, aResolverResult, lSemanticPlan, aPlanResult, aError);
 end;
 
-class function TRemoveWithPlanner.Plan(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithPlanner.Plan(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aSemanticPlan: TDelphiSemanticRemoveWithPlan; out aPlanResult: TRemoveWithPlanResult;
   out aError: string): Boolean;
@@ -2013,6 +2066,7 @@ begin
   Result := False;
   lCurrentPath := '';
   lSource := Default(TRemoveWithSourceBuffer);
+  BeginPlannerClassificationCache(aResolverResult);
   BeginPlannerSymbolCache(aInventory);
   BeginRemoveWithSelectorTypeCache(aInventory);
   BeginRemoveWithTempPolicyCache(aInventory);
@@ -2048,17 +2102,18 @@ begin
     EndRemoveWithTempPolicyCache;
     EndRemoveWithSelectorTypeCache;
     EndPlannerSymbolCache;
+    EndPlannerClassificationCache;
   end;
 end;
 
-function PlanRemoveWithRewrites(const aInventory: TRemoveWithSymbolInventory;
+function PlanRemoveWithRewrites(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
 begin
   Result := TRemoveWithPlanner.Plan(aInventory, aScanResult, aResolverResult, aPlanResult, aError);
 end;
 
-function PlanRemoveWithRewrites(const aInventory: TRemoveWithSymbolInventory;
+function PlanRemoveWithRewrites(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aSemanticPlan: TDelphiSemanticRemoveWithPlan; out aPlanResult: TRemoveWithPlanResult;
   out aError: string): Boolean;

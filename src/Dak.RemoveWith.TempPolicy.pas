@@ -24,11 +24,11 @@ type
   end;
 
 function RemoveWithTempStrategyToText(const aStrategy: TRemoveWithTempStrategy): string;
-procedure BeginRemoveWithTempPolicyCache(const aInventory: TRemoveWithSymbolInventory);
+procedure BeginRemoveWithTempPolicyCache(const aInventory: TRemoveWithFactSet);
 procedure EndRemoveWithTempPolicyCache;
-function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithFactSet; const aRoutineName,
   aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean; overload;
-function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithFactSet; const aRoutineName,
   aSelectorText: string; var aReservedNames: TRemoveWithReservedTempNames;
   out aDecision: TRemoveWithTempDecision): Boolean; overload;
 
@@ -43,29 +43,29 @@ type
   TRemoveWithTempPolicy = record
   private
     class function DirectTypeName(const aTypeName: string): string; static;
-    class function CanonicalSourceTypeName(const aInventory: TRemoveWithSymbolInventory;
+    class function CanonicalSourceTypeName(const aInventory: TRemoveWithFactSet;
       const aTypeName: string): string; static;
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
     class function IsSimpleIdentifier(const aText: string): Boolean; static;
     class function IsPureUnitLevelSelector(const aText: string): Boolean; static;
-    class function TypeCategory(const aInventory: TRemoveWithSymbolInventory;
+    class function TypeCategory(const aInventory: TRemoveWithFactSet;
       const aTypeName: string): TRemoveWithTypeCategory; static;
     class function SelectorUsesPointerDeref(const aSelectorText: string): Boolean; static;
     class function TempBaseName(const aTypeName: string): string; static;
     class function ReservedNameExists(const aReservedNames: TRemoveWithReservedTempNames;
       const aName: string): Boolean; static;
-    class function NameExists(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+    class function NameExists(const aInventory: TRemoveWithFactSet; const aRoutineName,
       aName: string; const aReservedNames: TRemoveWithReservedTempNames): Boolean; static;
-    class function UniqueTempName(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+    class function UniqueTempName(const aInventory: TRemoveWithFactSet; const aRoutineName,
       aBaseName: string; const aReservedNames: TRemoveWithReservedTempNames): string; static;
     class procedure ReserveName(var aReservedNames: TRemoveWithReservedTempNames; const aName: string); static;
-    class function ReserveUniqueTempName(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+    class function ReserveUniqueTempName(const aInventory: TRemoveWithFactSet; const aRoutineName,
       aBaseName: string; var aReservedNames: TRemoveWithReservedTempNames): string; static;
     class procedure SetSkip(out aDecision: TRemoveWithTempDecision; const aSelectorText, aReason: string); static;
   public
-    class function Plan(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+    class function Plan(const aInventory: TRemoveWithFactSet; const aRoutineName,
       aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean; overload; static;
-    class function Plan(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+    class function Plan(const aInventory: TRemoveWithFactSet; const aRoutineName,
       aSelectorText: string; var aReservedNames: TRemoveWithReservedTempNames;
       out aDecision: TRemoveWithTempDecision): Boolean; overload; static;
   end;
@@ -74,7 +74,7 @@ var
   GTempPolicyCacheDepth: Integer;
   GTempPolicySymbolNameIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
 
-procedure EnsureTempPolicySymbolNameIndex(const aInventory: TRemoveWithSymbolInventory);
+procedure EnsureTempPolicySymbolNameIndex(const aInventory: TRemoveWithFactSet);
 var
   lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
   lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
@@ -115,7 +115,7 @@ begin
   end;
 end;
 
-procedure BeginRemoveWithTempPolicyCache(const aInventory: TRemoveWithSymbolInventory);
+procedure BeginRemoveWithTempPolicyCache(const aInventory: TRemoveWithFactSet);
 begin
   if GTempPolicyCacheDepth = 0 then
   begin
@@ -185,12 +185,11 @@ begin
     Result := Copy(Result, lDelimiterPos + 1, MaxInt);
 end;
 
-class function TRemoveWithTempPolicy.CanonicalSourceTypeName(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithTempPolicy.CanonicalSourceTypeName(const aInventory: TRemoveWithFactSet;
   const aTypeName: string): string;
 var
   lSymbol: TRemoveWithSymbolInfo;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
-  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   lTypeName := Trim(aTypeName);
@@ -198,9 +197,6 @@ begin
     Delete(lTypeName, 1, 1);
   if lTypeName = '' then
     Exit('');
-
-  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(lTypeName, lTypeInfo) then
-    Exit(lTypeName);
 
   EnsureTempPolicySymbolNameIndex(aInventory);
   if GTempPolicySymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
@@ -303,17 +299,14 @@ begin
   Result := lSawCode and (lBracketDepth = 0) and not lPreviousWasDot;
 end;
 
-class function TRemoveWithTempPolicy.TypeCategory(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithTempPolicy.TypeCategory(const aInventory: TRemoveWithFactSet;
   const aTypeName: string): TRemoveWithTypeCategory;
 var
   lSymbol: TRemoveWithSymbolInfo;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
-  lTypeInfo: TRemoveWithModelTypeInfo;
   lTypeName: string;
 begin
   lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
-  if Assigned(aInventory.fSemanticIndex) and aInventory.fSemanticIndex.TryFindType(lTypeName, lTypeInfo) then
-    Exit(TypeCategoryForModelKind(lTypeInfo.fKind));
 
   EnsureTempPolicySymbolNameIndex(aInventory);
   if GTempPolicySymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
@@ -370,7 +363,7 @@ begin
   Result := False;
 end;
 
-class function TRemoveWithTempPolicy.NameExists(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithTempPolicy.NameExists(const aInventory: TRemoveWithFactSet;
   const aRoutineName, aName: string; const aReservedNames: TRemoveWithReservedTempNames): Boolean;
 var
   lSymbol: TRemoveWithSymbolInfo;
@@ -390,7 +383,7 @@ begin
   Result := False;
 end;
 
-class function TRemoveWithTempPolicy.UniqueTempName(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithTempPolicy.UniqueTempName(const aInventory: TRemoveWithFactSet;
   const aRoutineName, aBaseName: string; const aReservedNames: TRemoveWithReservedTempNames): string;
 var
   lIndex: Integer;
@@ -418,7 +411,7 @@ begin
   aReservedNames.fNames[lLength] := aName;
 end;
 
-class function TRemoveWithTempPolicy.ReserveUniqueTempName(const aInventory: TRemoveWithSymbolInventory;
+class function TRemoveWithTempPolicy.ReserveUniqueTempName(const aInventory: TRemoveWithFactSet;
   const aRoutineName, aBaseName: string; var aReservedNames: TRemoveWithReservedTempNames): string;
 begin
   Result := UniqueTempName(aInventory, aRoutineName, aBaseName, aReservedNames);
@@ -434,7 +427,7 @@ begin
   aDecision.fStrategy := TRemoveWithTempStrategy.rwtsSkip;
 end;
 
-class function TRemoveWithTempPolicy.Plan(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+class function TRemoveWithTempPolicy.Plan(const aInventory: TRemoveWithFactSet; const aRoutineName,
   aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean;
 var
   lReservedNames: TRemoveWithReservedTempNames;
@@ -443,7 +436,7 @@ begin
   Result := Plan(aInventory, aRoutineName, aSelectorText, lReservedNames, aDecision);
 end;
 
-class function TRemoveWithTempPolicy.Plan(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+class function TRemoveWithTempPolicy.Plan(const aInventory: TRemoveWithFactSet; const aRoutineName,
   aSelectorText: string; var aReservedNames: TRemoveWithReservedTempNames;
   out aDecision: TRemoveWithTempDecision): Boolean;
 var
@@ -521,7 +514,7 @@ begin
     SetSkip(aDecision, aSelectorText, 'type-category-not-resolved');
 end;
 
-function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithFactSet; const aRoutineName,
   aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean; overload;
 begin
   BeginRemoveWithTempPolicyCache(aInventory);
@@ -532,7 +525,7 @@ begin
   end;
 end;
 
-function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithSymbolInventory; const aRoutineName,
+function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithFactSet; const aRoutineName,
   aSelectorText: string; var aReservedNames: TRemoveWithReservedTempNames;
   out aDecision: TRemoveWithTempDecision): Boolean; overload;
 begin
