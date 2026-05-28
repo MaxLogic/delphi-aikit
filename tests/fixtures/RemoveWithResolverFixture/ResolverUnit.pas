@@ -27,6 +27,7 @@ type
     function Pick(aValue: Integer): string; overload;
     function Pick(const aValue: string): string; overload;
     property AddressProp: TResolverAddress read Address;
+    procedure Push;
     procedure Save;
   end;
 
@@ -69,6 +70,10 @@ begin
   Result := aValue;
 end;
 
+procedure TResolverCustomer.Push;
+begin
+end;
+
 procedure TDuplicateTargetHelperA.Clash;
 begin
 end;
@@ -103,6 +108,7 @@ begin
     Count := Pred(Count);
     Str(Size: 10, lLocalOnly);
     Pick(1);
+    Push();
     Save;
   end;
 

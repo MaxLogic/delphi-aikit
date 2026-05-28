@@ -39,11 +39,10 @@ type
   end;
 
   TRemoveWithSymbolInventory = record
+    fContextFingerprint: string;
     fSymbols: TArray<TRemoveWithSymbolInfo>;
     fSemanticIndex: TRemoveWithSemanticIndex;
     fDelphiSemanticUnitModels: TArray<TDelphiSemanticUnitModel>;
-    fDelphiSemanticInventories: TArray<TDelphiSemanticRemoveWithInventory>;
-    fDelphiSemanticWithBindings: TArray<TDelphiSemanticWithBinding>;
     fDelphiSemanticWithBindingEntries: TArray<TRemoveWithSemanticWithBinding>;
     fParserDefines: string;
   end;
@@ -85,28 +84,6 @@ begin
   WriteLn(ErrOutput, FormatDateTime('yyyy-mm-dd"T"hh:nn:ss.zzz', Now) + ' [remove-with:symbols] ' +
     aMessage);
   Flush(ErrOutput);
-end;
-
-function SplitSemanticListText(const aText: string): TArray<string>;
-var
-  lItems: TArray<string>;
-  lPart: string;
-  lResult: TList<string>;
-begin
-  lResult := TList<string>.Create;
-  try
-    lItems := SplitString(aText, ';');
-    for lPart in lItems do
-    begin
-      if Trim(lPart) <> '' then
-      begin
-        lResult.Add(Trim(lPart));
-      end;
-    end;
-    Result := lResult.ToArray;
-  finally
-    lResult.Free;
-  end;
 end;
 
 type
@@ -189,29 +166,14 @@ begin
   aInventory.fDelphiSemanticUnitModels[lIndex] := aModel;
 end;
 
-procedure AppendDelphiSemanticInventory(var aInventory: TRemoveWithSymbolInventory;
-  const aSemanticInventory: TDelphiSemanticRemoveWithInventory);
-var
-  lIndex: Integer;
-begin
-  lIndex := Length(aInventory.fDelphiSemanticInventories);
-  SetLength(aInventory.fDelphiSemanticInventories, lIndex + 1);
-  aInventory.fDelphiSemanticInventories[lIndex] := aSemanticInventory;
-end;
-
 procedure AppendDelphiSemanticBindings(var aInventory: TRemoveWithSymbolInventory;
   const aBindings: TArray<TDelphiSemanticWithBinding>);
 var
   lBinding: TDelphiSemanticWithBinding;
   lEntryIndex: Integer;
-  lIndex: Integer;
 begin
   for lBinding in aBindings do
   begin
-    lIndex := Length(aInventory.fDelphiSemanticWithBindings);
-    SetLength(aInventory.fDelphiSemanticWithBindings, lIndex + 1);
-    aInventory.fDelphiSemanticWithBindings[lIndex] := lBinding;
-
     lEntryIndex := Length(aInventory.fDelphiSemanticWithBindingEntries);
     SetLength(aInventory.fDelphiSemanticWithBindingEntries, lEntryIndex + 1);
     aInventory.fDelphiSemanticWithBindingEntries[lEntryIndex].fFilePath := lBinding.FileName;
@@ -271,19 +233,13 @@ function ShouldTranslateDelphiSemanticSymbol(const aSymbol: TDelphiSemanticInven
 begin
   Result := True;
   if SameText(aSymbol.SymbolClass, 'local') or SameText(aSymbol.SymbolClass, 'parameter') then
-    Exit(aSymbol.Line > 0);
+    Exit((aSymbol.Line > 0) and (Trim(aSymbol.TypeName) <> ''));
   if SameText(aSymbol.SymbolClass, 'routine') and (aSymbol.SectionKind <> '') then
     Exit(False);
 end;
 
 procedure AppendDelphiSemanticSymbols(var aInventory: TRemoveWithSymbolInventory;
   const aSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>); forward;
-
-procedure AppendDelphiSemanticInventorySymbols(var aInventory: TRemoveWithSymbolInventory;
-  const aSemanticInventory: TDelphiSemanticRemoveWithInventory);
-begin
-  AppendDelphiSemanticSymbols(aInventory, aSemanticInventory.Symbols);
-end;
 
 procedure AppendDelphiSemanticSymbols(var aInventory: TRemoveWithSymbolInventory;
   const aSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>);
@@ -329,25 +285,6 @@ begin
     lSymbol.fTypeCategory := DelphiSemanticTypeCategoryToRemoveWithCategory(lSemanticSymbol.TypeCategory);
     lSymbol.fKind := lKind;
     TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
-  end;
-end;
-
-procedure AppendExpandedDelphiSemanticInventorySymbols(var aInventory: TRemoveWithSymbolInventory);
-var
-  lAllSymbols: TList<TDelphiSemanticInventorySymbol>;
-  lExpandedSymbols: TArray<TDelphiSemanticInventorySymbol>;
-  lSemanticInventory: TDelphiSemanticRemoveWithInventory;
-  lSymbol: TDelphiSemanticInventorySymbol;
-begin
-  lAllSymbols := TList<TDelphiSemanticInventorySymbol>.Create;
-  try
-    for lSemanticInventory in aInventory.fDelphiSemanticInventories do
-      for lSymbol in lSemanticInventory.Symbols do
-        lAllSymbols.Add(lSymbol);
-    lExpandedSymbols := TDelphiSemanticWithBinder.ExpandInventorySymbols(lAllSymbols.ToArray);
-    AppendDelphiSemanticSymbols(aInventory, lExpandedSymbols);
-  finally
-    lAllSymbols.Free;
   end;
 end;
 
@@ -526,74 +463,90 @@ begin
   end;
 end;
 
-procedure BuildDelphiSemanticBindings(const aOptions: TAppOptions;
-  const aProjectModel: TRemoveWithProjectModel;
-  var aInventory: TRemoveWithSymbolInventory;
-  var aPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics);
+function BuildProjectSemanticOptions(const aOptions: TAppOptions;
+  const aProjectModel: TRemoveWithProjectModel): TDelphiSemanticApiOptions;
 var
   lCacheDir: string;
-  lIndex: TDelphiSemanticUnitIndex;
-  lOptions: TDelphiSemanticApiOptions;
-  lSemanticInventory: TDelphiSemanticRemoveWithInventory;
-  lSemanticModel: TDelphiSemanticUnitModel;
-  lStopwatch: TStopwatch;
+  lSourceFileNames: TList<string>;
   lUnitModel: TRemoveWithUnitModel;
 begin
-  lStopwatch := TStopwatch.StartNew;
-  for lUnitModel in aProjectModel.UnitModels do
-  begin
-    if (Trim(lUnitModel.fFilePath) = '') or
-      (not SameText(TPath.GetExtension(lUnitModel.fFilePath), '.pas')) or
-      (not TFile.Exists(lUnitModel.fFilePath)) then
-    begin
-      Continue;
-    end;
-
-    lOptions := Default(TDelphiSemanticApiOptions);
-    lOptions.SourceFileName := lUnitModel.fFilePath;
-    lOptions.ProjectContextApplied := True;
-    lOptions.Defines := SplitSemanticListText(aProjectModel.Context.fParserDefines);
-    lOptions.SearchPaths := SplitSemanticListText(aProjectModel.Context.fParserSearchPath);
-    lOptions.Cache.DelphiVersion := aOptions.fDelphiVersion;
-    lOptions.Cache.Configuration := aOptions.fConfig;
-    lOptions.Cache.Platform := aOptions.fPlatform;
-    if aOptions.fHasRemoveWithSemanticCachePath and
-      (Trim(aOptions.fRemoveWithSemanticCachePath) <> '') then
-    begin
-      lOptions.Cache.SqliteCacheFileName := aOptions.fRemoveWithSemanticCachePath;
-      lCacheDir := TPath.GetDirectoryName(lOptions.Cache.SqliteCacheFileName);
-      if lCacheDir <> '' then
-        TDirectory.CreateDirectory(lCacheDir);
-    end;
-    lIndex := TDelphiSemanticApi.BuildUnitIndex(lOptions);
-    lSemanticModel := lIndex.Model;
-    if lSemanticModel.FileName = '' then
-      lSemanticModel.FileName := lUnitModel.fFilePath;
-    if lSemanticModel.UnitName = '' then
-      lSemanticModel.UnitName := lUnitModel.fUnitName;
-    LogRemoveWithSymbolProgress(aOptions, Format(
-      'semantic-cache unit=%s kind=%s hits=%d misses=%d invalidations=%d file=%s',
-      [lSemanticModel.UnitName, lIndex.CacheMetrics.CacheKind, lIndex.CacheMetrics.CacheHits,
-      lIndex.CacheMetrics.CacheMisses, lIndex.CacheMetrics.Invalidations,
-      lIndex.CacheMetrics.CacheFileName]));
-
-    AppendDelphiSemanticModel(aInventory, lSemanticModel);
-    lSemanticInventory := lIndex.Inventory;
-    AppendDelphiSemanticInventory(aInventory, lSemanticInventory);
-    AppendDelphiSemanticBindings(aInventory, lIndex.Bindings);
+  Result := Default(TDelphiSemanticApiOptions);
+  Result.ProjectFileName := aProjectModel.ProjectPath;
+  Result.Configuration := aOptions.fConfig;
+  Result.Platform := aOptions.fPlatform;
+  Result.DelphiVersion := aOptions.fDelphiVersion;
+  Result.RsVarsPath := aOptions.fRsVarsPath;
+  Result.EnvOptionsPath := aOptions.fEnvOptionsPath;
+  lSourceFileNames := TList<string>.Create;
+  try
+    for lUnitModel in aProjectModel.UnitModels do
+      if (Trim(lUnitModel.fFilePath) <> '') and (Length(lUnitModel.fWithStatements) > 0) then
+        lSourceFileNames.Add(lUnitModel.fFilePath);
+    Result.AdditionalSourceFileNames := lSourceFileNames.ToArray;
+  finally
+    lSourceFileNames.Free;
   end;
+  Result.Cache.DelphiVersion := aOptions.fDelphiVersion;
+  Result.Cache.Configuration := aOptions.fConfig;
+  Result.Cache.Platform := aOptions.fPlatform;
+  if aOptions.fHasRemoveWithSemanticCachePath and
+    (Trim(aOptions.fRemoveWithSemanticCachePath) <> '') then
+  begin
+    Result.Cache.SqliteCacheFileName := aOptions.fRemoveWithSemanticCachePath;
+    lCacheDir := TPath.GetDirectoryName(Result.Cache.SqliteCacheFileName);
+    if lCacheDir <> '' then
+      TDirectory.CreateDirectory(lCacheDir);
+  end;
+end;
+
+function BuildProjectSemanticFacts(const aOptions: TAppOptions;
+  const aProjectModel: TRemoveWithProjectModel;
+  var aInventory: TRemoveWithSymbolInventory;
+  var aPhaseMetrics: TRemoveWithSymbolInventoryPhaseMetrics;
+  out aError: string): Boolean;
+var
+  lFacts: TDelphiSemanticProjectWithBindingFacts;
+  lOptions: TDelphiSemanticApiOptions;
+  lStopwatch: TStopwatch;
+begin
+  Result := False;
+  aError := '';
+  lStopwatch := TStopwatch.StartNew;
+  lOptions := BuildProjectSemanticOptions(aOptions, aProjectModel);
+  try
+    lFacts := TDelphiSemanticApi.BuildProjectWithBindingFacts(lOptions);
+  except
+    on E: Exception do
+    begin
+      aError := 'DelphiSemantics project facts failed: ' + E.Message;
+      Exit(False);
+    end;
+  end;
+  if lFacts.ContextFingerprint = '' then
+  begin
+    aError := 'DelphiSemantics project facts did not return a context fingerprint.';
+    Exit(False);
+  end;
+  if lFacts.Metrics.UnitCount = 0 then
+  begin
+    aError := 'DelphiSemantics project facts did not return any project units.';
+    Exit(False);
+  end;
+  aInventory.fContextFingerprint := lFacts.ContextFingerprint;
+  AppendDelphiSemanticSymbols(aInventory, lFacts.Symbols);
+  AppendDelphiSemanticBindings(aInventory, lFacts.Bindings);
+  LogRemoveWithSymbolProgress(aOptions, Format(
+    'semantic-project-facts graph=%s units=%d withStatements=%d bindings=%d symbols=%d context=%s',
+    [BoolToStr(lFacts.Metrics.SemanticGraphUsed, True), lFacts.Metrics.UnitCount,
+    lFacts.Metrics.WithStatementCount, lFacts.Metrics.BindingCount,
+    Length(lFacts.Symbols), lFacts.ContextFingerprint]));
   lStopwatch.Stop;
   aPhaseMetrics.fSemanticBindingIndexBuildMs := lStopwatch.ElapsedMilliseconds;
 
-  lStopwatch := TStopwatch.StartNew;
-  AppendDelphiSemanticRtlSourceModels(aOptions, aProjectModel, aInventory);
-  lStopwatch.Stop;
-  aPhaseMetrics.fRtlSourceEnrichmentMs := lStopwatch.ElapsedMilliseconds;
+  aPhaseMetrics.fRtlSourceEnrichmentMs := 0;
 
-  lStopwatch := TStopwatch.StartNew;
-  AppendExpandedDelphiSemanticInventorySymbols(aInventory);
-  lStopwatch.Stop;
-  aPhaseMetrics.fSemanticInventoryExpansionMs := lStopwatch.ElapsedMilliseconds;
+  aPhaseMetrics.fSemanticInventoryExpansionMs := 0;
+  Result := True;
 end;
 
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
@@ -1688,8 +1641,8 @@ begin
     if lUnitName = '' then
       Continue;
 
-    lUnitKey := UpperCase(lUnitName);
-    if aExistingUnits.ContainsKey(lUnitKey) or aExternalUnits.ContainsKey(lUnitKey) then
+    lUnitKey := aFilePath + '|' + lUnitName;
+    if aExistingUnits.ContainsKey(lUnitName) or aExternalUnits.ContainsKey(lUnitKey) then
       Continue;
     aExternalUnits.Add(lUnitKey, 1);
     lExternalSymbol := Default(TRemoveWithSymbolInfo);
@@ -1701,24 +1654,30 @@ begin
   end;
 end;
 
-procedure AddExternalUnitSymbolsFromDelphiSemanticModels(var aInventory: TRemoveWithSymbolInventory);
+procedure AddExternalUnitSymbolsFromProjectFacts(const aProjectModel: TRemoveWithProjectModel;
+  var aInventory: TRemoveWithSymbolInventory);
 var
   lExistingUnits: TDictionary<string, Byte>;
   lExternalUnits: TDictionary<string, Byte>;
   lModel: TDelphiSemanticUnitModel;
   lSymbol: TRemoveWithSymbolInfo;
+  lUnitModel: TRemoveWithUnitModel;
 begin
-  lExistingUnits := TDictionary<string, Byte>.Create;
+  lExistingUnits := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
-    lExternalUnits := TDictionary<string, Byte>.Create;
+    lExternalUnits := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
     try
       for lSymbol in aInventory.fSymbols do
       begin
         if lSymbol.fKind = TRemoveWithSymbolKind.rwskUnitName then
-          lExistingUnits.AddOrSetValue(UpperCase(lSymbol.fName), 1)
+          lExistingUnits.AddOrSetValue(lSymbol.fName, 1)
         else if lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal then
-          lExternalUnits.AddOrSetValue(UpperCase(lSymbol.fName), 1);
+          lExternalUnits.AddOrSetValue(lSymbol.fFilePath + '|' + lSymbol.fName, 1);
       end;
+
+      for lUnitModel in aProjectModel.UnitModels do
+        AddExternalUsesUnits(aInventory, lExistingUnits, lExternalUnits, lUnitModel.fUses,
+          lUnitModel.fUnitName, lUnitModel.fFilePath);
 
       for lModel in aInventory.fDelphiSemanticUnitModels do
       begin
@@ -1798,7 +1757,8 @@ begin
     try
       GRemoveWithSymbolKeys := lSymbolKeys;
       GRemoveWithLogicalSymbolKeys := lLogicalSymbolKeys;
-      BuildDelphiSemanticBindings(aOptions, aProjectModel, aInventory, aPhaseMetrics);
+      if not BuildProjectSemanticFacts(aOptions, aProjectModel, aInventory, aPhaseMetrics, aError) then
+        Exit(False);
 
       lUnitIndex := 0;
       for lUnitModel in aProjectModel.UnitModels do
@@ -1816,7 +1776,7 @@ begin
 
       LogRemoveWithSymbolProgress(aOptions, 'external-units start');
       lStopwatch := TStopwatch.StartNew;
-      AddExternalUnitSymbolsFromDelphiSemanticModels(aInventory);
+      AddExternalUnitSymbolsFromProjectFacts(aProjectModel, aInventory);
       lStopwatch.Stop;
       aPhaseMetrics.fExternalUnitSymbolsMs := lStopwatch.ElapsedMilliseconds;
       LogRemoveWithSymbolProgress(aOptions, Format('external-units done elapsedMs=%d symbols=%d',

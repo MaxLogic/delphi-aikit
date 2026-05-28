@@ -1141,15 +1141,15 @@ begin
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected first semantic cache run to succeed.');
   Assert.IsTrue(TFile.Exists(lCacheFileName), 'Expected remove-with to create the semantic cache file.');
   Assert.IsTrue(ContainsText(lLogText,
-    'semantic-cache unit=SymbolMapUnit kind=sqlite hits=0 misses=1 invalidations=0'),
-    'Expected first run to parse and cache SymbolMapUnit.');
+    'semantic-project-facts graph=True'),
+    'Expected first run to build semantic project facts through DelphiSemantics.');
 
   lLogText := RunSemanticCacheFixture(lDprojPath, lCacheFileName, 'remove-with-semantic-cache-second.log',
     lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected second semantic cache run to succeed.');
   Assert.IsTrue(ContainsText(lLogText,
-    'semantic-cache unit=SymbolMapUnit kind=sqlite hits=1 misses=0 invalidations=0'),
-    'Expected second run to reuse cached SymbolMapUnit.');
+    'semantic-project-facts graph=True'),
+    'Expected second run to reuse the project semantic-facts path.');
 
   lUnitPath := TPath.Combine(lFixtureDir, 'SymbolMapUnit.pas');
   TFile.AppendAllText(lUnitPath, sLineBreak + '// cache invalidation probe' + sLineBreak,
@@ -1158,11 +1158,8 @@ begin
     lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected changed-source semantic cache run to succeed.');
   Assert.IsTrue(ContainsText(lLogText,
-    'semantic-cache unit=SymbolMapUnit kind=sqlite hits=0 misses=1 invalidations=1'),
-    'Expected changed SymbolMapUnit to be invalidated and rebuilt.');
-  Assert.IsTrue(ContainsText(lLogText,
-    'semantic-cache unit=SymbolMapMembers kind=sqlite hits=1 misses=0 invalidations=0'),
-    'Expected unchanged units to remain cache hits after one source changes.');
+    'semantic-project-facts graph=True'),
+    'Expected changed-source run to rebuild project semantic facts.');
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;
@@ -1760,15 +1757,13 @@ procedure TRemoveWithProjectModelTests.SharedProjectModelFeedsDiscoveryAndSymbol
 var
   lError: string;
   lInventory: TRemoveWithSymbolInventory;
-  lSemanticBinding: TDelphiSemanticWithBinding;
-  lSemanticInventory: TDelphiSemanticRemoveWithInventory;
-  lSemanticModel: TDelphiSemanticUnitModel;
+  lSemanticBinding: TRemoveWithSemanticWithBinding;
   lModel: TRemoveWithProjectModel;
   lOptions: TAppOptions;
   lScanResult: TRemoveWithScanResult;
   lFoundBindingWithSelector: Boolean;
-  lFoundDiscoveryUnitModel: Boolean;
   lFoundInventoryWithSymbols: Boolean;
+  lSymbol: TRemoveWithSymbolInfo;
 begin
   lOptions := Default(TAppOptions);
   lOptions.fDprojPath := TPath.Combine(RepoRoot,
@@ -1789,53 +1784,40 @@ begin
     Assert.AreEqual(cDiscoveryFixtureWithCount, Length(lScanResult.fWithStatements),
       'Expected discovery to read with statements from the shared model.');
     Assert.IsTrue(Length(lInventory.fSymbols) > 0, 'Expected symbol inventory to read units from the shared model.');
-    Assert.IsTrue(Length(lInventory.fDelphiSemanticUnitModels) > 0,
-      'Expected remove-with inventory to consume DelphiSemantics unit models.');
-    Assert.IsTrue(Length(lInventory.fDelphiSemanticInventories) > 0,
-      'Expected remove-with inventory to retain DelphiSemantics remove-with inventories.');
-    Assert.IsTrue(Length(lInventory.fDelphiSemanticWithBindings) > 0,
+    Assert.IsNotEmpty(lInventory.fContextFingerprint,
+      'Expected remove-with inventory to record the DelphiSemantics project context fingerprint.');
+    Assert.IsTrue(Length(lInventory.fDelphiSemanticWithBindingEntries) > 0,
       'Expected remove-with inventory to consume DelphiSemantics with bindings.');
-    lFoundDiscoveryUnitModel := False;
-    for lSemanticModel in lInventory.fDelphiSemanticUnitModels do
-    begin
-      if SameText(lSemanticModel.UnitName, 'DiscoveryUnit') then
-      begin
-        lFoundDiscoveryUnitModel := True;
-        Assert.IsTrue(lSemanticModel.Success, 'Expected successful DelphiSemantics unit model.');
-        Assert.IsTrue(Length(lSemanticModel.WithStatements) > 0,
-          'Expected DelphiSemantics unit model to expose with statements.');
-      end;
-    end;
-    Assert.IsTrue(lFoundDiscoveryUnitModel, 'Expected semantic model for discovery fixture main unit.');
 
     lFoundInventoryWithSymbols := False;
-    for lSemanticInventory in lInventory.fDelphiSemanticInventories do
+    for lSymbol in lInventory.fSymbols do
     begin
-      Assert.IsNotEmpty(lSemanticInventory.FileName, 'Expected semantic inventory file name.');
-      Assert.IsNotEmpty(lSemanticInventory.UnitName, 'Expected semantic inventory unit name.');
-      if SameText(lSemanticInventory.UnitName, 'DiscoveryUnit') then
+      if SameText(lSymbol.fUnitName, 'DiscoveryUnit') and SameText(lSymbol.fName, 'DiscoveryUnit') and
+        (lSymbol.fKind = TRemoveWithSymbolKind.rwskUnitName) then
       begin
-        lFoundInventoryWithSymbols := Length(lSemanticInventory.Symbols) > 0;
-        Assert.IsTrue(Length(lSemanticInventory.Bindings) > 0,
-          'Expected semantic inventory to expose with bindings.');
+        lFoundInventoryWithSymbols := True;
+        Break;
       end;
     end;
     Assert.IsTrue(lFoundInventoryWithSymbols,
-      'Expected semantic remove-with inventory symbols for discovery fixture main unit.');
+      'Expected semantic project facts to expose inventory symbols for discovery fixture main unit.');
 
     lFoundBindingWithSelector := False;
-    for lSemanticBinding in lInventory.fDelphiSemanticWithBindings do
+    for lSemanticBinding in lInventory.fDelphiSemanticWithBindingEntries do
     begin
-      Assert.IsNotEmpty(lSemanticBinding.FileName, 'Expected binding file name to come from DelphiSemantics.');
-      Assert.IsNotEmpty(lSemanticBinding.UnitName, 'Expected binding unit name to come from DelphiSemantics.');
-      Assert.IsNotEmpty(lSemanticBinding.RoutineName, 'Expected binding routine name to come from DelphiSemantics.');
-      Assert.IsTrue(lSemanticBinding.Line > 0, 'Expected binding line to be populated.');
-      Assert.IsTrue(lSemanticBinding.Column > 0, 'Expected binding column to be populated.');
-      Assert.IsNotEmpty(lSemanticBinding.Status, 'Expected binding status to be populated.');
-      if Length(lSemanticBinding.Selectors) > 0 then
+      Assert.IsNotEmpty(lSemanticBinding.fBinding.FileName,
+        'Expected binding file name to come from DelphiSemantics.');
+      Assert.IsNotEmpty(lSemanticBinding.fBinding.UnitName,
+        'Expected binding unit name to come from DelphiSemantics.');
+      Assert.IsNotEmpty(lSemanticBinding.fBinding.RoutineName,
+        'Expected binding routine name to come from DelphiSemantics.');
+      Assert.IsTrue(lSemanticBinding.fBinding.Line > 0, 'Expected binding line to be populated.');
+      Assert.IsTrue(lSemanticBinding.fBinding.Column > 0, 'Expected binding column to be populated.');
+      Assert.IsNotEmpty(lSemanticBinding.fBinding.Status, 'Expected binding status to be populated.');
+      if Length(lSemanticBinding.fBinding.Selectors) > 0 then
       begin
         lFoundBindingWithSelector := True;
-        Assert.IsNotEmpty(lSemanticBinding.Selectors[0].SelectorText,
+        Assert.IsNotEmpty(lSemanticBinding.fBinding.Selectors[0].SelectorText,
           'Expected selector text to be preserved for DAK adapters.');
       end;
     end;
@@ -3524,6 +3506,7 @@ begin
     'external-routine-call');
   AssertClassification(lResult, 'with-1', 'Str', TRemoveWithIdentifierStatus.rwisUnchanged, '',
     'external-routine-call');
+  AssertClassification(lResult, 'with-1', 'Push', TRemoveWithIdentifierStatus.rwisResolved, 'lCustomer', '');
   AssertClassification(lResult, 'with-1', 'Size', TRemoveWithIdentifierStatus.rwisResolved, 'lCustomer', '');
 end;
 
@@ -7906,8 +7889,8 @@ begin
       'Expected Symbol Map hit telemetry.');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('symbolMapMisses') > 0,
       'Expected Symbol Map miss telemetry.');
-    Assert.IsTrue(lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks') > 0,
-      'Expected intrinsic allowlist fallback telemetry.');
+    Assert.AreEqual(0, lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks'),
+      'Expected external routine facts to come from DelphiSemantics rather than DAK fallback allowlists.');
     Assert.AreEqual(1, lTelemetry.GetValue<Integer>('trueUnknowns'),
       'Expected true unknown telemetry.');
     Assert.AreEqual(lSummary.GetValue<Integer>('plannedEdits'), lTelemetry.GetValue<Integer>('plannedEdits'),
@@ -8654,9 +8637,9 @@ begin
       lTelemetry.GetValue<Integer>('skippedStatements'), 'Expected skipped telemetry to match summary.');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('localModelHits') >= 9000,
       'Expected local model hit telemetry to stay populated.');
-    Assert.IsTrue(lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks') >= 1000,
-      'Expected intrinsic fallback telemetry to stay populated.');
-    Assert.AreEqual(1568, lTelemetry.GetValue<Integer>('trueUnknowns'),
+    Assert.AreEqual(0, lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks'),
+      'Expected external routine facts to come from DelphiSemantics rather than DAK fallback allowlists.');
+    Assert.AreEqual(1566, lTelemetry.GetValue<Integer>('trueUnknowns'),
       'Expected true unknown telemetry to stay at the current maxTdb baseline.');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') > 0,
       'Expected planner elapsed telemetry.');
@@ -8832,6 +8815,18 @@ begin
     'Expected maxTdb late parent-scope record selector status. Type=' + lInfo.fTypeName + ' Reason=' + lInfo.fReason +
     ' Symbols=' + DescribeMaxTdbSelectorSymbols(['TPrgSaveRec', 'PrgSaveRec', 'TdbLoadProgram', 'TdbUnloadProgram']));
   Assert.AreEqual('TPrgSaveRec', lInfo.fTypeName, 'Expected maxTdb late parent-scope record selector receiver type.');
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'TIdentManager.SetIdentToRamtext', 'f^', lInfo),
+    'Expected maxTdb PRamText selector resolver to run.');
+  Assert.AreEqual('resolved', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
+    'Expected maxTdb PRamText selector status. Type=' + lInfo.fTypeName + ' Reason=' + lInfo.fReason +
+    ' Symbols=' + DescribeMaxTdbSelectorSymbols(['f', 'PRamText', 'TRamText']));
+  Assert.AreEqual('TRamText', lInfo.fTypeName, 'Expected maxTdb PRamText selector receiver type.');
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'TIdentManager.DelIdentFromRamtext', 'f^', lInfo),
+    'Expected maxTdb PRamText selector resolver to run.');
+  Assert.AreEqual('resolved', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
+    'Expected maxTdb PRamText selector status. Type=' + lInfo.fTypeName + ' Reason=' + lInfo.fReason +
+    ' Symbols=' + DescribeMaxTdbSelectorSymbols(['f', 'PRamText', 'TRamText']));
+  Assert.AreEqual('TRamText', lInfo.fTypeName, 'Expected maxTdb PRamText selector receiver type.');
 end;
 
 end.
