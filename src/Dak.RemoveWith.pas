@@ -227,7 +227,8 @@ begin
 
       LogRemoveWithProgress(aOptions, 'planner start');
       lStopwatch := TStopwatch.StartNew;
-      if not PlanRemoveWithRewrites(lSymbolInventory, lScanResult, lResolverResult, lPlanResult, lError) then
+      if not PlanRemoveWithRewrites(lSymbolInventory, lScanResult, lResolverResult,
+        lSymbolInventory.fDelphiSemanticRemoveWithPlan, lPlanResult, lError) then
       begin
         WriteLn(ErrOutput, lError);
         Exit(cExitToolFailure);
