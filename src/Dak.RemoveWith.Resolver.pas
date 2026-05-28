@@ -159,8 +159,10 @@ type
       static;
     class function IsAssignmentTargetUse(const aSource: TRemoveWithSourceBuffer;
       const aUse: TRemoveWithIdentifierUse): Boolean; static;
-    class function IsDelphiIntrinsicRoutineUse(const aSource: TRemoveWithSourceBuffer;
-      const aUse: TRemoveWithIdentifierUse): Boolean; static;
+    class function FindSemanticExternalRoutineSymbol(const aInventory: TRemoveWithSymbolInventory; const aName: string;
+      out aSymbol: TRemoveWithSymbolInfo): Boolean; static;
+    class function IsDelphiIntrinsicRoutineUse(const aInventory: TRemoveWithSymbolInventory;
+      const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse): Boolean; static;
     class function IsDelphiIntrinsicTypeName(const aName: string): Boolean; static;
     class function IsDelphiIntrinsicUnitName(const aName: string): Boolean; static;
     class function FindSymbolMapCompilerIntrinsic(const aBridge: TRemoveWithSymbolMapBridge; const aName,
@@ -169,11 +171,9 @@ type
       out aLookup: TRemoveWithSymbolMapLookup): Boolean; static;
     class function ShouldLookupSymbolMapRoutineIntrinsic(const aSource: TRemoveWithSourceBuffer;
       const aUse: TRemoveWithIdentifierUse): Boolean; static;
-    class function SourceFileUsesUnit(const aInventory: TRemoveWithSymbolInventory; const aFilePath,
-      aUnitName: string): Boolean; static;
     class function IsVisibleRtlRoutineUse(const aInventory: TRemoveWithSymbolInventory;
       const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse): Boolean; static;
-    class function IsExternalRoutineCall(const aSource: TRemoveWithSourceBuffer;
+    class function IsExternalRoutineCall(const aInventory: TRemoveWithSymbolInventory; const aSource: TRemoveWithSourceBuffer;
       const aUse: TRemoveWithIdentifierUse): Boolean; static;
     class function PlaceholderRecordTypeName(const aTypeName: string): Boolean; static;
     class function ReceiversAllowUnresolvedFallback(const aInventory: TRemoveWithSymbolInventory;
@@ -209,6 +209,8 @@ type
     class function ShouldEnrichWithSymbolMap(const aClassification: TRemoveWithIdentifierClassification): Boolean;
       static;
     class procedure EnrichWithSymbolMap(const aBridge: TRemoveWithSymbolMapBridge;
+      var aClassification: TRemoveWithIdentifierClassification); static;
+    class procedure EnrichWithSemanticFacts(const aInventory: TRemoveWithSymbolInventory;
       var aClassification: TRemoveWithIdentifierClassification); static;
     class procedure CollectIdentifierUses(const aSource: TRemoveWithSourceBuffer;
       const aBodyOffsets: TRemoveWithOffsetRange; const aSkipRanges: TArray<TRemoveWithOffsetRange>;
@@ -1946,6 +1948,9 @@ begin
         Exit(Trim(Copy(Trim(lSymbol.fTypeName), 2, MaxInt)));
     end;
   end;
+  if StartsText('P', lTypeName) and (Length(lTypeName) > 1) and
+    HasSourceType(aInventory, Copy(lTypeName, 2, MaxInt)) then
+    Exit(Copy(lTypeName, 2, MaxInt));
   Result := '';
 end;
 
@@ -2143,17 +2148,47 @@ begin
     (aSource.fText[lOffset + 1] = '=');
 end;
 
-class function TRemoveWithIdentifierResolver.IsDelphiIntrinsicRoutineUse(const aSource: TRemoveWithSourceBuffer;
-  const aUse: TRemoveWithIdentifierUse): Boolean;
+class function TRemoveWithIdentifierResolver.FindSemanticExternalRoutineSymbol(
+  const aInventory: TRemoveWithSymbolInventory; const aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSourceKind: string;
+  lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
 begin
-  if IsCallUse(aSource, aUse) then
-    Exit(MatchText(aUse.fName, ['Abs', 'Addr', 'Assert', 'Assign', 'Assigned', 'BlockRead', 'BlockWrite', 'Close',
-      'Copy', 'Dec', 'Dispose', 'EOF', 'Exclude', 'ExpandFileName', 'FileDateToDateTime', 'FilePos', 'FillChar',
-      'Flush', 'FreeMem', 'GetMem', 'Halt', 'High', 'Inc', 'Include', 'Length', 'Low', 'Move', 'New',
-      'Ord', 'Pred', 'Read', 'Readln', 'ReallocMem', 'Reset', 'Rewrite', 'Round', 'Seek', 'SetLength', 'SizeOf',
-      'Sqr', 'Str', 'Succ', 'Swap', 'UpCase', 'Val', 'Write', 'Writeln']));
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  EnsureResolverSymbolNameIndex(aInventory);
+  Result := Assigned(GResolverSymbolNameIndex) and GResolverSymbolNameIndex.TryGetValue(aName, lSymbols);
+  if not Result then
+    Exit(False);
 
-  Result := MatchText(aUse.fName, ['IOResult']);
+  for lSymbol in lSymbols do
+  begin
+    lSourceKind := lSymbol.fSourceOwnerType;
+    if lSourceKind = '' then
+      lSourceKind := lSymbol.fUnitName;
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskRoutine) and
+      (SameText(lSourceKind, 'compiler-intrinsic') or SameText(lSourceKind, 'rtl-source')) then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+class function TRemoveWithIdentifierResolver.IsDelphiIntrinsicRoutineUse(
+  const aInventory: TRemoveWithSymbolInventory; const aSource: TRemoveWithSourceBuffer;
+  const aUse: TRemoveWithIdentifierUse): Boolean;
+var
+  lNextChar: Char;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  if not FindSemanticExternalRoutineSymbol(aInventory, aUse.fName, lSymbol) then
+    Exit;
+
+  lNextChar := NextNonWhitespaceChar(aSource.fText, aUse.fEndOffset + 1);
+  Result := CharInSet(lNextChar, ['(', '<']) or SameText(aUse.fName, 'IOResult');
 end;
 
 class function TRemoveWithIdentifierResolver.IsDelphiIntrinsicTypeName(const aName: string): Boolean;
@@ -2209,34 +2244,6 @@ begin
   Result := IsCallUse(aSource, aUse) or SameText(aUse.fName, 'IOResult');
 end;
 
-class function TRemoveWithIdentifierResolver.SourceFileUsesUnit(const aInventory: TRemoveWithSymbolInventory;
-  const aFilePath, aUnitName: string): Boolean;
-var
-  lUnit: string;
-  lModel: TDelphiSemanticUnitModel;
-  lSymbol: TRemoveWithSymbolInfo;
-begin
-  for lModel in aInventory.fDelphiSemanticUnitModels do
-  begin
-    if not SameText(TPath.GetFullPath(lModel.FileName), TPath.GetFullPath(aFilePath)) then
-      Continue;
-    for lUnit in lModel.InterfaceUses do
-      if SameText(lUnit, aUnitName) then
-        Exit(True);
-    for lUnit in lModel.ImplementationUses do
-      if SameText(lUnit, aUnitName) then
-        Exit(True);
-  end;
-
-  for lSymbol in aInventory.fSymbols do
-  begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskExternal) and SameText(lSymbol.fFilePath, aFilePath) and
-      SameText(lSymbol.fName, aUnitName) then
-      Exit(True);
-  end;
-  Result := False;
-end;
-
 class function TRemoveWithIdentifierResolver.IsVisibleRtlRoutineUse(
   const aInventory: TRemoveWithSymbolInventory; const aSource: TRemoveWithSourceBuffer;
   const aUse: TRemoveWithIdentifierUse): Boolean;
@@ -2245,15 +2252,13 @@ begin
   if not IsCallUse(aSource, aUse) then
     Exit;
 
-  if MatchText(aUse.fName, ['ExpandFileName', 'FileDateToDateTime']) then
-    Exit(SourceFileUsesUnit(aInventory, aSource.fPath, 'SysUtils') or
-      SourceFileUsesUnit(aInventory, aSource.fPath, 'System.SysUtils'));
+  Result := IsDelphiIntrinsicRoutineUse(aInventory, aSource, aUse);
 end;
 
-class function TRemoveWithIdentifierResolver.IsExternalRoutineCall(const aSource: TRemoveWithSourceBuffer;
-  const aUse: TRemoveWithIdentifierUse): Boolean;
+class function TRemoveWithIdentifierResolver.IsExternalRoutineCall(const aInventory: TRemoveWithSymbolInventory;
+  const aSource: TRemoveWithSourceBuffer; const aUse: TRemoveWithIdentifierUse): Boolean;
 begin
-  Result := IsDelphiIntrinsicRoutineUse(aSource, aUse);
+  Result := IsDelphiIntrinsicRoutineUse(aInventory, aSource, aUse);
 end;
 
 class function TRemoveWithIdentifierResolver.ReceiversAllowUnresolvedFallback(
@@ -2309,7 +2314,6 @@ class function TRemoveWithIdentifierResolver.TryFindSemanticBindingForStatement(
   const aInventory: TRemoveWithSymbolInventory; const aStatement: TRemoveWithStatementInfo;
   out aBinding: TDelphiSemanticWithBinding): Boolean;
 var
-  lBinding: TDelphiSemanticWithBinding;
   lEntry: TRemoveWithSemanticWithBinding;
 begin
   aBinding := Default(TDelphiSemanticWithBinding);
@@ -2318,17 +2322,6 @@ begin
     if SemanticBindingMatchesStatement(lEntry, aStatement) then
     begin
       aBinding := lEntry.fBinding;
-      Exit(True);
-    end;
-  end;
-  if Length(aInventory.fDelphiSemanticWithBindingEntries) > 0 then
-    Exit(False);
-
-  for lBinding in aInventory.fDelphiSemanticWithBindings do
-  begin
-    if SemanticBindingMatchesStatement(lBinding, aStatement) then
-    begin
-      aBinding := lBinding;
       Exit(True);
     end;
   end;
@@ -2719,6 +2712,59 @@ begin
   end;
 end;
 
+class procedure TRemoveWithIdentifierResolver.EnrichWithSemanticFacts(const aInventory: TRemoveWithSymbolInventory;
+  var aClassification: TRemoveWithIdentifierClassification);
+var
+  lSourceKind: string;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  if aClassification.fSymbolMapFound or (not ShouldEnrichWithSymbolMap(aClassification)) then
+  begin
+    if (aClassification.fStatus = TRemoveWithIdentifierStatus.rwisUnresolved) and
+      SameText(aClassification.fReason, 'symbol-not-found') then
+      aClassification.fSymbolMapReason := 'miss';
+    Exit;
+  end;
+
+  if SameText(aClassification.fResolutionKind, 'external-routine-call') and
+    FindSemanticExternalRoutineSymbol(aInventory, aClassification.fIdentifier, lSymbol) then
+  begin
+    lSourceKind := lSymbol.fSourceOwnerType;
+    if lSourceKind = '' then
+      lSourceKind := lSymbol.fUnitName;
+    aClassification.fSymbolMapFound := True;
+    aClassification.fSymbolMapKind := 'routine';
+    aClassification.fSymbolMapSourceKind := lSourceKind;
+    aClassification.fSymbolMapConfidence := 'exact';
+    aClassification.fSymbolMapReason := '';
+    Exit;
+  end;
+
+  if aClassification.fStatus = TRemoveWithIdentifierStatus.rwisResolved then
+  begin
+    aClassification.fSymbolMapFound := True;
+    aClassification.fSymbolMapKind := RemoveWithSymbolKindToText(aClassification.fMemberKind);
+    aClassification.fSymbolMapSourceKind := 'project';
+    aClassification.fSymbolMapConfidence := 'exact';
+    aClassification.fSymbolMapOwnerName := DirectTypeName(aClassification.fReceiverType);
+    aClassification.fSymbolMapReason := '';
+    Exit;
+  end;
+
+  if MatchText(aClassification.fResolutionKind, ['type-name', 'qualified-unit', 'external-unit',
+    'type-qualifier']) then
+  begin
+    aClassification.fSymbolMapFound := True;
+    aClassification.fSymbolMapKind := RemoveWithSymbolKindToText(aClassification.fMemberKind);
+    if aClassification.fMemberKind = TRemoveWithSymbolKind.rwskExternal then
+      aClassification.fSymbolMapSourceKind := 'rtl-source'
+    else
+      aClassification.fSymbolMapSourceKind := 'project';
+    aClassification.fSymbolMapConfidence := 'exact';
+    aClassification.fSymbolMapReason := '';
+  end;
+end;
+
 class procedure TRemoveWithIdentifierResolver.CollectIdentifierUses(const aSource: TRemoveWithSourceBuffer;
   const aBodyOffsets: TRemoveWithOffsetRange; const aSkipRanges: TArray<TRemoveWithOffsetRange>;
   out aUses: TArray<TRemoveWithIdentifierUse>);
@@ -3071,7 +3117,7 @@ begin
     aClassification.fResolutionKind := 'external-routine-call';
     aClassification.fReason := 'external-routine-call';
     Exit(True);
-  end else if (not lHadResolvedReceiver) and IsExternalRoutineCall(aSource, aUse) then
+  end else if (not lHadResolvedReceiver) and IsExternalRoutineCall(aInventory, aSource, aUse) then
   begin
     aClassification.fMemberKind := TRemoveWithSymbolKind.rwskRoutine;
     aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
@@ -3221,7 +3267,7 @@ begin
     aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
     aClassification.fResolutionKind := 'external-routine-call';
     aClassification.fReason := 'external-routine-call';
-  end else if IsExternalRoutineCall(aSource, aUse) then
+  end else if IsExternalRoutineCall(aInventory, aSource, aUse) then
   begin
     aClassification.fMemberKind := TRemoveWithSymbolKind.rwskRoutine;
     aClassification.fStatus := TRemoveWithIdentifierStatus.rwisUnchanged;
@@ -3326,6 +3372,7 @@ begin
       lClassification) then
       Continue;
     EnrichWithSymbolMap(aSymbolMapBridge, lClassification);
+    EnrichWithSemanticFacts(aInventory, lClassification);
     lClassification.fStatementId := aStatement.fId;
     lClassification.fFilePath := aStatement.fFilePath;
     AddClassification(aResult, lClassification);

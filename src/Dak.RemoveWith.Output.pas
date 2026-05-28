@@ -17,6 +17,7 @@ type
     fResolverMs: Int64;
     fPlannerMs: Int64;
     fOutputSerializationMs: Int64;
+    fContextFingerprint: string;
     fProjectUnitCount: Integer;
     fParsedUnitCount: Integer;
     fProjectProblemCount: Integer;
@@ -622,6 +623,7 @@ begin
   Result.AddPair('resolverMs', TJSONNumber.Create(aMetrics.fResolverMs));
   Result.AddPair('plannerMs', TJSONNumber.Create(aMetrics.fPlannerMs));
   Result.AddPair('outputSerializationMs', TJSONNumber.Create(aMetrics.fOutputSerializationMs));
+  Result.AddPair('contextFingerprint', aMetrics.fContextFingerprint);
   Result.AddPair('projectUnitCount', TJSONNumber.Create(aMetrics.fProjectUnitCount));
   Result.AddPair('parsedUnitCount', TJSONNumber.Create(aMetrics.fParsedUnitCount));
   Result.AddPair('projectProblemCount', TJSONNumber.Create(aMetrics.fProjectProblemCount));

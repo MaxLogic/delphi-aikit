@@ -203,22 +203,13 @@ begin
       lStopwatch.Stop;
       lMetrics.fSymbolInventoryMs := lStopwatch.ElapsedMilliseconds;
       lMetrics.fSymbolInventoryPhaseMetrics := lSymbolInventoryPhaseMetrics;
+      lMetrics.fContextFingerprint := lSymbolInventory.fContextFingerprint;
       lMetrics.fSymbolCount := Length(lSymbolInventory.fSymbols);
       LogRemoveWithDone(aOptions, 'symbol-inventory',
         Format('symbols=%d', [Length(lSymbolInventory.fSymbols)]), lStopwatch);
 
-      LogRemoveWithProgress(aOptions, 'symbol-map-bridge start');
-      lStopwatch := TStopwatch.StartNew;
-      if not PrepareRemoveWithSymbolMapBridge(aOptions, lSymbolMapBridge, lError) then
-      begin
-        LogRemoveWithProgress(aOptions, 'symbol-map-bridge warning error=' + lError);
-        lError := '';
-      end;
-      lStopwatch.Stop;
-      lMetrics.fSymbolMapBridgeMs := lStopwatch.ElapsedMilliseconds;
-      LogRemoveWithDone(aOptions, 'symbol-map-bridge',
-        Format('prepared=%s projectIndexed=%s', [BoolToStr(lSymbolMapBridge.fPrepared, True),
-        BoolToStr(lSymbolMapBridge.fStatus.fProjectIndexed, True)]), lStopwatch);
+      LogRemoveWithProgress(aOptions, 'symbol-map-bridge skipped; semantic project facts are authoritative');
+      lMetrics.fSymbolMapBridgeMs := 0;
 
       LogRemoveWithProgress(aOptions, 'resolver start');
       lStopwatch := TStopwatch.StartNew;
