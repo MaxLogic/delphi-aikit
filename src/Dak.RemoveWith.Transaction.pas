@@ -13,6 +13,7 @@ type
 
   TRemoveWithPlanApplyContext = record
     fContextFingerprint: string;
+    fSemanticContextFingerprint: string;
     fSourceFingerprints: TArray<TRemoveWithSourceFingerprint>;
   end;
 
@@ -100,6 +101,8 @@ type
       const aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
     class function ValidatePlanContext(const aApplyContext: TRemoveWithPlanApplyContext;
       var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
+    class function ValidateSemanticPlanContext(const aPlanResult: TRemoveWithPlanResult;
+      const aApplyContext: TRemoveWithPlanApplyContext; out aError: string): Boolean; static;
     class function CaptureEnvironment: TArray<TRemoveWithEnvironmentVariableState>; static;
     class procedure AddEnvironmentVariable(var aEnvironment: TArray<TRemoveWithEnvironmentVariableState>;
       const aName, aValue: string); static;
@@ -224,6 +227,8 @@ function BuildRemoveWithPlanApplyContext(const aPlanResult: TRemoveWithPlanResul
   out aContext: TRemoveWithPlanApplyContext; out aError: string): Boolean;
 begin
   Result := BuildRemoveWithPlanApplyContextForFiles(PlannedSourceFiles(aPlanResult), aContext, aError);
+  if Result and SameText(aPlanResult.fSemanticPlan.Operation, 'remove-with') then
+    aContext.fSemanticContextFingerprint := aPlanResult.fSemanticPlan.ContextFingerprint;
 end;
 
 class function TRemoveWithTransaction.FileHash(const aBytes: TBytes): string;
@@ -647,6 +652,30 @@ begin
   Result := True;
 end;
 
+class function TRemoveWithTransaction.ValidateSemanticPlanContext(
+  const aPlanResult: TRemoveWithPlanResult; const aApplyContext: TRemoveWithPlanApplyContext;
+  out aError: string): Boolean;
+begin
+  Result := True;
+  aError := '';
+  if not SameText(aPlanResult.fSemanticPlan.Operation, 'remove-with') then
+    Exit;
+
+  if (aPlanResult.fSemanticPlan.ContextFingerprint = '') or
+    (aApplyContext.fSemanticContextFingerprint = '') then
+  begin
+    aError := 'context-fingerprint-missing';
+    Exit(False);
+  end;
+
+  if not SameText(aPlanResult.fSemanticPlan.ContextFingerprint,
+    aApplyContext.fSemanticContextFingerprint) then
+  begin
+    aError := 'context-fingerprint-mismatch';
+    Exit(False);
+  end;
+end;
+
 class function TRemoveWithTransaction.VerifyBuild(const aOptions: TAppOptions;
   const aProjectPath, aDiagnosticsDir: string; var aTransactionResult: TRemoveWithTransactionResult;
   out aError: string): Boolean;
@@ -713,6 +742,7 @@ class function TRemoveWithTransaction.Apply(const aOptions: TAppOptions; const a
   const aApplyContext: TRemoveWithPlanApplyContext; out aTransactionResult: TRemoveWithTransactionResult;
   out aError: string): Boolean;
 var
+  lContextValid: Boolean;
   lManifestError: string;
   lValidationError: string;
 begin
@@ -729,7 +759,12 @@ begin
     Exit(WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, aError));
   end;
 
-  if not ValidatePlanContext(aApplyContext, aTransactionResult, lValidationError) then
+  lContextValid := ValidateSemanticPlanContext(aPlanResult, aApplyContext, lValidationError);
+  if lContextValid then
+    lContextValid := ValidatePlanContext(aApplyContext, aTransactionResult, lValidationError);
+  if lContextValid then
+    lValidationError := '';
+  if lValidationError <> '' then
   begin
     if SameText(lValidationError, 'context-fingerprint-missing') then
     begin

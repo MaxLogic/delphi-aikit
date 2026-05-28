@@ -1786,6 +1786,13 @@ begin
     Assert.IsTrue(Length(lInventory.fSymbols) > 0, 'Expected symbol inventory to read units from the shared model.');
     Assert.IsNotEmpty(lInventory.fContextFingerprint,
       'Expected remove-with inventory to record the DelphiSemantics project context fingerprint.');
+    Assert.AreEqual('remove-with', lInventory.fDelphiSemanticRemoveWithPlan.Operation,
+      'Expected DAK to consume DelphiSemantics remove-with plan DTOs.');
+    Assert.AreEqual(lInventory.fContextFingerprint,
+      lInventory.fDelphiSemanticRemoveWithPlan.ContextFingerprint,
+      'Expected semantic remove-with plan to share the project context fingerprint.');
+    Assert.IsTrue(Length(lInventory.fDelphiSemanticRemoveWithPlan.RequiredVerification) > 0,
+      'Expected semantic remove-with plan to declare verification requirements.');
     Assert.IsTrue(Length(lInventory.fDelphiSemanticWithBindingEntries) > 0,
       'Expected remove-with inventory to consume DelphiSemantics with bindings.');
 

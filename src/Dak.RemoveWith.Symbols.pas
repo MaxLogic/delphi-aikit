@@ -44,6 +44,7 @@ type
     fSemanticIndex: TRemoveWithSemanticIndex;
     fDelphiSemanticUnitModels: TArray<TDelphiSemanticUnitModel>;
     fDelphiSemanticWithBindingEntries: TArray<TRemoveWithSemanticWithBinding>;
+    fDelphiSemanticRemoveWithPlan: TDelphiSemanticRemoveWithPlan;
     fParserDefines: string;
   end;
 
@@ -533,13 +534,22 @@ begin
     Exit(False);
   end;
   aInventory.fContextFingerprint := lFacts.ContextFingerprint;
+  aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticApi.PlanRemoveWith(lFacts);
+  if not SameText(aInventory.fDelphiSemanticRemoveWithPlan.Status, 'planned') then
+  begin
+    aError := 'DelphiSemantics remove-with plan failed: ' +
+      aInventory.fDelphiSemanticRemoveWithPlan.Diagnostic;
+    Exit(False);
+  end;
   AppendDelphiSemanticSymbols(aInventory, lFacts.Symbols);
   AppendDelphiSemanticBindings(aInventory, lFacts.Bindings);
   LogRemoveWithSymbolProgress(aOptions, Format(
-    'semantic-project-facts graph=%s units=%d withStatements=%d bindings=%d symbols=%d context=%s',
+    'semantic-project-facts graph=%s units=%d withStatements=%d bindings=%d symbols=%d planEdits=%d planSkipped=%d context=%s',
     [BoolToStr(lFacts.Metrics.SemanticGraphUsed, True), lFacts.Metrics.UnitCount,
     lFacts.Metrics.WithStatementCount, lFacts.Metrics.BindingCount,
-    Length(lFacts.Symbols), lFacts.ContextFingerprint]));
+    Length(lFacts.Symbols), Length(aInventory.fDelphiSemanticRemoveWithPlan.Edits),
+    Length(aInventory.fDelphiSemanticRemoveWithPlan.SkippedStatements),
+    lFacts.ContextFingerprint]));
   lStopwatch.Stop;
   aPhaseMetrics.fSemanticBindingIndexBuildMs := lStopwatch.ElapsedMilliseconds;
 

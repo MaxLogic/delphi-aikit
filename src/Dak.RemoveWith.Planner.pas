@@ -3,6 +3,7 @@ unit Dak.RemoveWith.Planner;
 interface
 
 uses
+  DelphiSemantics.Api,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy;
 
 type
@@ -28,11 +29,17 @@ type
   TRemoveWithPlanResult = record
     fStatements: TArray<TRemoveWithPlannedStatement>;
     fElapsedPlanningMs: Integer;
+    fSemanticPlan: TDelphiSemanticRemoveWithPlan;
   end;
 
 function PlanRemoveWithRewrites(const aInventory: TRemoveWithSymbolInventory;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
+  overload;
+function PlanRemoveWithRewrites(const aInventory: TRemoveWithSymbolInventory;
+  const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
+  const aSemanticPlan: TDelphiSemanticRemoveWithPlan; out aPlanResult: TRemoveWithPlanResult;
+  out aError: string): Boolean; overload;
 
 implementation
 
@@ -134,6 +141,10 @@ type
       const aSource: TRemoveWithSourceBuffer; const aStatement: TRemoveWithStatementInfo): Boolean; static;
     class function IsDirectNestedStatement(const aScanResult: TRemoveWithScanResult;
       const aOuter, aInner: TRemoveWithStatementInfo): Boolean; static;
+    class function SemanticPlanAllowsStatement(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
+      const aStatement: TRemoveWithStatementInfo): Boolean; static;
+    class function SemanticPlanMismatchReason(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
+      const aStatement: TRemoveWithStatementInfo): string; static;
     class function OffsetInsideNestedReplacement(const aNestedReplacements: TArray<TRemoveWithNestedReplacement>;
       const aOffset: Integer): Boolean; static;
     class procedure AddBodyEdit(var aEdits: TArray<TRemoveWithBodyEdit>; const aOffsets: TRemoveWithPlanOffsetRange;
@@ -189,12 +200,16 @@ type
       var aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean; static;
     class procedure PlanStatement(const aInventory: TRemoveWithSymbolInventory;
       const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
-      const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
+      const aSemanticPlan: TDelphiSemanticRemoveWithPlan; const aStatement: TRemoveWithStatementInfo;
+      const aSource: TRemoveWithSourceBuffer;
       var aRoutineStates: TArray<TRemoveWithRoutinePlanState>; var aPlanResult: TRemoveWithPlanResult); static;
   public
     class function Plan(const aInventory: TRemoveWithSymbolInventory; const aScanResult: TRemoveWithScanResult;
       const aResolverResult: TRemoveWithResolverResult; out aPlanResult: TRemoveWithPlanResult;
-      out aError: string): Boolean; static;
+      out aError: string): Boolean; overload; static;
+    class function Plan(const aInventory: TRemoveWithSymbolInventory; const aScanResult: TRemoveWithScanResult;
+      const aResolverResult: TRemoveWithResolverResult; const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
+      out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean; overload; static;
   end;
 
 var
@@ -1284,6 +1299,43 @@ begin
   Result := True;
 end;
 
+class function TRemoveWithPlanner.SemanticPlanAllowsStatement(
+  const aSemanticPlan: TDelphiSemanticRemoveWithPlan; const aStatement: TRemoveWithStatementInfo): Boolean;
+var
+  lEdit: TDelphiSemanticRemoveWithEdit;
+begin
+  if not SameText(aSemanticPlan.Operation, 'remove-with') then
+    Exit(True);
+
+  Result := False;
+  for lEdit in aSemanticPlan.Edits do
+  begin
+    if SameText(TPath.GetFullPath(lEdit.FileName), TPath.GetFullPath(aStatement.fFilePath)) and
+      SameText(lEdit.ApplyMode, 'requires-dak-compatibility-adapter') and
+      (lEdit.Range.StartLine = aStatement.fRange.fStartLine) and
+      (lEdit.Range.StartColumn = aStatement.fRange.fStartColumn) then
+      Exit(True);
+  end;
+end;
+
+class function TRemoveWithPlanner.SemanticPlanMismatchReason(
+  const aSemanticPlan: TDelphiSemanticRemoveWithPlan; const aStatement: TRemoveWithStatementInfo): string;
+var
+  lEdit: TDelphiSemanticRemoveWithEdit;
+begin
+  Result := 'semantic-plan-not-planned';
+  for lEdit in aSemanticPlan.Edits do
+  begin
+    if SameText(TPath.GetFullPath(lEdit.FileName), TPath.GetFullPath(aStatement.fFilePath)) and
+      (lEdit.Range.StartLine = aStatement.fRange.fStartLine) then
+      Exit(Format('semantic-plan-range-mismatch dak=%d:%d-%d:%d semantic=%d:%d-%d:%d',
+        [aStatement.fRange.fStartLine, aStatement.fRange.fStartColumn,
+        aStatement.fRange.fEndLine, aStatement.fRange.fEndColumn,
+        lEdit.Range.StartLine, lEdit.Range.StartColumn, lEdit.Range.EndLine,
+        lEdit.Range.EndColumn]));
+  end;
+end;
+
 class function TRemoveWithPlanner.OffsetInsideNestedReplacement(
   const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aOffset: Integer): Boolean;
 var
@@ -1868,7 +1920,8 @@ end;
 
 class procedure TRemoveWithPlanner.PlanStatement(const aInventory: TRemoveWithSymbolInventory;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
-  const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
+  const aSemanticPlan: TDelphiSemanticRemoveWithPlan; const aStatement: TRemoveWithStatementInfo;
+  const aSource: TRemoveWithSourceBuffer;
   var aRoutineStates: TArray<TRemoveWithRoutinePlanState>; var aPlanResult: TRemoveWithPlanResult);
 var
   lEdit: TRemoveWithPlannedTextEdit;
@@ -1883,6 +1936,13 @@ var
   lSelectorTemp: TRemoveWithSelectorTemp;
   lSelectorTemps: TArray<TRemoveWithSelectorTemp>;
 begin
+  if not SemanticPlanAllowsStatement(aSemanticPlan, aStatement) then
+  begin
+    SkipStatement(aPlanResult, aStatement, 'semantic-plan-not-planned',
+      SemanticPlanMismatchReason(aSemanticPlan, aStatement));
+    Exit;
+  end;
+
   if not FindRoutineForStatement(aInventory, aStatement, lRoutineName, lRoutineLine) then
   begin
     lRoutineName := '';
@@ -1931,12 +1991,24 @@ class function TRemoveWithPlanner.Plan(const aInventory: TRemoveWithSymbolInvent
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
 var
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+begin
+  lSemanticPlan := Default(TDelphiSemanticRemoveWithPlan);
+  Result := Plan(aInventory, aScanResult, aResolverResult, lSemanticPlan, aPlanResult, aError);
+end;
+
+class function TRemoveWithPlanner.Plan(const aInventory: TRemoveWithSymbolInventory;
+  const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
+  const aSemanticPlan: TDelphiSemanticRemoveWithPlan; out aPlanResult: TRemoveWithPlanResult;
+  out aError: string): Boolean;
+var
   lCurrentPath: string;
   lRoutineStates: TArray<TRemoveWithRoutinePlanState>;
   lSource: TRemoveWithSourceBuffer;
   lStatement: TRemoveWithStatementInfo;
 begin
   aPlanResult := Default(TRemoveWithPlanResult);
+  aPlanResult.fSemanticPlan := aSemanticPlan;
   aError := '';
   Result := False;
   lCurrentPath := '';
@@ -1962,7 +2034,8 @@ begin
             Exit(False);
           lCurrentPath := lStatement.fFilePath;
         end;
-        PlanStatement(aInventory, aScanResult, aResolverResult, lStatement, lSource, lRoutineStates, aPlanResult);
+        PlanStatement(aInventory, aScanResult, aResolverResult, aSemanticPlan, lStatement, lSource, lRoutineStates,
+          aPlanResult);
       end;
       if not AddRoutineDeclarationEdits(lRoutineStates, aPlanResult, aError) then
         Exit(False);
@@ -1983,6 +2056,15 @@ function PlanRemoveWithRewrites(const aInventory: TRemoveWithSymbolInventory;
   out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
 begin
   Result := TRemoveWithPlanner.Plan(aInventory, aScanResult, aResolverResult, aPlanResult, aError);
+end;
+
+function PlanRemoveWithRewrites(const aInventory: TRemoveWithSymbolInventory;
+  const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
+  const aSemanticPlan: TDelphiSemanticRemoveWithPlan; out aPlanResult: TRemoveWithPlanResult;
+  out aError: string): Boolean;
+begin
+  Result := TRemoveWithPlanner.Plan(aInventory, aScanResult, aResolverResult, aSemanticPlan, aPlanResult,
+    aError);
 end;
 
 end.
