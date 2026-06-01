@@ -83,65 +83,9 @@ type
 
 var
   GExpressionCacheDepth: Integer;
-  GExpressionDefaultPropertyByOwner: TDictionary<string, TRemoveWithSymbolInfo>;
-  GExpressionSymbolNameIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
-
-procedure EnsureExpressionSymbolNameIndex(const aInventory: TRemoveWithFactSet);
-var
-  lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
-  lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
-  lList: TList<TRemoveWithSymbolInfo>;
-  lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
-  lSymbol: TRemoveWithSymbolInfo;
-begin
-  if GExpressionSymbolNameIndex <> nil then
-    Exit;
-
-  GExpressionDefaultPropertyByOwner := TDictionary<string, TRemoveWithSymbolInfo>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-  try
-    for lSymbol in aInventory.fSymbols do
-    begin
-      if lSymbol.fName = '' then
-        Continue;
-      if (lSymbol.fOwnerType <> '') and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
-        lSymbol.fIsDefault then
-        GExpressionDefaultPropertyByOwner.AddOrSetValue(lSymbol.fOwnerType, lSymbol);
-      if not lBuckets.TryGetValue(lSymbol.fName, lList) then
-      begin
-        lList := TList<TRemoveWithSymbolInfo>.Create;
-        lBuckets.Add(lSymbol.fName, lList);
-      end;
-      lList.Add(lSymbol);
-    end;
-
-    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-    try
-      for lPair in lBuckets do
-        lIndex.Add(lPair.Key, lPair.Value.ToArray);
-      GExpressionSymbolNameIndex := lIndex;
-      lIndex := nil;
-    finally
-      lIndex.Free;
-    end;
-  finally
-    for lPair in lBuckets do
-      lPair.Value.Free;
-    lBuckets.Free;
-  end;
-end;
 
 procedure BeginRemoveWithSelectorTypeCache(const aInventory: TRemoveWithFactSet);
 begin
-  if GExpressionCacheDepth = 0 then
-  begin
-    GExpressionDefaultPropertyByOwner.Free;
-    GExpressionDefaultPropertyByOwner := nil;
-    GExpressionSymbolNameIndex.Free;
-    GExpressionSymbolNameIndex := nil;
-    EnsureExpressionSymbolNameIndex(aInventory);
-  end;
   Inc(GExpressionCacheDepth);
 end;
 
@@ -150,13 +94,6 @@ begin
   if GExpressionCacheDepth <= 0 then
     Exit;
   Dec(GExpressionCacheDepth);
-  if GExpressionCacheDepth = 0 then
-  begin
-    GExpressionSymbolNameIndex.Free;
-    GExpressionSymbolNameIndex := nil;
-    GExpressionDefaultPropertyByOwner.Free;
-    GExpressionDefaultPropertyByOwner := nil;
-  end;
 end;
 
 function ModelMemberKindToSymbolKind(const aKind: TRemoveWithModelMemberKind): TRemoveWithSymbolKind;
@@ -343,15 +280,6 @@ begin
         Exit(ElementTypeName(lSymbol.fTypeName));
     end;
   end;
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
-  begin
-    for lSymbol in lSymbols do
-    begin
-      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
-        Exit(ElementTypeName(lSymbol.fTypeName));
-    end;
-  end;
 end;
 
 class function TRemoveWithExpressionResolver.FindDirectMember(const aInventory: TRemoveWithFactSet;
@@ -388,34 +316,12 @@ begin
       end;
     end;
   end;
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if GExpressionSymbolNameIndex.TryGetValue(aName, lSymbols) then
-  begin
-    for lSymbol in lSymbols do
-    begin
-      if SameText(lSymbol.fOwnerType, aOwnerType) and (lSymbol.fRoutineName = '') and
-        (lSymbol.fKind in [TRemoveWithSymbolKind.rwskField, TRemoveWithSymbolKind.rwskProperty,
-        TRemoveWithSymbolKind.rwskMethod, TRemoveWithSymbolKind.rwskConstant, TRemoveWithSymbolKind.rwskClassVar]) then
-      begin
-        if not PlaceholderRecordTypeName(lSymbol.fTypeName) then
-        begin
-          aSymbol := lSymbol;
-          Exit(True);
-        end;
-        if not lHasFallbackSymbol then
-        begin
-          lFallbackSymbol := lSymbol;
-          lHasFallbackSymbol := True;
-        end;
-      end;
-    end;
-  end;
   if lHasFallbackSymbol then
   begin
     aSymbol := lFallbackSymbol;
     Exit(True);
   end;
-  if GExpressionSymbolNameIndex.TryGetValue(aOwnerType, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, aOwnerType, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -435,8 +341,7 @@ class function TRemoveWithExpressionResolver.FindDefaultProperty(const aInventor
   const aOwnerType: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
 begin
   aSymbol := Default(TRemoveWithSymbolInfo);
-  EnsureExpressionSymbolNameIndex(aInventory);
-  Result := GExpressionDefaultPropertyByOwner.TryGetValue(aOwnerType, aSymbol);
+  Result := FindRemoveWithFactSetDefaultProperty(aInventory, aOwnerType, aSymbol);
 end;
 
 class function TRemoveWithExpressionResolver.FindLexicalParentRoutineName(
@@ -454,8 +359,7 @@ begin
   if aRoutineName = '' then
     Exit;
 
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if not GExpressionSymbolNameIndex.TryGetValue(aRoutineName, lCurrentSymbols) then
+  if not FindRemoveWithFactSetSymbolsByName(aInventory, aRoutineName, lCurrentSymbols) then
     Exit;
 
   lParentLine := 0;
@@ -507,9 +411,8 @@ begin
   if (aRoutineName = '') or (aName = '') then
     Exit;
 
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if (not GExpressionSymbolNameIndex.TryGetValue(aRoutineName, lCurrentSymbols)) or
-    (not GExpressionSymbolNameIndex.TryGetValue(aName, lNamedSymbols)) then
+  if (not FindRemoveWithFactSetSymbolsByName(aInventory, aRoutineName, lCurrentSymbols)) or
+    (not FindRemoveWithFactSetSymbolsByName(aInventory, aName, lNamedSymbols)) then
     Exit;
 
   lBestParentLine := 0;
@@ -527,7 +430,8 @@ begin
       if (lCandidate.fFilePath <> '') and (lCurrentRoutine.fFilePath <> '') and
         (not SameText(lCandidate.fFilePath, lCurrentRoutine.fFilePath)) then
         Continue;
-      if not GExpressionSymbolNameIndex.TryGetValue(lCandidate.fRoutineName, lParentSymbols) then
+      if not FindRemoveWithFactSetSymbolsByName(aInventory, lCandidate.fRoutineName,
+        lParentSymbols) then
         Continue;
       for lParentRoutine in lParentSymbols do
       begin
@@ -571,8 +475,7 @@ begin
   aSymbol := Default(TRemoveWithSymbolInfo);
   lFallbackSymbol := Default(TRemoveWithSymbolInfo);
   lHasFallbackSymbol := False;
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if GExpressionSymbolNameIndex.TryGetValue(aName, lSymbols) then
+  if FindRemoveWithFactSetSymbolsByName(aInventory, aName, lSymbols) then
   begin
     lParentChecked := False;
     for lKind in cKinds do
@@ -665,8 +568,7 @@ var
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lTypeName: string;
 begin
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if GExpressionSymbolNameIndex.TryGetValue(DirectTypeName(aTypeName), lSymbols) then
+  if FindRemoveWithFactSetSymbolsByName(aInventory, DirectTypeName(aTypeName), lSymbols) then
   begin
     for lSymbol in lSymbols do
       if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
@@ -674,7 +576,7 @@ begin
   end;
 
   lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
-  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  if FindRemoveWithFactSetSymbolsByName(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -697,8 +599,7 @@ begin
   if lTypeName = '' then
     Exit(False);
 
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin

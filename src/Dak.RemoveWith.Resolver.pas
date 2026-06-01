@@ -246,7 +246,6 @@ var
   GResolverAncestorMemberCache: TDictionary<string, TRemoveWithTextLookup>;
   GResolverBoolCache: TDictionary<string, Boolean>;
   GResolverContainingStatementsById: TDictionary<string, TArray<TRemoveWithStatementInfo>>;
-  GResolverDefaultPropertyByOwner: TDictionary<string, TRemoveWithSymbolInfo>;
   GResolverExternalUnitCache: TDictionary<string, TRemoveWithSymbolLookup>;
   GResolverMemberCandidateCache: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GResolverNestedStatementsById: TDictionary<string, TArray<TRemoveWithStatementInfo>>;
@@ -254,8 +253,6 @@ var
   GResolverRoutinesByFile: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GResolverScopeSymbolCache: TDictionary<string, TRemoveWithSymbolLookup>;
   GResolverSemanticBindingsByStatementRange: TDictionary<string, TRemoveWithSemanticBindingEntries>;
-  GResolverSymbolNameIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
-  GResolverSymbolsByOwnerType: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GResolverTypeNameCache: TDictionary<string, TRemoveWithSymbolLookup>;
   GResolverUnitNameCache: TDictionary<string, TRemoveWithSymbolLookup>;
 
@@ -397,7 +394,6 @@ begin
       TFastCaseAwareComparer.OrdinalIgnoreCase);
     GResolverBoolCache := TDictionary<string, Boolean>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
     GResolverContainingStatementsById := nil;
-    GResolverDefaultPropertyByOwner := nil;
     GResolverExternalUnitCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
       TFastCaseAwareComparer.OrdinalIgnoreCase);
     GResolverMemberCandidateCache := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(
@@ -408,8 +404,6 @@ begin
     GResolverScopeSymbolCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
       TFastCaseAwareComparer.OrdinalIgnoreCase);
     BeginResolverSemanticBindingCache(aInventory);
-    GResolverSymbolNameIndex := nil;
-    GResolverSymbolsByOwnerType := nil;
     GResolverTypeNameCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
       TFastCaseAwareComparer.OrdinalIgnoreCase);
     GResolverUnitNameCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
@@ -430,10 +424,6 @@ begin
   GResolverScopeSymbolCache := nil;
   GResolverSemanticBindingsByStatementRange.Free;
   GResolverSemanticBindingsByStatementRange := nil;
-  GResolverSymbolNameIndex.Free;
-  GResolverSymbolNameIndex := nil;
-  GResolverSymbolsByOwnerType.Free;
-  GResolverSymbolsByOwnerType := nil;
   GResolverMemberCandidateCache.Free;
   GResolverMemberCandidateCache := nil;
   GResolverNestedStatementsById.Free;
@@ -448,8 +438,6 @@ begin
   GResolverBoolCache := nil;
   GResolverContainingStatementsById.Free;
   GResolverContainingStatementsById := nil;
-  GResolverDefaultPropertyByOwner.Free;
-  GResolverDefaultPropertyByOwner := nil;
   GResolverAncestorMemberCache.Free;
   GResolverAncestorMemberCache := nil;
 end;
@@ -528,81 +516,6 @@ begin
   GResolverNestedStatementsById := nil;
   GResolverContainingStatementsById.Free;
   GResolverContainingStatementsById := nil;
-end;
-
-procedure EnsureResolverSymbolNameIndex(const aInventory: TRemoveWithFactSet);
-var
-  lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
-  lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
-  lList: TList<TRemoveWithSymbolInfo>;
-  lOwnerBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
-  lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
-  lSymbol: TRemoveWithSymbolInfo;
-begin
-  if GResolverSymbolNameIndex <> nil then
-    Exit;
-
-  GResolverDefaultPropertyByOwner := TDictionary<string, TRemoveWithSymbolInfo>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-  try
-    lOwnerBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(
-      TFastCaseAwareComparer.OrdinalIgnoreCase);
-    try
-      for lSymbol in aInventory.fSymbols do
-      begin
-        if (lSymbol.fOwnerType <> '') and (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and
-          lSymbol.fIsDefault then
-          GResolverDefaultPropertyByOwner.AddOrSetValue(lSymbol.fOwnerType, lSymbol);
-        if lSymbol.fName <> '' then
-        begin
-          if not lBuckets.TryGetValue(lSymbol.fName, lList) then
-          begin
-            lList := TList<TRemoveWithSymbolInfo>.Create;
-            lBuckets.Add(lSymbol.fName, lList);
-          end;
-          lList.Add(lSymbol);
-        end;
-        if lSymbol.fOwnerType <> '' then
-        begin
-          if not lOwnerBuckets.TryGetValue(lSymbol.fOwnerType, lList) then
-          begin
-            lList := TList<TRemoveWithSymbolInfo>.Create;
-            lOwnerBuckets.Add(lSymbol.fOwnerType, lList);
-          end;
-          lList.Add(lSymbol);
-        end;
-      end;
-
-      lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-      try
-        for lPair in lBuckets do
-          lIndex.Add(lPair.Key, lPair.Value.ToArray);
-        GResolverSymbolNameIndex := lIndex;
-        lIndex := nil;
-      finally
-        lIndex.Free;
-      end;
-
-      lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-      try
-        for lPair in lOwnerBuckets do
-          lIndex.Add(lPair.Key, lPair.Value.ToArray);
-        GResolverSymbolsByOwnerType := lIndex;
-        lIndex := nil;
-      finally
-        lIndex.Free;
-      end;
-    finally
-      for lPair in lOwnerBuckets do
-        lPair.Value.Free;
-      lOwnerBuckets.Free;
-    end;
-  finally
-    for lPair in lBuckets do
-      lPair.Value.Free;
-    lBuckets.Free;
-  end;
 end;
 
 procedure EnsureResolverRoutinesByFile(const aInventory: TRemoveWithFactSet);
@@ -1052,16 +965,6 @@ begin
         Exit(ElementTypeName(lSymbol.fTypeName));
     end;
   end;
-  EnsureResolverSymbolNameIndex(aInventory);
-  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
-  begin
-    for lSymbol in lSymbols do
-    begin
-      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
-        Exit(ElementTypeName(lSymbol.fTypeName));
-    end;
-  end;
-
   lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
   if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
   begin
@@ -1360,7 +1263,8 @@ var
     if (aHelperType = '') or (aOwnerType = '') then
       Exit;
 
-    if not GResolverSymbolNameIndex.TryGetValue(aHelperType, lHelperSymbols) then
+    if not FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, aHelperType,
+      lHelperSymbols) then
       Exit;
 
     for lHelperSymbol in lHelperSymbols do
@@ -1411,8 +1315,8 @@ begin
         if IsDirectMemberKind(lSymbol.fKind) and (not PlaceholderRecordTypeName(lSymbol.fTypeName)) then
           AddCandidate(lSymbol);
     end;
-    EnsureResolverSymbolNameIndex(aInventory);
-    if (lList.Count = 0) and GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
+    if (lList.Count = 0) and FindRemoveWithFactSetSymbolsByName(aInventory, aName,
+      lSymbols) then
     begin
       for lSymbol in lSymbols do
       begin
@@ -1422,7 +1326,8 @@ begin
           AddCandidate(lSymbol);
       end;
     end;
-    if (lList.Count = 0) and GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
+    if (lList.Count = 0) and FindRemoveWithFactSetSymbolsByName(aInventory, aName,
+      lSymbols) then
     begin
       for lSymbol in lSymbols do
       begin
@@ -1436,7 +1341,8 @@ begin
         end;
       end;
     end;
-    if (lList.Count = 0) and GResolverSymbolNameIndex.TryGetValue(lOwnerType, lSymbols) then
+    if (lList.Count = 0) and FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory,
+      lOwnerType, lSymbols) then
     begin
       for lSymbol in lSymbols do
       begin
@@ -1484,8 +1390,7 @@ begin
   if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) and (not Result) then
     Exit(False);
 
-  EnsureResolverSymbolNameIndex(aInventory);
-  Result := GResolverDefaultPropertyByOwner.TryGetValue(lOwnerType, aSymbol);
+  Result := FindRemoveWithFactSetDefaultProperty(aInventory, lOwnerType, aSymbol);
   if GResolverBoolCache <> nil then
     GResolverBoolCache.AddOrSetValue(lKey, Result);
 end;
@@ -1583,8 +1488,7 @@ begin
     end;
     Exit(True);
   end;
-  EnsureResolverSymbolNameIndex(aInventory);
-  if not GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
+  if not FindRemoveWithFactSetSymbolsByName(aInventory, aName, lSymbols) then
   begin
     if GResolverScopeSymbolCache <> nil then
     begin
@@ -1680,8 +1584,7 @@ begin
 
   Result := False;
   aSymbol := Default(TRemoveWithSymbolInfo);
-  EnsureResolverSymbolNameIndex(aInventory);
-  if not GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
+  if not FindRemoveWithFactSetSymbolsByName(aInventory, aName, lSymbols) then
     Exit(False);
 
   lBestRoutineLine := 0;
@@ -1691,7 +1594,8 @@ begin
     begin
       if (lSymbol.fKind <> lKind) or (lSymbol.fRoutineName = '') then
         Continue;
-      if not GResolverSymbolNameIndex.TryGetValue(lSymbol.fRoutineName, lRoutineSymbols) then
+      if not FindRemoveWithFactSetSymbolsByName(aInventory, lSymbol.fRoutineName,
+        lRoutineSymbols) then
         Continue;
       for lRoutine in lRoutineSymbols do
       begin
@@ -1810,8 +1714,7 @@ begin
   if FindRemoveWithFactSetUnitOrGlobalPrefix(aInventory, aName, lSymbols) and
     TryUseExternalUnitSymbols(lSymbols) then
     Exit(True);
-  EnsureResolverSymbolNameIndex(aInventory);
-  if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
+  if FindRemoveWithFactSetSymbolsByName(aInventory, aName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -1933,8 +1836,7 @@ begin
   if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
     Exit;
 
-  EnsureResolverSymbolNameIndex(aInventory);
-  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  if FindRemoveWithFactSetSymbolsByName(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -1969,8 +1871,7 @@ begin
   while lCurrentType <> '' do
   begin
     lRelatedType := '';
-    EnsureResolverSymbolNameIndex(aInventory);
-    if GResolverSymbolNameIndex.TryGetValue(lCurrentType, lSymbols) then
+    if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lCurrentType, lSymbols) then
     begin
       for lSymbol in lSymbols do
       begin
@@ -2043,8 +1944,7 @@ begin
   while lCurrentType <> '' do
   begin
     aSourceOwnerType := '';
-    EnsureResolverSymbolNameIndex(aInventory);
-    if GResolverSymbolNameIndex.TryGetValue(lCurrentType, lSymbols) then
+    if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lCurrentType, lSymbols) then
     begin
       for lSymbol in lSymbols do
       begin
@@ -2098,8 +1998,7 @@ begin
   if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
     Exit;
 
-  EnsureResolverSymbolNameIndex(aInventory);
-  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -2213,10 +2112,9 @@ var
   lSymbols: TArray<TRemoveWithSymbolInfo>;
 begin
   aSymbol := Default(TRemoveWithSymbolInfo);
-  EnsureResolverSymbolNameIndex(aInventory);
-  Result := Assigned(GResolverSymbolNameIndex) and GResolverSymbolNameIndex.TryGetValue(aName, lSymbols);
-  if not Result then
+  if not FindRemoveWithFactSetSymbolsByName(aInventory, aName, lSymbols) then
     Exit(False);
+  Result := True;
 
   for lSymbol in lSymbols do
   begin
