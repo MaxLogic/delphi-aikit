@@ -41,6 +41,7 @@ type
   TRemoveWithFactSet = record
     fContextFingerprint: string;
     fSymbols: TArray<TRemoveWithSymbolInfo>;
+    fDelphiSemanticLookupIndex: TDelphiSemanticRemoveWithLookupIndex;
     fDelphiSemanticUnitModels: TArray<TDelphiSemanticUnitModel>;
     fDelphiSemanticWithBindingEntries: TArray<TRemoveWithSemanticWithBinding>;
     fDelphiSemanticRemoveWithPlan: TDelphiSemanticRemoveWithPlan;
@@ -65,17 +66,22 @@ type
 
 function RemoveWithSymbolKindToText(const aKind: TRemoveWithSymbolKind): string;
 function RemoveWithTypeCategoryToText(const aCategory: TRemoveWithTypeCategory): string;
-procedure BeginRemoveWithFactSetLookupCache(const aInventory: TRemoveWithFactSet);
-procedure EndRemoveWithFactSetLookupCache;
-function RemoveWithFactSetLookupCacheBuildMilliseconds: Int64;
-function RemoveWithFactSetLookupCacheHitCount: Int64;
-function RemoveWithFactSetLookupCacheMissCount: Int64;
+function RemoveWithFactSetLookupIndexBuildMilliseconds(const aInventory: TRemoveWithFactSet):
+  Int64;
+function RemoveWithFactSetLookupIndexHitCount(const aInventory: TRemoveWithFactSet): Int64;
+function RemoveWithFactSetLookupIndexMissCount(const aInventory: TRemoveWithFactSet): Int64;
 function FindRemoveWithFactSetMembers(const aInventory: TRemoveWithFactSet; const aOwnerType,
   aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
 function FindRemoveWithFactSetRoutineSymbol(const aInventory: TRemoveWithFactSet;
   const aRoutineName, aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
 function RemoveWithFactSetPointerTargetType(const aInventory: TRemoveWithFactSet;
   const aTypeName: string): string;
+function FindRemoveWithFactSetDeclarationOrTypeAlias(const aInventory: TRemoveWithFactSet;
+  const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+function FindRemoveWithFactSetUnitOrGlobal(const aInventory: TRemoveWithFactSet;
+  const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+function FindRemoveWithFactSetUnitOrGlobalPrefix(const aInventory: TRemoveWithFactSet;
+  const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
 function BuildRemoveWithFactSet(const aOptions: TAppOptions; out aInventory: TRemoveWithFactSet;
   out aError: string): Boolean; overload;
 function BuildRemoveWithFactSet(const aOptions: TAppOptions; out aInventory: TRemoveWithFactSet;
@@ -173,15 +179,6 @@ type
 var
   GRemoveWithSymbolKeys: TDictionary<string, Byte>;
   GRemoveWithLogicalSymbolKeys: TDictionary<string, Byte>;
-  GFactSetLookupCacheDepth: Integer;
-  GFactSetLookupCacheBuildMs: Int64;
-  GFactSetLookupCacheHits: Int64;
-  GFactSetLookupCacheMisses: Int64;
-  GFactSetMembersByOwnerName: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
-  GFactSetPointerTargetByType: TDictionary<string, string>;
-  GFactSetPointerTargetMisses: TDictionary<string, Byte>;
-  GFactSetRoutineSymbolByName: TDictionary<string, TRemoveWithSymbolInfo>;
-  GFactSetRoutineSymbolMisses: TDictionary<string, Byte>;
 
 procedure AppendDelphiSemanticModel(var aInventory: TRemoveWithFactSet;
   const aModel: TDelphiSemanticUnitModel);
@@ -267,360 +264,122 @@ end;
 
 procedure AppendDelphiSemanticSymbols(var aInventory: TRemoveWithFactSet;
   const aSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>); forward;
+function RemoveWithSymbolFromDelphiSemanticSymbol(
+  const aSemanticSymbol: TDelphiSemanticInventorySymbol;
+  out aSymbol: TRemoveWithSymbolInfo): Boolean; forward;
 
 procedure AppendDelphiSemanticSymbols(var aInventory: TRemoveWithFactSet;
   const aSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>);
 var
-  lKind: TRemoveWithSymbolKind;
   lSemanticSymbol: TDelphiSemanticInventorySymbol;
   lSymbol: TRemoveWithSymbolInfo;
 begin
   for lSemanticSymbol in aSemanticSymbols do
   begin
-    if not ShouldTranslateDelphiSemanticSymbol(lSemanticSymbol) then
+    if not RemoveWithSymbolFromDelphiSemanticSymbol(lSemanticSymbol, lSymbol) then
       Continue;
-    if SameText(lSemanticSymbol.SymbolClass, 'declaration') then
-    begin
-      if not (SameText(lSemanticSymbol.Kind, 'type') or SameText(lSemanticSymbol.Kind, 'type-alias')) then
-        Continue;
-      lKind := TRemoveWithSymbolKind.rwskTypeMember;
-    end else if SameText(lSemanticSymbol.SymbolClass, 'member') then
-    begin
-      if not DelphiSemanticKindToRemoveWithKind(lSemanticSymbol.Kind, lKind) then
-        Continue;
-    end else if not DelphiSemanticKindToRemoveWithKind(lSemanticSymbol.SymbolClass, lKind) then
-      Continue;
-
-    lSymbol := Default(TRemoveWithSymbolInfo);
-    lSymbol.fName := lSemanticSymbol.Name;
-    lSymbol.fTypeName := lSemanticSymbol.TypeName;
-    lSymbol.fOwnerType := lSemanticSymbol.OwnerType;
-    if lSymbol.fOwnerType = '' then
-      lSymbol.fOwnerType := lSemanticSymbol.OwnerName;
-    lSymbol.fSourceOwnerType := lSemanticSymbol.SourceOwnerType;
-    lSymbol.fRelatedTypeName := lSemanticSymbol.RelatedTypeName;
-    lSymbol.fRoutineName := lSemanticSymbol.RoutineName;
-    lSymbol.fUnitName := lSemanticSymbol.UnitName;
-    lSymbol.fFilePath := lSemanticSymbol.FileName;
-    lSymbol.fLine := lSemanticSymbol.Line;
-    lSymbol.fEndLine := lSemanticSymbol.EndLine;
-    lSymbol.fColumn := lSemanticSymbol.Column;
-    lSymbol.fUnsupportedReason := lSemanticSymbol.UnsupportedReason;
-    lSymbol.fIsHelper := lSemanticSymbol.IsHelper;
-    lSymbol.fIsOverride := lSemanticSymbol.IsOverride;
-    lSymbol.fIsDefault := lSemanticSymbol.IsDefault;
-    lSymbol.fTypeCategory := DelphiSemanticTypeCategoryToRemoveWithCategory(lSemanticSymbol.TypeCategory);
-    lSymbol.fKind := lKind;
     TRemoveWithSymbolBuilder.AddSymbol(aInventory, lSymbol);
   end;
 end;
 
-function SymbolFromDelphiSemanticMember(const aModel: TDelphiSemanticUnitModel;
-  const aMember: TDelphiSemanticMember): TRemoveWithSymbolInfo;
-begin
-  Result := Default(TRemoveWithSymbolInfo);
-  Result.fName := aMember.Name;
-  Result.fTypeName := aMember.TypeName;
-  Result.fOwnerType := aMember.OwnerName;
-  Result.fUnitName := aModel.UnitName;
-  Result.fFilePath := aModel.FileName;
-  Result.fLine := aMember.Line;
-  Result.fEndLine := aMember.Line;
-  Result.fColumn := aMember.Column;
-  Result.fIsDefault := aMember.IsDefault;
-  Result.fKind := TRemoveWithSymbolKind.rwskField;
-  DelphiSemanticKindToRemoveWithKind(aMember.Kind, Result.fKind);
-end;
-
-function FactSetOwnerNameKey(const aOwnerType, aName: string): string;
-begin
-  Result := aOwnerType + #31 + aName;
-end;
-
-function FactSetRoutineNameKey(const aRoutineName, aName: string): string;
-begin
-  Result := aRoutineName + #31 + aName;
-end;
-
-procedure AddFactSetMemberBucket(
-  const aBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
-  const aKey: string; const aSymbol: TRemoveWithSymbolInfo);
+function RemoveWithSymbolFromDelphiSemanticSymbol(
+  const aSemanticSymbol: TDelphiSemanticInventorySymbol;
+  out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
-  lSymbols: TList<TRemoveWithSymbolInfo>;
+  lKind: TRemoveWithSymbolKind;
 begin
-  if not aBuckets.TryGetValue(aKey, lSymbols) then
-  begin
-    lSymbols := TList<TRemoveWithSymbolInfo>.Create;
-    aBuckets.Add(aKey, lSymbols);
-  end;
-  lSymbols.Add(aSymbol);
-end;
-
-procedure ClearRemoveWithFactSetLookupCache;
-begin
-  GFactSetMembersByOwnerName.Free;
-  GFactSetMembersByOwnerName := nil;
-  GFactSetPointerTargetByType.Free;
-  GFactSetPointerTargetByType := nil;
-  GFactSetPointerTargetMisses.Free;
-  GFactSetPointerTargetMisses := nil;
-  GFactSetRoutineSymbolByName.Free;
-  GFactSetRoutineSymbolByName := nil;
-  GFactSetRoutineSymbolMisses.Free;
-  GFactSetRoutineSymbolMisses := nil;
-end;
-
-procedure CountFactSetLookup(const aHit: Boolean);
-begin
-  if aHit then
-    Inc(GFactSetLookupCacheHits)
-  else
-    Inc(GFactSetLookupCacheMisses);
-end;
-
-procedure BuildRemoveWithFactSetLookupCache(const aInventory: TRemoveWithFactSet);
-var
-  lBucket: TPair<string, TList<TRemoveWithSymbolInfo>>;
-  lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
-  lDeclaration: TDelphiSemanticDeclaration;
-  lLocal: TDelphiSemanticLocal;
-  lMember: TDelphiSemanticMember;
-  lModel: TDelphiSemanticUnitModel;
-  lParameter: TDelphiSemanticParameter;
-  lRoutine: TDelphiSemanticRoutine;
-  lRoutineName: string;
-  lSymbol: TRemoveWithSymbolInfo;
-begin
-  ClearRemoveWithFactSetLookupCache;
-  GFactSetMembersByOwnerName := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  GFactSetPointerTargetByType := TDictionary<string, string>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  GFactSetPointerTargetMisses := TDictionary<string, Byte>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  GFactSetRoutineSymbolByName := TDictionary<string, TRemoveWithSymbolInfo>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  GFactSetRoutineSymbolMisses := TDictionary<string, Byte>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  try
-    for lModel in aInventory.fDelphiSemanticUnitModels do
-    begin
-      for lMember in lModel.Members do
-        AddFactSetMemberBucket(lBuckets, FactSetOwnerNameKey(lMember.OwnerName, lMember.Name),
-          SymbolFromDelphiSemanticMember(lModel, lMember));
-
-      for lRoutine in lModel.Routines do
-      begin
-        lRoutineName := lRoutine.Name;
-        if lRoutine.OwnerName <> '' then
-          lRoutineName := lRoutine.OwnerName + '.' + lRoutine.Name;
-        for lParameter in lRoutine.Parameters do
-        begin
-          lSymbol := Default(TRemoveWithSymbolInfo);
-          lSymbol.fName := lParameter.Name;
-          lSymbol.fTypeName := lParameter.TypeName;
-          lSymbol.fRoutineName := lRoutineName;
-          lSymbol.fUnitName := lModel.UnitName;
-          lSymbol.fFilePath := lModel.FileName;
-          lSymbol.fLine := lParameter.Line;
-          lSymbol.fColumn := lParameter.Column;
-          lSymbol.fKind := TRemoveWithSymbolKind.rwskParameter;
-          GFactSetRoutineSymbolByName.AddOrSetValue(FactSetRoutineNameKey(lRoutine.Name,
-            lParameter.Name), lSymbol);
-          GFactSetRoutineSymbolByName.AddOrSetValue(FactSetRoutineNameKey(lRoutineName,
-            lParameter.Name), lSymbol);
-        end;
-      end;
-
-      for lLocal in lModel.Locals do
-      begin
-        lSymbol := Default(TRemoveWithSymbolInfo);
-        lSymbol.fName := lLocal.Name;
-        lSymbol.fTypeName := lLocal.TypeName;
-        lSymbol.fRoutineName := lLocal.RoutineName;
-        lSymbol.fUnitName := lModel.UnitName;
-        lSymbol.fFilePath := lModel.FileName;
-        lSymbol.fLine := lLocal.Line;
-        lSymbol.fColumn := lLocal.Column;
-        lSymbol.fKind := TRemoveWithSymbolKind.rwskLocalVariable;
-        GFactSetRoutineSymbolByName.AddOrSetValue(FactSetRoutineNameKey(lLocal.RoutineName,
-          lLocal.Name), lSymbol);
-      end;
-
-      for lDeclaration in lModel.Declarations do
-        if StartsText('^', Trim(lDeclaration.TypeName)) then
-          GFactSetPointerTargetByType.AddOrSetValue(lDeclaration.Name,
-            Trim(Copy(Trim(lDeclaration.TypeName), 2, MaxInt)));
-    end;
-
-    for lBucket in lBuckets do
-      GFactSetMembersByOwnerName.Add(lBucket.Key, lBucket.Value.ToArray);
-  finally
-    for lBucket in lBuckets do
-      lBucket.Value.Free;
-    lBuckets.Free;
-  end;
-end;
-
-procedure BeginRemoveWithFactSetLookupCache(const aInventory: TRemoveWithFactSet);
-var
-  lStopwatch: TStopwatch;
-begin
-  if GFactSetLookupCacheDepth = 0 then
-  begin
-    GFactSetLookupCacheBuildMs := 0;
-    GFactSetLookupCacheHits := 0;
-    GFactSetLookupCacheMisses := 0;
-    lStopwatch := TStopwatch.StartNew;
-    BuildRemoveWithFactSetLookupCache(aInventory);
-    lStopwatch.Stop;
-    GFactSetLookupCacheBuildMs := lStopwatch.ElapsedMilliseconds;
-  end;
-  Inc(GFactSetLookupCacheDepth);
-end;
-
-procedure EndRemoveWithFactSetLookupCache;
-begin
-  if GFactSetLookupCacheDepth = 0 then
+  Result := False;
+  if not ShouldTranslateDelphiSemanticSymbol(aSemanticSymbol) then
     Exit;
-  Dec(GFactSetLookupCacheDepth);
-  if GFactSetLookupCacheDepth = 0 then
-    ClearRemoveWithFactSetLookupCache;
+  if SameText(aSemanticSymbol.SymbolClass, 'declaration') then
+  begin
+    if not (SameText(aSemanticSymbol.Kind, 'type') or SameText(aSemanticSymbol.Kind, 'type-alias')) then
+      Exit;
+    lKind := TRemoveWithSymbolKind.rwskTypeMember;
+  end else if SameText(aSemanticSymbol.SymbolClass, 'member') then
+  begin
+    if not DelphiSemanticKindToRemoveWithKind(aSemanticSymbol.Kind, lKind) then
+      Exit;
+  end else if not DelphiSemanticKindToRemoveWithKind(aSemanticSymbol.SymbolClass, lKind) then
+    Exit;
+
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  aSymbol.fName := aSemanticSymbol.Name;
+  aSymbol.fTypeName := aSemanticSymbol.TypeName;
+  aSymbol.fOwnerType := aSemanticSymbol.OwnerType;
+  if aSymbol.fOwnerType = '' then
+    aSymbol.fOwnerType := aSemanticSymbol.OwnerName;
+  aSymbol.fSourceOwnerType := aSemanticSymbol.SourceOwnerType;
+  aSymbol.fRelatedTypeName := aSemanticSymbol.RelatedTypeName;
+  aSymbol.fRoutineName := aSemanticSymbol.RoutineName;
+  aSymbol.fUnitName := aSemanticSymbol.UnitName;
+  aSymbol.fFilePath := aSemanticSymbol.FileName;
+  aSymbol.fLine := aSemanticSymbol.Line;
+  aSymbol.fEndLine := aSemanticSymbol.EndLine;
+  aSymbol.fColumn := aSemanticSymbol.Column;
+  aSymbol.fUnsupportedReason := aSemanticSymbol.UnsupportedReason;
+  aSymbol.fIsHelper := aSemanticSymbol.IsHelper;
+  aSymbol.fIsOverride := aSemanticSymbol.IsOverride;
+  aSymbol.fIsDefault := aSemanticSymbol.IsDefault;
+  aSymbol.fTypeCategory := DelphiSemanticTypeCategoryToRemoveWithCategory(
+    aSemanticSymbol.TypeCategory);
+  aSymbol.fKind := lKind;
+  Result := True;
 end;
 
-function RemoveWithFactSetLookupCacheBuildMilliseconds: Int64;
+function RemoveWithFactSetLookupIndexBuildMilliseconds(const aInventory: TRemoveWithFactSet):
+  Int64;
 begin
-  Result := GFactSetLookupCacheBuildMs;
+  Result := aInventory.fDelphiSemanticLookupIndex.Metrics.BuildMilliseconds;
 end;
 
-function RemoveWithFactSetLookupCacheHitCount: Int64;
+function RemoveWithFactSetLookupIndexHitCount(const aInventory: TRemoveWithFactSet): Int64;
 begin
-  Result := GFactSetLookupCacheHits;
+  Result := aInventory.fDelphiSemanticLookupIndex.Metrics.HitCount;
 end;
 
-function RemoveWithFactSetLookupCacheMissCount: Int64;
+function RemoveWithFactSetLookupIndexMissCount(const aInventory: TRemoveWithFactSet): Int64;
 begin
-  Result := GFactSetLookupCacheMisses;
+  Result := aInventory.fDelphiSemanticLookupIndex.Metrics.MissCount;
 end;
 
 function FindRemoveWithFactSetMembers(const aInventory: TRemoveWithFactSet; const aOwnerType,
   aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
 var
-  lKey: string;
-  lList: TList<TRemoveWithSymbolInfo>;
-  lMember: TDelphiSemanticMember;
-  lModel: TDelphiSemanticUnitModel;
+  lSemanticSymbol: TDelphiSemanticInventorySymbol;
+  lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
+  lSymbols: TList<TRemoveWithSymbolInfo>;
+  lSymbol: TRemoveWithSymbolInfo;
 begin
-  lKey := FactSetOwnerNameKey(aOwnerType, aName);
-  if Assigned(GFactSetMembersByOwnerName) and GFactSetMembersByOwnerName.TryGetValue(lKey,
-    aSymbols) then
-  begin
-    CountFactSetLookup(True);
-    Exit(Length(aSymbols) > 0);
-  end;
-
-  lList := TList<TRemoveWithSymbolInfo>.Create;
+  lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindMembersByOwnerAndName(
+    aOwnerType, aName);
+  lSymbols := TList<TRemoveWithSymbolInfo>.Create;
   try
-    for lModel in aInventory.fDelphiSemanticUnitModels do
-      for lMember in lModel.Members do
-        if SameText(lMember.OwnerName, aOwnerType) and SameText(lMember.Name, aName) then
-          lList.Add(SymbolFromDelphiSemanticMember(lModel, lMember));
-    aSymbols := lList.ToArray;
+    for lSemanticSymbol in lSemanticSymbols do
+      if RemoveWithSymbolFromDelphiSemanticSymbol(lSemanticSymbol, lSymbol) then
+        lSymbols.Add(lSymbol);
+    aSymbols := lSymbols.ToArray;
     Result := Length(aSymbols) > 0;
-    if Assigned(GFactSetMembersByOwnerName) then
-      GFactSetMembersByOwnerName.AddOrSetValue(lKey, aSymbols);
-    CountFactSetLookup(False);
   finally
-    lList.Free;
+    lSymbols.Free;
   end;
-end;
-
-function SemanticRoutineNameMatches(const aRoutine: TDelphiSemanticRoutine; const aRoutineName: string): Boolean;
-begin
-  Result := SameText(aRoutine.Name, aRoutineName);
-  if (not Result) and (aRoutine.OwnerName <> '') then
-    Result := SameText(aRoutine.OwnerName + '.' + aRoutine.Name, aRoutineName);
 end;
 
 function FindRemoveWithFactSetRoutineSymbol(const aInventory: TRemoveWithFactSet;
   const aRoutineName, aName: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
 var
-  lKey: string;
-  lLocal: TDelphiSemanticLocal;
-  lModel: TDelphiSemanticUnitModel;
-  lParameter: TDelphiSemanticParameter;
-  lRoutine: TDelphiSemanticRoutine;
+  lSemanticSymbol: TDelphiSemanticInventorySymbol;
 begin
-  lKey := FactSetRoutineNameKey(aRoutineName, aName);
-  if Assigned(GFactSetRoutineSymbolByName) and GFactSetRoutineSymbolByName.TryGetValue(lKey,
-    aSymbol) then
-  begin
-    CountFactSetLookup(True);
-    Exit(True);
-  end;
-  if Assigned(GFactSetRoutineSymbolMisses) and GFactSetRoutineSymbolMisses.ContainsKey(lKey) then
-  begin
-    aSymbol := Default(TRemoveWithSymbolInfo);
-    CountFactSetLookup(True);
-    Exit(False);
-  end;
-
-  for lModel in aInventory.fDelphiSemanticUnitModels do
-    for lRoutine in lModel.Routines do
-      if SemanticRoutineNameMatches(lRoutine, aRoutineName) then
-      begin
-        for lParameter in lRoutine.Parameters do
-          if SameText(lParameter.Name, aName) then
-          begin
-            aSymbol := Default(TRemoveWithSymbolInfo);
-            aSymbol.fName := lParameter.Name;
-            aSymbol.fTypeName := lParameter.TypeName;
-            aSymbol.fRoutineName := aRoutineName;
-            aSymbol.fUnitName := lModel.UnitName;
-            aSymbol.fFilePath := lModel.FileName;
-            aSymbol.fLine := lParameter.Line;
-            aSymbol.fColumn := lParameter.Column;
-            aSymbol.fKind := TRemoveWithSymbolKind.rwskParameter;
-            if Assigned(GFactSetRoutineSymbolByName) then
-              GFactSetRoutineSymbolByName.AddOrSetValue(lKey, aSymbol);
-            CountFactSetLookup(True);
-            Exit(True);
-          end;
-      end;
-
-  for lModel in aInventory.fDelphiSemanticUnitModels do
-    for lLocal in lModel.Locals do
-      if SameText(lLocal.RoutineName, aRoutineName) and SameText(lLocal.Name, aName) then
-      begin
-        aSymbol := Default(TRemoveWithSymbolInfo);
-        aSymbol.fName := lLocal.Name;
-        aSymbol.fTypeName := lLocal.TypeName;
-        aSymbol.fRoutineName := aRoutineName;
-        aSymbol.fUnitName := lModel.UnitName;
-        aSymbol.fFilePath := lModel.FileName;
-        aSymbol.fLine := lLocal.Line;
-        aSymbol.fColumn := lLocal.Column;
-        aSymbol.fKind := TRemoveWithSymbolKind.rwskLocalVariable;
-        if Assigned(GFactSetRoutineSymbolByName) then
-          GFactSetRoutineSymbolByName.AddOrSetValue(lKey, aSymbol);
-        CountFactSetLookup(True);
-        Exit(True);
-      end;
-
   aSymbol := Default(TRemoveWithSymbolInfo);
-  if Assigned(GFactSetRoutineSymbolMisses) then
-    GFactSetRoutineSymbolMisses.AddOrSetValue(lKey, 0);
-  CountFactSetLookup(False);
-  Result := False;
+  if not aInventory.fDelphiSemanticLookupIndex.FindRoutineSymbol(aRoutineName, aName,
+    lSemanticSymbol) then
+    Exit(False);
+  Result := RemoveWithSymbolFromDelphiSemanticSymbol(lSemanticSymbol, aSymbol);
 end;
 
 function RemoveWithFactSetPointerTargetType(const aInventory: TRemoveWithFactSet;
   const aTypeName: string): string;
 var
-  lDeclaration: TDelphiSemanticDeclaration;
-  lModel: TDelphiSemanticUnitModel;
   lTypeName: string;
 begin
   Result := '';
@@ -628,31 +387,71 @@ begin
   if StartsText('^', lTypeName) then
     Exit(Trim(Copy(lTypeName, 2, MaxInt)));
 
-  if Assigned(GFactSetPointerTargetByType) and
-    GFactSetPointerTargetByType.TryGetValue(lTypeName, Result) then
-  begin
-    CountFactSetLookup(True);
-    Exit;
-  end;
-  if Assigned(GFactSetPointerTargetMisses) and GFactSetPointerTargetMisses.ContainsKey(lTypeName) then
-  begin
-    CountFactSetLookup(True);
-    Exit;
-  end;
+  Result := aInventory.fDelphiSemanticLookupIndex.PointerTargetType(lTypeName);
+end;
 
-  for lModel in aInventory.fDelphiSemanticUnitModels do
-    for lDeclaration in lModel.Declarations do
-      if SameText(lDeclaration.Name, lTypeName) and StartsText('^', Trim(lDeclaration.TypeName)) then
-      begin
-        Result := Trim(Copy(Trim(lDeclaration.TypeName), 2, MaxInt));
-        if Assigned(GFactSetPointerTargetByType) then
-          GFactSetPointerTargetByType.AddOrSetValue(lTypeName, Result);
-        CountFactSetLookup(True);
-        Exit;
-      end;
-  if Assigned(GFactSetPointerTargetMisses) then
-    GFactSetPointerTargetMisses.AddOrSetValue(lTypeName, 0);
-  CountFactSetLookup(False);
+function FindRemoveWithFactSetDeclarationOrTypeAlias(const aInventory: TRemoveWithFactSet;
+  const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+var
+  lSemanticSymbol: TDelphiSemanticInventorySymbol;
+  lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
+  lSymbols: TList<TRemoveWithSymbolInfo>;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindDeclarationOrTypeAliasByName(
+    aName);
+  lSymbols := TList<TRemoveWithSymbolInfo>.Create;
+  try
+    for lSemanticSymbol in lSemanticSymbols do
+      if RemoveWithSymbolFromDelphiSemanticSymbol(lSemanticSymbol, lSymbol) then
+        lSymbols.Add(lSymbol);
+    aSymbols := lSymbols.ToArray;
+    Result := Length(aSymbols) > 0;
+  finally
+    lSymbols.Free;
+  end;
+end;
+
+function FindRemoveWithFactSetUnitOrGlobal(const aInventory: TRemoveWithFactSet;
+  const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+var
+  lSemanticSymbol: TDelphiSemanticInventorySymbol;
+  lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
+  lSymbols: TList<TRemoveWithSymbolInfo>;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindUnitOrGlobalByName(aName);
+  lSymbols := TList<TRemoveWithSymbolInfo>.Create;
+  try
+    for lSemanticSymbol in lSemanticSymbols do
+      if RemoveWithSymbolFromDelphiSemanticSymbol(lSemanticSymbol, lSymbol) then
+        lSymbols.Add(lSymbol);
+    aSymbols := lSymbols.ToArray;
+    Result := Length(aSymbols) > 0;
+  finally
+    lSymbols.Free;
+  end;
+end;
+
+function FindRemoveWithFactSetUnitOrGlobalPrefix(const aInventory: TRemoveWithFactSet;
+  const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+var
+  lSemanticSymbol: TDelphiSemanticInventorySymbol;
+  lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
+  lSymbols: TList<TRemoveWithSymbolInfo>;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindUnitOrGlobalByPrefix(aName);
+  lSymbols := TList<TRemoveWithSymbolInfo>.Create;
+  try
+    for lSemanticSymbol in lSemanticSymbols do
+      if RemoveWithSymbolFromDelphiSemanticSymbol(lSemanticSymbol, lSymbol) then
+        lSymbols.Add(lSymbol);
+    aSymbols := lSymbols.ToArray;
+    Result := Length(aSymbols) > 0;
+  finally
+    lSymbols.Free;
+  end;
 end;
 
 function IsRtlSourceCandidateUnit(const aUnitName: string): Boolean;
@@ -917,6 +716,7 @@ begin
     Exit(False);
   end;
   aInventory.fContextFingerprint := lFacts.ContextFingerprint;
+  aInventory.fDelphiSemanticLookupIndex := lFacts.LookupIndex;
   lPlanStopwatch := TStopwatch.StartNew;
   aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticApi.PlanRemoveWith(lFacts);
   lPlanStopwatch.Stop;
@@ -2197,6 +1997,7 @@ begin
       end;
       lStopwatch.Stop;
       aPhaseMetrics.fProblemSymbolAssemblyMs := lStopwatch.ElapsedMilliseconds;
+
     finally
       GRemoveWithLogicalSymbolKeys := nil;
       lLogicalSymbolKeys.Free;
