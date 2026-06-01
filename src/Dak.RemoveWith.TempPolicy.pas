@@ -35,7 +35,7 @@ function PlanRemoveWithTempPolicy(const aInventory: TRemoveWithFactSet; const aR
 implementation
 
 uses
-  System.Generics.Collections, System.StrUtils, System.SysUtils,
+  System.StrUtils, System.SysUtils,
   MaxLogic.StrUtils,
   Dak.RemoveWith.Expressions, Dak.RemoveWith.Model;
 
@@ -72,57 +72,9 @@ type
 
 var
   GTempPolicyCacheDepth: Integer;
-  GTempPolicySymbolNameIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
-
-procedure EnsureTempPolicySymbolNameIndex(const aInventory: TRemoveWithFactSet);
-var
-  lBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
-  lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
-  lList: TList<TRemoveWithSymbolInfo>;
-  lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
-  lSymbol: TRemoveWithSymbolInfo;
-begin
-  if GTempPolicySymbolNameIndex <> nil then
-    Exit;
-
-  lBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-  try
-    for lSymbol in aInventory.fSymbols do
-    begin
-      if lSymbol.fName = '' then
-        Continue;
-      if not lBuckets.TryGetValue(lSymbol.fName, lList) then
-      begin
-        lList := TList<TRemoveWithSymbolInfo>.Create;
-        lBuckets.Add(lSymbol.fName, lList);
-      end;
-      lList.Add(lSymbol);
-    end;
-
-    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-    try
-      for lPair in lBuckets do
-        lIndex.Add(lPair.Key, lPair.Value.ToArray);
-      GTempPolicySymbolNameIndex := lIndex;
-      lIndex := nil;
-    finally
-      lIndex.Free;
-    end;
-  finally
-    for lPair in lBuckets do
-      lPair.Value.Free;
-    lBuckets.Free;
-  end;
-end;
 
 procedure BeginRemoveWithTempPolicyCache(const aInventory: TRemoveWithFactSet);
 begin
-  if GTempPolicyCacheDepth = 0 then
-  begin
-    GTempPolicySymbolNameIndex.Free;
-    GTempPolicySymbolNameIndex := nil;
-    EnsureTempPolicySymbolNameIndex(aInventory);
-  end;
   Inc(GTempPolicyCacheDepth);
 end;
 
@@ -131,11 +83,6 @@ begin
   if GTempPolicyCacheDepth <= 0 then
     Exit;
   Dec(GTempPolicyCacheDepth);
-  if GTempPolicyCacheDepth = 0 then
-  begin
-    GTempPolicySymbolNameIndex.Free;
-    GTempPolicySymbolNameIndex := nil;
-  end;
 end;
 
 function TypeCategoryForModelKind(const aKind: TRemoveWithModelTypeKind): TRemoveWithTypeCategory;
@@ -198,8 +145,7 @@ begin
   if lTypeName = '' then
     Exit('');
 
-  EnsureTempPolicySymbolNameIndex(aInventory);
-  if GTempPolicySymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -308,8 +254,7 @@ var
 begin
   lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
 
-  EnsureTempPolicySymbolNameIndex(aInventory);
-  if GTempPolicySymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -371,8 +316,7 @@ var
 begin
   if ReservedNameExists(aReservedNames, aName) then
     Exit(True);
-  EnsureTempPolicySymbolNameIndex(aInventory);
-  if GTempPolicySymbolNameIndex.TryGetValue(aName, lSymbols) then
+  if FindRemoveWithFactSetSymbolsByName(aInventory, aName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin

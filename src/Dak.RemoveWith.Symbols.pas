@@ -82,6 +82,12 @@ function FindRemoveWithFactSetUnitOrGlobal(const aInventory: TRemoveWithFactSet;
   const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
 function FindRemoveWithFactSetUnitOrGlobalPrefix(const aInventory: TRemoveWithFactSet;
   const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+function FindRemoveWithFactSetSymbolsByName(const aInventory: TRemoveWithFactSet;
+  const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+function FindRemoveWithFactSetSymbolsByOwnerType(const aInventory: TRemoveWithFactSet;
+  const aOwnerType: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+function FindRemoveWithFactSetDefaultProperty(const aInventory: TRemoveWithFactSet;
+  const aOwnerType: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
 function BuildRemoveWithFactSet(const aOptions: TAppOptions; out aInventory: TRemoveWithFactSet;
   out aError: string): Boolean; overload;
 function BuildRemoveWithFactSet(const aOptions: TAppOptions; out aInventory: TRemoveWithFactSet;
@@ -343,26 +349,34 @@ begin
   Result := aInventory.fDelphiSemanticLookupIndex.Metrics.MissCount;
 end;
 
-function FindRemoveWithFactSetMembers(const aInventory: TRemoveWithFactSet; const aOwnerType,
-  aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+function RemoveWithSymbolsFromSemanticSymbols(
+  const aSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>):
+  TArray<TRemoveWithSymbolInfo>;
 var
   lSemanticSymbol: TDelphiSemanticInventorySymbol;
-  lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
   lSymbols: TList<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
-  lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindMembersByOwnerAndName(
-    aOwnerType, aName);
   lSymbols := TList<TRemoveWithSymbolInfo>.Create;
   try
-    for lSemanticSymbol in lSemanticSymbols do
+    for lSemanticSymbol in aSemanticSymbols do
       if RemoveWithSymbolFromDelphiSemanticSymbol(lSemanticSymbol, lSymbol) then
         lSymbols.Add(lSymbol);
-    aSymbols := lSymbols.ToArray;
-    Result := Length(aSymbols) > 0;
+    Result := lSymbols.ToArray;
   finally
     lSymbols.Free;
   end;
+end;
+
+function FindRemoveWithFactSetMembers(const aInventory: TRemoveWithFactSet; const aOwnerType,
+  aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+var
+  lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
+begin
+  lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindMembersByOwnerAndName(
+    aOwnerType, aName);
+  aSymbols := RemoveWithSymbolsFromSemanticSymbols(lSemanticSymbols);
+  Result := Length(aSymbols) > 0;
 end;
 
 function FindRemoveWithFactSetRoutineSymbol(const aInventory: TRemoveWithFactSet;
@@ -393,65 +407,73 @@ end;
 function FindRemoveWithFactSetDeclarationOrTypeAlias(const aInventory: TRemoveWithFactSet;
   const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
 var
-  lSemanticSymbol: TDelphiSemanticInventorySymbol;
   lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
-  lSymbols: TList<TRemoveWithSymbolInfo>;
-  lSymbol: TRemoveWithSymbolInfo;
 begin
   lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindDeclarationOrTypeAliasByName(
     aName);
-  lSymbols := TList<TRemoveWithSymbolInfo>.Create;
-  try
-    for lSemanticSymbol in lSemanticSymbols do
-      if RemoveWithSymbolFromDelphiSemanticSymbol(lSemanticSymbol, lSymbol) then
-        lSymbols.Add(lSymbol);
-    aSymbols := lSymbols.ToArray;
-    Result := Length(aSymbols) > 0;
-  finally
-    lSymbols.Free;
-  end;
+  aSymbols := RemoveWithSymbolsFromSemanticSymbols(lSemanticSymbols);
+  Result := Length(aSymbols) > 0;
 end;
 
 function FindRemoveWithFactSetUnitOrGlobal(const aInventory: TRemoveWithFactSet;
   const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
 var
-  lSemanticSymbol: TDelphiSemanticInventorySymbol;
   lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
-  lSymbols: TList<TRemoveWithSymbolInfo>;
-  lSymbol: TRemoveWithSymbolInfo;
 begin
   lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindUnitOrGlobalByName(aName);
-  lSymbols := TList<TRemoveWithSymbolInfo>.Create;
-  try
-    for lSemanticSymbol in lSemanticSymbols do
-      if RemoveWithSymbolFromDelphiSemanticSymbol(lSemanticSymbol, lSymbol) then
-        lSymbols.Add(lSymbol);
-    aSymbols := lSymbols.ToArray;
-    Result := Length(aSymbols) > 0;
-  finally
-    lSymbols.Free;
-  end;
+  aSymbols := RemoveWithSymbolsFromSemanticSymbols(lSemanticSymbols);
+  Result := Length(aSymbols) > 0;
 end;
 
 function FindRemoveWithFactSetUnitOrGlobalPrefix(const aInventory: TRemoveWithFactSet;
   const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
 var
-  lSemanticSymbol: TDelphiSemanticInventorySymbol;
   lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
-  lSymbols: TList<TRemoveWithSymbolInfo>;
-  lSymbol: TRemoveWithSymbolInfo;
 begin
   lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindUnitOrGlobalByPrefix(aName);
-  lSymbols := TList<TRemoveWithSymbolInfo>.Create;
-  try
-    for lSemanticSymbol in lSemanticSymbols do
-      if RemoveWithSymbolFromDelphiSemanticSymbol(lSemanticSymbol, lSymbol) then
-        lSymbols.Add(lSymbol);
-    aSymbols := lSymbols.ToArray;
-    Result := Length(aSymbols) > 0;
-  finally
-    lSymbols.Free;
+  aSymbols := RemoveWithSymbolsFromSemanticSymbols(lSemanticSymbols);
+  Result := Length(aSymbols) > 0;
+end;
+
+function FindRemoveWithFactSetSymbolsByName(const aInventory: TRemoveWithFactSet;
+  const aName: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+var
+  lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
+begin
+  lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindSymbolsByName(aName);
+  aSymbols := RemoveWithSymbolsFromSemanticSymbols(lSemanticSymbols);
+  Result := Length(aSymbols) > 0;
+end;
+
+function FindRemoveWithFactSetSymbolsByOwnerType(const aInventory: TRemoveWithFactSet;
+  const aOwnerType: string; out aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+var
+  lSemanticSymbols: TArray<TDelphiSemanticInventorySymbol>;
+begin
+  lSemanticSymbols := aInventory.fDelphiSemanticLookupIndex.FindSymbolsByOwnerType(
+    aOwnerType);
+  aSymbols := RemoveWithSymbolsFromSemanticSymbols(lSemanticSymbols);
+  Result := Length(aSymbols) > 0;
+end;
+
+function FindRemoveWithFactSetDefaultProperty(const aInventory: TRemoveWithFactSet;
+  const aOwnerType: string; out aSymbol: TRemoveWithSymbolInfo): Boolean;
+var
+  lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+begin
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  if not FindRemoveWithFactSetSymbolsByOwnerType(aInventory, aOwnerType, lSymbols) then
+    Exit(False);
+  for lSymbol in lSymbols do
+  begin
+    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskProperty) and lSymbol.fIsDefault then
+    begin
+      aSymbol := lSymbol;
+      Exit(True);
+    end;
   end;
+  Result := False;
 end;
 
 function IsRtlSourceCandidateUnit(const aUnitName: string): Boolean;

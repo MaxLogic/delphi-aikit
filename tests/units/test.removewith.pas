@@ -47,6 +47,8 @@ type
     [Test]
     procedure FactSetLookupsUseDelphiSemanticIndex;
     [Test]
+    procedure DakSemanticLookupsStayDelphiSemanticOwned;
+    [Test]
     procedure SemanticResolverIndexesStatementsByRange;
     [Test]
     procedure SemanticResolverBatchesSemanticClassifications;
@@ -1057,16 +1059,21 @@ end;
 
 procedure TRemoveWithCommandTests.ResolverUsesOwnerTypeIndex;
 var
-  lSourceFileName: string;
-  lSourceText: string;
+  lResolverSourceFileName: string;
+  lResolverSourceText: string;
+  lSymbolSourceFileName: string;
+  lSymbolSourceText: string;
 begin
-  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
-  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+  lResolverSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
+  lResolverSourceText := TFile.ReadAllText(lResolverSourceFileName, TEncoding.UTF8);
+  lSymbolSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSymbolSourceText := TFile.ReadAllText(lSymbolSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'GResolverSymbolsByOwnerType'),
-    'Remove-with resolver must index symbols by owner type for hot member/type lookups.');
-  Assert.IsTrue(ContainsText(lSourceText, 'GResolverSymbolsByOwnerType.TryGetValue(lTypeName, lSymbols)'),
-    'Remove-with resolver must use the owner-type index for source-type checks.');
+  Assert.IsTrue(ContainsText(lSymbolSourceText,
+    'fDelphiSemanticLookupIndex.FindSymbolsByOwnerType'),
+    'Remove-with owner-type lookup must use the DelphiSemantics-owned index.');
+  Assert.IsFalse(ContainsText(lResolverSourceText, 'GResolverSymbolsByOwnerType'),
+    'Remove-with resolver must not keep a DAK-owned owner-type semantic index.');
 end;
 
 procedure TRemoveWithCommandTests.PlannerUsesOwnerTypeIndexForVisibleSelectors;
@@ -1077,8 +1084,8 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Planner.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'GPlannerSymbolsByOwnerType.TryGetValue(lOwnerType, lSymbols)'),
-    'Remove-with planner must use the owner-type index for visible selector member lookups.');
+  Assert.IsTrue(ContainsText(lSourceText, 'FindRemoveWithFactSetSymbolsByOwnerType(aInventory, lOwnerType, lSymbols)'),
+    'Remove-with planner must use the DelphiSemantics-owned owner-type index for visible selector member lookups.');
   Assert.IsFalse(ContainsText(lSourceText,
     'for lSymbol in aInventory.fSymbols do' + sLineBreak + '      begin' + sLineBreak +
     '        if SameText(CanonicalSourceTypeName(aInventory, lSymbol.fOwnerType), lOwnerType)'),
@@ -1124,6 +1131,44 @@ begin
     'DAK must not build a command-owned semantic fact lookup cache.');
   Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithLookupIndex.Build'),
     'DAK must not rebuild DelphiSemantics lookup indexes from DAK-owned symbols.');
+end;
+
+procedure TRemoveWithCommandTests.DakSemanticLookupsStayDelphiSemanticOwned;
+var
+  lExpressionSourceFileName: string;
+  lExpressionSourceText: string;
+  lPlannerSourceFileName: string;
+  lPlannerSourceText: string;
+  lResolverSourceFileName: string;
+  lResolverSourceText: string;
+  lTempPolicySourceFileName: string;
+  lTempPolicySourceText: string;
+begin
+  lResolverSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
+  lResolverSourceText := TFile.ReadAllText(lResolverSourceFileName, TEncoding.UTF8);
+  lExpressionSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Expressions.pas');
+  lExpressionSourceText := TFile.ReadAllText(lExpressionSourceFileName, TEncoding.UTF8);
+  lPlannerSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Planner.pas');
+  lPlannerSourceText := TFile.ReadAllText(lPlannerSourceFileName, TEncoding.UTF8);
+  lTempPolicySourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.TempPolicy.pas');
+  lTempPolicySourceText := TFile.ReadAllText(lTempPolicySourceFileName, TEncoding.UTF8);
+
+  Assert.IsFalse(ContainsText(lResolverSourceText, 'GResolverSymbolNameIndex'),
+    'Resolver semantic name lookup must stay in DelphiSemantics, not DAK-owned indexes.');
+  Assert.IsFalse(ContainsText(lResolverSourceText, 'GResolverSymbolsByOwnerType'),
+    'Resolver owner-type lookup must stay in DelphiSemantics, not DAK-owned indexes.');
+  Assert.IsFalse(ContainsText(lExpressionSourceText, 'GExpressionSymbolNameIndex'),
+    'Expression semantic name lookup must stay in DelphiSemantics, not DAK-owned indexes.');
+  Assert.IsFalse(ContainsText(lPlannerSourceText, 'GPlannerSymbolsByName'),
+    'Planner semantic name lookup must stay in DelphiSemantics, not DAK-owned indexes.');
+  Assert.IsFalse(ContainsText(lPlannerSourceText, 'GPlannerSymbolsByOwnerType'),
+    'Planner owner-type lookup must stay in DelphiSemantics, not DAK-owned indexes.');
+  Assert.IsFalse(ContainsText(lPlannerSourceText, 'BeginPlannerSymbolCache'),
+    'Planner must not rebuild semantic symbol indexes in DAK.');
+  Assert.IsFalse(ContainsText(lTempPolicySourceText, 'GTempPolicySymbolNameIndex'),
+    'Temp-policy semantic name lookup must stay in DelphiSemantics, not DAK-owned indexes.');
+  Assert.IsFalse(ContainsText(lTempPolicySourceText, 'EnsureTempPolicySymbolNameIndex'),
+    'Temp-policy must not rebuild semantic symbol indexes in DAK.');
 end;
 
 procedure TRemoveWithCommandTests.SemanticResolverIndexesStatementsByRange;

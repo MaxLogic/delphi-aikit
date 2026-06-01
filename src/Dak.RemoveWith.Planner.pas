@@ -215,8 +215,6 @@ type
 var
   GPlannerClassificationsByStatement: TDictionary<string, TArray<TRemoveWithIdentifierClassification>>;
   GPlannerRoutinesByFile: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
-  GPlannerSymbolsByName: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
-  GPlannerSymbolsByOwnerType: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
 
 procedure BeginPlannerClassificationCache(const aResolverResult: TRemoveWithResolverResult);
 var
@@ -270,10 +268,8 @@ begin
   GPlannerClassificationsByStatement.TryGetValue(aStatementId, Result);
 end;
 
-procedure BeginPlannerSymbolCache(const aInventory: TRemoveWithFactSet);
+procedure BeginPlannerRoutineCache(const aInventory: TRemoveWithFactSet);
 var
-  lNameBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
-  lOwnerBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
   lRoutineBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
   lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   lList: TList<TRemoveWithSymbolInfo>;
@@ -282,35 +278,11 @@ var
 begin
   GPlannerRoutinesByFile.Free;
   GPlannerRoutinesByFile := nil;
-  GPlannerSymbolsByName.Free;
-  GPlannerSymbolsByName := nil;
-  GPlannerSymbolsByOwnerType.Free;
-  GPlannerSymbolsByOwnerType := nil;
 
   lRoutineBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-  lNameBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-  lOwnerBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
     for lSymbol in aInventory.fSymbols do
     begin
-      if lSymbol.fName <> '' then
-      begin
-        if not lNameBuckets.TryGetValue(lSymbol.fName, lList) then
-        begin
-          lList := TList<TRemoveWithSymbolInfo>.Create;
-          lNameBuckets.Add(lSymbol.fName, lList);
-        end;
-        lList.Add(lSymbol);
-      end;
-      if lSymbol.fOwnerType <> '' then
-      begin
-        if not lOwnerBuckets.TryGetValue(lSymbol.fOwnerType, lList) then
-        begin
-          lList := TList<TRemoveWithSymbolInfo>.Create;
-          lOwnerBuckets.Add(lSymbol.fOwnerType, lList);
-        end;
-        lList.Add(lSymbol);
-      end;
       if (lSymbol.fKind = TRemoveWithSymbolKind.rwskRoutine) and (lSymbol.fFilePath <> '') then
       begin
         if not lRoutineBuckets.TryGetValue(lSymbol.fFilePath, lList) then
@@ -331,45 +303,15 @@ begin
     finally
       lIndex.Free;
     end;
-
-    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-    try
-      for lPair in lNameBuckets do
-        lIndex.Add(lPair.Key, lPair.Value.ToArray);
-      GPlannerSymbolsByName := lIndex;
-      lIndex := nil;
-    finally
-      lIndex.Free;
-    end;
-
-    lIndex := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-    try
-      for lPair in lOwnerBuckets do
-        lIndex.Add(lPair.Key, lPair.Value.ToArray);
-      GPlannerSymbolsByOwnerType := lIndex;
-      lIndex := nil;
-    finally
-      lIndex.Free;
-    end;
   finally
-    for lPair in lOwnerBuckets do
-      lPair.Value.Free;
-    lOwnerBuckets.Free;
-    for lPair in lNameBuckets do
-      lPair.Value.Free;
-    lNameBuckets.Free;
     for lPair in lRoutineBuckets do
       lPair.Value.Free;
     lRoutineBuckets.Free;
   end;
 end;
 
-procedure EndPlannerSymbolCache;
+procedure EndPlannerRoutineCache;
 begin
-  GPlannerSymbolsByOwnerType.Free;
-  GPlannerSymbolsByOwnerType := nil;
-  GPlannerSymbolsByName.Free;
-  GPlannerSymbolsByName := nil;
   GPlannerRoutinesByFile.Free;
   GPlannerRoutinesByFile := nil;
 end;
@@ -416,9 +358,7 @@ begin
     Exit('');
   if Pos('.', Result) > 0 then
     Exit;
-  if GPlannerSymbolsByName = nil then
-    BeginPlannerSymbolCache(aInventory);
-  if Assigned(GPlannerSymbolsByName) and GPlannerSymbolsByName.TryGetValue(Result, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, Result, lSymbols) then
     for lSymbol in lSymbols do
     begin
       if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and
@@ -440,14 +380,11 @@ begin
   lDirectTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
   if lDirectTypeName = '' then
     Exit(False);
-  if GPlannerSymbolsByName = nil then
-    BeginPlannerSymbolCache(aInventory);
-  if Assigned(GPlannerSymbolsByName) and GPlannerSymbolsByName.TryGetValue(lDirectTypeName, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lDirectTypeName, lSymbols) then
     for lSymbol in lSymbols do
       if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
         Exit(True);
-  if Assigned(GPlannerSymbolsByOwnerType) and
-    GPlannerSymbolsByOwnerType.TryGetValue(lDirectTypeName, lSymbols) then
+  if FindRemoveWithFactSetSymbolsByOwnerType(aInventory, lDirectTypeName, lSymbols) then
     for lSymbol in lSymbols do
       if IsDirectMemberKind(lSymbol.fKind) then
         Exit(True);
@@ -623,6 +560,7 @@ var
   lCandidateKeys: TDictionary<string, Byte>;
   lCandidateTypeName: string;
   lNestedTypeName: string;
+  lNestedSymbols: TArray<TRemoveWithSymbolInfo>;
   lOwnerType: string;
   lSymbol: TRemoveWithSymbolInfo;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
@@ -641,10 +579,7 @@ begin
     lCandidateCount := 0;
     lCandidateKeys := TDictionary<string, Byte>.Create;
     try
-      if GPlannerSymbolsByOwnerType = nil then
-        BeginPlannerSymbolCache(aInventory);
-      if Assigned(GPlannerSymbolsByOwnerType) and
-        GPlannerSymbolsByOwnerType.TryGetValue(lOwnerType, lSymbols) then
+      if FindRemoveWithFactSetSymbolsByOwnerType(aInventory, lOwnerType, lSymbols) then
       begin
         for lSymbol in lSymbols do
         begin
@@ -655,13 +590,15 @@ begin
             if SameText(lCandidateTypeName, lSymbol.fName) then
             begin
               lNestedTypeName := lSymbol.fOwnerType + '.' + lSymbol.fName;
-              for lTypeSymbol in aInventory.fSymbols do
+              if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lNestedTypeName, lNestedSymbols) then
               begin
-                if (lTypeSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and
-                  SameText(lTypeSymbol.fName, lNestedTypeName) then
+                for lTypeSymbol in lNestedSymbols do
                 begin
-                  lCandidateTypeName := lNestedTypeName;
-                  Break;
+                  if lTypeSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+                  begin
+                    lCandidateTypeName := lNestedTypeName;
+                    Break;
+                  end;
                 end;
               end;
             end;
@@ -808,7 +745,7 @@ begin
   aRoutineLine := 0;
   lBestLine := 0;
   if GPlannerRoutinesByFile = nil then
-    BeginPlannerSymbolCache(aInventory);
+    BeginPlannerRoutineCache(aInventory);
   if not GPlannerRoutinesByFile.TryGetValue(aStatement.fFilePath, lRoutines) then
     Exit(False);
   for lSymbol in lRoutines do
@@ -2067,7 +2004,7 @@ begin
   lCurrentPath := '';
   lSource := Default(TRemoveWithSourceBuffer);
   BeginPlannerClassificationCache(aResolverResult);
-  BeginPlannerSymbolCache(aInventory);
+  BeginPlannerRoutineCache(aInventory);
   BeginRemoveWithSelectorTypeCache(aInventory);
   BeginRemoveWithTempPolicyCache(aInventory);
   try
@@ -2101,7 +2038,7 @@ begin
   finally
     EndRemoveWithTempPolicyCache;
     EndRemoveWithSelectorTypeCache;
-    EndPlannerSymbolCache;
+    EndPlannerRoutineCache;
     EndPlannerClassificationCache;
   end;
 end;
