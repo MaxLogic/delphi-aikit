@@ -984,19 +984,7 @@ begin
   if lTypeName = '' then
     Exit('');
 
-  EnsureResolverSymbolNameIndex(aInventory);
-  if Assigned(GResolverSymbolsByOwnerType) and GResolverSymbolsByOwnerType.TryGetValue(lTypeName, lSymbols) and
-    (Length(lSymbols) > 0) then
-    Exit(lTypeName);
-
-  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
-  begin
-    for lSymbol in lSymbols do
-      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
-        Exit(lTypeName);
-  end;
-
-  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -1055,10 +1043,27 @@ begin
   if Result <> '' then
     Exit;
 
-  lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
-
+  lTypeName := DirectTypeName(aTypeName);
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
+  begin
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(ElementTypeName(lSymbol.fTypeName));
+    end;
+  end;
   EnsureResolverSymbolNameIndex(aInventory);
   if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  begin
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(ElementTypeName(lSymbol.fTypeName));
+    end;
+  end;
+
+  lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -1395,8 +1400,19 @@ begin
   lCandidateKeys := TDictionary<string, Byte>.Create;
   try
     lSimpleOwnerType := DirectTypeName(aOwnerType);
+    if not FindRemoveWithFactSetMembers(aInventory, lOwnerType, aName, lSemanticMembers) then
+    begin
+      if not FindRemoveWithFactSetMembers(aInventory, lSimpleOwnerType, aName, lSemanticMembers) then
+        lSemanticMembers := nil;
+    end;
+    if Length(lSemanticMembers) > 0 then
+    begin
+      for lSymbol in lSemanticMembers do
+        if IsDirectMemberKind(lSymbol.fKind) and (not PlaceholderRecordTypeName(lSymbol.fTypeName)) then
+          AddCandidate(lSymbol);
+    end;
     EnsureResolverSymbolNameIndex(aInventory);
-    if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
+    if (lList.Count = 0) and GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
     begin
       for lSymbol in lSymbols do
       begin
@@ -1418,20 +1434,6 @@ begin
           lCandidate.fOwnerType := lOwnerType;
           AddCandidate(lCandidate);
         end;
-      end;
-    end;
-    if lList.Count = 0 then
-    begin
-      if not FindRemoveWithFactSetMembers(aInventory, lOwnerType, aName, lSemanticMembers) then
-      begin
-        if not FindRemoveWithFactSetMembers(aInventory, lSimpleOwnerType, aName, lSemanticMembers) then
-          lSemanticMembers := nil;
-      end;
-      if Length(lSemanticMembers) > 0 then
-      begin
-        for lSymbol in lSemanticMembers do
-          if IsDirectMemberKind(lSymbol.fKind) and (not PlaceholderRecordTypeName(lSymbol.fTypeName)) then
-            AddCandidate(lSymbol);
       end;
     end;
     if (lList.Count = 0) and GResolverSymbolNameIndex.TryGetValue(lOwnerType, lSymbols) then
@@ -1571,19 +1573,19 @@ begin
 
   Result := False;
   aSymbol := Default(TRemoveWithSymbolInfo);
+  if FindRemoveWithFactSetRoutineSymbol(aInventory, aRoutineName, aName, aSymbol) then
+  begin
+    if GResolverScopeSymbolCache <> nil then
+    begin
+      lLookup.fFound := True;
+      lLookup.fSymbol := aSymbol;
+      GResolverScopeSymbolCache.Add(lKey, lLookup);
+    end;
+    Exit(True);
+  end;
   EnsureResolverSymbolNameIndex(aInventory);
   if not GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
-    if FindRemoveWithFactSetRoutineSymbol(aInventory, aRoutineName, aName, aSymbol) then
-    begin
-      if GResolverScopeSymbolCache <> nil then
-      begin
-        lLookup.fFound := True;
-        lLookup.fSymbol := aSymbol;
-        GResolverScopeSymbolCache.Add(lKey, lLookup);
-      end;
-      Exit(True);
-    end;
     if GResolverScopeSymbolCache <> nil then
     begin
       lLookup := Default(TRemoveWithSymbolLookup);
@@ -1635,16 +1637,6 @@ begin
       end;
       Exit(True);
     end;
-  end;
-  if FindRemoveWithFactSetRoutineSymbol(aInventory, aRoutineName, aName, aSymbol) then
-  begin
-    if GResolverScopeSymbolCache <> nil then
-    begin
-      lLookup.fFound := True;
-      lLookup.fSymbol := aSymbol;
-      GResolverScopeSymbolCache.Add(lKey, lLookup);
-    end;
-    Exit(True);
   end;
   if GResolverScopeSymbolCache <> nil then
   begin
@@ -1732,46 +1724,17 @@ class function TRemoveWithIdentifierResolver.FindUnitNameSymbol(const aInventory
 var
   lLookup: TRemoveWithSymbolLookup;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
-  lSymbol: TRemoveWithSymbolInfo;
-  lSemanticModel: TDelphiSemanticUnitModel;
-  lUnitPrefix: string;
-begin
-  if (GResolverUnitNameCache <> nil) and GResolverUnitNameCache.TryGetValue(aName, lLookup) then
-  begin
-    aSymbol := lLookup.fSymbol;
-    Exit(lLookup.fFound);
-  end;
 
-  Result := False;
-  aSymbol := Default(TRemoveWithSymbolInfo);
-  lUnitPrefix := aName + '.';
-  for lSemanticModel in aInventory.fDelphiSemanticUnitModels do
+  function TryUseUnitSymbols(const aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+  var
+    lCandidate: TRemoveWithSymbolInfo;
   begin
-    if StartsText(lUnitPrefix, lSemanticModel.UnitName) then
+    Result := False;
+    for lCandidate in aSymbols do
     begin
-      aSymbol := Default(TRemoveWithSymbolInfo);
-      aSymbol.fName := lSemanticModel.UnitName;
-      aSymbol.fUnitName := lSemanticModel.UnitName;
-      aSymbol.fFilePath := lSemanticModel.FileName;
-      aSymbol.fKind := TRemoveWithSymbolKind.rwskUnitName;
-      if GResolverUnitNameCache <> nil then
+      if lCandidate.fKind = TRemoveWithSymbolKind.rwskUnitName then
       begin
-        lLookup.fFound := True;
-        lLookup.fSymbol := aSymbol;
-        GResolverUnitNameCache.Add(aName, lLookup);
-      end;
-      Exit(True);
-    end;
-  end;
-
-  EnsureResolverSymbolNameIndex(aInventory);
-  if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
-  begin
-    for lSymbol in lSymbols do
-    begin
-      if lSymbol.fKind = TRemoveWithSymbolKind.rwskUnitName then
-      begin
-        aSymbol := lSymbol;
+        aSymbol := lCandidate;
         if GResolverUnitNameCache <> nil then
         begin
           lLookup.fFound := True;
@@ -1782,20 +1745,21 @@ begin
       end;
     end;
   end;
-  for lSymbol in aInventory.fSymbols do
+begin
+  if (GResolverUnitNameCache <> nil) and GResolverUnitNameCache.TryGetValue(aName, lLookup) then
   begin
-    if (lSymbol.fKind = TRemoveWithSymbolKind.rwskUnitName) and StartsText(lUnitPrefix, lSymbol.fName) then
-    begin
-      aSymbol := lSymbol;
-      if GResolverUnitNameCache <> nil then
-      begin
-        lLookup.fFound := True;
-        lLookup.fSymbol := aSymbol;
-        GResolverUnitNameCache.Add(aName, lLookup);
-      end;
-      Exit(True);
-    end;
+    aSymbol := lLookup.fSymbol;
+    Exit(lLookup.fFound);
   end;
+
+  Result := False;
+  aSymbol := Default(TRemoveWithSymbolInfo);
+  if FindRemoveWithFactSetUnitOrGlobal(aInventory, aName, lSymbols) and
+    TryUseUnitSymbols(lSymbols) then
+    Exit(True);
+  if FindRemoveWithFactSetUnitOrGlobalPrefix(aInventory, aName, lSymbols) and
+    TryUseUnitSymbols(lSymbols) then
+    Exit(True);
   if GResolverUnitNameCache <> nil then
   begin
     lLookup := Default(TRemoveWithSymbolLookup);
@@ -1809,6 +1773,28 @@ var
   lLookup: TRemoveWithSymbolLookup;
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lSymbol: TRemoveWithSymbolInfo;
+
+  function TryUseExternalUnitSymbols(const aSymbols: TArray<TRemoveWithSymbolInfo>): Boolean;
+  var
+    lCandidate: TRemoveWithSymbolInfo;
+  begin
+    Result := False;
+    for lCandidate in aSymbols do
+    begin
+      if (lCandidate.fKind = TRemoveWithSymbolKind.rwskExternal) and
+        (lCandidate.fTypeName = '') then
+      begin
+        aSymbol := lCandidate;
+        if GResolverExternalUnitCache <> nil then
+        begin
+          lLookup.fFound := True;
+          lLookup.fSymbol := aSymbol;
+          GResolverExternalUnitCache.Add(aName, lLookup);
+        end;
+        Exit(True);
+      end;
+    end;
+  end;
 begin
   if (GResolverExternalUnitCache <> nil) and GResolverExternalUnitCache.TryGetValue(aName, lLookup) then
   begin
@@ -1818,6 +1804,12 @@ begin
 
   Result := False;
   aSymbol := Default(TRemoveWithSymbolInfo);
+  if FindRemoveWithFactSetUnitOrGlobal(aInventory, aName, lSymbols) and
+    TryUseExternalUnitSymbols(lSymbols) then
+    Exit(True);
+  if FindRemoveWithFactSetUnitOrGlobalPrefix(aInventory, aName, lSymbols) and
+    TryUseExternalUnitSymbols(lSymbols) then
+    Exit(True);
   EnsureResolverSymbolNameIndex(aInventory);
   if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
@@ -1872,8 +1864,7 @@ begin
     Exit(True);
   end;
 
-  EnsureResolverSymbolNameIndex(aInventory);
-  if GResolverSymbolNameIndex.TryGetValue(aName, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, aName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -1912,24 +1903,11 @@ begin
   if (GResolverBoolCache <> nil) and GResolverBoolCache.TryGetValue(lKey, Result) then
     Exit;
 
-  EnsureResolverSymbolNameIndex(aInventory);
-  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
       if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
-      begin
-        if GResolverBoolCache <> nil then
-          GResolverBoolCache.Add(lKey, True);
-        Exit(True);
-      end;
-    end;
-  end;
-  if Assigned(GResolverSymbolsByOwnerType) and GResolverSymbolsByOwnerType.TryGetValue(lTypeName, lSymbols) then
-  begin
-    for lSymbol in lSymbols do
-    begin
-      if IsDirectMemberKind(lSymbol.fKind) then
       begin
         if GResolverBoolCache <> nil then
           GResolverBoolCache.Add(lKey, True);
@@ -2033,15 +2011,6 @@ begin
     Exit(Trim(Copy(lTypeName, 2, MaxInt)));
 
   lTypeName := DirectTypeName(lTypeName);
-  EnsureResolverSymbolNameIndex(aInventory);
-  if GResolverSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
-  begin
-    for lSymbol in lSymbols do
-    begin
-      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and StartsText('^', Trim(lSymbol.fTypeName)) then
-        Exit(Trim(Copy(Trim(lSymbol.fTypeName), 2, MaxInt)));
-    end;
-  end;
   Result := RemoveWithFactSetPointerTargetType(aInventory, lTypeName);
   if Result <> '' then
     Exit;
@@ -2519,6 +2488,7 @@ class function TRemoveWithIdentifierResolver.ResolveSelectorFromReceivers(
   const aInventory: TRemoveWithFactSet; const aReceivers: TArray<TRemoveWithReceiverScope>;
   const aSelectorText: string; out aInfo: TRemoveWithSelectorTypeInfo): Boolean;
 var
+  lCandidate: TRemoveWithSymbolInfo;
   lCandidates: TArray<TRemoveWithSymbolInfo>;
   lCurrentType: string;
   lDefaultProperty: TRemoveWithSymbolInfo;
@@ -2527,6 +2497,32 @@ var
   lPaths: TArray<string>;
   i: Integer;
   j: Integer;
+
+  function TrySelectSelectorCandidate(
+    const aCandidates: TArray<TRemoveWithSymbolInfo>;
+    out aCandidate: TRemoveWithSymbolInfo): Boolean;
+  var
+    lExpectedKind: TRemoveWithSymbolKind;
+    lExpectedTypeName: string;
+    lSymbol: TRemoveWithSymbolInfo;
+  begin
+    aCandidate := Default(TRemoveWithSymbolInfo);
+    if Length(aCandidates) = 0 then
+      Exit(False);
+
+    aCandidate := aCandidates[0];
+    lExpectedKind := aCandidate.fKind;
+    lExpectedTypeName := CanonicalSourceTypeName(aInventory, aCandidate.fTypeName);
+    for lSymbol in aCandidates do
+    begin
+      if lSymbol.fKind <> lExpectedKind then
+        Exit(False);
+      if not SameText(CanonicalSourceTypeName(aInventory, lSymbol.fTypeName),
+        lExpectedTypeName) then
+        Exit(False);
+    end;
+    Result := True;
+  end;
 begin
   aInfo := Default(TRemoveWithSelectorTypeInfo);
   aInfo.fSelectorText := aSelectorText;
@@ -2544,16 +2540,16 @@ begin
       Continue;
 
     lCandidates := FindMemberCandidates(aInventory, aReceivers[i].fTypeName, lName);
-    if Length(lCandidates) <> 1 then
+    if not TrySelectSelectorCandidate(lCandidates, lCandidate) then
       Continue;
-    if lCandidates[0].fKind = TRemoveWithSymbolKind.rwskProperty then
+    if lCandidate.fKind = TRemoveWithSymbolKind.rwskProperty then
     begin
       aInfo.fReason := 'property-selector';
       aInfo.fStatus := TRemoveWithSelectorTypeStatus.rwstsUnsupported;
       aInfo.fAddressable := False;
       Exit(True);
     end;
-    if lCandidates[0].fKind = TRemoveWithSymbolKind.rwskMethod then
+    if lCandidate.fKind = TRemoveWithSymbolKind.rwskMethod then
     begin
       aInfo.fReason := 'call-selector';
       aInfo.fStatus := TRemoveWithSelectorTypeStatus.rwstsUnsupported;
@@ -2561,7 +2557,7 @@ begin
       Exit(True);
     end;
 
-    lCurrentType := lCandidates[0].fTypeName;
+    lCurrentType := lCandidate.fTypeName;
     if SelectorSegmentDerefBeforeIndex(lPaths[0]) then
       lCurrentType := PointerTargetType(aInventory, lCurrentType);
     if SelectorSegmentIndexed(lPaths[0]) then
@@ -2590,26 +2586,26 @@ begin
     begin
       lName := SelectorSegmentName(lPaths[j]);
       lCandidates := FindMemberCandidates(aInventory, lCurrentType, lName);
-      if Length(lCandidates) <> 1 then
+      if not TrySelectSelectorCandidate(lCandidates, lCandidate) then
       begin
         lCurrentType := '';
         Break;
       end;
-      if lCandidates[0].fKind = TRemoveWithSymbolKind.rwskProperty then
+      if lCandidate.fKind = TRemoveWithSymbolKind.rwskProperty then
       begin
         aInfo.fReason := 'property-selector';
         aInfo.fStatus := TRemoveWithSelectorTypeStatus.rwstsUnsupported;
         aInfo.fAddressable := False;
         Exit(True);
       end;
-      if lCandidates[0].fKind = TRemoveWithSymbolKind.rwskMethod then
+      if lCandidate.fKind = TRemoveWithSymbolKind.rwskMethod then
       begin
         aInfo.fReason := 'call-selector';
         aInfo.fStatus := TRemoveWithSelectorTypeStatus.rwstsUnsupported;
         aInfo.fAddressable := False;
         Exit(True);
       end;
-      lCurrentType := lCandidates[0].fTypeName;
+      lCurrentType := lCandidate.fTypeName;
       if SelectorSegmentDerefBeforeIndex(lPaths[j]) then
         lCurrentType := PointerTargetType(aInventory, lCurrentType);
       if SelectorSegmentIndexed(lPaths[j]) then

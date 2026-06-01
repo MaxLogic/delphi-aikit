@@ -226,9 +226,11 @@ begin
       end;
       lStopwatch.Stop;
       lMetrics.fResolverMs := lStopwatch.ElapsedMilliseconds;
-      lMetrics.fDakLookupIndexMs := RemoveWithFactSetLookupCacheBuildMilliseconds;
-      lMetrics.fDakLookupCacheHits := RemoveWithFactSetLookupCacheHitCount;
-      lMetrics.fDakLookupCacheMisses := RemoveWithFactSetLookupCacheMissCount;
+      lMetrics.fDakLookupIndexMs := RemoveWithFactSetLookupIndexBuildMilliseconds(
+        lSymbolInventory);
+      lMetrics.fDakLookupCacheHits := RemoveWithFactSetLookupIndexHitCount(lSymbolInventory);
+      lMetrics.fDakLookupCacheMisses := RemoveWithFactSetLookupIndexMissCount(
+        lSymbolInventory);
       lMetrics.fDakResolverClassifyMs := lMetrics.fResolverMs - lMetrics.fDakLookupIndexMs;
       if lMetrics.fDakResolverClassifyMs < 0 then
         lMetrics.fDakResolverClassifyMs := 0;

@@ -141,7 +141,6 @@ begin
     GExpressionSymbolNameIndex.Free;
     GExpressionSymbolNameIndex := nil;
     EnsureExpressionSymbolNameIndex(aInventory);
-    BeginRemoveWithFactSetLookupCache(aInventory);
   end;
   Inc(GExpressionCacheDepth);
 end;
@@ -157,7 +156,6 @@ begin
     GExpressionSymbolNameIndex := nil;
     GExpressionDefaultPropertyByOwner.Free;
     GExpressionDefaultPropertyByOwner := nil;
-    EndRemoveWithFactSetLookupCache;
   end;
 end;
 
@@ -277,8 +275,7 @@ begin
   if lTypeName = '' then
     Exit('');
 
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -338,6 +335,14 @@ begin
     Exit;
 
   lTypeName := DirectTypeName(aTypeName);
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
+  begin
+    for lSymbol in lSymbols do
+    begin
+      if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
+        Exit(ElementTypeName(lSymbol.fTypeName));
+    end;
+  end;
   EnsureExpressionSymbolNameIndex(aInventory);
   if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
   begin
@@ -362,14 +367,13 @@ begin
   aSymbol := Default(TRemoveWithSymbolInfo);
   lFallbackSymbol := Default(TRemoveWithSymbolInfo);
   lHasFallbackSymbol := False;
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if GExpressionSymbolNameIndex.TryGetValue(aName, lSymbols) then
+  if FindRemoveWithFactSetMembers(aInventory, aOwnerType, aName, lSemanticMembers) then
   begin
-    for lSymbol in lSymbols do
+    for lSymbol in lSemanticMembers do
     begin
-      if SameText(lSymbol.fOwnerType, aOwnerType) and (lSymbol.fRoutineName = '') and
-        (lSymbol.fKind in [TRemoveWithSymbolKind.rwskField, TRemoveWithSymbolKind.rwskProperty,
-        TRemoveWithSymbolKind.rwskMethod, TRemoveWithSymbolKind.rwskConstant, TRemoveWithSymbolKind.rwskClassVar]) then
+      if lSymbol.fKind in [TRemoveWithSymbolKind.rwskField, TRemoveWithSymbolKind.rwskProperty,
+        TRemoveWithSymbolKind.rwskMethod, TRemoveWithSymbolKind.rwskConstant,
+        TRemoveWithSymbolKind.rwskClassVar] then
       begin
         if not PlaceholderRecordTypeName(lSymbol.fTypeName) then
         begin
@@ -384,13 +388,14 @@ begin
       end;
     end;
   end;
-  if FindRemoveWithFactSetMembers(aInventory, aOwnerType, aName, lSemanticMembers) then
+  EnsureExpressionSymbolNameIndex(aInventory);
+  if GExpressionSymbolNameIndex.TryGetValue(aName, lSymbols) then
   begin
-    for lSymbol in lSemanticMembers do
+    for lSymbol in lSymbols do
     begin
-      if lSymbol.fKind in [TRemoveWithSymbolKind.rwskField, TRemoveWithSymbolKind.rwskProperty,
-        TRemoveWithSymbolKind.rwskMethod, TRemoveWithSymbolKind.rwskConstant,
-        TRemoveWithSymbolKind.rwskClassVar] then
+      if SameText(lSymbol.fOwnerType, aOwnerType) and (lSymbol.fRoutineName = '') and
+        (lSymbol.fKind in [TRemoveWithSymbolKind.rwskField, TRemoveWithSymbolKind.rwskProperty,
+        TRemoveWithSymbolKind.rwskMethod, TRemoveWithSymbolKind.rwskConstant, TRemoveWithSymbolKind.rwskClassVar]) then
       begin
         if not PlaceholderRecordTypeName(lSymbol.fTypeName) then
         begin
@@ -631,8 +636,8 @@ var
   lSymbols: TArray<TRemoveWithSymbolInfo>;
   lTypeName: string;
 begin
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if GExpressionSymbolNameIndex.TryGetValue(DirectTypeName(aTypeName), lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, DirectTypeName(aTypeName),
+    lSymbols) then
   begin
     for lSymbol in lSymbols do
       if lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember then
@@ -642,7 +647,7 @@ begin
   lTypeName := CanonicalSourceTypeName(aInventory, aTypeName);
   if (lTypeName = '') or BuiltInTypeName(lTypeName) then
     Exit(True);
-  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
+  if FindRemoveWithFactSetDeclarationOrTypeAlias(aInventory, lTypeName, lSymbols) then
   begin
     for lSymbol in lSymbols do
     begin
@@ -746,15 +751,6 @@ begin
     Exit(Trim(Copy(lTypeName, 2, MaxInt)));
 
   lTypeName := DirectTypeName(lTypeName);
-  EnsureExpressionSymbolNameIndex(aInventory);
-  if GExpressionSymbolNameIndex.TryGetValue(lTypeName, lSymbols) then
-  begin
-    for lSymbol in lSymbols do
-    begin
-      if (lSymbol.fKind = TRemoveWithSymbolKind.rwskTypeMember) and StartsText('^', Trim(lSymbol.fTypeName)) then
-        Exit(Trim(Copy(Trim(lSymbol.fTypeName), 2, MaxInt)));
-    end;
-  end;
   Result := RemoveWithFactSetPointerTargetType(aInventory, lTypeName);
   if Result <> '' then
     Exit;

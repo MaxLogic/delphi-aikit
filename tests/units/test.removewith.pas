@@ -45,7 +45,7 @@ type
     [Test]
     procedure PlannerUsesClassificationIndex;
     [Test]
-    procedure FactSetLookupCacheStoresNegativeResults;
+    procedure FactSetLookupsUseDelphiSemanticIndex;
     [Test]
     procedure SemanticResolverIndexesStatementsByRange;
     [Test]
@@ -1100,33 +1100,30 @@ begin
     'Planner hot paths must not rescan every classification for each statement.');
 end;
 
-procedure TRemoveWithCommandTests.FactSetLookupCacheStoresNegativeResults;
+procedure TRemoveWithCommandTests.FactSetLookupsUseDelphiSemanticIndex;
 var
-  lInventory: TRemoveWithFactSet;
-  lSymbol: TRemoveWithSymbolInfo;
-  lSymbols: TArray<TRemoveWithSymbolInfo>;
+  lSourceFileName: string;
+  lSourceText: string;
 begin
-  lInventory := Default(TRemoveWithFactSet);
-  BeginRemoveWithFactSetLookupCache(lInventory);
-  try
-    Assert.IsFalse(FindRemoveWithFactSetMembers(lInventory, 'TMissingOwner', 'MissingMember',
-      lSymbols));
-    Assert.IsFalse(FindRemoveWithFactSetMembers(lInventory, 'TMissingOwner', 'MissingMember',
-      lSymbols));
-    Assert.IsFalse(FindRemoveWithFactSetRoutineSymbol(lInventory, 'MissingRoutine',
-      'MissingLocal', lSymbol));
-    Assert.IsFalse(FindRemoveWithFactSetRoutineSymbol(lInventory, 'MissingRoutine',
-      'MissingLocal', lSymbol));
-    Assert.AreEqual('', RemoveWithFactSetPointerTargetType(lInventory, 'PMissingRecord'));
-    Assert.AreEqual('', RemoveWithFactSetPointerTargetType(lInventory, 'PMissingRecord'));
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-    Assert.AreEqual(Int64(3), RemoveWithFactSetLookupCacheMissCount,
-      'Expected only first misses to scan the semantic fact set.');
-    Assert.AreEqual(Int64(3), RemoveWithFactSetLookupCacheHitCount,
-      'Expected repeated negative lookups to hit the command-local cache.');
-  finally
-    EndRemoveWithFactSetLookupCache;
-  end;
+  Assert.IsTrue(ContainsText(lSourceText, 'fDelphiSemanticLookupIndex.FindMembersByOwnerAndName'),
+    'Remove-with member lookup must query DelphiSemantics-owned lookup indexes.');
+  Assert.IsTrue(ContainsText(lSourceText, 'fDelphiSemanticLookupIndex.FindRoutineSymbol'),
+    'Remove-with scope lookup must query DelphiSemantics-owned lookup indexes.');
+  Assert.IsTrue(ContainsText(lSourceText, 'fDelphiSemanticLookupIndex.PointerTargetType'),
+    'Remove-with pointer lookup must query DelphiSemantics-owned lookup indexes.');
+  Assert.IsTrue(ContainsText(lSourceText, 'fDelphiSemanticLookupIndex.FindDeclarationOrTypeAliasByName'),
+    'Remove-with declaration/type lookup must query DelphiSemantics-owned lookup indexes.');
+  Assert.IsTrue(ContainsText(lSourceText, 'fDelphiSemanticLookupIndex.FindUnitOrGlobalByName'),
+    'Remove-with unit/global lookup must query DelphiSemantics-owned lookup indexes.');
+  Assert.IsTrue(ContainsText(lSourceText, 'fDelphiSemanticLookupIndex.FindUnitOrGlobalByPrefix'),
+    'Remove-with qualified unit-prefix lookup must query DelphiSemantics-owned lookup indexes.');
+  Assert.IsFalse(ContainsText(lSourceText, 'BuildRemoveWithFactSetLookupCache'),
+    'DAK must not build a command-owned semantic fact lookup cache.');
+  Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithLookupIndex.Build'),
+    'DAK must not rebuild DelphiSemantics lookup indexes from DAK-owned symbols.');
 end;
 
 procedure TRemoveWithCommandTests.SemanticResolverIndexesStatementsByRange;
@@ -8712,7 +8709,7 @@ begin
     AssertSkippedReasonBetween(lSkipped, 'controlled-with-statement', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'temp-declaration-requires-routine-var-section', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'type-source-not-indexed', 0, 460);
-    Assert.AreEqual(338, CountSkippedReason(lSkipped, 'symbol-not-found'),
+    Assert.AreEqual(335, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected maxTdb generic symbol-not-found skips to stay at the current baseline.');
     Assert.AreEqual((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
       lTelemetry.GetValue<Integer>('plannedEdits'), 'Expected planned telemetry to match summary.');
@@ -8722,7 +8719,7 @@ begin
       'Expected local model hit telemetry to stay populated.');
     Assert.AreEqual(0, lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks'),
       'Expected external routine facts to come from DelphiSemantics rather than DAK fallback allowlists.');
-    Assert.AreEqual(1659, lTelemetry.GetValue<Integer>('trueUnknowns'),
+    Assert.AreEqual(1658, lTelemetry.GetValue<Integer>('trueUnknowns'),
       'Expected true unknown telemetry to stay at the current maxTdb baseline.');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') > 0,
       'Expected planner elapsed telemetry.');
@@ -8882,6 +8879,12 @@ begin
   Assert.AreEqual('resolved', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
     'Expected maxTdb DF selector status. Type=' + lInfo.fTypeName + ' Reason=' + lInfo.fReason);
   Assert.AreEqual('DatFile', lInfo.fTypeName, 'Expected maxTdb DF selector receiver type.');
+  Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'SetRec', 'DF[c]^.IndFiles[AktIndex]^', lInfo),
+    'Expected maxTdb IndFiles selector resolver to run.');
+  Assert.AreEqual('resolved', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
+    'Expected maxTdb IndFiles selector status. Type=' + lInfo.fTypeName + ' Reason=' + lInfo.fReason +
+    ' Symbols=' + DescribeMaxTdbSelectorSymbols(['IndFiles', 'SetRec', 'DatFile']));
+  Assert.AreEqual('IndexFile', lInfo.fTypeName, 'Expected maxTdb IndFiles selector receiver type.');
   Assert.IsTrue(ResolveRemoveWithSelectorType(lInventory, 'BitArraySum', 'BitArrayListPtr^[c]', lInfo),
     'Expected maxTdb pointer-array selector resolver to run.');
   Assert.AreEqual('resolved', RemoveWithSelectorTypeStatusToText(lInfo.fStatus),
