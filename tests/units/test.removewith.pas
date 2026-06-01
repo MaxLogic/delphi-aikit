@@ -55,6 +55,10 @@ type
     [Test]
     procedure ResolverIndexesStatementContainment;
     [Test]
+    procedure ResolverIndexesSemanticBindingsByStatementRange;
+    [Test]
+    procedure ResolverCachesInactiveDirectiveRangesPerFile;
+    [Test]
     procedure RtlSourceModelsSkipWithBinderInventoryBuild;
     [Test]
     procedure SemanticCacheOptionReusesAndInvalidatesUnitModels;
@@ -1186,6 +1190,37 @@ begin
     'Resolver must index containing with statements by statement id.');
   Assert.IsTrue(ContainsText(lSourceText, 'GResolverNestedStatementsById'),
     'Resolver must index nested with statements by statement id.');
+end;
+
+procedure TRemoveWithCommandTests.ResolverIndexesSemanticBindingsByStatementRange;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'GResolverSemanticBindingsByStatementRange'),
+    'Fallback resolver must index DelphiSemantics bindings by file/start range.');
+  Assert.IsTrue(ContainsText(lSourceText,
+    'GResolverSemanticBindingsByStatementRange.TryGetValue'),
+    'Fallback resolver must use the binding range index instead of rescanning all semantic bindings.');
+end;
+
+procedure TRemoveWithCommandTests.ResolverCachesInactiveDirectiveRangesPerFile;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText,
+    'lInactiveRanges := RemoveWithInactiveDirectiveRanges(lSource, aInventory.fParserDefines)'),
+    'Resolver must compute inactive directive ranges once per loaded source file.');
+  Assert.IsFalse(ContainsText(lSourceText,
+    'RemoveWithInactiveDirectiveRanges(aSource, aInventory.fParserDefines)'),
+    'Resolver must not rescan inactive directive ranges for every with statement.');
 end;
 
 procedure TRemoveWithCommandTests.RtlSourceModelsSkipWithBinderInventoryBuild;
@@ -2467,12 +2502,14 @@ end;
 procedure TRemoveWithSemanticBinderTests.ResolverUsesSemanticBindingScopedDeclarationGate;
 var
   lBinding: TDelphiSemanticWithBinding;
+  lDirectResult: TRemoveWithResolverResult;
   lError: string;
   lEntry: TRemoveWithSemanticWithBinding;
   lFoundScopedBinding: Boolean;
   lDirectInventory: TRemoveWithFactSet;
   lInventory: TRemoveWithFactSet;
   lMismatchedInventory: TRemoveWithFactSet;
+  lMismatchedResult: TRemoveWithResolverResult;
   lOptions: TAppOptions;
   lResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
@@ -2546,6 +2583,7 @@ begin
     'Expected resolver to finish with mismatched semantic binding file: ' + lError);
   Assert.IsTrue(Length(lResult.fClassifications) > 0,
     'Semantic with-binding safety data must not block a statement from a different file.');
+  lMismatchedResult := lResult;
 
   lDirectInventory := lInventory;
   lDirectInventory.fDelphiSemanticWithBindingEntries := nil;
@@ -2553,6 +2591,9 @@ begin
     'Expected resolver to finish with direct DelphiSemantics binding metadata: ' + lError);
   Assert.IsTrue(Length(lResult.fClassifications) > 0,
     'Direct DelphiSemantics with-binding metadata must still classify safe scoped-declaration bodies.');
+  lDirectResult := lResult;
+  Assert.AreEqual(Length(lDirectResult.fClassifications), Length(lMismatchedResult.fClassifications),
+    'Mismatched semantic binding entries must behave like absent semantic entries.');
 
   Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResult, lError),
     'Expected resolver to finish with semantic scoped-declaration metadata: ' + lError);

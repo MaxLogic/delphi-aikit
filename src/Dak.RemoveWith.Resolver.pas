@@ -90,6 +90,8 @@ type
     fText: string;
   end;
 
+  TRemoveWithSemanticBindingEntries = TArray<TRemoveWithSemanticWithBinding>;
+
   TRemoveWithIdentifierResolver = record
   private
     class function DirectTypeName(const aTypeName: string): string; static;
@@ -230,6 +232,7 @@ type
     class procedure ResolveStatement(const aInventory: TRemoveWithFactSet;
       const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
       const aSource: TRemoveWithSourceBuffer; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
+      const aInactiveRanges: TArray<TRemoveWithInactiveRange>;
       var aResult: TRemoveWithResolverResult); static;
   public
     class function Resolve(const aInventory: TRemoveWithFactSet; const aScanResult: TRemoveWithScanResult;
@@ -250,6 +253,7 @@ var
   GResolverParentRoutineByName: TDictionary<string, string>;
   GResolverRoutinesByFile: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GResolverScopeSymbolCache: TDictionary<string, TRemoveWithSymbolLookup>;
+  GResolverSemanticBindingsByStatementRange: TDictionary<string, TRemoveWithSemanticBindingEntries>;
   GResolverSymbolNameIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GResolverSymbolsByOwnerType: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
   GResolverTypeNameCache: TDictionary<string, TRemoveWithSymbolLookup>;
@@ -260,6 +264,13 @@ const
   cSeparator = #31;
 begin
   Result := aFirst + cSeparator + aSecond;
+end;
+
+function SemanticBindingRangeKey(const aFilePath: string; const aLine,
+  aColumn: Integer): string;
+begin
+  Result := TPath.GetFullPath(aFilePath) + #31 + IntToStr(aLine) + #31 +
+    IntToStr(aColumn);
 end;
 
 function ResolverCacheKey(const aFirst, aSecond, aThird: string): string; overload;
@@ -350,28 +361,63 @@ begin
   Result.fKind := TRemoveWithSymbolKind.rwskUnitName;
 end;
 
-procedure BeginResolverCache;
+procedure AddResolverSemanticBindingBucket(
+  const aIndex: TDictionary<string, TRemoveWithSemanticBindingEntries>;
+  const aKey: string; const aEntry: TRemoveWithSemanticWithBinding);
+var
+  lEntries: TRemoveWithSemanticBindingEntries;
+  lIndex: Integer;
 begin
-  GResolverAncestorMemberCache := TDictionary<string, TRemoveWithTextLookup>.Create(
+  if not aIndex.TryGetValue(aKey, lEntries) then
+    lEntries := nil;
+  lIndex := Length(lEntries);
+  SetLength(lEntries, lIndex + 1);
+  lEntries[lIndex] := aEntry;
+  aIndex.AddOrSetValue(aKey, lEntries);
+end;
+
+procedure BeginResolverSemanticBindingCache(const aInventory: TRemoveWithFactSet);
+var
+  lEntry: TRemoveWithSemanticWithBinding;
+begin
+  GResolverSemanticBindingsByStatementRange := TDictionary<string, TRemoveWithSemanticBindingEntries>.Create(
     TFastCaseAwareComparer.OrdinalIgnoreCase);
-  GResolverBoolCache := TDictionary<string, Boolean>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-  GResolverContainingStatementsById := nil;
-  GResolverDefaultPropertyByOwner := nil;
-  GResolverExternalUnitCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  GResolverMemberCandidateCache := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  GResolverNestedStatementsById := nil;
-  GResolverParentRoutineByName := nil;
-  GResolverRoutinesByFile := nil;
-  GResolverScopeSymbolCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  GResolverSymbolNameIndex := nil;
-  GResolverSymbolsByOwnerType := nil;
-  GResolverTypeNameCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
-  GResolverUnitNameCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
-    TFastCaseAwareComparer.OrdinalIgnoreCase);
+  for lEntry in aInventory.fDelphiSemanticWithBindingEntries do
+    AddResolverSemanticBindingBucket(GResolverSemanticBindingsByStatementRange,
+      SemanticBindingRangeKey(lEntry.fFilePath, lEntry.fBinding.Line, lEntry.fBinding.Column),
+      lEntry);
+end;
+
+procedure EndResolverCache; forward;
+
+procedure BeginResolverCache(const aInventory: TRemoveWithFactSet);
+begin
+  try
+    GResolverAncestorMemberCache := TDictionary<string, TRemoveWithTextLookup>.Create(
+      TFastCaseAwareComparer.OrdinalIgnoreCase);
+    GResolverBoolCache := TDictionary<string, Boolean>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    GResolverContainingStatementsById := nil;
+    GResolverDefaultPropertyByOwner := nil;
+    GResolverExternalUnitCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
+      TFastCaseAwareComparer.OrdinalIgnoreCase);
+    GResolverMemberCandidateCache := TDictionary<string, TArray<TRemoveWithSymbolInfo>>.Create(
+      TFastCaseAwareComparer.OrdinalIgnoreCase);
+    GResolverNestedStatementsById := nil;
+    GResolverParentRoutineByName := nil;
+    GResolverRoutinesByFile := nil;
+    GResolverScopeSymbolCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
+      TFastCaseAwareComparer.OrdinalIgnoreCase);
+    BeginResolverSemanticBindingCache(aInventory);
+    GResolverSymbolNameIndex := nil;
+    GResolverSymbolsByOwnerType := nil;
+    GResolverTypeNameCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
+      TFastCaseAwareComparer.OrdinalIgnoreCase);
+    GResolverUnitNameCache := TDictionary<string, TRemoveWithSymbolLookup>.Create(
+      TFastCaseAwareComparer.OrdinalIgnoreCase);
+  except
+    EndResolverCache;
+    raise;
+  end;
 end;
 
 procedure EndResolverCache;
@@ -382,6 +428,8 @@ begin
   GResolverTypeNameCache := nil;
   GResolverScopeSymbolCache.Free;
   GResolverScopeSymbolCache := nil;
+  GResolverSemanticBindingsByStatementRange.Free;
+  GResolverSemanticBindingsByStatementRange := nil;
   GResolverSymbolNameIndex.Free;
   GResolverSymbolNameIndex := nil;
   GResolverSymbolsByOwnerType.Free;
@@ -2354,9 +2402,27 @@ class function TRemoveWithIdentifierResolver.TryFindSemanticBindingForStatement(
   const aInventory: TRemoveWithFactSet; const aStatement: TRemoveWithStatementInfo;
   out aBinding: TDelphiSemanticWithBinding): Boolean;
 var
+  lEntries: TRemoveWithSemanticBindingEntries;
   lEntry: TRemoveWithSemanticWithBinding;
 begin
   aBinding := Default(TDelphiSemanticWithBinding);
+  if Assigned(GResolverSemanticBindingsByStatementRange) and
+    GResolverSemanticBindingsByStatementRange.TryGetValue(
+    SemanticBindingRangeKey(aStatement.fFilePath, aStatement.fLine, aStatement.fColumn),
+    lEntries) then
+  begin
+    for lEntry in lEntries do
+    begin
+      if SemanticBindingMatchesStatement(lEntry, aStatement) then
+      begin
+        aBinding := lEntry.fBinding;
+        Exit(True);
+      end;
+    end;
+    Exit(False);
+  end;
+  if Assigned(GResolverSemanticBindingsByStatementRange) then
+    Exit(False);
   for lEntry in aInventory.fDelphiSemanticWithBindingEntries do
   begin
     if SemanticBindingMatchesStatement(lEntry, aStatement) then
@@ -3354,13 +3420,13 @@ end;
 class procedure TRemoveWithIdentifierResolver.ResolveStatement(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
   const aSource: TRemoveWithSourceBuffer; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
+  const aInactiveRanges: TArray<TRemoveWithInactiveRange>;
   var aResult: TRemoveWithResolverResult);
 var
   lBodyOffsets: TRemoveWithOffsetRange;
   lClassification: TRemoveWithIdentifierClassification;
   lBinding: TDelphiSemanticWithBinding;
   lInactiveRange: TRemoveWithInactiveRange;
-  lInactiveRanges: TArray<TRemoveWithInactiveRange>;
   lReceivers: TArray<TRemoveWithReceiverScope>;
   lRoutineName: string;
   lSelectorRoutineName: string;
@@ -3389,8 +3455,7 @@ begin
   BuildReceiverStack(aInventory, aScanResult, aStatement, lRoutineName, lSelectorRoutineName, lBinding, lReceivers);
   lSkipRanges := TList<TRemoveWithOffsetRange>.Create;
   try
-    lInactiveRanges := RemoveWithInactiveDirectiveRanges(aSource, aInventory.fParserDefines);
-    for lInactiveRange in lInactiveRanges do
+    for lInactiveRange in aInactiveRanges do
     begin
       lWithOffsets.fStartOffset := lInactiveRange.fStartOffset;
       lWithOffsets.fEndOffset := lInactiveRange.fEndOffset;
@@ -3441,19 +3506,29 @@ class function TRemoveWithIdentifierResolver.Resolve(const aInventory: TRemoveWi
   out aResult: TRemoveWithResolverResult; out aError: string): Boolean;
 var
   lCurrentPath: string;
+  lInactiveRanges: TArray<TRemoveWithInactiveRange>;
+  lResolverCacheStarted: Boolean;
+  lSelectorCacheStarted: Boolean;
   lSource: TRemoveWithSourceBuffer;
   lStatement: TRemoveWithStatementInfo;
+  lStatementContextCacheStarted: Boolean;
 begin
   aResult := Default(TRemoveWithResolverResult);
   aError := '';
   Result := False;
   lCurrentPath := '';
+  lResolverCacheStarted := False;
+  lSelectorCacheStarted := False;
   lSource := Default(TRemoveWithSourceBuffer);
-  BeginResolverCache;
-  BeginRemoveWithSelectorTypeCache(aInventory);
-  BeginResolverStatementContextCache(aScanResult);
+  lStatementContextCacheStarted := False;
   try
     try
+      BeginResolverCache(aInventory);
+      lResolverCacheStarted := True;
+      BeginRemoveWithSelectorTypeCache(aInventory);
+      lSelectorCacheStarted := True;
+      BeginResolverStatementContextCache(aScanResult);
+      lStatementContextCacheStarted := True;
       for lStatement in aScanResult.fWithStatements do
       begin
         if not SameText(lCurrentPath, lStatement.fFilePath) then
@@ -3461,8 +3536,10 @@ begin
           if not LoadRemoveWithSource(lStatement.fFilePath, lSource, aError) then
             Exit(False);
           lCurrentPath := lStatement.fFilePath;
+          lInactiveRanges := RemoveWithInactiveDirectiveRanges(lSource, aInventory.fParserDefines);
         end;
-        ResolveStatement(aInventory, aScanResult, lStatement, lSource, aSymbolMapBridge, aResult);
+        ResolveStatement(aInventory, aScanResult, lStatement, lSource, aSymbolMapBridge,
+          lInactiveRanges, aResult);
       end;
       Result := True;
     except
@@ -3470,9 +3547,12 @@ begin
         aError := E.Message;
     end;
   finally
-    EndResolverStatementContextCache;
-    EndRemoveWithSelectorTypeCache;
-    EndResolverCache;
+    if lStatementContextCacheStarted then
+      EndResolverStatementContextCache;
+    if lSelectorCacheStarted then
+      EndRemoveWithSelectorTypeCache;
+    if lResolverCacheStarted then
+      EndResolverCache;
   end;
 end;
 
