@@ -65,6 +65,14 @@ type
     [Test]
     procedure SemanticDtoParityHarnessReportsMissingFinalStatements;
     [Test]
+    procedure SemanticDtoMatchesFocusedRewriteCases;
+    [Test]
+    procedure SemanticDtoMatchesNestedRewriteOrdering;
+    [Test]
+    procedure SemanticDtoMatchesInterfaceReferenceTemps;
+    [Test]
+    procedure SemanticDtoMatchesLocalRoutineDeclarationInsertion;
+    [Test]
     procedure SemanticCacheOptionReusesAndInvalidatesUnitModels;
   end;
 
@@ -1335,6 +1343,42 @@ begin
   end;
 end;
 
+procedure AssertSemanticDtoMatchesFixture(const aFixtureName: string);
+var
+  lError: string;
+  lExpectedStatements: TArray<TDelphiSemanticRemoveWithPlanParityStatement>;
+  lInventory: TRemoveWithFactSet;
+  lOptions: TAppOptions;
+  lPlanResult: TRemoveWithPlanResult;
+  lReport: TDelphiSemanticRemoveWithPlanParityReport;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    TPath.Combine('tests\fixtures\' + aFixtureName, aFixtureName + '.dproj'));
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, lScanResult, lError),
+    'Expected fixture discovery to succeed: ' + aFixtureName + ' error=' + lError);
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lInventory, lError),
+    'Expected fixture inventory build to succeed: ' + aFixtureName + ' error=' + lError);
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResolverResult, lError),
+    'Expected fixture resolver to succeed: ' + aFixtureName + ' error=' + lError);
+  Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, lPlanResult, lError),
+    'Expected fixture planning to succeed: ' + aFixtureName + ' error=' + lError);
+
+  lExpectedStatements := SemanticParityStatements(lPlanResult);
+  lReport := TDelphiSemanticRemoveWithPlanParity.Compare(lInventory.fDelphiSemanticRemoveWithPlan,
+    lExpectedStatements);
+
+  Assert.AreEqual(0, lReport.MismatchCount, lReport.SummaryText);
+end;
+
 procedure TRemoveWithCommandTests.SemanticDtoParityHarnessReportsMissingFinalStatements;
 var
   lError: string;
@@ -1366,6 +1410,7 @@ begin
 
   lExpectedStatements := SemanticParityStatements(lPlanResult);
   Assert.IsTrue(Length(lExpectedStatements) > 0, 'Expected at least one DAK planned statement.');
+  lInventory.fDelphiSemanticRemoveWithPlan.FinalStatements := nil;
   lReport := TDelphiSemanticRemoveWithPlanParity.Compare(lInventory.fDelphiSemanticRemoveWithPlan,
     lExpectedStatements);
 
@@ -1386,6 +1431,26 @@ begin
     'Expected parity report to include edit range.');
   Assert.IsTrue(ContainsText(lReport.SummaryText, 'excerpt='),
     'Expected parity report to include replacement text excerpt.');
+end;
+
+procedure TRemoveWithCommandTests.SemanticDtoMatchesFocusedRewriteCases;
+begin
+  AssertSemanticDtoMatchesFixture('RemoveWithPlannerFixture');
+end;
+
+procedure TRemoveWithCommandTests.SemanticDtoMatchesNestedRewriteOrdering;
+begin
+  AssertSemanticDtoMatchesFixture('RemoveWithNestedRewriteFixture');
+end;
+
+procedure TRemoveWithCommandTests.SemanticDtoMatchesInterfaceReferenceTemps;
+begin
+  AssertSemanticDtoMatchesFixture('RemoveWithInterfaceResolverFixture');
+end;
+
+procedure TRemoveWithCommandTests.SemanticDtoMatchesLocalRoutineDeclarationInsertion;
+begin
+  AssertSemanticDtoMatchesFixture('RemoveWithTempAggregationFixture');
 end;
 
 procedure TRemoveWithCommandTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
