@@ -7,7 +7,7 @@ uses
   DUnitX.TestFramework,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Planner,
   Dak.RemoveWith.Resolver, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy,
-  Dak.RemoveWith.Transaction, Dak.Types, DelphiSemantics.Model, DelphiSemantics.WithBinding,
+  Dak.RemoveWith.Transaction, Dak.Types, DelphiSemantics.Api, DelphiSemantics.Model, DelphiSemantics.WithBinding,
   Test.Support;
 
 type
@@ -62,6 +62,8 @@ type
     procedure ResolverCachesInactiveDirectiveRangesPerFile;
     [Test]
     procedure RtlSourceModelsSkipWithBinderInventoryBuild;
+    [Test]
+    procedure SemanticDtoParityHarnessReportsMissingFinalStatements;
     [Test]
     procedure SemanticCacheOptionReusesAndInvalidatesUnitModels;
   end;
@@ -1280,6 +1282,110 @@ begin
   Assert.IsFalse(ContainsText(Copy(lSourceText, Pos(lMarker, lSourceText), 3000),
     'TDelphiSemanticWithBinder.BuildInventory(lSemanticModel)'),
     'RTL source models must not run the full with-binder inventory builder.');
+end;
+
+function SemanticParityRange(const aRange: TRemoveWithRange): TDelphiSemanticRemoveWithSourceRange;
+begin
+  Result.StartLine := aRange.fStartLine;
+  Result.StartColumn := aRange.fStartColumn;
+  Result.EndLine := aRange.fEndLine;
+  Result.EndColumn := aRange.fEndColumn;
+end;
+
+function SemanticParityEdit(const aEdit: TRemoveWithPlannedTextEdit):
+  TDelphiSemanticRemoveWithPlanParityEdit;
+begin
+  Result := Default(TDelphiSemanticRemoveWithPlanParityEdit);
+  Result.Kind := aEdit.fKind;
+  Result.FileName := aEdit.fFilePath;
+  Result.StatementId := aEdit.fStatementId;
+  Result.Range := SemanticParityRange(aEdit.fRange);
+  Result.ReplacementText := aEdit.fReplacementText;
+end;
+
+function SemanticParityStatement(const aStatement: TRemoveWithPlannedStatement):
+  TDelphiSemanticRemoveWithPlanParityStatement;
+var
+  i: Integer;
+begin
+  Result := Default(TDelphiSemanticRemoveWithPlanParityStatement);
+  Result.StatementId := aStatement.fStatementId;
+  Result.FileName := aStatement.fFilePath;
+  Result.Status := aStatement.fStatus;
+  Result.Reason := aStatement.fReason;
+  Result.UnsupportedIdentifierRole := aStatement.fUnsupportedIdentifierRole;
+  Result.ReplacementText := aStatement.fReplacementText;
+  SetLength(Result.Edits, Length(aStatement.fEdits));
+  for i := 0 to High(aStatement.fEdits) do
+    Result.Edits[i] := SemanticParityEdit(aStatement.fEdits[i]);
+end;
+
+function SemanticParityStatements(const aPlanResult: TRemoveWithPlanResult):
+  TArray<TDelphiSemanticRemoveWithPlanParityStatement>;
+var
+  lIndex: Integer;
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  SetLength(Result, 0);
+  for lStatement in aPlanResult.fStatements do
+  begin
+    lIndex := Length(Result);
+    SetLength(Result, lIndex + 1);
+    Result[lIndex] := SemanticParityStatement(lStatement);
+  end;
+end;
+
+procedure TRemoveWithCommandTests.SemanticDtoParityHarnessReportsMissingFinalStatements;
+var
+  lError: string;
+  lExpectedStatements: TArray<TDelphiSemanticRemoveWithPlanParityStatement>;
+  lInventory: TRemoveWithFactSet;
+  lOptions: TAppOptions;
+  lPlanResult: TRemoveWithPlanResult;
+  lReport: TDelphiSemanticRemoveWithPlanParityReport;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithPlannerFixture\RemoveWithPlannerFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, lScanResult, lError),
+    'Expected planner fixture discovery to succeed: ' + lError);
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lInventory, lError),
+    'Expected planner fixture inventory build to succeed: ' + lError);
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResolverResult, lError),
+    'Expected planner fixture resolver to succeed: ' + lError);
+  Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, lPlanResult, lError),
+    'Expected planner fixture planning to succeed: ' + lError);
+
+  lExpectedStatements := SemanticParityStatements(lPlanResult);
+  Assert.IsTrue(Length(lExpectedStatements) > 0, 'Expected at least one DAK planned statement.');
+  lReport := TDelphiSemanticRemoveWithPlanParity.Compare(lInventory.fDelphiSemanticRemoveWithPlan,
+    lExpectedStatements);
+
+  Assert.IsTrue(lReport.MismatchCount >= 2, lReport.SummaryText);
+  Assert.AreEqual('missing-final-statement', lReport.Mismatches[0].Kind);
+  Assert.AreEqual(lExpectedStatements[0].StatementId, lReport.Mismatches[0].StatementId);
+  Assert.IsTrue(ContainsText(lReport.SummaryText, lExpectedStatements[0].StatementId),
+    'Expected parity report to include statement id.');
+  Assert.IsTrue(ContainsText(lReport.SummaryText, ExtractFileName(lExpectedStatements[0].FileName)),
+    'Expected parity report to include file.');
+  Assert.IsTrue(ContainsText(lReport.SummaryText, 'status=planned'),
+    'Expected parity report to include status.');
+  Assert.IsTrue(ContainsText(lReport.SummaryText, 'reason='),
+    'Expected parity report to include reason.');
+  Assert.IsTrue(ContainsText(lReport.SummaryText, 'edit='),
+    'Expected parity report to include edit kind.');
+  Assert.IsTrue(ContainsText(lReport.SummaryText, 'range='),
+    'Expected parity report to include edit range.');
+  Assert.IsTrue(ContainsText(lReport.SummaryText, 'excerpt='),
+    'Expected parity report to include replacement text excerpt.');
 end;
 
 procedure TRemoveWithCommandTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
