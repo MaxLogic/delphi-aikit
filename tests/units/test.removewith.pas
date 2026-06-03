@@ -73,6 +73,8 @@ type
     [Test]
     procedure SemanticDtoMatchesLocalRoutineDeclarationInsertion;
     [Test]
+    procedure SemanticDtoMatchesTempPolicyFixture;
+    [Test]
     procedure SemanticCacheOptionReusesAndInvalidatesUnitModels;
   end;
 
@@ -85,6 +87,10 @@ type
     procedure PlanJsonReportUsesStableBaseSchema;
     [Test]
     procedure PlanJsonReportIncludesPlannerPhaseMetrics;
+    [Test]
+    procedure PlanJsonReportIncludesSemanticDtoParity;
+    [Test]
+    procedure UnitPlanJsonReportScopesSemanticDtoParity;
     [Test]
     procedure TextReportShowsSkippedFailuresAndVerification;
   end;
@@ -1350,10 +1356,12 @@ var
   lInventory: TRemoveWithFactSet;
   lOptions: TAppOptions;
   lPlanResult: TRemoveWithPlanResult;
+  lProjectModel: TRemoveWithProjectModel;
   lReport: TDelphiSemanticRemoveWithPlanParityReport;
   lResolverResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
 begin
+  lProjectModel := nil;
   lOptions := Default(TAppOptions);
   lOptions.fDprojPath := TPath.Combine(RepoRoot,
     TPath.Combine('tests\fixtures\' + aFixtureName, aFixtureName + '.dproj'));
@@ -1363,20 +1371,28 @@ begin
   lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
   lOptions.fRemoveWithAll := True;
 
-  Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, lScanResult, lError),
-    'Expected fixture discovery to succeed: ' + aFixtureName + ' error=' + lError);
-  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lInventory, lError),
-    'Expected fixture inventory build to succeed: ' + aFixtureName + ' error=' + lError);
-  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResolverResult, lError),
-    'Expected fixture resolver to succeed: ' + aFixtureName + ' error=' + lError);
-  Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, lPlanResult, lError),
-    'Expected fixture planning to succeed: ' + aFixtureName + ' error=' + lError);
+  try
+    Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lOptions.fDprojPath, lProjectModel,
+      lError), 'Expected fixture project model to build: ' + aFixtureName + ' error=' + lError);
+    Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lProjectModel, lScanResult, lError),
+      'Expected fixture discovery to succeed: ' + aFixtureName + ' error=' + lError);
+    Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lProjectModel, lInventory, lError),
+      'Expected fixture inventory build to succeed: ' + aFixtureName + ' error=' + lError);
+    Assert.IsTrue(ResolveRemoveWithIdentifiersFromSemanticFacts(lInventory, lScanResult,
+      lResolverResult, lError),
+      'Expected fixture resolver to succeed: ' + aFixtureName + ' error=' + lError);
+    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult,
+      lInventory.fDelphiSemanticRemoveWithPlan, lPlanResult, lError),
+      'Expected fixture planning to succeed: ' + aFixtureName + ' error=' + lError);
 
-  lExpectedStatements := SemanticParityStatements(lPlanResult);
-  lReport := TDelphiSemanticRemoveWithPlanParity.Compare(lInventory.fDelphiSemanticRemoveWithPlan,
-    lExpectedStatements);
+    lExpectedStatements := SemanticParityStatements(lPlanResult);
+    lReport := TDelphiSemanticRemoveWithPlanParity.Compare(lInventory.fDelphiSemanticRemoveWithPlan,
+      lExpectedStatements);
 
-  Assert.AreEqual(0, lReport.MismatchCount, lReport.SummaryText);
+    Assert.AreEqual(0, lReport.MismatchCount, lReport.SummaryText);
+  finally
+    lProjectModel.Free;
+  end;
 end;
 
 procedure TRemoveWithCommandTests.SemanticDtoParityHarnessReportsMissingFinalStatements;
@@ -1386,10 +1402,12 @@ var
   lInventory: TRemoveWithFactSet;
   lOptions: TAppOptions;
   lPlanResult: TRemoveWithPlanResult;
+  lProjectModel: TRemoveWithProjectModel;
   lReport: TDelphiSemanticRemoveWithPlanParityReport;
   lResolverResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
 begin
+  lProjectModel := nil;
   lOptions := Default(TAppOptions);
   lOptions.fDprojPath := TPath.Combine(RepoRoot,
     'tests\fixtures\RemoveWithPlannerFixture\RemoveWithPlannerFixture.dproj');
@@ -1399,38 +1417,46 @@ begin
   lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
   lOptions.fRemoveWithAll := True;
 
-  Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, lScanResult, lError),
-    'Expected planner fixture discovery to succeed: ' + lError);
-  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lInventory, lError),
-    'Expected planner fixture inventory build to succeed: ' + lError);
-  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResolverResult, lError),
-    'Expected planner fixture resolver to succeed: ' + lError);
-  Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, lPlanResult, lError),
-    'Expected planner fixture planning to succeed: ' + lError);
+  try
+    Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lOptions.fDprojPath, lProjectModel,
+      lError), 'Expected planner fixture project model build to succeed: ' + lError);
+    Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lProjectModel, lScanResult, lError),
+      'Expected planner fixture discovery to succeed: ' + lError);
+    Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lProjectModel, lInventory, lError),
+      'Expected planner fixture inventory build to succeed: ' + lError);
+    Assert.IsTrue(ResolveRemoveWithIdentifiersFromSemanticFacts(lInventory, lScanResult,
+      lResolverResult, lError),
+      'Expected planner fixture resolver to succeed: ' + lError);
+    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult,
+      lInventory.fDelphiSemanticRemoveWithPlan, lPlanResult, lError),
+      'Expected planner fixture planning to succeed: ' + lError);
 
-  lExpectedStatements := SemanticParityStatements(lPlanResult);
-  Assert.IsTrue(Length(lExpectedStatements) > 0, 'Expected at least one DAK planned statement.');
-  lInventory.fDelphiSemanticRemoveWithPlan.FinalStatements := nil;
-  lReport := TDelphiSemanticRemoveWithPlanParity.Compare(lInventory.fDelphiSemanticRemoveWithPlan,
-    lExpectedStatements);
+    lExpectedStatements := SemanticParityStatements(lPlanResult);
+    Assert.IsTrue(Length(lExpectedStatements) > 0, 'Expected at least one DAK planned statement.');
+    lInventory.fDelphiSemanticRemoveWithPlan.FinalStatements := nil;
+    lReport := TDelphiSemanticRemoveWithPlanParity.Compare(lInventory.fDelphiSemanticRemoveWithPlan,
+      lExpectedStatements);
 
-  Assert.IsTrue(lReport.MismatchCount >= 2, lReport.SummaryText);
-  Assert.AreEqual('missing-final-statement', lReport.Mismatches[0].Kind);
-  Assert.AreEqual(lExpectedStatements[0].StatementId, lReport.Mismatches[0].StatementId);
-  Assert.IsTrue(ContainsText(lReport.SummaryText, lExpectedStatements[0].StatementId),
-    'Expected parity report to include statement id.');
-  Assert.IsTrue(ContainsText(lReport.SummaryText, ExtractFileName(lExpectedStatements[0].FileName)),
-    'Expected parity report to include file.');
-  Assert.IsTrue(ContainsText(lReport.SummaryText, 'status=planned'),
-    'Expected parity report to include status.');
-  Assert.IsTrue(ContainsText(lReport.SummaryText, 'reason='),
-    'Expected parity report to include reason.');
-  Assert.IsTrue(ContainsText(lReport.SummaryText, 'edit='),
-    'Expected parity report to include edit kind.');
-  Assert.IsTrue(ContainsText(lReport.SummaryText, 'range='),
-    'Expected parity report to include edit range.');
-  Assert.IsTrue(ContainsText(lReport.SummaryText, 'excerpt='),
-    'Expected parity report to include replacement text excerpt.');
+    Assert.IsTrue(lReport.MismatchCount >= 2, lReport.SummaryText);
+    Assert.AreEqual('missing-final-statement', lReport.Mismatches[0].Kind);
+    Assert.AreEqual(lExpectedStatements[0].StatementId, lReport.Mismatches[0].StatementId);
+    Assert.IsTrue(ContainsText(lReport.SummaryText, lExpectedStatements[0].StatementId),
+      'Expected parity report to include statement id.');
+    Assert.IsTrue(ContainsText(lReport.SummaryText, ExtractFileName(lExpectedStatements[0].FileName)),
+      'Expected parity report to include file.');
+    Assert.IsTrue(ContainsText(lReport.SummaryText, 'status=planned'),
+      'Expected parity report to include status.');
+    Assert.IsTrue(ContainsText(lReport.SummaryText, 'reason='),
+      'Expected parity report to include reason.');
+    Assert.IsTrue(ContainsText(lReport.SummaryText, 'edit='),
+      'Expected parity report to include edit kind.');
+    Assert.IsTrue(ContainsText(lReport.SummaryText, 'range='),
+      'Expected parity report to include edit range.');
+    Assert.IsTrue(ContainsText(lReport.SummaryText, 'excerpt='),
+      'Expected parity report to include replacement text excerpt.');
+  finally
+    lProjectModel.Free;
+  end;
 end;
 
 procedure TRemoveWithCommandTests.SemanticDtoMatchesFocusedRewriteCases;
@@ -1451,6 +1477,11 @@ end;
 procedure TRemoveWithCommandTests.SemanticDtoMatchesLocalRoutineDeclarationInsertion;
 begin
   AssertSemanticDtoMatchesFixture('RemoveWithTempAggregationFixture');
+end;
+
+procedure TRemoveWithCommandTests.SemanticDtoMatchesTempPolicyFixture;
+begin
+  AssertSemanticDtoMatchesFixture('RemoveWithTempPolicyFixture');
 end;
 
 procedure TRemoveWithCommandTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
@@ -1674,6 +1705,76 @@ begin
     AssertJsonNumberKey(lMetrics, 'classificationCount');
     AssertJsonNumberKey(lMetrics, 'plannedEditCount');
     AssertJsonNumberKey(lMetrics, 'skippedStatementCount');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TRemoveWithReportTests.PlanJsonReportIncludesSemanticDtoParity;
+var
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lParity: TJSONObject;
+  lRoot: TJSONObject;
+begin
+  lOutput := RunRemoveWith('plan', 'json', 'remove-with-report-dto-parity.json', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan report to succeed.');
+
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with output to be a JSON object.');
+    lRoot := lJson as TJSONObject;
+
+    AssertJsonObjectKey(lRoot, 'semanticDtoParity', lParity);
+    AssertJsonStringKey(lParity, 'status');
+    Assert.AreEqual('passed', lParity.Values['status'].Value, 'Expected semantic DTO shadow parity to pass.');
+    AssertJsonNumberKey(lParity, 'mismatchCount');
+    Assert.AreEqual('0', lParity.Values['mismatchCount'].Value,
+      'Expected semantic DTO final statements to match current DAK plan output.');
+    AssertJsonStringKey(lParity, 'summaryText');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TRemoveWithReportTests.UnitPlanJsonReportScopesSemanticDtoParity;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lLogPath: string;
+  lOutput: string;
+  lParity: TJSONObject;
+  lRoot: TJSONObject;
+  lUnitPath: string;
+begin
+  EnsureResolverBuilt;
+  lDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithE2EFixture\RemoveWithE2EFixture.dproj');
+  lUnitPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithE2EFixture\E2ESafeUnit.pas');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-report-unit-dto-parity.json');
+
+  Assert.IsTrue(RunProcess(ResolverExePath, 'remove-with --project ' + QuoteArg(lDprojPath) +
+    ' --unit ' + QuoteArg(lUnitPath) + ' --mode plan --format json',
+    TPath.GetDirectoryName(ResolverExePath), lLogPath, lExitCode),
+    'Failed to start remove-with unit plan process.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with unit plan report to succeed.');
+
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with output to be a JSON object.');
+    lRoot := lJson as TJSONObject;
+
+    AssertJsonObjectKey(lRoot, 'semanticDtoParity', lParity);
+    AssertJsonStringKey(lParity, 'status');
+    Assert.AreEqual('passed', lParity.Values['status'].Value,
+      'Expected semantic DTO parity to ignore final statements outside the unit target.');
+    AssertJsonNumberKey(lParity, 'mismatchCount');
+    Assert.AreEqual('0', lParity.Values['mismatchCount'].Value,
+      'Expected unit-scoped semantic DTO parity to match current DAK plan output.');
   finally
     lJson.Free;
   end;
@@ -8880,8 +8981,10 @@ var
   lClonePaths: TArray<string>;
   lDprojPath: string;
   lExitCode: Cardinal;
+  lMismatches: TJSONArray;
   lOriginalBytes: TArray<TBytes>;
   lOriginalPaths: TArray<string>;
+  lParity: TJSONObject;
   lRoot: TJSONObject;
   lSourceDir: string;
   lSkipped: TJSONArray;
@@ -8920,6 +9023,14 @@ begin
     AssertJsonArrayKey(lRoot, 'skipped', lSkipped);
     Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt, lSkipped.Count,
       'Expected skipped array count to match summary.');
+    AssertJsonObjectKey(lRoot, 'semanticDtoParity', lParity);
+    AssertJsonArrayKey(lParity, 'mismatches', lMismatches);
+    Assert.AreEqual('passed', lParity.GetValue<string>('status', ''),
+      'Expected maxTdb semantic DTO parity to pass.');
+    Assert.AreEqual('0', lParity.Values['mismatchCount'].Value,
+      'Expected maxTdb semantic DTO parity to have no mismatches.');
+    Assert.AreEqual(0, lMismatches.Count,
+      'Expected maxTdb semantic DTO parity mismatch array to be empty.');
     AssertSkippedReasonBetween(lSkipped, 'scoped-declaration-in-with-body', 0, 0);
     AssertSkippedReasonBetween(lSkipped, 'unsupported-identifier-role', 0, 0);
     AssertSkippedReasonBetween(lSkipped, 'controlled-with-statement', 0, 3);

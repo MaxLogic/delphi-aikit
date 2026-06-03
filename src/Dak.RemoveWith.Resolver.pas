@@ -3563,11 +3563,40 @@ begin
   aClassifications.Add(lClassification);
 end;
 
-function SemanticStatementNeedsDakFallback(const aBinding: TDelphiSemanticWithBinding;
-  const aStatement: TRemoveWithStatementInfo): Boolean;
+function SemanticMemberHasDakScopeShadow(const aInventory: TRemoveWithFactSet;
+  const aBinding: TDelphiSemanticWithBinding; const aStatement: TRemoveWithStatementInfo): Boolean;
+var
+  lReference: TDelphiSemanticBoundReference;
+  lRoutineName: string;
+  lSymbol: TRemoveWithSymbolInfo;
+begin
+  Result := False;
+  if not TRemoveWithIdentifierResolver.FindRoutineForStatement(aInventory, aStatement,
+    lRoutineName) then
+    lRoutineName := '';
+
+  for lReference in aBinding.References do
+  begin
+    if (not SameText(lReference.Classification, 'member')) or (lReference.Name = '') then
+      Continue;
+    if TRemoveWithIdentifierResolver.FindScopeSymbolAtLocation(aInventory,
+      aStatement.fFilePath, lReference.Line, lRoutineName, lReference.Name, lSymbol) and
+      (lSymbol.fKind = TRemoveWithSymbolKind.rwskRoutine) then
+      Exit(True);
+  end;
+end;
+
+function SemanticStatementNeedsDakFallback(const aInventory: TRemoveWithFactSet;
+  const aBinding: TDelphiSemanticWithBinding; const aStatement: TRemoveWithStatementInfo): Boolean;
 var
   lReference: TDelphiSemanticBoundReference;
 begin
+  if aBinding.HasScopedDeclaration or aStatement.fHasScopedDeclarationInBody then
+    Exit(True);
+
+  if SemanticMemberHasDakScopeShadow(aInventory, aBinding, aStatement) then
+    Exit(True);
+
   if (aStatement.fSelectorCount > 1) or (Length(aBinding.Selectors) > 1) then
     Exit(True);
 
@@ -3706,8 +3735,8 @@ begin
         lBindingEntry.fBinding.Line, lBindingEntry.fBinding.Column), lStatement) then
       begin
         lStatementId := lStatement.fId;
-        lUseSemanticFacts := not SemanticStatementNeedsDakFallback(lBindingEntry.fBinding,
-          lStatement);
+        lUseSemanticFacts := not SemanticStatementNeedsDakFallback(aInventory,
+          lBindingEntry.fBinding, lStatement);
         if not lUseSemanticFacts then
         begin
           AddFallbackStatement(lFallbackScanResult, lStatement);

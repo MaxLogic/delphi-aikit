@@ -1,4 +1,4 @@
-unit Dak.RemoveWith.Planner;
+﻿unit Dak.RemoveWith.Planner;
 
 interface
 
@@ -30,6 +30,7 @@ type
     fStatements: TArray<TRemoveWithPlannedStatement>;
     fElapsedPlanningMs: Integer;
     fSemanticPlan: TDelphiSemanticRemoveWithPlan;
+    fSemanticParityReport: TDelphiSemanticRemoveWithPlanParityReport;
   end;
 
 function PlanRemoveWithRewrites(const aInventory: TRemoveWithFactSet;
@@ -1326,6 +1327,145 @@ begin
   end;
 end;
 
+function SemanticParityRange(const aRange: TRemoveWithRange): TDelphiSemanticRemoveWithSourceRange;
+begin
+  Result.StartLine := aRange.fStartLine;
+  Result.StartColumn := aRange.fStartColumn;
+  Result.EndLine := aRange.fEndLine;
+  Result.EndColumn := aRange.fEndColumn;
+end;
+
+function SemanticParityEdit(const aEdit: TRemoveWithPlannedTextEdit):
+  TDelphiSemanticRemoveWithPlanParityEdit;
+begin
+  Result := Default(TDelphiSemanticRemoveWithPlanParityEdit);
+  Result.Kind := aEdit.fKind;
+  Result.FileName := aEdit.fFilePath;
+  Result.StatementId := aEdit.fStatementId;
+  Result.Range := SemanticParityRange(aEdit.fRange);
+  Result.ReplacementText := aEdit.fReplacementText;
+end;
+
+function SemanticParityStatement(const aStatement: TRemoveWithPlannedStatement):
+  TDelphiSemanticRemoveWithPlanParityStatement;
+var
+  i: Integer;
+begin
+  Result := Default(TDelphiSemanticRemoveWithPlanParityStatement);
+  Result.StatementId := aStatement.fStatementId;
+  Result.FileName := aStatement.fFilePath;
+  Result.Status := aStatement.fStatus;
+  Result.Reason := aStatement.fReason;
+  Result.UnsupportedIdentifierRole := aStatement.fUnsupportedIdentifierRole;
+  Result.ReplacementText := aStatement.fReplacementText;
+  SetLength(Result.Edits, Length(aStatement.fEdits));
+  for i := 0 to High(aStatement.fEdits) do
+    Result.Edits[i] := SemanticParityEdit(aStatement.fEdits[i]);
+end;
+
+function SemanticParityStatements(const aPlanResult: TRemoveWithPlanResult):
+  TArray<TDelphiSemanticRemoveWithPlanParityStatement>;
+var
+  lIndex: Integer;
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  SetLength(Result, 0);
+  for lStatement in aPlanResult.fStatements do
+  begin
+    lIndex := Length(Result);
+    SetLength(Result, lIndex + 1);
+    Result[lIndex] := SemanticParityStatement(lStatement);
+  end;
+end;
+
+function SemanticFinalRangeMatchesStatement(const aRange: TDelphiSemanticRemoveWithSourceRange;
+  const aStatement: TRemoveWithStatementInfo): Boolean;
+begin
+  Result := (aRange.StartLine = aStatement.fRange.fStartLine) and
+    (aRange.StartColumn = aStatement.fRange.fStartColumn);
+end;
+
+function FindDakStatementIdForFinalStatement(const aScanResult: TRemoveWithScanResult;
+  const aStatement: TDelphiSemanticRemoveWithFinalStatement; out aStatementId: string): Boolean;
+var
+  lScanStatement: TRemoveWithStatementInfo;
+begin
+  Result := False;
+  aStatementId := '';
+  for lScanStatement in aScanResult.fWithStatements do
+  begin
+    if SameText(TPath.GetFullPath(aStatement.FileName), TPath.GetFullPath(lScanStatement.fFilePath)) and
+      SemanticFinalRangeMatchesStatement(aStatement.Range, lScanStatement) then
+    begin
+      aStatementId := lScanStatement.fId;
+      Exit(True);
+    end;
+  end;
+end;
+
+function ScanResultContainsFinalStatementFile(const aScanResult: TRemoveWithScanResult;
+  const aStatement: TDelphiSemanticRemoveWithFinalStatement): Boolean;
+var
+  lFile: TRemoveWithFileInfo;
+begin
+  Result := False;
+  for lFile in aScanResult.fFiles do
+  begin
+    if lFile.fScanned and
+      SameText(TPath.GetFullPath(aStatement.FileName), TPath.GetFullPath(lFile.fPath)) then
+      Exit(True);
+  end;
+end;
+
+procedure AssignFinalStatementId(var aStatement: TDelphiSemanticRemoveWithFinalStatement;
+  const aStatementId: string);
+var
+  i: Integer;
+begin
+  aStatement.StatementId := aStatementId;
+  aStatement.Edits := Copy(aStatement.Edits);
+  for i := 0 to High(aStatement.Edits) do
+    aStatement.Edits[i].StatementId := aStatementId;
+end;
+
+function SemanticPlanWithDakStatementIds(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  const aScanResult: TRemoveWithScanResult): TDelphiSemanticRemoveWithPlan;
+var
+  i: Integer;
+  lIndex: Integer;
+  lStatementId: string;
+begin
+  Result := Default(TDelphiSemanticRemoveWithPlan);
+  Result.Operation := aSemanticPlan.Operation;
+  SetLength(Result.FinalStatements, 0);
+  for i := 0 to High(aSemanticPlan.FinalStatements) do
+  begin
+    if not ScanResultContainsFinalStatementFile(aScanResult,
+      aSemanticPlan.FinalStatements[i]) then
+      Continue;
+    lIndex := Length(Result.FinalStatements);
+    SetLength(Result.FinalStatements, lIndex + 1);
+    Result.FinalStatements[lIndex] := aSemanticPlan.FinalStatements[i];
+    if FindDakStatementIdForFinalStatement(aScanResult, aSemanticPlan.FinalStatements[i],
+      lStatementId) then
+      AssignFinalStatementId(Result.FinalStatements[lIndex], lStatementId);
+  end;
+end;
+
+function BuildSemanticDtoParityReport(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  const aScanResult: TRemoveWithScanResult;
+  const aPlanResult: TRemoveWithPlanResult): TDelphiSemanticRemoveWithPlanParityReport;
+var
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+begin
+  Result := Default(TDelphiSemanticRemoveWithPlanParityReport);
+  if not SameText(aSemanticPlan.Operation, 'remove-with') then
+    Exit;
+  lSemanticPlan := SemanticPlanWithDakStatementIds(aSemanticPlan, aScanResult);
+  Result := TDelphiSemanticRemoveWithPlanParity.Compare(lSemanticPlan,
+    SemanticParityStatements(aPlanResult));
+end;
+
 class function TRemoveWithPlanner.OffsetInsideNestedReplacement(
   const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aOffset: Integer): Boolean;
 var
@@ -2030,10 +2170,12 @@ begin
       end;
       if not AddRoutineDeclarationEdits(lRoutineStates, aPlanResult, aError) then
         Exit(False);
+      aPlanResult.fSemanticParityReport := BuildSemanticDtoParityReport(aSemanticPlan, aScanResult,
+        aPlanResult);
       Result := True;
     except
       on E: Exception do
-        aError := E.Message;
+        aError := 'DAK remove-with planner failed: ' + E.ClassName + ': ' + E.Message;
     end;
   finally
     EndRemoveWithTempPolicyCache;
