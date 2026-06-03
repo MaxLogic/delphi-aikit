@@ -1,4 +1,4 @@
-unit Dak.RemoveWith.Output;
+﻿unit Dak.RemoveWith.Output;
 
 interface
 
@@ -51,7 +51,8 @@ function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPa
 implementation
 
 uses
-  System.Diagnostics, System.IOUtils, System.JSON, System.StrUtils, System.SysUtils;
+  System.Diagnostics, System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
+  DelphiSemantics.Api;
 
 const
   cRemoveWithSchemaVersion = 2;
@@ -663,6 +664,42 @@ begin
   Result.AddPair('skippedStatementCount', TJSONNumber.Create(aMetrics.fSkippedStatementCount));
 end;
 
+function BuildSemanticDtoParityMismatchObject(
+  const aMismatch: TDelphiSemanticRemoveWithPlanParityMismatch): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('kind', aMismatch.Kind);
+  Result.AddPair('statementId', aMismatch.StatementId);
+  Result.AddPair('file', aMismatch.FileName);
+  Result.AddPair('expectedStatus', aMismatch.ExpectedStatus);
+  Result.AddPair('actualStatus', aMismatch.ActualStatus);
+  Result.AddPair('reason', aMismatch.Reason);
+  Result.AddPair('editKind', aMismatch.EditKind);
+  Result.AddPair('editRange', aMismatch.EditRange);
+  Result.AddPair('replacementTextDigest', aMismatch.ReplacementTextDigest);
+  Result.AddPair('replacementTextExcerpt', aMismatch.ReplacementTextExcerpt);
+  Result.AddPair('message', aMismatch.Message);
+end;
+
+function BuildSemanticDtoParityObject(
+  const aReport: TDelphiSemanticRemoveWithPlanParityReport): TJSONObject;
+var
+  lMismatch: TDelphiSemanticRemoveWithPlanParityMismatch;
+  lMismatches: TJSONArray;
+begin
+  Result := TJSONObject.Create;
+  if aReport.MismatchCount = 0 then
+    Result.AddPair('status', 'passed')
+  else
+    Result.AddPair('status', 'failed');
+  Result.AddPair('mismatchCount', TJSONNumber.Create(aReport.MismatchCount));
+  Result.AddPair('summaryText', aReport.SummaryText);
+  lMismatches := TJSONArray.Create;
+  for lMismatch in aReport.Mismatches do
+    lMismatches.AddElement(BuildSemanticDtoParityMismatchObject(lMismatch));
+  Result.AddPair('mismatches', lMismatches);
+end;
+
 function BuildRootStatus(const aOptions: TAppOptions;
   const aTransactionResult: TRemoveWithTransactionResult): string;
 begin
@@ -708,6 +745,9 @@ begin
     lRoot.AddPair('transaction', BuildTransactionObject(aTransactionResult));
     lRoot.AddPair('migrationTelemetry', BuildMigrationTelemetryObject(aResolverResult, aPlanResult));
     lRoot.AddPair('summary', BuildSummaryObject(aOptions, aScanResult, aPlanResult, aTransactionResult));
+    if aOptions.fRemoveWithMode = TRemoveWithMode.rwmPlan then
+      lRoot.AddPair('semanticDtoParity', BuildSemanticDtoParityObject(
+        aPlanResult.fSemanticParityReport));
     lRoot.AddPair('plannerPhaseMetrics', BuildPlannerPhaseMetricsObject(lMetrics));
     Result := lRoot.ToJSON;
     lMetrics.fOutputSerializationMs := lStopwatch.ElapsedMilliseconds;

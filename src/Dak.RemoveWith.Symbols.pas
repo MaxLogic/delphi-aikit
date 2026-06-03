@@ -740,7 +740,15 @@ begin
   aInventory.fContextFingerprint := lFacts.ContextFingerprint;
   aInventory.fDelphiSemanticLookupIndex := lFacts.LookupIndex;
   lPlanStopwatch := TStopwatch.StartNew;
-  aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticApi.PlanRemoveWith(lFacts);
+  try
+    aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticApi.PlanRemoveWith(lFacts);
+  except
+    on E: Exception do
+    begin
+      aError := 'DelphiSemantics remove-with plan failed: ' + E.Message;
+      Exit(False);
+    end;
+  end;
   lPlanStopwatch.Stop;
   aPhaseMetrics.fSemanticPlanDtoMs := lPlanStopwatch.ElapsedMilliseconds;
   if not SameText(aInventory.fDelphiSemanticRemoveWithPlan.Status, 'planned') then

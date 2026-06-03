@@ -18,6 +18,7 @@ type
     function GetRecordProp: TTempPolicyRecord;
     class function MakeRecord: TTempPolicyRecord; static;
   public
+    constructor Create;
     property RecordProp: TTempPolicyRecord read GetRecordProp;
     class procedure Run;
   end;
@@ -28,6 +29,17 @@ implementation
 
 var
   GRecords: array[0..1] of TTempPolicyRecord;
+
+constructor TTempPolicyScope.Create;
+var
+  lRecord: TTempPolicyRecord;
+begin
+  inherited Create;
+  with lRecord do
+  begin
+    Name := 'constructor';
+  end;
+end;
 
 function TTempPolicyScope.GetRecordProp: TTempPolicyRecord;
 begin
@@ -102,5 +114,11 @@ begin
     Name := 'cast';
   end;
 end;
+
+initialization
+  with GRecords[0] do
+  begin
+    Name := 'unit';
+  end;
 
 end.
