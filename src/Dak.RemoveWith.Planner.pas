@@ -142,10 +142,6 @@ type
       const aSource: TRemoveWithSourceBuffer; const aStatement: TRemoveWithStatementInfo): Boolean; static;
     class function IsDirectNestedStatement(const aScanResult: TRemoveWithScanResult;
       const aOuter, aInner: TRemoveWithStatementInfo): Boolean; static;
-    class function SemanticPlanAllowsStatement(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
-      const aStatement: TRemoveWithStatementInfo): Boolean; static;
-    class function SemanticPlanMismatchReason(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
-      const aStatement: TRemoveWithStatementInfo): string; static;
     class function OffsetInsideNestedReplacement(const aNestedReplacements: TArray<TRemoveWithNestedReplacement>;
       const aOffset: Integer): Boolean; static;
     class procedure AddBodyEdit(var aEdits: TArray<TRemoveWithBodyEdit>; const aOffsets: TRemoveWithPlanOffsetRange;
@@ -190,7 +186,7 @@ type
       const aStatement: TRemoveWithStatementInfo;
       const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aResolverResult: TRemoveWithResolverResult;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText, aReason: string): Boolean; static;
-    class function BuildStatementReplacement(const aInventory: TRemoveWithFactSet;
+    class function BuildLegacyApplyReplacement(const aInventory: TRemoveWithFactSet;
       const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
       const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
       const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>;
@@ -1290,49 +1286,33 @@ begin
   Result := True;
 end;
 
-class function TRemoveWithPlanner.SemanticPlanAllowsStatement(
-  const aSemanticPlan: TDelphiSemanticRemoveWithPlan; const aStatement: TRemoveWithStatementInfo): Boolean;
-var
-  lEdit: TDelphiSemanticRemoveWithEdit;
-begin
-  if not SameText(aSemanticPlan.Operation, 'remove-with') then
-    Exit(True);
-
-  Result := False;
-  for lEdit in aSemanticPlan.Edits do
-  begin
-    if SameText(TPath.GetFullPath(lEdit.FileName), TPath.GetFullPath(aStatement.fFilePath)) and
-      SameText(lEdit.ApplyMode, 'requires-dak-compatibility-adapter') and
-      (lEdit.Range.StartLine = aStatement.fRange.fStartLine) and
-      (lEdit.Range.StartColumn = aStatement.fRange.fStartColumn) then
-      Exit(True);
-  end;
-end;
-
-class function TRemoveWithPlanner.SemanticPlanMismatchReason(
-  const aSemanticPlan: TDelphiSemanticRemoveWithPlan; const aStatement: TRemoveWithStatementInfo): string;
-var
-  lEdit: TDelphiSemanticRemoveWithEdit;
-begin
-  Result := 'semantic-plan-not-planned';
-  for lEdit in aSemanticPlan.Edits do
-  begin
-    if SameText(TPath.GetFullPath(lEdit.FileName), TPath.GetFullPath(aStatement.fFilePath)) and
-      (lEdit.Range.StartLine = aStatement.fRange.fStartLine) then
-      Exit(Format('semantic-plan-range-mismatch dak=%d:%d-%d:%d semantic=%d:%d-%d:%d',
-        [aStatement.fRange.fStartLine, aStatement.fRange.fStartColumn,
-        aStatement.fRange.fEndLine, aStatement.fRange.fEndColumn,
-        lEdit.Range.StartLine, lEdit.Range.StartColumn, lEdit.Range.EndLine,
-        lEdit.Range.EndColumn]));
-  end;
-end;
-
 function SemanticParityRange(const aRange: TRemoveWithRange): TDelphiSemanticRemoveWithSourceRange;
 begin
   Result.StartLine := aRange.fStartLine;
   Result.StartColumn := aRange.fStartColumn;
   Result.EndLine := aRange.fEndLine;
   Result.EndColumn := aRange.fEndColumn;
+end;
+
+function RemoveWithRangeFromSemanticRange(const aRange: TDelphiSemanticRemoveWithSourceRange):
+  TRemoveWithRange;
+begin
+  Result.fStartLine := aRange.StartLine;
+  Result.fStartColumn := aRange.StartColumn;
+  Result.fEndLine := aRange.EndLine;
+  Result.fEndColumn := aRange.EndColumn;
+end;
+
+function RemoveWithTempStrategyFromSemanticText(const aStrategy: string): TRemoveWithTempStrategy;
+begin
+  if SameText(aStrategy, 'direct-qualification') then
+    Result := TRemoveWithTempStrategy.rwtsDirectQualification
+  else if SameText(aStrategy, 'reference-temp') then
+    Result := TRemoveWithTempStrategy.rwtsReferenceTemp
+  else if SameText(aStrategy, 'record-pointer-temp') then
+    Result := TRemoveWithTempStrategy.rwtsRecordPointerTemp
+  else
+    Result := TRemoveWithTempStrategy.rwtsSkip;
 end;
 
 function SemanticParityEdit(const aEdit: TRemoveWithPlannedTextEdit):
@@ -1378,6 +1358,90 @@ begin
   end;
 end;
 
+function PlannedEditFromSemanticFinalEdit(const aEdit: TDelphiSemanticRemoveWithFinalTextEdit):
+  TRemoveWithPlannedTextEdit;
+begin
+  Result := Default(TRemoveWithPlannedTextEdit);
+  Result.fKind := aEdit.Kind;
+  Result.fFilePath := aEdit.FileName;
+  Result.fStatementId := aEdit.StatementId;
+  Result.fRange := RemoveWithRangeFromSemanticRange(aEdit.Range);
+  Result.fReplacementText := aEdit.ReplacementText;
+end;
+
+function TempDecisionFromSemanticFinalTemp(
+  const aTemp: TDelphiSemanticRemoveWithFinalTempDecision): TRemoveWithTempDecision;
+begin
+  Result := Default(TRemoveWithTempDecision);
+  Result.fSelectorText := aTemp.SelectorText;
+  Result.fReceiverType := aTemp.ReceiverType;
+  Result.fTempName := aTemp.TempName;
+  Result.fDeclarationText := aTemp.DeclarationText;
+  Result.fInitializationText := aTemp.InitializationText;
+  Result.fQualifierText := aTemp.QualifierText;
+  Result.fReason := aTemp.Reason;
+  Result.fStrategy := RemoveWithTempStrategyFromSemanticText(aTemp.Strategy);
+end;
+
+function TrySemanticPlanWithDakStatementIds(const aSemanticPlan:
+  TDelphiSemanticRemoveWithPlan; const aScanResult: TRemoveWithScanResult;
+  const aParserDefines: string; out aMappedPlan: TDelphiSemanticRemoveWithPlan;
+  out aError: string): Boolean; forward;
+
+function PlannedStatementFromSemanticFinalStatement(
+  const aStatement: TDelphiSemanticRemoveWithFinalStatement): TRemoveWithPlannedStatement;
+var
+  i: Integer;
+begin
+  Result := Default(TRemoveWithPlannedStatement);
+  Result.fStatementId := aStatement.StatementId;
+  Result.fFilePath := aStatement.FileName;
+  Result.fStatus := aStatement.Status;
+  Result.fReason := aStatement.Reason;
+  Result.fUnsupportedIdentifierRole := aStatement.UnsupportedIdentifierRole;
+  Result.fReplacementText := aStatement.ReplacementText;
+  SetLength(Result.fEdits, Length(aStatement.Edits));
+  for i := 0 to High(aStatement.Edits) do
+    Result.fEdits[i] := PlannedEditFromSemanticFinalEdit(aStatement.Edits[i]);
+  SetLength(Result.fTemps, Length(aStatement.Temps));
+  for i := 0 to High(aStatement.Temps) do
+    Result.fTemps[i] := TempDecisionFromSemanticFinalTemp(aStatement.Temps[i]);
+end;
+
+function SemanticFinalDtoPlanResult(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  const aScanResult: TRemoveWithScanResult; const aParserDefines: string;
+  out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
+var
+  i: Integer;
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+begin
+  aPlanResult := Default(TRemoveWithPlanResult);
+  aPlanResult.fSemanticPlan := aSemanticPlan;
+  aError := '';
+  if not SameText(aSemanticPlan.Operation, 'remove-with') then
+  begin
+    aError := 'DelphiSemantics remove-with final DTO is missing.';
+    Exit(False);
+  end;
+  if Length(aSemanticPlan.FinalStatements) = 0 then
+  begin
+    aError := 'DelphiSemantics remove-with final DTO has no final statements.';
+    Exit(False);
+  end;
+
+  if not TrySemanticPlanWithDakStatementIds(aSemanticPlan, aScanResult,
+    aParserDefines,
+    lSemanticPlan, aError) then
+    Exit(False);
+  SetLength(aPlanResult.fStatements, Length(lSemanticPlan.FinalStatements));
+  for i := 0 to High(lSemanticPlan.FinalStatements) do
+    aPlanResult.fStatements[i] :=
+      PlannedStatementFromSemanticFinalStatement(lSemanticPlan.FinalStatements[i]);
+  aPlanResult.fSemanticParityReport := TDelphiSemanticRemoveWithPlanParity.Compare(
+    lSemanticPlan, SemanticParityStatements(aPlanResult));
+  Result := True;
+end;
+
 function SemanticFinalRangeMatchesStatement(const aRange: TDelphiSemanticRemoveWithSourceRange;
   const aStatement: TRemoveWithStatementInfo): Boolean;
 begin
@@ -1403,6 +1467,13 @@ begin
   end;
 end;
 
+function SemanticFinalStatementMapKey(const aFileName: string; const aLine,
+  aColumn: Integer): string;
+begin
+  Result := TPath.GetFullPath(aFileName) + '|' + IntToStr(aLine) + '|' +
+    IntToStr(aColumn);
+end;
+
 function ScanResultContainsFinalStatementFile(const aScanResult: TRemoveWithScanResult;
   const aStatement: TDelphiSemanticRemoveWithFinalStatement): Boolean;
 var
@@ -1417,6 +1488,27 @@ begin
   end;
 end;
 
+function SemanticFinalStatementInDakInactiveRange(
+  const aStatement: TDelphiSemanticRemoveWithFinalStatement;
+  const aParserDefines: string): Boolean;
+var
+  lError: string;
+  lOffset: Integer;
+  lRanges: TArray<TRemoveWithInactiveRange>;
+  lSource: TRemoveWithSourceBuffer;
+begin
+  Result := False;
+  if not TFile.Exists(aStatement.FileName) then
+    Exit;
+  if not LoadRemoveWithSource(aStatement.FileName, lSource, lError) then
+    Exit;
+  if not RemoveWithOffsetForLineColumn(lSource, aStatement.Range.StartLine,
+    aStatement.Range.StartColumn, lOffset) then
+    Exit;
+  lRanges := RemoveWithInactiveDirectiveRanges(lSource, aParserDefines);
+  Result := RemoveWithOffsetInInactiveRanges(lOffset, lRanges);
+end;
+
 procedure AssignFinalStatementId(var aStatement: TDelphiSemanticRemoveWithFinalStatement;
   const aStatementId: string);
 var
@@ -1428,40 +1520,91 @@ begin
     aStatement.Edits[i].StatementId := aStatementId;
 end;
 
-function SemanticPlanWithDakStatementIds(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
-  const aScanResult: TRemoveWithScanResult): TDelphiSemanticRemoveWithPlan;
+function TrySemanticPlanWithDakStatementIds(const aSemanticPlan:
+  TDelphiSemanticRemoveWithPlan; const aScanResult: TRemoveWithScanResult;
+  const aParserDefines: string; out aMappedPlan: TDelphiSemanticRemoveWithPlan;
+  out aError: string): Boolean;
 var
   i: Integer;
   lIndex: Integer;
+  lScannedFiles: TDictionary<string, Byte>;
+  lStatementIds: TDictionary<string, string>;
   lStatementId: string;
 begin
-  Result := Default(TDelphiSemanticRemoveWithPlan);
-  Result.Operation := aSemanticPlan.Operation;
-  SetLength(Result.FinalStatements, 0);
-  for i := 0 to High(aSemanticPlan.FinalStatements) do
-  begin
-    if not ScanResultContainsFinalStatementFile(aScanResult,
-      aSemanticPlan.FinalStatements[i]) then
-      Continue;
-    lIndex := Length(Result.FinalStatements);
-    SetLength(Result.FinalStatements, lIndex + 1);
-    Result.FinalStatements[lIndex] := aSemanticPlan.FinalStatements[i];
-    if FindDakStatementIdForFinalStatement(aScanResult, aSemanticPlan.FinalStatements[i],
-      lStatementId) then
-      AssignFinalStatementId(Result.FinalStatements[lIndex], lStatementId);
+  Result := False;
+  aError := '';
+  aMappedPlan := Default(TDelphiSemanticRemoveWithPlan);
+  aMappedPlan.Operation := aSemanticPlan.Operation;
+  SetLength(aMappedPlan.FinalStatements, 0);
+  lScannedFiles := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    lStatementIds := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    try
+      for i := 0 to High(aScanResult.fFiles) do
+      begin
+        if not aScanResult.fFiles[i].fScanned then
+          Continue;
+        lScannedFiles.AddOrSetValue(TPath.GetFullPath(aScanResult.fFiles[i].fPath), 0);
+      end;
+      for i := 0 to High(aScanResult.fWithStatements) do
+        lStatementIds.AddOrSetValue(SemanticFinalStatementMapKey(
+          aScanResult.fWithStatements[i].fFilePath,
+          aScanResult.fWithStatements[i].fRange.fStartLine,
+          aScanResult.fWithStatements[i].fRange.fStartColumn),
+          aScanResult.fWithStatements[i].fId);
+
+      for i := 0 to High(aSemanticPlan.FinalStatements) do
+      begin
+        if not lScannedFiles.ContainsKey(TPath.GetFullPath(
+          aSemanticPlan.FinalStatements[i].FileName)) then
+          Continue;
+        if not lStatementIds.TryGetValue(SemanticFinalStatementMapKey(
+          aSemanticPlan.FinalStatements[i].FileName,
+          aSemanticPlan.FinalStatements[i].Range.StartLine,
+          aSemanticPlan.FinalStatements[i].Range.StartColumn), lStatementId) then
+        begin
+          if SemanticFinalStatementInDakInactiveRange(aSemanticPlan.FinalStatements[i],
+            aParserDefines) then
+            Continue;
+          aError := Format('DelphiSemantics final statement cannot map to DAK statement id: %s:%d:%d',
+            [aSemanticPlan.FinalStatements[i].FileName,
+            aSemanticPlan.FinalStatements[i].Range.StartLine,
+            aSemanticPlan.FinalStatements[i].Range.StartColumn]);
+          Exit(False);
+        end;
+        lIndex := Length(aMappedPlan.FinalStatements);
+        SetLength(aMappedPlan.FinalStatements, lIndex + 1);
+        aMappedPlan.FinalStatements[lIndex] := aSemanticPlan.FinalStatements[i];
+        AssignFinalStatementId(aMappedPlan.FinalStatements[lIndex], lStatementId);
+      end;
+      Result := True;
+    finally
+      lStatementIds.Free;
+    end;
+  finally
+    lScannedFiles.Free;
   end;
 end;
 
 function BuildSemanticDtoParityReport(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
   const aScanResult: TRemoveWithScanResult;
-  const aPlanResult: TRemoveWithPlanResult): TDelphiSemanticRemoveWithPlanParityReport;
+  const aPlanResult: TRemoveWithPlanResult; const aParserDefines: string):
+  TDelphiSemanticRemoveWithPlanParityReport;
 var
+  lError: string;
   lSemanticPlan: TDelphiSemanticRemoveWithPlan;
 begin
   Result := Default(TDelphiSemanticRemoveWithPlanParityReport);
   if not SameText(aSemanticPlan.Operation, 'remove-with') then
     Exit;
-  lSemanticPlan := SemanticPlanWithDakStatementIds(aSemanticPlan, aScanResult);
+  if not TrySemanticPlanWithDakStatementIds(aSemanticPlan, aScanResult,
+    aParserDefines,
+    lSemanticPlan, lError) then
+  begin
+    Result.MismatchCount := 1;
+    Result.SummaryText := lError;
+    Exit;
+  end;
   Result := TDelphiSemanticRemoveWithPlanParity.Compare(lSemanticPlan,
     SemanticParityStatements(aPlanResult));
 end;
@@ -1882,7 +2025,7 @@ begin
   Result := True;
 end;
 
-class function TRemoveWithPlanner.BuildStatementReplacement(const aInventory: TRemoveWithFactSet;
+class function TRemoveWithPlanner.BuildLegacyApplyReplacement(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
   const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>;
@@ -1968,7 +2111,7 @@ begin
   AddSelectorTemps(aSelectorTemps, lCurrentTemps);
   for lStatement in lNestedStatements do
   begin
-    if not BuildStatementReplacement(aInventory, aScanResult, aResolverResult, lStatement, aSource, aRoutineName,
+    if not BuildLegacyApplyReplacement(aInventory, aScanResult, aResolverResult, lStatement, aSource, aRoutineName,
       lVisibleTemps, aReservedNames, lChildReplacementText, lChildTemps, aReason) then
       Exit;
 
@@ -2066,13 +2209,6 @@ var
   lSelectorTemp: TRemoveWithSelectorTemp;
   lSelectorTemps: TArray<TRemoveWithSelectorTemp>;
 begin
-  if not SemanticPlanAllowsStatement(aSemanticPlan, aStatement) then
-  begin
-    SkipStatement(aPlanResult, aStatement, 'semantic-plan-not-planned',
-      SemanticPlanMismatchReason(aSemanticPlan, aStatement));
-    Exit;
-  end;
-
   if not FindRoutineForStatement(aInventory, aStatement, lRoutineName, lRoutineLine) then
   begin
     lRoutineName := '';
@@ -2080,7 +2216,7 @@ begin
   end;
   lRoutineIndex := EnsureRoutineState(aRoutineStates, aStatement.fFilePath, lRoutineName, lRoutineLine);
   lReservedNames := CopyReservedNames(aRoutineStates[lRoutineIndex].fReservedNames);
-  if not BuildStatementReplacement(aInventory, aScanResult, aResolverResult, aStatement, aSource, lRoutineName, nil,
+  if not BuildLegacyApplyReplacement(aInventory, aScanResult, aResolverResult, aStatement, aSource, lRoutineName, nil,
     lReservedNames, lReplacementText, lSelectorTemps, lReason) then
   begin
     SkipStatement(aPlanResult, aStatement, lReason, UnsupportedRoleForStatement(aResolverResult, aStatement));
@@ -2140,6 +2276,11 @@ begin
   aPlanResult := Default(TRemoveWithPlanResult);
   aPlanResult.fSemanticPlan := aSemanticPlan;
   aError := '';
+  if SameText(aSemanticPlan.Operation, 'remove-with') and
+    (Length(aSemanticPlan.FinalStatements) > 0) then
+    Exit(SemanticFinalDtoPlanResult(aSemanticPlan, aScanResult,
+      aInventory.fParserDefines, aPlanResult, aError));
+
   Result := False;
   lCurrentPath := '';
   lSource := Default(TRemoveWithSourceBuffer);
@@ -2171,7 +2312,7 @@ begin
       if not AddRoutineDeclarationEdits(lRoutineStates, aPlanResult, aError) then
         Exit(False);
       aPlanResult.fSemanticParityReport := BuildSemanticDtoParityReport(aSemanticPlan, aScanResult,
-        aPlanResult);
+        aPlanResult, aInventory.fParserDefines);
       Result := True;
     except
       on E: Exception do
