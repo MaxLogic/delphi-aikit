@@ -209,7 +209,8 @@ type
       aSelectorText: string): Boolean; static;
     class procedure NormalizeSelectorInfo(const aInventory: TRemoveWithFactSet; const aRoutineName,
       aSelectorText: string; var aInfo: TRemoveWithSelectorTypeInfo); static;
-    class procedure AddClassification(var aResult: TRemoveWithResolverResult;
+    class procedure AddClassification(
+      const aClassifications: TList<TRemoveWithIdentifierClassification>;
       const aClassification: TRemoveWithIdentifierClassification); static;
     class function ShouldEnrichWithSymbolMap(const aClassification: TRemoveWithIdentifierClassification): Boolean;
       static;
@@ -233,7 +234,7 @@ type
       const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
       const aSource: TRemoveWithSourceBuffer; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
       const aInactiveRanges: TArray<TRemoveWithInactiveRange>;
-      var aResult: TRemoveWithResolverResult); static;
+      const aClassifications: TList<TRemoveWithIdentifierClassification>); static;
   public
     class function Resolve(const aInventory: TRemoveWithFactSet; const aScanResult: TRemoveWithScanResult;
       out aResult: TRemoveWithResolverResult; out aError: string): Boolean; overload; static;
@@ -2645,14 +2646,11 @@ begin
   end;
 end;
 
-class procedure TRemoveWithIdentifierResolver.AddClassification(var aResult: TRemoveWithResolverResult;
+class procedure TRemoveWithIdentifierResolver.AddClassification(
+  const aClassifications: TList<TRemoveWithIdentifierClassification>;
   const aClassification: TRemoveWithIdentifierClassification);
-var
-  lIndex: Integer;
 begin
-  lIndex := Length(aResult.fClassifications);
-  SetLength(aResult.fClassifications, lIndex + 1);
-  aResult.fClassifications[lIndex] := aClassification;
+  aClassifications.Add(aClassification);
 end;
 
 class function TRemoveWithIdentifierResolver.ShouldEnrichWithSymbolMap(
@@ -3315,7 +3313,7 @@ class procedure TRemoveWithIdentifierResolver.ResolveStatement(const aInventory:
   const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
   const aSource: TRemoveWithSourceBuffer; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
   const aInactiveRanges: TArray<TRemoveWithInactiveRange>;
-  var aResult: TRemoveWithResolverResult);
+  const aClassifications: TList<TRemoveWithIdentifierClassification>);
 var
   lBodyOffsets: TRemoveWithOffsetRange;
   lClassification: TRemoveWithIdentifierClassification;
@@ -3382,7 +3380,7 @@ begin
     EnrichWithSemanticFacts(aInventory, lClassification);
     lClassification.fStatementId := aStatement.fId;
     lClassification.fFilePath := aStatement.fFilePath;
-    AddClassification(aResult, lClassification);
+    AddClassification(aClassifications, lClassification);
   end;
 end;
 
@@ -3400,6 +3398,7 @@ class function TRemoveWithIdentifierResolver.Resolve(const aInventory: TRemoveWi
   out aResult: TRemoveWithResolverResult; out aError: string): Boolean;
 var
   lCurrentPath: string;
+  lClassifications: TList<TRemoveWithIdentifierClassification>;
   lInactiveRanges: TArray<TRemoveWithInactiveRange>;
   lResolverCacheStarted: Boolean;
   lSelectorCacheStarted: Boolean;
@@ -3415,6 +3414,7 @@ begin
   lSelectorCacheStarted := False;
   lSource := Default(TRemoveWithSourceBuffer);
   lStatementContextCacheStarted := False;
+  lClassifications := TList<TRemoveWithIdentifierClassification>.Create;
   try
     try
       BeginResolverCache(aInventory);
@@ -3433,8 +3433,9 @@ begin
           lInactiveRanges := RemoveWithInactiveDirectiveRanges(lSource, aInventory.fParserDefines);
         end;
         ResolveStatement(aInventory, aScanResult, lStatement, lSource, aSymbolMapBridge,
-          lInactiveRanges, aResult);
+          lInactiveRanges, lClassifications);
       end;
+      aResult.fClassifications := lClassifications.ToArray;
       Result := True;
     except
       on E: Exception do
@@ -3447,6 +3448,7 @@ begin
       EndRemoveWithSelectorTypeCache;
     if lResolverCacheStarted then
       EndResolverCache;
+    lClassifications.Free;
   end;
 end;
 

@@ -97,6 +97,9 @@ function BuildRemoveWithFactSet(const aOptions: TAppOptions; const aProjectModel
 function BuildRemoveWithFactSet(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
   out aInventory: TRemoveWithFactSet; out aError: string;
   out aPhaseMetrics: TRemoveWithFactSetPhaseMetrics): Boolean; overload;
+function BuildRemoveWithFactSet(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
+  const aBodyAnalysisSourceFileNames: TArray<string>; out aInventory: TRemoveWithFactSet;
+  out aError: string; out aPhaseMetrics: TRemoveWithFactSetPhaseMetrics): Boolean; overload;
 
 implementation
 
@@ -652,7 +655,8 @@ begin
 end;
 
 function BuildProjectSemanticOptions(const aOptions: TAppOptions;
-  const aProjectModel: TRemoveWithProjectModel): TDelphiSemanticApiOptions;
+  const aProjectModel: TRemoveWithProjectModel;
+  const aBodyAnalysisSourceFileNames: TArray<string>): TDelphiSemanticApiOptions;
 var
   lCacheDir: string;
   lProjectDir: string;
@@ -683,6 +687,7 @@ begin
   finally
     lSourceFileNames.Free;
   end;
+  Result.BodyAnalysisSourceFileNames := Copy(aBodyAnalysisSourceFileNames);
   Result.Cache.DelphiVersion := aOptions.fDelphiVersion;
   Result.Cache.Configuration := aOptions.fConfig;
   Result.Cache.Platform := aOptions.fPlatform;
@@ -699,6 +704,7 @@ end;
 
 function BuildProjectSemanticFacts(const aOptions: TAppOptions;
   const aProjectModel: TRemoveWithProjectModel;
+  const aBodyAnalysisSourceFileNames: TArray<string>;
   var aInventory: TRemoveWithFactSet;
   var aPhaseMetrics: TRemoveWithFactSetPhaseMetrics;
   out aError: string): Boolean;
@@ -711,7 +717,8 @@ var
 begin
   Result := False;
   aError := '';
-  lOptions := BuildProjectSemanticOptions(aOptions, aProjectModel);
+  lOptions := BuildProjectSemanticOptions(aOptions, aProjectModel,
+    aBodyAnalysisSourceFileNames);
   lStopwatch := TStopwatch.StartNew;
   try
     lFacts := TDelphiSemanticApi.BuildProjectWithBindingFacts(lOptions);
@@ -1957,6 +1964,14 @@ end;
 function BuildRemoveWithFactSet(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
   out aInventory: TRemoveWithFactSet; out aError: string;
   out aPhaseMetrics: TRemoveWithFactSetPhaseMetrics): Boolean;
+begin
+  Result := BuildRemoveWithFactSet(aOptions, aProjectModel, nil, aInventory,
+    aError, aPhaseMetrics);
+end;
+
+function BuildRemoveWithFactSet(const aOptions: TAppOptions; const aProjectModel: TRemoveWithProjectModel;
+  const aBodyAnalysisSourceFileNames: TArray<string>; out aInventory: TRemoveWithFactSet;
+  out aError: string; out aPhaseMetrics: TRemoveWithFactSetPhaseMetrics): Boolean;
 var
   lProblem: TProjectIndexer.TProblemInfo;
   lLogicalSymbolKeys: TDictionary<string, Byte>;
@@ -1983,7 +1998,8 @@ begin
     try
       GRemoveWithSymbolKeys := lSymbolKeys;
       GRemoveWithLogicalSymbolKeys := lLogicalSymbolKeys;
-      if not BuildProjectSemanticFacts(aOptions, aProjectModel, aInventory, aPhaseMetrics, aError) then
+      if not BuildProjectSemanticFacts(aOptions, aProjectModel,
+        aBodyAnalysisSourceFileNames, aInventory, aPhaseMetrics, aError) then
         Exit(False);
 
       lUnitIndex := 0;

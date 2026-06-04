@@ -6,8 +6,9 @@ uses
   System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
   DUnitX.TestFramework,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Planner,
-  Dak.RemoveWith.Resolver, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy,
-  Dak.RemoveWith.Transaction, Dak.Types, DelphiSemantics.Api, DelphiSemantics.Model, DelphiSemantics.WithBinding,
+  Dak.RemoveWith.Output, Dak.RemoveWith.Resolver, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols,
+  Dak.RemoveWith.TempPolicy, Dak.RemoveWith.Transaction, Dak.Types, DelphiSemantics.Api,
+  DelphiSemantics.Model, DelphiSemantics.WithBinding,
   Test.Support;
 
 type
@@ -85,6 +86,8 @@ type
     procedure ScanJsonReportUsesStableBaseSchema;
     [Test]
     procedure PlanJsonReportUsesStableBaseSchema;
+    [Test]
+    procedure PlanJsonReportKeepsLegacySkippedReasonAndAddsSemanticReason;
     [Test]
     procedure PlanJsonReportIncludesPlannerPhaseMetrics;
     [Test]
@@ -442,6 +445,14 @@ type
   public
     [Test]
     procedure PlansSafeRecordAndClassRewritesAndSkipsUnsafeSelectors;
+    [Test]
+    procedure SemanticFinalDtoPrimaryPlanDoesNotRequireDakResolverClassifications;
+    [Test]
+    procedure SemanticFinalDtoPrimaryPlanFailsWhenStatementIdCannotMap;
+    [Test]
+    procedure SemanticFinalDtoPrimaryPlanFailsWhenActiveConditionalStatementCannotMap;
+    [Test]
+    procedure PlanModeConsumesSemanticFinalDtoBeforeResolverReport;
     [Test]
     procedure PlanCliEmitsPlannedEditsWithoutChangingFixture;
   end;
@@ -1654,6 +1665,52 @@ begin
     AssertJsonObjectKey(lRoot, 'verification', lChildObject);
     AssertJsonObjectKey(lRoot, 'summary', lChildObject);
     AssertJsonNumberKey(lChildObject, 'plannedEdits');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TRemoveWithReportTests.PlanJsonReportKeepsLegacySkippedReasonAndAddsSemanticReason;
+var
+  lJson: TJSONValue;
+  lMetrics: TRemoveWithPlannerPhaseMetrics;
+  lOptions: TAppOptions;
+  lPlanResult: TRemoveWithPlanResult;
+  lRoot: TJSONObject;
+  lSkipped: TJSONArray;
+  lSkippedItem: TJSONObject;
+  lTransactionResult: TRemoveWithTransactionResult;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fRemoveWithMode := TRemoveWithMode.rwmPlan;
+  lOptions.fRemoveWithFormat := TRemoveWithFormat.rwfJson;
+  lMetrics := Default(TRemoveWithPlannerPhaseMetrics);
+  lTransactionResult := Default(TRemoveWithTransactionResult);
+  lPlanResult := Default(TRemoveWithPlanResult);
+  SetLength(lPlanResult.fStatements, 1);
+  lPlanResult.fStatements[0].fStatementId := 'with-60';
+  lPlanResult.fStatements[0].fFilePath := 'deklarat.pas';
+  lPlanResult.fStatements[0].fStatus := 'skipped';
+  lPlanResult.fStatements[0].fReason := 'member-not-found';
+
+  lJson := TJSONObject.ParseJSONValue(BuildRemoveWithJsonReport(lOptions,
+    'maxtdb.dproj', '', 'run-id', '', '', Default(TRemoveWithScanResult),
+    Default(TRemoveWithResolverResult), lPlanResult, lTransactionResult,
+    lMetrics));
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with JSON report.');
+    lRoot := lJson as TJSONObject;
+    AssertJsonArrayKey(lRoot, 'skipped', lSkipped);
+    Assert.AreEqual(1, lSkipped.Count, 'Expected one skipped statement.');
+    Assert.IsTrue(lSkipped.Items[0] is TJSONObject,
+      'Expected skipped statement object.');
+    lSkippedItem := lSkipped.Items[0] as TJSONObject;
+    Assert.AreEqual('symbol-not-found',
+      lSkippedItem.GetValue<string>('reason', ''),
+      'Expected legacy skipped reason to stay backward compatible.');
+    Assert.AreEqual('member-not-found',
+      lSkippedItem.GetValue<string>('semanticReason', ''),
+      'Expected semantic DTO reason to be preserved additively.');
   finally
     lJson.Free;
   end;
@@ -4706,6 +4763,144 @@ begin
   Assert.AreEqual(1, Length(lStatement.fEdits), 'Expected only replacement edit for direct pointer qualification.');
   Assert.AreEqual('replace-statement', lStatement.fEdits[0].fKind,
     'Expected no declaration edit for direct pointer qualification.');
+end;
+
+procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanDoesNotRequireDakResolverClassifications;
+var
+  lEmptyResolverResult: TRemoveWithResolverResult;
+  lError: string;
+  lInventory: TRemoveWithFactSet;
+  lLegacyPlanResult: TRemoveWithPlanResult;
+  lPlanResult: TRemoveWithPlanResult;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  BuildPlannerFixture(lInventory, lScanResult, lResolverResult, lLegacyPlanResult);
+  lEmptyResolverResult := Default(TRemoveWithResolverResult);
+
+  Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lEmptyResolverResult,
+    lInventory.fDelphiSemanticRemoveWithPlan, lPlanResult, lError),
+    'Expected DTO-primary planner to consume final semantic statements without DAK resolver classifications: ' +
+    lError);
+
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'with-1', lStatement),
+    'Expected DTO-primary result for record statement.');
+  Assert.AreEqual('planned', lStatement.fStatus, 'Expected semantic final DTO status.');
+  Assert.IsTrue(Pos('lWithPlannerRecordPtr^.Name', lStatement.fReplacementText) > 0,
+    'Expected semantic final DTO replacement text.');
+  Assert.AreEqual(2, Length(lStatement.fEdits), 'Expected semantic final DTO edit list.');
+  Assert.AreEqual('declare-temp', lStatement.fEdits[0].fKind,
+    'Expected semantic final DTO declaration edit.');
+  Assert.AreEqual('replace-statement', lStatement.fEdits[1].fKind,
+    'Expected semantic final DTO replacement edit.');
+  Assert.AreEqual(1, Length(lStatement.fTemps), 'Expected semantic final DTO temp metadata.');
+  Assert.AreEqual('record-pointer-temp', RemoveWithTempStrategyToText(lStatement.fTemps[0].fStrategy),
+    'Expected semantic final DTO temp strategy.');
+end;
+
+procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanFailsWhenStatementIdCannotMap;
+var
+  lEmptyResolverResult: TRemoveWithResolverResult;
+  lError: string;
+  lInventory: TRemoveWithFactSet;
+  lLegacyPlanResult: TRemoveWithPlanResult;
+  lPlanResult: TRemoveWithPlanResult;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+begin
+  BuildPlannerFixture(lInventory, lScanResult, lResolverResult, lLegacyPlanResult);
+  lEmptyResolverResult := Default(TRemoveWithResolverResult);
+  lSemanticPlan := lInventory.fDelphiSemanticRemoveWithPlan;
+  Assert.IsTrue(Length(lSemanticPlan.FinalStatements) > 0,
+    'Expected fixture semantic final DTO statements.');
+  lSemanticPlan.FinalStatements[0].Range.StartColumn := 999;
+
+  Assert.IsFalse(PlanRemoveWithRewrites(lInventory, lScanResult,
+    lEmptyResolverResult, lSemanticPlan, lPlanResult, lError),
+    'Expected DTO-primary planner to fail when a scanned semantic final statement cannot map to a DAK statement id.');
+  Assert.IsTrue(ContainsText(lError, 'statement id'),
+    'Expected statement-id mapping error, got: ' + lError);
+end;
+
+procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanFailsWhenActiveConditionalStatementCannotMap;
+var
+  lEmptyResolverResult: TRemoveWithResolverResult;
+  lError: string;
+  lFileIndex: Integer;
+  lInventory: TRemoveWithFactSet;
+  lLegacyPlanResult: TRemoveWithPlanResult;
+  lPlanResult: TRemoveWithPlanResult;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  lSourcePath: string;
+begin
+  BuildPlannerFixture(lInventory, lScanResult, lResolverResult, lLegacyPlanResult);
+  lEmptyResolverResult := Default(TRemoveWithResolverResult);
+  lInventory.fParserDefines := 'ACTIVE_REMOVE_WITH';
+  lSourcePath := TPath.Combine(TempRoot, 'remove-with-active-conditional-map.pas');
+  TFile.WriteAllText(lSourcePath,
+    'unit ActiveConditionalMap;' + sLineBreak +
+    'interface' + sLineBreak +
+    'implementation' + sLineBreak +
+    'procedure Run;' + sLineBreak +
+    'begin' + sLineBreak +
+    '  {$IFDEF ACTIVE_REMOVE_WITH}' + sLineBreak +
+    '  with lRecord do Name := ''x'';' + sLineBreak +
+    '  {$ENDIF}' + sLineBreak +
+    'end;' + sLineBreak +
+    'end.', TEncoding.UTF8);
+
+  lSemanticPlan := Default(TDelphiSemanticRemoveWithPlan);
+  lSemanticPlan.Operation := 'remove-with';
+  SetLength(lSemanticPlan.FinalStatements, 1);
+  lSemanticPlan.FinalStatements[0].FileName := lSourcePath;
+  lSemanticPlan.FinalStatements[0].Status := 'planned';
+  lSemanticPlan.FinalStatements[0].Range.StartLine := 7;
+  lSemanticPlan.FinalStatements[0].Range.StartColumn := 3;
+  lSemanticPlan.FinalStatements[0].Range.EndLine := 7;
+  lSemanticPlan.FinalStatements[0].Range.EndColumn := 31;
+
+  lFileIndex := Length(lScanResult.fFiles);
+  SetLength(lScanResult.fFiles, lFileIndex + 1);
+  lScanResult.fFiles[lFileIndex].fPath := lSourcePath;
+  lScanResult.fFiles[lFileIndex].fScanned := True;
+  lScanResult.fFiles[lFileIndex].fWithStatementCount := 0;
+
+  Assert.IsFalse(PlanRemoveWithRewrites(lInventory, lScanResult,
+    lEmptyResolverResult, lSemanticPlan, lPlanResult, lError),
+    'Expected active conditional semantic final statement to fail when it cannot map to a DAK statement id.');
+  Assert.IsTrue(ContainsText(lError, 'statement id'),
+    'Expected statement-id mapping error, got: ' + lError);
+end;
+
+procedure TRemoveWithPlannerTests.PlanModeConsumesSemanticFinalDtoBeforeResolverReport;
+var
+  lBranchPos: Integer;
+  lDtoPrimaryPlanPos: Integer;
+  lPlannerPos: Integer;
+  lResolverPos: Integer;
+  lSourceText: string;
+begin
+  lSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.pas'), TEncoding.UTF8);
+  lBranchPos := Pos('if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply',
+    lSourceText);
+  lBranchPos := PosEx('end else', lSourceText, lBranchPos);
+  lPlannerPos := PosEx('planner start', lSourceText, lBranchPos);
+  lDtoPrimaryPlanPos := PosEx('lSymbolInventory.fDelphiSemanticRemoveWithPlan',
+    lSourceText, lBranchPos);
+  lResolverPos := PosEx('resolver start', lSourceText, lBranchPos);
+
+  Assert.IsTrue(lBranchPos > 0, 'Expected distinct non-apply remove-with branch.');
+  Assert.IsTrue(lDtoPrimaryPlanPos > 0,
+    'Expected DTO-primary plan mode to pass DelphiSemantics final plan DTO.');
+  Assert.IsTrue(lPlannerPos > 0, 'Expected remove-with command planner phase.');
+  Assert.IsTrue(lResolverPos > 0, 'Expected remove-with command resolver phase.');
+  Assert.IsTrue(lPlannerPos < lResolverPos,
+    'Plan/report mode must consume the final semantic DTO before DAK resolver reporting can fail.');
 end;
 
 procedure TRemoveWithPlannerTests.PlanCliEmitsPlannedEditsWithoutChangingFixture;

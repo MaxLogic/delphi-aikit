@@ -470,8 +470,18 @@ begin
   end;
 end;
 
+function LegacySkippedReasonForReport(const aReason: string): string;
+begin
+  if SameText(aReason, 'member-not-found') then
+    Result := 'symbol-not-found'
+  else
+    Result := aReason;
+end;
+
 function BuildSkippedArray(const aPlanResult: TRemoveWithPlanResult): TJSONArray;
 var
+  lItem: TJSONObject;
+  lReportReason: string;
   lStatement: TRemoveWithPlannedStatement;
 begin
   Result := TJSONArray.Create;
@@ -479,13 +489,17 @@ begin
   begin
     if lStatement.fStatus <> 'skipped' then
       Continue;
-    Result.AddElement(TJSONObject.Create
+    lReportReason := LegacySkippedReasonForReport(lStatement.fReason);
+    lItem := TJSONObject.Create
       .AddPair('statementId', lStatement.fStatementId)
       .AddPair('file', lStatement.fFilePath)
-      .AddPair('reason', lStatement.fReason)
+      .AddPair('reason', lReportReason)
       .AddPair('detailedReason', RemoveWithDetailedReason(TRemoveWithIdentifierStatus.rwisUnresolved,
-      lStatement.fReason))
-      .AddPair('unsupportedIdentifierRole', lStatement.fUnsupportedIdentifierRole));
+      lReportReason))
+      .AddPair('unsupportedIdentifierRole', lStatement.fUnsupportedIdentifierRole);
+    if not SameText(lReportReason, lStatement.fReason) then
+      lItem.AddPair('semanticReason', lStatement.fReason);
+    Result.AddElement(lItem);
   end;
 end;
 
