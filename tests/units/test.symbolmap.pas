@@ -614,7 +614,7 @@ begin
     'Expected member unit extraction to succeed. Error: ' + lError);
 
   Assert.AreEqual('SymbolMapMembers', lModel.fUnitName);
-  Assert.AreEqual(22, Length(lModel.fMembers));
+  Assert.AreEqual(22, Integer(Length(lModel.fMembers)));
   Assert.IsTrue(FindMember(lModel, 'TMemberRecord', 'RecordField', 'field', lMember), 'Expected record field.');
   Assert.AreEqual('Integer', lMember.fTypeName);
   Assert.IsTrue(FindMember(lModel, 'TMemberRecord', 'Reset', 'method', lMember), 'Expected record method.');
@@ -1402,7 +1402,7 @@ begin
 
   Assert.IsTrue(SearchSymbolMapDefinitions(lContext, lStatus, lProfile, 'enabled', 1, lResults, lError),
     'Expected limited member search. Error: ' + lError);
-  Assert.AreEqual(1, Length(lResults));
+  Assert.AreEqual(1, Integer(Length(lResults)));
   Assert.AreEqual('Enabled', lResults[0].fName);
 
   Assert.IsTrue(SearchSymbolMapDefinitions(lContext, lStatus, lProfile, 'TSystemFixture', 20, lResults, lError),
@@ -1621,7 +1621,7 @@ begin
   Assert.IsTrue(FindSymbolMapReferences(lContext, lStatus, lProfile, 'TSymbolMapFixtureType', 2, lReferences,
     lError), 'Expected limited reference query. Error: ' + lError);
 
-  Assert.AreEqual(2, Length(lReferences));
+  Assert.AreEqual(2, Integer(Length(lReferences)));
 end;
 
 function TSymbolMapApiTests.BaseOptions(const aCacheRoot: string): TAppOptions;
@@ -2059,7 +2059,7 @@ begin
   Assert.AreEqual('SymbolMapUnit', lModel.fUnitName);
   Assert.AreEqual(TPath.GetFullPath(FixtureUnitPath), lModel.fFilePath);
   Assert.AreEqual('utf-8', lModel.fEncodingName);
-  Assert.AreEqual(4, Length(lModel.fUses));
+  Assert.AreEqual(4, Integer(Length(lModel.fUses)));
   Assert.AreEqual('System.SysUtils', lModel.fUses[0].fUnitName);
   Assert.AreEqual('interface', lModel.fUses[0].fSectionKind);
   Assert.AreEqual('Winapi.Windows', lModel.fUses[1].fUnitName);

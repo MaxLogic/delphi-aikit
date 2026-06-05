@@ -2287,9 +2287,9 @@ begin
   Assert.AreEqual(1, lSummary.fErrorCount, 'Excluded paths must not contribute to error counts.');
   Assert.AreEqual(1, lSummary.fWarningCount, 'Ignored warnings must not contribute to warning counts.');
   Assert.AreEqual(1, lSummary.fHintCount, 'Ignored hints must not contribute to hint counts.');
-  Assert.AreEqual(1, Length(lSummary.fErrors), 'Only one error finding should remain after path exclusion.');
-  Assert.AreEqual(1, Length(lSummary.fWarnings), 'Ignored warnings must not be returned as findings.');
-  Assert.AreEqual(1, Length(lSummary.fHints), 'Ignored hints must not be returned as findings.');
+  Assert.AreEqual(1, Integer(Length(lSummary.fErrors)), 'Only one error finding should remain after path exclusion.');
+  Assert.AreEqual(1, Integer(Length(lSummary.fWarnings)), 'Ignored warnings must not be returned as findings.');
+  Assert.AreEqual(1, Integer(Length(lSummary.fHints)), 'Ignored hints must not be returned as findings.');
   Assert.AreEqual('src\main.pas(10): error E2003: Undeclared identifier: ''Foo''', lSummary.fErrors[0]);
   Assert.AreEqual('src\warn1.pas(30): warning W1000: Visible warning', lSummary.fWarnings[0]);
   Assert.AreEqual('src\hint1.pas(40): hint H1000: Visible hint', lSummary.fHints[0]);

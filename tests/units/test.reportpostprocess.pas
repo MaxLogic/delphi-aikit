@@ -47,7 +47,7 @@ begin
     'CSV post-process failed: ' + lError);
 
   lLines := TFile.ReadAllLines(lReportPath, TEncoding.UTF8);
-  Assert.AreEqual(0, Length(lLines), 'Expected ignored warning row to be removed from CSV output.');
+  Assert.AreEqual(0, Integer(Length(lLines)), 'Expected ignored warning row to be removed from CSV output.');
 end;
 
 procedure TReportPostProcessTests.CsvIgnoreRuleIdsUsesActualRuleColumnWhenMessageLooksLikeRuleTokens;
@@ -72,7 +72,7 @@ begin
     'CSV post-process failed: ' + lError);
 
   lLines := TFile.ReadAllLines(lReportPath, TEncoding.UTF8);
-  Assert.AreEqual(1, Length(lLines), 'Expected W502 row to remain when only W501 is ignored.');
+  Assert.AreEqual(1, Integer(Length(lLines)), 'Expected W502 row to remain when only W501 is ignored.');
 end;
 
 procedure TReportPostProcessTests.CsvIgnoreRuleIdsDoesNotTreatHeaderlessRowAsHeaderWhenMessageIsLine;
@@ -97,7 +97,7 @@ begin
     'CSV post-process failed: ' + lError);
 
   lLines := TFile.ReadAllLines(lReportPath, TEncoding.UTF8);
-  Assert.AreEqual(0, Length(lLines), 'Expected ignored warning row to be removed from CSV output.');
+  Assert.AreEqual(0, Integer(Length(lLines)), 'Expected ignored warning row to be removed from CSV output.');
 end;
 
 procedure TReportPostProcessTests.CsvIgnoreRuleIdsDoesNotInferDelimiterFromNumericMessageTokens;
@@ -122,7 +122,7 @@ begin
     'CSV post-process failed: ' + lError);
 
   lLines := TFile.ReadAllLines(lReportPath, TEncoding.UTF8);
-  Assert.AreEqual(1, Length(lLines), 'Expected W502 row to remain when only W501 is ignored.');
+  Assert.AreEqual(1, Integer(Length(lLines)), 'Expected W502 row to remain when only W501 is ignored.');
 end;
 
 initialization

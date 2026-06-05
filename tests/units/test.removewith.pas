@@ -952,7 +952,7 @@ procedure AssertAllCounts(const aExpected: Integer; const aCounts: TArray<Intege
 var
   i: Integer;
 begin
-  Assert.AreEqual(cAstParallelIterations, Length(aCounts), aMessage + ' Iteration count mismatch.');
+  Assert.AreEqual(cAstParallelIterations, Integer(Length(aCounts)), aMessage + ' Iteration count mismatch.');
   for i := 0 to High(aCounts) do
     Assert.AreEqual(aExpected, aCounts[i], aMessage + ' Iteration ' + i.ToString + ' mismatch.');
 end;
@@ -2551,7 +2551,7 @@ begin
     Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lModel, lInventory, lError), lError);
 
     Assert.AreEqual(1, lModel.IndexCount, 'Discovery and symbol inventory must reuse the already indexed model.');
-    Assert.AreEqual(cDiscoveryFixtureWithCount, Length(lScanResult.fWithStatements),
+    Assert.AreEqual(cDiscoveryFixtureWithCount, Integer(Length(lScanResult.fWithStatements)),
       'Expected discovery to read with statements from the shared model.');
     Assert.IsTrue(Length(lInventory.fSymbols) > 0, 'Expected symbol inventory to read units from the shared model.');
     Assert.IsNotEmpty(lInventory.fContextFingerprint,
@@ -2856,7 +2856,7 @@ begin
     Assert.IsTrue(HasRoutineSymbol(lUnitModel, 'TUnitModelScope.Run', 'lInline',
       TRemoveWithModelRoutineSymbolKind.rwmrsInlineLocal));
 
-    Assert.AreEqual(4, Length(lUnitModel.fWithStatements), 'Expected multiple and nested with statements.');
+    Assert.AreEqual(4, Integer(Length(lUnitModel.fWithStatements)), 'Expected multiple and nested with statements.');
     Assert.AreEqual(2, MaxWithDepth(lUnitModel), 'Expected three-level nested with depth.');
     Assert.IsTrue(HasWithSelector(lUnitModel, 'TUnitModelScope.Run', 'lRecord, lClass', 2),
       'Expected multi-line selector text/count extraction.');
@@ -3281,7 +3281,7 @@ begin
     Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected precedence fixture to build. Log: ' + lBuildLogPath);
 
     lExeFiles := TDirectory.GetFiles(lOutputDir, 'RemoveWithPrecedenceFixture.exe', TSearchOption.soAllDirectories);
-    Assert.AreEqual(1, Length(lExeFiles), 'Expected one built precedence fixture exe under: ' + lOutputDir);
+    Assert.AreEqual(1, Integer(Length(lExeFiles)), 'Expected one built precedence fixture exe under: ' + lOutputDir);
     lExePath := lExeFiles[0];
     lRunLogPath := TPath.Combine(TempRoot, 'remove-with-precedence-output.txt');
 
@@ -4968,7 +4968,7 @@ begin
     'Expected record temp initialization in replacement text.');
   Assert.IsTrue(Pos('lWithPlannerRecordPtr^.Count := lWithPlannerRecordPtr^.Count + 1',
     lStatement.fReplacementText) > 0, 'Expected repeated record member qualification in replacement text.');
-  Assert.AreEqual(1, Length(lStatement.fTemps), 'Expected record pointer temp.');
+  Assert.AreEqual(1, Integer(Length(lStatement.fTemps)), 'Expected record pointer temp.');
   Assert.AreEqual('record-pointer-temp', RemoveWithTempStrategyToText(lStatement.fTemps[0].fStrategy),
     'Expected record pointer temp strategy.');
   Assert.AreEqual('declare-temp', lStatement.fEdits[0].fKind, 'Expected record temp declaration edit.');
@@ -5006,8 +5006,8 @@ begin
   Assert.AreEqual('planned', lStatement.fStatus, 'Expected pointer statement to be planned.');
   Assert.IsTrue(Pos('aRecordPtr^.Name', lStatement.fReplacementText) > 0,
     'Expected direct pointer qualification in replacement text.');
-  Assert.AreEqual(0, Length(lStatement.fTemps), 'Expected no temp declaration for direct pointer qualification.');
-  Assert.AreEqual(1, Length(lStatement.fEdits), 'Expected only replacement edit for direct pointer qualification.');
+  Assert.AreEqual(0, Integer(Length(lStatement.fTemps)), 'Expected no temp declaration for direct pointer qualification.');
+  Assert.AreEqual(1, Integer(Length(lStatement.fEdits)), 'Expected only replacement edit for direct pointer qualification.');
   Assert.AreEqual('replace-statement', lStatement.fEdits[0].fKind,
     'Expected no declaration edit for direct pointer qualification.');
 end;
@@ -5036,12 +5036,12 @@ begin
   Assert.AreEqual('planned', lStatement.fStatus, 'Expected semantic final DTO status.');
   Assert.IsTrue(Pos('lWithPlannerRecordPtr^.Name', lStatement.fReplacementText) > 0,
     'Expected semantic final DTO replacement text.');
-  Assert.AreEqual(2, Length(lStatement.fEdits), 'Expected semantic final DTO edit list.');
+  Assert.AreEqual(2, Integer(Length(lStatement.fEdits)), 'Expected semantic final DTO edit list.');
   Assert.AreEqual('declare-temp', lStatement.fEdits[0].fKind,
     'Expected semantic final DTO declaration edit.');
   Assert.AreEqual('replace-statement', lStatement.fEdits[1].fKind,
     'Expected semantic final DTO replacement edit.');
-  Assert.AreEqual(1, Length(lStatement.fTemps), 'Expected semantic final DTO temp metadata.');
+  Assert.AreEqual(1, Integer(Length(lStatement.fTemps)), 'Expected semantic final DTO temp metadata.');
   Assert.AreEqual('record-pointer-temp', RemoveWithTempStrategyToText(lStatement.fTemps[0].fStrategy),
     'Expected semantic final DTO temp strategy.');
 end;
@@ -6403,7 +6403,7 @@ var
 begin
   lRoot := TPath.Combine(TPath.Combine(TPath.Combine(aProjectDir, '.dak'), aProjectName), 'remove-with');
   lFiles := TDirectory.GetFiles(lRoot, 'manifest.json', TSearchOption.soAllDirectories);
-  Assert.AreEqual(1, Length(lFiles), 'Expected exactly one transaction manifest under ' + lRoot + '.');
+  Assert.AreEqual(1, Integer(Length(lFiles)), 'Expected exactly one transaction manifest under ' + lRoot + '.');
   Result := lFiles[0];
 end;
 
@@ -6775,7 +6775,7 @@ begin
     Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, aPlanResult, lError),
       lError);
     Assert.IsTrue(BuildRemoveWithPlanApplyContext(aPlanResult, aApplyContext, lError), lError);
-    Assert.AreEqual(1, Length(aApplyContext.fSourceFingerprints),
+    Assert.AreEqual(1, Integer(Length(aApplyContext.fSourceFingerprints)),
       'Expected the DAK apply context to fingerprint the source file it will edit.');
     Assert.IsNotEmpty(aApplyContext.fContextFingerprint,
       'Expected the DAK apply context to carry a context fingerprint.');
@@ -6813,7 +6813,7 @@ begin
     'Expected explicit context fingerprint mismatch status.');
   Assert.Contains(lError, 'context-fingerprint-mismatch',
     'Expected stale context error to be reported.');
-  Assert.AreEqual(0, Length(lTransactionResult.fFiles),
+  Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)),
     'Expected stale context preflight to refuse before backing up or editing files.');
   AssertBytesEqual(lMutatedBytes, TFile.ReadAllBytes(lUnitPath),
     'Context mismatch must preserve the changed source bytes exactly.');
@@ -6855,7 +6855,7 @@ begin
   Assert.AreEqual('context-fingerprint-missing', RemoveWithTransactionStatusToText(lTransactionResult.fStatus),
     'Expected explicit missing context fingerprint status.');
   Assert.Contains(lError, 'context-fingerprint-missing', 'Expected missing context error to be reported.');
-  Assert.AreEqual(0, Length(lTransactionResult.fFiles),
+  Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)),
     'Expected missing context preflight to refuse before backing up or editing files.');
   AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
     'Missing context refusal must preserve source bytes exactly.');
