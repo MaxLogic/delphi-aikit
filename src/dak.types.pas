@@ -41,6 +41,7 @@ type
     fProjectDproj: string;
     fProjectDir: string;
     fMainSourcePath: string;
+    fDefines: TArray<string>;
     fSearchPaths: TArray<string>;
   end;
 

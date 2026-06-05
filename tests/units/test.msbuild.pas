@@ -49,6 +49,10 @@ type
     procedure SelfReferenceFallsBackToEmptyWhenPropertyWasUndefined;
     [Test]
     procedure ProjectSourceLookupExposesStableMetadataForSemanticConsumers;
+    [Test]
+    procedure ProjectParamsUseRequestedPlatformWhenProjectSetsPlatform;
+    [Test]
+    procedure DegradedProjectAnalysisContextKeepsProjectDefines;
   end;
 
 implementation
@@ -172,6 +176,34 @@ begin
   finally
     lProjectXml.Free;
   end;
+end;
+
+procedure BuildTargetPlatformProject(const aRootName: string; out aProjectPath, aRoot: string);
+begin
+  aRoot := TPath.Combine(TempRoot, aRootName);
+  if TDirectory.Exists(aRoot) then
+    TDirectory.Delete(aRoot, True);
+  TDirectory.CreateDirectory(aRoot);
+
+  TFile.WriteAllText(TPath.Combine(aRoot, 'TargetPlatformCheck.dpr'),
+    'program TargetPlatformCheck;' + sLineBreak +
+    'begin' + sLineBreak +
+    'end.', TEncoding.UTF8);
+  aProjectPath := TPath.Combine(aRoot, 'TargetPlatformCheck.dproj');
+  TFile.WriteAllText(aProjectPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>TargetPlatformCheck.dpr</MainSource>' + sLineBreak +
+    '    <Platform>Win32</Platform>' + sLineBreak +
+    '    <DCC_Define>PROJECT_OVERRIDE</DCC_Define>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <PropertyGroup Condition="''$(Platform)''==''Linux64''">' + sLineBreak +
+    '    <DCC_Define>LINUX_PROJECT_BRANCH;$(DCC_Define)</DCC_Define>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <PropertyGroup Condition="''$(Platform)''==''Win32''">' + sLineBreak +
+    '    <DCC_Define>WIN32_PROJECT_BRANCH;$(DCC_Define)</DCC_Define>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>', TEncoding.UTF8);
 end;
 
 procedure TMsBuildTests.AssertConditionAccepted(const aCondition: string);
@@ -470,6 +502,75 @@ begin
     'Expected DCCReference directory in search paths: ' + lSearchPathText);
   Assert.IsTrue(Pos(TPath.GetFullPath(lSearchDir), lSearchPathText) > 0,
     'Expected DCC_UnitSearchPath directory in search paths: ' + lSearchPathText);
+end;
+
+procedure TMsBuildTests.ProjectParamsUseRequestedPlatformWhenProjectSetsPlatform;
+var
+  lDefineText: string;
+  lEnv: TDictionary<string, string>;
+  lError: string;
+  lErrorCode: Integer;
+  lOptions: TAppOptions;
+  lParams: TFixInsightParams;
+  lProjectPath: string;
+  lRoot: string;
+begin
+  BuildTargetPlatformProject('msbuild-target-platform-params', lProjectPath, lRoot);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lProjectPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Linux64';
+  lOptions.fDelphiVersion := '23.0';
+
+  lEnv := TDictionary<string, string>.Create;
+  try
+    Assert.IsTrue(TryBuildParams(lOptions, lEnv, lRoot, TPropertySource.psDproj, nil, lParams,
+      lError, lErrorCode), 'Expected params to build. Error: ' + lError);
+  finally
+    lEnv.Free;
+  end;
+
+  lDefineText := String.Join(';', lParams.fDefines);
+  Assert.AreEqual('Linux64', lParams.fPlatform);
+  Assert.IsTrue(Pos('PROJECT_OVERRIDE', lDefineText) > 0, 'PROJECT_OVERRIDE');
+  Assert.IsTrue(Pos('LINUX_PROJECT_BRANCH', lDefineText) > 0, 'LINUX_PROJECT_BRANCH');
+  Assert.AreEqual(0, Pos('WIN32_PROJECT_BRANCH', lDefineText), 'WIN32_PROJECT_BRANCH');
+  Assert.IsTrue(Pos('LINUX', lDefineText) > 0, 'LINUX');
+  Assert.IsTrue(Pos('POSIX', lDefineText) > 0, 'POSIX');
+  Assert.IsTrue(Pos('CPUX64', lDefineText) > 0, 'CPUX64');
+  Assert.AreEqual(0, Pos('MSWINDOWS', lDefineText), 'MSWINDOWS');
+  Assert.AreEqual(0, Pos('WIN32', lDefineText), 'WIN32');
+end;
+
+procedure TMsBuildTests.DegradedProjectAnalysisContextKeepsProjectDefines;
+var
+  lContext: TProjectAnalysisContext;
+  lError: string;
+  lOptions: TAppOptions;
+  lProjectPath: string;
+  lRoot: string;
+begin
+  BuildTargetPlatformProject('msbuild-target-platform-degraded', lProjectPath, lRoot);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lProjectPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Linux64';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRsVarsPath := TPath.Combine(lRoot, 'missing-rsvars.bat');
+
+  Assert.IsTrue(TryBuildProjectAnalysisContext(lOptions, lContext, lError),
+    'Expected degraded project context. Error: ' + lError);
+  Assert.IsFalse(lContext.fHasDelphiContext, 'Expected missing rsvars to force degraded context.');
+  Assert.IsTrue(Pos('PROJECT_OVERRIDE', lContext.fParserDefines) > 0, 'PROJECT_OVERRIDE');
+  Assert.IsTrue(Pos('LINUX_PROJECT_BRANCH', lContext.fParserDefines) > 0, 'LINUX_PROJECT_BRANCH');
+  Assert.AreEqual(0, Pos('WIN32_PROJECT_BRANCH', lContext.fParserDefines), 'WIN32_PROJECT_BRANCH');
+  Assert.IsTrue(Pos('LINUX', lContext.fParserDefines) > 0, 'LINUX');
+  Assert.IsTrue(Pos('POSIX', lContext.fParserDefines) > 0, 'POSIX');
+  Assert.IsTrue(Pos('CPUX64', lContext.fParserDefines) > 0, 'CPUX64');
+  Assert.AreEqual(0, Pos('MSWINDOWS', lContext.fParserDefines), 'MSWINDOWS');
+  Assert.AreEqual(0, Pos('WIN32', lContext.fParserDefines), 'WIN32');
 end;
 
 initialization

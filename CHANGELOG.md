@@ -85,6 +85,9 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- Project analysis commands now pass target-derived compiler/platform defines to
+  DelphiAST and disable host-process compiler defines when parsing another
+  target platform.
 - `remove-with` now relies on Symbol Map/RTL-source provenance for `Math.Min` and
   `Math.Max` instead of treating them as generic compiler-intrinsic fallbacks.
 - DAK project metadata and remove-with semantic inventory integration now route through

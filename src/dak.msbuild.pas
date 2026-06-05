@@ -17,6 +17,7 @@ type
     fProps: TDictionary<string, string>;
     fEnvVars: TDictionary<string, string>;
     fDiagnostics: TDiagnostics;
+    fLockPlatform: Boolean;
     fOnPropertySet: TPropertySetProc;
     function EvaluateFileInternal(const aFileName: string; out aError: string): Boolean;
     function ResolveImportFilePath(const aImportProject: string; const aBaseDir: string): string;
@@ -27,6 +28,7 @@ type
     constructor Create(const aProps, aEnvVars: TDictionary<string, string>; aDiagnostics: TDiagnostics);
     destructor Destroy; override;
     function EvaluateFile(const aFileName: string; out aError: string): Boolean;
+    property LockPlatform: Boolean read fLockPlatform write fLockPlatform;
     property OnPropertySet: TPropertySetProc read fOnPropertySet write fOnPropertySet;
   end;
 
@@ -116,6 +118,9 @@ begin
   end;
 
   lExpanded := TMacroExpander.Expand(aValue, fProps, fEnvVars, fDiagnostics, False);
+  if fLockPlatform and SameText(aName, 'Platform') then
+    Exit;
+
   fProps.AddOrSetValue(aName, lExpanded);
   if fDiagnostics <> nil then
     fDiagnostics.AddInfo(Format(SInfoPropertySet, [aName, lExpanded]));

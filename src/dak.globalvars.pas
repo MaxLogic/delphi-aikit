@@ -318,11 +318,9 @@ begin
   lSymbolsByKey := nil;
   try
     lModels := TList<TDelphiSemanticUnitModel>.Create;
-    lIndexer := TProjectIndexer.Create;
+    lIndexer := CreateProjectAnalysisIndexer(fProject.ParserDefines, fProject.ParserSearchPath);
     lSymbolsByKey := TDictionary<string, TGlobalVarSymbol>.Create;
 
-    lIndexer.Defines := fProject.ParserDefines;
-    lIndexer.SearchPath := fProject.ParserSearchPath;
     lIndexer.Index(fProject.MainSourcePath);
     for lIndexedUnit in lIndexer.ParsedUnits do
     begin

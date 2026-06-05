@@ -1038,10 +1038,8 @@ var
   lProblemInfo: TDepsParserProblemInfo;
 begin
   FreeAndNil(fSccData);
-  lIndexer := TProjectIndexer.Create;
+  lIndexer := CreateProjectAnalysisIndexer(fContext);
   try
-    lIndexer.Defines := fContext.fParserDefines;
-    lIndexer.SearchPath := fContext.fParserSearchPath;
     lIndexer.Index(fContext.fMainSourcePath);
     SetLength(lSemanticModels, 0);
 

@@ -234,13 +234,11 @@ begin
     Exit(False);
   aPhaseMetrics.ProjectContextMs := lStopwatch.ElapsedMilliseconds;
 
-  lIndexer := TProjectIndexer.Create;
+  lIndexer := CreateProjectAnalysisIndexer(lProject);
   lCache := CreateRefactorSemanticCache(aOptions);
   lModels := TList<TDelphiSemanticUnitModel>.Create;
   lSourceKinds := TList<string>.Create;
   try
-    lIndexer.Defines := lProject.fParserDefines;
-    lIndexer.SearchPath := lProject.fParserSearchPath;
     lStopwatch := TStopwatch.StartNew;
     lIndexer.Index(lProject.fMainSourcePath);
     aPhaseMetrics.ProjectUnitIndexMs := lStopwatch.ElapsedMilliseconds;

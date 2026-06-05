@@ -139,6 +139,8 @@ type
     [Test]
     procedure IndependentProjectIndexersMatchSerialWithCounts;
     [Test]
+    procedure ProjectIndexerUsesTargetPlatformDefines;
+    [Test]
     procedure ResolverRunsDoNotShareOperationState;
     [Test]
     procedure PlannerRunsDoNotShareOperationState;
@@ -2282,6 +2284,98 @@ begin
         end);
       AssertAllCounts(lExpected, lCounts, 'Independent project indexers must match serial indexing.');
     end);
+end;
+
+procedure TRemoveWithAstParallelSafetyTests.ProjectIndexerUsesTargetPlatformDefines;
+var
+  lDprPath: string;
+  lDprojPath: string;
+  lError: string;
+  lHasHostType: Boolean;
+  lHasTargetType: Boolean;
+  lModel: TRemoveWithProjectModel;
+  lOptions: TAppOptions;
+  lRoot: string;
+  lSourceDir: string;
+  lTypeInfo: TRemoveWithModelTypeInfo;
+  lUnitModel: TRemoveWithUnitModel;
+  lUnitPath: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'remove-with-target-defines');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+  lSourceDir := TPath.Combine(lRoot, 'src');
+  TDirectory.CreateDirectory(lSourceDir);
+  lDprPath := TPath.Combine(lRoot, 'TargetDefineProject.dpr');
+  lDprojPath := TPath.Combine(lRoot, 'TargetDefineProject.dproj');
+  lUnitPath := TPath.Combine(lSourceDir, 'TargetPlatformUnit.pas');
+
+  TFile.WriteAllText(lDprPath,
+    'program TargetDefineProject;' + sLineBreak +
+    'uses TargetPlatformUnit;' + sLineBreak +
+    'begin' + sLineBreak +
+    'end.', TEncoding.UTF8);
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>TargetDefineProject.dpr</MainSource>' + sLineBreak +
+    '    <Config Condition="''$(Config)''==''''">Debug</Config>' + sLineBreak +
+    '    <Platform Condition="''$(Platform)''==''''">Win32</Platform>' + sLineBreak +
+    '    <DCC_UnitSearchPath>src</DCC_UnitSearchPath>' + sLineBreak +
+    '    <DCC_Define>PROJECT_DEFINE</DCC_Define>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>', TEncoding.UTF8);
+  TFile.WriteAllText(lUnitPath,
+    'unit TargetPlatformUnit;' + sLineBreak +
+    'interface' + sLineBreak +
+    'type' + sLineBreak +
+    '{$IFDEF LINUX}' + sLineBreak +
+    '  TTargetPlatformType = class end;' + sLineBreak +
+    '{$ENDIF}' + sLineBreak +
+    '{$IFDEF MSWINDOWS}' + sLineBreak +
+    '  THostPlatformType = class end;' + sLineBreak +
+    '{$ENDIF}' + sLineBreak +
+    'implementation' + sLineBreak +
+    'end.', TEncoding.UTF8);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Linux64';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  lModel := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lDprojPath, lModel, lError), lError);
+  try
+    Assert.IsTrue(ContainsText(lModel.Context.fParserDefines, 'LINUX'), 'LINUX');
+    Assert.IsTrue(ContainsText(lModel.Context.fParserDefines, 'POSIX'), 'POSIX');
+    Assert.IsTrue(ContainsText(lModel.Context.fParserDefines, 'CPUX64'), 'CPUX64');
+    Assert.IsFalse(ContainsText(lModel.Context.fParserDefines, 'MSWINDOWS'), 'MSWINDOWS');
+    Assert.IsFalse(piUseDefinesDefinedByCompiler in lModel.Indexer.Options,
+      'Project-aware DAK indexing must not add host compiler defines.');
+
+    lHasTargetType := False;
+    lHasHostType := False;
+    for lUnitModel in lModel.UnitModels do
+      if SameText(lUnitModel.fUnitName, 'TargetPlatformUnit') then
+      begin
+        for lTypeInfo in lUnitModel.fTypes do
+        begin
+          if SameText(lTypeInfo.fName, 'TTargetPlatformType') then
+            lHasTargetType := True;
+          if SameText(lTypeInfo.fName, 'THostPlatformType') then
+            lHasHostType := True;
+        end;
+      end;
+
+    Assert.IsTrue(lHasTargetType, 'Expected Linux64 target branch type.');
+    Assert.IsFalse(lHasHostType, 'Did not expect Windows host branch type.');
+  finally
+    lModel.Free;
+  end;
 end;
 
 procedure TRemoveWithAstParallelSafetyTests.ResolverRunsDoNotShareOperationState;
@@ -8556,9 +8650,10 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected conditional-directive plan to succeed.');
     lWithStatements := lRoot.Values['withStatements'] as TJSONArray;
-    Assert.AreEqual(1, lWithStatements.Count, 'Expected inactive with statement to be excluded.');
-    Assert.AreEqual(1, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected active statement with inactive branch text to be planned.');
+    Assert.AreEqual(2, lWithStatements.Count,
+      'Expected project-defined active with statements to be included and inactive statements to be excluded.');
+    Assert.AreEqual(2, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+      'Expected active statements with inactive branch text to be planned.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected inactive branch identifiers not to be scanned.');
@@ -9488,7 +9583,7 @@ begin
       'Expected local model hit telemetry to stay populated.');
     Assert.AreEqual(0, lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks'),
       'Expected external routine facts to come from DelphiSemantics rather than DAK fallback allowlists.');
-    Assert.AreEqual(1658, lTelemetry.GetValue<Integer>('trueUnknowns'),
+    Assert.AreEqual(1654, lTelemetry.GetValue<Integer>('trueUnknowns'),
       'Expected true unknown telemetry to stay at the current maxTdb baseline.');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') > 0,
       'Expected planner elapsed telemetry.');
