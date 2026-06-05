@@ -3,6 +3,7 @@ program DelphiAIKit;
 {$APPTYPE CONSOLE}
 
 uses
+  FireDAC.Phys.SQLiteWrapper.Stat,
   madExcept,
   madLinkDisAsm,
   madListHardware,

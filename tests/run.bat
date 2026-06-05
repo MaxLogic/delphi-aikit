@@ -7,7 +7,7 @@ set "FIXTURES=%TESTS_DIR%fixtures"
 set "OUTDIR=%TESTS_DIR%out"
 
 rem ---- Defaults (override via env vars) -------------------------------------
-set "PLATFORM=Win32"
+set "PLATFORM=Win64"
 if defined DAK_PLATFORM set "PLATFORM=%DAK_PLATFORM%"
 set "CONFIG=Release"
 if defined DAK_CONFIG set "CONFIG=%DAK_CONFIG%"

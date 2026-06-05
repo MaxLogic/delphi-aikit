@@ -47,7 +47,7 @@ The DUnitX test runner lives under `tests\` and exercises:
 Build and run from a Windows shell:
 
 ```bat
-build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win32 -ver 23
+build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win64 -ver 23
 tests\DelphiAIKit.Tests.exe
 ```
 
@@ -62,7 +62,7 @@ Timing note:
 
 ## Useful env vars
 
-- `DAK_PLATFORM` (default: `Win32`)
+- `DAK_PLATFORM` (default: `Win64`)
 - `DAK_CONFIG` (default: `Release`)
 - `DAK_DELPHI` (default: `23.0`)
 - `RSVARS` (optional; passed as `--rsvars`)
