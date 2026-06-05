@@ -16,8 +16,8 @@ uses
   System.StrUtils, System.SysUtils,
   DelphiAST.ProjectIndexer,
   DelphiSemantics.Api, DelphiSemantics.Cache, DelphiSemantics.Cache.Sqlite,
-  DelphiSemantics.Index, DelphiSemantics.Model, DelphiSemantics.Query,
-  DelphiSemantics.Refactor, DelphiSemantics.Usage,
+  DelphiSemantics.Model, DelphiSemantics.Query, DelphiSemantics.Refactor,
+  DelphiSemantics.Usage,
   Dak.ExitCodes, Dak.Project, Dak.RemoveWith.Source;
 
 type
@@ -29,6 +29,7 @@ type
     UnitModelExtractionCount: Integer;
     ProjectSymbolIndexBuildMs: Int64;
     ProjectSymbolIndexBuildCount: Integer;
+    ReferenceReconciliationFallbackCount: Integer;
     CommandPlanningMs: Int64;
     CommandPlanningCount: Integer;
     TotalMs: Int64;
@@ -228,8 +229,6 @@ begin
   aCacheMetrics := Default(TDelphiSemanticCacheMetrics);
   aPhaseMetrics := Default(TRefactorSemanticPhaseMetrics);
   lTotalStopwatch := TStopwatch.StartNew;
-  TDelphiSemanticUnitModelExtractor.ResetReferenceReconciliationFallbackCount;
-  TDelphiSemanticProjectSymbolIndexer.ResetBuildInvocationCount;
   lStopwatch := TStopwatch.StartNew;
   if not TryBuildProjectAnalysisContext(aOptions, lProject, aError) then
     Exit(False);
@@ -270,6 +269,8 @@ begin
       end;
       lModels.Add(lModel);
       lSourceKinds.Add('project-source');
+      Inc(aPhaseMetrics.ReferenceReconciliationFallbackCount,
+        lModel.Metrics.ReferenceReconciliationFallbackCount);
       Inc(aPhaseMetrics.UnitModelExtractionCount);
     end;
     aPhaseMetrics.UnitModelExtractionMs := lStopwatch.ElapsedMilliseconds;
@@ -285,6 +286,8 @@ begin
       end;
       lModels.Add(lModel);
       lSourceKinds.Add('project-source');
+      Inc(aPhaseMetrics.ReferenceReconciliationFallbackCount,
+        lModel.Metrics.ReferenceReconciliationFallbackCount);
       Inc(aPhaseMetrics.UnitModelExtractionCount);
       Inc(aPhaseMetrics.UnitModelExtractionMs, lStopwatch.ElapsedMilliseconds);
     end;
@@ -775,14 +778,11 @@ begin
     lSymbol := lResult.Symbol.Name;
   end;
   lPhaseMetrics.CommandPlanningMs := lPlanningStopwatch.ElapsedMilliseconds;
-  lPhaseMetrics.ProjectSymbolIndexBuildMs :=
-    TDelphiSemanticProjectSymbolIndexer.BuildElapsedMilliseconds;
-  lPhaseMetrics.ProjectSymbolIndexBuildCount :=
-    TDelphiSemanticProjectSymbolIndexer.BuildInvocationCount;
+  lPhaseMetrics.ProjectSymbolIndexBuildMs := lResult.IndexMetrics.BuildElapsedMilliseconds;
+  lPhaseMetrics.ProjectSymbolIndexBuildCount := lResult.IndexMetrics.BuildInvocationCount;
   lPhaseMetrics.CommandPlanningCount := 1;
   lPhaseMetrics.TotalMs := lPhaseMetrics.TotalMs + lPhaseMetrics.CommandPlanningMs;
-  lReferenceFallbackCount :=
-    TDelphiSemanticUnitModelExtractor.ReferenceReconciliationFallbackCount;
+  lReferenceFallbackCount := lPhaseMetrics.ReferenceReconciliationFallbackCount;
 
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
     lOutput := UsageResultJson(lSymbol, lResult, lReferenceFallbackCount, lCacheMetrics,
@@ -834,10 +834,15 @@ begin
       aOptions.fRefactorLine, aOptions.fRefactorCol, aOptions.fRefactorNewName);
   end;
   lPhaseMetrics.CommandPlanningMs := lPlanningStopwatch.ElapsedMilliseconds;
-  lPhaseMetrics.ProjectSymbolIndexBuildMs :=
-    TDelphiSemanticProjectSymbolIndexer.BuildElapsedMilliseconds;
-  lPhaseMetrics.ProjectSymbolIndexBuildCount :=
-    TDelphiSemanticProjectSymbolIndexer.BuildInvocationCount;
+  lPhaseMetrics.ProjectSymbolIndexBuildMs := lPlan.IndexMetrics.BuildElapsedMilliseconds;
+  lPhaseMetrics.ProjectSymbolIndexBuildCount := lPlan.IndexMetrics.BuildInvocationCount;
+  if aOptions.fRefactorSymbol = '' then
+  begin
+    lPhaseMetrics.ProjectSymbolIndexBuildMs := lPhaseMetrics.ProjectSymbolIndexBuildMs +
+      lUsageResult.IndexMetrics.BuildElapsedMilliseconds;
+    lPhaseMetrics.ProjectSymbolIndexBuildCount := lPhaseMetrics.ProjectSymbolIndexBuildCount +
+      lUsageResult.IndexMetrics.BuildInvocationCount;
+  end;
   lPhaseMetrics.CommandPlanningCount := 1;
   lPhaseMetrics.TotalMs := lPhaseMetrics.TotalMs + lPhaseMetrics.CommandPlanningMs;
   if SameText(lPlan.Status, 'planned') and aOptions.fRefactorApply then
@@ -852,8 +857,7 @@ begin
       end;
     end;
   end;
-  lReferenceFallbackCount :=
-    TDelphiSemanticUnitModelExtractor.ReferenceReconciliationFallbackCount;
+  lReferenceFallbackCount := lPhaseMetrics.ReferenceReconciliationFallbackCount;
 
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
     lOutput := RenameResultJson(lSymbol, lPlan, aOptions.fRefactorApply,
@@ -892,14 +896,11 @@ begin
   lPlanningStopwatch := TStopwatch.StartNew;
   lReport := TDelphiSemanticApi.ReportDeadCode(lContext, lProfile);
   lPhaseMetrics.CommandPlanningMs := lPlanningStopwatch.ElapsedMilliseconds;
-  lPhaseMetrics.ProjectSymbolIndexBuildMs :=
-    TDelphiSemanticProjectSymbolIndexer.BuildElapsedMilliseconds;
-  lPhaseMetrics.ProjectSymbolIndexBuildCount :=
-    TDelphiSemanticProjectSymbolIndexer.BuildInvocationCount;
+  lPhaseMetrics.ProjectSymbolIndexBuildMs := lReport.IndexMetrics.BuildElapsedMilliseconds;
+  lPhaseMetrics.ProjectSymbolIndexBuildCount := lReport.IndexMetrics.BuildInvocationCount;
   lPhaseMetrics.CommandPlanningCount := 1;
   lPhaseMetrics.TotalMs := lPhaseMetrics.TotalMs + lPhaseMetrics.CommandPlanningMs;
-  lReferenceFallbackCount :=
-    TDelphiSemanticUnitModelExtractor.ReferenceReconciliationFallbackCount;
+  lReferenceFallbackCount := lPhaseMetrics.ReferenceReconciliationFallbackCount;
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
     lOutput := DeadCodeReportJson(lReport, lReferenceFallbackCount, lCacheMetrics,
       lPhaseMetrics)
