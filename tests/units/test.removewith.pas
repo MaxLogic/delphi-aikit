@@ -138,6 +138,8 @@ type
     procedure ReadOnlySharedAstTraversalMatchesSerialWithCounts;
     [Test]
     procedure IndependentProjectIndexersMatchSerialWithCounts;
+    [Test]
+    procedure ResolverRunsDoNotShareOperationState;
   end;
 
   [TestFixture]
@@ -1238,7 +1240,7 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'GResolverParentRoutineByName'),
+  Assert.IsTrue(ContainsText(lSourceText, 'fParentRoutineByName'),
     'Resolver must cache lexical parent routine names instead of scanning all symbols per scope lookup.');
   Assert.IsFalse(ContainsText(lSourceText,
     'for lSymbol in aInventory.fSymbols do' + sLineBreak +
@@ -1255,9 +1257,9 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'GResolverContainingStatementsById'),
+  Assert.IsTrue(ContainsText(lSourceText, 'fContainingStatementsById'),
     'Resolver must index containing with statements by statement id.');
-  Assert.IsTrue(ContainsText(lSourceText, 'GResolverNestedStatementsById'),
+  Assert.IsTrue(ContainsText(lSourceText, 'fNestedStatementsById'),
     'Resolver must index nested with statements by statement id.');
 end;
 
@@ -1269,10 +1271,10 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Resolver.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'GResolverSemanticBindingsByStatementRange'),
+  Assert.IsTrue(ContainsText(lSourceText, 'fSemanticBindingsByStatementRange'),
     'Fallback resolver must index DelphiSemantics bindings by file/start range.');
   Assert.IsTrue(ContainsText(lSourceText,
-    'GResolverSemanticBindingsByStatementRange.TryGetValue'),
+    'fSemanticBindingsByStatementRange.TryGetValue'),
     'Fallback resolver must use the binding range index instead of rescanning all semantic bindings.');
 end;
 
@@ -2274,6 +2276,76 @@ begin
         end);
       AssertAllCounts(lExpected, lCounts, 'Independent project indexers must match serial indexing.');
     end);
+end;
+
+procedure TRemoveWithAstParallelSafetyTests.ResolverRunsDoNotShareOperationState;
+var
+  lError: string;
+  lInventory: TRemoveWithFactSet;
+  lModel: TRemoveWithProjectModel;
+  lOptions: TAppOptions;
+  lResolverSourceText: string;
+  lFailedScanResult: TRemoveWithScanResult;
+  lRecoveryResult: TRemoveWithResolverResult;
+  lResult: TRemoveWithResolverResult;
+  lRunCounts: TArray<Integer>;
+  lScanResult: TRemoveWithScanResult;
+begin
+  lResolverSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Resolver.pas'), TEncoding.UTF8);
+  Assert.IsFalse(ContainsText(lResolverSourceText, 'GResolver'),
+    'Resolver operation state must be owned by an explicit per-run context, not unit-global GResolver caches.');
+  Assert.IsFalse(ContainsText(TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Expressions.pas'), TEncoding.UTF8), 'GExpressionCacheDepth'),
+    'Selector type resolution entered by resolver must not use a shared operation depth counter.');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithDiscoveryFixture\RemoveWithDiscoveryFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  lModel := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lOptions.fDprojPath, lModel, lError), lError);
+  try
+    Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lModel, lScanResult, lError), lError);
+    Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lModel, lInventory, lError), lError);
+  finally
+    lModel.Free;
+  end;
+
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResult, lError), lError);
+  Assert.IsTrue(Length(lResult.fClassifications) > 0, 'Expected serial resolver classifications.');
+
+  lFailedScanResult := lScanResult;
+  lFailedScanResult.fWithStatements := Copy(lScanResult.fWithStatements);
+  lFailedScanResult.fWithStatements[0].fFilePath := TPath.Combine(TempRoot,
+    'remove-with-missing-resolver-source.pas');
+  Assert.IsFalse(ResolveRemoveWithIdentifiers(lInventory, lFailedScanResult, lRecoveryResult, lError),
+    'Expected resolver to fail when the source file disappears.');
+  Assert.IsTrue(ContainsText(lError, 'remove-with-missing-resolver-source.pas'),
+    'Expected missing source path in resolver failure.');
+
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lRecoveryResult, lError),
+    'Expected resolver to recover after a failed independent run: ' + lError);
+  Assert.AreEqual(Length(lResult.fClassifications), Length(lRecoveryResult.fClassifications),
+    'A failed resolver run must not contaminate the next resolver context.');
+
+  lRunCounts := ParallelCounts(cAstParallelIterations,
+    function: Integer
+    var
+      lParallelError: string;
+      lParallelResult: TRemoveWithResolverResult;
+    begin
+      Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lParallelResult,
+        lParallelError), lParallelError);
+      Result := Length(lParallelResult.fClassifications);
+    end);
+  AssertAllCounts(Length(lResult.fClassifications), lRunCounts,
+    'Independent resolver runs must not share mutable resolver operation state.');
 end;
 
 procedure TRemoveWithProjectModelTests.SharedProjectModelFeedsDiscoveryAndSymbolInventory;
