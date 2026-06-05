@@ -5,6 +5,7 @@ program DelphiAIKit_Tests;
 
 uses
   System.SysUtils,
+  FireDAC.Phys.SQLiteWrapper.Stat,
   DUnitX.TestFramework,
   DUnitX.Loggers.Console,
   DfmCheck_AppConsts in '..\\lib\\DFMCheck\\Source\\DfmCheck_AppConsts.pas',
