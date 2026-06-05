@@ -81,19 +81,12 @@ type
       out aInfo: TRemoveWithSelectorTypeInfo): Boolean; static;
   end;
 
-var
-  GExpressionCacheDepth: Integer;
-
 procedure BeginRemoveWithSelectorTypeCache(const aInventory: TRemoveWithFactSet);
 begin
-  Inc(GExpressionCacheDepth);
 end;
 
 procedure EndRemoveWithSelectorTypeCache;
 begin
-  if GExpressionCacheDepth <= 0 then
-    Exit;
-  Dec(GExpressionCacheDepth);
 end;
 
 function ModelMemberKindToSymbolKind(const aKind: TRemoveWithModelMemberKind): TRemoveWithSymbolKind;
