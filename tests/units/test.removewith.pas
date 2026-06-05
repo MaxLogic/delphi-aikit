@@ -142,6 +142,8 @@ type
     procedure ResolverRunsDoNotShareOperationState;
     [Test]
     procedure PlannerRunsDoNotShareOperationState;
+    [Test]
+    procedure RemoveWithOperationsDoNotShareSelectorTempOrSymbolState;
   end;
 
   [TestFixture]
@@ -1080,8 +1082,10 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'GRemoveWithLogicalSymbolKeys'),
+  Assert.IsTrue(ContainsText(lSourceText, 'fLogicalSymbolKeys'),
     'Symbol inventory must use a keyed logical duplicate index for large semantic inventories.');
+  Assert.IsTrue(ContainsText(lSourceText, 'fSymbolKeys'),
+    'Symbol inventory must use a keyed duplicate index for large semantic inventories.');
   Assert.IsFalse(ContainsText(lSourceText,
     'for lSymbol in aInventory.fSymbols do' + sLineBreak + '  begin' + sLineBreak +
     '    if SameLogicalNonRoutineSymbol'),
@@ -2416,6 +2420,107 @@ begin
     end);
   AssertAllCounts(Length(lPlanResult.fStatements), lRunCounts,
     'Independent planner runs must not share mutable planner operation state.');
+end;
+
+procedure TRemoveWithAstParallelSafetyTests.RemoveWithOperationsDoNotShareSelectorTempOrSymbolState;
+var
+  i: Integer;
+  lBadCacheParentPath: string;
+  lBadInventory: TRemoveWithFactSet;
+  lBadOptions: TAppOptions;
+  lError: string;
+  lFailureObserved: Boolean;
+  lInventory: TRemoveWithFactSet;
+  lModel: TRemoveWithProjectModel;
+  lModels: TArray<TRemoveWithProjectModel>;
+  lOptions: TAppOptions;
+  lRecoveryInventory: TRemoveWithFactSet;
+  lRunCounts: TArray<Integer>;
+  lRunErrors: TArray<string>;
+  lSymbolsSourceText: string;
+begin
+  lSymbolsSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Symbols.pas'), TEncoding.UTF8);
+  Assert.IsFalse(ContainsText(lSymbolsSourceText, 'GRemoveWithSymbolKeys'),
+    'Symbol inventory dedupe state must be owned by an explicit per-run context, not a unit-global dictionary.');
+  Assert.IsFalse(ContainsText(lSymbolsSourceText, 'GRemoveWithLogicalSymbolKeys'),
+    'Logical symbol inventory dedupe state must be owned by an explicit per-run context, not a unit-global dictionary.');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithSymbolsFixture\RemoveWithSymbolsFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  lModel := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lOptions.fDprojPath, lModel, lError), lError);
+  try
+    Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lModel, lInventory, lError),
+      'Expected serial symbol inventory to succeed: ' + lError);
+    Assert.IsTrue(Length(lInventory.fSymbols) > 0, 'Expected serial symbol inventory symbols.');
+
+    lBadOptions := lOptions;
+    lBadCacheParentPath := TPath.Combine(TempRoot, 'remove-with-symbol-cache-parent-file.tmp');
+    TFile.WriteAllText(lBadCacheParentPath, 'not a directory', TEncoding.UTF8);
+    lBadOptions.fHasRemoveWithSemanticCachePath := True;
+    lBadOptions.fRemoveWithSemanticCachePath := TPath.Combine(lBadCacheParentPath, 'unit-models.sqlite3');
+    lFailureObserved := False;
+    try
+      lFailureObserved := not BuildRemoveWithFactSet(lBadOptions, lModel, lBadInventory, lError);
+    except
+      on E: Exception do
+      begin
+        lError := E.Message;
+        lFailureObserved := True;
+      end;
+    end;
+    Assert.IsTrue(lFailureObserved,
+      'Expected invalid semantic cache path to fail inside symbol inventory before recovery.');
+    Assert.IsNotEmpty(lError,
+      'Expected invalid semantic cache path failure after symbol inventory context creation.');
+
+    Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lModel, lRecoveryInventory, lError),
+      'Expected symbol inventory to recover after an independent failure: ' + lError);
+    Assert.AreEqual(Length(lInventory.fSymbols), Length(lRecoveryInventory.fSymbols),
+      'A failed symbol inventory run must not contaminate the next inventory context.');
+
+    SetLength(lModels, cAstParallelIterations);
+    for i := 0 to High(lModels) do
+      Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lOptions.fDprojPath, lModels[i], lError),
+        'Expected parallel symbol inventory model ' + i.ToString + ' to build: ' + lError);
+
+    SetLength(lRunCounts, cAstParallelIterations);
+    SetLength(lRunErrors, cAstParallelIterations);
+    TParallel.&For(0, cAstParallelIterations - 1,
+      procedure(aIndex: Integer)
+      var
+        lParallelError: string;
+        lParallelInventory: TRemoveWithFactSet;
+      begin
+        try
+          if not BuildRemoveWithFactSet(lOptions, lModels[aIndex], lParallelInventory, lParallelError) then
+          begin
+            lRunErrors[aIndex] := lParallelError;
+            Exit;
+          end;
+          lRunCounts[aIndex] := Length(lParallelInventory.fSymbols);
+        except
+          on E: Exception do
+            lRunErrors[aIndex] := E.ClassName + ': ' + E.Message;
+        end;
+      end);
+    for i := 0 to High(lRunErrors) do
+      Assert.AreEqual('', lRunErrors[i], 'Parallel symbol inventory iteration ' + i.ToString + ' failed.');
+    AssertAllCounts(Length(lInventory.fSymbols), lRunCounts,
+      'Independent symbol inventory runs must not share mutable symbol operation state.');
+  finally
+    for i := 0 to High(lModels) do
+      lModels[i].Free;
+    lModel.Free;
+  end;
 end;
 
 procedure TRemoveWithProjectModelTests.SharedProjectModelFeedsDiscoveryAndSymbolInventory;
