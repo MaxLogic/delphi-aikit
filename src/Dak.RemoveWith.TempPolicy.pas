@@ -70,19 +70,12 @@ type
       out aDecision: TRemoveWithTempDecision): Boolean; overload; static;
   end;
 
-var
-  GTempPolicyCacheDepth: Integer;
-
 procedure BeginRemoveWithTempPolicyCache(const aInventory: TRemoveWithFactSet);
 begin
-  Inc(GTempPolicyCacheDepth);
 end;
 
 procedure EndRemoveWithTempPolicyCache;
 begin
-  if GTempPolicyCacheDepth <= 0 then
-    Exit;
-  Dec(GTempPolicyCacheDepth);
 end;
 
 function TypeCategoryForModelKind(const aKind: TRemoveWithModelTypeKind): TRemoveWithTypeCategory;

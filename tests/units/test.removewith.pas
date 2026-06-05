@@ -140,6 +140,8 @@ type
     procedure IndependentProjectIndexersMatchSerialWithCounts;
     [Test]
     procedure ResolverRunsDoNotShareOperationState;
+    [Test]
+    procedure PlannerRunsDoNotShareOperationState;
   end;
 
   [TestFixture]
@@ -1129,7 +1131,7 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Planner.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'GPlannerClassificationsByStatement'),
+  Assert.IsTrue(ContainsText(lSourceText, 'fClassificationsByStatement'),
     'Remove-with planner must index resolver classifications by statement id.');
   Assert.IsFalse(ContainsText(lSourceText,
     'for lClassification in aResolverResult.fClassifications do'),
@@ -2346,6 +2348,74 @@ begin
     end);
   AssertAllCounts(Length(lResult.fClassifications), lRunCounts,
     'Independent resolver runs must not share mutable resolver operation state.');
+end;
+
+procedure TRemoveWithAstParallelSafetyTests.PlannerRunsDoNotShareOperationState;
+var
+  lError: string;
+  lFailedScanResult: TRemoveWithScanResult;
+  lInventory: TRemoveWithFactSet;
+  lOptions: TAppOptions;
+  lPlanResult: TRemoveWithPlanResult;
+  lPlannerSourceText: string;
+  lRecoveryResult: TRemoveWithPlanResult;
+  lResolverResult: TRemoveWithResolverResult;
+  lRunCounts: TArray<Integer>;
+  lScanResult: TRemoveWithScanResult;
+begin
+  lPlannerSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Planner.pas'), TEncoding.UTF8);
+  Assert.IsFalse(ContainsText(lPlannerSourceText, 'GPlanner'),
+    'Planner operation state must be owned by an explicit per-run context, not unit-global GPlanner caches.');
+  Assert.IsFalse(ContainsText(TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.TempPolicy.pas'), TEncoding.UTF8), 'GTempPolicyCacheDepth'),
+    'Temp-policy resolution entered by planner must not use a shared operation depth counter.');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(RepoRoot,
+    'tests\fixtures\RemoveWithPlannerFixture\RemoveWithPlannerFixture.dproj');
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lOptions.fDprojPath, lScanResult, lError),
+    'Expected planner fixture discovery to succeed: ' + lError);
+  Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lInventory, lError),
+    'Expected planner fixture inventory build to succeed: ' + lError);
+  Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResolverResult, lError),
+    'Expected planner fixture resolver to succeed: ' + lError);
+
+  Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, lPlanResult, lError), lError);
+  Assert.IsTrue(Length(lPlanResult.fStatements) > 0, 'Expected serial planner statements.');
+
+  lFailedScanResult := lScanResult;
+  lFailedScanResult.fWithStatements := Copy(lScanResult.fWithStatements);
+  lFailedScanResult.fWithStatements[0].fFilePath := TPath.Combine(TempRoot,
+    'remove-with-missing-planner-source.pas');
+  Assert.IsFalse(PlanRemoveWithRewrites(lInventory, lFailedScanResult, lResolverResult, lRecoveryResult,
+    lError), 'Expected planner to fail when the source file disappears.');
+  Assert.IsTrue(ContainsText(lError, 'remove-with-missing-planner-source.pas'),
+    'Expected missing source path in planner failure.');
+
+  Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, lRecoveryResult, lError),
+    'Expected planner to recover after a failed independent run: ' + lError);
+  Assert.AreEqual(Length(lPlanResult.fStatements), Length(lRecoveryResult.fStatements),
+    'A failed planner run must not contaminate the next planner context.');
+
+  lRunCounts := ParallelCounts(cAstParallelIterations,
+    function: Integer
+    var
+      lParallelError: string;
+      lParallelResult: TRemoveWithPlanResult;
+    begin
+      Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, lParallelResult,
+        lParallelError), lParallelError);
+      Result := Length(lParallelResult.fStatements);
+    end);
+  AssertAllCounts(Length(lPlanResult.fStatements), lRunCounts,
+    'Independent planner runs must not share mutable planner operation state.');
 end;
 
 procedure TRemoveWithProjectModelTests.SharedProjectModelFeedsDiscoveryAndSymbolInventory;
