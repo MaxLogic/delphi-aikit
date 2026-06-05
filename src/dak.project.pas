@@ -5,6 +5,7 @@ interface
 uses
   System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.RegularExpressions, System.SysUtils,
   Xml.XMLDoc, Xml.XMLIntf,
+  DelphiAST.ProjectIndexer,
   maxLogic.StrUtils,
   Dak.Diagnostics, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Types;
 
@@ -16,11 +17,13 @@ function TryBuildProjectSourceLookup(const aDprojPath, aConfig, aPlatform, aDelp
   out aError: string): Boolean;
 function TryBuildProjectAnalysisContext(const aOptions: TAppOptions; out aContext: TProjectAnalysisContext;
   out aError: string): Boolean;
+function CreateProjectAnalysisIndexer(const aDefines, aSearchPath: string): TProjectIndexer; overload;
+function CreateProjectAnalysisIndexer(const aContext: TProjectAnalysisContext): TProjectIndexer; overload;
 
 implementation
 
 uses
-  DelphiSemantics.Api,
+  DelphiSemantics.Api, DelphiSemantics.CompilerProfile,
   Dak.FixInsightSettings, Dak.Registry, Dak.RsVars, Dak.Utils;
 
 type
@@ -110,6 +113,60 @@ begin
     lList.Free;
     lSet.Free;
   end;
+end;
+
+function CombineTextLists(const aPrimary, aAdditional: TArray<string>): TArray<string>;
+var
+  lItem: string;
+  lList: TList<string>;
+  lSet: THashSet<string>;
+  lValue: string;
+begin
+  lSet := THashSet<string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  lList := TList<string>.Create;
+  try
+    for lItem in aPrimary do
+    begin
+      lValue := Trim(lItem);
+      if (lValue <> '') and lSet.Add(lValue) then
+        lList.Add(lValue);
+    end;
+    for lItem in aAdditional do
+    begin
+      lValue := Trim(lItem);
+      if (lValue <> '') and lSet.Add(lValue) then
+        lList.Add(lValue);
+    end;
+    Result := lList.ToArray;
+  finally
+    lList.Free;
+    lSet.Free;
+  end;
+end;
+
+function CombineTargetCompilerDefines(const aDefines: TArray<string>;
+  const aPlatform: string): TArray<string>;
+begin
+  Result := CombineTextLists(aDefines,
+    TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform(aPlatform));
+end;
+
+function TargetCompilerDefinesText(const aPlatform: string): string;
+begin
+  Result := String.Join(';', TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform(aPlatform));
+end;
+
+function ResolvedPlatformText(const aProps: TDictionary<string, string>; const aDefaultPlatform: string): string;
+begin
+  Result := Trim(aDefaultPlatform);
+  if Result <> '' then
+    Exit;
+
+  if not aProps.TryGetValue('Platform', Result) then
+    Result := aDefaultPlatform;
+  Result := Trim(Result);
+  if Result = '' then
+    Result := aDefaultPlatform;
 end;
 
 function NormalizePathList(const aValue, aProjectDir, aLabel: string; const aProps, aEnvVars: TDictionary<string, string>;
@@ -321,6 +378,7 @@ begin
   aLookup.fProjectDproj := lResult.Project.ProjectFileName;
   aLookup.fProjectDir := lResult.Project.ProjectDirectory;
   aLookup.fMainSourcePath := lResult.Project.MainSourceFileName;
+  aLookup.fDefines := lResult.Project.Defines;
   aLookup.fSearchPaths := lResult.Project.SourceLookupPaths;
   Result := True;
 end;
@@ -351,6 +409,7 @@ var
   lProjectName: string;
   lProjectFile: string;
   lProjectFullPath: string;
+  lTargetPlatform: string;
 begin
   Result := False;
   aError := '';
@@ -386,6 +445,7 @@ begin
     try
       CopyProps(lProps, lTempProps);
       lEvaluator := TMsBuildEvaluator.Create(lTempProps, aEnvVars, aDiagnostics);
+      lEvaluator.LockPlatform := Trim(aOptions.fPlatform) <> '';
       try
         if not lEvaluator.EvaluateFile(aOptions.fDprojPath, aError) then
         begin
@@ -426,6 +486,7 @@ begin
       lTracker := TSourceTracker.Create(lSources, TPropertySource.psOptset);
       try
         lEvaluator := TMsBuildEvaluator.Create(lProps, aEnvVars, aDiagnostics);
+        lEvaluator.LockPlatform := Trim(aOptions.fPlatform) <> '';
         lEvaluator.OnPropertySet := lTracker.OnPropertySet;
         try
           if not lEvaluator.EvaluateFile(lOptsetPath, aError) then
@@ -447,6 +508,7 @@ begin
       if aDiagnostics <> nil then
         aDiagnostics.AddInfo(Format(SInfoStep, ['Evaluate project file']));
       lEvaluator := TMsBuildEvaluator.Create(lProps, aEnvVars, aDiagnostics);
+      lEvaluator.LockPlatform := Trim(aOptions.fPlatform) <> '';
       lEvaluator.OnPropertySet := lTracker.OnPropertySet;
       try
         if not lEvaluator.EvaluateFile(aOptions.fDprojPath, aError) then
@@ -509,13 +571,15 @@ begin
     end;
 
     aParams.fProjectDpr := lProjectDpr;
-    aParams.fDefines := NormalizeTextList(lDefine, 'Defines', lProps, aEnvVars, aDiagnostics);
+    lTargetPlatform := ResolvedPlatformText(lProps, aOptions.fPlatform);
+    aParams.fDefines := CombineTargetCompilerDefines(NormalizeTextList(lDefine, 'Defines',
+      lProps, aEnvVars, aDiagnostics), lTargetPlatform);
     aParams.fUnitScopes := NormalizeTextList(lUnitScopes, 'UnitScopes', lProps, aEnvVars, aDiagnostics);
     aParams.fUnitAliases := NormalizeTextList(lUnitAliases, 'UnitAliases', lProps, aEnvVars, aDiagnostics);
     aParams.fUnitSearchPath := lCombinedPaths;
     aParams.fLibraryPath := lLibPaths;
     aParams.fDelphiVersion := aOptions.fDelphiVersion;
-    aParams.fPlatform := aOptions.fPlatform;
+    aParams.fPlatform := lTargetPlatform;
     aParams.fConfig := aOptions.fConfig;
     aParams.fLibrarySource := aLibrarySource;
     aParams.fDefineSource := GetPropertySource(lSources, 'DCC_Define');
@@ -624,7 +688,7 @@ begin
   aContext.fProjectDir := TPath.GetDirectoryName(lProjectPath);
   aContext.fProjectName := TPath.GetFileNameWithoutExtension(lProjectPath);
   aContext.fDakProjectRoot := TPath.Combine(TPath.Combine(aContext.fProjectDir, '.dak'), aContext.fProjectName);
-  aContext.fParserDefines := '';
+  aContext.fParserDefines := TargetCompilerDefinesText(aOptions.fPlatform);
   aContext.fParserSearchPath := aContext.fProjectDir;
   aContext.fHasDelphiContext := False;
   aContext.fContextNote := cDefaultContextNote;
@@ -639,6 +703,10 @@ begin
     if lLookup.fMainSourcePath <> '' then
     begin
       aContext.fMainSourcePath := lLookup.fMainSourcePath;
+    end;
+    if Length(lLookup.fDefines) > 0 then
+    begin
+      aContext.fParserDefines := String.Join(';', lLookup.fDefines);
     end;
     lSearchPaths := ConcatDedup(lLookup.fSearchPaths, TArray<string>.Create(aContext.fProjectDir));
     if Length(lSearchPaths) > 0 then
@@ -695,6 +763,19 @@ begin
   end;
 
   Result := True;
+end;
+
+function CreateProjectAnalysisIndexer(const aDefines, aSearchPath: string): TProjectIndexer;
+begin
+  Result := TProjectIndexer.Create;
+  Result.Options := Result.Options - [piUseDefinesDefinedByCompiler];
+  Result.Defines := aDefines;
+  Result.SearchPath := aSearchPath;
+end;
+
+function CreateProjectAnalysisIndexer(const aContext: TProjectAnalysisContext): TProjectIndexer;
+begin
+  Result := CreateProjectAnalysisIndexer(aContext.fParserDefines, aContext.fParserSearchPath);
 end;
 
 end.

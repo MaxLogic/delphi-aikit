@@ -1068,9 +1068,7 @@ begin
   inherited Create;
   fProjectPath := aProjectPath;
   fContext := aContext;
-  fIndexer := TProjectIndexer.Create;
-  fIndexer.Defines := fContext.fParserDefines;
-  fIndexer.SearchPath := fContext.fParserSearchPath;
+  fIndexer := CreateProjectAnalysisIndexer(fContext);
 end;
 
 destructor TRemoveWithProjectModel.Destroy;

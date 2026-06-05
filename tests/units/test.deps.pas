@@ -17,7 +17,8 @@ type
     procedure DeleteFolderIfExists(const aFolderPath: string);
     function FindEdgeByNames(const aEdges: TJSONArray; const aFromName, aToName: string): TJSONObject;
     function FindNodeByName(const aNodes: TJSONArray; const aNodeName: string): TJSONObject;
-    function RunDepsJson(const aProjectPath: string; const aLogFileName: string): TJSONObject;
+    function RunDepsJson(const aProjectPath: string; const aLogFileName: string;
+      const aExtraArgs: string = ''): TJSONObject;
   public
     [Setup] procedure Setup;
     [TearDown] procedure TearDown;
@@ -38,6 +39,7 @@ type
     [Test] procedure DepsJsonMarksCycleNodesAndEdges;
     [Test] procedure DepsJsonPrefersImplementationEdgesOnEqualRank;
     [Test] procedure DepsJsonExcludesUnresolvedUnitsFromHotspots;
+    [Test] procedure DepsLinux64UsesTargetCompilerDefinesWithoutHostDefines;
   end;
 
 implementation
@@ -115,7 +117,8 @@ begin
   Result := nil;
 end;
 
-function TDepsTests.RunDepsJson(const aProjectPath: string; const aLogFileName: string): TJSONObject;
+function TDepsTests.RunDepsJson(const aProjectPath: string; const aLogFileName,
+  aExtraArgs: string): TJSONObject;
 var
   lArgs: string;
   lExitCode: Cardinal;
@@ -125,6 +128,8 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogFileName);
   lArgs := 'deps --project ' + QuoteArg(aProjectPath) + ' --format json';
+  if aExtraArgs <> '' then
+    lArgs := lArgs + ' ' + aExtraArgs;
 
   Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start resolver for deps JSON test.');
@@ -232,6 +237,71 @@ begin
     Assert.IsNotEmpty(lParserProblem.GetValue<string>('unitName'));
     Assert.IsNotEmpty(lParserProblem.GetValue<string>('fileName'));
     Assert.IsNotEmpty(lParserProblem.GetValue<string>('description'));
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TDepsTests.DepsLinux64UsesTargetCompilerDefinesWithoutHostDefines;
+var
+  lDprojPath: string;
+  lDprPath: string;
+  lJson: TJSONObject;
+  lMainPath: string;
+  lNodes: TJSONArray;
+  lRoot: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'deps-target-defines');
+  DeleteFolderIfExists(lRoot);
+  TDirectory.CreateDirectory(lRoot);
+
+  lDprPath := TPath.Combine(lRoot, 'TargetDeps.dpr');
+  lDprojPath := TPath.Combine(lRoot, 'TargetDeps.dproj');
+  lMainPath := TPath.Combine(lRoot, 'TargetDeps.Main.pas');
+
+  TFile.WriteAllText(lDprPath,
+    'program TargetDeps;' + sLineBreak +
+    'uses TargetDeps.Main;' + sLineBreak +
+    'begin' + sLineBreak +
+    'end.', TEncoding.UTF8);
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>TargetDeps.dpr</MainSource>' + sLineBreak +
+    '    <Config Condition="''$(Config)''==''''">Debug</Config>' + sLineBreak +
+    '    <Platform Condition="''$(Platform)''==''''">Win32</Platform>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>', TEncoding.UTF8);
+  TFile.WriteAllText(lMainPath,
+    'unit TargetDeps.Main;' + sLineBreak +
+    'interface' + sLineBreak +
+    'uses' + sLineBreak +
+    '  System.SysUtils' + sLineBreak +
+    '{$IFDEF LINUX}' + sLineBreak +
+    '  , TargetDeps.LinuxOnly' + sLineBreak +
+    '{$ENDIF}' + sLineBreak +
+    '{$IFDEF MSWINDOWS}' + sLineBreak +
+    '  , TargetDeps.HostOnly' + sLineBreak +
+    '{$ENDIF}' + sLineBreak +
+    '  ;' + sLineBreak +
+    'implementation' + sLineBreak +
+    'end.', TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'TargetDeps.LinuxOnly.pas'),
+    'unit TargetDeps.LinuxOnly;' + sLineBreak +
+    'interface' + sLineBreak +
+    'implementation' + sLineBreak +
+    'end.', TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'TargetDeps.HostOnly.pas'),
+    'unit TargetDeps.HostOnly;' + sLineBreak +
+    'interface' + sLineBreak +
+    'implementation' + sLineBreak +
+    'end.', TEncoding.UTF8);
+
+  lJson := RunDepsJson(lDprojPath, 'deps-target-defines.log', '--platform Linux64');
+  try
+    lNodes := lJson.GetValue<TJSONArray>('nodes');
+    Assert.IsNotNull(FindNodeByName(lNodes, 'TargetDeps.LinuxOnly'), 'Expected Linux64 target branch.');
+    Assert.IsNull(FindNodeByName(lNodes, 'TargetDeps.HostOnly'), 'Did not expect Windows host branch.');
   finally
     lJson.Free;
   end;
