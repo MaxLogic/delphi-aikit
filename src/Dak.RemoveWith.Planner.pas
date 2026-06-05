@@ -80,8 +80,19 @@ type
     fSelectorTemps: TArray<TRemoveWithSelectorTemp>;
   end;
 
+  TRemoveWithPlannerContext = class
+  private
+    fClassificationsByStatement: TDictionary<string, TArray<TRemoveWithIdentifierClassification>>;
+    fRoutinesByFile: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
+  public
+    constructor Create(const aInventory: TRemoveWithFactSet; const aResolverResult: TRemoveWithResolverResult);
+    destructor Destroy; override;
+    function ClassificationsForStatement(const aStatementId: string): TArray<TRemoveWithIdentifierClassification>;
+  end;
+
   TRemoveWithPlanner = record
   private
+    fContext: TRemoveWithPlannerContext;
     class function IsIdentifierChar(const aValue: Char): Boolean; static;
     class function DirectTypeName(const aTypeName: string): string; static;
     class function CanonicalSourceTypeName(const aInventory: TRemoveWithFactSet;
@@ -104,9 +115,8 @@ type
     class procedure RewriteDecisionSelectorText(const aSelectorText: string; var aDecision: TRemoveWithTempDecision);
       static;
     class function StatementContains(const aOuter, aInner: TRemoveWithStatementInfo): Boolean; static;
-    class function FindRoutineForStatement(const aInventory: TRemoveWithFactSet;
+    function FindRoutineForStatement(const aInventory: TRemoveWithFactSet;
       const aStatement: TRemoveWithStatementInfo; out aRoutineName: string; out aRoutineLine: Integer): Boolean;
-      static;
     class function RangeOffsets(const aSource: TRemoveWithSourceBuffer; const aRange: TRemoveWithRange;
       out aOffsets: TRemoveWithPlanOffsetRange): Boolean; static;
     class function SourceLineText(const aSource: TRemoveWithSourceBuffer; const aLine: Integer): string; static;
@@ -164,8 +174,8 @@ type
       const aSourceTemps: TArray<TRemoveWithSelectorTemp>); static;
     class function SelectorTempsNeedDeclaration(const aSelectorTemps: TArray<TRemoveWithSelectorTemp>): Boolean;
       static;
-    class function UnsupportedRoleForStatement(const aResolverResult: TRemoveWithResolverResult;
-      const aStatement: TRemoveWithStatementInfo): string; static;
+    function UnsupportedRoleForStatement(const aResolverResult: TRemoveWithResolverResult;
+      const aStatement: TRemoveWithStatementInfo): string;
     class procedure SkipStatement(var aPlanResult: TRemoveWithPlanResult; const aStatement: TRemoveWithStatementInfo;
       const aReason, aUnsupportedIdentifierRole: string); static;
     class function CopyReservedNames(const aReservedNames: TRemoveWithReservedTempNames): TRemoveWithReservedTempNames;
@@ -174,32 +184,32 @@ type
       const aRoutineLine: Integer): Boolean; static;
     class function EnsureRoutineState(var aStates: TArray<TRemoveWithRoutinePlanState>; const aFilePath,
       aRoutineName: string; const aRoutineLine: Integer): Integer; static;
-    class function TryBuildDirectSelectorDecisionFromClassifications(
+    function TryBuildDirectSelectorDecisionFromClassifications(
       const aResolverResult: TRemoveWithResolverResult; const aStatement: TRemoveWithStatementInfo;
-      const aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean; static;
-    class function BuildSelectorTemps(const aInventory: TRemoveWithFactSet;
+      const aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean;
+    function BuildSelectorTemps(const aInventory: TRemoveWithFactSet;
       const aStatement: TRemoveWithStatementInfo; const aRoutineName: string;
       const aResolverResult: TRemoveWithResolverResult;
       const aInheritedTemps: TArray<TRemoveWithSelectorTemp>; var aReservedNames: TRemoveWithReservedTempNames;
-      out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean; static;
-    class function RewrittenBodyText(const aSource: TRemoveWithSourceBuffer;
+      out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean;
+    function RewrittenBodyText(const aSource: TRemoveWithSourceBuffer;
       const aStatement: TRemoveWithStatementInfo;
       const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aResolverResult: TRemoveWithResolverResult;
-      const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText, aReason: string): Boolean; static;
-    class function BuildLegacyApplyReplacement(const aInventory: TRemoveWithFactSet;
+      const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText, aReason: string): Boolean;
+    function BuildLegacyApplyReplacement(const aInventory: TRemoveWithFactSet;
       const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
       const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
       const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>;
       var aReservedNames: TRemoveWithReservedTempNames;
       out aReplacementText: string;
-      out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean; static;
+      out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean;
     class function AddRoutineDeclarationEdits(const aRoutineStates: TArray<TRemoveWithRoutinePlanState>;
       var aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean; static;
-    class procedure PlanStatement(const aInventory: TRemoveWithFactSet;
+    procedure PlanStatement(const aInventory: TRemoveWithFactSet;
       const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
       const aSemanticPlan: TDelphiSemanticRemoveWithPlan; const aStatement: TRemoveWithStatementInfo;
       const aSource: TRemoveWithSourceBuffer;
-      var aRoutineStates: TArray<TRemoveWithRoutinePlanState>; var aPlanResult: TRemoveWithPlanResult); static;
+      var aRoutineStates: TArray<TRemoveWithRoutinePlanState>; var aPlanResult: TRemoveWithPlanResult);
   public
     class function Plan(const aInventory: TRemoveWithFactSet; const aScanResult: TRemoveWithScanResult;
       const aResolverResult: TRemoveWithResolverResult; out aPlanResult: TRemoveWithPlanResult;
@@ -209,11 +219,8 @@ type
       out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean; overload; static;
   end;
 
-var
-  GPlannerClassificationsByStatement: TDictionary<string, TArray<TRemoveWithIdentifierClassification>>;
-  GPlannerRoutinesByFile: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
-
-procedure BeginPlannerClassificationCache(const aResolverResult: TRemoveWithResolverResult);
+procedure BuildPlannerClassificationCache(const aContext: TRemoveWithPlannerContext;
+  const aResolverResult: TRemoveWithResolverResult);
 var
   i: Integer;
   lBuckets: TDictionary<string, TList<TRemoveWithIdentifierClassification>>;
@@ -222,8 +229,6 @@ var
   lList: TList<TRemoveWithIdentifierClassification>;
   lPair: TPair<string, TList<TRemoveWithIdentifierClassification>>;
 begin
-  GPlannerClassificationsByStatement.Free;
-  GPlannerClassificationsByStatement := nil;
   lBuckets := TDictionary<string, TList<TRemoveWithIdentifierClassification>>.Create(
     TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
@@ -240,9 +245,14 @@ begin
 
     lIndex := TDictionary<string, TArray<TRemoveWithIdentifierClassification>>.Create(
       TFastCaseAwareComparer.OrdinalIgnoreCase);
-    for lPair in lBuckets do
-      lIndex.Add(lPair.Key, lPair.Value.ToArray);
-    GPlannerClassificationsByStatement := lIndex;
+    try
+      for lPair in lBuckets do
+        lIndex.Add(lPair.Key, lPair.Value.ToArray);
+      aContext.fClassificationsByStatement := lIndex;
+      lIndex := nil;
+    finally
+      lIndex.Free;
+    end;
   finally
     for lPair in lBuckets do
       lPair.Value.Free;
@@ -250,22 +260,7 @@ begin
   end;
 end;
 
-procedure EndPlannerClassificationCache;
-begin
-  GPlannerClassificationsByStatement.Free;
-  GPlannerClassificationsByStatement := nil;
-end;
-
-function PlannerClassificationsForStatement(const aStatementId: string):
-  TArray<TRemoveWithIdentifierClassification>;
-begin
-  Result := nil;
-  if GPlannerClassificationsByStatement = nil then
-    Exit;
-  GPlannerClassificationsByStatement.TryGetValue(aStatementId, Result);
-end;
-
-procedure BeginPlannerRoutineCache(const aInventory: TRemoveWithFactSet);
+procedure BuildPlannerRoutineCache(const aContext: TRemoveWithPlannerContext; const aInventory: TRemoveWithFactSet);
 var
   lRoutineBuckets: TDictionary<string, TList<TRemoveWithSymbolInfo>>;
   lIndex: TDictionary<string, TArray<TRemoveWithSymbolInfo>>;
@@ -273,9 +268,6 @@ var
   lPair: TPair<string, TList<TRemoveWithSymbolInfo>>;
   lSymbol: TRemoveWithSymbolInfo;
 begin
-  GPlannerRoutinesByFile.Free;
-  GPlannerRoutinesByFile := nil;
-
   lRoutineBuckets := TDictionary<string, TList<TRemoveWithSymbolInfo>>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
     for lSymbol in aInventory.fSymbols do
@@ -295,7 +287,7 @@ begin
     try
       for lPair in lRoutineBuckets do
         lIndex.Add(lPair.Key, lPair.Value.ToArray);
-      GPlannerRoutinesByFile := lIndex;
+      aContext.fRoutinesByFile := lIndex;
       lIndex := nil;
     finally
       lIndex.Free;
@@ -307,10 +299,34 @@ begin
   end;
 end;
 
-procedure EndPlannerRoutineCache;
+constructor TRemoveWithPlannerContext.Create(const aInventory: TRemoveWithFactSet;
+  const aResolverResult: TRemoveWithResolverResult);
 begin
-  GPlannerRoutinesByFile.Free;
-  GPlannerRoutinesByFile := nil;
+  try
+    inherited Create;
+    BuildPlannerClassificationCache(Self, aResolverResult);
+    BuildPlannerRoutineCache(Self, aInventory);
+  except
+    FreeAndNil(fRoutinesByFile);
+    FreeAndNil(fClassificationsByStatement);
+    raise;
+  end;
+end;
+
+destructor TRemoveWithPlannerContext.Destroy;
+begin
+  fRoutinesByFile.Free;
+  fClassificationsByStatement.Free;
+  inherited;
+end;
+
+function TRemoveWithPlannerContext.ClassificationsForStatement(const aStatementId: string):
+  TArray<TRemoveWithIdentifierClassification>;
+begin
+  Result := nil;
+  if fClassificationsByStatement = nil then
+    Exit;
+  fClassificationsByStatement.TryGetValue(aStatementId, Result);
 end;
 
 function UnsupportedRoleCanRemainUnchanged(const aRole: string): Boolean;
@@ -730,7 +746,7 @@ begin
     (aOuter.fRange.fEndColumn >= aInner.fRange.fEndColumn)));
 end;
 
-class function TRemoveWithPlanner.FindRoutineForStatement(const aInventory: TRemoveWithFactSet;
+function TRemoveWithPlanner.FindRoutineForStatement(const aInventory: TRemoveWithFactSet;
   const aStatement: TRemoveWithStatementInfo; out aRoutineName: string; out aRoutineLine: Integer): Boolean;
 var
   lBestLine: Integer;
@@ -741,9 +757,7 @@ begin
   aRoutineName := '';
   aRoutineLine := 0;
   lBestLine := 0;
-  if GPlannerRoutinesByFile = nil then
-    BeginPlannerRoutineCache(aInventory);
-  if not GPlannerRoutinesByFile.TryGetValue(aStatement.fFilePath, lRoutines) then
+  if (fContext = nil) or (not fContext.fRoutinesByFile.TryGetValue(aStatement.fFilePath, lRoutines)) then
     Exit(False);
   for lSymbol in lRoutines do
   begin
@@ -1756,7 +1770,7 @@ begin
   Result := False;
 end;
 
-class function TRemoveWithPlanner.UnsupportedRoleForStatement(const aResolverResult: TRemoveWithResolverResult;
+function TRemoveWithPlanner.UnsupportedRoleForStatement(const aResolverResult: TRemoveWithResolverResult;
   const aStatement: TRemoveWithStatementInfo): string;
 var
   lClassification: TRemoveWithIdentifierClassification;
@@ -1765,7 +1779,7 @@ begin
   if Result <> '' then
     Exit;
 
-  for lClassification in PlannerClassificationsForStatement(aStatement.fId) do
+  for lClassification in fContext.ClassificationsForStatement(aStatement.fId) do
   begin
     if SameText(lClassification.fStatementId, aStatement.fId) and
       SameText(lClassification.fReason, 'unsupported-identifier-role') then
@@ -1797,7 +1811,7 @@ begin
   AddStatement(aPlanResult, lPlannedStatement);
 end;
 
-class function TRemoveWithPlanner.TryBuildDirectSelectorDecisionFromClassifications(
+function TRemoveWithPlanner.TryBuildDirectSelectorDecisionFromClassifications(
   const aResolverResult: TRemoveWithResolverResult; const aStatement: TRemoveWithStatementInfo;
   const aSelectorText: string; out aDecision: TRemoveWithTempDecision): Boolean;
 var
@@ -1806,7 +1820,7 @@ begin
   aDecision := Default(TRemoveWithTempDecision);
   Result := False;
 
-  for lClassification in PlannerClassificationsForStatement(aStatement.fId) do
+  for lClassification in fContext.ClassificationsForStatement(aStatement.fId) do
   begin
     if SameText(lClassification.fStatementId, aStatement.fId) and
       (lClassification.fStatus = TRemoveWithIdentifierStatus.rwisResolved) and
@@ -1858,7 +1872,7 @@ begin
   aStates[Result].fFirstPlanIndex := -1;
 end;
 
-class function TRemoveWithPlanner.BuildSelectorTemps(const aInventory: TRemoveWithFactSet;
+function TRemoveWithPlanner.BuildSelectorTemps(const aInventory: TRemoveWithFactSet;
   const aStatement: TRemoveWithStatementInfo; const aRoutineName: string;
   const aResolverResult: TRemoveWithResolverResult;
   const aInheritedTemps: TArray<TRemoveWithSelectorTemp>; var aReservedNames: TRemoveWithReservedTempNames;
@@ -1951,7 +1965,7 @@ begin
   Result := True;
 end;
 
-class function TRemoveWithPlanner.RewrittenBodyText(const aSource: TRemoveWithSourceBuffer;
+function TRemoveWithPlanner.RewrittenBodyText(const aSource: TRemoveWithSourceBuffer;
   const aStatement: TRemoveWithStatementInfo;
   const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aResolverResult: TRemoveWithResolverResult;
   const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText, aReason: string): Boolean;
@@ -1983,7 +1997,7 @@ begin
     AddBodyEdit(lBodyEdits, lBodyEdit.fOffsets, lBodyEdit.fReplacementText);
   end;
 
-  for lClassification in PlannerClassificationsForStatement(aStatement.fId) do
+  for lClassification in fContext.ClassificationsForStatement(aStatement.fId) do
   begin
     if not SameText(lClassification.fStatementId, aStatement.fId) then
       Continue;
@@ -2025,7 +2039,7 @@ begin
   Result := True;
 end;
 
-class function TRemoveWithPlanner.BuildLegacyApplyReplacement(const aInventory: TRemoveWithFactSet;
+function TRemoveWithPlanner.BuildLegacyApplyReplacement(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aStatement: TRemoveWithStatementInfo; const aSource: TRemoveWithSourceBuffer;
   const aRoutineName: string; const aInheritedTemps: TArray<TRemoveWithSelectorTemp>;
@@ -2191,7 +2205,7 @@ begin
   Result := True;
 end;
 
-class procedure TRemoveWithPlanner.PlanStatement(const aInventory: TRemoveWithFactSet;
+procedure TRemoveWithPlanner.PlanStatement(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aSemanticPlan: TDelphiSemanticRemoveWithPlan; const aStatement: TRemoveWithStatementInfo;
   const aSource: TRemoveWithSourceBuffer;
@@ -2268,7 +2282,9 @@ class function TRemoveWithPlanner.Plan(const aInventory: TRemoveWithFactSet;
   const aSemanticPlan: TDelphiSemanticRemoveWithPlan; out aPlanResult: TRemoveWithPlanResult;
   out aError: string): Boolean;
 var
+  lContext: TRemoveWithPlannerContext;
   lCurrentPath: string;
+  lPlanner: TRemoveWithPlanner;
   lRoutineStates: TArray<TRemoveWithRoutinePlanState>;
   lSource: TRemoveWithSourceBuffer;
   lStatement: TRemoveWithStatementInfo;
@@ -2282,10 +2298,12 @@ begin
       aInventory.fParserDefines, aPlanResult, aError));
 
   Result := False;
+  lContext := nil;
   lCurrentPath := '';
+  lPlanner := Default(TRemoveWithPlanner);
   lSource := Default(TRemoveWithSourceBuffer);
-  BeginPlannerClassificationCache(aResolverResult);
-  BeginPlannerRoutineCache(aInventory);
+  lContext := TRemoveWithPlannerContext.Create(aInventory, aResolverResult);
+  lPlanner.fContext := lContext;
   BeginRemoveWithSelectorTypeCache(aInventory);
   BeginRemoveWithTempPolicyCache(aInventory);
   try
@@ -2306,8 +2324,8 @@ begin
             Exit(False);
           lCurrentPath := lStatement.fFilePath;
         end;
-        PlanStatement(aInventory, aScanResult, aResolverResult, aSemanticPlan, lStatement, lSource, lRoutineStates,
-          aPlanResult);
+        lPlanner.PlanStatement(aInventory, aScanResult, aResolverResult, aSemanticPlan, lStatement, lSource,
+          lRoutineStates, aPlanResult);
       end;
       if not AddRoutineDeclarationEdits(lRoutineStates, aPlanResult, aError) then
         Exit(False);
@@ -2321,8 +2339,7 @@ begin
   finally
     EndRemoveWithTempPolicyCache;
     EndRemoveWithSelectorTypeCache;
-    EndPlannerRoutineCache;
-    EndPlannerClassificationCache;
+    lContext.Free;
   end;
 end;
 
