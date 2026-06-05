@@ -249,7 +249,7 @@ begin
   end;
   ForceDirectories(lTestOutputDir);
   lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
-    ' -config Release -platform Win32 -ver 23';
+    ' -config Release -platform Win64 -ver 23';
   lArgs := lArgs + ' -test-output-dir ' + QuoteArg(lTestOutputDir);
   lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
   lLog := TPath.Combine(TempRoot, 'build-resolver.log');

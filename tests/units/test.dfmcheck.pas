@@ -683,7 +683,7 @@ var
   lDirectories: TArray<string>;
 begin
   lDirectories := TDirectory.GetDirectories(aParentDir, '*', TSearchOption.soTopDirectoryOnly);
-  Assert.AreEqual(1, Length(lDirectories), 'Expected exactly one child directory under ' + aParentDir + '.');
+  Assert.AreEqual(1, Integer(Length(lDirectories)), 'Expected exactly one child directory under ' + aParentDir + '.');
   Result := lDirectories[0];
 end;
 
