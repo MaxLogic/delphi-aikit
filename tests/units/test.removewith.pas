@@ -215,6 +215,8 @@ type
     [Test]
     procedure BindsHelpersInheritanceInterfacesAndOverloads;
     [Test]
+    procedure PlanReportUsesSemanticProjectionForSafeSingleSelectorStatements;
+    [Test]
     procedure ReportsResolvedReceiverMissingMemberPrecisely;
     [Test]
     procedure ResolverUsesSemanticBindingScopedDeclarationGate;
@@ -461,6 +463,8 @@ type
     procedure SemanticFinalDtoPrimaryPlanFailsWhenActiveConditionalStatementCannotMap;
     [Test]
     procedure PlanModeConsumesSemanticFinalDtoBeforeResolverReport;
+    [Test]
+    procedure PlanReportProjectionKeepsScopeShadowFallback;
     [Test]
     procedure PlanCliEmitsPlannedEditsWithoutChangingFixture;
   end;
@@ -1733,6 +1737,7 @@ var
   lOutput: string;
   lRoot: TJSONObject;
   lMetrics: TJSONObject;
+  lResolverSubphaseMetrics: TJSONObject;
   lSubphaseMetrics: TJSONObject;
 begin
   lOutput := RunRemoveWith('plan', 'json', 'remove-with-report-plan-metrics.json', lExitCode);
@@ -1756,12 +1761,34 @@ begin
     AssertJsonNumberKey(lMetrics, 'dakLookupIndexMs');
     AssertJsonNumberKey(lMetrics, 'dakResolverClassifyMs');
     AssertJsonNumberKey(lMetrics, 'dakPlannerRewriteMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticModelExtractionMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticInventoryBuildMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticScopeIndexBuildMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticSelectorBindingMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticReferenceBindingMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticLookupIndexBuildMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'semanticBindingIndexBuildMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'semanticInventoryExpansionMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'rtlSourceEnrichmentMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'externalUnitSymbolsMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'externalTypeSymbolsMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'problemSymbolAssemblyMs');
+    AssertJsonObjectKey(lMetrics, 'resolverReportSubphaseMetrics',
+      lResolverSubphaseMetrics);
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'directSemanticProjectionMs');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackDecisionMs');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'legacyFallbackResolverMs');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackStatementCount');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackClassificationCount');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'semanticReferenceCount');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackScopedDeclarationCount');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackScopeShadowCount');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackMultiSelectorCount');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackUppercaseLexicalCount');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackHelperReceiverCount');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackInheritedMemberCount');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackUnsupportedReferenceCount');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackStrictNonMemberCount');
     AssertJsonNumberKey(lMetrics, 'symbolMapBridgeMs');
     AssertJsonNumberKey(lMetrics, 'resolverMs');
     AssertJsonNumberKey(lMetrics, 'plannerMs');
@@ -3188,6 +3215,39 @@ begin
       'IBaseContact');
     AssertJsonSourceClassification(lClassifications, 'with-1', 'ChildTouch', 'resolved', 'direct', '');
     AssertJsonSourceClassification(lClassifications, 'with-1', 'ConcreteOnly', 'unresolved', 'unresolved', '');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+procedure TRemoveWithSemanticBinderTests.PlanReportUsesSemanticProjectionForSafeSingleSelectorStatements;
+var
+  lClassifications: TJSONArray;
+  lExitCode: Cardinal;
+  lMetrics: TJSONObject;
+  lResolver: TJSONObject;
+  lResolverSubphaseMetrics: TJSONObject;
+  lRoot: TJSONObject;
+  lSummary: TJSONObject;
+begin
+  lRoot := RunFixtureJson('RemoveWithE2EFixture', 'RemoveWithE2EFixture',
+    'remove-with-semantic-report-projection.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected resolver fixture plan to succeed.');
+    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    AssertJsonObjectKey(lRoot, 'plannerPhaseMetrics', lMetrics);
+    AssertJsonObjectKey(lMetrics, 'resolverReportSubphaseMetrics',
+      lResolverSubphaseMetrics);
+
+    AssertJsonClassification(lClassifications, 'with-2', 'Name', 'resolved', 'direct',
+      'field');
+    Assert.IsTrue(lResolverSubphaseMetrics.GetValue<Integer>('semanticReferenceCount') > 0,
+      'Expected plan report to project safe semantic references directly.');
+    Assert.IsTrue(lResolverSubphaseMetrics.GetValue<Integer>('fallbackStatementCount') <
+      lSummary.GetValue<Integer>('withStatements'),
+      'Expected plan report fallback to be limited to statements that need legacy analysis.');
   finally
     lRoot.Free;
   end;
@@ -5242,6 +5302,28 @@ begin
   Assert.IsTrue(lResolverPos > 0, 'Expected remove-with command resolver phase.');
   Assert.IsTrue(lPlannerPos < lResolverPos,
     'Plan/report mode must consume the final semantic DTO before DAK resolver reporting can fail.');
+end;
+
+procedure TRemoveWithPlannerTests.PlanReportProjectionKeepsScopeShadowFallback;
+var
+  lFallbackEnd: Integer;
+  lFallbackStart: Integer;
+  lFallbackText: string;
+  lSourceText: string;
+begin
+  lSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Resolver.pas'), TEncoding.UTF8);
+  lFallbackStart := Pos('function SemanticStatementNeedsDakFallback', lSourceText);
+  lFallbackEnd := Pos('procedure AddFallbackStatement', lSourceText);
+  Assert.IsTrue((lFallbackStart > 0) and (lFallbackEnd > lFallbackStart),
+    'Expected semantic fallback decision source section.');
+
+  lFallbackText := Copy(lSourceText, lFallbackStart, lFallbackEnd - lFallbackStart);
+  Assert.IsTrue(ContainsText(lFallbackText, 'SemanticMemberHasDakScopeShadow'),
+    'Report projection must preserve the legacy scope-shadow fallback gate.');
+  Assert.IsFalse(ContainsText(lFallbackText,
+    '(not aReportOnly) and' + sLineBreak + '    SemanticMemberHasDakScopeShadow'),
+    'Scope-shadow fallback must not be disabled for plan/report projection.');
 end;
 
 procedure TRemoveWithPlannerTests.PlanCliEmitsPlannedEditsWithoutChangingFixture;

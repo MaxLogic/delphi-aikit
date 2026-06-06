@@ -151,6 +151,7 @@ var
   lProjectName: string;
   lProjectPath: string;
   lResolverError: string;
+  lResolverReportMetrics: TRemoveWithResolverReportMetrics;
   lBodyAnalysisSourceFileNames: TArray<string>;
   lApplyContext: TRemoveWithPlanApplyContext;
   lResolverResult: TRemoveWithResolverResult;
@@ -172,6 +173,7 @@ begin
   lProjectModel := nil;
   lPlanResult := Default(TRemoveWithPlanResult);
   lResolverResult := Default(TRemoveWithResolverResult);
+  lResolverReportMetrics := Default(TRemoveWithResolverReportMetrics);
   lSymbolMapBridge := Default(TRemoveWithSymbolMapBridge);
   lTransactionResult := Default(TRemoveWithTransactionResult);
 
@@ -261,7 +263,7 @@ begin
         LogRemoveWithProgress(aOptions, 'resolver start');
         lStopwatch := TStopwatch.StartNew;
         if not ResolveRemoveWithIdentifiersFromSemanticFacts(lSymbolInventory,
-          lScanResult, lResolverResult, lError) then
+          lScanResult, lResolverResult, lError, lResolverReportMetrics) then
         begin
           WriteLn(ErrOutput, lError);
           Exit(cExitToolFailure);
@@ -279,6 +281,7 @@ begin
         if lMetrics.fDakResolverClassifyMs < 0 then
           lMetrics.fDakResolverClassifyMs := 0;
         lMetrics.fClassificationCount := Length(lResolverResult.fClassifications);
+        lMetrics.fResolverReportMetrics := lResolverReportMetrics;
         LogRemoveWithDone(aOptions, 'resolver',
           Format('classifications=%d', [Length(lResolverResult.fClassifications)]),
           lStopwatch);
@@ -312,8 +315,9 @@ begin
         LogRemoveWithProgress(aOptions, 'resolver start');
         lStopwatch := TStopwatch.StartNew;
         lResolverError := '';
+        lResolverReportMetrics := Default(TRemoveWithResolverReportMetrics);
         if ResolveRemoveWithIdentifiersFromSemanticFacts(lSymbolInventory, lScanResult,
-          lResolverResult, lResolverError) then
+          lResolverResult, lResolverError, lResolverReportMetrics, True) then
         begin
           lStopwatch.Stop;
           lMetrics.fResolverMs := lStopwatch.ElapsedMilliseconds;
@@ -328,6 +332,7 @@ begin
           if lMetrics.fDakResolverClassifyMs < 0 then
             lMetrics.fDakResolverClassifyMs := 0;
           lMetrics.fClassificationCount := Length(lResolverResult.fClassifications);
+          lMetrics.fResolverReportMetrics := lResolverReportMetrics;
           LogRemoveWithDone(aOptions, 'resolver',
             Format('classifications=%d', [Length(lResolverResult.fClassifications)]),
             lStopwatch);

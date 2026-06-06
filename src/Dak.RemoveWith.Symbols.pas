@@ -56,6 +56,12 @@ type
     fDakLookupIndexMs: Int64;
     fDakLookupCacheHits: Int64;
     fDakLookupCacheMisses: Int64;
+    fSemanticModelExtractionMs: Int64;
+    fSemanticInventoryBuildMs: Int64;
+    fSemanticScopeIndexBuildMs: Int64;
+    fSemanticSelectorBindingMs: Int64;
+    fSemanticReferenceBindingMs: Int64;
+    fSemanticLookupIndexBuildMs: Int64;
     fSemanticBindingIndexBuildMs: Int64;
     fSemanticInventoryExpansionMs: Int64;
     fRtlSourceEnrichmentMs: Int64;
@@ -775,9 +781,15 @@ begin
   end;
   lStopwatch.Stop;
   aPhaseMetrics.fSemanticProjectFactsMs := lStopwatch.ElapsedMilliseconds;
-  aPhaseMetrics.fSemanticInventoryExpansionMs := lFacts.Metrics.InventoryBuildMilliseconds;
+  aPhaseMetrics.fSemanticModelExtractionMs := lFacts.Metrics.ModelExtractionMilliseconds;
+  aPhaseMetrics.fSemanticInventoryBuildMs := lFacts.Metrics.InventoryBuildMilliseconds;
+  aPhaseMetrics.fSemanticInventoryExpansionMs := lFacts.Metrics.InventoryExpansionMilliseconds;
   aPhaseMetrics.fSemanticBindingMs := lFacts.Metrics.BindingBuildMilliseconds;
-  aPhaseMetrics.fSemanticBindingIndexBuildMs := lStopwatch.ElapsedMilliseconds;
+  aPhaseMetrics.fSemanticScopeIndexBuildMs := lFacts.Metrics.ScopeIndexBuildMilliseconds;
+  aPhaseMetrics.fSemanticSelectorBindingMs := lFacts.Metrics.SelectorBindingMilliseconds;
+  aPhaseMetrics.fSemanticReferenceBindingMs := lFacts.Metrics.ReferenceBindingMilliseconds;
+  aPhaseMetrics.fSemanticLookupIndexBuildMs := lFacts.Metrics.LookupIndexBuildMilliseconds;
+  aPhaseMetrics.fSemanticBindingIndexBuildMs := lFacts.Metrics.LookupIndexBuildMilliseconds;
   if lFacts.ContextFingerprint = '' then
   begin
     aError := 'DelphiSemantics project facts did not return a context fingerprint.';
