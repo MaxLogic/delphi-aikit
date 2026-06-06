@@ -5,6 +5,9 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added additive `remove-with` planner subphase metrics for semantic inventory,
+  with-binding, final DTO planning, and resolver-report fallback/projection
+  timings and counts.
 - Added maxTdb semantic rename dogfood coverage that clones the fixture, applies
   real project-scoped renames, verifies `.dak` backups/manifests, compiles the
   renamed clone, and byte-checks that the original fixture stays unchanged.
@@ -85,6 +88,10 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- `remove-with --mode plan` report generation now uses semantic report
+  projection for the measured safe subset before falling back to the legacy
+  resolver report path, while keeping the existing JSON contract additive.
+
 - Project analysis commands now pass target-derived compiler/platform defines to
   DelphiAST and disable host-process compiler defines when parsing another
   target platform.

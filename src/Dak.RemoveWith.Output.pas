@@ -1,4 +1,4 @@
-﻿unit Dak.RemoveWith.Output;
+unit Dak.RemoveWith.Output;
 
 interface
 
@@ -21,6 +21,7 @@ type
     fDakLookupCacheHits: Int64;
     fDakLookupCacheMisses: Int64;
     fDakResolverClassifyMs: Int64;
+    fResolverReportMetrics: TRemoveWithResolverReportMetrics;
     fDakPlannerRewriteMs: Int64;
     fSymbolMapBridgeMs: Int64;
     fResolverMs: Int64;
@@ -633,6 +634,18 @@ begin
   Result.AddPair('dakLookupIndexMs', TJSONNumber.Create(aMetrics.fDakLookupIndexMs));
   Result.AddPair('dakLookupCacheHits', TJSONNumber.Create(aMetrics.fDakLookupCacheHits));
   Result.AddPair('dakLookupCacheMisses', TJSONNumber.Create(aMetrics.fDakLookupCacheMisses));
+  Result.AddPair('semanticModelExtractionMs',
+    TJSONNumber.Create(aMetrics.fSemanticModelExtractionMs));
+  Result.AddPair('semanticInventoryBuildMs',
+    TJSONNumber.Create(aMetrics.fSemanticInventoryBuildMs));
+  Result.AddPair('semanticScopeIndexBuildMs',
+    TJSONNumber.Create(aMetrics.fSemanticScopeIndexBuildMs));
+  Result.AddPair('semanticSelectorBindingMs',
+    TJSONNumber.Create(aMetrics.fSemanticSelectorBindingMs));
+  Result.AddPair('semanticReferenceBindingMs',
+    TJSONNumber.Create(aMetrics.fSemanticReferenceBindingMs));
+  Result.AddPair('semanticLookupIndexBuildMs',
+    TJSONNumber.Create(aMetrics.fSemanticLookupIndexBuildMs));
   Result.AddPair('semanticBindingIndexBuildMs',
     TJSONNumber.Create(aMetrics.fSemanticBindingIndexBuildMs));
   Result.AddPair('semanticInventoryExpansionMs',
@@ -641,6 +654,40 @@ begin
   Result.AddPair('externalUnitSymbolsMs', TJSONNumber.Create(aMetrics.fExternalUnitSymbolsMs));
   Result.AddPair('externalTypeSymbolsMs', TJSONNumber.Create(aMetrics.fExternalTypeSymbolsMs));
   Result.AddPair('problemSymbolAssemblyMs', TJSONNumber.Create(aMetrics.fProblemSymbolAssemblyMs));
+end;
+
+function BuildResolverReportPhaseMetricsObject(
+  const aMetrics: TRemoveWithResolverReportMetrics): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('directSemanticProjectionMs',
+    TJSONNumber.Create(aMetrics.fDirectSemanticProjectionMs));
+  Result.AddPair('fallbackDecisionMs',
+    TJSONNumber.Create(aMetrics.fFallbackDecisionMs));
+  Result.AddPair('legacyFallbackResolverMs',
+    TJSONNumber.Create(aMetrics.fLegacyFallbackResolverMs));
+  Result.AddPair('fallbackStatementCount',
+    TJSONNumber.Create(aMetrics.fFallbackStatementCount));
+  Result.AddPair('fallbackClassificationCount',
+    TJSONNumber.Create(aMetrics.fFallbackClassificationCount));
+  Result.AddPair('semanticReferenceCount',
+    TJSONNumber.Create(aMetrics.fSemanticReferenceCount));
+  Result.AddPair('fallbackScopedDeclarationCount',
+    TJSONNumber.Create(aMetrics.fFallbackScopedDeclarationCount));
+  Result.AddPair('fallbackScopeShadowCount',
+    TJSONNumber.Create(aMetrics.fFallbackScopeShadowCount));
+  Result.AddPair('fallbackMultiSelectorCount',
+    TJSONNumber.Create(aMetrics.fFallbackMultiSelectorCount));
+  Result.AddPair('fallbackUppercaseLexicalCount',
+    TJSONNumber.Create(aMetrics.fFallbackUppercaseLexicalCount));
+  Result.AddPair('fallbackHelperReceiverCount',
+    TJSONNumber.Create(aMetrics.fFallbackHelperReceiverCount));
+  Result.AddPair('fallbackInheritedMemberCount',
+    TJSONNumber.Create(aMetrics.fFallbackInheritedMemberCount));
+  Result.AddPair('fallbackUnsupportedReferenceCount',
+    TJSONNumber.Create(aMetrics.fFallbackUnsupportedReferenceCount));
+  Result.AddPair('fallbackStrictNonMemberCount',
+    TJSONNumber.Create(aMetrics.fFallbackStrictNonMemberCount));
 end;
 
 function BuildPlannerPhaseMetricsObject(const aMetrics: TRemoveWithPlannerPhaseMetrics): TJSONObject;
@@ -662,6 +709,8 @@ begin
   Result.AddPair('dakLookupCacheHits', TJSONNumber.Create(aMetrics.fDakLookupCacheHits));
   Result.AddPair('dakLookupCacheMisses', TJSONNumber.Create(aMetrics.fDakLookupCacheMisses));
   Result.AddPair('dakResolverClassifyMs', TJSONNumber.Create(aMetrics.fDakResolverClassifyMs));
+  Result.AddPair('resolverReportSubphaseMetrics',
+    BuildResolverReportPhaseMetricsObject(aMetrics.fResolverReportMetrics));
   Result.AddPair('dakPlannerRewriteMs', TJSONNumber.Create(aMetrics.fDakPlannerRewriteMs));
   Result.AddPair('symbolMapBridgeMs', TJSONNumber.Create(aMetrics.fSymbolMapBridgeMs));
   Result.AddPair('resolverMs', TJSONNumber.Create(aMetrics.fResolverMs));

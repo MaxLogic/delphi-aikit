@@ -34,6 +34,23 @@ type
     fClassifications: TArray<TRemoveWithIdentifierClassification>;
   end;
 
+  TRemoveWithResolverReportMetrics = record
+    fDirectSemanticProjectionMs: Int64;
+    fFallbackDecisionMs: Int64;
+    fLegacyFallbackResolverMs: Int64;
+    fFallbackStatementCount: Integer;
+    fFallbackClassificationCount: Integer;
+    fSemanticReferenceCount: Integer;
+    fFallbackScopedDeclarationCount: Integer;
+    fFallbackScopeShadowCount: Integer;
+    fFallbackMultiSelectorCount: Integer;
+    fFallbackUppercaseLexicalCount: Integer;
+    fFallbackHelperReceiverCount: Integer;
+    fFallbackInheritedMemberCount: Integer;
+    fFallbackUnsupportedReferenceCount: Integer;
+    fFallbackStrictNonMemberCount: Integer;
+  end;
+
 function RemoveWithIdentifierStatusToText(const aStatus: TRemoveWithIdentifierStatus): string;
 function ResolveRemoveWithIdentifiers(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult; out aError: string): Boolean;
@@ -43,12 +60,19 @@ function ResolveRemoveWithIdentifiers(const aInventory: TRemoveWithFactSet;
   out aResult: TRemoveWithResolverResult; out aError: string): Boolean; overload;
 function ResolveRemoveWithIdentifiersFromSemanticFacts(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult;
-  out aError: string): Boolean;
+  out aError: string): Boolean; overload;
+function ResolveRemoveWithIdentifiersFromSemanticFacts(const aInventory: TRemoveWithFactSet;
+  const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult;
+  out aError: string; out aMetrics: TRemoveWithResolverReportMetrics): Boolean; overload;
+function ResolveRemoveWithIdentifiersFromSemanticFacts(const aInventory: TRemoveWithFactSet;
+  const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult;
+  out aError: string; out aMetrics: TRemoveWithResolverReportMetrics;
+  const aReportOnly: Boolean): Boolean; overload;
 
 implementation
 
 uses
-  System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  System.Diagnostics, System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiSemantics.Model, DelphiSemantics.WithBinding,
   MaxLogic.StrUtils,
   Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Source;
@@ -3485,6 +3509,8 @@ function SemanticReferenceStatus(const aReference: TDelphiSemanticBoundReference
 begin
   if SameText(aReference.Classification, 'member') then
     Result := TRemoveWithIdentifierStatus.rwisResolved
+  else if SameText(aReference.Classification, 'external') then
+    Result := TRemoveWithIdentifierStatus.rwisExternal
   else if SameText(aReference.Classification, 'unsupported') then
     Result := TRemoveWithIdentifierStatus.rwisUnsupported
   else if SameText(aReference.Classification, 'unresolved') then
@@ -3499,7 +3525,12 @@ function SemanticReferenceReason(const aReference: TDelphiSemanticBoundReference
 begin
   Result := aReference.ReasonCode;
   if Result = '' then
-    Result := aReference.Classification;
+  begin
+    if SameText(aReference.Classification, 'unresolved') then
+      Result := 'symbol-not-found'
+    else
+      Result := aReference.Classification;
+  end;
 end;
 
 function SemanticReferenceResolutionKind(
@@ -3527,6 +3558,18 @@ begin
       Exit(aBinding.Selectors[i].SelectorText);
   if (Result = '') and (Length(aBinding.Selectors) = 1) then
     Result := aBinding.Selectors[0].SelectorText;
+end;
+
+function SemanticMemberMapsToSelector(const aBinding: TDelphiSemanticWithBinding;
+  const aReference: TDelphiSemanticBoundReference): Boolean;
+var
+  lSelector: TDelphiSemanticWithSelectorBinding;
+begin
+  for lSelector in aBinding.Selectors do
+    if SameText(lSelector.TypeName, aReference.ReceiverTypeName) then
+      Exit(True);
+
+  Result := False;
 end;
 
 procedure AddSemanticClassification(
@@ -3584,30 +3627,65 @@ end;
 
 function SemanticStatementNeedsDakFallback(var aResolver: TRemoveWithIdentifierResolver;
   const aInventory: TRemoveWithFactSet; const aBinding: TDelphiSemanticWithBinding;
-  const aStatement: TRemoveWithStatementInfo): Boolean;
+  const aStatement: TRemoveWithStatementInfo; var aMetrics: TRemoveWithResolverReportMetrics;
+  const aReportOnly: Boolean): Boolean;
 var
   lReference: TDelphiSemanticBoundReference;
 begin
   if aBinding.HasScopedDeclaration or aStatement.fHasScopedDeclarationInBody then
+  begin
+    Inc(aMetrics.fFallbackScopedDeclarationCount);
     Exit(True);
+  end;
 
   if SemanticMemberHasDakScopeShadow(aResolver, aInventory, aBinding, aStatement) then
+  begin
+    Inc(aMetrics.fFallbackScopeShadowCount);
     Exit(True);
+  end;
 
   if (aStatement.fSelectorCount > 1) or (Length(aBinding.Selectors) > 1) then
+  begin
+    Inc(aMetrics.fFallbackMultiSelectorCount);
     Exit(True);
+  end;
 
   for lReference in aBinding.References do
-    if not (SameText(lReference.Classification, 'member') or
-      SameText(lReference.Classification, 'lexical') or
-      SameText(lReference.Classification, 'intrinsic')) then
-      Exit(True)
-    else if SameText(lReference.Classification, 'lexical') and (lReference.Name <> '') and
+    if SameText(lReference.Classification, 'lexical') and (lReference.Name <> '') and
       CharInSet(lReference.Name[1], ['A'..'Z']) then
+    begin
+      Inc(aMetrics.fFallbackUppercaseLexicalCount);
       Exit(True)
+    end
     else if SameText(lReference.Classification, 'member') and
       ContainsText(lReference.ReceiverTypeName, 'HelperFor') then
+    begin
+      Inc(aMetrics.fFallbackHelperReceiverCount);
+      Exit(True)
+    end
+    else if aReportOnly and SameText(lReference.Classification, 'member') and
+      (not SemanticMemberMapsToSelector(aBinding, lReference)) then
+    begin
+      Inc(aMetrics.fFallbackInheritedMemberCount);
+      Exit(True)
+    end
+    else if aReportOnly and (SameText(lReference.Classification, 'unsupported') or
+      SameText(lReference.Classification, 'ambiguous')) then
+    begin
+      Inc(aMetrics.fFallbackUnsupportedReferenceCount);
+      Exit(True)
+    end
+    else if (aReportOnly and
+      not (SameText(lReference.Classification, 'member') or
+      SameText(lReference.Classification, 'lexical') or
+      SameText(lReference.Classification, 'intrinsic'))) or ((not aReportOnly) and
+      not (SameText(lReference.Classification, 'member') or
+      SameText(lReference.Classification, 'lexical') or
+      SameText(lReference.Classification, 'intrinsic'))) then
+    begin
+      Inc(aMetrics.fFallbackStrictNonMemberCount);
       Exit(True);
+    end;
 
   Result := False;
 end;
@@ -3704,9 +3782,29 @@ function ResolveRemoveWithIdentifiersFromSemanticFacts(const aInventory: TRemove
   const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult;
   out aError: string): Boolean;
 var
+  lMetrics: TRemoveWithResolverReportMetrics;
+begin
+  Result := ResolveRemoveWithIdentifiersFromSemanticFacts(aInventory, aScanResult,
+    aResult, aError, lMetrics);
+end;
+
+function ResolveRemoveWithIdentifiersFromSemanticFacts(const aInventory: TRemoveWithFactSet;
+  const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult;
+  out aError: string; out aMetrics: TRemoveWithResolverReportMetrics): Boolean;
+begin
+  Result := ResolveRemoveWithIdentifiersFromSemanticFacts(aInventory, aScanResult,
+    aResult, aError, aMetrics, False);
+end;
+
+function ResolveRemoveWithIdentifiersFromSemanticFacts(const aInventory: TRemoveWithFactSet;
+  const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult;
+  out aError: string; out aMetrics: TRemoveWithResolverReportMetrics;
+  const aReportOnly: Boolean): Boolean;
+var
   lBindingEntry: TRemoveWithSemanticWithBinding;
   lClassifications: TList<TRemoveWithIdentifierClassification>;
   lContext: TRemoveWithResolverContext;
+  lFallbackResolved: Boolean;
   lFallbackResult: TRemoveWithResolverResult;
   lFallbackScanResult: TRemoveWithScanResult;
   lReference: TDelphiSemanticBoundReference;
@@ -3715,10 +3813,12 @@ var
   lStatementsByRange: TDictionary<string, TRemoveWithStatementInfo>;
   lStatementIds: TDictionary<string, Byte>;
   lStatementId: string;
+  lStopwatch: TStopwatch;
   lUseSemanticFacts: Boolean;
 begin
   aResult := Default(TRemoveWithResolverResult);
   aError := '';
+  aMetrics := Default(TRemoveWithResolverReportMetrics);
   lContext := nil;
   lFallbackScanResult := Default(TRemoveWithScanResult);
   lFallbackScanResult.fFiles := Copy(aScanResult.fFiles);
@@ -3738,25 +3838,42 @@ begin
         lBindingEntry.fBinding.Line, lBindingEntry.fBinding.Column), lStatement) then
       begin
         lStatementId := lStatement.fId;
-        lUseSemanticFacts := not SemanticStatementNeedsDakFallback(lResolver, aInventory,
-          lBindingEntry.fBinding, lStatement);
+        lStopwatch := TStopwatch.StartNew;
+        lUseSemanticFacts := not SemanticStatementNeedsDakFallback(lResolver,
+          aInventory, lBindingEntry.fBinding, lStatement, aMetrics, aReportOnly);
+        lStopwatch.Stop;
+        Inc(aMetrics.fFallbackDecisionMs, lStopwatch.ElapsedMilliseconds);
         if not lUseSemanticFacts then
         begin
           AddFallbackStatement(lFallbackScanResult, lStatement);
           lStatementIds.AddOrSetValue(lStatement.fId, 0);
         end;
       end;
-    if lUseSemanticFacts then
-      for lReference in lBindingEntry.fBinding.References do
-        AddSemanticClassification(lClassifications, lStatementId, lBindingEntry.fBinding,
-          lReference);
+      if lUseSemanticFacts then
+      begin
+        lStopwatch := TStopwatch.StartNew;
+        for lReference in lBindingEntry.fBinding.References do
+        begin
+          Inc(aMetrics.fSemanticReferenceCount);
+          AddSemanticClassification(lClassifications, lStatementId,
+            lBindingEntry.fBinding, lReference);
+        end;
+        lStopwatch.Stop;
+        Inc(aMetrics.fDirectSemanticProjectionMs, lStopwatch.ElapsedMilliseconds);
+      end;
     end;
     if Length(lFallbackScanResult.fWithStatements) > 0 then
     begin
       ExpandFallbackScanContext(lFallbackScanResult, aScanResult);
-      if not ResolveRemoveWithIdentifiers(aInventory, lFallbackScanResult,
-        lFallbackResult, aError) then
+      aMetrics.fFallbackStatementCount := Length(lFallbackScanResult.fWithStatements);
+      lStopwatch := TStopwatch.StartNew;
+      lFallbackResolved := ResolveRemoveWithIdentifiers(aInventory, lFallbackScanResult,
+        lFallbackResult, aError);
+      lStopwatch.Stop;
+      aMetrics.fLegacyFallbackResolverMs := lStopwatch.ElapsedMilliseconds;
+      if not lFallbackResolved then
         Exit(False);
+      aMetrics.fFallbackClassificationCount := Length(lFallbackResult.fClassifications);
       AppendResolverClassifications(lClassifications, lFallbackResult, lStatementIds);
     end;
     aResult.fClassifications := lClassifications.ToArray;
