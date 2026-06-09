@@ -464,7 +464,7 @@ type
     [Test]
     procedure PlanModeConsumesSemanticFinalDtoBeforeResolverReport;
     [Test]
-    procedure PlanReportProjectionKeepsScopeShadowFallback;
+    procedure PlanReportProjectionUsesSemanticScopeConflictFacts;
     [Test]
     procedure PlanCliEmitsPlannedEditsWithoutChangingFixture;
   end;
@@ -5313,7 +5313,7 @@ begin
     'Plan/report mode must consume the final semantic DTO before DAK resolver reporting can fail.');
 end;
 
-procedure TRemoveWithPlannerTests.PlanReportProjectionKeepsScopeShadowFallback;
+procedure TRemoveWithPlannerTests.PlanReportProjectionUsesSemanticScopeConflictFacts;
 var
   lFallbackEnd: Integer;
   lFallbackStart: Integer;
@@ -5328,11 +5328,10 @@ begin
     'Expected semantic fallback decision source section.');
 
   lFallbackText := Copy(lSourceText, lFallbackStart, lFallbackEnd - lFallbackStart);
-  Assert.IsTrue(ContainsText(lFallbackText, 'SemanticMemberHasDakScopeShadow'),
-    'Report projection must preserve the legacy scope-shadow fallback gate.');
-  Assert.IsFalse(ContainsText(lFallbackText,
-    '(not aReportOnly) and' + sLineBreak + '    SemanticMemberHasDakScopeShadow'),
-    'Scope-shadow fallback must not be disabled for plan/report projection.');
+  Assert.IsTrue(ContainsText(lFallbackText, 'ScopeConflictKind'),
+    'Report projection must consume DelphiSemantics scope-conflict facts.');
+  Assert.IsFalse(ContainsText(lFallbackText, 'FindScopeSymbolAtLocation'),
+    'Semantic fallback decisions must not recompute scope symbols in DAK.');
 end;
 
 procedure TRemoveWithPlannerTests.PlanCliEmitsPlannedEditsWithoutChangingFixture;

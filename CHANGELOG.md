@@ -91,6 +91,10 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- `remove-with --mode plan` report fallback decisions now consume
+  DelphiSemantics scope-conflict facts instead of recomputing scope symbols in
+  DAK, reducing the maxTdb `fallbackDecisionMs` proof metric to `4ms` while
+  preserving scan count `667` and planned edit count `215`.
 - `remove-with --mode plan` report generation now uses semantic report
   projection for the measured safe subset before falling back to the legacy
   resolver report path, while keeping the existing JSON contract additive.
@@ -126,6 +130,9 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- `build-delphi.bat` environment-prop forwarding now quotes semicolon-delimited
+  values and avoids passing `DCC_UnitSearchPath` as a global MSBuild property,
+  preserving project-defined search paths such as `..\src`.
 - Failed `remove-with --mode apply` build verification reports now include bounded
   diagnostic lines in the JSON build gate, not only links to stdout/stderr logs.
 - Fixed `remove-with` resolution for Delphi compiler intrinsics, built-in type aliases, implicit `System` qualifiers, inactive conditional branches, implementation globals after routines, captured outer locals in nested routines, legacy `^J`/`^M` literals, and multiline enum/type-alias declarations. Added detailed unresolved-reason buckets to JSON reports.
