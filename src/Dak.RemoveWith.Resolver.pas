@@ -3615,6 +3615,14 @@ begin
   Result := False;
 end;
 
+function StopwatchTicksToMilliseconds(const aTicks: Int64): Int64;
+begin
+  if aTicks <= 0 then
+    Exit(0);
+
+  Result := (aTicks * 1000) div TStopwatch.Frequency;
+end;
+
 procedure AddSemanticClassification(
   const aClassifications: TList<TRemoveWithIdentifierClassification>;
   const aStatementId: string; const aBinding: TDelphiSemanticWithBinding;
@@ -3645,31 +3653,7 @@ begin
   aClassifications.Add(lClassification);
 end;
 
-function SemanticMemberHasDakScopeShadow(var aResolver: TRemoveWithIdentifierResolver;
-  const aInventory: TRemoveWithFactSet; const aBinding: TDelphiSemanticWithBinding;
-  const aStatement: TRemoveWithStatementInfo): Boolean;
-var
-  lReference: TDelphiSemanticBoundReference;
-  lRoutineName: string;
-  lSymbol: TRemoveWithSymbolInfo;
-begin
-  Result := False;
-  if not aResolver.FindRoutineForStatement(aInventory, aStatement, lRoutineName) then
-    lRoutineName := '';
-
-  for lReference in aBinding.References do
-  begin
-    if (not SameText(lReference.Classification, 'member')) or (lReference.Name = '') then
-      Continue;
-    if aResolver.FindScopeSymbolAtLocation(aInventory, aStatement.fFilePath,
-      lReference.Line, lRoutineName, lReference.Name, lSymbol) and
-      (lSymbol.fKind = TRemoveWithSymbolKind.rwskRoutine) then
-      Exit(True);
-  end;
-end;
-
-function SemanticStatementNeedsDakFallback(var aResolver: TRemoveWithIdentifierResolver;
-  const aInventory: TRemoveWithFactSet; const aBinding: TDelphiSemanticWithBinding;
+function SemanticStatementNeedsDakFallback(const aBinding: TDelphiSemanticWithBinding;
   const aStatement: TRemoveWithStatementInfo; var aMetrics: TRemoveWithResolverReportMetrics;
   const aReportOnly: Boolean): Boolean;
 var
@@ -3681,11 +3665,13 @@ begin
     Exit(True);
   end;
 
-  if SemanticMemberHasDakScopeShadow(aResolver, aInventory, aBinding, aStatement) then
-  begin
-    Inc(aMetrics.fFallbackScopeShadowCount);
-    Exit(True);
-  end;
+  for lReference in aBinding.References do
+    if SameText(lReference.Classification, 'member') and (lReference.Name <> '') and
+      SameText(lReference.ScopeConflictKind, 'routine') then
+    begin
+      Inc(aMetrics.fFallbackScopeShadowCount);
+      Exit(True);
+    end;
 
   if (aStatement.fSelectorCount > 1) or (Length(aBinding.Selectors) > 1) then
   begin
@@ -3846,33 +3832,29 @@ function ResolveRemoveWithIdentifiersFromSemanticFacts(const aInventory: TRemove
 var
   lBindingEntry: TRemoveWithSemanticWithBinding;
   lClassifications: TList<TRemoveWithIdentifierClassification>;
-  lContext: TRemoveWithResolverContext;
   lFallbackResolved: Boolean;
   lFallbackResult: TRemoveWithResolverResult;
   lFallbackScanResult: TRemoveWithScanResult;
   lReference: TDelphiSemanticBoundReference;
-  lResolver: TRemoveWithIdentifierResolver;
   lStatement: TRemoveWithStatementInfo;
   lStatementsByRange: TDictionary<string, TRemoveWithStatementInfo>;
   lStatementIds: TDictionary<string, Byte>;
   lStatementId: string;
+  lFallbackDecisionTicks: Int64;
   lStopwatch: TStopwatch;
   lUseSemanticFacts: Boolean;
 begin
   aResult := Default(TRemoveWithResolverResult);
   aError := '';
   aMetrics := Default(TRemoveWithResolverReportMetrics);
-  lContext := nil;
   lFallbackScanResult := Default(TRemoveWithScanResult);
   lFallbackScanResult.fFiles := Copy(aScanResult.fFiles);
   lFallbackScanResult.fWarnings := Copy(aScanResult.fWarnings);
-  lResolver := Default(TRemoveWithIdentifierResolver);
+  lFallbackDecisionTicks := 0;
   lClassifications := TList<TRemoveWithIdentifierClassification>.Create;
   lStatementsByRange := BuildSemanticStatementIndex(aScanResult);
   lStatementIds := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
-    lContext := TRemoveWithResolverContext.Create(aInventory);
-    lResolver.fContext := lContext;
     for lBindingEntry in aInventory.fDelphiSemanticWithBindingEntries do
     begin
       lStatementId := lBindingEntry.fBinding.SemanticId;
@@ -3882,10 +3864,10 @@ begin
       begin
         lStatementId := lStatement.fId;
         lStopwatch := TStopwatch.StartNew;
-        lUseSemanticFacts := not SemanticStatementNeedsDakFallback(lResolver,
-          aInventory, lBindingEntry.fBinding, lStatement, aMetrics, aReportOnly);
+        lUseSemanticFacts := not SemanticStatementNeedsDakFallback(lBindingEntry.fBinding,
+          lStatement, aMetrics, aReportOnly);
         lStopwatch.Stop;
-        Inc(aMetrics.fFallbackDecisionMs, lStopwatch.ElapsedMilliseconds);
+        Inc(lFallbackDecisionTicks, lStopwatch.ElapsedTicks);
         if not lUseSemanticFacts then
         begin
           AddFallbackStatement(lFallbackScanResult, lStatement);
@@ -3905,6 +3887,7 @@ begin
         Inc(aMetrics.fDirectSemanticProjectionMs, lStopwatch.ElapsedMilliseconds);
       end;
     end;
+    aMetrics.fFallbackDecisionMs := StopwatchTicksToMilliseconds(lFallbackDecisionTicks);
     if Length(lFallbackScanResult.fWithStatements) > 0 then
     begin
       ExpandFallbackScanContext(lFallbackScanResult, aScanResult);
@@ -3922,7 +3905,6 @@ begin
     end;
     aResult.fClassifications := lClassifications.ToArray;
   finally
-    lContext.Free;
     lStatementIds.Free;
     lStatementsByRange.Free;
     lClassifications.Free;

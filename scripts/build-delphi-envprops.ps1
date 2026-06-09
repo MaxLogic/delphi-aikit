@@ -50,6 +50,9 @@ try {
       if (-not [string]::IsNullOrEmpty([Environment]::GetEnvironmentVariable($key))) {
         continue
       }
+      if ($key -ieq 'DCC_UnitSearchPath') {
+        continue
+      }
 
       $val = $child.InnerText.Trim()
       if ([string]::IsNullOrWhiteSpace($val)) {
@@ -57,7 +60,7 @@ try {
       }
 
       $val = $val.Replace('"', '""')
-      if ($val.IndexOf(' ') -ge 0) {
+      if (($val.IndexOf(' ') -ge 0) -or ($val.IndexOf("`t") -ge 0) -or ($val.IndexOf(';') -ge 0)) {
         $items.Add('/p:' + $key + '="' + $val + '"')
       } else {
         $items.Add('/p:' + $key + '=' + $val)
