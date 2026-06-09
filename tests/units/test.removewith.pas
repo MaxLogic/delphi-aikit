@@ -1766,6 +1766,10 @@ begin
     AssertJsonNumberKey(lSubphaseMetrics, 'semanticScopeIndexBuildMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'semanticSelectorBindingMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'semanticReferenceBindingMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticReceiverMemberResolveMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticLexicalResolveMs');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticReferenceCacheHitCount');
+    AssertJsonNumberKey(lSubphaseMetrics, 'semanticReferenceCacheMissCount');
     AssertJsonNumberKey(lSubphaseMetrics, 'semanticLookupIndexBuildMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'semanticBindingIndexBuildMs');
     AssertJsonNumberKey(lSubphaseMetrics, 'semanticInventoryExpansionMs');
@@ -1778,6 +1782,11 @@ begin
     AssertJsonNumberKey(lResolverSubphaseMetrics, 'directSemanticProjectionMs');
     AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackDecisionMs');
     AssertJsonNumberKey(lResolverSubphaseMetrics, 'legacyFallbackResolverMs');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'legacyReceiverBuildMs');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'legacyIdentifierCollectMs');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'legacyClassifyUseMs');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'legacyEnrichmentMs');
+    AssertJsonNumberKey(lResolverSubphaseMetrics, 'legacyClassifyUseCount');
     AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackStatementCount');
     AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackClassificationCount');
     AssertJsonNumberKey(lResolverSubphaseMetrics, 'semanticReferenceCount');

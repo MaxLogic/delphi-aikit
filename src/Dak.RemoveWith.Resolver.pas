@@ -38,6 +38,11 @@ type
     fDirectSemanticProjectionMs: Int64;
     fFallbackDecisionMs: Int64;
     fLegacyFallbackResolverMs: Int64;
+    fLegacyReceiverBuildMs: Int64;
+    fLegacyIdentifierCollectMs: Int64;
+    fLegacyClassifyUseMs: Int64;
+    fLegacyEnrichmentMs: Int64;
+    fLegacyClassifyUseCount: Int64;
     fFallbackStatementCount: Integer;
     fFallbackClassificationCount: Integer;
     fSemanticReferenceCount: Integer;
@@ -274,13 +279,17 @@ type
       const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
       const aSource: TRemoveWithSourceBuffer; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
       const aInactiveRanges: TArray<TRemoveWithInactiveRange>;
-      const aClassifications: TList<TRemoveWithIdentifierClassification>);
+      const aClassifications: TList<TRemoveWithIdentifierClassification>;
+      var aMetrics: TRemoveWithResolverReportMetrics);
   public
     class function Resolve(const aInventory: TRemoveWithFactSet; const aScanResult: TRemoveWithScanResult;
       out aResult: TRemoveWithResolverResult; out aError: string): Boolean; overload; static;
     class function Resolve(const aInventory: TRemoveWithFactSet; const aScanResult: TRemoveWithScanResult;
       const aSymbolMapBridge: TRemoveWithSymbolMapBridge; out aResult: TRemoveWithResolverResult;
       out aError: string): Boolean; overload; static;
+    class function Resolve(const aInventory: TRemoveWithFactSet; const aScanResult: TRemoveWithScanResult;
+      const aSymbolMapBridge: TRemoveWithSymbolMapBridge; out aResult: TRemoveWithResolverResult;
+      out aError: string; var aMetrics: TRemoveWithResolverReportMetrics): Boolean; overload; static;
   end;
 
 function ResolverCacheKey(const aFirst, aSecond: string): string; overload;
@@ -3330,7 +3339,8 @@ procedure TRemoveWithIdentifierResolver.ResolveStatement(const aInventory: TRemo
   const aScanResult: TRemoveWithScanResult; const aStatement: TRemoveWithStatementInfo;
   const aSource: TRemoveWithSourceBuffer; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
   const aInactiveRanges: TArray<TRemoveWithInactiveRange>;
-  const aClassifications: TList<TRemoveWithIdentifierClassification>);
+  const aClassifications: TList<TRemoveWithIdentifierClassification>;
+  var aMetrics: TRemoveWithResolverReportMetrics);
 var
   lBodyOffsets: TRemoveWithOffsetRange;
   lClassification: TRemoveWithIdentifierClassification;
@@ -3343,6 +3353,7 @@ var
   lScopedLocalNames: TArray<TRemoveWithScopedLocalRange>;
   lStatement: TRemoveWithStatementInfo;
   lStatements: TArray<TRemoveWithStatementInfo>;
+  lStopwatch: TStopwatch;
   lUse: TRemoveWithIdentifierUse;
   lUses: TArray<TRemoveWithIdentifierUse>;
   lWithOffsets: TRemoveWithOffsetRange;
@@ -3361,7 +3372,10 @@ begin
     (Pos('.', lRoutineName) > 0) and (Pos('.', lBinding.RoutineName) = 0) then
     lSelectorRoutineName := lBinding.RoutineName;
 
+  lStopwatch := TStopwatch.StartNew;
   BuildReceiverStack(aInventory, aScanResult, aStatement, lRoutineName, lSelectorRoutineName, lBinding, lReceivers);
+  lStopwatch.Stop;
+  Inc(aMetrics.fLegacyReceiverBuildMs, lStopwatch.ElapsedMilliseconds);
   lSkipRanges := TList<TRemoveWithOffsetRange>.Create;
   try
     for lInactiveRange in aInactiveRanges do
@@ -3380,8 +3394,11 @@ begin
       if RangeOffsets(aSource, lStatement.fRange, lWithOffsets) then
         lSkipRanges.Add(lWithOffsets);
     end;
+    lStopwatch := TStopwatch.StartNew;
     CollectIdentifierUses(aSource, lBodyOffsets, lSkipRanges.ToArray, lUses);
     CollectScopedLocalNames(aSource, lBodyOffsets, lScopedLocalNames);
+    lStopwatch.Stop;
+    Inc(aMetrics.fLegacyIdentifierCollectMs, lStopwatch.ElapsedMilliseconds);
   finally
     lSkipRanges.Free;
   end;
@@ -3390,11 +3407,23 @@ begin
   begin
     if ScopedLocalNameExistsAt(lScopedLocalNames, lUse.fName, lUse.fStartOffset) then
       Continue;
+    lStopwatch := TStopwatch.StartNew;
     if not ClassifyUse(aInventory, aSource, lRoutineName, lReceivers, lBinding, lUse, aSymbolMapBridge,
       lClassification) then
+    begin
+      lStopwatch.Stop;
+      Inc(aMetrics.fLegacyClassifyUseMs, lStopwatch.ElapsedMilliseconds);
+      Inc(aMetrics.fLegacyClassifyUseCount);
       Continue;
+    end;
+    lStopwatch.Stop;
+    Inc(aMetrics.fLegacyClassifyUseMs, lStopwatch.ElapsedMilliseconds);
+    Inc(aMetrics.fLegacyClassifyUseCount);
+    lStopwatch := TStopwatch.StartNew;
     EnrichWithSymbolMap(aSymbolMapBridge, lClassification);
     EnrichWithSemanticFacts(aInventory, lClassification);
+    lStopwatch.Stop;
+    Inc(aMetrics.fLegacyEnrichmentMs, lStopwatch.ElapsedMilliseconds);
     lClassification.fStatementId := aStatement.fId;
     lClassification.fFilePath := aStatement.fFilePath;
     AddClassification(aClassifications, lClassification);
@@ -3405,14 +3434,28 @@ class function TRemoveWithIdentifierResolver.Resolve(const aInventory: TRemoveWi
   const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult; out aError: string): Boolean;
 var
   lBridge: TRemoveWithSymbolMapBridge;
+  lMetrics: TRemoveWithResolverReportMetrics;
 begin
   lBridge := Default(TRemoveWithSymbolMapBridge);
-  Result := Resolve(aInventory, aScanResult, lBridge, aResult, aError);
+  lMetrics := Default(TRemoveWithResolverReportMetrics);
+  Result := Resolve(aInventory, aScanResult, lBridge, aResult, aError, lMetrics);
 end;
 
 class function TRemoveWithIdentifierResolver.Resolve(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
   out aResult: TRemoveWithResolverResult; out aError: string): Boolean;
+var
+  lMetrics: TRemoveWithResolverReportMetrics;
+begin
+  lMetrics := Default(TRemoveWithResolverReportMetrics);
+  Result := Resolve(aInventory, aScanResult, aSymbolMapBridge, aResult, aError,
+    lMetrics);
+end;
+
+class function TRemoveWithIdentifierResolver.Resolve(const aInventory: TRemoveWithFactSet;
+  const aScanResult: TRemoveWithScanResult; const aSymbolMapBridge: TRemoveWithSymbolMapBridge;
+  out aResult: TRemoveWithResolverResult; out aError: string;
+  var aMetrics: TRemoveWithResolverReportMetrics): Boolean;
 var
   lCurrentPath: string;
   lClassifications: TList<TRemoveWithIdentifierClassification>;
@@ -3452,7 +3495,7 @@ begin
           lInactiveRanges := RemoveWithInactiveDirectiveRanges(lSource, aInventory.fParserDefines);
         end;
         lResolver.ResolveStatement(aInventory, aScanResult, lStatement, lSource, aSymbolMapBridge,
-          lInactiveRanges, lClassifications);
+          lInactiveRanges, lClassifications, aMetrics);
       end;
       aResult.fClassifications := lClassifications.ToArray;
       Result := True;
@@ -3867,8 +3910,9 @@ begin
       ExpandFallbackScanContext(lFallbackScanResult, aScanResult);
       aMetrics.fFallbackStatementCount := Length(lFallbackScanResult.fWithStatements);
       lStopwatch := TStopwatch.StartNew;
-      lFallbackResolved := ResolveRemoveWithIdentifiers(aInventory, lFallbackScanResult,
-        lFallbackResult, aError);
+      lFallbackResolved := TRemoveWithIdentifierResolver.Resolve(aInventory,
+        lFallbackScanResult, Default(TRemoveWithSymbolMapBridge), lFallbackResult,
+        aError, aMetrics);
       lStopwatch.Stop;
       aMetrics.fLegacyFallbackResolverMs := lStopwatch.ElapsedMilliseconds;
       if not lFallbackResolved then

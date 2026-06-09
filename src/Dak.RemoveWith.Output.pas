@@ -644,6 +644,14 @@ begin
     TJSONNumber.Create(aMetrics.fSemanticSelectorBindingMs));
   Result.AddPair('semanticReferenceBindingMs',
     TJSONNumber.Create(aMetrics.fSemanticReferenceBindingMs));
+  Result.AddPair('semanticReceiverMemberResolveMs',
+    TJSONNumber.Create(aMetrics.fSemanticReceiverMemberResolveMs));
+  Result.AddPair('semanticLexicalResolveMs',
+    TJSONNumber.Create(aMetrics.fSemanticLexicalResolveMs));
+  Result.AddPair('semanticReferenceCacheHitCount',
+    TJSONNumber.Create(aMetrics.fSemanticReferenceCacheHitCount));
+  Result.AddPair('semanticReferenceCacheMissCount',
+    TJSONNumber.Create(aMetrics.fSemanticReferenceCacheMissCount));
   Result.AddPair('semanticLookupIndexBuildMs',
     TJSONNumber.Create(aMetrics.fSemanticLookupIndexBuildMs));
   Result.AddPair('semanticBindingIndexBuildMs',
@@ -666,6 +674,16 @@ begin
     TJSONNumber.Create(aMetrics.fFallbackDecisionMs));
   Result.AddPair('legacyFallbackResolverMs',
     TJSONNumber.Create(aMetrics.fLegacyFallbackResolverMs));
+  Result.AddPair('legacyReceiverBuildMs',
+    TJSONNumber.Create(aMetrics.fLegacyReceiverBuildMs));
+  Result.AddPair('legacyIdentifierCollectMs',
+    TJSONNumber.Create(aMetrics.fLegacyIdentifierCollectMs));
+  Result.AddPair('legacyClassifyUseMs',
+    TJSONNumber.Create(aMetrics.fLegacyClassifyUseMs));
+  Result.AddPair('legacyEnrichmentMs',
+    TJSONNumber.Create(aMetrics.fLegacyEnrichmentMs));
+  Result.AddPair('legacyClassifyUseCount',
+    TJSONNumber.Create(aMetrics.fLegacyClassifyUseCount));
   Result.AddPair('fallbackStatementCount',
     TJSONNumber.Create(aMetrics.fFallbackStatementCount));
   Result.AddPair('fallbackClassificationCount',

@@ -5,6 +5,9 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added additive `remove-with` planner metrics for semantic receiver-member
+  resolution, lexical resolution, semantic reference-cache hits/misses, and
+  legacy resolver-report receiver/use/enrichment timing.
 - Added additive `remove-with` planner subphase metrics for semantic inventory,
   with-binding, final DTO planning, and resolver-report fallback/projection
   timings and counts.
