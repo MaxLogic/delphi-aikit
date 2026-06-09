@@ -61,6 +61,10 @@ type
     fSemanticScopeIndexBuildMs: Int64;
     fSemanticSelectorBindingMs: Int64;
     fSemanticReferenceBindingMs: Int64;
+    fSemanticReceiverMemberResolveMs: Int64;
+    fSemanticLexicalResolveMs: Int64;
+    fSemanticReferenceCacheHitCount: Int64;
+    fSemanticReferenceCacheMissCount: Int64;
     fSemanticLookupIndexBuildMs: Int64;
     fSemanticBindingIndexBuildMs: Int64;
     fSemanticInventoryExpansionMs: Int64;
@@ -788,6 +792,11 @@ begin
   aPhaseMetrics.fSemanticScopeIndexBuildMs := lFacts.Metrics.ScopeIndexBuildMilliseconds;
   aPhaseMetrics.fSemanticSelectorBindingMs := lFacts.Metrics.SelectorBindingMilliseconds;
   aPhaseMetrics.fSemanticReferenceBindingMs := lFacts.Metrics.ReferenceBindingMilliseconds;
+  aPhaseMetrics.fSemanticReceiverMemberResolveMs :=
+    lFacts.Metrics.ReceiverMemberResolveMilliseconds;
+  aPhaseMetrics.fSemanticLexicalResolveMs := lFacts.Metrics.LexicalResolveMilliseconds;
+  aPhaseMetrics.fSemanticReferenceCacheHitCount := lFacts.Metrics.ReferenceCacheHitCount;
+  aPhaseMetrics.fSemanticReferenceCacheMissCount := lFacts.Metrics.ReferenceCacheMissCount;
   aPhaseMetrics.fSemanticLookupIndexBuildMs := lFacts.Metrics.LookupIndexBuildMilliseconds;
   aPhaseMetrics.fSemanticBindingIndexBuildMs := lFacts.Metrics.LookupIndexBuildMilliseconds;
   if lFacts.ContextFingerprint = '' then
