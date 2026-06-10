@@ -829,7 +829,7 @@ begin
   ProjectSemanticFactsLock.Enter;
   try
     try
-      aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticApi.PlanRemoveWith(lFacts);
+      aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticApi.PlanRemoveWithSnapshot(lFacts);
     finally
       ProjectSemanticFactsLock.Leave;
     end;
@@ -846,6 +846,15 @@ begin
   begin
     aError := 'DelphiSemantics remove-with plan failed: ' +
       aInventory.fDelphiSemanticRemoveWithPlan.Diagnostic;
+    Exit(False);
+  end;
+  if not SameText(aInventory.fContextFingerprint,
+    aInventory.fDelphiSemanticRemoveWithPlan.ContextFingerprint) then
+  begin
+    aError := Format(
+      'DelphiSemantics remove-with plan context fingerprint mismatch: facts=%s plan=%s',
+      [aInventory.fContextFingerprint,
+      aInventory.fDelphiSemanticRemoveWithPlan.ContextFingerprint]);
     Exit(False);
   end;
   lStopwatch := TStopwatch.StartNew;

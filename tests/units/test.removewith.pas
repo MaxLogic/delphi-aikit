@@ -49,6 +49,10 @@ type
     [Test]
     procedure FactSetLookupsUseDelphiSemanticIndex;
     [Test]
+    procedure SemanticPlanUsesSnapshotPlannerFromExistingFacts;
+    [Test]
+    procedure SemanticPlanChecksCompatibilityContextFingerprint;
+    [Test]
     procedure DakSemanticLookupsStayDelphiSemanticOwned;
     [Test]
     procedure SemanticResolverIndexesStatementsByRange;
@@ -1204,6 +1208,37 @@ begin
     'DAK must not build a command-owned semantic fact lookup cache.');
   Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithLookupIndex.Build'),
     'DAK must not rebuild DelphiSemantics lookup indexes from DAK-owned symbols.');
+end;
+
+procedure TRemoveWithCommandTests.SemanticPlanUsesSnapshotPlannerFromExistingFacts;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticApi.PlanRemoveWithSnapshot(lFacts)'),
+    'DAK must build remove-with plans through the DelphiSemantics snapshot planner using existing facts.');
+  Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticApi.PlanRemoveWith(lFacts)'),
+    'DAK must not build remove-with plans through the legacy project-facts overload.');
+  Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticApi.PlanRemoveWith(lOptions)'),
+    'DAK must not open a second project session only to build the typed remove-with plan.');
+end;
+
+procedure TRemoveWithCommandTests.SemanticPlanChecksCompatibilityContextFingerprint;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText,
+    'aInventory.fDelphiSemanticRemoveWithPlan.ContextFingerprint'),
+    'DAK must compare compatibility facts and typed plan context fingerprints.');
+  Assert.IsTrue(ContainsText(lSourceText, 'context fingerprint mismatch'),
+    'DAK must fail loudly when compatibility facts and typed plan contexts drift.');
 end;
 
 procedure TRemoveWithCommandTests.DakSemanticLookupsStayDelphiSemanticOwned;
