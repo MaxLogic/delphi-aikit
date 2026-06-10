@@ -119,6 +119,11 @@ type
     fText: string;
   end;
 
+  TRemoveWithSemanticProjectionSource = record
+    fSource: TRemoveWithSourceBuffer;
+    fInactiveRanges: TArray<TRemoveWithInactiveRange>;
+  end;
+
   TRemoveWithSemanticBindingEntries = TArray<TRemoveWithSemanticWithBinding>;
 
   TRemoveWithResolverContext = class
@@ -3807,6 +3812,53 @@ begin
       lStatement.fRange.fStartLine, lStatement.fRange.fStartColumn), lStatement);
 end;
 
+function TryGetSemanticProjectionSource(const aInventory: TRemoveWithFactSet;
+  const aFilePath: string;
+  const aSources: TDictionary<string, TRemoveWithSemanticProjectionSource>;
+  out aSource: TRemoveWithSemanticProjectionSource; out aError: string): Boolean;
+var
+  lKey: string;
+begin
+  lKey := TPath.GetFullPath(aFilePath);
+  if aSources.TryGetValue(lKey, aSource) then
+    Exit(True);
+
+  Result := False;
+  if not LoadRemoveWithSource(aFilePath, aSource.fSource, aError) then
+    Exit;
+  aSource.fInactiveRanges := RemoveWithInactiveDirectiveRanges(aSource.fSource,
+    aInventory.fParserDefines);
+  aSources.Add(lKey, aSource);
+  Result := True;
+end;
+
+function SemanticReferenceIsActive(const aInventory: TRemoveWithFactSet;
+  const aBinding: TDelphiSemanticWithBinding;
+  const aReference: TDelphiSemanticBoundReference;
+  const aSources: TDictionary<string, TRemoveWithSemanticProjectionSource>;
+  out aActive: Boolean; out aError: string): Boolean;
+var
+  lOffset: Integer;
+  lSource: TRemoveWithSemanticProjectionSource;
+begin
+  aActive := True;
+  if (aBinding.FileName = '') or (aReference.Line <= 0) or
+    (aReference.Column <= 0) then
+    Exit(True);
+
+  Result := False;
+  if not TryGetSemanticProjectionSource(aInventory, aBinding.FileName, aSources,
+    lSource, aError) then
+    Exit;
+  if not RemoveWithOffsetForLineColumn(lSource.fSource, aReference.Line,
+    aReference.Column, lOffset) then
+    Exit(True);
+
+  aActive := not RemoveWithOffsetInInactiveRanges(lOffset,
+    lSource.fInactiveRanges);
+  Result := True;
+end;
+
 function ResolveRemoveWithIdentifiersFromSemanticFacts(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; out aResult: TRemoveWithResolverResult;
   out aError: string): Boolean;
@@ -3830,6 +3882,7 @@ function ResolveRemoveWithIdentifiersFromSemanticFacts(const aInventory: TRemove
   out aError: string; out aMetrics: TRemoveWithResolverReportMetrics;
   const aReportOnly: Boolean): Boolean;
 var
+  lActiveReference: Boolean;
   lBindingEntry: TRemoveWithSemanticWithBinding;
   lClassifications: TList<TRemoveWithIdentifierClassification>;
   lFallbackResolved: Boolean;
@@ -3841,6 +3894,7 @@ var
   lStatementIds: TDictionary<string, Byte>;
   lStatementId: string;
   lFallbackDecisionTicks: Int64;
+  lProjectionSources: TDictionary<string, TRemoveWithSemanticProjectionSource>;
   lStopwatch: TStopwatch;
   lUseSemanticFacts: Boolean;
 begin
@@ -3854,6 +3908,8 @@ begin
   lClassifications := TList<TRemoveWithIdentifierClassification>.Create;
   lStatementsByRange := BuildSemanticStatementIndex(aScanResult);
   lStatementIds := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  lProjectionSources := TDictionary<string, TRemoveWithSemanticProjectionSource>.Create(
+    TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
     for lBindingEntry in aInventory.fDelphiSemanticWithBindingEntries do
     begin
@@ -3874,11 +3930,16 @@ begin
           lStatementIds.AddOrSetValue(lStatement.fId, 0);
         end;
       end;
-      if lUseSemanticFacts then
+      if lUseSemanticFacts or aReportOnly then
       begin
         lStopwatch := TStopwatch.StartNew;
         for lReference in lBindingEntry.fBinding.References do
         begin
+          if not SemanticReferenceIsActive(aInventory, lBindingEntry.fBinding,
+            lReference, lProjectionSources, lActiveReference, aError) then
+            Exit(False);
+          if not lActiveReference then
+            Continue;
           Inc(aMetrics.fSemanticReferenceCount);
           AddSemanticClassification(lClassifications, lStatementId,
             lBindingEntry.fBinding, lReference);
@@ -3890,21 +3951,26 @@ begin
     aMetrics.fFallbackDecisionMs := StopwatchTicksToMilliseconds(lFallbackDecisionTicks);
     if Length(lFallbackScanResult.fWithStatements) > 0 then
     begin
-      ExpandFallbackScanContext(lFallbackScanResult, aScanResult);
       aMetrics.fFallbackStatementCount := Length(lFallbackScanResult.fWithStatements);
-      lStopwatch := TStopwatch.StartNew;
-      lFallbackResolved := TRemoveWithIdentifierResolver.Resolve(aInventory,
-        lFallbackScanResult, Default(TRemoveWithSymbolMapBridge), lFallbackResult,
-        aError, aMetrics);
-      lStopwatch.Stop;
-      aMetrics.fLegacyFallbackResolverMs := lStopwatch.ElapsedMilliseconds;
-      if not lFallbackResolved then
-        Exit(False);
-      aMetrics.fFallbackClassificationCount := Length(lFallbackResult.fClassifications);
-      AppendResolverClassifications(lClassifications, lFallbackResult, lStatementIds);
+      if not aReportOnly then
+      begin
+        ExpandFallbackScanContext(lFallbackScanResult, aScanResult);
+        aMetrics.fFallbackStatementCount := Length(lFallbackScanResult.fWithStatements);
+        lStopwatch := TStopwatch.StartNew;
+        lFallbackResolved := TRemoveWithIdentifierResolver.Resolve(aInventory,
+          lFallbackScanResult, Default(TRemoveWithSymbolMapBridge), lFallbackResult,
+          aError, aMetrics);
+        lStopwatch.Stop;
+        aMetrics.fLegacyFallbackResolverMs := lStopwatch.ElapsedMilliseconds;
+        if not lFallbackResolved then
+          Exit(False);
+        aMetrics.fFallbackClassificationCount := Length(lFallbackResult.fClassifications);
+        AppendResolverClassifications(lClassifications, lFallbackResult, lStatementIds);
+      end;
     end;
     aResult.fClassifications := lClassifications.ToArray;
   finally
+    lProjectionSources.Free;
     lStatementIds.Free;
     lStatementsByRange.Free;
     lClassifications.Free;

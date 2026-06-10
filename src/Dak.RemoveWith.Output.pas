@@ -672,22 +672,8 @@ begin
     TJSONNumber.Create(aMetrics.fDirectSemanticProjectionMs));
   Result.AddPair('fallbackDecisionMs',
     TJSONNumber.Create(aMetrics.fFallbackDecisionMs));
-  Result.AddPair('legacyFallbackResolverMs',
-    TJSONNumber.Create(aMetrics.fLegacyFallbackResolverMs));
-  Result.AddPair('legacyReceiverBuildMs',
-    TJSONNumber.Create(aMetrics.fLegacyReceiverBuildMs));
-  Result.AddPair('legacyIdentifierCollectMs',
-    TJSONNumber.Create(aMetrics.fLegacyIdentifierCollectMs));
-  Result.AddPair('legacyClassifyUseMs',
-    TJSONNumber.Create(aMetrics.fLegacyClassifyUseMs));
-  Result.AddPair('legacyEnrichmentMs',
-    TJSONNumber.Create(aMetrics.fLegacyEnrichmentMs));
-  Result.AddPair('legacyClassifyUseCount',
-    TJSONNumber.Create(aMetrics.fLegacyClassifyUseCount));
   Result.AddPair('fallbackStatementCount',
     TJSONNumber.Create(aMetrics.fFallbackStatementCount));
-  Result.AddPair('fallbackClassificationCount',
-    TJSONNumber.Create(aMetrics.fFallbackClassificationCount));
   Result.AddPair('semanticReferenceCount',
     TJSONNumber.Create(aMetrics.fSemanticReferenceCount));
   Result.AddPair('fallbackScopedDeclarationCount',
