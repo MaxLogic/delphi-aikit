@@ -68,6 +68,12 @@ type
     fSemanticLookupIndexBuildMs: Int64;
     fSemanticBindingIndexBuildMs: Int64;
     fSemanticInventoryExpansionMs: Int64;
+    fSemanticCacheHits: Int64;
+    fSemanticCacheMisses: Int64;
+    fSemanticCacheInvalidations: Int64;
+    fProjectFactsCacheHits: Int64;
+    fProjectFactsCacheMisses: Int64;
+    fProjectFactsCacheInvalidations: Int64;
     fRtlSourceEnrichmentMs: Int64;
     fExternalUnitSymbolsMs: Int64;
     fExternalTypeSymbolsMs: Int64;
@@ -799,6 +805,14 @@ begin
   aPhaseMetrics.fSemanticReferenceCacheMissCount := lFacts.Metrics.ReferenceCacheMissCount;
   aPhaseMetrics.fSemanticLookupIndexBuildMs := lFacts.Metrics.LookupIndexBuildMilliseconds;
   aPhaseMetrics.fSemanticBindingIndexBuildMs := lFacts.Metrics.LookupIndexBuildMilliseconds;
+  aPhaseMetrics.fSemanticCacheHits := lFacts.Metrics.SemanticCacheHits;
+  aPhaseMetrics.fSemanticCacheMisses := lFacts.Metrics.SemanticCacheMisses;
+  aPhaseMetrics.fSemanticCacheInvalidations :=
+    lFacts.Metrics.SemanticCacheInvalidations;
+  aPhaseMetrics.fProjectFactsCacheHits := lFacts.Metrics.ProjectFactsCacheHits;
+  aPhaseMetrics.fProjectFactsCacheMisses := lFacts.Metrics.ProjectFactsCacheMisses;
+  aPhaseMetrics.fProjectFactsCacheInvalidations :=
+    lFacts.Metrics.ProjectFactsCacheInvalidations;
   if lFacts.ContextFingerprint = '' then
   begin
     aError := 'DelphiSemantics project facts did not return a context fingerprint.';

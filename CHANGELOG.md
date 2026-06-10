@@ -91,6 +91,10 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- `remove-with --semantic-cache` now reuses DelphiSemantics project facts across
+  unchanged plan runs and reports `projectFactsCache*` counters in planner
+  metrics, cutting maxTdb warm plan median to `3.527s` while preserving `667`
+  scans and `215` planned edits.
 - `remove-with --mode plan` report JSON is now semantic-facts-first: legacy
   resolver-report compatibility timing/classification fields are removed,
   report-only projection no longer runs the legacy fallback resolver, and
