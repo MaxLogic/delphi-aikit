@@ -658,6 +658,18 @@ begin
     TJSONNumber.Create(aMetrics.fSemanticBindingIndexBuildMs));
   Result.AddPair('semanticInventoryExpansionMs',
     TJSONNumber.Create(aMetrics.fSemanticInventoryExpansionMs));
+  Result.AddPair('semanticCacheHits',
+    TJSONNumber.Create(aMetrics.fSemanticCacheHits));
+  Result.AddPair('semanticCacheMisses',
+    TJSONNumber.Create(aMetrics.fSemanticCacheMisses));
+  Result.AddPair('semanticCacheInvalidations',
+    TJSONNumber.Create(aMetrics.fSemanticCacheInvalidations));
+  Result.AddPair('projectFactsCacheHits',
+    TJSONNumber.Create(aMetrics.fProjectFactsCacheHits));
+  Result.AddPair('projectFactsCacheMisses',
+    TJSONNumber.Create(aMetrics.fProjectFactsCacheMisses));
+  Result.AddPair('projectFactsCacheInvalidations',
+    TJSONNumber.Create(aMetrics.fProjectFactsCacheInvalidations));
   Result.AddPair('rtlSourceEnrichmentMs', TJSONNumber.Create(aMetrics.fRtlSourceEnrichmentMs));
   Result.AddPair('externalUnitSymbolsMs', TJSONNumber.Create(aMetrics.fExternalUnitSymbolsMs));
   Result.AddPair('externalTypeSymbolsMs', TJSONNumber.Create(aMetrics.fExternalTypeSymbolsMs));
@@ -709,6 +721,18 @@ begin
     TJSONNumber.Create(aMetrics.fSemanticCompatibilityFactsMs));
   Result.AddPair('semanticBindingMs', TJSONNumber.Create(aMetrics.fSemanticBindingMs));
   Result.AddPair('semanticPlanDtoMs', TJSONNumber.Create(aMetrics.fSemanticPlanDtoMs));
+  Result.AddPair('semanticCacheHits',
+    TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSemanticCacheHits));
+  Result.AddPair('semanticCacheMisses',
+    TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSemanticCacheMisses));
+  Result.AddPair('semanticCacheInvalidations',
+    TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSemanticCacheInvalidations));
+  Result.AddPair('projectFactsCacheHits',
+    TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fProjectFactsCacheHits));
+  Result.AddPair('projectFactsCacheMisses',
+    TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fProjectFactsCacheMisses));
+  Result.AddPair('projectFactsCacheInvalidations',
+    TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fProjectFactsCacheInvalidations));
   Result.AddPair('dakLookupIndexMs', TJSONNumber.Create(aMetrics.fDakLookupIndexMs));
   Result.AddPair('dakLookupCacheHits', TJSONNumber.Create(aMetrics.fDakLookupCacheHits));
   Result.AddPair('dakLookupCacheMisses', TJSONNumber.Create(aMetrics.fDakLookupCacheMisses));

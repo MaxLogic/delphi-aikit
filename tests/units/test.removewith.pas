@@ -966,6 +966,30 @@ begin
     Assert.AreEqual(aExpected, aCounts[i], aMessage + ' Iteration ' + i.ToString + ' mismatch.');
 end;
 
+function JsonMetricValueFromLog(const aLogText, aName: string): Integer;
+var
+  lEndIndex: Integer;
+  lNeedle: string;
+  lStartIndex: Integer;
+begin
+  lNeedle := '"' + aName + '":';
+  lStartIndex := Pos(lNeedle, aLogText);
+  if lStartIndex = 0 then
+    Exit(-1);
+
+  Inc(lStartIndex, Length(lNeedle));
+  while (lStartIndex <= Length(aLogText)) and (aLogText[lStartIndex] = ' ') do
+    Inc(lStartIndex);
+
+  lEndIndex := lStartIndex;
+  while (lEndIndex <= Length(aLogText)) and CharInSet(aLogText[lEndIndex], ['0'..'9']) do
+    Inc(lEndIndex);
+  if lEndIndex = lStartIndex then
+    Exit(-1);
+
+  Result := StrToIntDef(Copy(aLogText, lStartIndex, lEndIndex - lStartIndex), -1);
+end;
+
 function TRemoveWithTestBase.RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal): string;
 var
   lArgs: string;
@@ -1565,6 +1589,14 @@ begin
   Assert.IsTrue(ContainsText(lLogText,
     'semantic-project-facts graph=False'),
     'Expected first run to build graph-free semantic project facts through DelphiSemantics.');
+  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'semanticCacheHits'),
+    'Expected cold semantic cache run to report zero hits.');
+  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'semanticCacheMisses') > 0,
+    'Expected cold semantic cache run to report misses.');
+  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheHits'),
+    'Expected cold project-facts cache run to report zero hits.');
+  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses') > 0,
+    'Expected cold project-facts cache run to report misses.');
 
   lLogText := RunSemanticCacheFixture(lDprojPath, lCacheFileName, 'remove-with-semantic-cache-second.log',
     lExitCode);
@@ -1572,6 +1604,14 @@ begin
   Assert.IsTrue(ContainsText(lLogText,
     'semantic-project-facts graph=False'),
     'Expected second run to reuse the graph-free project semantic-facts path.');
+  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'semanticCacheHits') > 0,
+    'Expected unchanged semantic cache run to report hits.');
+  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'semanticCacheMisses'),
+    'Expected unchanged semantic cache run to avoid misses.');
+  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'projectFactsCacheHits') > 0,
+    'Expected unchanged project-facts cache run to report hits.');
+  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses'),
+    'Expected unchanged project-facts cache run to avoid misses.');
 
   lUnitPath := TPath.Combine(lFixtureDir, 'SymbolMapUnit.pas');
   TFile.AppendAllText(lUnitPath, sLineBreak + '// cache invalidation probe' + sLineBreak,
@@ -1582,6 +1622,14 @@ begin
   Assert.IsTrue(ContainsText(lLogText,
     'semantic-project-facts graph=False'),
     'Expected changed-source run to rebuild graph-free project semantic facts.');
+  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'semanticCacheInvalidations') > 0,
+    'Expected changed-source semantic cache run to report invalidation.');
+  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'semanticCacheMisses') > 0,
+    'Expected changed-source semantic cache run to rebuild stale unit facts.');
+  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'projectFactsCacheInvalidations') > 0,
+    'Expected changed-source project-facts cache run to report invalidation.');
+  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses') > 0,
+    'Expected changed-source project-facts cache run to rebuild stale project facts.');
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;
