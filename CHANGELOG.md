@@ -91,6 +91,9 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- `remove-with --semantic-cache` benefits from compact DelphiSemantics
+  project-facts sidecars, bringing the final maxTdb cold plan proof to
+  `9.873s` median while preserving `667` scans and `215` planned edits.
 - `remove-with --semantic-cache` now reuses DelphiSemantics project facts across
   unchanged plan runs and reports `projectFactsCache*` counters in planner
   metrics, cutting maxTdb warm plan median to `3.527s` while preserving `667`
