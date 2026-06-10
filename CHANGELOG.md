@@ -91,6 +91,10 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- `remove-with --mode plan` report JSON is now semantic-facts-first: legacy
+  resolver-report compatibility timing/classification fields are removed,
+  report-only projection no longer runs the legacy fallback resolver, and
+  inactive conditional references stay out of semantic classifications.
 - `remove-with --mode plan` report fallback decisions now consume
   DelphiSemantics scope-conflict facts instead of recomputing scope symbols in
   DAK, reducing the maxTdb `fallbackDecisionMs` proof metric to `4ms` while
