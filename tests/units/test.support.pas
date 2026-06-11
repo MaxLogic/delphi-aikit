@@ -36,6 +36,16 @@ var
   GResolverBuilt: Boolean = False;
   GResolverExe: string = '';
 
+function NewRunTempRoot(const aBaseRoot: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(aBaseRoot, 'run-' + GetCurrentProcessId.ToString + '-' + lGuidText);
+end;
+
 function QuoteArg(const aValue: string): string;
 begin
   if (aValue = '') or (Pos(' ', aValue) > 0) or (Pos('"', aValue) > 0) then
@@ -80,9 +90,9 @@ begin
   begin
     lEnvRoot := Trim(GetEnvironmentVariable('DAK_TEST_OUTPUT_ROOT'));
     if lEnvRoot <> '' then
-      GTempRoot := TPath.GetFullPath(lEnvRoot)
+      GTempRoot := NewRunTempRoot(TPath.GetFullPath(lEnvRoot))
     else
-      GTempRoot := TPath.Combine(RepoRoot, 'tests\temp');
+      GTempRoot := NewRunTempRoot(TPath.Combine(RepoRoot, 'tests\temp'));
   end;
   Result := GTempRoot;
 end;
@@ -94,10 +104,18 @@ begin
   if GTempCleaned then
     Exit;
   lTemp := TempRoot;
-  if TDirectory.Exists(lTemp) then
+  if (Trim(GetEnvironmentVariable('DAK_TEST_KEEP_TEMP')) <> '1') and TDirectory.Exists(lTemp) then
     TDirectory.Delete(lTemp, True);
   TDirectory.CreateDirectory(lTemp);
   GTempCleaned := True;
+end;
+
+procedure CleanupTempRoot;
+begin
+  if (Trim(GetEnvironmentVariable('DAK_TEST_KEEP_TEMP')) = '1') or (GTempRoot = '') then
+    Exit;
+  if TDirectory.Exists(GTempRoot) then
+    TDirectory.Delete(GTempRoot, True);
 end;
 
 function CmdExePath: string;
@@ -353,5 +371,8 @@ end;
 
 initialization
   EnsureTempClean;
+
+finalization
+  CleanupTempRoot;
 
 end.

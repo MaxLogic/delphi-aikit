@@ -18,6 +18,8 @@ type
     [Test]
     procedure NormalizeInputPathRejectsUnsupportedLinuxAbsolutePath;
     [Test]
+    procedure TempRootUsesProcessScopedRunDirectory;
+    [Test]
     procedure ResolveDprojPathUsesSiblingDprojForDpr;
     [Test]
     procedure ResolveConfiguredExePathExpandsEnvAndAppendsExe;
@@ -44,6 +46,20 @@ begin
   Assert.IsFalse(TryNormalizeInputPath('/home/pawel/Sample.dproj', lNormalizedPath, lError),
     'Expected unsupported Linux path to fail.');
   Assert.IsTrue(Pos('Unsupported Linux path format', lError) > 0, 'Unexpected error text: ' + lError);
+end;
+
+procedure TUtilsTests.TempRootUsesProcessScopedRunDirectory;
+var
+  lFixedRoot: string;
+  lRoot: string;
+begin
+  lFixedRoot := TPath.GetFullPath(TPath.Combine(RepoRoot, 'tests\temp'));
+  lRoot := TPath.GetFullPath(TempRoot);
+
+  Assert.IsFalse(SameText(lRoot, lFixedRoot),
+    'DAK tests must use a process-scoped temp root, not the shared repo tests\temp directory.');
+  Assert.IsTrue(Pos(GetCurrentProcessId.ToString, lRoot) > 0,
+    'DAK temp root should include the current process id. Actual: ' + lRoot);
 end;
 
 procedure TUtilsTests.ResolveDprojPathUsesSiblingDprojForDpr;

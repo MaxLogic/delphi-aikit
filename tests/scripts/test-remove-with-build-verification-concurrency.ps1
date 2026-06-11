@@ -3,7 +3,8 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $fixtureRoot = Join-Path $repoRoot 'tests\fixtures\RemoveWithApplyFixture'
-$tempRoot = Join-Path $repoRoot 'tests\temp\remove-with-build-verification-concurrency'
+$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) `
+  ('remove-with-build-verification-concurrency-' + [guid]::NewGuid().ToString('N'))
 $exePath = Join-Path $repoRoot 'bin\DelphiAIKit.exe'
 
 if (-not (Test-Path -LiteralPath $exePath)) {
@@ -156,53 +157,57 @@ Assert-NotContains $transactionSource 'SetEnvironmentVariable(' `
 Assert-Contains $buildRunnerSource 'fBuildDiagnosticsDir' `
   'Build runner must accept diagnostics through typed options.'
 
-if (Test-Path -LiteralPath $tempRoot) {
-  Remove-Item -LiteralPath $tempRoot -Recurse -Force
-}
-
-$projectADir = Join-Path $tempRoot 'copy-a'
-$projectBDir = Join-Path $tempRoot 'copy-b'
-Copy-Fixture $projectADir
-Copy-Fixture $projectBDir
-
-$projectA = Join-Path $projectADir 'RemoveWithApplyFixture.dproj'
-$projectB = Join-Path $projectBDir 'RemoveWithApplyFixture.dproj'
-$mutexA = Get-BuildVerificationMutexName $projectA
-$mutexB = Get-BuildVerificationMutexName $projectB
-
-if ($mutexA -eq $mutexB) {
-  throw 'Disjoint project fixture copies must map to distinct build-verification mutexes.'
-}
-
-$heldMutex = [System.Threading.Mutex]::new($false, $mutexA)
-if (-not $heldMutex.WaitOne(0)) {
-  throw "Could not acquire same-project mutex for concurrency proof: $mutexA"
-}
-
-$sameJob = $null
-$disjointJob = $null
 try {
-  $sameJob = Start-RemoveWithApply $projectA (Join-Path $tempRoot 'same-project.json') `
-    (Join-Path $tempRoot 'same-project.err.log')
-  $disjointJob = Start-RemoveWithApply $projectB (Join-Path $tempRoot 'disjoint-project.json') `
-    (Join-Path $tempRoot 'disjoint-project.err.log')
+  New-Item -ItemType Directory -Force -Path $tempRoot | Out-Null
 
-  Start-Sleep -Seconds 3
-  if ($sameJob.State -ne 'Running') {
-    throw "Expected same-project verification to wait on the held mutex, but job state is $($sameJob.State)."
+  $projectADir = Join-Path $tempRoot 'copy-a'
+  $projectBDir = Join-Path $tempRoot 'copy-b'
+  Copy-Fixture $projectADir
+  Copy-Fixture $projectBDir
+
+  $projectA = Join-Path $projectADir 'RemoveWithApplyFixture.dproj'
+  $projectB = Join-Path $projectBDir 'RemoveWithApplyFixture.dproj'
+  $mutexA = Get-BuildVerificationMutexName $projectA
+  $mutexB = Get-BuildVerificationMutexName $projectB
+
+  if ($mutexA -eq $mutexB) {
+    throw 'Disjoint project fixture copies must map to distinct build-verification mutexes.'
   }
 
-  $disjointResult = Receive-CompletedJob $disjointJob 45
+  $heldMutex = [System.Threading.Mutex]::new($false, $mutexA)
+  if (-not $heldMutex.WaitOne(0)) {
+    throw "Could not acquire same-project mutex for concurrency proof: $mutexA"
+  }
+
+  $sameJob = $null
   $disjointJob = $null
-  Assert-ApplyResult $disjointResult $projectBDir
-} finally {
-  $heldMutex.ReleaseMutex()
-  $heldMutex.Dispose()
-}
+  try {
+    $sameJob = Start-RemoveWithApply $projectA (Join-Path $tempRoot 'same-project.json') `
+      (Join-Path $tempRoot 'same-project.err.log')
+    $disjointJob = Start-RemoveWithApply $projectB (Join-Path $tempRoot 'disjoint-project.json') `
+      (Join-Path $tempRoot 'disjoint-project.err.log')
 
-if ($null -ne $sameJob) {
-  $sameResult = Receive-CompletedJob $sameJob 45
-  Assert-ApplyResult $sameResult $projectADir
-}
+    Start-Sleep -Seconds 3
+    if ($sameJob.State -ne 'Running') {
+      throw "Expected same-project verification to wait on the held mutex, but job state is $($sameJob.State)."
+    }
 
-Write-Host 'PASS remove-with build verification isolation contract'
+    $disjointResult = Receive-CompletedJob $disjointJob 45
+    $disjointJob = $null
+    Assert-ApplyResult $disjointResult $projectBDir
+  } finally {
+    $heldMutex.ReleaseMutex()
+    $heldMutex.Dispose()
+  }
+
+  if ($null -ne $sameJob) {
+    $sameResult = Receive-CompletedJob $sameJob 45
+    Assert-ApplyResult $sameResult $projectADir
+  }
+
+  Remove-Item -LiteralPath $tempRoot -Recurse -Force
+  Write-Host 'PASS remove-with build verification isolation contract'
+} catch {
+  Write-Host "Preserving failing-run evidence under $tempRoot"
+  throw
+}
