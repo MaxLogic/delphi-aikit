@@ -53,7 +53,7 @@ implementation
 
 uses
   System.Diagnostics, System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
-  DelphiSemantics.Api;
+  DelphiSemantics.Api.RemoveWith;
 
 const
   cRemoveWithSchemaVersion = 2;
