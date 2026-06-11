@@ -6,8 +6,10 @@ uses
   DUnitX.TestFramework,
   System.Generics.Collections,
   System.IOUtils,
+  System.StrUtils,
   System.SysUtils,
   Xml.omnixmldom, Xml.xmldom,
+  DelphiSemantics.Api,
   Dak.Diagnostics, Dak.MsBuild, Dak.Project, Dak.Types,
   Test.Support;
 
@@ -53,9 +55,18 @@ type
     procedure ProjectParamsUseRequestedPlatformWhenProjectSetsPlatform;
     [Test]
     procedure DegradedProjectAnalysisContextKeepsProjectDefines;
+    [Test]
+    procedure ProjectAnalysisContextDelegatesSemanticAuthority;
+    [Test]
+    procedure ProjectAnalysisContextMatchesSemanticProjectContext;
   end;
 
 implementation
+
+function ArrayText(const aItems: TArray<string>): string;
+begin
+  Result := String.Join(';', aItems);
+end;
 
 procedure BuildConditionProject(const aCondition: string; out aProjectPath: string);
 var
@@ -167,6 +178,8 @@ begin
     lProjectXml.AppendLine('  <PropertyGroup Condition="''$(Config)''==''Debug'' and ''$(Platform)''==''Win32''">');
     lProjectXml.AppendLine('    <MainSource>MetadataCheck.dpr</MainSource>');
     lProjectXml.AppendLine('    <DCC_UnitSearchPath>shared</DCC_UnitSearchPath>');
+    lProjectXml.AppendLine('    <DCC_Namespace>Project.Scope;Shared.Scope</DCC_Namespace>');
+    lProjectXml.AppendLine('    <DCC_UnitAliases>Legacy.Unit=Modern.Unit</DCC_UnitAliases>');
     lProjectXml.AppendLine('  </PropertyGroup>');
     lProjectXml.AppendLine('  <ItemGroup>');
     lProjectXml.AppendLine('    <DCCReference Include="src\MetadataUnit.pas"/>');
@@ -571,6 +584,82 @@ begin
   Assert.IsTrue(Pos('CPUX64', lContext.fParserDefines) > 0, 'CPUX64');
   Assert.AreEqual(0, Pos('MSWINDOWS', lContext.fParserDefines), 'MSWINDOWS');
   Assert.AreEqual(0, Pos('WIN32', lContext.fParserDefines), 'WIN32');
+end;
+
+procedure TMsBuildTests.ProjectAnalysisContextDelegatesSemanticAuthority;
+var
+  lBody: string;
+  lEndIndex: Integer;
+  lImplementationIndex: Integer;
+  lSource: string;
+  lStartIndex: Integer;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.project.pas'), TEncoding.UTF8);
+  lImplementationIndex := Pos('implementation', lSource);
+  Assert.IsTrue(lImplementationIndex > 0, 'Expected implementation section.');
+
+  lStartIndex := Pos('function TryBuildProjectAnalysisContext',
+    Copy(lSource, lImplementationIndex, MaxInt));
+  if lStartIndex > 0 then
+    Inc(lStartIndex, lImplementationIndex - 1);
+  lEndIndex := Pos('function CreateProjectAnalysisIndexer',
+    Copy(lSource, lStartIndex, MaxInt));
+  if lEndIndex > 0 then
+    Inc(lEndIndex, lStartIndex - 1);
+
+  Assert.IsTrue(lStartIndex > 0, 'Expected TryBuildProjectAnalysisContext implementation.');
+  Assert.IsTrue(lEndIndex > lStartIndex, 'Expected CreateProjectAnalysisIndexer after analysis context.');
+
+  lBody := Copy(lSource, lStartIndex, lEndIndex - lStartIndex);
+  Assert.IsTrue(ContainsText(lBody, 'TDelphiSemanticApi.LoadProjectContext'),
+    'Project-analysis context should load semantic project context directly.');
+  Assert.IsFalse(ContainsText(lBody, 'TryBuildParams('),
+    'Project-analysis context must not rebuild parser context through DAK FixInsight params.');
+  Assert.IsFalse(ContainsText(lBody, 'TMsBuildEvaluator'),
+    'Project-analysis context must not evaluate MSBuild independently.');
+end;
+
+procedure TMsBuildTests.ProjectAnalysisContextMatchesSemanticProjectContext;
+var
+  lContext: TProjectAnalysisContext;
+  lError: string;
+  lMainSourcePath: string;
+  lOptions: TAppOptions;
+  lProjectPath: string;
+  lReferenceDir: string;
+  lSearchDir: string;
+  lSemanticOptions: TDelphiSemanticApiOptions;
+  lSemanticResult: TDelphiSemanticContextResult;
+begin
+  BuildProjectMetadataProject(lProjectPath, lMainSourcePath, lReferenceDir, lSearchDir);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lProjectPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+
+  lSemanticOptions := Default(TDelphiSemanticApiOptions);
+  lSemanticOptions.Configuration := lOptions.fConfig;
+  lSemanticOptions.Platform := lOptions.fPlatform;
+  lSemanticOptions.DelphiVersion := lOptions.fDelphiVersion;
+
+  lSemanticResult := TDelphiSemanticApi.LoadProjectContext(lProjectPath, lSemanticOptions);
+  Assert.IsTrue(lSemanticResult.Success, 'Expected semantic project context.');
+  Assert.IsTrue(TryBuildProjectAnalysisContext(lOptions, lContext, lError),
+    'Expected DAK project analysis context. Error: ' + lError);
+
+  Assert.AreEqual(lSemanticResult.Project.ProjectFileName, lContext.fProjectPath);
+  Assert.AreEqual(lSemanticResult.Project.ProjectDirectory, lContext.fProjectDir);
+  Assert.AreEqual(lSemanticResult.Project.ProjectName, lContext.fProjectName);
+  Assert.AreEqual(lSemanticResult.Project.MainSourceFileName, lContext.fMainSourcePath);
+  Assert.AreEqual(ArrayText(lSemanticResult.Project.Defines), lContext.fParserDefines);
+  Assert.AreEqual(ArrayText(lSemanticResult.Project.UnitScopeNames), ArrayText(lContext.fUnitScopes));
+  Assert.AreEqual(ArrayText(lSemanticResult.Project.UnitAliases), ArrayText(lContext.fUnitAliases));
+  Assert.IsTrue(ContainsText(lContext.fParserSearchPath, TPath.GetFullPath(lReferenceDir)),
+    'Expected DAK context reference dir from semantic source lookup.');
+  Assert.IsTrue(ContainsText(lContext.fParserSearchPath, TPath.GetFullPath(lSearchDir)),
+    'Expected DAK context search dir from semantic source lookup.');
 end;
 
 initialization

@@ -86,6 +86,28 @@ begin
     NormalizeDelphiVersion(aDelphiVersion), aRsVarsPath);
 end;
 
+function SplitSemanticList(const aValue: string): TArray<string>;
+var
+  i: Integer;
+  lItems: TList<string>;
+  lPart: string;
+  lParts: TArray<string>;
+begin
+  lItems := TList<string>.Create;
+  try
+    lParts := aValue.Split([';']);
+    for i := 0 to High(lParts) do
+    begin
+      lPart := Trim(lParts[i]);
+      if lPart <> '' then
+        lItems.Add(lPart);
+    end;
+    Result := lItems.ToArray;
+  finally
+    lItems.Free;
+  end;
+end;
+
 procedure TryPopulateCompilerParams(const aOptions: TAppOptions; var aContext: TSymbolMapContext);
 var
   lEnvVars: TDictionary<string, string>;
@@ -125,11 +147,7 @@ begin
       Exit;
 
     aContext.fHasCompilerParams := True;
-    aContext.fDefines := lParams.fDefines;
-    aContext.fUnitSearchPath := lParams.fUnitSearchPath;
     aContext.fLibraryPath := lParams.fLibraryPath;
-    aContext.fUnitScopes := lParams.fUnitScopes;
-    aContext.fUnitAliases := lParams.fUnitAliases;
   finally
     lEnvVars.Free;
   end;
@@ -158,6 +176,10 @@ begin
   aContext.fDelphiVersion := NormalizeDelphiVersion(lOptions.fDelphiVersion);
   aContext.fRtlSourceRoot := NormalizeCacheRoot(ResolveDefaultRtlSourceRoot(aContext.fDelphiVersion,
     lOptions.fRsVarsPath));
+  aContext.fDefines := SplitSemanticList(aContext.fProject.fParserDefines);
+  aContext.fUnitSearchPath := SplitSemanticList(aContext.fProject.fParserSearchPath);
+  aContext.fUnitScopes := aContext.fProject.fUnitScopes;
+  aContext.fUnitAliases := aContext.fProject.fUnitAliases;
   aContext.fCentralCacheRoot := ResolveSymbolMapCentralCacheRoot(lOptions);
   aContext.fProjectCacheRoot := TPath.Combine(aContext.fProject.fDakProjectRoot, 'symbol-map');
   TryPopulateCompilerParams(lOptions, aContext);
