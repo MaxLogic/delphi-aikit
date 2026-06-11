@@ -437,7 +437,7 @@ begin
   lUnitPath := TPath.GetFullPath(aUnitPath);
   if not TryExtractSymbolMapUnitModel(lUnitPath, aIndexedUnit.fModel, aError) then
     Exit(False);
-  if not StoreSymbolMapUnitModel(aContext, aCacheStatus, aIndexedUnit.fModel, aIndexedUnit.fStoreResult, aError) then
+  if not StoreSymbolMapUnitProjection(aContext, aCacheStatus, aIndexedUnit.fModel, aIndexedUnit.fStoreResult, aError) then
     Exit(False);
   Result := True;
 end;

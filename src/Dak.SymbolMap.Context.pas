@@ -7,6 +7,7 @@ uses
 
 const
   cSymbolMapCacheEnvVar = 'DAK_SYMBOL_MAP_CACHE_ROOT';
+  cSymbolMapCacheDirectoryVersion = 'v2';
 
 type
   TSymbolMapContext = record
@@ -57,13 +58,14 @@ var
 begin
   lBaseRoot := Trim(GetEnvironmentVariable('LOCALAPPDATA'));
   if lBaseRoot <> '' then
-    Exit(TPath.Combine(lBaseRoot, 'DelphiAIKit\symbol-map\v1'));
+    Exit(TPath.Combine(TPath.Combine(lBaseRoot, 'DelphiAIKit\symbol-map'), cSymbolMapCacheDirectoryVersion));
 
   lBaseRoot := Trim(GetEnvironmentVariable('USERPROFILE'));
   if lBaseRoot <> '' then
-    Exit(TPath.Combine(lBaseRoot, '.dak\symbol-map\v1'));
+    Exit(TPath.Combine(TPath.Combine(lBaseRoot, '.dak\symbol-map'), cSymbolMapCacheDirectoryVersion));
 
-  Result := TPath.Combine(TPath.GetTempPath, 'DelphiAIKit\symbol-map\v1');
+  Result := TPath.Combine(TPath.Combine(TPath.GetTempPath, 'DelphiAIKit\symbol-map'),
+    cSymbolMapCacheDirectoryVersion);
 end;
 
 function ResolveSymbolMapCentralCacheRoot(const aOptions: TAppOptions): string;
@@ -181,7 +183,8 @@ begin
   aContext.fUnitScopes := aContext.fProject.fUnitScopes;
   aContext.fUnitAliases := aContext.fProject.fUnitAliases;
   aContext.fCentralCacheRoot := ResolveSymbolMapCentralCacheRoot(lOptions);
-  aContext.fProjectCacheRoot := TPath.Combine(aContext.fProject.fDakProjectRoot, 'symbol-map');
+  aContext.fProjectCacheRoot := TPath.Combine(TPath.Combine(aContext.fProject.fDakProjectRoot, 'symbol-map'),
+    cSymbolMapCacheDirectoryVersion);
   TryPopulateCompilerParams(lOptions, aContext);
   Result := True;
 end;
