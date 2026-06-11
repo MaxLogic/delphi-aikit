@@ -551,6 +551,8 @@ type
     [Test]
     procedure ApplyModeRollsBackExactBytesWhenBuildVerificationFails;
     [Test]
+    procedure BuildVerificationUsesProjectScopedMutexAndTypedDiagnostics;
+    [Test]
     procedure ApplyModeTextReportsTransactionStatus;
   end;
 
@@ -6981,6 +6983,28 @@ begin
   finally
     lManifestValue.Free;
   end;
+end;
+
+procedure TRemoveWithTransactionTests.BuildVerificationUsesProjectScopedMutexAndTypedDiagnostics;
+var
+  lBuildRunnerSource: string;
+  lTransactionSource: string;
+begin
+  lTransactionSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Transaction.pas'),
+    TEncoding.UTF8);
+  lBuildRunnerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.Build.Runner.pas'),
+    TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lTransactionSource, 'BuildVerificationMutexName('),
+    'Expected build verification locking to derive a mutex from the project identity.');
+  Assert.IsFalse(ContainsText(lTransactionSource, 'Local\DakRemoveWithBuildVerification'''),
+    'Expected no fixed global remove-with build verification mutex.');
+  Assert.IsFalse(ContainsText(lTransactionSource, 'WaitForSingleObject(lMutex, Winapi.Windows.INFINITE)'),
+    'Expected remove-with build verification to avoid an indefinite global wait.');
+  Assert.IsFalse(ContainsText(lTransactionSource, 'SetEnvironmentVariable('),
+    'Expected remove-with build verification not to mutate process environment state.');
+  Assert.IsTrue(ContainsText(lBuildRunnerSource, 'fBuildDiagnosticsDir'),
+    'Expected build diagnostics to be a typed option instead of a process-wide environment mutation.');
 end;
 
 procedure TRemoveWithTransactionTests.ApplyModeTextReportsTransactionStatus;

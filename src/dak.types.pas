@@ -86,6 +86,7 @@ type
     fBuildTarget: string;
     fBuildMaxFindings: Integer;
     fBuildTimeoutSec: Integer;
+    fBuildDiagnosticsDir: string;
     fBuildTestOutputDir: string;
     fHasBuildTestOutputDir: Boolean;
     fWebCoreCompilerPath: string;
