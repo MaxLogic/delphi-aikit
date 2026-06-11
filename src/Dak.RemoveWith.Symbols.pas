@@ -120,7 +120,7 @@ function BuildRemoveWithFactSet(const aOptions: TAppOptions; const aProjectModel
 implementation
 
 uses
-  System.Classes, System.Diagnostics, System.Generics.Collections, System.IOUtils, System.StrUtils, System.SyncObjs,
+  System.Classes, System.Diagnostics, System.Generics.Collections, System.IOUtils, System.StrUtils,
   System.SysUtils,
   DelphiAST.ProjectIndexer,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile,
@@ -215,9 +215,6 @@ type
     class procedure AddExternalTypeSymbols(const aContext: TRemoveWithSymbolInventoryContext;
       var aInventory: TRemoveWithFactSet); static;
   end;
-
-var
-  ProjectSemanticFactsLock: TCriticalSection;
 
 constructor TRemoveWithSymbolInventoryContext.Create;
 begin
@@ -775,13 +772,8 @@ begin
   lOptions := BuildProjectSemanticOptions(aOptions, aProjectModel,
     aBodyAnalysisSourceFileNames);
   lStopwatch := TStopwatch.StartNew;
-  ProjectSemanticFactsLock.Enter;
   try
-    try
-      lFacts := TDelphiSemanticApi.BuildProjectWithBindingFacts(lOptions);
-    finally
-      ProjectSemanticFactsLock.Leave;
-    end;
+    lFacts := TDelphiSemanticApi.BuildProjectWithBindingFacts(lOptions);
   except
     on E: Exception do
     begin
@@ -826,13 +818,8 @@ begin
   aInventory.fContextFingerprint := lFacts.ContextFingerprint;
   aInventory.fDelphiSemanticLookupIndex := lFacts.LookupIndex;
   lPlanStopwatch := TStopwatch.StartNew;
-  ProjectSemanticFactsLock.Enter;
   try
-    try
-      aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticApi.PlanRemoveWithSnapshot(lFacts);
-    finally
-      ProjectSemanticFactsLock.Leave;
-    end;
+    aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticApi.PlanRemoveWithSnapshot(lFacts);
   except
     on E: Exception do
     begin
@@ -2124,11 +2111,5 @@ begin
   end;
   Result := True;
 end;
-
-initialization
-  ProjectSemanticFactsLock := TCriticalSection.Create;
-
-finalization
-  ProjectSemanticFactsLock.Free;
 
 end.

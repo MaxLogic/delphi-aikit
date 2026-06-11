@@ -2686,6 +2686,10 @@ begin
     'Symbol inventory dedupe state must be owned by an explicit per-run context, not a unit-global dictionary.');
   Assert.IsFalse(ContainsText(lSymbolsSourceText, 'GRemoveWithLogicalSymbolKeys'),
     'Logical symbol inventory dedupe state must be owned by an explicit per-run context, not a unit-global dictionary.');
+  Assert.IsFalse(ContainsText(lSymbolsSourceText, 'ProjectSemanticFactsLock'),
+    'Remove-with semantic fact construction must not serialize DelphiSemantics calls through a broad global lock.');
+  Assert.IsFalse(ContainsText(lSymbolsSourceText, 'TCriticalSection'),
+    'Remove-with symbols must not keep a broad critical section around semantic API calls.');
 
   lOptions := Default(TAppOptions);
   lOptions.fDprojPath := TPath.Combine(RepoRoot,
