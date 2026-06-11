@@ -40,6 +40,7 @@ type
     [Test] procedure DepsJsonPrefersImplementationEdgesOnEqualRank;
     [Test] procedure DepsJsonExcludesUnresolvedUnitsFromHotspots;
     [Test] procedure DepsLinux64UsesTargetCompilerDefinesWithoutHostDefines;
+    [Test] procedure DepsRunnerUsesSharedTypedSccAnalyzer;
   end;
 
 implementation
@@ -652,6 +653,21 @@ begin
   finally
     lJson.Free;
   end;
+end;
+
+procedure TDepsTests.DepsRunnerUsesSharedTypedSccAnalyzer;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.deps.runner.pas'),
+    TEncoding.UTF8);
+
+  Assert.IsTrue(Pos('TDelphiSemanticTypedSccAnalyzer', lSource) > 0,
+    'deps runner should use the shared DelphiSemantics typed SCC analyzer.');
+  Assert.IsFalse(Pos('AddReachableNodes', lSource) > 0,
+    'deps runner should not own reachability-based SCC sweeps.');
+  Assert.IsFalse(Pos('BuildRepresentativeCycle', lSource) > 0,
+    'deps runner should not own representative cycle path assembly.');
 end;
 
 initialization
