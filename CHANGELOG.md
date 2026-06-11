@@ -91,15 +91,17 @@ All notable user-visible changes to this project will be documented in this file
 - Added static-analysis fix recipes reference to speed up safe warning remediation. (T-057)
 
 ### Changed
+- `remove-with --mode plan` now uses a compact high-volume report path: the
+  root `withStatements` array is kept but omits detailed rows, summary/planned/
+  skipped counts remain authoritative, legacy resolver classifications are
+  skipped for large plan reports, and the old `.project-facts.json` semantic
+  sidecar is no longer written. The maxTdb proof is cold `9.224s` median, warm
+  `5.972s`, scan count `667`, and planned edit count `215`.
 - `remove-with` now obtains its semantic final plan from the DelphiSemantics
   typed snapshot planner while preserving DAK report and apply compatibility.
-- `remove-with --semantic-cache` benefits from compact DelphiSemantics
-  project-facts sidecars, bringing the final maxTdb cold plan proof to
-  `9.873s` median while preserving `667` scans and `215` planned edits.
-- `remove-with --semantic-cache` now reuses DelphiSemantics project facts across
-  unchanged plan runs and reports `projectFactsCache*` counters in planner
-  metrics, cutting maxTdb warm plan median to `3.527s` while preserving `667`
-  scans and `215` planned edits.
+- The earlier compact DelphiSemantics project-facts sidecar path is now
+  superseded by typed snapshot planning; `projectFactsCache*` planner metrics
+  remain zero for the remove-with snapshot path.
 - `remove-with --mode plan` report JSON is now semantic-facts-first: legacy
   resolver-report compatibility timing/classification fields are removed,
   report-only projection no longer runs the legacy fallback resolver, and

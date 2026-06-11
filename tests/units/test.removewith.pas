@@ -467,7 +467,17 @@ type
     [Test]
     procedure SemanticFinalDtoPrimaryPlanFailsWhenActiveConditionalStatementCannotMap;
     [Test]
-    procedure PlanModeConsumesSemanticFinalDtoBeforeResolverReport;
+    procedure PlanModeSkipsResolverReportWhenCompatibilityProjectionIsSkipped;
+    [Test]
+    procedure ApplyModeKeepsResolverBackedPlannerBeforeApply;
+    [Test]
+    procedure JsonReportSerializesOnce;
+    [Test]
+    procedure PlanModeSkipsCompatibilityProjectionAfterSemanticPlan;
+    [Test]
+    procedure PlanCliUsesCompactHighVolumeReportContract;
+    [Test]
+    procedure PlanJsonReportOmitsDetailedWithStatements;
     [Test]
     procedure PlanReportProjectionUsesSemanticScopeConflictFacts;
     [Test]
@@ -1612,15 +1622,19 @@ var
   lExitCode: Cardinal;
   lFixtureDir: string;
   lLogText: string;
+  lProjectFactsSidecar: string;
   lUnitPath: string;
 begin
   CopyFixtureToTemp('SymbolMapFixture', 'remove-with-semantic-cache', lDprojPath, lFixtureDir);
   lCacheFileName := TPath.Combine(TPath.Combine(lFixtureDir, '.dak'), 'semantic-cache.sqlite3');
+  lProjectFactsSidecar := lCacheFileName + '.project-facts.json';
 
   lLogText := RunSemanticCacheFixture(lDprojPath, lCacheFileName, 'remove-with-semantic-cache-first.log',
     lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected first semantic cache run to succeed.');
   Assert.IsTrue(TFile.Exists(lCacheFileName), 'Expected remove-with to create the semantic cache file.');
+  Assert.IsFalse(TFile.Exists(lProjectFactsSidecar),
+    'remove-with semantic cache must not create the obsolete project-facts JSON sidecar.');
   Assert.IsTrue(ContainsText(lLogText,
     'semantic-project-facts graph=False'),
     'Expected first run to build graph-free semantic project facts through DelphiSemantics.');
@@ -1630,12 +1644,14 @@ begin
     'Expected cold semantic cache run to report misses.');
   Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheHits'),
     'Expected cold project-facts cache run to report zero hits.');
-  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses') > 0,
-    'Expected cold project-facts cache run to report misses.');
+  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses'),
+    'Expected cold run to avoid the retired project-facts cache.');
 
   lLogText := RunSemanticCacheFixture(lDprojPath, lCacheFileName, 'remove-with-semantic-cache-second.log',
     lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected second semantic cache run to succeed.');
+  Assert.IsFalse(TFile.Exists(lProjectFactsSidecar),
+    'unchanged semantic-cache run must not create the obsolete project-facts JSON sidecar.');
   Assert.IsTrue(ContainsText(lLogText,
     'semantic-project-facts graph=False'),
     'Expected second run to reuse the graph-free project semantic-facts path.');
@@ -1643,10 +1659,10 @@ begin
     'Expected unchanged semantic cache run to report hits.');
   Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'semanticCacheMisses'),
     'Expected unchanged semantic cache run to avoid misses.');
-  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'projectFactsCacheHits') > 0,
-    'Expected unchanged project-facts cache run to report hits.');
+  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheHits'),
+    'Expected unchanged run to avoid the retired project-facts cache.');
   Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses'),
-    'Expected unchanged project-facts cache run to avoid misses.');
+    'Expected unchanged run to avoid the retired project-facts cache.');
 
   lUnitPath := TPath.Combine(lFixtureDir, 'SymbolMapUnit.pas');
   TFile.AppendAllText(lUnitPath, sLineBreak + '// cache invalidation probe' + sLineBreak,
@@ -1654,6 +1670,8 @@ begin
   lLogText := RunSemanticCacheFixture(lDprojPath, lCacheFileName, 'remove-with-semantic-cache-third.log',
     lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected changed-source semantic cache run to succeed.');
+  Assert.IsFalse(TFile.Exists(lProjectFactsSidecar),
+    'changed-source semantic-cache run must not create the obsolete project-facts JSON sidecar.');
   Assert.IsTrue(ContainsText(lLogText,
     'semantic-project-facts graph=False'),
     'Expected changed-source run to rebuild graph-free project semantic facts.');
@@ -1661,10 +1679,10 @@ begin
     'Expected changed-source semantic cache run to report invalidation.');
   Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'semanticCacheMisses') > 0,
     'Expected changed-source semantic cache run to rebuild stale unit facts.');
-  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'projectFactsCacheInvalidations') > 0,
-    'Expected changed-source project-facts cache run to report invalidation.');
-  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses') > 0,
-    'Expected changed-source project-facts cache run to rebuild stale project facts.');
+  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheInvalidations'),
+    'Expected changed-source run to avoid the retired project-facts cache.');
+  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses'),
+    'Expected changed-source run to avoid the retired project-facts cache.');
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;
@@ -1764,6 +1782,8 @@ begin
 
     Assert.AreEqual('plan', lRoot.Values['mode'].Value, 'Expected plan mode in report.');
     AssertJsonArrayKey(lRoot, 'withStatements', lChildArray);
+    Assert.AreEqual(0, lChildArray.Count,
+      'Plan reports should not repeat detailed scan statements.');
     AssertJsonObjectKey(lRoot, 'resolver', lChildObject);
     AssertJsonArrayKey(lRoot, 'plannedEdits', lChildArray);
     AssertJsonArrayKey(lRoot, 'skipped', lChildArray);
@@ -5327,12 +5347,15 @@ begin
     'Expected statement-id mapping error, got: ' + lError);
 end;
 
-procedure TRemoveWithPlannerTests.PlanModeConsumesSemanticFinalDtoBeforeResolverReport;
+procedure TRemoveWithPlannerTests.PlanModeSkipsResolverReportWhenCompatibilityProjectionIsSkipped;
 var
+  lBranchEndPos: Integer;
   lBranchPos: Integer;
   lDtoPrimaryPlanPos: Integer;
   lPlannerPos: Integer;
   lResolverPos: Integer;
+  lSkipConditionPos: Integer;
+  lSkipReportPos: Integer;
   lSourceText: string;
 begin
   lSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
@@ -5340,18 +5363,252 @@ begin
   lBranchPos := Pos('if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply',
     lSourceText);
   lBranchPos := PosEx('end else', lSourceText, lBranchPos);
+  lBranchEndPos := PosEx('lMetrics.fPlannerMs := lPlannerMs', lSourceText,
+    lBranchPos);
   lPlannerPos := PosEx('planner start', lSourceText, lBranchPos);
   lDtoPrimaryPlanPos := PosEx('lSymbolInventory.fDelphiSemanticRemoveWithPlan',
     lSourceText, lBranchPos);
   lResolverPos := PosEx('resolver start', lSourceText, lBranchPos);
+  lSkipConditionPos := PosEx('if lFactOptions.fRemoveWithSkipCompatibilityFacts then',
+    lSourceText, lBranchPos);
+  lSkipReportPos := PosEx('resolver report skipped', lSourceText, lBranchPos);
 
   Assert.IsTrue(lBranchPos > 0, 'Expected distinct non-apply remove-with branch.');
   Assert.IsTrue(lDtoPrimaryPlanPos > 0,
     'Expected DTO-primary plan mode to pass DelphiSemantics final plan DTO.');
   Assert.IsTrue(lPlannerPos > 0, 'Expected remove-with command planner phase.');
-  Assert.IsTrue(lResolverPos > 0, 'Expected remove-with command resolver phase.');
-  Assert.IsTrue(lPlannerPos < lResolverPos,
-    'Plan/report mode must consume the final semantic DTO before DAK resolver reporting can fail.');
+  Assert.IsTrue((lSkipConditionPos > 0) and (lSkipConditionPos < lBranchEndPos),
+    'Plan/report mode should skip resolver reporting only when compatibility facts were skipped.');
+  Assert.IsTrue((lSkipReportPos > lSkipConditionPos) and (lSkipReportPos < lBranchEndPos),
+    'High-volume plan reports should explicitly skip legacy resolver reporting.');
+  Assert.IsTrue((lResolverPos > lSkipReportPos) and (lResolverPos < lBranchEndPos),
+    'Small plan reports should retain resolver classifications for diagnostics.');
+end;
+
+procedure TRemoveWithPlannerTests.ApplyModeKeepsResolverBackedPlannerBeforeApply;
+var
+  lApplyContextPos: Integer;
+  lBranchEndPos: Integer;
+  lBranchPos: Integer;
+  lPlannerPos: Integer;
+  lResolverPlannerPos: Integer;
+  lSourceText: string;
+begin
+  lSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.pas'), TEncoding.UTF8);
+  lBranchPos := Pos('if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply',
+    lSourceText);
+  lBranchEndPos := PosEx('end else', lSourceText, lBranchPos);
+  lPlannerPos := PosEx('planner start', lSourceText, lBranchPos);
+  lResolverPlannerPos := PosEx(
+    'PlanRemoveWithRewrites(lSymbolInventory, lScanResult, lResolverResult',
+    lSourceText, lPlannerPos);
+  lApplyContextPos := PosEx('BuildRemoveWithPlanApplyContext', lSourceText,
+    lBranchPos);
+
+  Assert.IsTrue((lBranchPos > 0) and (lBranchEndPos > lBranchPos),
+    'Expected distinct apply remove-with branch.');
+  Assert.IsTrue((lResolverPlannerPos > 0) and (lResolverPlannerPos < lBranchEndPos),
+    'Apply mode must keep the resolver-backed planner until semantic DTO apply parity is proven.');
+  Assert.IsTrue(lResolverPlannerPos < lApplyContextPos,
+    'Apply mode must build its apply context from the resolver-backed plan.');
+end;
+
+procedure TRemoveWithPlannerTests.JsonReportSerializesOnce;
+var
+  lFunctionEnd: Integer;
+  lFunctionSource: string;
+  lFunctionStart: Integer;
+  lImplementationStart: Integer;
+  lSourceText: string;
+  lToJsonCount: Integer;
+  lToJsonPos: Integer;
+begin
+  lSourceText := TFile.ReadAllText(TPath.GetFullPath(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Output.pas')), TEncoding.UTF8);
+  lImplementationStart := Pos('implementation', lSourceText);
+  lFunctionStart := PosEx('function BuildRemoveWithJsonReport', lSourceText,
+    lImplementationStart);
+  lFunctionEnd := PosEx('function BuildRemoveWithTextReport', lSourceText,
+    lFunctionStart);
+  Assert.IsTrue((lFunctionStart > 0) and (lFunctionEnd > lFunctionStart),
+    'Expected BuildRemoveWithJsonReport implementation section.');
+
+  lFunctionSource := Copy(lSourceText, lFunctionStart,
+    lFunctionEnd - lFunctionStart);
+  lToJsonCount := 0;
+  lToJsonPos := Pos('.ToJSON', lFunctionSource);
+  while lToJsonPos > 0 do
+  begin
+    Inc(lToJsonCount);
+    lToJsonPos := PosEx('.ToJSON', lFunctionSource,
+      lToJsonPos + Length('.ToJSON'));
+  end;
+  Assert.AreEqual(1, lToJsonCount,
+    'Remove-with JSON reports must serialize the root object only once.');
+  Assert.IsFalse(ContainsText(lFunctionSource, 'RemovePair(''plannerPhaseMetrics'')'),
+    'Remove-with JSON reports must not rebuild metrics after a first full serialization.');
+end;
+
+procedure TRemoveWithPlannerTests.PlanModeSkipsCompatibilityProjectionAfterSemanticPlan;
+var
+  lCommandSource: string;
+  lSymbolsSource: string;
+begin
+  lCommandSource := TFile.ReadAllText(TPath.GetFullPath(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.pas')), TEncoding.UTF8);
+  lSymbolsSource := TFile.ReadAllText(TPath.GetFullPath(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Symbols.pas')), TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lCommandSource,
+    'lFactOptions.fRemoveWithSkipCompatibilityFacts') and
+    ContainsText(lCommandSource, 'aOptions.fRemoveWithMode = TRemoveWithMode.rwmPlan') and
+    ContainsText(lCommandSource, 'cRemoveWithCompactPlanReportStatementThreshold'),
+    'High-volume plan mode should opt out of DAK compatibility fact projection after semantic planning.');
+  Assert.IsTrue(ContainsText(lSymbolsSource,
+    'if not aOptions.fRemoveWithSkipCompatibilityFacts then'),
+    'Compatibility projection should be guarded behind the plan-mode opt-out flag.');
+end;
+
+procedure TRemoveWithPlannerTests.PlanCliUsesCompactHighVolumeReportContract;
+const
+  cWithCount = 105;
+var
+  i: Integer;
+  lArgs: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lMetrics: TJSONObject;
+  lOutput: string;
+  lPlannedEdits: TJSONArray;
+  lResolver: TJSONObject;
+  lResolverClassifications: TJSONArray;
+  lRoot: TJSONObject;
+  lRootValue: TJSONValue;
+  lSkipped: TJSONArray;
+  lSourceDir: string;
+  lSummary: TJSONObject;
+  lTestDir: string;
+  lUnitPath: string;
+  lUnitText: string;
+  lWithStatements: TJSONArray;
+begin
+  EnsureResolverBuilt;
+  lTestDir := TPath.Combine(TempRoot, 'remove-with-compact-high-volume');
+  if TDirectory.Exists(lTestDir) then
+    TDirectory.Delete(lTestDir, True);
+  TDirectory.CreateDirectory(lTestDir);
+  lSourceDir := TPath.Combine(lTestDir, 'src');
+  TDirectory.CreateDirectory(lSourceDir);
+  lDprojPath := TPath.Combine(lTestDir, 'CompactHighVolume.dproj');
+  lUnitPath := TPath.Combine(lSourceDir, 'CompactHighVolumeUnit.pas');
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-compact-high-volume-plan.json');
+
+  TFile.WriteAllText(TPath.Combine(lTestDir, 'CompactHighVolume.dpr'),
+    'program CompactHighVolume;' + sLineBreak +
+    'uses CompactHighVolumeUnit;' + sLineBreak +
+    'begin' + sLineBreak +
+    'end.', TEncoding.UTF8);
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>CompactHighVolume.dpr</MainSource>' + sLineBreak +
+    '    <Config Condition="''$(Config)''==''''">Debug</Config>' + sLineBreak +
+    '    <Platform Condition="''$(Platform)''==''''">Win32</Platform>' + sLineBreak +
+    '    <DCC_UnitSearchPath>src</DCC_UnitSearchPath>' + sLineBreak +
+    '    <DCCReference Include="src\CompactHighVolumeUnit.pas"/>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>', TEncoding.UTF8);
+
+  lUnitText := 'unit CompactHighVolumeUnit;' + sLineBreak +
+    'interface' + sLineBreak +
+    'type' + sLineBreak +
+    '  TCompactRecord = record' + sLineBreak +
+    '    Name: string;' + sLineBreak +
+    '  end;' + sLineBreak +
+    'implementation' + sLineBreak +
+    'procedure Run;' + sLineBreak +
+    'var' + sLineBreak +
+    '  lItem: TCompactRecord;' + sLineBreak +
+    'begin' + sLineBreak;
+  for i := 1 to cWithCount do
+    lUnitText := lUnitText + '  with lItem do Name := ''item' + i.ToString +
+      ''';' + sLineBreak;
+  lUnitText := lUnitText + 'end;' + sLineBreak + 'end.';
+  TFile.WriteAllText(lUnitPath, lUnitText, TEncoding.UTF8);
+
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) +
+    ' --all --mode plan --format json';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath),
+    lLogPath, lExitCode), 'Failed to start compact high-volume remove-with process.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected compact high-volume plan to succeed.');
+  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lRootValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lRootValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
+  lRoot := lRootValue as TJSONObject;
+  try
+    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    AssertJsonArrayKey(lRoot, 'withStatements', lWithStatements);
+    AssertJsonArrayKey(lRoot, 'plannedEdits', lPlannedEdits);
+    AssertJsonArrayKey(lRoot, 'skipped', lSkipped);
+    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
+    AssertJsonArrayKey(lResolver, 'classifications', lResolverClassifications);
+    AssertJsonObjectKey(lRoot, 'plannerPhaseMetrics', lMetrics);
+
+    Assert.IsTrue((lSummary.Values['withStatements'] as TJSONNumber).AsInt > 100,
+      'Expected generated fixture to exercise the compact high-volume branch.');
+    Assert.AreEqual(0, lWithStatements.Count,
+      'Plan JSON should keep the withStatements key but omit detailed scan rows.');
+    Assert.AreEqual(0, lResolverClassifications.Count,
+      'Compact high-volume plan reports should skip legacy resolver classifications.');
+    Assert.AreEqual(0, (lMetrics.Values['classificationCount'] as TJSONNumber).AsInt,
+      'Compact high-volume plan metrics should report zero DAK resolver classifications.');
+    Assert.AreEqual(0, (lMetrics.Values['semanticCompatibilityFactsMs'] as TJSONNumber).AsInt,
+      'Compact high-volume plan should skip DAK compatibility projection.');
+    Assert.AreEqual((lSummary.Values['withStatements'] as TJSONNumber).AsInt,
+      (lSummary.Values['plannedEdits'] as TJSONNumber).AsInt +
+      (lSummary.Values['skipped'] as TJSONNumber).AsInt,
+      'High-volume statement accounting must match planned plus skipped counts.');
+    Assert.AreEqual((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+      lPlannedEdits.Count, 'Planned edit report count must match summary.');
+    Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt,
+      lSkipped.Count, 'Skipped report count must match summary.');
+    Assert.AreEqual((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+      (lMetrics.Values['plannedEditCount'] as TJSONNumber).AsInt,
+      'Planned edit metric must match summary.');
+    Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt,
+      (lMetrics.Values['skippedStatementCount'] as TJSONNumber).AsInt,
+      'Skipped statement metric must match summary.');
+  finally
+    lRoot.Free;
+  end;
+end;
+
+procedure TRemoveWithPlannerTests.PlanJsonReportOmitsDetailedWithStatements;
+var
+  lFunctionEnd: Integer;
+  lFunctionSource: string;
+  lFunctionStart: Integer;
+  lImplementationStart: Integer;
+  lSourceText: string;
+begin
+  lSourceText := TFile.ReadAllText(TPath.GetFullPath(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Output.pas')), TEncoding.UTF8);
+  lImplementationStart := Pos('implementation', lSourceText);
+  lFunctionStart := PosEx('function BuildRemoveWithJsonReport', lSourceText,
+    lImplementationStart);
+  lFunctionEnd := PosEx('function BuildRemoveWithTextReport', lSourceText,
+    lFunctionStart);
+  Assert.IsTrue((lFunctionStart > 0) and (lFunctionEnd > lFunctionStart),
+    'Expected BuildRemoveWithJsonReport implementation section.');
+
+  lFunctionSource := Copy(lSourceText, lFunctionStart,
+    lFunctionEnd - lFunctionStart);
+  Assert.IsTrue(ContainsText(lFunctionSource,
+    'if aOptions.fRemoveWithMode = TRemoveWithMode.rwmPlan then') and
+    ContainsText(lFunctionSource, 'lRoot.AddPair(''withStatements'', TJSONArray.Create)'),
+    'Plan JSON reports should keep the withStatements key but omit detailed scan rows.');
 end;
 
 procedure TRemoveWithPlannerTests.PlanReportProjectionUsesSemanticScopeConflictFacts;
@@ -8747,6 +9004,7 @@ var
   lResolver: TJSONObject;
   lRoot: TJSONObject;
   lSkipped: TJSONArray;
+  lSummary: TJSONObject;
   lWithStatements: TJSONArray;
 begin
   CopyFixtureToTemp('RemoveWithConditionalDirectiveFixture', 'remove-with-conditional-directives', lDprojPath,
@@ -8756,7 +9014,10 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected conditional-directive plan to succeed.');
     lWithStatements := lRoot.Values['withStatements'] as TJSONArray;
-    Assert.AreEqual(2, lWithStatements.Count,
+    Assert.AreEqual(0, lWithStatements.Count,
+      'Plan reports should omit detailed with-statement rows.');
+    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    Assert.AreEqual(2, (lSummary.Values['withStatements'] as TJSONNumber).AsInt,
       'Expected project-defined active with statements to be included and inactive statements to be excluded.');
     Assert.AreEqual(2, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
       'Expected active statements with inactive branch text to be planned.');
@@ -9042,7 +9303,8 @@ begin
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected corpus plan to succeed.');
     Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok root status.');
     lWithStatements := lRoot.Values['withStatements'] as TJSONArray;
-    Assert.AreEqual(5, lWithStatements.Count, 'Expected stable corpus with-statement count.');
+    Assert.AreEqual(0, lWithStatements.Count,
+      'Plan reports should omit detailed with-statement rows.');
     Assert.AreEqual(3, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
       'Expected multi-selector, RTL Random, and type-qualified statements to be planned.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;

@@ -184,6 +184,7 @@ type
     fHasRemoveWithOutputPath: Boolean;
     fRemoveWithSemanticCachePath: string;
     fHasRemoveWithSemanticCachePath: Boolean;
+    fRemoveWithSkipCompatibilityFacts: Boolean;
     fSymbolMapOperation: TSymbolMapOperation;
     fSymbolMapFormat: TSymbolMapFormat;
     fSymbolMapUnitPath: string;
