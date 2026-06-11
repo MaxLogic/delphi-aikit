@@ -117,6 +117,8 @@ type
     procedure EquivalentProjectDefineTextReusesUnitCacheKey;
     [Test]
     procedure ChangedDefinesProduceDifferentUnitCacheKey;
+    [Test]
+    procedure IncludedFileChangeProducesDifferentUnitCacheKey;
   end;
 
   [TestFixture]
@@ -853,6 +855,43 @@ begin
     'Expected define-specific store. Error: ' + lError);
   Assert.AreNotEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
   Assert.IsFalse(lSecond.fCacheHit, 'Expected changed defines to produce a cache miss.');
+end;
+
+procedure TSymbolMapCentralCacheReuseTests.IncludedFileChangeProducesDifferentUnitCacheKey;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lFirst: TSymbolMapCacheStoreResult;
+  lIncludePath: string;
+  lModel: TSymbolMapUnitModel;
+  lProjectPath: string;
+  lSecond: TSymbolMapCacheStoreResult;
+  lStatus: TSymbolMapCacheStatus;
+  lUnitPath: string;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-include-cache');
+  lProjectPath := BuildContext('SymbolMapIncludeA', lCacheRoot, lContext);
+  lUnitPath := TPath.Combine(TPath.GetDirectoryName(lProjectPath), 'SymbolMapIncludeUnit.pas');
+  lIncludePath := TPath.Combine(TPath.GetDirectoryName(lUnitPath), 'SymbolMapIncluded.inc');
+  TFile.WriteAllText(lUnitPath, 'unit SymbolMapIncludeUnit;' + sLineBreak + 'interface' + sLineBreak +
+    '{$I SymbolMapIncluded.inc}' + sLineBreak + 'implementation' + sLineBreak + 'end.', TEncoding.UTF8);
+  TFile.WriteAllText(lIncludePath, 'type TIncludedVersionOne = class end;', TEncoding.UTF8);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(lUnitPath, lModel, lError),
+    'Expected first include unit extraction. Error: ' + lError);
+
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContext, lStatus, lModel, lFirst, lError),
+    'Expected first store. Error: ' + lError);
+  Assert.IsFalse(lFirst.fCacheHit, 'Expected first include store to miss.');
+  TFile.WriteAllText(lIncludePath, 'type TIncludedVersionTwo = class end;', TEncoding.UTF8);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(lUnitPath, lModel, lError),
+    'Expected second include unit extraction. Error: ' + lError);
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContext, lStatus, lModel, lSecond, lError),
+    'Expected second store. Error: ' + lError);
+
+  Assert.AreNotEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
+  Assert.IsFalse(lSecond.fCacheHit, 'Expected included file edit to force a cache miss.');
 end;
 
 function TSymbolMapIntrinsicProfileTests.BuildFreshResolverExe: string;
