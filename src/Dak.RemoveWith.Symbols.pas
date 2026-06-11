@@ -858,10 +858,13 @@ begin
     Exit(False);
   end;
   lStopwatch := TStopwatch.StartNew;
-  for lModel in lFacts.UnitModels do
-    AppendDelphiSemanticModel(aInventory, lModel);
-  AppendDelphiSemanticSymbols(aContext, aInventory, lFacts.Symbols);
-  AppendDelphiSemanticBindings(aInventory, lFacts.Bindings);
+  if not aOptions.fRemoveWithSkipCompatibilityFacts then
+  begin
+    for lModel in lFacts.UnitModels do
+      AppendDelphiSemanticModel(aInventory, lModel);
+    AppendDelphiSemanticSymbols(aContext, aInventory, lFacts.Symbols);
+    AppendDelphiSemanticBindings(aInventory, lFacts.Bindings);
+  end;
   lStopwatch.Stop;
   aPhaseMetrics.fSemanticCompatibilityFactsMs := lStopwatch.ElapsedMilliseconds;
   LogRemoveWithSymbolProgress(aOptions, Format(

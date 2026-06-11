@@ -14,6 +14,9 @@ uses
   Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Model, Dak.RemoveWith.Output, Dak.RemoveWith.Planner,
   Dak.RemoveWith.Resolver, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
 
+const
+  cRemoveWithCompactPlanReportStatementThreshold = 100;
+
 procedure LogRemoveWithProgress(const aOptions: TAppOptions; const aMessage: string);
 begin
   if not aOptions.fVerbose then
@@ -142,6 +145,7 @@ var
   lDirPath: string;
   lApplySucceeded: Boolean;
   lError: string;
+  lFactOptions: TAppOptions;
   lOutputText: string;
   lMetrics: TRemoveWithPlannerPhaseMetrics;
   lPlanResult: TRemoveWithPlanResult;
@@ -235,7 +239,12 @@ begin
       lStopwatch := TStopwatch.StartNew;
       lBodyAnalysisSourceFileNames := BodyAnalysisSourceFileNamesFromScanResult(
         lScanResult);
-      if not BuildRemoveWithFactSet(aOptions, lProjectModel,
+      lFactOptions := aOptions;
+      lFactOptions.fRemoveWithSkipCompatibilityFacts :=
+        (aOptions.fRemoveWithMode = TRemoveWithMode.rwmPlan) and
+        (Length(lScanResult.fWithStatements) >
+        cRemoveWithCompactPlanReportStatementThreshold);
+      if not BuildRemoveWithFactSet(lFactOptions, lProjectModel,
         lBodyAnalysisSourceFileNames, lSymbolInventory, lError,
         lSymbolInventoryPhaseMetrics) then
       begin
@@ -312,38 +321,50 @@ begin
         lPlannerMs := lStopwatch.ElapsedMilliseconds;
         lPlannerStopwatch := lStopwatch;
 
-        LogRemoveWithProgress(aOptions, 'resolver start');
-        lStopwatch := TStopwatch.StartNew;
-        lResolverError := '';
-        lResolverReportMetrics := Default(TRemoveWithResolverReportMetrics);
-        if ResolveRemoveWithIdentifiersFromSemanticFacts(lSymbolInventory, lScanResult,
-          lResolverResult, lResolverError, lResolverReportMetrics, True) then
+        if lFactOptions.fRemoveWithSkipCompatibilityFacts then
         begin
-          lStopwatch.Stop;
-          lMetrics.fResolverMs := lStopwatch.ElapsedMilliseconds;
-          lMetrics.fDakLookupIndexMs := RemoveWithFactSetLookupIndexBuildMilliseconds(
-            lSymbolInventory);
-          lMetrics.fDakLookupCacheHits := RemoveWithFactSetLookupIndexHitCount(
-            lSymbolInventory);
-          lMetrics.fDakLookupCacheMisses := RemoveWithFactSetLookupIndexMissCount(
-            lSymbolInventory);
-          lMetrics.fDakResolverClassifyMs := lMetrics.fResolverMs -
-            lMetrics.fDakLookupIndexMs;
-          if lMetrics.fDakResolverClassifyMs < 0 then
-            lMetrics.fDakResolverClassifyMs := 0;
-          lMetrics.fClassificationCount := Length(lResolverResult.fClassifications);
-          lMetrics.fResolverReportMetrics := lResolverReportMetrics;
-          LogRemoveWithDone(aOptions, 'resolver',
-            Format('classifications=%d', [Length(lResolverResult.fClassifications)]),
-            lStopwatch);
-        end else
-        begin
-          lStopwatch.Stop;
+          lResolverReportMetrics := Default(TRemoveWithResolverReportMetrics);
           lResolverResult := Default(TRemoveWithResolverResult);
           lMetrics.fResolverMs := 0;
           lMetrics.fClassificationCount := 0;
-          LogRemoveWithProgress(aOptions, 'resolver report unavailable: ' +
-            lResolverError);
+          lMetrics.fResolverReportMetrics := lResolverReportMetrics;
+          LogRemoveWithProgress(aOptions,
+            'resolver report skipped; semantic final DTO is authoritative');
+        end else
+        begin
+          LogRemoveWithProgress(aOptions, 'resolver start');
+          lStopwatch := TStopwatch.StartNew;
+          lResolverError := '';
+          lResolverReportMetrics := Default(TRemoveWithResolverReportMetrics);
+          if ResolveRemoveWithIdentifiersFromSemanticFacts(lSymbolInventory, lScanResult,
+            lResolverResult, lResolverError, lResolverReportMetrics, True) then
+          begin
+            lStopwatch.Stop;
+            lMetrics.fResolverMs := lStopwatch.ElapsedMilliseconds;
+            lMetrics.fDakLookupIndexMs := RemoveWithFactSetLookupIndexBuildMilliseconds(
+              lSymbolInventory);
+            lMetrics.fDakLookupCacheHits := RemoveWithFactSetLookupIndexHitCount(
+              lSymbolInventory);
+            lMetrics.fDakLookupCacheMisses := RemoveWithFactSetLookupIndexMissCount(
+              lSymbolInventory);
+            lMetrics.fDakResolverClassifyMs := lMetrics.fResolverMs -
+              lMetrics.fDakLookupIndexMs;
+            if lMetrics.fDakResolverClassifyMs < 0 then
+              lMetrics.fDakResolverClassifyMs := 0;
+            lMetrics.fClassificationCount := Length(lResolverResult.fClassifications);
+            lMetrics.fResolverReportMetrics := lResolverReportMetrics;
+            LogRemoveWithDone(aOptions, 'resolver',
+              Format('classifications=%d', [Length(lResolverResult.fClassifications)]),
+              lStopwatch);
+          end else
+          begin
+            lStopwatch.Stop;
+            lResolverResult := Default(TRemoveWithResolverResult);
+            lMetrics.fResolverMs := 0;
+            lMetrics.fClassificationCount := 0;
+            LogRemoveWithProgress(aOptions, 'resolver report unavailable: ' +
+              lResolverError);
+          end;
         end;
       end;
       lMetrics.fPlannerMs := lPlannerMs;

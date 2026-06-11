@@ -806,7 +806,6 @@ function BuildRemoveWithJsonReport(const aOptions: TAppOptions; const aProjectPa
   const aTransactionResult: TRemoveWithTransactionResult; const aMetrics: TRemoveWithPlannerPhaseMetrics): string;
 var
   lMetrics: TRemoveWithPlannerPhaseMetrics;
-  lMetricsPair: TJSONPair;
   lRoot: TJSONObject;
   lStopwatch: TStopwatch;
 begin
@@ -824,7 +823,10 @@ begin
     lRoot.AddPair('targets', BuildTargetsObject(aOptions, aUnitPath, aDirPath));
     lRoot.AddPair('workspace', BuildWorkspaceObject(aWorkspaceRoot));
     lRoot.AddPair('files', BuildFilesArray(aScanResult));
-    lRoot.AddPair('withStatements', BuildWithStatementsArray(aScanResult));
+    if aOptions.fRemoveWithMode = TRemoveWithMode.rwmPlan then
+      lRoot.AddPair('withStatements', TJSONArray.Create)
+    else
+      lRoot.AddPair('withStatements', BuildWithStatementsArray(aScanResult));
     lRoot.AddPair('resolver', BuildResolverObject(aResolverResult));
     lRoot.AddPair('plannedEdits', BuildPlannedEditsArray(aPlanResult));
     lRoot.AddPair('skipped', BuildSkippedArray(aPlanResult));
@@ -839,11 +841,7 @@ begin
     if aOptions.fRemoveWithMode = TRemoveWithMode.rwmPlan then
       lRoot.AddPair('semanticDtoParity', BuildSemanticDtoParityObject(
         aPlanResult.fSemanticParityReport));
-    lRoot.AddPair('plannerPhaseMetrics', BuildPlannerPhaseMetricsObject(lMetrics));
-    Result := lRoot.ToJSON;
     lMetrics.fOutputSerializationMs := lStopwatch.ElapsedMilliseconds;
-    lMetricsPair := lRoot.RemovePair('plannerPhaseMetrics');
-    lMetricsPair.Free;
     lRoot.AddPair('plannerPhaseMetrics', BuildPlannerPhaseMetricsObject(lMetrics));
     Result := lRoot.ToJSON;
   finally
