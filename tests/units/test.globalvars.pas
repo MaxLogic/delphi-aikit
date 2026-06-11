@@ -23,6 +23,8 @@ type
     [Test] procedure RunGlobalVarsTextOutputCreatesProjectCache;
     [Test] procedure RunGlobalVarsUsesDelphiSemanticsGlobalAnalyzer;
     [Test] procedure RunGlobalVarsLegacyExtractorIsNotCompiled;
+    [Test] procedure RunGlobalVarsUsesSemanticCacheIdentity;
+    [Test] procedure RunGlobalVarsCacheInvalidatesSameStampSameSizeContentChange;
   end;
 
 implementation
@@ -110,6 +112,26 @@ begin
   finally
     lConnection.Free;
     lDriverLink.Free;
+  end;
+end;
+
+function ReadGlobalVarsSourceText: string;
+var
+  lBuilder: TStringBuilder;
+  lFileName: string;
+  lFiles: TArray<string>;
+begin
+  lBuilder := TStringBuilder.Create;
+  try
+    lFiles := TDirectory.GetFiles(TPath.GetFullPath(CombinePath([
+      TPath.GetDirectoryName(ParamStr(0)), '..', 'src'])), 'dak.globalvars*.pas');
+    for lFileName in lFiles do
+    begin
+      lBuilder.AppendLine(TFile.ReadAllText(lFileName, TEncoding.UTF8));
+    end;
+    Result := lBuilder.ToString;
+  finally
+    lBuilder.Free;
   end;
 end;
 
@@ -402,44 +424,104 @@ begin
   Assert.IsTrue(TFile.Exists(lOutputFileName));
   lText := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
   Assert.IsTrue(Pos('Summary: total=5 used=4 unused=1 ambiguities=0 emitted=5 filter=all', lText) = 1);
+  Assert.IsTrue(ContainsText(lText, 'GlobalVarsFixture.Globals.GCounter: Integer [var]'));
+  Assert.IsTrue(ContainsText(lText, '  used by:'));
+  Assert.IsTrue(ContainsText(lText, 'GlobalVarsFixture.Consumer.RunConsumer'));
+  Assert.IsTrue(ContainsText(lText, 'GlobalVarsFixture.Globals.GUnusedValue: Integer [var]'));
+  Assert.IsTrue(ContainsText(lText, '  used by: none'));
 
   lProjectDakRoot := TPath.Combine(DakRoot, 'GlobalVarsFixture');
   lCacheFileName := TPath.Combine(lProjectDakRoot, 'global-vars\cache\global-vars-cache.sqlite3');
   Assert.IsTrue(TDirectory.Exists(lProjectDakRoot));
   Assert.IsTrue(TFile.Exists(lCacheFileName));
-  Assert.AreEqual('2', ReadCacheSchemaVersion(lCacheFileName));
+  Assert.AreEqual('3', ReadCacheSchemaVersion(lCacheFileName));
 
   WriteCacheSchemaVersion(lCacheFileName, '1');
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
-  Assert.AreEqual('2', ReadCacheSchemaVersion(lCacheFileName));
+  Assert.AreEqual('3', ReadCacheSchemaVersion(lCacheFileName));
 end;
 
 procedure TGlobalVarsTests.RunGlobalVarsUsesDelphiSemanticsGlobalAnalyzer;
 var
-  lSourceFileName: string;
   lSourceText: string;
 begin
-  lSourceFileName := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)),
-    '..', 'src', 'dak.globalvars.pas']));
-  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+  lSourceText := ReadGlobalVarsSourceText;
 
-  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticGlobalAnalyzer.AnalyzeUnits'),
-    'GlobalVars production analysis must call DelphiSemantics.GlobalVars.');
+  Assert.IsTrue(ContainsText(lSourceText, 'BuildGlobalAnalysis'),
+    'GlobalVars production analysis must call the DelphiSemantics project session.');
 end;
 
 procedure TGlobalVarsTests.RunGlobalVarsLegacyExtractorIsNotCompiled;
 var
-  lSourceFileName: string;
   lSourceText: string;
 begin
-  lSourceFileName := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)),
-    '..', 'src', 'dak.globalvars.pas']));
-  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+  lSourceText := ReadGlobalVarsSourceText;
 
   Assert.IsFalse(ContainsText(lSourceText, 'DAK_LEGACY_GLOBALVARS_EXTRACTOR'),
     'Legacy GlobalVars extractor block must be removed from DAK source.');
   Assert.IsFalse(ContainsText(lSourceText, 'ParseGlobalVarsFromAst'),
     'Legacy GlobalVars AST extraction must be removed from DAK source.');
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsUsesSemanticCacheIdentity;
+var
+  lSourceText: string;
+begin
+  lSourceText := ReadGlobalVarsSourceText;
+
+  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticUnitCacheIdentity'),
+    'GlobalVars cache keys must reuse DelphiSemantics unit cache identity inputs.');
+  Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticUnitModelExtractor'),
+    'GlobalVars command orchestration should not extract semantic unit models directly.');
+  Assert.IsFalse(ContainsText(lSourceText, 'DelphiAST.ProjectIndexer'),
+    'GlobalVars command orchestration should not own project indexing.');
+  Assert.IsFalse(ContainsText(lSourceText, 'GetLastWriteTimeUtc'),
+    'GlobalVars cache invalidation must not rely on timestamp-only file stamps.');
+  Assert.IsFalse(ContainsText(lSourceText, 'GetSize'),
+    'GlobalVars cache invalidation must include content identity, not file size only.');
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsCacheInvalidatesSameStampSameSizeContentChange;
+var
+  lContent: string;
+  lModifiedContent: string;
+  lOptions: TAppOptions;
+  lOriginalContent: string;
+  lOriginalStamp: TDateTime;
+  lOutputFileName: string;
+  lSourceFileName: string;
+begin
+  lSourceFileName := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)),
+    'fixtures', 'GlobalVarsFixture.Globals.pas']));
+  lOutputFileName := TPath.Combine(TPath.GetTempPath,
+    'global-vars-fixture-same-stamp-size.json');
+  lOriginalContent := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+  lOriginalStamp := TFile.GetLastWriteTimeUtc(lSourceFileName);
+  lModifiedContent := StringReplace(lOriginalContent, 'GUnusedValue', 'GUnusedEntry',
+    [rfReplaceAll]);
+  Assert.AreEqual(Length(lOriginalContent), Length(lModifiedContent));
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfJson;
+  lOptions.fGlobalVarsOutputPath := lOutputFileName;
+  lOptions.fHasGlobalVarsOutputPath := True;
+
+  try
+    Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+    TFile.WriteAllText(lSourceFileName, lModifiedContent, TEncoding.UTF8);
+    TFile.SetLastWriteTimeUtc(lSourceFileName, lOriginalStamp);
+
+    Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+    lContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
+    Assert.IsTrue(ContainsText(lContent, 'GUnusedEntry'));
+    Assert.IsFalse(ContainsText(lContent, 'GUnusedValue'));
+  finally
+    TFile.WriteAllText(lSourceFileName, lOriginalContent, TEncoding.UTF8);
+    TFile.SetLastWriteTimeUtc(lSourceFileName, lOriginalStamp);
+    if TFile.Exists(lOutputFileName) then
+      TFile.Delete(lOutputFileName);
+  end;
 end;
 
 initialization
