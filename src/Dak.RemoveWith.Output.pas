@@ -1,4 +1,4 @@
-unit Dak.RemoveWith.Output;
+﻿unit Dak.RemoveWith.Output;
 
 interface
 
@@ -721,6 +721,14 @@ begin
     TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSemanticCacheMisses));
   Result.AddPair('semanticCacheInvalidations',
     TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSemanticCacheInvalidations));
+  Result.AddPair('snapshotSqlWriteMs',
+    TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSnapshotSqlWriteMs));
+  Result.AddPair('snapshotSqlReadMs',
+    TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSnapshotSqlReadMs));
+  Result.AddPair('snapshotDeserializeMs',
+    TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSnapshotDeserializeMs));
+  Result.AddPair('snapshotIndexRebuildMs',
+    TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSnapshotIndexRebuildMs));
   Result.AddPair('dakLookupIndexMs', TJSONNumber.Create(aMetrics.fDakLookupIndexMs));
   Result.AddPair('dakLookupCacheHits', TJSONNumber.Create(aMetrics.fDakLookupCacheHits));
   Result.AddPair('dakLookupCacheMisses', TJSONNumber.Create(aMetrics.fDakLookupCacheMisses));
