@@ -1,4 +1,4 @@
-unit Dak.RemoveWith.Symbols;
+﻿unit Dak.RemoveWith.Symbols;
 
 interface
 
@@ -74,6 +74,10 @@ type
     fProjectFactsCacheHits: Int64;
     fProjectFactsCacheMisses: Int64;
     fProjectFactsCacheInvalidations: Int64;
+    fSnapshotSqlWriteMs: Int64;
+    fSnapshotSqlReadMs: Int64;
+    fSnapshotDeserializeMs: Int64;
+    fSnapshotIndexRebuildMs: Int64;
     fRtlSourceEnrichmentMs: Int64;
     fExternalUnitSymbolsMs: Int64;
     fExternalTypeSymbolsMs: Int64;
@@ -805,6 +809,10 @@ begin
   aPhaseMetrics.fProjectFactsCacheMisses := lFacts.Metrics.ProjectFactsCacheMisses;
   aPhaseMetrics.fProjectFactsCacheInvalidations :=
     lFacts.Metrics.ProjectFactsCacheInvalidations;
+  aPhaseMetrics.fSnapshotSqlWriteMs := lFacts.Metrics.SnapshotSqlWriteMilliseconds;
+  aPhaseMetrics.fSnapshotSqlReadMs := lFacts.Metrics.SnapshotSqlReadMilliseconds;
+  aPhaseMetrics.fSnapshotDeserializeMs := lFacts.Metrics.SnapshotDeserializeMilliseconds;
+  aPhaseMetrics.fSnapshotIndexRebuildMs := lFacts.Metrics.SnapshotIndexRebuildMilliseconds;
   if lFacts.ContextFingerprint = '' then
   begin
     aError := 'DelphiSemantics project facts did not return a context fingerprint.';
