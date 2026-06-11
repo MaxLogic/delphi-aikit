@@ -1,9 +1,9 @@
-﻿unit Dak.RemoveWith.Planner;
+unit Dak.RemoveWith.Planner;
 
 interface
 
 uses
-  DelphiSemantics.Api,
+  DelphiSemantics.Api.RemoveWith,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy;
 
 type

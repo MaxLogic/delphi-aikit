@@ -3,7 +3,7 @@ unit Dak.RemoveWith.Symbols;
 interface
 
 uses
-  DelphiSemantics.Api,
+  DelphiSemantics.Api, DelphiSemantics.Api.RemoveWith,
   Dak.RemoveWith.Model, Dak.Types;
 
 type
@@ -773,7 +773,7 @@ begin
     aBodyAnalysisSourceFileNames);
   lStopwatch := TStopwatch.StartNew;
   try
-    lFacts := TDelphiSemanticApi.BuildProjectWithBindingFacts(lOptions);
+    lFacts := TDelphiSemanticRemoveWithApi.BuildProjectWithBindingFacts(lOptions);
   except
     on E: Exception do
     begin
@@ -819,7 +819,7 @@ begin
   aInventory.fDelphiSemanticLookupIndex := lFacts.LookupIndex;
   lPlanStopwatch := TStopwatch.StartNew;
   try
-    aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticApi.PlanRemoveWithSnapshot(lFacts);
+    aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticRemoveWithApi.PlanRemoveWithSnapshot(lFacts);
   except
     on E: Exception do
     begin
