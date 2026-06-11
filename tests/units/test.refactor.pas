@@ -4,6 +4,7 @@ interface
 
 uses
   System.IOUtils,
+  System.StrUtils,
   System.SysUtils,
   DUnitX.TestFramework,
   Test.Support;
@@ -27,6 +28,8 @@ type
     procedure RenameCommandReportsSemanticPhaseMetricsAsJson;
     [Test]
     procedure RenameSemanticCacheUsesToolchainIdentity;
+    [Test]
+    procedure RefactorCommandsUseDelphiSemanticsProjectSession;
   end;
 
 implementation
@@ -334,6 +337,22 @@ begin
     'Changing config should rebuild semantic unit models. See: ' + lReleaseLogPath);
   Assert.IsFalse(Pos('"semanticCacheInvalidations":0', lReleaseLogText) > 0,
     'Changing config should invalidate same-unit cache entries with different keys. See: ' + lReleaseLogPath);
+end;
+
+procedure TRefactorCommandTests.RefactorCommandsUseDelphiSemanticsProjectSession;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.Refactor.pas'), TEncoding.UTF8);
+
+  Assert.IsFalse(ContainsText(lSource, 'DelphiAST.ProjectIndexer'),
+    'DAK refactor commands should not own project indexing.');
+  Assert.IsFalse(ContainsText(lSource, 'TDelphiSemanticUnitModelExtractor'),
+    'DAK refactor commands should not extract semantic unit models directly.');
+  Assert.IsFalse(ContainsText(lSource, 'DelphiSemantics.Cache.Sqlite'),
+    'DAK refactor commands should not own semantic cache implementation selection.');
+  Assert.IsTrue(ContainsText(lSource, 'TDelphiSemanticProjectSession.Open'),
+    'DAK refactor commands should open a DelphiSemantics project session.');
 end;
 
 initialization

@@ -13,12 +13,11 @@ implementation
 
 uses
   System.Classes, System.Diagnostics, System.Generics.Collections, System.Hash, System.IOUtils,
-  System.StrUtils, System.SysUtils,
-  DelphiAST.ProjectIndexer,
-  DelphiSemantics.Api, DelphiSemantics.Cache, DelphiSemantics.Cache.Sqlite,
-  DelphiSemantics.Model, DelphiSemantics.Query, DelphiSemantics.Refactor,
+  System.SysUtils,
+  DelphiSemantics.Api, DelphiSemantics.Model, DelphiSemantics.ProjectContext,
+  DelphiSemantics.ProjectSession, DelphiSemantics.Query, DelphiSemantics.Refactor,
   DelphiSemantics.Usage,
-  Dak.ExitCodes, Dak.Project, Dak.RemoveWith.Source;
+  Dak.ExitCodes, Dak.RemoveWith.Source;
 
 type
   TRefactorSemanticPhaseMetrics = record
@@ -111,22 +110,18 @@ begin
   Result := lHash.HashAsString;
 end;
 
-function SplitSemanticListText(const aText: string): TArray<string>;
-var
-  lItems: TArray<string>;
-  lItem: string;
-  lList: TList<string>;
+function RefactorSessionOptions(const aOptions: TAppOptions): TDelphiSemanticOptions;
 begin
-  lList := TList<string>.Create;
-  try
-    lItems := aText.Split([';']);
-    for lItem in lItems do
-      if Trim(lItem) <> '' then
-        lList.Add(Trim(lItem));
-    Result := lList.ToArray;
-  finally
-    lList.Free;
-  end;
+  Result := Default(TDelphiSemanticOptions);
+  Result.ProjectPath := aOptions.fDprojPath;
+  Result.Configuration := aOptions.fConfig;
+  Result.Platform := aOptions.fPlatform;
+  Result.DelphiVersion := aOptions.fDelphiVersion;
+  Result.RsVarsPath := aOptions.fRsVarsPath;
+  Result.EnvOptionsPath := aOptions.fEnvOptionsPath;
+  if aOptions.fHasRefactorSemanticCachePath and
+    (Trim(aOptions.fRefactorSemanticCachePath) <> '') then
+    Result.SqliteCacheFileName := TPath.GetFullPath(aOptions.fRefactorSemanticCachePath);
 end;
 
 function SameFileNameSafe(const aLeft, aRight: string): Boolean;
@@ -140,59 +135,43 @@ begin
   end;
 end;
 
-function IsPathUnderDirectory(const aFileName, aDirectory: string): Boolean;
+function SessionDiagnosticsText(const aDiagnostics: TArray<TDelphiSemanticDiagnostic>):
+  string;
 var
-  lDirectory: string;
-  lFileName: string;
+  lDiagnostic: TDelphiSemanticDiagnostic;
 begin
-  if (aFileName = '') or (aDirectory = '') then
-    Exit(False);
-  lFileName := IncludeTrailingPathDelimiter(TPath.GetFullPath(aFileName));
-  lDirectory := IncludeTrailingPathDelimiter(TPath.GetFullPath(aDirectory));
-  Result := StartsText(lDirectory, lFileName);
+  Result := '';
+  for lDiagnostic in aDiagnostics do
+  begin
+    if Result <> '' then
+      Result := Result + sLineBreak;
+    Result := Result + lDiagnostic.Code + ': ' + lDiagnostic.Message;
+    if lDiagnostic.FileName <> '' then
+      Result := Result + ' (' + lDiagnostic.FileName + ')';
+    if lDiagnostic.Line > 0 then
+      Result := Result + Format(' line %d', [lDiagnostic.Line]);
+  end;
 end;
 
-function ExtractUnitModel(const aFileName: string; const aProject: TProjectAnalysisContext;
-  const aCache: TDelphiSemanticUnitCache):
-  TDelphiSemanticUnitModel;
-var
-  lOptions: TDelphiSemanticModelOptions;
+function ContextUnitModelCount(const aContext: TDelphiSemanticSymbolQueryContext): Integer;
 begin
-  lOptions := Default(TDelphiSemanticModelOptions);
-  lOptions.SourceFileName := TPath.GetFullPath(aFileName);
-  lOptions.ProjectContextApplied := True;
-  lOptions.Defines := SplitSemanticListText(aProject.fParserDefines);
-  lOptions.SearchPaths := SplitSemanticListText(aProject.fParserSearchPath);
-  if Assigned(aCache) then
-    Result := aCache.GetOrExtractUnitModel(lOptions)
-  else
-    Result := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lOptions);
+  Result := 0;
+  if aContext.UnitModel.FileName <> '' then
+    Inc(Result);
+  Inc(Result, Length(aContext.IndexedUnitModels));
 end;
 
-function CreateRefactorSemanticCache(const aOptions: TAppOptions): TDelphiSemanticUnitCache;
+function ContextReferenceFallbackCount(
+  const aContext: TDelphiSemanticSymbolQueryContext): Integer;
 var
-  lCacheDir: string;
-  lOptions: TDelphiSemanticCacheOptions;
+  lModel: TDelphiSemanticUnitModel;
 begin
-  Result := nil;
-  if (not aOptions.fHasRefactorSemanticCachePath) or
-    (Trim(aOptions.fRefactorSemanticCachePath) = '') then
-    Exit;
-
-  lOptions := Default(TDelphiSemanticCacheOptions);
-  lOptions.SqliteCacheFileName := TPath.GetFullPath(aOptions.fRefactorSemanticCachePath);
-  lOptions.CompilerProfileName := Format('DAK-%s-%s-%s', [aOptions.fDelphiVersion,
-    aOptions.fPlatform, aOptions.fConfig]);
-  lOptions.DelphiVersion := aOptions.fDelphiVersion;
-  lOptions.Platform := aOptions.fPlatform;
-  lOptions.Configuration := aOptions.fConfig;
-  lCacheDir := TPath.GetDirectoryName(lOptions.SqliteCacheFileName);
-  if lCacheDir <> '' then
-    TDirectory.CreateDirectory(lCacheDir);
-  Result := TDelphiSemanticSqliteUnitCache.Create(lOptions);
+  Result := aContext.UnitModel.Metrics.ReferenceReconciliationFallbackCount;
+  for lModel in aContext.IndexedUnitModels do
+    Inc(Result, lModel.Metrics.ReferenceReconciliationFallbackCount);
 end;
 
-function ModelDiagnosticsText(const aModel: TDelphiSemanticUnitModel): string;
+function UnitModelDiagnosticsText(const aModel: TDelphiSemanticUnitModel): string;
 var
   lDiagnostic: TDelphiSemanticModelDiagnostic;
 begin
@@ -207,21 +186,49 @@ begin
   end;
 end;
 
+function TryValidateSemanticContext(const aContext: TDelphiSemanticSymbolQueryContext;
+  out aError: string): Boolean;
+var
+  lModel: TDelphiSemanticUnitModel;
+begin
+  Result := False;
+  aError := '';
+  if aContext.UnitModel.FileName = '' then
+  begin
+    aError := 'Failed to build DelphiSemantics symbol query context.';
+    Exit;
+  end;
+
+  if not aContext.UnitModel.Success then
+  begin
+    aError := 'Failed to build semantic model for project unit: ' +
+      aContext.UnitModel.FileName;
+    if UnitModelDiagnosticsText(aContext.UnitModel) <> '' then
+      aError := aError + sLineBreak + UnitModelDiagnosticsText(aContext.UnitModel);
+    Exit;
+  end;
+
+  for lModel in aContext.IndexedUnitModels do
+    if not lModel.Success then
+    begin
+      aError := 'Failed to build semantic model for project unit: ' + lModel.FileName;
+      if UnitModelDiagnosticsText(lModel) <> '' then
+        aError := aError + sLineBreak + UnitModelDiagnosticsText(lModel);
+      Exit;
+    end;
+
+  Result := True;
+end;
+
 function BuildSemanticContext(const aOptions: TAppOptions;
   out aContext: TDelphiSemanticSymbolQueryContext; out aCacheMetrics: TDelphiSemanticCacheMetrics;
   out aPhaseMetrics: TRefactorSemanticPhaseMetrics; out aError: string): Boolean;
 var
-  i: Integer;
-  lIndexedUnit: TProjectIndexer.TUnitInfo;
-  lIndexer: TProjectIndexer;
-  lCache: TDelphiSemanticUnitCache;
-  lModel: TDelphiSemanticUnitModel;
-  lModels: TList<TDelphiSemanticUnitModel>;
-  lProject: TProjectAnalysisContext;
-  lSourceKinds: TList<string>;
+  lExtractionMilliseconds: Int64;
+  lSessionOptions: TDelphiSemanticOptions;
+  lSessionResult: TDelphiSemanticProjectSessionResult;
   lStopwatch: TStopwatch;
   lTotalStopwatch: TStopwatch;
-  lUnitPath: string;
 begin
   Result := False;
   aError := '';
@@ -230,86 +237,31 @@ begin
   aPhaseMetrics := Default(TRefactorSemanticPhaseMetrics);
   lTotalStopwatch := TStopwatch.StartNew;
   lStopwatch := TStopwatch.StartNew;
-  if not TryBuildProjectAnalysisContext(aOptions, lProject, aError) then
-    Exit(False);
+  lSessionOptions := RefactorSessionOptions(aOptions);
+  lSessionResult := TDelphiSemanticProjectSession.Open(lSessionOptions);
   aPhaseMetrics.ProjectContextMs := lStopwatch.ElapsedMilliseconds;
+  if not lSessionResult.Success then
+  begin
+    aError := SessionDiagnosticsText(lSessionResult.Diagnostics);
+    if aError = '' then
+      aError := 'Failed to open DelphiSemantics project session.';
+    Exit(False);
+  end;
 
-  lIndexer := CreateProjectAnalysisIndexer(lProject);
-  lCache := CreateRefactorSemanticCache(aOptions);
-  lModels := TList<TDelphiSemanticUnitModel>.Create;
-  lSourceKinds := TList<string>.Create;
   try
-    lStopwatch := TStopwatch.StartNew;
-    lIndexer.Index(lProject.fMainSourcePath);
-    aPhaseMetrics.ProjectUnitIndexMs := lStopwatch.ElapsedMilliseconds;
-    aPhaseMetrics.ProjectUnitCount := lIndexer.ParsedUnits.Count;
-    lStopwatch := TStopwatch.StartNew;
-    for lIndexedUnit in lIndexer.ParsedUnits do
-    begin
-      lUnitPath := Trim(lIndexedUnit.Path);
-      if lUnitPath = '' then
-        Continue;
-      lUnitPath := TPath.GetFullPath(lUnitPath);
-      if not TFile.Exists(lUnitPath) then
-      begin
-        aError := 'Project unit not found: ' + lUnitPath;
-        Exit(False);
-      end;
-      if not IsPathUnderDirectory(lUnitPath, lProject.fProjectDir) then
-        Continue;
-      lModel := ExtractUnitModel(lUnitPath, lProject, lCache);
-      if not lModel.Success then
-      begin
-        aError := 'Failed to build semantic model for project unit: ' + lUnitPath;
-        if ModelDiagnosticsText(lModel) <> '' then
-          aError := aError + sLineBreak + ModelDiagnosticsText(lModel);
-        Exit(False);
-      end;
-      lModels.Add(lModel);
-      lSourceKinds.Add('project-source');
-      Inc(aPhaseMetrics.ReferenceReconciliationFallbackCount,
-        lModel.Metrics.ReferenceReconciliationFallbackCount);
-      Inc(aPhaseMetrics.UnitModelExtractionCount);
-    end;
-    aPhaseMetrics.UnitModelExtractionMs := lStopwatch.ElapsedMilliseconds;
-
-    if lModels.Count = 0 then
-    begin
-      lStopwatch := TStopwatch.StartNew;
-      lModel := ExtractUnitModel(lProject.fMainSourcePath, lProject, lCache);
-      if not lModel.Success then
-      begin
-        aError := 'Failed to build semantic model for project main source.';
-        Exit(False);
-      end;
-      lModels.Add(lModel);
-      lSourceKinds.Add('project-source');
-      Inc(aPhaseMetrics.ReferenceReconciliationFallbackCount,
-        lModel.Metrics.ReferenceReconciliationFallbackCount);
-      Inc(aPhaseMetrics.UnitModelExtractionCount);
-      Inc(aPhaseMetrics.UnitModelExtractionMs, lStopwatch.ElapsedMilliseconds);
-    end;
-
-    aContext.UnitModel := lModels[0];
-    if lModels.Count > 1 then
-    begin
-      SetLength(aContext.IndexedUnitModels, lModels.Count - 1);
-      SetLength(aContext.IndexedUnitSourceKinds, lModels.Count - 1);
-      for i := 1 to lModels.Count - 1 do
-      begin
-        aContext.IndexedUnitModels[i - 1] := lModels[i];
-        aContext.IndexedUnitSourceKinds[i - 1] := lSourceKinds[i];
-      end;
-    end;
-    if Assigned(lCache) then
-      aCacheMetrics := lCache.Metrics;
+    aContext := lSessionResult.Session.BuildSymbolQueryContext(aCacheMetrics,
+      lExtractionMilliseconds);
+    if not TryValidateSemanticContext(aContext, aError) then
+      Exit(False);
+    aPhaseMetrics.ProjectUnitCount := ContextUnitModelCount(aContext);
+    aPhaseMetrics.UnitModelExtractionCount := aPhaseMetrics.ProjectUnitCount;
+    aPhaseMetrics.UnitModelExtractionMs := lExtractionMilliseconds;
+    aPhaseMetrics.ReferenceReconciliationFallbackCount :=
+      ContextReferenceFallbackCount(aContext);
     aPhaseMetrics.TotalMs := lTotalStopwatch.ElapsedMilliseconds;
     Result := True;
   finally
-    lSourceKinds.Free;
-    lModels.Free;
-    lCache.Free;
-    lIndexer.Free;
+    lSessionResult.Session.Free;
   end;
 end;
 
