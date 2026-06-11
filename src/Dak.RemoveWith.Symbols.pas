@@ -844,13 +844,13 @@ begin
       aInventory.fDelphiSemanticRemoveWithPlan.ContextFingerprint]);
     Exit(False);
   end;
+  AppendDelphiSemanticBindings(aInventory, lFacts.Bindings);
   lStopwatch := TStopwatch.StartNew;
   if not aOptions.fRemoveWithSkipCompatibilityFacts then
   begin
     for lModel in lFacts.UnitModels do
       AppendDelphiSemanticModel(aInventory, lModel);
     AppendDelphiSemanticSymbols(aContext, aInventory, lFacts.Symbols);
-    AppendDelphiSemanticBindings(aInventory, lFacts.Bindings);
   end;
   lStopwatch.Stop;
   aPhaseMetrics.fSemanticCompatibilityFactsMs := lStopwatch.ElapsedMilliseconds;

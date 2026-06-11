@@ -14,9 +14,6 @@ uses
   Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Model, Dak.RemoveWith.Output, Dak.RemoveWith.Planner,
   Dak.RemoveWith.Resolver, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
 
-const
-  cRemoveWithCompactPlanReportStatementThreshold = 100;
-
 procedure LogRemoveWithProgress(const aOptions: TAppOptions; const aMessage: string);
 begin
   if not aOptions.fVerbose then
@@ -48,6 +45,32 @@ begin
   begin
     if SameText(lStatement.fStatus, aStatus) then
       Inc(Result);
+  end;
+end;
+
+function ScanResultHasMultipleSelectorStatement(const aScanResult: TRemoveWithScanResult): Boolean;
+var
+  lStatement: TRemoveWithStatementInfo;
+begin
+  Result := False;
+  for lStatement in aScanResult.fWithStatements do
+  begin
+    if lStatement.fSelectorCount > 1 then
+      Exit(True);
+  end;
+end;
+
+function PlanResultHasSemanticCoverageGap(const aPlanResult: TRemoveWithPlanResult): Boolean;
+var
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  Result := False;
+  for lStatement in aPlanResult.fStatements do
+  begin
+    if SameText(lStatement.fStatus, 'skipped') and
+      (SameText(lStatement.fReason, 'symbol-not-found') or
+      SameText(lStatement.fReason, 'receiver-member-not-found')) then
+      Exit(True);
   end;
 end;
 
@@ -169,6 +192,78 @@ var
   lTotalStopwatch: TStopwatch;
   lUnitPath: string;
   lWorkspaceRoot: string;
+
+  function BuildCompatibilityFallbackPlan(const aReason: string): Boolean;
+  var
+    lFallbackStopwatch: TStopwatch;
+  begin
+    Result := False;
+    LogRemoveWithProgress(aOptions,
+      'compatibility fallback start; reason=' + aReason);
+    lFactOptions := aOptions;
+    lFactOptions.fRemoveWithSkipCompatibilityFacts := False;
+    lSymbolInventory := Default(TRemoveWithFactSet);
+    lSymbolInventoryPhaseMetrics := Default(TRemoveWithFactSetPhaseMetrics);
+    lFallbackStopwatch := TStopwatch.StartNew;
+    if not BuildRemoveWithFactSet(lFactOptions, lProjectModel,
+      lBodyAnalysisSourceFileNames, lSymbolInventory, lError,
+      lSymbolInventoryPhaseMetrics) then
+      Exit;
+    lFallbackStopwatch.Stop;
+    lMetrics.fSymbolInventoryMs := lFallbackStopwatch.ElapsedMilliseconds;
+    lMetrics.fSymbolInventoryPhaseMetrics := lSymbolInventoryPhaseMetrics;
+    lMetrics.fSemanticProjectFactsMs := lSymbolInventoryPhaseMetrics.fSemanticProjectFactsMs;
+    lMetrics.fSemanticCompatibilityFactsMs :=
+      lSymbolInventoryPhaseMetrics.fSemanticCompatibilityFactsMs;
+    lMetrics.fSemanticBindingMs := lSymbolInventoryPhaseMetrics.fSemanticBindingMs;
+    lMetrics.fSemanticPlanDtoMs := lSymbolInventoryPhaseMetrics.fSemanticPlanDtoMs;
+    lMetrics.fContextFingerprint := lSymbolInventory.fContextFingerprint;
+    lMetrics.fSymbolCount := Length(lSymbolInventory.fSymbols);
+
+    lResolverError := '';
+    lResolverReportMetrics := Default(TRemoveWithResolverReportMetrics);
+    lFallbackStopwatch := TStopwatch.StartNew;
+    if not ResolveRemoveWithIdentifiersFromSemanticFacts(lSymbolInventory,
+      lScanResult, lResolverResult, lResolverError,
+      lResolverReportMetrics) then
+    begin
+      lError := lResolverError;
+      Exit;
+    end;
+    lFallbackStopwatch.Stop;
+    lMetrics.fResolverMs := lFallbackStopwatch.ElapsedMilliseconds;
+    lMetrics.fDakLookupIndexMs := RemoveWithFactSetLookupIndexBuildMilliseconds(
+      lSymbolInventory);
+    lMetrics.fDakLookupCacheHits := RemoveWithFactSetLookupIndexHitCount(
+      lSymbolInventory);
+    lMetrics.fDakLookupCacheMisses := RemoveWithFactSetLookupIndexMissCount(
+      lSymbolInventory);
+    lMetrics.fDakResolverClassifyMs := lMetrics.fResolverMs -
+      lMetrics.fDakLookupIndexMs;
+    if lMetrics.fDakResolverClassifyMs < 0 then
+      lMetrics.fDakResolverClassifyMs := 0;
+    lMetrics.fClassificationCount := Length(lResolverResult.fClassifications);
+    lMetrics.fResolverReportMetrics := lResolverReportMetrics;
+    LogRemoveWithProgress(aOptions, Format(
+      'compatibility fallback resolver classifications=%d',
+      [Length(lResolverResult.fClassifications)]));
+
+    lPlannerStopwatch := TStopwatch.StartNew;
+    if not PlanRemoveWithRewrites(lSymbolInventory, lScanResult,
+      lResolverResult, lPlanResult, lError) then
+      Exit;
+    lPlannerStopwatch.Stop;
+    lPlannerMs := lPlannerStopwatch.ElapsedMilliseconds;
+    lMetrics.fPlannerMs := lPlannerMs;
+    lMetrics.fDakPlannerRewriteMs := lMetrics.fPlannerMs;
+    lMetrics.fPlannedEditCount := CountRemoveWithPlannedStatements(lPlanResult, 'planned');
+    lMetrics.fSkippedStatementCount := CountRemoveWithPlannedStatements(lPlanResult, 'skipped');
+    if lPlannerMs > High(Integer) then
+      lPlanResult.fElapsedPlanningMs := High(Integer)
+    else
+      lPlanResult.fElapsedPlanningMs := Integer(lPlannerMs);
+    Result := True;
+  end;
 begin
   lApplySucceeded := True;
   lMetrics := Default(TRemoveWithPlannerPhaseMetrics);
@@ -241,9 +336,7 @@ begin
         lScanResult);
       lFactOptions := aOptions;
       lFactOptions.fRemoveWithSkipCompatibilityFacts :=
-        (aOptions.fRemoveWithMode = TRemoveWithMode.rwmPlan) and
-        (Length(lScanResult.fWithStatements) >
-        cRemoveWithCompactPlanReportStatementThreshold);
+        aOptions.fRemoveWithMode <> TRemoveWithMode.rwmScan;
       if not BuildRemoveWithFactSet(lFactOptions, lProjectModel,
         lBodyAnalysisSourceFileNames, lSymbolInventory, lError,
         lSymbolInventoryPhaseMetrics) then
@@ -269,36 +362,18 @@ begin
 
       if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
       begin
-        LogRemoveWithProgress(aOptions, 'resolver start');
-        lStopwatch := TStopwatch.StartNew;
-        if not ResolveRemoveWithIdentifiersFromSemanticFacts(lSymbolInventory,
-          lScanResult, lResolverResult, lError, lResolverReportMetrics) then
-        begin
-          WriteLn(ErrOutput, lError);
-          Exit(cExitToolFailure);
-        end;
-        lStopwatch.Stop;
-        lMetrics.fResolverMs := lStopwatch.ElapsedMilliseconds;
-        lMetrics.fDakLookupIndexMs := RemoveWithFactSetLookupIndexBuildMilliseconds(
-          lSymbolInventory);
-        lMetrics.fDakLookupCacheHits := RemoveWithFactSetLookupIndexHitCount(
-          lSymbolInventory);
-        lMetrics.fDakLookupCacheMisses := RemoveWithFactSetLookupIndexMissCount(
-          lSymbolInventory);
-        lMetrics.fDakResolverClassifyMs := lMetrics.fResolverMs -
-          lMetrics.fDakLookupIndexMs;
-        if lMetrics.fDakResolverClassifyMs < 0 then
-          lMetrics.fDakResolverClassifyMs := 0;
-        lMetrics.fClassificationCount := Length(lResolverResult.fClassifications);
+        lResolverReportMetrics := Default(TRemoveWithResolverReportMetrics);
+        lResolverResult := Default(TRemoveWithResolverResult);
+        lMetrics.fResolverMs := 0;
+        lMetrics.fClassificationCount := 0;
         lMetrics.fResolverReportMetrics := lResolverReportMetrics;
-        LogRemoveWithDone(aOptions, 'resolver',
-          Format('classifications=%d', [Length(lResolverResult.fClassifications)]),
-          lStopwatch);
+        LogRemoveWithProgress(aOptions,
+          'resolver skipped; semantic final DTO is authoritative for apply');
 
         LogRemoveWithProgress(aOptions, 'planner start');
         lStopwatch := TStopwatch.StartNew;
         if not PlanRemoveWithRewrites(lSymbolInventory, lScanResult, lResolverResult,
-          lPlanResult, lError) then
+          lSymbolInventory.fDelphiSemanticRemoveWithPlan, lPlanResult, lError) then
         begin
           WriteLn(ErrOutput, lError);
           Exit(cExitToolFailure);
@@ -328,8 +403,24 @@ begin
           lMetrics.fResolverMs := 0;
           lMetrics.fClassificationCount := 0;
           lMetrics.fResolverReportMetrics := lResolverReportMetrics;
-          LogRemoveWithProgress(aOptions,
-            'resolver report skipped; semantic final DTO is authoritative');
+          LogRemoveWithProgress(aOptions, 'semantic resolver projection start');
+          lStopwatch := TStopwatch.StartNew;
+          lResolverError := '';
+          if ResolveRemoveWithIdentifiersFromSemanticFacts(lSymbolInventory, lScanResult,
+            lResolverResult, lResolverError, lResolverReportMetrics, True) then
+          begin
+            lStopwatch.Stop;
+            lMetrics.fResolverReportMetrics := lResolverReportMetrics;
+            LogRemoveWithDone(aOptions, 'semantic resolver projection',
+              Format('classifications=%d', [Length(lResolverResult.fClassifications)]),
+              lStopwatch);
+          end else
+          begin
+            lStopwatch.Stop;
+            lResolverResult := Default(TRemoveWithResolverResult);
+            LogRemoveWithProgress(aOptions, 'semantic resolver projection unavailable: ' +
+              lResolverError);
+          end;
         end else
         begin
           LogRemoveWithProgress(aOptions, 'resolver start');
@@ -382,6 +473,21 @@ begin
 
       if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
       begin
+        if PlanResultHasSemanticCoverageGap(lPlanResult) then
+        begin
+          if not BuildCompatibilityFallbackPlan('semantic-coverage-gap') then
+          begin
+            WriteLn(ErrOutput, lError);
+            Exit(cExitToolFailure);
+          end;
+        end else if ScanResultHasMultipleSelectorStatement(lScanResult) then
+        begin
+          if not BuildCompatibilityFallbackPlan('multi-selector-apply-parity') then
+          begin
+            WriteLn(ErrOutput, lError);
+            Exit(cExitToolFailure);
+          end;
+        end;
         LogRemoveWithProgress(aOptions, 'apply start');
         lStopwatch := TStopwatch.StartNew;
         if BuildRemoveWithPlanApplyContext(lPlanResult, lApplyContext, lError) then
@@ -389,6 +495,26 @@ begin
             lApplyContext, lTransactionResult, lError)
         else
           lApplySucceeded := False;
+        if not lApplySucceeded then
+        begin
+          if lTransactionResult.fStatus <> TRemoveWithTransactionStatus.rwtxRolledBack then
+          begin
+            if lTransactionResult.fError = '' then
+              lTransactionResult.fError := lError;
+          end else
+          begin
+            if not BuildCompatibilityFallbackPlan('semantic-apply-verification-failed') then
+            begin
+              WriteLn(ErrOutput, lError);
+              Exit(cExitToolFailure);
+            end;
+            if BuildRemoveWithPlanApplyContext(lPlanResult, lApplyContext, lError) then
+              lApplySucceeded := ApplyRemoveWithPlanTransactionally(aOptions, lProjectPath,
+                lWorkspaceRoot, lPlanResult, lApplyContext, lTransactionResult, lError)
+            else
+              lApplySucceeded := False;
+          end;
+        end;
         lStopwatch.Stop;
         LogRemoveWithDone(aOptions, 'apply', Format('status=%s files=%d',
           [RemoveWithTransactionStatusToText(lTransactionResult.fStatus), Length(lTransactionResult.fFiles)]),
