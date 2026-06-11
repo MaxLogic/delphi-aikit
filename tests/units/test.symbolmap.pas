@@ -27,6 +27,8 @@ type
     procedure CacheRootEnvironmentOverridesCentralRoot;
     [Test]
     procedure StatsJsonReportsCacheRoots;
+    [Test]
+    procedure SemanticModelPersistenceBelongsToDelphiSemantics;
   end;
 
   [TestFixture]
@@ -374,9 +376,9 @@ begin
   Assert.IsTrue(TFile.Exists(lStatus.fProjectDbPath), 'Expected project SQLite cache file.');
   Assert.IsTrue(lStatus.fCentralCreated, 'Expected first central cache creation to be reported.');
   Assert.IsTrue(lStatus.fProjectCreated, 'Expected first project cache creation to be reported.');
-  Assert.AreEqual(1, lStatus.fSchemaVersion);
-  Assert.AreEqual('1', MetaValue(lStatus.fCentralDbPath, 'schema_version'));
-  Assert.AreEqual('1', MetaValue(lStatus.fProjectDbPath, 'schema_version'));
+  Assert.AreEqual(2, lStatus.fSchemaVersion);
+  Assert.AreEqual('2', MetaValue(lStatus.fCentralDbPath, 'schema_version'));
+  Assert.AreEqual('2', MetaValue(lStatus.fProjectDbPath, 'schema_version'));
 end;
 
 procedure TSymbolMapCacheTests.ReusesExistingCachesIdempotently;
@@ -394,7 +396,7 @@ begin
   Assert.IsFalse(lSecondStatus.fProjectCreated, 'Expected project cache reuse to be reported.');
   Assert.AreEqual(lFirstStatus.fCentralDbPath, lSecondStatus.fCentralDbPath);
   Assert.AreEqual(lFirstStatus.fProjectDbPath, lSecondStatus.fProjectDbPath);
-  Assert.AreEqual(1, lSecondStatus.fSchemaVersion);
+  Assert.AreEqual(2, lSecondStatus.fSchemaVersion);
 end;
 
 procedure TSymbolMapCacheTests.RejectsUnsupportedSchemaWithoutApplyingV1Tables;
@@ -480,7 +482,7 @@ begin
       Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
       lJson := TJSONObject(lJsonValue);
       lCache := lJson.GetValue('cache') as TJSONObject;
-      Assert.AreEqual(1, lCache.GetValue<Integer>('schemaVersion'));
+      Assert.AreEqual(2, lCache.GetValue<Integer>('schemaVersion'));
       Assert.IsTrue(TFile.Exists(lCache.GetValue<string>('centralDbPath')), 'Expected shared central cache file.');
       Assert.IsTrue(TFile.Exists(lCache.GetValue<string>('projectDbPath')), 'Expected project cache file.');
       if lCache.GetValue<Boolean>('centralCreated') then
@@ -490,7 +492,7 @@ begin
     end;
   end;
   Assert.AreEqual(1, lCreatedCount, 'Expected exactly one central cache creator.');
-  Assert.AreEqual('1', MetaValue(TPath.Combine(lCacheRoot, 'symbol-map.sqlite3'), 'schema_version'));
+  Assert.AreEqual('2', MetaValue(TPath.Combine(lCacheRoot, 'symbol-map.sqlite3'), 'schema_version'));
 end;
 
 procedure TSymbolMapCacheTests.StatsCommandCreatesCachesAndReportsSchema;
@@ -526,7 +528,7 @@ begin
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
     lCache := lJson.GetValue('cache') as TJSONObject;
-    Assert.AreEqual(1, lCache.GetValue<Integer>('schemaVersion'));
+    Assert.AreEqual(2, lCache.GetValue<Integer>('schemaVersion'));
     Assert.IsTrue(lCache.GetValue<Boolean>('centralCreated'), 'Expected central cache creation in first CLI run.');
     Assert.IsTrue(lCache.GetValue<Boolean>('projectCreated'), 'Expected project cache creation in first CLI run.');
     Assert.IsTrue(TFile.Exists(lCache.GetValue<string>('centralDbPath')), 'Expected central SQLite cache file.');
@@ -670,7 +672,7 @@ begin
   Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
   Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
     'Expected member unit extraction. Error: ' + lError);
-  Assert.IsTrue(StoreSymbolMapUnitModel(lContext, lStatus, lModel, lError),
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContext, lStatus, lModel, lError),
     'Expected member cache write. Error: ' + lError);
 
   Assert.AreEqual(1, MemberCacheCount(lStatus.fCentralDbPath, 'TMemberClass', 'Items'),
@@ -736,7 +738,7 @@ begin
     lConnection.Params.Values['Database'] := aDbPath;
     lConnection.Connected := True;
     Result := lConnection.ExecSQLScalar(
-      'select count(*) from unit_models where unit_cache_key = ?', [aUnitCacheKey]);
+      'select count(*) from symbol_map_units where unit_cache_key = ?', [aUnitCacheKey]);
   finally
     lConnection.Free;
     lDriverLink.Free;
@@ -759,10 +761,10 @@ begin
   Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
     'Expected member unit extraction. Error: ' + lError);
 
-  Assert.IsTrue(StoreSymbolMapUnitModel(lContext, lStatus, lModel, lFirst, lError),
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContext, lStatus, lModel, lFirst, lError),
     'Expected first store. Error: ' + lError);
   Assert.IsFalse(lFirst.fCacheHit, 'Expected first store to miss.');
-  Assert.IsTrue(StoreSymbolMapUnitModel(lContext, lStatus, lModel, lSecond, lError),
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContext, lStatus, lModel, lSecond, lError),
     'Expected second store. Error: ' + lError);
   Assert.IsTrue(lSecond.fCacheHit, 'Expected second store to hit.');
   Assert.AreEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
@@ -789,9 +791,9 @@ begin
   Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
     'Expected member unit extraction. Error: ' + lError);
 
-  Assert.IsTrue(StoreSymbolMapUnitModel(lContextA, lStatusA, lModel, lFirst, lError),
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContextA, lStatusA, lModel, lFirst, lError),
     'Expected first store. Error: ' + lError);
-  Assert.IsTrue(StoreSymbolMapUnitModel(lContextB, lStatusB, lModel, lSecond, lError),
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContextB, lStatusB, lModel, lSecond, lError),
     'Expected shared store. Error: ' + lError);
   Assert.AreEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
   Assert.IsTrue(lSecond.fCacheHit, 'Expected second project to reuse the central unit model.');
@@ -818,9 +820,9 @@ begin
   Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
     'Expected member unit extraction. Error: ' + lError);
 
-  Assert.IsTrue(StoreSymbolMapUnitModel(lContextA, lStatus, lModel, lFirst, lError),
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContextA, lStatus, lModel, lFirst, lError),
     'Expected first store. Error: ' + lError);
-  Assert.IsTrue(StoreSymbolMapUnitModel(lContextB, lStatus, lModel, lSecond, lError),
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContextB, lStatus, lModel, lSecond, lError),
     'Expected equivalent define store. Error: ' + lError);
   Assert.AreEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
   Assert.IsTrue(lSecond.fCacheHit, 'Expected equivalent define text to reuse the central unit model.');
@@ -845,9 +847,9 @@ begin
   Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
     'Expected member unit extraction. Error: ' + lError);
 
-  Assert.IsTrue(StoreSymbolMapUnitModel(lContextA, lStatus, lModel, lFirst, lError),
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContextA, lStatus, lModel, lFirst, lError),
     'Expected first store. Error: ' + lError);
-  Assert.IsTrue(StoreSymbolMapUnitModel(lContextB, lStatus, lModel, lSecond, lError),
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContextB, lStatus, lModel, lSecond, lError),
     'Expected define-specific store. Error: ' + lError);
   Assert.AreNotEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
   Assert.IsFalse(lSecond.fCacheHit, 'Expected changed defines to produce a cache miss.');
@@ -1277,7 +1279,7 @@ begin
   begin
     Assert.IsTrue(TryExtractSymbolMapUnitModel(lUnitPath, lModel, lError),
       'Expected source extraction. Error: ' + lError);
-    Assert.IsTrue(StoreSymbolMapUnitModel(aContext, aStatus, lModel, lError),
+    Assert.IsTrue(StoreSymbolMapUnitProjection(aContext, aStatus, lModel, lError),
       'Expected unit model storage. Error: ' + lError);
   end;
 end;
@@ -1515,7 +1517,7 @@ begin
   begin
     Assert.IsTrue(TryExtractSymbolMapUnitModel(lUnitPath, lModel, lError),
       'Expected source extraction. Error: ' + lError);
-    Assert.IsTrue(StoreSymbolMapUnitModel(aContext, aStatus, lModel, lError),
+    Assert.IsTrue(StoreSymbolMapUnitProjection(aContext, aStatus, lModel, lError),
       'Expected unit model storage. Error: ' + lError);
   end;
 end;
@@ -2148,8 +2150,8 @@ begin
   Assert.AreEqual(TPath.GetFullPath(FixtureProjectPath), lContext.fProject.fProjectPath);
   Assert.AreEqual('LspProjectFixture', lContext.fProject.fProjectName);
   Assert.AreEqual('23.0', lContext.fDelphiVersion);
-  Assert.AreEqual(TPath.Combine(TPath.Combine(TPath.Combine(lProjectDir, '.dak'), 'LspProjectFixture'), 'symbol-map'),
-    lContext.fProjectCacheRoot);
+  Assert.AreEqual(TPath.Combine(TPath.Combine(TPath.Combine(TPath.Combine(lProjectDir, '.dak'), 'LspProjectFixture'),
+    'symbol-map'), 'v2'), lContext.fProjectCacheRoot);
   Assert.IsTrue(Pos('symbol-map', LowerCase(lContext.fCentralCacheRoot)) > 0,
     'Expected default central cache root to include symbol-map. Actual: ' + lContext.fCentralCacheRoot);
 end;
@@ -2227,7 +2229,7 @@ begin
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
     Assert.AreEqual(TPath.GetFullPath(lCacheRoot), (lJson.GetValue('cache') as TJSONObject).GetValue<string>('centralRoot'));
-    Assert.IsTrue(Pos('\.dak\LspProjectFixture\symbol-map',
+    Assert.IsTrue(Pos('\.dak\LspProjectFixture\symbol-map\v2',
       (lJson.GetValue('cache') as TJSONObject).GetValue<string>('projectRoot')) > 0,
       'Expected project symbol-map cache root. Actual: ' + lLogText);
     Assert.AreEqual('Release', (lJson.GetValue('project') as TJSONObject).GetValue<string>('config'));
@@ -2241,6 +2243,34 @@ begin
   finally
     lJsonValue.Free;
   end;
+end;
+
+procedure TSymbolMapContextTests.SemanticModelPersistenceBelongsToDelphiSemantics;
+var
+  lCacheSource: string;
+  lQuerySource: string;
+begin
+  lCacheSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Cache.pas'),
+    TEncoding.UTF8);
+  lQuerySource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Query.pas'),
+    TEncoding.UTF8);
+
+  Assert.IsFalse(ContainsText(lCacheSource, 'unit_models'),
+    'SymbolMap cache must not own semantic unit-model storage tables.');
+  Assert.IsFalse(ContainsText(lCacheSource, 'unit_references'),
+    'SymbolMap cache must not own semantic unit-reference storage tables.');
+  Assert.IsFalse(ContainsText(lQuerySource, 'LoadSemanticUnitModel'),
+    'SymbolMap query should load semantic models through DelphiSemantics-owned cache.');
+  Assert.IsFalse(ContainsText(lQuerySource, 'select * from symbols'),
+    'SymbolMap query should not reconstruct semantic symbols from projection rows.');
+  Assert.IsFalse(ContainsText(lQuerySource, 'select * from members'),
+    'SymbolMap query should not reconstruct semantic members from projection rows.');
+  Assert.IsFalse(ContainsText(lQuerySource, 'select * from unit_references'),
+    'SymbolMap query should not reconstruct semantic references from projection rows.');
+  Assert.IsFalse(ContainsText(lQuerySource, 'SymbolMapProjectionToSemanticUnitModel'),
+    'SymbolMap query must not rebuild semantic models from SymbolMap projections.');
+  Assert.IsFalse(ContainsText(lCacheSource, 'TDelphiSemanticSqliteUnitCache'),
+    'SymbolMap cache must not seed DelphiSemantics semantic caches from projections.');
 end;
 
 procedure TSymbolMapCliTests.SetParams(const aCmdLine: string);

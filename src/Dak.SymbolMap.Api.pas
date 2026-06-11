@@ -117,7 +117,7 @@ begin
     lIndexedUnit := Default(TSymbolMapIndexedUnit);
     if not TryExtractSymbolMapUnitModel(lUnitPath, lIndexedUnit.fModel, aError) then
       Exit(False);
-    if not StoreSymbolMapUnitModel(aContext, aStatus, lIndexedUnit.fModel, lIndexedUnit.fStoreResult, aError) then
+    if not StoreSymbolMapUnitProjection(aContext, aStatus, lIndexedUnit.fModel, lIndexedUnit.fStoreResult, aError) then
       Exit(False);
   end;
   aApiStatus.fProjectIndexed := True;

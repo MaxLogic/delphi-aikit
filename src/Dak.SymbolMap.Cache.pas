@@ -6,7 +6,7 @@ uses
   Dak.SymbolMap.Context, Dak.SymbolMap.Indexer;
 
 const
-  cSymbolMapSchemaVersion = 1;
+  cSymbolMapSchemaVersion = 2;
 
 type
   TSymbolMapCacheStatus = record
@@ -55,9 +55,9 @@ function IndexSymbolMapRtlSources(const aContext: TSymbolMapContext; const aStat
   const aSourceRoot: string; var aProfile: TSymbolMapCompilerProfileResult; out aResult: TSymbolMapRtlIndexResult;
   out aError: string): Boolean;
 function BuildSymbolMapProjectKey(const aContext: TSymbolMapContext): string;
-function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; overload;
-function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aError: string): Boolean; overload;
 
 implementation
@@ -83,6 +83,10 @@ const
   cCentralCacheMutexName = 'Local\DelphiAIKit.SymbolMap.Cache.v1';
   cSymbolMapParserVersion = 'symbol-map-parser-v3';
   cSymbolMapIncludeGraphHash = 'no-includes-v1';
+
+function StoreSymbolMapUnitProjectionInternal(const aContext: TSymbolMapContext;
+  const aStatus: TSymbolMapCacheStatus; const aModel: TSymbolMapUnitModel;
+  out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; forward;
 
 function SemanticIdentityContext(const aContext: TSymbolMapContext): TDelphiSemanticCacheIdentityContext;
 begin
@@ -154,7 +158,7 @@ begin
   aConnection.ExecSQL('create table if not exists source_files (' +
     'file_hash text primary key not null, size_bytes integer not null, first_seen_utc text not null, ' +
     'last_seen_utc text not null)');
-  aConnection.ExecSQL('create table if not exists unit_models (' +
+  aConnection.ExecSQL('create table if not exists symbol_map_units (' +
     'unit_cache_key text primary key not null, unit_name text not null, file_hash text not null, ' +
     'file_path_sample text not null, context_hash text not null, parser_version text not null, ' +
     'schema_version integer not null, diagnostics_json text not null, parsed_at_utc text not null)');
@@ -170,7 +174,7 @@ begin
     'unit_cache_key text not null, owner_name text not null, member_name text not null, ' +
     'normalized_member_name text not null, kind text not null, type_name text not null, visibility text not null, ' +
     'is_default integer not null, is_indexed integer not null, line_no integer not null, col_no integer not null)');
-  aConnection.ExecSQL('create table if not exists unit_references (' +
+  aConnection.ExecSQL('create table if not exists symbol_map_references (' +
     'unit_cache_key text not null, name text not null, normalized_name text not null, role text not null, ' +
     'section_kind text not null, line_no integer not null, col_no integer not null, end_line_no integer not null, ' +
     'end_col_no integer not null)');
@@ -179,14 +183,15 @@ begin
     'bds_root text not null, source_roots_hash text not null, intrinsic_seed_version text not null, ' +
     'indexed_at_utc text not null)');
   aConnection.ExecSQL('create table if not exists compiler_profile_units (' +
-    'profile_key text not null, unit_name text not null, unit_cache_key text not null, source_kind text not null)');
+    'profile_key text not null, unit_name text not null, unit_cache_key text not null, file_path_sample text not null, ' +
+    'source_kind text not null)');
   aConnection.ExecSQL('create table if not exists compiler_intrinsics (' +
     'profile_key text not null, name text not null, kind text not null, signature text not null, notes text not null)');
   aConnection.ExecSQL('create index if not exists idx_compiler_intrinsics_name on ' +
     'compiler_intrinsics(profile_key, name)');
   aConnection.ExecSQL('create index if not exists idx_symbols_name on symbols(normalized_name)');
   aConnection.ExecSQL('create index if not exists idx_members_name on members(normalized_member_name)');
-  aConnection.ExecSQL('create index if not exists idx_unit_references_name on unit_references(normalized_name)');
+  aConnection.ExecSQL('create index if not exists idx_symbol_map_references_name on symbol_map_references(normalized_name)');
 end;
 
 procedure EnsureProjectSchema(const aConnection: TFDConnection);
@@ -422,9 +427,9 @@ begin
     aPlatform, lSourceRoot);
 end;
 
-function CentralUnitModelExists(const aConnection: TFDConnection; const aUnitCacheKey: string): Boolean;
+function CentralUnitProjectionExists(const aConnection: TFDConnection; const aUnitCacheKey: string): Boolean;
 begin
-  Result := aConnection.ExecSQLScalar('select count(*) from unit_models where unit_cache_key = ?',
+  Result := aConnection.ExecSQLScalar('select count(*) from symbol_map_units where unit_cache_key = ?',
     [aUnitCacheKey]) > 0;
 end;
 
@@ -691,8 +696,9 @@ begin
   if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, lError) then
     raise Exception.Create(lError);
   try
-    lConnection.ExecSQL('insert into compiler_profile_units(profile_key, unit_name, unit_cache_key, source_kind) ' +
-      'values (?, ?, ?, ?)', [aProfileKey, aUnitModel.fUnitName, aUnitCacheKey, 'rtl-source']);
+    lConnection.ExecSQL('insert into compiler_profile_units(profile_key, unit_name, unit_cache_key, ' +
+      'file_path_sample, source_kind) values (?, ?, ?, ?, ?)',
+      [aProfileKey, aUnitModel.fUnitName, aUnitCacheKey, aUnitModel.fFilePath, 'rtl-source']);
   finally
     lConnection.Free;
     lDriverLink.Free;
@@ -792,7 +798,7 @@ begin
       for lSemanticModel in lProfileModels.RtlSourceUnitModels do
       begin
         lModel := SymbolMapUnitModelFromDelphiSemanticModel(lSemanticModel);
-        if not StoreSymbolMapUnitModel(lRtlContext, aStatus, lModel, lStoreResult, aError) then
+        if not StoreSymbolMapUnitProjectionInternal(lRtlContext, aStatus, lModel, lStoreResult, aError) then
           Exit(False);
         if lStoreResult.fCacheHit then
           Inc(aResult.fUnitCacheHits)
@@ -867,10 +873,10 @@ procedure StoreUnitReferences(const aConnection: TFDConnection; const aUnitCache
 var
   lReference: TSymbolMapReferenceModel;
 begin
-  aConnection.ExecSQL('delete from unit_references where unit_cache_key = ?', [aUnitCacheKey]);
+  aConnection.ExecSQL('delete from symbol_map_references where unit_cache_key = ?', [aUnitCacheKey]);
   for lReference in aModel.fReferences do
   begin
-    aConnection.ExecSQL('insert into unit_references(' +
+    aConnection.ExecSQL('insert into symbol_map_references(' +
       'unit_cache_key, name, normalized_name, role, section_kind, line_no, col_no, end_line_no, end_col_no) ' +
       'values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [aUnitCacheKey, lReference.fName, LowerCase(lReference.fName), lReference.fRole, lReference.fSectionKind,
@@ -935,7 +941,7 @@ begin
   end;
 end;
 
-function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+function StoreSymbolMapUnitProjectionInternal(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean;
 var
   lConnection: TFDConnection;
@@ -956,7 +962,7 @@ begin
     Exit(False);
   try
     try
-      aResult.fCacheHit := CentralUnitModelExists(lConnection, lUnitCacheKey);
+      aResult.fCacheHit := CentralUnitProjectionExists(lConnection, lUnitCacheKey);
       if not aResult.fCacheHit then
       begin
         lConnection.StartTransaction;
@@ -977,7 +983,7 @@ begin
               lMember.fTypeName, lMember.fVisibility, BoolToDbInt(lMember.fIsDefault),
               BoolToDbInt(lMember.fIsIndexed), lMember.fLine, lMember.fCol]);
           end;
-          lConnection.ExecSQL('insert into unit_models(' +
+          lConnection.ExecSQL('insert into symbol_map_units(' +
             'unit_cache_key, unit_name, file_hash, file_path_sample, context_hash, parser_version, schema_version, ' +
             'diagnostics_json, parsed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [lUnitCacheKey, aModel.fUnitName, aResult.fFileHash, aModel.fFilePath, aResult.fContextHash,
@@ -1007,12 +1013,18 @@ begin
   end;
 end;
 
-function StoreSymbolMapUnitModel(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean;
+begin
+  Result := StoreSymbolMapUnitProjectionInternal(aContext, aStatus, aModel, aResult, aError);
+end;
+
+function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aError: string): Boolean;
 var
   lResult: TSymbolMapCacheStoreResult;
 begin
-  Result := StoreSymbolMapUnitModel(aContext, aStatus, aModel, lResult, aError);
+  Result := StoreSymbolMapUnitProjection(aContext, aStatus, aModel, lResult, aError);
 end;
 
 end.
