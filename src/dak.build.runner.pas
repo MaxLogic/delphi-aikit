@@ -1587,12 +1587,14 @@ begin
   Writeln(ErrOutput, 'WARNING. ' + aMessage);
 end;
 
-procedure PreserveBuildDiagnosticLog(const aSourcePath, aTargetName: string);
+procedure PreserveBuildDiagnosticLog(const aDiagnosticsDir, aSourcePath, aTargetName: string);
 var
   lDiagnosticsDir: string;
   lTargetPath: string;
 begin
-  lDiagnosticsDir := Trim(GetEnvironmentVariable(cBuildDiagnosticsDirEnvVar));
+  lDiagnosticsDir := Trim(aDiagnosticsDir);
+  if lDiagnosticsDir = '' then
+    lDiagnosticsDir := Trim(GetEnvironmentVariable(cBuildDiagnosticsDirEnvVar));
   if (lDiagnosticsDir = '') or (aSourcePath = '') or (not FileExists(aSourcePath)) then
     Exit;
 
@@ -2096,8 +2098,8 @@ begin
   finally
     lDiagnosticsWarnings.Free;
     lEnvVars.Free;
-    PreserveBuildDiagnosticLog(lOutLog, 'stdout.log');
-    PreserveBuildDiagnosticLog(lErrLog, 'stderr.log');
+    PreserveBuildDiagnosticLog(lNormalizedOptions.fBuildDiagnosticsDir, lOutLog, 'stdout.log');
+    PreserveBuildDiagnosticLog(lNormalizedOptions.fBuildDiagnosticsDir, lErrLog, 'stderr.log');
     if (lOutLog <> '') and FileExists(lOutLog) then
       System.SysUtils.DeleteFile(lOutLog);
     if (lErrLog <> '') and FileExists(lErrLog) then

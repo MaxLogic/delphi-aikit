@@ -65,22 +65,16 @@ uses
 const
   cRemoveWithFallbackDelphiVersion = '23.0';
   cBuildRequiresDelphiVersion = 'Delphi version is required';
-  cBuildVerificationMutexName = 'Local\DakRemoveWithBuildVerification';
-  cBuildDiagnosticsDirEnvVar = 'DAK_BUILD_DIAGNOSTICS_DIR';
+  cBuildVerificationMutexPrefix = 'Local\DakRemoveWithBuildVerification-';
+  cBuildVerificationMutexTimeoutMs = 30 * 60 * 1000;
   cPreflightBuildFailed = 'preflight-build-failed';
-  cBuildEnvironmentVariableNames: array[0..5] of string = ('BDS', 'BDSLIB', 'DCC_Namespace',
-    'DCC_UnitSearchPath', 'DelphiLibraryPath', 'EnvOptions');
 
 type
-  TRemoveWithEnvironmentVariableState = record
-    fName: string;
-    fValue: string;
-    fExisted: Boolean;
-  end;
-
   TRemoveWithTransaction = record
   private
     class function FileHash(const aBytes: TBytes): string; static;
+    class function CanonicalProjectIdentity(const aProjectPath: string): string; static;
+    class function BuildVerificationMutexName(const aProjectPath: string): string; static;
     class function DetectEncoding(const aBytes: TBytes): string; static;
     class function DetectLineEnding(const aBytes: TBytes): string; static;
     class function FileAlreadyTracked(const aTransactionResult: TRemoveWithTransactionResult;
@@ -103,12 +97,6 @@ type
       var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
     class function ValidateSemanticPlanContext(const aPlanResult: TRemoveWithPlanResult;
       const aApplyContext: TRemoveWithPlanApplyContext; out aError: string): Boolean; static;
-    class function CaptureEnvironment: TArray<TRemoveWithEnvironmentVariableState>; static;
-    class procedure AddEnvironmentVariable(var aEnvironment: TArray<TRemoveWithEnvironmentVariableState>;
-      const aName, aValue: string); static;
-    class procedure RestoreEnvironment(const aEnvironment: TArray<TRemoveWithEnvironmentVariableState>); static;
-    class procedure RestoreEnvironmentVariable(const aName, aValue: string; const aExisted: Boolean); static;
-    class procedure ClearInheritedBuildEnvironment; static;
     class function VerifyBuild(const aOptions: TAppOptions; const aProjectPath, aDiagnosticsDir: string;
       var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
   public
@@ -239,6 +227,32 @@ begin
   if Length(aBytes) > 0 then
     lHash.Update(aBytes);
   Result := lHash.HashAsString;
+end;
+
+class function TRemoveWithTransaction.CanonicalProjectIdentity(const aProjectPath: string): string;
+begin
+  Result := LowerCase(TPath.GetFullPath(aProjectPath));
+end;
+
+class function TRemoveWithTransaction.BuildVerificationMutexName(const aProjectPath: string): string;
+var
+  i: Integer;
+  lHash: UInt64;
+  lIdentity: string;
+  lSafeIdentity: string;
+begin
+  lIdentity := CanonicalProjectIdentity(aProjectPath);
+  lSafeIdentity := '';
+  lHash := 0;
+  for i := 1 to Length(lIdentity) do
+  begin
+    lHash := ((lHash * 131) + Ord(lIdentity[i])) mod UInt64($100000000);
+    if CharInSet(lIdentity[i], ['a'..'z', '0'..'9']) then
+      lSafeIdentity := lSafeIdentity + lIdentity[i]
+    else
+      lSafeIdentity := lSafeIdentity + '_';
+  end;
+  Result := cBuildVerificationMutexPrefix + Copy(lSafeIdentity, 1, 80) + '-' + IntToHex(lHash, 8);
 end;
 
 class function TRemoveWithTransaction.DetectEncoding(const aBytes: TBytes): string;
@@ -540,84 +554,6 @@ begin
   lRoot.Free;
 end;
 
-class procedure TRemoveWithTransaction.AddEnvironmentVariable(
-  var aEnvironment: TArray<TRemoveWithEnvironmentVariableState>; const aName, aValue: string);
-var
-  lIndex: Integer;
-begin
-  lIndex := Length(aEnvironment);
-  SetLength(aEnvironment, lIndex + 1);
-  aEnvironment[lIndex].fName := aName;
-  aEnvironment[lIndex].fValue := aValue;
-  aEnvironment[lIndex].fExisted := True;
-end;
-
-class function TRemoveWithTransaction.CaptureEnvironment: TArray<TRemoveWithEnvironmentVariableState>;
-var
-  lBlock: PChar;
-  lCursor: PChar;
-  lLine: string;
-  lName: string;
-  lPos: Integer;
-  lValue: string;
-begin
-  Result := nil;
-  lBlock := Winapi.Windows.GetEnvironmentStrings;
-  if lBlock = nil then
-    Exit;
-
-  try
-    lCursor := lBlock;
-    while lCursor^ <> #0 do
-    begin
-      lLine := string(lCursor);
-      if (lLine <> '') and (lLine[1] <> '=') then
-      begin
-        lPos := Pos('=', lLine);
-        if lPos > 1 then
-        begin
-          lName := Copy(lLine, 1, lPos - 1);
-          lValue := Copy(lLine, lPos + 1, MaxInt);
-          AddEnvironmentVariable(Result, lName, lValue);
-        end;
-      end;
-      Inc(lCursor, StrLen(lCursor) + 1);
-    end;
-  finally
-    Winapi.Windows.FreeEnvironmentStrings(lBlock);
-  end;
-end;
-
-class procedure TRemoveWithTransaction.RestoreEnvironmentVariable(const aName, aValue: string;
-  const aExisted: Boolean);
-begin
-  if aExisted then
-    Winapi.Windows.SetEnvironmentVariable(PChar(aName), PChar(aValue))
-  else
-    Winapi.Windows.SetEnvironmentVariable(PChar(aName), nil);
-end;
-
-class procedure TRemoveWithTransaction.RestoreEnvironment(
-  const aEnvironment: TArray<TRemoveWithEnvironmentVariableState>);
-var
-  lCurrent: TArray<TRemoveWithEnvironmentVariableState>;
-  lState: TRemoveWithEnvironmentVariableState;
-begin
-  lCurrent := CaptureEnvironment;
-  for lState in lCurrent do
-    RestoreEnvironmentVariable(lState.fName, '', False);
-  for lState in aEnvironment do
-    RestoreEnvironmentVariable(lState.fName, lState.fValue, True);
-end;
-
-class procedure TRemoveWithTransaction.ClearInheritedBuildEnvironment;
-var
-  lName: string;
-begin
-  for lName in cBuildEnvironmentVariableNames do
-    Winapi.Windows.SetEnvironmentVariable(PChar(lName), nil);
-end;
-
 class function TRemoveWithTransaction.ValidatePlanContext(const aApplyContext: TRemoveWithPlanApplyContext;
   var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean;
 var
@@ -681,10 +617,10 @@ class function TRemoveWithTransaction.VerifyBuild(const aOptions: TAppOptions;
   out aError: string): Boolean;
 var
   lBuildOptions: TAppOptions;
-  lEnvironment: TArray<TRemoveWithEnvironmentVariableState>;
   lExitCode: Integer;
   lMutex: THandle;
   lMutexAcquired: Boolean;
+  lMutexName: string;
   lStdErrLogPath: string;
   lStdOutLogPath: string;
   lWaitResult: DWORD;
@@ -698,28 +634,38 @@ begin
   lBuildOptions.fBuildQuiet := True;
   lBuildOptions.fBuildAi := False;
   lBuildOptions.fVerbose := False;
+  lBuildOptions.fBuildDiagnosticsDir := aDiagnosticsDir;
 
   lStdOutLogPath := TPath.Combine(aDiagnosticsDir, 'stdout.log');
   lStdErrLogPath := TPath.Combine(aDiagnosticsDir, 'stderr.log');
-  lEnvironment := CaptureEnvironment;
-  lMutex := Winapi.Windows.CreateMutex(nil, False, PChar(cBuildVerificationMutexName));
+  lMutexName := BuildVerificationMutexName(aProjectPath);
+  lMutex := Winapi.Windows.CreateMutex(nil, False, PChar(lMutexName));
+  if lMutex = 0 then
+  begin
+    aError := 'build-verification-lock-create-failed: ' + SysErrorMessage(Winapi.Windows.GetLastError);
+    Exit(False);
+  end;
   lMutexAcquired := False;
   try
-    if lMutex <> 0 then
+    lWaitResult := Winapi.Windows.WaitForSingleObject(lMutex, cBuildVerificationMutexTimeoutMs);
+    lMutexAcquired := lWaitResult in [Winapi.Windows.WAIT_OBJECT_0, Winapi.Windows.WAIT_ABANDONED];
+    if lWaitResult = Winapi.Windows.WAIT_FAILED then
     begin
-      lWaitResult := Winapi.Windows.WaitForSingleObject(lMutex, Winapi.Windows.INFINITE);
-      lMutexAcquired := lWaitResult in [Winapi.Windows.WAIT_OBJECT_0, Winapi.Windows.WAIT_ABANDONED];
+      aError := 'build-verification-lock-wait-failed: ' + SysErrorMessage(Winapi.Windows.GetLastError);
+      Exit(False);
+    end;
+    if not lMutexAcquired then
+    begin
+      aError := 'build-verification-lock-timeout';
+      Exit(False);
     end;
 
-    ClearInheritedBuildEnvironment;
-    Winapi.Windows.SetEnvironmentVariable(PChar(cBuildDiagnosticsDirEnvVar), PChar(aDiagnosticsDir));
     Result := TryRunBuildInternal(lBuildOptions, lExitCode, aError) and (lExitCode = 0);
     if (not Result) and (Trim(lBuildOptions.fDelphiVersion) = '') and
       (Pos(cBuildRequiresDelphiVersion, aError) > 0) then
     begin
       lBuildOptions.fDelphiVersion := cRemoveWithFallbackDelphiVersion;
       aError := '';
-      Winapi.Windows.SetEnvironmentVariable(PChar(cBuildDiagnosticsDirEnvVar), PChar(aDiagnosticsDir));
       Result := TryRunBuildInternal(lBuildOptions, lExitCode, aError) and (lExitCode = 0);
     end;
     if (not Result) and (aError = '') then
@@ -731,9 +677,7 @@ begin
   finally
     if lMutexAcquired then
       Winapi.Windows.ReleaseMutex(lMutex);
-    if lMutex <> 0 then
-      Winapi.Windows.CloseHandle(lMutex);
-    RestoreEnvironment(lEnvironment);
+    Winapi.Windows.CloseHandle(lMutex);
   end;
 end;
 
