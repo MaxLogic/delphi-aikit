@@ -203,7 +203,7 @@ begin
 end;
 
 function AppendSourceContextToFinding(const aDisplayFinding, aLookupFinding: string;
-  const aLookup: TProjectSourceLookup; aContextLines: Integer): string;
+  const aCache: TSourceContextRunCache; aContextLines: Integer): string;
 var
   lContext: TSourceContextSnippet;
   lError: string;
@@ -213,19 +213,19 @@ begin
   Result := aDisplayFinding;
   if not TryParseFindingLocation(aLookupFinding, lFileToken, lLineNumber) then
     Exit(Result);
-  if not TryResolveSourceContext(aLookup, lFileToken, lLineNumber, aContextLines, lContext, lError) then
+  if not aCache.TryResolve(lFileToken, lLineNumber, aContextLines, lContext, lError) then
     Exit(Result);
   Result := Result + sLineBreak + PrefixSourceContext(FormatSourceContextLines(lContext));
 end;
 
 procedure EnrichBuildFindingsWithSourceContext(var aItems: TArray<string>; const aLookupItems: TArray<string>;
-  const aLookup: TProjectSourceLookup; aContextLines: Integer);
+  const aCache: TSourceContextRunCache; aContextLines: Integer);
 var
   i: Integer;
 begin
   for i := 0 to High(aItems) do
     if i <= High(aLookupItems) then
-      aItems[i] := AppendSourceContextToFinding(aItems[i], aLookupItems[i], aLookup, aContextLines);
+      aItems[i] := AppendSourceContextToFinding(aItems[i], aLookupItems[i], aCache, aContextLines);
 end;
 
 function LspHintCacheKey(const aOperation, aFilePath: string; aLineNumber, aColNumber: Integer;
@@ -387,8 +387,9 @@ begin
 end;
 
 function TryBuildLspEnrichmentText(const aOptions: TAppOptions; const aContext: TLspContext;
-  const aLookup: TProjectSourceLookup; const aFinding: string; aContextLines: Integer;
-  const aCache: TDictionary<string, string>; out aHintText: string; out aError: string): Boolean;
+  const aFinding: string; aContextLines: Integer;
+  const aSourceCache: TSourceContextRunCache; const aCache: TDictionary<string, string>;
+  out aHintText: string; out aError: string): Boolean;
 var
   lCandidate: string;
   lColNumber: Integer;
@@ -405,7 +406,7 @@ begin
   aHintText := '';
   aError := '';
   lResolvedContext := Default(TSourceContextSnippet);
-  if not TryResolveSourceContextCandidate(aLookup, aFinding, aContextLines, lResolvedContext, lCandidate,
+  if not aSourceCache.TryResolveCandidate(aFinding, aContextLines, lResolvedContext, lCandidate,
     lEnclosingSymbol, aError) then
     Exit(False);
 
@@ -1802,6 +1803,7 @@ function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildP
   out aExitCode: Integer; out aError: string): Boolean;
 var
   lBdsRoot: string;
+  lBuildSourceContextCache: TSourceContextRunCache;
   lDiagnosticsWarnings: TDiagnostics;
   lDiagnosticsDefaults: TDiagnosticsDefaults;
   lEnvVars: TDictionary<string, string>;
@@ -1930,27 +1932,37 @@ begin
         lNormalizedOptions.fPlatform, lNormalizedOptions.fDelphiVersion, lEnvVars, nil, lProjectLookup, lLookupError)
       then
       begin
-        if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) then
-          EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lSummary.fErrorsRaw, lProjectLookup,
-            lDiagnosticsDefaults.fSourceContextLines);
-        if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
-        begin
-          EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lSummary.fWarningsRaw, lProjectLookup,
-            lDiagnosticsDefaults.fSourceContextLines);
-          EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintsRaw, lProjectLookup,
-            lDiagnosticsDefaults.fSourceContextLines);
+        lBuildSourceContextCache := TSourceContextRunCache.Create(lProjectLookup);
+        try
+          if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) then
+            EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lSummary.fErrorsRaw,
+              lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
+          if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
+          begin
+            EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lSummary.fWarningsRaw,
+              lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
+            EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintsRaw,
+              lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
+          end;
+        finally
+          lBuildSourceContextCache.Free;
         end;
       end else
       begin
-        if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) then
-          EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lSummary.fErrorsRaw, lProjectLookup,
-            lDiagnosticsDefaults.fSourceContextLines);
-        if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
-        begin
-          EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lSummary.fWarningsRaw, lProjectLookup,
-            lDiagnosticsDefaults.fSourceContextLines);
-          EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintsRaw, lProjectLookup,
-            lDiagnosticsDefaults.fSourceContextLines);
+        lBuildSourceContextCache := TSourceContextRunCache.Create(lProjectLookup);
+        try
+          if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) then
+            EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lSummary.fErrorsRaw,
+              lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
+          if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
+          begin
+            EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lSummary.fWarningsRaw,
+              lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
+            EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintsRaw,
+              lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
+          end;
+        finally
+          lBuildSourceContextCache.Free;
         end;
         if lNormalizedOptions.fVerbose and (not lNormalizedOptions.fBuildQuiet) and (lLookupError <> '') then
           Writeln('NOTE. Source context search paths unavailable: ' + lLookupError);
@@ -1978,26 +1990,32 @@ begin
       begin
         lLspHintCache := TDictionary<string, string>.Create;
         try
-          lLspHintError := '';
-          lLspNotePrinted := False;
-          if TryBuildStrictLspContext(lNormalizedOptions, lLspContext, lLspHintError) then
-          begin
-            for var i := 0 to High(lSummary.fErrors) do
+          var lLspSourceCache := TSourceContextRunCache.Create(lLspLookup);
+          try
+            lLspHintError := '';
+            lLspNotePrinted := False;
+            if TryBuildStrictLspContext(lNormalizedOptions, lLspContext, lLspHintError) then
             begin
-              if i > High(lSummary.fErrorsRaw) then
-                Break;
-              lLspHintText := '';
-              if TryBuildLspEnrichmentText(lNormalizedOptions, lLspContext, lLspLookup, lSummary.fErrorsRaw[i],
-                lDiagnosticsDefaults.fSourceContextLines, lLspHintCache, lLspHintText, lLspHintError) then
-                lSummary.fErrors[i] := lSummary.fErrors[i] + sLineBreak + lLspHintText
-              else if lNormalizedOptions.fVerbose and (lLspHintError <> '') and (not lLspNotePrinted) then
+              for var i := 0 to High(lSummary.fErrors) do
               begin
-                Writeln('NOTE. LSP enrichment skipped: ' + lLspHintError);
-                lLspNotePrinted := True;
+                if i > High(lSummary.fErrorsRaw) then
+                  Break;
+                lLspHintText := '';
+                if TryBuildLspEnrichmentText(lNormalizedOptions, lLspContext,
+                  lSummary.fErrorsRaw[i], lDiagnosticsDefaults.fSourceContextLines,
+                  lLspSourceCache, lLspHintCache, lLspHintText, lLspHintError) then
+                  lSummary.fErrors[i] := lSummary.fErrors[i] + sLineBreak + lLspHintText
+                else if lNormalizedOptions.fVerbose and (lLspHintError <> '') and (not lLspNotePrinted) then
+                begin
+                  Writeln('NOTE. LSP enrichment skipped: ' + lLspHintError);
+                  lLspNotePrinted := True;
+                end;
               end;
-            end;
-          end else if lNormalizedOptions.fVerbose and (lLspHintError <> '') then
-            Writeln('NOTE. LSP enrichment skipped: ' + lLspHintError);
+            end else if lNormalizedOptions.fVerbose and (lLspHintError <> '') then
+              Writeln('NOTE. LSP enrichment skipped: ' + lLspHintError);
+          finally
+            lLspSourceCache.Free;
+          end;
         finally
           lLspHintCache.Free;
         end;
