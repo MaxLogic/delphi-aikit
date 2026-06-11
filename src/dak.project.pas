@@ -326,6 +326,19 @@ begin
   end;
 end;
 
+function SemanticApiOptions(const aOptions: TAppOptions; const aEnvVars: TDictionary<string, string>;
+  const aSearchPaths: TArray<string>): TDelphiSemanticApiOptions;
+begin
+  Result := Default(TDelphiSemanticApiOptions);
+  Result.Configuration := aOptions.fConfig;
+  Result.Platform := aOptions.fPlatform;
+  Result.DelphiVersion := aOptions.fDelphiVersion;
+  Result.RsVarsPath := aOptions.fRsVarsPath;
+  Result.EnvOptionsPath := aOptions.fEnvOptionsPath;
+  Result.EnvironmentVariables := SemanticEnvironmentProperties(aEnvVars);
+  Result.SearchPaths := aSearchPaths;
+end;
+
 procedure AddSemanticDiagnostics(const aDiagnostics: TDiagnostics;
   const aResult: TDelphiSemanticContextResult);
 var
@@ -667,12 +680,10 @@ var
   lBuildOptions: TAppOptions;
   lDelphiVersion: string;
   lEnvVars: TDictionary<string, string>;
-  lErrorCode: Integer;
   lLibraryPath: string;
   lLibrarySource: TPropertySource;
-  lParams: TFixInsightParams;
   lProjectPath: string;
-  lLookup: TProjectSourceLookup;
+  lResult: TDelphiSemanticContextResult;
   lSearchPaths: TArray<string>;
 begin
   Result := False;
@@ -693,27 +704,31 @@ begin
   aContext.fHasDelphiContext := False;
   aContext.fContextNote := cDefaultContextNote;
 
-  if not TryExtractProjectMainSource(lProjectPath, aContext.fMainSourcePath, aError) then
+  lBuildOptions := aOptions;
+  lBuildOptions.fDprojPath := lProjectPath;
+  lResult := TDelphiSemanticApi.LoadProjectContext(lProjectPath,
+    SemanticApiOptions(lBuildOptions, nil, nil));
+  if not lResult.Success then
   begin
+    aError := FirstSemanticErrorMessage(lResult);
+    if aError = '' then
+      aError := 'Failed to load project context.';
     Exit(False);
   end;
 
-  if TryBuildProjectSourceLookup(lProjectPath, aOptions.fConfig, aOptions.fPlatform, '', nil, nil, lLookup, lBuildError) then
-  begin
-    if lLookup.fMainSourcePath <> '' then
-    begin
-      aContext.fMainSourcePath := lLookup.fMainSourcePath;
-    end;
-    if Length(lLookup.fDefines) > 0 then
-    begin
-      aContext.fParserDefines := String.Join(';', lLookup.fDefines);
-    end;
-    lSearchPaths := ConcatDedup(lLookup.fSearchPaths, TArray<string>.Create(aContext.fProjectDir));
-    if Length(lSearchPaths) > 0 then
-    begin
-      aContext.fParserSearchPath := String.Join(';', lSearchPaths);
-    end;
-  end;
+  aContext.fProjectPath := lResult.Project.ProjectFileName;
+  aContext.fProjectDir := lResult.Project.ProjectDirectory;
+  aContext.fProjectName := lResult.Project.ProjectName;
+  aContext.fDakProjectRoot := TPath.Combine(TPath.Combine(aContext.fProjectDir, '.dak'), aContext.fProjectName);
+  aContext.fMainSourcePath := lResult.Project.MainSourceFileName;
+  aContext.fParserDefines := String.Join(';', lResult.Project.Defines);
+  aContext.fUnitScopes := lResult.Project.UnitScopeNames;
+  aContext.fUnitAliases := lResult.Project.UnitAliases;
+  lSearchPaths := ConcatDedup(lResult.Project.SourceLookupPaths, TArray<string>.Create(aContext.fProjectDir));
+  if Length(lSearchPaths) > 0 then
+    aContext.fParserSearchPath := String.Join(';', lSearchPaths);
+  if aContext.fParserSearchPath = '' then
+    aContext.fParserSearchPath := aContext.fProjectDir;
 
   lDelphiVersion := Trim(aOptions.fDelphiVersion);
   if (lDelphiVersion = '') and (not LoadDefaultDelphiVersion(lProjectPath, lDelphiVersion)) then
@@ -743,18 +758,20 @@ begin
     lBuildOptions := aOptions;
     lBuildOptions.fDprojPath := lProjectPath;
     lBuildOptions.fDelphiVersion := lDelphiVersion;
-    if TryBuildParams(lBuildOptions, lEnvVars, lLibraryPath, lLibrarySource, nil, lParams, lBuildError, lErrorCode) then
+    lSearchPaths := SplitList(lLibraryPath);
+    lResult := TDelphiSemanticApi.LoadProjectContext(lProjectPath,
+      SemanticApiOptions(lBuildOptions, lEnvVars, lSearchPaths));
+    if lResult.Success then
     begin
-      aContext.fMainSourcePath := lParams.fProjectDpr;
-      aContext.fParserDefines := String.Join(';', lParams.fDefines);
-      aContext.fParserSearchPath := String.Join(';', lParams.fUnitSearchPath);
+      aContext.fMainSourcePath := lResult.Project.MainSourceFileName;
+      aContext.fParserDefines := String.Join(';', lResult.Project.Defines);
+      aContext.fUnitScopes := lResult.Project.UnitScopeNames;
+      aContext.fUnitAliases := lResult.Project.UnitAliases;
+      lSearchPaths := ConcatDedup(lResult.Project.SourceLookupPaths,
+        TArray<string>.Create(aContext.fProjectDir));
+      aContext.fParserSearchPath := String.Join(';', lSearchPaths);
       if aContext.fParserSearchPath = '' then
-      begin
         aContext.fParserSearchPath := aContext.fProjectDir;
-      end else
-      begin
-        aContext.fParserSearchPath := aContext.fParserSearchPath + ';' + aContext.fProjectDir;
-      end;
       aContext.fHasDelphiContext := True;
       aContext.fContextNote := '';
     end;

@@ -52,6 +52,8 @@ type
     fMainSourcePath: string;
     fParserDefines: string;
     fParserSearchPath: string;
+    fUnitScopes: TArray<string>;
+    fUnitAliases: TArray<string>;
     fDakProjectRoot: string;
     fHasDelphiContext: Boolean;
     fContextNote: string;
