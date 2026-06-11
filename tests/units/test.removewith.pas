@@ -469,7 +469,9 @@ type
     [Test]
     procedure PlanModeSkipsResolverReportWhenCompatibilityProjectionIsSkipped;
     [Test]
-    procedure ApplyModeKeepsResolverBackedPlannerBeforeApply;
+    procedure ApplyModePlansFromSemanticFinalDtoBeforeApply;
+    [Test]
+    procedure ApplyModeRetriesCompatibilityFallbackOnlyAfterCleanRollback;
     [Test]
     procedure JsonReportSerializesOnce;
     [Test]
@@ -1642,10 +1644,8 @@ begin
     'Expected cold semantic cache run to report zero hits.');
   Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'semanticCacheMisses') > 0,
     'Expected cold semantic cache run to report misses.');
-  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheHits'),
-    'Expected cold project-facts cache run to report zero hits.');
-  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses'),
-    'Expected cold run to avoid the retired project-facts cache.');
+  Assert.IsFalse(ContainsText(lLogText, 'projectFactsCache'),
+    'Expected cold run to omit retired project-facts cache metrics.');
 
   lLogText := RunSemanticCacheFixture(lDprojPath, lCacheFileName, 'remove-with-semantic-cache-second.log',
     lExitCode);
@@ -1659,10 +1659,8 @@ begin
     'Expected unchanged semantic cache run to report hits.');
   Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'semanticCacheMisses'),
     'Expected unchanged semantic cache run to avoid misses.');
-  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheHits'),
-    'Expected unchanged run to avoid the retired project-facts cache.');
-  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses'),
-    'Expected unchanged run to avoid the retired project-facts cache.');
+  Assert.IsFalse(ContainsText(lLogText, 'projectFactsCache'),
+    'Expected unchanged run to omit retired project-facts cache metrics.');
 
   lUnitPath := TPath.Combine(lFixtureDir, 'SymbolMapUnit.pas');
   TFile.AppendAllText(lUnitPath, sLineBreak + '// cache invalidation probe' + sLineBreak,
@@ -1679,10 +1677,8 @@ begin
     'Expected changed-source semantic cache run to report invalidation.');
   Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'semanticCacheMisses') > 0,
     'Expected changed-source semantic cache run to rebuild stale unit facts.');
-  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheInvalidations'),
-    'Expected changed-source run to avoid the retired project-facts cache.');
-  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'projectFactsCacheMisses'),
-    'Expected changed-source run to avoid the retired project-facts cache.');
+  Assert.IsFalse(ContainsText(lLogText, 'projectFactsCache'),
+    'Expected changed-source run to omit retired project-facts cache metrics.');
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;
@@ -5359,7 +5355,7 @@ var
   lPlannerPos: Integer;
   lResolverPos: Integer;
   lSkipConditionPos: Integer;
-  lSkipReportPos: Integer;
+  lSemanticReportPos: Integer;
   lSourceText: string;
 begin
   lSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
@@ -5375,7 +5371,8 @@ begin
   lResolverPos := PosEx('resolver start', lSourceText, lBranchPos);
   lSkipConditionPos := PosEx('if lFactOptions.fRemoveWithSkipCompatibilityFacts then',
     lSourceText, lBranchPos);
-  lSkipReportPos := PosEx('resolver report skipped', lSourceText, lBranchPos);
+  lSemanticReportPos := PosEx('semantic resolver projection start', lSourceText,
+    lBranchPos);
 
   Assert.IsTrue(lBranchPos > 0, 'Expected distinct non-apply remove-with branch.');
   Assert.IsTrue(lDtoPrimaryPlanPos > 0,
@@ -5383,18 +5380,24 @@ begin
   Assert.IsTrue(lPlannerPos > 0, 'Expected remove-with command planner phase.');
   Assert.IsTrue((lSkipConditionPos > 0) and (lSkipConditionPos < lBranchEndPos),
     'Plan/report mode should skip resolver reporting only when compatibility facts were skipped.');
-  Assert.IsTrue((lSkipReportPos > lSkipConditionPos) and (lSkipReportPos < lBranchEndPos),
-    'High-volume plan reports should explicitly skip legacy resolver reporting.');
-  Assert.IsTrue((lResolverPos > lSkipReportPos) and (lResolverPos < lBranchEndPos),
-    'Small plan reports should retain resolver classifications for diagnostics.');
+  Assert.IsTrue((lSemanticReportPos > lSkipConditionPos) and
+    (lSemanticReportPos < lBranchEndPos),
+    'Normal plan reports should use the report-only semantic projection.');
+  Assert.IsTrue((lResolverPos > lSemanticReportPos) and (lResolverPos < lBranchEndPos),
+    'Diagnostic fallback reports should retain resolver classifications only when compatibility facts are present.');
 end;
 
-procedure TRemoveWithPlannerTests.ApplyModeKeepsResolverBackedPlannerBeforeApply;
+procedure TRemoveWithPlannerTests.ApplyModePlansFromSemanticFinalDtoBeforeApply;
 var
   lApplyContextPos: Integer;
   lBranchEndPos: Integer;
   lBranchPos: Integer;
+  lDtoPrimaryPlanPos: Integer;
+  lFallbackCallPos: Integer;
+  lFallbackHelperPos: Integer;
+  lFallbackPlannerPos: Integer;
   lPlannerPos: Integer;
+  lResolverPos: Integer;
   lResolverPlannerPos: Integer;
   lSourceText: string;
 begin
@@ -5405,17 +5408,63 @@ begin
   lBranchEndPos := PosEx('end else', lSourceText, lBranchPos);
   lPlannerPos := PosEx('planner start', lSourceText, lBranchPos);
   lResolverPlannerPos := PosEx(
-    'PlanRemoveWithRewrites(lSymbolInventory, lScanResult, lResolverResult',
+    'PlanRemoveWithRewrites(lSymbolInventory, lScanResult, lResolverResult,' +
+    sLineBreak + '          lPlanResult',
     lSourceText, lPlannerPos);
+  lDtoPrimaryPlanPos := PosEx('lSymbolInventory.fDelphiSemanticRemoveWithPlan',
+    lSourceText, lPlannerPos);
+  lResolverPos := PosEx('resolver start', lSourceText, lBranchPos);
   lApplyContextPos := PosEx('BuildRemoveWithPlanApplyContext', lSourceText,
     lBranchPos);
+  lFallbackCallPos := PosEx('BuildCompatibilityFallbackPlan',
+    lSourceText, lDtoPrimaryPlanPos);
+  lFallbackHelperPos := Pos('function BuildCompatibilityFallbackPlan',
+    lSourceText);
+  lFallbackPlannerPos := PosEx(
+    'PlanRemoveWithRewrites(lSymbolInventory, lScanResult',
+    lSourceText, lFallbackHelperPos);
 
   Assert.IsTrue((lBranchPos > 0) and (lBranchEndPos > lBranchPos),
     'Expected distinct apply remove-with branch.');
-  Assert.IsTrue((lResolverPlannerPos > 0) and (lResolverPlannerPos < lBranchEndPos),
-    'Apply mode must keep the resolver-backed planner until semantic DTO apply parity is proven.');
-  Assert.IsTrue(lResolverPlannerPos < lApplyContextPos,
-    'Apply mode must build its apply context from the resolver-backed plan.');
+  Assert.IsTrue((lDtoPrimaryPlanPos > 0) and (lDtoPrimaryPlanPos < lApplyContextPos),
+    'Apply mode must pass DelphiSemantics final plan DTO to the planner.');
+  Assert.IsTrue(lDtoPrimaryPlanPos < lApplyContextPos,
+    'Apply mode must build its apply context from the semantic final DTO plan.');
+  Assert.IsFalse((lResolverPlannerPos > 0) and (lResolverPlannerPos < lApplyContextPos),
+    'Apply mode must not call the resolver-backed planner in the normal path.');
+  Assert.IsFalse((lResolverPos > 0) and (lResolverPos < lPlannerPos),
+    'Apply mode must not resolve DAK classifications before planning in the normal path.');
+  Assert.IsTrue((lFallbackCallPos > lDtoPrimaryPlanPos) and
+    (lFallbackCallPos < lApplyContextPos),
+    'Apply mode should make a documented compatibility fallback decision after semantic planning.');
+  Assert.IsTrue((lFallbackHelperPos > 0) and (lFallbackPlannerPos > lFallbackHelperPos),
+    'The explicit compatibility fallback may use the resolver-backed planner.');
+end;
+
+procedure TRemoveWithPlannerTests.ApplyModeRetriesCompatibilityFallbackOnlyAfterCleanRollback;
+var
+  lFallbackAfterFailurePos: Integer;
+  lFailureBranchPos: Integer;
+  lRollbackStatusPos: Integer;
+  lSourceText: string;
+begin
+  lSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.pas'), TEncoding.UTF8);
+  lFallbackAfterFailurePos := PosEx(
+    'BuildCompatibilityFallbackPlan(''semantic-apply-verification-failed'')',
+    lSourceText);
+  lFailureBranchPos := PosEx('if not lApplySucceeded then', lSourceText,
+    PosEx('ApplyRemoveWithPlanTransactionally', lSourceText));
+  lRollbackStatusPos := PosEx(
+    'lTransactionResult.fStatus <> TRemoveWithTransactionStatus.rwtxRolledBack',
+    lSourceText, lFailureBranchPos);
+
+  Assert.IsTrue(lFailureBranchPos > 0, 'Expected failed semantic apply branch.');
+  Assert.IsTrue(lFallbackAfterFailurePos > 0,
+    'Expected semantic apply verification fallback branch.');
+  Assert.IsTrue((lRollbackStatusPos > lFailureBranchPos) and
+    (lRollbackStatusPos < lFallbackAfterFailurePos),
+    'Apply mode must retry compatibility fallback only after the semantic transaction rolled back cleanly.');
 end;
 
 procedure TRemoveWithPlannerTests.JsonReportSerializesOnce;
@@ -5466,12 +5515,12 @@ begin
 
   Assert.IsTrue(ContainsText(lCommandSource,
     'lFactOptions.fRemoveWithSkipCompatibilityFacts') and
-    ContainsText(lCommandSource, 'aOptions.fRemoveWithMode = TRemoveWithMode.rwmPlan') and
-    ContainsText(lCommandSource, 'cRemoveWithCompactPlanReportStatementThreshold'),
-    'High-volume plan mode should opt out of DAK compatibility fact projection after semantic planning.');
+    ContainsText(lCommandSource,
+    'aOptions.fRemoveWithMode <> TRemoveWithMode.rwmScan'),
+    'Normal plan/apply modes should opt out of DAK compatibility fact projection after semantic planning.');
   Assert.IsTrue(ContainsText(lSymbolsSource,
     'if not aOptions.fRemoveWithSkipCompatibilityFacts then'),
-    'Compatibility projection should be guarded behind the plan-mode opt-out flag.');
+    'Compatibility projection should be guarded behind the normal plan/apply opt-out flag.');
 end;
 
 procedure TRemoveWithPlannerTests.PlanCliUsesCompactHighVolumeReportContract;
@@ -5564,8 +5613,10 @@ begin
       'Expected generated fixture to exercise the compact high-volume branch.');
     Assert.AreEqual(0, lWithStatements.Count,
       'Plan JSON should keep the withStatements key but omit detailed scan rows.');
-    Assert.AreEqual(0, lResolverClassifications.Count,
-      'Compact high-volume plan reports should skip legacy resolver classifications.');
+    Assert.AreEqual((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt +
+      (lSummary.Values['skipped'] as TJSONNumber).AsInt,
+      lResolverClassifications.Count,
+      'Compact high-volume plan reports should use the shared semantic projection contract.');
     Assert.AreEqual(0, (lMetrics.Values['classificationCount'] as TJSONNumber).AsInt,
       'Compact high-volume plan metrics should report zero DAK resolver classifications.');
     Assert.AreEqual(0, (lMetrics.Values['semanticCompatibilityFactsMs'] as TJSONNumber).AsInt,
