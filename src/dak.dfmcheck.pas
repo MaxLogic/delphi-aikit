@@ -1395,7 +1395,8 @@ begin
 end;
 
 procedure EmitSourceContextClue(const aOutput: TDfmCheckOutputProc; const aPrefix: string; const aFilePath: string;
-  const aLineNumber: Integer; const aDiagnosticsDefaults: TDiagnosticsDefaults);
+  const aLineNumber: Integer; const aDiagnosticsDefaults: TDiagnosticsDefaults;
+  const aSourceContextCache: TSourceContextRunCache);
 var
   lContext: TSourceContextSnippet;
   lContextError: string;
@@ -1404,7 +1405,8 @@ var
 begin
   if (aLineNumber <= 0) or (not ShouldEmitSourceContext(aDiagnosticsDefaults.fSourceContextMode, True)) then
     Exit;
-  if not TryReadSourceContext(aFilePath, aLineNumber, aDiagnosticsDefaults.fSourceContextLines, lContext, lContextError) then
+  if not aSourceContextCache.TryResolve(aFilePath, aLineNumber,
+    aDiagnosticsDefaults.fSourceContextLines, lContext, lContextError) then
     Exit;
   lContextLines := FormatSourceContextLines(lContext);
   for lContextLine in lContextLines do
@@ -1479,7 +1481,7 @@ end;
 
 function EmitPromotedWarningGuidance(const aOutput: TDfmCheckOutputProc; const aWarnedResources: TStrings;
   const aWarnReasons: TStrings; const aModules: TArray<TDfmCacheModule>; const aDiagnosticsDefaults: TDiagnosticsDefaults;
-  const aFailedResources: TStrings): Integer;
+  const aFailedResources: TStrings; const aSourceContextCache: TSourceContextRunCache): Integer;
 var
   lDiagnosticError: string;
   lHasModule: Boolean;
@@ -1537,9 +1539,11 @@ begin
       '[dfm-check] WARN clue: TBitBtn with button-local Images/ImageName plus a standalone TAction can AV during VCL DFM fixups in TBitBtnActionLink.IsGlyphLinked when ActionList=nil.');
     EmitLine(aOutput,
       '[dfm-check] WARN clue: move the action into a TActionList or stop mixing Action with button-local Images/ImageName.');
-    EmitSourceContextClue(aOutput, '[dfm-check] WARN clue: ', lModule.fDfmPath, lPromotion.fButtonObjectLine, aDiagnosticsDefaults);
+    EmitSourceContextClue(aOutput, '[dfm-check] WARN clue: ', lModule.fDfmPath,
+      lPromotion.fButtonObjectLine, aDiagnosticsDefaults, aSourceContextCache);
     if (lPromotion.fActionObjectLine > 0) and (lPromotion.fActionObjectLine <> lPromotion.fButtonObjectLine) then
-      EmitSourceContextClue(aOutput, '[dfm-check] WARN clue: ', lModule.fDfmPath, lPromotion.fActionObjectLine, aDiagnosticsDefaults);
+      EmitSourceContextClue(aOutput, '[dfm-check] WARN clue: ', lModule.fDfmPath,
+        lPromotion.fActionObjectLine, aDiagnosticsDefaults, aSourceContextCache);
     if aFailedResources <> nil then
       aFailedResources.Add(lResourceName);
     Inc(Result);
@@ -1548,7 +1552,7 @@ end;
 
 procedure EmitFailedResourceGuidance(const aOutput: TDfmCheckOutputProc; const aFailedResources: TStrings;
   const aFailReasons: TStrings; const aModules: TArray<TDfmCacheModule>;
-  const aDiagnosticsDefaults: TDiagnosticsDefaults);
+  const aDiagnosticsDefaults: TDiagnosticsDefaults; const aSourceContextCache: TSourceContextRunCache);
 var
   lContext: TSourceContextSnippet;
   lContextError: string;
@@ -1601,8 +1605,8 @@ begin
           EmitLine(aOutput, Format('[dfm-check] FAIL clue: handler declaration line=%d: %s',
             [lDeclarationLine, lDeclaration]));
           if ShouldEmitSourceContext(aDiagnosticsDefaults.fSourceContextMode, True) and
-            TryReadSourceContext(lModule.fPasPath, lDeclarationLine, aDiagnosticsDefaults.fSourceContextLines, lContext,
-            lContextError) then
+            aSourceContextCache.TryResolve(lModule.fPasPath, lDeclarationLine,
+            aDiagnosticsDefaults.fSourceContextLines, lContext, lContextError) then
           begin
             lContextLines := FormatSourceContextLines(lContext);
             for lContextLine in lContextLines do
@@ -3506,6 +3510,7 @@ var
   lGeneratorFilterCsv: string;
   lRunGuid: TGUID;
   lRunSuffix: string;
+  lSourceContextCache: TSourceContextRunCache;
   lSummary: TDfmValidationSummary;
   lPlatform: string;
   lValidatorArgs: string;
@@ -3558,6 +3563,7 @@ begin
   lFailReasons := TStringList.Create;
   lWarnedResources := TStringList.Create;
   lWarnReasons := TStringList.Create;
+  lSourceContextCache := TSourceContextRunCache.Create;
 
   try
     lFailedResources.CaseSensitive := False;
@@ -3824,7 +3830,7 @@ begin
       lFailedResources, lFailReasons, lWarnedResources, lWarnReasons, lDiagnosticModules, lSummary, lFailLines,
       lWarnLines);
     lPromotedWarnings := EmitPromotedWarningGuidance(aOutput, lWarnedResources, lWarnReasons, lDiagnosticModules,
-      lDiagnosticsDefaults, lFailedResources);
+      lDiagnosticsDefaults, lFailedResources, lSourceContextCache);
     if lCacheStats.fEnabled then
     begin
       if (lExitCode <> 0) and (lFailLines = 0) then
@@ -3849,7 +3855,8 @@ begin
     if (lExitCode <> 0) and (not lVerbose) and (lFailLines = 0) then
       EmitLine(aOutput, '[dfm-check] FAIL details hidden or unavailable. Re-run with --verbose.');
     if lFailLines > 0 then
-      EmitFailedResourceGuidance(aOutput, lFailedResources, lFailReasons, lDiagnosticModules, lDiagnosticsDefaults);
+      EmitFailedResourceGuidance(aOutput, lFailedResources, lFailReasons, lDiagnosticModules,
+        lDiagnosticsDefaults, lSourceContextCache);
 
     if (lExitCode = 0) and (lPromotedWarnings = 0) then
       EmitLine(aOutput, '[dfm-check] Result: OK')
@@ -3873,6 +3880,7 @@ begin
     lWarnedResources.Free;
     lFailReasons.Free;
     lFailedResources.Free;
+    lSourceContextCache.Free;
     lBuildLines.Free;
     if ShouldKeepArtifacts then
     begin

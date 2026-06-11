@@ -309,7 +309,7 @@ begin
 end;
 
 function AppendSourceContextToFinding(const aDisplayFinding, aLookupFinding: string;
-  const aLookup: TProjectSourceLookup; aContextLines: Integer): string;
+  const aCache: TSourceContextRunCache; aContextLines: Integer): string;
 var
   lContext: TSourceContextSnippet;
   lError: string;
@@ -319,7 +319,7 @@ begin
   Result := aDisplayFinding;
   if not TryParseFindingLocation(aLookupFinding, lFileToken, lLineNumber) then
     Exit(Result);
-  if not TryResolveSourceContext(aLookup, lFileToken, lLineNumber, aContextLines, lContext, lError) then
+  if not aCache.TryResolve(lFileToken, lLineNumber, aContextLines, lContext, lError) then
     Exit(Result);
   Result := Result + sLineBreak + PrefixSourceContext(FormatSourceContextLines(lContext));
 end;
@@ -328,10 +328,16 @@ procedure EnrichBuildFindingsWithSourceContext(var aItems: TArray<string>; const
   const aLookup: TProjectSourceLookup; aContextLines: Integer);
 var
   i: Integer;
+  lCache: TSourceContextRunCache;
 begin
-  for i := 0 to High(aItems) do
-    if i <= High(aLookupItems) then
-      aItems[i] := AppendSourceContextToFinding(aItems[i], aLookupItems[i], aLookup, aContextLines);
+  lCache := TSourceContextRunCache.Create(aLookup);
+  try
+    for i := 0 to High(aItems) do
+      if i <= High(aLookupItems) then
+        aItems[i] := AppendSourceContextToFinding(aItems[i], aLookupItems[i], lCache, aContextLines);
+  finally
+    lCache.Free;
+  end;
 end;
 
 function BuildSummaryAsJson(const aProjectPath: string; const aOptions: TAppOptions;
