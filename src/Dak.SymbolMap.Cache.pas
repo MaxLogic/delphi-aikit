@@ -67,7 +67,8 @@ uses
   System.Variants,
   Winapi.Windows,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite,
-  DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.Model;
+  DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.Model,
+  DelphiSemantics.Preprocess;
 
 type
   TSymbolMapIntrinsicSeed = record
@@ -77,23 +78,44 @@ type
     fNotes: string;
   end;
 
+  TCompilerProfileUnitProjection = record
+    fUnitName: string;
+    fUnitCacheKey: string;
+    fFilePath: string;
+  end;
+
 const
   cCentralDbFileName = 'symbol-map.sqlite3';
   cProjectDbFileName = 'project-index.sqlite3';
-  cCentralCacheMutexName = 'Local\DelphiAIKit.SymbolMap.Cache.v1';
+  cCentralCacheMutexPrefix = 'Local\DelphiAIKit.SymbolMap.Cache.';
+  cProjectCacheMutexPrefix = 'Local\DelphiAIKit.SymbolMap.ProjectCache.';
   cSymbolMapParserVersion = 'symbol-map-parser-v3';
-  cSymbolMapIncludeGraphHash = 'no-includes-v1';
 
 function StoreSymbolMapUnitProjectionInternal(const aContext: TSymbolMapContext;
   const aStatus: TSymbolMapCacheStatus; const aModel: TSymbolMapUnitModel;
   out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; forward;
 
-function SemanticIdentityContext(const aContext: TSymbolMapContext): TDelphiSemanticCacheIdentityContext;
+function BuildSymbolMapIncludeGraphHash(const aContext: TSymbolMapContext; const aSourceFileName: string):
+  string;
+var
+  lOptions: TDelphiSemanticPreprocessOptions;
+  lResult: TDelphiSemanticPreprocessResult;
+begin
+  lOptions := Default(TDelphiSemanticPreprocessOptions);
+  lOptions.SourceFileName := aSourceFileName;
+  lOptions.Defines := aContext.fDefines;
+  lOptions.SearchPaths := aContext.fUnitSearchPath;
+  lResult := TDelphiSemanticPreprocessor.PreprocessFile(lOptions);
+  Result := lResult.IncludeGraphHash;
+end;
+
+function SemanticIdentityContext(const aContext: TSymbolMapContext; const aIncludeGraphHash: string):
+  TDelphiSemanticCacheIdentityContext;
 begin
   Result := Default(TDelphiSemanticCacheIdentityContext);
   Result.SchemaVersion := cSymbolMapSchemaVersion.ToString;
   Result.ParserVersion := cSymbolMapParserVersion;
-  Result.IncludeGraphHash := cSymbolMapIncludeGraphHash;
+  Result.IncludeGraphHash := aIncludeGraphHash;
   Result.DelphiVersion := aContext.fDelphiVersion;
   Result.Platform := aContext.fPlatform;
   Result.ParserDefines := aContext.fProject.fParserDefines;
@@ -269,16 +291,24 @@ begin
   end;
 end;
 
-function AcquireCentralCacheMutex(out aHandle: THandle; out aError: string): Boolean;
+function BuildCacheMutexName(const aPrefix, aDbPath: string): string;
+begin
+  Result := aPrefix + THashSHA2.GetHashString(LowerCase(TPath.GetFullPath(aDbPath)));
+end;
+
+function AcquireCacheMutex(const aDbPath, aPrefix, aDescription: string; out aHandle: THandle;
+  out aError: string): Boolean;
 var
+  lMutexName: string;
   lWaitResult: Cardinal;
 begin
   Result := False;
   aError := '';
-  aHandle := CreateMutex(nil, False, cCentralCacheMutexName);
+  lMutexName := BuildCacheMutexName(aPrefix, aDbPath);
+  aHandle := CreateMutex(nil, False, PChar(lMutexName));
   if aHandle = 0 then
   begin
-    aError := 'Failed to create Symbol Map cache mutex: ' + SysErrorMessage(GetLastError);
+    aError := 'Failed to create Symbol Map ' + aDescription + ' mutex: ' + SysErrorMessage(GetLastError);
     Exit(False);
   end;
 
@@ -286,15 +316,26 @@ begin
   if (lWaitResult = WAIT_OBJECT_0) or (lWaitResult = WAIT_ABANDONED) then
     Exit(True);
 
-  aError := 'Timed out waiting for Symbol Map cache mutex.';
+  aError := 'Timed out waiting for Symbol Map ' + aDescription + ' mutex: ' + lMutexName;
   CloseHandle(aHandle);
   aHandle := 0;
+end;
+
+function AcquireCentralCacheMutex(const aCentralDbPath: string; out aHandle: THandle; out aError: string): Boolean;
+begin
+  Result := AcquireCacheMutex(aCentralDbPath, cCentralCacheMutexPrefix, 'central cache', aHandle, aError);
+end;
+
+function AcquireProjectCacheMutex(const aProjectDbPath: string; out aHandle: THandle; out aError: string): Boolean;
+begin
+  Result := AcquireCacheMutex(aProjectDbPath, cProjectCacheMutexPrefix, 'project cache', aHandle, aError);
 end;
 
 function EnsureSymbolMapCaches(const aContext: TSymbolMapContext; out aStatus: TSymbolMapCacheStatus;
   out aError: string): Boolean;
 var
   lMutexHandle: THandle;
+  lProjectMutexHandle: THandle;
 begin
   Result := False;
   aError := '';
@@ -303,7 +344,7 @@ begin
   aStatus.fCentralDbPath := TPath.Combine(aContext.fCentralCacheRoot, cCentralDbFileName);
   aStatus.fProjectDbPath := TPath.Combine(aContext.fProjectCacheRoot, cProjectDbFileName);
 
-  if not AcquireCentralCacheMutex(lMutexHandle, aError) then
+  if not AcquireCentralCacheMutex(aStatus.fCentralDbPath, lMutexHandle, aError) then
     Exit(False);
   try
     if not EnsureDatabase(aStatus.fCentralDbPath, True, aStatus.fCentralCreated, aError) then
@@ -316,8 +357,18 @@ begin
     end;
   end;
 
-  if not EnsureDatabase(aStatus.fProjectDbPath, False, aStatus.fProjectCreated, aError) then
+  if not AcquireProjectCacheMutex(aStatus.fProjectDbPath, lProjectMutexHandle, aError) then
     Exit(False);
+  try
+    if not EnsureDatabase(aStatus.fProjectDbPath, False, aStatus.fProjectCreated, aError) then
+      Exit(False);
+  finally
+    if lProjectMutexHandle <> 0 then
+    begin
+      ReleaseMutex(lProjectMutexHandle);
+      CloseHandle(lProjectMutexHandle);
+    end;
+  end;
 
   Result := True;
 end;
@@ -354,16 +405,18 @@ end;
 
 function BuildContextHash(const aContext: TSymbolMapContext): string;
 begin
-  Result := TDelphiSemanticCacheIdentityBuilder.BuildContextHash(SemanticIdentityContext(aContext));
+  Result := TDelphiSemanticCacheIdentityBuilder.BuildContextHash(SemanticIdentityContext(aContext, ''));
 end;
 
 procedure BuildUnitCacheIdentity(const aContext: TSymbolMapContext; const aModel: TSymbolMapUnitModel;
   out aFileHash, aContextHash, aUnitCacheKey: string);
 var
+  lIdentityContext: TDelphiSemanticCacheIdentityContext;
   lIdentity: TDelphiSemanticUnitCacheIdentity;
 begin
-  lIdentity := TDelphiSemanticCacheIdentityBuilder.BuildUnitIdentity(aModel.fFilePath,
-    SemanticIdentityContext(aContext));
+  lIdentityContext := SemanticIdentityContext(aContext, BuildSymbolMapIncludeGraphHash(aContext,
+    aModel.fFilePath));
+  lIdentity := TDelphiSemanticCacheIdentityBuilder.BuildUnitIdentity(aModel.fFilePath, lIdentityContext);
   aFileHash := lIdentity.FileHash;
   aContextHash := lIdentity.ContextHash;
   aUnitCacheKey := lIdentity.UnitCacheKey;
@@ -372,7 +425,7 @@ end;
 function BuildSymbolMapProjectKey(const aContext: TSymbolMapContext): string;
 begin
   Result := TDelphiSemanticCacheIdentityBuilder.BuildProjectIdentity(
-    SemanticIdentityContext(aContext)).ProjectKey;
+    SemanticIdentityContext(aContext, '')).ProjectKey;
 end;
 
 procedure AddIntrinsicSeed(var aSeeds: TArray<TSymbolMapIntrinsicSeed>; const aName, aKind, aSignature,
@@ -599,7 +652,7 @@ begin
     aResult.fPlatform);
   aResult.fIntrinsicSeedVersion := lProfile.IntrinsicSeedVersion;
   aResult.fProfileKey := lProfile.ProfileKey;
-  if not AcquireCentralCacheMutex(lMutexHandle, aError) then
+  if not AcquireCentralCacheMutex(aStatus.fCentralDbPath, lMutexHandle, aError) then
     Exit(False);
   try
     if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
@@ -686,22 +739,40 @@ begin
     [aSourceRootsHash, DateTimeToStr(Now), aProfileKey]);
 end;
 
+procedure InsertCompilerProfileUnit(const aConnection: TFDConnection; const aProfileKey, aUnitName,
+  aUnitCacheKey, aFilePath: string);
+begin
+  aConnection.ExecSQL('insert into compiler_profile_units(profile_key, unit_name, unit_cache_key, ' +
+    'file_path_sample, source_kind) values (?, ?, ?, ?, ?)',
+    [aProfileKey, aUnitName, aUnitCacheKey, aFilePath, 'rtl-source']);
+end;
+
 procedure StoreCompilerProfileUnit(const aStatus: TSymbolMapCacheStatus; const aProfileKey: string;
   const aUnitModel: TSymbolMapUnitModel; const aUnitCacheKey: string);
 var
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
   lError: string;
+  lMutexHandle: THandle;
 begin
-  if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, lError) then
+  if not AcquireCentralCacheMutex(aStatus.fCentralDbPath, lMutexHandle, lError) then
     raise Exception.Create(lError);
   try
-    lConnection.ExecSQL('insert into compiler_profile_units(profile_key, unit_name, unit_cache_key, ' +
-      'file_path_sample, source_kind) values (?, ?, ?, ?, ?)',
-      [aProfileKey, aUnitModel.fUnitName, aUnitCacheKey, aUnitModel.fFilePath, 'rtl-source']);
+    if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, lError) then
+      raise Exception.Create(lError);
+    try
+      InsertCompilerProfileUnit(lConnection, aProfileKey, aUnitModel.fUnitName, aUnitCacheKey,
+        aUnitModel.fFilePath);
+    finally
+      lConnection.Free;
+      lDriverLink.Free;
+    end;
   finally
-    lConnection.Free;
-    lDriverLink.Free;
+    if lMutexHandle <> 0 then
+    begin
+      ReleaseMutex(lMutexHandle);
+      CloseHandle(lMutexHandle);
+    end;
   end;
 end;
 
@@ -717,6 +788,8 @@ var
   lExistingCount: Integer;
   lModel: TSymbolMapUnitModel;
   lMutexHandle: THandle;
+  lProfileUnit: TCompilerProfileUnitProjection;
+  lProfileUnits: TArray<TCompilerProfileUnitProjection>;
   lProfileModels: TDelphiSemanticCompilerProfile;
   lRoot: string;
   lRtlContext: TSymbolMapContext;
@@ -739,24 +812,25 @@ begin
   SetLength(lRtlContext.fDefines, 0);
   SetLength(lRtlContext.fUnitScopes, 0);
   SetLength(lRtlContext.fUnitAliases, 0);
-  if not AcquireCentralCacheMutex(lMutexHandle, aError) then
-    Exit(False);
+  lMutexHandle := 0;
   try
-    try
-      lUnitFiles := CollectRtlSourceFiles(lRoot, lDiagnostics);
-      aResult.fDiagnosticsJson := DiagnosticsJson(lDiagnostics);
-      aResult.fDiagnosticsCount := Length(lDiagnostics);
-      aResult.fUnitsDiscovered := Length(lUnitFiles);
-      if Length(lUnitFiles) = 0 then
-      begin
-        if aResult.fDiagnosticsCount > 0 then
-          aResult.fStatus := 'missing-source-root'
-        else
-          aResult.fStatus := 'no-rtl-units';
-        Exit(True);
-      end;
+    lUnitFiles := CollectRtlSourceFiles(lRoot, lDiagnostics);
+    aResult.fDiagnosticsJson := DiagnosticsJson(lDiagnostics);
+    aResult.fDiagnosticsCount := Length(lDiagnostics);
+    aResult.fUnitsDiscovered := Length(lUnitFiles);
+    if Length(lUnitFiles) = 0 then
+    begin
+      if aResult.fDiagnosticsCount > 0 then
+        aResult.fStatus := 'missing-source-root'
+      else
+        aResult.fStatus := 'no-rtl-units';
+      Exit(True);
+    end;
 
-      lSourceRootsHash := BuildRtlSourceRootsHash(lRoot, lUnitFiles);
+    lSourceRootsHash := BuildRtlSourceRootsHash(lRoot, lUnitFiles);
+    if not AcquireCentralCacheMutex(aStatus.fCentralDbPath, lMutexHandle, aError) then
+      Exit(False);
+    try
       if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
         Exit(False);
       try
@@ -766,67 +840,85 @@ begin
         lConnection.Free;
         lDriverLink.Free;
       end;
-      aResult.fCacheHit := (lExistingCount = Length(lUnitFiles)) and (lStoredSourceRootsHash = lSourceRootsHash);
-      if aResult.fCacheHit then
+    finally
+      if lMutexHandle <> 0 then
       begin
-        aResult.fStatus := 'cache-hit';
-        aResult.fUnitsIndexed := lExistingCount;
-        aResult.fUnitCacheHits := lExistingCount;
-        Exit(True);
+        ReleaseMutex(lMutexHandle);
+        CloseHandle(lMutexHandle);
+        lMutexHandle := 0;
       end;
-
-      if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
-        Exit(False);
-      try
-        ClearCompilerProfileUnits(lConnection, aProfile.fProfileKey);
-      finally
-        lConnection.Free;
-        lDriverLink.Free;
-      end;
-
-      lCacheOptions := Default(TDelphiSemanticCacheOptions);
-      lCacheOptions.CompilerProfileName := aProfile.fProfileKey;
-      lCache := TDelphiSemanticUnitCache.Create(lCacheOptions);
-      try
-        lProfileModels := TDelphiSemanticCompilerProfileBuilder.ProfileForTargetFromRtlSourceRoot(
-          lCache, aProfile.fProfileKey, aProfile.fDelphiVersion, aProfile.fPlatform, lRoot,
-          DefaultRtlSourceUnits);
-      finally
-        lCache.Free;
-      end;
-
-      for lSemanticModel in lProfileModels.RtlSourceUnitModels do
-      begin
-        lModel := SymbolMapUnitModelFromDelphiSemanticModel(lSemanticModel);
-        if not StoreSymbolMapUnitProjectionInternal(lRtlContext, aStatus, lModel, lStoreResult, aError) then
-          Exit(False);
-        if lStoreResult.fCacheHit then
-          Inc(aResult.fUnitCacheHits)
-        else
-          Inc(aResult.fUnitCacheMisses);
-        StoreCompilerProfileUnit(aStatus, aProfile.fProfileKey, lModel, lStoreResult.fUnitCacheKey);
-        Inc(aResult.fUnitsIndexed);
-      end;
-      if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
-        Exit(False);
-      try
-        UpdateCompilerProfileSourceRootsHash(lConnection, aProfile.fProfileKey, lSourceRootsHash);
-      finally
-        lConnection.Free;
-        lDriverLink.Free;
-      end;
-      aResult.fStatus := 'indexed';
-      Result := True;
-    except
-      on E: Exception do
-        aError := E.Message;
     end;
-  finally
-    if lMutexHandle <> 0 then
+    aResult.fCacheHit := (lExistingCount = Length(lUnitFiles)) and (lStoredSourceRootsHash = lSourceRootsHash);
+    if aResult.fCacheHit then
     begin
-      ReleaseMutex(lMutexHandle);
-      CloseHandle(lMutexHandle);
+      aResult.fStatus := 'cache-hit';
+      aResult.fUnitsIndexed := lExistingCount;
+      aResult.fUnitCacheHits := lExistingCount;
+      Exit(True);
     end;
+
+    lCacheOptions := Default(TDelphiSemanticCacheOptions);
+    lCacheOptions.CompilerProfileName := aProfile.fProfileKey;
+    lCache := TDelphiSemanticUnitCache.Create(lCacheOptions);
+    try
+      lProfileModels := TDelphiSemanticCompilerProfileBuilder.ProfileForTargetFromRtlSourceRoot(
+        lCache, aProfile.fProfileKey, aProfile.fDelphiVersion, aProfile.fPlatform, lRoot,
+        DefaultRtlSourceUnits);
+    finally
+      lCache.Free;
+    end;
+
+    for lSemanticModel in lProfileModels.RtlSourceUnitModels do
+    begin
+      lModel := SymbolMapUnitModelFromDelphiSemanticModel(lSemanticModel);
+      if not StoreSymbolMapUnitProjectionInternal(lRtlContext, aStatus, lModel, lStoreResult, aError) then
+        Exit(False);
+      if lStoreResult.fCacheHit then
+        Inc(aResult.fUnitCacheHits)
+      else
+        Inc(aResult.fUnitCacheMisses);
+      lProfileUnit.fUnitName := lModel.fUnitName;
+      lProfileUnit.fUnitCacheKey := lStoreResult.fUnitCacheKey;
+      lProfileUnit.fFilePath := lModel.fFilePath;
+      SetLength(lProfileUnits, Length(lProfileUnits) + 1);
+      lProfileUnits[High(lProfileUnits)] := lProfileUnit;
+      Inc(aResult.fUnitsIndexed);
+    end;
+    if not AcquireCentralCacheMutex(aStatus.fCentralDbPath, lMutexHandle, aError) then
+      Exit(False);
+    try
+      if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
+        Exit(False);
+      try
+        lConnection.StartTransaction;
+        try
+          ClearCompilerProfileUnits(lConnection, aProfile.fProfileKey);
+          for lProfileUnit in lProfileUnits do
+            InsertCompilerProfileUnit(lConnection, aProfile.fProfileKey, lProfileUnit.fUnitName,
+              lProfileUnit.fUnitCacheKey, lProfileUnit.fFilePath);
+          UpdateCompilerProfileSourceRootsHash(lConnection, aProfile.fProfileKey, lSourceRootsHash);
+          lConnection.Commit;
+        except
+          lConnection.Rollback;
+          raise;
+        end;
+      finally
+        lConnection.Free;
+        lDriverLink.Free;
+      end;
+    finally
+      if lMutexHandle <> 0 then
+      begin
+        ReleaseMutex(lMutexHandle);
+        CloseHandle(lMutexHandle);
+        lMutexHandle := 0;
+      end;
+    end;
+    aResult.fStatus := 'indexed';
+    Result := True;
+  except
+    on E: Exception do
+      aError := E.Message;
   end;
 end;
 
@@ -892,52 +984,63 @@ var
   lDriverLink: TFDPhysSQLiteDriverLink;
   lProjectIdentity: TDelphiSemanticProjectCacheIdentity;
   lProjectKey: string;
+  lProjectMutexHandle: THandle;
   lSymbol: TSymbolMapSymbolModel;
   lVisibilityRank: Integer;
 begin
-  if not OpenCacheConnection(aStatus.fProjectDbPath, lDriverLink, lConnection, aError) then
+  if not AcquireProjectCacheMutex(aStatus.fProjectDbPath, lProjectMutexHandle, aError) then
     raise Exception.Create(aError);
   try
-    lProjectIdentity := TDelphiSemanticCacheIdentityBuilder.BuildProjectIdentity(
-      SemanticIdentityContext(aContext));
-    lProjectKey := lProjectIdentity.ProjectKey;
-    lConnection.StartTransaction;
+    if not OpenCacheConnection(aStatus.fProjectDbPath, lDriverLink, lConnection, aError) then
+      raise Exception.Create(aError);
     try
-      lConnection.ExecSQL('insert or replace into project_context(' +
-        'project_key, project_path, config, platform, delphi_version, defines_hash, search_path_hash, ' +
-        'unit_scope_hash, alias_hash, central_cache_path, indexed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [lProjectKey, aContext.fProject.fProjectPath, aContext.fConfig, aContext.fPlatform,
-        aContext.fDelphiVersion, lProjectIdentity.DefinesHash, lProjectIdentity.SearchPathHash,
-        lProjectIdentity.UnitScopeHash, lProjectIdentity.AliasHash, aStatus.fCentralDbPath,
-        DateTimeToStr(Now)]);
-      lConnection.ExecSQL('delete from project_units where project_key = ? and file_path = ?',
-        [lProjectKey, aModel.fFilePath]);
-      lConnection.ExecSQL('insert into project_units(' +
-        'project_key, unit_name, file_path, unit_cache_key, source_kind, resolution_rank) values (?, ?, ?, ?, ?, ?)',
-        [lProjectKey, aModel.fUnitName, aModel.fFilePath, aUnitCacheKey, 'project', 0]);
-      lConnection.ExecSQL('delete from project_symbols where project_key = ? and unit_cache_key = ?',
-        [lProjectKey, aUnitCacheKey]);
-      for i := 0 to High(aModel.fSymbols) do
-      begin
-        lSymbol := aModel.fSymbols[i];
-        if SameText(lSymbol.fSectionKind, 'interface') then
-          lVisibilityRank := 0
-        else
-          lVisibilityRank := 1;
-        lConnection.ExecSQL('insert into project_symbols(' +
-          'project_key, normalized_name, unit_cache_key, symbol_id, visibility_rank, source_kind) ' +
-          'values (?, ?, ?, ?, ?, ?)',
-          [lProjectKey, LowerCase(lSymbol.fName), aUnitCacheKey, aUnitCacheKey + ':' + i.ToString,
-          lVisibilityRank, 'project']);
+      lProjectIdentity := TDelphiSemanticCacheIdentityBuilder.BuildProjectIdentity(
+        SemanticIdentityContext(aContext, ''));
+      lProjectKey := lProjectIdentity.ProjectKey;
+      lConnection.StartTransaction;
+      try
+        lConnection.ExecSQL('insert or replace into project_context(' +
+          'project_key, project_path, config, platform, delphi_version, defines_hash, search_path_hash, ' +
+          'unit_scope_hash, alias_hash, central_cache_path, indexed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [lProjectKey, aContext.fProject.fProjectPath, aContext.fConfig, aContext.fPlatform,
+          aContext.fDelphiVersion, lProjectIdentity.DefinesHash, lProjectIdentity.SearchPathHash,
+          lProjectIdentity.UnitScopeHash, lProjectIdentity.AliasHash, aStatus.fCentralDbPath,
+          DateTimeToStr(Now)]);
+        lConnection.ExecSQL('delete from project_units where project_key = ? and file_path = ?',
+          [lProjectKey, aModel.fFilePath]);
+        lConnection.ExecSQL('insert into project_units(' +
+          'project_key, unit_name, file_path, unit_cache_key, source_kind, resolution_rank) values (?, ?, ?, ?, ?, ?)',
+          [lProjectKey, aModel.fUnitName, aModel.fFilePath, aUnitCacheKey, 'project', 0]);
+        lConnection.ExecSQL('delete from project_symbols where project_key = ? and unit_cache_key = ?',
+          [lProjectKey, aUnitCacheKey]);
+        for i := 0 to High(aModel.fSymbols) do
+        begin
+          lSymbol := aModel.fSymbols[i];
+          if SameText(lSymbol.fSectionKind, 'interface') then
+            lVisibilityRank := 0
+          else
+            lVisibilityRank := 1;
+          lConnection.ExecSQL('insert into project_symbols(' +
+            'project_key, normalized_name, unit_cache_key, symbol_id, visibility_rank, source_kind) ' +
+            'values (?, ?, ?, ?, ?, ?)',
+            [lProjectKey, LowerCase(lSymbol.fName), aUnitCacheKey, aUnitCacheKey + ':' + i.ToString,
+            lVisibilityRank, 'project']);
+        end;
+        lConnection.Commit;
+      except
+        lConnection.Rollback;
+        raise;
       end;
-      lConnection.Commit;
-    except
-      lConnection.Rollback;
-      raise;
+    finally
+      lConnection.Free;
+      lDriverLink.Free;
     end;
   finally
-    lConnection.Free;
-    lDriverLink.Free;
+    if lProjectMutexHandle <> 0 then
+    begin
+      ReleaseMutex(lProjectMutexHandle);
+      CloseHandle(lProjectMutexHandle);
+    end;
   end;
 end;
 
@@ -955,52 +1058,53 @@ begin
   aError := '';
   BuildUnitCacheIdentity(aContext, aModel, aResult.fFileHash, aResult.fContextHash, aResult.fUnitCacheKey);
   lUnitCacheKey := aResult.fUnitCacheKey;
-  if not AcquireCentralCacheMutex(lMutexHandle, aError) then
+  if not AcquireCentralCacheMutex(aStatus.fCentralDbPath, lMutexHandle, aError) then
     Exit(False);
   try
-  if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
-    Exit(False);
-  try
+    if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
+      Exit(False);
     try
-      aResult.fCacheHit := CentralUnitProjectionExists(lConnection, lUnitCacheKey);
-      if not aResult.fCacheHit then
-      begin
-        lConnection.StartTransaction;
-        try
-          lConnection.ExecSQL('insert or replace into source_files(' +
-            'file_hash, size_bytes, first_seen_utc, last_seen_utc) values (?, ?, ?, ?)',
-            [aResult.fFileHash, TFile.GetSize(aModel.fFilePath), DateTimeToStr(Now), DateTimeToStr(Now)]);
-          StoreUnitUses(lConnection, lUnitCacheKey, aModel);
-          StoreSymbols(lConnection, lUnitCacheKey, aModel);
-          StoreUnitReferences(lConnection, lUnitCacheKey, aModel);
-          lConnection.ExecSQL('delete from members where unit_cache_key = ?', [lUnitCacheKey]);
-          for lMember in aModel.fMembers do
-          begin
-            lConnection.ExecSQL('insert into members(' +
-              'unit_cache_key, owner_name, member_name, normalized_member_name, kind, type_name, visibility, ' +
-              'is_default, is_indexed, line_no, col_no) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              [lUnitCacheKey, lMember.fOwnerName, lMember.fMemberName, LowerCase(lMember.fMemberName), lMember.fKind,
-              lMember.fTypeName, lMember.fVisibility, BoolToDbInt(lMember.fIsDefault),
-              BoolToDbInt(lMember.fIsIndexed), lMember.fLine, lMember.fCol]);
+      try
+        aResult.fCacheHit := CentralUnitProjectionExists(lConnection, lUnitCacheKey);
+        if not aResult.fCacheHit then
+        begin
+          lConnection.StartTransaction;
+          try
+            lConnection.ExecSQL('insert or replace into source_files(' +
+              'file_hash, size_bytes, first_seen_utc, last_seen_utc) values (?, ?, ?, ?)',
+              [aResult.fFileHash, TFile.GetSize(aModel.fFilePath), DateTimeToStr(Now), DateTimeToStr(Now)]);
+            StoreUnitUses(lConnection, lUnitCacheKey, aModel);
+            StoreSymbols(lConnection, lUnitCacheKey, aModel);
+            StoreUnitReferences(lConnection, lUnitCacheKey, aModel);
+            lConnection.ExecSQL('delete from members where unit_cache_key = ?', [lUnitCacheKey]);
+            for lMember in aModel.fMembers do
+            begin
+              lConnection.ExecSQL('insert into members(' +
+                'unit_cache_key, owner_name, member_name, normalized_member_name, kind, type_name, visibility, ' +
+                'is_default, is_indexed, line_no, col_no) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [lUnitCacheKey, lMember.fOwnerName, lMember.fMemberName, LowerCase(lMember.fMemberName),
+                lMember.fKind, lMember.fTypeName, lMember.fVisibility, BoolToDbInt(lMember.fIsDefault),
+                BoolToDbInt(lMember.fIsIndexed), lMember.fLine, lMember.fCol]);
+            end;
+            lConnection.ExecSQL('insert into symbol_map_units(' +
+              'unit_cache_key, unit_name, file_hash, file_path_sample, context_hash, parser_version, ' +
+              'schema_version, diagnostics_json, parsed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              [lUnitCacheKey, aModel.fUnitName, aResult.fFileHash, aModel.fFilePath, aResult.fContextHash,
+              cSymbolMapParserVersion, cSymbolMapSchemaVersion, '', DateTimeToStr(Now)]);
+            lConnection.Commit;
+          except
+            lConnection.Rollback;
+            raise;
           end;
-          lConnection.ExecSQL('insert into symbol_map_units(' +
-            'unit_cache_key, unit_name, file_hash, file_path_sample, context_hash, parser_version, schema_version, ' +
-            'diagnostics_json, parsed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [lUnitCacheKey, aModel.fUnitName, aResult.fFileHash, aModel.fFilePath, aResult.fContextHash,
-            cSymbolMapParserVersion, cSymbolMapSchemaVersion, '', DateTimeToStr(Now)]);
-          lConnection.Commit;
-        except
-          lConnection.Rollback;
-          raise;
+        end;
+      except
+        on E: Exception do
+        begin
+          aError := E.Message;
+          Exit(False);
         end;
       end;
-      StoreProjectUnitReference(aContext, aStatus, aModel, lUnitCacheKey, aError);
-      Result := True;
-    except
-      on E: Exception do
-        aError := E.Message;
-    end;
-  finally
+    finally
       lConnection.Free;
       lDriverLink.Free;
     end;
@@ -1010,6 +1114,14 @@ begin
       ReleaseMutex(lMutexHandle);
       CloseHandle(lMutexHandle);
     end;
+  end;
+
+  try
+    StoreProjectUnitReference(aContext, aStatus, aModel, lUnitCacheKey, aError);
+    Result := True;
+  except
+    on E: Exception do
+      aError := E.Message;
   end;
 end;
 
