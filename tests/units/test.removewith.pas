@@ -817,14 +817,19 @@ type
     function FindMaxTdbProject(const aFixtureDir: string): string;
     function IsIgnoredProjectArtifact(const aRelativePath: string): Boolean;
     function IsSourceSnapshotFile(const aPath: string): Boolean;
+    function RunRemoveWithAllMode(const aDprojPath, aMode, aLogName: string;
+      out aExitCode: Cardinal): TJSONObject;
     function RunRemoveWithPlan(const aDprojPath, aTargetDir, aLogName: string; out aExitCode: Cardinal): TJSONObject;
     function RunRemoveWithScan(const aDprojPath, aTargetDir, aLogName: string; out aExitCode: Cardinal): TJSONObject;
     function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
+    procedure AssertPlannedStatementIdsEqual(const aExpectedRoot, aActualRoot: TJSONObject);
     procedure AssertSkippedReasonBetween(const aSkipped: TJSONArray; const aReason: string; const aMin,
       aMax: Integer);
     procedure SnapshotSourceFiles(const aRootDir: string; out aPaths: TArray<string>;
       out aBytes: TArray<TBytes>);
   public
+    [Test]
+    procedure ApplyCloneOfMaxTdbWhenFixtureExistsMatchesReportOnlyPlan;
     [Test]
     procedure PlanCloneOfMaxTdbWhenFixtureExistsReportsTelemetryAndPerformance;
     [Test]
@@ -5841,7 +5846,7 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected rewrite-shape apply to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied rewrite-shape status.');
-    Assert.AreEqual(22, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
+    Assert.AreEqual(24, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
       'Expected block, controlled, controlled-block, value-record, single-statement, and variant-record rewrite plans.');
   finally
     lRoot.Free;
@@ -9635,6 +9640,29 @@ begin
     (lExt = '.fmx') or (lExt = '.dproj') or (lExt = '.deployproj');
 end;
 
+function TRemoveWithProprietaryProjectTests.RunRemoveWithAllMode(const aDprojPath, aMode,
+  aLogName: string; out aExitCode: Cardinal): TJSONObject;
+var
+  lArgs: string;
+  lJsonPath: string;
+  lLogPath: string;
+  lOutput: string;
+  lValue: TJSONValue;
+begin
+  EnsureResolverBuilt;
+  lJsonPath := TPath.Combine(TempRoot, aLogName);
+  lLogPath := TPath.ChangeExtension(lJsonPath, '.stdout.log');
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json --output ' + QuoteArg(lJsonPath) + ' --verbose true';
+  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+    'Failed to start remove-with maxTdb ' + aMode + ' process.');
+  Assert.IsTrue(TFile.Exists(lJsonPath), 'Expected maxTdb ' + aMode + ' JSON output file: ' + lJsonPath);
+  lOutput := TFile.ReadAllText(lJsonPath, TEncoding.UTF8);
+  lValue := TJSONObject.ParseJSONValue(lOutput);
+  Assert.IsTrue(lValue is TJSONObject, 'Expected parseable maxTdb remove-with JSON. Output: ' + lOutput);
+  Result := lValue as TJSONObject;
+end;
+
 function TRemoveWithProprietaryProjectTests.RunRemoveWithPlan(const aDprojPath, aTargetDir, aLogName: string;
   out aExitCode: Cardinal): TJSONObject;
 var
@@ -9720,6 +9748,28 @@ begin
   end;
 end;
 
+procedure TRemoveWithProprietaryProjectTests.AssertPlannedStatementIdsEqual(const aExpectedRoot,
+  aActualRoot: TJSONObject);
+var
+  i: Integer;
+  lActualEdits: TJSONArray;
+  lActualId: string;
+  lExpectedEdits: TJSONArray;
+  lExpectedId: string;
+begin
+  AssertJsonArrayKey(aExpectedRoot, 'plannedEdits', lExpectedEdits);
+  AssertJsonArrayKey(aActualRoot, 'plannedEdits', lActualEdits);
+  Assert.AreEqual(lExpectedEdits.Count, lActualEdits.Count,
+    'Expected apply planned edit count to match report-only plan count.');
+  for i := 0 to lExpectedEdits.Count - 1 do
+  begin
+    lExpectedId := (lExpectedEdits.Items[i] as TJSONObject).GetValue<string>('statementId', '');
+    lActualId := (lActualEdits.Items[i] as TJSONObject).GetValue<string>('statementId', '');
+    Assert.AreEqual(lExpectedId, lActualId,
+      Format('Expected apply planned statement ID at index %d to match report-only plan.', [i]));
+  end;
+end;
+
 procedure TRemoveWithProprietaryProjectTests.AssertSkippedReasonBetween(const aSkipped: TJSONArray;
   const aReason: string; const aMin, aMax: Integer);
 var
@@ -9730,6 +9780,72 @@ begin
     Format('Expected maxTdb skip bucket %s count >= %d, got %d.', [aReason, aMin, lCount]));
   Assert.IsTrue(lCount <= aMax,
     Format('Expected maxTdb skip bucket %s count <= %d, got %d.', [aReason, aMax, lCount]));
+end;
+
+procedure TRemoveWithProprietaryProjectTests.ApplyCloneOfMaxTdbWhenFixtureExistsMatchesReportOnlyPlan;
+var
+  lApplyExitCode: Cardinal;
+  lApplyRoot: TJSONObject;
+  lApplySummary: TJSONObject;
+  lCloneBytes: TArray<TBytes>;
+  lCloneDir: string;
+  lClonePaths: TArray<string>;
+  lDprojPath: string;
+  lOriginalBytes: TArray<TBytes>;
+  lOriginalPaths: TArray<string>;
+  lPlanExitCode: Cardinal;
+  lPlanRoot: TJSONObject;
+  lPlanSummary: TJSONObject;
+  lSourceDir: string;
+begin
+  lSourceDir := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
+  if not TDirectory.Exists(lSourceDir) then
+  begin
+    Assert.Pass('Optional proprietary maxTdb fixture is absent; no maxTdb remove-with apply check was run.');
+    Exit;
+  end;
+
+  SnapshotSourceFiles(lSourceDir, lOriginalPaths, lOriginalBytes);
+  Assert.IsTrue(Length(lOriginalPaths) > 0, 'Expected maxTdb source files to snapshot.');
+
+  CopyDirectoryToTemp(lSourceDir, 'remove-with-maxtdb-apply-parity', lCloneDir);
+  lDprojPath := FindMaxTdbProject(lCloneDir);
+  SnapshotSourceFiles(lCloneDir, lClonePaths, lCloneBytes);
+
+  lPlanRoot := RunRemoveWithAllMode(lDprojPath, 'plan', 'remove-with-maxtdb-all-plan.json', lPlanExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lPlanExitCode, 'Expected maxTdb report-only plan mode to succeed.');
+    Assert.AreEqual('ok', lPlanRoot.Values['status'].Value, 'Expected ok maxTdb report-only plan status.');
+    Assert.AreEqual('plan', lPlanRoot.Values['mode'].Value, 'Expected maxTdb report-only plan mode.');
+    AssertJsonObjectKey(lPlanRoot, 'summary', lPlanSummary);
+    Assert.AreEqual(667, (lPlanSummary.Values['withStatements'] as TJSONNumber).AsInt,
+      'Expected maxTdb report-only plan to retain the current scan baseline.');
+    Assert.AreEqual(215, (lPlanSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+      'Expected maxTdb report-only planned edits to retain the semantic baseline.');
+    AssertSnapshotUnchanged(lClonePaths, lCloneBytes,
+      'Report-only maxTdb plan mode must leave cloned sources unchanged.');
+
+    lApplyRoot := RunRemoveWithAllMode(lDprojPath, 'apply', 'remove-with-maxtdb-all-apply.json', lApplyExitCode);
+    try
+      Assert.AreEqual(Cardinal(0), lApplyExitCode,
+        'Expected maxTdb apply mode to succeed without fallback-only plan drift.');
+      Assert.AreEqual('applied', lApplyRoot.Values['status'].Value, 'Expected applied maxTdb status.');
+      Assert.AreEqual('apply', lApplyRoot.Values['mode'].Value, 'Expected maxTdb apply mode.');
+      AssertJsonObjectKey(lApplyRoot, 'summary', lApplySummary);
+      Assert.AreEqual(667, (lApplySummary.Values['withStatements'] as TJSONNumber).AsInt,
+        'Expected maxTdb apply to keep the same scan baseline as report-only plan mode.');
+      Assert.AreEqual(215, (lApplySummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+        'Expected maxTdb apply planned edits to match report-only plan mode.');
+      AssertPlannedStatementIdsEqual(lPlanRoot, lApplyRoot);
+    finally
+      lApplyRoot.Free;
+    end;
+  finally
+    lPlanRoot.Free;
+  end;
+
+  AssertSnapshotUnchanged(lOriginalPaths, lOriginalBytes,
+    'Original proprietary maxTdb fixture must never be edited.');
 end;
 
 procedure TRemoveWithProprietaryProjectTests.PlanCloneOfMaxTdbWhenFixtureExistsReportsTelemetryAndPerformance;

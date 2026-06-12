@@ -160,6 +160,11 @@ type
       const aEdits: TArray<TRemoveWithBodyEdit>; var aReplacementText: string); static;
     class function FindSelectorTemp(const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
       const aSelectorText: string; out aSelectorTemp: TRemoveWithSelectorTemp): Boolean; static;
+    class function ReceiverRoutineMemberProviderCount(const aInventory: TRemoveWithFactSet;
+      const aOwnerType, aIdentifier: string): Integer; static;
+    class function ClassificationHasAmbiguousReceiverRoutineProvider(
+      const aInventory: TRemoveWithFactSet; const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
+      const aClassification: TRemoveWithIdentifierClassification): Boolean; static;
     class procedure AddStatement(var aPlanResult: TRemoveWithPlanResult;
       const aStatement: TRemoveWithPlannedStatement); static;
     class procedure AddEdit(var aStatement: TRemoveWithPlannedStatement;
@@ -194,6 +199,7 @@ type
       out aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReason: string): Boolean;
     function RewrittenBodyText(const aSource: TRemoveWithSourceBuffer;
       const aStatement: TRemoveWithStatementInfo;
+      const aInventory: TRemoveWithFactSet;
       const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aResolverResult: TRemoveWithResolverResult;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText, aReason: string): Boolean;
     function BuildLegacyApplyReplacement(const aInventory: TRemoveWithFactSet;
@@ -1177,27 +1183,23 @@ begin
     if SameText(lText, 'var') then
     begin
       lHasVarSection := True
-    end
-    else if lHasVarSection and (SameText(lText, 'label') or SameText(lText, 'const') or
+    end else if lHasVarSection and (SameText(lText, 'label') or SameText(lText, 'const') or
       SameText(lText, 'type') or IsLocalRoutineDeclaration(lText)) then
     begin
       lInsertLine := lLine;
       Break;
-    end
-    else if (not lHasVarSection) and (SameText(lText, 'label') or SameText(lText, 'const') or
+    end else if (not lHasVarSection) and (SameText(lText, 'label') or SameText(lText, 'const') or
       SameText(lText, 'type')) then
     begin
       lBeginLine := lLine;
       lInsertLine := lLine;
       Break;
-    end
-    else if IsLocalRoutineDeclaration(lText) then
+    end else if IsLocalRoutineDeclaration(lText) then
     begin
       lBeginLine := lLine;
       lInsertLine := lLine;
       Break;
-    end
-    else if IsBeginLine(lText) then
+    end else if IsBeginLine(lText) then
     begin
       lBeginLine := lLine;
       lInsertLine := lLine;
@@ -1697,6 +1699,70 @@ begin
   end;
 end;
 
+class function TRemoveWithPlanner.ReceiverRoutineMemberProviderCount(
+  const aInventory: TRemoveWithFactSet; const aOwnerType,
+  aIdentifier: string): Integer;
+var
+  lCandidateKeys: TDictionary<string, Byte>;
+  lOwnerType: string;
+  lProviderKey: string;
+  lSymbol: TRemoveWithSymbolInfo;
+  lSymbols: TArray<TRemoveWithSymbolInfo>;
+begin
+  Result := 0;
+  lOwnerType := DirectTypeName(aOwnerType);
+  if (lOwnerType = '') or (Trim(aIdentifier) = '') or
+    (not FindRemoveWithFactSetSymbolsByName(aInventory, aIdentifier, lSymbols)) then
+    Exit;
+
+  lCandidateKeys := TDictionary<string, Byte>.Create;
+  try
+    for lSymbol in lSymbols do
+    begin
+      if not (lSymbol.fKind in [TRemoveWithSymbolKind.rwskMethod,
+        TRemoveWithSymbolKind.rwskRoutine]) then
+        Continue;
+      if not SameText(DirectTypeName(lSymbol.fOwnerType), lOwnerType) then
+        Continue;
+      if (Trim(lSymbol.fSourceOwnerType) = '') or
+        SameText(DirectTypeName(lSymbol.fSourceOwnerType), lOwnerType) then
+        Exit(1);
+
+      lProviderKey := UpperCase(lSymbol.fSourceOwnerType + #31 +
+        lSymbol.fOwnerType + #31 + lSymbol.fName);
+      if lCandidateKeys.ContainsKey(lProviderKey) then
+        Continue;
+      lCandidateKeys.Add(lProviderKey, 1);
+      Inc(Result);
+    end;
+  finally
+    lCandidateKeys.Free;
+  end;
+end;
+
+class function TRemoveWithPlanner.ClassificationHasAmbiguousReceiverRoutineProvider(
+  const aInventory: TRemoveWithFactSet;
+  const aSelectorTemps: TArray<TRemoveWithSelectorTemp>;
+  const aClassification: TRemoveWithIdentifierClassification): Boolean;
+var
+  lReceiverType: string;
+  lSelectorTemp: TRemoveWithSelectorTemp;
+begin
+  Result := False;
+  if (aClassification.fStatus <> TRemoveWithIdentifierStatus.rwisResolved) or
+    not (aClassification.fMemberKind in [TRemoveWithSymbolKind.rwskMethod,
+    TRemoveWithSymbolKind.rwskRoutine]) then
+    Exit;
+
+  lReceiverType := aClassification.fReceiverType;
+  if FindSelectorTemp(aSelectorTemps, aClassification.fReceiverText,
+    lSelectorTemp) and (Trim(lSelectorTemp.fDecision.fReceiverType) <> '') then
+    lReceiverType := lSelectorTemp.fDecision.fReceiverType;
+
+  Result := ReceiverRoutineMemberProviderCount(aInventory, lReceiverType,
+    aClassification.fIdentifier) > 1;
+end;
+
 class procedure TRemoveWithPlanner.AddStatement(var aPlanResult: TRemoveWithPlanResult;
   const aStatement: TRemoveWithPlannedStatement);
 var
@@ -1968,7 +2034,7 @@ begin
 end;
 
 function TRemoveWithPlanner.RewrittenBodyText(const aSource: TRemoveWithSourceBuffer;
-  const aStatement: TRemoveWithStatementInfo;
+  const aStatement: TRemoveWithStatementInfo; const aInventory: TRemoveWithFactSet;
   const aNestedReplacements: TArray<TRemoveWithNestedReplacement>; const aResolverResult: TRemoveWithResolverResult;
   const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aReplacementText, aReason: string): Boolean;
 var
@@ -2023,6 +2089,12 @@ begin
 
     if lClassification.fStatus = TRemoveWithIdentifierStatus.rwisResolved then
     begin
+      if ClassificationHasAmbiguousReceiverRoutineProvider(aInventory,
+        aSelectorTemps, lClassification) then
+      begin
+        aReason := 'multiple-member-candidates';
+        Exit;
+      end;
       if FindSelectorTemp(aSelectorTemps, lClassification.fReceiverText, lSelectorTemp) then
         lQualifierText := lSelectorTemp.fQualifierText
       else
@@ -2148,7 +2220,7 @@ begin
     AddSelectorTemps(aSelectorTemps, lChildTemps);
   end;
 
-  if not RewrittenBodyText(aSource, aStatement, lReplacements, aResolverResult, lVisibleTemps,
+  if not RewrittenBodyText(aSource, aStatement, aInventory, lReplacements, aResolverResult, lVisibleTemps,
     aReplacementText, aReason) then
     Exit;
 
