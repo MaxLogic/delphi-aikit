@@ -14,6 +14,9 @@ function IsHelpRequested: Boolean;
 
 implementation
 
+uses
+  DelphiSemantics.DeadCode;
+
 function IsHelpRequested: Boolean;
 var
   lParams: iCmdLineParams;
@@ -367,7 +370,8 @@ begin
   fOptions.fSymbolMapFormat := TSymbolMapFormat.smfJson;
   fOptions.fSymbolMapLimit := 50;
   fOptions.fRefactorFormat := TRefactorFormat.rffText;
-  fOptions.fDeadCodeProfile := 'conservative';
+  fOptions.fDeadCodeProfile := TDelphiSemanticDeadCodeProfiles.ToName(
+    TDelphiSemanticDeadCodeProfiles.DefaultRemovalProfile);
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
   fOptions.fGlobalVarsUnusedOnly := False;
@@ -1624,6 +1628,7 @@ function TOptionParser.TryParseRefactorSwitch(const aArg: string; const aSwitch:
   const aHasInlineValue: Boolean): Boolean;
 var
   lBoolValue: Boolean;
+  lDeadCodeProfile: TDelphiSemanticDeadCodeSafetyProfile;
   lValue: string;
 begin
   if SameText(aSwitch, 'format') then
@@ -1701,13 +1706,13 @@ begin
     end;
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--profile') then
       Exit(False);
-    if not (SameText(lValue, 'audit') or SameText(lValue, 'conservative') or
-      SameText(lValue, 'legacy-static')) then
+    if not TDelphiSemanticDeadCodeProfiles.TryParse(lValue, lDeadCodeProfile) then
     begin
-      fError := Format(SInvalidDeadCodeProfile, [lValue]);
+      fError := Format(SInvalidDeadCodeProfile, [lValue,
+        TDelphiSemanticDeadCodeProfiles.AllowedNamesText]);
       Exit(False);
     end;
-    fOptions.fDeadCodeProfile := lValue;
+    fOptions.fDeadCodeProfile := TDelphiSemanticDeadCodeProfiles.ToName(lDeadCodeProfile);
     Exit(True);
   end;
 
