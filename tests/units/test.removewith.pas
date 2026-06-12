@@ -463,6 +463,8 @@ type
     [Test]
     procedure SemanticFinalDtoPrimaryPlanDoesNotRequireDakResolverClassifications;
     [Test]
+    procedure SemanticFinalDtoPrimaryPlanMapsRecipeEditStatementIds;
+    [Test]
     procedure SemanticFinalDtoPrimaryPlanFailsWhenStatementIdCannotMap;
     [Test]
     procedure SemanticFinalDtoPrimaryPlanFailsWhenActiveConditionalStatementCannotMap;
@@ -5254,6 +5256,52 @@ begin
   Assert.AreEqual(1, Integer(Length(lStatement.fTemps)), 'Expected semantic final DTO temp metadata.');
   Assert.AreEqual('record-pointer-temp', RemoveWithTempStrategyToText(lStatement.fTemps[0].fStrategy),
     'Expected semantic final DTO temp strategy.');
+end;
+
+procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanMapsRecipeEditStatementIds;
+var
+  i: Integer;
+  lEmptyResolverResult: TRemoveWithResolverResult;
+  lError: string;
+  lInventory: TRemoveWithFactSet;
+  lLegacyPlanResult: TRemoveWithPlanResult;
+  lPlanResult: TRemoveWithPlanResult;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+begin
+  BuildPlannerFixture(lInventory, lScanResult, lResolverResult, lLegacyPlanResult);
+  lEmptyResolverResult := Default(TRemoveWithResolverResult);
+  lSemanticPlan := lInventory.fDelphiSemanticRemoveWithPlan;
+  Assert.IsTrue(Length(lSemanticPlan.FinalStatements) > 0,
+    'Expected semantic final DTO statements.');
+  Assert.IsTrue(lSemanticPlan.ContextFingerprint <> '',
+    'Expected semantic final DTO context fingerprint.');
+  Assert.IsTrue(Length(lSemanticPlan.FinalStatements[0].RewriteRecipe.TextEdits) > 0,
+    'Expected semantic rewrite recipe text edits.');
+
+  lSemanticPlan.FinalStatements[0].StatementId := 'semantic-with-1';
+  for i := 0 to High(lSemanticPlan.FinalStatements[0].Edits) do
+    lSemanticPlan.FinalStatements[0].Edits[i].StatementId := 'semantic-with-1';
+  for i := 0 to High(lSemanticPlan.FinalStatements[0].RewriteRecipe.TextEdits) do
+    lSemanticPlan.FinalStatements[0].RewriteRecipe.TextEdits[i].StatementId :=
+      'semantic-with-1';
+
+  Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult,
+    lEmptyResolverResult, lSemanticPlan, lPlanResult, lError),
+    'Expected DTO-primary planner to map semantic final DTO ids: ' + lError);
+
+  Assert.AreEqual('with-1', lPlanResult.fSemanticPlan.FinalStatements[0].StatementId,
+    'Stored semantic plan should use DAK statement ids.');
+  Assert.AreEqual(lSemanticPlan.ContextFingerprint,
+    lPlanResult.fSemanticPlan.ContextFingerprint,
+    'Stored mapped semantic plan should preserve plan-level metadata.');
+  Assert.AreEqual('with-1',
+    lPlanResult.fSemanticPlan.FinalStatements[0].Edits[0].StatementId,
+    'Stored semantic plan edits should use DAK statement ids.');
+  Assert.AreEqual('with-1',
+    lPlanResult.fSemanticPlan.FinalStatements[0].RewriteRecipe.TextEdits[0].StatementId,
+    'Stored semantic rewrite recipe edits should use DAK statement ids.');
 end;
 
 procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanFailsWhenStatementIdCannotMap;
