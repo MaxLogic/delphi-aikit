@@ -1430,7 +1430,6 @@ var
   lSemanticPlan: TDelphiSemanticRemoveWithPlan;
 begin
   aPlanResult := Default(TRemoveWithPlanResult);
-  aPlanResult.fSemanticPlan := aSemanticPlan;
   aError := '';
   if not SameText(aSemanticPlan.Operation, 'remove-with') then
   begin
@@ -1447,6 +1446,7 @@ begin
     aParserDefines,
     lSemanticPlan, aError) then
     Exit(False);
+  aPlanResult.fSemanticPlan := lSemanticPlan;
   SetLength(aPlanResult.fStatements, Length(lSemanticPlan.FinalStatements));
   for i := 0 to High(lSemanticPlan.FinalStatements) do
     aPlanResult.fStatements[i] :=
@@ -1532,6 +1532,9 @@ begin
   aStatement.Edits := Copy(aStatement.Edits);
   for i := 0 to High(aStatement.Edits) do
     aStatement.Edits[i].StatementId := aStatementId;
+  aStatement.RewriteRecipe.TextEdits := Copy(aStatement.RewriteRecipe.TextEdits);
+  for i := 0 to High(aStatement.RewriteRecipe.TextEdits) do
+    aStatement.RewriteRecipe.TextEdits[i].StatementId := aStatementId;
 end;
 
 function TrySemanticPlanWithDakStatementIds(const aSemanticPlan:
@@ -1547,8 +1550,7 @@ var
 begin
   Result := False;
   aError := '';
-  aMappedPlan := Default(TDelphiSemanticRemoveWithPlan);
-  aMappedPlan.Operation := aSemanticPlan.Operation;
+  aMappedPlan := aSemanticPlan;
   SetLength(aMappedPlan.FinalStatements, 0);
   lScannedFiles := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
   try
