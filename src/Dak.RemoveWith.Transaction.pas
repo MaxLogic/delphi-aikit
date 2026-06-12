@@ -340,8 +340,7 @@ begin
     lIndex := Length(aTransactionResult.fFiles);
     lFile := Default(TRemoveWithTransactionFile);
     lFile.fPath := aPath;
-    lFile.fBackupPath := TPath.Combine(aBackupRoot, IntToStr(lIndex + 1) + '-' + TPath.GetFileName(aPath) +
-      '.bak');
+    lFile.fBackupPath := TPath.Combine(aBackupRoot, IntToStr(lIndex + 1) + '.bak');
     lFile.fHash := FileHash(lBytes);
     lFile.fLineEnding := DetectLineEnding(lBytes);
     lFile.fEncoding := DetectEncoding(lBytes);
@@ -718,8 +717,7 @@ begin
     begin
       aError := 'context-fingerprint-mismatch: ' + lValidationError;
       aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxContextFingerprintMismatch;
-    end
-    else
+    end else
     begin
       aError := 'context-fingerprint-mismatch';
       aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxContextFingerprintMismatch;
