@@ -842,7 +842,8 @@ begin
 
   lProfile := aOptions.fDeadCodeProfile;
   if lProfile = '' then
-    lProfile := 'conservative';
+    lProfile := TDelphiSemanticDeadCodeProfiles.ToName(
+      TDelphiSemanticDeadCodeProfiles.DefaultRemovalProfile);
   lPlanningStopwatch := TStopwatch.StartNew;
   lReport := TDelphiSemanticApi.ReportDeadCode(lContext, lProfile);
   lPhaseMetrics.CommandPlanningMs := lPlanningStopwatch.ElapsedMilliseconds;

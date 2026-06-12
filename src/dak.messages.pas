@@ -115,7 +115,7 @@ resourcestring
   SInvalidBuildTimeout = 'Invalid --build-timeout-sec value: %s (expected integer >= 0).';
   SInvalidSourceContext = 'Invalid --source-context value: %s (expected auto, off, or on).';
   SInvalidSourceContextLines = 'Invalid --source-context-lines value: %s (expected integer >= 0).';
-  SInvalidDeadCodeProfile = 'Invalid --profile value: %s (expected audit, conservative, or legacy-static).';
+  SInvalidDeadCodeProfile = 'Invalid --profile value: %s (expected %s).';
   SInvalidFiFormats = 'Invalid --fi-formats value: %s';
   SGlobalVarsInvalidFormat = 'Unsupported global-vars format: %s';
   SGlobalVarsInvalidRefresh = 'Unsupported global-vars refresh mode: %s';

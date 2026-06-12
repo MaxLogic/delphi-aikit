@@ -6,6 +6,7 @@ uses
   System.IOUtils,
   System.SysUtils,
   DUnitX.TestFramework,
+  DelphiSemantics.DeadCode,
   Test.Support;
 
 type
@@ -159,7 +160,8 @@ begin
   Assert.AreNotEqual(Cardinal(0), lExitCode, 'Unknown profiles must fail. See: ' + lLogPath);
 
   lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  Assert.IsTrue(Pos('Invalid --profile value: typo', lLogText) > 0,
+  Assert.IsTrue(Pos(Format('Invalid --profile value: typo (expected %s).',
+    [TDelphiSemanticDeadCodeProfiles.AllowedNamesText]), lLogText) > 0,
     'Expected invalid profile diagnostic. See: ' + lLogPath);
 end;
 
@@ -187,7 +189,8 @@ begin
 
   lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
   Assert.IsTrue(Pos('dead-code: report', lLogText) > 0, 'Expected text report header. See: ' + lLogPath);
-  Assert.IsTrue(Pos('profile: conservative', lLogText) > 0,
+  Assert.IsTrue(Pos('profile: ' + TDelphiSemanticDeadCodeProfiles.ToName(
+    TDelphiSemanticDeadCodeProfiles.DefaultRemovalProfile), lLogText) > 0,
     'Expected conservative default profile. See: ' + lLogPath);
   Assert.IsTrue(Pos('UnusedLocalRoutine', lLogText) > 0,
     'Expected candidate name in text output. See: ' + lLogPath);
