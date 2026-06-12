@@ -25,21 +25,29 @@ type
     [Test] procedure RunGlobalVarsLegacyExtractorIsNotCompiled;
     [Test] procedure RunGlobalVarsUsesSemanticCacheIdentity;
     [Test] procedure RunGlobalVarsCacheInvalidatesSameStampSameSizeContentChange;
+    [Test] procedure GlobalVarsCachePreservesUnicodeTextValues;
+    [Test] procedure RunGlobalVarsCommandPreservesUnicodePathsThroughCacheReuse;
+    [Test] procedure RunGlobalVarsCacheUsesWideTextAccessors;
   end;
 
 implementation
 
 uses
   System.Classes,
+  System.Generics.Collections,
   System.IOUtils,
   System.JSON,
   System.StrUtils,
   System.SysUtils,
   System.Variants,
+  Data.DB,
   FireDAC.Comp.Client,
   FireDAC.Phys.SQLite,
   FireDAC.Phys.SQLiteDef,
+  DelphiSemantics.Cache,
   Dak.GlobalVars,
+  Dak.GlobalVars.Cache,
+  Dak.GlobalVars.Model,
   Dak.Types,
   MaxLogic.ioUtils;
 
@@ -70,6 +78,11 @@ end;
 procedure TGlobalVarsTests.TearDown;
 begin
   DeleteDakRoot;
+end;
+
+function GlobalVarsUnicodeText: string;
+begin
+  Result := 'Za' + #$017C + #$00F3 + #$0142 + #$0107 + '-' + #$6F22 + #$5B57;
 end;
 
 procedure OpenSqliteCache(const aCacheFileName: string; out aDriverLink: TFDPhysSQLiteDriverLink;
@@ -522,6 +535,231 @@ begin
     if TFile.Exists(lOutputFileName) then
       TFile.Delete(lOutputFileName);
   end;
+end;
+
+procedure TGlobalVarsTests.GlobalVarsCachePreservesUnicodeTextValues;
+var
+  lAmbiguity: TGlobalVarAmbiguity;
+  lAmbiguities: TList<TGlobalVarAmbiguity>;
+  lCacheFileName: string;
+  lIdentities: TArray<TDelphiSemanticUnitCacheIdentity>;
+  lAmbiguityFileName: string;
+  lLoadedAmbiguities: TList<TGlobalVarAmbiguity>;
+  lLoadedSymbols: TObjectList<TGlobalVarSymbol>;
+  lProjectPath: string;
+  lRef: TGlobalVarRef;
+  lRefFileName: string;
+  lSymbol: TGlobalVarSymbol;
+  lSymbolFileName: string;
+  lSymbols: TObjectList<TGlobalVarSymbol>;
+  lUnicodeText: string;
+begin
+  lUnicodeText := GlobalVarsUnicodeText;
+  lCacheFileName := TPath.Combine(DakRoot, 'unicode-cache\global-vars-cache.sqlite3');
+  lProjectPath := TPath.Combine(DakRoot, 'Projekt-' + lUnicodeText + '.dproj');
+
+  SetLength(lIdentities, 1);
+  lIdentities[0].UnitCacheKey := 'unit-' + lUnicodeText;
+  lIdentities[0].FileHash := 'file-' + lUnicodeText;
+  lIdentities[0].ContextHash := 'context-' + lUnicodeText;
+  lIdentities[0].IncludeGraphHash := 'include-' + lUnicodeText;
+  lIdentities[0].DefinesHash := 'defines-' + lUnicodeText;
+  lIdentities[0].SearchPathHash := 'search-' + lUnicodeText;
+  lIdentities[0].ExtractionOptionsHash := 'options-' + lUnicodeText;
+  lIdentities[0].CompilerProfileName := 'profile-' + lUnicodeText;
+  lIdentities[0].DelphiVersion := '23.0-' + lUnicodeText;
+  lIdentities[0].Configuration := 'Debug-' + lUnicodeText;
+  lIdentities[0].Platform := 'Win64-' + lUnicodeText;
+  lIdentities[0].ParserVersion := 'parser-' + lUnicodeText;
+  lIdentities[0].ModelVersion := 'model-' + lUnicodeText;
+  lIdentities[0].SchemaVersion := 'schema-' + lUnicodeText;
+
+  lSymbols := TObjectList<TGlobalVarSymbol>.Create(True);
+  lAmbiguities := TList<TGlobalVarAmbiguity>.Create;
+  try
+    lSymbol := TGlobalVarSymbol.Create;
+    lSymbol.UnitName := 'Projekt.' + lUnicodeText;
+    lSymbolFileName := TPath.Combine(DakRoot, 'Source-' + lUnicodeText + '.pas');
+    lSymbol.FileName := lSymbolFileName;
+    lSymbol.Name := 'G' + lUnicodeText;
+    lSymbol.TypeName := 'T' + lUnicodeText;
+    lSymbol.Line := 12;
+    lSymbol.Column := 3;
+    lSymbol.Kind := gvkClassVar;
+    lRef.UnitName := 'Consumer.' + lUnicodeText;
+    lRef.RoutineName := 'Use' + lUnicodeText;
+    lRefFileName := TPath.Combine(DakRoot, 'Consumer-' + lUnicodeText + '.pas');
+    lRef.FileName := lRefFileName;
+    lRef.Line := 24;
+    lRef.Column := 7;
+    lRef.Access := akReadWrite;
+    lSymbol.UsedBy.Add(lRef);
+    lSymbols.Add(lSymbol);
+
+    lAmbiguity.Name := 'Ambiguous' + lUnicodeText;
+    lAmbiguity.UnitName := 'Ambiguous.Unit.' + lUnicodeText;
+    lAmbiguity.RoutineName := 'Resolve' + lUnicodeText;
+    lAmbiguityFileName := TPath.Combine(DakRoot, 'Ambiguous-' + lUnicodeText + '.pas');
+    lAmbiguity.FileName := lAmbiguityFileName;
+    lAmbiguity.Line := 31;
+    lAmbiguity.Column := 9;
+    lAmbiguity.Access := akWrite;
+    lAmbiguity.Candidates := 'First.' + lUnicodeText + '|Second.' + lUnicodeText;
+    lAmbiguities.Add(lAmbiguity);
+
+    SaveCachedSymbols(lCacheFileName, lProjectPath, 'identity-' + lUnicodeText, lIdentities,
+      lSymbols, lAmbiguities);
+  finally
+    lAmbiguities.Free;
+    lSymbols.Free;
+  end;
+
+  Assert.IsTrue(TryLoadCachedSymbols(lCacheFileName, lProjectPath, 'identity-' + lUnicodeText,
+    lLoadedSymbols, lLoadedAmbiguities));
+  try
+    Assert.AreEqual<Integer>(1, lLoadedSymbols.Count);
+    Assert.AreEqual('Projekt.' + lUnicodeText, lLoadedSymbols[0].UnitName);
+    Assert.AreEqual(lSymbolFileName, lLoadedSymbols[0].FileName);
+    Assert.AreEqual('G' + lUnicodeText, lLoadedSymbols[0].Name);
+    Assert.AreEqual('T' + lUnicodeText, lLoadedSymbols[0].TypeName);
+    Assert.AreEqual<Integer>(1, lLoadedSymbols[0].UsedBy.Count);
+    Assert.AreEqual('Use' + lUnicodeText, lLoadedSymbols[0].UsedBy[0].RoutineName);
+    Assert.AreEqual('Consumer.' + lUnicodeText, lLoadedSymbols[0].UsedBy[0].UnitName);
+    Assert.AreEqual(lRefFileName, lLoadedSymbols[0].UsedBy[0].FileName);
+    Assert.AreEqual(Integer(akReadWrite), Integer(lLoadedSymbols[0].UsedBy[0].Access));
+    Assert.AreEqual<Integer>(1, lLoadedAmbiguities.Count);
+    Assert.AreEqual('Ambiguous' + lUnicodeText, lLoadedAmbiguities[0].Name);
+    Assert.AreEqual('Resolve' + lUnicodeText, lLoadedAmbiguities[0].RoutineName);
+    Assert.AreEqual(lAmbiguityFileName, lLoadedAmbiguities[0].FileName);
+    Assert.AreEqual('First.' + lUnicodeText + '|Second.' + lUnicodeText,
+      lLoadedAmbiguities[0].Candidates);
+  finally
+    lLoadedAmbiguities.Free;
+    lLoadedSymbols.Free;
+  end;
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsCommandPreservesUnicodePathsThroughCacheReuse;
+var
+  lCacheFileName: string;
+  lConnection: TFDConnection;
+  lDestinationFileName: string;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lFileName: string;
+  lFirstContent: string;
+  lFixtureRoot: string;
+  lFoundUnicodePath: Boolean;
+  lItem: TJSONObject;
+  lItemValue: TJSONValue;
+  lJson: TJSONObject;
+  lOptions: TAppOptions;
+  lOutputFileName: string;
+  lProjectRoot: string;
+  lQuery: TFDQuery;
+  lSecondContent: string;
+  lSentinelFileName: string;
+  lUnicodeText: string;
+begin
+  lUnicodeText := GlobalVarsUnicodeText;
+  lFixtureRoot := TPath.GetDirectoryName(FixtureProjectPath);
+  lProjectRoot := TPath.Combine(DakRoot, 'Projekt-' + lUnicodeText);
+  TDirectory.CreateDirectory(lProjectRoot);
+  for lFileName in TDirectory.GetFiles(lFixtureRoot) do
+  begin
+    lDestinationFileName := TPath.Combine(lProjectRoot, TPath.GetFileName(lFileName));
+    TFile.Copy(lFileName, lDestinationFileName, True);
+  end;
+
+  lOutputFileName := TPath.Combine(DakRoot, 'global-vars-unicode-paths.json');
+  lCacheFileName := TPath.Combine(lProjectRoot, '.dak\GlobalVarsFixture\global-vars\cache\' +
+    'global-vars-cache.sqlite3');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(lProjectRoot, 'GlobalVarsFixture.dproj');
+  lOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfJson;
+  lOptions.fGlobalVarsOutputPath := lOutputFileName;
+  lOptions.fHasGlobalVarsOutputPath := True;
+
+  Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+  lFirstContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
+  lJson := TJSONObject.ParseJSONValue(lFirstContent) as TJSONObject;
+  try
+    Assert.IsNotNull(lJson);
+    lFoundUnicodePath := False;
+    for lItemValue in lJson.GetValue<TJSONArray>('symbols') do
+    begin
+      lItem := lItemValue as TJSONObject;
+      if ContainsText(lItem.GetValue<string>('fileName'), lUnicodeText) then
+      begin
+        lFoundUnicodePath := True;
+        Break;
+      end;
+    end;
+    Assert.IsTrue(lFoundUnicodePath,
+      'Fresh global-vars extraction should preserve the non-ASCII project/source path.');
+  finally
+    lJson.Free;
+  end;
+  Assert.IsTrue(TFile.Exists(lCacheFileName), 'Expected command-level projection cache.');
+
+  lSentinelFileName := TPath.Combine(lProjectRoot, 'Cached-' + lUnicodeText + '.pas');
+  OpenSqliteCache(lCacheFileName, lDriverLink, lConnection);
+  lQuery := TFDQuery.Create(nil);
+  try
+    lQuery.Connection := lConnection;
+    lQuery.SQL.Text := 'update symbols set file_name = ?';
+    lQuery.Params[0].DataType := ftWideString;
+    lQuery.Params[0].AsWideString := lSentinelFileName;
+    lQuery.ExecSQL;
+  finally
+    lQuery.Free;
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+
+  Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+  lSecondContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
+  lJson := TJSONObject.ParseJSONValue(lSecondContent) as TJSONObject;
+  try
+    Assert.IsNotNull(lJson);
+    lFoundUnicodePath := False;
+    for lItemValue in lJson.GetValue<TJSONArray>('symbols') do
+    begin
+      lItem := lItemValue as TJSONObject;
+      if SameText(lItem.GetValue<string>('fileName'), lSentinelFileName) then
+      begin
+        lFoundUnicodePath := True;
+        Break;
+      end;
+    end;
+    Assert.IsTrue(lFoundUnicodePath,
+      'Second command run should reuse the cached non-ASCII path payload.');
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsCacheUsesWideTextAccessors;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)), '..',
+    'src', 'Dak.GlobalVars.Cache.pas']));
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsFalse(ContainsText(lSourceText, '.AsString'),
+    'GlobalVars cache text fields and parameters should use Unicode-safe accessors.');
+  Assert.IsFalse(ContainsText(lSourceText, 'VarToStr(lConnection.ExecSQLScalar'),
+    'GlobalVars cache metadata reads should use wide field accessors.');
+  Assert.IsFalse(ContainsText(lSourceText, 'ExecSQL(''insert into symbols'),
+    'GlobalVars cache symbol writes should use prepared wide parameters.');
+  Assert.IsFalse(ContainsText(lSourceText, 'ExecSQL(''insert into refs'),
+    'GlobalVars cache reference writes should use prepared wide parameters.');
+  Assert.IsFalse(ContainsText(lSourceText, 'ExecSQL(''insert into ambiguities'),
+    'GlobalVars cache ambiguity writes should use prepared wide parameters.');
+  Assert.IsTrue(ContainsText(lSourceText, '.AsWideString'),
+    'GlobalVars cache should read/write text through wide accessors.');
 end;
 
 initialization
