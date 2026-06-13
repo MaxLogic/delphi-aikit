@@ -710,8 +710,7 @@ begin
 end;
 
 function BuildProjectSemanticOptions(const aOptions: TAppOptions;
-  const aProjectModel: TRemoveWithProjectModel;
-  const aBodyAnalysisSourceFileNames: TArray<string>): TDelphiSemanticApiOptions;
+  const aProjectModel: TRemoveWithProjectModel): TDelphiSemanticApiOptions;
 var
   lCacheDir: string;
   lProjectDir: string;
@@ -742,7 +741,6 @@ begin
   finally
     lSourceFileNames.Free;
   end;
-  Result.BodyAnalysisSourceFileNames := Copy(aBodyAnalysisSourceFileNames);
   Result.Cache.DelphiVersion := aOptions.fDelphiVersion;
   Result.Cache.Configuration := aOptions.fConfig;
   Result.Cache.Platform := aOptions.fPlatform;
@@ -769,15 +767,18 @@ var
   lModel: TDelphiSemanticUnitModel;
   lOptions: TDelphiSemanticApiOptions;
   lPlanStopwatch: TStopwatch;
+  lRequest: TDelphiSemanticRemoveWithRequest;
   lStopwatch: TStopwatch;
 begin
   Result := False;
   aError := '';
-  lOptions := BuildProjectSemanticOptions(aOptions, aProjectModel,
-    aBodyAnalysisSourceFileNames);
+  lOptions := BuildProjectSemanticOptions(aOptions, aProjectModel);
+  lRequest := Default(TDelphiSemanticRemoveWithRequest);
+  lRequest.Options := lOptions;
+  lRequest.BodyAnalysisSourceFileNames := Copy(aBodyAnalysisSourceFileNames);
   lStopwatch := TStopwatch.StartNew;
   try
-    lFacts := TDelphiSemanticRemoveWithApi.BuildProjectWithBindingFacts(lOptions);
+    lFacts := TDelphiSemanticRemoveWithApi.BuildProjectWithBindingFacts(lRequest);
   except
     on E: Exception do
     begin
