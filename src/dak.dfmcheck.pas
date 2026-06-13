@@ -93,7 +93,13 @@ function RunDfmCheckCommand(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
+  System.Diagnostics,
+  Winapi.TlHelp32,
   Dak.Project;
+
+const
+  cDfmCheckDefaultTimeoutMs = 30 * 60 * 1000;
+  cDfmCheckTimeoutEnvVar = 'DAK_DFMCHECK_TIMEOUT_MS';
 
 type
   TWinProcessRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
@@ -321,6 +327,73 @@ end;
 function ShouldKeepArtifacts: Boolean;
 begin
   Result := IsTrueValue(GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS'));
+end;
+
+function ResolveDfmCheckProcessTimeoutMs: Cardinal;
+var
+  lTimeoutText: string;
+  lTimeoutValue: Int64;
+begin
+  Result := cDfmCheckDefaultTimeoutMs;
+  lTimeoutText := Trim(GetEnvironmentVariable(cDfmCheckTimeoutEnvVar));
+  if lTimeoutText = '' then
+    Exit;
+  if TryStrToInt64(lTimeoutText, lTimeoutValue) and (lTimeoutValue > 0) and (lTimeoutValue <= High(Cardinal)) then
+    Result := Cardinal(lTimeoutValue);
+end;
+
+procedure TerminateProcessTree(const aProcessId: Cardinal; const aExitCode: Cardinal);
+var
+  lEntry: TProcessEntry32;
+  lProcessHandle: THandle;
+  lSnapshot: THandle;
+begin
+  lSnapshot := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if lSnapshot <> INVALID_HANDLE_VALUE then
+  begin
+    try
+      FillChar(lEntry, SizeOf(lEntry), 0);
+      lEntry.dwSize := SizeOf(lEntry);
+      if Process32First(lSnapshot, lEntry) then
+      begin
+        repeat
+          if lEntry.th32ParentProcessID = aProcessId then
+            TerminateProcessTree(lEntry.th32ProcessID, aExitCode);
+        until not Process32Next(lSnapshot, lEntry);
+      end;
+    finally
+      CloseHandle(lSnapshot);
+    end;
+  end;
+
+  lProcessHandle := OpenProcess(PROCESS_TERMINATE or SYNCHRONIZE, False, aProcessId);
+  if lProcessHandle = 0 then
+    Exit;
+  try
+    TerminateProcess(lProcessHandle, aExitCode);
+  finally
+    CloseHandle(lProcessHandle);
+  end;
+end;
+
+procedure WriteDfmCheckTimeoutDiagnosticLog(const aLogPath: string; const aError: string);
+var
+  i: Integer;
+begin
+  if Trim(aLogPath) = '' then
+    Exit;
+  for i := 1 to 20 do
+  begin
+    try
+      if FileExists(aLogPath) then
+        TFile.AppendAllText(aLogPath, #13#10 + aError + #13#10, TEncoding.UTF8)
+      else
+        TFile.WriteAllText(aLogPath, aError + #13#10, TEncoding.UTF8);
+      Exit;
+    except
+      Sleep(50);
+    end;
+  end;
 end;
 
 function TrimMatchingQuotes(const aValue: string): string;
@@ -3533,6 +3606,7 @@ var
   lWarnReasons: TStringList;
   lWarnedResources: TStringList;
   lCleanupErrors: string;
+  lPreserveArtifactsForDiagnostics: Boolean;
 begin
   Result := 1;
   aError := '';
@@ -3557,6 +3631,7 @@ begin
   lPromotedWarnings := 0;
   lOriginalAllRequested := aOptions.fDfmCheckAll or (Trim(aOptions.fDfmCheckFilter) = '');
   lCleanupErrors := '';
+  lPreserveArtifactsForDiagnostics := False;
   lBuildLines := TStringList.Create;
   lDiagnostics := nil;
   lFailedResources := TStringList.Create;
@@ -3763,6 +3838,9 @@ begin
       'exit /b %errorlevel%' + #13#10, TEncoding.Default);
     if not aRunner.Run(lBuildCmdPath, '', lPaths.fGeneratedDir, nil, lExitCode, lRunnerError) then
     begin
+      lPreserveArtifactsForDiagnostics := ContainsText(lRunnerError, 'timed out');
+      if lPreserveArtifactsForDiagnostics then
+        WriteDfmCheckTimeoutDiagnosticLog(lBuildLogPath, lRunnerError);
       aCategory := TDfmCheckErrorCategory.ecBuildFailed;
       aError := 'MSBuild failed to start: ' + lRunnerError;
       Exit(MapDfmCheckExitCode(aCategory, 0));
@@ -3821,6 +3899,9 @@ begin
     EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Running validator exe...');
     if not aRunner.Run(lValidatorExePath, lValidatorArgs, lPaths.fGeneratedDir, nil, lExitCode, lRunnerError) then
     begin
+      lPreserveArtifactsForDiagnostics := ContainsText(lRunnerError, 'timed out');
+      if lPreserveArtifactsForDiagnostics then
+        WriteDfmCheckTimeoutDiagnosticLog(lValidatorLogPath, lRunnerError);
       aCategory := TDfmCheckErrorCategory.ecValidatorFailed;
       aError := 'Validator executable failed to start: ' + lRunnerError;
       Exit(MapDfmCheckExitCode(aCategory, 0));
@@ -3882,12 +3963,15 @@ begin
     lFailedResources.Free;
     lSourceContextCache.Free;
     lBuildLines.Free;
-    if ShouldKeepArtifacts then
+    if ShouldKeepArtifacts or lPreserveArtifactsForDiagnostics then
     begin
       CleanupProjectRootArtifacts(lPaths, lCleanupErrors);
       if lCleanupErrors <> '' then
         EmitLine(aOutput, '[dfm-check] Cleanup warning: ' + lCleanupErrors);
-      EmitLine(aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).');
+      if lPreserveArtifactsForDiagnostics then
+        EmitLine(aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts for timeout diagnostics.')
+      else
+        EmitLine(aOutput, '[dfm-check] Keeping generated _DfmCheck artifacts (DAK_DFMCHECK_KEEP_ARTIFACTS).');
     end
     else
       CleanupGeneratedArtifacts(lPaths, lCopiedDfmStreamAll, lCopiedRuntimeGuard, lValidatorExePath, aOutput, lVerbose);
@@ -3920,13 +4004,16 @@ var
   lIsolatedDesktop: HDESK;
   lIsolatedDesktopName: string;
   lIsolatedProcess: Boolean;
-  lStartTick: Cardinal;
+  lJobHandle: THandle;
+  lJobInfo: TJobObjectExtendedLimitInformation;
+  lJobAssigned: Boolean;
   lTimeoutMs: Cardinal;
   lPreviousErrorMode: Cardinal;
   lCommandExe: string;
   lCommandScript: string;
   lElapsedSec: Cardinal;
-  lHeartbeatTick: Cardinal;
+  lHeartbeatMs: Int64;
+  lStopwatch: TStopwatch;
   lUnusedOutput: TDfmCheckOutputProc;
 begin
   Result := False;
@@ -3950,9 +4037,10 @@ begin
   lIsolatedDesktop := 0;
   lIsolatedDesktopName := '';
   lIsolatedProcess := False;
-  lStartTick := 0;
-  lTimeoutMs := 0;
-  lHeartbeatTick := 0;
+  lJobHandle := 0;
+  lJobAssigned := False;
+  lTimeoutMs := ResolveDfmCheckProcessTimeoutMs;
+  lHeartbeatMs := 0;
 
   if IsCmdScript(aExePath) then
   begin
@@ -3989,8 +4077,20 @@ begin
     lIsolatedDesktop := CreateDesktop(PChar(lIsolatedDesktopName), nil, nil, 0, GENERIC_ALL, nil);
     if lIsolatedDesktop <> 0 then
       lStartupInfo.lpDesktop := PChar(lIsolatedDesktopName);
-    lTimeoutMs := 0;
   end;
+
+  lJobHandle := CreateJobObject(nil, nil);
+  if lJobHandle <> 0 then
+  begin
+    FillChar(lJobInfo, SizeOf(lJobInfo), 0);
+    lJobInfo.BasicLimitInformation.LimitFlags := JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    if not SetInformationJobObject(lJobHandle, JobObjectExtendedLimitInformation, @lJobInfo, SizeOf(lJobInfo)) then
+    begin
+      CloseHandle(lJobHandle);
+      lJobHandle := 0;
+    end;
+  end;
+  lCreateFlags := lCreateFlags or CREATE_SUSPENDED;
 
   lPreviousErrorMode := SetErrorMode(SEM_FAILCRITICALERRORS or SEM_NOGPFAULTERRORBOX or SEM_NOOPENFILEERRORBOX);
   if lAppName = '' then
@@ -4002,6 +4102,10 @@ begin
       lLastError := GetLastError;
       aError := SysErrorMessage(lLastError);
       SetErrorMode(lPreviousErrorMode);
+      if lJobHandle <> 0 then
+        CloseHandle(lJobHandle);
+      if lIsolatedDesktop <> 0 then
+        CloseDesktop(lIsolatedDesktop);
       Exit(False);
     end;
   end else if not CreateProcess(PChar(lAppName), PChar(lCmdLine), nil, nil, True, lCreateFlags, nil, PChar(lWorkDir),
@@ -4010,11 +4114,39 @@ begin
     lLastError := GetLastError;
     aError := SysErrorMessage(lLastError);
     SetErrorMode(lPreviousErrorMode);
+    if lJobHandle <> 0 then
+      CloseHandle(lJobHandle);
+    if lIsolatedDesktop <> 0 then
+      CloseDesktop(lIsolatedDesktop);
     Exit(False);
   end;
   SetErrorMode(lPreviousErrorMode);
-  lStartTick := GetTickCount;
-  lHeartbeatTick := lStartTick;
+  if lJobHandle <> 0 then
+    lJobAssigned := AssignProcessToJobObject(lJobHandle, lProcessInfo.hProcess);
+  if ResumeThread(lProcessInfo.hThread) = Cardinal($FFFFFFFF) then
+  begin
+    lLastError := GetLastError;
+    if lJobAssigned and (lJobHandle <> 0) then
+    begin
+      CloseHandle(lJobHandle);
+      lJobHandle := 0;
+      lJobAssigned := False;
+    end
+    else
+      TerminateProcess(lProcessInfo.hProcess, lLastError);
+    if lJobHandle <> 0 then
+    begin
+      CloseHandle(lJobHandle);
+      lJobHandle := 0;
+    end;
+    aError := SysErrorMessage(lLastError);
+    if lIsolatedDesktop <> 0 then
+      CloseDesktop(lIsolatedDesktop);
+    CloseHandle(lProcessInfo.hThread);
+    CloseHandle(lProcessInfo.hProcess);
+    Exit(False);
+  end;
+  lStopwatch := TStopwatch.StartNew;
 
   try
     repeat
@@ -4025,16 +4157,25 @@ begin
           CloseTopLevelWindowsForProcess(lProcessInfo.dwProcessId, lIsolatedDesktop)
         else
           CloseTopLevelWindowsForProcess(lProcessInfo.dwProcessId);
-        if lIsolatedProcess and Assigned(aOutput) and ((GetTickCount - lHeartbeatTick) >= 15000) then
+        if lIsolatedProcess and Assigned(aOutput) and ((lStopwatch.ElapsedMilliseconds - lHeartbeatMs) >= 15000) then
         begin
-          lElapsedSec := (GetTickCount - lStartTick) div 1000;
+          lElapsedSec := lStopwatch.ElapsedMilliseconds div 1000;
           aOutput(Format('[dfm-check] Validator still running (%ds)...', [lElapsedSec]));
-          lHeartbeatTick := GetTickCount;
+          lHeartbeatMs := lStopwatch.ElapsedMilliseconds;
         end;
-        if (lTimeoutMs <> 0) and ((GetTickCount - lStartTick) >= lTimeoutMs) then
+        if lStopwatch.ElapsedMilliseconds >= lTimeoutMs then
         begin
-          TerminateProcess(lProcessInfo.hProcess, 146);
-          aError := 'Process timed out waiting for background validation.';
+          if lJobAssigned and (lJobHandle <> 0) then
+          begin
+            CloseHandle(lJobHandle);
+            lJobHandle := 0;
+            lJobAssigned := False;
+          end
+          else
+            TerminateProcessTree(lProcessInfo.dwProcessId, WAIT_TIMEOUT);
+          WaitForSingleObject(lProcessInfo.hProcess, 5000);
+          aExitCode := WAIT_TIMEOUT;
+          aError := Format('Process timed out after %d ms: %s', [lTimeoutMs, aExePath]);
           Exit(False);
         end;
       end;
@@ -4052,6 +4193,8 @@ begin
       Exit(False);
     end;
   finally
+    if lJobHandle <> 0 then
+      CloseHandle(lJobHandle);
     if lIsolatedDesktop <> 0 then
       CloseDesktop(lIsolatedDesktop);
     CloseHandle(lProcessInfo.hThread);
