@@ -40,7 +40,6 @@ type
     procedure CopyFixtureProject(const aTargetDir: string; out aProjectPath: string);
     function MetaValue(const aDbPath, aKey: string): string;
     function TableExists(const aDbPath, aTableName: string): Boolean;
-    function UniqueTempPath(const aPrefix: string): string;
     procedure WriteSchemaVersion(const aDbPath, aVersion: string);
   public
     [Test]
@@ -60,7 +59,6 @@ type
   private
     function FixtureProjectPath: string;
     function FixtureUnitPath: string;
-    function UniqueTempPath(const aPrefix: string): string;
   public
     [Test]
     procedure LoadsAnsiFallbackWhenUtf8Fails;
@@ -113,7 +111,6 @@ type
   private
     function BuildContext(const aProjectName, aCacheRoot: string; out aContext: TSymbolMapContext): string;
     function FixtureUnitPath: string;
-    function UniqueTempPath(const aPrefix: string): string;
     function UnitModelCount(const aDbPath, aUnitCacheKey: string): Integer;
   public
     [Test]
@@ -140,7 +137,6 @@ type
     function IntrinsicCount(const aDbPath, aProfileKey: string): Integer;
     function IntrinsicExists(const aDbPath, aProfileKey, aName: string): Boolean;
     function WindowsCmdExePath: string;
-    function UniqueTempPath(const aPrefix: string): string;
   public
     [Test]
     procedure SeedsCompilerProfileAndIntrinsicRows;
@@ -161,7 +157,6 @@ type
     function CompilerProfileUnitCount(const aDbPath, aProfileKey: string): Integer;
     function FixtureProjectPath: string;
     function ProfileSourceKind(const aDbPath, aProfileKey, aUnitName: string): string;
-    function UniqueTempPath(const aPrefix: string): string;
     procedure WriteRtlUnit(const aRoot, aRelativePath, aUnitName: string);
   public
     [Test]
@@ -181,7 +176,6 @@ type
     function BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext): string;
     function FixtureProjectPath: string;
     procedure IndexFixtureProject(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus);
-    function UniqueTempPath(const aPrefix: string): string;
     function WindowsCmdExePath: string;
     procedure WriteRtlUnit(const aRoot, aRelativePath, aUnitName: string);
   public
@@ -211,7 +205,6 @@ type
     function BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext): string;
     function FixtureProjectPath: string;
     procedure IndexFixtureProject(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus);
-    function UniqueTempPath(const aPrefix: string): string;
     procedure WriteRtlReferenceUnit(const aRoot: string);
   public
     [Test]
@@ -227,7 +220,6 @@ type
   private
     function BaseOptions(const aCacheRoot: string): TAppOptions;
     function FixtureProjectPath: string;
-    function UniqueTempPath(const aPrefix: string): string;
     procedure WriteIntrinsicCollisionProject(const aProjectDir: string; const aActive: Boolean;
       out aProjectPath: string);
   public
@@ -382,16 +374,6 @@ begin
     lConnection.Free;
     lDriverLink.Free;
   end;
-end;
-
-function TSymbolMapCacheTests.UniqueTempPath(const aPrefix: string): string;
-var
-  lGuid: TGUID;
-  lGuidText: string;
-begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
 end;
 
 procedure TSymbolMapCacheTests.WriteSchemaVersion(const aDbPath, aVersion: string);
@@ -600,16 +582,6 @@ begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
 end;
 
-function TSymbolMapSourceUnitTests.UniqueTempPath(const aPrefix: string): string;
-var
-  lGuid: TGUID;
-  lGuidText: string;
-begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
-end;
-
 function TSymbolMapTopLevelDeclarationTests.FixtureProjectPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
@@ -775,16 +747,6 @@ end;
 function TSymbolMapCentralCacheReuseTests.FixtureUnitPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapMembers.pas');
-end;
-
-function TSymbolMapCentralCacheReuseTests.UniqueTempPath(const aPrefix: string): string;
-var
-  lGuid: TGUID;
-  lGuidText: string;
-begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
 end;
 
 function TSymbolMapCentralCacheReuseTests.UnitModelCount(const aDbPath, aUnitCacheKey: string): Integer;
@@ -1115,16 +1077,6 @@ begin
   end;
 end;
 
-function TSymbolMapIntrinsicProfileTests.UniqueTempPath(const aPrefix: string): string;
-var
-  lGuid: TGUID;
-  lGuidText: string;
-begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
-end;
-
 procedure TSymbolMapIntrinsicProfileTests.SeedsCompilerProfileAndIntrinsicRows;
 var
   lCacheRoot: string;
@@ -1381,16 +1333,6 @@ begin
     Assert.IsTrue(StoreSymbolMapUnitProjection(aContext, aStatus, lModel, lError),
       'Expected unit model storage. Error: ' + lError);
   end;
-end;
-
-function TSymbolMapDefinitionQueryTests.UniqueTempPath(const aPrefix: string): string;
-var
-  lGuid: TGUID;
-  lGuidText: string;
-begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
 end;
 
 function TSymbolMapDefinitionQueryTests.WindowsCmdExePath: string;
@@ -1818,16 +1760,6 @@ begin
   end;
 end;
 
-function TSymbolMapReferenceQueryTests.UniqueTempPath(const aPrefix: string): string;
-var
-  lGuid: TGUID;
-  lGuidText: string;
-begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
-end;
-
 procedure TSymbolMapReferenceQueryTests.WriteRtlReferenceUnit(const aRoot: string);
 var
   lPath: string;
@@ -1947,16 +1879,6 @@ end;
 function TSymbolMapApiTests.FixtureProjectPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapFixture.dproj');
-end;
-
-function TSymbolMapApiTests.UniqueTempPath(const aPrefix: string): string;
-var
-  lGuid: TGUID;
-  lGuidText: string;
-begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
 end;
 
 procedure TSymbolMapApiTests.WriteIntrinsicCollisionProject(const aProjectDir: string; const aActive: Boolean;
@@ -2270,16 +2192,6 @@ begin
     lConnection.Free;
     lDriverLink.Free;
   end;
-end;
-
-function TSymbolMapRtlIndexTests.UniqueTempPath(const aPrefix: string): string;
-var
-  lGuid: TGUID;
-  lGuidText: string;
-begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
 end;
 
 procedure TSymbolMapRtlIndexTests.WriteRtlUnit(const aRoot, aRelativePath, aUnitName: string);

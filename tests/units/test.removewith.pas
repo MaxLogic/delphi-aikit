@@ -162,8 +162,6 @@ type
 
   [TestFixture]
   TRemoveWithSymbolMapBridgeTests = class(TRemoveWithTestBase)
-  private
-    function UniqueTempPath(const aPrefix: string): string;
   public
     [Test]
     procedure PreparesOnceAndLooksUpCompilerProjectAndMemberSymbols;
@@ -2836,16 +2834,6 @@ begin
   finally
     lModel.Free;
   end;
-end;
-
-function TRemoveWithSymbolMapBridgeTests.UniqueTempPath(const aPrefix: string): string;
-var
-  lGuid: TGUID;
-  lGuidText: string;
-begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
 end;
 
 procedure TRemoveWithSymbolMapBridgeTests.PreparesOnceAndLooksUpCompilerProjectAndMemberSymbols;

@@ -19,6 +19,7 @@ uses
 
 function RepoRoot: string;
 function TempRoot: string;
+function UniqueTempPath(const aPrefix: string): string;
 procedure EnsureTempClean;
 procedure EnsureResolverBuilt;
 function ResolverExePath: string;
@@ -238,6 +239,16 @@ begin
       GTempRoot := NewRunTempRoot(TPath.Combine(RepoRoot, 'tests\temp'));
   end;
   Result := GTempRoot;
+end;
+
+function UniqueTempPath(const aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
 end;
 
 procedure EnsureTempClean;
