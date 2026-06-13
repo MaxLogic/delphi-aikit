@@ -20,12 +20,21 @@ type
     [Test]
     procedure TempRootUsesProcessScopedRunDirectory;
     [Test]
+    procedure ScopedEnvironmentVariableRestoresMissingAndPreviousValues;
+    [Test]
     procedure ResolveDprojPathUsesSiblingDprojForDpr;
     [Test]
     procedure ResolveConfiguredExePathExpandsEnvAndAppendsExe;
   end;
 
 implementation
+
+function TestEnvironmentVariableExists(const aName: string): Boolean;
+begin
+  SetLastError(ERROR_SUCCESS);
+  Winapi.Windows.GetEnvironmentVariable(PChar(aName), nil, 0);
+  Result := GetLastError <> ERROR_ENVVAR_NOT_FOUND;
+end;
 
 procedure TUtilsTests.NormalizeInputPathConvertsWslMount;
 var
@@ -62,6 +71,42 @@ begin
     'DAK temp root should include the current process id. Actual: ' + lRoot);
 end;
 
+procedure TUtilsTests.ScopedEnvironmentVariableRestoresMissingAndPreviousValues;
+const
+  CVarName = 'DAK_TEST_SCOPED_ENV_GUARD';
+var
+  lGuard: IInterface;
+begin
+  SetEnvironmentVariable(PChar(CVarName), nil);
+  lGuard := SetScopedEnvironmentVariable(CVarName, 'first-value');
+  Assert.AreEqual('first-value', GetEnvironmentVariable(CVarName));
+  lGuard := nil;
+  Assert.AreEqual('', GetEnvironmentVariable(CVarName), 'Expected missing variable to be restored as missing.');
+  Assert.IsFalse(TestEnvironmentVariableExists(CVarName), 'Expected missing variable to stay missing.');
+
+  SetEnvironmentVariable(PChar(CVarName), PChar(''));
+  try
+    lGuard := SetScopedEnvironmentVariable(CVarName, 'empty-previous-value');
+    Assert.AreEqual('empty-previous-value', GetEnvironmentVariable(CVarName));
+    lGuard := nil;
+    Assert.AreEqual('', GetEnvironmentVariable(CVarName), 'Expected empty previous value to be restored.');
+    Assert.IsTrue(TestEnvironmentVariableExists(CVarName), 'Expected empty previous value to remain defined.');
+  finally
+    SetEnvironmentVariable(PChar(CVarName), nil);
+  end;
+
+  SetEnvironmentVariable(PChar(CVarName), PChar('previous-value'));
+  try
+    lGuard := SetScopedEnvironmentVariable(CVarName, 'second-value');
+    Assert.AreEqual('second-value', GetEnvironmentVariable(CVarName));
+    lGuard := nil;
+    Assert.AreEqual('previous-value', GetEnvironmentVariable(CVarName),
+      'Expected previous variable value to be restored.');
+  finally
+    SetEnvironmentVariable(PChar(CVarName), nil);
+  end;
+end;
+
 procedure TUtilsTests.ResolveDprojPathUsesSiblingDprojForDpr;
 var
   lError: string;
@@ -78,20 +123,17 @@ const
   CVarName = 'DAK_TEST_FIXINSIGHT_DIR';
 var
   lExpectedPath: string;
+  lGuard: IInterface;
   lResolvedPath: string;
   lTempDir: string;
 begin
   lTempDir := TPath.Combine(TempRoot, 'env-tools');
   ForceDirectories(lTempDir);
-  Assert.IsTrue(SetEnvironmentVariable(PChar(CVarName), PChar(lTempDir)),
-    'Failed to set temporary environment variable.');
-  try
-    lResolvedPath := ResolveExePathFromConfiguredValue('%' + CVarName + '%', 'FixInsightCL.exe');
-    lExpectedPath := TPath.Combine(lTempDir, 'FixInsightCL.exe');
-    Assert.AreEqual(lExpectedPath, lResolvedPath, 'Expected environment-backed tool path to resolve.');
-  finally
-    SetEnvironmentVariable(PChar(CVarName), nil);
-  end;
+  lGuard := SetScopedEnvironmentVariable(CVarName, lTempDir);
+  lResolvedPath := ResolveExePathFromConfiguredValue('%' + CVarName + '%', 'FixInsightCL.exe');
+  lExpectedPath := TPath.Combine(lTempDir, 'FixInsightCL.exe');
+  Assert.AreEqual(lExpectedPath, lResolvedPath, 'Expected environment-backed tool path to resolve.');
+  lGuard := nil;
 end;
 
 initialization

@@ -920,13 +920,11 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
   lPaths: TDfmCheckPaths;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -943,12 +941,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-happy');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
@@ -1063,9 +1060,7 @@ begin
     Assert.IsFalse(Pos('.ClassName;', lGeneratedUnitText) > 0,
       'Generated register unit should not include compile-time ClassName checks.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -1078,11 +1073,9 @@ var
   lGeneratedDprText: string;
   lGeneratedDprojText: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lPaths: TDfmCheckPaths;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -1093,12 +1086,11 @@ begin
   WriteInjectStubs(lInjectDir);
   lSourceDir := TPath.Combine(ExtractFilePath(lDprojPath), 'src');
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
     lRunner := lRunnerImpl;
@@ -1130,9 +1122,7 @@ begin
     Assert.IsTrue(Pos('$(DCC_UnitSearchPath)', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should still preserve inherited DCC_UnitSearchPath macros.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
   end;
 end;
 
@@ -1144,11 +1134,9 @@ var
   lGeneratedDprojText: string;
   lImportPath: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lPaths: TDfmCheckPaths;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -1158,12 +1146,11 @@ begin
   WriteInjectStubs(lInjectDir);
   lImportPath := TPath.Combine(ExtractFilePath(lDprojPath), 'Fixture.optset');
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
     lRunner := lRunnerImpl;
@@ -1194,9 +1181,7 @@ begin
     Assert.IsFalse(Pos('Exists(''Fixture.optset'')', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should not keep relative Exists(...) import conditions after relocation.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
   end;
 end;
 
@@ -1210,12 +1195,9 @@ var
   lError: string;
   lGeneratedDprojText: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lPaths: TDfmCheckPaths;
-  lPrevAppDataEnv: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -1234,15 +1216,13 @@ begin
     '  </PropertyGroup>' + #13#10 +
     '</Project>' + #13#10, TEncoding.UTF8);
 
-  lPrevAppDataEnv := GetEnvironmentVariable('APPDATA');
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
   lAppDataDir := TPath.Combine(ExtractFilePath(lDprojPath), 'fake-appdata');
-  SetEnvironmentVariable('APPDATA', PChar(lAppDataDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'APPDATA', lAppDataDir,
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
     lRunner := lRunnerImpl;
@@ -1273,13 +1253,7 @@ begin
     Assert.IsFalse(Pos(StringReplace(lBackslashDigitDir, '\3', '', [rfIgnoreCase]), lGeneratedDprojText) > 0,
       'Generated checker DPROJ should not corrupt \3 path segments. Output: ' + lGeneratedDprojText);
   finally
-    if lPrevAppDataEnv <> '' then
-      SetEnvironmentVariable('APPDATA', PChar(lPrevAppDataEnv))
-    else
-      SetEnvironmentVariable('APPDATA', nil);
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
   end;
 end;
 
@@ -1294,12 +1268,9 @@ var
   lGeneratedDprojText: string;
   lIdeLibraryDir: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lPaths: TDfmCheckPaths;
-  lPrevAppDataEnv: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -1325,15 +1296,13 @@ begin
     '  </PropertyGroup>' + #13#10 +
     '</Project>' + #13#10, TEncoding.UTF8);
 
-  lPrevAppDataEnv := GetEnvironmentVariable('APPDATA');
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
   lAppDataDir := TPath.Combine(ExtractFilePath(lDprojPath), 'fake-appdata');
-  SetEnvironmentVariable('APPDATA', PChar(lAppDataDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'APPDATA', lAppDataDir,
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
     lRunner := lRunnerImpl;
@@ -1374,13 +1343,7 @@ begin
     Assert.IsTrue(lSourceDirPos < lIdeLibraryPos,
       'Generated checker DPROJ should keep project form-unit directories ahead of IDE/library-path entries.');
   finally
-    if lPrevAppDataEnv <> '' then
-      SetEnvironmentVariable('APPDATA', PChar(lPrevAppDataEnv))
-    else
-      SetEnvironmentVariable('APPDATA', nil);
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
   end;
 end;
 
@@ -1392,14 +1355,12 @@ var
   lError: string;
   lGeneratedUnitText: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lNamespacedDfmPath: string;
   lNamespacedPasPath: string;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lPaths: TDfmCheckPaths;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRoot: string;
   lRunnerImpl: TMockDfmCheckRunner;
@@ -1444,12 +1405,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-namespaced');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
@@ -1484,9 +1444,7 @@ begin
     Assert.IsTrue(Pos(#13#10 + '  WebBrowser;' + #13#10, lGeneratedUnitText) = 0,
       'Generated register unit must not emit stripped terminal unit names.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -1497,12 +1455,10 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -1511,12 +1467,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-broken');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBroken, 'Release', 'Win32');
@@ -1554,9 +1509,7 @@ begin
     Assert.IsTrue(Pos('/p:DCC_DcuOutput=', lRunnerImpl.MsBuildArguments) > 0,
       'Expected isolated DCU output override in MSBuild arguments.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -1567,12 +1520,10 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -1581,12 +1532,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-broken-event');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBrokenEventSignature, 'Release', 'Win32');
@@ -1629,9 +1579,7 @@ begin
     Assert.IsTrue(Pos('[dfm-check] FAIL clue: verify handler signature matches event type for OnCreate.', lOutputText) > 0,
       'Expected fail clue to include event-signature guidance.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -1642,12 +1590,10 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -1671,12 +1617,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-warning-diagnosis');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmWarnStandaloneActionImageBinding, 'Release', 'Win32');
@@ -1722,9 +1667,7 @@ begin
     Assert.IsTrue(Pos('[dfm-check] Result: FAIL', lOutputText) > 0,
       'Expected diagnosed warning to make the final result fail.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -1734,21 +1677,21 @@ var
   lCategory: TDfmCheckErrorCategory;
   lDprojPath: string;
   lError: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
+  lInjectGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
 begin
   CreateFixtureProject(lDprojPath);
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', nil);
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lInjectGuard := ClearScopedEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBrokenEventSignature, 'Release', 'Win32');
@@ -1786,9 +1729,8 @@ begin
     Assert.IsTrue(Pos('begin', LowerCase(lOutputText)) > 0,
       'Expected fail clue to include surrounding source context lines.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', nil);
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
+    lInjectGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -1799,12 +1741,10 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -1822,12 +1762,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-invalid-diagnostics');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
@@ -1857,9 +1796,7 @@ begin
     Assert.IsTrue(Pos('[dfm-check] Warning: Invalid dak.ini SourceContextLines value: abc', lOutputText) > 0,
       'Expected invalid SourceContextLines warning in dfm-check output. Output: ' + lOutputText);
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -1870,11 +1807,10 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -1883,10 +1819,10 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-buildfail');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBuildFailGeneratedUnit, 'Release', 'Win32');
@@ -1916,8 +1852,7 @@ begin
     Assert.IsTrue(Pos('Sample_DfmCheck_Register.pas(42): error E2003', lOutputText) > 0,
       'Expected generated checker unit compile error in build output.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -1931,9 +1866,8 @@ var
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lPaths: TDfmCheckPaths;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
+  lKeepArtifactsGuard: IInterface;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -1942,12 +1876,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-buildfail-cleanup');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', nil);
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe'
+  ]);
+  lKeepArtifactsGuard := ClearScopedEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBuildFailGeneratedUnit, 'Release', 'Win32');
@@ -1979,9 +1912,8 @@ begin
     Assert.IsFalse(FileExists(TPath.Combine(lPaths.fProjectDir, 'Sample_DfmCheck_Register.pas')),
       'Expected generated register unit to be cleaned up after build failure when keep-artifacts mode is off.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lKeepArtifactsGuard := nil;
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -1992,12 +1924,10 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -2006,12 +1936,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-high-exit');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lResult := -1;
   lOutputLines := TStringList.Create;
   try
@@ -2048,9 +1977,7 @@ begin
     Assert.IsTrue(Pos('MainForm.pas(42): error E2003: Undeclared identifier: ''BrokenSymbol''', lOutputText) > 0,
       'Expected verbose build diagnostics to include the failing compiler error line.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -2061,11 +1988,9 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -2074,12 +1999,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-filter');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
@@ -2110,9 +2034,7 @@ begin
     Assert.IsFalse(Pos('--all', LowerCase(lRunnerImpl.ValidatorArguments)) > 0,
       'Did not expect --all when an explicit --dfm filter list is provided.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -2123,12 +2045,10 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -2137,12 +2057,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-parent-bin');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappyParentBin, 'Release', 'Win32');
@@ -2171,9 +2090,7 @@ begin
     Assert.IsFalse(Pos('Could not find built _DfmCheck.exe', lOutputText) > 0,
       'Did not expect validator-not-found output in parent Bin layout.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -2187,11 +2104,10 @@ var
   lGeneratedIdentCachePath: string;
   lGeneratedLocalPath: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
+  lKeepArtifactsGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunDir: string;
   lRunnerImpl: TMockDfmCheckRunner;
@@ -2202,12 +2118,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-keep-dak-run');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lGeneratedLocalPath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck.dproj.local');
@@ -2257,9 +2172,7 @@ begin
     Assert.IsFalse(FileExists(lGeneratedIdentCachePath),
       'Did not expect generated .identcache sidecar next to the source project when artifacts are kept.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -2270,11 +2183,9 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunDir: string;
   lRunnerImpl: TMockDfmCheckRunner;
@@ -2291,12 +2202,11 @@ begin
   TDirectory.CreateDirectory(TPath.Combine(lStaleRunDir, 'generated'));
   TFile.WriteAllText(TPath.Combine(lStaleRunDir, 'generated\stale.txt'), 'stale', TEncoding.ASCII);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
@@ -2324,9 +2234,7 @@ begin
     Assert.IsTrue(FileExists(TPath.Combine(lRunDir, 'generated\Sample_DfmCheck.dpr')),
       'Expected current run workspace to remain after stale-run pruning.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -2339,12 +2247,11 @@ var
   lGeneratedIdentCachePath: string;
   lGeneratedLocalPath: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
+  lKeepArtifactsGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lPaths: TDfmCheckPaths;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -2353,12 +2260,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-cleanup');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', nil);
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe'
+  ]);
+  lKeepArtifactsGuard := ClearScopedEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
   lOutputLines := TStringList.Create;
   try
     lGeneratedLocalPath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample_DfmCheck.dproj.local');
@@ -2394,9 +2300,8 @@ begin
     Assert.IsFalse(FileExists(lGeneratedLocalPath), 'Expected generated .dproj.local sidecar to be cleaned up.');
     Assert.IsFalse(FileExists(lGeneratedIdentCachePath), 'Expected generated .identcache sidecar to be cleaned up.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lKeepArtifactsGuard := nil;
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -2408,11 +2313,9 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunner: IDfmCheckProcessRunner;
 begin
@@ -2421,12 +2324,11 @@ begin
   WriteInjectStubs(lInjectDir);
   lCachePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.dfmcheck.cache');
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lOptions := Default(TAppOptions);
@@ -2450,9 +2352,7 @@ begin
     Assert.AreEqual('', lError, 'Did not expect an orchestration error for overflow regression path.');
     Assert.IsTrue(FileExists(lCachePath), 'Expected cache file to be written after successful hash computation.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -2480,12 +2380,10 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunner: IDfmCheckProcessRunner;
   lRunnerFirst: TMockDfmCheckRunner;
@@ -2496,12 +2394,11 @@ begin
   WriteInjectStubs(lInjectDir);
   lCachePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.dfmcheck.cache');
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lOptions := Default(TAppOptions);
@@ -2547,9 +2444,7 @@ begin
     Assert.IsTrue(Pos('[dfm-check] Result: OK', lOutputText) > 0,
       'Expected OK result for cached unchanged all-mode run.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -2566,12 +2461,10 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
   lOutputText: string;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunner: IDfmCheckProcessRunner;
   lRunnerFailNoLine: TMockDfmCheckRunner;
@@ -2585,12 +2478,11 @@ begin
   lCacheSection := 'Unit:MAINFORM';
   lDfmPath := TPath.Combine(ExtractFilePath(lDprojPath), 'MainForm.dfm');
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lOptions := Default(TAppOptions);
@@ -2670,9 +2562,7 @@ begin
     Assert.IsTrue(Pos('[dfm-check] Cache: total=1 unchanged=0 validating=1', lOutputText) > 0,
       'Expected cache summary to show validation is required after failed run without FAIL lines.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;
@@ -2688,11 +2578,9 @@ var
   i: Integer;
   lDprojPath: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
+  lKeepArtifactsGuard: IInterface;
   lOptions: TAppOptions;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
-  lPrevTimeoutEnv: string;
   lResult: Integer;
   lRunsRoot: string;
 begin
@@ -2707,14 +2595,12 @@ begin
     'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 10"' + #13#10 +
     'exit /b 0' + #13#10, TEncoding.Default);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lPrevTimeoutEnv := GetEnvironmentVariable('DAK_DFMCHECK_TIMEOUT_MS');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lBuildScriptPath));
-  SetEnvironmentVariable('DAK_DFMCHECK_TIMEOUT_MS', PChar('250'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', nil);
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', lBuildScriptPath,
+    'DAK_DFMCHECK_TIMEOUT_MS', '250'
+  ]);
+  lKeepArtifactsGuard := ClearScopedEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
   try
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
@@ -2754,10 +2640,8 @@ begin
     end;
     Assert.IsTrue(lBuildLogFound, 'Timeout diagnostics should keep a generated build log with the timeout reason.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_TIMEOUT_MS', PChar(lPrevTimeoutEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lKeepArtifactsGuard := nil;
+    lEnvGuard := nil;
   end;
 end;
 
@@ -2767,11 +2651,9 @@ var
   lDprojPath: string;
   lError: string;
   lInjectDir: string;
-  lKeepArtifactsEnv: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lOutputLines: TStringList;
-  lPrevInjectEnv: string;
-  lPrevMsBuildEnv: string;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
@@ -2780,12 +2662,11 @@ begin
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-all-progress');
   WriteInjectStubs(lInjectDir);
 
-  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
-  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
-  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
-  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
-  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar('msbuild.exe'));
-  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar('true'));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
   lOutputLines := TStringList.Create;
   try
     lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
@@ -2811,9 +2692,7 @@ begin
     Assert.IsTrue(Pos('--progress', LowerCase(lRunnerImpl.ValidatorArguments)) > 0,
       'All-mode should include --progress for live CHECK lines.');
   finally
-    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
-    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
+    lEnvGuard := nil;
     lOutputLines.Free;
   end;
 end;

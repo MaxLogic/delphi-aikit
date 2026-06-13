@@ -231,7 +231,7 @@ Each project also gets a lightweight project cache under the `.dproj` sibling `.
 
 Normal invalidation is content/context based: changed source content or compiler profile context creates new central unit keys, and changed project context relinks project rows on the next index/query pass.
 
-`symbol-map index` scans project units and, when source roots are available for the selected Delphi context, indexes source-available RTL units into the compiler profile. Missing RTL roots are non-fatal diagnostics because compiler intrinsics are seeded synthetically. Query commands refresh the project index when needed before answering. `find-references` currently reports token-name matches with explicit `confidence="token-name-match"` metadata; it is useful as an indexed search result, not yet a compiler-proven semantic reference identity.
+`symbol-map index` scans project units and, when source roots are available for the selected Delphi context, indexes source-available RTL units into the compiler profile. Targeted `symbol-map index --unit <path>` indexes only the requested unit and reports `rtlSource.status` as `not-indexed`; run the project-wide index or a query command when the RTL cache should be warmed. Missing RTL roots are non-fatal diagnostics because compiler intrinsics are seeded synthetically. Query commands refresh the project index when needed before answering. `find-references` currently reports token-name matches with explicit `confidence="token-name-match"` metadata; it is useful as an indexed search result, not yet a compiler-proven semantic reference identity.
 
 To inspect or remove Delphi `with` statements:
 

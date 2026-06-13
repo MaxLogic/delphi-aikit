@@ -1,4 +1,4 @@
-﻿unit Test.Build;
+unit Test.Build;
 
 interface
 
@@ -379,6 +379,7 @@ var
   lDprojPath: string;
   lFailingRunner: TFailingBuildRunner;
   lEnvOptionsPath: string;
+  lEnvGuard: IInterface;
   lPatchExePath: string;
   lProjectRoot: string;
   lRsVarsPath: string;
@@ -407,7 +408,7 @@ begin
   lOptions.fHasLspPath := True;
 
   lScriptPath := CreateScriptFile(aScenarioName, aScriptJson);
-  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  lEnvGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
   try
     lFailingRunner := TFailingBuildRunner.Create;
     lFailingRunner.fStdErrText := aStdErrText;
@@ -423,7 +424,7 @@ begin
     aError := lError;
     Result := True;
   finally
-    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+    lEnvGuard := nil;
   end;
 end;
 
@@ -624,14 +625,12 @@ var
   lCapturingRunner: TCapturingBuildRunner;
   lDprPath: string;
   lDprojPath: string;
+  lEnvGuard: IInterface;
   lEnvProjPath: string;
   lError: string;
   lExitCode: Integer;
   lFakeBdsRoot: string;
   lOptions: TAppOptions;
-  lPrevAppData: string;
-  lPrevExistingProp: string;
-  lPrevExistingPropPresent: Boolean;
   lProjectRoot: string;
   lRunner: IBuildProcessRunner;
   lRsVarsPath: string;
@@ -671,11 +670,10 @@ begin
     '  </PropertyGroup>' + sLineBreak +
     '</Project>' + sLineBreak);
 
-  lPrevAppData := GetEnvironmentVariable('APPDATA');
-  lPrevExistingProp := GetEnvironmentVariable('ExistingProp');
-  lPrevExistingPropPresent := lPrevExistingProp <> '';
-  Winapi.Windows.SetEnvironmentVariable('APPDATA', PChar(lAppData));
-  Winapi.Windows.SetEnvironmentVariable('ExistingProp', 'already-set');
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'APPDATA', lAppData,
+    'ExistingProp', 'already-set'
+  ]);
   try
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
@@ -703,27 +701,15 @@ begin
   finally
     lRunner := nil;
     lCapturingRunner := nil;
-    if lPrevAppData <> '' then
-      Winapi.Windows.SetEnvironmentVariable('APPDATA', PChar(lPrevAppData))
-    else
-      Winapi.Windows.SetEnvironmentVariable('APPDATA', nil);
-    if lPrevExistingPropPresent then
-      Winapi.Windows.SetEnvironmentVariable('ExistingProp', PChar(lPrevExistingProp))
-    else
-      Winapi.Windows.SetEnvironmentVariable('ExistingProp', nil);
+    lEnvGuard := nil;
   end;
 end;
 
 procedure TBuildTests.RsVarsLoaderIgnoresStaleRadEnvironmentAndOverlongPath;
 var
   lError: string;
+  lEnvGuard: IInterface;
   lEnvironment: TRsVarsEnvironment;
-  lOldBds: string;
-  lOldBdsLib: string;
-  lOldDccDefine: string;
-  lOldDccNamespace: string;
-  lOldDccUnitSearchPath: string;
-  lOldPath: string;
   lPathCapture: string;
   lRoot: string;
   lRsVarsPath: string;
@@ -749,18 +735,14 @@ begin
     'set DCC_UnitSearchPath=clean-search-path' + sLineBreak;
   TFile.WriteAllText(lRsVarsPath, lScriptText, TEncoding.ASCII);
 
-  lOldBds := GetEnvironmentVariable('BDS');
-  lOldBdsLib := GetEnvironmentVariable('BDSLIB');
-  lOldDccDefine := GetEnvironmentVariable('DCC_Define');
-  lOldDccNamespace := GetEnvironmentVariable('DCC_Namespace');
-  lOldDccUnitSearchPath := GetEnvironmentVariable('DCC_UnitSearchPath');
-  lOldPath := GetEnvironmentVariable('PATH');
-  Winapi.Windows.SetEnvironmentVariable('BDS', 'stale-bds');
-  Winapi.Windows.SetEnvironmentVariable('BDSLIB', 'stale-bdslib');
-  Winapi.Windows.SetEnvironmentVariable('DCC_Define', 'stale-define');
-  Winapi.Windows.SetEnvironmentVariable('DCC_Namespace', 'stale-namespace');
-  Winapi.Windows.SetEnvironmentVariable('DCC_UnitSearchPath', 'stale-search-path');
-  Winapi.Windows.SetEnvironmentVariable('PATH', PChar('C:\stale-path-marker;' + StringOfChar('x', 7000)));
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'BDS', 'stale-bds',
+    'BDSLIB', 'stale-bdslib',
+    'DCC_Define', 'stale-define',
+    'DCC_Namespace', 'stale-namespace',
+    'DCC_UnitSearchPath', 'stale-search-path',
+    'PATH', 'C:\stale-path-marker;' + StringOfChar('x', 7000)
+  ]);
   try
     Assert.IsTrue(TryLoadRsVars('', lRsVarsPath, nil, lEnvironment, lError),
       'Expected rsvars loader to sanitize stale child environment. Error: ' + lError);
@@ -780,12 +762,7 @@ begin
     Assert.IsFalse(ContainsText(TFile.ReadAllText(lPathCapture, TEncoding.ASCII), 'stale-path-marker'),
       'Expected long inherited PATH to be trimmed before rsvars.bat.');
   finally
-    Winapi.Windows.SetEnvironmentVariable('BDS', PChar(lOldBds));
-    Winapi.Windows.SetEnvironmentVariable('BDSLIB', PChar(lOldBdsLib));
-    Winapi.Windows.SetEnvironmentVariable('DCC_Define', PChar(lOldDccDefine));
-    Winapi.Windows.SetEnvironmentVariable('DCC_Namespace', PChar(lOldDccNamespace));
-    Winapi.Windows.SetEnvironmentVariable('DCC_UnitSearchPath', PChar(lOldDccUnitSearchPath));
-    Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lOldPath));
+    lEnvGuard := nil;
   end;
 end;
 
@@ -1312,13 +1289,13 @@ var
   lCapturingRunner: TCapturingBuildRunner;
   lDprPath: string;
   lDprojPath: string;
+  lEnvGuard: IInterface;
   lEnvOptionsPath: string;
   lError: string;
   lExitCode: Integer;
   lFakeBdsRoot: string;
   lFakeLibPath: string;
   lOptions: TAppOptions;
-  lPrevAppData: string;
   lProjectRoot: string;
   lRsVarsPath: string;
   lRunner: IBuildProcessRunner;
@@ -1364,8 +1341,7 @@ begin
     '  </PropertyGroup>' + sLineBreak +
     '</Project>' + sLineBreak);
 
-  lPrevAppData := GetEnvironmentVariable('APPDATA');
-  Winapi.Windows.SetEnvironmentVariable('APPDATA', PChar(lAppData));
+  lEnvGuard := SetScopedEnvironmentVariable('APPDATA', lAppData);
   try
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
@@ -1394,10 +1370,7 @@ begin
   finally
     lRunner := nil;
     lCapturingRunner := nil;
-    if lPrevAppData <> '' then
-      Winapi.Windows.SetEnvironmentVariable('APPDATA', PChar(lPrevAppData))
-    else
-      Winapi.Windows.SetEnvironmentVariable('APPDATA', nil);
+    lEnvGuard := nil;
   end;
 end;
 
@@ -1660,10 +1633,10 @@ procedure TBuildTests.BuildWebCoreCompilerResolutionUsesEnvVarWhenDakIniMissing;
 var
   lDprojPath: string;
   lEnvCompilerPath: string;
+  lEnvGuard: IInterface;
   lError: string;
   lExitCode: Integer;
   lOptions: TAppOptions;
-  lPrevCompilerPath: string;
   lProjectRoot: string;
   lRunner: IBuildProcessRunner;
   lCapturingRunner: TCapturingBuildRunner;
@@ -1677,8 +1650,7 @@ begin
     '[WebCore]' + sLineBreak +
     'CompilerPath=' + TPath.Combine(lProjectRoot, 'missing\TMSWebCompiler.exe') + sLineBreak);
 
-  lPrevCompilerPath := GetEnvironmentVariable('DAK_TMSWEB_COMPILER');
-  Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', PChar(lEnvCompilerPath));
+  lEnvGuard := SetScopedEnvironmentVariable('DAK_TMSWEB_COMPILER', lEnvCompilerPath);
   try
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
@@ -1697,22 +1669,20 @@ begin
       'Expected env var compiler path to be used when dak.ini is absent. Calls: ' +
       DescribeCapturedProcesses(lCapturingRunner));
   finally
-    if lPrevCompilerPath <> '' then
-      Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', PChar(lPrevCompilerPath))
-    else
-      Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', nil);
+    lEnvGuard := nil;
   end;
 end;
 
 procedure TBuildTests.BuildWebCoreCompilerResolutionUsesPathWhenConfigMissing;
 var
   lDprojPath: string;
+  lCompilerEnvGuard: IInterface;
   lError: string;
   lExitCode: Integer;
   lOptions: TAppOptions;
   lPathCompilerDir: string;
   lPathCompilerPath: string;
-  lPreviousCompilerPath: string;
+  lPathEnvGuard: IInterface;
   lPreviousPath: string;
   lProjectRoot: string;
   lRunner: IBuildProcessRunner;
@@ -1728,10 +1698,9 @@ begin
     '[WebCore]' + sLineBreak +
     'CompilerPath=' + TPath.Combine(lProjectRoot, 'missing\TMSWebCompiler.exe') + sLineBreak);
 
-  lPreviousCompilerPath := GetEnvironmentVariable('DAK_TMSWEB_COMPILER');
   lPreviousPath := GetEnvironmentVariable('PATH');
-  Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', nil);
-  Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lPathCompilerDir + ';' + lPreviousPath));
+  lCompilerEnvGuard := ClearScopedEnvironmentVariable('DAK_TMSWEB_COMPILER');
+  lPathEnvGuard := SetScopedEnvironmentVariable('PATH', lPathCompilerDir + ';' + lPreviousPath);
   try
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
@@ -1750,25 +1719,19 @@ begin
       'Expected PATH compiler path to be used when CLI, dak.ini, and env var are unavailable. Calls: ' +
       DescribeCapturedProcesses(lCapturingRunner));
   finally
-    if lPreviousCompilerPath <> '' then
-      Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', PChar(lPreviousCompilerPath))
-    else
-      Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', nil);
-    if lPreviousPath <> '' then
-      Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lPreviousPath))
-    else
-      Winapi.Windows.SetEnvironmentVariable('PATH', nil);
+    lPathEnvGuard := nil;
+    lCompilerEnvGuard := nil;
   end;
 end;
 
 procedure TBuildTests.BuildWebCoreCompilerResolutionDoesNotProbeFixedPaths;
 var
   lDprojPath: string;
+  lCompilerEnvGuard: IInterface;
   lError: string;
   lExitCode: Integer;
   lOptions: TAppOptions;
-  lPrevCompilerPath: string;
-  lPrevPath: string;
+  lPathEnvGuard: IInterface;
   lProjectRoot: string;
   lRunner: IBuildProcessRunner;
   lCapturingRunner: TCapturingBuildRunner;
@@ -1780,10 +1743,8 @@ begin
     '[WebCore]' + sLineBreak +
     'CompilerPath=' + TPath.Combine(lProjectRoot, 'missing\TMSWebCompiler.exe') + sLineBreak);
 
-  lPrevCompilerPath := GetEnvironmentVariable('DAK_TMSWEB_COMPILER');
-  lPrevPath := GetEnvironmentVariable('PATH');
-  Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', nil);
-  Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lProjectRoot));
+  lCompilerEnvGuard := ClearScopedEnvironmentVariable('DAK_TMSWEB_COMPILER');
+  lPathEnvGuard := SetScopedEnvironmentVariable('PATH', lProjectRoot);
   try
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
@@ -1802,25 +1763,19 @@ begin
     Assert.IsFalse(ContainsText(lError, 'Program Files'),
       'Compiler resolution must not mention hardcoded install roots. Error: ' + lError);
   finally
-    if lPrevCompilerPath <> '' then
-      Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', PChar(lPrevCompilerPath))
-    else
-      Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', nil);
-    if lPrevPath <> '' then
-      Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lPrevPath))
-    else
-      Winapi.Windows.SetEnvironmentVariable('PATH', nil);
+    lPathEnvGuard := nil;
+    lCompilerEnvGuard := nil;
   end;
 end;
 
 procedure TBuildTests.BuildWebCoreMissingCompilerReportsSupportedSources;
 var
   lDprojPath: string;
+  lCompilerEnvGuard: IInterface;
   lError: string;
   lExitCode: Integer;
   lOptions: TAppOptions;
-  lPrevCompilerPath: string;
-  lPrevPath: string;
+  lPathEnvGuard: IInterface;
   lProjectRoot: string;
   lRunner: IBuildProcessRunner;
   lCapturingRunner: TCapturingBuildRunner;
@@ -1832,10 +1787,8 @@ begin
     '[WebCore]' + sLineBreak +
     'CompilerPath=' + TPath.Combine(lProjectRoot, 'missing\TMSWebCompiler.exe') + sLineBreak);
 
-  lPrevCompilerPath := GetEnvironmentVariable('DAK_TMSWEB_COMPILER');
-  lPrevPath := GetEnvironmentVariable('PATH');
-  Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', nil);
-  Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lProjectRoot));
+  lCompilerEnvGuard := ClearScopedEnvironmentVariable('DAK_TMSWEB_COMPILER');
+  lPathEnvGuard := SetScopedEnvironmentVariable('PATH', lProjectRoot);
   try
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
@@ -1858,14 +1811,8 @@ begin
     Assert.IsTrue(ContainsText(lError, 'PATH'),
       'Expected missing compiler message to mention PATH lookup. Error: ' + lError);
   finally
-    if lPrevCompilerPath <> '' then
-      Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', PChar(lPrevCompilerPath))
-    else
-      Winapi.Windows.SetEnvironmentVariable('DAK_TMSWEB_COMPILER', nil);
-    if lPrevPath <> '' then
-      Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lPrevPath))
-    else
-      Winapi.Windows.SetEnvironmentVariable('PATH', nil);
+    lPathEnvGuard := nil;
+    lCompilerEnvGuard := nil;
   end;
 end;
 
@@ -2035,12 +1982,12 @@ procedure TBuildTests.BuildAutoFallsBackToDelphiWhenWebCoreProbeNeedsEnvironment
 var
   lDprPath: string;
   lDprojPath: string;
+  lEnvGuard: IInterface;
   lEnvImportPath: string;
   lError: string;
   lExitCode: Integer;
   lFakeBdsRoot: string;
   lOptions: TAppOptions;
-  lPreviousImportPath: string;
   lProjectRoot: string;
   lRsVarsPath: string;
   lRunner: IBuildProcessRunner;
@@ -2077,8 +2024,7 @@ begin
   TFile.WriteAllText(lRsVarsPath, '@echo off' + sLineBreak, TEncoding.ASCII);
   WriteUtf8File(TPath.Combine(lFakeBdsRoot, 'bin\MSBuild.exe'), 'stub');
 
-  lPreviousImportPath := GetEnvironmentVariable('DAK_TEST_IMPORT');
-  Winapi.Windows.SetEnvironmentVariable('DAK_TEST_IMPORT', PChar(lEnvImportPath));
+  lEnvGuard := SetScopedEnvironmentVariable('DAK_TEST_IMPORT', lEnvImportPath);
   try
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := lDprojPath;
@@ -2098,10 +2044,7 @@ begin
     Assert.IsTrue(ContainsText(ExtractFileName(lCapturingRunner.fExePaths[0]), 'MSBuild.exe'),
       'Expected auto backend fallback to launch MSBuild. Calls: ' + DescribeCapturedProcesses(lCapturingRunner));
   finally
-    if lPreviousImportPath <> '' then
-      Winapi.Windows.SetEnvironmentVariable('DAK_TEST_IMPORT', PChar(lPreviousImportPath))
-    else
-      Winapi.Windows.SetEnvironmentVariable('DAK_TEST_IMPORT', nil);
+    lEnvGuard := nil;
   end;
 end;
 

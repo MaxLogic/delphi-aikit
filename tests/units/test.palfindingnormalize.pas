@@ -27,14 +27,6 @@ const
   cPalFixtureRootEnv = 'DAK_TEST_PAL_FIXTURE_ROOT';
   cAllowMissingPalFixturesEnv = 'DAK_ALLOW_MISSING_PAL_FIXTURES';
 
-procedure SetEnvValue(const aName, aValue: string);
-begin
-  if aValue = '' then
-    SetEnvironmentVariable(PChar(aName), nil)
-  else
-    SetEnvironmentVariable(PChar(aName), PChar(aValue));
-end;
-
 function PalFixtureRoot: string;
 begin
   Result := Trim(GetEnvironmentVariable(cPalFixtureRootEnv));
@@ -138,16 +130,13 @@ end;
 
 procedure TPalFindingNormalizeTests.MissingPalFixturesFailClosedWithoutOptOut;
 var
+  lAllowGuard: IInterface;
   lFailed: Boolean;
-  lOldAllowMissing: string;
-  lOldRoot: string;
+  lRootGuard: IInterface;
 begin
-  lOldRoot := GetEnvironmentVariable(cPalFixtureRootEnv);
-  lOldAllowMissing := GetEnvironmentVariable(cAllowMissingPalFixturesEnv);
+  lRootGuard := SetScopedEnvironmentVariable(cPalFixtureRootEnv, TPath.Combine(TempRoot, 'missing-pal-fixtures'));
+  lAllowGuard := ClearScopedEnvironmentVariable(cAllowMissingPalFixturesEnv);
   try
-    SetEnvValue(cPalFixtureRootEnv, TPath.Combine(TempRoot, 'missing-pal-fixtures'));
-    SetEnvValue(cAllowMissingPalFixturesEnv, '');
-
     lFailed := False;
     try
       NormalizePalFindingsFromFixtures;
@@ -164,8 +153,8 @@ begin
       'Missing PAL fixtures must fail closed unless ' + cAllowMissingPalFixturesEnv +
       ' is explicitly set.');
   finally
-    SetEnvValue(cPalFixtureRootEnv, lOldRoot);
-    SetEnvValue(cAllowMissingPalFixturesEnv, lOldAllowMissing);
+    lAllowGuard := nil;
+    lRootGuard := nil;
   end;
 end;
 

@@ -298,6 +298,18 @@ begin
     WriteLn(aLine);
 end;
 
+procedure EmitErrorLine(const aLine: string);
+begin
+  try
+    WriteLn(ErrOutput, aLine);
+  except
+    on EInOutError do
+    begin
+      // The command result already carries failure; a closed inherited stderr handle must not mask it.
+    end;
+  end;
+end;
+
 function IsCmdScript(const aPath: string): Boolean;
 var
   lExt: string;
@@ -4101,7 +4113,7 @@ begin
   lRunner := TWinProcessRunner.Create;
   Result := RunDfmCheckPipeline(aOptions, lRunner, nil, lCategory, lError);
   if lError <> '' then
-    WriteLn(ErrOutput, lError);
+    EmitErrorLine(lError);
 end;
 
 function TWinProcessRunner.Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;

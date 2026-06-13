@@ -488,7 +488,8 @@ begin
   lRtlSource := Default(TSymbolMapRtlIndexResult);
   lRtlSource.fStatus := 'not-indexed';
   lRtlSource.fDiagnosticsJson := '[]';
-  if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex then
+  if (aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex) and
+    (aOptions.fSymbolMapUnitPath = '') then
   begin
     if not IndexSymbolMapRtlSources(lContext, lCacheStatus, '', lCompilerProfile, lRtlSource, lError) then
     begin

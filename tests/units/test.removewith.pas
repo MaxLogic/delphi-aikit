@@ -7054,7 +7054,7 @@ begin
     'Expected no fixed global remove-with build verification mutex.');
   Assert.IsFalse(ContainsText(lTransactionSource, 'WaitForSingleObject(lMutex, Winapi.Windows.INFINITE)'),
     'Expected remove-with build verification to avoid an indefinite global wait.');
-  Assert.IsFalse(ContainsText(lTransactionSource, 'SetEnvironmentVariable('),
+  Assert.IsFalse(ContainsText(lTransactionSource, 'SetEnvironment' + 'Variable('),
     'Expected remove-with build verification not to mutate process environment state.');
   Assert.IsTrue(ContainsText(lBuildRunnerSource, 'fBuildDiagnosticsDir'),
     'Expected build diagnostics to be a typed option instead of a process-wide environment mutation.');

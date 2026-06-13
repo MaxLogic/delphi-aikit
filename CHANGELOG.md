@@ -160,6 +160,7 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed `symbol-map index --unit` so targeted unit indexing completes quickly when stdout/stderr are redirected, while project-wide indexing remains responsible for warming source-available RTL cache rows. (T-457)
 - `build-delphi.bat` environment-prop forwarding now quotes semicolon-delimited
   values and avoids passing `DCC_UnitSearchPath` as a global MSBuild property,
   preserving project-defined search paths such as `..\src`.
