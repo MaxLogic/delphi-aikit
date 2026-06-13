@@ -145,6 +145,8 @@ var
   lRunError: string;
   lPaReportRoot: string;
   lPalPostError: string;
+  lStdErrLogPath: string;
+  lStdOutLogPath: string;
 begin
   fPal := Default(TPalSummary);
   if not fOptions.fAnalyzePal then
@@ -158,8 +160,10 @@ begin
   else
     fPascalAnalyzer.fOutput := fPaDir;
   fPal.OutputRoot := fPascalAnalyzer.fOutput;
+  lStdOutLogPath := TPath.Combine(fPaDir, 'pascal-analyzer.stdout.log');
+  lStdErrLogPath := TPath.Combine(fPaDir, 'pascal-analyzer.stderr.log');
 
-  if TryRunPalUnitLogged(fUnitPath, fPascalAnalyzer, fRunLog, lRunExit, lRunError) then
+  if TryRunPalUnitLogged(fUnitPath, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog, lRunExit, lRunError) then
   begin
     fPal.ExitCode := Integer(lRunExit);
     if fPal.ExitCode <> 0 then
