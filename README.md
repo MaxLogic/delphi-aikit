@@ -82,6 +82,8 @@ bin\DelphiAIKit.exe build --project "projects\DelphiAIKit.dproj" --delphi 23.0 -
 
 `build` now runs through DelphiAIKit's native Delphi build pipeline. `build-delphi.bat` remains available as a compatibility/bootstrap wrapper, but `DelphiAIKit.exe build` no longer depends on batch/PowerShell helper scripts for normal operation.
 
+`build-delphi.bat` writes wrapper logs under a per-run project `.dak\<ProjectName>\build\run-*` directory by default. Use `-log-dir "<path>"` to choose a caller-owned parent directory for per-run `run-*` log folders, and `-keep-logs` when we need to inspect them after the wrapper exits.
+
 `build` defaults to incremental `Build`; use `--target Rebuild` (or `--rebuild true`) for a full rebuild.
 Additional build flags:
 - `--json` emits machine-readable build results.

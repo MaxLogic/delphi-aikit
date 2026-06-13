@@ -31,6 +31,7 @@ set "MSBUILD_TARGET=%DEFAULT_MSBUILD_TARGET%"
 set "MAX_FINDINGS=%DEFAULT_MAX_FINDINGS%"
 set "BUILD_TIMEOUT_SEC=%DEFAULT_BUILD_TIMEOUT_SEC%"
 set "TEST_OUTPUT_DIR="
+set "BUILD_LOG_DIR="
 set "JSON_MODE="
 set "RESULT_STATUS=internal_error"
 set "BUILD_TIMED_OUT=0"
@@ -108,6 +109,11 @@ if /I "%~1"=="-build-timeout-sec" (
 if /I "%~1"=="-test-output-dir" (
   if "%~2"=="" ( echo ERROR: -test-output-dir requires a value.& set "EXITCODE=2" & set "RESULT_STATUS=invalid" & goto usage_fail )
   set "TEST_OUTPUT_DIR=%~2"
+  shift & shift & goto parse_args
+)
+if /I "%~1"=="-log-dir" (
+  if "%~2"=="" ( echo ERROR: -log-dir requires a value.& set "EXITCODE=2" & set "RESULT_STATUS=invalid" & goto usage_fail )
+  set "BUILD_LOG_DIR=%~2"
   shift & shift & goto parse_args
 )
 if /I "%~1"=="-ignore-warnings" (
@@ -358,16 +364,48 @@ if "%MADEXCEPT_PATCH_REQUIRED%"=="1" (
 )
 
 rem ---- 4) Logs
-for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss_fff"') do set "TS=%%i_!RANDOM!"
-set "LOGDIR=%~dp0"
-set "FULLLOG=%LOGDIR%build_%TS%.log"
-set "OUTLOG=%LOGDIR%out_%TS%.log"
-set "ERRLOG=%LOGDIR%errors_%TS%.log"
+for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss_fff"') do set "TS=%%i"
+for /f %%i in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N')"') do set "RUN_ID=%%i"
+set "DAK_BUILD_PROJECT=%PROJECT%"
+set "DAK_BUILD_LOG_DIR=%BUILD_LOG_DIR%"
+if defined BUILD_LOG_DIR (
+  for /f "usebackq delims=" %%r in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=$env:DAK_BUILD_LOG_DIR; $project=[IO.Path]::GetFullPath($env:DAK_BUILD_PROJECT); $projectDir=[IO.Path]::GetDirectoryName($project); if([IO.Path]::IsPathRooted($p)){ [IO.Path]::GetFullPath($p) } else { [IO.Path]::GetFullPath((Join-Path $projectDir $p)) }"`) do set "LOGROOT=%%r"
+) else (
+  for /f "usebackq delims=" %%r in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$project=[IO.Path]::GetFullPath($env:DAK_BUILD_PROJECT); $projectDir=[IO.Path]::GetDirectoryName($project); $projectName=[IO.Path]::GetFileNameWithoutExtension($project); [IO.Path]::GetFullPath((Join-Path $projectDir (Join-Path '.dak' (Join-Path $projectName 'build'))))"`) do set "LOGROOT=%%r"
+)
+set "DAK_BUILD_PROJECT="
+set "DAK_BUILD_LOG_DIR="
+if defined LOGROOT set "LOGDIR=%LOGROOT%\run-%RUN_ID%"
+if not defined LOGDIR (
+  if not defined JSON_MODE (
+    call :print_elapsed
+    echo FAILED - build log directory could not be resolved
+  )
+  set "EXITCODE=1"
+  set "RESULT_STATUS=internal_error"
+  goto cleanup
+)
+if not exist "%LOGDIR%" mkdir "%LOGDIR%" >nul 2>&1
+if not exist "%LOGDIR%" (
+  if not defined JSON_MODE (
+    call :print_elapsed
+    echo FAILED - build log directory could not be created: %LOGDIR%
+  )
+  set "EXITCODE=1"
+  set "RESULT_STATUS=internal_error"
+  goto cleanup
+)
+set "FULLLOG=%LOGDIR%\msbuild-full.log"
+set "OUTLOG=%LOGDIR%\msbuild-out.log"
+set "ERRLOG=%LOGDIR%\msbuild-errors.log"
+type nul > "%FULLLOG%" 2>nul
+type nul > "%OUTLOG%" 2>nul
+type nul > "%ERRLOG%" 2>nul
 
 rem ---- 5) Build
 set "ARGS=/t:%MSBUILD_TARGET% /p:Config=%BUILD_CONFIG% /p:Platform=%BUILD_PLATFORM% /p:DCC_Quiet=true /p:DCC_UseMSBuildExternally=true /p:DCC_UseResponseFile=1 /p:DCC_UseCommandFile=1 /nologo /v:m /fl /m"
-set "ARGS=!ARGS! /flp:logfile=%FULLLOG%;verbosity=normal"
-set "ARGS=!ARGS! /flp1:logfile=%ERRLOG%;errorsonly;verbosity=quiet"
+set "ARGS=!ARGS! ^"/flp:logfile=%FULLLOG%;verbosity=normal^""
+set "ARGS=!ARGS! ^"/flp1:logfile=%ERRLOG%;errorsonly;verbosity=quiet^""
 if defined TEST_OUTPUT_DIR (
   set "ARGS=!ARGS! /p:DCC_ExeOutput=""%TEST_OUTPUT_DIR%"" /p:DCC_UnitOutputDirectory=""%TEST_OUTPUT_DIR%"" /p:DCC_BplOutput=""%TEST_OUTPUT_DIR%"" /p:DCC_DcpOutput=""%TEST_OUTPUT_DIR%"""
 )
@@ -507,7 +545,7 @@ if "%MADEXCEPT_PATCH_REQUIRED%"=="1" (
     goto cleanup
   )
 
-  set "MADEXCEPT_PATCH_LOG=%LOGDIR%madexcept_%TS%.log"
+  set "MADEXCEPT_PATCH_LOG=%LOGDIR%\madexcept-patch.log"
   cmd /c ""!MADEXCEPT_PATCH_EXE!" "!MADEXCEPT_TARGET_EXE!" "!MADEXCEPT_MES!" > "!MADEXCEPT_PATCH_LOG!" 2>&1"
   set "MADEXCEPT_RC=!ERRORLEVEL!"
   if not "!MADEXCEPT_RC!"=="0" (
@@ -628,7 +666,7 @@ goto cleanup
 if /I "%RESULT_STATUS%"=="internal_error" set "RESULT_STATUS=invalid"
 if not defined JSON_MODE (
   echo.
-  echo Usage: %~nx0 ^<project.dproj^> [-ver N] [-config Debug^|Release] [-platform Platform] [-target Build^|Rebuild] [-rebuild] [-max-findings N] [-build-timeout-sec N] [-test-output-dir Path] [-json] [-ignore-warnings List] [-ignore-hints List] [-exclude-path-masks List] [-keep-logs] [-ai] [-show-warnings] [-show-hints] [-show-warnings-on-success] [-no-brand]
+  echo Usage: %~nx0 ^<project.dproj^> [-ver N] [-config Debug^|Release] [-platform Platform] [-target Build^|Rebuild] [-rebuild] [-max-findings N] [-build-timeout-sec N] [-test-output-dir Path] [-log-dir Path] [-json] [-ignore-warnings List] [-ignore-hints List] [-exclude-path-masks List] [-keep-logs] [-ai] [-show-warnings] [-show-hints] [-show-warnings-on-success] [-no-brand]
 )
 goto cleanup
 
@@ -719,8 +757,10 @@ if defined KEEP_LOGS (
 ) else (
   if defined FULLLOG if exist "%FULLLOG%" del /q "%FULLLOG%" >nul 2>&1
   if defined OUTLOG  if exist "%OUTLOG%"  del /q "%OUTLOG%"  >nul 2>&1
+  if defined OUTLOG  if exist "%OUTLOG%.stderr.tmp" del /q "%OUTLOG%.stderr.tmp" >nul 2>&1
   if defined ERRLOG  if exist "%ERRLOG%"  del /q "%ERRLOG%"  >nul 2>&1
   if defined MADEXCEPT_PATCH_LOG if exist "%MADEXCEPT_PATCH_LOG%" del /q "%MADEXCEPT_PATCH_LOG%" >nul 2>&1
+  if defined LOGDIR if exist "%LOGDIR%" rmdir "%LOGDIR%" >nul 2>&1
 )
 set "code=%EXITCODE%"
 popd
