@@ -3,10 +3,11 @@ unit Test.Support;
 interface
 
 uses
-  System.SysUtils,
   System.Classes,
   System.IOUtils,
   System.StrUtils,
+  System.SysUtils,
+  System.SyncObjs,
   Winapi.Windows,
   DUnitX.TestFramework,
   maxLogic.ioutils,
@@ -26,10 +27,36 @@ procedure RequireFixInsightOrSkip(out aExePath: string);
 procedure RequirePalCmdOrSkip(out aExePath: string);
 procedure RequireRealDelphiLsp23OrSkip(out aExePath: string);
 function RunProcess(const aExe, aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
+function RunProcessWithTimeout(const aExe, aArgs, aWorkDir, aOutputFile: string;
+  const aTimeoutMs: Cardinal; out aExitCode: Cardinal): Boolean;
 function StartSlowPingProcess(out aProcess: THandle; out aThread: THandle; out aError: string): Boolean;
 function QuoteArg(const aValue: string): string;
+function SetScopedEnvironmentVariable(const aName, aValue: string): IInterface;
+function SetScopedEnvironmentVariables(const aNameValuePairs: array of string): IInterface;
+function ClearScopedEnvironmentVariable(const aName: string): IInterface;
 
 implementation
+
+type
+  TScopedEnvironmentVariable = class(TInterfacedObject)
+  private
+    fHadPreviousValue: Boolean;
+    fName: string;
+    fPreviousValue: string;
+  public
+    constructor Create(const aName, aValue: string; aClearValue: Boolean);
+    destructor Destroy; override;
+  end;
+
+  TScopedEnvironmentVariables = class(TInterfacedObject)
+  private
+    fHadPreviousValues: TArray<Boolean>;
+    fNames: TArray<string>;
+    fPreviousValues: TArray<string>;
+  public
+    constructor Create(const aNameValuePairs: array of string);
+    destructor Destroy; override;
+  end;
 
 var
   GRepoRoot: string;
@@ -37,6 +64,120 @@ var
   GTempCleaned: Boolean = False;
   GResolverBuilt: Boolean = False;
   GResolverExe: string = '';
+  GEnvironmentLock: TCriticalSection;
+
+function TryReadEnvironmentVariable(const aName: string; out aValue: string): Boolean;
+var
+  lSize: DWORD;
+begin
+  aValue := '';
+  SetLastError(ERROR_SUCCESS);
+  lSize := Winapi.Windows.GetEnvironmentVariable(PChar(aName), nil, 0);
+  Result := lSize > 0;
+  if not Result then
+    Exit;
+  SetLength(aValue, lSize - 1);
+  if lSize > 1 then
+    Winapi.Windows.GetEnvironmentVariable(PChar(aName), PChar(aValue), lSize);
+end;
+
+procedure SetEnvironmentVariableOrRaise(const aName, aValue: string);
+begin
+  if not Winapi.Windows.SetEnvironmentVariable(PChar(aName), PChar(aValue)) then
+    RaiseLastOSError;
+end;
+
+procedure ClearEnvironmentVariableOrRaise(const aName: string);
+begin
+  if not Winapi.Windows.SetEnvironmentVariable(PChar(aName), nil) then
+    RaiseLastOSError;
+end;
+
+constructor TScopedEnvironmentVariable.Create(const aName, aValue: string; aClearValue: Boolean);
+begin
+  inherited Create;
+  GEnvironmentLock.Enter;
+  try
+    fName := aName;
+    fHadPreviousValue := TryReadEnvironmentVariable(aName, fPreviousValue);
+    if aClearValue then
+      ClearEnvironmentVariableOrRaise(aName)
+    else
+      SetEnvironmentVariableOrRaise(aName, aValue);
+  except
+    GEnvironmentLock.Leave;
+    raise;
+  end;
+end;
+
+destructor TScopedEnvironmentVariable.Destroy;
+begin
+  if fHadPreviousValue then
+    SetEnvironmentVariableOrRaise(fName, fPreviousValue)
+  else
+    ClearEnvironmentVariableOrRaise(fName);
+  GEnvironmentLock.Leave;
+  inherited Destroy;
+end;
+
+function SetScopedEnvironmentVariable(const aName, aValue: string): IInterface;
+begin
+  Result := TScopedEnvironmentVariable.Create(aName, aValue, False);
+end;
+
+constructor TScopedEnvironmentVariables.Create(const aNameValuePairs: array of string);
+var
+  i: Integer;
+  lIndex: Integer;
+begin
+  inherited Create;
+  if (Length(aNameValuePairs) mod 2) <> 0 then
+    raise Exception.Create('Scoped environment pairs must contain name/value entries.');
+  GEnvironmentLock.Enter;
+  try
+    SetLength(fNames, Length(aNameValuePairs) div 2);
+    SetLength(fPreviousValues, Length(fNames));
+    SetLength(fHadPreviousValues, Length(fNames));
+    lIndex := 0;
+    i := 0;
+    while i < Length(aNameValuePairs) do
+    begin
+      fNames[lIndex] := aNameValuePairs[i];
+      fHadPreviousValues[lIndex] := TryReadEnvironmentVariable(fNames[lIndex], fPreviousValues[lIndex]);
+      SetEnvironmentVariableOrRaise(fNames[lIndex], aNameValuePairs[i + 1]);
+      Inc(lIndex);
+      Inc(i, 2);
+    end;
+  except
+    GEnvironmentLock.Leave;
+    raise;
+  end;
+end;
+
+destructor TScopedEnvironmentVariables.Destroy;
+var
+  i: Integer;
+begin
+  for i := High(fNames) downto 0 do
+  begin
+    if fHadPreviousValues[i] then
+      SetEnvironmentVariableOrRaise(fNames[i], fPreviousValues[i])
+    else
+      ClearEnvironmentVariableOrRaise(fNames[i]);
+  end;
+  GEnvironmentLock.Leave;
+  inherited Destroy;
+end;
+
+function SetScopedEnvironmentVariables(const aNameValuePairs: array of string): IInterface;
+begin
+  Result := TScopedEnvironmentVariables.Create(aNameValuePairs);
+end;
+
+function ClearScopedEnvironmentVariable(const aName: string): IInterface;
+begin
+  Result := TScopedEnvironmentVariable.Create(aName, '', True);
+end;
 
 function NewRunTempRoot(const aBaseRoot: string): string;
 var
@@ -205,6 +346,113 @@ begin
     end;
     try
       lWait := WaitForSingleObject(lPi.hProcess, INFINITE);
+      if lWait <> WAIT_OBJECT_0 then
+      begin
+        lLastError := GetLastError;
+        raise Exception.Create('Process wait failed: ' + SysErrorMessage(lLastError));
+      end;
+      if not GetExitCodeProcess(lPi.hProcess, aExitCode) then
+      begin
+        lLastError := GetLastError;
+        raise Exception.Create('Process exit code failed: ' + SysErrorMessage(lLastError));
+      end;
+    finally
+      CloseHandle(lPi.hThread);
+      CloseHandle(lPi.hProcess);
+    end;
+
+    Result := True;
+  finally
+    if lOutHandle <> INVALID_HANDLE_VALUE then
+      CloseHandle(lOutHandle);
+  end;
+end;
+
+function RunProcessWithTimeout(const aExe, aArgs, aWorkDir, aOutputFile: string;
+  const aTimeoutMs: Cardinal; out aExitCode: Cardinal): Boolean;
+var
+  lCmdLine: string;
+  lCreateError: Cardinal;
+  lLastError: Cardinal;
+  lOutHandle: THandle;
+  lOutputDir: string;
+  lPi: TProcessInformation;
+  lSa: TSecurityAttributes;
+  lSi: TStartupInfo;
+  lWait: Cardinal;
+  lWorkDir: string;
+begin
+  Result := False;
+  aExitCode := STILL_ACTIVE;
+  lOutHandle := INVALID_HANDLE_VALUE;
+  lCreateError := ERROR_SUCCESS;
+  if aOutputFile <> '' then
+  begin
+    lOutputDir := ExtractFileDir(aOutputFile);
+    if lOutputDir <> '' then
+      ForceDirectories(lOutputDir);
+    FillChar(lSa, SizeOf(lSa), 0);
+    lSa.nLength := SizeOf(lSa);
+    lSa.bInheritHandle := True;
+    lOutHandle := CreateFile(PChar(aOutputFile), GENERIC_WRITE, FILE_SHARE_READ, @lSa, CREATE_ALWAYS,
+      FILE_ATTRIBUTE_NORMAL, 0);
+    if lOutHandle = INVALID_HANDLE_VALUE then
+    begin
+      lCreateError := GetLastError;
+      raise Exception.Create('Failed to create output file: ' + aOutputFile + ' (' +
+        SysErrorMessage(lCreateError) + ')');
+    end;
+  end;
+
+  try
+    FillChar(lSi, SizeOf(lSi), 0);
+    lSi.cb := SizeOf(lSi);
+    lSi.dwFlags := STARTF_USESTDHANDLES;
+    lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
+    if lOutHandle <> INVALID_HANDLE_VALUE then
+    begin
+      lSi.hStdOutput := lOutHandle;
+      lSi.hStdError := lOutHandle;
+    end else
+    begin
+      lSi.hStdOutput := GetStdHandle(STD_OUTPUT_HANDLE);
+      lSi.hStdError := GetStdHandle(STD_ERROR_HANDLE);
+    end;
+
+    FillChar(lPi, SizeOf(lPi), 0);
+    lCmdLine := QuoteArg(aExe);
+    if aArgs <> '' then
+      lCmdLine := lCmdLine + ' ' + aArgs;
+    UniqueString(lCmdLine);
+    lWorkDir := aWorkDir;
+    if lWorkDir = '' then
+      lWorkDir := ExtractFilePath(aExe);
+
+    if not CreateProcess(PChar(aExe), PChar(lCmdLine), nil, nil, True, 0, nil, PChar(lWorkDir), lSi, lPi) then
+    begin
+      lLastError := GetLastError;
+      raise Exception.Create('Process start failed: ' + SysErrorMessage(lLastError));
+    end;
+    try
+      lWait := WaitForSingleObject(lPi.hProcess, aTimeoutMs);
+      if lWait = WAIT_TIMEOUT then
+      begin
+        if not TerminateProcess(lPi.hProcess, Cardinal(ERROR_TIMEOUT)) then
+        begin
+          lLastError := GetLastError;
+          raise Exception.Create('Process termination failed: ' + SysErrorMessage(lLastError));
+        end;
+        lWait := WaitForSingleObject(lPi.hProcess, 5000);
+        if lWait = WAIT_TIMEOUT then
+          raise Exception.Create('Process did not terminate after timeout: ' + aExe);
+        if lWait <> WAIT_OBJECT_0 then
+        begin
+          lLastError := GetLastError;
+          raise Exception.Create('Process termination wait failed: ' + SysErrorMessage(lLastError));
+        end;
+        GetExitCodeProcess(lPi.hProcess, aExitCode);
+        Exit(False);
+      end;
       if lWait <> WAIT_OBJECT_0 then
       begin
         lLastError := GetLastError;
@@ -410,9 +658,11 @@ begin
 end;
 
 initialization
+  GEnvironmentLock := TCriticalSection.Create;
   EnsureTempClean;
 
 finalization
   CleanupTempRoot;
+  GEnvironmentLock.Free;
 
 end.

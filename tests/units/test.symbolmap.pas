@@ -73,6 +73,8 @@ type
     [Test]
     procedure IndexUnitCommandReportsOneIndexedUnit;
     [Test]
+    procedure IndexUnitCommandRedirectedOutputCompletes;
+    [Test]
     procedure IndexProjectUsesSharedProjectSourceFiles;
   end;
 
@@ -1921,12 +1923,23 @@ begin
 end;
 
 function TSymbolMapApiTests.BaseOptions(const aCacheRoot: string): TAppOptions;
+var
+  lRoot: string;
+  lRsVarsPath: string;
 begin
+  lRoot := UniqueTempPath('symbol-map-api-no-rtl-bds');
+  lRsVarsPath := TPath.Combine(lRoot, 'bin\rsvars.bat');
+  ForceDirectories(TPath.GetDirectoryName(lRsVarsPath));
+  TFile.WriteAllText(lRsVarsPath, '@echo off' + sLineBreak + 'set BDS=' + lRoot + sLineBreak,
+    TEncoding.ASCII);
+
   Result := Default(TAppOptions);
   Result.fDprojPath := FixtureProjectPath;
   Result.fConfig := 'Release';
   Result.fPlatform := 'Win32';
   Result.fDelphiVersion := '23';
+  Result.fRsVarsPath := lRsVarsPath;
+  Result.fHasRsVarsPath := True;
   Result.fSymbolMapCacheRoot := aCacheRoot;
   Result.fHasSymbolMapCacheRoot := True;
 end;
@@ -2629,6 +2642,42 @@ begin
   end;
 end;
 
+procedure TSymbolMapSourceUnitTests.IndexUnitCommandRedirectedOutputCompletes;
+var
+  lArgs: string;
+  lCacheRoot: string;
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLogPath: string;
+  lLogText: string;
+  lRtlSource: TJSONObject;
+begin
+  EnsureResolverBuilt;
+  lCacheRoot := UniqueTempPath('symbol-map-redirect-cache');
+  lLogPath := UniqueTempPath('symbol-map-redirect') + '.json';
+  lArgs := 'symbol-map index --project ' + QuoteArg(FixtureProjectPath) + ' --unit ' +
+    QuoteArg(FixtureUnitPath) + ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
+
+  Assert.IsTrue(RunProcessWithTimeout(ResolverExePath, lArgs, RepoRoot, lLogPath, 10000,
+    lExitCode), 'Expected redirected symbol-map index command to complete within 10s. See: ' +
+    lLogPath);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map index to succeed. See: ' +
+    lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath);
+  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lJsonValue);
+    Assert.AreEqual('ok', lJson.GetValue<string>('status'));
+    lRtlSource := lJson.GetValue('rtlSource') as TJSONObject;
+    Assert.AreEqual('not-indexed', lRtlSource.GetValue<string>('status'));
+  finally
+    lJsonValue.Free;
+  end;
+end;
+
 procedure TSymbolMapSourceUnitTests.IndexProjectUsesSharedProjectSourceFiles;
 var
   lArgs: string;
@@ -2785,13 +2834,12 @@ procedure TSymbolMapContextTests.CacheRootEnvironmentOverridesCentralRoot;
 var
   lContext: TSymbolMapContext;
   lError: string;
-  lOldRoot: string;
+  lEnvGuard: IInterface;
   lOptions: TAppOptions;
   lRoot: string;
 begin
   lRoot := TPath.Combine(TempRoot, 'symbol-map-cache-env');
-  lOldRoot := GetEnvironmentVariable('DAK_SYMBOL_MAP_CACHE_ROOT');
-  SetEnvironmentVariable('DAK_SYMBOL_MAP_CACHE_ROOT', PChar(lRoot));
+  lEnvGuard := SetScopedEnvironmentVariable('DAK_SYMBOL_MAP_CACHE_ROOT', lRoot);
   try
     lOptions := Default(TAppOptions);
     lOptions.fDprojPath := FixtureProjectPath;
@@ -2801,10 +2849,7 @@ begin
     Assert.IsTrue(TryBuildSymbolMapContext(lOptions, lContext, lError), 'Expected context to resolve. Error: ' + lError);
     Assert.AreEqual(TPath.GetFullPath(lRoot), lContext.fCentralCacheRoot);
   finally
-    if lOldRoot = '' then
-      SetEnvironmentVariable('DAK_SYMBOL_MAP_CACHE_ROOT', nil)
-    else
-      SetEnvironmentVariable('DAK_SYMBOL_MAP_CACHE_ROOT', PChar(lOldRoot));
+    lEnvGuard := nil;
   end;
 end;
 
@@ -3118,9 +3163,9 @@ procedure TSymbolMapApiTests.PreparedSessionIndexesRtlSourceForMathRoutine;
 var
   lCacheRoot: string;
   lError: string;
+  lEnvGuard: IInterface;
   lLookup: TSymbolMapApiLookupResult;
   lMathPath: string;
-  lOldBds: string;
   lOptions: TAppOptions;
   lRoot: string;
   lRsVarsPath: string;
@@ -3140,8 +3185,7 @@ begin
   TFile.WriteAllText(lRsVarsPath, '@echo off' + sLineBreak + 'set BDS=' + lRoot + sLineBreak,
     TEncoding.ASCII);
 
-  lOldBds := GetEnvironmentVariable('BDS');
-  SetEnvironmentVariable('BDS', PChar(lRoot));
+  lEnvGuard := SetScopedEnvironmentVariable('BDS', lRoot);
   try
     lOptions := BaseOptions(lCacheRoot);
     lOptions.fRsVarsPath := lRsVarsPath;
@@ -3158,10 +3202,7 @@ begin
     Assert.AreEqual('rtl-source', lLookup.fDefinition.fSourceKind);
     Assert.AreEqual('System.Math', lLookup.fDefinition.fUnitName);
   finally
-    if lOldBds = '' then
-      SetEnvironmentVariable('BDS', nil)
-    else
-      SetEnvironmentVariable('BDS', PChar(lOldBds));
+    lEnvGuard := nil;
   end;
 end;
 
