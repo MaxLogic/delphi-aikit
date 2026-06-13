@@ -8,6 +8,7 @@ uses
   Dak.Messages, Dak.Types;
 
 function TryParseOptions(out aOptions: TAppOptions; out aError: string): Boolean;
+function CommandRoutesAs(const aCommand: TCommandKind; const aRouteCommand: TCommandKind): Boolean;
 function TryGetCommand(out aCommand: TCommandKind; out aHasCommand: Boolean; out aError: string): Boolean;
 procedure WriteUsage(const aCommand: TCommandKind; const aShowGlobalOnly: Boolean);
 function IsHelpRequested: Boolean;
@@ -16,6 +17,115 @@ implementation
 
 uses
   DelphiSemantics.DeadCode;
+
+type
+  TCommandRoute = (crResolve, crAnalyze, crBuild, crDfmCheck, crDfmInspect, crGlobalVars, crDeps, crLsp,
+    crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode);
+
+  TCommandDescriptor = record
+    fCommand: TCommandKind;
+    fPrimaryToken: string;
+    fAliases: string;
+    fUsage: string;
+    fRoute: TCommandRoute;
+  end;
+
+function CommandDescriptor(const aCommand: TCommandKind; const aPrimaryToken: string; const aAliases: string;
+  const aUsage: string; const aRoute: TCommandRoute): TCommandDescriptor;
+begin
+  Result.fCommand := aCommand;
+  Result.fPrimaryToken := aPrimaryToken;
+  Result.fAliases := aAliases;
+  Result.fUsage := aUsage;
+  Result.fRoute := aRoute;
+end;
+
+function GetCommandDescriptors: TArray<TCommandDescriptor>;
+begin
+  SetLength(Result, 14);
+  Result[0] := CommandDescriptor(TCommandKind.ckResolve, 'resolve', '', SUsageResolve, TCommandRoute.crResolve);
+  Result[1] := CommandDescriptor(TCommandKind.ckAnalyzeProject, 'analyze', 'analyze-project', SUsageAnalyze,
+    TCommandRoute.crAnalyze);
+  Result[2] := CommandDescriptor(TCommandKind.ckAnalyzeUnit, 'analyze-unit', '', SUsageAnalyze,
+    TCommandRoute.crAnalyze);
+  Result[3] := CommandDescriptor(TCommandKind.ckBuild, 'build', '', SUsageBuild, TCommandRoute.crBuild);
+  Result[4] := CommandDescriptor(TCommandKind.ckDfmCheck, 'dfm-check', '', SUsageDfmCheck,
+    TCommandRoute.crDfmCheck);
+  Result[5] := CommandDescriptor(TCommandKind.ckDfmInspect, 'dfm-inspect', '', SUsageDfmInspect,
+    TCommandRoute.crDfmInspect);
+  Result[6] := CommandDescriptor(TCommandKind.ckGlobalVars, 'global-vars', '', SUsageGlobalVars,
+    TCommandRoute.crGlobalVars);
+  Result[7] := CommandDescriptor(TCommandKind.ckDeps, 'deps', '', SUsageDeps, TCommandRoute.crDeps);
+  Result[8] := CommandDescriptor(TCommandKind.ckLsp, 'lsp', '', SUsageLsp, TCommandRoute.crLsp);
+  Result[9] := CommandDescriptor(TCommandKind.ckRemoveWith, 'remove-with', '', SUsageRemoveWith,
+    TCommandRoute.crRemoveWith);
+  Result[10] := CommandDescriptor(TCommandKind.ckSymbolMap, 'symbol-map', '', SUsageSymbolMap,
+    TCommandRoute.crSymbolMap);
+  Result[11] := CommandDescriptor(TCommandKind.ckFindUsages, 'find-usages', '', SUsageFindUsages,
+    TCommandRoute.crFindUsages);
+  Result[12] := CommandDescriptor(TCommandKind.ckRename, 'rename', '', SUsageRename, TCommandRoute.crRename);
+  Result[13] := CommandDescriptor(TCommandKind.ckDeadCode, 'dead-code', '', SUsageDeadCode,
+    TCommandRoute.crDeadCode);
+end;
+
+function CommandDescriptorMatchesToken(const aDescriptor: TCommandDescriptor; const aToken: string): Boolean;
+var
+  lAlias: string;
+  lAliases: TArray<string>;
+begin
+  if SameText(aToken, aDescriptor.fPrimaryToken) then
+    Exit(True);
+
+  if aDescriptor.fAliases = '' then
+    Exit(False);
+
+  lAliases := aDescriptor.fAliases.Split(['|']);
+  for lAlias in lAliases do
+    if SameText(aToken, Trim(lAlias)) then
+      Exit(True);
+
+  Result := False;
+end;
+
+function TryGetCommandDescriptor(const aCommand: TCommandKind; out aDescriptor: TCommandDescriptor): Boolean;
+var
+  lDescriptor: TCommandDescriptor;
+begin
+  for lDescriptor in GetCommandDescriptors do
+    if lDescriptor.fCommand = aCommand then
+    begin
+      aDescriptor := lDescriptor;
+      Exit(True);
+    end;
+
+  aDescriptor := Default(TCommandDescriptor);
+  Result := False;
+end;
+
+function CommandRoutesAs(const aCommand: TCommandKind; const aRouteCommand: TCommandKind): Boolean;
+var
+  lCommandDescriptor: TCommandDescriptor;
+  lRouteDescriptor: TCommandDescriptor;
+begin
+  Result := TryGetCommandDescriptor(aCommand, lCommandDescriptor) and
+    TryGetCommandDescriptor(aRouteCommand, lRouteDescriptor) and
+    (lCommandDescriptor.fRoute = lRouteDescriptor.fRoute);
+end;
+
+function TryGetCommandKindForToken(const aToken: string; out aCommand: TCommandKind): Boolean;
+var
+  lDescriptor: TCommandDescriptor;
+begin
+  for lDescriptor in GetCommandDescriptors do
+    if CommandDescriptorMatchesToken(lDescriptor, aToken) then
+    begin
+      aCommand := lDescriptor.fCommand;
+      Exit(True);
+    end;
+
+  aCommand := TCommandKind.ckResolve;
+  Result := False;
+end;
 
 function IsHelpRequested: Boolean;
 var
@@ -41,41 +151,6 @@ var
   lSkipNextToken: Boolean;
   lPrefixes: TSwitchPrefixes;
   lParsedCommand: TCommandKind;
-
-  function TryParseCommandToken(const aArg: string; out aParsedCommand: TCommandKind): Boolean;
-  begin
-    Result := True;
-    if SameText(aArg, 'resolve') then
-      aParsedCommand := TCommandKind.ckResolve
-    else if SameText(aArg, 'analyze') or SameText(aArg, 'analyze-project') then
-      aParsedCommand := TCommandKind.ckAnalyzeProject
-    else if SameText(aArg, 'analyze-unit') then
-      aParsedCommand := TCommandKind.ckAnalyzeUnit
-    else if SameText(aArg, 'build') then
-      aParsedCommand := TCommandKind.ckBuild
-    else if SameText(aArg, 'dfm-check') then
-      aParsedCommand := TCommandKind.ckDfmCheck
-    else if SameText(aArg, 'dfm-inspect') then
-      aParsedCommand := TCommandKind.ckDfmInspect
-    else if SameText(aArg, 'global-vars') then
-      aParsedCommand := TCommandKind.ckGlobalVars
-    else if SameText(aArg, 'deps') then
-      aParsedCommand := TCommandKind.ckDeps
-    else if SameText(aArg, 'lsp') then
-      aParsedCommand := TCommandKind.ckLsp
-    else if SameText(aArg, 'remove-with') then
-      aParsedCommand := TCommandKind.ckRemoveWith
-    else if SameText(aArg, 'symbol-map') then
-      aParsedCommand := TCommandKind.ckSymbolMap
-    else if SameText(aArg, 'find-usages') then
-      aParsedCommand := TCommandKind.ckFindUsages
-    else if SameText(aArg, 'rename') then
-      aParsedCommand := TCommandKind.ckRename
-    else if SameText(aArg, 'dead-code') then
-      aParsedCommand := TCommandKind.ckDeadCode
-    else
-      Result := False;
-  end;
 
   function TrySplitSwitchToken(const aArg: string; out aSwitch: string; out aValue: string;
     out aHasValue: Boolean): Boolean;
@@ -207,7 +282,7 @@ begin
 
     if (lArg <> '') and (lArg[1] <> '-') and (lArg[1] <> '/') then
     begin
-      if TryParseCommandToken(lArg, lParsedCommand) then
+      if TryGetCommandKindForToken(lArg, lParsedCommand) then
       begin
         if aHasCommand then
         begin
@@ -227,6 +302,8 @@ begin
 end;
 
 procedure WriteUsage(const aCommand: TCommandKind; const aShowGlobalOnly: Boolean);
+var
+  lDescriptor: TCommandDescriptor;
 begin
   if aShowGlobalOnly then
   begin
@@ -234,34 +311,9 @@ begin
     Exit;
   end;
 
-  case aCommand of
-    TCommandKind.ckAnalyzeProject, TCommandKind.ckAnalyzeUnit:
-      WriteLn(ErrOutput, SUsageAnalyze);
-    TCommandKind.ckBuild:
-      WriteLn(ErrOutput, SUsageBuild);
-    TCommandKind.ckDfmCheck:
-      WriteLn(ErrOutput, SUsageDfmCheck);
-    TCommandKind.ckDfmInspect:
-      WriteLn(ErrOutput, SUsageDfmInspect);
-    TCommandKind.ckGlobalVars:
-      WriteLn(ErrOutput, SUsageGlobalVars);
-    TCommandKind.ckDeps:
-      WriteLn(ErrOutput, SUsageDeps);
-    TCommandKind.ckLsp:
-      WriteLn(ErrOutput, SUsageLsp);
-    TCommandKind.ckRemoveWith:
-      WriteLn(ErrOutput, SUsageRemoveWith);
-    TCommandKind.ckSymbolMap:
-      WriteLn(ErrOutput, SUsageSymbolMap);
-    TCommandKind.ckFindUsages:
-      WriteLn(ErrOutput, SUsageFindUsages);
-    TCommandKind.ckRename:
-      WriteLn(ErrOutput, SUsageRename);
-    TCommandKind.ckDeadCode:
-      WriteLn(ErrOutput, SUsageDeadCode);
-  else
-    WriteLn(ErrOutput, SUsageResolve);
-  end;
+  if not TryGetCommandDescriptor(aCommand, lDescriptor) then
+    lDescriptor := CommandDescriptor(TCommandKind.ckResolve, 'resolve', '', SUsageResolve, TCommandRoute.crResolve);
+  WriteLn(ErrOutput, lDescriptor.fUsage);
 end;
 
 type
@@ -284,7 +336,6 @@ type
     function TakeValue(const aRequiresValue: Boolean; const aAllowsValue: Boolean; const aInlineValue: string;
       const aHasInlineValue: Boolean; out aOutValue: string; const aArgName: string;
       const aAllowSwitchValue: Boolean = False): Boolean;
-    function TrySetCommandFromArg(const aArg: string): Boolean;
     function TryParseCommand: Boolean;
     function TryParseArgs: Boolean;
     function TryParseSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
@@ -588,44 +639,6 @@ begin
   Result := True;
 end;
 
-function TOptionParser.TrySetCommandFromArg(const aArg: string): Boolean;
-begin
-  if SameText(aArg, 'resolve') then
-    fOptions.fCommand := TCommandKind.ckResolve
-  else if SameText(aArg, 'analyze') or SameText(aArg, 'analyze-project') then
-    fOptions.fCommand := TCommandKind.ckAnalyzeProject
-  else if SameText(aArg, 'analyze-unit') then
-    fOptions.fCommand := TCommandKind.ckAnalyzeUnit
-  else if SameText(aArg, 'build') then
-    fOptions.fCommand := TCommandKind.ckBuild
-  else if SameText(aArg, 'dfm-check') then
-    fOptions.fCommand := TCommandKind.ckDfmCheck
-  else if SameText(aArg, 'dfm-inspect') then
-    fOptions.fCommand := TCommandKind.ckDfmInspect
-  else if SameText(aArg, 'global-vars') then
-    fOptions.fCommand := TCommandKind.ckGlobalVars
-  else if SameText(aArg, 'deps') then
-    fOptions.fCommand := TCommandKind.ckDeps
-  else if SameText(aArg, 'lsp') then
-    fOptions.fCommand := TCommandKind.ckLsp
-  else if SameText(aArg, 'remove-with') then
-    fOptions.fCommand := TCommandKind.ckRemoveWith
-  else if SameText(aArg, 'symbol-map') then
-    fOptions.fCommand := TCommandKind.ckSymbolMap
-  else if SameText(aArg, 'find-usages') then
-    fOptions.fCommand := TCommandKind.ckFindUsages
-  else if SameText(aArg, 'rename') then
-    fOptions.fCommand := TCommandKind.ckRename
-  else if SameText(aArg, 'dead-code') then
-    fOptions.fCommand := TCommandKind.ckDeadCode
-  else
-  begin
-    fError := Format(SUnknownCommand, [aArg]);
-    Exit(False);
-  end;
-  Result := True;
-end;
-
 function TOptionParser.TryParseCommand: Boolean;
 var
   lArg: string;
@@ -640,8 +653,11 @@ begin
   lArg := fList[0];
   if not TrySplitSwitch(lArg, fParams.SwitchPrefixes, lSwitch, lInlineValue, lHasInlineValue) then
   begin
-    if not TrySetCommandFromArg(lArg) then
+    if not TryGetCommandKindForToken(lArg, fOptions.fCommand) then
+    begin
+      fError := Format(SUnknownCommand, [lArg]);
       Exit(False);
+    end;
     fIndex := 1;
   end;
 end;

@@ -85,6 +85,12 @@ type
     [Test]
     procedure LoadDefaultDelphiVersionUsesProjectLocalDakIni;
     [Test]
+    procedure CommandMetadataHasSingleTokenRegistry;
+    [Test]
+    procedure CommandMetadataParsesAdvertisedTokens;
+    [Test]
+    procedure CommandMetadataCoversAllCommandKinds;
+    [Test]
     procedure HelpCommandIgnoresSwitchValueTokens;
     [Test]
     procedure HelpCommandFindsExplicitCommandAfterSwitchValues;
@@ -849,6 +855,75 @@ begin
     if TDirectory.Exists(lBaseDir) then
       TDirectory.Delete(lBaseDir, True);
   end;
+end;
+
+procedure TCliTests.CommandMetadataHasSingleTokenRegistry;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.cli.pas'));
+
+  Assert.IsFalse(lSource.Contains('function TryParseCommandToken('),
+    'TryGetCommand must use the shared command metadata registry, not a nested token parser.');
+  Assert.IsFalse(lSource.Contains('function TOptionParser.TrySetCommandFromArg('),
+    'TOptionParser must use the shared command metadata registry, not its own token parser.');
+  Assert.IsFalse(lSource.Contains('SameText(aArg, ''resolve'')'),
+    'Command token aliases must be centralized instead of repeated as SameText(aArg, ...) chains.');
+end;
+
+procedure TCliTests.CommandMetadataParsesAdvertisedTokens;
+type
+  TExpectedCommandToken = record
+    fToken: string;
+    fCommand: TCommandKind;
+  end;
+const
+  cTokens: array[0..14] of TExpectedCommandToken = (
+    (fToken: 'resolve'; fCommand: TCommandKind.ckResolve),
+    (fToken: 'analyze'; fCommand: TCommandKind.ckAnalyzeProject),
+    (fToken: 'analyze-project'; fCommand: TCommandKind.ckAnalyzeProject),
+    (fToken: 'analyze-unit'; fCommand: TCommandKind.ckAnalyzeUnit),
+    (fToken: 'build'; fCommand: TCommandKind.ckBuild),
+    (fToken: 'dfm-check'; fCommand: TCommandKind.ckDfmCheck),
+    (fToken: 'dfm-inspect'; fCommand: TCommandKind.ckDfmInspect),
+    (fToken: 'global-vars'; fCommand: TCommandKind.ckGlobalVars),
+    (fToken: 'deps'; fCommand: TCommandKind.ckDeps),
+    (fToken: 'lsp'; fCommand: TCommandKind.ckLsp),
+    (fToken: 'remove-with'; fCommand: TCommandKind.ckRemoveWith),
+    (fToken: 'symbol-map'; fCommand: TCommandKind.ckSymbolMap),
+    (fToken: 'find-usages'; fCommand: TCommandKind.ckFindUsages),
+    (fToken: 'rename'; fCommand: TCommandKind.ckRename),
+    (fToken: 'dead-code'; fCommand: TCommandKind.ckDeadCode)
+  );
+var
+  lCommand: TCommandKind;
+  lError: string;
+  lHasCommand: Boolean;
+  lToken: TExpectedCommandToken;
+begin
+  for lToken in cTokens do
+  begin
+    SetParams('--help ' + lToken.fToken);
+    Assert.IsTrue(TryGetCommand(lCommand, lHasCommand, lError),
+      'Expected help command detection for token "' + lToken.fToken + '". Error: ' + lError);
+    Assert.IsTrue(lHasCommand, 'Expected explicit command detection for token "' + lToken.fToken + '".');
+    Assert.AreEqual(lToken.fCommand, lCommand, 'Unexpected command kind for token "' + lToken.fToken + '".');
+    Assert.AreEqual('', lError, 'Expected no command-detection error for token "' + lToken.fToken + '".');
+  end;
+end;
+
+procedure TCliTests.CommandMetadataCoversAllCommandKinds;
+var
+  lCommand: TCommandKind;
+begin
+  for lCommand := Low(TCommandKind) to High(TCommandKind) do
+    Assert.IsTrue(CommandRoutesAs(lCommand, lCommand), 'Expected descriptor for command ordinal ' +
+      IntToStr(Ord(lCommand)) + '.');
+
+  Assert.IsTrue(CommandRoutesAs(TCommandKind.ckAnalyzeUnit, TCommandKind.ckAnalyzeProject),
+    'Expected analyze-unit to dispatch through the analyze route.');
+  Assert.IsFalse(CommandRoutesAs(TCommandKind.ckAnalyzeUnit, TCommandKind.ckResolve),
+    'Did not expect analyze-unit to dispatch through the resolve route.');
 end;
 
 procedure TCliTests.HelpCommandIgnoresSwitchValueTokens;
