@@ -424,6 +424,8 @@ var
   lFixExe: string;
   lOptions: TAppOptions;
   lDprojPath: string;
+  lRsVarsEnvironment: TRsVarsEnvironment;
+  lRsVarsEnvVars: TDictionary<string, string>;
 begin
   Result := False;
   aError := '';
@@ -452,27 +454,28 @@ begin
   aProjectName := TPath.GetFileNameWithoutExtension(lDprojPath);
   aProjectDproj := lDprojPath;
 
-  if not TryLoadRsVars(lOptions.fDelphiVersion, lOptions.fRsVarsPath, aDiagnostics, lError) then
+  if not TryLoadRsVars(lOptions.fDelphiVersion, lOptions.fRsVarsPath, aDiagnostics, lRsVarsEnvironment, lError) then
   begin
     aError := lError;
     aErrorCode := 4;
     Exit(False);
   end;
 
-  if not TryReadIdeConfig(lOptions.fDelphiVersion, lOptions.fPlatform, lOptions.fEnvOptionsPath, lEnvVars, lLibraryPath,
-    lLibrarySource, aDiagnostics, lError) then
-  begin
-    lEnvVars.Free;
-    aError := lError;
-    aErrorCode := 4;
-    Exit(False);
-  end;
+  lRsVarsEnvVars := lRsVarsEnvironment.ToDictionary;
   try
+    if not TryReadIdeConfig(lOptions.fDelphiVersion, lOptions.fPlatform, lOptions.fEnvOptionsPath, lRsVarsEnvVars,
+      lEnvVars, lLibraryPath, lLibrarySource, aDiagnostics, lError) then
+    begin
+      aError := lError;
+      aErrorCode := 4;
+      Exit(False);
+    end;
     if not TryBuildParams(lOptions, lEnvVars, lLibraryPath, lLibrarySource, aDiagnostics, aParams, lError, aErrorCode) then
     begin
       aError := lError;
       Exit(False);
     end;
+    aParams.fEnvironmentBlock := lRsVarsEnvironment.ToEnvironmentBlock;
 
     if aFixOptions.fExePath <> '' then
     begin
@@ -488,6 +491,7 @@ begin
 
     Result := True;
   finally
+    lRsVarsEnvVars.Free;
     lEnvVars.Free;
   end;
 end;

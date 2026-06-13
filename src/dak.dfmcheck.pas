@@ -76,7 +76,8 @@ type
   IDfmCheckProcessRunner = interface
     ['{ACB2FBB2-D818-4F75-B0D1-A6E6CAEA3A54}']
     function Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
-      const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
+      const aEnvironmentBlock: string; const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal;
+      out aError: string): Boolean;
   end;
 
 function TryResolveDfmCheckProjectPath(const aInputPath: string; out aDprojPath: string; out aError: string): Boolean;
@@ -107,7 +108,8 @@ type
   TWinProcessRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
   public
     function Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
-      const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
+      const aEnvironmentBlock: string; const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal;
+      out aError: string): Boolean;
   end;
 
 type
@@ -3689,6 +3691,8 @@ var
   lGeneratorFilterCsv: string;
   lRunGuid: TGUID;
   lRunSuffix: string;
+  lRsVarsEnvironment: TRsVarsEnvironment;
+  lRsVarsEnvironmentBlock: string;
   lSourceContextCache: TSourceContextRunCache;
   lSummary: TDfmValidationSummary;
   lPlatform: string;
@@ -3738,6 +3742,7 @@ begin
   lOriginalAllRequested := aOptions.fDfmCheckAll or (Trim(aOptions.fDfmCheckFilter) = '');
   lCleanupErrors := '';
   lPreserveArtifactsForDiagnostics := False;
+  lRsVarsEnvironmentBlock := '';
   lBuildLines := TStringList.Create;
   lDiagnostics := nil;
   lFailedResources := TStringList.Create;
@@ -3846,11 +3851,12 @@ begin
     if aOptions.fHasRsVarsPath or (lDelphiVersion <> '') then
     begin
       EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Loading RAD Studio environment from rsvars.bat...');
-      if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, aError) then
+      if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, lRsVarsEnvironment, aError) then
       begin
         aCategory := TDfmCheckErrorCategory.ecInvalidInput;
         Exit(MapDfmCheckExitCode(aCategory, 0));
       end;
+      lRsVarsEnvironmentBlock := lRsVarsEnvironment.ToEnvironmentBlock;
     end;
 
     lConfig := aOptions.fConfig;
@@ -3942,7 +3948,8 @@ begin
       '@echo off' + #13#10 +
       QuoteCmdArg(lBuildExePath) + ' ' + lBuildArgs + ' > ' + QuoteCmdArg(lBuildLogPath) + ' 2>&1' + #13#10 +
       'exit /b %errorlevel%' + #13#10, TEncoding.Default);
-    if not aRunner.Run(lBuildCmdPath, '', lPaths.fGeneratedDir, nil, lExitCode, lRunnerError) then
+    if not aRunner.Run(lBuildCmdPath, '', lPaths.fGeneratedDir, lRsVarsEnvironmentBlock, nil, lExitCode,
+      lRunnerError) then
     begin
       lPreserveArtifactsForDiagnostics := ContainsText(lRunnerError, 'timed out');
       if lPreserveArtifactsForDiagnostics then
@@ -4003,7 +4010,8 @@ begin
 
     EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Validator scope: ' + lValidatorScope);
     EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Running validator exe...');
-    if not aRunner.Run(lValidatorExePath, lValidatorArgs, lPaths.fGeneratedDir, nil, lExitCode, lRunnerError) then
+    if not aRunner.Run(lValidatorExePath, lValidatorArgs, lPaths.fGeneratedDir, lRsVarsEnvironmentBlock, nil,
+      lExitCode, lRunnerError) then
     begin
       lPreserveArtifactsForDiagnostics := ContainsText(lRunnerError, 'timed out');
       if lPreserveArtifactsForDiagnostics then
@@ -4097,7 +4105,8 @@ begin
 end;
 
 function TWinProcessRunner.Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
-  const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
+  const aEnvironmentBlock: string; const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal;
+  out aError: string): Boolean;
 var
   lStartupInfo: TStartupInfo;
   lProcessInfo: TProcessInformation;
@@ -4118,6 +4127,7 @@ var
   lCommandExe: string;
   lCommandScript: string;
   lElapsedSec: Cardinal;
+  lEnvironment: PChar;
   lHeartbeatMs: Int64;
   lStopwatch: TStopwatch;
   lUnusedOutput: TDfmCheckOutputProc;
@@ -4140,6 +4150,12 @@ begin
   lStartupInfo.wShowWindow := SW_HIDE;
   FillChar(lProcessInfo, SizeOf(lProcessInfo), 0);
   lCreateFlags := CREATE_NO_WINDOW;
+  lEnvironment := nil;
+  if aEnvironmentBlock <> '' then
+  begin
+    lEnvironment := PChar(aEnvironmentBlock);
+    lCreateFlags := lCreateFlags or CREATE_UNICODE_ENVIRONMENT;
+  end;
   lIsolatedDesktop := 0;
   lIsolatedDesktopName := '';
   lIsolatedProcess := False;
@@ -4201,8 +4217,8 @@ begin
   lPreviousErrorMode := SetErrorMode(SEM_FAILCRITICALERRORS or SEM_NOGPFAULTERRORBOX or SEM_NOOPENFILEERRORBOX);
   if lAppName = '' then
   begin
-    if not CreateProcess(nil, PChar(lCmdLine), nil, nil, True, lCreateFlags, nil, PChar(lWorkDir), lStartupInfo,
-      lProcessInfo)
+    if not CreateProcess(nil, PChar(lCmdLine), nil, nil, True, lCreateFlags, lEnvironment, PChar(lWorkDir),
+      lStartupInfo, lProcessInfo)
     then
     begin
       lLastError := GetLastError;
@@ -4214,8 +4230,8 @@ begin
         CloseDesktop(lIsolatedDesktop);
       Exit(False);
     end;
-  end else if not CreateProcess(PChar(lAppName), PChar(lCmdLine), nil, nil, True, lCreateFlags, nil, PChar(lWorkDir),
-      lStartupInfo, lProcessInfo) then
+  end else if not CreateProcess(PChar(lAppName), PChar(lCmdLine), nil, nil, True, lCreateFlags, lEnvironment,
+      PChar(lWorkDir), lStartupInfo, lProcessInfo) then
   begin
     lLastError := GetLastError;
     aError := SysErrorMessage(lLastError);

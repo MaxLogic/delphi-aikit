@@ -248,6 +248,7 @@ type
   end;
 
   TFixInsightParams = record
+    fEnvironmentBlock: string;
     fProjectDpr: string;
     fFixInsightExe: string;
     fFixOutput: string;

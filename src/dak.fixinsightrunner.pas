@@ -183,13 +183,15 @@ end;
 function TryRunFixInsightWithHandles(const aParams: TFixInsightParams; aStdOut: THandle; aStdErr: THandle;
   out aExitCode: Cardinal; out aError: string): Boolean;
 var
-  lExe: string;
-  lCmdLine: string;
   lAppName: string;
   lAppPtr: PChar;
-  lSi: TStartupInfo;
-  lPi: TProcessInformation;
+  lCmdLine: string;
+  lCreationFlags: Cardinal;
+  lEnvironment: PChar;
+  lExe: string;
   lLastError: Cardinal;
+  lPi: TProcessInformation;
+  lSi: TStartupInfo;
   lStdOut: THandle;
   lStdErr: THandle;
 begin
@@ -222,8 +224,17 @@ begin
   lSi.hStdOutput := lStdOut;
   lSi.hStdError := lStdErr;
   FillChar(lPi, SizeOf(lPi), 0);
+  if aParams.fEnvironmentBlock <> '' then
+  begin
+    lCreationFlags := CREATE_UNICODE_ENVIRONMENT;
+    lEnvironment := PChar(aParams.fEnvironmentBlock);
+  end else
+  begin
+    lCreationFlags := 0;
+    lEnvironment := nil;
+  end;
 
-  if not CreateProcess(lAppPtr, PChar(lCmdLine), nil, nil, True, 0, nil, nil, lSi, lPi) then
+  if not CreateProcess(lAppPtr, PChar(lCmdLine), nil, nil, True, lCreationFlags, lEnvironment, nil, lSi, lPi) then
   begin
     lLastError := GetLastError;
     aError := Format(SFixInsightRunFailed, [SysErrorMessage(lLastError)]);

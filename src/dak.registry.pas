@@ -11,7 +11,11 @@ uses
 
 function TryReadIdeConfig(const aDelphiVersion, aPlatform, aEnvOptionsOverride: string;
   out aEnvVars: TDictionary<string, string>; out aLibraryPath: string; out aLibrarySource: TPropertySource;
-  aDiagnostics: TDiagnostics; out aError: string): Boolean;
+  aDiagnostics: TDiagnostics; out aError: string): Boolean; overload;
+function TryReadIdeConfig(const aDelphiVersion, aPlatform, aEnvOptionsOverride: string;
+  const aBaseEnvVars: TDictionary<string, string>; out aEnvVars: TDictionary<string, string>;
+  out aLibraryPath: string; out aLibrarySource: TPropertySource; aDiagnostics: TDiagnostics;
+  out aError: string): Boolean; overload;
 
 implementation
 
@@ -103,6 +107,15 @@ end;
 function TryReadIdeConfig(const aDelphiVersion, aPlatform, aEnvOptionsOverride: string;
   out aEnvVars: TDictionary<string, string>; out aLibraryPath: string; out aLibrarySource: TPropertySource;
   aDiagnostics: TDiagnostics; out aError: string): Boolean;
+begin
+  Result := TryReadIdeConfig(aDelphiVersion, aPlatform, aEnvOptionsOverride, nil, aEnvVars, aLibraryPath,
+    aLibrarySource, aDiagnostics, aError);
+end;
+
+function TryReadIdeConfig(const aDelphiVersion, aPlatform, aEnvOptionsOverride: string;
+  const aBaseEnvVars: TDictionary<string, string>; out aEnvVars: TDictionary<string, string>;
+  out aLibraryPath: string; out aLibrarySource: TPropertySource; aDiagnostics: TDiagnostics;
+  out aError: string): Boolean;
 var
   lReg: TRegistry;
   lBaseKey: string;
@@ -120,6 +133,14 @@ var
   lCatalogRepo: string;
   lBdsRoot: string;
   lBdsLib: string;
+  lPair: TPair<string, string>;
+
+  function EnvValue(const aName: string): string;
+  begin
+    if (aBaseEnvVars <> nil) and aBaseEnvVars.TryGetValue(aName, Result) then
+      Exit;
+    Result := System.SysUtils.GetEnvironmentVariable(aName);
+  end;
 
   function BoolText(const aValue: Boolean): string;
   begin
@@ -283,10 +304,10 @@ begin
     lRegistryLibFound := True;
 
   if not aEnvVars.TryGetValue('BDSUSERDIR', lBdsUserDir) then
-    lBdsUserDir := System.SysUtils.GetEnvironmentVariable('BDSUSERDIR');
+    lBdsUserDir := EnvValue('BDSUSERDIR');
   if lBdsUserDir = '' then
   begin
-    lAppData := System.SysUtils.GetEnvironmentVariable('APPDATA');
+    lAppData := EnvValue('APPDATA');
     if lAppData <> '' then
       lBdsUserDir := TPath.Combine(lAppData, 'Embarcadero\BDS\' + aDelphiVersion)
     else
@@ -295,7 +316,7 @@ begin
   EnsureEnvVar('BDSUSERDIR', lBdsUserDir, False);
 
   if not aEnvVars.TryGetValue('BDSCatalogRepository', lCatalogRepo) then
-    lCatalogRepo := System.SysUtils.GetEnvironmentVariable('BDSCatalogRepository');
+    lCatalogRepo := EnvValue('BDSCatalogRepository');
   if (lCatalogRepo = '') and (lBdsUserDir <> '') then
     lCatalogRepo := TPath.Combine(lBdsUserDir, 'CatalogRepository');
   EnsureEnvVar('BDSCatalogRepository', lCatalogRepo, False);
@@ -312,8 +333,7 @@ begin
     if aDiagnostics <> nil then
     begin
       aDiagnostics.AddInfo(Format(SInfoRegistryLookupContext,
-        [System.SysUtils.GetEnvironmentVariable('USERNAME'), System.SysUtils.GetEnvironmentVariable('APPDATA'),
-         lBdsUserDir, lEnvOptionsFile]));
+        [EnvValue('USERNAME'), EnvValue('APPDATA'), lBdsUserDir, lEnvOptionsFile]));
       LogRegistryKeyPresence('64-bit', KEY_WOW64_64KEY);
       LogRegistryKeyPresence('32-bit', KEY_WOW64_32KEY);
       aDiagnostics.AddInfo(Format(SInfoEnvOptionsPath, [lEnvOptionsFile]));
@@ -343,21 +363,25 @@ begin
   end;
 
   if not aEnvVars.TryGetValue('BDS', lBdsRoot) then
-    lBdsRoot := System.SysUtils.GetEnvironmentVariable('BDS');
+    lBdsRoot := EnvValue('BDS');
   EnsureEnvVar('BDS', lBdsRoot, False);
 
   if not aEnvVars.TryGetValue('BDSLIB', lBdsLib) then
-    lBdsLib := System.SysUtils.GetEnvironmentVariable('BDSLIB');
+    lBdsLib := EnvValue('BDSLIB');
   if (lBdsLib = '') and (lBdsRoot <> '') then
     lBdsLib := TPath.Combine(lBdsRoot, 'lib');
   EnsureEnvVar('BDSLIB', lBdsLib, False);
 
-  lValue := System.SysUtils.GetEnvironmentVariable('DCC_Define');
+  lValue := EnvValue('DCC_Define');
   EnsureEnvVar('DCC_Define', lValue, True);
-  lValue := System.SysUtils.GetEnvironmentVariable('DCC_UnitSearchPath');
+  lValue := EnvValue('DCC_UnitSearchPath');
   EnsureEnvVar('DCC_UnitSearchPath', lValue, True);
-  lValue := System.SysUtils.GetEnvironmentVariable('DCC_Namespace');
+  lValue := EnvValue('DCC_Namespace');
   EnsureEnvVar('DCC_Namespace', lValue, True);
+  if aBaseEnvVars <> nil then
+    for lPair in aBaseEnvVars do
+      if not aEnvVars.ContainsKey(lPair.Key) then
+        aEnvVars.AddOrSetValue(lPair.Key, lPair.Value);
   Result := True;
 end;
 

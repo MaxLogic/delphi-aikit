@@ -173,6 +173,8 @@ var
   lLibrarySource: TPropertySource;
   lOptions: TAppOptions;
   lParams: TFixInsightParams;
+  lRsVarsEnvironment: TRsVarsEnvironment;
+  lRsVarsEnvVars: TDictionary<string, string>;
 begin
   lOptions := aOptions;
   lOptions.fDprojPath := aContext.fProject.fProjectPath;
@@ -189,15 +191,16 @@ begin
     Exit;
 
   aContext.fDelphiVersion := lOptions.fDelphiVersion;
-  if not TryLoadRsVars(lOptions.fDelphiVersion, lOptions.fRsVarsPath, nil, lError) then
+  if not TryLoadRsVars(lOptions.fDelphiVersion, lOptions.fRsVarsPath, nil, lRsVarsEnvironment, lError) then
     Exit;
   aContext.fRtlSourceRoot := NormalizeCacheRoot(ResolveDefaultRtlSourceRoot(aContext.fDelphiVersion,
     lOptions.fRsVarsPath));
 
   lEnvVars := nil;
+  lRsVarsEnvVars := lRsVarsEnvironment.ToDictionary;
   try
-    if not TryReadIdeConfig(lOptions.fDelphiVersion, lOptions.fPlatform, lOptions.fEnvOptionsPath, lEnvVars,
-      lLibraryPath, lLibrarySource, nil, lError) then
+    if not TryReadIdeConfig(lOptions.fDelphiVersion, lOptions.fPlatform, lOptions.fEnvOptionsPath, lRsVarsEnvVars,
+      lEnvVars, lLibraryPath, lLibrarySource, nil, lError) then
       Exit;
     if not TryBuildParams(lOptions, lEnvVars, lLibraryPath, lLibrarySource, nil, lParams, lError, lErrorCode) then
       Exit;
@@ -205,6 +208,7 @@ begin
     aContext.fHasCompilerParams := True;
     aContext.fLibraryPath := lParams.fLibraryPath;
   finally
+    lRsVarsEnvVars.Free;
     lEnvVars.Free;
   end;
 end;

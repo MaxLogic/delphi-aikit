@@ -1061,11 +1061,13 @@ end;
 function TryRunPascalAnalyzerWithHandles(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
   aStdOut: THandle; aStdErr: THandle; out aExitCode: Cardinal; out aError: string): Boolean;
 var
-  lExe: string;
   lCmdLine: string;
-  lSi: TStartupInfo;
-  lPi: TProcessInformation;
+  lCreationFlags: Cardinal;
+  lEnvironment: PChar;
+  lExe: string;
   lLastError: Cardinal;
+  lPi: TProcessInformation;
+  lSi: TStartupInfo;
   lStdOut: THandle;
   lStdErr: THandle;
 begin
@@ -1090,8 +1092,17 @@ begin
   lSi.hStdOutput := lStdOut;
   lSi.hStdError := lStdErr;
   FillChar(lPi, SizeOf(lPi), 0);
+  if aParams.fEnvironmentBlock <> '' then
+  begin
+    lCreationFlags := CREATE_UNICODE_ENVIRONMENT;
+    lEnvironment := PChar(aParams.fEnvironmentBlock);
+  end else
+  begin
+    lCreationFlags := 0;
+    lEnvironment := nil;
+  end;
 
-  if not CreateProcess(PChar(lExe), PChar(lCmdLine), nil, nil, True, 0, nil, nil, lSi, lPi) then
+  if not CreateProcess(PChar(lExe), PChar(lCmdLine), nil, nil, True, lCreationFlags, lEnvironment, nil, lSi, lPi) then
   begin
     lLastError := GetLastError;
     aError := 'PALCMD failed to start: ' + SysErrorMessage(lLastError);

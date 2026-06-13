@@ -20,6 +20,8 @@ type
     fOptions: TAppOptions;
     fParams: TFixInsightParams;
     fEnvVars: TDictionary<string, string>;
+    fRsVarsEnvVars: TDictionary<string, string>;
+    fRsVarsEnvironmentBlock: string;
     fDiagnostics: TDiagnostics;
     fLibraryPath: string;
     fLibrarySource: TPropertySource;
@@ -66,12 +68,15 @@ begin
   fOptions := aOptions;
   fDiagnostics := TDiagnostics.Create;
   fEnvVars := nil;
+  fRsVarsEnvVars := nil;
+  fRsVarsEnvironmentBlock := '';
   fExitCode := cExitSuccess;
 end;
 
 destructor TResolveCommandRunner.Destroy;
 begin
   fDiagnostics.Free;
+  fRsVarsEnvVars.Free;
   fEnvVars.Free;
   inherited Destroy;
 end;
@@ -135,13 +140,21 @@ end;
 function TResolveCommandRunner.TryLoadRsVars: Boolean;
 var
   lError: string;
+  lRsVarsEnvironment: TRsVarsEnvironment;
 begin
   if fOptions.fVerbose then
     fDiagnostics.AddInfo(Format(SInfoOptions,
       [fOptions.fDprojPath, fOptions.fPlatform, fOptions.fConfig, fOptions.fDelphiVersion]));
   fDiagnostics.AddInfo(Format(SInfoStep, ['Load rsvars.bat']));
 
-  Result := Dak.RsVars.TryLoadRsVars(fOptions.fDelphiVersion, fOptions.fRsVarsPath, fDiagnostics, lError);
+  Result := Dak.RsVars.TryLoadRsVars(fOptions.fDelphiVersion, fOptions.fRsVarsPath, fDiagnostics,
+    lRsVarsEnvironment, lError);
+  if Result then
+  begin
+    fRsVarsEnvVars.Free;
+    fRsVarsEnvVars := lRsVarsEnvironment.ToDictionary;
+    fRsVarsEnvironmentBlock := lRsVarsEnvironment.ToEnvironmentBlock;
+  end;
   if not Result then
   begin
     WriteLn(ErrOutput, lError);
@@ -154,8 +167,8 @@ var
   lError: string;
 begin
   fDiagnostics.AddInfo(Format(SInfoStep, ['Read IDE registry and library path']));
-  Result := Dak.Registry.TryReadIdeConfig(fOptions.fDelphiVersion, fOptions.fPlatform, fOptions.fEnvOptionsPath, fEnvVars,
-    fLibraryPath, fLibrarySource, fDiagnostics, lError);
+  Result := Dak.Registry.TryReadIdeConfig(fOptions.fDelphiVersion, fOptions.fPlatform, fOptions.fEnvOptionsPath,
+    fRsVarsEnvVars, fEnvVars, fLibraryPath, fLibrarySource, fDiagnostics, lError);
   if not Result then
   begin
     WriteLn(ErrOutput, lError);
@@ -171,6 +184,8 @@ begin
   fDiagnostics.AddInfo(Format(SInfoStep, ['Resolve project and option set']));
   Result := Dak.Project.TryBuildParams(fOptions, fEnvVars, fLibraryPath, fLibrarySource, fDiagnostics, fParams, lError,
     lErrorCode);
+  if Result then
+    fParams.fEnvironmentBlock := fRsVarsEnvironmentBlock;
   if not Result then
   begin
     WriteLn(ErrOutput, lError);

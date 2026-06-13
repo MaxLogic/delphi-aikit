@@ -5,16 +5,71 @@ interface
 uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.SysUtils,
   Winapi.Windows,
+  maxLogic.StrUtils,
   Dak.Diagnostics, Dak.Messages;
 
+type
+  TRsVarsEnvironmentVariable = record
+    Name: string;
+    Value: string;
+  end;
+
+  TRsVarsEnvironment = record
+    Variables: TArray<TRsVarsEnvironmentVariable>;
+    function TryGetValue(const aName: string; out aValue: string): Boolean;
+    function ValueOrDefault(const aName: string; const aDefault: string = ''): string;
+    function ToDictionary: TDictionary<string, string>;
+    function ToEnvironmentBlock: string;
+  end;
+
 function TryLoadRsVars(const aDelphiVersion, aOverridePath: string; aDiagnostics: TDiagnostics;
-  out aError: string): Boolean;
+  out aEnvironment: TRsVarsEnvironment; out aError: string): Boolean;
 
 implementation
 
 function QuoteCmd(const aValue: string): string;
 begin
   Result := '"' + StringReplace(aValue, '"', '""', [rfReplaceAll]) + '"';
+end;
+
+function TRsVarsEnvironment.TryGetValue(const aName: string; out aValue: string): Boolean;
+var
+  lVariable: TRsVarsEnvironmentVariable;
+begin
+  for lVariable in Variables do
+    if SameText(lVariable.Name, aName) then
+    begin
+      aValue := lVariable.Value;
+      Exit(True);
+    end;
+  aValue := '';
+  Result := False;
+end;
+
+function TRsVarsEnvironment.ValueOrDefault(const aName, aDefault: string): string;
+begin
+  if not TryGetValue(aName, Result) then
+    Result := aDefault;
+end;
+
+function TRsVarsEnvironment.ToDictionary: TDictionary<string, string>;
+var
+  lVariable: TRsVarsEnvironmentVariable;
+begin
+  Result := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  for lVariable in Variables do
+    Result.AddOrSetValue(lVariable.Name, lVariable.Value);
+end;
+
+function TRsVarsEnvironment.ToEnvironmentBlock: string;
+var
+  lVariable: TRsVarsEnvironmentVariable;
+begin
+  Result := '';
+  for lVariable in Variables do
+    Result := Result + lVariable.Name + '=' + lVariable.Value + #0;
+  if Result <> '' then
+    Result := Result + #0;
 end;
 
 function CoreWindowsPath: string;
@@ -34,6 +89,7 @@ var
   lPath: string;
 begin
   Result := 'set "BDS=" & set "BDSLIB=" & set "DCC_Namespace=" & set "DCC_UnitSearchPath=" & ' +
+    'set "DCC_Define=" & set "DCC_UnitAlias=" & set "DCC_UnitAliases=" & ' +
     'set "DelphiLibraryPath=" & set "EnvOptions=" & ';
 
   lPath := System.SysUtils.GetEnvironmentVariable('PATH');
@@ -101,7 +157,7 @@ begin
 end;
 
 function TryLoadRsVars(const aDelphiVersion, aOverridePath: string; aDiagnostics: TDiagnostics;
-  out aError: string): Boolean;
+  out aEnvironment: TRsVarsEnvironment; out aError: string): Boolean;
 var
   lPath: string;
   lTempFile: string;
@@ -114,9 +170,12 @@ var
   lName: string;
   lValue: string;
   lCount: Integer;
+  lVariables: TList<TRsVarsEnvironmentVariable>;
+  lVariable: TRsVarsEnvironmentVariable;
 begin
   Result := False;
   aError := '';
+  aEnvironment := Default(TRsVarsEnvironment);
   lCount := 0;
 
   if (Trim(aOverridePath) = '') and (Trim(aDelphiVersion) = '') then
@@ -159,6 +218,7 @@ begin
     end;
 
     lLines := TStringList.Create;
+    lVariables := TList<TRsVarsEnvironmentVariable>.Create;
     try
       lLines.LoadFromFile(lTempFile);
       for lLine in lLines do
@@ -170,10 +230,14 @@ begin
         if (lName = '') or (lName[1] = '=') then
           Continue;
         lValue := Copy(lLine, lPos + 1, Length(lLine) - lPos);
-        Winapi.Windows.SetEnvironmentVariable(PChar(lName), PChar(lValue));
+        lVariable.Name := lName;
+        lVariable.Value := lValue;
+        lVariables.Add(lVariable);
         Inc(lCount);
       end;
+      aEnvironment.Variables := lVariables.ToArray;
     finally
+      lVariables.Free;
       lLines.Free;
     end;
 
