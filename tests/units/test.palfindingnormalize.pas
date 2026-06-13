@@ -7,6 +7,7 @@ uses
   System.JSON,
   System.IOUtils,
   System.SysUtils,
+  Winapi.Windows,
   Test.Support,
   Dak.PascalAnalyzerRunner;
 
@@ -16,9 +17,49 @@ type
   public
     [Test]
     procedure NormalizePalFindingsFromFixtures;
+    [Test]
+    procedure MissingPalFixturesFailClosedWithoutOptOut;
   end;
 
 implementation
+
+const
+  cPalFixtureRootEnv = 'DAK_TEST_PAL_FIXTURE_ROOT';
+  cAllowMissingPalFixturesEnv = 'DAK_ALLOW_MISSING_PAL_FIXTURES';
+
+procedure SetEnvValue(const aName, aValue: string);
+begin
+  if aValue = '' then
+    SetEnvironmentVariable(PChar(aName), nil)
+  else
+    SetEnvironmentVariable(PChar(aName), PChar(aValue));
+end;
+
+function PalFixtureRoot: string;
+begin
+  Result := Trim(GetEnvironmentVariable(cPalFixtureRootEnv));
+  if Result = '' then
+    Result := TPath.Combine(RepoRoot, 'docs\sample-pal-reports')
+  else
+    Result := TPath.GetFullPath(Result);
+end;
+
+procedure RequirePalFixtures(const aFixtureRoot: string);
+begin
+  if TDirectory.Exists(aFixtureRoot) and
+    FileExists(TPath.Combine(aFixtureRoot, 'Warnings.xml')) then
+    Exit;
+
+  if SameText(Trim(GetEnvironmentVariable(cAllowMissingPalFixturesEnv)), '1') then
+  begin
+    Assert.Pass('PAL fixtures missing; ' + cAllowMissingPalFixturesEnv +
+      '=1 allows skipping PAL fixture-backed tests.');
+    Exit;
+  end;
+
+  Assert.Fail('PAL fixtures missing: ' + aFixtureRoot + '. Set ' +
+    cAllowMissingPalFixturesEnv + '=1 to explicitly skip PAL fixture-backed tests.');
+end;
 
 procedure TPalFindingNormalizeTests.NormalizePalFindingsFromFixtures;
 var
@@ -34,17 +75,8 @@ var
   lFound: Boolean;
   i: Integer;
 begin
-  lFixtureRoot := TPath.Combine(RepoRoot, 'docs\sample-pal-reports');
-  if not TDirectory.Exists(lFixtureRoot) then
-  begin
-    Assert.Pass('PAL fixtures missing; skipping.');
-    Exit;
-  end;
-  if not FileExists(TPath.Combine(lFixtureRoot, 'Warnings.xml')) then
-  begin
-    Assert.Pass('PAL fixtures missing; skipping.');
-    Exit;
-  end;
+  lFixtureRoot := PalFixtureRoot;
+  RequirePalFixtures(lFixtureRoot);
 
   lOutDir := TPath.Combine(TempRoot, 'pal-findings');
   if TDirectory.Exists(lOutDir) then
@@ -90,6 +122,51 @@ begin
     if lLines[i].Contains('TryParseOptions') then
       lFound := True;
   Assert.IsTrue(lFound, 'Expected TryParseOptions in pal-hotspots.md');
+
+  lFound := False;
+  for i := 0 to High(lLines) do
+    if lLines[i].Contains('## Modules by decision points') then
+      lFound := True;
+  Assert.IsTrue(lFound, 'Expected module decision-point totals in pal-hotspots.md');
+
+  lFound := False;
+  for i := 0 to High(lLines) do
+    if lLines[i].Contains('## Modules by lines') then
+      lFound := True;
+  Assert.IsTrue(lFound, 'Expected module line totals in pal-hotspots.md');
+end;
+
+procedure TPalFindingNormalizeTests.MissingPalFixturesFailClosedWithoutOptOut;
+var
+  lFailed: Boolean;
+  lOldAllowMissing: string;
+  lOldRoot: string;
+begin
+  lOldRoot := GetEnvironmentVariable(cPalFixtureRootEnv);
+  lOldAllowMissing := GetEnvironmentVariable(cAllowMissingPalFixturesEnv);
+  try
+    SetEnvValue(cPalFixtureRootEnv, TPath.Combine(TempRoot, 'missing-pal-fixtures'));
+    SetEnvValue(cAllowMissingPalFixturesEnv, '');
+
+    lFailed := False;
+    try
+      NormalizePalFindingsFromFixtures;
+    except
+      on E: Exception do
+      begin
+        lFailed := Pos('PAL fixtures missing', E.Message) > 0;
+        if not lFailed then
+          raise;
+      end;
+    end;
+
+    Assert.IsTrue(lFailed,
+      'Missing PAL fixtures must fail closed unless ' + cAllowMissingPalFixturesEnv +
+      ' is explicitly set.');
+  finally
+    SetEnvValue(cPalFixtureRootEnv, lOldRoot);
+    SetEnvValue(cAllowMissingPalFixturesEnv, lOldAllowMissing);
+  end;
 end;
 
 initialization
