@@ -29,6 +29,8 @@ type
 function TryBuildSymbolMapContext(const aOptions: TAppOptions; out aContext: TSymbolMapContext;
   out aError: string): Boolean;
 function ResolveSymbolMapCentralCacheRoot(const aOptions: TAppOptions): string;
+function SymbolMapProjectSourceFilePaths(const aContext: TSymbolMapContext;
+  const aIncludeMainSource: Boolean): TArray<string>;
 
 implementation
 
@@ -80,6 +82,56 @@ begin
     Exit(NormalizeCacheRoot(lEnvRoot));
 
   Result := NormalizeCacheRoot(ResolveDefaultCentralCacheRoot);
+end;
+
+procedure AddProjectSourceFilePath(const aPath: string; const aPasUnitOnly: Boolean;
+  const aPaths: TList<string>; const aSeen: TDictionary<string, Boolean>);
+var
+  lKey: string;
+  lPath: string;
+begin
+  lPath := Trim(aPath);
+  if lPath = '' then
+    Exit;
+
+  try
+    lPath := TPath.GetFullPath(lPath);
+  except
+    Exit;
+  end;
+
+  if not TFile.Exists(lPath) then
+    Exit;
+  if aPasUnitOnly and (not SameText(TPath.GetExtension(lPath), '.pas')) then
+    Exit;
+
+  lKey := LowerCase(lPath);
+  if aSeen.ContainsKey(lKey) then
+    Exit;
+
+  aSeen.Add(lKey, True);
+  aPaths.Add(lPath);
+end;
+
+function SymbolMapProjectSourceFilePaths(const aContext: TSymbolMapContext;
+  const aIncludeMainSource: Boolean): TArray<string>;
+var
+  lPath: string;
+  lPaths: TList<string>;
+  lSeen: TDictionary<string, Boolean>;
+begin
+  lPaths := TList<string>.Create;
+  lSeen := TDictionary<string, Boolean>.Create;
+  try
+    for lPath in aContext.fProject.fSourceFileNames do
+      AddProjectSourceFilePath(lPath, True, lPaths, lSeen);
+    if aIncludeMainSource then
+      AddProjectSourceFilePath(aContext.fProject.fMainSourcePath, False, lPaths, lSeen);
+    Result := lPaths.ToArray;
+  finally
+    lSeen.Free;
+    lPaths.Free;
+  end;
 end;
 
 function ResolveDefaultRtlSourceRoot(const aDelphiVersion, aRsVarsPath: string): string;

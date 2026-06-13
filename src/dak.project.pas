@@ -391,6 +391,7 @@ begin
   aLookup.fProjectDproj := lResult.Project.ProjectFileName;
   aLookup.fProjectDir := lResult.Project.ProjectDirectory;
   aLookup.fMainSourcePath := lResult.Project.MainSourceFileName;
+  aLookup.fSourceFileNames := lResult.Project.SourceFileNames;
   aLookup.fDefines := lResult.Project.Defines;
   aLookup.fSearchPaths := lResult.Project.SourceLookupPaths;
   Result := True;
@@ -721,6 +722,7 @@ begin
   aContext.fProjectName := lResult.Project.ProjectName;
   aContext.fDakProjectRoot := TPath.Combine(TPath.Combine(aContext.fProjectDir, '.dak'), aContext.fProjectName);
   aContext.fMainSourcePath := lResult.Project.MainSourceFileName;
+  aContext.fSourceFileNames := lResult.Project.SourceFileNames;
   aContext.fParserDefines := String.Join(';', lResult.Project.Defines);
   aContext.fUnitScopes := lResult.Project.UnitScopeNames;
   aContext.fUnitAliases := lResult.Project.UnitAliases;
@@ -764,6 +766,7 @@ begin
     if lResult.Success then
     begin
       aContext.fMainSourcePath := lResult.Project.MainSourceFileName;
+      aContext.fSourceFileNames := lResult.Project.SourceFileNames;
       aContext.fParserDefines := String.Join(';', lResult.Project.Defines);
       aContext.fUnitScopes := lResult.Project.UnitScopeNames;
       aContext.fUnitAliases := lResult.Project.UnitAliases;

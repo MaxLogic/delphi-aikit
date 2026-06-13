@@ -58,6 +58,7 @@ type
   private
     function FixtureProjectPath: string;
     function FixtureUnitPath: string;
+    function UniqueTempPath(const aPrefix: string): string;
   public
     [Test]
     procedure LoadsAnsiFallbackWhenUtf8Fails;
@@ -69,6 +70,8 @@ type
     procedure ExtractsNamespacedUnitName;
     [Test]
     procedure IndexUnitCommandReportsOneIndexedUnit;
+    [Test]
+    procedure IndexProjectUsesSharedProjectSourceFiles;
   end;
 
   [TestFixture]
@@ -213,6 +216,8 @@ type
     function BaseOptions(const aCacheRoot: string): TAppOptions;
     function FixtureProjectPath: string;
     function UniqueTempPath(const aPrefix: string): string;
+    procedure WriteIntrinsicCollisionProject(const aProjectDir: string; const aActive: Boolean;
+      out aProjectPath: string);
   public
     [Test]
     procedure ResolvesCoreSymbolKindsWithoutShellingOut;
@@ -220,6 +225,12 @@ type
     procedure ResolvesSourcePositionAndReportsCacheStatus;
     [Test]
     procedure PreparedSessionKeepsStableStatusAcrossLookups;
+    [Test]
+    procedure DescribeKeepsIntrinsicForUnownedCollision;
+    [Test]
+    procedure NameLookupRefreshesProjectMembershipBeforeIntrinsicFallback;
+    [Test]
+    procedure FailedProjectRefreshKeepsLastCompleteProjection;
     [Test]
     procedure PreparedSessionIndexesRtlSourceForMathRoutine;
   end;
@@ -244,6 +255,7 @@ type
 implementation
 
 uses
+  System.Classes,
   System.Threading,
   Winapi.Windows,
   FireDAC.Comp.Client,
@@ -548,6 +560,16 @@ end;
 function TSymbolMapSourceUnitTests.FixtureUnitPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
+end;
+
+function TSymbolMapSourceUnitTests.UniqueTempPath(const aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
 end;
 
 function TSymbolMapTopLevelDeclarationTests.FixtureProjectPath: string;
@@ -1691,6 +1713,54 @@ begin
   Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
 end;
 
+procedure TSymbolMapApiTests.WriteIntrinsicCollisionProject(const aProjectDir: string; const aActive: Boolean;
+  out aProjectPath: string);
+var
+  lCondition: string;
+  lDprPath: string;
+  lUnitPath: string;
+begin
+  ForceDirectories(aProjectDir);
+  aProjectPath := TPath.Combine(aProjectDir, 'SymbolMapIntrinsicCollision.dproj');
+  lDprPath := TPath.Combine(aProjectDir, 'SymbolMapIntrinsicCollision.dpr');
+  lUnitPath := TPath.Combine(aProjectDir, 'IntrinsicCollisionUnit.pas');
+
+  TFile.WriteAllText(lDprPath,
+    'program SymbolMapIntrinsicCollision;' + sLineBreak +
+    sLineBreak +
+    'begin' + sLineBreak +
+    'end.', TEncoding.UTF8);
+  TFile.WriteAllText(lUnitPath,
+    'unit IntrinsicCollisionUnit;' + sLineBreak +
+    sLineBreak +
+    'interface' + sLineBreak +
+    sLineBreak +
+    'function SizeOf: Integer;' + sLineBreak +
+    sLineBreak +
+    'implementation' + sLineBreak +
+    sLineBreak +
+    'function SizeOf: Integer;' + sLineBreak +
+    'begin' + sLineBreak +
+    '  Result := 42;' + sLineBreak +
+    'end;' + sLineBreak +
+    sLineBreak +
+    'end.', TEncoding.UTF8);
+
+  if aActive then
+    lCondition := '''$(Config)''==''Release'''
+  else
+    lCondition := '''$(Config)''==''Debug''';
+  TFile.WriteAllText(aProjectPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>SymbolMapIntrinsicCollision.dpr</MainSource>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <ItemGroup>' + sLineBreak +
+    '    <DCCReference Include="IntrinsicCollisionUnit.pas" Condition="' + lCondition + '" />' + sLineBreak +
+    '  </ItemGroup>' + sLineBreak +
+    '</Project>', TEncoding.UTF8);
+end;
+
 procedure TSymbolMapApiTests.ResolvesCoreSymbolKindsWithoutShellingOut;
 var
   lCacheRoot: string;
@@ -1778,6 +1848,161 @@ begin
     lMemberResult.fStatus.fCacheStatus.fCentralDbPath);
   Assert.AreEqual(lSession.fStatus.fCompilerProfile.fProfileKey,
     lTypeResult.fStatus.fCompilerProfile.fProfileKey);
+end;
+
+procedure TSymbolMapApiTests.DescribeKeepsIntrinsicForUnownedCollision;
+var
+  lCacheRoot: string;
+  lDefinition: TSymbolMapDefinition;
+  lError: string;
+  lOptions: TAppOptions;
+  lProjectDir: string;
+  lProjectPath: string;
+  lSession: TSymbolMapApiSession;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-api-describe-collision-cache');
+  lProjectDir := UniqueTempPath('symbol-map-api-describe-collision-project');
+  WriteIntrinsicCollisionProject(lProjectDir, True, lProjectPath);
+  lOptions := BaseOptions(lCacheRoot);
+  lOptions.fDprojPath := lProjectPath;
+
+  Assert.IsTrue(PrepareSymbolMapApiSession(lOptions, lSession, lError),
+    'Expected prepared SymbolMap API session. Error: ' + lError);
+  Assert.IsTrue(DescribeSymbolMapDefinition(lSession.fContext, lSession.fStatus.fCacheStatus,
+    lSession.fStatus.fCompilerProfile, 'SizeOf', '', lDefinition, lError),
+    'Expected describe-symbol lookup. Error: ' + lError);
+
+  Assert.IsTrue(lDefinition.fFound, 'Expected SizeOf describe-symbol result.');
+  Assert.AreEqual('compiler-intrinsic', lDefinition.fSourceKind);
+end;
+
+procedure TSymbolMapApiTests.NameLookupRefreshesProjectMembershipBeforeIntrinsicFallback;
+var
+  lCacheRoot: string;
+  lError: string;
+  lLookup: TSymbolMapApiLookupResult;
+  lOptions: TAppOptions;
+  lProjectDir: string;
+  lProjectPath: string;
+  lSession: TSymbolMapApiSession;
+  lUnitPath: string;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-api-membership-refresh-cache');
+  lProjectDir := UniqueTempPath('symbol-map-api-membership-refresh-project');
+  WriteIntrinsicCollisionProject(lProjectDir, True, lProjectPath);
+  lOptions := BaseOptions(lCacheRoot);
+  lOptions.fDprojPath := lProjectPath;
+  lUnitPath := TPath.Combine(lProjectDir, 'IntrinsicCollisionUnit.pas');
+
+  Assert.IsTrue(PrepareSymbolMapApiSession(lOptions, lSession, lError),
+    'Expected prepared SymbolMap API session. Error: ' + lError);
+  Assert.IsTrue(LookupSymbolMapDefinitionByName(lSession, 'SizeOf', '', lLookup, lError),
+    'Expected project collision lookup. Error: ' + lError);
+  Assert.IsTrue(lLookup.fDefinition.fFound, 'Expected project SizeOf definition.');
+  Assert.AreEqual('project', lLookup.fDefinition.fSourceKind);
+  Assert.AreEqual('IntrinsicCollisionUnit', lLookup.fDefinition.fUnitName);
+
+  TFile.Delete(lUnitPath);
+  Assert.IsTrue(PrepareSymbolMapApiSession(lOptions, lSession, lError),
+    'Expected refreshed SymbolMap API session. Error: ' + lError);
+  Assert.IsTrue(LookupSymbolMapDefinitionByName(lSession, 'SizeOf', '', lLookup, lError),
+    'Expected intrinsic fallback lookup. Error: ' + lError);
+
+  Assert.IsTrue(lLookup.fDefinition.fFound, 'Expected compiler intrinsic fallback after project unit removal.');
+  Assert.AreEqual('compiler-intrinsic', lLookup.fDefinition.fSourceKind);
+end;
+
+procedure TSymbolMapApiTests.FailedProjectRefreshKeepsLastCompleteProjection;
+var
+  lCacheRoot: string;
+  lError: string;
+  lFailedSession: TSymbolMapApiSession;
+  lFirstPath: string;
+  lRefreshFailed: Boolean;
+  lLockedPath: string;
+  lLock: TFileStream;
+  lLookup: TSymbolMapApiLookupResult;
+  lOptions: TAppOptions;
+  lProjectDir: string;
+  lProjectPath: string;
+  lSession: TSymbolMapApiSession;
+
+  procedure WriteUnit(const aPath, aUnitName, aRoutineName: string);
+  begin
+    TFile.WriteAllText(aPath,
+      'unit ' + aUnitName + ';' + sLineBreak +
+      sLineBreak +
+      'interface' + sLineBreak +
+      sLineBreak +
+      'function ' + aRoutineName + ': Integer;' + sLineBreak +
+      sLineBreak +
+      'implementation' + sLineBreak +
+      sLineBreak +
+      'function ' + aRoutineName + ': Integer;' + sLineBreak +
+      'begin' + sLineBreak +
+      '  Result := 1;' + sLineBreak +
+      'end;' + sLineBreak +
+      sLineBreak +
+      'end.', TEncoding.UTF8);
+  end;
+
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-api-atomic-refresh-cache');
+  lProjectDir := UniqueTempPath('symbol-map-api-atomic-refresh-project');
+  ForceDirectories(lProjectDir);
+  lProjectPath := TPath.Combine(lProjectDir, 'AtomicRefreshProject.dproj');
+  lFirstPath := TPath.Combine(lProjectDir, 'AtomicFirstUnit.pas');
+  lLockedPath := TPath.Combine(lProjectDir, 'AtomicLockedUnit.pas');
+  TFile.WriteAllText(TPath.Combine(lProjectDir, 'AtomicRefreshProject.dpr'),
+    'program AtomicRefreshProject;' + sLineBreak +
+    sLineBreak +
+    'begin' + sLineBreak +
+    'end.', TEncoding.UTF8);
+  WriteUnit(lFirstPath, 'AtomicFirstUnit', 'AtomicFirstSymbol');
+  WriteUnit(lLockedPath, 'AtomicLockedUnit', 'AtomicLockedSymbol');
+  TFile.WriteAllText(lProjectPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>AtomicRefreshProject.dpr</MainSource>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <ItemGroup>' + sLineBreak +
+    '    <DCCReference Include="AtomicFirstUnit.pas" />' + sLineBreak +
+    '    <DCCReference Include="AtomicLockedUnit.pas" />' + sLineBreak +
+    '  </ItemGroup>' + sLineBreak +
+    '</Project>', TEncoding.UTF8);
+  lOptions := BaseOptions(lCacheRoot);
+  lOptions.fDprojPath := lProjectPath;
+
+  Assert.IsTrue(PrepareSymbolMapApiSession(lOptions, lSession, lError),
+    'Expected initial SymbolMap API session. Error: ' + lError);
+  Assert.IsTrue(LookupSymbolMapDefinitionByName(lSession, 'AtomicLockedSymbol', '', lLookup, lError),
+    'Expected initial locked-unit lookup. Error: ' + lError);
+  Assert.IsTrue(lLookup.fDefinition.fFound, 'Expected initial locked-unit symbol.');
+  Assert.AreEqual('project', lLookup.fDefinition.fSourceKind);
+  Assert.AreEqual('AtomicLockedUnit', lLookup.fDefinition.fUnitName);
+
+  lLock := TFileStream.Create(lLockedPath, fmOpenReadWrite or fmShareExclusive);
+  try
+    lRefreshFailed := False;
+    try
+      lRefreshFailed := not PrepareSymbolMapApiSession(lOptions, lFailedSession, lError);
+    except
+      on E: Exception do
+      begin
+        lRefreshFailed := True;
+        lError := E.Message;
+      end;
+    end;
+    Assert.IsTrue(lRefreshFailed, 'Expected locked source to fail project refresh.');
+    Assert.IsTrue(LookupSymbolMapDefinitionByName(lSession, 'AtomicLockedSymbol', '', lLookup, lError),
+      'Expected last complete projection lookup after failed refresh. Error: ' + lError);
+    Assert.IsTrue(lLookup.fDefinition.fFound,
+      'Failed refresh must not clear the last complete project projection.');
+    Assert.AreEqual('project', lLookup.fDefinition.fSourceKind);
+    Assert.AreEqual('AtomicLockedUnit', lLookup.fDefinition.fUnitName);
+  finally
+    lLock.Free;
+  end;
 end;
 
 function TSymbolMapRtlIndexTests.ProfileSourceKind(const aDbPath, aProfileKey, aUnitName: string): string;
@@ -2166,6 +2391,115 @@ begin
     Assert.AreEqual('SymbolMapUnit', lUnitObject.GetValue<string>('unitName'));
     Assert.AreEqual(2, (lUnitObject.GetValue('interfaceUses') as TJSONArray).Count);
     Assert.AreEqual(2, (lUnitObject.GetValue('implementationUses') as TJSONArray).Count);
+  finally
+    lJsonValue.Free;
+  end;
+end;
+
+procedure TSymbolMapSourceUnitTests.IndexProjectUsesSharedProjectSourceFiles;
+var
+  lArgs: string;
+  lCacheRoot: string;
+  lEscapedDir: string;
+  lExitCode: Cardinal;
+  lIndexedUnits: TJSONArray;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLogPath: string;
+  lLogText: string;
+  lProjectDir: string;
+  lProjectPath: string;
+  lResult: TJSONObject;
+  lUnitNames: string;
+
+  procedure WriteUnit(const aPath, aUnitName: string);
+  begin
+    TFile.WriteAllText(aPath,
+      'unit ' + aUnitName + ';' + sLineBreak +
+      sLineBreak +
+      'interface' + sLineBreak +
+      sLineBreak +
+      'type' + sLineBreak +
+      '  T' + aUnitName + 'Type = record' + sLineBreak +
+      '  end;' + sLineBreak +
+      sLineBreak +
+      'implementation' + sLineBreak +
+      sLineBreak +
+      'end.', TEncoding.UTF8);
+  end;
+
+  function IndexedUnitNames(const aItems: TJSONArray): string;
+  var
+    i: Integer;
+    lItem: TJSONObject;
+  begin
+    Result := '';
+    for i := 0 to aItems.Count - 1 do
+    begin
+      lItem := aItems.Items[i] as TJSONObject;
+      Result := Result + ';' + lItem.GetValue<string>('unitName');
+    end;
+    Result := Result + ';';
+  end;
+
+begin
+  EnsureResolverBuilt;
+  lProjectDir := UniqueTempPath('symbol-map-project-context');
+  lCacheRoot := UniqueTempPath('symbol-map-project-context-cache');
+  lLogPath := UniqueTempPath('symbol-map-project-context') + '.log';
+  if TDirectory.Exists(lProjectDir) then
+    TDirectory.Delete(lProjectDir, True);
+  ForceDirectories(lProjectDir);
+  lEscapedDir := TPath.Combine(lProjectDir, 'src&shared');
+  ForceDirectories(lEscapedDir);
+
+  lProjectPath := TPath.Combine(lProjectDir, 'SymbolMapProjectContext.dproj');
+  TFile.WriteAllText(TPath.Combine(lProjectDir, 'SymbolMapProjectContext.dpr'),
+    'program SymbolMapProjectContext;' + sLineBreak +
+    sLineBreak +
+    'uses' + sLineBreak +
+    '  ActiveProjectUnit in ''ActiveProjectUnit.pas'';' + sLineBreak +
+    sLineBreak +
+    'begin' + sLineBreak +
+    'end.', TEncoding.UTF8);
+  WriteUnit(TPath.Combine(lProjectDir, 'ActiveProjectUnit.pas'), 'ActiveProjectUnit');
+  WriteUnit(TPath.Combine(lProjectDir, 'InactiveProjectUnit.pas'), 'InactiveProjectUnit');
+  WriteUnit(TPath.Combine(lEscapedDir, 'EscapedProjectUnit.pas'), 'EscapedProjectUnit');
+  TFile.WriteAllText(lProjectPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>SymbolMapProjectContext.dpr</MainSource>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <ItemGroup>' + sLineBreak +
+    '    <DCCReference Include="ActiveProjectUnit.pas" />' + sLineBreak +
+    '    <DCCReference Include="InactiveProjectUnit.pas" Condition="''$(Config)''==''Debug''" />' + sLineBreak +
+    '    <DCCReference Include="src&amp;shared\EscapedProjectUnit.pas" />' + sLineBreak +
+    '  </ItemGroup>' + sLineBreak +
+    '</Project>', TEncoding.UTF8);
+
+  lArgs := 'symbol-map index --project ' + QuoteArg(lProjectPath) + ' --cache-root ' + QuoteArg(lCacheRoot) +
+    ' --format json';
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start symbol-map project index command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map project index to succeed. See: ' + lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath);
+  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lJsonValue);
+    lResult := lJson.GetValue('result') as TJSONObject;
+    Assert.AreEqual(2, lResult.GetValue<Integer>('unitCount'),
+      'Expected project context source files to include active and escaped units only.');
+    lIndexedUnits := lResult.GetValue('indexedUnits') as TJSONArray;
+    Assert.AreEqual(2, lIndexedUnits.Count, 'Expected indexed unit details to match the unit count.');
+    lUnitNames := IndexedUnitNames(lIndexedUnits);
+    Assert.IsTrue(Pos(';ActiveProjectUnit;', lUnitNames) > 0,
+      'Expected active DCCReference unit to be indexed. Actual: ' + lUnitNames);
+    Assert.IsTrue(Pos(';EscapedProjectUnit;', lUnitNames) > 0,
+      'Expected XML-escaped DCCReference unit to be indexed. Actual: ' + lUnitNames);
+    Assert.AreEqual(0, Pos(';InactiveProjectUnit;', lUnitNames),
+      'Inactive conditioned DCCReference must not be indexed. Actual: ' + lUnitNames);
   finally
     lJsonValue.Free;
   end;

@@ -55,6 +55,9 @@ function IndexSymbolMapRtlSources(const aContext: TSymbolMapContext; const aStat
   const aSourceRoot: string; var aProfile: TSymbolMapCompilerProfileResult; out aResult: TSymbolMapRtlIndexResult;
   out aError: string): Boolean;
 function BuildSymbolMapProjectKey(const aContext: TSymbolMapContext): string;
+function StoreSymbolMapProjectProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModels: TArray<TSymbolMapUnitModel>; out aResults: TArray<TSymbolMapCacheStoreResult>;
+  out aError: string): Boolean;
 function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; overload;
 function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
@@ -93,7 +96,8 @@ const
 
 function StoreSymbolMapUnitProjectionInternal(const aContext: TSymbolMapContext;
   const aStatus: TSymbolMapCacheStatus; const aModel: TSymbolMapUnitModel;
-  out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; forward;
+  out aResult: TSymbolMapCacheStoreResult; out aError: string;
+  const aLinkProjectUnit: Boolean): Boolean; forward;
 
 function BuildSymbolMapIncludeGraphHash(const aContext: TSymbolMapContext; const aSourceFileName: string):
   string;
@@ -871,7 +875,7 @@ begin
     for lSemanticModel in lProfileModels.RtlSourceUnitModels do
     begin
       lModel := SymbolMapUnitModelFromDelphiSemanticModel(lSemanticModel);
-      if not StoreSymbolMapUnitProjectionInternal(lRtlContext, aStatus, lModel, lStoreResult, aError) then
+      if not StoreSymbolMapUnitProjectionInternal(lRtlContext, aStatus, lModel, lStoreResult, aError, True) then
         Exit(False);
       if lStoreResult.fCacheHit then
         Inc(aResult.fUnitCacheHits)
@@ -976,17 +980,51 @@ begin
   end;
 end;
 
+procedure StoreProjectContextRow(const aConnection: TFDConnection; const aContext: TSymbolMapContext;
+  const aStatus: TSymbolMapCacheStatus; const aProjectIdentity: TDelphiSemanticProjectCacheIdentity;
+  const aProjectKey: string);
+begin
+  aConnection.ExecSQL('insert or replace into project_context(' +
+    'project_key, project_path, config, platform, delphi_version, defines_hash, search_path_hash, ' +
+    'unit_scope_hash, alias_hash, central_cache_path, indexed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [aProjectKey, aContext.fProject.fProjectPath, aContext.fConfig, aContext.fPlatform,
+    aContext.fDelphiVersion, aProjectIdentity.DefinesHash, aProjectIdentity.SearchPathHash,
+    aProjectIdentity.UnitScopeHash, aProjectIdentity.AliasHash, aStatus.fCentralDbPath, DateTimeToStr(Now)]);
+end;
+
+procedure InsertProjectUnitRows(const aConnection: TFDConnection; const aProjectKey: string;
+  const aModel: TSymbolMapUnitModel; const aUnitCacheKey: string);
+var
+  i: Integer;
+  lSymbol: TSymbolMapSymbolModel;
+  lVisibilityRank: Integer;
+begin
+  aConnection.ExecSQL('insert into project_units(' +
+    'project_key, unit_name, file_path, unit_cache_key, source_kind, resolution_rank) values (?, ?, ?, ?, ?, ?)',
+    [aProjectKey, aModel.fUnitName, aModel.fFilePath, aUnitCacheKey, 'project', 0]);
+  for i := 0 to High(aModel.fSymbols) do
+  begin
+    lSymbol := aModel.fSymbols[i];
+    if SameText(lSymbol.fSectionKind, 'interface') then
+      lVisibilityRank := 0
+    else
+      lVisibilityRank := 1;
+    aConnection.ExecSQL('insert into project_symbols(' +
+      'project_key, normalized_name, unit_cache_key, symbol_id, visibility_rank, source_kind) ' +
+      'values (?, ?, ?, ?, ?, ?)',
+      [aProjectKey, LowerCase(lSymbol.fName), aUnitCacheKey, aUnitCacheKey + ':' + i.ToString,
+      lVisibilityRank, 'project']);
+  end;
+end;
+
 procedure StoreProjectUnitReference(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; const aUnitCacheKey: string; out aError: string);
 var
-  i: Integer;
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
   lProjectIdentity: TDelphiSemanticProjectCacheIdentity;
   lProjectKey: string;
   lProjectMutexHandle: THandle;
-  lSymbol: TSymbolMapSymbolModel;
-  lVisibilityRank: Integer;
 begin
   if not AcquireProjectCacheMutex(aStatus.fProjectDbPath, lProjectMutexHandle, aError) then
     raise Exception.Create(aError);
@@ -999,33 +1037,13 @@ begin
       lProjectKey := lProjectIdentity.ProjectKey;
       lConnection.StartTransaction;
       try
-        lConnection.ExecSQL('insert or replace into project_context(' +
-          'project_key, project_path, config, platform, delphi_version, defines_hash, search_path_hash, ' +
-          'unit_scope_hash, alias_hash, central_cache_path, indexed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [lProjectKey, aContext.fProject.fProjectPath, aContext.fConfig, aContext.fPlatform,
-          aContext.fDelphiVersion, lProjectIdentity.DefinesHash, lProjectIdentity.SearchPathHash,
-          lProjectIdentity.UnitScopeHash, lProjectIdentity.AliasHash, aStatus.fCentralDbPath,
-          DateTimeToStr(Now)]);
+        StoreProjectContextRow(lConnection, aContext, aStatus, lProjectIdentity, lProjectKey);
+        lConnection.ExecSQL('delete from project_symbols where project_key = ? and unit_cache_key in ' +
+          '(select unit_cache_key from project_units where project_key = ? and file_path = ?)',
+          [lProjectKey, lProjectKey, aModel.fFilePath]);
         lConnection.ExecSQL('delete from project_units where project_key = ? and file_path = ?',
           [lProjectKey, aModel.fFilePath]);
-        lConnection.ExecSQL('insert into project_units(' +
-          'project_key, unit_name, file_path, unit_cache_key, source_kind, resolution_rank) values (?, ?, ?, ?, ?, ?)',
-          [lProjectKey, aModel.fUnitName, aModel.fFilePath, aUnitCacheKey, 'project', 0]);
-        lConnection.ExecSQL('delete from project_symbols where project_key = ? and unit_cache_key = ?',
-          [lProjectKey, aUnitCacheKey]);
-        for i := 0 to High(aModel.fSymbols) do
-        begin
-          lSymbol := aModel.fSymbols[i];
-          if SameText(lSymbol.fSectionKind, 'interface') then
-            lVisibilityRank := 0
-          else
-            lVisibilityRank := 1;
-          lConnection.ExecSQL('insert into project_symbols(' +
-            'project_key, normalized_name, unit_cache_key, symbol_id, visibility_rank, source_kind) ' +
-            'values (?, ?, ?, ?, ?, ?)',
-            [lProjectKey, LowerCase(lSymbol.fName), aUnitCacheKey, aUnitCacheKey + ':' + i.ToString,
-            lVisibilityRank, 'project']);
-        end;
+        InsertProjectUnitRows(lConnection, lProjectKey, aModel, aUnitCacheKey);
         lConnection.Commit;
       except
         lConnection.Rollback;
@@ -1045,7 +1063,8 @@ begin
 end;
 
 function StoreSymbolMapUnitProjectionInternal(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
-  const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean;
+  const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string;
+  const aLinkProjectUnit: Boolean): Boolean;
 var
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
@@ -1116,19 +1135,81 @@ begin
     end;
   end;
 
-  try
-    StoreProjectUnitReference(aContext, aStatus, aModel, lUnitCacheKey, aError);
+  if aLinkProjectUnit then
+  begin
+    try
+      StoreProjectUnitReference(aContext, aStatus, aModel, lUnitCacheKey, aError);
+      Result := True;
+    except
+      on E: Exception do
+        aError := E.Message;
+    end;
+  end else begin
     Result := True;
-  except
-    on E: Exception do
-      aError := E.Message;
+  end;
+end;
+
+function StoreSymbolMapProjectProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModels: TArray<TSymbolMapUnitModel>; out aResults: TArray<TSymbolMapCacheStoreResult>;
+  out aError: string): Boolean;
+var
+  i: Integer;
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lProjectIdentity: TDelphiSemanticProjectCacheIdentity;
+  lProjectKey: string;
+  lProjectMutexHandle: THandle;
+begin
+  Result := False;
+  aError := '';
+  SetLength(aResults, Length(aModels));
+  for i := 0 to High(aModels) do
+    if not StoreSymbolMapUnitProjectionInternal(aContext, aStatus, aModels[i], aResults[i], aError, False) then
+      Exit(False);
+
+  lProjectMutexHandle := 0;
+  if not AcquireProjectCacheMutex(aStatus.fProjectDbPath, lProjectMutexHandle, aError) then
+    Exit(False);
+  try
+    if not OpenCacheConnection(aStatus.fProjectDbPath, lDriverLink, lConnection, aError) then
+      Exit(False);
+    try
+      lProjectIdentity := TDelphiSemanticCacheIdentityBuilder.BuildProjectIdentity(
+        SemanticIdentityContext(aContext, ''));
+      lProjectKey := lProjectIdentity.ProjectKey;
+      lConnection.StartTransaction;
+      try
+        StoreProjectContextRow(lConnection, aContext, aStatus, lProjectIdentity, lProjectKey);
+        lConnection.ExecSQL('delete from project_symbols where project_key = ?', [lProjectKey]);
+        lConnection.ExecSQL('delete from project_units where project_key = ?', [lProjectKey]);
+        for i := 0 to High(aModels) do
+          InsertProjectUnitRows(lConnection, lProjectKey, aModels[i], aResults[i].fUnitCacheKey);
+        lConnection.Commit;
+        Result := True;
+      except
+        on E: Exception do
+        begin
+          lConnection.Rollback;
+          aError := E.Message;
+        end;
+      end;
+    finally
+      lConnection.Free;
+      lDriverLink.Free;
+    end;
+  finally
+    if lProjectMutexHandle <> 0 then
+    begin
+      ReleaseMutex(lProjectMutexHandle);
+      CloseHandle(lProjectMutexHandle);
+    end;
   end;
 end;
 
 function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean;
 begin
-  Result := StoreSymbolMapUnitProjectionInternal(aContext, aStatus, aModel, aResult, aError);
+  Result := StoreSymbolMapUnitProjectionInternal(aContext, aStatus, aModel, aResult, aError, True);
 end;
 
 function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;

@@ -10,7 +10,7 @@ function RunSymbolMapCommand(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
-  System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.SysUtils,
+  System.IOUtils, System.SysUtils,
   Dak.ExitCodes, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer, Dak.SymbolMap.Query;
 
 type
@@ -386,47 +386,6 @@ begin
   end;
 end;
 
-function CollectProjectIndexUnitPaths(const aContext: TSymbolMapContext): TArray<string>;
-var
-  lDprojText: string;
-  lIncludePath: string;
-  lMatch: TMatch;
-  lMatches: TMatchCollection;
-  lPath: string;
-  lPaths: TList<string>;
-  lSeen: TDictionary<string, Boolean>;
-begin
-  SetLength(Result, 0);
-  if not TFile.Exists(aContext.fProject.fProjectPath) then
-    Exit;
-  lDprojText := TFile.ReadAllText(aContext.fProject.fProjectPath);
-  lMatches := TRegEx.Matches(lDprojText, '<DCCReference\b[^>]*\bInclude\s*=\s*"([^"]+)"', [roIgnoreCase]);
-  lPaths := TList<string>.Create;
-  lSeen := TDictionary<string, Boolean>.Create;
-  try
-    for lMatch in lMatches do
-    begin
-      if (not lMatch.Success) or (lMatch.Groups.Count < 2) then
-        Continue;
-      lIncludePath := Trim(lMatch.Groups[1].Value);
-      if not SameText(TPath.GetExtension(lIncludePath), '.pas') then
-        Continue;
-      if TPath.IsPathRooted(lIncludePath) then
-        lPath := TPath.GetFullPath(lIncludePath)
-      else
-        lPath := TPath.GetFullPath(TPath.Combine(aContext.fProject.fProjectDir, lIncludePath));
-      if (not TFile.Exists(lPath)) or lSeen.ContainsKey(LowerCase(lPath)) then
-        Continue;
-      lSeen.Add(LowerCase(lPath), True);
-      lPaths.Add(lPath);
-    end;
-    Result := lPaths.ToArray;
-  finally
-    lSeen.Free;
-    lPaths.Free;
-  end;
-end;
-
 function TryIndexSymbolMapUnit(const aContext: TSymbolMapContext; const aCacheStatus: TSymbolMapCacheStatus;
   const aUnitPath: string; out aIndexedUnit: TSymbolMapIndexedUnit; out aError: string): Boolean;
 var
@@ -447,16 +406,32 @@ procedure AddIndexedUnit(var aUnits: TArray<TSymbolMapIndexedUnit>; const aUnit:
 function TryIndexSymbolMapProject(const aContext: TSymbolMapContext; const aCacheStatus: TSymbolMapCacheStatus;
   var aIndexedUnits: TArray<TSymbolMapIndexedUnit>; out aError: string): Boolean;
 var
+  i: Integer;
   lIndexedUnit: TSymbolMapIndexedUnit;
+  lModels: TArray<TSymbolMapUnitModel>;
+  lStoreResults: TArray<TSymbolMapCacheStoreResult>;
   lUnitPath: string;
   lUnitPaths: TArray<string>;
 begin
   Result := False;
-  lUnitPaths := CollectProjectIndexUnitPaths(aContext);
+  lUnitPaths := SymbolMapProjectSourceFilePaths(aContext, False);
+  SetLength(lModels, Length(lUnitPaths));
+  i := 0;
   for lUnitPath in lUnitPaths do
   begin
-    if not TryIndexSymbolMapUnit(aContext, aCacheStatus, lUnitPath, lIndexedUnit, aError) then
+    lIndexedUnit := Default(TSymbolMapIndexedUnit);
+    if not TryExtractSymbolMapUnitModel(lUnitPath, lIndexedUnit.fModel, aError) then
       Exit(False);
+    lModels[i] := lIndexedUnit.fModel;
+    Inc(i);
+  end;
+  if not StoreSymbolMapProjectProjection(aContext, aCacheStatus, lModels, lStoreResults, aError) then
+    Exit(False);
+  for i := 0 to High(lModels) do
+  begin
+    lIndexedUnit := Default(TSymbolMapIndexedUnit);
+    lIndexedUnit.fModel := lModels[i];
+    lIndexedUnit.fStoreResult := lStoreResults[i];
     AddIndexedUnit(aIndexedUnits, lIndexedUnit);
   end;
   Result := True;

@@ -38,7 +38,7 @@ function ResolveSymbolMapDefinitionByPosition(const aOptions: TAppOptions; const
 implementation
 
 uses
-  System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.SysUtils,
+  System.Generics.Collections, System.SysUtils,
   Dak.SymbolMap.Indexer;
 
 type
@@ -58,67 +58,34 @@ begin
   aDiagnostics[lIndex] := aMessage;
 end;
 
-procedure AddPath(var aPaths: TArray<string>; const aPath: string);
-var
-  lFullPath: string;
-  lIndex: Integer;
-  lPath: string;
-begin
-  lPath := Trim(aPath);
-  if lPath = '' then
-    Exit;
-  lFullPath := TPath.GetFullPath(lPath);
-  for lPath in aPaths do
-  begin
-    if SameText(lPath, lFullPath) then
-      Exit;
-  end;
-  lIndex := Length(aPaths);
-  SetLength(aPaths, lIndex + 1);
-  aPaths[lIndex] := lFullPath;
-end;
-
-function CollectProjectIndexUnitPaths(const aContext: TSymbolMapContext): TArray<string>;
-var
-  lDprojText: string;
-  lMatch: TMatch;
-  lMatches: TMatchCollection;
-  lPath: string;
-begin
-  SetLength(Result, 0);
-  if TFile.Exists(aContext.fProject.fProjectPath) then
-  begin
-    lDprojText := TFile.ReadAllText(aContext.fProject.fProjectPath, TEncoding.UTF8);
-    lMatches := TRegEx.Matches(lDprojText, '<DCCReference\s+Include="([^"]+\.pas)"',
-      [roIgnoreCase]);
-    for lMatch in lMatches do
-    begin
-      lPath := lMatch.Groups[1].Value;
-      if not TPath.IsPathRooted(lPath) then
-        lPath := TPath.Combine(aContext.fProject.fProjectDir, lPath);
-      AddPath(Result, lPath);
-    end;
-  end;
-  if TFile.Exists(aContext.fProject.fMainSourcePath) then
-    AddPath(Result, aContext.fProject.fMainSourcePath);
-end;
-
 function IndexSymbolMapProject(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   var aApiStatus: TSymbolMapApiStatus; out aError: string): Boolean;
 var
+  i: Integer;
   lIndexedUnit: TSymbolMapIndexedUnit;
+  lModels: TArray<TSymbolMapUnitModel>;
+  lStoreResults: TArray<TSymbolMapCacheStoreResult>;
   lUnitPath: string;
   lUnitPaths: TArray<string>;
 begin
   Result := False;
-  lUnitPaths := CollectProjectIndexUnitPaths(aContext);
+  lUnitPaths := SymbolMapProjectSourceFilePaths(aContext, True);
+  SetLength(lModels, Length(lUnitPaths));
+  i := 0;
   for lUnitPath in lUnitPaths do
   begin
     lIndexedUnit := Default(TSymbolMapIndexedUnit);
     if not TryExtractSymbolMapUnitModel(lUnitPath, lIndexedUnit.fModel, aError) then
       Exit(False);
-    if not StoreSymbolMapUnitProjection(aContext, aStatus, lIndexedUnit.fModel, lIndexedUnit.fStoreResult, aError) then
-      Exit(False);
+    lModels[i] := lIndexedUnit.fModel;
+    Inc(i);
+  end;
+  if not StoreSymbolMapProjectProjection(aContext, aStatus, lModels, lStoreResults, aError) then
+    Exit(False);
+  if Length(lStoreResults) <> Length(lModels) then
+  begin
+    aError := 'Symbol Map project projection result count mismatch.';
+    Exit(False);
   end;
   aApiStatus.fProjectIndexed := True;
   Result := True;
