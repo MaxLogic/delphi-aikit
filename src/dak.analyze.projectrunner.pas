@@ -143,6 +143,7 @@ begin
   fParams.fFixIgnore := fFixOptions.fIgnore;
   fParams.fFixSettings := fFixOptions.fSettings;
   fParams.fFixSilent := fFixOptions.fSilent;
+  fParams.fTimeoutSec := fFixOptions.fTimeoutSec;
   if fParams.fFixSettings <> '' then
     fParams.fFixSettings := TPath.GetFullPath(fParams.fFixSettings);
 end;

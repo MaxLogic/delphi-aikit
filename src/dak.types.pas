@@ -122,6 +122,8 @@ type
     fHasFixXml: Boolean;
     fFixCsv: Boolean;
     fHasFixCsv: Boolean;
+    fFixTimeoutSec: Integer;
+    fHasFixTimeoutSec: Boolean;
     fRunFixInsight: Boolean;
     fExcludePathMasks: string;
     fHasExcludePathMasks: Boolean;
@@ -134,6 +136,8 @@ type
     fHasPaOutput: Boolean;
     fPaArgs: string;
     fHasPaArgs: Boolean;
+    fPaTimeoutSec: Integer;
+    fHasPaTimeoutSec: Boolean;
     fLogFile: string;
     fHasLogFile: Boolean;
     fLogTee: Boolean;
@@ -223,6 +227,7 @@ type
     fSilent: Boolean;
     fXml: Boolean;
     fCsv: Boolean;
+    fTimeoutSec: Integer;
   end;
 
   TFixInsightIgnoreDefaults = record
@@ -237,6 +242,7 @@ type
     fPath: string;
     fOutput: string;
     fArgs: string;
+    fTimeoutSec: Integer;
   end;
 
   TFixInsightParams = record
@@ -248,6 +254,7 @@ type
     fFixSilent: Boolean;
     fFixXml: Boolean;
     fFixCsv: Boolean;
+    fTimeoutSec: Integer;
     fDefines: TArray<string>;
     fUnitSearchPath: TArray<string>;
     fLibraryPath: TArray<string>;

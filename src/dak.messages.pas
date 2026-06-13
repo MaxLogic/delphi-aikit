@@ -34,13 +34,15 @@ resourcestring
     '  [--out "<path>"] [--fi-formats <txt|xml|csv|all>] [--fixinsight [true|false]] ' +
     '[--pascal-analyzer [true|false]]' + #13#10 +
     '  [--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"]' + #13#10 +
-    '  [--fi-settings "<path>"] [--fi-ignore "<list>"] [--fi-silent [true|false]]' + #13#10 +
-    '  [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"]' + #13#10 +
+    '  [--fi-settings "<path>"] [--fi-ignore "<list>"] [--fi-silent [true|false]] ' +
+    '[--fi-timeout-sec <N>]' + #13#10 +
+    '  [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] [--pa-timeout-sec <N>]' + #13#10 +
     '  [--clean [true|false]] [--write-summary [true|false]]' + #13#10 +
     '  [--rsvars "<path>"] [--envoptions "<path>"] [--log-file "<path>"] [--log-tee [true|false]] ' +
     '[--verbose [true|false]]' + #13#10 +
     'DelphiAIKit.exe analyze --unit "<path>" --delphi <23.0> [--out "<path>"] ' +
-    '[--pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"]';
+    '[--pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +
+    '[--pa-timeout-sec <N>]';
   SUsageBuild =
     'DelphiAIKit.exe build --project "<path>" [--delphi <23.0>] ' +
     '[--platform <Win32|Win64>] [--config <Debug|Release>] [--target <Build|Rebuild>] [--rebuild [true|false]] ' +
@@ -113,6 +115,7 @@ resourcestring
   SBuildOptionDelphiOnly = '%s is only supported for Delphi/MSBuild builds.';
   SInvalidMaxFindings = 'Invalid --max-findings value: %s (expected integer >= 1).';
   SInvalidBuildTimeout = 'Invalid --build-timeout-sec value: %s (expected integer >= 0).';
+  SInvalidAnalyzerTimeout = 'Invalid %s value: %s (expected integer >= 1).';
   SInvalidSourceContext = 'Invalid --source-context value: %s (expected auto, off, or on).';
   SInvalidSourceContextLines = 'Invalid --source-context-lines value: %s (expected integer >= 0).';
   SInvalidDeadCodeProfile = 'Invalid --profile value: %s (expected %s).';
@@ -226,6 +229,7 @@ resourcestring
   SFixInsightRunExit = 'FixInsightCL.exe exited with code %d.';
   SLogFileOpenFailed = 'Failed to open log file: %s';
   SSettingsInvalidBool = 'Invalid dak.ini boolean for %s: %s';
+  SSettingsInvalidInteger = 'Invalid dak.ini integer for %s.%s: %s';
   SBuildWarningMissingWinapiNamespace =
     'Project %s for %s does not include Winapi in the effective DCC_Namespace. ' +
     'Units like ''Windows'' may not resolve.';
@@ -260,6 +264,8 @@ begin
     Touch(SInfoAssociatedDproj);
     Touch(SSourceDefines);
     Touch(SSourceEnvOptions);
+    Touch(SInvalidAnalyzerTimeout);
+    Touch(SSettingsInvalidInteger);
   end;
 end;
 

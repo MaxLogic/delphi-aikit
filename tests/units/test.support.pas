@@ -9,6 +9,7 @@ uses
   System.StrUtils,
   Winapi.Windows,
   DUnitX.TestFramework,
+  maxLogic.ioutils,
   Dak.FixInsight,
   Dak.Lsp.Context,
   Dak.Lsp.Runner,
@@ -25,6 +26,7 @@ procedure RequireFixInsightOrSkip(out aExePath: string);
 procedure RequirePalCmdOrSkip(out aExePath: string);
 procedure RequireRealDelphiLsp23OrSkip(out aExePath: string);
 function RunProcess(const aExe, aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
+function StartSlowPingProcess(out aProcess: THandle; out aThread: THandle; out aError: string): Boolean;
 function QuoteArg(const aValue: string): string;
 
 implementation
@@ -223,6 +225,44 @@ begin
     if lOutHandle <> INVALID_HANDLE_VALUE then
       CloseHandle(lOutHandle);
   end;
+end;
+
+function StartSlowPingProcess(out aProcess: THandle; out aThread: THandle; out aError: string): Boolean;
+var
+  lCmdLine: string;
+  lExe: string;
+  lLastError: Cardinal;
+  lPi: TProcessInformation;
+  lRoot: string;
+  lSi: TStartupInfo;
+begin
+  Result := False;
+  aProcess := 0;
+  aThread := 0;
+  aError := '';
+
+  lRoot := Trim(GetEnvironmentVariable('SystemRoot'));
+  if lRoot <> '' then
+    lExe := CombinePath([lRoot, 'System32', 'ping.exe'])
+  else
+    lExe := 'ping.exe';
+
+  FillChar(lSi, SizeOf(lSi), 0);
+  lSi.cb := SizeOf(lSi);
+  FillChar(lPi, SizeOf(lPi), 0);
+
+  lCmdLine := QuoteArg(lExe) + ' -n 30 127.0.0.1';
+  UniqueString(lCmdLine);
+  if not CreateProcess(PChar(lExe), PChar(lCmdLine), nil, nil, False, CREATE_NO_WINDOW, nil, nil, lSi, lPi) then
+  begin
+    lLastError := GetLastError;
+    aError := 'Slow ping process start failed: ' + SysErrorMessage(lLastError);
+    Exit(False);
+  end;
+
+  aProcess := lPi.hProcess;
+  aThread := lPi.hThread;
+  Result := True;
 end;
 
 procedure EnsureResolverBuilt;

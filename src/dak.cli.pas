@@ -132,8 +132,9 @@ var
       SameText(aSwitch, 'ignore') or SameText(aSwitch, 'fi-settings') or
       SameText(aSwitch, 'settings') or SameText(aSwitch, 'exclude-path-masks') or
       SameText(aSwitch, 'ignore-warning-ids') or SameText(aSwitch, 'unit') or
-      SameText(aSwitch, 'fi-formats') or SameText(aSwitch, 'pa-path') or
-      SameText(aSwitch, 'pa-output') or SameText(aSwitch, 'pa-args') or
+      SameText(aSwitch, 'fi-formats') or SameText(aSwitch, 'fi-timeout-sec') or
+      SameText(aSwitch, 'pa-path') or SameText(aSwitch, 'pa-output') or
+      SameText(aSwitch, 'pa-args') or SameText(aSwitch, 'pa-timeout-sec') or
       SameText(aSwitch, 'target') or SameText(aSwitch, 'max-findings') or
       SameText(aSwitch, 'build-timeout-sec') or SameText(aSwitch, 'test-output-dir') or
       SameText(aSwitch, 'ignore-warnings') or SameText(aSwitch, 'ignore-hints') or
@@ -520,13 +521,13 @@ begin
     SameText(aSwitch, 'fi-settings') or SameText(aSwitch, 'settings') or
     SameText(aSwitch, 'fi-silent') or SameText(aSwitch, 'silent') or
     SameText(aSwitch, 'fi-xml') or SameText(aSwitch, 'xml') or
-    SameText(aSwitch, 'fi-csv') or SameText(aSwitch, 'csv') or
+    SameText(aSwitch, 'fi-csv') or SameText(aSwitch, 'csv') or SameText(aSwitch, 'fi-timeout-sec') or
     SameText(aSwitch, 'exclude-path-masks') or SameText(aSwitch, 'ignore-warning-ids') or
     SameText(aSwitch, 'unit') or SameText(aSwitch, 'fi-formats') or
     SameText(aSwitch, 'fixinsight') or SameText(aSwitch, 'pascal-analyzer') or
     SameText(aSwitch, 'pal') or SameText(aSwitch, 'clean') or
     SameText(aSwitch, 'write-summary') or SameText(aSwitch, 'pa-path') or
-    SameText(aSwitch, 'pa-output') or SameText(aSwitch, 'pa-args') or
+    SameText(aSwitch, 'pa-output') or SameText(aSwitch, 'pa-args') or SameText(aSwitch, 'pa-timeout-sec') or
     SameText(aSwitch, 'show-warnings') or SameText(aSwitch, 'show-hints') or
     SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
     SameText(aSwitch, 'target') or SameText(aSwitch, 'rebuild') or
@@ -1036,6 +1037,17 @@ begin
       Exit(False);
     end;
     fOptions.fHasFixSilent := True;
+  end else if SameText(aSwitch, 'fi-timeout-sec') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--fi-timeout-sec') then
+      Exit(False);
+    fOptions.fFixTimeoutSec := StrToIntDef(lValue, -1);
+    if fOptions.fFixTimeoutSec < 1 then
+    begin
+      fError := Format(SInvalidAnalyzerTimeout, ['--fi-timeout-sec', lValue]);
+      Exit(False);
+    end;
+    fOptions.fHasFixTimeoutSec := True;
   end else if SameText(aSwitch, 'exclude-path-masks') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--exclude-path-masks') then
@@ -1079,6 +1091,17 @@ begin
       Exit(False);
     fOptions.fPaArgs := lValue;
     fOptions.fHasPaArgs := True;
+  end else if SameText(aSwitch, 'pa-timeout-sec') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--pa-timeout-sec') then
+      Exit(False);
+    fOptions.fPaTimeoutSec := StrToIntDef(lValue, -1);
+    if fOptions.fPaTimeoutSec < 1 then
+    begin
+      fError := Format(SInvalidAnalyzerTimeout, ['--pa-timeout-sec', lValue]);
+      Exit(False);
+    end;
+    fOptions.fHasPaTimeoutSec := True;
   end
   else
     aHandled := False;

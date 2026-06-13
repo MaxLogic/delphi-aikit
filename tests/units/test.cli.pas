@@ -27,6 +27,8 @@ type
     [Test]
     procedure ResolveCommandRejectsUnsupportedProjectExtension;
     [Test]
+    procedure ResolveCommandRejectsFixInsightTimeout;
+    [Test]
     procedure AnalyzeUnitCommandRejectsUnsupportedLinuxAbsolutePath;
     [Test]
     procedure AnalyzeProjectCommandRejectsUnsupportedProjectExtension;
@@ -73,7 +75,13 @@ type
     [Test]
     procedure AnalyzeUnitDefaultOutRootUsesDakConvention;
     [Test]
+    procedure AnalyzeCommandParsesAnalyzerTimeouts;
+    [Test]
+    procedure AnalyzeCommandRejectsInvalidAnalyzerTimeout;
+    [Test]
     procedure LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
+    [Test]
+    procedure LoadSettingsReadsAnalyzerTimeouts;
     [Test]
     procedure LoadDefaultDelphiVersionUsesProjectLocalDakIni;
     [Test]
@@ -237,6 +245,16 @@ begin
     lLogText := TFile.ReadAllText(lRunLog);
   Assert.IsTrue(Pos('Unsupported project input', lLogText) > 0,
     'Expected unsupported project extension error message. See: ' + lRunLog);
+end;
+
+procedure TCliTests.ResolveCommandRejectsFixInsightTimeout;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('resolve --project C:\repo\Sample.dproj --delphi 23.0 --fi-timeout-sec 17');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected resolve to reject analyzer execution timeout.');
+  Assert.IsTrue(Pos('Unknown argument', lError) > 0, 'Expected unknown argument error. Actual: ' + lError);
 end;
 
 procedure TCliTests.AnalyzeUnitCommandRejectsUnsupportedLinuxAbsolutePath;
@@ -664,6 +682,33 @@ begin
   Assert.IsFalse(TDirectory.Exists(lLegacyRoot), 'Did not expect legacy _analysis unit root: ' + lLegacyRoot);
 end;
 
+procedure TCliTests.AnalyzeCommandParsesAnalyzerTimeouts;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('analyze --project C:\repo\Sample.dproj --delphi 23.0 --fi-timeout-sec 11 --pa-timeout-sec 22');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected analyzer timeout args to parse. Error: ' + lError);
+  Assert.IsTrue(lOptions.fHasFixTimeoutSec, 'Expected explicit FixInsight timeout flag.');
+  Assert.AreEqual(11, lOptions.fFixTimeoutSec, 'Unexpected FixInsight timeout value.');
+  Assert.IsTrue(lOptions.fHasPaTimeoutSec, 'Expected explicit Pascal Analyzer timeout flag.');
+  Assert.AreEqual(22, lOptions.fPaTimeoutSec, 'Unexpected Pascal Analyzer timeout value.');
+end;
+
+procedure TCliTests.AnalyzeCommandRejectsInvalidAnalyzerTimeout;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('analyze --project C:\repo\Sample.dproj --delphi 23.0 --fi-timeout-sec 0');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected zero FixInsight timeout to be rejected.');
+  Assert.IsTrue(Pos('--fi-timeout-sec', lError) > 0, 'Expected FixInsight timeout error. Actual: ' + lError);
+
+  SetParams('analyze --project C:\repo\Sample.dproj --delphi 23.0 --pa-timeout-sec abc');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected non-integer Pascal Analyzer timeout to be rejected.');
+  Assert.IsTrue(Pos('--pa-timeout-sec', lError) > 0, 'Expected Pascal Analyzer timeout error. Actual: ' + lError);
+end;
+
 procedure TCliTests.LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
 var
   lBaseDir: string;
@@ -712,6 +757,45 @@ begin
       'Expected project-local dak.ini warnings to be loaded.');
     Assert.IsFalse(Pos('W777', lFixIgnoreDefaults.fWarnings) > 0,
       'Did not expect parent dak.ini warnings without a repo marker.');
+  finally
+    if TDirectory.Exists(lBaseDir) then
+      TDirectory.Delete(lBaseDir, True);
+  end;
+end;
+
+procedure TCliTests.LoadSettingsReadsAnalyzerTimeouts;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lFixIgnoreDefaults: TFixInsightIgnoreDefaults;
+  lFixOptions: TFixInsightExtraOptions;
+  lGuid: TGUID;
+  lIni: TIniFile;
+  lPascalAnalyzer: TPascalAnalyzerDefaults;
+  lProjectIniPath: string;
+  lReportFilter: TReportFilterDefaults;
+begin
+  Assert.AreEqual(0, CreateGUID(lGuid), 'Failed to create a temporary GUID.');
+  lBaseDir := TPath.Combine(TPath.GetTempPath, 'dak-settings-analyzer-timeout-' + GUIDToString(lGuid));
+  TDirectory.CreateDirectory(lBaseDir);
+
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+
+  lProjectIniPath := TPath.Combine(lBaseDir, 'dak.ini');
+  lIni := TIniFile.Create(lProjectIniPath);
+  try
+    lIni.WriteInteger('FixInsightCL', 'TimeoutSec', 33);
+    lIni.WriteInteger('PascalAnalyzer', 'TimeoutSec', 44);
+  finally
+    lIni.Free;
+  end;
+
+  try
+    Assert.IsTrue(LoadSettings(nil, lDprojPath, lFixOptions, lFixIgnoreDefaults, lReportFilter, lPascalAnalyzer),
+      'Expected settings loader to succeed.');
+    Assert.AreEqual(33, lFixOptions.fTimeoutSec, 'Unexpected FixInsight timeout from dak.ini.');
+    Assert.AreEqual(44, lPascalAnalyzer.fTimeoutSec, 'Unexpected Pascal Analyzer timeout from dak.ini.');
   finally
     if TDirectory.Exists(lBaseDir) then
       TDirectory.Delete(lBaseDir, True);

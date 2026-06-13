@@ -3,13 +3,12 @@ unit Test.PascalAnalyzer;
 interface
 
 uses
-  DUnitX.TestFramework,
-  System.SysUtils,
-  System.IOUtils,
+  System.IOUtils, System.RegularExpressions, System.SysUtils,
   Winapi.Windows,
-  Test.Support,
-  Dak.PascalAnalyzerRunner,
-  Dak.Types;
+  DUnitX.TestFramework,
+  Dak.ExternalToolProcess,
+  Dak.PascalAnalyzerRunner, Dak.Types,
+  Test.Support;
 
 type
   [TestFixture]
@@ -19,6 +18,12 @@ type
     procedure SelectsSupportedCompilerFlag;
     [Test]
     procedure RunPascalAnalyzer;
+    [Test]
+    procedure PascalAnalyzerProcessWaitsAreBounded;
+    [Test]
+    procedure PascalAnalyzerTimeoutTerminatesChildProcess;
+    [Test]
+    procedure PascalAnalyzerHelpProbeTimeoutIsConfigurable;
     [Test]
     procedure InvalidPalMapJsonRootDoesNotRaise;
     [Test]
@@ -187,6 +192,59 @@ begin
 
   lFiles := TDirectory.GetFiles(lOutDir, '*.xml', TSearchOption.soAllDirectories);
   Assert.IsTrue(Length(lFiles) > 0, 'No XML report produced under: ' + lOutDir);
+end;
+
+procedure TPascalAnalyzerTests.PascalAnalyzerProcessWaitsAreBounded;
+var
+  lPath: string;
+  lText: string;
+begin
+  lPath := TPath.Combine(RepoRoot, 'src\dak.pascalanalyzerrunner.pas');
+  lText := TFile.ReadAllText(lPath, TEncoding.UTF8);
+  Assert.IsFalse(TRegEx.IsMatch(lText, 'WaitForSingleObject\s*\([^,]+,\s*INFINITE\s*\)', [roIgnoreCase]),
+    'Pascal Analyzer subprocess waits must use bounded timeouts.');
+end;
+
+procedure TPascalAnalyzerTests.PascalAnalyzerTimeoutTerminatesChildProcess;
+var
+  lError: string;
+  lExit: Cardinal;
+  lProcess: THandle;
+  lThread: THandle;
+begin
+  Assert.IsTrue(StartSlowPingProcess(lProcess, lThread, lError), lError);
+  try
+    Assert.IsFalse(TryWaitForExternalToolProcess('PALCMD', lProcess, 1, lExit, lError), 'Expected timeout failure.');
+    Assert.AreEqual(Cardinal(cExternalToolTimeoutExitCode), lExit, 'Timeout exit code should be deterministic.');
+    Assert.IsTrue(Pos('PALCMD timed out after 1 seconds.', lError) > 0,
+      'Timeout diagnostic should name PALCMD. Actual: ' + lError);
+    Assert.IsTrue(WaitForSingleObject(lProcess, 0) = WAIT_OBJECT_0,
+      'Timeout handling should terminate the child process.');
+  finally
+    if (lProcess <> 0) and (WaitForSingleObject(lProcess, 0) <> WAIT_OBJECT_0) then
+      TerminateProcess(lProcess, 1);
+    if lThread <> 0 then
+      CloseHandle(lThread);
+    if lProcess <> 0 then
+      CloseHandle(lProcess);
+  end;
+end;
+
+procedure TPascalAnalyzerTests.PascalAnalyzerHelpProbeTimeoutIsConfigurable;
+var
+  lPath: string;
+  lText: string;
+begin
+  lPath := TPath.Combine(RepoRoot, 'src\dak.pascalanalyzerrunner.pas');
+  lText := TFile.ReadAllText(lPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('TryCaptureProcessOutput(const aExe, aArgs: string; aTimeoutSec: Integer', lText) > 0,
+    'PALCMD help capture should accept the configured Pascal Analyzer timeout.');
+  Assert.IsFalse(Pos('ResolveExternalToolTimeoutMs(0)', lText) > 0,
+    'PALCMD help capture should not hard-code the built-in timeout.');
+  Assert.IsFalse(Pos('ResolveExternalToolTimeoutSec(0)', lText) > 0,
+    'PALCMD help diagnostics should report the configured timeout.');
+  Assert.IsTrue(Pos('if lHelpTimedOut then', lText) > 0,
+    'PALCMD help timeout should fail instead of falling back to version mapping.');
 end;
 
 procedure TPascalAnalyzerTests.InvalidPalMapJsonRootDoesNotRaise;
