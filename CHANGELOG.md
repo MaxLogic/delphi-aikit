@@ -65,6 +65,8 @@ All notable user-visible changes to this project will be documented in this file
 - DFMCheck build and validator subprocesses now fail with a bounded timeout
   instead of waiting indefinitely; timeout runs keep diagnostics under the
   project `.dak` run directory.
+- DFMCheck all-mode cache writes now use a cache-path lock and atomic replace
+  publish path so concurrent runs cannot corrupt the cache file.
 - Added `deps --top` plus hotspot-ranked text output sections for cycle components, cycle units, and cycle edges, with equal-rank `implementation` edges prioritized ahead of `interface` edges. (T-106)
 - Added optional build-error enrichment that appends best-effort `lsp` semantic hints to AI build failures when DAK can resolve a meaningful token or enclosing symbol, while leaving the original compiler error untouched when LSP returns nothing useful. (T-128, T-129, T-130, T-132, T-133, T-134)
 - Added one-shot `lsp` execution for `definition`/`references`/`hover`/`symbols`, including DelphiLSP discovery from explicit path or resolved Delphi install, JSON/text envelopes, owned `.dak/<ProjectName>/lsp/` context artifacts, and deterministic fake-server-backed lifecycle coverage. (T-110, T-111, T-112, T-113, T-114, T-115)

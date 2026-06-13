@@ -3,8 +3,8 @@ unit Dak.DfmCheck;
 interface
 
 uses
-  System.Classes, System.Generics.Collections, System.IOUtils, System.IniFiles, System.RegularExpressions, System.StrUtils,
-  System.SysUtils,
+  System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.IniFiles, System.RegularExpressions,
+  System.StrUtils, System.SysUtils,
   System.Win.Registry,
   Winapi.Messages,
   Winapi.Windows,
@@ -98,6 +98,8 @@ uses
   Dak.Project;
 
 const
+  cDfmCheckCacheMutexPrefix = 'Local\DelphiAIKit_DfmCheckCache_';
+  cDfmCheckCacheMutexTimeoutMs = 30000;
   cDfmCheckDefaultTimeoutMs = 30 * 60 * 1000;
   cDfmCheckTimeoutEnvVar = 'DAK_DFMCHECK_TIMEOUT_MS';
 
@@ -753,10 +755,89 @@ begin
   end;
 end;
 
-function TryWriteDfmCache(const aCachePath: string; const aModules: TArray<TDfmCacheModule>;
+function BuildDfmCacheMutexName(const aCachePath: string): string;
+begin
+  Result := cDfmCheckCacheMutexPrefix + THashSHA2.GetHashString(LowerCase(TPath.GetFullPath(aCachePath)));
+end;
+
+function AcquireDfmCacheMutex(const aCachePath: string; out aHandle: THandle; out aError: string): Boolean;
+var
+  lMutexName: string;
+  lWaitResult: Cardinal;
+begin
+  Result := False;
+  aError := '';
+  aHandle := 0;
+  lMutexName := BuildDfmCacheMutexName(aCachePath);
+  aHandle := CreateMutex(nil, False, PChar(lMutexName));
+  if aHandle = 0 then
+  begin
+    aError := 'Failed to create DFMCheck cache mutex: ' + SysErrorMessage(GetLastError);
+    Exit(False);
+  end;
+
+  lWaitResult := WaitForSingleObject(aHandle, cDfmCheckCacheMutexTimeoutMs);
+  if (lWaitResult = WAIT_OBJECT_0) or (lWaitResult = WAIT_ABANDONED) then
+    Exit(True);
+
+  if lWaitResult = WAIT_FAILED then
+    aError := 'Failed waiting for DFMCheck cache mutex: ' + SysErrorMessage(GetLastError)
+  else
+    aError := 'Timed out waiting for DFMCheck cache mutex: ' + lMutexName;
+  CloseHandle(aHandle);
+  aHandle := 0;
+end;
+
+procedure ReleaseDfmCacheMutex(var aHandle: THandle);
+begin
+  if aHandle = 0 then
+    Exit;
+  ReleaseMutex(aHandle);
+  CloseHandle(aHandle);
+  aHandle := 0;
+end;
+
+function BuildDfmCacheTempPath(const aCachePath: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+  lTempName: string;
+begin
+  if CreateGUID(lGuid) = S_OK then
+    lGuidText := GUIDToString(lGuid)
+  else
+    lGuidText := Format('%d-%d', [GetCurrentProcessId, GetTickCount]);
+  lGuidText := StringReplace(lGuidText, '{', '', [rfReplaceAll]);
+  lGuidText := StringReplace(lGuidText, '}', '', [rfReplaceAll]);
+  lGuidText := StringReplace(lGuidText, '-', '', [rfReplaceAll]);
+  lTempName := TPath.GetFileName(aCachePath) + '.' + lGuidText + '.tmp';
+  Result := TPath.Combine(ExtractFilePath(aCachePath), lTempName);
+end;
+
+function TryPublishDfmCacheAtomically(const aTempPath: string; const aCachePath: string; out aError: string): Boolean;
+begin
+  Result := False;
+  aError := '';
+  if MoveFileEx(PChar(aTempPath), PChar(aCachePath), MOVEFILE_REPLACE_EXISTING or MOVEFILE_WRITE_THROUGH) then
+    Exit(True);
+  aError := 'Failed to publish DFM cache file (' + aCachePath + '): ' + SysErrorMessage(GetLastError);
+end;
+
+procedure DeleteDfmCacheTempFile(const aTempPath: string);
+begin
+  if (aTempPath = '') or (not FileExists(aTempPath)) then
+    Exit;
+  try
+    TFile.Delete(aTempPath);
+  except
+    // Best-effort cleanup for a failed atomic publish.
+  end;
+end;
+
+function TryWriteDfmCacheFile(const aCachePath: string; const aModules: TArray<TDfmCacheModule>;
   const aFailedResources: TStrings; out aError: string): Boolean;
 var
-  lCacheIni: TMemIniFile;
+  lTempCacheIni: TMemIniFile;
   lCacheSection: string;
   lIndex: Integer;
   lKeepSections: TStringList;
@@ -764,7 +845,7 @@ var
   lStatus: string;
 begin
   aError := '';
-  lCacheIni := TMemIniFile.Create(aCachePath);
+  lTempCacheIni := TMemIniFile.Create(aCachePath);
   lSections := TStringList.Create;
   lKeepSections := TStringList.Create;
   try
@@ -773,23 +854,23 @@ begin
       lKeepSections.Sorted := True;
       lKeepSections.Duplicates := TDuplicates.dupIgnore;
 
-      lCacheIni.WriteString('Meta', 'Version', '1');
+      lTempCacheIni.WriteString('Meta', 'Version', '1');
       for lIndex := Low(aModules) to High(aModules) do
       begin
         lCacheSection := 'Unit:' + aModules[lIndex].fUnitName;
         lKeepSections.Add(lCacheSection);
-        lCacheIni.WriteString(lCacheSection, 'ResourceName', aModules[lIndex].fResourceName);
-        lCacheIni.WriteString(lCacheSection, 'PasHash', aModules[lIndex].fPasHash);
-        lCacheIni.WriteString(lCacheSection, 'DfmHash', aModules[lIndex].fDfmHash);
+        lTempCacheIni.WriteString(lCacheSection, 'ResourceName', aModules[lIndex].fResourceName);
+        lTempCacheIni.WriteString(lCacheSection, 'PasHash', aModules[lIndex].fPasHash);
+        lTempCacheIni.WriteString(lCacheSection, 'DfmHash', aModules[lIndex].fDfmHash);
         if aModules[lIndex].fNeedsValidation and ContainsMatchingResourceName(aFailedResources,
           aModules[lIndex].fResourceName) then
           lStatus := 'FAIL'
         else
           lStatus := 'OK';
-        lCacheIni.WriteString(lCacheSection, 'Status', lStatus);
+        lTempCacheIni.WriteString(lCacheSection, 'Status', lStatus);
       end;
 
-      lCacheIni.ReadSections(lSections);
+      lTempCacheIni.ReadSections(lSections);
       for lIndex := 0 to lSections.Count - 1 do
       begin
         lCacheSection := lSections[lIndex];
@@ -797,10 +878,10 @@ begin
           Continue;
         if lKeepSections.IndexOf(lCacheSection) >= 0 then
           Continue;
-        lCacheIni.EraseSection(lCacheSection);
+        lTempCacheIni.EraseSection(lCacheSection);
       end;
 
-      lCacheIni.UpdateFile;
+      lTempCacheIni.UpdateFile;
       Result := True;
     except
       on E: Exception do
@@ -812,7 +893,32 @@ begin
   finally
     lKeepSections.Free;
     lSections.Free;
-    lCacheIni.Free;
+    lTempCacheIni.Free;
+  end;
+end;
+
+function TryWriteDfmCache(const aCachePath: string; const aModules: TArray<TDfmCacheModule>;
+  const aFailedResources: TStrings; out aError: string): Boolean;
+var
+  lMutexHandle: THandle;
+  lTempPath: string;
+begin
+  Result := False;
+  aError := '';
+  lMutexHandle := 0;
+  lTempPath := '';
+  if not AcquireDfmCacheMutex(aCachePath, lMutexHandle, aError) then
+    Exit(False);
+  try
+    lTempPath := BuildDfmCacheTempPath(aCachePath);
+    if not TryWriteDfmCacheFile(lTempPath, aModules, aFailedResources, aError) then
+      Exit(False);
+    if not TryPublishDfmCacheAtomically(lTempPath, aCachePath, aError) then
+      Exit(False);
+    Result := True;
+  finally
+    DeleteDfmCacheTempFile(lTempPath);
+    ReleaseDfmCacheMutex(lMutexHandle);
   end;
 end;
 
