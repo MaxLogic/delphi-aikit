@@ -485,9 +485,9 @@ If the IDE library path is missing in the registry, we fall back to `EnvOptions.
 bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win32 --config Debug --delphi 23.0 --envoptions "D:\Config\EnvOptions.proj"
 ```
 
-## FixInsightCL pass-through options
+## Analyzer pass-through and timeout options
 
-We can pass extra FixInsightCL flags either via cascading `dak.ini` files or the CLI. CLI values win.
+We can pass analyzer options either via cascading `dak.ini` files or the CLI. CLI values win.
 
 ### Cascading `dak.ini` lookup
 
@@ -515,7 +515,7 @@ repo/
 
 The git-tracked reference file is `dak-template.ini`. Copy it to a repo-root `dak.ini` when we need machine-local overrides such as compiler paths. The repo-root `dak.ini` is intentionally untracked; nested project or fixture `dak.ini` files remain normal tracked inputs when we add them on purpose.
 
-Supported pass-through options:
+Supported FixInsight options:
 
 - `--fi-output`
 - `--fi-ignore`
@@ -523,6 +523,14 @@ Supported pass-through options:
 - `--fi-silent`
 - `--fi-xml`
 - `--fi-csv`
+- `--fi-timeout-sec`
+
+Supported Pascal Analyzer options:
+
+- `--pa-path`
+- `--pa-output`
+- `--pa-args`
+- `--pa-timeout-sec`
 
 Tracked `dak-template.ini`:
 
@@ -535,6 +543,8 @@ Settings=
 Silent=false
 Xml=false
 Csv=false
+; external process timeout in seconds; empty uses the built-in default
+TimeoutSec=
 
 [FixInsightIgnore]
 ; semicolon-separated FixInsight rule IDs to suppress in report post-processing (e.g. W502;C101;O801)
@@ -551,6 +561,8 @@ Path=
 Output=
 ; extra PALCMD args (passed verbatim)
 Args=
+; external process timeout in seconds; empty uses the built-in default
+TimeoutSec=
 
 [MadExcept]
 ; path to madExceptPatch.exe (or its folder)
@@ -573,6 +585,7 @@ CompilerPath=
 ```
 
 `Path` is optional and can point to FixInsightCL.exe (or its folder). Relative paths are resolved against the executable folder.
+`TimeoutSec` is optional for `[FixInsightCL]` and `[PascalAnalyzer]`; CLI values override it. Omit or leave it empty to use the built-in bounded timeout.
 
 `[MadExcept].Path` is optional and can point to `madExceptPatch.exe` (or its folder). If empty, the native `build` runner falls back to `PATH` and common madExcept install folders.
 
@@ -607,6 +620,7 @@ To run Peganza Pascal Analyzer headlessly using our resolved project inputs:
   - `--pa-path "...\palcmd.exe"` (or `palcmd32.exe`, or a folder containing it)
   - `--pa-output "C:\temp\pa"` (report root folder, passed as `/R=...`)
   - `--pa-args "/F=X /Q ..."` (extra PALCMD options, passed verbatim)
+  - `--pa-timeout-sec N` (external process timeout in seconds)
 
 If `--pa-args` is omitted, we use sensible defaults (`/F=X /Q /A+ /FA /T=min(CPU, 64)`) and we derive `/CD...` from `--delphi` + `--platform`.
 

@@ -4,7 +4,9 @@ interface
 
 uses
   System.Classes, System.Diagnostics, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
+  Winapi.Windows,
   DUnitX.TestFramework,
+  Dak.ExternalToolProcess,
   Test.Support;
 
 type
@@ -17,6 +19,10 @@ type
       out aTxt, aXml, aCsv: string);
     procedure ExtractIdsAndFile(const aText: string; out aId1, aId2, aFileName: string);
   public
+    [Test]
+    procedure FixInsightProcessWaitsAreBounded;
+    [Test]
+    procedure FixInsightTimeoutTerminatesChildProcess;
     [Test]
     procedure FixInsightFiltering;
   end;
@@ -129,6 +135,43 @@ begin
 
   if (aId1 <> '') and (aId2 = '') then
     aId2 := aId1;
+end;
+
+procedure TFixInsightTests.FixInsightProcessWaitsAreBounded;
+var
+  lPath: string;
+  lText: string;
+begin
+  lPath := TPath.Combine(RepoRoot, 'src\dak.fixinsightrunner.pas');
+  lText := TFile.ReadAllText(lPath, TEncoding.UTF8);
+  Assert.IsFalse(TRegEx.IsMatch(lText, 'WaitForSingleObject\s*\([^,]+,\s*INFINITE\s*\)', [roIgnoreCase]),
+    'FixInsight subprocess waits must use bounded timeouts.');
+end;
+
+procedure TFixInsightTests.FixInsightTimeoutTerminatesChildProcess;
+var
+  lError: string;
+  lExit: Cardinal;
+  lProcess: THandle;
+  lThread: THandle;
+begin
+  Assert.IsTrue(StartSlowPingProcess(lProcess, lThread, lError), lError);
+  try
+    Assert.IsFalse(TryWaitForExternalToolProcess('FixInsightCL.exe', lProcess, 1, lExit, lError),
+      'Expected timeout failure.');
+    Assert.AreEqual(Cardinal(cExternalToolTimeoutExitCode), lExit, 'Timeout exit code should be deterministic.');
+    Assert.IsTrue(Pos('FixInsightCL.exe timed out after 1 seconds.', lError) > 0,
+      'Timeout diagnostic should name FixInsight. Actual: ' + lError);
+    Assert.IsTrue(WaitForSingleObject(lProcess, 0) = WAIT_OBJECT_0,
+      'Timeout handling should terminate the child process.');
+  finally
+    if (lProcess <> 0) and (WaitForSingleObject(lProcess, 0) <> WAIT_OBJECT_0) then
+      TerminateProcess(lProcess, 1);
+    if lThread <> 0 then
+      CloseHandle(lThread);
+    if lProcess <> 0 then
+      CloseHandle(lProcess);
+  end;
 end;
 
 procedure TFixInsightTests.FixInsightFiltering;

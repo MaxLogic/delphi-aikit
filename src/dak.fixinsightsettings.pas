@@ -209,6 +209,23 @@ begin
     aDiagnostics.AddWarning(Format(SSettingsInvalidBool, [aKey, lValue]));
 end;
 
+procedure ReadPositiveIntegerOption(const aIni: TCustomIniFile; const aSection: string; const aKey: string;
+  var aTarget: Integer; aDiagnostics: TDiagnostics);
+var
+  lParsed: Integer;
+  lValue: string;
+begin
+  lValue := Trim(aIni.ReadString(aSection, aKey, ''));
+  if lValue = '' then
+    Exit;
+
+  lParsed := StrToIntDef(lValue, -1);
+  if lParsed >= 1 then
+    aTarget := lParsed
+  else if aDiagnostics <> nil then
+    aDiagnostics.AddWarning(Format(SSettingsInvalidInteger, [aSection, aKey, lValue]));
+end;
+
 function SplitList(const aValue: string): TArray<string>;
 var
   lPart: string;
@@ -292,6 +309,7 @@ begin
   ReadBoolOption(aIni, 'Silent', aFixInsight.fSilent, aDiagnostics);
   ReadBoolOption(aIni, 'Xml', aFixInsight.fXml, aDiagnostics);
   ReadBoolOption(aIni, 'Csv', aFixInsight.fCsv, aDiagnostics);
+  ReadPositiveIntegerOption(aIni, SFixInsightSection, 'TimeoutSec', aFixInsight.fTimeoutSec, aDiagnostics);
 
   lValue := Trim(aIni.ReadString(SFixInsightIgnoreSection, 'Warnings', ''));
   if lValue <> '' then
@@ -310,6 +328,7 @@ begin
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'Args', ''));
   if lValue <> '' then
     aPascalAnalyzer.fArgs := lValue;
+  ReadPositiveIntegerOption(aIni, SPascalAnalyzerSection, 'TimeoutSec', aPascalAnalyzer.fTimeoutSec, aDiagnostics);
 
   if aDiagnostics <> nil then
   begin
@@ -437,6 +456,8 @@ begin
     aFixInsight.fXml := aOverrides.fFixXml;
   if aOverrides.fHasFixCsv then
     aFixInsight.fCsv := aOverrides.fFixCsv;
+  if aOverrides.fHasFixTimeoutSec then
+    aFixInsight.fTimeoutSec := aOverrides.fFixTimeoutSec;
 
   if aOverrides.fHasIgnoreWarningIds then
     aFixInsightIgnore.fWarnings := MergeList(aFixInsightIgnore.fWarnings, aOverrides.fIgnoreWarningIds);
@@ -450,6 +471,8 @@ begin
     aPascalAnalyzer.fOutput := aOverrides.fPaOutput;
   if aOverrides.fHasPaArgs then
     aPascalAnalyzer.fArgs := aOverrides.fPaArgs;
+  if aOverrides.fHasPaTimeoutSec then
+    aPascalAnalyzer.fTimeoutSec := aOverrides.fPaTimeoutSec;
 end;
 
 procedure ApplyDiagnosticsOverrides(const aOverrides: TAppOptions; var aDiagnosticsDefaults: TDiagnosticsDefaults);

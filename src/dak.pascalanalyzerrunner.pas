@@ -3,12 +3,12 @@ unit Dak.PascalAnalyzerRunner;
 interface
 
 uses
-  System.Classes, System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON,
+  System.Classes, System.Diagnostics, System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON,
   System.StrUtils, System.SysUtils, System.Types, System.Variants,
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
   Winapi.Windows,
   maxLogic.StrUtils,
-  Dak.Types, Dak.Utils;
+  Dak.ExternalToolProcess, Dak.Types, Dak.Utils;
 
 function TryResolvePalCmdExe(const aOverridePath: string; out aExePath: string; out aError: string): Boolean;
 function BuildPalCmdCommandLine(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
@@ -311,9 +311,10 @@ begin
   Result := lBest >= 0;
 end;
 
-function TryCaptureProcessOutput(const aExe, aArgs: string; out aOutput: string; out aExitCode: Cardinal;
-  out aError: string): Boolean;
+function TryCaptureProcessOutput(const aExe, aArgs: string; aTimeoutSec: Integer; out aOutput: string;
+  out aExitCode: Cardinal; out aError: string): Boolean;
 var
+  lAvailable: Cardinal;
   lSa: TSecurityAttributes;
   lRead: THandle;
   lWrite: THandle;
@@ -325,6 +326,61 @@ var
   lBuilder: TStringBuilder;
   lLastError: Cardinal;
   lAnsi: AnsiString;
+  lStopwatch: TStopwatch;
+  lTimeoutMs: Cardinal;
+  lTimeoutSec: Integer;
+  lWait: Cardinal;
+
+  function CheckTimeout: Boolean;
+  begin
+    Result := True;
+    if UInt64(lStopwatch.ElapsedMilliseconds) < lTimeoutMs then
+      Exit(True);
+    TryTerminateTimedOutExternalToolProcess('PALCMD help', lPi.hProcess, lTimeoutSec, aExitCode, aError);
+    Result := False;
+  end;
+
+  function DrainPipe: Boolean;
+  var
+    lToRead: Cardinal;
+  begin
+    Result := True;
+    while True do
+    begin
+      if not CheckTimeout then
+        Exit(False);
+      lAvailable := 0;
+      if not PeekNamedPipe(lRead, nil, 0, nil, @lAvailable, nil) then
+      begin
+        lLastError := GetLastError;
+        if (lLastError = ERROR_BROKEN_PIPE) or (lLastError = ERROR_HANDLE_EOF) then
+          Exit(True);
+        aError := 'PALCMD help output read failed: ' + SysErrorMessage(lLastError);
+        Exit(False);
+      end;
+      if lAvailable = 0 then
+        Exit(True);
+
+      lToRead := lAvailable;
+      if lToRead > SizeOf(lBuffer) then
+        lToRead := SizeOf(lBuffer);
+      if not ReadFile(lRead, lBuffer, lToRead, lBytesRead, nil) then
+      begin
+        lLastError := GetLastError;
+        if (lLastError = ERROR_BROKEN_PIPE) or (lLastError = ERROR_HANDLE_EOF) then
+          Exit(True);
+        aError := 'PALCMD help output read failed: ' + SysErrorMessage(lLastError);
+        Exit(False);
+      end;
+      if lBytesRead = 0 then
+        Exit(True);
+
+      SetString(lAnsi, PAnsiChar(@lBuffer[0]), lBytesRead);
+      lBuilder.Append(string(lAnsi));
+      if not CheckTimeout then
+        Exit(False);
+    end;
+  end;
 begin
   Result := False;
   aOutput := '';
@@ -369,25 +425,36 @@ begin
 
     lBuilder := TStringBuilder.Create;
     try
-      while ReadFile(lRead, lBuffer, SizeOf(lBuffer), lBytesRead, nil) do
+      lTimeoutSec := ResolveExternalToolTimeoutSec(aTimeoutSec);
+      lTimeoutMs := ResolveExternalToolTimeoutMs(lTimeoutSec);
+      lStopwatch := TStopwatch.StartNew;
+      while True do
       begin
-        if lBytesRead = 0 then
+        if not DrainPipe then
+          Exit(False);
+        lWait := WaitForSingleObject(lPi.hProcess, 25);
+        if lWait = WAIT_OBJECT_0 then
+        begin
+          if not DrainPipe then
+            Exit(False);
           Break;
-        SetString(lAnsi, PAnsiChar(@lBuffer[0]), lBytesRead);
-        lBuilder.Append(string(lAnsi));
+        end;
+        if lWait <> WAIT_TIMEOUT then
+        begin
+          lLastError := GetLastError;
+          aError := 'PALCMD help wait failed: ' + SysErrorMessage(lLastError);
+          Exit(False);
+        end;
+        if not CheckTimeout then
+          Exit(False);
       end;
       aOutput := lBuilder.ToString;
     finally
       lBuilder.Free;
     end;
 
-    WaitForSingleObject(lPi.hProcess, INFINITE);
-    if not GetExitCodeProcess(lPi.hProcess, aExitCode) then
-    begin
-      lLastError := GetLastError;
-      aError := 'PALCMD help failed: ' + SysErrorMessage(lLastError);
+    if not TryWaitForExternalToolProcess('PALCMD help', lPi.hProcess, lTimeoutSec, aExitCode, aError) then
       Exit(False);
-    end;
     Result := True;
   finally
     if lRead <> 0 then
@@ -401,11 +468,14 @@ begin
   end;
 end;
 
-function TryGetPalCmdHelpText(const aPalCmdExe: string; out aText: string; out aError: string): Boolean;
+function TryGetPalCmdHelpText(const aPalCmdExe: string; aTimeoutSec: Integer; out aText: string;
+  out aTimedOut: Boolean; out aError: string): Boolean;
 var
   lExit: Cardinal;
 begin
-  Result := TryCaptureProcessOutput(aPalCmdExe, '', aText, lExit, aError);
+  aTimedOut := False;
+  Result := TryCaptureProcessOutput(aPalCmdExe, '', aTimeoutSec, aText, lExit, aError);
+  aTimedOut := lExit = cExternalToolTimeoutExitCode;
   if Result and (lExit <> 0) then
   begin
     if aText = '' then
@@ -701,7 +771,7 @@ begin
 end;
 
 function TryBuildDelphiTargetFlag(const aBdsVersion: string; const aPlatform: string; const aPalCmdExe: string;
-  out aFlag: string; out aError: string): Boolean;
+  aTimeoutSec: Integer; out aFlag: string; out aError: string): Boolean;
 var
   lMajor: Integer;
   lIsWin32: Boolean;
@@ -716,6 +786,7 @@ var
   lPalCmdMajor: Integer;
   lHelpText: string;
   lHelpError: string;
+  lHelpTimedOut: Boolean;
 begin
   aFlag := '';
   aError := '';
@@ -759,8 +830,14 @@ begin
       end;
     end;
 
-    if not TryGetPalCmdHelpText(aPalCmdExe, lHelpText, lHelpError) then
+    if not TryGetPalCmdHelpText(aPalCmdExe, aTimeoutSec, lHelpText, lHelpTimedOut, lHelpError) then
     begin
+      if lHelpTimedOut then
+      begin
+        aError := lHelpError;
+        Exit(False);
+      end;
+
       // Fall back to version mapping when PALCMD help is unavailable.
       if not TryGetFileVersionMajor(aPalCmdExe, lPalCmdMajor) then
       begin
@@ -894,7 +971,8 @@ begin
 
     if (aPa.fArgs = '') or (Pos('/CD', UpperCase(aPa.fArgs)) = 0) then
     begin
-      if not TryBuildDelphiTargetFlag(aParams.fDelphiVersion, aParams.fPlatform, aExePath, lFlag, aError) then
+      if not TryBuildDelphiTargetFlag(aParams.fDelphiVersion, aParams.fPlatform, aExePath, aPa.fTimeoutSec, lFlag,
+        aError) then
       begin
         Exit(False);
       end;
@@ -987,7 +1065,6 @@ var
   lCmdLine: string;
   lSi: TStartupInfo;
   lPi: TProcessInformation;
-  lWait: Cardinal;
   lLastError: Cardinal;
   lStdOut: THandle;
   lStdErr: THandle;
@@ -1021,19 +1098,8 @@ begin
     Exit(False);
   end;
   try
-    lWait := WaitForSingleObject(lPi.hProcess, INFINITE);
-    if lWait <> WAIT_OBJECT_0 then
-    begin
-      lLastError := GetLastError;
-      aError := 'PALCMD failed: ' + SysErrorMessage(lLastError);
+    if not TryWaitForExternalToolProcess('PALCMD', lPi.hProcess, aPa.fTimeoutSec, aExitCode, aError) then
       Exit(False);
-    end;
-    if not GetExitCodeProcess(lPi.hProcess, aExitCode) then
-    begin
-      lLastError := GetLastError;
-      aError := 'PALCMD failed: ' + SysErrorMessage(lLastError);
-      Exit(False);
-    end;
   finally
     CloseHandle(lPi.hThread);
     CloseHandle(lPi.hProcess);
@@ -1105,7 +1171,6 @@ var
   lCmdLine: string;
   lSi: TStartupInfo;
   lPi: TProcessInformation;
-  lWait: Cardinal;
   lLastError: Cardinal;
   lStdOut: THandle;
   lStdErr: THandle;
@@ -1139,19 +1204,8 @@ begin
     Exit(False);
   end;
   try
-    lWait := WaitForSingleObject(lPi.hProcess, INFINITE);
-    if lWait <> WAIT_OBJECT_0 then
-    begin
-      lLastError := GetLastError;
-      aError := 'PALCMD failed: ' + SysErrorMessage(lLastError);
+    if not TryWaitForExternalToolProcess('PALCMD', lPi.hProcess, aPa.fTimeoutSec, aExitCode, aError) then
       Exit(False);
-    end;
-    if not GetExitCodeProcess(lPi.hProcess, aExitCode) then
-    begin
-      lLastError := GetLastError;
-      aError := 'PALCMD failed: ' + SysErrorMessage(lLastError);
-      Exit(False);
-    end;
   finally
     CloseHandle(lPi.hThread);
     CloseHandle(lPi.hProcess);

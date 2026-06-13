@@ -31,6 +31,7 @@ We run PALCMD against our resolved main project entrypoint (typically the `.dpr`
 - `--pa-path "<path>"` (optional)
 - `--pa-output "<path>"` (optional)
 - `--pa-args "<args>"` (optional)
+- `--pa-timeout-sec N` (optional, positive integer seconds)
 
 ### settings.ini section (new)
 
@@ -39,6 +40,7 @@ We run PALCMD against our resolved main project entrypoint (typically the `.dpr`
 Path=
 Output=
 Args=
+TimeoutSec=
 ```
 
 Semantics:
@@ -46,6 +48,7 @@ Semantics:
 - `Path` may be a full path to `palcmd.exe` / `palcmd32.exe`, or a folder containing them.
 - `Output` is a report root folder; we pass it to PALCMD as `/R=...`.
 - `Args` are appended verbatim to the PALCMD invocation.
+- `TimeoutSec` bounds the external PALCMD wait; the CLI override wins when both are present.
 
 ### Defaults when Args is empty
 

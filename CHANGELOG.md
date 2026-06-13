@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added bounded FixInsightCL and Pascal Analyzer process waits with `--fi-timeout-sec`, `--pa-timeout-sec`, and matching `dak.ini` `TimeoutSec` defaults.
 - Added additive `remove-with` planner metrics for semantic receiver-member
   resolution, lexical resolution, semantic reference-cache hits/misses, and
   legacy resolver-report receiver/use/enrichment timing.

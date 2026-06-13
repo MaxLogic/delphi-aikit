@@ -5,7 +5,7 @@ interface
 uses
   System.Generics.Collections, System.SysUtils,
   Winapi.Windows,
-  Dak.Messages, Dak.Types;
+  Dak.ExternalToolProcess, Dak.Messages, Dak.Types;
 
 function BuildFixInsightCommandLine(const aParams: TFixInsightParams; out aExePath: string; out aCmdLine: string;
   out aError: string): Boolean;
@@ -189,7 +189,6 @@ var
   lAppPtr: PChar;
   lSi: TStartupInfo;
   lPi: TProcessInformation;
-  lWait: Cardinal;
   lLastError: Cardinal;
   lStdOut: THandle;
   lStdErr: THandle;
@@ -231,19 +230,8 @@ begin
     Exit(False);
   end;
   try
-    lWait := WaitForSingleObject(lPi.hProcess, INFINITE);
-    if lWait <> WAIT_OBJECT_0 then
-    begin
-      lLastError := GetLastError;
-      aError := Format(SFixInsightRunFailed, [SysErrorMessage(lLastError)]);
+    if not TryWaitForExternalToolProcess('FixInsightCL.exe', lPi.hProcess, aParams.fTimeoutSec, aExitCode, aError) then
       Exit(False);
-    end;
-    if not GetExitCodeProcess(lPi.hProcess, aExitCode) then
-    begin
-      lLastError := GetLastError;
-      aError := Format(SFixInsightRunFailed, [SysErrorMessage(lLastError)]);
-      Exit(False);
-    end;
   finally
     CloseHandle(lPi.hThread);
     CloseHandle(lPi.hProcess);
