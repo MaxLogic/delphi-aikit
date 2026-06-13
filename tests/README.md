@@ -69,3 +69,5 @@ Timing note:
 - `ENVOPTIONS` (optional; passed as `--envoptions`)
 - `PA_PATH` (optional; forwarded to `--pa-path` and/or `[PascalAnalyzer].Path`)
 - `SKIP_PASCAL_ANALYZER` (set to any value to skip PALCMD tests)
+- `DAK_ALLOW_MISSING_PAL_FIXTURES=1` explicitly skips PAL fixture-backed
+  normalization tests when `docs\sample-pal-reports` is unavailable.
