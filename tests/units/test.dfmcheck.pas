@@ -109,6 +109,8 @@ type
     [Test]
     procedure PipelineAllModeCacheHashingDoesNotOverflowWithDebugChecks;
     [Test]
+    procedure DfmCheckCacheWritesAreSerializedAndAtomic;
+    [Test]
     procedure PipelineAllModeCacheSkipsUnchangedDfmValidation;
     [Test]
     procedure PipelineAllModeCacheSkipsUpdateOnValidatorFailureWithoutFailLines;
@@ -2443,6 +2445,22 @@ begin
     SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
     lOutputLines.Free;
   end;
+end;
+
+procedure TDfmCheckTests.DfmCheckCacheWritesAreSerializedAndAtomic;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.dfmcheck.pas'), TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSource, 'BuildDfmCacheMutexName'),
+    'Expected DFMCheck cache writes to derive a mutex from the cache/project identity.');
+  Assert.IsTrue(ContainsText(lSource, 'CreateMutex'),
+    'Expected DFMCheck cache writes to use a Windows mutex.');
+  Assert.IsTrue(ContainsText(lSource, 'MoveFileEx'),
+    'Expected DFMCheck cache writes to publish through an atomic replacement.');
+  Assert.IsFalse(TRegEx.IsMatch(lSource, 'lCacheIni\.UpdateFile\s*;', [roIgnoreCase]),
+    'Expected no direct TMemIniFile.UpdateFile write to the final DFMCheck cache path.');
 end;
 
 procedure TDfmCheckTests.PipelineAllModeCacheSkipsUnchangedDfmValidation;
