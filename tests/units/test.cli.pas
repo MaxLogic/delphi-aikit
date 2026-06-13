@@ -749,7 +749,6 @@ var
   lDprojPath: string;
   lFixIgnoreDefaults: TFixInsightIgnoreDefaults;
   lFixOptions: TFixInsightExtraOptions;
-  lGuid: TGUID;
   lParentDir: string;
   lParentIniPath: string;
   lPascalAnalyzer: TPascalAnalyzerDefaults;
@@ -769,8 +768,7 @@ var
     end;
   end;
 begin
-  Assert.AreEqual(0, CreateGUID(lGuid), 'Failed to create a temporary GUID.');
-  lBaseDir := TPath.Combine(TPath.GetTempPath, 'dak-settings-norepo-' + GUIDToString(lGuid));
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-norepo');
   lParentDir := TPath.Combine(lBaseDir, 'parent');
   lProjectDir := TPath.Combine(lParentDir, 'project');
   TDirectory.CreateDirectory(lProjectDir);
@@ -792,8 +790,7 @@ begin
     Assert.IsFalse(Pos('W777', lFixIgnoreDefaults.fWarnings) > 0,
       'Did not expect parent dak.ini warnings without a repo marker.');
   finally
-    if TDirectory.Exists(lBaseDir) then
-      TDirectory.Delete(lBaseDir, True);
+    DeleteTempPath(lBaseDir);
   end;
 end;
 
@@ -803,14 +800,12 @@ var
   lDprojPath: string;
   lFixIgnoreDefaults: TFixInsightIgnoreDefaults;
   lFixOptions: TFixInsightExtraOptions;
-  lGuid: TGUID;
   lIni: TIniFile;
   lPascalAnalyzer: TPascalAnalyzerDefaults;
   lProjectIniPath: string;
   lReportFilter: TReportFilterDefaults;
 begin
-  Assert.AreEqual(0, CreateGUID(lGuid), 'Failed to create a temporary GUID.');
-  lBaseDir := TPath.Combine(TPath.GetTempPath, 'dak-settings-analyzer-timeout-' + GUIDToString(lGuid));
+  lBaseDir := UniqueTempPath('dak-settings-analyzer-timeout');
   TDirectory.CreateDirectory(lBaseDir);
 
   lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
@@ -831,8 +826,7 @@ begin
     Assert.AreEqual(33, lFixOptions.fTimeoutSec, 'Unexpected FixInsight timeout from dak.ini.');
     Assert.AreEqual(44, lPascalAnalyzer.fTimeoutSec, 'Unexpected Pascal Analyzer timeout from dak.ini.');
   finally
-    if TDirectory.Exists(lBaseDir) then
-      TDirectory.Delete(lBaseDir, True);
+    DeleteTempPath(lBaseDir);
   end;
 end;
 
@@ -841,7 +835,6 @@ var
   lBaseDir: string;
   lDefaultDelphiVersion: string;
   lDprojPath: string;
-  lGuid: TGUID;
   lParentDir: string;
   lParentIniPath: string;
   lProjectDir: string;
@@ -859,8 +852,7 @@ var
     end;
   end;
 begin
-  Assert.AreEqual(0, CreateGUID(lGuid), 'Failed to create a temporary GUID.');
-  lBaseDir := TPath.Combine(TPath.GetTempPath, 'dak-settings-delphi-' + GUIDToString(lGuid));
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-delphi');
   lParentDir := TPath.Combine(lBaseDir, 'parent');
   lProjectDir := TPath.Combine(lParentDir, 'project');
   TDirectory.CreateDirectory(lProjectDir);
@@ -880,8 +872,7 @@ begin
     Assert.AreEqual('23.0', lDefaultDelphiVersion,
       'Expected project-local DelphiVersion to be used without repo marker traversal.');
   finally
-    if TDirectory.Exists(lBaseDir) then
-      TDirectory.Delete(lBaseDir, True);
+    DeleteTempPath(lBaseDir);
   end;
 end;
 

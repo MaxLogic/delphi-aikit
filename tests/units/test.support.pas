@@ -20,6 +20,8 @@ uses
 function RepoRoot: string;
 function TempRoot: string;
 function UniqueTempPath(const aPrefix: string): string;
+function UniqueNoRepoTempPath(const aPrefix: string): string;
+procedure DeleteTempPath(const aPath: string);
 procedure EnsureTempClean;
 procedure EnsureResolverBuilt;
 function ResolverExePath: string;
@@ -190,6 +192,34 @@ begin
   Result := TPath.Combine(aBaseRoot, 'run-' + GetCurrentProcessId.ToString + '-' + lGuidText);
 end;
 
+function PathHasRepoMarker(const aPath: string): Boolean;
+var
+  lDir: string;
+  lParent: string;
+begin
+  lDir := ExcludeTrailingPathDelimiter(TPath.GetFullPath(aPath));
+  while lDir <> '' do
+  begin
+    if DirectoryExists(TPath.Combine(lDir, '.git')) or DirectoryExists(TPath.Combine(lDir, '.svn')) then
+      Exit(True);
+    lParent := ExcludeTrailingPathDelimiter(ExtractFilePath(lDir));
+    if (lParent = '') or SameText(lParent, lDir) then
+      Break;
+    lDir := lParent;
+  end;
+  Result := False;
+end;
+
+function UniqueTempPathUnderRoot(const aBaseRoot, aPrefix: string): string;
+var
+  lGuid: TGUID;
+  lGuidText: string;
+begin
+  CreateGUID(lGuid);
+  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
+  Result := TPath.Combine(aBaseRoot, aPrefix + '-' + lGuidText);
+end;
+
 function QuoteArg(const aValue: string): string;
 begin
   if (aValue = '') or (Pos(' ', aValue) > 0) or (Pos('"', aValue) > 0) then
@@ -242,13 +272,33 @@ begin
 end;
 
 function UniqueTempPath(const aPrefix: string): string;
-var
-  lGuid: TGUID;
-  lGuidText: string;
 begin
-  CreateGUID(lGuid);
-  lGuidText := StringReplace(StringReplace(GUIDToString(lGuid), '{', '', [rfReplaceAll]), '}', '', [rfReplaceAll]);
-  Result := TPath.Combine(TempRoot, aPrefix + '-' + lGuidText);
+  Result := UniqueTempPathUnderRoot(TempRoot, aPrefix);
+end;
+
+function UniqueNoRepoTempPath(const aPrefix: string): string;
+var
+  lBaseRoot: string;
+  lEnvRoot: string;
+begin
+  lEnvRoot := Trim(GetEnvironmentVariable('DAK_TEST_OUTPUT_ROOT'));
+  if lEnvRoot <> '' then
+    lBaseRoot := TPath.GetFullPath(lEnvRoot)
+  else
+    lBaseRoot := TPath.Combine(TPath.GetTempPath, 'DelphiAIKit-tests-no-repo');
+
+  if PathHasRepoMarker(lBaseRoot) then
+    lBaseRoot := TPath.Combine(TPath.GetTempPath, 'DelphiAIKit-tests-no-repo');
+
+  Result := UniqueTempPathUnderRoot(lBaseRoot, aPrefix + '-' + GetCurrentProcessId.ToString);
+end;
+
+procedure DeleteTempPath(const aPath: string);
+begin
+  if (aPath = '') or (Trim(GetEnvironmentVariable('DAK_TEST_KEEP_TEMP')) = '1') then
+    Exit;
+  if TDirectory.Exists(aPath) then
+    TDirectory.Delete(aPath, True);
 end;
 
 procedure EnsureTempClean;
