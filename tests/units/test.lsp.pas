@@ -1268,6 +1268,17 @@ begin
   WriteUtf8File(Result, aScriptJson);
 end;
 
+procedure AddContextEnvironmentVar(var aContext: TLspContext; const aName, aValue: string);
+var
+  lBlock: string;
+begin
+  lBlock := aContext.fEnvironmentBlock;
+  if lBlock = '' then
+    lBlock := #0;
+  aContext.fEnvironmentBlock := Copy(lBlock, 1, Length(lBlock) - 1) + aName + '=' + aValue + #0#0;
+  aContext.fParams.fEnvironmentBlock := aContext.fEnvironmentBlock;
+end;
+
 function TRealLspAcceptanceTests.FixtureDprojPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspProjectFixture\LspProjectFixture.dproj');
@@ -1372,6 +1383,7 @@ begin
   lScriptPath := CreateScriptFile('runner-success',
     '{"requireOpenedDocuments":true,"initializeResult":{"capabilities":{"definitionProvider":true}},"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}]}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspPath := GFakeLspExePath;
@@ -1420,6 +1432,7 @@ begin
   lScriptPath := CreateScriptFile('runner-init-failure',
     '{"errors":{"initialize":{"code":-32001,"message":"simulated init failure"}}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspPath := GFakeLspExePath;
@@ -1455,6 +1468,7 @@ begin
   lScriptPath := CreateScriptFile('definition-normalized',
     '{"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}]}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspPath := GFakeLspExePath;
@@ -1502,6 +1516,7 @@ begin
   lScriptPath := CreateScriptFile('position-conversion',
     '{"expect":{"textDocument/definition":{"position":{"line":2,"character":4}}},"responses":{"textDocument/definition":[]}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspPath := GFakeLspExePath;
@@ -1541,6 +1556,7 @@ begin
   lScriptPath := CreateScriptFile('host-qualified-uri',
     '{"responses":{"textDocument/definition":[{"uri":"file://C:/repo/Foo%2BBar.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}},{"targetUri":"file://fileserver/share/Foo%2BBar.pas","targetRange":{"start":{"line":4,"character":1},"end":{"line":5,"character":8}},"targetSelectionRange":{"start":{"line":4,"character":3},"end":{"line":4,"character":6}}}]}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspPath := GFakeLspExePath;
@@ -1591,6 +1607,7 @@ begin
   lScriptPath := CreateScriptFile('hover-normalized',
     '{"responses":{"textDocument/hover":{"contents":{"kind":"markdown","value":"Fixture **hover**"},"range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspOperation := TLspOperation.loHover;
@@ -1635,6 +1652,7 @@ begin
   lScriptPath := CreateScriptFile('hover-text',
     '{"responses":{"textDocument/hover":{"contents":{"kind":"plaintext","value":"Fixture hover details"},"range":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspOperation := TLspOperation.loHover;
@@ -1670,6 +1688,7 @@ begin
   lScriptPath := CreateScriptFile('hover-empty',
     '{"responses":{"textDocument/hover":null}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspOperation := TLspOperation.loHover;
@@ -1723,6 +1742,7 @@ begin
     '"range":{"start":{"line":1,"character":0},"end":{"line":6,"character":0}},' +
     '"selectionRange":{"start":{"line":2,"character":4},"end":{"line":2,"character":16}}}]}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
@@ -1768,6 +1788,7 @@ begin
     ']}' +
     ']}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspOperation := TLspOperation.loSymbols;
@@ -1830,6 +1851,7 @@ begin
     '"selectionRange":{"start":{"line":12,"character":2},"end":{"line":12,"character":15}}}' +
     ']}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspOperation := TLspOperation.loSymbols;
@@ -1874,6 +1896,7 @@ begin
     '"expectNotifications":[{"method":"initialized","params":{}}],' +
     '"initializeResult":{"capabilities":{"documentSymbolProvider":true,"hoverProvider":true}}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspOperation := TLspOperation.loProbe;
@@ -1927,6 +1950,7 @@ begin
     '"expectNotifications":[{"method":"initialized","params":{}},{"method":"workspace/didChangeConfiguration","params":{"settings":{"settingsFile":"' + StringReplace(lSettingsFilePath, '\', '\\', [rfReplaceAll]) + '","settingsFileUri":"' + FilePathToUri(lSettingsFilePath) + '"}}}],' +
     '"initializeResult":{"capabilities":{"definitionProvider":true,"hoverProvider":true}}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspOperation := TLspOperation.loProbe;
@@ -1987,6 +2011,7 @@ begin
 
   lOldTimeout := GetEnvironmentVariable('DAK_LSP_REQUEST_TIMEOUT_MS');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   Winapi.Windows.SetEnvironmentVariable('DAK_LSP_REQUEST_TIMEOUT_MS', '250');
   try
     lOptions := BuildRunnerOptions(lDprojPath);
@@ -2034,6 +2059,7 @@ begin
   lScriptPath := CreateScriptFile('symbols-empty',
     '{"initializeResult":{"capabilities":{"documentSymbolProvider":true}},"responses":{"textDocument/documentSymbol":[]}}');
   Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
     lOptions := BuildRunnerOptions(lDprojPath);
     lOptions.fLspOperation := TLspOperation.loSymbols;

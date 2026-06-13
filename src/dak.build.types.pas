@@ -34,7 +34,8 @@ type
   IBuildProcessRunner = interface
     ['{98F53F02-06E8-4684-9316-B5472C4FD666}']
     function RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
-      aTimeoutSec: Integer; out aExitCode: Integer; out aTimedOut: Boolean; out aError: string): Boolean;
+      const aEnvironmentBlock: string; aTimeoutSec: Integer; out aExitCode: Integer;
+      out aTimedOut: Boolean; out aError: string): Boolean;
   end;
 
 implementation

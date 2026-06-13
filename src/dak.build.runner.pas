@@ -79,7 +79,8 @@ type
   TBuildProcessRunner = class(TInterfacedObject, IBuildProcessRunner)
   public
     function RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
-      aTimeoutSec: Integer; out aExitCode: Integer; out aTimedOut: Boolean; out aError: string): Boolean;
+      const aEnvironmentBlock: string; aTimeoutSec: Integer; out aExitCode: Integer;
+      out aTimedOut: Boolean; out aError: string): Boolean;
   end;
 
 function QuoteCmdArg(const aValue: string): string;
@@ -490,11 +491,11 @@ begin
   end;
 end;
 
-function ResolveBdsRoot(const aDelphiVersion, aRsVarsPath: string): string;
+function ResolveBdsRoot(const aDelphiVersion, aRsVarsPath: string; const aEnvironment: TRsVarsEnvironment): string;
 var
   lBase: string;
 begin
-  Result := Trim(GetEnvironmentVariable('BDS'));
+  Result := Trim(aEnvironment.ValueOrDefault('BDS'));
   if Result <> '' then
     Exit(TPath.GetFullPath(Result));
 
@@ -1402,8 +1403,8 @@ begin
 
   lPreflightEnvVars := nil;
   try
-    if not TryReadIdeConfig(aOptions.fDelphiVersion, aOptions.fPlatform, aOptions.fEnvOptionsPath, lPreflightEnvVars,
-      lLibraryPath, lLibrarySource, nil, lError) then
+    if not TryReadIdeConfig(aOptions.fDelphiVersion, aOptions.fPlatform, aOptions.fEnvOptionsPath, aEnvVars,
+      lPreflightEnvVars, lLibraryPath, lLibrarySource, nil, lError) then
     begin
       if aOptions.fVerbose and (Trim(lError) <> '') then
         Writeln('NOTE. ' + Format(SBuildPreflightSkipped, [lError]));
@@ -1430,10 +1431,13 @@ begin
 end;
 
 function TBuildProcessRunner.RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
-  aTimeoutSec: Integer; out aExitCode: Integer; out aTimedOut: Boolean; out aError: string): Boolean;
+  const aEnvironmentBlock: string; aTimeoutSec: Integer; out aExitCode: Integer;
+  out aTimedOut: Boolean; out aError: string): Boolean;
 var
   lCmdLine: string;
+  lCreationFlags: Cardinal;
   lErrHandle: THandle;
+  lEnvironment: PChar;
   lOutHandle: THandle;
   lPi: TProcessInformation;
   lProcExitCode: Cardinal;
@@ -1483,8 +1487,17 @@ begin
     if Trim(aArguments) <> '' then
       lCmdLine := lCmdLine + ' ' + aArguments;
     UniqueString(lCmdLine);
+    if aEnvironmentBlock <> '' then
+    begin
+      lEnvironment := PChar(aEnvironmentBlock);
+      lCreationFlags := CREATE_NO_WINDOW or CREATE_UNICODE_ENVIRONMENT;
+    end else
+    begin
+      lEnvironment := nil;
+      lCreationFlags := CREATE_NO_WINDOW;
+    end;
 
-    if not CreateProcess(PChar(aExePath), PChar(lCmdLine), nil, nil, True, CREATE_NO_WINDOW, nil,
+    if not CreateProcess(PChar(aExePath), PChar(lCmdLine), nil, nil, True, lCreationFlags, lEnvironment,
       PChar(aWorkDir), lSi, lPi) then
     begin
       aError := SysErrorMessage(GetLastError);
@@ -1631,7 +1644,7 @@ begin
     ' -ProjectName ' + QuoteCmdArg(aProjectInfo.fProjectName);
 
   lError := '';
-  if not aRunner.RunProcess(ResolvePowerShellExe(), lArguments, aProjectInfo.fProjectDir, lOutLog, lErrLog,
+  if not aRunner.RunProcess(ResolvePowerShellExe(), lArguments, aProjectInfo.fProjectDir, lOutLog, lErrLog, '',
     aOptions.fBuildTimeoutSec, lExitCode, lTimedOut, lError) then
   begin
     EmitWebCoreHookWarning('patch-index-debug.ps1 failed to start: ' + lError);
@@ -1683,7 +1696,7 @@ begin
   lStartTick := GetTickCount64;
 
   if not aRunner.RunProcess(lCompilerPath, BuildWebCoreArguments(aOptions, lWebCoreInfo),
-    lWebCoreInfo.fProjectDir, lOutLog, lErrLog, aOptions.fBuildTimeoutSec,
+    lWebCoreInfo.fProjectDir, lOutLog, lErrLog, '', aOptions.fBuildTimeoutSec,
     aExitCode, lTimedOut, aError) then
     Exit(False);
 
@@ -1829,6 +1842,8 @@ var
   lOutputPreTicks: Int64;
   lProjectInfo: TBuildProjectInfo;
   lProjectLookup: TProjectSourceLookup;
+  lRsVarsEnvironment: TRsVarsEnvironment;
+  lRsVarsEnvironmentBlock: string;
   lSettings: TBuildSettings;
   lStartTick: Int64;
   lSummary: TBuildSummary;
@@ -1860,12 +1875,14 @@ begin
       Exit(TryRunWebCoreBuild(lNormalizedOptions, aRunner, lSettings, aExitCode, aError));
 
     PrintVerboseStep(lNormalizedOptions, 'load-rsvars');
-    if not TryLoadRsVars(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath, nil, aError) then
+    if not TryLoadRsVars(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath, nil,
+      lRsVarsEnvironment, aError) then
       Exit(False);
+    lRsVarsEnvironmentBlock := lRsVarsEnvironment.ToEnvironmentBlock;
 
     PrintVerboseStep(lNormalizedOptions, 'capture-environment');
     lEnvVars.Free;
-    lEnvVars := CaptureEnvironment;
+    lEnvVars := lRsVarsEnvironment.ToDictionary;
     lDiagnosticsWarnings := TDiagnostics.Create;
     PrintVerboseStep(lNormalizedOptions, 'load-settings');
     LoadBuildSettings(lNormalizedOptions.fDprojPath, lNormalizedOptions, lEnvVars, lSettings);
@@ -1881,7 +1898,8 @@ begin
     end;
 
     PrintVerboseStep(lNormalizedOptions, 'resolve-msbuild');
-    lBdsRoot := ResolveBdsRoot(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath);
+    lBdsRoot := ResolveBdsRoot(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath,
+      lRsVarsEnvironment);
     if not TryFindMsBuild(lBdsRoot, lMsBuildPath) then
     begin
       aError := cMsBuildNotFound;
@@ -1907,7 +1925,8 @@ begin
     lStartTick := CurrentTicks;
     PrintVerboseStep(lNormalizedOptions, 'run-msbuild');
     if not aRunner.RunProcess(lMsBuildPath, BuildMsBuildArguments(lNormalizedOptions, lProjectInfo, lExtraProps),
-      lProjectInfo.fProjectDir, lOutLog, lErrLog, lNormalizedOptions.fBuildTimeoutSec, aExitCode, lTimedOut, aError) then
+      lProjectInfo.fProjectDir, lOutLog, lErrLog, lRsVarsEnvironmentBlock, lNormalizedOptions.fBuildTimeoutSec,
+      aExitCode, lTimedOut, aError) then
       Exit(False);
     lTimeMs := CurrentTicks - lStartTick;
 
@@ -2067,7 +2086,7 @@ begin
           lSummary.fOutputMessage := cMadExceptPatchRequiredMessage;
         end else if not aRunner.RunProcess(lMadExceptExe,
           QuoteCmdArg(lProjectInfo.fOutputPath) + ' ' + QuoteCmdArg(lProjectInfo.fMesPath), lProjectInfo.fProjectDir,
-          lTempBase + '.mad.out.log', lMadErrLog, 0, lMadExitCode, lTimedOut, aError) then
+          lTempBase + '.mad.out.log', lMadErrLog, lRsVarsEnvironmentBlock, 0, lMadExitCode, lTimedOut, aError) then
           Exit(False)
         else if lMadExitCode <> 0 then
         begin

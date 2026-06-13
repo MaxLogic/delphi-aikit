@@ -60,6 +60,8 @@ All notable user-visible changes to this project will be documented in this file
 - Added `deps` for project dependency topology analysis, including deterministic JSON output, text summaries, focused unit views, cycle reporting over resolved project units, and default artifact copies under sibling `.dak/<ProjectName>/deps/`. (T-101, T-102)
 
 ### Changed
+- rsvars loading now returns an explicit environment snapshot for child tools and
+  semantic evaluators instead of mutating the long-lived DelphiAIKit process.
 - LSP JSON-RPC requests now fail with a bounded timeout instead of blocking
   indefinitely when DelphiLSP accepts input but never responds.
 - DFMCheck build and validator subprocesses now fail with a bounded timeout

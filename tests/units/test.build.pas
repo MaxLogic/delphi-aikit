@@ -21,11 +21,13 @@ type
     fArguments: string;
     fArgumentsList: TArray<string>;
     fCallCount: Integer;
+    fEnvironmentBlocks: TArray<string>;
     fExePaths: TArray<string>;
     fFilesToCreateOnCall: TDictionary<Integer, string>;
     destructor Destroy; override;
     function RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
-      aTimeoutSec: Integer; out aExitCode: Integer; out aTimedOut: Boolean; out aError: string): Boolean;
+      const aEnvironmentBlock: string; aTimeoutSec: Integer; out aExitCode: Integer;
+      out aTimedOut: Boolean; out aError: string): Boolean;
   end;
 
   TFailingBuildRunner = class(TInterfacedObject, IBuildProcessRunner)
@@ -33,7 +35,8 @@ type
     fStdOutText: string;
     fStdErrText: string;
     function RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
-      aTimeoutSec: Integer; out aExitCode: Integer; out aTimedOut: Boolean; out aError: string): Boolean;
+      const aEnvironmentBlock: string; aTimeoutSec: Integer; out aExitCode: Integer;
+      out aTimedOut: Boolean; out aError: string): Boolean;
   end;
 
   [TestFixture]
@@ -129,7 +132,8 @@ begin
 end;
 
 function TCapturingBuildRunner.RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
-  aTimeoutSec: Integer; out aExitCode: Integer; out aTimedOut: Boolean; out aError: string): Boolean;
+  const aEnvironmentBlock: string; aTimeoutSec: Integer; out aExitCode: Integer;
+  out aTimedOut: Boolean; out aError: string): Boolean;
 var
   lFileToCreate: string;
   lLength: Integer;
@@ -141,6 +145,8 @@ begin
   fExePaths[lLength] := aExePath;
   SetLength(fArgumentsList, lLength + 1);
   fArgumentsList[lLength] := aArguments;
+  SetLength(fEnvironmentBlocks, lLength + 1);
+  fEnvironmentBlocks[lLength] := aEnvironmentBlock;
   ForceDirectories(ExtractFileDir(aStdOutPath));
   TFile.WriteAllText(aStdOutPath, '', TEncoding.UTF8);
   TFile.WriteAllText(aStdErrPath, '', TEncoding.UTF8);
@@ -156,7 +162,8 @@ begin
 end;
 
 function TFailingBuildRunner.RunProcess(const aExePath, aArguments, aWorkDir, aStdOutPath, aStdErrPath: string;
-  aTimeoutSec: Integer; out aExitCode: Integer; out aTimedOut: Boolean; out aError: string): Boolean;
+  const aEnvironmentBlock: string; aTimeoutSec: Integer; out aExitCode: Integer;
+  out aTimedOut: Boolean; out aError: string): Boolean;
 begin
   ForceDirectories(ExtractFileDir(aStdOutPath));
   TFile.WriteAllText(aStdOutPath, fStdOutText, TEncoding.UTF8);
@@ -649,7 +656,8 @@ begin
   lFakeBdsRoot := TPath.Combine(TempRoot, 'fake-bds-root');
   ForceDirectories(TPath.Combine(lFakeBdsRoot, 'bin'));
   lRsVarsPath := TPath.Combine(lFakeBdsRoot, 'bin\rsvars.bat');
-  TFile.WriteAllText(lRsVarsPath, '@echo off' + sLineBreak, TEncoding.ASCII);
+  TFile.WriteAllText(lRsVarsPath, '@echo off' + sLineBreak +
+    'set DAK_RSVARS_SENTINEL=build-child-env' + sLineBreak, TEncoding.ASCII);
   WriteUtf8File(TPath.Combine(lFakeBdsRoot, 'bin\MSBuild.exe'), 'stub');
 
   lAppData := TPath.Combine(TempRoot, 'fake-appdata');
@@ -690,6 +698,8 @@ begin
       'Expected environment.proj scalar property to be forwarded to MSBuild arguments.');
     Assert.IsFalse(ContainsText(lCapturingRunner.fArguments, '/p:ExistingProp=must-not-override'),
       'Existing process environment values must win over environment.proj overrides.');
+    Assert.IsTrue(Pos('DAK_RSVARS_SENTINEL=build-child-env' + #0, lCapturingRunner.fEnvironmentBlocks[0]) > 0,
+      'Expected MSBuild child environment to receive rsvars snapshot values.');
   finally
     lRunner := nil;
     lCapturingRunner := nil;
@@ -707,8 +717,10 @@ end;
 procedure TBuildTests.RsVarsLoaderIgnoresStaleRadEnvironmentAndOverlongPath;
 var
   lError: string;
+  lEnvironment: TRsVarsEnvironment;
   lOldBds: string;
   lOldBdsLib: string;
+  lOldDccDefine: string;
   lOldDccNamespace: string;
   lOldDccUnitSearchPath: string;
   lOldPath: string;
@@ -725,35 +737,52 @@ begin
   lScriptText := '@echo off' + sLineBreak +
     'if defined BDS exit /b 17' + sLineBreak +
     'if defined BDSLIB exit /b 18' + sLineBreak +
-    'if defined DCC_Namespace exit /b 19' + sLineBreak +
-    'if defined DCC_UnitSearchPath exit /b 20' + sLineBreak +
+    'if defined DCC_Define exit /b 19' + sLineBreak +
+    'if defined DCC_Namespace exit /b 20' + sLineBreak +
+    'if defined DCC_UnitSearchPath exit /b 21' + sLineBreak +
     'echo %PATH%>' + QuoteArg(lPathCapture) + sLineBreak +
-    'if not "%PATH:stale-path-marker=%"=="%PATH%" exit /b 21' + sLineBreak +
+    'if not "%PATH:stale-path-marker=%"=="%PATH%" exit /b 22' + sLineBreak +
     'set BDS=clean-bds' + sLineBreak +
-    'set BDSLIB=clean-lib' + sLineBreak;
+    'set BDSLIB=clean-lib' + sLineBreak +
+    'set DCC_Define=clean-define' + sLineBreak +
+    'set DCC_Namespace=clean-namespace' + sLineBreak +
+    'set DCC_UnitSearchPath=clean-search-path' + sLineBreak;
   TFile.WriteAllText(lRsVarsPath, lScriptText, TEncoding.ASCII);
 
   lOldBds := GetEnvironmentVariable('BDS');
   lOldBdsLib := GetEnvironmentVariable('BDSLIB');
+  lOldDccDefine := GetEnvironmentVariable('DCC_Define');
   lOldDccNamespace := GetEnvironmentVariable('DCC_Namespace');
   lOldDccUnitSearchPath := GetEnvironmentVariable('DCC_UnitSearchPath');
   lOldPath := GetEnvironmentVariable('PATH');
   Winapi.Windows.SetEnvironmentVariable('BDS', 'stale-bds');
   Winapi.Windows.SetEnvironmentVariable('BDSLIB', 'stale-bdslib');
+  Winapi.Windows.SetEnvironmentVariable('DCC_Define', 'stale-define');
   Winapi.Windows.SetEnvironmentVariable('DCC_Namespace', 'stale-namespace');
   Winapi.Windows.SetEnvironmentVariable('DCC_UnitSearchPath', 'stale-search-path');
   Winapi.Windows.SetEnvironmentVariable('PATH', PChar('C:\stale-path-marker;' + StringOfChar('x', 7000)));
   try
-    Assert.IsTrue(TryLoadRsVars('', lRsVarsPath, nil, lError),
+    Assert.IsTrue(TryLoadRsVars('', lRsVarsPath, nil, lEnvironment, lError),
       'Expected rsvars loader to sanitize stale child environment. Error: ' + lError);
-    Assert.AreEqual('clean-bds', GetEnvironmentVariable('BDS'));
-    Assert.AreEqual('clean-lib', GetEnvironmentVariable('BDSLIB'));
+    Assert.AreEqual('clean-bds', lEnvironment.ValueOrDefault('BDS'));
+    Assert.AreEqual('clean-lib', lEnvironment.ValueOrDefault('BDSLIB'));
+    Assert.AreEqual('clean-define', lEnvironment.ValueOrDefault('DCC_Define'));
+    Assert.AreEqual('clean-namespace', lEnvironment.ValueOrDefault('DCC_Namespace'));
+    Assert.AreEqual('clean-search-path', lEnvironment.ValueOrDefault('DCC_UnitSearchPath'));
+    Assert.AreEqual('stale-bds', GetEnvironmentVariable('BDS'));
+    Assert.AreEqual('stale-bdslib', GetEnvironmentVariable('BDSLIB'));
+    Assert.AreEqual('stale-define', GetEnvironmentVariable('DCC_Define'));
+    Assert.AreEqual('stale-namespace', GetEnvironmentVariable('DCC_Namespace'));
+    Assert.AreEqual('stale-search-path', GetEnvironmentVariable('DCC_UnitSearchPath'));
+    Assert.IsTrue(ContainsText(GetEnvironmentVariable('PATH'), 'stale-path-marker'),
+      'Expected parent PATH to remain unchanged after rsvars capture.');
     Assert.IsTrue(TFile.Exists(lPathCapture), 'Expected fake rsvars to capture PATH.');
     Assert.IsFalse(ContainsText(TFile.ReadAllText(lPathCapture, TEncoding.ASCII), 'stale-path-marker'),
       'Expected long inherited PATH to be trimmed before rsvars.bat.');
   finally
     Winapi.Windows.SetEnvironmentVariable('BDS', PChar(lOldBds));
     Winapi.Windows.SetEnvironmentVariable('BDSLIB', PChar(lOldBdsLib));
+    Winapi.Windows.SetEnvironmentVariable('DCC_Define', PChar(lOldDccDefine));
     Winapi.Windows.SetEnvironmentVariable('DCC_Namespace', PChar(lOldDccNamespace));
     Winapi.Windows.SetEnvironmentVariable('DCC_UnitSearchPath', PChar(lOldDccUnitSearchPath));
     Winapi.Windows.SetEnvironmentVariable('PATH', PChar(lOldPath));

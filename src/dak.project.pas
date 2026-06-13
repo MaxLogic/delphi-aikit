@@ -685,6 +685,8 @@ var
   lLibrarySource: TPropertySource;
   lProjectPath: string;
   lResult: TDelphiSemanticContextResult;
+  lRsVarsEnvironment: TRsVarsEnvironment;
+  lRsVarsEnvVars: TDictionary<string, string>;
   lSearchPaths: TArray<string>;
 begin
   Result := False;
@@ -743,20 +745,21 @@ begin
     lDelphiVersion := lDelphiVersion + '.0';
   end;
 
-  if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, lBuildError) then
+  if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, lRsVarsEnvironment, lBuildError) then
   begin
     Result := True;
     Exit;
   end;
 
-  if not TryReadIdeConfig(lDelphiVersion, aOptions.fPlatform, aOptions.fEnvOptionsPath, lEnvVars, lLibraryPath,
-    lLibrarySource, nil, lBuildError) then
-  begin
-    Result := True;
-    Exit;
-  end;
-
+  lRsVarsEnvVars := lRsVarsEnvironment.ToDictionary;
   try
+    if not TryReadIdeConfig(lDelphiVersion, aOptions.fPlatform, aOptions.fEnvOptionsPath, lRsVarsEnvVars, lEnvVars,
+      lLibraryPath, lLibrarySource, nil, lBuildError) then
+    begin
+      Result := True;
+      Exit;
+    end;
+
     lBuildOptions := aOptions;
     lBuildOptions.fDprojPath := lProjectPath;
     lBuildOptions.fDelphiVersion := lDelphiVersion;
@@ -779,6 +782,7 @@ begin
       aContext.fContextNote := '';
     end;
   finally
+    lRsVarsEnvVars.Free;
     lEnvVars.Free;
   end;
 

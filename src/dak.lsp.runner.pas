@@ -20,7 +20,8 @@ function TryRunLspRequest(const aOptions: TAppOptions; const aContext: TLspConte
 implementation
 
 uses
-  System.Classes, System.Diagnostics, System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.NetEncoding, System.SysUtils,
+  System.Classes, System.Diagnostics, System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.NetEncoding,
+  System.StrUtils, System.SysUtils,
   Winapi.Windows,
   maxLogic.ioUtils,
   Dak.Utils;
@@ -44,7 +45,8 @@ type
     function SendRequest(aId: Integer; const aMethod, aParamsJson: string; out aResponse: TJSONObject;
       out aError: string): Boolean;
     function ShutdownAndExit(out aError: string): Boolean;
-    function Start(const aExePath, aArguments, aWorkDir, aStdErrPath: string; out aError: string): Boolean;
+    function Start(const aExePath, aArguments, aWorkDir, aStdErrPath, aEnvironmentBlock: string;
+      out aError: string): Boolean;
   end;
 
 const
@@ -55,6 +57,40 @@ function AddJsonStringPair(aObject: TJSONObject; const aName, aValue: string): T
 begin
   aObject.AddPair(aName, aValue);
   Result := aObject;
+end;
+
+function TryGetEnvironmentBlockValue(const aEnvironmentBlock, aName: string; out aValue: string): Boolean;
+var
+  lEntry: string;
+  lEnd: Integer;
+  lPos: Integer;
+  lStart: Integer;
+begin
+  Result := False;
+  aValue := '';
+  lStart := 1;
+  while lStart <= Length(aEnvironmentBlock) do
+  begin
+    lEnd := PosEx(#0, aEnvironmentBlock, lStart);
+    if lEnd = 0 then
+      Break;
+    if lEnd = lStart then
+      Break;
+    lEntry := Copy(aEnvironmentBlock, lStart, lEnd - lStart);
+    lPos := Pos('=', lEntry);
+    if (lPos > 1) and SameText(Copy(lEntry, 1, lPos - 1), aName) then
+    begin
+      aValue := Copy(lEntry, lPos + 1, MaxInt);
+      Exit(True);
+    end;
+    lStart := lEnd + 1;
+  end;
+end;
+
+function EnvironmentBlockValue(const aEnvironmentBlock, aName: string): string;
+begin
+  if not TryGetEnvironmentBlockValue(aEnvironmentBlock, aName, Result) then
+    Result := '';
 end;
 
 function BuildDerivedLspRoots(const aContext: TLspContext): TArray<string>;
@@ -78,7 +114,7 @@ var
 begin
   lRoots := TList<string>.Create;
   try
-    AddRoot(GetEnvironmentVariable('BDS'));
+    AddRoot(EnvironmentBlockValue(aContext.fEnvironmentBlock, 'BDS'));
 
     lProgramFilesX86 := Trim(GetEnvironmentVariable('ProgramFiles(x86)'));
     if lProgramFilesX86 <> '' then
@@ -1158,7 +1194,8 @@ begin
           lInitOptions := BuildContextFileInitializeOptions(aContext);
 
         if not lClient.Start(aLspPath, '', aContext.fDakLspRoot,
-          TPath.Combine(aContext.fLogsDir, 'DelphiLSP.' + ProbeModeName(lMode) + '.stderr.log'), lError) then
+          TPath.Combine(aContext.fLogsDir, 'DelphiLSP.' + ProbeModeName(lMode) + '.stderr.log'),
+          aContext.fEnvironmentBlock, lError) then
         begin
           aError := lError;
           Exit(False);
@@ -1602,13 +1639,16 @@ begin
   Result := True;
 end;
 
-function TLspJsonRpcClient.Start(const aExePath, aArguments, aWorkDir, aStdErrPath: string; out aError: string): Boolean;
+function TLspJsonRpcClient.Start(const aExePath, aArguments, aWorkDir, aStdErrPath, aEnvironmentBlock: string;
+  out aError: string): Boolean;
 var
   lChildStdInRead: THandle;
   lChildStdInWrite: THandle;
   lChildStdOutRead: THandle;
   lChildStdOutWrite: THandle;
   lCmdLine: string;
+  lCreationFlags: Cardinal;
+  lEnvironment: PChar;
   lLastError: Cardinal;
   lPi: TProcessInformation;
   lSa: TSecurityAttributes;
@@ -1674,8 +1714,17 @@ begin
     if aArguments <> '' then
       lCmdLine := lCmdLine + ' ' + aArguments;
     UniqueString(lCmdLine);
+    if aEnvironmentBlock <> '' then
+    begin
+      lCreationFlags := CREATE_NO_WINDOW or CREATE_UNICODE_ENVIRONMENT;
+      lEnvironment := PChar(aEnvironmentBlock);
+    end else
+    begin
+      lCreationFlags := CREATE_NO_WINDOW;
+      lEnvironment := nil;
+    end;
 
-    if not CreateProcess(PChar(aExePath), PChar(lCmdLine), nil, nil, True, CREATE_NO_WINDOW, nil,
+    if not CreateProcess(PChar(aExePath), PChar(lCmdLine), nil, nil, True, lCreationFlags, lEnvironment,
       PChar(aWorkDir), lSi, lPi) then
     begin
       lLastError := GetLastError;
@@ -1761,7 +1810,7 @@ begin
   try
     lError := '';
     if not lClient.Start(lLspPath, '', aContext.fDakLspRoot,
-      TPath.Combine(aContext.fLogsDir, 'DelphiLSP.stderr.log'), lError) then
+      TPath.Combine(aContext.fLogsDir, 'DelphiLSP.stderr.log'), aContext.fEnvironmentBlock, lError) then
     begin
       aError := lError;
       Exit(False);

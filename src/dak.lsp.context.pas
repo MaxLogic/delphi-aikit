@@ -18,6 +18,7 @@ type
     fDakLspRoot: string;
     fContextFilePath: string;
     fLogsDir: string;
+    fEnvironmentBlock: string;
     fSourceLookup: TProjectSourceLookup;
     fParams: TFixInsightParams;
   end;
@@ -252,6 +253,8 @@ var
   lLibrarySource: TPropertySource;
   lNormalizedOptions: TAppOptions;
   lProjectPath: string;
+  lRsVarsEnvironment: TRsVarsEnvironment;
+  lRsVarsEnvVars: TDictionary<string, string>;
 begin
   Result := False;
   aError := '';
@@ -284,13 +287,15 @@ begin
     Exit(False);
   end;
 
-  if not TryLoadRsVars(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath, nil, aError) then
+  if not TryLoadRsVars(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath, nil, lRsVarsEnvironment,
+    aError) then
     Exit(False);
 
   lEnvVars := nil;
+  lRsVarsEnvVars := lRsVarsEnvironment.ToDictionary;
   try
     if not TryReadIdeConfig(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fPlatform, lNormalizedOptions.fEnvOptionsPath,
-      lEnvVars, lLibraryPath, lLibrarySource, nil, aError) then
+      lRsVarsEnvVars, lEnvVars, lLibraryPath, lLibrarySource, nil, aError) then
     begin
       Exit(False);
     end;
@@ -306,7 +311,10 @@ begin
     begin
       Exit(False);
     end;
+    aContext.fEnvironmentBlock := lRsVarsEnvironment.ToEnvironmentBlock;
+    aContext.fParams.fEnvironmentBlock := aContext.fEnvironmentBlock;
   finally
+    lRsVarsEnvVars.Free;
     lEnvVars.Free;
   end;
 

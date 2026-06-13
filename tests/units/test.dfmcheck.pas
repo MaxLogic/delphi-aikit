@@ -18,6 +18,7 @@ type
   private
     fGeneratedDproj: string;
     fConfig: string;
+    fEnvironmentBlocks: TArray<string>;
     fMsBuildArguments: string;
     fMode: TMockValidatorMode;
     fPlatform: string;
@@ -32,8 +33,10 @@ type
   public
     constructor Create(const aMode: TMockValidatorMode; const aConfig: string; const aPlatform: string);
     function Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
-      const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
+      const aEnvironmentBlock: string; const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal;
+      out aError: string): Boolean;
     property MsBuildArguments: string read fMsBuildArguments;
+    property EnvironmentBlocks: TArray<string> read fEnvironmentBlocks;
     property RunCount: Integer read fRunCount;
     property ValidatorArguments: string read fValidatorArguments;
   end;
@@ -291,7 +294,8 @@ begin
 end;
 
 function TMockDfmCheckRunner.Run(const aExePath: string; const aArguments: string; const aWorkingDir: string;
-  const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal; out aError: string): Boolean;
+  const aEnvironmentBlock: string; const aOutput: TDfmCheckOutputProc; out aExitCode: Cardinal;
+  out aError: string): Boolean;
 var
   lBuildArgs: string;
   lBuildLogPath: string;
@@ -305,6 +309,8 @@ begin
   aError := '';
   aExitCode := 0;
   Inc(fRunCount);
+  SetLength(fEnvironmentBlocks, Length(fEnvironmentBlocks) + 1);
+  fEnvironmentBlocks[High(fEnvironmentBlocks)] := aEnvironmentBlock;
 
   if fRunCount = 1 then
   begin
@@ -980,6 +986,10 @@ begin
       'Expected isolated exe output override in MSBuild arguments.');
     Assert.IsTrue(Pos('/p:DCC_DcuOutput=', lRunnerImpl.MsBuildArguments) > 0,
       'Expected isolated DCU output override in MSBuild arguments.');
+    Assert.IsTrue(Pos('DAK_TEST_RSVARS=1' + #0, lRunnerImpl.EnvironmentBlocks[0]) > 0,
+      'Expected generated build child environment to receive rsvars snapshot values.');
+    Assert.IsTrue(Pos('DAK_TEST_RSVARS=1' + #0, lRunnerImpl.EnvironmentBlocks[1]) > 0,
+      'Expected validator child environment to receive rsvars snapshot values.');
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
