@@ -126,44 +126,41 @@ function TDelphiAIKitApp.DispatchCommand: Integer;
 var
   lError: string;
 begin
-  case fOptions.fCommand of
-    TCommandKind.ckBuild:
-      begin
-        if not TryRunBuild(fOptions, Result, lError) then
-        begin
-          WriteLn(ErrOutput, lError);
-          Result := cExitToolFailure;
-        end else if (Result = cExitSuccess) and fOptions.fBuildRunDfmCheck then
-        begin
-          WriteLn('[build] Running dfm-check validation...');
-          Result := RunDfmCheckCommand(fOptions);
-        end;
-      end;
-    TCommandKind.ckDfmCheck:
+  if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckBuild) then
+  begin
+    if not TryRunBuild(fOptions, Result, lError) then
+    begin
+      WriteLn(ErrOutput, lError);
+      Result := cExitToolFailure;
+    end else if (Result = cExitSuccess) and fOptions.fBuildRunDfmCheck then
+    begin
+      WriteLn('[build] Running dfm-check validation...');
       Result := RunDfmCheckCommand(fOptions);
-    TCommandKind.ckDfmInspect:
-      Result := RunDfmInspectCommand(fOptions);
-    TCommandKind.ckGlobalVars:
-      Result := RunGlobalVarsCommand(fOptions);
-    TCommandKind.ckDeps:
-      Result := RunDepsCommand(fOptions);
-    TCommandKind.ckLsp:
-      Result := RunLspCommand;
-    TCommandKind.ckRemoveWith:
-      Result := RunRemoveWithCommand(fOptions);
-    TCommandKind.ckSymbolMap:
-      Result := RunSymbolMapCommand(fOptions);
-    TCommandKind.ckFindUsages:
-      Result := RunFindUsagesCommand(fOptions);
-    TCommandKind.ckRename:
-      Result := RunRenameCommand(fOptions);
-    TCommandKind.ckDeadCode:
-      Result := RunDeadCodeCommand(fOptions);
-    TCommandKind.ckAnalyzeProject, TCommandKind.ckAnalyzeUnit:
-      Result := RunAnalyzeCommand(fOptions);
+    end;
+  end else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckDfmCheck) then
+    Result := RunDfmCheckCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckDfmInspect) then
+    Result := RunDfmInspectCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckGlobalVars) then
+    Result := RunGlobalVarsCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckDeps) then
+    Result := RunDepsCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckLsp) then
+    Result := RunLspCommand
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckRemoveWith) then
+    Result := RunRemoveWithCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckSymbolMap) then
+    Result := RunSymbolMapCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckFindUsages) then
+    Result := RunFindUsagesCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckRename) then
+    Result := RunRenameCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckDeadCode) then
+    Result := RunDeadCodeCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeProject) then
+    Result := RunAnalyzeCommand(fOptions)
   else
     Result := RunResolveCommand(fOptions);
-  end;
 end;
 
 function TDelphiAIKitApp.Execute: Integer;
