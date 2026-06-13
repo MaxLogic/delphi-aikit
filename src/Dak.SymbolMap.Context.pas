@@ -15,6 +15,8 @@ type
     fConfig: string;
     fPlatform: string;
     fDelphiVersion: string;
+    fRsVarsPath: string;
+    fEnvOptionsPath: string;
     fHasCompilerParams: Boolean;
     fDefines: TArray<string>;
     fUnitSearchPath: TArray<string>;
@@ -228,6 +230,8 @@ begin
   aContext.fConfig := lOptions.fConfig;
   aContext.fPlatform := lOptions.fPlatform;
   aContext.fDelphiVersion := NormalizeDelphiVersion(lOptions.fDelphiVersion);
+  aContext.fRsVarsPath := lOptions.fRsVarsPath;
+  aContext.fEnvOptionsPath := lOptions.fEnvOptionsPath;
   aContext.fRtlSourceRoot := NormalizeCacheRoot(ResolveDefaultRtlSourceRoot(aContext.fDelphiVersion,
     lOptions.fRsVarsPath));
   aContext.fDefines := SplitSemanticList(aContext.fProject.fParserDefines);

@@ -2272,9 +2272,35 @@ begin
       end;
     end else if fOptions.fSymbolMapOperation = TSymbolMapOperation.smoFindReferences then
     begin
-      if fOptions.fSymbolMapSymbol = '' then
+      if (fOptions.fSymbolMapSymbol <> '') and
+        ((fOptions.fSymbolMapFilePath <> '') or (fOptions.fSymbolMapLine > 0) or (fOptions.fSymbolMapCol > 0)) then
       begin
-        fError := Format(SArgMissingValue, ['--symbol']);
+        fError := Format(SSymbolMapOptionOnlyForOperation, ['--symbol with --file/--line/--col',
+          'separate find-references queries']);
+        Exit(False);
+      end;
+      if (fOptions.fSymbolMapSymbol = '') and (fOptions.fSymbolMapFilePath = '') then
+      begin
+        fError := Format(SArgMissingValue, ['--symbol or --file/--line/--col']);
+        Exit(False);
+      end;
+      if fOptions.fSymbolMapFilePath <> '' then
+      begin
+        if fOptions.fSymbolMapLine < 1 then
+        begin
+          fError := Format(SArgMissingValue, ['--line']);
+          Exit(False);
+        end;
+        if fOptions.fSymbolMapCol < 1 then
+        begin
+          fError := Format(SArgMissingValue, ['--col']);
+          Exit(False);
+        end;
+      end;
+      if ((fOptions.fSymbolMapLine > 0) or (fOptions.fSymbolMapCol > 0)) and
+        (fOptions.fSymbolMapFilePath = '') then
+      begin
+        fError := Format(SArgMissingValue, ['--file']);
         Exit(False);
       end;
     end else if fOptions.fSymbolMapOperation = TSymbolMapOperation.smoSearchSymbols then
@@ -2304,9 +2330,11 @@ begin
       Exit(False);
     end;
     if ((fOptions.fSymbolMapFilePath <> '') or (fOptions.fSymbolMapLine > 0) or (fOptions.fSymbolMapCol > 0)) and
-      (fOptions.fSymbolMapOperation <> TSymbolMapOperation.smoFindDefinition) then
+      not (fOptions.fSymbolMapOperation in
+      [TSymbolMapOperation.smoFindDefinition, TSymbolMapOperation.smoFindReferences]) then
     begin
-      fError := Format(SSymbolMapOptionOnlyForOperation, ['--file/--line/--col', 'find-definition']);
+      fError := Format(SSymbolMapOptionOnlyForOperation, ['--file/--line/--col',
+        'find-definition or find-references']);
       Exit(False);
     end;
     if (fOptions.fSymbolMapQuery <> '') and (fOptions.fSymbolMapOperation <> TSymbolMapOperation.smoSearchSymbols) then

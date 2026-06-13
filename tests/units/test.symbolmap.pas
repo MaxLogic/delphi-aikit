@@ -28,6 +28,8 @@ type
     [Test]
     procedure StatsJsonReportsCacheRoots;
     [Test]
+    procedure PreservesSemanticSessionEnvironmentOptions;
+    [Test]
     procedure SemanticModelPersistenceBelongsToDelphiSemantics;
   end;
 
@@ -186,11 +188,19 @@ type
     [Test]
     procedure FindsMemberDefinitionBySourcePosition;
     [Test]
+    procedure ResolvesPositionLookupThroughSemanticShadowing;
+    [Test]
+    procedure ResolvesMemberShadowPositionThroughSemantics;
+    [Test]
+    procedure ResolvesOverloadLikePositionThroughSemantics;
+    [Test]
     procedure SearchesProjectMembersRtlSourceAndIntrinsics;
     [Test]
     procedure DescribesOwnedMembersAndIntrinsics;
     [Test]
     procedure CliFindDefinitionReturnsJsonResult;
+    [Test]
+    procedure CliFindReferencesAcceptsSourcePositionAndUsesSemanticResolver;
   end;
 
   [TestFixture]
@@ -264,6 +274,32 @@ uses
 function TSymbolMapContextTests.FixtureProjectPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspProjectFixture\LspProjectFixture.dproj');
+end;
+
+function TryFindLineAndColumn(const aText, aNeedle: string; out aLine, aColumn: Integer): Boolean;
+var
+  i: Integer;
+  lLines: TStringList;
+begin
+  Result := False;
+  aLine := 0;
+  aColumn := 0;
+  lLines := TStringList.Create;
+  try
+    lLines.Text := aText;
+    for i := 0 to lLines.Count - 1 do
+    begin
+      aColumn := Pos(aNeedle, lLines[i]);
+      if aColumn > 0 then
+      begin
+        aLine := i + 1;
+        Exit(True);
+      end;
+    end;
+  finally
+    lLines.Free;
+  end;
+  aColumn := 0;
 end;
 
 function TSymbolMapCacheTests.BuildContext(const aCacheName: string; out aContext: TSymbolMapContext): string;
@@ -1398,7 +1434,7 @@ begin
   Assert.AreEqual('TSymbolMapFixture', lDefinition.fName);
   Assert.AreEqual('type', lDefinition.fKind);
   Assert.AreEqual('project', lDefinition.fSourceKind);
-  Assert.AreEqual('exact', lDefinition.fConfidence);
+  Assert.AreEqual('semantic-resolved', lDefinition.fConfidence);
   Assert.IsTrue(lDefinition.fFilePath.EndsWith('SymbolMapUnit.pas'), 'Expected fixture unit file.');
 
   Assert.IsTrue(FindSymbolMapDefinitionByName(lContext, lStatus, lProfile, 'TDeclarationRecord', '',
@@ -1410,10 +1446,14 @@ end;
 procedure TSymbolMapDefinitionQueryTests.FindsMemberDefinitionBySourcePosition;
 var
   lCacheRoot: string;
+  lColumn: Integer;
   lContext: TSymbolMapContext;
   lDefinition: TSymbolMapDefinition;
   lError: string;
+  lLine: Integer;
   lProfile: TSymbolMapCompilerProfileResult;
+  lSourcePath: string;
+  lSourceText: string;
   lStatus: TSymbolMapCacheStatus;
 begin
   lCacheRoot := UniqueTempPath('symbol-map-member-position-cache');
@@ -1423,15 +1463,135 @@ begin
     'Expected compiler profile. Error: ' + lError);
   IndexFixtureProject(lContext, lStatus);
 
+  lSourcePath := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
+  lSourceText := TFile.ReadAllText(lSourcePath, TEncoding.UTF8);
+  Assert.IsTrue(TryFindLineAndColumn(lSourceText, 'FValue := aValue;', lLine, lColumn),
+    'Expected FValue assignment.');
+
   Assert.IsTrue(FindSymbolMapDefinitionByPosition(lContext, lStatus, lProfile,
-    TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas'), 36, 3, lDefinition,
-    lError), 'Expected position lookup. Error: ' + lError);
+    lSourcePath, lLine, lColumn, lDefinition, lError), 'Expected position lookup. Error: ' + lError);
 
   Assert.IsTrue(lDefinition.fFound, 'Expected definition at FValue member reference.');
   Assert.AreEqual('FValue', lDefinition.fName);
   Assert.AreEqual('field', lDefinition.fKind);
   Assert.AreEqual('TSymbolMapReferenceHolder', lDefinition.fOwnerName);
   Assert.AreEqual('project', lDefinition.fSourceKind);
+end;
+
+procedure TSymbolMapDefinitionQueryTests.ResolvesPositionLookupThroughSemanticShadowing;
+var
+  lCacheRoot: string;
+  lColumn: Integer;
+  lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
+  lError: string;
+  lLine: Integer;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lSourcePath: string;
+  lSourceText: string;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-shadow-position-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile. Error: ' + lError);
+  IndexFixtureProject(lContext, lStatus);
+
+  lSourcePath := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
+  lSourceText := TFile.ReadAllText(lSourcePath, TEncoding.UTF8);
+  Assert.IsTrue(TryFindLineAndColumn(lSourceText, 'if lShadowValue > 0 then',
+    lLine, lColumn), 'Expected shadowed local reference.');
+  Inc(lColumn, Length('if '));
+
+  Assert.IsTrue(FindSymbolMapDefinitionByPosition(lContext, lStatus, lProfile,
+    lSourcePath, lLine, lColumn, lDefinition, lError), 'Expected position lookup. Error: ' + lError);
+
+  Assert.IsTrue(lDefinition.fFound, 'Expected definition at shadowed local reference.');
+  Assert.AreEqual('lShadowValue', lDefinition.fName);
+  Assert.AreEqual('var', lDefinition.fKind);
+  Assert.AreEqual('TSymbolMapShadowCollision.Run', lDefinition.fOwnerName);
+  Assert.AreEqual('semantic-resolved', lDefinition.fConfidence);
+end;
+
+procedure TSymbolMapDefinitionQueryTests.ResolvesMemberShadowPositionThroughSemantics;
+var
+  lCacheRoot: string;
+  lColumn: Integer;
+  lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
+  lError: string;
+  lLine: Integer;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lSourcePath: string;
+  lSourceText: string;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-member-shadow-position-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile. Error: ' + lError);
+  IndexFixtureProject(lContext, lStatus);
+
+  lSourcePath := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
+  lSourceText := TFile.ReadAllText(lSourcePath, TEncoding.UTF8);
+  Assert.IsTrue(TryFindLineAndColumn(lSourceText, '  lShadowValue := 2;',
+    lLine, lColumn), 'Expected member-shadow assignment.');
+  Inc(lColumn, Length('  '));
+
+  Assert.IsTrue(FindSymbolMapDefinitionByPosition(lContext, lStatus, lProfile,
+    lSourcePath, lLine, lColumn, lDefinition, lError), 'Expected position lookup. Error: ' + lError);
+
+  Assert.IsTrue(lDefinition.fFound, 'Expected member definition at shadowed member reference.');
+  Assert.AreEqual('lShadowValue', lDefinition.fName);
+  Assert.AreEqual('field', lDefinition.fKind);
+  Assert.AreEqual('TSymbolMapMemberShadowCollision', lDefinition.fOwnerName);
+  Assert.AreEqual('semantic-resolved', lDefinition.fConfidence);
+end;
+
+procedure TSymbolMapDefinitionQueryTests.ResolvesOverloadLikePositionThroughSemantics;
+var
+  i: Integer;
+  lCacheRoot: string;
+  lColumn: Integer;
+  lContext: TSymbolMapContext;
+  lDefinition: TSymbolMapDefinition;
+  lError: string;
+  lLine: Integer;
+  lProfile: TSymbolMapCompilerProfileResult;
+  lSourcePath: string;
+  lSourceText: string;
+  lStatus: TSymbolMapCacheStatus;
+  lTargetLine: Integer;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-overload-position-cache');
+  BuildContext(lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected caches. Error: ' + lError);
+  Assert.IsTrue(EnsureSymbolMapCompilerProfile(lContext, lStatus, lProfile, lError),
+    'Expected compiler profile. Error: ' + lError);
+  IndexFixtureProject(lContext, lStatus);
+
+  lSourcePath := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
+  lSourceText := TFile.ReadAllText(lSourcePath, TEncoding.UTF8);
+  Assert.IsTrue(TryFindLineAndColumn(lSourceText, '  Select(42);',
+    lLine, lColumn), 'Expected overload-like call.');
+  Inc(lColumn, Length('  '));
+  Assert.IsTrue(TryFindLineAndColumn(lSourceText,
+    '    procedure Select(const aValue: string); overload;',
+    lTargetLine, i), 'Expected first overload-like declaration.');
+
+  Assert.IsTrue(FindSymbolMapDefinitionByPosition(lContext, lStatus, lProfile,
+    lSourcePath, lLine, lColumn, lDefinition, lError), 'Expected position lookup. Error: ' + lError);
+
+  Assert.IsTrue(lDefinition.fFound, 'Expected method definition at overload-like call.');
+  Assert.AreEqual('Select', lDefinition.fName);
+  Assert.AreEqual('method', lDefinition.fKind);
+  Assert.AreEqual('TSymbolMapOverloadCollision', lDefinition.fOwnerName);
+  Assert.AreEqual(lTargetLine, lDefinition.fLine);
+  Assert.IsTrue(Pos('string', lDefinition.fSignature) > 0,
+    'Expected Semantics-selected overload-like signature. Actual: ' + lDefinition.fSignature);
+  Assert.AreEqual('semantic-resolved', lDefinition.fConfidence);
 end;
 
 procedure TSymbolMapDefinitionQueryTests.SearchesProjectMembersRtlSourceAndIntrinsics;
@@ -1537,6 +1697,79 @@ begin
     Assert.AreEqual('project', TJSONObject(lJson).GetValue<string>('result.definition.sourceKind'));
   finally
     lJson.Free;
+  end;
+end;
+
+procedure TSymbolMapDefinitionQueryTests.CliFindReferencesAcceptsSourcePositionAndUsesSemanticResolver;
+var
+  i: Integer;
+  lArgs: string;
+  lAssignLine: Integer;
+  lCacheRoot: string;
+  lColumn: Integer;
+  lDeclLine: Integer;
+  lExitCode: Cardinal;
+  lIncrementLine: Integer;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLine: Integer;
+  lLogPath: string;
+  lLogText: string;
+  lReference: TJSONObject;
+  lReferences: TJSONArray;
+  lResult: TJSONObject;
+  lRoutineLine: Integer;
+  lSourcePath: string;
+  lSourceText: string;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-cli-reference-position-cache');
+  lLogPath := UniqueTempPath('symbol-map-cli-reference-position') + '.log';
+  lSourcePath := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
+  lSourceText := TFile.ReadAllText(lSourcePath, TEncoding.UTF8);
+  Assert.IsTrue(TryFindLineAndColumn(lSourceText, 'if lShadowValue > 0 then',
+    lLine, lColumn), 'Expected shadowed local reference.');
+  Inc(lColumn, Length('if '));
+  Assert.IsTrue(TryFindLineAndColumn(lSourceText, 'procedure TSymbolMapShadowCollision.Run;',
+    lRoutineLine, i), 'Expected shadow-collision routine.');
+  Assert.IsTrue(TryFindLineAndColumn(lSourceText, '  lShadowValue := 1;',
+    lAssignLine, i), 'Expected local assignment.');
+  Assert.IsTrue(TryFindLineAndColumn(lSourceText, '    lShadowValue := lShadowValue + 1;',
+    lIncrementLine, i), 'Expected local increment.');
+  lDeclLine := lRoutineLine + 2;
+
+  lArgs := 'symbol-map find-references --project ' + QuoteArg(FixtureProjectPath) +
+    ' --file ' + QuoteArg(lSourcePath) + ' --line ' + lLine.ToString + ' --col ' +
+    lColumn.ToString + ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
+
+  Assert.IsTrue(RunProcess(BuildFreshResolverExe, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start symbol-map find-references command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected find-references to succeed. See: ' + lLogPath);
+  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lJsonValue);
+    Assert.AreEqual('find-references', lJson.GetValue<string>('operation'));
+    lResult := lJson.GetValue('result') as TJSONObject;
+    Assert.AreEqual('lShadowValue', lResult.GetValue<string>('symbol'));
+    lReferences := lResult.GetValue('references') as TJSONArray;
+    Assert.AreEqual(5, lReferences.Count, 'Expected local declaration plus four local references.');
+    for i := 0 to lReferences.Count - 1 do
+    begin
+      lReference := TJSONObject(lReferences.Items[i]);
+      Assert.AreEqual('semantic-resolved', lReference.GetValue<string>('confidence'));
+      Assert.AreEqual('lShadowValue', lReference.GetValue<string>('name'));
+    end;
+    Assert.AreEqual('declaration', TJSONObject(lReferences.Items[0]).GetValue<string>('role'));
+    Assert.AreEqual(lDeclLine, TJSONObject(lReferences.Items[0]).GetValue<Integer>('line'));
+    for i := 1 to lReferences.Count - 1 do
+      Assert.AreEqual('reference', TJSONObject(lReferences.Items[i]).GetValue<string>('role'));
+    Assert.AreEqual(lAssignLine, TJSONObject(lReferences.Items[1]).GetValue<Integer>('line'));
+    Assert.AreEqual(lLine, TJSONObject(lReferences.Items[2]).GetValue<Integer>('line'));
+    Assert.AreEqual(lIncrementLine, TJSONObject(lReferences.Items[3]).GetValue<Integer>('line'));
+    Assert.AreEqual(lIncrementLine, TJSONObject(lReferences.Items[4]).GetValue<Integer>('line'));
+  finally
+    lJsonValue.Free;
   end;
 end;
 
@@ -2618,6 +2851,35 @@ begin
   end;
 end;
 
+procedure TSymbolMapContextTests.PreservesSemanticSessionEnvironmentOptions;
+var
+  lContext: TSymbolMapContext;
+  lEnvOptionsPath: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lRsVarsPath: string;
+begin
+  lRsVarsPath := TPath.Combine(TempRoot, 'symbol-map-custom-rsvars.bat');
+  lEnvOptionsPath := TPath.Combine(TempRoot, 'symbol-map-custom-envoptions.proj');
+  TFile.WriteAllText(lRsVarsPath, '@echo off' + sLineBreak, TEncoding.ASCII);
+  TFile.WriteAllText(lEnvOptionsPath, '<Project />', TEncoding.UTF8);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23';
+  lOptions.fRsVarsPath := lRsVarsPath;
+  lOptions.fHasRsVarsPath := True;
+  lOptions.fEnvOptionsPath := lEnvOptionsPath;
+  lOptions.fHasEnvOptionsPath := True;
+
+  Assert.IsTrue(TryBuildSymbolMapContext(lOptions, lContext, lError),
+    'Expected context. Error: ' + lError);
+  Assert.AreEqual(lRsVarsPath, lContext.fRsVarsPath);
+  Assert.AreEqual(lEnvOptionsPath, lContext.fEnvOptionsPath);
+end;
+
 procedure TSymbolMapContextTests.SemanticModelPersistenceBelongsToDelphiSemantics;
 var
   lCacheSource: string;
@@ -2694,6 +2956,13 @@ begin
   Assert.AreEqual(5, lOptions.fSymbolMapLimit);
   Assert.IsTrue(lOptions.fHasSymbolMapLimit);
 
+  SetParams('symbol-map find-references --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 12 --col 3');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected symbol-map find-references by position to parse. Error: ' + lError);
+  Assert.AreEqual(TSymbolMapOperation.smoFindReferences, lOptions.fSymbolMapOperation);
+  Assert.AreEqual('c:\temp\unit1.pas', lOptions.fSymbolMapFilePath);
+  Assert.AreEqual(12, lOptions.fSymbolMapLine);
+  Assert.AreEqual(3, lOptions.fSymbolMapCol);
+
   SetParams('symbol-map search-symbols --project c:\temp\sample.dproj --query Foo');
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected symbol-map search-symbols to parse. Error: ' + lError);
   Assert.AreEqual(TSymbolMapOperation.smoSearchSymbols, lOptions.fSymbolMapOperation);
@@ -2766,6 +3035,10 @@ begin
   SetParams('symbol-map find-references --project c:\temp\sample.dproj --symbol TFoo --owner TOwner');
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --owner outside describe-symbol to be rejected.');
   Assert.IsTrue(Pos('--owner', lError) > 0, 'Expected invalid --owner operation error. Actual: ' + lError);
+
+  SetParams('symbol-map find-references --project c:\temp\sample.dproj --symbol TFoo --file c:\temp\unit1.pas');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected mixed symbol and position target to be rejected.');
+  Assert.IsTrue(Pos('--symbol', lError) > 0, 'Expected mixed target error. Actual: ' + lError);
 end;
 
 procedure TSymbolMapCliTests.HelpDocumentsSymbolMapOptions;
