@@ -621,7 +621,12 @@ function FindSymbolMapDefinitionByName(const aContext: TSymbolMapContext; const 
   const aProfile: TSymbolMapCompilerProfileResult; const aName, aOwnerName: string;
   out aDefinition: TSymbolMapDefinition; out aError: string): Boolean;
 begin
-  Result := DescribeSymbolMapDefinition(aContext, aStatus, aProfile, aName, aOwnerName, aDefinition, aError);
+  aDefinition := Default(TSymbolMapDefinition);
+  if TryFindSymbolProjectionDefinition(aContext, aStatus, aProfile, aName, aOwnerName, aDefinition, aError) then
+    Exit(True);
+  if (aOwnerName = '') and TryFindCompilerIntrinsicDefinition(aStatus, aProfile, aName, aDefinition, aError) then
+    Exit(True);
+  Result := True;
 end;
 
 function FindSymbolMapDefinitionByPosition(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;

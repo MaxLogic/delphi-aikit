@@ -41,6 +41,7 @@ type
     fProjectDproj: string;
     fProjectDir: string;
     fMainSourcePath: string;
+    fSourceFileNames: TArray<string>;
     fDefines: TArray<string>;
     fSearchPaths: TArray<string>;
   end;
@@ -50,6 +51,7 @@ type
     fProjectName: string;
     fProjectDir: string;
     fMainSourcePath: string;
+    fSourceFileNames: TArray<string>;
     fParserDefines: string;
     fParserSearchPath: string;
     fUnitScopes: TArray<string>;
