@@ -466,6 +466,7 @@ var
   lReferences: TArray<TSymbolMapReference>;
   lResultJson: string;
   lRtlSource: TSymbolMapRtlIndexResult;
+  lSymbol: string;
 begin
   SetLength(lIndexedUnits, 0);
   lResultJson := '{}';
@@ -532,13 +533,23 @@ begin
       lResultJson := BuildDefinitionResultJson(lDefinition);
     end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoFindReferences then
     begin
-      if not FindSymbolMapReferences(lContext, lCacheStatus, lCompilerProfile, aOptions.fSymbolMapSymbol,
+      lSymbol := aOptions.fSymbolMapSymbol;
+      if aOptions.fSymbolMapFilePath <> '' then
+      begin
+        if not FindSymbolMapReferencesByPosition(lContext, aOptions.fSymbolMapFilePath,
+          aOptions.fSymbolMapLine, aOptions.fSymbolMapCol, aOptions.fSymbolMapLimit,
+          lSymbol, lReferences, lError) then
+        begin
+          WriteLn(ErrOutput, lError);
+          Exit(cExitToolFailure);
+        end;
+      end else if not FindSymbolMapReferences(lContext, lCacheStatus, lCompilerProfile, lSymbol,
         aOptions.fSymbolMapLimit, lReferences, lError) then
       begin
         WriteLn(ErrOutput, lError);
         Exit(cExitToolFailure);
       end;
-      lResultJson := BuildReferencesResultJson(aOptions.fSymbolMapSymbol, lReferences);
+      lResultJson := BuildReferencesResultJson(lSymbol, lReferences);
     end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoSearchSymbols then
     begin
       if not SearchSymbolMapDefinitions(lContext, lCacheStatus, lCompilerProfile, aOptions.fSymbolMapQuery,

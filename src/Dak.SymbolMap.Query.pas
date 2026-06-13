@@ -54,12 +54,18 @@ function DescribeSymbolMapDefinition(const aContext: TSymbolMapContext; const aS
 function FindSymbolMapReferences(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aProfile: TSymbolMapCompilerProfileResult; const aSymbol: string; const aLimit: Integer;
   out aReferences: TArray<TSymbolMapReference>; out aError: string): Boolean;
+function FindSymbolMapReferencesByPosition(const aContext: TSymbolMapContext; const aFilePath: string;
+  const aLine, aCol, aLimit: Integer; out aSymbol: string;
+  out aReferences: TArray<TSymbolMapReference>; out aError: string): Boolean;
 
 implementation
 
 uses
+  System.IOUtils,
   System.SysUtils,
-  FireDAC.Comp.Client, FireDAC.Phys.SQLite;
+  FireDAC.Comp.Client, FireDAC.Phys.SQLite,
+  DelphiSemantics.Cache, DelphiSemantics.ProjectContext, DelphiSemantics.ProjectSession,
+  DelphiSemantics.Query, DelphiSemantics.Usage;
 
 type
   TSymbolMapUnitScope = record
@@ -91,6 +97,159 @@ begin
   if SameText(aKind, 'intrinsic-unit') then
     Exit('unit');
   Result := aKind;
+end;
+
+function SessionDiagnosticsText(const aDiagnostics: TArray<TDelphiSemanticDiagnostic>):
+  string;
+var
+  lDiagnostic: TDelphiSemanticDiagnostic;
+begin
+  Result := '';
+  for lDiagnostic in aDiagnostics do
+  begin
+    if Result <> '' then
+      Result := Result + sLineBreak;
+    Result := Result + lDiagnostic.Code + ': ' + lDiagnostic.Message;
+    if lDiagnostic.FileName <> '' then
+      Result := Result + ' (' + lDiagnostic.FileName + ')';
+  end;
+end;
+
+function SemanticOptions(const aContext: TSymbolMapContext): TDelphiSemanticOptions;
+begin
+  Result := Default(TDelphiSemanticOptions);
+  Result.ProjectPath := aContext.fProject.fProjectPath;
+  Result.Configuration := aContext.fConfig;
+  Result.Platform := aContext.fPlatform;
+  Result.DelphiVersion := aContext.fDelphiVersion;
+  Result.RsVarsPath := aContext.fRsVarsPath;
+  Result.EnvOptionsPath := aContext.fEnvOptionsPath;
+  if aContext.fProjectCacheRoot <> '' then
+    Result.SqliteCacheFileName := TPath.Combine(aContext.fProjectCacheRoot,
+      'semantic-unit-cache.sqlite3');
+end;
+
+function MapSemanticDefinition(const aResult: TDelphiSemanticSymbolQueryResult):
+  TSymbolMapDefinition;
+begin
+  Result := Default(TSymbolMapDefinition);
+  Result.fFound := True;
+  Result.fName := aResult.Name;
+  Result.fKind := DakSymbolKind(aResult.Kind);
+  Result.fOwnerName := aResult.OwnerName;
+  Result.fUnitName := aResult.UnitName;
+  Result.fFilePath := aResult.FileName;
+  Result.fSourceKind := DakSourceKind(aResult.SourceKind);
+  Result.fConfidence := 'semantic-resolved';
+  Result.fSignature := aResult.Signature;
+  Result.fTypeName := aResult.TypeName;
+  Result.fLine := aResult.Line;
+  Result.fCol := aResult.Column;
+  Result.fEndLine := aResult.EndLine;
+  Result.fEndCol := aResult.EndColumn;
+end;
+
+function MapSemanticUsage(const aUsage: TDelphiSemanticUsage): TSymbolMapReference;
+begin
+  Result := Default(TSymbolMapReference);
+  Result.fName := aUsage.Name;
+  Result.fUnitName := aUsage.UnitName;
+  Result.fFilePath := aUsage.FileName;
+  Result.fSourceKind := DakSourceKind(aUsage.SourceKind);
+  Result.fConfidence := 'semantic-resolved';
+  Result.fRole := aUsage.Role;
+  Result.fSectionKind := aUsage.SectionKind;
+  Result.fLine := aUsage.Line;
+  Result.fCol := aUsage.Column;
+  Result.fEndLine := aUsage.EndLine;
+  Result.fEndCol := aUsage.EndColumn;
+end;
+
+function FindSemanticDefinitionByPosition(const aContext: TSymbolMapContext;
+  const aFilePath: string; const aLine, aCol: Integer; out aDefinition: TSymbolMapDefinition;
+  out aError: string): Boolean;
+var
+  lCacheMetrics: TDelphiSemanticCacheMetrics;
+  lExtractionMilliseconds: Int64;
+  lQueryContext: TDelphiSemanticSymbolQueryContext;
+  lResult: TDelphiSemanticSymbolQueryResult;
+  lSessionOptions: TDelphiSemanticOptions;
+  lSessionResult: TDelphiSemanticProjectSessionResult;
+begin
+  Result := False;
+  aDefinition := Default(TSymbolMapDefinition);
+  aError := '';
+  lSessionOptions := SemanticOptions(aContext);
+  lSessionResult := TDelphiSemanticProjectSession.Open(lSessionOptions);
+  if not lSessionResult.Success then
+  begin
+    aError := SessionDiagnosticsText(lSessionResult.Diagnostics);
+    if aError = '' then
+      aError := 'Failed to open DelphiSemantics project session.';
+    Exit(False);
+  end;
+
+  try
+    lQueryContext := lSessionResult.Session.BuildSymbolQueryContext(lCacheMetrics,
+      lExtractionMilliseconds);
+    lResult := TDelphiSemanticSymbolQuery.FindDefinitionAtPosition(lQueryContext,
+      aFilePath, aLine, aCol);
+    if lResult.Found then
+      aDefinition := MapSemanticDefinition(lResult);
+    Result := True;
+  finally
+    lSessionResult.Session.Free;
+  end;
+end;
+
+function FindSemanticReferencesByPosition(const aContext: TSymbolMapContext;
+  const aFilePath: string; const aLine, aCol, aLimit: Integer; out aSymbol: string;
+  out aReferences: TArray<TSymbolMapReference>; out aError: string): Boolean;
+var
+  i: Integer;
+  lCacheMetrics: TDelphiSemanticCacheMetrics;
+  lExtractionMilliseconds: Int64;
+  lIndex: Integer;
+  lQueryContext: TDelphiSemanticSymbolQueryContext;
+  lResult: TDelphiSemanticUsageResult;
+  lSessionOptions: TDelphiSemanticOptions;
+  lSessionResult: TDelphiSemanticProjectSessionResult;
+begin
+  Result := False;
+  aSymbol := '';
+  SetLength(aReferences, 0);
+  aError := '';
+  lSessionOptions := SemanticOptions(aContext);
+  lSessionResult := TDelphiSemanticProjectSession.Open(lSessionOptions);
+  if not lSessionResult.Success then
+  begin
+    aError := SessionDiagnosticsText(lSessionResult.Diagnostics);
+    if aError = '' then
+      aError := 'Failed to open DelphiSemantics project session.';
+    Exit(False);
+  end;
+
+  try
+    lQueryContext := lSessionResult.Session.BuildSymbolQueryContext(lCacheMetrics,
+      lExtractionMilliseconds);
+    lResult := TDelphiSemanticUsageFinder.FindUsagesAtPosition(lQueryContext, aFilePath,
+      aLine, aCol);
+    if lResult.Status = 'resolved' then
+    begin
+      aSymbol := lResult.Symbol.Name;
+      for i := 0 to High(lResult.Usages) do
+      begin
+        if (aLimit > 0) and (Length(aReferences) >= aLimit) then
+          Break;
+        lIndex := Length(aReferences);
+        SetLength(aReferences, lIndex + 1);
+        aReferences[lIndex] := MapSemanticUsage(lResult.Usages[i]);
+      end;
+    end;
+    Result := True;
+  finally
+    lSessionResult.Session.Free;
+  end;
 end;
 
 function OpenQueryConnection(const aDbPath: string; out aDriverLink: TFDPhysSQLiteDriverLink;
@@ -441,47 +600,6 @@ begin
   end;
 end;
 
-function TryFindProjectedReferenceAtPosition(const aContext: TSymbolMapContext;
-  const aStatus: TSymbolMapCacheStatus; const aFilePath: string; const aLine, aCol: Integer;
-  out aName, aError: string): Boolean;
-var
-  lConnection: TFDConnection;
-  lDriverLink: TFDPhysSQLiteDriverLink;
-  lProjectKey: string;
-  lQuery: TFDQuery;
-begin
-  Result := False;
-  aName := '';
-  lProjectKey := BuildSymbolMapProjectKey(aContext);
-  if not OpenQueryConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
-    Exit(False);
-  try
-    AttachProjectCache(lConnection, aStatus);
-    lQuery := TFDQuery.Create(nil);
-    try
-      lQuery.Connection := lConnection;
-      lQuery.SQL.Text := 'select r.name from symbol_map_references r ' +
-        'join projectdb.project_units u on u.unit_cache_key = r.unit_cache_key ' +
-        'where u.project_key = :project_key and u.file_path = :file_path and r.line_no = :line_no ' +
-        'and r.col_no <= :col_no and r.end_col_no >= :col_no order by r.col_no desc limit 1';
-      lQuery.ParamByName('project_key').AsString := lProjectKey;
-      lQuery.ParamByName('file_path').AsString := aFilePath;
-      lQuery.ParamByName('line_no').AsInteger := aLine;
-      lQuery.ParamByName('col_no').AsInteger := aCol;
-      lQuery.Open;
-      if lQuery.Eof then
-        Exit(False);
-      aName := lQuery.FieldByName('name').AsWideString;
-      Result := aName <> '';
-    finally
-      lQuery.Free;
-    end;
-  finally
-    lConnection.Free;
-    lDriverLink.Free;
-  end;
-end;
-
 function TryFindProjectedDeclarationAtPosition(const aContext: TSymbolMapContext;
   const aStatus: TSymbolMapCacheStatus; const aFilePath: string; const aLine, aCol: Integer;
   out aDefinition: TSymbolMapDefinition; out aError: string): Boolean;
@@ -632,13 +750,14 @@ end;
 function FindSymbolMapDefinitionByPosition(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aProfile: TSymbolMapCompilerProfileResult; const aFilePath: string; const aLine, aCol: Integer;
   out aDefinition: TSymbolMapDefinition; out aError: string): Boolean;
-var
-  lName: string;
 begin
   aDefinition := Default(TSymbolMapDefinition);
-  if TryFindProjectedReferenceAtPosition(aContext, aStatus, aFilePath, aLine, aCol, lName, aError) and
-    TryFindSymbolProjectionDefinition(aContext, aStatus, aProfile, lName, '', aDefinition, aError) then
+  if not FindSemanticDefinitionByPosition(aContext, aFilePath, aLine, aCol, aDefinition,
+    aError) then
+    Exit(False);
+  if aDefinition.fFound then
     Exit(True);
+
   if TryFindProjectedDeclarationAtPosition(aContext, aStatus, aFilePath, aLine, aCol, aDefinition, aError) then
     Exit(True);
   Result := True;
@@ -670,6 +789,14 @@ function FindSymbolMapReferences(const aContext: TSymbolMapContext; const aStatu
 begin
   SetLength(aReferences, 0);
   Result := FindProjectedReferences(aContext, aStatus, aSymbol, aLimit, aReferences, aError);
+end;
+
+function FindSymbolMapReferencesByPosition(const aContext: TSymbolMapContext; const aFilePath: string;
+  const aLine, aCol, aLimit: Integer; out aSymbol: string;
+  out aReferences: TArray<TSymbolMapReference>; out aError: string): Boolean;
+begin
+  Result := FindSemanticReferencesByPosition(aContext, aFilePath, aLine, aCol, aLimit,
+    aSymbol, aReferences, aError);
 end;
 
 end.
