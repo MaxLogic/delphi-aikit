@@ -1,4 +1,4 @@
-﻿unit Test.Cli;
+unit Test.Cli;
 
 interface
 
@@ -74,6 +74,8 @@ type
     procedure AnalyzeProjectDefaultOutRootUsesSiblingDprojFolderWhenMainSourceLivesElsewhere;
     [Test]
     procedure AnalyzeUnitDefaultOutRootUsesDakConvention;
+    [Test]
+    procedure AnalyzeChildToolLogsAreIsolatedFromRunLog;
     [Test]
     procedure AnalyzeCommandParsesAnalyzerTimeouts;
     [Test]
@@ -686,6 +688,32 @@ begin
   lSummaryPath := TPath.Combine(lDakRoot, 'summary.md');
   Assert.IsTrue(FileExists(lSummaryPath), 'Expected default analyze-unit output under sibling .dak root: ' + lSummaryPath);
   Assert.IsFalse(TDirectory.Exists(lLegacyRoot), 'Did not expect legacy _analysis unit root: ' + lLegacyRoot);
+end;
+
+procedure TCliTests.AnalyzeChildToolLogsAreIsolatedFromRunLog;
+var
+  lCommonSource: string;
+  lProjectSource: string;
+  lUnitSource: string;
+begin
+  lCommonSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.analyze.common.pas'), TEncoding.UTF8);
+  lProjectSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.analyze.projectrunner.pas'), TEncoding.UTF8);
+  lUnitSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.analyze.unitrunner.pas'), TEncoding.UTF8);
+
+  Assert.IsTrue(Pos('TryRunFixInsightLogged(fParams, lStdOutLogPath, lStdErrLogPath, fRunLog', lProjectSource) > 0,
+    'Expected FixInsight project runs to pass isolated stdout/stderr logs plus run.log index path.');
+  Assert.IsTrue(Pos('TryRunPalLogged(fParams, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog', lProjectSource) > 0,
+    'Expected PAL project runs to pass isolated stdout/stderr logs plus run.log index path.');
+  Assert.IsTrue(Pos('TryRunPalUnitLogged(fUnitPath, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog', lUnitSource) > 0,
+    'Expected PAL unit runs to pass isolated stdout/stderr logs plus run.log index path.');
+  Assert.IsTrue(Pos('AppendAnalyzeRunLogIndex', lCommonSource) > 0,
+    'Expected analyze run.log to be written as an index of child logs.');
+  Assert.IsFalse(Pos('TryRunFixInsightLogged(fParams, fRunLog', lProjectSource) > 0,
+    'FixInsight project runs must not stream child output directly into shared run.log.');
+  Assert.IsFalse(Pos('TryRunPalLogged(fParams, fPascalAnalyzer, fRunLog', lProjectSource) > 0,
+    'PAL project runs must not stream child output directly into shared run.log.');
+  Assert.IsFalse(Pos('TryRunPalUnitLogged(fUnitPath, fPascalAnalyzer, fRunLog', lUnitSource) > 0,
+    'PAL unit runs must not stream child output directly into shared run.log.');
 end;
 
 procedure TCliTests.AnalyzeCommandParsesAnalyzerTimeouts;

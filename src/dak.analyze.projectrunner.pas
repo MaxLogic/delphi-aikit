@@ -174,6 +174,8 @@ var
   lRunError: string;
   lFilterError: string;
   lLogPath: string;
+  lStdErrLogPath: string;
+  lStdOutLogPath: string;
 begin
   aRan := True;
   fParams.fFixOutput := TPath.GetFullPath(aOutputPath);
@@ -194,8 +196,10 @@ begin
     fParams.fFixCsv := False;
     lLogPath := TPath.Combine(fFixDir, 'fixinsight.txt.log');
   end;
+  lStdOutLogPath := TPath.ChangeExtension(lLogPath, '.stdout.log');
+  lStdErrLogPath := TPath.ChangeExtension(lLogPath, '.stderr.log');
 
-  if TryRunFixInsightLogged(fParams, fRunLog, lRunExit, lRunError) then
+  if TryRunFixInsightLogged(fParams, lStdOutLogPath, lStdErrLogPath, fRunLog, lRunExit, lRunError) then
   begin
     aExitCode := Integer(lRunExit);
     if aExitCode <> 0 then
@@ -236,6 +240,8 @@ var
   lRunError: string;
   lPaReportRoot: string;
   lPalPostError: string;
+  lStdErrLogPath: string;
+  lStdOutLogPath: string;
 begin
   fPal := Default(TPalSummary);
   if not fOptions.fAnalyzePal then
@@ -249,8 +255,10 @@ begin
   else
     fPascalAnalyzer.fOutput := fPaDir;
   fPal.OutputRoot := fPascalAnalyzer.fOutput;
+  lStdOutLogPath := TPath.Combine(fPaDir, 'pascal-analyzer.stdout.log');
+  lStdErrLogPath := TPath.Combine(fPaDir, 'pascal-analyzer.stderr.log');
 
-  if TryRunPalLogged(fParams, fPascalAnalyzer, fRunLog, lRunExit, lRunError) then
+  if TryRunPalLogged(fParams, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog, lRunExit, lRunError) then
   begin
     fPal.ExitCode := Integer(lRunExit);
     if fPal.ExitCode <> 0 then

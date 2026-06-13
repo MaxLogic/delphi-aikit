@@ -33,6 +33,8 @@ function FormatTimestamp: string;
 procedure AppendLogText(const aPath: string; const aText: string);
 procedure WriteLogText(const aPath: string; const aText: string);
 procedure AppendRunHeader(const aLogPath: string; const aWorkDir: string; const aCommandLine: string);
+procedure AppendAnalyzeRunLogIndex(const aRunLogPath: string; const aWorkDir: string; const aCommandLine: string;
+  const aStdOutLogPath: string; const aStdErrLogPath: string; const aArtifactPath: string);
 function TryOpenLogHandle(const aLogPath: string; out aHandle: THandle; out aError: string): Boolean;
 procedure WriteToolLog(const aLogPath: string; const aCommandLine: string; aExitCode: Integer; const aError: string);
 function GetSectionCountTotal(const aPath: string): Integer;
@@ -43,12 +45,14 @@ function TryPrepareProjectParams(const aOptions: TAppOptions; aDiagnostics: TDia
   out aProjectDproj: string; out aError: string; out aErrorCode: Integer): Boolean;
 function BuildOutputRoot(const aBaseOut: string; const aProjectPath: string; const aProjectName: string): string;
 function BuildUnitOutputRoot(const aBaseOut: string; const aUnitPath: string; const aUnitName: string): string;
-function TryRunFixInsightLogged(const aParams: TFixInsightParams; const aRunLogPath: string;
-  out aExitCode: Cardinal; out aError: string): Boolean;
+function TryRunFixInsightLogged(const aParams: TFixInsightParams; const aStdOutLogPath: string;
+  const aStdErrLogPath: string; const aRunLogPath: string; out aExitCode: Cardinal; out aError: string): Boolean;
 function TryRunPalLogged(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
-  const aRunLogPath: string; out aExitCode: Cardinal; out aError: string): Boolean;
+  const aStdOutLogPath: string; const aStdErrLogPath: string; const aRunLogPath: string; out aExitCode: Cardinal;
+  out aError: string): Boolean;
 function TryRunPalUnitLogged(const aUnitPath: string; const aPa: TPascalAnalyzerDefaults;
-  const aRunLogPath: string; out aExitCode: Cardinal; out aError: string): Boolean;
+  const aStdOutLogPath: string; const aStdErrLogPath: string; const aRunLogPath: string; out aExitCode: Cardinal;
+  out aError: string): Boolean;
 procedure CaptureFixInsightSummary(const aTxtPath: string; out aCounts: TFixInsightCounts);
 function BuildProjectSummary(const aProjectName: string; const aDprojPath: string; const aOutRoot: string;
   const aFixTxtPath: string; const aFixXmlPath: string; const aFixCsvPath: string; aFixTxtRan: Boolean;
@@ -132,6 +136,28 @@ begin
     lLines.AppendLine('CWD: ' + aWorkDir);
     lLines.AppendLine('CMD: ' + aCommandLine);
     AppendLogText(aLogPath, lLines.ToString);
+  finally
+    lLines.Free;
+  end;
+end;
+
+procedure AppendAnalyzeRunLogIndex(const aRunLogPath: string; const aWorkDir: string; const aCommandLine: string;
+  const aStdOutLogPath: string; const aStdErrLogPath: string; const aArtifactPath: string);
+var
+  lLines: TStringBuilder;
+begin
+  lLines := TStringBuilder.Create;
+  try
+    lLines.AppendLine('');
+    lLines.AppendLine(StringOfChar('=', 78));
+    lLines.AppendLine('[' + FormatTimestamp + '] CHILD');
+    lLines.AppendLine('CWD: ' + aWorkDir);
+    lLines.AppendLine('CMD: ' + aCommandLine);
+    lLines.AppendLine('STDOUT: ' + aStdOutLogPath);
+    lLines.AppendLine('STDERR: ' + aStdErrLogPath);
+    if aArtifactPath <> '' then
+      lLines.AppendLine('ARTIFACT: ' + aArtifactPath);
+    AppendLogText(aRunLogPath, lLines.ToString);
   finally
     lLines.Free;
   end;
@@ -500,12 +526,13 @@ begin
   Result := TPath.Combine(TPath.Combine(TPath.Combine(lUnitDir, '.dak'), '_unit'), aUnitName);
 end;
 
-function TryRunFixInsightLogged(const aParams: TFixInsightParams; const aRunLogPath: string;
-  out aExitCode: Cardinal; out aError: string): Boolean;
+function TryRunFixInsightLogged(const aParams: TFixInsightParams; const aStdOutLogPath: string;
+  const aStdErrLogPath: string; const aRunLogPath: string; out aExitCode: Cardinal; out aError: string): Boolean;
 var
   lExe: string;
   lCmdLine: string;
-  lHandle: THandle;
+  lStdErrHandle: THandle;
+  lStdOutHandle: THandle;
   lLogError: string;
   lWorkDir: string;
 begin
@@ -517,26 +544,37 @@ begin
     Exit(False);
 
   lWorkDir := GetCurrentDir;
-  AppendRunHeader(aRunLogPath, lWorkDir, lCmdLine);
+  AppendAnalyzeRunLogIndex(aRunLogPath, lWorkDir, lCmdLine, aStdOutLogPath, aStdErrLogPath, aParams.fFixOutput);
 
-  if not TryOpenLogHandle(aRunLogPath, lHandle, lLogError) then
+  if not TryOpenLogHandle(aStdOutLogPath, lStdOutHandle, lLogError) then
   begin
     aError := lLogError;
     Exit(False);
   end;
   try
-    Result := TryRunFixInsightWithHandles(aParams, lHandle, lHandle, aExitCode, aError);
+    if not TryOpenLogHandle(aStdErrLogPath, lStdErrHandle, lLogError) then
+    begin
+      aError := lLogError;
+      Exit(False);
+    end;
+    try
+      Result := TryRunFixInsightWithHandles(aParams, lStdOutHandle, lStdErrHandle, aExitCode, aError);
+    finally
+      CloseHandle(lStdErrHandle);
+    end;
   finally
-    CloseHandle(lHandle);
+    CloseHandle(lStdOutHandle);
   end;
 end;
 
 function TryRunPalLogged(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
-  const aRunLogPath: string; out aExitCode: Cardinal; out aError: string): Boolean;
+  const aStdOutLogPath: string; const aStdErrLogPath: string; const aRunLogPath: string; out aExitCode: Cardinal;
+  out aError: string): Boolean;
 var
   lExe: string;
   lCmdLine: string;
-  lHandle: THandle;
+  lStdErrHandle: THandle;
+  lStdOutHandle: THandle;
   lLogError: string;
   lWorkDir: string;
 begin
@@ -548,26 +586,37 @@ begin
     Exit(False);
 
   lWorkDir := GetCurrentDir;
-  AppendRunHeader(aRunLogPath, lWorkDir, lCmdLine);
+  AppendAnalyzeRunLogIndex(aRunLogPath, lWorkDir, lCmdLine, aStdOutLogPath, aStdErrLogPath, aPa.fOutput);
 
-  if not TryOpenLogHandle(aRunLogPath, lHandle, lLogError) then
+  if not TryOpenLogHandle(aStdOutLogPath, lStdOutHandle, lLogError) then
   begin
     aError := lLogError;
     Exit(False);
   end;
   try
-    Result := TryRunPascalAnalyzerWithHandles(aParams, aPa, lHandle, lHandle, aExitCode, aError);
+    if not TryOpenLogHandle(aStdErrLogPath, lStdErrHandle, lLogError) then
+    begin
+      aError := lLogError;
+      Exit(False);
+    end;
+    try
+      Result := TryRunPascalAnalyzerWithHandles(aParams, aPa, lStdOutHandle, lStdErrHandle, aExitCode, aError);
+    finally
+      CloseHandle(lStdErrHandle);
+    end;
   finally
-    CloseHandle(lHandle);
+    CloseHandle(lStdOutHandle);
   end;
 end;
 
 function TryRunPalUnitLogged(const aUnitPath: string; const aPa: TPascalAnalyzerDefaults;
-  const aRunLogPath: string; out aExitCode: Cardinal; out aError: string): Boolean;
+  const aStdOutLogPath: string; const aStdErrLogPath: string; const aRunLogPath: string; out aExitCode: Cardinal;
+  out aError: string): Boolean;
 var
   lExe: string;
   lCmdLine: string;
-  lHandle: THandle;
+  lStdErrHandle: THandle;
+  lStdOutHandle: THandle;
   lLogError: string;
   lWorkDir: string;
 begin
@@ -579,17 +628,26 @@ begin
     Exit(False);
 
   lWorkDir := GetCurrentDir;
-  AppendRunHeader(aRunLogPath, lWorkDir, lCmdLine);
+  AppendAnalyzeRunLogIndex(aRunLogPath, lWorkDir, lCmdLine, aStdOutLogPath, aStdErrLogPath, aPa.fOutput);
 
-  if not TryOpenLogHandle(aRunLogPath, lHandle, lLogError) then
+  if not TryOpenLogHandle(aStdOutLogPath, lStdOutHandle, lLogError) then
   begin
     aError := lLogError;
     Exit(False);
   end;
   try
-    Result := TryRunPascalAnalyzerUnit(aUnitPath, aPa, lHandle, lHandle, aExitCode, aError);
+    if not TryOpenLogHandle(aStdErrLogPath, lStdErrHandle, lLogError) then
+    begin
+      aError := lLogError;
+      Exit(False);
+    end;
+    try
+      Result := TryRunPascalAnalyzerUnit(aUnitPath, aPa, lStdOutHandle, lStdErrHandle, aExitCode, aError);
+    finally
+      CloseHandle(lStdErrHandle);
+    end;
   finally
-    CloseHandle(lHandle);
+    CloseHandle(lStdOutHandle);
   end;
 end;
 
