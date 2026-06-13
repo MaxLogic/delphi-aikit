@@ -113,6 +113,8 @@ type
     [Test]
     procedure PipelineAllModeCacheSkipsUpdateOnValidatorFailureWithoutFailLines;
     [Test]
+    procedure PipelineBuildTimeoutPreservesDiagnosticsAndSkipsCache;
+    [Test]
     procedure PipelineAllModeUsesProgressWithoutQuietValidator;
     [Test]
     procedure IntegrationWrongEventSignatureProducesDfmFailure;
@@ -2644,6 +2646,90 @@ begin
     SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
     SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
     lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineBuildTimeoutPreservesDiagnosticsAndSkipsCache;
+var
+  lBuildLogFound: Boolean;
+  lBuildLogPath: string;
+  lBuildLogPaths: TArray<string>;
+  lBuildLogText: string;
+  lBuildScriptPath: string;
+  lCachePath: string;
+  i: Integer;
+  lDprojPath: string;
+  lInjectDir: string;
+  lKeepArtifactsEnv: string;
+  lOptions: TAppOptions;
+  lPrevInjectEnv: string;
+  lPrevMsBuildEnv: string;
+  lPrevTimeoutEnv: string;
+  lResult: Integer;
+  lRunsRoot: string;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-build-timeout');
+  WriteInjectStubs(lInjectDir);
+  lCachePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.dfmcheck.cache');
+  lBuildScriptPath := TPath.Combine(TempRoot, 'dfm-check-hanging-msbuild.cmd');
+  TFile.WriteAllText(lBuildScriptPath,
+    '@echo off' + #13#10 +
+    'echo fake msbuild entered' + #13#10 +
+    'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 10"' + #13#10 +
+    'exit /b 0' + #13#10, TEncoding.Default);
+
+  lPrevInjectEnv := GetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR');
+  lPrevMsBuildEnv := GetEnvironmentVariable('DAK_DFMCHECK_MSBUILD');
+  lPrevTimeoutEnv := GetEnvironmentVariable('DAK_DFMCHECK_TIMEOUT_MS');
+  lKeepArtifactsEnv := GetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS');
+  SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lInjectDir));
+  SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lBuildScriptPath));
+  SetEnvironmentVariable('DAK_DFMCHECK_TIMEOUT_MS', PChar('250'));
+  SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', nil);
+  try
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+    lOptions.fDfmCheckAll := True;
+    lOptions.fVerbose := True;
+
+    lResult := RunDfmCheckCommand(lOptions);
+
+    Assert.IsTrue(lResult <> 0, 'Expected timeout to produce non-zero dfm-check result.');
+    Assert.IsFalse(FileExists(lCachePath), 'Timeout must not create or refresh the all-mode success cache.');
+
+    lRunsRoot := TPath.Combine(GetDfmCheckWorkRoot(lDprojPath), 'runs');
+    Assert.IsTrue(TDirectory.Exists(lRunsRoot), 'Timeout diagnostics should keep the run root.');
+    lBuildLogFound := False;
+    lBuildLogPaths := TDirectory.GetFiles(lRunsRoot, '_DfmCheckBuild.log', TSearchOption.soAllDirectories);
+    for lBuildLogPath in lBuildLogPaths do
+    begin
+      lBuildLogText := '';
+      for i := 1 to 20 do
+      begin
+        try
+          lBuildLogText := TFile.ReadAllText(lBuildLogPath, TEncoding.UTF8);
+          Break;
+        except
+          Sleep(50);
+        end;
+      end;
+      if ContainsText(lBuildLogText, 'timed out') then
+      begin
+        lBuildLogFound := True;
+        Break;
+      end;
+    end;
+    Assert.IsTrue(lBuildLogFound, 'Timeout diagnostics should keep a generated build log with the timeout reason.');
+  finally
+    SetEnvironmentVariable('DAK_DFMCHECK_INJECT_DIR', PChar(lPrevInjectEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_MSBUILD', PChar(lPrevMsBuildEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_TIMEOUT_MS', PChar(lPrevTimeoutEnv));
+    SetEnvironmentVariable('DAK_DFMCHECK_KEEP_ARTIFACTS', PChar(lKeepArtifactsEnv));
   end;
 end;
 
