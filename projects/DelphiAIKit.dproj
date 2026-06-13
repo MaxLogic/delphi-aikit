@@ -101,6 +101,7 @@
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
         <DCC_ExeOutput>..\bin</DCC_ExeOutput>
+        <DCC_DcuOutput>.\dcu\$(Platform)\$(Config)</DCC_DcuOutput>
         <CfgDependentOn>..\lib\MaxLogicFoundation\MaxLogicDefault.optset</CfgDependentOn>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">

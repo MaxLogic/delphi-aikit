@@ -62,6 +62,7 @@
     <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
     <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
     <DCC_ExeOutput>.\</DCC_ExeOutput>
+    <DCC_DcuOutput>.\dcu\$(Platform)\$(Config)</DCC_DcuOutput>
     <DCC_UnitSearchPath>.\units;..\src;..\..\DelphiSemantics\src;..\lib\DFMCheck\Source;..\lib\DFMCheck\Source\Console;..\lib\MaxLogicFoundation;..\lib\DelphiAST\Source;..\lib\DelphiAST\Source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
   </PropertyGroup>
   <ItemGroup>
