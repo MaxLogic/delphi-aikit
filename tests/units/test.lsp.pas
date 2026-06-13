@@ -87,6 +87,8 @@ type
     procedure LspProbeContextFileModeUsesOwnedHandshake;
     [Test]
     procedure LspProbeSettingsFileModeUsesSettingsHandshake;
+    [Test]
+    procedure LspRunnerTimesOutNonResponsiveServer;
   end;
 
   [TestFixture]
@@ -137,6 +139,20 @@ begin
   Result := StringReplace(Result, '"', '\"', [rfReplaceAll]);
 end;
 
+function ProcessHasExited(aProcessId: Cardinal): Boolean;
+var
+  lHandle: THandle;
+begin
+  lHandle := OpenProcess(SYNCHRONIZE, False, aProcessId);
+  if lHandle = 0 then
+    Exit(True);
+  try
+    Result := WaitForSingleObject(lHandle, 0) = WAIT_OBJECT_0;
+  finally
+    CloseHandle(lHandle);
+  end;
+end;
+
 const
   CFakeLspScriptEnvVar = 'DAK_FAKE_LSP_SCRIPT';
 
@@ -161,9 +177,35 @@ begin
   Result := TPath.Combine(FakeLspFixtureDir, 'FakeDelphiLsp.dproj');
 end;
 
+function FakeLspSourcePaths: TArray<string>;
+begin
+  Result := [
+    TPath.Combine(FakeLspFixtureDir, 'FakeDelphiLsp.dpr'),
+    TPath.Combine(FakeLspFixtureDir, 'FakeDelphiLspMain.pas'),
+    FakeLspProjectPath
+  ];
+end;
+
 function FakeLspExePath: string;
 begin
   Result := TPath.Combine(FakeLspFixtureDir, 'bin\FakeDelphiLsp.exe');
+end;
+
+function FakeLspExeIsCurrent(const aExePath: string): Boolean;
+var
+  lExeStamp: TDateTime;
+  lSourcePath: string;
+begin
+  Result := False;
+  if not FileExists(aExePath) then
+    Exit(False);
+  lExeStamp := TFile.GetLastWriteTimeUtc(aExePath);
+  for lSourcePath in FakeLspSourcePaths do
+  begin
+    if FileExists(lSourcePath) and (TFile.GetLastWriteTimeUtc(lSourcePath) > lExeStamp) then
+      Exit(False);
+  end;
+  Result := True;
 end;
 
 procedure EnsureFakeLspFixtureBuilt;
@@ -175,9 +217,9 @@ var
   lLog: string;
 begin
   GFakeLspExePath := FakeLspExePath;
-  if GFakeLspBuilt and FileExists(GFakeLspExePath) then
+  if GFakeLspBuilt and FakeLspExeIsCurrent(GFakeLspExePath) then
     Exit;
-  if FileExists(GFakeLspExePath) then
+  if FakeLspExeIsCurrent(GFakeLspExePath) then
   begin
     GFakeLspBuilt := True;
     Exit;
@@ -1918,6 +1960,61 @@ begin
     end;
   finally
     Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+  end;
+end;
+
+procedure TLspRunnerTests.LspRunnerTimesOutNonResponsiveServer;
+var
+  lContext: TLspContext;
+  lDprojPath: string;
+  lElapsedMs: UInt64;
+  lError: string;
+  lOldTimeout: string;
+  lOptions: TAppOptions;
+  lPid: Integer;
+  lPidFile: string;
+  lPidText: string;
+  lResult: TLspRunnerResult;
+  lScriptPath: string;
+  lStartTick: UInt64;
+begin
+  EnsureFakeLspFixtureBuilt;
+
+  lDprojPath := PrepareResolvedContext('lsp-nonresponsive-timeout', lContext);
+  lPidFile := TPath.Combine(TempRoot, 'lsp-nonresponsive-timeout.pid');
+  lScriptPath := CreateScriptFile('nonresponsive-timeout',
+    '{"pidFile":"' + JsonEscape(lPidFile) + '","hangOn":{"initialize":true}}');
+
+  lOldTimeout := GetEnvironmentVariable('DAK_LSP_REQUEST_TIMEOUT_MS');
+  Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), PChar(lScriptPath));
+  Winapi.Windows.SetEnvironmentVariable('DAK_LSP_REQUEST_TIMEOUT_MS', '250');
+  try
+    lOptions := BuildRunnerOptions(lDprojPath);
+    lOptions.fLspPath := GFakeLspExePath;
+    lOptions.fHasLspPath := True;
+
+    lError := '';
+    lStartTick := GetTickCount64;
+    Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError),
+      'Expected nonresponsive fake LSP server to time out.');
+    lElapsedMs := GetTickCount64 - lStartTick;
+
+    Assert.IsTrue(Pos('timed out', LowerCase(lError)) > 0,
+      'Timeout diagnostic should name the timeout. Actual: ' + lError);
+    Assert.IsTrue(lElapsedMs < 5000,
+      'Timeout must be bounded by the configured deadline. ElapsedMs=' + lElapsedMs.ToString);
+    Assert.IsTrue(FileExists(lPidFile), 'Expected fake LSP to write its pid file.');
+    lPidText := Trim(TFile.ReadAllText(lPidFile, TEncoding.ASCII));
+    lPid := StrToIntDef(lPidText, 0);
+    Assert.IsTrue(lPid > 0, 'Expected fake LSP pid file to contain a process id.');
+    Assert.IsTrue(ProcessHasExited(Cardinal(lPid)),
+      'Timed-out fake LSP process should be terminated before TryRunLspRequest returns.');
+  finally
+    Winapi.Windows.SetEnvironmentVariable(PChar(CFakeLspScriptEnvVar), nil);
+    if lOldTimeout = '' then
+      Winapi.Windows.SetEnvironmentVariable('DAK_LSP_REQUEST_TIMEOUT_MS', nil)
+    else
+      Winapi.Windows.SetEnvironmentVariable(PChar('DAK_LSP_REQUEST_TIMEOUT_MS'), PChar(lOldTimeout));
   end;
 end;
 

@@ -20,7 +20,7 @@ function TryRunLspRequest(const aOptions: TAppOptions; const aContext: TLspConte
 implementation
 
 uses
-  System.Classes, System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.NetEncoding, System.SysUtils,
+  System.Classes, System.Diagnostics, System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.NetEncoding, System.SysUtils,
   Winapi.Windows,
   maxLogic.ioUtils,
   Dak.Utils;
@@ -30,11 +30,13 @@ type
   private
     fInput: THandleStream;
     fOutput: THandleStream;
+    fOutputHandle: THandle;
     fProcessHandle: THandle;
     fStdErrHandle: THandle;
     fThreadHandle: THandle;
     function ReadLine(out aLine: string; out aError: string): Boolean;
     function ReadMessage(out aBody: string; out aError: string): Boolean;
+    function WaitForOutput(const aStage: string; out aError: string): Boolean;
     function WriteMessage(const aBody: string; out aError: string): Boolean;
   public
     destructor Destroy; override;
@@ -44,6 +46,10 @@ type
     function ShutdownAndExit(out aError: string): Boolean;
     function Start(const aExePath, aArguments, aWorkDir, aStdErrPath: string; out aError: string): Boolean;
   end;
+
+const
+  cDefaultLspRequestTimeoutMs = 30000;
+  cLspRequestTimeoutEnvVar = 'DAK_LSP_REQUEST_TIMEOUT_MS';
 
 function AddJsonStringPair(aObject: TJSONObject; const aName, aValue: string): TJSONObject;
 begin
@@ -1358,6 +1364,60 @@ begin
   end;
 end;
 
+function ResolveLspRequestTimeoutMs: Cardinal;
+var
+  lParsed: Int64;
+  lValue: string;
+begin
+  Result := cDefaultLspRequestTimeoutMs;
+  lValue := Trim(GetEnvironmentVariable(cLspRequestTimeoutEnvVar));
+  if (lValue = '') or not TryStrToInt64(lValue, lParsed) or (lParsed < 1) then
+    Exit;
+  if lParsed > High(Cardinal) then
+    Exit(High(Cardinal));
+  Result := Cardinal(lParsed);
+end;
+
+function TLspJsonRpcClient.WaitForOutput(const aStage: string; out aError: string): Boolean;
+var
+  lBytesAvailable: DWORD;
+  lLastError: Cardinal;
+  lStopwatch: TStopwatch;
+  lTimeoutMs: Cardinal;
+begin
+  Result := False;
+  aError := '';
+  lStopwatch := TStopwatch.StartNew;
+  lTimeoutMs := ResolveLspRequestTimeoutMs;
+  while True do
+  begin
+    if (fProcessHandle <> 0) and (WaitForSingleObject(fProcessHandle, 0) = WAIT_OBJECT_0) then
+      Exit(True);
+
+    lBytesAvailable := 0;
+    if not PeekNamedPipe(fOutputHandle, nil, 0, nil, @lBytesAvailable, nil) then
+    begin
+      lLastError := GetLastError;
+      aError := 'Failed to read DelphiLSP response pipe while ' + aStage + ': ' + SysErrorMessage(lLastError);
+      Exit(False);
+    end;
+    if lBytesAvailable > 0 then
+      Exit(True);
+
+    if UInt64(lStopwatch.ElapsedMilliseconds) >= lTimeoutMs then
+    begin
+      if fProcessHandle <> 0 then
+      begin
+        TerminateProcess(fProcessHandle, WAIT_TIMEOUT);
+        WaitForSingleObject(fProcessHandle, 5000);
+      end;
+      aError := Format('DelphiLSP timed out after %d ms while %s.', [lTimeoutMs, aStage]);
+      Exit(False);
+    end;
+    Sleep(10);
+  end;
+end;
+
 function TLspJsonRpcClient.ReadLine(out aLine: string; out aError: string): Boolean;
 var
   lBuilder: TStringBuilder;
@@ -1371,6 +1431,8 @@ begin
   try
     while True do
     begin
+      if not WaitForOutput('reading response header', aError) then
+        Exit(False);
       lCount := fOutput.Read(lByte, 1);
       if lCount <> 1 then
       begin
@@ -1419,6 +1481,8 @@ begin
   lOffset := 0;
   while lOffset < lContentLength do
   begin
+    if not WaitForOutput('reading response body', aError) then
+      Exit(False);
     lRead := fOutput.Read(lBodyBytes[lOffset], lContentLength - lOffset);
     if lRead <= 0 then
     begin
@@ -1626,6 +1690,7 @@ begin
 
     fInput := THandleStream.Create(lChildStdInWrite);
     fOutput := THandleStream.Create(lChildStdOutRead);
+    fOutputHandle := lChildStdOutRead;
     fProcessHandle := lPi.hProcess;
     fThreadHandle := lPi.hThread;
     if (Trim(aStdErrPath) <> '') and (lStdErrHandle <> INVALID_HANDLE_VALUE) then

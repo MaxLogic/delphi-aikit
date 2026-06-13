@@ -168,6 +168,45 @@ begin
   Result := True;
 end;
 
+function ScriptValueIsTrue(aValue: TJSONValue): Boolean;
+begin
+  Result := False;
+  if aValue = nil then
+    Exit(False);
+  if aValue is TJSONTrue then
+    Exit(True);
+  if aValue is TJSONFalse then
+    Exit(False);
+  Result := SameText(aValue.Value, 'true') or (aValue.Value = '1');
+end;
+
+function ScriptHangsOnMethod(aScript: TJSONObject; const aMethod: string): Boolean;
+var
+  lHangOn: TJSONObject;
+begin
+  Result := False;
+  lHangOn := FindScriptSection(aScript, 'hangOn');
+  if lHangOn = nil then
+    Exit(False);
+  Result := ScriptValueIsTrue(lHangOn.Values[aMethod]);
+end;
+
+procedure WriteScriptPidFile(aScript: TJSONObject);
+var
+  lDir: string;
+  lPidFile: string;
+begin
+  if aScript = nil then
+    Exit;
+  lPidFile := Trim(aScript.GetValue<string>('pidFile', ''));
+  if lPidFile = '' then
+    Exit;
+  lDir := ExtractFileDir(lPidFile);
+  if lDir <> '' then
+    ForceDirectories(lDir);
+  TFile.WriteAllText(lPidFile, IntToStr(GetCurrentProcessId), TEncoding.ASCII);
+end;
+
 function BuildInitializeResult(aScript: TJSONObject): TJSONValue;
 var
   lValue: TJSONValue;
@@ -394,6 +433,7 @@ begin
   lOutput := nil;
   try
     lScript := LoadScript(lScriptPath);
+    WriteScriptPidFile(lScript);
     lRequireOpenedDocuments := ScriptRequiresOpenedDocuments(lScript);
     lInput := THandleStream.Create(GetStdHandle(STD_INPUT_HANDLE));
     lOpenedDocuments := TDictionary<string, Boolean>.Create;
@@ -414,6 +454,9 @@ begin
           lShouldExit := True;
           Continue;
         end;
+
+        if ScriptHangsOnMethod(lScript, lMethod) then
+          Sleep(INFINITE);
 
         lIdValue := lMessage.Values['id'];
         if lIdValue = nil then
