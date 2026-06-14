@@ -16,11 +16,14 @@ function IsHelpRequested: Boolean;
 implementation
 
 uses
+  System.Generics.Collections,
   DelphiSemantics.DeadCode;
 
 type
   TCommandRoute = (crResolve, crAnalyze, crBuild, crDfmCheck, crDfmInspect, crGlobalVars, crDeps, crLsp,
     crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode);
+  TCommandRouteSet = set of TCommandRoute;
+  TSwitchValuePolicy = (svpFlag, svpRequiredValue, svpOptionalBoolValue);
 
   TCommandDescriptor = record
     fCommand: TCommandKind;
@@ -29,6 +32,16 @@ type
     fUsage: string;
     fRoute: TCommandRoute;
   end;
+  TSwitchDescriptor = record
+    fName: string;
+    fAliases: string;
+    fValuePolicy: TSwitchValuePolicy;
+    fRoutes: TCommandRouteSet;
+  end;
+
+const
+  cAllCommandRoutes: TCommandRouteSet = [crResolve, crAnalyze, crBuild, crDfmCheck, crDfmInspect, crGlobalVars,
+    crDeps, crLsp, crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode];
 
 function CommandDescriptor(const aCommand: TCommandKind; const aPrimaryToken: string; const aAliases: string;
   const aUsage: string; const aRoute: TCommandRoute): TCommandDescriptor;
@@ -38,6 +51,207 @@ begin
   Result.fAliases := aAliases;
   Result.fUsage := aUsage;
   Result.fRoute := aRoute;
+end;
+
+function SwitchDescriptor(const aName, aAliases: string; const aValuePolicy: TSwitchValuePolicy;
+  const aRoutes: TCommandRouteSet): TSwitchDescriptor;
+begin
+  Result.fName := aName;
+  Result.fAliases := aAliases;
+  Result.fValuePolicy := aValuePolicy;
+  Result.fRoutes := aRoutes;
+end;
+
+function GetSwitchDescriptors: TArray<TSwitchDescriptor>;
+var
+  lDescriptors: TList<TSwitchDescriptor>;
+
+  procedure Add(const aName, aAliases: string; const aValuePolicy: TSwitchValuePolicy;
+    const aRoutes: TCommandRouteSet);
+  begin
+    lDescriptors.Add(SwitchDescriptor(aName, aAliases, aValuePolicy, aRoutes));
+  end;
+
+begin
+  lDescriptors := TList<TSwitchDescriptor>.Create;
+  try
+    Add('project', 'dproj', svpRequiredValue, cAllCommandRoutes);
+    Add('platform', '', svpRequiredValue, cAllCommandRoutes);
+    Add('config', '', svpRequiredValue, cAllCommandRoutes);
+    Add('delphi', '', svpRequiredValue, cAllCommandRoutes);
+    Add('rsvars', '', svpRequiredValue, cAllCommandRoutes);
+    Add('envoptions', '', svpRequiredValue, cAllCommandRoutes);
+    Add('log-file', 'logfile', svpRequiredValue, cAllCommandRoutes);
+    Add('log-tee', '', svpOptionalBoolValue, cAllCommandRoutes);
+    Add('verbose', '', svpOptionalBoolValue, cAllCommandRoutes);
+    Add('source-context', '', svpRequiredValue, cAllCommandRoutes);
+    Add('source-context-lines', '', svpRequiredValue, cAllCommandRoutes);
+    Add('help', 'h|?', svpOptionalBoolValue, cAllCommandRoutes);
+    Add('format', 'out-kind', svpRequiredValue, [crResolve, crDfmInspect, crGlobalVars, crDeps, crLsp,
+      crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode]);
+    Add('out-file', 'out', svpRequiredValue, [crResolve]);
+    Add('out', '', svpRequiredValue, [crAnalyze]);
+    Add('fi-output', 'output', svpRequiredValue, [crResolve]);
+    Add('fi-ignore', 'ignore', svpRequiredValue, [crResolve, crAnalyze]);
+    Add('fi-settings', 'settings', svpRequiredValue, [crResolve, crAnalyze]);
+    Add('fi-silent', 'silent', svpOptionalBoolValue, [crResolve, crAnalyze]);
+    Add('fi-xml', 'xml', svpOptionalBoolValue, [crResolve]);
+    Add('fi-csv', 'csv', svpOptionalBoolValue, [crResolve]);
+    Add('fi-timeout-sec', '', svpRequiredValue, [crAnalyze]);
+    Add('exclude-path-masks', '', svpRequiredValue, [crResolve, crAnalyze, crBuild]);
+    Add('ignore-warning-ids', '', svpRequiredValue, [crResolve, crAnalyze]);
+    Add('unit', '', svpRequiredValue, [crAnalyze, crGlobalVars, crDeps, crRemoveWith, crSymbolMap]);
+    Add('fi-formats', '', svpRequiredValue, [crAnalyze]);
+    Add('fixinsight', '', svpOptionalBoolValue, [crAnalyze]);
+    Add('pascal-analyzer', 'pal', svpOptionalBoolValue, [crAnalyze]);
+    Add('clean', '', svpOptionalBoolValue, [crAnalyze]);
+    Add('write-summary', '', svpOptionalBoolValue, [crAnalyze]);
+    Add('pa-path', '', svpRequiredValue, [crAnalyze]);
+    Add('pa-output', '', svpRequiredValue, [crAnalyze]);
+    Add('pa-args', '', svpRequiredValue, [crAnalyze]);
+    Add('pa-timeout-sec', '', svpRequiredValue, [crAnalyze]);
+    Add('show-warnings', '', svpOptionalBoolValue, [crBuild]);
+    Add('show-hints', '', svpOptionalBoolValue, [crBuild]);
+    Add('ai', '', svpOptionalBoolValue, [crBuild]);
+    Add('json', '', svpOptionalBoolValue, [crBuild]);
+    Add('target', '', svpRequiredValue, [crBuild]);
+    Add('rebuild', '', svpOptionalBoolValue, [crBuild]);
+    Add('max-findings', '', svpRequiredValue, [crBuild]);
+    Add('build-timeout-sec', '', svpRequiredValue, [crBuild]);
+    Add('test-output-dir', '', svpRequiredValue, [crBuild]);
+    Add('builder', '', svpRequiredValue, [crBuild]);
+    Add('webcore-compiler', '', svpRequiredValue, [crBuild]);
+    Add('pwa', '', svpFlag, [crBuild]);
+    Add('no-pwa', '', svpFlag, [crBuild]);
+    Add('dfmcheck', 'dfm-check', svpFlag, [crBuild]);
+    Add('dfm', '', svpRequiredValue, [crBuild, crDfmCheck, crDfmInspect]);
+    Add('all', '', svpFlag, [crBuild, crDfmCheck, crRemoveWith]);
+    Add('ignore-warnings', '', svpRequiredValue, [crBuild]);
+    Add('ignore-hints', '', svpRequiredValue, [crBuild]);
+    Add('cache', '', svpRequiredValue, [crGlobalVars]);
+    Add('refresh', '', svpRequiredValue, [crGlobalVars]);
+    Add('unused-only', '', svpFlag, [crGlobalVars]);
+    Add('name', '', svpRequiredValue, [crGlobalVars]);
+    Add('reads-only', '', svpFlag, [crGlobalVars]);
+    Add('writes-only', '', svpFlag, [crGlobalVars]);
+    Add('top', '', svpRequiredValue, [crDeps]);
+    Add('file', '', svpRequiredValue, [crLsp, crSymbolMap, crFindUsages, crRename]);
+    Add('line', '', svpRequiredValue, [crLsp, crSymbolMap, crFindUsages, crRename]);
+    Add('col', '', svpRequiredValue, [crLsp, crSymbolMap, crFindUsages, crRename]);
+    Add('query', '', svpRequiredValue, [crLsp, crSymbolMap]);
+    Add('symbol', '', svpRequiredValue, [crSymbolMap, crFindUsages, crRename]);
+    Add('owner', '', svpRequiredValue, [crSymbolMap]);
+    Add('cache-root', '', svpRequiredValue, [crSymbolMap]);
+    Add('limit', '', svpRequiredValue, [crLsp, crSymbolMap]);
+    Add('lsp-path', '', svpRequiredValue, [crLsp]);
+    Add('mode', '', svpRequiredValue, [crLsp, crRemoveWith]);
+    Add('show-init-options', '', svpOptionalBoolValue, [crLsp]);
+    Add('dir', '', svpRequiredValue, [crRemoveWith]);
+    Add('output', '', svpRequiredValue, [crGlobalVars, crDeps, crRemoveWith]);
+    Add('semantic-cache', '', svpRequiredValue, [crRemoveWith, crFindUsages, crRename, crDeadCode]);
+    Add('new-name', '', svpRequiredValue, [crRename]);
+    Add('profile', '', svpRequiredValue, [crDeadCode]);
+    Add('apply', '', svpOptionalBoolValue, [crRename]);
+    Result := lDescriptors.ToArray;
+  finally
+    lDescriptors.Free;
+  end;
+end;
+
+function SwitchDescriptorMatchesName(const aDescriptor: TSwitchDescriptor; const aName: string): Boolean;
+var
+  lAlias: string;
+  lAliases: TArray<string>;
+begin
+  if SameText(aName, aDescriptor.fName) then
+    Exit(True);
+
+  if aDescriptor.fAliases = '' then
+    Exit(False);
+
+  lAliases := aDescriptor.fAliases.Split(['|']);
+  for lAlias in lAliases do
+    if SameText(aName, Trim(lAlias)) then
+      Exit(True);
+
+  Result := False;
+end;
+
+function SwitchDescriptorAppliesToRoute(const aDescriptor: TSwitchDescriptor; const aRoute: TCommandRoute): Boolean;
+begin
+  Result := aRoute in aDescriptor.fRoutes;
+end;
+
+function TryGetSwitchDescriptor(const aName: string; out aDescriptor: TSwitchDescriptor): Boolean;
+var
+  lDescriptor: TSwitchDescriptor;
+begin
+  for lDescriptor in GetSwitchDescriptors do
+    if SwitchDescriptorMatchesName(lDescriptor, aName) then
+    begin
+      aDescriptor := lDescriptor;
+      Exit(True);
+    end;
+
+  aDescriptor := Default(TSwitchDescriptor);
+  Result := False;
+end;
+
+function TryGetSwitchDescriptorByName(const aName: string; out aDescriptor: TSwitchDescriptor): Boolean;
+var
+  lDescriptor: TSwitchDescriptor;
+begin
+  for lDescriptor in GetSwitchDescriptors do
+    if SameText(aName, lDescriptor.fName) then
+    begin
+      aDescriptor := lDescriptor;
+      Exit(True);
+    end;
+
+  aDescriptor := Default(TSwitchDescriptor);
+  Result := False;
+end;
+
+function CliSwitchRequiresValue(const aSwitch: string): Boolean;
+var
+  lDescriptor: TSwitchDescriptor;
+begin
+  Result := TryGetSwitchDescriptor(aSwitch, lDescriptor) and
+    (lDescriptor.fValuePolicy = TSwitchValuePolicy.svpRequiredValue);
+end;
+
+function CliSwitchAllowsBoolValue(const aSwitch: string): Boolean;
+var
+  lDescriptor: TSwitchDescriptor;
+begin
+  Result := TryGetSwitchDescriptor(aSwitch, lDescriptor) and
+    (lDescriptor.fValuePolicy = TSwitchValuePolicy.svpOptionalBoolValue);
+end;
+
+function CliIsKnownSwitchName(const aSwitch: string): Boolean;
+var
+  lDescriptor: TSwitchDescriptor;
+begin
+  Result := TryGetSwitchDescriptor(aSwitch, lDescriptor);
+end;
+
+function CliSwitchAppliesToRoute(const aSwitch: string; const aRoute: TCommandRoute): Boolean;
+var
+  lDescriptor: TSwitchDescriptor;
+begin
+  for lDescriptor in GetSwitchDescriptors do
+    if SwitchDescriptorMatchesName(lDescriptor, aSwitch) and SwitchDescriptorAppliesToRoute(lDescriptor, aRoute) then
+      Exit(True);
+
+  Result := False;
+end;
+
+function SwitchMatches(const aSwitch, aDescriptorName: string): Boolean;
+var
+  lDescriptor: TSwitchDescriptor;
+begin
+  Result := TryGetSwitchDescriptorByName(aDescriptorName, lDescriptor) and
+    SwitchDescriptorMatchesName(lDescriptor, aSwitch);
 end;
 
 function GetCommandDescriptors: TArray<TCommandDescriptor>;
@@ -193,49 +407,12 @@ var
 
   function SwitchRequiresValue(const aSwitch: string): Boolean;
   begin
-    Result :=
-      SameText(aSwitch, 'project') or SameText(aSwitch, 'dproj') or
-      SameText(aSwitch, 'platform') or SameText(aSwitch, 'config') or
-      SameText(aSwitch, 'delphi') or SameText(aSwitch, 'rsvars') or
-      SameText(aSwitch, 'dfm') or
-      SameText(aSwitch, 'builder') or SameText(aSwitch, 'webcore-compiler') or
-      SameText(aSwitch, 'envoptions') or SameText(aSwitch, 'log-file') or
-      SameText(aSwitch, 'logfile') or SameText(aSwitch, 'format') or
-      SameText(aSwitch, 'out-kind') or SameText(aSwitch, 'out-file') or
-      SameText(aSwitch, 'out') or SameText(aSwitch, 'fi-output') or
-      SameText(aSwitch, 'output') or SameText(aSwitch, 'fi-ignore') or
-      SameText(aSwitch, 'ignore') or SameText(aSwitch, 'fi-settings') or
-      SameText(aSwitch, 'settings') or SameText(aSwitch, 'exclude-path-masks') or
-      SameText(aSwitch, 'ignore-warning-ids') or SameText(aSwitch, 'unit') or
-      SameText(aSwitch, 'fi-formats') or SameText(aSwitch, 'fi-timeout-sec') or
-      SameText(aSwitch, 'pa-path') or SameText(aSwitch, 'pa-output') or
-      SameText(aSwitch, 'pa-args') or SameText(aSwitch, 'pa-timeout-sec') or
-      SameText(aSwitch, 'target') or SameText(aSwitch, 'max-findings') or
-      SameText(aSwitch, 'build-timeout-sec') or SameText(aSwitch, 'test-output-dir') or
-      SameText(aSwitch, 'ignore-warnings') or SameText(aSwitch, 'ignore-hints') or
-      SameText(aSwitch, 'top') or SameText(aSwitch, 'file') or
-      SameText(aSwitch, 'line') or SameText(aSwitch, 'col') or
-      SameText(aSwitch, 'query') or SameText(aSwitch, 'symbol') or SameText(aSwitch, 'owner') or
-      SameText(aSwitch, 'cache-root') or SameText(aSwitch, 'limit') or
-      SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or
-      SameText(aSwitch, 'dir') or SameText(aSwitch, 'semantic-cache') or SameText(aSwitch, 'new-name') or
-      SameText(aSwitch, 'profile');
+    Result := CliSwitchRequiresValue(aSwitch);
   end;
 
   function SwitchAllowsBoolValue(const aSwitch: string): Boolean;
   begin
-    Result :=
-      SameText(aSwitch, 'log-tee') or SameText(aSwitch, 'verbose') or
-      SameText(aSwitch, 'help') or SameText(aSwitch, 'h') or
-      SameText(aSwitch, '?') or SameText(aSwitch, 'fi-silent') or
-      SameText(aSwitch, 'silent') or SameText(aSwitch, 'show-init-options') or SameText(aSwitch, 'fi-xml') or
-      SameText(aSwitch, 'xml') or SameText(aSwitch, 'fi-csv') or
-      SameText(aSwitch, 'csv') or SameText(aSwitch, 'fixinsight') or
-      SameText(aSwitch, 'pascal-analyzer') or SameText(aSwitch, 'pal') or
-      SameText(aSwitch, 'clean') or SameText(aSwitch, 'write-summary') or
-      SameText(aSwitch, 'show-warnings') or SameText(aSwitch, 'show-hints') or
-      SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
-      SameText(aSwitch, 'rebuild') or SameText(aSwitch, 'apply');
+    Result := CliSwitchAllowsBoolValue(aSwitch);
   end;
 
   function IsBoolToken(const aArg: string): Boolean;
@@ -556,49 +733,7 @@ end;
 
 function TOptionParser.IsKnownSwitchName(const aSwitch: string): Boolean;
 begin
-  Result :=
-    SameText(aSwitch, 'project') or SameText(aSwitch, 'dproj') or
-    SameText(aSwitch, 'platform') or SameText(aSwitch, 'config') or
-    SameText(aSwitch, 'delphi') or SameText(aSwitch, 'rsvars') or
-    SameText(aSwitch, 'envoptions') or SameText(aSwitch, 'log-file') or
-    SameText(aSwitch, 'logfile') or SameText(aSwitch, 'log-tee') or
-    SameText(aSwitch, 'verbose') or SameText(aSwitch, 'source-context') or
-    SameText(aSwitch, 'source-context-lines') or SameText(aSwitch, 'help') or
-    SameText(aSwitch, 'h') or SameText(aSwitch, '?') or
-    SameText(aSwitch, 'format') or SameText(aSwitch, 'out-kind') or
-    SameText(aSwitch, 'out-file') or SameText(aSwitch, 'out') or
-    SameText(aSwitch, 'fi-output') or SameText(aSwitch, 'output') or
-    SameText(aSwitch, 'fi-ignore') or SameText(aSwitch, 'ignore') or
-    SameText(aSwitch, 'fi-settings') or SameText(aSwitch, 'settings') or
-    SameText(aSwitch, 'fi-silent') or SameText(aSwitch, 'silent') or
-    SameText(aSwitch, 'fi-xml') or SameText(aSwitch, 'xml') or
-    SameText(aSwitch, 'fi-csv') or SameText(aSwitch, 'csv') or SameText(aSwitch, 'fi-timeout-sec') or
-    SameText(aSwitch, 'exclude-path-masks') or SameText(aSwitch, 'ignore-warning-ids') or
-    SameText(aSwitch, 'unit') or SameText(aSwitch, 'fi-formats') or
-    SameText(aSwitch, 'fixinsight') or SameText(aSwitch, 'pascal-analyzer') or
-    SameText(aSwitch, 'pal') or SameText(aSwitch, 'clean') or
-    SameText(aSwitch, 'write-summary') or SameText(aSwitch, 'pa-path') or
-    SameText(aSwitch, 'pa-output') or SameText(aSwitch, 'pa-args') or SameText(aSwitch, 'pa-timeout-sec') or
-    SameText(aSwitch, 'show-warnings') or SameText(aSwitch, 'show-hints') or
-    SameText(aSwitch, 'ai') or SameText(aSwitch, 'json') or
-    SameText(aSwitch, 'target') or SameText(aSwitch, 'rebuild') or
-    SameText(aSwitch, 'max-findings') or SameText(aSwitch, 'build-timeout-sec') or
-    SameText(aSwitch, 'test-output-dir') or
-    SameText(aSwitch, 'builder') or SameText(aSwitch, 'webcore-compiler') or
-    SameText(aSwitch, 'pwa') or SameText(aSwitch, 'no-pwa') or
-    SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check') or
-    SameText(aSwitch, 'dfm') or SameText(aSwitch, 'all') or
-    SameText(aSwitch, 'ignore-warnings') or
-    SameText(aSwitch, 'ignore-hints') or
-    SameText(aSwitch, 'cache') or SameText(aSwitch, 'refresh') or
-    SameText(aSwitch, 'unused-only') or SameText(aSwitch, 'name') or
-    SameText(aSwitch, 'reads-only') or SameText(aSwitch, 'writes-only') or
-    SameText(aSwitch, 'file') or SameText(aSwitch, 'line') or
-    SameText(aSwitch, 'col') or SameText(aSwitch, 'query') or
-    SameText(aSwitch, 'symbol') or SameText(aSwitch, 'owner') or
-    SameText(aSwitch, 'cache-root') or SameText(aSwitch, 'limit') or
-    SameText(aSwitch, 'lsp-path') or SameText(aSwitch, 'mode') or SameText(aSwitch, 'show-init-options') or
-    SameText(aSwitch, 'dir');
+  Result := CliIsKnownSwitchName(aSwitch);
 end;
 
 function TOptionParser.IsSwitchParam(const aParam: string): Boolean;
@@ -702,8 +837,16 @@ end;
 function TOptionParser.TryParseSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
 var
+  lCommandDescriptor: TCommandDescriptor;
   lHandled: Boolean;
 begin
+  if (not TryGetCommandDescriptor(fOptions.fCommand, lCommandDescriptor)) or
+    (not CliSwitchAppliesToRoute(aSwitch, lCommandDescriptor.fRoute)) then
+  begin
+    fError := Format(SUnknownArg, [aArg]);
+    Exit(False);
+  end;
+
   if not TryParseGlobalSwitch(aSwitch, aInlineValue, aHasInlineValue, lHandled) then
     Exit(False);
   if lHandled then
@@ -748,47 +891,47 @@ var
   lValue: string;
 begin
   aHandled := True;
-  if SameText(aSwitch, 'project') or SameText(aSwitch, 'dproj') then
+  if SwitchMatches(aSwitch, 'project') or SwitchMatches(aSwitch, 'dproj') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--project') then
       Exit(False);
     fOptions.fDprojPath := lValue;
-  end else if SameText(aSwitch, 'platform') then
+  end else if SwitchMatches(aSwitch, 'platform') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--platform') then
       Exit(False);
     fOptions.fPlatform := lValue;
-  end else if SameText(aSwitch, 'config') then
+  end else if SwitchMatches(aSwitch, 'config') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--config') then
       Exit(False);
     fOptions.fConfig := lValue;
-  end else if SameText(aSwitch, 'delphi') then
+  end else if SwitchMatches(aSwitch, 'delphi') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--delphi') then
       Exit(False);
     if Pos('.', lValue) = 0 then
       lValue := lValue + '.0';
     fOptions.fDelphiVersion := lValue;
-  end else if SameText(aSwitch, 'rsvars') then
+  end else if SwitchMatches(aSwitch, 'rsvars') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--rsvars') then
       Exit(False);
     fOptions.fRsVarsPath := lValue;
     fOptions.fHasRsVarsPath := True;
-  end else if SameText(aSwitch, 'envoptions') then
+  end else if SwitchMatches(aSwitch, 'envoptions') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--envoptions') then
       Exit(False);
     fOptions.fEnvOptionsPath := lValue;
     fOptions.fHasEnvOptionsPath := True;
-  end else if SameText(aSwitch, 'log-file') or SameText(aSwitch, 'logfile') then
+  end else if SwitchMatches(aSwitch, 'log-file') or SwitchMatches(aSwitch, 'logfile') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--log-file') then
       Exit(False);
     fOptions.fLogFile := lValue;
     fOptions.fHasLogFile := True;
-  end else if SameText(aSwitch, 'log-tee') then
+  end else if SwitchMatches(aSwitch, 'log-tee') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--log-tee') then
       Exit(False);
@@ -798,7 +941,7 @@ begin
       Exit(False);
     end;
     fOptions.fHasLogTee := True;
-  end else if SameText(aSwitch, 'verbose') then
+  end else if SwitchMatches(aSwitch, 'verbose') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--verbose') then
       Exit(False);
@@ -807,7 +950,7 @@ begin
       fError := Format(SInvalidBoolValue, ['--verbose', lValue]);
       Exit(False);
     end;
-  end else if SameText(aSwitch, 'source-context') then
+  end else if SwitchMatches(aSwitch, 'source-context') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--source-context') then
       Exit(False);
@@ -817,7 +960,7 @@ begin
       Exit(False);
     end;
     fOptions.fHasSourceContextMode := True;
-  end else if SameText(aSwitch, 'source-context-lines') then
+  end else if SwitchMatches(aSwitch, 'source-context-lines') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--source-context-lines') then
       Exit(False);
@@ -828,7 +971,7 @@ begin
       Exit(False);
     end;
     fOptions.fHasSourceContextLines := True;
-  end else if SameText(aSwitch, 'help') or SameText(aSwitch, 'h') or SameText(aSwitch, '?') then
+  end else if SwitchMatches(aSwitch, 'help') or SwitchMatches(aSwitch, 'h') or SwitchMatches(aSwitch, '?') then
     aHandled := True // handled by IsHelpRequested
   else
     aHandled := False;
@@ -842,7 +985,7 @@ var
   lValue: string;
 begin
   aHandled := True;
-  if SameText(aSwitch, 'format') or SameText(aSwitch, 'out-kind') then
+  if SwitchMatches(aSwitch, 'format') or SwitchMatches(aSwitch, 'out-kind') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
       Exit(False);
@@ -852,7 +995,7 @@ begin
       Exit(False);
     end;
     fOptions.fHasOutKind := True;
-  end else if SameText(aSwitch, 'out-file') or SameText(aSwitch, 'out') then
+  end else if SwitchMatches(aSwitch, 'out-file') or SwitchMatches(aSwitch, 'out') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--out-file') then
       Exit(False);
@@ -871,25 +1014,25 @@ var
   lValue: string;
 begin
   aHandled := True;
-  if SameText(aSwitch, 'fi-output') or SameText(aSwitch, 'output') then
+  if SwitchMatches(aSwitch, 'fi-output') or SwitchMatches(aSwitch, 'output') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--fi-output') then
       Exit(False);
     fOptions.fFixOutput := lValue;
     fOptions.fHasFixOutput := True;
-  end else if SameText(aSwitch, 'fi-ignore') or SameText(aSwitch, 'ignore') then
+  end else if SwitchMatches(aSwitch, 'fi-ignore') or SwitchMatches(aSwitch, 'ignore') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--fi-ignore') then
       Exit(False);
     fOptions.fFixIgnore := lValue;
     fOptions.fHasFixIgnore := True;
-  end else if SameText(aSwitch, 'fi-settings') or SameText(aSwitch, 'settings') then
+  end else if SwitchMatches(aSwitch, 'fi-settings') or SwitchMatches(aSwitch, 'settings') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--fi-settings') then
       Exit(False);
     fOptions.fFixSettings := lValue;
     fOptions.fHasFixSettings := True;
-  end else if SameText(aSwitch, 'fi-silent') or SameText(aSwitch, 'silent') then
+  end else if SwitchMatches(aSwitch, 'fi-silent') or SwitchMatches(aSwitch, 'silent') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--fi-silent') then
       Exit(False);
@@ -899,7 +1042,7 @@ begin
       Exit(False);
     end;
     fOptions.fHasFixSilent := True;
-  end else if SameText(aSwitch, 'fi-xml') or SameText(aSwitch, 'xml') then
+  end else if SwitchMatches(aSwitch, 'fi-xml') or SwitchMatches(aSwitch, 'xml') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--fi-xml') then
       Exit(False);
@@ -909,7 +1052,7 @@ begin
       Exit(False);
     end;
     fOptions.fHasFixXml := True;
-  end else if SameText(aSwitch, 'fi-csv') or SameText(aSwitch, 'csv') then
+  end else if SwitchMatches(aSwitch, 'fi-csv') or SwitchMatches(aSwitch, 'csv') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--fi-csv') then
       Exit(False);
@@ -919,13 +1062,13 @@ begin
       Exit(False);
     end;
     fOptions.fHasFixCsv := True;
-  end else if SameText(aSwitch, 'exclude-path-masks') then
+  end else if SwitchMatches(aSwitch, 'exclude-path-masks') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--exclude-path-masks') then
       Exit(False);
     fOptions.fExcludePathMasks := lValue;
     fOptions.fHasExcludePathMasks := True;
-  end else if SameText(aSwitch, 'ignore-warning-ids') then
+  end else if SwitchMatches(aSwitch, 'ignore-warning-ids') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--ignore-warning-ids') then
       Exit(False);
@@ -962,18 +1105,18 @@ var
   lValue: string;
 begin
   aHandled := True;
-  if SameText(aSwitch, 'unit') then
+  if SwitchMatches(aSwitch, 'unit') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit') then
       Exit(False);
     fOptions.fUnitPath := lValue;
-  end else if SameText(aSwitch, 'out') then
+  end else if SwitchMatches(aSwitch, 'out') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--out') then
       Exit(False);
     fOptions.fAnalyzeOutPath := lValue;
     fOptions.fHasAnalyzeOutPath := True;
-  end else if SameText(aSwitch, 'fi-formats') then
+  end else if SwitchMatches(aSwitch, 'fi-formats') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--fi-formats') then
       Exit(False);
@@ -982,7 +1125,7 @@ begin
       fError := Format(SInvalidFiFormats, [lValue]);
       Exit(False);
     end;
-  end else if SameText(aSwitch, 'fixinsight') then
+  end else if SwitchMatches(aSwitch, 'fixinsight') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--fixinsight') then
       Exit(False);
@@ -991,7 +1134,7 @@ begin
       fError := Format(SInvalidBoolValue, ['--fixinsight', lValue]);
       Exit(False);
     end;
-  end else if SameText(aSwitch, 'pascal-analyzer') or SameText(aSwitch, 'pal') then
+  end else if SwitchMatches(aSwitch, 'pascal-analyzer') or SwitchMatches(aSwitch, 'pal') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--pascal-analyzer') then
       Exit(False);
@@ -1000,7 +1143,7 @@ begin
       fError := Format(SInvalidBoolValue, ['--pascal-analyzer', lValue]);
       Exit(False);
     end;
-  end else if SameText(aSwitch, 'clean') then
+  end else if SwitchMatches(aSwitch, 'clean') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--clean') then
       Exit(False);
@@ -1009,7 +1152,7 @@ begin
       fError := Format(SInvalidBoolValue, ['--clean', lValue]);
       Exit(False);
     end;
-  end else if SameText(aSwitch, 'write-summary') then
+  end else if SwitchMatches(aSwitch, 'write-summary') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--write-summary') then
       Exit(False);
@@ -1031,19 +1174,19 @@ var
   lValue: string;
 begin
   aHandled := True;
-  if SameText(aSwitch, 'fi-settings') or SameText(aSwitch, 'settings') then
+  if SwitchMatches(aSwitch, 'fi-settings') or SwitchMatches(aSwitch, 'settings') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--fi-settings') then
       Exit(False);
     fOptions.fFixSettings := lValue;
     fOptions.fHasFixSettings := True;
-  end else if SameText(aSwitch, 'fi-ignore') or SameText(aSwitch, 'ignore') then
+  end else if SwitchMatches(aSwitch, 'fi-ignore') or SwitchMatches(aSwitch, 'ignore') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--fi-ignore') then
       Exit(False);
     fOptions.fFixIgnore := lValue;
     fOptions.fHasFixIgnore := True;
-  end else if SameText(aSwitch, 'fi-silent') or SameText(aSwitch, 'silent') then
+  end else if SwitchMatches(aSwitch, 'fi-silent') or SwitchMatches(aSwitch, 'silent') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--fi-silent') then
       Exit(False);
@@ -1053,7 +1196,7 @@ begin
       Exit(False);
     end;
     fOptions.fHasFixSilent := True;
-  end else if SameText(aSwitch, 'fi-timeout-sec') then
+  end else if SwitchMatches(aSwitch, 'fi-timeout-sec') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--fi-timeout-sec') then
       Exit(False);
@@ -1064,13 +1207,13 @@ begin
       Exit(False);
     end;
     fOptions.fHasFixTimeoutSec := True;
-  end else if SameText(aSwitch, 'exclude-path-masks') then
+  end else if SwitchMatches(aSwitch, 'exclude-path-masks') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--exclude-path-masks') then
       Exit(False);
     fOptions.fExcludePathMasks := lValue;
     fOptions.fHasExcludePathMasks := True;
-  end else if SameText(aSwitch, 'ignore-warning-ids') then
+  end else if SwitchMatches(aSwitch, 'ignore-warning-ids') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--ignore-warning-ids') then
       Exit(False);
@@ -1089,25 +1232,25 @@ var
   lValue: string;
 begin
   aHandled := True;
-  if SameText(aSwitch, 'pa-path') then
+  if SwitchMatches(aSwitch, 'pa-path') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--pa-path') then
       Exit(False);
     fOptions.fPaPath := lValue;
     fOptions.fHasPaPath := True;
-  end else if SameText(aSwitch, 'pa-output') then
+  end else if SwitchMatches(aSwitch, 'pa-output') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--pa-output') then
       Exit(False);
     fOptions.fPaOutput := lValue;
     fOptions.fHasPaOutput := True;
-  end else if SameText(aSwitch, 'pa-args') then
+  end else if SwitchMatches(aSwitch, 'pa-args') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--pa-args', True) then
       Exit(False);
     fOptions.fPaArgs := lValue;
     fOptions.fHasPaArgs := True;
-  end else if SameText(aSwitch, 'pa-timeout-sec') then
+  end else if SwitchMatches(aSwitch, 'pa-timeout-sec') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--pa-timeout-sec') then
       Exit(False);
@@ -1130,7 +1273,7 @@ function TOptionParser.TryParseGlobalVarsSwitch(const aArg: string; const aSwitc
 var
   lValue: string;
 begin
-  if SameText(aSwitch, 'format') then
+  if SwitchMatches(aSwitch, 'format') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
       Exit(False);
@@ -1148,7 +1291,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'output') then
+  if SwitchMatches(aSwitch, 'output') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--output') then
       Exit(False);
@@ -1157,7 +1300,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'cache') then
+  if SwitchMatches(aSwitch, 'cache') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--cache') then
       Exit(False);
@@ -1166,7 +1309,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'unit') then
+  if SwitchMatches(aSwitch, 'unit') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit') then
       Exit(False);
@@ -1175,7 +1318,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'name') then
+  if SwitchMatches(aSwitch, 'name') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--name') then
       Exit(False);
@@ -1184,7 +1327,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'refresh') then
+  if SwitchMatches(aSwitch, 'refresh') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--refresh') then
       Exit(False);
@@ -1202,7 +1345,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'unused-only') then
+  if SwitchMatches(aSwitch, 'unused-only') then
   begin
     if aHasInlineValue then
     begin
@@ -1213,7 +1356,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'reads-only') then
+  if SwitchMatches(aSwitch, 'reads-only') then
   begin
     if aHasInlineValue then
     begin
@@ -1224,7 +1367,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'writes-only') then
+  if SwitchMatches(aSwitch, 'writes-only') then
   begin
     if aHasInlineValue then
     begin
@@ -1244,7 +1387,7 @@ function TOptionParser.TryParseDepsSwitch(const aArg: string; const aSwitch: str
 var
   lValue: string;
 begin
-  if SameText(aSwitch, 'format') then
+  if SwitchMatches(aSwitch, 'format') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
       Exit(False);
@@ -1262,7 +1405,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'output') then
+  if SwitchMatches(aSwitch, 'output') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--output') then
       Exit(False);
@@ -1271,7 +1414,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'unit') then
+  if SwitchMatches(aSwitch, 'unit') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit') then
       Exit(False);
@@ -1280,7 +1423,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'top') then
+  if SwitchMatches(aSwitch, 'top') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--top') then
       Exit(False);
@@ -1321,7 +1464,7 @@ var
   lBoolValue: Boolean;
   lValue: string;
 begin
-  if SameText(aSwitch, 'file') then
+  if SwitchMatches(aSwitch, 'file') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--file') then
       Exit(False);
@@ -1329,7 +1472,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'line') then
+  if SwitchMatches(aSwitch, 'line') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--line') then
       Exit(False);
@@ -1342,7 +1485,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'col') then
+  if SwitchMatches(aSwitch, 'col') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--col') then
       Exit(False);
@@ -1355,7 +1498,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'query') then
+  if SwitchMatches(aSwitch, 'query') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--query') then
       Exit(False);
@@ -1363,7 +1506,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'limit') then
+  if SwitchMatches(aSwitch, 'limit') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--limit') then
       Exit(False);
@@ -1377,7 +1520,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'format') then
+  if SwitchMatches(aSwitch, 'format') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
       Exit(False);
@@ -1393,7 +1536,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'lsp-path') then
+  if SwitchMatches(aSwitch, 'lsp-path') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--lsp-path') then
       Exit(False);
@@ -1402,7 +1545,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'mode') then
+  if SwitchMatches(aSwitch, 'mode') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--mode') then
       Exit(False);
@@ -1418,7 +1561,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'show-init-options') then
+  if SwitchMatches(aSwitch, 'show-init-options') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--show-init-options') then
       Exit(False);
@@ -1441,7 +1584,7 @@ function TOptionParser.TryParseRemoveWithSwitch(const aArg: string; const aSwitc
 var
   lValue: string;
 begin
-  if SameText(aSwitch, 'mode') then
+  if SwitchMatches(aSwitch, 'mode') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--mode') then
       Exit(False);
@@ -1459,7 +1602,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'format') then
+  if SwitchMatches(aSwitch, 'format') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
       Exit(False);
@@ -1475,7 +1618,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'unit') then
+  if SwitchMatches(aSwitch, 'unit') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit') then
       Exit(False);
@@ -1484,7 +1627,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'dir') then
+  if SwitchMatches(aSwitch, 'dir') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--dir') then
       Exit(False);
@@ -1493,7 +1636,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'all') then
+  if SwitchMatches(aSwitch, 'all') then
   begin
     if aHasInlineValue then
     begin
@@ -1505,7 +1648,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'output') then
+  if SwitchMatches(aSwitch, 'output') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--output') then
       Exit(False);
@@ -1514,7 +1657,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'semantic-cache') then
+  if SwitchMatches(aSwitch, 'semantic-cache') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--semantic-cache') then
       Exit(False);
@@ -1554,7 +1697,7 @@ function TOptionParser.TryParseSymbolMapSwitch(const aArg: string; const aSwitch
 var
   lValue: string;
 begin
-  if SameText(aSwitch, 'format') then
+  if SwitchMatches(aSwitch, 'format') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
       Exit(False);
@@ -1570,7 +1713,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'file') then
+  if SwitchMatches(aSwitch, 'file') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--file') then
       Exit(False);
@@ -1578,7 +1721,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'unit') then
+  if SwitchMatches(aSwitch, 'unit') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit') then
       Exit(False);
@@ -1586,7 +1729,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'line') then
+  if SwitchMatches(aSwitch, 'line') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--line') then
       Exit(False);
@@ -1599,7 +1742,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'col') then
+  if SwitchMatches(aSwitch, 'col') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--col') then
       Exit(False);
@@ -1612,7 +1755,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'query') then
+  if SwitchMatches(aSwitch, 'query') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--query') then
       Exit(False);
@@ -1620,7 +1763,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'symbol') then
+  if SwitchMatches(aSwitch, 'symbol') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--symbol') then
       Exit(False);
@@ -1628,7 +1771,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'owner') then
+  if SwitchMatches(aSwitch, 'owner') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--owner') then
       Exit(False);
@@ -1636,7 +1779,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'cache-root') then
+  if SwitchMatches(aSwitch, 'cache-root') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--cache-root') then
       Exit(False);
@@ -1645,7 +1788,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'limit') then
+  if SwitchMatches(aSwitch, 'limit') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--limit') then
       Exit(False);
@@ -1670,7 +1813,7 @@ var
   lDeadCodeProfile: TDelphiSemanticDeadCodeSafetyProfile;
   lValue: string;
 begin
-  if SameText(aSwitch, 'format') then
+  if SwitchMatches(aSwitch, 'format') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
       Exit(False);
@@ -1686,7 +1829,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'symbol') then
+  if SwitchMatches(aSwitch, 'symbol') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--symbol') then
       Exit(False);
@@ -1694,7 +1837,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'file') then
+  if SwitchMatches(aSwitch, 'file') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--file') then
       Exit(False);
@@ -1702,7 +1845,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'line') then
+  if SwitchMatches(aSwitch, 'line') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--line') then
       Exit(False);
@@ -1715,7 +1858,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'col') then
+  if SwitchMatches(aSwitch, 'col') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--col') then
       Exit(False);
@@ -1728,7 +1871,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'new-name') then
+  if SwitchMatches(aSwitch, 'new-name') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--new-name') then
       Exit(False);
@@ -1736,7 +1879,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'profile') then
+  if SwitchMatches(aSwitch, 'profile') then
   begin
     if fOptions.fCommand <> TCommandKind.ckDeadCode then
     begin
@@ -1755,7 +1898,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'semantic-cache') then
+  if SwitchMatches(aSwitch, 'semantic-cache') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--semantic-cache') then
       Exit(False);
@@ -1764,7 +1907,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'apply') then
+  if SwitchMatches(aSwitch, 'apply') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--apply') then
       Exit(False);
@@ -1812,7 +1955,7 @@ var
   function TryParseDfmSelectionSwitch(const aSwitchName: string; const aInline: string;
     const aHasInline: Boolean): Boolean;
   begin
-    if SameText(aSwitchName, 'all') then
+    if SwitchMatches(aSwitchName, 'all') then
     begin
       if aHasInline then
       begin
@@ -1824,7 +1967,7 @@ var
       Exit(True);
     end;
 
-    if SameText(aSwitchName, 'dfm') then
+    if SwitchMatches(aSwitchName, 'dfm') then
     begin
       if not TakeValue(True, False, aInline, aHasInline, lValue, '--dfm') then
         Exit(False);
@@ -1839,7 +1982,7 @@ begin
   if TryParseDfmSelectionSwitch(aSwitch, aInlineValue, aHasInlineValue) then
     Exit(True);
 
-  if SameText(aSwitch, 'show-warnings') then
+  if SwitchMatches(aSwitch, 'show-warnings') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--show-warnings') then
       Exit(False);
@@ -1851,7 +1994,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'show-hints') then
+  if SwitchMatches(aSwitch, 'show-hints') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--show-hints') then
       Exit(False);
@@ -1863,7 +2006,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'ai') then
+  if SwitchMatches(aSwitch, 'ai') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--ai') then
       Exit(False);
@@ -1875,7 +2018,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'json') then
+  if SwitchMatches(aSwitch, 'json') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--json') then
       Exit(False);
@@ -1887,7 +2030,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'dfmcheck') or SameText(aSwitch, 'dfm-check') then
+  if SwitchMatches(aSwitch, 'dfmcheck') or SwitchMatches(aSwitch, 'dfm-check') then
   begin
     if aHasInlineValue then
     begin
@@ -1898,7 +2041,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'target') then
+  if SwitchMatches(aSwitch, 'target') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--target') then
       Exit(False);
@@ -1914,7 +2057,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'builder') then
+  if SwitchMatches(aSwitch, 'builder') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--builder') then
       Exit(False);
@@ -1932,7 +2075,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'webcore-compiler') then
+  if SwitchMatches(aSwitch, 'webcore-compiler') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--webcore-compiler') then
       Exit(False);
@@ -1941,7 +2084,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'pwa') then
+  if SwitchMatches(aSwitch, 'pwa') then
   begin
     if aHasInlineValue then
     begin
@@ -1953,7 +2096,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'no-pwa') then
+  if SwitchMatches(aSwitch, 'no-pwa') then
   begin
     if aHasInlineValue then
     begin
@@ -1965,7 +2108,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'rebuild') then
+  if SwitchMatches(aSwitch, 'rebuild') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--rebuild') then
       Exit(False);
@@ -1981,7 +2124,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'max-findings') then
+  if SwitchMatches(aSwitch, 'max-findings') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--max-findings') then
       Exit(False);
@@ -1994,7 +2137,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'build-timeout-sec') then
+  if SwitchMatches(aSwitch, 'build-timeout-sec') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--build-timeout-sec') then
       Exit(False);
@@ -2007,7 +2150,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'test-output-dir') then
+  if SwitchMatches(aSwitch, 'test-output-dir') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--test-output-dir') then
       Exit(False);
@@ -2016,7 +2159,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'ignore-warnings') then
+  if SwitchMatches(aSwitch, 'ignore-warnings') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--ignore-warnings') then
       Exit(False);
@@ -2025,7 +2168,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'ignore-hints') then
+  if SwitchMatches(aSwitch, 'ignore-hints') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--ignore-hints') then
       Exit(False);
@@ -2034,7 +2177,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'exclude-path-masks') then
+  if SwitchMatches(aSwitch, 'exclude-path-masks') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--exclude-path-masks') then
       Exit(False);
@@ -2052,7 +2195,7 @@ function TOptionParser.TryParseDfmCheckSwitch(const aArg: string; const aSwitch:
 var
   lValue: string;
 begin
-  if SameText(aSwitch, 'all') then
+  if SwitchMatches(aSwitch, 'all') then
   begin
     if aHasInlineValue then
     begin
@@ -2064,7 +2207,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'dfm') then
+  if SwitchMatches(aSwitch, 'dfm') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--dfm') then
       Exit(False);
@@ -2082,7 +2225,7 @@ function TOptionParser.TryParseDfmInspectSwitch(const aArg: string; const aSwitc
 var
   lValue: string;
 begin
-  if SameText(aSwitch, 'dfm') then
+  if SwitchMatches(aSwitch, 'dfm') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--dfm') then
       Exit(False);
@@ -2090,7 +2233,7 @@ begin
     Exit(True);
   end;
 
-  if SameText(aSwitch, 'format') then
+  if SwitchMatches(aSwitch, 'format') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--format') then
       Exit(False);
