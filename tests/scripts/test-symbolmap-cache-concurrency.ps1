@@ -1,3 +1,9 @@
+param(
+    [switch]$KeepTemp,
+    [switch]$SelfTestCleanupGuards,
+    [string]$TempNamePrefix = ''
+)
+
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -8,10 +14,86 @@ if (-not (Test-Path $resolver)) {
 
 . (Join-Path $PSScriptRoot 'Dak.ChildProcess.ps1')
 
+$createdTempDirs = [System.Collections.Generic.List[string]]::new()
+
+function Test-SymbolMapTempRoot([string]$Path) {
+    $fullPath = [IO.Path]::GetFullPath($Path)
+    $tempPath = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
+    if (-not $tempPath.EndsWith([IO.Path]::DirectorySeparatorChar)) {
+        $tempPath += [IO.Path]::DirectorySeparatorChar
+    }
+    $leafName = Split-Path -Leaf $fullPath
+    return $fullPath.StartsWith($tempPath, [StringComparison]::OrdinalIgnoreCase) -and
+        $leafName.StartsWith('symbol-map-', [StringComparison]::OrdinalIgnoreCase)
+}
+
+function Remove-SymbolMapTempRoot([string]$Path) {
+    if (-not (Test-SymbolMapTempRoot $Path)) {
+        throw "Refusing to remove path outside symbol-map temp roots: $Path"
+    }
+    if (Test-Path -LiteralPath $Path) {
+        Remove-Item -LiteralPath $Path -Recurse -Force
+    }
+}
+
+function Remove-CreatedTempRoots {
+    for ($i = $createdTempDirs.Count - 1; $i -ge 0; $i--) {
+        Remove-SymbolMapTempRoot $createdTempDirs[$i]
+    }
+}
+
 function New-TempDir([string]$Name) {
-    $path = Join-Path ([IO.Path]::GetTempPath()) ($Name + '-' + [guid]::NewGuid().ToString('N'))
+    $leafBase = $Name
+    if (-not [string]::IsNullOrWhiteSpace($TempNamePrefix)) {
+        if ($Name.StartsWith('symbol-map-', [StringComparison]::OrdinalIgnoreCase)) {
+            $leafBase = $TempNamePrefix + '-' + $Name.Substring('symbol-map-'.Length)
+        } else {
+            $leafBase = $TempNamePrefix + '-' + $Name
+        }
+    }
+    $path = Join-Path ([IO.Path]::GetTempPath()) ($leafBase + '-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $path -Force | Out-Null
-    return (Resolve-Path $path).Path
+    $resolvedPath = (Resolve-Path $path).Path
+    if (-not (Test-SymbolMapTempRoot $resolvedPath)) {
+        throw "Created temp root failed symbol-map containment check: $resolvedPath"
+    }
+    [void]$createdTempDirs.Add($resolvedPath)
+    return $resolvedPath
+}
+
+function Invoke-CleanupGuardSelfTest {
+    $unsafeRoot = Join-Path ([IO.Path]::GetTempPath()) ('dak-unsafe-cleanup-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $unsafeRoot -Force | Out-Null
+    try {
+        $blocked = $false
+        try {
+            Remove-SymbolMapTempRoot $unsafeRoot
+        }
+        catch {
+            $blocked = $true
+        }
+        if (-not $blocked) {
+            throw "Expected cleanup guard to reject unsafe temp root: $unsafeRoot"
+        }
+        if (-not (Test-Path -LiteralPath $unsafeRoot)) {
+            throw "Cleanup guard deleted unsafe temp root: $unsafeRoot"
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $unsafeRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    $safeRoot = New-TempDir 'symbol-map-cleanup-selftest'
+    Remove-CreatedTempRoots
+    if (Test-Path -LiteralPath $safeRoot) {
+        throw "Expected cleanup guard to remove safe symbol-map temp root: $safeRoot"
+    }
+    Write-Host 'PASS: SymbolMap temp cleanup guard rejects unsafe paths and removes owned roots.'
+}
+
+if ($SelfTestCleanupGuards) {
+    Invoke-CleanupGuardSelfTest
+    return
 }
 
 function Copy-FixtureProject([string]$TargetDir) {
@@ -58,6 +140,8 @@ function Invoke-FullJsonIndex([string]$ProjectPath, [string]$CacheRoot, [string]
     return $jsonText | ConvertFrom-Json
 }
 
+$scriptSucceeded = $false
+try {
 $sameRoot = New-TempDir 'symbol-map-lock-same'
 $otherRoot = New-TempDir 'symbol-map-lock-other'
 $sameProject = Copy-FixtureProject (New-TempDir 'symbol-map-lock-same-project')
@@ -150,4 +234,13 @@ if ($first.result.indexedUnits[0].unitCacheKey -eq $second.result.indexedUnits[0
     throw 'Expected include-only edit to change the SymbolMap unit cache key.'
 }
 
+$scriptSucceeded = $true
 Write-Host 'PASS: different cache roots run concurrently, same-root/project writes serialize, RTL publish stays deduplicated, include edits reindex.'
+}
+finally {
+    if ($scriptSucceeded -and -not $KeepTemp) {
+        Remove-CreatedTempRoots
+    } else {
+        Write-Host "Preserving SymbolMap temp roots: $($createdTempDirs -join ', ')"
+    }
+}
