@@ -24,6 +24,7 @@ uses
   System.StrUtils, System.SysUtils,
   Winapi.Windows,
   maxLogic.ioUtils,
+  Dak.RadStudio.Locator,
   Dak.Utils;
 
 type
@@ -57,83 +58,6 @@ function AddJsonStringPair(aObject: TJSONObject; const aName, aValue: string): T
 begin
   aObject.AddPair(aName, aValue);
   Result := aObject;
-end;
-
-function TryGetEnvironmentBlockValue(const aEnvironmentBlock, aName: string; out aValue: string): Boolean;
-var
-  lEntry: string;
-  lEnd: Integer;
-  lPos: Integer;
-  lStart: Integer;
-begin
-  Result := False;
-  aValue := '';
-  lStart := 1;
-  while lStart <= Length(aEnvironmentBlock) do
-  begin
-    lEnd := PosEx(#0, aEnvironmentBlock, lStart);
-    if lEnd = 0 then
-      Break;
-    if lEnd = lStart then
-      Break;
-    lEntry := Copy(aEnvironmentBlock, lStart, lEnd - lStart);
-    lPos := Pos('=', lEntry);
-    if (lPos > 1) and SameText(Copy(lEntry, 1, lPos - 1), aName) then
-    begin
-      aValue := Copy(lEntry, lPos + 1, MaxInt);
-      Exit(True);
-    end;
-    lStart := lEnd + 1;
-  end;
-end;
-
-function EnvironmentBlockValue(const aEnvironmentBlock, aName: string): string;
-begin
-  if not TryGetEnvironmentBlockValue(aEnvironmentBlock, aName, Result) then
-    Result := '';
-end;
-
-function BuildDerivedLspRoots(const aContext: TLspContext): TArray<string>;
-var
-  lProgramFiles: string;
-  lProgramFilesX86: string;
-  lRoots: TList<string>;
-
-  procedure AddRoot(const aRoot: string);
-  var
-    lRoot: string;
-  begin
-    lRoot := Trim(aRoot);
-    if lRoot = '' then
-      Exit;
-    lRoot := TPath.GetFullPath(lRoot);
-    if lRoots.Contains(lRoot) then
-      Exit;
-    lRoots.Add(lRoot);
-  end;
-begin
-  lRoots := TList<string>.Create;
-  try
-    AddRoot(EnvironmentBlockValue(aContext.fEnvironmentBlock, 'BDS'));
-
-    lProgramFilesX86 := Trim(GetEnvironmentVariable('ProgramFiles(x86)'));
-    if lProgramFilesX86 <> '' then
-    begin
-      AddRoot(TPath.Combine(lProgramFilesX86, 'Embarcadero\Studio\' + aContext.fDelphiVersion));
-      AddRoot(TPath.Combine(lProgramFilesX86, 'Embarcadero\RAD Studio\' + aContext.fDelphiVersion));
-    end;
-
-    lProgramFiles := Trim(GetEnvironmentVariable('ProgramFiles'));
-    if lProgramFiles <> '' then
-    begin
-      AddRoot(TPath.Combine(lProgramFiles, 'Embarcadero\Studio\' + aContext.fDelphiVersion));
-      AddRoot(TPath.Combine(lProgramFiles, 'Embarcadero\RAD Studio\' + aContext.fDelphiVersion));
-    end;
-
-    Result := lRoots.ToArray;
-  finally
-    lRoots.Free;
-  end;
 end;
 
 function BuildContextFileInitializeOptions(const aContext: TLspContext): TJSONObject;
@@ -1345,12 +1269,12 @@ function TryResolveDelphiLspExe(const aOptions: TAppOptions; const aContext: TLs
   out aExePath: string; out aError: string): Boolean;
 var
   lCandidate: string;
-  lRoot: string;
-  lRoots: TArray<string>;
+  lCandidates: TArray<string>;
   lTried: TList<string>;
 
-  procedure TryCandidate(const aCandidate: string);
+  function TryCandidate(const aCandidate: string): Boolean;
   begin
+    Result := False;
     lCandidate := Trim(aCandidate);
     if lCandidate = '' then
       Exit;
@@ -1360,6 +1284,7 @@ var
     if FileExists(lCandidate) then
     begin
       aExePath := lCandidate;
+      Exit(True);
     end;
   end;
 begin
@@ -1382,17 +1307,10 @@ begin
 
   lTried := TList<string>.Create;
   try
-    lRoots := BuildDerivedLspRoots(aContext);
-    for lRoot in lRoots do
-    begin
-      if TryFindLspExeInRoot(lRoot, lCandidate) then
-      begin
-        aExePath := lCandidate;
+    lCandidates := BuildDelphiLspCandidatePaths(aContext.fDelphiVersion, aContext.fEnvironmentBlock);
+    for lCandidate in lCandidates do
+      if TryCandidate(lCandidate) then
         Exit(True);
-      end;
-      TryCandidate(TPath.Combine(lRoot, 'bin64\\DelphiLSP.exe'));
-      TryCandidate(TPath.Combine(lRoot, 'bin\\DelphiLSP.exe'));
-    end;
 
     aError := 'DelphiLSP.exe not found for Delphi ' + aContext.fDelphiVersion + '. Tried: ' +
       String.Join('; ', lTried.ToArray) + '. Use --lsp-path to specify the correct path.';
