@@ -29,6 +29,7 @@ type
     fFixIgnoreDefaults: TFixInsightIgnoreDefaults;
     fReportFilter: TReportFilterDefaults;
     fPascalAnalyzer: TPascalAnalyzerDefaults;
+    fProjectContext: TProjectAnalysisContext;
     fExitCode: Integer;
     fInputPath: string;
     function TryOpenLog: Boolean;
@@ -36,7 +37,7 @@ type
     function TryLoadSettings: Boolean;
     function TryLoadRsVars: Boolean;
     function TryReadIdeConfig: Boolean;
-    function TryBuildParams: Boolean;
+    function TryBuildProjectParams: Boolean;
     procedure ApplyFixInsightSettings;
     procedure ResolveFixInsightExecutable;
     procedure AddParameterSourceNotes;
@@ -176,14 +177,19 @@ begin
   end;
 end;
 
-function TResolveCommandRunner.TryBuildParams: Boolean;
+function TResolveCommandRunner.TryBuildProjectParams: Boolean;
 var
   lError: string;
   lErrorCode: Integer;
 begin
   fDiagnostics.AddInfo(Format(SInfoStep, ['Resolve project and option set']));
-  Result := Dak.Project.TryBuildParams(fOptions, fEnvVars, fLibraryPath, fLibrarySource, fDiagnostics, fParams, lError,
-    lErrorCode);
+  Result := TryBuildProjectAnalysisContext(fOptions, TProjectAnalysisContextRequirement.StrictSemantic,
+    fProjectContext, lError);
+  if Result then
+    Result := TryBuildParamsFromProjectContext(fOptions, fProjectContext, fEnvVars,
+      fLibraryPath, fLibrarySource, fDiagnostics, fParams, lError, lErrorCode)
+  else
+    lErrorCode := cExitInvalidProjectInput;
   if Result then
     fParams.fEnvironmentBlock := fRsVarsEnvironmentBlock;
   if not Result then
@@ -397,7 +403,7 @@ begin
       Exit(fExitCode);
     if not TryReadIdeConfig then
       Exit(fExitCode);
-    if not TryBuildParams then
+    if not TryBuildProjectParams then
       Exit(fExitCode);
 
     ApplyFixInsightSettings;

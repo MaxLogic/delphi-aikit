@@ -62,6 +62,10 @@ type
     [Test]
     procedure ProjectAnalysisContextDelegatesSemanticAuthority;
     [Test]
+    procedure ResolveRunnerDelegatesProjectFactsToSemanticContext;
+    [Test]
+    procedure ProjectContextParamsPreserveResolveFactsAndNormalizeLibraryPaths;
+    [Test]
     procedure ProjectAnalysisContextExposesReadOnlyProperties;
     [Test]
     procedure ProjectAnalysisContextMatchesSemanticProjectContext;
@@ -678,6 +682,102 @@ begin
     'Project-analysis context must not rebuild parser context through DAK FixInsight params.');
   Assert.IsFalse(ContainsText(lBody, 'TMsBuildEvaluator'),
     'Project-analysis context must not evaluate MSBuild independently.');
+end;
+
+procedure TMsBuildTests.ResolveRunnerDelegatesProjectFactsToSemanticContext;
+var
+  lBody: string;
+  lGuardBody: string;
+  lEndIndex: Integer;
+  lSource: string;
+  lStartIndex: Integer;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.resolve.runner.pas'), TEncoding.UTF8);
+  lStartIndex := Pos('function TResolveCommandRunner.TryBuildProjectParams', lSource);
+  lEndIndex := Pos('procedure TResolveCommandRunner.ApplyFixInsightSettings',
+    Copy(lSource, lStartIndex, MaxInt));
+  if lEndIndex > 0 then
+    Inc(lEndIndex, lStartIndex - 1);
+
+  Assert.IsTrue(lStartIndex > 0, 'Expected TryBuildProjectParams implementation.');
+  Assert.IsTrue(lEndIndex > lStartIndex, 'Expected next resolve-runner method after TryBuildProjectParams.');
+
+  lBody := Copy(lSource, lStartIndex, lEndIndex - lStartIndex);
+  Assert.IsTrue(ContainsText(lBody, 'TryBuildProjectAnalysisContext'),
+    'resolve should consume DelphiSemantics project context for project/compiler facts.');
+  Assert.IsTrue(ContainsText(lBody, 'TryBuildParamsFromProjectContext(fOptions, fProjectContext, fEnvVars'),
+    'resolve should pass the merged IDE environment to the context adapter.');
+  Assert.IsFalse(ContainsText(lBody, 'Dak.Project.TryBuildParams'),
+    'resolve should not rebuild semantic project params through DAK TryBuildParams.');
+  lGuardBody := StringReplace(lBody, 'TryBuildParamsFromProjectContext(', '', [rfReplaceAll]);
+  Assert.IsFalse(ContainsText(lGuardBody, 'TryBuildParams('),
+    'resolve should not call the old project-param builder, even unqualified.');
+end;
+
+procedure TMsBuildTests.ProjectContextParamsPreserveResolveFactsAndNormalizeLibraryPaths;
+var
+  lContext: TProjectAnalysisContext;
+  lEnv: TDictionary<string, string>;
+  lError: string;
+  lErrorCode: Integer;
+  lLibDir: string;
+  lMainSourcePath: string;
+  lOptions: TAppOptions;
+  lParams: TFixInsightParams;
+  lProjectDir: string;
+  lSearchDir: string;
+begin
+  lProjectDir := TPath.Combine(TempRoot, 'msbuild-context-params');
+  if TDirectory.Exists(lProjectDir) then
+    TDirectory.Delete(lProjectDir, True);
+  TDirectory.CreateDirectory(lProjectDir);
+  lSearchDir := TPath.Combine(lProjectDir, 'src');
+  lLibDir := TPath.Combine(lProjectDir, 'lib');
+  TDirectory.CreateDirectory(lSearchDir);
+  TDirectory.CreateDirectory(lLibDir);
+  lMainSourcePath := TPath.Combine(lProjectDir, 'ContextParams.dpr');
+  TFile.WriteAllText(lMainSourcePath,
+    'program ContextParams;' + sLineBreak + 'begin' + sLineBreak + 'end.',
+    TEncoding.UTF8);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := TPath.Combine(lProjectDir, 'ContextParams.dproj');
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win64';
+  lOptions.fDelphiVersion := '23.0';
+
+  lContext := TProjectAnalysisContext.Create(lOptions.fDprojPath, 'ContextParams',
+    lProjectDir, lMainSourcePath, TArray<string>.Create(lMainSourcePath),
+    'SEMANTIC_DEFINE;SECOND_DEFINE', lSearchDir,
+    TArray<string>.Create('Vcl', 'System'), TArray<string>.Create('Legacy=Modern'),
+    TPath.Combine(lProjectDir, '.dak\ContextParams'), True, '');
+
+  lEnv := TDictionary<string, string>.Create;
+  try
+    lEnv.Add('IDE_ONLY_LIB', lLibDir);
+    Assert.IsTrue(TryBuildParamsFromProjectContext(lOptions, lContext, lEnv,
+      '$(IDE_ONLY_LIB);$(IDE_ONLY_LIB)', TPropertySource.psEnvOptions, nil, lParams,
+      lError, lErrorCode), 'Expected context params. Error: ' + lError);
+  finally
+    lEnv.Free;
+  end;
+
+  Assert.AreEqual(lMainSourcePath, lParams.fProjectDpr);
+  Assert.AreEqual('SEMANTIC_DEFINE;SECOND_DEFINE', ArrayText(lParams.fDefines));
+  Assert.AreEqual(2, Integer(Length(lParams.fUnitSearchPath)));
+  Assert.AreEqual(lSearchDir, lParams.fUnitSearchPath[0]);
+  Assert.IsTrue(Pos(lLibDir, ArrayText(lParams.fUnitSearchPath)) > 0,
+    'Expected normalized library path in combined search path.');
+  Assert.AreEqual(lLibDir, ArrayText(lParams.fLibraryPath));
+  Assert.AreEqual('Vcl;System', ArrayText(lParams.fUnitScopes));
+  Assert.AreEqual('Legacy=Modern', ArrayText(lParams.fUnitAliases));
+  Assert.AreEqual('Release', lParams.fConfig);
+  Assert.AreEqual('Win64', lParams.fPlatform);
+  Assert.AreEqual(Integer(TPropertySource.psEnvOptions), Integer(lParams.fLibrarySource));
+  Assert.AreEqual(Integer(TPropertySource.psUnknown), Integer(lParams.fDefineSource));
+  Assert.AreEqual(Integer(TPropertySource.psUnknown), Integer(lParams.fSearchPathSource));
+  Assert.AreEqual(Integer(TPropertySource.psUnknown), Integer(lParams.fUnitScopesSource));
+  Assert.AreEqual(Integer(TPropertySource.psUnknown), Integer(lParams.fUnitAliasesSource));
 end;
 
 procedure TMsBuildTests.ProjectAnalysisContextExposesReadOnlyProperties;
