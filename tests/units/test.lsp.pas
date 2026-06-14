@@ -1336,11 +1336,14 @@ var
   lExePath: string;
   lExplicitExePath: string;
   lOptions: TAppOptions;
+  lRootExePath: string;
   lResolvedExePath: string;
 begin
   lDprojPath := PrepareResolvedContext('lsp-runner-discovery', lContext);
+  lRootExePath := TPath.Combine(TPath.Combine(ExtractFilePath(lDprojPath), 'FakeBds'), 'DelphiLSP.exe');
   lResolvedExePath := TPath.Combine(TPath.Combine(ExtractFilePath(lDprojPath), 'FakeBds'), 'bin64\DelphiLSP.exe');
   lExplicitExePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Tools\DelphiLSP.exe');
+  WriteUtf8File(lRootExePath, 'root');
   WriteUtf8File(lResolvedExePath, 'resolved');
   WriteUtf8File(lExplicitExePath, 'explicit');
 
@@ -1357,14 +1360,16 @@ begin
   lError := '';
   Assert.IsTrue(TryResolveDelphiLspExe(lOptions, lContext, lExePath, lError),
     'Expected Delphi install root passed via --lsp-path to resolve. Error: ' + lError);
-  Assert.AreEqual(TPath.GetFullPath(lResolvedExePath), lExePath, 'Expected install root override to resolve bin64 executable.');
+  Assert.AreEqual(TPath.GetFullPath(lRootExePath), lExePath,
+    'Expected install root override to resolve the first existing root candidate.');
 
   lOptions.fLspPath := '';
   lOptions.fHasLspPath := False;
   lError := '';
   Assert.IsTrue(TryResolveDelphiLspExe(lOptions, lContext, lExePath, lError),
     'Expected Delphi-version-derived install path to resolve. Error: ' + lError);
-  Assert.AreEqual(TPath.GetFullPath(lResolvedExePath), lExePath, 'Expected resolved install path to be used.');
+  Assert.AreEqual(TPath.GetFullPath(lRootExePath), lExePath,
+    'Expected first existing derived install candidate to be used.');
 end;
 
 procedure TLspRunnerTests.LspRunnerInitializesOpensRequestsAndShutsDownAgainstFakeServer;

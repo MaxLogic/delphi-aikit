@@ -18,8 +18,8 @@ uses
   Winapi.Windows,
   maxLogic.StrUtils,
   Dak.Build.Summary,
-  Dak.Diagnostics, Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Project, Dak.RsVars,
-  Dak.Registry, Dak.SourceContext, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.Utils;
+  Dak.Diagnostics, Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Project,
+  Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars, Dak.SourceContext, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.Utils;
 
 const
   cStatusOk = 'ok';
@@ -489,31 +489,6 @@ begin
   finally
     FreeEnvironmentStrings(lBlock);
   end;
-end;
-
-function ResolveBdsRoot(const aDelphiVersion, aRsVarsPath: string; const aEnvironment: TRsVarsEnvironment): string;
-var
-  lBase: string;
-begin
-  Result := Trim(aEnvironment.ValueOrDefault('BDS'));
-  if Result <> '' then
-    Exit(TPath.GetFullPath(Result));
-
-  if aRsVarsPath <> '' then
-    Exit(TPath.GetFullPath(ExtractFileDir(ExtractFileDir(aRsVarsPath))));
-
-  for lBase in [
-    TPath.Combine(GetEnvironmentVariable('ProgramFiles(x86)'), 'Embarcadero\Studio'),
-    TPath.Combine(GetEnvironmentVariable('ProgramFiles(x86)'), 'Embarcadero\RAD Studio'),
-    TPath.Combine(GetEnvironmentVariable('ProgramFiles'), 'Embarcadero\Studio'),
-    TPath.Combine(GetEnvironmentVariable('ProgramFiles'), 'Embarcadero\RAD Studio')
-  ] do
-  begin
-    if (lBase <> '') and DirectoryExists(TPath.Combine(lBase, aDelphiVersion)) then
-      Exit(TPath.GetFullPath(TPath.Combine(lBase, aDelphiVersion)));
-  end;
-
-  Result := TPath.Combine('C:\Program Files (x86)\Embarcadero\Studio', aDelphiVersion);
 end;
 
 function BuildEnvironmentProjPath(const aDelphiVersion, aBdsRoot: string): string;
@@ -1899,7 +1874,7 @@ begin
 
     PrintVerboseStep(lNormalizedOptions, 'resolve-msbuild');
     lBdsRoot := ResolveBdsRoot(lNormalizedOptions.fDelphiVersion, lNormalizedOptions.fRsVarsPath,
-      lRsVarsEnvironment);
+      lRsVarsEnvironment.ValueOrDefault('BDS'));
     if not TryFindMsBuild(lBdsRoot, lMsBuildPath) then
     begin
       aError := cMsBuildNotFound;

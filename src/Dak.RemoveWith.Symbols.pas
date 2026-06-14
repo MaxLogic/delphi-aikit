@@ -128,6 +128,7 @@ uses
   System.SysUtils,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile,
   DelphiSemantics.Model,
+  Dak.RadStudio.Locator,
   MaxLogic.StrUtils;
 
 procedure LogRemoveWithSymbolProgress(const aOptions: TAppOptions; const aMessage: string);
@@ -674,8 +675,7 @@ begin
   if Length(lUnitNames) = 0 then
     Exit;
 
-  lRtlSourceRoot := TDelphiSemanticCompilerProfileBuilder.ResolveRtlSourceRoot(
-    aOptions.fDelphiVersion, aOptions.fRsVarsPath);
+  lRtlSourceRoot := ResolveRtlSourceRoot(aOptions.fDelphiVersion, aOptions.fRsVarsPath);
   LogRemoveWithSymbolProgress(aOptions, 'rtl-source root=' + lRtlSourceRoot);
   if lRtlSourceRoot = '' then
     Exit;

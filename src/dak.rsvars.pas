@@ -6,7 +6,7 @@ uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.SysUtils,
   Winapi.Windows,
   maxLogic.StrUtils,
-  Dak.Diagnostics, Dak.Messages;
+  Dak.Diagnostics, Dak.Messages, Dak.RadStudio.Locator;
 
 type
   TRsVarsEnvironmentVariable = record
@@ -97,38 +97,6 @@ begin
     Result := Result + 'set "PATH=' + CoreWindowsPath + '" & ';
 end;
 
-function DefaultRsVarsPath(const aDelphiVersion: string): string;
-var
-  lBase: string;
-  lPath: string;
-begin
-  lBase := System.SysUtils.GetEnvironmentVariable('ProgramFiles(x86)');
-  if lBase <> '' then
-  begin
-    lPath := TPath.Combine(lBase, 'Embarcadero\Studio\' + aDelphiVersion + '\bin\rsvars.bat');
-    if FileExists(lPath) then
-      Exit(lPath);
-    lPath := TPath.Combine(lBase, 'Embarcadero\RAD Studio\' + aDelphiVersion + '\bin\rsvars.bat');
-    if FileExists(lPath) then
-      Exit(lPath);
-  end;
-
-  lBase := System.SysUtils.GetEnvironmentVariable('ProgramFiles');
-  if lBase <> '' then
-  begin
-    lPath := TPath.Combine(lBase, 'Embarcadero\Studio\' + aDelphiVersion + '\bin\rsvars.bat');
-    if FileExists(lPath) then
-      Exit(lPath);
-    lPath := TPath.Combine(lBase, 'Embarcadero\RAD Studio\' + aDelphiVersion + '\bin\rsvars.bat');
-    if FileExists(lPath) then
-      Exit(lPath);
-  end;
-
-  if lPath <> '' then
-    Exit(lPath);
-  Result := TPath.Combine('C:\Program Files (x86)', 'Embarcadero\Studio\' + aDelphiVersion + '\bin\rsvars.bat');
-end;
-
 function RunCmdToFile(const aCommandLine: string; out aExitCode: Cardinal): Boolean;
 var
   lSI: TStartupInfo;
@@ -184,10 +152,7 @@ begin
     Exit(False);
   end;
 
-  if aOverridePath <> '' then
-    lPath := aOverridePath
-  else
-    lPath := DefaultRsVarsPath(aDelphiVersion);
+  lPath := ResolveRsVarsPath(aDelphiVersion, aOverridePath);
 
   if aDiagnostics <> nil then
     aDiagnostics.AddInfo(Format(SInfoRsVarsPath, [lPath]));

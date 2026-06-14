@@ -10,7 +10,7 @@ uses
   System.SysUtils,
   Xml.omnixmldom, Xml.xmldom,
   DelphiSemantics.Api,
-  Dak.Diagnostics, Dak.MsBuild, Dak.Project, Dak.Types,
+  Dak.Diagnostics, Dak.MsBuild, Dak.Project, Dak.RadStudio.Locator, Dak.Types,
   Test.Support;
 
 type
@@ -65,6 +65,10 @@ type
     procedure ProjectAnalysisContextExposesReadOnlyProperties;
     [Test]
     procedure ProjectAnalysisContextMatchesSemanticProjectContext;
+    [Test]
+    procedure RadStudioLocatorConsolidatesInstallDiscovery;
+    [Test]
+    procedure RadStudioLocatorPreservesDiscoveryPrecedence;
   end;
 
 implementation
@@ -762,6 +766,119 @@ begin
     'Expected DAK context reference dir from semantic source lookup.');
   Assert.IsTrue(ContainsText(lContext.ParserSearchPath, TPath.GetFullPath(lSearchDir)),
     'Expected DAK context search dir from semantic source lookup.');
+end;
+
+procedure TMsBuildTests.RadStudioLocatorConsolidatesInstallDiscovery;
+var
+  lBuildRunnerSource: string;
+  lLocatorPath: string;
+  lLocatorSource: string;
+  lLspRunnerSource: string;
+  lRemoveWithSource: string;
+  lRsVarsSource: string;
+  lSymbolMapCacheSource: string;
+  lSymbolMapSource: string;
+begin
+  lLocatorPath := TPath.Combine(RepoRoot, 'src\Dak.RadStudio.Locator.pas');
+  Assert.IsTrue(TFile.Exists(lLocatorPath), 'Expected shared RAD Studio locator unit.');
+
+  lLocatorSource := TFile.ReadAllText(lLocatorPath, TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lLocatorSource, 'ResolveRsVarsPath'), 'Expected shared rsvars path resolver.');
+  Assert.IsTrue(ContainsText(lLocatorSource, 'ResolveBdsRoot'), 'Expected shared BDS root resolver.');
+  Assert.IsTrue(ContainsText(lLocatorSource, 'BuildDelphiLspCandidatePaths'),
+    'Expected shared DelphiLSP candidate resolver.');
+  Assert.IsTrue(ContainsText(lLocatorSource, 'ResolveRtlSourceRoot'), 'Expected shared RTL source root resolver.');
+  Assert.IsTrue(ContainsText(lLocatorSource, 'TDelphiSemanticCompilerProfileBuilder.ResolveRtlSourceRoot'),
+    'Expected RTL source root authority to stay in DelphiSemantics.');
+
+  lRsVarsSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.rsvars.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lRsVarsSource, 'ResolveRsVarsPath'),
+    'Expected rsvars loading to delegate path discovery to the shared locator.');
+  Assert.IsFalse(ContainsText(lRsVarsSource, 'ProgramFiles'),
+    'rsvars should not own ProgramFiles RAD Studio probing.');
+
+  lBuildRunnerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.Build.Runner.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lBuildRunnerSource, 'ResolveBdsRoot'),
+    'Expected build runner to delegate BDS root discovery to the shared locator.');
+
+  lLspRunnerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.lsp.runner.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lLspRunnerSource, 'BuildDelphiLspCandidatePaths'),
+    'Expected LSP runner to delegate DelphiLSP discovery candidates to the shared locator.');
+
+  lSymbolMapSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Context.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lSymbolMapSource, 'ResolveRtlSourceRoot'),
+    'Expected SymbolMap context to delegate RTL source root discovery to the shared locator.');
+
+  lSymbolMapCacheSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Cache.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lSymbolMapCacheSource, 'ResolveRtlSourceRoot'),
+    'Expected SymbolMap cache fallback to delegate RTL source root discovery to the shared locator.');
+  Assert.IsFalse(ContainsText(lSymbolMapCacheSource,
+    TPath.Combine('C:\Program Files (x86)', 'Embarcadero\Studio\23.0\source')),
+    'SymbolMap cache must not own a hard-coded RTL source fallback.');
+
+  lRemoveWithSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas'),
+    TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lRemoveWithSource, 'ResolveRtlSourceRoot'),
+    'Expected remove-with symbol inventory to delegate RTL source root discovery to the shared locator.');
+end;
+
+procedure TMsBuildTests.RadStudioLocatorPreservesDiscoveryPrecedence;
+var
+  lBdsRoot: string;
+  lCandidates: TArray<string>;
+  lEnvBlock: string;
+  lExpectedMissingBdsRoot: string;
+  lExpectedMissingRsVars: string;
+  lMissingVersion: string;
+  lProgramFiles: string;
+  lProgramFilesX86: string;
+  lRoot: string;
+  lRsVarsPath: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'rad-studio-locator');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+
+  lBdsRoot := TPath.Combine(lRoot, 'BdsRoot');
+  lRsVarsPath := TPath.Combine(lBdsRoot, 'bin\rsvars.bat');
+  TDirectory.CreateDirectory(ExtractFileDir(lRsVarsPath));
+  TFile.WriteAllText(lRsVarsPath, '@echo off', TEncoding.ASCII);
+
+  Assert.AreEqual(lRsVarsPath, ResolveRsVarsPath('23.0', lRsVarsPath),
+    'Explicit rsvars path should win.');
+  Assert.AreEqual(TPath.GetFullPath(lBdsRoot), ResolveBdsRoot('23.0', '', lBdsRoot),
+    'Environment BDS root should win when no explicit rsvars is provided.');
+  Assert.AreEqual(TPath.GetFullPath(lBdsRoot), ResolveBdsRoot('23.0', lRsVarsPath, ''),
+    'Explicit rsvars path should derive the install root.');
+  Assert.AreEqual(TPath.GetFullPath(TPath.Combine(lBdsRoot, 'source')), ResolveRtlSourceRoot('23.0', lRsVarsPath),
+    'RTL source root should be delegated through the semantic compiler-profile resolver.');
+
+  lEnvBlock := 'BDS=' + lBdsRoot + #0#0;
+  lCandidates := BuildDelphiLspCandidatePaths('23.0', lEnvBlock);
+  Assert.IsTrue(Length(lCandidates) >= 3, 'Expected root, bin64, and bin DelphiLSP candidates.');
+  Assert.AreEqual(TPath.GetFullPath(TPath.Combine(lBdsRoot, 'DelphiLSP.exe')), lCandidates[0],
+    'Environment BDS root executable should be the first LSP candidate.');
+  Assert.AreEqual(TPath.GetFullPath(TPath.Combine(lBdsRoot, 'bin64\DelphiLSP.exe')), lCandidates[1],
+    'bin64 executable should follow the BDS root executable.');
+
+  lMissingVersion := '99.0';
+  lProgramFilesX86 := Trim(GetEnvironmentVariable('ProgramFiles(x86)'));
+  lProgramFiles := Trim(GetEnvironmentVariable('ProgramFiles'));
+  if lProgramFiles <> '' then
+    lExpectedMissingRsVars := TPath.Combine(lProgramFiles,
+      'Embarcadero\RAD Studio\' + lMissingVersion + '\bin\rsvars.bat')
+  else if lProgramFilesX86 <> '' then
+    lExpectedMissingRsVars := TPath.Combine(lProgramFilesX86,
+      'Embarcadero\RAD Studio\' + lMissingVersion + '\bin\rsvars.bat')
+  else
+    lExpectedMissingRsVars := 'C:\Program Files (x86)\Embarcadero\Studio\' + lMissingVersion + '\bin\rsvars.bat';
+  Assert.AreEqual(TPath.GetFullPath(lExpectedMissingRsVars), ResolveRsVarsPath(lMissingVersion, ''),
+    'Missing rsvars fallback should preserve the previous environment-derived candidate order.');
+
+  lExpectedMissingBdsRoot := TPath.Combine('C:\Program Files (x86)\Embarcadero\Studio', lMissingVersion);
+  Assert.AreEqual(TPath.GetFullPath(lExpectedMissingBdsRoot), ResolveBdsRoot(lMissingVersion, '', ''),
+    'Missing BDS root fallback should preserve the previous hardcoded install root.');
 end;
 
 initialization

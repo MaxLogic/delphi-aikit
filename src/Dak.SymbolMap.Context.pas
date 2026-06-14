@@ -39,8 +39,7 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.SysUtils,
-  DelphiSemantics.CompilerProfile,
-  Dak.FixInsightSettings, Dak.Project, Dak.Registry, Dak.RsVars;
+  Dak.FixInsightSettings, Dak.Project, Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars;
 
 function NormalizeDelphiVersion(const aValue: string): string;
 begin
@@ -150,8 +149,7 @@ end;
 
 function ResolveDefaultRtlSourceRoot(const aDelphiVersion, aRsVarsPath: string): string;
 begin
-  Result := TDelphiSemanticCompilerProfileBuilder.ResolveRtlSourceRoot(
-    NormalizeDelphiVersion(aDelphiVersion), aRsVarsPath);
+  Result := ResolveRtlSourceRoot(NormalizeDelphiVersion(aDelphiVersion), aRsVarsPath);
 end;
 
 function SplitSemanticList(const aValue: string): TArray<string>;

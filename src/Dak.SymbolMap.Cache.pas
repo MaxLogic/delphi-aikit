@@ -71,7 +71,8 @@ uses
   Winapi.Windows,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.Model,
-  DelphiSemantics.Preprocess;
+  DelphiSemantics.Preprocess,
+  Dak.RadStudio.Locator;
 
 type
   TSymbolMapIntrinsicSeed = record
@@ -615,7 +616,9 @@ begin
   if Result <> '' then
     Exit(TPath.GetFullPath(Result));
 
-  Result := TPath.GetFullPath('C:\Program Files (x86)\Embarcadero\Studio\23.0\source');
+  Result := ResolveRtlSourceRoot(aContext.fDelphiVersion, aContext.fRsVarsPath);
+  if Result <> '' then
+    Result := TPath.GetFullPath(Result);
 end;
 
 function CollectRtlSourceFiles(const aSourceRoot: string; out aDiagnostics: TArray<string>): TArray<string>;
