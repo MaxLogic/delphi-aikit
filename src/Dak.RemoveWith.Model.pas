@@ -4,7 +4,7 @@ interface
 
 uses
   System.Generics.Collections,
-  DelphiAST.ProjectIndexer,
+  DelphiAST.Classes,
   Dak.Types;
 
 type
@@ -78,6 +78,21 @@ type
     fRange: TRemoveWithModelRange;
   end;
 
+  TRemoveWithProjectProblemKind = (rwppCantFindFile, rwppCantOpenFile, rwppCantParseFile);
+
+  TRemoveWithProjectProblemInfo = record
+    fKind: TRemoveWithProjectProblemKind;
+    fFileName: string;
+    fDescription: string;
+  end;
+
+  TRemoveWithParsedUnitInfo = record
+    fName: string;
+    fPath: string;
+    // Borrowed from the private project-index state; valid only while the project model is alive.
+    fSyntaxTree: TSyntaxNode;
+  end;
+
   TRemoveWithUnitModel = record
     fUnitName: string;
     fFilePath: string;
@@ -95,11 +110,17 @@ type
   TRemoveWithProjectModel = class
   private
     fContext: TProjectAnalysisContext;
-    fIndexer: TProjectIndexer;
+    fIndexState: TObject;
     fIndexCount: Integer;
+    fParsedUnits: TArray<TRemoveWithParsedUnitInfo>;
+    fParserProblems: TArray<TRemoveWithProjectProblemInfo>;
     fProjectPath: string;
     fUnitModels: TArray<TRemoveWithUnitModel>;
+    procedure CaptureProjectIndexDtos;
     procedure ExtractUnitModels;
+    function GetParsedUnits: TArray<TRemoveWithParsedUnitInfo>;
+    function GetParserProblems: TArray<TRemoveWithProjectProblemInfo>;
+    function GetUnitModels: TArray<TRemoveWithUnitModel>;
   public
     constructor Create(const aProjectPath: string; const aContext: TProjectAnalysisContext);
     destructor Destroy; override;
@@ -108,9 +129,10 @@ type
     function ProblemCount: Integer;
     property Context: TProjectAnalysisContext read fContext;
     property IndexCount: Integer read fIndexCount;
-    property Indexer: TProjectIndexer read fIndexer;
+    property ParsedUnits: TArray<TRemoveWithParsedUnitInfo> read GetParsedUnits;
+    property ParserProblems: TArray<TRemoveWithProjectProblemInfo> read GetParserProblems;
     property ProjectPath: string read fProjectPath;
-    property UnitModels: TArray<TRemoveWithUnitModel> read fUnitModels;
+    property UnitModels: TArray<TRemoveWithUnitModel> read GetUnitModels;
   end;
 
 function BuildRemoveWithProjectModel(const aOptions: TAppOptions; const aProjectPath: string;
@@ -120,8 +142,35 @@ implementation
 
 uses
   System.IOUtils, System.StrUtils, System.SysUtils,
-  DelphiAST.Classes, DelphiAST.Consts,
+  DelphiAST.Consts, DelphiAST.ProjectIndexer,
   Dak.Project, Dak.RemoveWith.Source;
+
+type
+  // Compatibility state for the legacy DelphiAST indexer; remove it after model bootstrap is fully sourced
+  // from DelphiSemantics project snapshots.
+  TRemoveWithProjectIndexState = class
+  public
+    fIndexer: TProjectIndexer;
+    constructor Create(const aContext: TProjectAnalysisContext);
+    destructor Destroy; override;
+  end;
+
+constructor TRemoveWithProjectIndexState.Create(const aContext: TProjectAnalysisContext);
+begin
+  inherited Create;
+  fIndexer := CreateProjectAnalysisIndexer(aContext);
+end;
+
+destructor TRemoveWithProjectIndexState.Destroy;
+begin
+  fIndexer.Free;
+  inherited;
+end;
+
+function ProjectIndexerFor(const aState: TObject): TProjectIndexer;
+begin
+  Result := TRemoveWithProjectIndexState(aState).fIndexer;
+end;
 
 function FindChildNode(const aParent: TSyntaxNode; const aNodeType: TSyntaxNodeType): TSyntaxNode;
 var
@@ -1042,25 +1091,37 @@ begin
   end;
 end;
 
-function ExtractUnitModel(const aUnit: TProjectIndexer.TUnitInfo): TRemoveWithUnitModel;
+function ExtractUnitModel(const aUnit: TRemoveWithParsedUnitInfo): TRemoveWithUnitModel;
 var
   lError: string;
   lSource: TRemoveWithSourceBuffer;
 begin
   Result := Default(TRemoveWithUnitModel);
-  Result.fUnitName := aUnit.Name;
-  Result.fFilePath := TPath.GetFullPath(aUnit.Path);
-  if not Assigned(aUnit.SyntaxTree) then
+  Result.fUnitName := aUnit.fName;
+  Result.fFilePath := TPath.GetFullPath(aUnit.fPath);
+  if not Assigned(aUnit.fSyntaxTree) then
     Exit;
   if not LoadRemoveWithSource(Result.fFilePath, lSource, lError) then
     Exit;
 
   Result.fSourceText := lSource.fText;
-  ExtractUses(aUnit.SyntaxTree, Result);
-  ExtractTypes(aUnit.SyntaxTree, lSource, Result);
-  ExtractMembers(aUnit.SyntaxTree, lSource, Result);
-  ExtractGlobals(aUnit.SyntaxTree, Result);
-  ExtractRoutines(aUnit.SyntaxTree, lSource, Result);
+  ExtractUses(aUnit.fSyntaxTree, Result);
+  ExtractTypes(aUnit.fSyntaxTree, lSource, Result);
+  ExtractMembers(aUnit.fSyntaxTree, lSource, Result);
+  ExtractGlobals(aUnit.fSyntaxTree, Result);
+  ExtractRoutines(aUnit.fSyntaxTree, lSource, Result);
+end;
+
+function ProjectProblemKindForIndexer(const aProblemType: TProjectIndexer.TProblemType): TRemoveWithProjectProblemKind;
+begin
+  case aProblemType of
+    TProjectIndexer.TProblemType.ptCantFindFile:
+      Result := rwppCantFindFile;
+    TProjectIndexer.TProblemType.ptCantOpenFile:
+      Result := rwppCantOpenFile;
+  else
+    Result := rwppCantParseFile;
+  end;
 end;
 
 constructor TRemoveWithProjectModel.Create(const aProjectPath: string; const aContext: TProjectAnalysisContext);
@@ -1068,34 +1129,65 @@ begin
   inherited Create;
   fProjectPath := aProjectPath;
   fContext := aContext;
-  fIndexer := CreateProjectAnalysisIndexer(fContext);
+  fIndexState := TRemoveWithProjectIndexState.Create(fContext);
 end;
 
 destructor TRemoveWithProjectModel.Destroy;
 begin
-  fIndexer.Free;
+  fIndexState.Free;
   inherited;
 end;
 
 procedure TRemoveWithProjectModel.Index;
 begin
-  fIndexer.Index(fContext.MainSourcePath);
+  ProjectIndexerFor(fIndexState).Index(fContext.MainSourcePath);
+  CaptureProjectIndexDtos;
   Inc(fIndexCount);
+end;
+
+procedure TRemoveWithProjectModel.CaptureProjectIndexDtos;
+var
+  lIndex: Integer;
+  lIndexer: TProjectIndexer;
+  lProblem: TProjectIndexer.TProblemInfo;
+  lUnit: TProjectIndexer.TUnitInfo;
+begin
+  lIndexer := ProjectIndexerFor(fIndexState);
+
+  SetLength(fParsedUnits, 0);
+  for lUnit in lIndexer.ParsedUnits do
+  begin
+    lIndex := Length(fParsedUnits);
+    SetLength(fParsedUnits, lIndex + 1);
+    fParsedUnits[lIndex].fName := lUnit.Name;
+    fParsedUnits[lIndex].fPath := lUnit.Path;
+    fParsedUnits[lIndex].fSyntaxTree := lUnit.SyntaxTree;
+  end;
+
+  SetLength(fParserProblems, 0);
+  for lProblem in lIndexer.Problems do
+  begin
+    lIndex := Length(fParserProblems);
+    SetLength(fParserProblems, lIndex + 1);
+    fParserProblems[lIndex].fKind := ProjectProblemKindForIndexer(lProblem.ProblemType);
+    fParserProblems[lIndex].fFileName := lProblem.FileName;
+    fParserProblems[lIndex].fDescription := lProblem.Description;
+  end;
 end;
 
 procedure TRemoveWithProjectModel.ExtractUnitModels;
 var
   lIndex: Integer;
   lParsedPaths: TDictionary<string, Byte>;
-  lUnit: TProjectIndexer.TUnitInfo;
+  lUnit: TRemoveWithParsedUnitInfo;
   lUnitPath: string;
 begin
   SetLength(fUnitModels, 0);
   lParsedPaths := TDictionary<string, Byte>.Create;
   try
-    for lUnit in fIndexer.ParsedUnits do
+    for lUnit in fParsedUnits do
     begin
-      lUnitPath := Trim(lUnit.Path);
+      lUnitPath := Trim(lUnit.fPath);
       if (lUnitPath = '') or (not SameText(TPath.GetExtension(lUnitPath), '.pas')) or
         (not TFile.Exists(lUnitPath)) then
         Continue;
@@ -1113,21 +1205,28 @@ begin
 end;
 
 function TRemoveWithProjectModel.ParsedUnitCount: Integer;
-var
-  lUnit: TProjectIndexer.TUnitInfo;
 begin
-  Result := 0;
-  for lUnit in fIndexer.ParsedUnits do
-    Inc(Result);
+  Result := Length(fParsedUnits);
 end;
 
 function TRemoveWithProjectModel.ProblemCount: Integer;
-var
-  lProblem: TProjectIndexer.TProblemInfo;
 begin
-  Result := 0;
-  for lProblem in fIndexer.Problems do
-    Inc(Result);
+  Result := Length(fParserProblems);
+end;
+
+function TRemoveWithProjectModel.GetParsedUnits: TArray<TRemoveWithParsedUnitInfo>;
+begin
+  Result := Copy(fParsedUnits);
+end;
+
+function TRemoveWithProjectModel.GetParserProblems: TArray<TRemoveWithProjectProblemInfo>;
+begin
+  Result := Copy(fParserProblems);
+end;
+
+function TRemoveWithProjectModel.GetUnitModels: TArray<TRemoveWithUnitModel>;
+begin
+  Result := Copy(fUnitModels);
 end;
 
 function BuildRemoveWithProjectModel(const aOptions: TAppOptions; const aProjectPath: string;

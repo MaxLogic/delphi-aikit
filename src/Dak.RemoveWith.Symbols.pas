@@ -126,7 +126,6 @@ implementation
 uses
   System.Classes, System.Diagnostics, System.Generics.Collections, System.IOUtils, System.StrUtils,
   System.SysUtils,
-  DelphiAST.ProjectIndexer,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile,
   DelphiSemantics.Model,
   MaxLogic.StrUtils;
@@ -2051,7 +2050,7 @@ function BuildRemoveWithFactSet(const aOptions: TAppOptions; const aProjectModel
   out aError: string; out aPhaseMetrics: TRemoveWithFactSetPhaseMetrics): Boolean;
 var
   lContext: TRemoveWithSymbolInventoryContext;
-  lProblem: TProjectIndexer.TProblemInfo;
+  lProblem: TRemoveWithProjectProblemInfo;
   lStopwatch: TStopwatch;
   lSymbol: TRemoveWithSymbolInfo;
   lUnitIndex: Integer;
@@ -2105,11 +2104,11 @@ begin
       [lStopwatch.ElapsedMilliseconds, Length(aInventory.fSymbols)]));
 
     lStopwatch := TStopwatch.StartNew;
-    for lProblem in aProjectModel.Indexer.Problems do
+    for lProblem in aProjectModel.ParserProblems do
     begin
       lSymbol := Default(TRemoveWithSymbolInfo);
-      lSymbol.fName := TPath.GetFileNameWithoutExtension(lProblem.FileName);
-      lSymbol.fFilePath := lProblem.FileName;
+      lSymbol.fName := TPath.GetFileNameWithoutExtension(lProblem.fFileName);
+      lSymbol.fFilePath := lProblem.fFileName;
       lSymbol.fKind := TRemoveWithSymbolKind.rwskExternal;
       TRemoveWithSymbolBuilder.AddSymbol(lContext, aInventory, lSymbol);
     end;

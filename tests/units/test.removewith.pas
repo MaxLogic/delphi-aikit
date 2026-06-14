@@ -37,6 +37,8 @@ type
     [Test]
     procedure LegacySymbolParserIsNotCompiled;
     [Test]
+    procedure ProjectModelHidesProjectIndexerBoundary;
+    [Test]
     procedure RtlSourceSymbolsUseDelphiSemanticsProfile;
     [Test]
     procedure SymbolInventoryUsesDuplicateKeyIndexes;
@@ -1101,6 +1103,38 @@ begin
     'Legacy RemoveWith symbol parser block must be removed from DAK source.');
   Assert.IsFalse(ContainsText(lSourceText, 'ParseUnitGlobals'),
     'Legacy RemoveWith unit-global parser must be removed from DAK source.');
+end;
+
+procedure TRemoveWithCommandTests.ProjectModelHidesProjectIndexerBoundary;
+var
+  lDiscoverySourceText: string;
+  lImplementationOffset: Integer;
+  lInterfaceText: string;
+  lModelSourceText: string;
+  lSymbolsSourceText: string;
+begin
+  lModelSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Model.pas'),
+    TEncoding.UTF8);
+  lImplementationOffset := Pos('implementation', LowerCase(lModelSourceText));
+  Assert.IsTrue(lImplementationOffset > 0, 'Expected Dak.RemoveWith.Model to have an implementation section.');
+  lInterfaceText := Copy(lModelSourceText, 1, lImplementationOffset - 1);
+
+  Assert.IsFalse(ContainsText(lInterfaceText, 'DelphiAST.ProjectIndexer'),
+    'Remove-with project model interface must not import DelphiAST.ProjectIndexer.');
+  Assert.IsFalse(ContainsText(lInterfaceText, 'TProjectIndexer'),
+    'Remove-with project model interface must not expose TProjectIndexer.');
+  Assert.IsFalse(ContainsText(lInterfaceText, 'property Indexer'),
+    'Remove-with project model must expose DAK-owned DTOs, not its project indexer.');
+
+  lDiscoverySourceText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Discovery.pas'),
+    TEncoding.UTF8);
+  Assert.IsFalse(ContainsText(lDiscoverySourceText, 'aProjectModel.Indexer'),
+    'Remove-with discovery must consume DAK-owned project-model DTOs.');
+
+  lSymbolsSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas'),
+    TEncoding.UTF8);
+  Assert.IsFalse(ContainsText(lSymbolsSourceText, 'aProjectModel.Indexer'),
+    'Remove-with symbols must consume DAK-owned project-model DTOs.');
 end;
 
 procedure TRemoveWithCommandTests.RtlSourceSymbolsUseDelphiSemanticsProfile;
@@ -2488,8 +2522,6 @@ begin
     Assert.IsTrue(ContainsText(lModel.Context.ParserDefines, 'POSIX'), 'POSIX');
     Assert.IsTrue(ContainsText(lModel.Context.ParserDefines, 'CPUX64'), 'CPUX64');
     Assert.IsFalse(ContainsText(lModel.Context.ParserDefines, 'MSWINDOWS'), 'MSWINDOWS');
-    Assert.IsFalse(piUseDefinesDefinedByCompiler in lModel.Indexer.Options,
-      'Project-aware DAK indexing must not add host compiler defines.');
 
     lHasTargetType := False;
     lHasHostType := False;
