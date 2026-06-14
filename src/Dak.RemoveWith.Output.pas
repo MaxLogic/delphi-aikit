@@ -28,6 +28,8 @@ type
     fPlannerMs: Int64;
     fOutputSerializationMs: Int64;
     fContextFingerprint: string;
+    fContextMode: string;
+    fContextNote: string;
     fProjectUnitCount: Integer;
     fParsedUnitCount: Integer;
     fProjectProblemCount: Integer;
@@ -47,7 +49,8 @@ function BuildRemoveWithJsonReport(const aOptions: TAppOptions; const aProjectPa
   const aTransactionResult: TRemoveWithTransactionResult; const aMetrics: TRemoveWithPlannerPhaseMetrics): string;
 function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
-  const aPlanResult: TRemoveWithPlanResult; const aTransactionResult: TRemoveWithTransactionResult): string;
+  const aPlanResult: TRemoveWithPlanResult; const aTransactionResult: TRemoveWithTransactionResult;
+  const aMetrics: TRemoveWithPlannerPhaseMetrics): string;
 
 implementation
 
@@ -93,12 +96,16 @@ begin
   end;
 end;
 
-function BuildProjectObject(const aProjectPath: string): TJSONObject;
+function BuildProjectObject(const aProjectPath: string;
+  const aMetrics: TRemoveWithPlannerPhaseMetrics): TJSONObject;
 begin
   Result := TJSONObject.Create;
   Result.AddPair('path', aProjectPath);
   Result.AddPair('name', TPath.GetFileNameWithoutExtension(aProjectPath));
   Result.AddPair('dir', TPath.GetDirectoryName(aProjectPath));
+  Result.AddPair('contextMode', aMetrics.fContextMode);
+  if aMetrics.fContextNote <> '' then
+    Result.AddPair('contextNote', aMetrics.fContextNote);
 end;
 
 function BuildRunObject(const aRunId, aWorkspaceRoot: string): TJSONObject;
@@ -405,6 +412,25 @@ begin
       .AddPair('column', TJSONNumber.Create(lWarning.fColumn))
       .AddPair('code', lWarning.fCode)
       .AddPair('message', lWarning.fMessage));
+  end;
+end;
+
+function BuildWarningsText(const aScanResult: TRemoveWithScanResult): string;
+var
+  lBuilder: TStringBuilder;
+  lWarning: TRemoveWithWarningInfo;
+begin
+  lBuilder := TStringBuilder.Create;
+  try
+    lBuilder.AppendLine('warnings=' + IntToStr(Length(aScanResult.fWarnings)));
+    for lWarning in aScanResult.fWarnings do
+    begin
+      lBuilder.AppendLine('warning=' + lWarning.fCode + '|' + lWarning.fFilePath + '|' +
+        lWarning.fMessage);
+    end;
+    Result := lBuilder.ToString.TrimRight;
+  finally
+    lBuilder.Free;
   end;
 end;
 
@@ -814,7 +840,7 @@ begin
     lRoot.AddPair('status', BuildRootStatus(aOptions, aTransactionResult));
     lRoot.AddPair('mode', RemoveWithModeToText(aOptions.fRemoveWithMode));
     lRoot.AddPair('format', RemoveWithFormatToText(aOptions.fRemoveWithFormat));
-    lRoot.AddPair('project', BuildProjectObject(aProjectPath));
+    lRoot.AddPair('project', BuildProjectObject(aProjectPath, aMetrics));
     lRoot.AddPair('run', BuildRunObject(aRunId, aWorkspaceRoot));
     lRoot.AddPair('targets', BuildTargetsObject(aOptions, aUnitPath, aDirPath));
     lRoot.AddPair('workspace', BuildWorkspaceObject(aWorkspaceRoot));
@@ -847,7 +873,8 @@ end;
 
 function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot, aRunId,
   aUnitPath, aDirPath: string; const aScanResult: TRemoveWithScanResult;
-  const aPlanResult: TRemoveWithPlanResult; const aTransactionResult: TRemoveWithTransactionResult): string;
+  const aPlanResult: TRemoveWithPlanResult; const aTransactionResult: TRemoveWithTransactionResult;
+  const aMetrics: TRemoveWithPlannerPhaseMetrics): string;
 var
   lAppliedCount: Integer;
   lPlannedCount: Integer;
@@ -884,6 +911,8 @@ begin
     'status=' + lStatusText + sLineBreak +
     'mode=' + RemoveWithModeToText(aOptions.fRemoveWithMode) + sLineBreak +
     'project=' + aProjectPath + sLineBreak +
+    'contextMode=' + aMetrics.fContextMode + sLineBreak +
+    IfThen(aMetrics.fContextNote <> '', 'contextNote=' + aMetrics.fContextNote + sLineBreak, '') +
     'run=' + aRunId + sLineBreak +
     'target=' + RemoveWithTargetKindToText(aOptions.fRemoveWithTargetKind) + ':' + lTargetValue + sLineBreak +
     'workspace=' + aWorkspaceRoot + sLineBreak +
@@ -892,6 +921,7 @@ begin
     'plannedEdits=' + IntToStr(lPlannedCount) + sLineBreak +
     'appliedEdits=' + IntToStr(lAppliedCount) + sLineBreak +
     'skipped=' + IntToStr(lSkippedCount) + sLineBreak +
+    BuildWarningsText(aScanResult) + sLineBreak +
     'failed=0' + sLineBreak +
     'rolledBack=' + IntToStr(lRolledBackCount) + sLineBreak +
     'transactionManifest=' + aTransactionResult.fManifestPath + sLineBreak +

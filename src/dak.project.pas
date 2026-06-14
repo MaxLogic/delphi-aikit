@@ -16,7 +16,10 @@ function TryBuildProjectSourceLookup(const aDprojPath, aConfig, aPlatform, aDelp
   const aEnvVars: TDictionary<string, string>; aDiagnostics: TDiagnostics; out aLookup: TProjectSourceLookup;
   out aError: string): Boolean;
 function TryBuildProjectAnalysisContext(const aOptions: TAppOptions; out aContext: TProjectAnalysisContext;
-  out aError: string): Boolean;
+  out aError: string): Boolean; overload;
+function TryBuildProjectAnalysisContext(const aOptions: TAppOptions;
+  const aRequirement: TProjectAnalysisContextRequirement; out aContext: TProjectAnalysisContext;
+  out aError: string): Boolean; overload;
 function CreateProjectAnalysisIndexer(const aDefines, aSearchPath: string): TProjectIndexer; overload;
 function CreateProjectAnalysisIndexer(const aContext: TProjectAnalysisContext): TProjectIndexer; overload;
 
@@ -674,6 +677,14 @@ end;
 
 function TryBuildProjectAnalysisContext(const aOptions: TAppOptions; out aContext: TProjectAnalysisContext;
   out aError: string): Boolean;
+begin
+  Result := TryBuildProjectAnalysisContext(aOptions, TProjectAnalysisContextRequirement.AllowDegraded,
+    aContext, aError);
+end;
+
+function TryBuildProjectAnalysisContext(const aOptions: TAppOptions;
+  const aRequirement: TProjectAnalysisContextRequirement; out aContext: TProjectAnalysisContext;
+  out aError: string): Boolean;
 const
   cDefaultContextNote = 'Using project-directory-only parser context; Delphi IDE context could not be resolved.';
 var
@@ -691,6 +702,20 @@ var
   lRsVarsEnvironment: TRsVarsEnvironment;
   lRsVarsEnvVars: TDictionary<string, string>;
   lSearchPaths: TArray<string>;
+
+  function FinishContext: Boolean;
+  begin
+    Result := True;
+    if (aRequirement = TProjectAnalysisContextRequirement.StrictSemantic) and
+      (not aContext.HasDelphiContext) then
+    begin
+      if aContext.ContextNote <> '' then
+        aError := aContext.ContextNote
+      else
+        aError := cDefaultContextNote;
+      Exit(False);
+    end;
+  end;
 begin
   Result := False;
   aError := '';
@@ -736,7 +761,7 @@ begin
   lDelphiVersion := Trim(aOptions.fDelphiVersion);
   if (lDelphiVersion = '') and (not LoadDefaultDelphiVersion(lProjectPath, lDelphiVersion)) then
   begin
-    Result := True;
+    Result := FinishContext;
     Exit;
   end;
   if (lDelphiVersion <> '') and (Pos('.', lDelphiVersion) = 0) then
@@ -746,7 +771,7 @@ begin
 
   if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, lRsVarsEnvironment, lBuildError) then
   begin
-    Result := True;
+    Result := FinishContext;
     Exit;
   end;
 
@@ -755,7 +780,7 @@ begin
     if not TryReadIdeConfig(lDelphiVersion, aOptions.fPlatform, aOptions.fEnvOptionsPath, lRsVarsEnvVars, lEnvVars,
       lLibraryPath, lLibrarySource, nil, lBuildError) then
     begin
-      Result := True;
+      Result := FinishContext;
       Exit;
     end;
 
@@ -785,7 +810,7 @@ begin
     lEnvVars.Free;
   end;
 
-  Result := True;
+  Result := FinishContext;
 end;
 
 function CreateProjectAnalysisIndexer(const aDefines, aSearchPath: string): TProjectIndexer;

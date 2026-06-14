@@ -1236,7 +1236,8 @@ var
 begin
   aModel := nil;
   aError := '';
-  if not TryBuildProjectAnalysisContext(aOptions, lContext, aError) then
+  if not TryBuildProjectAnalysisContext(aOptions, TProjectAnalysisContextRequirement.AllowDegraded,
+    lContext, aError) then
     Exit(False);
 
   aModel := TRemoveWithProjectModel.Create(aProjectPath, lContext);

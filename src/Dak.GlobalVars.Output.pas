@@ -10,9 +10,11 @@ uses
 function BuildFilteredSymbols(const aSymbols: TObjectList<TGlobalVarSymbol>;
   const aOptions: TAppOptions): TObjectList<TGlobalVarSymbol>;
 function RenderJson(const aAllSymbols, aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
-  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aOptions: TAppOptions): string;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aProject: TProjectInfo;
+  const aOptions: TAppOptions): string;
 function RenderText(const aAllSymbols, aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
-  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aOptions: TAppOptions): string;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aProject: TProjectInfo;
+  const aOptions: TAppOptions): string;
 
 implementation
 
@@ -115,7 +117,7 @@ end;
 
 function BuildJsonSummary(const aAllSymbols, aFilteredSymbols:
   TObjectList<TGlobalVarSymbol>; const aAmbiguities: TList<TGlobalVarAmbiguity>;
-  const aOptions: TAppOptions): TJSONObject;
+  const aProject: TProjectInfo; const aOptions: TAppOptions): TJSONObject;
 begin
   Result := TJSONObject.Create;
   Result.AddPair('total', TJSONNumber.Create(aAllSymbols.Count));
@@ -124,10 +126,14 @@ begin
   Result.AddPair('ambiguities', TJSONNumber.Create(aAmbiguities.Count));
   Result.AddPair('emitted', TJSONNumber.Create(aFilteredSymbols.Count));
   Result.AddPair('filter', GlobalVarsFilterText(aOptions));
+  Result.AddPair('contextMode', aProject.ContextMode);
+  if aProject.ContextNote <> '' then
+    Result.AddPair('contextNote', aProject.ContextNote);
 end;
 
 function RenderJson(const aAllSymbols, aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
-  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aOptions: TAppOptions): string;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aProject: TProjectInfo;
+  const aOptions: TAppOptions): string;
 var
   lAmbiguities: TJSONArray;
   lAmbiguity: TGlobalVarAmbiguity;
@@ -140,7 +146,7 @@ begin
   lJson := TJSONObject.Create;
   try
     lJson.AddPair('summary', BuildJsonSummary(aAllSymbols, aFilteredSymbols,
-      aAmbiguities, aOptions));
+      aAmbiguities, aProject, aOptions));
     lSymbols := TJSONArray.Create;
     lJson.AddPair('symbols', lSymbols);
     for lSymbol in aFilteredSymbols do
@@ -190,7 +196,8 @@ begin
 end;
 
 function RenderText(const aAllSymbols, aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
-  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aOptions: TAppOptions): string;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aProject: TProjectInfo;
+  const aOptions: TAppOptions): string;
 var
   lAmbiguity: TGlobalVarAmbiguity;
   lBuilder: TStringBuilder;
@@ -203,6 +210,9 @@ begin
       [aAllSymbols.Count, aAllSymbols.Count - CountUnusedSymbols(aAllSymbols),
       CountUnusedSymbols(aAllSymbols), aAmbiguities.Count, aFilteredSymbols.Count,
       GlobalVarsFilterText(aOptions)]));
+    lBuilder.AppendLine('Context: ' + aProject.ContextMode);
+    if aProject.ContextNote <> '' then
+      lBuilder.AppendLine('Context note: ' + aProject.ContextNote);
     for lSymbol in aFilteredSymbols do
     begin
       lBuilder.AppendLine(Format('%s.%s: %s [%s] (%s:%d)', [lSymbol.UnitName,

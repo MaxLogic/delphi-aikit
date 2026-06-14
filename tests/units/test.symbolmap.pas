@@ -2798,6 +2798,10 @@ begin
     Assert.AreEqual('Release', (lJson.GetValue('project') as TJSONObject).GetValue<string>('config'));
     Assert.AreEqual('Win32', (lJson.GetValue('project') as TJSONObject).GetValue<string>('platform'));
     lContext := lJson.GetValue('context') as TJSONObject;
+    Assert.IsNotEmpty(lContext.GetValue<string>('contextMode'),
+      'Expected symbol-map context mode.');
+    Assert.IsTrue(Assigned(lContext.Values['contextNote']),
+      'Expected symbol-map context note field, even when empty.');
     Assert.IsTrue(lContext.GetValue('defines') is TJSONArray, 'Expected defines array.');
     Assert.IsTrue(lContext.GetValue('unitSearchPath') is TJSONArray, 'Expected unitSearchPath array.');
     Assert.IsTrue(lContext.GetValue('libraryPath') is TJSONArray, 'Expected libraryPath array.');

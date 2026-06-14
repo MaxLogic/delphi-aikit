@@ -240,7 +240,8 @@ begin
   if Trim(lOptions.fConfig) = '' then
     lOptions.fConfig := 'Release';
 
-  if not TryBuildProjectAnalysisContext(lOptions, aContext.fProject, aError) then
+  if not TryBuildProjectAnalysisContext(lOptions, TProjectAnalysisContextRequirement.AllowDegraded,
+    aContext.fProject, aError) then
     Exit(False);
 
   aContext.fConfig := lOptions.fConfig;

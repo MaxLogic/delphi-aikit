@@ -46,6 +46,9 @@ type
     fSearchPaths: TArray<string>;
   end;
 
+  TProjectAnalysisContextQuality = (pcqStrictSemantic, pcqDegradedProjectOnly);
+  TProjectAnalysisContextRequirement = (AllowDegraded, StrictSemantic);
+
   TProjectAnalysisContext = record
   private
     fProjectPath: string;
@@ -60,6 +63,7 @@ type
     fDakProjectRoot: string;
     fHasDelphiContext: Boolean;
     fContextNote: string;
+    function GetQuality: TProjectAnalysisContextQuality;
     function GetSourceFileNames: TArray<string>;
     function GetUnitAliases: TArray<string>;
     function GetUnitScopes: TArray<string>;
@@ -81,6 +85,7 @@ type
     property UnitScopes: TArray<string> read GetUnitScopes;
     property UnitAliases: TArray<string> read GetUnitAliases;
     property DakProjectRoot: string read fDakProjectRoot;
+    property Quality: TProjectAnalysisContextQuality read GetQuality;
     property HasDelphiContext: Boolean read fHasDelphiContext;
     property ContextNote: string read fContextNote;
   end;
@@ -297,7 +302,21 @@ type
     fUnitAliasesSource: TPropertySource;
   end;
 
+function ProjectAnalysisContextQualityToText(
+  const aQuality: TProjectAnalysisContextQuality): string;
+
 implementation
+
+function ProjectAnalysisContextQualityToText(
+  const aQuality: TProjectAnalysisContextQuality): string;
+begin
+  case aQuality of
+    TProjectAnalysisContextQuality.pcqStrictSemantic:
+      Result := 'strict-semantic';
+  else
+    Result := 'degraded-project-only';
+  end;
+end;
 
 class function TProjectAnalysisContext.Create(const aProjectPath, aProjectName,
   aProjectDir, aMainSourcePath: string; const aSourceFileNames: TArray<string>;
@@ -332,6 +351,14 @@ end;
 function TProjectAnalysisContext.GetSourceFileNames: TArray<string>;
 begin
   Result := Copy(fSourceFileNames);
+end;
+
+function TProjectAnalysisContext.GetQuality: TProjectAnalysisContextQuality;
+begin
+  if fHasDelphiContext then
+    Result := TProjectAnalysisContextQuality.pcqStrictSemantic
+  else
+    Result := TProjectAnalysisContextQuality.pcqDegradedProjectOnly;
 end;
 
 function TProjectAnalysisContext.GetUnitAliases: TArray<string>;
