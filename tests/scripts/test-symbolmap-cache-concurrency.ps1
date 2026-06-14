@@ -6,6 +6,8 @@ if (-not (Test-Path $resolver)) {
     throw "Resolver executable not found: $resolver"
 }
 
+. (Join-Path $PSScriptRoot 'Dak.ChildProcess.ps1')
+
 function New-TempDir([string]$Name) {
     $path = Join-Path ([IO.Path]::GetTempPath()) ($Name + '-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $path -Force | Out-Null
@@ -30,29 +32,15 @@ function Get-CacheMutexName([string]$CacheRoot) {
 }
 
 function Start-DakProcess([string]$Arguments, [string]$LogPath) {
-    $info = [Diagnostics.ProcessStartInfo]::new()
-    $info.FileName = $resolver
-    $info.Arguments = $Arguments
-    $info.WorkingDirectory = $repoRoot
-    $info.UseShellExecute = $false
-    $info.RedirectStandardOutput = $true
-    $info.RedirectStandardError = $true
-    $process = [Diagnostics.Process]::Start($info)
-    return [pscustomobject]@{ Process = $process; LogPath = $LogPath }
+    return Start-DakChild -FileName $resolver -Arguments $Arguments -WorkingDirectory $repoRoot -LogPath $LogPath
 }
 
 function Complete-DakProcess($Run, [int]$TimeoutMs) {
-    if (-not $Run.Process.WaitForExit($TimeoutMs)) {
-        try { $Run.Process.Kill() } catch {}
-        throw "Process timed out. Log: $($Run.LogPath)"
+    $result = Complete-DakChild -Run $Run -TimeoutMs $TimeoutMs
+    if ($result.ExitCode -ne 0) {
+        throw "Process failed with exit $($result.ExitCode). Log: $($Run.LogPath)"
     }
-    $stdout = $Run.Process.StandardOutput.ReadToEnd()
-    $stderr = $Run.Process.StandardError.ReadToEnd()
-    Set-Content -LiteralPath $Run.LogPath -Value ($stdout + $stderr) -Encoding UTF8
-    if ($Run.Process.ExitCode -ne 0) {
-        throw "Process failed with exit $($Run.Process.ExitCode). Log: $($Run.LogPath)"
-    }
-    return $stdout
+    return $result.Stdout
 }
 
 function Invoke-JsonIndex([string]$ProjectPath, [string]$UnitPath, [string]$CacheRoot, [string]$LogPath) {
@@ -87,7 +75,7 @@ try {
     $sameRun = Start-DakProcess ('symbol-map stats --project "{0}" --cache-root "{1}" --format json' -f $sameProject, $sameRoot) $sameLog
     Start-Sleep -Milliseconds 1200
     if ($sameRun.Process.HasExited) {
-        $sameOut = $sameRun.Process.StandardOutput.ReadToEnd() + $sameRun.Process.StandardError.ReadToEnd()
+        $sameOut = (Complete-DakChild -Run $sameRun -TimeoutMs 1000).Text
         throw "Same-root stats was not serialized by the held cache mutex. Output: $sameOut"
     }
 
@@ -123,7 +111,8 @@ $rtlRuns = @(
         $rtlRaceProject, $rtlRaceRoot) (Join-Path $rtlRaceRoot 'rtl-race-b.log'))
 )
 foreach ($run in $rtlRuns) {
-    [void](Complete-DakProcess $run 60000)
+    # A cold full RTL profile index can exceed two minutes on slower machines.
+    [void](Complete-DakProcess $run 300000)
 }
 $rtlCheck = Invoke-FullJsonIndex $rtlRaceProject $rtlRaceRoot (Join-Path $rtlRaceRoot 'rtl-race-check.log')
 if (-not $rtlCheck.rtlSource.cacheHit) {
