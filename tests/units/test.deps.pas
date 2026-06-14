@@ -41,6 +41,7 @@ type
     [Test] procedure DepsJsonExcludesUnresolvedUnitsFromHotspots;
     [Test] procedure DepsLinux64UsesTargetCompilerDefinesWithoutHostDefines;
     [Test] procedure DepsRunnerUsesSharedTypedSccAnalyzer;
+    [Test] procedure DepsRunnerDelegatesGraphConstructionToProjectSession;
   end;
 
 implementation
@@ -668,6 +669,25 @@ begin
     'deps runner should not own reachability-based SCC sweeps.');
   Assert.IsFalse(Pos('BuildRepresentativeCycle', lSource) > 0,
     'deps runner should not own representative cycle path assembly.');
+end;
+
+procedure TDepsTests.DepsRunnerDelegatesGraphConstructionToProjectSession;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.deps.runner.pas'),
+    TEncoding.UTF8);
+
+  Assert.IsTrue(Pos('TDelphiSemanticProjectSession.Open', lSource) > 0,
+    'deps runner should open a DelphiSemantics project session for dependency graph facts.');
+  Assert.IsTrue(Pos('BuildDependencyGraph', lSource) > 0,
+    'deps runner should request dependency graph facts from the project session.');
+  Assert.IsFalse(Pos('CreateProjectAnalysisIndexer', lSource) > 0,
+    'deps runner should not own project indexer construction.');
+  Assert.IsFalse(Pos('TProjectIndexer', lSource) > 0,
+    'deps runner should not own a parallel project indexer loop.');
+  Assert.IsFalse(Pos('TDelphiSemanticUnitModelExtractor.ExtractFromFile', lSource) > 0,
+    'deps runner should not extract semantic unit models file-by-file.');
 end;
 
 initialization
