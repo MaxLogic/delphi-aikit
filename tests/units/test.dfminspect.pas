@@ -26,6 +26,10 @@ type
     [Test]
     procedure CollectionPropertiesDoNotLeakWhenQuotedTextContainsGreaterThan;
     [Test]
+    procedure Utf8TextDfmWithoutBomKeepsCaptionText;
+    [Test]
+    procedure Utf16LeBomTextDfmKeepsCaptionText;
+    [Test]
     procedure HelpCommandShowsUsageWhenDfmValueUsesSeparateToken;
   end;
 
@@ -175,6 +179,59 @@ begin
     'Did not expect collection item Width to leak onto the form tree output.');
   Assert.IsTrue(Pos('Caption = ''Collection test''', lOutputText) > 0,
     'Expected root form properties to remain intact. Output: ' + lOutputText);
+end;
+
+procedure TDfmInspectTests.Utf8TextDfmWithoutBomKeepsCaptionText;
+var
+  lBytes: TBytes;
+  lDfmPath: string;
+  lError: string;
+  lExpectedCaption: string;
+  lOutputText: string;
+  lText: string;
+begin
+  lExpectedCaption := '''Caf' + Char($00E9) + '''';
+  lDfmPath := TPath.Combine(TempRoot, 'Utf8CaptionForm.dfm');
+  lText :=
+    'object Utf8CaptionForm: TForm' + sLineBreak +
+    '  Caption = ' + lExpectedCaption + sLineBreak +
+    'end' + sLineBreak;
+  lBytes := TEncoding.UTF8.GetBytes(lText);
+  TFile.WriteAllBytes(lDfmPath, lBytes);
+
+  Assert.IsTrue(TryInspectDfmFile(lDfmPath, 'tree', lOutputText, lError),
+    'Expected UTF-8 DFM without BOM to parse. Error: ' + lError);
+  Assert.IsTrue(Pos('Caption = ' + lExpectedCaption, lOutputText) > 0,
+    'Expected UTF-8 caption text to survive source loading. Output: ' + lOutputText);
+end;
+
+procedure TDfmInspectTests.Utf16LeBomTextDfmKeepsCaptionText;
+var
+  lBody: TBytes;
+  lBytes: TBytes;
+  lDfmPath: string;
+  lError: string;
+  lExpectedCaption: string;
+  lOutputText: string;
+  lText: string;
+begin
+  lExpectedCaption := '''Caf' + Char($00E9) + '''';
+  lDfmPath := TPath.Combine(TempRoot, 'Utf16CaptionForm.dfm');
+  lText :=
+    'object Utf16CaptionForm: TForm' + sLineBreak +
+    '  Caption = ' + lExpectedCaption + sLineBreak +
+    'end' + sLineBreak;
+  lBody := TEncoding.Unicode.GetBytes(lText);
+  SetLength(lBytes, Length(lBody) + 2);
+  lBytes[0] := $FF;
+  lBytes[1] := $FE;
+  Move(lBody[0], lBytes[2], Length(lBody));
+  TFile.WriteAllBytes(lDfmPath, lBytes);
+
+  Assert.IsTrue(TryInspectDfmFile(lDfmPath, 'tree', lOutputText, lError),
+    'Expected UTF-16LE BOM DFM to parse. Error: ' + lError);
+  Assert.IsTrue(Pos('Caption = ' + lExpectedCaption, lOutputText) > 0,
+    'Expected UTF-16LE caption text to survive source loading. Output: ' + lOutputText);
 end;
 
 procedure TDfmInspectTests.HelpCommandShowsUsageWhenDfmValueUsesSeparateToken;
