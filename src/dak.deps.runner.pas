@@ -393,9 +393,9 @@ end;
 function TDepsGraphBuilder.DefaultOutputPath(aFormat: TDepsFormat): string;
 begin
   if aFormat = TDepsFormat.dfText then
-    Result := TPath.Combine(TPath.Combine(fContext.fDakProjectRoot, 'deps'), 'deps.txt')
+    Result := TPath.Combine(TPath.Combine(fContext.DakProjectRoot, 'deps'), 'deps.txt')
   else
-    Result := TPath.Combine(TPath.Combine(fContext.fDakProjectRoot, 'deps'), 'deps.json');
+    Result := TPath.Combine(TPath.Combine(fContext.DakProjectRoot, 'deps'), 'deps.json');
 end;
 
 destructor TDepsGraphBuilder.Destroy;
@@ -687,7 +687,7 @@ begin
   end;
   lFullName := TPath.GetFullPath(aFileName);
   lFileDir := IncludeTrailingPathDelimiter(TPath.GetDirectoryName(lFullName));
-  lProjectDir := IncludeTrailingPathDelimiter(TPath.GetFullPath(fContext.fProjectDir));
+  lProjectDir := IncludeTrailingPathDelimiter(TPath.GetFullPath(fContext.ProjectDir));
   Result := SameText(Copy(lFileDir, 1, Length(lProjectDir)), lProjectDir);
 end;
 
@@ -790,7 +790,7 @@ begin
   FreeAndNil(fSccData);
   lIndexer := CreateProjectAnalysisIndexer(fContext);
   try
-    lIndexer.Index(fContext.fMainSourcePath);
+    lIndexer.Index(fContext.MainSourcePath);
     SetLength(lSemanticModels, 0);
 
     for lUnitInfo in lIndexer.ParsedUnits do
@@ -801,8 +801,8 @@ begin
         lSemanticModelOptions := Default(TDelphiSemanticModelOptions);
         lSemanticModelOptions.SourceFileName := lUnitInfo.Path;
         lSemanticModelOptions.ProjectContextApplied := True;
-        lSemanticModelOptions.Defines := SplitListText(fContext.fParserDefines);
-        lSemanticModelOptions.SearchPaths := SplitListText(fContext.fParserSearchPath);
+        lSemanticModelOptions.Defines := SplitListText(fContext.ParserDefines);
+        lSemanticModelOptions.SearchPaths := SplitListText(fContext.ParserSearchPath);
         lSemanticModel := TDelphiSemanticUnitModelExtractor.ExtractFromFile(lSemanticModelOptions);
         if lSemanticModel.Success and (lSemanticModel.UnitName <> '') then
         begin
@@ -855,7 +855,7 @@ begin
       MergeNode(lProblemInfo.fUnitName, lProblemInfo.fFileName, TDepsNodeResolution.dnrParserProblem);
     end;
     lSemanticGraphOptions := Default(TDelphiSemanticDependencyGraphOptions);
-    lSemanticGraphOptions.SearchPaths := SplitListText(fContext.fParserSearchPath);
+    lSemanticGraphOptions.SearchPaths := SplitListText(fContext.ParserSearchPath);
     lSemanticGraph := TDelphiSemanticDependencyGraphBuilder.Build(lSemanticModels, lSemanticGraphOptions);
     MergeSemanticGraph(lSemanticGraph);
   finally
@@ -907,15 +907,15 @@ begin
   lRoot := TJSONObject.Create;
   try
     lProjectJson := TJSONObject.Create;
-    lProjectJson.AddPair('name', fContext.fProjectName);
-    lProjectJson.AddPair('path', fContext.fProjectPath);
-    lProjectJson.AddPair('mainSource', fContext.fMainSourcePath);
-    if fContext.fHasDelphiContext then
+    lProjectJson.AddPair('name', fContext.ProjectName);
+    lProjectJson.AddPair('path', fContext.ProjectPath);
+    lProjectJson.AddPair('mainSource', fContext.MainSourcePath);
+    if fContext.HasDelphiContext then
       lProjectJson.AddPair('contextMode', 'full')
     else
       lProjectJson.AddPair('contextMode', 'degraded');
-    if fContext.fContextNote <> '' then
-      lProjectJson.AddPair('contextNote', fContext.fContextNote);
+    if fContext.ContextNote <> '' then
+      lProjectJson.AddPair('contextNote', fContext.ContextNote);
     lRoot.AddPair('project', lProjectJson);
 
     lResolvedCount := 0;
@@ -1134,12 +1134,12 @@ begin
 
   lBuilder := TStringBuilder.Create;
   try
-    lBuilder.AppendLine('Project: ' + fContext.fProjectName);
+    lBuilder.AppendLine('Project: ' + fContext.ProjectName);
     lBuilder.AppendLine(Format('Summary: nodes=%d edges=%d unresolved=%d parserProblems=%d',
       [fNodes.Count, fEdges.Count, fUnresolvedUnits.Count, fParserProblems.Count]));
-    if fContext.fContextNote <> '' then
+    if fContext.ContextNote <> '' then
     begin
-      lBuilder.AppendLine('Context: ' + fContext.fContextNote);
+      lBuilder.AppendLine('Context: ' + fContext.ContextNote);
     end;
 
     lCycleComponents := GetSortedCycleComponents;
@@ -1369,9 +1369,9 @@ begin
   if fOptions.fHasDepsOutputPath and (Trim(fOptions.fDepsOutputPath) <> '') then
     Result := fOptions.fDepsOutputPath
   else if fOptions.fDepsFormat = TDepsFormat.dfText then
-    Result := TPath.Combine(TPath.Combine(fContext.fDakProjectRoot, 'deps'), 'deps.txt')
+    Result := TPath.Combine(TPath.Combine(fContext.DakProjectRoot, 'deps'), 'deps.txt')
   else
-    Result := TPath.Combine(TPath.Combine(fContext.fDakProjectRoot, 'deps'), 'deps.json');
+    Result := TPath.Combine(TPath.Combine(fContext.DakProjectRoot, 'deps'), 'deps.json');
 end;
 
 function TDepsCommandRunner.TryBuildContext(out aError: string): Boolean;

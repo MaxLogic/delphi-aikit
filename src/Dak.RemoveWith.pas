@@ -215,7 +215,7 @@ begin
     LogRemoveWithDone(aOptions, 'project-model',
       Format('indexCount=%d parsedUnits=%d problems=%d main=%s',
       [lProjectModel.IndexCount, lProjectModel.ParsedUnitCount, lProjectModel.ProblemCount,
-      lProjectModel.Context.fMainSourcePath]), lStopwatch);
+      lProjectModel.Context.MainSourcePath]), lStopwatch);
 
     LogRemoveWithProgress(aOptions, 'discovery start');
     lStopwatch := TStopwatch.StartNew;

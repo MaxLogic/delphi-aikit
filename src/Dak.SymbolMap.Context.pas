@@ -26,6 +26,7 @@ type
     fRtlSourceRoot: string;
     fCentralCacheRoot: string;
     fProjectCacheRoot: string;
+    function WithRtlSourceRoot(const aSourceRoot: string): TSymbolMapContext;
   end;
 
 function TryBuildSymbolMapContext(const aOptions: TAppOptions; out aContext: TSymbolMapContext;
@@ -86,6 +87,17 @@ begin
   Result := NormalizeCacheRoot(ResolveDefaultCentralCacheRoot);
 end;
 
+function TSymbolMapContext.WithRtlSourceRoot(
+  const aSourceRoot: string): TSymbolMapContext;
+begin
+  Result := Self;
+  Result.fRtlSourceRoot := NormalizeCacheRoot(aSourceRoot);
+  Result.fProject := Result.fProject.WithParserDefines('');
+  SetLength(Result.fDefines, 0);
+  SetLength(Result.fUnitScopes, 0);
+  SetLength(Result.fUnitAliases, 0);
+end;
+
 procedure AddProjectSourceFilePath(const aPath: string; const aPasUnitOnly: Boolean;
   const aPaths: TList<string>; const aSeen: TDictionary<string, Boolean>);
 var
@@ -125,10 +137,10 @@ begin
   lPaths := TList<string>.Create;
   lSeen := TDictionary<string, Boolean>.Create;
   try
-    for lPath in aContext.fProject.fSourceFileNames do
+    for lPath in aContext.fProject.SourceFileNames do
       AddProjectSourceFilePath(lPath, True, lPaths, lSeen);
     if aIncludeMainSource then
-      AddProjectSourceFilePath(aContext.fProject.fMainSourcePath, False, lPaths, lSeen);
+      AddProjectSourceFilePath(aContext.fProject.MainSourcePath, False, lPaths, lSeen);
     Result := lPaths.ToArray;
   finally
     lSeen.Free;
@@ -177,13 +189,13 @@ var
   lRsVarsEnvVars: TDictionary<string, string>;
 begin
   lOptions := aOptions;
-  lOptions.fDprojPath := aContext.fProject.fProjectPath;
+  lOptions.fDprojPath := aContext.fProject.ProjectPath;
   lOptions.fConfig := aContext.fConfig;
   lOptions.fPlatform := aContext.fPlatform;
   lOptions.fDelphiVersion := NormalizeDelphiVersion(lOptions.fDelphiVersion);
   if lOptions.fDelphiVersion = '' then
   begin
-    if not LoadDefaultDelphiVersion(aContext.fProject.fProjectPath, lOptions.fDelphiVersion) then
+    if not LoadDefaultDelphiVersion(aContext.fProject.ProjectPath, lOptions.fDelphiVersion) then
       Exit;
     lOptions.fDelphiVersion := NormalizeDelphiVersion(lOptions.fDelphiVersion);
   end;
@@ -238,12 +250,12 @@ begin
   aContext.fEnvOptionsPath := lOptions.fEnvOptionsPath;
   aContext.fRtlSourceRoot := NormalizeCacheRoot(ResolveDefaultRtlSourceRoot(aContext.fDelphiVersion,
     lOptions.fRsVarsPath));
-  aContext.fDefines := SplitSemanticList(aContext.fProject.fParserDefines);
-  aContext.fUnitSearchPath := SplitSemanticList(aContext.fProject.fParserSearchPath);
-  aContext.fUnitScopes := aContext.fProject.fUnitScopes;
-  aContext.fUnitAliases := aContext.fProject.fUnitAliases;
+  aContext.fDefines := SplitSemanticList(aContext.fProject.ParserDefines);
+  aContext.fUnitSearchPath := SplitSemanticList(aContext.fProject.ParserSearchPath);
+  aContext.fUnitScopes := aContext.fProject.UnitScopes;
+  aContext.fUnitAliases := aContext.fProject.UnitAliases;
   aContext.fCentralCacheRoot := ResolveSymbolMapCentralCacheRoot(lOptions);
-  aContext.fProjectCacheRoot := TPath.Combine(TPath.Combine(aContext.fProject.fDakProjectRoot, 'symbol-map'),
+  aContext.fProjectCacheRoot := TPath.Combine(TPath.Combine(aContext.fProject.DakProjectRoot, 'symbol-map'),
     cSymbolMapCacheDirectoryVersion);
   TryPopulateCompilerParams(lOptions, aContext);
   Result := True;

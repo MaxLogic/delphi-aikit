@@ -58,6 +58,8 @@ type
     [Test]
     procedure ProjectAnalysisContextDelegatesSemanticAuthority;
     [Test]
+    procedure ProjectAnalysisContextExposesReadOnlyProperties;
+    [Test]
     procedure ProjectAnalysisContextMatchesSemanticProjectContext;
   end;
 
@@ -575,15 +577,15 @@ begin
 
   Assert.IsTrue(TryBuildProjectAnalysisContext(lOptions, lContext, lError),
     'Expected degraded project context. Error: ' + lError);
-  Assert.IsFalse(lContext.fHasDelphiContext, 'Expected missing rsvars to force degraded context.');
-  Assert.IsTrue(Pos('PROJECT_OVERRIDE', lContext.fParserDefines) > 0, 'PROJECT_OVERRIDE');
-  Assert.IsTrue(Pos('LINUX_PROJECT_BRANCH', lContext.fParserDefines) > 0, 'LINUX_PROJECT_BRANCH');
-  Assert.AreEqual(0, Pos('WIN32_PROJECT_BRANCH', lContext.fParserDefines), 'WIN32_PROJECT_BRANCH');
-  Assert.IsTrue(Pos('LINUX', lContext.fParserDefines) > 0, 'LINUX');
-  Assert.IsTrue(Pos('POSIX', lContext.fParserDefines) > 0, 'POSIX');
-  Assert.IsTrue(Pos('CPUX64', lContext.fParserDefines) > 0, 'CPUX64');
-  Assert.AreEqual(0, Pos('MSWINDOWS', lContext.fParserDefines), 'MSWINDOWS');
-  Assert.AreEqual(0, Pos('WIN32', lContext.fParserDefines), 'WIN32');
+  Assert.IsFalse(lContext.HasDelphiContext, 'Expected missing rsvars to force degraded context.');
+  Assert.IsTrue(Pos('PROJECT_OVERRIDE', lContext.ParserDefines) > 0, 'PROJECT_OVERRIDE');
+  Assert.IsTrue(Pos('LINUX_PROJECT_BRANCH', lContext.ParserDefines) > 0, 'LINUX_PROJECT_BRANCH');
+  Assert.AreEqual(0, Pos('WIN32_PROJECT_BRANCH', lContext.ParserDefines), 'WIN32_PROJECT_BRANCH');
+  Assert.IsTrue(Pos('LINUX', lContext.ParserDefines) > 0, 'LINUX');
+  Assert.IsTrue(Pos('POSIX', lContext.ParserDefines) > 0, 'POSIX');
+  Assert.IsTrue(Pos('CPUX64', lContext.ParserDefines) > 0, 'CPUX64');
+  Assert.AreEqual(0, Pos('MSWINDOWS', lContext.ParserDefines), 'MSWINDOWS');
+  Assert.AreEqual(0, Pos('WIN32', lContext.ParserDefines), 'WIN32');
 end;
 
 procedure TMsBuildTests.ProjectAnalysisContextDelegatesSemanticAuthority;
@@ -619,6 +621,51 @@ begin
     'Project-analysis context must not evaluate MSBuild independently.');
 end;
 
+procedure TMsBuildTests.ProjectAnalysisContextExposesReadOnlyProperties;
+var
+  lAliases: TArray<string>;
+  lContext: TProjectAnalysisContext;
+  lMutated: TArray<string>;
+  lSource: string;
+  lVariant: TProjectAnalysisContext;
+begin
+  lAliases := TArray<string>.Create('UnitA=UnitB');
+  lContext := TProjectAnalysisContext.Create('Project.dproj', 'Project',
+    'C:\Project', 'C:\Project\Project.dpr',
+    TArray<string>.Create('C:\Project\Unit1.pas'), 'A;B',
+    'C:\Project;C:\Lib', TArray<string>.Create('Vcl', 'System'), lAliases,
+    'C:\Project\.dak\Project', True, '');
+  lAliases[0] := 'Changed=Alias';
+  Assert.AreEqual('UnitA=UnitB', lContext.UnitAliases[0],
+    'Constructor should copy array inputs.');
+
+  lMutated := lContext.SourceFileNames;
+  lMutated[0] := 'Changed.pas';
+  Assert.AreEqual('C:\Project\Unit1.pas', lContext.SourceFileNames[0],
+    'Source-file property should return a copy.');
+  lMutated := lContext.UnitScopes;
+  lMutated[0] := 'ChangedScope';
+  Assert.AreEqual('Vcl', lContext.UnitScopes[0],
+    'Unit-scope property should return a copy.');
+  lMutated := lContext.UnitAliases;
+  lMutated[0] := 'Changed=Again';
+  Assert.AreEqual('UnitA=UnitB', lContext.UnitAliases[0],
+    'Unit-alias property should return a copy.');
+
+  lVariant := lContext.WithParserDefines('RTL');
+  Assert.AreEqual('RTL', lVariant.ParserDefines);
+  Assert.AreEqual(lContext.ProjectPath, lVariant.ProjectPath);
+  Assert.AreEqual(lContext.ParserSearchPath, lVariant.ParserSearchPath);
+  Assert.AreEqual(lContext.UnitAliases[0], lVariant.UnitAliases[0]);
+
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Cache.pas'),
+    TEncoding.UTF8);
+  Assert.IsFalse(ContainsText(lSource, '.fProject.fParserDefines :='),
+    'SymbolMap should use an explicit helper for alternate project contexts.');
+  Assert.IsTrue(ContainsText(lSource, 'WithRtlSourceRoot'),
+    'RTL SymbolMap contexts should be created through the explicit context helper.');
+end;
+
 procedure TMsBuildTests.ProjectAnalysisContextMatchesSemanticProjectContext;
 var
   lContext: TProjectAnalysisContext;
@@ -649,16 +696,16 @@ begin
   Assert.IsTrue(TryBuildProjectAnalysisContext(lOptions, lContext, lError),
     'Expected DAK project analysis context. Error: ' + lError);
 
-  Assert.AreEqual(lSemanticResult.Project.ProjectFileName, lContext.fProjectPath);
-  Assert.AreEqual(lSemanticResult.Project.ProjectDirectory, lContext.fProjectDir);
-  Assert.AreEqual(lSemanticResult.Project.ProjectName, lContext.fProjectName);
-  Assert.AreEqual(lSemanticResult.Project.MainSourceFileName, lContext.fMainSourcePath);
-  Assert.AreEqual(ArrayText(lSemanticResult.Project.Defines), lContext.fParserDefines);
-  Assert.AreEqual(ArrayText(lSemanticResult.Project.UnitScopeNames), ArrayText(lContext.fUnitScopes));
-  Assert.AreEqual(ArrayText(lSemanticResult.Project.UnitAliases), ArrayText(lContext.fUnitAliases));
-  Assert.IsTrue(ContainsText(lContext.fParserSearchPath, TPath.GetFullPath(lReferenceDir)),
+  Assert.AreEqual(lSemanticResult.Project.ProjectFileName, lContext.ProjectPath);
+  Assert.AreEqual(lSemanticResult.Project.ProjectDirectory, lContext.ProjectDir);
+  Assert.AreEqual(lSemanticResult.Project.ProjectName, lContext.ProjectName);
+  Assert.AreEqual(lSemanticResult.Project.MainSourceFileName, lContext.MainSourcePath);
+  Assert.AreEqual(ArrayText(lSemanticResult.Project.Defines), lContext.ParserDefines);
+  Assert.AreEqual(ArrayText(lSemanticResult.Project.UnitScopeNames), ArrayText(lContext.UnitScopes));
+  Assert.AreEqual(ArrayText(lSemanticResult.Project.UnitAliases), ArrayText(lContext.UnitAliases));
+  Assert.IsTrue(ContainsText(lContext.ParserSearchPath, TPath.GetFullPath(lReferenceDir)),
     'Expected DAK context reference dir from semantic source lookup.');
-  Assert.IsTrue(ContainsText(lContext.fParserSearchPath, TPath.GetFullPath(lSearchDir)),
+  Assert.IsTrue(ContainsText(lContext.ParserSearchPath, TPath.GetFullPath(lSearchDir)),
     'Expected DAK context search dir from semantic source lookup.');
 end;
 

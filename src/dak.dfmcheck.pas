@@ -2768,7 +2768,7 @@ begin
   aSearchPath := '';
   if not TryBuildProjectAnalysisContext(aOptions, lContext, lUnusedError) then
     Exit(False);
-  if Trim(lContext.fParserSearchPath) = '' then
+  if Trim(lContext.ParserSearchPath) = '' then
     Exit(True);
 
   lPaths := TStringList.Create;
@@ -2776,7 +2776,7 @@ begin
     lPaths.CaseSensitive := False;
     lPaths.Sorted := False;
     lPaths.Duplicates := TDuplicates.dupIgnore;
-    AppendDelimitedPaths(lContext.fParserSearchPath, lPaths);
+    AppendDelimitedPaths(lContext.ParserSearchPath, lPaths);
     aSearchPath := BuildDelimitedPath(lPaths);
   finally
     lPaths.Free;

@@ -1079,7 +1079,7 @@ end;
 
 procedure TRemoveWithProjectModel.Index;
 begin
-  fIndexer.Index(fContext.fMainSourcePath);
+  fIndexer.Index(fContext.MainSourcePath);
   Inc(fIndexCount);
 end;
 

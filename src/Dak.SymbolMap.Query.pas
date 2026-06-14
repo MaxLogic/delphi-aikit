@@ -118,7 +118,7 @@ end;
 function SemanticOptions(const aContext: TSymbolMapContext): TDelphiSemanticOptions;
 begin
   Result := Default(TDelphiSemanticOptions);
-  Result.ProjectPath := aContext.fProject.fProjectPath;
+  Result.ProjectPath := aContext.fProject.ProjectPath;
   Result.Configuration := aContext.fConfig;
   Result.Platform := aContext.fPlatform;
   Result.DelphiVersion := aContext.fDelphiVersion;
