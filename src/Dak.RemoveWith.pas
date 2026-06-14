@@ -12,7 +12,7 @@ implementation
 uses
   System.Diagnostics, System.Generics.Collections, System.IOUtils, System.SysUtils,
   Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Model, Dak.RemoveWith.Output, Dak.RemoveWith.Planner,
-  Dak.RemoveWith.Resolver, Dak.RemoveWith.SymbolMap, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
+  Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
 
 procedure LogRemoveWithProgress(const aOptions: TAppOptions; const aMessage: string);
 begin
@@ -159,7 +159,6 @@ var
   lRunId: string;
   lScanResult: TRemoveWithScanResult;
   lStopwatch: TStopwatch;
-  lSymbolMapBridge: TRemoveWithSymbolMapBridge;
   lSymbolInventory: TRemoveWithFactSet;
   lSymbolInventoryPhaseMetrics: TRemoveWithFactSetPhaseMetrics;
   lTransactionResult: TRemoveWithTransactionResult;
@@ -175,7 +174,6 @@ begin
   lPlanResult := Default(TRemoveWithPlanResult);
   lResolverResult := Default(TRemoveWithResolverResult);
   lResolverReportMetrics := Default(TRemoveWithResolverReportMetrics);
-  lSymbolMapBridge := Default(TRemoveWithSymbolMapBridge);
   lTransactionResult := Default(TRemoveWithTransactionResult);
 
   if not TryResolveDprojPath(aOptions.fDprojPath, lProjectPath, lError) then
@@ -261,7 +259,6 @@ begin
       LogRemoveWithDone(aOptions, 'symbol-inventory',
         Format('symbols=%d', [Length(lSymbolInventory.fSymbols)]), lStopwatch);
 
-      LogRemoveWithProgress(aOptions, 'symbol-map-bridge skipped; semantic project facts are authoritative');
       lMetrics.fSymbolMapBridgeMs := 0;
 
       if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
@@ -407,7 +404,6 @@ begin
       Exit(cExitToolFailure);
     Result := cExitSuccess;
   finally
-    FinalizeRemoveWithSymbolMapBridge(lSymbolMapBridge);
     lProjectModel.Free;
   end;
 end;

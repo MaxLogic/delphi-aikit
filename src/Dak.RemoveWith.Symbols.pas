@@ -385,6 +385,8 @@ begin
   aSymbol.fTypeCategory := DelphiSemanticTypeCategoryToRemoveWithCategory(
     aSemanticSymbol.TypeCategory);
   aSymbol.fKind := lKind;
+  if aSymbol.fKind = TRemoveWithSymbolKind.rwskExternal then
+    aSymbol.fUnitName := '';
   Result := True;
 end;
 
@@ -1938,7 +1940,7 @@ end;
 procedure AddExternalUsesUnits(const aContext: TRemoveWithSymbolInventoryContext;
   var aInventory: TRemoveWithFactSet;
   const aExistingUnits, aExternalUnits: TDictionary<string, Byte>; const aUnits: TArray<string>;
-  const aSourceUnitName, aFilePath: string);
+  const aFilePath: string);
 var
   lExternalSymbol: TRemoveWithSymbolInfo;
   lUnitKey: string;
@@ -1957,7 +1959,6 @@ begin
     aExternalUnits.Add(lUnitKey, 1);
     lExternalSymbol := Default(TRemoveWithSymbolInfo);
     lExternalSymbol.fName := lUnitName;
-    lExternalSymbol.fUnitName := aSourceUnitName;
     lExternalSymbol.fFilePath := aFilePath;
     lExternalSymbol.fKind := TRemoveWithSymbolKind.rwskExternal;
     TRemoveWithSymbolBuilder.AddSymbol(aContext, aInventory, lExternalSymbol);
@@ -1988,14 +1989,14 @@ begin
 
       for lUnitModel in aProjectModel.UnitModels do
         AddExternalUsesUnits(aContext, aInventory, lExistingUnits, lExternalUnits, lUnitModel.fUses,
-          lUnitModel.fUnitName, lUnitModel.fFilePath);
+          lUnitModel.fFilePath);
 
       for lModel in aInventory.fDelphiSemanticUnitModels do
       begin
         AddExternalUsesUnits(aContext, aInventory, lExistingUnits, lExternalUnits, lModel.InterfaceUses,
-          lModel.UnitName, lModel.FileName);
+          lModel.FileName);
         AddExternalUsesUnits(aContext, aInventory, lExistingUnits, lExternalUnits, lModel.ImplementationUses,
-          lModel.UnitName, lModel.FileName);
+          lModel.FileName);
       end;
     finally
       lExternalUnits.Free;
