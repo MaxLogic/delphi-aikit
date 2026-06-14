@@ -2759,14 +2759,16 @@ begin
   end;
 end;
 
-function TryBuildEffectiveProjectSearchPath(const aOptions: TAppOptions; out aSearchPath: string): Boolean;
+function TryBuildEffectiveProjectSearchPath(const aOptions: TAppOptions; out aSearchPath: string;
+  out aError: string): Boolean;
 var
   lContext: TProjectAnalysisContext;
   lPaths: TStringList;
-  lUnusedError: string;
 begin
   aSearchPath := '';
-  if not TryBuildProjectAnalysisContext(aOptions, lContext, lUnusedError) then
+  aError := '';
+  if not TryBuildProjectAnalysisContext(aOptions, TProjectAnalysisContextRequirement.StrictSemantic,
+    lContext, aError) then
     Exit(False);
   if Trim(lContext.ParserSearchPath) = '' then
     Exit(True);
@@ -2784,12 +2786,14 @@ begin
   Result := True;
 end;
 
-function BuildDfmCheckSearchPath(const aOptions: TAppOptions; const aReferenceDirs: TStrings;
-  const aDiscoveredUnitDirs: TStrings): string;
+function TryBuildDfmCheckSearchPath(const aOptions: TAppOptions; const aReferenceDirs: TStrings;
+  const aDiscoveredUnitDirs: TStrings; out aSearchPath: string; out aError: string): Boolean;
 var
   lEffectiveSearchPath: string;
   lPaths: TStringList;
 begin
+  aSearchPath := '';
+  aError := '';
   lPaths := TStringList.Create;
   try
     lPaths.CaseSensitive := False;
@@ -2797,12 +2801,14 @@ begin
     lPaths.Duplicates := TDuplicates.dupIgnore;
     AppendDelimitedPaths(BuildDelimitedPath(aReferenceDirs), lPaths);
     AppendDelimitedPaths(BuildDelimitedPath(aDiscoveredUnitDirs), lPaths);
-    if TryBuildEffectiveProjectSearchPath(aOptions, lEffectiveSearchPath) then
-      AppendDelimitedPaths(lEffectiveSearchPath, lPaths);
-    Result := BuildDelimitedPath(lPaths);
+    if not TryBuildEffectiveProjectSearchPath(aOptions, lEffectiveSearchPath, aError) then
+      Exit(False);
+    AppendDelimitedPaths(lEffectiveSearchPath, lPaths);
+    aSearchPath := BuildDelimitedPath(lPaths);
   finally
     lPaths.Free;
   end;
+  Result := True;
 end;
 
 function TryCollectFormModulesFromDproj(const aDprojPath: string; const aUnitNames: TStrings;
@@ -3228,7 +3234,9 @@ begin
       lContextOptions.fConfig := 'Release';
     if Trim(lContextOptions.fPlatform) = '' then
       lContextOptions.fPlatform := 'Win32';
-    lUnitSearchPath := BuildDfmCheckSearchPath(lContextOptions, lDprojReferenceDirs, lUnitSearchDirs);
+    if not TryBuildDfmCheckSearchPath(lContextOptions, lDprojReferenceDirs, lUnitSearchDirs, lUnitSearchPath,
+      aError) then
+      Exit(False);
     lGeneratedDprName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dpr';
     lGeneratedDprojName := TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck.dproj';
     TDirectory.CreateDirectory(aPaths.fGeneratedDir);
@@ -3702,6 +3710,7 @@ var
   lEffectiveOptions: TAppOptions;
   lFailedResources: TStringList;
   lPaths: TDfmCheckPaths;
+  lProjectContext: TProjectAnalysisContext;
   lText: string;
   lExitCode: Cardinal;
   lRunnerError: string;
@@ -3805,6 +3814,17 @@ begin
     if not TryResolveDfmCheckProjectPath(aOptions.fDprojPath, lDprojPath, aError) then
     begin
       aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+    lEffectiveOptions.fDprojPath := lDprojPath;
+    if Trim(lEffectiveOptions.fConfig) = '' then
+      lEffectiveOptions.fConfig := 'Release';
+    if Trim(lEffectiveOptions.fPlatform) = '' then
+      lEffectiveOptions.fPlatform := 'Win32';
+    if not TryBuildProjectAnalysisContext(lEffectiveOptions, TProjectAnalysisContextRequirement.StrictSemantic,
+      lProjectContext, aError) then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
       Exit(MapDfmCheckExitCode(aCategory, 0));
     end;
     lDiagnostics := TDiagnostics.Create;

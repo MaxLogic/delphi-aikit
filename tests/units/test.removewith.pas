@@ -1732,6 +1732,7 @@ begin
     AssertJsonStringKey(lChildObject, 'path');
     AssertJsonStringKey(lChildObject, 'name');
     AssertJsonStringKey(lChildObject, 'dir');
+    AssertJsonStringKey(lChildObject, 'contextMode');
 
     AssertJsonObjectKey(lRoot, 'run', lChildObject);
     AssertJsonStringKey(lChildObject, 'id');

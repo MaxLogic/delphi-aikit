@@ -24,12 +24,15 @@ var
   lContext: TProjectAnalysisContext;
   lError: string;
 begin
-  if not TryBuildProjectAnalysisContext(aOptions, lContext, lError) then
+  if not TryBuildProjectAnalysisContext(aOptions, TProjectAnalysisContextRequirement.AllowDegraded,
+    lContext, lError) then
     raise Exception.Create(lError);
 
   Result.ProjectPath := lContext.ProjectPath;
   Result.ProjectName := lContext.ProjectName;
   Result.MainSourcePath := lContext.MainSourcePath;
+  Result.ContextMode := ProjectAnalysisContextQualityToText(lContext.Quality);
+  Result.ContextNote := lContext.ContextNote;
   Result.ParserDefines := lContext.ParserDefines;
   Result.ParserSearchPath := lContext.ParserSearchPath;
   Result.UnitAliases := lContext.UnitAliases;
@@ -67,12 +70,14 @@ end;
 
 function RenderGlobalVarsOutput(const aSymbols, aFilteredSymbols:
   TObjectList<TGlobalVarSymbol>; const aAmbiguities: TList<TGlobalVarAmbiguity>;
-  const aOptions: TAppOptions): string;
+  const aProject: TProjectInfo; const aOptions: TAppOptions): string;
 begin
   if aOptions.fGlobalVarsFormat = TGlobalVarsFormat.gvfJson then
-    Result := RenderJson(aSymbols, aFilteredSymbols, aAmbiguities, aOptions)
+    Result := RenderJson(aSymbols, aFilteredSymbols, aAmbiguities, aProject,
+      aOptions)
   else
-    Result := RenderText(aSymbols, aFilteredSymbols, aAmbiguities, aOptions);
+    Result := RenderText(aSymbols, aFilteredSymbols, aAmbiguities, aProject,
+      aOptions);
 end;
 
 procedure WriteOutput(const aOutputPath, aOutputText: string);
@@ -128,7 +133,7 @@ begin
     lFilteredSymbols := BuildFilteredSymbols(lSymbols, aOptions);
     try
       lOutputText := RenderGlobalVarsOutput(lSymbols, lFilteredSymbols, lAmbiguities,
-        aOptions);
+        lProject, aOptions);
     finally
       lFilteredSymbols.Free;
     end;

@@ -910,10 +910,7 @@ begin
     lProjectJson.AddPair('name', fContext.ProjectName);
     lProjectJson.AddPair('path', fContext.ProjectPath);
     lProjectJson.AddPair('mainSource', fContext.MainSourcePath);
-    if fContext.HasDelphiContext then
-      lProjectJson.AddPair('contextMode', 'full')
-    else
-      lProjectJson.AddPair('contextMode', 'degraded');
+    lProjectJson.AddPair('contextMode', ProjectAnalysisContextQualityToText(fContext.Quality));
     if fContext.ContextNote <> '' then
       lProjectJson.AddPair('contextNote', fContext.ContextNote);
     lRoot.AddPair('project', lProjectJson);
@@ -1135,6 +1132,7 @@ begin
   lBuilder := TStringBuilder.Create;
   try
     lBuilder.AppendLine('Project: ' + fContext.ProjectName);
+    lBuilder.AppendLine('Context mode: ' + ProjectAnalysisContextQualityToText(fContext.Quality));
     lBuilder.AppendLine(Format('Summary: nodes=%d edges=%d unresolved=%d parserProblems=%d',
       [fNodes.Count, fEdges.Count, fUnresolvedUnits.Count, fParserProblems.Count]));
     if fContext.ContextNote <> '' then
@@ -1376,7 +1374,8 @@ end;
 
 function TDepsCommandRunner.TryBuildContext(out aError: string): Boolean;
 begin
-  Result := TryBuildProjectAnalysisContext(fOptions, fContext, aError);
+  Result := TryBuildProjectAnalysisContext(fOptions, TProjectAnalysisContextRequirement.AllowDegraded,
+    fContext, aError);
 end;
 
 procedure TDepsCommandRunner.WriteOutput(const aOutputText, aOutputPath: string);

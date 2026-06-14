@@ -56,6 +56,10 @@ type
     [Test]
     procedure DegradedProjectAnalysisContextKeepsProjectDefines;
     [Test]
+    procedure StrictProjectAnalysisContextFailsOnDegradedContext;
+    [Test]
+    procedure ProjectAnalysisCommandCallersChooseExplicitContextPolicy;
+    [Test]
     procedure ProjectAnalysisContextDelegatesSemanticAuthority;
     [Test]
     procedure ProjectAnalysisContextExposesReadOnlyProperties;
@@ -578,6 +582,8 @@ begin
   Assert.IsTrue(TryBuildProjectAnalysisContext(lOptions, lContext, lError),
     'Expected degraded project context. Error: ' + lError);
   Assert.IsFalse(lContext.HasDelphiContext, 'Expected missing rsvars to force degraded context.');
+  Assert.AreEqual(TProjectAnalysisContextQuality.pcqDegradedProjectOnly, lContext.Quality,
+    'Expected structured degraded context quality.');
   Assert.IsTrue(Pos('PROJECT_OVERRIDE', lContext.ParserDefines) > 0, 'PROJECT_OVERRIDE');
   Assert.IsTrue(Pos('LINUX_PROJECT_BRANCH', lContext.ParserDefines) > 0, 'LINUX_PROJECT_BRANCH');
   Assert.AreEqual(0, Pos('WIN32_PROJECT_BRANCH', lContext.ParserDefines), 'WIN32_PROJECT_BRANCH');
@@ -586,6 +592,55 @@ begin
   Assert.IsTrue(Pos('CPUX64', lContext.ParserDefines) > 0, 'CPUX64');
   Assert.AreEqual(0, Pos('MSWINDOWS', lContext.ParserDefines), 'MSWINDOWS');
   Assert.AreEqual(0, Pos('WIN32', lContext.ParserDefines), 'WIN32');
+end;
+
+procedure TMsBuildTests.StrictProjectAnalysisContextFailsOnDegradedContext;
+var
+  lContext: TProjectAnalysisContext;
+  lError: string;
+  lOptions: TAppOptions;
+  lProjectPath: string;
+  lRoot: string;
+begin
+  BuildTargetPlatformProject('msbuild-target-platform-strict-context', lProjectPath, lRoot);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lProjectPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Linux64';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRsVarsPath := TPath.Combine(lRoot, 'missing-rsvars.bat');
+
+  Assert.IsFalse(TryBuildProjectAnalysisContext(lOptions,
+    TProjectAnalysisContextRequirement.StrictSemantic, lContext, lError),
+    'Strict semantic context must fail closed when rsvars cannot be resolved.');
+  Assert.IsTrue(ContainsText(lError, 'Delphi IDE context could not be resolved'),
+    'Expected strict-context error to include the degradation reason. Error: ' + lError);
+end;
+
+procedure TMsBuildTests.ProjectAnalysisCommandCallersChooseExplicitContextPolicy;
+const
+  cCommandSources: array[0..4] of string = (
+    'src\dak.dfmcheck.pas',
+    'src\dak.deps.runner.pas',
+    'src\dak.globalvars.pas',
+    'src\Dak.RemoveWith.Model.pas',
+    'src\Dak.SymbolMap.Context.pas');
+var
+  lPath: string;
+  lSource: string;
+begin
+  for lPath in cCommandSources do
+  begin
+    lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, lPath), TEncoding.UTF8);
+    Assert.IsTrue(ContainsText(lSource, 'TProjectAnalysisContextRequirement.AllowDegraded') or
+      ContainsText(lSource, 'TProjectAnalysisContextRequirement.StrictSemantic'),
+      'Expected explicit project-analysis context policy in ' + lPath);
+    Assert.IsFalse(ContainsText(lSource, 'TryBuildProjectAnalysisContext(aOptions, lContext') or
+      ContainsText(lSource, 'TryBuildProjectAnalysisContext(lOptions, aContext.fProject') or
+      ContainsText(lSource, 'TryBuildProjectAnalysisContext(fOptions, fContext'),
+      'Command context callers must not use the implicit degraded-context overload in ' + lPath);
+  end;
 end;
 
 procedure TMsBuildTests.ProjectAnalysisContextDelegatesSemanticAuthority;

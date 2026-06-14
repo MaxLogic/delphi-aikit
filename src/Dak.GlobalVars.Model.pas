@@ -48,6 +48,8 @@ type
     ProjectPath: string;
     ProjectName: string;
     MainSourcePath: string;
+    ContextMode: string;
+    ContextNote: string;
     ParserDefines: string;
     ParserSearchPath: string;
     UnitAliases: TArray<string>;

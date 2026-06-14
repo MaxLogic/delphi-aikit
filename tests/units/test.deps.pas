@@ -204,7 +204,7 @@ begin
     Assert.AreEqual('DepsFixture', lProjectJson.GetValue<string>('name'));
     Assert.IsNotEmpty(lProjectJson.GetValue<string>('path'));
     Assert.IsNotEmpty(lProjectJson.GetValue<string>('mainSource'));
-    Assert.IsNotEmpty(lProjectJson.GetValue<string>('contextMode'));
+    Assert.AreEqual('degraded-project-only', lProjectJson.GetValue<string>('contextMode'));
 
     lSummary := lJson.GetValue<TJSONObject>('summary');
     Assert.IsNotNull(lSummary);

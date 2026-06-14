@@ -85,6 +85,10 @@ type
     [Test]
     procedure PipelinePreservesEffectiveSearchPathForGeneratedProject;
     [Test]
+    procedure PipelineFailsClosedWhenStrictProjectContextIsUnavailable;
+    [Test]
+    procedure PipelineStrictContextUsesDefaultConfigPlatform;
+    [Test]
     procedure PipelineGeneratedRegisterPreservesNamespacedUnitNames;
     [Test]
     procedure PipelineBrokenDfmPropagatesValidatorExitAndFailText;
@@ -1428,6 +1432,91 @@ begin
       'Generated checker DPROJ should keep project form-unit directories ahead of inherited EnvOptions search paths.');
     Assert.IsTrue(lSourceDirPos < lIdeLibraryPos,
       'Generated checker DPROJ should keep project form-unit directories ahead of IDE/library-path entries.');
+  finally
+    lEnvGuard := nil;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineFailsClosedWhenStrictProjectContextIsUnavailable;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lEnvGuard: IInterface;
+  lOptions: TAppOptions;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProjectWithInheritedSearchPath(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-strict-context-missing');
+  WriteInjectStubs(lInjectDir);
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe'
+  ]);
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'missing-rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreNotEqual(0, lResult, 'Expected DFMCheck to fail closed without strict semantic context.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecDfmCheckFailed, lCategory,
+      'Unexpected error category for strict context failure.');
+    Assert.IsTrue(ContainsText(lError, 'Delphi IDE context could not be resolved'),
+      'Expected strict context failure to report the degradation reason. Error: ' + lError);
+    Assert.AreEqual(0, lRunnerImpl.RunCount, 'DFMCheck must not invoke external tools after strict context failure.');
+  finally
+    lEnvGuard := nil;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineStrictContextUsesDefaultConfigPlatform;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lEnvGuard: IInterface;
+  lOptions: TAppOptions;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProjectWithInheritedSearchPath(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-default-context');
+  WriteInjectStubs(lInjectDir);
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe'
+  ]);
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected omitted config/platform to use dfm-check defaults.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Unexpected error category for defaulted config/platform.');
+    Assert.AreEqual('', lError, 'Did not expect an error when config/platform are omitted.');
+    Assert.IsTrue(ContainsText(lRunnerImpl.MsBuildArguments, '/p:Config=Release'),
+      'Expected default Release config in MSBuild arguments: ' + lRunnerImpl.MsBuildArguments);
+    Assert.IsTrue(ContainsText(lRunnerImpl.MsBuildArguments, '/p:Platform=Win32'),
+      'Expected default Win32 platform in MSBuild arguments: ' + lRunnerImpl.MsBuildArguments);
   finally
     lEnvGuard := nil;
   end;

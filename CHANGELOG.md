@@ -60,6 +60,9 @@ All notable user-visible changes to this project will be documented in this file
 - Added `deps` for project dependency topology analysis, including deterministic JSON output, text summaries, focused unit views, cycle reporting over resolved project units, and default artifact copies under sibling `.dak/<ProjectName>/deps/`. (T-101, T-102)
 
 ### Changed
+- Project-analysis commands now make their semantic context quality explicit:
+  degraded-tolerant commands report context mode/note in command output, while
+  strict commands fail closed when Delphi IDE context cannot be resolved.
 - rsvars loading now returns an explicit environment snapshot for child tools and
   semantic evaluators instead of mutating the long-lived DelphiAIKit process.
 - DFMCheck generated project rewrites now use structured MSBuild XML handling,

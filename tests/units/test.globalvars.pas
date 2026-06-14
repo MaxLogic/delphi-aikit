@@ -189,6 +189,8 @@ begin
     Assert.AreEqual(0, lSummary.GetValue<Integer>('ambiguities'));
     Assert.AreEqual(5, lSummary.GetValue<Integer>('emitted'));
     Assert.AreEqual('all', lSummary.GetValue<string>('filter'));
+    Assert.IsNotEmpty(lSummary.GetValue<string>('contextMode'),
+      'Expected global-vars JSON to report project-analysis context mode.');
     lSymbols := lJson.GetValue<TJSONArray>('symbols');
     Assert.IsNotNull(lSymbols);
     Assert.AreEqual(5, lSymbols.Count);

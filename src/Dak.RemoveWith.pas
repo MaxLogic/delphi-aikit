@@ -209,6 +209,8 @@ begin
   try
     lStopwatch.Stop;
     lMetrics.fProjectModelMs := lStopwatch.ElapsedMilliseconds;
+    lMetrics.fContextMode := ProjectAnalysisContextQualityToText(lProjectModel.Context.Quality);
+    lMetrics.fContextNote := lProjectModel.Context.ContextNote;
     lMetrics.fProjectUnitCount := lProjectModel.IndexCount;
     lMetrics.fParsedUnitCount := lProjectModel.ParsedUnitCount;
     lMetrics.fProjectProblemCount := lProjectModel.ProblemCount;
@@ -395,7 +397,7 @@ begin
     lMetrics.fTotalMs := lTotalStopwatch.ElapsedMilliseconds;
     if aOptions.fRemoveWithFormat = TRemoveWithFormat.rwfText then
       lOutputText := BuildRemoveWithTextReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
-        lScanResult, lPlanResult, lTransactionResult)
+        lScanResult, lPlanResult, lTransactionResult, lMetrics)
     else
       lOutputText := BuildRemoveWithJsonReport(aOptions, lProjectPath, lWorkspaceRoot, lRunId, lUnitPath, lDirPath,
         lScanResult, lResolverResult, lPlanResult, lTransactionResult, lMetrics);

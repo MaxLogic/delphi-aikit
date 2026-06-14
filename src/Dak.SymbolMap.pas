@@ -1,4 +1,4 @@
-﻿unit Dak.SymbolMap;
+unit Dak.SymbolMap;
 
 interface
 
@@ -339,7 +339,9 @@ begin
       aCacheStatus.fSchemaVersion.ToString + ',"centralCreated":' +
       LowerCase(BoolToStr(aCacheStatus.fCentralCreated, True)) + ',"projectCreated":' +
       LowerCase(BoolToStr(aCacheStatus.fProjectCreated, True)) + '}' +
-    ',"context":{"delphiVersion":"' + JsonEscape(aContext.fDelphiVersion) + '","hasDelphiContext":' +
+    ',"context":{"delphiVersion":"' + JsonEscape(aContext.fDelphiVersion) + '","contextMode":"' +
+      JsonEscape(ProjectAnalysisContextQualityToText(aContext.fProject.Quality)) + '","contextNote":"' +
+      JsonEscape(aContext.fProject.ContextNote) + '","hasDelphiContext":' +
       LowerCase(BoolToStr(aContext.fProject.HasDelphiContext, True)) + ',"parserDefines":"' +
       JsonEscape(aContext.fProject.ParserDefines) + '","parserSearchPath":"' +
       JsonEscape(aContext.fProject.ParserSearchPath) + '","hasCompilerParams":' +
@@ -364,6 +366,9 @@ var
 begin
   WriteLn('symbol-map ', SymbolMapOperationToText(aOptions.fSymbolMapOperation), ': ok');
   WriteLn('project: ', aContext.fProject.ProjectPath);
+  WriteLn('context-mode: ', ProjectAnalysisContextQualityToText(aContext.fProject.Quality));
+  if aContext.fProject.ContextNote <> '' then
+    WriteLn('context-note: ', aContext.fProject.ContextNote);
   WriteLn('central-cache-root: ', aContext.fCentralCacheRoot);
   WriteLn('project-cache-root: ', aContext.fProjectCacheRoot);
   WriteLn('central-cache-db: ', aCacheStatus.fCentralDbPath);
