@@ -237,6 +237,7 @@
         <DCCReference Include="..\src\Dak.RadStudio.Locator.pas"/>
         <DCCReference Include="..\src\Dak.Refactor.pas"/>
         <DCCReference Include="..\src\Dak.Semantics.Session.pas"/>
+        <DCCReference Include="..\src\Dak.SourceText.pas"/>
         <DCCReference Include="..\src\Dak.SymbolMap.pas"/>
         <DCCReference Include="..\src\Dak.SymbolMap.Api.pas"/>
         <DCCReference Include="..\src\Dak.SymbolMap.Cache.pas"/>

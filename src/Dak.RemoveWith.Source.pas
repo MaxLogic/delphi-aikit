@@ -41,165 +41,91 @@ function RemoveWithOffsetInInactiveRanges(const aOffset: Integer;
 implementation
 
 uses
-  System.Generics.Collections, System.IOUtils, System.StrUtils;
+  System.Generics.Collections, System.StrUtils,
+  Dak.SourceText;
 
-procedure AddLineStart(var aLineStarts: TArray<Integer>; const aOffset: Integer);
-var
-  lIndex: Integer;
+function DakEncodingFromRemoveWith(const aEncoding: TRemoveWithSourceEncoding): TDakSourceEncoding;
 begin
-  lIndex := Length(aLineStarts);
-  SetLength(aLineStarts, lIndex + 1);
-  aLineStarts[lIndex] := aOffset;
+  case aEncoding of
+    TRemoveWithSourceEncoding.rwseAnsi:
+      Result := TDakSourceEncoding.dseAnsi;
+  else
+    Result := TDakSourceEncoding.dseUtf8;
+  end;
 end;
 
-procedure BuildLineStarts(var aSource: TRemoveWithSourceBuffer);
-var
-  lIndex: Integer;
+function RemoveWithEncodingFromDak(const aEncoding: TDakSourceEncoding): TRemoveWithSourceEncoding;
 begin
-  SetLength(aSource.fLineStarts, 1);
-  aSource.fLineStarts[0] := 1;
-
-  lIndex := 1;
-  while lIndex <= Length(aSource.fText) do
-  begin
-    if aSource.fText[lIndex] = #13 then
-    begin
-      if (lIndex < Length(aSource.fText)) and (aSource.fText[lIndex + 1] = #10) then
-        Inc(lIndex);
-      AddLineStart(aSource.fLineStarts, lIndex + 1);
-    end else if aSource.fText[lIndex] = #10 then
-      AddLineStart(aSource.fLineStarts, lIndex + 1);
-    Inc(lIndex);
+  case aEncoding of
+    TDakSourceEncoding.dseAnsi:
+      Result := TRemoveWithSourceEncoding.rwseAnsi;
+  else
+    Result := TRemoveWithSourceEncoding.rwseUtf8;
   end;
+end;
+
+function DakSourceFromRemoveWith(const aSource: TRemoveWithSourceBuffer): TDakSourceBuffer;
+begin
+  Result.fPath := aSource.fPath;
+  Result.fText := aSource.fText;
+  Result.fEncoding := DakEncodingFromRemoveWith(aSource.fEncoding);
+  Result.fHasUtf8Bom := aSource.fHasUtf8Bom;
+  Result.fLineStarts := aSource.fLineStarts;
+end;
+
+function RemoveWithSourceFromDak(const aSource: TDakSourceBuffer): TRemoveWithSourceBuffer;
+begin
+  Result.fPath := aSource.fPath;
+  Result.fText := aSource.fText;
+  Result.fEncoding := RemoveWithEncodingFromDak(aSource.fEncoding);
+  Result.fHasUtf8Bom := aSource.fHasUtf8Bom;
+  Result.fLineStarts := aSource.fLineStarts;
 end;
 
 function LoadRemoveWithSource(const aPath: string; out aSource: TRemoveWithSourceBuffer; out aError: string): Boolean;
 var
-  lBodyLength: Integer;
-  lBytes: TBytes;
-  lOffset: Integer;
+  lSource: TDakSourceBuffer;
 begin
-  aSource := Default(TRemoveWithSourceBuffer);
-  aError := '';
-  Result := False;
-  try
-    lBytes := TFile.ReadAllBytes(aPath);
-    lOffset := 0;
-    aSource.fHasUtf8Bom := (Length(lBytes) >= 3) and (lBytes[0] = $EF) and (lBytes[1] = $BB) and
-      (lBytes[2] = $BF);
-    if aSource.fHasUtf8Bom then
-      lOffset := 3;
-
-    aSource.fPath := aPath;
-    lBodyLength := Length(lBytes) - lOffset;
-    try
-      aSource.fText := TEncoding.UTF8.GetString(lBytes, lOffset, lBodyLength);
-      aSource.fEncoding := TRemoveWithSourceEncoding.rwseUtf8;
-    except
-      on E: EEncodingError do
-      begin
-        aSource.fText := TEncoding.Default.GetString(lBytes, lOffset, lBodyLength);
-        aSource.fEncoding := TRemoveWithSourceEncoding.rwseAnsi;
-      end;
-    end;
-    BuildLineStarts(aSource);
-    Result := True;
-  except
-    on E: Exception do
-      aError := E.Message;
-  end;
+  Result := LoadDakSource(aPath, lSource, aError);
+  if Result then
+    aSource := RemoveWithSourceFromDak(lSource)
+  else
+    aSource := Default(TRemoveWithSourceBuffer);
 end;
 
 function RemoveWithSourceEncodingToText(const aEncoding: TRemoveWithSourceEncoding;
   const aHasUtf8Bom: Boolean): string;
 begin
-  if aEncoding = TRemoveWithSourceEncoding.rwseAnsi then
-    Exit('ansi');
-  if aHasUtf8Bom then
-    Exit('utf-8-bom');
-  Result := 'utf-8';
+  Result := DakSourceEncodingToText(DakEncodingFromRemoveWith(aEncoding), aHasUtf8Bom);
 end;
 
 function RemoveWithTextToBytes(const aText: string; const aEncoding: TRemoveWithSourceEncoding;
   const aHasUtf8Bom: Boolean): TBytes;
-var
-  lBody: TBytes;
 begin
-  if aEncoding = TRemoveWithSourceEncoding.rwseAnsi then
-    Exit(TEncoding.Default.GetBytes(aText));
-
-  lBody := TEncoding.UTF8.GetBytes(aText);
-  if not aHasUtf8Bom then
-    Exit(lBody);
-  SetLength(Result, Length(lBody) + 3);
-  Result[0] := $EF;
-  Result[1] := $BB;
-  Result[2] := $BF;
-  if Length(lBody) > 0 then
-    Move(lBody[0], Result[3], Length(lBody));
+  Result := DakTextToBytes(aText, DakEncodingFromRemoveWith(aEncoding), aHasUtf8Bom);
 end;
 
 function RemoveWithOffsetForLineColumn(const aSource: TRemoveWithSourceBuffer; const aLine,
   aColumn: Integer; out aOffset: Integer): Boolean;
-var
-  lLineStart: Integer;
 begin
-  aOffset := 0;
-  Result := False;
-  if (aLine < 1) or (aLine > Length(aSource.fLineStarts)) or (aColumn < 1) then
-    Exit;
-
-  lLineStart := aSource.fLineStarts[aLine - 1];
-  aOffset := lLineStart + aColumn - 1;
-  Result := (aOffset >= 1) and (aOffset <= Length(aSource.fText) + 1);
+  Result := DakOffsetForLineColumn(DakSourceFromRemoveWith(aSource), aLine, aColumn, aOffset);
 end;
 
 function RemoveWithLineColumnForOffset(const aSource: TRemoveWithSourceBuffer; const aOffset: Integer;
   out aLine, aColumn: Integer): Boolean;
-var
-  lHigh: Integer;
-  lLow: Integer;
-  lMid: Integer;
 begin
-  aLine := 0;
-  aColumn := 0;
-  Result := False;
-  if (aOffset < 1) or (aOffset > Length(aSource.fText) + 1) or (Length(aSource.fLineStarts) = 0) then
-    Exit;
-
-  lLow := 0;
-  lHigh := High(aSource.fLineStarts);
-  while lLow <= lHigh do
-  begin
-    lMid := (lLow + lHigh) div 2;
-    if aSource.fLineStarts[lMid] <= aOffset then
-      lLow := lMid + 1
-    else
-      lHigh := lMid - 1;
-  end;
-
-  aLine := lHigh + 1;
-  aColumn := aOffset - aSource.fLineStarts[lHigh] + 1;
-  Result := True;
+  Result := DakLineColumnForOffset(DakSourceFromRemoveWith(aSource), aOffset, aLine, aColumn);
 end;
 
 function RemoveWithInclusiveEndOffset(const aSource: TRemoveWithSourceBuffer; const aEndOffset: Integer): Integer;
 begin
-  Result := aEndOffset;
-  if (Result < 2) or (Result > Length(aSource.fText)) then
-    Exit;
-  if CharInSet(aSource.fText[Result], ['A'..'Z', 'a'..'z', '_']) and
-    CharInSet(aSource.fText[Result - 1], [#9, #10, #13, ' ']) then
-    Dec(Result);
+  Result := DakInclusiveEndOffset(DakSourceFromRemoveWith(aSource), aEndOffset);
 end;
 
 function RemoveWithTextSlice(const aSource: TRemoveWithSourceBuffer; const aStartOffset,
   aEndOffset: Integer): string;
 begin
-  if (aStartOffset < 1) or (aEndOffset < aStartOffset) or (aEndOffset > Length(aSource.fText)) then
-    Exit('');
-
-  Result := Copy(aSource.fText, aStartOffset, aEndOffset - aStartOffset + 1);
+  Result := DakTextSlice(DakSourceFromRemoveWith(aSource), aStartOffset, aEndOffset);
 end;
 
 function RemoveWithDirectiveLineRange(const aSource: TRemoveWithSourceBuffer; const aOffset: Integer;
