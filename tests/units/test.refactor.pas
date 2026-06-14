@@ -30,9 +30,17 @@ type
     procedure RenameSemanticCacheUsesToolchainIdentity;
     [Test]
     procedure RefactorCommandsUseDelphiSemanticsProjectSession;
+    [Test]
+    procedure SemanticsSessionAdapterMapsOptionsAndDiagnostics;
+    [Test]
+    procedure SemanticsSessionAdapterIsCentralized;
   end;
 
 implementation
+
+uses
+  DelphiSemantics.ProjectContext,
+  Dak.Semantics.Session;
 
 procedure TRefactorCommandTests.CreateFixtureProject(const aRoot: string; out aDprojPath,
   aUnitOnePath, aUnitTwoPath: string);
@@ -351,8 +359,80 @@ begin
     'DAK refactor commands should not extract semantic unit models directly.');
   Assert.IsFalse(ContainsText(lSource, 'DelphiSemantics.Cache.Sqlite'),
     'DAK refactor commands should not own semantic cache implementation selection.');
-  Assert.IsTrue(ContainsText(lSource, 'TDelphiSemanticProjectSession.Open'),
-    'DAK refactor commands should open a DelphiSemantics project session.');
+  Assert.IsTrue(ContainsText(lSource, 'OpenSemanticSymbolQueryContext'),
+    'DAK refactor commands should build DelphiSemantics query contexts through the shared adapter.');
+end;
+
+procedure TRefactorCommandTests.SemanticsSessionAdapterMapsOptionsAndDiagnostics;
+var
+  lCachePath: string;
+  lDiagnostics: TArray<TDelphiSemanticDiagnostic>;
+  lOptions: TDelphiSemanticOptions;
+begin
+  lCachePath := TPath.Combine(TPath.GetTempPath, 'dak-semantic-session.sqlite3');
+  lOptions := BuildSemanticSessionOptions('project.dproj', 'Debug', 'Win64', '23',
+    'rsvars.bat', 'env.options', lCachePath);
+
+  Assert.AreEqual('project.dproj', lOptions.ProjectPath);
+  Assert.AreEqual('Debug', lOptions.Configuration);
+  Assert.AreEqual('Win64', lOptions.Platform);
+  Assert.AreEqual('23', lOptions.DelphiVersion);
+  Assert.AreEqual('rsvars.bat', lOptions.RsVarsPath);
+  Assert.AreEqual('env.options', lOptions.EnvOptionsPath);
+  Assert.AreEqual(TPath.GetFullPath(lCachePath), lOptions.SqliteCacheFileName);
+
+  SetLength(lDiagnostics, 1);
+  lDiagnostics[0].Code := 'E001';
+  lDiagnostics[0].Message := 'Cannot load project';
+  lDiagnostics[0].FileName := 'UnitOne.pas';
+  lDiagnostics[0].Line := 42;
+
+  Assert.AreEqual('E001: Cannot load project (UnitOne.pas)',
+    SemanticSessionDiagnosticsText(lDiagnostics));
+  Assert.AreEqual('E001: Cannot load project (UnitOne.pas) line 42',
+    SemanticSessionDiagnosticsText(lDiagnostics, True));
+end;
+
+procedure TRefactorCommandTests.SemanticsSessionAdapterIsCentralized;
+var
+  lCommandSource: string;
+  lHelperSource: string;
+  lPath: string;
+begin
+  lHelperSource := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.Semantics.Session.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lHelperSource, 'TDelphiSemanticProjectSession.Open'),
+    'The shared adapter should own the raw DelphiSemantics session open call.');
+  Assert.IsTrue(ContainsText(lHelperSource, 'SemanticSessionDiagnosticsText'),
+    'The shared adapter should own Semantics diagnostic formatting.');
+  Assert.IsTrue(ContainsText(lHelperSource, 'OpenSemanticSymbolQueryContext'),
+    'The shared adapter should own session-backed query context setup.');
+  Assert.IsTrue(ContainsText(lHelperSource, 'BuildSymbolQueryContext'),
+    'The shared adapter should build Semantics symbol query contexts.');
+
+  for lPath in ['src\Dak.Refactor.pas', 'src\Dak.SymbolMap.Query.pas',
+    'src\Dak.GlobalVars.Semantics.pas', 'src\dak.deps.runner.pas'] do
+  begin
+    lCommandSource := TFile.ReadAllText(TPath.Combine(RepoRoot, lPath), TEncoding.UTF8);
+    Assert.IsTrue(ContainsText(lCommandSource, 'Dak.Semantics.Session'),
+      lPath + ' should use the shared Semantics session adapter.');
+    Assert.IsTrue(ContainsText(lCommandSource, 'BuildSemanticSessionOptions'),
+      lPath + ' should build Semantics options through the shared adapter.');
+    Assert.IsFalse(ContainsText(lCommandSource, 'TDelphiSemanticProjectSession.Open'),
+      lPath + ' must not call the raw Semantics session opener directly.');
+    Assert.IsFalse(ContainsText(lCommandSource, 'function SessionDiagnosticsText'),
+      lPath + ' must not duplicate Semantics diagnostic formatting.');
+    if ContainsText(lPath, 'Refactor') or ContainsText(lPath, 'SymbolMap.Query') then
+    begin
+      Assert.IsTrue(ContainsText(lCommandSource, 'OpenSemanticSymbolQueryContext'),
+        lPath + ' should build query contexts through the shared adapter.');
+      Assert.IsFalse(ContainsText(lCommandSource, 'BuildSymbolQueryContext'),
+        lPath + ' must not duplicate Semantics query-context setup.');
+    end else begin
+      Assert.IsTrue(ContainsText(lCommandSource, 'OpenSemanticProjectSession'),
+        lPath + ' should open Semantics sessions through the shared adapter.');
+    end;
+  end;
 end;
 
 initialization

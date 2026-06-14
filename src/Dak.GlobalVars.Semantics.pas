@@ -39,7 +39,8 @@ uses
   System.SysUtils,
   DelphiSemantics.GlobalVars,
   DelphiSemantics.ProjectContext,
-  DelphiSemantics.ProjectSession;
+  DelphiSemantics.ProjectSession,
+  Dak.Semantics.Session;
 
 constructor TGlobalVarsSemanticAnalysis.Create;
 begin
@@ -131,34 +132,13 @@ begin
   aAmbiguities.Add(lAmbiguity);
 end;
 
-function SessionDiagnosticsText(const aDiagnostics: TArray<TDelphiSemanticDiagnostic>):
-  string;
-var
-  lDiagnostic: TDelphiSemanticDiagnostic;
+function GlobalVarsSemanticSessionOptions(const aProject: TProjectInfo;
+  const aOptions: TAppOptions): TDelphiSemanticOptions;
 begin
-  Result := '';
-  for lDiagnostic in aDiagnostics do
-  begin
-    if Result <> '' then
-      Result := Result + sLineBreak;
-    Result := Result + lDiagnostic.Code + ': ' + lDiagnostic.Message;
-    if lDiagnostic.FileName <> '' then
-      Result := Result + ' (' + lDiagnostic.FileName + ')';
-  end;
-end;
-
-function SemanticOptions(const aProject: TProjectInfo; const aOptions: TAppOptions):
-  TDelphiSemanticOptions;
-begin
-  Result := Default(TDelphiSemanticOptions);
-  Result.ProjectPath := aProject.ProjectPath;
-  Result.Configuration := aOptions.fConfig;
-  Result.Platform := aOptions.fPlatform;
-  Result.DelphiVersion := aOptions.fDelphiVersion;
-  Result.RsVarsPath := aOptions.fRsVarsPath;
-  Result.EnvOptionsPath := aOptions.fEnvOptionsPath;
-  Result.SqliteCacheFileName := TPath.Combine(aProject.CachePath,
-    'semantic-unit-cache.sqlite3');
+  Result := BuildSemanticSessionOptions(aProject.ProjectPath, aOptions.fConfig,
+    aOptions.fPlatform, aOptions.fDelphiVersion, aOptions.fRsVarsPath,
+    aOptions.fEnvOptionsPath, TPath.Combine(aProject.CachePath,
+    'semantic-unit-cache.sqlite3'));
 end;
 
 function IdentityHash(const aProject: TProjectInfo;
@@ -244,16 +224,16 @@ function AnalyzeGlobalVarsProject(const aProject: TProjectInfo;
 var
   lAnalysis: TDelphiSemanticGlobalAnalysis;
   lCacheMetrics: TDelphiSemanticCacheMetrics;
+  lError: string;
   lExtractionMilliseconds: Int64;
   lOptions: TDelphiSemanticOptions;
   lSessionResult: TDelphiSemanticProjectSessionResult;
 begin
   Result := TGlobalVarsSemanticAnalysis.Create;
   try
-    lOptions := SemanticOptions(aProject, aOptions);
-    lSessionResult := TDelphiSemanticProjectSession.Open(lOptions);
-    if not lSessionResult.Success then
-      raise Exception.Create(SessionDiagnosticsText(lSessionResult.Diagnostics));
+    lOptions := GlobalVarsSemanticSessionOptions(aProject, aOptions);
+    if not OpenSemanticProjectSession(lOptions, lSessionResult, lError) then
+      raise Exception.Create(lError);
     try
       lAnalysis := lSessionResult.Session.BuildGlobalAnalysis(Result.CacheIdentities,
         lCacheMetrics, lExtractionMilliseconds);
@@ -271,14 +251,14 @@ end;
 function BuildGlobalVarsProjectIdentity(const aProject: TProjectInfo;
   const aOptions: TAppOptions): TGlobalVarsSemanticIdentity;
 var
+  lError: string;
   lOptions: TDelphiSemanticOptions;
   lSessionResult: TDelphiSemanticProjectSessionResult;
 begin
   Result := Default(TGlobalVarsSemanticIdentity);
-  lOptions := SemanticOptions(aProject, aOptions);
-  lSessionResult := TDelphiSemanticProjectSession.Open(lOptions);
-  if not lSessionResult.Success then
-    raise Exception.Create(SessionDiagnosticsText(lSessionResult.Diagnostics));
+  lOptions := GlobalVarsSemanticSessionOptions(aProject, aOptions);
+  if not OpenSemanticProjectSession(lOptions, lSessionResult, lError) then
+    raise Exception.Create(lError);
   try
     Result.CacheIdentities := lSessionResult.Session.BuildGlobalCacheIdentities;
     Result.IdentityHash := IdentityHash(aProject, Result.CacheIdentities);
