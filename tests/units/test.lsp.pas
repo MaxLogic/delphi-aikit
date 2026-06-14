@@ -109,7 +109,7 @@ implementation
 uses
   System.Classes, System.IOUtils, System.SysUtils,
   Winapi.Windows,
-  maxLogic.ioUtils,
+  DelphiSemantics.Lsp,
   Dak.Lsp.Runner,
   Test.Support;
 
@@ -130,7 +130,7 @@ end;
 
 function FilePathToUri(const aPath: string): string;
 begin
-  Result := FilePathToURL(aPath);
+  Result := TDelphiSemanticLspBoundary.FilePathToUri(aPath);
 end;
 
 function JsonEscape(const aValue: string): string;
