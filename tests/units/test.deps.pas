@@ -678,8 +678,8 @@ begin
   lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.deps.runner.pas'),
     TEncoding.UTF8);
 
-  Assert.IsTrue(Pos('TDelphiSemanticProjectSession.Open', lSource) > 0,
-    'deps runner should open a DelphiSemantics project session for dependency graph facts.');
+  Assert.IsTrue(Pos('OpenSemanticProjectSession', lSource) > 0,
+    'deps runner should open DelphiSemantics project sessions through the shared adapter.');
   Assert.IsTrue(Pos('BuildDependencyGraph', lSource) > 0,
     'deps runner should request dependency graph facts from the project session.');
   Assert.IsFalse(Pos('CreateProjectAnalysisIndexer', lSource) > 0,

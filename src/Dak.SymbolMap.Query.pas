@@ -65,7 +65,8 @@ uses
   System.SysUtils,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite,
   DelphiSemantics.Cache, DelphiSemantics.ProjectContext, DelphiSemantics.ProjectSession,
-  DelphiSemantics.Query, DelphiSemantics.Usage;
+  DelphiSemantics.Query, DelphiSemantics.Usage,
+  Dak.Semantics.Session;
 
 type
   TSymbolMapUnitScope = record
@@ -99,34 +100,18 @@ begin
   Result := aKind;
 end;
 
-function SessionDiagnosticsText(const aDiagnostics: TArray<TDelphiSemanticDiagnostic>):
-  string;
+function SymbolMapSemanticSessionOptions(
+  const aContext: TSymbolMapContext): TDelphiSemanticOptions;
 var
-  lDiagnostic: TDelphiSemanticDiagnostic;
+  lCacheFileName: string;
 begin
-  Result := '';
-  for lDiagnostic in aDiagnostics do
-  begin
-    if Result <> '' then
-      Result := Result + sLineBreak;
-    Result := Result + lDiagnostic.Code + ': ' + lDiagnostic.Message;
-    if lDiagnostic.FileName <> '' then
-      Result := Result + ' (' + lDiagnostic.FileName + ')';
-  end;
-end;
-
-function SemanticOptions(const aContext: TSymbolMapContext): TDelphiSemanticOptions;
-begin
-  Result := Default(TDelphiSemanticOptions);
-  Result.ProjectPath := aContext.fProject.ProjectPath;
-  Result.Configuration := aContext.fConfig;
-  Result.Platform := aContext.fPlatform;
-  Result.DelphiVersion := aContext.fDelphiVersion;
-  Result.RsVarsPath := aContext.fRsVarsPath;
-  Result.EnvOptionsPath := aContext.fEnvOptionsPath;
+  lCacheFileName := '';
   if aContext.fProjectCacheRoot <> '' then
-    Result.SqliteCacheFileName := TPath.Combine(aContext.fProjectCacheRoot,
+    lCacheFileName := TPath.Combine(aContext.fProjectCacheRoot,
       'semantic-unit-cache.sqlite3');
+  Result := BuildSemanticSessionOptions(aContext.fProject.ProjectPath,
+    aContext.fConfig, aContext.fPlatform, aContext.fDelphiVersion,
+    aContext.fRsVarsPath, aContext.fEnvOptionsPath, lCacheFileName);
 end;
 
 function MapSemanticDefinition(const aResult: TDelphiSemanticSymbolQueryResult):
@@ -173,33 +158,22 @@ var
   lExtractionMilliseconds: Int64;
   lQueryContext: TDelphiSemanticSymbolQueryContext;
   lResult: TDelphiSemanticSymbolQueryResult;
+  lSessionOpenMilliseconds: Int64;
   lSessionOptions: TDelphiSemanticOptions;
-  lSessionResult: TDelphiSemanticProjectSessionResult;
 begin
   Result := False;
   aDefinition := Default(TSymbolMapDefinition);
   aError := '';
-  lSessionOptions := SemanticOptions(aContext);
-  lSessionResult := TDelphiSemanticProjectSession.Open(lSessionOptions);
-  if not lSessionResult.Success then
-  begin
-    aError := SessionDiagnosticsText(lSessionResult.Diagnostics);
-    if aError = '' then
-      aError := 'Failed to open DelphiSemantics project session.';
+  lSessionOptions := SymbolMapSemanticSessionOptions(aContext);
+  if not OpenSemanticSymbolQueryContext(lSessionOptions, lQueryContext, lCacheMetrics,
+    lExtractionMilliseconds, lSessionOpenMilliseconds, aError) then
     Exit(False);
-  end;
 
-  try
-    lQueryContext := lSessionResult.Session.BuildSymbolQueryContext(lCacheMetrics,
-      lExtractionMilliseconds);
-    lResult := TDelphiSemanticSymbolQuery.FindDefinitionAtPosition(lQueryContext,
-      aFilePath, aLine, aCol);
-    if lResult.Found then
-      aDefinition := MapSemanticDefinition(lResult);
-    Result := True;
-  finally
-    lSessionResult.Session.Free;
-  end;
+  lResult := TDelphiSemanticSymbolQuery.FindDefinitionAtPosition(lQueryContext,
+    aFilePath, aLine, aCol);
+  if lResult.Found then
+    aDefinition := MapSemanticDefinition(lResult);
+  Result := True;
 end;
 
 function FindSemanticReferencesByPosition(const aContext: TSymbolMapContext;
@@ -212,44 +186,33 @@ var
   lIndex: Integer;
   lQueryContext: TDelphiSemanticSymbolQueryContext;
   lResult: TDelphiSemanticUsageResult;
+  lSessionOpenMilliseconds: Int64;
   lSessionOptions: TDelphiSemanticOptions;
-  lSessionResult: TDelphiSemanticProjectSessionResult;
 begin
   Result := False;
   aSymbol := '';
   SetLength(aReferences, 0);
   aError := '';
-  lSessionOptions := SemanticOptions(aContext);
-  lSessionResult := TDelphiSemanticProjectSession.Open(lSessionOptions);
-  if not lSessionResult.Success then
-  begin
-    aError := SessionDiagnosticsText(lSessionResult.Diagnostics);
-    if aError = '' then
-      aError := 'Failed to open DelphiSemantics project session.';
+  lSessionOptions := SymbolMapSemanticSessionOptions(aContext);
+  if not OpenSemanticSymbolQueryContext(lSessionOptions, lQueryContext, lCacheMetrics,
+    lExtractionMilliseconds, lSessionOpenMilliseconds, aError) then
     Exit(False);
-  end;
 
-  try
-    lQueryContext := lSessionResult.Session.BuildSymbolQueryContext(lCacheMetrics,
-      lExtractionMilliseconds);
-    lResult := TDelphiSemanticUsageFinder.FindUsagesAtPosition(lQueryContext, aFilePath,
-      aLine, aCol);
-    if lResult.Status = 'resolved' then
+  lResult := TDelphiSemanticUsageFinder.FindUsagesAtPosition(lQueryContext, aFilePath,
+    aLine, aCol);
+  if lResult.Status = 'resolved' then
+  begin
+    aSymbol := lResult.Symbol.Name;
+    for i := 0 to High(lResult.Usages) do
     begin
-      aSymbol := lResult.Symbol.Name;
-      for i := 0 to High(lResult.Usages) do
-      begin
-        if (aLimit > 0) and (Length(aReferences) >= aLimit) then
-          Break;
-        lIndex := Length(aReferences);
-        SetLength(aReferences, lIndex + 1);
-        aReferences[lIndex] := MapSemanticUsage(lResult.Usages[i]);
-      end;
+      if (aLimit > 0) and (Length(aReferences) >= aLimit) then
+        Break;
+      lIndex := Length(aReferences);
+      SetLength(aReferences, lIndex + 1);
+      aReferences[lIndex] := MapSemanticUsage(lResult.Usages[i]);
     end;
-    Result := True;
-  finally
-    lSessionResult.Session.Free;
   end;
+  Result := True;
 end;
 
 function OpenQueryConnection(const aDbPath: string; out aDriverLink: TFDPhysSQLiteDriverLink;

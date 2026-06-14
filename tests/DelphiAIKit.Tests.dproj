@@ -85,6 +85,7 @@
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.SourceContext.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Version.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.WithBinding.pas"/>
+    <DCCReference Include="..\src\Dak.Semantics.Session.pas"/>
     <DCCReference Include="units\\test.delphisemanticsintegration.pas"/>
     <DCCReference Include="units\\test.deps.pas"/>
     <DCCReference Include="units\\test.dfmcheck.pas"/>

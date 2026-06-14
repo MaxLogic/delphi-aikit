@@ -15,9 +15,10 @@ uses
   System.Classes, System.Diagnostics, System.Generics.Collections, System.Hash, System.IOUtils,
   System.SysUtils,
   DelphiSemantics.Api, DelphiSemantics.Model, DelphiSemantics.ProjectContext,
-  DelphiSemantics.ProjectSession, DelphiSemantics.Query, DelphiSemantics.Refactor,
+  DelphiSemantics.ProjectSession,
+  DelphiSemantics.Query, DelphiSemantics.Refactor,
   DelphiSemantics.Usage,
-  Dak.ExitCodes, Dak.RemoveWith.Source;
+  Dak.ExitCodes, Dak.RemoveWith.Source, Dak.Semantics.Session;
 
 type
   TRefactorSemanticPhaseMetrics = record
@@ -110,20 +111,6 @@ begin
   Result := lHash.HashAsString;
 end;
 
-function RefactorSessionOptions(const aOptions: TAppOptions): TDelphiSemanticOptions;
-begin
-  Result := Default(TDelphiSemanticOptions);
-  Result.ProjectPath := aOptions.fDprojPath;
-  Result.Configuration := aOptions.fConfig;
-  Result.Platform := aOptions.fPlatform;
-  Result.DelphiVersion := aOptions.fDelphiVersion;
-  Result.RsVarsPath := aOptions.fRsVarsPath;
-  Result.EnvOptionsPath := aOptions.fEnvOptionsPath;
-  if aOptions.fHasRefactorSemanticCachePath and
-    (Trim(aOptions.fRefactorSemanticCachePath) <> '') then
-    Result.SqliteCacheFileName := TPath.GetFullPath(aOptions.fRefactorSemanticCachePath);
-end;
-
 function SameFileNameSafe(const aLeft, aRight: string): Boolean;
 begin
   if (aLeft = '') or (aRight = '') then
@@ -132,24 +119,6 @@ begin
     Result := SameText(TPath.GetFullPath(aLeft), TPath.GetFullPath(aRight));
   except
     Result := SameText(aLeft, aRight);
-  end;
-end;
-
-function SessionDiagnosticsText(const aDiagnostics: TArray<TDelphiSemanticDiagnostic>):
-  string;
-var
-  lDiagnostic: TDelphiSemanticDiagnostic;
-begin
-  Result := '';
-  for lDiagnostic in aDiagnostics do
-  begin
-    if Result <> '' then
-      Result := Result + sLineBreak;
-    Result := Result + lDiagnostic.Code + ': ' + lDiagnostic.Message;
-    if lDiagnostic.FileName <> '' then
-      Result := Result + ' (' + lDiagnostic.FileName + ')';
-    if lDiagnostic.Line > 0 then
-      Result := Result + Format(' line %d', [lDiagnostic.Line]);
   end;
 end;
 
@@ -225,9 +194,8 @@ function BuildSemanticContext(const aOptions: TAppOptions;
   out aPhaseMetrics: TRefactorSemanticPhaseMetrics; out aError: string): Boolean;
 var
   lExtractionMilliseconds: Int64;
+  lSessionOpenMilliseconds: Int64;
   lSessionOptions: TDelphiSemanticOptions;
-  lSessionResult: TDelphiSemanticProjectSessionResult;
-  lStopwatch: TStopwatch;
   lTotalStopwatch: TStopwatch;
 begin
   Result := False;
@@ -236,33 +204,29 @@ begin
   aCacheMetrics := Default(TDelphiSemanticCacheMetrics);
   aPhaseMetrics := Default(TRefactorSemanticPhaseMetrics);
   lTotalStopwatch := TStopwatch.StartNew;
-  lStopwatch := TStopwatch.StartNew;
-  lSessionOptions := RefactorSessionOptions(aOptions);
-  lSessionResult := TDelphiSemanticProjectSession.Open(lSessionOptions);
-  aPhaseMetrics.ProjectContextMs := lStopwatch.ElapsedMilliseconds;
-  if not lSessionResult.Success then
-  begin
-    aError := SessionDiagnosticsText(lSessionResult.Diagnostics);
-    if aError = '' then
-      aError := 'Failed to open DelphiSemantics project session.';
+  if aOptions.fHasRefactorSemanticCachePath then
+    lSessionOptions := BuildSemanticSessionOptions(aOptions.fDprojPath, aOptions.fConfig,
+      aOptions.fPlatform, aOptions.fDelphiVersion, aOptions.fRsVarsPath,
+      aOptions.fEnvOptionsPath, aOptions.fRefactorSemanticCachePath)
+  else
+    lSessionOptions := BuildSemanticSessionOptions(aOptions.fDprojPath, aOptions.fConfig,
+      aOptions.fPlatform, aOptions.fDelphiVersion, aOptions.fRsVarsPath,
+      aOptions.fEnvOptionsPath, '');
+  Result := OpenSemanticSymbolQueryContext(lSessionOptions, aContext, aCacheMetrics,
+    lExtractionMilliseconds, lSessionOpenMilliseconds, aError, True);
+  aPhaseMetrics.ProjectContextMs := lSessionOpenMilliseconds;
+  if not Result then
     Exit(False);
-  end;
 
-  try
-    aContext := lSessionResult.Session.BuildSymbolQueryContext(aCacheMetrics,
-      lExtractionMilliseconds);
-    if not TryValidateSemanticContext(aContext, aError) then
-      Exit(False);
-    aPhaseMetrics.ProjectUnitCount := ContextUnitModelCount(aContext);
-    aPhaseMetrics.UnitModelExtractionCount := aPhaseMetrics.ProjectUnitCount;
-    aPhaseMetrics.UnitModelExtractionMs := lExtractionMilliseconds;
-    aPhaseMetrics.ReferenceReconciliationFallbackCount :=
-      ContextReferenceFallbackCount(aContext);
-    aPhaseMetrics.TotalMs := lTotalStopwatch.ElapsedMilliseconds;
-    Result := True;
-  finally
-    lSessionResult.Session.Free;
-  end;
+  if not TryValidateSemanticContext(aContext, aError) then
+    Exit(False);
+  aPhaseMetrics.ProjectUnitCount := ContextUnitModelCount(aContext);
+  aPhaseMetrics.UnitModelExtractionCount := aPhaseMetrics.ProjectUnitCount;
+  aPhaseMetrics.UnitModelExtractionMs := lExtractionMilliseconds;
+  aPhaseMetrics.ReferenceReconciliationFallbackCount :=
+    ContextReferenceFallbackCount(aContext);
+  aPhaseMetrics.TotalMs := lTotalStopwatch.ElapsedMilliseconds;
+  Result := True;
 end;
 
 function SemanticPhaseMetricsJson(const aPhaseMetrics: TRefactorSemanticPhaseMetrics;

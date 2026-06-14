@@ -19,7 +19,8 @@ uses
   System.SysUtils,
   DelphiSemantics.Graph, DelphiSemantics.ProjectContext, DelphiSemantics.ProjectSession,
   Dak.ExitCodes,
-  Dak.Project;
+  Dak.Project,
+  Dak.Semantics.Session;
 
 type
   TDepsNodeResolution = (dnrResolved, dnrUnresolved, dnrParserProblem);
@@ -708,23 +709,17 @@ end;
 
 procedure TDepsGraphBuilder.Build;
 var
+  lError: string;
   lSemanticGraph: TDelphiSemanticDependencyGraph;
   lSessionOptions: TDelphiSemanticOptions;
   lSessionResult: TDelphiSemanticProjectSessionResult;
 begin
   FreeAndNil(fSccData);
-  lSessionOptions := Default(TDelphiSemanticOptions);
-  lSessionOptions.ProjectPath := fContext.ProjectPath;
-  lSessionOptions.Configuration := fOptions.fConfig;
-  lSessionOptions.Platform := fOptions.fPlatform;
-  lSessionOptions.DelphiVersion := fOptions.fDelphiVersion;
-  lSessionOptions.RsVarsPath := fOptions.fRsVarsPath;
-  lSessionOptions.EnvOptionsPath := fOptions.fEnvOptionsPath;
-  lSessionResult := TDelphiSemanticProjectSession.Open(lSessionOptions);
-  if not lSessionResult.Success then
-  begin
+  lSessionOptions := BuildSemanticSessionOptions(fContext.ProjectPath, fOptions.fConfig,
+    fOptions.fPlatform, fOptions.fDelphiVersion, fOptions.fRsVarsPath,
+    fOptions.fEnvOptionsPath, '');
+  if not OpenSemanticProjectSession(lSessionOptions, lSessionResult, lError) then
     Exit;
-  end;
   try
     lSemanticGraph := lSessionResult.Session.BuildDependencyGraph;
     MergeSemanticGraph(lSemanticGraph);
