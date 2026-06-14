@@ -6,7 +6,7 @@ uses
   Dak.SymbolMap.Context, Dak.SymbolMap.Indexer;
 
 const
-  cSymbolMapSchemaVersion = 2;
+  cSymbolMapSchemaVersion = 3;
 
 type
   TSymbolMapCacheStatus = record
@@ -22,6 +22,7 @@ type
     fFileHash: string;
     fContextHash: string;
     fCacheHit: Boolean;
+    fParseAvoided: Boolean;
   end;
 
   TSymbolMapCompilerProfileResult = record
@@ -57,11 +58,24 @@ function IndexSymbolMapRtlSources(const aContext: TSymbolMapContext; const aStat
 function BuildSymbolMapProjectKey(const aContext: TSymbolMapContext): string;
 function StoreSymbolMapProjectProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModels: TArray<TSymbolMapUnitModel>; out aResults: TArray<TSymbolMapCacheStoreResult>;
-  out aError: string): Boolean;
+  out aError: string): Boolean; overload;
+function StoreSymbolMapProjectProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModels: TArray<TSymbolMapUnitModel>; const aKnownResults: TArray<TSymbolMapCacheStoreResult>;
+  const aReplaceExisting: Boolean; out aResults: TArray<TSymbolMapCacheStoreResult>;
+  out aError: string): Boolean; overload;
+function StoreSymbolMapProjectProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModels: TArray<TSymbolMapUnitModel>; const aKnownResults: TArray<TSymbolMapCacheStoreResult>;
+  out aResults: TArray<TSymbolMapCacheStoreResult>; out aError: string): Boolean; overload;
 function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; overload;
 function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModel: TSymbolMapUnitModel; const aReplaceExisting: Boolean;
+  out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean; overload;
+function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aError: string): Boolean; overload;
+function TryLoadSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aFilePath: string; const aLinkProjectUnit: Boolean; out aModel: TSymbolMapUnitModel;
+  out aResult: TSymbolMapCacheStoreResult; out aFound: Boolean; out aError: string): Boolean;
 
 implementation
 
@@ -98,7 +112,7 @@ const
 function StoreSymbolMapUnitProjectionInternal(const aContext: TSymbolMapContext;
   const aStatus: TSymbolMapCacheStatus; const aModel: TSymbolMapUnitModel;
   out aResult: TSymbolMapCacheStoreResult; out aError: string;
-  const aLinkProjectUnit: Boolean): Boolean; forward;
+  const aLinkProjectUnit: Boolean; const aReplaceExisting: Boolean): Boolean; forward;
 
 function BuildSymbolMapIncludeGraphHash(const aContext: TSymbolMapContext; const aSourceFileName: string):
   string;
@@ -179,6 +193,37 @@ begin
     'key_name text primary key not null, value_text text not null)');
 end;
 
+function ColumnExists(const aConnection: TFDConnection; const aTableName, aColumnName: string): Boolean;
+var
+  lQuery: TFDQuery;
+begin
+  Result := False;
+  lQuery := TFDQuery.Create(nil);
+  try
+    lQuery.Connection := aConnection;
+    lQuery.SQL.Text := 'pragma table_info(' + aTableName + ')';
+    lQuery.Open;
+    while not lQuery.Eof do
+    begin
+      if SameText(lQuery.FieldByName('name').AsString, aColumnName) then
+        Exit(True);
+      lQuery.Next;
+    end;
+  finally
+    lQuery.Free;
+  end;
+end;
+
+procedure EnsureMembersProjectionColumns(const aConnection: TFDConnection);
+begin
+  if not ColumnExists(aConnection, 'members', 'signature') then
+    aConnection.ExecSQL('alter table members add column signature text');
+  if not ColumnExists(aConnection, 'members', 'end_line_no') then
+    aConnection.ExecSQL('alter table members add column end_line_no integer');
+  if not ColumnExists(aConnection, 'members', 'end_col_no') then
+    aConnection.ExecSQL('alter table members add column end_col_no integer');
+end;
+
 procedure EnsureCentralSchema(const aConnection: TFDConnection);
 begin
   EnsureCommonSchema(aConnection);
@@ -200,7 +245,9 @@ begin
   aConnection.ExecSQL('create table if not exists members (' +
     'unit_cache_key text not null, owner_name text not null, member_name text not null, ' +
     'normalized_member_name text not null, kind text not null, type_name text not null, visibility text not null, ' +
-    'is_default integer not null, is_indexed integer not null, line_no integer not null, col_no integer not null)');
+    'signature text not null, is_default integer not null, is_indexed integer not null, ' +
+    'line_no integer not null, col_no integer not null, end_line_no integer not null, end_col_no integer not null)');
+  EnsureMembersProjectionColumns(aConnection);
   aConnection.ExecSQL('create table if not exists symbol_map_references (' +
     'unit_cache_key text not null, name text not null, normalized_name text not null, role text not null, ' +
     'section_kind text not null, line_no integer not null, col_no integer not null, end_line_no integer not null, ' +
@@ -246,7 +293,7 @@ begin
   try
     if not TryReadSchemaVersion(aConnection, lVersion) then
       Exit(False);
-    if (lVersion <> '') and (lVersion <> cSymbolMapSchemaVersion.ToString) then
+    if (lVersion <> '') and (lVersion <> '2') and (lVersion <> cSymbolMapSchemaVersion.ToString) then
     begin
       aError := 'Unsupported Symbol Map cache schema version: ' + lVersion;
       Exit(False);
@@ -413,18 +460,25 @@ begin
   Result := TDelphiSemanticCacheIdentityBuilder.BuildContextHash(SemanticIdentityContext(aContext, ''));
 end;
 
-procedure BuildUnitCacheIdentity(const aContext: TSymbolMapContext; const aModel: TSymbolMapUnitModel;
+procedure BuildUnitCacheIdentityForFile(const aContext: TSymbolMapContext; const aFilePath: string;
   out aFileHash, aContextHash, aUnitCacheKey: string);
 var
   lIdentityContext: TDelphiSemanticCacheIdentityContext;
   lIdentity: TDelphiSemanticUnitCacheIdentity;
 begin
   lIdentityContext := SemanticIdentityContext(aContext, BuildSymbolMapIncludeGraphHash(aContext,
-    aModel.fFilePath));
-  lIdentity := TDelphiSemanticCacheIdentityBuilder.BuildUnitIdentity(aModel.fFilePath, lIdentityContext);
+    aFilePath));
+  lIdentity := TDelphiSemanticCacheIdentityBuilder.BuildUnitIdentity(aFilePath, lIdentityContext);
   aFileHash := lIdentity.FileHash;
   aContextHash := lIdentity.ContextHash;
   aUnitCacheKey := lIdentity.UnitCacheKey;
+end;
+
+procedure BuildUnitCacheIdentity(const aContext: TSymbolMapContext; const aModel: TSymbolMapUnitModel;
+  out aFileHash, aContextHash, aUnitCacheKey: string);
+begin
+  BuildUnitCacheIdentityForFile(aContext, aModel.fFilePath, aFileHash, aContextHash,
+    aUnitCacheKey);
 end;
 
 function BuildSymbolMapProjectKey(const aContext: TSymbolMapContext): string;
@@ -873,7 +927,8 @@ begin
     for lSemanticModel in lProfileModels.RtlSourceUnitModels do
     begin
       lModel := SymbolMapUnitModelFromDelphiSemanticModel(lSemanticModel);
-      if not StoreSymbolMapUnitProjectionInternal(lRtlContext, aStatus, lModel, lStoreResult, aError, True) then
+      if not StoreSymbolMapUnitProjectionInternal(lRtlContext, aStatus, lModel, lStoreResult, aError, True,
+        False) then
         Exit(False);
       if lStoreResult.fCacheHit then
         Inc(aResult.fUnitCacheHits)
@@ -1060,9 +1115,239 @@ begin
   end;
 end;
 
+procedure LoadCachedUses(const aConnection: TFDConnection; const aUnitCacheKey: string;
+  var aModel: TSymbolMapUnitModel);
+var
+  lIndex: Integer;
+  lQuery: TFDQuery;
+begin
+  lQuery := TFDQuery.Create(nil);
+  try
+    lQuery.Connection := aConnection;
+    lQuery.SQL.Text := 'select used_unit_name, section_kind, line_no, col_no from unit_uses ' +
+      'where unit_cache_key = ? order by line_no, col_no, used_unit_name';
+    lQuery.Params[0].AsString := aUnitCacheKey;
+    lQuery.Open;
+    while not lQuery.Eof do
+    begin
+      lIndex := Length(aModel.fUses);
+      SetLength(aModel.fUses, lIndex + 1);
+      aModel.fUses[lIndex].fUnitName := lQuery.FieldByName('used_unit_name').AsString;
+      aModel.fUses[lIndex].fSectionKind := lQuery.FieldByName('section_kind').AsString;
+      aModel.fUses[lIndex].fLine := lQuery.FieldByName('line_no').AsInteger;
+      aModel.fUses[lIndex].fCol := lQuery.FieldByName('col_no').AsInteger;
+      lQuery.Next;
+    end;
+  finally
+    lQuery.Free;
+  end;
+end;
+
+procedure LoadCachedSymbols(const aConnection: TFDConnection; const aUnitCacheKey: string;
+  var aModel: TSymbolMapUnitModel);
+var
+  lIndex: Integer;
+  lQuery: TFDQuery;
+begin
+  lQuery := TFDQuery.Create(nil);
+  try
+    lQuery.Connection := aConnection;
+    lQuery.SQL.Text := 'select name, kind, owner_name, type_name, signature, section_kind, ' +
+      'line_no, col_no, end_line_no, end_col_no from symbols where unit_cache_key = ? ' +
+      'order by line_no, col_no, name';
+    lQuery.Params[0].AsString := aUnitCacheKey;
+    lQuery.Open;
+    while not lQuery.Eof do
+    begin
+      lIndex := Length(aModel.fSymbols);
+      SetLength(aModel.fSymbols, lIndex + 1);
+      aModel.fSymbols[lIndex].fName := lQuery.FieldByName('name').AsString;
+      aModel.fSymbols[lIndex].fKind := lQuery.FieldByName('kind').AsString;
+      aModel.fSymbols[lIndex].fUnitName := aModel.fUnitName;
+      aModel.fSymbols[lIndex].fFilePath := aModel.fFilePath;
+      aModel.fSymbols[lIndex].fOwnerName := lQuery.FieldByName('owner_name').AsString;
+      aModel.fSymbols[lIndex].fTypeName := lQuery.FieldByName('type_name').AsString;
+      aModel.fSymbols[lIndex].fSignature := lQuery.FieldByName('signature').AsString;
+      aModel.fSymbols[lIndex].fSectionKind := lQuery.FieldByName('section_kind').AsString;
+      aModel.fSymbols[lIndex].fLine := lQuery.FieldByName('line_no').AsInteger;
+      aModel.fSymbols[lIndex].fCol := lQuery.FieldByName('col_no').AsInteger;
+      aModel.fSymbols[lIndex].fEndLine := lQuery.FieldByName('end_line_no').AsInteger;
+      aModel.fSymbols[lIndex].fEndCol := lQuery.FieldByName('end_col_no').AsInteger;
+      lQuery.Next;
+    end;
+  finally
+    lQuery.Free;
+  end;
+end;
+
+procedure LoadCachedMembers(const aConnection: TFDConnection; const aUnitCacheKey: string;
+  var aModel: TSymbolMapUnitModel);
+var
+  lIndex: Integer;
+  lQuery: TFDQuery;
+begin
+  lQuery := TFDQuery.Create(nil);
+  try
+    lQuery.Connection := aConnection;
+    lQuery.SQL.Text := 'select owner_name, member_name, kind, type_name, visibility, signature, ' +
+      'is_default, is_indexed, line_no, col_no, end_line_no, end_col_no from members where unit_cache_key = ? ' +
+      'order by line_no, col_no, owner_name, member_name';
+    lQuery.Params[0].AsString := aUnitCacheKey;
+    lQuery.Open;
+    while not lQuery.Eof do
+    begin
+      lIndex := Length(aModel.fMembers);
+      SetLength(aModel.fMembers, lIndex + 1);
+      aModel.fMembers[lIndex].fOwnerName := lQuery.FieldByName('owner_name').AsString;
+      aModel.fMembers[lIndex].fMemberName := lQuery.FieldByName('member_name').AsString;
+      aModel.fMembers[lIndex].fKind := lQuery.FieldByName('kind').AsString;
+      aModel.fMembers[lIndex].fTypeName := lQuery.FieldByName('type_name').AsString;
+      aModel.fMembers[lIndex].fVisibility := lQuery.FieldByName('visibility').AsString;
+      aModel.fMembers[lIndex].fSignature := lQuery.FieldByName('signature').AsString;
+      aModel.fMembers[lIndex].fIsDefault := lQuery.FieldByName('is_default').AsInteger <> 0;
+      aModel.fMembers[lIndex].fIsIndexed := lQuery.FieldByName('is_indexed').AsInteger <> 0;
+      aModel.fMembers[lIndex].fLine := lQuery.FieldByName('line_no').AsInteger;
+      aModel.fMembers[lIndex].fCol := lQuery.FieldByName('col_no').AsInteger;
+      aModel.fMembers[lIndex].fEndLine := lQuery.FieldByName('end_line_no').AsInteger;
+      aModel.fMembers[lIndex].fEndCol := lQuery.FieldByName('end_col_no').AsInteger;
+      lQuery.Next;
+    end;
+  finally
+    lQuery.Free;
+  end;
+end;
+
+procedure LoadCachedReferences(const aConnection: TFDConnection; const aUnitCacheKey: string;
+  var aModel: TSymbolMapUnitModel);
+var
+  lIndex: Integer;
+  lQuery: TFDQuery;
+begin
+  lQuery := TFDQuery.Create(nil);
+  try
+    lQuery.Connection := aConnection;
+    lQuery.SQL.Text := 'select name, role, section_kind, line_no, col_no, end_line_no, end_col_no ' +
+      'from symbol_map_references where unit_cache_key = ? order by line_no, col_no, name';
+    lQuery.Params[0].AsString := aUnitCacheKey;
+    lQuery.Open;
+    while not lQuery.Eof do
+    begin
+      lIndex := Length(aModel.fReferences);
+      SetLength(aModel.fReferences, lIndex + 1);
+      aModel.fReferences[lIndex].fName := lQuery.FieldByName('name').AsString;
+      aModel.fReferences[lIndex].fRole := lQuery.FieldByName('role').AsString;
+      aModel.fReferences[lIndex].fSectionKind := lQuery.FieldByName('section_kind').AsString;
+      aModel.fReferences[lIndex].fLine := lQuery.FieldByName('line_no').AsInteger;
+      aModel.fReferences[lIndex].fCol := lQuery.FieldByName('col_no').AsInteger;
+      aModel.fReferences[lIndex].fEndLine := lQuery.FieldByName('end_line_no').AsInteger;
+      aModel.fReferences[lIndex].fEndCol := lQuery.FieldByName('end_col_no').AsInteger;
+      lQuery.Next;
+    end;
+  finally
+    lQuery.Free;
+  end;
+end;
+
+function LoadCachedUnitProjection(const aConnection: TFDConnection; const aUnitCacheKey,
+  aFilePath: string; out aModel: TSymbolMapUnitModel): Boolean;
+var
+  lQuery: TFDQuery;
+begin
+  Result := False;
+  aModel := Default(TSymbolMapUnitModel);
+  lQuery := TFDQuery.Create(nil);
+  try
+    lQuery.Connection := aConnection;
+    lQuery.SQL.Text := 'select unit_name, file_path_sample from symbol_map_units where unit_cache_key = ?';
+    lQuery.Params[0].AsString := aUnitCacheKey;
+    lQuery.Open;
+    if lQuery.Eof then
+      Exit(False);
+
+    aModel.fUnitName := lQuery.FieldByName('unit_name').AsString;
+    aModel.fFilePath := TPath.GetFullPath(aFilePath);
+    aModel.fEncodingName := 'cache-hit';
+    LoadCachedUses(aConnection, aUnitCacheKey, aModel);
+    LoadCachedSymbols(aConnection, aUnitCacheKey, aModel);
+    LoadCachedMembers(aConnection, aUnitCacheKey, aModel);
+    LoadCachedReferences(aConnection, aUnitCacheKey, aModel);
+    Result := True;
+  finally
+    lQuery.Free;
+  end;
+end;
+
+function TryLoadSymbolMapUnitProjection(const aContext: TSymbolMapContext;
+  const aStatus: TSymbolMapCacheStatus; const aFilePath: string; const aLinkProjectUnit: Boolean;
+  out aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aFound: Boolean;
+  out aError: string): Boolean;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lFullPath: string;
+  lMutexHandle: THandle;
+begin
+  Result := False;
+  aModel := Default(TSymbolMapUnitModel);
+  aResult := Default(TSymbolMapCacheStoreResult);
+  aFound := False;
+  aError := '';
+  lFullPath := TPath.GetFullPath(aFilePath);
+  BuildUnitCacheIdentityForFile(aContext, lFullPath, aResult.fFileHash, aResult.fContextHash,
+    aResult.fUnitCacheKey);
+
+  if not AcquireCentralCacheMutex(aStatus.fCentralDbPath, lMutexHandle, aError) then
+    Exit(False);
+  try
+    if not OpenCacheConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
+      Exit(False);
+    try
+      try
+        aFound := CentralUnitProjectionExists(lConnection, aResult.fUnitCacheKey);
+        if aFound then
+        begin
+          if not LoadCachedUnitProjection(lConnection, aResult.fUnitCacheKey, lFullPath, aModel) then
+          begin
+            aError := 'Symbol Map central unit projection was incomplete.';
+            Exit(False);
+          end;
+          aResult.fCacheHit := True;
+          aResult.fParseAvoided := True;
+        end;
+        Result := True;
+      except
+        on E: Exception do
+          aError := E.Message;
+      end;
+    finally
+      lConnection.Free;
+      lDriverLink.Free;
+    end;
+  finally
+    if lMutexHandle <> 0 then
+    begin
+      ReleaseMutex(lMutexHandle);
+      CloseHandle(lMutexHandle);
+    end;
+  end;
+
+  if Result and aFound and aLinkProjectUnit then
+  begin
+    try
+      StoreProjectUnitReference(aContext, aStatus, aModel, aResult.fUnitCacheKey, aError);
+    except
+      on E: Exception do
+      begin
+        aError := E.Message;
+        Result := False;
+      end;
+    end;
+  end;
+end;
+
 function StoreSymbolMapUnitProjectionInternal(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string;
-  const aLinkProjectUnit: Boolean): Boolean;
+  const aLinkProjectUnit: Boolean; const aReplaceExisting: Boolean): Boolean;
 var
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
@@ -1083,7 +1368,7 @@ begin
     try
       try
         aResult.fCacheHit := CentralUnitProjectionExists(lConnection, lUnitCacheKey);
-        if not aResult.fCacheHit then
+        if aReplaceExisting or not aResult.fCacheHit then
         begin
           lConnection.StartTransaction;
           try
@@ -1098,12 +1383,14 @@ begin
             begin
               lConnection.ExecSQL('insert into members(' +
                 'unit_cache_key, owner_name, member_name, normalized_member_name, kind, type_name, visibility, ' +
-                'is_default, is_indexed, line_no, col_no) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'signature, is_default, is_indexed, line_no, col_no, end_line_no, end_col_no) ' +
+                'values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [lUnitCacheKey, lMember.fOwnerName, lMember.fMemberName, LowerCase(lMember.fMemberName),
-                lMember.fKind, lMember.fTypeName, lMember.fVisibility, BoolToDbInt(lMember.fIsDefault),
-                BoolToDbInt(lMember.fIsIndexed), lMember.fLine, lMember.fCol]);
+                lMember.fKind, lMember.fTypeName, lMember.fVisibility, lMember.fSignature,
+                BoolToDbInt(lMember.fIsDefault), BoolToDbInt(lMember.fIsIndexed), lMember.fLine,
+                lMember.fCol, lMember.fEndLine, lMember.fEndCol]);
             end;
-            lConnection.ExecSQL('insert into symbol_map_units(' +
+            lConnection.ExecSQL('insert or replace into symbol_map_units(' +
               'unit_cache_key, unit_name, file_hash, file_path_sample, context_hash, parser_version, ' +
               'schema_version, diagnostics_json, parsed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?)',
               [lUnitCacheKey, aModel.fUnitName, aResult.fFileHash, aModel.fFilePath, aResult.fContextHash,
@@ -1151,6 +1438,25 @@ function StoreSymbolMapProjectProjection(const aContext: TSymbolMapContext; cons
   const aModels: TArray<TSymbolMapUnitModel>; out aResults: TArray<TSymbolMapCacheStoreResult>;
   out aError: string): Boolean;
 var
+  lKnownResults: TArray<TSymbolMapCacheStoreResult>;
+begin
+  SetLength(lKnownResults, 0);
+  Result := StoreSymbolMapProjectProjection(aContext, aStatus, aModels, lKnownResults, False, aResults, aError);
+end;
+
+function StoreSymbolMapProjectProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModels: TArray<TSymbolMapUnitModel>; const aKnownResults: TArray<TSymbolMapCacheStoreResult>;
+  out aResults: TArray<TSymbolMapCacheStoreResult>; out aError: string): Boolean;
+begin
+  Result := StoreSymbolMapProjectProjection(aContext, aStatus, aModels, aKnownResults, False, aResults,
+    aError);
+end;
+
+function StoreSymbolMapProjectProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModels: TArray<TSymbolMapUnitModel>; const aKnownResults: TArray<TSymbolMapCacheStoreResult>;
+  const aReplaceExisting: Boolean; out aResults: TArray<TSymbolMapCacheStoreResult>;
+  out aError: string): Boolean;
+var
   i: Integer;
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
@@ -1162,8 +1468,15 @@ begin
   aError := '';
   SetLength(aResults, Length(aModels));
   for i := 0 to High(aModels) do
-    if not StoreSymbolMapUnitProjectionInternal(aContext, aStatus, aModels[i], aResults[i], aError, False) then
+  begin
+    if (i <= High(aKnownResults)) and aKnownResults[i].fParseAvoided and
+      (aKnownResults[i].fUnitCacheKey <> '') then
+    begin
+      aResults[i] := aKnownResults[i];
+    end else if not StoreSymbolMapUnitProjectionInternal(aContext, aStatus, aModels[i], aResults[i], aError,
+      False, aReplaceExisting) then
       Exit(False);
+  end;
 
   lProjectMutexHandle := 0;
   if not AcquireProjectCacheMutex(aStatus.fProjectDbPath, lProjectMutexHandle, aError) then
@@ -1207,7 +1520,15 @@ end;
 function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aModel: TSymbolMapUnitModel; out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean;
 begin
-  Result := StoreSymbolMapUnitProjectionInternal(aContext, aStatus, aModel, aResult, aError, True);
+  Result := StoreSymbolMapUnitProjectionInternal(aContext, aStatus, aModel, aResult, aError, True, False);
+end;
+
+function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
+  const aModel: TSymbolMapUnitModel; const aReplaceExisting: Boolean;
+  out aResult: TSymbolMapCacheStoreResult; out aError: string): Boolean;
+begin
+  Result := StoreSymbolMapUnitProjectionInternal(aContext, aStatus, aModel, aResult, aError, True,
+    aReplaceExisting);
 end;
 
 function StoreSymbolMapUnitProjection(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;

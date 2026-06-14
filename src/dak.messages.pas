@@ -84,7 +84,7 @@ resourcestring
     'DelphiAIKit.exe symbol-map <index|find-definition|find-references|search-symbols|describe-symbol|stats> ' +
     '--project "<path>" [--platform <Win32|Win64>] [--config <Debug|Release>] [--delphi <23.0>]' + #13#10 +
     '  [--cache-root "<path>"] [--format <json|text>]' + #13#10 +
-    '  index: [--unit "<pas>"] indexes the current project context or one targeted unit' + #13#10 +
+    '  index: [--unit "<pas>"] [--refresh <auto|force>] indexes the current project context or one targeted unit' + #13#10 +
     '  find-definition: --file "<path>" --line <N 1-based> --col <N 1-based>' + #13#10 +
     '  find-references: --symbol "<name>" [--limit <N>]' + #13#10 +
     '  search-symbols: --query "<text>" [--limit <N>]' + #13#10 +
@@ -122,6 +122,7 @@ resourcestring
   SInvalidFiFormats = 'Invalid --fi-formats value: %s';
   SGlobalVarsInvalidFormat = 'Unsupported global-vars format: %s';
   SGlobalVarsInvalidRefresh = 'Unsupported global-vars refresh mode: %s';
+  SSymbolMapInvalidRefresh = 'Unsupported symbol-map refresh mode: %s';
   SGlobalVarsConflictingAccessFilters = 'Use either --reads-only or --writes-only (not both).';
   SGlobalVarsUnusedAccessConflict = '--unused-only cannot be combined with --reads-only or --writes-only.';
   SDepsInvalidFormat = 'Unsupported deps format: %s';

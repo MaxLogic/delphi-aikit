@@ -30,6 +30,7 @@ type
   TSymbolMapOperation = (smoNone, smoIndex, smoFindDefinition, smoFindReferences, smoSearchSymbols,
     smoDescribeSymbol, smoStats);
   TSymbolMapFormat = (smfJson, smfText);
+  TSymbolMapRefresh = (smrAuto, smrForce);
   TRefactorFormat = (rffJson, rffText);
 
   TDiagnosticsDefaults = record
@@ -225,6 +226,8 @@ type
     fRemoveWithSkipCompatibilityFacts: Boolean;
     fSymbolMapOperation: TSymbolMapOperation;
     fSymbolMapFormat: TSymbolMapFormat;
+    fSymbolMapRefresh: TSymbolMapRefresh;
+    fHasSymbolMapRefresh: Boolean;
     fSymbolMapUnitPath: string;
     fSymbolMapFilePath: string;
     fSymbolMapLine: Integer;

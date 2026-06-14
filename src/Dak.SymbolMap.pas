@@ -174,6 +174,7 @@ begin
     '"fileHash":"' + JsonEscape(aUnit.fStoreResult.fFileHash) + '",' +
     '"contextHash":"' + JsonEscape(aUnit.fStoreResult.fContextHash) + '",' +
     '"centralCacheHit":' + LowerCase(BoolToStr(aUnit.fStoreResult.fCacheHit, True)) + ',' +
+    '"parseAvoided":' + LowerCase(BoolToStr(aUnit.fStoreResult.fParseAvoided, True)) + ',' +
     '"usesCount":' + Length(aUnit.fModel.fUses).ToString + ',' +
     '"symbolCount":' + Length(aUnit.fModel.fSymbols).ToString + ',' +
     '"memberCount":' + Length(aUnit.fModel.fMembers).ToString + ',' +
@@ -388,20 +389,33 @@ begin
     WriteLn('indexed-unit: ', lUnit.fModel.fUnitName);
     WriteLn('unit-cache-key: ', lUnit.fStoreResult.fUnitCacheKey);
     WriteLn('central-cache-hit: ', LowerCase(BoolToStr(lUnit.fStoreResult.fCacheHit, True)));
+    WriteLn('parse-avoided: ', LowerCase(BoolToStr(lUnit.fStoreResult.fParseAvoided, True)));
   end;
 end;
 
 function TryIndexSymbolMapUnit(const aContext: TSymbolMapContext; const aCacheStatus: TSymbolMapCacheStatus;
-  const aUnitPath: string; out aIndexedUnit: TSymbolMapIndexedUnit; out aError: string): Boolean;
+  const aUnitPath: string; const aForceRefresh: Boolean; out aIndexedUnit: TSymbolMapIndexedUnit;
+  out aError: string): Boolean;
 var
+  lFound: Boolean;
   lUnitPath: string;
 begin
   Result := False;
   aIndexedUnit := Default(TSymbolMapIndexedUnit);
   lUnitPath := TPath.GetFullPath(aUnitPath);
+  if not aForceRefresh then
+  begin
+    if not TryLoadSymbolMapUnitProjection(aContext, aCacheStatus, lUnitPath, True,
+      aIndexedUnit.fModel, aIndexedUnit.fStoreResult, lFound, aError) then
+      Exit(False);
+    if lFound then
+      Exit(True);
+  end;
+
   if not TryExtractSymbolMapUnitModel(lUnitPath, aIndexedUnit.fModel, aError) then
     Exit(False);
-  if not StoreSymbolMapUnitProjection(aContext, aCacheStatus, aIndexedUnit.fModel, aIndexedUnit.fStoreResult, aError) then
+  if not StoreSymbolMapUnitProjection(aContext, aCacheStatus, aIndexedUnit.fModel, aForceRefresh,
+    aIndexedUnit.fStoreResult, aError) then
     Exit(False);
   Result := True;
 end;
@@ -409,10 +423,12 @@ end;
 procedure AddIndexedUnit(var aUnits: TArray<TSymbolMapIndexedUnit>; const aUnit: TSymbolMapIndexedUnit); forward;
 
 function TryIndexSymbolMapProject(const aContext: TSymbolMapContext; const aCacheStatus: TSymbolMapCacheStatus;
-  var aIndexedUnits: TArray<TSymbolMapIndexedUnit>; out aError: string): Boolean;
+  const aForceRefresh: Boolean; var aIndexedUnits: TArray<TSymbolMapIndexedUnit>; out aError: string): Boolean;
 var
   i: Integer;
   lIndexedUnit: TSymbolMapIndexedUnit;
+  lFound: Boolean;
+  lKnownResults: TArray<TSymbolMapCacheStoreResult>;
   lModels: TArray<TSymbolMapUnitModel>;
   lStoreResults: TArray<TSymbolMapCacheStoreResult>;
   lUnitPath: string;
@@ -421,16 +437,29 @@ begin
   Result := False;
   lUnitPaths := SymbolMapProjectSourceFilePaths(aContext, False);
   SetLength(lModels, Length(lUnitPaths));
+  SetLength(lKnownResults, Length(lUnitPaths));
   i := 0;
   for lUnitPath in lUnitPaths do
   begin
     lIndexedUnit := Default(TSymbolMapIndexedUnit);
-    if not TryExtractSymbolMapUnitModel(lUnitPath, lIndexedUnit.fModel, aError) then
-      Exit(False);
+    lFound := False;
+    if not aForceRefresh then
+    begin
+      if not TryLoadSymbolMapUnitProjection(aContext, aCacheStatus, lUnitPath, False,
+        lIndexedUnit.fModel, lIndexedUnit.fStoreResult, lFound, aError) then
+        Exit(False);
+    end;
+    if not lFound then
+    begin
+      if not TryExtractSymbolMapUnitModel(lUnitPath, lIndexedUnit.fModel, aError) then
+        Exit(False);
+    end;
     lModels[i] := lIndexedUnit.fModel;
+    lKnownResults[i] := lIndexedUnit.fStoreResult;
     Inc(i);
   end;
-  if not StoreSymbolMapProjectProjection(aContext, aCacheStatus, lModels, lStoreResults, aError) then
+  if not StoreSymbolMapProjectProjection(aContext, aCacheStatus, lModels, lKnownResults, aForceRefresh,
+    lStoreResults, aError) then
     Exit(False);
   for i := 0 to High(lModels) do
   begin
@@ -446,7 +475,7 @@ function EnsureSymbolMapProjectIndexedForQuery(const aContext: TSymbolMapContext
   const aCacheStatus: TSymbolMapCacheStatus; var aIndexedUnits: TArray<TSymbolMapIndexedUnit>;
   out aError: string): Boolean;
 begin
-  Result := TryIndexSymbolMapProject(aContext, aCacheStatus, aIndexedUnits, aError);
+  Result := TryIndexSymbolMapProject(aContext, aCacheStatus, False, aIndexedUnits, aError);
 end;
 
 procedure AddIndexedUnit(var aUnits: TArray<TSymbolMapIndexedUnit>; const aUnit: TSymbolMapIndexedUnit);
@@ -504,7 +533,8 @@ begin
   end;
   if (aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex) and (aOptions.fSymbolMapUnitPath <> '') then
   begin
-    if not TryIndexSymbolMapUnit(lContext, lCacheStatus, aOptions.fSymbolMapUnitPath, lIndexedUnit, lError) then
+    if not TryIndexSymbolMapUnit(lContext, lCacheStatus, aOptions.fSymbolMapUnitPath,
+      aOptions.fSymbolMapRefresh = TSymbolMapRefresh.smrForce, lIndexedUnit, lError) then
     begin
       WriteLn(ErrOutput, lError);
       Exit(cExitToolFailure);
@@ -513,7 +543,8 @@ begin
     lResultJson := BuildIndexResultJson(lIndexedUnits);
   end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex then
   begin
-    if not TryIndexSymbolMapProject(lContext, lCacheStatus, lIndexedUnits, lError) then
+    if not TryIndexSymbolMapProject(lContext, lCacheStatus,
+      aOptions.fSymbolMapRefresh = TSymbolMapRefresh.smrForce, lIndexedUnits, lError) then
     begin
       WriteLn(ErrOutput, lError);
       Exit(cExitToolFailure);

@@ -60,6 +60,9 @@ All notable user-visible changes to this project will be documented in this file
 - Added `deps` for project dependency topology analysis, including deterministic JSON output, text summaries, focused unit views, cycle reporting over resolved project units, and default artifact copies under sibling `.dak/<ProjectName>/deps/`. (T-101, T-102)
 
 ### Changed
+- `symbol-map index` now reports `parseAvoided` / `parse-avoided` for unit
+  cache hits that reuse an existing central projection without parsing, and
+  accepts `--refresh force` to bypass the cache-hit fast path.
 - Project-analysis commands now make their semantic context quality explicit:
   degraded-tolerant commands report context mode/note in command output, while
   strict commands fail closed when Delphi IDE context cannot be resolved.

@@ -129,7 +129,7 @@ begin
     Add('ignore-warnings', '', svpRequiredValue, [crBuild]);
     Add('ignore-hints', '', svpRequiredValue, [crBuild]);
     Add('cache', '', svpRequiredValue, [crGlobalVars]);
-    Add('refresh', '', svpRequiredValue, [crGlobalVars]);
+    Add('refresh', '', svpRequiredValue, [crGlobalVars, crSymbolMap]);
     Add('unused-only', '', svpFlag, [crGlobalVars]);
     Add('name', '', svpRequiredValue, [crGlobalVars]);
     Add('reads-only', '', svpFlag, [crGlobalVars]);
@@ -597,6 +597,7 @@ begin
   fOptions.fRemoveWithFormat := TRemoveWithFormat.rwfJson;
   fOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtNone;
   fOptions.fSymbolMapFormat := TSymbolMapFormat.smfJson;
+  fOptions.fSymbolMapRefresh := TSymbolMapRefresh.smrAuto;
   fOptions.fSymbolMapLimit := 50;
   fOptions.fRefactorFormat := TRefactorFormat.rffText;
   fOptions.fDeadCodeProfile := TDelphiSemanticDeadCodeProfiles.ToName(
@@ -1713,6 +1714,23 @@ begin
     Exit(True);
   end;
 
+  if SwitchMatches(aSwitch, 'refresh') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--refresh') then
+      Exit(False);
+    fOptions.fHasSymbolMapRefresh := True;
+    if SameText(lValue, 'auto') then
+      fOptions.fSymbolMapRefresh := TSymbolMapRefresh.smrAuto
+    else if SameText(lValue, 'force') then
+      fOptions.fSymbolMapRefresh := TSymbolMapRefresh.smrForce
+    else
+    begin
+      fError := Format(SSymbolMapInvalidRefresh, [lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
   if SwitchMatches(aSwitch, 'file') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--file') then
@@ -2470,6 +2488,11 @@ begin
     if (fOptions.fSymbolMapUnitPath <> '') and (fOptions.fSymbolMapOperation <> TSymbolMapOperation.smoIndex) then
     begin
       fError := Format(SSymbolMapOptionOnlyForOperation, ['--unit', 'index']);
+      Exit(False);
+    end;
+    if fOptions.fHasSymbolMapRefresh and (fOptions.fSymbolMapOperation <> TSymbolMapOperation.smoIndex) then
+    begin
+      fError := Format(SSymbolMapOptionOnlyForOperation, ['--refresh', 'index']);
       Exit(False);
     end;
     if ((fOptions.fSymbolMapFilePath <> '') or (fOptions.fSymbolMapLine > 0) or (fOptions.fSymbolMapCol > 0)) and
