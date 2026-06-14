@@ -216,6 +216,7 @@
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Api.RemoveWith.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Graph.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.GlobalVars.pas"/>
+        <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Lsp.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Model.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.ProjectContext.pas"/>
         <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Source.pas"/>
