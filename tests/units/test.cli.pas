@@ -123,6 +123,8 @@ type
     [Test]
     procedure RemoveWithHelpDocumentsModesAndTargets;
     [Test]
+    procedure RefactorSlashSwitchesDoNotBecomeBoolValues;
+    [Test]
     procedure LspCommandParsesOperationsAndRequiredArgs;
     [Test]
     procedure LspCommandParsesProjectAndOperationFields;
@@ -1151,6 +1153,44 @@ begin
     'Expected remove-with help to document the non-mutating default mode.');
 end;
 
+procedure TCliTests.RefactorSlashSwitchesDoNotBecomeBoolValues;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('rename --project C:\repo\Sample.dproj --symbol OldName --apply /new-name NewName');
+
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected slash-style /new-name to remain a switch after --apply. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckRename, lOptions.fCommand, 'Expected rename command kind.');
+  Assert.IsTrue(lOptions.fHasRefactorApply, 'Expected --apply to be parsed as an explicit flag.');
+  Assert.IsTrue(lOptions.fRefactorApply, 'Expected bare --apply to enable apply mode.');
+  Assert.AreEqual('NewName', lOptions.fRefactorNewName, 'Expected /new-name value to parse.');
+
+  SetParams('rename --project C:\repo\Sample.dproj --symbol OldName --apply /semantic-cache C:\cache /new-name NewName');
+
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected slash-style /semantic-cache to remain a switch after --apply. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckRename, lOptions.fCommand, 'Expected rename command kind.');
+  Assert.IsTrue(lOptions.fHasRefactorApply, 'Expected --apply to be parsed as an explicit flag.');
+  Assert.IsTrue(lOptions.fRefactorApply, 'Expected bare --apply to enable apply mode.');
+  Assert.IsTrue(lOptions.fHasRefactorSemanticCachePath, 'Expected /semantic-cache to set the semantic cache path.');
+  Assert.AreEqual('C:\cache', lOptions.fRefactorSemanticCachePath, 'Expected /semantic-cache value to parse.');
+  Assert.AreEqual('NewName', lOptions.fRefactorNewName, 'Expected /new-name value to parse.');
+
+  SetParams('dead-code --project C:\repo\Sample.dproj --verbose /profile audit');
+
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected slash-style /profile to remain a switch after --verbose. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckDeadCode, lOptions.fCommand, 'Expected dead-code command kind.');
+  Assert.IsTrue(lOptions.fVerbose, 'Expected bare --verbose to enable verbose mode.');
+  Assert.AreEqual('audit', lOptions.fDeadCodeProfile, 'Expected /profile value to parse.');
+
+  SetParams('rename --project C:\repo\Sample.dproj --symbol OldName --new-name NewName /profile audit');
+
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected rename to reject dead-code-only /profile.');
+  Assert.IsTrue(Pos('/profile', lError) > 0, 'Expected rejected /profile in error. Actual: ' + lError);
+end;
 
 procedure TCliTests.LspCommandParsesOperationsAndRequiredArgs;
 var
