@@ -12,6 +12,10 @@ uses
 function TryBuildParams(const aOptions: TAppOptions; const aEnvVars: TDictionary<string, string>;
   const aLibraryPath: string; aLibrarySource: TPropertySource; aDiagnostics: TDiagnostics;
   out aParams: TFixInsightParams; out aError: string; out aErrorCode: Integer): Boolean;
+function TryBuildParamsFromProjectContext(const aOptions: TAppOptions; const aContext: TProjectAnalysisContext;
+  const aEnvVars: TDictionary<string, string>; const aLibraryPath: string; aLibrarySource: TPropertySource;
+  aDiagnostics: TDiagnostics;
+  out aParams: TFixInsightParams; out aError: string; out aErrorCode: Integer): Boolean;
 function TryBuildProjectSourceLookup(const aDprojPath, aConfig, aPlatform, aDelphiVersion: string;
   const aEnvVars: TDictionary<string, string>; aDiagnostics: TDiagnostics; out aLookup: TProjectSourceLookup;
   out aError: string): Boolean;
@@ -620,6 +624,96 @@ begin
     Result := True;
   finally
     lSources.Free;
+    lProps.Free;
+  end;
+end;
+
+function TryBuildParamsFromProjectContext(const aOptions: TAppOptions; const aContext: TProjectAnalysisContext;
+  const aEnvVars: TDictionary<string, string>; const aLibraryPath: string; aLibrarySource: TPropertySource;
+  aDiagnostics: TDiagnostics;
+  out aParams: TFixInsightParams; out aError: string; out aErrorCode: Integer): Boolean;
+var
+  lCombinedPaths: TArray<string>;
+  lLibPaths: TArray<string>;
+  lProjectPaths: TArray<string>;
+  lProps: TDictionary<string, string>;
+begin
+  Result := False;
+  aError := '';
+  aParams := Default(TFixInsightParams);
+  aErrorCode := 6;
+
+  if aContext.MainSourcePath = '' then
+  begin
+    aError := SMainSourceMissing;
+    Exit(False);
+  end;
+  if not FileExists(aContext.MainSourcePath) then
+  begin
+    aError := Format(SMainSourceMissingFile, [aContext.MainSourcePath]);
+    Exit(False);
+  end;
+
+  lProps := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    lProps.AddOrSetValue('Config', aOptions.fConfig);
+    lProps.AddOrSetValue('Platform', aOptions.fPlatform);
+    lProps.AddOrSetValue('DelphiVersion', aOptions.fDelphiVersion);
+    lProps.AddOrSetValue('ProjectDir', IncludeTrailingPathDelimiter(aContext.ProjectDir));
+    lProps.AddOrSetValue('PROJECTDIR', IncludeTrailingPathDelimiter(aContext.ProjectDir));
+    lProps.AddOrSetValue('ProjectName', aContext.ProjectName);
+    lProps.AddOrSetValue('MSBuildProjectName', aContext.ProjectName);
+    lProps.AddOrSetValue('MSBuildProjectFullPath', aContext.ProjectPath);
+    lProps.AddOrSetValue('MSBuildProjectDirectory', IncludeTrailingPathDelimiter(aContext.ProjectDir));
+    lProps.AddOrSetValue('MSBuildProjectFile', TPath.GetFileName(aContext.ProjectPath));
+
+    lLibPaths := NormalizePathList(aLibraryPath, aContext.ProjectDir, 'LibPath',
+      lProps, aEnvVars, aDiagnostics);
+    lProjectPaths := NormalizePathList(aContext.ParserSearchPath, aContext.ProjectDir,
+      'SearchPath', lProps, aEnvVars, aDiagnostics);
+    lCombinedPaths := ConcatDedup(lProjectPaths, lLibPaths);
+    if aDiagnostics <> nil then
+    begin
+      aDiagnostics.AddInfo(Format(SInfoMainSource, [aContext.MainSourcePath]));
+      aDiagnostics.AddInfo(Format(SInfoResolvedProjectSearchPath, [JoinList(lProjectPaths)]));
+      aDiagnostics.AddInfo(Format(SInfoResolvedLibraryPath, [JoinList(lLibPaths)]));
+      aDiagnostics.AddInfo(Format(SInfoResolvedCombinedSearchPath, [JoinList(lCombinedPaths)]));
+    end;
+
+    if Length(lLibPaths) = 0 then
+    begin
+      aError := SLibraryPathEmpty;
+      Exit(False);
+    end;
+    if Length(lCombinedPaths) = 0 then
+    begin
+      aError := SSearchPathEmpty;
+      Exit(False);
+    end;
+
+    aParams.fProjectDpr := aContext.MainSourcePath;
+    aParams.fDefines := SplitList(aContext.ParserDefines);
+    aParams.fUnitScopes := aContext.UnitScopes;
+    aParams.fUnitAliases := aContext.UnitAliases;
+    aParams.fUnitSearchPath := lCombinedPaths;
+    aParams.fLibraryPath := lLibPaths;
+    aParams.fDelphiVersion := aOptions.fDelphiVersion;
+    aParams.fPlatform := aOptions.fPlatform;
+    aParams.fConfig := aOptions.fConfig;
+    aParams.fLibrarySource := aLibrarySource;
+    aParams.fDefineSource := TPropertySource.psUnknown;
+    aParams.fSearchPathSource := TPropertySource.psUnknown;
+    aParams.fUnitScopesSource := TPropertySource.psUnknown;
+    aParams.fUnitAliasesSource := TPropertySource.psUnknown;
+
+    if aDiagnostics <> nil then
+    begin
+      aDiagnostics.AddInfo(Format(SInfoResolvedDefines, [JoinList(aParams.fDefines)]));
+      aDiagnostics.AddInfo(Format(SInfoResolvedUnitScopes, [JoinList(aParams.fUnitScopes)]));
+    end;
+
+    Result := True;
+  finally
     lProps.Free;
   end;
 end;
