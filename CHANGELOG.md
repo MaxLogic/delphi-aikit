@@ -62,6 +62,9 @@ All notable user-visible changes to this project will be documented in this file
 ### Changed
 - rsvars loading now returns an explicit environment snapshot for child tools and
   semantic evaluators instead of mutating the long-lived DelphiAIKit process.
+- DFMCheck generated project rewrites now use structured MSBuild XML handling,
+  preserving quoted import attributes, entity-encoded conditions, Unicode paths,
+  and paths containing spaces.
 - LSP JSON-RPC requests now fail with a bounded timeout instead of blocking
   indefinitely when DelphiLSP accepts input but never responds.
 - DFMCheck build and validator subprocesses now fail with a bounded timeout

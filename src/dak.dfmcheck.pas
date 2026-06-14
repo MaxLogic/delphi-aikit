@@ -94,8 +94,9 @@ function RunDfmCheckCommand(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
-  System.Diagnostics,
+  System.Diagnostics, System.Variants,
   Winapi.TlHelp32,
+  Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
   Dak.Project;
 
 const
@@ -1854,8 +1855,7 @@ begin
           if StartsText('WARN ', lTrimmedLine) then
             lDisplayLine := BuildWarnLineWithModuleContext(lTrimmedLine, aResourceModules);
           EmitLine(aOutput, lDisplayLine);
-        end
-        else if StartsText('FAIL ', lTrimmedLine) then
+        end else if StartsText('FAIL ', lTrimmedLine) then
         begin
           EmitLine(aOutput, BuildFailLineWithModuleContext(lTrimmedLine, aResourceModules));
         end else if StartsText('WARN ', lTrimmedLine) then
@@ -2421,290 +2421,306 @@ function TryCopyDprojWithNewMainSource(const aSourceDprojPath: string; const aDe
   const aSourceMainSource: string; const aGeneratedMainSource: string; const aAdditionalUnitSearchPath: string;
   out aError: string): Boolean;
 const
-  cLineBreak = #13#10;
   cDfmCheckSymbol = 'DFMCheck';
   cNoLocalizationSymbol = 'NO_LOCALIZATION';
   function EnsureDefineSymbol(const aDefines: string; const aSymbol: string): string;
+  var
+    lPart: string;
+    lParts: TArray<string>;
+    lText: string;
   begin
-    if TRegEx.IsMatch(aDefines, '(^|;)\s*' + TRegEx.Escape(aSymbol) + '\s*(;|$)', [roIgnoreCase]) then
-      Exit(aDefines);
-    if Trim(aDefines) = '' then
+    lParts := aDefines.Split([';']);
+    for lPart in lParts do
+      if SameText(Trim(lPart), aSymbol) then
+        Exit(aDefines);
+
+    lText := TrimRight(aDefines);
+    if Trim(lText) = '' then
       Exit(aSymbol);
-    if EndsText(';', TrimRight(aDefines)) then
+    if EndsText(';', lText) then
       Exit(aDefines + aSymbol);
     Result := aDefines + ';' + aSymbol;
   end;
-  function XmlEscape(const aValue: string): string;
+  function AttributeText(const aNode: IXMLNode; const aName: string): string;
   begin
-    Result := aValue;
-    Result := StringReplace(Result, '&', '&amp;', [rfReplaceAll]);
-    Result := StringReplace(Result, '<', '&lt;', [rfReplaceAll]);
-    Result := StringReplace(Result, '>', '&gt;', [rfReplaceAll]);
-    Result := StringReplace(Result, '"', '&quot;', [rfReplaceAll]);
-    Result := StringReplace(Result, '''', '&apos;', [rfReplaceAll]);
+    Result := '';
+    if (aNode <> nil) and aNode.HasAttribute(aName) then
+      Result := VarToStr(aNode.Attributes[aName]);
   end;
-  function EscapeRegexReplacement(const aValue: string): string;
+  function LocalNameIs(const aNode: IXMLNode; const aName: string): Boolean;
   begin
-    Result := StringReplace(aValue, '$', '$$', [rfReplaceAll]);
+    Result := (aNode <> nil) and (aNode.NodeType = ntElement) and SameText(aNode.LocalName, aName);
   end;
-  function PrefixUnitSearchPathNodes(const aProjectText: string; const aSearchPath: string): string;
+  function FirstChildElementByName(const aParent: IXMLNode; const aName: string): IXMLNode;
   var
-    lExistingValue: string;
-    lIndex: Integer;
-    lMatch: TMatch;
-    lMatches: TMatchCollection;
-    lMatchStart: Integer;
-    lReplacement: string;
+    i: Integer;
+    lNode: IXMLNode;
   begin
-    Result := aProjectText;
-    lMatches := TRegEx.Matches(Result, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>',
-      [roIgnoreCase]);
-    for lIndex := lMatches.Count - 1 downto 0 do
+    Result := nil;
+    if aParent = nil then
+      Exit;
+
+    for i := 0 to aParent.ChildNodes.Count - 1 do
     begin
-      lMatch := lMatches.Item[lIndex];
-      if lMatch.Groups.Count < 2 then
-        Continue;
-      lExistingValue := lMatch.Groups[1].Value;
-      lMatchStart := lMatch.Index;
-      lReplacement := '<DCC_UnitSearchPath>' + aSearchPath + ';' + lExistingValue + '</DCC_UnitSearchPath>';
-      Result := Copy(Result, 1, lMatchStart - 1) + lReplacement +
-        Copy(Result, lMatchStart + lMatch.Length, MaxInt);
+      lNode := aParent.ChildNodes[i];
+      if LocalNameIs(lNode, aName) then
+        Exit(lNode);
     end;
   end;
-  function NormalizeRelativePropertyPath(const aProjectText: string; const aPropertyName: string;
-    const aBaseDir: string): string;
+  function FirstPropertyGroup(const aRoot: IXMLNode): IXMLNode;
   var
-    lMatch: TMatch;
-    lMatches: TMatchCollection;
-    lMatchStart: Integer;
-    lPropertyPattern: string;
-    lPropertyValue: string;
-    lReplacement: string;
-    lResolvedPath: string;
-    lIndex: Integer;
+    i: Integer;
+    lNode: IXMLNode;
   begin
-    Result := aProjectText;
-    lPropertyPattern := '<' + aPropertyName + '>\s*([^<]+?)\s*</' + aPropertyName + '>';
-    lMatches := TRegEx.Matches(Result, lPropertyPattern, [roIgnoreCase, roSingleLine]);
-    for lIndex := lMatches.Count - 1 downto 0 do
+    Result := nil;
+    if aRoot = nil then
+      Exit;
+
+    for i := 0 to aRoot.ChildNodes.Count - 1 do
     begin
-      lMatch := lMatches.Item[lIndex];
-      if lMatch.Groups.Count < 2 then
-        Continue;
-      lPropertyValue := Trim(lMatch.Groups[1].Value);
-      if (lPropertyValue = '') or StartsText('$(', lPropertyValue) or TPath.IsPathRooted(lPropertyValue) then
-        Continue;
-
-      lResolvedPath := TPath.GetFullPath(TPath.Combine(aBaseDir, lPropertyValue));
-      if not FileExists(lResolvedPath) then
-        Continue;
-
-      lMatchStart := lMatch.Index;
-      lReplacement := '<' + aPropertyName + '>' + XmlEscape(lResolvedPath) + '</' + aPropertyName + '>';
-      Result := Copy(Result, 1, lMatchStart - 1) + lReplacement +
-        Copy(Result, lMatchStart + lMatch.Length, MaxInt);
+      lNode := aRoot.ChildNodes[i];
+      if LocalNameIs(lNode, 'PropertyGroup') then
+        Exit(lNode);
     end;
   end;
-  function NormalizeRelativeImportPaths(const aProjectText: string; const aBaseDir: string): string;
+  function EnsurePropertyNode(const aRoot: IXMLNode; const aName: string): IXMLNode;
   var
-    lImportPattern: string;
-    lIndex: Integer;
-    lMatch: TMatch;
-    lMatchCollection: TMatchCollection;
-    lMatchStart: Integer;
-    lProjectValue: string;
-    lReplacement: string;
-    lResolvedPath: string;
-    lValueEnd: Integer;
-    lValueStart: Integer;
+    lGroup: IXMLNode;
   begin
-    Result := aProjectText;
-    lImportPattern := '<Import\b([^>]*\bProject\s*=\s*")([^"]+)(")';
-    lMatchCollection := TRegEx.Matches(Result, lImportPattern, [roIgnoreCase, roSingleLine]);
-    for lIndex := lMatchCollection.Count - 1 downto 0 do
-    begin
-      lMatch := lMatchCollection.Item[lIndex];
-      if lMatch.Groups.Count < 4 then
-        Continue;
-      lProjectValue := Trim(lMatch.Groups[2].Value);
-      if (lProjectValue = '') or StartsText('$(', lProjectValue) or TPath.IsPathRooted(lProjectValue) then
-        Continue;
+    lGroup := FirstPropertyGroup(aRoot);
+    if lGroup = nil then
+      lGroup := aRoot.AddChild('PropertyGroup');
 
-      lResolvedPath := TPath.GetFullPath(TPath.Combine(aBaseDir, lProjectValue));
-      if not FileExists(lResolvedPath) then
-        Continue;
+    Result := FirstChildElementByName(lGroup, aName);
+    if Result = nil then
+      Result := lGroup.AddChild(aName);
+  end;
+  function TryResolveRelativeExistingPath(const aValue: string; const aBaseDir: string; out aPath: string): Boolean;
+  var
+    lValue: string;
+  begin
+    aPath := '';
+    lValue := Trim(aValue);
+    if (lValue = '') or StartsText('$(', lValue) or TPath.IsPathRooted(lValue) then
+      Exit(False);
 
-      lMatchStart := lMatch.Index;
-      lValueStart := lMatch.Groups[2].Index - lMatch.Index + 1;
-      lValueEnd := lValueStart + lMatch.Groups[2].Length - 1;
-      lReplacement := '<Import' + Copy(lMatch.Value, 8, lValueStart - 8) + XmlEscape(lResolvedPath) +
-        Copy(lMatch.Value, lValueEnd + 1, MaxInt);
-      Result := Copy(Result, 1, lMatchStart - 1) + lReplacement +
-        Copy(Result, lMatchStart + lMatch.Length, MaxInt);
-    end;
+    aPath := TPath.GetFullPath(TPath.Combine(aBaseDir, lValue));
+    Result := FileExists(aPath);
   end;
   function RewriteExistsConditionValue(const aConditionValue: string; const aConditionBaseDir: string): string;
   var
-    lEndPos: Integer;
+    lCloseParenPos: Integer;
+    lCloseQuotePos: Integer;
+    lLowerText: string;
     lPathStart: Integer;
     lPathValue: string;
     lPos: Integer;
+    lQuote: Char;
     lResolvedPath: string;
     lSearchPos: Integer;
-    lSegmentLength: Integer;
-  const
-    cExistsPrefix = 'exists(''';
   begin
     Result := aConditionValue;
     lSearchPos := 1;
     repeat
-      lPos := PosEx(cExistsPrefix, LowerCase(Result), lSearchPos);
+      lLowerText := LowerCase(Result);
+      lPos := PosEx('exists(', lLowerText, lSearchPos);
       if lPos <= 0 then
         Break;
 
-      lPathStart := lPos + Length(cExistsPrefix);
-      lEndPos := PosEx(''')', Result, lPathStart);
-      if lEndPos <= 0 then
+      lPathStart := lPos + Length('exists(');
+      while (lPathStart <= Length(Result)) and CharInSet(Result[lPathStart], [#9, #10, #13, ' ']) do
+        Inc(lPathStart);
+      if (lPathStart > Length(Result)) or not CharInSet(Result[lPathStart], ['''', '"']) then
+      begin
+        lSearchPos := lPos + Length('exists(');
+        Continue;
+      end;
+
+      lQuote := Result[lPathStart];
+      Inc(lPathStart);
+      lCloseQuotePos := PosEx(lQuote, Result, lPathStart);
+      if lCloseQuotePos <= 0 then
         Break;
 
-      lPathValue := Trim(Copy(Result, lPathStart, lEndPos - lPathStart));
-      if (lPathValue = '') or StartsText('$(', lPathValue) or TPath.IsPathRooted(lPathValue) then
+      lCloseParenPos := lCloseQuotePos + 1;
+      while (lCloseParenPos <= Length(Result)) and CharInSet(Result[lCloseParenPos], [#9, #10, #13, ' ']) do
+        Inc(lCloseParenPos);
+      if (lCloseParenPos > Length(Result)) or (Result[lCloseParenPos] <> ')') then
       begin
-        lSearchPos := lEndPos + 2;
+        lSearchPos := lCloseQuotePos + 1;
         Continue;
       end;
 
-      lResolvedPath := TPath.GetFullPath(TPath.Combine(aConditionBaseDir, lPathValue));
-      if not FileExists(lResolvedPath) then
+      lPathValue := Copy(Result, lPathStart, lCloseQuotePos - lPathStart);
+      if TryResolveRelativeExistingPath(lPathValue, aConditionBaseDir, lResolvedPath) then
       begin
-        lSearchPos := lEndPos + 2;
-        Continue;
-      end;
-
-      lSegmentLength := (lEndPos - lPos) + 2;
-      Result := Copy(Result, 1, lPos - 1) + 'Exists(''' + lResolvedPath + ''')' +
-        Copy(Result, lPos + lSegmentLength, MaxInt);
-      lSearchPos := lPos + 1;
+        Result := Copy(Result, 1, lPathStart - 1) + lResolvedPath + Copy(Result, lCloseQuotePos, MaxInt);
+        lSearchPos := lPathStart + Length(lResolvedPath);
+      end else
+        lSearchPos := lCloseParenPos + 1;
     until False;
   end;
-  function NormalizeRelativeImportConditionPaths(const aProjectText: string; const aBaseDir: string): string;
+  procedure RewriteDprojNode(const aNode: IXMLNode; const aBaseDir: string; const aSearchPath: string;
+    var aMainSourceChanged: Boolean; var aSearchPathFound: Boolean; var aDefineFound: Boolean);
   var
-    lConditionValue: string;
-    lIndex: Integer;
-    lMatch: TMatch;
-    lMatches: TMatchCollection;
-    lReplacement: string;
-    lUpdatedValue: string;
+    lCondition: string;
+    lDefines: string;
+    lPath: string;
+    lProject: string;
+    lUpdatedCondition: string;
   begin
-    Result := aProjectText;
-    lMatches := TRegEx.Matches(Result, '<Import\b([^>]*\bCondition=")([^"]+)(")', [roIgnoreCase, roSingleLine]);
-    for lIndex := lMatches.Count - 1 downto 0 do
+    if LocalNameIs(aNode, 'MainSource') then
     begin
-      lMatch := lMatches.Item[lIndex];
-      if lMatch.Groups.Count < 4 then
-        Continue;
-      lConditionValue := lMatch.Groups[2].Value;
-      lUpdatedValue := RewriteExistsConditionValue(lConditionValue, aBaseDir);
-      if lUpdatedValue = lConditionValue then
-        Continue;
-      lReplacement := '<Import' + lMatch.Groups[1].Value + XmlEscape(lUpdatedValue) + lMatch.Groups[3].Value;
-      Result := Copy(Result, 1, lMatch.Index - 1) + lReplacement + Copy(Result, lMatch.Index + lMatch.Length, MaxInt);
+      aNode.Text := aGeneratedMainSource;
+      aMainSourceChanged := True;
+    end else if LocalNameIs(aNode, 'Source') and SameText(AttributeText(aNode, 'Name'), 'MainSource') then
+    begin
+      aNode.Text := aGeneratedMainSource;
+      aMainSourceChanged := True;
+    end else if LocalNameIs(aNode, 'DCC_UnitSearchPath') then
+    begin
+      aSearchPathFound := True;
+      if Trim(aSearchPath) <> '' then
+        aNode.Text := aSearchPath + ';' + aNode.Text;
+    end else if LocalNameIs(aNode, 'DCC_Define') then
+    begin
+      aDefineFound := True;
+      lDefines := EnsureDefineSymbol(aNode.Text, cDfmCheckSymbol);
+      lDefines := EnsureDefineSymbol(lDefines, cNoLocalizationSymbol);
+      aNode.Text := lDefines;
+    end else if LocalNameIs(aNode, 'Icon_MainIcon') or LocalNameIs(aNode, 'CfgDependentOn') or
+      LocalNameIs(aNode, 'DependentOn') then
+    begin
+      if TryResolveRelativeExistingPath(aNode.Text, aBaseDir, lPath) then
+        aNode.Text := lPath;
+    end else if LocalNameIs(aNode, 'Import') then
+    begin
+      lProject := AttributeText(aNode, 'Project');
+      if TryResolveRelativeExistingPath(lProject, aBaseDir, lPath) then
+        aNode.SetAttribute('Project', lPath);
+      lCondition := AttributeText(aNode, 'Condition');
+      if lCondition <> '' then
+      begin
+        lUpdatedCondition := RewriteExistsConditionValue(lCondition, aBaseDir);
+        if lUpdatedCondition <> lCondition then
+          aNode.SetAttribute('Condition', lUpdatedCondition);
+      end;
+    end else if LocalNameIs(aNode, 'PreBuildEvent') or LocalNameIs(aNode, 'PreLinkEvent') or
+      LocalNameIs(aNode, 'PostBuildEvent') then
+      aNode.Text := '';
+  end;
+  procedure VisitDprojNodes(const aNode: IXMLNode; const aBaseDir: string; const aSearchPath: string;
+    var aMainSourceChanged: Boolean; var aSearchPathFound: Boolean; var aDefineFound: Boolean);
+  var
+    i: Integer;
+    lChild: IXMLNode;
+  begin
+    if aNode = nil then
+      Exit;
+    RewriteDprojNode(aNode, aBaseDir, aSearchPath, aMainSourceChanged, aSearchPathFound, aDefineFound);
+    for i := 0 to aNode.ChildNodes.Count - 1 do
+    begin
+      lChild := aNode.ChildNodes[i];
+      if lChild.NodeType = ntElement then
+        VisitDprojNodes(lChild, aBaseDir, aSearchPath, aMainSourceChanged, aSearchPathFound, aDefineFound);
     end;
   end;
-  function ClearBuildEventBlock(const aProjectText: string; const aTagName: string): string;
-  begin
-    Result := TRegEx.Replace(aProjectText, '<' + aTagName + '>\s*.*?\s*</' + aTagName + '>',
-      '<' + aTagName + '></' + aTagName + '>', [roIgnoreCase, roSingleLine]);
-  end;
 var
-  lEscapedSearchPath: string;
-  lEscapedSearchPathReplacement: string;
-  lDefineMatch: TMatch;
-  lExistingDefines: string;
-  lInsertedSearchPath: string;
-  lInsertText: string;
-  lPropertyGroupMatch: TMatch;
-  lInsertPos: Integer;
-  lUpdatedDefines: string;
-  lUpdatedDefinesReplacement: string;
-  lSourceText: string;
+  lDefineFound: Boolean;
+  lDefineNode: IXMLNode;
+  lDoc: IXMLDocument;
+  lMainSourceChanged: Boolean;
+  lRoot: IXMLNode;
+  lSearchPathFound: Boolean;
+  lSearchPathNode: IXMLNode;
   lSourceDprojDir: string;
-  lOutputText: string;
-  lRegex: string;
+  lVendor: TDOMVendor;
+  lXmlDoc: TXMLDocument;
 begin
   aError := '';
-  lSourceText := TFile.ReadAllText(aSourceDprojPath);
-  lOutputText := lSourceText;
   lSourceDprojDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aSourceDprojPath));
-  lRegex := '<MainSource>\s*' + TRegEx.Escape(aSourceMainSource) + '\s*</MainSource>';
 
-  lOutputText := TRegEx.Replace(lOutputText, lRegex, '<MainSource>' + aGeneratedMainSource + '</MainSource>',
-    [roIgnoreCase, roSingleLine]);
-  if lOutputText = lSourceText then
-    lOutputText := TRegEx.Replace(lOutputText, '<MainSource>\s*([^<]+?)\s*</MainSource>',
-      '<MainSource>' + aGeneratedMainSource + '</MainSource>', [roIgnoreCase, roSingleLine]);
-  lOutputText := TRegEx.Replace(lOutputText, '<Source\s+Name\s*=\s*"MainSource"\s*>\s*([^<]+?)\s*</Source>',
-    '<Source Name="MainSource">' + aGeneratedMainSource + '</Source>', [roIgnoreCase, roSingleLine]);
-
-  if lOutputText = lSourceText then
+  try
+    lVendor := GetDOMVendor(sOmniXmlVendor);
+  except
+    on E: Exception do
+    begin
+      aError := E.Message;
+      Exit(False);
+    end;
+  end;
+  if lVendor = nil then
   begin
-    aError := 'Could not patch generated .dproj MainSource.';
+    aError := Format(SXmlVendorMissing, ['OmniXML']);
     Exit(False);
   end;
 
-  if Trim(aAdditionalUnitSearchPath) <> '' then
-  begin
-    lEscapedSearchPath := XmlEscape(aAdditionalUnitSearchPath);
-    if TRegEx.IsMatch(lOutputText, '<DCC_UnitSearchPath>\s*([^<]*)\s*</DCC_UnitSearchPath>', [roIgnoreCase]) then
-      lOutputText := PrefixUnitSearchPathNodes(lOutputText, lEscapedSearchPath)
-    else
-    begin
-      lInsertedSearchPath := lEscapedSearchPath + ';$(DCC_UnitSearchPath)';
-      lPropertyGroupMatch := TRegEx.Match(lOutputText, '<PropertyGroup\b[^>]*>', [roIgnoreCase]);
-      if lPropertyGroupMatch.Success then
+  lXmlDoc := TXMLDocument.Create(nil);
+  lXmlDoc.DOMVendor := lVendor;
+  lDoc := lXmlDoc;
+  try
+    try
+      lDoc.Options := [doNodeAutoIndent];
+      lDoc.LoadFromFile(aSourceDprojPath);
+      lDoc.Active := True;
+    except
+      on E: Exception do
       begin
-        lInsertPos := lPropertyGroupMatch.Index + lPropertyGroupMatch.Length;
-        lInsertText := cLineBreak + '    <DCC_UnitSearchPath>' + lInsertedSearchPath + '</DCC_UnitSearchPath>';
-        lOutputText := Copy(lOutputText, 1, lInsertPos) + lInsertText + Copy(lOutputText, lInsertPos + 1, MaxInt);
+        aError := E.Message;
+        Exit(False);
       end;
     end;
+
+    lRoot := lDoc.DocumentElement;
+    if lRoot = nil then
+    begin
+      aError := 'Could not load generated .dproj XML root.';
+      Exit(False);
+    end;
+
+    lMainSourceChanged := False;
+    lSearchPathFound := False;
+    lDefineFound := False;
+    VisitDprojNodes(lRoot, lSourceDprojDir, aAdditionalUnitSearchPath, lMainSourceChanged, lSearchPathFound,
+      lDefineFound);
+
+    if not lMainSourceChanged then
+    begin
+      aError := 'Could not patch generated .dproj MainSource.';
+      Exit(False);
+    end;
+
+    if Trim(aAdditionalUnitSearchPath) <> '' then
+    begin
+      if not lSearchPathFound then
+      begin
+        lSearchPathNode := EnsurePropertyNode(lRoot, 'DCC_UnitSearchPath');
+        lSearchPathNode.Text := aAdditionalUnitSearchPath + ';$(DCC_UnitSearchPath)';
+      end;
+    end;
+
+    if not lDefineFound then
+    begin
+      lDefineNode := EnsurePropertyNode(lRoot, 'DCC_Define');
+      lDefineNode.Text := cDfmCheckSymbol + ';' + cNoLocalizationSymbol;
+    end;
+
+    try
+      lDoc.SaveToFile(aDestDprojPath);
+    except
+      on E: Exception do
+      begin
+        aError := E.Message;
+        Exit(False);
+      end;
+    end;
+  finally
+    lDefineNode := nil;
+    lSearchPathNode := nil;
+    lRoot := nil;
+    lDoc := nil;
   end;
 
-  lDefineMatch := TRegEx.Match(lOutputText, '<DCC_Define>\s*([^<]*)\s*</DCC_Define>', [roIgnoreCase]);
-  if lDefineMatch.Success and (lDefineMatch.Groups.Count > 1) then
-  begin
-    lExistingDefines := lDefineMatch.Groups[1].Value;
-    lUpdatedDefines := lExistingDefines;
-    lUpdatedDefines := EnsureDefineSymbol(lUpdatedDefines, cDfmCheckSymbol);
-    lUpdatedDefines := EnsureDefineSymbol(lUpdatedDefines, cNoLocalizationSymbol);
-    if lUpdatedDefines <> lExistingDefines then
-    begin
-      lUpdatedDefinesReplacement := EscapeRegexReplacement(lUpdatedDefines);
-      lOutputText := TRegEx.Replace(lOutputText, '<DCC_Define>\s*([^<]*)\s*</DCC_Define>',
-        '<DCC_Define>' + lUpdatedDefinesReplacement + '</DCC_Define>', [roIgnoreCase]);
-    end;
-  end else
-  begin
-    lPropertyGroupMatch := TRegEx.Match(lOutputText, '<PropertyGroup\b[^>]*>', [roIgnoreCase]);
-    if lPropertyGroupMatch.Success then
-    begin
-      lInsertPos := lPropertyGroupMatch.Index + lPropertyGroupMatch.Length;
-      lInsertText := cLineBreak + '    <DCC_Define>' + cDfmCheckSymbol + ';' + cNoLocalizationSymbol +
-        '</DCC_Define>';
-      lOutputText := Copy(lOutputText, 1, lInsertPos) + lInsertText + Copy(lOutputText, lInsertPos + 1, MaxInt);
-    end;
-  end;
-
-  lOutputText := NormalizeRelativePropertyPath(lOutputText, 'Icon_MainIcon', lSourceDprojDir);
-  lOutputText := NormalizeRelativePropertyPath(lOutputText, 'CfgDependentOn', lSourceDprojDir);
-  lOutputText := NormalizeRelativePropertyPath(lOutputText, 'DependentOn', lSourceDprojDir);
-  lOutputText := NormalizeRelativeImportPaths(lOutputText, lSourceDprojDir);
-  lOutputText := NormalizeRelativeImportConditionPaths(lOutputText, lSourceDprojDir);
-  lOutputText := ClearBuildEventBlock(lOutputText, 'PreBuildEvent');
-  lOutputText := ClearBuildEventBlock(lOutputText, 'PreLinkEvent');
-  lOutputText := ClearBuildEventBlock(lOutputText, 'PostBuildEvent');
-
-  TFile.WriteAllText(aDestDprojPath, lOutputText, TEncoding.UTF8);
   Result := True;
 end;
 

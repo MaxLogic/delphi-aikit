@@ -5,6 +5,7 @@ interface
 uses
   DUnitX.TestFramework,
   System.Classes, System.IniFiles, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
+  System.Variants,
   Winapi.Windows,
   Dak.DfmCheck, Dak.Types,
   Test.Support,
@@ -77,6 +78,8 @@ type
     procedure PipelineAddsUnitSearchPathWhenProjectInheritsOptsetSearchPath;
     [Test]
     procedure PipelineRebasesRelativeProjectImportsForGeneratedProject;
+    [Test]
+    procedure PipelineRebasesSingleQuotedRelativeProjectImportsForGeneratedProject;
     [Test]
     procedure PipelinePreservesBackslashDigitSearchPathsForGeneratedProject;
     [Test]
@@ -377,22 +380,19 @@ begin
         aOutput('FAIL MAINFORM -> EReadError: Property FullRowSelect does not exist');
         lValidatorLines := ['FAIL MAINFORM -> EReadError: Property FullRowSelect does not exist',
           'DFM stream validation summary: streamed=1 skipped=0 failed=1 requested=1 matched=1'];
-      end
-      else if fMode = TMockValidatorMode.vmBrokenEventSignature then
+      end else if fMode = TMockValidatorMode.vmBrokenEventSignature then
       begin
         aOutput('FAIL MAINFORM -> EReadError: Error reading MainForm.OnCreate: Type mismatch for method ''FormCreate''');
         lValidatorLines := ['FAIL MAINFORM -> EReadError: Error reading MainForm.OnCreate: Type mismatch for method ''FormCreate''',
           'DFM stream validation summary: streamed=1 skipped=0 failed=1 requested=1 matched=1'];
-      end
-      else if fMode = TMockValidatorMode.vmWarnStandaloneActionImageBinding then
+      end else if fMode = TMockValidatorMode.vmWarnStandaloneActionImageBinding then
       begin
         aOutput('WARN MAINFORM -> EAccessViolation: Access violation at address 00B5A807 in module ' +
           '''Sample_DfmCheck.exe'' (offset 2BA807). Read of address 00000074');
         lValidatorLines := ['WARN MAINFORM -> EAccessViolation: Access violation at address 00B5A807 in module ' +
           '''Sample_DfmCheck.exe'' (offset 2BA807). Read of address 00000074',
           'DFM stream validation summary: streamed=1 skipped=0 failed=0 requested=1 matched=1'];
-      end
-      else if fMode = TMockValidatorMode.vmValidatorNonZeroNoFail then
+      end else if fMode = TMockValidatorMode.vmValidatorNonZeroNoFail then
       begin
         aOutput('FATAL INIT -> EAccessViolation: Access violation at address 00000000');
         lValidatorLines := ['FATAL INIT -> EAccessViolation: Access violation at address 00000000'];
@@ -1180,6 +1180,92 @@ begin
       'Generated checker DPROJ should rewrite relative Exists(...) import conditions to the source project location.');
     Assert.IsFalse(Pos('Exists(''Fixture.optset'')', lGeneratedDprojText) > 0,
       'Generated checker DPROJ should not keep relative Exists(...) import conditions after relocation.');
+  finally
+    lEnvGuard := nil;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineRebasesSingleQuotedRelativeProjectImportsForGeneratedProject;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lDprojText: string;
+  lError: string;
+  lGeneratedDprojText: string;
+  lGeneratedXmlDoc: IXMLDocument;
+  lImportFileName: string;
+  lImportNode: IXMLNode;
+  lImportPath: string;
+  lInjectDir: string;
+  lEnvGuard: IInterface;
+  lNode: IXMLNode;
+  lOptions: TAppOptions;
+  lPaths: TDfmCheckPaths;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+  i: Integer;
+begin
+  CreateFixtureProjectWithInheritedSearchPath(lDprojPath);
+  lImportFileName := 'Fixture Path ' + #$017C + '.optset';
+  lImportPath := TPath.Combine(ExtractFilePath(lDprojPath), lImportFileName);
+  TFile.Move(TPath.Combine(ExtractFilePath(lDprojPath), 'Fixture.optset'), lImportPath);
+  lDprojText := TFile.ReadAllText(lDprojPath, TEncoding.UTF8);
+  lDprojText := StringReplace(lDprojText,
+    '<Import Project="Fixture.optset" Condition="Exists(''Fixture.optset'')"/>',
+    '<Import Condition="Exists( &apos;' + lImportFileName + '&apos; )" Project=''' + lImportFileName + '''/>', []);
+  TFile.WriteAllText(lDprojPath, lDprojText, TEncoding.UTF8);
+
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-single-quoted-import-rebase');
+  WriteInjectStubs(lInjectDir);
+
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected single-quoted import fixture to complete with mock runner.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Unexpected error category for single-quoted import fixture.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for single-quoted import fixture.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
+    lGeneratedXmlDoc := TXMLDocument.Create(nil);
+    lGeneratedXmlDoc.LoadFromXML(lGeneratedDprojText);
+    lGeneratedXmlDoc.Active := True;
+    lImportNode := nil;
+    for i := 0 to lGeneratedXmlDoc.DocumentElement.ChildNodes.Count - 1 do
+    begin
+      lNode := lGeneratedXmlDoc.DocumentElement.ChildNodes[i];
+      if (lNode.NodeType = ntElement) and SameText(lNode.LocalName, 'Import') and
+        lNode.HasAttribute('Project') and SameText(VarToStr(lNode.Attributes['Project']), lImportPath) then
+      begin
+        lImportNode := lNode;
+        Break;
+      end;
+    end;
+
+    Assert.IsNotNull(lImportNode,
+      'Generated checker DPROJ should rewrite single-quoted relative import paths to the source project location.');
+    Assert.AreEqual(lImportPath, VarToStr(lImportNode.Attributes['Project']),
+      'Generated checker DPROJ should not keep single-quoted relative import paths after relocation.');
+    Assert.AreEqual('Exists( ''' + lImportPath + ''' )', VarToStr(lImportNode.Attributes['Condition']),
+      'Generated checker DPROJ should rewrite single-quoted relative Exists(...) import conditions.');
   finally
     lEnvGuard := nil;
   end;
