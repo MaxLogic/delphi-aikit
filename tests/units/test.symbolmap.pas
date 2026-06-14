@@ -71,6 +71,12 @@ type
     [Test]
     procedure IndexUnitCommandReportsOneIndexedUnit;
     [Test]
+    procedure IndexUnitCommandAvoidsParseOnCentralCacheHit;
+    [Test]
+    procedure IndexUnitCommandForceRefreshBypassesCentralCacheHit;
+    [Test]
+    procedure IndexUnitCommandCacheHitPreservesMemberProjection;
+    [Test]
     procedure IndexUnitCommandRedirectedOutputCompletes;
     [Test]
     procedure IndexProjectUsesSharedProjectSourceFiles;
@@ -412,9 +418,9 @@ begin
   Assert.IsTrue(TFile.Exists(lStatus.fProjectDbPath), 'Expected project SQLite cache file.');
   Assert.IsTrue(lStatus.fCentralCreated, 'Expected first central cache creation to be reported.');
   Assert.IsTrue(lStatus.fProjectCreated, 'Expected first project cache creation to be reported.');
-  Assert.AreEqual(2, lStatus.fSchemaVersion);
-  Assert.AreEqual('2', MetaValue(lStatus.fCentralDbPath, 'schema_version'));
-  Assert.AreEqual('2', MetaValue(lStatus.fProjectDbPath, 'schema_version'));
+  Assert.AreEqual(3, lStatus.fSchemaVersion);
+  Assert.AreEqual('3', MetaValue(lStatus.fCentralDbPath, 'schema_version'));
+  Assert.AreEqual('3', MetaValue(lStatus.fProjectDbPath, 'schema_version'));
 end;
 
 procedure TSymbolMapCacheTests.ReusesExistingCachesIdempotently;
@@ -432,7 +438,7 @@ begin
   Assert.IsFalse(lSecondStatus.fProjectCreated, 'Expected project cache reuse to be reported.');
   Assert.AreEqual(lFirstStatus.fCentralDbPath, lSecondStatus.fCentralDbPath);
   Assert.AreEqual(lFirstStatus.fProjectDbPath, lSecondStatus.fProjectDbPath);
-  Assert.AreEqual(2, lSecondStatus.fSchemaVersion);
+  Assert.AreEqual(3, lSecondStatus.fSchemaVersion);
 end;
 
 procedure TSymbolMapCacheTests.RejectsUnsupportedSchemaWithoutApplyingV1Tables;
@@ -518,7 +524,7 @@ begin
       Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
       lJson := TJSONObject(lJsonValue);
       lCache := lJson.GetValue('cache') as TJSONObject;
-      Assert.AreEqual(2, lCache.GetValue<Integer>('schemaVersion'));
+      Assert.AreEqual(3, lCache.GetValue<Integer>('schemaVersion'));
       Assert.IsTrue(TFile.Exists(lCache.GetValue<string>('centralDbPath')), 'Expected shared central cache file.');
       Assert.IsTrue(TFile.Exists(lCache.GetValue<string>('projectDbPath')), 'Expected project cache file.');
       if lCache.GetValue<Boolean>('centralCreated') then
@@ -528,7 +534,7 @@ begin
     end;
   end;
   Assert.AreEqual(1, lCreatedCount, 'Expected exactly one central cache creator.');
-  Assert.AreEqual('2', MetaValue(TPath.Combine(lCacheRoot, 'symbol-map.sqlite3'), 'schema_version'));
+  Assert.AreEqual('3', MetaValue(TPath.Combine(lCacheRoot, 'symbol-map.sqlite3'), 'schema_version'));
 end;
 
 procedure TSymbolMapCacheTests.StatsCommandCreatesCachesAndReportsSchema;
@@ -564,7 +570,7 @@ begin
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
     lCache := lJson.GetValue('cache') as TJSONObject;
-    Assert.AreEqual(2, lCache.GetValue<Integer>('schemaVersion'));
+    Assert.AreEqual(3, lCache.GetValue<Integer>('schemaVersion'));
     Assert.IsTrue(lCache.GetValue<Boolean>('centralCreated'), 'Expected central cache creation in first CLI run.');
     Assert.IsTrue(lCache.GetValue<Boolean>('projectCreated'), 'Expected project cache creation in first CLI run.');
     Assert.IsTrue(TFile.Exists(lCache.GetValue<string>('centralDbPath')), 'Expected central SQLite cache file.');
@@ -2569,6 +2575,272 @@ begin
   end;
 end;
 
+procedure TSymbolMapSourceUnitTests.IndexUnitCommandAvoidsParseOnCentralCacheHit;
+var
+  lArgs: string;
+  lCacheRoot: string;
+  lExitCode: Cardinal;
+  lIndexedUnits: TJSONArray;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLogPath: string;
+  lLogText: string;
+  lResult: TJSONObject;
+  lUnitObject: TJSONObject;
+begin
+  EnsureResolverBuilt;
+  lCacheRoot := UniqueTempPath('symbol-map-source-cache-hit');
+  lArgs := 'symbol-map index --project ' + QuoteArg(FixtureProjectPath) + ' --unit ' +
+    QuoteArg(FixtureUnitPath) + ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
+  lLogPath := UniqueTempPath('symbol-map-source-cache-hit-first') + '.log';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start first symbol-map index command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected first symbol-map index to succeed. See: ' +
+    lLogPath);
+
+  lLogPath := UniqueTempPath('symbol-map-source-cache-hit-second') + '.log';
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start second symbol-map index command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected second symbol-map index to succeed. See: ' +
+    lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath);
+  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lJsonValue);
+    lResult := lJson.GetValue('result') as TJSONObject;
+    lIndexedUnits := lResult.GetValue('indexedUnits') as TJSONArray;
+    Assert.AreEqual(1, lIndexedUnits.Count);
+    lUnitObject := lIndexedUnits.Items[0] as TJSONObject;
+    Assert.IsTrue(lUnitObject.GetValue<Boolean>('centralCacheHit'),
+      'Expected second index to hit the central cache.');
+    Assert.IsTrue(lUnitObject.GetValue<Boolean>('parseAvoided'),
+      'Expected second index to reuse the central projection without parsing.');
+  finally
+    lJsonValue.Free;
+  end;
+end;
+
+procedure TSymbolMapSourceUnitTests.IndexUnitCommandForceRefreshBypassesCentralCacheHit;
+var
+  lArgs: string;
+  lCache: TJSONObject;
+  lCentralDbPath: string;
+  lCacheRoot: string;
+  lExitCode: Cardinal;
+  lIndexedUnits: TJSONArray;
+  lJson: TJSONObject;
+  lJsonValue: TJSONValue;
+  lLogPath: string;
+  lLogText: string;
+  lMembers: TJSONArray;
+  lMemberPath: string;
+  lRefreshArgs: string;
+  lResult: TJSONObject;
+  lThirdJsonValue: TJSONValue;
+  lUnitObject: TJSONObject;
+
+  procedure CorruptCachedRunSignature(const aDbPath: string);
+  var
+    lConnection: TFDConnection;
+    lDriverLink: TFDPhysSQLiteDriverLink;
+  begin
+    lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+    lConnection := TFDConnection.Create(nil);
+    try
+      lConnection.LoginPrompt := False;
+      lConnection.Params.Values['DriverID'] := 'SQLite';
+      lConnection.Params.Values['Database'] := aDbPath;
+      lConnection.Connected := True;
+      lConnection.ExecSQL(
+        'update members set signature = ? where owner_name = ? and member_name = ?',
+        ['stale-cache-signature', 'TMemberClass', 'Run']);
+    finally
+      lConnection.Free;
+      lDriverLink.Free;
+    end;
+  end;
+
+  function FindRunMember(const aMembers: TJSONArray): TJSONObject;
+  var
+    i: Integer;
+    lMember: TJSONObject;
+  begin
+    Result := nil;
+    for i := 0 to aMembers.Count - 1 do
+    begin
+      lMember := aMembers.Items[i] as TJSONObject;
+      if SameText(lMember.GetValue<string>('ownerName'), 'TMemberClass') and
+        SameText(lMember.GetValue<string>('memberName'), 'Run') then
+        Exit(lMember);
+    end;
+  end;
+begin
+  EnsureResolverBuilt;
+  lCacheRoot := UniqueTempPath('symbol-map-source-force-refresh');
+  lMemberPath := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapMembers.pas');
+  lArgs := 'symbol-map index --project ' + QuoteArg(FixtureProjectPath) + ' --unit ' +
+    QuoteArg(lMemberPath) + ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
+  lLogPath := UniqueTempPath('symbol-map-source-force-refresh-first') + '.log';
+
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start first symbol-map index command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected first symbol-map index to succeed. See: ' +
+    lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath);
+  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lJsonValue);
+    lCache := lJson.GetValue('cache') as TJSONObject;
+    lCentralDbPath := lCache.GetValue<string>('centralDbPath');
+  finally
+    lJsonValue.Free;
+  end;
+  CorruptCachedRunSignature(lCentralDbPath);
+
+  lRefreshArgs := lArgs + ' --refresh force';
+  lLogPath := UniqueTempPath('symbol-map-source-force-refresh-second') + '.log';
+  Assert.IsTrue(RunProcess(ResolverExePath, lRefreshArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start force-refresh symbol-map index command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected force-refresh symbol-map index to succeed. See: ' +
+    lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath);
+  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lJsonValue);
+    lResult := lJson.GetValue('result') as TJSONObject;
+    lIndexedUnits := lResult.GetValue('indexedUnits') as TJSONArray;
+    Assert.AreEqual(1, lIndexedUnits.Count);
+    lUnitObject := lIndexedUnits.Items[0] as TJSONObject;
+    Assert.IsFalse(lUnitObject.GetValue<Boolean>('parseAvoided'),
+      'Expected --refresh force to parse and store the unit instead of reusing the central projection.');
+  finally
+    lJsonValue.Free;
+  end;
+
+  lLogPath := UniqueTempPath('symbol-map-source-force-refresh-third') + '.log';
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start post-refresh symbol-map index command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected post-refresh symbol-map index to succeed. See: ' +
+    lLogPath);
+
+  lLogText := TFile.ReadAllText(lLogPath);
+  lThirdJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    Assert.IsTrue(lThirdJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
+    lJson := TJSONObject(lThirdJsonValue);
+    lResult := lJson.GetValue('result') as TJSONObject;
+    lIndexedUnits := lResult.GetValue('indexedUnits') as TJSONArray;
+    Assert.AreEqual(1, lIndexedUnits.Count);
+    lUnitObject := lIndexedUnits.Items[0] as TJSONObject;
+    Assert.IsTrue(lUnitObject.GetValue<Boolean>('parseAvoided'),
+      'Expected post-refresh run to reuse the refreshed central projection.');
+    lMembers := lUnitObject.GetValue('members') as TJSONArray;
+    Assert.AreNotEqual('stale-cache-signature', FindRunMember(lMembers).GetValue<string>('signature'),
+      'Expected --refresh force to overwrite stale central member projection rows.');
+  finally
+    lThirdJsonValue.Free;
+  end;
+end;
+
+procedure TSymbolMapSourceUnitTests.IndexUnitCommandCacheHitPreservesMemberProjection;
+var
+  lArgs: string;
+  lCacheRoot: string;
+  lExitCode: Cardinal;
+  lFirstJsonValue: TJSONValue;
+  lFirstMember: TJSONObject;
+  lIndexedUnits: TJSONArray;
+  lLogPath: string;
+  lLogText: string;
+  lMemberPath: string;
+  lMembers: TJSONArray;
+  lSecondJsonValue: TJSONValue;
+  lSecondMember: TJSONObject;
+  lUnitObject: TJSONObject;
+
+  function FindRunMember(const aMembers: TJSONArray): TJSONObject;
+  var
+    i: Integer;
+    lMember: TJSONObject;
+  begin
+    Result := nil;
+    for i := 0 to aMembers.Count - 1 do
+    begin
+      lMember := aMembers.Items[i] as TJSONObject;
+      if SameText(lMember.GetValue<string>('ownerName'), 'TMemberClass') and
+        SameText(lMember.GetValue<string>('memberName'), 'Run') then
+        Exit(lMember);
+    end;
+  end;
+
+  function FirstIndexedUnit(const aJsonValue: TJSONValue): TJSONObject;
+  var
+    lJson: TJSONObject;
+    lResult: TJSONObject;
+  begin
+    Assert.IsTrue(aJsonValue is TJSONObject, 'Expected JSON object.');
+    lJson := TJSONObject(aJsonValue);
+    lResult := lJson.GetValue('result') as TJSONObject;
+    lIndexedUnits := lResult.GetValue('indexedUnits') as TJSONArray;
+    Assert.AreEqual(1, lIndexedUnits.Count);
+    Result := lIndexedUnits.Items[0] as TJSONObject;
+  end;
+
+begin
+  EnsureResolverBuilt;
+  lCacheRoot := UniqueTempPath('symbol-map-source-member-cache-hit');
+  lMemberPath := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapMembers.pas');
+  lArgs := 'symbol-map index --project ' + QuoteArg(FixtureProjectPath) + ' --unit ' +
+    QuoteArg(lMemberPath) + ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
+
+  lLogPath := UniqueTempPath('symbol-map-source-member-cache-hit-first') + '.log';
+  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start first member symbol-map index command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected first member symbol-map index to succeed. See: ' +
+    lLogPath);
+  lLogText := TFile.ReadAllText(lLogPath);
+  lFirstJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  try
+    lUnitObject := FirstIndexedUnit(lFirstJsonValue);
+    lMembers := lUnitObject.GetValue('members') as TJSONArray;
+    lFirstMember := FindRunMember(lMembers);
+    Assert.IsNotNull(lFirstMember, 'Expected parsed first run to include TMemberClass.Run.');
+
+    lLogPath := UniqueTempPath('symbol-map-source-member-cache-hit-second') + '.log';
+    Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+      'Failed to start second member symbol-map index command.');
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected second member symbol-map index to succeed. See: ' +
+      lLogPath);
+    lLogText := TFile.ReadAllText(lLogPath);
+    lSecondJsonValue := TJSONObject.ParseJSONValue(lLogText);
+    try
+      lUnitObject := FirstIndexedUnit(lSecondJsonValue);
+      Assert.IsTrue(lUnitObject.GetValue<Boolean>('parseAvoided'),
+        'Expected second member index to avoid parsing.');
+      lMembers := lUnitObject.GetValue('members') as TJSONArray;
+      lSecondMember := FindRunMember(lMembers);
+      Assert.IsNotNull(lSecondMember, 'Expected cache-hit run to include TMemberClass.Run.');
+      Assert.AreEqual(lFirstMember.GetValue<string>('signature'), lSecondMember.GetValue<string>('signature'),
+        'Expected cache-hit member signature to match parsed projection.');
+      Assert.AreEqual(lFirstMember.GetValue<Integer>('endLine'), lSecondMember.GetValue<Integer>('endLine'),
+        'Expected cache-hit member end line to match parsed projection.');
+      Assert.AreEqual(lFirstMember.GetValue<Integer>('endCol'), lSecondMember.GetValue<Integer>('endCol'),
+        'Expected cache-hit member end column to match parsed projection.');
+    finally
+      lSecondJsonValue.Free;
+    end;
+  finally
+    lFirstJsonValue.Free;
+  end;
+end;
+
 procedure TSymbolMapSourceUnitTests.IndexUnitCommandRedirectedOutputCompletes;
 var
   lArgs: string;
@@ -2910,13 +3182,15 @@ var
   lError: string;
   lOptions: TAppOptions;
 begin
-  SetParams('symbol-map index --project c:\temp\sample.dproj --unit c:\temp\unit1.pas --cache-root c:\cache --format text');
+  SetParams('symbol-map index --project c:\temp\sample.dproj --unit c:\temp\unit1.pas --cache-root c:\cache --format text --refresh force');
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected symbol-map index to parse. Error: ' + lError);
   Assert.AreEqual(TSymbolMapOperation.smoIndex, lOptions.fSymbolMapOperation);
   Assert.AreEqual('c:\temp\unit1.pas', lOptions.fSymbolMapUnitPath);
   Assert.AreEqual('c:\cache', lOptions.fSymbolMapCacheRoot);
   Assert.IsTrue(lOptions.fHasSymbolMapCacheRoot);
   Assert.AreEqual(TSymbolMapFormat.smfText, lOptions.fSymbolMapFormat);
+  Assert.AreEqual(TSymbolMapRefresh.smrForce, lOptions.fSymbolMapRefresh);
+  Assert.IsTrue(lOptions.fHasSymbolMapRefresh);
 
   SetParams('symbol-map find-definition --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 12 --col 3');
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected symbol-map find-definition to parse. Error: ' + lError);
@@ -3015,6 +3289,10 @@ begin
   SetParams('symbol-map find-references --project c:\temp\sample.dproj --symbol TFoo --file c:\temp\unit1.pas');
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected mixed symbol and position target to be rejected.');
   Assert.IsTrue(Pos('--symbol', lError) > 0, 'Expected mixed target error. Actual: ' + lError);
+
+  SetParams('symbol-map stats --project c:\temp\sample.dproj --refresh force');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --refresh outside index to be rejected.');
+  Assert.IsTrue(Pos('--refresh', lError) > 0, 'Expected invalid --refresh operation error. Actual: ' + lError);
 end;
 
 procedure TSymbolMapCliTests.HelpDocumentsSymbolMapOptions;
@@ -3049,6 +3327,7 @@ begin
   Assert.IsTrue(Pos('--query', lLogText) > 0, 'Expected symbol-map help to mention --query.');
   Assert.IsTrue(Pos('--cache-root', lLogText) > 0, 'Expected symbol-map help to mention --cache-root.');
   Assert.IsTrue(Pos('--format', lLogText) > 0, 'Expected symbol-map help to mention --format.');
+  Assert.IsTrue(Pos('--refresh', lLogText) > 0, 'Expected symbol-map help to mention --refresh.');
 end;
 
 procedure TSymbolMapCliTests.StatsCommandWritesJsonShell;
