@@ -13,6 +13,7 @@ implementation
 uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.RegularExpressions, System.StrUtils,
   System.SysUtils,
+  DelphiSemantics.Source,
   Dak.Messages, Dak.Utils;
 
 type
@@ -266,6 +267,7 @@ function TryLoadRootComponent(const aDfmPath: string; out aRoot: TDfmInspectComp
 var
   lIndex: Integer;
   lLines: TStringList;
+  lSourceLoad: TDelphiSemanticSourceLoadResult;
 begin
   Result := False;
   aRoot := nil;
@@ -278,7 +280,16 @@ begin
 
   lLines := TStringList.Create;
   try
-    lLines.LoadFromFile(aDfmPath);
+    lSourceLoad := TDelphiSemanticSourceLoader.LoadFile(aDfmPath);
+    if not lSourceLoad.Success then
+    begin
+      if Length(lSourceLoad.Diagnostics) > 0 then
+        aError := lSourceLoad.Diagnostics[0].Message
+      else
+        aError := 'Failed to load DFM source: ' + aDfmPath;
+      Exit(False);
+    end;
+    lLines.Text := lSourceLoad.Source.Text;
     lIndex := 0;
     while (lIndex < lLines.Count) and (Trim(lLines[lIndex]) = '') do
       Inc(lIndex);
