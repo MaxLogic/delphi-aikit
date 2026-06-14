@@ -223,6 +223,7 @@ type
     fHasRemoveWithOutputPath: Boolean;
     fRemoveWithSemanticCachePath: string;
     fHasRemoveWithSemanticCachePath: Boolean;
+    fRemoveWithDiagnostics: Boolean;
     fRemoveWithSkipCompatibilityFacts: Boolean;
     fSymbolMapOperation: TSymbolMapOperation;
     fSymbolMapFormat: TSymbolMapFormat;

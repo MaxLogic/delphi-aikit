@@ -858,13 +858,15 @@ begin
     else
       lRoot.AddPair('verification', BuildVerificationObject);
     lRoot.AddPair('transaction', BuildTransactionObject(aTransactionResult));
-    lRoot.AddPair('migrationTelemetry', BuildMigrationTelemetryObject(aResolverResult, aPlanResult));
+    if aOptions.fRemoveWithDiagnostics then
+      lRoot.AddPair('migrationTelemetry', BuildMigrationTelemetryObject(aResolverResult, aPlanResult));
     lRoot.AddPair('summary', BuildSummaryObject(aOptions, aScanResult, aPlanResult, aTransactionResult));
-    if aOptions.fRemoveWithMode = TRemoveWithMode.rwmPlan then
+    if aOptions.fRemoveWithDiagnostics and (aOptions.fRemoveWithMode = TRemoveWithMode.rwmPlan) then
       lRoot.AddPair('semanticDtoParity', BuildSemanticDtoParityObject(
         aPlanResult.fSemanticParityReport));
     lMetrics.fOutputSerializationMs := lStopwatch.ElapsedMilliseconds;
-    lRoot.AddPair('plannerPhaseMetrics', BuildPlannerPhaseMetricsObject(lMetrics));
+    if aOptions.fRemoveWithDiagnostics then
+      lRoot.AddPair('plannerPhaseMetrics', BuildPlannerPhaseMetricsObject(lMetrics));
     Result := lRoot.ToJSON;
   finally
     lRoot.Free;
