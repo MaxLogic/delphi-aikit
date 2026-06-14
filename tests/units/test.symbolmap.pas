@@ -122,11 +122,13 @@ type
     [Test]
     procedure RepeatedStoreReportsHitAndKeepsSingleUnitModel;
     [Test]
-    procedure SharedSourceAcrossProjectsReusesUnitCacheKey;
+    procedure SharedSourceAcrossEquivalentProjectsReusesUnitCacheKey;
     [Test]
     procedure EquivalentProjectDefineTextReusesUnitCacheKey;
     [Test]
     procedure ChangedDefinesProduceDifferentUnitCacheKey;
+    [Test]
+    procedure ChangedSearchOrConfigurationMissesCentralProjection;
     [Test]
     procedure IncludedFileChangeProducesDifferentUnitCacheKey;
   end;
@@ -803,7 +805,7 @@ begin
   Assert.AreEqual(1, UnitModelCount(lStatus.fCentralDbPath, lFirst.fUnitCacheKey));
 end;
 
-procedure TSymbolMapCentralCacheReuseTests.SharedSourceAcrossProjectsReusesUnitCacheKey;
+procedure TSymbolMapCentralCacheReuseTests.SharedSourceAcrossEquivalentProjectsReusesUnitCacheKey;
 var
   lCacheRoot: string;
   lContextA: TSymbolMapContext;
@@ -818,6 +820,7 @@ begin
   lCacheRoot := UniqueTempPath('symbol-map-shared-cache');
   BuildContext('SymbolMapSharedA', lCacheRoot, lContextA);
   BuildContext('SymbolMapSharedB', lCacheRoot, lContextB);
+  lContextB.fUnitSearchPath := lContextA.fUnitSearchPath;
   Assert.IsTrue(EnsureSymbolMapCaches(lContextA, lStatusA, lError), 'Expected cache A. Error: ' + lError);
   Assert.IsTrue(EnsureSymbolMapCaches(lContextB, lStatusB, lError), 'Expected cache B. Error: ' + lError);
   Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
@@ -885,6 +888,40 @@ begin
     'Expected define-specific store. Error: ' + lError);
   Assert.AreNotEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
   Assert.IsFalse(lSecond.fCacheHit, 'Expected changed defines to produce a cache miss.');
+end;
+
+procedure TSymbolMapCentralCacheReuseTests.ChangedSearchOrConfigurationMissesCentralProjection;
+var
+  lCacheRoot: string;
+  lContextA: TSymbolMapContext;
+  lContextB: TSymbolMapContext;
+  lError: string;
+  lFirst: TSymbolMapCacheStoreResult;
+  lFound: Boolean;
+  lLoadedModel: TSymbolMapUnitModel;
+  lModel: TSymbolMapUnitModel;
+  lSecond: TSymbolMapCacheStoreResult;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-search-config-cache');
+  BuildContext('SymbolMapSearchConfigA', lCacheRoot, lContextA);
+  lContextA.fUnitSearchPath := ['C:\project\src', 'C:\project\lib'];
+  lContextB := lContextA;
+  lContextB.fConfig := 'Debug';
+  lContextB.fUnitSearchPath := ['C:\project\lib', 'C:\project\src'];
+  Assert.IsTrue(EnsureSymbolMapCaches(lContextA, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected member unit extraction. Error: ' + lError);
+
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContextA, lStatus, lModel, lFirst, lError),
+    'Expected first store. Error: ' + lError);
+  Assert.IsFalse(lFirst.fCacheHit, 'Expected first store to miss.');
+  Assert.IsTrue(TryLoadSymbolMapUnitProjection(lContextB, lStatus, FixtureUnitPath, False,
+    lLoadedModel, lSecond, lFound, lError), 'Expected cache probe. Error: ' + lError);
+
+  Assert.AreNotEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
+  Assert.IsFalse(lFound, 'Expected changed search/config context to miss central projection.');
+  Assert.IsFalse(lSecond.fCacheHit, 'Expected changed search/config context to avoid cache hit.');
 end;
 
 procedure TSymbolMapCentralCacheReuseTests.IncludedFileChangeProducesDifferentUnitCacheKey;
