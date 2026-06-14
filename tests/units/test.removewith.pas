@@ -14,7 +14,8 @@ uses
 type
   TRemoveWithTestBase = class
   protected
-    function RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal): string;
+    function RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal;
+      const aExtraArgs: string = ''): string;
     procedure AssertJsonHasKey(const aObject: TJSONObject; const aName: string);
     procedure AssertJsonMissingKey(const aObject: TJSONObject; const aName: string);
     procedure AssertJsonObjectKey(const aObject: TJSONObject; const aName: string; out aChild: TJSONObject);
@@ -98,7 +99,9 @@ type
     [Test]
     procedure PlanJsonReportKeepsLegacySkippedReasonAndAddsSemanticReason;
     [Test]
-    procedure PlanJsonReportIncludesPlannerPhaseMetrics;
+    procedure PlanJsonReportOmitsDiagnosticsTelemetryByDefault;
+    [Test]
+    procedure DiagnosticsPlanJsonReportIncludesPlannerPhaseMetrics;
     [Test]
     procedure PlanJsonReportIncludesSemanticDtoParity;
     [Test]
@@ -199,7 +202,7 @@ type
       aIdentifier: string; const aStatus: TRemoveWithIdentifierStatus;
       out aClassification: TRemoveWithIdentifierClassification): Boolean;
     function RunFixtureJson(const aFixtureName, aProjectName, aLogName: string;
-      out aExitCode: Cardinal): TJSONObject;
+      out aExitCode: Cardinal; const aExtraArgs: string = ''): TJSONObject;
     procedure AssertClassification(const aResult: TRemoveWithResolverResult; const aStatementId,
       aIdentifier: string; const aStatus: TRemoveWithIdentifierStatus; const aReceiverText,
       aReason: string);
@@ -994,7 +997,8 @@ begin
   Result := StrToIntDef(Copy(aLogText, lStartIndex, lEndIndex - lStartIndex), -1);
 end;
 
-function TRemoveWithTestBase.RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal): string;
+function TRemoveWithTestBase.RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal;
+  const aExtraArgs: string): string;
 var
   lArgs: string;
   lDprojPath: string;
@@ -1008,7 +1012,7 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
 
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --unit ' + QuoteArg(lUnitPath) +
-    ' --mode ' + aMode + ' --format ' + aFormat;
+    ' --mode ' + aMode + ' --format ' + aFormat + aExtraArgs;
 
   Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start remove-with process.');
@@ -1659,7 +1663,7 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode plan --format json ' +
-    '--verbose true --semantic-cache ' + QuoteArg(aCacheFileName);
+    '--verbose true --diagnostics true --semantic-cache ' + QuoteArg(aCacheFileName);
 
   Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start remove-with semantic cache process.');
@@ -1841,6 +1845,30 @@ begin
   end;
 end;
 
+procedure TRemoveWithReportTests.PlanJsonReportOmitsDiagnosticsTelemetryByDefault;
+var
+  lExitCode: Cardinal;
+  lJson: TJSONValue;
+  lOutput: string;
+  lRoot: TJSONObject;
+begin
+  lOutput := RunRemoveWith('plan', 'json', 'remove-with-report-plan-normal-contract.json',
+    lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan report to succeed.');
+
+  lJson := TJSONObject.ParseJSONValue(lOutput);
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with output to be a JSON object.');
+    lRoot := lJson as TJSONObject;
+
+    AssertJsonMissingKey(lRoot, 'migrationTelemetry');
+    AssertJsonMissingKey(lRoot, 'plannerPhaseMetrics');
+    AssertJsonMissingKey(lRoot, 'semanticDtoParity');
+  finally
+    lJson.Free;
+  end;
+end;
+
 procedure TRemoveWithReportTests.PlanJsonReportKeepsLegacySkippedReasonAndAddsSemanticReason;
 var
   lJson: TJSONValue;
@@ -1887,20 +1915,20 @@ begin
   end;
 end;
 
-procedure TRemoveWithReportTests.PlanJsonReportIncludesPlannerPhaseMetrics;
+procedure TRemoveWithReportTests.DiagnosticsPlanJsonReportIncludesPlannerPhaseMetrics;
 var
   lExitCode: Cardinal;
   lJson: TJSONValue;
-  lOutput: string;
   lRoot: TJSONObject;
   lMetrics: TJSONObject;
   lResolverSubphaseMetrics: TJSONObject;
   lSubphaseMetrics: TJSONObject;
 begin
-  lOutput := RunRemoveWith('plan', 'json', 'remove-with-report-plan-metrics.json', lExitCode);
+  lJson := nil;
+  lJson := TJSONObject.ParseJSONValue(RunRemoveWith('plan', 'json',
+    'remove-with-report-plan-metrics.json', lExitCode, ' --diagnostics true'));
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan report to succeed.');
 
-  lJson := TJSONObject.ParseJSONValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with output to be a JSON object.');
     lRoot := lJson as TJSONObject;
@@ -1959,6 +1987,7 @@ begin
     AssertJsonNumberKey(lMetrics, 'resolverMs');
     AssertJsonNumberKey(lMetrics, 'plannerMs');
     AssertJsonNumberKey(lMetrics, 'outputSerializationMs');
+    AssertJsonStringKey(lMetrics, 'contextFingerprint');
     AssertJsonNumberKey(lMetrics, 'projectUnitCount');
     AssertJsonNumberKey(lMetrics, 'withStatementCount');
     AssertJsonNumberKey(lMetrics, 'symbolCount');
@@ -1978,7 +2007,8 @@ var
   lParity: TJSONObject;
   lRoot: TJSONObject;
 begin
-  lOutput := RunRemoveWith('plan', 'json', 'remove-with-report-dto-parity.json', lExitCode);
+  lOutput := RunRemoveWith('plan', 'json', 'remove-with-report-dto-parity.json', lExitCode,
+    ' --diagnostics true');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan report to succeed.');
 
   lJson := TJSONObject.ParseJSONValue(lOutput);
@@ -2017,7 +2047,7 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'remove-with-report-unit-dto-parity.json');
 
   Assert.IsTrue(RunProcess(ResolverExePath, 'remove-with --project ' + QuoteArg(lDprojPath) +
-    ' --unit ' + QuoteArg(lUnitPath) + ' --mode plan --format json',
+    ' --unit ' + QuoteArg(lUnitPath) + ' --mode plan --format json --diagnostics true',
     TPath.GetDirectoryName(ResolverExePath), lLogPath, lExitCode),
     'Failed to start remove-with unit plan process.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with unit plan report to succeed.');
@@ -3122,7 +3152,7 @@ begin
 end;
 
 function TRemoveWithSemanticBinderTests.RunFixtureJson(const aFixtureName, aProjectName,
-  aLogName: string; out aExitCode: Cardinal): TJSONObject;
+  aLogName: string; out aExitCode: Cardinal; const aExtraArgs: string): TJSONObject;
 var
   lArgs: string;
   lDprojPath: string;
@@ -3134,7 +3164,8 @@ begin
   lDprojPath := TPath.Combine(TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName),
     aProjectName + '.dproj');
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json' +
+    aExtraArgs;
 
   Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start semantic binder fixture process.');
@@ -3326,7 +3357,7 @@ var
   lSummary: TJSONObject;
 begin
   lRoot := RunFixtureJson('RemoveWithE2EFixture', 'RemoveWithE2EFixture',
-    'remove-with-semantic-report-projection.json', lExitCode);
+    'remove-with-semantic-report-projection.json', lExitCode, ' --diagnostics true');
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected resolver fixture plan to succeed.');
     AssertJsonObjectKey(lRoot, 'summary', lSummary);
@@ -5448,7 +5479,7 @@ begin
   TFile.WriteAllText(lUnitPath, lUnitText, TEncoding.UTF8);
 
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) +
-    ' --all --mode plan --format json';
+    ' --all --mode plan --format json --diagnostics true';
   Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath),
     lLogPath, lExitCode), 'Failed to start compact high-volume remove-with process.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected compact high-volume plan to succeed.');
@@ -5594,7 +5625,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json';
   Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with CLI process.');
   lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
@@ -7443,7 +7475,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json';
   Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
@@ -7695,7 +7728,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json';
   Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
@@ -9011,7 +9045,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json --diagnostics true';
   Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
@@ -9666,7 +9701,7 @@ begin
   lJsonPath := TPath.Combine(TempRoot, aLogName);
   lLogPath := TPath.ChangeExtension(lJsonPath, '.stdout.log');
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --dir ' + QuoteArg(aTargetDir) +
-    ' --mode plan --format json --output ' + QuoteArg(lJsonPath) + ' --verbose true';
+    ' --mode plan --format json --output ' + QuoteArg(lJsonPath) + ' --verbose true --diagnostics true';
   Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with maxTdb plan process.');
   Assert.IsTrue(TFile.Exists(lJsonPath), 'Expected maxTdb plan JSON output file: ' + lJsonPath);

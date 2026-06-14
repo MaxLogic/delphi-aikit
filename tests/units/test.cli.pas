@@ -113,6 +113,8 @@ type
     [Test]
     procedure RemoveWithCommandParsesApplyAllTarget;
     [Test]
+    procedure RemoveWithCommandParsesDiagnosticsFlag;
+    [Test]
     procedure RemoveWithCommandRejectsMissingTarget;
     [Test]
     procedure RemoveWithCommandRejectsMultipleTargets;
@@ -1080,6 +1082,18 @@ begin
   Assert.AreEqual(TRemoveWithFormat.rwfJson, lOptions.fRemoveWithFormat);
   Assert.AreEqual(TRemoveWithTargetKind.rwtAll, lOptions.fRemoveWithTargetKind);
   Assert.IsTrue(lOptions.fRemoveWithAll);
+end;
+
+procedure TCliTests.RemoveWithCommandParsesDiagnosticsFlag;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('remove-with --project c:\temp\sample.dproj --all --mode plan --diagnostics true');
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected remove-with diagnostics args to parse. Error: ' + lError);
+  Assert.AreEqual(TCommandKind.ckRemoveWith, lOptions.fCommand);
+  Assert.IsTrue(lOptions.fRemoveWithDiagnostics, 'Expected remove-with diagnostics flag.');
 end;
 
 procedure TCliTests.RemoveWithCommandRejectsMissingTarget;

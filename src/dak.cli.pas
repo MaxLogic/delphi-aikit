@@ -148,6 +148,7 @@ begin
     Add('show-init-options', '', svpOptionalBoolValue, [crLsp]);
     Add('dir', '', svpRequiredValue, [crRemoveWith]);
     Add('output', '', svpRequiredValue, [crGlobalVars, crDeps, crRemoveWith]);
+    Add('diagnostics', '', svpOptionalBoolValue, [crRemoveWith]);
     Add('semantic-cache', '', svpRequiredValue, [crRemoveWith, crFindUsages, crRename, crDeadCode]);
     Add('new-name', '', svpRequiredValue, [crRename]);
     Add('profile', '', svpRequiredValue, [crDeadCode]);
@@ -1664,6 +1665,18 @@ begin
       Exit(False);
     fOptions.fRemoveWithSemanticCachePath := lValue;
     fOptions.fHasRemoveWithSemanticCachePath := True;
+    Exit(True);
+  end;
+
+  if SwitchMatches(aSwitch, 'diagnostics') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--diagnostics') then
+      Exit(False);
+    if not TryParseBool(lValue, fOptions.fRemoveWithDiagnostics) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--diagnostics', lValue]);
+      Exit(False);
+    end;
     Exit(True);
   end;
 
