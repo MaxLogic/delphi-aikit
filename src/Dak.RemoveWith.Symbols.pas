@@ -2066,7 +2066,7 @@ begin
     aError := 'Remove-with project model is not assigned.';
     Exit(False);
   end;
-  aInventory.fParserDefines := aProjectModel.Context.fParserDefines;
+  aInventory.fParserDefines := aProjectModel.Context.ParserDefines;
 
   lContext := TRemoveWithSymbolInventoryContext.Create;
   try

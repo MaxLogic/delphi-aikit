@@ -865,7 +865,7 @@ begin
 
   for lProblem in aProjectModel.Indexer.Problems do
   begin
-    if TRemoveWithDiscoveryHelper.ShouldReportProblem(aOptions, lProblem.FileName, lContext.fProjectDir, lDirKey,
+    if TRemoveWithDiscoveryHelper.ShouldReportProblem(aOptions, lProblem.FileName, lContext.ProjectDir, lDirKey,
       lUnitKey) then
     begin
       TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lProblem.FileName, 0, 0,
@@ -888,7 +888,7 @@ begin
       if TRemoveWithDiscoveryHelper.ShouldScanPath(aOptions, lFilePath, lDirKey, lUnitKey) and
         LoadRemoveWithSource(lFilePath, lSource, lSourceError) then
       begin
-        lInactiveRanges := RemoveWithInactiveDirectiveRanges(lSource, lContext.fParserDefines);
+        lInactiveRanges := RemoveWithInactiveDirectiveRanges(lSource, lContext.ParserDefines);
         TRemoveWithDiscoveryHelper.CollectFromNode(lUnit.SyntaxTree, lFilePath, lSource, lInactiveRanges, 0,
           aScanResult);
       end

@@ -27,14 +27,14 @@ begin
   if not TryBuildProjectAnalysisContext(aOptions, lContext, lError) then
     raise Exception.Create(lError);
 
-  Result.ProjectPath := lContext.fProjectPath;
-  Result.ProjectName := lContext.fProjectName;
-  Result.MainSourcePath := lContext.fMainSourcePath;
-  Result.ParserDefines := lContext.fParserDefines;
-  Result.ParserSearchPath := lContext.fParserSearchPath;
-  Result.UnitAliases := lContext.fUnitAliases;
-  Result.UnitScopes := lContext.fUnitScopes;
-  Result.OutputPath := TPath.Combine(lContext.fDakProjectRoot, 'global-vars');
+  Result.ProjectPath := lContext.ProjectPath;
+  Result.ProjectName := lContext.ProjectName;
+  Result.MainSourcePath := lContext.MainSourcePath;
+  Result.ParserDefines := lContext.ParserDefines;
+  Result.ParserSearchPath := lContext.ParserSearchPath;
+  Result.UnitAliases := lContext.UnitAliases;
+  Result.UnitScopes := lContext.UnitScopes;
+  Result.OutputPath := TPath.Combine(lContext.DakProjectRoot, 'global-vars');
   Result.CachePath := TPath.Combine(Result.OutputPath, 'cache');
   Result.ReportsPath := TPath.Combine(Result.OutputPath, 'reports');
   Result.TempPath := TPath.Combine(Result.OutputPath, 'tmp');

@@ -683,6 +683,9 @@ var
   lEnvVars: TDictionary<string, string>;
   lLibraryPath: string;
   lLibrarySource: TPropertySource;
+  lParserSearchPath: string;
+  lProjectDir: string;
+  lProjectName: string;
   lProjectPath: string;
   lResult: TDelphiSemanticContextResult;
   lRsVarsEnvironment: TRsVarsEnvironment;
@@ -698,14 +701,12 @@ begin
     Exit(False);
   end;
 
-  aContext.fProjectPath := lProjectPath;
-  aContext.fProjectDir := TPath.GetDirectoryName(lProjectPath);
-  aContext.fProjectName := TPath.GetFileNameWithoutExtension(lProjectPath);
-  aContext.fDakProjectRoot := TPath.Combine(TPath.Combine(aContext.fProjectDir, '.dak'), aContext.fProjectName);
-  aContext.fParserDefines := TargetCompilerDefinesText(aOptions.fPlatform);
-  aContext.fParserSearchPath := aContext.fProjectDir;
-  aContext.fHasDelphiContext := False;
-  aContext.fContextNote := cDefaultContextNote;
+  lProjectDir := TPath.GetDirectoryName(lProjectPath);
+  lProjectName := TPath.GetFileNameWithoutExtension(lProjectPath);
+  aContext := TProjectAnalysisContext.Create(lProjectPath, lProjectName,
+    lProjectDir, '', nil, TargetCompilerDefinesText(aOptions.fPlatform),
+    lProjectDir, nil, nil, TPath.Combine(TPath.Combine(lProjectDir, '.dak'),
+      lProjectName), False, cDefaultContextNote);
 
   lBuildOptions := aOptions;
   lBuildOptions.fDprojPath := lProjectPath;
@@ -719,20 +720,18 @@ begin
     Exit(False);
   end;
 
-  aContext.fProjectPath := lResult.Project.ProjectFileName;
-  aContext.fProjectDir := lResult.Project.ProjectDirectory;
-  aContext.fProjectName := lResult.Project.ProjectName;
-  aContext.fDakProjectRoot := TPath.Combine(TPath.Combine(aContext.fProjectDir, '.dak'), aContext.fProjectName);
-  aContext.fMainSourcePath := lResult.Project.MainSourceFileName;
-  aContext.fSourceFileNames := lResult.Project.SourceFileNames;
-  aContext.fParserDefines := String.Join(';', lResult.Project.Defines);
-  aContext.fUnitScopes := lResult.Project.UnitScopeNames;
-  aContext.fUnitAliases := lResult.Project.UnitAliases;
-  lSearchPaths := ConcatDedup(lResult.Project.SourceLookupPaths, TArray<string>.Create(aContext.fProjectDir));
-  if Length(lSearchPaths) > 0 then
-    aContext.fParserSearchPath := String.Join(';', lSearchPaths);
-  if aContext.fParserSearchPath = '' then
-    aContext.fParserSearchPath := aContext.fProjectDir;
+  lSearchPaths := ConcatDedup(lResult.Project.SourceLookupPaths,
+    TArray<string>.Create(lResult.Project.ProjectDirectory));
+  lParserSearchPath := String.Join(';', lSearchPaths);
+  if lParserSearchPath = '' then
+    lParserSearchPath := lResult.Project.ProjectDirectory;
+  aContext := TProjectAnalysisContext.Create(lResult.Project.ProjectFileName,
+    lResult.Project.ProjectName, lResult.Project.ProjectDirectory,
+    lResult.Project.MainSourceFileName, lResult.Project.SourceFileNames,
+    String.Join(';', lResult.Project.Defines), lParserSearchPath,
+    lResult.Project.UnitScopeNames, lResult.Project.UnitAliases,
+    TPath.Combine(TPath.Combine(lResult.Project.ProjectDirectory, '.dak'),
+      lResult.Project.ProjectName), False, cDefaultContextNote);
 
   lDelphiVersion := Trim(aOptions.fDelphiVersion);
   if (lDelphiVersion = '') and (not LoadDefaultDelphiVersion(lProjectPath, lDelphiVersion)) then
@@ -768,18 +767,18 @@ begin
       SemanticApiOptions(lBuildOptions, lEnvVars, lSearchPaths));
     if lResult.Success then
     begin
-      aContext.fMainSourcePath := lResult.Project.MainSourceFileName;
-      aContext.fSourceFileNames := lResult.Project.SourceFileNames;
-      aContext.fParserDefines := String.Join(';', lResult.Project.Defines);
-      aContext.fUnitScopes := lResult.Project.UnitScopeNames;
-      aContext.fUnitAliases := lResult.Project.UnitAliases;
       lSearchPaths := ConcatDedup(lResult.Project.SourceLookupPaths,
-        TArray<string>.Create(aContext.fProjectDir));
-      aContext.fParserSearchPath := String.Join(';', lSearchPaths);
-      if aContext.fParserSearchPath = '' then
-        aContext.fParserSearchPath := aContext.fProjectDir;
-      aContext.fHasDelphiContext := True;
-      aContext.fContextNote := '';
+        TArray<string>.Create(lResult.Project.ProjectDirectory));
+      lParserSearchPath := String.Join(';', lSearchPaths);
+      if lParserSearchPath = '' then
+        lParserSearchPath := lResult.Project.ProjectDirectory;
+      aContext := TProjectAnalysisContext.Create(lResult.Project.ProjectFileName,
+        lResult.Project.ProjectName, lResult.Project.ProjectDirectory,
+        lResult.Project.MainSourceFileName, lResult.Project.SourceFileNames,
+        String.Join(';', lResult.Project.Defines), lParserSearchPath,
+        lResult.Project.UnitScopeNames, lResult.Project.UnitAliases,
+        TPath.Combine(TPath.Combine(lResult.Project.ProjectDirectory, '.dak'),
+          lResult.Project.ProjectName), True, '');
     end;
   finally
     lRsVarsEnvVars.Free;
@@ -799,7 +798,7 @@ end;
 
 function CreateProjectAnalysisIndexer(const aContext: TProjectAnalysisContext): TProjectIndexer;
 begin
-  Result := CreateProjectAnalysisIndexer(aContext.fParserDefines, aContext.fParserSearchPath);
+  Result := CreateProjectAnalysisIndexer(aContext.ParserDefines, aContext.ParserSearchPath);
 end;
 
 end.

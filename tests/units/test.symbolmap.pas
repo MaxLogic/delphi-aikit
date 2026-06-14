@@ -837,9 +837,9 @@ begin
   lCacheRoot := UniqueTempPath('symbol-map-equivalent-defines-cache');
   BuildContext('SymbolMapEquivalentDefinesA', lCacheRoot, lContextA);
   lContextA.fDefines := TArray<string>.Create('NET', 'DLL');
-  lContextA.fProject.fParserDefines := 'NET;DLL';
+  lContextA.fProject := lContextA.fProject.WithParserDefines('NET;DLL');
   lContextB := lContextA;
-  lContextB.fProject.fParserDefines := ' DLL ; NET ';
+  lContextB.fProject := lContextB.fProject.WithParserDefines(' DLL ; NET ');
   Assert.IsTrue(EnsureSymbolMapCaches(lContextA, lStatus, lError), 'Expected cache schema. Error: ' + lError);
   Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
     'Expected member unit extraction. Error: ' + lError);
@@ -2714,8 +2714,8 @@ begin
 
   Assert.IsTrue(TryBuildSymbolMapContext(lOptions, lContext, lError), 'Expected context to resolve. Error: ' + lError);
   lProjectDir := TPath.GetDirectoryName(FixtureProjectPath);
-  Assert.AreEqual(TPath.GetFullPath(FixtureProjectPath), lContext.fProject.fProjectPath);
-  Assert.AreEqual('LspProjectFixture', lContext.fProject.fProjectName);
+  Assert.AreEqual(TPath.GetFullPath(FixtureProjectPath), lContext.fProject.ProjectPath);
+  Assert.AreEqual('LspProjectFixture', lContext.fProject.ProjectName);
   Assert.AreEqual('23.0', lContext.fDelphiVersion);
   Assert.AreEqual(TPath.Combine(TPath.Combine(TPath.Combine(TPath.Combine(lProjectDir, '.dak'), 'LspProjectFixture'),
     'symbol-map'), 'v2'), lContext.fProjectCacheRoot);

@@ -47,6 +47,7 @@ type
   end;
 
   TProjectAnalysisContext = record
+  private
     fProjectPath: string;
     fProjectName: string;
     fProjectDir: string;
@@ -59,6 +60,29 @@ type
     fDakProjectRoot: string;
     fHasDelphiContext: Boolean;
     fContextNote: string;
+    function GetSourceFileNames: TArray<string>;
+    function GetUnitAliases: TArray<string>;
+    function GetUnitScopes: TArray<string>;
+  public
+    class function Create(const aProjectPath, aProjectName, aProjectDir,
+      aMainSourcePath: string; const aSourceFileNames: TArray<string>;
+      const aParserDefines, aParserSearchPath: string;
+      const aUnitScopes, aUnitAliases: TArray<string>;
+      const aDakProjectRoot: string; const aHasDelphiContext: Boolean;
+      const aContextNote: string): TProjectAnalysisContext; static;
+    function WithParserDefines(const aParserDefines: string): TProjectAnalysisContext;
+    property ProjectPath: string read fProjectPath;
+    property ProjectName: string read fProjectName;
+    property ProjectDir: string read fProjectDir;
+    property MainSourcePath: string read fMainSourcePath;
+    property SourceFileNames: TArray<string> read GetSourceFileNames;
+    property ParserDefines: string read fParserDefines;
+    property ParserSearchPath: string read fParserSearchPath;
+    property UnitScopes: TArray<string> read GetUnitScopes;
+    property UnitAliases: TArray<string> read GetUnitAliases;
+    property DakProjectRoot: string read fDakProjectRoot;
+    property HasDelphiContext: Boolean read fHasDelphiContext;
+    property ContextNote: string read fContextNote;
   end;
 
   TSourceContextSnippet = record
@@ -274,5 +298,50 @@ type
   end;
 
 implementation
+
+class function TProjectAnalysisContext.Create(const aProjectPath, aProjectName,
+  aProjectDir, aMainSourcePath: string; const aSourceFileNames: TArray<string>;
+  const aParserDefines, aParserSearchPath: string;
+  const aUnitScopes, aUnitAliases: TArray<string>; const aDakProjectRoot: string;
+  const aHasDelphiContext: Boolean; const aContextNote: string):
+  TProjectAnalysisContext;
+begin
+  Result.fProjectPath := aProjectPath;
+  Result.fProjectName := aProjectName;
+  Result.fProjectDir := aProjectDir;
+  Result.fMainSourcePath := aMainSourcePath;
+  Result.fSourceFileNames := Copy(aSourceFileNames);
+  Result.fParserDefines := aParserDefines;
+  Result.fParserSearchPath := aParserSearchPath;
+  Result.fUnitScopes := Copy(aUnitScopes);
+  Result.fUnitAliases := Copy(aUnitAliases);
+  Result.fDakProjectRoot := aDakProjectRoot;
+  Result.fHasDelphiContext := aHasDelphiContext;
+  Result.fContextNote := aContextNote;
+end;
+
+function TProjectAnalysisContext.WithParserDefines(
+  const aParserDefines: string): TProjectAnalysisContext;
+begin
+  Result := TProjectAnalysisContext.Create(fProjectPath, fProjectName,
+    fProjectDir, fMainSourcePath, fSourceFileNames, aParserDefines,
+    fParserSearchPath, fUnitScopes, fUnitAliases, fDakProjectRoot,
+    fHasDelphiContext, fContextNote);
+end;
+
+function TProjectAnalysisContext.GetSourceFileNames: TArray<string>;
+begin
+  Result := Copy(fSourceFileNames);
+end;
+
+function TProjectAnalysisContext.GetUnitAliases: TArray<string>;
+begin
+  Result := Copy(fUnitAliases);
+end;
+
+function TProjectAnalysisContext.GetUnitScopes: TArray<string>;
+begin
+  Result := Copy(fUnitScopes);
+end;
 
 end.

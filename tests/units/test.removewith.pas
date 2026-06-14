@@ -2484,10 +2484,10 @@ begin
   lModel := nil;
   Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lDprojPath, lModel, lError), lError);
   try
-    Assert.IsTrue(ContainsText(lModel.Context.fParserDefines, 'LINUX'), 'LINUX');
-    Assert.IsTrue(ContainsText(lModel.Context.fParserDefines, 'POSIX'), 'POSIX');
-    Assert.IsTrue(ContainsText(lModel.Context.fParserDefines, 'CPUX64'), 'CPUX64');
-    Assert.IsFalse(ContainsText(lModel.Context.fParserDefines, 'MSWINDOWS'), 'MSWINDOWS');
+    Assert.IsTrue(ContainsText(lModel.Context.ParserDefines, 'LINUX'), 'LINUX');
+    Assert.IsTrue(ContainsText(lModel.Context.ParserDefines, 'POSIX'), 'POSIX');
+    Assert.IsTrue(ContainsText(lModel.Context.ParserDefines, 'CPUX64'), 'CPUX64');
+    Assert.IsFalse(ContainsText(lModel.Context.ParserDefines, 'MSWINDOWS'), 'MSWINDOWS');
     Assert.IsFalse(piUseDefinesDefinedByCompiler in lModel.Indexer.Options,
       'Project-aware DAK indexing must not add host compiler defines.');
 

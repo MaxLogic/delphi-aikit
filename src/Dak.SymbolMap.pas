@@ -329,9 +329,9 @@ begin
   WriteLn(
     '{"operation":"' + JsonEscape(lOperation) + '"' +
     ',"status":"ok"' +
-    ',"project":{"path":"' + JsonEscape(aContext.fProject.fProjectPath) + '","name":"' +
-      JsonEscape(aContext.fProject.fProjectName) + '","dir":"' + JsonEscape(aContext.fProject.fProjectDir) +
-      '","mainSource":"' + JsonEscape(aContext.fProject.fMainSourcePath) + '","platform":"' +
+    ',"project":{"path":"' + JsonEscape(aContext.fProject.ProjectPath) + '","name":"' +
+      JsonEscape(aContext.fProject.ProjectName) + '","dir":"' + JsonEscape(aContext.fProject.ProjectDir) +
+      '","mainSource":"' + JsonEscape(aContext.fProject.MainSourcePath) + '","platform":"' +
       JsonEscape(aContext.fPlatform) + '","config":"' + JsonEscape(aContext.fConfig) + '"}' +
     ',"cache":{"centralRoot":"' + JsonEscape(aContext.fCentralCacheRoot) + '","projectRoot":"' +
       JsonEscape(aContext.fProjectCacheRoot) + '","centralDbPath":"' + JsonEscape(aCacheStatus.fCentralDbPath) +
@@ -340,9 +340,9 @@ begin
       LowerCase(BoolToStr(aCacheStatus.fCentralCreated, True)) + ',"projectCreated":' +
       LowerCase(BoolToStr(aCacheStatus.fProjectCreated, True)) + '}' +
     ',"context":{"delphiVersion":"' + JsonEscape(aContext.fDelphiVersion) + '","hasDelphiContext":' +
-      LowerCase(BoolToStr(aContext.fProject.fHasDelphiContext, True)) + ',"parserDefines":"' +
-      JsonEscape(aContext.fProject.fParserDefines) + '","parserSearchPath":"' +
-      JsonEscape(aContext.fProject.fParserSearchPath) + '","hasCompilerParams":' +
+      LowerCase(BoolToStr(aContext.fProject.HasDelphiContext, True)) + ',"parserDefines":"' +
+      JsonEscape(aContext.fProject.ParserDefines) + '","parserSearchPath":"' +
+      JsonEscape(aContext.fProject.ParserSearchPath) + '","hasCompilerParams":' +
       LowerCase(BoolToStr(aContext.fHasCompilerParams, True)) + ',"defines":' +
       JsonStringArray(aContext.fDefines) + ',"unitSearchPath":' + JsonStringArray(aContext.fUnitSearchPath) +
       ',"libraryPath":' + JsonStringArray(aContext.fLibraryPath) + ',"unitScopes":' +
@@ -363,7 +363,7 @@ var
   lUnit: TSymbolMapIndexedUnit;
 begin
   WriteLn('symbol-map ', SymbolMapOperationToText(aOptions.fSymbolMapOperation), ': ok');
-  WriteLn('project: ', aContext.fProject.fProjectPath);
+  WriteLn('project: ', aContext.fProject.ProjectPath);
   WriteLn('central-cache-root: ', aContext.fCentralCacheRoot);
   WriteLn('project-cache-root: ', aContext.fProjectCacheRoot);
   WriteLn('central-cache-db: ', aCacheStatus.fCentralDbPath);

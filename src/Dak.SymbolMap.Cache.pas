@@ -122,11 +122,11 @@ begin
   Result.IncludeGraphHash := aIncludeGraphHash;
   Result.DelphiVersion := aContext.fDelphiVersion;
   Result.Platform := aContext.fPlatform;
-  Result.ParserDefines := aContext.fProject.fParserDefines;
+  Result.ParserDefines := aContext.fProject.ParserDefines;
   Result.Defines := aContext.fDefines;
   Result.UnitScopes := aContext.fUnitScopes;
   Result.UnitAliases := aContext.fUnitAliases;
-  Result.ProjectPath := aContext.fProject.fProjectPath;
+  Result.ProjectPath := aContext.fProject.ProjectPath;
   Result.Configuration := aContext.fConfig;
   Result.SearchPaths := aContext.fUnitSearchPath;
   Result.CentralCacheRoot := aContext.fCentralCacheRoot;
@@ -810,12 +810,7 @@ begin
   aResult.fSourceRoot := lRoot;
   if not EnsureSymbolMapCompilerProfileForRoot(aContext, aStatus, lRoot, aProfile, aError) then
     Exit(False);
-  lRtlContext := aContext;
-  lRtlContext.fRtlSourceRoot := lRoot;
-  lRtlContext.fProject.fParserDefines := '';
-  SetLength(lRtlContext.fDefines, 0);
-  SetLength(lRtlContext.fUnitScopes, 0);
-  SetLength(lRtlContext.fUnitAliases, 0);
+  lRtlContext := aContext.WithRtlSourceRoot(lRoot);
   lMutexHandle := 0;
   try
     lUnitFiles := CollectRtlSourceFiles(lRoot, lDiagnostics);
@@ -987,7 +982,7 @@ begin
   aConnection.ExecSQL('insert or replace into project_context(' +
     'project_key, project_path, config, platform, delphi_version, defines_hash, search_path_hash, ' +
     'unit_scope_hash, alias_hash, central_cache_path, indexed_at_utc) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [aProjectKey, aContext.fProject.fProjectPath, aContext.fConfig, aContext.fPlatform,
+    [aProjectKey, aContext.fProject.ProjectPath, aContext.fConfig, aContext.fPlatform,
     aContext.fDelphiVersion, aProjectIdentity.DefinesHash, aProjectIdentity.SearchPathHash,
     aProjectIdentity.UnitScopeHash, aProjectIdentity.AliasHash, aStatus.fCentralDbPath, DateTimeToStr(Now)]);
 end;
