@@ -81,7 +81,7 @@ type
 
 function DakSourceKind(const aSourceKind: string): string;
 begin
-  if SameText(aSourceKind, 'project-source') then
+  if SameText(aSourceKind, 'project-source') or SameText(aSourceKind, 'project-snapshot') then
     Exit('project');
   if SameText(aSourceKind, 'compiler-profile') then
     Exit('compiler-intrinsic');

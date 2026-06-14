@@ -197,6 +197,8 @@ type
     procedure CliFindDefinitionReturnsJsonResult;
     [Test]
     procedure CliFindReferencesAcceptsSourcePositionAndUsesSemanticResolver;
+    [Test]
+    procedure ProjectionNormalizesProjectSnapshotSourceKind;
   end;
 
   [TestFixture]
@@ -1715,6 +1717,19 @@ begin
   finally
     lJsonValue.Free;
   end;
+end;
+
+procedure TSymbolMapDefinitionQueryTests.ProjectionNormalizesProjectSnapshotSourceKind;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Query.pas'),
+    TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSource, 'project-snapshot'),
+    'Expected SymbolMap projection to explicitly normalize Semantics project-snapshot source kind.');
+  Assert.IsTrue(ContainsText(lSource, 'Exit(''project'')'),
+    'Expected Semantics project source kinds to remain projected as DAK sourceKind=project.');
 end;
 
 function TSymbolMapReferenceQueryTests.BuildContext(const aCacheRoot: string; out aContext: TSymbolMapContext):
