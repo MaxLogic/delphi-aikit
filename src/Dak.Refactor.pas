@@ -18,7 +18,7 @@ uses
   DelphiSemantics.ProjectSession,
   DelphiSemantics.Query, DelphiSemantics.Refactor,
   DelphiSemantics.Usage,
-  Dak.ExitCodes, Dak.RemoveWith.Source, Dak.Semantics.Session;
+  Dak.ExitCodes, Dak.Semantics.Session, Dak.SourceText;
 
 type
   TRefactorSemanticPhaseMetrics = record
@@ -510,14 +510,14 @@ begin
   Result := True;
 end;
 
-function ResolveEditEndOffset(const aSource: TRemoveWithSourceBuffer;
+function ResolveEditEndOffset(const aSource: TDakSourceBuffer;
   const aEdit: TDelphiSemanticTextEdit; const aStartOffset: Integer; out aEndOffset: Integer):
   Boolean;
 var
   lLength: Integer;
 begin
   if (aEdit.EndLine = aEdit.StartLine) and
-    RemoveWithOffsetForLineColumn(aSource, aEdit.EndLine, aEdit.EndColumn, aEndOffset) and
+    DakOffsetForLineColumn(aSource, aEdit.EndLine, aEdit.EndColumn, aEndOffset) and
     (aEndOffset >= aStartOffset) and (aEndOffset <= Length(aSource.fText)) then
     Exit(True);
 
@@ -532,14 +532,14 @@ begin
 end;
 
 procedure ApplyEditToSource(const aEdit: TDelphiSemanticTextEdit; const aOriginalName: string;
-  const aSource: TRemoveWithSourceBuffer; var aText: string);
+  const aSource: TDakSourceBuffer; var aText: string);
 var
   lEndOffset: Integer;
   lStartOffset: Integer;
   lTokenStartOffset: Integer;
   lToken: string;
 begin
-  if not RemoveWithOffsetForLineColumn(aSource, aEdit.StartLine, aEdit.StartColumn,
+  if not DakOffsetForLineColumn(aSource, aEdit.StartLine, aEdit.StartColumn,
     lStartOffset) then
     raise Exception.Create('Invalid rename edit start in ' + aEdit.FileName);
   if TryIdentifierSpanAtOffset(aSource.fText, lStartOffset, aOriginalName, lTokenStartOffset,
@@ -602,7 +602,7 @@ var
   lFileName: string;
   lOriginals: TDictionary<string, TBytes>;
   lPair: TPair<string, TBytes>;
-  lSource: TRemoveWithSourceBuffer;
+  lSource: TDakSourceBuffer;
   lText: string;
   lWorkspaceRoot: string;
 begin
@@ -630,7 +630,7 @@ begin
       for lPair in lOriginals do
       begin
         lFileName := lPair.Key;
-        if not LoadRemoveWithSource(lFileName, lSource, lText) then
+        if not LoadDakSource(lFileName, lSource, lText) then
           raise Exception.Create('Failed to load source for rename: ' + lText);
         lText := lSource.fText;
         SetLength(lEdits, 0);
@@ -643,7 +643,7 @@ begin
         SortEditsDescending(lEdits);
         for lEdit in lEdits do
           ApplyEditToSource(lEdit, aOriginalName, lSource, lText);
-        TFile.WriteAllBytes(lFileName, RemoveWithTextToBytes(lText, lSource.fEncoding,
+        TFile.WriteAllBytes(lFileName, DakTextToBytes(lText, lSource.fEncoding,
           lSource.fHasUtf8Bom));
       end;
       WriteRenameManifest(lWorkspaceRoot, 'applied', '', aAppliedFiles);
