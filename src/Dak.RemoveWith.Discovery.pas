@@ -58,7 +58,7 @@ implementation
 
 uses
   System.IOUtils, System.StrUtils, System.SysUtils,
-  DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer,
+  DelphiAST.Classes, DelphiAST.Consts,
   Dak.RemoveWith.Source, Dak.Utils;
 
 type
@@ -106,7 +106,7 @@ type
     class function ShouldScanPath(const aOptions: TAppOptions; const aPath, aDirKey, aUnitKey: string): Boolean; static;
     class function ShouldReportProblem(const aOptions: TAppOptions; const aProblemPath, aProjectDir, aDirKey,
       aUnitKey: string): Boolean; static;
-    class function ProblemCode(const aProblemType: TProjectIndexer.TProblemType): string; static;
+    class function ProblemCode(const aProblemKind: TRemoveWithProjectProblemKind): string; static;
   end;
 
 class function TRemoveWithDiscoveryHelper.NormalizePathKey(const aPath: string): string;
@@ -797,12 +797,12 @@ begin
   Result := ShouldScanPath(aOptions, lProblemPath, aDirKey, aUnitKey);
 end;
 
-class function TRemoveWithDiscoveryHelper.ProblemCode(const aProblemType: TProjectIndexer.TProblemType): string;
+class function TRemoveWithDiscoveryHelper.ProblemCode(const aProblemKind: TRemoveWithProjectProblemKind): string;
 begin
-  case aProblemType of
-    TProjectIndexer.TProblemType.ptCantFindFile:
+  case aProblemKind of
+    rwppCantFindFile:
       Result := 'cant-find-file';
-    TProjectIndexer.TProblemType.ptCantOpenFile:
+    rwppCantOpenFile:
       Result := 'cant-open-file';
   else
     Result := 'cant-parse-file';
@@ -832,10 +832,10 @@ var
   lFilePath: string;
   lInitialWithCount: Integer;
   lInactiveRanges: TArray<TRemoveWithInactiveRange>;
-  lProblem: TProjectIndexer.TProblemInfo;
+  lProblem: TRemoveWithProjectProblemInfo;
   lSource: TRemoveWithSourceBuffer;
   lSourceError: string;
-  lUnit: TProjectIndexer.TUnitInfo;
+  lUnit: TRemoveWithParsedUnitInfo;
   lUnitKey: string;
 begin
   aScanResult := Default(TRemoveWithScanResult);
@@ -863,19 +863,19 @@ begin
     lDirKey := IncludeTrailingPathDelimiter(TRemoveWithDiscoveryHelper.NormalizePathKey(lFilePath));
   end;
 
-  for lProblem in aProjectModel.Indexer.Problems do
+  for lProblem in aProjectModel.ParserProblems do
   begin
-    if TRemoveWithDiscoveryHelper.ShouldReportProblem(aOptions, lProblem.FileName, lContext.ProjectDir, lDirKey,
+    if TRemoveWithDiscoveryHelper.ShouldReportProblem(aOptions, lProblem.fFileName, lContext.ProjectDir, lDirKey,
       lUnitKey) then
     begin
-      TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lProblem.FileName, 0, 0,
-        TRemoveWithDiscoveryHelper.ProblemCode(lProblem.ProblemType), lProblem.Description);
+      TRemoveWithDiscoveryHelper.AddWarning(aScanResult, lProblem.fFileName, 0, 0,
+        TRemoveWithDiscoveryHelper.ProblemCode(lProblem.fKind), lProblem.fDescription);
     end;
   end;
 
-  for lUnit in aProjectModel.Indexer.ParsedUnits do
+  for lUnit in aProjectModel.ParsedUnits do
   begin
-    lFilePath := Trim(lUnit.Path);
+    lFilePath := Trim(lUnit.fPath);
     if (lFilePath = '') or (not TFile.Exists(lFilePath)) then
       Continue;
     lFilePath := TPath.GetFullPath(lFilePath);
@@ -883,13 +883,13 @@ begin
       Continue;
 
     lInitialWithCount := Length(aScanResult.fWithStatements);
-    if Assigned(lUnit.SyntaxTree) then
+    if Assigned(lUnit.fSyntaxTree) then
     begin
       if TRemoveWithDiscoveryHelper.ShouldScanPath(aOptions, lFilePath, lDirKey, lUnitKey) and
         LoadRemoveWithSource(lFilePath, lSource, lSourceError) then
       begin
         lInactiveRanges := RemoveWithInactiveDirectiveRanges(lSource, lContext.ParserDefines);
-        TRemoveWithDiscoveryHelper.CollectFromNode(lUnit.SyntaxTree, lFilePath, lSource, lInactiveRanges, 0,
+        TRemoveWithDiscoveryHelper.CollectFromNode(lUnit.fSyntaxTree, lFilePath, lSource, lInactiveRanges, 0,
           aScanResult);
       end
       else
