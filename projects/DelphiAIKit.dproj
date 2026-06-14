@@ -231,7 +231,6 @@
         <DCCReference Include="..\src\Dak.RemoveWith.Planner.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Resolver.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Source.pas"/>
-        <DCCReference Include="..\src\Dak.RemoveWith.SymbolMap.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Symbols.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.TempPolicy.pas"/>
         <DCCReference Include="..\src\Dak.RemoveWith.Transaction.pas"/>
