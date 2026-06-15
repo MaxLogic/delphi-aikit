@@ -31,6 +31,8 @@ type
     procedure PreservesSemanticSessionEnvironmentOptions;
     [Test]
     procedure SemanticModelPersistenceBelongsToDelphiSemantics;
+    [Test]
+    procedure SymbolMapCommandDelegatesOperationDispatch;
   end;
 
   [TestFixture]
@@ -3516,6 +3518,60 @@ begin
     'SymbolMap query must not rebuild semantic models from SymbolMap projections.');
   Assert.IsFalse(ContainsText(lCacheSource, 'TDelphiSemanticSqliteUnitCache'),
     'SymbolMap cache must not seed DelphiSemantics semantic caches from projections.');
+end;
+
+procedure TSymbolMapContextTests.SymbolMapCommandDelegatesOperationDispatch;
+var
+  lCommandSource: string;
+  lSource: string;
+  lStart: Integer;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.pas'),
+    TEncoding.UTF8);
+  lStart := Pos('function RunSymbolMapCommand(const aOptions: TAppOptions): Integer', lSource);
+  if lStart > 0 then
+    lStart := PosEx('function RunSymbolMapCommand(const aOptions: TAppOptions): Integer',
+      lSource, lStart + 1);
+  Assert.IsTrue(lStart > 0, 'Expected RunSymbolMapCommand.');
+  lCommandSource := Copy(lSource, lStart, MaxInt);
+
+  Assert.IsTrue(ContainsText(lSource, 'function PrepareSymbolMapCommand'),
+    'SymbolMap command preparation should be isolated.');
+  Assert.IsTrue(ContainsText(lSource, 'function RunSymbolMapIndexOperation'),
+    'SymbolMap index operation should be isolated.');
+  Assert.IsTrue(ContainsText(lSource, 'function RunSymbolMapQueryOperation'),
+    'SymbolMap query operation dispatch should be isolated.');
+  Assert.IsTrue(ContainsText(lSource, 'function RunSymbolMapFindDefinition'),
+    'SymbolMap find-definition operation should be isolated.');
+  Assert.IsTrue(ContainsText(lSource, 'function RunSymbolMapFindReferences'),
+    'SymbolMap find-references operation should be isolated.');
+  Assert.IsTrue(ContainsText(lSource, 'function RunSymbolMapSearchSymbols'),
+    'SymbolMap search-symbols operation should be isolated.');
+  Assert.IsTrue(ContainsText(lSource, 'function RunSymbolMapDescribeSymbol'),
+    'SymbolMap describe-symbol operation should be isolated.');
+  Assert.IsTrue(ContainsText(lSource, 'function RunSymbolMapStatsOperation'),
+    'SymbolMap stats operation should be isolated.');
+  Assert.IsTrue(ContainsText(lSource, 'procedure WriteSymbolMapCommandOutput'),
+    'SymbolMap output writing should be isolated.');
+
+  Assert.IsFalse(ContainsText(lCommandSource, 'TryIndexSymbolMapUnit('),
+    'RunSymbolMapCommand should delegate unit indexing.');
+  Assert.IsFalse(ContainsText(lCommandSource, 'TryIndexSymbolMapProject('),
+    'RunSymbolMapCommand should delegate project indexing.');
+  Assert.IsFalse(ContainsText(lCommandSource, 'FindSymbolMapDefinitionByPosition('),
+    'RunSymbolMapCommand should delegate find-definition.');
+  Assert.IsFalse(ContainsText(lCommandSource, 'FindSymbolMapReferencesByPosition('),
+    'RunSymbolMapCommand should delegate positional find-references.');
+  Assert.IsFalse(ContainsText(lCommandSource, 'FindSymbolMapReferences('),
+    'RunSymbolMapCommand should delegate find-references.');
+  Assert.IsFalse(ContainsText(lCommandSource, 'SearchSymbolMapDefinitions('),
+    'RunSymbolMapCommand should delegate search-symbols.');
+  Assert.IsFalse(ContainsText(lCommandSource, 'DescribeSymbolMapDefinition('),
+    'RunSymbolMapCommand should delegate describe-symbol.');
+  Assert.IsFalse(ContainsText(lCommandSource, 'WriteSymbolMapTextShell('),
+    'RunSymbolMapCommand should delegate text output writing.');
+  Assert.IsFalse(ContainsText(lCommandSource, 'WriteSymbolMapJsonShell('),
+    'RunSymbolMapCommand should delegate JSON output writing.');
 end;
 
 procedure TSymbolMapCliTests.SetParams(const aCmdLine: string);

@@ -19,6 +19,15 @@ type
     fStoreResult: TSymbolMapCacheStoreResult;
   end;
 
+  TSymbolMapCommandState = record
+    fCacheStatus: TSymbolMapCacheStatus;
+    fCompilerProfile: TSymbolMapCompilerProfileResult;
+    fContext: TSymbolMapContext;
+    fIndexedUnits: TArray<TSymbolMapIndexedUnit>;
+    fResultJson: string;
+    fRtlSource: TSymbolMapRtlIndexResult;
+  end;
+
 function SymbolMapOperationToText(const aOperation: TSymbolMapOperation): string;
 begin
   case aOperation of
@@ -487,132 +496,184 @@ begin
   aUnits[lIndex] := aUnit;
 end;
 
-function RunSymbolMapCommand(const aOptions: TAppOptions): Integer;
+function PrepareSymbolMapCommand(const aOptions: TAppOptions; out aState: TSymbolMapCommandState;
+  out aError: string; out aExitCode: Integer): Boolean;
+begin
+  Result := False;
+  aState := Default(TSymbolMapCommandState);
+  SetLength(aState.fIndexedUnits, 0);
+  aState.fResultJson := '{}';
+  aState.fRtlSource := Default(TSymbolMapRtlIndexResult);
+  aState.fRtlSource.fStatus := 'not-indexed';
+  aState.fRtlSource.fDiagnosticsJson := '[]';
+  aExitCode := cExitToolFailure;
+
+  if not TryBuildSymbolMapContext(aOptions, aState.fContext, aError) then
+  begin
+    aExitCode := cExitInvalidProjectInput;
+    Exit(False);
+  end;
+  if not EnsureSymbolMapCaches(aState.fContext, aState.fCacheStatus, aError) then
+    Exit(False);
+  if not EnsureSymbolMapCompilerProfile(aState.fContext, aState.fCacheStatus,
+    aState.fCompilerProfile, aError) then
+    Exit(False);
+  Result := True;
+end;
+
+function RunSymbolMapIndexOperation(const aOptions: TAppOptions; var aState: TSymbolMapCommandState;
+  out aError: string): Boolean;
 var
-  lCacheStatus: TSymbolMapCacheStatus;
-  lCompilerProfile: TSymbolMapCompilerProfileResult;
-  lContext: TSymbolMapContext;
-  lDefinition: TSymbolMapDefinition;
-  lError: string;
   lIndexedUnit: TSymbolMapIndexedUnit;
-  lIndexedUnits: TArray<TSymbolMapIndexedUnit>;
-  lQueryDefinitions: TArray<TSymbolMapDefinition>;
+begin
+  Result := False;
+  if aOptions.fSymbolMapUnitPath = '' then
+  begin
+    if not IndexSymbolMapRtlSources(aState.fContext, aState.fCacheStatus, '',
+      aState.fCompilerProfile, aState.fRtlSource, aError) then
+      Exit(False);
+    if not TryIndexSymbolMapProject(aState.fContext, aState.fCacheStatus,
+      aOptions.fSymbolMapRefresh = TSymbolMapRefresh.smrForce, aState.fIndexedUnits, aError) then
+      Exit(False);
+    aState.fResultJson := BuildIndexResultJson(aState.fIndexedUnits);
+    Exit(True);
+  end;
+
+  if not TryIndexSymbolMapUnit(aState.fContext, aState.fCacheStatus, aOptions.fSymbolMapUnitPath,
+    aOptions.fSymbolMapRefresh = TSymbolMapRefresh.smrForce, lIndexedUnit, aError) then
+    Exit(False);
+  AddIndexedUnit(aState.fIndexedUnits, lIndexedUnit);
+  aState.fResultJson := BuildIndexResultJson(aState.fIndexedUnits);
+  Result := True;
+end;
+
+function RunSymbolMapFindDefinition(const aOptions: TAppOptions; var aState: TSymbolMapCommandState;
+  out aError: string): Boolean;
+var
+  lDefinition: TSymbolMapDefinition;
+begin
+  Result := FindSymbolMapDefinitionByPosition(aState.fContext, aState.fCacheStatus,
+    aState.fCompilerProfile, aOptions.fSymbolMapFilePath, aOptions.fSymbolMapLine,
+    aOptions.fSymbolMapCol, lDefinition, aError);
+  if Result then
+    aState.fResultJson := BuildDefinitionResultJson(lDefinition);
+end;
+
+function RunSymbolMapFindReferences(const aOptions: TAppOptions; var aState: TSymbolMapCommandState;
+  out aError: string): Boolean;
+var
   lReferences: TArray<TSymbolMapReference>;
-  lResultJson: string;
-  lRtlSource: TSymbolMapRtlIndexResult;
   lSymbol: string;
 begin
-  SetLength(lIndexedUnits, 0);
-  lResultJson := '{}';
-  if not TryBuildSymbolMapContext(aOptions, lContext, lError) then
+  lSymbol := aOptions.fSymbolMapSymbol;
+  if aOptions.fSymbolMapFilePath <> '' then
   begin
-    WriteLn(ErrOutput, lError);
-    Exit(cExitInvalidProjectInput);
+    Result := FindSymbolMapReferencesByPosition(aState.fContext, aOptions.fSymbolMapFilePath,
+      aOptions.fSymbolMapLine, aOptions.fSymbolMapCol, aOptions.fSymbolMapLimit,
+      lSymbol, lReferences, aError);
+  end else
+  begin
+    Result := FindSymbolMapReferences(aState.fContext, aState.fCacheStatus,
+      aState.fCompilerProfile, lSymbol, aOptions.fSymbolMapLimit, lReferences, aError);
   end;
-  if not EnsureSymbolMapCaches(lContext, lCacheStatus, lError) then
-  begin
-    WriteLn(ErrOutput, lError);
-    Exit(cExitToolFailure);
-  end;
-  if not EnsureSymbolMapCompilerProfile(lContext, lCacheStatus, lCompilerProfile, lError) then
-  begin
-    WriteLn(ErrOutput, lError);
-    Exit(cExitToolFailure);
-  end;
-  lRtlSource := Default(TSymbolMapRtlIndexResult);
-  lRtlSource.fStatus := 'not-indexed';
-  lRtlSource.fDiagnosticsJson := '[]';
-  if (aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex) and
-    (aOptions.fSymbolMapUnitPath = '') then
-  begin
-    if not IndexSymbolMapRtlSources(lContext, lCacheStatus, '', lCompilerProfile, lRtlSource, lError) then
-    begin
-      WriteLn(ErrOutput, lError);
-      Exit(cExitToolFailure);
-    end;
-  end;
-  if (aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex) and (aOptions.fSymbolMapUnitPath <> '') then
-  begin
-    if not TryIndexSymbolMapUnit(lContext, lCacheStatus, aOptions.fSymbolMapUnitPath,
-      aOptions.fSymbolMapRefresh = TSymbolMapRefresh.smrForce, lIndexedUnit, lError) then
-    begin
-      WriteLn(ErrOutput, lError);
-      Exit(cExitToolFailure);
-    end;
-    AddIndexedUnit(lIndexedUnits, lIndexedUnit);
-    lResultJson := BuildIndexResultJson(lIndexedUnits);
-  end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoIndex then
-  begin
-    if not TryIndexSymbolMapProject(lContext, lCacheStatus,
-      aOptions.fSymbolMapRefresh = TSymbolMapRefresh.smrForce, lIndexedUnits, lError) then
-    begin
-      WriteLn(ErrOutput, lError);
-      Exit(cExitToolFailure);
-    end;
-    lResultJson := BuildIndexResultJson(lIndexedUnits);
-  end else if aOptions.fSymbolMapOperation in [TSymbolMapOperation.smoFindDefinition,
-    TSymbolMapOperation.smoFindReferences, TSymbolMapOperation.smoSearchSymbols,
-    TSymbolMapOperation.smoDescribeSymbol] then
-  begin
-    if not EnsureSymbolMapProjectIndexedForQuery(lContext, lCacheStatus, lIndexedUnits, lError) then
-    begin
-      WriteLn(ErrOutput, lError);
-      Exit(cExitToolFailure);
-    end;
-    if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoFindDefinition then
-    begin
-      if not FindSymbolMapDefinitionByPosition(lContext, lCacheStatus, lCompilerProfile,
-        aOptions.fSymbolMapFilePath, aOptions.fSymbolMapLine, aOptions.fSymbolMapCol, lDefinition, lError) then
-      begin
-        WriteLn(ErrOutput, lError);
-        Exit(cExitToolFailure);
-      end;
-      lResultJson := BuildDefinitionResultJson(lDefinition);
-    end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoFindReferences then
-    begin
-      lSymbol := aOptions.fSymbolMapSymbol;
-      if aOptions.fSymbolMapFilePath <> '' then
-      begin
-        if not FindSymbolMapReferencesByPosition(lContext, aOptions.fSymbolMapFilePath,
-          aOptions.fSymbolMapLine, aOptions.fSymbolMapCol, aOptions.fSymbolMapLimit,
-          lSymbol, lReferences, lError) then
-        begin
-          WriteLn(ErrOutput, lError);
-          Exit(cExitToolFailure);
-        end;
-      end else if not FindSymbolMapReferences(lContext, lCacheStatus, lCompilerProfile, lSymbol,
-        aOptions.fSymbolMapLimit, lReferences, lError) then
-      begin
-        WriteLn(ErrOutput, lError);
-        Exit(cExitToolFailure);
-      end;
-      lResultJson := BuildReferencesResultJson(lSymbol, lReferences);
-    end else if aOptions.fSymbolMapOperation = TSymbolMapOperation.smoSearchSymbols then
-    begin
-      if not SearchSymbolMapDefinitions(lContext, lCacheStatus, lCompilerProfile, aOptions.fSymbolMapQuery,
-        aOptions.fSymbolMapLimit, lQueryDefinitions, lError) then
-      begin
-        WriteLn(ErrOutput, lError);
-        Exit(cExitToolFailure);
-      end;
-      lResultJson := BuildSearchResultJson(aOptions.fSymbolMapQuery, lQueryDefinitions);
-    end else
-    begin
-      if not DescribeSymbolMapDefinition(lContext, lCacheStatus, lCompilerProfile, aOptions.fSymbolMapSymbol,
-        aOptions.fSymbolMapOwner, lDefinition, lError) then
-      begin
-        WriteLn(ErrOutput, lError);
-        Exit(cExitToolFailure);
-      end;
-      lResultJson := BuildDefinitionResultJson(lDefinition);
-    end;
-  end;
+  if Result then
+    aState.fResultJson := BuildReferencesResultJson(lSymbol, lReferences);
+end;
 
-  if aOptions.fSymbolMapFormat = TSymbolMapFormat.smfText then
-    WriteSymbolMapTextShell(aOptions, lContext, lCacheStatus, lCompilerProfile, lRtlSource, lIndexedUnits)
+function RunSymbolMapSearchSymbols(const aOptions: TAppOptions; var aState: TSymbolMapCommandState;
+  out aError: string): Boolean;
+var
+  lDefinitions: TArray<TSymbolMapDefinition>;
+begin
+  Result := SearchSymbolMapDefinitions(aState.fContext, aState.fCacheStatus,
+    aState.fCompilerProfile, aOptions.fSymbolMapQuery, aOptions.fSymbolMapLimit, lDefinitions, aError);
+  if Result then
+    aState.fResultJson := BuildSearchResultJson(aOptions.fSymbolMapQuery, lDefinitions);
+end;
+
+function RunSymbolMapDescribeSymbol(const aOptions: TAppOptions; var aState: TSymbolMapCommandState;
+  out aError: string): Boolean;
+var
+  lDefinition: TSymbolMapDefinition;
+begin
+  Result := DescribeSymbolMapDefinition(aState.fContext, aState.fCacheStatus,
+    aState.fCompilerProfile, aOptions.fSymbolMapSymbol, aOptions.fSymbolMapOwner, lDefinition, aError);
+  if Result then
+    aState.fResultJson := BuildDefinitionResultJson(lDefinition);
+end;
+
+function RunSymbolMapStatsOperation(var aState: TSymbolMapCommandState): Boolean;
+begin
+  aState.fResultJson := '{}';
+  Result := True;
+end;
+
+function RunSymbolMapQueryOperation(const aOptions: TAppOptions; var aState: TSymbolMapCommandState;
+  out aError: string): Boolean;
+begin
+  Result := False;
+  if not EnsureSymbolMapProjectIndexedForQuery(aState.fContext, aState.fCacheStatus,
+    aState.fIndexedUnits, aError) then
+    Exit(False);
+
+  case aOptions.fSymbolMapOperation of
+    TSymbolMapOperation.smoFindDefinition:
+      Result := RunSymbolMapFindDefinition(aOptions, aState, aError);
+    TSymbolMapOperation.smoFindReferences:
+      Result := RunSymbolMapFindReferences(aOptions, aState, aError);
+    TSymbolMapOperation.smoSearchSymbols:
+      Result := RunSymbolMapSearchSymbols(aOptions, aState, aError);
+    TSymbolMapOperation.smoDescribeSymbol:
+      Result := RunSymbolMapDescribeSymbol(aOptions, aState, aError);
   else
-    WriteSymbolMapJsonShell(aOptions, lContext, lCacheStatus, lCompilerProfile, lRtlSource, lResultJson, '[]');
+    Result := True;
+  end;
+end;
 
+function RunSymbolMapOperation(const aOptions: TAppOptions; var aState: TSymbolMapCommandState;
+  out aError: string): Boolean;
+begin
+  case aOptions.fSymbolMapOperation of
+    TSymbolMapOperation.smoIndex:
+      Result := RunSymbolMapIndexOperation(aOptions, aState, aError);
+    TSymbolMapOperation.smoStats:
+      Result := RunSymbolMapStatsOperation(aState);
+    TSymbolMapOperation.smoFindDefinition, TSymbolMapOperation.smoFindReferences,
+      TSymbolMapOperation.smoSearchSymbols, TSymbolMapOperation.smoDescribeSymbol:
+      Result := RunSymbolMapQueryOperation(aOptions, aState, aError);
+  else
+    Result := True;
+  end;
+end;
+
+procedure WriteSymbolMapCommandOutput(const aOptions: TAppOptions; const aState: TSymbolMapCommandState);
+begin
+  if aOptions.fSymbolMapFormat = TSymbolMapFormat.smfText then
+    WriteSymbolMapTextShell(aOptions, aState.fContext, aState.fCacheStatus,
+      aState.fCompilerProfile, aState.fRtlSource, aState.fIndexedUnits)
+  else
+    WriteSymbolMapJsonShell(aOptions, aState.fContext, aState.fCacheStatus,
+      aState.fCompilerProfile, aState.fRtlSource, aState.fResultJson, '[]');
+end;
+
+function RunSymbolMapCommand(const aOptions: TAppOptions): Integer;
+var
+  lError: string;
+  lExitCode: Integer;
+  lState: TSymbolMapCommandState;
+begin
+  if not PrepareSymbolMapCommand(aOptions, lState, lError, lExitCode) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(lExitCode);
+  end;
+  if not RunSymbolMapOperation(aOptions, lState, lError) then
+  begin
+    WriteLn(ErrOutput, lError);
+    Exit(cExitToolFailure);
+  end;
+
+  WriteSymbolMapCommandOutput(aOptions, lState);
   Result := cExitSuccess;
 end;
 
