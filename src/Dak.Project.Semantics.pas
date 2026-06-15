@@ -1,4 +1,4 @@
-﻿unit Dak.Project.Semantics;
+unit Dak.Project.Semantics;
 
 interface
 
@@ -20,30 +20,7 @@ uses
   System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.SysUtils,
   DelphiSemantics.Api, DelphiSemantics.CompilerProfile,
   maxLogic.StrUtils,
-  Dak.FixInsightSettings, Dak.Registry, Dak.RsVars, Dak.Semantics.Session,
-  Dak.Utils;
-
-function SplitList(const aValue: string): TArray<string>;
-var
-  lParts: TArray<string>;
-  lPart: string;
-  lList: TList<string>;
-  i: Integer;
-begin
-  lList := TList<string>.Create;
-  try
-    lParts := aValue.Split([';']);
-    for i := 0 to High(lParts) do
-    begin
-      lPart := Trim(lParts[i]);
-      if lPart <> '' then
-        lList.Add(lPart);
-    end;
-    Result := lList.ToArray;
-  finally
-    lList.Free;
-  end;
-end;
+  Dak.Semantics.Session, Dak.Utils;
 
 function ConcatDedup(const aFirst, aSecond: TArray<string>): TArray<string>;
 var
@@ -96,19 +73,14 @@ function TryBuildProjectAnalysisContext(const aOptions: TAppOptions;
 const
   cDefaultContextNote = 'Using project-directory-only parser context; Delphi IDE context could not be resolved.';
 var
-  lBuildError: string;
   lBuildOptions: TAppOptions;
-  lDelphiVersion: string;
-  lEnvVars: TDictionary<string, string>;
-  lLibraryPath: string;
-  lLibrarySource: TPropertySource;
+  lContextNote: string;
+  lHasDelphiContext: Boolean;
   lParserSearchPath: string;
   lProjectDir: string;
   lProjectName: string;
   lProjectPath: string;
   lResult: TDelphiSemanticContextResult;
-  lRsVarsEnvironment: TRsVarsEnvironment;
-  lRsVarsEnvVars: TDictionary<string, string>;
   lSearchPaths: TArray<string>;
 
   function FinishContext: Boolean;
@@ -154,69 +126,25 @@ begin
   end;
 
   lSearchPaths := ConcatDedup(lResult.Project.SourceLookupPaths,
-    TArray<string>.Create(lResult.Project.ProjectDirectory));
+    [lResult.Project.ProjectDirectory]);
   lParserSearchPath := String.Join(';', lSearchPaths);
   if lParserSearchPath = '' then
     lParserSearchPath := lResult.Project.ProjectDirectory;
+
+  lHasDelphiContext := Trim(aOptions.fDelphiVersion) <> '';
+  if (Trim(aOptions.fRsVarsPath) <> '') and (not TFile.Exists(aOptions.fRsVarsPath)) then
+    lHasDelphiContext := False;
+  if lHasDelphiContext then
+    lContextNote := ''
+  else
+    lContextNote := cDefaultContextNote;
   aContext := TProjectAnalysisContext.Create(lResult.Project.ProjectFileName,
     lResult.Project.ProjectName, lResult.Project.ProjectDirectory,
     lResult.Project.MainSourceFileName, lResult.Project.SourceFileNames,
     String.Join(';', lResult.Project.Defines), lParserSearchPath,
     lResult.Project.UnitScopeNames, lResult.Project.UnitAliases,
     TPath.Combine(TPath.Combine(lResult.Project.ProjectDirectory, '.dak'),
-      lResult.Project.ProjectName), False, cDefaultContextNote);
-
-  lDelphiVersion := Trim(aOptions.fDelphiVersion);
-  if (lDelphiVersion = '') and (not LoadDefaultDelphiVersion(lProjectPath, lDelphiVersion)) then
-  begin
-    Result := FinishContext;
-    Exit;
-  end;
-  if (lDelphiVersion <> '') and (Pos('.', lDelphiVersion) = 0) then
-  begin
-    lDelphiVersion := lDelphiVersion + '.0';
-  end;
-
-  if not TryLoadRsVars(lDelphiVersion, aOptions.fRsVarsPath, nil, lRsVarsEnvironment, lBuildError) then
-  begin
-    Result := FinishContext;
-    Exit;
-  end;
-
-  lRsVarsEnvVars := lRsVarsEnvironment.ToDictionary;
-  try
-    if not TryReadIdeConfig(lDelphiVersion, aOptions.fPlatform, aOptions.fEnvOptionsPath, lRsVarsEnvVars, lEnvVars,
-      lLibraryPath, lLibrarySource, nil, lBuildError) then
-    begin
-      Result := FinishContext;
-      Exit;
-    end;
-
-    lBuildOptions := aOptions;
-    lBuildOptions.fDprojPath := lProjectPath;
-    lBuildOptions.fDelphiVersion := lDelphiVersion;
-    lSearchPaths := SplitList(lLibraryPath);
-    lResult := TDelphiSemanticApi.LoadProjectContext(lProjectPath,
-      BuildSemanticApiOptions(lBuildOptions, lEnvVars, lSearchPaths));
-    if lResult.Success then
-    begin
-      lSearchPaths := ConcatDedup(lResult.Project.SourceLookupPaths,
-        TArray<string>.Create(lResult.Project.ProjectDirectory));
-      lParserSearchPath := String.Join(';', lSearchPaths);
-      if lParserSearchPath = '' then
-        lParserSearchPath := lResult.Project.ProjectDirectory;
-      aContext := TProjectAnalysisContext.Create(lResult.Project.ProjectFileName,
-        lResult.Project.ProjectName, lResult.Project.ProjectDirectory,
-        lResult.Project.MainSourceFileName, lResult.Project.SourceFileNames,
-        String.Join(';', lResult.Project.Defines), lParserSearchPath,
-        lResult.Project.UnitScopeNames, lResult.Project.UnitAliases,
-        TPath.Combine(TPath.Combine(lResult.Project.ProjectDirectory, '.dak'),
-          lResult.Project.ProjectName), True, '');
-    end;
-  finally
-    lRsVarsEnvVars.Free;
-    lEnvVars.Free;
-  end;
+      lResult.Project.ProjectName), lHasDelphiContext, lContextNote);
 
   Result := FinishContext;
 end;

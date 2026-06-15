@@ -680,6 +680,12 @@ begin
   lBody := Copy(lSource, lStartIndex, lEndIndex - lStartIndex);
   Assert.IsTrue(ContainsText(lBody, 'TDelphiSemanticApi.LoadProjectContext'),
     'Project-analysis context should load semantic project context directly.');
+  Assert.IsFalse(ContainsText(lBody, 'LoadDefaultDelphiVersion'),
+    'Project-analysis context must not resolve Delphi version outside DelphiSemantics.');
+  Assert.IsFalse(ContainsText(lBody, 'TryLoadRsVars'),
+    'Project-analysis context must not load rsvars outside DelphiSemantics.');
+  Assert.IsFalse(ContainsText(lBody, 'TryReadIdeConfig'),
+    'Project-analysis context must not read IDE config outside DelphiSemantics.');
   Assert.IsFalse(ContainsText(lBody, 'TryBuildParams('),
     'Project-analysis context must not rebuild parser context through DAK FixInsight params.');
   Assert.IsFalse(ContainsText(lBody, 'TMsBuildEvaluator'),
