@@ -127,6 +127,8 @@ type
     [Test]
     procedure RefactorSlashSwitchesDoNotBecomeBoolValues;
     [Test]
+    procedure RefactorCommandsRejectPartialPositionTargetsPrecisely;
+    [Test]
     procedure LspCommandParsesOperationsAndRequiredArgs;
     [Test]
     procedure LspCommandParsesProjectAndOperationFields;
@@ -1204,6 +1206,56 @@ begin
 
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected rename to reject dead-code-only /profile.');
   Assert.IsTrue(Pos('/profile', lError) > 0, 'Expected rejected /profile in error. Actual: ' + lError);
+end;
+
+procedure TCliTests.RefactorCommandsRejectPartialPositionTargetsPrecisely;
+var
+  lError: string;
+  lOptions: TAppOptions;
+
+  procedure CheckValid(const aArgs: string; const aCommand: TCommandKind);
+  begin
+    SetParams(aArgs);
+    Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected command to parse. Error: ' + lError);
+    Assert.AreEqual(aCommand, lOptions.fCommand);
+  end;
+
+  procedure CheckInvalid(const aArgs, aExpectedSwitch, aForbiddenText: string);
+  begin
+    SetParams(aArgs);
+    Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected command to be rejected: ' + aArgs);
+    Assert.IsTrue(Pos(aExpectedSwitch, lError) > 0,
+      'Expected error to mention ' + aExpectedSwitch + '. Actual: ' + lError);
+    if aForbiddenText <> '' then
+      Assert.AreEqual(0, Pos(aForbiddenText, lError),
+        'Error should not mention ' + aForbiddenText + '. Actual: ' + lError);
+  end;
+begin
+  CheckValid('find-usages --project C:\repo\Sample.dproj --symbol SharedValue', TCommandKind.ckFindUsages);
+  CheckValid('find-usages --project C:\repo\Sample.dproj --file C:\repo\Unit1.pas --line 6 --col 3',
+    TCommandKind.ckFindUsages);
+  CheckInvalid('find-usages --project C:\repo\Sample.dproj', 'Use either', '');
+  CheckInvalid('find-usages --project C:\repo\Sample.dproj --symbol SharedValue --file C:\repo\Unit1.pas',
+    'Use either', '');
+  CheckInvalid('find-usages --project C:\repo\Sample.dproj --line 6 --col 3', '--file', 'Use either');
+  CheckInvalid('find-usages --project C:\repo\Sample.dproj --file C:\repo\Unit1.pas --col 3', '--line',
+    'Use either');
+  CheckInvalid('find-usages --project C:\repo\Sample.dproj --file C:\repo\Unit1.pas --line 6', '--col',
+    'Use either');
+
+  CheckValid('rename --project C:\repo\Sample.dproj --symbol SharedValue --new-name RenamedValue',
+    TCommandKind.ckRename);
+  CheckValid('rename --project C:\repo\Sample.dproj --file C:\repo\Unit1.pas --line 6 --col 3 ' +
+    '--new-name RenamedValue', TCommandKind.ckRename);
+  CheckInvalid('rename --project C:\repo\Sample.dproj --new-name RenamedValue', '--symbol', '');
+  CheckInvalid('rename --project C:\repo\Sample.dproj --symbol SharedValue --file C:\repo\Unit1.pas ' +
+    '--new-name RenamedValue', 'Use either', '');
+  CheckInvalid('rename --project C:\repo\Sample.dproj --line 6 --col 3 --new-name RenamedValue', '--file',
+    '--symbol');
+  CheckInvalid('rename --project C:\repo\Sample.dproj --file C:\repo\Unit1.pas --col 3 ' +
+    '--new-name RenamedValue', '--line', '--symbol');
+  CheckInvalid('rename --project C:\repo\Sample.dproj --file C:\repo\Unit1.pas --line 6 ' +
+    '--new-name RenamedValue', '--col', '--symbol');
 end;
 
 procedure TCliTests.LspCommandParsesOperationsAndRequiredArgs;

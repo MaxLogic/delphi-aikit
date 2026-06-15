@@ -3615,6 +3615,21 @@ begin
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected missing --symbol to be rejected.');
   Assert.IsTrue(Pos('--symbol', lError) > 0, 'Expected missing --symbol error. Actual: ' + lError);
 
+  SetParams('symbol-map find-references --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 12');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected missing find-references --col to be rejected.');
+  Assert.IsTrue(Pos('--col', lError) > 0, 'Expected missing --col error. Actual: ' + lError);
+  Assert.AreEqual(0, Pos('--symbol', lError), 'Partial find-references positions should not report missing --symbol.');
+
+  SetParams('symbol-map find-references --project c:\temp\sample.dproj --line 12 --col 3');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected missing find-references --file to be rejected.');
+  Assert.IsTrue(Pos('--file', lError) > 0, 'Expected missing --file error. Actual: ' + lError);
+  Assert.AreEqual(0, Pos('--symbol', lError), 'Partial find-references positions should not report missing --symbol.');
+
+  SetParams('symbol-map find-references --project c:\temp\sample.dproj --file c:\temp\unit1.pas --col 3');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected missing find-references --line to be rejected.');
+  Assert.IsTrue(Pos('--line', lError) > 0, 'Expected missing --line error. Actual: ' + lError);
+  Assert.AreEqual(0, Pos('--symbol', lError), 'Partial find-references positions should not report missing --symbol.');
+
   SetParams('symbol-map search-symbols --project c:\temp\sample.dproj');
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected missing --query to be rejected.');
   Assert.IsTrue(Pos('--query', lError) > 0, 'Expected missing --query error. Actual: ' + lError);

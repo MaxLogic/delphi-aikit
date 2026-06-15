@@ -147,6 +147,8 @@ resourcestring
   SSymbolMapOptionOnlyForOperation = '%s is only supported for symbol-map %s.';
   SRefactorInvalidFormat = 'Unsupported refactor format: %s';
   SRefactorInvalidPosition = 'Invalid %s value: %s (expected integer >= 1).';
+  SSymbolOrPositionSwitches = '--symbol or --file/--line/--col';
+  SSymbolOrPositionTarget = 'Use either --symbol or --file/--line/--col for %s.';
   SRefactorFindUsagesTarget = 'Use either --symbol or --file/--line/--col for find-usages.';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';

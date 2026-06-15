@@ -554,6 +554,9 @@ type
       const aHasInlineValue: Boolean): Boolean;
     function TryParseDfmInspectSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
       const aHasInlineValue: Boolean): Boolean;
+    class function HasPositionTarget(const aFilePath: string; const aLine, aCol: Integer): Boolean; static;
+    function ValidateSymbolOrPositionTarget(const aSymbol, aFilePath: string; const aLine, aCol: Integer;
+      const aMixedTargetError, aMissingTargetError: string): Boolean;
     function ValidateOptions: Boolean;
   public
     class function Create: TOptionParser; static;
@@ -2281,6 +2284,51 @@ begin
   Result := False;
 end;
 
+class function TOptionParser.HasPositionTarget(const aFilePath: string;
+  const aLine, aCol: Integer): Boolean;
+begin
+  Result := (aFilePath <> '') or (aLine > 0) or (aCol > 0);
+end;
+
+function TOptionParser.ValidateSymbolOrPositionTarget(const aSymbol,
+  aFilePath: string; const aLine, aCol: Integer; const aMixedTargetError,
+  aMissingTargetError: string): Boolean;
+begin
+  Result := False;
+  if aSymbol <> '' then
+  begin
+    if HasPositionTarget(aFilePath, aLine, aCol) then
+    begin
+      fError := aMixedTargetError;
+      Exit;
+    end;
+    Exit(True);
+  end;
+
+  if (aFilePath = '') and (aLine < 1) and (aCol < 1) then
+  begin
+    fError := aMissingTargetError;
+    Exit;
+  end;
+  if aFilePath = '' then
+  begin
+    fError := Format(SArgMissingValue, ['--file']);
+    Exit;
+  end;
+  if aLine < 1 then
+  begin
+    fError := Format(SArgMissingValue, ['--line']);
+    Exit;
+  end;
+  if aCol < 1 then
+  begin
+    fError := Format(SArgMissingValue, ['--col']);
+    Exit;
+  end;
+
+  Result := True;
+end;
+
 function TOptionParser.ValidateOptions: Boolean;
 var
   lRemoveWithTargetCount: Integer;
@@ -2446,37 +2494,11 @@ begin
       end;
     end else if fOptions.fSymbolMapOperation = TSymbolMapOperation.smoFindReferences then
     begin
-      if (fOptions.fSymbolMapSymbol <> '') and
-        ((fOptions.fSymbolMapFilePath <> '') or (fOptions.fSymbolMapLine > 0) or (fOptions.fSymbolMapCol > 0)) then
-      begin
-        fError := Format(SSymbolMapOptionOnlyForOperation, ['--symbol with --file/--line/--col',
-          'separate find-references queries']);
+      if not ValidateSymbolOrPositionTarget(fOptions.fSymbolMapSymbol, fOptions.fSymbolMapFilePath,
+        fOptions.fSymbolMapLine, fOptions.fSymbolMapCol, Format(SSymbolMapOptionOnlyForOperation,
+        ['--symbol with --file/--line/--col', 'separate find-references queries']),
+        Format(SArgMissingValue, [SSymbolOrPositionSwitches])) then
         Exit(False);
-      end;
-      if (fOptions.fSymbolMapSymbol = '') and (fOptions.fSymbolMapFilePath = '') then
-      begin
-        fError := Format(SArgMissingValue, ['--symbol or --file/--line/--col']);
-        Exit(False);
-      end;
-      if fOptions.fSymbolMapFilePath <> '' then
-      begin
-        if fOptions.fSymbolMapLine < 1 then
-        begin
-          fError := Format(SArgMissingValue, ['--line']);
-          Exit(False);
-        end;
-        if fOptions.fSymbolMapCol < 1 then
-        begin
-          fError := Format(SArgMissingValue, ['--col']);
-          Exit(False);
-        end;
-      end;
-      if ((fOptions.fSymbolMapLine > 0) or (fOptions.fSymbolMapCol > 0)) and
-        (fOptions.fSymbolMapFilePath = '') then
-      begin
-        fError := Format(SArgMissingValue, ['--file']);
-        Exit(False);
-      end;
     end else if fOptions.fSymbolMapOperation = TSymbolMapOperation.smoSearchSymbols then
     begin
       if fOptions.fSymbolMapQuery = '' then
@@ -2508,7 +2530,7 @@ begin
       fError := Format(SSymbolMapOptionOnlyForOperation, ['--refresh', 'index']);
       Exit(False);
     end;
-    if ((fOptions.fSymbolMapFilePath <> '') or (fOptions.fSymbolMapLine > 0) or (fOptions.fSymbolMapCol > 0)) and
+    if HasPositionTarget(fOptions.fSymbolMapFilePath, fOptions.fSymbolMapLine, fOptions.fSymbolMapCol) and
       not (fOptions.fSymbolMapOperation in
       [TSymbolMapOperation.smoFindDefinition, TSymbolMapOperation.smoFindReferences]) then
     begin
@@ -2539,23 +2561,10 @@ begin
       fError := Format(SArgMissingValue, ['--project']);
       Exit(False);
     end;
-    if fOptions.fRefactorSymbol <> '' then
-    begin
-      if (fOptions.fRefactorFilePath <> '') or (fOptions.fRefactorLine > 0) or
-        (fOptions.fRefactorCol > 0) then
-      begin
-        fError := SRefactorFindUsagesTarget;
-        Exit(False);
-      end;
-    end else
-    begin
-      if (fOptions.fRefactorFilePath = '') or (fOptions.fRefactorLine < 1) or
-        (fOptions.fRefactorCol < 1) then
-      begin
-        fError := SRefactorFindUsagesTarget;
-        Exit(False);
-      end;
-    end;
+    if not ValidateSymbolOrPositionTarget(fOptions.fRefactorSymbol, fOptions.fRefactorFilePath,
+      fOptions.fRefactorLine, fOptions.fRefactorCol, Format(SSymbolOrPositionTarget, ['find-usages']),
+      Format(SSymbolOrPositionTarget, ['find-usages'])) then
+      Exit(False);
     if (fOptions.fRefactorNewName <> '') or fOptions.fHasRefactorApply then
     begin
       fError := Format(SUnknownArg, ['--new-name/--apply']);
@@ -2568,23 +2577,10 @@ begin
       fError := Format(SArgMissingValue, ['--project']);
       Exit(False);
     end;
-    if fOptions.fRefactorSymbol <> '' then
-    begin
-      if (fOptions.fRefactorFilePath <> '') or (fOptions.fRefactorLine > 0) or
-        (fOptions.fRefactorCol > 0) then
-      begin
-        fError := SRefactorFindUsagesTarget;
-        Exit(False);
-      end;
-    end else
-    begin
-      if (fOptions.fRefactorFilePath = '') or (fOptions.fRefactorLine < 1) or
-        (fOptions.fRefactorCol < 1) then
-      begin
-        fError := Format(SArgMissingValue, ['--symbol']);
-        Exit(False);
-      end;
-    end;
+    if not ValidateSymbolOrPositionTarget(fOptions.fRefactorSymbol, fOptions.fRefactorFilePath,
+      fOptions.fRefactorLine, fOptions.fRefactorCol, Format(SSymbolOrPositionTarget, ['find-usages']),
+      Format(SArgMissingValue, ['--symbol'])) then
+      Exit(False);
     if fOptions.fRefactorNewName = '' then
     begin
       fError := Format(SArgMissingValue, ['--new-name']);
