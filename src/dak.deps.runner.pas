@@ -19,7 +19,7 @@ uses
   System.SysUtils,
   DelphiSemantics.Graph, DelphiSemantics.ProjectContext, DelphiSemantics.ProjectSession,
   Dak.ExitCodes,
-  Dak.Project,
+  Dak.Project.Semantics,
   Dak.Semantics.Session;
 
 type

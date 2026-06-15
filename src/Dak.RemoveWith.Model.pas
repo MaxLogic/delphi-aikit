@@ -143,7 +143,7 @@ implementation
 uses
   System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiAST.Consts, DelphiAST.ProjectIndexer,
-  Dak.Project, Dak.RemoveWith.Source;
+  Dak.Project.Semantics, Dak.RemoveWith.Source;
 
 type
   // Compatibility state for the legacy DelphiAST indexer; remove it after model bootstrap is fully sourced

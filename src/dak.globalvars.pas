@@ -17,7 +17,7 @@ uses
   Dak.GlobalVars.Model,
   Dak.GlobalVars.Output,
   Dak.GlobalVars.Semantics,
-  Dak.Project;
+  Dak.Project.Semantics;
 
 function BuildProjectInfo(const aOptions: TAppOptions): TProjectInfo;
 var

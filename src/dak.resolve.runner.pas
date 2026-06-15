@@ -12,7 +12,8 @@ implementation
 uses
   System.Generics.Collections, System.IOUtils, System.SysUtils,
   Dak.Diagnostics, Dak.ExitCodes, Dak.FixInsight, Dak.FixInsightRunner, Dak.FixInsightSettings, Dak.Messages,
-  Dak.Output, Dak.PascalAnalyzerRunner, Dak.Project, Dak.Registry, Dak.ReportPostProcess, Dak.RsVars, Dak.Utils;
+  Dak.Output, Dak.PascalAnalyzerRunner, Dak.Project.BuildParams, Dak.Project.Semantics, Dak.Registry,
+  Dak.ReportPostProcess, Dak.RsVars, Dak.Utils;
 
 type
   TResolveCommandRunner = class
