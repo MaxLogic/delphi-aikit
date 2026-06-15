@@ -19,9 +19,19 @@ type
   end;
 
   TSymbolMapApiSession = record
-    fContext: TSymbolMapContext;
-    fStatus: TSymbolMapApiStatus;
-    fPrepared: Boolean;
+  private
+    fApiContext: TSymbolMapContext;
+    fApiStatus: TSymbolMapApiStatus;
+    fIsPrepared: Boolean;
+  public
+    function DescribeDefinitionByName(const aName, aOwnerName: string; out aDefinition: TSymbolMapDefinition;
+      out aError: string): Boolean;
+    function LookupDefinitionByName(const aName, aOwnerName: string; out aResult: TSymbolMapApiLookupResult;
+      out aError: string): Boolean;
+    function LookupDefinitionByPosition(const aFilePath: string; const aLine, aCol: Integer;
+      out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
+    property Prepared: Boolean read fIsPrepared;
+    property Status: TSymbolMapApiStatus read fApiStatus;
   end;
 
 function PrepareSymbolMapApiSession(const aOptions: TAppOptions; out aSession: TSymbolMapApiSession;
@@ -121,38 +131,63 @@ function PrepareSymbolMapApiSession(const aOptions: TAppOptions; out aSession: T
   out aError: string): Boolean;
 begin
   aSession := Default(TSymbolMapApiSession);
-  Result := PrepareSymbolMapApi(aOptions, aSession.fContext, aSession.fStatus, aError);
-  aSession.fPrepared := Result;
+  Result := PrepareSymbolMapApi(aOptions, aSession.fApiContext, aSession.fApiStatus, aError);
+  aSession.fIsPrepared := Result;
+end;
+
+function TSymbolMapApiSession.DescribeDefinitionByName(const aName, aOwnerName: string;
+  out aDefinition: TSymbolMapDefinition; out aError: string): Boolean;
+begin
+  aDefinition := Default(TSymbolMapDefinition);
+  if not fIsPrepared then
+  begin
+    aError := 'Symbol Map API session is not prepared.';
+    Exit(False);
+  end;
+  Result := DescribeSymbolMapDefinition(fApiContext, fApiStatus.fCacheStatus, fApiStatus.fCompilerProfile,
+    aName, aOwnerName, aDefinition, aError);
+end;
+
+function TSymbolMapApiSession.LookupDefinitionByName(const aName, aOwnerName: string;
+  out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
+begin
+  Result := False;
+  aResult := Default(TSymbolMapApiLookupResult);
+  aResult.fStatus := fApiStatus;
+  if not fIsPrepared then
+  begin
+    aError := 'Symbol Map API session is not prepared.';
+    Exit(False);
+  end;
+  Result := FindSymbolMapDefinitionByName(fApiContext, fApiStatus.fCacheStatus, fApiStatus.fCompilerProfile,
+    aName, aOwnerName, aResult.fDefinition, aError);
+end;
+
+function TSymbolMapApiSession.LookupDefinitionByPosition(const aFilePath: string; const aLine, aCol: Integer;
+  out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
+begin
+  Result := False;
+  aResult := Default(TSymbolMapApiLookupResult);
+  aResult.fStatus := fApiStatus;
+  if not fIsPrepared then
+  begin
+    aError := 'Symbol Map API session is not prepared.';
+    Exit(False);
+  end;
+  Result := FindSymbolMapDefinitionByPosition(fApiContext, fApiStatus.fCacheStatus, fApiStatus.fCompilerProfile,
+    aFilePath, aLine, aCol, aResult.fDefinition, aError);
 end;
 
 function LookupSymbolMapDefinitionByName(const aSession: TSymbolMapApiSession; const aName, aOwnerName: string;
   out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
 begin
-  Result := False;
-  aResult := Default(TSymbolMapApiLookupResult);
-  aResult.fStatus := aSession.fStatus;
-  if not aSession.fPrepared then
-  begin
-    aError := 'Symbol Map API session is not prepared.';
-    Exit(False);
-  end;
-  Result := FindSymbolMapDefinitionByName(aSession.fContext, aSession.fStatus.fCacheStatus,
-    aSession.fStatus.fCompilerProfile, aName, aOwnerName, aResult.fDefinition, aError);
+  Result := aSession.LookupDefinitionByName(aName, aOwnerName, aResult, aError);
 end;
 
 function LookupSymbolMapDefinitionByPosition(const aSession: TSymbolMapApiSession; const aFilePath: string;
   const aLine, aCol: Integer; out aResult: TSymbolMapApiLookupResult; out aError: string): Boolean;
 begin
-  Result := False;
-  aResult := Default(TSymbolMapApiLookupResult);
-  aResult.fStatus := aSession.fStatus;
-  if not aSession.fPrepared then
-  begin
-    aError := 'Symbol Map API session is not prepared.';
-    Exit(False);
-  end;
-  Result := FindSymbolMapDefinitionByPosition(aSession.fContext, aSession.fStatus.fCacheStatus,
-    aSession.fStatus.fCompilerProfile, aFilePath, aLine, aCol, aResult.fDefinition, aError);
+  Result := aSession.LookupDefinitionByPosition(aFilePath, aLine, aCol, aResult, aError);
 end;
 
 function ResolveSymbolMapDefinitionByName(const aOptions: TAppOptions; const aName, aOwnerName: string;
@@ -164,7 +199,7 @@ begin
   aResult := Default(TSymbolMapApiLookupResult);
   if not PrepareSymbolMapApiSession(aOptions, lSession, aError) then
   begin
-    aResult.fStatus := lSession.fStatus;
+    aResult.fStatus := lSession.Status;
     Exit(False);
   end;
   Result := LookupSymbolMapDefinitionByName(lSession, aName, aOwnerName, aResult, aError);
@@ -179,7 +214,7 @@ begin
   aResult := Default(TSymbolMapApiLookupResult);
   if not PrepareSymbolMapApiSession(aOptions, lSession, aError) then
   begin
-    aResult.fStatus := lSession.fStatus;
+    aResult.fStatus := lSession.Status;
     Exit(False);
   end;
   Result := LookupSymbolMapDefinitionByPosition(lSession, aFilePath, aLine, aCol, aResult, aError);
