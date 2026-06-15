@@ -92,6 +92,13 @@ type
   end;
 
   [TestFixture]
+  TLspArchitectureTests = class
+  public
+    [Test]
+    procedure LspTransportImplementationLivesOutsideRunner;
+  end;
+
+  [TestFixture]
   TRealLspAcceptanceTests = class
   private
     function FixtureDprojPath: string;
@@ -107,7 +114,7 @@ type
 implementation
 
 uses
-  System.Classes, System.IOUtils, System.SysUtils,
+  System.Classes, System.IOUtils, System.StrUtils, System.SysUtils,
   Winapi.Windows,
   DelphiSemantics.Lsp,
   Dak.Lsp.Runner,
@@ -2058,6 +2065,33 @@ begin
   end;
 end;
 
+procedure TLspArchitectureTests.LspTransportImplementationLivesOutsideRunner;
+var
+  lRunnerSource: string;
+  lTransportPath: string;
+  lTransportSource: string;
+begin
+  lRunnerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.lsp.runner.pas'), TEncoding.UTF8);
+  lTransportPath := TPath.Combine(RepoRoot, 'src\Dak.Lsp.Transport.pas');
+  Assert.IsTrue(FileExists(lTransportPath), 'Expected focused LSP transport unit to exist: ' + lTransportPath);
+  lTransportSource := TFile.ReadAllText(lTransportPath, TEncoding.UTF8);
+
+  Assert.IsFalse(ContainsText(lRunnerSource, 'TLspJsonRpcClient = class'),
+    'LSP JSON-RPC transport class should live outside dak.lsp.runner.pas.');
+  Assert.IsFalse(ContainsText(lRunnerSource, 'CreatePipe(') or ContainsText(lRunnerSource, 'CreateProcess(') or
+    ContainsText(lRunnerSource, 'ReadMessage(') or ContainsText(lRunnerSource, 'WriteMessage('),
+    'dak.lsp.runner.pas should keep request orchestration and output shaping, not transport implementation.');
+  Assert.IsTrue(ContainsText(lTransportSource, 'TLspJsonRpcClient = class'),
+    'Expected focused LSP transport unit to own TLspJsonRpcClient.');
+  Assert.IsTrue(ContainsText(lTransportSource, 'CreatePipe(') and ContainsText(lTransportSource, 'CreateProcess(') and
+    ContainsText(lTransportSource, 'ReadMessage(') and ContainsText(lTransportSource, 'WriteMessage('),
+    'Expected focused LSP transport unit to own process startup and JSON-RPC framing.');
+  Assert.IsTrue(ContainsText(lTransportSource, 'fInputHandle: THandle') and
+    ContainsText(lTransportSource, 'CloseHandle(fInputHandle)') and
+    ContainsText(lTransportSource, 'CloseHandle(fOutputHandle)'),
+    'Expected transport to explicitly own and close pipe handles wrapped by THandleStream.');
+end;
+
 procedure TLspRunnerTests.LspSymbolsRepresentEmptyResultsExplicitly;
 var
   lContext: TLspContext;
@@ -2188,6 +2222,7 @@ initialization
   TDUnitX.RegisterTestFixture(TLspContextTests);
   TDUnitX.RegisterTestFixture(TLspFixtureTests);
   TDUnitX.RegisterTestFixture(TLspRunnerTests);
+  TDUnitX.RegisterTestFixture(TLspArchitectureTests);
   TDUnitX.RegisterTestFixture(TRealLspAcceptanceTests);
 
 finalization
