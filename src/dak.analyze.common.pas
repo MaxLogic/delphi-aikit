@@ -9,7 +9,8 @@ uses
   Winapi.Windows,
   maxLogic.IOUtils, maxLogic.StrUtils,
   Dak.Diagnostics, Dak.FixInsight, Dak.FixInsightRunner, Dak.FixInsightSettings, Dak.Messages,
-  Dak.PascalAnalyzerRunner, Dak.Project, Dak.Registry, Dak.ReportPostProcess, Dak.RsVars, Dak.Types, Dak.Utils;
+  Dak.PascalAnalyzerRunner, Dak.Project.BuildParams, Dak.Registry, Dak.ReportPostProcess, Dak.RsVars, Dak.Types,
+  Dak.Utils;
 
 type
   TFixInsightCounts = record

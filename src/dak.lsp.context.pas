@@ -32,7 +32,7 @@ implementation
 uses
   System.Generics.Collections, System.IOUtils, System.JSON, System.SysUtils,
   DelphiSemantics.Lsp,
-  Dak.FixInsightSettings, Dak.Messages, Dak.Project, Dak.Registry, Dak.RsVars, Dak.Utils;
+  Dak.FixInsightSettings, Dak.Messages, Dak.Project.BuildParams, Dak.Registry, Dak.RsVars, Dak.Utils;
 
 function NormalizeDelphiVersion(const aValue: string): string;
 begin

@@ -62,6 +62,8 @@ type
     [Test]
     procedure ProjectAnalysisContextDelegatesSemanticAuthority;
     [Test]
+    procedure ProjectCallersUseFocusedBoundaryUnits;
+    [Test]
     procedure ResolveRunnerDelegatesProjectFactsToSemanticContext;
     [Test]
     procedure ProjectContextParamsPreserveResolveFactsAndNormalizeLibraryPaths;
@@ -659,7 +661,7 @@ var
   lSource: string;
   lStartIndex: Integer;
 begin
-  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.project.pas'), TEncoding.UTF8);
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.Project.Semantics.pas'), TEncoding.UTF8);
   lImplementationIndex := Pos('implementation', lSource);
   Assert.IsTrue(lImplementationIndex > 0, 'Expected implementation section.');
 
@@ -682,6 +684,47 @@ begin
     'Project-analysis context must not rebuild parser context through DAK FixInsight params.');
   Assert.IsFalse(ContainsText(lBody, 'TMsBuildEvaluator'),
     'Project-analysis context must not evaluate MSBuild independently.');
+
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.project.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lSource, 'Dak.Project.Semantics.TryBuildProjectAnalysisContext'),
+    'Dak.Project compatibility facade should delegate semantic context construction.');
+  Assert.IsTrue(ContainsText(lSource, 'Dak.Project.BuildParams.TryBuildParams'),
+    'Dak.Project compatibility facade should delegate build-param construction.');
+end;
+
+procedure TMsBuildTests.ProjectCallersUseFocusedBoundaryUnits;
+const
+  cProductionSources: array[0..8] of string = (
+    'src\dak.analyze.common.pas',
+    'src\dak.build.runner.pas',
+    'src\dak.deps.runner.pas',
+    'src\dak.dfmcheck.pas',
+    'src\dak.globalvars.pas',
+    'src\dak.lsp.context.pas',
+    'src\Dak.RemoveWith.Model.pas',
+    'src\dak.resolve.runner.pas',
+    'src\Dak.SymbolMap.Context.pas');
+var
+  lPath: string;
+  lSource: string;
+begin
+  for lPath in cProductionSources do
+  begin
+    lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, lPath), TEncoding.UTF8);
+    Assert.IsFalse(ContainsText(lSource, 'Dak.Project,') or ContainsText(lSource, 'Dak.Project;'),
+      'Production caller should import a focused project boundary instead of Dak.Project: ' + lPath);
+  end;
+
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Model.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lSource, 'Dak.Project.Semantics'),
+    'Remove-with model should import the semantic project boundary.');
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Context.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lSource, 'Dak.Project.BuildParams') and
+    ContainsText(lSource, 'Dak.Project.Semantics'),
+    'SymbolMap context should import both focused project boundaries.');
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.build.runner.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lSource, 'Dak.Project.BuildParams'),
+    'Build runner should import the build-param project boundary.');
 end;
 
 procedure TMsBuildTests.ResolveRunnerDelegatesProjectFactsToSemanticContext;

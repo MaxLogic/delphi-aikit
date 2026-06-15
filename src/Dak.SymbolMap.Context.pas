@@ -39,7 +39,8 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.SysUtils,
-  Dak.FixInsightSettings, Dak.Project, Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars;
+  Dak.FixInsightSettings, Dak.Project.BuildParams, Dak.Project.Semantics, Dak.RadStudio.Locator, Dak.Registry,
+  Dak.RsVars;
 
 function NormalizeDelphiVersion(const aValue: string): string;
 begin

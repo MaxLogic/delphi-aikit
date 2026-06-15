@@ -97,7 +97,7 @@ uses
   System.Diagnostics, System.Variants,
   Winapi.TlHelp32,
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
-  Dak.Project;
+  Dak.Project.Semantics;
 
 const
   cDfmCheckCacheMutexPrefix = 'Local\DelphiAIKit_DfmCheckCache_';
