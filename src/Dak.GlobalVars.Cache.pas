@@ -9,6 +9,7 @@ uses
 
 const
   cGlobalVarsCacheSchemaVersion = '3';
+  cGlobalVarsCacheBusyTimeoutMs = 30000;
 
 type
   TGlobalVarsCacheLoadFilter = record
@@ -225,6 +226,7 @@ begin
   aConnection.LoginPrompt := False;
   aConnection.Params.Values['DriverID'] := 'SQLite';
   aConnection.Params.Values['Database'] := aCacheFileName;
+  aConnection.Params.Values['BusyTimeout'] := IntToStr(cGlobalVarsCacheBusyTimeoutMs);
   aConnection.Params.Values['LockingMode'] := 'Normal';
   aConnection.Params.Values['OpenMode'] := 'CreateUTF8';
   aConnection.Connected := True;

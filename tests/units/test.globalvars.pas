@@ -28,6 +28,7 @@ type
     [Test] procedure GlobalVarsCachePreservesUnicodeTextValues;
     [Test] procedure RunGlobalVarsCommandPreservesUnicodePathsThroughCacheReuse;
     [Test] procedure RunGlobalVarsCacheUsesWideTextAccessors;
+    [Test] procedure RunGlobalVarsCacheUsesBusyRetryPolicy;
     [Test] procedure RunGlobalVarsCacheHitLoadsFilteredSlice;
     [Test] procedure RunGlobalVarsCommandFiltersCacheHitProjection;
   end;
@@ -766,6 +767,23 @@ begin
     'GlobalVars cache ambiguity writes should use prepared wide parameters.');
   Assert.IsTrue(ContainsText(lSourceText, '.AsWideString'),
     'GlobalVars cache should read/write text through wide accessors.');
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsCacheUsesBusyRetryPolicy;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)), '..',
+    'src', 'Dak.GlobalVars.Cache.pas']));
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'cGlobalVarsCacheBusyTimeoutMs'),
+    'GlobalVars cache must document the SQLite busy/retry wait policy.');
+  Assert.IsTrue(ContainsText(lSourceText, 'BusyTimeout'),
+    'GlobalVars cache connections must wait/retry when another process holds the SQLite file.');
+  Assert.IsTrue(ContainsText(lSourceText, 'StartTransaction'),
+    'GlobalVars cache refresh must remain atomic while relying on SQLite lock waiting.');
 end;
 
 procedure TGlobalVarsTests.RunGlobalVarsCacheHitLoadsFilteredSlice;
