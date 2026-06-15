@@ -134,6 +134,236 @@ type
 
 implementation
 
+function ReadGeneratedDpr(const aPaths: TDfmCheckPaths): string;
+begin
+  Result := TFile.ReadAllText(aPaths.fGeneratedDpr);
+end;
+
+function ReadGeneratedDprojText(const aPaths: TDfmCheckPaths): string;
+begin
+  Result := TFile.ReadAllText(aPaths.fGeneratedDproj);
+end;
+
+function ReadGeneratedRegisterUnit(const aPaths: TDfmCheckPaths): string;
+begin
+  Result := TFile.ReadAllText(aPaths.fGeneratedRegisterUnit);
+end;
+
+function LoadGeneratedDprojXml(const aPaths: TDfmCheckPaths): IXMLDocument;
+begin
+  Result := TXMLDocument.Create(nil);
+  Result.LoadFromXML(ReadGeneratedDprojText(aPaths));
+  Result.Active := True;
+end;
+
+function XmlNodeNameMatches(const aNode: IXMLNode; const aName: string): Boolean;
+var
+  lName: string;
+begin
+  lName := aNode.LocalName;
+  if lName = '' then
+    lName := aNode.NodeName;
+  Result := SameText(lName, aName);
+end;
+
+procedure CollectXmlElementTexts(const aNode: IXMLNode; const aName: string; const aValues: TStrings);
+var
+  i: Integer;
+  lNode: IXMLNode;
+begin
+  if aNode = nil then
+    Exit;
+  if (aNode.NodeType = ntElement) and XmlNodeNameMatches(aNode, aName) then
+    aValues.Add(aNode.Text);
+
+  for i := 0 to aNode.ChildNodes.Count - 1 do
+  begin
+    lNode := aNode.ChildNodes[i];
+    CollectXmlElementTexts(lNode, aName, aValues);
+  end;
+end;
+
+function DprojElementTextContains(const aDoc: IXMLDocument; const aName: string; const aText: string): Boolean;
+var
+  i: Integer;
+  lValues: TStringList;
+begin
+  Result := False;
+  lValues := TStringList.Create;
+  try
+    CollectXmlElementTexts(aDoc.DocumentElement, aName, lValues);
+    for i := 0 to lValues.Count - 1 do
+      if ContainsText(lValues[i], aText) then
+        Exit(True);
+  finally
+    lValues.Free;
+  end;
+end;
+
+function TextContainsSemicolonToken(const aText: string; const aToken: string): Boolean;
+var
+  lText: string;
+  lToken: string;
+begin
+  lText := StringReplace(aText, ' ', '', [rfReplaceAll]);
+  lText := StringReplace(lText, #9, '', [rfReplaceAll]);
+  lToken := StringReplace(aToken, ' ', '', [rfReplaceAll]);
+  lToken := StringReplace(lToken, #9, '', [rfReplaceAll]);
+  Result := ContainsText(';' + lText + ';', ';' + lToken + ';');
+end;
+
+function DprojElementTextHasToken(const aDoc: IXMLDocument; const aName: string; const aToken: string): Boolean;
+var
+  i: Integer;
+  lValues: TStringList;
+begin
+  Result := False;
+  lValues := TStringList.Create;
+  try
+    CollectXmlElementTexts(aDoc.DocumentElement, aName, lValues);
+    for i := 0 to lValues.Count - 1 do
+      if TextContainsSemicolonToken(lValues[i], aToken) then
+        Exit(True);
+  finally
+    lValues.Free;
+  end;
+end;
+
+function DprojElementExists(const aDoc: IXMLDocument; const aName: string): Boolean;
+var
+  lValues: TStringList;
+begin
+  lValues := TStringList.Create;
+  try
+    CollectXmlElementTexts(aDoc.DocumentElement, aName, lValues);
+    Result := lValues.Count > 0;
+  finally
+    lValues.Free;
+  end;
+end;
+
+function DprojElementTextEquals(const aDoc: IXMLDocument; const aName: string; const aText: string): Boolean;
+var
+  i: Integer;
+  lValues: TStringList;
+begin
+  Result := False;
+  lValues := TStringList.Create;
+  try
+    CollectXmlElementTexts(aDoc.DocumentElement, aName, lValues);
+    for i := 0 to lValues.Count - 1 do
+      if SameText(lValues[i], aText) then
+        Exit(True);
+  finally
+    lValues.Free;
+  end;
+end;
+
+function DprojFirstElementText(const aDoc: IXMLDocument; const aName: string): string;
+var
+  lValues: TStringList;
+begin
+  Result := '';
+  lValues := TStringList.Create;
+  try
+    CollectXmlElementTexts(aDoc.DocumentElement, aName, lValues);
+    if lValues.Count > 0 then
+      Result := lValues[0];
+  finally
+    lValues.Free;
+  end;
+end;
+
+function TryFindDprojImportNode(const aNode: IXMLNode; const aProject: string; out aImportNode: IXMLNode): Boolean;
+var
+  i: Integer;
+  lNode: IXMLNode;
+begin
+  aImportNode := nil;
+  if aNode = nil then
+    Exit(False);
+  if (aNode.NodeType = ntElement) and XmlNodeNameMatches(aNode, 'Import') and
+    aNode.HasAttribute('Project') and SameText(VarToStr(aNode.Attributes['Project']), aProject) then
+  begin
+    aImportNode := aNode;
+    Exit(True);
+  end;
+
+  for i := 0 to aNode.ChildNodes.Count - 1 do
+  begin
+    lNode := aNode.ChildNodes[i];
+    if TryFindDprojImportNode(lNode, aProject, aImportNode) then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
+function DprojHasImportProject(const aDoc: IXMLDocument; const aProject: string): Boolean;
+var
+  lImportNode: IXMLNode;
+begin
+  Result := TryFindDprojImportNode(aDoc.DocumentElement, aProject, lImportNode);
+end;
+
+function DprojImportCondition(const aDoc: IXMLDocument; const aProject: string): string;
+var
+  lImportNode: IXMLNode;
+begin
+  Result := '';
+  if TryFindDprojImportNode(aDoc.DocumentElement, aProject, lImportNode) and
+    lImportNode.HasAttribute('Condition') then
+    Result := VarToStr(lImportNode.Attributes['Condition']);
+end;
+
+function TryFindDprojSourceNode(const aNode: IXMLNode; const aName: string; out aSourceNode: IXMLNode): Boolean;
+var
+  i: Integer;
+  lNode: IXMLNode;
+begin
+  aSourceNode := nil;
+  if aNode = nil then
+    Exit(False);
+  if (aNode.NodeType = ntElement) and XmlNodeNameMatches(aNode, 'Source') and
+    aNode.HasAttribute('Name') and SameText(VarToStr(aNode.Attributes['Name']), aName) then
+  begin
+    aSourceNode := aNode;
+    Exit(True);
+  end;
+
+  for i := 0 to aNode.ChildNodes.Count - 1 do
+  begin
+    lNode := aNode.ChildNodes[i];
+    if TryFindDprojSourceNode(lNode, aName, aSourceNode) then
+      Exit(True);
+  end;
+  Result := False;
+end;
+
+function DprojSourceText(const aDoc: IXMLDocument; const aName: string): string;
+var
+  lSourceNode: IXMLNode;
+begin
+  Result := '';
+  if TryFindDprojSourceNode(aDoc.DocumentElement, aName, lSourceNode) then
+    Result := lSourceNode.Text;
+end;
+
+function NormalizedSourceText(const aText: string): string;
+begin
+  Result := StringReplace(aText, #13#10, #10, [rfReplaceAll]);
+  Result := StringReplace(Result, #13, #10, [rfReplaceAll]);
+end;
+
+procedure AssertSourceContains(const aSourceText: string; const aExpected: string; const aMessage: string);
+begin
+  Assert.IsTrue(ContainsText(NormalizedSourceText(aSourceText), NormalizedSourceText(aExpected)), aMessage);
+end;
+
+procedure AssertSourceExcludes(const aSourceText: string; const aUnexpected: string; const aMessage: string);
+begin
+  Assert.IsFalse(ContainsText(NormalizedSourceText(aSourceText), NormalizedSourceText(aUnexpected)), aMessage);
+end;
+
 constructor TMockDfmCheckRunner.Create(const aMode: TMockValidatorMode; const aConfig: string; const aPlatform: string);
 begin
   inherited Create;
@@ -933,7 +1163,6 @@ var
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
   lInjectedPos: Integer;
-  lGeneratedDprojText: string;
   lGeneratedXmlDoc: IXMLDocument;
   lPatchedDprText: string;
   lGeneratedUnitText: string;
@@ -994,74 +1223,70 @@ begin
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
-    lPatchedDprText := TFile.ReadAllText(lPaths.fGeneratedDpr);
-    Assert.IsTrue(Pos('ExitCode := TDfmStreamAll.Run;', lPatchedDprText) > 0,
+    lPatchedDprText := ReadGeneratedDpr(lPaths);
+    AssertSourceContains(lPatchedDprText, 'ExitCode := TDfmStreamAll.Run;',
       'Expected ExitCode assignment in patched DPR.');
-    Assert.IsTrue(Pos('Halt(ExitCode);', lPatchedDprText) > 0, 'Expected validator short-circuit halt in DPR.');
-    Assert.IsFalse(Pos('Application.Initialize;', lPatchedDprText) > 0,
+    AssertSourceContains(lPatchedDprText, 'Halt(ExitCode);', 'Expected validator short-circuit halt in DPR.');
+    AssertSourceExcludes(lPatchedDprText, 'Application.Initialize;',
       'Generated checker DPR must not execute application startup.');
-    Assert.IsFalse(Pos('madExcept,', lPatchedDprText) > 0,
+    AssertSourceExcludes(lPatchedDprText, 'madExcept,',
       'Generated checker DPR should not add optional madExcept startup units.');
     lSourceDprText := TFile.ReadAllText(TPath.ChangeExtension(lDprojPath, '.dpr'));
     lMadExceptPos := Pos('madExcept,', lSourceDprText);
     lWinapiPos := Pos('Winapi.Windows,', lPatchedDprText);
     Assert.IsTrue((lMadExceptPos > 0) and (lWinapiPos > 0),
       'Expected fixture source DPR to use madExcept while generated DPR still uses Winapi.Windows.');
-    Assert.IsFalse(Pos('Writeln(ErrOutput,', lPatchedDprText) > 0,
+    AssertSourceExcludes(lPatchedDprText, 'Writeln(ErrOutput,',
       'Generated checker DPR must not write fatal-init diagnostics through ErrOutput when no console exists.');
-    Assert.IsTrue(Pos('OutputDebugString(', lPatchedDprText) > 0,
+    AssertSourceContains(lPatchedDprText, 'OutputDebugString(',
       'Generated checker DPR should surface fatal-init diagnostics through OutputDebugString.');
-    Assert.IsTrue(Pos('DfmStreamAll in ''DfmStreamAll.pas'',', lPatchedDprText) > 0,
+    AssertSourceContains(lPatchedDprText, 'DfmStreamAll in ''DfmStreamAll.pas'',',
       'Generated checker DPR should reference DfmStreamAll with an in-clause for IDE call stacks.');
-    Assert.IsTrue(Pos('Sample_DfmCheck_Register in ''Sample_DfmCheck_Register.pas'',', lPatchedDprText) > 0,
+    AssertSourceContains(lPatchedDprText, 'Sample_DfmCheck_Register in ''Sample_DfmCheck_Register.pas'',',
       'Generated checker DPR should reference the register unit with an in-clause for IDE call stacks.');
-    Assert.IsTrue(Pos('DfmCheckRuntimeGuard in ''DfmCheckRuntimeGuard.pas'';', lPatchedDprText) > 0,
+    AssertSourceContains(lPatchedDprText, 'DfmCheckRuntimeGuard in ''DfmCheckRuntimeGuard.pas'';',
       'Generated checker DPR should reference DfmCheckRuntimeGuard with an in-clause for IDE call stacks.');
     lInjectedPos := Pos('ExitCode := TDfmStreamAll.Run;', lPatchedDprText);
     Assert.IsTrue(lInjectedPos > 0, 'Expected generated checker DPR to execute validator entrypoint.');
 
-    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
-    lGeneratedXmlDoc := TXMLDocument.Create(nil);
-    lGeneratedXmlDoc.LoadFromXML(lGeneratedDprojText);
-    lGeneratedXmlDoc.Active := True;
+    lGeneratedXmlDoc := LoadGeneratedDprojXml(lPaths);
     Assert.IsNotNull(lGeneratedXmlDoc.DocumentElement, 'Generated checker DPROJ should remain valid XML.');
     Assert.AreEqual('Project', lGeneratedXmlDoc.DocumentElement.NodeName,
       'Generated checker DPROJ should keep the MSBuild Project root node.');
-    Assert.IsTrue(Pos('DFMCheck', lGeneratedDprojText) > 0,
+    Assert.IsTrue(DprojElementTextHasToken(lGeneratedXmlDoc, 'DCC_Define', 'DFMCheck'),
       'Generated checker DPROJ should define DFMCheck symbol.');
-    Assert.IsTrue(Pos('NO_LOCALIZATION', lGeneratedDprojText) > 0,
+    Assert.IsTrue(DprojElementTextHasToken(lGeneratedXmlDoc, 'DCC_Define', 'NO_LOCALIZATION'),
       'Generated checker DPROJ should define NO_LOCALIZATION symbol.');
-    Assert.IsTrue(TRegEx.IsMatch(lGeneratedDprojText,
-      '<DCC_Define>\s*[^<]*\bmadExcept\b[^<]*</DCC_Define>', [roIgnoreCase]),
+    Assert.IsTrue(DprojElementTextHasToken(lGeneratedXmlDoc, 'DCC_Define', 'madExcept'),
       'Generated checker DPROJ should preserve madExcept symbol for project units that compile madExcept-aware code.');
-    Assert.IsTrue(Pos('<Source Name="MainSource">Sample_DfmCheck.dpr</Source>', lGeneratedDprojText) > 0,
+    Assert.AreEqual('Sample_DfmCheck.dpr', DprojSourceText(lGeneratedXmlDoc, 'MainSource'),
       'Generated checker DPROJ should rewrite project extension MainSource entry.');
-    Assert.IsTrue(Pos('<Icon_MainIcon>' + StringReplace(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.ico'),
-      '\', '\\', [rfReplaceAll]) + '</Icon_MainIcon>', StringReplace(lGeneratedDprojText, '\', '\\', [rfReplaceAll])) > 0,
+    Assert.IsTrue(DprojElementTextEquals(lGeneratedXmlDoc, 'Icon_MainIcon',
+      TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.ico')),
       'Generated checker DPROJ should rebase source-relative icon paths to the source project directory.');
-    Assert.IsTrue(Pos('<Icon_MainIcon>' + StringReplace(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.Win32.ico'),
-      '\', '\\', [rfReplaceAll]) + '</Icon_MainIcon>', StringReplace(lGeneratedDprojText, '\', '\\', [rfReplaceAll])) > 0,
+    Assert.IsTrue(DprojElementTextEquals(lGeneratedXmlDoc, 'Icon_MainIcon',
+      TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.Win32.ico')),
       'Generated checker DPROJ should rebase Win32 icon override paths to the source project directory.');
-    Assert.IsTrue(Pos('<Icon_MainIcon>' + StringReplace(TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.Win64.ico'),
-      '\', '\\', [rfReplaceAll]) + '</Icon_MainIcon>', StringReplace(lGeneratedDprojText, '\', '\\', [rfReplaceAll])) > 0,
+    Assert.IsTrue(DprojElementTextEquals(lGeneratedXmlDoc, 'Icon_MainIcon',
+      TPath.Combine(ExtractFilePath(lDprojPath), 'Sample.Win64.ico')),
       'Generated checker DPROJ should rebase Win64 icon override paths to the source project directory.');
-    Assert.IsFalse(Pos('<PreBuildEvent>echo before</PreBuildEvent>', lGeneratedDprojText) > 0,
+    Assert.IsFalse(DprojElementTextContains(lGeneratedXmlDoc, 'PreBuildEvent', 'echo before'),
       'Generated checker DPROJ must not keep source-project pre-build events.');
-    Assert.IsFalse(Pos('<PostBuildEvent>echo after</PostBuildEvent>', lGeneratedDprojText) > 0,
+    Assert.IsFalse(DprojElementTextContains(lGeneratedXmlDoc, 'PostBuildEvent', 'echo after'),
       'Generated checker DPROJ must not keep source-project post-build events.');
-    Assert.IsTrue(Pos('$(DCC_UnitSearchPath)', lGeneratedDprojText) > 0,
+    Assert.IsTrue(DprojElementTextContains(lGeneratedXmlDoc, 'DCC_UnitSearchPath', '$(DCC_UnitSearchPath)'),
       'Generated checker DPROJ should preserve macro-based search path tokens.');
-    Assert.IsTrue(Pos('TRACE', lGeneratedDprojText) > 0,
+    Assert.IsTrue(DprojElementTextHasToken(lGeneratedXmlDoc, 'DCC_Define', 'TRACE'),
       'Generated checker DPROJ should preserve unrelated compiler define symbols.');
 
-    lGeneratedUnitText := TFile.ReadAllText(lPaths.fGeneratedRegisterUnit);
-    Assert.IsTrue(Pos('unit Sample_DfmCheck_Register;', lGeneratedUnitText) > 0,
+    lGeneratedUnitText := ReadGeneratedRegisterUnit(lPaths);
+    AssertSourceContains(lGeneratedUnitText, 'unit Sample_DfmCheck_Register;',
       'Expected generated register unit for streaming class registration.');
-    Assert.IsTrue(Pos('uses', lGeneratedUnitText) > 0, 'Expected generated register unit to keep form-unit linkage.');
-    Assert.IsTrue(Pos('MainForm', lGeneratedUnitText) > 0, 'Expected generated register unit to keep MainForm in uses.');
-    Assert.IsTrue(Pos('{$IF Declared(TMainForm)} RegisterClass(TMainForm); {$IFEND}', lGeneratedUnitText) > 0,
+    AssertSourceContains(lGeneratedUnitText, 'uses', 'Expected generated register unit to keep form-unit linkage.');
+    AssertSourceContains(lGeneratedUnitText, 'MainForm', 'Expected generated register unit to keep MainForm in uses.');
+    AssertSourceContains(lGeneratedUnitText, '{$IF Declared(TMainForm)} RegisterClass(TMainForm); {$IFEND}',
       'Expected generated register unit to register root form class for streaming.');
-    Assert.IsFalse(Pos('.ClassName;', lGeneratedUnitText) > 0,
+    AssertSourceExcludes(lGeneratedUnitText, '.ClassName;',
       'Generated register unit should not include compile-time ClassName checks.');
   finally
     lEnvGuard := nil;
@@ -1075,7 +1300,7 @@ var
   lDprojPath: string;
   lError: string;
   lGeneratedDprText: string;
-  lGeneratedDprojText: string;
+  lGeneratedXmlDoc: IXMLDocument;
   lInjectDir: string;
   lEnvGuard: IInterface;
   lOptions: TAppOptions;
@@ -1115,15 +1340,15 @@ begin
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
-    lGeneratedDprText := TFile.ReadAllText(lPaths.fGeneratedDpr);
-    Assert.IsFalse(Pos('madExcept,', lGeneratedDprText) > 0,
+    lGeneratedDprText := ReadGeneratedDpr(lPaths);
+    AssertSourceExcludes(lGeneratedDprText, 'madExcept,',
       'Generated checker DPR should not inject madExcept when the source DPR does not use it.');
-    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
-    Assert.IsTrue(Pos('<DCC_UnitSearchPath>', lGeneratedDprojText) > 0,
+    lGeneratedXmlDoc := LoadGeneratedDprojXml(lPaths);
+    Assert.IsTrue(DprojElementExists(lGeneratedXmlDoc, 'DCC_UnitSearchPath'),
       'Generated checker DPROJ should synthesize DCC_UnitSearchPath when source project inherits it from an optset.');
-    Assert.IsTrue(Pos(lSourceDir, lGeneratedDprojText) > 0,
+    Assert.IsTrue(DprojElementTextContains(lGeneratedXmlDoc, 'DCC_UnitSearchPath', lSourceDir),
       'Generated checker DPROJ should prepend discovered form unit directories.');
-    Assert.IsTrue(Pos('$(DCC_UnitSearchPath)', lGeneratedDprojText) > 0,
+    Assert.IsTrue(DprojElementTextContains(lGeneratedXmlDoc, 'DCC_UnitSearchPath', '$(DCC_UnitSearchPath)'),
       'Generated checker DPROJ should still preserve inherited DCC_UnitSearchPath macros.');
   finally
     lEnvGuard := nil;
@@ -1135,7 +1360,7 @@ var
   lCategory: TDfmCheckErrorCategory;
   lDprojPath: string;
   lError: string;
-  lGeneratedDprojText: string;
+  lGeneratedXmlDoc: IXMLDocument;
   lImportPath: string;
   lInjectDir: string;
   lEnvGuard: IInterface;
@@ -1175,14 +1400,14 @@ begin
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
-    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
-    Assert.IsTrue(Pos('<Import Project="' + lImportPath + '"', lGeneratedDprojText) > 0,
+    lGeneratedXmlDoc := LoadGeneratedDprojXml(lPaths);
+    Assert.IsTrue(DprojHasImportProject(lGeneratedXmlDoc, lImportPath),
       'Generated checker DPROJ should rewrite relative import paths to the source project location.');
-    Assert.IsFalse(Pos('<Import Project="Fixture.optset"', lGeneratedDprojText) > 0,
+    Assert.IsFalse(DprojHasImportProject(lGeneratedXmlDoc, 'Fixture.optset'),
       'Generated checker DPROJ should not keep source-relative import paths after relocation.');
-    Assert.IsTrue(Pos('Exists(&apos;' + lImportPath + '&apos;)', lGeneratedDprojText) > 0,
+    Assert.AreEqual('Exists(''' + lImportPath + ''')', DprojImportCondition(lGeneratedXmlDoc, lImportPath),
       'Generated checker DPROJ should rewrite relative Exists(...) import conditions to the source project location.');
-    Assert.IsFalse(Pos('Exists(''Fixture.optset'')', lGeneratedDprojText) > 0,
+    Assert.AreNotEqual('Exists(''Fixture.optset'')', DprojImportCondition(lGeneratedXmlDoc, lImportPath),
       'Generated checker DPROJ should not keep relative Exists(...) import conditions after relocation.');
   finally
     lEnvGuard := nil;
@@ -1195,20 +1420,17 @@ var
   lDprojPath: string;
   lDprojText: string;
   lError: string;
-  lGeneratedDprojText: string;
   lGeneratedXmlDoc: IXMLDocument;
   lImportFileName: string;
   lImportNode: IXMLNode;
   lImportPath: string;
   lInjectDir: string;
   lEnvGuard: IInterface;
-  lNode: IXMLNode;
   lOptions: TAppOptions;
   lPaths: TDfmCheckPaths;
   lResult: Integer;
   lRunnerImpl: TMockDfmCheckRunner;
   lRunner: IDfmCheckProcessRunner;
-  i: Integer;
 begin
   CreateFixtureProjectWithInheritedSearchPath(lDprojPath);
   lImportFileName := 'Fixture Path ' + #$017C + '.optset';
@@ -1248,21 +1470,9 @@ begin
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
-    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
-    lGeneratedXmlDoc := TXMLDocument.Create(nil);
-    lGeneratedXmlDoc.LoadFromXML(lGeneratedDprojText);
-    lGeneratedXmlDoc.Active := True;
+    lGeneratedXmlDoc := LoadGeneratedDprojXml(lPaths);
     lImportNode := nil;
-    for i := 0 to lGeneratedXmlDoc.DocumentElement.ChildNodes.Count - 1 do
-    begin
-      lNode := lGeneratedXmlDoc.DocumentElement.ChildNodes[i];
-      if (lNode.NodeType = ntElement) and SameText(lNode.LocalName, 'Import') and
-        lNode.HasAttribute('Project') and SameText(VarToStr(lNode.Attributes['Project']), lImportPath) then
-      begin
-        lImportNode := lNode;
-        Break;
-      end;
-    end;
+    TryFindDprojImportNode(lGeneratedXmlDoc.DocumentElement, lImportPath, lImportNode);
 
     Assert.IsNotNull(lImportNode,
       'Generated checker DPROJ should rewrite single-quoted relative import paths to the source project location.');
@@ -1336,7 +1546,7 @@ begin
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
-    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
+    lGeneratedDprojText := ReadGeneratedDprojText(lPaths);
     Assert.IsTrue(Pos(lBackslashDigitDir, lGeneratedDprojText) > 0,
       'Generated checker DPROJ should preserve paths containing backslash followed by a digit. Output: ' +
       lGeneratedDprojText);
@@ -1355,7 +1565,8 @@ var
   lEnvOptionsPath: string;
   lEnvSearchDir: string;
   lError: string;
-  lGeneratedDprojText: string;
+  lGeneratedSearchPath: string;
+  lGeneratedXmlDoc: IXMLDocument;
   lIdeLibraryDir: string;
   lInjectDir: string;
   lEnvGuard: IInterface;
@@ -1416,12 +1627,13 @@ begin
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
-    lGeneratedDprojText := TFile.ReadAllText(lPaths.fGeneratedDproj);
-    Assert.IsTrue(Pos('<DCC_UnitSearchPath>', lGeneratedDprojText) > 0,
+    lGeneratedXmlDoc := LoadGeneratedDprojXml(lPaths);
+    lGeneratedSearchPath := DprojFirstElementText(lGeneratedXmlDoc, 'DCC_UnitSearchPath');
+    Assert.AreNotEqual('', lGeneratedSearchPath,
       'Generated checker DPROJ should synthesize DCC_UnitSearchPath from the effective project/build search path.');
-    lSourceDirPos := Pos(lSourceDir, lGeneratedDprojText);
-    lEnvSearchPos := Pos(lEnvSearchDir, lGeneratedDprojText);
-    lIdeLibraryPos := Pos(lIdeLibraryDir, lGeneratedDprojText);
+    lSourceDirPos := Pos(lSourceDir, lGeneratedSearchPath);
+    lEnvSearchPos := Pos(lEnvSearchDir, lGeneratedSearchPath);
+    lIdeLibraryPos := Pos(lIdeLibraryDir, lGeneratedSearchPath);
     Assert.IsTrue(lSourceDirPos > 0,
       'Generated checker DPROJ should keep discovered form unit directories.');
     Assert.IsTrue(lEnvSearchPos > 0,
@@ -1611,12 +1823,12 @@ begin
 
     lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
     Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
-    lGeneratedUnitText := TFile.ReadAllText(lPaths.fGeneratedRegisterUnit);
-    Assert.IsTrue(Pos('sd3.WebBrowser', lGeneratedUnitText) > 0,
+    lGeneratedUnitText := ReadGeneratedRegisterUnit(lPaths);
+    AssertSourceContains(lGeneratedUnitText, 'sd3.WebBrowser',
       'Expected generated register unit uses list to keep namespaced unit names.');
-    Assert.IsTrue(Pos(#13#10 + '  WebBrowser,' + #13#10, lGeneratedUnitText) = 0,
+    AssertSourceExcludes(lGeneratedUnitText, #10 + '  WebBrowser,' + #10,
       'Generated register unit must not drop namespace prefix from unit name.');
-    Assert.IsTrue(Pos(#13#10 + '  WebBrowser;' + #13#10, lGeneratedUnitText) = 0,
+    AssertSourceExcludes(lGeneratedUnitText, #10 + '  WebBrowser;' + #10,
       'Generated register unit must not emit stripped terminal unit names.');
   finally
     lEnvGuard := nil;
