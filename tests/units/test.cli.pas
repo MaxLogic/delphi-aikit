@@ -208,7 +208,7 @@ begin
   lArgs := 'resolve --project ' + lProjectPath + ' --platform Win32 --config Debug --delphi 23.0 --format ini --out-file ' +
     QuoteArg(lOutPath);
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start resolver process.');
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start resolver process.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected Linux-style project path to resolve successfully. See: ' + lRunLog);
   Assert.IsTrue(FileExists(lOutPath), 'Expected resolve output file to be created: ' + lOutPath);
 end;
@@ -227,13 +227,13 @@ begin
   lArgs := 'resolve --project /home/not-supported/Sample.dproj --platform Win32 --config Debug --delphi 23.0 --format ini --out-file ' +
     QuoteArg(lOutPath);
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start resolver process.');
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start resolver process.');
   Assert.AreEqual(Cardinal(3), lExitCode, 'Expected unsupported Linux path to be rejected. See: ' + lRunLog);
   Assert.IsFalse(FileExists(lOutPath), 'Did not expect resolve output file when project path is invalid: ' + lOutPath);
 
   lLogText := '';
   if FileExists(lRunLog) then
-    lLogText := TFile.ReadAllText(lRunLog);
+    lLogText := ReadUtf8TextFile(lRunLog);
   Assert.IsTrue(Pos('Unsupported Linux path format', lLogText) > 0,
     'Expected unsupported Linux path error message. See: ' + lRunLog);
 end;
@@ -249,12 +249,12 @@ begin
   lRunLog := TPath.Combine(TempRoot, 'resolve-project-ext-invalid.log');
   lArgs := 'resolve --project ' + QuoteArg(TPath.Combine(RepoRoot, 'README.md')) + ' --delphi 23.0';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start resolver process.');
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start resolver process.');
   Assert.AreEqual(Cardinal(3), lExitCode, 'Expected unsupported project extension to be rejected. See: ' + lRunLog);
 
   lLogText := '';
   if FileExists(lRunLog) then
-    lLogText := TFile.ReadAllText(lRunLog);
+    lLogText := ReadUtf8TextFile(lRunLog);
   Assert.IsTrue(Pos('Unsupported project input', lLogText) > 0,
     'Expected unsupported project extension error message. See: ' + lRunLog);
 end;
@@ -280,12 +280,12 @@ begin
   lRunLog := TPath.Combine(TempRoot, 'analyze-unit-linux-invalid.log');
   lArgs := 'analyze --unit /home/not-supported/Sample.pas --delphi 23.0 --pascal-analyzer false';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
   Assert.AreEqual(Cardinal(3), lExitCode, 'Expected unsupported Linux unit path to be rejected. See: ' + lRunLog);
 
   lLogText := '';
   if FileExists(lRunLog) then
-    lLogText := TFile.ReadAllText(lRunLog);
+    lLogText := ReadUtf8TextFile(lRunLog);
   Assert.IsTrue(Pos('Unsupported Linux path format', lLogText) > 0,
     'Expected unsupported Linux path error message. See: ' + lRunLog);
 end;
@@ -302,12 +302,12 @@ begin
   lArgs := 'analyze --project ' + QuoteArg(TPath.Combine(RepoRoot, 'README.md')) +
     ' --delphi 23.0 --fixinsight false --pascal-analyzer false';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
   Assert.AreEqual(Cardinal(3), lExitCode, 'Expected unsupported project extension to be rejected. See: ' + lRunLog);
 
   lLogText := '';
   if FileExists(lRunLog) then
-    lLogText := TFile.ReadAllText(lRunLog);
+    lLogText := ReadUtf8TextFile(lRunLog);
   Assert.IsTrue(Pos('Unsupported project input', lLogText) > 0,
     'Expected unsupported project extension error message. See: ' + lRunLog);
 end;
@@ -565,7 +565,7 @@ begin
     ' --platform Win32 --config Debug --delphi 23.0 --fixinsight false --pascal-analyzer false --clean false --out ' +
     QuoteArg(lOutRoot);
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected analyze run to succeed. See: ' + lRunLog);
 
   lSummaryPath := TPath.Combine(lOutRoot, 'summary.md');
@@ -602,7 +602,7 @@ begin
   lArgs := 'analyze --project ' + QuoteArg(lDprojPath) +
     ' --platform Win32 --config Debug --delphi 23.0 --fixinsight false --pascal-analyzer false';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected analyze run to succeed. See: ' + lRunLog);
 
   lSummaryPath := TPath.Combine(lDakRoot, 'summary.md');
@@ -653,7 +653,7 @@ begin
   lArgs := 'analyze --project ' + QuoteArg(lDprojPath) +
     ' --platform Win32 --config Debug --delphi 23.0 --fixinsight false --pascal-analyzer false';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyzer process.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected split-layout analyze run to succeed. See: ' + lRunLog);
 
   lSummaryPath := TPath.Combine(lDakRoot, 'summary.md');
@@ -686,7 +686,7 @@ begin
   lRunLog := TPath.Combine(TempRoot, 'analyze-default-out-unit.log');
   lArgs := 'analyze --unit ' + QuoteArg(lUnitPath) + ' --delphi 23.0 --pascal-analyzer false';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyze-unit process.');
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lRunLog, lExitCode), 'Failed to start analyze-unit process.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected analyze-unit run to succeed. See: ' + lRunLog);
 
   lSummaryPath := TPath.Combine(lDakRoot, 'summary.md');
@@ -1147,13 +1147,13 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, 'remove-with-help.log');
 
-  Assert.IsTrue(RunProcess(ResolverExePath, 'remove-with --help', RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess('remove-with --help', RepoRoot, lLogPath, lExitCode),
     'Failed to start remove-with help command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with --help to succeed. See: ' + lLogPath);
 
   lLogText := '';
   if FileExists(lLogPath) then
-    lLogText := TFile.ReadAllText(lLogPath);
+    lLogText := ReadUtf8TextFile(lLogPath);
 
   Assert.IsTrue(Pos('scan', lLogText) > 0, 'Expected remove-with help to mention scan mode.');
   Assert.IsTrue(Pos('plan', lLogText) > 0, 'Expected remove-with help to mention plan mode.');
@@ -1310,13 +1310,13 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, 'lsp-help.log');
 
-  Assert.IsTrue(RunProcess(ResolverExePath, 'lsp --help', RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess('lsp --help', RepoRoot, lLogPath, lExitCode),
     'Failed to start lsp help command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected lsp --help to succeed. See: ' + lLogPath);
 
   lLogText := '';
   if FileExists(lLogPath) then
-    lLogText := TFile.ReadAllText(lLogPath);
+    lLogText := ReadUtf8TextFile(lLogPath);
 
   Assert.IsTrue(Pos('definition', lLogText) > 0, 'Expected lsp help to mention definition.');
   Assert.IsTrue(Pos('hover', lLogText) > 0, 'Expected lsp help to mention hover.');
@@ -1328,13 +1328,13 @@ begin
   Assert.IsTrue(Pos('--envoptions', lLogText) > 0, 'Expected lsp help to mention --envoptions.');
 
   lLogPath := TPath.Combine(TempRoot, 'resolve-help-regression.log');
-  Assert.IsTrue(RunProcess(ResolverExePath, 'resolve --help', RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess('resolve --help', RepoRoot, lLogPath, lExitCode),
     'Failed to start resolve help regression command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected resolve --help to keep working. See: ' + lLogPath);
 
   lLogText := '';
   if FileExists(lLogPath) then
-    lLogText := TFile.ReadAllText(lLogPath);
+    lLogText := ReadUtf8TextFile(lLogPath);
   Assert.IsTrue(Pos('DelphiAIKit.exe resolve --project', lLogText) > 0,
     'Expected existing resolve help output to remain intact.');
 end;

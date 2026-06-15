@@ -5,6 +5,7 @@ interface
 uses
   System.Classes,
   System.IOUtils,
+  System.JSON,
   System.StrUtils,
   System.SysUtils,
   System.SyncObjs,
@@ -32,6 +33,10 @@ procedure RequireRealDelphiLsp23OrSkip(out aExePath: string);
 function RunProcess(const aExe, aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
 function RunProcessWithTimeout(const aExe, aArgs, aWorkDir, aOutputFile: string;
   const aTimeoutMs: Cardinal; out aExitCode: Cardinal): Boolean;
+function RunResolverProcess(const aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
+function ReadUtf8TextFile(const aFileName: string): string;
+function ParseJsonValue(const aText: string; const aContext: string = ''): TJSONValue;
+function ParseJsonObject(const aText: string; const aContext: string = ''): TJSONObject;
 function StartSlowPingProcess(out aProcess: THandle; out aThread: THandle; out aError: string): Boolean;
 function QuoteArg(const aValue: string): string;
 function SetScopedEnvironmentVariable(const aName, aValue: string): IInterface;
@@ -533,6 +538,48 @@ begin
   finally
     if lOutHandle <> INVALID_HANDLE_VALUE then
       CloseHandle(lOutHandle);
+  end;
+end;
+
+function RunResolverProcess(const aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
+var
+  lExePath: string;
+begin
+  EnsureResolverBuilt;
+  lExePath := ResolverExePath;
+  Result := RunProcess(lExePath, aArgs, aWorkDir, aOutputFile, aExitCode);
+end;
+
+function ReadUtf8TextFile(const aFileName: string): string;
+begin
+  Assert.IsTrue(TFile.Exists(aFileName), 'Expected output file: ' + aFileName);
+  Result := TFile.ReadAllText(aFileName, TEncoding.UTF8);
+end;
+
+function ParseJsonValue(const aText: string; const aContext: string): TJSONValue;
+var
+  lContext: string;
+begin
+  Result := TJSONValue.ParseJSONValue(aText);
+  if Result <> nil then
+    Exit;
+  lContext := aContext;
+  if lContext = '' then
+    lContext := aText;
+  Assert.Fail('Expected JSON output. Context: ' + lContext);
+end;
+
+function ParseJsonObject(const aText: string; const aContext: string): TJSONObject;
+var
+  lValue: TJSONValue;
+begin
+  lValue := ParseJsonValue(aText, aContext);
+  if lValue is TJSONObject then
+    Exit(TJSONObject(lValue));
+  try
+    Assert.Fail('Expected JSON object. Context: ' + aContext);
+  finally
+    lValue.Free;
   end;
 end;
 

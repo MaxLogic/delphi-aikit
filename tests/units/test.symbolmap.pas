@@ -489,7 +489,7 @@ var
     Result := TTask.Run(
       procedure
       begin
-        lResults[aIndex] := RunProcess(ResolverExePath, lArgs[aIndex], RepoRoot, lLogPaths[aIndex],
+        lResults[aIndex] := RunResolverProcess(lArgs[aIndex], RepoRoot, lLogPaths[aIndex],
           lExitCodes[aIndex]);
       end);
   end;
@@ -524,8 +524,8 @@ begin
     Assert.IsTrue(lResults[i], 'Expected concurrent symbol-map process to start.');
     Assert.AreEqual(Cardinal(0), lExitCodes[i], 'Expected concurrent symbol-map process to succeed. See: ' +
       lLogPaths[i]);
-    lLogText := TFile.ReadAllText(lLogPaths[i]);
-    lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+    lLogText := ReadUtf8TextFile(lLogPaths[i]);
+    lJsonValue := ParseJsonValue(lLogText);
     try
       Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
       lJson := TJSONObject(lJsonValue);
@@ -566,12 +566,12 @@ begin
   lArgs := 'symbol-map stats --project ' + QuoteArg(lProjectPath) + ' --cache-root ' + QuoteArg(lCacheRoot) +
     ' --format json';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start symbol-map stats command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map stats to succeed. See: ' + lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath);
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
@@ -1142,7 +1142,7 @@ begin
   begin
     lLogText := '';
     if TFile.Exists(lLogPath) then
-      lLogText := TFile.ReadAllText(lLogPath);
+      lLogText := ReadUtf8TextFile(lLogPath);
     Assert.Fail('Expected resolver build to succeed. See: ' + lLogPath + sLineBreak + lLogText);
   end;
   Result := TPath.Combine(lOutputDir, 'DelphiAIKit.exe');
@@ -1407,8 +1407,8 @@ begin
     'Failed to start symbol-map index command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map index to succeed. See: ' + lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath);
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
@@ -1505,7 +1505,7 @@ begin
   begin
     lLogText := '';
     if TFile.Exists(lLogPath) then
-      lLogText := TFile.ReadAllText(lLogPath);
+      lLogText := ReadUtf8TextFile(lLogPath);
     Assert.Fail('Expected resolver build to succeed. See: ' + lLogPath + sLineBreak + lLogText);
   end;
   Result := TPath.Combine(lOutputDir, 'DelphiAIKit.exe');
@@ -1834,8 +1834,8 @@ begin
   Assert.IsTrue(RunProcess(BuildFreshResolverExe, lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start symbol-map find-definition command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected find-definition to succeed. See: ' + lLogPath);
-  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJson := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     Assert.AreEqual('find-definition', TJSONObject(lJson).GetValue<string>('operation'));
@@ -1891,8 +1891,8 @@ begin
   Assert.IsTrue(RunProcess(BuildFreshResolverExe, lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start symbol-map find-references command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected find-references to succeed. See: ' + lLogPath);
-  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
@@ -2559,10 +2559,10 @@ begin
   lArgs := 'symbol-map index --project ' + QuoteArg(FixtureProjectPath) + ' --unit ' + QuoteArg(FixtureUnitPath) +
     ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start symbol-map declaration index command.');
-  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJson := ParseJsonValue(lLogText);
   Assert.IsTrue(lJson is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
   Result := lJson as TJSONObject;
 end;
@@ -2747,12 +2747,12 @@ begin
   lArgs := 'symbol-map index --project ' + QuoteArg(FixtureProjectPath) + ' --unit ' + QuoteArg(FixtureUnitPath) +
     ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start symbol-map index command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map index to succeed. See: ' + lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath);
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
@@ -2789,19 +2789,19 @@ begin
     QuoteArg(FixtureUnitPath) + ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
   lLogPath := UniqueTempPath('symbol-map-source-cache-hit-first') + '.log';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start first symbol-map index command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected first symbol-map index to succeed. See: ' +
     lLogPath);
 
   lLogPath := UniqueTempPath('symbol-map-source-cache-hit-second') + '.log';
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start second symbol-map index command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected second symbol-map index to succeed. See: ' +
     lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath);
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
@@ -2880,13 +2880,13 @@ begin
     QuoteArg(lMemberPath) + ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
   lLogPath := UniqueTempPath('symbol-map-source-force-refresh-first') + '.log';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start first symbol-map index command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected first symbol-map index to succeed. See: ' +
     lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath);
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
@@ -2899,13 +2899,13 @@ begin
 
   lRefreshArgs := lArgs + ' --refresh force';
   lLogPath := UniqueTempPath('symbol-map-source-force-refresh-second') + '.log';
-  Assert.IsTrue(RunProcess(ResolverExePath, lRefreshArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lRefreshArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start force-refresh symbol-map index command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected force-refresh symbol-map index to succeed. See: ' +
     lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath);
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
@@ -2920,13 +2920,13 @@ begin
   end;
 
   lLogPath := UniqueTempPath('symbol-map-source-force-refresh-third') + '.log';
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start post-refresh symbol-map index command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected post-refresh symbol-map index to succeed. See: ' +
     lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath);
-  lThirdJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lThirdJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lThirdJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lThirdJsonValue);
@@ -2996,12 +2996,12 @@ begin
     QuoteArg(lMemberPath) + ' --cache-root ' + QuoteArg(lCacheRoot) + ' --format json';
 
   lLogPath := UniqueTempPath('symbol-map-source-member-cache-hit-first') + '.log';
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start first member symbol-map index command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected first member symbol-map index to succeed. See: ' +
     lLogPath);
-  lLogText := TFile.ReadAllText(lLogPath);
-  lFirstJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lFirstJsonValue := ParseJsonValue(lLogText);
   try
     lUnitObject := FirstIndexedUnit(lFirstJsonValue);
     lMembers := lUnitObject.GetValue('members') as TJSONArray;
@@ -3009,12 +3009,12 @@ begin
     Assert.IsNotNull(lFirstMember, 'Expected parsed first run to include TMemberClass.Run.');
 
     lLogPath := UniqueTempPath('symbol-map-source-member-cache-hit-second') + '.log';
-    Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+    Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
       'Failed to start second member symbol-map index command.');
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected second member symbol-map index to succeed. See: ' +
       lLogPath);
-    lLogText := TFile.ReadAllText(lLogPath);
-    lSecondJsonValue := TJSONObject.ParseJSONValue(lLogText);
+    lLogText := ReadUtf8TextFile(lLogPath);
+    lSecondJsonValue := ParseJsonValue(lLogText);
     try
       lUnitObject := FirstIndexedUnit(lSecondJsonValue);
       Assert.IsTrue(lUnitObject.GetValue<Boolean>('parseAvoided'),
@@ -3059,8 +3059,8 @@ begin
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map index to succeed. See: ' +
     lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath);
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
@@ -3155,12 +3155,12 @@ begin
 
   lArgs := 'symbol-map index --project ' + QuoteArg(lProjectPath) + ' --cache-root ' + QuoteArg(lCacheRoot) +
     ' --format json';
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start symbol-map project index command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map project index to succeed. See: ' + lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath);
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
@@ -3264,12 +3264,12 @@ begin
   lArgs := 'symbol-map stats --project ' + QuoteArg(FixtureProjectPath) + ' --cache-root ' + QuoteArg(lCacheRoot) +
     ' --format json';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start symbol-map stats command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map stats to succeed. See: ' + lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath);
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lLogText := ReadUtf8TextFile(lLogPath);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
@@ -3499,13 +3499,13 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, 'symbol-map-help.log');
 
-  Assert.IsTrue(RunProcess(ResolverExePath, 'symbol-map --help', RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess('symbol-map --help', RepoRoot, lLogPath, lExitCode),
     'Failed to start symbol-map help command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map --help to succeed. See: ' + lLogPath);
 
   lLogText := '';
   if FileExists(lLogPath) then
-    lLogText := TFile.ReadAllText(lLogPath);
+    lLogText := ReadUtf8TextFile(lLogPath);
 
   Assert.IsTrue(Pos('index', lLogText) > 0, 'Expected symbol-map help to mention index.');
   Assert.IsTrue(Pos('find-definition', lLogText) > 0, 'Expected symbol-map help to mention find-definition.');
@@ -3540,15 +3540,15 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'symbol-map-stats-json.log');
   lArgs := 'symbol-map stats --project ' + QuoteArg(lProjectPath) + ' --format json';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start symbol-map stats command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map stats to succeed. See: ' + lLogPath);
 
   lLogText := '';
   if FileExists(lLogPath) then
-    lLogText := TFile.ReadAllText(lLogPath);
+    lLogText := ReadUtf8TextFile(lLogPath);
 
-  lJsonValue := TJSONObject.ParseJSONValue(lLogText);
+  lJsonValue := ParseJsonValue(lLogText);
   try
     Assert.IsNotNull(lJsonValue, 'Expected parseable JSON. Actual: ' + lLogText);
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
