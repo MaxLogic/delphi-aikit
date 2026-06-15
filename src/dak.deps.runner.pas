@@ -104,7 +104,7 @@ type
   public
     constructor Create(const aContext: TProjectAnalysisContext; const aOptions: TAppOptions);
     destructor Destroy; override;
-    procedure Build;
+    function Build(out aError: string): Boolean;
     function DefaultOutputPath(aFormat: TDepsFormat): string;
     function RenderJson: string;
     function RenderText(const aFocusUnitName: string; aTopLimit: Integer): string;
@@ -707,19 +707,36 @@ begin
   end;
 end;
 
-procedure TDepsGraphBuilder.Build;
+function TDepsGraphBuilder.Build(out aError: string): Boolean;
 var
   lError: string;
   lSemanticGraph: TDelphiSemanticDependencyGraph;
+  lSessionOpened: Boolean;
   lSessionOptions: TDelphiSemanticOptions;
   lSessionResult: TDelphiSemanticProjectSessionResult;
 begin
+  Result := False;
+  aError := '';
   FreeAndNil(fSccData);
+  if ((Trim(fOptions.fRsVarsPath) <> '') or (Trim(fOptions.fEnvOptionsPath) <> '') or
+    (Trim(fOptions.fDelphiVersion) <> '')) and (not fContext.HasDelphiContext) then
+  begin
+    aError := fContext.ContextNote;
+    if aError = '' then
+      aError := 'Delphi IDE context could not be resolved.';
+    Exit;
+  end;
+
   lSessionOptions := BuildSemanticSessionOptions(fContext.ProjectPath, fOptions.fConfig,
     fOptions.fPlatform, fOptions.fDelphiVersion, fOptions.fRsVarsPath,
     fOptions.fEnvOptionsPath, '');
-  if not OpenSemanticProjectSession(lSessionOptions, lSessionResult, lError) then
+  lSessionOpened := OpenSemanticProjectSession(lSessionOptions, lSessionResult,
+    lError);
+  if not lSessionOpened then
+  begin
+    aError := lError;
     Exit;
+  end;
   try
     lSemanticGraph := lSessionResult.Session.BuildDependencyGraph;
     MergeSemanticGraph(lSemanticGraph);
@@ -727,6 +744,7 @@ begin
     lSessionResult.Session.Free;
   end;
   fSccData := BuildSccData;
+  Result := True;
 end;
 
 function TDepsGraphBuilder.RenderJson: string;
@@ -1213,7 +1231,11 @@ begin
 
   lGraphBuilder := TDepsGraphBuilder.Create(fContext, fOptions);
   try
-    lGraphBuilder.Build;
+    if not lGraphBuilder.Build(lError) then
+    begin
+      WriteLn(ErrOutput, lError);
+      Exit(cExitInvalidProjectInput);
+    end;
     if fOptions.fDepsFormat = TDepsFormat.dfText then
       lOutputText := lGraphBuilder.RenderText(fOptions.fDepsUnitName, fOptions.fDepsTopLimit)
     else
