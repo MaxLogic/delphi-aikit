@@ -68,16 +68,28 @@ begin
     Result := TPath.Combine(aProject.ReportsPath, 'global-vars.txt');
 end;
 
-function RenderGlobalVarsOutput(const aSymbols, aFilteredSymbols:
-  TObjectList<TGlobalVarSymbol>; const aAmbiguities: TList<TGlobalVarAmbiguity>;
+function RenderGlobalVarsOutput(const aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aSummary: TGlobalVarsSummary;
   const aProject: TProjectInfo; const aOptions: TAppOptions): string;
 begin
   if aOptions.fGlobalVarsFormat = TGlobalVarsFormat.gvfJson then
-    Result := RenderJson(aSymbols, aFilteredSymbols, aAmbiguities, aProject,
+    Result := RenderJson(aFilteredSymbols, aAmbiguities, aSummary, aProject,
       aOptions)
   else
-    Result := RenderText(aSymbols, aFilteredSymbols, aAmbiguities, aProject,
+    Result := RenderText(aFilteredSymbols, aAmbiguities, aSummary, aProject,
       aOptions);
+end;
+
+function BuildCacheLoadFilter(const aOptions: TAppOptions): TGlobalVarsCacheLoadFilter;
+begin
+  Result := Default(TGlobalVarsCacheLoadFilter);
+  Result.HasUnitFilter := aOptions.fHasGlobalVarsUnitFilter;
+  Result.UnitFilter := aOptions.fGlobalVarsUnitFilter;
+  Result.HasNameFilter := aOptions.fHasGlobalVarsNameFilter;
+  Result.NameFilter := aOptions.fGlobalVarsNameFilter;
+  Result.UnusedOnly := aOptions.fGlobalVarsUnusedOnly;
+  Result.ReadsOnly := aOptions.fGlobalVarsReadsOnly;
+  Result.WritesOnly := aOptions.fGlobalVarsWritesOnly;
 end;
 
 procedure WriteOutput(const aOutputPath, aOutputText: string);
@@ -99,10 +111,12 @@ var
   lCacheAmbiguities: TList<TGlobalVarAmbiguity>;
   lCacheFileName: string;
   lCacheSymbols: TObjectList<TGlobalVarSymbol>;
+  lFilteredAmbiguities: TList<TGlobalVarAmbiguity>;
   lFilteredSymbols: TObjectList<TGlobalVarSymbol>;
   lIdentity: TGlobalVarsSemanticIdentity;
   lOutputText: string;
   lProject: TProjectInfo;
+  lSummary: TGlobalVarsSummary;
   lSymbols: TObjectList<TGlobalVarSymbol>;
 begin
   Result := 0;
@@ -113,32 +127,39 @@ begin
   lAnalysis := nil;
   lCacheSymbols := nil;
   lCacheAmbiguities := nil;
+  lFilteredSymbols := nil;
+  lFilteredAmbiguities := nil;
   lSymbols := nil;
   lAmbiguities := nil;
   try
     if (aOptions.fGlobalVarsRefresh <> TGlobalVarsRefresh.gvrForce) and
       TryLoadCachedSymbols(lCacheFileName, lProject.ProjectPath, lIdentity.IdentityHash,
-      lCacheSymbols, lCacheAmbiguities) then
+      BuildCacheLoadFilter(aOptions), lCacheSymbols, lCacheAmbiguities, lSummary) then
     begin
       lSymbols := lCacheSymbols;
       lAmbiguities := lCacheAmbiguities;
+      lFilteredSymbols := lSymbols;
+      lFilteredAmbiguities := lAmbiguities;
     end else begin
       lAnalysis := AnalyzeGlobalVarsProject(lProject, aOptions);
       lSymbols := lAnalysis.Symbols;
       lAmbiguities := lAnalysis.Ambiguities;
       SaveCachedSymbols(lCacheFileName, lProject.ProjectPath, lAnalysis.IdentityHash,
         lAnalysis.CacheIdentities, lSymbols, lAmbiguities);
+      lFilteredSymbols := BuildFilteredSymbols(lSymbols, aOptions);
+      lFilteredAmbiguities := BuildFilteredAmbiguities(lAmbiguities, aOptions);
+      lSummary := BuildGlobalVarsSummary(lSymbols, lAmbiguities, lFilteredSymbols.Count,
+        lFilteredAmbiguities.Count);
     end;
 
-    lFilteredSymbols := BuildFilteredSymbols(lSymbols, aOptions);
-    try
-      lOutputText := RenderGlobalVarsOutput(lSymbols, lFilteredSymbols, lAmbiguities,
-        lProject, aOptions);
-    finally
-      lFilteredSymbols.Free;
-    end;
+    lOutputText := RenderGlobalVarsOutput(lFilteredSymbols, lFilteredAmbiguities, lSummary,
+      lProject, aOptions);
     WriteOutput(OutputFileName(lProject, aOptions), lOutputText);
   finally
+    if lFilteredAmbiguities <> lAmbiguities then
+      lFilteredAmbiguities.Free;
+    if lFilteredSymbols <> lSymbols then
+      lFilteredSymbols.Free;
     lCacheAmbiguities.Free;
     lCacheSymbols.Free;
     lAnalysis.Free;
