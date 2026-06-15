@@ -47,10 +47,10 @@ uses
   FireDAC.Comp.Client,
   FireDAC.Phys.SQLite,
   FireDAC.Phys.SQLiteDef,
-  DelphiSemantics.Cache,
   Dak.GlobalVars,
   Dak.GlobalVars.Cache,
   Dak.GlobalVars.Model,
+  Dak.Semantics.Session,
   Dak.Types,
   MaxLogic.ioUtils,
   Test.Support;
@@ -489,8 +489,8 @@ var
 begin
   lSourceText := ReadGlobalVarsSourceText;
 
-  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticUnitCacheIdentity'),
-    'GlobalVars cache keys must reuse DelphiSemantics unit cache identity inputs.');
+  Assert.IsTrue(ContainsText(lSourceText, 'TDakSemanticUnitCacheIdentity'),
+    'GlobalVars cache keys must use the DAK adapter unit cache identity inputs.');
   Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticUnitModelExtractor'),
     'GlobalVars command orchestration should not extract semantic unit models directly.');
   Assert.IsFalse(ContainsText(lSourceText, 'DelphiAST.ProjectIndexer'),
@@ -549,7 +549,7 @@ var
   lAmbiguity: TGlobalVarAmbiguity;
   lAmbiguities: TList<TGlobalVarAmbiguity>;
   lCacheFileName: string;
-  lIdentities: TArray<TDelphiSemanticUnitCacheIdentity>;
+  lIdentities: TArray<TDakSemanticUnitCacheIdentity>;
   lAmbiguityFileName: string;
   lLoadedAmbiguities: TList<TGlobalVarAmbiguity>;
   lLoadedSymbols: TObjectList<TGlobalVarSymbol>;
@@ -792,7 +792,7 @@ var
   lAmbiguities: TList<TGlobalVarAmbiguity>;
   lCacheFileName: string;
   lFilter: TGlobalVarsCacheLoadFilter;
-  lIdentities: TArray<TDelphiSemanticUnitCacheIdentity>;
+  lIdentities: TArray<TDakSemanticUnitCacheIdentity>;
   lLoadedAmbiguities: TList<TGlobalVarAmbiguity>;
   lLoadedSymbols: TObjectList<TGlobalVarSymbol>;
   lProjectPath: string;

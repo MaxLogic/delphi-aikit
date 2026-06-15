@@ -14,9 +14,7 @@ implementation
 uses
   System.Classes, System.Diagnostics, System.Generics.Collections, System.Hash, System.IOUtils,
   System.SysUtils,
-  DelphiSemantics.Api, DelphiSemantics.Model, DelphiSemantics.ProjectContext,
-  DelphiSemantics.ProjectSession,
-  DelphiSemantics.Query, DelphiSemantics.Refactor,
+  DelphiSemantics.DeadCode, DelphiSemantics.ProjectContext, DelphiSemantics.Refactor,
   DelphiSemantics.Usage,
   Dak.ExitCodes, Dak.Semantics.Session, Dak.SourceText;
 
@@ -122,86 +120,18 @@ begin
   end;
 end;
 
-function ContextUnitModelCount(const aContext: TDelphiSemanticSymbolQueryContext): Integer;
-begin
-  Result := 0;
-  if aContext.UnitModel.FileName <> '' then
-    Inc(Result);
-  Inc(Result, Length(aContext.IndexedUnitModels));
-end;
-
-function ContextReferenceFallbackCount(
-  const aContext: TDelphiSemanticSymbolQueryContext): Integer;
-var
-  lModel: TDelphiSemanticUnitModel;
-begin
-  Result := aContext.UnitModel.Metrics.ReferenceReconciliationFallbackCount;
-  for lModel in aContext.IndexedUnitModels do
-    Inc(Result, lModel.Metrics.ReferenceReconciliationFallbackCount);
-end;
-
-function UnitModelDiagnosticsText(const aModel: TDelphiSemanticUnitModel): string;
-var
-  lDiagnostic: TDelphiSemanticModelDiagnostic;
-begin
-  Result := '';
-  for lDiagnostic in aModel.Diagnostics do
-  begin
-    if Result <> '' then
-      Result := Result + '; ';
-    Result := Result + lDiagnostic.Code + ': ' + lDiagnostic.Message;
-    if lDiagnostic.Line > 0 then
-      Result := Result + Format(' (line %d)', [lDiagnostic.Line]);
-  end;
-end;
-
-function TryValidateSemanticContext(const aContext: TDelphiSemanticSymbolQueryContext;
-  out aError: string): Boolean;
-var
-  lModel: TDelphiSemanticUnitModel;
-begin
-  Result := False;
-  aError := '';
-  if aContext.UnitModel.FileName = '' then
-  begin
-    aError := 'Failed to build DelphiSemantics symbol query context.';
-    Exit;
-  end;
-
-  if not aContext.UnitModel.Success then
-  begin
-    aError := 'Failed to build semantic model for project unit: ' +
-      aContext.UnitModel.FileName;
-    if UnitModelDiagnosticsText(aContext.UnitModel) <> '' then
-      aError := aError + sLineBreak + UnitModelDiagnosticsText(aContext.UnitModel);
-    Exit;
-  end;
-
-  for lModel in aContext.IndexedUnitModels do
-    if not lModel.Success then
-    begin
-      aError := 'Failed to build semantic model for project unit: ' + lModel.FileName;
-      if UnitModelDiagnosticsText(lModel) <> '' then
-        aError := aError + sLineBreak + UnitModelDiagnosticsText(lModel);
-      Exit;
-    end;
-
-  Result := True;
-end;
-
 function BuildSemanticContext(const aOptions: TAppOptions;
-  out aContext: TDelphiSemanticSymbolQueryContext; out aCacheMetrics: TDelphiSemanticCacheMetrics;
+  out aContext: IDakSemanticSymbolQueryContext; out aCacheMetrics: TDakSemanticCacheMetrics;
   out aPhaseMetrics: TRefactorSemanticPhaseMetrics; out aError: string): Boolean;
 var
-  lExtractionMilliseconds: Int64;
-  lSessionOpenMilliseconds: Int64;
+  lMetrics: TDakSemanticSymbolQueryMetrics;
   lSessionOptions: TDelphiSemanticOptions;
   lTotalStopwatch: TStopwatch;
 begin
   Result := False;
   aError := '';
-  aContext := Default(TDelphiSemanticSymbolQueryContext);
-  aCacheMetrics := Default(TDelphiSemanticCacheMetrics);
+  aContext := nil;
+  aCacheMetrics := Default(TDakSemanticCacheMetrics);
   aPhaseMetrics := Default(TRefactorSemanticPhaseMetrics);
   lTotalStopwatch := TStopwatch.StartNew;
   if aOptions.fHasRefactorSemanticCachePath then
@@ -212,25 +142,23 @@ begin
     lSessionOptions := BuildSemanticSessionOptions(aOptions.fDprojPath, aOptions.fConfig,
       aOptions.fPlatform, aOptions.fDelphiVersion, aOptions.fRsVarsPath,
       aOptions.fEnvOptionsPath, '');
-  Result := OpenSemanticSymbolQueryContext(lSessionOptions, aContext, aCacheMetrics,
-    lExtractionMilliseconds, lSessionOpenMilliseconds, aError, True);
-  aPhaseMetrics.ProjectContextMs := lSessionOpenMilliseconds;
+  Result := OpenSemanticSymbolQueryContext(lSessionOptions, aContext, lMetrics, aError,
+    True);
+  aCacheMetrics := lMetrics.CacheMetrics;
+  aPhaseMetrics.ProjectContextMs := lMetrics.SessionOpenMilliseconds;
   if not Result then
     Exit(False);
 
-  if not TryValidateSemanticContext(aContext, aError) then
-    Exit(False);
-  aPhaseMetrics.ProjectUnitCount := ContextUnitModelCount(aContext);
+  aPhaseMetrics.ProjectUnitCount := aContext.UnitModelCount;
   aPhaseMetrics.UnitModelExtractionCount := aPhaseMetrics.ProjectUnitCount;
-  aPhaseMetrics.UnitModelExtractionMs := lExtractionMilliseconds;
-  aPhaseMetrics.ReferenceReconciliationFallbackCount :=
-    ContextReferenceFallbackCount(aContext);
+  aPhaseMetrics.UnitModelExtractionMs := lMetrics.ExtractionMilliseconds;
+  aPhaseMetrics.ReferenceReconciliationFallbackCount := aContext.ReferenceFallbackCount;
   aPhaseMetrics.TotalMs := lTotalStopwatch.ElapsedMilliseconds;
   Result := True;
 end;
 
 function SemanticPhaseMetricsJson(const aPhaseMetrics: TRefactorSemanticPhaseMetrics;
-  const aCacheMetrics: TDelphiSemanticCacheMetrics): string;
+  const aCacheMetrics: TDakSemanticCacheMetrics): string;
 begin
   Result := '"semanticPhaseMetrics":{' +
     '"projectContextMs":' + aPhaseMetrics.ProjectContextMs.ToString +
@@ -260,7 +188,7 @@ begin
 end;
 
 function UsageResultJson(const aSymbol: string; const aResult: TDelphiSemanticUsageResult;
-  const aReferenceFallbackCount: Integer; const aCacheMetrics: TDelphiSemanticCacheMetrics;
+  const aReferenceFallbackCount: Integer; const aCacheMetrics: TDakSemanticCacheMetrics;
   const aPhaseMetrics: TRefactorSemanticPhaseMetrics): string;
 var
   i: Integer;
@@ -329,7 +257,7 @@ end;
 
 function RenameResultJson(const aSymbol: string; const aPlan: TDelphiSemanticRenamePlan;
   const aApply: Boolean; const aAppliedFiles: TArray<TAppliedFile>;
-  const aReferenceFallbackCount: Integer; const aCacheMetrics: TDelphiSemanticCacheMetrics;
+  const aReferenceFallbackCount: Integer; const aCacheMetrics: TDakSemanticCacheMetrics;
   const aPhaseMetrics: TRefactorSemanticPhaseMetrics): string;
 var
   i: Integer;
@@ -386,7 +314,7 @@ begin
 end;
 
 function DeadCodeReportJson(const aReport: TDelphiSemanticDeadCodeReport;
-  const aReferenceFallbackCount: Integer; const aCacheMetrics: TDelphiSemanticCacheMetrics;
+  const aReferenceFallbackCount: Integer; const aCacheMetrics: TDakSemanticCacheMetrics;
   const aPhaseMetrics: TRefactorSemanticPhaseMetrics): string;
 var
   i: Integer;
@@ -664,8 +592,8 @@ end;
 
 function RunFindUsagesCommand(const aOptions: TAppOptions): Integer;
 var
-  lContext: TDelphiSemanticSymbolQueryContext;
-  lCacheMetrics: TDelphiSemanticCacheMetrics;
+  lContext: IDakSemanticSymbolQueryContext;
+  lCacheMetrics: TDakSemanticCacheMetrics;
   lError: string;
   lOutput: string;
   lPhaseMetrics: TRefactorSemanticPhaseMetrics;
@@ -684,10 +612,10 @@ begin
   begin
     lSymbol := aOptions.fRefactorSymbol;
     lPlanningStopwatch := TStopwatch.StartNew;
-    lResult := TDelphiSemanticApi.FindUsagesByName(lContext, lSymbol);
+    lResult := lContext.FindUsagesByName(lSymbol);
   end else begin
     lPlanningStopwatch := TStopwatch.StartNew;
-    lResult := TDelphiSemanticApi.FindUsagesAtPosition(lContext, aOptions.fRefactorFilePath,
+    lResult := lContext.FindUsagesAtPosition(aOptions.fRefactorFilePath,
       aOptions.fRefactorLine, aOptions.fRefactorCol);
     lSymbol := lResult.Symbol.Name;
   end;
@@ -713,8 +641,8 @@ end;
 function RunRenameCommand(const aOptions: TAppOptions): Integer;
 var
   lAppliedFiles: TArray<TAppliedFile>;
-  lCacheMetrics: TDelphiSemanticCacheMetrics;
-  lContext: TDelphiSemanticSymbolQueryContext;
+  lCacheMetrics: TDakSemanticCacheMetrics;
+  lContext: IDakSemanticSymbolQueryContext;
   lError: string;
   lOutput: string;
   lPhaseMetrics: TRefactorSemanticPhaseMetrics;
@@ -735,16 +663,16 @@ begin
   begin
     lSymbol := aOptions.fRefactorSymbol;
     lPlanningStopwatch := TStopwatch.StartNew;
-    lPlan := TDelphiSemanticApi.PlanRename(lContext, lSymbol, aOptions.fRefactorNewName);
+    lPlan := lContext.PlanRename(lSymbol, aOptions.fRefactorNewName);
   end else begin
     lPlanningStopwatch := TStopwatch.StartNew;
-    lUsageResult := TDelphiSemanticApi.FindUsagesAtPosition(lContext, aOptions.fRefactorFilePath,
+    lUsageResult := lContext.FindUsagesAtPosition(aOptions.fRefactorFilePath,
       aOptions.fRefactorLine, aOptions.fRefactorCol);
     if lUsageResult.Status = 'resolved' then
       lSymbol := lUsageResult.Symbol.Name
     else
       lSymbol := '';
-    lPlan := TDelphiSemanticApi.PlanRenameAtPosition(lContext, aOptions.fRefactorFilePath,
+    lPlan := lContext.PlanRenameAtPosition(aOptions.fRefactorFilePath,
       aOptions.fRefactorLine, aOptions.fRefactorCol, aOptions.fRefactorNewName);
   end;
   lPhaseMetrics.CommandPlanningMs := lPlanningStopwatch.ElapsedMilliseconds;
@@ -788,8 +716,8 @@ end;
 
 function RunDeadCodeCommand(const aOptions: TAppOptions): Integer;
 var
-  lCacheMetrics: TDelphiSemanticCacheMetrics;
-  lContext: TDelphiSemanticSymbolQueryContext;
+  lCacheMetrics: TDakSemanticCacheMetrics;
+  lContext: IDakSemanticSymbolQueryContext;
   lError: string;
   lOutput: string;
   lPhaseMetrics: TRefactorSemanticPhaseMetrics;
@@ -809,7 +737,7 @@ begin
     lProfile := TDelphiSemanticDeadCodeProfiles.ToName(
       TDelphiSemanticDeadCodeProfiles.DefaultRemovalProfile);
   lPlanningStopwatch := TStopwatch.StartNew;
-  lReport := TDelphiSemanticApi.ReportDeadCode(lContext, lProfile);
+  lReport := lContext.ReportDeadCode(lProfile);
   lPhaseMetrics.CommandPlanningMs := lPlanningStopwatch.ElapsedMilliseconds;
   lPhaseMetrics.ProjectSymbolIndexBuildMs := lReport.IndexMetrics.BuildElapsedMilliseconds;
   lPhaseMetrics.ProjectSymbolIndexBuildCount := lReport.IndexMetrics.BuildInvocationCount;

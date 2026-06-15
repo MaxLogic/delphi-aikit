@@ -65,8 +65,7 @@ uses
   System.IOUtils,
   System.SysUtils,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite,
-  DelphiSemantics.Cache, DelphiSemantics.ProjectContext, DelphiSemantics.ProjectSession,
-  DelphiSemantics.Query, DelphiSemantics.Usage,
+  DelphiSemantics.ProjectContext,
   Dak.Semantics.Session;
 
 type
@@ -115,7 +114,7 @@ begin
     aContext.fRsVarsPath, aContext.fEnvOptionsPath, lCacheFileName);
 end;
 
-function MapSemanticDefinition(const aResult: TDelphiSemanticSymbolQueryResult):
+function MapSemanticDefinition(const aResult: TDakSemanticSymbolDefinition):
   TSymbolMapDefinition;
 begin
   Result := Default(TSymbolMapDefinition);
@@ -135,7 +134,7 @@ begin
   Result.fEndCol := aResult.EndColumn;
 end;
 
-function MapSemanticUsage(const aUsage: TDelphiSemanticUsage): TSymbolMapReference;
+function MapSemanticUsage(const aUsage: TDakSemanticUsageReference): TSymbolMapReference;
 begin
   Result := Default(TSymbolMapReference);
   Result.fName := aUsage.Name;
@@ -155,23 +154,20 @@ function FindSemanticDefinitionByPosition(const aContext: TSymbolMapContext;
   const aFilePath: string; const aLine, aCol: Integer; out aDefinition: TSymbolMapDefinition;
   out aError: string): Boolean;
 var
-  lCacheMetrics: TDelphiSemanticCacheMetrics;
-  lExtractionMilliseconds: Int64;
-  lQueryContext: TDelphiSemanticSymbolQueryContext;
-  lResult: TDelphiSemanticSymbolQueryResult;
-  lSessionOpenMilliseconds: Int64;
+  lMetrics: TDakSemanticSymbolQueryMetrics;
+  lQueryContext: IDakSemanticSymbolQueryContext;
+  lResult: TDakSemanticSymbolDefinition;
   lSessionOptions: TDelphiSemanticOptions;
 begin
   Result := False;
   aDefinition := Default(TSymbolMapDefinition);
   aError := '';
   lSessionOptions := SymbolMapSemanticSessionOptions(aContext);
-  if not OpenSemanticSymbolQueryContext(lSessionOptions, lQueryContext, lCacheMetrics,
-    lExtractionMilliseconds, lSessionOpenMilliseconds, aError) then
+  if not OpenSemanticSymbolQueryContext(lSessionOptions, lQueryContext, lMetrics,
+    aError) then
     Exit(False);
 
-  lResult := TDelphiSemanticSymbolQuery.FindDefinitionAtPosition(lQueryContext,
-    aFilePath, aLine, aCol);
+  lResult := lQueryContext.FindDefinitionAtPosition(aFilePath, aLine, aCol);
   if lResult.Found then
     aDefinition := MapSemanticDefinition(lResult);
   Result := True;
@@ -182,12 +178,10 @@ function FindSemanticReferencesByPosition(const aContext: TSymbolMapContext;
   out aReferences: TArray<TSymbolMapReference>; out aError: string): Boolean;
 var
   i: Integer;
-  lCacheMetrics: TDelphiSemanticCacheMetrics;
-  lExtractionMilliseconds: Int64;
   lIndex: Integer;
-  lQueryContext: TDelphiSemanticSymbolQueryContext;
-  lResult: TDelphiSemanticUsageResult;
-  lSessionOpenMilliseconds: Int64;
+  lMetrics: TDakSemanticSymbolQueryMetrics;
+  lQueryContext: IDakSemanticSymbolQueryContext;
+  lResult: TDakSemanticReferenceQueryResult;
   lSessionOptions: TDelphiSemanticOptions;
 begin
   Result := False;
@@ -195,22 +189,19 @@ begin
   SetLength(aReferences, 0);
   aError := '';
   lSessionOptions := SymbolMapSemanticSessionOptions(aContext);
-  if not OpenSemanticSymbolQueryContext(lSessionOptions, lQueryContext, lCacheMetrics,
-    lExtractionMilliseconds, lSessionOpenMilliseconds, aError) then
+  if not OpenSemanticSymbolQueryContext(lSessionOptions, lQueryContext, lMetrics,
+    aError) then
     Exit(False);
 
-  lResult := TDelphiSemanticUsageFinder.FindUsagesAtPosition(lQueryContext, aFilePath,
-    aLine, aCol);
-  if lResult.Status = 'resolved' then
+  lResult := lQueryContext.FindReferencesAtPosition(aFilePath, aLine, aCol, aLimit);
+  if lResult.SymbolName <> '' then
   begin
-    aSymbol := lResult.Symbol.Name;
-    for i := 0 to High(lResult.Usages) do
+    aSymbol := lResult.SymbolName;
+    for i := 0 to High(lResult.References) do
     begin
-      if (aLimit > 0) and (Length(aReferences) >= aLimit) then
-        Break;
       lIndex := Length(aReferences);
       SetLength(aReferences, lIndex + 1);
-      aReferences[lIndex] := MapSemanticUsage(lResult.Usages[i]);
+      aReferences[lIndex] := MapSemanticUsage(lResult.References[i]);
     end;
   end;
   Result := True;

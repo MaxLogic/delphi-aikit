@@ -4,8 +4,8 @@ interface
 
 uses
   System.Generics.Collections,
-  DelphiSemantics.Cache,
-  Dak.GlobalVars.Model;
+  Dak.GlobalVars.Model,
+  Dak.Semantics.Session;
 
 const
   cGlobalVarsCacheSchemaVersion = '3';
@@ -23,7 +23,7 @@ type
   end;
 
 procedure SaveCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
-  const aIdentities: TArray<TDelphiSemanticUnitCacheIdentity>;
+  const aIdentities: TArray<TDakSemanticUnitCacheIdentity>;
   const aSymbols: TObjectList<TGlobalVarSymbol>;
   const aAmbiguities: TList<TGlobalVarAmbiguity>);
 
@@ -257,7 +257,7 @@ begin
 end;
 
 procedure SaveIdentity(const aQuery: TFDQuery;
-  const aIdentity: TDelphiSemanticUnitCacheIdentity);
+  const aIdentity: TDakSemanticUnitCacheIdentity);
 begin
   SetWideParam(aQuery, 0, aIdentity.UnitCacheKey);
   SetWideParam(aQuery, 1, aIdentity.FileHash);
@@ -277,7 +277,7 @@ begin
 end;
 
 procedure SaveCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
-  const aIdentities: TArray<TDelphiSemanticUnitCacheIdentity>;
+  const aIdentities: TArray<TDakSemanticUnitCacheIdentity>;
   const aSymbols: TObjectList<TGlobalVarSymbol>;
   const aAmbiguities: TList<TGlobalVarAmbiguity>);
 var
@@ -285,7 +285,7 @@ var
   lAmbiguityQuery: TFDQuery;
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
-  lIdentity: TDelphiSemanticUnitCacheIdentity;
+  lIdentity: TDakSemanticUnitCacheIdentity;
   lIdentityQuery: TFDQuery;
   lRef: TGlobalVarRef;
   lRefQuery: TFDQuery;

@@ -17,7 +17,7 @@ uses
   System.JSON,
   System.StrUtils,
   System.SysUtils,
-  DelphiSemantics.Graph, DelphiSemantics.ProjectContext, DelphiSemantics.ProjectSession,
+  DelphiSemantics.Graph, DelphiSemantics.ProjectContext,
   Dak.ExitCodes,
   Dak.Project.Semantics,
   Dak.Semantics.Session;
@@ -711,9 +711,9 @@ function TDepsGraphBuilder.Build(out aError: string): Boolean;
 var
   lError: string;
   lSemanticGraph: TDelphiSemanticDependencyGraph;
+  lSession: IDakSemanticProjectSession;
   lSessionOpened: Boolean;
   lSessionOptions: TDelphiSemanticOptions;
-  lSessionResult: TDelphiSemanticProjectSessionResult;
 begin
   Result := False;
   aError := '';
@@ -730,19 +730,15 @@ begin
   lSessionOptions := BuildSemanticSessionOptions(fContext.ProjectPath, fOptions.fConfig,
     fOptions.fPlatform, fOptions.fDelphiVersion, fOptions.fRsVarsPath,
     fOptions.fEnvOptionsPath, '');
-  lSessionOpened := OpenSemanticProjectSession(lSessionOptions, lSessionResult,
+  lSessionOpened := OpenSemanticProjectSession(lSessionOptions, lSession,
     lError);
   if not lSessionOpened then
   begin
     aError := lError;
     Exit;
   end;
-  try
-    lSemanticGraph := lSessionResult.Session.BuildDependencyGraph;
-    MergeSemanticGraph(lSemanticGraph);
-  finally
-    lSessionResult.Session.Free;
-  end;
+  lSemanticGraph := lSession.BuildDependencyGraph;
+  MergeSemanticGraph(lSemanticGraph);
   fSccData := BuildSccData;
   Result := True;
 end;
