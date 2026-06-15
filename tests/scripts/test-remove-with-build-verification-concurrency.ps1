@@ -1,38 +1,16 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'test-support.ps1')
+
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $fixtureRoot = Join-Path $repoRoot 'tests\fixtures\RemoveWithApplyFixture'
-$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) `
-  ('remove-with-build-verification-concurrency-' + [guid]::NewGuid().ToString('N'))
+$tempRoot = New-DakProofTempRoot 'remove-with-build-verification-concurrency'
 $exePath = Join-Path $repoRoot 'bin\DelphiAIKit.exe'
+$runs = @()
 
 if (-not (Test-Path -LiteralPath $exePath)) {
   throw "DelphiAIKit.exe not found: $exePath"
-}
-
-function Assert-Contains {
-  param(
-    [Parameter(Mandatory = $true)][string]$Text,
-    [Parameter(Mandatory = $true)][string]$Needle,
-    [Parameter(Mandatory = $true)][string]$Message
-  )
-
-  if (-not $Text.Contains($Needle)) {
-    throw $Message
-  }
-}
-
-function Assert-NotContains {
-  param(
-    [Parameter(Mandatory = $true)][string]$Text,
-    [Parameter(Mandatory = $true)][string]$Needle,
-    [Parameter(Mandatory = $true)][string]$Message
-  )
-
-  if ($Text.Contains($Needle)) {
-    throw $Message
-  }
 }
 
 function Get-BuildVerificationMutexName {
@@ -75,7 +53,7 @@ function Start-RemoveWithApply {
     [Parameter(Mandatory = $true)][string]$ErrPath
   )
 
-  Start-Job -ScriptBlock {
+  Start-DakProofJob ([IO.Path]::GetFileNameWithoutExtension($OutPath)) {
     param($ExePath, $ProjectPath, $OutPath, $ErrPath)
     & $ExePath remove-with --project $ProjectPath --all --mode apply --format json > $OutPath 2> $ErrPath
     [pscustomobject]@{
@@ -86,25 +64,7 @@ function Start-RemoveWithApply {
   } -ArgumentList $exePath, $ProjectPath, $OutPath, $ErrPath
 }
 
-function Receive-CompletedJob {
-  param(
-    [Parameter(Mandatory = $true)]$Job,
-    [Parameter(Mandatory = $true)][int]$TimeoutSec
-  )
-
-  $completed = Wait-Job -Job $Job -Timeout $TimeoutSec
-  if ($null -eq $completed) {
-    Stop-Job -Job $Job
-    Receive-Job -Job $Job -ErrorAction SilentlyContinue | Out-Null
-    Remove-Job -Job $Job -Force
-    throw "Timed out waiting for job $($Job.Id)."
-  }
-  $result = Receive-Job -Job $Job
-  Remove-Job -Job $Job
-  return $result
-}
-
-function Assert-ApplyResult {
+function Require-ApplyResult {
   param(
     [Parameter(Mandatory = $true)]$JobResult,
     [Parameter(Mandatory = $true)][string]$ProjectDir
@@ -158,8 +118,6 @@ Assert-Contains $buildRunnerSource 'fBuildDiagnosticsDir' `
   'Build runner must accept diagnostics through typed options.'
 
 try {
-  New-Item -ItemType Directory -Force -Path $tempRoot | Out-Null
-
   $projectADir = Join-Path $tempRoot 'copy-a'
   $projectBDir = Join-Path $tempRoot 'copy-b'
   Copy-Fixture $projectADir
@@ -184,30 +142,33 @@ try {
   try {
     $sameJob = Start-RemoveWithApply $projectA (Join-Path $tempRoot 'same-project.json') `
       (Join-Path $tempRoot 'same-project.err.log')
+    $runs = @($sameJob)
     $disjointJob = Start-RemoveWithApply $projectB (Join-Path $tempRoot 'disjoint-project.json') `
       (Join-Path $tempRoot 'disjoint-project.err.log')
+    $runs += $disjointJob
 
     Start-Sleep -Seconds 3
-    if ($sameJob.State -ne 'Running') {
-      throw "Expected same-project verification to wait on the held mutex, but job state is $($sameJob.State)."
+    if ($sameJob.Job.State -ne 'Running') {
+      throw "Expected same-project verification to wait on the held mutex, but job state is $($sameJob.Job.State)."
     }
 
-    $disjointResult = Receive-CompletedJob $disjointJob 45
+    $disjointResult = Receive-DakProofJob $disjointJob 45
     $disjointJob = $null
-    Assert-ApplyResult $disjointResult $projectBDir
+    Require-ApplyResult $disjointResult $projectBDir
   } finally {
     $heldMutex.ReleaseMutex()
     $heldMutex.Dispose()
   }
 
   if ($null -ne $sameJob) {
-    $sameResult = Receive-CompletedJob $sameJob 45
-    Assert-ApplyResult $sameResult $projectADir
+    $sameResult = Receive-DakProofJob $sameJob 45
+    Require-ApplyResult $sameResult $projectADir
   }
 
-  Remove-Item -LiteralPath $tempRoot -Recurse -Force
+  Remove-DakProofTempRoot $tempRoot
   Write-Host 'PASS remove-with build verification isolation contract'
 } catch {
-  Write-Host "Preserving failing-run evidence under $tempRoot"
+  Write-DakProofFailureEvidence $tempRoot
+  Stop-DakProofJobs $runs
   throw
 }
