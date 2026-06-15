@@ -128,7 +128,7 @@ uses
   System.SysUtils,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile,
   DelphiSemantics.Model,
-  Dak.RadStudio.Locator,
+  Dak.RadStudio.Locator, Dak.Semantics.Session,
   MaxLogic.StrUtils;
 
 procedure LogRemoveWithSymbolProgress(const aOptions: TAppOptions; const aMessage: string);
@@ -719,13 +719,8 @@ var
   lSourceFileNames: TList<string>;
   lUnitModel: TRemoveWithUnitModel;
 begin
-  Result := Default(TDelphiSemanticApiOptions);
+  Result := BuildSemanticApiOptions(aOptions, nil, nil);
   Result.ProjectFileName := aProjectModel.ProjectPath;
-  Result.Configuration := aOptions.fConfig;
-  Result.Platform := aOptions.fPlatform;
-  Result.DelphiVersion := aOptions.fDelphiVersion;
-  Result.RsVarsPath := aOptions.fRsVarsPath;
-  Result.EnvOptionsPath := aOptions.fEnvOptionsPath;
   lProjectDir := IncludeTrailingPathDelimiter(TPath.GetDirectoryName(aProjectModel.ProjectPath));
   lSourceFileNames := TList<string>.Create;
   try
@@ -742,9 +737,6 @@ begin
   finally
     lSourceFileNames.Free;
   end;
-  Result.Cache.DelphiVersion := aOptions.fDelphiVersion;
-  Result.Cache.Configuration := aOptions.fConfig;
-  Result.Cache.Platform := aOptions.fPlatform;
   Result.SkipWithBindingSemanticGraph := True;
   if aOptions.fHasRemoveWithSemanticCachePath and
     (Trim(aOptions.fRemoveWithSemanticCachePath) <> '') then

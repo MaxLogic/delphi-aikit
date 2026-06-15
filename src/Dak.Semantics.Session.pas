@@ -1,11 +1,16 @@
-unit Dak.Semantics.Session;
+﻿unit Dak.Semantics.Session;
 
 interface
 
 uses
-  DelphiSemantics.Cache, DelphiSemantics.ProjectContext, DelphiSemantics.ProjectSession,
-  DelphiSemantics.Query;
+  System.Generics.Collections,
+  DelphiSemantics.Api, DelphiSemantics.Cache, DelphiSemantics.ProjectContext,
+  DelphiSemantics.ProjectSession, DelphiSemantics.Query,
+  Dak.Types;
 
+function BuildSemanticApiOptions(const aOptions: TAppOptions;
+  const aEnvironmentVariables: TDictionary<string, string>;
+  const aSearchPaths: TArray<string>): TDelphiSemanticApiOptions;
 function BuildSemanticSessionOptions(const aProjectPath, aConfiguration, aPlatform,
   aDelphiVersion, aRsVarsPath, aEnvOptionsPath, aCacheFileName: string):
   TDelphiSemanticOptions;
@@ -25,6 +30,46 @@ implementation
 
 uses
   System.Diagnostics, System.IOUtils, System.SysUtils;
+
+function SemanticEnvironmentProperties(const aEnvironmentVariables: TDictionary<string, string>):
+  TArray<TDelphiSemanticProperty>;
+var
+  i: Integer;
+  lPair: TPair<string, string>;
+begin
+  if aEnvironmentVariables = nil then
+  begin
+    SetLength(Result, 0);
+    Exit;
+  end;
+
+  SetLength(Result, aEnvironmentVariables.Count);
+  i := 0;
+  for lPair in aEnvironmentVariables do
+  begin
+    Result[i].Name := lPair.Key;
+    Result[i].Value := lPair.Value;
+    Inc(i);
+  end;
+end;
+
+function BuildSemanticApiOptions(const aOptions: TAppOptions;
+  const aEnvironmentVariables: TDictionary<string, string>;
+  const aSearchPaths: TArray<string>): TDelphiSemanticApiOptions;
+begin
+  Result := Default(TDelphiSemanticApiOptions);
+  Result.Configuration := aOptions.fConfig;
+  Result.Platform := aOptions.fPlatform;
+  Result.DelphiVersion := aOptions.fDelphiVersion;
+  Result.ProjectFileName := aOptions.fDprojPath;
+  Result.RsVarsPath := aOptions.fRsVarsPath;
+  Result.EnvOptionsPath := aOptions.fEnvOptionsPath;
+  Result.EnvironmentVariables := SemanticEnvironmentProperties(aEnvironmentVariables);
+  Result.SearchPaths := Copy(aSearchPaths);
+  Result.Cache.DelphiVersion := aOptions.fDelphiVersion;
+  Result.Cache.Configuration := aOptions.fConfig;
+  Result.Cache.Platform := aOptions.fPlatform;
+end;
 
 function BuildSemanticSessionOptions(const aProjectPath, aConfiguration, aPlatform,
   aDelphiVersion, aRsVarsPath, aEnvOptionsPath, aCacheFileName: string):

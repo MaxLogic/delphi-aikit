@@ -1,4 +1,4 @@
-unit Dak.Project.SourceLookup;
+﻿unit Dak.Project.SourceLookup;
 
 interface
 
@@ -13,29 +13,8 @@ function TryBuildProjectSourceLookup(const aDprojPath, aConfig, aPlatform, aDelp
 implementation
 
 uses
-  DelphiSemantics.Api;
-
-function SemanticEnvironmentProperties(const aEnvVars: TDictionary<string, string>):
-  TArray<TDelphiSemanticProperty>;
-var
-  i: Integer;
-  lPair: TPair<string, string>;
-begin
-  if aEnvVars = nil then
-  begin
-    SetLength(Result, 0);
-    Exit;
-  end;
-
-  SetLength(Result, aEnvVars.Count);
-  i := 0;
-  for lPair in aEnvVars do
-  begin
-    Result[i].Name := lPair.Key;
-    Result[i].Value := lPair.Value;
-    Inc(i);
-  end;
-end;
+  DelphiSemantics.Api,
+  Dak.Semantics.Session;
 
 procedure AddSemanticDiagnostics(const aDiagnostics: TDiagnostics;
   const aResult: TDelphiSemanticContextResult);
@@ -65,16 +44,18 @@ function TryBuildProjectSourceLookup(const aDprojPath, aConfig, aPlatform, aDelp
   const aEnvVars: TDictionary<string, string>; aDiagnostics: TDiagnostics; out aLookup: TProjectSourceLookup;
   out aError: string): Boolean;
 var
+  lAppOptions: TAppOptions;
   lOptions: TDelphiSemanticApiOptions;
   lResult: TDelphiSemanticContextResult;
 begin
   aError := '';
   aLookup := Default(TProjectSourceLookup);
-  lOptions := Default(TDelphiSemanticApiOptions);
-  lOptions.Configuration := aConfig;
-  lOptions.Platform := aPlatform;
-  lOptions.DelphiVersion := aDelphiVersion;
-  lOptions.EnvironmentVariables := SemanticEnvironmentProperties(aEnvVars);
+  lAppOptions := Default(TAppOptions);
+  lAppOptions.fDprojPath := aDprojPath;
+  lAppOptions.fConfig := aConfig;
+  lAppOptions.fPlatform := aPlatform;
+  lAppOptions.fDelphiVersion := aDelphiVersion;
+  lOptions := BuildSemanticApiOptions(lAppOptions, aEnvVars, nil);
 
   lResult := TDelphiSemanticApi.LoadProjectContext(aDprojPath, lOptions);
   AddSemanticDiagnostics(aDiagnostics, lResult);
