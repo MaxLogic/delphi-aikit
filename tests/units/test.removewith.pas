@@ -8,7 +8,7 @@ uses
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Planner,
   Dak.RemoveWith.Output, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
   Dak.RemoveWith.TempPolicy, Dak.RemoveWith.Transaction, Dak.Types, DelphiSemantics.Api,
-  DelphiSemantics.Api.RemoveWith, DelphiSemantics.Model, DelphiSemantics.WithBinding,
+  DelphiSemantics.Api.RemoveWith.Compatibility, DelphiSemantics.Model, DelphiSemantics.WithBinding,
   Test.Support;
 
 type
@@ -1259,9 +1259,9 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithApi.PlanRemoveWithSnapshot(lFacts)'),
+  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWithSnapshot(lFacts)'),
     'DAK must build remove-with plans through the DelphiSemantics snapshot planner using existing facts.');
-  Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithApi.PlanRemoveWith(lFacts)'),
+  Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWith(lFacts)'),
     'DAK must not build remove-with plans through the legacy project-facts overload.');
   Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithApi.PlanRemoveWith(lOptions)'),
     'DAK must not open a second project session only to build the typed remove-with plan.');

@@ -3,7 +3,7 @@ unit Dak.RemoveWith.Planner;
 interface
 
 uses
-  DelphiSemantics.Api.RemoveWith,
+  DelphiSemantics.Api.RemoveWith.Compatibility,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.TempPolicy;
 
 type

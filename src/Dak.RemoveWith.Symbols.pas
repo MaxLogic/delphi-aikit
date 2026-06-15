@@ -3,7 +3,7 @@
 interface
 
 uses
-  DelphiSemantics.Api, DelphiSemantics.Api.RemoveWith,
+  DelphiSemantics.Api, DelphiSemantics.Api.RemoveWith.Compatibility,
   Dak.RemoveWith.Model, Dak.Types;
 
 type
@@ -771,7 +771,7 @@ begin
   lRequest.BodyAnalysisSourceFileNames := Copy(aBodyAnalysisSourceFileNames);
   lStopwatch := TStopwatch.StartNew;
   try
-    lFacts := TDelphiSemanticRemoveWithApi.BuildProjectWithBindingFacts(lRequest);
+    lFacts := TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFacts(lRequest);
   except
     on E: Exception do
     begin
@@ -821,7 +821,7 @@ begin
   aInventory.fDelphiSemanticLookupIndex := lFacts.LookupIndex;
   lPlanStopwatch := TStopwatch.StartNew;
   try
-    aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticRemoveWithApi.PlanRemoveWithSnapshot(lFacts);
+    aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWithSnapshot(lFacts);
   except
     on E: Exception do
     begin
