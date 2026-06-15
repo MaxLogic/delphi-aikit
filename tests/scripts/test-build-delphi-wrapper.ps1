@@ -1,15 +1,14 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'test-support.ps1')
+
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $buildBat = Join-Path $repoRoot 'build-delphi.bat'
-$project = Join-Path $repoRoot 'tests\fixtures\RemoveWithApplyFixture\RemoveWithApplyFixture.dproj'
-$projectName = [IO.Path]::GetFileNameWithoutExtension($project)
-$projectDir = Split-Path -Parent $project
-$defaultLogParent = Join-Path $projectDir (Join-Path '.dak' (Join-Path $projectName 'build'))
-$fixtureRes = Join-Path (Split-Path -Parent $project) 'RemoveWithApplyFixture.res'
-$fixtureResExisted = Test-Path -LiteralPath $fixtureRes -PathType Leaf
-$tempRoot = Join-Path ([IO.Path]::GetTempPath()) ('dak-build-wrapper-' + [guid]::NewGuid().ToString('N'))
+$fixtureRoot = Join-Path $repoRoot 'tests\fixtures\RemoveWithApplyFixture'
+$fixtureProject = Join-Path $fixtureRoot 'RemoveWithApplyFixture.dproj'
+$projectName = [IO.Path]::GetFileNameWithoutExtension($fixtureProject)
+$tempRoot = New-DakProofTempRoot 'dak-build-wrapper'
 $startedUtc = [DateTime]::UtcNow
 $runs = @()
 $defaultRunDirsToRemove = @()
@@ -17,37 +16,32 @@ $defaultRunDirsToRemove = @()
 if (-not (Test-Path -LiteralPath $buildBat -PathType Leaf)) {
   throw "build-delphi.bat not found: $buildBat"
 }
-if (-not (Test-Path -LiteralPath $project -PathType Leaf)) {
-  throw "Build fixture project not found: $project"
+if (-not (Test-Path -LiteralPath $fixtureProject -PathType Leaf)) {
+  throw "Build fixture project not found: $fixtureProject"
 }
 
-function Assert-NotContains {
-  param(
-    [Parameter(Mandatory = $true)][string]$Text,
-    [Parameter(Mandatory = $true)][string]$Needle,
-    [Parameter(Mandatory = $true)][string]$Message
-  )
+function New-WrapperProjectCopy {
+  param([Parameter(Mandatory = $true)][string]$Name)
 
-  if ($Text.Contains($Needle)) {
-    throw $Message
+  $targetDir = Join-Path $tempRoot $Name
+  if (Test-Path -LiteralPath $targetDir -PathType Container) {
+    Remove-Item -LiteralPath $targetDir -Recurse -Force
   }
+  Copy-Item -LiteralPath $fixtureRoot -Destination $targetDir -Recurse
+  return Join-Path $targetDir 'RemoveWithApplyFixture.dproj'
 }
 
-function Assert-Matches {
-  param(
-    [Parameter(Mandatory = $true)][string]$Text,
-    [Parameter(Mandatory = $true)][string]$Pattern,
-    [Parameter(Mandatory = $true)][string]$Message
-  )
+function Get-DefaultLogParent {
+  param([Parameter(Mandatory = $true)][string]$ProjectPath)
 
-  if ($Text -notmatch $Pattern) {
-    throw $Message
-  }
+  $projectDir = Split-Path -Parent $ProjectPath
+  return Join-Path $projectDir (Join-Path '.dak' (Join-Path $projectName 'build'))
 }
 
 function Start-WrapperBuild {
   param(
     [Parameter(Mandatory = $true)][string]$Name,
+    [Parameter(Mandatory = $true)][string]$ProjectPath,
     [Parameter(Mandatory = $false)][string]$LogParent = ''
   )
 
@@ -56,7 +50,7 @@ function Start-WrapperBuild {
   $outRoot = Join-Path $runRoot 'out'
   New-Item -ItemType Directory -Force -Path $wrapperLogRoot, $outRoot | Out-Null
 
-  $job = Start-Job -ScriptBlock {
+  $run = Start-DakProofJob $Name {
     param($BuildBat, $Project, $OutRoot, $WrapperLogRoot, $LogParent)
 
     $stdout = Join-Path $WrapperLogRoot 'wrapper.stdout.log'
@@ -74,31 +68,19 @@ function Start-WrapperBuild {
       Stdout = $stdout
       Stderr = $stderr
     }
-  } -ArgumentList $buildBat, $project, $outRoot, $wrapperLogRoot, $LogParent
+  } -ArgumentList $buildBat, $ProjectPath, $outRoot, $wrapperLogRoot, $LogParent
+  $run | Add-Member -NotePropertyName LogParent -NotePropertyValue $LogParent
 
-  return [pscustomobject]@{
-    Name = $Name
-    Job = $job
-    LogParent = $LogParent
-  }
+  return $run
 }
 
-function Receive-WrapperBuild {
+function Complete-WrapperBuild {
   param(
     [Parameter(Mandatory = $true)]$Run,
     [Parameter(Mandatory = $true)][int]$TimeoutSec
   )
 
-  $completed = Wait-Job -Job $Run.Job -Timeout $TimeoutSec
-  if ($null -eq $completed) {
-    Stop-Job -Job $Run.Job
-    Receive-Job -Job $Run.Job -ErrorAction SilentlyContinue | Out-Null
-    Remove-Job -Job $Run.Job -Force
-    throw "Timed out waiting for wrapper build '$($Run.Name)'."
-  }
-
-  $result = Receive-Job -Job $Run.Job
-  Remove-Job -Job $Run.Job
+  $result = Receive-DakProofJob $Run $TimeoutSec
   if ($result.ExitCode -ne 0) {
     $stdout = if (Test-Path -LiteralPath $result.Stdout) { Get-Content -LiteralPath $result.Stdout -Raw } else { '' }
     $stderr = if (Test-Path -LiteralPath $result.Stderr) { Get-Content -LiteralPath $result.Stderr -Raw } else { '' }
@@ -107,26 +89,7 @@ function Receive-WrapperBuild {
   return $result
 }
 
-function Stop-RemainingWrapperBuilds {
-  param([object[]]$Runs)
-
-  foreach ($run in @($Runs)) {
-    if ($null -eq $run) {
-      continue
-    }
-    $job = $run.Job
-    if ($null -eq $job) {
-      continue
-    }
-    if ($job.State -eq 'Running') {
-      Stop-Job -Job $job
-    }
-    Receive-Job -Job $job -ErrorAction SilentlyContinue | Out-Null
-    Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
-  }
-}
-
-function Assert-LogSet {
+function Require-LogSet {
   param(
     [Parameter(Mandatory = $true)][string]$LogRoot
   )
@@ -170,7 +133,7 @@ function Get-NewRunDirs {
     Where-Object { -not $Before.Contains([IO.Path]::GetFullPath($_.FullName)) })
 }
 
-function Assert-NewRunLogs {
+function Require-NewRunLogs {
   param(
     [Parameter(Mandatory = $true)][string]$Parent,
     [Parameter(Mandatory = $true)]$Before,
@@ -182,15 +145,9 @@ function Assert-NewRunLogs {
     throw "Expected $ExpectedCount new run log directories under $Parent, found $($newDirs.Count)."
   }
   foreach ($dir in $newDirs) {
-    Assert-LogSet $dir.FullName
+    Require-LogSet $dir.FullName
   }
   return $newDirs
-}
-
-function Remove-GeneratedFixtureResource {
-  if ((-not $fixtureResExisted) -and (Test-Path -LiteralPath $fixtureRes -PathType Leaf)) {
-    Remove-Item -LiteralPath $fixtureRes -Force
-  }
 }
 
 function Remove-DefaultRunDirs {
@@ -202,30 +159,36 @@ function Remove-DefaultRunDirs {
 }
 
 try {
-  New-Item -ItemType Directory -Force -Path $tempRoot | Out-Null
-
-  $defaultBefore = Get-RunDirSnapshot $defaultLogParent
-  $runs = @(
-    (Start-WrapperBuild 'default-a'),
-    (Start-WrapperBuild 'default-b')
-  )
+  $defaultProjectA = New-WrapperProjectCopy 'default-project-a'
+  $defaultProjectB = New-WrapperProjectCopy 'default-project-b'
+  $defaultLogParentA = Get-DefaultLogParent $defaultProjectA
+  $defaultLogParentB = Get-DefaultLogParent $defaultProjectB
+  $defaultBeforeA = Get-RunDirSnapshot $defaultLogParentA
+  $defaultBeforeB = Get-RunDirSnapshot $defaultLogParentB
+  $runs = @()
+  $runs += Start-WrapperBuild 'default-a' $defaultProjectA
+  $runs += Start-WrapperBuild 'default-b' $defaultProjectB
 
   foreach ($run in $runs) {
-    [void](Receive-WrapperBuild $run 90)
+    [void](Complete-WrapperBuild $run 90)
   }
-  $defaultRunDirsToRemove = @(Assert-NewRunLogs $defaultLogParent $defaultBefore 2)
+  $defaultRunDirsToRemove = @(
+    (Require-NewRunLogs $defaultLogParentA $defaultBeforeA 1),
+    (Require-NewRunLogs $defaultLogParentB $defaultBeforeB 1)
+  )
 
+  $sharedProjectA = New-WrapperProjectCopy 'shared-project-a'
+  $sharedProjectB = New-WrapperProjectCopy 'shared-project-b'
   $sharedLogParent = Join-Path $tempRoot 'shared log parent with spaces'
   $sharedBefore = Get-RunDirSnapshot $sharedLogParent
-  $runs = @(
-    (Start-WrapperBuild 'shared-a' $sharedLogParent),
-    (Start-WrapperBuild 'shared-b' $sharedLogParent)
-  )
+  $runs = @()
+  $runs += Start-WrapperBuild 'shared-a' $sharedProjectA $sharedLogParent
+  $runs += Start-WrapperBuild 'shared-b' $sharedProjectB $sharedLogParent
 
   foreach ($run in $runs) {
-    [void](Receive-WrapperBuild $run 90)
+    [void](Complete-WrapperBuild $run 90)
   }
-  [void](Assert-NewRunLogs $sharedLogParent $sharedBefore 2)
+  [void](Require-NewRunLogs $sharedLogParent $sharedBefore 2)
 
   $newRootLogs = @(Get-ChildItem -LiteralPath $repoRoot -File -Include 'build_*.log', 'out_*.log', 'errors_*.log' |
     Where-Object { $_.LastWriteTimeUtc -ge $startedUtc })
@@ -239,14 +202,12 @@ try {
   Assert-NotContains $source 'errors_%TS%.log' 'Wrapper must not use shared errors_%TS%.log filenames.'
   Assert-Matches $source '-log-dir' 'Wrapper must expose a caller-supplied log directory option.'
 
-  Remove-Item -LiteralPath $tempRoot -Recurse -Force
+  Remove-DakProofTempRoot $tempRoot
   Remove-DefaultRunDirs
-  Remove-GeneratedFixtureResource
   Write-Host 'PASS build-delphi wrapper log isolation'
 } catch {
-  Write-Host "Preserving failing-run evidence under $tempRoot"
-  Stop-RemainingWrapperBuilds $runs
+  Write-DakProofFailureEvidence $tempRoot
+  Stop-DakProofJobs $runs
   Remove-DefaultRunDirs
-  Remove-GeneratedFixtureResource
   throw
 }
