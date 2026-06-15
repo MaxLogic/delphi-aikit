@@ -1,4 +1,4 @@
-unit Dak.Project.Semantics;
+﻿unit Dak.Project.Semantics;
 
 interface
 
@@ -20,7 +20,8 @@ uses
   System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.SysUtils,
   DelphiSemantics.Api, DelphiSemantics.CompilerProfile,
   maxLogic.StrUtils,
-  Dak.FixInsightSettings, Dak.Registry, Dak.RsVars, Dak.Utils;
+  Dak.FixInsightSettings, Dak.Registry, Dak.RsVars, Dak.Semantics.Session,
+  Dak.Utils;
 
 function SplitList(const aValue: string): TArray<string>;
 var
@@ -69,41 +70,6 @@ end;
 function TargetCompilerDefinesText(const aPlatform: string): string;
 begin
   Result := String.Join(';', TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform(aPlatform));
-end;
-
-function SemanticEnvironmentProperties(const aEnvVars: TDictionary<string, string>):
-  TArray<TDelphiSemanticProperty>;
-var
-  i: Integer;
-  lPair: TPair<string, string>;
-begin
-  if aEnvVars = nil then
-  begin
-    SetLength(Result, 0);
-    Exit;
-  end;
-
-  SetLength(Result, aEnvVars.Count);
-  i := 0;
-  for lPair in aEnvVars do
-  begin
-    Result[i].Name := lPair.Key;
-    Result[i].Value := lPair.Value;
-    Inc(i);
-  end;
-end;
-
-function SemanticApiOptions(const aOptions: TAppOptions; const aEnvVars: TDictionary<string, string>;
-  const aSearchPaths: TArray<string>): TDelphiSemanticApiOptions;
-begin
-  Result := Default(TDelphiSemanticApiOptions);
-  Result.Configuration := aOptions.fConfig;
-  Result.Platform := aOptions.fPlatform;
-  Result.DelphiVersion := aOptions.fDelphiVersion;
-  Result.RsVarsPath := aOptions.fRsVarsPath;
-  Result.EnvOptionsPath := aOptions.fEnvOptionsPath;
-  Result.EnvironmentVariables := SemanticEnvironmentProperties(aEnvVars);
-  Result.SearchPaths := aSearchPaths;
 end;
 
 function FirstSemanticErrorMessage(const aResult: TDelphiSemanticContextResult): string;
@@ -178,7 +144,7 @@ begin
   lBuildOptions := aOptions;
   lBuildOptions.fDprojPath := lProjectPath;
   lResult := TDelphiSemanticApi.LoadProjectContext(lProjectPath,
-    SemanticApiOptions(lBuildOptions, nil, nil));
+    BuildSemanticApiOptions(lBuildOptions, nil, nil));
   if not lResult.Success then
   begin
     aError := FirstSemanticErrorMessage(lResult);
@@ -231,7 +197,7 @@ begin
     lBuildOptions.fDelphiVersion := lDelphiVersion;
     lSearchPaths := SplitList(lLibraryPath);
     lResult := TDelphiSemanticApi.LoadProjectContext(lProjectPath,
-      SemanticApiOptions(lBuildOptions, lEnvVars, lSearchPaths));
+      BuildSemanticApiOptions(lBuildOptions, lEnvVars, lSearchPaths));
     if lResult.Success then
     begin
       lSearchPaths := ConcatDedup(lResult.Project.SourceLookupPaths,
