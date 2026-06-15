@@ -18,10 +18,6 @@ type
       const aExtraArgs: string = ''): string;
     procedure AssertJsonHasKey(const aObject: TJSONObject; const aName: string);
     procedure AssertJsonMissingKey(const aObject: TJSONObject; const aName: string);
-    procedure AssertJsonObjectKey(const aObject: TJSONObject; const aName: string; out aChild: TJSONObject);
-    procedure AssertJsonArrayKey(const aObject: TJSONObject; const aName: string; out aChild: TJSONArray);
-    procedure AssertJsonStringKey(const aObject: TJSONObject; const aName: string);
-    procedure AssertJsonNumberKey(const aObject: TJSONObject; const aName: string);
     procedure AssertJsonBoolKey(const aObject: TJSONObject; const aName: string);
   end;
 
@@ -1014,12 +1010,12 @@ begin
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --unit ' + QuoteArg(lUnitPath) +
     ' --mode ' + aMode + ' --format ' + aFormat + aExtraArgs;
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start remove-with process.');
 
   Result := '';
   if FileExists(lLogPath) then
-    Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+    Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithTestBase.AssertJsonHasKey(const aObject: TJSONObject; const aName: string);
@@ -1030,33 +1026,6 @@ end;
 procedure TRemoveWithTestBase.AssertJsonMissingKey(const aObject: TJSONObject; const aName: string);
 begin
   Assert.IsNull(aObject.Values[aName], 'Expected JSON key to be absent: ' + aName);
-end;
-
-procedure TRemoveWithTestBase.AssertJsonObjectKey(const aObject: TJSONObject; const aName: string;
-  out aChild: TJSONObject);
-begin
-  AssertJsonHasKey(aObject, aName);
-  Assert.IsTrue(aObject.Values[aName] is TJSONObject, 'Expected JSON object key: ' + aName);
-  aChild := aObject.Values[aName] as TJSONObject;
-end;
-
-procedure TRemoveWithTestBase.AssertJsonArrayKey(const aObject: TJSONObject; const aName: string; out aChild: TJSONArray);
-begin
-  AssertJsonHasKey(aObject, aName);
-  Assert.IsTrue(aObject.Values[aName] is TJSONArray, 'Expected JSON array key: ' + aName);
-  aChild := aObject.Values[aName] as TJSONArray;
-end;
-
-procedure TRemoveWithTestBase.AssertJsonStringKey(const aObject: TJSONObject; const aName: string);
-begin
-  AssertJsonHasKey(aObject, aName);
-  Assert.IsTrue(aObject.Values[aName] is TJSONString, 'Expected JSON string key: ' + aName);
-end;
-
-procedure TRemoveWithTestBase.AssertJsonNumberKey(const aObject: TJSONObject; const aName: string);
-begin
-  AssertJsonHasKey(aObject, aName);
-  Assert.IsTrue(aObject.Values[aName] is TJSONNumber, 'Expected JSON number key: ' + aName);
 end;
 
 procedure TRemoveWithTestBase.AssertJsonBoolKey(const aObject: TJSONObject; const aName: string);
@@ -1665,9 +1634,9 @@ begin
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode plan --format json ' +
     '--verbose true --diagnostics true --semantic-cache ' + QuoteArg(aCacheFileName);
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start remove-with semantic cache process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithCommandTests.SemanticCacheOptionReusesAndInvalidatesUnitModels;
@@ -1747,7 +1716,7 @@ begin
   lOutput := RunRemoveWith('scan', 'json', 'remove-with-report-scan.json', lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with scan report to succeed.');
 
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with output to be a JSON object.');
     lRoot := lJson as TJSONObject;
@@ -1756,58 +1725,58 @@ begin
     AssertJsonHasKey(lRoot, 'operation');
     AssertJsonHasKey(lRoot, 'status');
     AssertJsonHasKey(lRoot, 'mode');
-    AssertJsonObjectKey(lRoot, 'project', lChildObject);
-    AssertJsonStringKey(lChildObject, 'path');
-    AssertJsonStringKey(lChildObject, 'name');
-    AssertJsonStringKey(lChildObject, 'dir');
-    AssertJsonStringKey(lChildObject, 'contextMode');
+    RequireJsonObjectKey(lRoot, 'project', lChildObject);
+    RequireJsonStringKey(lChildObject, 'path');
+    RequireJsonStringKey(lChildObject, 'name');
+    RequireJsonStringKey(lChildObject, 'dir');
+    RequireJsonStringKey(lChildObject, 'contextMode');
 
-    AssertJsonObjectKey(lRoot, 'run', lChildObject);
-    AssertJsonStringKey(lChildObject, 'id');
-    AssertJsonStringKey(lChildObject, 'workspaceRoot');
+    RequireJsonObjectKey(lRoot, 'run', lChildObject);
+    RequireJsonStringKey(lChildObject, 'id');
+    RequireJsonStringKey(lChildObject, 'workspaceRoot');
 
-    AssertJsonObjectKey(lRoot, 'targets', lChildObject);
-    AssertJsonStringKey(lChildObject, 'kind');
+    RequireJsonObjectKey(lRoot, 'targets', lChildObject);
+    RequireJsonStringKey(lChildObject, 'kind');
     Assert.AreEqual('unit', lChildObject.Values['kind'].Value, 'Expected unit target kind.');
-    AssertJsonStringKey(lChildObject, 'unit');
-    AssertJsonStringKey(lChildObject, 'dir');
+    RequireJsonStringKey(lChildObject, 'unit');
+    RequireJsonStringKey(lChildObject, 'dir');
     AssertJsonBoolKey(lChildObject, 'all');
 
-    AssertJsonObjectKey(lRoot, 'workspace', lChildObject);
-    AssertJsonStringKey(lChildObject, 'root');
-    AssertJsonStringKey(lChildObject, 'reports');
-    AssertJsonStringKey(lChildObject, 'tmp');
-    AssertJsonStringKey(lChildObject, 'backup');
-    AssertJsonStringKey(lChildObject, 'manifest');
+    RequireJsonObjectKey(lRoot, 'workspace', lChildObject);
+    RequireJsonStringKey(lChildObject, 'root');
+    RequireJsonStringKey(lChildObject, 'reports');
+    RequireJsonStringKey(lChildObject, 'tmp');
+    RequireJsonStringKey(lChildObject, 'backup');
+    RequireJsonStringKey(lChildObject, 'manifest');
 
-    AssertJsonArrayKey(lRoot, 'files', lChildArray);
-    AssertJsonArrayKey(lRoot, 'withStatements', lChildArray);
-    AssertJsonObjectKey(lRoot, 'resolver', lChildObject);
-    AssertJsonArrayKey(lChildObject, 'classifications', lChildArray);
-    AssertJsonObjectKey(lChildObject, 'counts', lCounts);
-    AssertJsonNumberKey(lCounts, 'resolved');
-    AssertJsonNumberKey(lCounts, 'unchanged');
-    AssertJsonNumberKey(lCounts, 'external');
-    AssertJsonNumberKey(lCounts, 'unsupported');
-    AssertJsonNumberKey(lCounts, 'unresolved');
-    AssertJsonNumberKey(lCounts, 'ambiguousToDak');
+    RequireJsonArrayKey(lRoot, 'files', lChildArray);
+    RequireJsonArrayKey(lRoot, 'withStatements', lChildArray);
+    RequireJsonObjectKey(lRoot, 'resolver', lChildObject);
+    RequireJsonArrayKey(lChildObject, 'classifications', lChildArray);
+    RequireJsonObjectKey(lChildObject, 'counts', lCounts);
+    RequireJsonNumberKey(lCounts, 'resolved');
+    RequireJsonNumberKey(lCounts, 'unchanged');
+    RequireJsonNumberKey(lCounts, 'external');
+    RequireJsonNumberKey(lCounts, 'unsupported');
+    RequireJsonNumberKey(lCounts, 'unresolved');
+    RequireJsonNumberKey(lCounts, 'ambiguousToDak');
 
-    AssertJsonArrayKey(lRoot, 'plannedEdits', lChildArray);
-    AssertJsonArrayKey(lRoot, 'skipped', lChildArray);
-    AssertJsonArrayKey(lRoot, 'warnings', lChildArray);
-    AssertJsonObjectKey(lRoot, 'verification', lChildObject);
-    AssertJsonStringKey(lChildObject, 'status');
+    RequireJsonArrayKey(lRoot, 'plannedEdits', lChildArray);
+    RequireJsonArrayKey(lRoot, 'skipped', lChildArray);
+    RequireJsonArrayKey(lRoot, 'warnings', lChildArray);
+    RequireJsonObjectKey(lRoot, 'verification', lChildObject);
+    RequireJsonStringKey(lChildObject, 'status');
     Assert.AreEqual('not-run', lChildObject.Values['status'].Value, 'Expected verification status.');
-    AssertJsonArrayKey(lChildObject, 'gates', lChildArray);
+    RequireJsonArrayKey(lChildObject, 'gates', lChildArray);
 
-    AssertJsonObjectKey(lRoot, 'summary', lChildObject);
-    AssertJsonNumberKey(lChildObject, 'filesScanned');
-    AssertJsonNumberKey(lChildObject, 'withStatements');
-    AssertJsonNumberKey(lChildObject, 'plannedEdits');
-    AssertJsonNumberKey(lChildObject, 'appliedEdits');
-    AssertJsonNumberKey(lChildObject, 'skipped');
-    AssertJsonNumberKey(lChildObject, 'failed');
-    AssertJsonNumberKey(lChildObject, 'rolledBack');
+    RequireJsonObjectKey(lRoot, 'summary', lChildObject);
+    RequireJsonNumberKey(lChildObject, 'filesScanned');
+    RequireJsonNumberKey(lChildObject, 'withStatements');
+    RequireJsonNumberKey(lChildObject, 'plannedEdits');
+    RequireJsonNumberKey(lChildObject, 'appliedEdits');
+    RequireJsonNumberKey(lChildObject, 'skipped');
+    RequireJsonNumberKey(lChildObject, 'failed');
+    RequireJsonNumberKey(lChildObject, 'rolledBack');
   finally
     lJson.Free;
   end;
@@ -1825,21 +1794,21 @@ begin
   lOutput := RunRemoveWith('plan', 'json', 'remove-with-report-plan.json', lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan report to succeed.');
 
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with output to be a JSON object.');
     lRoot := lJson as TJSONObject;
 
     Assert.AreEqual('plan', lRoot.Values['mode'].Value, 'Expected plan mode in report.');
-    AssertJsonArrayKey(lRoot, 'withStatements', lChildArray);
+    RequireJsonArrayKey(lRoot, 'withStatements', lChildArray);
     Assert.AreEqual(0, lChildArray.Count,
       'Plan reports should not repeat detailed scan statements.');
-    AssertJsonObjectKey(lRoot, 'resolver', lChildObject);
-    AssertJsonArrayKey(lRoot, 'plannedEdits', lChildArray);
-    AssertJsonArrayKey(lRoot, 'skipped', lChildArray);
-    AssertJsonObjectKey(lRoot, 'verification', lChildObject);
-    AssertJsonObjectKey(lRoot, 'summary', lChildObject);
-    AssertJsonNumberKey(lChildObject, 'plannedEdits');
+    RequireJsonObjectKey(lRoot, 'resolver', lChildObject);
+    RequireJsonArrayKey(lRoot, 'plannedEdits', lChildArray);
+    RequireJsonArrayKey(lRoot, 'skipped', lChildArray);
+    RequireJsonObjectKey(lRoot, 'verification', lChildObject);
+    RequireJsonObjectKey(lRoot, 'summary', lChildObject);
+    RequireJsonNumberKey(lChildObject, 'plannedEdits');
   finally
     lJson.Free;
   end;
@@ -1856,7 +1825,7 @@ begin
     lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan report to succeed.');
 
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with output to be a JSON object.');
     lRoot := lJson as TJSONObject;
@@ -1892,14 +1861,14 @@ begin
   lPlanResult.fStatements[0].fStatus := 'skipped';
   lPlanResult.fStatements[0].fReason := 'member-not-found';
 
-  lJson := TJSONObject.ParseJSONValue(BuildRemoveWithJsonReport(lOptions,
+  lJson := ParseJsonValue(BuildRemoveWithJsonReport(lOptions,
     'maxtdb.dproj', '', 'run-id', '', '', Default(TRemoveWithScanResult),
     Default(TRemoveWithResolverResult), lPlanResult, lTransactionResult,
     lMetrics));
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with JSON report.');
     lRoot := lJson as TJSONObject;
-    AssertJsonArrayKey(lRoot, 'skipped', lSkipped);
+    RequireJsonArrayKey(lRoot, 'skipped', lSkipped);
     Assert.AreEqual(1, lSkipped.Count, 'Expected one skipped statement.');
     Assert.IsTrue(lSkipped.Items[0] is TJSONObject,
       'Expected skipped statement object.');
@@ -1925,7 +1894,7 @@ var
   lSubphaseMetrics: TJSONObject;
 begin
   lJson := nil;
-  lJson := TJSONObject.ParseJSONValue(RunRemoveWith('plan', 'json',
+  lJson := ParseJsonValue(RunRemoveWith('plan', 'json',
     'remove-with-report-plan-metrics.json', lExitCode, ' --diagnostics true'));
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan report to succeed.');
 
@@ -1933,67 +1902,67 @@ begin
     Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with output to be a JSON object.');
     lRoot := lJson as TJSONObject;
 
-    AssertJsonObjectKey(lRoot, 'plannerPhaseMetrics', lMetrics);
-    AssertJsonNumberKey(lMetrics, 'totalMs');
-    AssertJsonNumberKey(lMetrics, 'projectModelMs');
-    AssertJsonNumberKey(lMetrics, 'discoveryMs');
-    AssertJsonNumberKey(lMetrics, 'symbolInventoryMs');
-    AssertJsonObjectKey(lMetrics, 'symbolInventorySubphaseMetrics', lSubphaseMetrics);
-    AssertJsonNumberKey(lMetrics, 'semanticProjectFactsMs');
-    AssertJsonNumberKey(lMetrics, 'semanticCompatibilityFactsMs');
-    AssertJsonNumberKey(lMetrics, 'semanticBindingMs');
-    AssertJsonNumberKey(lMetrics, 'semanticPlanDtoMs');
-    AssertJsonNumberKey(lMetrics, 'dakLookupIndexMs');
-    AssertJsonNumberKey(lMetrics, 'dakResolverClassifyMs');
-    AssertJsonNumberKey(lMetrics, 'dakPlannerRewriteMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticModelExtractionMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticInventoryBuildMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticScopeIndexBuildMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticSelectorBindingMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticReferenceBindingMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticReceiverMemberResolveMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticLexicalResolveMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticReferenceCacheHitCount');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticReferenceCacheMissCount');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticLookupIndexBuildMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticBindingIndexBuildMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'semanticInventoryExpansionMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'rtlSourceEnrichmentMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'externalUnitSymbolsMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'externalTypeSymbolsMs');
-    AssertJsonNumberKey(lSubphaseMetrics, 'problemSymbolAssemblyMs');
-    AssertJsonObjectKey(lMetrics, 'resolverReportSubphaseMetrics',
+    RequireJsonObjectKey(lRoot, 'plannerPhaseMetrics', lMetrics);
+    RequireJsonNumberKey(lMetrics, 'totalMs');
+    RequireJsonNumberKey(lMetrics, 'projectModelMs');
+    RequireJsonNumberKey(lMetrics, 'discoveryMs');
+    RequireJsonNumberKey(lMetrics, 'symbolInventoryMs');
+    RequireJsonObjectKey(lMetrics, 'symbolInventorySubphaseMetrics', lSubphaseMetrics);
+    RequireJsonNumberKey(lMetrics, 'semanticProjectFactsMs');
+    RequireJsonNumberKey(lMetrics, 'semanticCompatibilityFactsMs');
+    RequireJsonNumberKey(lMetrics, 'semanticBindingMs');
+    RequireJsonNumberKey(lMetrics, 'semanticPlanDtoMs');
+    RequireJsonNumberKey(lMetrics, 'dakLookupIndexMs');
+    RequireJsonNumberKey(lMetrics, 'dakResolverClassifyMs');
+    RequireJsonNumberKey(lMetrics, 'dakPlannerRewriteMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticModelExtractionMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticInventoryBuildMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticScopeIndexBuildMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticSelectorBindingMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticReferenceBindingMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticReceiverMemberResolveMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticLexicalResolveMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticReferenceCacheHitCount');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticReferenceCacheMissCount');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticLookupIndexBuildMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticBindingIndexBuildMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticInventoryExpansionMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'rtlSourceEnrichmentMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'externalUnitSymbolsMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'externalTypeSymbolsMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'problemSymbolAssemblyMs');
+    RequireJsonObjectKey(lMetrics, 'resolverReportSubphaseMetrics',
       lResolverSubphaseMetrics);
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'directSemanticProjectionMs');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackDecisionMs');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'directSemanticProjectionMs');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'fallbackDecisionMs');
     AssertJsonMissingKey(lResolverSubphaseMetrics, 'legacyFallbackResolverMs');
     AssertJsonMissingKey(lResolverSubphaseMetrics, 'legacyReceiverBuildMs');
     AssertJsonMissingKey(lResolverSubphaseMetrics, 'legacyIdentifierCollectMs');
     AssertJsonMissingKey(lResolverSubphaseMetrics, 'legacyClassifyUseMs');
     AssertJsonMissingKey(lResolverSubphaseMetrics, 'legacyEnrichmentMs');
     AssertJsonMissingKey(lResolverSubphaseMetrics, 'legacyClassifyUseCount');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackStatementCount');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'fallbackStatementCount');
     AssertJsonMissingKey(lResolverSubphaseMetrics, 'fallbackClassificationCount');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'semanticReferenceCount');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackScopedDeclarationCount');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackScopeShadowCount');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackMultiSelectorCount');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackUppercaseLexicalCount');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackHelperReceiverCount');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackInheritedMemberCount');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackUnsupportedReferenceCount');
-    AssertJsonNumberKey(lResolverSubphaseMetrics, 'fallbackStrictNonMemberCount');
-    AssertJsonNumberKey(lMetrics, 'symbolMapBridgeMs');
-    AssertJsonNumberKey(lMetrics, 'resolverMs');
-    AssertJsonNumberKey(lMetrics, 'plannerMs');
-    AssertJsonNumberKey(lMetrics, 'outputSerializationMs');
-    AssertJsonStringKey(lMetrics, 'contextFingerprint');
-    AssertJsonNumberKey(lMetrics, 'projectUnitCount');
-    AssertJsonNumberKey(lMetrics, 'withStatementCount');
-    AssertJsonNumberKey(lMetrics, 'symbolCount');
-    AssertJsonNumberKey(lMetrics, 'classificationCount');
-    AssertJsonNumberKey(lMetrics, 'plannedEditCount');
-    AssertJsonNumberKey(lMetrics, 'skippedStatementCount');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'semanticReferenceCount');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'fallbackScopedDeclarationCount');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'fallbackScopeShadowCount');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'fallbackMultiSelectorCount');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'fallbackUppercaseLexicalCount');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'fallbackHelperReceiverCount');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'fallbackInheritedMemberCount');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'fallbackUnsupportedReferenceCount');
+    RequireJsonNumberKey(lResolverSubphaseMetrics, 'fallbackStrictNonMemberCount');
+    RequireJsonNumberKey(lMetrics, 'symbolMapBridgeMs');
+    RequireJsonNumberKey(lMetrics, 'resolverMs');
+    RequireJsonNumberKey(lMetrics, 'plannerMs');
+    RequireJsonNumberKey(lMetrics, 'outputSerializationMs');
+    RequireJsonStringKey(lMetrics, 'contextFingerprint');
+    RequireJsonNumberKey(lMetrics, 'projectUnitCount');
+    RequireJsonNumberKey(lMetrics, 'withStatementCount');
+    RequireJsonNumberKey(lMetrics, 'symbolCount');
+    RequireJsonNumberKey(lMetrics, 'classificationCount');
+    RequireJsonNumberKey(lMetrics, 'plannedEditCount');
+    RequireJsonNumberKey(lMetrics, 'skippedStatementCount');
   finally
     lJson.Free;
   end;
@@ -2011,18 +1980,18 @@ begin
     ' --diagnostics true');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan report to succeed.');
 
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with output to be a JSON object.');
     lRoot := lJson as TJSONObject;
 
-    AssertJsonObjectKey(lRoot, 'semanticDtoParity', lParity);
-    AssertJsonStringKey(lParity, 'status');
+    RequireJsonObjectKey(lRoot, 'semanticDtoParity', lParity);
+    RequireJsonStringKey(lParity, 'status');
     Assert.AreEqual('passed', lParity.Values['status'].Value, 'Expected semantic DTO shadow parity to pass.');
-    AssertJsonNumberKey(lParity, 'mismatchCount');
+    RequireJsonNumberKey(lParity, 'mismatchCount');
     Assert.AreEqual('0', lParity.Values['mismatchCount'].Value,
       'Expected semantic DTO final statements to match current DAK plan output.');
-    AssertJsonStringKey(lParity, 'summaryText');
+    RequireJsonStringKey(lParity, 'summaryText');
   finally
     lJson.Free;
   end;
@@ -2046,23 +2015,23 @@ begin
     'tests\fixtures\RemoveWithE2EFixture\E2ESafeUnit.pas');
   lLogPath := TPath.Combine(TempRoot, 'remove-with-report-unit-dto-parity.json');
 
-  Assert.IsTrue(RunProcess(ResolverExePath, 'remove-with --project ' + QuoteArg(lDprojPath) +
+  Assert.IsTrue(RunResolverProcess('remove-with --project ' + QuoteArg(lDprojPath) +
     ' --unit ' + QuoteArg(lUnitPath) + ' --mode plan --format json --diagnostics true',
     TPath.GetDirectoryName(ResolverExePath), lLogPath, lExitCode),
     'Failed to start remove-with unit plan process.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with unit plan report to succeed.');
 
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with output to be a JSON object.');
     lRoot := lJson as TJSONObject;
 
-    AssertJsonObjectKey(lRoot, 'semanticDtoParity', lParity);
-    AssertJsonStringKey(lParity, 'status');
+    RequireJsonObjectKey(lRoot, 'semanticDtoParity', lParity);
+    RequireJsonStringKey(lParity, 'status');
     Assert.AreEqual('passed', lParity.Values['status'].Value,
       'Expected semantic DTO parity to ignore final statements outside the unit target.');
-    AssertJsonNumberKey(lParity, 'mismatchCount');
+    RequireJsonNumberKey(lParity, 'mismatchCount');
     Assert.AreEqual('0', lParity.Values['mismatchCount'].Value,
       'Expected unit-scoped semantic DTO parity to match current DAK plan output.');
   finally
@@ -2094,11 +2063,11 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' ' + aTargetArgs + ' --mode scan --format json';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start remove-with discovery process.');
   Result := '';
   if FileExists(lLogPath) then
-    Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+    Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithDiscoveryTests.ScanFindsSingleMultipleAndNestedWithStatements;
@@ -2117,11 +2086,11 @@ begin
   lOutput := RunDiscoveryFixture('--all', 'remove-with-discovery-all.json', lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected discovery scan to succeed.');
 
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected discovery output to be JSON object.');
     lRoot := lJson as TJSONObject;
-    AssertJsonArrayKey(lRoot, 'withStatements', lStatements);
+    RequireJsonArrayKey(lRoot, 'withStatements', lStatements);
     Assert.AreEqual(4, lStatements.Count, 'Expected all single, multiple, outer, and nested with statements.');
 
     lHasMultipleSelector := False;
@@ -2130,13 +2099,13 @@ begin
     begin
       Assert.IsTrue(lStatements.Items[i] is TJSONObject, 'Expected with statement item to be an object.');
       lStatement := lStatements.Items[i] as TJSONObject;
-      AssertJsonStringKey(lStatement, 'selectorText');
-      AssertJsonNumberKey(lStatement, 'selectorCount');
-      AssertJsonNumberKey(lStatement, 'nestingDepth');
+      RequireJsonStringKey(lStatement, 'selectorText');
+      RequireJsonNumberKey(lStatement, 'selectorCount');
+      RequireJsonNumberKey(lStatement, 'nestingDepth');
       AssertJsonBoolKey(lStatement, 'hasScopedDeclarationInBody');
-      AssertJsonObjectKey(lStatement, 'bodyRange', lSummary);
-      AssertJsonNumberKey(lSummary, 'startLine');
-      AssertJsonNumberKey(lSummary, 'endLine');
+      RequireJsonObjectKey(lStatement, 'bodyRange', lSummary);
+      RequireJsonNumberKey(lSummary, 'startLine');
+      RequireJsonNumberKey(lSummary, 'endLine');
 
       if lStatement.Values['selectorText'].Value = 'lLeft, lRight' then
       begin
@@ -2152,7 +2121,7 @@ begin
 
     Assert.IsTrue(lHasMultipleSelector, 'Expected multiple-selector with statement.');
     Assert.IsTrue(lHasNestedStatement, 'Expected nested with statement.');
-    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    RequireJsonObjectKey(lRoot, 'summary', lSummary);
     Assert.AreEqual('4', lSummary.Values['withStatements'].Value, 'Expected summary with count.');
   finally
     lJson.Free;
@@ -2186,15 +2155,15 @@ begin
   lOutput := RunDiscoveryFixture('--unit ' + QuoteArg(lUnitPath), 'remove-with-discovery-unit.json', lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected unit-target discovery scan to succeed.');
 
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected unit-target discovery output to be JSON object.');
     lRoot := lJson as TJSONObject;
-    AssertJsonArrayKey(lRoot, 'files', lFiles);
+    RequireJsonArrayKey(lRoot, 'files', lFiles);
     Assert.AreEqual(1, lFiles.Count, 'Expected --unit to scan only the selected unit.');
-    AssertJsonArrayKey(lRoot, 'withStatements', lStatements);
+    RequireJsonArrayKey(lRoot, 'withStatements', lStatements);
     Assert.AreEqual(4, lStatements.Count, 'Expected selected unit with statements only.');
-    AssertJsonArrayKey(lRoot, 'warnings', lWarnings);
+    RequireJsonArrayKey(lRoot, 'warnings', lWarnings);
     Assert.AreEqual(0, lWarnings.Count, 'Expected unrelated missing-unit warning to be filtered for --unit.');
   finally
     lJson.Free;
@@ -2214,11 +2183,11 @@ begin
   lOutput := RunDiscoveryFixture('--dir ' + QuoteArg(lDirPath), 'remove-with-discovery-dir.json', lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected dir-target discovery scan to succeed.');
 
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected dir-target discovery output to be JSON object.');
     lRoot := lJson as TJSONObject;
-    AssertJsonArrayKey(lRoot, 'warnings', lWarnings);
+    RequireJsonArrayKey(lRoot, 'warnings', lWarnings);
     Assert.IsTrue(lWarnings.Count > 0, 'Expected missing project unit warning to stay visible for scoped --dir.');
   finally
     lJson.Free;
@@ -2237,11 +2206,11 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' ' + aTargetArgs + ' --mode scan --format json';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start remove-with range process.');
   Result := '';
   if FileExists(lLogPath) then
-    Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+    Result := ReadUtf8TextFile(lLogPath);
 end;
 
 function TRemoveWithRangeTests.ReadSourceText(const aPath: string): string;
@@ -2337,16 +2306,16 @@ begin
   lOutput := RunRangeFixture('--all', 'remove-with-ranges.json', lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected range fixture scan to succeed.');
 
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected range output to be JSON object.');
     lRoot := lJson as TJSONObject;
-    AssertJsonArrayKey(lRoot, 'withStatements', lStatements);
+    RequireJsonArrayKey(lRoot, 'withStatements', lStatements);
     lStatement := FindStatementContaining(lStatements, 'lMatrix');
 
-    AssertJsonObjectKey(lStatement, 'selectorRange', lSelectorRange);
-    AssertJsonObjectKey(lStatement, 'bodyRange', lBodyRange);
-    AssertJsonObjectKey(lStatement, 'range', lRange);
+    RequireJsonObjectKey(lStatement, 'selectorRange', lSelectorRange);
+    RequireJsonObjectKey(lStatement, 'bodyRange', lBodyRange);
+    RequireJsonObjectKey(lStatement, 'range', lRange);
     Assert.AreEqual('2', lStatement.Values['selectorCount'].Value, 'Expected two top-level selectors.');
 
     lSourceText := ReadSourceText(lStatement.Values['file'].Value);
@@ -2359,9 +2328,9 @@ begin
       ExtractRangeText(lSourceText, lRange), 'Expected exact whole-with source span.');
 
     lStatementWithComment := FindStatementContaining(lStatements, 'selector comment');
-    AssertJsonObjectKey(lStatementWithComment, 'selectorRange', lSelectorRange);
-    AssertJsonObjectKey(lStatementWithComment, 'bodyRange', lBodyRange);
-    AssertJsonObjectKey(lStatementWithComment, 'range', lRange);
+    RequireJsonObjectKey(lStatementWithComment, 'selectorRange', lSelectorRange);
+    RequireJsonObjectKey(lStatementWithComment, 'bodyRange', lBodyRange);
+    RequireJsonObjectKey(lStatementWithComment, 'range', lRange);
     lSourceText := ReadSourceText(lStatementWithComment.Values['file'].Value);
     Assert.AreEqual('lLeft,' + #13#10 + '    {selector comment}' + #13#10 + '    lRight',
       ExtractRangeText(lSourceText, lSelectorRange), 'Expected selector range to preserve comments.');
@@ -2371,21 +2340,21 @@ begin
       '    Save;', ExtractRangeText(lSourceText, lRange), 'Expected whole-with range to include single body.');
 
     lStatementWithLineComment := FindStatementContaining(lStatements, 'selector line comment');
-    AssertJsonObjectKey(lStatementWithLineComment, 'selectorRange', lSelectorRange);
+    RequireJsonObjectKey(lStatementWithLineComment, 'selectorRange', lSelectorRange);
     Assert.AreEqual('2', lStatementWithLineComment.Values['selectorCount'].Value,
       'Expected comma in line comment not to count as a selector.');
     Assert.AreEqual('lLeft, // selector line comment, with comma' + #13#10 + '    lRight',
       ExtractRangeText(lSourceText, lSelectorRange), 'Expected selector range to preserve line comments.');
 
     lStatementWithDirective := FindStatementContaining(lStatements, 'MSWINDOWS');
-    AssertJsonObjectKey(lStatementWithDirective, 'selectorRange', lSelectorRange);
+    RequireJsonObjectKey(lStatementWithDirective, 'selectorRange', lSelectorRange);
     lSourceText := ReadSourceText(lStatementWithDirective.Values['file'].Value);
     Assert.AreEqual('lLeft' + #13#10 + '    {$IFDEF MSWINDOWS}' + #13#10 + '    {$ENDIF}',
       ExtractRangeText(lSourceText, lSelectorRange), 'Expected selector range to preserve directives.');
 
     lStatementWithIf := FindStatementAtLine(lStatements, 72);
-    AssertJsonObjectKey(lStatementWithIf, 'bodyRange', lBodyRange);
-    AssertJsonObjectKey(lStatementWithIf, 'range', lRange);
+    RequireJsonObjectKey(lStatementWithIf, 'bodyRange', lBodyRange);
+    RequireJsonObjectKey(lStatementWithIf, 'range', lRange);
     lSourceText := ReadSourceText(lStatementWithIf.Values['file'].Value);
     Assert.AreEqual('if lIndex = 0 then' + #13#10 + '    begin' + #13#10 + '      Name := ''if-body'';' +
       #13#10 + '      Save;' + #13#10 + '    end;', ExtractRangeText(lSourceText, lBodyRange),
@@ -2412,13 +2381,13 @@ begin
   lOutput := RunRangeFixture('--all', 'remove-with-ranges-bom.json', lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected range fixture scan to succeed.');
 
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected range output to be JSON object.');
     lRoot := lJson as TJSONObject;
-    AssertJsonArrayKey(lRoot, 'withStatements', lStatements);
+    RequireJsonArrayKey(lRoot, 'withStatements', lStatements);
     lStatement := FindStatementContaining(lStatements, 'lBom');
-    AssertJsonObjectKey(lStatement, 'selectorRange', lSelectorRange);
+    RequireJsonObjectKey(lStatement, 'selectorRange', lSelectorRange);
 
     Assert.AreEqual('21', lStatement.Values['line'].Value, 'Expected BOM unit line numbers to ignore the BOM.');
     Assert.AreEqual('3', lStatement.Values['column'].Value, 'Expected BOM unit column numbers to ignore the BOM.');
@@ -3167,10 +3136,10 @@ begin
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json' +
     aExtraArgs;
 
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start semantic binder fixture process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -3287,8 +3256,8 @@ begin
     'remove-with-semantic-binder-global-scope.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected global scope binder fixture to succeed.');
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
 
     AssertJsonClassification(lClassifications, 'with-1', 'Marker', 'resolved', 'direct', 'field');
     Assert.IsTrue(lClassifications.Count > 0,
@@ -3309,8 +3278,8 @@ begin
     'remove-with-semantic-binder-helper.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected helper binder fixture to succeed.');
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
     AssertJsonSourceClassification(lClassifications, 'with-2', 'Normalize', 'resolved', 'helper',
       'THelperOnlyRecordHelper');
     AssertJsonSourceClassification(lClassifications, 'with-2', 'HelperValue', 'resolved', 'helper',
@@ -3324,8 +3293,8 @@ begin
     'remove-with-semantic-binder-inherited.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected inherited binder fixture to succeed.');
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
     Assert.IsTrue(lClassifications.Count > 0,
       'Expected semantic report classifications without legacy fallback rows.');
   finally
@@ -3336,8 +3305,8 @@ begin
     'remove-with-semantic-binder-interface.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected interface binder fixture to succeed.');
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
     AssertJsonSourceClassification(lClassifications, 'with-1', 'ChildTouch', 'resolved', 'direct', '');
     Assert.IsTrue(lClassifications.Count > 0,
       'Expected semantic report classifications without legacy fallback rows.');
@@ -3360,11 +3329,11 @@ begin
     'remove-with-semantic-report-projection.json', lExitCode, ' --diagnostics true');
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected resolver fixture plan to succeed.');
-    AssertJsonObjectKey(lRoot, 'summary', lSummary);
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
-    AssertJsonObjectKey(lRoot, 'plannerPhaseMetrics', lMetrics);
-    AssertJsonObjectKey(lMetrics, 'resolverReportSubphaseMetrics',
+    RequireJsonObjectKey(lRoot, 'summary', lSummary);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'plannerPhaseMetrics', lMetrics);
+    RequireJsonObjectKey(lMetrics, 'resolverReportSubphaseMetrics',
       lResolverSubphaseMetrics);
 
     AssertJsonClassification(lClassifications, 'with-2', 'Name', 'resolved', 'direct',
@@ -3556,7 +3525,7 @@ begin
       ' --test-output-dir ' + QuoteArg(lOutputDir);
     lCmdArgs := '/C set "BDS=" & set "BDSLIB=" & set "DCC_UnitSearchPath=" & ' +
       'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(ResolverExePath) + ' ' + lBuildArgs;
-    Assert.IsTrue(RunProcess(CommandExePath, lCmdArgs, RepoRoot, lBuildLogPath, lBuildExitCode),
+    Assert.IsTrue(RunCommandProcess(CommandExePath, lCmdArgs, RepoRoot, lBuildLogPath, lBuildExitCode),
       'Failed to start remove-with precedence build.');
     Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected precedence fixture to build. Log: ' + lBuildLogPath);
 
@@ -3569,7 +3538,7 @@ begin
       'Failed to run remove-with precedence fixture.');
     Result := '';
     if FileExists(lRunLogPath) then
-      Result := TFile.ReadAllText(lRunLogPath, TEncoding.UTF8);
+      Result := ReadUtf8TextFile(lRunLogPath);
   finally
     CleanPrecedenceFixtureArtifacts(lFixtureDir);
   end;
@@ -3643,12 +3612,12 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'remove-with-symbol-model-inventory.log');
 
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json --verbose true';
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, aExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start remove-with process.');
 
   Result := '';
   if TFile.Exists(lLogPath) then
-    Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+    Result := ReadUtf8TextFile(lLogPath);
 end;
 
 function TRemoveWithSymbolTests.CountSymbols(const aInventory: TRemoveWithFactSet; const aName: string;
@@ -4403,9 +4372,9 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'remove-with-resolver-plan.json');
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
 
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
     aExitCode), 'Failed to start remove-with resolver process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithResolverTests.AssertClassification(const aResult: TRemoveWithResolverResult;
@@ -4564,9 +4533,9 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'remove-with-inherited-override-plan.json');
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
 
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
     aExitCode), 'Failed to start remove-with inherited override process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithInheritedOverrideGoldenTests.AssertJsonClassification(const aClassifications: TJSONArray;
@@ -4603,7 +4572,7 @@ begin
   lOutput := RunInheritedOverrideFixture(lExitCode);
 
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected inherited override plan report to succeed.');
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected inherited override output to be a JSON object.');
     lRoot := lJson as TJSONObject;
@@ -4638,9 +4607,9 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'remove-with-interface-plan.json');
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
 
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
     aExitCode), 'Failed to start remove-with interface resolver process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithInterfaceResolverTests.AssertJsonClassification(const aClassifications: TJSONArray;
@@ -4677,7 +4646,7 @@ begin
   lOutput := RunInterfaceFixture(lExitCode);
 
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected interface resolver plan report to succeed.');
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected interface resolver output to be a JSON object.');
     lRoot := lJson as TJSONObject;
@@ -4713,9 +4682,9 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'remove-with-helper-precedence-plan.json');
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
 
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
     aExitCode), 'Failed to start remove-with helper precedence process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithHelperPrecedenceGoldenTests.AssertJsonClassification(const aClassifications: TJSONArray;
@@ -4752,7 +4721,7 @@ begin
   lOutput := RunHelperPrecedenceFixture(lExitCode);
 
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected helper precedence plan report to succeed.');
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected helper precedence output to be a JSON object.');
     lRoot := lJson as TJSONObject;
@@ -4797,9 +4766,9 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'remove-with-global-scope-plan.json');
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
 
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
     aExitCode), 'Failed to start remove-with global scope process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithGlobalScopeGoldenTests.AssertJsonClassification(const aClassifications: TJSONArray;
@@ -4836,7 +4805,7 @@ begin
   lOutput := RunGlobalScopeFixture(lExitCode);
 
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected global scope plan report to succeed.');
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected global scope output to be a JSON object.');
     lRoot := lJson as TJSONObject;
@@ -4907,9 +4876,9 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'remove-with-indexed-property-plan.json');
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
 
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath,
     aExitCode), 'Failed to start remove-with indexed property process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithIndexedPropertyTests.AssertResolvedName(const aClassifications: TJSONArray;
@@ -5009,7 +4978,7 @@ begin
   lOutput := RunIndexedPropertyFixture(lExitCode);
 
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected indexed property plan report to succeed.');
-  lJson := TJSONObject.ParseJSONValue(lOutput);
+  lJson := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lJson is TJSONObject, 'Expected indexed property output to be a JSON object.');
     lRoot := lJson as TJSONObject;
@@ -5480,21 +5449,21 @@ begin
 
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) +
     ' --all --mode plan --format json --diagnostics true';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath),
     lLogPath, lExitCode), 'Failed to start compact high-volume remove-with process.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected compact high-volume plan to succeed.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lRootValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lRootValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lRootValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   lRoot := lRootValue as TJSONObject;
   try
-    AssertJsonObjectKey(lRoot, 'summary', lSummary);
-    AssertJsonArrayKey(lRoot, 'withStatements', lWithStatements);
-    AssertJsonArrayKey(lRoot, 'plannedEdits', lPlannedEdits);
-    AssertJsonArrayKey(lRoot, 'skipped', lSkipped);
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lResolverClassifications);
-    AssertJsonObjectKey(lRoot, 'plannerPhaseMetrics', lMetrics);
+    RequireJsonObjectKey(lRoot, 'summary', lSummary);
+    RequireJsonArrayKey(lRoot, 'withStatements', lWithStatements);
+    RequireJsonArrayKey(lRoot, 'plannedEdits', lPlannedEdits);
+    RequireJsonArrayKey(lRoot, 'skipped', lSkipped);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lResolverClassifications);
+    RequireJsonObjectKey(lRoot, 'plannerPhaseMetrics', lMetrics);
 
     Assert.IsTrue((lSummary.Values['withStatements'] as TJSONNumber).AsInt > 100,
       'Expected generated fixture to exercise the compact high-volume branch.');
@@ -5546,11 +5515,11 @@ begin
   lUnitTextBefore := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode plan --format json';
 
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, lExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, lExitCode),
     'Failed to start remove-with planner process.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with planner plan report to succeed.');
 
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lOutput := ReadUtf8TextFile(lLogPath);
   Assert.IsTrue(Pos('"plannedEdits"', lOutput) > 0, 'Expected planned edits in plan output.');
   Assert.IsTrue(Pos('lWithPlannerRecordPtr^.Name', lOutput) > 0, 'Expected record rewrite in plan output.');
   Assert.IsTrue(Pos('"property-selector"', lOutput) > 0, 'Expected skipped property selector in plan output.');
@@ -5612,7 +5581,7 @@ begin
     'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
   Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start build process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 function TRemoveWithCliTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
@@ -5627,10 +5596,10 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
     ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with CLI process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -5743,7 +5712,7 @@ begin
     lVerification := lRollbackRoot.Values['verification'] as TJSONObject;
     lStdOutLogPath := lVerification.GetValue<string>('stdoutLog', '');
     Assert.IsTrue(TFile.Exists(lStdOutLogPath), 'Expected failed verification to preserve stdout build log.');
-    Assert.Contains(TFile.ReadAllText(lStdOutLogPath, TEncoding.UTF8),
+    Assert.Contains(ReadUtf8TextFile(lStdOutLogPath),
       'Intentional rollback fixture failure after remove-with rewrites RollbackUnit.pas',
       'Expected preserved build log to contain the actionable compiler/build diagnostic.');
   finally
@@ -5817,10 +5786,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -5849,7 +5818,7 @@ begin
     'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
   Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start build process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithRewriteShapeTests.BeginEndAndSingleStatementBodiesRewriteSafely;
@@ -6573,10 +6542,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -6605,7 +6574,7 @@ begin
     'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
   Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start build process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithTempAggregationTests.ApplyAggregatesRoutineTempsAndBuilds;
@@ -6794,9 +6763,9 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 function TRemoveWithTransactionTests.RunBuildFixture(const aDprojPath, aLogName: string;
@@ -6823,7 +6792,7 @@ begin
     'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
   Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start build process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 procedure TRemoveWithTransactionTests.ApplyModeBacksUpManifestsEditsAndBuildsFixture;
@@ -6850,7 +6819,7 @@ begin
 
   lOutput := RunApplyFixture(lDprojPath, 'remove-with-apply-transaction.json', lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected apply mode to succeed. Output: ' + lOutput);
-  lOutputValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutputValue := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lOutputValue is TJSONObject, 'Expected apply output to be a single JSON object. Output: ' +
       lOutput);
@@ -6866,7 +6835,7 @@ begin
 
   lProjectDir := TPath.GetDirectoryName(lDprojPath);
   lManifestPath := FindSingleManifest(lProjectDir, 'RemoveWithApplyFixture');
-  lManifestValue := TJSONObject.ParseJSONValue(TFile.ReadAllText(lManifestPath, TEncoding.UTF8));
+  lManifestValue := ParseJsonValue(ReadUtf8TextFile(lManifestPath));
   try
     Assert.IsTrue(lManifestValue is TJSONObject, 'Expected manifest JSON object.');
     lManifest := lManifestValue as TJSONObject;
@@ -6919,19 +6888,19 @@ begin
   AssertBytesEqual(lUnitOriginalBytes, TFile.ReadAllBytes(lUnitPath),
     'Preflight failure must not change the planned source file.');
 
-  lOutputValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutputValue := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lOutputValue is TJSONObject, 'Expected preflight output to be a single JSON object. Output: ' +
       lOutput);
     lRoot := lOutputValue as TJSONObject;
     Assert.AreEqual('preflight-build-failed', lRoot.Values['status'].Value,
       'Expected explicit preflight failure root status.');
-    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
+    RequireJsonObjectKey(lRoot, 'transaction', lTransaction);
     Assert.AreEqual('preflight-build-failed', lTransaction.Values['status'].Value,
       'Expected explicit preflight failure transaction status.');
     Assert.AreEqual(0, (lTransaction.Values['files'] as TJSONArray).Count,
       'Expected no transaction files because no edits were attempted.');
-    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    RequireJsonObjectKey(lRoot, 'summary', lSummary);
     Assert.AreEqual(0, (lSummary.Values['appliedEdits'] as TJSONNumber).AsInt,
       'Expected no applied edits on preflight failure.');
     Assert.AreEqual(0, (lSummary.Values['rolledBack'] as TJSONNumber).AsInt,
@@ -6977,7 +6946,7 @@ begin
 
   lOutput := RunApplyFixture(lDprojPath, 'remove-with-apply-ansi-transaction.json', lExitCode);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected ANSI apply mode to succeed. Output: ' + lOutput);
-  lOutputValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutputValue := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lOutputValue is TJSONObject, 'Expected apply output to be a single JSON object. Output: ' +
       lOutput);
@@ -7002,7 +6971,7 @@ begin
 
   lProjectDir := TPath.GetDirectoryName(lDprojPath);
   lManifestPath := FindSingleManifest(lProjectDir, 'RemoveWithApplyFixture');
-  lManifestValue := TJSONObject.ParseJSONValue(TFile.ReadAllText(lManifestPath, TEncoding.UTF8));
+  lManifestValue := ParseJsonValue(ReadUtf8TextFile(lManifestPath));
   try
     Assert.IsTrue(lManifestValue is TJSONObject, 'Expected ANSI manifest JSON object.');
     lManifest := lManifestValue as TJSONObject;
@@ -7038,7 +7007,7 @@ begin
 
   lOutput := RunApplyFixture(lDprojPath, 'remove-with-rollback-transaction.json', lExitCode);
   Assert.AreNotEqual(Cardinal(0), lExitCode, 'Expected apply mode to fail after build verification.');
-  lOutputValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutputValue := ParseJsonValue(lOutput);
   try
     Assert.IsTrue(lOutputValue is TJSONObject, 'Expected rollback output to be a single JSON object. Output: ' +
       lOutput);
@@ -7051,7 +7020,7 @@ begin
 
   lProjectDir := TPath.GetDirectoryName(lDprojPath);
   lManifestPath := FindSingleManifest(lProjectDir, 'RemoveWithRollbackFixture');
-  lManifestValue := TJSONObject.ParseJSONValue(TFile.ReadAllText(lManifestPath, TEncoding.UTF8));
+  lManifestValue := ParseJsonValue(ReadUtf8TextFile(lManifestPath));
   try
     Assert.IsTrue(lManifestValue is TJSONObject, 'Expected rollback manifest JSON object.');
     lManifest := lManifestValue as TJSONObject;
@@ -7100,9 +7069,9 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'remove-with-apply-transaction.txt');
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode apply --format text';
 
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, lExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, lExitCode),
     'Failed to start remove-with apply text process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lOutput := ReadUtf8TextFile(lLogPath);
 
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected text apply mode to succeed. Output: ' + lOutput);
   Assert.IsTrue(Pos('status=applied', lOutput) > 0, 'Expected text output to report applied status.');
@@ -7216,8 +7185,7 @@ begin
     'Context mismatch must preserve the changed source bytes exactly.');
   Assert.IsTrue(TFile.Exists(lTransactionResult.fManifestPath), 'Expected refusal manifest to be written.');
 
-  lManifestValue := TJSONObject.ParseJSONValue(TFile.ReadAllText(lTransactionResult.fManifestPath,
-    TEncoding.UTF8));
+  lManifestValue := ParseJsonValue(ReadUtf8TextFile(lTransactionResult.fManifestPath));
   try
     Assert.IsTrue(lManifestValue is TJSONObject, 'Expected manifest JSON object.');
     Assert.AreEqual('context-fingerprint-mismatch', (lManifestValue as TJSONObject).Values['status'].Value,
@@ -7328,10 +7296,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply report process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable apply report JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -7344,12 +7312,12 @@ begin
   Assert.IsTrue(aFiles.Items[0] is TJSONObject, 'Expected transaction file object.');
   lFileObject := aFiles.Items[0] as TJSONObject;
   Assert.AreEqual(aExpectedStatus, lFileObject.Values['status'].Value, 'Expected transaction file status.');
-  AssertJsonStringKey(lFileObject, 'path');
-  AssertJsonStringKey(lFileObject, 'backupPath');
-  AssertJsonStringKey(lFileObject, 'hash');
-  AssertJsonNumberKey(lFileObject, 'size');
-  AssertJsonStringKey(lFileObject, 'lineEnding');
-  AssertJsonStringKey(lFileObject, 'encoding');
+  RequireJsonStringKey(lFileObject, 'path');
+  RequireJsonStringKey(lFileObject, 'backupPath');
+  RequireJsonStringKey(lFileObject, 'hash');
+  RequireJsonNumberKey(lFileObject, 'size');
+  RequireJsonStringKey(lFileObject, 'lineEnding');
+  RequireJsonStringKey(lFileObject, 'encoding');
 end;
 
 procedure TRemoveWithApplyReportTests.ApplySuccessReportIncludesVerificationAndChangedFiles;
@@ -7367,17 +7335,17 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected apply report fixture to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
-    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    RequireJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('passed', lVerification.Values['status'].Value, 'Expected passed verification status.');
-    AssertJsonArrayKey(lVerification, 'gates', lGates);
+    RequireJsonArrayKey(lVerification, 'gates', lGates);
     Assert.AreEqual(1, lGates.Count, 'Expected one verification gate.');
     Assert.AreEqual('build', (lGates.Items[0] as TJSONObject).Values['name'].Value, 'Expected build gate.');
     Assert.AreEqual('passed', (lGates.Items[0] as TJSONObject).Values['status'].Value,
       'Expected passed build gate.');
 
-    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
-    AssertJsonStringKey(lTransaction, 'manifestPath');
-    AssertJsonArrayKey(lTransaction, 'files', lFiles);
+    RequireJsonObjectKey(lRoot, 'transaction', lTransaction);
+    RequireJsonStringKey(lTransaction, 'manifestPath');
+    RequireJsonArrayKey(lTransaction, 'files', lFiles);
     AssertFileStatus(lFiles, 'changed');
   finally
     lRoot.Free;
@@ -7401,22 +7369,22 @@ begin
   try
     Assert.AreNotEqual(Cardinal(0), lExitCode, 'Expected rollback report fixture to fail verification.');
     Assert.AreEqual('rolledBack', lRoot.Values['status'].Value, 'Expected rolledBack root status.');
-    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    RequireJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('failed', lVerification.Values['status'].Value, 'Expected failed verification status.');
-    AssertJsonArrayKey(lVerification, 'gates', lGates);
+    RequireJsonArrayKey(lVerification, 'gates', lGates);
     Assert.AreEqual(1, lGates.Count, 'Expected one verification gate.');
     Assert.AreEqual('build', (lGates.Items[0] as TJSONObject).Values['name'].Value, 'Expected build gate.');
     Assert.AreEqual('failed', (lGates.Items[0] as TJSONObject).Values['status'].Value,
       'Expected failed build gate.');
-    AssertJsonArrayKey(lGates.Items[0] as TJSONObject, 'diagnostics', lDiagnostics);
+    RequireJsonArrayKey(lGates.Items[0] as TJSONObject, 'diagnostics', lDiagnostics);
     Assert.IsTrue(lDiagnostics.Count > 0, 'Expected failed build diagnostics in JSON report.');
     lDiagnosticText := lDiagnostics.ToJSON;
     Assert.Contains(lDiagnosticText, 'Intentional rollback fixture failure after remove-with rewrites RollbackUnit.pas',
       'Expected JSON diagnostics to contain the compiler/build failure message.');
 
-    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
-    AssertJsonStringKey(lTransaction, 'manifestPath');
-    AssertJsonArrayKey(lTransaction, 'files', lFiles);
+    RequireJsonObjectKey(lRoot, 'transaction', lTransaction);
+    RequireJsonStringKey(lTransaction, 'manifestPath');
+    RequireJsonArrayKey(lTransaction, 'files', lFiles);
     AssertFileStatus(lFiles, 'restored');
   finally
     lRoot.Free;
@@ -7477,10 +7445,10 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
     ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -7494,9 +7462,9 @@ begin
   Assert.IsTrue(aFiles.Items[0] is TJSONObject, 'Expected transaction file object.');
   lFileObject := aFiles.Items[0] as TJSONObject;
   Assert.AreEqual(aExpectedStatus, lFileObject.Values['status'].Value, 'Expected transaction file status.');
-  AssertJsonStringKey(lFileObject, 'path');
-  AssertJsonStringKey(lFileObject, 'backupPath');
-  AssertJsonStringKey(lFileObject, 'hash');
+  RequireJsonStringKey(lFileObject, 'path');
+  RequireJsonStringKey(lFileObject, 'backupPath');
+  RequireJsonStringKey(lFileObject, 'hash');
 end;
 
 procedure TRemoveWithNoEditAndRollbackTests.PlanModeLeavesSafeSkippedAndBlockedSourcesUnchanged;
@@ -7575,11 +7543,11 @@ begin
       'Expected no safe edits for skipped and blocked fixture.');
     Assert.AreEqual(2, (lRoot.Values['skipped'] as TJSONArray).Count,
       'Expected property selector and call-selector reports.');
-    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    RequireJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('not-run', lVerification.Values['status'].Value,
       'Expected no build verification when there are no edits.');
-    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
-    AssertJsonArrayKey(lTransaction, 'files', lFiles);
+    RequireJsonObjectKey(lRoot, 'transaction', lTransaction);
+    RequireJsonArrayKey(lTransaction, 'files', lFiles);
     Assert.AreEqual(0, lFiles.Count, 'Expected no transaction files when nothing is edited.');
   finally
     lRoot.Free;
@@ -7619,10 +7587,10 @@ begin
       'Expected one safe edit before rollback.');
     Assert.AreEqual(1, (lRoot.Values['skipped'] as TJSONArray).Count,
       'Expected one unsafe selector to remain skipped.');
-    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    RequireJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('failed', lVerification.Values['status'].Value, 'Expected failed build verification.');
-    AssertJsonObjectKey(lRoot, 'transaction', lTransaction);
-    AssertJsonArrayKey(lTransaction, 'files', lFiles);
+    RequireJsonObjectKey(lRoot, 'transaction', lTransaction);
+    RequireJsonArrayKey(lTransaction, 'files', lFiles);
     AssertTransactionFileStatus(lFiles, 'restored');
   finally
     lRoot.Free;
@@ -7715,7 +7683,7 @@ begin
     'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
   Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start build process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 function TRemoveWithScopedDeclarationSafetyTests.RunRemoveWithFixture(const aDprojPath, aMode, aLogName: string;
@@ -7730,10 +7698,10 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
     ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -7764,7 +7732,7 @@ begin
       'Expected every scoped declaration body to be planned.');
     Assert.AreEqual(0, CountSkippedReason(lRoot.Values['skipped'] as TJSONArray,
       'scoped-declaration-in-with-body'), 'Expected no wholesale scoped-declaration skips.');
-    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    RequireJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('passed', lVerification.Values['status'].Value,
       'Expected edited scoped-declaration fixture to build after apply.');
   finally
@@ -7871,10 +7839,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -7909,7 +7877,7 @@ begin
       'Expected known type-qualified calls to remain unchanged instead of reported as unsupported.');
     Assert.AreEqual(0, CountSkippedUnsupportedRole(lSkipped, 'variable-declaration'),
       'Expected declaration-like role to be planned instead of skipped.');
-    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    RequireJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('passed', lVerification.Values['status'].Value,
       'Expected edited expression-role fixture to build after apply.');
   finally
@@ -7997,10 +7965,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -8096,10 +8064,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -8127,7 +8095,7 @@ begin
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected RTL routine-call roots to be resolved.');
-    AssertJsonObjectKey(lRoot, 'verification', lVerification);
+    RequireJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('passed', lVerification.Values['status'].Value,
       'Expected edited external-routine fixture to build after apply.');
   finally
@@ -8214,7 +8182,7 @@ begin
     lObject := lItem as TJSONObject;
     if not SameText(lObject.GetValue<string>('identifier', ''), aIdentifier) then
       Continue;
-    AssertJsonObjectKey(lObject, 'symbolMap', lSymbolMap);
+    RequireJsonObjectKey(lObject, 'symbolMap', lSymbolMap);
     Assert.IsTrue(lSymbolMap.GetValue<Boolean>('found', False), 'Expected Symbol Map hit for ' + aIdentifier);
     Assert.AreEqual(aKind, lSymbolMap.GetValue<string>('kind', ''), 'Unexpected Symbol Map kind for ' + aIdentifier);
     Assert.AreEqual(aSourceKind, lSymbolMap.GetValue<string>('sourceKind', ''),
@@ -8279,10 +8247,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -8310,8 +8278,8 @@ begin
     Assert.AreEqual(1, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected arbitrary unknown project routine calls to remain blocked.');
 
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
     Assert.IsTrue(lClassifications.Count > 0,
       'Expected semantic report classifications without legacy fallback rows.');
   finally
@@ -8393,10 +8361,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -8427,8 +8395,8 @@ begin
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected control-character literals not to be reported as missing symbols.');
 
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
     AssertNoClassification(lClassifications, 'J');
     AssertNoClassification(lClassifications, 'M');
     AssertNoClassification(lClassifications, 'I');
@@ -8523,10 +8491,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -8554,8 +8522,8 @@ begin
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected implementation globals after routines not to be missing symbols.');
 
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
     Assert.IsTrue(lClassifications.Count > 0,
       'Expected semantic report classifications without legacy fallback rows.');
   finally
@@ -8641,10 +8609,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -8672,8 +8640,8 @@ begin
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected captured outer routine locals not to be missing symbols.');
 
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
     Assert.IsTrue(lClassifications.Count > 0,
       'Expected semantic report classifications without legacy fallback rows.');
   finally
@@ -8759,10 +8727,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -8790,8 +8758,8 @@ begin
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected enum constants, typed constants, and aliases not to be missing symbols.');
 
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
     Assert.IsTrue(lClassifications.Count > 0,
       'Expected semantic report classifications without legacy fallback rows.');
   finally
@@ -8873,10 +8841,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -8902,7 +8870,7 @@ begin
     lWithStatements := lRoot.Values['withStatements'] as TJSONArray;
     Assert.AreEqual(0, lWithStatements.Count,
       'Plan reports should omit detailed with-statement rows.');
-    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    RequireJsonObjectKey(lRoot, 'summary', lSummary);
     Assert.AreEqual(2, (lSummary.Values['withStatements'] as TJSONNumber).AsInt,
       'Expected project-defined active with statements to be included and inactive statements to be excluded.');
     Assert.AreEqual(2, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
@@ -8910,8 +8878,8 @@ begin
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected inactive branch identifiers not to be scanned.');
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonArrayKey(lResolver, 'classifications', lClassifications);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonArrayKey(lResolver, 'classifications', lClassifications);
     AssertNoClassification(lClassifications, 'ProgFun');
     AssertNoClassification(lClassifications, 'InlineMissingSymbol');
     AssertNoClassification(lClassifications, 'nd');
@@ -8964,10 +8932,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -8989,8 +8957,8 @@ begin
   lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-unresolved-reason.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected unresolved-reason plan to succeed.');
-    AssertJsonObjectKey(lRoot, 'resolver', lResolver);
-    AssertJsonObjectKey(lResolver, 'unresolvedReasons', lUnresolvedReasons);
+    RequireJsonObjectKey(lRoot, 'resolver', lResolver);
+    RequireJsonObjectKey(lResolver, 'unresolvedReasons', lUnresolvedReasons);
     Assert.AreEqual(0, lUnresolvedReasons.Count,
       'Expected semantic report projection not to synthesize legacy fallback buckets.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
@@ -9047,10 +9015,10 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
     ' --format json --diagnostics true';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -9069,14 +9037,14 @@ begin
   lRoot := RunRemoveWithFixture(lDprojPath, 'plan', 'remove-with-symbol-map-parity.json', lExitCode);
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected parity plan to succeed.');
-    AssertJsonObjectKey(lRoot, 'migrationTelemetry', lTelemetry);
-    AssertJsonObjectKey(lRoot, 'summary', lSummary);
-    AssertJsonNumberKey(lTelemetry, 'localModelHits');
-    AssertJsonNumberKey(lTelemetry, 'symbolMapHits');
-    AssertJsonNumberKey(lTelemetry, 'symbolMapMisses');
+    RequireJsonObjectKey(lRoot, 'migrationTelemetry', lTelemetry);
+    RequireJsonObjectKey(lRoot, 'summary', lSummary);
+    RequireJsonNumberKey(lTelemetry, 'localModelHits');
+    RequireJsonNumberKey(lTelemetry, 'symbolMapHits');
+    RequireJsonNumberKey(lTelemetry, 'symbolMapMisses');
     Assert.AreEqual(0, lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks'),
       'Expected external routine facts to come from DelphiSemantics rather than DAK fallback allowlists.');
-    AssertJsonNumberKey(lTelemetry, 'trueUnknowns');
+    RequireJsonNumberKey(lTelemetry, 'trueUnknowns');
     Assert.AreEqual(lSummary.GetValue<Integer>('plannedEdits'), lTelemetry.GetValue<Integer>('plannedEdits'),
       'Expected planned telemetry to match summary.');
     Assert.AreEqual(lSummary.GetValue<Integer>('skipped'), lTelemetry.GetValue<Integer>('skippedStatements'),
@@ -9155,10 +9123,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -9204,7 +9172,7 @@ begin
       'Expected type-qualified body references to remain unqualified instead of skipped.');
     Assert.AreEqual(0, CountSkippedReason(lSkipped, 'symbol-not-found'),
       'Expected RTL Random call body to resolve.');
-    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    RequireJsonObjectKey(lRoot, 'summary', lSummary);
     Assert.AreEqual(3, (lSummary.Values['filesScanned'] as TJSONNumber).AsInt,
       'Expected the multi-unit corpus project to scan all project files.');
     Assert.AreEqual(5, (lSummary.Values['withStatements'] as TJSONNumber).AsInt,
@@ -9282,10 +9250,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -9368,9 +9336,9 @@ var
   lGates: TJSONArray;
   lVerification: TJSONObject;
 begin
-  AssertJsonObjectKey(aRoot, 'verification', lVerification);
+  RequireJsonObjectKey(aRoot, 'verification', lVerification);
   Assert.AreEqual('passed', lVerification.Values['status'].Value, 'Expected build verification to pass.');
-  AssertJsonArrayKey(lVerification, 'gates', lGates);
+  RequireJsonArrayKey(lVerification, 'gates', lGates);
   Assert.AreEqual(1, lGates.Count, 'Expected one build verification gate.');
   Assert.AreEqual('build', (lGates.Items[0] as TJSONObject).Values['name'].Value, 'Expected build gate.');
   Assert.AreEqual('passed', (lGates.Items[0] as TJSONObject).Values['status'].Value,
@@ -9385,23 +9353,23 @@ var
   lFileObject: TJSONObject;
   lTransaction: TJSONObject;
 begin
-  AssertJsonObjectKey(aRoot, 'transaction', lTransaction);
+  RequireJsonObjectKey(aRoot, 'transaction', lTransaction);
   Assert.AreEqual('applied', lTransaction.Values['status'].Value, 'Expected applied transaction status.');
   Assert.IsTrue(TFile.Exists(lTransaction.Values['manifestPath'].Value), 'Expected transaction manifest to exist.');
-  AssertJsonArrayKey(lTransaction, 'files', lFiles);
+  RequireJsonArrayKey(lTransaction, 'files', lFiles);
   Assert.AreEqual(aExpectedCount, lFiles.Count, 'Expected transaction file count.');
   if aExpectedCount = 0 then
     Exit;
 
   lFileObject := lFiles.Items[0] as TJSONObject;
   Assert.AreEqual('changed', lFileObject.Values['status'].Value, 'Expected changed transaction file.');
-  AssertJsonStringKey(lFileObject, 'path');
-  AssertJsonStringKey(lFileObject, 'backupPath');
+  RequireJsonStringKey(lFileObject, 'path');
+  RequireJsonStringKey(lFileObject, 'backupPath');
   Assert.IsTrue(TFile.Exists(lFileObject.Values['backupPath'].Value), 'Expected transaction backup file to exist.');
-  AssertJsonStringKey(lFileObject, 'hash');
-  AssertJsonNumberKey(lFileObject, 'size');
-  AssertJsonStringKey(lFileObject, 'lineEnding');
-  AssertJsonStringKey(lFileObject, 'encoding');
+  RequireJsonStringKey(lFileObject, 'hash');
+  RequireJsonNumberKey(lFileObject, 'size');
+  RequireJsonStringKey(lFileObject, 'lineEnding');
+  RequireJsonStringKey(lFileObject, 'encoding');
 end;
 
 procedure TRemoveWithHardeningApplyTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
@@ -9457,10 +9425,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -9679,11 +9647,11 @@ begin
   lLogPath := TPath.ChangeExtension(lJsonPath, '.stdout.log');
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
     ' --format json --output ' + QuoteArg(lJsonPath) + ' --verbose true';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with maxTdb ' + aMode + ' process.');
   Assert.IsTrue(TFile.Exists(lJsonPath), 'Expected maxTdb ' + aMode + ' JSON output file: ' + lJsonPath);
-  lOutput := TFile.ReadAllText(lJsonPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lJsonPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable maxTdb remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -9702,11 +9670,11 @@ begin
   lLogPath := TPath.ChangeExtension(lJsonPath, '.stdout.log');
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --dir ' + QuoteArg(aTargetDir) +
     ' --mode plan --format json --output ' + QuoteArg(lJsonPath) + ' --verbose true --diagnostics true';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with maxTdb plan process.');
   Assert.IsTrue(TFile.Exists(lJsonPath), 'Expected maxTdb plan JSON output file: ' + lJsonPath);
-  lOutput := TFile.ReadAllText(lJsonPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lJsonPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable maxTdb remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -9723,10 +9691,10 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --dir ' + QuoteArg(aTargetDir) +
     ' --mode scan --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with maxTdb scan process.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable maxTdb remove-with JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;
@@ -9782,8 +9750,8 @@ var
   lExpectedEdits: TJSONArray;
   lExpectedId: string;
 begin
-  AssertJsonArrayKey(aExpectedRoot, 'plannedEdits', lExpectedEdits);
-  AssertJsonArrayKey(aActualRoot, 'plannedEdits', lActualEdits);
+  RequireJsonArrayKey(aExpectedRoot, 'plannedEdits', lExpectedEdits);
+  RequireJsonArrayKey(aActualRoot, 'plannedEdits', lActualEdits);
   Assert.AreEqual(lExpectedEdits.Count, lActualEdits.Count,
     'Expected apply planned edit count to match report-only plan count.');
   for i := 0 to lExpectedEdits.Count - 1 do
@@ -9842,7 +9810,7 @@ begin
     Assert.AreEqual(Cardinal(0), lPlanExitCode, 'Expected maxTdb report-only plan mode to succeed.');
     Assert.AreEqual('ok', lPlanRoot.Values['status'].Value, 'Expected ok maxTdb report-only plan status.');
     Assert.AreEqual('plan', lPlanRoot.Values['mode'].Value, 'Expected maxTdb report-only plan mode.');
-    AssertJsonObjectKey(lPlanRoot, 'summary', lPlanSummary);
+    RequireJsonObjectKey(lPlanRoot, 'summary', lPlanSummary);
     Assert.AreEqual(667, (lPlanSummary.Values['withStatements'] as TJSONNumber).AsInt,
       'Expected maxTdb report-only plan to retain the current scan baseline.');
     Assert.AreEqual(215, (lPlanSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
@@ -9856,7 +9824,7 @@ begin
         'Expected maxTdb apply mode to succeed without fallback-only plan drift.');
       Assert.AreEqual('applied', lApplyRoot.Values['status'].Value, 'Expected applied maxTdb status.');
       Assert.AreEqual('apply', lApplyRoot.Values['mode'].Value, 'Expected maxTdb apply mode.');
-      AssertJsonObjectKey(lApplyRoot, 'summary', lApplySummary);
+      RequireJsonObjectKey(lApplyRoot, 'summary', lApplySummary);
       Assert.AreEqual(667, (lApplySummary.Values['withStatements'] as TJSONNumber).AsInt,
         'Expected maxTdb apply to keep the same scan baseline as report-only plan mode.');
       Assert.AreEqual(215, (lApplySummary.Values['plannedEdits'] as TJSONNumber).AsInt,
@@ -9911,19 +9879,19 @@ begin
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected maxTdb plan mode to succeed.');
     Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok maxTdb plan status.');
     Assert.AreEqual('plan', lRoot.Values['mode'].Value, 'Expected maxTdb plan mode.');
-    AssertJsonObjectKey(lRoot, 'summary', lSummary);
-    AssertJsonObjectKey(lRoot, 'migrationTelemetry', lTelemetry);
+    RequireJsonObjectKey(lRoot, 'summary', lSummary);
+    RequireJsonObjectKey(lRoot, 'migrationTelemetry', lTelemetry);
     Assert.AreEqual(667, (lSummary.Values['withStatements'] as TJSONNumber).AsInt,
       'Expected maxTdb plan to retain the current with-statement coverage baseline.');
     Assert.AreEqual(215, (lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
       'Expected maxTdb planned edits to stay at the evidence-backed semantic rewrite baseline.');
     Assert.IsTrue((lSummary.Values['skipped'] as TJSONNumber).AsInt <= 460,
       'Expected maxTdb skipped count not to regress materially.');
-    AssertJsonArrayKey(lRoot, 'skipped', lSkipped);
+    RequireJsonArrayKey(lRoot, 'skipped', lSkipped);
     Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt, lSkipped.Count,
       'Expected skipped array count to match summary.');
-    AssertJsonObjectKey(lRoot, 'semanticDtoParity', lParity);
-    AssertJsonArrayKey(lParity, 'mismatches', lMismatches);
+    RequireJsonObjectKey(lRoot, 'semanticDtoParity', lParity);
+    RequireJsonArrayKey(lParity, 'mismatches', lMismatches);
     Assert.AreEqual('passed', lParity.GetValue<string>('status', ''),
       'Expected maxTdb semantic DTO parity to pass.');
     Assert.AreEqual('0', lParity.Values['mismatchCount'].Value,
@@ -9941,10 +9909,10 @@ begin
       lTelemetry.GetValue<Integer>('plannedEdits'), 'Expected planned telemetry to match summary.');
     Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt,
       lTelemetry.GetValue<Integer>('skippedStatements'), 'Expected skipped telemetry to match summary.');
-    AssertJsonNumberKey(lTelemetry, 'localModelHits');
+    RequireJsonNumberKey(lTelemetry, 'localModelHits');
     Assert.AreEqual(0, lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks'),
       'Expected external routine facts to come from DelphiSemantics rather than DAK fallback allowlists.');
-    AssertJsonNumberKey(lTelemetry, 'trueUnknowns');
+    RequireJsonNumberKey(lTelemetry, 'trueUnknowns');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') > 0,
       'Expected planner elapsed telemetry.');
     Assert.IsTrue(lTelemetry.GetValue<Integer>('elapsedPlanningMs') < 300000,
@@ -9993,12 +9961,12 @@ begin
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected maxTdb scan mode to succeed.');
     Assert.AreEqual('ok', lRoot.Values['status'].Value, 'Expected ok maxTdb scan status.');
     Assert.AreEqual('scan', lRoot.Values['mode'].Value, 'Expected maxTdb dry-run scan mode.');
-    AssertJsonObjectKey(lRoot, 'summary', lSummary);
+    RequireJsonObjectKey(lRoot, 'summary', lSummary);
     Assert.IsTrue((lSummary.Values['filesScanned'] as TJSONNumber).AsInt > 0,
       'Expected maxTdb scan to scan project files.');
     Assert.IsTrue((lSummary.Values['withStatements'] as TJSONNumber).AsInt > 0,
       'Expected maxTdb scan to discover with statements.');
-    AssertJsonArrayKey(lRoot, 'withStatements', lWithStatements);
+    RequireJsonArrayKey(lRoot, 'withStatements', lWithStatements);
     Assert.IsTrue(lWithStatements.Count > 0, 'Expected concrete maxTdb with statement records.');
   finally
     lRoot.Free;

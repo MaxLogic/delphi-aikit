@@ -64,7 +64,7 @@ begin
   AppendProgress(Format('start suffix=%s format=%s log=%s', [aSuffix, aFormat, lLog]));
   WriteLn(Format('[fixinsight-test] start suffix=%s format=%s log=%s', [aSuffix, aFormat, lLog]));
   lStopwatch := TStopwatch.StartNew;
-  if not RunProcess(ResolverExePath, lArgs, RepoRoot, lLog, lExit) then
+  if not RunResolverProcess(lArgs, RepoRoot, lLog, lExit) then
     Assert.Fail('Failed to start FixInsight analyze: ' + lLog);
   lStopwatch.Stop;
   AppendProgress(Format('done suffix=%s format=%s exit=%d elapsedMs=%d',
@@ -190,7 +190,7 @@ begin
   TFile.WriteAllText(TPath.Combine(TempRoot, 'fixinsight-progress.log'), '', TEncoding.UTF8);
 
   RunFixInsightOutputs('base', '', '', lBaseTxt, lBaseXml, lBaseCsv);
-  lText := TFile.ReadAllText(lBaseTxt);
+  lText := ReadUtf8TextFile(lBaseTxt);
   ExtractIdsAndFile(lText, lId1, lId2, lFileName);
 
   Assert.IsTrue(lId1 <> '', 'No FixInsight warning IDs found in baseline output.');
@@ -199,19 +199,19 @@ begin
   lMask := '*' + lFileName;
   RunFixInsightOutputs('exclude', lMask, '', lExclTxt, lExclXml, lExclCsv);
 
-  Assert.IsFalse(ContainsText(TFile.ReadAllText(lExclTxt), lFileName), 'Exclude mask did not filter text output.');
-  Assert.IsFalse(ContainsText(TFile.ReadAllText(lExclXml), lFileName), 'Exclude mask did not filter XML output.');
-  Assert.IsFalse(ContainsText(TFile.ReadAllText(lExclCsv), lFileName), 'Exclude mask did not filter CSV output.');
+  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lExclTxt), lFileName), 'Exclude mask did not filter text output.');
+  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lExclXml), lFileName), 'Exclude mask did not filter XML output.');
+  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lExclCsv), lFileName), 'Exclude mask did not filter CSV output.');
 
   lIds := lId1 + ';' + lId2;
   RunFixInsightOutputs('ignore-ids', '', lIds, lIdsTxt, lIdsXml, lIdsCsv);
 
-  Assert.IsFalse(ContainsText(TFile.ReadAllText(lIdsTxt), lId1), 'Warning IDs not filtered from text output.');
-  Assert.IsFalse(ContainsText(TFile.ReadAllText(lIdsTxt), lId2), 'Warning IDs not filtered from text output.');
-  Assert.IsFalse(ContainsText(TFile.ReadAllText(lIdsXml), lId1), 'Warning IDs not filtered from XML output.');
-  Assert.IsFalse(ContainsText(TFile.ReadAllText(lIdsXml), lId2), 'Warning IDs not filtered from XML output.');
-  Assert.IsFalse(ContainsText(TFile.ReadAllText(lIdsCsv), ',' + lId1 + ','), 'Warning IDs not filtered from CSV output.');
-  Assert.IsFalse(ContainsText(TFile.ReadAllText(lIdsCsv), ',' + lId2 + ','), 'Warning IDs not filtered from CSV output.');
+  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsTxt), lId1), 'Warning IDs not filtered from text output.');
+  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsTxt), lId2), 'Warning IDs not filtered from text output.');
+  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsXml), lId1), 'Warning IDs not filtered from XML output.');
+  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsXml), lId2), 'Warning IDs not filtered from XML output.');
+  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsCsv), ',' + lId1 + ','), 'Warning IDs not filtered from CSV output.');
+  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsCsv), ',' + lId2 + ','), 'Warning IDs not filtered from CSV output.');
 end;
 
 initialization

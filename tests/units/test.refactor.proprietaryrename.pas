@@ -58,7 +58,7 @@ begin
   Assert.IsTrue(TFile.Exists(lBackup), 'Expected backup file to exist for ' + aSymbol + ': ' + lBackup);
   lManifestPath := TPath.Combine(TPath.GetDirectoryName(TPath.GetDirectoryName(lBackup)), 'manifest.json');
   Assert.IsTrue(TFile.Exists(lManifestPath), 'Expected rename manifest for ' + aSymbol + ': ' + lManifestPath);
-  Assert.IsTrue(Pos('"status":"applied"', TFile.ReadAllText(lManifestPath, TEncoding.UTF8)) > 0,
+  Assert.IsTrue(Pos('"status":"applied"', ReadUtf8TextFile(lManifestPath)) > 0,
     'Expected applied status in manifest for ' + aSymbol + '.');
 end;
 
@@ -180,7 +180,7 @@ begin
     'set "DelphiLibraryPath=" & set "EnvOptions=" & ' + QuoteArg(CommandExePath) + ' ' + lArgs;
   Assert.IsTrue(RunProcess(lCmdExe, lCmdArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start maxTdb build process.');
-  Result := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  Result := ReadUtf8TextFile(lLogPath);
 end;
 
 function TRefactorProprietaryRenameTests.RunRenameApply(const aDprojPath, aSymbol, aNewName,
@@ -195,10 +195,10 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'rename --project ' + QuoteArg(aDprojPath) + ' --symbol ' + aSymbol + ' --new-name ' +
     aNewName + ' --apply --format json';
-  Assert.IsTrue(RunProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
+  Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start maxTdb rename process for ' + aSymbol + '.');
-  lOutput := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-  lValue := TJSONObject.ParseJSONValue(lOutput);
+  lOutput := ReadUtf8TextFile(lLogPath);
+  lValue := ParseJsonValue(lOutput);
   Assert.IsTrue(lValue is TJSONObject, 'Expected parseable maxTdb rename JSON. Output: ' + lOutput);
   Result := lValue as TJSONObject;
 end;

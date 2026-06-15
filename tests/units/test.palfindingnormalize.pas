@@ -94,7 +94,7 @@ begin
   lJsonLines := TFile.ReadAllLines(lJsonPath);
   Assert.IsTrue(Length(lJsonLines) > 0, 'pal-findings.jsonl is empty.');
 
-  lJson := TJSONObject.ParseJSONValue(lJsonLines[0]) as TJSONObject;
+  lJson := ParseJsonObject(lJsonLines[0]);
   try
     Assert.IsTrue(lJson <> nil, 'First JSON line is invalid.');
     Assert.IsTrue(lJson.GetValue('severity') <> nil, 'JSON missing severity.');

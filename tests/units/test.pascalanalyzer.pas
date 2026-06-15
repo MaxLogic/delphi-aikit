@@ -180,7 +180,7 @@ begin
     ' --pa-args "/F=X /Q /A+ /FA /T=' + DefaultPalThreads.ToString + '"';
 
   lLog := TPath.Combine(lOutDir, 'pascal-analyzer.log');
-  if not RunProcess(ResolverExePath, lArgs, RepoRoot, lLog, lExit) then
+  if not RunResolverProcess(lArgs, RepoRoot, lLog, lExit) then
     Assert.Fail('Failed to start Pascal Analyzer run: ' + lLog);
   if lExit <> 0 then
   begin
