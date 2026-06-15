@@ -811,6 +811,8 @@ type
     function FindMaxTdbProject(const aFixtureDir: string): string;
     function IsIgnoredProjectArtifact(const aRelativePath: string): Boolean;
     function IsSourceSnapshotFile(const aPath: string): Boolean;
+    function MaxTdbFixtureRoot: string;
+    procedure RequireMaxTdbFixture(const aSourceDir, aCheckName: string);
     function RunRemoveWithAllMode(const aDprojPath, aMode, aLogName: string;
       out aExitCode: Cardinal): TJSONObject;
     function RunRemoveWithPlan(const aDprojPath, aTargetDir, aLogName: string; out aExitCode: Cardinal): TJSONObject;
@@ -829,6 +831,10 @@ type
     [Test]
     procedure ScanCloneOfMaxTdbWhenFixtureExists;
     [Test]
+    procedure MissingMaxTdbFixtureCanBeSkippedWithExplicitOptOut;
+    [Test]
+    procedure MissingMaxTdbFixtureFailsWithoutOptOut;
+    [Test]
     procedure SymbolInventoryResolvesMaxTdbGlobalPointerArrayWhenFixtureExists;
   end;
 
@@ -840,6 +846,7 @@ uses
 
 const
   cAstParallelIterations = 24;
+  cAllowMissingMaxTdbFixtureEnv = 'DAK_ALLOW_MAXTDB_SKIP';
   cDiscoveryFixtureWithCount = 4;
 
 function DiscoveryFixtureDprPath: string;
@@ -9633,6 +9640,27 @@ begin
     (lExt = '.fmx') or (lExt = '.dproj') or (lExt = '.deployproj');
 end;
 
+function TRemoveWithProprietaryProjectTests.MaxTdbFixtureRoot: string;
+begin
+  Result := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
+end;
+
+procedure TRemoveWithProprietaryProjectTests.RequireMaxTdbFixture(const aSourceDir, aCheckName: string);
+begin
+  if TDirectory.Exists(aSourceDir) then
+    Exit;
+
+  if SameText(Trim(GetEnvironmentVariable(cAllowMissingMaxTdbFixtureEnv)), '1') then
+  begin
+    Assert.Pass('Proprietary maxTdb fixture is absent; ' + cAllowMissingMaxTdbFixtureEnv +
+      '=1 explicitly skips the maxTdb ' + aCheckName + ' check.');
+    Exit;
+  end;
+
+  Assert.Fail('Required proprietary maxTdb fixture is absent for maxTdb ' + aCheckName + ': ' + aSourceDir +
+    '. Set ' + cAllowMissingMaxTdbFixtureEnv + '=1 only when this proprietary fixture is intentionally unavailable.');
+end;
+
 function TRemoveWithProprietaryProjectTests.RunRemoveWithAllMode(const aDprojPath, aMode,
   aLogName: string; out aExitCode: Cardinal): TJSONObject;
 var
@@ -9775,6 +9803,70 @@ begin
     Format('Expected maxTdb skip bucket %s count <= %d, got %d.', [aReason, aMax, lCount]));
 end;
 
+procedure TRemoveWithProprietaryProjectTests.MissingMaxTdbFixtureCanBeSkippedWithExplicitOptOut;
+var
+  lEnv: IInterface;
+  lMissingDir: string;
+  lRaisedPass: Boolean;
+begin
+  lEnv := SetScopedEnvironmentVariable(cAllowMissingMaxTdbFixtureEnv, '1');
+  try
+    lMissingDir := UniqueTempPath('missing-maxtdb-fixture');
+    if TDirectory.Exists(lMissingDir) then
+      TDirectory.Delete(lMissingDir, True);
+
+    lRaisedPass := False;
+    try
+      RequireMaxTdbFixture(lMissingDir, 'remove-with test');
+    except
+      on E: Exception do
+      begin
+        lRaisedPass := SameText(E.ClassName, 'ETestPass') and
+          ContainsText(E.Message, cAllowMissingMaxTdbFixtureEnv);
+        if not lRaisedPass then
+          Assert.Fail('Expected explicit maxTdb fixture opt-out to skip with guidance, but got ' +
+            E.ClassName + ': ' + E.Message);
+      end;
+    end;
+
+    Assert.IsTrue(lRaisedPass, 'Expected explicit maxTdb fixture opt-out to stop the test as skipped.');
+  finally
+    lEnv := nil;
+  end;
+end;
+
+procedure TRemoveWithProprietaryProjectTests.MissingMaxTdbFixtureFailsWithoutOptOut;
+var
+  lEnv: IInterface;
+  lMissingDir: string;
+  lRaisedFailure: Boolean;
+begin
+  lEnv := ClearScopedEnvironmentVariable(cAllowMissingMaxTdbFixtureEnv);
+  try
+    lMissingDir := UniqueTempPath('missing-maxtdb-fixture');
+    if TDirectory.Exists(lMissingDir) then
+      TDirectory.Delete(lMissingDir, True);
+
+    lRaisedFailure := False;
+    try
+      RequireMaxTdbFixture(lMissingDir, 'remove-with test');
+    except
+      on E: Exception do
+      begin
+        lRaisedFailure := SameText(E.ClassName, 'ETestFailure') and
+          ContainsText(E.Message, cAllowMissingMaxTdbFixtureEnv);
+        if not lRaisedFailure then
+          Assert.Fail('Expected missing maxTdb fixture to fail closed with opt-out guidance, but got ' +
+            E.ClassName + ': ' + E.Message);
+      end;
+    end;
+
+    Assert.IsTrue(lRaisedFailure, 'Expected missing maxTdb fixture to fail without explicit opt-out.');
+  finally
+    lEnv := nil;
+  end;
+end;
+
 procedure TRemoveWithProprietaryProjectTests.ApplyCloneOfMaxTdbWhenFixtureExistsMatchesReportOnlyPlan;
 var
   lApplyExitCode: Cardinal;
@@ -9791,12 +9883,8 @@ var
   lPlanSummary: TJSONObject;
   lSourceDir: string;
 begin
-  lSourceDir := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
-  if not TDirectory.Exists(lSourceDir) then
-  begin
-    Assert.Pass('Optional proprietary maxTdb fixture is absent; no maxTdb remove-with apply check was run.');
-    Exit;
-  end;
+  lSourceDir := MaxTdbFixtureRoot;
+  RequireMaxTdbFixture(lSourceDir, 'remove-with apply');
 
   SnapshotSourceFiles(lSourceDir, lOriginalPaths, lOriginalBytes);
   Assert.IsTrue(Length(lOriginalPaths) > 0, 'Expected maxTdb source files to snapshot.');
@@ -9860,12 +9948,8 @@ var
   lTargetDir: string;
   lTelemetry: TJSONObject;
 begin
-  lSourceDir := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
-  if not TDirectory.Exists(lSourceDir) then
-  begin
-    Assert.Pass('Optional proprietary maxTdb fixture is absent; no maxTdb remove-with plan check was run.');
-    Exit;
-  end;
+  lSourceDir := MaxTdbFixtureRoot;
+  RequireMaxTdbFixture(lSourceDir, 'remove-with plan');
 
   SnapshotSourceFiles(lSourceDir, lOriginalPaths, lOriginalBytes);
   Assert.IsTrue(Length(lOriginalPaths) > 0, 'Expected maxTdb source files to snapshot.');
@@ -9944,12 +10028,8 @@ var
   lTargetDir: string;
   lWithStatements: TJSONArray;
 begin
-  lSourceDir := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
-  if not TDirectory.Exists(lSourceDir) then
-  begin
-    Assert.Pass('Optional proprietary maxTdb fixture is absent; no maxTdb remove-with check was run.');
-    Exit;
-  end;
+  lSourceDir := MaxTdbFixtureRoot;
+  RequireMaxTdbFixture(lSourceDir, 'remove-with scan');
 
   SnapshotSourceFiles(lSourceDir, lOriginalPaths, lOriginalBytes);
   Assert.IsTrue(Length(lOriginalPaths) > 0, 'Expected maxTdb source files to snapshot.');
@@ -10016,12 +10096,8 @@ var
     end;
   end;
 begin
-  lSourceDir := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
-  if not TDirectory.Exists(lSourceDir) then
-  begin
-    Assert.Pass('Optional proprietary maxTdb fixture is absent; no maxTdb symbol inventory check was run.');
-    Exit;
-  end;
+  lSourceDir := MaxTdbFixtureRoot;
+  RequireMaxTdbFixture(lSourceDir, 'symbol inventory');
 
   CopyDirectoryToTemp(lSourceDir, 'remove-with-maxtdb-symbols-clone', lCloneDir);
   lDprojPath := FindMaxTdbProject(lCloneDir);
