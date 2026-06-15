@@ -34,9 +34,15 @@ function RunProcess(const aExe, aArgs, aWorkDir, aOutputFile: string; out aExitC
 function RunProcessWithTimeout(const aExe, aArgs, aWorkDir, aOutputFile: string;
   const aTimeoutMs: Cardinal; out aExitCode: Cardinal): Boolean;
 function RunResolverProcess(const aArgs, aWorkDir, aOutputFile: string; out aExitCode: Cardinal): Boolean;
+function RunCommandProcess(const aExePath, aArgs, aWorkDir, aOutputFile: string;
+  out aExitCode: Cardinal): Boolean;
 function ReadUtf8TextFile(const aFileName: string): string;
 function ParseJsonValue(const aText: string; const aContext: string = ''): TJSONValue;
 function ParseJsonObject(const aText: string; const aContext: string = ''): TJSONObject;
+procedure RequireJsonObjectKey(const aObject: TJSONObject; const aName: string; out aChild: TJSONObject);
+procedure RequireJsonArrayKey(const aObject: TJSONObject; const aName: string; out aChild: TJSONArray);
+procedure RequireJsonStringKey(const aObject: TJSONObject; const aName: string);
+procedure RequireJsonNumberKey(const aObject: TJSONObject; const aName: string);
 function StartSlowPingProcess(out aProcess: THandle; out aThread: THandle; out aError: string): Boolean;
 function QuoteArg(const aValue: string): string;
 function SetScopedEnvironmentVariable(const aName, aValue: string): IInterface;
@@ -550,6 +556,12 @@ begin
   Result := RunProcess(lExePath, aArgs, aWorkDir, aOutputFile, aExitCode);
 end;
 
+function RunCommandProcess(const aExePath, aArgs, aWorkDir, aOutputFile: string;
+  out aExitCode: Cardinal): Boolean;
+begin
+  Result := RunProcess(aExePath, aArgs, aWorkDir, aOutputFile, aExitCode);
+end;
+
 function ReadUtf8TextFile(const aFileName: string): string;
 begin
   Assert.IsTrue(TFile.Exists(aFileName), 'Expected output file: ' + aFileName);
@@ -571,16 +583,46 @@ end;
 
 function ParseJsonObject(const aText: string; const aContext: string): TJSONObject;
 var
+  lContext: string;
   lValue: TJSONValue;
 begin
   lValue := ParseJsonValue(aText, aContext);
   if lValue is TJSONObject then
     Exit(TJSONObject(lValue));
   try
-    Assert.Fail('Expected JSON object. Context: ' + aContext);
+    lContext := aContext;
+    if lContext = '' then
+      lContext := aText;
+    Assert.Fail('Expected JSON object. Context: ' + lContext);
   finally
     lValue.Free;
   end;
+end;
+
+procedure RequireJsonObjectKey(const aObject: TJSONObject; const aName: string; out aChild: TJSONObject);
+begin
+  Assert.IsNotNull(aObject.Values[aName], 'Expected JSON key: ' + aName);
+  Assert.IsTrue(aObject.Values[aName] is TJSONObject, 'Expected JSON object key: ' + aName);
+  aChild := aObject.Values[aName] as TJSONObject;
+end;
+
+procedure RequireJsonArrayKey(const aObject: TJSONObject; const aName: string; out aChild: TJSONArray);
+begin
+  Assert.IsNotNull(aObject.Values[aName], 'Expected JSON key: ' + aName);
+  Assert.IsTrue(aObject.Values[aName] is TJSONArray, 'Expected JSON array key: ' + aName);
+  aChild := aObject.Values[aName] as TJSONArray;
+end;
+
+procedure RequireJsonStringKey(const aObject: TJSONObject; const aName: string);
+begin
+  Assert.IsNotNull(aObject.Values[aName], 'Expected JSON key: ' + aName);
+  Assert.IsTrue(aObject.Values[aName] is TJSONString, 'Expected JSON string key: ' + aName);
+end;
+
+procedure RequireJsonNumberKey(const aObject: TJSONObject; const aName: string);
+begin
+  Assert.IsNotNull(aObject.Values[aName], 'Expected JSON key: ' + aName);
+  Assert.IsTrue(aObject.Values[aName] is TJSONNumber, 'Expected JSON number key: ' + aName);
 end;
 
 function StartSlowPingProcess(out aProcess: THandle; out aThread: THandle; out aError: string): Boolean;

@@ -69,13 +69,13 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'dfm-inspect-tree.log');
   lArgs := 'dfm-inspect --dfm ' + QuoteArg(lDfmPath) + ' --format tree';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start resolver for dfm-inspect tree test.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected dfm-inspect tree run to succeed. See: ' + lLogPath);
 
   lOutputText := '';
   if FileExists(lLogPath) then
-    lOutputText := TFile.ReadAllText(lLogPath);
+    lOutputText := ReadUtf8TextFile(lLogPath);
 
   Assert.IsTrue(Pos('MainForm: TMainForm', lOutputText) > 0,
     'Expected tree output to include the root form. Output: ' + lLogPath);
@@ -98,13 +98,13 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'dfm-inspect-summary.log');
   lArgs := 'dfm-inspect --dfm ' + QuoteArg(lDfmPath) + ' --format summary';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start resolver for dfm-inspect summary test.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected dfm-inspect summary run to succeed. See: ' + lLogPath);
 
   lOutputText := '';
   if FileExists(lLogPath) then
-    lOutputText := TFile.ReadAllText(lLogPath);
+    lOutputText := ReadUtf8TextFile(lLogPath);
 
   Assert.IsTrue(Pos('Form: MainForm (TMainForm)', lOutputText) > 0,
     'Expected summary output to include the root form. Output: ' + lLogPath);
@@ -153,14 +153,14 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'dfm-inspect-missing.log');
   lArgs := 'dfm-inspect --dfm ' + QuoteArg(TPath.Combine(RepoRoot, 'tests\fixtures\MissingForm.dfm')) + ' --format tree';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start resolver for missing DFM test.');
   Assert.AreEqual(Cardinal(3), lExitCode,
     'Expected missing DFM input to return exit code 3. See: ' + lLogPath);
 
   lOutputText := '';
   if FileExists(lLogPath) then
-    lOutputText := TFile.ReadAllText(lLogPath);
+    lOutputText := ReadUtf8TextFile(lLogPath);
   Assert.IsTrue(Pos('File not found', lOutputText) > 0,
     'Expected missing DFM error message. Output: ' + lLogPath);
 end;
@@ -245,14 +245,14 @@ begin
   lLogPath := TPath.Combine(TempRoot, 'dfm-inspect-help.log');
   lArgs := 'dfm-inspect --dfm tests\fixtures\MainForm.dfm --help';
 
-  Assert.IsTrue(RunProcess(ResolverExePath, lArgs, RepoRoot, lLogPath, lExitCode),
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
     'Failed to start resolver for dfm-inspect help test.');
   Assert.AreEqual(Cardinal(0), lExitCode,
     'Expected command-specific help to succeed when --dfm uses a separate token. See: ' + lLogPath);
 
   lOutputText := '';
   if FileExists(lLogPath) then
-    lOutputText := TFile.ReadAllText(lLogPath);
+    lOutputText := ReadUtf8TextFile(lLogPath);
   Assert.IsTrue(Pos('DelphiAIKit.exe dfm-inspect --dfm', lOutputText) > 0,
     'Expected dfm-inspect usage text. Output: ' + lLogPath);
 end;

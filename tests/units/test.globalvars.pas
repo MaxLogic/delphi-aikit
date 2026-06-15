@@ -49,7 +49,8 @@ uses
   Dak.GlobalVars.Cache,
   Dak.GlobalVars.Model,
   Dak.Types,
-  MaxLogic.ioUtils;
+  MaxLogic.ioUtils,
+  Test.Support;
 
 function TGlobalVarsTests.FixtureProjectPath: string;
 begin
@@ -176,8 +177,8 @@ begin
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
   Assert.IsTrue(TFile.Exists(lOutputFileName));
 
-  lContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lContent) as TJSONObject;
+  lContent := ReadUtf8TextFile(lOutputFileName);
+  lJson := ParseJsonObject(lContent);
   lFoundNames := TStringList.Create;
   try
     Assert.IsNotNull(lJson);
@@ -261,8 +262,8 @@ begin
   end;
 
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
-  lContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lContent) as TJSONObject;
+  lContent := ReadUtf8TextFile(lOutputFileName);
+  lJson := ParseJsonObject(lContent);
   try
     Assert.IsNotNull(lJson);
     for lItemValue in lJson.GetValue<TJSONArray>('symbols') do
@@ -322,8 +323,8 @@ begin
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
   Assert.IsTrue(TFile.Exists(lOutputFileName));
 
-  lContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lContent) as TJSONObject;
+  lContent := ReadUtf8TextFile(lOutputFileName);
+  lJson := ParseJsonObject(lContent);
   try
     Assert.IsNotNull(lJson);
     lSummary := lJson.GetValue<TJSONObject>('summary');
@@ -364,8 +365,8 @@ begin
   lOptions.fHasGlobalVarsOutputPath := True;
 
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
-  lContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lContent) as TJSONObject;
+  lContent := ReadUtf8TextFile(lOutputFileName);
+  lJson := ParseJsonObject(lContent);
   try
     lSymbols := lJson.GetValue<TJSONArray>('symbols');
     Assert.AreEqual(1, lSymbols.Count);
@@ -395,8 +396,8 @@ begin
   lOptions.fHasGlobalVarsOutputPath := True;
 
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
-  lContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lContent) as TJSONObject;
+  lContent := ReadUtf8TextFile(lOutputFileName);
+  lJson := ParseJsonObject(lContent);
   lNames := TStringList.Create;
   try
     lSymbols := lJson.GetValue<TJSONArray>('symbols');
@@ -437,7 +438,7 @@ begin
 
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
   Assert.IsTrue(TFile.Exists(lOutputFileName));
-  lText := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
+  lText := ReadUtf8TextFile(lOutputFileName);
   Assert.IsTrue(Pos('Summary: total=5 used=4 unused=1 ambiguities=0 emitted=5 filter=all', lText) = 1);
   Assert.IsTrue(ContainsText(lText, 'GlobalVarsFixture.Globals.GCounter: Integer [var]'));
   Assert.IsTrue(ContainsText(lText, '  used by:'));
@@ -528,7 +529,7 @@ begin
     TFile.SetLastWriteTimeUtc(lSourceFileName, lOriginalStamp);
 
     Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
-    lContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
+    lContent := ReadUtf8TextFile(lOutputFileName);
     Assert.IsTrue(ContainsText(lContent, 'GUnusedEntry'));
     Assert.IsFalse(ContainsText(lContent, 'GUnusedValue'));
   finally
@@ -683,8 +684,8 @@ begin
   lOptions.fHasGlobalVarsOutputPath := True;
 
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
-  lFirstContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lFirstContent) as TJSONObject;
+  lFirstContent := ReadUtf8TextFile(lOutputFileName);
+  lJson := ParseJsonObject(lFirstContent);
   try
     Assert.IsNotNull(lJson);
     lFoundUnicodePath := False;
@@ -720,8 +721,8 @@ begin
   end;
 
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
-  lSecondContent := TFile.ReadAllText(lOutputFileName, TEncoding.UTF8);
-  lJson := TJSONObject.ParseJSONValue(lSecondContent) as TJSONObject;
+  lSecondContent := ReadUtf8TextFile(lOutputFileName);
+  lJson := ParseJsonObject(lSecondContent);
   try
     Assert.IsNotNull(lJson);
     lFoundUnicodePath := False;
