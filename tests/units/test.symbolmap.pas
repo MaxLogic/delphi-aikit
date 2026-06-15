@@ -250,6 +250,8 @@ type
     [Test]
     procedure FailedProjectRefreshKeepsLastCompleteProjection;
     [Test]
+    procedure SymbolMapApiSessionIsOpaque;
+    [Test]
     procedure PreparedSessionIndexesRtlSourceForMathRoutine;
   end;
 
@@ -2339,11 +2341,11 @@ begin
 
   Assert.IsTrue(PrepareSymbolMapApiSession(lOptions, lSession, lError),
     'Expected prepared SymbolMap API session. Error: ' + lError);
-  Assert.IsTrue(lSession.fPrepared, 'Expected prepared session flag.');
-  Assert.IsTrue(lSession.fStatus.fProjectIndexed, 'Expected project indexing status.');
-  Assert.IsNotEmpty(lSession.fStatus.fCacheStatus.fCentralDbPath, 'Expected central cache path.');
-  Assert.IsNotEmpty(lSession.fStatus.fCacheStatus.fProjectDbPath, 'Expected project cache path.');
-  Assert.IsNotEmpty(lSession.fStatus.fCompilerProfile.fProfileKey, 'Expected compiler profile key.');
+  Assert.IsTrue(lSession.Prepared, 'Expected prepared session flag.');
+  Assert.IsTrue(lSession.Status.fProjectIndexed, 'Expected project indexing status.');
+  Assert.IsNotEmpty(lSession.Status.fCacheStatus.fCentralDbPath, 'Expected central cache path.');
+  Assert.IsNotEmpty(lSession.Status.fCacheStatus.fProjectDbPath, 'Expected project cache path.');
+  Assert.IsNotEmpty(lSession.Status.fCompilerProfile.fProfileKey, 'Expected compiler profile key.');
 
   Assert.IsTrue(LookupSymbolMapDefinitionByName(lSession, 'TDeclarationRecord', '', lTypeResult, lError),
     'Expected type lookup from prepared session. Error: ' + lError);
@@ -2354,9 +2356,9 @@ begin
   Assert.AreEqual('type', lTypeResult.fDefinition.fKind);
   Assert.AreEqual('Name', lMemberResult.fDefinition.fName);
   Assert.AreEqual('property', lMemberResult.fDefinition.fKind);
-  Assert.AreEqual(lSession.fStatus.fCacheStatus.fCentralDbPath,
+  Assert.AreEqual(lSession.Status.fCacheStatus.fCentralDbPath,
     lMemberResult.fStatus.fCacheStatus.fCentralDbPath);
-  Assert.AreEqual(lSession.fStatus.fCompilerProfile.fProfileKey,
+  Assert.AreEqual(lSession.Status.fCompilerProfile.fProfileKey,
     lTypeResult.fStatus.fCompilerProfile.fProfileKey);
 end;
 
@@ -2378,8 +2380,7 @@ begin
 
   Assert.IsTrue(PrepareSymbolMapApiSession(lOptions, lSession, lError),
     'Expected prepared SymbolMap API session. Error: ' + lError);
-  Assert.IsTrue(DescribeSymbolMapDefinition(lSession.fContext, lSession.fStatus.fCacheStatus,
-    lSession.fStatus.fCompilerProfile, 'SizeOf', '', lDefinition, lError),
+  Assert.IsTrue(lSession.DescribeDefinitionByName('SizeOf', '', lDefinition, lError),
     'Expected describe-symbol lookup. Error: ' + lError);
 
   Assert.IsTrue(lDefinition.fFound, 'Expected SizeOf describe-symbol result.');
@@ -3743,6 +3744,44 @@ begin
   finally
     lJsonValue.Free;
   end;
+end;
+
+procedure TSymbolMapApiTests.SymbolMapApiSessionIsOpaque;
+var
+  lApiSource: string;
+  lContextReachThrough: string;
+  lPreparedReachThrough: string;
+  lSessionEnd: Integer;
+  lSessionSource: string;
+  lSessionStart: Integer;
+  lStatusReachThrough: string;
+  lTestSource: string;
+begin
+  lApiSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Api.pas'),
+    TEncoding.UTF8);
+  lTestSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'tests\units\test.symbolmap.pas'),
+    TEncoding.UTF8);
+  lContextReachThrough := 'lSession.' + 'fContext';
+  lPreparedReachThrough := 'lSession.' + 'fPrepared';
+  lStatusReachThrough := 'lSession.' + 'fStatus';
+  lSessionStart := Pos('TSymbolMapApiSession = record', lApiSource);
+  lSessionEnd := Pos('function PrepareSymbolMapApiSession', lApiSource);
+  Assert.IsTrue((lSessionStart > 0) and (lSessionEnd > lSessionStart),
+    'Expected SymbolMap API session declaration.');
+  lSessionSource := Copy(lApiSource, lSessionStart, lSessionEnd - lSessionStart);
+
+  Assert.IsFalse(ContainsText(lSessionSource, 'fContext: TSymbolMapContext'),
+    'SymbolMap API session must not expose raw context storage.');
+  Assert.IsFalse(ContainsText(lSessionSource, 'fStatus: TSymbolMapApiStatus'),
+    'SymbolMap API session must not expose mutable status storage.');
+  Assert.IsFalse(ContainsText(lSessionSource, 'fPrepared: Boolean'),
+    'SymbolMap API session must not expose mutable prepared storage.');
+  Assert.IsFalse(ContainsText(lTestSource, lContextReachThrough),
+    'Tests should use public SymbolMap API session methods.');
+  Assert.IsFalse(ContainsText(lTestSource, lStatusReachThrough),
+    'Tests should use public SymbolMap API session status.');
+  Assert.IsFalse(ContainsText(lTestSource, lPreparedReachThrough),
+    'Tests should use public SymbolMap API session prepared state.');
 end;
 
 procedure TSymbolMapApiTests.PreparedSessionIndexesRtlSourceForMathRoutine;
