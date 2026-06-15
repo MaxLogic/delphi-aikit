@@ -76,6 +76,8 @@
     <DCCReference Include="units\\test.deadcodecli.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Api.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Api.RemoveWith.pas"/>
+    <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Api.ProjectOptions.pas"/>
+    <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Api.RemoveWith.Compatibility.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Graph.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.GlobalVars.pas"/>
     <DCCReference Include="..\..\DelphiSemantics\src\DelphiSemantics.Lsp.pas"/>

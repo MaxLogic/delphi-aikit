@@ -56,7 +56,7 @@ implementation
 
 uses
   System.Diagnostics, System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
-  DelphiSemantics.Api.RemoveWith;
+  DelphiSemantics.Api.RemoveWith.Compatibility;
 
 const
   cRemoveWithSchemaVersion = 2;
