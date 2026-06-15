@@ -122,12 +122,12 @@ begin
   lBeforeText := TFile.ReadAllText(lUnitTwoPath, TEncoding.UTF8);
   lLogPath := TPath.Combine(TempRoot, 'dead-code-cli-report.json');
 
-  Assert.IsTrue(RunProcess(ResolverExePath,
+  Assert.IsTrue(RunResolverProcess(
     'dead-code --project ' + QuoteArg(lDprojPath) + ' --profile legacy-static --format json',
     RepoRoot, lLogPath, lExitCode), 'Failed to start dead-code command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected dead-code report to succeed. See: ' + lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lLogText := ReadUtf8TextFile(lLogPath);
   Assert.IsTrue(Pos('"status":"ok"', lLogText) > 0, 'Expected ok JSON status. See: ' + lLogPath);
   Assert.IsTrue(Pos('"profile":"legacy-static"', lLogText) > 0, 'Expected selected profile. See: ' + lLogPath);
   Assert.IsTrue(Pos('"safetyProfile":"legacy-static"', lLogText) > 0,
@@ -154,12 +154,12 @@ begin
   CreateFixtureProject(lRoot, lDprojPath, lUnitOnePath, lUnitTwoPath);
   lLogPath := TPath.Combine(TempRoot, 'dead-code-cli-invalid-profile.log');
 
-  Assert.IsTrue(RunProcess(ResolverExePath,
+  Assert.IsTrue(RunResolverProcess(
     'dead-code --project ' + QuoteArg(lDprojPath) + ' --profile typo --format json',
     RepoRoot, lLogPath, lExitCode), 'Failed to start dead-code command.');
   Assert.AreNotEqual(Cardinal(0), lExitCode, 'Unknown profiles must fail. See: ' + lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lLogText := ReadUtf8TextFile(lLogPath);
   Assert.IsTrue(Pos(Format('Invalid --profile value: typo (expected %s).',
     [TDelphiSemanticDeadCodeProfiles.AllowedNamesText]), lLogText) > 0,
     'Expected invalid profile diagnostic. See: ' + lLogPath);
@@ -182,12 +182,12 @@ begin
   lBeforeText := TFile.ReadAllText(lUnitTwoPath, TEncoding.UTF8);
   lLogPath := TPath.Combine(TempRoot, 'dead-code-cli-text-default.log');
 
-  Assert.IsTrue(RunProcess(ResolverExePath,
+  Assert.IsTrue(RunResolverProcess(
     'dead-code --project ' + QuoteArg(lDprojPath) + ' --format text',
     RepoRoot, lLogPath, lExitCode), 'Failed to start dead-code command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected dead-code report to succeed. See: ' + lLogPath);
 
-  lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
+  lLogText := ReadUtf8TextFile(lLogPath);
   Assert.IsTrue(Pos('dead-code: report', lLogText) > 0, 'Expected text report header. See: ' + lLogPath);
   Assert.IsTrue(Pos('profile: ' + TDelphiSemanticDeadCodeProfiles.ToName(
     TDelphiSemanticDeadCodeProfiles.DefaultRemovalProfile), lLogText) > 0,

@@ -494,7 +494,7 @@ begin
     Exit(False);
   if not ReadMessage(lResponseText, aError) then
     Exit(False);
-  lValue := TJSONObject.ParseJSONValue(lResponseText);
+  lValue := TJSONValue.ParseJSONValue(lResponseText);
   if not (lValue is TJSONObject) then
   begin
     lValue.Free;
@@ -959,7 +959,7 @@ begin
     'Expected probe settings file to live under the owned .dak workspace.');
   Assert.IsTrue(FileExists(lSettingsFilePath), 'Expected probe settings file to exist.');
 
-  lJson := TJSONObject.ParseJSONValue(TFile.ReadAllText(lSettingsFilePath, TEncoding.UTF8)) as TJSONObject;
+  lJson := ParseJsonObject(ReadUtf8TextFile(lSettingsFilePath), lSettingsFilePath);
   try
     Assert.IsNotNull(lJson, 'Expected probe settings file to contain valid JSON.');
     lSettingsJson := lJson.GetValue<TJSONObject>('settings');
@@ -1311,11 +1311,11 @@ begin
       Format('%s-%d-%d.json', [aScenarioName, GetCurrentThreadId, GetTickCount]));
     for lAttempt := 1 to 5 do
     begin
-      Assert.IsTrue(RunProcess(ResolverExePath, aArgs, RepoRoot, lLogPath, Result),
+      Assert.IsTrue(RunResolverProcess(aArgs, RepoRoot, lLogPath, Result),
         'Expected DelphiAIKit.exe lsp process to start for ' + aScenarioName + '.');
       Assert.IsTrue(FileExists(lLogPath), 'Expected JSON log output for ' + aScenarioName + '.');
-      lLogText := TFile.ReadAllText(lLogPath, TEncoding.UTF8);
-      lValue := TJSONObject.ParseJSONValue(lLogText);
+      lLogText := ReadUtf8TextFile(lLogPath);
+      lValue := TJSONValue.ParseJSONValue(lLogText);
       if lValue is TJSONObject then
       begin
         aJson := lValue as TJSONObject;
@@ -1404,7 +1404,7 @@ begin
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected one-shot lsp lifecycle to succeed. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       Assert.IsNotNull(lJson, 'Expected lifecycle response JSON.');
       Assert.AreEqual<string>('definition', lJson.GetValue<string>('operation'), 'Expected operation field.');
@@ -1493,7 +1493,7 @@ begin
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected normalized definition request to succeed. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       Assert.IsNotNull(lJson, 'Expected JSON response.');
       Assert.IsTrue(lJson.Values['result'] is TJSONObject, 'Expected result object.');
@@ -1542,7 +1542,7 @@ begin
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected request position conversion to satisfy fake server expectation. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       lLocations := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations');
       Assert.IsNotNull(lLocations, 'Expected normalized empty locations array.');
@@ -1583,7 +1583,7 @@ begin
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected host-qualified URI normalization request to succeed. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       lLocations := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('locations');
       Assert.IsNotNull(lLocations, 'Expected normalized locations array.');
@@ -1636,7 +1636,7 @@ begin
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected hover request to succeed. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       Assert.AreEqual<string>('Fixture **hover**', (lJson.Values['result'] as TJSONObject).GetValue<string>('contentsText'),
         'Expected hover contentsText.');
@@ -1719,7 +1719,7 @@ begin
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected empty hover request to succeed. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       Assert.IsTrue((lJson.Values['result'] as TJSONObject).GetValue<Boolean>('isEmpty', False),
         'Expected empty hover to be marked explicitly.');
@@ -1768,7 +1768,7 @@ begin
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected document-symbol request to succeed. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
       Assert.IsNotNull(lSymbols, 'Expected normalized symbols array.');
@@ -1821,7 +1821,7 @@ begin
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected hierarchical document-symbol request to succeed. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
       Assert.IsNotNull(lSymbols, 'Expected flattened symbols array.');
@@ -1885,7 +1885,7 @@ begin
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected filtered document-symbol request to succeed. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
       Assert.IsNotNull(lSymbols, 'Expected filtered symbols array.');
@@ -1934,7 +1934,7 @@ begin
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected contextFile probe to succeed. Error: ' + lError);
 
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       lModes := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('modes');
       Assert.AreEqual(1, lModes.Count, 'Expected one probe mode result.');
@@ -1990,7 +1990,7 @@ begin
       'Expected settingsFile probe to succeed. Error: ' + lError);
     Assert.IsTrue(FileExists(lSettingsFilePath), 'Expected probe settings file to be written under the owned .dak workspace.');
 
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       lModes := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('modes');
       Assert.AreEqual(1, lModes.Count, 'Expected one probe mode result.');
@@ -2120,7 +2120,7 @@ begin
     lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected empty document-symbol request to succeed. Error: ' + lError);
-    lJson := TJSONObject.ParseJSONValue(lResult.fResponseText) as TJSONObject;
+    lJson := ParseJsonObject(lResult.fResponseText);
     try
       lSymbols := (lJson.Values['result'] as TJSONObject).GetValue<TJSONArray>('symbols');
       Assert.IsNotNull(lSymbols, 'Expected explicit empty symbols array.');
