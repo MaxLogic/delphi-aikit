@@ -4,14 +4,14 @@ interface
 
 uses
   System.Generics.Collections,
-  DelphiSemantics.Cache,
   Dak.GlobalVars.Model,
+  Dak.Semantics.Session,
   Dak.Types;
 
 type
   TGlobalVarsSemanticIdentity = record
     IdentityHash: string;
-    CacheIdentities: TArray<TDelphiSemanticUnitCacheIdentity>;
+    CacheIdentities: TArray<TDakSemanticUnitCacheIdentity>;
   end;
 
   TGlobalVarsSemanticAnalysis = class
@@ -19,7 +19,7 @@ type
     Symbols: TObjectList<TGlobalVarSymbol>;
     Ambiguities: TList<TGlobalVarAmbiguity>;
     IdentityHash: string;
-    CacheIdentities: TArray<TDelphiSemanticUnitCacheIdentity>;
+    CacheIdentities: TArray<TDakSemanticUnitCacheIdentity>;
     constructor Create;
     destructor Destroy; override;
   end;
@@ -38,9 +38,7 @@ uses
   System.StrUtils,
   System.SysUtils,
   DelphiSemantics.GlobalVars,
-  DelphiSemantics.ProjectContext,
-  DelphiSemantics.ProjectSession,
-  Dak.Semantics.Session;
+  DelphiSemantics.ProjectContext;
 
 constructor TGlobalVarsSemanticAnalysis.Create;
 begin
@@ -142,10 +140,10 @@ begin
 end;
 
 function IdentityHash(const aProject: TProjectInfo;
-  const aIdentities: TArray<TDelphiSemanticUnitCacheIdentity>): string;
+  const aIdentities: TArray<TDakSemanticUnitCacheIdentity>): string;
 var
   lBuilder: TStringBuilder;
-  lIdentity: TDelphiSemanticUnitCacheIdentity;
+  lIdentity: TDakSemanticUnitCacheIdentity;
   lText: string;
 begin
   lBuilder := TStringBuilder.Create;
@@ -223,25 +221,21 @@ function AnalyzeGlobalVarsProject(const aProject: TProjectInfo;
   const aOptions: TAppOptions): TGlobalVarsSemanticAnalysis;
 var
   lAnalysis: TDelphiSemanticGlobalAnalysis;
-  lCacheMetrics: TDelphiSemanticCacheMetrics;
+  lCacheMetrics: TDakSemanticCacheMetrics;
   lError: string;
   lExtractionMilliseconds: Int64;
   lOptions: TDelphiSemanticOptions;
-  lSessionResult: TDelphiSemanticProjectSessionResult;
+  lSession: IDakSemanticProjectSession;
 begin
   Result := TGlobalVarsSemanticAnalysis.Create;
   try
     lOptions := GlobalVarsSemanticSessionOptions(aProject, aOptions);
-    if not OpenSemanticProjectSession(lOptions, lSessionResult, lError) then
+    if not OpenSemanticProjectSession(lOptions, lSession, lError) then
       raise Exception.Create(lError);
-    try
-      lAnalysis := lSessionResult.Session.BuildGlobalAnalysis(Result.CacheIdentities,
-        lCacheMetrics, lExtractionMilliseconds);
-      Result.IdentityHash := IdentityHash(aProject, Result.CacheIdentities);
-      CopySemanticAnalysis(lAnalysis, Result);
-    finally
-      lSessionResult.Session.Free;
-    end;
+    lAnalysis := lSession.BuildGlobalAnalysis(Result.CacheIdentities,
+      lCacheMetrics, lExtractionMilliseconds);
+    Result.IdentityHash := IdentityHash(aProject, Result.CacheIdentities);
+    CopySemanticAnalysis(lAnalysis, Result);
   except
     Result.Free;
     raise;
@@ -253,18 +247,14 @@ function BuildGlobalVarsProjectIdentity(const aProject: TProjectInfo;
 var
   lError: string;
   lOptions: TDelphiSemanticOptions;
-  lSessionResult: TDelphiSemanticProjectSessionResult;
+  lSession: IDakSemanticProjectSession;
 begin
   Result := Default(TGlobalVarsSemanticIdentity);
   lOptions := GlobalVarsSemanticSessionOptions(aProject, aOptions);
-  if not OpenSemanticProjectSession(lOptions, lSessionResult, lError) then
+  if not OpenSemanticProjectSession(lOptions, lSession, lError) then
     raise Exception.Create(lError);
-  try
-    Result.CacheIdentities := lSessionResult.Session.BuildGlobalCacheIdentities;
-    Result.IdentityHash := IdentityHash(aProject, Result.CacheIdentities);
-  finally
-    lSessionResult.Session.Free;
-  end;
+  Result.CacheIdentities := lSession.BuildGlobalCacheIdentities;
+  Result.IdentityHash := IdentityHash(aProject, Result.CacheIdentities);
 end;
 
 end.

@@ -422,6 +422,16 @@ begin
       lPath + ' must not call the raw Semantics session opener directly.');
     Assert.IsFalse(ContainsText(lCommandSource, 'function SessionDiagnosticsText'),
       lPath + ' must not duplicate Semantics diagnostic formatting.');
+    Assert.IsFalse(ContainsText(lCommandSource, 'TDelphiSemanticProjectSessionResult'),
+      lPath + ' must not expose raw Semantics project-session records.');
+    Assert.IsFalse(ContainsText(lCommandSource, 'TDelphiSemanticSymbolQueryContext'),
+      lPath + ' must not expose raw Semantics query-context records.');
+    Assert.IsFalse(ContainsText(lCommandSource, 'TDelphiSemanticCacheMetrics'),
+      lPath + ' must not expose raw Semantics cache metrics.');
+    Assert.IsFalse(ContainsText(lCommandSource, 'DelphiSemantics.ProjectSession'),
+      lPath + ' must not use Semantics project-session internals directly.');
+    Assert.IsFalse(ContainsText(lCommandSource, 'DelphiSemantics.Query'),
+      lPath + ' must not use Semantics query internals directly.');
     if ContainsText(lPath, 'Refactor') or ContainsText(lPath, 'SymbolMap.Query') then
     begin
       Assert.IsTrue(ContainsText(lCommandSource, 'OpenSemanticSymbolQueryContext'),
