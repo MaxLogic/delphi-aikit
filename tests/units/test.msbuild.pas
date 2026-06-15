@@ -725,6 +725,21 @@ begin
   lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.build.runner.pas'), TEncoding.UTF8);
   Assert.IsTrue(ContainsText(lSource, 'Dak.Project.BuildParams'),
     'Build runner should import the build-param project boundary.');
+
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.Project.BuildParams.pas'), TEncoding.UTF8);
+  Assert.IsFalse(ContainsText(lSource, 'TryBuildProjectSourceLookup'),
+    'Project source lookup should not live in Dak.Project.BuildParams.');
+
+  Assert.IsTrue(FileExists(TPath.Combine(RepoRoot, 'src\Dak.Project.SourceLookup.pas')),
+    'Expected a focused source-lookup project boundary unit.');
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.Project.SourceLookup.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lSource, 'function TryBuildProjectSourceLookup') and
+    ContainsText(lSource, 'TDelphiSemanticApi.LoadProjectContext'),
+    'Focused source-lookup unit should own semantic project source lookup construction.');
+
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.project.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lSource, 'Dak.Project.SourceLookup.TryBuildProjectSourceLookup'),
+    'Dak.Project compatibility facade should delegate source lookup construction.');
 end;
 
 procedure TMsBuildTests.ResolveRunnerDelegatesProjectFactsToSemanticContext;
