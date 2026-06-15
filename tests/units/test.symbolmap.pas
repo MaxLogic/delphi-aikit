@@ -130,6 +130,10 @@ type
     [Test]
     procedure ChangedSearchOrConfigurationMissesCentralProjection;
     [Test]
+    procedure CacheHitPreservesFullUnitProjection;
+    [Test]
+    procedure CacheHitPreservesUsesProjection;
+    [Test]
     procedure IncludedFileChangeProducesDifferentUnitCacheKey;
   end;
 
@@ -922,6 +926,160 @@ begin
   Assert.AreNotEqual(lFirst.fUnitCacheKey, lSecond.fUnitCacheKey);
   Assert.IsFalse(lFound, 'Expected changed search/config context to miss central projection.');
   Assert.IsFalse(lSecond.fCacheHit, 'Expected changed search/config context to avoid cache hit.');
+end;
+
+procedure TSymbolMapCentralCacheReuseTests.CacheHitPreservesFullUnitProjection;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lFound: Boolean;
+  lLoadedModel: TSymbolMapUnitModel;
+  lModel: TSymbolMapUnitModel;
+  lLoadResult: TSymbolMapCacheStoreResult;
+  lStoreResult: TSymbolMapCacheStoreResult;
+  lStatus: TSymbolMapCacheStatus;
+
+  function SortedLines(const aLines: TArray<string>): string;
+  var
+    lLine: string;
+    lLines: TStringList;
+  begin
+    lLines := TStringList.Create;
+    try
+      lLines.Sorted := True;
+      for lLine in aLines do
+        lLines.Add(lLine);
+      Result := lLines.Text;
+    finally
+      lLines.Free;
+    end;
+  end;
+
+  function UsesSnapshot(const aModel: TSymbolMapUnitModel): string;
+  var
+    i: Integer;
+    lLines: TArray<string>;
+  begin
+    SetLength(lLines, Length(aModel.fUses));
+    for i := 0 to High(aModel.fUses) do
+      lLines[i] := aModel.fUses[i].fUnitName + '|' + aModel.fUses[i].fSectionKind + '|' +
+        aModel.fUses[i].fLine.ToString + '|' + aModel.fUses[i].fCol.ToString;
+    Result := SortedLines(lLines);
+  end;
+
+  function SymbolsSnapshot(const aModel: TSymbolMapUnitModel): string;
+  var
+    i: Integer;
+    lLines: TArray<string>;
+  begin
+    SetLength(lLines, Length(aModel.fSymbols));
+    for i := 0 to High(aModel.fSymbols) do
+      lLines[i] := aModel.fSymbols[i].fName + '|' + aModel.fSymbols[i].fKind + '|' +
+        aModel.fSymbols[i].fOwnerName + '|' + aModel.fSymbols[i].fTypeName + '|' +
+        aModel.fSymbols[i].fSignature + '|' + aModel.fSymbols[i].fSectionKind + '|' +
+        aModel.fSymbols[i].fLine.ToString + '|' + aModel.fSymbols[i].fCol.ToString + '|' +
+        aModel.fSymbols[i].fEndLine.ToString + '|' + aModel.fSymbols[i].fEndCol.ToString;
+    Result := SortedLines(lLines);
+  end;
+
+  function MembersSnapshot(const aModel: TSymbolMapUnitModel): string;
+  var
+    i: Integer;
+    lLines: TArray<string>;
+  begin
+    SetLength(lLines, Length(aModel.fMembers));
+    for i := 0 to High(aModel.fMembers) do
+      lLines[i] := aModel.fMembers[i].fOwnerName + '|' + aModel.fMembers[i].fMemberName + '|' +
+        aModel.fMembers[i].fKind + '|' + aModel.fMembers[i].fTypeName + '|' +
+        aModel.fMembers[i].fVisibility + '|' + aModel.fMembers[i].fSignature + '|' +
+        BoolToStr(aModel.fMembers[i].fIsDefault, True) + '|' +
+        BoolToStr(aModel.fMembers[i].fIsIndexed, True) + '|' +
+        aModel.fMembers[i].fLine.ToString + '|' + aModel.fMembers[i].fCol.ToString + '|' +
+        aModel.fMembers[i].fEndLine.ToString + '|' + aModel.fMembers[i].fEndCol.ToString;
+    Result := SortedLines(lLines);
+  end;
+
+  function ReferencesSnapshot(const aModel: TSymbolMapUnitModel): string;
+  var
+    i: Integer;
+    lLines: TArray<string>;
+  begin
+    SetLength(lLines, Length(aModel.fReferences));
+    for i := 0 to High(aModel.fReferences) do
+      lLines[i] := aModel.fReferences[i].fName + '|' + aModel.fReferences[i].fRole + '|' +
+        aModel.fReferences[i].fSectionKind + '|' + aModel.fReferences[i].fLine.ToString + '|' +
+        aModel.fReferences[i].fCol.ToString + '|' + aModel.fReferences[i].fEndLine.ToString + '|' +
+        aModel.fReferences[i].fEndCol.ToString;
+    Result := SortedLines(lLines);
+  end;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-full-projection-cache-hit');
+  BuildContext('SymbolMapFullProjectionA', lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(FixtureUnitPath, lModel, lError),
+    'Expected member unit extraction. Error: ' + lError);
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContext, lStatus, lModel, lStoreResult, lError),
+    'Expected first store. Error: ' + lError);
+  Assert.IsTrue(TryLoadSymbolMapUnitProjection(lContext, lStatus, FixtureUnitPath, False,
+    lLoadedModel, lLoadResult, lFound, lError), 'Expected cache-hit load. Error: ' + lError);
+
+  Assert.IsTrue(lFound, 'Expected stored central projection to load.');
+  Assert.IsTrue(lLoadResult.fCacheHit, 'Expected cache-hit result.');
+  Assert.AreEqual(lModel.fUnitName, lLoadedModel.fUnitName);
+  Assert.AreEqual(lStoreResult.fUnitCacheKey, lLoadResult.fUnitCacheKey);
+  Assert.AreEqual(UsesSnapshot(lModel), UsesSnapshot(lLoadedModel), 'Expected all uses to roundtrip.');
+  Assert.AreEqual(SymbolsSnapshot(lModel), SymbolsSnapshot(lLoadedModel), 'Expected all symbols to roundtrip.');
+  Assert.AreEqual(MembersSnapshot(lModel), MembersSnapshot(lLoadedModel), 'Expected all members to roundtrip.');
+  Assert.AreEqual(ReferencesSnapshot(lModel), ReferencesSnapshot(lLoadedModel),
+    'Expected all references to roundtrip.');
+end;
+
+procedure TSymbolMapCentralCacheReuseTests.CacheHitPreservesUsesProjection;
+var
+  lCacheRoot: string;
+  lContext: TSymbolMapContext;
+  lError: string;
+  lFound: Boolean;
+  lLoadedModel: TSymbolMapUnitModel;
+  lModel: TSymbolMapUnitModel;
+  lLoadResult: TSymbolMapCacheStoreResult;
+  lStatus: TSymbolMapCacheStatus;
+  lStoreResult: TSymbolMapCacheStoreResult;
+  lUnitPath: string;
+
+  function UsesSnapshot(const aModel: TSymbolMapUnitModel): string;
+  var
+    i: Integer;
+    lLines: TStringList;
+  begin
+    lLines := TStringList.Create;
+    try
+      lLines.Sorted := True;
+      for i := 0 to High(aModel.fUses) do
+        lLines.Add(aModel.fUses[i].fUnitName + '|' + aModel.fUses[i].fSectionKind + '|' +
+          aModel.fUses[i].fLine.ToString + '|' + aModel.fUses[i].fCol.ToString);
+      Result := lLines.Text;
+    finally
+      lLines.Free;
+    end;
+  end;
+begin
+  lCacheRoot := UniqueTempPath('symbol-map-uses-projection-cache-hit');
+  lUnitPath := TPath.Combine(RepoRoot, 'tests\fixtures\SymbolMapFixture\SymbolMapUnit.pas');
+  BuildContext('SymbolMapUsesProjectionA', lCacheRoot, lContext);
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+  Assert.IsTrue(TryExtractSymbolMapUnitModel(lUnitPath, lModel, lError),
+    'Expected unit extraction. Error: ' + lError);
+  Assert.AreEqual(4, Integer(Length(lModel.fUses)), 'Expected fixture to cover non-empty uses.');
+  Assert.IsTrue(StoreSymbolMapUnitProjection(lContext, lStatus, lModel, lStoreResult, lError),
+    'Expected first store. Error: ' + lError);
+  Assert.IsTrue(TryLoadSymbolMapUnitProjection(lContext, lStatus, lUnitPath, False,
+    lLoadedModel, lLoadResult, lFound, lError), 'Expected cache-hit load. Error: ' + lError);
+
+  Assert.IsTrue(lFound, 'Expected stored central projection to load.');
+  Assert.IsTrue(lLoadResult.fCacheHit, 'Expected cache-hit result.');
+  Assert.AreEqual(UsesSnapshot(lModel), UsesSnapshot(lLoadedModel), 'Expected uses to roundtrip.');
 end;
 
 procedure TSymbolMapCentralCacheReuseTests.IncludedFileChangeProducesDifferentUnitCacheKey;

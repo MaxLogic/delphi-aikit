@@ -82,6 +82,7 @@ implementation
 uses
   System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.StrUtils, System.SysUtils,
   System.Variants,
+  Data.DB,
   Winapi.Windows,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile, DelphiSemantics.Model,
@@ -1118,27 +1119,40 @@ end;
 procedure LoadCachedUses(const aConnection: TFDConnection; const aUnitCacheKey: string;
   var aModel: TSymbolMapUnitModel);
 var
-  lIndex: Integer;
+  lColField: TField;
+  lItems: TList<TSymbolMapUnitUse>;
+  lLineField: TField;
   lQuery: TFDQuery;
+  lSectionField: TField;
+  lUnitNameField: TField;
+  lUse: TSymbolMapUnitUse;
 begin
   lQuery := TFDQuery.Create(nil);
+  lItems := nil;
   try
+    lItems := TList<TSymbolMapUnitUse>.Create;
     lQuery.Connection := aConnection;
     lQuery.SQL.Text := 'select used_unit_name, section_kind, line_no, col_no from unit_uses ' +
       'where unit_cache_key = ? order by line_no, col_no, used_unit_name';
     lQuery.Params[0].AsString := aUnitCacheKey;
     lQuery.Open;
+    lUnitNameField := lQuery.FieldByName('used_unit_name');
+    lSectionField := lQuery.FieldByName('section_kind');
+    lLineField := lQuery.FieldByName('line_no');
+    lColField := lQuery.FieldByName('col_no');
     while not lQuery.Eof do
     begin
-      lIndex := Length(aModel.fUses);
-      SetLength(aModel.fUses, lIndex + 1);
-      aModel.fUses[lIndex].fUnitName := lQuery.FieldByName('used_unit_name').AsString;
-      aModel.fUses[lIndex].fSectionKind := lQuery.FieldByName('section_kind').AsString;
-      aModel.fUses[lIndex].fLine := lQuery.FieldByName('line_no').AsInteger;
-      aModel.fUses[lIndex].fCol := lQuery.FieldByName('col_no').AsInteger;
+      lUse := Default(TSymbolMapUnitUse);
+      lUse.fUnitName := lUnitNameField.AsWideString;
+      lUse.fSectionKind := lSectionField.AsWideString;
+      lUse.fLine := lLineField.AsInteger;
+      lUse.fCol := lColField.AsInteger;
+      lItems.Add(lUse);
       lQuery.Next;
     end;
+    aModel.fUses := lItems.ToArray;
   finally
+    lItems.Free;
     lQuery.Free;
   end;
 end;
@@ -1146,36 +1160,61 @@ end;
 procedure LoadCachedSymbols(const aConnection: TFDConnection; const aUnitCacheKey: string;
   var aModel: TSymbolMapUnitModel);
 var
-  lIndex: Integer;
+  lColField: TField;
+  lEndColField: TField;
+  lEndLineField: TField;
+  lItems: TList<TSymbolMapSymbolModel>;
+  lKindField: TField;
+  lLineField: TField;
+  lNameField: TField;
+  lOwnerField: TField;
   lQuery: TFDQuery;
+  lSectionField: TField;
+  lSignatureField: TField;
+  lSymbol: TSymbolMapSymbolModel;
+  lTypeField: TField;
 begin
   lQuery := TFDQuery.Create(nil);
+  lItems := nil;
   try
+    lItems := TList<TSymbolMapSymbolModel>.Create;
     lQuery.Connection := aConnection;
     lQuery.SQL.Text := 'select name, kind, owner_name, type_name, signature, section_kind, ' +
       'line_no, col_no, end_line_no, end_col_no from symbols where unit_cache_key = ? ' +
       'order by line_no, col_no, name';
     lQuery.Params[0].AsString := aUnitCacheKey;
     lQuery.Open;
+    lNameField := lQuery.FieldByName('name');
+    lKindField := lQuery.FieldByName('kind');
+    lOwnerField := lQuery.FieldByName('owner_name');
+    lTypeField := lQuery.FieldByName('type_name');
+    lSignatureField := lQuery.FieldByName('signature');
+    lSectionField := lQuery.FieldByName('section_kind');
+    lLineField := lQuery.FieldByName('line_no');
+    lColField := lQuery.FieldByName('col_no');
+    lEndLineField := lQuery.FieldByName('end_line_no');
+    lEndColField := lQuery.FieldByName('end_col_no');
     while not lQuery.Eof do
     begin
-      lIndex := Length(aModel.fSymbols);
-      SetLength(aModel.fSymbols, lIndex + 1);
-      aModel.fSymbols[lIndex].fName := lQuery.FieldByName('name').AsString;
-      aModel.fSymbols[lIndex].fKind := lQuery.FieldByName('kind').AsString;
-      aModel.fSymbols[lIndex].fUnitName := aModel.fUnitName;
-      aModel.fSymbols[lIndex].fFilePath := aModel.fFilePath;
-      aModel.fSymbols[lIndex].fOwnerName := lQuery.FieldByName('owner_name').AsString;
-      aModel.fSymbols[lIndex].fTypeName := lQuery.FieldByName('type_name').AsString;
-      aModel.fSymbols[lIndex].fSignature := lQuery.FieldByName('signature').AsString;
-      aModel.fSymbols[lIndex].fSectionKind := lQuery.FieldByName('section_kind').AsString;
-      aModel.fSymbols[lIndex].fLine := lQuery.FieldByName('line_no').AsInteger;
-      aModel.fSymbols[lIndex].fCol := lQuery.FieldByName('col_no').AsInteger;
-      aModel.fSymbols[lIndex].fEndLine := lQuery.FieldByName('end_line_no').AsInteger;
-      aModel.fSymbols[lIndex].fEndCol := lQuery.FieldByName('end_col_no').AsInteger;
+      lSymbol := Default(TSymbolMapSymbolModel);
+      lSymbol.fName := lNameField.AsWideString;
+      lSymbol.fKind := lKindField.AsWideString;
+      lSymbol.fUnitName := aModel.fUnitName;
+      lSymbol.fFilePath := aModel.fFilePath;
+      lSymbol.fOwnerName := lOwnerField.AsWideString;
+      lSymbol.fTypeName := lTypeField.AsWideString;
+      lSymbol.fSignature := lSignatureField.AsWideString;
+      lSymbol.fSectionKind := lSectionField.AsWideString;
+      lSymbol.fLine := lLineField.AsInteger;
+      lSymbol.fCol := lColField.AsInteger;
+      lSymbol.fEndLine := lEndLineField.AsInteger;
+      lSymbol.fEndCol := lEndColField.AsInteger;
+      lItems.Add(lSymbol);
       lQuery.Next;
     end;
+    aModel.fSymbols := lItems.ToArray;
   finally
+    lItems.Free;
     lQuery.Free;
   end;
 end;
@@ -1183,36 +1222,65 @@ end;
 procedure LoadCachedMembers(const aConnection: TFDConnection; const aUnitCacheKey: string;
   var aModel: TSymbolMapUnitModel);
 var
-  lIndex: Integer;
+  lColField: TField;
+  lDefaultField: TField;
+  lEndColField: TField;
+  lEndLineField: TField;
+  lIndexedField: TField;
+  lItems: TList<TSymbolMapMemberModel>;
+  lKindField: TField;
+  lLineField: TField;
+  lMember: TSymbolMapMemberModel;
+  lMemberNameField: TField;
+  lOwnerField: TField;
   lQuery: TFDQuery;
+  lSignatureField: TField;
+  lTypeField: TField;
+  lVisibilityField: TField;
 begin
   lQuery := TFDQuery.Create(nil);
+  lItems := nil;
   try
+    lItems := TList<TSymbolMapMemberModel>.Create;
     lQuery.Connection := aConnection;
     lQuery.SQL.Text := 'select owner_name, member_name, kind, type_name, visibility, signature, ' +
       'is_default, is_indexed, line_no, col_no, end_line_no, end_col_no from members where unit_cache_key = ? ' +
       'order by line_no, col_no, owner_name, member_name';
     lQuery.Params[0].AsString := aUnitCacheKey;
     lQuery.Open;
+    lOwnerField := lQuery.FieldByName('owner_name');
+    lMemberNameField := lQuery.FieldByName('member_name');
+    lKindField := lQuery.FieldByName('kind');
+    lTypeField := lQuery.FieldByName('type_name');
+    lVisibilityField := lQuery.FieldByName('visibility');
+    lSignatureField := lQuery.FieldByName('signature');
+    lDefaultField := lQuery.FieldByName('is_default');
+    lIndexedField := lQuery.FieldByName('is_indexed');
+    lLineField := lQuery.FieldByName('line_no');
+    lColField := lQuery.FieldByName('col_no');
+    lEndLineField := lQuery.FieldByName('end_line_no');
+    lEndColField := lQuery.FieldByName('end_col_no');
     while not lQuery.Eof do
     begin
-      lIndex := Length(aModel.fMembers);
-      SetLength(aModel.fMembers, lIndex + 1);
-      aModel.fMembers[lIndex].fOwnerName := lQuery.FieldByName('owner_name').AsString;
-      aModel.fMembers[lIndex].fMemberName := lQuery.FieldByName('member_name').AsString;
-      aModel.fMembers[lIndex].fKind := lQuery.FieldByName('kind').AsString;
-      aModel.fMembers[lIndex].fTypeName := lQuery.FieldByName('type_name').AsString;
-      aModel.fMembers[lIndex].fVisibility := lQuery.FieldByName('visibility').AsString;
-      aModel.fMembers[lIndex].fSignature := lQuery.FieldByName('signature').AsString;
-      aModel.fMembers[lIndex].fIsDefault := lQuery.FieldByName('is_default').AsInteger <> 0;
-      aModel.fMembers[lIndex].fIsIndexed := lQuery.FieldByName('is_indexed').AsInteger <> 0;
-      aModel.fMembers[lIndex].fLine := lQuery.FieldByName('line_no').AsInteger;
-      aModel.fMembers[lIndex].fCol := lQuery.FieldByName('col_no').AsInteger;
-      aModel.fMembers[lIndex].fEndLine := lQuery.FieldByName('end_line_no').AsInteger;
-      aModel.fMembers[lIndex].fEndCol := lQuery.FieldByName('end_col_no').AsInteger;
+      lMember := Default(TSymbolMapMemberModel);
+      lMember.fOwnerName := lOwnerField.AsWideString;
+      lMember.fMemberName := lMemberNameField.AsWideString;
+      lMember.fKind := lKindField.AsWideString;
+      lMember.fTypeName := lTypeField.AsWideString;
+      lMember.fVisibility := lVisibilityField.AsWideString;
+      lMember.fSignature := lSignatureField.AsWideString;
+      lMember.fIsDefault := lDefaultField.AsInteger <> 0;
+      lMember.fIsIndexed := lIndexedField.AsInteger <> 0;
+      lMember.fLine := lLineField.AsInteger;
+      lMember.fCol := lColField.AsInteger;
+      lMember.fEndLine := lEndLineField.AsInteger;
+      lMember.fEndCol := lEndColField.AsInteger;
+      lItems.Add(lMember);
       lQuery.Next;
     end;
+    aModel.fMembers := lItems.ToArray;
   finally
+    lItems.Free;
     lQuery.Free;
   end;
 end;
@@ -1220,30 +1288,49 @@ end;
 procedure LoadCachedReferences(const aConnection: TFDConnection; const aUnitCacheKey: string;
   var aModel: TSymbolMapUnitModel);
 var
-  lIndex: Integer;
+  lColField: TField;
+  lEndColField: TField;
+  lEndLineField: TField;
+  lItems: TList<TSymbolMapReferenceModel>;
+  lLineField: TField;
+  lNameField: TField;
   lQuery: TFDQuery;
+  lReference: TSymbolMapReferenceModel;
+  lRoleField: TField;
+  lSectionField: TField;
 begin
   lQuery := TFDQuery.Create(nil);
+  lItems := nil;
   try
+    lItems := TList<TSymbolMapReferenceModel>.Create;
     lQuery.Connection := aConnection;
     lQuery.SQL.Text := 'select name, role, section_kind, line_no, col_no, end_line_no, end_col_no ' +
       'from symbol_map_references where unit_cache_key = ? order by line_no, col_no, name';
     lQuery.Params[0].AsString := aUnitCacheKey;
     lQuery.Open;
+    lNameField := lQuery.FieldByName('name');
+    lRoleField := lQuery.FieldByName('role');
+    lSectionField := lQuery.FieldByName('section_kind');
+    lLineField := lQuery.FieldByName('line_no');
+    lColField := lQuery.FieldByName('col_no');
+    lEndLineField := lQuery.FieldByName('end_line_no');
+    lEndColField := lQuery.FieldByName('end_col_no');
     while not lQuery.Eof do
     begin
-      lIndex := Length(aModel.fReferences);
-      SetLength(aModel.fReferences, lIndex + 1);
-      aModel.fReferences[lIndex].fName := lQuery.FieldByName('name').AsString;
-      aModel.fReferences[lIndex].fRole := lQuery.FieldByName('role').AsString;
-      aModel.fReferences[lIndex].fSectionKind := lQuery.FieldByName('section_kind').AsString;
-      aModel.fReferences[lIndex].fLine := lQuery.FieldByName('line_no').AsInteger;
-      aModel.fReferences[lIndex].fCol := lQuery.FieldByName('col_no').AsInteger;
-      aModel.fReferences[lIndex].fEndLine := lQuery.FieldByName('end_line_no').AsInteger;
-      aModel.fReferences[lIndex].fEndCol := lQuery.FieldByName('end_col_no').AsInteger;
+      lReference := Default(TSymbolMapReferenceModel);
+      lReference.fName := lNameField.AsWideString;
+      lReference.fRole := lRoleField.AsWideString;
+      lReference.fSectionKind := lSectionField.AsWideString;
+      lReference.fLine := lLineField.AsInteger;
+      lReference.fCol := lColField.AsInteger;
+      lReference.fEndLine := lEndLineField.AsInteger;
+      lReference.fEndCol := lEndColField.AsInteger;
+      lItems.Add(lReference);
       lQuery.Next;
     end;
+    aModel.fReferences := lItems.ToArray;
   finally
+    lItems.Free;
     lQuery.Free;
   end;
 end;
