@@ -28,7 +28,7 @@ function CreateProjectAnalysisIndexer(const aContext: TProjectAnalysisContext): 
 implementation
 
 uses
-  Dak.Project.BuildParams, Dak.Project.Semantics;
+  Dak.Project.BuildParams, Dak.Project.Semantics, Dak.Project.SourceLookup;
 
 function TryBuildParams(const aOptions: TAppOptions; const aEnvVars: TDictionary<string, string>;
   const aLibraryPath: string; aLibrarySource: TPropertySource; aDiagnostics: TDiagnostics;
@@ -51,7 +51,7 @@ function TryBuildProjectSourceLookup(const aDprojPath, aConfig, aPlatform, aDelp
   const aEnvVars: TDictionary<string, string>; aDiagnostics: TDiagnostics; out aLookup: TProjectSourceLookup;
   out aError: string): Boolean;
 begin
-  Result := Dak.Project.BuildParams.TryBuildProjectSourceLookup(aDprojPath, aConfig, aPlatform,
+  Result := Dak.Project.SourceLookup.TryBuildProjectSourceLookup(aDprojPath, aConfig, aPlatform,
     aDelphiVersion, aEnvVars, aDiagnostics, aLookup, aError);
 end;
 

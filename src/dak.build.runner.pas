@@ -18,8 +18,9 @@ uses
   Winapi.Windows,
   maxLogic.StrUtils,
   Dak.Build.Summary,
-  Dak.Diagnostics, Dak.FixInsightSettings, Dak.MacroExpander, Dak.Messages, Dak.MsBuild, Dak.Project.BuildParams,
-  Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars, Dak.SourceContext, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.Utils;
+  Dak.Diagnostics, Dak.FixInsightSettings, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.MacroExpander, Dak.Messages,
+  Dak.MsBuild, Dak.Project.BuildParams, Dak.Project.SourceLookup, Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars,
+  Dak.SourceContext, Dak.Utils;
 
 const
   cStatusOk = 'ok';
