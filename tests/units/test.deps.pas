@@ -24,6 +24,7 @@ type
     [TearDown] procedure TearDown;
     [Test] procedure DepsJsonEmitsNodesEdgesAndProblems;
     [Test] procedure DepsJsonKeepsStableCompatibilityShape;
+    [Test] procedure DepsFailsClosedWhenExplicitSemanticContextCannotOpen;
     [Test] procedure DepsJsonSurfacesUnresolvedUnits;
     [Test] procedure DepsJsonMarksSearchPathUnitsAsExternal;
     [Test] procedure DepsOutputAcceptsBareFileName;
@@ -307,6 +308,37 @@ begin
   finally
     lJson.Free;
   end;
+end;
+
+procedure TDepsTests.DepsFailsClosedWhenExplicitSemanticContextCannotOpen;
+var
+  lArgs: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lMissingRsVarsPath: string;
+  lOutputPath: string;
+  lOutputText: string;
+begin
+  EnsureResolverBuilt;
+  lLogPath := TPath.Combine(TempRoot, 'deps-missing-semantic-session.log');
+  lMissingRsVarsPath := TPath.Combine(TempRoot, 'missing-deps-rsvars.bat');
+  lOutputPath := TPath.Combine(TempRoot, 'deps-missing-semantic-session.json');
+  if TFile.Exists(lOutputPath) then
+  begin
+    TFile.Delete(lOutputPath);
+  end;
+
+  lArgs := 'deps --project ' + QuoteArg(FixtureProjectPath) + ' --format json --rsvars ' +
+    QuoteArg(lMissingRsVarsPath) + ' --output ' + QuoteArg(lOutputPath);
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
+    'Failed to start resolver for deps semantic-session failure test.');
+  Assert.AreNotEqual(Cardinal(0), lExitCode,
+    'Expected deps to fail when the semantic project session cannot open. See: ' + lLogPath);
+  Assert.IsTrue(TFile.Exists(lLogPath), 'Expected deps failure log file. See: ' + lLogPath);
+  lOutputText := ReadUtf8TextFile(lLogPath);
+  Assert.IsTrue(Pos('Delphi IDE context could not be resolved', lOutputText) > 0,
+    'Expected semantic-session diagnostic in deps failure output. Actual: ' + lOutputText);
+  Assert.IsFalse(TFile.Exists(lOutputPath), 'Failed deps run must not write a JSON report.');
 end;
 
 procedure TDepsTests.DepsJsonSurfacesUnresolvedUnits;
