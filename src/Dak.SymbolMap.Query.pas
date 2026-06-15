@@ -64,6 +64,7 @@ uses
   System.Generics.Collections,
   System.IOUtils,
   System.SysUtils,
+  Data.DB,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite,
   DelphiSemantics.ProjectContext,
   Dak.Semantics.Session;
@@ -78,6 +79,49 @@ type
   TSymbolMapUnitScopeEntry = record
     fUnitCacheKey: string;
     fScope: TSymbolMapUnitScope;
+  end;
+
+  TSymbolMapUnitScopeReader = record
+    fFilePath: TField;
+    fSourceKind: TField;
+    fUnitCacheKey: TField;
+    fUnitName: TField;
+    procedure BindProject(const aQuery: TFDQuery);
+    procedure BindCompilerProfile(const aQuery: TFDQuery);
+    function ReadScope: TSymbolMapUnitScope;
+    function UnitCacheKey: string;
+  end;
+
+  TSymbolMapDefinitionProjectionReader = record
+    fColNo: TField;
+    fEndColNo: TField;
+    fEndLineNo: TField;
+    fFilePath: TField;
+    fKind: TField;
+    fLineNo: TField;
+    fName: TField;
+    fOwnerName: TField;
+    fSignature: TField;
+    fSourceKind: TField;
+    fTypeName: TField;
+    fUnitName: TField;
+    procedure Bind(const aQuery: TFDQuery);
+    function ReadDefinition: TSymbolMapDefinition;
+  end;
+
+  TSymbolMapReferenceProjectionReader = record
+    fColNo: TField;
+    fEndColNo: TField;
+    fEndLineNo: TField;
+    fFilePath: TField;
+    fName: TField;
+    fRole: TField;
+    fSectionKind: TField;
+    fSourceKind: TField;
+    fUnitName: TField;
+    fLineNo: TField;
+    procedure Bind(const aQuery: TFDQuery);
+    function ReadReference: TSymbolMapReference;
   end;
 
 function DakSourceKind(const aSourceKind: string): string;
@@ -98,6 +142,100 @@ begin
   if SameText(aKind, 'intrinsic-unit') then
     Exit('unit');
   Result := aKind;
+end;
+
+procedure TSymbolMapUnitScopeReader.BindProject(const aQuery: TFDQuery);
+begin
+  fUnitCacheKey := aQuery.FieldByName('unit_cache_key');
+  fUnitName := aQuery.FieldByName('unit_name');
+  fFilePath := aQuery.FieldByName('file_path');
+  fSourceKind := aQuery.FieldByName('source_kind');
+end;
+
+procedure TSymbolMapUnitScopeReader.BindCompilerProfile(const aQuery: TFDQuery);
+begin
+  fUnitCacheKey := aQuery.FieldByName('unit_cache_key');
+  fUnitName := aQuery.FieldByName('unit_name');
+  fFilePath := aQuery.FieldByName('file_path_sample');
+  fSourceKind := aQuery.FieldByName('source_kind');
+end;
+
+function TSymbolMapUnitScopeReader.ReadScope: TSymbolMapUnitScope;
+begin
+  Result := Default(TSymbolMapUnitScope);
+  Result.fUnitName := fUnitName.AsWideString;
+  Result.fFilePath := fFilePath.AsWideString;
+  Result.fSourceKind := fSourceKind.AsWideString;
+end;
+
+function TSymbolMapUnitScopeReader.UnitCacheKey: string;
+begin
+  Result := fUnitCacheKey.AsWideString;
+end;
+
+procedure TSymbolMapDefinitionProjectionReader.Bind(const aQuery: TFDQuery);
+begin
+  fName := aQuery.FieldByName('name');
+  fKind := aQuery.FieldByName('kind');
+  fOwnerName := aQuery.FieldByName('owner_name');
+  fUnitName := aQuery.FieldByName('unit_name');
+  fFilePath := aQuery.FieldByName('file_path');
+  fSourceKind := aQuery.FieldByName('source_kind');
+  fSignature := aQuery.FieldByName('signature');
+  fTypeName := aQuery.FieldByName('type_name');
+  fLineNo := aQuery.FieldByName('line_no');
+  fColNo := aQuery.FieldByName('col_no');
+  fEndLineNo := aQuery.FieldByName('end_line_no');
+  fEndColNo := aQuery.FieldByName('end_col_no');
+end;
+
+function TSymbolMapDefinitionProjectionReader.ReadDefinition: TSymbolMapDefinition;
+begin
+  Result := Default(TSymbolMapDefinition);
+  Result.fFound := True;
+  Result.fName := fName.AsWideString;
+  Result.fKind := DakSymbolKind(fKind.AsWideString);
+  Result.fOwnerName := fOwnerName.AsWideString;
+  Result.fUnitName := fUnitName.AsWideString;
+  Result.fFilePath := fFilePath.AsWideString;
+  Result.fSourceKind := fSourceKind.AsWideString;
+  Result.fConfidence := 'exact';
+  Result.fSignature := fSignature.AsWideString;
+  Result.fTypeName := fTypeName.AsWideString;
+  Result.fLine := fLineNo.AsInteger;
+  Result.fCol := fColNo.AsInteger;
+  Result.fEndLine := fEndLineNo.AsInteger;
+  Result.fEndCol := fEndColNo.AsInteger;
+end;
+
+procedure TSymbolMapReferenceProjectionReader.Bind(const aQuery: TFDQuery);
+begin
+  fName := aQuery.FieldByName('name');
+  fUnitName := aQuery.FieldByName('unit_name');
+  fFilePath := aQuery.FieldByName('file_path');
+  fSourceKind := aQuery.FieldByName('source_kind');
+  fRole := aQuery.FieldByName('role');
+  fSectionKind := aQuery.FieldByName('section_kind');
+  fLineNo := aQuery.FieldByName('line_no');
+  fColNo := aQuery.FieldByName('col_no');
+  fEndLineNo := aQuery.FieldByName('end_line_no');
+  fEndColNo := aQuery.FieldByName('end_col_no');
+end;
+
+function TSymbolMapReferenceProjectionReader.ReadReference: TSymbolMapReference;
+begin
+  Result := Default(TSymbolMapReference);
+  Result.fName := fName.AsWideString;
+  Result.fUnitName := fUnitName.AsWideString;
+  Result.fFilePath := fFilePath.AsWideString;
+  Result.fSourceKind := fSourceKind.AsWideString;
+  Result.fConfidence := 'token-name-match';
+  Result.fRole := fRole.AsWideString;
+  Result.fSectionKind := fSectionKind.AsWideString;
+  Result.fLine := fLineNo.AsInteger;
+  Result.fCol := fColNo.AsInteger;
+  Result.fEndLine := fEndLineNo.AsInteger;
+  Result.fEndCol := fEndColNo.AsInteger;
 end;
 
 function SymbolMapSemanticSessionOptions(
@@ -178,7 +316,6 @@ function FindSemanticReferencesByPosition(const aContext: TSymbolMapContext;
   out aReferences: TArray<TSymbolMapReference>; out aError: string): Boolean;
 var
   i: Integer;
-  lIndex: Integer;
   lMetrics: TDakSemanticSymbolQueryMetrics;
   lQueryContext: IDakSemanticSymbolQueryContext;
   lResult: TDakSemanticReferenceQueryResult;
@@ -197,12 +334,9 @@ begin
   if lResult.SymbolName <> '' then
   begin
     aSymbol := lResult.SymbolName;
+    SetLength(aReferences, Length(lResult.References));
     for i := 0 to High(lResult.References) do
-    begin
-      lIndex := Length(aReferences);
-      SetLength(aReferences, lIndex + 1);
-      aReferences[lIndex] := MapSemanticUsage(lResult.References[i]);
-    end;
+      aReferences[i] := MapSemanticUsage(lResult.References[i]);
   end;
   Result := True;
 end;
@@ -265,6 +399,7 @@ var
   lDriverLink: TFDPhysSQLiteDriverLink;
   lProjectKey: string;
   lQuery: TFDQuery;
+  lReader: TSymbolMapUnitScopeReader;
   lScope: TSymbolMapUnitScope;
 begin
   Result := False;
@@ -279,12 +414,11 @@ begin
         'where project_key = :project_key order by resolution_rank, unit_name';
       lQuery.ParamByName('project_key').AsString := lProjectKey;
       lQuery.Open;
+      lReader.BindProject(lQuery);
       while not lQuery.Eof do
       begin
-        lScope.fUnitName := lQuery.FieldByName('unit_name').AsWideString;
-        lScope.fFilePath := lQuery.FieldByName('file_path').AsWideString;
-        lScope.fSourceKind := lQuery.FieldByName('source_kind').AsWideString;
-        AddScopeEntry(aEntries, aIndex, lQuery.FieldByName('unit_cache_key').AsWideString, lScope);
+        lScope := lReader.ReadScope;
+        AddScopeEntry(aEntries, aIndex, lReader.UnitCacheKey, lScope);
         lQuery.Next;
       end;
       Result := True;
@@ -303,6 +437,7 @@ var
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
   lQuery: TFDQuery;
+  lReader: TSymbolMapUnitScopeReader;
   lScope: TSymbolMapUnitScope;
 begin
   if not OpenQueryConnection(aStatus.fCentralDbPath, lDriverLink, lConnection, aError) then
@@ -315,12 +450,11 @@ begin
         'where profile_key = :profile_key order by unit_name';
       lQuery.ParamByName('profile_key').AsString := aProfile.fProfileKey;
       lQuery.Open;
+      lReader.BindCompilerProfile(lQuery);
       while not lQuery.Eof do
       begin
-        lScope.fUnitName := lQuery.FieldByName('unit_name').AsWideString;
-        lScope.fFilePath := lQuery.FieldByName('file_path_sample').AsWideString;
-        lScope.fSourceKind := lQuery.FieldByName('source_kind').AsWideString;
-        AddScopeEntry(aEntries, aIndex, lQuery.FieldByName('unit_cache_key').AsWideString, lScope);
+        lScope := lReader.ReadScope;
+        AddScopeEntry(aEntries, aIndex, lReader.UnitCacheKey, lScope);
         lQuery.Next;
       end;
     finally
@@ -512,6 +646,7 @@ var
   lProjectKey: string;
   lQuery: TFDQuery;
   lQueryPattern: string;
+  lReader: TSymbolMapDefinitionProjectionReader;
 begin
   Result := False;
   SetLength(aDefinitions, 0);
@@ -553,12 +688,15 @@ begin
       lQuery.ParamByName('profile_key').AsString := aProfile.fProfileKey;
       lQuery.ParamByName('query').AsString := lQueryPattern;
       lQuery.Open;
+      lQuery.FetchAll;
+      SetLength(aDefinitions, lQuery.RecordCount);
+      lReader.Bind(lQuery);
+      lIndex := 0;
       while not lQuery.Eof do
       begin
-        lIndex := Length(aDefinitions);
-        SetLength(aDefinitions, lIndex + 1);
-        aDefinitions[lIndex] := DefinitionFromSymbolProjection(lQuery);
+        aDefinitions[lIndex] := lReader.ReadDefinition;
         aDefinitions[lIndex].fConfidence := 'name-match';
+        Inc(lIndex);
         lQuery.Next;
       end;
       Result := True;
@@ -636,6 +774,7 @@ var
   lLimitSql: string;
   lProjectKey: string;
   lQuery: TFDQuery;
+  lReader: TSymbolMapReferenceProjectionReader;
 begin
   Result := False;
   SetLength(aReferences, 0);
@@ -659,21 +798,14 @@ begin
       lQuery.ParamByName('project_key').AsString := lProjectKey;
       lQuery.ParamByName('name').AsString := aSymbol;
       lQuery.Open;
+      lQuery.FetchAll;
+      SetLength(aReferences, lQuery.RecordCount);
+      lReader.Bind(lQuery);
+      lIndex := 0;
       while not lQuery.Eof do
       begin
-        lIndex := Length(aReferences);
-        SetLength(aReferences, lIndex + 1);
-        aReferences[lIndex].fName := lQuery.FieldByName('name').AsWideString;
-        aReferences[lIndex].fUnitName := lQuery.FieldByName('unit_name').AsWideString;
-        aReferences[lIndex].fFilePath := lQuery.FieldByName('file_path').AsWideString;
-        aReferences[lIndex].fSourceKind := lQuery.FieldByName('source_kind').AsWideString;
-        aReferences[lIndex].fConfidence := 'token-name-match';
-        aReferences[lIndex].fRole := lQuery.FieldByName('role').AsWideString;
-        aReferences[lIndex].fSectionKind := lQuery.FieldByName('section_kind').AsWideString;
-        aReferences[lIndex].fLine := lQuery.FieldByName('line_no').AsInteger;
-        aReferences[lIndex].fCol := lQuery.FieldByName('col_no').AsInteger;
-        aReferences[lIndex].fEndLine := lQuery.FieldByName('end_line_no').AsInteger;
-        aReferences[lIndex].fEndCol := lQuery.FieldByName('end_col_no').AsInteger;
+        aReferences[lIndex] := lReader.ReadReference;
+        Inc(lIndex);
         lQuery.Next;
       end;
       Result := True;

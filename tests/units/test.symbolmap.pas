@@ -32,6 +32,8 @@ type
     [Test]
     procedure SemanticModelPersistenceBelongsToDelphiSemantics;
     [Test]
+    procedure SymbolMapQueryAssembliesAvoidHotRowGrowth;
+    [Test]
     procedure SymbolMapCommandDelegatesOperationDispatch;
   end;
 
@@ -3518,6 +3520,80 @@ begin
     'SymbolMap query must not rebuild semantic models from SymbolMap projections.');
   Assert.IsFalse(ContainsText(lCacheSource, 'TDelphiSemanticSqliteUnitCache'),
     'SymbolMap cache must not seed DelphiSemantics semantic caches from projections.');
+end;
+
+procedure TSymbolMapContextTests.SymbolMapQueryAssembliesAvoidHotRowGrowth;
+var
+  lDefinitionLoop: string;
+  lDefinitionStart: Integer;
+  lDefinitionGrowth: string;
+  lDefinitionEnd: Integer;
+  lDefinitionReaderBypass: string;
+  lQuerySource: string;
+  lReferenceFieldByName: string;
+  lReferenceGrowth: string;
+  lReferenceLoop: string;
+  lReferenceStart: Integer;
+  lReferenceEnd: Integer;
+
+  procedure AssertContainsInOrder(const aSource, aFirst, aSecond, aMessage: string);
+  var
+    lFirstIndex: Integer;
+    lSecondIndex: Integer;
+  begin
+    lFirstIndex := Pos(aFirst, aSource);
+    lSecondIndex := Pos(aSecond, aSource);
+    Assert.IsTrue((lFirstIndex > 0) and (lSecondIndex > lFirstIndex), aMessage);
+  end;
+begin
+  lQuerySource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Query.pas'),
+    TEncoding.UTF8);
+  lDefinitionGrowth := 'SetLength(aDefinitions, ' + 'lIndex + 1)';
+  lDefinitionReaderBypass := 'aDefinitions[lIndex] := ' +
+    'DefinitionFromSymbolProjection(lQuery)';
+  lReferenceGrowth := 'SetLength(aReferences, ' + 'lIndex + 1)';
+  lReferenceFieldByName := 'aReferences[lIndex].fName := ' + 'lQuery.FieldByName';
+
+  Assert.IsFalse(ContainsText(lQuerySource, lDefinitionGrowth),
+    'Broad definition search must not grow result arrays per row.');
+  Assert.IsFalse(ContainsText(lQuerySource, lReferenceGrowth),
+    'Broad reference search must not grow result arrays per row.');
+  Assert.IsFalse(ContainsText(lQuerySource, lDefinitionReaderBypass),
+    'Broad definition search should use a cached projection reader.');
+  Assert.IsFalse(ContainsText(lQuerySource, lReferenceFieldByName),
+    'Broad reference search should use cached field handles.');
+
+  lDefinitionStart := Pos('function SearchSymbolProjectionDefinitions', lQuerySource);
+  lDefinitionEnd := PosEx('function TryFindProjectedDeclarationAtPosition', lQuerySource,
+    lDefinitionStart);
+  Assert.IsTrue((lDefinitionStart > 0) and (lDefinitionEnd > lDefinitionStart),
+    'Expected broad definition search implementation.');
+  lDefinitionLoop := Copy(lQuerySource, lDefinitionStart, lDefinitionEnd - lDefinitionStart);
+  AssertContainsInOrder(lDefinitionLoop, 'lQuery.FetchAll',
+    'SetLength(aDefinitions, lQuery.RecordCount)',
+    'Broad definition search should fetch before using RecordCount.');
+  AssertContainsInOrder(lDefinitionLoop, 'SetLength(aDefinitions, lQuery.RecordCount)',
+    'lReader.Bind(lQuery)',
+    'Broad definition search should cache field handles after pre-sizing.');
+  AssertContainsInOrder(lDefinitionLoop, 'lReader.Bind(lQuery)',
+    'aDefinitions[lIndex] := lReader.ReadDefinition',
+    'Broad definition search should bind fields before row assembly.');
+
+  lReferenceStart := Pos('function FindProjectedReferences', lQuerySource);
+  lReferenceEnd := PosEx('function SymbolMapProjectHasIndexedUnits', lQuerySource,
+    lReferenceStart);
+  Assert.IsTrue((lReferenceStart > 0) and (lReferenceEnd > lReferenceStart),
+    'Expected broad reference search implementation.');
+  lReferenceLoop := Copy(lQuerySource, lReferenceStart, lReferenceEnd - lReferenceStart);
+  AssertContainsInOrder(lReferenceLoop, 'lQuery.FetchAll',
+    'SetLength(aReferences, lQuery.RecordCount)',
+    'Broad reference search should fetch before using RecordCount.');
+  AssertContainsInOrder(lReferenceLoop, 'SetLength(aReferences, lQuery.RecordCount)',
+    'lReader.Bind(lQuery)',
+    'Broad reference search should cache field handles after pre-sizing.');
+  AssertContainsInOrder(lReferenceLoop, 'lReader.Bind(lQuery)',
+    'aReferences[lIndex] := lReader.ReadReference',
+    'Broad reference search should bind fields before row assembly.');
 end;
 
 procedure TSymbolMapContextTests.SymbolMapCommandDelegatesOperationDispatch;
