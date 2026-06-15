@@ -44,6 +44,15 @@ type
     destructor Destroy; override;
   end;
 
+  TGlobalVarsSummary = record
+    Total: Integer;
+    Used: Integer;
+    Unused: Integer;
+    Ambiguities: Integer;
+    Emitted: Integer;
+    EmittedAmbiguities: Integer;
+  end;
+
   TProjectInfo = record
     ProjectPath: string;
     ProjectName: string;

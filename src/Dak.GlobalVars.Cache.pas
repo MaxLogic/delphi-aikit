@@ -10,6 +10,17 @@ uses
 const
   cGlobalVarsCacheSchemaVersion = '3';
 
+type
+  TGlobalVarsCacheLoadFilter = record
+    HasUnitFilter: Boolean;
+    UnitFilter: string;
+    HasNameFilter: Boolean;
+    NameFilter: string;
+    UnusedOnly: Boolean;
+    ReadsOnly: Boolean;
+    WritesOnly: Boolean;
+  end;
+
 procedure SaveCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
   const aIdentities: TArray<TDelphiSemanticUnitCacheIdentity>;
   const aSymbols: TObjectList<TGlobalVarSymbol>;
@@ -17,7 +28,13 @@ procedure SaveCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: s
 
 function TryLoadCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
   out aSymbols: TObjectList<TGlobalVarSymbol>;
-  out aAmbiguities: TList<TGlobalVarAmbiguity>): Boolean;
+  out aAmbiguities: TList<TGlobalVarAmbiguity>): Boolean; overload;
+
+function TryLoadCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
+  const aFilter: TGlobalVarsCacheLoadFilter;
+  out aSymbols: TObjectList<TGlobalVarSymbol>;
+  out aAmbiguities: TList<TGlobalVarAmbiguity>;
+  out aSummary: TGlobalVarsSummary): Boolean; overload;
 
 implementation
 
@@ -36,6 +53,92 @@ uses
   FireDAC.Stan.Intf,
   FireDAC.Stan.Option;
 
+procedure SetWideParam(const aQuery: TFDQuery; const aIndex: Integer; const aValue: string;
+  const aDataType: TFieldType = ftWideString); forward;
+
+procedure SetNamedWideParam(const aQuery: TFDQuery; const aName, aValue: string;
+  const aDataType: TFieldType = ftWideString); forward;
+
+function PatternToSqlLike(const aPattern: string): string;
+var
+  ch: Char;
+  lPattern: string;
+begin
+  lPattern := aPattern;
+  if (Pos('*', lPattern) = 0) and (Pos('?', lPattern) = 0) then
+    lPattern := '*' + lPattern + '*';
+  Result := '';
+  for ch in lPattern do
+  begin
+    case ch of
+      '*':
+        Result := Result + '%';
+      '?':
+        Result := Result + '_';
+      '\', '%', '_':
+        Result := Result + '\' + ch;
+    else
+      Result := Result + ch;
+    end;
+  end;
+end;
+
+function AccessFilterSql(const aTableAlias: string; const aFilter: TGlobalVarsCacheLoadFilter):
+  string;
+begin
+  if aFilter.ReadsOnly then
+    Result := Format(' and %s.access_kind in (''read'', ''readwrite'')', [aTableAlias])
+  else if aFilter.WritesOnly then
+    Result := Format(' and %s.access_kind in (''write'', ''readwrite'')', [aTableAlias])
+  else
+    Result := '';
+end;
+
+procedure AppendSymbolWhere(var aSql: string; const aFilter: TGlobalVarsCacheLoadFilter);
+begin
+  if aFilter.HasUnitFilter then
+    aSql := aSql + ' and upper(s.unit_name) like upper(:unit_filter) escape ''\''';
+  if aFilter.HasNameFilter then
+    aSql := aSql + ' and upper(s.name) like upper(:name_filter) escape ''\''';
+  if aFilter.UnusedOnly then
+    aSql := aSql + ' and not exists (select 1 from refs r where r.symbol_id = s.id)';
+  if aFilter.ReadsOnly then
+    aSql := aSql + ' and exists (select 1 from refs r where r.symbol_id = s.id and ' +
+      'r.access_kind in (''read'', ''readwrite''))';
+  if aFilter.WritesOnly then
+    aSql := aSql + ' and exists (select 1 from refs r where r.symbol_id = s.id and ' +
+      'r.access_kind in (''write'', ''readwrite''))';
+end;
+
+procedure AppendAmbiguityWhere(var aSql: string; const aFilter: TGlobalVarsCacheLoadFilter);
+begin
+  if aFilter.UnusedOnly then
+  begin
+    aSql := aSql + ' and 1 = 0';
+    Exit;
+  end;
+  if aFilter.HasUnitFilter then
+    aSql := aSql + ' and upper(a.unit_name) like upper(:unit_filter) escape ''\''';
+  if aFilter.HasNameFilter then
+    aSql := aSql + ' and upper(a.name) like upper(:name_filter) escape ''\''';
+  aSql := aSql + AccessFilterSql('a', aFilter);
+end;
+
+procedure BindSymbolFilterParams(const aQuery: TFDQuery; const aFilter:
+  TGlobalVarsCacheLoadFilter);
+begin
+  if aFilter.HasUnitFilter then
+    SetNamedWideParam(aQuery, 'unit_filter', PatternToSqlLike(aFilter.UnitFilter));
+  if aFilter.HasNameFilter then
+    SetNamedWideParam(aQuery, 'name_filter', PatternToSqlLike(aFilter.NameFilter));
+end;
+
+procedure BindAmbiguityFilterParams(const aQuery: TFDQuery; const aFilter:
+  TGlobalVarsCacheLoadFilter);
+begin
+  BindSymbolFilterParams(aQuery, aFilter);
+end;
+
 function NewQuery(const aConnection: TFDConnection; const aSql: string): TFDQuery;
 begin
   Result := TFDQuery.Create(nil);
@@ -46,9 +149,19 @@ end;
 procedure SetWideParam(const aQuery: TFDQuery; const aIndex: Integer; const aValue: string;
   const aDataType: TFieldType = ftWideString);
 begin
+  while aQuery.Params.Count <= aIndex do
+    aQuery.Params.Add;
   if aQuery.Params[aIndex].DataType <> aDataType then
     aQuery.Params[aIndex].DataType := aDataType;
   aQuery.Params[aIndex].AsWideString := aValue;
+end;
+
+procedure SetNamedWideParam(const aQuery: TFDQuery; const aName, aValue: string;
+  const aDataType: TFieldType = ftWideString);
+begin
+  if aQuery.ParamByName(aName).DataType <> aDataType then
+    aQuery.ParamByName(aName).DataType := aDataType;
+  aQuery.ParamByName(aName).AsWideString := aValue;
 end;
 
 procedure ExecWideSql(const aConnection: TFDConnection; const aSql, aFirstValue,
@@ -293,20 +406,48 @@ end;
 
 function TryLoadCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
   out aSymbols: TObjectList<TGlobalVarSymbol>;
-  out aAmbiguities: TList<TGlobalVarAmbiguity>): Boolean;
+  out aAmbiguities: TList<TGlobalVarAmbiguity>): Boolean; overload;
+var
+  lFilter: TGlobalVarsCacheLoadFilter;
+  lSummary: TGlobalVarsSummary;
+begin
+  lFilter := Default(TGlobalVarsCacheLoadFilter);
+  Result := TryLoadCachedSymbols(aCacheFileName, aProjectPath, aIdentityHash, lFilter,
+    aSymbols, aAmbiguities, lSummary);
+end;
+
+function TryLoadCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
+  const aFilter: TGlobalVarsCacheLoadFilter;
+  out aSymbols: TObjectList<TGlobalVarSymbol>;
+  out aAmbiguities: TList<TGlobalVarAmbiguity>;
+  out aSummary: TGlobalVarsSummary): Boolean; overload;
 var
   lAmbiguity: TGlobalVarAmbiguity;
+  lAccessField: TField;
+  lCandidatesField: TField;
+  lColField: TField;
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
   lExpected: string;
+  lFileField: TField;
+  lIdField: TField;
+  lKindField: TField;
+  lLineField: TField;
+  lNameField: TField;
   lQuery: TFDQuery;
   lRef: TGlobalVarRef;
+  lRoutineField: TField;
+  lSql: string;
   lSymbol: TGlobalVarSymbol;
   lSymbolById: TDictionary<Int64, TGlobalVarSymbol>;
+  lSymbolIdField: TField;
+  lTypeField: TField;
+  lUnitField: TField;
 begin
   Result := False;
   aSymbols := nil;
   aAmbiguities := nil;
+  aSummary := Default(TGlobalVarsSummary);
   if not TFile.Exists(aCacheFileName) then
     Exit;
 
@@ -333,74 +474,124 @@ begin
 
     aSymbols := TObjectList<TGlobalVarSymbol>.Create(True);
     aAmbiguities := TList<TGlobalVarAmbiguity>.Create;
-    lQuery.SQL.Text := 'select id, unit_name, file_name, name, type_name, kind, line_no, col_no from symbols order by id';
+    aSummary.Total := lConnection.ExecSQLScalar('select count(*) from symbols');
+    aSummary.Used := lConnection.ExecSQLScalar(
+      'select count(*) from symbols s where exists (select 1 from refs r where r.symbol_id = s.id)');
+    aSummary.Unused := lConnection.ExecSQLScalar(
+      'select count(*) from symbols s where not exists (select 1 from refs r where r.symbol_id = s.id)');
+    aSummary.Ambiguities := lConnection.ExecSQLScalar('select count(*) from ambiguities');
+
+    lSql := 'select id, unit_name, file_name, name, type_name, kind, line_no, col_no from symbols s where 1 = 1';
+    AppendSymbolWhere(lSql, aFilter);
+    lSql := lSql + ' order by s.id';
+    lQuery.SQL.Text := lSql;
+    BindSymbolFilterParams(lQuery, aFilter);
     lQuery.Open;
+    lIdField := lQuery.FieldByName('id');
+    lUnitField := lQuery.FieldByName('unit_name');
+    lFileField := lQuery.FieldByName('file_name');
+    lNameField := lQuery.FieldByName('name');
+    lTypeField := lQuery.FieldByName('type_name');
+    lKindField := lQuery.FieldByName('kind');
+    lLineField := lQuery.FieldByName('line_no');
+    lColField := lQuery.FieldByName('col_no');
     while not lQuery.Eof do
     begin
       lSymbol := TGlobalVarSymbol.Create;
-      lSymbol.UnitName := lQuery.FieldByName('unit_name').AsWideString;
-      lSymbol.FileName := lQuery.FieldByName('file_name').AsWideString;
-      lSymbol.Name := lQuery.FieldByName('name').AsWideString;
-      lSymbol.TypeName := lQuery.FieldByName('type_name').AsWideString;
-      lSymbol.Line := lQuery.FieldByName('line_no').AsInteger;
-      lSymbol.Column := lQuery.FieldByName('col_no').AsInteger;
-      if SameText(lQuery.FieldByName('kind').AsWideString, 'threadvar') then
+      lSymbol.UnitName := lUnitField.AsWideString;
+      lSymbol.FileName := lFileField.AsWideString;
+      lSymbol.Name := lNameField.AsWideString;
+      lSymbol.TypeName := lTypeField.AsWideString;
+      lSymbol.Line := lLineField.AsInteger;
+      lSymbol.Column := lColField.AsInteger;
+      if SameText(lKindField.AsWideString, 'threadvar') then
         lSymbol.Kind := gvkThreadVar
-      else if SameText(lQuery.FieldByName('kind').AsWideString, 'typedconst') then
+      else if SameText(lKindField.AsWideString, 'typedconst') then
         lSymbol.Kind := gvkTypedConst
-      else if SameText(lQuery.FieldByName('kind').AsWideString, 'classvar') then
+      else if SameText(lKindField.AsWideString, 'classvar') then
         lSymbol.Kind := gvkClassVar
       else
         lSymbol.Kind := gvkVar;
       aSymbols.Add(lSymbol);
-      lSymbolById.Add(lQuery.FieldByName('id').AsLargeInt, lSymbol);
+      lSymbolById.Add(lIdField.AsLargeInt, lSymbol);
       lQuery.Next;
     end;
+    aSummary.Emitted := aSymbols.Count;
 
     lQuery.Close;
-    lQuery.SQL.Text := 'select symbol_id, unit_name, routine_name, file_name, line_no, col_no, access_kind from refs order by symbol_id, line_no, col_no';
-    lQuery.Open;
-    while not lQuery.Eof do
+    if not aFilter.UnusedOnly then
     begin
-      if lSymbolById.TryGetValue(lQuery.FieldByName('symbol_id').AsLargeInt, lSymbol) then
+      lSql := 'select r.symbol_id, r.unit_name, r.routine_name, r.file_name, r.line_no, ' +
+        'r.col_no, r.access_kind from refs r inner join symbols s on s.id = r.symbol_id ' +
+        'where 1 = 1';
+      AppendSymbolWhere(lSql, aFilter);
+      lSql := lSql + AccessFilterSql('r', aFilter) + ' order by r.symbol_id, r.line_no, r.col_no';
+      lQuery.SQL.Text := lSql;
+      BindSymbolFilterParams(lQuery, aFilter);
+      lQuery.Open;
+      lSymbolIdField := lQuery.FieldByName('symbol_id');
+      lUnitField := lQuery.FieldByName('unit_name');
+      lRoutineField := lQuery.FieldByName('routine_name');
+      lFileField := lQuery.FieldByName('file_name');
+      lLineField := lQuery.FieldByName('line_no');
+      lColField := lQuery.FieldByName('col_no');
+      lAccessField := lQuery.FieldByName('access_kind');
+      while not lQuery.Eof do
       begin
-        lRef.UnitName := lQuery.FieldByName('unit_name').AsWideString;
-        lRef.RoutineName := lQuery.FieldByName('routine_name').AsWideString;
-        lRef.FileName := lQuery.FieldByName('file_name').AsWideString;
-        lRef.Line := lQuery.FieldByName('line_no').AsInteger;
-        lRef.Column := lQuery.FieldByName('col_no').AsInteger;
-        if SameText(lQuery.FieldByName('access_kind').AsWideString, 'write') then
-          lRef.Access := akWrite
-        else if SameText(lQuery.FieldByName('access_kind').AsWideString, 'readwrite') then
-          lRef.Access := akReadWrite
-        else
-          lRef.Access := akRead;
-        lSymbol.UsedBy.Add(lRef);
+        if lSymbolById.TryGetValue(lSymbolIdField.AsLargeInt, lSymbol) then
+        begin
+          lRef.UnitName := lUnitField.AsWideString;
+          lRef.RoutineName := lRoutineField.AsWideString;
+          lRef.FileName := lFileField.AsWideString;
+          lRef.Line := lLineField.AsInteger;
+          lRef.Column := lColField.AsInteger;
+          if SameText(lAccessField.AsWideString, 'write') then
+            lRef.Access := akWrite
+          else if SameText(lAccessField.AsWideString, 'readwrite') then
+            lRef.Access := akReadWrite
+          else
+            lRef.Access := akRead;
+          lSymbol.UsedBy.Add(lRef);
+        end;
+        lQuery.Next;
       end;
-      lQuery.Next;
     end;
 
     lQuery.Close;
-    lQuery.SQL.Text := 'select name, unit_name, routine_name, file_name, line_no, col_no, access_kind, candidates from ambiguities order by file_name, line_no, col_no';
+    lSql := 'select name, unit_name, routine_name, file_name, line_no, col_no, ' +
+      'access_kind, candidates from ambiguities a where 1 = 1';
+    AppendAmbiguityWhere(lSql, aFilter);
+    lSql := lSql + ' order by a.file_name, a.line_no, a.col_no';
+    lQuery.SQL.Text := lSql;
+    BindAmbiguityFilterParams(lQuery, aFilter);
     lQuery.Open;
+    lNameField := lQuery.FieldByName('name');
+    lUnitField := lQuery.FieldByName('unit_name');
+    lRoutineField := lQuery.FieldByName('routine_name');
+    lFileField := lQuery.FieldByName('file_name');
+    lLineField := lQuery.FieldByName('line_no');
+    lColField := lQuery.FieldByName('col_no');
+    lAccessField := lQuery.FieldByName('access_kind');
+    lCandidatesField := lQuery.FieldByName('candidates');
     while not lQuery.Eof do
     begin
-      lAmbiguity.Name := lQuery.FieldByName('name').AsWideString;
-      lAmbiguity.UnitName := lQuery.FieldByName('unit_name').AsWideString;
-      lAmbiguity.RoutineName := lQuery.FieldByName('routine_name').AsWideString;
-      lAmbiguity.FileName := lQuery.FieldByName('file_name').AsWideString;
-      lAmbiguity.Line := lQuery.FieldByName('line_no').AsInteger;
-      lAmbiguity.Column := lQuery.FieldByName('col_no').AsInteger;
-      if SameText(lQuery.FieldByName('access_kind').AsWideString, 'write') then
+      lAmbiguity.Name := lNameField.AsWideString;
+      lAmbiguity.UnitName := lUnitField.AsWideString;
+      lAmbiguity.RoutineName := lRoutineField.AsWideString;
+      lAmbiguity.FileName := lFileField.AsWideString;
+      lAmbiguity.Line := lLineField.AsInteger;
+      lAmbiguity.Column := lColField.AsInteger;
+      if SameText(lAccessField.AsWideString, 'write') then
         lAmbiguity.Access := akWrite
-      else if SameText(lQuery.FieldByName('access_kind').AsWideString, 'readwrite') then
+      else if SameText(lAccessField.AsWideString, 'readwrite') then
         lAmbiguity.Access := akReadWrite
       else
         lAmbiguity.Access := akRead;
-      lAmbiguity.Candidates := lQuery.FieldByName('candidates').AsWideString;
+      lAmbiguity.Candidates := lCandidatesField.AsWideString;
       aAmbiguities.Add(lAmbiguity);
       lQuery.Next;
     end;
+    aSummary.EmittedAmbiguities := aAmbiguities.Count;
     Result := True;
   finally
     if not Result then

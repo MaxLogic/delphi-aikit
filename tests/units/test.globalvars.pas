@@ -28,6 +28,8 @@ type
     [Test] procedure GlobalVarsCachePreservesUnicodeTextValues;
     [Test] procedure RunGlobalVarsCommandPreservesUnicodePathsThroughCacheReuse;
     [Test] procedure RunGlobalVarsCacheUsesWideTextAccessors;
+    [Test] procedure RunGlobalVarsCacheHitLoadsFilteredSlice;
+    [Test] procedure RunGlobalVarsCommandFiltersCacheHitProjection;
   end;
 
 implementation
@@ -189,6 +191,7 @@ begin
     Assert.AreEqual(1, lSummary.GetValue<Integer>('unused'));
     Assert.AreEqual(0, lSummary.GetValue<Integer>('ambiguities'));
     Assert.AreEqual(5, lSummary.GetValue<Integer>('emitted'));
+    Assert.AreEqual(0, lSummary.GetValue<Integer>('emittedAmbiguities'));
     Assert.AreEqual('all', lSummary.GetValue<string>('filter'));
     Assert.IsNotEmpty(lSummary.GetValue<string>('contextMode'),
       'Expected global-vars JSON to report project-analysis context mode.');
@@ -763,6 +766,268 @@ begin
     'GlobalVars cache ambiguity writes should use prepared wide parameters.');
   Assert.IsTrue(ContainsText(lSourceText, '.AsWideString'),
     'GlobalVars cache should read/write text through wide accessors.');
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsCacheHitLoadsFilteredSlice;
+var
+  lAmbiguity: TGlobalVarAmbiguity;
+  lAmbiguities: TList<TGlobalVarAmbiguity>;
+  lCacheFileName: string;
+  lFilter: TGlobalVarsCacheLoadFilter;
+  lIdentities: TArray<TDelphiSemanticUnitCacheIdentity>;
+  lLoadedAmbiguities: TList<TGlobalVarAmbiguity>;
+  lLoadedSymbols: TObjectList<TGlobalVarSymbol>;
+  lProjectPath: string;
+  lRef: TGlobalVarRef;
+  lSummary: TGlobalVarsSummary;
+  lSymbol: TGlobalVarSymbol;
+  lSymbols: TObjectList<TGlobalVarSymbol>;
+begin
+  lCacheFileName := TPath.Combine(DakRoot, 'filtered-cache\global-vars-cache.sqlite3');
+  lProjectPath := TPath.Combine(DakRoot, 'FilteredGlobalVars.dproj');
+  SetLength(lIdentities, 1);
+  lIdentities[0].UnitCacheKey := 'filtered-unit';
+  lIdentities[0].FileHash := 'filtered-file';
+  lIdentities[0].ContextHash := 'filtered-context';
+  lIdentities[0].IncludeGraphHash := 'filtered-include';
+  lIdentities[0].DefinesHash := 'filtered-defines';
+  lIdentities[0].SearchPathHash := 'filtered-search';
+  lIdentities[0].ExtractionOptionsHash := 'filtered-options';
+  lIdentities[0].CompilerProfileName := 'filtered-profile';
+  lIdentities[0].DelphiVersion := '23.0';
+  lIdentities[0].Configuration := 'Debug';
+  lIdentities[0].Platform := 'Win64';
+  lIdentities[0].ParserVersion := 'parser';
+  lIdentities[0].ModelVersion := 'model';
+  lIdentities[0].SchemaVersion := 'schema';
+
+  lSymbols := TObjectList<TGlobalVarSymbol>.Create(True);
+  lAmbiguities := TList<TGlobalVarAmbiguity>.Create;
+  try
+    lSymbol := TGlobalVarSymbol.Create;
+    lSymbol.UnitName := 'Filtered.Globals';
+    lSymbol.FileName := 'Filtered.Globals.pas';
+    lSymbol.Name := 'GAlpha';
+    lSymbol.TypeName := 'Integer';
+    lSymbol.Line := 10;
+    lSymbol.Column := 3;
+    lSymbol.Kind := gvkVar;
+    lRef.UnitName := 'Filtered.Consumer';
+    lRef.RoutineName := 'ReadAlpha';
+    lRef.FileName := 'Filtered.Consumer.pas';
+    lRef.Line := 20;
+    lRef.Column := 5;
+    lRef.Access := akRead;
+    lSymbol.UsedBy.Add(lRef);
+    lRef.RoutineName := 'WriteAlpha';
+    lRef.Line := 21;
+    lRef.Access := akWrite;
+    lSymbol.UsedBy.Add(lRef);
+    lRef.RoutineName := 'ReadWriteAlpha';
+    lRef.Line := 22;
+    lRef.Access := akReadWrite;
+    lSymbol.UsedBy.Add(lRef);
+    lSymbols.Add(lSymbol);
+
+    lSymbol := TGlobalVarSymbol.Create;
+    lSymbol.UnitName := 'Other.Globals';
+    lSymbol.FileName := 'Other.Globals.pas';
+    lSymbol.Name := 'GBeta';
+    lSymbol.TypeName := 'Integer';
+    lSymbol.Line := 30;
+    lSymbol.Column := 3;
+    lSymbol.Kind := gvkVar;
+    lSymbols.Add(lSymbol);
+
+    lAmbiguity.Name := 'GAlpha';
+    lAmbiguity.UnitName := 'Filtered.Consumer';
+    lAmbiguity.RoutineName := 'ReadAlpha';
+    lAmbiguity.FileName := 'Filtered.Consumer.pas';
+    lAmbiguity.Line := 40;
+    lAmbiguity.Column := 7;
+    lAmbiguity.Access := akRead;
+    lAmbiguity.Candidates := 'Filtered.Globals.GAlpha';
+    lAmbiguities.Add(lAmbiguity);
+
+    lAmbiguity.Name := 'GBeta';
+    lAmbiguity.UnitName := 'Other.Consumer';
+    lAmbiguity.RoutineName := 'WriteBeta';
+    lAmbiguity.FileName := 'Other.Consumer.pas';
+    lAmbiguity.Line := 41;
+    lAmbiguity.Column := 7;
+    lAmbiguity.Access := akWrite;
+    lAmbiguity.Candidates := 'Other.Globals.GBeta';
+    lAmbiguities.Add(lAmbiguity);
+
+    lSymbol := TGlobalVarSymbol.Create;
+    lSymbol.UnitName := 'Escaped.Percent_Unit';
+    lSymbol.FileName := 'Escaped.Percent_Unit.pas';
+    lSymbol.Name := 'GPercent_Value';
+    lSymbol.TypeName := 'Integer';
+    lSymbol.Line := 50;
+    lSymbol.Column := 3;
+    lSymbol.Kind := gvkVar;
+    lSymbols.Add(lSymbol);
+
+    SaveCachedSymbols(lCacheFileName, lProjectPath, 'filtered-identity', lIdentities,
+      lSymbols, lAmbiguities);
+  finally
+    lAmbiguities.Free;
+    lSymbols.Free;
+  end;
+
+  lFilter := Default(TGlobalVarsCacheLoadFilter);
+  lFilter.HasUnitFilter := True;
+  lFilter.UnitFilter := '*Filtered*';
+  lFilter.HasNameFilter := True;
+  lFilter.NameFilter := 'Alpha';
+  lFilter.ReadsOnly := True;
+
+  Assert.IsTrue(TryLoadCachedSymbols(lCacheFileName, lProjectPath, 'filtered-identity',
+    lFilter, lLoadedSymbols, lLoadedAmbiguities, lSummary));
+  try
+    Assert.AreEqual<Integer>(3, lSummary.Total);
+    Assert.AreEqual<Integer>(1, lSummary.Used);
+    Assert.AreEqual<Integer>(2, lSummary.Unused);
+    Assert.AreEqual<Integer>(2, lSummary.Ambiguities);
+    Assert.AreEqual<Integer>(1, lLoadedSymbols.Count);
+    Assert.AreEqual('GAlpha', lLoadedSymbols[0].Name);
+    Assert.AreEqual<Integer>(2, lLoadedSymbols[0].UsedBy.Count);
+    Assert.AreEqual('ReadAlpha', lLoadedSymbols[0].UsedBy[0].RoutineName);
+    Assert.AreEqual<Integer>(Integer(akRead), Integer(lLoadedSymbols[0].UsedBy[0].Access));
+    Assert.AreEqual('ReadWriteAlpha', lLoadedSymbols[0].UsedBy[1].RoutineName);
+    Assert.AreEqual<Integer>(Integer(akReadWrite), Integer(lLoadedSymbols[0].UsedBy[1].Access));
+    Assert.AreEqual<Integer>(1, lLoadedAmbiguities.Count);
+    Assert.AreEqual('GAlpha', lLoadedAmbiguities[0].Name);
+    Assert.AreEqual<Integer>(Integer(akRead), Integer(lLoadedAmbiguities[0].Access));
+  finally
+    lLoadedAmbiguities.Free;
+    lLoadedSymbols.Free;
+  end;
+
+  lFilter := Default(TGlobalVarsCacheLoadFilter);
+  lFilter.UnusedOnly := True;
+  Assert.IsTrue(TryLoadCachedSymbols(lCacheFileName, lProjectPath, 'filtered-identity',
+    lFilter, lLoadedSymbols, lLoadedAmbiguities, lSummary));
+  try
+    Assert.AreEqual<Integer>(2, lLoadedSymbols.Count);
+    Assert.AreEqual('GBeta', lLoadedSymbols[0].Name);
+    Assert.AreEqual<Integer>(0, lLoadedSymbols[0].UsedBy.Count);
+    Assert.AreEqual('GPercent_Value', lLoadedSymbols[1].Name);
+    Assert.AreEqual<Integer>(0, lLoadedSymbols[1].UsedBy.Count);
+    Assert.AreEqual<Integer>(0, lLoadedAmbiguities.Count);
+    Assert.AreEqual<Integer>(3, lSummary.Total);
+    Assert.AreEqual<Integer>(2, lSummary.Unused);
+  finally
+    lLoadedAmbiguities.Free;
+    lLoadedSymbols.Free;
+  end;
+
+  lFilter := Default(TGlobalVarsCacheLoadFilter);
+  lFilter.WritesOnly := True;
+  Assert.IsTrue(TryLoadCachedSymbols(lCacheFileName, lProjectPath, 'filtered-identity',
+    lFilter, lLoadedSymbols, lLoadedAmbiguities, lSummary));
+  try
+    Assert.AreEqual<Integer>(1, lLoadedSymbols.Count);
+    Assert.AreEqual('GAlpha', lLoadedSymbols[0].Name);
+    Assert.AreEqual<Integer>(2, lLoadedSymbols[0].UsedBy.Count);
+    Assert.AreEqual('WriteAlpha', lLoadedSymbols[0].UsedBy[0].RoutineName);
+    Assert.AreEqual<Integer>(Integer(akWrite), Integer(lLoadedSymbols[0].UsedBy[0].Access));
+    Assert.AreEqual('ReadWriteAlpha', lLoadedSymbols[0].UsedBy[1].RoutineName);
+    Assert.AreEqual<Integer>(Integer(akReadWrite), Integer(lLoadedSymbols[0].UsedBy[1].Access));
+    Assert.AreEqual<Integer>(1, lLoadedAmbiguities.Count);
+    Assert.AreEqual('GBeta', lLoadedAmbiguities[0].Name);
+    Assert.AreEqual<Integer>(Integer(akWrite), Integer(lLoadedAmbiguities[0].Access));
+    Assert.AreEqual<Integer>(3, lSummary.Total);
+    Assert.AreEqual<Integer>(1, lSummary.Used);
+  finally
+    lLoadedAmbiguities.Free;
+    lLoadedSymbols.Free;
+  end;
+
+  lFilter := Default(TGlobalVarsCacheLoadFilter);
+  lFilter.HasUnitFilter := True;
+  lFilter.UnitFilter := 'Percent_Unit';
+  lFilter.HasNameFilter := True;
+  lFilter.NameFilter := 'Percent_Value';
+  Assert.IsTrue(TryLoadCachedSymbols(lCacheFileName, lProjectPath, 'filtered-identity',
+    lFilter, lLoadedSymbols, lLoadedAmbiguities, lSummary));
+  try
+    Assert.AreEqual<Integer>(1, lLoadedSymbols.Count);
+    Assert.AreEqual('Escaped.Percent_Unit', lLoadedSymbols[0].UnitName);
+    Assert.AreEqual('GPercent_Value', lLoadedSymbols[0].Name);
+    Assert.AreEqual<Integer>(0, lLoadedAmbiguities.Count);
+  finally
+    lLoadedAmbiguities.Free;
+    lLoadedSymbols.Free;
+  end;
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsCommandFiltersCacheHitProjection;
+var
+  lCacheFileName: string;
+  lConnection: TFDConnection;
+  lContent: string;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lFirstFilteredContent: string;
+  lJson: TJSONObject;
+  lOptions: TAppOptions;
+  lOutputFileName: string;
+  lProjectDakRoot: string;
+  lSymbols: TJSONArray;
+begin
+  lOutputFileName := TPath.Combine(TPath.GetTempPath, 'global-vars-fixture-cache-filter.json');
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfJson;
+  lOptions.fGlobalVarsOutputPath := lOutputFileName;
+  lOptions.fHasGlobalVarsOutputPath := True;
+
+  Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+  lProjectDakRoot := TPath.Combine(DakRoot, 'GlobalVarsFixture');
+  lCacheFileName := TPath.Combine(lProjectDakRoot, 'global-vars\cache\global-vars-cache.sqlite3');
+  Assert.IsTrue(TFile.Exists(lCacheFileName));
+
+  lOptions.fGlobalVarsUnitFilter := '*Globals*';
+  lOptions.fHasGlobalVarsUnitFilter := True;
+  lOptions.fGlobalVarsNameFilter := 'Typed';
+  lOptions.fHasGlobalVarsNameFilter := True;
+  Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+  lFirstFilteredContent := ReadUtf8TextFile(lOutputFileName);
+  Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+  Assert.AreEqual(lFirstFilteredContent, ReadUtf8TextFile(lOutputFileName),
+    'Fresh analysis and cache-hit filtered global-vars output should match.');
+
+  OpenSqliteCache(lCacheFileName, lDriverLink, lConnection);
+  try
+    lConnection.ExecSQL('update symbols set line_no = ? where name = ?',
+      ['not-an-integer', 'GCounter']);
+    lConnection.ExecSQL('update symbols set name = ? where name = ?',
+      ['GCachedTypedValue', 'GTypedValue']);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+
+  lOptions.fGlobalVarsNameFilter := 'CachedTyped';
+  Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+
+  lContent := ReadUtf8TextFile(lOutputFileName);
+  lJson := ParseJsonObject(lContent);
+  try
+    Assert.AreEqual<Integer>(5, lJson.GetValue<TJSONObject>('summary').GetValue<Integer>('total'));
+    Assert.AreEqual<Integer>(1, lJson.GetValue<TJSONObject>('summary').GetValue<Integer>('emitted'));
+    Assert.AreEqual<Integer>(0, lJson.GetValue<TJSONObject>('summary').GetValue<Integer>(
+      'emittedAmbiguities'));
+    lSymbols := lJson.GetValue<TJSONArray>('symbols');
+    Assert.AreEqual<Integer>(1, lSymbols.Count);
+    Assert.AreEqual('GCachedTypedValue',
+      (lSymbols.Items[0] as TJSONObject).GetValue<string>('name'));
+    Assert.IsFalse(ContainsText(lContent, 'GTypedValue'),
+      'The filtered second run must use the cache-hit projection, not fresh source analysis.');
+  finally
+    lJson.Free;
+  end;
 end;
 
 initialization

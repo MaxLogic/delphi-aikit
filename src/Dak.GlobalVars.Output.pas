@@ -9,12 +9,17 @@ uses
 
 function BuildFilteredSymbols(const aSymbols: TObjectList<TGlobalVarSymbol>;
   const aOptions: TAppOptions): TObjectList<TGlobalVarSymbol>;
-function RenderJson(const aAllSymbols, aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
-  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aProject: TProjectInfo;
-  const aOptions: TAppOptions): string;
-function RenderText(const aAllSymbols, aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
-  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aProject: TProjectInfo;
-  const aOptions: TAppOptions): string;
+function BuildFilteredAmbiguities(const aAmbiguities: TList<TGlobalVarAmbiguity>;
+  const aOptions: TAppOptions): TList<TGlobalVarAmbiguity>;
+function BuildGlobalVarsSummary(const aAllSymbols: TObjectList<TGlobalVarSymbol>;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aEmittedCount,
+  aEmittedAmbiguityCount: Integer): TGlobalVarsSummary;
+function RenderJson(const aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aSummary: TGlobalVarsSummary;
+  const aProject: TProjectInfo; const aOptions: TAppOptions): string;
+function RenderText(const aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aSummary: TGlobalVarsSummary;
+  const aProject: TProjectInfo; const aOptions: TAppOptions): string;
 
 implementation
 
@@ -43,6 +48,15 @@ begin
   Result := True;
 end;
 
+function AccessMatchesFilter(const aAccess: TAccessKind; const aOptions: TAppOptions): Boolean;
+begin
+  if aOptions.fGlobalVarsReadsOnly then
+    Exit(aAccess in [akRead, akReadWrite]);
+  if aOptions.fGlobalVarsWritesOnly then
+    Exit(aAccess in [akWrite, akReadWrite]);
+  Result := True;
+end;
+
 function SymbolMatchesFilters(const aSymbol: TGlobalVarSymbol;
   const aOptions: TAppOptions): Boolean;
 var
@@ -64,6 +78,18 @@ begin
         Exit(True);
     Exit(False);
   end;
+end;
+
+function AmbiguityMatchesFilters(const aAmbiguity: TGlobalVarAmbiguity;
+  const aOptions: TAppOptions): Boolean;
+begin
+  if aOptions.fHasGlobalVarsUnitFilter and
+    not MatchPatternText(aAmbiguity.UnitName, aOptions.fGlobalVarsUnitFilter) then
+    Exit(False);
+  if aOptions.fHasGlobalVarsNameFilter and
+    not MatchPatternText(aAmbiguity.Name, aOptions.fGlobalVarsNameFilter) then
+    Exit(False);
+  Result := AccessMatchesFilter(aAmbiguity.Access, aOptions);
 end;
 
 function GlobalVarsFilterText(const aOptions: TAppOptions): string;
@@ -107,33 +133,88 @@ end;
 function BuildFilteredSymbols(const aSymbols: TObjectList<TGlobalVarSymbol>;
   const aOptions: TAppOptions): TObjectList<TGlobalVarSymbol>;
 var
+  lRef: TGlobalVarRef;
+  lRefMatches: Boolean;
   lSymbol: TGlobalVarSymbol;
+  lSymbolCopy: TGlobalVarSymbol;
 begin
-  Result := TObjectList<TGlobalVarSymbol>.Create(False);
-  for lSymbol in aSymbols do
-    if SymbolMatchesFilters(lSymbol, aOptions) then
-      Result.Add(lSymbol);
+  Result := TObjectList<TGlobalVarSymbol>.Create(True);
+  try
+    for lSymbol in aSymbols do
+      if SymbolMatchesFilters(lSymbol, aOptions) then
+      begin
+        lSymbolCopy := TGlobalVarSymbol.Create;
+        try
+          lSymbolCopy.Name := lSymbol.Name;
+          lSymbolCopy.UnitName := lSymbol.UnitName;
+          lSymbolCopy.FileName := lSymbol.FileName;
+          lSymbolCopy.Line := lSymbol.Line;
+          lSymbolCopy.Column := lSymbol.Column;
+          lSymbolCopy.TypeName := lSymbol.TypeName;
+          lSymbolCopy.Kind := lSymbol.Kind;
+          for lRef in lSymbol.UsedBy do
+          begin
+            lRefMatches := not (aOptions.fGlobalVarsReadsOnly or aOptions.fGlobalVarsWritesOnly) or
+              RefMatchesAccess(lRef, aOptions);
+            if lRefMatches then
+              lSymbolCopy.UsedBy.Add(lRef);
+          end;
+          Result.Add(lSymbolCopy);
+          lSymbolCopy := nil;
+        finally
+          lSymbolCopy.Free;
+        end;
+      end;
+  except
+    Result.Free;
+    raise;
+  end;
 end;
 
-function BuildJsonSummary(const aAllSymbols, aFilteredSymbols:
-  TObjectList<TGlobalVarSymbol>; const aAmbiguities: TList<TGlobalVarAmbiguity>;
-  const aProject: TProjectInfo; const aOptions: TAppOptions): TJSONObject;
+function BuildFilteredAmbiguities(const aAmbiguities: TList<TGlobalVarAmbiguity>;
+  const aOptions: TAppOptions): TList<TGlobalVarAmbiguity>;
+var
+  lAmbiguity: TGlobalVarAmbiguity;
+begin
+  Result := TList<TGlobalVarAmbiguity>.Create;
+  if aOptions.fGlobalVarsUnusedOnly then
+    Exit;
+  for lAmbiguity in aAmbiguities do
+    if AmbiguityMatchesFilters(lAmbiguity, aOptions) then
+      Result.Add(lAmbiguity);
+end;
+
+function BuildGlobalVarsSummary(const aAllSymbols: TObjectList<TGlobalVarSymbol>;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aEmittedCount,
+  aEmittedAmbiguityCount: Integer): TGlobalVarsSummary;
+begin
+  Result.Total := aAllSymbols.Count;
+  Result.Used := aAllSymbols.Count - CountUnusedSymbols(aAllSymbols);
+  Result.Unused := CountUnusedSymbols(aAllSymbols);
+  Result.Ambiguities := aAmbiguities.Count;
+  Result.Emitted := aEmittedCount;
+  Result.EmittedAmbiguities := aEmittedAmbiguityCount;
+end;
+
+function BuildJsonSummary(const aSummary: TGlobalVarsSummary; const aProject: TProjectInfo;
+  const aOptions: TAppOptions): TJSONObject;
 begin
   Result := TJSONObject.Create;
-  Result.AddPair('total', TJSONNumber.Create(aAllSymbols.Count));
-  Result.AddPair('used', TJSONNumber.Create(aAllSymbols.Count - CountUnusedSymbols(aAllSymbols)));
-  Result.AddPair('unused', TJSONNumber.Create(CountUnusedSymbols(aAllSymbols)));
-  Result.AddPair('ambiguities', TJSONNumber.Create(aAmbiguities.Count));
-  Result.AddPair('emitted', TJSONNumber.Create(aFilteredSymbols.Count));
+  Result.AddPair('total', TJSONNumber.Create(aSummary.Total));
+  Result.AddPair('used', TJSONNumber.Create(aSummary.Used));
+  Result.AddPair('unused', TJSONNumber.Create(aSummary.Unused));
+  Result.AddPair('ambiguities', TJSONNumber.Create(aSummary.Ambiguities));
+  Result.AddPair('emitted', TJSONNumber.Create(aSummary.Emitted));
+  Result.AddPair('emittedAmbiguities', TJSONNumber.Create(aSummary.EmittedAmbiguities));
   Result.AddPair('filter', GlobalVarsFilterText(aOptions));
   Result.AddPair('contextMode', aProject.ContextMode);
   if aProject.ContextNote <> '' then
     Result.AddPair('contextNote', aProject.ContextNote);
 end;
 
-function RenderJson(const aAllSymbols, aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
-  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aProject: TProjectInfo;
-  const aOptions: TAppOptions): string;
+function RenderJson(const aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aSummary: TGlobalVarsSummary;
+  const aProject: TProjectInfo; const aOptions: TAppOptions): string;
 var
   lAmbiguities: TJSONArray;
   lAmbiguity: TGlobalVarAmbiguity;
@@ -145,8 +226,7 @@ var
 begin
   lJson := TJSONObject.Create;
   try
-    lJson.AddPair('summary', BuildJsonSummary(aAllSymbols, aFilteredSymbols,
-      aAmbiguities, aProject, aOptions));
+    lJson.AddPair('summary', BuildJsonSummary(aSummary, aProject, aOptions));
     lSymbols := TJSONArray.Create;
     lJson.AddPair('symbols', lSymbols);
     for lSymbol in aFilteredSymbols do
@@ -195,9 +275,9 @@ begin
   end;
 end;
 
-function RenderText(const aAllSymbols, aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
-  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aProject: TProjectInfo;
-  const aOptions: TAppOptions): string;
+function RenderText(const aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>; const aSummary: TGlobalVarsSummary;
+  const aProject: TProjectInfo; const aOptions: TAppOptions): string;
 var
   lAmbiguity: TGlobalVarAmbiguity;
   lBuilder: TStringBuilder;
@@ -207,9 +287,8 @@ begin
   lBuilder := TStringBuilder.Create;
   try
     lBuilder.AppendLine(Format('Summary: total=%d used=%d unused=%d ambiguities=%d emitted=%d filter=%s',
-      [aAllSymbols.Count, aAllSymbols.Count - CountUnusedSymbols(aAllSymbols),
-      CountUnusedSymbols(aAllSymbols), aAmbiguities.Count, aFilteredSymbols.Count,
-      GlobalVarsFilterText(aOptions)]));
+      [aSummary.Total, aSummary.Used, aSummary.Unused, aSummary.Ambiguities,
+      aSummary.Emitted, GlobalVarsFilterText(aOptions)]));
     lBuilder.AppendLine('Context: ' + aProject.ContextMode);
     if aProject.ContextNote <> '' then
       lBuilder.AppendLine('Context note: ' + aProject.ContextNote);
