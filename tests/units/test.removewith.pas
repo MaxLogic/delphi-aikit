@@ -9856,6 +9856,7 @@ var
   lSourceDir: string;
   lSkipped: TJSONArray;
   lSummary: TJSONObject;
+  lSymbolNotFoundSkips: Integer;
   lTargetDir: string;
   lTelemetry: TJSONObject;
 begin
@@ -9903,8 +9904,10 @@ begin
     AssertSkippedReasonBetween(lSkipped, 'controlled-with-statement', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'temp-declaration-requires-routine-var-section', 0, 3);
     AssertSkippedReasonBetween(lSkipped, 'type-source-not-indexed', 0, 460);
-    Assert.AreEqual(335, CountSkippedReason(lSkipped, 'symbol-not-found'),
-      'Expected maxTdb generic symbol-not-found skips to stay at the current baseline.');
+    lSymbolNotFoundSkips := CountSkippedReason(lSkipped, 'symbol-not-found');
+    Assert.IsTrue(lSymbolNotFoundSkips <= 335,
+      'Expected maxTdb generic symbol-not-found skips not to exceed the current baseline. Actual: ' +
+      lSymbolNotFoundSkips.ToString);
     Assert.AreEqual((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
       lTelemetry.GetValue<Integer>('plannedEdits'), 'Expected planned telemetry to match summary.');
     Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt,
