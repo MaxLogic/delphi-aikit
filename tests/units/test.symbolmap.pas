@@ -279,6 +279,110 @@ uses
   FireDAC.Comp.Client,
   FireDAC.Phys.SQLite;
 
+function SymbolMapMemberKey(const aOwnerName, aName, aKind: string): string;
+begin
+  Result := aOwnerName + '.' + aName + ':' + aKind;
+end;
+
+function SymbolMapSymbolKey(const aName, aKind, aSectionKind: string): string;
+begin
+  Result := aName + ':' + aKind + ':' + aSectionKind;
+end;
+
+function SymbolMapJsonSymbolKey(const aSymbol: TJSONObject): string;
+begin
+  Result := SymbolMapSymbolKey(aSymbol.GetValue<string>('name', ''),
+    aSymbol.GetValue<string>('kind', ''), aSymbol.GetValue<string>('sectionKind', ''));
+end;
+
+procedure AddUniqueKey(const aKeys: TStringList; const aKey, aContext: string);
+begin
+  Assert.IsTrue(aKeys.IndexOf(aKey) < 0, 'Duplicate ' + aContext + ' key: ' + aKey);
+  aKeys.Add(aKey);
+end;
+
+procedure AssertStringKeysExactly(const aActualKeys: TStringList; const aExpectedKeys: array of string;
+  const aContext: string);
+var
+  lActualKey: string;
+  lExpected: TStringList;
+  lExpectedKey: string;
+  i: Integer;
+begin
+  lExpected := TStringList.Create;
+  try
+    lExpected.Sorted := True;
+    for i := Low(aExpectedKeys) to High(aExpectedKeys) do
+      AddUniqueKey(lExpected, aExpectedKeys[i], aContext);
+
+    for lExpectedKey in lExpected do
+      Assert.IsTrue(aActualKeys.IndexOf(lExpectedKey) >= 0,
+        'Missing ' + aContext + ' key: ' + lExpectedKey + '. Actual keys: ' + aActualKeys.CommaText);
+    for lActualKey in aActualKeys do
+      Assert.IsTrue(lExpected.IndexOf(lActualKey) >= 0,
+        'Unexpected ' + aContext + ' key: ' + lActualKey + '. Expected keys: ' + lExpected.CommaText);
+    Assert.AreEqual(lExpected.Count, aActualKeys.Count, 'Expected ' + aContext + ' key count to match.');
+  finally
+    lExpected.Free;
+  end;
+end;
+
+procedure AssertSymbolMapMemberKeysExactly(const aModel: TSymbolMapUnitModel;
+  const aExpectedKeys: array of string);
+var
+  lActualKeys: TStringList;
+  lMember: TSymbolMapMemberModel;
+begin
+  lActualKeys := TStringList.Create;
+  try
+    lActualKeys.Sorted := True;
+    for lMember in aModel.fMembers do
+      AddUniqueKey(lActualKeys, SymbolMapMemberKey(lMember.fOwnerName, lMember.fMemberName,
+        lMember.fKind), 'member');
+    AssertStringKeysExactly(lActualKeys, aExpectedKeys, 'member');
+  finally
+    lActualKeys.Free;
+  end;
+end;
+
+procedure AssertSymbolMapSymbolKeysExactly(const aModel: TSymbolMapUnitModel;
+  const aExpectedKeys: array of string);
+var
+  lActualKeys: TStringList;
+  lSymbol: TSymbolMapSymbolModel;
+begin
+  lActualKeys := TStringList.Create;
+  try
+    lActualKeys.Sorted := True;
+    for lSymbol in aModel.fSymbols do
+      AddUniqueKey(lActualKeys, SymbolMapSymbolKey(lSymbol.fName, lSymbol.fKind,
+        lSymbol.fSectionKind), 'symbol');
+    AssertStringKeysExactly(lActualKeys, aExpectedKeys, 'symbol');
+  finally
+    lActualKeys.Free;
+  end;
+end;
+
+procedure AssertSymbolMapJsonSymbolKeysExactly(const aSymbols: TJSONArray;
+  const aExpectedKeys: array of string);
+var
+  lActualKeys: TStringList;
+  lSymbol: TJSONValue;
+begin
+  lActualKeys := TStringList.Create;
+  try
+    lActualKeys.Sorted := True;
+    for lSymbol in aSymbols do
+    begin
+      Assert.IsTrue(lSymbol is TJSONObject, 'Expected symbol JSON object.');
+      AddUniqueKey(lActualKeys, SymbolMapJsonSymbolKey(lSymbol as TJSONObject), 'symbol');
+    end;
+    AssertStringKeysExactly(lActualKeys, aExpectedKeys, 'symbol');
+  finally
+    lActualKeys.Free;
+  end;
+end;
+
 function TSymbolMapContextTests.FixtureProjectPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspProjectFixture\LspProjectFixture.dproj');
@@ -664,7 +768,29 @@ begin
     'Expected member unit extraction to succeed. Error: ' + lError);
 
   Assert.AreEqual('SymbolMapMembers', lModel.fUnitName);
-  Assert.AreEqual(22, Integer(Length(lModel.fMembers)));
+  AssertSymbolMapMemberKeysExactly(lModel, [
+    'TMemberRecord.RecordField:field',
+    'TMemberRecord.Reset:method',
+    'TMemberRecord.DisplayName:property',
+    'TMemberClass.FName:field',
+    'TMemberClass.FItems:field',
+    'TMemberClass.FEnabled:field',
+    'TMemberClass.GetItem:method',
+    'TMemberClass.GetNamedItem:method',
+    'TMemberClass.ClassField:field',
+    'TMemberClass.Run:method',
+    'TMemberClass.Count:method',
+    'TMemberClass.Name:property',
+    'TMemberClass.Enabled:property',
+    'TMemberClass.Items:property',
+    'TMemberClass.MultiItems:property',
+    'TDefaultVisibilityClass.DefaultField:field',
+    'TDefaultVisibilityClass.DefaultProperty:property',
+    'IMemberInterface.Touch:method',
+    'IMemberInterface.GetCaption:method',
+    'IMemberInterface.Caption:property',
+    'TMemberRecordHelper.Normalize:method',
+    'TMemberRecordHelper.HelperValue:property']);
   Assert.IsTrue(FindMember(lModel, 'TMemberRecord', 'RecordField', 'field', lMember), 'Expected record field.');
   Assert.AreEqual('Integer', lMember.fTypeName);
   Assert.IsTrue(FindMember(lModel, 'TMemberRecord', 'Reset', 'method', lMember), 'Expected record method.');
@@ -2577,6 +2703,25 @@ begin
     'Expected declaration unit extraction to succeed. Error: ' + lError);
 
   Assert.AreEqual('SymbolMapDeclarations', lModel.fUnitName);
+  AssertSymbolMapSymbolKeysExactly(lModel, [
+    'TDeclarationEnum:type:interface',
+    'deOne:enum-value:interface',
+    'deTwo:enum-value:interface',
+    'TDeclarationAlias:type-alias:interface',
+    'TDeclarationRecord:type:interface',
+    'TDeclarationClass:type:interface',
+    'cDeclarationConst:const:interface',
+    'cDeclarationTyped:typed-const:interface',
+    'GDeclarationGlobal:var:interface',
+    'cImplementationConst:const:implementation',
+    'GImplementationGlobal:var:implementation',
+    'DeclarationProcedure:routine:interface',
+    'DeclarationFunction:routine:interface',
+    'DeclarationMultiParam:routine:interface',
+    'DeclarationProcedure:routine:implementation',
+    'DeclarationFunction:routine:implementation',
+    'DeclarationMultiParam:routine:implementation',
+    'ImplementationOnlyProcedure:routine:implementation']);
   Assert.IsTrue(FindSymbol(lModel, 'TDeclarationEnum', 'type', 'interface', lSymbol), 'Expected enum type.');
   Assert.AreEqual('enum', lSymbol.fTypeName);
   Assert.IsTrue(FindSymbol(lModel, 'deOne', 'enum-value', 'interface', lSymbol), 'Expected enum value.');
@@ -2627,6 +2772,7 @@ var
   lIndexedUnits: TJSONArray;
   lResult: TJSONObject;
   lRoot: TJSONObject;
+  lSymbols: TJSONArray;
   lUnitObject: TJSONObject;
 begin
   lRoot := RunIndexUnitCommand(lExitCode);
@@ -2635,12 +2781,32 @@ begin
     lResult := lRoot.GetValue('result') as TJSONObject;
     Assert.AreEqual(1, lResult.GetValue<Integer>('unitCount'));
     Assert.AreEqual(0, lResult.GetValue<Integer>('fatalDiagnostics'));
-    Assert.AreEqual(18, lResult.GetValue<Integer>('symbolCount'));
     lIndexedUnits := lResult.GetValue('indexedUnits') as TJSONArray;
     lUnitObject := lIndexedUnits.Items[0] as TJSONObject;
-    Assert.AreEqual(18, lUnitObject.GetValue<Integer>('symbolCount'));
-    Assert.IsTrue(Pos('"TDeclarationAlias"', lUnitObject.GetValue('symbols').ToJSON) > 0,
-      'Expected declaration symbols in JSON.');
+    lSymbols := lUnitObject.GetValue('symbols') as TJSONArray;
+    Assert.AreEqual(lSymbols.Count, lResult.GetValue<Integer>('symbolCount'),
+      'Expected result symbolCount to match emitted symbols.');
+    Assert.AreEqual(lSymbols.Count, lUnitObject.GetValue<Integer>('symbolCount'),
+      'Expected unit symbolCount to match emitted symbols.');
+    AssertSymbolMapJsonSymbolKeysExactly(lSymbols, [
+      'TDeclarationEnum:type:interface',
+      'deOne:enum-value:interface',
+      'deTwo:enum-value:interface',
+      'TDeclarationAlias:type-alias:interface',
+      'TDeclarationRecord:type:interface',
+      'TDeclarationClass:type:interface',
+      'cDeclarationConst:const:interface',
+      'cDeclarationTyped:typed-const:interface',
+      'GDeclarationGlobal:var:interface',
+      'cImplementationConst:const:implementation',
+      'GImplementationGlobal:var:implementation',
+      'DeclarationProcedure:routine:interface',
+      'DeclarationFunction:routine:interface',
+      'DeclarationMultiParam:routine:interface',
+      'DeclarationProcedure:routine:implementation',
+      'DeclarationFunction:routine:implementation',
+      'DeclarationMultiParam:routine:implementation',
+      'ImplementationOnlyProcedure:routine:implementation']);
   finally
     lRoot.Free;
   end;
