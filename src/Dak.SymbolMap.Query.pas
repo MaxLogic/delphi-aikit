@@ -61,6 +61,7 @@ function FindSymbolMapReferencesByPosition(const aContext: TSymbolMapContext; co
 implementation
 
 uses
+  System.Generics.Collections,
   System.IOUtils,
   System.SysUtils,
   FireDAC.Comp.Client, FireDAC.Phys.SQLite,
@@ -242,28 +243,32 @@ begin
   end;
 end;
 
-procedure AddScopeEntry(var aEntries: TArray<TSymbolMapUnitScopeEntry>; const aUnitCacheKey: string;
-  const aScope: TSymbolMapUnitScope);
+procedure AddScopeEntry(const aEntries: TList<TSymbolMapUnitScopeEntry>; const aIndex: TDictionary<string, Integer>;
+  const aUnitCacheKey: string; const aScope: TSymbolMapUnitScope);
 var
-  i: Integer;
+  lEntry: TSymbolMapUnitScopeEntry;
   lIndex: Integer;
+  lKey: string;
 begin
   if aUnitCacheKey = '' then
     Exit;
-  for i := 0 to High(aEntries) do
-    if SameText(aEntries[i].fUnitCacheKey, aUnitCacheKey) then
-    begin
-      aEntries[i].fScope := aScope;
-      Exit;
-    end;
-  lIndex := Length(aEntries);
-  SetLength(aEntries, lIndex + 1);
-  aEntries[lIndex].fUnitCacheKey := aUnitCacheKey;
-  aEntries[lIndex].fScope := aScope;
+  lKey := LowerCase(aUnitCacheKey);
+  if aIndex.TryGetValue(lKey, lIndex) then
+  begin
+    lEntry := aEntries[lIndex];
+    lEntry.fScope := aScope;
+    aEntries[lIndex] := lEntry;
+    Exit;
+  end;
+  lEntry.fUnitCacheKey := aUnitCacheKey;
+  lEntry.fScope := aScope;
+  aIndex.Add(lKey, aEntries.Count);
+  aEntries.Add(lEntry);
 end;
 
 function LoadProjectUnitScopeEntries(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
-  out aEntries: TArray<TSymbolMapUnitScopeEntry>; out aError: string): Boolean;
+  const aEntries: TList<TSymbolMapUnitScopeEntry>; const aIndex: TDictionary<string, Integer>;
+  out aError: string): Boolean;
 var
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
@@ -272,7 +277,6 @@ var
   lScope: TSymbolMapUnitScope;
 begin
   Result := False;
-  SetLength(aEntries, 0);
   lProjectKey := BuildSymbolMapProjectKey(aContext);
   if not OpenQueryConnection(aStatus.fProjectDbPath, lDriverLink, lConnection, aError) then
     Exit(False);
@@ -289,7 +293,7 @@ begin
         lScope.fUnitName := lQuery.FieldByName('unit_name').AsWideString;
         lScope.fFilePath := lQuery.FieldByName('file_path').AsWideString;
         lScope.fSourceKind := lQuery.FieldByName('source_kind').AsWideString;
-        AddScopeEntry(aEntries, lQuery.FieldByName('unit_cache_key').AsWideString, lScope);
+        AddScopeEntry(aEntries, aIndex, lQuery.FieldByName('unit_cache_key').AsWideString, lScope);
         lQuery.Next;
       end;
       Result := True;
@@ -303,7 +307,7 @@ begin
 end;
 
 procedure AddCompilerUnitScopeEntries(const aStatus: TSymbolMapCacheStatus; const aProfile: TSymbolMapCompilerProfileResult;
-  var aEntries: TArray<TSymbolMapUnitScopeEntry>; out aError: string);
+  const aEntries: TList<TSymbolMapUnitScopeEntry>; const aIndex: TDictionary<string, Integer>; out aError: string);
 var
   lConnection: TFDConnection;
   lDriverLink: TFDPhysSQLiteDriverLink;
@@ -325,7 +329,7 @@ begin
         lScope.fUnitName := lQuery.FieldByName('unit_name').AsWideString;
         lScope.fFilePath := lQuery.FieldByName('file_path_sample').AsWideString;
         lScope.fSourceKind := lQuery.FieldByName('source_kind').AsWideString;
-        AddScopeEntry(aEntries, lQuery.FieldByName('unit_cache_key').AsWideString, lScope);
+        AddScopeEntry(aEntries, aIndex, lQuery.FieldByName('unit_cache_key').AsWideString, lScope);
         lQuery.Next;
       end;
     finally
@@ -340,20 +344,33 @@ end;
 function LoadVisibleUnitScopeEntries(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   const aProfile: TSymbolMapCompilerProfileResult; out aEntries: TArray<TSymbolMapUnitScopeEntry>;
   out aError: string; const aIncludeCompilerScopes: Boolean = True): Boolean;
+var
+  lIndex: TDictionary<string, Integer>;
+  lEntries: TList<TSymbolMapUnitScopeEntry>;
 begin
   Result := False;
-  if not LoadProjectUnitScopeEntries(aContext, aStatus, aEntries, aError) then
-    Exit(False);
+  SetLength(aEntries, 0);
+  lEntries := TList<TSymbolMapUnitScopeEntry>.Create;
+  lIndex := nil;
   try
-    if aIncludeCompilerScopes then
-      AddCompilerUnitScopeEntries(aStatus, aProfile, aEntries, aError);
-    Result := True;
-  except
-    on E: Exception do
-    begin
-      SetLength(aEntries, 0);
-      aError := E.Message;
+    lIndex := TDictionary<string, Integer>.Create;
+    if not LoadProjectUnitScopeEntries(aContext, aStatus, lEntries, lIndex, aError) then
+      Exit(False);
+    try
+      if aIncludeCompilerScopes then
+        AddCompilerUnitScopeEntries(aStatus, aProfile, lEntries, lIndex, aError);
+      aEntries := lEntries.ToArray;
+      Result := True;
+    except
+      on E: Exception do
+      begin
+        SetLength(aEntries, 0);
+        aError := E.Message;
+      end;
     end;
+  finally
+    lIndex.Free;
+    lEntries.Free;
   end;
 end;
 
