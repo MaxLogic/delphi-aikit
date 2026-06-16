@@ -8,9 +8,9 @@ uses
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf,
   Winapi.Windows,
   maxLogic.IOUtils, maxLogic.StrUtils,
-  Dak.Diagnostics, Dak.FixInsight, Dak.FixInsightRunner, Dak.FixInsightSettings, Dak.Messages,
+  Dak.Diagnostics, Dak.FixInsight, Dak.FixInsightRunner, Dak.Messages,
   Dak.PascalAnalyzerRunner, Dak.Project.BuildParams, Dak.Registry, Dak.ReportPostProcess, Dak.RsVars, Dak.Types,
-  Dak.Utils;
+  Dak.Settings, Dak.Utils;
 
 type
   TFixInsightCounts = record

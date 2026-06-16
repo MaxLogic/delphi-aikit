@@ -4,7 +4,7 @@ interface
 
 uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.SysUtils,
-  Dak.Analyze.Common, Dak.Diagnostics, Dak.FixInsightSettings, Dak.Messages, Dak.Types, Dak.Utils;
+  Dak.Analyze.Common, Dak.Diagnostics, Dak.Messages, Dak.Settings, Dak.Types, Dak.Utils;
 
 function RunAnalyzeUnit(const aOptions: TAppOptions): Integer;
 
