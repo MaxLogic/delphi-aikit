@@ -1,4 +1,4 @@
-unit Dak.Resolve.Runner;
+﻿unit Dak.Resolve.Runner;
 
 interface
 

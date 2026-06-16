@@ -1,4 +1,4 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{E239EF88-8D00-4A85-B80B-DB47036542E8}</ProjectGuid>
         <MainSource>DelphiAIKit.dpr</MainSource>
@@ -200,6 +200,7 @@
         </DelphiCompile>
         <DCCReference Include="..\src\dak.analyze.pas"/>
         <DCCReference Include="..\src\dak.build.pas"/>
+        <DCCReference Include="..\src\Dak.CommandOutput.pas"/>
         <DCCReference Include="..\src\dak.cli.pas"/>
         <DCCReference Include="..\src\dak.diagnostics.pas"/>
         <DCCReference Include="..\src\dak.externaltoolprocess.pas"/>

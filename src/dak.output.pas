@@ -1,9 +1,10 @@
-unit Dak.Output;
+﻿unit Dak.Output;
 
 interface
 
 uses
   System.Classes, System.Generics.Collections, System.IOUtils, System.SysUtils,
+  Dak.CommandOutput,
   Dak.Messages, Dak.Types;
 
 function WriteOutput(const aParams: TFixInsightParams; aKind: TOutputKind; const aOutPath: string;
@@ -272,7 +273,7 @@ function WriteOutput(const aParams: TFixInsightParams; aKind: TOutputKind; const
   out aError: string): Boolean;
 var
   lContent: string;
-  lEncoding: TEncoding;
+  lUtf8Bom: Boolean;
 begin
   aError := '';
   case aKind of
@@ -283,32 +284,11 @@ begin
     lContent := '';
   end;
 
-  if aOutPath = '' then
-  begin
-    Write(lContent);
-    Exit(True);
-  end;
-
-  try
-    if aKind = TOutputKind.okBat then
-    begin
-      lEncoding := TUTF8Encoding.Create(False);
-      try
-        TFile.WriteAllText(aOutPath, lContent, lEncoding);
-      finally
-        lEncoding.Free;
-      end;
-    end else
-      TFile.WriteAllText(aOutPath, lContent, TEncoding.UTF8);
-  except
-    on E: Exception do
-    begin
-      aError := Format(SOutputWriteFailed, [E.Message]);
-      Exit(False);
-    end;
-  end;
-
-  Result := True;
+  lUtf8Bom := aKind <> TOutputKind.okBat;
+  Result := WriteCommandOutput(lContent, aOutPath, TCommandOutputPolicy.copStdoutWhenNoPathOrDash,
+    False, False, lUtf8Bom, aError);
+  if not Result then
+    aError := Format(SOutputWriteFailed, [aError]);
 end;
 
 end.

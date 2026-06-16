@@ -1,4 +1,4 @@
-unit Dak.RemoveWith;
+﻿unit Dak.RemoveWith;
 
 interface
 
@@ -11,8 +11,8 @@ implementation
 
 uses
   System.Diagnostics, System.Generics.Collections, System.IOUtils, System.SysUtils,
-  Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Model, Dak.RemoveWith.Output, Dak.RemoveWith.Planner,
-  Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
+  Dak.CommandOutput, Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Model, Dak.RemoveWith.Output,
+  Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
 
 procedure LogRemoveWithProgress(const aOptions: TAppOptions; const aMessage: string);
 begin
@@ -95,17 +95,15 @@ end;
 
 procedure WriteRemoveWithOutput(const aOptions: TAppOptions; const aOutputText: string);
 var
-  lOutputDir: string;
+  lError: string;
+  lOutputPath: string;
 begin
-  WriteLn(aOutputText);
-  if (not aOptions.fHasRemoveWithOutputPath) or (Trim(aOptions.fRemoveWithOutputPath) = '') or
-    (aOptions.fRemoveWithOutputPath = '-') then
-    Exit;
-
-  lOutputDir := TPath.GetDirectoryName(aOptions.fRemoveWithOutputPath);
-  if lOutputDir <> '' then
-    TDirectory.CreateDirectory(lOutputDir);
-  TFile.WriteAllText(aOptions.fRemoveWithOutputPath, aOutputText, TEncoding.UTF8);
+  lOutputPath := '';
+  if aOptions.fHasRemoveWithOutputPath then
+    lOutputPath := aOptions.fRemoveWithOutputPath;
+  if not WriteCommandOutput(aOutputText, lOutputPath, TCommandOutputPolicy.copAlwaysStdoutAndOptionalFile,
+    True, False, True, lError) then
+    raise Exception.Create(lError);
 end;
 
 function ResolveRemoveWithTargetPaths(const aOptions: TAppOptions; out aUnitPath, aDirPath, aError: string): Boolean;

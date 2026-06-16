@@ -1,4 +1,4 @@
-unit Dak.GlobalVars;
+﻿unit Dak.GlobalVars;
 
 interface
 
@@ -13,6 +13,7 @@ uses
   System.Generics.Collections,
   System.IOUtils,
   System.SysUtils,
+  Dak.CommandOutput,
   Dak.GlobalVars.Cache,
   Dak.GlobalVars.Model,
   Dak.GlobalVars.Output,
@@ -93,15 +94,12 @@ begin
 end;
 
 procedure WriteOutput(const aOutputPath, aOutputText: string);
+var
+  lError: string;
 begin
-  if aOutputPath = '-' then
-    WriteLn(aOutputText)
-  else begin
-    if TPath.GetDirectoryName(aOutputPath) <> '' then
-      TDirectory.CreateDirectory(TPath.GetDirectoryName(aOutputPath));
-    TFile.WriteAllText(aOutputPath, aOutputText, TEncoding.UTF8);
-    WriteLn('Wrote: ' + aOutputPath);
-  end;
+  if not WriteCommandOutput(aOutputText, aOutputPath, TCommandOutputPolicy.copStdoutOnlyWhenDash,
+    True, True, True, lError) then
+    raise Exception.Create(lError);
 end;
 
 function RunGlobalVarsCommand(const aOptions: TAppOptions): Integer;
