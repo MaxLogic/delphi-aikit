@@ -1,4 +1,4 @@
-unit Dak.Build.Summary;
+﻿unit Dak.Build.Summary;
 
 interface
 
@@ -14,8 +14,7 @@ function BuildSummaryAsJson(const aProjectPath: string; const aOptions: TAppOpti
 implementation
 
 uses
-  System.Classes, System.IOUtils, System.RegularExpressions, System.StrUtils,
-  Dak.SourceContext;
+  System.Classes, System.IOUtils, System.RegularExpressions, System.StrUtils;
 
 function SplitList(const aValue: string): TArray<string>;
 var
@@ -192,9 +191,99 @@ begin
   AddFinding(aRawItems, aRawLine, 0);
 end;
 
+procedure AddDiagnostic(var aDiagnostics: TArray<TBuildDiagnostic>; const aDiagnostic: TBuildDiagnostic;
+  const aLimit: Integer);
+var
+  lLength: Integer;
+begin
+  if (aLimit > 0) and (Length(aDiagnostics) >= aLimit) then
+    Exit;
+
+  lLength := Length(aDiagnostics);
+  SetLength(aDiagnostics, lLength + 1);
+  aDiagnostics[lLength] := aDiagnostic;
+end;
+
+function TryParseDiagnosticLine(const aSeverity, aNormalizedLine, aRawLine: string;
+  out aDiagnostic: TBuildDiagnostic): Boolean;
+var
+  lMatch: TMatch;
+  lPattern: string;
+begin
+  Result := False;
+  aDiagnostic := Default(TBuildDiagnostic);
+  aDiagnostic.fSeverity := aSeverity;
+  aDiagnostic.fRawLine := aRawLine;
+  aDiagnostic.fNormalizedLine := aNormalizedLine;
+
+  if SameText(aSeverity, 'error') then
+    lPattern := '(?i)^(?<file>.+?)\((?<line>\d+)(?:,(?<col>\d+))?\):\s+(?:error|fatal(?:\s+error)?):?\s+(?<code>[A-Z]\d+):?\s+(?<message>.*)$'
+  else if SameText(aSeverity, 'warning') then
+    lPattern := '^(?<file>.+?)\((?<line>\d+)(?:,(?<col>\d+))?\):\s+warning\s+(?<code>[A-Z]\d+):\s+(?<message>.*)$'
+  else if SameText(aSeverity, 'hint') then
+    lPattern := '(?i)^(?<file>.+?)\((?<line>\d+)(?:,(?<col>\d+))?\):\s+hint(?:\s+warning)?\s+(?<code>H\d+):\s+(?<message>.*)$'
+  else
+    Exit(False);
+
+  lMatch := TRegEx.Match(aNormalizedLine, lPattern);
+  if not lMatch.Success then
+    Exit(False);
+
+  aDiagnostic.fFileToken := Trim(lMatch.Groups['file'].Value);
+  aDiagnostic.fLine := StrToIntDef(lMatch.Groups['line'].Value, 0);
+  aDiagnostic.fColumn := StrToIntDef(lMatch.Groups['col'].Value, 0);
+  aDiagnostic.fCode := UpperCase(Trim(lMatch.Groups['code'].Value));
+  aDiagnostic.fMessage := Trim(lMatch.Groups['message'].Value);
+  Result := True;
+end;
+
+function TryParseFallbackDiagnosticLine(const aSeverity, aNormalizedLine, aRawLine: string;
+  out aDiagnostic: TBuildDiagnostic): Boolean;
+var
+  lMatch: TMatch;
+  lPattern: string;
+begin
+  Result := False;
+  aDiagnostic := Default(TBuildDiagnostic);
+  aDiagnostic.fSeverity := aSeverity;
+  aDiagnostic.fRawLine := aRawLine;
+  aDiagnostic.fNormalizedLine := aNormalizedLine;
+
+  if SameText(aSeverity, 'error') then
+    lPattern := '^(?<file>.+?)\((?<line>\d+)(?:,(?<col>\d+))?\):\s*(?:\[(?:Fatal Error|Error)\]|(?:Fatal Error|Error):)\s*(?<message>.*)$'
+  else if SameText(aSeverity, 'warning') then
+    lPattern := '^(?<file>.+?)\((?<line>\d+)(?:,(?<col>\d+))?\):\s*(?:\[(?:Warning)\]|(?:Warning):)\s*(?<message>.*)$'
+  else if SameText(aSeverity, 'hint') then
+    lPattern := '^(?<file>.+?)\((?<line>\d+)(?:,(?<col>\d+))?\):\s*(?:\[(?:Hint)\]|(?:Hint):)\s*(?<message>.*)$'
+  else
+    Exit(False);
+
+  lMatch := TRegEx.Match(aNormalizedLine, lPattern);
+  if not lMatch.Success then
+    Exit(False);
+
+  aDiagnostic.fFileToken := Trim(lMatch.Groups['file'].Value);
+  aDiagnostic.fLine := StrToIntDef(lMatch.Groups['line'].Value, 0);
+  aDiagnostic.fColumn := StrToIntDef(lMatch.Groups['col'].Value, 0);
+  aDiagnostic.fCode := UpperCase(aSeverity);
+  aDiagnostic.fMessage := Trim(lMatch.Groups['message'].Value);
+  Result := True;
+end;
+
+procedure AddDiagnosticPair(var aDisplayItems, aRawItems: TArray<string>; var aDiagnostics: TArray<TBuildDiagnostic>;
+  const aDisplayLine, aRawLine: string; const aDiagnostic: TBuildDiagnostic; const aLimit: Integer);
+begin
+  if (aLimit > 0) and (Length(aDisplayItems) >= aLimit) then
+    Exit;
+  AddFinding(aDisplayItems, aDisplayLine, 0);
+  AddFinding(aRawItems, aRawLine, 0);
+  AddDiagnostic(aDiagnostics, aDiagnostic, 0);
+end;
+
 procedure ParseLogFile(const aLogPath: string; const aOptions: TBuildSummaryOptions;
   const aIgnoreWarnings, aIgnoreHints: THashSet<string>; var aSummary: TBuildSummary);
 var
+  lDiagnostic: TBuildDiagnostic;
   lCode: string;
   lLine: string;
   lLines: TStringList;
@@ -213,17 +302,34 @@ begin
       if LineIsExcluded(lNormalizedLine, aOptions.fExcludePathMasks) then
         Continue;
 
-      if TRegEx.IsMatch(lNormalizedLine, ':\s+error\s+') or TRegEx.IsMatch(lNormalizedLine, ':\s+fatal\s+') then
+      if TRegEx.IsMatch(lNormalizedLine, '(?i):\s+(?:error|fatal(?:\s+error)?):?\s+') then
       begin
         Inc(aSummary.fErrorCount);
-        AddFindingPair(aSummary.fErrors, aSummary.fErrorsRaw, lNormalizedLine.Trim, lLine.Trim, aOptions.fMaxFindings);
+        if not TryParseDiagnosticLine('error', lNormalizedLine.Trim, lLine.Trim, lDiagnostic) then
+          lDiagnostic := Default(TBuildDiagnostic);
+        lDiagnostic.fSeverity := 'error';
+        lDiagnostic.fRawLine := lLine.Trim;
+        lDiagnostic.fNormalizedLine := lNormalizedLine.Trim;
+        AddDiagnosticPair(aSummary.fErrors, aSummary.fErrorsRaw, aSummary.fErrorDiagnostics,
+          lNormalizedLine.Trim, lLine.Trim, lDiagnostic, aOptions.fMaxFindings);
         Continue;
       end;
 
       if TRegEx.IsMatch(lNormalizedLine, '(^|\s)(\[Fatal Error\]|\[Error\]|Fatal Error:|Error:)') then
       begin
         Inc(aSummary.fErrorCount);
-        AddFindingPair(aSummary.fErrors, aSummary.fErrorsRaw, lNormalizedLine.Trim, lLine.Trim, aOptions.fMaxFindings);
+        if not TryParseFallbackDiagnosticLine('error', lNormalizedLine.Trim, lLine.Trim, lDiagnostic) then
+        begin
+          lDiagnostic := Default(TBuildDiagnostic);
+          lDiagnostic.fSeverity := 'error';
+          lDiagnostic.fRawLine := lLine.Trim;
+          lDiagnostic.fNormalizedLine := lNormalizedLine.Trim;
+          lDiagnostic.fCode := 'ERROR';
+          lDiagnostic.fMessage := Trim(TRegEx.Replace(lDiagnostic.fNormalizedLine,
+            '^(?:\[\s*Fatal Error\s*\]|\[\s*Error\s*\]|Fatal Error:|Error:)\s*', ''));
+        end;
+        AddDiagnosticPair(aSummary.fErrors, aSummary.fErrorsRaw, aSummary.fErrorDiagnostics,
+          lNormalizedLine.Trim, lLine.Trim, lDiagnostic, aOptions.fMaxFindings);
         Continue;
       end;
 
@@ -235,8 +341,15 @@ begin
         begin
           Inc(aSummary.fWarningCount);
           if aOptions.fIncludeWarnings then
-            AddFindingPair(aSummary.fWarnings, aSummary.fWarningsRaw, lNormalizedLine.Trim, lLine.Trim,
-              aOptions.fMaxFindings);
+          begin
+            if not TryParseDiagnosticLine('warning', lNormalizedLine.Trim, lLine.Trim, lDiagnostic) then
+              lDiagnostic := Default(TBuildDiagnostic);
+            lDiagnostic.fSeverity := 'warning';
+            lDiagnostic.fRawLine := lLine.Trim;
+            lDiagnostic.fNormalizedLine := lNormalizedLine.Trim;
+            AddDiagnosticPair(aSummary.fWarnings, aSummary.fWarningsRaw, aSummary.fWarningDiagnostics,
+              lNormalizedLine.Trim, lLine.Trim, lDiagnostic, aOptions.fMaxFindings);
+          end;
         end;
         Continue;
       end;
@@ -245,33 +358,64 @@ begin
       begin
         Inc(aSummary.fWarningCount);
         if aOptions.fIncludeWarnings then
-          AddFindingPair(aSummary.fWarnings, aSummary.fWarningsRaw, lNormalizedLine.Trim, lLine.Trim,
-            aOptions.fMaxFindings);
-        Continue;
-      end;
-
-      lMatch := TRegEx.Match(lNormalizedLine, ' hint warning\s+(H\d+):');
-      if not lMatch.Success then
-        lMatch := TRegEx.Match(lNormalizedLine, ':\s+hint\s+(H\d+):');
-      if lMatch.Success then
-      begin
-        lCode := UpperCase(lMatch.Groups[1].Value);
-        if not aIgnoreHints.Contains(lCode) then
         begin
-          Inc(aSummary.fHintCount);
-          if aOptions.fIncludeHints then
-            AddFindingPair(aSummary.fHints, aSummary.fHintsRaw, lNormalizedLine.Trim, lLine.Trim,
-              aOptions.fMaxFindings);
+          if not TryParseFallbackDiagnosticLine('warning', lNormalizedLine.Trim, lLine.Trim, lDiagnostic) then
+          begin
+            lDiagnostic := Default(TBuildDiagnostic);
+            lDiagnostic.fSeverity := 'warning';
+            lDiagnostic.fRawLine := lLine.Trim;
+            lDiagnostic.fNormalizedLine := lNormalizedLine.Trim;
+            lDiagnostic.fCode := 'WARNING';
+            lDiagnostic.fMessage := Trim(TRegEx.Replace(lDiagnostic.fNormalizedLine,
+              '^(?:\[\s*Warning\s*\]|Warning:)\s*', ''));
+          end;
+          AddDiagnosticPair(aSummary.fWarnings, aSummary.fWarningsRaw, aSummary.fWarningDiagnostics,
+            lNormalizedLine.Trim, lLine.Trim, lDiagnostic, aOptions.fMaxFindings);
         end;
         Continue;
       end;
 
-      if TRegEx.IsMatch(lNormalizedLine, '(^|\s)(\[Hint\]|Hint:)') then
+      lMatch := TRegEx.Match(lNormalizedLine, '(?i)(?:^|\s)hint(?:\s+warning)?\s+(?<code>H\d+):');
+      if not lMatch.Success then
+        lMatch := TRegEx.Match(lNormalizedLine, '(?i):\s+hint(?:\s+warning)?\s+(?<code>H\d+):');
+      if lMatch.Success then
+      begin
+        lCode := UpperCase(lMatch.Groups['code'].Value);
+        if not aIgnoreHints.Contains(lCode) then
+        begin
+          Inc(aSummary.fHintCount);
+          if aOptions.fIncludeHints then
+          begin
+            if not TryParseDiagnosticLine('hint', lNormalizedLine.Trim, lLine.Trim, lDiagnostic) then
+              lDiagnostic := Default(TBuildDiagnostic);
+            lDiagnostic.fSeverity := 'hint';
+            lDiagnostic.fRawLine := lLine.Trim;
+            lDiagnostic.fNormalizedLine := lNormalizedLine.Trim;
+            AddDiagnosticPair(aSummary.fHints, aSummary.fHintsRaw, aSummary.fHintDiagnostics,
+              lNormalizedLine.Trim, lLine.Trim, lDiagnostic, aOptions.fMaxFindings);
+          end;
+        end;
+        Continue;
+      end;
+
+      if TRegEx.IsMatch(lNormalizedLine, '(?i)(^|\s)(\[Hint\]|Hint:)') then
       begin
         Inc(aSummary.fHintCount);
         if aOptions.fIncludeHints then
-          AddFindingPair(aSummary.fHints, aSummary.fHintsRaw, lNormalizedLine.Trim, lLine.Trim,
-            aOptions.fMaxFindings);
+        begin
+          if not TryParseFallbackDiagnosticLine('hint', lNormalizedLine.Trim, lLine.Trim, lDiagnostic) then
+          begin
+            lDiagnostic := Default(TBuildDiagnostic);
+            lDiagnostic.fSeverity := 'hint';
+            lDiagnostic.fRawLine := lLine.Trim;
+            lDiagnostic.fNormalizedLine := lNormalizedLine.Trim;
+            lDiagnostic.fCode := 'HINT';
+            lDiagnostic.fMessage := Trim(TRegEx.Replace(lDiagnostic.fNormalizedLine,
+              '^(?:\[\s*Hint\s*\]|Hint:)\s*', ''));
+          end;
+          AddDiagnosticPair(aSummary.fHints, aSummary.fHintsRaw, aSummary.fHintDiagnostics,
+            lNormalizedLine.Trim, lLine.Trim, lDiagnostic, aOptions.fMaxFindings);
+        end;
       end;
     end;
   finally
@@ -294,49 +438,6 @@ begin
   finally
     lIgnoreHints.Free;
     lIgnoreWarnings.Free;
-  end;
-end;
-
-function PrefixSourceContext(const aLines: TArray<string>): string;
-var
-  lIndex: Integer;
-  lParts: TArray<string>;
-begin
-  SetLength(lParts, Length(aLines));
-  for lIndex := 0 to High(aLines) do
-    lParts[lIndex] := '  ' + aLines[lIndex];
-  Result := String.Join(sLineBreak, lParts);
-end;
-
-function AppendSourceContextToFinding(const aDisplayFinding, aLookupFinding: string;
-  const aCache: TSourceContextRunCache; aContextLines: Integer): string;
-var
-  lContext: TSourceContextSnippet;
-  lError: string;
-  lFileToken: string;
-  lLineNumber: Integer;
-begin
-  Result := aDisplayFinding;
-  if not TryParseFindingLocation(aLookupFinding, lFileToken, lLineNumber) then
-    Exit(Result);
-  if not aCache.TryResolve(lFileToken, lLineNumber, aContextLines, lContext, lError) then
-    Exit(Result);
-  Result := Result + sLineBreak + PrefixSourceContext(FormatSourceContextLines(lContext));
-end;
-
-procedure EnrichBuildFindingsWithSourceContext(var aItems: TArray<string>; const aLookupItems: TArray<string>;
-  const aLookup: TProjectSourceLookup; aContextLines: Integer);
-var
-  i: Integer;
-  lCache: TSourceContextRunCache;
-begin
-  lCache := TSourceContextRunCache.Create(aLookup);
-  try
-    for i := 0 to High(aItems) do
-      if i <= High(aLookupItems) then
-        aItems[i] := AppendSourceContextToFinding(aItems[i], aLookupItems[i], lCache, aContextLines);
-  finally
-    lCache.Free;
   end;
 end;
 

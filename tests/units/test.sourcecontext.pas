@@ -1,4 +1,4 @@
-unit Test.SourceContext;
+﻿unit Test.SourceContext;
 
 interface
 
@@ -29,6 +29,8 @@ type
     procedure MissingSourceContextFileReturnsFalse;
     [Test]
     procedure ParseFindingLocationExtractsColumn;
+    [Test]
+    procedure SourceContextCandidateStructuredLookupUsesFileLineColumn;
     [Test]
     procedure SourceContextCandidateUsesTokenAtColumn;
     [Test]
@@ -290,6 +292,29 @@ begin
   Assert.AreEqual('TokenUnit.pas', lFileToken);
   Assert.AreEqual(7, lLineNumber);
   Assert.AreEqual(5, lColNumber);
+end;
+
+procedure TSourceContextTests.SourceContextCandidateStructuredLookupUsesFileLineColumn;
+var
+  lContext: TSourceContextSnippet;
+  lDprojPath: string;
+  lEnclosingSymbol: string;
+  lError: string;
+  lLookup: TProjectSourceLookup;
+  lNoCandidateFilePath: string;
+  lSymbolFilePath: string;
+  lToken: string;
+  lTokenFilePath: string;
+begin
+  CreateCandidateFixtureProject(lDprojPath, lTokenFilePath, lSymbolFilePath, lNoCandidateFilePath);
+  lLookup := LoadLookup(lDprojPath);
+
+  Assert.IsTrue(TryResolveSourceContextCandidate(lLookup, 'TokenUnit.pas', 7, 5, 1, '', lContext, lToken,
+    lEnclosingSymbol, lError), 'Expected structured candidate lookup to succeed. Error: ' + lError);
+  Assert.AreEqual('MissingIdentifier', lToken);
+  Assert.AreEqual('', lEnclosingSymbol);
+  Assert.AreEqual(TPath.GetFullPath(lTokenFilePath), lContext.fFilePath);
+  Assert.AreEqual(7, lContext.fTargetLine);
 end;
 
 procedure TSourceContextTests.SourceContextCandidateUsesTokenAtColumn;

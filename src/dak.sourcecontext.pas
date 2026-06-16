@@ -1,4 +1,4 @@
-unit Dak.SourceContext;
+﻿unit Dak.SourceContext;
 
 interface
 
@@ -19,7 +19,10 @@ type
       out aContext: TSourceContextSnippet; out aError: string): Boolean;
     function TryResolveCandidate(const aFinding: string; aContextLines: Integer;
       out aContext: TSourceContextSnippet; out aToken: string; out aEnclosingSymbol: string;
-      out aError: string): Boolean;
+      out aError: string): Boolean; overload;
+    function TryResolveCandidate(const aFileToken: string; aLineNumber, aColumn, aContextLines: Integer;
+      const aCandidateText: string; out aContext: TSourceContextSnippet; out aToken: string;
+      out aEnclosingSymbol: string; out aError: string): Boolean; overload;
   end;
 
 function ShouldEmitSourceContext(const aMode: TSourceContextMode; const aIsError: Boolean): Boolean;
@@ -30,7 +33,10 @@ function TryResolveSourceContext(const aLookup: TProjectSourceLookup; const aFil
   aLineNumber, aContextLines: Integer; out aContext: TSourceContextSnippet; out aError: string): Boolean;
 function TryResolveSourceContextCandidate(const aLookup: TProjectSourceLookup; const aFinding: string;
   aContextLines: Integer; out aContext: TSourceContextSnippet; out aToken: string; out aEnclosingSymbol: string;
-  out aError: string): Boolean;
+  out aError: string): Boolean; overload;
+function TryResolveSourceContextCandidate(const aLookup: TProjectSourceLookup; const aFileToken: string;
+  aLineNumber, aColumn, aContextLines: Integer; const aCandidateText: string; out aContext: TSourceContextSnippet;
+  out aToken: string; out aEnclosingSymbol: string; out aError: string): Boolean; overload;
 function TryReadSourceContext(const aFilePath: string; aLineNumber, aContextLines: Integer;
   out aContext: TSourceContextSnippet; out aError: string): Boolean;
 function FormatSourceContextLines(const aContext: TSourceContextSnippet): TArray<string>;
@@ -120,6 +126,19 @@ begin
     aContext := DakSnippet(lContext);
 end;
 
+function TSourceContextRunCache.TryResolveCandidate(const aFileToken: string; aLineNumber, aColumn,
+  aContextLines: Integer; const aCandidateText: string; out aContext: TSourceContextSnippet; out aToken: string;
+  out aEnclosingSymbol: string; out aError: string): Boolean;
+var
+  lContext: TDelphiSemanticSourceContextSnippet;
+begin
+  aContext := Default(TSourceContextSnippet);
+  Result := TDelphiSemanticSourceContext.TryResolveCandidate(fProject, aFileToken, aLineNumber, aColumn,
+    aContextLines, aCandidateText, fCache, lContext, aToken, aEnclosingSymbol, aError);
+  if Result then
+    aContext := DakSnippet(lContext);
+end;
+
 function TryParseFindingLocation(const aFinding: string; out aFileToken: string; out aLineNumber: Integer): Boolean;
 var
   lColNumber: Integer;
@@ -157,6 +176,21 @@ begin
   try
     Result := lCache.TryResolveCandidate(aFinding, aContextLines, aContext, aToken,
       aEnclosingSymbol, aError);
+  finally
+    lCache.Free;
+  end;
+end;
+
+function TryResolveSourceContextCandidate(const aLookup: TProjectSourceLookup; const aFileToken: string;
+  aLineNumber, aColumn, aContextLines: Integer; const aCandidateText: string; out aContext: TSourceContextSnippet;
+  out aToken: string; out aEnclosingSymbol: string; out aError: string): Boolean;
+var
+  lCache: TSourceContextRunCache;
+begin
+  lCache := TSourceContextRunCache.Create(aLookup);
+  try
+    Result := lCache.TryResolveCandidate(aFileToken, aLineNumber, aColumn, aContextLines, aCandidateText,
+      aContext, aToken, aEnclosingSymbol, aError);
   finally
     lCache.Free;
   end;
