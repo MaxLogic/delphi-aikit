@@ -864,6 +864,7 @@ procedure TLspContextTests.LspWritesGeneratedContextUnderDakWorkspace;
 var
   lContext: TLspContext;
   lDprojPath: string;
+  lError: string;
   lText: string;
   lWorkspaceRoot: string;
 begin
@@ -872,8 +873,13 @@ begin
 
   Assert.AreEqual<string>(TPath.Combine(TPath.Combine(lWorkspaceRoot, 'lsp'), 'context.delphilsp.json'),
     lContext.fContextFilePath, 'Expected generated LSP context file to live under the sibling .dak workspace.');
+  Assert.IsFalse(FileExists(lContext.fContextFilePath),
+    'Did not expect normal LSP context preparation to write the compatibility context file.');
+  lError := '';
+  Assert.IsTrue(TryWriteLspContextFile(lContext, lError),
+    'Expected explicit compatibility context file writer to succeed. Error: ' + lError);
   Assert.IsTrue(FileExists(lContext.fContextFilePath),
-    'Expected generated LSP context file to be written.');
+    'Expected explicit compatibility context file writer to create the file.');
   Assert.AreEqual<string>(TPath.Combine(TPath.Combine(lWorkspaceRoot, 'lsp'), 'logs'), lContext.fLogsDir,
     'Expected logs directory to stay under the same owned workspace.');
   Assert.IsTrue(TDirectory.Exists(lContext.fLogsDir),
@@ -897,8 +903,8 @@ begin
 
   Assert.IsFalse(FileExists(lSidecarPath),
     'Did not expect an LSP context sidecar beside the source project.');
-  Assert.IsTrue(FileExists(lContext.fContextFilePath),
-    'Expected the owned workspace context file to exist.');
+  Assert.IsFalse(FileExists(lContext.fContextFilePath),
+    'Did not expect normal context preparation to write the compatibility context file.');
 end;
 
 procedure TLspContextTests.LspReportsWorkspaceWriteFailureCleanly;
@@ -910,7 +916,8 @@ var
   lOptions: TAppOptions;
 begin
   lDprojPath := CreateFixtureProject('lsp-workspace-write-failure', 'PROJECT_DEFINE', '99.9');
-  lDakFilePath := TPath.Combine(ExtractFilePath(lDprojPath), '.dak');
+  lDakFilePath := TPath.Combine(TPath.Combine(TPath.Combine(ExtractFilePath(lDprojPath), '.dak'), 'LspFixture'), 'lsp');
+  TDirectory.CreateDirectory(ExtractFilePath(lDakFilePath));
   WriteAsciiFile(lDakFilePath, 'blocked');
 
   lOptions := Default(TAppOptions);
@@ -1387,14 +1394,22 @@ var
   lJson: TJSONObject;
   lLspObject: TJSONObject;
   lOptions: TAppOptions;
+  lRequestFilePath: string;
   lResult: TLspRunnerResult;
   lScriptPath: string;
   lScriptGuard: IInterface;
+  lSettingsFilePath: string;
 begin
   EnsureFakeLspFixtureBuilt;
   lDprojPath := PrepareResolvedContext('lsp-runner-lifecycle', lContext);
+  lRequestFilePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Unit1.pas');
+  lSettingsFilePath := TPath.Combine(lContext.fDakLspRoot, 'settings.delphilsp.json');
   lScriptPath := CreateScriptFile('runner-success',
-    '{"requireOpenedDocuments":true,"initializeResult":{"capabilities":{"definitionProvider":true}},"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}]}}');
+    '{"requireOpenedDocuments":true,' +
+    '"expect":{"initialize":{"initializationOptions":{"settingsFile":"' + StringReplace(lSettingsFilePath, '\', '\\', [rfReplaceAll]) + '","settingsFileUri":"' + FilePathToUri(lSettingsFilePath) + '"}}},' +
+    '"expectNotifications":[{"method":"initialized","params":{}},{"method":"workspace/didChangeConfiguration","params":{"settings":{"settingsFile":"' + StringReplace(lSettingsFilePath, '\', '\\', [rfReplaceAll]) + '","settingsFileUri":"' + FilePathToUri(lSettingsFilePath) + '"}}},' +
+    '{"method":"textDocument/didOpen","params":{"textDocument":{"uri":"' + FilePathToUri(lRequestFilePath) + '"}}}],' +
+    '"initializeResult":{"capabilities":{"definitionProvider":true}},"responses":{"textDocument/definition":[{"uri":"file:///C:/repo/Unit1.pas","range":{"start":{"line":2,"character":4},"end":{"line":2,"character":10}}}]}}');
   lScriptGuard := SetScopedEnvironmentVariable(CFakeLspScriptEnvVar, lScriptPath);
   AddContextEnvironmentVar(lContext, CFakeLspScriptEnvVar, lScriptPath);
   try
@@ -1402,8 +1417,18 @@ begin
     lOptions.fLspPath := GFakeLspExePath;
     lOptions.fHasLspPath := True;
     lError := '';
+    Assert.IsFalse(FileExists(lContext.fContextFilePath),
+      'Did not expect normal lsp setup to start with the compatibility context file present.');
+    Assert.IsTrue(TryWriteLspContextFile(lContext, lError),
+      'Expected stale compatibility context file fixture to be written. Error: ' + lError);
+    Assert.IsTrue(FileExists(lContext.fContextFilePath),
+      'Expected stale compatibility context file fixture to exist before the normal run.');
+    lError := '';
     Assert.IsTrue(TryRunLspRequest(lOptions, lContext, lResult, lError),
       'Expected one-shot lsp lifecycle to succeed. Error: ' + lError);
+    Assert.IsTrue(FileExists(lSettingsFilePath), 'Expected canonical settings file to be written for normal lsp operations.');
+    Assert.IsFalse(FileExists(lContext.fContextFilePath),
+      'Did not expect normal lsp operations to write the compatibility context file.');
     lJson := ParseJsonObject(lResult.fResponseText);
     try
       Assert.IsNotNull(lJson, 'Expected lifecycle response JSON.');

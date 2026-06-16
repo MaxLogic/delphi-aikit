@@ -83,12 +83,7 @@ begin
   end;
 end;
 
-function BuildInitializeParams(const aContext: TLspContext): string;
-begin
-  Result := BuildInitializeParamsWithOptions(aContext, BuildContextFileInitializeOptions(aContext));
-end;
-
-function BuildProbeConfigurationParams(const aSettingsFilePath: string): string;
+function BuildSettingsConfigurationParams(const aSettingsFilePath: string): string;
 var
   lRoot: TJSONObject;
   lSettings: TJSONObject;
@@ -1090,7 +1085,14 @@ begin
           end;
           lInitOptions := BuildSettingsFileInitializeOptions(aContext, lSettingsFilePath);
         end else
+        begin
+          if not TryWriteLspContextFile(aContext, lError) then
+          begin
+            aError := lError;
+            Exit(False);
+          end;
           lInitOptions := BuildContextFileInitializeOptions(aContext);
+        end;
 
         if not lClient.Start(aLspPath, '', aContext.fDakLspRoot,
           TPath.Combine(aContext.fLogsDir, 'DelphiLSP.' + ProbeModeName(lMode) + '.stderr.log'),
@@ -1119,7 +1121,7 @@ begin
 
         if lMode = TLspProbeMode.lpmSettingsFile then
         begin
-          lConfigParams := BuildProbeConfigurationParams(lSettingsFilePath);
+          lConfigParams := BuildSettingsConfigurationParams(lSettingsFilePath);
           lConfigObject := TJSONObject.ParseJSONValue(lConfigParams) as TJSONObject;
           if not lClient.SendNotification('workspace/didChangeConfiguration', lConfigParams, lError) then
           begin
@@ -1302,6 +1304,7 @@ var
   lInitResponse: TJSONObject;
   lLspPath: string;
   lOperationName: string;
+  lSettingsFilePath: string;
   lRequestFilePath: string;
   lRequestMethod: string;
   lRequestParams: string;
@@ -1334,6 +1337,18 @@ begin
     Exit(False);
   end;
 
+  if not TryDeleteLspContextFile(aContext, lError) then
+  begin
+    aError := lError;
+    Exit(False);
+  end;
+
+  if not TryWriteCanonicalLspSettingsFile(aContext, lSettingsFilePath, lError) then
+  begin
+    aError := lError;
+    Exit(False);
+  end;
+
   lClient := TLspJsonRpcClient.Create;
   try
     lError := '';
@@ -1344,7 +1359,9 @@ begin
       Exit(False);
     end;
 
-    if not lClient.SendRequest(1, 'initialize', BuildInitializeParams(aContext), lInitResponse, lError) then
+    if not lClient.SendRequest(1, 'initialize',
+      BuildInitializeParamsWithOptions(aContext, BuildSettingsFileInitializeOptions(aContext, lSettingsFilePath)),
+      lInitResponse, lError) then
     begin
       aError := lError;
       Exit(False);
@@ -1364,6 +1381,13 @@ begin
     if not lClient.SendNotification('initialized', '{}', lError) then
     begin
       aError := 'DelphiLSP initialized notification failed: ' + lError;
+      Exit(False);
+    end;
+
+    if not lClient.SendNotification('workspace/didChangeConfiguration',
+      BuildSettingsConfigurationParams(lSettingsFilePath), lError) then
+    begin
+      aError := 'DelphiLSP didChangeConfiguration failed: ' + lError;
       Exit(False);
     end;
 
