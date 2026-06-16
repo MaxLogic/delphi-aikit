@@ -13,14 +13,14 @@ function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildP
 implementation
 
 uses
-  System.Classes, System.IniFiles, System.JSON, System.RegularExpressions, System.StrUtils,
+  System.Classes, System.JSON, System.RegularExpressions, System.StrUtils,
   System.Win.Registry,
   Winapi.Windows,
   maxLogic.StrUtils,
   Dak.Build.Summary,
-  Dak.Diagnostics, Dak.FixInsightSettings, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.MacroExpander, Dak.Messages,
+  Dak.Diagnostics, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.MacroExpander, Dak.Messages,
   Dak.MsBuild, Dak.Project.BuildParams, Dak.Project.SourceLookup, Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars,
-  Dak.SourceContext, Dak.Utils;
+  Dak.Settings, Dak.SourceContext, Dak.Utils;
 
 const
   cStatusOk = 'ok';
@@ -46,14 +46,6 @@ const
   cBuildDiagnosticsDirEnvVar = 'DAK_BUILD_DIAGNOSTICS_DIR';
 
 type
-  TBuildSettings = record
-    fIgnoreWarnings: string;
-    fIgnoreHints: string;
-    fExcludePathMasks: string;
-    fMadExceptPath: string;
-    fWebCoreCompilerPath: string;
-  end;
-
   TBuildProjectInfo = record
     fProjectPath: string;
     fProjectDir: string;
@@ -97,37 +89,6 @@ begin
   Result := Trim(aValue);
   if (Result <> '') and (Pos('.', Result) = 0) then
     Result := Result + '.0';
-end;
-
-function MergeList(const aBaseValue, aExtraValue: string): string;
-var
-  lItems: TList<string>;
-  lItem: string;
-  lPart: string;
-  lSeen: THashSet<string>;
-  lValue: string;
-begin
-  lItems := TList<string>.Create;
-  lSeen := THashSet<string>.Create;
-  try
-    for lValue in [aBaseValue, aExtraValue] do
-    begin
-      if Trim(lValue) = '' then
-        Continue;
-      for lPart in lValue.Split([';']) do
-      begin
-        lItem := Trim(lPart);
-        if lItem = '' then
-          Continue;
-        if lSeen.Add(UpperCase(lItem)) then
-          lItems.Add(lItem);
-      end;
-    end;
-    Result := String.Join(';', lItems.ToArray);
-  finally
-    lSeen.Free;
-    lItems.Free;
-  end;
 end;
 
 function SplitList(const aValue: string): TArray<string>;
@@ -921,77 +882,6 @@ begin
   end;
 end;
 
-function ExpandMadExceptSettingPath(const aValue, aIniPath: string; const aEnvVars: TDictionary<string, string>): string;
-var
-  lPair: TPair<string, string>;
-  lEnv: TDictionary<string, string>;
-  lProps: TDictionary<string, string>;
-begin
-  lProps := TDictionary<string, string>.Create;
-  try
-    lEnv := TDictionary<string, string>.Create;
-    try
-      if aEnvVars <> nil then
-        for lPair in aEnvVars do
-          lEnv.AddOrSetValue(lPair.Key, lPair.Value);
-      Result := TMacroExpander.Expand(aValue, lProps, lEnv, nil, False);
-    finally
-      lEnv.Free;
-    end;
-  finally
-    lProps.Free;
-  end;
-  if not TPath.IsPathRooted(Result) then
-    Result := TPath.GetFullPath(TPath.Combine(ExtractFileDir(aIniPath), Result));
-end;
-
-procedure LoadBuildSettings(const aDprojPath: string; const aOptions: TAppOptions;
-  const aEnvVars: TDictionary<string, string>; out aSettings: TBuildSettings);
-var
-  lIni: TIniFile;
-  lIniPath: string;
-  lValue: string;
-begin
-  aSettings := Default(TBuildSettings);
-  for lIniPath in BuildSettingsPaths(aDprojPath) do
-  begin
-    if not FileExists(lIniPath) then
-      Continue;
-
-    lIni := TIniFile.Create(lIniPath);
-    try
-      lValue := Trim(lIni.ReadString('BuildIgnore', 'Warnings', ''));
-      if lValue <> '' then
-        aSettings.fIgnoreWarnings := MergeList(aSettings.fIgnoreWarnings, lValue);
-
-      lValue := Trim(lIni.ReadString('BuildIgnore', 'Hints', ''));
-      if lValue <> '' then
-        aSettings.fIgnoreHints := MergeList(aSettings.fIgnoreHints, lValue);
-
-      lValue := Trim(lIni.ReadString('ReportFilter', 'ExcludePathMasks', ''));
-      if lValue <> '' then
-        aSettings.fExcludePathMasks := MergeList(aSettings.fExcludePathMasks, lValue);
-
-      lValue := Trim(lIni.ReadString('MadExcept', 'Path', ''));
-      if lValue <> '' then
-        aSettings.fMadExceptPath := ExpandMadExceptSettingPath(lValue, lIniPath, aEnvVars);
-
-      lValue := Trim(lIni.ReadString('WebCore', 'CompilerPath', ''));
-      if lValue <> '' then
-        aSettings.fWebCoreCompilerPath := ExpandMadExceptSettingPath(lValue, lIniPath, aEnvVars);
-    finally
-      lIni.Free;
-    end;
-  end;
-
-  if aOptions.fHasBuildIgnoreWarnings then
-    aSettings.fIgnoreWarnings := MergeList(aSettings.fIgnoreWarnings, aOptions.fBuildIgnoreWarnings);
-  if aOptions.fHasBuildIgnoreHints then
-    aSettings.fIgnoreHints := MergeList(aSettings.fIgnoreHints, aOptions.fBuildIgnoreHints);
-  if aOptions.fHasExcludePathMasks then
-    aSettings.fExcludePathMasks := MergeList(aSettings.fExcludePathMasks, aOptions.fExcludePathMasks);
-end;
-
 function ResolveMadExceptPatchExe(const aSettingPath: string): string;
 var
   lCandidate: string;
@@ -1065,7 +955,7 @@ begin
   Result := True;
 end;
 
-function ResolveWebCoreCompilerPath(const aOptions: TAppOptions; const aSettings: TBuildSettings;
+function ResolveWebCoreCompilerPath(const aOptions: TAppOptions; const aSettings: TDakBuildSettings;
   out aCompilerPath: string): Boolean;
 var
   lCandidatePath: string;
@@ -1638,7 +1528,7 @@ begin
 end;
 
 function TryRunWebCoreBuild(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
-  const aSettings: TBuildSettings; out aExitCode: Integer; out aError: string): Boolean;
+  const aSettings: TDakBuildSettings; out aExitCode: Integer; out aError: string): Boolean;
 var
   lCompilerPath: string;
   lErrLog: string;
@@ -1820,7 +1710,7 @@ var
   lProjectLookup: TProjectSourceLookup;
   lRsVarsEnvironment: TRsVarsEnvironment;
   lRsVarsEnvironmentBlock: string;
-  lSettings: TBuildSettings;
+  lSettings: TDakBuildSettings;
   lStartTick: Int64;
   lSummary: TBuildSummary;
   lSummaryOptions: TBuildSummaryOptions;

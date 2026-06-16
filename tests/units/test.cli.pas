@@ -4,11 +4,13 @@ interface
 
 uses
   DUnitX.TestFramework,
+  System.Generics.Collections,
   System.IniFiles,
   System.IOUtils,
+  System.StrUtils,
   System.SysUtils,
   maxLogic.CmdLineParams,
-  Dak.Cli, Dak.FixInsightSettings, Dak.Types,
+  Dak.Cli, Dak.Settings, Dak.Types,
   Test.Support;
 
 type
@@ -84,6 +86,10 @@ type
     procedure LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
     [Test]
     procedure LoadSettingsReadsAnalyzerTimeouts;
+    [Test]
+    procedure DakIniLoadingIsCentralized;
+    [Test]
+    procedure LoadDakSettingsMergesTypedSections;
     [Test]
     procedure LoadDefaultDelphiVersionUsesProjectLocalDakIni;
     [Test]
@@ -832,6 +838,102 @@ begin
     Assert.AreEqual(33, lFixOptions.fTimeoutSec, 'Unexpected FixInsight timeout from dak.ini.');
     Assert.AreEqual(44, lPascalAnalyzer.fTimeoutSec, 'Unexpected Pascal Analyzer timeout from dak.ini.');
   finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.DakIniLoadingIsCentralized;
+var
+  lBuildRunnerSource: string;
+  lSettingsSource: string;
+begin
+  lSettingsSource := TPath.Combine(RepoRoot, 'src\Dak.Settings.pas');
+  Assert.IsTrue(FileExists(lSettingsSource), 'Expected shared dak.ini loader unit: ' + lSettingsSource);
+
+  lBuildRunnerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.build.runner.pas'), TEncoding.UTF8);
+  Assert.IsFalse(ContainsText(lBuildRunnerSource, 'TIniFile.Create'),
+    'Build runner must consume the typed settings loader instead of parsing dak.ini directly.');
+  Assert.IsFalse(ContainsText(lBuildRunnerSource, 'ReadString(''BuildIgnore'''),
+    'BuildIgnore dak.ini parsing must be centralized in Dak.Settings.');
+  Assert.IsFalse(ContainsText(lBuildRunnerSource, 'ReadString(''MadExcept'''),
+    'MadExcept dak.ini parsing must be centralized in Dak.Settings.');
+  Assert.IsFalse(ContainsText(lBuildRunnerSource, 'ReadString(''WebCore'''),
+    'WebCore dak.ini parsing must be centralized in Dak.Settings.');
+end;
+
+procedure TCliTests.LoadDakSettingsMergesTypedSections;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lEnvVars: TDictionary<string, string>;
+  lRepoDir: string;
+  lSettings: TDakSettings;
+  lSubDir: string;
+
+  procedure WriteIniText(const aPath, aText: string);
+  begin
+    ForceDirectories(ExtractFileDir(aPath));
+    TFile.WriteAllText(aPath, aText, TEncoding.ASCII);
+  end;
+begin
+  lBaseDir := UniqueTempPath('dak-settings-typed');
+  lRepoDir := TPath.Combine(lBaseDir, 'repo');
+  lSubDir := TPath.Combine(lRepoDir, 'sub');
+  ForceDirectories(TPath.Combine(lRepoDir, '.git'));
+  ForceDirectories(lSubDir);
+
+  lDprojPath := TPath.Combine(lSubDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+  WriteIniText(TPath.Combine(lRepoDir, 'dak.ini'),
+    '[FixInsightCL]' + sLineBreak +
+    'Ignore=bin;obj' + sLineBreak +
+    'TimeoutSec=12' + sLineBreak +
+    '[BuildIgnore]' + sLineBreak +
+    'Warnings=W1000;W2000' + sLineBreak +
+    '[ReportFilter]' + sLineBreak +
+    'ExcludePathMasks=vendor\*' + sLineBreak +
+    '[MadExcept]' + sLineBreak +
+    'Path=$(TOOLS)\madExcept' + sLineBreak +
+    '[Build]' + sLineBreak +
+    'DelphiVersion=22.0' + sLineBreak);
+  WriteIniText(TPath.Combine(lSubDir, 'dak.ini'),
+    '[FixInsightCL]' + sLineBreak +
+    'Ignore=obj;tmp' + sLineBreak +
+    '[BuildIgnore]' + sLineBreak +
+    'Warnings=W2000;W3000' + sLineBreak +
+    'Hints=H1000' + sLineBreak +
+    '[ReportFilter]' + sLineBreak +
+    'ExcludePathMasks=generated\*;vendor\*' + sLineBreak +
+    '[WebCore]' + sLineBreak +
+    'CompilerPath=$(TOOLS)\webcore\TMSWebCompiler.exe' + sLineBreak +
+    '[Build]' + sLineBreak +
+    'DelphiVersion=23.0' + sLineBreak);
+
+  lEnvVars := TDictionary<string, string>.Create;
+  try
+    lEnvVars.Add('TOOLS', TPath.Combine(lBaseDir, 'tools'));
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, lEnvVars, lSettings),
+      'Expected shared typed settings loader to succeed.');
+    Assert.AreEqual('bin;obj;tmp', lSettings.fFixInsight.fIgnore,
+      'FixInsight path ignores should merge and dedupe across layers.');
+    Assert.AreEqual(12, lSettings.fFixInsight.fTimeoutSec,
+      'FixInsight timeout should be loaded through the shared typed settings record.');
+    Assert.AreEqual('W1000;W2000;W3000', lSettings.fBuild.fIgnoreWarnings,
+      'Build warning ignores should merge and dedupe through the shared loader.');
+    Assert.AreEqual('H1000', lSettings.fBuild.fIgnoreHints,
+      'Build hint ignores should come from the shared loader.');
+    Assert.AreEqual('vendor\*;generated\*', lSettings.fReportFilter.fExcludePathMasks,
+      'ReportFilter masks should merge in first-seen order.');
+    Assert.AreEqual(lSettings.fReportFilter.fExcludePathMasks, lSettings.fBuild.fExcludePathMasks,
+      'Build summary filtering should consume the same ReportFilter defaults.');
+    Assert.AreEqual(TPath.GetFullPath(TPath.Combine(lBaseDir, 'tools\madExcept')),
+      lSettings.fBuild.fMadExceptPath, 'MadExcept path should expand through the settings loader.');
+    Assert.AreEqual(TPath.GetFullPath(TPath.Combine(lBaseDir, 'tools\webcore\TMSWebCompiler.exe')),
+      lSettings.fBuild.fWebCoreCompilerPath, 'WebCore compiler path should expand through the settings loader.');
+    Assert.AreEqual('23.0', lSettings.fDelphiVersion,
+      'More local Build DelphiVersion should override repo-level defaults.');
+  finally
+    lEnvVars.Free;
     DeleteTempPath(lBaseDir);
   end;
 end;

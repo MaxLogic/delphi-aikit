@@ -9,7 +9,7 @@ uses
   Winapi.Messages,
   Winapi.Windows,
   DfmCheck_Utils,
-  Dak.Diagnostics, Dak.FixInsightSettings, Dak.Messages, Dak.RsVars, Dak.SourceContext, Dak.Types, Dak.Utils;
+  Dak.Diagnostics, Dak.Messages, Dak.RsVars, Dak.Settings, Dak.SourceContext, Dak.Types, Dak.Utils;
 
 type
   TDfmCheckErrorCategory = (

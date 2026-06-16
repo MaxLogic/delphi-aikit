@@ -1,26 +1,49 @@
-unit Dak.FixInsightSettings;
+unit Dak.Settings;
 
 interface
 
 uses
-  System.Generics.Collections,
-  System.IniFiles, System.IOUtils, System.SysUtils,
+  System.Generics.Collections, System.IniFiles, System.IOUtils, System.SysUtils,
   maxLogic.RichIniFile, maxLogic.StrUtils,
-  Dak.Diagnostics, Dak.Messages, Dak.Types;
+  Dak.Diagnostics, Dak.MacroExpander, Dak.Messages, Dak.Types;
 
+type
+  TDakBuildSettings = record
+    fIgnoreWarnings: string;
+    fIgnoreHints: string;
+    fExcludePathMasks: string;
+    fMadExceptPath: string;
+    fWebCoreCompilerPath: string;
+  end;
+
+  TDakSettings = record
+    fFixInsight: TFixInsightExtraOptions;
+    fFixInsightIgnore: TFixInsightIgnoreDefaults;
+    fReportFilter: TReportFilterDefaults;
+    fPascalAnalyzer: TPascalAnalyzerDefaults;
+    fBuild: TDakBuildSettings;
+    fDiagnosticsDefaults: TDiagnosticsDefaults;
+    fDelphiVersion: string;
+  end;
+
+function BuildSettingsPaths(const aDprojPath: string): TArray<string>;
+function LoadDakSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
+  const aEnvVars: TDictionary<string, string>; out aSettings: TDakSettings): Boolean;
 function LoadSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
   out aFixInsight: TFixInsightExtraOptions; out aFixInsightIgnore: TFixInsightIgnoreDefaults;
   out aReportFilter: TReportFilterDefaults; out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean; overload;
 function LoadSettings(aDiagnostics: TDiagnostics; out aFixInsight: TFixInsightExtraOptions;
   out aFixInsightIgnore: TFixInsightIgnoreDefaults; out aReportFilter: TReportFilterDefaults;
   out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean; overload;
+function LoadDefaultDelphiVersion(const aDprojPath: string; out aDelphiVersion: string): Boolean;
 function LoadDiagnosticsDefaults(aDiagnostics: TDiagnostics; const aDprojPath: string;
   out aDiagnosticsDefaults: TDiagnosticsDefaults): Boolean;
-function BuildSettingsPaths(const aDprojPath: string): TArray<string>;
-function LoadDefaultDelphiVersion(const aDprojPath: string; out aDelphiVersion: string): Boolean;
+procedure LoadBuildSettings(const aDprojPath: string; const aOverrides: TAppOptions;
+  const aEnvVars: TDictionary<string, string>; out aSettings: TDakBuildSettings);
 procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
   var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
   var aPascalAnalyzer: TPascalAnalyzerDefaults);
+procedure ApplyBuildSettingsOverrides(const aOverrides: TAppOptions; var aSettings: TDakBuildSettings);
 procedure ApplyDiagnosticsOverrides(const aOverrides: TAppOptions; var aDiagnosticsDefaults: TDiagnosticsDefaults);
 
 implementation
@@ -32,7 +55,10 @@ const
   SReportFilterSection = 'ReportFilter';
   SPascalAnalyzerSection = 'PascalAnalyzer';
   SBuildSection = 'Build';
+  SBuildIgnoreSection = 'BuildIgnore';
+  SMadExceptSection = 'MadExcept';
   SDiagnosticsSection = 'Diagnostics';
+  SWebCoreSection = 'WebCore';
 
 function GetExeSettingsPath: string;
 begin
@@ -281,54 +307,121 @@ begin
   end;
 end;
 
-function LoadSettings(aDiagnostics: TDiagnostics; out aFixInsight: TFixInsightExtraOptions;
-  out aFixInsightIgnore: TFixInsightIgnoreDefaults; out aReportFilter: TReportFilterDefaults;
-  out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean;
+function ExpandSettingPath(const aValue, aIniPath: string; const aEnvVars: TDictionary<string, string>): string;
+var
+  lPair: TPair<string, string>;
+  lEnv: TDictionary<string, string>;
+  lProps: TDictionary<string, string>;
 begin
-  Result := LoadSettings(aDiagnostics, '', aFixInsight, aFixInsightIgnore, aReportFilter, aPascalAnalyzer);
+  Result := Trim(aValue);
+  if Result = '' then
+    Exit('');
+
+  lProps := TDictionary<string, string>.Create;
+  try
+    lEnv := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    try
+      if aEnvVars <> nil then
+        for lPair in aEnvVars do
+          lEnv.AddOrSetValue(lPair.Key, lPair.Value);
+      Result := TMacroExpander.Expand(Result, lProps, lEnv, nil, False);
+    finally
+      lEnv.Free;
+    end;
+  finally
+    lProps.Free;
+  end;
+
+  if (Result <> '') and (not TPath.IsPathRooted(Result)) then
+    Result := TPath.GetFullPath(TPath.Combine(ExtractFileDir(aIniPath), Result));
 end;
 
-procedure ApplyIniSettings(const aIni: TCustomIniFile; var aFixInsight: TFixInsightExtraOptions;
-  var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
-  var aPascalAnalyzer: TPascalAnalyzerDefaults; aDiagnostics: TDiagnostics);
+procedure ApplyIniSettings(const aIni: TCustomIniFile; const aIniPath: string;
+  const aEnvVars: TDictionary<string, string>; var aSettings: TDakSettings; aDiagnostics: TDiagnostics);
 var
+  lLines: Integer;
+  lMode: TSourceContextMode;
   lValue: string;
 begin
   lValue := Trim(aIni.ReadString(SFixInsightSection, 'Path', ''));
   if lValue <> '' then
-    aFixInsight.fExePath := lValue;
+    aSettings.fFixInsight.fExePath := lValue;
   lValue := Trim(aIni.ReadString(SFixInsightSection, 'Output', ''));
   if lValue <> '' then
-    aFixInsight.fOutput := lValue;
+    aSettings.fFixInsight.fOutput := lValue;
   lValue := Trim(aIni.ReadString(SFixInsightSection, 'Ignore', ''));
   if lValue <> '' then
-    aFixInsight.fIgnore := MergeList(aFixInsight.fIgnore, lValue);
+    aSettings.fFixInsight.fIgnore := MergeList(aSettings.fFixInsight.fIgnore, lValue);
   lValue := Trim(aIni.ReadString(SFixInsightSection, 'Settings', ''));
   if lValue <> '' then
-    aFixInsight.fSettings := lValue;
-  ReadBoolOption(aIni, 'Silent', aFixInsight.fSilent, aDiagnostics);
-  ReadBoolOption(aIni, 'Xml', aFixInsight.fXml, aDiagnostics);
-  ReadBoolOption(aIni, 'Csv', aFixInsight.fCsv, aDiagnostics);
-  ReadPositiveIntegerOption(aIni, SFixInsightSection, 'TimeoutSec', aFixInsight.fTimeoutSec, aDiagnostics);
+    aSettings.fFixInsight.fSettings := lValue;
+  ReadBoolOption(aIni, 'Silent', aSettings.fFixInsight.fSilent, aDiagnostics);
+  ReadBoolOption(aIni, 'Xml', aSettings.fFixInsight.fXml, aDiagnostics);
+  ReadBoolOption(aIni, 'Csv', aSettings.fFixInsight.fCsv, aDiagnostics);
+  ReadPositiveIntegerOption(aIni, SFixInsightSection, 'TimeoutSec', aSettings.fFixInsight.fTimeoutSec,
+    aDiagnostics);
 
   lValue := Trim(aIni.ReadString(SFixInsightIgnoreSection, 'Warnings', ''));
   if lValue <> '' then
-    aFixInsightIgnore.fWarnings := MergeList(aFixInsightIgnore.fWarnings, lValue);
+    aSettings.fFixInsightIgnore.fWarnings := MergeList(aSettings.fFixInsightIgnore.fWarnings, lValue);
 
   lValue := Trim(aIni.ReadString(SReportFilterSection, 'ExcludePathMasks', ''));
   if lValue <> '' then
-    aReportFilter.fExcludePathMasks := MergeList(aReportFilter.fExcludePathMasks, lValue);
+  begin
+    aSettings.fReportFilter.fExcludePathMasks := MergeList(aSettings.fReportFilter.fExcludePathMasks, lValue);
+    aSettings.fBuild.fExcludePathMasks := MergeList(aSettings.fBuild.fExcludePathMasks, lValue);
+  end;
 
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'Path', ''));
   if lValue <> '' then
-    aPascalAnalyzer.fPath := lValue;
+    aSettings.fPascalAnalyzer.fPath := lValue;
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'Output', ''));
   if lValue <> '' then
-    aPascalAnalyzer.fOutput := lValue;
+    aSettings.fPascalAnalyzer.fOutput := lValue;
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'Args', ''));
   if lValue <> '' then
-    aPascalAnalyzer.fArgs := lValue;
-  ReadPositiveIntegerOption(aIni, SPascalAnalyzerSection, 'TimeoutSec', aPascalAnalyzer.fTimeoutSec, aDiagnostics);
+    aSettings.fPascalAnalyzer.fArgs := lValue;
+  ReadPositiveIntegerOption(aIni, SPascalAnalyzerSection, 'TimeoutSec', aSettings.fPascalAnalyzer.fTimeoutSec,
+    aDiagnostics);
+
+  lValue := Trim(aIni.ReadString(SBuildSection, 'DelphiVersion', ''));
+  if lValue <> '' then
+    aSettings.fDelphiVersion := lValue;
+
+  lValue := Trim(aIni.ReadString(SBuildIgnoreSection, 'Warnings', ''));
+  if lValue <> '' then
+    aSettings.fBuild.fIgnoreWarnings := MergeList(aSettings.fBuild.fIgnoreWarnings, lValue);
+
+  lValue := Trim(aIni.ReadString(SBuildIgnoreSection, 'Hints', ''));
+  if lValue <> '' then
+    aSettings.fBuild.fIgnoreHints := MergeList(aSettings.fBuild.fIgnoreHints, lValue);
+
+  lValue := Trim(aIni.ReadString(SMadExceptSection, 'Path', ''));
+  if lValue <> '' then
+    aSettings.fBuild.fMadExceptPath := ExpandSettingPath(lValue, aIniPath, aEnvVars);
+
+  lValue := Trim(aIni.ReadString(SWebCoreSection, 'CompilerPath', ''));
+  if lValue <> '' then
+    aSettings.fBuild.fWebCoreCompilerPath := ExpandSettingPath(lValue, aIniPath, aEnvVars);
+
+  lValue := Trim(aIni.ReadString(SDiagnosticsSection, 'SourceContext', ''));
+  if lValue <> '' then
+  begin
+    if TryParseSourceContextModeText(lValue, lMode) then
+      aSettings.fDiagnosticsDefaults.fSourceContextMode := lMode
+    else if aDiagnostics <> nil then
+      aDiagnostics.AddWarning('Invalid dak.ini SourceContext value: ' + lValue);
+  end;
+
+  lValue := Trim(aIni.ReadString(SDiagnosticsSection, 'SourceContextLines', ''));
+  if lValue <> '' then
+  begin
+    lLines := StrToIntDef(lValue, -1);
+    if lLines >= 0 then
+      aSettings.fDiagnosticsDefaults.fSourceContextLines := lLines
+    else if aDiagnostics <> nil then
+      aDiagnostics.AddWarning('Invalid dak.ini SourceContextLines value: ' + lValue);
+  end;
 
   if aDiagnostics <> nil then
   begin
@@ -341,21 +434,18 @@ begin
   end;
 end;
 
-function LoadSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
-  out aFixInsight: TFixInsightExtraOptions; out aFixInsightIgnore: TFixInsightIgnoreDefaults;
-  out aReportFilter: TReportFilterDefaults; out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean;
+function LoadDakSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
+  const aEnvVars: TDictionary<string, string>; out aSettings: TDakSettings): Boolean;
 var
   lIni: TCustomIniFile;
   lPath: string;
-  lPaths: TArray<string>;
 begin
-  aFixInsight := Default(TFixInsightExtraOptions);
-  aFixInsightIgnore := Default(TFixInsightIgnoreDefaults);
-  aReportFilter := Default(TReportFilterDefaults);
-  aPascalAnalyzer := Default(TPascalAnalyzerDefaults);
+  aSettings := Default(TDakSettings);
+  aSettings.fDiagnosticsDefaults.fSourceContextMode := TSourceContextMode.scmAuto;
+  aSettings.fDiagnosticsDefaults.fSourceContextLines := 2;
   Result := True;
-  lPaths := BuildSettingsPaths(aDprojPath);
-  for lPath in lPaths do
+
+  for lPath in BuildSettingsPaths(aDprojPath) do
   begin
     if aDiagnostics <> nil then
       aDiagnostics.AddInfo(Format(SInfoSettingsPath, [lPath]));
@@ -363,81 +453,58 @@ begin
       Continue;
     lIni := OpenSettingsIni(lPath);
     try
-      ApplyIniSettings(lIni, aFixInsight, aFixInsightIgnore, aReportFilter, aPascalAnalyzer, aDiagnostics);
+      ApplyIniSettings(lIni, lPath, aEnvVars, aSettings, aDiagnostics);
     finally
       lIni.Free;
     end;
   end;
 end;
 
+function LoadSettings(aDiagnostics: TDiagnostics; out aFixInsight: TFixInsightExtraOptions;
+  out aFixInsightIgnore: TFixInsightIgnoreDefaults; out aReportFilter: TReportFilterDefaults;
+  out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean;
+begin
+  Result := LoadSettings(aDiagnostics, '', aFixInsight, aFixInsightIgnore, aReportFilter, aPascalAnalyzer);
+end;
+
+function LoadSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
+  out aFixInsight: TFixInsightExtraOptions; out aFixInsightIgnore: TFixInsightIgnoreDefaults;
+  out aReportFilter: TReportFilterDefaults; out aPascalAnalyzer: TPascalAnalyzerDefaults): Boolean;
+var
+  lSettings: TDakSettings;
+begin
+  Result := LoadDakSettings(aDiagnostics, aDprojPath, nil, lSettings);
+  aFixInsight := lSettings.fFixInsight;
+  aFixInsightIgnore := lSettings.fFixInsightIgnore;
+  aReportFilter := lSettings.fReportFilter;
+  aPascalAnalyzer := lSettings.fPascalAnalyzer;
+end;
+
 function LoadDefaultDelphiVersion(const aDprojPath: string; out aDelphiVersion: string): Boolean;
 var
-  lIni: TCustomIniFile;
-  lPath: string;
-  lPaths: TArray<string>;
-  lValue: string;
+  lSettings: TDakSettings;
 begin
-  aDelphiVersion := '';
-  Result := True;
-  lPaths := BuildSettingsPaths(aDprojPath);
-  for lPath in lPaths do
-  begin
-    if not FileExists(lPath) then
-      Continue;
-    lIni := OpenSettingsIni(lPath);
-    try
-      lValue := Trim(lIni.ReadString(SBuildSection, 'DelphiVersion', ''));
-      if lValue <> '' then
-        aDelphiVersion := lValue;
-    finally
-      lIni.Free;
-    end;
-  end;
+  Result := LoadDakSettings(nil, aDprojPath, nil, lSettings);
+  aDelphiVersion := lSettings.fDelphiVersion;
 end;
 
 function LoadDiagnosticsDefaults(aDiagnostics: TDiagnostics; const aDprojPath: string;
   out aDiagnosticsDefaults: TDiagnosticsDefaults): Boolean;
 var
-  lIni: TCustomIniFile;
-  lLines: Integer;
-  lMode: TSourceContextMode;
-  lPath: string;
-  lPaths: TArray<string>;
-  lValue: string;
+  lSettings: TDakSettings;
 begin
-  aDiagnosticsDefaults := Default(TDiagnosticsDefaults);
-  aDiagnosticsDefaults.fSourceContextMode := TSourceContextMode.scmAuto;
-  aDiagnosticsDefaults.fSourceContextLines := 2;
-  Result := True;
-  lPaths := BuildSettingsPaths(aDprojPath);
-  for lPath in lPaths do
-  begin
-    if not FileExists(lPath) then
-      Continue;
-    lIni := OpenSettingsIni(lPath);
-    try
-      lValue := Trim(lIni.ReadString(SDiagnosticsSection, 'SourceContext', ''));
-      if lValue <> '' then
-      begin
-        if TryParseSourceContextModeText(lValue, lMode) then
-          aDiagnosticsDefaults.fSourceContextMode := lMode
-        else if aDiagnostics <> nil then
-          aDiagnostics.AddWarning('Invalid dak.ini SourceContext value: ' + lValue);
-      end;
+  Result := LoadDakSettings(aDiagnostics, aDprojPath, nil, lSettings);
+  aDiagnosticsDefaults := lSettings.fDiagnosticsDefaults;
+end;
 
-      lValue := Trim(lIni.ReadString(SDiagnosticsSection, 'SourceContextLines', ''));
-      if lValue <> '' then
-      begin
-        lLines := StrToIntDef(lValue, -1);
-        if lLines >= 0 then
-          aDiagnosticsDefaults.fSourceContextLines := lLines
-        else if aDiagnostics <> nil then
-          aDiagnostics.AddWarning('Invalid dak.ini SourceContextLines value: ' + lValue);
-      end;
-    finally
-      lIni.Free;
-    end;
-  end;
+procedure LoadBuildSettings(const aDprojPath: string; const aOverrides: TAppOptions;
+  const aEnvVars: TDictionary<string, string>; out aSettings: TDakBuildSettings);
+var
+  lSettings: TDakSettings;
+begin
+  LoadDakSettings(nil, aDprojPath, aEnvVars, lSettings);
+  aSettings := lSettings.fBuild;
+  ApplyBuildSettingsOverrides(aOverrides, aSettings);
 end;
 
 procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
@@ -473,6 +540,16 @@ begin
     aPascalAnalyzer.fArgs := aOverrides.fPaArgs;
   if aOverrides.fHasPaTimeoutSec then
     aPascalAnalyzer.fTimeoutSec := aOverrides.fPaTimeoutSec;
+end;
+
+procedure ApplyBuildSettingsOverrides(const aOverrides: TAppOptions; var aSettings: TDakBuildSettings);
+begin
+  if aOverrides.fHasBuildIgnoreWarnings then
+    aSettings.fIgnoreWarnings := MergeList(aSettings.fIgnoreWarnings, aOverrides.fBuildIgnoreWarnings);
+  if aOverrides.fHasBuildIgnoreHints then
+    aSettings.fIgnoreHints := MergeList(aSettings.fIgnoreHints, aOverrides.fBuildIgnoreHints);
+  if aOverrides.fHasExcludePathMasks then
+    aSettings.fExcludePathMasks := MergeList(aSettings.fExcludePathMasks, aOverrides.fExcludePathMasks);
 end;
 
 procedure ApplyDiagnosticsOverrides(const aOverrides: TAppOptions; var aDiagnosticsDefaults: TDiagnosticsDefaults);
