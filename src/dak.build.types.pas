@@ -1,8 +1,19 @@
-unit Dak.Build.Types;
+﻿unit Dak.Build.Types;
 
 interface
 
 type
+  TBuildDiagnostic = record
+    fSeverity: string;
+    fRawLine: string;
+    fNormalizedLine: string;
+    fFileToken: string;
+    fLine: Integer;
+    fColumn: Integer;
+    fCode: string;
+    fMessage: string;
+  end;
+
   TBuildSummaryOptions = record
     fProjectRoot: string;
     fIgnoreWarnings: string;
@@ -21,10 +32,13 @@ type
     fHintCount: Integer;
     fErrors: TArray<string>;
     fErrorsRaw: TArray<string>;
+    fErrorDiagnostics: TArray<TBuildDiagnostic>;
     fWarnings: TArray<string>;
     fWarningsRaw: TArray<string>;
+    fWarningDiagnostics: TArray<TBuildDiagnostic>;
     fHints: TArray<string>;
     fHintsRaw: TArray<string>;
+    fHintDiagnostics: TArray<TBuildDiagnostic>;
     fOutputPath: string;
     fOutputStale: Boolean;
     fOutputMessage: string;

@@ -1,4 +1,4 @@
-unit Dak.Build.Runner;
+﻿unit Dak.Build.Runner;
 
 interface
 
@@ -165,30 +165,28 @@ begin
   Result := String.Join(sLineBreak, lParts);
 end;
 
-function AppendSourceContextToFinding(const aDisplayFinding, aLookupFinding: string;
+function AppendSourceContextToFinding(const aDisplayFinding: string; const aDiagnostic: TBuildDiagnostic;
   const aCache: TSourceContextRunCache; aContextLines: Integer): string;
 var
   lContext: TSourceContextSnippet;
   lError: string;
-  lFileToken: string;
-  lLineNumber: Integer;
 begin
   Result := aDisplayFinding;
-  if not TryParseFindingLocation(aLookupFinding, lFileToken, lLineNumber) then
+  if (aDiagnostic.fFileToken = '') or (aDiagnostic.fLine <= 0) then
     Exit(Result);
-  if not aCache.TryResolve(lFileToken, lLineNumber, aContextLines, lContext, lError) then
+  if not aCache.TryResolve(aDiagnostic.fFileToken, aDiagnostic.fLine, aContextLines, lContext, lError) then
     Exit(Result);
   Result := Result + sLineBreak + PrefixSourceContext(FormatSourceContextLines(lContext));
 end;
 
-procedure EnrichBuildFindingsWithSourceContext(var aItems: TArray<string>; const aLookupItems: TArray<string>;
+procedure EnrichBuildFindingsWithSourceContext(var aItems: TArray<string>; const aDiagnostics: TArray<TBuildDiagnostic>;
   const aCache: TSourceContextRunCache; aContextLines: Integer);
 var
   i: Integer;
 begin
   for i := 0 to High(aItems) do
-    if i <= High(aLookupItems) then
-      aItems[i] := AppendSourceContextToFinding(aItems[i], aLookupItems[i], aCache, aContextLines);
+    if i <= High(aDiagnostics) then
+      aItems[i] := AppendSourceContextToFinding(aItems[i], aDiagnostics[i], aCache, aContextLines);
 end;
 
 function LspHintCacheKey(const aOperation, aFilePath: string; aLineNumber, aColNumber: Integer;
@@ -211,7 +209,7 @@ begin
   end;
 end;
 
-function SelectEnrichmentOperation(const aFinding, aToken, aEnclosingSymbol: string; out aOperation: TLspOperation): Boolean;
+function SelectEnrichmentOperation(const aMessage, aToken, aEnclosingSymbol: string; out aOperation: TLspOperation): Boolean;
 begin
   Result := False;
   aOperation := TLspOperation.loNone;
@@ -225,21 +223,21 @@ begin
     Exit(False);
   end;
 
-  if ContainsText(aFinding, 'Undeclared identifier') or
-    ContainsText(aFinding, 'Identifier not found') or
-    ContainsText(aFinding, 'Undeclared field') or
-    ContainsText(aFinding, 'Undeclared method') or
-    ContainsText(aFinding, 'Undeclared member') then
+  if ContainsText(aMessage, 'Undeclared identifier') or
+    ContainsText(aMessage, 'Identifier not found') or
+    ContainsText(aMessage, 'Undeclared field') or
+    ContainsText(aMessage, 'Undeclared method') or
+    ContainsText(aMessage, 'Undeclared member') then
   begin
     aOperation := TLspOperation.loDefinition;
     Exit(True);
   end;
 
-  if ContainsText(aFinding, 'Incompatible types') or
-    ContainsText(aFinding, 'Type mismatch') or
-    ContainsText(aFinding, 'Cannot convert') or
-    ContainsText(aFinding, 'Not enough actual parameters') or
-    ContainsText(aFinding, 'No overloaded method') then
+  if ContainsText(aMessage, 'Incompatible types') or
+    ContainsText(aMessage, 'Type mismatch') or
+    ContainsText(aMessage, 'Cannot convert') or
+    ContainsText(aMessage, 'Not enough actual parameters') or
+    ContainsText(aMessage, 'No overloaded method') then
   begin
     aOperation := TLspOperation.loHover;
     Exit(True);
@@ -349,17 +347,15 @@ begin
   end;
 end;
 
-function TryBuildLspEnrichmentText(const aOptions: TAppOptions; const aContext: TLspContext;
-  const aFinding: string; aContextLines: Integer;
+function TryBuildLspEnrichmentText(const aOptions: TAppOptions; const aDiagnostic: TBuildDiagnostic; const aContext: TLspContext;
+  aContextLines: Integer;
   const aSourceCache: TSourceContextRunCache; const aCache: TDictionary<string, string>;
   out aHintText: string; out aError: string): Boolean;
 var
   lCandidate: string;
   lColNumber: Integer;
   lEnclosingSymbol: string;
-  lFileToken: string;
   lHintResult: TLspRunnerResult;
-  lLineNumber: Integer;
   lLspOptions: TAppOptions;
   lOperation: TLspOperation;
   lResolvedContext: TSourceContextSnippet;
@@ -369,22 +365,25 @@ begin
   aHintText := '';
   aError := '';
   lResolvedContext := Default(TSourceContextSnippet);
-  if not aSourceCache.TryResolveCandidate(aFinding, aContextLines, lResolvedContext, lCandidate,
+  if (aDiagnostic.fFileToken = '') or (aDiagnostic.fLine <= 0) then
+  begin
+    aError := 'Could not parse compiler failure location: ' + aDiagnostic.fNormalizedLine;
+    Exit(False);
+  end;
+  if not aSourceCache.TryResolveCandidate(aDiagnostic.fFileToken, aDiagnostic.fLine, aDiagnostic.fColumn,
+    aContextLines, aDiagnostic.fMessage, lResolvedContext, lCandidate,
     lEnclosingSymbol, aError) then
     Exit(False);
 
-  if not TryParseFindingLocationWithColumn(aFinding, lFileToken, lLineNumber, lColNumber) then
-  begin
-    aError := 'Could not parse compiler failure location: ' + aFinding;
-    Exit(False);
-  end;
-  if not SelectEnrichmentOperation(aFinding, lCandidate, lEnclosingSymbol, lOperation) then
+  if not SelectEnrichmentOperation(aDiagnostic.fMessage, lCandidate, lEnclosingSymbol, lOperation) then
   begin
     aError := '';
     Exit(False);
   end;
 
-  lCacheKey := LspHintCacheKey(EnrichmentOperationName(lOperation), lFileToken, lLineNumber, lColNumber, lCandidate);
+  lColNumber := aDiagnostic.fColumn;
+  lCacheKey := LspHintCacheKey(EnrichmentOperationName(lOperation), aDiagnostic.fFileToken,
+    aDiagnostic.fLine, lColNumber, lCandidate);
   if aCache.ContainsKey(lCacheKey) then
   begin
     aHintText := aCache[lCacheKey];
@@ -394,7 +393,7 @@ begin
   lLspOptions := aOptions;
   lLspOptions.fLspOperation := lOperation;
   lLspOptions.fLspFilePath := lResolvedContext.fFilePath;
-  lLspOptions.fLspLine := lLineNumber;
+  lLspOptions.fLspLine := aDiagnostic.fLine;
   if lColNumber > 0 then
     lLspOptions.fLspCol := lColNumber
   else
@@ -1822,13 +1821,13 @@ begin
         lBuildSourceContextCache := TSourceContextRunCache.Create(lProjectLookup);
         try
           if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) then
-            EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lSummary.fErrorsRaw,
+            EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lSummary.fErrorDiagnostics,
               lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
           if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
           begin
-            EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lSummary.fWarningsRaw,
+            EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lSummary.fWarningDiagnostics,
               lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
-            EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintsRaw,
+            EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintDiagnostics,
               lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
           end;
         finally
@@ -1839,13 +1838,13 @@ begin
         lBuildSourceContextCache := TSourceContextRunCache.Create(lProjectLookup);
         try
           if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, True) then
-            EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lSummary.fErrorsRaw,
+            EnrichBuildFindingsWithSourceContext(lSummary.fErrors, lSummary.fErrorDiagnostics,
               lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
           if ShouldEmitSourceContext(lDiagnosticsDefaults.fSourceContextMode, False) then
           begin
-            EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lSummary.fWarningsRaw,
+            EnrichBuildFindingsWithSourceContext(lSummary.fWarnings, lSummary.fWarningDiagnostics,
               lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
-            EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintsRaw,
+            EnrichBuildFindingsWithSourceContext(lSummary.fHints, lSummary.fHintDiagnostics,
               lBuildSourceContextCache, lDiagnosticsDefaults.fSourceContextLines);
           end;
         finally
@@ -1885,11 +1884,11 @@ begin
             begin
               for var i := 0 to High(lSummary.fErrors) do
               begin
-                if i > High(lSummary.fErrorsRaw) then
+                if i > High(lSummary.fErrorDiagnostics) then
                   Break;
                 lLspHintText := '';
-                if TryBuildLspEnrichmentText(lNormalizedOptions, lLspContext,
-                  lSummary.fErrorsRaw[i], lDiagnosticsDefaults.fSourceContextLines,
+                if TryBuildLspEnrichmentText(lNormalizedOptions, lSummary.fErrorDiagnostics[i], lLspContext,
+                  lDiagnosticsDefaults.fSourceContextLines,
                   lLspSourceCache, lLspHintCache, lLspHintText, lLspHintError) then
                   lSummary.fErrors[i] := lSummary.fErrors[i] + sLineBreak + lLspHintText
                 else if lNormalizedOptions.fVerbose and (lLspHintError <> '') and (not lLspNotePrinted) then

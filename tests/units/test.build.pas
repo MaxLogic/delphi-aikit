@@ -1,4 +1,4 @@
-unit Test.Build;
+﻿unit Test.Build;
 
 interface
 
@@ -74,6 +74,8 @@ type
     procedure BuildWarnsWhenWin64NamespacesOmitWinapi;
     [Test]
     procedure BuildSummaryIncludesResolvedSourceContextForErrors;
+    [Test]
+    procedure ParseBuildLogsExposesStructuredDiagnostics;
     [Test]
     procedure BuildEnrichmentPolicyPrefersHoverForTypeErrors;
     [Test]
@@ -1466,6 +1468,86 @@ begin
     'Expected build output to include resolved source context. Output: ' + lCapturedOutput);
   Assert.IsTrue(Pos('MissingIdentifier := 1;', lCapturedOutput) > 0,
     'Expected build output to include the failing source line. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.ParseBuildLogsExposesStructuredDiagnostics;
+var
+  lErrLog: string;
+  lOptions: TBuildSummaryOptions;
+  lOutLog: string;
+  lSummary: TBuildSummary;
+begin
+  EnsureTempClean;
+  lOutLog := TPath.Combine(TempRoot, 'build-parse-structured.out.log');
+  lErrLog := TPath.Combine(TempRoot, 'build-parse-structured.err.log');
+
+  WriteUtf8File(lOutLog, '');
+
+  lOptions := Default(TBuildSummaryOptions);
+  lOptions.fProjectRoot := 'F:\repo';
+  lOptions.fIncludeWarnings := True;
+  lOptions.fIncludeHints := True;
+
+  WriteUtf8File(lErrLog,
+    'F:\repo\src\BrokenUnit.pas(11,3): error E2003: Undeclared identifier: ''MissingIdentifier''' + sLineBreak +
+    'F:\repo\src\BrokenUnit.pas(44,2): Fatal error F2063: Could not compile used unit ''MissingUnit''' + sLineBreak +
+    'F:\repo\src\BrokenUnit.pas(45): fatal F1026: File not found: ''MissingInclude.inc''' + sLineBreak +
+    'F:\repo\src\BrokenUnit.pas(46): Fatal: F1027 Unit not found: ''MissingUnit''' + sLineBreak +
+    'F:\repo\src\BrokenUnit.pas(55,7): Hint warning H2077: Value assigned to ''UnusedValue'' never used' + sLineBreak +
+    '[Error] Link step failed' + sLineBreak);
+  lSummary := ParseBuildLogs(lOutLog, lErrLog, lOptions);
+
+  Assert.AreEqual(5, Integer(Length(lSummary.fErrorDiagnostics)), 'Expected five structured error diagnostics.');
+  Assert.AreEqual(1, Integer(Length(lSummary.fHintDiagnostics)), 'Expected one structured hint diagnostic.');
+  Assert.AreEqual('error', lSummary.fErrorDiagnostics[0].fSeverity, 'Expected error severity.');
+  Assert.AreEqual('F:\repo\src\BrokenUnit.pas(11,3): error E2003: Undeclared identifier: ''MissingIdentifier''',
+    lSummary.fErrorDiagnostics[0].fRawLine, 'Expected raw line to be preserved.');
+  Assert.AreEqual('src\BrokenUnit.pas(11,3): error E2003: Undeclared identifier: ''MissingIdentifier''',
+    lSummary.fErrorDiagnostics[0].fNormalizedLine, 'Expected normalized line to use the project-relative path.');
+  Assert.AreEqual('src\BrokenUnit.pas', lSummary.fErrorDiagnostics[0].fFileToken, 'Expected file token.');
+  Assert.AreEqual(11, lSummary.fErrorDiagnostics[0].fLine, 'Expected line number.');
+  Assert.AreEqual(3, lSummary.fErrorDiagnostics[0].fColumn, 'Expected column number.');
+  Assert.AreEqual('E2003', lSummary.fErrorDiagnostics[0].fCode, 'Expected diagnostic code.');
+  Assert.AreEqual('Undeclared identifier: ''MissingIdentifier''', lSummary.fErrorDiagnostics[0].fMessage,
+    'Expected diagnostic message.');
+  Assert.AreEqual('error', lSummary.fErrorDiagnostics[1].fSeverity, 'Expected fallback error severity.');
+  Assert.AreEqual('F:\repo\src\BrokenUnit.pas(44,2): Fatal error F2063: Could not compile used unit ''MissingUnit''',
+    lSummary.fErrorDiagnostics[1].fRawLine, 'Expected fatal raw line to be preserved.');
+  Assert.AreEqual('src\BrokenUnit.pas(44,2): Fatal error F2063: Could not compile used unit ''MissingUnit''',
+    lSummary.fErrorDiagnostics[1].fNormalizedLine, 'Expected fatal normalized line to be preserved.');
+  Assert.AreEqual('src\BrokenUnit.pas', lSummary.fErrorDiagnostics[1].fFileToken, 'Expected fatal file token.');
+  Assert.AreEqual(44, lSummary.fErrorDiagnostics[1].fLine, 'Expected fatal line number.');
+  Assert.AreEqual(2, lSummary.fErrorDiagnostics[1].fColumn, 'Expected fatal column number.');
+  Assert.AreEqual('F2063', lSummary.fErrorDiagnostics[1].fCode, 'Expected fatal diagnostic code.');
+  Assert.AreEqual('Could not compile used unit ''MissingUnit''', lSummary.fErrorDiagnostics[1].fMessage,
+    'Expected fatal diagnostic message.');
+  Assert.AreEqual('F1026', lSummary.fErrorDiagnostics[2].fCode, 'Expected short fatal diagnostic code.');
+  Assert.AreEqual('File not found: ''MissingInclude.inc''', lSummary.fErrorDiagnostics[2].fMessage,
+    'Expected short fatal diagnostic message.');
+  Assert.AreEqual('F1027', lSummary.fErrorDiagnostics[3].fCode, 'Expected colon fatal diagnostic code.');
+  Assert.AreEqual('Unit not found: ''MissingUnit''', lSummary.fErrorDiagnostics[3].fMessage,
+    'Expected colon fatal diagnostic message.');
+  Assert.AreEqual('hint', lSummary.fHintDiagnostics[0].fSeverity, 'Expected hint severity.');
+  Assert.AreEqual('F:\repo\src\BrokenUnit.pas(55,7): Hint warning H2077: Value assigned to ''UnusedValue'' never used',
+    lSummary.fHintDiagnostics[0].fRawLine, 'Expected hint raw line to be preserved.');
+  Assert.AreEqual('src\BrokenUnit.pas(55,7): Hint warning H2077: Value assigned to ''UnusedValue'' never used',
+    lSummary.fHintDiagnostics[0].fNormalizedLine, 'Expected hint normalized line to be preserved.');
+  Assert.AreEqual('src\BrokenUnit.pas', lSummary.fHintDiagnostics[0].fFileToken, 'Expected hint file token.');
+  Assert.AreEqual(55, lSummary.fHintDiagnostics[0].fLine, 'Expected hint line number.');
+  Assert.AreEqual(7, lSummary.fHintDiagnostics[0].fColumn, 'Expected hint column number.');
+  Assert.AreEqual('H2077', lSummary.fHintDiagnostics[0].fCode, 'Expected hint diagnostic code.');
+  Assert.AreEqual('Value assigned to ''UnusedValue'' never used', lSummary.fHintDiagnostics[0].fMessage,
+    'Expected hint diagnostic message.');
+  Assert.AreEqual('error', lSummary.fErrorDiagnostics[4].fSeverity, 'Expected fallback error severity.');
+  Assert.AreEqual('[Error] Link step failed', lSummary.fErrorDiagnostics[4].fNormalizedLine,
+    'Expected fallback normalized line to be preserved.');
+  Assert.AreEqual('Link step failed', lSummary.fErrorDiagnostics[4].fMessage,
+    'Expected fallback error message to be preserved.');
+
+  lOptions.fIgnoreHints := 'H2077';
+  lSummary := ParseBuildLogs(lOutLog, lErrLog, lOptions);
+  Assert.AreEqual(0, Integer(Length(lSummary.fHintDiagnostics)),
+    'Expected ignored hint-warning diagnostics to stay filtered.');
 end;
 
 procedure TBuildTests.BuildEnrichmentPolicyPrefersHoverForTypeErrors;
