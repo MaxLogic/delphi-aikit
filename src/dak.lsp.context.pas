@@ -24,6 +24,10 @@ type
   end;
 
 function TryBuildStrictLspContext(const aOptions: TAppOptions; out aContext: TLspContext; out aError: string): Boolean;
+function TryDeleteLspContextFile(const aContext: TLspContext; out aError: string): Boolean;
+function TryWriteLspContextFile(const aContext: TLspContext; out aError: string): Boolean;
+function TryWriteCanonicalLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
+  out aError: string): Boolean;
 function TryWriteOfficialLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
   out aError: string): Boolean;
 
@@ -121,16 +125,17 @@ begin
   end;
 end;
 
-function TryWriteOfficialLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
+function TryWriteLspSettingsFile(const aContext: TLspContext; const aFileName: string; out aSettingsFilePath: string;
   out aError: string): Boolean;
 var
   lSettings: TDelphiSemanticLspSettings;
 begin
   Result := False;
   aError := '';
-  aSettingsFilePath := TPath.Combine(aContext.fDakLspRoot, 'probe.delphilsp.json');
+  aSettingsFilePath := TPath.Combine(aContext.fDakLspRoot, aFileName);
   try
-    ForceDirectories(aContext.fDakLspRoot);
+    if not ForceDirectories(aContext.fDakLspRoot) then
+      raise Exception.Create('Failed to create directory: ' + aContext.fDakLspRoot);
     lSettings := TDelphiSemanticLspBoundary.BuildSettings(aContext.fMainSourcePath,
       aContext.fParams.fDefines, aContext.fParams.fUnitSearchPath, aContext.fParams.fLibraryPath,
       aContext.fParams.fUnitScopes, aContext.fParams.fUnitAliases);
@@ -147,15 +152,45 @@ begin
   end;
 end;
 
-function TryWriteContextArtifacts(var aContext: TLspContext; out aError: string): Boolean;
+function TryWriteCanonicalLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
+  out aError: string): Boolean;
+begin
+  Result := TryWriteLspSettingsFile(aContext, 'settings.delphilsp.json', aSettingsFilePath, aError);
+end;
+
+function TryWriteOfficialLspSettingsFile(const aContext: TLspContext; out aSettingsFilePath: string;
+  out aError: string): Boolean;
+begin
+  Result := TryWriteLspSettingsFile(aContext, 'probe.delphilsp.json', aSettingsFilePath, aError);
+end;
+
+function TryPrepareLspWorkspace(var aContext: TLspContext; out aError: string): Boolean;
 begin
   Result := False;
   aError := '';
   try
-    ForceDirectories(aContext.fDakLspRoot);
+    if not ForceDirectories(aContext.fDakLspRoot) then
+      raise Exception.Create('Failed to create directory: ' + aContext.fDakLspRoot);
     aContext.fLogsDir := TPath.Combine(aContext.fDakLspRoot, 'logs');
-    ForceDirectories(aContext.fLogsDir);
+    if not ForceDirectories(aContext.fLogsDir) then
+      raise Exception.Create('Failed to create directory: ' + aContext.fLogsDir);
     aContext.fContextFilePath := TPath.Combine(aContext.fDakLspRoot, 'context.delphilsp.json');
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      aError := Format(SLspContextArtifactsWriteFailed, [E.Message]);
+    end;
+  end;
+end;
+
+function TryWriteLspContextFile(const aContext: TLspContext; out aError: string): Boolean;
+begin
+  Result := False;
+  aError := '';
+  try
+    if not ForceDirectories(aContext.fDakLspRoot) then
+      raise Exception.Create('Failed to create directory: ' + aContext.fDakLspRoot);
     TFile.WriteAllText(aContext.fContextFilePath, BuildContextJson(aContext), TEncoding.UTF8);
     Result := True;
   except
@@ -163,6 +198,25 @@ begin
     begin
       if (aContext.fContextFilePath <> '') and FileExists(aContext.fContextFilePath) then
         System.SysUtils.DeleteFile(aContext.fContextFilePath);
+      aError := Format(SLspContextArtifactsWriteFailed, [E.Message]);
+    end;
+  end;
+end;
+
+function TryDeleteLspContextFile(const aContext: TLspContext; out aError: string): Boolean;
+begin
+  Result := False;
+  aError := '';
+  try
+    if (aContext.fContextFilePath <> '') and FileExists(aContext.fContextFilePath) then
+    begin
+      if not System.SysUtils.DeleteFile(aContext.fContextFilePath) then
+        raise Exception.Create('Failed to delete file: ' + aContext.fContextFilePath);
+    end;
+    Result := True;
+  except
+    on E: Exception do
+    begin
       aError := Format(SLspContextArtifactsWriteFailed, [E.Message]);
     end;
   end;
@@ -248,7 +302,7 @@ begin
     aContext.fMainSourcePath := aContext.fSourceLookup.fMainSourcePath
   else
     aContext.fMainSourcePath := aContext.fParams.fProjectDpr;
-  if not TryWriteContextArtifacts(aContext, aError) then
+  if not TryPrepareLspWorkspace(aContext, aError) then
     Exit(False);
   Result := True;
 end;
