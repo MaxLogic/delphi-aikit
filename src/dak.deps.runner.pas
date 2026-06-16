@@ -1,4 +1,4 @@
-unit Dak.Deps.Runner;
+﻿unit Dak.Deps.Runner;
 
 interface
 
@@ -18,6 +18,7 @@ uses
   System.StrUtils,
   System.SysUtils,
   DelphiSemantics.Graph, DelphiSemantics.ProjectContext,
+  Dak.CommandOutput,
   Dak.ExitCodes,
   Dak.Project.Semantics,
   Dak.Semantics.Session;
@@ -1263,18 +1264,11 @@ end;
 
 procedure TDepsCommandRunner.WriteOutput(const aOutputText, aOutputPath: string);
 var
-  lOutputDir: string;
+  lError: string;
 begin
-  WriteLn(aOutputText);
-  if (aOutputPath <> '') and (aOutputPath <> '-') then
-  begin
-    lOutputDir := TPath.GetDirectoryName(aOutputPath);
-    if lOutputDir <> '' then
-    begin
-      TDirectory.CreateDirectory(lOutputDir);
-    end;
-    TFile.WriteAllText(aOutputPath, aOutputText, TEncoding.UTF8);
-  end;
+  if not WriteCommandOutput(aOutputText, aOutputPath, TCommandOutputPolicy.copAlwaysStdoutAndOptionalFile,
+    True, False, True, lError) then
+    raise Exception.Create(lError);
 end;
 
 function RunDepsCommand(const aOptions: TAppOptions): Integer;

@@ -1,4 +1,4 @@
-unit Test.Cli;
+﻿unit Test.Cli;
 
 interface
 
@@ -90,6 +90,8 @@ type
     procedure DakIniLoadingIsCentralized;
     [Test]
     procedure LoadDakSettingsMergesTypedSections;
+    [Test]
+    procedure CommandOutputWritingIsCentralized;
     [Test]
     procedure LoadDefaultDelphiVersionUsesProjectLocalDakIni;
     [Test]
@@ -936,6 +938,32 @@ begin
     lEnvVars.Free;
     DeleteTempPath(lBaseDir);
   end;
+end;
+
+procedure TCliTests.CommandOutputWritingIsCentralized;
+var
+  lCommandOutputSource: string;
+  lDepsSource: string;
+  lGlobalVarsSource: string;
+  lRemoveWithSource: string;
+  lResolveSource: string;
+begin
+  lCommandOutputSource := TPath.Combine(RepoRoot, 'src\Dak.CommandOutput.pas');
+  Assert.IsTrue(FileExists(lCommandOutputSource), 'Expected shared command output helper: ' + lCommandOutputSource);
+
+  lDepsSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.deps.runner.pas'), TEncoding.UTF8);
+  lGlobalVarsSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.globalvars.pas'), TEncoding.UTF8);
+  lRemoveWithSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.pas'), TEncoding.UTF8);
+  lResolveSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.output.pas'), TEncoding.UTF8);
+
+  Assert.IsFalse(ContainsText(lDepsSource, 'TFile.WriteAllText(aOutputPath'),
+    'deps must use Dak.CommandOutput for file writes.');
+  Assert.IsFalse(ContainsText(lGlobalVarsSource, 'TFile.WriteAllText(aOutputPath'),
+    'global-vars must use Dak.CommandOutput for file writes.');
+  Assert.IsFalse(ContainsText(lRemoveWithSource, 'TFile.WriteAllText(aOptions.fRemoveWithOutputPath'),
+    'remove-with must use Dak.CommandOutput for file writes.');
+  Assert.IsFalse(ContainsText(lResolveSource, 'TFile.WriteAllText(aOutPath'),
+    'resolve output must use Dak.CommandOutput for file writes.');
 end;
 
 procedure TCliTests.LoadDefaultDelphiVersionUsesProjectLocalDakIni;
