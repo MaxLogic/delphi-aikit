@@ -9,9 +9,8 @@ uses
   System.SysUtils,
   System.Variants,
   DUnitX.TestFramework,
-  maxLogic.CmdLineParams,
   Dak.Cli, Dak.SymbolMap.Api, Dak.SymbolMap.Cache, Dak.SymbolMap.Context, Dak.SymbolMap.Indexer,
-  Dak.SymbolMap.Query, Dak.Types, Test.Support;
+  Dak.SymbolMap.Query, Dak.Types, DelphiSemantics.Model, maxLogic.CmdLineParams, Test.Support;
 
 type
   [TestFixture]
@@ -33,6 +32,8 @@ type
     procedure SemanticModelPersistenceBelongsToDelphiSemantics;
     [Test]
     procedure SymbolMapQueryAssembliesAvoidHotRowGrowth;
+    [Test]
+    procedure SymbolMapSemanticMergeAvoidsHotRowGrowthAndLinearScans;
     [Test]
     procedure SymbolMapCommandDelegatesOperationDispatch;
   end;
@@ -3594,6 +3595,68 @@ begin
   AssertContainsInOrder(lReferenceLoop, 'lReader.Bind(lQuery)',
     'aReferences[lIndex] := lReader.ReadReference',
     'Broad reference search should bind fields before row assembly.');
+end;
+
+procedure TSymbolMapContextTests.SymbolMapSemanticMergeAvoidsHotRowGrowthAndLinearScans;
+var
+  lIndexerSource: string;
+  lMergeBody: string;
+  lMergeEnd: Integer;
+  lModel: TSymbolMapUnitModel;
+  lSemanticModel: TDelphiSemanticUnitModel;
+  lMergeStart: Integer;
+begin
+  lIndexerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Indexer.pas'),
+    TEncoding.UTF8);
+  lMergeStart := Pos('function SymbolMapUseKey', lIndexerSource);
+  lMergeEnd := PosEx('function SymbolMapUnitModelFromDelphiSemanticModel', lIndexerSource,
+    lMergeStart);
+  Assert.IsTrue((lMergeStart > 0) and (lMergeEnd > lMergeStart),
+    'Expected full semantic projection merge helper block.');
+  lMergeBody := Copy(lIndexerSource, lMergeStart, lMergeEnd - lMergeStart);
+
+  Assert.IsFalse(ContainsText(lMergeBody, 'ContainsUse('),
+    'Semantic projection merge should use indexed use keys instead of linear ContainsUse scans.');
+  Assert.IsFalse(ContainsText(lMergeBody, 'ContainsSymbol('),
+    'Semantic projection merge should use indexed symbol keys instead of linear ContainsSymbol scans.');
+  Assert.IsFalse(ContainsText(lMergeBody, 'ContainsMember('),
+    'Semantic projection merge should use indexed member keys instead of linear ContainsMember scans.');
+  Assert.IsFalse(ContainsText(lMergeBody, 'AddUse('),
+    'Semantic projection merge should pre-size and fill uses instead of per-row AddUse growth.');
+  Assert.IsFalse(ContainsText(lMergeBody, 'AddSymbol('),
+    'Semantic projection merge should pre-size and fill symbols instead of per-row AddSymbol growth.');
+  Assert.IsFalse(ContainsText(lMergeBody, 'AddMember('),
+    'Semantic projection merge should pre-size and fill members instead of per-row AddMember growth.');
+  Assert.IsFalse(ContainsText(lMergeBody, 'AddReference('),
+    'Semantic projection merge should pre-size and fill references instead of per-row AddReference growth.');
+  Assert.IsTrue(ContainsText(lMergeBody, 'TFastCaseAwareComparer.OrdinalIgnoreCase'),
+    'Semantic projection merge should use case-insensitive indexed keys.');
+
+  lSemanticModel.UnitName := 'CaseMerge';
+  lSemanticModel.InterfaceUses := TArray<string>.Create('SysUtils', 'sysutils');
+  SetLength(lSemanticModel.Declarations, 2);
+  lSemanticModel.Declarations[0].Name := 'TFoo';
+  lSemanticModel.Declarations[0].Kind := 'type';
+  lSemanticModel.Declarations[0].SectionKind := 'interface';
+  lSemanticModel.Declarations[1].Name := 'tfoo';
+  lSemanticModel.Declarations[1].Kind := 'type';
+  lSemanticModel.Declarations[1].SectionKind := 'interface';
+  SetLength(lSemanticModel.Members, 2);
+  lSemanticModel.Members[0].OwnerName := 'TFoo';
+  lSemanticModel.Members[0].Name := 'Bar';
+  lSemanticModel.Members[0].Kind := 'method';
+  lSemanticModel.Members[1].OwnerName := 'tfoo';
+  lSemanticModel.Members[1].Name := 'bar';
+  lSemanticModel.Members[1].Kind := 'method';
+
+  lModel := SymbolMapUnitModelFromDelphiSemanticModel(lSemanticModel);
+
+  Assert.AreEqual(1, Integer(Length(lModel.fUses)),
+    'Expected case-insensitive use keys to collapse duplicate semantic uses.');
+  Assert.AreEqual(1, Integer(Length(lModel.fSymbols)),
+    'Expected case-insensitive symbol keys to collapse duplicate semantic declarations.');
+  Assert.AreEqual(1, Integer(Length(lModel.fMembers)),
+    'Expected case-insensitive member keys to collapse duplicate semantic members.');
 end;
 
 procedure TSymbolMapContextTests.SymbolMapCommandDelegatesOperationDispatch;

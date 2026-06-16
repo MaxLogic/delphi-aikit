@@ -73,7 +73,8 @@ function TryExtractSymbolMapUnitModel(const aFilePath: string; out aModel: TSymb
 implementation
 
 uses
-  System.IOUtils, System.StrUtils, System.SysUtils;
+  System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  maxLogic.StrUtils;
 
 type
   TSymbolMapTokenKind = (smtIdentifier, smtDot, smtComma, smtSemicolon, smtColon, smtEqual, smtLParen, smtRParen,
@@ -435,50 +436,6 @@ begin
   aModel.fReferences[lIndex].fEndCol := aEndCol;
 end;
 
-function ContainsUse(const aModel: TSymbolMapUnitModel; const aUnitName, aSectionKind: string): Boolean;
-var
-  lUse: TSymbolMapUnitUse;
-begin
-  for lUse in aModel.fUses do
-  begin
-    if SameText(lUse.fUnitName, aUnitName) and SameText(lUse.fSectionKind, aSectionKind) then
-    begin
-      Exit(True);
-    end;
-  end;
-  Result := False;
-end;
-
-function ContainsSymbol(const aModel: TSymbolMapUnitModel; const aName, aKind, aSectionKind: string): Boolean;
-var
-  lSymbol: TSymbolMapSymbolModel;
-begin
-  for lSymbol in aModel.fSymbols do
-  begin
-    if SameText(lSymbol.fName, aName) and SameText(lSymbol.fKind, aKind) and
-      SameText(lSymbol.fSectionKind, aSectionKind) then
-    begin
-      Exit(True);
-    end;
-  end;
-  Result := False;
-end;
-
-function ContainsMember(const aModel: TSymbolMapUnitModel; const aOwnerName, aMemberName, aKind: string): Boolean;
-var
-  lMember: TSymbolMapMemberModel;
-begin
-  for lMember in aModel.fMembers do
-  begin
-    if SameText(lMember.fOwnerName, aOwnerName) and SameText(lMember.fMemberName, aMemberName) and
-      SameText(lMember.fKind, aKind) then
-    begin
-      Exit(True);
-    end;
-  end;
-  Result := False;
-end;
-
 function ContainsReference(const aModel: TSymbolMapUnitModel; const aReference: TSymbolMapReferenceModel): Boolean;
 var
   lReference: TSymbolMapReferenceModel;
@@ -559,69 +516,213 @@ begin
   end;
 end;
 
-procedure MergeDelphiSemanticModel(var aModel: TSymbolMapUnitModel; const aSemanticModel: TDelphiSemanticUnitModel);
+function SymbolMapUseKey(const aUnitName, aSectionKind: string): string;
+begin
+  Result := aUnitName + #9 + aSectionKind;
+end;
+
+function SymbolMapSymbolKey(const aName, aKind, aSectionKind: string): string;
+begin
+  Result := aName + #9 + aKind + #9 + aSectionKind;
+end;
+
+function SymbolMapMemberKey(const aOwnerName, aMemberName, aKind: string): string;
+begin
+  Result := aOwnerName + #9 + aMemberName + #9 + aKind;
+end;
+
+procedure SeedSemanticUseKeys(const aModel: TSymbolMapUnitModel; aKeys: THashSet<string>);
+var
+  lUse: TSymbolMapUnitUse;
+begin
+  for lUse in aModel.fUses do
+    aKeys.Add(SymbolMapUseKey(lUse.fUnitName, lUse.fSectionKind));
+end;
+
+procedure SeedSemanticSymbolKeys(const aModel: TSymbolMapUnitModel; aKeys: THashSet<string>);
+var
+  lSymbol: TSymbolMapSymbolModel;
+begin
+  for lSymbol in aModel.fSymbols do
+    aKeys.Add(SymbolMapSymbolKey(lSymbol.fName, lSymbol.fKind, lSymbol.fSectionKind));
+end;
+
+procedure SeedSemanticMemberKeys(const aModel: TSymbolMapUnitModel; aKeys: THashSet<string>);
+var
+  lMember: TSymbolMapMemberModel;
+begin
+  for lMember in aModel.fMembers do
+    aKeys.Add(SymbolMapMemberKey(lMember.fOwnerName, lMember.fMemberName, lMember.fKind));
+end;
+
+procedure AppendSemanticUse(var aModel: TSymbolMapUnitModel; aKeys: THashSet<string>; const aUnitName,
+  aSectionKind: string; var aUseCount: Integer);
+begin
+  if (aUnitName = '') or (aSectionKind = '') or
+    not aKeys.Add(SymbolMapUseKey(aUnitName, aSectionKind)) then
+    Exit;
+
+  aModel.fUses[aUseCount].fUnitName := aUnitName;
+  aModel.fUses[aUseCount].fSectionKind := aSectionKind;
+  aModel.fUses[aUseCount].fLine := 0;
+  aModel.fUses[aUseCount].fCol := 0;
+  Inc(aUseCount);
+end;
+
+procedure MergeSemanticUses(var aModel: TSymbolMapUnitModel; const aSemanticModel: TDelphiSemanticUnitModel);
+var
+  lUseCount: Integer;
+  lUseKeys: THashSet<string>;
+  lUseName: string;
+begin
+  lUseKeys := THashSet<string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    SeedSemanticUseKeys(aModel, lUseKeys);
+    lUseCount := Length(aModel.fUses);
+    SetLength(aModel.fUses, lUseCount + Length(aSemanticModel.InterfaceUses) +
+      Length(aSemanticModel.ImplementationUses));
+    for lUseName in aSemanticModel.InterfaceUses do
+      AppendSemanticUse(aModel, lUseKeys, lUseName, 'interface', lUseCount);
+    for lUseName in aSemanticModel.ImplementationUses do
+      AppendSemanticUse(aModel, lUseKeys, lUseName, 'implementation', lUseCount);
+    SetLength(aModel.fUses, lUseCount);
+  finally
+    lUseKeys.Free;
+  end;
+end;
+
+procedure AppendSemanticSymbol(var aModel: TSymbolMapUnitModel; aKeys: THashSet<string>; const aName,
+  aKind, aOwnerName, aTypeName, aSignature, aSectionKind: string; const aLine, aCol, aEndLine,
+  aEndCol: Integer; var aSymbolCount: Integer);
+begin
+  if (aName = '') or (aKind = '') or
+    not aKeys.Add(SymbolMapSymbolKey(aName, aKind, aSectionKind)) then
+    Exit;
+
+  aModel.fSymbols[aSymbolCount].fName := aName;
+  aModel.fSymbols[aSymbolCount].fKind := aKind;
+  aModel.fSymbols[aSymbolCount].fUnitName := aModel.fUnitName;
+  aModel.fSymbols[aSymbolCount].fFilePath := aModel.fFilePath;
+  aModel.fSymbols[aSymbolCount].fOwnerName := aOwnerName;
+  aModel.fSymbols[aSymbolCount].fTypeName := aTypeName;
+  aModel.fSymbols[aSymbolCount].fSignature := aSignature;
+  aModel.fSymbols[aSymbolCount].fSectionKind := aSectionKind;
+  aModel.fSymbols[aSymbolCount].fLine := aLine;
+  aModel.fSymbols[aSymbolCount].fCol := aCol;
+  aModel.fSymbols[aSymbolCount].fEndLine := aEndLine;
+  aModel.fSymbols[aSymbolCount].fEndCol := aEndCol;
+  Inc(aSymbolCount);
+end;
+
+procedure MergeSemanticSymbols(var aModel: TSymbolMapUnitModel; const aSemanticModel: TDelphiSemanticUnitModel);
 var
   lDeclaration: TDelphiSemanticDeclaration;
-  lDiagnostic: TDelphiSemanticModelDiagnostic;
-  lMember: TDelphiSemanticMember;
-  lReference: TDelphiSemanticReference;
   lRoutine: TDelphiSemanticRoutine;
-  lUseName: string;
+  lSymbolCount: Integer;
+  lSymbolKeys: THashSet<string>;
+begin
+  lSymbolKeys := THashSet<string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    SeedSemanticSymbolKeys(aModel, lSymbolKeys);
+    lSymbolCount := Length(aModel.fSymbols);
+    SetLength(aModel.fSymbols, lSymbolCount + Length(aSemanticModel.Declarations) +
+      Length(aSemanticModel.Routines));
+    for lDeclaration in aSemanticModel.Declarations do
+      AppendSemanticSymbol(aModel, lSymbolKeys, lDeclaration.Name, lDeclaration.Kind,
+        SemanticDeclarationOwnerName(lDeclaration), SemanticDeclarationTypeName(lDeclaration), '',
+        lDeclaration.SectionKind, lDeclaration.Line, lDeclaration.Column, lDeclaration.Line,
+        lDeclaration.Column, lSymbolCount);
+    for lRoutine in aSemanticModel.Routines do
+      AppendSemanticSymbol(aModel, lSymbolKeys, lRoutine.Name, 'routine', lRoutine.OwnerName,
+        lRoutine.ReturnType, lRoutine.Signature, lRoutine.SectionKind, lRoutine.Line, lRoutine.Column,
+        lRoutine.Line, lRoutine.Column, lSymbolCount);
+    SetLength(aModel.fSymbols, lSymbolCount);
+  finally
+    lSymbolKeys.Free;
+  end;
+end;
+
+procedure AppendSemanticMember(var aModel: TSymbolMapUnitModel; aKeys: THashSet<string>; const aOwnerName,
+  aMemberName, aKind, aTypeName, aVisibility, aSignature: string; const aIsDefault, aIsIndexed: Boolean;
+  const aLine, aCol, aEndLine, aEndCol: Integer; var aMemberCount: Integer);
+begin
+  if (aOwnerName = '') or (aMemberName = '') or (aKind = '') or
+    not aKeys.Add(SymbolMapMemberKey(aOwnerName, aMemberName, aKind)) then
+    Exit;
+
+  aModel.fMembers[aMemberCount].fOwnerName := aOwnerName;
+  aModel.fMembers[aMemberCount].fMemberName := aMemberName;
+  aModel.fMembers[aMemberCount].fKind := aKind;
+  aModel.fMembers[aMemberCount].fTypeName := aTypeName;
+  aModel.fMembers[aMemberCount].fVisibility := aVisibility;
+  aModel.fMembers[aMemberCount].fSignature := aSignature;
+  aModel.fMembers[aMemberCount].fIsDefault := aIsDefault;
+  aModel.fMembers[aMemberCount].fIsIndexed := aIsIndexed;
+  aModel.fMembers[aMemberCount].fLine := aLine;
+  aModel.fMembers[aMemberCount].fCol := aCol;
+  aModel.fMembers[aMemberCount].fEndLine := aEndLine;
+  aModel.fMembers[aMemberCount].fEndCol := aEndCol;
+  Inc(aMemberCount);
+end;
+
+procedure MergeSemanticMembers(var aModel: TSymbolMapUnitModel; const aSemanticModel: TDelphiSemanticUnitModel);
+var
+  lMemberCount: Integer;
+  lMemberKeys: THashSet<string>;
+  lMember: TDelphiSemanticMember;
+begin
+  lMemberKeys := THashSet<string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    SeedSemanticMemberKeys(aModel, lMemberKeys);
+    lMemberCount := Length(aModel.fMembers);
+    SetLength(aModel.fMembers, lMemberCount + Length(aSemanticModel.Members));
+    for lMember in aSemanticModel.Members do
+      AppendSemanticMember(aModel, lMemberKeys, lMember.OwnerName, lMember.Name, lMember.Kind,
+        lMember.TypeName, lMember.Visibility, lMember.Signature, lMember.IsDefault, lMember.IsIndexed,
+        lMember.Line, lMember.Column, lMember.Line, lMember.Column, lMemberCount);
+    SetLength(aModel.fMembers, lMemberCount);
+  finally
+    lMemberKeys.Free;
+  end;
+end;
+
+procedure MergeSemanticReferences(var aModel: TSymbolMapUnitModel; const aSemanticModel: TDelphiSemanticUnitModel);
+var
+  lReference: TDelphiSemanticReference;
+  lReferenceCount: Integer;
+begin
+  lReferenceCount := Length(aModel.fReferences);
+  SetLength(aModel.fReferences, lReferenceCount + Length(aSemanticModel.References));
+  for lReference in aSemanticModel.References do
+  begin
+    if lReference.Name = '' then
+      Continue;
+
+    aModel.fReferences[lReferenceCount].fName := lReference.Name;
+    aModel.fReferences[lReferenceCount].fSectionKind := 'implementation';
+    aModel.fReferences[lReferenceCount].fRole := 'token';
+    aModel.fReferences[lReferenceCount].fLine := lReference.Line;
+    aModel.fReferences[lReferenceCount].fCol := lReference.Column;
+    aModel.fReferences[lReferenceCount].fEndLine := lReference.Line;
+    aModel.fReferences[lReferenceCount].fEndCol := lReference.Column;
+    Inc(lReferenceCount);
+  end;
+  SetLength(aModel.fReferences, lReferenceCount);
+end;
+
+procedure MergeDelphiSemanticModel(var aModel: TSymbolMapUnitModel; const aSemanticModel: TDelphiSemanticUnitModel);
+var
+  lDiagnostic: TDelphiSemanticModelDiagnostic;
 begin
   if aModel.fUnitName = '' then
   begin
     aModel.fUnitName := aSemanticModel.UnitName;
   end;
 
-  for lUseName in aSemanticModel.InterfaceUses do
-  begin
-    if not ContainsUse(aModel, lUseName, 'interface') then
-    begin
-      AddUse(aModel, lUseName, 'interface', 0, 0);
-    end;
-  end;
-  for lUseName in aSemanticModel.ImplementationUses do
-  begin
-    if not ContainsUse(aModel, lUseName, 'implementation') then
-    begin
-      AddUse(aModel, lUseName, 'implementation', 0, 0);
-    end;
-  end;
-
-  for lDeclaration in aSemanticModel.Declarations do
-  begin
-    if not ContainsSymbol(aModel, lDeclaration.Name, lDeclaration.Kind, lDeclaration.SectionKind) then
-    begin
-      AddSymbol(aModel, lDeclaration.Name, lDeclaration.Kind, SemanticDeclarationOwnerName(lDeclaration),
-        SemanticDeclarationTypeName(lDeclaration), '', lDeclaration.SectionKind, lDeclaration.Line,
-        lDeclaration.Column, lDeclaration.Line, lDeclaration.Column);
-    end;
-  end;
-
-  for lRoutine in aSemanticModel.Routines do
-  begin
-    if not ContainsSymbol(aModel, lRoutine.Name, 'routine', lRoutine.SectionKind) then
-    begin
-      AddSymbol(aModel, lRoutine.Name, 'routine', lRoutine.OwnerName, lRoutine.ReturnType, lRoutine.Signature,
-        lRoutine.SectionKind, lRoutine.Line, lRoutine.Column, lRoutine.Line, lRoutine.Column);
-    end;
-  end;
-
-  for lMember in aSemanticModel.Members do
-  begin
-    if not ContainsMember(aModel, lMember.OwnerName, lMember.Name, lMember.Kind) then
-    begin
-      AddMember(aModel, lMember.OwnerName, lMember.Name, lMember.Kind, lMember.TypeName,
-        lMember.Visibility, lMember.Signature, lMember.IsDefault, lMember.IsIndexed, lMember.Line,
-        lMember.Column, lMember.Line, lMember.Column);
-    end;
-  end;
-
-  for lReference in aSemanticModel.References do
-  begin
-    AddReference(aModel, lReference.Name, 'implementation', 'token', lReference.Line,
-      lReference.Column, lReference.Line, lReference.Column);
-  end;
+  MergeSemanticUses(aModel, aSemanticModel);
+  MergeSemanticSymbols(aModel, aSemanticModel);
+  MergeSemanticMembers(aModel, aSemanticModel);
+  MergeSemanticReferences(aModel, aSemanticModel);
 
   for lDiagnostic in aSemanticModel.Diagnostics do
   begin
