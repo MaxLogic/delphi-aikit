@@ -60,6 +60,9 @@ All notable user-visible changes to this project will be documented in this file
 - Added `deps` for project dependency topology analysis, including deterministic JSON output, text summaries, focused unit views, cycle reporting over resolved project units, and default artifact copies under sibling `.dak/<ProjectName>/deps/`. (T-101, T-102)
 
 ### Changed
+- SymbolMap semantic projection merge now uses indexed keys and pre-sized
+  projection arrays during cache-miss and force-refresh construction, avoiding
+  per-row growth and linear duplicate scans.
 - `symbol-map index` now reports `parseAvoided` / `parse-avoided` for unit
   cache hits that reuse an existing central projection without parsing, and
   accepts `--refresh force` to bypass the cache-hit fast path.
