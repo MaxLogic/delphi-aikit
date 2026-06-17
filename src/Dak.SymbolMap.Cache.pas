@@ -264,9 +264,23 @@ begin
     'profile_key text not null, name text not null, kind text not null, signature text not null, notes text not null)');
   aConnection.ExecSQL('create index if not exists idx_compiler_intrinsics_name on ' +
     'compiler_intrinsics(profile_key, name)');
+  aConnection.ExecSQL('create index if not exists idx_unit_uses_unit_order on ' +
+    'unit_uses(unit_cache_key, line_no, col_no, used_unit_name)');
+  aConnection.ExecSQL('create index if not exists idx_symbols_unit_order on ' +
+    'symbols(unit_cache_key, line_no, col_no, name)');
   aConnection.ExecSQL('create index if not exists idx_symbols_name on symbols(normalized_name)');
+  aConnection.ExecSQL('create index if not exists idx_symbols_normalized_lookup on ' +
+    'symbols(normalized_name, owner_name, unit_cache_key, line_no, col_no)');
+  aConnection.ExecSQL('create index if not exists idx_members_unit_order on ' +
+    'members(unit_cache_key, line_no, col_no, owner_name, member_name)');
   aConnection.ExecSQL('create index if not exists idx_members_name on members(normalized_member_name)');
+  aConnection.ExecSQL('create index if not exists idx_members_normalized_lookup on ' +
+    'members(normalized_member_name, owner_name, unit_cache_key, line_no, col_no)');
+  aConnection.ExecSQL('create index if not exists idx_symbol_map_references_unit_order on ' +
+    'symbol_map_references(unit_cache_key, line_no, col_no, name)');
   aConnection.ExecSQL('create index if not exists idx_symbol_map_references_name on symbol_map_references(normalized_name)');
+  aConnection.ExecSQL('create index if not exists idx_symbol_map_references_normalized_lookup on ' +
+    'symbol_map_references(normalized_name, unit_cache_key, line_no, col_no)');
 end;
 
 procedure EnsureProjectSchema(const aConnection: TFDConnection);
@@ -283,6 +297,14 @@ begin
     'project_key text not null, normalized_name text not null, unit_cache_key text not null, symbol_id text not null, ' +
     'visibility_rank integer not null, source_kind text not null)');
   aConnection.ExecSQL('create index if not exists idx_project_symbols_name on project_symbols(project_key, normalized_name)');
+  aConnection.ExecSQL('create index if not exists idx_project_units_project_order on ' +
+    'project_units(project_key, resolution_rank, unit_name)');
+  aConnection.ExecSQL('create index if not exists idx_project_units_project_file on ' +
+    'project_units(project_key, file_path, unit_cache_key)');
+  aConnection.ExecSQL('create index if not exists idx_project_units_project_unit on ' +
+    'project_units(project_key, unit_cache_key, file_path)');
+  aConnection.ExecSQL('create index if not exists idx_project_symbols_project_unit on ' +
+    'project_symbols(project_key, unit_cache_key, symbol_id)');
 end;
 
 function ValidateSchemaVersion(const aConnection: TFDConnection; out aError: string): Boolean;

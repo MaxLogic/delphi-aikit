@@ -603,17 +603,17 @@ begin
         'select m.member_name as name, m.kind, m.owner_name, u.unit_name, u.file_path, u.source_kind, ' +
         ''''' as signature, m.type_name, m.line_no, m.col_no, m.line_no as end_line_no, m.col_no as end_col_no, ' +
         '0 as source_rank from members m join projectdb.project_units u on u.unit_cache_key = m.unit_cache_key ' +
-        'where u.project_key = :project_key and lower(m.member_name) = lower(:name) ' + lMemberOwnerClause +
+        'where u.project_key = :project_key and m.normalized_member_name = lower(:name) ' + lMemberOwnerClause +
         'union all ' +
         'select s.name, s.kind, s.owner_name, u.unit_name, u.file_path, u.source_kind, s.signature, ' +
         's.type_name, s.line_no, s.col_no, s.end_line_no, s.end_col_no, 1 as source_rank ' +
         'from symbols s join projectdb.project_units u on u.unit_cache_key = s.unit_cache_key ' +
-        'where u.project_key = :project_key and lower(s.name) = lower(:name) ' + lSymbolOwnerClause +
+        'where u.project_key = :project_key and s.normalized_name = lower(:name) ' + lSymbolOwnerClause +
         'union all ' +
         'select s.name, s.kind, s.owner_name, cu.unit_name, cu.file_path_sample as file_path, ' +
         'cu.source_kind, s.signature, s.type_name, s.line_no, s.col_no, s.end_line_no, s.end_col_no, ' +
         '2 as source_rank from symbols s join compiler_profile_units cu on cu.unit_cache_key = s.unit_cache_key ' +
-        'where cu.profile_key = :profile_key and lower(s.name) = lower(:name) ' + lSymbolOwnerClause +
+        'where cu.profile_key = :profile_key and s.normalized_name = lower(:name) ' + lSymbolOwnerClause +
         'order by source_rank, unit_name, line_no, col_no';
       lQuery.ParamByName('project_key').AsString := lProjectKey;
       lQuery.ParamByName('profile_key').AsString := aProfile.fProfileKey;
@@ -793,7 +793,7 @@ begin
       lQuery.SQL.Text := 'select r.name, u.unit_name, u.file_path, u.source_kind, r.role, r.section_kind, ' +
         'r.line_no, r.col_no, r.end_line_no, r.end_col_no from symbol_map_references r ' +
         'join projectdb.project_units u on u.unit_cache_key = r.unit_cache_key ' +
-        'where u.project_key = :project_key and lower(r.name) = lower(:name) ' +
+        'where u.project_key = :project_key and r.normalized_name = lower(:name) ' +
         'order by u.file_path, r.line_no, r.col_no' + lLimitSql;
       lQuery.ParamByName('project_key').AsString := lProjectKey;
       lQuery.ParamByName('name').AsString := aSymbol;

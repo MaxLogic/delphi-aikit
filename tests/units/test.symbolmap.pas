@@ -41,14 +41,24 @@ type
   [TestFixture]
   TSymbolMapCacheTests = class
   private
+    procedure AssertHotPathIndexesExist(const aStatus: TSymbolMapCacheStatus);
+    procedure AssertQueryPlanUsesIndex(const aDbPath, aSql, aIndexName: string;
+      const aParams: array of Variant);
     function BuildContext(const aCacheName: string; out aContext: TSymbolMapContext): string;
     procedure CopyFixtureProject(const aTargetDir: string; out aProjectPath: string);
+    procedure DropIndex(const aDbPath, aIndexName: string);
+    function IndexExists(const aDbPath, aIndexName: string): Boolean;
     function MetaValue(const aDbPath, aKey: string): string;
+    function QueryPlanText(const aDbPath, aSql: string; const aParams: array of Variant): string;
     function TableExists(const aDbPath, aTableName: string): Boolean;
     procedure WriteSchemaVersion(const aDbPath, aVersion: string);
   public
     [Test]
     procedure EnsuresCentralAndProjectCacheSchema;
+    [Test]
+    procedure EnsuresHotPathIndexesAndQueryPlans;
+    [Test]
+    procedure RestoresHotPathIndexesForExistingSchemaCaches;
     [Test]
     procedure ReusesExistingCachesIdempotently;
     [Test]
@@ -390,6 +400,17 @@ begin
   end;
 end;
 
+function WriteFakeRsVars(const aPrefix: string): string;
+var
+  lRoot: string;
+begin
+  lRoot := UniqueTempPath(aPrefix);
+  Result := TPath.Combine(lRoot, 'bin\rsvars.bat');
+  ForceDirectories(TPath.GetDirectoryName(Result));
+  TFile.WriteAllText(Result, '@echo off' + sLineBreak + 'set BDS=' + lRoot + sLineBreak,
+    TEncoding.ASCII);
+end;
+
 function TSymbolMapContextTests.FixtureProjectPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\LspProjectFixture\LspProjectFixture.dproj');
@@ -461,6 +482,32 @@ begin
   aProjectPath := TPath.Combine(aTargetDir, 'LspProjectFixture.dproj');
 end;
 
+procedure TSymbolMapCacheTests.AssertHotPathIndexesExist(const aStatus: TSymbolMapCacheStatus);
+begin
+  Assert.IsTrue(IndexExists(aStatus.fCentralDbPath, 'idx_unit_uses_unit_order'),
+    'Expected unit_uses unit-cache-key read/write index.');
+  Assert.IsTrue(IndexExists(aStatus.fCentralDbPath, 'idx_symbols_unit_order'),
+    'Expected symbols unit-cache-key read/write index.');
+  Assert.IsTrue(IndexExists(aStatus.fCentralDbPath, 'idx_members_unit_order'),
+    'Expected members unit-cache-key read/write index.');
+  Assert.IsTrue(IndexExists(aStatus.fCentralDbPath, 'idx_symbol_map_references_unit_order'),
+    'Expected reference unit-cache-key read/write index.');
+  Assert.IsTrue(IndexExists(aStatus.fCentralDbPath, 'idx_symbols_normalized_lookup'),
+    'Expected symbols normalized lookup index.');
+  Assert.IsTrue(IndexExists(aStatus.fCentralDbPath, 'idx_members_normalized_lookup'),
+    'Expected members normalized lookup index.');
+  Assert.IsTrue(IndexExists(aStatus.fCentralDbPath, 'idx_symbol_map_references_normalized_lookup'),
+    'Expected reference normalized lookup index.');
+  Assert.IsTrue(IndexExists(aStatus.fProjectDbPath, 'idx_project_units_project_order'),
+    'Expected project unit order index.');
+  Assert.IsTrue(IndexExists(aStatus.fProjectDbPath, 'idx_project_units_project_file'),
+    'Expected project unit file index.');
+  Assert.IsTrue(IndexExists(aStatus.fProjectDbPath, 'idx_project_units_project_unit'),
+    'Expected project unit-cache-key join index.');
+  Assert.IsTrue(IndexExists(aStatus.fProjectDbPath, 'idx_project_symbols_project_unit'),
+    'Expected project symbol unit-cache-key delete index.');
+end;
+
 function TSymbolMapCacheTests.MetaValue(const aDbPath, aKey: string): string;
 var
   lConnection: TFDConnection;
@@ -479,6 +526,95 @@ begin
     lConnection.Free;
     lDriverLink.Free;
   end;
+end;
+
+function TSymbolMapCacheTests.IndexExists(const aDbPath, aIndexName: string): Boolean;
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    Result := lConnection.ExecSQLScalar(
+      'select count(*) from sqlite_master where type = ''index'' and name = ?', [aIndexName]) > 0;
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+procedure TSymbolMapCacheTests.DropIndex(const aDbPath, aIndexName: string);
+var
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  try
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    lConnection.ExecSQL('drop index if exists ' + aIndexName);
+  finally
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+function TSymbolMapCacheTests.QueryPlanText(const aDbPath, aSql: string;
+  const aParams: array of Variant): string;
+var
+  i: Integer;
+  lConnection: TFDConnection;
+  lDriverLink: TFDPhysSQLiteDriverLink;
+  lPlan: TStringList;
+  lQuery: TFDQuery;
+begin
+  lDriverLink := TFDPhysSQLiteDriverLink.Create(nil);
+  lConnection := TFDConnection.Create(nil);
+  lPlan := nil;
+  lQuery := nil;
+  try
+    lPlan := TStringList.Create;
+    lQuery := TFDQuery.Create(nil);
+    lConnection.LoginPrompt := False;
+    lConnection.Params.Values['DriverID'] := 'SQLite';
+    lConnection.Params.Values['Database'] := aDbPath;
+    lConnection.Connected := True;
+    lQuery.Connection := lConnection;
+    lQuery.SQL.Text := 'EXPLAIN QUERY PLAN ' + aSql;
+    for i := Low(aParams) to High(aParams) do
+      lQuery.Params[i].Value := aParams[i];
+    lQuery.Open;
+    while not lQuery.Eof do
+    begin
+      lPlan.Add(lQuery.FieldByName('detail').AsWideString);
+      lQuery.Next;
+    end;
+    Result := lPlan.Text;
+  finally
+    lQuery.Free;
+    lPlan.Free;
+    lConnection.Free;
+    lDriverLink.Free;
+  end;
+end;
+
+procedure TSymbolMapCacheTests.AssertQueryPlanUsesIndex(const aDbPath, aSql, aIndexName: string;
+  const aParams: array of Variant);
+var
+  lPlan: string;
+begin
+  lPlan := QueryPlanText(aDbPath, aSql, aParams);
+  Assert.IsTrue(ContainsText(lPlan, 'USING INDEX ' + aIndexName) or
+    ContainsText(lPlan, 'USING COVERING INDEX ' + aIndexName),
+    'Expected query plan to use ' + aIndexName + '. Actual plan: ' + lPlan);
 end;
 
 function TSymbolMapCacheTests.TableExists(const aDbPath, aTableName: string): Boolean;
@@ -538,6 +674,108 @@ begin
   Assert.AreEqual(3, lStatus.fSchemaVersion);
   Assert.AreEqual('3', MetaValue(lStatus.fCentralDbPath, 'schema_version'));
   Assert.AreEqual('3', MetaValue(lStatus.fProjectDbPath, 'schema_version'));
+end;
+
+procedure TSymbolMapCacheTests.EnsuresHotPathIndexesAndQueryPlans;
+var
+  lContext: TSymbolMapContext;
+  lError: string;
+  lQuerySource: string;
+  lStatus: TSymbolMapCacheStatus;
+begin
+  BuildContext('symbol-map-hot-path-indexes', lContext);
+
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lStatus, lError), 'Expected cache schema. Error: ' + lError);
+
+  AssertHotPathIndexesExist(lStatus);
+
+  AssertQueryPlanUsesIndex(lStatus.fCentralDbPath,
+    'select used_unit_name, section_kind, line_no, col_no from unit_uses ' +
+    'where unit_cache_key = ? order by line_no, col_no, used_unit_name',
+    'idx_unit_uses_unit_order', ['unit-key']);
+  AssertQueryPlanUsesIndex(lStatus.fCentralDbPath,
+    'select name, kind, owner_name, type_name, signature, section_kind, line_no, col_no, end_line_no, end_col_no ' +
+    'from symbols where unit_cache_key = ? order by line_no, col_no, name',
+    'idx_symbols_unit_order', ['unit-key']);
+  AssertQueryPlanUsesIndex(lStatus.fCentralDbPath,
+    'select owner_name, member_name, kind, type_name, visibility, signature, is_default, is_indexed, ' +
+    'line_no, col_no, end_line_no, end_col_no from members where unit_cache_key = ? ' +
+    'order by line_no, col_no, owner_name, member_name',
+    'idx_members_unit_order', ['unit-key']);
+  AssertQueryPlanUsesIndex(lStatus.fCentralDbPath,
+    'select name, role, section_kind, line_no, col_no, end_line_no, end_col_no ' +
+    'from symbol_map_references where unit_cache_key = ? order by line_no, col_no, name',
+    'idx_symbol_map_references_unit_order', ['unit-key']);
+  AssertQueryPlanUsesIndex(lStatus.fCentralDbPath,
+    'select symbol_id from symbols where normalized_name = lower(?) and owner_name = ? and unit_cache_key = ?',
+    'idx_symbols_normalized_lookup', ['TFoo', '', 'unit-key']);
+  AssertQueryPlanUsesIndex(lStatus.fCentralDbPath,
+    'select member_name from members where normalized_member_name = lower(?) and owner_name = ? ' +
+    'and unit_cache_key = ?',
+    'idx_members_normalized_lookup', ['Run', 'TFoo', 'unit-key']);
+  AssertQueryPlanUsesIndex(lStatus.fCentralDbPath,
+    'select name from symbol_map_references where normalized_name = lower(?) and unit_cache_key = ?',
+    'idx_symbol_map_references_normalized_lookup', ['Run', 'unit-key']);
+  AssertQueryPlanUsesIndex(lStatus.fProjectDbPath,
+    'select unit_cache_key, unit_name, file_path, source_kind from project_units ' +
+    'where project_key = ? order by resolution_rank, unit_name',
+    'idx_project_units_project_order', ['project-key']);
+  AssertQueryPlanUsesIndex(lStatus.fProjectDbPath,
+    'select unit_cache_key from project_units where project_key = ? and file_path = ?',
+    'idx_project_units_project_file', ['project-key', 'Unit1.pas']);
+  AssertQueryPlanUsesIndex(lStatus.fProjectDbPath,
+    'select file_path from project_units where project_key = ? and unit_cache_key = ?',
+    'idx_project_units_project_unit', ['project-key', 'unit-key']);
+  AssertQueryPlanUsesIndex(lStatus.fProjectDbPath,
+    'select symbol_id from project_symbols where project_key = ? and unit_cache_key = ?',
+    'idx_project_symbols_project_unit', ['project-key', 'unit-key']);
+
+  lQuerySource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Query.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lQuerySource, 'm.normalized_member_name = lower(:name)'),
+    'Expected member exact lookup to use the normalized-member index key.');
+  Assert.IsTrue(ContainsText(lQuerySource, 's.normalized_name = lower(:name)'),
+    'Expected symbol exact lookup to use the normalized symbol index key.');
+  Assert.IsTrue(ContainsText(lQuerySource, 'r.normalized_name = lower(:name)'),
+    'Expected reference lookup to use the normalized reference index key.');
+  Assert.IsFalse(ContainsText(lQuerySource, 'lower(m.member_name) = lower(:name)'),
+    'Member exact lookup should not wrap the stored display name in lower().');
+  Assert.IsFalse(ContainsText(lQuerySource, 'lower(s.name) = lower(:name)'),
+    'Symbol exact lookup should not wrap the stored display name in lower().');
+  Assert.IsFalse(ContainsText(lQuerySource, 'lower(r.name) = lower(:name)'),
+    'Reference lookup should not wrap the stored display name in lower().');
+end;
+
+procedure TSymbolMapCacheTests.RestoresHotPathIndexesForExistingSchemaCaches;
+var
+  lContext: TSymbolMapContext;
+  lError: string;
+  lFirstStatus: TSymbolMapCacheStatus;
+  lSecondStatus: TSymbolMapCacheStatus;
+begin
+  BuildContext('symbol-map-hot-path-index-migration', lContext);
+
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lFirstStatus, lError),
+    'Expected initial schema creation. Error: ' + lError);
+  AssertHotPathIndexesExist(lFirstStatus);
+
+  DropIndex(lFirstStatus.fCentralDbPath, 'idx_unit_uses_unit_order');
+  DropIndex(lFirstStatus.fCentralDbPath, 'idx_symbols_normalized_lookup');
+  DropIndex(lFirstStatus.fCentralDbPath, 'idx_members_normalized_lookup');
+  DropIndex(lFirstStatus.fCentralDbPath, 'idx_symbol_map_references_normalized_lookup');
+  DropIndex(lFirstStatus.fProjectDbPath, 'idx_project_units_project_order');
+  DropIndex(lFirstStatus.fProjectDbPath, 'idx_project_symbols_project_unit');
+
+  Assert.IsFalse(IndexExists(lFirstStatus.fCentralDbPath, 'idx_unit_uses_unit_order'),
+    'Expected dropped central index before migration rerun.');
+  Assert.IsFalse(IndexExists(lFirstStatus.fProjectDbPath, 'idx_project_units_project_order'),
+    'Expected dropped project index before migration rerun.');
+
+  Assert.IsTrue(EnsureSymbolMapCaches(lContext, lSecondStatus, lError),
+    'Expected existing schema to be migrated. Error: ' + lError);
+
+  Assert.IsFalse(lSecondStatus.fCentralCreated, 'Expected existing central cache to be reused.');
+  Assert.IsFalse(lSecondStatus.fProjectCreated, 'Expected existing project cache to be reused.');
+  AssertHotPathIndexesExist(lSecondStatus);
 end;
 
 procedure TSymbolMapCacheTests.ReusesExistingCachesIdempotently;
@@ -1529,15 +1767,19 @@ var
   lLogText: string;
   lProfile: TJSONObject;
   lResolverExe: string;
+  lRsVarsPath: string;
+  lRtlSource: TJSONObject;
 begin
   lResolverExe := BuildFreshResolverExe;
   lCacheRoot := UniqueTempPath('symbol-map-intrinsic-cli-cache');
   lLogPath := UniqueTempPath('symbol-map-intrinsic-cli') + '.log';
+  lRsVarsPath := WriteFakeRsVars('symbol-map-intrinsic-cli-no-rtl-bds');
   lArgs := 'symbol-map index --project ' + QuoteArg(FixtureProjectPath) + ' --cache-root ' +
-    QuoteArg(lCacheRoot) + ' --format json --delphi 23 --verbose true';
+    QuoteArg(lCacheRoot) + ' --format json --delphi 23 --rsvars ' + QuoteArg(lRsVarsPath) +
+    ' --verbose true';
 
-  Assert.IsTrue(RunProcess(lResolverExe, lArgs, RepoRoot, lLogPath, lExitCode),
-    'Failed to start symbol-map index command.');
+  Assert.IsTrue(RunProcessWithTimeout(lResolverExe, lArgs, RepoRoot, lLogPath, 30000,
+    lExitCode), 'Expected symbol-map index command to complete within 30s. See: ' + lLogPath);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map index to succeed. See: ' + lLogPath);
 
   lLogText := ReadUtf8TextFile(lLogPath);
@@ -1552,6 +1794,8 @@ begin
     Assert.IsTrue(lProfile.GetValue<Integer>('syntheticIntrinsicCount') >= 20,
       'Expected synthetic intrinsic count.');
     Assert.IsNotEmpty(lProfile.GetValue<string>('profileKey'), 'Expected profile key.');
+    lRtlSource := lJson.GetValue('rtlSource') as TJSONObject;
+    Assert.AreEqual('missing-source-root', lRtlSource.GetValue<string>('status'));
   finally
     lJsonValue.Free;
   end;
@@ -3258,6 +3502,8 @@ var
   lProjectDir: string;
   lProjectPath: string;
   lResult: TJSONObject;
+  lRsVarsPath: string;
+  lRtlSource: TJSONObject;
   lUnitNames: string;
 
   procedure WriteUnit(const aPath, aUnitName: string);
@@ -3295,6 +3541,7 @@ begin
   lProjectDir := UniqueTempPath('symbol-map-project-context');
   lCacheRoot := UniqueTempPath('symbol-map-project-context-cache');
   lLogPath := UniqueTempPath('symbol-map-project-context') + '.log';
+  lRsVarsPath := WriteFakeRsVars('symbol-map-project-context-no-rtl-bds');
   if TDirectory.Exists(lProjectDir) then
     TDirectory.Delete(lProjectDir, True);
   ForceDirectories(lProjectDir);
@@ -3326,9 +3573,10 @@ begin
     '</Project>', TEncoding.UTF8);
 
   lArgs := 'symbol-map index --project ' + QuoteArg(lProjectPath) + ' --cache-root ' + QuoteArg(lCacheRoot) +
-    ' --format json';
-  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, lExitCode),
-    'Failed to start symbol-map project index command.');
+    ' --format json --delphi 23 --rsvars ' + QuoteArg(lRsVarsPath);
+  Assert.IsTrue(RunProcessWithTimeout(ResolverExePath, lArgs, RepoRoot, lLogPath, 30000,
+    lExitCode), 'Expected symbol-map project index command to complete within 30s. See: ' +
+    lLogPath);
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected symbol-map project index to succeed. See: ' + lLogPath);
 
   lLogText := ReadUtf8TextFile(lLogPath);
@@ -3336,6 +3584,8 @@ begin
   try
     Assert.IsTrue(lJsonValue is TJSONObject, 'Expected JSON object. Actual: ' + lLogText);
     lJson := TJSONObject(lJsonValue);
+    lRtlSource := lJson.GetValue('rtlSource') as TJSONObject;
+    Assert.AreEqual('missing-source-root', lRtlSource.GetValue<string>('status'));
     lResult := lJson.GetValue('result') as TJSONObject;
     Assert.AreEqual(2, lResult.GetValue<Integer>('unitCount'),
       'Expected project context source files to include active and escaped units only.');
