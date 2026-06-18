@@ -16,7 +16,7 @@ uses
   System.SysUtils,
   DelphiSemantics.DeadCode, DelphiSemantics.Model.Text, DelphiSemantics.ProjectContext,
   DelphiSemantics.Refactor, DelphiSemantics.Usage,
-  Dak.DeadCodeProfile, Dak.ExitCodes, Dak.Paths, Dak.Semantics.Session, Dak.SourceText;
+  Dak.Build, Dak.DeadCodeProfile, Dak.ExitCodes, Dak.Paths, Dak.Semantics.Session, Dak.SourceText;
 
 type
   TRefactorSemanticPhaseMetrics = record
@@ -37,6 +37,13 @@ type
     FileName: string;
     BackupFileName: string;
     Hash: string;
+  end;
+
+  TRenameVerification = record
+    Status: string;
+    ExitCode: Integer;
+    Diagnostic: string;
+    DiagnosticsDir: string;
   end;
 
 function JsonEscape(const aValue: string): string;
@@ -255,8 +262,26 @@ begin
   Result := Result + ']';
 end;
 
+function RenameVerification(const aStatus: string; aExitCode: Integer;
+  const aDiagnostic, aDiagnosticsDir: string): TRenameVerification;
+begin
+  Result.Status := aStatus;
+  Result.ExitCode := aExitCode;
+  Result.Diagnostic := aDiagnostic;
+  Result.DiagnosticsDir := aDiagnosticsDir;
+end;
+
+function RenameVerificationJson(const aVerification: TRenameVerification): string;
+begin
+  Result := '{"status":"' + JsonEscape(aVerification.Status) + '","exitCode":' +
+    aVerification.ExitCode.ToString + ',"diagnostic":"' +
+    JsonEscape(aVerification.Diagnostic) + '","diagnosticsDir":"' +
+    JsonEscape(aVerification.DiagnosticsDir) + '"}';
+end;
+
 function RenameResultJson(const aSymbol: string; const aPlan: TDelphiSemanticRenamePlan;
   const aApply: Boolean; const aAppliedFiles: TArray<TAppliedFile>;
+  const aVerification: TRenameVerification;
   const aReferenceFallbackCount: Integer; const aCacheMetrics: TDakSemanticCacheMetrics;
   const aPhaseMetrics: TRefactorSemanticPhaseMetrics): string;
 var
@@ -269,6 +294,7 @@ begin
   Result := '{"status":"' + JsonEscape(lStatus) + '","symbol":"' + JsonEscape(aSymbol) +
     '","apply":' + LowerCase(BoolToStr(aApply, True)) + ',"diagnostic":"' +
     JsonEscape(aPlan.Diagnostic) + '","editCount":' + Length(aPlan.Edits).ToString +
+    ',"verification":' + RenameVerificationJson(aVerification) +
     ',"referenceReconciliationFallbackCount":' + aReferenceFallbackCount.ToString +
     ',"semanticCacheHits":' + aCacheMetrics.CacheHits.ToString +
     ',"semanticCacheMisses":' + aCacheMetrics.CacheMisses.ToString +
@@ -284,7 +310,8 @@ begin
 end;
 
 function RenameResultText(const aSymbol: string; const aPlan: TDelphiSemanticRenamePlan;
-  const aApply: Boolean; const aAppliedFiles: TArray<TAppliedFile>): string;
+  const aApply: Boolean; const aAppliedFiles: TArray<TAppliedFile>;
+  const aVerification: TRenameVerification): string;
 var
   lAppliedFile: TAppliedFile;
   lBuilder: TStringBuilder;
@@ -300,6 +327,11 @@ begin
     lBuilder.AppendLine('symbol: ' + aSymbol);
     lBuilder.AppendLine('apply: ' + LowerCase(BoolToStr(aApply, True)));
     lBuilder.AppendLine('edits: ' + Length(aPlan.Edits).ToString);
+    lBuilder.AppendLine('verification: ' + aVerification.Status);
+    if aVerification.Diagnostic <> '' then
+      lBuilder.AppendLine('verificationDiagnostic: ' + aVerification.Diagnostic);
+    if aVerification.DiagnosticsDir <> '' then
+      lBuilder.AppendLine('verificationDiagnosticsDir: ' + aVerification.DiagnosticsDir);
     if aPlan.Diagnostic <> '' then
       lBuilder.AppendLine('diagnostic: ' + aPlan.Diagnostic);
     for lEdit in aPlan.Edits do
@@ -501,19 +533,71 @@ begin
 end;
 
 procedure WriteRenameManifest(const aWorkspaceRoot, aStatus, aError: string;
-  const aFiles: TArray<TAppliedFile>);
+  const aFiles: TArray<TAppliedFile>; const aVerification: TRenameVerification);
 var
-  i: Integer;
   lJson: string;
 begin
   lJson := '{"status":"' + JsonEscape(aStatus) + '","error":"' + JsonEscape(aError) +
-    '","files":' + AppliedFilesJson(aFiles) + '}';
+    '","verification":' + RenameVerificationJson(aVerification) + ',"files":' +
+    AppliedFilesJson(aFiles) + '}';
   TDirectory.CreateDirectory(aWorkspaceRoot);
   TFile.WriteAllText(TPath.Combine(aWorkspaceRoot, 'manifest.json'), lJson, TEncoding.UTF8);
 end;
 
+function RenameBuildVerificationOptions(const aOptions: TAppOptions;
+  const aDiagnosticsDir: string): TAppOptions;
+begin
+  Result := aOptions;
+  Result.fCommand := TCommandKind.ckBuild;
+  Result.fBuildAi := False;
+  Result.fBuildJson := False;
+  Result.fBuildQuiet := True;
+  Result.fBuildRunDfmCheck := False;
+  Result.fBuildDiagnosticsDir := aDiagnosticsDir;
+  if Trim(Result.fBuildTarget) = '' then
+    Result.fBuildTarget := 'Build';
+  if Result.fBuildMaxFindings <= 0 then
+    Result.fBuildMaxFindings := 5;
+end;
+
+function VerifyRenameBuild(const aOptions: TAppOptions; const aWorkspaceRoot: string;
+  out aVerification: TRenameVerification): Boolean;
+var
+  lBuildOptions: TAppOptions;
+  lDiagnosticsDir: string;
+  lError: string;
+  lExitCode: Integer;
+begin
+  Result := False;
+  lDiagnosticsDir := TPath.Combine(aWorkspaceRoot, 'build-verification');
+  lBuildOptions := RenameBuildVerificationOptions(aOptions, lDiagnosticsDir);
+  lError := '';
+  lExitCode := 1;
+  if not TryRunBuild(lBuildOptions, lExitCode, lError) then
+  begin
+    if lError = '' then
+      lError := 'Build verification could not start.';
+    aVerification := RenameVerification('failed', lExitCode,
+      'Build verification failed: ' + lError + ' Diagnostics: ' + lDiagnosticsDir,
+      lDiagnosticsDir);
+    Exit(False);
+  end;
+
+  if lExitCode <> 0 then
+  begin
+    aVerification := RenameVerification('failed', lExitCode,
+      Format('Build verification failed with exit code %d. Diagnostics: %s',
+      [lExitCode, lDiagnosticsDir]), lDiagnosticsDir);
+    Exit(False);
+  end;
+
+  aVerification := RenameVerification('passed', lExitCode, '', lDiagnosticsDir);
+  Result := True;
+end;
+
 procedure ApplyRenamePlan(const aOptions: TAppOptions; const aPlan: TDelphiSemanticRenamePlan;
-  const aOriginalName: string; out aAppliedFiles: TArray<TAppliedFile>);
+  const aOriginalName: string; out aAppliedFiles: TArray<TAppliedFile>;
+  out aVerification: TRenameVerification);
 var
   lBackupRoot: string;
   lBackupFileName: string;
@@ -521,6 +605,7 @@ var
   lEdit: TDelphiSemanticTextEdit;
   lEdits: TArray<TDelphiSemanticTextEdit>;
   lFileName: string;
+  lManifestError: string;
   lOriginals: TDictionary<string, TBytes>;
   lPair: TPair<string, TBytes>;
   lSource: TDakSourceBuffer;
@@ -528,6 +613,7 @@ var
   lWorkspaceRoot: string;
 begin
   SetLength(aAppliedFiles, 0);
+  aVerification := RenameVerification('not-run', -1, '', '');
   lOriginals := TDictionary<string, TBytes>.Create;
   lWorkspaceRoot := RenameWorkspaceRoot(aOptions);
   lBackupRoot := TPath.Combine(lWorkspaceRoot, 'backup');
@@ -567,7 +653,9 @@ begin
         TFile.WriteAllBytes(lFileName, DakTextToBytes(lText, lSource.fEncoding,
           lSource.fHasUtf8Bom));
       end;
-      WriteRenameManifest(lWorkspaceRoot, 'applied', '', aAppliedFiles);
+      if not VerifyRenameBuild(aOptions, lWorkspaceRoot, aVerification) then
+        raise Exception.Create(aVerification.Diagnostic);
+      WriteRenameManifest(lWorkspaceRoot, 'applied', '', aAppliedFiles, aVerification);
     except
       for lPair in lOriginals do
       begin
@@ -575,7 +663,12 @@ begin
         if FileHash(TFile.ReadAllBytes(lPair.Key)) <> FileHash(lPair.Value) then
           raise Exception.Create('Rollback verification failed for ' + lPair.Key);
       end;
-      WriteRenameManifest(lWorkspaceRoot, 'rolledBack', 'rename-apply-failed', aAppliedFiles);
+      if SameText(aVerification.Status, 'failed') then
+        lManifestError := 'rename-build-verification-failed'
+      else
+        lManifestError := 'rename-apply-failed';
+      WriteRenameManifest(lWorkspaceRoot, 'rolledBack', lManifestError, aAppliedFiles,
+        aVerification);
       raise;
     end;
   finally
@@ -644,8 +737,10 @@ var
   lReferenceFallbackCount: Integer;
   lSymbol: string;
   lUsageResult: TDelphiSemanticUsageResult;
+  lVerification: TRenameVerification;
 begin
   SetLength(lAppliedFiles, 0);
+  lVerification := RenameVerification('not-run', -1, '', '');
   if not BuildSemanticContext(aOptions, lContext, lCacheMetrics, lPhaseMetrics, lError) then
   begin
     WriteLn(ErrOutput, lError);
@@ -683,11 +778,14 @@ begin
   if SameText(lPlan.Status, 'planned') and aOptions.fRefactorApply then
   begin
     try
-      ApplyRenamePlan(aOptions, lPlan, lSymbol, lAppliedFiles);
+      ApplyRenamePlan(aOptions, lPlan, lSymbol, lAppliedFiles, lVerification);
     except
       on E: Exception do
       begin
-        lPlan.Status := 'failed';
+        if SameText(lVerification.Status, 'failed') then
+          lPlan.Status := 'rolledBack'
+        else
+          lPlan.Status := 'failed';
         lPlan.Diagnostic := E.Message;
       end;
     end;
@@ -696,10 +794,10 @@ begin
 
   if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
     lOutput := RenameResultJson(lSymbol, lPlan, aOptions.fRefactorApply,
-      lAppliedFiles, lReferenceFallbackCount, lCacheMetrics, lPhaseMetrics)
+      lAppliedFiles, lVerification, lReferenceFallbackCount, lCacheMetrics, lPhaseMetrics)
   else
     lOutput := RenameResultText(lSymbol, lPlan, aOptions.fRefactorApply,
-      lAppliedFiles);
+      lAppliedFiles, lVerification);
   WriteLn(lOutput);
   if SameText(lPlan.Status, 'planned') then
     Result := cExitSuccess

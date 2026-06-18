@@ -23,6 +23,7 @@ type
     function FindMaxTdbProject(const aFixtureDir: string): string;
     function IsIgnoredProjectArtifact(const aRelativePath: string): Boolean;
     function IsSourceSnapshotFile(const aPath: string): Boolean;
+    function ResolveRsVarsPath: string;
     function RunBuild(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
     function RunRenameApply(const aDprojPath, aSymbol, aNewName, aLogName: string;
       out aExitCode: Cardinal): TJSONObject;
@@ -152,6 +153,14 @@ begin
     (lExt = '.fmx') or (lExt = '.dproj') or (lExt = '.deployproj');
 end;
 
+function TRefactorProprietaryRenameTests.ResolveRsVarsPath: string;
+begin
+  Result := 'C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat';
+  if not TFile.Exists(Result) then
+    Result := TPath.Combine(GetEnvironmentVariable('ProgramFiles(x86)'),
+      'Embarcadero\Studio\23.0\bin\rsvars.bat');
+end;
+
 function TRefactorProprietaryRenameTests.RunBuild(const aDprojPath, aLogName: string;
   out aExitCode: Cardinal): string;
 var
@@ -166,10 +175,7 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lOutputDir := TPath.Combine(TempRoot, 'refactor-maxtdb-build-out');
   ForceDirectories(lOutputDir);
-  lRsVarsPath := 'C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\rsvars.bat';
-  if not TFile.Exists(lRsVarsPath) then
-    lRsVarsPath := TPath.Combine(GetEnvironmentVariable('ProgramFiles(x86)'),
-      'Embarcadero\Studio\23.0\bin\rsvars.bat');
+  lRsVarsPath := ResolveRsVarsPath;
   lArgs := 'build --project ' + QuoteArg(aDprojPath) +
     ' --delphi 23.0 --platform Win32 --config Debug --builder delphi --ai --rsvars ' +
     QuoteArg(lRsVarsPath) + ' --test-output-dir ' + QuoteArg(lOutputDir);
@@ -189,12 +195,15 @@ var
   lArgs: string;
   lLogPath: string;
   lOutput: string;
+  lRsVarsPath: string;
   lValue: TJSONValue;
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
+  lRsVarsPath := ResolveRsVarsPath;
   lArgs := 'rename --project ' + QuoteArg(aDprojPath) + ' --symbol ' + aSymbol + ' --new-name ' +
-    aNewName + ' --apply --format json';
+    aNewName + ' --apply --format json --delphi 23.0 --platform Win32 --config Debug --rsvars ' +
+    QuoteArg(lRsVarsPath);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start maxTdb rename process for ' + aSymbol + '.');
   lOutput := ReadUtf8TextFile(lLogPath);
