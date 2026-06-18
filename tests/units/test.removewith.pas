@@ -868,6 +868,12 @@ const
   cAstParallelIterations = 24;
   cAllowMissingMaxTdbFixtureEnv = 'DAK_ALLOW_MAXTDB_SKIP';
   cDiscoveryFixtureWithCount = 4;
+  cRequiredRemoveWithVerificationKinds: array[0..4] of string = (
+    'baseline-compile',
+    'context-fingerprint',
+    'source-range',
+    'post-edit-compile',
+    'rollback-on-failure');
 
 function DiscoveryFixtureDprPath: string;
 begin
@@ -1018,6 +1024,79 @@ begin
     Exit(-1);
 
   Result := StrToIntDef(Copy(aLogText, lStartIndex, lEndIndex - lStartIndex), -1);
+end;
+
+function JsonArrayObjectForKind(const aValues: TJSONArray; const aKind: string;
+  out aObject: TJSONObject): Boolean;
+var
+  i: Integer;
+  lItem: TJSONValue;
+begin
+  aObject := nil;
+  Result := False;
+  for i := 0 to aValues.Count - 1 do
+  begin
+    lItem := aValues.Items[i];
+    if not (lItem is TJSONObject) then
+      Continue;
+
+    aObject := lItem as TJSONObject;
+    if Assigned(aObject.Values['kind']) and SameText(aObject.Values['kind'].Value, aKind) then
+      Exit(True);
+  end;
+  aObject := nil;
+end;
+
+function JsonArrayHasKind(const aValues: TJSONArray; const aKind: string): Boolean;
+var
+  lObject: TJSONObject;
+begin
+  Result := JsonArrayObjectForKind(aValues, aKind, lObject);
+end;
+
+function JsonArrayHasStringValue(const aValues: TJSONArray; const aValue: string): Boolean;
+var
+  i: Integer;
+  lItem: TJSONValue;
+begin
+  Result := False;
+  for i := 0 to aValues.Count - 1 do
+  begin
+    lItem := aValues.Items[i];
+    if (lItem is TJSONString) and SameText(lItem.Value, aValue) then
+      Exit(True);
+  end;
+end;
+
+procedure AssertRequiredRemoveWithVerificationKinds(const aValues: TJSONArray; const aContext: string);
+var
+  lKind: string;
+begin
+  for lKind in cRequiredRemoveWithVerificationKinds do
+    Assert.IsTrue(JsonArrayHasKind(aValues, lKind), aContext + ' missing requiredVerification kind: ' +
+      lKind);
+end;
+
+procedure AssertRemoveWithRequirementReconciliation(const aValues: TJSONArray; const aKind, aGate,
+  aStatus, aContext: string);
+var
+  lObject: TJSONObject;
+begin
+  Assert.IsTrue(JsonArrayObjectForKind(aValues, aKind, lObject), aContext +
+    ' missing requirement reconciliation kind: ' + aKind);
+  RequireJsonStringKey(lObject, 'gate');
+  RequireJsonStringKey(lObject, 'status');
+  Assert.AreEqual(aGate, lObject.Values['gate'].Value, aContext + ' gate mismatch for ' + aKind);
+  Assert.AreEqual(aStatus, lObject.Values['status'].Value, aContext + ' status mismatch for ' + aKind);
+end;
+
+procedure AssertBuildGateSatisfies(const aGate: TJSONObject; const aKind: string);
+var
+  lSatisfies: TJSONArray;
+begin
+  RequireJsonArrayKey(aGate, 'satisfies', lSatisfies);
+  Assert.IsTrue(JsonArrayHasStringValue(lSatisfies, aKind),
+    'Expected build gate to satisfy requirement: ' + aKind);
 end;
 
 function TRemoveWithTestBase.RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal;
@@ -1914,6 +1993,8 @@ begin
     RequireJsonObjectKey(lRoot, 'resolver', lChildObject);
     RequireJsonArrayKey(lRoot, 'plannedEdits', lChildArray);
     RequireJsonArrayKey(lRoot, 'skipped', lChildArray);
+    RequireJsonArrayKey(lRoot, 'requiredVerification', lChildArray);
+    AssertRequiredRemoveWithVerificationKinds(lChildArray, 'Plan report');
     RequireJsonObjectKey(lRoot, 'verification', lChildObject);
     RequireJsonObjectKey(lRoot, 'summary', lChildObject);
     RequireJsonNumberKey(lChildObject, 'plannedEdits');
@@ -7063,13 +7144,16 @@ var
   lDprPath: string;
   lDprText: string;
   lExitCode: Cardinal;
+  lGates: TJSONArray;
   lOutput: string;
   lOutputValue: TJSONValue;
+  lReconciliation: TJSONArray;
   lRoot: TJSONObject;
   lSummary: TJSONObject;
   lTransaction: TJSONObject;
   lUnitOriginalBytes: TBytes;
   lUnitPath: string;
+  lVerification: TJSONObject;
 begin
   CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-preflight-fails', 'ApplyUnit.pas',
     lDprojPath, lUnitPath);
@@ -7099,6 +7183,25 @@ begin
       'Expected explicit preflight failure transaction status.');
     Assert.AreEqual(0, (lTransaction.Values['files'] as TJSONArray).Count,
       'Expected no transaction files because no edits were attempted.');
+    RequireJsonObjectKey(lRoot, 'verification', lVerification);
+    Assert.AreEqual('failed', lVerification.Values['status'].Value,
+      'Expected failed verification status for preflight failure.');
+    RequireJsonArrayKey(lVerification, 'requirementReconciliation', lReconciliation);
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'baseline-compile',
+      'preflight-build', 'failed', 'Preflight failure reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'context-fingerprint',
+      'context-validation', 'passed', 'Preflight failure reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'source-range',
+      'source-validation', 'not-run', 'Preflight failure reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'post-edit-compile',
+      'post-edit-build', 'not-run', 'Preflight failure reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'rollback-on-failure',
+      'rollback', 'not-run', 'Preflight failure reconciliation');
+    RequireJsonArrayKey(lVerification, 'gates', lGates);
+    Assert.AreEqual(1, lGates.Count, 'Expected one failed preflight build gate.');
+    AssertBuildGateSatisfies(lGates.Items[0] as TJSONObject, 'baseline-compile');
+    Assert.IsFalse(JsonArrayHasStringValue((lGates.Items[0] as TJSONObject).Values['satisfies'] as TJSONArray,
+      'post-edit-compile'), 'Preflight gate must not satisfy post-edit verification.');
     RequireJsonObjectKey(lRoot, 'summary', lSummary);
     Assert.AreEqual(0, (lSummary.Values['appliedEdits'] as TJSONNumber).AsInt,
       'Expected no applied edits on preflight failure.');
@@ -7702,6 +7805,8 @@ var
   lExitCode: Cardinal;
   lFiles: TJSONArray;
   lGates: TJSONArray;
+  lReconciliation: TJSONArray;
+  lRequiredVerification: TJSONArray;
   lRoot: TJSONObject;
   lTransaction: TJSONObject;
   lVerification: TJSONObject;
@@ -7711,13 +7816,30 @@ begin
   try
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected apply report fixture to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied root status.');
+    RequireJsonArrayKey(lRoot, 'requiredVerification', lRequiredVerification);
+    AssertRequiredRemoveWithVerificationKinds(lRequiredVerification, 'Apply report root');
     RequireJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('passed', lVerification.Values['status'].Value, 'Expected passed verification status.');
+    RequireJsonArrayKey(lVerification, 'requiredVerification', lRequiredVerification);
+    AssertRequiredRemoveWithVerificationKinds(lRequiredVerification, 'Apply verification');
+    RequireJsonArrayKey(lVerification, 'requirementReconciliation', lReconciliation);
+    AssertRequiredRemoveWithVerificationKinds(lReconciliation, 'Apply verification reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'baseline-compile',
+      'preflight-build', 'passed', 'Apply verification reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'context-fingerprint',
+      'context-validation', 'passed', 'Apply verification reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'source-range',
+      'source-validation', 'passed', 'Apply verification reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'post-edit-compile',
+      'post-edit-build', 'passed', 'Apply verification reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'rollback-on-failure',
+      'rollback', 'available', 'Apply verification reconciliation');
     RequireJsonArrayKey(lVerification, 'gates', lGates);
     Assert.AreEqual(1, lGates.Count, 'Expected one verification gate.');
     Assert.AreEqual('build', (lGates.Items[0] as TJSONObject).Values['name'].Value, 'Expected build gate.');
     Assert.AreEqual('passed', (lGates.Items[0] as TJSONObject).Values['status'].Value,
       'Expected passed build gate.');
+    AssertBuildGateSatisfies(lGates.Items[0] as TJSONObject, 'post-edit-compile');
 
     RequireJsonObjectKey(lRoot, 'transaction', lTransaction);
     RequireJsonStringKey(lTransaction, 'manifestPath');
@@ -7736,6 +7858,7 @@ var
   lExitCode: Cardinal;
   lFiles: TJSONArray;
   lGates: TJSONArray;
+  lReconciliation: TJSONArray;
   lRoot: TJSONObject;
   lTransaction: TJSONObject;
   lVerification: TJSONObject;
@@ -7752,6 +7875,18 @@ begin
     Assert.AreEqual('build', (lGates.Items[0] as TJSONObject).Values['name'].Value, 'Expected build gate.');
     Assert.AreEqual('failed', (lGates.Items[0] as TJSONObject).Values['status'].Value,
       'Expected failed build gate.');
+    AssertBuildGateSatisfies(lGates.Items[0] as TJSONObject, 'post-edit-compile');
+    RequireJsonArrayKey(lVerification, 'requirementReconciliation', lReconciliation);
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'baseline-compile',
+      'preflight-build', 'passed', 'Rollback reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'context-fingerprint',
+      'context-validation', 'passed', 'Rollback reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'source-range',
+      'source-validation', 'passed', 'Rollback reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'post-edit-compile',
+      'post-edit-build', 'failed', 'Rollback reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'rollback-on-failure',
+      'rollback', 'passed', 'Rollback reconciliation');
     RequireJsonArrayKey(lGates.Items[0] as TJSONObject, 'diagnostics', lDiagnostics);
     Assert.IsTrue(lDiagnostics.Count > 0, 'Expected failed build diagnostics in JSON report.');
     lDiagnosticText := lDiagnostics.ToJSON;
@@ -7899,6 +8034,7 @@ var
   lExitCode: Cardinal;
   lFiles: TJSONArray;
   lFixtureDir: string;
+  lReconciliation: TJSONArray;
   lRoot: TJSONObject;
   lSkippedBefore: TBytes;
   lSkippedUnitPath: string;
@@ -7922,6 +8058,17 @@ begin
     RequireJsonObjectKey(lRoot, 'verification', lVerification);
     Assert.AreEqual('not-run', lVerification.Values['status'].Value,
       'Expected no build verification when there are no edits.');
+    RequireJsonArrayKey(lVerification, 'requirementReconciliation', lReconciliation);
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'baseline-compile',
+      'preflight-build', 'not-run', 'No-edit apply reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'context-fingerprint',
+      'context-validation', 'not-run', 'No-edit apply reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'source-range',
+      'source-validation', 'not-run', 'No-edit apply reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'post-edit-compile',
+      'post-edit-build', 'not-run', 'No-edit apply reconciliation');
+    AssertRemoveWithRequirementReconciliation(lReconciliation, 'rollback-on-failure',
+      'rollback', 'not-run', 'No-edit apply reconciliation');
     RequireJsonObjectKey(lRoot, 'transaction', lTransaction);
     RequireJsonArrayKey(lTransaction, 'files', lFiles);
     Assert.AreEqual(0, lFiles.Count, 'Expected no transaction files when nothing is edited.');

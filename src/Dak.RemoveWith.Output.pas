@@ -245,10 +245,28 @@ begin
   Result.AddPair('unresolvedReasons', lUnresolvedReasons);
 end;
 
-function BuildVerificationObject: TJSONObject;
+function BuildRemoveWithRequiredVerificationArray(
+  const aValues: TArray<TDelphiSemanticRemoveWithVerification>): TJSONArray;
+var
+  i: Integer;
+  lValue: TJSONObject;
+begin
+  Result := TJSONArray.Create;
+  for i := 0 to High(aValues) do
+  begin
+    lValue := TJSONObject.Create;
+    lValue.AddPair('kind', aValues[i].Kind);
+    lValue.AddPair('description', aValues[i].Description);
+    Result.AddElement(lValue);
+  end;
+end;
+
+function BuildVerificationObject(
+  const aRequiredVerification: TArray<TDelphiSemanticRemoveWithVerification>): TJSONObject;
 begin
   Result := TJSONObject.Create;
   Result.AddPair('status', 'not-run');
+  Result.AddPair('requiredVerification', BuildRemoveWithRequiredVerificationArray(aRequiredVerification));
   Result.AddPair('gates', TJSONArray.Create);
 end;
 
@@ -299,20 +317,168 @@ begin
   AddVerificationDiagnosticsFromFile(Result, aTransactionResult.fVerificationStdErrLogPath, lCount);
 end;
 
-function BuildApplyVerificationObject(const aTransactionResult: TRemoveWithTransactionResult): TJSONObject;
+function RemoveWithRequirementGate(const aKind: string): string;
+begin
+  if SameText(aKind, 'baseline-compile') then
+    Exit('preflight-build');
+  if SameText(aKind, 'context-fingerprint') then
+    Exit('context-validation');
+  if SameText(aKind, 'source-range') then
+    Exit('source-validation');
+  if SameText(aKind, 'post-edit-compile') then
+    Exit('post-edit-build');
+  if SameText(aKind, 'rollback-on-failure') then
+    Exit('rollback');
+  Result := '';
+end;
+
+function RemoveWithApplyWithoutEdits(const aTransactionResult: TRemoveWithTransactionResult): Boolean;
+begin
+  Result := (aTransactionResult.fStatus = TRemoveWithTransactionStatus.rwtxApplied) and
+    SameText(aTransactionResult.fVerificationStatus, 'not-run') and
+    (Length(aTransactionResult.fFiles) = 0);
+end;
+
+function RemoveWithRequirementStatus(const aKind: string;
+  const aTransactionResult: TRemoveWithTransactionResult): string;
+begin
+  if RemoveWithApplyWithoutEdits(aTransactionResult) then
+    Exit('not-run');
+
+  if SameText(aKind, 'context-fingerprint') then
+  begin
+    case aTransactionResult.fStatus of
+      TRemoveWithTransactionStatus.rwtxContextFingerprintMissing,
+      TRemoveWithTransactionStatus.rwtxContextFingerprintMismatch:
+        Exit('failed');
+      TRemoveWithTransactionStatus.rwtxNotRun:
+        Exit('not-run');
+    else
+      Exit('passed');
+    end;
+  end;
+
+  if SameText(aKind, 'source-range') then
+  begin
+    case aTransactionResult.fStatus of
+      TRemoveWithTransactionStatus.rwtxApplied:
+        Exit('passed');
+      TRemoveWithTransactionStatus.rwtxPreflightBuildFailed:
+        Exit('not-run');
+      TRemoveWithTransactionStatus.rwtxRolledBack,
+      TRemoveWithTransactionStatus.rwtxRollbackFailed:
+        if aTransactionResult.fVerificationStatus = 'not-run' then
+          Exit('failed')
+        else
+          Exit('passed');
+      TRemoveWithTransactionStatus.rwtxContextFingerprintMissing,
+      TRemoveWithTransactionStatus.rwtxContextFingerprintMismatch,
+      TRemoveWithTransactionStatus.rwtxNotRun:
+        Exit('not-run');
+    end;
+  end;
+
+  if SameText(aKind, 'baseline-compile') then
+  begin
+    case aTransactionResult.fStatus of
+      TRemoveWithTransactionStatus.rwtxPreflightBuildFailed:
+        Exit('failed');
+      TRemoveWithTransactionStatus.rwtxApplied,
+      TRemoveWithTransactionStatus.rwtxRolledBack,
+      TRemoveWithTransactionStatus.rwtxRollbackFailed:
+        Exit('passed');
+    else
+      Exit('not-run');
+    end;
+  end;
+
+  if SameText(aKind, 'post-edit-compile') then
+  begin
+    case aTransactionResult.fStatus of
+      TRemoveWithTransactionStatus.rwtxApplied:
+        Exit('passed');
+      TRemoveWithTransactionStatus.rwtxRolledBack,
+      TRemoveWithTransactionStatus.rwtxRollbackFailed:
+        Exit('failed');
+    else
+      Exit('not-run');
+    end;
+  end;
+
+  if SameText(aKind, 'rollback-on-failure') then
+  begin
+    case aTransactionResult.fStatus of
+      TRemoveWithTransactionStatus.rwtxApplied:
+        Exit('available');
+      TRemoveWithTransactionStatus.rwtxRolledBack:
+        Exit('passed');
+      TRemoveWithTransactionStatus.rwtxRollbackFailed:
+        Exit('failed');
+    else
+      Exit('not-run');
+    end;
+  end;
+
+  Result := 'unknown';
+end;
+
+function BuildBuildGateSatisfiesArray(const aTransactionResult: TRemoveWithTransactionResult): TJSONArray;
+begin
+  Result := TJSONArray.Create;
+  if aTransactionResult.fStatus = TRemoveWithTransactionStatus.rwtxPreflightBuildFailed then
+    Result.AddElement(TJSONString.Create('baseline-compile'))
+  else
+    Result.AddElement(TJSONString.Create('post-edit-compile'));
+end;
+
+function RemoveWithBuildGatePhase(const aTransactionResult: TRemoveWithTransactionResult): string;
+begin
+  if aTransactionResult.fStatus = TRemoveWithTransactionStatus.rwtxPreflightBuildFailed then
+    Result := 'preflight'
+  else
+    Result := 'post-edit';
+end;
+
+function BuildRequirementReconciliationArray(
+  const aRequiredVerification: TArray<TDelphiSemanticRemoveWithVerification>;
+  const aTransactionResult: TRemoveWithTransactionResult): TJSONArray;
+var
+  i: Integer;
+  lValue: TJSONObject;
+begin
+  Result := TJSONArray.Create;
+  for i := 0 to High(aRequiredVerification) do
+  begin
+    lValue := TJSONObject.Create;
+    lValue.AddPair('kind', aRequiredVerification[i].Kind);
+    lValue.AddPair('description', aRequiredVerification[i].Description);
+    lValue.AddPair('gate', RemoveWithRequirementGate(aRequiredVerification[i].Kind));
+    lValue.AddPair('status', RemoveWithRequirementStatus(aRequiredVerification[i].Kind,
+      aTransactionResult));
+    Result.AddElement(lValue);
+  end;
+end;
+
+function BuildApplyVerificationObject(const aTransactionResult: TRemoveWithTransactionResult;
+  const aRequiredVerification: TArray<TDelphiSemanticRemoveWithVerification>): TJSONObject;
 var
   lDiagnostics: TJSONArray;
   lGates: TJSONArray;
 begin
   Result := TJSONObject.Create;
   Result.AddPair('status', aTransactionResult.fVerificationStatus);
+  Result.AddPair('requiredVerification', BuildRemoveWithRequiredVerificationArray(aRequiredVerification));
+  Result.AddPair('requirementReconciliation', BuildRequirementReconciliationArray(aRequiredVerification,
+    aTransactionResult));
   lGates := TJSONArray.Create;
   if aTransactionResult.fVerificationStatus <> 'not-run' then
   begin
     lDiagnostics := BuildVerificationDiagnosticsArray(aTransactionResult);
     lGates.AddElement(TJSONObject.Create
       .AddPair('name', 'build')
+      .AddPair('phase', RemoveWithBuildGatePhase(aTransactionResult))
       .AddPair('status', aTransactionResult.fVerificationStatus)
+      .AddPair('satisfies', BuildBuildGateSatisfiesArray(aTransactionResult))
       .AddPair('error', aTransactionResult.fVerificationError)
       .AddPair('stdoutLog', aTransactionResult.fVerificationStdOutLogPath)
       .AddPair('stderrLog', aTransactionResult.fVerificationStdErrLogPath)
@@ -853,10 +1019,14 @@ begin
     lRoot.AddPair('plannedEdits', BuildPlannedEditsArray(aPlanResult));
     lRoot.AddPair('skipped', BuildSkippedArray(aPlanResult));
     lRoot.AddPair('warnings', BuildWarningsArray(aScanResult));
+    lRoot.AddPair('requiredVerification',
+      BuildRemoveWithRequiredVerificationArray(aPlanResult.fSemanticPlan.RequiredVerification));
     if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
-      lRoot.AddPair('verification', BuildApplyVerificationObject(aTransactionResult))
+      lRoot.AddPair('verification', BuildApplyVerificationObject(aTransactionResult,
+        aPlanResult.fSemanticPlan.RequiredVerification))
     else
-      lRoot.AddPair('verification', BuildVerificationObject);
+      lRoot.AddPair('verification', BuildVerificationObject(
+        aPlanResult.fSemanticPlan.RequiredVerification));
     lRoot.AddPair('transaction', BuildTransactionObject(aTransactionResult));
     if aOptions.fRemoveWithDiagnostics then
       lRoot.AddPair('migrationTelemetry', BuildMigrationTelemetryObject(aResolverResult, aPlanResult));
