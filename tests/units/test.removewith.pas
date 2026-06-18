@@ -5,6 +5,7 @@ interface
 uses
   System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
   DUnitX.TestFramework,
+  Dak.SourceText,
   Dak.RemoveWith.Discovery, Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Planner,
   Dak.RemoveWith.Output, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols,
   Dak.RemoveWith.TempPolicy, Dak.RemoveWith.Transaction, Dak.Types, DelphiSemantics.Api,
@@ -19,6 +20,13 @@ type
     procedure AssertJsonHasKey(const aObject: TJSONObject; const aName: string);
     procedure AssertJsonMissingKey(const aObject: TJSONObject; const aName: string);
     procedure AssertJsonBoolKey(const aObject: TJSONObject; const aName: string);
+  end;
+
+  [TestFixture]
+  TRemoveWithSourceProvenanceTests = class(TRemoveWithTestBase)
+  public
+    [Test]
+    procedure SourceLoaderReportsMixedCrAndEmptyLineEndings;
   end;
 
   [TestFixture]
@@ -524,6 +532,8 @@ type
   public
     [Test]
     procedure ApplyAggregatesRoutineTempsAndBuilds;
+    [Test]
+    procedure ApplyGeneratedTempsPreservesLfLineEndings;
   end;
 
   [TestFixture]
@@ -544,6 +554,8 @@ type
     procedure ApplyModeStopsBeforeEditingWhenPreflightBuildFails;
     [Test]
     procedure ApplyModePreservesAnsiEncodedSource;
+    [Test]
+    procedure ApplyModePreservesLfLineEndings;
     [Test]
     procedure ApplyModeRollsBackExactBytesWhenBuildVerificationFails;
     [Test]
@@ -1039,6 +1051,35 @@ procedure TRemoveWithTestBase.AssertJsonBoolKey(const aObject: TJSONObject; cons
 begin
   AssertJsonHasKey(aObject, aName);
   Assert.IsTrue(aObject.Values[aName] is TJSONBool, 'Expected JSON boolean key: ' + aName);
+end;
+
+procedure TRemoveWithSourceProvenanceTests.SourceLoaderReportsMixedCrAndEmptyLineEndings;
+var
+  lCrPath: string;
+  lError: string;
+  lMixedPath: string;
+  lNoBreakPath: string;
+  lSource: TDakSourceBuffer;
+begin
+  lMixedPath := TPath.Combine(TempRoot, 'remove-with-source-provenance-mixed.pas');
+  lCrPath := TPath.Combine(TempRoot, 'remove-with-source-provenance-cr.pas');
+  lNoBreakPath := TPath.Combine(TempRoot, 'remove-with-source-provenance-none.pas');
+
+  TFile.WriteAllBytes(lMixedPath, TEncoding.UTF8.GetBytes('unit Mixed;' + #13#10 +
+    'interface' + #10 + 'end.'));
+  Assert.IsTrue(LoadDakSource(lMixedPath, lSource, lError), lError);
+  Assert.AreEqual('mixed', lSource.fLineEndingName, 'Expected mixed line-ending provenance.');
+  Assert.AreEqual(#13#10, lSource.fLineBreak, 'Expected mixed provenance to keep the first line break.');
+
+  TFile.WriteAllBytes(lCrPath, TEncoding.UTF8.GetBytes('unit Cr;' + #13 + 'interface' + #13 + 'end.'));
+  Assert.IsTrue(LoadDakSource(lCrPath, lSource, lError), lError);
+  Assert.AreEqual('cr', lSource.fLineEndingName, 'Expected CR line-ending provenance.');
+  Assert.AreEqual(#13, lSource.fLineBreak, 'Expected CR line break.');
+
+  TFile.WriteAllBytes(lNoBreakPath, TEncoding.UTF8.GetBytes('unit NoBreak;'));
+  Assert.IsTrue(LoadDakSource(lNoBreakPath, lSource, lError), lError);
+  Assert.AreEqual('none', lSource.fLineEndingName, 'Expected no-line-ending provenance.');
+  Assert.AreEqual(sLineBreak, lSource.fLineBreak, 'Expected no-line-ending source to use platform fallback.');
 end;
 
 procedure TRemoveWithCommandTests.ScanModeWritesJsonShellWithoutEditingSource;
@@ -6681,6 +6722,43 @@ begin
     lBuildOutput);
 end;
 
+procedure TRemoveWithTempAggregationTests.ApplyGeneratedTempsPreservesLfLineEndings;
+var
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lRoot: TJSONObject;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CopyFixtureToTemp('RemoveWithTempAggregationFixture', 'remove-with-temp-aggregation-lf',
+    'TempAggregationUnit.pas', lDprojPath, lUnitPath);
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  lUnitText := StringReplace(lUnitText, #13#10, #10, [rfReplaceAll]);
+  TFile.WriteAllBytes(lUnitPath, TEncoding.UTF8.GetBytes(lUnitText));
+
+  lRoot := RunApplyFixture(lDprojPath, 'remove-with-temp-aggregation-lf.json', lExitCode);
+  try
+    Assert.AreEqual(Cardinal(0), lExitCode, 'Expected LF temp aggregation apply to succeed.');
+    Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied LF temp aggregation status.');
+  finally
+    lRoot.Free;
+  end;
+
+  lUnitText := TEncoding.UTF8.GetString(TFile.ReadAllBytes(lUnitPath));
+  Assert.AreEqual(0, Pos(#13, lUnitText), 'Expected generated temp rewrites to preserve LF-only source.');
+  Assert.IsTrue(Pos('lWithTempAggregationRecordPtr: ^TTempAggregationRecord;', lUnitText) > 0,
+    'Expected generated temp declarations to be present.');
+  Assert.IsTrue(Pos('lWithTempAggregationRecordPtr := @aFirstRecord;', lUnitText) > 0,
+    'Expected generated temp initializers to be present.');
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-temp-aggregation-lf-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited LF temp aggregation fixture to build. Output: ' +
+    lBuildOutput);
+end;
+
 function TRemoveWithTransactionTests.CommandExePath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'bin\DelphiAIKit.exe');
@@ -6992,6 +7070,67 @@ begin
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-apply-ansi-build.log', lBuildExitCode);
   Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited ANSI apply fixture to build. Output: ' +
+    lBuildOutput);
+end;
+
+procedure TRemoveWithTransactionTests.ApplyModePreservesLfLineEndings;
+var
+  lAppliedText: string;
+  lBuildExitCode: Cardinal;
+  lBuildOutput: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFiles: TJSONArray;
+  lManifest: TJSONObject;
+  lManifestPath: string;
+  lManifestValue: TJSONValue;
+  lOutput: string;
+  lOutputValue: TJSONValue;
+  lProjectDir: string;
+  lText: string;
+  lUnitPath: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-lf-transaction', 'ApplyUnit.pas',
+    lDprojPath, lUnitPath);
+
+  lText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  lText := StringReplace(lText, #13#10, #10, [rfReplaceAll]);
+  TFile.WriteAllBytes(lUnitPath, TEncoding.UTF8.GetBytes(lText));
+
+  lOutput := RunApplyFixture(lDprojPath, 'remove-with-apply-lf-transaction.json', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected LF apply mode to succeed. Output: ' + lOutput);
+  lOutputValue := ParseJsonValue(lOutput);
+  try
+    Assert.IsTrue(lOutputValue is TJSONObject, 'Expected apply output to be a single JSON object. Output: ' +
+      lOutput);
+    Assert.AreEqual('applied', (lOutputValue as TJSONObject).Values['status'].Value,
+      'Expected applied status in LF apply output.');
+  finally
+    lOutputValue.Free;
+  end;
+
+  lAppliedText := TEncoding.UTF8.GetString(TFile.ReadAllBytes(lUnitPath));
+  Assert.AreEqual(0, Pos(#13, lAppliedText), 'Expected edited LF file not to gain CR bytes.');
+  Assert.IsTrue(Pos('with aRecordPtr^ do', lAppliedText) = 0, 'Expected with statement to be removed.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name := ''applied'';', lAppliedText) > 0,
+    'Expected LF file to contain direct pointer qualification.');
+
+  lProjectDir := TPath.GetDirectoryName(lDprojPath);
+  lManifestPath := FindSingleManifest(lProjectDir, 'RemoveWithApplyFixture');
+  lManifestValue := ParseJsonValue(ReadUtf8TextFile(lManifestPath));
+  try
+    Assert.IsTrue(lManifestValue is TJSONObject, 'Expected LF manifest JSON object.');
+    lManifest := lManifestValue as TJSONObject;
+    lFiles := lManifest.Values['files'] as TJSONArray;
+    Assert.AreEqual(1, lFiles.Count, 'Expected one backed up LF file.');
+    Assert.AreEqual('lf', (lFiles.Items[0] as TJSONObject).Values['lineEnding'].Value,
+      'Expected manifest to report LF line-ending provenance.');
+  finally
+    lManifestValue.Free;
+  end;
+
+  lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-apply-lf-build.log', lBuildExitCode);
+  Assert.AreEqual(Cardinal(0), lBuildExitCode, 'Expected edited LF apply fixture to build. Output: ' +
     lBuildOutput);
 end;
 

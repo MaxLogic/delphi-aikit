@@ -13,6 +13,8 @@ type
     fText: string;
     fEncoding: TRemoveWithSourceEncoding;
     fHasUtf8Bom: Boolean;
+    fLineBreak: string;
+    fLineEndingName: string;
     fLineStarts: TArray<Integer>;
   end;
 
@@ -70,6 +72,8 @@ begin
   Result.fText := aSource.fText;
   Result.fEncoding := DakEncodingFromRemoveWith(aSource.fEncoding);
   Result.fHasUtf8Bom := aSource.fHasUtf8Bom;
+  Result.fLineBreak := aSource.fLineBreak;
+  Result.fLineEndingName := aSource.fLineEndingName;
   Result.fLineStarts := aSource.fLineStarts;
 end;
 
@@ -79,6 +83,8 @@ begin
   Result.fText := aSource.fText;
   Result.fEncoding := RemoveWithEncodingFromDak(aSource.fEncoding);
   Result.fHasUtf8Bom := aSource.fHasUtf8Bom;
+  Result.fLineBreak := aSource.fLineBreak;
+  Result.fLineEndingName := aSource.fLineEndingName;
   Result.fLineStarts := aSource.fLineStarts;
 end;
 
