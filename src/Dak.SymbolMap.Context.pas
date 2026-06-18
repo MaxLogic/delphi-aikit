@@ -39,7 +39,8 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.SysUtils,
-  Dak.Project.BuildParams, Dak.Project.Semantics, Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars, Dak.Settings;
+  Dak.Paths, Dak.Project.BuildParams, Dak.Project.Semantics, Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars,
+  Dak.Settings;
 
 function NormalizeDelphiVersion(const aValue: string): string;
 begin
@@ -254,8 +255,8 @@ begin
   aContext.fUnitScopes := aContext.fProject.UnitScopes;
   aContext.fUnitAliases := aContext.fProject.UnitAliases;
   aContext.fCentralCacheRoot := ResolveSymbolMapCentralCacheRoot(lOptions);
-  aContext.fProjectCacheRoot := TPath.Combine(TPath.Combine(aContext.fProject.DakProjectRoot, 'symbol-map'),
-    cSymbolMapCacheDirectoryVersion);
+  aContext.fProjectCacheRoot := DakProjectPath(aContext.fProject.DakProjectRoot,
+    ['symbol-map', cSymbolMapCacheDirectoryVersion]);
   TryPopulateCompilerParams(lOptions, aContext);
   Result := True;
 end;

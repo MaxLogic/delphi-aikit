@@ -34,6 +34,8 @@ type
     procedure SemanticsSessionAdapterMapsOptionsAndDiagnostics;
     [Test]
     procedure SemanticsSessionAdapterIsCentralized;
+    [Test]
+    procedure ProjectDakRootPolicyIsCentralized;
   end;
 
 implementation
@@ -443,6 +445,44 @@ begin
         lPath + ' should open Semantics sessions through the shared adapter.');
     end;
   end;
+end;
+
+procedure TRefactorCommandTests.ProjectDakRootPolicyIsCentralized;
+var
+  lCommandSource: string;
+  lHelperPath: string;
+  lHelperSource: string;
+  lPath: string;
+begin
+  lHelperPath := TPath.Combine(RepoRoot, 'src\Dak.Paths.pas');
+  Assert.IsTrue(TFile.Exists(lHelperPath),
+    'Project-local .dak path construction should live in a shared Dak.Paths helper.');
+
+  lHelperSource := TFile.ReadAllText(lHelperPath, TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lHelperSource, 'function DakProjectRoot'),
+    'Dak.Paths should expose the project-local .dak root helper.');
+  Assert.IsTrue(ContainsText(lHelperSource, 'function DakProjectPath'),
+    'Dak.Paths should expose a command subpath helper.');
+  Assert.IsTrue(ContainsText(lHelperSource, 'function ExplicitPathOrDefault'),
+    'Dak.Paths should keep explicit user-provided output paths distinct from default paths.');
+  Assert.IsTrue(ContainsText(lHelperSource, 'if aExplicitPath <> '''' then'),
+    'Explicit user-provided paths must win over default project-local paths.');
+
+  for lPath in ['src\dak.analyze.common.pas', 'src\Dak.Project.Semantics.pas',
+    'src\dak.lsp.context.pas', 'src\Dak.SymbolMap.Context.pas',
+    'src\dak.deps.runner.pas', 'src\Dak.Refactor.pas', 'src\Dak.RemoveWith.pas'] do
+  begin
+    lCommandSource := TFile.ReadAllText(TPath.Combine(RepoRoot, lPath), TEncoding.UTF8);
+    Assert.IsTrue(ContainsText(lCommandSource, 'Dak.Paths'),
+      lPath + ' should use the shared project-local path helper.');
+    Assert.IsFalse(ContainsText(lCommandSource, 'TPath.Combine(TPath.Combine') and
+      ContainsText(lCommandSource, '''.dak'''),
+      lPath + ' must not construct project-local .dak roots with nested TPath.Combine calls.');
+  end;
+
+  lCommandSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.deps.runner.pas'), TEncoding.UTF8);
+  Assert.IsFalse(ContainsText(lCommandSource, 'function TDepsGraphBuilder.DefaultOutputPath'),
+    'Deps default output path resolution should live only in the command runner.');
 end;
 
 initialization

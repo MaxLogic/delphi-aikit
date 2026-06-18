@@ -12,7 +12,8 @@ implementation
 uses
   System.Diagnostics, System.Generics.Collections, System.IOUtils, System.SysUtils,
   Dak.CommandOutput, Dak.ExitCodes, Dak.RemoveWith.Discovery, Dak.RemoveWith.Model, Dak.RemoveWith.Output,
-  Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction, Dak.Utils;
+  Dak.Paths, Dak.RemoveWith.Planner, Dak.RemoveWith.Resolver, Dak.RemoveWith.Symbols, Dak.RemoveWith.Transaction,
+  Dak.Utils;
 
 procedure LogRemoveWithProgress(const aOptions: TAppOptions; const aMessage: string);
 begin
@@ -147,7 +148,6 @@ var
   lPlannerMs: Int64;
   lPlannerStopwatch: TStopwatch;
   lProjectModel: TRemoveWithProjectModel;
-  lProjectName: string;
   lProjectPath: string;
   lResolverError: string;
   lResolverReportMetrics: TRemoveWithResolverReportMetrics;
@@ -186,11 +186,9 @@ begin
     Exit(cExitInvalidProjectInput);
   end;
 
-  lProjectName := TPath.GetFileNameWithoutExtension(lProjectPath);
   lTotalStopwatch := TStopwatch.StartNew;
   lRunId := NewRemoveWithRunId;
-  lWorkspaceRoot := TPath.Combine(TPath.Combine(TPath.Combine(TPath.GetDirectoryName(lProjectPath), '.dak'), lProjectName),
-    TPath.Combine('remove-with', lRunId));
+  lWorkspaceRoot := DakProjectPath(DakProjectRootForProjectPath(lProjectPath), ['remove-with', lRunId]);
   TDirectory.CreateDirectory(lWorkspaceRoot);
   LogRemoveWithProgress(aOptions, Format('start mode=%s project=%s workspace=%s',
     [RemoveWithModeToText(aOptions.fRemoveWithMode), lProjectPath, lWorkspaceRoot]));

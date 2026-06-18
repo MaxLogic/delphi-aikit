@@ -20,7 +20,7 @@ uses
   System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.SysUtils,
   DelphiSemantics.Api, DelphiSemantics.CompilerProfile,
   maxLogic.StrUtils,
-  Dak.Semantics.Session, Dak.Utils;
+  Dak.Paths, Dak.Semantics.Session, Dak.Utils;
 
 function ConcatDedup(const aFirst, aSecond: TArray<string>): TArray<string>;
 var
@@ -110,8 +110,7 @@ begin
   lProjectName := TPath.GetFileNameWithoutExtension(lProjectPath);
   aContext := TProjectAnalysisContext.Create(lProjectPath, lProjectName,
     lProjectDir, '', nil, TargetCompilerDefinesText(aOptions.fPlatform),
-    lProjectDir, nil, nil, TPath.Combine(TPath.Combine(lProjectDir, '.dak'),
-      lProjectName), False, cDefaultContextNote);
+    lProjectDir, nil, nil, DakProjectRoot(lProjectDir, lProjectName), False, cDefaultContextNote);
 
   lBuildOptions := aOptions;
   lBuildOptions.fDprojPath := lProjectPath;
@@ -143,8 +142,7 @@ begin
     lResult.Project.MainSourceFileName, lResult.Project.SourceFileNames,
     String.Join(';', lResult.Project.Defines), lParserSearchPath,
     lResult.Project.UnitScopeNames, lResult.Project.UnitAliases,
-    TPath.Combine(TPath.Combine(lResult.Project.ProjectDirectory, '.dak'),
-      lResult.Project.ProjectName), lHasDelphiContext, lContextNote);
+    DakProjectRoot(lResult.Project.ProjectDirectory, lResult.Project.ProjectName), lHasDelphiContext, lContextNote);
 
   Result := FinishContext;
 end;

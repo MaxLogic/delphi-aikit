@@ -36,7 +36,8 @@ implementation
 uses
   System.Generics.Collections, System.IOUtils, System.JSON, System.SysUtils,
   DelphiSemantics.Lsp,
-  Dak.Messages, Dak.Project.BuildParams, Dak.Project.SourceLookup, Dak.Registry, Dak.RsVars, Dak.Settings, Dak.Utils;
+  Dak.Messages, Dak.Paths, Dak.Project.BuildParams, Dak.Project.SourceLookup, Dak.Registry, Dak.RsVars, Dak.Settings,
+  Dak.Utils;
 
 function NormalizeDelphiVersion(const aValue: string): string;
 begin
@@ -244,8 +245,8 @@ begin
   aContext.fProjectPath := lProjectPath;
   aContext.fProjectDir := TPath.GetDirectoryName(lProjectPath);
   aContext.fProjectName := TPath.GetFileNameWithoutExtension(lProjectPath);
-  aContext.fDakProjectRoot := TPath.Combine(TPath.Combine(aContext.fProjectDir, '.dak'), aContext.fProjectName);
-  aContext.fDakLspRoot := TPath.Combine(aContext.fDakProjectRoot, 'lsp');
+  aContext.fDakProjectRoot := DakProjectRoot(aContext.fProjectDir, aContext.fProjectName);
+  aContext.fDakLspRoot := DakProjectPath(aContext.fDakProjectRoot, ['lsp']);
 
   lNormalizedOptions.fDprojPath := lProjectPath;
   lNormalizedOptions.fDelphiVersion := NormalizeDelphiVersion(lNormalizedOptions.fDelphiVersion);
