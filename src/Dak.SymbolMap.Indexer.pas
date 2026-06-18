@@ -3,7 +3,7 @@ unit Dak.SymbolMap.Indexer;
 interface
 
 uses
-  DelphiSemantics.Model;
+  Dak.SymbolMap.Context, DelphiSemantics.Api, DelphiSemantics.Model;
 
 type
   TSymbolMapUnitUse = record
@@ -14,6 +14,7 @@ type
   end;
 
   TSymbolMapSymbolModel = record
+    fSymbolId: string;
     fName: string;
     fKind: string;
     fUnitName: string;
@@ -67,6 +68,8 @@ type
 function TryLoadSymbolMapSourceFile(const aFilePath: string; out aText, aEncodingName, aError: string): Boolean;
 function SymbolMapUnitModelFromDelphiSemanticModel(const aSemanticModel: TDelphiSemanticUnitModel):
   TSymbolMapUnitModel;
+function TryBuildSymbolMapUnitModelsFromDelphiSemanticProjectIndex(const aContext: TSymbolMapContext;
+  const aIncludeMainSource: Boolean; out aModels: TArray<TSymbolMapUnitModel>; out aError: string): Boolean;
 function TryExtractSymbolMapUnitModel(const aFilePath: string; out aModel: TSymbolMapUnitModel;
   out aError: string): Boolean;
 
@@ -74,6 +77,8 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  Dak.Semantics.Session,
+  DelphiSemantics.ProjectContext, DelphiSemantics.ProjectSession,
   maxLogic.StrUtils;
 
 type
@@ -531,6 +536,18 @@ begin
   Result := aOwnerName + #9 + aMemberName + #9 + aKind;
 end;
 
+function SymbolMapProjectFileKey(const aFileName: string): string;
+begin
+  if Trim(aFileName) = '' then
+    Exit('');
+
+  try
+    Result := LowerCase(TPath.GetFullPath(aFileName));
+  except
+    Result := LowerCase(aFileName);
+  end;
+end;
+
 procedure SeedSemanticUseKeys(const aModel: TSymbolMapUnitModel; aKeys: THashSet<string>);
 var
   lUse: TSymbolMapUnitUse;
@@ -738,6 +755,220 @@ begin
   Result.fFilePath := aSemanticModel.FileName;
   Result.fEncodingName := aSemanticModel.EncodingName;
   MergeDelphiSemanticModel(Result, aSemanticModel);
+end;
+
+function SymbolMapSemanticSessionOptions(const aContext: TSymbolMapContext): TDelphiSemanticOptions;
+var
+  lCacheFileName: string;
+begin
+  lCacheFileName := '';
+  if aContext.fProjectCacheRoot <> '' then
+    lCacheFileName := TPath.Combine(aContext.fProjectCacheRoot, 'semantic-unit-cache.sqlite3');
+  Result := BuildSemanticSessionOptions(aContext.fProject.ProjectPath, aContext.fConfig,
+    aContext.fPlatform, aContext.fDelphiVersion, aContext.fRsVarsPath,
+    aContext.fEnvOptionsPath, lCacheFileName);
+end;
+
+procedure AddAllowedProjectFileKeys(const aContext: TSymbolMapContext; const aIncludeMainSource: Boolean;
+  const aKeys: TDictionary<string, Boolean>);
+var
+  lFileName: string;
+  lKey: string;
+begin
+  for lFileName in SymbolMapProjectSourceFilePaths(aContext, aIncludeMainSource) do
+  begin
+    lKey := SymbolMapProjectFileKey(lFileName);
+    if lKey <> '' then
+      aKeys.AddOrSetValue(lKey, True);
+  end;
+end;
+
+function ProjectFileIsAllowed(const aKeys: TDictionary<string, Boolean>; const aFileName: string): Boolean;
+var
+  lKey: string;
+begin
+  lKey := SymbolMapProjectFileKey(aFileName);
+  Result := (lKey <> '') and aKeys.ContainsKey(lKey);
+end;
+
+function TryFindSymbolMapModelIndex(const aModels: TArray<TSymbolMapUnitModel>; const aUnitName,
+  aFileName: string; out aIndex: Integer): Boolean;
+var
+  i: Integer;
+begin
+  for i := 0 to High(aModels) do
+    if SameText(aModels[i].fUnitName, aUnitName) and
+      SameText(SymbolMapProjectFileKey(aModels[i].fFilePath), SymbolMapProjectFileKey(aFileName)) then
+    begin
+      aIndex := i;
+      Exit(True);
+    end;
+
+  aIndex := -1;
+  Result := False;
+end;
+
+function EnsureSymbolMapModel(var aModels: TArray<TSymbolMapUnitModel>; const aUnitName,
+  aFileName: string): Integer;
+begin
+  if TryFindSymbolMapModelIndex(aModels, aUnitName, aFileName, Result) then
+    Exit;
+
+  Result := Length(aModels);
+  SetLength(aModels, Result + 1);
+  aModels[Result] := Default(TSymbolMapUnitModel);
+  aModels[Result].fUnitName := aUnitName;
+  aModels[Result].fFilePath := TPath.GetFullPath(aFileName);
+  aModels[Result].fEncodingName := 'semantic-project-index';
+end;
+
+function SymbolIsProjectedMember(const aSymbol: TDelphiSemanticIndexedSymbol): Boolean;
+begin
+  Result := MatchText(aSymbol.Kind, ['field', 'method', 'property']);
+end;
+
+function SymbolIsProjectedLocal(const aSymbol: TDelphiSemanticIndexedSymbol): Boolean;
+begin
+  Result := (aSymbol.OwnerName <> '') and MatchText(aSymbol.Kind, ['local', 'parameter', 'var']);
+end;
+
+procedure AppendSymbolMapSymbol(var aModel: TSymbolMapUnitModel;
+  const aSymbol: TDelphiSemanticIndexedSymbol);
+var
+  lIndex: Integer;
+begin
+  lIndex := Length(aModel.fSymbols);
+  SetLength(aModel.fSymbols, lIndex + 1);
+  aModel.fSymbols[lIndex].fSymbolId := aSymbol.Id.Value;
+  aModel.fSymbols[lIndex].fName := aSymbol.Name;
+  aModel.fSymbols[lIndex].fKind := aSymbol.Kind;
+  aModel.fSymbols[lIndex].fUnitName := aModel.fUnitName;
+  aModel.fSymbols[lIndex].fFilePath := aModel.fFilePath;
+  aModel.fSymbols[lIndex].fOwnerName := aSymbol.OwnerName;
+  aModel.fSymbols[lIndex].fSignature := aSymbol.Signature;
+  aModel.fSymbols[lIndex].fSectionKind := aSymbol.SectionKind;
+  aModel.fSymbols[lIndex].fLine := aSymbol.Line;
+  aModel.fSymbols[lIndex].fCol := aSymbol.Column;
+  aModel.fSymbols[lIndex].fEndLine := aSymbol.Line;
+  aModel.fSymbols[lIndex].fEndCol := aSymbol.Column + Length(aSymbol.Name) - 1;
+end;
+
+procedure AppendSymbolMapMember(var aModel: TSymbolMapUnitModel;
+  const aSymbol: TDelphiSemanticIndexedSymbol);
+var
+  lIndex: Integer;
+begin
+  lIndex := Length(aModel.fMembers);
+  SetLength(aModel.fMembers, lIndex + 1);
+  aModel.fMembers[lIndex].fOwnerName := aSymbol.OwnerName;
+  aModel.fMembers[lIndex].fMemberName := aSymbol.Name;
+  aModel.fMembers[lIndex].fKind := aSymbol.Kind;
+  aModel.fMembers[lIndex].fVisibility := aSymbol.Visibility;
+  aModel.fMembers[lIndex].fSignature := aSymbol.Signature;
+  aModel.fMembers[lIndex].fLine := aSymbol.Line;
+  aModel.fMembers[lIndex].fCol := aSymbol.Column;
+  aModel.fMembers[lIndex].fEndLine := aSymbol.Line;
+  aModel.fMembers[lIndex].fEndCol := aSymbol.Column + Length(aSymbol.Name) - 1;
+end;
+
+procedure AppendSymbolMapReference(var aModel: TSymbolMapUnitModel;
+  const aReference: TDelphiSemanticIndexedReference);
+var
+  lIndex: Integer;
+begin
+  lIndex := Length(aModel.fReferences);
+  SetLength(aModel.fReferences, lIndex + 1);
+  aModel.fReferences[lIndex].fName := aReference.Name;
+  aModel.fReferences[lIndex].fSectionKind := aReference.SectionKind;
+  if aModel.fReferences[lIndex].fSectionKind = '' then
+    aModel.fReferences[lIndex].fSectionKind := 'implementation';
+  aModel.fReferences[lIndex].fRole := 'token';
+  aModel.fReferences[lIndex].fLine := aReference.Line;
+  aModel.fReferences[lIndex].fCol := aReference.Column;
+  aModel.fReferences[lIndex].fEndLine := aReference.EndLine;
+  if aModel.fReferences[lIndex].fEndLine = 0 then
+    aModel.fReferences[lIndex].fEndLine := aReference.Line;
+  aModel.fReferences[lIndex].fEndCol := aReference.EndColumn;
+  if aModel.fReferences[lIndex].fEndCol = 0 then
+    aModel.fReferences[lIndex].fEndCol := aReference.Column + Length(aReference.Name) - 1;
+end;
+
+function SymbolMapUnitModelsFromDelphiSemanticProjectIndex(
+  const aIndex: TDelphiSemanticProjectSymbolIndex; const aAllowedFileKeys:
+  TDictionary<string, Boolean>): TArray<TSymbolMapUnitModel>;
+var
+  lModelIndex: Integer;
+  lReference: TDelphiSemanticIndexedReference;
+  lSymbol: TDelphiSemanticIndexedSymbol;
+begin
+  SetLength(Result, 0);
+  for lSymbol in aIndex.Symbols do
+  begin
+    if (lSymbol.UnitName = '') or (lSymbol.FileName = '') or
+      not ProjectFileIsAllowed(aAllowedFileKeys, lSymbol.FileName) then
+      Continue;
+
+    lModelIndex := EnsureSymbolMapModel(Result, lSymbol.UnitName, lSymbol.FileName);
+    if SameText(lSymbol.Kind, 'unit') or SymbolIsProjectedLocal(lSymbol) then
+      Continue;
+
+    if SymbolIsProjectedMember(lSymbol) then
+      AppendSymbolMapMember(Result[lModelIndex], lSymbol)
+    else
+      AppendSymbolMapSymbol(Result[lModelIndex], lSymbol);
+  end;
+
+  for lReference in aIndex.References do
+  begin
+    if (lReference.UnitName = '') or (lReference.FileName = '') or
+      not ProjectFileIsAllowed(aAllowedFileKeys, lReference.FileName) then
+      Continue;
+
+    lModelIndex := EnsureSymbolMapModel(Result, lReference.UnitName, lReference.FileName);
+    AppendSymbolMapReference(Result[lModelIndex], lReference);
+  end;
+end;
+
+function TryBuildSymbolMapUnitModelsFromDelphiSemanticProjectIndex(const aContext: TSymbolMapContext;
+  const aIncludeMainSource: Boolean; out aModels: TArray<TSymbolMapUnitModel>; out aError: string): Boolean;
+var
+  lAllowedFileKeys: TDictionary<string, Boolean>;
+  lCacheMetrics: TDelphiSemanticCacheMetrics;
+  lContext: TDelphiSemanticSymbolQueryContext;
+  lExtractionMilliseconds: Int64;
+  lIndex: TDelphiSemanticProjectSymbolIndex;
+  lSessionOptions: TDelphiSemanticOptions;
+  lSessionResult: TDelphiSemanticProjectSessionResult;
+begin
+  Result := False;
+  SetLength(aModels, 0);
+  aError := '';
+  lAllowedFileKeys := TDictionary<string, Boolean>.Create;
+  try
+    AddAllowedProjectFileKeys(aContext, aIncludeMainSource, lAllowedFileKeys);
+    lSessionOptions := SymbolMapSemanticSessionOptions(aContext);
+    lSessionResult := TDelphiSemanticProjectSession.Open(lSessionOptions);
+    if not lSessionResult.Success then
+    begin
+      aError := SemanticSessionDiagnosticsText(lSessionResult.Diagnostics);
+      if aError = '' then
+        aError := 'Failed to open DelphiSemantics project session for SymbolMap projection.';
+      Exit(False);
+    end;
+
+    try
+      lContext := lSessionResult.Session.BuildSymbolQueryContext(lCacheMetrics,
+        lExtractionMilliseconds);
+      lIndex := TDelphiSemanticApi.BuildProjectSymbolIndex(lContext);
+      aModels := SymbolMapUnitModelsFromDelphiSemanticProjectIndex(lIndex,
+        lAllowedFileKeys);
+      Result := True;
+    finally
+      lSessionResult.Session.Free;
+    end;
+  finally
+    lAllowedFileKeys.Free;
+  end;
 end;
 
 procedure MergeDelphiSemanticExtraction(const aFilePath: string; var aModel: TSymbolMapUnitModel);

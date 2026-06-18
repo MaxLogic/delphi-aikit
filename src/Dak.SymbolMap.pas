@@ -436,37 +436,14 @@ function TryIndexSymbolMapProject(const aContext: TSymbolMapContext; const aCach
 var
   i: Integer;
   lIndexedUnit: TSymbolMapIndexedUnit;
-  lFound: Boolean;
   lKnownResults: TArray<TSymbolMapCacheStoreResult>;
   lModels: TArray<TSymbolMapUnitModel>;
   lStoreResults: TArray<TSymbolMapCacheStoreResult>;
-  lUnitPath: string;
-  lUnitPaths: TArray<string>;
 begin
   Result := False;
-  lUnitPaths := SymbolMapProjectSourceFilePaths(aContext, False);
-  SetLength(lModels, Length(lUnitPaths));
-  SetLength(lKnownResults, Length(lUnitPaths));
-  i := 0;
-  for lUnitPath in lUnitPaths do
-  begin
-    lIndexedUnit := Default(TSymbolMapIndexedUnit);
-    lFound := False;
-    if not aForceRefresh then
-    begin
-      if not TryLoadSymbolMapUnitProjection(aContext, aCacheStatus, lUnitPath, False,
-        lIndexedUnit.fModel, lIndexedUnit.fStoreResult, lFound, aError) then
-        Exit(False);
-    end;
-    if not lFound then
-    begin
-      if not TryExtractSymbolMapUnitModel(lUnitPath, lIndexedUnit.fModel, aError) then
-        Exit(False);
-    end;
-    lModels[i] := lIndexedUnit.fModel;
-    lKnownResults[i] := lIndexedUnit.fStoreResult;
-    Inc(i);
-  end;
+  if not TryBuildSymbolMapUnitModelsFromDelphiSemanticProjectIndex(aContext, False, lModels, aError) then
+    Exit(False);
+  SetLength(lKnownResults, Length(lModels));
   if not StoreSymbolMapProjectProjection(aContext, aCacheStatus, lModels, lKnownResults, aForceRefresh,
     lStoreResults, aError) then
     Exit(False);

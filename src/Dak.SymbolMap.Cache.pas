@@ -1015,6 +1015,14 @@ begin
   end;
 end;
 
+function SymbolMapSymbolId(const aUnitCacheKey: string; const aIndex: Integer;
+  const aSymbol: TSymbolMapSymbolModel): string;
+begin
+  Result := aSymbol.fSymbolId;
+  if Result = '' then
+    Result := aUnitCacheKey + ':' + aIndex.ToString;
+end;
+
 procedure StoreSymbols(const aConnection: TFDConnection; const aUnitCacheKey: string;
   const aModel: TSymbolMapUnitModel);
 var
@@ -1034,7 +1042,7 @@ begin
       'unit_cache_key, symbol_id, name, normalized_name, full_name, kind, owner_name, type_name, signature, ' +
       'visibility, section_kind, flags, line_no, col_no, end_line_no, end_col_no) ' +
       'values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [aUnitCacheKey, aUnitCacheKey + ':' + i.ToString, lSymbol.fName, LowerCase(lSymbol.fName), lFullName,
+      [aUnitCacheKey, SymbolMapSymbolId(aUnitCacheKey, i, lSymbol), lSymbol.fName, LowerCase(lSymbol.fName), lFullName,
       lSymbol.fKind, lSymbol.fOwnerName, lSymbol.fTypeName, lSymbol.fSignature, '', lSymbol.fSectionKind, '',
       lSymbol.fLine, lSymbol.fCol, lSymbol.fEndLine, lSymbol.fEndCol]);
   end;
@@ -1088,7 +1096,7 @@ begin
     aConnection.ExecSQL('insert into project_symbols(' +
       'project_key, normalized_name, unit_cache_key, symbol_id, visibility_rank, source_kind) ' +
       'values (?, ?, ?, ?, ?, ?)',
-      [aProjectKey, LowerCase(lSymbol.fName), aUnitCacheKey, aUnitCacheKey + ':' + i.ToString,
+      [aProjectKey, LowerCase(lSymbol.fName), aUnitCacheKey, SymbolMapSymbolId(aUnitCacheKey, i, lSymbol),
       lVisibilityRank, 'project']);
   end;
 end;
@@ -1194,6 +1202,7 @@ var
   lSectionField: TField;
   lSignatureField: TField;
   lSymbol: TSymbolMapSymbolModel;
+  lSymbolIdField: TField;
   lTypeField: TField;
 begin
   lQuery := TFDQuery.Create(nil);
@@ -1201,11 +1210,12 @@ begin
   try
     lItems := TList<TSymbolMapSymbolModel>.Create;
     lQuery.Connection := aConnection;
-    lQuery.SQL.Text := 'select name, kind, owner_name, type_name, signature, section_kind, ' +
+    lQuery.SQL.Text := 'select symbol_id, name, kind, owner_name, type_name, signature, section_kind, ' +
       'line_no, col_no, end_line_no, end_col_no from symbols where unit_cache_key = ? ' +
       'order by line_no, col_no, name';
     lQuery.Params[0].AsString := aUnitCacheKey;
     lQuery.Open;
+    lSymbolIdField := lQuery.FieldByName('symbol_id');
     lNameField := lQuery.FieldByName('name');
     lKindField := lQuery.FieldByName('kind');
     lOwnerField := lQuery.FieldByName('owner_name');
@@ -1219,6 +1229,7 @@ begin
     while not lQuery.Eof do
     begin
       lSymbol := Default(TSymbolMapSymbolModel);
+      lSymbol.fSymbolId := lSymbolIdField.AsWideString;
       lSymbol.fName := lNameField.AsWideString;
       lSymbol.fKind := lKindField.AsWideString;
       lSymbol.fUnitName := aModel.fUnitName;
