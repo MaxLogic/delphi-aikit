@@ -75,8 +75,6 @@ type
     class function FileHash(const aBytes: TBytes): string; static;
     class function CanonicalProjectIdentity(const aProjectPath: string): string; static;
     class function BuildVerificationMutexName(const aProjectPath: string): string; static;
-    class function DetectEncoding(const aBytes: TBytes): string; static;
-    class function DetectLineEnding(const aBytes: TBytes): string; static;
     class function FileAlreadyTracked(const aTransactionResult: TRemoveWithTransactionResult;
       const aPath: string): Boolean; static;
     class function HasPlannedEdits(const aPlanResult: TRemoveWithPlanResult): Boolean; static;
@@ -123,6 +121,15 @@ begin
   else
     Result := 'not-run';
   end;
+end;
+
+function ReplacementTextForSource(const aText: string; const aSource: TRemoveWithSourceBuffer): string;
+begin
+  Result := aText;
+  if (aSource.fLineBreak = '') or (aSource.fLineBreak = sLineBreak) then
+    Exit;
+
+  Result := StringReplace(Result, sLineBreak, aSource.fLineBreak, [rfReplaceAll]);
 end;
 
 procedure AddUniquePlanFile(const aFiles: TList<string>; const aFileName: string);
@@ -255,50 +262,6 @@ begin
   Result := cBuildVerificationMutexPrefix + Copy(lSafeIdentity, 1, 80) + '-' + IntToHex(lHash, 8);
 end;
 
-class function TRemoveWithTransaction.DetectEncoding(const aBytes: TBytes): string;
-begin
-  if (Length(aBytes) >= 3) and (aBytes[0] = $EF) and (aBytes[1] = $BB) and (aBytes[2] = $BF) then
-    Exit(RemoveWithSourceEncodingToText(TRemoveWithSourceEncoding.rwseUtf8, True));
-  try
-    TEncoding.UTF8.GetString(aBytes);
-    Result := RemoveWithSourceEncodingToText(TRemoveWithSourceEncoding.rwseUtf8, False);
-  except
-    on E: EEncodingError do
-      Result := RemoveWithSourceEncodingToText(TRemoveWithSourceEncoding.rwseAnsi, False);
-  end;
-end;
-
-class function TRemoveWithTransaction.DetectLineEnding(const aBytes: TBytes): string;
-var
-  lHasCrLf: Boolean;
-  lHasLf: Boolean;
-  i: Integer;
-begin
-  lHasCrLf := False;
-  lHasLf := False;
-  i := 0;
-  while i < Length(aBytes) do
-  begin
-    if (aBytes[i] = 13) and (i + 1 < Length(aBytes)) and (aBytes[i + 1] = 10) then
-    begin
-      lHasCrLf := True;
-      Inc(i, 2);
-      Continue;
-    end;
-    if aBytes[i] = 10 then
-      lHasLf := True;
-    Inc(i);
-  end;
-  if lHasCrLf and lHasLf then
-    Result := 'mixed'
-  else if lHasCrLf then
-    Result := 'crlf'
-  else if lHasLf then
-    Result := 'lf'
-  else
-    Result := 'none';
-end;
-
 class function TRemoveWithTransaction.FileAlreadyTracked(
   const aTransactionResult: TRemoveWithTransactionResult; const aPath: string): Boolean;
 var
@@ -330,20 +293,23 @@ var
   lBytes: TBytes;
   lFile: TRemoveWithTransactionFile;
   lIndex: Integer;
+  lSource: TRemoveWithSourceBuffer;
 begin
   Result := False;
   aError := '';
   try
     if FileAlreadyTracked(aTransactionResult, aPath) then
       Exit(True);
+    if not LoadRemoveWithSource(aPath, lSource, aError) then
+      Exit(False);
     lBytes := TFile.ReadAllBytes(aPath);
     lIndex := Length(aTransactionResult.fFiles);
     lFile := Default(TRemoveWithTransactionFile);
     lFile.fPath := aPath;
     lFile.fBackupPath := TPath.Combine(aBackupRoot, IntToStr(lIndex + 1) + '.bak');
     lFile.fHash := FileHash(lBytes);
-    lFile.fLineEnding := DetectLineEnding(lBytes);
-    lFile.fEncoding := DetectEncoding(lBytes);
+    lFile.fLineEnding := lSource.fLineEndingName;
+    lFile.fEncoding := RemoveWithSourceEncodingToText(lSource.fEncoding, lSource.fHasUtf8Bom);
     lFile.fStatus := 'backed-up';
     lFile.fSize := Length(lBytes);
     TDirectory.CreateDirectory(TPath.GetDirectoryName(lFile.fBackupPath));
@@ -430,6 +396,7 @@ var
   lEdits: TArray<TRemoveWithPlannedTextEdit>;
   lEdit: TRemoveWithPlannedTextEdit;
   lEndOffset: Integer;
+  lReplacementText: string;
   lSource: TRemoveWithSourceBuffer;
   lStartOffset: Integer;
   lText: string;
@@ -444,6 +411,7 @@ begin
     SortEditsDescending(lEdits);
     for lEdit in lEdits do
     begin
+      lReplacementText := ReplacementTextForSource(lEdit.fReplacementText, lSource);
       if not RemoveWithOffsetForLineColumn(lSource, lEdit.fRange.fStartLine, lEdit.fRange.fStartColumn,
         lStartOffset) then
       begin
@@ -451,7 +419,7 @@ begin
         Exit(False);
       end;
       if lEdit.fKind = 'declare-temp' then
-        Insert(lEdit.fReplacementText, lText, lStartOffset)
+        Insert(lReplacementText, lText, lStartOffset)
       else
       begin
         if not RemoveWithOffsetForLineColumn(lSource, lEdit.fRange.fEndLine, lEdit.fRange.fEndColumn, lEndOffset) then
@@ -461,7 +429,7 @@ begin
         end;
         lEndOffset := RemoveWithInclusiveEndOffset(lSource, lEndOffset);
         Delete(lText, lStartOffset, lEndOffset - lStartOffset + 1);
-        Insert(lEdit.fReplacementText, lText, lStartOffset);
+        Insert(lReplacementText, lText, lStartOffset);
       end;
     end;
     TFile.WriteAllBytes(aPath, RemoveWithTextToBytes(lText, lSource.fEncoding, lSource.fHasUtf8Bom));
@@ -544,7 +512,8 @@ begin
     lRoot.AddPair('verificationStdOutLog', aTransactionResult.fVerificationStdOutLogPath);
     lRoot.AddPair('verificationStdErrLog', aTransactionResult.fVerificationStdErrLogPath);
     TDirectory.CreateDirectory(TPath.GetDirectoryName(aManifestPath));
-    TFile.WriteAllText(aManifestPath, lRoot.ToJSON, TEncoding.UTF8);
+    TFile.WriteAllBytes(aManifestPath, RemoveWithTextToBytes(lRoot.ToJSON,
+      TRemoveWithSourceEncoding.rwseUtf8, False));
     Result := True;
   except
     on E: Exception do

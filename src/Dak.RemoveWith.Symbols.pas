@@ -128,7 +128,7 @@ uses
   System.SysUtils,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile,
   DelphiSemantics.Model,
-  Dak.RadStudio.Locator, Dak.Semantics.Session,
+  Dak.RadStudio.Locator, Dak.RemoveWith.Source, Dak.Semantics.Session,
   MaxLogic.StrUtils;
 
 procedure LogRemoveWithSymbolProgress(const aOptions: TAppOptions; const aMessage: string);
@@ -199,7 +199,6 @@ type
       const aConditionalDepth: Integer): string; static;
     class function FindNameSource(const aLines: TArray<string>; const aStartIndex, aEndIndex: Integer;
       const aName: string; out aLineNumber: Integer; out aLineText: string): Boolean; static;
-    class function DecodeSourceText(const aBytes: TBytes): string; static;
     class function ReadSourceLines(const aFilePath: string): TArray<string>; static;
     class procedure AddSymbol(const aContext: TRemoveWithSymbolInventoryContext;
       var aInventory: TRemoveWithFactSet; const aSymbol: TRemoveWithSymbolInfo);
@@ -1664,32 +1663,19 @@ begin
   end;
 end;
 
-class function TRemoveWithSymbolBuilder.DecodeSourceText(const aBytes: TBytes): string;
-var
-  lOffset: Integer;
-begin
-  lOffset := 0;
-  if (Length(aBytes) >= 3) and (aBytes[0] = $EF) and (aBytes[1] = $BB) and (aBytes[2] = $BF) then
-    lOffset := 3;
-
-  try
-    Result := TEncoding.UTF8.GetString(aBytes, lOffset, Length(aBytes) - lOffset);
-  except
-    on E: EEncodingError do
-      Result := TEncoding.Default.GetString(aBytes, lOffset, Length(aBytes) - lOffset);
-  end;
-end;
-
 class function TRemoveWithSymbolBuilder.ReadSourceLines(const aFilePath: string): TArray<string>;
 var
   i: Integer;
+  lError: string;
   lLines: TStringList;
-  lText: string;
+  lSource: TRemoveWithSourceBuffer;
 begin
-  lText := DecodeSourceText(TFile.ReadAllBytes(aFilePath));
+  if not LoadRemoveWithSource(aFilePath, lSource, lError) then
+    raise EInOutError.Create(lError);
+
   lLines := TStringList.Create;
   try
-    lLines.Text := lText;
+    lLines.Text := lSource.fText;
     SetLength(Result, lLines.Count);
     for i := 0 to lLines.Count - 1 do
       Result[i] := lLines[i];

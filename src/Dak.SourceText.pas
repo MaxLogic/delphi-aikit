@@ -13,6 +13,8 @@ type
     fText: string;
     fEncoding: TDakSourceEncoding;
     fHasUtf8Bom: Boolean;
+    fLineBreak: string;
+    fLineEndingName: string;
     fLineStarts: TArray<Integer>;
   end;
 
@@ -63,6 +65,75 @@ begin
   end;
 end;
 
+procedure AssignDakLineEndingProvenance(var aSource: TDakSourceBuffer);
+var
+  i: Integer;
+  lCrCount: Integer;
+  lCrlfCount: Integer;
+  lFirstLineBreak: string;
+  lKindCount: Integer;
+  lLfCount: Integer;
+begin
+  lCrCount := 0;
+  lCrlfCount := 0;
+  lFirstLineBreak := '';
+  lLfCount := 0;
+  i := 1;
+  while i <= Length(aSource.fText) do
+  begin
+    if aSource.fText[i] = #13 then
+    begin
+      if (i < Length(aSource.fText)) and (aSource.fText[i + 1] = #10) then
+      begin
+        Inc(lCrlfCount);
+        if lFirstLineBreak = '' then
+          lFirstLineBreak := #13#10;
+        Inc(i, 2);
+        Continue;
+      end;
+      Inc(lCrCount);
+      if lFirstLineBreak = '' then
+        lFirstLineBreak := #13;
+    end else if aSource.fText[i] = #10 then
+    begin
+      Inc(lLfCount);
+      if lFirstLineBreak = '' then
+        lFirstLineBreak := #10;
+    end;
+    Inc(i);
+  end;
+
+  lKindCount := 0;
+  if lCrlfCount > 0 then
+    Inc(lKindCount);
+  if lLfCount > 0 then
+    Inc(lKindCount);
+  if lCrCount > 0 then
+    Inc(lKindCount);
+
+  if lKindCount = 0 then
+  begin
+    aSource.fLineEndingName := 'none';
+    aSource.fLineBreak := sLineBreak;
+  end else if lKindCount > 1 then
+  begin
+    aSource.fLineEndingName := 'mixed';
+    aSource.fLineBreak := lFirstLineBreak;
+  end else if lCrlfCount > 0 then
+  begin
+    aSource.fLineEndingName := 'crlf';
+    aSource.fLineBreak := #13#10;
+  end else if lLfCount > 0 then
+  begin
+    aSource.fLineEndingName := 'lf';
+    aSource.fLineBreak := #10;
+  end else
+  begin
+    aSource.fLineEndingName := 'cr';
+    aSource.fLineBreak := #13;
+  end;
+end;
+
 function LoadDakSource(const aPath: string; out aSource: TDakSourceBuffer; out aError: string): Boolean;
 var
   lBodyLength: Integer;
@@ -92,6 +163,7 @@ begin
         aSource.fEncoding := TDakSourceEncoding.dseAnsi;
       end;
     end;
+    AssignDakLineEndingProvenance(aSource);
     BuildLineStarts(aSource);
     Result := True;
   except

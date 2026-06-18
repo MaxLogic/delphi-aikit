@@ -120,6 +120,7 @@ type
     class function RangeOffsets(const aSource: TRemoveWithSourceBuffer; const aRange: TRemoveWithRange;
       out aOffsets: TRemoveWithPlanOffsetRange): Boolean; static;
     class function SourceLineText(const aSource: TRemoveWithSourceBuffer; const aLine: Integer): string; static;
+    class function SourceLineBreak(const aSource: TRemoveWithSourceBuffer): string; static;
     class function IndentText(const aColumn: Integer): string; static;
     class function IsBeginLine(const aText: string): Boolean; static;
     class function IsLocalRoutineDeclaration(const aText: string): Boolean; static;
@@ -140,7 +141,8 @@ type
     class function EnsureGeneratedStatementTerminated(const aText: string): string; static;
     class function SplitControlledElseText(const aText: string; out aThenText, aElseText: string): Boolean; static;
     class function TempInitializationText(const aStatement: TRemoveWithStatementInfo;
-      const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIndentColumn: Integer): string; static;
+      const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIndentColumn: Integer;
+      const aLineBreak: string): string; static;
     class function TempDeclarationEdit(const aSource: TRemoveWithSourceBuffer;
       const aFilePath, aStatementId: string; const aRoutineLine: Integer;
       const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; out aEdit: TRemoveWithPlannedTextEdit): Boolean; static;
@@ -806,6 +808,13 @@ begin
     Result := Copy(aSource.fText, lStartOffset, lEndOffset - lStartOffset + 1);
 end;
 
+class function TRemoveWithPlanner.SourceLineBreak(const aSource: TRemoveWithSourceBuffer): string;
+begin
+  Result := aSource.fLineBreak;
+  if Result = '' then
+    Result := sLineBreak;
+end;
+
 class function TRemoveWithPlanner.IndentText(const aColumn: Integer): string;
 begin
   if aColumn <= 1 then
@@ -1090,7 +1099,7 @@ begin
     Exit;
   lEndOffset := RemoveWithInclusiveEndOffset(aSource, lEndOffset);
   if SameText(NextSignificantToken(aSource, lEndOffset + 1), 'else') then
-    Result := sLineBreak;
+    Result := SourceLineBreak(aSource);
 end;
 
 class function TRemoveWithPlanner.EnsureGeneratedStatementTerminated(const aText: string): string;
@@ -1139,7 +1148,8 @@ begin
 end;
 
 class function TRemoveWithPlanner.TempInitializationText(const aStatement: TRemoveWithStatementInfo;
-  const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIndentColumn: Integer): string;
+  const aSelectorTemps: TArray<TRemoveWithSelectorTemp>; const aIndentColumn: Integer;
+  const aLineBreak: string): string;
 var
   lSelectorTemp: TRemoveWithSelectorTemp;
   lStatementIndent: string;
@@ -1149,7 +1159,7 @@ begin
   for lSelectorTemp in aSelectorTemps do
   begin
     if lSelectorTemp.fDecision.fInitializationText <> '' then
-      Result := Result + lStatementIndent + lSelectorTemp.fDecision.fInitializationText + sLineBreak;
+      Result := Result + lStatementIndent + lSelectorTemp.fDecision.fInitializationText + aLineBreak;
   end;
 end;
 
@@ -1163,6 +1173,7 @@ var
   lHasVarSection: Boolean;
   lInsertLine: Integer;
   lLine: Integer;
+  lLineBreak: string;
   lSelectorTemp: TRemoveWithSelectorTemp;
   lText: string;
 begin
@@ -1210,15 +1221,16 @@ begin
     Exit(False);
 
   lDeclarations := '';
+  lLineBreak := SourceLineBreak(aSource);
   for lSelectorTemp in aSelectorTemps do
   begin
     if lSelectorTemp.fDecision.fDeclarationText <> '' then
-      lDeclarations := lDeclarations + '  ' + lSelectorTemp.fDecision.fDeclarationText + sLineBreak;
+      lDeclarations := lDeclarations + '  ' + lSelectorTemp.fDecision.fDeclarationText + lLineBreak;
   end;
   if lDeclarations = '' then
     Exit(False);
   if not lHasVarSection then
-    lDeclarationText := 'var' + sLineBreak + lDeclarations
+    lDeclarationText := 'var' + lLineBreak + lDeclarations
   else
     lDeclarationText := lDeclarations;
 
@@ -2224,7 +2236,7 @@ begin
     aReplacementText, aReason) then
     Exit;
 
-  lTempText := TempInitializationText(aStatement, lCurrentTemps, lIndentColumn);
+  lTempText := TempInitializationText(aStatement, lCurrentTemps, lIndentColumn, SourceLineBreak(aSource));
   if lControlledStatement and lBodyIsBlock and (lTempText = '') then
     aReplacementText := lStatementIndent + aReplacementText + ControlledStatementTerminator(aSource, aStatement)
   else
@@ -2236,11 +2248,11 @@ begin
     begin
       if (not lBodyIsBlock) and (not SameText(lBodyFirstToken, 'if')) and
         SplitControlledElseText(aReplacementText, lThenText, lElseText) then
-        aReplacementText := lStatementIndent + 'begin' + sLineBreak + lThenText + sLineBreak +
-          lStatementIndent + 'end' + sLineBreak + lElseText
+        aReplacementText := lStatementIndent + 'begin' + SourceLineBreak(aSource) + lThenText +
+          SourceLineBreak(aSource) + lStatementIndent + 'end' + SourceLineBreak(aSource) + lElseText
       else
-        aReplacementText := lStatementIndent + 'begin' + sLineBreak + aReplacementText + sLineBreak +
-          lStatementIndent + 'end' + ControlledWrapperTerminator(aSource, aStatement);
+        aReplacementText := lStatementIndent + 'begin' + SourceLineBreak(aSource) + aReplacementText +
+          SourceLineBreak(aSource) + lStatementIndent + 'end' + ControlledWrapperTerminator(aSource, aStatement);
     end;
   end;
   Result := True;
