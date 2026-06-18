@@ -546,6 +546,9 @@ type
     function ByteSequenceExists(const aBytes, aNeedle: TBytes): Boolean;
     procedure CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string; out aDprojPath,
       aUnitPath: string);
+    function BuildVerificationMutexNameForTest(const aProjectPath: string): string;
+    procedure BuildPlanForFixture(const aDprojPath: string; out aOptions: TAppOptions;
+      out aPlanResult: TRemoveWithPlanResult; out aApplyContext: TRemoveWithPlanApplyContext);
     function FindSingleManifest(const aProjectDir, aProjectName: string): string;
     function RunApplyFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
     function RunBuildFixture(const aDprojPath, aLogName: string; out aExitCode: Cardinal): string;
@@ -562,6 +565,8 @@ type
     procedure ApplyModeRollsBackExactBytesWhenBuildVerificationFails;
     [Test]
     procedure BuildVerificationUsesProjectScopedMutexAndTypedDiagnostics;
+    [Test]
+    procedure ConcurrentSameProjectApplySerializesWholeTransaction;
     [Test]
     procedure ApplyModeTextReportsTransactionStatus;
   end;
@@ -856,6 +861,7 @@ implementation
 
 uses
   System.Threading,
+  Winapi.Windows,
   DelphiAST, DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer;
 
 const
@@ -6882,6 +6888,60 @@ begin
   aUnitPath := TPath.Combine(lDestinationDir, aUnitName);
 end;
 
+function TRemoveWithTransactionTests.BuildVerificationMutexNameForTest(const aProjectPath: string): string;
+const
+  cPrefix = 'Local\DakRemoveWithBuildVerification-';
+var
+  i: Integer;
+  lHash: UInt64;
+  lIdentity: string;
+  lSafeIdentity: string;
+begin
+  lIdentity := LowerCase(TPath.GetFullPath(aProjectPath));
+  lSafeIdentity := '';
+  lHash := 0;
+  for i := 1 to Length(lIdentity) do
+  begin
+    lHash := ((lHash * 131) + Ord(lIdentity[i])) mod UInt64($100000000);
+    if CharInSet(lIdentity[i], ['a'..'z', '0'..'9']) then
+      lSafeIdentity := lSafeIdentity + lIdentity[i]
+    else
+      lSafeIdentity := lSafeIdentity + '_';
+  end;
+  Result := cPrefix + Copy(lSafeIdentity, 1, 80) + '-' + IntToHex(lHash, 8);
+end;
+
+procedure TRemoveWithTransactionTests.BuildPlanForFixture(const aDprojPath: string;
+  out aOptions: TAppOptions; out aPlanResult: TRemoveWithPlanResult;
+  out aApplyContext: TRemoveWithPlanApplyContext);
+var
+  lError: string;
+  lInventory: TRemoveWithFactSet;
+  lModel: TRemoveWithProjectModel;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+begin
+  aOptions := Default(TAppOptions);
+  aOptions.fDprojPath := aDprojPath;
+  aOptions.fConfig := 'Debug';
+  aOptions.fPlatform := 'Win32';
+  aOptions.fDelphiVersion := '23.0';
+  aOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  aOptions.fRemoveWithAll := True;
+  lModel := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(aOptions, aDprojPath, lModel, lError), lError);
+  try
+    Assert.IsTrue(DiscoverRemoveWithStatements(aOptions, lModel, lScanResult, lError), lError);
+    Assert.IsTrue(BuildRemoveWithFactSet(aOptions, lModel, lInventory, lError), lError);
+    Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResolverResult, lError), lError);
+    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, aPlanResult, lError),
+      lError);
+    Assert.IsTrue(BuildRemoveWithPlanApplyContext(aPlanResult, aApplyContext, lError), lError);
+  finally
+    lModel.Free;
+  end;
+end;
+
 function TRemoveWithTransactionTests.FindSingleManifest(const aProjectDir, aProjectName: string): string;
 var
   lFiles: TArray<string>;
@@ -7244,6 +7304,10 @@ begin
 
   Assert.IsTrue(ContainsText(lTransactionSource, 'BuildVerificationMutexName('),
     'Expected build verification locking to derive a mutex from the project identity.');
+  Assert.IsTrue(ContainsText(lTransactionSource, 'ApplyTransactionMutexName('),
+    'Expected remove-with apply to derive a whole-transaction mutex from the project identity.');
+  Assert.IsTrue(ContainsText(lTransactionSource, 'cApplyTransactionMutexPrefix'),
+    'Expected remove-with apply transaction locking to use a distinct mutex prefix.');
   Assert.IsFalse(ContainsText(lTransactionSource, 'Local\DakRemoveWithBuildVerification'''),
     'Expected no fixed global remove-with build verification mutex.');
   Assert.IsFalse(ContainsText(lTransactionSource, 'WaitForSingleObject(lMutex, Winapi.Windows.INFINITE)'),
@@ -7252,6 +7316,118 @@ begin
     'Expected remove-with build verification not to mutate process environment state.');
   Assert.IsTrue(ContainsText(lBuildRunnerSource, 'fBuildDiagnosticsDir'),
     'Expected build diagnostics to be a typed option instead of a process-wide environment mutation.');
+end;
+
+procedure TRemoveWithTransactionTests.ConcurrentSameProjectApplySerializesWholeTransaction;
+var
+  i: Integer;
+  lAppliedCount: Integer;
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lBuildMutex: THandle;
+  lBuildMutexOwned: Boolean;
+  lDprojPath: string;
+  lErrors: TArray<string>;
+  lExceptions: TArray<string>;
+  lMismatchCount: Integer;
+  lOptions: TAppOptions;
+  lPlanResult: TRemoveWithPlanResult;
+  lResults: TArray<TRemoveWithTransactionResult>;
+  lStatus: string;
+  lSuccesses: TArray<Boolean>;
+  lTasks: TArray<ITask>;
+  lUnitPath: string;
+  lUnitText: string;
+  lWorkspaceRoot1: string;
+  lWorkspaceRoot2: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-concurrent-transaction',
+    'ApplyUnit.pas', lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+
+  SetLength(lErrors, 2);
+  SetLength(lExceptions, 2);
+  SetLength(lResults, 2);
+  SetLength(lSuccesses, 2);
+  SetLength(lTasks, 2);
+
+  lBuildMutex := Winapi.Windows.CreateMutex(nil, True,
+    PChar(BuildVerificationMutexNameForTest(lDprojPath)));
+  Assert.AreNotEqual(THandle(0), lBuildMutex,
+    'Expected test to acquire the project build-verification mutex.');
+  lBuildMutexOwned := True;
+  try
+    lWorkspaceRoot1 := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+      '.dak\RemoveWithApplyFixture\remove-with\concurrent-1');
+    lTasks[0] := TTask.Run(
+      procedure
+      begin
+        try
+          lSuccesses[0] := ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath,
+            lWorkspaceRoot1, lPlanResult, lApplyContext, lResults[0], lErrors[0]);
+        except
+          on E: Exception do
+            lExceptions[0] := E.ClassName + ': ' + E.Message;
+        end;
+      end);
+
+    lWorkspaceRoot2 := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+      '.dak\RemoveWithApplyFixture\remove-with\concurrent-2');
+    lTasks[1] := TTask.Run(
+      procedure
+      begin
+        try
+          lSuccesses[1] := ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath,
+            lWorkspaceRoot2, lPlanResult, lApplyContext, lResults[1], lErrors[1]);
+        except
+          on E: Exception do
+            lExceptions[1] := E.ClassName + ': ' + E.Message;
+        end;
+      end);
+
+    Winapi.Windows.Sleep(2000);
+    Winapi.Windows.ReleaseMutex(lBuildMutex);
+    lBuildMutexOwned := False;
+    TTask.WaitForAll(lTasks);
+  finally
+    if lBuildMutexOwned then
+      Winapi.Windows.ReleaseMutex(lBuildMutex);
+    Winapi.Windows.CloseHandle(lBuildMutex);
+  end;
+
+  Assert.AreEqual('', lExceptions[0], 'Concurrent apply task 1 raised an exception.');
+  Assert.AreEqual('', lExceptions[1], 'Concurrent apply task 2 raised an exception.');
+
+  lAppliedCount := 0;
+  lMismatchCount := 0;
+  for i := 0 to High(lResults) do
+  begin
+    lStatus := RemoveWithTransactionStatusToText(lResults[i].fStatus);
+    if lSuccesses[i] then
+    begin
+      Inc(lAppliedCount);
+      Assert.AreEqual('applied', lStatus, 'Successful concurrent apply must report applied.');
+      Assert.AreEqual(1, Integer(Length(lResults[i].fFiles)),
+        'Successful concurrent apply must back up and change one file.');
+    end else if SameText(lStatus, 'context-fingerprint-mismatch') then
+    begin
+      Inc(lMismatchCount);
+      Assert.Contains(lErrors[i], 'context-fingerprint-mismatch',
+        'Waiting same-project apply must fail closed on the stale context.');
+      Assert.AreEqual(0, Integer(Length(lResults[i].fFiles)),
+        'Waiting same-project apply must refuse before backup or source mutation.');
+    end else
+      Assert.Fail('Unexpected concurrent apply status ' + lStatus + ' error=' + lErrors[i]);
+  end;
+
+  Assert.AreEqual(1, lAppliedCount, 'Expected exactly one same-project apply to mutate the source.');
+  Assert.AreEqual(1, lMismatchCount,
+    'Expected the second same-project apply to wait, revalidate, and fail before mutation.');
+
+  lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('with aRecordPtr^ do', lUnitText) = 0,
+    'Expected final source to contain one successful with removal.');
+  Assert.IsTrue(Pos('aRecordPtr^.Name := ''applied'';', lUnitText) > 0,
+    'Expected final source to contain the applied qualification.');
 end;
 
 procedure TRemoveWithTransactionTests.ApplyModeTextReportsTransactionStatus;
