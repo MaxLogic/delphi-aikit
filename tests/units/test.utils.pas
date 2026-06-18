@@ -4,7 +4,7 @@ interface
 
 uses
   DUnitX.TestFramework,
-  System.IOUtils, System.SysUtils,
+  System.Classes, System.IOUtils, System.SysUtils,
   Winapi.Windows,
   Dak.Utils,
   Test.Support;
@@ -19,6 +19,10 @@ type
     procedure NormalizeInputPathRejectsUnsupportedLinuxAbsolutePath;
     [Test]
     procedure TempRootUsesProcessScopedRunDirectory;
+    [Test]
+    procedure RunnerFailsNoAssertTests;
+    [Test]
+    procedure ReadUtf8TextFileAllowsSharedWriterHandle;
     [Test]
     procedure ScopedEnvironmentVariableRestoresMissingAndPreviousValues;
     [Test]
@@ -71,6 +75,35 @@ begin
     'DAK tests must use a process-scoped temp root, not the shared repo tests\temp directory.');
   Assert.IsTrue(Pos(GetCurrentProcessId.ToString, lRoot) > 0,
     'DAK temp root should include the current process id. Actual: ' + lRoot);
+end;
+
+procedure TUtilsTests.RunnerFailsNoAssertTests;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'tests\DelphiAIKit.Tests.dpr'),
+    TEncoding.UTF8);
+
+  Assert.IsTrue(Pos('Runner.FailsOnNoAsserts := True', lSource) > 0,
+    'DAK test runner must fail tests that execute without assertions.');
+  Assert.IsFalse(Pos('Runner.FailsOnNoAsserts := False', lSource) > 0,
+    'DAK test runner must not explicitly allow no-assert tests.');
+end;
+
+procedure TUtilsTests.ReadUtf8TextFileAllowsSharedWriterHandle;
+var
+  lPath: string;
+  lWriter: TFileStream;
+begin
+  lPath := TPath.Combine(TempRoot, 'shared-writer-output.json');
+  TFile.WriteAllText(lPath, '{"status":"ok"}', TEncoding.UTF8);
+  lWriter := TFileStream.Create(lPath, fmOpenReadWrite or fmShareDenyNone);
+  try
+    Assert.AreEqual('{"status":"ok"}', ReadUtf8TextFile(lPath),
+      'Output readers must tolerate inherited writer handles after child processes exit.');
+  finally
+    lWriter.Free;
+  end;
 end;
 
 procedure TUtilsTests.ScopedEnvironmentVariableRestoresMissingAndPreviousValues;

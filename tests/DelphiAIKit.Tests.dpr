@@ -49,7 +49,7 @@ begin
     TDUnitX.CheckCommandLine;
     Runner := TDUnitX.CreateRunner;
     Runner.UseRTTI := True;
-    Runner.FailsOnNoAsserts := False;
+    Runner.FailsOnNoAsserts := True;
     // Keep DAK RemoveWith tests single-process/sequential. Parallel executions
     // contend for shared test output/temp files and caused runtime 217 failures.
 
