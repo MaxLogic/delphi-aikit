@@ -97,7 +97,7 @@ uses
   System.Diagnostics, System.Variants,
   Winapi.TlHelp32,
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
-  Dak.Project.Semantics;
+  Dak.DfmText, Dak.Project.BuildParams, Dak.Project.Semantics, Dak.Registry;
 
 const
   cDfmCheckCacheMutexPrefix = 'Local\DelphiAIKit_DfmCheckCache_';
@@ -134,25 +134,11 @@ type
     fImagesPropertyLine: Integer;
   end;
 
-  TDfmTextObjectInfo = class
-  public
-    fClassName: string;
-    fEndLine: Integer;
-    fName: string;
-    fParentClassName: string;
-    fParentName: string;
-    fProperties: TStringList;
-    fPropertyLines: TStringList;
-    fStartLine: Integer;
-    constructor Create;
-    destructor Destroy; override;
-  end;
-
 function EnumCloseProcessWindowsProc(aWnd: HWND; aParam: LPARAM): BOOL; stdcall;
 var
   lProcessId: Cardinal;
   lWindowProcessId: Cardinal;
-  lWindowStyle: Longint;
+  lWindowStyle: NativeUInt;
 begin
   Result := True;
   if aParam = 0 then
@@ -167,28 +153,10 @@ begin
   if lWindowProcessId <> lProcessId then
     Exit(True);
 
-  lWindowStyle := GetWindowLong(aWnd, GWL_STYLE);
-  if (lWindowStyle and WS_VISIBLE) <> 0 then
+  lWindowStyle := NativeUInt(GetWindowLongPtr(aWnd, GWL_STYLE));
+  if (lWindowStyle and NativeUInt(WS_VISIBLE)) <> 0 then
     ShowWindow(aWnd, SW_HIDE);
   PostMessage(aWnd, WM_CLOSE, 0, 0);
-end;
-
-constructor TDfmTextObjectInfo.Create;
-begin
-  inherited Create;
-  fProperties := TStringList.Create;
-  fProperties.CaseSensitive := False;
-  fProperties.NameValueSeparator := '=';
-  fPropertyLines := TStringList.Create;
-  fPropertyLines.CaseSensitive := False;
-  fPropertyLines.NameValueSeparator := '=';
-end;
-
-destructor TDfmTextObjectInfo.Destroy;
-begin
-  fPropertyLines.Free;
-  fProperties.Free;
-  inherited;
 end;
 
 procedure CloseTopLevelWindowsForProcess(const aProcessId: Cardinal; const aDesktop: HDESK = 0);
@@ -1387,207 +1355,6 @@ begin
   Result := True;
 end;
 
-function TryGetDfmPropertyValue(const aObject: TDfmTextObjectInfo; const aPropertyName: string; out aValue: string): Boolean;
-var
-  lIndex: Integer;
-begin
-  aValue := '';
-  if aObject = nil then
-    Exit(False);
-  lIndex := aObject.fProperties.IndexOfName(aPropertyName);
-  if lIndex < 0 then
-    Exit(False);
-  aValue := TrimMatchingQuotes(Trim(aObject.fProperties.ValueFromIndex[lIndex]));
-  Result := aValue <> '';
-end;
-
-function TryParseDfmTextObjects(const aDfmPath: string; const aObjects: TObjectList<TDfmTextObjectInfo>;
-  out aError: string): Boolean;
-var
-  lCurrentObject: TDfmTextObjectInfo;
-  lLine: string;
-  lLines: TStringList;
-  lMatch: TMatch;
-  lObjectStack: TList<TDfmTextObjectInfo>;
-  lPropertyName: string;
-  lPropertyValue: string;
-  lIndex: Integer;
-begin
-  Result := False;
-  aError := '';
-  if (Trim(aDfmPath) = '') or (not FileExists(aDfmPath)) then
-  begin
-    aError := 'DFM file not found: ' + aDfmPath;
-    Exit(False);
-  end;
-  if aObjects = nil then
-  begin
-    aError := 'Object list is not assigned.';
-    Exit(False);
-  end;
-
-  lLines := TStringList.Create;
-  lObjectStack := TList<TDfmTextObjectInfo>.Create;
-  try
-    try
-      lLines.LoadFromFile(aDfmPath);
-      for lIndex := 0 to lLines.Count - 1 do
-      begin
-        lLine := lLines[lIndex];
-        lMatch := TRegEx.Match(lLine,
-          '^\s*(object|inherited|inline)\s+([A-Za-z0-9_]+)\s*:\s*([A-Za-z0-9_.]+)', [roIgnoreCase]);
-        if lMatch.Success then
-        begin
-          lCurrentObject := TDfmTextObjectInfo.Create;
-          lCurrentObject.fName := lMatch.Groups[2].Value;
-          lCurrentObject.fClassName := lMatch.Groups[3].Value;
-          lCurrentObject.fStartLine := lIndex + 1;
-          if lObjectStack.Count > 0 then
-          begin
-            lCurrentObject.fParentName := lObjectStack.Last.fName;
-            lCurrentObject.fParentClassName := lObjectStack.Last.fClassName;
-          end;
-          aObjects.Add(lCurrentObject);
-          lObjectStack.Add(lCurrentObject);
-          Continue;
-        end;
-
-        if SameText(Trim(lLine), 'end') then
-        begin
-          if lObjectStack.Count > 0 then
-          begin
-            lObjectStack.Last.fEndLine := lIndex + 1;
-            lObjectStack.Delete(lObjectStack.Count - 1);
-          end;
-          Continue;
-        end;
-
-        if lObjectStack.Count = 0 then
-          Continue;
-        lMatch := TRegEx.Match(lLine, '^\s*([A-Za-z0-9_.]+)\s*=\s*(.+?)\s*$', [roIgnoreCase]);
-        if not lMatch.Success then
-          Continue;
-        lPropertyName := lMatch.Groups[1].Value;
-        lPropertyValue := lMatch.Groups[2].Value;
-        lObjectStack.Last.fProperties.Values[lPropertyName] := lPropertyValue;
-        lObjectStack.Last.fPropertyLines.Values[lPropertyName] := IntToStr(lIndex + 1);
-      end;
-      Result := True;
-    except
-      on E: Exception do
-      begin
-        aError := E.ClassName + ': ' + E.Message;
-        Result := False;
-      end;
-    end;
-  finally
-    lObjectStack.Free;
-    lLines.Free;
-  end;
-end;
-
-function TryFindDfmObjectByName(const aObjects: TObjectList<TDfmTextObjectInfo>; const aObjectName: string;
-  out aObject: TDfmTextObjectInfo): Boolean;
-var
-  lCandidate: TDfmTextObjectInfo;
-begin
-  aObject := nil;
-  if aObjects = nil then
-    Exit(False);
-  for lCandidate in aObjects do
-  begin
-    if not SameText(lCandidate.fName, aObjectName) then
-      Continue;
-    aObject := lCandidate;
-    Exit(True);
-  end;
-  Result := False;
-end;
-
-function TryFindDfmObjectLine(const aDfmPath: string; const aObjectName: string; out aLineNumber: Integer): Boolean;
-var
-  lLine: string;
-  lLines: TStringList;
-  lMatch: TMatch;
-  lIndex: Integer;
-begin
-  Result := False;
-  aLineNumber := 0;
-  if (Trim(aDfmPath) = '') or (Trim(aObjectName) = '') or (not FileExists(aDfmPath)) then
-    Exit(False);
-  lLines := TStringList.Create;
-  try
-    lLines.LoadFromFile(aDfmPath);
-    for lIndex := 0 to lLines.Count - 1 do
-    begin
-      lLine := lLines[lIndex];
-      lMatch := TRegEx.Match(lLine, '^\s*(object|inherited|inline)\s+([A-Za-z0-9_]+)\s*:', [roIgnoreCase]);
-      if not lMatch.Success then
-        Continue;
-      if not SameText(lMatch.Groups[2].Value, aObjectName) then
-        Continue;
-      aLineNumber := lIndex + 1;
-      Exit(True);
-    end;
-  finally
-    lLines.Free;
-  end;
-end;
-
-function TryFindDfmPropertyLine(const aDfmPath: string; const aObjectName: string; const aPropertyName: string;
-  out aLineNumber: Integer): Boolean;
-var
-  lCurrentDepth: Integer;
-  lLine: string;
-  lLines: TStringList;
-  lMatch: TMatch;
-  lIndex: Integer;
-  lTargetDepth: Integer;
-begin
-  Result := False;
-  aLineNumber := 0;
-  if (Trim(aDfmPath) = '') or (Trim(aObjectName) = '') or (Trim(aPropertyName) = '') or (not FileExists(aDfmPath)) then
-    Exit(False);
-
-  lCurrentDepth := 0;
-  lTargetDepth := 0;
-  lLines := TStringList.Create;
-  try
-    lLines.LoadFromFile(aDfmPath);
-    for lIndex := 0 to lLines.Count - 1 do
-    begin
-      lLine := lLines[lIndex];
-      lMatch := TRegEx.Match(lLine, '^\s*(object|inherited|inline)\s+([A-Za-z0-9_]+)\s*:', [roIgnoreCase]);
-      if lMatch.Success then
-      begin
-        Inc(lCurrentDepth);
-        if (lTargetDepth = 0) and SameText(lMatch.Groups[2].Value, aObjectName) then
-          lTargetDepth := lCurrentDepth;
-        Continue;
-      end;
-
-      if SameText(Trim(lLine), 'end') then
-      begin
-        if lTargetDepth = lCurrentDepth then
-          lTargetDepth := 0;
-        Dec(lCurrentDepth);
-        Continue;
-      end;
-
-      if lTargetDepth = 0 then
-        Continue;
-      if lCurrentDepth <> lTargetDepth then
-        Continue;
-      if not TRegEx.IsMatch(lLine, '^\s*' + TRegEx.Escape(aPropertyName) + '\s*=', [roIgnoreCase]) then
-        Continue;
-      aLineNumber := lIndex + 1;
-      Exit(True);
-    end;
-  finally
-    lLines.Free;
-  end;
-end;
-
 procedure EmitSourceContextClue(const aOutput: TDfmCheckOutputProc; const aPrefix: string; const aFilePath: string;
   const aLineNumber: Integer; const aDiagnosticsDefaults: TDiagnosticsDefaults;
   const aSourceContextCache: TSourceContextRunCache);
@@ -1611,10 +1378,10 @@ function TryDiagnoseStandaloneBitBtnActionWarning(const aModule: TDfmCacheModule
   out aPromotion: TDfmWarningPromotion; out aError: string): Boolean;
 var
   lActionName: string;
-  lActionObject: TDfmTextObjectInfo;
+  lActionObject: TDfmTextComponent;
   lCandidateCount: Integer;
-  lDfmObject: TDfmTextObjectInfo;
-  lDfmObjects: TObjectList<TDfmTextObjectInfo>;
+  lDfmDocument: TDfmTextDocument;
+  lDfmObject: TDfmTextComponent;
   lImageName: string;
   lImagesName: string;
 begin
@@ -1629,24 +1396,24 @@ begin
     Exit(False);
   end;
 
-  lDfmObjects := TObjectList<TDfmTextObjectInfo>.Create(True);
+  lDfmDocument := nil;
   try
-    if not TryParseDfmTextObjects(aModule.fDfmPath, lDfmObjects, aError) then
+    if not TryLoadDfmTextDocument(aModule.fDfmPath, lDfmDocument, aError) then
       Exit(False);
     lCandidateCount := 0;
-    for lDfmObject in lDfmObjects do
+    for lDfmObject in lDfmDocument.Components do
     begin
-      if not SameText(lDfmObject.fClassName, 'TBitBtn') then
+      if not SameText(lDfmObject.DfmClassName, 'TBitBtn') then
         Continue;
-      if not TryGetDfmPropertyValue(lDfmObject, 'Action', lActionName) then
+      if not lDfmObject.TryGetUnquotedPropertyValue('Action', lActionName) then
         Continue;
-      if not TryGetDfmPropertyValue(lDfmObject, 'Images', lImagesName) then
+      if not lDfmObject.TryGetUnquotedPropertyValue('Images', lImagesName) then
         Continue;
-      if not TryFindDfmObjectByName(lDfmObjects, lActionName, lActionObject) then
+      if not lDfmDocument.TryFindComponentByName(lActionName, lActionObject) then
         Continue;
-      if not SameText(lActionObject.fClassName, 'TAction') then
+      if not SameText(lActionObject.DfmClassName, 'TAction') then
         Continue;
-      if Pos('ACTIONLIST', UpperCase(lActionObject.fParentClassName)) > 0 then
+      if (lActionObject.Parent <> nil) and (Pos('ACTIONLIST', UpperCase(lActionObject.Parent.DfmClassName)) > 0) then
         Continue;
 
       Inc(lCandidateCount);
@@ -1654,22 +1421,23 @@ begin
         Continue;
 
       aPromotion := Default(TDfmWarningPromotion);
-      aPromotion.fButtonName := lDfmObject.fName;
-      aPromotion.fButtonClassName := lDfmObject.fClassName;
-      aPromotion.fButtonObjectLine := lDfmObject.fStartLine;
+      aPromotion.fButtonName := lDfmObject.Name;
+      aPromotion.fButtonClassName := lDfmObject.DfmClassName;
+      aPromotion.fButtonObjectLine := lDfmObject.StartLine;
       aPromotion.fActionName := lActionName;
-      aPromotion.fActionParentClassName := lActionObject.fParentClassName;
-      aPromotion.fActionObjectLine := lActionObject.fStartLine;
+      if lActionObject.Parent <> nil then
+        aPromotion.fActionParentClassName := lActionObject.Parent.DfmClassName;
+      aPromotion.fActionObjectLine := lActionObject.StartLine;
       aPromotion.fImagesName := lImagesName;
-      aPromotion.fActionPropertyLine := StrToIntDef(lDfmObject.fPropertyLines.Values['Action'], 0);
-      aPromotion.fImagesPropertyLine := StrToIntDef(lDfmObject.fPropertyLines.Values['Images'], 0);
-      TryGetDfmPropertyValue(lDfmObject, 'ImageName', lImageName);
+      lDfmObject.TryGetPropertyLine('Action', aPromotion.fActionPropertyLine);
+      lDfmObject.TryGetPropertyLine('Images', aPromotion.fImagesPropertyLine);
+      lDfmObject.TryGetUnquotedPropertyValue('ImageName', lImageName);
       aPromotion.fImageName := lImageName;
-      aPromotion.fImageNamePropertyLine := StrToIntDef(lDfmObject.fPropertyLines.Values['ImageName'], 0);
+      lDfmObject.TryGetPropertyLine('ImageName', aPromotion.fImageNamePropertyLine);
     end;
     Result := lCandidateCount = 1;
   finally
-    lDfmObjects.Free;
+    lDfmDocument.Free;
   end;
 end;
 
@@ -2501,7 +2269,7 @@ const
   begin
     aPath := '';
     lValue := Trim(aValue);
-    if (lValue = '') or StartsText('$(', lValue) or TPath.IsPathRooted(lValue) then
+    if (lValue = '') or (Pos('$(', lValue) > 0) or TPath.IsPathRooted(lValue) then
       Exit(False);
 
     aPath := TPath.GetFullPath(TPath.Combine(aBaseDir, lValue));
@@ -2565,6 +2333,7 @@ const
   var
     lCondition: string;
     lDefines: string;
+    lInclude: string;
     lPath: string;
     lProject: string;
     lUpdatedCondition: string;
@@ -2608,6 +2377,13 @@ const
     end else if LocalNameIs(aNode, 'PreBuildEvent') or LocalNameIs(aNode, 'PreLinkEvent') or
       LocalNameIs(aNode, 'PostBuildEvent') then
       aNode.Text := '';
+
+    if (aNode.NodeType = ntElement) and aNode.HasAttribute('Include') then
+    begin
+      lInclude := AttributeText(aNode, 'Include');
+      if TryResolveRelativeExistingPath(lInclude, aBaseDir, lPath) then
+        aNode.SetAttribute('Include', lPath);
+    end;
   end;
   procedure VisitDprojNodes(const aNode: IXMLNode; const aBaseDir: string; const aSearchPath: string;
     var aMainSourceChanged: Boolean; var aSearchPathFound: Boolean; var aDefineFound: Boolean);
@@ -2763,7 +2539,17 @@ function TryBuildEffectiveProjectSearchPath(const aOptions: TAppOptions; out aSe
   out aError: string): Boolean;
 var
   lContext: TProjectAnalysisContext;
+  lDiagnostics: TDiagnostics;
+  lEnvVars: TDictionary<string, string>;
+  lErrorCode: Integer;
+  lLibraryPath: string;
+  lLibrarySource: TPropertySource;
+  lEnvSearchPath: string;
+  lParams: TFixInsightParams;
+  lPath: string;
   lPaths: TStringList;
+  lRsVarsEnvironment: TRsVarsEnvironment;
+  lRsVarsEnvVars: TDictionary<string, string>;
 begin
   aSearchPath := '';
   aError := '';
@@ -2779,6 +2565,38 @@ begin
     lPaths.Sorted := False;
     lPaths.Duplicates := TDuplicates.dupIgnore;
     AppendDelimitedPaths(lContext.ParserSearchPath, lPaths);
+    if aOptions.fHasEnvOptionsPath and (Trim(aOptions.fEnvOptionsPath) <> '') then
+    begin
+      lDiagnostics := TDiagnostics.Create;
+      try
+        if not TryLoadRsVars(aOptions.fDelphiVersion, aOptions.fRsVarsPath, lDiagnostics, lRsVarsEnvironment,
+          aError) then
+          Exit(False);
+        lRsVarsEnvVars := lRsVarsEnvironment.ToDictionary;
+        try
+          if not TryReadIdeConfig(aOptions.fDelphiVersion, aOptions.fPlatform, aOptions.fEnvOptionsPath,
+            lRsVarsEnvVars, lEnvVars, lLibraryPath, lLibrarySource, lDiagnostics, aError) then
+            Exit(False);
+          if not lEnvVars.TryGetValue('DCC_UnitSearchPath', lEnvSearchPath) then
+            lEnvSearchPath := '';
+          try
+            if not TryBuildParamsFromProjectContext(aOptions, lContext, lEnvVars, lLibraryPath, lLibrarySource,
+              lDiagnostics, lParams, aError, lErrorCode) then
+              Exit(False);
+            for lPath in lParams.fUnitSearchPath do
+              if (Trim(lPath) <> '') and (lPaths.IndexOf(lPath) < 0) then
+                lPaths.Add(lPath);
+            AppendDelimitedPaths(lEnvSearchPath, lPaths);
+          finally
+            lEnvVars.Free;
+          end;
+        finally
+          lRsVarsEnvVars.Free;
+        end;
+      finally
+        lDiagnostics.Free;
+      end;
+    end;
     aSearchPath := BuildDelimitedPath(lPaths);
   finally
     lPaths.Free;
@@ -3821,6 +3639,29 @@ begin
       lEffectiveOptions.fConfig := 'Release';
     if Trim(lEffectiveOptions.fPlatform) = '' then
       lEffectiveOptions.fPlatform := 'Win32';
+
+    lDelphiVersion := Trim(lEffectiveOptions.fDelphiVersion);
+    if lDelphiVersion = '' then
+    begin
+      if not LoadDefaultDelphiVersion(lDprojPath, lDelphiVersion) then
+      begin
+        aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+        aError := 'Failed to read default Delphi version from dak.ini.';
+        Exit(MapDfmCheckExitCode(aCategory, 0));
+      end;
+      if lDelphiVersion <> '' then
+        EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Using Delphi version from dak.ini: ' + lDelphiVersion);
+    end;
+    if lDelphiVersion = '' then
+    begin
+      aCategory := TDfmCheckErrorCategory.ecInvalidInput;
+      aError := 'Delphi version is required for dfm-check. Pass --delphi <major.minor> or set [Build] DelphiVersion in dak.ini.';
+      Exit(MapDfmCheckExitCode(aCategory, 0));
+    end;
+    if (lDelphiVersion <> '') and (Pos('.', lDelphiVersion) = 0) then
+      lDelphiVersion := lDelphiVersion + '.0';
+    lEffectiveOptions.fDelphiVersion := lDelphiVersion;
+
     if not TryBuildProjectAnalysisContext(lEffectiveOptions, TProjectAnalysisContextRequirement.StrictSemantic,
       lProjectContext, aError) then
     begin
@@ -3874,27 +3715,6 @@ begin
     end;
     if StartsText('--dfm=', lValidatorArgs) then
       lGeneratorFilterCsv := TrimMatchingQuotes(Copy(lValidatorArgs, Length('--dfm=') + 1, MaxInt));
-
-    lDelphiVersion := Trim(aOptions.fDelphiVersion);
-    if lDelphiVersion = '' then
-    begin
-      if not LoadDefaultDelphiVersion(lDprojPath, lDelphiVersion) then
-      begin
-        aCategory := TDfmCheckErrorCategory.ecInvalidInput;
-        aError := 'Failed to read default Delphi version from dak.ini.';
-        Exit(MapDfmCheckExitCode(aCategory, 0));
-      end;
-      if lDelphiVersion <> '' then
-        EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Using Delphi version from dak.ini: ' + lDelphiVersion);
-    end;
-    if lDelphiVersion = '' then
-    begin
-      aCategory := TDfmCheckErrorCategory.ecInvalidInput;
-      aError := 'Delphi version is required for dfm-check. Pass --delphi <major.minor> or set [Build] DelphiVersion in dak.ini.';
-      Exit(MapDfmCheckExitCode(aCategory, 0));
-    end;
-    if (lDelphiVersion <> '') and (Pos('.', lDelphiVersion) = 0) then
-      lDelphiVersion := lDelphiVersion + '.0';
 
     if aOptions.fHasRsVarsPath or (lDelphiVersion <> '') then
     begin

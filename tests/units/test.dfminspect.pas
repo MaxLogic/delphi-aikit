@@ -5,6 +5,7 @@ interface
 uses
   DUnitX.TestFramework,
   System.IOUtils,
+  System.StrUtils,
   System.SysUtils,
   Dak.DfmInspect,
   Test.Support;
@@ -31,6 +32,10 @@ type
     procedure Utf16LeBomTextDfmKeepsCaptionText;
     [Test]
     procedure HelpCommandShowsUsageWhenDfmValueUsesSeparateToken;
+    [Test]
+    procedure OrderIndexHeadersParse;
+    [Test]
+    procedure DfmTextParserIsSharedByInspectAndCheck;
   end;
 
 implementation
@@ -255,6 +260,58 @@ begin
     lOutputText := ReadUtf8TextFile(lLogPath);
   Assert.IsTrue(Pos('DelphiAIKit.exe dfm-inspect --dfm', lOutputText) > 0,
     'Expected dfm-inspect usage text. Output: ' + lLogPath);
+end;
+
+procedure TDfmInspectTests.OrderIndexHeadersParse;
+var
+  lDfmPath: string;
+  lError: string;
+  lOutputText: string;
+begin
+  lDfmPath := TPath.Combine(TempRoot, 'OrderIndexForm.dfm');
+  TFile.WriteAllText(lDfmPath,
+    'object OrderIndexForm: TForm' + sLineBreak +
+    '  object Button1: TButton [0]' + sLineBreak +
+    '    Caption = ''OK''' + sLineBreak +
+    '  end' + sLineBreak +
+    'end' + sLineBreak, TEncoding.UTF8);
+
+  Assert.IsTrue(TryInspectDfmFile(lDfmPath, 'tree', lOutputText, lError),
+    'Expected DFM object headers with order indexes to parse. Error: ' + lError);
+  Assert.IsTrue(Pos('Button1: TButton', lOutputText) > 0,
+    'Expected order-indexed component in tree output. Output: ' + lOutputText);
+end;
+
+procedure TDfmInspectTests.DfmTextParserIsSharedByInspectAndCheck;
+var
+  lCheckSource: string;
+  lInspectSource: string;
+  lSharedPath: string;
+  lSharedSource: string;
+begin
+  lSharedPath := TPath.Combine(RepoRoot, 'src\Dak.DfmText.pas');
+  Assert.IsTrue(TFile.Exists(lSharedPath),
+    'DFM text parsing should live in a shared Dak.DfmText unit.');
+
+  lSharedSource := TFile.ReadAllText(lSharedPath, TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lSharedSource, 'TDfmTextComponent'),
+    'Shared parser should expose a component model.');
+  Assert.IsTrue(ContainsText(lSharedSource, 'TryLoadDfmTextDocument'),
+    'Shared parser should expose the document loading entry point.');
+
+  lInspectSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.dfminspect.pas'), TEncoding.UTF8);
+  lCheckSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.dfmcheck.pas'), TEncoding.UTF8);
+  Assert.IsTrue(ContainsText(lInspectSource, 'Dak.DfmText'),
+    'dfm-inspect should consume the shared DFM text parser.');
+  Assert.IsTrue(ContainsText(lCheckSource, 'Dak.DfmText'),
+    'dfm-check should consume the shared DFM text parser.');
+  Assert.IsFalse(ContainsText(lInspectSource, 'TDfmInspectComponent'),
+    'dfm-inspect should not keep a private DFM component model.');
+  Assert.IsFalse(ContainsText(lCheckSource, 'TDfmTextObjectInfo'),
+    'dfm-check should not keep a private DFM text object model.');
+  Assert.IsFalse(ContainsText(lInspectSource, 'TryParseComponentHeader') or
+    ContainsText(lCheckSource, 'TryParseDfmTextObjects'),
+    'DFM header/object parsing should be centralized in Dak.DfmText.');
 end;
 
 initialization
