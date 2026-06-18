@@ -22,6 +22,8 @@ type
     [Test]
     procedure ScopedEnvironmentVariableRestoresMissingAndPreviousValues;
     [Test]
+    procedure ScopedEnvironmentVariablesRollbackAppliedValuesOnConstructorFailure;
+    [Test]
     procedure ResolveDprojPathUsesSiblingDprojForDpr;
     [Test]
     procedure ResolveConfiguredExePathExpandsEnvAndAppendsExe;
@@ -104,6 +106,51 @@ begin
       'Expected previous variable value to be restored.');
   finally
     SetEnvironmentVariable(PChar(CVarName), nil);
+  end;
+end;
+
+procedure TUtilsTests.ScopedEnvironmentVariablesRollbackAppliedValuesOnConstructorFailure;
+const
+  CEmptyName = 'DAK_TEST_SCOPED_ENV_BATCH_EMPTY';
+  CInvalidName = 'DAK_TEST_SCOPED_ENV_BATCH_INVALID=NAME';
+  CMissingName = 'DAK_TEST_SCOPED_ENV_BATCH_MISSING';
+  CPreviousName = 'DAK_TEST_SCOPED_ENV_BATCH_PREVIOUS';
+var
+  lGuard: IInterface;
+  lRaised: Boolean;
+begin
+  SetEnvironmentVariable(PChar(CMissingName), nil);
+  SetEnvironmentVariable(PChar(CEmptyName), PChar(''));
+  SetEnvironmentVariable(PChar(CPreviousName), PChar('previous-value'));
+  try
+    lRaised := False;
+    try
+      lGuard := SetScopedEnvironmentVariables([
+        CMissingName, 'new-missing-value',
+        CEmptyName, 'new-empty-value',
+        CPreviousName, 'new-previous-value',
+        CInvalidName, 'failure-value']);
+      lGuard := nil;
+    except
+      on E: EOSError do
+        lRaised := True;
+      on E: Exception do
+        Assert.Fail('Expected EOSError for injected environment failure but got ' + E.ClassName + ': ' + E.Message);
+    end;
+
+    Assert.IsTrue(lRaised, 'Expected invalid environment variable name to force constructor failure.');
+    Assert.AreEqual('', GetEnvironmentVariable(CMissingName), 'Expected missing value to be restored after rollback.');
+    Assert.IsFalse(TestEnvironmentVariableExists(CMissingName),
+      'Expected missing variable to stay missing after rollback.');
+    Assert.AreEqual('', GetEnvironmentVariable(CEmptyName), 'Expected empty value to be restored after rollback.');
+    Assert.IsTrue(TestEnvironmentVariableExists(CEmptyName),
+      'Expected empty variable to stay defined after rollback.');
+    Assert.AreEqual('previous-value', GetEnvironmentVariable(CPreviousName),
+      'Expected previous value to be restored after rollback.');
+  finally
+    SetEnvironmentVariable(PChar(CMissingName), nil);
+    SetEnvironmentVariable(PChar(CEmptyName), nil);
+    SetEnvironmentVariable(PChar(CPreviousName), nil);
   end;
 end;
 

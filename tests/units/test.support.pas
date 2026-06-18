@@ -64,9 +64,12 @@ type
 
   TScopedEnvironmentVariables = class(TInterfacedObject)
   private
+    fAppliedCount: Integer;
     fHadPreviousValues: TArray<Boolean>;
+    fLockHeld: Boolean;
     fNames: TArray<string>;
     fPreviousValues: TArray<string>;
+    procedure RestoreAppliedValues(const aAppliedCount: Integer);
   public
     constructor Create(const aNameValuePairs: array of string);
     destructor Destroy; override;
@@ -148,6 +151,7 @@ begin
   if (Length(aNameValuePairs) mod 2) <> 0 then
     raise Exception.Create('Scoped environment pairs must contain name/value entries.');
   GEnvironmentLock.Enter;
+  fLockHeld := True;
   try
     SetLength(fNames, Length(aNameValuePairs) div 2);
     SetLength(fPreviousValues, Length(fNames));
@@ -159,27 +163,47 @@ begin
       fNames[lIndex] := aNameValuePairs[i];
       fHadPreviousValues[lIndex] := TryReadEnvironmentVariable(fNames[lIndex], fPreviousValues[lIndex]);
       SetEnvironmentVariableOrRaise(fNames[lIndex], aNameValuePairs[i + 1]);
+      Inc(fAppliedCount);
       Inc(lIndex);
       Inc(i, 2);
     end;
   except
-    GEnvironmentLock.Leave;
+    try
+      RestoreAppliedValues(fAppliedCount);
+      fAppliedCount := 0;
+    finally
+      GEnvironmentLock.Leave;
+      fLockHeld := False;
+    end;
     raise;
   end;
 end;
 
-destructor TScopedEnvironmentVariables.Destroy;
+procedure TScopedEnvironmentVariables.RestoreAppliedValues(const aAppliedCount: Integer);
 var
   i: Integer;
 begin
-  for i := High(fNames) downto 0 do
+  for i := aAppliedCount - 1 downto 0 do
   begin
     if fHadPreviousValues[i] then
       SetEnvironmentVariableOrRaise(fNames[i], fPreviousValues[i])
     else
       ClearEnvironmentVariableOrRaise(fNames[i]);
   end;
-  GEnvironmentLock.Leave;
+end;
+
+destructor TScopedEnvironmentVariables.Destroy;
+begin
+  if fLockHeld then
+  begin
+    try
+      RestoreAppliedValues(fAppliedCount);
+      fAppliedCount := 0;
+    finally
+      GEnvironmentLock.Leave;
+      fLockHeld := False;
+    end;
+  end;
   inherited Destroy;
 end;
 
