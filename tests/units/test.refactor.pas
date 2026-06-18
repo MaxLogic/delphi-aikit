@@ -31,6 +31,12 @@ type
     [Test]
     procedure RenameCommandReportsSemanticPhaseMetricsAsJson;
     [Test]
+    procedure RenameGuardValidationRejectsStaleSource;
+    [Test]
+    procedure RenameGuardValidationUsesApplyPathMatching;
+    [Test]
+    procedure RenameApplyRequiresStaleEditGuardsBeforeMutation;
+    [Test]
     procedure RenameSemanticCacheUsesToolchainIdentity;
     [Test]
     procedure RefactorCommandsUseDelphiSemanticsProjectSession;
@@ -45,8 +51,11 @@ type
 implementation
 
 uses
+  System.Hash,
+  DelphiSemantics.Refactor,
   DelphiSemantics.ProjectContext,
-  Dak.Semantics.Session;
+  Dak.Refactor.RenameGuards,
+  Dak.Semantics.Session, Dak.SourceText;
 
 procedure TRefactorCommandTests.CreateFixtureProject(const aRoot: string; out aDprojPath,
   aUnitOnePath, aUnitTwoPath: string);
@@ -381,6 +390,148 @@ begin
     'Expected command planning timing in JSON. See: ' + lLogPath);
   Assert.IsTrue(Pos('"commandPlanningCount":1', lLogText) > 0,
     'Expected command planning count in JSON. See: ' + lLogPath);
+end;
+
+procedure TRefactorCommandTests.RenameGuardValidationRejectsStaleSource;
+var
+  lError: string;
+  lPlan: TDelphiSemanticRenamePlan;
+  lRoot: string;
+  lSource: TDakSourceBuffer;
+  lSourcePath: string;
+  lText: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'rename-stale-source-guard');
+  ForceDirectories(lRoot);
+  lSourcePath := TPath.Combine(lRoot, 'GuardUnit.pas');
+  lText := 'unit GuardUnit;' + sLineBreak +
+    '' + sLineBreak +
+    'interface' + sLineBreak +
+    '' + sLineBreak +
+    'var' + sLineBreak +
+    '  SharedValue: Integer;' + sLineBreak +
+    '' + sLineBreak +
+    'implementation' + sLineBreak +
+    '' + sLineBreak +
+    'end.' + sLineBreak;
+  TFile.WriteAllText(lSourcePath, lText, TEncoding.UTF8);
+
+  lPlan := Default(TDelphiSemanticRenamePlan);
+  lPlan.Status := 'planned';
+  lPlan.ContextFingerprint := 'rename-plan-context';
+  lPlan.BaselineSemanticModelVersion := 'rename-plan-model';
+  SetLength(lPlan.RequiredVerification, 1);
+  lPlan.RequiredVerification[0].Kind := 'source-file-hash';
+  lPlan.RequiredVerification[0].Description := 'verify planned source hash';
+  SetLength(lPlan.Edits, 1);
+  lPlan.Edits[0].FileName := lSourcePath;
+  lPlan.Edits[0].Role := 'declaration';
+  lPlan.Edits[0].StartLine := 6;
+  lPlan.Edits[0].StartColumn := 3;
+  lPlan.Edits[0].EndLine := 6;
+  lPlan.Edits[0].EndColumn := 13;
+  lPlan.Edits[0].ExpectedFileHash := THashSHA2.GetHashStringFromFile(lSourcePath);
+  lPlan.Edits[0].ExpectedSourceText := 'SharedValue';
+  lPlan.Edits[0].NewText := 'RenamedValue';
+
+  TFile.WriteAllText(lSourcePath, lText + '// changed after planning' + sLineBreak,
+    TEncoding.UTF8);
+  Assert.IsTrue(LoadDakSource(lSourcePath, lSource, lError), lError);
+
+  Assert.IsFalse(ValidateRenamePlanGuards(lPlan, lSourcePath, lSource, lError),
+    'Expected stale source to fail guard validation.');
+  Assert.IsTrue(ContainsText(lError, 'stale-rename-plan'), lError);
+  Assert.IsTrue(ContainsText(lError, 'source file hash changed'), lError);
+  Assert.AreEqual(0, Pos('RenamedValue', TFile.ReadAllText(lSourcePath, TEncoding.UTF8)),
+    'Stale guard validation must not mutate source.');
+end;
+
+procedure TRefactorCommandTests.RenameGuardValidationUsesApplyPathMatching;
+var
+  lCurrentDir: string;
+  lError: string;
+  lPlan: TDelphiSemanticRenamePlan;
+  lRelativeSourcePath: string;
+  lRoot: string;
+  lSource: TDakSourceBuffer;
+  lSourcePath: string;
+  lText: string;
+begin
+  lCurrentDir := GetCurrentDir;
+  SetCurrentDir(RepoRoot);
+  try
+    lRoot := TPath.Combine(TempRoot, 'rename-stale-source-relative-guard');
+    ForceDirectories(lRoot);
+    lSourcePath := TPath.Combine(lRoot, 'RelativeGuardUnit.pas');
+    lRelativeSourcePath := ExtractRelativePath(IncludeTrailingPathDelimiter(RepoRoot),
+      lSourcePath);
+    lText := 'unit RelativeGuardUnit;' + sLineBreak +
+      '' + sLineBreak +
+      'interface' + sLineBreak +
+      '' + sLineBreak +
+      'var' + sLineBreak +
+      '  SharedValue: Integer;' + sLineBreak +
+      '' + sLineBreak +
+      'implementation' + sLineBreak +
+      '' + sLineBreak +
+      'end.' + sLineBreak;
+    TFile.WriteAllText(lSourcePath, lText, TEncoding.UTF8);
+
+    lPlan := Default(TDelphiSemanticRenamePlan);
+    lPlan.Status := 'planned';
+    lPlan.ContextFingerprint := 'rename-plan-context';
+    lPlan.BaselineSemanticModelVersion := 'rename-plan-model';
+    SetLength(lPlan.RequiredVerification, 1);
+    lPlan.RequiredVerification[0].Kind := 'source-file-hash';
+    lPlan.RequiredVerification[0].Description := 'verify planned source hash';
+    SetLength(lPlan.Edits, 1);
+    lPlan.Edits[0].FileName := lRelativeSourcePath;
+    lPlan.Edits[0].Role := 'declaration';
+    lPlan.Edits[0].StartLine := 6;
+    lPlan.Edits[0].StartColumn := 3;
+    lPlan.Edits[0].EndLine := 6;
+    lPlan.Edits[0].EndColumn := 13;
+    lPlan.Edits[0].ExpectedFileHash := THashSHA2.GetHashStringFromFile(lSourcePath);
+    lPlan.Edits[0].ExpectedSourceText := 'SharedValue';
+    lPlan.Edits[0].NewText := 'RenamedValue';
+
+    TFile.WriteAllText(lSourcePath, lText + '// changed after planning' + sLineBreak,
+      TEncoding.UTF8);
+    Assert.IsTrue(LoadDakSource(lSourcePath, lSource, lError), lError);
+
+    Assert.IsFalse(ValidateRenamePlanGuards(lPlan, lSourcePath, lSource, lError),
+      'Guard validation must use the same normalized file matching as apply mode.');
+    Assert.IsTrue(ContainsText(lError, 'stale-rename-plan'), lError);
+    Assert.IsTrue(ContainsText(lError, 'source file hash changed'), lError);
+  finally
+    SetCurrentDir(lCurrentDir);
+  end;
+end;
+
+procedure TRefactorCommandTests.RenameApplyRequiresStaleEditGuardsBeforeMutation;
+var
+  lApplyPos: Integer;
+  lGuardSource: string;
+  lGuardPos: Integer;
+  lSource: string;
+  lWritePos: Integer;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.Refactor.pas'), TEncoding.UTF8);
+  lGuardSource := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.Refactor.RenameGuards.pas'), TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lGuardSource, 'stale-rename-plan'),
+    'DAK apply must emit deterministic stale rename-plan diagnostics.');
+  Assert.IsTrue(ContainsText(lSource, 'ValidateRenamePlanGuards'),
+    'DAK apply must validate rename-plan stale guards before mutation.');
+
+  lGuardPos := Pos('ValidateRenamePlanGuards', lSource);
+  lApplyPos := Pos('ApplyEditToSource(lEdit', lSource);
+  lWritePos := Pos('TFile.WriteAllBytes(lFileName', lSource);
+  Assert.IsTrue((lGuardPos > 0) and (lGuardPos < lApplyPos),
+    'Stale guards must be checked before edit application.');
+  Assert.IsTrue((lGuardPos > 0) and (lGuardPos < lWritePos),
+    'Stale guards must be checked before source files are written.');
 end;
 
 procedure TRefactorCommandTests.RenameSemanticCacheUsesToolchainIdentity;
