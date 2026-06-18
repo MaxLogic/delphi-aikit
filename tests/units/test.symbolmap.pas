@@ -31,6 +31,8 @@ type
     [Test]
     procedure SemanticModelPersistenceBelongsToDelphiSemantics;
     [Test]
+    procedure ProjectIndexingConsumesDelphiSemanticsProjectSymbolIndex;
+    [Test]
     procedure SymbolMapQueryAssembliesAvoidHotRowGrowth;
     [Test]
     procedure SymbolMapSemanticMergeAvoidsHotRowGrowthAndLinearScans;
@@ -3771,6 +3773,57 @@ begin
     'SymbolMap query must not rebuild semantic models from SymbolMap projections.');
   Assert.IsFalse(ContainsText(lCacheSource, 'TDelphiSemanticSqliteUnitCache'),
     'SymbolMap cache must not seed DelphiSemantics semantic caches from projections.');
+end;
+
+procedure TSymbolMapContextTests.ProjectIndexingConsumesDelphiSemanticsProjectSymbolIndex;
+var
+  lApiProjectIndexSource: string;
+  lApiSource: string;
+  lIndexerProjectIndexSource: string;
+  lIndexerSource: string;
+  lCommandProjectIndexSource: string;
+  lCommandSource: string;
+  lEnd: Integer;
+  lStart: Integer;
+begin
+  lApiSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Api.pas'),
+    TEncoding.UTF8);
+  lStart := Pos('function IndexSymbolMapProject', lApiSource);
+  lEnd := PosEx('function PrepareSymbolMapApi', lApiSource, lStart);
+  Assert.IsTrue((lStart > 0) and (lEnd > lStart), 'Expected SymbolMap API project index routine.');
+  lApiProjectIndexSource := Copy(lApiSource, lStart, lEnd - lStart);
+
+  Assert.IsTrue(ContainsText(lApiProjectIndexSource,
+    'TryBuildSymbolMapUnitModelsFromDelphiSemanticProjectIndex'),
+    'SymbolMap API project indexing must delegate to the DelphiSemantics project-index adapter.');
+  Assert.IsFalse(ContainsText(lApiProjectIndexSource, 'TryExtractSymbolMapUnitModel('),
+    'SymbolMap API project indexing must not run the per-file DAK extractor.');
+
+  lCommandSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.pas'),
+    TEncoding.UTF8);
+  lStart := Pos('function TryIndexSymbolMapProject', lCommandSource);
+  lEnd := PosEx('function EnsureSymbolMapProjectIndexedForQuery', lCommandSource, lStart);
+  Assert.IsTrue((lStart > 0) and (lEnd > lStart), 'Expected SymbolMap command project index routine.');
+  lCommandProjectIndexSource := Copy(lCommandSource, lStart, lEnd - lStart);
+
+  Assert.IsTrue(ContainsText(lCommandProjectIndexSource,
+    'TryBuildSymbolMapUnitModelsFromDelphiSemanticProjectIndex'),
+    'SymbolMap command project indexing must delegate to the DelphiSemantics project-index adapter.');
+  Assert.IsFalse(ContainsText(lCommandProjectIndexSource, 'TryExtractSymbolMapUnitModel('),
+    'SymbolMap command project indexing must not run the per-file DAK extractor.');
+
+  lIndexerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.Indexer.pas'),
+    TEncoding.UTF8);
+  lStart := Pos('function TryBuildSymbolMapUnitModelsFromDelphiSemanticProjectIndex', lIndexerSource);
+  lEnd := PosEx('procedure MergeDelphiSemanticExtraction', lIndexerSource, lStart);
+  Assert.IsTrue((lStart > 0) and (lEnd > lStart), 'Expected SymbolMap Semantics project-index adapter.');
+  lIndexerProjectIndexSource := Copy(lIndexerSource, lStart, lEnd - lStart);
+
+  Assert.IsTrue(ContainsText(lIndexerProjectIndexSource, 'BuildProjectSymbolIndex'),
+    'SymbolMap project-index adapter must build the DelphiSemantics project symbol index.');
+  Assert.IsTrue(ContainsText(lIndexerProjectIndexSource,
+    'SymbolMapUnitModelsFromDelphiSemanticProjectIndex'),
+    'SymbolMap project-index adapter must persist a projection of the shared Semantics index.');
 end;
 
 procedure TSymbolMapContextTests.SymbolMapQueryAssembliesAvoidHotRowGrowth;

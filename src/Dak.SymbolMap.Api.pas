@@ -48,14 +48,8 @@ function ResolveSymbolMapDefinitionByPosition(const aOptions: TAppOptions; const
 implementation
 
 uses
-  System.Generics.Collections, System.SysUtils,
+  System.SysUtils,
   Dak.SymbolMap.Indexer;
-
-type
-  TSymbolMapIndexedUnit = record
-    fModel: TSymbolMapUnitModel;
-    fStoreResult: TSymbolMapCacheStoreResult;
-  end;
 
 procedure AddDiagnostic(var aDiagnostics: TArray<string>; const aMessage: string);
 var
@@ -71,25 +65,12 @@ end;
 function IndexSymbolMapProject(const aContext: TSymbolMapContext; const aStatus: TSymbolMapCacheStatus;
   var aApiStatus: TSymbolMapApiStatus; out aError: string): Boolean;
 var
-  i: Integer;
-  lIndexedUnit: TSymbolMapIndexedUnit;
   lModels: TArray<TSymbolMapUnitModel>;
   lStoreResults: TArray<TSymbolMapCacheStoreResult>;
-  lUnitPath: string;
-  lUnitPaths: TArray<string>;
 begin
   Result := False;
-  lUnitPaths := SymbolMapProjectSourceFilePaths(aContext, True);
-  SetLength(lModels, Length(lUnitPaths));
-  i := 0;
-  for lUnitPath in lUnitPaths do
-  begin
-    lIndexedUnit := Default(TSymbolMapIndexedUnit);
-    if not TryExtractSymbolMapUnitModel(lUnitPath, lIndexedUnit.fModel, aError) then
-      Exit(False);
-    lModels[i] := lIndexedUnit.fModel;
-    Inc(i);
-  end;
+  if not TryBuildSymbolMapUnitModelsFromDelphiSemanticProjectIndex(aContext, True, lModels, aError) then
+    Exit(False);
   if not StoreSymbolMapProjectProjection(aContext, aStatus, lModels, lStoreResults, aError) then
     Exit(False);
   if Length(lStoreResults) <> Length(lModels) then
