@@ -79,6 +79,8 @@ type
     [Test]
     procedure PipelineRebasesRelativeProjectImportsForGeneratedProject;
     [Test]
+    procedure PipelineRebasesRelativeItemIncludesForGeneratedProject;
+    [Test]
     procedure PipelineRebasesSingleQuotedRelativeProjectImportsForGeneratedProject;
     [Test]
     procedure PipelinePreservesBackslashDigitSearchPathsForGeneratedProject;
@@ -100,6 +102,8 @@ type
     procedure DfmCheckFailureIncludesResolvedSourceContextWhenPascalLocationIsKnown;
     [Test]
     procedure DfmCheckWarnsOnInvalidDiagnosticsIniValues;
+    [Test]
+    procedure DfmCheckWindowCleanupUsesNativeUnsignedStyles;
     [Test]
     procedure PipelineBuildFailureInGeneratedUnitIsClassifiedAsGeneratorIncompatibility;
     [Test]
@@ -303,6 +307,43 @@ var
   lImportNode: IXMLNode;
 begin
   Result := TryFindDprojImportNode(aDoc.DocumentElement, aProject, lImportNode);
+end;
+
+procedure CollectXmlAttributeValues(const aNode: IXMLNode; const aElementName: string; const aAttributeName: string;
+  const aValues: TStrings);
+var
+  i: Integer;
+  lNode: IXMLNode;
+begin
+  if aNode = nil then
+    Exit;
+  if (aNode.NodeType = ntElement) and XmlNodeNameMatches(aNode, aElementName) and aNode.HasAttribute(aAttributeName)
+  then
+    aValues.Add(VarToStr(aNode.Attributes[aAttributeName]));
+
+  for i := 0 to aNode.ChildNodes.Count - 1 do
+  begin
+    lNode := aNode.ChildNodes[i];
+    CollectXmlAttributeValues(lNode, aElementName, aAttributeName, aValues);
+  end;
+end;
+
+function DprojElementAttributeEquals(const aDoc: IXMLDocument; const aElementName: string; const aAttributeName: string;
+  const aText: string): Boolean;
+var
+  i: Integer;
+  lValues: TStringList;
+begin
+  Result := False;
+  lValues := TStringList.Create;
+  try
+    CollectXmlAttributeValues(aDoc.DocumentElement, aElementName, aAttributeName, lValues);
+    for i := 0 to lValues.Count - 1 do
+      if SameText(lValues[i], aText) then
+        Exit(True);
+  finally
+    lValues.Free;
+  end;
 end;
 
 function DprojImportCondition(const aDoc: IXMLDocument; const aProject: string): string;
@@ -696,6 +737,8 @@ begin
   TFile.WriteAllText(TPath.Combine(lRoot, 'Sample.ico'), 'ico', TEncoding.ASCII);
   TFile.WriteAllText(TPath.Combine(lRoot, 'Sample.Win32.ico'), 'ico', TEncoding.ASCII);
   TFile.WriteAllText(TPath.Combine(lRoot, 'Sample.Win64.ico'), 'ico', TEncoding.ASCII);
+  TDirectory.CreateDirectory(TPath.Combine(lRoot, 'Resources'));
+  TFile.WriteAllText(TPath.Combine(lRoot, 'Resources\nopreview.png'), 'png', TEncoding.ASCII);
 
   TFile.WriteAllText(aProjectDproj,
     '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
@@ -716,6 +759,10 @@ begin
     '  </PropertyGroup>' + #13#10 +
     '  <ItemGroup>' + #13#10 +
     '    <DCCReference Include="MainForm.pas"/>' + #13#10 +
+    '    <RcItem Include="Resources\nopreview.png">' + #13#10 +
+    '      <ResourceType>RCDATA</ResourceType>' + #13#10 +
+    '      <ResourceId>no_preview_available_png</ResourceId>' + #13#10 +
+    '    </RcItem>' + #13#10 +
     '  </ItemGroup>' + #13#10 +
     '  <ProjectExtensions>' + #13#10 +
     '    <BorlandProject>' + #13#10 +
@@ -1327,6 +1374,7 @@ begin
     lOptions.fDprojPath := lDprojPath;
     lOptions.fConfig := 'Release';
     lOptions.fPlatform := 'Win32';
+    lOptions.fDelphiVersion := '23.0';
     lOptions.fVerbose := True;
     lOptions.fHasRsVarsPath := True;
     lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
@@ -1387,6 +1435,7 @@ begin
     lOptions.fDprojPath := lDprojPath;
     lOptions.fConfig := 'Release';
     lOptions.fPlatform := 'Win32';
+    lOptions.fDelphiVersion := '23.0';
     lOptions.fVerbose := True;
     lOptions.fHasRsVarsPath := True;
     lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
@@ -1409,6 +1458,62 @@ begin
       'Generated checker DPROJ should rewrite relative Exists(...) import conditions to the source project location.');
     Assert.AreNotEqual('Exists(''Fixture.optset'')', DprojImportCondition(lGeneratedXmlDoc, lImportPath),
       'Generated checker DPROJ should not keep relative Exists(...) import conditions after relocation.');
+  finally
+    lEnvGuard := nil;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineRebasesRelativeItemIncludesForGeneratedProject;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDccReferencePath: string;
+  lDprojPath: string;
+  lError: string;
+  lGeneratedXmlDoc: IXMLDocument;
+  lInjectDir: string;
+  lEnvGuard: IInterface;
+  lOptions: TAppOptions;
+  lPaths: TDfmCheckPaths;
+  lRcItemPath: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-item-rebase');
+  WriteInjectStubs(lInjectDir);
+  lDccReferencePath := TPath.Combine(ExtractFilePath(lDprojPath), 'MainForm.pas');
+  lRcItemPath := TPath.Combine(ExtractFilePath(lDprojPath), 'Resources\nopreview.png');
+
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDelphiVersion := '23.0';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.IsTrue((lResult = 0) or (lResult = 30),
+      'Expected item-rebase fixture to generate artifacts before any environment-specific pipeline failure.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lGeneratedXmlDoc := LoadGeneratedDprojXml(lPaths);
+    Assert.IsTrue(DprojElementAttributeEquals(lGeneratedXmlDoc, 'DCCReference', 'Include', lDccReferencePath),
+      'Generated checker DPROJ should rebase source-relative DCCReference items.');
+    Assert.IsTrue(DprojElementAttributeEquals(lGeneratedXmlDoc, 'RcItem', 'Include', lRcItemPath),
+      'Generated checker DPROJ should rebase source-relative RcItem payload paths.');
   finally
     lEnvGuard := nil;
   end;
@@ -2186,6 +2291,20 @@ begin
     lEnvGuard := nil;
     lOutputLines.Free;
   end;
+end;
+
+procedure TDfmCheckTests.DfmCheckWindowCleanupUsesNativeUnsignedStyles;
+var
+  lSourceText: string;
+begin
+  lSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.DfmCheck.pas'));
+
+  AssertSourceContains(lSourceText, 'GetWindowLongPtr(aWnd, GWL_STYLE)',
+    'Window cleanup must use pointer-width style retrieval.');
+  AssertSourceContains(lSourceText, 'lWindowStyle: NativeUInt;',
+    'Window cleanup must keep high-bit Win32 style values out of signed Longint range checks.');
+  AssertSourceExcludes(lSourceText, 'lWindowStyle: Longint;',
+    'Window cleanup must not narrow Win32 style bitmasks to signed Longint.');
 end;
 
 procedure TDfmCheckTests.PipelineBuildFailureInGeneratedUnitIsClassifiedAsGeneratorIncompatibility;

@@ -202,6 +202,7 @@
         <DCCReference Include="..\src\dak.build.pas"/>
         <DCCReference Include="..\src\Dak.CommandOutput.pas"/>
         <DCCReference Include="..\src\dak.cli.pas"/>
+        <DCCReference Include="..\src\Dak.DfmText.pas"/>
         <DCCReference Include="..\src\dak.diagnostics.pas"/>
         <DCCReference Include="..\src\dak.externaltoolprocess.pas"/>
         <DCCReference Include="..\src\dak.fixinsight.pas"/>
