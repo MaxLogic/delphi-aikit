@@ -65,6 +65,8 @@ uses
 const
   cRemoveWithFallbackDelphiVersion = '23.0';
   cBuildRequiresDelphiVersion = 'Delphi version is required';
+  cApplyTransactionMutexPrefix = 'Local\DakRemoveWithApplyTransaction-';
+  cApplyTransactionMutexTimeoutMs = 30 * 60 * 1000;
   cBuildVerificationMutexPrefix = 'Local\DakRemoveWithBuildVerification-';
   cBuildVerificationMutexTimeoutMs = 30 * 60 * 1000;
   cPreflightBuildFailed = 'preflight-build-failed';
@@ -74,6 +76,8 @@ type
   private
     class function FileHash(const aBytes: TBytes): string; static;
     class function CanonicalProjectIdentity(const aProjectPath: string): string; static;
+    class function ProjectScopedMutexName(const aPrefix, aProjectPath: string): string; static;
+    class function ApplyTransactionMutexName(const aProjectPath: string): string; static;
     class function BuildVerificationMutexName(const aProjectPath: string): string; static;
     class function FileAlreadyTracked(const aTransactionResult: TRemoveWithTransactionResult;
       const aPath: string): Boolean; static;
@@ -96,6 +100,9 @@ type
     class function ValidateSemanticPlanContext(const aPlanResult: TRemoveWithPlanResult;
       const aApplyContext: TRemoveWithPlanApplyContext; out aError: string): Boolean; static;
     class function VerifyBuild(const aOptions: TAppOptions; const aProjectPath, aDiagnosticsDir: string;
+      var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
+    class function ApplyLocked(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot: string;
+      const aPlanResult: TRemoveWithPlanResult; const aApplyContext: TRemoveWithPlanApplyContext;
       var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean; static;
   public
     class function Apply(const aOptions: TAppOptions; const aProjectPath, aWorkspaceRoot: string;
@@ -241,7 +248,8 @@ begin
   Result := LowerCase(TPath.GetFullPath(aProjectPath));
 end;
 
-class function TRemoveWithTransaction.BuildVerificationMutexName(const aProjectPath: string): string;
+class function TRemoveWithTransaction.ProjectScopedMutexName(const aPrefix,
+  aProjectPath: string): string;
 var
   i: Integer;
   lHash: UInt64;
@@ -259,7 +267,18 @@ begin
     else
       lSafeIdentity := lSafeIdentity + '_';
   end;
-  Result := cBuildVerificationMutexPrefix + Copy(lSafeIdentity, 1, 80) + '-' + IntToHex(lHash, 8);
+  Result := aPrefix + Copy(lSafeIdentity, 1, 80) + '-' + IntToHex(lHash, 8);
+end;
+
+class function TRemoveWithTransaction.ApplyTransactionMutexName(
+  const aProjectPath: string): string;
+begin
+  Result := ProjectScopedMutexName(cApplyTransactionMutexPrefix, aProjectPath);
+end;
+
+class function TRemoveWithTransaction.BuildVerificationMutexName(const aProjectPath: string): string;
+begin
+  Result := ProjectScopedMutexName(cBuildVerificationMutexPrefix, aProjectPath);
 end;
 
 class function TRemoveWithTransaction.FileAlreadyTracked(
@@ -654,9 +673,10 @@ class function TRemoveWithTransaction.Apply(const aOptions: TAppOptions; const a
   const aApplyContext: TRemoveWithPlanApplyContext; out aTransactionResult: TRemoveWithTransactionResult;
   out aError: string): Boolean;
 var
-  lContextValid: Boolean;
-  lManifestError: string;
-  lValidationError: string;
+  lMutex: THandle;
+  lMutexAcquired: Boolean;
+  lMutexName: string;
+  lWaitResult: DWORD;
 begin
   aTransactionResult := Default(TRemoveWithTransactionResult);
   aTransactionResult.fBackupRoot := TPath.Combine(aWorkspaceRoot, 'backup');
@@ -665,6 +685,52 @@ begin
   aTransactionResult.fVerificationStatus := 'not-run';
   aError := '';
 
+  lMutexName := ApplyTransactionMutexName(aProjectPath);
+  lMutex := Winapi.Windows.CreateMutex(nil, False, PChar(lMutexName));
+  if lMutex = 0 then
+  begin
+    aError := 'apply-transaction-lock-create-failed: ' +
+      SysErrorMessage(Winapi.Windows.GetLastError);
+    aTransactionResult.fError := aError;
+    Exit(False);
+  end;
+
+  lMutexAcquired := False;
+  try
+    lWaitResult := Winapi.Windows.WaitForSingleObject(lMutex, cApplyTransactionMutexTimeoutMs);
+    lMutexAcquired := lWaitResult in [Winapi.Windows.WAIT_OBJECT_0, Winapi.Windows.WAIT_ABANDONED];
+    if lWaitResult = Winapi.Windows.WAIT_FAILED then
+    begin
+      aError := 'apply-transaction-lock-wait-failed: ' +
+        SysErrorMessage(Winapi.Windows.GetLastError);
+      aTransactionResult.fError := aError;
+      Exit(False);
+    end;
+    if not lMutexAcquired then
+    begin
+      aError := 'apply-transaction-lock-timeout';
+      aTransactionResult.fError := aError;
+      Exit(False);
+    end;
+
+    Result := ApplyLocked(aOptions, aProjectPath, aWorkspaceRoot, aPlanResult,
+      aApplyContext, aTransactionResult, aError);
+  finally
+    if lMutexAcquired then
+      Winapi.Windows.ReleaseMutex(lMutex);
+    Winapi.Windows.CloseHandle(lMutex);
+  end;
+end;
+
+class function TRemoveWithTransaction.ApplyLocked(const aOptions: TAppOptions; const aProjectPath,
+  aWorkspaceRoot: string; const aPlanResult: TRemoveWithPlanResult;
+  const aApplyContext: TRemoveWithPlanApplyContext; var aTransactionResult: TRemoveWithTransactionResult;
+  out aError: string): Boolean;
+var
+  lContextValid: Boolean;
+  lManifestError: string;
+  lValidationError: string;
+begin
   if not HasPlannedEdits(aPlanResult) then
   begin
     aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxApplied;

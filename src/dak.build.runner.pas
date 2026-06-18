@@ -1639,8 +1639,11 @@ begin
 end;
 
 function TryRunBuildInternal(const aOptions: TAppOptions; out aExitCode: Integer; out aError: string): Boolean;
+var
+  lRunner: IBuildProcessRunner;
 begin
-  Result := TryRunBuildInternal(aOptions, TBuildProcessRunner.Create, aExitCode, aError);
+  lRunner := TBuildProcessRunner.Create;
+  Result := TryRunBuildInternal(aOptions, lRunner, aExitCode, aError);
 end;
 
 function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
