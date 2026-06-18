@@ -16,7 +16,7 @@ uses
   System.SysUtils,
   DelphiSemantics.DeadCode, DelphiSemantics.ProjectContext, DelphiSemantics.Refactor,
   DelphiSemantics.Usage,
-  Dak.ExitCodes, Dak.Paths, Dak.Semantics.Session, Dak.SourceText;
+  Dak.DeadCodeProfile, Dak.ExitCodes, Dak.Paths, Dak.Semantics.Session, Dak.SourceText;
 
 type
   TRefactorSemanticPhaseMetrics = record
@@ -732,8 +732,7 @@ begin
 
   lProfile := aOptions.fDeadCodeProfile;
   if lProfile = '' then
-    lProfile := TDelphiSemanticDeadCodeProfiles.ToName(
-      TDelphiSemanticDeadCodeProfiles.DefaultRemovalProfile);
+    lProfile := DefaultDeadCodeProfileName;
   lPlanningStopwatch := TStopwatch.StartNew;
   lReport := lContext.ReportDeadCode(lProfile);
   lPhaseMetrics.CommandPlanningMs := lPlanningStopwatch.ElapsedMilliseconds;
