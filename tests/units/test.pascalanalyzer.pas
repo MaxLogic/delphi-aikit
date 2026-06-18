@@ -89,24 +89,18 @@ var
   lError: string;
   lPos: Integer;
   lEnd: Integer;
+  lMapGuard: IInterface;
   lMapSource: string;
-  lMapTarget: string;
-  lCopiedMap: Boolean;
+  lMapPath: string;
   lPhase: string;
 begin
   lPhase := 'resolve PALCMD';
-  lCopiedMap := False;
   try
     RequirePalCmdOrSkip(lPalCmdExe);
     lMapSource := TPath.Combine(RepoRoot, 'bin\\palcmd-map.json');
-    lMapTarget := TPath.Combine(ExtractFilePath(ParamStr(0)), 'palcmd-map.json');
-    lPhase := 'copy PALCMD map';
-    if FileExists(lMapSource) and (not SameText(TPath.GetFullPath(lMapSource),
-      TPath.GetFullPath(lMapTarget))) then
-    begin
-      TFile.Copy(lMapSource, lMapTarget, True);
-      lCopiedMap := True;
-    end;
+    lPhase := 'prepare isolated PALCMD map';
+    if FileExists(lMapSource) then
+      lMapGuard := SetScopedPalCmdMapFixture(TFile.ReadAllText(lMapSource, TEncoding.UTF8), lMapPath);
     lPhase := 'build command line';
     lParams := Default(TFixInsightParams);
     lParams.fProjectDpr := TPath.Combine(RepoRoot, 'projects\\DelphiAIKit.dpr');
@@ -141,13 +135,7 @@ begin
     on E: Exception do
       Assert.Fail(lPhase + ' failed: ' + E.Message);
   end;
-  try
-    if lCopiedMap and FileExists(lMapTarget) then
-      System.SysUtils.DeleteFile(lMapTarget);
-  except
-    on E: Exception do
-      Assert.Fail('cleanup PALCMD map failed: ' + E.Message);
-  end;
+  lMapGuard := nil;
 end;
 
 procedure TPascalAnalyzerTests.RunPascalAnalyzer;
@@ -249,26 +237,28 @@ end;
 
 procedure TPascalAnalyzerTests.InvalidPalMapJsonRootDoesNotRaise;
 var
-  lMapPath: string;
-  lBackupPath: string;
-  lHadOriginal: Boolean;
-  lParams: TFixInsightParams;
-  lPa: TPascalAnalyzerDefaults;
-  lExePath: string;
   lCmdLine: string;
-  lError: string;
   lCmdExe: string;
+  lError: string;
+  lExecutableMapExists: Boolean;
+  lExecutableMapPath: string;
+  lExecutableMapText: string;
+  lExePath: string;
+  lMapGuard: IInterface;
+  lMapPath: string;
+  lPa: TPascalAnalyzerDefaults;
+  lParams: TFixInsightParams;
   lSuccess: Boolean;
 begin
-  lMapPath := TPath.Combine(ExtractFilePath(ParamStr(0)), 'palcmd-map.json');
-  lBackupPath := lMapPath + '.bak';
-  lHadOriginal := FileExists(lMapPath);
-  if lHadOriginal then
-    TFile.Copy(lMapPath, lBackupPath, True);
+  lExecutableMapPath := TPath.Combine(ExtractFilePath(ParamStr(0)), 'palcmd-map.json');
+  lExecutableMapExists := FileExists(lExecutableMapPath);
+  if lExecutableMapExists then
+    lExecutableMapText := TFile.ReadAllText(lExecutableMapPath, TEncoding.UTF8)
+  else
+    lExecutableMapText := '';
+  lMapGuard := SetScopedPalCmdMapFixture('[]', lMapPath);
 
   try
-    TFile.WriteAllText(lMapPath, '[]', TEncoding.UTF8);
-
     lParams := Default(TFixInsightParams);
     lParams.fProjectDpr := TPath.Combine(RepoRoot, 'projects\\DelphiAIKit.dpr');
     lParams.fDelphiVersion := '23.0';
@@ -284,14 +274,15 @@ begin
     lSuccess := BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError);
     Assert.IsFalse(lSuccess, 'Expected BuildPalCmdCommandLine to fail for invalid map root.');
     Assert.IsTrue(lError <> '', 'Expected error details for invalid map root.');
+    Assert.IsTrue(Pos(TPath.GetFullPath(lMapPath), lError) > 0,
+      'Expected invalid map error to reference the isolated temp map path. Actual: ' + lError);
+    Assert.IsTrue(FileExists(lExecutableMapPath) = lExecutableMapExists,
+      'PascalAnalyzer tests must not create or delete executable-local palcmd-map.json.');
+    if lExecutableMapExists then
+      Assert.AreEqual(lExecutableMapText, TFile.ReadAllText(lExecutableMapPath, TEncoding.UTF8),
+        'PascalAnalyzer tests must not rewrite executable-local palcmd-map.json.');
   finally
-    if lHadOriginal then
-      TFile.Copy(lBackupPath, lMapPath, True)
-    else if FileExists(lMapPath) then
-      TFile.Delete(lMapPath);
-
-    if FileExists(lBackupPath) then
-      TFile.Delete(lBackupPath);
+    lMapGuard := nil;
   end;
 end;
 

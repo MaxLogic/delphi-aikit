@@ -45,6 +45,7 @@ procedure RequireJsonStringKey(const aObject: TJSONObject; const aName: string);
 procedure RequireJsonNumberKey(const aObject: TJSONObject; const aName: string);
 function StartSlowPingProcess(out aProcess: THandle; out aThread: THandle; out aError: string): Boolean;
 function QuoteArg(const aValue: string): string;
+function SetScopedPalCmdMapFixture(const aContent: string; out aMapPath: string): IInterface;
 function SetScopedEnvironmentVariable(const aName, aValue: string): IInterface;
 function SetScopedEnvironmentVariables(const aNameValuePairs: array of string): IInterface;
 function ClearScopedEnvironmentVariable(const aName: string): IInterface;
@@ -74,6 +75,9 @@ type
     constructor Create(const aNameValuePairs: array of string);
     destructor Destroy; override;
   end;
+
+const
+  cPalCmdMapPathEnvVar = 'DAK_PALCMD_MAP_PATH';
 
 var
   GRepoRoot: string;
@@ -215,6 +219,17 @@ end;
 function ClearScopedEnvironmentVariable(const aName: string): IInterface;
 begin
   Result := TScopedEnvironmentVariable.Create(aName, '', True);
+end;
+
+function SetScopedPalCmdMapFixture(const aContent: string; out aMapPath: string): IInterface;
+var
+  lMapDir: string;
+begin
+  lMapDir := UniqueTempPath('palcmd-map');
+  TDirectory.CreateDirectory(lMapDir);
+  aMapPath := TPath.Combine(lMapDir, 'palcmd-map.json');
+  TFile.WriteAllText(aMapPath, aContent, TEncoding.UTF8);
+  Result := SetScopedEnvironmentVariable(cPalCmdMapPathEnvVar, aMapPath);
 end;
 
 function NewRunTempRoot(const aBaseRoot: string): string;

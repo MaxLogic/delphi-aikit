@@ -27,6 +27,7 @@ function TryGeneratePalArtifacts(const aReportRoot: string; const aOutRoot: stri
 implementation
 
 const
+  SPalCmdMapPathEnvVar = 'DAK_PALCMD_MAP_PATH';
   SPalCmdExeName = 'palcmd.exe';
   SPalCmd32ExeName = 'palcmd32.exe';
   SPalCmdMapFileName = 'palcmd-map.json';
@@ -117,7 +118,12 @@ begin
 end;
 
 function PalCmdMapPath: string;
+var
+  lOverridePath: string;
 begin
+  lOverridePath := Trim(GetEnvironmentVariable(SPalCmdMapPathEnvVar));
+  if lOverridePath <> '' then
+    Exit(TPath.GetFullPath(lOverridePath));
   Result := TPath.Combine(ExtractFilePath(ParamStr(0)), SPalCmdMapFileName);
 end;
 
