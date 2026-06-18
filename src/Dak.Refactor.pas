@@ -13,7 +13,7 @@ implementation
 
 uses
   System.Classes, System.Diagnostics, System.Generics.Collections, System.Hash, System.IOUtils,
-  System.SysUtils,
+  System.JSON, System.SysUtils,
   DelphiSemantics.DeadCode, DelphiSemantics.Model.Text, DelphiSemantics.ProjectContext,
   DelphiSemantics.Refactor, DelphiSemantics.Usage,
   Dak.Build, Dak.DeadCodeProfile, Dak.ExitCodes, Dak.Paths, Dak.Refactor.RenameGuards,
@@ -47,51 +47,22 @@ type
     DiagnosticsDir: string;
   end;
 
-function JsonEscape(const aValue: string): string;
-var
-  ch: Char;
-  i: Integer;
+function JsonValueText(const aValue: TJSONValue): string;
 begin
-  Result := '';
-  for i := 1 to Length(aValue) do
-  begin
-    ch := aValue[i];
-    case ch of
-      '"':
-        Result := Result + '\"';
-      '\':
-        Result := Result + '\\';
-      #8:
-        Result := Result + '\b';
-      #9:
-        Result := Result + '\t';
-      #10:
-        Result := Result + '\n';
-      #12:
-        Result := Result + '\f';
-      #13:
-        Result := Result + '\r';
-    else
-      if Ord(ch) < 32 then
-        Result := Result + '\u' + IntToHex(Ord(ch), 4)
-      else
-        Result := Result + ch;
-    end;
+  try
+    Result := aValue.ToJSON;
+  finally
+    aValue.Free;
   end;
 end;
 
-function JsonStringArray(const aValues: array of string): string;
+function BuildJsonStringArray(const aValues: array of string): TJSONArray;
 var
   i: Integer;
 begin
-  Result := '[';
+  Result := TJSONArray.Create;
   for i := 0 to High(aValues) do
-  begin
-    if i > 0 then
-      Result := Result + ',';
-    Result := Result + '"' + JsonEscape(aValues[i]) + '"';
-  end;
-  Result := Result + ']';
+    Result.Add(aValues[i]);
 end;
 
 function CommaText(const aValues: array of string): string;
@@ -165,34 +136,43 @@ begin
   Result := True;
 end;
 
-function SemanticPhaseMetricsJson(const aPhaseMetrics: TRefactorSemanticPhaseMetrics;
-  const aCacheMetrics: TDakSemanticCacheMetrics): string;
+function BuildSemanticPhaseMetricsObject(const aPhaseMetrics: TRefactorSemanticPhaseMetrics;
+  const aCacheMetrics: TDakSemanticCacheMetrics): TJSONObject;
 begin
-  Result := '"semanticPhaseMetrics":{' +
-    '"projectContextMs":' + aPhaseMetrics.ProjectContextMs.ToString +
-    ',"projectUnitIndexMs":' + aPhaseMetrics.ProjectUnitIndexMs.ToString +
-    ',"projectUnitCount":' + aPhaseMetrics.ProjectUnitCount.ToString +
-    ',"unitModelExtractionMs":' + aPhaseMetrics.UnitModelExtractionMs.ToString +
-    ',"unitModelExtractionCount":' + aPhaseMetrics.UnitModelExtractionCount.ToString +
-    ',"semanticCacheWorkMs":' + aPhaseMetrics.UnitModelExtractionMs.ToString +
-    ',"projectSymbolIndexBuildMs":' + aPhaseMetrics.ProjectSymbolIndexBuildMs.ToString +
-    ',"projectSymbolIndexBuildCount":' + aPhaseMetrics.ProjectSymbolIndexBuildCount.ToString +
-    ',"commandPlanningMs":' + aPhaseMetrics.CommandPlanningMs.ToString +
-    ',"commandPlanningCount":' + aPhaseMetrics.CommandPlanningCount.ToString +
-    ',"totalMs":' + aPhaseMetrics.TotalMs.ToString +
-    ',"semanticCacheHits":' + aCacheMetrics.CacheHits.ToString +
-    ',"semanticCacheMisses":' + aCacheMetrics.CacheMisses.ToString +
-    ',"semanticCacheInvalidations":' + aCacheMetrics.Invalidations.ToString + '}';
+  Result := TJSONObject.Create;
+  Result.AddPair('projectContextMs', TJSONNumber.Create(aPhaseMetrics.ProjectContextMs));
+  Result.AddPair('projectUnitIndexMs', TJSONNumber.Create(aPhaseMetrics.ProjectUnitIndexMs));
+  Result.AddPair('projectUnitCount', TJSONNumber.Create(aPhaseMetrics.ProjectUnitCount));
+  Result.AddPair('unitModelExtractionMs', TJSONNumber.Create(aPhaseMetrics.UnitModelExtractionMs));
+  Result.AddPair('unitModelExtractionCount',
+    TJSONNumber.Create(aPhaseMetrics.UnitModelExtractionCount));
+  Result.AddPair('semanticCacheWorkMs', TJSONNumber.Create(aPhaseMetrics.UnitModelExtractionMs));
+  Result.AddPair('projectSymbolIndexBuildMs',
+    TJSONNumber.Create(aPhaseMetrics.ProjectSymbolIndexBuildMs));
+  Result.AddPair('projectSymbolIndexBuildCount',
+    TJSONNumber.Create(aPhaseMetrics.ProjectSymbolIndexBuildCount));
+  Result.AddPair('commandPlanningMs', TJSONNumber.Create(aPhaseMetrics.CommandPlanningMs));
+  Result.AddPair('commandPlanningCount', TJSONNumber.Create(aPhaseMetrics.CommandPlanningCount));
+  Result.AddPair('totalMs', TJSONNumber.Create(aPhaseMetrics.TotalMs));
+  Result.AddPair('semanticCacheHits', TJSONNumber.Create(aCacheMetrics.CacheHits));
+  Result.AddPair('semanticCacheMisses', TJSONNumber.Create(aCacheMetrics.CacheMisses));
+  Result.AddPair('semanticCacheInvalidations', TJSONNumber.Create(aCacheMetrics.Invalidations));
 end;
 
-function UsageJson(const aUsage: TDelphiSemanticUsage): string;
+function BuildUsageObject(const aUsage: TDelphiSemanticUsage): TJSONObject;
 begin
-  Result := '{"name":"' + JsonEscape(aUsage.Name) + '","role":"' + JsonEscape(aUsage.Role) +
-    '","routine":"' + JsonEscape(aUsage.RoutineName) + '","section":"' +
-    JsonEscape(aUsage.SectionKind) + '","sourceKind":"' + JsonEscape(aUsage.SourceKind) +
-    '","file":"' + JsonEscape(aUsage.FileName) + '","unit":"' + JsonEscape(aUsage.UnitName) +
-    '","line":' + aUsage.Line.ToString + ',"column":' + aUsage.Column.ToString +
-    ',"endLine":' + aUsage.EndLine.ToString + ',"endColumn":' + aUsage.EndColumn.ToString + '}';
+  Result := TJSONObject.Create;
+  Result.AddPair('name', aUsage.Name);
+  Result.AddPair('role', aUsage.Role);
+  Result.AddPair('routine', aUsage.RoutineName);
+  Result.AddPair('section', aUsage.SectionKind);
+  Result.AddPair('sourceKind', aUsage.SourceKind);
+  Result.AddPair('file', aUsage.FileName);
+  Result.AddPair('unit', aUsage.UnitName);
+  Result.AddPair('line', TJSONNumber.Create(aUsage.Line));
+  Result.AddPair('column', TJSONNumber.Create(aUsage.Column));
+  Result.AddPair('endLine', TJSONNumber.Create(aUsage.EndLine));
+  Result.AddPair('endColumn', TJSONNumber.Create(aUsage.EndColumn));
 end;
 
 function UsageResultJson(const aSymbol: string; const aResult: TDelphiSemanticUsageResult;
@@ -200,22 +180,27 @@ function UsageResultJson(const aSymbol: string; const aResult: TDelphiSemanticUs
   const aPhaseMetrics: TRefactorSemanticPhaseMetrics): string;
 var
   i: Integer;
+  lRoot: TJSONObject;
+  lUsages: TJSONArray;
 begin
-  Result := '{"status":"' + JsonEscape(aResult.Status) + '","symbol":"' + JsonEscape(aSymbol) +
-    '","diagnostic":"' + JsonEscape(aResult.Diagnostic) + '","count":' +
-    Length(aResult.Usages).ToString + ',"referenceReconciliationFallbackCount":' +
-    aReferenceFallbackCount.ToString + ',"semanticCacheHits":' +
-    aCacheMetrics.CacheHits.ToString + ',"semanticCacheMisses":' +
-    aCacheMetrics.CacheMisses.ToString + ',"semanticCacheInvalidations":' +
-    aCacheMetrics.Invalidations.ToString + ',' +
-    SemanticPhaseMetricsJson(aPhaseMetrics, aCacheMetrics) + ',"usages":[';
+  lRoot := TJSONObject.Create;
+  lUsages := TJSONArray.Create;
   for i := 0 to High(aResult.Usages) do
-  begin
-    if i > 0 then
-      Result := Result + ',';
-    Result := Result + UsageJson(aResult.Usages[i]);
-  end;
-  Result := Result + ']}';
+    lUsages.AddElement(BuildUsageObject(aResult.Usages[i]));
+
+  lRoot.AddPair('status', aResult.Status);
+  lRoot.AddPair('symbol', aSymbol);
+  lRoot.AddPair('diagnostic', aResult.Diagnostic);
+  lRoot.AddPair('count', TJSONNumber.Create(Length(aResult.Usages)));
+  lRoot.AddPair('referenceReconciliationFallbackCount',
+    TJSONNumber.Create(aReferenceFallbackCount));
+  lRoot.AddPair('semanticCacheHits', TJSONNumber.Create(aCacheMetrics.CacheHits));
+  lRoot.AddPair('semanticCacheMisses', TJSONNumber.Create(aCacheMetrics.CacheMisses));
+  lRoot.AddPair('semanticCacheInvalidations', TJSONNumber.Create(aCacheMetrics.Invalidations));
+  lRoot.AddPair('semanticPhaseMetrics', BuildSemanticPhaseMetricsObject(aPhaseMetrics,
+    aCacheMetrics));
+  lRoot.AddPair('usages', lUsages);
+  Result := JsonValueText(lRoot);
 end;
 
 function UsageResultText(const aSymbol: string; const aResult: TDelphiSemanticUsageResult):
@@ -240,45 +225,50 @@ begin
   end;
 end;
 
-function EditJson(const aEdit: TDelphiSemanticTextEdit): string;
+function BuildEditObject(const aEdit: TDelphiSemanticTextEdit): TJSONObject;
 begin
-  Result := '{"file":"' + JsonEscape(aEdit.FileName) + '","role":"' + JsonEscape(aEdit.Role) +
-    '","startLine":' + aEdit.StartLine.ToString + ',"startColumn":' +
-    aEdit.StartColumn.ToString + ',"endLine":' + aEdit.EndLine.ToString + ',"endColumn":' +
-    aEdit.EndColumn.ToString + ',"expectedFileHash":"' +
-    JsonEscape(aEdit.ExpectedFileHash) + '","expectedSourceText":"' +
-    JsonEscape(aEdit.ExpectedSourceText) + '","newText":"' + JsonEscape(aEdit.NewText) + '"}';
+  Result := TJSONObject.Create;
+  Result.AddPair('file', aEdit.FileName);
+  Result.AddPair('role', aEdit.Role);
+  Result.AddPair('startLine', TJSONNumber.Create(aEdit.StartLine));
+  Result.AddPair('startColumn', TJSONNumber.Create(aEdit.StartColumn));
+  Result.AddPair('endLine', TJSONNumber.Create(aEdit.EndLine));
+  Result.AddPair('endColumn', TJSONNumber.Create(aEdit.EndColumn));
+  Result.AddPair('expectedFileHash', aEdit.ExpectedFileHash);
+  Result.AddPair('expectedSourceText', aEdit.ExpectedSourceText);
+  Result.AddPair('newText', aEdit.NewText);
 end;
 
-function RenameRequiredVerificationJson(
-  const aValues: TArray<TDelphiSemanticRenameVerification>): string;
+function BuildRenameRequiredVerificationArray(
+  const aValues: TArray<TDelphiSemanticRenameVerification>): TJSONArray;
 var
   i: Integer;
+  lValue: TJSONObject;
 begin
-  Result := '[';
+  Result := TJSONArray.Create;
   for i := 0 to High(aValues) do
   begin
-    if i > 0 then
-      Result := Result + ',';
-    Result := Result + '{"kind":"' + JsonEscape(aValues[i].Kind) + '","description":"' +
-      JsonEscape(aValues[i].Description) + '"}';
+    lValue := TJSONObject.Create;
+    lValue.AddPair('kind', aValues[i].Kind);
+    lValue.AddPair('description', aValues[i].Description);
+    Result.AddElement(lValue);
   end;
-  Result := Result + ']';
 end;
 
-function AppliedFilesJson(const aFiles: TArray<TAppliedFile>): string;
+function BuildAppliedFilesArray(const aFiles: TArray<TAppliedFile>): TJSONArray;
 var
   i: Integer;
+  lFile: TJSONObject;
 begin
-  Result := '[';
+  Result := TJSONArray.Create;
   for i := 0 to High(aFiles) do
   begin
-    if i > 0 then
-      Result := Result + ',';
-    Result := Result + '{"file":"' + JsonEscape(aFiles[i].FileName) + '","backup":"' +
-      JsonEscape(aFiles[i].BackupFileName) + '","hash":"' + JsonEscape(aFiles[i].Hash) + '"}';
+    lFile := TJSONObject.Create;
+    lFile.AddPair('file', aFiles[i].FileName);
+    lFile.AddPair('backup', aFiles[i].BackupFileName);
+    lFile.AddPair('hash', aFiles[i].Hash);
+    Result.AddElement(lFile);
   end;
-  Result := Result + ']';
 end;
 
 function RenameVerification(const aStatus: string; aExitCode: Integer;
@@ -290,12 +280,13 @@ begin
   Result.DiagnosticsDir := aDiagnosticsDir;
 end;
 
-function RenameVerificationJson(const aVerification: TRenameVerification): string;
+function BuildRenameVerificationObject(const aVerification: TRenameVerification): TJSONObject;
 begin
-  Result := '{"status":"' + JsonEscape(aVerification.Status) + '","exitCode":' +
-    aVerification.ExitCode.ToString + ',"diagnostic":"' +
-    JsonEscape(aVerification.Diagnostic) + '","diagnosticsDir":"' +
-    JsonEscape(aVerification.DiagnosticsDir) + '"}';
+  Result := TJSONObject.Create;
+  Result.AddPair('status', aVerification.Status);
+  Result.AddPair('exitCode', TJSONNumber.Create(aVerification.ExitCode));
+  Result.AddPair('diagnostic', aVerification.Diagnostic);
+  Result.AddPair('diagnosticsDir', aVerification.DiagnosticsDir);
 end;
 
 function RenameResultJson(const aSymbol: string; const aPlan: TDelphiSemanticRenamePlan;
@@ -305,30 +296,38 @@ function RenameResultJson(const aSymbol: string; const aPlan: TDelphiSemanticRen
   const aPhaseMetrics: TRefactorSemanticPhaseMetrics): string;
 var
   i: Integer;
+  lEdits: TJSONArray;
+  lRoot: TJSONObject;
   lStatus: string;
 begin
   lStatus := aPlan.Status;
   if aApply and SameText(lStatus, 'planned') then
     lStatus := 'applied';
-  Result := '{"status":"' + JsonEscape(lStatus) + '","symbol":"' + JsonEscape(aSymbol) +
-    '","apply":' + LowerCase(BoolToStr(aApply, True)) + ',"diagnostic":"' +
-    JsonEscape(aPlan.Diagnostic) + '","editCount":' + Length(aPlan.Edits).ToString +
-    ',"contextFingerprint":"' + JsonEscape(aPlan.ContextFingerprint) +
-    '","baselineSemanticModelVersion":"' + JsonEscape(aPlan.BaselineSemanticModelVersion) +
-    '","requiredVerification":' + RenameRequiredVerificationJson(aPlan.RequiredVerification) +
-    ',"verification":' + RenameVerificationJson(aVerification) +
-    ',"referenceReconciliationFallbackCount":' + aReferenceFallbackCount.ToString +
-    ',"semanticCacheHits":' + aCacheMetrics.CacheHits.ToString +
-    ',"semanticCacheMisses":' + aCacheMetrics.CacheMisses.ToString +
-    ',"semanticCacheInvalidations":' + aCacheMetrics.Invalidations.ToString +
-    ',' + SemanticPhaseMetricsJson(aPhaseMetrics, aCacheMetrics) + ',"edits":[';
+  lRoot := TJSONObject.Create;
+  lEdits := TJSONArray.Create;
   for i := 0 to High(aPlan.Edits) do
-  begin
-    if i > 0 then
-      Result := Result + ',';
-    Result := Result + EditJson(aPlan.Edits[i]);
-  end;
-  Result := Result + '],"appliedFiles":' + AppliedFilesJson(aAppliedFiles) + '}';
+    lEdits.AddElement(BuildEditObject(aPlan.Edits[i]));
+
+  lRoot.AddPair('status', lStatus);
+  lRoot.AddPair('symbol', aSymbol);
+  lRoot.AddPair('apply', TJSONBool.Create(aApply));
+  lRoot.AddPair('diagnostic', aPlan.Diagnostic);
+  lRoot.AddPair('editCount', TJSONNumber.Create(Length(aPlan.Edits)));
+  lRoot.AddPair('contextFingerprint', aPlan.ContextFingerprint);
+  lRoot.AddPair('baselineSemanticModelVersion', aPlan.BaselineSemanticModelVersion);
+  lRoot.AddPair('requiredVerification',
+    BuildRenameRequiredVerificationArray(aPlan.RequiredVerification));
+  lRoot.AddPair('verification', BuildRenameVerificationObject(aVerification));
+  lRoot.AddPair('referenceReconciliationFallbackCount',
+    TJSONNumber.Create(aReferenceFallbackCount));
+  lRoot.AddPair('semanticCacheHits', TJSONNumber.Create(aCacheMetrics.CacheHits));
+  lRoot.AddPair('semanticCacheMisses', TJSONNumber.Create(aCacheMetrics.CacheMisses));
+  lRoot.AddPair('semanticCacheInvalidations', TJSONNumber.Create(aCacheMetrics.Invalidations));
+  lRoot.AddPair('semanticPhaseMetrics', BuildSemanticPhaseMetricsObject(aPhaseMetrics,
+    aCacheMetrics));
+  lRoot.AddPair('edits', lEdits);
+  lRoot.AddPair('appliedFiles', BuildAppliedFilesArray(aAppliedFiles));
+  Result := JsonValueText(lRoot);
 end;
 
 function RenameResultText(const aSymbol: string; const aPlan: TDelphiSemanticRenamePlan;
@@ -373,30 +372,43 @@ function DeadCodeReportJson(const aReport: TDelphiSemanticDeadCodeReport;
 var
   i: Integer;
   lCandidate: TDelphiSemanticDeadCodeCandidate;
+  lCandidateObject: TJSONObject;
+  lCandidates: TJSONArray;
+  lRoot: TJSONObject;
 begin
-  Result := '{"status":"ok","profile":"' + JsonEscape(aReport.Profile) + '","count":' +
-    IntToStr(Length(aReport.Candidates)) + ',"referenceReconciliationFallbackCount":' +
-    aReferenceFallbackCount.ToString + ',"semanticCacheHits":' +
-    aCacheMetrics.CacheHits.ToString + ',"semanticCacheMisses":' +
-    aCacheMetrics.CacheMisses.ToString + ',"semanticCacheInvalidations":' +
-    aCacheMetrics.Invalidations.ToString + ',' +
-    SemanticPhaseMetricsJson(aPhaseMetrics, aCacheMetrics) + ',"candidates":[';
+  lRoot := TJSONObject.Create;
+  lCandidates := TJSONArray.Create;
   for i := 0 to High(aReport.Candidates) do
   begin
-    if i > 0 then
-      Result := Result + ',';
     lCandidate := aReport.Candidates[i];
-    Result := Result + '{"name":"' + JsonEscape(lCandidate.Name) + '","kind":"' +
-      JsonEscape(lCandidate.Kind) + '","unit":"' + JsonEscape(lCandidate.UnitName) +
-      '","owner":"' + JsonEscape(lCandidate.OwnerName) + '","file":"' +
-      JsonEscape(lCandidate.FileName) + '","line":' + IntToStr(lCandidate.Line) +
-      ',"column":' + IntToStr(lCandidate.Column) + ',"status":"' +
-      JsonEscape(lCandidate.Status) + '","reason":"' + JsonEscape(lCandidate.Reason) +
-      '","safetyProfile":"' + JsonEscape(lCandidate.SafetyProfile) +
-      '","referenceCount":' + IntToStr(lCandidate.ReferenceCount) + ',"blockers":' +
-      JsonStringArray(lCandidate.Blockers) + '}';
+    lCandidateObject := TJSONObject.Create;
+    lCandidateObject.AddPair('name', lCandidate.Name);
+    lCandidateObject.AddPair('kind', lCandidate.Kind);
+    lCandidateObject.AddPair('unit', lCandidate.UnitName);
+    lCandidateObject.AddPair('owner', lCandidate.OwnerName);
+    lCandidateObject.AddPair('file', lCandidate.FileName);
+    lCandidateObject.AddPair('line', TJSONNumber.Create(lCandidate.Line));
+    lCandidateObject.AddPair('column', TJSONNumber.Create(lCandidate.Column));
+    lCandidateObject.AddPair('status', lCandidate.Status);
+    lCandidateObject.AddPair('reason', lCandidate.Reason);
+    lCandidateObject.AddPair('safetyProfile', lCandidate.SafetyProfile);
+    lCandidateObject.AddPair('referenceCount', TJSONNumber.Create(lCandidate.ReferenceCount));
+    lCandidateObject.AddPair('blockers', BuildJsonStringArray(lCandidate.Blockers));
+    lCandidates.AddElement(lCandidateObject);
   end;
-  Result := Result + ']}';
+
+  lRoot.AddPair('status', 'ok');
+  lRoot.AddPair('profile', aReport.Profile);
+  lRoot.AddPair('count', TJSONNumber.Create(Length(aReport.Candidates)));
+  lRoot.AddPair('referenceReconciliationFallbackCount',
+    TJSONNumber.Create(aReferenceFallbackCount));
+  lRoot.AddPair('semanticCacheHits', TJSONNumber.Create(aCacheMetrics.CacheHits));
+  lRoot.AddPair('semanticCacheMisses', TJSONNumber.Create(aCacheMetrics.CacheMisses));
+  lRoot.AddPair('semanticCacheInvalidations', TJSONNumber.Create(aCacheMetrics.Invalidations));
+  lRoot.AddPair('semanticPhaseMetrics', BuildSemanticPhaseMetricsObject(aPhaseMetrics,
+    aCacheMetrics));
+  lRoot.AddPair('candidates', lCandidates);
+  Result := JsonValueText(lRoot);
 end;
 
 function DeadCodeReportText(const aReport: TDelphiSemanticDeadCodeReport): string;
@@ -558,10 +570,14 @@ procedure WriteRenameManifest(const aWorkspaceRoot, aStatus, aError: string;
   const aFiles: TArray<TAppliedFile>; const aVerification: TRenameVerification);
 var
   lJson: string;
+  lRoot: TJSONObject;
 begin
-  lJson := '{"status":"' + JsonEscape(aStatus) + '","error":"' + JsonEscape(aError) +
-    '","verification":' + RenameVerificationJson(aVerification) + ',"files":' +
-    AppliedFilesJson(aFiles) + '}';
+  lRoot := TJSONObject.Create;
+  lRoot.AddPair('status', aStatus);
+  lRoot.AddPair('error', aError);
+  lRoot.AddPair('verification', BuildRenameVerificationObject(aVerification));
+  lRoot.AddPair('files', BuildAppliedFilesArray(aFiles));
+  lJson := JsonValueText(lRoot);
   TDirectory.CreateDirectory(aWorkspaceRoot);
   TFile.WriteAllText(TPath.Combine(aWorkspaceRoot, 'manifest.json'), lJson, TEncoding.UTF8);
 end;

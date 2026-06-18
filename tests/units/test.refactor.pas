@@ -4,6 +4,7 @@ interface
 
 uses
   System.IOUtils,
+  System.JSON,
   System.StrUtils,
   System.SysUtils,
   DUnitX.TestFramework,
@@ -44,6 +45,8 @@ type
     procedure SemanticsSessionAdapterMapsOptionsAndDiagnostics;
     [Test]
     procedure SemanticsSessionAdapterIsCentralized;
+    [Test]
+    procedure RefactorJsonOutputUsesStructuredBuilders;
     [Test]
     procedure ProjectDakRootPolicyIsCentralized;
   end;
@@ -171,11 +174,16 @@ procedure TRefactorCommandTests.FindUsagesCommandReportsProjectScopedReferencesA
 var
   lDprojPath: string;
   lExitCode: Cardinal;
+  lHasUnitTwoUsage: Boolean;
+  lJson: TJSONObject;
   lLogPath: string;
   lLogText: string;
   lRoot: string;
   lUnitOnePath: string;
   lUnitTwoPath: string;
+  lUsage: TJSONObject;
+  lUsages: TJSONArray;
+  i: Integer;
 begin
   EnsureResolverBuilt;
   lRoot := TPath.Combine(TempRoot, 'refactor-find-usages');
@@ -188,12 +196,30 @@ begin
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected find-usages to succeed. See: ' + lLogPath);
 
   lLogText := ReadUtf8TextFile(lLogPath);
-  Assert.IsTrue(Pos('"status":"resolved"', lLogText) > 0, 'Expected resolved JSON status. See: ' + lLogPath);
-  Assert.IsTrue(Pos('"symbol":"SharedValue"', lLogText) > 0, 'Expected queried symbol in JSON. See: ' + lLogPath);
-  Assert.IsTrue(Pos('"referenceReconciliationFallbackCount":', lLogText) > 0,
-    'Expected reference reconciliation fallback metric in JSON. See: ' + lLogPath);
-  Assert.IsTrue(Pos('"count":3', lLogText) > 0, 'Expected declaration plus two references. See: ' + lLogPath);
-  Assert.IsTrue(Pos('UnitTwo.pas', lLogText) > 0, 'Expected cross-unit usage in JSON. See: ' + lLogPath);
+  lJson := ParseJsonObject(lLogText, lLogPath);
+  try
+    Assert.AreEqual('resolved', lJson.GetValue<string>('status', ''),
+      'Expected resolved JSON status. See: ' + lLogPath);
+    Assert.AreEqual('SharedValue', lJson.GetValue<string>('symbol', ''),
+      'Expected queried symbol in JSON. See: ' + lLogPath);
+    Assert.IsNotNull(lJson.Values['referenceReconciliationFallbackCount'],
+      'Expected reference reconciliation fallback metric in JSON. See: ' + lLogPath);
+    Assert.AreEqual(3, lJson.GetValue<Integer>('count', -1),
+      'Expected declaration plus two references. See: ' + lLogPath);
+    Assert.IsTrue(lJson.Values['usages'] is TJSONArray, 'Expected usages array. See: ' + lLogPath);
+    lUsages := lJson.Values['usages'] as TJSONArray;
+    lHasUnitTwoUsage := False;
+    for i := 0 to lUsages.Count - 1 do
+    begin
+      lUsage := lUsages.Items[i] as TJSONObject;
+      if SameText(lUsage.GetValue<string>('unit', ''), 'UnitTwo') and
+        ContainsText(lUsage.GetValue<string>('file', ''), 'UnitTwo.pas') then
+        lHasUnitTwoUsage := True;
+    end;
+    Assert.IsTrue(lHasUnitTwoUsage, 'Expected cross-unit usage in JSON. See: ' + lLogPath);
+  finally
+    lJson.Free;
+  end;
 end;
 
 procedure TRefactorCommandTests.RenameCommandDefaultsToDryRun;
@@ -681,6 +707,23 @@ begin
         lPath + ' should open Semantics sessions through the shared adapter.');
     end;
   end;
+end;
+
+procedure TRefactorCommandTests.RefactorJsonOutputUsesStructuredBuilders;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.Refactor.pas'),
+    TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSource, 'System.JSON'),
+    'Refactor and dead-code JSON output should use structured System.JSON builders.');
+  Assert.IsFalse(ContainsText(lSource, 'function JsonEscape'),
+    'Refactor must not keep a local string-escaping JSON helper.');
+  Assert.IsFalse(ContainsText(lSource, 'JsonEscape('),
+    'Refactor JSON output should not call local escape-based string builders.');
+  Assert.IsFalse(ContainsText(lSource, 'Result := ''{"'),
+    'Refactor JSON objects should be built structurally, not by concatenating object literals.');
 end;
 
 procedure TRefactorCommandTests.ProjectDakRootPolicyIsCentralized;

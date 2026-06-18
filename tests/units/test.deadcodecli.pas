@@ -4,6 +4,7 @@ interface
 
 uses
   System.IOUtils,
+  System.JSON,
   System.SysUtils,
   DUnitX.TestFramework,
   DelphiSemantics.DeadCode,
@@ -107,14 +108,19 @@ end;
 
 procedure TDeadCodeCliTests.ReportsJsonWithoutMutatingSources;
 var
+  lCandidate: TJSONObject;
+  lCandidates: TJSONArray;
   lBeforeText: string;
   lDprojPath: string;
   lExitCode: Cardinal;
+  lFoundCandidate: Boolean;
+  lJson: TJSONObject;
   lLogPath: string;
   lLogText: string;
   lRoot: string;
   lUnitOnePath: string;
   lUnitTwoPath: string;
+  i: Integer;
 begin
   EnsureResolverBuilt;
   lRoot := TPath.Combine(TempRoot, 'dead-code-cli-report');
@@ -128,13 +134,32 @@ begin
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected dead-code report to succeed. See: ' + lLogPath);
 
   lLogText := ReadUtf8TextFile(lLogPath);
-  Assert.IsTrue(Pos('"status":"ok"', lLogText) > 0, 'Expected ok JSON status. See: ' + lLogPath);
-  Assert.IsTrue(Pos('"profile":"legacy-static"', lLogText) > 0, 'Expected selected profile. See: ' + lLogPath);
-  Assert.IsTrue(Pos('"safetyProfile":"legacy-static"', lLogText) > 0,
-    'Expected candidate safety profile. See: ' + lLogPath);
-  Assert.IsTrue(Pos('"name":"UnusedLocalRoutine"', lLogText) > 0,
-    'Expected candidate name in JSON. See: ' + lLogPath);
-  Assert.IsTrue(Pos('"blockers"', lLogText) > 0, 'Expected blocker list in JSON. See: ' + lLogPath);
+  lJson := ParseJsonObject(lLogText, lLogPath);
+  try
+    Assert.AreEqual('ok', lJson.GetValue<string>('status', ''),
+      'Expected ok JSON status. See: ' + lLogPath);
+    Assert.AreEqual('legacy-static', lJson.GetValue<string>('profile', ''),
+      'Expected selected profile. See: ' + lLogPath);
+    Assert.IsTrue(lJson.Values['candidates'] is TJSONArray,
+      'Expected candidates array. See: ' + lLogPath);
+    lCandidates := lJson.Values['candidates'] as TJSONArray;
+    lFoundCandidate := False;
+    for i := 0 to lCandidates.Count - 1 do
+    begin
+      lCandidate := lCandidates.Items[i] as TJSONObject;
+      if SameText(lCandidate.GetValue<string>('name', ''), 'UnusedLocalRoutine') then
+      begin
+        Assert.AreEqual('legacy-static', lCandidate.GetValue<string>('safetyProfile', ''),
+          'Expected candidate safety profile. See: ' + lLogPath);
+        Assert.IsTrue(lCandidate.Values['blockers'] is TJSONArray,
+          'Expected blocker list in JSON. See: ' + lLogPath);
+        lFoundCandidate := True;
+      end;
+    end;
+    Assert.IsTrue(lFoundCandidate, 'Expected candidate name in JSON. See: ' + lLogPath);
+  finally
+    lJson.Free;
+  end;
   Assert.AreEqual(lBeforeText, TFile.ReadAllText(lUnitTwoPath, TEncoding.UTF8),
     'Report-only dead-code command must not mutate source files.');
 end;

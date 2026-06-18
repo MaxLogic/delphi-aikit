@@ -38,6 +38,8 @@ type
     procedure SymbolMapSemanticMergeAvoidsHotRowGrowthAndLinearScans;
     [Test]
     procedure SymbolMapCommandDelegatesOperationDispatch;
+    [Test]
+    procedure SymbolMapJsonOutputUsesStructuredBuilders;
   end;
 
   [TestFixture]
@@ -4014,6 +4016,23 @@ begin
     'RunSymbolMapCommand should delegate text output writing.');
   Assert.IsFalse(ContainsText(lCommandSource, 'WriteSymbolMapJsonShell('),
     'RunSymbolMapCommand should delegate JSON output writing.');
+end;
+
+procedure TSymbolMapContextTests.SymbolMapJsonOutputUsesStructuredBuilders;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.SymbolMap.pas'),
+    TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSource, 'System.JSON'),
+    'SymbolMap JSON output should use structured System.JSON builders.');
+  Assert.IsFalse(ContainsText(lSource, 'function JsonEscape'),
+    'SymbolMap must not keep a local string-escaping JSON helper.');
+  Assert.IsFalse(ContainsText(lSource, 'JsonEscape('),
+    'SymbolMap JSON output should not call local escape-based string builders.');
+  Assert.IsFalse(ContainsText(lSource, 'Result := ''{"'),
+    'SymbolMap JSON objects should be built structurally, not by concatenating object literals.');
 end;
 
 procedure TSymbolMapCliTests.SetParams(const aCmdLine: string);
