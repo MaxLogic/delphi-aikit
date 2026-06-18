@@ -127,7 +127,7 @@ uses
   System.Classes, System.Diagnostics, System.Generics.Collections, System.IOUtils, System.StrUtils,
   System.SysUtils,
   DelphiSemantics.Cache, DelphiSemantics.CompilerProfile,
-  DelphiSemantics.Model,
+  DelphiSemantics.Model, DelphiSemantics.Model.Text,
   Dak.RadStudio.Locator, Dak.RemoveWith.Source, Dak.Semantics.Session,
   MaxLogic.StrUtils;
 
@@ -965,7 +965,8 @@ end;
 
 class function TRemoveWithSymbolBuilder.IsIdentifierChar(const aValue: Char): Boolean;
 begin
-  Result := CharInSet(aValue, ['A'..'Z', 'a'..'z', '0'..'9', '_']);
+  // T-434 compatibility wrapper: our existing private call sites keep their local helper name.
+  Result := DelphiSemantics.Model.Text.IsIdentifierChar(aValue);
 end;
 
 class function TRemoveWithSymbolBuilder.IsTopLevelLine(const aLine: string): Boolean;
