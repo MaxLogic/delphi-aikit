@@ -15,6 +15,8 @@ type
   private
     procedure CreateFixtureProject(const aRoot: string; out aDprojPath, aUnitOnePath,
       aUnitTwoPath: string);
+    procedure CreateBuildFailureFixtureProject(const aRoot: string; out aDprojPath,
+      aUnitOnePath, aUnitTwoPath: string);
   public
     [Test]
     procedure FindUsagesCommandReportsProjectScopedReferencesAsJson;
@@ -22,6 +24,8 @@ type
     procedure RenameCommandDefaultsToDryRun;
     [Test]
     procedure RenameCommandAppliesEditsAndCreatesBackups;
+    [Test]
+    procedure RenameCommandRollsBackWhenBuildVerificationFails;
     [Test]
     procedure RenameCommandAcceptsSourcePositionTarget;
     [Test]
@@ -107,16 +111,51 @@ begin
   TFile.WriteAllText(aDprojPath,
     '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
     '  <PropertyGroup>' + sLineBreak +
+    '    <ProjectGuid>{F01F1010-6CB0-41EE-B12E-9563EB1E5155}</ProjectGuid>' + sLineBreak +
     '    <MainSource>RefactorFixture.dpr</MainSource>' + sLineBreak +
-    '    <DCC_UnitSearchPath>$(PROJECTDIR)</DCC_UnitSearchPath>' + sLineBreak +
+    '    <Base>True</Base>' + sLineBreak +
+    '    <Config Condition="''$(Config)''==''''">Release</Config>' + sLineBreak +
+    '    <ProjectName Condition="''$(ProjectName)''==''''">RefactorFixture</ProjectName>' + sLineBreak +
+    '    <TargetedPlatforms>1</TargetedPlatforms>' + sLineBreak +
+    '    <AppType>Console</AppType>' + sLineBreak +
+    '    <FrameworkType>None</FrameworkType>' + sLineBreak +
+    '    <ProjectVersion>20.2</ProjectVersion>' + sLineBreak +
+    '    <Platform Condition="''$(Platform)''==''''">Win32</Platform>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '  <PropertyGroup Condition="''$(Base)''!=''''">' + sLineBreak +
+    '    <DCC_ExeOutput>.\bin</DCC_ExeOutput>' + sLineBreak +
+    '    <DCC_DcuOutput>$(DCC_ExeOutput)</DCC_DcuOutput>' + sLineBreak +
+    '    <DCC_UnitSearchPath>.;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + sLineBreak +
+    '    <DCC_Namespace>System;System.Win;$(DCC_Namespace)</DCC_Namespace>' + sLineBreak +
     '  </PropertyGroup>' + sLineBreak +
     '  <ItemGroup>' + sLineBreak +
-    '    <DCCReference Include="RefactorFixture.dpr"/>' + sLineBreak +
+    '    <DelphiCompile Include="$(MainSource)">' + sLineBreak +
+    '      <MainSource>MainSource</MainSource>' + sLineBreak +
+    '    </DelphiCompile>' + sLineBreak +
     '    <DCCReference Include="UnitOne.pas"/>' + sLineBreak +
     '    <DCCReference Include="UnitTwo.pas"/>' + sLineBreak +
     '  </ItemGroup>' + sLineBreak +
+    '  <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists(''$(BDS)\Bin\CodeGear.Delphi.Targets'')"/>' + sLineBreak +
     '</Project>' + sLineBreak,
     TEncoding.UTF8);
+end;
+
+procedure TRefactorCommandTests.CreateBuildFailureFixtureProject(const aRoot: string;
+  out aDprojPath, aUnitOnePath, aUnitTwoPath: string);
+var
+  lDprojText: string;
+begin
+  CreateFixtureProject(aRoot, aDprojPath, aUnitOnePath, aUnitTwoPath);
+  lDprojText := TFile.ReadAllText(aDprojPath, TEncoding.UTF8);
+  lDprojText := StringReplace(lDprojText, '</Project>',
+    '  <Target Name="FailAfterRenameRewrite" BeforeTargets="_PasCoreCompile">' + sLineBreak +
+    '    <Exec Command="findstr /C:&quot;RenamedValue := 2&quot; UnitTwo.pas &gt;nul" IgnoreExitCode="true">' + sLineBreak +
+    '      <Output TaskParameter="ExitCode" PropertyName="RenameVerificationExitCode"/>' + sLineBreak +
+    '    </Exec>' + sLineBreak +
+    '    <Error Condition="''$(RenameVerificationExitCode)''==''0''" Text="Intentional rename verification failure after rename rewrites UnitTwo.pas."/>' + sLineBreak +
+    '  </Target>' + sLineBreak +
+    '</Project>', []);
+  TFile.WriteAllText(aDprojPath, lDprojText, TEncoding.UTF8);
 end;
 
 procedure TRefactorCommandTests.FindUsagesCommandReportsProjectScopedReferencesAsJson;
@@ -195,13 +234,16 @@ begin
 
   Assert.IsTrue(RunResolverProcess(
     'rename --project ' + QuoteArg(lDprojPath) +
-    ' --symbol SharedValue --new-name RenamedValue --apply --format json',
+    ' --symbol SharedValue --new-name RenamedValue --apply --format json' +
+    ' --delphi 23.0 --platform Win32 --config Debug',
     RepoRoot, lLogPath, lExitCode), 'Failed to start rename apply command.');
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected apply rename to succeed. See: ' + lLogPath);
 
   lLogText := ReadUtf8TextFile(lLogPath);
   Assert.IsTrue(Pos('"apply":true', lLogText) > 0, 'Expected JSON apply flag. See: ' + lLogPath);
   Assert.IsTrue(Pos('"status":"applied"', lLogText) > 0, 'Expected applied status. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"verification":{"status":"passed"', lLogText) > 0,
+    'Expected post-apply build verification to pass. See: ' + lLogPath);
   Assert.IsTrue(Pos('"referenceReconciliationFallbackCount":', lLogText) > 0,
     'Expected reference reconciliation fallback metric in JSON. See: ' + lLogPath);
   Assert.IsTrue(Pos('RenamedValue', TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8)) > 0,
@@ -216,6 +258,49 @@ begin
     'Expected run-scoped rename transaction backup path. See: ' + lLogPath);
   Assert.IsTrue(Pos('UnitOne.pas.bak', lLogText) > 0, 'Expected backup for declaration file.');
   Assert.IsTrue(Pos('UnitTwo.pas.bak', lLogText) > 0, 'Expected backup for usage file.');
+end;
+
+procedure TRefactorCommandTests.RenameCommandRollsBackWhenBuildVerificationFails;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lLogText: string;
+  lRoot: string;
+  lUnitOnePath: string;
+  lUnitOneText: string;
+  lUnitTwoPath: string;
+  lUnitTwoText: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-rename-verify-fail');
+  CreateBuildFailureFixtureProject(lRoot, lDprojPath, lUnitOnePath, lUnitTwoPath);
+  lLogPath := TPath.Combine(TempRoot, 'refactor-rename-verify-fail.log');
+
+  Assert.IsTrue(RunResolverProcess(
+    'rename --project ' + QuoteArg(lDprojPath) +
+    ' --symbol SharedValue --new-name RenamedValue --apply --format json' +
+    ' --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lLogPath, lExitCode), 'Failed to start rename apply command.');
+  Assert.AreNotEqual(Cardinal(0), lExitCode,
+    'Expected rename apply to fail when post-edit build verification fails. See: ' + lLogPath);
+
+  lLogText := ReadUtf8TextFile(lLogPath);
+  Assert.IsTrue(Pos('"status":"rolledBack"', lLogText) > 0,
+    'Expected rolled-back status after verification failure. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"verification":{"status":"failed"', lLogText) > 0,
+    'Expected failed build verification details. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"diagnostic":"Build verification failed', lLogText) > 0,
+    'Expected deterministic build verification diagnostic. See: ' + lLogPath);
+
+  lUnitOneText := TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8);
+  lUnitTwoText := TFile.ReadAllText(lUnitTwoPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('SharedValue: Integer', lUnitOneText) > 0,
+    'Rollback must restore the original declaration.');
+  Assert.IsTrue(Pos('SharedValue := 2', lUnitTwoText) > 0,
+    'Rollback must restore the original usage text.');
+  Assert.AreEqual(0, Pos('RenamedValue', lUnitOneText + lUnitTwoText),
+    'Rollback must remove all applied rename edits.');
 end;
 
 procedure TRefactorCommandTests.RenameCommandAcceptsSourcePositionTarget;
