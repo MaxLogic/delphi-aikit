@@ -16,7 +16,7 @@ uses
   System.SysUtils,
   DelphiSemantics.DeadCode, DelphiSemantics.ProjectContext, DelphiSemantics.Refactor,
   DelphiSemantics.Usage,
-  Dak.ExitCodes, Dak.Semantics.Session, Dak.SourceText;
+  Dak.ExitCodes, Dak.Paths, Dak.Semantics.Session, Dak.SourceText;
 
 type
   TRefactorSemanticPhaseMetrics = record
@@ -501,10 +501,8 @@ var
   lProjectPath: string;
 begin
   lProjectPath := TPath.GetFullPath(aOptions.fDprojPath);
-  Result := TPath.Combine(TPath.Combine(TPath.GetDirectoryName(lProjectPath), '.dak'),
-    TPath.GetFileNameWithoutExtension(lProjectPath));
-  Result := TPath.Combine(TPath.Combine(Result, 'rename'),
-    FormatDateTime('yyyymmddhhnnsszzz', Now));
+  Result := DakProjectPath(DakProjectRootForProjectPath(lProjectPath),
+    ['rename', FormatDateTime('yyyymmddhhnnsszzz', Now)]);
 end;
 
 procedure WriteRenameManifest(const aWorkspaceRoot, aStatus, aError: string;

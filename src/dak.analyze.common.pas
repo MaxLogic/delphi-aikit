@@ -9,8 +9,8 @@ uses
   Winapi.Windows,
   maxLogic.IOUtils, maxLogic.StrUtils,
   Dak.Diagnostics, Dak.FixInsight, Dak.FixInsightRunner, Dak.Messages,
-  Dak.PascalAnalyzerRunner, Dak.Project.BuildParams, Dak.Registry, Dak.ReportPostProcess, Dak.RsVars, Dak.Types,
-  Dak.Settings, Dak.Utils;
+  Dak.PascalAnalyzerRunner, Dak.Paths, Dak.Project.BuildParams, Dak.Registry, Dak.ReportPostProcess, Dak.RsVars,
+  Dak.Settings, Dak.Types, Dak.Utils;
 
 type
   TFixInsightCounts = record
@@ -511,7 +511,7 @@ begin
   end;
 
   lProjectDir := TPath.GetDirectoryName(TPath.GetFullPath(aProjectPath));
-  Result := TPath.Combine(TPath.Combine(lProjectDir, '.dak'), aProjectName);
+  Result := DakProjectRoot(lProjectDir, aProjectName);
 end;
 
 function BuildUnitOutputRoot(const aBaseOut: string; const aUnitPath: string; const aUnitName: string): string;
@@ -528,7 +528,7 @@ begin
   end;
 
   lUnitDir := TPath.GetDirectoryName(TPath.GetFullPath(aUnitPath));
-  Result := TPath.Combine(TPath.Combine(TPath.Combine(lUnitDir, '.dak'), '_unit'), aUnitName);
+  Result := DakProjectPath(DakProjectRoot(lUnitDir, '_unit'), [aUnitName]);
 end;
 
 function TryRunFixInsightLogged(const aParams: TFixInsightParams; const aStdOutLogPath: string;

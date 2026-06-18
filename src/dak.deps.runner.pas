@@ -20,6 +20,7 @@ uses
   DelphiSemantics.Graph, DelphiSemantics.ProjectContext,
   Dak.CommandOutput,
   Dak.ExitCodes,
+  Dak.Paths,
   Dak.Project.Semantics,
   Dak.Semantics.Session;
 
@@ -106,7 +107,6 @@ type
     constructor Create(const aContext: TProjectAnalysisContext; const aOptions: TAppOptions);
     destructor Destroy; override;
     function Build(out aError: string): Boolean;
-    function DefaultOutputPath(aFormat: TDepsFormat): string;
     function RenderJson: string;
     function RenderText(const aFocusUnitName: string; aTopLimit: Integer): string;
   end;
@@ -352,14 +352,6 @@ begin
   fNodes := TObjectDictionary<string, TDepsNodeInfo>.Create([doOwnsValues]);
   fParserProblems := TList<TDepsParserProblemInfo>.Create;
   fUnresolvedUnits := THashSet<string>.Create;
-end;
-
-function TDepsGraphBuilder.DefaultOutputPath(aFormat: TDepsFormat): string;
-begin
-  if aFormat = TDepsFormat.dfText then
-    Result := TPath.Combine(TPath.Combine(fContext.DakProjectRoot, 'deps'), 'deps.txt')
-  else
-    Result := TPath.Combine(TPath.Combine(fContext.DakProjectRoot, 'deps'), 'deps.json');
 end;
 
 destructor TDepsGraphBuilder.Destroy;
@@ -1247,13 +1239,19 @@ begin
 end;
 
 function TDepsCommandRunner.ResolveOutputPath: string;
+var
+  lDefaultPath: string;
+  lExplicitPath: string;
 begin
-  if fOptions.fHasDepsOutputPath and (Trim(fOptions.fDepsOutputPath) <> '') then
-    Result := fOptions.fDepsOutputPath
-  else if fOptions.fDepsFormat = TDepsFormat.dfText then
-    Result := TPath.Combine(TPath.Combine(fContext.DakProjectRoot, 'deps'), 'deps.txt')
+  if fOptions.fDepsFormat = TDepsFormat.dfText then
+    lDefaultPath := DakProjectPath(fContext.DakProjectRoot, ['deps', 'deps.txt'])
   else
-    Result := TPath.Combine(TPath.Combine(fContext.DakProjectRoot, 'deps'), 'deps.json');
+    lDefaultPath := DakProjectPath(fContext.DakProjectRoot, ['deps', 'deps.json']);
+
+  lExplicitPath := '';
+  if fOptions.fHasDepsOutputPath and (Trim(fOptions.fDepsOutputPath) <> '') then
+    lExplicitPath := fOptions.fDepsOutputPath;
+  Result := ExplicitPathOrDefault(lExplicitPath, lDefaultPath);
 end;
 
 function TDepsCommandRunner.TryBuildContext(out aError: string): Boolean;
