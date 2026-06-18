@@ -602,9 +602,22 @@ begin
 end;
 
 function ReadUtf8TextFile(const aFileName: string): string;
+var
+  lReader: TStreamReader;
+  lStream: TFileStream;
 begin
   Assert.IsTrue(TFile.Exists(aFileName), 'Expected output file: ' + aFileName);
-  Result := TFile.ReadAllText(aFileName, TEncoding.UTF8);
+  lStream := TFileStream.Create(aFileName, fmOpenRead or fmShareDenyNone);
+  try
+    lReader := TStreamReader.Create(lStream, TEncoding.UTF8, True);
+    try
+      Result := lReader.ReadToEnd;
+    finally
+      lReader.Free;
+    end;
+  finally
+    lStream.Free;
+  end;
 end;
 
 function ParseJsonValue(const aText: string; const aContext: string): TJSONValue;
