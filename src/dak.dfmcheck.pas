@@ -4000,6 +4000,7 @@ var
   lStopwatch: TStopwatch;
   lUnusedOutput: TDfmCheckOutputProc;
 begin
+  // Protocol-specific process supervision: DFMCheck needs job/process-tree cleanup, UI desktop isolation, and heartbeats.
   Result := False;
   aExitCode := 0;
   aError := '';

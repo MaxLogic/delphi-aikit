@@ -43,6 +43,10 @@ type
   TBuildTests = class
   public
     [Test]
+    procedure ExternalToolProcessCentralizesBasicCommandRunners;
+    [Test]
+    procedure ProtocolSpecificProcessRunnersRemainDocumentedExceptions;
+    [Test]
     procedure BuildResolverExe;
     [Test]
     procedure BuildCommandUsesNativeRunnerForExternalRepoProjects;
@@ -125,6 +129,53 @@ var
   GFakeLspBuilt: Boolean = False;
 
 implementation
+
+function ReadRepoTextFile(const aRelativePath: string): string;
+begin
+  Result := TFile.ReadAllText(TPath.Combine(RepoRoot, aRelativePath), TEncoding.UTF8);
+end;
+
+procedure TBuildTests.ExternalToolProcessCentralizesBasicCommandRunners;
+var
+  lBuildSource: string;
+  lExternalToolSource: string;
+  lFixInsightSource: string;
+  lPascalAnalyzerSource: string;
+begin
+  lExternalToolSource := ReadRepoTextFile('src\Dak.ExternalToolProcess.pas');
+  lBuildSource := ReadRepoTextFile('src\Dak.Build.Runner.pas');
+  lFixInsightSource := ReadRepoTextFile('src\dak.fixinsightrunner.pas');
+  lPascalAnalyzerSource := ReadRepoTextFile('src\dak.pascalanalyzerrunner.pas');
+
+  Assert.IsTrue(ContainsText(lExternalToolSource, 'TExternalToolProcessRunOptions'),
+    'Expected shared external-tool run options.');
+  Assert.IsTrue(ContainsText(lExternalToolSource, 'TryRunExternalToolProcess'),
+    'Expected shared external-tool run primitive.');
+  Assert.IsTrue(ContainsText(lBuildSource, 'TryRunExternalToolProcess'),
+    'Build process runner should use the shared external-tool runner.');
+  Assert.IsTrue(ContainsText(lFixInsightSource, 'TryRunExternalToolProcess'),
+    'FixInsight process runner should use the shared external-tool runner.');
+  Assert.IsTrue(ContainsText(lPascalAnalyzerSource, 'TryRunExternalToolProcess'),
+    'Pascal Analyzer process runners should use the shared external-tool runner.');
+end;
+
+procedure TBuildTests.ProtocolSpecificProcessRunnersRemainDocumentedExceptions;
+var
+  lDfmCheckSource: string;
+  lLspTransportSource: string;
+  lPascalAnalyzerSource: string;
+begin
+  lDfmCheckSource := ReadRepoTextFile('src\dak.dfmcheck.pas');
+  lLspTransportSource := ReadRepoTextFile('src\Dak.Lsp.Transport.pas');
+  lPascalAnalyzerSource := ReadRepoTextFile('src\dak.pascalanalyzerrunner.pas');
+
+  Assert.IsTrue(ContainsText(lDfmCheckSource, 'Protocol-specific process supervision'),
+    'DFMCheck local process control must be documented as a protocol-specific exception.');
+  Assert.IsTrue(ContainsText(lLspTransportSource, 'Protocol-specific process supervision'),
+    'LSP local process control must be documented as a protocol-specific exception.');
+  Assert.IsTrue(ContainsText(lPascalAnalyzerSource, 'Protocol-specific output capture'),
+    'PAL help pipe capture must be documented as a protocol-specific exception.');
+end;
 
 destructor TCapturingBuildRunner.Destroy;
 begin

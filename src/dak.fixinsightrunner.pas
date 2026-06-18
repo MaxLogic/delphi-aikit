@@ -184,14 +184,10 @@ function TryRunFixInsightWithHandles(const aParams: TFixInsightParams; aStdOut: 
   out aExitCode: Cardinal; out aError: string): Boolean;
 var
   lAppName: string;
-  lAppPtr: PChar;
   lCmdLine: string;
-  lCreationFlags: Cardinal;
-  lEnvironment: PChar;
   lExe: string;
-  lLastError: Cardinal;
-  lPi: TProcessInformation;
-  lSi: TStartupInfo;
+  lRunOptions: TExternalToolProcessRunOptions;
+  lTimedOut: Boolean;
   lStdOut: THandle;
   lStdErr: THandle;
 begin
@@ -206,49 +202,29 @@ begin
   lAppName := '';
   if FileExists(lExe) then
     lAppName := lExe;
-  if lAppName = '' then
-    lAppPtr := nil
-  else
-    lAppPtr := PChar(lAppName);
 
-  FillChar(lSi, SizeOf(lSi), 0);
-  lSi.cb := SizeOf(lSi);
-  lSi.dwFlags := STARTF_USESTDHANDLES;
-  lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
   lStdOut := aStdOut;
   if lStdOut = 0 then
     lStdOut := GetStdHandle(STD_OUTPUT_HANDLE);
   lStdErr := aStdErr;
   if lStdErr = 0 then
     lStdErr := GetStdHandle(STD_ERROR_HANDLE);
-  lSi.hStdOutput := lStdOut;
-  lSi.hStdError := lStdErr;
-  FillChar(lPi, SizeOf(lPi), 0);
-  if aParams.fEnvironmentBlock <> '' then
-  begin
-    lCreationFlags := CREATE_UNICODE_ENVIRONMENT;
-    lEnvironment := PChar(aParams.fEnvironmentBlock);
-  end else
-  begin
-    lCreationFlags := 0;
-    lEnvironment := nil;
-  end;
 
-  if not CreateProcess(lAppPtr, PChar(lCmdLine), nil, nil, True, lCreationFlags, lEnvironment, nil, lSi, lPi) then
-  begin
-    lLastError := GetLastError;
-    aError := Format(SFixInsightRunFailed, [SysErrorMessage(lLastError)]);
-    Exit(False);
-  end;
-  try
-    if not TryWaitForExternalToolProcess('FixInsightCL.exe', lPi.hProcess, aParams.fTimeoutSec, aExitCode, aError) then
-      Exit(False);
-  finally
-    CloseHandle(lPi.hThread);
-    CloseHandle(lPi.hProcess);
-  end;
-
-  Result := True;
+  lRunOptions := Default(TExternalToolProcessRunOptions);
+  lRunOptions.fApplicationName := lAppName;
+  lRunOptions.fExePath := lExe;
+  lRunOptions.fCommandLine := lCmdLine;
+  lRunOptions.fUseCommandLineApplication := lAppName = '';
+  lRunOptions.fEnvironmentBlock := aParams.fEnvironmentBlock;
+  lRunOptions.fToolName := 'FixInsightCL.exe';
+  lRunOptions.fStartFailureFormat := SFixInsightRunFailed;
+  lRunOptions.fStdInHandle := GetStdHandle(STD_INPUT_HANDLE);
+  lRunOptions.fStdOutHandle := lStdOut;
+  lRunOptions.fStdErrHandle := lStdErr;
+  lRunOptions.fTimeoutSec := aParams.fTimeoutSec;
+  lRunOptions.fUseDefaultTimeout := True;
+  lRunOptions.fTimeoutExitCode := cExternalToolTimeoutExitCode;
+  Result := TryRunExternalToolProcess(lRunOptions, aExitCode, lTimedOut, aError);
 end;
 
 function TryRunFixInsight(const aParams: TFixInsightParams; out aExitCode: Cardinal; out aError: string): Boolean;

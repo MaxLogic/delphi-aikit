@@ -388,6 +388,7 @@ var
     end;
   end;
 begin
+  // Protocol-specific output capture: PAL help must drain pipes while polling so the child cannot block on output.
   Result := False;
   aOutput := '';
   aExitCode := 0;
@@ -1068,14 +1069,11 @@ function TryRunPascalAnalyzerWithHandles(const aParams: TFixInsightParams; const
   aStdOut: THandle; aStdErr: THandle; out aExitCode: Cardinal; out aError: string): Boolean;
 var
   lCmdLine: string;
-  lCreationFlags: Cardinal;
-  lEnvironment: PChar;
   lExe: string;
-  lLastError: Cardinal;
-  lPi: TProcessInformation;
-  lSi: TStartupInfo;
+  lRunOptions: TExternalToolProcessRunOptions;
   lStdOut: THandle;
   lStdErr: THandle;
+  lTimedOut: Boolean;
 begin
   Result := False;
   aError := '';
@@ -1085,44 +1083,27 @@ begin
     Exit(False);
   UniqueString(lCmdLine);
 
-  FillChar(lSi, SizeOf(lSi), 0);
-  lSi.cb := SizeOf(lSi);
-  lSi.dwFlags := STARTF_USESTDHANDLES;
-  lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
   lStdOut := aStdOut;
   if lStdOut = 0 then
     lStdOut := GetStdHandle(STD_OUTPUT_HANDLE);
   lStdErr := aStdErr;
   if lStdErr = 0 then
     lStdErr := GetStdHandle(STD_ERROR_HANDLE);
-  lSi.hStdOutput := lStdOut;
-  lSi.hStdError := lStdErr;
-  FillChar(lPi, SizeOf(lPi), 0);
-  if aParams.fEnvironmentBlock <> '' then
-  begin
-    lCreationFlags := CREATE_UNICODE_ENVIRONMENT;
-    lEnvironment := PChar(aParams.fEnvironmentBlock);
-  end else
-  begin
-    lCreationFlags := 0;
-    lEnvironment := nil;
-  end;
 
-  if not CreateProcess(PChar(lExe), PChar(lCmdLine), nil, nil, True, lCreationFlags, lEnvironment, nil, lSi, lPi) then
-  begin
-    lLastError := GetLastError;
-    aError := 'PALCMD failed to start: ' + SysErrorMessage(lLastError);
-    Exit(False);
-  end;
-  try
-    if not TryWaitForExternalToolProcess('PALCMD', lPi.hProcess, aPa.fTimeoutSec, aExitCode, aError) then
-      Exit(False);
-  finally
-    CloseHandle(lPi.hThread);
-    CloseHandle(lPi.hProcess);
-  end;
-
-  Result := True;
+  lRunOptions := Default(TExternalToolProcessRunOptions);
+  lRunOptions.fApplicationName := lExe;
+  lRunOptions.fExePath := lExe;
+  lRunOptions.fCommandLine := lCmdLine;
+  lRunOptions.fEnvironmentBlock := aParams.fEnvironmentBlock;
+  lRunOptions.fToolName := 'PALCMD';
+  lRunOptions.fStartFailureFormat := 'PALCMD failed to start: %s';
+  lRunOptions.fStdInHandle := GetStdHandle(STD_INPUT_HANDLE);
+  lRunOptions.fStdOutHandle := lStdOut;
+  lRunOptions.fStdErrHandle := lStdErr;
+  lRunOptions.fTimeoutSec := aPa.fTimeoutSec;
+  lRunOptions.fUseDefaultTimeout := True;
+  lRunOptions.fTimeoutExitCode := cExternalToolTimeoutExitCode;
+  Result := TryRunExternalToolProcess(lRunOptions, aExitCode, lTimedOut, aError);
 end;
 
 function BuildPalCmdUnitCommandLine(const aUnitPath: string; const aPa: TPascalAnalyzerDefaults;
@@ -1186,11 +1167,10 @@ function TryRunPascalAnalyzerUnit(const aUnitPath: string; const aPa: TPascalAna
 var
   lExe: string;
   lCmdLine: string;
-  lSi: TStartupInfo;
-  lPi: TProcessInformation;
-  lLastError: Cardinal;
+  lRunOptions: TExternalToolProcessRunOptions;
   lStdOut: THandle;
   lStdErr: THandle;
+  lTimedOut: Boolean;
 begin
   Result := False;
   aError := '';
@@ -1200,35 +1180,26 @@ begin
     Exit(False);
   UniqueString(lCmdLine);
 
-  FillChar(lSi, SizeOf(lSi), 0);
-  lSi.cb := SizeOf(lSi);
-  lSi.dwFlags := STARTF_USESTDHANDLES;
-  lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
   lStdOut := aStdOut;
   if lStdOut = 0 then
     lStdOut := GetStdHandle(STD_OUTPUT_HANDLE);
   lStdErr := aStdErr;
   if lStdErr = 0 then
     lStdErr := GetStdHandle(STD_ERROR_HANDLE);
-  lSi.hStdOutput := lStdOut;
-  lSi.hStdError := lStdErr;
-  FillChar(lPi, SizeOf(lPi), 0);
 
-  if not CreateProcess(PChar(lExe), PChar(lCmdLine), nil, nil, True, 0, nil, nil, lSi, lPi) then
-  begin
-    lLastError := GetLastError;
-    aError := 'PALCMD failed to start: ' + SysErrorMessage(lLastError);
-    Exit(False);
-  end;
-  try
-    if not TryWaitForExternalToolProcess('PALCMD', lPi.hProcess, aPa.fTimeoutSec, aExitCode, aError) then
-      Exit(False);
-  finally
-    CloseHandle(lPi.hThread);
-    CloseHandle(lPi.hProcess);
-  end;
-
-  Result := True;
+  lRunOptions := Default(TExternalToolProcessRunOptions);
+  lRunOptions.fApplicationName := lExe;
+  lRunOptions.fExePath := lExe;
+  lRunOptions.fCommandLine := lCmdLine;
+  lRunOptions.fToolName := 'PALCMD';
+  lRunOptions.fStartFailureFormat := 'PALCMD failed to start: %s';
+  lRunOptions.fStdInHandle := GetStdHandle(STD_INPUT_HANDLE);
+  lRunOptions.fStdOutHandle := lStdOut;
+  lRunOptions.fStdErrHandle := lStdErr;
+  lRunOptions.fTimeoutSec := aPa.fTimeoutSec;
+  lRunOptions.fUseDefaultTimeout := True;
+  lRunOptions.fTimeoutExitCode := cExternalToolTimeoutExitCode;
+  Result := TryRunExternalToolProcess(lRunOptions, aExitCode, lTimedOut, aError);
 end;
 
 type
