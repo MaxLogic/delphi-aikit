@@ -135,6 +135,8 @@ type
     [Test]
     procedure RefactorSlashSwitchesDoNotBecomeBoolValues;
     [Test]
+    procedure DeadCodeProfileParsingUsesDakAdapter;
+    [Test]
     procedure RefactorCommandsRejectPartialPositionTargetsPrecisely;
     [Test]
     procedure LspCommandParsesOperationsAndRequiredArgs;
@@ -1336,6 +1338,25 @@ begin
 
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected rename to reject dead-code-only /profile.');
   Assert.IsTrue(Pos('/profile', lError) > 0, 'Expected rejected /profile in error. Actual: ' + lError);
+end;
+
+procedure TCliTests.DeadCodeProfileParsingUsesDakAdapter;
+var
+  lCliSource: string;
+begin
+  lCliSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.cli.pas'),
+    TEncoding.UTF8);
+
+  Assert.IsFalse(ContainsText(lCliSource, 'DelphiSemantics.DeadCode'),
+    'CLI parsing must not import Semantics dead-code implementation units.');
+  Assert.IsFalse(ContainsText(lCliSource, 'TDelphiSemanticDeadCode'),
+    'CLI parsing must not expose Semantics dead-code profile types.');
+  Assert.IsTrue(ContainsText(lCliSource, 'Dak.DeadCodeProfile'),
+    'CLI parsing should use the DAK dead-code profile adapter.');
+  Assert.IsTrue(ContainsText(lCliSource, 'TryNormalizeDeadCodeProfileName'),
+    'CLI parsing should normalize profile names through the DAK adapter.');
+  Assert.IsTrue(ContainsText(lCliSource, 'DefaultDeadCodeProfileName'),
+    'CLI defaults should come through the DAK adapter.');
 end;
 
 procedure TCliTests.RefactorCommandsRejectPartialPositionTargetsPrecisely;

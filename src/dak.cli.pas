@@ -17,7 +17,7 @@ implementation
 
 uses
   System.Generics.Collections,
-  DelphiSemantics.DeadCode;
+  Dak.DeadCodeProfile;
 
 type
   TCommandRoute = (crResolve, crAnalyze, crBuild, crDfmCheck, crDfmInspect, crGlobalVars, crDeps, crLsp,
@@ -604,8 +604,7 @@ begin
   fOptions.fSymbolMapRefresh := TSymbolMapRefresh.smrAuto;
   fOptions.fSymbolMapLimit := 50;
   fOptions.fRefactorFormat := TRefactorFormat.rffText;
-  fOptions.fDeadCodeProfile := TDelphiSemanticDeadCodeProfiles.ToName(
-    TDelphiSemanticDeadCodeProfiles.DefaultRemovalProfile);
+  fOptions.fDeadCodeProfile := DefaultDeadCodeProfileName;
   fOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfText;
   fOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrAuto;
   fOptions.fGlobalVarsUnusedOnly := False;
@@ -1843,8 +1842,9 @@ end;
 function TOptionParser.TryParseRefactorSwitch(const aArg: string; const aSwitch: string; const aInlineValue: string;
   const aHasInlineValue: Boolean): Boolean;
 var
+  lAllowedNames: string;
   lBoolValue: Boolean;
-  lDeadCodeProfile: TDelphiSemanticDeadCodeSafetyProfile;
+  lProfileName: string;
   lValue: string;
 begin
   if SwitchMatches(aSwitch, 'format') then
@@ -1922,13 +1922,12 @@ begin
     end;
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--profile') then
       Exit(False);
-    if not TDelphiSemanticDeadCodeProfiles.TryParse(lValue, lDeadCodeProfile) then
+    if not TryNormalizeDeadCodeProfileName(lValue, lProfileName, lAllowedNames) then
     begin
-      fError := Format(SInvalidDeadCodeProfile, [lValue,
-        TDelphiSemanticDeadCodeProfiles.AllowedNamesText]);
+      fError := Format(SInvalidDeadCodeProfile, [lValue, lAllowedNames]);
       Exit(False);
     end;
-    fOptions.fDeadCodeProfile := TDelphiSemanticDeadCodeProfiles.ToName(lDeadCodeProfile);
+    fOptions.fDeadCodeProfile := lProfileName;
     Exit(True);
   end;
 
