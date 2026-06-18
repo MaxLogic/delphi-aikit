@@ -16,7 +16,8 @@ uses
   System.SysUtils,
   DelphiSemantics.DeadCode, DelphiSemantics.Model.Text, DelphiSemantics.ProjectContext,
   DelphiSemantics.Refactor, DelphiSemantics.Usage,
-  Dak.Build, Dak.DeadCodeProfile, Dak.ExitCodes, Dak.Paths, Dak.Semantics.Session, Dak.SourceText;
+  Dak.Build, Dak.DeadCodeProfile, Dak.ExitCodes, Dak.Paths, Dak.Refactor.RenameGuards,
+  Dak.Semantics.Session, Dak.SourceText;
 
 type
   TRefactorSemanticPhaseMetrics = record
@@ -244,7 +245,25 @@ begin
   Result := '{"file":"' + JsonEscape(aEdit.FileName) + '","role":"' + JsonEscape(aEdit.Role) +
     '","startLine":' + aEdit.StartLine.ToString + ',"startColumn":' +
     aEdit.StartColumn.ToString + ',"endLine":' + aEdit.EndLine.ToString + ',"endColumn":' +
-    aEdit.EndColumn.ToString + ',"newText":"' + JsonEscape(aEdit.NewText) + '"}';
+    aEdit.EndColumn.ToString + ',"expectedFileHash":"' +
+    JsonEscape(aEdit.ExpectedFileHash) + '","expectedSourceText":"' +
+    JsonEscape(aEdit.ExpectedSourceText) + '","newText":"' + JsonEscape(aEdit.NewText) + '"}';
+end;
+
+function RenameRequiredVerificationJson(
+  const aValues: TArray<TDelphiSemanticRenameVerification>): string;
+var
+  i: Integer;
+begin
+  Result := '[';
+  for i := 0 to High(aValues) do
+  begin
+    if i > 0 then
+      Result := Result + ',';
+    Result := Result + '{"kind":"' + JsonEscape(aValues[i].Kind) + '","description":"' +
+      JsonEscape(aValues[i].Description) + '"}';
+  end;
+  Result := Result + ']';
 end;
 
 function AppliedFilesJson(const aFiles: TArray<TAppliedFile>): string;
@@ -294,6 +313,9 @@ begin
   Result := '{"status":"' + JsonEscape(lStatus) + '","symbol":"' + JsonEscape(aSymbol) +
     '","apply":' + LowerCase(BoolToStr(aApply, True)) + ',"diagnostic":"' +
     JsonEscape(aPlan.Diagnostic) + '","editCount":' + Length(aPlan.Edits).ToString +
+    ',"contextFingerprint":"' + JsonEscape(aPlan.ContextFingerprint) +
+    '","baselineSemanticModelVersion":"' + JsonEscape(aPlan.BaselineSemanticModelVersion) +
+    '","requiredVerification":' + RenameRequiredVerificationJson(aPlan.RequiredVerification) +
     ',"verification":' + RenameVerificationJson(aVerification) +
     ',"referenceReconciliationFallbackCount":' + aReferenceFallbackCount.ToString +
     ',"semanticCacheHits":' + aCacheMetrics.CacheHits.ToString +
@@ -605,6 +627,7 @@ var
   lEdit: TDelphiSemanticTextEdit;
   lEdits: TArray<TDelphiSemanticTextEdit>;
   lFileName: string;
+  lGuardError: string;
   lManifestError: string;
   lOriginals: TDictionary<string, TBytes>;
   lPair: TPair<string, TBytes>;
@@ -647,6 +670,8 @@ begin
             SetLength(lEdits, Length(lEdits) + 1);
             lEdits[High(lEdits)] := lEdit;
           end;
+        if not ValidateRenamePlanGuards(aPlan, lFileName, lSource, lGuardError) then
+          raise Exception.Create(lGuardError);
         SortEditsDescending(lEdits);
         for lEdit in lEdits do
           ApplyEditToSource(lEdit, aOriginalName, lSource, lText);
