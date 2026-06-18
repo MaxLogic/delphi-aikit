@@ -306,6 +306,7 @@ begin
   lChildStdOutWrite := 0;
   lStdErrHandle := 0;
 
+  // Protocol-specific process supervision: LSP owns JSON-RPC pipes and request-timeout semantics.
   FillChar(lSa, SizeOf(lSa), 0);
   lSa.nLength := SizeOf(lSa);
   lSa.bInheritHandle := True;

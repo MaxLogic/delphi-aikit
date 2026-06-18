@@ -18,7 +18,7 @@ uses
   Winapi.Windows,
   maxLogic.StrUtils,
   Dak.Build.Summary,
-  Dak.Diagnostics, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.MacroExpander, Dak.Messages,
+  Dak.Diagnostics, Dak.ExternalToolProcess, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.MacroExpander, Dak.Messages,
   Dak.MsBuild, Dak.Project.BuildParams, Dak.Project.SourceLookup, Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars,
   Dak.Settings, Dak.SourceContext, Dak.Utils;
 
@@ -1299,17 +1299,12 @@ function TBuildProcessRunner.RunProcess(const aExePath, aArguments, aWorkDir, aS
   const aEnvironmentBlock: string; aTimeoutSec: Integer; out aExitCode: Integer;
   out aTimedOut: Boolean; out aError: string): Boolean;
 var
-  lCmdLine: string;
-  lCreationFlags: Cardinal;
   lErrHandle: THandle;
-  lEnvironment: PChar;
   lOutHandle: THandle;
-  lPi: TProcessInformation;
   lProcExitCode: Cardinal;
+  lRunOptions: TExternalToolProcessRunOptions;
+  lRunTimedOut: Boolean;
   lSa: TSecurityAttributes;
-  lSi: TStartupInfo;
-  lWaitMs: Cardinal;
-  lWaitResult: Cardinal;
 begin
   Result := False;
   aExitCode := 1;
@@ -1339,63 +1334,32 @@ begin
   end;
 
   try
-    FillChar(lSi, SizeOf(lSi), 0);
-    lSi.cb := SizeOf(lSi);
-    lSi.dwFlags := STARTF_USESTDHANDLES or STARTF_USESHOWWINDOW;
-    lSi.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
-    lSi.hStdOutput := lOutHandle;
-    lSi.hStdError := lErrHandle;
-    lSi.wShowWindow := SW_HIDE;
+    lRunOptions := Default(TExternalToolProcessRunOptions);
+    lRunOptions.fApplicationName := aExePath;
+    lRunOptions.fExePath := aExePath;
+    lRunOptions.fArguments := aArguments;
+    lRunOptions.fWorkDir := aWorkDir;
+    lRunOptions.fEnvironmentBlock := aEnvironmentBlock;
+    lRunOptions.fToolName := ExtractFileName(aExePath);
+    lRunOptions.fStdInHandle := GetStdHandle(STD_INPUT_HANDLE);
+    lRunOptions.fStdOutHandle := lOutHandle;
+    lRunOptions.fStdErrHandle := lErrHandle;
+    lRunOptions.fCreationFlags := CREATE_NO_WINDOW;
+    lRunOptions.fTimeoutSec := aTimeoutSec;
+    lRunOptions.fTimeoutExitCode := 124;
 
-    FillChar(lPi, SizeOf(lPi), 0);
-    lCmdLine := QuoteCmdArg(aExePath);
-    if Trim(aArguments) <> '' then
-      lCmdLine := lCmdLine + ' ' + aArguments;
-    UniqueString(lCmdLine);
-    if aEnvironmentBlock <> '' then
+    if not TryRunExternalToolProcess(lRunOptions, lProcExitCode, lRunTimedOut, aError) then
     begin
-      lEnvironment := PChar(aEnvironmentBlock);
-      lCreationFlags := CREATE_NO_WINDOW or CREATE_UNICODE_ENVIRONMENT;
-    end else
-    begin
-      lEnvironment := nil;
-      lCreationFlags := CREATE_NO_WINDOW;
-    end;
-
-    if not CreateProcess(PChar(aExePath), PChar(lCmdLine), nil, nil, True, lCreationFlags, lEnvironment,
-      PChar(aWorkDir), lSi, lPi) then
-    begin
-      aError := SysErrorMessage(GetLastError);
-      Exit(False);
-    end;
-    try
-      if aTimeoutSec > 0 then
-        lWaitMs := Cardinal(aTimeoutSec * 1000)
-      else
-        lWaitMs := INFINITE;
-      lWaitResult := WaitForSingleObject(lPi.hProcess, lWaitMs);
-      if lWaitResult = WAIT_TIMEOUT then
+      aTimedOut := lRunTimedOut;
+      if aTimedOut then
       begin
-        TerminateProcess(lPi.hProcess, 124);
-        aExitCode := 124;
-        aTimedOut := True;
+        aExitCode := Integer(lProcExitCode);
+        aError := '';
         Exit(True);
       end;
-      if lWaitResult <> WAIT_OBJECT_0 then
-      begin
-        aError := SysErrorMessage(GetLastError);
-        Exit(False);
-      end;
-      if not GetExitCodeProcess(lPi.hProcess, lProcExitCode) then
-      begin
-        aError := SysErrorMessage(GetLastError);
-        Exit(False);
-      end;
-      aExitCode := Integer(lProcExitCode);
-    finally
-      CloseHandle(lPi.hThread);
-      CloseHandle(lPi.hProcess);
+      Exit(False);
     end;
+    aExitCode := Integer(lProcExitCode);
   finally
     if lErrHandle <> INVALID_HANDLE_VALUE then
       CloseHandle(lErrHandle);
