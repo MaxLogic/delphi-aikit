@@ -78,7 +78,7 @@ implementation
 uses
   System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
   Dak.Semantics.Session,
-  DelphiSemantics.ProjectContext, DelphiSemantics.ProjectSession,
+  DelphiSemantics.Model.Text, DelphiSemantics.ProjectContext, DelphiSemantics.ProjectSession,
   maxLogic.StrUtils;
 
 type
@@ -93,16 +93,6 @@ type
     fOffset: Integer;
     fEndOffset: Integer;
   end;
-
-function IsIdentifierStart(const aChar: Char): Boolean;
-begin
-  Result := ((aChar >= 'A') and (aChar <= 'Z')) or ((aChar >= 'a') and (aChar <= 'z')) or (aChar = '_');
-end;
-
-function IsIdentifierChar(const aChar: Char): Boolean;
-begin
-  Result := IsIdentifierStart(aChar) or ((aChar >= '0') and (aChar <= '9'));
-end;
 
 function IsValidUtf8(const aBytes: TBytes; const aOffset, aCount: Integer): Boolean;
 var

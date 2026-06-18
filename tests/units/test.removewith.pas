@@ -68,6 +68,8 @@ type
     [Test]
     procedure SemanticResolverBatchesSemanticClassifications;
     [Test]
+    procedure PascalLexicalHelpersUseSharedSemanticsUnit;
+    [Test]
     procedure ResolverIndexesLexicalParentRoutines;
     [Test]
     procedure ResolverIndexesStatementContainment;
@@ -1391,6 +1393,58 @@ begin
     'SetLength(aResult.fClassifications, lIndex + 1);' + sLineBreak +
     '  aResult.fClassifications[lIndex] := lClassification;'),
     'Semantic resolver must not resize the classification array for every semantic reference.');
+end;
+
+procedure TRemoveWithCommandTests.PascalLexicalHelpersUseSharedSemanticsUnit;
+var
+  lDiscoverySourceText: string;
+  lModelSourceText: string;
+  lPlannerSourceText: string;
+  lRefactorSourceText: string;
+  lResolverSourceText: string;
+  lSymbolMapSourceText: string;
+  lSymbolsSourceText: string;
+  lTempPolicySourceText: string;
+begin
+  lDiscoverySourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Discovery.pas'), TEncoding.UTF8);
+  lModelSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Model.pas'), TEncoding.UTF8);
+  lPlannerSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Planner.pas'), TEncoding.UTF8);
+  lRefactorSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.Refactor.pas'),
+    TEncoding.UTF8);
+  lResolverSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Resolver.pas'), TEncoding.UTF8);
+  lSymbolMapSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.SymbolMap.Indexer.pas'), TEncoding.UTF8);
+  lSymbolsSourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.Symbols.pas'), TEncoding.UTF8);
+  lTempPolicySourceText := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'src\Dak.RemoveWith.TempPolicy.pas'), TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lModelSourceText, 'DelphiSemantics.Model.Text'),
+    'Remove-with model helpers should use the shared DelphiSemantics lexical unit.');
+  Assert.IsTrue(ContainsText(lDiscoverySourceText, 'DelphiSemantics.Model.Text.IsIdentifierChar'),
+    'Discovery wrappers should delegate identifier checks to the shared lexical helper.');
+  Assert.IsTrue(ContainsText(lDiscoverySourceText, 'DelphiSemantics.Model.Text.IsWordAt'),
+    'Discovery wrappers should delegate word-boundary checks to the shared lexical helper.');
+  Assert.IsTrue(ContainsText(lPlannerSourceText, 'DelphiSemantics.Model.Text.IsIdentifierChar'),
+    'Planner wrappers should delegate identifier checks to the shared lexical helper.');
+  Assert.IsTrue(ContainsText(lResolverSourceText, 'DelphiSemantics.Model.Text.IsIdentifierChar'),
+    'Resolver wrappers should delegate identifier checks to the shared lexical helper.');
+  Assert.IsTrue(ContainsText(lSymbolsSourceText, 'DelphiSemantics.Model.Text.IsIdentifierChar'),
+    'Symbol wrappers should delegate identifier checks to the shared lexical helper.');
+  Assert.IsTrue(ContainsText(lTempPolicySourceText, 'DelphiSemantics.Model.Text.IsIdentifierChar'),
+    'Temp-policy wrappers should delegate identifier checks to the shared lexical helper.');
+  Assert.IsFalse(ContainsText(lRefactorSourceText, 'function IsIdentifierChar('),
+    'Refactor should use the shared lexical helper directly.');
+  Assert.IsFalse(ContainsText(lSymbolMapSourceText, 'function IsIdentifierStart(') or
+    ContainsText(lSymbolMapSourceText, 'function IsIdentifierChar('),
+    'SymbolMap should use the shared lexical helper directly.');
+  Assert.IsFalse(ContainsText(lModelSourceText,
+    'CharInSet(aValue, [''A''..''Z'', ''a''..''z'', ''0''..''9'', ''_''])'),
+    'Remove-with model should not duplicate Pascal identifier-character sets.');
 end;
 
 procedure TRemoveWithCommandTests.ResolverIndexesLexicalParentRoutines;

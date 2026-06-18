@@ -46,6 +46,7 @@ implementation
 
 uses
   System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  DelphiSemantics.Model.Text,
   MaxLogic.StrUtils,
   Dak.RemoveWith.Expressions, Dak.RemoveWith.Source;
 
@@ -344,7 +345,8 @@ end;
 
 class function TRemoveWithPlanner.IsIdentifierChar(const aValue: Char): Boolean;
 begin
-  Result := CharInSet(aValue, ['A'..'Z', 'a'..'z', '0'..'9', '_']);
+  // T-434 compatibility wrapper: our existing private call sites keep their local helper name.
+  Result := DelphiSemantics.Model.Text.IsIdentifierChar(aValue);
 end;
 
 class function TRemoveWithPlanner.DirectTypeName(const aTypeName: string): string;

@@ -14,8 +14,8 @@ implementation
 uses
   System.Classes, System.Diagnostics, System.Generics.Collections, System.Hash, System.IOUtils,
   System.SysUtils,
-  DelphiSemantics.DeadCode, DelphiSemantics.ProjectContext, DelphiSemantics.Refactor,
-  DelphiSemantics.Usage,
+  DelphiSemantics.DeadCode, DelphiSemantics.Model.Text, DelphiSemantics.ProjectContext,
+  DelphiSemantics.Refactor, DelphiSemantics.Usage,
   Dak.DeadCodeProfile, Dak.ExitCodes, Dak.Paths, Dak.Semantics.Session, Dak.SourceText;
 
 type
@@ -387,11 +387,6 @@ begin
       end;
     end;
   until not lChanged;
-end;
-
-function IsIdentifierChar(const aChar: Char): Boolean;
-begin
-  Result := (aChar = '_') or CharInSet(aChar, ['A'..'Z', 'a'..'z', '0'..'9']);
 end;
 
 function IdentifierLengthAtOffset(const aText: string; const aOffset: Integer): Integer;

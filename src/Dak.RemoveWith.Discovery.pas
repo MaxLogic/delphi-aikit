@@ -58,6 +58,7 @@ implementation
 
 uses
   System.IOUtils, System.StrUtils, System.SysUtils,
+  DelphiSemantics.Model.Text,
   DelphiAST.Classes, DelphiAST.Consts,
   Dak.RemoveWith.Source, Dak.Utils;
 
@@ -127,22 +128,15 @@ end;
 
 class function TRemoveWithDiscoveryHelper.IsIdentifierChar(const aValue: Char): Boolean;
 begin
-  Result := CharInSet(aValue, ['A'..'Z', 'a'..'z', '0'..'9', '_']);
+  // T-434 compatibility wrapper: our existing private call sites keep their local helper name.
+  Result := DelphiSemantics.Model.Text.IsIdentifierChar(aValue);
 end;
 
 class function TRemoveWithDiscoveryHelper.IsWordAt(const aText: string; const aOffset: Integer;
   const aWord: string): Boolean;
-var
-  lAfterOffset: Integer;
 begin
-  Result := False;
-  if (aOffset < 1) or (aOffset + Length(aWord) - 1 > Length(aText)) then
-    Exit;
-
-  lAfterOffset := aOffset + Length(aWord);
-  Result := SameText(Copy(aText, aOffset, Length(aWord)), aWord) and
-    ((aOffset = 1) or (not IsIdentifierChar(aText[aOffset - 1]))) and
-    ((lAfterOffset > Length(aText)) or (not IsIdentifierChar(aText[lAfterOffset])));
+  // T-434 compatibility wrapper: DelphiSemantics.Model.Text owns the boundary rule.
+  Result := DelphiSemantics.Model.Text.IsWordAt(aText, aOffset, aWord);
 end;
 
 class function TRemoveWithDiscoveryHelper.NextNonWhitespaceOffset(const aText: string;

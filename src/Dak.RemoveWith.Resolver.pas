@@ -75,7 +75,7 @@ implementation
 
 uses
   System.Diagnostics, System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
-  DelphiSemantics.Model, DelphiSemantics.WithBinding,
+  DelphiSemantics.Model, DelphiSemantics.Model.Text, DelphiSemantics.WithBinding,
   MaxLogic.StrUtils,
   Dak.RemoveWith.Expressions, Dak.RemoveWith.Model, Dak.RemoveWith.Source;
 
@@ -1000,7 +1000,8 @@ end;
 
 function TRemoveWithIdentifierResolver.IsIdentifierChar(const aValue: Char): Boolean;
 begin
-  Result := CharInSet(aValue, ['A'..'Z', 'a'..'z', '0'..'9', '_']);
+  // T-434 compatibility wrapper: our existing private call sites keep their local helper name.
+  Result := DelphiSemantics.Model.Text.IsIdentifierChar(aValue);
 end;
 
 function TRemoveWithIdentifierResolver.IsKeyword(const aName: string): Boolean;

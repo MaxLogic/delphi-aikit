@@ -142,6 +142,7 @@ implementation
 
 uses
   System.IOUtils, System.StrUtils, System.SysUtils,
+  DelphiSemantics.Model.Text,
   DelphiAST.Consts, DelphiAST.ProjectIndexer,
   Dak.Project.Semantics, Dak.RemoveWith.Source;
 
@@ -252,34 +253,15 @@ var
   i: Integer;
 begin
   Result := False;
-  if (aName = '') or not CharInSet(aName[1], ['A'..'Z', 'a'..'z', '_']) then
+  if (aName = '') or not IsIdentifierStart(aName[1]) then
     Exit;
 
   for i := 2 to Length(aName) do
   begin
-    if not CharInSet(aName[i], ['A'..'Z', 'a'..'z', '0'..'9', '_']) then
+    if not IsIdentifierChar(aName[i]) then
       Exit;
   end;
   Result := True;
-end;
-
-function IsIdentifierChar(const aValue: Char): Boolean;
-begin
-  Result := CharInSet(aValue, ['A'..'Z', 'a'..'z', '0'..'9', '_']);
-end;
-
-function IsWordAt(const aText: string; const aOffset: Integer; const aWord: string): Boolean;
-var
-  lAfterOffset: Integer;
-begin
-  Result := False;
-  if (aOffset < 1) or (aOffset + Length(aWord) - 1 > Length(aText)) then
-    Exit;
-
-  lAfterOffset := aOffset + Length(aWord);
-  Result := SameText(Copy(aText, aOffset, Length(aWord)), aWord) and
-    ((aOffset = 1) or (not IsIdentifierChar(aText[aOffset - 1]))) and
-    ((lAfterOffset > Length(aText)) or (not IsIdentifierChar(aText[lAfterOffset])));
 end;
 
 procedure SkipString(const aText: string; var aOffset: Integer);
