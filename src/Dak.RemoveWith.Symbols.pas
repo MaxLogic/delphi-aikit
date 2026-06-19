@@ -1,4 +1,4 @@
-﻿unit Dak.RemoveWith.Symbols;
+unit Dak.RemoveWith.Symbols;
 
 interface
 
@@ -736,7 +736,6 @@ begin
   finally
     lSourceFileNames.Free;
   end;
-  Result.SkipWithBindingSemanticGraph := True;
   if aOptions.fHasRemoveWithSemanticCachePath and
     (Trim(aOptions.fRemoveWithSemanticCachePath) <> '') then
   begin
@@ -745,6 +744,35 @@ begin
     if lCacheDir <> '' then
       TDirectory.CreateDirectory(lCacheDir);
   end;
+end;
+
+function SemanticFactBuildDiagnosticsText(
+  const aDiagnostics: TArray<TDelphiSemanticDiagnostic>): string;
+var
+  lDiagnostic: TDelphiSemanticDiagnostic;
+  lLine: string;
+begin
+  Result := '';
+  for lDiagnostic in aDiagnostics do
+  begin
+    lLine := '';
+    if lDiagnostic.Code <> '' then
+      lLine := lDiagnostic.Code + ': ';
+    if lDiagnostic.Message <> '' then
+      lLine := lLine + lDiagnostic.Message
+    else
+      lLine := lLine + 'DelphiSemantics diagnostic';
+    if lDiagnostic.FileName <> '' then
+      lLine := lLine + ' (' + lDiagnostic.FileName + ')';
+    if lDiagnostic.Line > 0 then
+      lLine := lLine + Format(' line %d', [lDiagnostic.Line]);
+
+    if Result <> '' then
+      Result := Result + sLineBreak;
+    Result := Result + lLine;
+  end;
+  if Result = '' then
+    Result := 'DelphiSemantics fact build failed without diagnostics.';
 end;
 
 function BuildProjectSemanticFacts(const aContext: TRemoveWithSymbolInventoryContext;
@@ -756,6 +784,7 @@ function BuildProjectSemanticFacts(const aContext: TRemoveWithSymbolInventoryCon
   out aError: string): Boolean;
 var
   lFacts: TDelphiSemanticProjectWithBindingFacts;
+  lFactsResult: TDelphiSemanticRemoveWithFactBuildResult;
   lModel: TDelphiSemanticUnitModel;
   lOptions: TDelphiSemanticApiOptions;
   lPlanStopwatch: TStopwatch;
@@ -767,10 +796,13 @@ begin
   lOptions := BuildProjectSemanticOptions(aOptions, aProjectModel);
   lRequest := Default(TDelphiSemanticRemoveWithRequest);
   lRequest.Options := lOptions;
+  lRequest.RemoveWithOptions.SkipSemanticGraph := True;
   lRequest.BodyAnalysisSourceFileNames := Copy(aBodyAnalysisSourceFileNames);
   lStopwatch := TStopwatch.StartNew;
   try
-    lFacts := TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFacts(lRequest);
+    lFactsResult :=
+      TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFactsResult(
+        lRequest);
   except
     on E: Exception do
     begin
@@ -780,35 +812,48 @@ begin
   end;
   lStopwatch.Stop;
   aPhaseMetrics.fSemanticProjectFactsMs := lStopwatch.ElapsedMilliseconds;
-  aPhaseMetrics.fSemanticModelExtractionMs := lFacts.Metrics.ModelExtractionMilliseconds;
-  aPhaseMetrics.fSemanticInventoryBuildMs := lFacts.Metrics.InventoryBuildMilliseconds;
-  aPhaseMetrics.fSemanticInventoryExpansionMs := lFacts.Metrics.InventoryExpansionMilliseconds;
-  aPhaseMetrics.fSemanticBindingMs := lFacts.Metrics.BindingBuildMilliseconds;
-  aPhaseMetrics.fSemanticScopeIndexBuildMs := lFacts.Metrics.ScopeIndexBuildMilliseconds;
-  aPhaseMetrics.fSemanticSelectorBindingMs := lFacts.Metrics.SelectorBindingMilliseconds;
-  aPhaseMetrics.fSemanticReferenceBindingMs := lFacts.Metrics.ReferenceBindingMilliseconds;
+  lFacts := lFactsResult.Facts;
+  aPhaseMetrics.fSemanticModelExtractionMs := lFactsResult.Metrics.ModelExtractionMilliseconds;
+  aPhaseMetrics.fSemanticInventoryBuildMs := lFactsResult.Metrics.InventoryBuildMilliseconds;
+  aPhaseMetrics.fSemanticInventoryExpansionMs :=
+    lFactsResult.Metrics.InventoryExpansionMilliseconds;
+  aPhaseMetrics.fSemanticBindingMs := lFactsResult.Metrics.BindingBuildMilliseconds;
+  aPhaseMetrics.fSemanticScopeIndexBuildMs := lFactsResult.Metrics.ScopeIndexBuildMilliseconds;
+  aPhaseMetrics.fSemanticSelectorBindingMs :=
+    lFactsResult.Metrics.SelectorBindingMilliseconds;
+  aPhaseMetrics.fSemanticReferenceBindingMs :=
+    lFactsResult.Metrics.ReferenceBindingMilliseconds;
   aPhaseMetrics.fSemanticReceiverMemberResolveMs :=
-    lFacts.Metrics.ReceiverMemberResolveMilliseconds;
-  aPhaseMetrics.fSemanticLexicalResolveMs := lFacts.Metrics.LexicalResolveMilliseconds;
-  aPhaseMetrics.fSemanticReferenceCacheHitCount := lFacts.Metrics.ReferenceCacheHitCount;
-  aPhaseMetrics.fSemanticReferenceCacheMissCount := lFacts.Metrics.ReferenceCacheMissCount;
-  aPhaseMetrics.fSemanticLookupIndexBuildMs := lFacts.Metrics.LookupIndexBuildMilliseconds;
-  aPhaseMetrics.fSemanticBindingIndexBuildMs := lFacts.Metrics.LookupIndexBuildMilliseconds;
-  aPhaseMetrics.fSemanticCacheHits := lFacts.Metrics.SemanticCacheHits;
-  aPhaseMetrics.fSemanticCacheMisses := lFacts.Metrics.SemanticCacheMisses;
+    lFactsResult.Metrics.ReceiverMemberResolveMilliseconds;
+  aPhaseMetrics.fSemanticLexicalResolveMs :=
+    lFactsResult.Metrics.LexicalResolveMilliseconds;
+  aPhaseMetrics.fSemanticReferenceCacheHitCount :=
+    lFactsResult.Metrics.ReferenceCacheHitCount;
+  aPhaseMetrics.fSemanticReferenceCacheMissCount :=
+    lFactsResult.Metrics.ReferenceCacheMissCount;
+  aPhaseMetrics.fSemanticLookupIndexBuildMs :=
+    lFactsResult.Metrics.LookupIndexBuildMilliseconds;
+  aPhaseMetrics.fSemanticBindingIndexBuildMs :=
+    lFactsResult.Metrics.LookupIndexBuildMilliseconds;
+  aPhaseMetrics.fSemanticCacheHits := lFactsResult.Metrics.SemanticCacheHits;
+  aPhaseMetrics.fSemanticCacheMisses := lFactsResult.Metrics.SemanticCacheMisses;
   aPhaseMetrics.fSemanticCacheInvalidations :=
-    lFacts.Metrics.SemanticCacheInvalidations;
-  aPhaseMetrics.fProjectFactsCacheHits := lFacts.Metrics.ProjectFactsCacheHits;
-  aPhaseMetrics.fProjectFactsCacheMisses := lFacts.Metrics.ProjectFactsCacheMisses;
+    lFactsResult.Metrics.SemanticCacheInvalidations;
+  aPhaseMetrics.fProjectFactsCacheHits := lFactsResult.Metrics.ProjectFactsCacheHits;
+  aPhaseMetrics.fProjectFactsCacheMisses := lFactsResult.Metrics.ProjectFactsCacheMisses;
   aPhaseMetrics.fProjectFactsCacheInvalidations :=
-    lFacts.Metrics.ProjectFactsCacheInvalidations;
-  aPhaseMetrics.fSnapshotSqlWriteMs := lFacts.Metrics.SnapshotSqlWriteMilliseconds;
-  aPhaseMetrics.fSnapshotSqlReadMs := lFacts.Metrics.SnapshotSqlReadMilliseconds;
-  aPhaseMetrics.fSnapshotDeserializeMs := lFacts.Metrics.SnapshotDeserializeMilliseconds;
-  aPhaseMetrics.fSnapshotIndexRebuildMs := lFacts.Metrics.SnapshotIndexRebuildMilliseconds;
-  if lFacts.ContextFingerprint = '' then
+    lFactsResult.Metrics.ProjectFactsCacheInvalidations;
+  aPhaseMetrics.fSnapshotSqlWriteMs :=
+    lFactsResult.Metrics.SnapshotSqlWriteMilliseconds;
+  aPhaseMetrics.fSnapshotSqlReadMs := lFactsResult.Metrics.SnapshotSqlReadMilliseconds;
+  aPhaseMetrics.fSnapshotDeserializeMs :=
+    lFactsResult.Metrics.SnapshotDeserializeMilliseconds;
+  aPhaseMetrics.fSnapshotIndexRebuildMs :=
+    lFactsResult.Metrics.SnapshotIndexRebuildMilliseconds;
+  if not lFactsResult.Success then
   begin
-    aError := 'DelphiSemantics project facts did not return a context fingerprint.';
+    aError := 'DelphiSemantics project facts failed: ' +
+      SemanticFactBuildDiagnosticsText(lFactsResult.Diagnostics);
     Exit(False);
   end;
   if lFacts.Metrics.UnitCount = 0 then
