@@ -18,7 +18,8 @@ type
   end;
 
   TRemoveWithTransactionStatus = (rwtxNotRun, rwtxApplied, rwtxPreflightBuildFailed, rwtxRolledBack,
-    rwtxRollbackFailed, rwtxContextFingerprintMismatch, rwtxContextFingerprintMissing);
+    rwtxRollbackFailed, rwtxContextFingerprintMismatch, rwtxContextFingerprintMissing,
+    rwtxSourceRangeMismatch);
 
   TRemoveWithTransactionFile = record
     fPath: string;
@@ -87,6 +88,19 @@ type
     class procedure SortEditsDescending(var aEdits: TArray<TRemoveWithPlannedTextEdit>); static;
     class procedure SetFileStatuses(var aTransactionResult: TRemoveWithTransactionResult;
       const aStatus: string); static;
+    class function ExpectedRangeForEdit(const aEdit: TRemoveWithPlannedTextEdit): TRemoveWithRange;
+      static;
+    class function HasExplicitExpectedRange(const aEdit: TRemoveWithPlannedTextEdit): Boolean;
+      static;
+    class function SourceRangeMismatchError(const aEdit: TRemoveWithPlannedTextEdit;
+      const aReason: string): string; static;
+    class function ResolveExpectedRangeOffsets(const aSource: TRemoveWithSourceBuffer;
+      const aEdit: TRemoveWithPlannedTextEdit; out aStartOffset, aEndOffset: Integer;
+      out aError: string): Boolean; static;
+    class function SourceTextForExpectedRange(const aSource: TRemoveWithSourceBuffer;
+      const aEdit: TRemoveWithPlannedTextEdit; out aText, aError: string): Boolean; static;
+    class function ValidatePlannedSourceRanges(const aPlanResult: TRemoveWithPlanResult;
+      out aError: string): Boolean; static;
     class function ApplyFileEdits(const aPath: string; const aEdits: TArray<TRemoveWithPlannedTextEdit>;
       out aError: string): Boolean; static;
     class function ApplyEdits(const aPlanResult: TRemoveWithPlanResult;
@@ -123,6 +137,8 @@ begin
       Result := 'context-fingerprint-mismatch';
     TRemoveWithTransactionStatus.rwtxContextFingerprintMissing:
       Result := 'context-fingerprint-missing';
+    TRemoveWithTransactionStatus.rwtxSourceRangeMismatch:
+      Result := 'source-range-mismatch';
   else
     Result := 'not-run';
   end;
@@ -405,6 +421,177 @@ var
 begin
   for i := 0 to High(aTransactionResult.fFiles) do
     aTransactionResult.fFiles[i].fStatus := aStatus;
+end;
+
+class function TRemoveWithTransaction.ExpectedRangeForEdit(
+  const aEdit: TRemoveWithPlannedTextEdit): TRemoveWithRange;
+begin
+  Result := aEdit.fExpectedRange;
+  if (Result.fStartLine = 0) and (Result.fStartColumn = 0) and (Result.fEndLine = 0) and
+    (Result.fEndColumn = 0) then
+    Result := aEdit.fRange;
+end;
+
+class function TRemoveWithTransaction.HasExplicitExpectedRange(
+  const aEdit: TRemoveWithPlannedTextEdit): Boolean;
+begin
+  Result := (aEdit.fExpectedRange.fStartLine <> 0) or (aEdit.fExpectedRange.fStartColumn <> 0) or
+    (aEdit.fExpectedRange.fEndLine <> 0) or (aEdit.fExpectedRange.fEndColumn <> 0);
+end;
+
+class function TRemoveWithTransaction.SourceRangeMismatchError(
+  const aEdit: TRemoveWithPlannedTextEdit; const aReason: string): string;
+var
+  lRange: TRemoveWithRange;
+begin
+  lRange := ExpectedRangeForEdit(aEdit);
+  Result := Format('source-range-mismatch: %s %s %s %d:%d-%d:%d',
+    [aEdit.fFilePath, aEdit.fStatementId, aReason, lRange.fStartLine, lRange.fStartColumn,
+    lRange.fEndLine, lRange.fEndColumn]);
+end;
+
+class function TRemoveWithTransaction.ResolveExpectedRangeOffsets(
+  const aSource: TRemoveWithSourceBuffer; const aEdit: TRemoveWithPlannedTextEdit;
+  out aStartOffset, aEndOffset: Integer; out aError: string): Boolean;
+var
+  lRange: TRemoveWithRange;
+begin
+  Result := False;
+  aError := '';
+  aStartOffset := 0;
+  aEndOffset := 0;
+  lRange := ExpectedRangeForEdit(aEdit);
+  if not RemoveWithOffsetForLineColumn(aSource, lRange.fStartLine, lRange.fStartColumn, aStartOffset) then
+  begin
+    aError := SourceRangeMismatchError(aEdit, 'start-not-resolved');
+    Exit;
+  end;
+  if not RemoveWithOffsetForLineColumn(aSource, lRange.fEndLine, lRange.fEndColumn, aEndOffset) then
+  begin
+    aError := SourceRangeMismatchError(aEdit, 'end-not-resolved');
+    Exit;
+  end;
+  if aEndOffset < aStartOffset then
+  begin
+    aError := SourceRangeMismatchError(aEdit, 'invalid-range');
+    Exit;
+  end;
+  Result := True;
+end;
+
+class function TRemoveWithTransaction.SourceTextForExpectedRange(
+  const aSource: TRemoveWithSourceBuffer; const aEdit: TRemoveWithPlannedTextEdit;
+  out aText, aError: string): Boolean;
+var
+  lEndOffset: Integer;
+  lStartOffset: Integer;
+begin
+  Result := False;
+  aText := '';
+  if not ResolveExpectedRangeOffsets(aSource, aEdit, lStartOffset, lEndOffset, aError) then
+    Exit;
+
+  lEndOffset := RemoveWithInclusiveEndOffset(aSource, lEndOffset);
+  if lEndOffset < lStartOffset then
+  begin
+    aError := SourceRangeMismatchError(aEdit, 'invalid-range');
+    Exit;
+  end;
+  aText := Copy(aSource.fText, lStartOffset, lEndOffset - lStartOffset + 1);
+  Result := True;
+end;
+
+class function TRemoveWithTransaction.ValidatePlannedSourceRanges(
+  const aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
+var
+  lActualHash: string;
+  lActualText: string;
+  lEdit: TRemoveWithPlannedTextEdit;
+  lFilePath: string;
+  lHashes: TDictionary<string, string>;
+  lSource: TRemoveWithSourceBuffer;
+  lSources: TDictionary<string, TRemoveWithSourceBuffer>;
+  lStatement: TRemoveWithPlannedStatement;
+  lEndOffset: Integer;
+  lStartOffset: Integer;
+  lValidationEdit: TRemoveWithPlannedTextEdit;
+begin
+  Result := False;
+  aError := '';
+  lHashes := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  lSources := TDictionary<string, TRemoveWithSourceBuffer>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  try
+    try
+      for lStatement in aPlanResult.fStatements do
+      begin
+        if lStatement.fStatus <> 'planned' then
+          Continue;
+        for lEdit in lStatement.fEdits do
+        begin
+          if lEdit.fFilePath = '' then
+          begin
+            aError := SourceRangeMismatchError(lEdit, 'file-missing');
+            Exit;
+          end;
+          lFilePath := TPath.GetFullPath(lEdit.fFilePath);
+          lValidationEdit := lEdit;
+          lValidationEdit.fFilePath := lFilePath;
+          if lValidationEdit.fExpectedSourceHash <> '' then
+          begin
+            if not lHashes.TryGetValue(lFilePath, lActualHash) then
+            begin
+              if not TFile.Exists(lFilePath) then
+              begin
+                aError := SourceRangeMismatchError(lValidationEdit, 'file-missing');
+                Exit;
+              end;
+              lActualHash := THashSHA2.GetHashStringFromFile(lFilePath);
+              lHashes.Add(lFilePath, lActualHash);
+            end;
+            if not SameText(lActualHash, lValidationEdit.fExpectedSourceHash) then
+            begin
+              aError := SourceRangeMismatchError(lValidationEdit, 'file-hash-mismatch');
+              Exit;
+            end;
+          end;
+
+          if (lValidationEdit.fExpectedSourceText = '') and not HasExplicitExpectedRange(lValidationEdit) then
+            Continue;
+          if not lSources.TryGetValue(lFilePath, lSource) then
+          begin
+            if not LoadRemoveWithSource(lFilePath, lSource, aError) then
+            begin
+              aError := SourceRangeMismatchError(lValidationEdit, aError);
+              Exit;
+            end;
+            lSources.Add(lFilePath, lSource);
+          end;
+          if lValidationEdit.fExpectedSourceText = '' then
+          begin
+            if not ResolveExpectedRangeOffsets(lSource, lValidationEdit, lStartOffset, lEndOffset,
+              aError) then
+              Exit;
+            Continue;
+          end;
+          if not SourceTextForExpectedRange(lSource, lValidationEdit, lActualText, aError) then
+            Exit;
+          if (lValidationEdit.fExpectedSourceText <> '') and
+            (lActualText <> lValidationEdit.fExpectedSourceText) then
+          begin
+            aError := SourceRangeMismatchError(lValidationEdit, 'text-mismatch');
+            Exit;
+          end;
+        end;
+      end;
+      Result := True;
+    except
+      on E: Exception do
+        aError := 'source-range-mismatch: ' + E.Message;
+    end;
+  finally
+    lSources.Free;
+    lHashes.Free;
+  end;
 end;
 
 class function TRemoveWithTransaction.ApplyFileEdits(const aPath: string;
@@ -766,6 +953,16 @@ begin
     aTransactionResult.fVerificationStatus := 'failed';
     aTransactionResult.fVerificationError := aError;
     aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxPreflightBuildFailed;
+    WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, lManifestError);
+    Exit(False);
+  end;
+
+  if not ValidatePlannedSourceRanges(aPlanResult, aError) then
+  begin
+    aTransactionResult.fError := aError;
+    aTransactionResult.fVerificationStatus := 'not-run';
+    aTransactionResult.fVerificationError := aError;
+    aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxSourceRangeMismatch;
     WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, lManifestError);
     Exit(False);
   end;

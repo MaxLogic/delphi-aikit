@@ -13,6 +13,10 @@ type
     fStatementId: string;
     fRange: TRemoveWithRange;
     fReplacementText: string;
+    fExpectedRange: TRemoveWithRange;
+    fExpectedSourceHash: string;
+    fExpectedSourceText: string;
+    fApplyMode: string;
   end;
 
   TRemoveWithPlannedStatement = record
@@ -1333,6 +1337,12 @@ begin
   Result.fEndColumn := aRange.EndColumn;
 end;
 
+function SameSemanticRange(const aLeft, aRight: TDelphiSemanticRemoveWithSourceRange): Boolean;
+begin
+  Result := (aLeft.StartLine = aRight.StartLine) and (aLeft.StartColumn = aRight.StartColumn) and
+    (aLeft.EndLine = aRight.EndLine) and (aLeft.EndColumn = aRight.EndColumn);
+end;
+
 function RemoveWithTempStrategyFromSemanticText(const aStrategy: string): TRemoveWithTempStrategy;
 begin
   if SameText(aStrategy, 'direct-qualification') then
@@ -1388,8 +1398,50 @@ begin
   end;
 end;
 
-function PlannedEditFromSemanticFinalEdit(const aEdit: TDelphiSemanticRemoveWithFinalTextEdit):
-  TRemoveWithPlannedTextEdit;
+function SemanticApplyModeForFinalEdit(const aSemanticEdits: TArray<TDelphiSemanticRemoveWithEdit>;
+  const aFinalEdit: TDelphiSemanticRemoveWithFinalTextEdit): string;
+var
+  lApplyMode: string;
+  lEdit: TDelphiSemanticRemoveWithEdit;
+begin
+  Result := '';
+  for lEdit in aSemanticEdits do
+  begin
+    if SameText(lEdit.StatementId, aFinalEdit.StatementId) and
+      SameText(lEdit.FileName, aFinalEdit.FileName) and SameText(lEdit.Kind, aFinalEdit.Kind) and
+      SameSemanticRange(lEdit.Range, aFinalEdit.Range) then
+      Exit(lEdit.ApplyMode);
+  end;
+
+  for lEdit in aSemanticEdits do
+  begin
+    if SameText(lEdit.StatementId, aFinalEdit.StatementId) and
+      SameText(lEdit.FileName, aFinalEdit.FileName) and SameSemanticRange(lEdit.Range, aFinalEdit.Range) then
+      Exit(lEdit.ApplyMode);
+  end;
+
+  for lEdit in aSemanticEdits do
+  begin
+    if SameText(lEdit.StatementId, aFinalEdit.StatementId) and
+      SameText(lEdit.FileName, aFinalEdit.FileName) then
+      Exit(lEdit.ApplyMode);
+  end;
+
+  lApplyMode := '';
+  for lEdit in aSemanticEdits do
+  begin
+    if lEdit.ApplyMode = '' then
+      Continue;
+    if lApplyMode = '' then
+      lApplyMode := lEdit.ApplyMode
+    else if not SameText(lApplyMode, lEdit.ApplyMode) then
+      Exit('');
+  end;
+  Result := lApplyMode;
+end;
+
+function PlannedEditFromSemanticFinalEdit(const aSemanticEdits: TArray<TDelphiSemanticRemoveWithEdit>;
+  const aEdit: TDelphiSemanticRemoveWithFinalTextEdit): TRemoveWithPlannedTextEdit;
 begin
   Result := Default(TRemoveWithPlannedTextEdit);
   Result.fKind := aEdit.Kind;
@@ -1397,6 +1449,10 @@ begin
   Result.fStatementId := aEdit.StatementId;
   Result.fRange := RemoveWithRangeFromSemanticRange(aEdit.Range);
   Result.fReplacementText := aEdit.ReplacementText;
+  Result.fExpectedRange := RemoveWithRangeFromSemanticRange(aEdit.Verification.Range);
+  Result.fExpectedSourceHash := aEdit.Verification.ExpectedFileHash;
+  Result.fExpectedSourceText := aEdit.Verification.ExpectedSourceText;
+  Result.fApplyMode := SemanticApplyModeForFinalEdit(aSemanticEdits, aEdit);
 end;
 
 function TempDecisionFromSemanticFinalTemp(
@@ -1414,6 +1470,7 @@ begin
 end;
 
 function PlannedStatementFromSemanticFinalStatement(
+  const aSemanticEdits: TArray<TDelphiSemanticRemoveWithEdit>;
   const aStatement: TDelphiSemanticRemoveWithFinalStatement): TRemoveWithPlannedStatement;
 var
   i: Integer;
@@ -1427,7 +1484,7 @@ begin
   Result.fReplacementText := aStatement.ReplacementText;
   SetLength(Result.fEdits, Length(aStatement.Edits));
   for i := 0 to High(aStatement.Edits) do
-    Result.fEdits[i] := PlannedEditFromSemanticFinalEdit(aStatement.Edits[i]);
+    Result.fEdits[i] := PlannedEditFromSemanticFinalEdit(aSemanticEdits, aStatement.Edits[i]);
   SetLength(Result.fTemps, Length(aStatement.Temps));
   for i := 0 to High(aStatement.Temps) do
     Result.fTemps[i] := TempDecisionFromSemanticFinalTemp(aStatement.Temps[i]);
@@ -1455,7 +1512,7 @@ begin
   SetLength(aPlanResult.fStatements, Length(aSemanticPlan.FinalStatements));
   for i := 0 to High(aSemanticPlan.FinalStatements) do
     aPlanResult.fStatements[i] :=
-      PlannedStatementFromSemanticFinalStatement(aSemanticPlan.FinalStatements[i]);
+      PlannedStatementFromSemanticFinalStatement(aSemanticPlan.Edits, aSemanticPlan.FinalStatements[i]);
   aPlanResult.fSemanticParityReport := TDelphiSemanticRemoveWithPlanParity.Compare(
     aSemanticPlan, SemanticParityStatements(aPlanResult));
   Result := True;
