@@ -45,7 +45,7 @@ function PlanRemoveWithRewrites(const aInventory: TRemoveWithFactSet;
 implementation
 
 uses
-  System.Generics.Collections, System.IOUtils, System.StrUtils, System.SysUtils,
+  System.Generics.Collections, System.StrUtils, System.SysUtils,
   DelphiSemantics.Model.Text,
   MaxLogic.StrUtils,
   Dak.RemoveWith.Expressions, Dak.RemoveWith.Source;
@@ -1413,11 +1413,6 @@ begin
   Result.fStrategy := RemoveWithTempStrategyFromSemanticText(aTemp.Strategy);
 end;
 
-function TrySemanticPlanWithDakStatementIds(const aSemanticPlan:
-  TDelphiSemanticRemoveWithPlan; const aScanResult: TRemoveWithScanResult;
-  const aParserDefines: string; out aMappedPlan: TDelphiSemanticRemoveWithPlan;
-  out aError: string): Boolean; forward;
-
 function PlannedStatementFromSemanticFinalStatement(
   const aStatement: TDelphiSemanticRemoveWithFinalStatement): TRemoveWithPlannedStatement;
 var
@@ -1439,11 +1434,9 @@ begin
 end;
 
 function SemanticFinalDtoPlanResult(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
-  const aScanResult: TRemoveWithScanResult; const aParserDefines: string;
   out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
 var
   i: Integer;
-  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
 begin
   aPlanResult := Default(TRemoveWithPlanResult);
   aError := '';
@@ -1458,186 +1451,24 @@ begin
     Exit(False);
   end;
 
-  if not TrySemanticPlanWithDakStatementIds(aSemanticPlan, aScanResult,
-    aParserDefines,
-    lSemanticPlan, aError) then
-    Exit(False);
-  aPlanResult.fSemanticPlan := lSemanticPlan;
-  SetLength(aPlanResult.fStatements, Length(lSemanticPlan.FinalStatements));
-  for i := 0 to High(lSemanticPlan.FinalStatements) do
+  aPlanResult.fSemanticPlan := aSemanticPlan;
+  SetLength(aPlanResult.fStatements, Length(aSemanticPlan.FinalStatements));
+  for i := 0 to High(aSemanticPlan.FinalStatements) do
     aPlanResult.fStatements[i] :=
-      PlannedStatementFromSemanticFinalStatement(lSemanticPlan.FinalStatements[i]);
+      PlannedStatementFromSemanticFinalStatement(aSemanticPlan.FinalStatements[i]);
   aPlanResult.fSemanticParityReport := TDelphiSemanticRemoveWithPlanParity.Compare(
-    lSemanticPlan, SemanticParityStatements(aPlanResult));
+    aSemanticPlan, SemanticParityStatements(aPlanResult));
   Result := True;
 end;
 
-function SemanticFinalRangeMatchesStatement(const aRange: TDelphiSemanticRemoveWithSourceRange;
-  const aStatement: TRemoveWithStatementInfo): Boolean;
-begin
-  Result := (aRange.StartLine = aStatement.fRange.fStartLine) and
-    (aRange.StartColumn = aStatement.fRange.fStartColumn);
-end;
-
-function FindDakStatementIdForFinalStatement(const aScanResult: TRemoveWithScanResult;
-  const aStatement: TDelphiSemanticRemoveWithFinalStatement; out aStatementId: string): Boolean;
-var
-  lScanStatement: TRemoveWithStatementInfo;
-begin
-  Result := False;
-  aStatementId := '';
-  for lScanStatement in aScanResult.fWithStatements do
-  begin
-    if SameText(TPath.GetFullPath(aStatement.FileName), TPath.GetFullPath(lScanStatement.fFilePath)) and
-      SemanticFinalRangeMatchesStatement(aStatement.Range, lScanStatement) then
-    begin
-      aStatementId := lScanStatement.fId;
-      Exit(True);
-    end;
-  end;
-end;
-
-function SemanticFinalStatementMapKey(const aFileName: string; const aLine,
-  aColumn: Integer): string;
-begin
-  Result := TPath.GetFullPath(aFileName) + '|' + IntToStr(aLine) + '|' +
-    IntToStr(aColumn);
-end;
-
-function ScanResultContainsFinalStatementFile(const aScanResult: TRemoveWithScanResult;
-  const aStatement: TDelphiSemanticRemoveWithFinalStatement): Boolean;
-var
-  lFile: TRemoveWithFileInfo;
-begin
-  Result := False;
-  for lFile in aScanResult.fFiles do
-  begin
-    if lFile.fScanned and
-      SameText(TPath.GetFullPath(aStatement.FileName), TPath.GetFullPath(lFile.fPath)) then
-      Exit(True);
-  end;
-end;
-
-function SemanticFinalStatementInDakInactiveRange(
-  const aStatement: TDelphiSemanticRemoveWithFinalStatement;
-  const aParserDefines: string): Boolean;
-var
-  lError: string;
-  lOffset: Integer;
-  lRanges: TArray<TRemoveWithInactiveRange>;
-  lSource: TRemoveWithSourceBuffer;
-begin
-  Result := False;
-  if not TFile.Exists(aStatement.FileName) then
-    Exit;
-  if not LoadRemoveWithSource(aStatement.FileName, lSource, lError) then
-    Exit;
-  if not RemoveWithOffsetForLineColumn(lSource, aStatement.Range.StartLine,
-    aStatement.Range.StartColumn, lOffset) then
-    Exit;
-  lRanges := RemoveWithInactiveDirectiveRanges(lSource, aParserDefines);
-  Result := RemoveWithOffsetInInactiveRanges(lOffset, lRanges);
-end;
-
-procedure AssignFinalStatementId(var aStatement: TDelphiSemanticRemoveWithFinalStatement;
-  const aStatementId: string);
-var
-  i: Integer;
-begin
-  aStatement.StatementId := aStatementId;
-  aStatement.Edits := Copy(aStatement.Edits);
-  for i := 0 to High(aStatement.Edits) do
-    aStatement.Edits[i].StatementId := aStatementId;
-  aStatement.RewriteRecipe.TextEdits := Copy(aStatement.RewriteRecipe.TextEdits);
-  for i := 0 to High(aStatement.RewriteRecipe.TextEdits) do
-    aStatement.RewriteRecipe.TextEdits[i].StatementId := aStatementId;
-end;
-
-function TrySemanticPlanWithDakStatementIds(const aSemanticPlan:
-  TDelphiSemanticRemoveWithPlan; const aScanResult: TRemoveWithScanResult;
-  const aParserDefines: string; out aMappedPlan: TDelphiSemanticRemoveWithPlan;
-  out aError: string): Boolean;
-var
-  i: Integer;
-  lIndex: Integer;
-  lScannedFiles: TDictionary<string, Byte>;
-  lStatementIds: TDictionary<string, string>;
-  lStatementId: string;
-begin
-  Result := False;
-  aError := '';
-  aMappedPlan := aSemanticPlan;
-  SetLength(aMappedPlan.FinalStatements, 0);
-  lScannedFiles := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-  try
-    lStatementIds := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
-    try
-      for i := 0 to High(aScanResult.fFiles) do
-      begin
-        if not aScanResult.fFiles[i].fScanned then
-          Continue;
-        lScannedFiles.AddOrSetValue(TPath.GetFullPath(aScanResult.fFiles[i].fPath), 0);
-      end;
-      for i := 0 to High(aScanResult.fWithStatements) do
-        lStatementIds.AddOrSetValue(SemanticFinalStatementMapKey(
-          aScanResult.fWithStatements[i].fFilePath,
-          aScanResult.fWithStatements[i].fRange.fStartLine,
-          aScanResult.fWithStatements[i].fRange.fStartColumn),
-          aScanResult.fWithStatements[i].fId);
-
-      for i := 0 to High(aSemanticPlan.FinalStatements) do
-      begin
-        if not lScannedFiles.ContainsKey(TPath.GetFullPath(
-          aSemanticPlan.FinalStatements[i].FileName)) then
-          Continue;
-        if not lStatementIds.TryGetValue(SemanticFinalStatementMapKey(
-          aSemanticPlan.FinalStatements[i].FileName,
-          aSemanticPlan.FinalStatements[i].Range.StartLine,
-          aSemanticPlan.FinalStatements[i].Range.StartColumn), lStatementId) then
-        begin
-          if SemanticFinalStatementInDakInactiveRange(aSemanticPlan.FinalStatements[i],
-            aParserDefines) then
-            Continue;
-          aError := Format('DelphiSemantics final statement cannot map to DAK statement id: %s:%d:%d',
-            [aSemanticPlan.FinalStatements[i].FileName,
-            aSemanticPlan.FinalStatements[i].Range.StartLine,
-            aSemanticPlan.FinalStatements[i].Range.StartColumn]);
-          Exit(False);
-        end;
-        lIndex := Length(aMappedPlan.FinalStatements);
-        SetLength(aMappedPlan.FinalStatements, lIndex + 1);
-        aMappedPlan.FinalStatements[lIndex] := aSemanticPlan.FinalStatements[i];
-        AssignFinalStatementId(aMappedPlan.FinalStatements[lIndex], lStatementId);
-      end;
-      Result := True;
-    finally
-      lStatementIds.Free;
-    end;
-  finally
-    lScannedFiles.Free;
-  end;
-end;
-
 function BuildSemanticDtoParityReport(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
-  const aScanResult: TRemoveWithScanResult;
-  const aPlanResult: TRemoveWithPlanResult; const aParserDefines: string):
+  const aPlanResult: TRemoveWithPlanResult):
   TDelphiSemanticRemoveWithPlanParityReport;
-var
-  lError: string;
-  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
 begin
   Result := Default(TDelphiSemanticRemoveWithPlanParityReport);
   if not SameText(aSemanticPlan.Operation, 'remove-with') then
     Exit;
-  if not TrySemanticPlanWithDakStatementIds(aSemanticPlan, aScanResult,
-    aParserDefines,
-    lSemanticPlan, lError) then
-  begin
-    Result.MismatchCount := 1;
-    Result.SummaryText := lError;
-    Exit;
-  end;
-  Result := TDelphiSemanticRemoveWithPlanParity.Compare(lSemanticPlan,
+  Result := TDelphiSemanticRemoveWithPlanParity.Compare(aSemanticPlan,
     SemanticParityStatements(aPlanResult));
 end;
 
@@ -2382,8 +2213,7 @@ begin
   aError := '';
   if SameText(aSemanticPlan.Operation, 'remove-with') and
     (Length(aSemanticPlan.FinalStatements) > 0) then
-    Exit(SemanticFinalDtoPlanResult(aSemanticPlan, aScanResult,
-      aInventory.fParserDefines, aPlanResult, aError));
+    Exit(SemanticFinalDtoPlanResult(aSemanticPlan, aPlanResult, aError));
 
   Result := False;
   lContext := nil;
@@ -2417,8 +2247,8 @@ begin
       end;
       if not AddRoutineDeclarationEdits(lRoutineStates, aPlanResult, aError) then
         Exit(False);
-      aPlanResult.fSemanticParityReport := BuildSemanticDtoParityReport(aSemanticPlan, aScanResult,
-        aPlanResult, aInventory.fParserDefines);
+      aPlanResult.fSemanticParityReport := BuildSemanticDtoParityReport(aSemanticPlan,
+        aPlanResult);
       Result := True;
     except
       on E: Exception do
