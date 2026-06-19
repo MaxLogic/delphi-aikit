@@ -60,6 +60,9 @@ All notable user-visible changes to this project will be documented in this file
 - Added `deps` for project dependency topology analysis, including deterministic JSON output, text summaries, focused unit views, cycle reporting over resolved project units, and default artifact copies under sibling `.dak/<ProjectName>/deps/`. (T-101, T-102)
 
 ### Changed
+- `remove-with` now builds its normal typed plan through the DelphiSemantics
+  session-backed snapshot API instead of rebuilding a temporary snapshot from
+  compatibility facts.
 - `remove-with` now consumes DelphiSemantics explicit fact-build results and
   reports structured diagnostics instead of inferring API failure from an empty
   context fingerprint.

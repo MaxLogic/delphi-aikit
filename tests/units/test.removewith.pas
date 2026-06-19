@@ -58,7 +58,7 @@ type
     [Test]
     procedure FactSetLookupsUseDelphiSemanticIndex;
     [Test]
-    procedure SemanticPlanUsesSnapshotPlannerFromExistingFacts;
+    procedure SemanticPlanUsesSessionSnapshotPlanner;
     [Test]
     procedure SemanticPlanChecksCompatibilityContextFingerprint;
     [Test]
@@ -1381,7 +1381,7 @@ begin
     'DAK must not rebuild DelphiSemantics lookup indexes from DAK-owned symbols.');
 end;
 
-procedure TRemoveWithCommandTests.SemanticPlanUsesSnapshotPlannerFromExistingFacts;
+procedure TRemoveWithCommandTests.SemanticPlanUsesSessionSnapshotPlanner;
 var
   lSourceFileName: string;
   lSourceText: string;
@@ -1389,12 +1389,13 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWithSnapshot(lFacts)'),
-    'DAK must build remove-with plans through the DelphiSemantics snapshot planner using existing facts.');
+  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithApi.PlanRemoveWith(lRequest)'),
+    'DAK must build normal remove-with plans through the DelphiSemantics session-backed snapshot API.');
+  Assert.IsFalse(ContainsText(lSourceText,
+    'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWithSnapshot(lFacts)'),
+    'DAK normal planning must not rebuild a temporary snapshot from compatibility facts.');
   Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWith(lFacts)'),
     'DAK must not build remove-with plans through the legacy project-facts overload.');
-  Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithApi.PlanRemoveWith(lOptions)'),
-    'DAK must not open a second project session only to build the typed remove-with plan.');
 end;
 
 procedure TRemoveWithCommandTests.SemanticPlanChecksCompatibilityContextFingerprint;
