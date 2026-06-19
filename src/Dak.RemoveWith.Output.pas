@@ -363,6 +363,8 @@ begin
     case aTransactionResult.fStatus of
       TRemoveWithTransactionStatus.rwtxApplied:
         Exit('passed');
+      TRemoveWithTransactionStatus.rwtxSourceRangeMismatch:
+        Exit('failed');
       TRemoveWithTransactionStatus.rwtxPreflightBuildFailed:
         Exit('not-run');
       TRemoveWithTransactionStatus.rwtxRolledBack,
@@ -384,6 +386,7 @@ begin
       TRemoveWithTransactionStatus.rwtxPreflightBuildFailed:
         Exit('failed');
       TRemoveWithTransactionStatus.rwtxApplied,
+      TRemoveWithTransactionStatus.rwtxSourceRangeMismatch,
       TRemoveWithTransactionStatus.rwtxRolledBack,
       TRemoveWithTransactionStatus.rwtxRollbackFailed:
         Exit('passed');

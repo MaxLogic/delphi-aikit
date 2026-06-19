@@ -585,6 +585,10 @@ type
     [Test]
     procedure ApplyRefusesWhenPlannedSourceFingerprintIsStale;
     [Test]
+    procedure ApplyRefusesWhenSemanticEditExpectedSourceIsStale;
+    [Test]
+    procedure ApplyRefusesWhenSemanticEditExpectedRangeIsInvalid;
+    [Test]
     procedure ApplyRefusesPlannedEditsWhenContextFingerprintIsMissing;
     [Test]
     procedure ApplyRefusesMissingDelphiVersionBeforeFallbackVerification;
@@ -1103,6 +1107,13 @@ begin
     'Expected build gate to satisfy requirement: ' + aKind);
 end;
 
+function RemoveWithCliBuildOptions(const aMode: string): string;
+begin
+  Result := '';
+  if SameText(aMode, 'apply') then
+    Result := ' --delphi 23.0 --platform Win32 --config Debug';
+end;
+
 function TRemoveWithTestBase.RunRemoveWith(const aMode, aFormat, aLogName: string; out aExitCode: Cardinal;
   const aExtraArgs: string): string;
 var
@@ -1118,7 +1129,7 @@ begin
   lLogPath := TPath.Combine(TempRoot, aLogName);
 
   lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --unit ' + QuoteArg(lUnitPath) +
-    ' --mode ' + aMode + ' --format ' + aFormat + aExtraArgs;
+    ' --mode ' + aMode + ' --format ' + aFormat + RemoveWithCliBuildOptions(aMode) + aExtraArgs;
 
   Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, aExitCode),
     'Failed to start remove-with process.');
@@ -1640,6 +1651,66 @@ begin
   Result.StartColumn := aRange.fStartColumn;
   Result.EndLine := aRange.fEndLine;
   Result.EndColumn := aRange.fEndColumn;
+end;
+
+function SameSemanticRangeForTest(const aLeft, aRight: TDelphiSemanticRemoveWithSourceRange): Boolean;
+begin
+  Result := (aLeft.StartLine = aRight.StartLine) and (aLeft.StartColumn = aRight.StartColumn) and
+    (aLeft.EndLine = aRight.EndLine) and (aLeft.EndColumn = aRight.EndColumn);
+end;
+
+function SemanticApplyModeForFinalEditForTest(
+  const aSemanticEdits: TArray<TDelphiSemanticRemoveWithEdit>;
+  const aFinalEdit: TDelphiSemanticRemoveWithFinalTextEdit): string;
+var
+  lApplyMode: string;
+  lEdit: TDelphiSemanticRemoveWithEdit;
+begin
+  Result := '';
+  for lEdit in aSemanticEdits do
+  begin
+    if SameText(lEdit.StatementId, aFinalEdit.StatementId) and
+      SameText(lEdit.FileName, aFinalEdit.FileName) and SameText(lEdit.Kind, aFinalEdit.Kind) and
+      SameSemanticRangeForTest(lEdit.Range, aFinalEdit.Range) then
+      Exit(lEdit.ApplyMode);
+  end;
+
+  for lEdit in aSemanticEdits do
+  begin
+    if SameText(lEdit.StatementId, aFinalEdit.StatementId) and
+      SameText(lEdit.FileName, aFinalEdit.FileName) and
+      SameSemanticRangeForTest(lEdit.Range, aFinalEdit.Range) then
+      Exit(lEdit.ApplyMode);
+  end;
+
+  for lEdit in aSemanticEdits do
+  begin
+    if SameText(lEdit.StatementId, aFinalEdit.StatementId) and
+      SameText(lEdit.FileName, aFinalEdit.FileName) then
+      Exit(lEdit.ApplyMode);
+  end;
+
+  lApplyMode := '';
+  for lEdit in aSemanticEdits do
+  begin
+    if lEdit.ApplyMode = '' then
+      Continue;
+    if lApplyMode = '' then
+      lApplyMode := lEdit.ApplyMode
+    else if not SameText(lApplyMode, lEdit.ApplyMode) then
+      Exit('');
+  end;
+  Result := lApplyMode;
+end;
+
+procedure AssertSemanticRangeEqualsPlanned(
+  const aExpected: TDelphiSemanticRemoveWithSourceRange; const aActual: TRemoveWithRange;
+  const aContext: string);
+begin
+  Assert.AreEqual(aExpected.StartLine, aActual.fStartLine, aContext + ' start line');
+  Assert.AreEqual(aExpected.StartColumn, aActual.fStartColumn, aContext + ' start column');
+  Assert.AreEqual(aExpected.EndLine, aActual.fEndLine, aContext + ' end line');
+  Assert.AreEqual(aExpected.EndColumn, aActual.fEndColumn, aContext + ' end column');
 end;
 
 function SemanticParityEdit(const aEdit: TRemoveWithPlannedTextEdit):
@@ -5815,7 +5886,7 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
-    ' --format json';
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with CLI process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -6005,7 +6076,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) +
+    ' --all --mode apply --format json' + RemoveWithCliBuildOptions('apply');
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -6761,7 +6833,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) +
+    ' --all --mode apply --format json' + RemoveWithCliBuildOptions('apply');
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -7073,7 +7146,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) +
+    ' --all --mode apply --format json' + RemoveWithCliBuildOptions('apply');
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply process.');
   Result := ReadUtf8TextFile(lLogPath);
@@ -7577,7 +7651,8 @@ begin
     lUnitPath);
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, 'remove-with-apply-transaction.txt');
-  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) + ' --all --mode apply --format text';
+  lArgs := 'remove-with --project ' + QuoteArg(lDprojPath) +
+    ' --all --mode apply --format text' + RemoveWithCliBuildOptions('apply');
 
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, lExitCode),
     'Failed to start remove-with apply text process.');
@@ -7703,6 +7778,184 @@ begin
   finally
     lManifestValue.Free;
   end;
+end;
+
+procedure TRemoveWithApplyCompileGateTests.ApplyRefusesWhenSemanticEditExpectedSourceIsStale;
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lDprojPath: string;
+  lEdit: TRemoveWithPlannedTextEdit;
+  lError: string;
+  lExpectedApplyMode: string;
+  lExpectedFinalEdit: TDelphiSemanticRemoveWithFinalTextEdit;
+  lInventory: TRemoveWithFactSet;
+  lModel: TRemoveWithProjectModel;
+  lObservedVerification: Boolean;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-stale-semantic-range',
+    'ApplyUnit.pas', lDprojPath, lUnitPath);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  lModel := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lDprojPath, lModel, lError), lError);
+  try
+    Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lModel, lScanResult, lError), lError);
+    Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lModel, lInventory, lError), lError);
+    Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResolverResult, lError),
+      lError);
+
+    lSemanticPlan := lInventory.fDelphiSemanticRemoveWithPlan;
+    Assert.IsTrue(Length(lSemanticPlan.FinalStatements) > 0,
+      'Expected semantic final statements.');
+    Assert.IsTrue(Length(lSemanticPlan.FinalStatements[0].Edits) > 0,
+      'Expected semantic final edits.');
+    lSemanticPlan.FinalStatements[0].Edits[0].Verification.ExpectedSourceText :=
+      'stale semantic source-range text';
+    lExpectedFinalEdit := lSemanticPlan.FinalStatements[0].Edits[0];
+    lExpectedApplyMode := SemanticApplyModeForFinalEditForTest(lSemanticPlan.Edits, lExpectedFinalEdit);
+    Assert.IsNotEmpty(lExpectedApplyMode, 'Expected source semantic edit apply mode.');
+
+    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult,
+      lSemanticPlan, lPlanResult, lError), lError);
+    lObservedVerification := False;
+    for lEdit in lPlanResult.fStatements[0].fEdits do
+    begin
+      if lEdit.fExpectedSourceText = lExpectedFinalEdit.Verification.ExpectedSourceText then
+      begin
+        lObservedVerification := True;
+        Assert.AreEqual(lExpectedFinalEdit.Verification.ExpectedFileHash, lEdit.fExpectedSourceHash,
+          'Expected semantic source hash to be preserved with source text.');
+        Assert.AreEqual(lExpectedApplyMode, lEdit.fApplyMode,
+          'Expected semantic apply mode to be preserved in planned edits.');
+        AssertSemanticRangeEqualsPlanned(lExpectedFinalEdit.Verification.Range, lEdit.fExpectedRange,
+          'Expected semantic verification range to be preserved');
+      end;
+    end;
+    Assert.IsTrue(lObservedVerification,
+      'Expected semantic source-range verification to be preserved in planned edits.');
+    Assert.IsTrue(BuildRemoveWithPlanApplyContext(lPlanResult, lApplyContext, lError), lError);
+  finally
+    lModel.Free;
+  end;
+
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\stale-semantic-range');
+
+  Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+    lPlanResult, lApplyContext, lTransactionResult, lError),
+    'Expected stale semantic source-range verification to refuse apply mode.');
+  Assert.AreEqual('source-range-mismatch', RemoveWithTransactionStatusToText(lTransactionResult.fStatus),
+    'Expected explicit source range mismatch status.');
+  Assert.Contains(lError, 'source-range-mismatch',
+    'Expected source range mismatch error to be reported.');
+  Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)),
+    'Expected source range validation to refuse before backing up or editing files.');
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
+    'Source range mismatch must preserve source bytes exactly.');
+end;
+
+procedure TRemoveWithApplyCompileGateTests.ApplyRefusesWhenSemanticEditExpectedRangeIsInvalid;
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lDprojPath: string;
+  lEdit: TRemoveWithPlannedTextEdit;
+  lError: string;
+  lInventory: TRemoveWithFactSet;
+  lModel: TRemoveWithProjectModel;
+  lObservedInvalidRange: Boolean;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lResolverResult: TRemoveWithResolverResult;
+  lScanResult: TRemoveWithScanResult;
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-invalid-semantic-range',
+    'ApplyUnit.pas', lDprojPath, lUnitPath);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+
+  lModel := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lDprojPath, lModel, lError), lError);
+  try
+    Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lModel, lScanResult, lError), lError);
+    Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lModel, lInventory, lError), lError);
+    Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResolverResult, lError),
+      lError);
+
+    lSemanticPlan := lInventory.fDelphiSemanticRemoveWithPlan;
+    Assert.IsTrue(Length(lSemanticPlan.FinalStatements) > 0,
+      'Expected semantic final statements.');
+    Assert.IsTrue(Length(lSemanticPlan.FinalStatements[0].Edits) > 0,
+      'Expected semantic final edits.');
+    lSemanticPlan.FinalStatements[0].Edits[0].Verification.ExpectedSourceText := '';
+    lSemanticPlan.FinalStatements[0].Edits[0].Verification.Range.StartLine := 99999;
+    lSemanticPlan.FinalStatements[0].Edits[0].Verification.Range.StartColumn := 1;
+    lSemanticPlan.FinalStatements[0].Edits[0].Verification.Range.EndLine := 99999;
+    lSemanticPlan.FinalStatements[0].Edits[0].Verification.Range.EndColumn := 2;
+
+    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult,
+      lSemanticPlan, lPlanResult, lError), lError);
+    lObservedInvalidRange := False;
+    for lEdit in lPlanResult.fStatements[0].fEdits do
+    begin
+      if lEdit.fExpectedRange.fStartLine = 99999 then
+      begin
+        lObservedInvalidRange := True;
+        Assert.AreEqual('', lEdit.fExpectedSourceText,
+          'Expected this regression to validate range without expected text.');
+        Assert.IsTrue(lEdit.fExpectedSourceHash <> '',
+          'Expected semantic source hash to be preserved with range-only verification.');
+      end;
+    end;
+    Assert.IsTrue(lObservedInvalidRange,
+      'Expected semantic source range to be preserved in planned edits.');
+    Assert.IsTrue(BuildRemoveWithPlanApplyContext(lPlanResult, lApplyContext, lError), lError);
+  finally
+    lModel.Free;
+  end;
+
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\invalid-semantic-range');
+
+  Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+    lPlanResult, lApplyContext, lTransactionResult, lError),
+    'Expected invalid semantic source range to refuse apply mode.');
+  Assert.AreEqual('source-range-mismatch', RemoveWithTransactionStatusToText(lTransactionResult.fStatus),
+    'Expected explicit source range mismatch status.');
+  Assert.Contains(lError, 'start-not-resolved',
+    'Expected invalid expected range to fail during source range validation.');
+  Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)),
+    'Expected source range validation to refuse before backing up or editing files.');
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
+    'Invalid semantic source range must preserve source bytes exactly.');
 end;
 
 procedure TRemoveWithApplyCompileGateTests.ApplyRefusesPlannedEditsWhenContextFingerprintIsMissing;
@@ -7842,7 +8095,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) +
+    ' --all --mode apply --format json' + RemoveWithCliBuildOptions('apply');
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply report process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -8023,7 +8277,7 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
-    ' --format json';
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -8288,7 +8542,7 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
-    ' --format json';
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -8429,7 +8683,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -8555,7 +8810,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -8654,7 +8910,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -8837,7 +9094,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -8951,7 +9209,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -9081,7 +9340,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -9199,7 +9459,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -9317,7 +9578,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -9431,7 +9693,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -9522,7 +9785,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -9605,7 +9869,7 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
-    ' --format json --diagnostics true';
+    ' --format json' + RemoveWithCliBuildOptions(aMode) + ' --diagnostics true';
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -9713,7 +9977,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode + ' --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
+    ' --format json' + RemoveWithCliBuildOptions(aMode);
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -9840,7 +10105,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) +
+    ' --all --mode apply --format json' + RemoveWithCliBuildOptions('apply');
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -10015,7 +10281,8 @@ var
 begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
-  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode apply --format json';
+  lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) +
+    ' --all --mode apply --format json' + RemoveWithCliBuildOptions('apply');
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with apply process.');
   lOutput := ReadUtf8TextFile(lLogPath);
@@ -10258,7 +10525,8 @@ begin
   lJsonPath := TPath.Combine(TempRoot, aLogName);
   lLogPath := TPath.ChangeExtension(lJsonPath, '.stdout.log');
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode ' + aMode +
-    ' --format json --output ' + QuoteArg(lJsonPath) + ' --verbose true';
+    ' --format json' + RemoveWithCliBuildOptions(aMode) + ' --output ' + QuoteArg(lJsonPath) +
+    ' --verbose true';
   Assert.IsTrue(RunCommandProcess(CommandExePath, lArgs, TPath.GetDirectoryName(CommandExePath), lLogPath, aExitCode),
     'Failed to start remove-with maxTdb ' + aMode + ' process.');
   Assert.IsTrue(TFile.Exists(lJsonPath), 'Expected maxTdb ' + aMode + ' JSON output file: ' + lJsonPath);
