@@ -11,8 +11,8 @@
 ## Prereqs
 
 - `bin\DelphiAIKit.exe` exists (run.bat will attempt to build it if missing)
-- FixInsightCL is installed and discoverable (PATH / registry / settings)
-- Pascal Analyzer is installed (optional; can be skipped)
+- FixInsightCL is installed and discoverable (PATH / registry / settings), or `DAK_ALLOW_FIXINSIGHT_SKIP=1` is set intentionally
+- Pascal Analyzer is installed, or `DAK_ALLOW_PAL_SKIP=1` is set intentionally
 
 ## Run
 
@@ -51,7 +51,7 @@ build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win64 -ve
 tests\DelphiAIKit.Tests.exe
 ```
 
-If `pawelspc=1` is set, missing FixInsight/PALCMD is treated as a failure; otherwise the relevant tests are skipped.
+Missing FixInsightCL, PALCMD, or real DelphiLSP acceptance tooling fails by default. Set `DAK_ALLOW_FIXINSIGHT_SKIP=1`, `DAK_ALLOW_PAL_SKIP=1`, or `DAK_ALLOW_LSP_SKIP=1` only when that tool lane is intentionally out of scope for the run.
 
 Timing note:
 
@@ -68,6 +68,8 @@ Timing note:
 - `RSVARS` (optional; passed as `--rsvars`)
 - `ENVOPTIONS` (optional; passed as `--envoptions`)
 - `PA_PATH` (optional; forwarded to `--pa-path` and/or `[PascalAnalyzer].Path`)
-- `SKIP_PASCAL_ANALYZER` (set to any value to skip PALCMD tests)
+- `DAK_ALLOW_FIXINSIGHT_SKIP=1` explicitly skips FixInsight-backed DUnitX acceptance tests when FixInsightCL is unavailable.
+- `DAK_ALLOW_PAL_SKIP=1` explicitly skips PALCMD-backed DUnitX and batch acceptance tests when PALCMD is unavailable.
+- `DAK_ALLOW_LSP_SKIP=1` explicitly skips real DelphiLSP-backed DUnitX acceptance tests when DelphiLSP is unavailable.
 - `DAK_ALLOW_MISSING_PAL_FIXTURES=1` explicitly skips PAL fixture-backed
   normalization tests when `docs\sample-pal-reports` is unavailable.
