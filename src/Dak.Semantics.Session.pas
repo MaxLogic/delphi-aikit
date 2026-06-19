@@ -266,25 +266,45 @@ begin
   end;
 end;
 
+function SnapshotVisibleScopeCount(const aContext:
+  TDelphiSemanticSymbolQueryContext): Integer;
+var
+  lScope: TDelphiSemanticVisibleUnitScope;
+begin
+  Result := 0;
+  if aContext.ProjectSnapshot = nil then
+    Exit;
+
+  for lScope in TDelphiSemanticSymbolQuery.GetVisibleUnitScopes(aContext) do
+    if lScope.FileName <> '' then
+      Inc(Result);
+end;
+
 function TryValidateSemanticContext(const aContext: TDelphiSemanticSymbolQueryContext;
   out aError: string): Boolean;
 var
+  lDiagnosticText: string;
   lModel: TDelphiSemanticUnitModel;
 begin
   Result := False;
   aError := '';
-  if aContext.UnitModel.FileName = '' then
-  begin
-    aError := 'Failed to build DelphiSemantics symbol query context.';
-    Exit;
-  end;
 
-  if not aContext.UnitModel.Success then
+  if (aContext.UnitModel.FileName <> '') and (not aContext.UnitModel.Success) then
   begin
     aError := 'Failed to build semantic model for project unit: ' +
       aContext.UnitModel.FileName;
-    if UnitModelDiagnosticsText(aContext.UnitModel) <> '' then
-      aError := aError + sLineBreak + UnitModelDiagnosticsText(aContext.UnitModel);
+    lDiagnosticText := UnitModelDiagnosticsText(aContext.UnitModel);
+    if lDiagnosticText <> '' then
+      aError := aError + sLineBreak + lDiagnosticText;
+    Exit;
+  end;
+
+  if SnapshotVisibleScopeCount(aContext) > 0 then
+    Exit(True);
+
+  if aContext.UnitModel.FileName = '' then
+  begin
+    aError := 'Failed to build DelphiSemantics symbol query context.';
     Exit;
   end;
 
@@ -292,8 +312,9 @@ begin
     if not lModel.Success then
     begin
       aError := 'Failed to build semantic model for project unit: ' + lModel.FileName;
-      if UnitModelDiagnosticsText(lModel) <> '' then
-        aError := aError + sLineBreak + UnitModelDiagnosticsText(lModel);
+      lDiagnosticText := UnitModelDiagnosticsText(lModel);
+      if lDiagnosticText <> '' then
+        aError := aError + sLineBreak + lDiagnosticText;
       Exit;
     end;
 
@@ -463,6 +484,9 @@ function TDakSemanticSymbolQueryContext.ReferenceFallbackCount: Integer;
 var
   lModel: TDelphiSemanticUnitModel;
 begin
+  if fContext.ProjectSnapshot <> nil then
+    Exit(0);
+
   Result := fContext.UnitModel.Metrics.ReferenceReconciliationFallbackCount;
   for lModel in fContext.IndexedUnitModels do
     Inc(Result, lModel.Metrics.ReferenceReconciliationFallbackCount);
@@ -476,7 +500,10 @@ end;
 
 function TDakSemanticSymbolQueryContext.UnitModelCount: Integer;
 begin
-  Result := 0;
+  Result := SnapshotVisibleScopeCount(fContext);
+  if Result > 0 then
+    Exit;
+
   if fContext.UnitModel.FileName <> '' then
     Inc(Result);
   Inc(Result, Length(fContext.IndexedUnitModels));
@@ -529,7 +556,7 @@ begin
   end;
   aMetrics.SessionOpenMilliseconds := lStopwatch.ElapsedMilliseconds;
   try
-    lContext := lSessionResult.Session.BuildSymbolQueryContext(lCacheMetrics,
+    lContext := lSessionResult.Session.BuildSnapshotSymbolQueryContext(lCacheMetrics,
       aMetrics.ExtractionMilliseconds);
     aMetrics.CacheMetrics := MapCacheMetrics(lCacheMetrics);
     if not TryValidateSemanticContext(lContext, aError) then

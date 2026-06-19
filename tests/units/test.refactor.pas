@@ -44,6 +44,8 @@ type
     [Test]
     procedure SemanticsSessionAdapterMapsOptionsAndDiagnostics;
     [Test]
+    procedure SemanticSnapshotContextRejectsFailedProjectUnit;
+    [Test]
     procedure SemanticsSessionAdapterIsCentralized;
     [Test]
     procedure RefactorJsonOutputUsesStructuredBuilders;
@@ -589,10 +591,15 @@ begin
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected debug rename to succeed. See: ' + lDebugLogPath);
 
   lDebugLogText := ReadUtf8TextFile(lDebugLogPath);
+  Assert.IsTrue(Pos('"baselineSemanticModelVersion":"project-snapshot-v1"', lDebugLogText) > 0,
+    'Expected snapshot-backed rename provenance. See: ' + lDebugLogPath);
   Assert.IsTrue(Pos('"semanticCacheHits":0', lDebugLogText) > 0,
     'Expected cold debug cache run to avoid hits. See: ' + lDebugLogPath);
   Assert.IsFalse(Pos('"semanticCacheMisses":0', lDebugLogText) > 0,
     'Expected cold debug cache run to record misses. See: ' + lDebugLogPath);
+  Assert.IsTrue(Pos('"projectSymbolIndexBuildCount":0', lDebugLogText) > 0,
+    'Snapshot-backed rename must not build the legacy project symbol index. See: ' +
+    lDebugLogPath);
 
   Assert.IsTrue(RunResolverProcess(
     'rename --project ' + QuoteArg(lDprojPath) +
@@ -603,12 +610,18 @@ begin
   Assert.AreEqual(Cardinal(0), lExitCode, 'Expected release rename to succeed. See: ' + lReleaseLogPath);
 
   lReleaseLogText := ReadUtf8TextFile(lReleaseLogPath);
+  Assert.IsTrue(Pos('"baselineSemanticModelVersion":"project-snapshot-v1"', lReleaseLogText) > 0,
+    'Expected snapshot-backed rename provenance. See: ' + lReleaseLogPath);
   Assert.IsTrue(Pos('"semanticCacheHits":0', lReleaseLogText) > 0,
     'Changing config must not hit entries created for another toolchain identity. See: ' + lReleaseLogPath);
   Assert.IsFalse(Pos('"semanticCacheMisses":0', lReleaseLogText) > 0,
     'Changing config should rebuild semantic unit models. See: ' + lReleaseLogPath);
-  Assert.IsFalse(Pos('"semanticCacheInvalidations":0', lReleaseLogText) > 0,
-    'Changing config should invalidate same-unit cache entries with different keys. See: ' + lReleaseLogPath);
+  Assert.IsTrue(Pos('"semanticCacheInvalidations":0', lReleaseLogText) > 0,
+    'Snapshot cache keys should isolate toolchain identities without legacy invalidation. See: ' +
+    lReleaseLogPath);
+  Assert.IsTrue(Pos('"projectSymbolIndexBuildCount":0', lReleaseLogText) > 0,
+    'Snapshot-backed rename must not build the legacy project symbol index. See: ' +
+    lReleaseLogPath);
 end;
 
 procedure TRefactorCommandTests.RefactorCommandsUseDelphiSemanticsProjectSession;
@@ -657,6 +670,36 @@ begin
     SemanticSessionDiagnosticsText(lDiagnostics, True));
 end;
 
+procedure TRefactorCommandTests.SemanticSnapshotContextRejectsFailedProjectUnit;
+var
+  lContext: IDakSemanticSymbolQueryContext;
+  lDprojPath: string;
+  lError: string;
+  lMetrics: TDakSemanticSymbolQueryMetrics;
+  lMissingPath: string;
+  lOptions: TDelphiSemanticOptions;
+  lRoot: string;
+  lUnitOnePath: string;
+  lUnitTwoPath: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'refactor-snapshot-failed-unit');
+  CreateFixtureProject(lRoot, lDprojPath, lUnitOnePath, lUnitTwoPath);
+  lMissingPath := TPath.Combine(lRoot, 'MissingUnit.pas');
+  lOptions := BuildSemanticSessionOptions(lDprojPath, 'Debug', 'Win32', '23.0', '', '',
+    TPath.Combine(lRoot, 'semantic-cache.sqlite3'));
+  lOptions.AdditionalSourceFileNames := TArray<string>.Create(lMissingPath);
+
+  Assert.IsFalse(OpenSemanticSymbolQueryContext(lOptions, lContext, lMetrics, lError, True),
+    'Expected semantic context validation to fail for missing project units.');
+  Assert.IsTrue(lContext = nil, 'Failed context opens must not return a query context.');
+  Assert.IsTrue(ContainsText(lError, 'Failed to build semantic model for project unit'),
+    'Expected failed semantic model diagnostic: ' + lError);
+  Assert.IsTrue(ContainsText(lError, 'MissingUnit.pas'),
+    'Expected missing unit file in diagnostic: ' + lError);
+  Assert.IsTrue(ContainsText(lError, 'SOURCE_FILE_NOT_FOUND'),
+    'Expected source-loader diagnostic in semantic error: ' + lError);
+end;
+
 procedure TRefactorCommandTests.SemanticsSessionAdapterIsCentralized;
 var
   lCommandSource: string;
@@ -671,8 +714,12 @@ begin
     'The shared adapter should own Semantics diagnostic formatting.');
   Assert.IsTrue(ContainsText(lHelperSource, 'OpenSemanticSymbolQueryContext'),
     'The shared adapter should own session-backed query context setup.');
-  Assert.IsTrue(ContainsText(lHelperSource, 'BuildSymbolQueryContext'),
-    'The shared adapter should build Semantics symbol query contexts.');
+  Assert.IsTrue(ContainsText(lHelperSource, 'BuildSnapshotSymbolQueryContext'),
+    'The shared adapter should build owned snapshot-backed Semantics query contexts.');
+  Assert.IsFalse(ContainsText(lHelperSource, 'lSessionResult.Session.BuildSymbolQueryContext'),
+    'The shared adapter must not use the legacy model-only query context builder.');
+  Assert.IsTrue(ContainsText(lHelperSource, 'GetVisibleUnitScopes'),
+    'The shared adapter should validate and count snapshot-backed visible scopes.');
 
   for lPath in ['src\Dak.Refactor.pas', 'src\Dak.SymbolMap.Query.pas',
     'src\Dak.GlobalVars.Semantics.pas', 'src\dak.deps.runner.pas'] do

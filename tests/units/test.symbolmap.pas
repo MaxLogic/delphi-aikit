@@ -3823,6 +3823,10 @@ begin
 
   Assert.IsTrue(ContainsText(lIndexerProjectIndexSource, 'BuildProjectSymbolIndex'),
     'SymbolMap project-index adapter must build the DelphiSemantics project symbol index.');
+  Assert.IsTrue(ContainsText(lIndexerProjectIndexSource, 'BuildSymbolQueryContext'),
+    'SymbolMap project-index adapter keeps the legacy model-only query context only as a documented compatibility path.');
+  Assert.IsTrue(ContainsText(lIndexerProjectIndexSource, 'T-442'),
+    'SymbolMap project-index adapter must document the owning task for its model-only compatibility path.');
   Assert.IsTrue(ContainsText(lIndexerProjectIndexSource,
     'SymbolMapUnitModelsFromDelphiSemanticProjectIndex'),
     'SymbolMap project-index adapter must persist a projection of the shared Semantics index.');
