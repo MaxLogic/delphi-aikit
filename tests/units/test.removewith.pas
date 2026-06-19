@@ -467,11 +467,11 @@ type
     [Test]
     procedure SemanticFinalDtoPrimaryPlanDoesNotRequireDakResolverClassifications;
     [Test]
-    procedure SemanticFinalDtoPrimaryPlanMapsRecipeEditStatementIds;
+    procedure SemanticFinalDtoPrimaryPlanPreservesSemanticStatementIds;
     [Test]
-    procedure SemanticFinalDtoPrimaryPlanFailsWhenStatementIdCannotMap;
+    procedure SemanticFinalDtoPrimaryPlanDoesNotRequireDakRangeMatch;
     [Test]
-    procedure SemanticFinalDtoPrimaryPlanFailsWhenActiveConditionalStatementCannotMap;
+    procedure SemanticFinalDtoPrimaryPlanDoesNotRequireDakScanStatement;
     [Test]
     procedure PlanCliUsesCompactHighVolumeReportContract;
     [Test]
@@ -5445,7 +5445,7 @@ begin
     'Expected semantic final DTO temp strategy.');
 end;
 
-procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanMapsRecipeEditStatementIds;
+procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanPreservesSemanticStatementIds;
 var
   i: Integer;
   lEmptyResolverResult: TRemoveWithResolverResult;
@@ -5456,6 +5456,7 @@ var
   lResolverResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
   lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  lStatement: TRemoveWithPlannedStatement;
 begin
   BuildPlannerFixture(lInventory, lScanResult, lResolverResult, lLegacyPlanResult);
   lEmptyResolverResult := Default(TRemoveWithResolverResult);
@@ -5476,22 +5477,26 @@ begin
 
   Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult,
     lEmptyResolverResult, lSemanticPlan, lPlanResult, lError),
-    'Expected DTO-primary planner to map semantic final DTO ids: ' + lError);
+    'Expected DTO-primary planner to preserve semantic final DTO ids: ' + lError);
 
-  Assert.AreEqual('with-1', lPlanResult.fSemanticPlan.FinalStatements[0].StatementId,
-    'Stored semantic plan should use DAK statement ids.');
+  Assert.AreEqual('semantic-with-1', lPlanResult.fSemanticPlan.FinalStatements[0].StatementId,
+    'Stored semantic plan should preserve Semantics statement ids.');
   Assert.AreEqual(lSemanticPlan.ContextFingerprint,
     lPlanResult.fSemanticPlan.ContextFingerprint,
-    'Stored mapped semantic plan should preserve plan-level metadata.');
-  Assert.AreEqual('with-1',
+    'Stored semantic plan should preserve plan-level metadata.');
+  Assert.AreEqual('semantic-with-1',
     lPlanResult.fSemanticPlan.FinalStatements[0].Edits[0].StatementId,
-    'Stored semantic plan edits should use DAK statement ids.');
-  Assert.AreEqual('with-1',
+    'Stored semantic plan edits should preserve Semantics statement ids.');
+  Assert.AreEqual('semantic-with-1',
     lPlanResult.fSemanticPlan.FinalStatements[0].RewriteRecipe.TextEdits[0].StatementId,
-    'Stored semantic rewrite recipe edits should use DAK statement ids.');
+    'Stored semantic rewrite recipe edits should preserve Semantics statement ids.');
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'semantic-with-1', lStatement),
+    'Planned output should expose the Semantics statement id.');
+  Assert.AreEqual('semantic-with-1', lStatement.fEdits[0].fStatementId,
+    'Planned output edits should expose the Semantics statement id.');
 end;
 
-procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanFailsWhenStatementIdCannotMap;
+procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanDoesNotRequireDakRangeMatch;
 var
   lEmptyResolverResult: TRemoveWithResolverResult;
   lError: string;
@@ -5509,14 +5514,14 @@ begin
     'Expected fixture semantic final DTO statements.');
   lSemanticPlan.FinalStatements[0].Range.StartColumn := 999;
 
-  Assert.IsFalse(PlanRemoveWithRewrites(lInventory, lScanResult,
+  Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult,
     lEmptyResolverResult, lSemanticPlan, lPlanResult, lError),
-    'Expected DTO-primary planner to fail when a scanned semantic final statement cannot map to a DAK statement id.');
-  Assert.IsTrue(ContainsText(lError, 'statement id'),
-    'Expected statement-id mapping error, got: ' + lError);
+    'Expected DTO-primary planner to trust Semantics final statement identity: ' + lError);
+  Assert.AreEqual(999, lPlanResult.fSemanticPlan.FinalStatements[0].Range.StartColumn,
+    'Stored semantic plan should not be remapped through DAK scan coordinates.');
 end;
 
-procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanFailsWhenActiveConditionalStatementCannotMap;
+procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanDoesNotRequireDakScanStatement;
 var
   lEmptyResolverResult: TRemoveWithResolverResult;
   lError: string;
@@ -5549,6 +5554,7 @@ begin
   lSemanticPlan.Operation := 'remove-with';
   SetLength(lSemanticPlan.FinalStatements, 1);
   lSemanticPlan.FinalStatements[0].FileName := lSourcePath;
+  lSemanticPlan.FinalStatements[0].StatementId := 'semantic-active-conditional';
   lSemanticPlan.FinalStatements[0].Status := 'planned';
   lSemanticPlan.FinalStatements[0].Range.StartLine := 7;
   lSemanticPlan.FinalStatements[0].Range.StartColumn := 3;
@@ -5561,11 +5567,13 @@ begin
   lScanResult.fFiles[lFileIndex].fScanned := True;
   lScanResult.fFiles[lFileIndex].fWithStatementCount := 0;
 
-  Assert.IsFalse(PlanRemoveWithRewrites(lInventory, lScanResult,
+  Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult,
     lEmptyResolverResult, lSemanticPlan, lPlanResult, lError),
-    'Expected active conditional semantic final statement to fail when it cannot map to a DAK statement id.');
-  Assert.IsTrue(ContainsText(lError, 'statement id'),
-    'Expected statement-id mapping error, got: ' + lError);
+    'Expected DTO-primary planner to trust Semantics statements even when DAK scan has no coordinate match: ' +
+    lError);
+  Assert.AreEqual('semantic-active-conditional',
+    lPlanResult.fSemanticPlan.FinalStatements[0].StatementId,
+    'Stored semantic plan should preserve Semantics-only statement identity.');
 end;
 
 procedure TRemoveWithPlannerTests.PlanCliUsesCompactHighVolumeReportContract;

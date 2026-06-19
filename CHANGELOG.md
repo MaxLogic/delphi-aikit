@@ -173,6 +173,8 @@ All notable user-visible changes to this project will be documented in this file
 
 ### Fixed
 - Fixed build summary parsing so compiler, fatal, and hint-warning diagnostics now preserve structured severity, file token, line, column, code, and message data for source-context and LSP enrichment.
+- Fixed `remove-with` DTO-primary planning to preserve DelphiSemantics statement
+  IDs directly instead of remapping final statements through DAK scan coordinates.
 - Fixed slash-style refactoring switches such as `/new-name` after optional
   boolean flags such as `--apply`, by routing CLI switch value policy and
   slash-switch boundary detection through one descriptor table. (T-475)
