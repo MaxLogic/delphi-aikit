@@ -62,6 +62,8 @@ type
     [Test]
     procedure SemanticPlanChecksCompatibilityContextFingerprint;
     [Test]
+    procedure SemanticProjectFactsUseExplicitBuildResult;
+    [Test]
     procedure DakSemanticLookupsStayDelphiSemanticOwned;
     [Test]
     procedure SemanticResolverIndexesStatementsByRange;
@@ -1408,6 +1410,24 @@ begin
     'DAK must compare compatibility facts and typed plan context fingerprints.');
   Assert.IsTrue(ContainsText(lSourceText, 'context fingerprint mismatch'),
     'DAK must fail loudly when compatibility facts and typed plan contexts drift.');
+end;
+
+procedure TRemoveWithCommandTests.SemanticProjectFactsUseExplicitBuildResult;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText, 'BuildProjectWithBindingFactsResult'),
+    'DAK must consume explicit DelphiSemantics fact-build results.');
+  Assert.IsTrue(ContainsText(lSourceText, 'lFactsResult.Success'),
+    'DAK must check the explicit DelphiSemantics success flag.');
+  Assert.IsFalse(ContainsText(lSourceText, 'if lFacts.ContextFingerprint = '''''),
+    'DAK must not infer DelphiSemantics API failure from an empty context fingerprint sentinel.');
+  Assert.IsFalse(ContainsText(lSourceText, 'Result.SkipWithBindingSemanticGraph := True'),
+    'DAK must pass remove-with semantic graph switches through the remove-with request options.');
 end;
 
 procedure TRemoveWithCommandTests.DakSemanticLookupsStayDelphiSemanticOwned;
