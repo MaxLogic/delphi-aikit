@@ -26,7 +26,6 @@ procedure DeleteTempPath(const aPath: string);
 procedure EnsureTempClean;
 procedure EnsureResolverBuilt;
 function ResolverExePath: string;
-function IsPawelMachine: Boolean;
 procedure RequireFixInsightOrSkip(out aExePath: string);
 procedure RequirePalCmdOrSkip(out aExePath: string);
 procedure RequireRealDelphiLsp23OrSkip(out aExePath: string);
@@ -49,6 +48,17 @@ function SetScopedPalCmdMapFixture(const aContent: string; out aMapPath: string)
 function SetScopedEnvironmentVariable(const aName, aValue: string): IInterface;
 function SetScopedEnvironmentVariables(const aNameValuePairs: array of string): IInterface;
 function ClearScopedEnvironmentVariable(const aName: string): IInterface;
+
+const
+  cAllowFixInsightSkipEnvVar = 'DAK_ALLOW_FIXINSIGHT_SKIP';
+  cAllowPalSkipEnvVar = 'DAK_ALLOW_PAL_SKIP';
+  cAllowLspSkipEnvVar = 'DAK_ALLOW_LSP_SKIP';
+
+type
+  TExternalToolMissingDecision = (etmdFail, etmdSkip);
+
+function MissingExternalToolDecision(const aToolName, aAllowSkipEnvVar, aDiagnostic: string;
+  out aMessage: string): TExternalToolMissingDecision;
 
 implementation
 
@@ -794,9 +804,41 @@ begin
   Result := GResolverExe;
 end;
 
-function IsPawelMachine: Boolean;
+function MissingExternalToolDecision(const aToolName, aAllowSkipEnvVar, aDiagnostic: string;
+  out aMessage: string): TExternalToolMissingDecision;
+var
+  lDiagnostic: string;
 begin
-  Result := SameText(GetEnvironmentVariable('pawelspc'), '1');
+  lDiagnostic := Trim(aDiagnostic);
+  if SameText(Trim(GetEnvironmentVariable(aAllowSkipEnvVar)), '1') then
+  begin
+    Result := TExternalToolMissingDecision.etmdSkip;
+    aMessage := Format('%s not found; %s=1 explicitly allows this external-tool acceptance test to be skipped.',
+      [aToolName, aAllowSkipEnvVar]);
+  end else
+  begin
+    Result := TExternalToolMissingDecision.etmdFail;
+    aMessage := Format('%s not found. Install or configure it, or set %s=1 to explicitly skip this external-tool acceptance test.',
+      [aToolName, aAllowSkipEnvVar]);
+  end;
+  if lDiagnostic <> '' then
+    aMessage := aMessage + ' ' + lDiagnostic;
+end;
+
+procedure RequireExternalToolOrSkip(const aToolName, aAllowSkipEnvVar, aDiagnostic: string;
+  out aExePath: string);
+var
+  lDecision: TExternalToolMissingDecision;
+  lMessage: string;
+begin
+  aExePath := '';
+  lDecision := MissingExternalToolDecision(aToolName, aAllowSkipEnvVar, aDiagnostic, lMessage);
+  if lDecision = TExternalToolMissingDecision.etmdSkip then
+  begin
+    Assert.Pass(lMessage);
+    Exit;
+  end;
+  Assert.Fail(lMessage);
 end;
 
 procedure RequireFixInsightOrSkip(out aExePath: string);
@@ -804,13 +846,7 @@ begin
   if TryResolveFixInsightExe(nil, aExePath) then
     Exit;
 
-  if IsPawelMachine then
-    Assert.Fail('FixInsightCL.exe not found, but pawelspc=1 requires it.')
-  else
-  begin
-    aExePath := '';
-    Assert.Pass('FixInsightCL.exe not found; skipping FixInsight tests.');
-  end;
+  RequireExternalToolOrSkip('FixInsightCL.exe', cAllowFixInsightSkipEnvVar, '', aExePath);
 end;
 
 procedure RequirePalCmdOrSkip(out aExePath: string);
@@ -820,13 +856,7 @@ begin
   if TryResolvePalCmdExe('', aExePath, lError) then
     Exit;
 
-  if IsPawelMachine then
-    Assert.Fail('PALCMD not found, but pawelspc=1 requires it. ' + lError)
-  else
-  begin
-    aExePath := '';
-    Assert.Pass('PALCMD not found; skipping Pascal Analyzer tests.');
-  end;
+  RequireExternalToolOrSkip('PALCMD', cAllowPalSkipEnvVar, lError, aExePath);
 end;
 
 procedure RequireRealDelphiLsp23OrSkip(out aExePath: string);
@@ -850,13 +880,8 @@ begin
   if TryResolveDelphiLspExe(lOptions, lContext, aExePath, lError) then
     Exit;
 
-  if IsPawelMachine then
-    Assert.Fail('DelphiLSP.exe for Delphi 23.0 not found, but pawelspc=1 requires it. ' + lError)
-  else
-  begin
-    aExePath := '';
-    Assert.Pass('DelphiLSP.exe for Delphi 23.0 not found; skipping real LSP acceptance tests. ' + lError);
-  end;
+  RequireExternalToolOrSkip('DelphiLSP.exe for Delphi 23.0', cAllowLspSkipEnvVar,
+    lError, aExePath);
 end;
 
 initialization

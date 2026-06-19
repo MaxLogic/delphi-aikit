@@ -5,6 +5,7 @@
 *.dfm      text eol=crlf
 *.dproj    text eol=crlf
 *.groupproj text eol=crlf
+*.bat      text eol=crlf
 *.ps1      text eol=crlf
 
 # Scripts should stay LF

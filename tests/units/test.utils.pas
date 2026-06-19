@@ -4,7 +4,7 @@ interface
 
 uses
   DUnitX.TestFramework,
-  System.Classes, System.IOUtils, System.SysUtils,
+  System.Classes, System.IOUtils, System.RegularExpressions, System.SysUtils,
   Winapi.Windows,
   Dak.Utils,
   Test.Support;
@@ -27,6 +27,10 @@ type
     procedure ScopedEnvironmentVariableRestoresMissingAndPreviousValues;
     [Test]
     procedure ScopedEnvironmentVariablesRollbackAppliedValuesOnConstructorFailure;
+    [Test]
+    procedure ExternalToolSkipsUseExplicitPortableOptOuts;
+    [Test]
+    procedure ExternalToolSkipDecisionFailsClosedUnlessNamedOptOutIsOne;
     [Test]
     procedure ResolveDprojPathUsesSiblingDprojForDpr;
     [Test]
@@ -184,6 +188,76 @@ begin
     SetEnvironmentVariable(PChar(CMissingName), nil);
     SetEnvironmentVariable(PChar(CEmptyName), nil);
     SetEnvironmentVariable(PChar(CPreviousName), nil);
+  end;
+end;
+
+procedure TUtilsTests.ExternalToolSkipsUseExplicitPortableOptOuts;
+var
+  lReadmeText: string;
+  lRunBatText: string;
+  lSupportText: string;
+begin
+  lSupportText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'tests\units\test.support.pas'),
+    TEncoding.UTF8);
+  lReadmeText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'tests\README.md'),
+    TEncoding.UTF8);
+  lRunBatText := TFile.ReadAllText(TPath.Combine(RepoRoot, 'tests\run.bat'),
+    TEncoding.Default);
+
+  Assert.IsFalse((Pos('pawelspc', LowerCase(lSupportText)) > 0) or
+    (Pos('pawelspc', LowerCase(lReadmeText)) > 0),
+    'External-tool acceptance gates must not depend on a machine-specific pawelspc variable.');
+  Assert.IsFalse(Pos('SKIP_PASCAL_ANALYZER', lRunBatText) > 0,
+    'Batch acceptance tests must use the portable DAK_ALLOW_PAL_SKIP opt-out.');
+  Assert.IsFalse(TRegEx.IsMatch(lSupportText, 'Assert\.Pass\(.*skipping .*tests', [roIgnoreCase]),
+    'External-tool acceptance gates must not silently skip tests without an explicit opt-out.');
+  Assert.IsTrue(Pos('DAK_ALLOW_FIXINSIGHT_SKIP', lSupportText) > 0,
+    'FixInsight skip policy must name DAK_ALLOW_FIXINSIGHT_SKIP.');
+  Assert.IsTrue(Pos('DAK_ALLOW_PAL_SKIP', lSupportText) > 0,
+    'PALCMD skip policy must name DAK_ALLOW_PAL_SKIP.');
+  Assert.IsTrue(Pos('DAK_ALLOW_LSP_SKIP', lSupportText) > 0,
+    'Real DelphiLSP skip policy must name DAK_ALLOW_LSP_SKIP.');
+  Assert.IsTrue(Pos('DAK_ALLOW_FIXINSIGHT_SKIP=1', lReadmeText) > 0,
+    'README must document the FixInsight opt-out.');
+  Assert.IsTrue(Pos('DAK_ALLOW_PAL_SKIP=1', lReadmeText) > 0,
+    'README must document the PALCMD opt-out.');
+  Assert.IsTrue(Pos('DAK_ALLOW_LSP_SKIP=1', lReadmeText) > 0,
+    'README must document the real DelphiLSP opt-out.');
+  Assert.IsTrue(Pos('DAK_ALLOW_FIXINSIGHT_SKIP', lRunBatText) > 0,
+    'Batch FixInsight acceptance tests must honor DAK_ALLOW_FIXINSIGHT_SKIP.');
+  Assert.IsTrue(Pos('DAK_ALLOW_PAL_SKIP', lRunBatText) > 0,
+    'Batch PALCMD acceptance tests must honor DAK_ALLOW_PAL_SKIP.');
+end;
+
+procedure TUtilsTests.ExternalToolSkipDecisionFailsClosedUnlessNamedOptOutIsOne;
+const
+  COptOutEnvVar = 'DAK_TEST_ALLOW_EXTERNAL_TOOL_SKIP';
+var
+  lDecision: TExternalToolMissingDecision;
+  lMessage: string;
+begin
+  SetEnvironmentVariable(PChar(COptOutEnvVar), nil);
+  try
+    lDecision := MissingExternalToolDecision('Tool.exe', COptOutEnvVar, 'missing detail', lMessage);
+    Assert.IsTrue(lDecision = TExternalToolMissingDecision.etmdFail,
+      'Missing external tools must fail by default.');
+    Assert.Contains(lMessage, COptOutEnvVar + '=1',
+      'Failure diagnostic must name the explicit opt-out variable.');
+    Assert.Contains(lMessage, 'missing detail', 'Failure diagnostic must preserve tool details.');
+
+    SetEnvironmentVariable(PChar(COptOutEnvVar), PChar('true'));
+    lDecision := MissingExternalToolDecision('Tool.exe', COptOutEnvVar, '', lMessage);
+    Assert.IsTrue(lDecision = TExternalToolMissingDecision.etmdFail,
+      'Only value 1 should enable an external-tool opt-out.');
+
+    SetEnvironmentVariable(PChar(COptOutEnvVar), PChar('1'));
+    lDecision := MissingExternalToolDecision('Tool.exe', COptOutEnvVar, '', lMessage);
+    Assert.IsTrue(lDecision = TExternalToolMissingDecision.etmdSkip,
+      'Value 1 should explicitly allow the external-tool skip.');
+    Assert.Contains(lMessage, COptOutEnvVar + '=1',
+      'Skip diagnostic must name the explicit opt-out variable.');
+  finally
+    SetEnvironmentVariable(PChar(COptOutEnvVar), nil);
   end;
 end;
 

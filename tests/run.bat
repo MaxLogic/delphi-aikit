@@ -133,6 +133,11 @@ rem 2) FixInsight end-to-end (self) + filtering (txt/xml/csv)
 rem ----------------------------------------------------------------------------
 echo [INFO] Running FixInsightCL (self) in txt/xml/csv...
 
+if "%DAK_ALLOW_FIXINSIGHT_SKIP%"=="1" (
+  echo [INFO] DAK_ALLOW_FIXINSIGHT_SKIP=1 is set - explicitly skipping FixInsightCL tests.
+  goto fixinsight_done
+)
+
 set "FI_BASE_ROOT=%OUTDIR%\fi-self"
 set "FI_BASE_TXT=%FI_BASE_ROOT%\fixinsight\fixinsight.txt"
 set "FI_BASE_XML=%FI_BASE_ROOT%\fixinsight\fixinsight.xml"
@@ -322,13 +327,15 @@ if errorlevel 1 (
 )
 call :AssertContains "%BAT_OUT%" "..\src\Dak.Cli.pas;..\src\Dak.Output.pas" || exit /b 33
 
+:fixinsight_done
+
 rem ----------------------------------------------------------------------------
 rem 5) Pascal Analyzer end-to-end (self)
 rem ----------------------------------------------------------------------------
 echo [INFO] Running Pascal Analyzer (PALCMD) on self project...
 
-if defined SKIP_PASCAL_ANALYZER (
-  echo [INFO] SKIP_PASCAL_ANALYZER is set - skipping PALCMD tests.
+if "%DAK_ALLOW_PAL_SKIP%"=="1" (
+  echo [INFO] DAK_ALLOW_PAL_SKIP=1 is set - explicitly skipping PALCMD tests.
   goto pa_done
 )
 
@@ -366,7 +373,7 @@ if defined PA_PATH set "PA_PATH_VALUE=%PA_PATH%"
 rem Settings-driven run (tests Output from dak.ini + our default args)
 "%SANDBOX_PA%\DelphiAIKit.exe" analyze --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --fixinsight false --pascal-analyzer true !RSVARS_ARG! !ENVOPTIONS_ARG!
 if errorlevel 1 (
-  echo [ERROR] PALCMD run (dak.ini) failed. If PALCMD is not installed, set PA_PATH or SKIP_PASCAL_ANALYZER=1.
+  echo [ERROR] PALCMD run (dak.ini) failed. If PALCMD is not installed, set PA_PATH or DAK_ALLOW_PAL_SKIP=1.
   exit /b 40
 )
 call :AssertAnyMatch "%PA_OUT_SETTINGS%\*.xml" || exit /b 41
@@ -374,7 +381,7 @@ call :AssertAnyMatch "%PA_OUT_SETTINGS%\*.xml" || exit /b 41
 rem CLI-driven run (tests overrides)
 "%EXE%" analyze --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --fixinsight false --pascal-analyzer true !PA_PATH_ARG! --pa-output "%PA_OUT_CLI%" --pa-args "/F=X /Q /A+ /FA /T=%PA_THREADS%" !RSVARS_ARG! !ENVOPTIONS_ARG!
 if errorlevel 1 (
-  echo [ERROR] PALCMD run (CLI overrides) failed. If PALCMD is not installed, set PA_PATH or SKIP_PASCAL_ANALYZER=1.
+  echo [ERROR] PALCMD run (CLI overrides) failed. If PALCMD is not installed, set PA_PATH or DAK_ALLOW_PAL_SKIP=1.
   exit /b 42
 )
 call :AssertAnyMatch "%PA_OUT_CLI%\*.xml" || exit /b 43
