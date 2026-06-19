@@ -3,7 +3,8 @@ unit Dak.RemoveWith.Symbols;
 interface
 
 uses
-  DelphiSemantics.Api, DelphiSemantics.Api.RemoveWith.Compatibility,
+  DelphiSemantics.Api, DelphiSemantics.Api.RemoveWith,
+  DelphiSemantics.Api.RemoveWith.Compatibility,
   Dak.RemoveWith.Model, Dak.Types;
 
 type
@@ -865,7 +866,8 @@ begin
   aInventory.fDelphiSemanticLookupIndex := lFacts.LookupIndex;
   lPlanStopwatch := TStopwatch.StartNew;
   try
-    aInventory.fDelphiSemanticRemoveWithPlan := TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWithSnapshot(lFacts);
+    aInventory.fDelphiSemanticRemoveWithPlan :=
+      TDelphiSemanticRemoveWithApi.PlanRemoveWith(lRequest);
   except
     on E: Exception do
     begin
