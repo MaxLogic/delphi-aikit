@@ -587,6 +587,8 @@ type
     [Test]
     procedure ApplyRefusesPlannedEditsWhenContextFingerprintIsMissing;
     [Test]
+    procedure ApplyRefusesMissingDelphiVersionBeforeFallbackVerification;
+    [Test]
     procedure LegacyApplyOverloadRefusesPlannedEditsWithoutContext;
   end;
 
@@ -7732,6 +7734,43 @@ begin
     'Expected missing context preflight to refuse before backing up or editing files.');
   AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
     'Missing context refusal must preserve source bytes exactly.');
+end;
+
+procedure TRemoveWithApplyCompileGateTests.ApplyRefusesMissingDelphiVersionBeforeFallbackVerification;
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lDprojPath: string;
+  lError: string;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-missing-delphi-version',
+    'ApplyUnit.pas', lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+  lOptions.fDelphiVersion := '';
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\missing-delphi-version');
+
+  Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+    lPlanResult, lApplyContext, lTransactionResult, lError),
+    'Expected missing apply-time Delphi version to fail closed before verification fallback.');
+  Assert.AreEqual('preflight-build-failed', RemoveWithTransactionStatusToText(lTransactionResult.fStatus),
+    'Expected explicit preflight failure status.');
+  Assert.Contains(lError, 'preflight-build-failed', 'Expected preflight failure to be reported.');
+  Assert.Contains(lError, 'Delphi version is required', 'Expected missing Delphi version diagnostic.');
+  Assert.AreEqual('failed', lTransactionResult.fVerificationStatus,
+    'Expected verification to fail before any edit is applied.');
+  Assert.Contains(lTransactionResult.fVerificationError, 'Delphi version is required',
+    'Expected verification error to preserve the missing Delphi version diagnostic.');
+  Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)),
+    'Expected missing compiler context to refuse before backing up or editing files.');
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
+    'Missing compiler context refusal must preserve source bytes exactly.');
 end;
 
 procedure TRemoveWithApplyCompileGateTests.LegacyApplyOverloadRefusesPlannedEditsWithoutContext;

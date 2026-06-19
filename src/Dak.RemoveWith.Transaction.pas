@@ -63,8 +63,6 @@ uses
   Dak.Build.Runner, Dak.RemoveWith.Discovery, Dak.RemoveWith.Source;
 
 const
-  cRemoveWithFallbackDelphiVersion = '23.0';
-  cBuildRequiresDelphiVersion = 'Delphi version is required';
   cApplyTransactionMutexPrefix = 'Local\DakRemoveWithApplyTransaction-';
   cApplyTransactionMutexTimeoutMs = 30 * 60 * 1000;
   cBuildVerificationMutexPrefix = 'Local\DakRemoveWithBuildVerification-';
@@ -648,13 +646,6 @@ begin
     end;
 
     Result := TryRunBuildInternal(lBuildOptions, lExitCode, aError) and (lExitCode = 0);
-    if (not Result) and (Trim(lBuildOptions.fDelphiVersion) = '') and
-      (Pos(cBuildRequiresDelphiVersion, aError) > 0) then
-    begin
-      lBuildOptions.fDelphiVersion := cRemoveWithFallbackDelphiVersion;
-      aError := '';
-      Result := TryRunBuildInternal(lBuildOptions, lExitCode, aError) and (lExitCode = 0);
-    end;
     if (not Result) and (aError = '') then
       aError := 'build-verification-failed';
     if FileExists(lStdOutLogPath) then
