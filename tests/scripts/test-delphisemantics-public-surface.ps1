@@ -91,7 +91,7 @@ foreach ($exception in @(
     @{
       Key = 'src\Dak.Refactor.pas|DelphiSemantics.ProjectContext'
       Task = 'T-353'
-      Reason = 'Refactor command keeps project context until snapshot-backed query contexts land.'
+      Reason = 'Refactor command still maps project context DTOs while the facade boundary is narrowed.'
     },
     @{
       Key = 'src\Dak.Refactor.pas|DelphiSemantics.Refactor'
@@ -181,12 +181,12 @@ foreach ($exception in @(
     @{
       Key = 'src\Dak.Semantics.Session.pas|DelphiSemantics.Refactor'
       Task = 'T-353'
-      Reason = 'Central adapter exposes raw refactor DTOs until snapshot-backed query contexts land.'
+      Reason = 'Central adapter still exposes raw refactor DTOs while DAK facades are narrowed.'
     },
     @{
       Key = 'src\Dak.Semantics.Session.pas|DelphiSemantics.Usage'
       Task = 'T-353'
-      Reason = 'Central adapter exposes raw usage DTOs until snapshot-backed query contexts land.'
+      Reason = 'Central adapter still exposes raw usage DTOs while DAK facades are narrowed.'
     },
     @{
       Key = 'src\Dak.Semantics.Session.pas|DelphiSemantics.Cache'
@@ -196,17 +196,17 @@ foreach ($exception in @(
     @{
       Key = 'src\Dak.Semantics.Session.pas|DelphiSemantics.Model'
       Task = 'T-353'
-      Reason = 'Central adapter still validates model-only query contexts before T-353.'
+      Reason = 'Central adapter keeps legacy model-context diagnostics for compatibility fallbacks.'
     },
     @{
       Key = 'src\Dak.Semantics.Session.pas|DelphiSemantics.ProjectSession'
       Task = 'T-353'
-      Reason = 'Central adapter owns raw project-session access until T-353 replaces the query path.'
+      Reason = 'Central adapter owns raw project-session access while building owned snapshot contexts.'
     },
     @{
       Key = 'src\Dak.Semantics.Session.pas|DelphiSemantics.Query'
       Task = 'T-353'
-      Reason = 'Central adapter owns raw query-context access until T-353 replaces the query path.'
+      Reason = 'Central adapter owns raw query-context access for snapshot scope validation and API calls.'
     },
     @{
       Key = 'src\dak.sourcecontext.pas|DelphiSemantics.ProjectContext'

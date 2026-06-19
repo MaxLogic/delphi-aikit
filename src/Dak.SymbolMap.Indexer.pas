@@ -947,6 +947,8 @@ begin
     end;
 
     try
+      // T-442 keeps this SymbolMap projection on the legacy model context until
+      // snapshot-backed position shadowing matches existing SymbolMap behavior.
       lContext := lSessionResult.Session.BuildSymbolQueryContext(lCacheMetrics,
         lExtractionMilliseconds);
       lIndex := TDelphiSemanticApi.BuildProjectSymbolIndex(lContext);
