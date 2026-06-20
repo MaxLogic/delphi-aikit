@@ -9,7 +9,7 @@ uses
   System.SysUtils,
   Winapi.Windows,
   Test.Support,
-  Dak.PascalAnalyzerRunner;
+  Dak.PascalAnalyzer.Artifacts;
 
 type
   [TestFixture]

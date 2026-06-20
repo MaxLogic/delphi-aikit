@@ -28,6 +28,8 @@ type
     procedure InvalidPalMapJsonRootDoesNotRaise;
     [Test]
     procedure BuildPalCmdCommandLineUnsupportedPlatformReturnsError;
+    [Test]
+    procedure PascalAnalyzerRunnerDelegatesArtifactGeneration;
   end;
 
 implementation
@@ -313,6 +315,47 @@ begin
   Assert.IsTrue(lError <> '', 'Expected unsupported platform failure to include a concrete error message.');
   Assert.IsTrue(Pos('Unsupported platform', lError) > 0,
     'Expected unsupported platform error details. Actual: ' + lError);
+end;
+
+procedure TPascalAnalyzerTests.PascalAnalyzerRunnerDelegatesArtifactGeneration;
+var
+  lArtifactsPath: string;
+  lArtifactsSource: string;
+  lRunnerSource: string;
+begin
+  lRunnerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.pascalanalyzerrunner.pas'),
+    TEncoding.UTF8);
+  lArtifactsPath := TPath.Combine(RepoRoot, 'src\Dak.PascalAnalyzer.Artifacts.pas');
+  Assert.IsTrue(TFile.Exists(lArtifactsPath), 'Expected PAL artifact generation to live in a focused unit.');
+  lArtifactsSource := TFile.ReadAllText(lArtifactsPath, TEncoding.UTF8);
+
+  Assert.IsFalse(lRunnerSource.Contains('TPalFinding = record'),
+    'Pascal Analyzer runner must not own PAL finding DTOs.');
+  Assert.IsFalse(lRunnerSource.Contains('THotspotEntry = record'),
+    'Pascal Analyzer runner must not own PAL hotspot DTOs.');
+  Assert.IsFalse(lRunnerSource.Contains('TryLoadComplexityEntries'),
+    'Pascal Analyzer runner must not parse PAL complexity artifacts directly.');
+  Assert.IsFalse(lRunnerSource.Contains('TryLoadModuleLines'),
+    'Pascal Analyzer runner must not parse PAL module totals directly.');
+  Assert.IsFalse(lRunnerSource.Contains('WritePalFindingsJsonl'),
+    'Pascal Analyzer runner must not write PAL findings JSONL directly.');
+  Assert.IsFalse(lRunnerSource.Contains('WritePalHotspotsMd'),
+    'Pascal Analyzer runner must not write PAL hotspot markdown directly.');
+
+  Assert.IsTrue(lArtifactsSource.Contains('TPalFinding = record'),
+    'PAL artifact unit should own finding DTOs.');
+  Assert.IsTrue(lArtifactsSource.Contains('THotspotEntry = record'),
+    'PAL artifact unit should own hotspot DTOs.');
+  Assert.IsTrue(lArtifactsSource.Contains('TryLoadComplexityEntries'),
+    'PAL artifact unit should own complexity parsing.');
+  Assert.IsTrue(lArtifactsSource.Contains('TryLoadModuleLines'),
+    'PAL artifact unit should own module-line parsing.');
+  Assert.IsTrue(lArtifactsSource.Contains('WritePalFindingsJsonl'),
+    'PAL artifact unit should own findings JSONL writing.');
+  Assert.IsTrue(lArtifactsSource.Contains('WritePalHotspotsMd'),
+    'PAL artifact unit should own hotspot markdown writing.');
+  Assert.IsTrue(lRunnerSource.Contains('Dak.PascalAnalyzer.Artifacts'),
+    'Runner should delegate artifact generation to the focused unit.');
 end;
 
 initialization
