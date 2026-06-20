@@ -594,6 +594,10 @@ type
     [Test]
     procedure ApplyRefusesWhenSemanticEditExpectedSourceIsStale;
     [Test]
+    procedure ApplyRefusesWhenReportOnlyAndApplyStatementIdsDiverge;
+    [Test]
+    procedure ApplyRefusesWhenReportOnlyPlannedIdsDisappearFromApplyPlan;
+    [Test]
     procedure ApplyRefusesWhenSemanticEditExpectedRangeIsInvalid;
     [Test]
     procedure ApplyRefusesPlannedEditsWhenContextFingerprintIsMissing;
@@ -7135,8 +7139,8 @@ begin
     Assert.IsTrue(DiscoverRemoveWithStatements(aOptions, lModel, lScanResult, lError), lError);
     Assert.IsTrue(BuildRemoveWithFactSet(aOptions, lModel, lInventory, lError), lError);
     Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResolverResult, lError), lError);
-    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, aPlanResult, lError),
-      lError);
+    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult,
+      lInventory.fDelphiSemanticRemoveWithPlan, aPlanResult, lError), lError);
     Assert.IsTrue(BuildRemoveWithPlanApplyContext(aPlanResult, aApplyContext, lError), lError);
   finally
     lModel.Free;
@@ -7841,8 +7845,8 @@ begin
     Assert.IsTrue(BuildRemoveWithFactSet(aOptions, lModel, lInventory, lError), lError);
     Assert.IsTrue(ResolveRemoveWithIdentifiers(lInventory, lScanResult, lResolverResult, lError),
       lError);
-    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult, aPlanResult, lError),
-      lError);
+    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult,
+      lInventory.fDelphiSemanticRemoveWithPlan, aPlanResult, lError), lError);
     Assert.IsTrue(BuildRemoveWithPlanApplyContext(aPlanResult, aApplyContext, lError), lError);
     Assert.AreEqual(1, Integer(Length(aApplyContext.fSourceFingerprints)),
       'Expected the DAK apply context to fingerprint the source file it will edit.');
@@ -7986,6 +7990,218 @@ begin
     'Expected source range validation to refuse before backing up or editing files.');
   AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
     'Source range mismatch must preserve source bytes exactly.');
+end;
+
+procedure TRemoveWithApplyCompileGateTests.ApplyRefusesWhenReportOnlyAndApplyStatementIdsDiverge;
+var
+  i: Integer;
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lApplyId: string;
+  lApplyIds: TJSONArray;
+  lDprojPath: string;
+  lError: string;
+  lInventory: TRemoveWithFactSet;
+  lMetrics: TRemoveWithPlannerPhaseMetrics;
+  lMismatch: TJSONObject;
+  lModel: TRemoveWithProjectModel;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lOutput: string;
+  lOutputValue: TJSONValue;
+  lPlanResult: TRemoveWithPlanResult;
+  lReportId: string;
+  lReportIds: TJSONArray;
+  lResolverResult: TRemoveWithResolverResult;
+  lRoot: TJSONObject;
+  lScanResult: TRemoveWithScanResult;
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-report-apply-mismatch',
+    'ApplyUnit.pas', lDprojPath, lUnitPath);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithMode := TRemoveWithMode.rwmApply;
+  lOptions.fRemoveWithFormat := TRemoveWithFormat.rwfJson;
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+  lOptions.fRemoveWithSkipCompatibilityFacts := True;
+
+  lModel := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lDprojPath, lModel, lError), lError);
+  try
+    Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lModel, lScanResult, lError), lError);
+    Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lModel, lInventory, lError), lError);
+    lResolverResult := Default(TRemoveWithResolverResult);
+    lSemanticPlan := lInventory.fDelphiSemanticRemoveWithPlan;
+    Assert.IsTrue(Length(lSemanticPlan.FinalStatements) > 0,
+      'Expected semantic final statements.');
+    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult,
+      lSemanticPlan, lPlanResult, lError), lError);
+    Assert.IsTrue(Length(lPlanResult.fStatements) > 0, 'Expected apply planned statements.');
+    Assert.AreEqual('planned', lPlanResult.fStatements[0].fStatus,
+      'Expected first fixture statement to be planned.');
+
+    lReportId := lSemanticPlan.FinalStatements[0].StatementId;
+    lApplyId := lReportId + ':apply-drift';
+    lPlanResult.fStatements[0].fStatementId := lApplyId;
+    for i := 0 to High(lPlanResult.fStatements[0].fEdits) do
+      lPlanResult.fStatements[0].fEdits[i].fStatementId := lApplyId;
+
+    Assert.IsTrue(BuildRemoveWithPlanApplyContext(lPlanResult, lApplyContext, lError), lError);
+  finally
+    lModel.Free;
+  end;
+
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\report-apply-mismatch');
+
+  Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+    lPlanResult, lApplyContext, lTransactionResult, lError),
+    'Expected report/apply statement id drift to fail closed.');
+  Assert.AreEqual('report-apply-mismatch', RemoveWithTransactionStatusToText(lTransactionResult.fStatus),
+    'Expected explicit report/apply mismatch status.');
+  Assert.Contains(lError, 'report-apply-mismatch', 'Expected mismatch error to be reported.');
+  Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)),
+    'Expected mismatch refusal to stop before backing up or editing files.');
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
+    'Report/apply mismatch must preserve source bytes exactly.');
+
+  lMetrics := Default(TRemoveWithPlannerPhaseMetrics);
+  lOutput := BuildRemoveWithJsonReport(lOptions, lDprojPath, lWorkspaceRoot,
+    'remove-with-apply-report-apply-mismatch', '', '', lScanResult, lResolverResult,
+    lPlanResult, lTransactionResult, lMetrics);
+  lOutputValue := ParseJsonValue(lOutput);
+  try
+    Assert.IsTrue(lOutputValue is TJSONObject, 'Expected mismatch report JSON object.');
+    lRoot := lOutputValue as TJSONObject;
+    Assert.AreEqual('report-apply-mismatch', lRoot.Values['status'].Value,
+      'Expected root status to expose report/apply mismatch.');
+    RequireJsonObjectKey(lRoot, 'reportApplyMismatch', lMismatch);
+    Assert.AreEqual('statement-id-set-mismatch', lMismatch.Values['reason'].Value,
+      'Expected mismatch reason.');
+    RequireJsonArrayKey(lMismatch, 'reportOnlyStatementIds', lReportIds);
+    RequireJsonArrayKey(lMismatch, 'applyStatementIds', lApplyIds);
+    Assert.IsTrue(JsonArrayHasStringValue(lReportIds, lReportId),
+      'Expected report-only statement id set to include the semantic id.');
+    Assert.IsTrue(JsonArrayHasStringValue(lApplyIds, lApplyId),
+      'Expected apply statement id set to include the diverged id.');
+  finally
+    lOutputValue.Free;
+  end;
+end;
+
+procedure TRemoveWithApplyCompileGateTests.ApplyRefusesWhenReportOnlyPlannedIdsDisappearFromApplyPlan;
+var
+  i: Integer;
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lApplyIds: TJSONArray;
+  lDprojPath: string;
+  lError: string;
+  lInventory: TRemoveWithFactSet;
+  lMetrics: TRemoveWithPlannerPhaseMetrics;
+  lMismatch: TJSONObject;
+  lModel: TRemoveWithProjectModel;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lOutput: string;
+  lOutputValue: TJSONValue;
+  lPlanResult: TRemoveWithPlanResult;
+  lReportId: string;
+  lReportIds: TJSONArray;
+  lResolverResult: TRemoveWithResolverResult;
+  lRoot: TJSONObject;
+  lScanResult: TRemoveWithScanResult;
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-apply-report-apply-missing-ids',
+    'ApplyUnit.pas', lDprojPath, lUnitPath);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithMode := TRemoveWithMode.rwmApply;
+  lOptions.fRemoveWithFormat := TRemoveWithFormat.rwfJson;
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+  lOptions.fRemoveWithSkipCompatibilityFacts := True;
+
+  lModel := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lDprojPath, lModel, lError), lError);
+  try
+    Assert.IsTrue(DiscoverRemoveWithStatements(lOptions, lModel, lScanResult, lError), lError);
+    Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lModel, lInventory, lError), lError);
+    lResolverResult := Default(TRemoveWithResolverResult);
+    lSemanticPlan := lInventory.fDelphiSemanticRemoveWithPlan;
+    Assert.IsTrue(Length(lSemanticPlan.FinalStatements) > 0,
+      'Expected semantic final statements.');
+    Assert.IsTrue(PlanRemoveWithRewrites(lInventory, lScanResult, lResolverResult,
+      lSemanticPlan, lPlanResult, lError), lError);
+    Assert.IsTrue(Length(lPlanResult.fStatements) > 0, 'Expected apply planned statements.');
+    Assert.AreEqual('planned', lPlanResult.fStatements[0].fStatus,
+      'Expected first fixture statement to be planned.');
+
+    lReportId := lSemanticPlan.FinalStatements[0].StatementId;
+    for i := 0 to High(lPlanResult.fStatements) do
+    begin
+      lPlanResult.fStatements[i].fStatus := 'skipped';
+      lPlanResult.fStatements[i].fReason := 'apply-plan-drift';
+      SetLength(lPlanResult.fStatements[i].fEdits, 0);
+    end;
+
+    Assert.IsTrue(BuildRemoveWithPlanApplyContext(lPlanResult, lApplyContext, lError), lError);
+  finally
+    lModel.Free;
+  end;
+
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\report-apply-missing-ids');
+
+  Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+    lPlanResult, lApplyContext, lTransactionResult, lError),
+    'Expected missing apply statement ids to fail closed.');
+  Assert.AreEqual('report-apply-mismatch', RemoveWithTransactionStatusToText(lTransactionResult.fStatus),
+    'Expected explicit report/apply mismatch status.');
+  Assert.Contains(lError, 'report-apply-mismatch', 'Expected mismatch error to be reported.');
+  Assert.AreEqual(0, Integer(Length(lTransactionResult.fFiles)),
+    'Expected mismatch refusal to stop before backing up or editing files.');
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
+    'Report/apply missing-id mismatch must preserve source bytes exactly.');
+
+  lMetrics := Default(TRemoveWithPlannerPhaseMetrics);
+  lOutput := BuildRemoveWithJsonReport(lOptions, lDprojPath, lWorkspaceRoot,
+    'remove-with-apply-report-apply-missing-ids', '', '', lScanResult, lResolverResult,
+    lPlanResult, lTransactionResult, lMetrics);
+  lOutputValue := ParseJsonValue(lOutput);
+  try
+    Assert.IsTrue(lOutputValue is TJSONObject, 'Expected mismatch report JSON object.');
+    lRoot := lOutputValue as TJSONObject;
+    Assert.AreEqual('report-apply-mismatch', lRoot.Values['status'].Value,
+      'Expected root status to expose report/apply mismatch.');
+    RequireJsonObjectKey(lRoot, 'reportApplyMismatch', lMismatch);
+    Assert.AreEqual('statement-id-set-mismatch', lMismatch.Values['reason'].Value,
+      'Expected mismatch reason.');
+    RequireJsonArrayKey(lMismatch, 'reportOnlyStatementIds', lReportIds);
+    RequireJsonArrayKey(lMismatch, 'applyStatementIds', lApplyIds);
+    Assert.IsTrue(JsonArrayHasStringValue(lReportIds, lReportId),
+      'Expected report-only statement id set to include the semantic id.');
+    Assert.AreEqual(0, lApplyIds.Count, 'Expected apply statement id set to be empty.');
+  finally
+    lOutputValue.Free;
+  end;
 end;
 
 procedure TRemoveWithApplyCompileGateTests.ApplyRefusesWhenSemanticEditExpectedRangeIsInvalid;

@@ -19,7 +19,7 @@ type
 
   TRemoveWithTransactionStatus = (rwtxNotRun, rwtxApplied, rwtxPreflightBuildFailed, rwtxRolledBack,
     rwtxRollbackFailed, rwtxContextFingerprintMismatch, rwtxContextFingerprintMissing,
-    rwtxSourceRangeMismatch);
+    rwtxSourceRangeMismatch, rwtxReportApplyMismatch);
 
   TRemoveWithTransactionFile = record
     fPath: string;
@@ -41,6 +41,9 @@ type
     fVerificationStdErrLogPath: string;
     fVerificationStdOutLogPath: string;
     fVerificationStatus: string;
+    fReportApplyMismatchReason: string;
+    fReportOnlyStatementIds: TArray<string>;
+    fApplyStatementIds: TArray<string>;
     fFiles: TArray<TRemoveWithTransactionFile>;
     fStatus: TRemoveWithTransactionStatus;
   end;
@@ -141,6 +144,8 @@ begin
       Result := 'context-fingerprint-missing';
     TRemoveWithTransactionStatus.rwtxSourceRangeMismatch:
       Result := 'source-range-mismatch';
+    TRemoveWithTransactionStatus.rwtxReportApplyMismatch:
+      Result := 'report-apply-mismatch';
   else
     Result := 'not-run';
   end;
@@ -286,6 +291,26 @@ begin
   Result := aPrefix + Copy(lSafeIdentity, 1, 80) + '-' + IntToHex(lHash, 8);
 end;
 
+function BuildStringArray(const aValues: TArray<string>): TJSONArray;
+var
+  lValue: string;
+begin
+  Result := TJSONArray.Create;
+  for lValue in aValues do
+    Result.AddElement(TJSONString.Create(lValue));
+end;
+
+function BuildReportApplyMismatchObject(const aTransactionResult: TRemoveWithTransactionResult):
+  TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('reason', aTransactionResult.fReportApplyMismatchReason);
+  Result.AddPair('reportOnlyStatementIds',
+    BuildStringArray(aTransactionResult.fReportOnlyStatementIds));
+  Result.AddPair('applyStatementIds',
+    BuildStringArray(aTransactionResult.fApplyStatementIds));
+end;
+
 class function TRemoveWithTransaction.ApplyTransactionMutexName(
   const aProjectPath: string): string;
 begin
@@ -322,6 +347,144 @@ begin
   Result := False;
 end;
 
+procedure AddUniqueStatementId(const aValues: TList<string>; const aSeen: TDictionary<string, Byte>;
+  const aStatementId: string);
+begin
+  if aSeen.ContainsKey(aStatementId) then
+    Exit;
+  aSeen.Add(aStatementId, 0);
+  aValues.Add(aStatementId);
+end;
+
+function PlannedStatementIdsFromPlanResult(const aPlanResult: TRemoveWithPlanResult): TArray<string>;
+var
+  lSeen: TDictionary<string, Byte>;
+  lStatement: TRemoveWithPlannedStatement;
+  lValues: TList<string>;
+begin
+  lSeen := nil;
+  lValues := nil;
+  try
+    lSeen := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.Ordinal);
+    lValues := TList<string>.Create;
+    for lStatement in aPlanResult.fStatements do
+    begin
+      if lStatement.fStatus <> 'planned' then
+        Continue;
+      AddUniqueStatementId(lValues, lSeen, lStatement.fStatementId);
+    end;
+    Result := lValues.ToArray;
+  finally
+    lValues.Free;
+    lSeen.Free;
+  end;
+end;
+
+function PlannedStatementIdsFromSemanticPlan(const aPlanResult: TRemoveWithPlanResult): TArray<string>;
+var
+  i: Integer;
+  lSeen: TDictionary<string, Byte>;
+  lValues: TList<string>;
+begin
+  lSeen := nil;
+  lValues := nil;
+  try
+    lSeen := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.Ordinal);
+    lValues := TList<string>.Create;
+    for i := 0 to High(aPlanResult.fSemanticPlan.FinalStatements) do
+    begin
+      if aPlanResult.fSemanticPlan.FinalStatements[i].Status <> 'planned' then
+        Continue;
+      AddUniqueStatementId(lValues, lSeen, aPlanResult.fSemanticPlan.FinalStatements[i].StatementId);
+    end;
+    Result := lValues.ToArray;
+  finally
+    lValues.Free;
+    lSeen.Free;
+  end;
+end;
+
+function SameStatementIdSet(const aLeft, aRight: TArray<string>): Boolean;
+var
+  lId: string;
+  lRightIds: TDictionary<string, Byte>;
+begin
+  if Length(aLeft) <> Length(aRight) then
+    Exit(False);
+
+  lRightIds := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.Ordinal);
+  try
+    for lId in aRight do
+    begin
+      if not lRightIds.ContainsKey(lId) then
+        lRightIds.Add(lId, 0);
+    end;
+    for lId in aLeft do
+    begin
+      if not lRightIds.ContainsKey(lId) then
+        Exit(False);
+    end;
+    Result := True;
+  finally
+    lRightIds.Free;
+  end;
+end;
+
+procedure SetReportApplyMismatch(var aTransactionResult: TRemoveWithTransactionResult;
+  const aReason: string; const aReportOnlyStatementIds, aApplyStatementIds: TArray<string>;
+  out aError: string);
+begin
+  aError := 'report-apply-mismatch: ' + aReason;
+  aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxReportApplyMismatch;
+  aTransactionResult.fError := aError;
+  aTransactionResult.fVerificationStatus := 'not-run';
+  aTransactionResult.fVerificationError := aError;
+  aTransactionResult.fReportApplyMismatchReason := aReason;
+  aTransactionResult.fReportOnlyStatementIds := Copy(aReportOnlyStatementIds);
+  aTransactionResult.fApplyStatementIds := Copy(aApplyStatementIds);
+end;
+
+function ValidateReportApplyPlanMatch(const aPlanResult: TRemoveWithPlanResult;
+  var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean;
+var
+  lApplyIds: TArray<string>;
+  lReportIds: TArray<string>;
+begin
+  Result := True;
+  aError := '';
+  lApplyIds := PlannedStatementIdsFromPlanResult(aPlanResult);
+
+  if (not SameText(aPlanResult.fSemanticPlan.Operation, 'remove-with')) or
+    (Length(aPlanResult.fSemanticPlan.FinalStatements) = 0) then
+  begin
+    if Length(lApplyIds) = 0 then
+      Exit;
+    SetReportApplyMismatch(aTransactionResult, 'semantic-report-only-plan-missing', [], lApplyIds,
+      aError);
+    Exit(False);
+  end;
+
+  lReportIds := PlannedStatementIdsFromSemanticPlan(aPlanResult);
+  if SameStatementIdSet(lReportIds, lApplyIds) then
+    Exit;
+
+  SetReportApplyMismatch(aTransactionResult, 'statement-id-set-mismatch', lReportIds, lApplyIds,
+    aError);
+  Result := False;
+end;
+
+function AtomicTempFileName: string;
+var
+  lName: string;
+begin
+  lName := TPath.GetGUIDFileName(False);
+  if lName = '' then
+    lName := StringReplace(TPath.GetRandomFileName, '.', '', [rfReplaceAll]);
+  if Length(lName) > 16 then
+    lName := Copy(lName, 1, 16);
+  Result := '.dak-' + lName + '.tmp';
+end;
+
 class function TRemoveWithTransaction.AtomicWriteAllBytes(const aPath: string; const aBytes: TBytes;
   out aError: string): Boolean;
 var
@@ -335,10 +498,8 @@ begin
   aError := '';
   lStream := nil;
   lDirectory := TPath.GetDirectoryName(TPath.GetFullPath(aPath));
-  lTempName := TPath.GetGUIDFileName(False);
-  if lTempName = '' then
-    lTempName := TPath.GetRandomFileName;
-  lTempPath := TPath.Combine(lDirectory, '.' + TPath.GetFileName(aPath) + '.dak-atomic-' + lTempName + '.tmp');
+  lTempName := AtomicTempFileName;
+  lTempPath := TPath.Combine(lDirectory, lTempName);
 
   try
     try
@@ -784,6 +945,8 @@ begin
     lRoot.AddPair('verificationError', aTransactionResult.fVerificationError);
     lRoot.AddPair('verificationStdOutLog', aTransactionResult.fVerificationStdOutLogPath);
     lRoot.AddPair('verificationStdErrLog', aTransactionResult.fVerificationStdErrLogPath);
+    if aTransactionResult.fReportApplyMismatchReason <> '' then
+      lRoot.AddPair('reportApplyMismatch', BuildReportApplyMismatchObject(aTransactionResult));
     if not AtomicWriteAllBytes(aManifestPath, RemoveWithTextToBytes(lRoot.ToJSON,
       TRemoveWithSourceEncoding.rwseUtf8, False), aError) then
       Exit;
@@ -980,6 +1143,12 @@ var
   lRollbackError: string;
   lValidationError: string;
 begin
+  if not ValidateReportApplyPlanMatch(aPlanResult, aTransactionResult, aError) then
+  begin
+    WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, lManifestError);
+    Exit(False);
+  end;
+
   if not HasPlannedEdits(aPlanResult) then
   begin
     aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxApplied;

@@ -351,7 +351,8 @@ begin
       TRemoveWithTransactionStatus.rwtxContextFingerprintMissing,
       TRemoveWithTransactionStatus.rwtxContextFingerprintMismatch:
         Exit('failed');
-      TRemoveWithTransactionStatus.rwtxNotRun:
+      TRemoveWithTransactionStatus.rwtxNotRun,
+      TRemoveWithTransactionStatus.rwtxReportApplyMismatch:
         Exit('not-run');
     else
       Exit('passed');
@@ -375,7 +376,8 @@ begin
           Exit('passed');
       TRemoveWithTransactionStatus.rwtxContextFingerprintMissing,
       TRemoveWithTransactionStatus.rwtxContextFingerprintMismatch,
-      TRemoveWithTransactionStatus.rwtxNotRun:
+      TRemoveWithTransactionStatus.rwtxNotRun,
+      TRemoveWithTransactionStatus.rwtxReportApplyMismatch:
         Exit('not-run');
     end;
   end;
@@ -510,6 +512,26 @@ begin
   end;
 end;
 
+function BuildStringArray(const aValues: TArray<string>): TJSONArray;
+var
+  lValue: string;
+begin
+  Result := TJSONArray.Create;
+  for lValue in aValues do
+    Result.AddElement(TJSONString.Create(lValue));
+end;
+
+function BuildReportApplyMismatchObject(const aTransactionResult: TRemoveWithTransactionResult):
+  TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('reason', aTransactionResult.fReportApplyMismatchReason);
+  Result.AddPair('reportOnlyStatementIds',
+    BuildStringArray(aTransactionResult.fReportOnlyStatementIds));
+  Result.AddPair('applyStatementIds',
+    BuildStringArray(aTransactionResult.fApplyStatementIds));
+end;
+
 function BuildTransactionObject(const aTransactionResult: TRemoveWithTransactionResult): TJSONObject;
 begin
   Result := TJSONObject.Create;
@@ -518,6 +540,8 @@ begin
   Result.AddPair('manifestPath', aTransactionResult.fManifestPath);
   Result.AddPair('error', aTransactionResult.fError);
   Result.AddPair('files', BuildTransactionFilesArray(aTransactionResult));
+  if aTransactionResult.fReportApplyMismatchReason <> '' then
+    Result.AddPair('reportApplyMismatch', BuildReportApplyMismatchObject(aTransactionResult));
 end;
 
 function BuildFilesArray(const aScanResult: TRemoveWithScanResult): TJSONArray;
@@ -1031,6 +1055,8 @@ begin
       lRoot.AddPair('verification', BuildVerificationObject(
         aPlanResult.fSemanticPlan.RequiredVerification));
     lRoot.AddPair('transaction', BuildTransactionObject(aTransactionResult));
+    if aTransactionResult.fReportApplyMismatchReason <> '' then
+      lRoot.AddPair('reportApplyMismatch', BuildReportApplyMismatchObject(aTransactionResult));
     if aOptions.fRemoveWithDiagnostics then
       lRoot.AddPair('migrationTelemetry', BuildMigrationTelemetryObject(aResolverResult, aPlanResult));
     lRoot.AddPair('summary', BuildSummaryObject(aOptions, aScanResult, aPlanResult, aTransactionResult));
