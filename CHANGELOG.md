@@ -179,6 +179,10 @@ All notable user-visible changes to this project will be documented in this file
 
 ### Fixed
 - Fixed build summary parsing so compiler, fatal, and hint-warning diagnostics now preserve structured severity, file token, line, column, code, and message data for source-context and LSP enrichment.
+- Fixed `remove-with --mode apply` to fail closed with a
+  `report-apply-mismatch` report when the apply statement ID set diverges from
+  the semantic report-only plan, including empty apply sets that would otherwise
+  look like no-op applies.
 - Fixed `remove-with` DTO-primary planning to preserve DelphiSemantics statement
   IDs directly instead of remapping final statements through DAK scan coordinates.
 - Fixed slash-style refactoring switches such as `/new-name` after optional
