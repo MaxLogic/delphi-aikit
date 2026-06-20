@@ -548,6 +548,7 @@ type
     function ByteSequenceExists(const aBytes, aNeedle: TBytes): Boolean;
     procedure CopyFixtureToTemp(const aFixtureName, aTempName, aUnitName: string; out aDprojPath,
       aUnitPath: string);
+    function OpenFileWithoutDeleteSharing(const aPath: string): THandle;
     function BuildVerificationMutexNameForTest(const aProjectPath: string): string;
     procedure BuildPlanForFixture(const aDprojPath: string; out aOptions: TAppOptions;
       out aPlanResult: TRemoveWithPlanResult; out aApplyContext: TRemoveWithPlanApplyContext);
@@ -565,6 +566,12 @@ type
     procedure ApplyModePreservesLfLineEndings;
     [Test]
     procedure ApplyModeRollsBackExactBytesWhenBuildVerificationFails;
+    [Test]
+    procedure ApplyModeLockedBackupPublishKeepsExistingBackupBytes;
+    [Test]
+    procedure ApplyModeLockedSourcePublishFailureKeepsOriginalBytes;
+    [Test]
+    procedure TransactionWritesRouteThroughAtomicPublishHelper;
     [Test]
     procedure BuildVerificationUsesProjectScopedMutexAndTypedDiagnostics;
     [Test]
@@ -7073,6 +7080,15 @@ begin
   aUnitPath := TPath.Combine(lDestinationDir, aUnitName);
 end;
 
+function TRemoveWithTransactionTests.OpenFileWithoutDeleteSharing(const aPath: string): THandle;
+begin
+  Result := Winapi.Windows.CreateFile(PChar(aPath), 0, Winapi.Windows.FILE_SHARE_READ or
+    Winapi.Windows.FILE_SHARE_WRITE, nil, Winapi.Windows.OPEN_EXISTING, Winapi.Windows.FILE_ATTRIBUTE_NORMAL, 0);
+  Assert.AreNotEqual(THandle(Winapi.Windows.INVALID_HANDLE_VALUE), Result,
+    'Expected test to open a delete-denying handle for ' + aPath + ': ' +
+    SysErrorMessage(Winapi.Windows.GetLastError));
+end;
+
 function TRemoveWithTransactionTests.BuildVerificationMutexNameForTest(const aProjectPath: string): string;
 const
   cPrefix = 'Local\DakRemoveWithBuildVerification-';
@@ -7498,6 +7514,107 @@ begin
   finally
     lManifestValue.Free;
   end;
+end;
+
+procedure TRemoveWithTransactionTests.ApplyModeLockedBackupPublishKeepsExistingBackupBytes;
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lBackupBytes: TBytes;
+  lBackupPath: string;
+  lBackupRoot: string;
+  lDprojPath: string;
+  lError: string;
+  lLockHandle: THandle;
+  lOptions: TAppOptions;
+  lOriginalSourceBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-locked-backup-publish', 'ApplyUnit.pas',
+    lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+  lOriginalSourceBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\locked-backup-publish');
+  lBackupRoot := TPath.Combine(lWorkspaceRoot, 'backup');
+  lBackupPath := TPath.Combine(lBackupRoot, '1.bak');
+  lBackupBytes := TEncoding.UTF8.GetBytes('preexisting backup bytes');
+  TDirectory.CreateDirectory(lBackupRoot);
+  TFile.WriteAllBytes(lBackupPath, lBackupBytes);
+
+  lLockHandle := OpenFileWithoutDeleteSharing(lBackupPath);
+  try
+    Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+      lPlanResult, lApplyContext, lTransactionResult, lError),
+      'Expected locked backup publication to fail before source mutation.');
+  finally
+    Winapi.Windows.CloseHandle(lLockHandle);
+  end;
+
+  Assert.Contains(lTransactionResult.fError, 'atomic-write',
+    'Expected transaction error to identify the atomic backup publish failure.');
+  AssertBytesEqual(lOriginalSourceBytes, TFile.ReadAllBytes(lUnitPath),
+    'Locked backup publication must not change the source file.');
+  AssertBytesEqual(lBackupBytes, TFile.ReadAllBytes(lBackupPath),
+    'Locked backup publication must preserve the existing backup bytes.');
+end;
+
+procedure TRemoveWithTransactionTests.ApplyModeLockedSourcePublishFailureKeepsOriginalBytes;
+var
+  lApplyContext: TRemoveWithPlanApplyContext;
+  lDprojPath: string;
+  lError: string;
+  lLockHandle: THandle;
+  lOptions: TAppOptions;
+  lOriginalBytes: TBytes;
+  lPlanResult: TRemoveWithPlanResult;
+  lTransactionResult: TRemoveWithTransactionResult;
+  lUnitPath: string;
+  lWorkspaceRoot: string;
+begin
+  CopyFixtureToTemp('RemoveWithApplyFixture', 'remove-with-locked-source-publish', 'ApplyUnit.pas',
+    lDprojPath, lUnitPath);
+  BuildPlanForFixture(lDprojPath, lOptions, lPlanResult, lApplyContext);
+  lOriginalBytes := TFile.ReadAllBytes(lUnitPath);
+  lWorkspaceRoot := TPath.Combine(TPath.GetDirectoryName(lDprojPath),
+    '.dak\RemoveWithApplyFixture\remove-with\locked-source-publish');
+
+  lLockHandle := OpenFileWithoutDeleteSharing(lUnitPath);
+  try
+    Assert.IsFalse(ApplyRemoveWithPlanTransactionally(lOptions, lDprojPath, lWorkspaceRoot,
+      lPlanResult, lApplyContext, lTransactionResult, lError),
+      'Expected locked source publication to fail before final-path mutation.');
+  finally
+    Winapi.Windows.CloseHandle(lLockHandle);
+  end;
+
+  Assert.Contains(lTransactionResult.fError, 'atomic-write',
+    'Expected transaction error to identify the atomic source publish failure.');
+  AssertBytesEqual(lOriginalBytes, TFile.ReadAllBytes(lUnitPath),
+    'Locked source publication must preserve the original source bytes.');
+end;
+
+procedure TRemoveWithTransactionTests.TransactionWritesRouteThroughAtomicPublishHelper;
+var
+  lTransactionSource: string;
+begin
+  lTransactionSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Transaction.pas'),
+    TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lTransactionSource, 'AtomicWriteAllBytes('),
+    'Expected transaction writes to route through the atomic publish helper.');
+  Assert.IsTrue(ContainsText(lTransactionSource, 'MoveFileEx('),
+    'Expected the atomic helper to publish with a single filesystem replace operation.');
+  Assert.IsTrue(ContainsText(lTransactionSource, 'MOVEFILE_REPLACE_EXISTING'),
+    'Expected atomic publish to replace existing targets.');
+  Assert.IsTrue(ContainsText(lTransactionSource, 'MOVEFILE_WRITE_THROUGH'),
+    'Expected atomic publish to request write-through replacement.');
+  Assert.IsFalse(ContainsText(lTransactionSource, 'TFile.WriteAllBytes('),
+    'Expected remove-with transaction code to avoid direct final-path WriteAllBytes calls.');
+  Assert.IsFalse(ContainsText(lTransactionSource, 'TFile.WriteAllText('),
+    'Expected remove-with transaction code to avoid direct final-path WriteAllText calls.');
 end;
 
 procedure TRemoveWithTransactionTests.BuildVerificationUsesProjectScopedMutexAndTypedDiagnostics;
