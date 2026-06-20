@@ -678,11 +678,12 @@ begin
 end;
 
 function WritePalHotspotsMd(const aRoutineHotspots, aModuleHotspots, aModuleLineHotspots: TArray<THotspotEntry>;
-  const aPath: string; out aError: string): Boolean;
+  const aWarnings: TArray<string>; const aPath: string; out aError: string): Boolean;
 var
   lBuilder: TStringBuilder;
   lItem: THotspotEntry;
   lUtf8: TUTF8Encoding;
+  lWarning: string;
 begin
   Result := False;
   aError := '';
@@ -712,6 +713,14 @@ begin
     else
       for lItem in aModuleLineHotspots do
         lBuilder.AppendLine(Format('lines=%d | %s', [lItem.Score, lItem.Name]));
+
+    if Length(aWarnings) > 0 then
+    begin
+      lBuilder.AppendLine;
+      lBuilder.AppendLine('## Warnings');
+      for lWarning in aWarnings do
+        lBuilder.AppendLine('- ' + lWarning);
+    end;
 
     lUtf8 := TUTF8Encoding.Create(False);
     try
@@ -787,6 +796,7 @@ var
   lRoutineList: TList<THotspotEntry>;
   lModuleList: TList<THotspotEntry>;
   lModuleLineList: TList<THotspotEntry>;
+  lHotspotWarnings: TList<string>;
   lRoutineArr: TArray<THotspotEntry>;
   lModuleArr: TArray<THotspotEntry>;
   lModuleLineArr: TArray<THotspotEntry>;
@@ -905,15 +915,18 @@ begin
       lRoutineList := TList<THotspotEntry>.Create;
       lModuleList := TList<THotspotEntry>.Create;
       lModuleLineList := TList<THotspotEntry>.Create;
+      lHotspotWarnings := TList<string>.Create;
       try
         if not TryLoadComplexityEntries(lComplexityPath, lEntries, lError) then
         begin
-          // PAL sometimes emits malformed XML for complexity; keep findings and skip hotspots.
+          if FileExists(lComplexityPath) and (lError <> '') then
+            lHotspotWarnings.Add(SPalComplexityFileName + ': ' + lError);
           lEntries := nil;
         end;
         if not TryLoadModuleLines(lModuleTotalsPath, lModuleLines, lError) then
         begin
-          // PAL sometimes emits malformed XML for module totals; keep findings and skip hotspots.
+          if FileExists(lModuleTotalsPath) and (lError <> '') then
+            lHotspotWarnings.Add(SPalModuleTotalsFileName + ': ' + lError);
           lModuleLines := nil;
         end;
 
@@ -966,7 +979,7 @@ begin
         lModuleLineArr := TakeTopHotspots(lModuleLineArr);
 
         if not WritePalHotspotsMd(lRoutineArr, lModuleArr, lModuleLineArr,
-          TPath.Combine(lOutRoot, SPalHotspotsFileName), lError) then
+          lHotspotWarnings.ToArray, TPath.Combine(lOutRoot, SPalHotspotsFileName), lError) then
         begin
           aError := lError;
           Exit(False);
@@ -975,6 +988,7 @@ begin
         lRoutineList.Free;
         lModuleList.Free;
         lModuleLineList.Free;
+        lHotspotWarnings.Free;
         lModuleLines.Free;
       end;
     end;
