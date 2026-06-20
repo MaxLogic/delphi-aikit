@@ -249,6 +249,7 @@
         <DCCReference Include="..\src\Dak.SymbolMap.Context.pas"/>
         <DCCReference Include="..\src\Dak.SymbolMap.Indexer.pas"/>
         <DCCReference Include="..\src\Dak.SymbolMap.Query.pas"/>
+        <DCCReference Include="..\src\Dak.PascalAnalyzer.Artifacts.pas"/>
         <DCCReference Include="..\src\dak.pascalanalyzerrunner.pas"/>
         <DCCReference Include="..\src\dak.reportpostprocess.pas"/>
         <DCCReference Include="..\src\dak.rsvars.pas"/>
