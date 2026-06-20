@@ -57,27 +57,27 @@ The project file is `projects\DelphiAIKit.dproj` and the executable is output to
 Build from Windows:
 
 ```
-build-delphi.bat projects\DelphiAIKit.dproj -config Debug -platform Win32 -ver 23
+build-delphi.bat projects\DelphiAIKit.dproj -config Debug -platform Win64 -ver 23
 ```
 
 Use `-target Rebuild` (or `-rebuild`) when we need a full clean rebuild:
 
 ```
-build-delphi.bat projects\DelphiAIKit.dproj -config Debug -platform Win32 -ver 23 -target Rebuild
+build-delphi.bat projects\DelphiAIKit.dproj -config Debug -platform Win64 -ver 23 -target Rebuild
 ```
 
 Build from WSL (calls Windows `cmd.exe`):
 
 ```
-./build-delphi.sh projects/DelphiAIKit.dproj -config Debug -platform Win32 -ver 23
+./build-delphi.sh projects/DelphiAIKit.dproj -config Debug -platform Win64 -ver 23
 ```
 
-`build.bat` is a convenience wrapper that builds the resolver in Debug (Win32) with the default Delphi version.
+`build.bat` is a convenience wrapper that builds the resolver and tests in Debug (Win64) with the default Delphi version.
 
 Or via the CLI:
 
 ```
-bin\DelphiAIKit.exe build --project "projects\DelphiAIKit.dproj" --delphi 23.0 --platform Win32 --config Debug
+bin\DelphiAIKit.exe build --project "projects\DelphiAIKit.dproj" --delphi 23.0 --platform Win64 --config Debug
 ```
 
 `build` now runs through DelphiAIKit's native Delphi build pipeline. `build-delphi.bat` remains available as a compatibility/bootstrap wrapper, but `DelphiAIKit.exe build` no longer depends on batch/PowerShell helper scripts for normal operation.
@@ -657,7 +657,7 @@ bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 -
 Automated DUnitX tests live in `tests\DelphiAIKit.Tests.dproj`.
 
 ```
-build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win32 -target Rebuild
+build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win64 -target Rebuild
 tests\DelphiAIKit.Tests.exe --hidebanner --consolemode:quiet
 ```
 
