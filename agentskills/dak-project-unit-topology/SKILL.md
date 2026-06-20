@@ -1,5 +1,5 @@
 ---
-name: delphi-project-unit-topology
+name: dak-project-unit-topology
 description: "Inspect Delphi project unit topology with DelphiAIKit `deps`: resolved and unresolved units, project vs external edges, SCCs, cycle hotspots, and focused unit views. Use when Codex needs to answer what depends on what, why a unit is present, whether project-unit cycles exist, where to start reducing cycle debt, which `uses` edge is the best first candidate to cut, or when a Delphi `.dproj` needs dependency-topology diagnosis."
 ---
 
@@ -26,8 +26,8 @@ Use this routing before running commands:
 | "Where do we start fixing cycle debt?" | `deps --format json` | `cycleComponents`, `unitHotspots`, `edgeHotspots` |
 | "Show one unit in context" | `deps --format text --unit "<UnitName>"` | focused text report |
 | "Give me a short ranked list" | `deps --format text --top <N>` | hotspot text sections |
-| "Who reads or writes this global?" | switch skill | `delphi-global-vars` |
-| "Will this build succeed?" | switch skill | `delphi-build` |
+| "Who reads or writes this global?" | switch skill | `dak-global-vars` |
+| "Will this build succeed?" | switch skill | `dak-build` |
 
 Start with JSON unless the user only wants a quick human-readable follow-up.
 

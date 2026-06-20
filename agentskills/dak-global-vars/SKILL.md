@@ -1,5 +1,5 @@
 ---
-name: delphi-global-vars
+name: dak-global-vars
 description: Use DelphiAIKit `global-vars` to inventory Delphi project globals, inspect declarations and usages, detect unused/shared mutable state, and assess ambiguity before refactoring globals.
 version: "1.0"
 ---

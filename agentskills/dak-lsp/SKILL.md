@@ -1,6 +1,6 @@
 ---
-name: delphi-lsp
-description: "Use DelphiAIKit `lsp` for semantic Delphi symbol navigation through `definition`, `hover`, and file-scoped `symbols`, and route non-semantic questions to `deps`, `global-vars`, or text search instead of guessing. Prefer `delphi-build` for compiler errors; `lsp` is the semantic enrichment helper, not the primary build signal."
+name: dak-lsp
+description: "Use DelphiAIKit `lsp` for semantic Delphi symbol navigation through `definition`, `hover`, and file-scoped `symbols`, and route non-semantic questions to `deps`, `global-vars`, or text search instead of guessing. Prefer `dak-build` for compiler errors; `lsp` is the semantic enrichment helper, not the primary build signal."
 version: "1.0"
 ---
 
@@ -26,9 +26,9 @@ Use this routing before running commands:
 | "Who references this symbol?" | switch skill | External Delphi 23 and Delphi 13 `DelphiLSP.exe` do not implement `textDocument/references`; use `deps`, `global-vars`, or `rg` instead |
 | "What does this symbol mean here?" | `lsp hover --format json` | Use when hover/type text matters |
 | "Find symbols matching this name" | `lsp symbols --format json` | File-scoped on Delphi 23 external `DelphiLSP.exe`; pass `--file`, then use `--query` and optional `--limit` |
-| "A build error needs semantic hints" | `delphi-build` | Let `build --ai` try best-effort `lsp` enrichment first; missing or empty LSP data is normal and must not be treated as a new error |
-| "What depends on what?" / "Do we have cycles?" | switch skill | `delphi-project-unit-topology` |
-| "Who reads or writes this global?" | switch skill | `delphi-global-vars` |
+| "A build error needs semantic hints" | `dak-build` | Let `build --ai` try best-effort `lsp` enrichment first; missing or empty LSP data is normal and must not be treated as a new error |
+| "What depends on what?" / "Do we have cycles?" | switch skill | `dak-project-unit-topology` |
+| "Who reads or writes this global?" | switch skill | `dak-global-vars` |
 | broad raw text / regex search | text search | use `rg`, not `lsp` |
 
 Start with JSON unless the user explicitly wants a quick terminal summary.

@@ -1,5 +1,5 @@
 ---
-name: delphi-dfm-check
+name: dak-dfm-check
 description: Inspect and validate Delphi DFM forms via `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
 version: "1.2"
 ---
@@ -17,9 +17,9 @@ Use this skill whenever we touch Delphi forms, frames, datamodules, or any `.dfm
 5. Do not skip, suppress, or defer DFM failures.
 6. Do not call `msbuild` directly; use `DelphiAIKit.exe` orchestration commands only.
 
-## Environment Contract (same as delphi-build)
+## Environment Contract (same as dak-build)
 
-Use the same environment variables as `delphi-build`:
+Use the same environment variables as `dak-build`:
 
 - `DAK_EXE` (required): absolute path to `DelphiAIKit.exe`
 - `DAK_BUILD_SH` (optional, WSL convenience)
@@ -70,7 +70,7 @@ Build with integrated DFM validation:
 ```
 
 `--dfmcheck` is a presence flag. If present, DFM validation runs after successful build.
-For broader build workflow and options, use `delphi-build` skill.
+For broader build workflow and options, use `dak-build` skill.
 
 Defaults:
 

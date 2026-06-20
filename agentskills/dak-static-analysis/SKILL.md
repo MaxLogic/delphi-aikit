@@ -1,5 +1,5 @@
 ---
-name: delphi-static-analysis
+name: dak-static-analysis
 description: Run Delphi static analysis through DelphiAIKit wrappers with FixInsight and Pascal Analyzer enabled by default, then triage and apply safe verified fixes.
 version: "1.5"
 license: internal
@@ -27,14 +27,14 @@ Default policy:
 ## Run Commands
 
 WSL (primary):
-- Project doctor: `./agentskills/delphi-static-analysis/doctor.sh /mnt/c/path/to/MyProject.dproj`
-- Project analyze: `./agentskills/delphi-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
-- Unit analyze: `./agentskills/delphi-static-analysis/analyze-unit.sh /mnt/c/path/to/Unit1.pas`
+- Project doctor: `./agentskills/dak-static-analysis/doctor.sh /mnt/c/path/to/MyProject.dproj`
+- Project analyze: `./agentskills/dak-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
+- Unit analyze: `./agentskills/dak-static-analysis/analyze-unit.sh /mnt/c/path/to/Unit1.pas`
 
 Windows:
-- Project doctor: `agentskills\\delphi-static-analysis\\doctor.bat C:\\path\\to\\MyProject.dproj`
-- Project analyze: `agentskills\\delphi-static-analysis\\analyze.bat C:\\path\\to\\MyProject.dproj`
-- Unit analyze: `agentskills\\delphi-static-analysis\\analyze-unit.bat C:\\path\\to\\Unit1.pas`
+- Project doctor: `agentskills\\dak-static-analysis\\doctor.bat C:\\path\\to\\MyProject.dproj`
+- Project analyze: `agentskills\\dak-static-analysis\\analyze.bat C:\\path\\to\\MyProject.dproj`
+- Unit analyze: `agentskills\\dak-static-analysis\\analyze-unit.bat C:\\path\\to\\Unit1.pas`
 
 ## Environment Contract
 
@@ -56,8 +56,8 @@ Common overrides:
 - `FI_SETTINGS` or `FIXINSIGHT_SETTINGS`
 
 Examples:
-- Disable PAL for one run: `DAK_PASCAL_ANALYZER=false ./agentskills/delphi-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
-- PAL only (project): `DAK_FIXINSIGHT=false ./agentskills/delphi-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
+- Disable PAL for one run: `DAK_PASCAL_ANALYZER=false ./agentskills/dak-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
+- PAL only (project): `DAK_FIXINSIGHT=false ./agentskills/dak-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
 
 ## Execution Model
 
@@ -128,6 +128,6 @@ Require explicit review before change:
 
 ## Local References
 
-- Setup and environment: `agentskills/delphi-static-analysis/SETUP.md`
-- Tooling notes: `agentskills/delphi-static-analysis/references/tooling.md`
-- Triage heuristics: `agentskills/delphi-static-analysis/references/triage.md`
+- Setup and environment: `agentskills/dak-static-analysis/SETUP.md`
+- Tooling notes: `agentskills/dak-static-analysis/references/tooling.md`
+- Triage heuristics: `agentskills/dak-static-analysis/references/triage.md`
