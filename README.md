@@ -34,14 +34,14 @@
 
 The [`agentskills/`](agentskills/) folder contains repo-local skills that help AI agents use DelphiAIKit consistently instead of guessing workflows from scratch.
 
-- `delphi-aikit`: start here when the task is about choosing the right DelphiAIKit workflow; it routes to the focused skills below without duplicating their command contracts.
-- `delphi-build`: build or rebuild Delphi projects through the canonical DelphiAIKit build pipeline.
-- `delphi-static-analysis`: run Delphi static analysis through DelphiAIKit wrappers, then triage and apply conservative verified fixes.
-- `delphi-dfm-check`: inspect and validate `.dfm`-backed forms through `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
-- `delphi-global-vars`: analyze project-level globals, declaration sites, and read/write usage before refactoring shared state.
-- `delphi-project-unit-topology`: use `DelphiAIKit.exe deps` to inspect project unit topology, unresolved unit references, focused unit neighborhoods, and resolved project-unit cycles. Useful for questions like "why is this unit included?", "what fans into this area?", and "do we have cycles?"
-- `delphi-lsp`: use `DelphiAIKit.exe lsp` for semantic symbol navigation. Prefer it for definition/hover and file-scoped symbol lookup; use `references` only when the external DelphiLSP capability set supports it, and switch back to `deps`, `global-vars`, or `rg` when the question is not semantic navigation.
-- `delphi-remove-with`: use `DelphiAIKit.exe remove-with` to scan, plan, or apply conservative Delphi `with` statement rewrites with JSON reports, transactional backups, build verification, and rollback.
+- `dak`: start here when the task is about choosing the right DelphiAIKit workflow; it routes to the focused skills below without duplicating their command contracts.
+- `dak-build`: build or rebuild Delphi projects through the canonical DelphiAIKit build pipeline.
+- `dak-static-analysis`: run Delphi static analysis through DelphiAIKit wrappers, then triage and apply conservative verified fixes.
+- `dak-dfm-check`: inspect and validate `.dfm`-backed forms through `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
+- `dak-global-vars`: analyze project-level globals, declaration sites, and read/write usage before refactoring shared state.
+- `dak-project-unit-topology`: use `DelphiAIKit.exe deps` to inspect project unit topology, unresolved unit references, focused unit neighborhoods, and resolved project-unit cycles. Useful for questions like "why is this unit included?", "what fans into this area?", and "do we have cycles?"
+- `dak-lsp`: use `DelphiAIKit.exe lsp` for semantic symbol navigation. Prefer it for definition/hover and file-scoped symbol lookup; use `references` only when the external DelphiLSP capability set supports it, and switch back to `deps`, `global-vars`, or `rg` when the question is not semantic navigation.
+- `dak-remove-with`: use `DelphiAIKit.exe remove-with` to scan, plan, or apply conservative Delphi `with` statement rewrites with JSON reports, transactional backups, build verification, and rollback.
 
 ## Requirements
 

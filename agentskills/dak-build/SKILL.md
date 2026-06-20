@@ -1,5 +1,5 @@
 ---
-name: delphi-build
+name: dak-build
 description: Build Delphi projects via DelphiAIKit from WSL or Windows. Use when asked to compile or rebuild a .dproj (or .dpr/.dpk with sibling .dproj), verify build output, or troubleshoot build failures.
 version: "1.3"
 ---
