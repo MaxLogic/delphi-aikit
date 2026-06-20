@@ -58,7 +58,7 @@ function ApplyRemoveWithPlanTransactionally(const aOptions: TAppOptions; const a
 implementation
 
 uses
-  System.Generics.Collections, System.Hash, System.IOUtils, System.JSON, System.SysUtils,
+  System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.JSON, System.SysUtils,
   Winapi.Windows,
   MaxLogic.StrUtils,
   Dak.Build.Runner, Dak.RemoveWith.Discovery, Dak.RemoveWith.Source;
@@ -81,6 +81,8 @@ type
     class function FileAlreadyTracked(const aTransactionResult: TRemoveWithTransactionResult;
       const aPath: string): Boolean; static;
     class function HasPlannedEdits(const aPlanResult: TRemoveWithPlanResult): Boolean; static;
+    class function AtomicWriteAllBytes(const aPath: string; const aBytes: TBytes; out aError: string): Boolean;
+      static;
     class function BackupFile(const aPath, aBackupRoot: string; var aTransactionResult: TRemoveWithTransactionResult;
       out aError: string): Boolean; static;
     class function Rollback(const aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean;
@@ -320,6 +322,69 @@ begin
   Result := False;
 end;
 
+class function TRemoveWithTransaction.AtomicWriteAllBytes(const aPath: string; const aBytes: TBytes;
+  out aError: string): Boolean;
+var
+  lDirectory: string;
+  lLastError: DWORD;
+  lStream: TFileStream;
+  lTempName: string;
+  lTempPath: string;
+begin
+  Result := False;
+  aError := '';
+  lStream := nil;
+  lDirectory := TPath.GetDirectoryName(TPath.GetFullPath(aPath));
+  lTempName := TPath.GetGUIDFileName(False);
+  if lTempName = '' then
+    lTempName := TPath.GetRandomFileName;
+  lTempPath := TPath.Combine(lDirectory, '.' + TPath.GetFileName(aPath) + '.dak-atomic-' + lTempName + '.tmp');
+
+  try
+    try
+      TDirectory.CreateDirectory(lDirectory);
+      lStream := TFileStream.Create(lTempPath, fmCreate or fmShareExclusive);
+      if Length(aBytes) > 0 then
+        lStream.WriteBuffer(aBytes[0], Length(aBytes));
+      if not Winapi.Windows.FlushFileBuffers(lStream.Handle) then
+      begin
+        lLastError := Winapi.Windows.GetLastError;
+        aError := 'atomic-write-flush-failed: ' + lTempPath + ': ' + SysErrorMessage(lLastError);
+        Exit;
+      end;
+      FreeAndNil(lStream);
+
+      if not Winapi.Windows.MoveFileEx(PChar(lTempPath), PChar(aPath),
+        Winapi.Windows.MOVEFILE_REPLACE_EXISTING or Winapi.Windows.MOVEFILE_WRITE_THROUGH) then
+      begin
+        lLastError := Winapi.Windows.GetLastError;
+        aError := 'atomic-write-replace-failed: ' + aPath + ': ' + SysErrorMessage(lLastError);
+        Exit;
+      end;
+      Result := True;
+    except
+      on E: Exception do
+        aError := 'atomic-write-failed: ' + aPath + ': ' + E.Message;
+    end;
+  finally
+    lStream.Free;
+    if (not Result) and TFile.Exists(lTempPath) then
+    begin
+      try
+        TFile.Delete(lTempPath);
+      except
+        on E: Exception do
+        begin
+          if aError <> '' then
+            aError := aError + '; atomic-write-temp-cleanup-failed: ' + E.Message
+          else
+            aError := 'atomic-write-temp-cleanup-failed: ' + E.Message;
+        end;
+      end;
+    end;
+  end;
+end;
+
 class function TRemoveWithTransaction.BackupFile(const aPath, aBackupRoot: string;
   var aTransactionResult: TRemoveWithTransactionResult; out aError: string): Boolean;
 var
@@ -346,7 +411,8 @@ begin
     lFile.fStatus := 'backed-up';
     lFile.fSize := Length(lBytes);
     TDirectory.CreateDirectory(TPath.GetDirectoryName(lFile.fBackupPath));
-    TFile.WriteAllBytes(lFile.fBackupPath, lBytes);
+    if not AtomicWriteAllBytes(lFile.fBackupPath, lBytes, aError) then
+      Exit;
     SetLength(aTransactionResult.fFiles, lIndex + 1);
     aTransactionResult.fFiles[lIndex] := lFile;
     Result := True;
@@ -374,7 +440,8 @@ begin
         Exit(False);
       end;
       lBytes := TFile.ReadAllBytes(lFile.fBackupPath);
-      TFile.WriteAllBytes(lFile.fPath, lBytes);
+      if not AtomicWriteAllBytes(lFile.fPath, lBytes, aError) then
+        Exit(False);
       lRestoredBytes := TFile.ReadAllBytes(lFile.fPath);
       if FileHash(lRestoredBytes) <> lFile.fHash then
       begin
@@ -636,7 +703,9 @@ begin
         Insert(lReplacementText, lText, lStartOffset);
       end;
     end;
-    TFile.WriteAllBytes(aPath, RemoveWithTextToBytes(lText, lSource.fEncoding, lSource.fHasUtf8Bom));
+    if not AtomicWriteAllBytes(aPath, RemoveWithTextToBytes(lText, lSource.fEncoding, lSource.fHasUtf8Bom),
+      aError) then
+      Exit;
     Result := True;
   except
     on E: Exception do
@@ -715,9 +784,9 @@ begin
     lRoot.AddPair('verificationError', aTransactionResult.fVerificationError);
     lRoot.AddPair('verificationStdOutLog', aTransactionResult.fVerificationStdOutLogPath);
     lRoot.AddPair('verificationStdErrLog', aTransactionResult.fVerificationStdErrLogPath);
-    TDirectory.CreateDirectory(TPath.GetDirectoryName(aManifestPath));
-    TFile.WriteAllBytes(aManifestPath, RemoveWithTextToBytes(lRoot.ToJSON,
-      TRemoveWithSourceEncoding.rwseUtf8, False));
+    if not AtomicWriteAllBytes(aManifestPath, RemoveWithTextToBytes(lRoot.ToJSON,
+      TRemoveWithSourceEncoding.rwseUtf8, False), aError) then
+      Exit;
     Result := True;
   except
     on E: Exception do
@@ -907,6 +976,8 @@ class function TRemoveWithTransaction.ApplyLocked(const aOptions: TAppOptions; c
 var
   lContextValid: Boolean;
   lManifestError: string;
+  lPrimaryError: string;
+  lRollbackError: string;
   lValidationError: string;
 begin
   if not HasPlannedEdits(aPlanResult) then
@@ -984,22 +1055,30 @@ begin
     end;
   end;
 
-  aTransactionResult.fError := aError;
-  if Rollback(aTransactionResult, aError) then
+  lPrimaryError := aError;
+  aTransactionResult.fError := lPrimaryError;
+  if Rollback(aTransactionResult, lRollbackError) then
   begin
     SetFileStatuses(aTransactionResult, 'restored');
     aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxRolledBack;
     if aTransactionResult.fError = '' then
-      aTransactionResult.fError := aError;
+      aTransactionResult.fError := lRollbackError;
   end else
   begin
     aTransactionResult.fStatus := TRemoveWithTransactionStatus.rwtxRollbackFailed;
     if aTransactionResult.fError <> '' then
-      aTransactionResult.fError := aTransactionResult.fError + '; rollback: ' + aError
+      aTransactionResult.fError := aTransactionResult.fError + '; rollback: ' + lRollbackError
     else
-      aTransactionResult.fError := 'rollback: ' + aError;
+      aTransactionResult.fError := 'rollback: ' + lRollbackError;
   end;
-  WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, aError);
+  if not WriteManifest(aTransactionResult.fManifestPath, aTransactionResult, lManifestError) then
+  begin
+    if aTransactionResult.fError <> '' then
+      aTransactionResult.fError := aTransactionResult.fError + '; manifest: ' + lManifestError
+    else
+      aTransactionResult.fError := 'manifest: ' + lManifestError;
+  end;
+  aError := aTransactionResult.fError;
   Result := False;
 end;
 
