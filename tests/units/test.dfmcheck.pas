@@ -81,11 +81,17 @@ type
     [Test]
     procedure PipelineRebasesRelativeItemIncludesForGeneratedProject;
     [Test]
+    procedure PipelineForcesGeneratedProjectToRunAsInvoker;
+    [Test]
     procedure PipelineRebasesSingleQuotedRelativeProjectImportsForGeneratedProject;
     [Test]
     procedure PipelinePreservesBackslashDigitSearchPathsForGeneratedProject;
     [Test]
     procedure PipelinePreservesEffectiveSearchPathForGeneratedProject;
+    [Test]
+    procedure PipelineKeepsReferenceSourceDirsAfterEffectiveSearchPath;
+    [Test]
+    procedure PipelineKeepsRepoLocalReferenceSourceDirsAfterEffectiveSearchPath;
     [Test]
     procedure PipelineFailsClosedWhenStrictProjectContextIsUnavailable;
     [Test]
@@ -1519,6 +1525,68 @@ begin
   end;
 end;
 
+procedure TDfmCheckTests.PipelineForcesGeneratedProjectToRunAsInvoker;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lDprojText: string;
+  lError: string;
+  lGeneratedXmlDoc: IXMLDocument;
+  lInjectDir: string;
+  lEnvGuard: IInterface;
+  lOptions: TAppOptions;
+  lPaths: TDfmCheckPaths;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lDprojText := TFile.ReadAllText(lDprojPath, TEncoding.UTF8);
+  lDprojText := StringReplace(lDprojText,
+    '    <DCC_Define>madExcept;TRACE</DCC_Define>' + #13#10,
+    '    <DCC_Define>madExcept;TRACE</DCC_Define>' + #13#10 +
+    '    <AppExecutionLevel>requireAdministrator</AppExecutionLevel>' + #13#10, []);
+  TFile.WriteAllText(lDprojPath, lDprojText, TEncoding.UTF8);
+
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-app-execution-level');
+  WriteInjectStubs(lInjectDir);
+
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDelphiVersion := '23.0';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected app-execution-level fixture to complete with mock runner.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Unexpected error category for app-execution-level fixture.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for app-execution-level fixture.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lGeneratedXmlDoc := LoadGeneratedDprojXml(lPaths);
+    Assert.IsTrue(DprojElementTextEquals(lGeneratedXmlDoc, 'AppExecutionLevel', 'asInvoker'),
+      'Generated checker DPROJ should not inherit requireAdministrator from the source project.');
+    Assert.IsFalse(DprojElementTextEquals(lGeneratedXmlDoc, 'AppExecutionLevel', 'requireAdministrator'),
+      'Generated checker DPROJ should be runnable by the compile gate without elevation.');
+  finally
+    lEnvGuard := nil;
+  end;
+end;
+
 procedure TDfmCheckTests.PipelineRebasesSingleQuotedRelativeProjectImportsForGeneratedProject;
 var
   lCategory: TDfmCheckErrorCategory;
@@ -1749,6 +1817,251 @@ begin
       'Generated checker DPROJ should keep project form-unit directories ahead of inherited EnvOptions search paths.');
     Assert.IsTrue(lSourceDirPos < lIdeLibraryPos,
       'Generated checker DPROJ should keep project form-unit directories ahead of IDE/library-path entries.');
+  finally
+    lEnvGuard := nil;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineKeepsReferenceSourceDirsAfterEffectiveSearchPath;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprPath: string;
+  lDprText: string;
+  lDprojPath: string;
+  lEnvOptionsPath: string;
+  lError: string;
+  lGeneratedSearchPath: string;
+  lGeneratedXmlDoc: IXMLDocument;
+  lInjectDir: string;
+  lEnvGuard: IInterface;
+  lOptions: TAppOptions;
+  lPaths: TDfmCheckPaths;
+  lProjectText: string;
+  lReferenceSourceDir: string;
+  lReferenceSourcePath: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+  lCompiledLibraryDir: string;
+  lCompiledLibraryPos: Integer;
+  lReferenceSourcePos: Integer;
+begin
+  CreateFixtureProjectWithInheritedSearchPath(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-reference-source-order');
+  WriteInjectStubs(lInjectDir);
+  TDirectory.CreateDirectory(TPath.Combine(ExtractFilePath(lDprojPath), '.svn'));
+  lCompiledLibraryDir := TPath.Combine(ExtractFilePath(lDprojPath), 'CompiledLibrary');
+  lReferenceSourceDir := TPath.Combine(TempRoot, 'dfm-check-external-reference-source');
+  lReferenceSourcePath := TPath.Combine(lReferenceSourceDir, 'LegacyWidget.pas');
+  TDirectory.CreateDirectory(lCompiledLibraryDir);
+  TDirectory.CreateDirectory(lReferenceSourceDir);
+  TFile.WriteAllText(lReferenceSourcePath, 'unit LegacyWidget; interface implementation end.', TEncoding.UTF8);
+  lDprPath := TPath.ChangeExtension(lDprojPath, '.dpr');
+  lDprText := TFile.ReadAllText(lDprPath, TEncoding.UTF8);
+  lDprText := StringReplace(lDprText,
+    '  MainForm in ''src\MainForm.pas'' {MainForm};',
+    '  MainForm in ''src\MainForm.pas'' {MainForm},' + #13#10 +
+    '  LegacyWidget in ''' + lReferenceSourcePath + ''';', []);
+  TFile.WriteAllText(lDprPath, lDprText, TEncoding.UTF8);
+
+  lProjectText := TFile.ReadAllText(lDprojPath, TEncoding.UTF8);
+  lProjectText := StringReplace(lProjectText, '</Project>',
+    '  <ItemGroup>' + #13#10 +
+    '    <DCCReference Include="' + lReferenceSourcePath + '"/>' + #13#10 +
+    '  </ItemGroup>' + #13#10 +
+    '</Project>', []);
+  TFile.WriteAllText(lDprojPath, lProjectText, TEncoding.UTF8);
+
+  lEnvOptionsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'EnvOptions.proj');
+  TFile.WriteAllText(lEnvOptionsPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
+    '  <PropertyGroup>' + #13#10 +
+    '    <DelphiLibraryPath>' + lCompiledLibraryDir + '</DelphiLibraryPath>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '</Project>' + #13#10, TEncoding.UTF8);
+
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDelphiVersion := '99.9';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+    lOptions.fHasEnvOptionsPath := True;
+    lOptions.fEnvOptionsPath := lEnvOptionsPath;
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected reference-source-order fixture to complete with mock runner.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Unexpected error category for reference-source-order fixture.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for reference-source-order fixture.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lGeneratedXmlDoc := LoadGeneratedDprojXml(lPaths);
+    lGeneratedSearchPath := DprojFirstElementText(lGeneratedXmlDoc, 'DCC_UnitSearchPath');
+    lCompiledLibraryPos := Pos(lCompiledLibraryDir, lGeneratedSearchPath);
+    lReferenceSourcePos := Pos(lReferenceSourceDir, lGeneratedSearchPath);
+    Assert.IsTrue(lCompiledLibraryPos > 0,
+      'Generated checker DPROJ should keep compiled library paths from the effective build context.');
+    Assert.AreEqual(0, lReferenceSourcePos,
+      'Generated checker DPROJ should not add non-form reference source directories to the compiler search path.');
+    Assert.IsFalse(DprojElementAttributeEquals(lGeneratedXmlDoc, 'DCCReference', 'Include', lReferenceSourcePath),
+      'Generated checker DPROJ should not compile non-form source references from the source project.');
+  finally
+    lEnvGuard := nil;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineKeepsRepoLocalReferenceSourceDirsAfterEffectiveSearchPath;
+var
+  lAppDir: string;
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lDprPath: string;
+  lError: string;
+  lExternalDir: string;
+  lExternalPath: string;
+  lGeneratedSearchPath: string;
+  lGeneratedXmlDoc: IXMLDocument;
+  lInjectDir: string;
+  lEnvGuard: IInterface;
+  lLocalDir: string;
+  lLocalPath: string;
+  lMainFormDfmPath: string;
+  lMainFormPasPath: string;
+  lOptions: TAppOptions;
+  lPaths: TDfmCheckPaths;
+  lRepoRoot: string;
+  lResult: Integer;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  lRepoRoot := TPath.Combine(TempRoot, 'dfm-check-repo-local-reference-source');
+  if TDirectory.Exists(lRepoRoot) then
+    TDirectory.Delete(lRepoRoot, True);
+  TDirectory.CreateDirectory(TPath.Combine(lRepoRoot, '.svn'));
+  lAppDir := TPath.Combine(lRepoRoot, 'App');
+  lLocalDir := TPath.Combine(lRepoRoot, 'Schnittstellen2\SilverDat3\soap');
+  lExternalDir := TPath.Combine(TempRoot, 'dfm-check-outside-repo-reference-source');
+  TDirectory.CreateDirectory(TPath.Combine(lAppDir, 'src'));
+  TDirectory.CreateDirectory(lLocalDir);
+  TDirectory.CreateDirectory(lExternalDir);
+
+  lDprojPath := TPath.Combine(lAppDir, 'Sample.dproj');
+  lDprPath := TPath.ChangeExtension(lDprojPath, '.dpr');
+  lMainFormPasPath := TPath.Combine(lAppDir, 'src\MainForm.pas');
+  lMainFormDfmPath := TPath.Combine(lAppDir, 'src\MainForm.dfm');
+  lLocalPath := TPath.Combine(lLocalDir, 'LocalGenerated.pas');
+  lExternalPath := TPath.Combine(lExternalDir, 'ExternalGenerated.pas');
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-repo-local-reference-source');
+  WriteInjectStubs(lInjectDir);
+
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
+    '  <PropertyGroup>' + #13#10 +
+    '    <MainSource>Sample.dpr</MainSource>' + #13#10 +
+    '    <DCC_Define>TRACE</DCC_Define>' + #13#10 +
+    '  </PropertyGroup>' + #13#10 +
+    '  <ItemGroup>' + #13#10 +
+    '    <DCCReference Include="src\MainForm.pas"/>' + #13#10 +
+    '    <DCCReference Include="..\Schnittstellen2\SilverDat3\soap\LocalGenerated.pas"/>' + #13#10 +
+    '    <DCCReference Include="' + lExternalPath + '"/>' + #13#10 +
+    '  </ItemGroup>' + #13#10 +
+    '  <ProjectExtensions>' + #13#10 +
+    '    <BorlandProject>' + #13#10 +
+    '      <Delphi.Personality>' + #13#10 +
+    '        <Source>' + #13#10 +
+    '          <Source Name="MainSource">Sample.dpr</Source>' + #13#10 +
+    '        </Source>' + #13#10 +
+    '      </Delphi.Personality>' + #13#10 +
+    '    </BorlandProject>' + #13#10 +
+    '  </ProjectExtensions>' + #13#10 +
+    '</Project>' + #13#10, TEncoding.UTF8);
+
+  TFile.WriteAllText(TPath.Combine(lAppDir, 'dak.ini'),
+    '[Build]' + #13#10 +
+    'DelphiVersion=23.0' + #13#10, TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lAppDir, 'rsvars.bat'),
+    '@echo off' + #13#10 +
+    'set DAK_TEST_RSVARS=1' + #13#10, TEncoding.ASCII);
+  TFile.WriteAllText(lDprPath,
+    'program Sample;' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  Vcl.Forms,' + #13#10 +
+    '  MainForm in ''src\MainForm.pas'' {MainForm};' + #13#10 +
+    #13#10 +
+    'begin' + #13#10 +
+    'end.' + #13#10, TEncoding.UTF8);
+  TFile.WriteAllText(lMainFormPasPath,
+    'unit MainForm;' + #13#10 +
+    #13#10 +
+    'interface' + #13#10 +
+    #13#10 +
+    'uses' + #13#10 +
+    '  System.Classes, Vcl.Forms;' + #13#10 +
+    #13#10 +
+    'type' + #13#10 +
+    '  TMainForm = class(TForm)' + #13#10 +
+    '  end;' + #13#10 +
+    #13#10 +
+    'implementation' + #13#10 +
+    #13#10 +
+    '{$R *.dfm}' + #13#10 +
+    #13#10 +
+    'end.' + #13#10, TEncoding.UTF8);
+  TFile.WriteAllText(lMainFormDfmPath,
+    'object MainForm: TMainForm' + #13#10 +
+    '  Caption = ''MainForm''' + #13#10 +
+    'end' + #13#10, TEncoding.UTF8);
+  TFile.WriteAllText(lLocalPath, 'unit LocalGenerated; interface implementation end.', TEncoding.UTF8);
+  TFile.WriteAllText(lExternalPath, 'unit ExternalGenerated; interface implementation end.', TEncoding.UTF8);
+
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDelphiVersion := '99.9';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(lAppDir, 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected repo-local reference-source fixture to complete with mock runner.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecNone, lCategory,
+      'Unexpected error category for repo-local reference-source fixture.');
+    Assert.AreEqual('', lError, 'Did not expect an error message for repo-local reference-source fixture.');
+
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project to be locatable.');
+    lGeneratedXmlDoc := LoadGeneratedDprojXml(lPaths);
+    lGeneratedSearchPath := DprojFirstElementText(lGeneratedXmlDoc, 'DCC_UnitSearchPath');
+    Assert.IsTrue(Pos(lLocalDir, lGeneratedSearchPath) > 0,
+      'Generated checker DPROJ should keep repo-local reference source directories.');
+    Assert.AreEqual(0, Pos(lExternalDir, lGeneratedSearchPath),
+      'Generated checker DPROJ should not add reference source directories outside the checkout.');
+    Assert.IsTrue(DprojElementAttributeEquals(lGeneratedXmlDoc, 'DCCReference', 'Include', lLocalPath),
+      'Generated checker DPROJ should preserve exact repo-local source references.');
   finally
     lEnvGuard := nil;
   end;

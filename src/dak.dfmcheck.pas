@@ -2275,6 +2275,73 @@ const
     aPath := TPath.GetFullPath(TPath.Combine(aBaseDir, lValue));
     Result := FileExists(aPath);
   end;
+  function TryResolveExistingIncludePath(const aValue: string; const aBaseDir: string; out aPath: string): Boolean;
+  var
+    lValue: string;
+  begin
+    aPath := '';
+    lValue := Trim(aValue);
+    if (lValue = '') or (Pos('$(', lValue) > 0) then
+      Exit(False);
+
+    if TPath.IsPathRooted(lValue) then
+      aPath := lValue
+    else
+      aPath := TPath.GetFullPath(TPath.Combine(aBaseDir, lValue));
+    Result := FileExists(aPath);
+  end;
+  function LocalIsPathUnderDirectory(const aPath, aDirectory: string): Boolean;
+  var
+    lDirectory: string;
+    lPath: string;
+  begin
+    lDirectory := IncludeTrailingPathDelimiter(TPath.GetFullPath(aDirectory));
+    lPath := IncludeTrailingPathDelimiter(TPath.GetFullPath(aPath));
+    Result := StartsText(lDirectory, lPath);
+  end;
+  function FindLocalProjectOwnershipRoot(const aProjectDir: string): string;
+  var
+    lCurrentDir: string;
+    lParentDir: string;
+  begin
+    Result := ExcludeTrailingPathDelimiter(TPath.GetFullPath(aProjectDir));
+    lCurrentDir := Result;
+    while lCurrentDir <> '' do
+    begin
+      if TDirectory.Exists(TPath.Combine(lCurrentDir, '.git')) or
+        TDirectory.Exists(TPath.Combine(lCurrentDir, '.svn')) then
+        Exit(lCurrentDir);
+
+      lParentDir := ExcludeTrailingPathDelimiter(TPath.GetDirectoryName(lCurrentDir));
+      if SameText(lParentDir, lCurrentDir) then
+        Break;
+      lCurrentDir := lParentDir;
+    end;
+  end;
+  function ShouldRemoveGeneratedDprojNode(const aNode: IXMLNode; const aBaseDir: string): Boolean;
+  var
+    lDfmPath: string;
+    lInclude: string;
+    lPath: string;
+    lRootDir: string;
+  begin
+    Result := False;
+    if not LocalNameIs(aNode, 'DCCReference') then
+      Exit;
+
+    lInclude := AttributeText(aNode, 'Include');
+    if not SameText(TPath.GetExtension(lInclude), '.pas') then
+      Exit;
+    if not TryResolveExistingIncludePath(lInclude, aBaseDir, lPath) then
+      Exit;
+
+    lDfmPath := TPath.ChangeExtension(lPath, '.dfm');
+    if FileExists(lDfmPath) then
+      Exit;
+
+    lRootDir := FindLocalProjectOwnershipRoot(aBaseDir);
+    Result := not LocalIsPathUnderDirectory(lPath, lRootDir);
+  end;
   function RewriteExistsConditionValue(const aConditionValue: string; const aConditionBaseDir: string): string;
   var
     lCloseParenPos: Integer;
@@ -2329,7 +2396,8 @@ const
     until False;
   end;
   procedure RewriteDprojNode(const aNode: IXMLNode; const aBaseDir: string; const aSearchPath: string;
-    var aMainSourceChanged: Boolean; var aSearchPathFound: Boolean; var aDefineFound: Boolean);
+    var aMainSourceChanged: Boolean; var aSearchPathFound: Boolean; var aDefineFound: Boolean;
+    var aAppExecutionLevelFound: Boolean);
   var
     lCondition: string;
     lDefines: string;
@@ -2357,6 +2425,10 @@ const
       lDefines := EnsureDefineSymbol(aNode.Text, cDfmCheckSymbol);
       lDefines := EnsureDefineSymbol(lDefines, cNoLocalizationSymbol);
       aNode.Text := lDefines;
+    end else if LocalNameIs(aNode, 'AppExecutionLevel') then
+    begin
+      aAppExecutionLevelFound := True;
+      aNode.Text := 'asInvoker';
     end else if LocalNameIs(aNode, 'Icon_MainIcon') or LocalNameIs(aNode, 'CfgDependentOn') or
       LocalNameIs(aNode, 'DependentOn') then
     begin
@@ -2386,22 +2458,32 @@ const
     end;
   end;
   procedure VisitDprojNodes(const aNode: IXMLNode; const aBaseDir: string; const aSearchPath: string;
-    var aMainSourceChanged: Boolean; var aSearchPathFound: Boolean; var aDefineFound: Boolean);
+    var aMainSourceChanged: Boolean; var aSearchPathFound: Boolean; var aDefineFound: Boolean;
+    var aAppExecutionLevelFound: Boolean);
   var
     i: Integer;
     lChild: IXMLNode;
   begin
     if aNode = nil then
       Exit;
-    RewriteDprojNode(aNode, aBaseDir, aSearchPath, aMainSourceChanged, aSearchPathFound, aDefineFound);
-    for i := 0 to aNode.ChildNodes.Count - 1 do
+    RewriteDprojNode(aNode, aBaseDir, aSearchPath, aMainSourceChanged, aSearchPathFound, aDefineFound,
+      aAppExecutionLevelFound);
+    for i := aNode.ChildNodes.Count - 1 downto 0 do
     begin
       lChild := aNode.ChildNodes[i];
       if lChild.NodeType = ntElement then
-        VisitDprojNodes(lChild, aBaseDir, aSearchPath, aMainSourceChanged, aSearchPathFound, aDefineFound);
+      begin
+        if ShouldRemoveGeneratedDprojNode(lChild, aBaseDir) then
+          aNode.ChildNodes.Delete(i)
+        else
+          VisitDprojNodes(lChild, aBaseDir, aSearchPath, aMainSourceChanged, aSearchPathFound, aDefineFound,
+            aAppExecutionLevelFound);
+      end;
     end;
   end;
 var
+  lAppExecutionLevelFound: Boolean;
+  lAppExecutionLevelNode: IXMLNode;
   lDefineFound: Boolean;
   lDefineNode: IXMLNode;
   lDoc: IXMLDocument;
@@ -2457,8 +2539,9 @@ begin
     lMainSourceChanged := False;
     lSearchPathFound := False;
     lDefineFound := False;
+    lAppExecutionLevelFound := False;
     VisitDprojNodes(lRoot, lSourceDprojDir, aAdditionalUnitSearchPath, lMainSourceChanged, lSearchPathFound,
-      lDefineFound);
+      lDefineFound, lAppExecutionLevelFound);
 
     if not lMainSourceChanged then
     begin
@@ -2481,6 +2564,12 @@ begin
       lDefineNode.Text := cDfmCheckSymbol + ';' + cNoLocalizationSymbol;
     end;
 
+    if not lAppExecutionLevelFound then
+    begin
+      lAppExecutionLevelNode := EnsurePropertyNode(lRoot, 'AppExecutionLevel');
+      lAppExecutionLevelNode.Text := 'asInvoker';
+    end;
+
     try
       lDoc.SaveToFile(aDestDprojPath);
     except
@@ -2491,6 +2580,7 @@ begin
       end;
     end;
   finally
+    lAppExecutionLevelNode := nil;
     lDefineNode := nil;
     lSearchPathNode := nil;
     lRoot := nil;
@@ -2532,6 +2622,114 @@ begin
       Continue;
     if aPaths.IndexOf(lItem) < 0 then
       aPaths.Add(lItem);
+  end;
+end;
+
+procedure AppendDelimitedPathsExcept(const aPathList: string; const aPaths, aExcludedPaths: TStrings);
+var
+  i: Integer;
+  lItem: string;
+  lPath: string;
+  lPaths: TArray<string>;
+  lExcludedPath: string;
+  function NormalizedPathEquals(const aLeft, aRight: string): Boolean;
+  var
+    lLeft: string;
+    lRight: string;
+  begin
+    if (Pos('$(', aLeft) > 0) or (Pos('$(', aRight) > 0) then
+      Exit(SameText(aLeft, aRight));
+
+    try
+      lLeft := IncludeTrailingPathDelimiter(TPath.GetFullPath(aLeft));
+      lRight := IncludeTrailingPathDelimiter(TPath.GetFullPath(aRight));
+      Result := SameText(lLeft, lRight);
+    except
+      Result := SameText(aLeft, aRight);
+    end;
+  end;
+  function IsExcludedPath(const aPath: string): Boolean;
+  var
+    lIndex: Integer;
+  begin
+    Result := False;
+    if aExcludedPaths = nil then
+      Exit;
+
+    for lIndex := 0 to aExcludedPaths.Count - 1 do
+    begin
+      lExcludedPath := Trim(aExcludedPaths[lIndex]);
+      if (lExcludedPath <> '') and NormalizedPathEquals(aPath, lExcludedPath) then
+        Exit(True);
+    end;
+  end;
+begin
+  if (aPaths = nil) or (Trim(aPathList) = '') then
+    Exit;
+
+  lPaths := aPathList.Split([';']);
+  for lPath in lPaths do
+  begin
+    lItem := Trim(lPath);
+    if lItem = '' then
+      Continue;
+    if IsExcludedPath(lItem) then
+      Continue;
+    if aPaths.IndexOf(lItem) < 0 then
+      aPaths.Add(lItem);
+  end;
+end;
+
+function IsPathUnderDirectory(const aPath, aDirectory: string): Boolean;
+var
+  lDirectory: string;
+  lPath: string;
+begin
+  lDirectory := IncludeTrailingPathDelimiter(TPath.GetFullPath(aDirectory));
+  lPath := IncludeTrailingPathDelimiter(TPath.GetFullPath(aPath));
+  Result := StartsText(lDirectory, lPath);
+end;
+
+function FindProjectOwnershipRoot(const aProjectDir: string): string;
+var
+  lCurrentDir: string;
+  lParentDir: string;
+begin
+  Result := ExcludeTrailingPathDelimiter(TPath.GetFullPath(aProjectDir));
+  lCurrentDir := Result;
+  while lCurrentDir <> '' do
+  begin
+    if TDirectory.Exists(TPath.Combine(lCurrentDir, '.git')) or
+      TDirectory.Exists(TPath.Combine(lCurrentDir, '.svn')) then
+      Exit(lCurrentDir);
+
+    lParentDir := ExcludeTrailingPathDelimiter(TPath.GetDirectoryName(lCurrentDir));
+    if SameText(lParentDir, lCurrentDir) then
+      Break;
+    lCurrentDir := lParentDir;
+  end;
+end;
+
+procedure AppendReferenceDirsUnderOwnedRoot(const aReferenceDirs: TStrings; const aProjectDir: string;
+  const aPaths: TStrings);
+var
+  i: Integer;
+  lPath: string;
+  lRootDir: string;
+begin
+  if (aReferenceDirs = nil) or (aPaths = nil) or (Trim(aProjectDir) = '') then
+    Exit;
+
+  lRootDir := FindProjectOwnershipRoot(aProjectDir);
+  for i := 0 to aReferenceDirs.Count - 1 do
+  begin
+    lPath := Trim(aReferenceDirs[i]);
+    if lPath = '' then
+      Continue;
+    if not IsPathUnderDirectory(lPath, lRootDir) then
+      Continue;
+    if aPaths.IndexOf(lPath) < 0 then
+      aPaths.Add(lPath);
   end;
 end;
 
@@ -2609,6 +2807,7 @@ function TryBuildDfmCheckSearchPath(const aOptions: TAppOptions; const aReferenc
 var
   lEffectiveSearchPath: string;
   lPaths: TStringList;
+  lProjectDir: string;
 begin
   aSearchPath := '';
   aError := '';
@@ -2617,11 +2816,12 @@ begin
     lPaths.CaseSensitive := False;
     lPaths.Sorted := False;
     lPaths.Duplicates := TDuplicates.dupIgnore;
-    AppendDelimitedPaths(BuildDelimitedPath(aReferenceDirs), lPaths);
+    lProjectDir := ExcludeTrailingPathDelimiter(ExtractFileDir(aOptions.fDprojPath));
+    AppendReferenceDirsUnderOwnedRoot(aReferenceDirs, lProjectDir, lPaths);
     AppendDelimitedPaths(BuildDelimitedPath(aDiscoveredUnitDirs), lPaths);
     if not TryBuildEffectiveProjectSearchPath(aOptions, lEffectiveSearchPath, aError) then
       Exit(False);
-    AppendDelimitedPaths(lEffectiveSearchPath, lPaths);
+    AppendDelimitedPathsExcept(lEffectiveSearchPath, lPaths, aReferenceDirs);
     aSearchPath := BuildDelimitedPath(lPaths);
   finally
     lPaths.Free;
@@ -2686,12 +2886,12 @@ begin
       lModuleFilePath := TPath.GetFullPath(TPath.Combine(lDprDir, lIncludePath));
       if not FileExists(lModuleFilePath) then
         Continue;
-      lModuleDir := ExcludeTrailingPathDelimiter(ExtractFileDir(lModuleFilePath));
-      if lModuleDir <> '' then
-        aUnitSearchDirs.Add(lModuleDir);
       lDfmPath := TPath.ChangeExtension(lModuleFilePath, '.dfm');
       if not FileExists(lDfmPath) then
         Continue;
+      lModuleDir := ExcludeTrailingPathDelimiter(ExtractFileDir(lModuleFilePath));
+      if lModuleDir <> '' then
+        aUnitSearchDirs.Add(lModuleDir);
       if aUnitNames.IndexOf(lUnitName) >= 0 then
         Continue;
 
