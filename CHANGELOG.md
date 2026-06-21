@@ -178,6 +178,8 @@ All notable user-visible changes to this project will be documented in this file
 - `build-delphi.bat` now runs `madExceptPatch.exe` only when `.mes` exists, `.dpr`/`.dproj` base names match, and `madExcept` is defined for the selected `Config`/`Platform`.
 
 ### Fixed
+- Fixed `build-delphi.bat` parallel-run temp handoff files to use the per-run
+  GUID and fail closed when MSBuild emits logger/temp file-access errors.
 - Fixed build summary parsing so compiler, fatal, and hint-warning diagnostics now preserve structured severity, file token, line, column, code, and message data for source-context and LSP enrichment.
 - Fixed `remove-with --mode apply` to fail closed with a
   `report-apply-mismatch` report when the apply statement ID set diverges from
