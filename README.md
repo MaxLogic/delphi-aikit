@@ -40,7 +40,9 @@ The [`agentskills/`](agentskills/) folder contains repo-local skills that help A
 - `dak-dfm-check`: inspect and validate `.dfm`-backed forms through `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
 - `dak-global-vars`: analyze project-level globals, declaration sites, and read/write usage before refactoring shared state.
 - `dak-project-unit-topology`: use `DelphiAIKit.exe deps` to inspect project unit topology, unresolved unit references, focused unit neighborhoods, and resolved project-unit cycles. Useful for questions like "why is this unit included?", "what fans into this area?", and "do we have cycles?"
-- `dak-lsp`: use `DelphiAIKit.exe lsp` for semantic symbol navigation. Prefer it for definition/hover and file-scoped symbol lookup; use `references` only when the external DelphiLSP capability set supports it, and switch back to `deps`, `global-vars`, or `rg` when the question is not semantic navigation.
+- `dak-lsp`: use `DelphiAIKit.exe lsp` for semantic symbol navigation. Prefer it for definition/hover and file-scoped symbol lookup; route usages/references to `dak-semantic-refactoring` or `dak-symbol-map`, and switch back to `deps`, `global-vars`, or `rg` when the question is not semantic navigation.
+- `dak-symbol-map`: use `DelphiAIKit.exe symbol-map` for cached project indexing, definition lookup, symbol search, symbol description, reference-like matches, and cache stats.
+- `dak-semantic-refactoring`: use DAK `find-usages`, `rename`, and `dead-code` for declaration-aware refactoring evidence, dry-run plans, and conservative dead-code review.
 - `dak-remove-with`: use `DelphiAIKit.exe remove-with` to scan, plan, or apply conservative Delphi `with` statement rewrites with JSON reports, transactional backups, build verification, and rollback.
 
 ## Requirements
