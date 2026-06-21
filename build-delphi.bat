@@ -6,6 +6,8 @@ setlocal EnableExtensions EnableDelayedExpansion
 pushd "%~dp0"
 for /f %%t in ('powershell -NoProfile -Command "Get-Date -Format o"') do set "BUILD_START=%%t"
 for /f %%t in ('powershell -NoProfile -Command "([DateTimeOffset]::Parse('%BUILD_START%')).UtcTicks"') do set "BUILD_START_TICKS=%%t"
+for /f %%t in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N')"') do set "RUN_ID=%%t"
+if not defined RUN_ID set "RUN_ID=%RANDOM%%RANDOM%"
 
 rem =============================================================================
 rem v 1.4.5
@@ -42,6 +44,8 @@ set "BUILD_OUTPUT_PRE_TICKS=0"
 set "BUILD_OUTPUT_POST_TICKS=0"
 set "MSBUILD_ENV_PROPS="
 set "MSBUILD_ENV_PROPS_FILE="
+set "MSBUILD_ENV_PROPS_OUT="
+set "MSBUILD_ARGS_FILE="
 set "ERRCOUNT=0"
 set "WARNCOUNT=0"
 set "HINTCOUNT=0"
@@ -276,8 +280,23 @@ if not defined MSBUILD (
 rem ---- 2b) Resolve environment.proj properties for command-line MSBuild
 set "MSBUILD_ENV_SCRIPT=%TOOL_ROOT%\scripts\build-delphi-envprops.ps1"
 if exist "%MSBUILD_ENV_SCRIPT%" (
-  set "MSBUILD_ENV_PROPS_FILE=%TEMP%\dak-msbuild-envprops-%RANDOM%-%RANDOM%.txt"
-  for /f "usebackq delims=" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%MSBUILD_ENV_SCRIPT%" -BdsRoot "%BDS_ROOT%" -OutFile "!MSBUILD_ENV_PROPS_FILE!"`) do set "%%a"
+  set "MSBUILD_ENV_PROPS_FILE=%TEMP%\dak-msbuild-envprops-%RUN_ID%.txt"
+  set "MSBUILD_ENV_PROPS_OUT=%TEMP%\dak-msbuild-envprops-out-%RUN_ID%.txt"
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%MSBUILD_ENV_SCRIPT%" -BdsRoot "%BDS_ROOT%" -OutFile "!MSBUILD_ENV_PROPS_FILE!" > "!MSBUILD_ENV_PROPS_OUT!" 2>&1
+  if errorlevel 1 (
+    if not defined JSON_MODE echo FAILED - MSBuild environment properties could not be resolved: !MSBUILD_ENV_PROPS_FILE!
+    if not defined JSON_MODE if exist "!MSBUILD_ENV_PROPS_OUT!" type "!MSBUILD_ENV_PROPS_OUT!"
+    set "EXITCODE=1"
+    set "RESULT_STATUS=internal_error"
+    goto cleanup
+  )
+  if not exist "!MSBUILD_ENV_PROPS_OUT!" (
+    if not defined JSON_MODE echo FAILED - MSBuild environment property output was not created: !MSBUILD_ENV_PROPS_OUT!
+    set "EXITCODE=1"
+    set "RESULT_STATUS=internal_error"
+    goto cleanup
+  )
+  for /f "usebackq delims=" %%a in ("!MSBUILD_ENV_PROPS_OUT!") do set "%%a"
 )
 
 rem ---- 3) Resolve madExcept patch prerequisites + build output path
@@ -365,7 +384,6 @@ if "%MADEXCEPT_PATCH_REQUIRED%"=="1" (
 
 rem ---- 4) Logs
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd_HHmmss_fff"') do set "TS=%%i"
-for /f %%i in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N')"') do set "RUN_ID=%%i"
 set "DAK_BUILD_PROJECT=%PROJECT%"
 set "DAK_BUILD_LOG_DIR=%BUILD_LOG_DIR%"
 if defined BUILD_LOG_DIR (
@@ -413,9 +431,21 @@ if defined MSBUILD_ENV_PROPS (
   set "ARGS=!ARGS! !MSBUILD_ENV_PROPS!"
 )
 set "RUN_MSBUILD_SCRIPT=%TOOL_ROOT%\scripts\build-delphi-run-msbuild.ps1"
-set "MSBUILD_ARGS_FILE=%TEMP%\dak-msbuild-args-%RANDOM%-%RANDOM%.txt"
+set "MSBUILD_ARGS_FILE=%TEMP%\dak-msbuild-args-%RUN_ID%.txt"
 set "DAK_MSBUILD_ARGS=!ARGS!"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$argsText=[Environment]::GetEnvironmentVariable('DAK_MSBUILD_ARGS'); $envFile=$env:MSBUILD_ENV_PROPS_FILE; if($envFile -and (Test-Path -LiteralPath $envFile)){ $extra=[IO.File]::ReadAllText($envFile).Trim(); if($extra){ $argsText=($argsText + ' ' + $extra).Trim() } }; [IO.File]::WriteAllText('%MSBUILD_ARGS_FILE%', $argsText)"
+if errorlevel 1 (
+  if not defined JSON_MODE echo FAILED - MSBuild argument file could not be written: %MSBUILD_ARGS_FILE%
+  set "EXITCODE=1"
+  set "RESULT_STATUS=internal_error"
+  goto cleanup
+)
+if not exist "%MSBUILD_ARGS_FILE%" (
+  if not defined JSON_MODE echo FAILED - MSBuild argument file was not created: %MSBUILD_ARGS_FILE%
+  set "EXITCODE=1"
+  set "RESULT_STATUS=internal_error"
+  goto cleanup
+)
 if exist "%RUN_MSBUILD_SCRIPT%" (
   powershell -NoProfile -ExecutionPolicy Bypass -File "%RUN_MSBUILD_SCRIPT%" -MsBuild "%MSBUILD%" -Project "%PROJECT%" -ArgsFile "%MSBUILD_ARGS_FILE%" -OutLog "%OUTLOG%" -TimeoutSec %BUILD_TIMEOUT_SEC%
   set "RC=%ERRORLEVEL%"
@@ -425,6 +455,7 @@ if exist "%RUN_MSBUILD_SCRIPT%" (
 )
 if exist "%MSBUILD_ARGS_FILE%" del /q "%MSBUILD_ARGS_FILE%" >nul 2>&1
 if defined MSBUILD_ENV_PROPS_FILE if exist "%MSBUILD_ENV_PROPS_FILE%" del /q "%MSBUILD_ENV_PROPS_FILE%" >nul 2>&1
+if defined MSBUILD_ENV_PROPS_OUT if exist "%MSBUILD_ENV_PROPS_OUT%" del /q "%MSBUILD_ENV_PROPS_OUT%" >nul 2>&1
 if "%RC%"=="124" set "BUILD_TIMED_OUT=1"
 
 rem ---- 6) Detect errors
@@ -440,6 +471,12 @@ if exist "%ERRLOG%" for %%A in ("%ERRLOG%") do if %%~zA GTR 0 set "HAS_ERRORS=1"
 
 if not defined HAS_ERRORS if not "%RC%"=="0" (
   for /f %%E in ('findstr /I /C:": error " /C:": fatal " "%OUTLOG%" ^| find /c /v ""') do set "ERRCOUNT=%%E"
+  if "!ERRCOUNT!"=="0" set "ERRCOUNT=1"
+  set "HAS_ERRORS=1"
+)
+
+if not defined HAS_ERRORS if exist "%OUTLOG%" (
+  for /f %%E in ('findstr /I /C:"MSB4104" /C:"cannot access" /C:"used by another process" /C:"przez inny proces" /C:"WriteAllText" "%OUTLOG%" ^| find /c /v ""') do set "ERRCOUNT=%%E"
   if not "!ERRCOUNT!"=="0" set "HAS_ERRORS=1"
 )
 
@@ -740,6 +777,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 endlocal & exit /b 0
 
 :cleanup
+if defined MSBUILD_ARGS_FILE if exist "%MSBUILD_ARGS_FILE%" del /q "%MSBUILD_ARGS_FILE%" >nul 2>&1
+if defined MSBUILD_ENV_PROPS_FILE if exist "%MSBUILD_ENV_PROPS_FILE%" del /q "%MSBUILD_ENV_PROPS_FILE%" >nul 2>&1
+if defined MSBUILD_ENV_PROPS_OUT if exist "%MSBUILD_ENV_PROPS_OUT%" del /q "%MSBUILD_ENV_PROPS_OUT%" >nul 2>&1
 if defined JSON_MODE (
   set "JSON_INCLUDE_WARN=0"
   set "JSON_INCLUDE_HINT=0"
