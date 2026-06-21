@@ -8,7 +8,7 @@ version: "1.0"
 
 Use `DelphiAIKit.exe lsp` for one-shot semantic navigation against a real Delphi project context.
 
-Load [setup.md](setup.md) first.
+If `DAK_EXE` is missing, use [dak-build setup](../dak-build/setup.md).
 
 Preflight:
 
@@ -20,7 +20,7 @@ test -x "$DAK_EXE" || { echo "DAK_EXE not executable"; exit 1; }
 
 Use this routing before running commands:
 
-| User intent | Command | Notes |
+| User intent | Use | Notes |
 | --- | --- | --- |
 | "Where is this symbol defined?" | `lsp definition --format json` | Requires `--file`, `--line`, `--col` |
 | "Who references this symbol?" | switch skill | External Delphi 23 and Delphi 13 `DelphiLSP.exe` do not implement `textDocument/references`; use `deps`, `global-vars`, or `rg` instead |
@@ -32,6 +32,10 @@ Use this routing before running commands:
 | broad raw text / regex search | text search | use `rg`, not `lsp` |
 
 Start with JSON unless the user explicitly wants a quick terminal summary.
+
+## Platform/Config
+
+Pass `--platform` and `--config` when the target project requires a non-default context. For DelphiAIKit itself, use `--platform Win64`.
 
 ## Command Patterns
 
