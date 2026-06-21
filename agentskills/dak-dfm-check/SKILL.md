@@ -1,6 +1,6 @@
 ---
 name: dak-dfm-check
-description: Inspect and validate Delphi DFM forms via `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
+description: Inspect and validate Delphi DFM forms via `dfm-inspect`, `dfm-check`, or `build --dfmcheck`. Use whenever Codex touches Delphi forms, frames, datamodules, visual controls, event bindings, or any `.dfm`-backed UI change, even if the user only asks for a UI edit.
 version: "1.2"
 ---
 
@@ -76,6 +76,7 @@ Defaults:
 
 - `config=Release`
 - `platform=Win32`
+- for DelphiAiKit itself, pass `--platform Win64`
 
 ## Success/Failure Contract
 

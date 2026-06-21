@@ -7,7 +7,7 @@ description: "Inspect Delphi project unit topology with DelphiAIKit `deps`: reso
 
 Use `DelphiAIKit.exe deps` for project-level dependency shape and cycle triage.
 
-Load [setup.md](setup.md) first.
+If `DAK_EXE` is missing, use [dak-build setup](../dak-build/setup.md).
 
 Preflight:
 
@@ -19,7 +19,7 @@ test -x "$DAK_EXE" || { echo "DAK_EXE not executable"; exit 1; }
 
 Use this routing before running commands:
 
-| User intent | Command | Read first |
+| User intent | Use | Read first |
 | --- | --- | --- |
 | "What depends on what?" / "Why is this unit here?" | `deps --format json` | `summary`, `nodes`, `edges` |
 | "Do we have cycles?" | `deps --format json` | `cycleComponents` |

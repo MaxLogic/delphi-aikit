@@ -89,7 +89,8 @@ Primary artifacts:
 3. Read `summary.md`, then `triage.md`.
 4. Apply only low-risk fixes in small batches.
 5. Verify with DAK build:
-   - WSL/Windows: `"$DAK_EXE" build --project "<project.dproj>" --delphi 23.0 --platform Win32 --config Debug --ai`
+   - WSL/Windows: `"$DAK_EXE" build --project "<project.dproj>" --delphi 23.0 --platform "<platform>" --config Debug --ai`
+   - For DelphiAiKit itself, use `--platform Win64`.
 6. Re-run analysis and confirm no regression in `delta.md` / gate output.
 
 ## Report-Driven Fix Loop

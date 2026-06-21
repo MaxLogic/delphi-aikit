@@ -8,7 +8,7 @@ version: "1.0"
 
 Use `DelphiAIKit.exe remove-with` for Delphi `with` statement discovery and conservative rewrite planning.
 
-Load [setup.md](setup.md) first.
+If `DAK_EXE` is missing, use [dak-build setup](../dak-build/setup.md).
 
 Preflight:
 
@@ -18,7 +18,7 @@ test -x "$DAK_EXE" || { echo "DAK_EXE not executable"; exit 1; }
 
 ## Route The Request
 
-| User intent | Command | Notes |
+| User intent | Use | Notes |
 | --- | --- | --- |
 | "Do we have `with` statements?" | `remove-with --mode scan --format json` | Non-mutating inventory only |
 | "Can these be safely removed?" | `remove-with --mode plan --format json` | Produces planned edits, warnings, and skipped reasons without changing files |

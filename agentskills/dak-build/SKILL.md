@@ -12,7 +12,7 @@ Use this execution order:
 2. Use `"$DAK_BUILD_SH" ...` on WSL only when wrapper path conversion is helpful.
 3. Never call raw `msbuild.exe` unless we are explicitly debugging wrappers.
 
-Before running commands, load [setup.md](setup.md) variables.
+If `DAK_EXE` is missing, use [setup.md](setup.md) to define it and optional WSL helpers.
 Commands assume current directory is the target repository root.
 
 Supported project inputs (`--project`):
@@ -20,6 +20,10 @@ Supported project inputs (`--project`):
 - `.dproj`
 - `.dpr` / `.dpk` only when a sibling `.dproj` exists
 - `.groupproj` is not a guaranteed DAK contract in current code
+
+## Platform Rule
+
+Use the target project's required platform. When building or testing DelphiAIKit itself, use `Win64`; this repo's `AGENTS.md` makes DAK a Win64 tool and the DAK test project should not fall back to implicit Win32 defaults.
 
 ## Preflight
 
@@ -53,29 +57,33 @@ Canonical build:
 
 ```bash
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
-"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --ai
+PLATFORM="${DAK_PLATFORM:-Win32}"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --ai
 ```
 
 Full rebuild:
 
 ```bash
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
-"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --target Rebuild --ai
+PLATFORM="${DAK_PLATFORM:-Win32}"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --target Rebuild --ai
 ```
 
 Locked-output-safe rebuild (for `F2039` / running EXE):
 
 ```bash
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
+PLATFORM="${DAK_PLATFORM:-Win32}"
 TEST_OUT_WIN="$(wslpath -w -a _build_verify/test-out)"
-"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --target Rebuild --test-output-dir "$TEST_OUT_WIN" --ai
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --target Rebuild --test-output-dir "$TEST_OUT_WIN" --ai
 ```
 
 WSL wrapper (`build-delphi.sh`) example:
 
 ```bash
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
-"$DAK_BUILD_SH" "$PROJECT_LINUX" -config Debug -platform Win32 -ver 23 -ai
+PLATFORM="${DAK_PLATFORM:-Win32}"
+"$DAK_BUILD_SH" "$PROJECT_LINUX" -config Debug -platform "$PLATFORM" -ver 23 -ai
 ```
 
 ## Windows (Secondary)
@@ -84,7 +92,8 @@ PowerShell:
 
 ```powershell
 $Project = "F:\projects\SomeRepo\_Source\App.dproj"
-& $env:DAK_EXE build --project $Project --delphi 23.0 --platform Win32 --config Debug --ai
+$Platform = if ($env:DAK_PLATFORM) { $env:DAK_PLATFORM } else { "Win32" }
+& $env:DAK_EXE build --project $Project --delphi 23.0 --platform $Platform --config Debug --ai
 ```
 
 ## Setup
@@ -93,7 +102,8 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 
 ## Defaults
 
-- `platform=Win32`, `config=Release`, `target=Build`
+- tool default: `platform=Win32`, `config=Release`, `target=Build`
+- DelphiAIKit repo work: pass `--platform Win64` explicitly
 - `max-findings=5`
 - `build-timeout-sec=0`
 - `source-context=auto`, `source-context-lines=2`
@@ -132,12 +142,14 @@ Build plus DFM check example:
 
 ```bash
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
-"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --dfmcheck --ai
+PLATFORM="${DAK_PLATFORM:-Win32}"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --dfmcheck --ai
 ```
 
 Build plus targeted DFM check:
 
 ```bash
 PROJECT_LINUX="_Source/ActiveAppView.dproj"
-"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform Win32 --config Debug --dfmcheck --dfm "MainForm.dfm,Frames\\DetailSubEditDocs.dfm" --ai
+PLATFORM="${DAK_PLATFORM:-Win32}"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --dfmcheck --dfm "MainForm.dfm,Frames\\DetailSubEditDocs.dfm" --ai
 ```

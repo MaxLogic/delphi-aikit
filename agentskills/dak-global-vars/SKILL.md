@@ -24,7 +24,7 @@ Canonical interface:
 - always use `DelphiAIKit.exe global-vars`
 - do not use PAL, FixInsight, or direct cache queries for normal refactoring work
 
-Load [setup.md](setup.md) first.
+If `DAK_EXE` is missing, use [dak-build setup](../dak-build/setup.md).
 
 Required environment:
 
@@ -65,18 +65,15 @@ Do not use it as sole proof when we need to:
 | `--name "<pattern>"` | no | wildcard filter on symbol name |
 | `--reads-only` | no | emit only globals with read/readwrite usage |
 | `--writes-only` | no | emit only globals with write/readwrite usage |
-| `--delphi <version>` | no | Delphi version, for example `23.0` |
-| `--platform <name>` | no | build platform, for example `Win32` |
-| `--config <name>` | no | build config, for example `Release` |
 | `--refresh auto\|force` | no | reuse or rebuild analysis |
 | `--cache <sqlite-file>` | no | override default cache path |
+| `--verbose true\|false` | no | emit additional diagnostics |
 
 Rules:
 
 1. `--reads-only` and `--writes-only` are mutually exclusive.
 2. `--unused-only` cannot be combined with `--reads-only` or `--writes-only`.
 3. If `--unit` or `--name` has no wildcard, DAK treats it like `*text*`.
-4. If `--delphi` is omitted, DAK tries `[Build] DelphiVersion` from cascading `dak.ini`.
 
 ## Command Patterns
 
