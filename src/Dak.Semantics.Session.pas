@@ -95,6 +95,7 @@ type
     function PlanRenameAtPosition(const aFileName: string; const aLine,
       aColumn: Integer; const aNewName: string): TDelphiSemanticRenamePlan;
     function ReferenceFallbackCount: Integer;
+    function PlanDeadCodeRemoval(const aProfile: string): TDelphiSemanticDeadCodeRemovalPlan;
     function ReportDeadCode(const aProfile: string): TDelphiSemanticDeadCodeReport;
     function UnitModelCount: Integer;
   end;
@@ -154,6 +155,7 @@ type
     function PlanRenameAtPosition(const aFileName: string; const aLine,
       aColumn: Integer; const aNewName: string): TDelphiSemanticRenamePlan;
     function ReferenceFallbackCount: Integer;
+    function PlanDeadCodeRemoval(const aProfile: string): TDelphiSemanticDeadCodeRemovalPlan;
     function ReportDeadCode(const aProfile: string): TDelphiSemanticDeadCodeReport;
     function UnitModelCount: Integer;
   end;
@@ -490,6 +492,12 @@ begin
   Result := fContext.UnitModel.Metrics.ReferenceReconciliationFallbackCount;
   for lModel in fContext.IndexedUnitModels do
     Inc(Result, lModel.Metrics.ReferenceReconciliationFallbackCount);
+end;
+
+function TDakSemanticSymbolQueryContext.PlanDeadCodeRemoval(
+  const aProfile: string): TDelphiSemanticDeadCodeRemovalPlan;
+begin
+  Result := TDelphiSemanticApi.PlanDeadCodeRemoval(fContext, aProfile);
 end;
 
 function TDakSemanticSymbolQueryContext.ReportDeadCode(

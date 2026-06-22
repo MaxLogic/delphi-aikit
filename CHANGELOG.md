@@ -5,6 +5,9 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added guarded `dead-code --apply` mode with explicit profile approval, project-scoped
+  backups/manifests, post-apply build verification, no-op handling, and rollback
+  on verification failure.
 - Added isolated `build-delphi.bat` log directories with optional `-log-dir`, so parallel wrapper builds no longer share root build/error log filenames.
 - Added bounded FixInsightCL and Pascal Analyzer process waits with `--fi-timeout-sec`, `--pa-timeout-sec`, and matching `dak.ini` `TimeoutSec` defaults.
 - Added additive `remove-with` planner metrics for semantic receiver-member
