@@ -53,6 +53,8 @@ type
     procedure ProjectDakRootPolicyIsCentralized;
     [Test]
     procedure ProprietaryRenameDogfoodHasMaxTdbProofCategory;
+    [Test]
+    procedure DefaultRunnerExcludesMaxTdbProofOnlyWithoutExplicitFilters;
   end;
 
 implementation
@@ -828,6 +830,59 @@ begin
     '  [Category(''MaxTdbProof'')]' + #10 +
     '  TRefactorProprietaryRenameTests = class'),
     'Proprietary maxTdb rename dogfood must be categorized as MaxTdbProof.');
+end;
+
+procedure TRefactorCommandTests.DefaultRunnerExcludesMaxTdbProofOnlyWithoutExplicitFilters;
+var
+  lApplyExclusionPos: Integer;
+  lCreateRunnerPos: Integer;
+  lCheckCommandLinePos: Integer;
+  lNormalizedSource: string;
+  lNormalizedRemoveWithSource: string;
+  lRemoveWithSource: string;
+  lRunnerSource: string;
+begin
+  lRemoveWithSource := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'tests\units\test.removewith.pas'), TEncoding.UTF8);
+  lNormalizedRemoveWithSource := StringReplace(lRemoveWithSource, #13#10, #10,
+    [rfReplaceAll]);
+  lNormalizedRemoveWithSource := StringReplace(lNormalizedRemoveWithSource, #13,
+    #10, [rfReplaceAll]);
+  Assert.IsTrue(ContainsText(lNormalizedRemoveWithSource,
+    '[TestFixture]' + #10 +
+    '  [Category(''MaxTdbProof'')]' + #10 +
+    '  TRemoveWithProprietaryProjectTests = class(TRemoveWithTestBase)'),
+    'Proprietary maxTdb remove-with dogfood must be categorized as MaxTdbProof.');
+
+  lRunnerSource := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'tests\DelphiAIKit.Tests.dpr'), TEncoding.UTF8);
+  lNormalizedSource := StringReplace(lRunnerSource, #13#10, #10, [rfReplaceAll]);
+  lNormalizedSource := StringReplace(lNormalizedSource, #13, #10, [rfReplaceAll]);
+
+  Assert.IsTrue(ContainsText(lRunnerSource, 'DUnitX.FilterBuilder'),
+    'The DAK test runner should use DUnitX filtering for default MaxTdbProof exclusion.');
+  Assert.IsTrue(ContainsText(lRunnerSource, 'cMaxTdbProofCategory = ''MaxTdbProof'';'),
+    'The MaxTdbProof category name should be centralized in the test runner.');
+  Assert.IsTrue(ContainsText(lNormalizedSource,
+    '(TDUnitX.Options.Run.Count = 0) and' + #10 +
+    '    (TDUnitX.Options.RunListFile = '''') and' + #10 +
+    '    (TDUnitX.Options.Include = '''') and' + #10 +
+    '    (TDUnitX.Options.Exclude = '''')'),
+    'Default exclusion must apply only when no run/runlist/category filter is explicit.');
+  Assert.IsTrue(ContainsText(lRunnerSource,
+    'TDUnitX.Options.Exclude := cMaxTdbProofCategory'),
+    'The default runner should exclude MaxTdbProof through DUnitX category filtering.');
+  Assert.IsTrue(ContainsText(lRunnerSource,
+    'TDUnitX.Filter := TDUnitXFilterBuilder.BuildFilter(TDUnitX.Options)'),
+    'The runner must rebuild the DUnitX filter after injecting the default exclusion.');
+
+  lCheckCommandLinePos := Pos('TDUnitX.CheckCommandLine', lRunnerSource);
+  lApplyExclusionPos := PosEx('ApplyDefaultCategoryExclusions;', lRunnerSource,
+    lCheckCommandLinePos);
+  lCreateRunnerPos := Pos('TDUnitX.CreateRunner', lRunnerSource);
+  Assert.IsTrue((lCheckCommandLinePos > 0) and (lApplyExclusionPos > lCheckCommandLinePos) and
+    (lApplyExclusionPos < lCreateRunnerPos),
+    'Default category exclusion must run after command-line parsing and before runner creation.');
 end;
 
 initialization

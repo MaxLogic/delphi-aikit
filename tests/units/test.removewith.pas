@@ -839,6 +839,7 @@ type
   end;
 
   [TestFixture]
+  [Category('MaxTdbProof')]
   TRemoveWithProprietaryProjectTests = class(TRemoveWithTestBase)
   private
     function CommandExePath: string;

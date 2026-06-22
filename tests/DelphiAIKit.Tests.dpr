@@ -6,8 +6,9 @@ program DelphiAIKit_Tests;
 uses
   System.SysUtils,
   FireDAC.Phys.SQLiteWrapper.Stat,
-  DUnitX.TestFramework,
+  DUnitX.FilterBuilder,
   DUnitX.Loggers.Console,
+  DUnitX.TestFramework,
   DfmCheck_AppConsts in '..\\lib\\DFMCheck\\Source\\DfmCheck_AppConsts.pas',
   DfmCheck_DfmCheck in '..\\lib\\DFMCheck\\Source\\DfmCheck_DfmCheck.pas',
   DfmCheck_Options in '..\\lib\\DFMCheck\\Source\\DfmCheck_Options.pas',
@@ -40,6 +41,21 @@ uses
   Test.SourceContext in 'units\\test.sourcecontext.pas',
   ToolsAPIRepl in '..\\lib\\DFMCheck\\Source\\Console\\ToolsAPIRepl.pas';
 
+const
+  cMaxTdbProofCategory = 'MaxTdbProof';
+
+procedure ApplyDefaultCategoryExclusions;
+begin
+  if (TDUnitX.Options.Run.Count = 0) and
+    (TDUnitX.Options.RunListFile = '') and
+    (TDUnitX.Options.Include = '') and
+    (TDUnitX.Options.Exclude = '') then
+  begin
+    TDUnitX.Options.Exclude := cMaxTdbProofCategory;
+    TDUnitX.Filter := TDUnitXFilterBuilder.BuildFilter(TDUnitX.Options);
+  end;
+end;
+
 var
   Runner: ITestRunner;
   Results: IRunResults;
@@ -48,6 +64,7 @@ begin
   ReportMemoryLeaksOnShutdown := True;
   try
     TDUnitX.CheckCommandLine;
+    ApplyDefaultCategoryExclusions;
     Runner := TDUnitX.CreateRunner;
     Runner.UseRTTI := True;
     Runner.FailsOnNoAsserts := True;
