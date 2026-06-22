@@ -63,6 +63,9 @@ All notable user-visible changes to this project will be documented in this file
 - Added `deps` for project dependency topology analysis, including deterministic JSON output, text summaries, focused unit views, cycle reporting over resolved project units, and default artifact copies under sibling `.dak/<ProjectName>/deps/`. (T-101, T-102)
 
 ### Changed
+- Default no-filter DUnitX runs now exclude long proprietary `MaxTdbProof`
+  dogfood lanes; run those lanes explicitly with category include filters when
+  proprietary fixture proof is needed.
 - `remove-with` now builds its normal typed plan through the DelphiSemantics
   session-backed snapshot API instead of rebuilding a temporary snapshot from
   compatibility facts.

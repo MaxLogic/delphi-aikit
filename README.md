@@ -663,4 +663,13 @@ build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win64 -ta
 tests\DelphiAIKit.Tests.exe --hidebanner --consolemode:quiet
 ```
 
+The default no-filter test run excludes long proprietary dogfood lanes tagged
+`MaxTdbProof`. Run those lanes explicitly when we need proprietary fixture proof.
+For the proprietary maxTdb refactor rename dogfood, use a 15-minute timeout
+budget. The current measured lane is about 7 minutes on our local runner:
+
+```
+tests\DelphiAIKit.Tests.exe --hidebanner --consolemode:quiet -r:Test.Refactor.ProprietaryRename -i:MaxTdbProof
+```
+
 Manual fixture checks live in `tests\README.md`. We can also run `tests\run.bat`, which executes the resolver against all fixture `.dproj` files and writes outputs to `tests\out`. It expects `bin\DelphiAIKit.exe` to exist and accepts optional `RSVARS` and `ENVOPTIONS` environment variables for overrides.
