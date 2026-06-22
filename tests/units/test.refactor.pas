@@ -51,6 +51,8 @@ type
     procedure RefactorJsonOutputUsesStructuredBuilders;
     [Test]
     procedure ProjectDakRootPolicyIsCentralized;
+    [Test]
+    procedure ProprietaryRenameDogfoodHasMaxTdbProofCategory;
   end;
 
 implementation
@@ -809,6 +811,23 @@ begin
   lCommandSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.deps.runner.pas'), TEncoding.UTF8);
   Assert.IsFalse(ContainsText(lCommandSource, 'function TDepsGraphBuilder.DefaultOutputPath'),
     'Deps default output path resolution should live only in the command runner.');
+end;
+
+procedure TRefactorCommandTests.ProprietaryRenameDogfoodHasMaxTdbProofCategory;
+var
+  lNormalizedSource: string;
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot,
+    'tests\units\test.refactor.proprietaryrename.pas'), TEncoding.UTF8);
+  lNormalizedSource := StringReplace(lSource, #13#10, #10, [rfReplaceAll]);
+  lNormalizedSource := StringReplace(lNormalizedSource, #13, #10, [rfReplaceAll]);
+
+  Assert.IsTrue(ContainsText(lNormalizedSource,
+    '[TestFixture]' + #10 +
+    '  [Category(''MaxTdbProof'')]' + #10 +
+    '  TRefactorProprietaryRenameTests = class'),
+    'Proprietary maxTdb rename dogfood must be categorized as MaxTdbProof.');
 end;
 
 initialization
