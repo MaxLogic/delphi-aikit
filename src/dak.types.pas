@@ -251,6 +251,7 @@ type
     fRefactorSemanticCachePath: string;
     fHasRefactorSemanticCachePath: Boolean;
     fDeadCodeProfile: string;
+    fHasDeadCodeProfile: Boolean;
     fUnitPath: string;
   end;
 

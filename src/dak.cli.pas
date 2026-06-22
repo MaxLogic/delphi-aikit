@@ -152,7 +152,7 @@ begin
     Add('semantic-cache', '', svpRequiredValue, [crRemoveWith, crFindUsages, crRename, crDeadCode]);
     Add('new-name', '', svpRequiredValue, [crRename]);
     Add('profile', '', svpRequiredValue, [crDeadCode]);
-    Add('apply', '', svpOptionalBoolValue, [crRename]);
+    Add('apply', '', svpOptionalBoolValue, [crRename, crDeadCode]);
     Result := lDescriptors.ToArray;
   finally
     lDescriptors.Free;
@@ -1928,6 +1928,7 @@ begin
       Exit(False);
     end;
     fOptions.fDeadCodeProfile := lProfileName;
+    fOptions.fHasDeadCodeProfile := True;
     Exit(True);
   end;
 
@@ -2594,9 +2595,14 @@ begin
     end;
     if (fOptions.fRefactorSymbol <> '') or (fOptions.fRefactorFilePath <> '') or
       (fOptions.fRefactorLine > 0) or (fOptions.fRefactorCol > 0) or
-      (fOptions.fRefactorNewName <> '') or fOptions.fHasRefactorApply then
+      (fOptions.fRefactorNewName <> '') then
     begin
-      fError := Format(SUnknownArg, ['--symbol/--file/--line/--col/--new-name/--apply']);
+      fError := Format(SUnknownArg, ['--symbol/--file/--line/--col/--new-name']);
+      Exit(False);
+    end;
+    if fOptions.fRefactorApply and not fOptions.fHasDeadCodeProfile then
+    begin
+      fError := SDeadCodeApplyProfileRequired;
       Exit(False);
     end;
   end else if fOptions.fCommand = TCommandKind.ckBuild then

@@ -103,8 +103,9 @@ resourcestring
     '  default is non-mutating dry-run; --apply writes edits with per-file backups and rollback on failure';
   SUsageDeadCode =
     'DelphiAIKit.exe dead-code --project "<path>" [--profile <audit|conservative|legacy-static>] ' +
-    '[--format <json|text>] [--semantic-cache "<sqlite-path>"]' + #13#10 +
-    '  report-only; does not rewrite source files';
+    '[--apply [true|false]] [--format <json|text>] [--semantic-cache "<sqlite-path>"]' + #13#10 +
+    '  default is report-only and non-mutating; --apply requires an explicit --profile, writes edits transactionally, ' +
+    'backs up changed files, verifies the build, and rolls back on failure';
   SInvalidArgs = 'Invalid command line arguments.';
   SUnknownCommand = 'Unknown command: %s';
   SArgMissingValue = 'Missing value for parameter: %s';
@@ -119,6 +120,7 @@ resourcestring
   SInvalidSourceContext = 'Invalid --source-context value: %s (expected auto, off, or on).';
   SInvalidSourceContextLines = 'Invalid --source-context-lines value: %s (expected integer >= 0).';
   SInvalidDeadCodeProfile = 'Invalid --profile value: %s (expected %s).';
+  SDeadCodeApplyProfileRequired = 'dead-code apply requires explicit --profile <audit|conservative|legacy-static>.';
   SInvalidFiFormats = 'Invalid --fi-formats value: %s';
   SGlobalVarsInvalidFormat = 'Unsupported global-vars format: %s';
   SGlobalVarsInvalidRefresh = 'Unsupported global-vars refresh mode: %s';

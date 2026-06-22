@@ -47,6 +47,14 @@ type
     DiagnosticsDir: string;
   end;
 
+  TDeadCodeApplyResult = record
+    Status: string;
+    Diagnostic: string;
+    ManifestPath: string;
+    AppliedFiles: TArray<TAppliedFile>;
+    Verification: TRenameVerification;
+  end;
+
 function JsonValueText(const aValue: TJSONValue): string;
 begin
   try
@@ -432,6 +440,85 @@ begin
   end;
 end;
 
+function BuildDeadCodeBlockersArray(
+  const aBlockers: TArray<TDelphiSemanticDeadCodeRemovalBlocker>): TJSONArray;
+var
+  lBlocker: TDelphiSemanticDeadCodeRemovalBlocker;
+  lValue: TJSONObject;
+begin
+  Result := TJSONArray.Create;
+  for lBlocker in aBlockers do
+  begin
+    lValue := TJSONObject.Create;
+    lValue.AddPair('name', lBlocker.Name);
+    lValue.AddPair('status', lBlocker.Status);
+    lValue.AddPair('reason', lBlocker.Reason);
+    Result.AddElement(lValue);
+  end;
+end;
+
+function DeadCodeApplyJson(const aPlan: TDelphiSemanticDeadCodeRemovalPlan;
+  const aApplyResult: TDeadCodeApplyResult; const aReferenceFallbackCount: Integer;
+  const aCacheMetrics: TDakSemanticCacheMetrics; const aPhaseMetrics: TRefactorSemanticPhaseMetrics):
+  string;
+var
+  lEdit: TDelphiSemanticTextEdit;
+  lEdits: TJSONArray;
+  lRoot: TJSONObject;
+begin
+  lRoot := TJSONObject.Create;
+  lEdits := TJSONArray.Create;
+  for lEdit in aPlan.Edits do
+    lEdits.AddElement(BuildEditObject(lEdit));
+
+  lRoot.AddPair('status', aApplyResult.Status);
+  lRoot.AddPair('apply', TJSONBool.Create(True));
+  lRoot.AddPair('profile', aPlan.Profile);
+  lRoot.AddPair('diagnostic', aApplyResult.Diagnostic);
+  lRoot.AddPair('planDiagnostic', aPlan.Diagnostic);
+  lRoot.AddPair('editCount', TJSONNumber.Create(Length(aPlan.Edits)));
+  lRoot.AddPair('blockerCount', TJSONNumber.Create(Length(aPlan.Blockers)));
+  lRoot.AddPair('manifest', aApplyResult.ManifestPath);
+  lRoot.AddPair('verification', BuildRenameVerificationObject(aApplyResult.Verification));
+  lRoot.AddPair('referenceReconciliationFallbackCount',
+    TJSONNumber.Create(aReferenceFallbackCount));
+  lRoot.AddPair('semanticCacheHits', TJSONNumber.Create(aCacheMetrics.CacheHits));
+  lRoot.AddPair('semanticCacheMisses', TJSONNumber.Create(aCacheMetrics.CacheMisses));
+  lRoot.AddPair('semanticCacheInvalidations', TJSONNumber.Create(aCacheMetrics.Invalidations));
+  lRoot.AddPair('semanticPhaseMetrics', BuildSemanticPhaseMetricsObject(aPhaseMetrics,
+    aCacheMetrics));
+  lRoot.AddPair('edits', lEdits);
+  lRoot.AddPair('blockers', BuildDeadCodeBlockersArray(aPlan.Blockers));
+  lRoot.AddPair('files', BuildAppliedFilesArray(aApplyResult.AppliedFiles));
+  Result := JsonValueText(lRoot);
+end;
+
+function DeadCodeApplyText(const aPlan: TDelphiSemanticDeadCodeRemovalPlan;
+  const aApplyResult: TDeadCodeApplyResult): string;
+var
+  lAppliedFile: TAppliedFile;
+  lBuilder: TStringBuilder;
+begin
+  lBuilder := TStringBuilder.Create;
+  try
+    lBuilder.AppendLine('dead-code: ' + aApplyResult.Status);
+    lBuilder.AppendLine('profile: ' + aPlan.Profile);
+    lBuilder.AppendLine('apply: true');
+    lBuilder.AppendLine('edits: ' + Length(aPlan.Edits).ToString);
+    lBuilder.AppendLine('blockers: ' + Length(aPlan.Blockers).ToString);
+    lBuilder.AppendLine('verification: ' + aApplyResult.Verification.Status);
+    if aApplyResult.Diagnostic <> '' then
+      lBuilder.AppendLine('diagnostic: ' + aApplyResult.Diagnostic);
+    if aApplyResult.ManifestPath <> '' then
+      lBuilder.AppendLine('manifest: ' + aApplyResult.ManifestPath);
+    for lAppliedFile in aApplyResult.AppliedFiles do
+      lBuilder.AppendLine('backup: ' + lAppliedFile.BackupFileName);
+    Result := TrimRight(lBuilder.ToString);
+  finally
+    lBuilder.Free;
+  end;
+end;
+
 procedure SortEditsDescending(var aEdits: TArray<TDelphiSemanticTextEdit>);
 var
   i: Integer;
@@ -717,6 +804,200 @@ begin
   end;
 end;
 
+function DeadCodeWorkspaceRoot(const aOptions: TAppOptions): string;
+var
+  lProjectPath: string;
+begin
+  lProjectPath := TPath.GetFullPath(aOptions.fDprojPath);
+  Result := DakProjectPath(DakProjectRootForProjectPath(lProjectPath),
+    ['dead-code', FormatDateTime('yyyymmddhhnnsszzz', Now)]);
+end;
+
+procedure AddDeadCodeFileEdits(const aPlan: TDelphiSemanticDeadCodeRemovalPlan;
+  const aFileName: string; out aEdits: TArray<TDelphiSemanticTextEdit>);
+var
+  lEdit: TDelphiSemanticTextEdit;
+begin
+  SetLength(aEdits, 0);
+  for lEdit in aPlan.Edits do
+    if SameFileNameSafe(lEdit.FileName, aFileName) then
+    begin
+      SetLength(aEdits, Length(aEdits) + 1);
+      aEdits[High(aEdits)] := lEdit;
+    end;
+  SortEditsDescending(aEdits);
+end;
+
+procedure ApplyDeadCodeEditToSource(const aEdit: TDelphiSemanticTextEdit;
+  const aSource: TDakSourceBuffer; var aText: string);
+var
+  lEndOffset: Integer;
+  lExpectedText: string;
+  lStartOffset: Integer;
+begin
+  if not DakOffsetForLineColumn(aSource, aEdit.StartLine, aEdit.StartColumn,
+    lStartOffset) then
+    raise Exception.Create('Invalid dead-code edit start in ' + aEdit.FileName);
+  if not DakOffsetForLineColumn(aSource, aEdit.EndLine, aEdit.EndColumn, lEndOffset) then
+    raise Exception.Create('Invalid dead-code edit end in ' + aEdit.FileName);
+  if lEndOffset < lStartOffset then
+    raise Exception.Create('Invalid dead-code edit range in ' + aEdit.FileName);
+
+  if aEdit.ExpectedSourceText <> '' then
+  begin
+    lExpectedText := Copy(aSource.fText, lStartOffset, lEndOffset - lStartOffset);
+    if lExpectedText <> aEdit.ExpectedSourceText then
+      raise Exception.Create('Dead-code edit range does not match expected source in ' +
+        aEdit.FileName);
+  end;
+
+  Delete(aText, lStartOffset, lEndOffset - lStartOffset);
+  Insert(aEdit.NewText, aText, lStartOffset);
+end;
+
+procedure WriteDeadCodeManifest(const aWorkspaceRoot, aStatus, aDiagnostic: string;
+  const aPlan: TDelphiSemanticDeadCodeRemovalPlan; const aFiles: TArray<TAppliedFile>;
+  const aVerification: TRenameVerification);
+var
+  lJson: string;
+  lRoot: TJSONObject;
+begin
+  lRoot := TJSONObject.Create;
+  lRoot.AddPair('status', aStatus);
+  lRoot.AddPair('diagnostic', aDiagnostic);
+  lRoot.AddPair('profile', aPlan.Profile);
+  lRoot.AddPair('editCount', TJSONNumber.Create(Length(aPlan.Edits)));
+  lRoot.AddPair('blockerCount', TJSONNumber.Create(Length(aPlan.Blockers)));
+  lRoot.AddPair('verification', BuildRenameVerificationObject(aVerification));
+  lRoot.AddPair('files', BuildAppliedFilesArray(aFiles));
+  lJson := JsonValueText(lRoot);
+  TDirectory.CreateDirectory(aWorkspaceRoot);
+  TFile.WriteAllText(TPath.Combine(aWorkspaceRoot, 'manifest.json'), lJson, TEncoding.UTF8);
+end;
+
+procedure RollbackDeadCodeOriginals(const aOriginals: TDictionary<string, TBytes>);
+var
+  lPair: TPair<string, TBytes>;
+begin
+  for lPair in aOriginals do
+    TFile.WriteAllBytes(lPair.Key, lPair.Value);
+  for lPair in aOriginals do
+    if FileHash(TFile.ReadAllBytes(lPair.Key)) <> FileHash(lPair.Value) then
+      raise Exception.Create('Rollback verification failed for ' + lPair.Key);
+end;
+
+procedure ApplyDeadCodePlanEdits(const aPlan: TDelphiSemanticDeadCodeRemovalPlan;
+  const aOriginals: TDictionary<string, TBytes>);
+var
+  lEdit: TDelphiSemanticTextEdit;
+  lEdits: TArray<TDelphiSemanticTextEdit>;
+  lFileName: string;
+  lPair: TPair<string, TBytes>;
+  lSource: TDakSourceBuffer;
+  lText: string;
+begin
+  for lPair in aOriginals do
+  begin
+    lFileName := lPair.Key;
+    if not LoadDakSource(lFileName, lSource, lText) then
+      raise Exception.Create('Failed to load source for dead-code removal: ' + lText);
+    lText := lSource.fText;
+    AddDeadCodeFileEdits(aPlan, lFileName, lEdits);
+    for lEdit in lEdits do
+      ApplyDeadCodeEditToSource(lEdit, lSource, lText);
+    TFile.WriteAllBytes(lFileName, DakTextToBytes(lText, lSource.fEncoding,
+      lSource.fHasUtf8Bom));
+  end;
+end;
+
+procedure BackupDeadCodeFiles(const aPlan: TDelphiSemanticDeadCodeRemovalPlan;
+  const aBackupRoot: string; const aOriginals: TDictionary<string, TBytes>;
+  var aAppliedFiles: TArray<TAppliedFile>);
+var
+  lBackupFileName: string;
+  lBytes: TBytes;
+  lEdit: TDelphiSemanticTextEdit;
+  lFileName: string;
+begin
+  SetLength(aAppliedFiles, 0);
+  for lEdit in aPlan.Edits do
+  begin
+    lFileName := TPath.GetFullPath(lEdit.FileName);
+    if aOriginals.ContainsKey(lFileName) then
+      Continue;
+    lBytes := TFile.ReadAllBytes(lFileName);
+    aOriginals.Add(lFileName, lBytes);
+    lBackupFileName := TPath.Combine(aBackupRoot, IntToStr(Length(aAppliedFiles) + 1) +
+      '-' + TPath.GetFileName(lFileName) + '.bak');
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lBackupFileName));
+    TFile.WriteAllBytes(lBackupFileName, lBytes);
+    AddAppliedFile(aAppliedFiles, lFileName, lBackupFileName, FileHash(lBytes));
+  end;
+end;
+
+procedure ApplyDeadCodeRemovalPlan(const aOptions: TAppOptions;
+  const aPlan: TDelphiSemanticDeadCodeRemovalPlan; out aApplyResult: TDeadCodeApplyResult);
+var
+  lBackupRoot: string;
+  lOriginals: TDictionary<string, TBytes>;
+  lWorkspaceRoot: string;
+begin
+  aApplyResult := Default(TDeadCodeApplyResult);
+  aApplyResult.Verification := RenameVerification('not-run', -1, '', '');
+  lWorkspaceRoot := DeadCodeWorkspaceRoot(aOptions);
+  lBackupRoot := TPath.Combine(lWorkspaceRoot, 'backup');
+  aApplyResult.ManifestPath := TPath.Combine(lWorkspaceRoot, 'manifest.json');
+  lOriginals := TDictionary<string, TBytes>.Create;
+  try
+    if not SameText(aPlan.Status, 'planned') then
+    begin
+      aApplyResult.Status := aPlan.Status;
+      aApplyResult.Diagnostic := aPlan.Diagnostic;
+      WriteDeadCodeManifest(lWorkspaceRoot, aApplyResult.Status, aApplyResult.Diagnostic,
+        aPlan, aApplyResult.AppliedFiles, aApplyResult.Verification);
+      Exit;
+    end;
+
+    if Length(aPlan.Edits) = 0 then
+    begin
+      aApplyResult.Status := 'noop';
+      WriteDeadCodeManifest(lWorkspaceRoot, aApplyResult.Status, '', aPlan,
+        aApplyResult.AppliedFiles, aApplyResult.Verification);
+      Exit;
+    end;
+
+    try
+      BackupDeadCodeFiles(aPlan, lBackupRoot, lOriginals, aApplyResult.AppliedFiles);
+      ApplyDeadCodePlanEdits(aPlan, lOriginals);
+      if not VerifyRenameBuild(aOptions, lWorkspaceRoot, aApplyResult.Verification) then
+        raise Exception.Create(aApplyResult.Verification.Diagnostic);
+      aApplyResult.Status := 'applied';
+      WriteDeadCodeManifest(lWorkspaceRoot, aApplyResult.Status, '', aPlan,
+        aApplyResult.AppliedFiles, aApplyResult.Verification);
+    except
+      on E: Exception do
+      begin
+        aApplyResult.Diagnostic := E.Message;
+        try
+          RollbackDeadCodeOriginals(lOriginals);
+          aApplyResult.Status := 'rolledBack';
+        except
+          on lRollbackError: Exception do
+          begin
+            aApplyResult.Status := 'rollbackFailed';
+            aApplyResult.Diagnostic := E.Message + '; rollback failed: ' +
+              lRollbackError.Message;
+          end;
+        end;
+        WriteDeadCodeManifest(lWorkspaceRoot, aApplyResult.Status, aApplyResult.Diagnostic,
+          aPlan, aApplyResult.AppliedFiles, aApplyResult.Verification);
+      end;
+    end;
+  finally
+    lOriginals.Free;
+  end;
+end;
+
 function RunFindUsagesCommand(const aOptions: TAppOptions): Integer;
 var
   lContext: IDakSemanticSymbolQueryContext;
@@ -848,11 +1129,13 @@ end;
 
 function RunDeadCodeCommand(const aOptions: TAppOptions): Integer;
 var
+  lApplyResult: TDeadCodeApplyResult;
   lCacheMetrics: TDakSemanticCacheMetrics;
   lContext: IDakSemanticSymbolQueryContext;
   lError: string;
   lOutput: string;
   lPhaseMetrics: TRefactorSemanticPhaseMetrics;
+  lPlan: TDelphiSemanticDeadCodeRemovalPlan;
   lPlanningStopwatch: TStopwatch;
   lProfile: string;
   lReferenceFallbackCount: Integer;
@@ -868,14 +1151,34 @@ begin
   if lProfile = '' then
     lProfile := DefaultDeadCodeProfileName;
   lPlanningStopwatch := TStopwatch.StartNew;
-  lReport := lContext.ReportDeadCode(lProfile);
+  if aOptions.fRefactorApply then
+  begin
+    lPlan := lContext.PlanDeadCodeRemoval(lProfile);
+    lReport := Default(TDelphiSemanticDeadCodeReport);
+    lReport.Profile := lPlan.Profile;
+    lReport.IndexMetrics.BuildElapsedMilliseconds := 0;
+    lReport.IndexMetrics.BuildInvocationCount := 0;
+  end else
+    lReport := lContext.ReportDeadCode(lProfile);
   lPhaseMetrics.CommandPlanningMs := lPlanningStopwatch.ElapsedMilliseconds;
   lPhaseMetrics.ProjectSymbolIndexBuildMs := lReport.IndexMetrics.BuildElapsedMilliseconds;
   lPhaseMetrics.ProjectSymbolIndexBuildCount := lReport.IndexMetrics.BuildInvocationCount;
   lPhaseMetrics.CommandPlanningCount := 1;
   lPhaseMetrics.TotalMs := lPhaseMetrics.TotalMs + lPhaseMetrics.CommandPlanningMs;
   lReferenceFallbackCount := lPhaseMetrics.ReferenceReconciliationFallbackCount;
-  if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
+  if aOptions.fRefactorApply then
+  begin
+    ApplyDeadCodeRemovalPlan(aOptions, lPlan, lApplyResult);
+    if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
+      lOutput := DeadCodeApplyJson(lPlan, lApplyResult, lReferenceFallbackCount,
+        lCacheMetrics, lPhaseMetrics)
+    else
+      lOutput := DeadCodeApplyText(lPlan, lApplyResult);
+    WriteLn(lOutput);
+    if SameText(lApplyResult.Status, 'applied') or SameText(lApplyResult.Status, 'noop') then
+      Exit(cExitSuccess);
+    Exit(cExitToolFailure);
+  end else if aOptions.fRefactorFormat = TRefactorFormat.rffJson then
     lOutput := DeadCodeReportJson(lReport, lReferenceFallbackCount, lCacheMetrics,
       lPhaseMetrics)
   else
