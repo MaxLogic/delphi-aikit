@@ -16,7 +16,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added additive `remove-with` planner subphase metrics for semantic inventory,
   with-binding, final DTO planning, and resolver-report fallback/projection
   timings and counts.
-- Added maxTdb semantic rename dogfood coverage that clones the fixture, applies
+- Added proprietary fixture semantic rename dogfood coverage that clones the fixture, applies
   real project-scoped renames, verifies `.dak` backups/manifests, compiles the
   renamed clone, and byte-checks that the original fixture stays unchanged.
 - Added `find-usages` and `rename` project-scoped refactoring commands backed by
@@ -28,8 +28,8 @@ All notable user-visible changes to this project will be documented in this file
 - Added `remove-with --semantic-cache "<sqlite-path>"` to persist DelphiSemantics
   unit-model parsing across runs, with verbose per-unit cache hit/miss/invalidation
   telemetry.
-- Added an optional maxTdb `remove-with` performance and telemetry gate that clones the proprietary fixture, runs plan mode with JSON `--output`, asserts current resolution/timing baselines, and verifies original sources remain unchanged. (T-176)
-- Added `remove-with` migration telemetry for local-model hits, Symbol Map hits/misses, intrinsic allowlist fallbacks, true unknowns, planned/skipped counts, and planner elapsed time, with a current maxTdb temp-clone baseline. (T-200)
+- Added an optional proprietary fixture `remove-with` performance and telemetry gate that clones the proprietary fixture, runs plan mode with JSON `--output`, asserts current resolution/timing baselines, and verifies original sources remain unchanged. (T-176)
+- Added `remove-with` migration telemetry for local-model hits, Symbol Map hits/misses, intrinsic allowlist fallbacks, true unknowns, planned/skipped counts, and planner elapsed time, with a current proprietary fixture temp-clone baseline. (T-200)
 - Added Symbol Map-backed `remove-with` recognition for compiler/RTL intrinsics and a stale-intrinsic cache repair check, so seeded compiler symbols such as `Abs`, `Sqr`, `Succ`, and `Assert` resolve without expanding the legacy allowlist. (T-178)
 - Added an internal `remove-with` Symbol Map lookup bridge that prepares a project Symbol Map session once per command, exposes compiler/profile/project lookup metadata in resolver JSON, and keeps current rewrite decisions unchanged. (T-199)
 - Documented Symbol Map CLI usage, central and project cache behavior, cleanup/invalidation, cache-root overrides, and relationship to LSP and `remove-with`. (T-197)
@@ -49,7 +49,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added dictionary-backed `remove-with` semantic indexes for units, types, members, routines, scoped symbols, helpers, aliases, pointer aliases, array aliases, inheritance, and default/indexed properties, including coverage for pointer-alias syntax and non-array generic aliases. (T-173)
 - Added an AST-backed `remove-with` unit model extractor that captures uses, types, members, routines, scoped symbols, `with` statements, and identifier references from the shared project model. (T-172)
 - Added verbose `remove-with` progress diagnostics for discovery, symbol inventory, resolver, planner, and apply stages, including deeper symbol-inventory timing when `--verbose true` is used.
-- Added optional `remove-with` smoke coverage for the proprietary local `tests/fixtures/test-projects/maxTdb` fixture, running only when the folder exists and scanning a temp clone so original sources stay untouched.
+- Added optional `remove-with` smoke coverage for the proprietary local `tests/fixtures/test-projects/<proprietary-fixture>` fixture, running only when the folder exists and scanning a temp clone so original sources stay untouched.
 - Added transactional apply/build proof coverage across the `remove-with` hardening fixtures, including skipped-only byte preservation and explicit skipped-reason assertions. (T-169)
 - Added a multi-unit `remove-with` corpus smoke fixture that plan-scans representative messy Delphi syntax and asserts stable JSON counts plus unchanged sources. (T-168)
 - Added DelphiAIKit CLI to resolve FixInsight params from .dproj/.optset. (T-001)
@@ -67,7 +67,7 @@ All notable user-visible changes to this project will be documented in this file
   ledger, so nested statements covered by a parent rewrite are counted in
   planned/skipped accounting while semantic DTO parity still compares concrete
   final edits.
-- Default no-filter DUnitX runs now exclude long proprietary `MaxTdbProof`
+- Default no-filter DUnitX runs now exclude long proprietary `<proprietary-fixture-proof-category>`
   dogfood lanes; run those lanes explicitly with category include filters when
   proprietary fixture proof is needed.
 - `remove-with` now builds its normal typed plan through the DelphiSemantics
@@ -138,7 +138,7 @@ All notable user-visible changes to this project will be documented in this file
   root `withStatements` array is kept but omits detailed rows, summary/planned/
   skipped counts remain authoritative, legacy resolver classifications are
   skipped for large plan reports, and the old `.project-facts.json` semantic
-  sidecar is no longer written. The maxTdb proof is cold `9.224s` median, warm
+  sidecar is no longer written. The proprietary fixture proof is cold `9.224s` median, warm
   `5.972s`, scan count `667`, and planned edit count `215`.
 - `remove-with` now obtains its semantic final plan from the DelphiSemantics
   typed snapshot planner while preserving DAK report and apply compatibility.
@@ -151,7 +151,7 @@ All notable user-visible changes to this project will be documented in this file
   inactive conditional references stay out of semantic classifications.
 - `remove-with --mode plan` report fallback decisions now consume
   DelphiSemantics scope-conflict facts instead of recomputing scope symbols in
-  DAK, reducing the maxTdb `fallbackDecisionMs` proof metric to `4ms` while
+  DAK, reducing the proprietary fixture `fallbackDecisionMs` proof metric to `4ms` while
   preserving scan count `667` and planned edit count `215`.
 - `remove-with --mode plan` report generation now uses semantic report
   projection for the measured safe subset before falling back to the legacy
@@ -208,7 +208,7 @@ All notable user-visible changes to this project will be documented in this file
   diagnostic lines in the JSON build gate, not only links to stdout/stderr logs.
 - Fixed `remove-with` resolution for Delphi compiler intrinsics, built-in type aliases, implicit `System` qualifiers, inactive conditional branches, implementation globals after routines, captured outer locals in nested routines, legacy `^J`/`^M` literals, and multiline enum/type-alias declarations. Added detailed unresolved-reason buckets to JSON reports.
 - Fixed `remove-with` planning for selector expressions that depend on earlier `with` selectors, and for identifiers ending in digits, so generated rewrites qualify those references instead of leaving undeclared names such as `fd`, `f1`, or `Code1`.
-- Fixed `remove-with` source inventory comment handling so ordinary `{...}` and `(*...*)` comments before type declarations no longer corrupt resolved owner type names, restoring selector resolution for cases such as maxTdb `DF[d]^`.
+- Fixed `remove-with` source inventory comment handling so ordinary `{...}` and `(*...*)` comments before type declarations no longer corrupt resolved owner type names, restoring selector resolution for cases such as proprietary fixture `DF[d]^`.
 - Fixed `remove-with` large-project planning throughput by building a resolver-scoped symbol name index and broadening safe known compiler/RTL calls such as `FillChar`, `Move`, `SizeOf`, and `Exit`.
 - Fixed `remove-with` plan-mode timeouts on large projects by indexing symbol de-duplication, current-class member expansion, and resolver lookup caches with case-insensitive dictionaries.
 - Fixed `remove-with` parsing for ANSI-encoded Delphi units by falling back from UTF-8 to the Windows default source encoding during read-only source loading and symbol extraction.
