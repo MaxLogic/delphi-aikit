@@ -14,7 +14,7 @@ This is a router, not a command manual. Pick the target skill, load it, and foll
 
 | User intent | Load skill | Why |
 | --- | --- | --- |
-| Build, rebuild, compiler errors, `--ai` build hints | `dak-build` | Owns project build orchestration and build failure handling |
+| Build, rebuild, compiler errors, TMS WEB Core builds, `--ai` build hints | `dak-build` | Owns Delphi and WebCore project build orchestration and build failure handling |
 | DFM forms, frames, datamodules, DFM stream validation | `dak-dfm-check` | Owns `dfm-inspect`, `dfm-check`, and `build --dfmcheck` |
 | Static analysis, FixInsight, Pascal Analyzer, warnings cleanup | `dak-static-analysis` | Owns analyzer orchestration and conservative triage |
 | Project globals, shared mutable state, reads/writes, unused globals | `dak-global-vars` | Owns `global-vars` inventory and JSON interpretation |
