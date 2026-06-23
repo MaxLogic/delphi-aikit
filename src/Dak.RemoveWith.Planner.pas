@@ -1490,10 +1490,74 @@ begin
     Result.fTemps[i] := TempDecisionFromSemanticFinalTemp(aStatement.Temps[i]);
 end;
 
+function PlannedStatementsFromSemanticFinalStatements(
+  const aSemanticEdits: TArray<TDelphiSemanticRemoveWithEdit>;
+  const aStatements: TArray<TDelphiSemanticRemoveWithFinalStatement>):
+  TArray<TRemoveWithPlannedStatement>;
+var
+  i: Integer;
+begin
+  SetLength(Result, Length(aStatements));
+  for i := 0 to High(aStatements) do
+    Result[i] := PlannedStatementFromSemanticFinalStatement(aSemanticEdits, aStatements[i]);
+end;
+
+function TryFindPlannedFinalStatement(
+  const aFinalStatements: TArray<TRemoveWithPlannedStatement>;
+  const aStatement: TDelphiSemanticRemoveWithStatement; out aFinalStatement:
+  TRemoveWithPlannedStatement): Boolean;
+var
+  lFinalStatement: TRemoveWithPlannedStatement;
+begin
+  aFinalStatement := Default(TRemoveWithPlannedStatement);
+  for lFinalStatement in aFinalStatements do
+  begin
+    if SameText(lFinalStatement.fStatementId, aStatement.StatementId) and
+      SameText(lFinalStatement.fFilePath, aStatement.FileName) then
+    begin
+      aFinalStatement := lFinalStatement;
+      Exit(True);
+    end;
+  end;
+  Result := False;
+end;
+
+function PlannedStatementFromSemanticStatement(
+  const aFinalStatements: TArray<TRemoveWithPlannedStatement>;
+  const aStatement: TDelphiSemanticRemoveWithStatement): TRemoveWithPlannedStatement;
+begin
+  if TryFindPlannedFinalStatement(aFinalStatements, aStatement, Result) then
+    Exit;
+
+  Result := Default(TRemoveWithPlannedStatement);
+  Result.fStatementId := aStatement.StatementId;
+  Result.fFilePath := aStatement.FileName;
+  Result.fStatus := aStatement.Status;
+  Result.fReason := aStatement.Reason;
+  if Result.fReason = '' then
+    Result.fReason := aStatement.SafetyReason;
+end;
+
+function PlannedStatementsFromSemanticPlan(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  const aFinalStatements: TArray<TRemoveWithPlannedStatement>):
+  TArray<TRemoveWithPlannedStatement>;
+var
+  i: Integer;
+begin
+  if Length(aSemanticPlan.Statements) = 0 then
+    Exit(aFinalStatements);
+
+  SetLength(Result, Length(aSemanticPlan.Statements));
+  for i := 0 to High(aSemanticPlan.Statements) do
+    Result[i] := PlannedStatementFromSemanticStatement(aFinalStatements,
+      aSemanticPlan.Statements[i]);
+end;
+
 function SemanticFinalDtoPlanResult(const aSemanticPlan: TDelphiSemanticRemoveWithPlan;
   out aPlanResult: TRemoveWithPlanResult; out aError: string): Boolean;
 var
-  i: Integer;
+  lFinalStatements: TArray<TRemoveWithPlannedStatement>;
+  lParityPlanResult: TRemoveWithPlanResult;
 begin
   aPlanResult := Default(TRemoveWithPlanResult);
   aError := '';
@@ -1502,19 +1566,21 @@ begin
     aError := 'DelphiSemantics remove-with final DTO is missing.';
     Exit(False);
   end;
-  if Length(aSemanticPlan.FinalStatements) = 0 then
+  if (Length(aSemanticPlan.Statements) = 0) and (Length(aSemanticPlan.FinalStatements) = 0) then
   begin
-    aError := 'DelphiSemantics remove-with final DTO has no final statements.';
+    aError := 'DelphiSemantics remove-with final DTO has no statements.';
     Exit(False);
   end;
 
   aPlanResult.fSemanticPlan := aSemanticPlan;
-  SetLength(aPlanResult.fStatements, Length(aSemanticPlan.FinalStatements));
-  for i := 0 to High(aSemanticPlan.FinalStatements) do
-    aPlanResult.fStatements[i] :=
-      PlannedStatementFromSemanticFinalStatement(aSemanticPlan.Edits, aSemanticPlan.FinalStatements[i]);
+  lFinalStatements := PlannedStatementsFromSemanticFinalStatements(aSemanticPlan.Edits,
+    aSemanticPlan.FinalStatements);
+  aPlanResult.fStatements := PlannedStatementsFromSemanticPlan(aSemanticPlan,
+    lFinalStatements);
+  lParityPlanResult := Default(TRemoveWithPlanResult);
+  lParityPlanResult.fStatements := lFinalStatements;
   aPlanResult.fSemanticParityReport := TDelphiSemanticRemoveWithPlanParity.Compare(
-    aSemanticPlan, SemanticParityStatements(aPlanResult));
+    aSemanticPlan, SemanticParityStatements(lParityPlanResult));
   Result := True;
 end;
 
