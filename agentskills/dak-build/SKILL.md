@@ -1,16 +1,17 @@
 ---
 name: dak-build
-description: Build Delphi projects via DelphiAIKit from WSL or Windows. Use when asked to compile or rebuild a .dproj (or .dpr/.dpk with sibling .dproj), verify build output, or troubleshoot build failures.
-version: "1.3"
+description: Build Delphi and TMS WEB Core projects via DelphiAIKit from WSL or Windows. Use when asked to compile or rebuild a .dproj (or .dpr/.dpk with sibling .dproj), verify build output, or troubleshoot build failures.
+version: "1.4"
 ---
 
-# Delphi Build
+# DAK Build
 
 Use this execution order:
 
-1. Use `"$DAK_EXE" build ...` as the canonical interface.
-2. Use `"$DAK_BUILD_SH" ...` on WSL only when wrapper path conversion is helpful.
+1. Use `"$DAK_EXE" build ...` as the canonical interface for both Delphi and TMS WEB Core projects.
+2. Use `"$DAK_BUILD_SH" ...` on WSL only when building regular Delphi projects and wrapper path conversion is helpful.
 3. Never call raw `msbuild.exe` unless we are explicitly debugging wrappers.
+4. Do not use the legacy `build-webcore` scripts when `"$DAK_EXE" build` is available.
 
 If `DAK_EXE` is missing, use [setup.md](setup.md) to define it and optional WSL helpers.
 Commands assume current directory is the target repository root.
@@ -24,6 +25,8 @@ Supported project inputs (`--project`):
 ## Platform Rule
 
 Use the target project's required platform. When building or testing DelphiAIKit itself, use `Win64`; this repo's `AGENTS.md` makes DAK a Win64 tool and the DAK test project should not fall back to implicit Win32 defaults.
+
+TMS WEB Core builds use `TMSWebCompiler.exe`, not MSBuild. `--platform`, `--delphi`, `--rsvars`, and `--dfmcheck` are Delphi-backend concerns; avoid them for WebCore unless DAK explicitly requires otherwise.
 
 ## Preflight
 
@@ -52,6 +55,8 @@ PROJECT_WIN="$(wslpath -w -a "$PROJECT_LINUX")"
 ```
 
 ## WSL (Primary)
+
+Regular Delphi build:
 
 Canonical build:
 
@@ -86,6 +91,21 @@ PLATFORM="${DAK_PLATFORM:-Win32}"
 "$DAK_BUILD_SH" "$PROJECT_LINUX" -config Debug -platform "$PLATFORM" -ver 23 -ai
 ```
 
+TMS WEB Core build:
+
+```bash
+PROJECT_LINUX="Mobile-Solution/FrontEnd/KFZMeisterPWA/KFZMeisterPWA.dproj"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --builder webcore --config Debug \
+  --webcore-compiler "/mnt/f/TMS-SmartSetUp/Products/tms.webcore/Bin/Win64/TMSWebCompiler.exe" --ai
+```
+
+For WebCore projects with strong markers such as `TMSWebProject`, `TMSWebHTMLFile`, or `TMSWEBCorePkg...`, `--builder` can usually be omitted and `auto` will select the WebCore backend:
+
+```bash
+"$DAK_EXE" build --project "$PROJECT_LINUX" --config Debug \
+  --webcore-compiler "/mnt/f/TMS-SmartSetUp/Products/tms.webcore/Bin/Win64/TMSWebCompiler.exe" --ai
+```
+
 ## Windows (Secondary)
 
 PowerShell:
@@ -96,6 +116,13 @@ $Platform = if ($env:DAK_PLATFORM) { $env:DAK_PLATFORM } else { "Win32" }
 & $env:DAK_EXE build --project $Project --delphi 23.0 --platform $Platform --config Debug --ai
 ```
 
+TMS WEB Core:
+
+```powershell
+$Project = "F:\projects\SomeRepo\WebApp\WebApp.dproj"
+& $env:DAK_EXE build --project $Project --builder webcore --config Debug --webcore-compiler "F:\TMS-SmartSetUp\Products\tms.webcore\Bin\Win64\TMSWebCompiler.exe" --ai
+```
+
 ## Setup
 
 Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
@@ -103,7 +130,9 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 ## Defaults
 
 - tool default: `platform=Win32`, `config=Release`, `target=Build`
+- builder default: `auto`; strong TMS WEB Core project markers route to the WebCore backend
 - DelphiAIKit repo work: pass `--platform Win64` explicitly
+- WebCore compiler resolution order: `--webcore-compiler`, cascading `dak.ini` `[WebCore].CompilerPath`, `DAK_TMSWEB_COMPILER`, then `PATH`
 - `max-findings=5`
 - `build-timeout-sec=0`
 - `source-context=auto`, `source-context-lines=2`
@@ -113,6 +142,9 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 ## Key Flags
 
 - `--target Build|Rebuild`, `--rebuild true|false`
+- `--builder auto|delphi|webcore`
+- `--webcore-compiler "<path-to-TMSWebCompiler.exe>"`
+- `--pwa`, `--no-pwa`
 - `--max-findings N`
 - `--build-timeout-sec N`
 - `--test-output-dir "<path>"`
@@ -127,6 +159,8 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 
 ## Workflow
 
+### Regular Delphi
+
 1. Run build with `--ai`.
 2. Add `--dfmcheck` when we want build + DFM streaming validation in one call.
 3. Use `--dfm "<...>"` for targeted checks or `--all` for full checks (default scope).
@@ -137,6 +171,16 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 8. Leave `--source-context` at `auto` unless we explicitly need more or less surrounding source.
 9. Report actionable diagnostics with exact failing unit/error line and next fix step.
 10. If `--ai` emits no semantic hints, keep the original compiler failure intact and continue with the source-context evidence we already have.
+
+### TMS WEB Core
+
+1. Prefer `"$DAK_EXE" build --project <app.dproj> --config <Debug|Release> --ai`.
+2. Add `--builder webcore` when we want explicit backend selection or when auto-detection is uncertain.
+3. Provide `TMSWebCompiler.exe` through `--webcore-compiler`, `[WebCore].CompilerPath`, `DAK_TMSWEB_COMPILER`, or `PATH`.
+4. Use `--pwa` or `--no-pwa` only when we need to override the project setting.
+5. Do not add Delphi-only options such as `--dfmcheck`, `--rsvars`, or `--envoptions`; DAK rejects them for WebCore builds.
+6. For Debug builds, DAK runs `tools\patch-index-debug.ps1` after a successful build when that hook exists, so the legacy shell wrapper is not required.
+7. Use `--json` when automation needs structured status and output path data.
 
 Build plus DFM check example:
 

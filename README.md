@@ -35,7 +35,7 @@
 The [`agentskills/`](agentskills/) folder contains repo-local skills that help AI agents use DelphiAIKit consistently instead of guessing workflows from scratch.
 
 - `dak`: start here when the task is about choosing the right DelphiAIKit workflow; it routes to the focused skills below without duplicating their command contracts.
-- `dak-build`: build or rebuild Delphi projects through the canonical DelphiAIKit build pipeline.
+- `dak-build`: build or rebuild Delphi and TMS WEB Core projects through the canonical DelphiAIKit build pipeline.
 - `dak-static-analysis`: run Delphi static analysis through DelphiAIKit wrappers, then triage and apply conservative verified fixes.
 - `dak-dfm-check`: inspect and validate `.dfm`-backed forms through `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
 - `dak-global-vars`: analyze project-level globals, declaration sites, and read/write usage before refactoring shared state.
