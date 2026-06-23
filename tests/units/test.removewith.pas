@@ -475,6 +475,8 @@ type
     [Test]
     procedure SemanticFinalDtoPrimaryPlanDoesNotRequireDakScanStatement;
     [Test]
+    procedure SemanticFinalDtoPrimaryPlanUsesStatementLedgerForCoveredChildren;
+    [Test]
     procedure PlanCliUsesCompactHighVolumeReportContract;
     [Test]
     procedure PlanCliEmitsPlannedEditsWithoutChangingFixture;
@@ -1772,12 +1774,10 @@ end;
 procedure AssertSemanticDtoMatchesFixture(const aFixtureName: string);
 var
   lError: string;
-  lExpectedStatements: TArray<TDelphiSemanticRemoveWithPlanParityStatement>;
   lInventory: TRemoveWithFactSet;
   lOptions: TAppOptions;
   lPlanResult: TRemoveWithPlanResult;
   lProjectModel: TRemoveWithProjectModel;
-  lReport: TDelphiSemanticRemoveWithPlanParityReport;
   lResolverResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
 begin
@@ -1805,11 +1805,8 @@ begin
       lInventory.fDelphiSemanticRemoveWithPlan, lPlanResult, lError),
       'Expected fixture planning to succeed: ' + aFixtureName + ' error=' + lError);
 
-    lExpectedStatements := SemanticParityStatements(lPlanResult);
-    lReport := TDelphiSemanticRemoveWithPlanParity.Compare(lInventory.fDelphiSemanticRemoveWithPlan,
-      lExpectedStatements);
-
-    Assert.AreEqual(0, lReport.MismatchCount, lReport.SummaryText);
+    Assert.AreEqual(0, lPlanResult.fSemanticParityReport.MismatchCount,
+      lPlanResult.fSemanticParityReport.SummaryText);
   finally
     lProjectModel.Free;
   end;
@@ -5559,6 +5556,7 @@ var
   lError: string;
   lInventory: TRemoveWithFactSet;
   lLegacyPlanResult: TRemoveWithPlanResult;
+  lOriginalStatementId: string;
   lPlanResult: TRemoveWithPlanResult;
   lResolverResult: TRemoveWithResolverResult;
   lScanResult: TRemoveWithScanResult;
@@ -5575,7 +5573,18 @@ begin
   Assert.IsTrue(Length(lSemanticPlan.FinalStatements[0].RewriteRecipe.TextEdits) > 0,
     'Expected semantic rewrite recipe text edits.');
 
+  lOriginalStatementId := lSemanticPlan.FinalStatements[0].StatementId;
   lSemanticPlan.FinalStatements[0].StatementId := 'semantic-with-1';
+  for i := 0 to High(lSemanticPlan.Statements) do
+  begin
+    if SameText(lSemanticPlan.Statements[i].StatementId, lOriginalStatementId) then
+      lSemanticPlan.Statements[i].StatementId := 'semantic-with-1';
+  end;
+  for i := 0 to High(lSemanticPlan.Edits) do
+  begin
+    if SameText(lSemanticPlan.Edits[i].StatementId, lOriginalStatementId) then
+      lSemanticPlan.Edits[i].StatementId := 'semantic-with-1';
+  end;
   for i := 0 to High(lSemanticPlan.FinalStatements[0].Edits) do
     lSemanticPlan.FinalStatements[0].Edits[i].StatementId := 'semantic-with-1';
   for i := 0 to High(lSemanticPlan.FinalStatements[0].RewriteRecipe.TextEdits) do
@@ -5681,6 +5690,73 @@ begin
   Assert.AreEqual('semantic-active-conditional',
     lPlanResult.fSemanticPlan.FinalStatements[0].StatementId,
     'Stored semantic plan should preserve Semantics-only statement identity.');
+end;
+
+procedure TRemoveWithPlannerTests.SemanticFinalDtoPrimaryPlanUsesStatementLedgerForCoveredChildren;
+var
+  lEmptyInventory: TRemoveWithFactSet;
+  lEmptyResolverResult: TRemoveWithResolverResult;
+  lEmptyScanResult: TRemoveWithScanResult;
+  lError: string;
+  lInnerStatement: TRemoveWithPlannedStatement;
+  lOuterStatement: TRemoveWithPlannedStatement;
+  lPlanResult: TRemoveWithPlanResult;
+  lSemanticPlan: TDelphiSemanticRemoveWithPlan;
+  lSourcePath: string;
+begin
+  lEmptyInventory := Default(TRemoveWithFactSet);
+  lEmptyResolverResult := Default(TRemoveWithResolverResult);
+  lEmptyScanResult := Default(TRemoveWithScanResult);
+  lSourcePath := TPath.Combine(TempRoot, 'remove-with-covered-ledger.pas');
+
+  lSemanticPlan := Default(TDelphiSemanticRemoveWithPlan);
+  lSemanticPlan.Operation := 'remove-with';
+  SetLength(lSemanticPlan.Statements, 2);
+  lSemanticPlan.Statements[0].FileName := lSourcePath;
+  lSemanticPlan.Statements[0].StatementId := 'outer-with';
+  lSemanticPlan.Statements[0].Status := 'planned';
+  lSemanticPlan.Statements[0].Range.StartLine := 10;
+  lSemanticPlan.Statements[0].Range.StartColumn := 3;
+  lSemanticPlan.Statements[0].Range.EndLine := 14;
+  lSemanticPlan.Statements[0].Range.EndColumn := 6;
+  lSemanticPlan.Statements[1].FileName := lSourcePath;
+  lSemanticPlan.Statements[1].StatementId := 'inner-with';
+  lSemanticPlan.Statements[1].Status := 'planned';
+  lSemanticPlan.Statements[1].CoveredByStatementId := 'outer-with';
+  lSemanticPlan.Statements[1].Range.StartLine := 12;
+  lSemanticPlan.Statements[1].Range.StartColumn := 5;
+  lSemanticPlan.Statements[1].Range.EndLine := 12;
+  lSemanticPlan.Statements[1].Range.EndColumn := 32;
+
+  SetLength(lSemanticPlan.FinalStatements, 1);
+  lSemanticPlan.FinalStatements[0].FileName := lSourcePath;
+  lSemanticPlan.FinalStatements[0].StatementId := 'outer-with';
+  lSemanticPlan.FinalStatements[0].Status := 'planned';
+  lSemanticPlan.FinalStatements[0].Range := lSemanticPlan.Statements[0].Range;
+  lSemanticPlan.FinalStatements[0].ReplacementText := 'lOuter.Name := lInner.Name;';
+  SetLength(lSemanticPlan.FinalStatements[0].Edits, 1);
+  lSemanticPlan.FinalStatements[0].Edits[0].Kind := 'replace-statement';
+  lSemanticPlan.FinalStatements[0].Edits[0].FileName := lSourcePath;
+  lSemanticPlan.FinalStatements[0].Edits[0].StatementId := 'outer-with';
+  lSemanticPlan.FinalStatements[0].Edits[0].Range := lSemanticPlan.Statements[0].Range;
+  lSemanticPlan.FinalStatements[0].Edits[0].ReplacementText := 'lOuter.Name := lInner.Name;';
+
+  Assert.IsTrue(PlanRemoveWithRewrites(lEmptyInventory, lEmptyScanResult,
+    lEmptyResolverResult, lSemanticPlan, lPlanResult, lError), lError);
+  Assert.AreEqual(2, Integer(Length(lPlanResult.fStatements)),
+    'DTO-primary planning must preserve every Semantics statement ledger row.');
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'outer-with', lOuterStatement),
+    'Expected outer final statement in DAK plan result.');
+  Assert.IsTrue(FindPlannedStatement(lPlanResult, 'inner-with', lInnerStatement),
+    'Expected covered child statement in DAK plan result.');
+  Assert.AreEqual('planned', lOuterStatement.fStatus);
+  Assert.AreEqual('planned', lInnerStatement.fStatus);
+  Assert.AreEqual(1, Integer(Length(lOuterStatement.fEdits)),
+    'Outer final statement should keep its concrete edit.');
+  Assert.AreEqual(0, Integer(Length(lInnerStatement.fEdits)),
+    'Covered child statement should count as planned without duplicating parent edits.');
+  Assert.AreEqual(0, lPlanResult.fSemanticParityReport.MismatchCount,
+    lPlanResult.fSemanticParityReport.SummaryText);
 end;
 
 procedure TRemoveWithPlannerTests.PlanCliUsesCompactHighVolumeReportContract;
