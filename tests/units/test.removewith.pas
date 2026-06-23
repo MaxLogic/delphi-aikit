@@ -1414,8 +1414,9 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithApi.PlanRemoveWith(lRequest)'),
-    'DAK must build normal remove-with plans through the DelphiSemantics session-backed snapshot API.');
+  Assert.IsTrue(ContainsText(lSourceText,
+    'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWith(lRequest)'),
+    'DAK must build normal remove-with plans through the DelphiSemantics compatibility snapshot API.');
   Assert.IsFalse(ContainsText(lSourceText,
     'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWithSnapshot(lFacts)'),
     'DAK normal planning must not rebuild a temporary snapshot from compatibility facts.');
