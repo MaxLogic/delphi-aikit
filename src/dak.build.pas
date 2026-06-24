@@ -9,6 +9,7 @@ type
   TBuildSummaryOptions = Dak.Build.Types.TBuildSummaryOptions;
   TBuildSummary = Dak.Build.Types.TBuildSummary;
   IBuildProcessRunner = Dak.Build.Types.IBuildProcessRunner;
+  TBuildDfmCheckRunner = Dak.Build.Types.TBuildDfmCheckRunner;
 
 function ParseBuildLogs(const aOutLogPath, aErrLogPath: string;
   const aOptions: TBuildSummaryOptions): TBuildSummary;
@@ -17,6 +18,8 @@ function BuildSummaryAsJson(const aProjectPath: string; const aOptions: TAppOpti
 function TryRunBuild(const aOptions: TAppOptions; out aExitCode: Integer; out aError: string): Boolean; overload;
 function TryRunBuild(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
   out aExitCode: Integer; out aError: string): Boolean; overload;
+function TryRunBuild(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
+  const aDfmCheckRunner: TBuildDfmCheckRunner; out aExitCode: Integer; out aError: string): Boolean; overload;
 
 implementation
 
@@ -44,6 +47,12 @@ function TryRunBuild(const aOptions: TAppOptions; const aRunner: IBuildProcessRu
   out aExitCode: Integer; out aError: string): Boolean;
 begin
   Result := Dak.Build.Runner.TryRunBuildInternal(aOptions, aRunner, aExitCode, aError);
+end;
+
+function TryRunBuild(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
+  const aDfmCheckRunner: TBuildDfmCheckRunner; out aExitCode: Integer; out aError: string): Boolean;
+begin
+  Result := Dak.Build.Runner.TryRunBuildInternal(aOptions, aRunner, aDfmCheckRunner, aExitCode, aError);
 end;
 
 end.

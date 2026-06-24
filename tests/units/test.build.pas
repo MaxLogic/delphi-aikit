@@ -22,6 +22,7 @@ type
     fArgumentsList: TArray<string>;
     fCallCount: Integer;
     fEnvironmentBlocks: TArray<string>;
+    fExitCodesByCall: TDictionary<Integer, Integer>;
     fExePaths: TArray<string>;
     fFilesToCreateOnCall: TDictionary<Integer, string>;
     destructor Destroy; override;
@@ -70,6 +71,8 @@ type
     procedure BuildReportsSpecificErrorWhenResolvedMadExceptOutputIsMissing;
     [Test]
     procedure BuildDfmCheckFailureReportsSkippedValidationAndMadExceptGuidance;
+    [Test]
+    procedure BuildDfmCheckRunsAfterSuccessfulSourceBuildWhenPostBuildPatchFails;
     [Test]
     procedure BuildIgnoresMissingCfgDependentOnOptsetWhenProjectOutputExists;
     [Test]
@@ -179,6 +182,8 @@ end;
 
 destructor TCapturingBuildRunner.Destroy;
 begin
+  if Assigned(fExitCodesByCall) then
+    fExitCodesByCall.Free;
   if Assigned(fFilesToCreateOnCall) then
     fFilesToCreateOnCall.Free;
   inherited;
@@ -209,6 +214,8 @@ begin
     TFile.WriteAllText(lFileToCreate, '', TEncoding.UTF8);
   end;
   aExitCode := 0;
+  if Assigned(fExitCodesByCall) then
+    fExitCodesByCall.TryGetValue(lLength, aExitCode);
   aTimedOut := False;
   aError := '';
   Result := True;
@@ -1189,6 +1196,75 @@ begin
     'Expected original missing madExcept.dcu compiler error to remain visible. Output: ' + lCapturedOutput);
   Assert.IsTrue(Pos('madExcept is enabled by DCC_Define', lCapturedOutput) > 0,
     'Expected targeted madExcept guidance for missing madExcept.dcu. Output: ' + lCapturedOutput);
+end;
+
+procedure TBuildTests.BuildDfmCheckRunsAfterSuccessfulSourceBuildWhenPostBuildPatchFails;
+var
+  lCapturedOutput: string;
+  lCapturingRunner: TCapturingBuildRunner;
+  lDfmCheckRan: Boolean;
+  lDfmCheckRunner: TBuildDfmCheckRunner;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lExpectedOutputPath: string;
+  lOptions: TAppOptions;
+  lPatchExePath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'build-dfmcheck-after-postbuild-failure');
+  PrepareMadExceptBuildFixture(lProjectRoot,
+    '[GeneralSettings]' + sLineBreak +
+    'HandleExceptions=1' + sLineBreak +
+    'LinkInCode=1' + sLineBreak,
+    lDprojPath, lRsVarsPath, lPatchExePath);
+  lExpectedOutputPath := TPath.Combine(lProjectRoot, 'MesGateCheck.exe');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Release';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fHasRsVarsPath := True;
+  lOptions.fRsVarsPath := lRsVarsPath;
+  lOptions.fBuildRunDfmCheck := True;
+  lOptions.fBuildAi := True;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lCapturingRunner.fFilesToCreateOnCall := TDictionary<Integer, string>.Create;
+  lCapturingRunner.fFilesToCreateOnCall.AddOrSetValue(0, lExpectedOutputPath);
+  lCapturingRunner.fExitCodesByCall := TDictionary<Integer, Integer>.Create;
+  lCapturingRunner.fExitCodesByCall.AddOrSetValue(1, 2);
+  lRunner := lCapturingRunner;
+  lDfmCheckRan := False;
+  lDfmCheckRunner :=
+    function(const aDfmOptions: TAppOptions): Integer
+    begin
+      Assert.AreEqual(lDprojPath, aDfmOptions.fDprojPath, 'Expected DFM validation to use the source project.');
+      lDfmCheckRan := True;
+      Result := 0;
+    end;
+
+  lCapturedOutput := CaptureConsoleOutput(
+    procedure
+    begin
+      Assert.IsTrue(TryRunBuild(lOptions, lRunner, lDfmCheckRunner, lExitCode, lError),
+        'Expected build command to complete through post-build failure. Error: ' + lError);
+    end);
+
+  Assert.AreEqual(1, lExitCode, 'Expected failing madExcept post-build patch to keep the aggregate build red.');
+  Assert.IsTrue(lDfmCheckRan, 'Expected DFM validation to run because the source build succeeded.');
+  Assert.IsTrue(Pos('[build] Running dfm-check validation...', lCapturedOutput) > 0,
+    'Expected build output to announce DFM validation. Output: ' + lCapturedOutput);
+  Assert.IsTrue(Pos('madExcept patch step failed.', lCapturedOutput) > 0,
+    'Expected post-build failure output to name the failed phase. Output: ' + lCapturedOutput);
+  Assert.IsFalse(Pos('dfm-check was not run because the source build failed', lCapturedOutput) > 0,
+    'Post-build failures must not be reported as source-build failures. Output: ' + lCapturedOutput);
+  lDfmCheckRunner := nil;
+  lRunner := nil;
 end;
 
 procedure TBuildTests.BuildIgnoresMissingCfgDependentOnOptsetWhenProjectOutputExists;

@@ -132,10 +132,6 @@ begin
     begin
       WriteLn(ErrOutput, lError);
       Result := cExitToolFailure;
-    end else if (Result = cExitSuccess) and fOptions.fBuildRunDfmCheck then
-    begin
-      WriteLn('[build] Running dfm-check validation...');
-      Result := RunDfmCheckCommand(fOptions);
     end;
   end else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckDfmCheck) then
     Result := RunDfmCheckCommand(fOptions)

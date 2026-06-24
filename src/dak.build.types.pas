@@ -2,6 +2,9 @@
 
 interface
 
+uses
+  Dak.Types;
+
 type
   TBuildDiagnostic = record
     fSeverity: string;
@@ -51,6 +54,8 @@ type
       const aEnvironmentBlock: string; aTimeoutSec: Integer; out aExitCode: Integer;
       out aTimedOut: Boolean; out aError: string): Boolean;
   end;
+
+  TBuildDfmCheckRunner = reference to function(const aOptions: TAppOptions): Integer;
 
 implementation
 
