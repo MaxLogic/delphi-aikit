@@ -24,6 +24,7 @@ type
     fFilePath: string;
     fStatus: string;
     fReason: string;
+    fCoveredByStatementId: string;
     fUnsupportedIdentifierRole: string;
     fReplacementText: string;
     fEdits: TArray<TRemoveWithPlannedTextEdit>;
@@ -1542,6 +1543,7 @@ begin
   Result.fFilePath := aStatement.FileName;
   Result.fStatus := aStatement.Status;
   Result.fReason := aStatement.Reason;
+  Result.fCoveredByStatementId := aStatement.CoveredByStatementId;
   if Result.fReason = '' then
     Result.fReason := aStatement.SafetyReason;
 end;

@@ -107,6 +107,10 @@ type
     [Test]
     procedure PlanJsonReportKeepsLegacySkippedReasonAndAddsSemanticReason;
     [Test]
+    procedure PlanJsonReportAccountsForCoveredStatements;
+    [Test]
+    procedure TextReportAccountsForCoveredStatements;
+    [Test]
     procedure PlanJsonReportOmitsDiagnosticsTelemetryByDefault;
     [Test]
     procedure DiagnosticsPlanJsonReportIncludesPlannerPhaseMetrics;
@@ -859,7 +863,10 @@ type
     function RunRemoveWithPlan(const aDprojPath, aTargetDir, aLogName: string; out aExitCode: Cardinal): TJSONObject;
     function RunRemoveWithScan(const aDprojPath, aTargetDir, aLogName: string; out aExitCode: Cardinal): TJSONObject;
     function CountSkippedReason(const aSkipped: TJSONArray; const aReason: string): Integer;
-    procedure AssertPlannedStatementIdsEqual(const aExpectedRoot, aActualRoot: TJSONObject);
+    procedure AssertStatementIdsEqual(const aArrayName: string; const aExpectedRoot,
+      aActualRoot: TJSONObject);
+    procedure AssertRemoveWithAccounting(const aRoot: TJSONObject);
+    procedure AssertReportApplyAccountingEqual(const aExpectedRoot, aActualRoot: TJSONObject);
     procedure AssertSkippedReasonBetween(const aSkipped: TJSONArray; const aReason: string; const aMin,
       aMax: Integer);
     procedure SnapshotSourceFiles(const aRootDir: string; out aPaths: TArray<string>;
@@ -2054,6 +2061,8 @@ begin
 
     RequireJsonArrayKey(lRoot, 'plannedEdits', lChildArray);
     RequireJsonArrayKey(lRoot, 'skipped', lChildArray);
+    RequireJsonArrayKey(lRoot, 'covered', lChildArray);
+    Assert.AreEqual(0, lChildArray.Count, 'Scan reports should expose no covered plan rows.');
     RequireJsonArrayKey(lRoot, 'warnings', lChildArray);
     RequireJsonObjectKey(lRoot, 'verification', lChildObject);
     RequireJsonStringKey(lChildObject, 'status');
@@ -2066,6 +2075,9 @@ begin
     RequireJsonNumberKey(lChildObject, 'plannedEdits');
     RequireJsonNumberKey(lChildObject, 'appliedEdits');
     RequireJsonNumberKey(lChildObject, 'skipped');
+    RequireJsonNumberKey(lChildObject, 'covered');
+    Assert.AreEqual(0, (lChildObject.Values['covered'] as TJSONNumber).AsInt,
+      'Scan summary should expose zero covered plan rows.');
     RequireJsonNumberKey(lChildObject, 'failed');
     RequireJsonNumberKey(lChildObject, 'rolledBack');
   finally
@@ -2097,10 +2109,12 @@ begin
     RequireJsonObjectKey(lRoot, 'resolver', lChildObject);
     RequireJsonArrayKey(lRoot, 'plannedEdits', lChildArray);
     RequireJsonArrayKey(lRoot, 'skipped', lChildArray);
+    RequireJsonArrayKey(lRoot, 'covered', lChildArray);
     RequireJsonArrayKey(lRoot, 'requiredVerification', lChildArray);
     AssertRequiredRemoveWithVerificationKinds(lChildArray, 'Plan report');
     RequireJsonObjectKey(lRoot, 'verification', lChildObject);
     RequireJsonObjectKey(lRoot, 'summary', lChildObject);
+    RequireJsonNumberKey(lChildObject, 'covered');
     RequireJsonNumberKey(lChildObject, 'plannedEdits');
   finally
     lJson.Free;
@@ -2175,6 +2189,120 @@ begin
   finally
     lJson.Free;
   end;
+end;
+
+procedure TRemoveWithReportTests.PlanJsonReportAccountsForCoveredStatements;
+var
+  lCovered: TJSONArray;
+  lCoveredItem: TJSONObject;
+  lJson: TJSONValue;
+  lMetrics: TRemoveWithPlannerPhaseMetrics;
+  lOptions: TAppOptions;
+  lPlanResult: TRemoveWithPlanResult;
+  lRoot: TJSONObject;
+  lScanResult: TRemoveWithScanResult;
+  lSummary: TJSONObject;
+  lTelemetry: TJSONObject;
+  lTransactionResult: TRemoveWithTransactionResult;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fRemoveWithMode := TRemoveWithMode.rwmPlan;
+  lOptions.fRemoveWithFormat := TRemoveWithFormat.rwfJson;
+  lOptions.fRemoveWithDiagnostics := True;
+  lMetrics := Default(TRemoveWithPlannerPhaseMetrics);
+  lTransactionResult := Default(TRemoveWithTransactionResult);
+  lPlanResult := Default(TRemoveWithPlanResult);
+  lScanResult := Default(TRemoveWithScanResult);
+
+  SetLength(lScanResult.fWithStatements, 3);
+  SetLength(lPlanResult.fStatements, 3);
+  lPlanResult.fStatements[0].fStatementId := 'with-1';
+  lPlanResult.fStatements[0].fFilePath := 'covered.pas';
+  lPlanResult.fStatements[0].fStatus := 'planned';
+  SetLength(lPlanResult.fStatements[0].fEdits, 1);
+  lPlanResult.fStatements[0].fEdits[0].fStatementId := 'with-1';
+  lPlanResult.fStatements[0].fEdits[0].fFilePath := 'covered.pas';
+  lPlanResult.fStatements[0].fEdits[0].fKind := 'replace-statement';
+  lPlanResult.fStatements[1].fStatementId := 'with-2';
+  lPlanResult.fStatements[1].fFilePath := 'covered.pas';
+  lPlanResult.fStatements[1].fStatus := 'planned';
+  lPlanResult.fStatements[1].fReason := 'covered-by-parent-rewrite';
+  lPlanResult.fStatements[1].fCoveredByStatementId := 'with-1';
+  lPlanResult.fStatements[2].fStatementId := 'with-3';
+  lPlanResult.fStatements[2].fFilePath := 'covered.pas';
+  lPlanResult.fStatements[2].fStatus := 'skipped';
+  lPlanResult.fStatements[2].fReason := 'symbol-not-found';
+
+  lJson := ParseJsonValue(BuildRemoveWithJsonReport(lOptions,
+    'covered.dproj', '', 'run-id', '', '', lScanResult,
+    Default(TRemoveWithResolverResult), lPlanResult, lTransactionResult,
+    lMetrics));
+  try
+    Assert.IsTrue(lJson is TJSONObject, 'Expected remove-with JSON report.');
+    lRoot := lJson as TJSONObject;
+    RequireJsonArrayKey(lRoot, 'covered', lCovered);
+    Assert.AreEqual(1, lCovered.Count, 'Expected one covered statement row.');
+    Assert.IsTrue(lCovered.Items[0] is TJSONObject,
+      'Expected covered statement object.');
+    lCoveredItem := lCovered.Items[0] as TJSONObject;
+    Assert.AreEqual('with-2', lCoveredItem.GetValue<string>('statementId', ''));
+    Assert.AreEqual('covered.pas', lCoveredItem.GetValue<string>('file', ''));
+    Assert.AreEqual('planned', lCoveredItem.GetValue<string>('status', ''));
+    Assert.AreEqual('covered-by-parent-rewrite',
+      lCoveredItem.GetValue<string>('reason', ''));
+    Assert.AreEqual('with-1',
+      lCoveredItem.GetValue<string>('coveredByStatementId', ''));
+
+    RequireJsonObjectKey(lRoot, 'summary', lSummary);
+    Assert.AreEqual(3, (lSummary.Values['withStatements'] as TJSONNumber).AsInt);
+    Assert.AreEqual(1, (lSummary.Values['plannedEdits'] as TJSONNumber).AsInt);
+    Assert.AreEqual(1, (lSummary.Values['skipped'] as TJSONNumber).AsInt);
+    Assert.AreEqual(1, (lSummary.Values['covered'] as TJSONNumber).AsInt);
+
+    RequireJsonObjectKey(lRoot, 'migrationTelemetry', lTelemetry);
+    Assert.AreEqual(1, lTelemetry.GetValue<Integer>('coveredStatements'));
+  finally
+    lJson.Free;
+  end;
+end;
+
+procedure TRemoveWithReportTests.TextReportAccountsForCoveredStatements;
+var
+  lMetrics: TRemoveWithPlannerPhaseMetrics;
+  lOptions: TAppOptions;
+  lOutput: string;
+  lPlanResult: TRemoveWithPlanResult;
+  lScanResult: TRemoveWithScanResult;
+  lTransactionResult: TRemoveWithTransactionResult;
+begin
+  lOptions := Default(TAppOptions);
+  lOptions.fRemoveWithMode := TRemoveWithMode.rwmPlan;
+  lOptions.fRemoveWithFormat := TRemoveWithFormat.rwfText;
+  lMetrics := Default(TRemoveWithPlannerPhaseMetrics);
+  lPlanResult := Default(TRemoveWithPlanResult);
+  lScanResult := Default(TRemoveWithScanResult);
+  lTransactionResult := Default(TRemoveWithTransactionResult);
+
+  SetLength(lScanResult.fWithStatements, 3);
+  SetLength(lPlanResult.fStatements, 3);
+  lPlanResult.fStatements[0].fStatementId := 'with-1';
+  lPlanResult.fStatements[0].fStatus := 'planned';
+  SetLength(lPlanResult.fStatements[0].fEdits, 1);
+  lPlanResult.fStatements[0].fEdits[0].fStatementId := 'with-1';
+  lPlanResult.fStatements[0].fEdits[0].fKind := 'replace-statement';
+  lPlanResult.fStatements[1].fStatementId := 'with-2';
+  lPlanResult.fStatements[1].fStatus := 'planned';
+  lPlanResult.fStatements[1].fCoveredByStatementId := 'with-1';
+  lPlanResult.fStatements[2].fStatementId := 'with-3';
+  lPlanResult.fStatements[2].fStatus := 'skipped';
+
+  lOutput := BuildRemoveWithTextReport(lOptions, 'covered.dproj', '', 'run-id',
+    '', '', lScanResult, lPlanResult, lTransactionResult, lMetrics);
+
+  Assert.IsTrue(ContainsText(lOutput, 'withStatements=3'), 'Expected discovered statement count.');
+  Assert.IsTrue(ContainsText(lOutput, 'plannedEdits=1'), 'Expected concrete edit count.');
+  Assert.IsTrue(ContainsText(lOutput, 'skipped=1'), 'Expected skipped statement count.');
+  Assert.IsTrue(ContainsText(lOutput, 'covered=1'), 'Expected covered child statement count.');
 end;
 
 procedure TRemoveWithReportTests.DiagnosticsPlanJsonReportIncludesPlannerPhaseMetrics;
@@ -5755,6 +5883,8 @@ begin
     'Outer final statement should keep its concrete edit.');
   Assert.AreEqual(0, Integer(Length(lInnerStatement.fEdits)),
     'Covered child statement should count as planned without duplicating parent edits.');
+  Assert.AreEqual('outer-with', lInnerStatement.fCoveredByStatementId,
+    'Covered child statement should preserve the parent statement link.');
   Assert.AreEqual(0, lPlanResult.fSemanticParityReport.MismatchCount,
     lPlanResult.fSemanticParityReport.SummaryText);
 end;
@@ -11032,26 +11162,74 @@ begin
   end;
 end;
 
-procedure TRemoveWithProprietaryProjectTests.AssertPlannedStatementIdsEqual(const aExpectedRoot,
-  aActualRoot: TJSONObject);
+procedure TRemoveWithProprietaryProjectTests.AssertStatementIdsEqual(const aArrayName: string;
+  const aExpectedRoot, aActualRoot: TJSONObject);
 var
   i: Integer;
-  lActualEdits: TJSONArray;
+  lActualItems: TJSONArray;
   lActualId: string;
-  lExpectedEdits: TJSONArray;
+  lExpectedItems: TJSONArray;
   lExpectedId: string;
 begin
-  RequireJsonArrayKey(aExpectedRoot, 'plannedEdits', lExpectedEdits);
-  RequireJsonArrayKey(aActualRoot, 'plannedEdits', lActualEdits);
-  Assert.AreEqual(lExpectedEdits.Count, lActualEdits.Count,
-    'Expected apply planned edit count to match report-only plan count.');
-  for i := 0 to lExpectedEdits.Count - 1 do
+  RequireJsonArrayKey(aExpectedRoot, aArrayName, lExpectedItems);
+  RequireJsonArrayKey(aActualRoot, aArrayName, lActualItems);
+  Assert.AreEqual(lExpectedItems.Count, lActualItems.Count,
+    'Expected apply ' + aArrayName + ' count to match report-only plan count.');
+  for i := 0 to lExpectedItems.Count - 1 do
   begin
-    lExpectedId := (lExpectedEdits.Items[i] as TJSONObject).GetValue<string>('statementId', '');
-    lActualId := (lActualEdits.Items[i] as TJSONObject).GetValue<string>('statementId', '');
+    lExpectedId := (lExpectedItems.Items[i] as TJSONObject).GetValue<string>('statementId', '');
+    lActualId := (lActualItems.Items[i] as TJSONObject).GetValue<string>('statementId', '');
     Assert.AreEqual(lExpectedId, lActualId,
-      Format('Expected apply planned statement ID at index %d to match report-only plan.', [i]));
+      Format('Expected apply %s statement ID at index %d to match report-only plan.',
+      [aArrayName, i]));
   end;
+end;
+
+procedure TRemoveWithProprietaryProjectTests.AssertRemoveWithAccounting(const aRoot: TJSONObject);
+var
+  lCovered: TJSONArray;
+  lPlanned: TJSONArray;
+  lSkipped: TJSONArray;
+  lSummary: TJSONObject;
+begin
+  RequireJsonObjectKey(aRoot, 'summary', lSummary);
+  RequireJsonArrayKey(aRoot, 'plannedEdits', lPlanned);
+  RequireJsonArrayKey(aRoot, 'skipped', lSkipped);
+  RequireJsonArrayKey(aRoot, 'covered', lCovered);
+  Assert.AreEqual((lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+    lPlanned.Count, 'Expected planned edit array count to match summary.');
+  Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt,
+    lSkipped.Count, 'Expected skipped array count to match summary.');
+  Assert.AreEqual((lSummary.Values['covered'] as TJSONNumber).AsInt,
+    lCovered.Count, 'Expected covered array count to match summary.');
+  Assert.AreEqual((lSummary.Values['withStatements'] as TJSONNumber).AsInt,
+    lPlanned.Count + lSkipped.Count + lCovered.Count,
+    'Expected planned + skipped + covered rows to account for every discovered with statement.');
+end;
+
+procedure TRemoveWithProprietaryProjectTests.AssertReportApplyAccountingEqual(
+  const aExpectedRoot, aActualRoot: TJSONObject);
+var
+  lActualSummary: TJSONObject;
+  lExpectedSummary: TJSONObject;
+begin
+  RequireJsonObjectKey(aExpectedRoot, 'summary', lExpectedSummary);
+  RequireJsonObjectKey(aActualRoot, 'summary', lActualSummary);
+  Assert.AreEqual((lExpectedSummary.Values['withStatements'] as TJSONNumber).AsInt,
+    (lActualSummary.Values['withStatements'] as TJSONNumber).AsInt,
+    'Expected apply with-statement count to match report-only plan count.');
+  Assert.AreEqual((lExpectedSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+    (lActualSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
+    'Expected apply planned edit count to match report-only plan count.');
+  Assert.AreEqual((lExpectedSummary.Values['skipped'] as TJSONNumber).AsInt,
+    (lActualSummary.Values['skipped'] as TJSONNumber).AsInt,
+    'Expected apply skipped count to match report-only plan count.');
+  Assert.AreEqual((lExpectedSummary.Values['covered'] as TJSONNumber).AsInt,
+    (lActualSummary.Values['covered'] as TJSONNumber).AsInt,
+    'Expected apply covered count to match report-only plan count.');
+  AssertStatementIdsEqual('plannedEdits', aExpectedRoot, aActualRoot);
+  AssertStatementIdsEqual('skipped', aExpectedRoot, aActualRoot);
+  AssertStatementIdsEqual('covered', aExpectedRoot, aActualRoot);
 end;
 
 procedure TRemoveWithProprietaryProjectTests.AssertSkippedReasonBetween(const aSkipped: TJSONArray;
@@ -11164,8 +11342,7 @@ begin
     RequireJsonObjectKey(lPlanRoot, 'summary', lPlanSummary);
     Assert.AreEqual(667, (lPlanSummary.Values['withStatements'] as TJSONNumber).AsInt,
       'Expected maxTdb report-only plan to retain the current scan baseline.');
-    Assert.AreEqual(215, (lPlanSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
-      'Expected maxTdb report-only planned edits to retain the semantic baseline.');
+    AssertRemoveWithAccounting(lPlanRoot);
     AssertSnapshotUnchanged(lClonePaths, lCloneBytes,
       'Report-only maxTdb plan mode must leave cloned sources unchanged.');
 
@@ -11178,9 +11355,8 @@ begin
       RequireJsonObjectKey(lApplyRoot, 'summary', lApplySummary);
       Assert.AreEqual(667, (lApplySummary.Values['withStatements'] as TJSONNumber).AsInt,
         'Expected maxTdb apply to keep the same scan baseline as report-only plan mode.');
-      Assert.AreEqual(215, (lApplySummary.Values['plannedEdits'] as TJSONNumber).AsInt,
-        'Expected maxTdb apply planned edits to match report-only plan mode.');
-      AssertPlannedStatementIdsEqual(lPlanRoot, lApplyRoot);
+      AssertRemoveWithAccounting(lApplyRoot);
+      AssertReportApplyAccountingEqual(lPlanRoot, lApplyRoot);
     finally
       lApplyRoot.Free;
     end;
@@ -11231,8 +11407,7 @@ begin
     RequireJsonObjectKey(lRoot, 'migrationTelemetry', lTelemetry);
     Assert.AreEqual(667, (lSummary.Values['withStatements'] as TJSONNumber).AsInt,
       'Expected maxTdb plan to retain the current with-statement coverage baseline.');
-    Assert.AreEqual(215, (lSummary.Values['plannedEdits'] as TJSONNumber).AsInt,
-      'Expected maxTdb planned edits to stay at the evidence-backed semantic rewrite baseline.');
+    AssertRemoveWithAccounting(lRoot);
     Assert.IsTrue((lSummary.Values['skipped'] as TJSONNumber).AsInt <= 460,
       'Expected maxTdb skipped count not to regress materially.');
     RequireJsonArrayKey(lRoot, 'skipped', lSkipped);
@@ -11259,6 +11434,8 @@ begin
       lTelemetry.GetValue<Integer>('plannedEdits'), 'Expected planned telemetry to match summary.');
     Assert.AreEqual((lSummary.Values['skipped'] as TJSONNumber).AsInt,
       lTelemetry.GetValue<Integer>('skippedStatements'), 'Expected skipped telemetry to match summary.');
+    Assert.AreEqual((lSummary.Values['covered'] as TJSONNumber).AsInt,
+      lTelemetry.GetValue<Integer>('coveredStatements'), 'Expected covered telemetry to match summary.');
     RequireJsonNumberKey(lTelemetry, 'localModelHits');
     Assert.AreEqual(0, lTelemetry.GetValue<Integer>('intrinsicAllowlistFallbacks'),
       'Expected external routine facts to come from DelphiSemantics rather than DAK fallback allowlists.');

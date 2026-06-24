@@ -16,6 +16,8 @@ All notable user-visible changes to this project will be documented in this file
 - Added additive `remove-with` planner subphase metrics for semantic inventory,
   with-binding, final DTO planning, and resolver-report fallback/projection
   timings and counts.
+- Added explicit `remove-with` covered-statement accounting to JSON and text
+  reports, including plan/apply parity checks for the proprietary fixture.
 - Added proprietary fixture semantic rename dogfood coverage that clones the fixture, applies
   real project-scoped renames, verifies `.dak` backups/manifests, compiles the
   renamed clone, and byte-checks that the original fixture stays unchanged.
