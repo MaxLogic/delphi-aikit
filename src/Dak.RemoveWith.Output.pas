@@ -661,7 +661,7 @@ begin
   Result := TJSONArray.Create;
   for lStatement in aPlanResult.fStatements do
   begin
-    if lStatement.fStatus <> 'planned' then
+    if not RemoveWithPlannedStatementHasActionableEdits(lStatement) then
       Continue;
 
     lEdits := TJSONArray.Create;
@@ -731,7 +731,7 @@ begin
   aSkippedCount := 0;
   for lStatement in aPlanResult.fStatements do
   begin
-    if lStatement.fStatus = 'planned' then
+    if RemoveWithPlannedStatementHasActionableEdits(lStatement) then
       Inc(aPlannedCount)
     else if lStatement.fStatus = 'skipped' then
       Inc(aSkippedCount);

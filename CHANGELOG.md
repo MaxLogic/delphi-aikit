@@ -63,10 +63,9 @@ All notable user-visible changes to this project will be documented in this file
 - Added `deps` for project dependency topology analysis, including deterministic JSON output, text summaries, focused unit views, cycle reporting over resolved project units, and default artifact copies under sibling `.dak/<ProjectName>/deps/`. (T-101, T-102)
 
 ### Changed
-- `remove-with` plan reports now consume DelphiSemantics' full statement
-  ledger, so nested statements covered by a parent rewrite are counted in
-  planned/skipped accounting while semantic DTO parity still compares concrete
-  final edits.
+- `remove-with` plan reports now preserve DelphiSemantics' full statement
+  ledger internally while public planned/apply counts include only statements
+  with concrete source edits.
 - Default no-filter DUnitX runs now exclude long proprietary `<proprietary-fixture-proof-category>`
   dogfood lanes; run those lanes explicitly with category include filters when
   proprietary fixture proof is needed.

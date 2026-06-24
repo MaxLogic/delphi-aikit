@@ -45,6 +45,8 @@ function PlanRemoveWithRewrites(const aInventory: TRemoveWithFactSet;
   const aScanResult: TRemoveWithScanResult; const aResolverResult: TRemoveWithResolverResult;
   const aSemanticPlan: TDelphiSemanticRemoveWithPlan; out aPlanResult: TRemoveWithPlanResult;
   out aError: string): Boolean; overload;
+function RemoveWithPlannedStatementHasActionableEdits(
+  const aStatement: TRemoveWithPlannedStatement): Boolean;
 
 implementation
 
@@ -53,6 +55,12 @@ uses
   DelphiSemantics.Model.Text,
   MaxLogic.StrUtils,
   Dak.RemoveWith.Expressions, Dak.RemoveWith.Source;
+
+function RemoveWithPlannedStatementHasActionableEdits(
+  const aStatement: TRemoveWithPlannedStatement): Boolean;
+begin
+  Result := SameText(aStatement.fStatus, 'planned') and (Length(aStatement.fEdits) > 0);
+end;
 
 type
   TRemoveWithPlanOffsetRange = record
