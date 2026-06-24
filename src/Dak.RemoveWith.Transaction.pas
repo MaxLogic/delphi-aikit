@@ -63,6 +63,7 @@ implementation
 uses
   System.Classes, System.Generics.Collections, System.Hash, System.IOUtils, System.JSON, System.SysUtils,
   Winapi.Windows,
+  DelphiSemantics.Api.RemoveWith.Compatibility,
   MaxLogic.StrUtils,
   Dak.Build.Runner, Dak.RemoveWith.Discovery, Dak.RemoveWith.Source;
 
@@ -184,7 +185,7 @@ begin
     lSeen := TDictionary<string, Byte>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
     for lStatement in aPlanResult.fStatements do
     begin
-      if lStatement.fStatus <> 'planned' then
+      if not RemoveWithPlannedStatementHasActionableEdits(lStatement) then
         Continue;
       for lEdit in lStatement.fEdits do
         if lEdit.fFilePath <> '' then
@@ -341,7 +342,7 @@ var
 begin
   for lStatement in aPlanResult.fStatements do
   begin
-    if lStatement.fStatus = 'planned' then
+    if RemoveWithPlannedStatementHasActionableEdits(lStatement) then
       Exit(True);
   end;
   Result := False;
@@ -369,7 +370,7 @@ begin
     lValues := TList<string>.Create;
     for lStatement in aPlanResult.fStatements do
     begin
-      if lStatement.fStatus <> 'planned' then
+      if not RemoveWithPlannedStatementHasActionableEdits(lStatement) then
         Continue;
       AddUniqueStatementId(lValues, lSeen, lStatement.fStatementId);
     end;
@@ -378,6 +379,12 @@ begin
     lValues.Free;
     lSeen.Free;
   end;
+end;
+
+function SemanticFinalStatementHasActionableEdits(
+  const aStatement: TDelphiSemanticRemoveWithFinalStatement): Boolean;
+begin
+  Result := SameText(aStatement.Status, 'planned') and (Length(aStatement.Edits) > 0);
 end;
 
 function PlannedStatementIdsFromSemanticPlan(const aPlanResult: TRemoveWithPlanResult): TArray<string>;
@@ -393,7 +400,7 @@ begin
     lValues := TList<string>.Create;
     for i := 0 to High(aPlanResult.fSemanticPlan.FinalStatements) do
     begin
-      if aPlanResult.fSemanticPlan.FinalStatements[i].Status <> 'planned' then
+      if not SemanticFinalStatementHasActionableEdits(aPlanResult.fSemanticPlan.FinalStatements[i]) then
         Continue;
       AddUniqueStatementId(lValues, lSeen, aPlanResult.fSemanticPlan.FinalStatements[i].StatementId);
     end;
@@ -752,7 +759,7 @@ begin
     try
       for lStatement in aPlanResult.fStatements do
       begin
-        if lStatement.fStatus <> 'planned' then
+        if not RemoveWithPlannedStatementHasActionableEdits(lStatement) then
           Continue;
         for lEdit in lStatement.fEdits do
         begin
@@ -888,7 +895,7 @@ begin
   try
     for lStatement in aPlanResult.fStatements do
     begin
-      if lStatement.fStatus <> 'planned' then
+      if not RemoveWithPlannedStatementHasActionableEdits(lStatement) then
         Continue;
       for lEdit in lStatement.fEdits do
       begin

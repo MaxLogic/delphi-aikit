@@ -44,7 +44,11 @@ begin
   Result := 0;
   for lStatement in aPlanResult.fStatements do
   begin
-    if SameText(lStatement.fStatus, aStatus) then
+    if SameText(aStatus, 'planned') then
+    begin
+      if RemoveWithPlannedStatementHasActionableEdits(lStatement) then
+        Inc(Result);
+    end else if SameText(lStatement.fStatus, aStatus) then
       Inc(Result);
   end;
 end;
