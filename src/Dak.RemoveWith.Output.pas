@@ -723,16 +723,48 @@ begin
   end;
 end;
 
-procedure CountPlanResult(const aPlanResult: TRemoveWithPlanResult; out aPlannedCount, aSkippedCount: Integer);
+function RemoveWithPlannedStatementIsCovered(
+  const aStatement: TRemoveWithPlannedStatement): Boolean;
+begin
+  Result := SameText(aStatement.fStatus, 'planned') and
+    (Trim(aStatement.fCoveredByStatementId) <> '') and
+    (not RemoveWithPlannedStatementHasActionableEdits(aStatement));
+end;
+
+function BuildCoveredArray(const aPlanResult: TRemoveWithPlanResult): TJSONArray;
+var
+  lItem: TJSONObject;
+  lStatement: TRemoveWithPlannedStatement;
+begin
+  Result := TJSONArray.Create;
+  for lStatement in aPlanResult.fStatements do
+  begin
+    if not RemoveWithPlannedStatementIsCovered(lStatement) then
+      Continue;
+    lItem := TJSONObject.Create
+      .AddPair('statementId', lStatement.fStatementId)
+      .AddPair('file', lStatement.fFilePath)
+      .AddPair('status', lStatement.fStatus)
+      .AddPair('reason', lStatement.fReason)
+      .AddPair('coveredByStatementId', lStatement.fCoveredByStatementId);
+    Result.AddElement(lItem);
+  end;
+end;
+
+procedure CountPlanResult(const aPlanResult: TRemoveWithPlanResult; out aPlannedCount,
+  aSkippedCount, aCoveredCount: Integer);
 var
   lStatement: TRemoveWithPlannedStatement;
 begin
   aPlannedCount := 0;
   aSkippedCount := 0;
+  aCoveredCount := 0;
   for lStatement in aPlanResult.fStatements do
   begin
     if RemoveWithPlannedStatementHasActionableEdits(lStatement) then
       Inc(aPlannedCount)
+    else if RemoveWithPlannedStatementIsCovered(lStatement) then
+      Inc(aCoveredCount)
     else if lStatement.fStatus = 'skipped' then
       Inc(aSkippedCount);
   end;
@@ -771,6 +803,7 @@ var
   lIntrinsicAllowlistFallbacks: Integer;
   lLocalModelHits: Integer;
   lPlannedCount: Integer;
+  lCoveredCount: Integer;
   lSkippedCount: Integer;
   lSymbolMapHits: Integer;
   lSymbolMapMisses: Integer;
@@ -781,7 +814,7 @@ begin
   lSymbolMapHits := 0;
   lSymbolMapMisses := 0;
   lTrueUnknowns := 0;
-  CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount);
+  CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount, lCoveredCount);
 
   for lClassification in aResolverResult.fClassifications do
   begin
@@ -808,6 +841,7 @@ begin
   Result.AddPair('trueUnknowns', TJSONNumber.Create(lTrueUnknowns));
   Result.AddPair('plannedEdits', TJSONNumber.Create(lPlannedCount));
   Result.AddPair('skippedStatements', TJSONNumber.Create(lSkippedCount));
+  Result.AddPair('coveredStatements', TJSONNumber.Create(lCoveredCount));
   Result.AddPair('elapsedPlanningMs', TJSONNumber.Create(aPlanResult.fElapsedPlanningMs));
 end;
 
@@ -815,11 +849,12 @@ function BuildSummaryObject(const aOptions: TAppOptions; const aScanResult: TRem
   const aPlanResult: TRemoveWithPlanResult; const aTransactionResult: TRemoveWithTransactionResult): TJSONObject;
 var
   lAppliedCount: Integer;
+  lCoveredCount: Integer;
   lPlannedCount: Integer;
   lRolledBackCount: Integer;
   lSkippedCount: Integer;
 begin
-  CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount);
+  CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount, lCoveredCount);
   lAppliedCount := 0;
   lRolledBackCount := 0;
   if aOptions.fRemoveWithMode = TRemoveWithMode.rwmApply then
@@ -836,6 +871,7 @@ begin
   Result.AddPair('plannedEdits', TJSONNumber.Create(lPlannedCount));
   Result.AddPair('appliedEdits', TJSONNumber.Create(lAppliedCount));
   Result.AddPair('skipped', TJSONNumber.Create(lSkippedCount));
+  Result.AddPair('covered', TJSONNumber.Create(lCoveredCount));
   Result.AddPair('failed', TJSONNumber.Create(0));
   Result.AddPair('rolledBack', TJSONNumber.Create(lRolledBackCount));
 end;
@@ -1045,6 +1081,7 @@ begin
     lRoot.AddPair('resolver', BuildResolverObject(aResolverResult));
     lRoot.AddPair('plannedEdits', BuildPlannedEditsArray(aPlanResult));
     lRoot.AddPair('skipped', BuildSkippedArray(aPlanResult));
+    lRoot.AddPair('covered', BuildCoveredArray(aPlanResult));
     lRoot.AddPair('warnings', BuildWarningsArray(aScanResult));
     lRoot.AddPair('requiredVerification',
       BuildRemoveWithRequiredVerificationArray(aPlanResult.fSemanticPlan.RequiredVerification));
@@ -1078,6 +1115,7 @@ function BuildRemoveWithTextReport(const aOptions: TAppOptions; const aProjectPa
   const aMetrics: TRemoveWithPlannerPhaseMetrics): string;
 var
   lAppliedCount: Integer;
+  lCoveredCount: Integer;
   lPlannedCount: Integer;
   lRolledBackCount: Integer;
   lSkippedCount: Integer;
@@ -1085,7 +1123,7 @@ var
   lTargetValue: string;
   lVerificationText: string;
 begin
-  CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount);
+  CountPlanResult(aPlanResult, lPlannedCount, lSkippedCount, lCoveredCount);
   lStatusText := BuildRootStatus(aOptions, aTransactionResult);
   lVerificationText := aTransactionResult.fVerificationStatus;
   if lVerificationText = '' then
@@ -1122,6 +1160,7 @@ begin
     'plannedEdits=' + IntToStr(lPlannedCount) + sLineBreak +
     'appliedEdits=' + IntToStr(lAppliedCount) + sLineBreak +
     'skipped=' + IntToStr(lSkippedCount) + sLineBreak +
+    'covered=' + IntToStr(lCoveredCount) + sLineBreak +
     BuildWarningsText(aScanResult) + sLineBreak +
     'failed=0' + sLineBreak +
     'rolledBack=' + IntToStr(lRolledBackCount) + sLineBreak +
