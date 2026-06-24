@@ -9,6 +9,8 @@ uses
 function TryRunBuildInternal(const aOptions: TAppOptions; out aExitCode: Integer; out aError: string): Boolean; overload;
 function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
   out aExitCode: Integer; out aError: string): Boolean; overload;
+function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
+  const aDfmCheckRunner: TBuildDfmCheckRunner; out aExitCode: Integer; out aError: string): Boolean; overload;
 
 implementation
 
@@ -17,7 +19,7 @@ uses
   System.Win.Registry,
   Winapi.Windows,
   maxLogic.StrUtils,
-  Dak.Build.Summary,
+  Dak.Build.Summary, Dak.DfmCheck,
   Dak.Diagnostics, Dak.ExternalToolProcess, Dak.Lsp.Context, Dak.Lsp.Runner, Dak.MacroExpander, Dak.Messages,
   Dak.MsBuild, Dak.Project.BuildParams, Dak.Project.SourceLookup, Dak.RadStudio.Locator, Dak.Registry, Dak.RsVars,
   Dak.Settings, Dak.SourceContext, Dak.Utils;
@@ -1139,10 +1141,11 @@ begin
 end;
 
 function BuildMadExceptMissingDcuGuidance(const aErrors: TArray<string>): string; forward;
-procedure PrintPostBuildDfmCheckNotes(const aOptions: TAppOptions; const aSummary: TBuildSummary); forward;
+procedure PrintPostBuildDfmCheckNotes(const aOptions: TAppOptions; const aSummary: TBuildSummary;
+  const aSourceBuildFailed: Boolean); forward;
 
 procedure PrintSummary(const aOptions: TAppOptions; const aProjectInfo: TBuildProjectInfo;
-  const aSummary: TBuildSummary);
+  const aSummary: TBuildSummary; const aSourceBuildFailed: Boolean);
 var
   lLine: string;
 begin
@@ -1175,7 +1178,9 @@ begin
         Writeln(lLine);
     if aSummary.fOutputStale and (aSummary.fOutputMessage <> '') then
       Writeln('WARNING. ' + aSummary.fOutputMessage);
-    PrintPostBuildDfmCheckNotes(aOptions, aSummary);
+    if (not aSummary.fOutputStale) and (aSummary.fOutputMessage <> '') then
+      Writeln('ERROR. ' + aSummary.fOutputMessage);
+    PrintPostBuildDfmCheckNotes(aOptions, aSummary, aSourceBuildFailed);
     Exit;
   end;
 
@@ -1194,7 +1199,9 @@ begin
       Writeln(lLine);
   if aSummary.fOutputStale and (aSummary.fOutputMessage <> '') then
     Writeln(aSummary.fOutputMessage);
-  PrintPostBuildDfmCheckNotes(aOptions, aSummary);
+  if (not aSummary.fOutputStale) and (aSummary.fOutputMessage <> '') then
+    Writeln(aSummary.fOutputMessage);
+  PrintPostBuildDfmCheckNotes(aOptions, aSummary, aSourceBuildFailed);
 end;
 
 function CurrentTicks: Int64;
@@ -1235,14 +1242,12 @@ begin
   Result := '';
 end;
 
-procedure PrintPostBuildDfmCheckNotes(const aOptions: TAppOptions; const aSummary: TBuildSummary);
+procedure PrintPostBuildDfmCheckNotes(const aOptions: TAppOptions; const aSummary: TBuildSummary;
+  const aSourceBuildFailed: Boolean);
 var
   lGuidance: string;
 begin
-  if aSummary.fExitCode = 0 then
-    Exit;
-
-  if aOptions.fBuildRunDfmCheck then
+  if aOptions.fBuildRunDfmCheck and aSourceBuildFailed then
     Writeln('NOTE. dfm-check was not run because the source build failed.');
 
   lGuidance := BuildMadExceptMissingDcuGuidance(aSummary.fErrors);
@@ -1568,7 +1573,7 @@ begin
     if aOptions.fBuildJson then
       Writeln(BuildSummaryAsJson(lProjectInfo.fProjectPath, aOptions, lSummary, aOptions.fBuildTarget, lTimeMs))
     else
-      PrintSummary(aOptions, lProjectInfo, lSummary);
+      PrintSummary(aOptions, lProjectInfo, lSummary, lSummary.fExitCode <> 0);
   end;
 
   Result := True;
@@ -1643,11 +1648,17 @@ var
   lRunner: IBuildProcessRunner;
 begin
   lRunner := TBuildProcessRunner.Create;
-  Result := TryRunBuildInternal(aOptions, lRunner, aExitCode, aError);
+  Result := TryRunBuildInternal(aOptions, lRunner, nil, aExitCode, aError);
 end;
 
 function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
   out aExitCode: Integer; out aError: string): Boolean;
+begin
+  Result := TryRunBuildInternal(aOptions, aRunner, nil, aExitCode, aError);
+end;
+
+function TryRunBuildInternal(const aOptions: TAppOptions; const aRunner: IBuildProcessRunner;
+  const aDfmCheckRunner: TBuildDfmCheckRunner; out aExitCode: Integer; out aError: string): Boolean;
 var
   lBdsRoot: string;
   lBuildSourceContextCache: TSourceContextRunCache;
@@ -1677,6 +1688,8 @@ var
   lRsVarsEnvironment: TRsVarsEnvironment;
   lRsVarsEnvironmentBlock: string;
   lSettings: TDakBuildSettings;
+  lSourceBuildExitCode: Integer;
+  lSourceBuildTimedOut: Boolean;
   lStartTick: Int64;
   lSummary: TBuildSummary;
   lSummaryOptions: TBuildSummaryOptions;
@@ -1760,6 +1773,8 @@ begin
       lProjectInfo.fProjectDir, lOutLog, lErrLog, lRsVarsEnvironmentBlock, lNormalizedOptions.fBuildTimeoutSec,
       aExitCode, lTimedOut, aError) then
       Exit(False);
+    lSourceBuildExitCode := aExitCode;
+    lSourceBuildTimedOut := lTimedOut;
     lTimeMs := CurrentTicks - lStartTick;
 
     PrintVerboseStep(lNormalizedOptions, 'parse-logs');
@@ -1941,8 +1956,19 @@ begin
       end else
       begin
         PrintVerboseStep(lNormalizedOptions, 'print-summary');
-        PrintSummary(lNormalizedOptions, lProjectInfo, lSummary);
+        PrintSummary(lNormalizedOptions, lProjectInfo, lSummary, (lSourceBuildExitCode <> 0) or lSourceBuildTimedOut);
       end;
+    end;
+
+    if lNormalizedOptions.fBuildRunDfmCheck and (lSourceBuildExitCode = 0) and (not lSourceBuildTimedOut) then
+    begin
+      WriteLn('[build] Running dfm-check validation...');
+      if Assigned(aDfmCheckRunner) then
+        lMadExitCode := aDfmCheckRunner(lNormalizedOptions)
+      else
+        lMadExitCode := RunDfmCheckCommand(lNormalizedOptions);
+      if (aExitCode = 0) and (lMadExitCode <> 0) then
+        aExitCode := lMadExitCode;
     end;
 
     Result := True;
