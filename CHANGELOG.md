@@ -4,7 +4,7 @@ All notable user-visible changes to this project will be documented in this file
 
 ## [Unreleased]
 
-## [1.0.1] - 2026-06-25
+## [1.1.0] - 2026-06-25
 
 ### Added
 - Added guarded `dead-code --apply` mode with explicit profile approval, project-scoped
