@@ -2,6 +2,8 @@ program DelphiAIKit;
 
 {$APPTYPE CONSOLE}
 
+{$R *.res}
+
 uses
   FireDAC.Phys.SQLiteWrapper.Stat,
   madExcept,
