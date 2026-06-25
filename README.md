@@ -68,6 +68,12 @@ Use `-target Rebuild` (or `-rebuild`) when we need a full clean rebuild:
 build-delphi.bat projects\DelphiAIKit.dproj -config Debug -platform Win64 -ver 23 -target Rebuild
 ```
 
+Release builds use the same explicit Win64 target:
+
+```
+build-delphi.bat projects\DelphiAIKit.dproj -config Release -platform Win64 -ver 23 -target Rebuild
+```
+
 Build from WSL (calls Windows `cmd.exe`):
 
 ```
@@ -92,7 +98,7 @@ Additional build flags:
 - `--max-findings N` caps printed findings per category (default `5`).
 - `--build-timeout-sec N` terminates hung builds after `N` seconds (`0` disables timeout).
 - `--test-output-dir "<path>"` writes build artifacts to an isolated output directory.
-- `--dfmcheck` runs DFM streaming validation after a successful build (presence flag; same as calling `dfm-check` separately).
+- `--dfmcheck` runs DFM streaming validation after a successful source build (presence flag; same as calling `dfm-check` separately). If the source build fails, DAK reports that `dfm-check` was not run instead of treating the skipped validation as the failing phase.
 - `--dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm"` scopes post-build `--dfmcheck` to selected forms.
 - `--all` scopes post-build `--dfmcheck` to all forms (default when `--dfm` is omitted).
 - `--builder auto|delphi|webcore` selects the build backend. `auto` is the default and now detects strong TMS WEB Core project markers from the target `.dproj`.
@@ -249,6 +255,8 @@ bin\DelphiAIKit.exe remove-with --project "C:\path\Project.dproj" --unit "C:\pat
 - `apply` writes planned safe edits transactionally, then runs build verification.
 
 Target exactly one scope with `--unit`, `--dir`, or `--all`. Output defaults to JSON and can be written with `--output "<path>"`; `--output -` keeps stdout output.
+
+Plan and apply reports account for every discovered `with` statement across three top-level arrays: `planned`, `skipped`, and `covered`. Covered rows are nested statements already handled by a parent rewrite; they are counted in `summary.covered` and `telemetry.coveredStatements` without duplicating planned edit counts.
 
 The safety model is intentionally conservative. DAK builds one shared project model, extracts AST-backed unit data, and uses indexed semantic lookups for local variables, parameters, current-class members, unit globals/constants, source-available ancestors, interfaces, helpers, indexed/default properties, and active nested `with` receiver stacks. The legacy declaration scanner is retained only as a flat compatibility inventory while the AST-backed semantic model reaches full reporting parity. DAK qualifies only identifiers it can resolve safely. Ambiguous or unproven bindings are reported as skipped, including classifications such as `external`, `unsupported`, `unresolved`, and `ambiguous-to-DAK`.
 
