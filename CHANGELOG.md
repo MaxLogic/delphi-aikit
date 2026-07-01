@@ -4,6 +4,8 @@ All notable user-visible changes to this project will be documented in this file
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-01
+
 ### Added
 - Added typed `build --define` and `--unit-search-path` overlays for Delphi/MSBuild builds, preserving project compiler defines and unit search paths while rejecting the switches for WebCore builds. (T-202)
 
