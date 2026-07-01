@@ -55,6 +55,7 @@ type
     fMainSourcePath: string;
     fMesPath: string;
     fDefines: string;
+    fUnitSearchPath: string;
     fOutputPath: string;
     fMadExceptRequired: Boolean;
     fMadExceptReason: string;
@@ -84,6 +85,30 @@ begin
     Result := '"' + StringReplace(aValue, '"', '""', [rfReplaceAll]) + '"'
   else
     Result := aValue;
+end;
+
+function MergeSemicolonValues(const aOverlayValue, aProjectValue: string): string;
+var
+  lOverlayValue: string;
+  lProjectValue: string;
+begin
+  lOverlayValue := Trim(aOverlayValue);
+  lProjectValue := Trim(aProjectValue);
+  if lOverlayValue = '' then
+    Exit(lProjectValue);
+  if lProjectValue = '' then
+    Exit(lOverlayValue);
+  Result := lOverlayValue + ';' + lProjectValue;
+end;
+
+procedure AppendMsBuildProperty(var aArguments: string; const aName, aValue: string);
+var
+  lValue: string;
+begin
+  lValue := Trim(aValue);
+  if lValue = '' then
+    Exit;
+  aArguments := aArguments + ' /p:' + aName + '=' + QuoteCmdArg(lValue);
 end;
 
 function NormalizeDelphiVerForBuild(const aValue: string): string;
@@ -825,7 +850,8 @@ begin
 end;
 
 function BuildProjectInfo(const aProjectPath, aConfig, aPlatform: string;
-  const aEnvVars: TDictionary<string, string>; const aTestOutputDir: string): TBuildProjectInfo;
+  const aEnvVars: TDictionary<string, string>; const aTestOutputDir, aBuildDefines,
+  aBuildUnitSearchPath: string): TBuildProjectInfo;
 var
   lError: string;
   lProps: TDictionary<string, string>;
@@ -862,6 +888,9 @@ begin
       Result.fOutputPath := TPath.Combine(TPath.GetFullPath(aTestOutputDir), TPath.GetFileName(Result.fOutputPath));
 
     lProps.TryGetValue('DCC_Define', Result.fDefines);
+    Result.fDefines := MergeSemicolonValues(aBuildDefines, Result.fDefines);
+    lProps.TryGetValue('DCC_UnitSearchPath', Result.fUnitSearchPath);
+    Result.fUnitSearchPath := MergeSemicolonValues(aBuildUnitSearchPath, Result.fUnitSearchPath);
 
     if not FileExists(Result.fMainSourcePath) then
       Result.fMadExceptReason := 'main-source-missing'
@@ -1112,6 +1141,11 @@ begin
 
   if Trim(aExtraProps) <> '' then
     Result := Result + ' ' + aExtraProps;
+
+  if aOptions.fHasBuildDefines then
+    AppendMsBuildProperty(Result, 'DCC_Define', aProjectInfo.fDefines);
+  if aOptions.fHasBuildUnitSearchPath then
+    AppendMsBuildProperty(Result, 'DCC_UnitSearchPath', aProjectInfo.fUnitSearchPath);
 end;
 
 function FileUtcTicks(const aPath: string): Int64;
@@ -1600,6 +1634,18 @@ begin
     Exit(False);
   end;
 
+  if aOptions.fHasBuildDefines then
+  begin
+    aError := Format(SBuildOptionDelphiOnly, ['--define']);
+    Exit(False);
+  end;
+
+  if aOptions.fHasBuildUnitSearchPath then
+  begin
+    aError := Format(SBuildOptionDelphiOnly, ['--unit-search-path']);
+    Exit(False);
+  end;
+
   Result := True;
 end;
 
@@ -1758,7 +1804,8 @@ begin
     PrintVerboseStep(lNormalizedOptions, 'project-info');
     lProjectInfo := BuildProjectInfo(lNormalizedOptions.fDprojPath, lNormalizedOptions.fConfig,
       lNormalizedOptions.fPlatform, lEnvVars, IfThen(lNormalizedOptions.fHasBuildTestOutputDir,
-      lNormalizedOptions.fBuildTestOutputDir, ''));
+      lNormalizedOptions.fBuildTestOutputDir, ''), lNormalizedOptions.fBuildDefines,
+      lNormalizedOptions.fBuildUnitSearchPath);
 
     lTempBase := TPath.Combine(TPath.GetTempPath,
       'dak-build-' + IntToStr(GetCurrentProcessId) + '-' + IntToStr(GetTickCount));

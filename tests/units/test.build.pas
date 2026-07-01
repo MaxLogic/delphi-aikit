@@ -9,7 +9,9 @@ uses
   System.SysUtils,
   Winapi.Windows,
   DUnitX.TestFramework,
+  maxLogic.CmdLineParams,
   Dak.Build,
+  Dak.Cli,
   Dak.Registry,
   Dak.RsVars,
   Dak.Types,
@@ -53,6 +55,8 @@ type
     procedure BuildCommandUsesNativeRunnerForExternalRepoProjects;
     [Test]
     procedure BuildCommandAddsEnvironmentProjPropsToMsBuildArgs;
+    [Test]
+    procedure BuildCommandAddsCompilerOverlaysToMsBuildArgs;
     [Test]
     procedure RsVarsLoaderIgnoresStaleRadEnvironmentAndOverlongPath;
     [Test]
@@ -112,6 +116,8 @@ type
     [Test]
     procedure BuildWebCoreNoPwaOmitsPwaArgument;
     [Test]
+    procedure BuildAutoDetectedWebCoreRejectsCompilerOverlays;
+    [Test]
     procedure BuildWebCoreAiBuildEmitsSuccessSummary;
     [Test]
     procedure BuildWebCorePlainBuildEmitsOutputPath;
@@ -136,6 +142,14 @@ implementation
 function ReadRepoTextFile(const aRelativePath: string): string;
 begin
   Result := TFile.ReadAllText(TPath.Combine(RepoRoot, aRelativePath), TEncoding.UTF8);
+end;
+
+procedure SetBuildParams(const aCmdLine: string);
+var
+  lParams: iCmdLineParams;
+begin
+  lParams := maxCmdLineParams;
+  lParams.BuildFromString(aCmdLine);
 end;
 
 procedure TBuildTests.ExternalToolProcessCentralizesBasicCommandRunners;
@@ -762,6 +776,75 @@ begin
     lRunner := nil;
     lCapturingRunner := nil;
     lEnvGuard := nil;
+  end;
+end;
+
+procedure TBuildTests.BuildCommandAddsCompilerOverlaysToMsBuildArgs;
+var
+  lCapturingRunner: TCapturingBuildRunner;
+  lDprPath: string;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lFakeBdsRoot: string;
+  lOptions: TAppOptions;
+  lOverlayPath: string;
+  lProjectRoot: string;
+  lRunner: IBuildProcessRunner;
+  lRsVarsPath: string;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'compiler-overlays-build');
+  ForceDirectories(lProjectRoot);
+
+  lDprojPath := TPath.Combine(lProjectRoot, 'CompilerOverlaysCheck.dproj');
+  lDprPath := TPath.ChangeExtension(lDprojPath, '.dpr');
+  WriteUtf8File(lDprojPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup>' + sLineBreak +
+    '    <MainSource>CompilerOverlaysCheck.dpr</MainSource>' + sLineBreak +
+    '    <DCC_Define>BASE;$(DCC_Define)</DCC_Define>' + sLineBreak +
+    '    <DCC_UnitSearchPath>src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+  WriteUtf8File(lDprPath,
+    'program CompilerOverlaysCheck;' + sLineBreak +
+    'begin' + sLineBreak +
+    'end.' + sLineBreak);
+
+  lFakeBdsRoot := TPath.Combine(TempRoot, 'fake-bds-root');
+  ForceDirectories(TPath.Combine(lFakeBdsRoot, 'bin'));
+  lRsVarsPath := TPath.Combine(lFakeBdsRoot, 'bin\rsvars.bat');
+  TFile.WriteAllText(lRsVarsPath, '@echo off' + sLineBreak, TEncoding.ASCII);
+  WriteUtf8File(TPath.Combine(lFakeBdsRoot, 'bin\MSBuild.exe'), 'stub');
+
+  lOverlayPath := TPath.Combine(TempRoot, 'Profiler Runtime');
+  SetBuildParams('build --project ' + QuoteArg(lDprojPath) +
+    ' --config Debug --platform Win32 --delphi 23.0 --rsvars ' + QuoteArg(lRsVarsPath) +
+    ' --define maxProfiling --define PROFILE_EXTRA --unit-search-path ' + QuoteArg(lOverlayPath));
+
+  lError := '';
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected compiler overlay build command to parse. Error: ' + lError);
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lRunner := lCapturingRunner;
+  try
+    Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+      'Expected native build runner to succeed with fake toolchain. Error: ' + lError);
+    Assert.AreEqual(0, lExitCode, 'The fake build runner should return success.');
+    Assert.AreEqual(1, lCapturingRunner.fCallCount, 'Expected exactly one MSBuild launch.');
+    Assert.IsTrue(ContainsText(lCapturingRunner.fArguments,
+      '/p:DCC_Define="maxProfiling;PROFILE_EXTRA;BASE;"'),
+      'Expected define overlays to be prepended while preserving project defines. Args: ' +
+      lCapturingRunner.fArguments);
+    Assert.IsTrue(ContainsText(lCapturingRunner.fArguments,
+      '/p:DCC_UnitSearchPath="' + lOverlayPath + ';src;"'),
+      'Expected unit search path overlays to be prepended while preserving project paths. Args: ' +
+      lCapturingRunner.fArguments);
+  finally
+    lRunner := nil;
+    lCapturingRunner := nil;
   end;
 end;
 
@@ -2185,6 +2268,51 @@ begin
   Assert.AreEqual(0, lExitCode, 'Expected fake WebCore build to succeed.');
   Assert.IsFalse(ContainsText(lCapturingRunner.fArgumentsList[0], '/PWA'),
     'Expected explicit --no-pwa to omit /PWA from compiler args. Args: ' + lCapturingRunner.fArgumentsList[0]);
+end;
+
+procedure TBuildTests.BuildAutoDetectedWebCoreRejectsCompilerOverlays;
+var
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lProjectRoot: string;
+  lRunner: IBuildProcessRunner;
+  lCapturingRunner: TCapturingBuildRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'webcore-auto-compiler-overlays');
+  PrepareWebCoreBuildFixture(lProjectRoot, lDprojPath);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fBuildBackend := TBuildBackend.bbAuto;
+  lOptions.fBuildDefines := 'maxProfiling';
+  lOptions.fHasBuildDefines := True;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lRunner := lCapturingRunner;
+  lError := '';
+  Assert.IsFalse(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+    'Expected auto-detected WebCore build to reject --define overlays.');
+  Assert.IsTrue(Pos('--define', lError) > 0,
+    'Expected rejection to mention --define. Actual: ' + lError);
+  Assert.AreEqual(0, lCapturingRunner.fCallCount,
+    'Expected rejection before any WebCore compiler launch.');
+
+  lOptions.fBuildDefines := '';
+  lOptions.fHasBuildDefines := False;
+  lOptions.fBuildUnitSearchPath := TPath.Combine(lProjectRoot, 'ProfilerRuntime');
+  lOptions.fHasBuildUnitSearchPath := True;
+  lError := '';
+  Assert.IsFalse(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+    'Expected auto-detected WebCore build to reject --unit-search-path overlays.');
+  Assert.IsTrue(Pos('--unit-search-path', lError) > 0,
+    'Expected rejection to mention --unit-search-path. Actual: ' + lError);
+  Assert.AreEqual(0, lCapturingRunner.fCallCount,
+    'Expected rejection before any WebCore compiler launch.');
 end;
 
 procedure TBuildTests.BuildAutoFallsBackToDelphiWhenWebCoreProbeNeedsEnvironment;

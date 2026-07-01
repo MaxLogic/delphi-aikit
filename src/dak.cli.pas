@@ -119,6 +119,8 @@ begin
     Add('max-findings', '', svpRequiredValue, [crBuild]);
     Add('build-timeout-sec', '', svpRequiredValue, [crBuild]);
     Add('test-output-dir', '', svpRequiredValue, [crBuild]);
+    Add('define', '', svpRequiredValue, [crBuild]);
+    Add('unit-search-path', '', svpRequiredValue, [crBuild]);
     Add('builder', '', svpRequiredValue, [crBuild]);
     Add('webcore-compiler', '', svpRequiredValue, [crBuild]);
     Add('pwa', '', svpFlag, [crBuild]);
@@ -245,6 +247,19 @@ begin
       Exit(True);
 
   Result := False;
+end;
+
+function AppendSemicolonValue(var aTarget: string; const aValue: string): Boolean;
+var
+  lValue: string;
+begin
+  lValue := Trim(aValue);
+  if lValue = '' then
+    Exit(False);
+  if aTarget <> '' then
+    aTarget := aTarget + ';';
+  aTarget := aTarget + lValue;
+  Result := True;
 end;
 
 function SwitchMatches(const aSwitch, aDescriptorName: string): Boolean;
@@ -2193,6 +2208,24 @@ begin
     Exit(True);
   end;
 
+  if SwitchMatches(aSwitch, 'define') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--define') then
+      Exit(False);
+    if AppendSemicolonValue(fOptions.fBuildDefines, lValue) then
+      fOptions.fHasBuildDefines := True;
+    Exit(True);
+  end;
+
+  if SwitchMatches(aSwitch, 'unit-search-path') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit-search-path') then
+      Exit(False);
+    if AppendSemicolonValue(fOptions.fBuildUnitSearchPath, lValue) then
+      fOptions.fHasBuildUnitSearchPath := True;
+    Exit(True);
+  end;
+
   if SwitchMatches(aSwitch, 'ignore-warnings') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--ignore-warnings') then
@@ -2625,6 +2658,16 @@ begin
     if (fOptions.fBuildBackend = TBuildBackend.bbWebCore) and fOptions.fHasEnvOptionsPath then
     begin
       fError := Format(SBuildOptionDelphiOnly, ['--envoptions']);
+      Exit(False);
+    end;
+    if (fOptions.fBuildBackend = TBuildBackend.bbWebCore) and fOptions.fHasBuildDefines then
+    begin
+      fError := Format(SBuildOptionDelphiOnly, ['--define']);
+      Exit(False);
+    end;
+    if (fOptions.fBuildBackend = TBuildBackend.bbWebCore) and fOptions.fHasBuildUnitSearchPath then
+    begin
+      fError := Format(SBuildOptionDelphiOnly, ['--unit-search-path']);
       Exit(False);
     end;
     if (fOptions.fBuildBackend = TBuildBackend.bbDelphi) and (fOptions.fDelphiVersion = '') then

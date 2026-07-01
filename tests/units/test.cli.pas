@@ -59,6 +59,10 @@ type
     [Test]
     procedure BuildCommandRejectsDfmCheckValue;
     [Test]
+    procedure BuildCommandParsesCompilerOverlays;
+    [Test]
+    procedure BuildCommandRejectsCompilerOverlaysForWebCore;
+    [Test]
     procedure BuildCommandParsesWebCoreBuilder;
     [Test]
     procedure BuildCommandAutoDetectsWebCoreProject;
@@ -463,6 +467,42 @@ begin
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected --dfmcheck value syntax to be rejected.');
   Assert.IsTrue(Pos('Unknown argument: --dfmcheck=false', lError) > 0,
     'Expected unknown-argument error for valued --dfmcheck. Actual: ' + lError);
+end;
+
+procedure TCliTests.BuildCommandParsesCompilerOverlays;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --delphi 23.0 ' +
+    '--define maxProfiling --define PROFILE_EXTRA ' +
+    '--unit-search-path C:\Profiler\runtime --unit-search-path "C:\Profiler Companions"');
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected build compiler overlay switches to parse. Error: ' + lError);
+end;
+
+procedure TCliTests.BuildCommandRejectsCompilerOverlaysForWebCore;
+var
+  lOptions: TAppOptions;
+  lError: string;
+begin
+  SetParams('build --project C:\repo\Sample.dproj --builder webcore ' +
+    '--webcore-compiler C:\tools\TMSWebCompiler.exe --define maxProfiling');
+  Assert.IsFalse(TryParseOptions(lOptions, lError),
+    'Expected WebCore builds to reject compiler overlays.');
+  Assert.IsTrue(Pos('--define', lError) > 0,
+    'Expected WebCore incompatibility error to mention --define. Actual: ' + lError);
+  Assert.IsTrue(Pos('only supported for Delphi/MSBuild builds', lError) > 0,
+    'Expected Delphi-only incompatibility error. Actual: ' + lError);
+
+  SetParams('build --project C:\repo\Sample.dproj --builder webcore ' +
+    '--webcore-compiler C:\tools\TMSWebCompiler.exe --unit-search-path C:\Profiler\runtime');
+  Assert.IsFalse(TryParseOptions(lOptions, lError),
+    'Expected WebCore builds to reject unit search path overlays.');
+  Assert.IsTrue(Pos('--unit-search-path', lError) > 0,
+    'Expected WebCore incompatibility error to mention --unit-search-path. Actual: ' + lError);
+  Assert.IsTrue(Pos('only supported for Delphi/MSBuild builds', lError) > 0,
+    'Expected Delphi-only incompatibility error. Actual: ' + lError);
 end;
 
 procedure TCliTests.BuildCommandParsesWebCoreBuilder;

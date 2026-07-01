@@ -48,6 +48,7 @@ resourcestring
     '[--platform <Win32|Win64>] [--config <Debug|Release>] [--target <Build|Rebuild>] [--rebuild [true|false]] ' +
     '[--builder <auto|delphi|webcore>] [--webcore-compiler "<path>"] [--pwa] [--no-pwa] ' +
     '[--json [true|false]] [--max-findings <N>] [--build-timeout-sec <N default 0>] [--test-output-dir "<path>"] ' +
+    '[--define <symbol>] [--unit-search-path "<path>"] ' +
     '[--ai] [--show-warnings] [--show-hints] [--dfmcheck] ' +
     '[--dfm "<file.dfm[,file2.dfm]>"] [--all] ' +
     '[--ignore-warnings "<list>"] [--ignore-hints "<list>"] [--exclude-path-masks "<list>"] ' +
