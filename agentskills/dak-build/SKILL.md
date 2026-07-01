@@ -1,7 +1,7 @@
 ---
 name: dak-build
 description: Build Delphi and TMS WEB Core projects via DelphiAIKit from WSL or Windows. Use when asked to compile or rebuild a .dproj (or .dpr/.dpk with sibling .dproj), verify build output, or troubleshoot build failures.
-version: "1.4"
+version: "1.5"
 ---
 
 # DAK Build
@@ -26,7 +26,7 @@ Supported project inputs (`--project`):
 
 Use the target project's required platform. When building or testing DelphiAIKit itself, use `Win64`; this repo's `AGENTS.md` makes DAK a Win64 tool and the DAK test project should not fall back to implicit Win32 defaults.
 
-TMS WEB Core builds use `TMSWebCompiler.exe`, not MSBuild. `--platform`, `--delphi`, `--rsvars`, and `--dfmcheck` are Delphi-backend concerns; avoid them for WebCore unless DAK explicitly requires otherwise.
+TMS WEB Core builds use `TMSWebCompiler.exe`, not MSBuild. `--platform`, `--delphi`, `--rsvars`, `--dfmcheck`, `--define`, and `--unit-search-path` are Delphi-backend concerns; avoid them for WebCore unless DAK explicitly requires otherwise.
 
 ## Preflight
 
@@ -82,6 +82,20 @@ PLATFORM="${DAK_PLATFORM:-Win32}"
 TEST_OUT_WIN="$(wslpath -w -a _build_verify/test-out)"
 "$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --target Rebuild --test-output-dir "$TEST_OUT_WIN" --ai
 ```
+
+Profiler/compiler overlay build:
+
+Use this when a Delphi project needs temporary compiler context, such as a MaxProfiler build, and editing the project file is not appropriate. Prefer an existing project `Profiling` config when one already carries the required defines/search paths.
+
+```bash
+PROJECT_LINUX="src/maxtdb.dproj"
+PLATFORM="${DAK_PLATFORM:-Win64}"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug \
+  --target Rebuild --define maxProfiling \
+  --unit-search-path "/mnt/f/projects/MaxLogic/profiling/src/runtime" --ai
+```
+
+Use typed `--define` and `--unit-search-path` overlays instead of raw MSBuild `/p:DCC_Define=...` or `/p:DCC_UnitSearchPath=...` injection. Raw `msbuild.exe` is only for debugging DAK or wrapper behavior.
 
 WSL wrapper (`build-delphi.sh`) example:
 
@@ -148,6 +162,8 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 - `--max-findings N`
 - `--build-timeout-sec N`
 - `--test-output-dir "<path>"`
+- `--define <symbol>` (repeatable Delphi/MSBuild compiler define overlay)
+- `--unit-search-path "<path>"` (repeatable Delphi/MSBuild unit search path overlay)
 - `--dfmcheck` (presence flag; when present, run DFM validation after a successful build)
 - `--dfm "<file.dfm[,file2.dfm]>"` (DFM scope for `--dfmcheck`; selected forms only)
 - `--all` (DFM scope for `--dfmcheck`; validate all forms, default when `--dfm` is omitted)
@@ -178,7 +194,7 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 2. Add `--builder webcore` when we want explicit backend selection or when auto-detection is uncertain.
 3. Provide `TMSWebCompiler.exe` through `--webcore-compiler`, `[WebCore].CompilerPath`, `DAK_TMSWEB_COMPILER`, or `PATH`.
 4. Use `--pwa` or `--no-pwa` only when we need to override the project setting.
-5. Do not add Delphi-only options such as `--dfmcheck`, `--rsvars`, or `--envoptions`; DAK rejects them for WebCore builds.
+5. Do not add Delphi-only options such as `--dfmcheck`, `--rsvars`, `--envoptions`, `--define`, or `--unit-search-path`; DAK rejects them for WebCore builds.
 6. For Debug builds, DAK runs `tools\patch-index-debug.ps1` after a successful build when that hook exists, so the legacy shell wrapper is not required.
 7. Use `--json` when automation needs structured status and output path data.
 

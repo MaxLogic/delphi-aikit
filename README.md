@@ -98,6 +98,8 @@ Additional build flags:
 - `--max-findings N` caps printed findings per category (default `5`).
 - `--build-timeout-sec N` terminates hung builds after `N` seconds (`0` disables timeout).
 - `--test-output-dir "<path>"` writes build artifacts to an isolated output directory.
+- `--define <symbol>` adds a Delphi compiler define while preserving the project/config/platform `DCC_Define` value. Repeat the switch for multiple symbols.
+- `--unit-search-path "<path>"` prepends a Delphi unit search path while preserving the project/config/platform `DCC_UnitSearchPath` value. Repeat the switch for multiple paths.
 - `--dfmcheck` runs DFM streaming validation after a successful source build (presence flag; same as calling `dfm-check` separately). If the source build fails, DAK reports that `dfm-check` was not run instead of treating the skipped validation as the failing phase.
 - `--dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm"` scopes post-build `--dfmcheck` to selected forms.
 - `--all` scopes post-build `--dfmcheck` to all forms (default when `--dfm` is omitted).
@@ -121,7 +123,15 @@ bin\DelphiAIKit.exe build --project "C:\path\WebApp.dproj" --builder webcore --c
 bin\DelphiAIKit.exe build --project "C:\path\WebApp.dproj" --config Debug --webcore-compiler "F:\TMS-SmartSetUp\Products\tms.webcore\Bin\Win64\TMSWebCompiler.exe" --ai
 ```
 
-For WebCore builds, Delphi-only options such as `--dfmcheck`, `--rsvars`, and `--envoptions` are rejected instead of being silently ignored.
+For WebCore builds, Delphi-only options such as `--dfmcheck`, `--rsvars`, `--envoptions`, `--define`, and `--unit-search-path` are rejected instead of being silently ignored.
+
+For MaxProfiler or other temporary instrumented Delphi builds, prefer a real project build configuration when one exists. If the project should not be edited, use the typed overlays instead of raw MSBuild property injection:
+
+```cmd
+bin\DelphiAIKit.exe build --project "C:\path\App.dproj" --delphi 23.0 --platform Win64 --config Debug --target Rebuild --define maxProfiling --unit-search-path "F:\projects\MaxLogic\profiling\src\runtime" --ai
+```
+
+Raw `msbuild.exe /p:DCC_Define=...` or `/p:DCC_UnitSearchPath=...` calls are reserved for debugging DAK or wrapper behavior, not normal profiler builds.
 
 ## Command Unit Layout
 
