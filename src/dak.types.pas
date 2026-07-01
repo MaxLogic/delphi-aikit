@@ -121,6 +121,10 @@ type
     fBuildDiagnosticsDir: string;
     fBuildTestOutputDir: string;
     fHasBuildTestOutputDir: Boolean;
+    fBuildDefines: string;
+    fHasBuildDefines: Boolean;
+    fBuildUnitSearchPath: string;
+    fHasBuildUnitSearchPath: Boolean;
     fWebCoreCompilerPath: string;
     fHasWebCoreCompilerPath: Boolean;
     fWebCorePwaEnabled: Boolean;
