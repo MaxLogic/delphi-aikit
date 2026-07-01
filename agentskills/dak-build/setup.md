@@ -65,6 +65,18 @@ TEST_OUT_WIN="$(wslpath -w -a _build_verify/test-out)"
 "$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --target Rebuild --test-output-dir "$TEST_OUT_WIN" --ai
 ```
 
+Profiler/compiler overlay build:
+
+```bash
+cd /path/to/target-repo
+PROJECT_LINUX="src/maxtdb.dproj"
+PLATFORM="${DAK_PLATFORM:-Win64}"
+"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --target Rebuild \
+  --define maxProfiling --unit-search-path "/mnt/f/projects/MaxLogic/profiling/src/runtime" --ai
+```
+
+Use these typed overlays for MaxProfiler-style temporary Delphi compiler context instead of raw MSBuild `/p:DCC_Define=...` or `/p:DCC_UnitSearchPath=...` calls.
+
 WSL wrapper (optional):
 
 ```bash
