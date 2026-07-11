@@ -1,7 +1,6 @@
 ---
 name: dak-dfm-check
 description: Inspect and validate Delphi DFM forms via `dfm-inspect`, `dfm-check`, or `build --dfmcheck`. Use whenever Codex touches Delphi forms, frames, datamodules, visual controls, event bindings, or any `.dfm`-backed UI change, even if the user only asks for a UI edit.
-version: "1.2"
 ---
 
 # Delphi DFM Check
@@ -16,6 +15,7 @@ Use this skill whenever we touch Delphi forms, frames, datamodules, or any `.dfm
 4. Treat any `FAIL` line as a critical error and fix it immediately.
 5. Do not skip, suppress, or defer DFM failures.
 6. Do not call `msbuild` directly; use `DelphiAIKit.exe` orchestration commands only.
+7. Treat source `.dpr`, `.dproj`, `.pas`, and `.dfm` files as read-only inputs. DAK may rewrite only its generated clone under `.dak/<ProjectName>/dfm-check/runs/<RunId>/generated/`.
 
 ## Environment Contract (same as dak-build)
 
@@ -87,7 +87,9 @@ Defaults:
 - Exit code `0`: all streamable DFM resources are valid.
 - Exit code `>0`: one or more DFM streams failed; this blocks completion.
 - In `--all`, unchanged forms may be skipped via `<Project>.dfmcheck.cache` in the `.dproj` directory.
-- Validator timeout is disabled; long runs continue until completion.
+- Generated validators exclude the `madExcept` define only in the isolated DPROJ clone; the source DPROJ and DPR remain byte-for-byte unchanged.
+- DAK writes generated blocker units for the standard madExcept startup units. If project units still link madExcept code unconditionally, DAK exits with an actionable instruction to wrap all related `uses` entries and calls in `{$IFNDEF DFMCheck} ... {$ENDIF}`.
+- Generated build and validator processes use a 30-minute default timeout. Set `DAK_DFMCHECK_TIMEOUT_MS` to a positive millisecond value to override it.
 
 ## Remediation Rules (required)
 
@@ -99,6 +101,22 @@ Typical fixes:
 2. Restore missing published properties/components expected by the `.dfm`.
 3. Align renamed controls/components between `.pas` and `.dfm`.
 4. Re-run `dfm-check` (or `build --dfmcheck`) after each fix batch.
+5. For `DAK_DFMCHECK_MADEXCEPT`, guard every madExcept-related `uses` entry and call in application units:
+
+```pascal
+uses
+  System.SysUtils,
+{$IFNDEF DFMCheck}
+  madExcept,
+  madLinkDisAsm,
+  madListHardware,
+  madListProcesses,
+  madListModules,
+{$ENDIF}
+  Vcl.Forms;
+```
+
+Apply the same guard to related initialization/finalization calls. Do not remove madExcept from the real application project merely to satisfy validation.
 
 Task completion gate:
 

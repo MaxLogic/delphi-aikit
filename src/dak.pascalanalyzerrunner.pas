@@ -505,7 +505,7 @@ begin
       lAfter := #0
     else
       lAfter := lText[lPos + Length(lFlag)];
-    if not (lBefore in ['A'..'Z', '0'..'9']) and not (lAfter in ['A'..'Z', '0'..'9']) then
+    if not CharInSet(lBefore, ['A'..'Z', '0'..'9']) and not CharInSet(lAfter, ['A'..'Z', '0'..'9']) then
       Exit(True);
     lPos := PosEx(lFlag, lText, lPos + 1);
   end;

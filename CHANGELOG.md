@@ -2,7 +2,15 @@
 
 All notable user-visible changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.2.1] - 2026-07-11
+
+### Changed
+- DFM validation now removes the `madExcept` define only from its generated `.dak` project clone, leaves all input sources untouched, and fails generated compilation with actionable `{$IFNDEF DFMCheck}` guidance when application units still link madExcept-related code unconditionally.
+- Updated repo-local DAK skills and README command guidance to match the current bounded DFM-check timeout, guarded `dead-code --apply`, LSP capability surface, and typed build overlays; canonical skills now pass current Codex skill validation.
+
+### Fixed
+- Replaced Unicode-unsafe character set expressions in DAK source units with `CharInSet`, eliminating compiler `W1050` warnings from repository-owned `src` code while leaving vendored/external units unchanged.
+- DFM validation now intercepts standard madExcept startup-unit linkage during generated project compilation, avoiding the previous Win32 exit 217 and Win64 access violation paths and returning a source-preparation error instead.
 
 ## [1.2.0] - 2026-07-01
 

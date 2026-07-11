@@ -1,7 +1,6 @@
 ---
 name: dak-remove-with
 description: "Use DelphiAIKit `remove-with` to inspect, plan, and transactionally apply conservative Delphi `with` statement rewrites. Use when Codex needs to remove or assess `with` statements, produce a safe refactoring plan, review skip reasons, or verify rollback/build behavior for `with` cleanup."
-version: "1.0"
 ---
 
 # Delphi Remove With
