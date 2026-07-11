@@ -1,7 +1,6 @@
 ---
 name: dak-build
 description: Build Delphi and TMS WEB Core projects via DelphiAIKit from WSL or Windows. Use when asked to compile or rebuild a .dproj (or .dpr/.dpk with sibling .dproj), verify build output, or troubleshoot build failures.
-version: "1.5"
 ---
 
 # DAK Build

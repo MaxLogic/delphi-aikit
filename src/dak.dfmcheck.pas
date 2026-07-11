@@ -2185,6 +2185,25 @@ begin
   Result := False;
 end;
 
+function RemoveDefineSymbol(const aDefines: string; const aSymbol: string): string;
+var
+  lPart: string;
+  lParts: TArray<string>;
+begin
+  Result := '';
+  lParts := aDefines.Split([';']);
+  for lPart in lParts do
+  begin
+    if SameText(Trim(lPart), aSymbol) then
+      Continue;
+    if Trim(lPart) = '' then
+      Continue;
+    if Result <> '' then
+      Result := Result + ';';
+    Result := Result + lPart;
+  end;
+end;
+
 function TryCopyDprojWithNewMainSource(const aSourceDprojPath: string; const aDestDprojPath: string;
   const aSourceMainSource: string; const aGeneratedMainSource: string; const aAdditionalUnitSearchPath: string;
   out aError: string): Boolean;
@@ -2422,7 +2441,8 @@ const
     end else if LocalNameIs(aNode, 'DCC_Define') then
     begin
       aDefineFound := True;
-      lDefines := EnsureDefineSymbol(aNode.Text, cDfmCheckSymbol);
+      lDefines := RemoveDefineSymbol(aNode.Text, 'madExcept');
+      lDefines := EnsureDefineSymbol(lDefines, cDfmCheckSymbol);
       lDefines := EnsureDefineSymbol(lDefines, cNoLocalizationSymbol);
       aNode.Text := lDefines;
     end else if LocalNameIs(aNode, 'AppExecutionLevel') then
@@ -3096,6 +3116,45 @@ begin
   Result := True;
 end;
 
+function TryWriteMadExceptBlockerUnits(const aGeneratedDir: string; out aError: string): Boolean;
+const
+  cLineBreak = #13#10;
+  cMarker = 'DAK_DFMCHECK_MADEXCEPT';
+var
+  lContent: string;
+  lEncoding: TEncoding;
+  lUnitName: string;
+  lUnitPath: string;
+begin
+  aError := '';
+  try
+    lEncoding := TUTF8Encoding.Create(False);
+    try
+      for lUnitName in ['madExcept', 'madLinkDisAsm', 'madListHardware', 'madListProcesses', 'madListModules'] do
+      begin
+        lUnitPath := TPath.Combine(aGeneratedDir, lUnitName + '.pas');
+        lContent :=
+          'unit ' + lUnitName + ';' + cLineBreak + cLineBreak +
+          'interface' + cLineBreak + cLineBreak +
+          '{$MESSAGE FATAL ''' + cMarker + ': madExcept-related code is not allowed in a DFM validator. ' +
+          'Guard its uses entries and calls with IFNDEF DFMCheck / ENDIF.''}' + cLineBreak + cLineBreak +
+          'implementation' + cLineBreak + cLineBreak +
+          'end.' + cLineBreak;
+        TFile.WriteAllText(lUnitPath, lContent, lEncoding);
+      end;
+    finally
+      lEncoding.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      aError := 'Failed to write madExcept blocker units: ' + E.Message;
+      Exit(False);
+    end;
+  end;
+  Result := True;
+end;
+
 function TryWriteGeneratedDpr(const aGeneratedDprPath: string; const aProgramName: string;
   const aRegisterUnitName: string; out aError: string): Boolean;
 const
@@ -3263,6 +3322,9 @@ begin
     aPaths.fGeneratedRegisterUnit := TPath.Combine(aPaths.fGeneratedDir,
       TPath.GetFileNameWithoutExtension(aDprojPath) + '_DfmCheck_Register.pas');
     lGeneratedCfgPath := TPath.ChangeExtension(aPaths.fGeneratedDpr, '.cfg');
+
+    if not TryWriteMadExceptBlockerUnits(aPaths.fGeneratedDir, aError) then
+      Exit(False);
 
     if not TryWriteRegisterUnit(aPaths.fGeneratedRegisterUnit, lUnitNames, lFormClassNames, aError) then
       Exit(False);
@@ -3603,6 +3665,19 @@ begin
       (Pos('COULD NOT COMPILE USED UNIT', lLineUpper) > 0) then
       Exit(True);
   end;
+end;
+
+function IsMadExceptBlockerBuildFailure(const aBuildLines: TStrings): Boolean;
+var
+  lLine: string;
+begin
+  Result := False;
+  if aBuildLines = nil then
+    Exit(False);
+
+  for lLine in aBuildLines do
+    if ContainsText(lLine, 'DAK_DFMCHECK_MADEXCEPT') then
+      Exit(True);
 end;
 
 function TryFindValidatorExe(const aPaths: TDfmCheckPaths; const aPlatform: string; const aConfig: string;
@@ -4038,7 +4113,14 @@ begin
     begin
       EmitBuildFailureDiagnostics(lBuildLines, aOutput);
       lNativeExitCodeText := FormatExitCodeForDisplay(lExitCode);
-      if IsGeneratedUnitBuildFailure(lBuildLines, lPaths) then
+      if IsMadExceptBlockerBuildFailure(lBuildLines) then
+      begin
+        aCategory := TDfmCheckErrorCategory.ecDfmCheckFailed;
+        aError := 'The generated DFM validator still links madExcept-related code. Wrap all madExcept-related ' +
+          'uses entries and calls with {$IFNDEF DFMCheck} ... {$ENDIF}. ' +
+          'DAK defines DFMCheck automatically for generated validators.';
+        Exit(MapDfmCheckExitCode(aCategory, 0));
+      end else if IsGeneratedUnitBuildFailure(lBuildLines, lPaths) then
       begin
         aCategory := TDfmCheckErrorCategory.ecGeneratorIncompatible;
         aError := 'Generated helper unit failed to compile (generator incompatibility). MSBuild exited with code ' +

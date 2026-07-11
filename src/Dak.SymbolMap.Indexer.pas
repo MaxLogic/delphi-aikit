@@ -257,7 +257,7 @@ begin
 
     if (lChar = '/') and (lIndex < Length(aText)) and (aText[lIndex + 1] = '/') then
     begin
-      while (lIndex <= Length(aText)) and not (aText[lIndex] in [#10, #13]) do
+      while (lIndex <= Length(aText)) and not CharInSet(aText[lIndex], [#10, #13]) do
         AdvanceChar(aText, lIndex, lLine, lCol);
       Continue;
     end;

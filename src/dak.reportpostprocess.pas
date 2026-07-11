@@ -65,7 +65,7 @@ begin
   if s = '' then
     Exit(False);
   s := UpperCase(s);
-  if not (s[1] in ['W', 'C', 'O']) then
+  if not CharInSet(s[1], ['W', 'C', 'O']) then
     Exit(False);
   if Length(s) < 2 then
     Exit(False);

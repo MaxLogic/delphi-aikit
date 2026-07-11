@@ -13,7 +13,8 @@ uses
 
 type
   TMockValidatorMode = (vmHappy, vmHappyParentBin, vmBroken, vmBrokenEventSignature,
-    vmWarnStandaloneActionImageBinding, vmBuildFailGeneratedUnit, vmBuildFailHighExitCode, vmValidatorNonZeroNoFail);
+    vmWarnStandaloneActionImageBinding, vmBuildFailGeneratedUnit, vmBuildFailHighExitCode, vmBuildFailMadExceptLinked,
+    vmValidatorNonZeroNoFail);
 
   TMockDfmCheckRunner = class(TInterfacedObject, IDfmCheckProcessRunner)
   private
@@ -75,6 +76,8 @@ type
     [Test]
     procedure PipelineHappyPathWithMockRunner;
     [Test]
+    procedure PipelineGeneratesMadExceptBlockerUnits;
+    [Test]
     procedure PipelineAddsUnitSearchPathWhenProjectInheritsOptsetSearchPath;
     [Test]
     procedure PipelineRebasesRelativeProjectImportsForGeneratedProject;
@@ -112,6 +115,8 @@ type
     procedure DfmCheckWindowCleanupUsesNativeUnsignedStyles;
     [Test]
     procedure PipelineBuildFailureInGeneratedUnitIsClassifiedAsGeneratorIncompatibility;
+    [Test]
+    procedure PipelineMadExceptBuildFailureExplainsDfmCheckGuards;
     [Test]
     procedure PipelineBuildFailureCleansGeneratedArtifactsByDefault;
     [Test]
@@ -635,6 +640,16 @@ begin
         TFile.WriteAllText(lBuildLogPath,
           'MainForm.pas(42): error E2003: Undeclared identifier: ''BrokenSymbol''' + #13#10, TEncoding.UTF8);
       aExitCode := Cardinal($C0000005);
+      Exit(True);
+    end;
+
+    if fMode = TMockValidatorMode.vmBuildFailMadExceptLinked then
+    begin
+      if lBuildLogPath <> '' then
+        TFile.WriteAllText(lBuildLogPath,
+          'madExcept.pas(5): error E2597: User-defined error: DAK_DFMCHECK_MADEXCEPT: ' +
+          'madExcept-related code is not allowed in a DFM validator.' + #13#10, TEncoding.UTF8);
+      aExitCode := 1;
       Exit(True);
     end;
 
@@ -1221,9 +1236,13 @@ var
   lGeneratedUnitText: string;
   lWinapiPos: Integer;
   lMadExceptPos: Integer;
+  lSourceDprojBefore: string;
+  lSourceDprBefore: string;
   lSourceDprText: string;
 begin
   CreateFixtureProject(lDprojPath);
+  lSourceDprojBefore := TFile.ReadAllText(lDprojPath);
+  lSourceDprBefore := TFile.ReadAllText(TPath.ChangeExtension(lDprojPath, '.dpr'));
   lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-happy');
   WriteInjectStubs(lInjectDir);
 
@@ -1310,8 +1329,8 @@ begin
       'Generated checker DPROJ should define DFMCheck symbol.');
     Assert.IsTrue(DprojElementTextHasToken(lGeneratedXmlDoc, 'DCC_Define', 'NO_LOCALIZATION'),
       'Generated checker DPROJ should define NO_LOCALIZATION symbol.');
-    Assert.IsTrue(DprojElementTextHasToken(lGeneratedXmlDoc, 'DCC_Define', 'madExcept'),
-      'Generated checker DPROJ should preserve madExcept symbol for project units that compile madExcept-aware code.');
+    Assert.IsFalse(DprojElementTextHasToken(lGeneratedXmlDoc, 'DCC_Define', 'madExcept'),
+      'Generated checker DPROJ must exclude madExcept from the validation process.');
     Assert.AreEqual('Sample_DfmCheck.dpr', DprojSourceText(lGeneratedXmlDoc, 'MainSource'),
       'Generated checker DPROJ should rewrite project extension MainSource entry.');
     Assert.IsTrue(DprojElementTextEquals(lGeneratedXmlDoc, 'Icon_MainIcon',
@@ -1331,6 +1350,10 @@ begin
       'Generated checker DPROJ should preserve macro-based search path tokens.');
     Assert.IsTrue(DprojElementTextHasToken(lGeneratedXmlDoc, 'DCC_Define', 'TRACE'),
       'Generated checker DPROJ should preserve unrelated compiler define symbols.');
+    Assert.AreEqual(lSourceDprojBefore, TFile.ReadAllText(lDprojPath),
+      'DFM-check generation must not modify the source DPROJ.');
+    Assert.AreEqual(lSourceDprBefore, TFile.ReadAllText(TPath.ChangeExtension(lDprojPath, '.dpr')),
+      'DFM-check generation must not modify the source DPR.');
 
     lGeneratedUnitText := ReadGeneratedRegisterUnit(lPaths);
     AssertSourceContains(lGeneratedUnitText, 'unit Sample_DfmCheck_Register;',
@@ -1344,6 +1367,57 @@ begin
   finally
     lEnvGuard := nil;
     lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineGeneratesMadExceptBlockerUnits;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lEnvGuard: IInterface;
+  lInjectDir: string;
+  lOptions: TAppOptions;
+  lPaths: TDfmCheckPaths;
+  lResult: Integer;
+  lRunner: IDfmCheckProcessRunner;
+  lUnitName: string;
+  lUnitPath: string;
+  lUnitText: string;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-madexcept-blockers');
+  WriteInjectStubs(lInjectDir);
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
+  try
+    lRunner := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected fixture pipeline to generate blocker units.');
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project: ' + lError);
+    for lUnitName in ['madExcept', 'madLinkDisAsm', 'madListHardware', 'madListProcesses', 'madListModules'] do
+    begin
+      lUnitPath := TPath.Combine(lPaths.fGeneratedDir, lUnitName + '.pas');
+      Assert.IsTrue(FileExists(lUnitPath), 'Expected generated blocker unit: ' + lUnitPath);
+      lUnitText := TFile.ReadAllText(lUnitPath);
+      AssertSourceContains(lUnitText, '{$MESSAGE FATAL', 'Expected blocker to stop madExcept linkage.');
+      AssertSourceContains(lUnitText, 'DAK_DFMCHECK_MADEXCEPT', 'Expected machine-readable blocker marker.');
+    end;
+  finally
+    lEnvGuard := nil;
   end;
 end;
 
@@ -2673,6 +2747,51 @@ begin
   finally
     lEnvGuard := nil;
     lOutputLines.Free;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineMadExceptBuildFailureExplainsDfmCheckGuards;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDprojPath: string;
+  lError: string;
+  lInjectDir: string;
+  lEnvGuard: IInterface;
+  lOptions: TAppOptions;
+  lResult: Integer;
+  lRunner: IDfmCheckProcessRunner;
+begin
+  CreateFixtureProject(lDprojPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-madexcept-buildfail');
+  WriteInjectStubs(lInjectDir);
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe'
+  ]);
+  try
+    lRunner := TMockDfmCheckRunner.Create(TMockValidatorMode.vmBuildFailMadExceptLinked, 'Release', 'Win32');
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fVerbose := True;
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(30, lResult, 'Expected madExcept source-preparation failure exit code.');
+    Assert.AreEqual(TDfmCheckErrorCategory.ecDfmCheckFailed, lCategory,
+      'Expected madExcept linkage to be classified as a DFM-check preparation failure.');
+    Assert.IsTrue(Pos('{$IFNDEF DFMCheck}', lError) > 0, 'Expected exact opening compiler guard guidance.');
+    Assert.IsTrue(Pos('{$ENDIF}', lError) > 0, 'Expected exact closing compiler guard guidance.');
+    Assert.IsTrue(Pos('uses entries and calls', lError) > 0,
+      'Expected guidance to cover both madExcept units and related calls.');
+    Assert.IsTrue(Pos('DAK defines DFMCheck automatically', lError) > 0,
+      'Expected guidance to explain that no project configuration is required.');
+  finally
+    lEnvGuard := nil;
   end;
 end;
 

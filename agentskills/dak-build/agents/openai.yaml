@@ -1,4 +1,4 @@
 interface:
-  display_name: "Delphi Build"
-  short_description: "Build Delphi projects from WSL via DelphiAIKit"
-  default_prompt: "Build Delphi projects in this repo from WSL using DelphiAIKit.exe build as canonical interface; pass /mnt/<drive>/... paths directly or use build-delphi.sh/wslpath conversion, and report actionable diagnostics."
+  display_name: "DAK Build"
+  short_description: "Build Delphi and TMS WEB Core projects via DelphiAIKit"
+  default_prompt: "Build this Delphi or TMS WEB Core project from Windows or WSL using DelphiAIKit.exe build as the canonical interface, use the target platform explicitly, and report actionable diagnostics."

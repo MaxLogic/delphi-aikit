@@ -221,7 +221,7 @@ begin
   if Length(lText) < 4 then
     Exit(False);
   lCh := UpCase(lText[1]);
-  if not (lCh in ['A'..'Z']) then
+  if not CharInSet(lCh, ['A'..'Z']) then
     Exit(False);
   for i := 2 to 4 do
     if not CharInSet(lText[i], ['0'..'9']) then

@@ -1,7 +1,6 @@
 ---
 name: dak
 description: "Route DAK (DelphiAIKit) work to the correct repo-local skill. Use when Codex needs to choose between DAK build, static analysis, DFM validation, globals, dependency topology, LSP navigation, Symbol Map, semantic refactoring, or remove-with workflows before running commands."
-version: "1.0"
 ---
 
 # DAK Skill Router
@@ -21,7 +20,7 @@ This is a router, not a command manual. Pick the target skill, load it, and foll
 | Unit dependency graph, unresolved units, cycles, hotspot candidates | `dak-project-unit-topology` | Owns `deps` topology reports |
 | Symbol definition, hover, file-scoped symbol lookup | `dak-lsp` | Owns editor-style semantic navigation through DelphiLSP |
 | Cached project symbol index, definition lookup, symbol search, symbol description, reference-like matches | `dak-symbol-map` | Owns `symbol-map` project indexing and cache-backed lookup |
-| Find usages, rename plan/apply, dead-code reports | `dak-semantic-refactoring` | Owns DAK semantic refactoring commands and safety review |
+| Find usages, rename plan/apply, dead-code review/apply | `dak-semantic-refactoring` | Owns DAK semantic refactoring commands and transactional safety review |
 | `with` statement discovery, planning, removal, rollback reports | `dak-remove-with` | Owns `remove-with` scan/plan/apply workflow |
 | Raw text, exact strings, broad repository search | no DAK skill | Use `rg`; do not force semantic tooling onto text search |
 

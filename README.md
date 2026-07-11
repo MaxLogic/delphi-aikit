@@ -13,9 +13,9 @@
 - Inspect text DFM component trees and event bindings via `dfm-inspect`
 - Analyze project-level globals via `global-vars` with JSON/text reports, ambiguity reporting, and SQLite caching
 - Analyze project unit dependencies via `deps` with JSON-first topology output, text summaries, focused unit views, and cycle reporting
-- Navigate Delphi symbols semantically via `lsp` with `definition`, `hover`, file-scoped `symbols`, and version-gated `references` queries backed by `DelphiLSP.exe`
+- Navigate Delphi symbols semantically via `lsp` with `definition`, `hover`, file-scoped `symbols`, and capability probing backed by `DelphiLSP.exe`
 - Build and query a reusable local Symbol Map via `symbol-map` with project/RTL/compiler-intrinsic indexing, definition lookup, symbol search, description, references, and central/project SQLite caches
-- Find project-scoped Delphi symbol usages, plan or apply project-scoped renames, and report conservative dead-code candidates via `find-usages`, `rename`, and `dead-code`
+- Find project-scoped Delphi symbol usages, plan or apply project-scoped renames, and review or transactionally apply conservative dead-code candidates via `find-usages`, `rename`, and `dead-code`
 - Inspect, plan, and transactionally remove Delphi `with` statements via `remove-with`
 
 ## Good use cases
@@ -24,10 +24,10 @@
 - Reproducing the exact IDE configuration in a headless environment
 - Comparing config differences between platforms or build types
 - Understanding which Delphi units a broken area depends on before we start AI-assisted debugging or refactoring
-- Jumping from a symbol use site to its definition, hover text, file-scoped document symbols, or version-gated references without guessing from raw text search
+- Jumping from a symbol use site to its definition, hover text, or file-scoped document symbols without guessing from raw text search
 - Looking up project, source-available RTL, and compiler-intrinsic symbols through a deterministic cache when LSP is unavailable, incomplete, or too expensive for bulk work
 - Reviewing exact project-scoped symbol usages before making a rename, then applying the rename with backups and rollback behavior
-- Inspecting dead-code findings as review evidence before making any source edits
+- Inspecting dead-code findings as review evidence before optionally applying an explicitly approved transactional removal
 - Planning conservative `with` statement cleanup with JSON reports, safe skips, build verification, and rollback
 
 ## Repo-local AI skills
@@ -42,7 +42,7 @@ The [`agentskills/`](agentskills/) folder contains repo-local skills that help A
 - `dak-project-unit-topology`: use `DelphiAIKit.exe deps` to inspect project unit topology, unresolved unit references, focused unit neighborhoods, and resolved project-unit cycles. Useful for questions like "why is this unit included?", "what fans into this area?", and "do we have cycles?"
 - `dak-lsp`: use `DelphiAIKit.exe lsp` for semantic symbol navigation. Prefer it for definition/hover and file-scoped symbol lookup; route usages/references to `dak-semantic-refactoring` or `dak-symbol-map`, and switch back to `deps`, `global-vars`, or `rg` when the question is not semantic navigation.
 - `dak-symbol-map`: use `DelphiAIKit.exe symbol-map` for cached project indexing, definition lookup, symbol search, symbol description, reference-like matches, and cache stats.
-- `dak-semantic-refactoring`: use DAK `find-usages`, `rename`, and `dead-code` for declaration-aware refactoring evidence, dry-run plans, and conservative dead-code review.
+- `dak-semantic-refactoring`: use DAK `find-usages`, `rename`, and `dead-code` for declaration-aware evidence, dry-run plans, and explicitly approved transactional refactoring.
 - `dak-remove-with`: use `DelphiAIKit.exe remove-with` to scan, plan, or apply conservative Delphi `with` statement rewrites with JSON reports, transactional backups, build verification, and rollback.
 
 ## Requirements
@@ -128,7 +128,7 @@ For WebCore builds, Delphi-only options such as `--dfmcheck`, `--rsvars`, `--env
 For MaxProfiler or other temporary instrumented Delphi builds, prefer a real project build configuration when one exists. If the project should not be edited, use the typed overlays instead of raw MSBuild property injection:
 
 ```cmd
-bin\DelphiAIKit.exe build --project "C:\path\App.dproj" --delphi 23.0 --platform Win64 --config Debug --target Rebuild --define maxProfiling --unit-search-path "F:\projects\MaxLogic\profiling\src\runtime" --ai
+bin\DelphiAIKit.exe build --project "C:\path\App.dproj" --delphi 23.0 --platform Win64 --config Debug --target Rebuild --define maxProfiling --unit-search-path "C:\path\MaxProfiler\runtime" --ai
 ```
 
 Raw `msbuild.exe /p:DCC_Define=...` or `/p:DCC_UnitSearchPath=...` calls are reserved for debugging DAK or wrapper behavior, not normal profiler builds.
@@ -171,7 +171,7 @@ bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win32 -
 WSL example with Linux-style path:
 
 ```
-./bin/DelphiAIKit.exe resolve --project /mnt/f/projects/SomeRepo/_Source/MyProject.dproj --platform Win32 --config Debug --delphi 23.0
+./bin/DelphiAIKit.exe resolve --project /mnt/c/path/MyProject.dproj --platform Win32 --config Debug --delphi 23.0
 ```
 
 To run FixInsightCL directly, use `analyze` (FixInsight is on by default):
@@ -238,10 +238,11 @@ bin\DelphiAIKit.exe find-usages --project "C:\path\Project.dproj" --symbol "OldN
 bin\DelphiAIKit.exe rename --project "C:\path\Project.dproj" --symbol "OldName" --new-name "NewName" --format text
 bin\DelphiAIKit.exe rename --project "C:\path\Project.dproj" --symbol "OldName" --new-name "NewName" --apply --format json
 bin\DelphiAIKit.exe dead-code --project "C:\path\Project.dproj" --profile conservative --format json
+bin\DelphiAIKit.exe dead-code --project "C:\path\Project.dproj" --profile conservative --apply --format json
 ```
 
 `rename` is non-mutating by default. `--apply` creates per-file `.bak` backups and restores original bytes if edit application fails.
-`dead-code` is report-only and never rewrites source files; use `audit`, `conservative`, or `legacy-static` profiles to control how aggressively candidates are classified.
+`dead-code` is report-only by default; use `audit`, `conservative`, or `legacy-static` profiles to control how aggressively candidates are classified. Guarded `--apply` requires an explicit profile, writes project-scoped backups/manifests, verifies the build, and rolls back on verification failure.
 
 The central cache stores reusable unit models by content and compiler context. By default it is created under `%LOCALAPPDATA%\DelphiAIKit\symbol-map\v1\symbol-map.sqlite3`, with `%USERPROFILE%\.dak\symbol-map\v1\symbol-map.sqlite3` as the fallback. Override it with `--cache-root "<path>"` or the `DAK_SYMBOL_MAP_CACHE_ROOT` environment variable; JSON output reports the resolved cache paths so WSL/Windows path confusion is visible.
 
@@ -314,6 +315,8 @@ If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-onl
 
 `dfm-check` stages:
 - generate a `_DfmCheck` harness project under sibling `.dak/<ProjectName>/dfm-check/runs/<RunId>/generated/` (no external `DFMCheck.exe`)
+- treat the source `.dpr`, `.dproj`, `.pas`, and `.dfm` files as read-only inputs; all project rewriting is confined to the generated run workspace
+- remove the `madExcept` define only from the generated DPROJ clone and add generated blocker units for standard madExcept startup units
 - synthesize the generated harness `DCC_UnitSearchPath` from the source project's effective compile search path while keeping project/discovered form-unit directories ahead of inherited IDE/library-path entries so normal builds and generated validation builds resolve the same units
 - generate `_DfmCheck_Register.pas` inside that owned run workspace so source roots stay clean
 - inject `tools\inject\DfmStreamAll.pas` into the generated harness project
@@ -326,7 +329,7 @@ If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-onl
 - prune stale owned run directories from earlier interrupted `dfm-check` runs before generating a new workspace
 - in full-scope mode (`--all` or no explicit `--dfm`), cache unchanged forms in `<Project>.dfmcheck.cache` and skip revalidation on later runs
 - in full-scope + verbose mode, print progress lines as `CHECK <current>/<total> <resource>`
-- validator timeout is disabled (large projects run until completion)
+- generated build and validator processes use a 30-minute default timeout; set `DAK_DFMCHECK_TIMEOUT_MS` to a positive millisecond value to override it
 - clean the owned `.dak/.../runs/<RunId>/` workspace by default, and when `DAK_DFMCHECK_KEEP_ARTIFACTS=true` keep only that owned run while still removing legacy source-root `_DfmCheck*` sidecars
 
 `dfm-check` output contract:
@@ -340,6 +343,7 @@ If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-onl
   - `[dfm-check] FAIL clue: handler declaration line=<N>: procedure ...`
   - `[dfm-check] FAIL clue: source context: <file>`
   - `[dfm-check] FAIL clue: verify handler signature matches event type for <On...>.`
+- if application units still link madExcept-related code unconditionally, generated compilation fails before execution with an instruction to wrap all related `uses` entries and calls in `{$IFNDEF DFMCheck} ... {$ENDIF}`; do not remove madExcept from the real application project
 
 ## `lsp`
 
@@ -349,11 +353,10 @@ Use it for:
 - symbol definition lookup
 - hover/type information
 - file-scoped symbol search via `textDocument/documentSymbol`
-- reference lookup when the external DelphiLSP build advertises `referencesProvider`
+- capability probing for the external DelphiLSP build
 
 Core operations:
 - `definition`
-- `references` (version-gated on the external DelphiLSP capability set)
 - `hover`
 - `symbols` (file-scoped on Delphi 23 external `DelphiLSP.exe`)
 - `probe` (compare `contextFile` and `settingsFile` capability handshakes)
@@ -362,10 +365,6 @@ Examples:
 
 ```
 bin\DelphiAIKit.exe lsp definition --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --line 42 --col 17 --format json
-```
-
-```
-bin\DelphiAIKit.exe lsp references --project "C:\path\Project.dproj" --file "C:\path\Unit1.pas" --line 42 --col 17 --include-declaration false --format json
 ```
 
 ```
@@ -380,11 +379,11 @@ Rules:
 - prefer `--format json` for agent/tool consumption
 - `--line` and `--col` are 1-based
 - `symbols` is file-scoped on Delphi 23 external `DelphiLSP.exe`; pass `--file` and treat results as `documentSymbol` output, not workspace-wide search
-- `references` is version-gated on the external DelphiLSP capability set; if `referencesProvider` is absent, use `deps`, `global-vars`, or `rg` instead
+- external Delphi 23 and Delphi 13 `DelphiLSP.exe` builds do not provide `textDocument/references`; use `find-usages`, `symbol-map find-references`, `global-vars`, or `rg` according to the question
 - generated context and logs live under sibling `.dak/<ProjectName>/lsp/`
 - `--rsvars` and `--envoptions` are optional advanced overrides, not normal-use requirements
 - unlike `deps` or `global-vars`, `lsp` hard-fails when DAK cannot build a real Delphi semantic context
-- Delphi 13.x will be rechecked as soon as it is installed locally; current external-server guidance is based on verified Delphi 23 behavior
+- current external-server guidance is based on verified Delphi 23 (`23.0`) and Delphi 13 (`37.0`) behavior
 
 Routing guidance:
 - use `lsp` for semantic navigation questions
@@ -394,7 +393,6 @@ Routing guidance:
 
 The JSON result contract is operation-specific:
 - `definition` returns `result.locations[]`
-- `references` returns `result.references[]` when the external DelphiLSP build supports `textDocument/references`
 - `probe` returns per-mode capability matrices for `contextFile` and `settingsFile`, and can show the generated init/config payloads with `--show-init-options`
 - `hover` returns `result.contentsText` plus optional markdown/range data
 - `symbols` returns `result.symbols[]` from file-scoped `documentSymbol` data

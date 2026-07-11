@@ -1,7 +1,6 @@
 ---
 name: dak-lsp
 description: "Use DelphiAIKit `lsp` for semantic Delphi symbol navigation through `definition`, `hover`, and file-scoped `symbols`, and route non-semantic questions to `deps`, `global-vars`, or text search instead of guessing. Prefer `dak-build` for compiler errors; `lsp` is the semantic enrichment helper, not the primary build signal."
-version: "1.0"
 ---
 
 # Delphi LSP
