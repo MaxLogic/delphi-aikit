@@ -174,6 +174,13 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 
 ## Workflow
 
+## Artifact Policy
+
+- Never place build outputs, disposable build clones, or DAK-generated state under `.agents/`.
+- Prefer the normal project output for an ordinary build.
+- Use `--test-output-dir` with a unique OS temporary directory when verification must avoid a locked or dirty project output.
+- Remove verified disposable test-output directories after the proof is recorded; never remove normal project outputs merely as routine cleanup.
+
 ### Regular Delphi
 
 1. Run build with `--ai`.
@@ -182,7 +189,7 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 4. If no Delphi version is passed to standalone `dfm-check`, ensure cascading `dak.ini` provides `[Build] DelphiVersion`.
 5. In full-scope validation, reruns may skip unchanged forms via `<Project>.dfmcheck.cache`.
 6. If automation needs structured output, rerun with `--json`.
-7. If output is locked, either stop the locking process or use `--test-output-dir`.
+7. If output is locked, follow repository policy for a safely identifiable process; otherwise use a unique temporary `--test-output-dir`.
 8. Leave `--source-context` at `auto` unless we explicitly need more or less surrounding source.
 9. Report actionable diagnostics with exact failing unit/error line and next fix step.
 10. If `--ai` emits no semantic hints, keep the original compiler failure intact and continue with the source-context evidence we already have.

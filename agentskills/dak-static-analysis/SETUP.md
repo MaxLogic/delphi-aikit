@@ -93,6 +93,12 @@ These are sibling working directories next to the analyzed target, not under the
 wrapper's current working directory unless we are already running from that same
 target location.
 
+Those paths are wrapper defaults, not a requirement for every run. For large,
+disposable agent runs, set `DAK_OUT` to a unique directory under the OS temporary
+root. Never redirect analyzer output into `.agents/`; that directory is for small
+agent knowledge, decisions, plans, and run state. Preserve only the reports needed
+as evidence, then remove the verified temporary output tree.
+
 ## Optional env vars
 
 - `DAK_DELPHI`, `DAK_PLATFORM`, `DAK_CONFIG`

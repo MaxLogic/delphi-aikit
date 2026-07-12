@@ -16,6 +16,7 @@ Use this skill whenever we touch Delphi forms, frames, datamodules, or any `.dfm
 5. Do not skip, suppress, or defer DFM failures.
 6. Do not call `msbuild` directly; use `DelphiAIKit.exe` orchestration commands only.
 7. Treat source `.dpr`, `.dproj`, `.pas`, and `.dfm` files as read-only inputs. DAK may rewrite only its generated clone under `.dak/<ProjectName>/dfm-check/runs/<RunId>/generated/`.
+8. Never redirect or copy DFM-check generated clones into `.agents/`; they are DAK-owned disposable state, not agent memory.
 
 ## Environment Contract (same as dak-build)
 
@@ -121,3 +122,4 @@ Apply the same guard to related initialization/finalization calls. Do not remove
 Task completion gate:
 
 - Do not finish form-related tasks while DFM validation is failing.
+- After the final gate, remove only verified stale/successful generated run directories according to DAK's retention behavior. Keep the current failure artifacts while they are still needed for diagnosis.

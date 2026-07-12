@@ -46,6 +46,13 @@ This is a router, not a command manual. Pick the target skill, load it, and foll
 
 ## Output Discipline
 
+Generated tool artifacts are not agent memory:
+
+- Never place DAK caches, analyzer trees, generated validation clones, build outputs, or disposable worktrees under `.agents/`.
+- Use the target repository's `.dak/<ProjectName>/` only for DAK-owned project caches and generated state whose reuse is useful.
+- Use a unique OS temporary directory for large one-run artifacts when the selected skill supports an output override.
+- Retain only the small reports needed to reproduce a decision; remove verified disposable artifacts at the end of the task or goal.
+
 When reporting which workflow we chose, state:
 
 - the selected skill

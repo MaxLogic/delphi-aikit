@@ -14,7 +14,7 @@ allowed-tools:
 
 ## Intent
 
-Use this skill when we need repeatable static analysis on Delphi code with deterministic output under sibling `.dak/` working trees, followed by conservative fixes and build/test verification.
+Use this skill when we need repeatable static analysis on Delphi code, followed by conservative fixes and build/test verification.
 
 Default policy:
 - Project analysis: `FixInsight=true`, `PascalAnalyzer=true`.
@@ -69,9 +69,27 @@ Path note:
 
 We do not call `FixInsightCL` or `PALCMD` directly in normal workflow.
 
-Default output root:
+Wrapper defaults are project-local:
 - Project: `.dak/<ProjectName>/`
 - Unit: `.dak/_unit/<UnitName>/`
+
+Agent-run policy:
+- Never set `DAK_OUT` to `.agents/`; analyzer output is generated tool state, not memory.
+- For a large or disposable run, set `DAK_OUT` to a unique directory under the OS temp root. Include the repository/project and run identity so concurrent runs cannot collide.
+- Use project-local `.dak/` only when the reports or caches should survive for reuse in that checkout.
+- At the end of a task or goal, retain the small evidence reports we actually need and remove verified disposable output trees.
+
+PowerShell example:
+
+```powershell
+$env:DAK_OUT = Join-Path $env:TEMP ("dak\\MyProject\\analysis-{0}" -f $PID)
+```
+
+WSL example:
+
+```bash
+export DAK_OUT="${TMPDIR:-/tmp}/dak/MyProject/analysis-$$"
+```
 
 Primary artifacts:
 - `summary.md`
@@ -89,10 +107,13 @@ Primary artifacts:
    - WSL/Windows: `"$DAK_EXE" build --project "<project.dproj>" --delphi 23.0 --platform "<platform>" --config Debug --ai`
    - For DelphiAiKit itself, use `--platform Win64`.
 6. Re-run analysis and confirm no regression in `delta.md` / gate output.
+7. Preserve only the summary, triage, baseline, or delta needed for the task record; clean disposable analyzer trees after the evidence is recorded.
+
+After a coherent batch of Delphi source edits, run the shared `encodingfix-delphi-cleanup` source-hygiene check once before the final task gate. Do not duplicate it if another DAK workflow already ran the same check over the same files. Ordinary analysis must not silently rewrite source files.
 
 ## Report-Driven Fix Loop
 
-1. Start with `.dak/<ProjectName>/summary.md` and `.dak/<ProjectName>/triage.md`.
+1. Start with `<DAK_OUT>/summary.md` and `<DAK_OUT>/triage.md` (or the wrapper's project-local default when `DAK_OUT` is unset).
 2. If triage is too broad, re-run with path/rule filters:
    - `DAK_EXCLUDE_PATH_MASKS="*\\3rdParty\\*;*\\lib\\*"`
    - `DAK_IGNORE_WARNING_IDS="W502;O801"`
