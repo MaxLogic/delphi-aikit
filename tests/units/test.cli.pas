@@ -3,14 +3,15 @@
 interface
 
 uses
-  DUnitX.TestFramework,
   System.Generics.Collections,
   System.IniFiles,
   System.IOUtils,
   System.StrUtils,
   System.SysUtils,
+  Winapi.Windows,
+  DUnitX.TestFramework,
   maxLogic.CmdLineParams,
-  Dak.Cli, Dak.Settings, Dak.Types,
+  Dak.Cli, Dak.CommandOutput, Dak.Settings, Dak.Types,
   Test.Support;
 
 type
@@ -96,6 +97,8 @@ type
     procedure LoadDakSettingsMergesTypedSections;
     [Test]
     procedure CommandOutputWritingIsCentralized;
+    [Test]
+    procedure CommandOutputContinuesFileWriteWhenStdoutPipeCloses;
     [Test]
     procedure LoadDefaultDelphiVersionUsesProjectLocalDakIni;
     [Test]
@@ -1006,6 +1009,46 @@ begin
     'remove-with must use Dak.CommandOutput for file writes.');
   Assert.IsFalse(ContainsText(lResolveSource, 'TFile.WriteAllText(aOutPath'),
     'resolve output must use Dak.CommandOutput for file writes.');
+end;
+
+procedure TCliTests.CommandOutputContinuesFileWriteWhenStdoutPipeCloses;
+var
+  lError: string;
+  lOriginalHandle: THandle;
+  lOriginalStdoutHandle: THandle;
+  lOutputPath: string;
+  lOutputText: string;
+  lReadHandle: THandle;
+  lWriteHandle: THandle;
+begin
+  lOutputPath := UniqueTempPath('command-output-closed-pipe') + '.txt';
+  lOutputText := StringOfChar('x', 8192);
+  lReadHandle := 0;
+  lWriteHandle := 0;
+  Assert.IsTrue(CreatePipe(lReadHandle, lWriteHandle, nil, 0), 'Failed to create the stdout test pipe.');
+  CloseHandle(lReadHandle);
+
+  Flush(Output);
+  lOriginalHandle := TTextRec(Output).Handle;
+  lOriginalStdoutHandle := GetStdHandle(STD_OUTPUT_HANDLE);
+  try
+    Assert.IsTrue(SetStdHandle(STD_OUTPUT_HANDLE, lWriteHandle), 'Failed to redirect the Windows stdout handle.');
+    TTextRec(Output).Handle := lWriteHandle;
+    Assert.IsTrue(WriteCommandOutput(lOutputText, lOutputPath,
+      TCommandOutputPolicy.copAlwaysStdoutAndOptionalFile, True, False, False, lError), lError);
+  finally
+    TTextRec(Output).Handle := lOriginalHandle;
+    SetStdHandle(STD_OUTPUT_HANDLE, lOriginalStdoutHandle);
+    CloseHandle(lWriteHandle);
+  end;
+
+  try
+    Assert.IsTrue(TFile.Exists(lOutputPath), 'A closed stdout pipe must not block requested file output.');
+    Assert.AreEqual(lOutputText, TFile.ReadAllText(lOutputPath, TEncoding.UTF8));
+  finally
+    if TFile.Exists(lOutputPath) then
+      TFile.Delete(lOutputPath);
+  end;
 end;
 
 procedure TCliTests.LoadDefaultDelphiVersionUsesProjectLocalDakIni;
