@@ -46,6 +46,8 @@ type
   TBuildTests = class
   public
     [Test]
+    procedure ProjectDprListsMadExceptFirstAndAllSourceUnits;
+    [Test]
     procedure ExternalToolProcessCentralizesBasicCommandRunners;
     [Test]
     procedure ProtocolSpecificProcessRunnersRemainDocumentedExceptions;
@@ -142,6 +144,37 @@ implementation
 function ReadRepoTextFile(const aRelativePath: string): string;
 begin
   Result := TFile.ReadAllText(TPath.Combine(RepoRoot, aRelativePath), TEncoding.UTF8);
+end;
+
+procedure TBuildTests.ProjectDprListsMadExceptFirstAndAllSourceUnits;
+var
+  lDprText: string;
+  lExpectedPrefix: string;
+  lPasFile: string;
+  lPasFiles: TArray<string>;
+  lRelativePath: string;
+  lSourceDir: string;
+begin
+  lDprText := ReadRepoTextFile('projects\DelphiAIKit.dpr');
+  lExpectedPrefix :=
+    'uses' + sLineBreak +
+    '  madExcept,' + sLineBreak +
+    '  madLinkDisAsm,' + sLineBreak +
+    '  madListHardware,' + sLineBreak +
+    '  madListProcesses,' + sLineBreak +
+    '  madListModules,';
+  Assert.IsTrue(Pos(lExpectedPrefix, lDprText) > 0,
+    'The DPR uses list must start with the standard madExcept units in canonical order.');
+
+  lSourceDir := TPath.Combine(RepoRoot, 'src');
+  lPasFiles := TDirectory.GetFiles(lSourceDir, '*.pas', TSearchOption.soTopDirectoryOnly);
+  Assert.IsTrue(Length(lPasFiles) > 0, 'Expected project source units under src.');
+  for lPasFile in lPasFiles do
+  begin
+    lRelativePath := '..\src\' + TPath.GetFileName(lPasFile);
+    Assert.IsTrue(ContainsText(lDprText, ' in ''' + lRelativePath + ''''),
+      'The DPR must explicitly list project source unit: ' + lRelativePath);
+  end;
 end;
 
 procedure SetBuildParams(const aCmdLine: string);
