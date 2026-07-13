@@ -14,7 +14,14 @@ function WriteCommandOutput(const aOutputText, aOutputPath: string; aPolicy: TCo
 implementation
 
 uses
-  System.IOUtils, System.SysUtils;
+  System.IOUtils, System.SysUtils,
+  Winapi.Windows;
+
+function IsClosedPipeError(aErrorCode: Integer): Boolean;
+begin
+  Result := (aErrorCode = ERROR_BROKEN_PIPE) or (aErrorCode = ERROR_NO_DATA) or
+    (aErrorCode = ERROR_PIPE_NOT_CONNECTED);
+end;
 
 function ShouldWriteStdout(const aOutputPath: string; aPolicy: TCommandOutputPolicy): Boolean;
 begin
@@ -35,12 +42,29 @@ begin
   Result := (Trim(aOutputPath) <> '') and (aOutputPath <> '-');
 end;
 
-procedure WriteStdout(const aOutputText: string; aLineBreak: Boolean);
+function TryWriteStdout(const aOutputText: string; aLineBreak: Boolean; out aError: string): Boolean;
 begin
-  if aLineBreak then
-    WriteLn(aOutputText)
-  else
-    Write(aOutputText);
+  aError := '';
+  try
+    if aLineBreak then
+      WriteLn(aOutputText)
+    else
+      Write(aOutputText);
+  except
+    on E: EInOutError do
+    begin
+      if IsClosedPipeError(E.ErrorCode) then
+        Exit(True);
+      aError := E.Message;
+      Exit(False);
+    end;
+    on E: Exception do
+    begin
+      aError := E.Message;
+      Exit(False);
+    end;
+  end;
+  Result := True;
 end;
 
 procedure WriteFileOutput(const aOutputText, aOutputPath: string; aUtf8Bom: Boolean);
@@ -69,15 +93,16 @@ function WriteCommandOutput(const aOutputText, aOutputPath: string; aPolicy: TCo
   aStdoutLineBreak, aPublishFileMessage, aUtf8Bom: Boolean; out aError: string): Boolean;
 begin
   aError := '';
-  try
-    if ShouldWriteStdout(aOutputPath, aPolicy) then
-      WriteStdout(aOutputText, aStdoutLineBreak);
+  if ShouldWriteStdout(aOutputPath, aPolicy) and
+    (not TryWriteStdout(aOutputText, aStdoutLineBreak, aError)) then
+    Exit(False);
 
+  try
     if ShouldWriteFile(aOutputPath, aPolicy) then
     begin
       WriteFileOutput(aOutputText, aOutputPath, aUtf8Bom);
-      if aPublishFileMessage then
-        WriteLn('Wrote: ' + aOutputPath);
+      if aPublishFileMessage and (not TryWriteStdout('Wrote: ' + aOutputPath, True, aError)) then
+        Exit(False);
     end;
   except
     on E: Exception do

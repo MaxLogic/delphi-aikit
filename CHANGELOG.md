@@ -2,6 +2,11 @@
 
 All notable user-visible changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Command output now treats a closed stdout pipe as normal downstream termination, preventing `deps --output -` and other shared output paths from raising madExcept reports when a consumer exits early; requested file output still completes.
+
 ## [1.2.1] - 2026-07-11
 
 ### Changed
