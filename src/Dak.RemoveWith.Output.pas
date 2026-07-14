@@ -885,6 +885,39 @@ begin
     TJSONNumber.Create(aMetrics.fModelExtractionPassCount));
 end;
 
+procedure AddDetailedSemanticPlannerMetrics(const aObject: TJSONObject;
+  const aMetrics: TRemoveWithFactSetPhaseMetrics);
+begin
+  aObject.AddPair('semanticSnapshotBuildMs',
+    TJSONNumber.Create(aMetrics.fSemanticSnapshotBuildMs));
+  aObject.AddPair('semanticSnapshotBindingMaterializationMs',
+    TJSONNumber.Create(aMetrics.fSemanticSnapshotBindingMaterializationMs));
+  aObject.AddPair('semanticCorePlanMs',
+    TJSONNumber.Create(aMetrics.fSemanticCorePlanMs));
+  aObject.AddPair('semanticPlanUnattributedMs',
+    TJSONNumber.Create(aMetrics.fSemanticPlanUnattributedMs));
+  aObject.AddPair('semanticCandidateEditMs',
+    TJSONNumber.Create(aMetrics.fSemanticCandidateEditMs));
+  aObject.AddPair('semanticBindingTreeMs',
+    TJSONNumber.Create(aMetrics.fSemanticBindingTreeMs));
+  aObject.AddPair('semanticDecisionMs',
+    TJSONNumber.Create(aMetrics.fSemanticDecisionMs));
+  aObject.AddPair('semanticRoutineDeclarationMs',
+    TJSONNumber.Create(aMetrics.fSemanticRoutineDeclarationMs));
+  aObject.AddPair('semanticStatementRefreshMs',
+    TJSONNumber.Create(aMetrics.fSemanticStatementRefreshMs));
+  aObject.AddPair('semanticCorePlanUnattributedMs',
+    TJSONNumber.Create(aMetrics.fSemanticCorePlanUnattributedMs));
+  aObject.AddPair('semanticLookupRequestCount',
+    TJSONNumber.Create(aMetrics.fSemanticLookupRequestCount));
+  aObject.AddPair('semanticLookupResultMaterializationCount',
+    TJSONNumber.Create(aMetrics.fSemanticLookupResultMaterializationCount));
+  aObject.AddPair('semanticLookupResultReuseCount',
+    TJSONNumber.Create(aMetrics.fSemanticLookupResultReuseCount));
+  aObject.AddPair('semanticLookupMaterializedSymbolCount',
+    TJSONNumber.Create(aMetrics.fSemanticLookupMaterializedSymbolCount));
+end;
+
 function BuildSymbolInventoryPhaseMetricsObject(
   const aMetrics: TRemoveWithFactSetPhaseMetrics): TJSONObject;
 begin
@@ -895,6 +928,7 @@ begin
     TJSONNumber.Create(aMetrics.fSemanticCompatibilityFactsMs));
   Result.AddPair('semanticBindingMs', TJSONNumber.Create(aMetrics.fSemanticBindingMs));
   Result.AddPair('semanticPlanDtoMs', TJSONNumber.Create(aMetrics.fSemanticPlanDtoMs));
+  AddDetailedSemanticPlannerMetrics(Result, aMetrics);
   AddCombinedSemanticCounters(Result, aMetrics);
   Result.AddPair('dakLookupIndexMs', TJSONNumber.Create(aMetrics.fDakLookupIndexMs));
   Result.AddPair('dakLookupCacheHits', TJSONNumber.Create(aMetrics.fDakLookupCacheHits));
@@ -980,6 +1014,7 @@ begin
     TJSONNumber.Create(aMetrics.fSemanticCompatibilityFactsMs));
   Result.AddPair('semanticBindingMs', TJSONNumber.Create(aMetrics.fSemanticBindingMs));
   Result.AddPair('semanticPlanDtoMs', TJSONNumber.Create(aMetrics.fSemanticPlanDtoMs));
+  AddDetailedSemanticPlannerMetrics(Result, aMetrics.fSymbolInventoryPhaseMetrics);
   AddCombinedSemanticCounters(Result, aMetrics.fSymbolInventoryPhaseMetrics);
   Result.AddPair('semanticCacheHits',
     TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSemanticCacheHits));
