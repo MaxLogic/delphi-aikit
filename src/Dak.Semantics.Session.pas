@@ -19,6 +19,11 @@ type
     CacheMetrics: TDakSemanticCacheMetrics;
     ExtractionMilliseconds: Int64;
     SessionOpenMilliseconds: Int64;
+    IdentifierCandidateScanMilliseconds: Int64;
+    IdentifierFullModelCount: Integer;
+    IdentifierLeanModelCount: Integer;
+    IdentifierScopeFailOpen: Boolean;
+    IdentifierScopeFailOpenReason: string;
   end;
 
   TDakSemanticCachePolicy = record
@@ -129,6 +134,11 @@ function OpenSemanticProjectSession(const aOptions: TDelphiSemanticOptions;
   out aSession: IDakSemanticProjectSession; out aError: string;
   const aIncludeLineNumbers: Boolean = False): Boolean;
 function OpenSemanticSymbolQueryContext(const aOptions: TDelphiSemanticOptions;
+  out aContext: IDakSemanticSymbolQueryContext;
+  out aMetrics: TDakSemanticSymbolQueryMetrics; out aError: string;
+  const aIncludeLineNumbers: Boolean = False): Boolean;
+function OpenSemanticSymbolQueryContextForIdentifier(
+  const aOptions: TDelphiSemanticOptions; const aIdentifier: string;
   out aContext: IDakSemanticSymbolQueryContext;
   out aMetrics: TDakSemanticSymbolQueryMetrics; out aError: string;
   const aIncludeLineNumbers: Boolean = False): Boolean;
@@ -300,6 +310,18 @@ begin
   for lScope in TDelphiSemanticSymbolQuery.GetVisibleUnitScopes(aContext) do
     if lScope.FileName <> '' then
       Inc(Result);
+end;
+
+function SymbolQueryContextModelCount(const aContext:
+  TDelphiSemanticSymbolQueryContext): Integer;
+begin
+  Result := SnapshotVisibleScopeCount(aContext);
+  if Result > 0 then
+    Exit;
+
+  if aContext.UnitModel.FileName <> '' then
+    Inc(Result);
+  Inc(Result, Length(aContext.IndexedUnitModels));
 end;
 
 function TryValidateSemanticContext(const aContext: TDelphiSemanticSymbolQueryContext;
@@ -624,13 +646,7 @@ end;
 
 function TDakSemanticSymbolQueryContext.UnitModelCount: Integer;
 begin
-  Result := SnapshotVisibleScopeCount(fContext);
-  if Result > 0 then
-    Exit;
-
-  if fContext.UnitModel.FileName <> '' then
-    Inc(Result);
-  Inc(Result, Length(fContext.IndexedUnitModels));
+  Result := SymbolQueryContextModelCount(fContext);
 end;
 
 function OpenSemanticProjectSession(const aOptions: TDelphiSemanticOptions;
@@ -655,13 +671,16 @@ begin
     aError := 'Failed to open DelphiSemantics project session.';
 end;
 
-function OpenSemanticSymbolQueryContext(const aOptions: TDelphiSemanticOptions;
+function OpenSemanticSymbolQueryContextCore(const aOptions:
+  TDelphiSemanticOptions; const aIdentifier: string;
+  const aUseIdentifierScope: Boolean;
   out aContext: IDakSemanticSymbolQueryContext;
   out aMetrics: TDakSemanticSymbolQueryMetrics; out aError: string;
-  const aIncludeLineNumbers: Boolean = False): Boolean;
+  const aIncludeLineNumbers: Boolean): Boolean;
 var
   lCacheMetrics: TDelphiSemanticCacheMetrics;
   lContext: TDelphiSemanticSymbolQueryContext;
+  lScopeMetrics: TDelphiSemanticIdentifierScopeMetrics;
   lSessionResult: TDelphiSemanticProjectSessionResult;
   lStopwatch: TStopwatch;
 begin
@@ -680,8 +699,26 @@ begin
   end;
   aMetrics.SessionOpenMilliseconds := lStopwatch.ElapsedMilliseconds;
   try
-    lContext := lSessionResult.Session.BuildSnapshotSymbolQueryContext(lCacheMetrics,
-      aMetrics.ExtractionMilliseconds);
+    if aUseIdentifierScope then
+    begin
+      lContext := lSessionResult.Session.
+        BuildSnapshotSymbolQueryContextForIdentifier(aIdentifier, lCacheMetrics,
+        aMetrics.ExtractionMilliseconds, lScopeMetrics);
+      aMetrics.IdentifierCandidateScanMilliseconds :=
+        lScopeMetrics.CandidateScanMilliseconds;
+      aMetrics.IdentifierFullModelCount := lScopeMetrics.FullModelCount;
+      aMetrics.IdentifierLeanModelCount := lScopeMetrics.LeanModelCount;
+      aMetrics.IdentifierScopeFailOpen := lScopeMetrics.FailOpen;
+      aMetrics.IdentifierScopeFailOpenReason := lScopeMetrics.FailOpenReason;
+    end else
+    begin
+      lContext := lSessionResult.Session.BuildSnapshotSymbolQueryContext(
+        lCacheMetrics, aMetrics.ExtractionMilliseconds);
+      aMetrics.IdentifierFullModelCount :=
+        SymbolQueryContextModelCount(lContext);
+      aMetrics.IdentifierScopeFailOpen := True;
+      aMetrics.IdentifierScopeFailOpenReason := 'full-analysis';
+    end;
     aMetrics.CacheMetrics := MapCacheMetrics(lCacheMetrics);
     if not TryValidateSemanticContext(lContext, aError) then
       Exit(False);
@@ -691,6 +728,25 @@ begin
   finally
     lSessionResult.Session.Free;
   end;
+end;
+
+function OpenSemanticSymbolQueryContext(const aOptions: TDelphiSemanticOptions;
+  out aContext: IDakSemanticSymbolQueryContext;
+  out aMetrics: TDakSemanticSymbolQueryMetrics; out aError: string;
+  const aIncludeLineNumbers: Boolean): Boolean;
+begin
+  Result := OpenSemanticSymbolQueryContextCore(aOptions, '', False, aContext,
+    aMetrics, aError, aIncludeLineNumbers);
+end;
+
+function OpenSemanticSymbolQueryContextForIdentifier(
+  const aOptions: TDelphiSemanticOptions; const aIdentifier: string;
+  out aContext: IDakSemanticSymbolQueryContext;
+  out aMetrics: TDakSemanticSymbolQueryMetrics; out aError: string;
+  const aIncludeLineNumbers: Boolean): Boolean;
+begin
+  Result := OpenSemanticSymbolQueryContextCore(aOptions, aIdentifier, True,
+    aContext, aMetrics, aError, aIncludeLineNumbers);
 end;
 
 initialization
