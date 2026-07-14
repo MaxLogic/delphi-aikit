@@ -36,6 +36,8 @@ type
       aFixtureDir: string);
     function RunSemanticCacheFixture(const aDprojPath, aCacheFileName, aLogName: string;
       out aExitCode: Cardinal): string;
+    function RunSemanticFixture(const aDprojPath, aExtraArgs, aLogName: string;
+      out aExitCode: Cardinal): string;
   public
     [Test]
     procedure ScanModeWritesJsonShellWithoutEditingSource;
@@ -95,6 +97,10 @@ type
     procedure SemanticDtoMatchesTempPolicyFixture;
     [Test]
     procedure SemanticCacheOptionReusesAndInvalidatesUnitModels;
+    [Test]
+    procedure DefaultSemanticCacheReusesUnitModels;
+    [Test]
+    procedure DefaultSemanticCacheFailureFallsBackAndOptOutDisables;
   end;
 
   [TestFixture]
@@ -170,6 +176,8 @@ type
     procedure PlannerRunsDoNotShareOperationState;
     [Test]
     procedure RemoveWithOperationsDoNotShareSelectorTempOrSymbolState;
+    [Test]
+    procedure ImplicitCacheFallbackSurvivesUnavailableStderr;
   end;
 
   [TestFixture]
@@ -891,6 +899,7 @@ implementation
 uses
   System.Threading,
   Winapi.Windows,
+  maxLogic.ioutils,
   DelphiAST, DelphiAST.Classes, DelphiAST.Consts, DelphiAST.ProjectIndexer;
 
 const
@@ -1424,7 +1433,7 @@ begin
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
   Assert.IsTrue(ContainsText(lSourceText,
-    'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWith(lRequest)'),
+    'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWith(aRequest)'),
     'DAK must build normal remove-with plans through the DelphiSemantics compatibility snapshot API.');
   Assert.IsFalse(ContainsText(lSourceText,
     'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWithSnapshot(lFacts)'),
@@ -1911,6 +1920,7 @@ end;
 procedure TRemoveWithCommandTests.CopyFixtureToTemp(const aFixtureName, aTempName: string;
   out aDprojPath, aFixtureDir: string);
 var
+  lCopiedDakDir: string;
   lSourceDir: string;
 begin
   lSourceDir := TPath.Combine(TPath.Combine(RepoRoot, 'tests\fixtures'), aFixtureName);
@@ -1918,10 +1928,20 @@ begin
   if TDirectory.Exists(aFixtureDir) then
     TDirectory.Delete(aFixtureDir, True);
   TDirectory.Copy(lSourceDir, aFixtureDir);
+  lCopiedDakDir := TPath.Combine(aFixtureDir, '.dak');
+  if TDirectory.Exists(lCopiedDakDir) then
+    TDirectory.Delete(lCopiedDakDir, True);
   aDprojPath := TPath.Combine(aFixtureDir, aFixtureName + '.dproj');
 end;
 
 function TRemoveWithCommandTests.RunSemanticCacheFixture(const aDprojPath, aCacheFileName,
+  aLogName: string; out aExitCode: Cardinal): string;
+begin
+  Result := RunSemanticFixture(aDprojPath,
+    '--semantic-cache ' + QuoteArg(aCacheFileName), aLogName, aExitCode);
+end;
+
+function TRemoveWithCommandTests.RunSemanticFixture(const aDprojPath, aExtraArgs,
   aLogName: string; out aExitCode: Cardinal): string;
 var
   lArgs: string;
@@ -1930,10 +1950,10 @@ begin
   EnsureResolverBuilt;
   lLogPath := TPath.Combine(TempRoot, aLogName);
   lArgs := 'remove-with --project ' + QuoteArg(aDprojPath) + ' --all --mode plan --format json ' +
-    '--verbose true --diagnostics true --semantic-cache ' + QuoteArg(aCacheFileName);
+    '--verbose true --diagnostics true ' + aExtraArgs;
 
   Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lLogPath, aExitCode),
-    'Failed to start remove-with semantic cache process.');
+    'Failed to start remove-with semantic process.');
   Result := ReadUtf8TextFile(lLogPath);
 end;
 
@@ -1999,6 +2019,81 @@ begin
     'Expected changed-source semantic cache run to rebuild stale unit facts.');
   Assert.IsFalse(ContainsText(lLogText, 'projectFactsCache'),
     'Expected changed-source run to omit retired project-facts cache metrics.');
+end;
+
+procedure TRemoveWithCommandTests.DefaultSemanticCacheReusesUnitModels;
+var
+  lCacheFileName: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFixtureDir: string;
+  lLogText: string;
+begin
+  CopyFixtureToTemp('SymbolMapFixture', 'remove-with-default-semantic-cache',
+    lDprojPath, lFixtureDir);
+  lCacheFileName := TPath.Combine(TPath.Combine(TPath.Combine(lFixtureDir, '.dak'),
+    'SymbolMapFixture'), 'semantic-cache.sqlite3');
+
+  lLogText := RunSemanticFixture(lDprojPath, '',
+    'remove-with-default-semantic-cache-first.log', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode,
+    'Expected first default semantic-cache run to succeed.');
+  Assert.IsTrue(TFile.Exists(lCacheFileName),
+    'Expected canonical project-local remove-with cache: ' + lCacheFileName);
+  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'semanticCacheHits'),
+    'Expected cold default semantic-cache run to report zero hits.');
+  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'semanticCacheMisses') > 0,
+    'Expected cold default semantic-cache run to report misses.');
+
+  lLogText := RunSemanticFixture(lDprojPath, '',
+    'remove-with-default-semantic-cache-second.log', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode,
+    'Expected second default semantic-cache run to succeed.');
+  Assert.IsTrue(JsonMetricValueFromLog(lLogText, 'semanticCacheHits') > 0,
+    'Expected unchanged second remove-with run to report cache hits.');
+  Assert.AreEqual(0, JsonMetricValueFromLog(lLogText, 'semanticCacheMisses'),
+    'Expected unchanged second remove-with run to avoid cache misses.');
+end;
+
+procedure TRemoveWithCommandTests.DefaultSemanticCacheFailureFallsBackAndOptOutDisables;
+var
+  lBlockedCachePath: string;
+  lCacheFileName: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFallbackDprojPath: string;
+  lFallbackFixtureDir: string;
+  lFixtureDir: string;
+  lLogText: string;
+begin
+  CopyFixtureToTemp('SymbolMapFixture', 'remove-with-default-cache-policy',
+    lDprojPath, lFixtureDir);
+  lCacheFileName := TPath.Combine(TPath.Combine(TPath.Combine(lFixtureDir, '.dak'),
+    'SymbolMapFixture'), 'semantic-cache.sqlite3');
+
+  lLogText := RunSemanticFixture(lDprojPath, '--no-semantic-cache',
+    'remove-with-default-cache-opt-out.log', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode,
+    'Expected remove-with --no-semantic-cache to succeed.');
+  Assert.IsFalse(TFile.Exists(lCacheFileName),
+    '--no-semantic-cache must not create a persistent remove-with cache.');
+
+  CopyFixtureToTemp('SymbolMapFixture', 'remove-with-default-cache-fallback',
+    lFallbackDprojPath, lFallbackFixtureDir);
+  lBlockedCachePath := TPath.Combine(TPath.Combine(TPath.Combine(
+    lFallbackFixtureDir, '.dak'), 'SymbolMapFixture'),
+    'semantic-cache.sqlite3');
+  TDirectory.CreateDirectory(lBlockedCachePath);
+  lLogText := RunSemanticFixture(lFallbackDprojPath, '',
+    'remove-with-default-cache-fallback.log', lExitCode);
+  Assert.AreEqual(Cardinal(0), lExitCode,
+    'Implicit remove-with cache failure must continue uncached.');
+  Assert.IsTrue(ContainsText(lLogText, 'semantic cache unavailable'),
+    'Expected actionable implicit-cache diagnostic. Actual: ' + lLogText);
+  Assert.IsTrue(ContainsText(lLogText, 'continuing without persistence'),
+    'Expected remove-with fallback diagnostic to explain uncached continuation.');
+  Assert.IsTrue(ContainsText(lLogText, '--no-semantic-cache'),
+    'Expected remove-with fallback diagnostic to document the opt-out switch.');
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;
@@ -3228,6 +3323,74 @@ begin
   finally
     for i := 0 to High(lModels) do
       lModels[i].Free;
+    lModel.Free;
+  end;
+end;
+
+procedure TRemoveWithAstParallelSafetyTests.ImplicitCacheFallbackSurvivesUnavailableStderr;
+var
+  lBlockedCachePath: string;
+  lCopiedDakPath: string;
+  lDprojPath: string;
+  lError: string;
+  lFixtureDir: string;
+  lInventory: TRemoveWithFactSet;
+  lModel: TRemoveWithProjectModel;
+  lOptions: TAppOptions;
+  lOriginalErrHandle: THandle;
+  lOriginalStdErrHandle: THandle;
+  lReadHandle: THandle;
+  lSourceDir: string;
+  lWriteHandle: THandle;
+begin
+  lSourceDir := CombinePath([RepoRoot, 'tests', 'fixtures',
+    'RemoveWithSymbolsFixture']);
+  lFixtureDir := TPath.Combine(TempRoot,
+    'remove-with-implicit-cache-unavailable-stderr');
+  if TDirectory.Exists(lFixtureDir) then
+    TDirectory.Delete(lFixtureDir, True);
+  TDirectory.Copy(lSourceDir, lFixtureDir);
+  lCopiedDakPath := TPath.Combine(lFixtureDir, '.dak');
+  if TDirectory.Exists(lCopiedDakPath) then
+    TDirectory.Delete(lCopiedDakPath, True);
+  lDprojPath := TPath.Combine(lFixtureDir, 'RemoveWithSymbolsFixture.dproj');
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win32';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRemoveWithTargetKind := TRemoveWithTargetKind.rwtAll;
+  lOptions.fRemoveWithAll := True;
+  lBlockedCachePath := CombinePath([lFixtureDir, '.dak',
+    'RemoveWithSymbolsFixture', 'semantic-cache.sqlite3']);
+  TDirectory.CreateDirectory(lBlockedCachePath);
+
+  lModel := nil;
+  Assert.IsTrue(BuildRemoveWithProjectModel(lOptions, lDprojPath, lModel,
+    lError), lError);
+  try
+    lReadHandle := 0;
+    lWriteHandle := 0;
+    Assert.IsTrue(CreatePipe(lReadHandle, lWriteHandle, nil, 0),
+      'Failed to create the stderr test pipe.');
+    CloseHandle(lReadHandle);
+    lReadHandle := 0;
+    lOriginalErrHandle := TTextRec(ErrOutput).Handle;
+    lOriginalStdErrHandle := GetStdHandle(STD_ERROR_HANDLE);
+    try
+      Assert.IsTrue(SetStdHandle(STD_ERROR_HANDLE, lWriteHandle),
+        'Failed to redirect the Windows stderr handle.');
+      TTextRec(ErrOutput).Handle := lWriteHandle;
+      Assert.IsTrue(BuildRemoveWithFactSet(lOptions, lModel, lInventory,
+        lError), 'Unavailable stderr must not mask implicit cache fallback: ' +
+        lError);
+    finally
+      TTextRec(ErrOutput).Handle := lOriginalErrHandle;
+      SetStdHandle(STD_ERROR_HANDLE, lOriginalStdErrHandle);
+      CloseHandle(lWriteHandle);
+    end;
+  finally
     lModel.Free;
   end;
 end;

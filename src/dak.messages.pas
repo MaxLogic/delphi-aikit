@@ -76,7 +76,7 @@ resourcestring
   SUsageRemoveWith =
     'DelphiAIKit.exe remove-with --project "<path>" (--unit "<path>"|--dir "<path>"|--all) ' +
     '[--mode <scan|plan|apply>] [--format <json|text>] [--output "<path>|-"] ' +
-    '[--semantic-cache "<sqlite-path>"]' + #13#10 +
+    '[--semantic-cache "<sqlite-path>"|--no-semantic-cache]' + #13#10 +
     '  modes: scan reports with statements; plan adds resolver classifications and planned safe edits ' +
     '(default: plan, non-mutating); apply writes edits transactionally' + #13#10 +
     '  targets: choose exactly one of --unit, --dir, or --all within the project' + #13#10 +
@@ -93,18 +93,19 @@ resourcestring
     '  stats: reports project/cache shell status without indexing source yet';
   SUsageFindUsages =
     'DelphiAIKit.exe find-usages --project "<path>" [--platform <Win32|Win64>] [--config <Debug|Release>] ' +
-    '[--format <json|text>] [--semantic-cache "<sqlite-path>"]' + #13#10 +
+    '[--format <json|text>] [--semantic-cache "<sqlite-path>"|--no-semantic-cache]' + #13#10 +
     '  by name: --symbol "<identifier>"' + #13#10 +
     '  by position: --file "<path>" --line <N 1-based> --col <N 1-based>';
   SUsageRename =
     'DelphiAIKit.exe rename --project "<path>" --new-name "<identifier>" [--format <json|text>] ' +
-    '[--apply [true|false]] [--semantic-cache "<sqlite-path>"]' + #13#10 +
+    '[--apply [true|false]] [--semantic-cache "<sqlite-path>"|--no-semantic-cache]' + #13#10 +
     '  by name: --symbol "<identifier>"' + #13#10 +
     '  by position: --file "<path>" --line <N 1-based> --col <N 1-based>' + #13#10 +
     '  default is non-mutating dry-run; --apply writes edits with per-file backups and rollback on failure';
   SUsageDeadCode =
     'DelphiAIKit.exe dead-code --project "<path>" [--profile <audit|conservative|legacy-static>] ' +
-    '[--apply [true|false]] [--format <json|text>] [--semantic-cache "<sqlite-path>"]' + #13#10 +
+    '[--apply [true|false]] [--format <json|text>] ' +
+    '[--semantic-cache "<sqlite-path>"|--no-semantic-cache]' + #13#10 +
     '  default is report-only and non-mutating; --apply requires an explicit --profile, writes edits transactionally, ' +
     'backs up changed files, verifies the build, and rolls back on failure';
   SInvalidArgs = 'Invalid command line arguments.';
@@ -121,6 +122,7 @@ resourcestring
   SInvalidSourceContext = 'Invalid --source-context value: %s (expected auto, off, or on).';
   SInvalidSourceContextLines = 'Invalid --source-context-lines value: %s (expected integer >= 0).';
   SInvalidDeadCodeProfile = 'Invalid --profile value: %s (expected %s).';
+  rsSemanticCacheConflict = 'Use either --semantic-cache or --no-semantic-cache (not both).';
   SDeadCodeApplyProfileRequired = 'dead-code apply requires explicit --profile <audit|conservative|legacy-static>.';
   SInvalidFiFormats = 'Invalid --fi-formats value: %s';
   SGlobalVarsInvalidFormat = 'Unsupported global-vars format: %s';

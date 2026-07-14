@@ -142,6 +142,8 @@ type
     [Test]
     procedure RefactorSlashSwitchesDoNotBecomeBoolValues;
     [Test]
+    procedure SemanticCacheSwitchesSupportOptOutAndRejectConflict;
+    [Test]
     procedure DeadCodeProfileParsingUsesDakAdapter;
     [Test]
     procedure RefactorCommandsRejectPartialPositionTargetsPrecisely;
@@ -1421,6 +1423,40 @@ begin
 
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected rename to reject dead-code-only /profile.');
   Assert.IsTrue(Pos('/profile', lError) > 0, 'Expected rejected /profile in error. Actual: ' + lError);
+end;
+
+procedure TCliTests.SemanticCacheSwitchesSupportOptOutAndRejectConflict;
+var
+  lArgs: string;
+  lCommands: TArray<string>;
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  lCommands := [
+    'find-usages --project C:\repo\Sample.dproj --symbol SharedValue',
+    'rename --project C:\repo\Sample.dproj --symbol SharedValue --new-name RenamedValue',
+    'dead-code --project C:\repo\Sample.dproj',
+    'remove-with --project C:\repo\Sample.dproj --all --mode plan'];
+  for lArgs in lCommands do
+  begin
+    SetParams(lArgs + ' --no-semantic-cache');
+    Assert.IsTrue(TryParseOptions(lOptions, lError),
+      'Expected --no-semantic-cache to parse. Error: ' + lError);
+    Assert.IsTrue(lOptions.fNoSemanticCache,
+      'Expected --no-semantic-cache to enable opt-out. Command: ' + lArgs);
+  end;
+
+  for lArgs in lCommands do
+  begin
+    SetParams(lArgs +
+      ' --semantic-cache C:\cache.sqlite3 --no-semantic-cache');
+    Assert.IsFalse(TryParseOptions(lOptions, lError),
+      'Expected explicit semantic cache and opt-out to conflict.');
+    Assert.IsTrue(ContainsText(lError, '--semantic-cache'),
+      'Expected conflict error to mention --semantic-cache. Actual: ' + lError);
+    Assert.IsTrue(ContainsText(lError, '--no-semantic-cache'),
+      'Expected conflict error to mention --no-semantic-cache. Actual: ' + lError);
+  end;
 end;
 
 procedure TCliTests.DeadCodeProfileParsingUsesDakAdapter;

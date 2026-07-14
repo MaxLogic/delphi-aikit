@@ -21,6 +21,11 @@ type
     SessionOpenMilliseconds: Int64;
   end;
 
+  TDakSemanticCachePolicy = record
+    FileName: string;
+    IsImplicit: Boolean;
+  end;
+
   TDakSemanticUnitCacheIdentity = record
     UnitCacheKey: string;
     FileHash: string;
@@ -106,6 +111,17 @@ function BuildSemanticApiOptions(const aOptions: TAppOptions;
 function BuildSemanticSessionOptions(const aProjectPath, aConfiguration, aPlatform,
   aDelphiVersion, aRsVarsPath, aEnvOptionsPath, aCacheFileName: string):
   TDelphiSemanticOptions;
+function ResolveSemanticCachePolicy(const aProjectPath,
+  aExplicitCacheFileName: string; const aHasExplicitCache,
+  aDisableCache: Boolean): TDakSemanticCachePolicy;
+function TryPrepareSemanticCache(const aPolicy: TDakSemanticCachePolicy;
+  out aError: string): Boolean;
+function IsSemanticCacheFailure(const aError,
+  aCacheFileName: string): Boolean;
+function SemanticCacheFailureDiagnostic(
+  const aPolicy: TDakSemanticCachePolicy; const aError: string): string;
+procedure EmitSemanticCacheFallbackDiagnostic(
+  const aPolicy: TDakSemanticCachePolicy; const aError: string);
 function SemanticSessionDiagnosticsText(
   const aDiagnostics: TArray<TDelphiSemanticDiagnostic>;
   const aIncludeLineNumbers: Boolean = False): string;
@@ -120,9 +136,10 @@ function OpenSemanticSymbolQueryContext(const aOptions: TDelphiSemanticOptions;
 implementation
 
 uses
-  System.Diagnostics, System.IOUtils, System.SysUtils,
+  System.Diagnostics, System.IOUtils, System.StrUtils, System.SysUtils,
   DelphiSemantics.Cache, DelphiSemantics.Model, DelphiSemantics.ProjectSession,
-  DelphiSemantics.Query;
+  DelphiSemantics.Query,
+  Dak.Paths;
 
 type
   TDakSemanticProjectSession = class(TInterfacedObject, IDakSemanticProjectSession)
@@ -159,6 +176,9 @@ type
     function ReportDeadCode(const aProfile: string): TDelphiSemanticDeadCodeReport;
     function UnitModelCount: Integer;
   end;
+
+var
+  gSemanticCacheDiagnosticLock: TObject;
 
 function SemanticEnvironmentProperties(const aEnvironmentVariables: TDictionary<string, string>):
   TArray<TDelphiSemanticProperty>;
@@ -354,6 +374,102 @@ begin
   Result.EnvOptionsPath := aEnvOptionsPath;
   if Trim(aCacheFileName) <> '' then
     Result.SqliteCacheFileName := TPath.GetFullPath(aCacheFileName);
+end;
+
+function ResolveSemanticCachePolicy(const aProjectPath,
+  aExplicitCacheFileName: string; const aHasExplicitCache,
+  aDisableCache: Boolean): TDakSemanticCachePolicy;
+begin
+  Result := Default(TDakSemanticCachePolicy);
+  if aDisableCache then
+    Exit;
+
+  if aHasExplicitCache then
+  begin
+    Result.FileName := TPath.GetFullPath(aExplicitCacheFileName);
+    Exit;
+  end;
+
+  Result.FileName := DakProjectPath(DakProjectRootForProjectPath(aProjectPath),
+    ['semantic-cache.sqlite3']);
+  Result.IsImplicit := True;
+end;
+
+function TryPrepareSemanticCache(const aPolicy: TDakSemanticCachePolicy;
+  out aError: string): Boolean;
+var
+  lCacheDir: string;
+begin
+  aError := '';
+  if Trim(aPolicy.FileName) = '' then
+    Exit(True);
+
+  lCacheDir := TPath.GetDirectoryName(aPolicy.FileName);
+  if lCacheDir = '' then
+    Exit(True);
+
+  try
+    TDirectory.CreateDirectory(lCacheDir);
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      if E is EInOutError then
+        aError := Format('%s (error %d) while creating the cache directory',
+          [E.ClassName, EInOutError(E).ErrorCode])
+      else if E is EOSError then
+        aError := Format('%s (error %d) while creating the cache directory',
+          [E.ClassName, EOSError(E).ErrorCode])
+      else
+        aError := E.ClassName + ' while creating the cache directory';
+      Result := False;
+    end;
+  end;
+end;
+
+function IsSemanticCacheFailure(const aError,
+  aCacheFileName: string): Boolean;
+begin
+  Result := ContainsText(aError, 'sqlite') or
+    ContainsText(aError, 'semantic cache') or
+    ContainsText(aError, 'firedac') or
+    ContainsText(aError, 'database') or
+    ((Trim(aCacheFileName) <> '') and ContainsText(aError, aCacheFileName));
+end;
+
+function SemanticCacheFailureDiagnostic(
+  const aPolicy: TDakSemanticCachePolicy; const aError: string): string;
+begin
+  Result := Format('Semantic cache unavailable at "%s": %s.',
+    [aPolicy.FileName, aError]);
+end;
+
+function SemanticCacheFallbackDiagnostic(
+  const aPolicy: TDakSemanticCachePolicy; const aError: string): string;
+begin
+  Result := SemanticCacheFailureDiagnostic(aPolicy, aError) +
+    ' Continuing without persistence. Use --semantic-cache <path> to require ' +
+    'persistence or --no-semantic-cache to disable it.';
+end;
+
+procedure EmitSemanticCacheFallbackDiagnostic(
+  const aPolicy: TDakSemanticCachePolicy; const aError: string);
+begin
+  TMonitor.Enter(gSemanticCacheDiagnosticLock);
+  try
+    try
+      WriteLn(ErrOutput, SemanticCacheFallbackDiagnostic(aPolicy, aError));
+      Flush(ErrOutput);
+    except
+      on EInOutError do
+      begin
+        // Unavailable stderr must not mask a successful uncached recovery.
+        Exit;
+      end;
+    end;
+  finally
+    TMonitor.Exit(gSemanticCacheDiagnosticLock);
+  end;
 end;
 
 function SemanticSessionDiagnosticsText(
@@ -576,5 +692,11 @@ begin
     lSessionResult.Session.Free;
   end;
 end;
+
+initialization
+  gSemanticCacheDiagnosticLock := TObject.Create;
+
+finalization
+  gSemanticCacheDiagnosticLock.Free;
 
 end.
