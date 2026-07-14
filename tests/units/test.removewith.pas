@@ -1464,7 +1464,7 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
   lCombinedCall :=
-    'TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFactsAndPlanResult(';
+    'TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFactsAndPlanDetailedResult(';
 
   Assert.AreEqual(1, CountTextOccurrences(lSourceText, lCombinedCall),
     'DAK must have exactly one direct combined DelphiSemantics call.');
@@ -1484,6 +1484,8 @@ begin
     'DAK normal remove-with must not use legacy compatibility facts.');
   Assert.IsFalse(ContainsText(lSourceText, 'BuildProjectWithBindingFactsResult('),
     'DAK normal remove-with must not open a separate compatibility-facts session.');
+  Assert.IsFalse(ContainsText(lSourceText, 'BuildProjectWithBindingFactsAndPlanResult('),
+    'DAK normal remove-with must not discard detailed planner telemetry.');
   Assert.IsFalse(ContainsText(lSourceText, 'PlanRemoveWith('),
     'DAK normal remove-with must not open a separate snapshot-plan session.');
   Assert.IsFalse(ContainsText(lSourceText, 'PlanRemoveWithResult('),
@@ -1515,9 +1517,10 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'BuildProjectWithBindingFactsAndPlanResult'),
-    'DAK must consume the explicit DelphiSemantics facts-and-plan result.');
-  Assert.IsTrue(ContainsText(lSourceText, 'Result := aResult.Success'),
+  Assert.IsTrue(ContainsText(lSourceText,
+    'BuildProjectWithBindingFactsAndPlanDetailedResult'),
+    'DAK must consume the detailed DelphiSemantics facts-and-plan result.');
+  Assert.IsTrue(ContainsText(lSourceText, 'Result := aResult.CombinedResult.Success'),
     'DAK must check the combined DelphiSemantics success flag.');
   Assert.IsFalse(ContainsText(lSourceText, 'if lFacts.ContextFingerprint = '''''),
     'DAK must not infer DelphiSemantics API failure from an empty context fingerprint sentinel.');
@@ -2515,12 +2518,14 @@ end;
 
 procedure TRemoveWithReportTests.DiagnosticsPlanJsonReportIncludesPlannerPhaseMetrics;
 var
+  lCoreAccounted: Int64;
   lExitCode: Cardinal;
   lJson: TJSONValue;
   lRoot: TJSONObject;
   lMetrics: TJSONObject;
   lResolverSubphaseMetrics: TJSONObject;
   lSubphaseMetrics: TJSONObject;
+  lTopAccounted: Int64;
 begin
   lJson := nil;
   lJson := ParseJsonValue(RunRemoveWith('plan', 'json',
@@ -2541,6 +2546,20 @@ begin
     RequireJsonNumberKey(lMetrics, 'semanticCompatibilityFactsMs');
     RequireJsonNumberKey(lMetrics, 'semanticBindingMs');
     RequireJsonNumberKey(lMetrics, 'semanticPlanDtoMs');
+    RequireJsonNumberKey(lMetrics, 'semanticSnapshotBuildMs');
+    RequireJsonNumberKey(lMetrics, 'semanticSnapshotBindingMaterializationMs');
+    RequireJsonNumberKey(lMetrics, 'semanticCorePlanMs');
+    RequireJsonNumberKey(lMetrics, 'semanticPlanUnattributedMs');
+    RequireJsonNumberKey(lMetrics, 'semanticCandidateEditMs');
+    RequireJsonNumberKey(lMetrics, 'semanticBindingTreeMs');
+    RequireJsonNumberKey(lMetrics, 'semanticDecisionMs');
+    RequireJsonNumberKey(lMetrics, 'semanticRoutineDeclarationMs');
+    RequireJsonNumberKey(lMetrics, 'semanticStatementRefreshMs');
+    RequireJsonNumberKey(lMetrics, 'semanticCorePlanUnattributedMs');
+    RequireJsonNumberKey(lMetrics, 'semanticLookupRequestCount');
+    RequireJsonNumberKey(lMetrics, 'semanticLookupResultMaterializationCount');
+    RequireJsonNumberKey(lMetrics, 'semanticLookupResultReuseCount');
+    RequireJsonNumberKey(lMetrics, 'semanticLookupMaterializedSymbolCount');
     RequireJsonNumberKey(lMetrics, 'semanticSessionOpenCount');
     RequireJsonNumberKey(lMetrics, 'modelExtractionPassCount');
     RequireJsonNumberKey(lMetrics, 'dakLookupIndexMs');
@@ -2560,6 +2579,23 @@ begin
     RequireJsonNumberKey(lSubphaseMetrics, 'semanticInventoryExpansionMs');
     RequireJsonNumberKey(lSubphaseMetrics, 'semanticSessionOpenCount');
     RequireJsonNumberKey(lSubphaseMetrics, 'modelExtractionPassCount');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticSnapshotBuildMs');
+    RequireJsonNumberKey(lSubphaseMetrics,
+      'semanticSnapshotBindingMaterializationMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticCorePlanMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticPlanUnattributedMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticCandidateEditMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticBindingTreeMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticDecisionMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticRoutineDeclarationMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticStatementRefreshMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticCorePlanUnattributedMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticLookupRequestCount');
+    RequireJsonNumberKey(lSubphaseMetrics,
+      'semanticLookupResultMaterializationCount');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticLookupResultReuseCount');
+    RequireJsonNumberKey(lSubphaseMetrics,
+      'semanticLookupMaterializedSymbolCount');
     RequireJsonNumberKey(lSubphaseMetrics, 'rtlSourceEnrichmentMs');
     RequireJsonNumberKey(lSubphaseMetrics, 'externalUnitSymbolsMs');
     RequireJsonNumberKey(lSubphaseMetrics, 'externalTypeSymbolsMs');
@@ -2572,6 +2608,41 @@ begin
       (lSubphaseMetrics.Values['semanticSessionOpenCount'] as TJSONNumber).AsInt);
     Assert.AreEqual(1,
       (lSubphaseMetrics.Values['modelExtractionPassCount'] as TJSONNumber).AsInt);
+    lTopAccounted :=
+      (lMetrics.Values['semanticSnapshotBuildMs'] as TJSONNumber).AsInt64 +
+      (lMetrics.Values['semanticSnapshotBindingMaterializationMs'] as TJSONNumber).AsInt64 +
+      (lMetrics.Values['semanticCorePlanMs'] as TJSONNumber).AsInt64 +
+      (lMetrics.Values['semanticPlanUnattributedMs'] as TJSONNumber).AsInt64;
+    Assert.AreEqual(
+      (lMetrics.Values['semanticPlanDtoMs'] as TJSONNumber).AsInt64,
+      lTopAccounted, 'Detailed top-level planner metrics must reconcile.');
+    lCoreAccounted :=
+      (lMetrics.Values['semanticCandidateEditMs'] as TJSONNumber).AsInt64 +
+      (lMetrics.Values['semanticBindingTreeMs'] as TJSONNumber).AsInt64 +
+      (lMetrics.Values['semanticDecisionMs'] as TJSONNumber).AsInt64 +
+      (lMetrics.Values['semanticRoutineDeclarationMs'] as TJSONNumber).AsInt64 +
+      (lMetrics.Values['semanticStatementRefreshMs'] as TJSONNumber).AsInt64 +
+      (lMetrics.Values['semanticCorePlanUnattributedMs'] as TJSONNumber).AsInt64;
+    Assert.AreEqual(
+      (lMetrics.Values['semanticCorePlanMs'] as TJSONNumber).AsInt64,
+      lCoreAccounted, 'Detailed core planner metrics must reconcile.');
+    Assert.IsTrue(
+      (lMetrics.Values['semanticLookupRequestCount'] as TJSONNumber).AsInt64 >= 0,
+      'The report fixture may not require a semantic lookup.');
+    Assert.IsTrue((lMetrics.Values['semanticLookupResultMaterializationCount'] as
+      TJSONNumber).AsInt64 >= 0,
+      'The report fixture may not materialize a lookup result.');
+    Assert.AreEqual(Int64(0),
+      (lMetrics.Values['semanticLookupResultReuseCount'] as TJSONNumber).AsInt64);
+    Assert.AreEqual(
+      (lMetrics.Values['semanticLookupRequestCount'] as TJSONNumber).AsInt64,
+      (lSubphaseMetrics.Values['semanticLookupRequestCount'] as TJSONNumber).AsInt64,
+      'Root and symbol-inventory lookup request metrics must agree.');
+    Assert.AreEqual((lMetrics.Values['semanticLookupResultMaterializationCount'] as
+      TJSONNumber).AsInt64,
+      (lSubphaseMetrics.Values['semanticLookupResultMaterializationCount'] as
+      TJSONNumber).AsInt64,
+      'Root and symbol-inventory materialization metrics must agree.');
     RequireJsonObjectKey(lMetrics, 'resolverReportSubphaseMetrics',
       lResolverSubphaseMetrics);
     RequireJsonNumberKey(lResolverSubphaseMetrics, 'directSemanticProjectionMs');
