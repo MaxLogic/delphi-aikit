@@ -7,10 +7,16 @@ description: Build Delphi and TMS WEB Core projects via DelphiAIKit from WSL or 
 
 Use this execution order:
 
-1. Use `"$DAK_EXE" build ...` as the canonical interface for both Delphi and TMS WEB Core projects.
-2. Use `"$DAK_BUILD_SH" ...` on WSL only when building regular Delphi projects and wrapper path conversion is helpful.
-3. Never call raw `msbuild.exe` unless we are explicitly debugging wrappers.
-4. Do not use the legacy `build-webcore` scripts when `"$DAK_EXE" build` is available.
+1. Read repository/user execution-domain rules. They decide Windows versus WSL.
+2. Use `DelphiAIKit.exe build ...` as the canonical interface for both Delphi and TMS WEB Core projects.
+3. Use `"$DAK_BUILD_SH" ...` only when WSL is authorized and wrapper path conversion is helpful for a regular Delphi project.
+4. Never call raw `msbuild.exe` unless we are explicitly debugging wrappers.
+5. Do not use the legacy `build-webcore` scripts when `DelphiAIKit.exe build` is available.
+
+For a Windows-only repository, invoke the Windows executable from PowerShell or
+`cmd.exe`; do not start WSL merely to call the same executable. Never let a DAK
+helper make a Linux-native process open a Windows-owned database, fixture,
+output, lock file, or other mutable runtime resource.
 
 If `DAK_EXE` is missing, use [setup.md](setup.md) to define it and optional WSL helpers.
 Commands assume current directory is the target repository root.
@@ -29,6 +35,17 @@ TMS WEB Core builds use `TMSWebCompiler.exe`, not MSBuild. `--platform`, `--delp
 
 ## Preflight
 
+Windows PowerShell (`powershell.exe` or Windows-native `pwsh` as policy allows):
+
+```powershell
+$DakExe = (Get-Command $env:DAK_EXE -ErrorAction Stop).Source
+if (-not (Test-Path -LiteralPath $DakExe -PathType Leaf)) {
+  throw "DAK_EXE does not resolve to a file: $DakExe"
+}
+```
+
+WSL, only when the target repository authorizes it:
+
 ```bash
 test -x "$DAK_EXE" || { echo "DAK_EXE not executable"; exit 1; }
 if grep -qi microsoft /proc/version 2>/dev/null; then
@@ -38,7 +55,7 @@ if grep -qi microsoft /proc/version 2>/dev/null; then
 fi
 ```
 
-## WSL path conversion (canonical)
+## WSL path conversion (only when WSL is authorized)
 
 `DelphiAIKit.exe build --project` accepts both:
 
@@ -53,14 +70,14 @@ PROJECT_LINUX="<path-to-project.dproj>"
 PROJECT_WIN="$(wslpath -w -a "$PROJECT_LINUX")"
 ```
 
-## WSL (Primary)
+## WSL (when authorized by the target repository)
 
 Regular Delphi build:
 
 Canonical build:
 
 ```bash
-PROJECT_LINUX="_Source/ActiveAppView.dproj"
+PROJECT_LINUX="src/App.dproj" # Replace with a project whose policy authorizes WSL.
 PLATFORM="${DAK_PLATFORM:-Win32}"
 "$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --ai
 ```
@@ -68,7 +85,7 @@ PLATFORM="${DAK_PLATFORM:-Win32}"
 Full rebuild:
 
 ```bash
-PROJECT_LINUX="_Source/ActiveAppView.dproj"
+PROJECT_LINUX="src/App.dproj" # Replace with a project whose policy authorizes WSL.
 PLATFORM="${DAK_PLATFORM:-Win32}"
 "$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --target Rebuild --ai
 ```
@@ -76,7 +93,7 @@ PLATFORM="${DAK_PLATFORM:-Win32}"
 Locked-output-safe rebuild (for `F2039` / running EXE):
 
 ```bash
-PROJECT_LINUX="_Source/ActiveAppView.dproj"
+PROJECT_LINUX="src/App.dproj" # Replace with a project whose policy authorizes WSL.
 PLATFORM="${DAK_PLATFORM:-Win32}"
 TEST_OUT_WIN="$(wslpath -w -a _build_verify/test-out)"
 "$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --target Rebuild --test-output-dir "$TEST_OUT_WIN" --ai
@@ -99,7 +116,7 @@ Use typed `--define` and `--unit-search-path` overlays instead of raw MSBuild `/
 WSL wrapper (`build-delphi.sh`) example:
 
 ```bash
-PROJECT_LINUX="_Source/ActiveAppView.dproj"
+PROJECT_LINUX="src/App.dproj" # Replace with a project whose policy authorizes WSL.
 PLATFORM="${DAK_PLATFORM:-Win32}"
 "$DAK_BUILD_SH" "$PROJECT_LINUX" -config Debug -platform "$PLATFORM" -ver 23 -ai
 ```
@@ -119,7 +136,7 @@ For WebCore projects with strong markers such as `TMSWebProject`, `TMSWebHTMLFil
   --webcore-compiler "/mnt/f/TMS-SmartSetUp/Products/tms.webcore/Bin/Win64/TMSWebCompiler.exe" --ai
 ```
 
-## Windows (Secondary)
+## Windows
 
 PowerShell:
 
@@ -196,7 +213,8 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 
 ### TMS WEB Core
 
-1. Prefer `"$DAK_EXE" build --project <app.dproj> --config <Debug|Release> --ai`.
+1. Run `DelphiAIKit.exe build --project <app.dproj> --config <Debug|Release>
+   --ai` with the selected host's PowerShell or Bash syntax shown above.
 2. Add `--builder webcore` when we want explicit backend selection or when auto-detection is uncertain.
 3. Provide `TMSWebCompiler.exe` through `--webcore-compiler`, `[WebCore].CompilerPath`, `DAK_TMSWEB_COMPILER`, or `PATH`.
 4. Use `--pwa` or `--no-pwa` only when we need to override the project setting.
@@ -204,18 +222,18 @@ Use [setup.md](setup.md) to define `DAK_EXE` and optionally `DAK_BUILD_SH`.
 6. For Debug builds, DAK runs `tools\patch-index-debug.ps1` after a successful build when that hook exists, so the legacy shell wrapper is not required.
 7. Use `--json` when automation needs structured status and output path data.
 
-Build plus DFM check example:
+Build plus DFM check from Windows PowerShell:
 
-```bash
-PROJECT_LINUX="_Source/ActiveAppView.dproj"
-PLATFORM="${DAK_PLATFORM:-Win32}"
-"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --dfmcheck --ai
+```powershell
+$Project = Join-Path $PWD "src\App.dproj"
+$Platform = if ($env:DAK_PLATFORM) { $env:DAK_PLATFORM } else { "Win32" }
+& $env:DAK_EXE build --project $Project --delphi 23.0 --platform $Platform --config Debug --dfmcheck --ai
 ```
 
 Build plus targeted DFM check:
 
-```bash
-PROJECT_LINUX="_Source/ActiveAppView.dproj"
-PLATFORM="${DAK_PLATFORM:-Win32}"
-"$DAK_EXE" build --project "$PROJECT_LINUX" --delphi 23.0 --platform "$PLATFORM" --config Debug --dfmcheck --dfm "MainForm.dfm,Frames\\DetailSubEditDocs.dfm" --ai
+```powershell
+$Project = Join-Path $PWD "src\App.dproj"
+$Platform = if ($env:DAK_PLATFORM) { $env:DAK_PLATFORM } else { "Win32" }
+& $env:DAK_EXE build --project $Project --delphi 23.0 --platform $Platform --config Debug --dfmcheck --dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm" --ai
 ```

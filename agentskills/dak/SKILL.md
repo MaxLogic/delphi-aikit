@@ -26,13 +26,17 @@ This is a router, not a command manual. Pick the target skill, load it, and foll
 
 ## Combination Rules
 
-1. For refactoring work, run analysis before editing and build after editing.
-2. For UI/form work, combine the implementation flow with `dak-dfm-check`.
-3. For dependency cleanup, use `dak-project-unit-topology` before and after the change.
-4. For globals cleanup, use `dak-global-vars` for the decision surface and `dak-build` for final verification.
-5. For general rename/usages/dead-code work, use `dak-semantic-refactoring`; use `dak-symbol-map` for non-mutating symbol index questions.
-6. For `with` cleanup, use `dak-remove-with`; do not route the resolver through `dak-lsp`.
-7. For compiler errors, start with `dak-build`. Use `dak-lsp` only as optional navigation after the build output identifies a meaningful location.
+1. Choose the execution domain from repository/user policy before choosing a
+   wrapper. Windows-only workflows run DAK directly on Windows; use WSL only
+   when that target repository explicitly permits it. One OS owns each mutable
+   runtime resource.
+2. For refactoring work, run analysis before editing and build after editing.
+3. For UI/form work, combine the implementation flow with `dak-dfm-check`.
+4. For dependency cleanup, use `dak-project-unit-topology` before and after the change.
+5. For globals cleanup, use `dak-global-vars` for the decision surface and `dak-build` for final verification.
+6. For general rename/usages/dead-code work, use `dak-semantic-refactoring`; use `dak-symbol-map` for non-mutating symbol index questions.
+7. For `with` cleanup, use `dak-remove-with`; do not route the resolver through `dak-lsp`.
+8. For compiler errors, start with `dak-build`. Use `dak-lsp` only as optional navigation after the build output identifies a meaningful location.
 
 ## Overlap Rules
 
