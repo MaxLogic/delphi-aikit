@@ -107,10 +107,31 @@ begin
   end;
 end;
 
+function TryOpenRefactorSemanticContext(
+  const aSessionOptions: TDelphiSemanticOptions;
+  out aContext: IDakSemanticSymbolQueryContext;
+  out aMetrics: TDakSemanticSymbolQueryMetrics;
+  out aError: string): Boolean;
+begin
+  try
+    Result := OpenSemanticSymbolQueryContext(aSessionOptions, aContext,
+      aMetrics, aError, True);
+  except
+    on E: Exception do
+    begin
+      aError := E.ClassName + ': ' + E.Message;
+      Result := False;
+    end;
+  end;
+end;
+
 function BuildSemanticContext(const aOptions: TAppOptions;
   out aContext: IDakSemanticSymbolQueryContext; out aCacheMetrics: TDakSemanticCacheMetrics;
   out aPhaseMetrics: TRefactorSemanticPhaseMetrics; out aError: string): Boolean;
 var
+  lCacheError: string;
+  lCacheFileName: string;
+  lCachePolicy: TDakSemanticCachePolicy;
   lMetrics: TDakSemanticSymbolQueryMetrics;
   lSessionOptions: TDelphiSemanticOptions;
   lTotalStopwatch: TStopwatch;
@@ -121,16 +142,36 @@ begin
   aCacheMetrics := Default(TDakSemanticCacheMetrics);
   aPhaseMetrics := Default(TRefactorSemanticPhaseMetrics);
   lTotalStopwatch := TStopwatch.StartNew;
-  if aOptions.fHasRefactorSemanticCachePath then
-    lSessionOptions := BuildSemanticSessionOptions(aOptions.fDprojPath, aOptions.fConfig,
-      aOptions.fPlatform, aOptions.fDelphiVersion, aOptions.fRsVarsPath,
-      aOptions.fEnvOptionsPath, aOptions.fRefactorSemanticCachePath)
-  else
-    lSessionOptions := BuildSemanticSessionOptions(aOptions.fDprojPath, aOptions.fConfig,
-      aOptions.fPlatform, aOptions.fDelphiVersion, aOptions.fRsVarsPath,
-      aOptions.fEnvOptionsPath, '');
-  Result := OpenSemanticSymbolQueryContext(lSessionOptions, aContext, lMetrics, aError,
-    True);
+  lCachePolicy := ResolveSemanticCachePolicy(aOptions.fDprojPath,
+    aOptions.fRefactorSemanticCachePath,
+    aOptions.fHasRefactorSemanticCachePath, aOptions.fNoSemanticCache);
+  lCacheFileName := lCachePolicy.FileName;
+  if not TryPrepareSemanticCache(lCachePolicy, lCacheError) then
+  begin
+    if not lCachePolicy.IsImplicit then
+    begin
+      aError := SemanticCacheFailureDiagnostic(lCachePolicy, lCacheError);
+      Exit(False);
+    end;
+    EmitSemanticCacheFallbackDiagnostic(lCachePolicy, lCacheError);
+    lCacheFileName := '';
+  end;
+
+  lSessionOptions := BuildSemanticSessionOptions(aOptions.fDprojPath,
+    aOptions.fConfig, aOptions.fPlatform, aOptions.fDelphiVersion,
+    aOptions.fRsVarsPath, aOptions.fEnvOptionsPath, lCacheFileName);
+  Result := TryOpenRefactorSemanticContext(lSessionOptions, aContext,
+    lMetrics, aError);
+  if (not Result) and lCachePolicy.IsImplicit and
+    (lCacheFileName <> '') and
+    IsSemanticCacheFailure(aError, lCacheFileName) then
+  begin
+    EmitSemanticCacheFallbackDiagnostic(lCachePolicy, aError);
+    lSessionOptions.SqliteCacheFileName := '';
+    aContext := nil;
+    Result := TryOpenRefactorSemanticContext(lSessionOptions, aContext,
+      lMetrics, aError);
+  end;
   aCacheMetrics := lMetrics.CacheMetrics;
   aPhaseMetrics.ProjectContextMs := lMetrics.SessionOpenMilliseconds;
   if not Result then

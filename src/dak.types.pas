@@ -138,6 +138,7 @@ type
     fHasOutPath: Boolean;
     fHasOutKind: Boolean;
     fVerbose: Boolean;
+    fNoSemanticCache: Boolean;
     fSourceContextMode: TSourceContextMode;
     fHasSourceContextMode: Boolean;
     fSourceContextLines: Integer;

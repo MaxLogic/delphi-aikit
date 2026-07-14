@@ -710,9 +710,10 @@ begin
 end;
 
 function BuildProjectSemanticOptions(const aOptions: TAppOptions;
-  const aProjectModel: TRemoveWithProjectModel): TDelphiSemanticApiOptions;
+  const aProjectModel: TRemoveWithProjectModel;
+  out aCachePolicy: TDakSemanticCachePolicy): TDelphiSemanticApiOptions;
 var
-  lCacheDir: string;
+  lCacheError: string;
   lProjectDir: string;
   lUnitFileName: string;
   lSourceFileNames: TList<string>;
@@ -736,14 +737,18 @@ begin
   finally
     lSourceFileNames.Free;
   end;
-  if aOptions.fHasRemoveWithSemanticCachePath and
-    (Trim(aOptions.fRemoveWithSemanticCachePath) <> '') then
+  aCachePolicy := ResolveSemanticCachePolicy(aProjectModel.ProjectPath,
+    aOptions.fRemoveWithSemanticCachePath,
+    aOptions.fHasRemoveWithSemanticCachePath, aOptions.fNoSemanticCache);
+  if not TryPrepareSemanticCache(aCachePolicy, lCacheError) then
   begin
-    Result.Cache.SqliteCacheFileName := aOptions.fRemoveWithSemanticCachePath;
-    lCacheDir := TPath.GetDirectoryName(Result.Cache.SqliteCacheFileName);
-    if lCacheDir <> '' then
-      TDirectory.CreateDirectory(lCacheDir);
+    if not aCachePolicy.IsImplicit then
+      raise Exception.Create(SemanticCacheFailureDiagnostic(aCachePolicy,
+        lCacheError));
+    EmitSemanticCacheFallbackDiagnostic(aCachePolicy, lCacheError);
+    Exit;
   end;
+  Result.Cache.SqliteCacheFileName := aCachePolicy.FileName;
 end;
 
 function SemanticFactBuildDiagnosticsText(
@@ -775,6 +780,48 @@ begin
     Result := 'DelphiSemantics fact build failed without diagnostics.';
 end;
 
+function TryBuildSemanticFacts(
+  const aRequest: TDelphiSemanticRemoveWithRequest;
+  out aResult: TDelphiSemanticRemoveWithFactBuildResult;
+  out aError: string): Boolean;
+begin
+  aError := '';
+  try
+    aResult :=
+      TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFactsResult(
+        aRequest);
+  except
+    on E: Exception do
+    begin
+      aError := E.ClassName + ': ' + E.Message;
+      Exit(False);
+    end;
+  end;
+  Result := aResult.Success;
+  if not Result then
+    aError := SemanticFactBuildDiagnosticsText(aResult.Diagnostics);
+end;
+
+function TryBuildSemanticPlan(
+  const aRequest: TDelphiSemanticRemoveWithRequest;
+  out aPlan: TDelphiSemanticRemoveWithPlan;
+  out aError: string): Boolean;
+begin
+  aError := '';
+  try
+    aPlan := TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWith(aRequest);
+  except
+    on E: Exception do
+    begin
+      aError := E.ClassName + ': ' + E.Message;
+      Exit(False);
+    end;
+  end;
+  Result := SameText(aPlan.Status, 'planned');
+  if not Result then
+    aError := aPlan.Diagnostic;
+end;
+
 function BuildProjectSemanticFacts(const aContext: TRemoveWithSymbolInventoryContext;
   const aOptions: TAppOptions;
   const aProjectModel: TRemoveWithProjectModel;
@@ -783,32 +830,53 @@ function BuildProjectSemanticFacts(const aContext: TRemoveWithSymbolInventoryCon
   var aPhaseMetrics: TRemoveWithFactSetPhaseMetrics;
   out aError: string): Boolean;
 var
+  lCachePolicy: TDakSemanticCachePolicy;
+  lCallError: string;
   lFacts: TDelphiSemanticProjectWithBindingFacts;
   lFactsResult: TDelphiSemanticRemoveWithFactBuildResult;
   lModel: TDelphiSemanticUnitModel;
-  lOptions: TDelphiSemanticApiOptions;
-  lPlanStopwatch: TStopwatch;
   lRequest: TDelphiSemanticRemoveWithRequest;
   lStopwatch: TStopwatch;
 begin
   Result := False;
   aError := '';
-  lOptions := BuildProjectSemanticOptions(aOptions, aProjectModel);
   lRequest := Default(TDelphiSemanticRemoveWithRequest);
-  lRequest.Options := lOptions;
-  lRequest.RemoveWithOptions.SkipSemanticGraph := True;
-  lRequest.BodyAnalysisSourceFileNames := Copy(aBodyAnalysisSourceFileNames);
-  lStopwatch := TStopwatch.StartNew;
   try
-    lFactsResult :=
-      TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFactsResult(
-        lRequest);
+    lRequest.Options := BuildProjectSemanticOptions(aOptions, aProjectModel,
+      lCachePolicy);
   except
     on E: Exception do
     begin
-      aError := 'DelphiSemantics project facts failed: ' + E.Message;
+      aError := E.Message;
       Exit(False);
     end;
+  end;
+  lRequest.RemoveWithOptions.SkipSemanticGraph := True;
+  lRequest.BodyAnalysisSourceFileNames := Copy(aBodyAnalysisSourceFileNames);
+  lStopwatch := TStopwatch.StartNew;
+  if not TryBuildSemanticFacts(lRequest, lFactsResult, lCallError) then
+  begin
+    if lCachePolicy.IsImplicit and
+      (lRequest.Options.Cache.SqliteCacheFileName <> '') and
+      IsSemanticCacheFailure(lCallError, lCachePolicy.FileName) then
+    begin
+      EmitSemanticCacheFallbackDiagnostic(lCachePolicy, lCallError);
+      lRequest.Options.Cache.SqliteCacheFileName := '';
+      if not TryBuildSemanticFacts(lRequest, lFactsResult, lCallError) then
+      begin
+        aError := 'DelphiSemantics project facts failed: ' + lCallError;
+        Exit(False);
+      end;
+    end else begin
+      aError := 'DelphiSemantics project facts failed: ' + lCallError;
+      Exit(False);
+    end;
+  end;
+  if not lFactsResult.Success then
+  begin
+    aError := 'DelphiSemantics project facts failed: ' +
+      SemanticFactBuildDiagnosticsText(lFactsResult.Diagnostics);
+    Exit(False);
   end;
   lStopwatch.Stop;
   aPhaseMetrics.fSemanticProjectFactsMs := lStopwatch.ElapsedMilliseconds;
@@ -850,12 +918,6 @@ begin
     lFactsResult.Metrics.SnapshotDeserializeMilliseconds;
   aPhaseMetrics.fSnapshotIndexRebuildMs :=
     lFactsResult.Metrics.SnapshotIndexRebuildMilliseconds;
-  if not lFactsResult.Success then
-  begin
-    aError := 'DelphiSemantics project facts failed: ' +
-      SemanticFactBuildDiagnosticsText(lFactsResult.Diagnostics);
-    Exit(False);
-  end;
   if lFacts.Metrics.UnitCount = 0 then
   begin
     aError := 'DelphiSemantics project facts did not return any project units.';
@@ -863,25 +925,31 @@ begin
   end;
   aInventory.fContextFingerprint := lFacts.ContextFingerprint;
   aInventory.fDelphiSemanticLookupIndex := lFacts.LookupIndex;
-  lPlanStopwatch := TStopwatch.StartNew;
-  try
-    aInventory.fDelphiSemanticRemoveWithPlan :=
-      TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWith(lRequest);
-  except
-    on E: Exception do
+  lStopwatch := TStopwatch.StartNew;
+  if not TryBuildSemanticPlan(lRequest,
+    aInventory.fDelphiSemanticRemoveWithPlan,
+    lCallError) then
+  begin
+    if lCachePolicy.IsImplicit and
+      (lRequest.Options.Cache.SqliteCacheFileName <> '') and
+      IsSemanticCacheFailure(lCallError, lCachePolicy.FileName) then
     begin
-      aError := 'DelphiSemantics remove-with plan failed: ' + E.Message;
+      EmitSemanticCacheFallbackDiagnostic(lCachePolicy, lCallError);
+      lRequest.Options.Cache.SqliteCacheFileName := '';
+      if not TryBuildSemanticPlan(lRequest,
+        aInventory.fDelphiSemanticRemoveWithPlan,
+        lCallError) then
+      begin
+        aError := 'DelphiSemantics remove-with plan failed: ' + lCallError;
+        Exit(False);
+      end;
+    end else begin
+      aError := 'DelphiSemantics remove-with plan failed: ' + lCallError;
       Exit(False);
     end;
   end;
-  lPlanStopwatch.Stop;
-  aPhaseMetrics.fSemanticPlanDtoMs := lPlanStopwatch.ElapsedMilliseconds;
-  if not SameText(aInventory.fDelphiSemanticRemoveWithPlan.Status, 'planned') then
-  begin
-    aError := 'DelphiSemantics remove-with plan failed: ' +
-      aInventory.fDelphiSemanticRemoveWithPlan.Diagnostic;
-    Exit(False);
-  end;
+  lStopwatch.Stop;
+  aPhaseMetrics.fSemanticPlanDtoMs := lStopwatch.ElapsedMilliseconds;
   if not SameText(aInventory.fContextFingerprint,
     aInventory.fDelphiSemanticRemoveWithPlan.ContextFingerprint) then
   begin

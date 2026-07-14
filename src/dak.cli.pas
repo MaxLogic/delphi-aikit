@@ -152,6 +152,7 @@ begin
     Add('output', '', svpRequiredValue, [crGlobalVars, crDeps, crRemoveWith]);
     Add('diagnostics', '', svpOptionalBoolValue, [crRemoveWith]);
     Add('semantic-cache', '', svpRequiredValue, [crRemoveWith, crFindUsages, crRename, crDeadCode]);
+    Add('no-semantic-cache', '', svpFlag, [crRemoveWith, crFindUsages, crRename, crDeadCode]);
     Add('new-name', '', svpRequiredValue, [crRename]);
     Add('profile', '', svpRequiredValue, [crDeadCode]);
     Add('apply', '', svpOptionalBoolValue, [crRename, crDeadCode]);
@@ -1685,6 +1686,17 @@ begin
     Exit(True);
   end;
 
+  if SwitchMatches(aSwitch, 'no-semantic-cache') then
+  begin
+    if aHasInlineValue then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    fOptions.fNoSemanticCache := True;
+    Exit(True);
+  end;
+
   if SwitchMatches(aSwitch, 'diagnostics') then
   begin
     if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--diagnostics') then
@@ -1953,6 +1965,17 @@ begin
       Exit(False);
     fOptions.fRefactorSemanticCachePath := lValue;
     fOptions.fHasRefactorSemanticCachePath := True;
+    Exit(True);
+  end;
+
+  if SwitchMatches(aSwitch, 'no-semantic-cache') then
+  begin
+    if aHasInlineValue then
+    begin
+      fError := Format(SUnknownArg, [aArg]);
+      Exit(False);
+    end;
+    fOptions.fNoSemanticCache := True;
     Exit(True);
   end;
 
@@ -2366,6 +2389,14 @@ function TOptionParser.ValidateOptions: Boolean;
 var
   lRemoveWithTargetCount: Integer;
 begin
+  if fOptions.fNoSemanticCache and
+    (fOptions.fHasRemoveWithSemanticCachePath or
+    fOptions.fHasRefactorSemanticCachePath) then
+  begin
+    fError := rsSemanticCacheConflict;
+    Exit(False);
+  end;
+
   if (fOptions.fCommand = TCommandKind.ckAnalyzeProject) and (fOptions.fUnitPath <> '') then
   begin
     if fOptions.fDprojPath <> '' then

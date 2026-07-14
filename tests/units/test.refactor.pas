@@ -40,6 +40,10 @@ type
     [Test]
     procedure RenameSemanticCacheUsesToolchainIdentity;
     [Test]
+    procedure RenameDefaultsToProjectLocalSemanticCache;
+    [Test]
+    procedure RenameSemanticCacheOptOutAndImplicitFallback;
+    [Test]
     procedure RefactorCommandsUseDelphiSemanticsProjectSession;
     [Test]
     procedure SemanticsSessionAdapterMapsOptionsAndDiagnostics;
@@ -626,6 +630,121 @@ begin
   Assert.IsTrue(Pos('"projectSymbolIndexBuildCount":0', lReleaseLogText) > 0,
     'Snapshot-backed rename must not build the legacy project symbol index. See: ' +
     lReleaseLogPath);
+end;
+
+procedure TRefactorCommandTests.RenameDefaultsToProjectLocalSemanticCache;
+var
+  lCachePath: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lFirstLogPath: string;
+  lFirstLogText: string;
+  lRoot: string;
+  lSecondLogPath: string;
+  lSecondLogText: string;
+  lUnitOnePath: string;
+  lUnitTwoPath: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := UniqueTempPath('refactor-rename-default-cache');
+  CreateFixtureProject(lRoot, lDprojPath, lUnitOnePath, lUnitTwoPath);
+  lCachePath := TPath.Combine(TPath.Combine(TPath.Combine(lRoot, '.dak'),
+    'RefactorFixture'), 'semantic-cache.sqlite3');
+  lFirstLogPath := TPath.Combine(TempRoot, 'refactor-rename-default-cache-first.log');
+  lSecondLogPath := TPath.Combine(TempRoot, 'refactor-rename-default-cache-second.log');
+
+  Assert.IsTrue(RunResolverProcess(
+    'rename --project ' + QuoteArg(lDprojPath) +
+    ' --symbol SharedValue --new-name RenamedValue --format json' +
+    ' --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lFirstLogPath, lExitCode), 'Failed to start first default-cache rename.');
+  Assert.AreEqual(Cardinal(0), lExitCode,
+    'Expected first default-cache rename to succeed. See: ' + lFirstLogPath);
+  Assert.IsTrue(TFile.Exists(lCachePath),
+    'Expected rename to create the canonical project-local semantic cache: ' + lCachePath);
+  lFirstLogText := ReadUtf8TextFile(lFirstLogPath);
+  Assert.IsTrue(Pos('"semanticCacheHits":0', lFirstLogText) > 0,
+    'Expected cold default-cache rename to report zero hits. See: ' + lFirstLogPath);
+  Assert.IsFalse(Pos('"semanticCacheMisses":0', lFirstLogText) > 0,
+    'Expected cold default-cache rename to report misses. See: ' + lFirstLogPath);
+
+  Assert.IsTrue(RunResolverProcess(
+    'rename --project ' + QuoteArg(lDprojPath) +
+    ' --symbol SharedValue --new-name RenamedValue --format json' +
+    ' --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lSecondLogPath, lExitCode), 'Failed to start second default-cache rename.');
+  Assert.AreEqual(Cardinal(0), lExitCode,
+    'Expected second default-cache rename to succeed. See: ' + lSecondLogPath);
+  lSecondLogText := ReadUtf8TextFile(lSecondLogPath);
+  Assert.IsFalse(Pos('"semanticCacheHits":0', lSecondLogText) > 0,
+    'Expected unchanged second rename to report cache hits. See: ' + lSecondLogPath);
+  Assert.IsTrue(Pos('"semanticCacheMisses":0', lSecondLogText) > 0,
+    'Expected unchanged second rename to avoid cache misses. See: ' + lSecondLogPath);
+end;
+
+procedure TRefactorCommandTests.RenameSemanticCacheOptOutAndImplicitFallback;
+var
+  lBlockedDakPath: string;
+  lCachePath: string;
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lExplicitLogPath: string;
+  lExplicitLogText: string;
+  lFallbackLogPath: string;
+  lFallbackLogText: string;
+  lOptOutLogPath: string;
+  lRoot: string;
+  lUnitOnePath: string;
+  lUnitTwoPath: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := UniqueTempPath('refactor-rename-cache-policy');
+  CreateFixtureProject(lRoot, lDprojPath, lUnitOnePath, lUnitTwoPath);
+  lCachePath := TPath.Combine(TPath.Combine(TPath.Combine(lRoot, '.dak'),
+    'RefactorFixture'), 'semantic-cache.sqlite3');
+  lOptOutLogPath := TPath.Combine(TempRoot, 'refactor-rename-cache-opt-out.log');
+
+  Assert.IsTrue(RunResolverProcess(
+    'rename --project ' + QuoteArg(lDprojPath) +
+    ' --symbol SharedValue --new-name RenamedValue --format json --no-semantic-cache' +
+    ' --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lOptOutLogPath, lExitCode), 'Failed to start opt-out rename.');
+  Assert.AreEqual(Cardinal(0), lExitCode,
+    'Expected --no-semantic-cache rename to succeed. See: ' + lOptOutLogPath);
+  Assert.IsFalse(TFile.Exists(lCachePath),
+    '--no-semantic-cache must not create the default persistent cache.');
+
+  lBlockedDakPath := TPath.Combine(lRoot, '.dak');
+  TFile.WriteAllText(lBlockedDakPath, 'blocks cache directory creation', TEncoding.UTF8);
+  lFallbackLogPath := TPath.Combine(TempRoot, 'refactor-rename-cache-fallback.log');
+  Assert.IsTrue(RunResolverProcess(
+    'rename --project ' + QuoteArg(lDprojPath) +
+    ' --symbol SharedValue --new-name RenamedValue --format json' +
+    ' --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lFallbackLogPath, lExitCode), 'Failed to start implicit-fallback rename.');
+  Assert.AreEqual(Cardinal(0), lExitCode,
+    'Implicit cache failure must continue uncached. See: ' + lFallbackLogPath);
+  lFallbackLogText := ReadUtf8TextFile(lFallbackLogPath);
+  Assert.IsTrue(ContainsText(lFallbackLogText, 'semantic cache unavailable'),
+    'Expected actionable implicit-cache diagnostic. Actual: ' + lFallbackLogText);
+  Assert.IsTrue(ContainsText(lFallbackLogText, 'continuing without persistence'),
+    'Expected fallback diagnostic to explain uncached continuation.');
+  Assert.IsTrue(ContainsText(lFallbackLogText, '--no-semantic-cache'),
+    'Expected fallback diagnostic to document the opt-out switch. Actual: ' +
+    lFallbackLogText);
+
+  lExplicitLogPath := TPath.Combine(TempRoot, 'refactor-rename-cache-explicit-failure.log');
+  Assert.IsTrue(RunResolverProcess(
+    'rename --project ' + QuoteArg(lDprojPath) +
+    ' --symbol SharedValue --new-name RenamedValue --format json --semantic-cache ' +
+    QuoteArg(TPath.Combine(lBlockedDakPath, 'explicit.sqlite3')) +
+    ' --delphi 23.0 --platform Win32 --config Debug',
+    RepoRoot, lExplicitLogPath, lExitCode), 'Failed to start explicit-cache rename.');
+  Assert.AreNotEqual(Cardinal(0), lExitCode,
+    'An explicitly requested unusable cache must remain a strict failure.');
+  lExplicitLogText := ReadUtf8TextFile(lExplicitLogPath);
+  Assert.IsFalse(ContainsText(lExplicitLogText, 'continuing without persistence'),
+    'Explicit cache failures must not silently retry uncached.');
 end;
 
 procedure TRefactorCommandTests.RefactorCommandsUseDelphiSemanticsProjectSession;
