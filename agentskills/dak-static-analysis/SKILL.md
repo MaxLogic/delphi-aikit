@@ -23,7 +23,11 @@ Default policy:
 
 ## Run Commands
 
-WSL (primary):
+Choose the host from repository/user policy. For Windows-only repositories use
+the Windows wrappers directly. Use WSL wrappers only when the target repository
+permits WSL and path conversion is useful.
+
+WSL (when authorized):
 - Project doctor: `./agentskills/dak-static-analysis/doctor.sh /mnt/c/path/to/MyProject.dproj`
 - Project analyze: `./agentskills/dak-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
 - Unit analyze: `./agentskills/dak-static-analysis/analyze-unit.sh /mnt/c/path/to/Unit1.pas`
@@ -100,13 +104,18 @@ Primary artifacts:
 ## Agent Workflow
 
 1. Run `doctor` first for tool/path sanity.
-2. Run `analyze` (project) or `analyze-unit` (single unit).
+2. At task tier run `analyze-unit` for touched units when it can cover the
+   change. Run project analysis at scheduled batch/final gates or when a shared
+   analyzer/build boundary changes.
 3. Read `summary.md`, then `triage.md`.
 4. Apply only low-risk fixes in small batches.
-5. Verify with DAK build:
-   - WSL/Windows: `"$DAK_EXE" build --project "<project.dproj>" --delphi 23.0 --platform "<platform>" --config Debug --ai`
-   - For DelphiAiKit itself, use `--platform Win64`.
-6. Re-run analysis and confirm no regression in `delta.md` / gate output.
+5. Verify through `$dak-build` in the execution domain selected by repository/
+   user policy. Use its separate PowerShell or Bash command form; do not paste
+   Bash variable syntax into PowerShell. For DelphiAiKit itself, use
+   `--platform Win64`.
+6. Re-run the affected analysis scope and confirm no regression in `delta.md` /
+   gate output. Do not repeat an unchanged full-project analysis after every
+   leaf edit.
 7. Preserve only the summary, triage, baseline, or delta needed for the task record; clean disposable analyzer trees after the evidence is recorded.
 
 After a coherent batch of Delphi source edits, run the shared `encodingfix-delphi-cleanup` source-hygiene check once before the final task gate. Do not duplicate it if another DAK workflow already ran the same check over the same files. Ordinary analysis must not silently rewrite source files.
@@ -142,7 +151,9 @@ Require explicit review before change:
 
 - PAL not found: set `PA_PATH` or configure `[PascalAnalyzer].Path` in `dak.ini`.
 - FixInsight not found: configure `[FixInsightCL].Path` in `dak.ini` or install/discoverable path.
-- WSL path issues: pass Linux paths to shell scripts; wrappers convert with `wslpath`.
+- WSL path issues: only in a WSL-authorized repository, pass Linux paths to
+  shell scripts; wrappers convert with `wslpath`. Otherwise switch to the
+  Windows wrapper instead of adding another path bridge.
 - `cmd.exe` quoting issues: prefer wrapper scripts over manual `cmd.exe` command construction.
 
 ## Local References
