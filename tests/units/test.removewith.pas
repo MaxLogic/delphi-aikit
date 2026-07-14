@@ -64,7 +64,13 @@ type
     [Test]
     procedure SemanticPlanChecksCompatibilityContextFingerprint;
     [Test]
-    procedure SemanticProjectFactsUseExplicitBuildResult;
+    procedure SemanticProjectFactsAndPlanUseCombinedBuildResult;
+    [Test]
+    procedure SemanticCombinedMetricsUseMeasuredPhases;
+    [Test]
+    procedure SemanticCachePolicyUsesFinalCombinedPersistenceState;
+    [Test]
+    procedure SemanticCombinedRetryMetricsAccumulate;
     [Test]
     procedure DakSemanticLookupsStayDelphiSemanticOwned;
     [Test]
@@ -913,6 +919,25 @@ const
     'post-edit-compile',
     'rollback-on-failure');
 
+function CountTextOccurrences(const aText, aNeedle: string): Integer;
+var
+  lOffset: Integer;
+  lPosition: Integer;
+begin
+  Result := 0;
+  if aNeedle = '' then
+    Exit;
+
+  lOffset := 1;
+  repeat
+    lPosition := PosEx(aNeedle, aText, lOffset);
+    if lPosition = 0 then
+      Exit;
+    Inc(Result);
+    lOffset := lPosition + Length(aNeedle);
+  until False;
+end;
+
 function DiscoveryFixtureDprPath: string;
 begin
   Result := TPath.Combine(RepoRoot, 'tests\fixtures\RemoveWithDiscoveryFixture\RemoveWithDiscoveryFixture.dpr');
@@ -1426,20 +1451,45 @@ end;
 
 procedure TRemoveWithCommandTests.SemanticPlanUsesSessionSnapshotPlanner;
 var
+  lBuildEnd: Integer;
+  lBuildStart: Integer;
+  lBuildText: string;
+  lCombinedCall: string;
   lSourceFileName: string;
   lSourceText: string;
+  lTryEnd: Integer;
+  lTryStart: Integer;
+  lTryText: string;
 begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+  lCombinedCall :=
+    'TDelphiSemanticRemoveWithCompatibilityApi.BuildProjectWithBindingFactsAndPlanResult(';
 
-  Assert.IsTrue(ContainsText(lSourceText,
-    'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWith(aRequest)'),
-    'DAK must build normal remove-with plans through the DelphiSemantics compatibility snapshot API.');
-  Assert.IsFalse(ContainsText(lSourceText,
-    'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWithSnapshot(lFacts)'),
+  Assert.AreEqual(1, CountTextOccurrences(lSourceText, lCombinedCall),
+    'DAK must have exactly one direct combined DelphiSemantics call.');
+  lTryStart := Pos('function TryBuildSemanticFactsAndPlan(', lSourceText);
+  lTryEnd := PosEx('procedure AccumulateCombinedSemanticMetrics(', lSourceText,
+    lTryStart);
+  lTryText := Copy(lSourceText, lTryStart, lTryEnd - lTryStart);
+  Assert.AreEqual(1, CountTextOccurrences(lTryText, lCombinedCall),
+    'The combined call must remain inside the guarded semantic-call boundary.');
+  lBuildStart := Pos('function BuildProjectSemanticFacts(', lSourceText);
+  lBuildEnd := PosEx('function ', lSourceText, lBuildStart + 1);
+  lBuildText := Copy(lSourceText, lBuildStart, lBuildEnd - lBuildStart);
+  Assert.AreEqual(2, CountTextOccurrences(lBuildText,
+    'TryBuildSemanticFactsAndPlanWithMetrics('),
+    'Normal and cache-recovery paths must share the accumulating boundary.');
+  Assert.IsFalse(ContainsText(lSourceText, 'BuildProjectWithBindingFacts('),
+    'DAK normal remove-with must not use legacy compatibility facts.');
+  Assert.IsFalse(ContainsText(lSourceText, 'BuildProjectWithBindingFactsResult('),
+    'DAK normal remove-with must not open a separate compatibility-facts session.');
+  Assert.IsFalse(ContainsText(lSourceText, 'PlanRemoveWith('),
+    'DAK normal remove-with must not open a separate snapshot-plan session.');
+  Assert.IsFalse(ContainsText(lSourceText, 'PlanRemoveWithResult('),
+    'DAK normal remove-with must not use a legacy plan result overload.');
+  Assert.IsFalse(ContainsText(lSourceText, 'PlanRemoveWithSnapshot('),
     'DAK normal planning must not rebuild a temporary snapshot from compatibility facts.');
-  Assert.IsFalse(ContainsText(lSourceText, 'TDelphiSemanticRemoveWithCompatibilityApi.PlanRemoveWith(lFacts)'),
-    'DAK must not build remove-with plans through the legacy project-facts overload.');
 end;
 
 procedure TRemoveWithCommandTests.SemanticPlanChecksCompatibilityContextFingerprint;
@@ -1457,7 +1507,7 @@ begin
     'DAK must fail loudly when compatibility facts and typed plan contexts drift.');
 end;
 
-procedure TRemoveWithCommandTests.SemanticProjectFactsUseExplicitBuildResult;
+procedure TRemoveWithCommandTests.SemanticProjectFactsAndPlanUseCombinedBuildResult;
 var
   lSourceFileName: string;
   lSourceText: string;
@@ -1465,14 +1515,70 @@ begin
   lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
   lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
 
-  Assert.IsTrue(ContainsText(lSourceText, 'BuildProjectWithBindingFactsResult'),
-    'DAK must consume explicit DelphiSemantics fact-build results.');
-  Assert.IsTrue(ContainsText(lSourceText, 'lFactsResult.Success'),
-    'DAK must check the explicit DelphiSemantics success flag.');
+  Assert.IsTrue(ContainsText(lSourceText, 'BuildProjectWithBindingFactsAndPlanResult'),
+    'DAK must consume the explicit DelphiSemantics facts-and-plan result.');
+  Assert.IsTrue(ContainsText(lSourceText, 'Result := aResult.Success'),
+    'DAK must check the combined DelphiSemantics success flag.');
   Assert.IsFalse(ContainsText(lSourceText, 'if lFacts.ContextFingerprint = '''''),
     'DAK must not infer DelphiSemantics API failure from an empty context fingerprint sentinel.');
   Assert.IsFalse(ContainsText(lSourceText, 'Result.SkipWithBindingSemanticGraph := True'),
     'DAK must pass remove-with semantic graph switches through the remove-with request options.');
+end;
+
+procedure TRemoveWithCommandTests.SemanticCombinedMetricsUseMeasuredPhases;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText,
+    '.Metrics.SemanticProjectFactsMilliseconds'),
+    'DAK must publish the measured combined facts phase.');
+  Assert.IsTrue(ContainsText(lSourceText, '.Metrics.SemanticPlanMilliseconds'),
+    'DAK must publish the measured canonical planning phase.');
+  Assert.IsTrue(ContainsText(lSourceText,
+    'aPhaseMetrics.fSemanticPlanDtoMs +'),
+    'DAK must accumulate measured canonical planning time.');
+end;
+
+procedure TRemoveWithCommandTests.SemanticCachePolicyUsesFinalCombinedPersistenceState;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText,
+    '.Metrics.SemanticCachePersistenceAvailable'),
+    'DAK must consume DelphiSemantics final cache-persistence state.');
+  Assert.IsFalse(ContainsText(lSourceText,
+    '.Metrics.Facts.SemanticCachePersistentConnectionOpenCount > 0'),
+    'A historical connection count must not stand in for final persistence state.');
+end;
+
+procedure TRemoveWithCommandTests.SemanticCombinedRetryMetricsAccumulate;
+var
+  lSourceFileName: string;
+  lSourceText: string;
+begin
+  lSourceFileName := TPath.Combine(RepoRoot, 'src\Dak.RemoveWith.Symbols.pas');
+  lSourceText := TFile.ReadAllText(lSourceFileName, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSourceText,
+    'procedure AccumulateCombinedSemanticMetrics('),
+    'DAK must centralize combined-operation metric accumulation.');
+  Assert.IsTrue(ContainsText(lSourceText,
+    'Inc(aPhaseMetrics.fSemanticSessionOpenCount,'),
+    'Session-open counters must accumulate across cache recovery attempts.');
+  Assert.IsTrue(ContainsText(lSourceText,
+    'Inc(aPhaseMetrics.fModelExtractionPassCount,'),
+    'Extraction counters must accumulate across cache recovery attempts.');
+  Assert.IsTrue(ContainsText(lSourceText,
+    'TryBuildSemanticFactsAndPlanWithMetrics('),
+    'Normal and recovery calls must share the metric-accumulating boundary.');
 end;
 
 procedure TRemoveWithCommandTests.DakSemanticLookupsStayDelphiSemanticOwned;
@@ -2094,6 +2200,13 @@ begin
     'Expected remove-with fallback diagnostic to explain uncached continuation.');
   Assert.IsTrue(ContainsText(lLogText, '--no-semantic-cache'),
     'Expected remove-with fallback diagnostic to document the opt-out switch.');
+
+  lLogText := RunSemanticCacheFixture(lFallbackDprojPath, lBlockedCachePath,
+    'remove-with-explicit-cache-failure.log', lExitCode);
+  Assert.AreNotEqual(Cardinal(0), lExitCode,
+    'An explicit remove-with cache request must remain strict.');
+  Assert.IsTrue(ContainsText(lLogText, 'semantic cache unavailable'),
+    'Expected actionable explicit-cache failure. Actual: ' + lLogText);
 end;
 
 procedure TRemoveWithReportTests.ScanJsonReportUsesStableBaseSchema;
@@ -2428,6 +2541,8 @@ begin
     RequireJsonNumberKey(lMetrics, 'semanticCompatibilityFactsMs');
     RequireJsonNumberKey(lMetrics, 'semanticBindingMs');
     RequireJsonNumberKey(lMetrics, 'semanticPlanDtoMs');
+    RequireJsonNumberKey(lMetrics, 'semanticSessionOpenCount');
+    RequireJsonNumberKey(lMetrics, 'modelExtractionPassCount');
     RequireJsonNumberKey(lMetrics, 'dakLookupIndexMs');
     RequireJsonNumberKey(lMetrics, 'dakResolverClassifyMs');
     RequireJsonNumberKey(lMetrics, 'dakPlannerRewriteMs');
@@ -2443,10 +2558,20 @@ begin
     RequireJsonNumberKey(lSubphaseMetrics, 'semanticLookupIndexBuildMs');
     RequireJsonNumberKey(lSubphaseMetrics, 'semanticBindingIndexBuildMs');
     RequireJsonNumberKey(lSubphaseMetrics, 'semanticInventoryExpansionMs');
+    RequireJsonNumberKey(lSubphaseMetrics, 'semanticSessionOpenCount');
+    RequireJsonNumberKey(lSubphaseMetrics, 'modelExtractionPassCount');
     RequireJsonNumberKey(lSubphaseMetrics, 'rtlSourceEnrichmentMs');
     RequireJsonNumberKey(lSubphaseMetrics, 'externalUnitSymbolsMs');
     RequireJsonNumberKey(lSubphaseMetrics, 'externalTypeSymbolsMs');
     RequireJsonNumberKey(lSubphaseMetrics, 'problemSymbolAssemblyMs');
+    Assert.AreEqual(1,
+      (lMetrics.Values['semanticSessionOpenCount'] as TJSONNumber).AsInt);
+    Assert.AreEqual(1,
+      (lMetrics.Values['modelExtractionPassCount'] as TJSONNumber).AsInt);
+    Assert.AreEqual(1,
+      (lSubphaseMetrics.Values['semanticSessionOpenCount'] as TJSONNumber).AsInt);
+    Assert.AreEqual(1,
+      (lSubphaseMetrics.Values['modelExtractionPassCount'] as TJSONNumber).AsInt);
     RequireJsonObjectKey(lMetrics, 'resolverReportSubphaseMetrics',
       lResolverSubphaseMetrics);
     RequireJsonNumberKey(lResolverSubphaseMetrics, 'directSemanticProjectionMs');
