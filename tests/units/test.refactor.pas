@@ -16,6 +16,7 @@ type
   private
     procedure CreateFixtureProject(const aRoot: string; out aDprojPath, aUnitOnePath,
       aUnitTwoPath: string);
+    function CreateFixtureProjectPath(const aRoot: string): string;
     procedure CreateBuildFailureFixtureProject(const aRoot: string; out aDprojPath,
       aUnitOnePath, aUnitTwoPath: string);
   public
@@ -31,6 +32,8 @@ type
     procedure RenameCommandAcceptsSourcePositionTarget;
     [Test]
     procedure RenameCommandReportsSemanticPhaseMetricsAsJson;
+    [Test]
+    procedure ScopedIdentifierAdapterMatchesForcedFullRename;
     [Test]
     procedure RenameGuardValidationRejectsStaleSource;
     [Test]
@@ -69,6 +72,50 @@ uses
   DelphiSemantics.ProjectContext,
   Dak.Refactor.RenameGuards,
   Dak.Semantics.Session, Dak.SourceText;
+
+type
+  TIdentifierAdapterPlanResult = record
+    Metrics: TDakSemanticSymbolQueryMetrics;
+    Plan: TDelphiSemanticRenamePlan;
+  end;
+
+function BuildIdentifierAdapterPlan(const aOptions: TDelphiSemanticOptions):
+  TIdentifierAdapterPlanResult;
+var
+  lContext: IDakSemanticSymbolQueryContext;
+  lError: string;
+begin
+  Assert.IsTrue(OpenSemanticSymbolQueryContextForIdentifier(aOptions,
+    'SharedValue', lContext, Result.Metrics, lError, True), lError);
+  Result.Plan := lContext.PlanRename('SharedValue', 'RenamedValue');
+end;
+
+procedure AssertRenamePlansEqual(const aExpected,
+  aActual: TDelphiSemanticRenamePlan);
+var
+  i: Integer;
+begin
+  Assert.AreEqual(aExpected.Status, aActual.Status);
+  Assert.AreEqual(aExpected.Diagnostic, aActual.Diagnostic);
+  Assert.AreEqual(aExpected.ContextFingerprint, aActual.ContextFingerprint);
+  Assert.AreEqual(Integer(Length(aExpected.Edits)),
+    Integer(Length(aActual.Edits)));
+  for i := 0 to High(aExpected.Edits) do
+  begin
+    Assert.AreEqual(aExpected.Edits[i].FileName, aActual.Edits[i].FileName);
+    Assert.AreEqual(aExpected.Edits[i].Role, aActual.Edits[i].Role);
+    Assert.AreEqual(aExpected.Edits[i].ExpectedFileHash,
+      aActual.Edits[i].ExpectedFileHash);
+    Assert.AreEqual(aExpected.Edits[i].ExpectedSourceText,
+      aActual.Edits[i].ExpectedSourceText);
+    Assert.AreEqual(aExpected.Edits[i].StartLine, aActual.Edits[i].StartLine);
+    Assert.AreEqual(aExpected.Edits[i].StartColumn,
+      aActual.Edits[i].StartColumn);
+    Assert.AreEqual(aExpected.Edits[i].EndLine, aActual.Edits[i].EndLine);
+    Assert.AreEqual(aExpected.Edits[i].EndColumn, aActual.Edits[i].EndColumn);
+    Assert.AreEqual(aExpected.Edits[i].NewText, aActual.Edits[i].NewText);
+  end;
+end;
 
 procedure TRefactorCommandTests.CreateFixtureProject(const aRoot: string; out aDprojPath,
   aUnitOnePath, aUnitTwoPath: string);
@@ -188,6 +235,7 @@ var
   lJson: TJSONObject;
   lLogPath: string;
   lLogText: string;
+  lPhaseMetrics: TJSONObject;
   lRoot: string;
   lUnitOnePath: string;
   lUnitTwoPath: string;
@@ -214,6 +262,15 @@ begin
       'Expected queried symbol in JSON. See: ' + lLogPath);
     Assert.IsNotNull(lJson.Values['referenceReconciliationFallbackCount'],
       'Expected reference reconciliation fallback metric in JSON. See: ' + lLogPath);
+    Assert.IsTrue(lJson.Values['semanticPhaseMetrics'] is TJSONObject,
+      'Expected semantic phase metrics in JSON. See: ' + lLogPath);
+    lPhaseMetrics := lJson.Values['semanticPhaseMetrics'] as TJSONObject;
+    Assert.AreEqual(2, lPhaseMetrics.GetValue<Integer>(
+      'identifierFullModelCount', -1));
+    Assert.AreEqual(1, lPhaseMetrics.GetValue<Integer>(
+      'identifierLeanModelCount', -1));
+    Assert.IsFalse(lPhaseMetrics.GetValue<Boolean>('identifierScopeFailOpen',
+      True));
     Assert.AreEqual(3, lJson.GetValue<Integer>('count', -1),
       'Expected declaration plus two references. See: ' + lLogPath);
     Assert.IsTrue(lJson.Values['usages'] is TJSONArray, 'Expected usages array. See: ' + lLogPath);
@@ -375,6 +432,14 @@ begin
   Assert.IsTrue(Pos('"symbol":"SharedValue"', lLogText) > 0, 'Expected resolved symbol. See: ' + lLogPath);
   Assert.IsTrue(Pos('"referenceReconciliationFallbackCount":', lLogText) > 0,
     'Expected reference reconciliation fallback metric in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"identifierFullModelCount":3', lLogText) > 0,
+    'Position targets must keep full analysis. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"identifierLeanModelCount":0', lLogText) > 0,
+    'Position targets must not use lean models. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"identifierScopeFailOpen":true', lLogText) > 0,
+    'Position targets must report the full-analysis fallback. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"identifierScopeFailOpenReason":"position-target"',
+    lLogText) > 0, 'Expected position-target fallback reason. See: ' + lLogPath);
   Assert.IsTrue(Pos('RenamedValue', lLogText) > 0, 'Expected planned rename text. See: ' + lLogPath);
   Assert.IsTrue(Pos('SharedValue', TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8)) > 0,
     'Dry-run position rename must not edit declaration file.');
@@ -418,6 +483,16 @@ begin
     'Expected unit model extraction timing in JSON. See: ' + lLogPath);
   Assert.IsTrue(Pos('"unitModelExtractionCount":', lLogText) > 0,
     'Expected unit model extraction count in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"identifierCandidateScanMs":', lLogText) > 0,
+    'Expected identifier candidate scan timing in JSON. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"identifierFullModelCount":2', lLogText) > 0,
+    'Expected both identifier-bearing units to receive full models. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"identifierLeanModelCount":1', lLogText) > 0,
+    'Expected the project source without the identifier to use a lean model. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"identifierScopeFailOpen":false', lLogText) > 0,
+    'Simple name targets should use scoped analysis. See: ' + lLogPath);
+  Assert.IsTrue(Pos('"identifierScopeFailOpenReason":""', lLogText) > 0,
+    'Scoped analysis should not report a fallback reason. See: ' + lLogPath);
   Assert.IsTrue(Pos('"projectSymbolIndexBuildMs":', lLogText) > 0,
     'Expected project symbol index timing in JSON. See: ' + lLogPath);
   Assert.IsTrue(Pos('"projectSymbolIndexBuildCount":', lLogText) > 0,
@@ -426,6 +501,41 @@ begin
     'Expected command planning timing in JSON. See: ' + lLogPath);
   Assert.IsTrue(Pos('"commandPlanningCount":1', lLogText) > 0,
     'Expected command planning count in JSON. See: ' + lLogPath);
+end;
+
+function TRefactorCommandTests.CreateFixtureProjectPath(
+  const aRoot: string): string;
+var
+  lUnitOnePath: string;
+  lUnitTwoPath: string;
+begin
+  CreateFixtureProject(aRoot, Result, lUnitOnePath, lUnitTwoPath);
+end;
+
+procedure TRefactorCommandTests.ScopedIdentifierAdapterMatchesForcedFullRename;
+var
+  lAutomatic: TIdentifierAdapterPlanResult;
+  lDprojPath: string;
+  lForced: TIdentifierAdapterPlanResult;
+  lOptions: TDelphiSemanticOptions;
+  lRoot: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'refactor-identifier-scope-parity');
+  lDprojPath := CreateFixtureProjectPath(lRoot);
+  lOptions := BuildSemanticSessionOptions(lDprojPath, 'Debug', 'Win32',
+    '23.0', '', '', '');
+
+  lAutomatic := BuildIdentifierAdapterPlan(lOptions);
+  lOptions.ForceFullIdentifierAnalysis := True;
+  lForced := BuildIdentifierAdapterPlan(lOptions);
+
+  Assert.AreEqual(2, lAutomatic.Metrics.IdentifierFullModelCount);
+  Assert.AreEqual(1, lAutomatic.Metrics.IdentifierLeanModelCount);
+  Assert.IsFalse(lAutomatic.Metrics.IdentifierScopeFailOpen);
+  Assert.AreEqual(3, lForced.Metrics.IdentifierFullModelCount);
+  Assert.AreEqual(0, lForced.Metrics.IdentifierLeanModelCount);
+  Assert.IsTrue(lForced.Metrics.IdentifierScopeFailOpen);
+  AssertRenamePlansEqual(lForced.Plan, lAutomatic.Plan);
 end;
 
 procedure TRefactorCommandTests.RenameGuardValidationRejectsStaleSource;

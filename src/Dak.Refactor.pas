@@ -26,6 +26,11 @@ type
     ProjectUnitCount: Integer;
     UnitModelExtractionMs: Int64;
     UnitModelExtractionCount: Integer;
+    IdentifierCandidateScanMs: Int64;
+    IdentifierFullModelCount: Integer;
+    IdentifierLeanModelCount: Integer;
+    IdentifierScopeFailOpen: Boolean;
+    IdentifierScopeFailOpenReason: string;
     ProjectSymbolIndexBuildMs: Int64;
     ProjectSymbolIndexBuildCount: Integer;
     ReferenceReconciliationFallbackCount: Integer;
@@ -108,14 +113,18 @@ begin
 end;
 
 function TryOpenRefactorSemanticContext(
-  const aSessionOptions: TDelphiSemanticOptions;
+  const aSessionOptions: TDelphiSemanticOptions; const aIdentifier: string;
   out aContext: IDakSemanticSymbolQueryContext;
   out aMetrics: TDakSemanticSymbolQueryMetrics;
   out aError: string): Boolean;
 begin
   try
-    Result := OpenSemanticSymbolQueryContext(aSessionOptions, aContext,
-      aMetrics, aError, True);
+    if Trim(aIdentifier) <> '' then
+      Result := OpenSemanticSymbolQueryContextForIdentifier(aSessionOptions,
+        aIdentifier, aContext, aMetrics, aError, True)
+    else
+      Result := OpenSemanticSymbolQueryContext(aSessionOptions, aContext,
+        aMetrics, aError, True);
   except
     on E: Exception do
     begin
@@ -123,6 +132,19 @@ begin
       Result := False;
     end;
   end;
+end;
+
+procedure SetIdentifierScopePhaseMetrics(
+  var aPhaseMetrics: TRefactorSemanticPhaseMetrics;
+  const aMetrics: TDakSemanticSymbolQueryMetrics);
+begin
+  aPhaseMetrics.IdentifierCandidateScanMs :=
+    aMetrics.IdentifierCandidateScanMilliseconds;
+  aPhaseMetrics.IdentifierFullModelCount := aMetrics.IdentifierFullModelCount;
+  aPhaseMetrics.IdentifierLeanModelCount := aMetrics.IdentifierLeanModelCount;
+  aPhaseMetrics.IdentifierScopeFailOpen := aMetrics.IdentifierScopeFailOpen;
+  aPhaseMetrics.IdentifierScopeFailOpenReason :=
+    aMetrics.IdentifierScopeFailOpenReason;
 end;
 
 function BuildSemanticContext(const aOptions: TAppOptions;
@@ -160,8 +182,8 @@ begin
   lSessionOptions := BuildSemanticSessionOptions(aOptions.fDprojPath,
     aOptions.fConfig, aOptions.fPlatform, aOptions.fDelphiVersion,
     aOptions.fRsVarsPath, aOptions.fEnvOptionsPath, lCacheFileName);
-  Result := TryOpenRefactorSemanticContext(lSessionOptions, aContext,
-    lMetrics, aError);
+  Result := TryOpenRefactorSemanticContext(lSessionOptions,
+    aOptions.fRefactorSymbol, aContext, lMetrics, aError);
   if (not Result) and lCachePolicy.IsImplicit and
     (lCacheFileName <> '') and
     IsSemanticCacheFailure(aError, lCacheFileName) then
@@ -169,8 +191,8 @@ begin
     EmitSemanticCacheFallbackDiagnostic(lCachePolicy, aError);
     lSessionOptions.SqliteCacheFileName := '';
     aContext := nil;
-    Result := TryOpenRefactorSemanticContext(lSessionOptions, aContext,
-      lMetrics, aError);
+    Result := TryOpenRefactorSemanticContext(lSessionOptions,
+      aOptions.fRefactorSymbol, aContext, lMetrics, aError);
   end;
   aCacheMetrics := lMetrics.CacheMetrics;
   aPhaseMetrics.ProjectContextMs := lMetrics.SessionOpenMilliseconds;
@@ -180,6 +202,7 @@ begin
   aPhaseMetrics.ProjectUnitCount := aContext.UnitModelCount;
   aPhaseMetrics.UnitModelExtractionCount := aPhaseMetrics.ProjectUnitCount;
   aPhaseMetrics.UnitModelExtractionMs := lMetrics.ExtractionMilliseconds;
+  SetIdentifierScopePhaseMetrics(aPhaseMetrics, lMetrics);
   aPhaseMetrics.ReferenceReconciliationFallbackCount := aContext.ReferenceFallbackCount;
   aPhaseMetrics.TotalMs := lTotalStopwatch.ElapsedMilliseconds;
   Result := True;
@@ -195,6 +218,16 @@ begin
   Result.AddPair('unitModelExtractionMs', TJSONNumber.Create(aPhaseMetrics.UnitModelExtractionMs));
   Result.AddPair('unitModelExtractionCount',
     TJSONNumber.Create(aPhaseMetrics.UnitModelExtractionCount));
+  Result.AddPair('identifierCandidateScanMs',
+    TJSONNumber.Create(aPhaseMetrics.IdentifierCandidateScanMs));
+  Result.AddPair('identifierFullModelCount',
+    TJSONNumber.Create(aPhaseMetrics.IdentifierFullModelCount));
+  Result.AddPair('identifierLeanModelCount',
+    TJSONNumber.Create(aPhaseMetrics.IdentifierLeanModelCount));
+  Result.AddPair('identifierScopeFailOpen',
+    TJSONBool.Create(aPhaseMetrics.IdentifierScopeFailOpen));
+  Result.AddPair('identifierScopeFailOpenReason',
+    aPhaseMetrics.IdentifierScopeFailOpenReason);
   Result.AddPair('semanticCacheWorkMs', TJSONNumber.Create(aPhaseMetrics.UnitModelExtractionMs));
   Result.AddPair('projectSymbolIndexBuildMs',
     TJSONNumber.Create(aPhaseMetrics.ProjectSymbolIndexBuildMs));
@@ -1063,6 +1096,7 @@ begin
     lPlanningStopwatch := TStopwatch.StartNew;
     lResult := lContext.FindUsagesByName(lSymbol);
   end else begin
+    lPhaseMetrics.IdentifierScopeFailOpenReason := 'position-target';
     lPlanningStopwatch := TStopwatch.StartNew;
     lResult := lContext.FindUsagesAtPosition(aOptions.fRefactorFilePath,
       aOptions.fRefactorLine, aOptions.fRefactorCol);
@@ -1116,6 +1150,7 @@ begin
     lPlanningStopwatch := TStopwatch.StartNew;
     lPlan := lContext.PlanRename(lSymbol, aOptions.fRefactorNewName);
   end else begin
+    lPhaseMetrics.IdentifierScopeFailOpenReason := 'position-target';
     lPlanningStopwatch := TStopwatch.StartNew;
     lUsageResult := lContext.FindUsagesAtPosition(aOptions.fRefactorFilePath,
       aOptions.fRefactorLine, aOptions.fRefactorCol);
