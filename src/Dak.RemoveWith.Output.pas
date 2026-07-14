@@ -876,6 +876,15 @@ begin
   Result.AddPair('rolledBack', TJSONNumber.Create(lRolledBackCount));
 end;
 
+procedure AddCombinedSemanticCounters(const aObject: TJSONObject;
+  const aMetrics: TRemoveWithFactSetPhaseMetrics);
+begin
+  aObject.AddPair('semanticSessionOpenCount',
+    TJSONNumber.Create(aMetrics.fSemanticSessionOpenCount));
+  aObject.AddPair('modelExtractionPassCount',
+    TJSONNumber.Create(aMetrics.fModelExtractionPassCount));
+end;
+
 function BuildSymbolInventoryPhaseMetricsObject(
   const aMetrics: TRemoveWithFactSetPhaseMetrics): TJSONObject;
 begin
@@ -886,6 +895,7 @@ begin
     TJSONNumber.Create(aMetrics.fSemanticCompatibilityFactsMs));
   Result.AddPair('semanticBindingMs', TJSONNumber.Create(aMetrics.fSemanticBindingMs));
   Result.AddPair('semanticPlanDtoMs', TJSONNumber.Create(aMetrics.fSemanticPlanDtoMs));
+  AddCombinedSemanticCounters(Result, aMetrics);
   Result.AddPair('dakLookupIndexMs', TJSONNumber.Create(aMetrics.fDakLookupIndexMs));
   Result.AddPair('dakLookupCacheHits', TJSONNumber.Create(aMetrics.fDakLookupCacheHits));
   Result.AddPair('dakLookupCacheMisses', TJSONNumber.Create(aMetrics.fDakLookupCacheMisses));
@@ -970,6 +980,7 @@ begin
     TJSONNumber.Create(aMetrics.fSemanticCompatibilityFactsMs));
   Result.AddPair('semanticBindingMs', TJSONNumber.Create(aMetrics.fSemanticBindingMs));
   Result.AddPair('semanticPlanDtoMs', TJSONNumber.Create(aMetrics.fSemanticPlanDtoMs));
+  AddCombinedSemanticCounters(Result, aMetrics.fSymbolInventoryPhaseMetrics);
   Result.AddPair('semanticCacheHits',
     TJSONNumber.Create(aMetrics.fSymbolInventoryPhaseMetrics.fSemanticCacheHits));
   Result.AddPair('semanticCacheMisses',
