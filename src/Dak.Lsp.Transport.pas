@@ -41,16 +41,14 @@ const
 
 function ResolveLspRequestTimeoutMs: Cardinal;
 var
-  lParsed: Int64;
+  lParsed: Cardinal;
   lValue: string;
 begin
   Result := cDefaultLspRequestTimeoutMs;
   lValue := Trim(GetEnvironmentVariable(cLspRequestTimeoutEnvVar));
-  if (lValue = '') or not TryStrToInt64(lValue, lParsed) or (lParsed < 1) then
+  if (lValue = '') or not TryStrToUInt(lValue, lParsed) or (lParsed < 1) then
     Exit;
-  if lParsed > High(Cardinal) then
-    Exit(High(Cardinal));
-  Result := Cardinal(lParsed);
+  Result := lParsed;
 end;
 
 function TLspJsonRpcClient.WaitForOutput(const aStage: string; out aError: string): Boolean;

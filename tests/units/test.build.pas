@@ -12,6 +12,7 @@ uses
   maxLogic.CmdLineParams,
   Dak.Build,
   Dak.Cli,
+  Dak.ExternalToolProcess,
   Dak.Registry,
   Dak.RsVars,
   Dak.Types,
@@ -49,6 +50,8 @@ type
     procedure ProjectDprListsMadExceptFirstAndAllSourceUnits;
     [Test]
     procedure ExternalToolProcessCentralizesBasicCommandRunners;
+    [Test]
+    procedure ExternalToolTimeoutMillisecondsPreserveCardinalRange;
     [Test]
     procedure ProtocolSpecificProcessRunnersRemainDocumentedExceptions;
     [Test]
@@ -211,6 +214,11 @@ begin
     'FixInsight process runner should use the shared external-tool runner.');
   Assert.IsTrue(ContainsText(lPascalAnalyzerSource, 'TryRunExternalToolProcess'),
     'Pascal Analyzer process runners should use the shared external-tool runner.');
+end;
+
+procedure TBuildTests.ExternalToolTimeoutMillisecondsPreserveCardinalRange;
+begin
+  Assert.AreEqual(Cardinal(3000000000), ResolveExternalToolTimeoutMs(3000000));
 end;
 
 procedure TBuildTests.ProtocolSpecificProcessRunnersRemainDocumentedExceptions;

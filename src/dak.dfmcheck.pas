@@ -317,14 +317,14 @@ end;
 function ResolveDfmCheckProcessTimeoutMs: Cardinal;
 var
   lTimeoutText: string;
-  lTimeoutValue: Int64;
+  lTimeoutValue: Cardinal;
 begin
   Result := cDfmCheckDefaultTimeoutMs;
   lTimeoutText := Trim(GetEnvironmentVariable(cDfmCheckTimeoutEnvVar));
   if lTimeoutText = '' then
     Exit;
-  if TryStrToInt64(lTimeoutText, lTimeoutValue) and (lTimeoutValue > 0) and (lTimeoutValue <= High(Cardinal)) then
-    Result := Cardinal(lTimeoutValue);
+  if TryStrToUInt(lTimeoutText, lTimeoutValue) and (lTimeoutValue > 0) then
+    Result := lTimeoutValue;
 end;
 
 procedure TerminateProcessTree(const aProcessId: Cardinal; const aExitCode: Cardinal);
@@ -376,7 +376,8 @@ begin
         TFile.WriteAllText(aLogPath, aError + #13#10, TEncoding.UTF8);
       Exit;
     except
-      Sleep(50);
+      if i < 20 then
+        Sleep(50);
     end;
   end;
 end;
@@ -810,11 +811,7 @@ procedure DeleteDfmCacheTempFile(const aTempPath: string);
 begin
   if (aTempPath = '') or (not FileExists(aTempPath)) then
     Exit;
-  try
-    TFile.Delete(aTempPath);
-  except
-    // Best-effort cleanup for a failed atomic publish.
-  end;
+  Winapi.Windows.DeleteFile(PChar(aTempPath));
 end;
 
 function TryWriteDfmCacheFile(const aCachePath: string; const aModules: TArray<TDfmCacheModule>;
@@ -4106,7 +4103,8 @@ begin
       try
         lBuildLines.LoadFromFile(lBuildLogPath, TEncoding.UTF8);
       except
-        lBuildLines.LoadFromFile(lBuildLogPath, TEncoding.Default);
+        on E: EEncodingError do
+          lBuildLines.LoadFromFile(lBuildLogPath, TEncoding.Default);
       end;
     end;
     if lExitCode <> 0 then
@@ -4142,13 +4140,7 @@ begin
 
     lValidatorLogPath := TPath.Combine(lPaths.fGeneratedDir, '_DfmCheckValidator.log');
     if FileExists(lValidatorLogPath) then
-    begin
-      try
-        TFile.Delete(lValidatorLogPath);
-      except
-        // Best-effort cleanup before new run.
-      end;
-    end;
+      Winapi.Windows.DeleteFile(PChar(lValidatorLogPath));
     // All-mode should emit live CHECK progress; filtered runs stay quiet by default.
     lUseQuietValidator := not lOriginalAllRequested;
     lValidatorStreamingOutput := not lUseQuietValidator;

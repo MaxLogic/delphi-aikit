@@ -73,10 +73,12 @@ type
 
 procedure BeginRemoveWithTempPolicyCache(const aInventory: TRemoveWithFactSet);
 begin
+  Exit;
 end;
 
 procedure EndRemoveWithTempPolicyCache;
 begin
+  Exit;
 end;
 
 function TypeCategoryForModelKind(const aKind: TRemoveWithModelTypeKind): TRemoveWithTypeCategory;
