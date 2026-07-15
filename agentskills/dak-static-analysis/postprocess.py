@@ -345,6 +345,21 @@ def parse_dak_summary_md(summary_path: Path) -> dict[str, Any]:
     if pal_target_m:
         data["pal_compiler_target"] = pal_target_m.group(1).strip()
 
+    errors_section_m = re.search(
+        r"^## Errors\s*$\s*(.*?)(?=^##\s|\Z)",
+        text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    if errors_section_m:
+        errors = [
+            m.group(1).strip()
+            for m in re.finditer(
+                r"^\s*-\s+(.+?)\s*$", errors_section_m.group(1), flags=re.MULTILINE
+            )
+        ]
+        if errors:
+            data["errors"] = errors
+
     return data
 
 
@@ -1788,6 +1803,37 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
 
     summary_path = out_root / "summary.md"
     summary = parse_dak_summary_md(summary_path)
+
+    infrastructure_errors = summary.get("errors") or []
+    if infrastructure_errors:
+        baseline_path = (
+            Path(os.environ.get("DAK_BASELINE", "")).expanduser().resolve()
+            if os.environ.get("DAK_BASELINE", "").strip()
+            else out_root / "baseline.json"
+        )
+        delta_path = out_root / "delta.json"
+        delta_md_path = out_root / "delta.md"
+        reasons = [f"Analyzer infrastructure error: {error}" for error in infrastructure_errors]
+        _write_json(
+            delta_path,
+            {
+                "title": title,
+                "baseline": {"path": str(baseline_path), "created": False},
+                "current": {"summary_path": str(summary_path)},
+                "gate": {"enabled": True, "pass": False, "reasons": reasons},
+            },
+        )
+        _write_text(
+            delta_md_path,
+            "# Static analysis gate\n\n" + "\n".join(f"- {reason}" for reason in reasons) + "\n",
+        )
+        return {
+            "baseline": str(baseline_path),
+            "delta": str(delta_md_path),
+            "gate_pass": False,
+            "baseline_created": False,
+            "baseline_updated": False,
+        }
 
     repo_root = _find_git_root(out_root)
     project_dir: Optional[Path] = None
