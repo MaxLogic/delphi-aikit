@@ -634,6 +634,39 @@ begin
   Result := aProjectName;
 end;
 
+function PropertyIsEnabled(const aValue: string): Boolean; forward;
+
+function ResolveOutputFileName(const aProps: TDictionary<string, string>;
+  const aProjectName: string): string;
+var
+  lAppType: string;
+  lDependencyOutput: string;
+  lGenDll: string;
+  lMainSource: string;
+begin
+  if aProps.TryGetValue('DCC_DependencyCheckOutputName', lDependencyOutput) then
+  begin
+    Result := TPath.GetFileName(Trim(lDependencyOutput));
+    if (Result <> '') and (TPath.GetExtension(Result) <> '') then
+      Exit;
+  end;
+
+  Result := ResolveOutputName(aProps, aProjectName);
+  lMainSource := '';
+  aProps.TryGetValue('MainSource', lMainSource);
+  if SameText(TPath.GetExtension(lMainSource), '.dpk') then
+    Exit(Result + '.bpl');
+
+  lAppType := '';
+  lGenDll := '';
+  aProps.TryGetValue('AppType', lAppType);
+  aProps.TryGetValue('GenDll', lGenDll);
+  if SameText(Trim(lAppType), 'Library') or PropertyIsEnabled(lGenDll) then
+    Exit(Result + '.dll');
+
+  Result := Result + '.exe';
+end;
+
 function PropertyIsEnabled(const aValue: string): Boolean;
 var
   lValue: string;
@@ -851,14 +884,15 @@ end;
 
 function BuildProjectInfo(const aProjectPath, aConfig, aPlatform: string;
   const aEnvVars: TDictionary<string, string>; const aTestOutputDir, aBuildDefines,
-  aBuildUnitSearchPath: string): TBuildProjectInfo;
+  aBuildUnitSearchPath: string; out aError: string): TBuildProjectInfo;
 var
   lError: string;
   lProps: TDictionary<string, string>;
   lOutputDir: string;
-  lOutputName: string;
+  lOutputFileName: string;
 begin
   Result := Default(TBuildProjectInfo);
+  aError := '';
   Result.fProjectPath := TPath.GetFullPath(aProjectPath);
   Result.fProjectDir := TPath.GetDirectoryName(Result.fProjectPath);
   Result.fProjectName := TPath.GetFileNameWithoutExtension(Result.fProjectPath);
@@ -866,8 +900,12 @@ begin
 
   lProps := nil;
   try
-    if not TryEvaluateProjectProperties(Result.fProjectPath, aConfig, aPlatform, aEnvVars, lProps, lError) then
-      lProps := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+    if not TryEvaluateProjectProperties(Result.fProjectPath, aConfig, aPlatform,
+      aEnvVars, lProps, lError) then
+    begin
+      aError := lError;
+      Exit;
+    end;
 
     if not lProps.TryGetValue('MainSource', Result.fMainSourcePath) or (Trim(Result.fMainSourcePath) = '') then
       Result.fMainSourcePath := Result.fProjectName + '.dpr';
@@ -882,8 +920,8 @@ begin
     else
       lOutputDir := TPath.GetFullPath(lOutputDir);
 
-    lOutputName := ResolveOutputName(lProps, Result.fProjectName);
-    Result.fOutputPath := TPath.Combine(lOutputDir, lOutputName + '.exe');
+    lOutputFileName := ResolveOutputFileName(lProps, Result.fProjectName);
+    Result.fOutputPath := TPath.Combine(lOutputDir, lOutputFileName);
     if aTestOutputDir <> '' then
       Result.fOutputPath := TPath.Combine(TPath.GetFullPath(aTestOutputDir), TPath.GetFileName(Result.fOutputPath));
 
@@ -908,7 +946,8 @@ begin
       Result.fMadExceptReason := 'enabled';
     end;
   finally
-    lProps.Free;
+    if Assigned(lProps) then
+      lProps.Free;
   end;
 end;
 
@@ -1805,7 +1844,9 @@ begin
     lProjectInfo := BuildProjectInfo(lNormalizedOptions.fDprojPath, lNormalizedOptions.fConfig,
       lNormalizedOptions.fPlatform, lEnvVars, IfThen(lNormalizedOptions.fHasBuildTestOutputDir,
       lNormalizedOptions.fBuildTestOutputDir, ''), lNormalizedOptions.fBuildDefines,
-      lNormalizedOptions.fBuildUnitSearchPath);
+      lNormalizedOptions.fBuildUnitSearchPath, aError);
+    if aError <> '' then
+      Exit(False);
 
     lTempBase := TPath.Combine(TPath.GetTempPath,
       'dak-build-' + IntToStr(GetCurrentProcessId) + '-' + IntToStr(GetTickCount));

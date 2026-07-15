@@ -74,6 +74,10 @@ type
     [Test]
     procedure BuildProjectPropertiesOverrideCfgDependentOnOptsetOutputPath;
     [Test]
+    procedure BuildUsesDependencyOutputExtensionForLibraries;
+    [Test]
+    procedure BuildReportsProjectPropertyEvaluationFailure;
+    [Test]
     procedure BuildReportsSpecificErrorWhenResolvedMadExceptOutputIsMissing;
     [Test]
     procedure BuildDfmCheckFailureReportsSkippedValidationAndMadExceptGuidance;
@@ -1205,6 +1209,128 @@ begin
   Assert.IsFalse(ContainsText(lCapturingRunner.fArgumentsList[1], 'optset-bin\Debug\Win32\MesGateCheck.exe'),
     'Expected imported optset output path to be overridden by the project file. Calls: ' +
     DescribeCapturedProcesses(lCapturingRunner));
+end;
+
+procedure TBuildTests.BuildUsesDependencyOutputExtensionForLibraries;
+var
+  lCapturedOutput: string;
+  lCapturingRunner: TCapturingBuildRunner;
+  lDprojPath: string;
+  lError: string;
+  lEscapedOutputPath: string;
+  lExitCode: Integer;
+  lExpectedOutputPath: string;
+  lExtension: string;
+  lExtensions: TArray<string>;
+  lOptions: TAppOptions;
+  lPatchExePath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+begin
+  lExtensions := ['.dll', '.ocx'];
+  for lExtension in lExtensions do
+  begin
+    EnsureTempClean;
+    lProjectRoot := TPath.Combine(TempRoot,
+      'mes-library-output-' + Copy(lExtension, 2, MaxInt));
+    PrepareMadExceptBuildFixtureWithOptset(lProjectRoot,
+      '[GeneralSettings]' + sLineBreak +
+      'HandleExceptions=1' + sLineBreak +
+      'LinkInCode=1' + sLineBreak,
+      '',
+      '    <DCC_ExeOutput>artifact-bin\$(Config)\$(Platform)</DCC_ExeOutput>' + sLineBreak +
+      '    <DCC_DependencyCheckOutputName>..\bin\MesGateCheck' + lExtension +
+      '</DCC_DependencyCheckOutputName>' + sLineBreak +
+      '    <AppType>Library</AppType>' + sLineBreak +
+      '    <GenDll>true</GenDll>' + sLineBreak,
+      lDprojPath, lRsVarsPath, lPatchExePath);
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Debug';
+    lOptions.fPlatform := 'Win64';
+    lOptions.fDelphiVersion := '23.0';
+    lOptions.fRsVarsPath := lRsVarsPath;
+    lOptions.fBuildJson := True;
+    if SameText(lExtension, '.ocx') then
+    begin
+      lOptions.fHasBuildTestOutputDir := True;
+      lOptions.fBuildTestOutputDir := TPath.Combine(lProjectRoot, 'isolated-output');
+      lExpectedOutputPath := TPath.Combine(lOptions.fBuildTestOutputDir,
+        'MesGateCheck' + lExtension);
+    end else
+      lExpectedOutputPath := TPath.Combine(lProjectRoot,
+        'artifact-bin\Debug\Win64\MesGateCheck' + lExtension);
+
+    lCapturingRunner := TCapturingBuildRunner.Create;
+    lCapturingRunner.fFilesToCreateOnCall := TDictionary<Integer, string>.Create;
+    lCapturingRunner.fFilesToCreateOnCall.AddOrSetValue(0, lExpectedOutputPath);
+    lRunner := lCapturingRunner;
+    lCapturedOutput := CaptureConsoleOutput(
+      procedure
+      begin
+        lError := '';
+        Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+          'Expected library build to complete. Error: ' + lError);
+      end);
+
+    Assert.AreEqual(0, lExitCode,
+      'Expected library artifact to keep its evaluated extension: ' + lExtension);
+    Assert.AreEqual(2, lCapturingRunner.fCallCount,
+      'Expected MSBuild followed by madExcept patch for ' + lExtension + '. Calls: ' +
+      DescribeCapturedProcesses(lCapturingRunner));
+    Assert.IsTrue(ContainsText(lCapturingRunner.fArgumentsList[1], lExpectedOutputPath),
+      'Expected madExcept patch to receive ' + lExpectedOutputPath + '. Calls: ' +
+      DescribeCapturedProcesses(lCapturingRunner));
+    lEscapedOutputPath := StringReplace(lExpectedOutputPath, '\', '\\', [rfReplaceAll]);
+    Assert.IsTrue(Pos('"output":"' + lEscapedOutputPath + '"', lCapturedOutput) > 0,
+      'Expected JSON output to name ' + lExpectedOutputPath + '. Output: ' +
+      lCapturedOutput);
+  end;
+end;
+
+procedure TBuildTests.BuildReportsProjectPropertyEvaluationFailure;
+var
+  lCapturingRunner: TCapturingBuildRunner;
+  lDprojPath: string;
+  lError: string;
+  lExitCode: Integer;
+  lOptions: TAppOptions;
+  lPatchExePath: string;
+  lProjectRoot: string;
+  lRsVarsPath: string;
+  lRunner: IBuildProcessRunner;
+begin
+  EnsureTempClean;
+  lProjectRoot := TPath.Combine(TempRoot, 'invalid-project-properties');
+  PrepareMadExceptBuildFixture(lProjectRoot,
+    '[GeneralSettings]' + sLineBreak +
+    'HandleExceptions=1' + sLineBreak +
+    'LinkInCode=1' + sLineBreak,
+    lDprojPath, lRsVarsPath, lPatchExePath);
+  WriteUtf8File(lDprojPath,
+    '<Project>' + sLineBreak +
+    '  <PropertyGroup Condition="''Debug'' === ''Debug''">' + sLineBreak +
+    '    <MainSource>MesGateCheck.dpr</MainSource>' + sLineBreak +
+    '  </PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak);
+
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := lDprojPath;
+  lOptions.fConfig := 'Debug';
+  lOptions.fPlatform := 'Win64';
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fRsVarsPath := lRsVarsPath;
+
+  lCapturingRunner := TCapturingBuildRunner.Create;
+  lRunner := lCapturingRunner;
+  lError := '';
+  Assert.IsFalse(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+    'Expected invalid evaluated project properties to fail preflight.');
+  Assert.AreEqual(0, lCapturingRunner.fCallCount,
+    'MSBuild must not run after project-property evaluation fails.');
+  Assert.IsTrue(ContainsText(lError, 'Unsupported or invalid Condition'),
+    'Expected the original evaluator diagnostic. Actual: ' + lError);
 end;
 
 procedure TBuildTests.BuildReportsSpecificErrorWhenResolvedMadExceptOutputIsMissing;
