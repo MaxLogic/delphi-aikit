@@ -52,12 +52,12 @@ end;
 
 function ResolveExternalToolTimeoutMs(aTimeoutSec: Integer): Cardinal;
 var
-  lMilliseconds: UInt64;
+  lTimeoutSec: Integer;
 begin
-  lMilliseconds := UInt64(ResolveExternalToolTimeoutSec(aTimeoutSec)) * 1000;
-  if lMilliseconds >= INFINITE then
+  lTimeoutSec := ResolveExternalToolTimeoutSec(aTimeoutSec);
+  if lTimeoutSec >= Integer(INFINITE div 1000) then
     Exit(INFINITE - 1);
-  Result := Cardinal(lMilliseconds);
+  Result := Cardinal(lTimeoutSec) * 1000;
 end;
 
 function TryTerminateTimedOutExternalToolProcess(const aToolName: string; aProcess: THandle; aTimeoutSec: Integer;
@@ -148,17 +148,15 @@ end;
 
 function ExternalToolTimeoutMs(const aOptions: TExternalToolProcessRunOptions): Cardinal;
 var
-  lMilliseconds: UInt64;
   lTimeoutSec: Integer;
 begin
   lTimeoutSec := ExternalToolTimeoutSec(aOptions);
   if lTimeoutSec <= 0 then
     Exit(INFINITE);
 
-  lMilliseconds := UInt64(lTimeoutSec) * 1000;
-  if lMilliseconds >= INFINITE then
+  if lTimeoutSec >= Integer(INFINITE div 1000) then
     Exit(INFINITE - 1);
-  Result := Cardinal(lMilliseconds);
+  Result := Cardinal(lTimeoutSec) * 1000;
 end;
 
 function ExternalToolStartError(const aOptions: TExternalToolProcessRunOptions;

@@ -83,10 +83,12 @@ type
 
 procedure BeginRemoveWithSelectorTypeCache(const aInventory: TRemoveWithFactSet);
 begin
+  Exit;
 end;
 
 procedure EndRemoveWithSelectorTypeCache;
 begin
+  Exit;
 end;
 
 function ModelMemberKindToSymbolKind(const aKind: TRemoveWithModelMemberKind): TRemoveWithSymbolKind;
