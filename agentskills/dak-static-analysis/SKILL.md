@@ -1,6 +1,6 @@
 ---
 name: dak-static-analysis
-description: Run Delphi static analysis through DelphiAIKit wrappers with FixInsight and Pascal Analyzer enabled by default, then triage and apply safe verified fixes.
+description: Run cadence-aware Delphi static analysis through DelphiAIKit wrappers, using project-context PAL for touched units and full FixInsight plus PAL at deliberate batch/final gates, then triage deltas and apply safe verified fixes.
 license: internal
 metadata:
   tags: [delphi, static-analysis]
@@ -20,6 +20,25 @@ Default policy:
 - Project analysis: `FixInsight=true`, `PascalAnalyzer=true`.
 - Unit analysis: `FixInsight=false`, `PascalAnalyzer=true`.
 - PAL is a first-class analyzer and should be disabled only explicitly.
+
+## Cadence and candidate contract
+
+- Run `doctor` on first use, after a tool/configuration change, or when
+  discovery fails. Do not repeat it before every unchanged analysis.
+- At task tier, analyze touched units with their project context. A
+  context-free unit result is useful diagnosis but is not project-equivalent
+  gate evidence when a `.dproj` exists.
+- Run project-wide FixInsight and PAL at scheduled batch/final gates, or record
+  an explicit exception for analyzer/build/shared-runtime changes.
+- Review and stabilize production changes before expensive project analysis.
+  Review-driven fixes change the candidate and invalidate that evidence.
+- Fingerprint source/manifests, project configuration, dependency revisions,
+  compiler/analyzer versions, and analyzer options. Reuse a result only while
+  those inputs match. Test, task-ledger, or documentation edits do not
+  invalidate source-only analysis when they are not analyzer inputs.
+- Compare changed-file/delta findings as well as totals. A lower total can still
+  hide a new owned-code finding, and dependency/tool drift can change totals
+  without a source regression.
 
 ## Run Commands
 
