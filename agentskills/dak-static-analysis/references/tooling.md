@@ -6,6 +6,7 @@ Common overrides:
 
 - `DAK_EXE=<path>` (overrides resolver location)
 - `PA_PATH=...` (forwarded to `--pa-path`)
+- `PA_ARGS=...` (additive PAL options only; DAK-owned automation arguments are rejected)
 - `FI_SETTINGS=...` / `FIXINSIGHT_SETTINGS=...` (forwarded to FixInsightCL `--fi-settings` via DAK)
 - `DAK_RSVARS=...` (forwarded to `--rsvars`)
 - `DAK_ENVOPTIONS=...` (forwarded to `--envoptions`)
@@ -45,6 +46,14 @@ the analyzed `.dproj`):
 
 - `PALCMD projectpath|sourcepath [options]` supports analyzing a single `.pas` without a `.pap` project. See `references/sources.md`.
 - `PALCMD` exits with code `99` on errors.
+- DAK reads PAL help as the authority for supported compiler flags. PAL 9.21
+  exposes Delphi 12 and Delphi 13 Win64 (`/CD12W64`, `/CD13W64`), and BDS 37
+  maps to Delphi 13.
+- DAK always supplies `/F=X /Q /A+ /FA`, an automatic `/T=<n>`, an exact
+  `/NAME`, and the report root. It derives the target, build, defines, and
+  search path from project context by default. `PA_ARGS` may add other PAL
+  options, including an explicit `/CD...`, but cannot override DAK-owned
+  report, parse-scope, quiet, or thread arguments.
 
 ## FAQ
 
@@ -56,4 +65,7 @@ Not directly via a unit mode. FixInsightCL is a project analyzer and requires `-
 
 ### Why does Pascal Analyzer unit-level analysis differ from project-level analysis?
 
-When PALCMD is run on a single unit, it relies on defaults from `PAL.INI` unless we provide `/S=...` (search folders), `/D=...` (defines), `/BUILD=...`, and compiler target flags. Project-level runs via DAK supply these consistently from `.dproj`.
+Prefer `analyze-unit <unit.pas> <project.dproj>`. DAK then supplies the
+project-derived `/S=...`, `/D=...`, `/BUILD=...`, and compiler target flag, so
+the focused run uses project context. Omitting `<project.dproj>` keeps the
+legacy PAL.INI-based unit mode and is not project-equivalent analysis proof.

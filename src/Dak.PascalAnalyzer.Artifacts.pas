@@ -2,8 +2,18 @@ unit Dak.PascalAnalyzer.Artifacts;
 
 interface
 
+type
+  TPalFindingCounts = record
+    Total: Integer;
+    Warnings: Integer;
+    StrongWarnings: Integer;
+    Optimizations: Integer;
+  end;
+
 function TryFindPalReportRoot(const aOutputRoot: string; out aReportRoot: string; out aError: string): Boolean;
 function TryGeneratePalArtifacts(const aReportRoot: string; const aOutRoot: string; out aError: string): Boolean;
+function TryGeneratePalArtifactsWithCounts(const aReportRoot: string; const aOutRoot: string;
+  out aCounts: TPalFindingCounts; out aError: string): Boolean;
 
 implementation
 
@@ -20,7 +30,6 @@ const
   SPalWarningsFileName = 'Warnings.xml';
   SPalStrongWarningsFileName = 'Strong Warnings.xml';
   SPalOptimizationFileName = 'Optimization.xml';
-  SPalExceptionFileName = 'Exception.xml';
   SPalComplexityFileName = 'Complexity.xml';
   SPalModuleTotalsFileName = 'Module Totals.xml';
   SPalStatusFileName = 'Status.xml';
@@ -54,7 +63,6 @@ const
   SPalSeverityWarning = 'warning';
   SPalSeverityStrongWarning = 'strong-warning';
   SPalSeverityOptimization = 'optimization';
-  SPalSeverityException = 'exception';
   CHotspotTopN = 20;
 
 function NormalizeLineText(const aValue: string): string;
@@ -128,6 +136,21 @@ begin
   Result := UpperCase(aFinding.Severity + '|' + aFinding.Report + '|' + aFinding.Section + '|' +
     aFinding.ModuleName + '|' + aFinding.Line.ToString + '|' + aFinding.Message + '|' + aFinding.ItemId + '|' +
     aFinding.ItemKind);
+end;
+
+procedure CaptureFindingCounts(const aFindings: TList<TPalFinding>; out aCounts: TPalFindingCounts);
+var
+  lFinding: TPalFinding;
+begin
+  aCounts := Default(TPalFindingCounts);
+  aCounts.Total := aFindings.Count;
+  for lFinding in aFindings do
+    if SameText(lFinding.Severity, SPalSeverityWarning) then
+      Inc(aCounts.Warnings)
+    else if SameText(lFinding.Severity, SPalSeverityStrongWarning) then
+      Inc(aCounts.StrongWarnings)
+    else if SameText(lFinding.Severity, SPalSeverityOptimization) then
+      Inc(aCounts.Optimizations);
 end;
 
 procedure AddFindingRecord(const aSeverity, aReport, aSection, aModule: string; const aLine: Integer;
@@ -307,78 +330,6 @@ begin
     lNode := lRoot.ChildNodes[i];
     if SameText(lNode.NodeName, 'section') then
       ParseSectionNode(lNode, aSeverity, aReportName, aFindings, aSeen);
-  end;
-  aParsed := True;
-end;
-
-procedure CollectExceptionCalls(const aNode: IXMLNode; const aSeverity, aReport, aSection: string;
-  aFindings: TList<TPalFinding>; aSeen: THashSet<string>);
-var
-  lName: string;
-  lLocMod: string;
-  lLocLine: string;
-  lModule: string;
-  lParsedModule: string;
-  lLine: Integer;
-  lLineFromMod: Integer;
-  lChild: IXMLNode;
-  i: Integer;
-begin
-  if SameText(aNode.NodeName, 'called_by') then
-  begin
-    lName := NormalizeLineText(ChildText(aNode, 'name'));
-    lLocMod := NormalizeLineText(ChildText(aNode, 'locmod'));
-    lLocLine := NormalizeLineText(ChildText(aNode, 'locline'));
-    lLine := StrToIntDef(lLocLine, 0);
-    lModule := '';
-    if lLocMod <> '' then
-    begin
-      if TryParseLocMod(lLocMod, lParsedModule, lLineFromMod) then
-      begin
-        lModule := lParsedModule;
-        if lLine = 0 then
-          lLine := lLineFromMod;
-      end;
-    end;
-    AddFindingRecord(aSeverity, aReport, aSection, lModule, lLine, lName, '', '', aFindings, aSeen);
-  end;
-
-  for i := 0 to aNode.ChildNodes.Count - 1 do
-  begin
-    lChild := aNode.ChildNodes[i];
-    if SameText(lChild.NodeName, 'called_by') then
-      CollectExceptionCalls(lChild, aSeverity, aReport, aSection, aFindings, aSeen)
-    else if SameText(lChild.NodeName, 'branch') then
-      CollectExceptionCalls(lChild, aSeverity, aReport, aSection, aFindings, aSeen)
-    else if SameText(lChild.NodeName, 'section') then
-      CollectExceptionCalls(lChild, aSeverity, aReport, aSection, aFindings, aSeen);
-  end;
-end;
-
-procedure ParseExceptionReport(const aPath, aReportName, aSeverity: string; aFindings: TList<TPalFinding>;
-  aSeen: THashSet<string>; out aParsed: Boolean; out aError: string);
-var
-  lDoc: IXMLDocument;
-  lRoot: IXMLNode;
-  lNode: IXMLNode;
-  lSectionName: string;
-  i: Integer;
-begin
-  aParsed := False;
-  aError := '';
-  if not FileExists(aPath) then
-    Exit;
-  if not TryLoadXml(aPath, lDoc, aError) then
-    Exit;
-  lRoot := lDoc.DocumentElement;
-  for i := 0 to lRoot.ChildNodes.Count - 1 do
-  begin
-    lNode := lRoot.ChildNodes[i];
-    if SameText(lNode.NodeName, 'section') then
-    begin
-      lSectionName := NormalizeLineText(AttrText(lNode, 'name'));
-      CollectExceptionCalls(lNode, aSeverity, aReportName, lSectionName, aFindings, aSeen);
-    end;
   end;
   aParsed := True;
 end;
@@ -775,7 +726,8 @@ begin
   Result := True;
 end;
 
-function TryGeneratePalArtifacts(const aReportRoot: string; const aOutRoot: string; out aError: string): Boolean;
+function TryGeneratePalArtifactsWithCounts(const aReportRoot: string; const aOutRoot: string;
+  out aCounts: TPalFindingCounts; out aError: string): Boolean;
 var
   lReportRoot: string;
   lOutRoot: string;
@@ -787,7 +739,6 @@ var
   lWarningsPath: string;
   lStrongPath: string;
   lOptimizationPath: string;
-  lExceptionPath: string;
   lComplexityPath: string;
   lModuleTotalsPath: string;
   lParsed: Boolean;
@@ -806,6 +757,7 @@ var
 begin
   Result := False;
   aError := '';
+  aCounts := Default(TPalFindingCounts);
   lReportRoot := Trim(aReportRoot);
   if lReportRoot = '' then
   begin
@@ -829,7 +781,6 @@ begin
   lWarningsPath := TPath.Combine(lReportRoot, SPalWarningsFileName);
   lStrongPath := TPath.Combine(lReportRoot, SPalStrongWarningsFileName);
   lOptimizationPath := TPath.Combine(lReportRoot, SPalOptimizationFileName);
-  lExceptionPath := TPath.Combine(lReportRoot, SPalExceptionFileName);
   lComplexityPath := TPath.Combine(lReportRoot, SPalComplexityFileName);
   lModuleTotalsPath := TPath.Combine(lReportRoot, SPalModuleTotalsFileName);
 
@@ -875,20 +826,8 @@ begin
       end;
     end;
 
-    lParsed := False;
-    if FileExists(lExceptionPath) then
-    begin
-      ParseExceptionReport(lExceptionPath, SPalExceptionFileName, SPalSeverityException, lFindings, lSeen, lParsed,
-        lError);
-      lHasFindingsSource := lHasFindingsSource or lParsed;
-      if lError <> '' then
-      begin
-        aError := lError;
-        Exit(False);
-      end;
-    end;
-
     lHasHotspotSource := FileExists(lComplexityPath) or FileExists(lModuleTotalsPath);
+    CaptureFindingCounts(lFindings, aCounts);
 
     if not (lHasFindingsSource or lHasHotspotSource) then
     begin
@@ -998,6 +937,13 @@ begin
   end;
 
   Result := True;
+end;
+
+function TryGeneratePalArtifacts(const aReportRoot: string; const aOutRoot: string; out aError: string): Boolean;
+var
+  lCounts: TPalFindingCounts;
+begin
+  Result := TryGeneratePalArtifactsWithCounts(aReportRoot, aOutRoot, lCounts, aError);
 end;
 
 

@@ -258,6 +258,8 @@ type
     fDeadCodeProfile: string;
     fHasDeadCodeProfile: Boolean;
     fUnitPath: string;
+    fProjectContextPath: string;
+    fHasProjectContextPath: Boolean;
   end;
 
   TFixInsightExtraOptions = record

@@ -5,12 +5,14 @@ This spec slice documents which PAL XML reports are actionable findings, and how
 
 ## Scope
 
-We only parse **finding-like** PAL XML reports:
+We only normalize actionable PAL XML reports:
 
 - `Warnings.xml`
 - `Strong Warnings.xml`
 - `Optimization.xml`
-- `Exception.xml` (call tree entries)
+
+`Exception.xml` remains available as raw diagnostic data. Its `Exception Call Tree` describes propagation paths,
+not direct defects, so it is never copied into findings, triage, baselines, gates, or SARIF.
 
 Metrics-only reports remain **unchanged** and are only used for hotspots:
 
@@ -72,7 +74,7 @@ Patterns inside a section:
 </loc>
 ```
 
-### Exception report
+### Exception report (diagnostic only)
 
 `Exception.xml` exposes a call tree:
 
@@ -89,7 +91,7 @@ Patterns inside a section:
 </section>
 ```
 
-We emit a finding for each `<called_by>` node (flattened tree).
+We do not flatten `<called_by>` nodes. Consumers that need propagation detail read the raw `Exception.xml`.
 
 ## Normalized outputs
 
@@ -103,7 +105,7 @@ One line per finding, no header:
 
 Rules:
 
-- `severity` is one of: `warning`, `strong-warning`, `optimization`, `exception`
+- `severity` is one of: `warning`, `strong-warning`, `optimization`
 - `report` is the source XML filename (e.g., `Warnings.xml`)
 - `section` is the `<section name="...">`
 - `module:line` is derived from `<locmod>` + `<locline>`
@@ -133,6 +135,14 @@ One JSON object per line. Each object includes at least:
 ```
 
 The `id` and `kind` fields are only present when available.
+
+### Actionable counts
+
+- The deduplicated normalized finding list is the sole source for warning, strong-warning, optimization, and total
+  counts.
+- PAL `<section count="...">` values are parser metadata, not actionable totals.
+- Negative section counts are sentinel values and never reduce a total.
+- The Markdown summary and JSONL therefore report the same actionable set.
 
 ### `pal-hotspots.md` (optional)
 

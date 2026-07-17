@@ -3,13 +3,13 @@ unit Test.PalFindingNormalize;
 interface
 
 uses
-  DUnitX.TestFramework,
   System.JSON,
   System.IOUtils,
   System.SysUtils,
   Winapi.Windows,
-  Test.Support,
-  Dak.PascalAnalyzer.Artifacts;
+  DUnitX.TestFramework,
+  Dak.Analyze.Common, Dak.PascalAnalyzer.Artifacts,
+  Test.Support;
 
 type
   [TestFixture]
@@ -23,6 +23,18 @@ type
     procedure MalformedHotspotReportsPreserveFindingsAndRecordWarning;
     [Test]
     procedure MissingPalFixturesFailClosedWithoutOptOut;
+    [Test]
+    procedure NegativeSectionCountsDoNotReduceActionableTotals;
+    [Test]
+    procedure ProjectSummaryUsesNormalizedActionableCounts;
+    [Test]
+    procedure ProjectRunnerUsesNormalizedArtifactCounts;
+    [Test]
+    procedure UnitSummaryUsesNormalizedActionableCounts;
+    [Test]
+    procedure UnitSummaryMarksSkippedAnalyzer;
+    [Test]
+    procedure UnitRunnerUsesNormalizedArtifactCounts;
   end;
 
 implementation
@@ -78,6 +90,7 @@ end;
 procedure TPalFindingNormalizeTests.NormalizePalFindingsFromFixtures;
 var
   lFixtureRoot: string;
+  lCounts: TPalFindingCounts;
   lOutDir: string;
   lError: string;
   lFindingsPath: string;
@@ -86,6 +99,8 @@ var
   lLines: TArray<string>;
   lJsonLines: TArray<string>;
   lJson: TJSONObject;
+  lRawExceptionAfter: string;
+  lRawExceptionBefore: string;
   lFound: Boolean;
   i: Integer;
 begin
@@ -96,9 +111,14 @@ begin
   if TDirectory.Exists(lOutDir) then
     TDirectory.Delete(lOutDir, True);
   TDirectory.CreateDirectory(lOutDir);
+  lRawExceptionBefore := TFile.ReadAllText(TPath.Combine(lFixtureRoot, 'Exception.xml'), TEncoding.UTF8);
 
-  if not TryGeneratePalArtifacts(lFixtureRoot, lOutDir, lError) then
+  if not TryGeneratePalArtifactsWithCounts(lFixtureRoot, lOutDir, lCounts, lError) then
     Assert.Fail('PAL findings generation failed: ' + lError);
+  Assert.AreEqual(4, lCounts.Warnings);
+  Assert.AreEqual(1, lCounts.StrongWarnings);
+  Assert.AreEqual(1, lCounts.Optimizations);
+  Assert.AreEqual(6, lCounts.Total);
 
   lFindingsPath := TPath.Combine(lOutDir, 'pal-findings.md');
   Assert.IsTrue(FileExists(lFindingsPath), 'pal-findings.md missing: ' + lFindingsPath);
@@ -115,6 +135,18 @@ begin
   Assert.IsTrue(FileExists(lJsonPath), 'pal-findings.jsonl missing: ' + lJsonPath);
   lJsonLines := TFile.ReadAllLines(lJsonPath);
   Assert.IsTrue(Length(lJsonLines) > 0, 'pal-findings.jsonl is empty.');
+  Assert.AreEqual(lCounts.Total, Integer(Length(lJsonLines)),
+    'Normalized count total must match the JSONL row count.');
+  for i := 0 to High(lJsonLines) do
+  begin
+    Assert.IsFalse(lJsonLines[i].Contains('"report":"Exception.xml"'),
+      'Exception call-tree rows are diagnostic propagation data, not actionable findings.');
+    Assert.IsFalse(lJsonLines[i].Contains('"severity":"exception"'),
+      'Exception call-tree severity must not enter actionable findings.');
+  end;
+
+  lRawExceptionAfter := TFile.ReadAllText(TPath.Combine(lFixtureRoot, 'Exception.xml'), TEncoding.UTF8);
+  Assert.AreEqual(lRawExceptionBefore, lRawExceptionAfter, 'Raw Exception.xml must remain byte-for-byte untouched.');
 
   lJson := ParseJsonObject(lJsonLines[0]);
   try
@@ -220,6 +252,130 @@ begin
     lAllowGuard := nil;
     lRootGuard := nil;
   end;
+end;
+
+procedure TPalFindingNormalizeTests.NegativeSectionCountsDoNotReduceActionableTotals;
+var
+  lCounts: TPalFindingCounts;
+  lError: string;
+  lJsonLines: TArray<string>;
+  lOutRoot: string;
+  lPath: string;
+  lReportRoot: string;
+begin
+  lReportRoot := TPath.Combine(TempRoot, 'pal-negative-section-count');
+  lOutRoot := TPath.Combine(TempRoot, 'pal-negative-section-count-out');
+  TDirectory.CreateDirectory(lReportRoot);
+  TDirectory.CreateDirectory(lOutRoot);
+  lPath := TPath.Combine(lReportRoot, 'Warnings.xml');
+  TFile.WriteAllText(lPath,
+    '<?xml version="1.0" encoding="utf-8"?>' +
+    '<report><section name="Actionable" count="1"><loc><locmod>Sample.Unit</locmod>' +
+    '<locline>7</locline></loc></section>' +
+    '<section name="Sentinel" count="-2" /></report>', TEncoding.UTF8);
+
+  Assert.AreEqual(1, GetSectionCountTotal(lPath));
+  Assert.IsTrue(TryGeneratePalArtifactsWithCounts(lReportRoot, lOutRoot, lCounts, lError), lError);
+  Assert.AreEqual(1, lCounts.Warnings);
+  Assert.AreEqual(1, lCounts.Total);
+  lJsonLines := TFile.ReadAllLines(TPath.Combine(lOutRoot, 'pal-findings.jsonl'));
+  Assert.AreEqual(1, Integer(Length(lJsonLines)));
+end;
+
+procedure TPalFindingNormalizeTests.ProjectSummaryUsesNormalizedActionableCounts;
+var
+  lCounts: TPalFindingCounts;
+  lError: string;
+  lFixtureRoot: string;
+  lFixCounts: TFixInsightCounts;
+  lOutRoot: string;
+  lPal: TPalSummary;
+  lSummary: string;
+begin
+  lFixtureRoot := PalFixtureRoot;
+  RequirePalFixtures(lFixtureRoot);
+  lOutRoot := TPath.Combine(TempRoot, 'pal-summary-normalized-counts');
+  TDirectory.CreateDirectory(lOutRoot);
+  Assert.IsTrue(TryGeneratePalArtifactsWithCounts(lFixtureRoot, lOutRoot, lCounts, lError), lError);
+
+  lFixCounts := Default(TFixInsightCounts);
+  lPal := Default(TPalSummary);
+  lPal.Ran := True;
+  lPal.Warnings := lCounts.Warnings;
+  lPal.StrongWarnings := lCounts.StrongWarnings;
+  lPal.Optimizations := lCounts.Optimizations;
+
+  lSummary := BuildProjectSummary('Sample', 'C:\repo\Sample.dproj', 'C:\repo\.dak\Sample', '', '', '', False,
+    False, False, 0, 0, 0, lFixCounts, lPal, []);
+
+  Assert.IsTrue(lSummary.Contains(
+    '- Totals: warnings=4, strong_warnings=1, optimizations=1, total=6'), lSummary);
+  Assert.IsFalse(lSummary.Contains('exceptions='), lSummary);
+end;
+
+procedure TPalFindingNormalizeTests.ProjectRunnerUsesNormalizedArtifactCounts;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.analyze.projectrunner.pas'), TEncoding.UTF8);
+  Assert.IsTrue(lSource.Contains('TryGeneratePalArtifactsWithCounts'),
+    'Project summary counts must come from the normalized artifact list.');
+  Assert.IsTrue(lSource.Contains('AddError(''PAL findings generation failed: '' + lPalPostError, 6)'),
+    'Required project PAL normalization failures must fail the command.');
+  Assert.IsTrue(lSource.Contains('AddError(''PAL report root not found: '' + lPalPostError, 6)'),
+    'Missing project PAL status must fail the command.');
+  Assert.IsTrue(lSource.Contains(
+    'AddError(''PAL post-processing failed: '' + E.ClassName + '': '' + E.Message, 6)'),
+    'Project PAL extraction exceptions must fail the command.');
+  Assert.IsFalse(lSource.Contains('GetSectionCountTotal('),
+    'Project summary must not use raw PAL section-count metadata.');
+end;
+
+procedure TPalFindingNormalizeTests.UnitSummaryUsesNormalizedActionableCounts;
+var
+  lPal: TPalSummary;
+  lSummary: string;
+begin
+  lPal := Default(TPalSummary);
+  lPal.Ran := True;
+  lPal.Warnings := 4;
+  lPal.StrongWarnings := 1;
+  lPal.Optimizations := 1;
+
+  lSummary := BuildUnitSummary('Sample', 'C:\repo\Sample.pas', 'C:\repo\.dak\_unit\Sample', lPal, []);
+
+  Assert.IsTrue(lSummary.Contains(
+    '- Totals: warnings=4, strong_warnings=1, optimizations=1, total=6'), lSummary);
+end;
+
+procedure TPalFindingNormalizeTests.UnitSummaryMarksSkippedAnalyzer;
+var
+  lPal: TPalSummary;
+  lSummary: string;
+begin
+  lPal := Default(TPalSummary);
+
+  lSummary := BuildUnitSummary('Sample', 'C:\repo\Sample.pas', 'C:\repo\.dak\_unit\Sample', lPal, []);
+
+  Assert.IsTrue(lSummary.Contains('- Skipped.'), lSummary);
+end;
+
+procedure TPalFindingNormalizeTests.UnitRunnerUsesNormalizedArtifactCounts;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.analyze.unitrunner.pas'), TEncoding.UTF8);
+  Assert.IsTrue(lSource.Contains('TryGeneratePalArtifactsWithCounts'),
+    'Unit summary counts must come from the normalized artifact list.');
+  Assert.IsTrue(lSource.Contains('AddError(''PAL findings generation failed: '' + lPalPostError, 6)'),
+    'Required unit PAL normalization failures must fail the command.');
+  Assert.IsTrue(lSource.Contains('AddError(''PAL report root not found: '' + lPalPostError, 6)'),
+    'Missing unit PAL status must fail the command.');
+  Assert.IsTrue(lSource.Contains(
+    'AddError(''PAL post-processing failed: '' + E.ClassName + '': '' + E.Message, 6)'),
+    'Unit PAL extraction exceptions must fail the command.');
+  Assert.IsFalse(lSource.Contains('GetSectionCountTotal('),
+    'Unit summary must not use raw PAL section-count metadata.');
 end;
 
 initialization

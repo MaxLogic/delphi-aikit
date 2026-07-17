@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import configparser
+from dataclasses import dataclass
 import os
 import platform
 import re
@@ -14,7 +15,18 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
+
+
+@dataclass(frozen=True)
+class PalHelpInfo:
+    version: str
+    architecture: str
+    help_available: bool
+    supported_targets: tuple[tuple[str, str, str], ...]
+
+
+PalTarget = tuple[str, str, str]
 
 
 def _is_wsl() -> bool:
@@ -31,9 +43,16 @@ def _looks_like_windows_path(s: str) -> bool:
     return bool(re.match(r"^[A-Za-z]:[\\/]", s) or s.startswith("\\\\"))
 
 
-def _run_capture(cmd: list[str]) -> tuple[int, str]:
+def _run_capture(cmd: list[str], timeout: int = 15) -> tuple[int, str]:
     try:
-        p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+        p = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+            timeout=timeout,
+        )
         return p.returncode, (p.stdout or "").strip()
     except Exception as e:
         return 127, f"{type(e).__name__}: {e}"
@@ -129,10 +148,214 @@ def _find_dak_exe(target_dir: Path) -> Path:
     )
 
 
-def _load_ini(path: Path) -> configparser.ConfigParser:
-    cp = configparser.ConfigParser()
-    cp.read(path, encoding="utf-8")
-    return cp
+def _choose_palcmd(directory: Path) -> Optional[Path]:
+    for name in ("palcmd.exe", "palcmd32.exe"):
+        candidate = directory / name
+        if candidate.is_file():
+            return candidate.resolve()
+    return None
+
+
+def _pal_install_roots() -> list[Path]:
+    roots: list[Path] = []
+    environment = _pal_environment()
+    for name in ("ProgramFiles", "ProgramFiles(x86)", "ProgramW6432"):
+        value = environment.get(name.casefold(), "").strip()
+        if not value:
+            continue
+        root = _normalize_input_path(value)
+        if root not in roots:
+            roots.append(root)
+    if not roots:
+        roots.extend(_normalize_input_path(p) for p in (r"C:\Program Files", r"C:\Program Files (x86)"))
+    return roots
+
+
+def _parse_windows_environment(text: str) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for line in text.splitlines():
+        if "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        if name:
+            result[name.casefold()] = value
+    return result
+
+
+def _pal_environment() -> dict[str, str]:
+    result = {name.casefold(): value for name, value in os.environ.items()}
+    if _is_wsl():
+        code, output = _run_capture([_cmd_exe(), "/D", "/C", "set"])
+        if code == 0:
+            result.update(_parse_windows_environment(output))
+    return result
+
+
+def _expand_windows_env(value: str, environment: Optional[dict[str, str]] = None) -> str:
+    env = environment or _pal_environment()
+    return re.sub(
+        r"%([^%]+)%",
+        lambda match: env.get(match.group(1).casefold(), match.group(0)),
+        value,
+    )
+
+
+def _normalize_configured_path(value: str, base_dir: Optional[Path]) -> Path:
+    path = _normalize_input_path(_expand_windows_env(value.strip()))
+    if not path.is_absolute():
+        path = (base_dir or Path.cwd()) / path
+    return path
+
+
+def _resolve_palcmd(
+    override: str,
+    roots: Optional[Sequence[Path]] = None,
+    base_dir: Optional[Path] = None,
+) -> Path:
+    if override.strip():
+        path = _normalize_configured_path(override, base_dir)
+        if path.is_dir():
+            resolved = _choose_palcmd(path)
+            if resolved is not None:
+                return resolved
+            raise FileNotFoundError(f"PALCMD executable not found in folder: {path}")
+        if path.is_file():
+            return path.resolve()
+        raise FileNotFoundError(f"PALCMD executable not found at: {path}")
+
+    install_roots = list(roots) if roots is not None else _pal_install_roots()
+    for root in install_roots:
+        resolved = _choose_palcmd(root / "Peganza" / "Pascal Analyzer 9")
+        if resolved is not None:
+            return resolved
+
+    for version in range(15, 4, -1):
+        for root in install_roots:
+            resolved = _choose_palcmd(root / "Peganza" / f"Pascal Analyzer {version}")
+            if resolved is not None:
+                return resolved
+
+    best: tuple[int, Path] | None = None
+    fallback: Optional[Path] = None
+    for root in install_roots:
+        peganza = root / "Peganza"
+        if not peganza.is_dir():
+            continue
+        for directory in peganza.glob("Pascal Analyzer*"):
+            resolved = _choose_palcmd(directory)
+            if resolved is None:
+                continue
+            match = re.search(r"(\d+)\s*$", directory.name)
+            if match:
+                candidate = (int(match.group(1)), resolved)
+                if best is None or candidate[0] > best[0]:
+                    best = candidate
+            elif fallback is None:
+                fallback = resolved
+    if best is not None:
+        return best[1]
+    if fallback is not None:
+        return fallback
+    raise FileNotFoundError("PALCMD not found. Set PA_PATH or [PascalAnalyzer].Path in dak.ini.")
+
+
+def _parse_pal_help(text: str) -> PalHelpInfo:
+    version_match = re.search(r"Pascal Analyzer\s+\((\d+)-bits\)\s+version\s+([0-9.]+)", text, re.IGNORECASE)
+    architecture = f"{version_match.group(1)}-bit" if version_match else "unknown"
+    version = version_match.group(2) if version_match else "unknown"
+    targets = tuple(
+        (delphi, platform_name, flag)
+        for delphi, platform_name, flag in (
+            ("Delphi 12", "Win32", "/CD12W32"),
+            ("Delphi 12", "Win64", "/CD12W64"),
+            ("Delphi 13", "Win32", "/CD13W32"),
+            ("Delphi 13", "Win64", "/CD13W64"),
+        )
+        if re.search(rf"(?im)^\s*{re.escape(flag)}\b", text)
+    )
+    return PalHelpInfo(version, architecture, "Syntax:" in text, targets)
+
+
+def _requested_pal_target(bds_version: str, platform_name: str) -> Optional[PalTarget]:
+    bds = bds_version.strip()
+    if not bds:
+        return None
+    try:
+        bds_major = int(bds.split(".", 1)[0])
+    except ValueError:
+        return (f"BDS {bds}", platform_name.strip() or "<empty>", "")
+    delphi = {23: "12", 37: "13"}.get(bds_major)
+    platform_value = platform_name.strip().casefold() or "win32"
+    platform_label = {"win32": "Win32", "win64": "Win64"}.get(platform_value)
+    if delphi is None or platform_label is None:
+        return (f"BDS {bds}", platform_name.strip() or "Win32", "")
+    return (f"Delphi {delphi}", platform_label, f"/CD{delphi}W{platform_label[-2:]}")
+
+
+def _pal_target_supported(info: PalHelpInfo, target: PalTarget) -> bool:
+    return bool(target[2]) and target in info.supported_targets
+
+
+def _pal_check_error(
+    exit_code: int, info: PalHelpInfo, requested: Optional[PalTarget]
+) -> str:
+    if exit_code != 0 or not info.help_available:
+        return f"PALCMD help failed (exit={exit_code})."
+    if requested is not None and not _pal_target_supported(info, requested):
+        return "Requested Delphi/platform target is not supported by PALCMD help."
+    return ""
+
+
+def _format_pal_report(
+    executable: Path, info: PalHelpInfo, requested: Optional[PalTarget] = None
+) -> str:
+    lines = [
+        f"- Executable: {executable}",
+        f"- Architecture: {info.architecture}",
+        f"- Version: {info.version}",
+        f"- Help: {'available' if info.help_available else 'unavailable'}",
+    ]
+    supported = {(delphi, target): flag for delphi, target, flag in info.supported_targets}
+    for delphi in ("Delphi 12", "Delphi 13"):
+        flag = supported.get((delphi, "Win64"))
+        status = f"supported ({flag})" if flag else "not listed by PAL help"
+        lines.append(f"- {delphi} Win64: {status}")
+    if requested is not None:
+        delphi, platform_name, flag = requested
+        if _pal_target_supported(info, requested):
+            status = f"supported ({flag})"
+        elif flag:
+            status = f"not listed by PAL help ({flag})"
+        else:
+            status = "unsupported mapping"
+        lines.append(f"- Requested target: {delphi} {platform_name}: {status}")
+    return "\n".join(lines)
+
+
+def _load_dak_settings(
+    executable: Path, target: Optional[Path]
+) -> tuple[configparser.ConfigParser, list[Path]]:
+    paths = [executable.parent / "dak.ini"]
+    if target is not None:
+        target_dir = target.parent.resolve()
+        repo_root, _ = _find_vcs_root(target_dir)
+        if repo_root is None:
+            candidates = [target_dir]
+        else:
+            relative = target_dir.relative_to(repo_root)
+            candidates = [repo_root]
+            current = repo_root
+            for part in relative.parts:
+                current /= part
+                candidates.append(current)
+        for directory in candidates:
+            candidate = directory / "dak.ini"
+            if str(candidate).casefold() not in {str(path).casefold() for path in paths}:
+                paths.append(candidate)
+
+    cp = configparser.ConfigParser(interpolation=None)
+    cp.read([str(path) for path in paths if path.is_file()], encoding="utf-8")
+    return cp, paths
 
 
 def _fmt_kv(k: str, v: str) -> str:
@@ -170,16 +393,17 @@ def main(argv: list[str]) -> int:
         return 2
 
     dak_dir = dak_exe.parent
-    dak_ini = dak_dir / "dak.ini"
+    ini, dak_ini_paths = _load_dak_settings(dak_exe, target)
+    existing_ini_paths = [path for path in dak_ini_paths if path.exists()]
 
     print()
     print("## Resolver")
     print(f"- DAK_EXE: {os.environ.get('DAK_EXE','').strip() or '<default>'}")
     print(f"- DelphiAIKit.exe: {dak_exe}")
-    print(f"- dak.ini: {dak_ini if dak_ini.exists() else '<missing>'}")
+    print(f"- dak.ini: {', '.join(str(path) for path in existing_ini_paths) or '<missing>'}")
 
-    if dak_ini.exists():
-        ini = _load_ini(dak_ini)
+    pa_path = ""
+    if existing_ini_paths:
         print()
         print("## dak.ini (high-signal)")
         fi = ini["FixInsightCL"] if ini.has_section("FixInsightCL") else {}
@@ -201,7 +425,7 @@ def main(argv: list[str]) -> int:
         pa_path = (pa.get("Path", "") or "").strip()
         if pa_path:
             try:
-                p = _normalize_input_path(pa_path)
+                p = _normalize_configured_path(pa_path, dak_dir)
                 exists = p.exists()
                 print(f"- PascalAnalyzer.Path exists: {exists} ({p})")
             except Exception as e:
@@ -217,6 +441,7 @@ def main(argv: list[str]) -> int:
         "DAK_FIXINSIGHT",
         "DAK_PASCAL_ANALYZER",
         "DAK_PAL",
+        "PA_PATH",
         "DAK_EXCLUDE_PATH_MASKS",
         "DAK_IGNORE_WARNING_IDS",
         "DAK_OUT",
@@ -265,6 +490,28 @@ def main(argv: list[str]) -> int:
             print(f"- where FixInsightCL.exe: exit={code} {out}")
             code, out = _run_capture(["where", "PALCMD.exe"])
             print(f"- where PALCMD.exe: exit={code} {out}")
+
+        print()
+        print("## Pascal Analyzer")
+        try:
+            palcmd = _resolve_palcmd(
+                os.environ.get("PA_PATH", "").strip() or pa_path,
+                base_dir=dak_dir,
+            )
+        except Exception as e:
+            print(f"ERROR: {e}")
+            return 3
+        code, help_text = _run_capture([str(palcmd)])
+        info = _parse_pal_help(help_text)
+        requested = _requested_pal_target(
+            os.environ.get("DAK_DELPHI", ""),
+            os.environ.get("DAK_PLATFORM", "Win32"),
+        )
+        print(_format_pal_report(palcmd, info, requested))
+        pal_error = _pal_check_error(code, info, requested)
+        if pal_error:
+            print(f"ERROR: {pal_error}")
+            return 3
 
     return 0
 

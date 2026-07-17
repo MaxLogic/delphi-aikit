@@ -101,6 +101,7 @@ begin
     Add('exclude-path-masks', '', svpRequiredValue, [crResolve, crAnalyze, crBuild]);
     Add('ignore-warning-ids', '', svpRequiredValue, [crResolve, crAnalyze]);
     Add('unit', '', svpRequiredValue, [crAnalyze, crGlobalVars, crDeps, crRemoveWith, crSymbolMap]);
+    Add('project-context', '', svpRequiredValue, [crAnalyze]);
     Add('fi-formats', '', svpRequiredValue, [crAnalyze]);
     Add('fixinsight', '', svpOptionalBoolValue, [crAnalyze]);
     Add('pascal-analyzer', 'pal', svpOptionalBoolValue, [crAnalyze]);
@@ -1130,6 +1131,12 @@ begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--unit') then
       Exit(False);
     fOptions.fUnitPath := lValue;
+  end else if SwitchMatches(aSwitch, 'project-context') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--project-context') then
+      Exit(False);
+    fOptions.fProjectContextPath := lValue;
+    fOptions.fHasProjectContextPath := True;
   end else if SwitchMatches(aSwitch, 'out') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--out') then
@@ -2405,6 +2412,12 @@ begin
       Exit(False);
     end;
     fOptions.fCommand := TCommandKind.ckAnalyzeUnit;
+  end;
+
+  if fOptions.fHasProjectContextPath and (fOptions.fCommand <> TCommandKind.ckAnalyzeUnit) then
+  begin
+    fError := rsProjectContextUnitOnly;
+    Exit(False);
   end;
 
   if fOptions.fCommand = TCommandKind.ckResolve then

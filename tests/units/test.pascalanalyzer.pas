@@ -6,7 +6,7 @@ uses
   System.IOUtils, System.RegularExpressions, System.SysUtils,
   Winapi.Windows,
   DUnitX.TestFramework,
-  Dak.ExternalToolProcess,
+  Dak.Analyze.Common, Dak.ExternalToolProcess, Dak.Messages,
   Dak.PascalAnalyzerRunner, Dak.Types,
   Test.Support;
 
@@ -14,6 +14,20 @@ type
   [TestFixture]
   TPascalAnalyzerTests = class
   public
+    [Test]
+    procedure Delphi13CommandUsesMappedCompilerFlags;
+    [Test]
+    procedure ExtraArgumentsRetainAutomationDefaults;
+    [Test]
+    procedure OwnedPalArgumentsAreRejected;
+    [Test]
+    procedure ProjectCommandOwnsReportName;
+    [Test]
+    procedure ProjectRunnerUsesExactNamedReportRoot;
+    [Test]
+    procedure UnitCommandUsesProjectContext;
+    [Test]
+    procedure ContextFreeUnitSummaryDeclaresPalIni;
     [Test]
     procedure SelectsSupportedCompilerFlag;
     [Test]
@@ -78,6 +92,223 @@ begin
     Result := 1;
   if Result > 64 then
     Result := 64;
+end;
+
+procedure TPascalAnalyzerTests.ProjectRunnerUsesExactNamedReportRoot;
+var
+  lSource: string;
+begin
+  lSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.analyze.projectrunner.pas'), TEncoding.UTF8);
+  Assert.IsTrue(lSource.Contains(
+    'lPaReportRoot := TPath.Combine(fPal.OutputRoot, TPath.GetFileNameWithoutExtension(fParams.fProjectDpr));'),
+    'Project analysis must construct the exact DAK-owned PAL report folder.');
+  Assert.IsFalse(lSource.Contains('TryFindPalReportRoot(fPal.OutputRoot'),
+    'Project analysis must not recursively select a report below the parent output root.');
+end;
+
+procedure TPascalAnalyzerTests.UnitCommandUsesProjectContext;
+var
+  lCmdLine: string;
+  lEnvGuard: IInterface;
+  lError: string;
+  lExePath: string;
+  lMapGuard: IInterface;
+  lMapPath: string;
+  lMapSource: string;
+  lPa: TPascalAnalyzerDefaults;
+  lParams: TFixInsightParams;
+  lRunnerSource: string;
+  lUnitPath: string;
+begin
+  lMapSource := TPath.Combine(RepoRoot, 'bin\palcmd-map.json');
+  lMapGuard := SetScopedPalCmdMapFixture(TFile.ReadAllText(lMapSource, TEncoding.UTF8), lMapPath);
+  lEnvGuard := SetScopedEnvironmentVariable('DAK_TEST_PAL_HELP', '1');
+  lUnitPath := TPath.Combine(RepoRoot, 'src\dak.types.pas');
+
+  lParams := Default(TFixInsightParams);
+  lParams.fProjectDpr := lUnitPath;
+  lParams.fDelphiVersion := '23.0';
+  lParams.fPlatform := 'Win64';
+  lParams.fConfig := 'Debug';
+  lParams.fDefines := ['PROJECT_CONTEXT'];
+  lParams.fUnitSearchPath := [TPath.Combine(RepoRoot, 'src')];
+
+  lPa := Default(TPascalAnalyzerDefaults);
+  lPa.fPath := ParamStr(0);
+  lPa.fOutput := TempRoot;
+
+  Assert.IsTrue(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError), lError);
+  Assert.IsTrue(lCmdLine.Contains(QuoteArg(lUnitPath)), 'Unit PAL command must analyze the requested unit.');
+  Assert.IsTrue(lCmdLine.Contains('/CD12W64'), 'Unit PAL command must use the project compiler target.');
+  Assert.IsTrue(lCmdLine.Contains('/BUILD=Debug'), 'Unit PAL command must use the project build configuration.');
+  Assert.IsTrue(lCmdLine.Contains('/D=PROJECT_CONTEXT'), 'Unit PAL command must use project defines.');
+  Assert.IsTrue(lCmdLine.Contains('/S='), 'Unit PAL command must use project search paths.');
+
+  lRunnerSource := TFile.ReadAllText(TPath.Combine(RepoRoot, 'src\dak.analyze.unitrunner.pas'), TEncoding.UTF8);
+  Assert.IsTrue(lRunnerSource.Contains('TryRunPalLogged(lUnitParams, fPascalAnalyzer'),
+    'Project-context unit analysis must use the project-grade PAL runner.');
+end;
+
+procedure TPascalAnalyzerTests.ContextFreeUnitSummaryDeclaresPalIni;
+var
+  lPal: TPalSummary;
+  lSummary: string;
+begin
+  lPal := Default(TPalSummary);
+  lPal.Context := rsAnalyzeUnitPalIniContext;
+
+  lSummary := BuildUnitSummary('Sample', 'C:\repo\Sample.pas', 'C:\repo\.dak\_unit\Sample', lPal, []);
+
+  Assert.IsTrue(lSummary.Contains('PAL.INI supplied compiler context'));
+  Assert.IsTrue(lSummary.Contains('not project-equivalent proof'));
+end;
+
+procedure TPascalAnalyzerTests.ProjectCommandOwnsReportName;
+var
+  lCmdLine: string;
+  lEnvGuard: IInterface;
+  lError: string;
+  lExePath: string;
+  lMapGuard: IInterface;
+  lMapPath: string;
+  lMapSource: string;
+  lPa: TPascalAnalyzerDefaults;
+  lParams: TFixInsightParams;
+begin
+  lMapSource := TPath.Combine(RepoRoot, 'bin\palcmd-map.json');
+  lMapGuard := SetScopedPalCmdMapFixture(TFile.ReadAllText(lMapSource, TEncoding.UTF8), lMapPath);
+  lEnvGuard := SetScopedEnvironmentVariable('DAK_TEST_PAL_HELP', '1');
+
+  lParams := Default(TFixInsightParams);
+  lParams.fProjectDpr := TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dpr');
+  lParams.fDelphiVersion := '23.0';
+  lParams.fPlatform := 'Win64';
+  lParams.fConfig := 'Release';
+
+  lPa := Default(TPascalAnalyzerDefaults);
+  lPa.fPath := ParamStr(0);
+  lPa.fOutput := TempRoot;
+
+  Assert.IsTrue(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError), lError);
+  Assert.IsTrue(lCmdLine.Contains('/NAME=DelphiAIKit'), 'Project PAL command must own the exact report name.');
+end;
+
+procedure TPascalAnalyzerTests.OwnedPalArgumentsAreRejected;
+var
+  lCmdLine: string;
+  lEnvGuard: IInterface;
+  lError: string;
+  lExePath: string;
+  lMapGuard: IInterface;
+  lMapPath: string;
+  lMapSource: string;
+  lPa: TPascalAnalyzerDefaults;
+  lParams: TFixInsightParams;
+  lSwitch: string;
+begin
+  lMapSource := TPath.Combine(RepoRoot, 'bin\palcmd-map.json');
+  lMapGuard := SetScopedPalCmdMapFixture(TFile.ReadAllText(lMapSource, TEncoding.UTF8), lMapPath);
+  lEnvGuard := SetScopedEnvironmentVariable('DAK_TEST_PAL_HELP', '1');
+
+  lParams := Default(TFixInsightParams);
+  lParams.fProjectDpr := TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dpr');
+  lParams.fDelphiVersion := '23.0';
+  lParams.fPlatform := 'Win64';
+  lParams.fConfig := 'Release';
+
+  for lSwitch in ['/F=T', '/f=x', '/A-', '/FA', '/F+', '/FR', '/FM', '/F-', '/Q',
+    '/R="C:\Some Path"', '/NAME=Other', '/T=1'] do
+  begin
+    lPa := Default(TPascalAnalyzerDefaults);
+    lPa.fPath := ParamStr(0);
+    lPa.fArgs := lSwitch;
+
+    Assert.IsFalse(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError),
+      'Expected DAK-owned PAL argument to be rejected: ' + lSwitch);
+    Assert.IsTrue(lError.Contains('conflicts with DAK-owned automation'),
+      'Expected a clear ownership diagnostic for ' + lSwitch + '. Actual: ' + lError);
+  end;
+end;
+
+procedure TPascalAnalyzerTests.ExtraArgumentsRetainAutomationDefaults;
+var
+  lCmdLine: string;
+  lEnvGuard: IInterface;
+  lError: string;
+  lExePath: string;
+  lMapGuard: IInterface;
+  lMapPath: string;
+  lMapSource: string;
+  lPa: TPascalAnalyzerDefaults;
+  lParams: TFixInsightParams;
+begin
+  lMapSource := TPath.Combine(RepoRoot, 'bin\palcmd-map.json');
+  lMapGuard := SetScopedPalCmdMapFixture(TFile.ReadAllText(lMapSource, TEncoding.UTF8), lMapPath);
+  lEnvGuard := SetScopedEnvironmentVariable('DAK_TEST_PAL_HELP', '1');
+
+  lParams := Default(TFixInsightParams);
+  lParams.fProjectDpr := TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dpr');
+  lParams.fDelphiVersion := '23.0';
+  lParams.fPlatform := 'Win64';
+  lParams.fConfig := 'Release';
+
+  lPa := Default(TPascalAnalyzerDefaults);
+  lPa.fPath := ParamStr(0);
+  lPa.fArgs := '/CUSTOM-SWITCH';
+
+  Assert.IsTrue(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError), lError);
+  Assert.IsTrue(lCmdLine.Contains('/F=X'), 'DAK-owned XML output must remain enabled.');
+  Assert.IsTrue(lCmdLine.Contains('/Q'), 'DAK-owned quiet mode must remain enabled.');
+  Assert.IsTrue(lCmdLine.Contains('/A+'), 'DAK-owned source/form parsing must remain enabled.');
+  Assert.IsTrue(lCmdLine.Contains('/FA'), 'DAK-owned all-file parsing must remain enabled.');
+  Assert.IsTrue(lCmdLine.Contains('/T=' + DefaultPalThreads.ToString), 'DAK-owned default thread count must remain enabled.');
+  Assert.IsTrue(lCmdLine.Contains('/CUSTOM-SWITCH'), 'Non-conflicting extra arguments must be preserved.');
+end;
+
+procedure TPascalAnalyzerTests.Delphi13CommandUsesMappedCompilerFlags;
+var
+  lCmdLine: string;
+  lEnvGuard: IInterface;
+  lError: string;
+  lExePath: string;
+  lExpected: string;
+  lMapGuard: IInterface;
+  lMapPath: string;
+  lMapSource: string;
+  lPa: TPascalAnalyzerDefaults;
+  lParams: TFixInsightParams;
+  lPlatform: string;
+begin
+  lMapSource := TPath.Combine(RepoRoot, 'bin\palcmd-map.json');
+  lMapGuard := SetScopedPalCmdMapFixture(TFile.ReadAllText(lMapSource, TEncoding.UTF8), lMapPath);
+  lEnvGuard := SetScopedEnvironmentVariable('DAK_TEST_PAL_HELP', '1');
+
+  for lPlatform in ['Win32', 'Win64'] do
+  begin
+    lParams := Default(TFixInsightParams);
+    lParams.fProjectDpr := TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dpr');
+    lParams.fDelphiVersion := '37.0';
+    lParams.fPlatform := lPlatform;
+    lParams.fConfig := 'Release';
+
+    lPa := Default(TPascalAnalyzerDefaults);
+    lPa.fPath := ParamStr(0);
+
+    if SameText(lPlatform, 'Win32') then
+      lExpected := '/CD13W32'
+    else begin
+      lExpected := '/CD13W64';
+    end;
+
+    Assert.IsTrue(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError), lError);
+    Assert.IsTrue(lCmdLine.Contains(lExpected),
+      Format('Expected %s for BDS 37 %s. Actual: %s', [lExpected, lPlatform, lCmdLine]));
+  end;
+
+  lParams.fDelphiVersion := '23.0';
+  lParams.fPlatform := 'Win64';
+  Assert.IsTrue(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError), lError);
+  Assert.IsTrue(lCmdLine.Contains('/CD12W64'), 'Existing BDS 23 mapping must remain Delphi 12 Win64.');
 end;
 
 procedure TPascalAnalyzerTests.SelectsSupportedCompilerFlag;
@@ -166,8 +397,7 @@ begin
     ' --platform Win32 --config Release --delphi 23.0 --fixinsight false --pascal-analyzer true' +
     ' --out ' + QuoteArg(lOutDir) +
     ' --pa-path ' + QuoteArg(lPalCmdExe) +
-    ' --pa-output ' + QuoteArg(lOutDir) +
-    ' --pa-args "/F=X /Q /A+ /FA /T=' + DefaultPalThreads.ToString + '"';
+    ' --pa-output ' + QuoteArg(lOutDir);
 
   lLog := TPath.Combine(lOutDir, 'pascal-analyzer.log');
   if not RunResolverProcess(lArgs, RepoRoot, lLog, lExit) then

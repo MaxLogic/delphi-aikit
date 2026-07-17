@@ -11,7 +11,7 @@ function RunAnalyzeUnit(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
-  Dak.PascalAnalyzerRunner;
+  Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
 
 type
   TAnalyzeUnitRunner = class
@@ -23,6 +23,7 @@ type
     fFixIgnoreDefaults: TFixInsightIgnoreDefaults;
     fReportFilter: TReportFilterDefaults;
     fPascalAnalyzer: TPascalAnalyzerDefaults;
+    fParams: TFixInsightParams;
     fOutRoot: string;
     fPaDir: string;
     fRunLog: string;
@@ -90,7 +91,27 @@ begin
 end;
 
 function TAnalyzeUnitRunner.TryLoadSettings: Boolean;
+var
+  lError: string;
+  lErrorCode: Integer;
+  lOptions: TAppOptions;
+  lProjectDproj: string;
+  lProjectName: string;
 begin
+  if fOptions.fHasProjectContextPath then
+  begin
+    lOptions := fOptions;
+    lOptions.fDprojPath := fOptions.fProjectContextPath;
+    if not TryPrepareProjectParams(lOptions, fDiagnostics, fParams, fFixOptions, fFixIgnoreDefaults, fReportFilter,
+      fPascalAnalyzer, lProjectName, lProjectDproj, lError, lErrorCode) then
+    begin
+      WriteLn(ErrOutput, lError);
+      fExitCode := lErrorCode;
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
   if not LoadSettings(fDiagnostics, '', fFixOptions, fFixIgnoreDefaults, fReportFilter, fPascalAnalyzer) then
   begin
     WriteLn(ErrOutput, 'Failed to read dak.ini.');
@@ -98,6 +119,7 @@ begin
     Exit(False);
   end;
   ApplySettingsOverrides(fOptions, fFixOptions, fFixIgnoreDefaults, fReportFilter, fPascalAnalyzer);
+  fDiagnostics.AddWarning(rsAnalyzeUnitPalIniContext);
   Result := True;
 end;
 
@@ -141,14 +163,21 @@ end;
 
 procedure TAnalyzeUnitRunner.RunPascalAnalyzer;
 var
+  lPalCounts: TPalFindingCounts;
   lRunExit: Cardinal;
   lRunError: string;
   lPaReportRoot: string;
   lPalPostError: string;
+  lRan: Boolean;
   lStdErrLogPath: string;
   lStdOutLogPath: string;
+  lUnitParams: TFixInsightParams;
 begin
   fPal := Default(TPalSummary);
+  if fOptions.fHasProjectContextPath then
+    fPal.Context := 'Project: ' + TPath.GetFullPath(fOptions.fProjectContextPath)
+  else
+    fPal.Context := rsAnalyzeUnitPalIniContext;
   if not fOptions.fAnalyzePal then
     Exit;
 
@@ -163,7 +192,17 @@ begin
   lStdOutLogPath := TPath.Combine(fPaDir, 'pascal-analyzer.stdout.log');
   lStdErrLogPath := TPath.Combine(fPaDir, 'pascal-analyzer.stderr.log');
 
-  if TryRunPalUnitLogged(fUnitPath, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog, lRunExit, lRunError) then
+  if fOptions.fHasProjectContextPath then
+  begin
+    lUnitParams := fParams;
+    lUnitParams.fProjectDpr := fUnitPath;
+    lRan := TryRunPalLogged(lUnitParams, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog, lRunExit,
+      lRunError);
+  end else
+    lRan := TryRunPalUnitLogged(fUnitPath, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog, lRunExit,
+      lRunError);
+
+  if lRan then
   begin
     fPal.ExitCode := Integer(lRunExit);
     if fPal.ExitCode <> 0 then
@@ -171,17 +210,31 @@ begin
     else
     begin
       try
-        if TryFindPalReportRoot(fPal.OutputRoot, lPaReportRoot, lPalPostError) then
+        if fOptions.fHasProjectContextPath then
+        begin
+          lPaReportRoot := TPath.Combine(fPal.OutputRoot, fUnitName);
+          if not FileExists(TPath.Combine(lPaReportRoot, 'Status.xml')) then
+          begin
+            lPalPostError := 'Status.xml not found in expected report folder: ' + lPaReportRoot;
+            lPaReportRoot := '';
+          end;
+        end else if not TryFindPalReportRoot(fPal.OutputRoot, lPaReportRoot, lPalPostError) then
+          lPaReportRoot := '';
+        if lPaReportRoot <> '' then
         begin
           fPal.ReportRoot := lPaReportRoot;
           ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), fPal.Version, fPal.Compiler);
-        end else
-        begin
-          fDiagnostics.AddWarning('PAL report root not found: ' + lPalPostError);
+          if not TryGeneratePalArtifactsWithCounts(lPaReportRoot, fPal.OutputRoot, lPalCounts, lPalPostError) then
+            AddError('PAL findings generation failed: ' + lPalPostError, 6);
+          fPal.Warnings := lPalCounts.Warnings;
+          fPal.StrongWarnings := lPalCounts.StrongWarnings;
+          fPal.Optimizations := lPalCounts.Optimizations;
+        end else begin
+          AddError('PAL report root not found: ' + lPalPostError, 6);
         end;
       except
         on E: Exception do
-          fDiagnostics.AddWarning('PAL post-processing failed: ' + E.ClassName + ': ' + E.Message);
+          AddError('PAL post-processing failed: ' + E.ClassName + ': ' + E.Message, 6);
       end;
     end;
   end else
@@ -207,9 +260,9 @@ begin
   try
     if not TryOpenLog then
       Exit(fExitCode);
-    if not TryLoadSettings then
-      Exit(fExitCode);
     if not TryPrepareUnit then
+      Exit(fExitCode);
+    if not TryLoadSettings then
       Exit(fExitCode);
     PrepareOutputTree;
     RunPascalAnalyzer;

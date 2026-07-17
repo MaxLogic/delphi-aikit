@@ -44,6 +44,15 @@ uses
 const
   cMaxTdbProofCategory = 'MaxTdbProof';
 
+procedure RunPalHelpFixture;
+begin
+  if GetEnvironmentVariable('DAK_TEST_PAL_HELP') <> '1' then
+    Exit;
+
+  Writeln('/CD12W32 /CD12W64 /CD13W32 /CD13W64 /NAME=projectname');
+  Halt(0);
+end;
+
 procedure ApplyDefaultCategoryExclusions;
 begin
   if (TDUnitX.Options.Run.Count = 0) and
@@ -61,6 +70,7 @@ var
   Results: IRunResults;
   Logger: ITestLogger;
 begin
+  RunPalHelpFixture;
   ReportMemoryLeaksOnShutdown := True;
   try
     TDUnitX.CheckCommandLine;

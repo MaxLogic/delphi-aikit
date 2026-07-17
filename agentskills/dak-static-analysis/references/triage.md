@@ -4,6 +4,8 @@
 
 Our `postprocess.py` emits `.dak/<ProjectName>/triage.md` as a prioritized shortlist (top 20 by default; override with `DAK_TRIAGE_TOP=<N>`). It is intentionally a *short* "what to fix next" view; full detail remains in `fi-findings.*` and `pal-findings.*` / raw PAL XML.
 
+`summary.json` is the compact AI entry point. Its schema-versioned compiler context, tool metadata, actionable counts, errors, and artifact paths are validated against the normalized JSONL and SARIF outputs. `triage-changed.md` matches normalized repo-relative paths first; it falls back to a unit name only when that name identifies one source file.
+
 Optional: set `DAK_TRIAGE_SNIPPETS=1` to also emit `.dak/<ProjectName>/triage-snippets.md` with small, bounded source snippets for the top triage items. This is meant to speed up fixing without opening files manually; it will only include snippets for repo-local paths that exist on disk.
 
 ## FixInsight (signal first)
@@ -31,10 +33,13 @@ Confidence:
 PALCMD produces multiple reports. Triage order:
 
 1. "Strong Warnings": treat as highest priority.
-2. `Exception.xml`: only treat as high-signal if it contains finding-like sections (ignore "Exception Call Tree" unless we explicitly need throw propagation).
-3. `Warnings.xml`: likely defects, suspicious code, unused/uninitialized.
-4. `Optimization.xml`: often safe but can be noisy; review for free wins.
-5. `Complexity.xml`: style/maintainability; do in refactor batches.
+2. `Warnings.xml`: likely defects, suspicious code, unused/uninitialized.
+3. `Optimization.xml`: often safe but can be noisy; review for free wins.
+4. `Complexity.xml`: style/maintainability; do in refactor batches.
+
+`Exception.xml`, including the Exception Call Tree, remains raw diagnostic evidence for throw propagation. It is not an actionable finding source and does not enter JSONL, counts, gates, triage, or SARIF.
+
+Normalization, `summary.json`, and SARIF are required outputs: their failure makes the wrapper fail. Source snippets are optional and remain best-effort.
 
 ## Suppressions and baselines (avoid churn)
 

@@ -25,9 +25,10 @@ type
     ReportRoot: string;
     Version: string;
     Compiler: string;
+    Context: string;
     Warnings: Integer;
     StrongWarnings: Integer;
-    Exceptions: Integer;
+    Optimizations: Integer;
   end;
 
 function FormatTimestamp: string;
@@ -359,7 +360,8 @@ begin
   begin
     lCountText := VarToStr(aNode.Attributes['count']);
     lCount := StrToIntDef(lCountText, 0);
-    Inc(aTotal, lCount);
+    if lCount > 0 then
+      Inc(aTotal, lCount);
   end;
 
   for i := 0 to aNode.ChildNodes.Count - 1 do
@@ -753,8 +755,9 @@ begin
         lLines.AppendLine('- Version: ' + aPal.Version);
       if aPal.Compiler <> '' then
         lLines.AppendLine('- Compiler target: ' + aPal.Compiler);
-      lLines.AppendLine(Format('- Totals: warnings=%d, strong_warnings=%d, exceptions=%d', [
-        aPal.Warnings, aPal.StrongWarnings, aPal.Exceptions]));
+      lLines.AppendLine(Format('- Totals: warnings=%d, strong_warnings=%d, optimizations=%d, total=%d', [
+        aPal.Warnings, aPal.StrongWarnings, aPal.Optimizations,
+        aPal.Warnings + aPal.StrongWarnings + aPal.Optimizations]));
     end else
       lLines.AppendLine('- Skipped.');
     lLines.AppendLine('');
@@ -796,6 +799,14 @@ begin
       lLines.AppendLine('- PAL version: ' + aPal.Version);
     if aPal.Compiler <> '' then
       lLines.AppendLine('- Compiler target: ' + aPal.Compiler);
+    if aPal.Context <> '' then
+      lLines.AppendLine('- Context: ' + aPal.Context);
+    if aPal.Ran and (aPal.ExitCode = 0) then
+      lLines.AppendLine(Format('- Totals: warnings=%d, strong_warnings=%d, optimizations=%d, total=%d', [
+        aPal.Warnings, aPal.StrongWarnings, aPal.Optimizations,
+        aPal.Warnings + aPal.StrongWarnings + aPal.Optimizations]))
+    else if not aPal.Ran then
+      lLines.AppendLine('- Skipped.');
     lLines.AppendLine('');
 
     if Length(aErrors) > 0 then

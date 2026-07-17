@@ -5,7 +5,7 @@ interface
 uses
   System.Classes, System.Diagnostics, System.Generics.Collections, System.IOUtils, System.JSON, System.StrUtils,
   System.SysUtils, System.Types,
-  Winapi.Windows,
+  Winapi.ShellAPI, Winapi.Windows,
   maxLogic.StrUtils,
   Dak.ExternalToolProcess, Dak.PascalAnalyzer.Artifacts, Dak.Types, Dak.Utils;
 
@@ -26,10 +26,15 @@ function TryGeneratePalArtifacts(const aReportRoot: string; const aOutRoot: stri
 implementation
 
 const
+  cMaxPalArguments = 256;
   SPalCmdMapPathEnvVar = 'DAK_PALCMD_MAP_PATH';
   SPalCmdExeName = 'palcmd.exe';
   SPalCmd32ExeName = 'palcmd32.exe';
   SPalCmdMapFileName = 'palcmd-map.json';
+
+type
+  TPalArgValues = array[0..cMaxPalArguments - 1] of PWideChar;
+  PPalArgValues = ^TPalArgValues;
 
 function QuoteArg(const aValue: string): string;
 var
@@ -897,6 +902,67 @@ begin
     Result := 1;
 end;
 
+procedure AppendAutomationDefaults(const aArgs: TStringBuilder);
+var
+  lThreads: Integer;
+begin
+  aArgs.Append(' /F=X /Q /A+ /FA /T=');
+  lThreads := GetCpuCount;
+  if lThreads > 64 then
+    lThreads := 64;
+  aArgs.Append(lThreads.ToString);
+end;
+
+function IsOwnedPalArgument(const aArg: string): Boolean;
+var
+  lArg: string;
+begin
+  lArg := UpperCase(aArg);
+  Result := StartsText('/F=', lArg) or StartsText('/R=', lArg) or StartsText('/NAME=', lArg) or
+    StartsText('/T=', lArg) or MatchText(lArg, ['/A+', '/A-', '/FA', '/F+', '/FR', '/FM', '/F-', '/Q']);
+end;
+
+function TryValidatePalExtraArgs(const aArgs: string; out aError: string): Boolean;
+var
+  i: Integer;
+  lArg: string;
+  lArgCount: Integer;
+  lArgValues: PPWideChar;
+  lCommandLine: string;
+begin
+  Result := False;
+  aError := '';
+  if Trim(aArgs) = '' then
+    Exit(True);
+
+  lCommandLine := 'palcmd ' + aArgs;
+  lArgValues := CommandLineToArgvW(PWideChar(lCommandLine), lArgCount);
+  if lArgValues = nil then
+  begin
+    aError := 'Unable to parse extra PALCMD arguments. Windows error: ' + GetLastError.ToString;
+    Exit(False);
+  end;
+  try
+    if lArgCount > cMaxPalArguments then
+    begin
+      aError := 'Too many extra PALCMD arguments.';
+      Exit(False);
+    end;
+    for i := 1 to lArgCount - 1 do
+    begin
+      lArg := PPalArgValues(lArgValues)^[i];
+      if IsOwnedPalArgument(lArg) then
+      begin
+        aError := 'PALCMD argument conflicts with DAK-owned automation: ' + lArg;
+        Exit(False);
+      end;
+    end;
+    Result := True;
+  finally
+    LocalFree(HLOCAL(lArgValues));
+  end;
+end;
+
 function FilterExistingPaths(const aPaths: TArray<string>): TArray<string>;
 var
   lList: TList<string>;
@@ -950,13 +1016,15 @@ function BuildArgs(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerD
 var
   lArgs: TStringBuilder;
   lFlag: string;
-  lThreads: Integer;
+  lReportName: string;
   lSearch: string;
   lFolders: TArray<string>;
 begin
   Result := False;
   aCmdLine := '';
   aError := '';
+  if not TryValidatePalExtraArgs(aPa.fArgs, aError) then
+    Exit(False);
 
   lArgs := TStringBuilder.Create;
   try
@@ -1003,19 +1071,12 @@ begin
       lArgs.Append(QuoteArg(TPath.GetFullPath(aPa.fOutput)));
     end;
 
-    if aPa.fArgs = '' then
-    begin
-      // Sensible defaults.
-      lArgs.Append(' /F=X');
-      lArgs.Append(' /Q');
-      lArgs.Append(' /A+');
-      lArgs.Append(' /FA');
-      lThreads := GetCpuCount;
-      if lThreads > 64 then
-        lThreads := 64;
-      lArgs.Append(' /T=');
-      lArgs.Append(lThreads.ToString);
-    end else
+    lReportName := TPath.GetFileNameWithoutExtension(aParams.fProjectDpr);
+    lArgs.Append(' /NAME=');
+    lArgs.Append(QuoteArg(lReportName));
+
+    AppendAutomationDefaults(lArgs);
+    if aPa.fArgs <> '' then
     begin
       lArgs.Append(' ');
       lArgs.Append(aPa.fArgs);
@@ -1100,7 +1161,6 @@ function BuildPalCmdUnitCommandLine(const aUnitPath: string; const aPa: TPascalA
 var
   lExe: string;
   lArgs: TStringBuilder;
-  lThreads: Integer;
 begin
   Result := False;
   aExePath := '';
@@ -1112,6 +1172,8 @@ begin
     aError := 'PALCMD unit path is empty.';
     Exit(False);
   end;
+  if not TryValidatePalExtraArgs(aPa.fArgs, aError) then
+    Exit(False);
   if not TryResolvePalCmdExe(aPa.fPath, lExe, aError) then
     Exit(False);
 
@@ -1126,18 +1188,8 @@ begin
       lArgs.Append(QuoteArg(TPath.GetFullPath(aPa.fOutput)));
     end;
 
-    if aPa.fArgs = '' then
-    begin
-      lArgs.Append(' /F=X');
-      lArgs.Append(' /Q');
-      lArgs.Append(' /A+');
-      lArgs.Append(' /FA');
-      lThreads := GetCpuCount;
-      if lThreads > 64 then
-        lThreads := 64;
-      lArgs.Append(' /T=');
-      lArgs.Append(lThreads.ToString);
-    end else
+    AppendAutomationDefaults(lArgs);
+    if aPa.fArgs <> '' then
     begin
       lArgs.Append(' ');
       lArgs.Append(aPa.fArgs);
