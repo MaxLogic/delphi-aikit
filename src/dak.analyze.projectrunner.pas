@@ -11,7 +11,7 @@ function RunAnalyzeProject(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
-  Dak.PascalAnalyzerRunner;
+  Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
 
 type
   TAnalyzeProjectRunner = class
@@ -240,6 +240,7 @@ var
   lRunError: string;
   lPaReportRoot: string;
   lPalPostError: string;
+  lPalCounts: TPalFindingCounts;
   lStdErrLogPath: string;
   lStdOutLogPath: string;
 begin
@@ -266,22 +267,24 @@ begin
     else
     begin
       try
-        if TryFindPalReportRoot(fPal.OutputRoot, lPaReportRoot, lPalPostError) then
+        lPaReportRoot := TPath.Combine(fPal.OutputRoot, TPath.GetFileNameWithoutExtension(fParams.fProjectDpr));
+        if FileExists(TPath.Combine(lPaReportRoot, 'Status.xml')) then
         begin
           fPal.ReportRoot := lPaReportRoot;
           ReadStatusSummary(TPath.Combine(lPaReportRoot, 'Status.xml'), fPal.Version, fPal.Compiler);
-          fPal.Warnings := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Warnings.xml'));
-          fPal.StrongWarnings := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Strong Warnings.xml'));
-          fPal.Exceptions := GetSectionCountTotal(TPath.Combine(lPaReportRoot, 'Exception.xml'));
-          if not TryGeneratePalArtifacts(lPaReportRoot, fPal.OutputRoot, lPalPostError) then
-            fDiagnostics.AddWarning('PAL findings generation failed: ' + lPalPostError);
+          if not TryGeneratePalArtifactsWithCounts(lPaReportRoot, fPal.OutputRoot, lPalCounts, lPalPostError) then
+            AddError('PAL findings generation failed: ' + lPalPostError, 6);
+          fPal.Warnings := lPalCounts.Warnings;
+          fPal.StrongWarnings := lPalCounts.StrongWarnings;
+          fPal.Optimizations := lPalCounts.Optimizations;
         end else
         begin
-          fDiagnostics.AddWarning('PAL report root not found: ' + lPalPostError);
+          lPalPostError := 'Status.xml not found in expected PAL report folder: ' + lPaReportRoot;
+          AddError('PAL report root not found: ' + lPalPostError, 6);
         end;
       except
         on E: Exception do
-          fDiagnostics.AddWarning('PAL post-processing failed: ' + E.ClassName + ': ' + E.Message);
+          AddError('PAL post-processing failed: ' + E.ClassName + ': ' + E.Message, 6);
       end;
     end;
   end else

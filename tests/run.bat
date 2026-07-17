@@ -24,13 +24,6 @@ rem Optional Pascal Analyzer override
 set "PA_PATH_ARG="
 if defined PA_PATH set "PA_PATH_ARG=--pa-path ""%PA_PATH%"""
 
-rem PALCMD threads (1..64), default to NUMBER_OF_PROCESSORS
-set "PA_THREADS=1"
-if defined NUMBER_OF_PROCESSORS set "PA_THREADS=%NUMBER_OF_PROCESSORS%"
-set /a PA_THREADS=PA_THREADS
-if %PA_THREADS% LSS 1 set "PA_THREADS=1"
-if %PA_THREADS% GTR 64 set "PA_THREADS=64"
-
 if not exist "%OUTDIR%" mkdir "%OUTDIR%" >nul 2>&1
 
 set "EXE=%ROOT%\bin\DelphiAIKit.exe"
@@ -379,7 +372,7 @@ if errorlevel 1 (
 call :AssertAnyMatch "%PA_OUT_SETTINGS%\*.xml" || exit /b 41
 
 rem CLI-driven run (tests overrides)
-"%EXE%" analyze --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --fixinsight false --pascal-analyzer true !PA_PATH_ARG! --pa-output "%PA_OUT_CLI%" --pa-args "/F=X /Q /A+ /FA /T=%PA_THREADS%" !RSVARS_ARG! !ENVOPTIONS_ARG!
+"%EXE%" analyze --project "%DPROJ_SELF%" --platform %PLATFORM% --config %CONFIG% --delphi %DELPHI% --fixinsight false --pascal-analyzer true !PA_PATH_ARG! --pa-output "%PA_OUT_CLI%" !RSVARS_ARG! !ENVOPTIONS_ARG!
 if errorlevel 1 (
   echo [ERROR] PALCMD run (CLI overrides) failed. If PALCMD is not installed, set PA_PATH or DAK_ALLOW_PAL_SKIP=1.
   exit /b 42

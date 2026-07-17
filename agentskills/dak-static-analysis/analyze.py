@@ -260,18 +260,17 @@ def main(argv: list[str]) -> int:
 
     gate_pass = True
     if p.returncode == 0 and summary_path.exists():
-        try:
-            from postprocess import run_postprocess
+        from postprocess import run_postprocess
 
-            res = run_postprocess(out_root, title=dproj.stem)
-            gate_pass = bool(res.get("gate_pass", True))
-            if not gate_pass:
-                print(f"Static analysis gate failed (see: {res.get('delta', '')})", file=sys.stderr)
-        except Exception as e:
-            print(f"Post-process ERROR: {e}", file=sys.stderr)
+        res = run_postprocess(out_root, title=dproj.stem)
+        gate_pass = bool(res.get("gate_pass", True))
+        if not gate_pass:
+            print(f"Static analysis gate failed (see: {res.get('delta', '')})", file=sys.stderr)
 
     if p.returncode != 0:
         return p.returncode
+    if not summary_path.exists():
+        return 3
     return 0 if gate_pass else 3
 
 

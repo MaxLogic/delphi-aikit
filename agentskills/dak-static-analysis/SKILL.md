@@ -49,12 +49,12 @@ permits WSL and path conversion is useful.
 WSL (when authorized):
 - Project doctor: `./agentskills/dak-static-analysis/doctor.sh /mnt/c/path/to/MyProject.dproj`
 - Project analyze: `./agentskills/dak-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
-- Unit analyze: `./agentskills/dak-static-analysis/analyze-unit.sh /mnt/c/path/to/Unit1.pas`
+- Unit analyze with project context: `./agentskills/dak-static-analysis/analyze-unit.sh /mnt/c/path/to/Unit1.pas /mnt/c/path/to/MyProject.dproj`
 
 Windows:
 - Project doctor: `agentskills\\dak-static-analysis\\doctor.bat C:\\path\\to\\MyProject.dproj`
 - Project analyze: `agentskills\\dak-static-analysis\\analyze.bat C:\\path\\to\\MyProject.dproj`
-- Unit analyze: `agentskills\\dak-static-analysis\\analyze-unit.bat C:\\path\\to\\Unit1.pas`
+- Unit analyze with project context: `agentskills\\dak-static-analysis\\analyze-unit.bat C:\\path\\to\\Unit1.pas C:\\path\\to\\MyProject.dproj`
 
 ## Environment Contract
 
@@ -115,10 +115,13 @@ export DAK_OUT="${TMPDIR:-/tmp}/dak/MyProject/analysis-$$"
 ```
 
 Primary artifacts:
+- `summary.json` (compact AI entry point and canonical actionable counts)
 - `summary.md`
-- `triage.md`
+- `triage.md`, `triage-changed.md`
+- `fixinsight/fi-findings.jsonl`, `pascal-analyzer/pal-findings.jsonl`
+- `static-analysis.sarif`
 - `run.log`
-- `delta.md`, `baseline.json` (after first baseline run)
+- `delta.md`, `trend.md`, `baseline.json` (after first baseline run)
 
 ## Agent Workflow
 
@@ -126,7 +129,8 @@ Primary artifacts:
 2. At task tier run `analyze-unit` for touched units when it can cover the
    change. Run project analysis at scheduled batch/final gates or when a shared
    analyzer/build boundary changes.
-3. Read `summary.md`, then `triage.md`.
+3. Give AI consumers `summary.json` first, then open `triage-changed.md` or
+   `triage.md` for focused detail. Use `summary.md` as the human-readable view.
 4. Apply only low-risk fixes in small batches.
 5. Verify through `$dak-build` in the execution domain selected by repository/
    user policy. Use its separate PowerShell or Bash command form; do not paste
@@ -141,7 +145,9 @@ After a coherent batch of Delphi source edits, run the shared `encodingfix-delph
 
 ## Report-Driven Fix Loop
 
-1. Start with `<DAK_OUT>/summary.md` and `<DAK_OUT>/triage.md` (or the wrapper's project-local default when `DAK_OUT` is unset).
+1. Start with `<DAK_OUT>/summary.json`, then `<DAK_OUT>/triage-changed.md` or
+   `<DAK_OUT>/triage.md` (or the wrapper's project-local default when
+   `DAK_OUT` is unset).
 2. If triage is too broad, re-run with path/rule filters:
    - `DAK_EXCLUDE_PATH_MASKS="*\\3rdParty\\*;*\\lib\\*"`
    - `DAK_IGNORE_WARNING_IDS="W502;O801"`
@@ -150,8 +156,10 @@ After a coherent batch of Delphi source edits, run the shared `encodingfix-delph
    - `pascal-analyzer/pal-findings.md`
 4. For PAL prioritization, fix in this order:
    - strong warnings
-   - exception/warning findings
+   - warnings
    - optimization findings
+   `Exception.xml` is retained as raw diagnostic evidence only; call-tree rows
+   are not actionable findings and are excluded from all totals.
 5. Use `delta.md` to confirm net reduction and no regression after each batch.
 
 ## Safe Fix Rules

@@ -33,7 +33,7 @@ if exist "%ROOT%\_dak_pa_tests\pascal-analyzer\pascal-analyzer.log" type "%ROOT%
 echo ============================================================
 echo DAK analyze - single unit
 echo ============================================================
-"%DAK%" analyze --unit "%ROOT%\src\dak.types.pas" --delphi 23.0 --pascal-analyzer true --out "%ROOT%\_dak_pa_unit" --pa-args "/CD11W64 /F=X /Q /A+ /FA /T=%PA_THREADS%"
+"%DAK%" analyze --unit "%ROOT%\src\dak.types.pas" --delphi 23.0 --pascal-analyzer true --out "%ROOT%\_dak_pa_unit"
 echo Exit=%ERRORLEVEL%
 if exist "%ROOT%\_dak_pa_unit\run.log" type "%ROOT%\_dak_pa_unit\run.log"
 if exist "%ROOT%\_dak_pa_unit\pascal-analyzer\pascal-analyzer.log" type "%ROOT%\_dak_pa_unit\pascal-analyzer\pascal-analyzer.log"

@@ -4,6 +4,14 @@ All notable user-visible changes to this project will be documented in this file
 
 ## [Unreleased]
 
+### Added
+- Added PAL 9.21 help-aware Delphi 13 support, including BDS 37 Win64 target mapping and doctor reporting for the resolved PAL executable, version, architecture, help availability, and Delphi 12/13 capabilities.
+- Added project-context unit analysis and compact `summary.json`, JSONL, SARIF, delta, trend, and triage artifacts for AI-assisted static-analysis review.
+
+### Changed
+- PAL reporting now uses consistent actionable totals for strong warnings, warnings, and optimizations across all compact artifacts; raw `Exception.xml` call-tree rows no longer contribute to findings.
+- Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
+
 ### Fixed
 - Command output now treats a closed stdout pipe as normal downstream termination, preventing `deps --output -` and other shared output paths from raising madExcept reports when a consumer exits early; requested file output still completes.
 

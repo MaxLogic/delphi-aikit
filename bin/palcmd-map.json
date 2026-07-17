@@ -1,10 +1,5 @@
 {
   "schemaVersion": 1,
-  "latestPalAnalyzer": {
-    "version": "9.19.0",
-    "releaseDate": "2025-10-28",
-    "maxDelphiSupported": "13"
-  },
   "delphiOrder": [
     "1",
     "2",
@@ -37,6 +32,7 @@
     "13"
   ],
   "bdsToDelphi": [
+    { "bdsMajor": 37, "delphi": "13" },
     { "bdsMajor": 23, "delphi": "12" },
     { "bdsMajor": 22, "delphi": "11" },
     { "bdsMajor": 21, "delphi": "10.4" },

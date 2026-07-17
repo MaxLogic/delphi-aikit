@@ -579,7 +579,7 @@ ExcludePathMasks=
 Path=
 ; report root folder (PALCMD /R=...)
 Output=
-; extra PALCMD args (passed verbatim)
+; optional PALCMD args; DAK owns report, parse-scope, quiet, and thread arguments
 Args=
 ; external process timeout in seconds; empty uses the built-in default
 TimeoutSec=
@@ -639,17 +639,33 @@ To run Peganza Pascal Analyzer headlessly using our resolved project inputs:
 - optional overrides:
   - `--pa-path "...\palcmd.exe"` (or `palcmd32.exe`, or a folder containing it)
   - `--pa-output "C:\temp\pa"` (report root folder, passed as `/R=...`)
-  - `--pa-args "/F=X /Q ..."` (extra PALCMD options, passed verbatim)
+  - `--pa-args "..."` (additive PALCMD options; DAK-owned options are rejected)
   - `--pa-timeout-sec N` (external process timeout in seconds)
 
-If `--pa-args` is omitted, we use sensible defaults (`/F=X /Q /A+ /FA /T=min(CPU, 64)`) and we derive `/CD...` from `--delphi` + `--platform`.
+DAK always owns `/F=X /Q /A+ /FA`, the automatic thread count, `/NAME`, and the
+report root. It derives `/CD...` from the requested Delphi/platform unless an
+explicit additive `/CD...` argument is supplied. PAL help is authoritative for
+target support; PAL 9.21 supports Delphi 12 and Delphi 13 Win64, including the
+BDS 37 to Delphi 13 mapping. Conflicting report, parse-scope, quiet, or thread
+arguments fail before PAL starts.
 
 Example:
 
 ```
 bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 --config Release --delphi 23.0 ^
-  --fixinsight false --pascal-analyzer true --pa-output "C:\temp\pa" --pa-args "/F=X /Q"
+  --fixinsight false --pascal-analyzer true --pa-output "C:\temp\pa"
 ```
+
+For focused unit analysis, prefer
+`agentskills\dak-static-analysis\analyze-unit.bat Unit1.pas MyProject.dproj`.
+The project argument supplies search paths, defines, build configuration, and
+compiler target. Omitting it keeps the legacy PAL.INI-based mode and is not
+project-equivalent proof.
+
+AI consumers should start with `<DAK_OUT>\summary.json`, then use
+`triage-changed.md` or `triage.md` for detail. Actionable PAL counts include
+strong warnings, warnings, and optimizations; `Exception.xml` remains raw
+call-tree evidence and is excluded from totals.
 
 ## Output formats
 

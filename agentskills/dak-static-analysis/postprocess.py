@@ -166,8 +166,6 @@ def _write_sarif(out_root: Path, *, fi_jsonl_path: Path, pal_jsonl_path: Path) -
                 continue
             kind = str(obj.get("kind") or "").strip()
             uri = _sarif_uri_for_path(str(obj.get("path") or obj.get("file") or ""))
-            if not uri:
-                continue
             line = int(obj.get("line") or 1)
             col = int(obj.get("col") or 1)
             msg = str(obj.get("message") or "").strip() or code
@@ -175,22 +173,22 @@ def _write_sarif(out_root: Path, *, fi_jsonl_path: Path, pal_jsonl_path: Path) -
             if code not in rules_by_id:
                 rules_by_id[code] = {"id": code, "shortDescription": {"text": f"FixInsight {code}"}}
 
-            results.append(
-                {
-                    "ruleId": code,
-                    "level": _sarif_level_for_fixinsight_kind(kind),
-                    "message": {"text": msg},
-                    "locations": [
-                        {
-                            "physicalLocation": {
-                                "artifactLocation": {"uri": uri},
-                                "region": {"startLine": line, "startColumn": col},
-                            }
+            result: dict[str, Any] = {
+                "ruleId": code,
+                "level": _sarif_level_for_fixinsight_kind(kind),
+                "message": {"text": msg},
+                "properties": {"tool": "FixInsight", "kind": kind, "code": code},
+            }
+            if uri:
+                result["locations"] = [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": uri},
+                            "region": {"startLine": line, "startColumn": col},
                         }
-                    ],
-                    "properties": {"tool": "FixInsight", "kind": kind, "code": code},
-                }
-            )
+                    }
+                ]
+            results.append(result)
 
         if results:
             runs.append(
@@ -212,8 +210,6 @@ def _write_sarif(out_root: Path, *, fi_jsonl_path: Path, pal_jsonl_path: Path) -
             severity = str(obj.get("severity") or "").strip()
             section = str(obj.get("section") or "").strip()
             uri = _sarif_uri_for_path(str(obj.get("path") or ""))
-            if not uri:
-                continue
             line = int(obj.get("line") or 1)
             col = int(obj.get("col") or 1)
             ident = str(obj.get("id") or obj.get("message") or "").strip()
@@ -232,27 +228,27 @@ def _write_sarif(out_root: Path, *, fi_jsonl_path: Path, pal_jsonl_path: Path) -
             else:
                 msg = section or ident or "Pascal Analyzer finding"
 
-            results.append(
-                {
-                    "ruleId": rule_id,
-                    "level": _sarif_level_for_pal_severity(severity),
-                    "message": {"text": msg},
-                    "locations": [
-                        {
-                            "physicalLocation": {
-                                "artifactLocation": {"uri": uri},
-                                "region": {"startLine": line, "startColumn": col},
-                            }
+            result = {
+                "ruleId": rule_id,
+                "level": _sarif_level_for_pal_severity(severity),
+                "message": {"text": msg},
+                "properties": {
+                    "tool": "Pascal Analyzer",
+                    "severity": severity,
+                    "report": str(obj.get("report") or ""),
+                    "section": section,
+                },
+            }
+            if uri:
+                result["locations"] = [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {"uri": uri},
+                            "region": {"startLine": line, "startColumn": col},
                         }
-                    ],
-                    "properties": {
-                        "tool": "Pascal Analyzer",
-                        "severity": severity,
-                        "report": str(obj.get("report") or ""),
-                        "section": section,
-                    },
-                }
-            )
+                    }
+                ]
+            results.append(result)
 
         if results:
             runs.append(
@@ -267,9 +263,6 @@ def _write_sarif(out_root: Path, *, fi_jsonl_path: Path, pal_jsonl_path: Path) -
                 }
             )
 
-    if not runs:
-        return None
-
     sarif_obj: dict[str, Any] = {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "version": "2.1.0",
@@ -278,6 +271,19 @@ def _write_sarif(out_root: Path, *, fi_jsonl_path: Path, pal_jsonl_path: Path) -
     sarif_path = out_root / "static-analysis.sarif"
     _write_json(sarif_path, sarif_obj)
     return sarif_path
+
+
+def _validate_sarif_count(sarif_path: Path, expected_count: int) -> None:
+    sarif = _load_json(sarif_path)
+    actual_count = sum(
+        len(run.get("results") or [])
+        for run in (sarif.get("runs") or [])
+        if isinstance(run, dict)
+    )
+    if actual_count != expected_count:
+        raise ValueError(
+            f"SARIF count mismatch: SARIF={actual_count}, JSONL={expected_count}"
+        )
 
 
 def _is_wsl() -> bool:
@@ -315,6 +321,10 @@ def parse_dak_summary_md(summary_path: Path) -> dict[str, Any]:
     if proj_m:
         data["project"] = proj_m.group(1)
 
+    unit_m = re.search(r"^- Unit:\s*`([^`]+)`\s*$", text, flags=re.MULTILINE)
+    if unit_m:
+        data["unit"] = unit_m.group(1)
+
     fi_total_m = re.search(r"^- Findings \(by code\):\s*(\d+)\s*$", text, flags=re.MULTILINE)
     if fi_total_m:
         data["fixinsight_total"] = int(fi_total_m.group(1))
@@ -326,7 +336,7 @@ def parse_dak_summary_md(summary_path: Path) -> dict[str, Any]:
         data["fixinsight_top_codes"] = fi_top
 
     pal_totals_m = re.search(
-        r"^- Totals:\s*warnings=(\d+),\s*strong_warnings=(\d+),\s*exceptions=(\d+)\s*$",
+        r"^- Totals:\s*warnings=(\d+),\s*strong_warnings=(\d+),\s*optimizations=(\d+),\s*total=(\d+)\s*$",
         text,
         flags=re.MULTILINE,
     )
@@ -334,10 +344,11 @@ def parse_dak_summary_md(summary_path: Path) -> dict[str, Any]:
         data["pal_totals"] = {
             "warnings": int(pal_totals_m.group(1)),
             "strong_warnings": int(pal_totals_m.group(2)),
-            "exceptions": int(pal_totals_m.group(3)),
+            "optimizations": int(pal_totals_m.group(3)),
+            "total": int(pal_totals_m.group(4)),
         }
 
-    pal_version_m = re.search(r"^- Version:\s*([0-9.]+)\s*$", text, flags=re.MULTILINE)
+    pal_version_m = re.search(r"^- (?:PAL )?Version:\s*([0-9.]+)\s*$", text, flags=re.MULTILINE | re.IGNORECASE)
     if pal_version_m:
         data["pal_version"] = pal_version_m.group(1)
 
@@ -360,7 +371,62 @@ def parse_dak_summary_md(summary_path: Path) -> dict[str, Any]:
         if errors:
             data["errors"] = errors
 
+    analyzers: list[str] = []
+    fi_section_m = re.search(
+        r"^## FixInsight\s*$\s*(.*?)(?=^##\s|\Z)",
+        text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    if "fixinsight_total" in data or (
+        fi_section_m
+        and re.search(
+            r"^- (?:Findings \(by code\):\s*\(TXT not generated\)|Skipped\.)\s*$",
+            fi_section_m.group(1),
+            flags=re.MULTILINE,
+        )
+    ):
+        analyzers.append("fixinsight")
+
+    pal_section_m = re.search(
+        r"^## Pascal Analyzer\s*$\s*(.*?)(?=^##\s|\Z)",
+        text,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    unit_summary = bool(
+        re.search(r"^# Pascal Analyzer unit summary:", text, flags=re.MULTILINE)
+    )
+    pal_skipped = bool(
+        re.search(r"^- Skipped\.\s*$", text, flags=re.MULTILINE)
+        if unit_summary
+        else pal_section_m
+        and re.search(r"^- Skipped\.\s*$", pal_section_m.group(1), flags=re.MULTILINE)
+    )
+    if "pal_totals" in data or pal_skipped:
+        analyzers.append("pascal_analyzer")
+    if analyzers:
+        data["analyzers"] = analyzers
+
     return data
+
+
+def _validate_success_summary(summary: dict[str, Any]) -> None:
+    problems: list[str] = []
+    if not summary.get("timestamp"):
+        problems.append("timestamp is missing")
+    subjects = [key for key in ("project", "unit") if summary.get(key)]
+    if len(subjects) != 1:
+        problems.append("exactly one project or unit subject is required")
+    actual_analyzers = set(summary.get("analyzers") or [])
+    required_analyzers = (
+        {"fixinsight", "pascal_analyzer"}
+        if summary.get("project")
+        else {"pascal_analyzer"}
+    )
+    missing_analyzers = sorted(required_analyzers - actual_analyzers)
+    if missing_analyzers:
+        problems.append(f"analyzer status is missing for {', '.join(missing_analyzers)}")
+    if problems:
+        raise ValueError(f"Invalid analysis summary: {'; '.join(problems)}")
 
 
 def parse_fixinsight_txt(txt_path: Path) -> list[FixInsightFinding]:
@@ -433,6 +499,37 @@ def _last_matching_line(text: str, *, prefix: str, contains: str) -> Optional[st
     return last
 
 
+_TOOL_VERSION_CACHE: dict[str, Optional[str]] = {}
+
+
+def _query_fixinsight_version(executable: str) -> Optional[str]:
+    cache_key = executable.lower()
+    if cache_key in _TOOL_VERSION_CACHE:
+        return _TOOL_VERSION_CACHE[cache_key]
+    command = [executable, "--version"]
+    if _is_wsl():
+        command = ["cmd.exe", "/C", executable, "--version"]
+    try:
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        output = (result.stdout or "") + "\n" + (result.stderr or "")
+        match = re.search(
+            r"FixInsightCL(?:\s+Pro)?\s+version\s+([^\s]+)",
+            output,
+            flags=re.IGNORECASE,
+        )
+        version = match.group(1) if match else None
+    except (OSError, subprocess.SubprocessError):
+        version = None
+    _TOOL_VERSION_CACHE[cache_key] = version
+    return version
+
+
 def _parse_run_log_context(run_log_path: Path) -> dict[str, Any]:
     ctx: dict[str, Any] = {}
     if not run_log_path.exists():
@@ -447,9 +544,9 @@ def _parse_run_log_context(run_log_path: Path) -> dict[str, Any]:
     if cwd:
         ctx["analysis_cwd"] = cwd
 
-    fi_line = _last_matching_line(text, prefix="CMD:", contains="fixinsightcl.exe")
+    fi_line = _last_matching_line(text, prefix="CMD:", contains="fixinsightcl.")
     if fi_line:
-        m = re.search(r'^CMD:\s*"(?P<exe>[^"]*FixInsightCL\.exe)"', fi_line, flags=re.IGNORECASE)
+        m = re.search(r'^CMD:\s*"(?P<exe>[^"]*FixInsightCL\.(?:exe|cmd))"', fi_line, flags=re.IGNORECASE)
         if m:
             ctx["fixinsight_exe"] = m.group("exe")
 
@@ -515,6 +612,9 @@ def _build_run_context(out_root: Path, summary: dict[str, Any], *, allow_env: bo
     tools: dict[str, Any] = {}
     if run_log_ctx.get("fixinsight_exe"):
         tools["fixinsight_exe"] = run_log_ctx["fixinsight_exe"]
+        fixinsight_version = _query_fixinsight_version(str(run_log_ctx["fixinsight_exe"]))
+        if fixinsight_version:
+            tools["fixinsight_version"] = fixinsight_version
     if run_log_ctx.get("pal_exe"):
         tools["pal_exe"] = run_log_ctx["pal_exe"]
     if run_log_ctx.get("pal_compiler_switch"):
@@ -540,6 +640,141 @@ def _build_run_context(out_root: Path, summary: dict[str, Any], *, allow_env: bo
     return ctx
 
 
+def _actionable_counts(
+    summary: dict[str, Any], fi_jsonl_path: Path, pal_jsonl_path: Path
+) -> dict[str, Any]:
+    fi_records = list(_iter_jsonl(fi_jsonl_path)) if fi_jsonl_path.exists() else []
+    pal_records = list(_iter_jsonl(pal_jsonl_path)) if pal_jsonl_path.exists() else []
+
+    fi_by_kind = Counter(str(obj.get("kind") or "").strip().upper() for obj in fi_records)
+    unknown_fi = sorted(k for k in fi_by_kind if k not in ("W", "C", "O"))
+    if unknown_fi:
+        raise ValueError(f"Unsupported FixInsight finding kinds: {', '.join(unknown_fi)}")
+    fi_counts = {
+        "total": len(fi_records),
+        "warnings": fi_by_kind.get("W", 0),
+        "maintainability": fi_by_kind.get("C", 0),
+        "hygiene": fi_by_kind.get("O", 0),
+    }
+    if "fixinsight_total" in summary and int(summary["fixinsight_total"]) != fi_counts["total"]:
+        raise ValueError(
+            "FixInsight count mismatch: "
+            f"summary={summary['fixinsight_total']}, JSONL={fi_counts['total']}"
+        )
+    if fi_records and "fixinsight_total" not in summary:
+        raise ValueError("FixInsight count mismatch: summary total is missing")
+
+    pal_by_severity = Counter(
+        str(obj.get("severity") or "").strip().lower() for obj in pal_records
+    )
+    unknown_pal = sorted(
+        severity
+        for severity in pal_by_severity
+        if severity not in ("warning", "strong-warning", "optimization")
+    )
+    if unknown_pal:
+        raise ValueError(
+            f"Unsupported Pascal Analyzer finding severities: {', '.join(unknown_pal)}"
+        )
+    pal_counts = {
+        "warnings": pal_by_severity.get("warning", 0),
+        "strong_warnings": pal_by_severity.get("strong-warning", 0),
+        "optimizations": pal_by_severity.get("optimization", 0),
+        "total": len(pal_records),
+    }
+    summary_pal = summary.get("pal_totals")
+    if isinstance(summary_pal, dict):
+        expected = {key: int(summary_pal.get(key, 0)) for key in pal_counts}
+        if expected != pal_counts:
+            raise ValueError(
+                f"Pascal Analyzer count mismatch: summary={expected}, JSONL={pal_counts}"
+            )
+    elif pal_records:
+        raise ValueError("Pascal Analyzer count mismatch: summary totals are missing")
+
+    return {
+        "fixinsight": fi_counts,
+        "pascal_analyzer": pal_counts,
+        "total": fi_counts["total"] + pal_counts["total"],
+    }
+
+
+def _relative_artifact(out_root: Path, path_value: Any) -> Optional[str]:
+    if not path_value:
+        return None
+    path = Path(str(path_value)).resolve()
+    if not path.exists():
+        return None
+    try:
+        return path.relative_to(out_root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def _write_ai_summary(
+    out_root: Path,
+    *,
+    summary: dict[str, Any],
+    snapshot: dict[str, Any],
+    result: dict[str, Any],
+    fi_jsonl_path: Path,
+    pal_jsonl_path: Path,
+) -> Path:
+    counts = _actionable_counts(summary, fi_jsonl_path, pal_jsonl_path)
+    sarif_path = out_root / "static-analysis.sarif"
+    sarif = _load_json(sarif_path)
+    sarif_count = sum(
+        len(run.get("results") or [])
+        for run in (sarif.get("runs") or [])
+        if isinstance(run, dict)
+    )
+    if sarif_count != counts["total"]:
+        raise ValueError(
+            f"SARIF count mismatch: SARIF={sarif_count}, JSONL={counts['total']}"
+        )
+
+    run_context = snapshot.get("run_context") or {}
+    artifacts: dict[str, str] = {}
+    artifact_sources = {
+        "summary_markdown": out_root / "summary.md",
+        "fixinsight_jsonl": fi_jsonl_path,
+        "pascal_analyzer_jsonl": pal_jsonl_path,
+        "baseline": result.get("baseline"),
+        "delta": result.get("delta"),
+        "triage": result.get("triage"),
+        "triage_changed": result.get("triage_changed"),
+        "triage_snippets": result.get("triage_snippets"),
+        "sarif": result.get("sarif"),
+        "history": result.get("history"),
+        "trend": result.get("trend"),
+    }
+    for name, source in artifact_sources.items():
+        relative = _relative_artifact(out_root, source)
+        if relative:
+            artifacts[name] = relative
+
+    summary_json = {
+        "schema_version": 1,
+        "timestamp": summary.get("timestamp") or snapshot.get("created_at"),
+        "subject": {
+            "kind": "project" if summary.get("project") else "unit",
+            "path": summary.get("project") or summary.get("unit"),
+        },
+        "compiler": {
+            "platform": run_context.get("platform", "unknown"),
+            "config": run_context.get("config", "unknown"),
+            "delphi": run_context.get("delphi", "unknown"),
+        },
+        "tools": run_context.get("tools") or {},
+        "counts": counts,
+        "errors": summary.get("errors") or [],
+        "artifacts": artifacts,
+    }
+    summary_json_path = out_root / "summary.json"
+    _write_json(summary_json_path, summary_json)
+    return summary_json_path
+
+
 def _find_git_root(start_dir: Path) -> Optional[Path]:
     p = start_dir.resolve()
     while True:
@@ -554,7 +789,7 @@ def _find_git_root(start_dir: Path) -> Optional[Path]:
 def _git_changed_files(repo_root: Path) -> tuple[set[str], Optional[str]]:
     try:
         p = subprocess.run(
-            ["git", "status", "--porcelain=v1", "-z"],
+            ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
             cwd=str(repo_root),
             check=False,
             stdout=subprocess.PIPE,
@@ -581,13 +816,12 @@ def _git_changed_files(repo_root: Path) -> tuple[set[str], Optional[str]]:
             continue
         status = s[:2]
         path1 = s[3:]
-        # Rename/copy are encoded as: `R  old\0new\0` (same for `C`).
+        # With porcelain v1 -z, rename/copy are encoded as: `R  new\0old\0`.
         if status[:1] in ("R", "C") or status[1:2] in ("R", "C"):
+            if path1:
+                out.add(path1)
             if i < len(entries):
-                path2 = entries[i]
                 i += 1
-                if path2:
-                    out.add(path2)
             continue
         if path1:
             out.add(path1)
@@ -789,18 +1023,36 @@ def _write_triage_changed(out_root: Path, *, title: str, summary: dict[str, Any]
             fi_items.append(f"[{code}] {norm}:{line_no}:{col_no} - {msg}")
 
     pal_items: list[str] = []
-    changed_units = {Path(p).stem.lower() for p in changed_files if p.lower().endswith(".pas")}
-    if pal_jsonl_path.exists() and changed_units:
+    changed_by_lower = {p.lower(): p for p in changed_files}
+    unique_units = _repo_unique_basename_index(repo_root)
+    if pal_jsonl_path.exists():
         for obj in _iter_jsonl(pal_jsonl_path):
             mod = str(obj.get("module") or "").strip()
             if not mod:
                 continue
-            if mod.lower() not in changed_units:
+
+            norm = str(obj.get("path") or "").strip()
+            if norm:
+                norm = posixpath.normpath(norm.replace("\\", "/"))
+                if norm.startswith("/") or norm.startswith("//") or re.match(r"^[A-Za-z]:/", norm):
+                    norm = _normalize_to_repo_relative(
+                        norm, repo_root=repo_root, base_dirs=base_dirs
+                    ) or ""
+                matched_path = changed_by_lower.get(norm.lower()) if norm else None
+            else:
+                unit_name = Path(mod.replace("\\", "/")).name
+                if not unit_name.lower().endswith(".pas"):
+                    unit_name += ".pas"
+                unique_path = unique_units.get(unit_name.lower())
+                matched_path = (
+                    changed_by_lower.get(unique_path.lower()) if unique_path else None
+                )
+            if not matched_path:
                 continue
             section = obj.get("section", "")
             line_no = obj.get("line", "?")
             msg = obj.get("message", "")
-            pal_items.append(f"[{section}] {mod}:{line_no} - {msg}")
+            pal_items.append(f"[{section}] {matched_path}:{line_no} - {msg}")
 
     lines.append("## FixInsight (changed files)")
     lines.append(f"- Findings: {len(fi_items)}")
@@ -1304,11 +1556,13 @@ def _update_history_and_trend(
     lines.append(f"- Updated: {_utc_now_iso()}")
     lines.append(f"- Entries: {len(entries)} (showing last {len(recent)})")
     lines.append("")
-    lines.append("| Summary timestamp | FI total | FI Δ | PAL strong | Δ | PAL warnings | Δ |")
-    lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: |")
+    lines.append("| Summary timestamp | FI total | FI Δ | PAL strong | Δ | PAL warnings | Δ | PAL optimizations | Δ | PAL total | Δ |")
+    lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
     prev_fi: Optional[int] = None
     prev_strong: Optional[int] = None
     prev_warn: Optional[int] = None
+    prev_optimizations: Optional[int] = None
+    prev_total: Optional[int] = None
     for e in recent:
         ts = str(e.get("summary_timestamp") or e.get("timestamp") or "").strip() or "?"
         fi = e.get("fixinsight", {}) if isinstance(e.get("fixinsight"), dict) else {}
@@ -1321,6 +1575,8 @@ def _update_history_and_trend(
         totals = pal.get("totals") if isinstance(pal.get("totals"), dict) else {}
         strong = totals.get("strong_warnings")
         warn = totals.get("warnings")
+        optimizations = totals.get("optimizations")
+        total = totals.get("total")
         try:
             strong_i = int(strong) if strong is not None else None
         except Exception:
@@ -1329,6 +1585,14 @@ def _update_history_and_trend(
             warn_i = int(warn) if warn is not None else None
         except Exception:
             warn_i = None
+        try:
+            optimizations_i = int(optimizations) if optimizations is not None else None
+        except Exception:
+            optimizations_i = None
+        try:
+            total_i = int(total) if total is not None else None
+        except Exception:
+            total_i = None
 
         def delta(cur: Optional[int], prev: Optional[int]) -> str:
             if cur is None or prev is None:
@@ -1344,12 +1608,18 @@ def _update_history_and_trend(
             delta(strong_i, prev_strong),
             str(warn_i) if warn_i is not None else "?",
             delta(warn_i, prev_warn),
+            str(optimizations_i) if optimizations_i is not None else "?",
+            delta(optimizations_i, prev_optimizations),
+            str(total_i) if total_i is not None else "?",
+            delta(total_i, prev_total),
         ]
         lines.append("| " + " | ".join(row) + " |")
 
         prev_fi = fi_total_i if fi_total_i is not None else prev_fi
         prev_strong = strong_i if strong_i is not None else prev_strong
         prev_warn = warn_i if warn_i is not None else prev_warn
+        prev_optimizations = optimizations_i if optimizations_i is not None else prev_optimizations
+        prev_total = total_i if total_i is not None else prev_total
 
     _write_text(trend_path, "\n".join(lines).rstrip() + "\n")
 
@@ -1357,7 +1627,7 @@ def _update_history_and_trend(
 
 
 def _build_pascal_unit_index(repo_root: Path) -> dict[str, str]:
-    idx: dict[str, str] = {}
+    seen: dict[str, Optional[str]] = {}
     for pat in ("*.pas", "*.dpr", "*.dpk"):
         for p in repo_root.rglob(pat):
             # Skip analysis artifacts and VCS internals.
@@ -1369,11 +1639,11 @@ def _build_pascal_unit_index(repo_root: Path) -> dict[str, str]:
             except ValueError:
                 continue
             key = p.stem.lower()
-            prev = idx.get(key)
-            # Prefer a stable/shortest path when duplicates exist.
-            if prev is None or len(rel) < len(prev):
-                idx[key] = rel
-    return idx
+            if key in seen:
+                seen[key] = None
+            else:
+                seen[key] = rel
+    return {key: path for key, path in seen.items() if path is not None}
 
 
 def _normalize_pal_findings_jsonl(pal_jsonl_path: Path, *, repo_root: Optional[Path]) -> None:
@@ -1633,6 +1903,8 @@ def _render_delta_md(delta: dict[str, Any]) -> str:
     lines.append("## Pascal Analyzer")
     lines.append(f"- Strong warnings: {pal.get('strong_before', '?')} -> {pal.get('strong_after', '?')} ({pal.get('strong_delta', 0):+d})")
     lines.append(f"- Warnings: {pal.get('warnings_before', '?')} -> {pal.get('warnings_after', '?')} ({pal.get('warnings_delta', 0):+d})")
+    lines.append(f"- Optimizations: {pal.get('optimizations_before', '?')} -> {pal.get('optimizations_after', '?')} ({pal.get('optimizations_delta', 0):+d})")
+    lines.append(f"- Total: {pal.get('total_before', '?')} -> {pal.get('total_after', '?')} ({pal.get('total_delta', 0):+d})")
     if pal.get("top_section_deltas"):
         lines.append("- Top section deltas (warnings):")
         for row in pal["top_section_deltas"]:
@@ -1702,7 +1974,11 @@ def _render_baseline_md(title: str, baseline_path: Path, snapshot: dict[str, Any
     lines.append("## Pascal Analyzer")
     totals = pal.get("totals") or {}
     if totals:
-        lines.append(f"- Totals: warnings={totals.get('warnings','?')}, strong_warnings={totals.get('strong_warnings','?')}, exceptions={totals.get('exceptions','?')}")
+        lines.append(
+            f"- Totals: warnings={totals.get('warnings','?')}, "
+            f"strong_warnings={totals.get('strong_warnings','?')}, "
+            f"optimizations={totals.get('optimizations','?')}, total={totals.get('total','?')}"
+        )
     top_sections = pal.get("top_warning_sections") or []
     if top_sections:
         lines.append("- Top warning sections:")
@@ -1835,11 +2111,17 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
             "baseline_updated": False,
         }
 
+    _validate_success_summary(summary)
+
     repo_root = _find_git_root(out_root)
     project_dir: Optional[Path] = None
-    proj_local = _to_local_path(str(summary.get("project") or ""))
-    if proj_local is not None:
-        project_dir = proj_local.parent
+    subject_local = _to_local_path(
+        str(summary.get("project") or summary.get("unit") or "")
+    )
+    if subject_local is not None:
+        project_dir = subject_local.parent
+        if repo_root is None:
+            repo_root = _find_git_root(project_dir)
     elif repo_root is not None:
         cand = repo_root / "projects"
         if cand.exists():
@@ -1855,6 +2137,12 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     fi_jsonl_path = fixinsight_dir / "fi-findings.jsonl"
 
     _normalize_pal_findings_jsonl(pal_jsonl_path, repo_root=repo_root)
+    actionable_counts = _actionable_counts(summary, fi_jsonl_path, pal_jsonl_path)
+    required_sarif_path = _write_sarif(
+        out_root, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path
+    )
+    assert required_sarif_path is not None
+    _validate_sarif_count(required_sarif_path, int(actionable_counts["total"]))
 
     baseline_path = Path(os.environ.get("DAK_BASELINE", "")).expanduser().resolve() if os.environ.get("DAK_BASELINE", "").strip() else (out_root / "baseline.json")
     update_baseline = _truthy_env("DAK_UPDATE_BASELINE", False)
@@ -1878,24 +2166,21 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
 
     current_fi_w_hashes_raw: list[str] = []
     current_fi_w_hashes_norm: list[str] = []
-    current_fi_counts_by_code: dict[str, int] = {}
-    fi_total = None
-
-    # Prefer summary totals for consistency with DAK output.
-    if "fixinsight_total" in summary:
-        fi_total = int(summary["fixinsight_total"])
+    current_fi_counts_by_code: dict[str, int] = {
+        key: int(value)
+        for key, value in (summary.get("fixinsight_top_codes") or {}).items()
+    }
+    fi_total = int(actionable_counts["fixinsight"]["total"])
 
     if fi_norm.get("counts_by_code"):
         current_fi_counts_by_code = {k: int(v) for k, v in fi_norm["counts_by_code"].items()}
-        if fi_total is None:
-            fi_total = int(fi_norm.get("findings", 0))
 
     if isinstance(fi_norm.get("w_hashes_raw"), list):
         current_fi_w_hashes_raw = [str(x) for x in (fi_norm.get("w_hashes_raw") or [])]
     if isinstance(fi_norm.get("w_hashes_norm"), list):
         current_fi_w_hashes_norm = [str(x) for x in (fi_norm.get("w_hashes_norm") or [])]
 
-    pal_totals = (summary.get("pal_totals") or {}) if isinstance(summary, dict) else {}
+    pal_totals = actionable_counts["pascal_analyzer"]
 
     current_snapshot: dict[str, Any] = {
         "version": 3,
@@ -1952,6 +2237,12 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
                 "strong_before": pal_totals.get("strong_warnings"),
                 "strong_after": pal_totals.get("strong_warnings"),
                 "strong_delta": 0,
+                "optimizations_before": pal_totals.get("optimizations"),
+                "optimizations_after": pal_totals.get("optimizations"),
+                "optimizations_delta": 0,
+                "total_before": pal_totals.get("total"),
+                "total_after": pal_totals.get("total"),
+                "total_delta": 0,
                 "new_strong_count": 0,
                 "new_strong": [],
                 "new_warnings_count": 0,
@@ -1969,15 +2260,22 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
             triage_snip = out_root / "triage-snippets.md"
             if triage_snip.exists():
                 res["triage_snippets"] = str(triage_snip)
-        sarif_path = _write_sarif(out_root, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
-        if sarif_path is not None:
-            res["sarif"] = str(sarif_path)
+        res["sarif"] = str(required_sarif_path)
         history_path, trend_path, _ = _update_history_and_trend(out_root, title=title, summary=summary, snapshot=current_snapshot, repo_root=repo_root)
         res["history"] = str(history_path)
         res["trend"] = str(trend_path)
         if scope == "changed":
             triage_changed_path = _write_triage_changed(out_root, title=title, summary=summary, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
             res["triage_changed"] = str(triage_changed_path)
+        summary_json_path = _write_ai_summary(
+            out_root,
+            summary=summary,
+            snapshot=current_snapshot,
+            result=res,
+            fi_jsonl_path=fi_jsonl_path,
+            pal_jsonl_path=pal_jsonl_path,
+        )
+        res["summary_json"] = str(summary_json_path)
         return res
 
     assert baseline is not None
@@ -2105,6 +2403,18 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
     if isinstance(strong_before, int) and isinstance(strong_after, int):
         strong_delta = strong_after - strong_before
 
+    optimizations_before = b_pal_totals.get("optimizations")
+    optimizations_after = a_pal_totals.get("optimizations")
+    optimizations_delta = None
+    if isinstance(optimizations_before, int) and isinstance(optimizations_after, int):
+        optimizations_delta = optimizations_after - optimizations_before
+
+    pal_total_before = b_pal_totals.get("total")
+    pal_total_after = a_pal_totals.get("total")
+    pal_total_delta = None
+    if isinstance(pal_total_before, int) and isinstance(pal_total_after, int):
+        pal_total_delta = pal_total_after - pal_total_before
+
     gate_include = _split_semicolon_patterns(os.environ.get("DAK_GATE_INCLUDE_PATHS", ""))
     gate_exclude = _split_semicolon_patterns(os.environ.get("DAK_GATE_EXCLUDE_PATHS", ""))
     gate_path_filter = bool(gate_include or gate_exclude)
@@ -2199,6 +2509,12 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
             "strong_before": strong_before,
             "strong_after": strong_after,
             "strong_delta": int(strong_delta or 0),
+            "optimizations_before": optimizations_before,
+            "optimizations_after": optimizations_after,
+            "optimizations_delta": int(optimizations_delta or 0),
+            "total_before": pal_total_before,
+            "total_after": pal_total_after,
+            "total_delta": int(pal_total_delta or 0),
             "new_strong_count": len(new_pal_strong),
             "new_strong": pal_new_strong_items,
             "new_warnings_count": len(new_pal_warn),
@@ -2241,15 +2557,22 @@ def run_postprocess(out_root: Path, *, title: str) -> dict[str, Any]:
         triage_snip = out_root / "triage-snippets.md"
         if triage_snip.exists():
             res["triage_snippets"] = str(triage_snip)
-    sarif_path = _write_sarif(out_root, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
-    if sarif_path is not None:
-        res["sarif"] = str(sarif_path)
+    res["sarif"] = str(required_sarif_path)
     history_path, trend_path, _ = _update_history_and_trend(out_root, title=title, summary=summary, snapshot=current_snapshot, repo_root=repo_root)
     res["history"] = str(history_path)
     res["trend"] = str(trend_path)
     if scope == "changed":
         triage_changed_path = _write_triage_changed(out_root, title=title, summary=summary, fi_jsonl_path=fi_jsonl_path, pal_jsonl_path=pal_jsonl_path)
         res["triage_changed"] = str(triage_changed_path)
+    summary_json_path = _write_ai_summary(
+        out_root,
+        summary=summary,
+        snapshot=current_snapshot,
+        result=res,
+        fi_jsonl_path=fi_jsonl_path,
+        pal_jsonl_path=pal_jsonl_path,
+    )
+    res["summary_json"] = str(summary_json_path)
     return res
 
 

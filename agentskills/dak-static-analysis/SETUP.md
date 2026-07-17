@@ -76,7 +76,13 @@ Project runs write to:
 <path-to-project>/.dak/{ProjectName}/
   fixinsight/
   pascal-analyzer/
+  summary.json
   summary.md
+  triage.md
+  triage-changed.md
+  static-analysis.sarif
+  delta.md
+  trend.md
   run.log
 ```
 
@@ -85,7 +91,12 @@ Unit runs write to:
 ```
 <path-to-unit-directory>/.dak/_unit/{UnitName}/
   pascal-analyzer/
+  summary.json
   summary.md
+  triage.md
+  static-analysis.sarif
+  delta.md
+  trend.md
   run.log
 ```
 
@@ -109,6 +120,15 @@ as evidence, then remove the verified temporary output tree.
   - default wrapper behavior: project runs use `DAK_FIXINSIGHT=true` and `DAK_PASCAL_ANALYZER=true`
 - `FI_SETTINGS` / `FIXINSIGHT_SETTINGS`
 - `PA_PATH`, `PA_ARGS`
+  - `PA_ARGS` accepts only additive PAL options. DAK always owns report format,
+    report/output identity, parse scope, quiet mode, and thread count;
+    conflicting arguments fail before PAL starts. DAK derives the compiler
+    target by default, while an explicit additive `/CD...` remains permitted.
+
+Prefer `analyze-unit <unit.pas> <project.dproj>` so DAK derives search paths,
+defines, build configuration, and compiler target from the project. Omitting
+the project keeps the legacy PAL.INI-based unit mode and is not
+project-equivalent analysis proof.
 
 ## Should we ship DelphiAIKit.exe with the skill?
 

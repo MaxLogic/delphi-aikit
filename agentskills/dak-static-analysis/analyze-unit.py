@@ -163,26 +163,13 @@ def _normalize_input_path(arg: str) -> Path:
     return Path(s).expanduser()
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print("Usage: analyze-unit.py <path-to-unit.pas>", file=sys.stderr)
-        return 2
-
-    unit_path = _normalize_input_path(argv[1])
-    if not unit_path.is_absolute():
-        unit_path = (Path.cwd() / unit_path).resolve()
-    else:
-        unit_path = unit_path.resolve()
-    if not unit_path.exists():
-        print(f"ERROR: .pas not found: {unit_path}", file=sys.stderr)
-        return 2
-
-    dak_exe = _find_dak_exe(unit_path)
-    dak_exe_arg = _to_win_arg(dak_exe) if _is_wsl() else str(dak_exe)
-
+def _build_dak_args(
+    dak_exe_arg: str,
+    unit_path: Path,
+    out_root: Path,
+    project_context: Optional[Path],
+) -> list[str]:
     delphi_ver = _get_env("DAK_DELPHI", "23.0")
-    pa_path = os.environ.get("PA_PATH", "").strip()
-    pa_args = os.environ.get("PA_ARGS", "").strip()
     pal_flag = _get_env("DAK_PASCAL_ANALYZER", os.environ.get("DAK_PAL", "").strip() or "true")
     clean_flag = os.environ.get("DAK_CLEAN", "").strip()
     summary_flag = os.environ.get("DAK_WRITE_SUMMARY", "").strip()
@@ -194,20 +181,63 @@ def main(argv: list[str]) -> int:
         _to_win_arg(unit_path),
         "--delphi",
         delphi_ver,
+        "--out",
+        _to_win_arg(out_root),
     ]
-
-    out_root = _resolve_out_root(Path.cwd(), unit_path)
-    args += ["--out", _to_win_arg(out_root)]
+    if project_context is not None:
+        args += [
+            "--project-context",
+            _to_win_arg(project_context),
+            "--platform",
+            _get_env("DAK_PLATFORM", "Win64"),
+            "--config",
+            _get_env("DAK_CONFIG", "Release"),
+        ]
 
     _maybe_add_arg(args, "--fixinsight", "false")
     _maybe_add_arg(args, "--pascal-analyzer", pal_flag)
     _maybe_add_arg(args, "--clean", clean_flag)
     _maybe_add_arg(args, "--write-summary", summary_flag)
 
+    pa_path = os.environ.get("PA_PATH", "").strip()
+    pa_args = os.environ.get("PA_ARGS", "").strip()
     if pa_path:
         args += ["--pa-path", _to_win_arg(Path(pa_path))]
     if pa_args:
         args += ["--pa-args", pa_args]
+    return args
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) not in (2, 3):
+        print("Usage: analyze-unit.py <path-to-unit.pas> [project.dproj]", file=sys.stderr)
+        return 2
+
+    unit_path = _normalize_input_path(argv[1])
+    if not unit_path.is_absolute():
+        unit_path = (Path.cwd() / unit_path).resolve()
+    else:
+        unit_path = unit_path.resolve()
+    if not unit_path.exists():
+        print(f"ERROR: .pas not found: {unit_path}", file=sys.stderr)
+        return 2
+
+    project_context: Optional[Path] = None
+    if len(argv) == 3 and argv[2].strip():
+        project_context = _normalize_input_path(argv[2])
+        if not project_context.is_absolute():
+            project_context = (Path.cwd() / project_context).resolve()
+        else:
+            project_context = project_context.resolve()
+        if not project_context.exists():
+            print(f"ERROR: .dproj not found: {project_context}", file=sys.stderr)
+            return 2
+
+    dak_exe = _find_dak_exe(unit_path)
+    dak_exe_arg = _to_win_arg(dak_exe) if _is_wsl() else str(dak_exe)
+
+    out_root = _resolve_out_root(Path.cwd(), unit_path)
+    args = _build_dak_args(dak_exe_arg, unit_path, out_root, project_context)
 
     vcs_root, _ = _find_vcs_root(unit_path.parent)
     work_root = vcs_root if vcs_root is not None else unit_path.parent
@@ -225,18 +255,17 @@ def main(argv: list[str]) -> int:
 
     gate_pass = True
     if p.returncode == 0 and summary_path.exists():
-        try:
-            from postprocess import run_postprocess
+        from postprocess import run_postprocess
 
-            res = run_postprocess(out_root, title=unit_path.stem)
-            gate_pass = bool(res.get("gate_pass", True))
-            if not gate_pass:
-                print(f"Static analysis gate failed (see: {res.get('delta', '')})", file=sys.stderr)
-        except Exception as e:
-            print(f"Post-process ERROR: {e}", file=sys.stderr)
+        res = run_postprocess(out_root, title=unit_path.stem)
+        gate_pass = bool(res.get("gate_pass", True))
+        if not gate_pass:
+            print(f"Static analysis gate failed (see: {res.get('delta', '')})", file=sys.stderr)
 
     if p.returncode != 0:
         return p.returncode
+    if not summary_path.exists():
+        return 3
     return 0 if gate_pass else 3
 
 

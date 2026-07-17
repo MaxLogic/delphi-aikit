@@ -40,7 +40,7 @@ resourcestring
     '  [--clean [true|false]] [--write-summary [true|false]]' + #13#10 +
     '  [--rsvars "<path>"] [--envoptions "<path>"] [--log-file "<path>"] [--log-tee [true|false]] ' +
     '[--verbose [true|false]]' + #13#10 +
-    'DelphiAIKit.exe analyze --unit "<path>" --delphi <23.0> [--out "<path>"] ' +
+    'DelphiAIKit.exe analyze --unit "<path>" [--project-context "<dproj>"] --delphi <23.0> [--out "<path>"] ' +
     '[--pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +
     '[--pa-timeout-sec <N>]';
   SUsageBuild =
@@ -157,6 +157,9 @@ resourcestring
   SRefactorFindUsagesTarget = 'Use either --symbol or --file/--line/--col for find-usages.';
   SUnknownArg = 'Unknown argument: %s';
   SAnalyzeUnitConflict = 'Use either --project or --unit (not both) for analyze.';
+  rsAnalyzeUnitPalIniContext = 'PAL.INI supplied compiler context; this context-free unit result is not ' +
+    'project-equivalent proof.';
+  rsProjectContextUnitOnly = '--project-context is only supported with unit analysis.';
   SBuildBatMissing = 'build-delphi.bat not found: %s';
   SFileNotFound = 'File not found: %s';
   SUnsupportedLinuxPath = 'Unsupported Linux path format: %s. Use /mnt/<drive>/... or a Windows path.';

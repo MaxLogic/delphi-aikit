@@ -11,7 +11,7 @@ uses
   Winapi.Windows,
   DUnitX.TestFramework,
   maxLogic.CmdLineParams,
-  Dak.Cli, Dak.CommandOutput, Dak.Settings, Dak.Types,
+  Dak.Cli, Dak.CommandOutput, Dak.Messages, Dak.Settings, Dak.Types,
   Test.Support;
 
 type
@@ -37,6 +37,12 @@ type
     procedure AnalyzeProjectCommandRejectsUnsupportedProjectExtension;
     [Test]
     procedure AnalyzeUnitCommandRejectsProjectAndUnitConflict;
+    [Test]
+    procedure AnalyzeUnitParsesProjectContext;
+    [Test]
+    procedure AnalyzeProjectRejectsProjectContext;
+    [Test]
+    procedure AnalyzeHelpIncludesProjectContext;
     [Test]
     procedure DfmCheckCommandParsesRequiredFlagsAndDefaults;
     [Test]
@@ -343,6 +349,36 @@ begin
     'Expected analyze-unit to reject simultaneous --project and --unit.');
   Assert.IsTrue(Pos('Use either --project or --unit', lError) > 0,
     'Expected conflict error message. Actual: ' + lError);
+end;
+
+procedure TCliTests.AnalyzeUnitParsesProjectContext;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('analyze --unit C:\repo\Unit1.pas --project-context C:\repo\Sample.dproj --delphi 23.0 ' +
+    '--platform Win64 --config Debug');
+
+  Assert.IsTrue(TryParseOptions(lOptions, lError), lError);
+  Assert.AreEqual(TCommandKind.ckAnalyzeUnit, lOptions.fCommand);
+  Assert.AreEqual('C:\repo\Sample.dproj', lOptions.fProjectContextPath);
+  Assert.IsTrue(lOptions.fHasProjectContextPath);
+end;
+
+procedure TCliTests.AnalyzeProjectRejectsProjectContext;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('analyze --project C:\repo\Sample.dproj --project-context C:\repo\Other.dproj --delphi 23.0');
+
+  Assert.IsFalse(TryParseOptions(lOptions, lError));
+  Assert.IsTrue(lError.Contains('--project-context is only supported with unit analysis'), lError);
+end;
+
+procedure TCliTests.AnalyzeHelpIncludesProjectContext;
+begin
+  Assert.IsTrue(SUsageAnalyze.Contains('--project-context "<dproj>"'));
 end;
 
 procedure TCliTests.DfmCheckCommandParsesRequiredFlagsAndDefaults;

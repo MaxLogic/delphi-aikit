@@ -17,11 +17,12 @@ We run PALCMD against our resolved main project entrypoint (typically the `.dpr`
 - Defines: `/D=DEF1;DEF2;...`
 - Search folders: `/S="p1;p2;..."`
 - Report root folder: `/R="C:\Out"` (output folder root)
+- Report identity: `/NAME=<exact-project-name>`
 - Report format: `/F=T|H|X` (Text/HTML/XML)
 - Quiet mode: `/Q`
 - Parse forms: `/A+` (source + form files)
 - Parse scope: `/FA` (all files)
-- Threads: `/T=n` (1..64)
+- Threads: `/T=n` (1..64; DAK selects the automatic value)
 
 ## 3) DelphiAIKit contract
 
@@ -33,7 +34,7 @@ We run PALCMD against our resolved main project entrypoint (typically the `.dpr`
 - `--pa-args "<args>"` (optional)
 - `--pa-timeout-sec N` (optional, positive integer seconds)
 
-### settings.ini section (new)
+### dak.ini section
 
 ```ini
 [PascalAnalyzer]
@@ -47,33 +48,41 @@ Semantics:
 
 - `Path` may be a full path to `palcmd.exe` / `palcmd32.exe`, or a folder containing them.
 - `Output` is a report root folder; we pass it to PALCMD as `/R=...`.
-- `Args` are appended verbatim to the PALCMD invocation.
+- `Args` are parsed as additive PAL options. DAK rejects attempts to override
+  its report format/root/name, quiet mode, parse scope, or thread count.
 - `TimeoutSec` bounds the external PALCMD wait; the CLI override wins when both are present.
 
-### Defaults when Args is empty
+### Invariant automation arguments
 
-When `--pascal-analyzer true` is used and neither `--pa-args` nor `[PascalAnalyzer].Args` is set:
+When `--pascal-analyzer true` is used, DAK always supplies:
 
-- Use `/F=X /Q /A+ /FA /T=min(CPUCount, 64)`
-- Add `/CD...` derived from `--delphi` + `--platform` (unless the args already contain a `/CD...` flag)
+- `/F=X /Q /A+ /FA /T=<automatic-count>`
+- an exact `/NAME` and `/R`
+- `/CD...` derived from `--delphi` + `--platform` unless additive args contain
+  an explicit compiler target
+- `/BUILD`, `/D`, and `/S` from project context when available
+
+PAL help is authoritative for target availability. PAL 9.21 exposes Delphi 12
+and Delphi 13 Win64 (`/CD12W64`, `/CD13W64`); BDS 37 maps to Delphi 13. Version
+mapping is used only when help cannot be read.
 
 ## 4) Executable discovery (must be deterministic and fast)
 
 Resolve `palcmd.exe`/`palcmd32.exe` in this order:
 
 1. CLI override: `--pa-path`
-2. settings.ini override: `[PascalAnalyzer].Path`
+2. cascading `dak.ini` override: `[PascalAnalyzer].Path`
 3. Known default (v9): `C:\Program Files\Peganza\Pascal Analyzer 9\palcmd.exe` (and `palcmd32.exe`)
 4. Version sweep (Program Files + x86): `...\Peganza\Pascal Analyzer {5..15}\palcmd(.exe|32.exe)` (newest wins)
 5. Folder scan (depth-limited): `...\Peganza\Pascal Analyzer*\` (top-level only), pick newest folder containing PALCMD
-6. If still not found: hard error (exit code 7) telling the user to provide `--pa-path` or settings.ini `Path=...`.
+6. If still not found: hard error (exit code 7) telling the user to provide `--pa-path` or `dak.ini` `Path=...`.
 
 ## 5) Notes
 
-- We do not try to map our mask-based excludes to PALCMD's `/X` and `/XF` automatically (PALCMD takes folder/file lists, not globs). If needed, the user can pass `/X` and `/XF` via `--pa-args`.
+- We do not map mask-based excludes to PALCMD `/X` or `/XF`; filtering remains
+  deterministic post-processing of normalized findings.
 
 ## PALCMD Help
 
-to see the help for palmcmd.exe just run it, it will print the help.
-We have a copy in 
-./docs/spec-slices/palcmd.help.txt
+Run `palcmd.exe` without arguments to print its help. The reviewed PAL 9.21.3
+snapshot is stored in `docs/spec-slices/palcmd.help.txt`.
