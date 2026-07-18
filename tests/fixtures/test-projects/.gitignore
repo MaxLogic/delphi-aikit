@@ -1,1 +1,3 @@
-# Fixture projects are intentionally versioned here. Project-local .gitignore files exclude generated Delphi artifacts.
+# Private fixture projects are local-only and must never be tracked.
+*
+!.gitignore

@@ -89,6 +89,7 @@ sfx
 .dak/
 tests/fixtures/KFZMeister.dpr
 tests/fixtures/KFZMeister.dproj
+/tests/fixtures/test-projects/*
 _analysis/
 issues/
 project.zip
