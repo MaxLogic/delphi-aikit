@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import argparse
 import configparser
 from dataclasses import dataclass
 import os
@@ -16,6 +17,12 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Optional, Sequence
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from workspace import WorkspaceError, find_vcs_root, resolve_workspace, settings_paths
 
 
 @dataclass(frozen=True)
@@ -72,19 +79,9 @@ def _normalize_input_path(arg: str) -> Path:
     return Path(s).expanduser()
 
 
-def _find_vcs_root(start_dir: Path) -> tuple[Optional[Path], str]:
-    p = start_dir.resolve()
-    while True:
-        if (p / ".git").exists():
-            return p, "git"
-        if (p / ".svn").exists():
-            return p, "svn"
-        if p.parent == p:
-            return None, ""
-        p = p.parent
-
-
-def _find_dak_exe(target_dir: Path) -> Path:
+def _find_dak_exe(
+    target_dir: Path, workspace_root: Optional[Path] = None
+) -> Path:
     env = os.environ.get("DAK_EXE", "").strip()
     if env:
         candidates: list[Path] = [_normalize_input_path(env)]
@@ -117,16 +114,19 @@ def _find_dak_exe(target_dir: Path) -> Path:
 
     roots: list[Path] = []
 
-    cwd = Path.cwd()
-    roots.append(cwd)
-    cwd_root, _ = _find_vcs_root(cwd)
-    if cwd_root is not None:
-        roots.append(cwd_root)
+    if workspace_root is not None:
+        roots.append(workspace_root)
+    else:
+        cwd = Path.cwd()
+        roots.append(cwd)
+        cwd_root, _ = find_vcs_root(cwd)
+        if cwd_root is not None:
+            roots.append(cwd_root)
 
-    roots.append(target_dir)
-    tgt_root, _ = _find_vcs_root(target_dir)
-    if tgt_root is not None:
-        roots.append(tgt_root)
+        roots.append(target_dir)
+        tgt_root, _ = find_vcs_root(target_dir)
+        if tgt_root is not None:
+            roots.append(tgt_root)
 
     # Back-compat when the skill lives inside a tooling repo.
     script_dir = Path(__file__).resolve().parent
@@ -333,29 +333,31 @@ def _format_pal_report(
 
 
 def _load_dak_settings(
-    executable: Path, target: Optional[Path]
+    executable: Path, target: Optional[Path], workspace_selector: str = ""
 ) -> tuple[configparser.ConfigParser, list[Path]]:
-    paths = [executable.parent / "dak.ini"]
-    if target is not None:
-        target_dir = target.parent.resolve()
-        repo_root, _ = _find_vcs_root(target_dir)
-        if repo_root is None:
-            candidates = [target_dir]
-        else:
-            relative = target_dir.relative_to(repo_root)
-            candidates = [repo_root]
-            current = repo_root
-            for part in relative.parts:
-                current /= part
-                candidates.append(current)
-        for directory in candidates:
-            candidate = directory / "dak.ini"
-            if str(candidate).casefold() not in {str(path).casefold() for path in paths}:
-                paths.append(candidate)
+    executable_ini = executable.parent / "dak.ini"
+    if target is None:
+        paths = [executable_ini]
+    else:
+        workspace = resolve_workspace(
+            target,
+            workspace_selector,
+            executable_ini=executable_ini,
+            cwd=Path.cwd(),
+        )
+        paths = settings_paths(target, workspace, executable_ini)
 
     cp = configparser.ConfigParser(interpolation=None)
     cp.read([str(path) for path in paths if path.is_file()], encoding="utf-8")
     return cp, paths
+
+
+def _parse_args(argv: list[str]) -> tuple[str, str]:
+    parser = argparse.ArgumentParser(prog=Path(argv[0]).name)
+    parser.add_argument("target", nargs="?", default="")
+    parser.add_argument("--workspace-root", default="")
+    options = parser.parse_args(argv[1:])
+    return options.target, options.workspace_root
 
 
 def _fmt_kv(k: str, v: str) -> str:
@@ -363,12 +365,68 @@ def _fmt_kv(k: str, v: str) -> str:
     return f"{k}={v if v else '<empty>'}"
 
 
+def _analysis_policy_source_paths(paths: list[Path]) -> list[Path]:
+    result: list[Path] = []
+    for path in paths:
+        current = configparser.ConfigParser(interpolation=None)
+        try:
+            current.read([str(path)], encoding="utf-8-sig")
+        except (configparser.Error, OSError, UnicodeError):
+            continue
+        if current.has_section("AnalysisPolicy") or current.has_section(
+            "PascalAnalyzerIgnore"
+        ):
+            result.append(path)
+    return result
+
+
+def _format_analysis_policy_preview(
+    settings: configparser.ConfigParser, sources: list[Path]
+) -> str:
+    policy = (
+        settings["AnalysisPolicy"]
+        if settings.has_section("AnalysisPolicy")
+        else {}
+    )
+    diagnostics = (
+        settings["Diagnostics"] if settings.has_section("Diagnostics") else {}
+    )
+    source_text = ", ".join(str(path) for path in sources) or "<none>"
+    return "\n".join(
+        (
+            "- AnalysisPolicy."
+            + _fmt_kv(
+                "GateOwnership",
+                policy.get("GateOwnership", "project;repository"),
+            ),
+            "- AnalysisPolicy."
+            + _fmt_kv("ProjectRoots", policy.get("ProjectRoots", "")),
+            "- AnalysisPolicy."
+            + _fmt_kv(
+                "ThirdPartyRoots", policy.get("ThirdPartyRoots", "")
+            ),
+            f"- AnalysisPolicy.Sources={source_text}",
+            "- Diagnostics."
+            + _fmt_kv(
+                "IgnoreUnknownMacros",
+                diagnostics.get("IgnoreUnknownMacros", ""),
+            ),
+            "- Diagnostics."
+            + _fmt_kv(
+                "IgnoreMissingPaths",
+                diagnostics.get("IgnoreMissingPaths", ""),
+            ),
+        )
+    )
+
+
 def main(argv: list[str]) -> int:
     script_dir = Path(__file__).resolve().parent
     target_dir = Path.cwd()
     target = None
-    if len(argv) >= 2:
-        target = _normalize_input_path(argv[1])
+    target_arg, workspace_selector = _parse_args(argv)
+    if target_arg:
+        target = _normalize_input_path(target_arg)
         if not target.is_absolute():
             target = (Path.cwd() / target).resolve()
         target_dir = target.parent
@@ -385,21 +443,54 @@ def main(argv: list[str]) -> int:
         code, out = _run_capture(["wslpath", "-u", "C:\\"])
         print(f"- wslpath: {'ok' if code == 0 else 'missing/failed'}")
 
+    resolution_selector = workspace_selector
+    if (
+        workspace_selector
+        and workspace_selector.casefold() not in {"auto", "git", "svn", "project"}
+        and _is_wsl()
+        and _looks_like_windows_path(workspace_selector)
+    ):
+        resolution_selector = str(_normalize_input_path(workspace_selector))
     try:
-        dak_exe = _find_dak_exe(target_dir)
-    except Exception as e:
+        if target is not None:
+            workspace = resolve_workspace(
+                target, resolution_selector, cwd=Path.cwd()
+            )
+            dak_exe = _find_dak_exe(
+                target_dir,
+                workspace.root if workspace.source != "default" else None,
+            )
+        else:
+            dak_exe = _find_dak_exe(target_dir)
+        if target is not None and workspace.source == "default":
+            workspace = (
+                resolve_workspace(
+                    target,
+                    executable_ini=dak_exe.parent / "dak.ini",
+                    cwd=Path.cwd(),
+                )
+            )
+        elif target is None:
+            workspace = None
+        ini, dak_ini_paths = _load_dak_settings(
+            dak_exe, target, resolution_selector
+        )
+    except (FileNotFoundError, WorkspaceError) as error:
         print()
-        print(f"ERROR: {e}")
+        print(f"ERROR: {error}")
         return 2
-
     dak_dir = dak_exe.parent
-    ini, dak_ini_paths = _load_dak_settings(dak_exe, target)
     existing_ini_paths = [path for path in dak_ini_paths if path.exists()]
 
     print()
     print("## Resolver")
     print(f"- DAK_EXE: {os.environ.get('DAK_EXE','').strip() or '<default>'}")
     print(f"- DelphiAIKit.exe: {dak_exe}")
+    if workspace is not None:
+        print(f"- Workspace selector: {workspace.selector}")
+        print(f"- Workspace root: {workspace.root}")
+        print(f"- Workspace VCS: {workspace.vcs}")
+        print(f"- Workspace source: {workspace.source}")
     print(f"- dak.ini: {', '.join(str(path) for path in existing_ini_paths) or '<missing>'}")
 
     pa_path = ""
@@ -413,14 +504,22 @@ def main(argv: list[str]) -> int:
         print(f"- ReportFilter.{_fmt_kv('ExcludePathMasks', filt.get('ExcludePathMasks', ''))}")
         ign = ini["FixInsightIgnore"] if ini.has_section("FixInsightIgnore") else {}
         print(f"- FixInsightIgnore.{_fmt_kv('Warnings', ign.get('Warnings', ''))}")
+        pal_ign = (
+            ini["PascalAnalyzerIgnore"]
+            if ini.has_section("PascalAnalyzerIgnore")
+            else {}
+        )
+        print(
+            f"- PascalAnalyzerIgnore.{_fmt_kv('Rules', pal_ign.get('Rules', ''))}"
+        )
         pa = ini["PascalAnalyzer"] if ini.has_section("PascalAnalyzer") else {}
         print(f"- PascalAnalyzer.{_fmt_kv('Path', pa.get('Path', ''))}")
         print(f"- PascalAnalyzer.{_fmt_kv('Args', pa.get('Args', ''))}")
-
-        diag = ini["Diagnostics"] if ini.has_section("Diagnostics") else {}
-        if diag:
-            print(f"- Diagnostics.{_fmt_kv('IgnoreUnknownMacros', diag.get('IgnoreUnknownMacros', ''))}")
-            print(f"- Diagnostics.{_fmt_kv('IgnoreMissingPaths', diag.get('IgnoreMissingPaths', ''))}")
+        print(
+            _format_analysis_policy_preview(
+                ini, _analysis_policy_source_paths(existing_ini_paths)
+            )
+        )
 
         pa_path = (pa.get("Path", "") or "").strip()
         if pa_path:
@@ -443,7 +542,9 @@ def main(argv: list[str]) -> int:
         "DAK_PAL",
         "PA_PATH",
         "DAK_EXCLUDE_PATH_MASKS",
+        "DAK_FI_IGNORE_RULES",
         "DAK_IGNORE_WARNING_IDS",
+        "DAK_PAL_IGNORE_RULES",
         "DAK_OUT",
         "DAK_CLEAN",
         "DAK_WRITE_SUMMARY",

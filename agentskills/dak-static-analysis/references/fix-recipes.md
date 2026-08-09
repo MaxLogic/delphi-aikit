@@ -6,7 +6,9 @@ Principles:
 
 - Prefer **small, local** changes we can prove by compile + tests.
 - When the finding points at **ownership/lifetime**, follow our rules in `conventions.md` (especially **Managed Types** and **AutoFree.GC()**).
-- If a finding is a **metric/code smell** (complexity/too many params), treat it as refactor pressure, not a quick auto-fix: add tests first, then refactor in PR-sized chunks.
+- Treat **metric/code smells** (complexity/too many parameters) as advisory
+  hints. Refactor only when an independently justified, approved task has
+  behavioral tests; do not create work merely to lower a metric.
 
 ## Workflow (repeatable)
 
@@ -56,9 +58,10 @@ Verify:
 
 ### Complexity / “too long” / “too many parameters”
 
-These are not correctness bugs, but they predict bugs.
+These are advisory metrics, not correctness bugs and not default gates. They
+normally do not justify a rewrite by themselves.
 
-Safe process (not a one-shot refactor):
+If an independently justified refactor is approved, use this safe process:
 
 - Add tests around the method first (cover edge cases and error paths).
 - Extract **private** helpers (avoid changing public/protected signatures; see `AGENTS.md` refactoring guardrail).
@@ -145,7 +148,10 @@ Verify:
 
 If we must suppress, do it **locally** and leave a short reason:
 
-- Single line: `//PALOFF reason`
-- Specific sections: `//PALOFF STWA;WARN1;OPTI8`
+- Installed-version-verified single-site form:
+  `end; //PALOFF reviewed exception: callback intentionally has no action`
+- Compile and rerun PAL to prove exactly the intended finding disappears.
+- Do not publish multi-code syntax unless it is separately proven against the
+  installed supported PAL version.
 
 Prefer fixing root causes over suppression; suppress only when we understand and accept the behavior.

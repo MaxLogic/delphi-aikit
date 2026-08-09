@@ -1,6 +1,6 @@
 ---
 name: dak-static-analysis
-description: Run cadence-aware Delphi static analysis through DelphiAIKit wrappers, using project-context PAL for touched units and full FixInsight plus PAL at deliberate batch/final gates, then triage deltas and apply safe verified fixes.
+description: Run cadence-aware Delphi static analysis through DelphiAIKit wrappers, using project-context PAL for touched units, deliberate project analysis for maintained codebases, and advisory delta-oriented analysis for legacy applications, then triage findings and apply safe verified fixes.
 license: internal
 metadata:
   tags: [delphi, static-analysis]
@@ -20,6 +20,45 @@ Default policy:
 - Project analysis: `FixInsight=true`, `PascalAnalyzer=true`.
 - Unit analysis: `FixInsight=false`, `PascalAnalyzer=true`.
 - PAL is a first-class analyzer and should be disabled only explicitly.
+- A gated run checks `project` and `repository` findings, reports
+  `third_party`, fails on `unknown`, and requires a compatible baseline
+  fingerprint.
+- Whether analysis is a hard gate or advisory evidence depends on the
+  repository's maintenance profile described below.
+
+## Legacy application policy
+
+Treat static analysis as advisory for an established legacy application when
+repository guidance identifies it as such, or when verified evidence shows a
+large inherited finding baseline, unsupported language constructs, or analyzer
+limitations that prevent reliable traversal of the existing project. Do not
+classify a project as legacy merely because the first analysis result is
+inconvenient.
+
+For a legacy application:
+
+- Prefer touched-unit, changed-file, and baseline-delta evidence. Do not make a
+  full-project FixInsight or PAL run a routine task, batch, or final hard gate.
+- Report findings that are attributable to the current change and apply safe,
+  in-scope improvements when practical. Treat remaining findings as
+  recommendations unless the user or repository explicitly requires a
+  reliable changed-code gate.
+- Do not block an otherwise tested and compiling feature solely because an
+  analyzer exits non-zero on inherited findings, cannot parse existing source,
+  or cannot reach the touched unit through the legacy project graph. State
+  clearly that analysis was advisory or incomplete; never call it passing.
+- Do not broaden a focused feature into a repository-wide cleanup to obtain a
+  clean report. Explain when comprehensive remediation is likely to require a
+  dedicated, staged refactoring effort with its own tests and review.
+- Reserve full-project analysis for an explicitly requested audit, a dedicated
+  technical-debt initiative, or a separately scheduled release/maintenance
+  lane. Preserve historical totals and parser/tool limitations as diagnostic
+  context rather than feature acceptance criteria.
+
+Builds, focused tests, DFM validation, and other applicable behavioral proof
+remain authoritative. This exception changes the acceptance role of static
+analysis; it does not permit suppressing findings, misclassifying owned code,
+or claiming unsupported coverage.
 
 ## Cadence and candidate contract
 
@@ -28,8 +67,10 @@ Default policy:
 - At task tier, analyze touched units with their project context. A
   context-free unit result is useful diagnosis but is not project-equivalent
   gate evidence when a `.dproj` exists.
-- Run project-wide FixInsight and PAL at scheduled batch/final gates, or record
-  an explicit exception for analyzer/build/shared-runtime changes.
+- For maintained projects with a reliable baseline, run project-wide
+  FixInsight and PAL at scheduled batch/final gates. For legacy applications,
+  follow the advisory policy above instead of scheduling full analysis by
+  default.
 - Review and stabilize production changes before expensive project analysis.
   Review-driven fixes change the candidate and invalidate that evidence.
 - Fingerprint source/manifests, project configuration, dependency revisions,
@@ -56,6 +97,11 @@ Windows:
 - Project analyze: `agentskills\\dak-static-analysis\\analyze.bat C:\\path\\to\\MyProject.dproj`
 - Unit analyze with project context: `agentskills\\dak-static-analysis\\analyze-unit.bat C:\\path\\to\\Unit1.pas C:\\path\\to\\MyProject.dproj`
 
+Add `--workspace-root auto|git|svn|project|<fixed-root>` after the subject when
+the automatic nearest Git/SVN boundary is not the intended workspace. The CLI
+overrides `[Workspace].Root`; otherwise the closest ancestor selector wins,
+with the executable `dak.ini` fallback. Unmanaged projects are supported.
+
 ## Environment Contract
 
 Recommended baseline:
@@ -71,9 +117,25 @@ Common overrides:
 - `DAK_OUT`
 - `DAK_RSVARS`, `DAK_ENVOPTIONS`
 - `DAK_FI_FORMATS` (`txt|csv|xml|all`, default `txt`)
-- `DAK_EXCLUDE_PATH_MASKS`, `DAK_IGNORE_WARNING_IDS`
+- `DAK_EXCLUDE_PATH_MASKS` -> `--exclude-path-masks` /
+  `[ReportFilter].ExcludePathMasks`
+- `DAK_FI_IGNORE_RULES` -> `--ignore-warning-ids` /
+  `[FixInsightIgnore].Warnings`
+- `DAK_PAL_IGNORE_RULES` -> `--pal-ignore-rules` /
+  `[PascalAnalyzerIgnore].Rules`
+- `DAK_PAL_EXCLUDE_SEARCH_FOLDERS` -> `--pa-exclude-search-folders` /
+  `[PascalAnalyzer].ExcludeSearchFolders` (explicit PAL `/X`)
+- `DAK_PAL_EXCLUDE_FILES` -> `--pa-exclude-files` /
+  `[PascalAnalyzer].ExcludeFiles` (explicit PAL `/XF`)
+- `DAK_IGNORE_WARNING_IDS` is a deprecated FixInsight-only alias merged with
+  `DAK_FI_IGNORE_RULES`; it never applies to PAL.
 - `PA_PATH`, `PA_ARGS`
 - `FI_SETTINGS` or `FIXINSIGHT_SETTINGS`
+
+Provenance is VCS-neutral. `summary.json` reports nullable revision/status and
+changed-file data, `source_inputs`, nested roots, and `available`, `fallback`,
+`unavailable`, or `not_applicable` capability states. Missing Git/SVN tooling
+uses a bounded filesystem inventory and does not fail analysis.
 
 Examples:
 - Disable PAL for one run: `DAK_PASCAL_ANALYZER=false ./agentskills/dak-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
@@ -115,22 +177,33 @@ export DAK_OUT="${TMPDIR:-/tmp}/dak/MyProject/analysis-$$"
 ```
 
 Primary artifacts:
-- `summary.json` (compact AI entry point and canonical actionable counts)
-- `summary.md`
-- `triage.md`, `triage-changed.md`
-- `fixinsight/fi-findings.jsonl`, `pascal-analyzer/pal-findings.jsonl`
-- `static-analysis.sarif`
-- `run.log`
-- `delta.md`, `trend.md`, `baseline.json` (after first baseline run)
+- Actionable entry points: `summary.json`, `triage-changed.md`, `triage.md`,
+  and `static-analysis.sarif`.
+- Complete raw evidence: `fixinsight/fi-findings.jsonl`,
+  `pascal-analyzer/pal-findings.jsonl`, and `static-analysis.full.sarif`.
+- Compact non-actionable views: `external-summary.md` and `metrics.md`.
+- Human/run evidence: `summary.md`, `run.log`, `delta.md`, `delta.json`,
+  `trend.md`, and `baseline.json` (after the first compatible baseline run).
+
+Before retaining a gated result, run
+`python agentskills/dak-static-analysis/postprocess.py --verify <output>`.
+The check covers counts, ownership, SARIF/report parity, and passing-gate
+compatibility. Do not update a baseline to work around an incompatibility;
+rerun with the correct compiler/analyzer/policy context.
 
 ## Agent Workflow
 
 1. Run `doctor` first for tool/path sanity.
 2. At task tier run `analyze-unit` for touched units when it can cover the
-   change. Run project analysis at scheduled batch/final gates or when a shared
-   analyzer/build boundary changes.
-3. Give AI consumers `summary.json` first, then open `triage-changed.md` or
-   `triage.md` for focused detail. Use `summary.md` as the human-readable view.
+   change. Run project analysis at scheduled batch/final gates for maintained
+   projects, or when a shared analyzer/build boundary changes. For legacy
+   applications, keep routine analysis focused and advisory unless a separate
+   audit or repository policy explicitly asks for the full project.
+3. Open `summary.json` first and confirm analyzer completeness, actionable
+   ownership, ignored/external/advisory projections, filter provenance, and
+   `unknown=0`. Then open `triage-changed.md` or `triage.md`. Inspect raw/full
+   or external evidence only for ownership diagnosis, dependency drift,
+   analyzer failure, or an explicit full audit.
 4. Apply only low-risk fixes in small batches.
 5. Verify through `$dak-build` in the execution domain selected by repository/
    user policy. Use its separate PowerShell or Bash command form; do not paste
@@ -148,19 +221,62 @@ After a coherent batch of Delphi source edits, run the shared `encodingfix-delph
 1. Start with `<DAK_OUT>/summary.json`, then `<DAK_OUT>/triage-changed.md` or
    `<DAK_OUT>/triage.md` (or the wrapper's project-local default when
    `DAK_OUT` is unset).
-2. If triage is too broad, re-run with path/rule filters:
-   - `DAK_EXCLUDE_PATH_MASKS="*\\3rdParty\\*;*\\lib\\*"`
-   - `DAK_IGNORE_WARNING_IDS="W502;O801"`
-3. If triage lacks detail, open:
-   - `fixinsight/fi-findings.md`
-   - `pascal-analyzer/pal-findings.md`
-4. For PAL prioritization, fix in this order:
-   - strong warnings
-   - warnings
-   - optimization findings
-   `Exception.xml` is retained as raw diagnostic evidence only; call-tree rows
-   are not actionable findings and are excluded from all totals.
-5. Use `delta.md` to confirm net reduction and no regression after each batch.
+2. Investigate every non-zero `unknown` ownership count. Never suppress or
+   relabel an unknown row as third-party merely to make a gate pass.
+3. Apply the narrowest truthful layer from the filtering decision table below.
+4. Prioritize: new owned strong warnings; new owned correctness warnings;
+   changed-file owned findings; existing owned maintainability/hygiene;
+   advisory metrics and optimization hints.
+5. Use `delta.md` to confirm owned deltas without relying on total reduction.
+   Analyzer completeness, ownership, filter provenance, and coverage must also
+   agree. A quieter report is not proof of improvement.
+   In legacy advisory mode, report the useful delta without converting
+   inherited totals or parser failures into a feature gate.
+
+## Filtering decision table
+
+| Situation | Action |
+| --- | --- |
+| Third-party noise | Ownership-aware actionable projection; keep it summarized in `external-summary.md`. |
+| Generated/vendor results that should not be reported | Post-analysis path filter via `DAK_EXCLUDE_PATH_MASKS`, `--exclude-path-masks`, or `[ReportFilter].ExcludePathMasks`. |
+| Audited noisy rule across the repository | Analyzer-specific report rule filter: FixInsight uses `DAK_FI_IGNORE_RULES`, `--ignore-warning-ids`, or `[FixInsightIgnore].Warnings`; PAL uses `DAK_PAL_IGNORE_RULES`, `--pal-ignore-rules`, or `[PascalAnalyzerIgnore].Rules`. |
+| Intentional exception at one location | Inline FixInsight suppression from its manual, or reviewed `PALOFF` with reason and a real PAL rerun. |
+| Dependency must not be analyzed | Explicit PAL `/X` or `/XF` via the corresponding `DAK_PAL_EXCLUDE_*`, CLI, or `[PascalAnalyzer]` setting; report reduced coverage and caller-side risk. |
+
+Path and rule filters change actionable projections only. Ignored findings stay
+in normalized JSONL and `static-analysis.full.sarif`, with ignored counts and
+active policy in `summary.json`. Ownership classification runs before policy,
+so `unknown` remains fail-closed.
+
+### Worked examples
+
+- Third-party projection: the Accessibility Framework run retained 7,558 TMS
+  rows in raw evidence, classified them `third_party`, summarized them in
+  `external-summary.md`, and kept all 7,558 out of actionable triage.
+- Repository-wide PAL rule: `DAK_PAL_IGNORE_RULES=WARN54` resolves only the
+  installed-version-verified alias. Matching rows stay in raw JSONL/full SARIF,
+  appear under ignored counts and policy provenance, and leave actionable
+  triage/SARIF.
+- Site-specific PAL exception:
+
+  ```pascal
+  end; //PALOFF reviewed exception: callback intentionally has no action
+  ```
+
+  Compile the fixture and rerun PAL to prove exactly the intended finding
+  disappears. Do not publish multi-code syntax without separate installed-PAL
+  proof.
+- Explicit `/X`: the verified TMS exclusion removed 7,558 external rows but
+  increased owned caller-side findings from 298 to 306: eight new
+  out-parameter warnings caused by missing dependency contracts. Report this
+  as reduced coverage, not improvement.
+
+`/X` and `/XF` remove analysis input. Never add them merely to quiet a report.
+
+Metric-only findings such as method length, parameter count, nesting, and
+complexity thresholds are advisory and non-gating by default. They normally do
+not justify a rewrite. `[AnalysisPolicy].GateMetrics` is an explicit,
+repository-owned opt-in for selected canonical PAL metric identities.
 
 ## Safe Fix Rules
 
@@ -173,6 +289,9 @@ Require explicit review before change:
 - signature changes (`const/var/out`, visibility, overloads)
 - lifecycle/exception-flow rewrites
 - large refactors driven only by metrics warnings
+
+When a clean analyzer result would require any of these changes, propose a
+separate refactoring effort instead of expanding the current feature.
 
 ## Troubleshooting
 

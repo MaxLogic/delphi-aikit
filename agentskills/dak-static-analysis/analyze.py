@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import platform
 import re
@@ -12,6 +13,12 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from workspace import WorkspaceError, find_vcs_root, resolve_workspace
 
 
 def _is_wsl() -> bool:
@@ -42,18 +49,6 @@ def _wslpath_to_unix(p: str) -> str:
     return out
 
 
-def _find_vcs_root(start_dir: Path) -> tuple[Optional[Path], str]:
-    p = start_dir.resolve()
-    while True:
-        if (p / ".git").exists():
-            return p, "git"
-        if (p / ".svn").exists():
-            return p, "svn"
-        if p.parent == p:
-            return None, ""
-        p = p.parent
-
-
 def _to_win_arg(p: Path) -> str:
     s = str(p)
     if not _is_wsl():
@@ -69,7 +64,9 @@ def _get_env(name: str, default: str) -> str:
     return val if val else default
 
 
-def _find_dak_exe(dproj: Path) -> Path:
+def _find_dak_exe(
+    dproj: Path, workspace_root: Optional[Path] = None
+) -> Path:
     env = os.environ.get("DAK_EXE", "").strip()
     if env:
         # In WSL, allow `DAK_EXE=C:\path\DelphiAIKit.exe` and convert for existence/execution.
@@ -111,15 +108,18 @@ def _find_dak_exe(dproj: Path) -> Path:
     # Finally: look for a repo-local build of DAK (convenient when we run from the DAK repo).
     roots: list[Path] = []
 
-    cwd = Path.cwd()
-    roots.append(cwd)
-    cwd_root, _ = _find_vcs_root(cwd)
-    if cwd_root is not None:
-        roots.append(cwd_root)
+    if workspace_root is not None:
+        roots.append(workspace_root)
+    else:
+        cwd = Path.cwd()
+        roots.append(cwd)
+        cwd_root, _ = find_vcs_root(cwd)
+        if cwd_root is not None:
+            roots.append(cwd_root)
 
-    target_root, _ = _find_vcs_root(dproj.parent)
-    if target_root is not None:
-        roots.append(target_root)
+        target_root, _ = find_vcs_root(dproj.parent)
+        if target_root is not None:
+            roots.append(target_root)
 
     # Keep compatibility when the skill lives inside a tooling repo (but do not rely on it).
     script_dir = Path(__file__).resolve().parent
@@ -150,6 +150,29 @@ def _maybe_add_arg(args: list[str], flag: str, value: Optional[str]) -> None:
     args.extend([flag, v])
 
 
+def _merge_rule_lists(*values: str) -> str:
+    items: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        for item in value.split(";"):
+            rule = item.strip()
+            if rule and rule.lower() not in seen:
+                seen.add(rule.lower())
+                items.append(rule)
+    return ";".join(items)
+
+
+def _dak_child_environment(pal_ignore_rules: str) -> dict[str, str]:
+    environment = os.environ.copy()
+    if pal_ignore_rules:
+        environment["DAK_PAL_IGNORE_RULES_ORIGIN"] = (
+            "environment:DAK_PAL_IGNORE_RULES"
+        )
+    else:
+        environment.pop("DAK_PAL_IGNORE_RULES_ORIGIN", None)
+    return environment
+
+
 def _resolve_out_root(repo_root: Path, dproj: Path) -> Path:
     raw = os.environ.get("DAK_OUT", "").strip()
     if not raw:
@@ -170,12 +193,17 @@ def _normalize_input_path(arg: str) -> Path:
     return Path(s).expanduser()
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print("Usage: analyze.py <path-to-project.dproj>", file=sys.stderr)
-        return 2
+def _parse_args(argv: list[str]) -> tuple[str, str]:
+    parser = argparse.ArgumentParser(prog=Path(argv[0]).name)
+    parser.add_argument("project")
+    parser.add_argument("--workspace-root", default="")
+    options = parser.parse_args(argv[1:])
+    return options.project, options.workspace_root
 
-    dproj = _normalize_input_path(argv[1])
+
+def main(argv: list[str]) -> int:
+    project_arg, workspace_selector = _parse_args(argv)
+    dproj = _normalize_input_path(project_arg)
     if not dproj.is_absolute():
         dproj = (Path.cwd() / dproj).resolve()
     else:
@@ -184,7 +212,30 @@ def main(argv: list[str]) -> int:
         print(f"ERROR: .dproj not found: {dproj}", file=sys.stderr)
         return 2
 
-    dak_exe = _find_dak_exe(dproj)
+    resolution_selector = workspace_selector
+    if (
+        workspace_selector
+        and workspace_selector.casefold() not in {"auto", "git", "svn", "project"}
+        and _is_wsl()
+        and _looks_like_windows_path(workspace_selector)
+    ):
+        resolution_selector = str(_normalize_input_path(workspace_selector))
+    try:
+        workspace = resolve_workspace(
+            dproj, resolution_selector, cwd=Path.cwd()
+        )
+        if workspace.source != "default":
+            dak_exe = _find_dak_exe(dproj, workspace.root)
+        else:
+            dak_exe = _find_dak_exe(dproj)
+            workspace = resolve_workspace(
+                dproj,
+                executable_ini=dak_exe.parent / "dak.ini",
+                cwd=Path.cwd(),
+            )
+    except WorkspaceError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 2
     dak_exe_arg = _to_win_arg(dak_exe) if _is_wsl() else str(dak_exe)
 
     platform_name = _get_env("DAK_PLATFORM", "Win32")
@@ -195,10 +246,18 @@ def main(argv: list[str]) -> int:
     dak_envoptions = os.environ.get("DAK_ENVOPTIONS", "").strip()
     fi_formats = os.environ.get("DAK_FI_FORMATS", "").strip()
     exclude_masks = os.environ.get("DAK_EXCLUDE_PATH_MASKS", "").strip()
-    ignore_rule_ids = os.environ.get("DAK_IGNORE_WARNING_IDS", "").strip()
+    ignore_rule_ids = _merge_rule_lists(
+        os.environ.get("DAK_FI_IGNORE_RULES", ""),
+        os.environ.get("DAK_IGNORE_WARNING_IDS", ""),
+    )
+    pal_ignore_rules = os.environ.get("DAK_PAL_IGNORE_RULES", "").strip()
     fi_settings = (os.environ.get("FIXINSIGHT_SETTINGS", "").strip() or os.environ.get("FI_SETTINGS", "").strip())
     pa_path = os.environ.get("PA_PATH", "").strip()
     pa_args = os.environ.get("PA_ARGS", "").strip()
+    pa_exclude_search_folders = os.environ.get(
+        "DAK_PAL_EXCLUDE_SEARCH_FOLDERS", ""
+    ).strip()
+    pa_exclude_files = os.environ.get("DAK_PAL_EXCLUDE_FILES", "").strip()
     fixinsight_flag = os.environ.get("DAK_FIXINSIGHT", "").strip()
     pal_flag = _get_env("DAK_PASCAL_ANALYZER", os.environ.get("DAK_PAL", "").strip() or "true")
     clean_flag = os.environ.get("DAK_CLEAN", "").strip()
@@ -219,6 +278,13 @@ def main(argv: list[str]) -> int:
 
     out_root = _resolve_out_root(Path.cwd(), dproj)
     args += ["--out", _to_win_arg(out_root)]
+    if workspace_selector:
+        forwarded_selector = (
+            workspace_selector
+            if workspace_selector.casefold() in {"auto", "git", "svn", "project"}
+            else _to_win_arg(workspace.root)
+        )
+        args += ["--workspace-root", forwarded_selector]
 
     if fi_formats:
         args += ["--fi-formats", fi_formats]
@@ -235,22 +301,41 @@ def main(argv: list[str]) -> int:
         args += ["--exclude-path-masks", exclude_masks]
     if ignore_rule_ids:
         args += ["--ignore-warning-ids", ignore_rule_ids]
+    if pal_ignore_rules:
+        args += ["--pal-ignore-rules", pal_ignore_rules]
     if fi_settings:
         args += ["--fi-settings", _to_win_arg(Path(fi_settings))]
     if pa_path:
         args += ["--pa-path", _to_win_arg(Path(pa_path))]
     if pa_args:
         args += ["--pa-args", pa_args]
+    if pa_exclude_search_folders:
+        args += ["--pa-exclude-search-folders", pa_exclude_search_folders]
+    if pa_exclude_files:
+        args += ["--pa-exclude-files", pa_exclude_files]
 
-    vcs_root, _ = _find_vcs_root(dproj.parent)
-    work_root = vcs_root if vcs_root is not None else dproj.parent
+    work_root = workspace.root
+    from postprocess import (
+        _record_postprocessor_failure,
+        capture_run_provenance,
+        run_postprocess,
+    )
+
+    captured_provenance = capture_run_provenance(dproj, dak_exe, workspace)
+    for stale_name in ("summary.md", "summary.json"):
+        (out_root / stale_name).unlink(missing_ok=True)
+    child_environment = _dak_child_environment(pal_ignore_rules)
 
     if _is_wsl():
         # Some environments disallow executing arbitrary Windows binaries directly from WSL,
         # but `cmd.exe /C ...` remains available and works reliably.
-        p = subprocess.run([_cmd_exe(), "/C"] + args, cwd=str(work_root))
+        p = subprocess.run(
+            [_cmd_exe(), "/C"] + args,
+            cwd=str(work_root),
+            env=child_environment,
+        )
     else:
-        p = subprocess.run(args, cwd=str(work_root))
+        p = subprocess.run(args, cwd=str(work_root), env=child_environment)
 
     summary_path = out_root / "summary.md"
     if summary_path.exists():
@@ -259,13 +344,28 @@ def main(argv: list[str]) -> int:
         print(f"Summary not found: {summary_path}", file=sys.stderr)
 
     gate_pass = True
-    if p.returncode == 0 and summary_path.exists():
-        from postprocess import run_postprocess
-
-        res = run_postprocess(out_root, title=dproj.stem)
-        gate_pass = bool(res.get("gate_pass", True))
-        if not gate_pass:
-            print(f"Static analysis gate failed (see: {res.get('delta', '')})", file=sys.stderr)
+    if summary_path.exists():
+        try:
+            res = run_postprocess(
+                out_root,
+                title=dproj.stem,
+                captured_provenance=captured_provenance,
+                execution_exit_code=p.returncode,
+            )
+            gate_pass = bool(res.get("gate_pass", True))
+            if not gate_pass:
+                print(f"Static analysis gate failed (see: {res.get('delta', '')})", file=sys.stderr)
+        except Exception as e:
+            if p.returncode != 0:
+                print(f"Post-processing failed after analyzer failure: {e}", file=sys.stderr)
+                return p.returncode
+            diagnostic = _record_postprocessor_failure(out_root, e)
+            print(
+                f"Post-processing failed after successful analyzer: {e} "
+                f"(diagnostic: {diagnostic})",
+                file=sys.stderr,
+            )
+            return 4
 
     if p.returncode != 0:
         return p.returncode

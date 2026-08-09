@@ -1,0 +1,185 @@
+{
+  "compatibility": {
+    "context": {
+      "analyzers": {
+        "fixinsight": {
+          "options_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "requested": true,
+          "version": "fixture"
+        },
+        "pascal_analyzer": {
+          "options_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "requested": false,
+          "version": ""
+        }
+      },
+      "compiler": {
+        "config": "Debug",
+        "delphi": "23.0",
+        "platform": "Win64",
+        "search_path_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "config_manifest_sha256": [],
+      "dak": {
+        "executable_sha256": "5e06b71cc4f33456b45d8586bb1d7f48b8d5fa86c710e519b5723e3a696e32d7",
+        "head": "66d6f40192afc10173d9a6335f83e42e4c472954"
+      },
+      "policy_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "project_manifest_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "reporting_policy_origins": {},
+      "reporting_policy_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "subject_kind": "project",
+      "submodules": [],
+      "workspace": {
+        "capabilities": {},
+        "externals": [],
+        "inventory_scope": "",
+        "root": "F:/projects/MaxLogic/DelphiAiKit/agentskills/dak-static-analysis/tests/fixtures/workspace-report/workspace",
+        "status": "",
+        "vcs": "none"
+      }
+    },
+    "sha256": "f7316037ca9e8822edcabb9775e7aa22e54873411f6ce4ba6158432e9d5cc481"
+  },
+  "created_at": "2026-08-08T10:00:00Z",
+  "fixinsight": {
+    "counts_by_code": {
+      "W101": 2
+    },
+    "ownership": {
+      "project": 1,
+      "repository": 1,
+      "third_party": 0,
+      "unknown": 0
+    },
+    "total": 2,
+    "w_hashes": [
+      "4d2f6e98cc43ee4020d790105bd09f099072a7b6",
+      "4f4bb9cb42259410e476932ab5800da39249c064"
+    ]
+  },
+  "ownership": {
+    "project": 1,
+    "repository": 1,
+    "third_party": 0,
+    "unknown": 0
+  },
+  "pascal_analyzer": {
+    "ignored_rule_counts": {},
+    "ownership": {
+      "project": 0,
+      "repository": 0,
+      "third_party": 0,
+      "unknown": 0
+    },
+    "raw_rule_counts": {},
+    "rule_counts": {},
+    "strong_hashes": [],
+    "top_warning_sections": [],
+    "totals": {
+      "optimizations": 0,
+      "strong_warnings": 0,
+      "total": 0,
+      "warnings": 0
+    },
+    "verified_rule_aliases": {},
+    "warning_hashes": [],
+    "warning_ownership": {
+      "project": 0,
+      "repository": 0,
+      "third_party": 0,
+      "unknown": 0
+    }
+  },
+  "raw": {
+    "by_analyzer": {
+      "fixinsight": 2,
+      "pascal_analyzer": 0
+    },
+    "by_rule": {
+      "FI.W101": 2
+    },
+    "by_severity": {
+      "hygiene": 0,
+      "maintainability": 0,
+      "optimization": 0,
+      "other": 0,
+      "strong_warning": 0,
+      "warning": 2
+    },
+    "fixinsight": {
+      "by_rule": {
+        "FI.W101": 2
+      },
+      "by_severity": {
+        "warning": 2
+      },
+      "hygiene": 0,
+      "maintainability": 0,
+      "ownership": {
+        "project": 1,
+        "repository": 1,
+        "third_party": 0,
+        "unknown": 0
+      },
+      "total": 2,
+      "warnings": 2
+    },
+    "ownership": {
+      "project": 1,
+      "repository": 1,
+      "third_party": 0,
+      "unknown": 0
+    },
+    "pascal_analyzer": {
+      "by_rule": {},
+      "by_severity": {},
+      "optimizations": 0,
+      "ownership": {
+        "project": 0,
+        "repository": 0,
+        "third_party": 0,
+        "unknown": 0
+      },
+      "strong_warnings": 0,
+      "total": 0,
+      "warnings": 0
+    },
+    "total": 2
+  },
+  "run_context": {
+    "config": "unknown",
+    "delphi": "Delphi 12",
+    "host": {
+      "os": "Windows",
+      "python": "3.13.14",
+      "release": "11",
+      "wsl": false
+    },
+    "platform": "Win64",
+    "tools": {
+      "pal_compiler_target": "Delphi 12 (Win64)"
+    }
+  },
+  "summary": {
+    "analyzers": [
+      "fixinsight",
+      "pascal_analyzer"
+    ],
+    "fixinsight_top_codes": {
+      "W101": 2
+    },
+    "fixinsight_total": 2,
+    "pal_compiler_target": "Delphi 12 (Win64)",
+    "pal_totals": {
+      "optimizations": 0,
+      "strong_warnings": 0,
+      "total": 0,
+      "warnings": 0
+    },
+    "path": "F:\\projects\\MaxLogic\\DelphiAiKit\\agentskills\\dak-static-analysis\\tests\\fixtures\\workspace-report\\out\\summary.md",
+    "project": "F:\\projects\\MaxLogic\\DelphiAiKit\\agentskills\\dak-static-analysis\\tests\\fixtures\\workspace-report\\workspace\\Sample.dpr",
+    "timestamp": "2026-08-08T10:00:00Z"
+  },
+  "version": 4
+}

@@ -31,18 +31,23 @@ resourcestring
   SUsageAnalyze =
     'DelphiAIKit.exe analyze --project "<path>" --delphi <23.0> ' +
     '[--platform <Win32|Win64>] [--config <Debug|Release>]' + #13#10 +
+    '  [--workspace-root <auto|git|svn|project|path>]' + #13#10 +
     '  [--out "<path>"] [--fi-formats <txt|xml|csv|all>] [--fixinsight [true|false]] ' +
     '[--pascal-analyzer [true|false]]' + #13#10 +
     '  [--exclude-path-masks "<list>"] [--ignore-warning-ids "<list>"]' + #13#10 +
     '  [--fi-settings "<path>"] [--fi-ignore "<list>"] [--fi-silent [true|false]] ' +
     '[--fi-timeout-sec <N>]' + #13#10 +
-    '  [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] [--pa-timeout-sec <N>]' + #13#10 +
+    '  [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +
+    '[--pa-exclude-search-folders "<list>"] [--pa-exclude-files "<list>"] ' +
+    '[--pal-ignore-rules "<list>"] [--pa-timeout-sec <N>]' + #13#10 +
     '  [--clean [true|false]] [--write-summary [true|false]]' + #13#10 +
     '  [--rsvars "<path>"] [--envoptions "<path>"] [--log-file "<path>"] [--log-tee [true|false]] ' +
     '[--verbose [true|false]]' + #13#10 +
     'DelphiAIKit.exe analyze --unit "<path>" [--project-context "<dproj>"] --delphi <23.0> [--out "<path>"] ' +
+    '[--workspace-root <auto|git|svn|project|path>] ' +
     '[--pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +
-    '[--pa-timeout-sec <N>]';
+    '[--pa-exclude-search-folders "<list>"] [--pa-exclude-files "<list>"] ' +
+    '[--pal-ignore-rules "<list>"] [--pa-timeout-sec <N>]';
   SUsageBuild =
     'DelphiAIKit.exe build --project "<path>" [--delphi <23.0>] ' +
     '[--platform <Win32|Win64>] [--config <Debug|Release>] [--target <Build|Rebuild>] [--rebuild [true|false]] ' +
@@ -61,6 +66,8 @@ resourcestring
     'DelphiAIKit.exe dfm-inspect --dfm "<path>" [--format <tree|summary>]';
   SUsageGlobalVars =
     'DelphiAIKit.exe global-vars --project "<path>" [--format <text|json>] [--output "<path>|-"] ' +
+    '[--delphi <23.0>] [--platform <Win32|Win64>] [--config <Debug|Release>] ' +
+    '[--rsvars "<path>"] [--envoptions "<path>"] ' +
     '[--cache "<path>"] [--refresh <auto|force>] [--unused-only] [--unit "<pattern>"] [--name "<pattern>"] ' +
     '[--reads-only] [--writes-only] [--verbose [true|false]]';
   SUsageDeps =

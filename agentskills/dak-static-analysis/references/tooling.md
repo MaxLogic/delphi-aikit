@@ -11,8 +11,32 @@ Common overrides:
 - `DAK_RSVARS=...` (forwarded to `--rsvars`)
 - `DAK_ENVOPTIONS=...` (forwarded to `--envoptions`)
 - `DAK_EXCLUDE_PATH_MASKS=...` (forwarded to `--exclude-path-masks`)
-- `DAK_IGNORE_WARNING_IDS=...` (forwarded to `--ignore-warning-ids`)
+- `DAK_FI_IGNORE_RULES=...` (forwarded to `--ignore-warning-ids`)
+- `DAK_PAL_IGNORE_RULES=...` (forwarded to `--pal-ignore-rules`)
+- `DAK_PAL_EXCLUDE_SEARCH_FOLDERS=...` (forwarded to
+  `--pa-exclude-search-folders`, explicit PAL `/X`)
+- `DAK_PAL_EXCLUDE_FILES=...` (forwarded to `--pa-exclude-files`, explicit
+  PAL `/XF`)
+- `DAK_IGNORE_WARNING_IDS=...` is a deprecated FixInsight-only alias merged
+  with `DAK_FI_IGNORE_RULES`.
 - `DAK_FI_FORMATS=txt|csv|xml|all` (default: `txt`)
+
+## Workspace and provenance
+
+Use `[Workspace].Root` or `--workspace-root` with `auto`, `git`, `svn`,
+`project`, or a fixed root. CLI precedence is followed by the closest ancestor
+selector and the executable `dak.ini` fallback; discovery may reach the
+filesystem root, while the normal settings cascade stays bounded by the
+selected workspace. A fixed root must exist and contain the analyzed subject.
+
+`provenance.target` exposes `revision`, `dirty`, `changed_files`,
+`source_inputs`, nested Git/SVN roots, and capability states for revision,
+status, changed files, inventory, and `nested_roots`. Capability values are
+`available`, `fallback`, `unavailable`, and `not_applicable`. SVN obtains its
+data from `svn info --xml`, adjacent `svnversion`, `svn status --xml`, and
+`svn list --xml -R`. Missing or failing VCS tooling uses bounded filesystem
+inventory and does not fail analysis. DAK first requires `svn info` to identify
+a valid working copy; remaining command capabilities are then independent.
 
 ## Environment variables (wrapper-only; not forwarded to DAK)
 
@@ -25,6 +49,9 @@ These are used by the skill wrappers to maintain baselines/deltas and optional C
 - `DAK_MAX_NEW_FI_W=0` (default)
 - `DAK_MAX_PAL_WARNING_INCREASE=<N>`
 - `DAK_MAX_FI_TOTAL_INCREASE=<N>`
+- `DAK_GATE_INCLUDE_PATHS=<patterns>` / `DAK_GATE_EXCLUDE_PATHS=<patterns>`
+  narrow the already ownership-selected current findings; they cannot hide
+  unknown ownership or change the checked ownership categories.
 
 ## FixInsightCL specifics
 
@@ -36,11 +63,36 @@ These are used by the skill wrappers to maintain baselines/deltas and optional C
 ## DAK diagnostics filters (dak.ini)
 
 DAK can suppress noisy “unknown macro” / “missing directory” diagnostics via
-cascading `dak.ini` files (executable dir, repo root, then nested folders down to
+cascading `dak.ini` files (executable dir, workspace root, then nested folders down to
 the analyzed `.dproj`):
 
 - `[Diagnostics] IgnoreUnknownMacros=` semicolon-separated list; supports `*` to ignore all
 - `[Diagnostics] IgnoreMissingPaths=` semicolon-separated masks; supports `*` / `?`
+
+## Ownership policy and compatible baselines
+
+The same cascade accepts a minimal checked policy:
+
+```ini
+[AnalysisPolicy]
+GateOwnership=project;repository
+ProjectRoots=
+ThirdPartyRoots=
+```
+
+`GateOwnership` accepts only `project`, `repository`, and `third_party`.
+Unknown keys or categories make the configuration invalid. `ProjectRoots` and
+`ThirdPartyRoots` resolve only paths that automatic project/VCS topology could
+not classify; they cannot relabel an already resolved first-party file.
+
+DAK writes the canonical values, contributing `dak.ini` paths, and policy
+SHA-256 into `summary.json`. A gated comparison always requires a matching
+compatibility fingerprint covering compiler/search-path context, requested
+analyzer versions/options, policy, project/config manifests, recursive
+submodule revisions, and the DAK candidate. HEAD/dirty/source-content identity
+is recorded separately so normal source edits can still be compared with a
+compatible baseline. Missing or incompatible fingerprints fail without
+creating, migrating, or updating the baseline.
 
 ## Pascal Analyzer specifics
 
@@ -54,6 +106,20 @@ the analyzed `.dproj`):
   search path from project context by default. `PA_ARGS` may add other PAL
   options, including an explicit `/CD...`, but cannot override DAK-owned
   report, parse-scope, quiet, or thread arguments.
+
+Report suppression is separate from analysis coverage:
+
+- `[PascalAnalyzerIgnore].Rules`, `--pal-ignore-rules`, and
+  `DAK_PAL_IGNORE_RULES` remove reviewed PAL rules only from actionable
+  projections. Raw JSONL and full SARIF retain them.
+- `[PascalAnalyzer].ExcludeSearchFolders`, `--pa-exclude-search-folders`, and
+  `DAK_PAL_EXCLUDE_SEARCH_FOLDERS` explicitly produce PAL `/X`.
+- `[PascalAnalyzer].ExcludeFiles`, `--pa-exclude-files`, and
+  `DAK_PAL_EXCLUDE_FILES` explicitly produce PAL `/XF`.
+
+Never infer `/X` or `/XF` from ownership or report policy. Removing dependency
+contracts can create false caller-side findings, so every exclusion proof must
+state reduced coverage.
 
 ## FAQ
 

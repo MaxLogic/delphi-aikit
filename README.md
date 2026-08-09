@@ -511,20 +511,24 @@ We can pass analyzer options either via cascading `dak.ini` files or the CLI. CL
 
 ### Cascading `dak.ini` lookup
 
-`dak.ini` files are loaded in **cascading** order (lowest → highest precedence):
+Workspace selection happens before the full settings cascade.
+`--workspace-root` wins; otherwise the closest ancestor `[Workspace].Root`
+selector wins, followed by the executable `dak.ini` fallback and default
+`auto`. Bootstrap may scan to the filesystem root, but reads no other settings.
 
-1. `dak.ini` next to the executable (global defaults).
-2. `dak.ini` at repo root (folder containing `.git` or `.svn`), then each subfolder on the path down to the `.dproj` folder.
-3. The `.dproj` folder `dak.ini` (already included by the path walk).
-
-We **do not** use the current working directory for settings lookup.
+After selection, `dak.ini` files load in **cascading** order (lowest → highest
+precedence) from the workspace root through each subfolder down to the `.dproj`
+folder. Selector files above that boundary contribute only `[Workspace].Root`.
+For backward compatibility, the executable INI contributes normal defaults
+only when no selector exists and default `auto` is used. We **do not** use the
+current working directory for settings discovery.
 
 List-like values are merged + deduped case-insensitively, preserving first-seen order; singular strings override only when non-empty.
 
 Example layout (more local files override/extend more global ones):
 
 ```
-repo/
+workspace/
   dak.ini
   src/
     dak.ini
@@ -533,7 +537,10 @@ repo/
       dak.ini
 ```
 
-The git-tracked reference file is `dak-template.ini`. Copy it to a repo-root `dak.ini` when we need machine-local overrides such as compiler paths. The repo-root `dak.ini` is intentionally untracked; nested project or fixture `dak.ini` files remain normal tracked inputs when we add them on purpose.
+The git-tracked reference file is `dak-template.ini`. Copy it to a
+workspace-root `dak.ini` when we need machine-local overrides such as compiler
+paths. That root `dak.ini` is intentionally untracked; nested project or fixture
+`dak.ini` files remain normal tracked inputs when we add them on purpose.
 
 Supported FixInsight options:
 
@@ -609,18 +616,58 @@ CompilerPath=
 
 `[MadExcept].Path` is optional and can point to `madExceptPatch.exe` (or its folder). If empty, the native `build` runner falls back to `PATH` and common madExcept install folders.
 
+## Static-analysis workspace root
+
+Static analysis uses a workspace boundary; it does not require a Git repository.
+Set `[Workspace].Root` in `dak.ini`, or pass `--workspace-root` to `analyze`,
+the project/unit wrappers, or `doctor`. The CLI wins. Otherwise the closest
+ancestor `dak.ini` selector wins, with the executable `dak.ini` fallback; if no
+selector is configured, `auto` searches to the filesystem root and chooses the
+nearest `.git` or `.svn` marker, then falls back to the project directory.
+
+`Root` accepts `auto`, `git`, `svn`, `project`, or a fixed root path. `git` and
+`svn` require that marker. `project` deliberately ignores surrounding version
+control. A fixed root must exist and contain the analyzed project or unit.
+Relative fixed paths are resolved from the `dak.ini` that declares them. After
+root selection, the normal settings cascade is bounded by that workspace.
+
+Schema-3 `summary.json` records `provenance.target` with the workspace root,
+VCS kind, nullable `revision`, `dirty`, `changed_files`, `source_inputs`, Git
+submodules or SVN externals, and capability states for revision, status,
+changed files, inventory, and `nested_roots`. States are `available`,
+`fallback`, `unavailable`, or `not_applicable`. Git/SVN command loss uses a
+bounded filesystem inventory and does not fail analysis; it records a concise
+diagnostic instead of a false clean state.
+
 ## Report filtering (post-processing)
 
 We support deterministic report filtering after analysis:
 
 - `--exclude-path-masks "<m1;m2;...>"` (or `[ReportFilter].ExcludePathMasks`) removes findings whose reported file path matches any mask.
 - `--ignore-warning-ids "W502;C101;O801"` (or `[FixInsightIgnore].Warnings`) removes findings for those FixInsight rule IDs.
+- `--pal-ignore-rules "WARN54;PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92"` (or `[PascalAnalyzerIgnore].Rules`) excludes matching PAL rules from actionable reports.
 
 Notes:
 
 - This is post-processing only, so it does not speed up FixInsightCL.
 - Filtering only applies when FixInsightCL writes to a file (`--fi-output`), because we need a report file to rewrite.
 - Supported FixInsight report formats: text (default), `--fi-xml`, and `--fi-csv`.
+- `analyze` keeps its analyzer reports unmodified so the static-analysis
+  postprocessor can retain complete evidence. Its path masks and ignored
+  FixInsight IDs become reporting policy instead of deleting raw findings.
+- PAL filtering accepts canonical
+  `PAL.<report-slug>.<section-slug>-<exact-identity>` keys from normalized
+  JSONL. The identity suffix hashes the exact report and section text so
+  punctuation, case, and long-name collisions cannot suppress a neighboring
+  rule. Native aliases are accepted only when verified for the reported PAL
+  version; PAL 9.21.3 currently verifies `WARN54`, `STWA6`, and `OPTI8`.
+  Canonical validation includes zero-count XML sections, while verified aliases
+  remain valid on zero-finding runs. Unknown or ambiguous entries fail with the
+  unmatched values and available rules. PAL ignores never become `/X`, `/XF`,
+  or `PALOFF`.
+- Wrappers use `DAK_FI_IGNORE_RULES` for FixInsight and
+  `DAK_PAL_IGNORE_RULES` for PAL. `DAK_IGNORE_WARNING_IDS` remains a deprecated
+  FixInsight-only alias and is merged with `DAK_FI_IGNORE_RULES`.
 
 Example (CSV, filtered):
 
@@ -663,9 +710,38 @@ compiler target. Omitting it keeps the legacy PAL.INI-based mode and is not
 project-equivalent proof.
 
 AI consumers should start with `<DAK_OUT>\summary.json`, then use
-`triage-changed.md` or `triage.md` for detail. Actionable PAL counts include
-strong warnings, warnings, and optimizations; `Exception.xml` remains raw
-call-tree evidence and is excluded from totals.
+`triage-changed.md` or `triage.md` for detail. Schema 3 separates `raw`,
+`actionable`, `ignored`, `external`, `advisory_metrics`, and `unknown`
+projections. The normalized JSONL files and `static-analysis.full.sarif`
+preserve complete evidence; normal triage and `static-analysis.sarif` contain
+only ownership selected by `[AnalysisPolicy].GateOwnership`. External findings
+are grouped in `external-summary.md`, while complexity and size metrics are
+listed in `metrics.md`.
+
+Metrics are advisory by default. A repository may opt selected canonical PAL
+rules into the actionable gate explicitly:
+
+```ini
+[AnalysisPolicy]
+GateOwnership=project;repository
+GateMetrics=PAL.warnings.method-length-621eae6dfec836e8;PAL.warnings.parameter-count-75ab87a447776473
+```
+
+Unknown ownership remains visible and fails a gated run. `GateMetrics` changes
+reporting only; it never adds PAL `/X` or `/XF` analysis exclusions.
+
+For one reviewed source location, put a reason-bearing marker on PAL's reported
+line, for example
+`end; //PALOFF reviewed false positive: callback intentionally has no action`.
+With source-file input, installed PAL 9.21.3 applies this setting only in PAL
+project mode. Add `/P` explicitly, for example
+`--pa-args "/P /I=C:\path\PAL.INI"`, then rerun the analyzer and compare the raw
+finding before and after the marker. `/P` creates or reuses a `.pap` beside the
+analyzed source, so retain that file only when it is an intended PAL project
+artifact; otherwise remove it after proof. The verified fixture reduced only
+`Warnings.xml` / `Empty begin/end-blocks` from one finding to zero on PAL
+9.21.3.0. We do not document code-qualified or multi-code marker forms until
+each form has equivalent installed-version proof.
 
 ## Output formats
 
@@ -705,3 +781,15 @@ tests\DelphiAIKit.Tests.exe --hidebanner --consolemode:quiet -r:Test.Refactor.Pr
 ```
 
 Manual fixture checks live in `tests\README.md`. We can also run `tests\run.bat`, which executes the resolver against all fixture `.dproj` files and writes outputs to `tests\out`. It expects `bin\DelphiAIKit.exe` to exist and accepts optional `RSVARS` and `ENVOPTIONS` environment variables for overrides.
+
+### Local confidentiality guard
+
+Enable the tracked hooks once per checkout:
+
+```
+git config core.hooksPath .githooks
+```
+
+The pre-commit and pre-push hooks reject content under
+`tests/fixtures/test-projects/`; only its marker `.gitignore` may be tracked.
+Private test corpora must remain outside this repository.

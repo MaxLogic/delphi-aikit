@@ -1,6 +1,9 @@
 import importlib.util
+import io
 import os
 from pathlib import Path
+from contextlib import redirect_stdout
+import shutil
 import sys
 import tempfile
 import unittest
@@ -21,6 +24,116 @@ def load_doctor():
 
 
 class DoctorPalTests(unittest.TestCase):
+    def test_explicit_workspace_dak_discovery_does_not_climb_outer_git(self):
+        module = load_doctor()
+        repo_dak_exe = SKILL_DIR.parents[1] / "bin" / "DelphiAIKit.exe"
+        self.assertTrue(repo_dak_exe.is_file(), f"DAK executable not found: {repo_dak_exe}")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            outer = Path(temp_dir)
+            workspace = outer / "workspace"
+            target_dir = workspace / "src"
+            outer_dak_exe = outer / "bin" / "DelphiAIKit.exe"
+            (outer / ".git").mkdir()
+            target_dir.mkdir(parents=True)
+            outer_dak_exe.parent.mkdir()
+            outer_dak_exe.touch()
+            old_cwd = Path.cwd()
+            old_path = os.environ.get("PATH")
+            old_dak_exe = os.environ.pop("DAK_EXE", None)
+            os.environ["PATH"] = ""
+            os.chdir(workspace)
+            try:
+                self.assertEqual(
+                    repo_dak_exe.resolve(),
+                    module._find_dak_exe(target_dir, workspace),
+                )
+            finally:
+                os.chdir(old_cwd)
+                if old_path is None:
+                    os.environ.pop("PATH", None)
+                else:
+                    os.environ["PATH"] = old_path
+                if old_dak_exe is not None:
+                    os.environ["DAK_EXE"] = old_dak_exe
+
+    def test_closest_ini_workspace_dak_discovery_does_not_climb_outer_git(self):
+        module = load_doctor()
+        repo_dak_exe = SKILL_DIR.parents[1] / "bin" / "DelphiAIKit.exe"
+        self.assertTrue(repo_dak_exe.is_file(), f"DAK executable not found: {repo_dak_exe}")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            outer = Path(temp_dir)
+            workspace = outer / "workspace"
+            target = workspace / "src" / "Sample.dproj"
+            outer_dak_exe = outer / "bin" / "DelphiAIKit.exe"
+            (outer / ".git").mkdir()
+            target.parent.mkdir(parents=True)
+            outer_dak_exe.parent.mkdir()
+            outer_dak_exe.touch()
+            target.touch()
+            (workspace / "dak.ini").write_text(
+                "[Workspace]\nRoot=.\n", encoding="ascii"
+            )
+            git_exe = shutil.which("git")
+            self.assertIsNotNone(git_exe, "git executable not found")
+            old_cwd = Path.cwd()
+            old_path = os.environ.get("PATH")
+            old_dak_exe = os.environ.pop("DAK_EXE", None)
+            os.environ["PATH"] = str(Path(git_exe).parent)
+            os.chdir(workspace)
+            output = io.StringIO()
+            try:
+                with redirect_stdout(output):
+                    module.main(["doctor.py", str(target)])
+            finally:
+                os.chdir(old_cwd)
+                if old_path is None:
+                    os.environ.pop("PATH", None)
+                else:
+                    os.environ["PATH"] = old_path
+                if old_dak_exe is not None:
+                    os.environ["DAK_EXE"] = old_dak_exe
+
+            self.assertIn(f"- DelphiAIKit.exe: {repo_dak_exe.resolve()}", output.getvalue())
+
+    def test_doctor_parses_workspace_root(self):
+        module = load_doctor()
+        self.assertEqual(
+            ("Sample.dproj", "svn"),
+            module._parse_args(
+                ["doctor.py", "Sample.dproj", "--workspace-root", "svn"]
+            ),
+        )
+
+    def test_explicit_workspace_bounds_doctor_settings(self):
+        module = load_doctor()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            executable = root / "bin" / "DelphiAIKit.exe"
+            target = root / "project" / "Sample.dproj"
+            executable.parent.mkdir()
+            target.parent.mkdir()
+            executable.touch()
+            target.touch()
+            (executable.parent / "dak.ini").write_text(
+                "[PascalAnalyzer]\nPath=C:\\PAL\\default\\palcmd.exe\n",
+                encoding="ascii",
+            )
+            project_ini = target.parent / "dak.ini"
+            project_ini.write_text(
+                "[PascalAnalyzer]\nPath=C:\\PAL\\project\\palcmd.exe\n",
+                encoding="ascii",
+            )
+
+            settings, paths = module._load_dak_settings(
+                executable, target, "project"
+            )
+
+            self.assertEqual([project_ini], paths)
+            self.assertEqual(
+                r"C:\PAL\project\palcmd.exe",
+                settings["PascalAnalyzer"]["Path"],
+            )
+
     def test_pal_override_wins_over_known_install_root(self):
         module = load_doctor()
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -195,6 +308,30 @@ Syntax: PALCMD [options] project-file
                 [executable.parent / "dak.ini", root / "dak.ini", target.parent / "dak.ini"],
                 paths,
             )
+
+    def test_analysis_policy_preview_keeps_diagnostics_controls_separate(self):
+        module = load_doctor()
+        settings = module.configparser.ConfigParser(interpolation=None)
+        settings.read_string(
+            "[AnalysisPolicy]\n"
+            "GateOwnership=project;repository\n"
+            "ProjectRoots=src\n"
+            "ThirdPartyRoots=vendor\n"
+            "[Diagnostics]\n"
+            "IgnoreUnknownMacros=OPTIONAL_DEFINE\n"
+            "IgnoreMissingPaths=generated\\*\n"
+        )
+
+        report = module._format_analysis_policy_preview(
+            settings, [Path("C:/repo/dak.ini")]
+        )
+
+        self.assertIn("AnalysisPolicy.GateOwnership=project;repository", report)
+        self.assertIn("AnalysisPolicy.ProjectRoots=src", report)
+        self.assertIn("AnalysisPolicy.ThirdPartyRoots=vendor", report)
+        self.assertIn("AnalysisPolicy.Sources=C:\\repo\\dak.ini", report)
+        self.assertIn("Diagnostics.IgnoreUnknownMacros=OPTIONAL_DEFINE", report)
+        self.assertIn("Diagnostics.IgnoreMissingPaths=generated\\*", report)
 
 
 if __name__ == "__main__":

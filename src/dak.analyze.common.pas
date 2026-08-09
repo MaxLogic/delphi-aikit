@@ -44,7 +44,12 @@ procedure ReadStatusSummary(const aPath: string; out aVersion: string; out aComp
 function TryPrepareProjectParams(const aOptions: TAppOptions; aDiagnostics: TDiagnostics;
   out aParams: TFixInsightParams; out aFixOptions: TFixInsightExtraOptions; out aFixIgnoreDefaults: TFixInsightIgnoreDefaults;
   out aReportFilter: TReportFilterDefaults; out aPascalAnalyzer: TPascalAnalyzerDefaults; out aProjectName: string;
-  out aProjectDproj: string; out aError: string; out aErrorCode: Integer): Boolean;
+  out aProjectDproj: string; out aError: string; out aErrorCode: Integer): Boolean; overload;
+function TryPrepareProjectParams(const aOptions: TAppOptions; aDiagnostics: TDiagnostics;
+  out aParams: TFixInsightParams; out aFixOptions: TFixInsightExtraOptions; out aFixIgnoreDefaults: TFixInsightIgnoreDefaults;
+  out aReportFilter: TReportFilterDefaults; out aPascalAnalyzer: TPascalAnalyzerDefaults;
+  out aSettings: TDakSettings; out aProjectName: string; out aProjectDproj: string; out aError: string;
+  out aErrorCode: Integer): Boolean; overload;
 function BuildOutputRoot(const aBaseOut: string; const aProjectPath: string; const aProjectName: string): string;
 function BuildUnitOutputRoot(const aBaseOut: string; const aUnitPath: string; const aUnitName: string): string;
 function TryRunFixInsightLogged(const aParams: TFixInsightParams; const aStdOutLogPath: string;
@@ -62,8 +67,15 @@ function BuildProjectSummary(const aProjectName: string; const aDprojPath: strin
   const aFixCounts: TFixInsightCounts; const aPal: TPalSummary; const aErrors: TArray<string>): string;
 function BuildUnitSummary(const aUnitName: string; const aUnitPath: string; const aOutRoot: string;
   const aPal: TPalSummary; const aErrors: TArray<string>): string;
+procedure WriteUnitStatusSeed(const aOutRoot: string; const aUnitPath: string; const aProjectContext: string;
+  const aParams: TFixInsightParams; const aSettings: TDakSettings;
+  const aPascalAnalyzer: TPascalAnalyzerDefaults; const aPal: TPalSummary; const aDurationMs: Int64;
+  const aExitCode: Integer; const aRequested: Boolean; const aErrors: TArray<string>);
 
 implementation
+
+uses
+  System.Hash, System.JSON, System.StrUtils;
 
 function FormatTimestamp: string;
 begin
@@ -416,8 +428,19 @@ end;
 function TryPrepareProjectParams(const aOptions: TAppOptions; aDiagnostics: TDiagnostics;
   out aParams: TFixInsightParams; out aFixOptions: TFixInsightExtraOptions; out aFixIgnoreDefaults: TFixInsightIgnoreDefaults;
   out aReportFilter: TReportFilterDefaults; out aPascalAnalyzer: TPascalAnalyzerDefaults; out aProjectName: string;
-  out aProjectDproj: string;
-  out aError: string; out aErrorCode: Integer): Boolean;
+  out aProjectDproj: string; out aError: string; out aErrorCode: Integer): Boolean; overload;
+var
+  lSettings: TDakSettings;
+begin
+  Result := TryPrepareProjectParams(aOptions, aDiagnostics, aParams, aFixOptions, aFixIgnoreDefaults,
+    aReportFilter, aPascalAnalyzer, lSettings, aProjectName, aProjectDproj, aError, aErrorCode);
+end;
+
+function TryPrepareProjectParams(const aOptions: TAppOptions; aDiagnostics: TDiagnostics;
+  out aParams: TFixInsightParams; out aFixOptions: TFixInsightExtraOptions; out aFixIgnoreDefaults: TFixInsightIgnoreDefaults;
+  out aReportFilter: TReportFilterDefaults; out aPascalAnalyzer: TPascalAnalyzerDefaults;
+  out aSettings: TDakSettings; out aProjectName: string; out aProjectDproj: string; out aError: string;
+  out aErrorCode: Integer): Boolean; overload;
 var
   lEnvVars: TDictionary<string, string>;
   lLibraryPath: string;
@@ -445,13 +468,28 @@ begin
     Exit(False);
   end;
 
-  if not LoadSettings(aDiagnostics, lDprojPath, aFixOptions, aFixIgnoreDefaults, aReportFilter, aPascalAnalyzer) then
+  if aOptions.fHasWorkspaceRoot then
+    Result := LoadDakSettings(aDiagnostics, lDprojPath, nil, aOptions.fWorkspaceRoot, aSettings)
+  else
+    Result := LoadDakSettings(aDiagnostics, lDprojPath, nil, aSettings);
+  if not Result then
   begin
-    aError := 'Failed to read dak.ini.';
+    aError := aSettings.fError;
+    if aError = '' then
+      aError := 'Failed to read dak.ini.';
     aErrorCode := 6;
     Exit(False);
   end;
+  aFixOptions := aSettings.fFixInsight;
+  aFixIgnoreDefaults := aSettings.fFixInsightIgnore;
+  aReportFilter := aSettings.fReportFilter;
+  aPascalAnalyzer := aSettings.fPascalAnalyzer;
   ApplySettingsOverrides(aOptions, aFixOptions, aFixIgnoreDefaults, aReportFilter, aPascalAnalyzer);
+  ApplyPascalAnalyzerIgnoreOverride(aOptions, aSettings.fPascalAnalyzerIgnore);
+  aSettings.fFixInsight := aFixOptions;
+  aSettings.fFixInsightIgnore := aFixIgnoreDefaults;
+  aSettings.fReportFilter := aReportFilter;
+  aSettings.fPascalAnalyzer := aPascalAnalyzer;
 
   lOptions.fDprojPath := lDprojPath;
   aProjectName := TPath.GetFileNameWithoutExtension(lDprojPath);
@@ -821,6 +859,167 @@ begin
     Result := lLines.ToString;
   finally
     lLines.Free;
+  end;
+end;
+
+procedure WriteUnitStatusSeed(const aOutRoot: string; const aUnitPath: string; const aProjectContext: string;
+  const aParams: TFixInsightParams; const aSettings: TDakSettings;
+  const aPascalAnalyzer: TPascalAnalyzerDefaults; const aPal: TPalSummary; const aDurationMs: Int64;
+  const aExitCode: Integer; const aRequested: Boolean; const aErrors: TArray<string>);
+var
+  lAnalyzer: TJSONObject;
+  lComplete: Boolean;
+  lConfigFiles: TJSONArray;
+  lCounts: TJSONObject;
+  lError: string;
+  lErrors: TJSONArray;
+  lInputs: TJSONObject;
+  lOptionsInput: string;
+  lQuality: string;
+  lPolicy: TJSONObject;
+  lPolicyOrigins: TJSONObject;
+  lPolicySources: TJSONArray;
+  lPolicyValues: TJSONObject;
+  lRoot: TJSONObject;
+  lRuns: TJSONArray;
+  lSettingsPath: string;
+
+  function HashArray(const aValues: TArray<string>): string;
+  begin
+    Result := LowerCase(THashSHA2.GetHashString(String.Join(#10, aValues)));
+  end;
+
+  function HashFile(const aPath: string): string;
+  begin
+    if (aPath = '') or (not FileExists(aPath)) then
+      Exit('');
+    Result := LowerCase(THashSHA2.GetHashStringFromFile(aPath));
+  end;
+
+  function StringListJson(const aValues: string): TJSONArray;
+  var
+    lValue: string;
+  begin
+    Result := TJSONArray.Create;
+    for lValue in aValues.Split([';']) do
+      if Trim(lValue) <> '' then
+        Result.AddElement(TJSONString.Create(Trim(lValue)));
+  end;
+
+begin
+  lComplete := (not aRequested) or
+    (aPal.Ran and (aPal.ExitCode = 0) and (aPal.ReportRoot <> '') and (Length(aErrors) = 0));
+  if not aRequested then
+    lQuality := 'complete'
+  else if lComplete then
+    lQuality := 'complete'
+  else
+    lQuality := 'unavailable';
+
+  lRoot := TJSONObject.Create;
+  try
+    lRoot.AddPair('schema_version', TJSONNumber.Create(2));
+    lRoot.AddPair('status', TJSONObject.Create
+      .AddPair('infrastructure', IfThen(aExitCode = 0, 'complete', 'failed'))
+      .AddPair('policy', 'not_evaluated'));
+    lRoot.AddPair('subject', TJSONObject.Create
+      .AddPair('kind', 'unit')
+      .AddPair('path', aUnitPath)
+      .AddPair('project_context', aProjectContext));
+    lRoot.AddPair('workspace', TJSONObject.Create
+      .AddPair('selector', aSettings.fWorkspace.fSelector)
+      .AddPair('root', aSettings.fWorkspace.fRoot)
+      .AddPair('vcs', aSettings.fWorkspace.fVcs)
+      .AddPair('source', aSettings.fWorkspace.fSource));
+    lRoot.AddPair('compiler', TJSONObject.Create
+      .AddPair('delphi', aParams.fDelphiVersion)
+      .AddPair('platform', aParams.fPlatform)
+      .AddPair('config', aParams.fConfig)
+      .AddPair('search_path_sha256',
+        LowerCase(THashSHA2.GetHashString(String.Join(#10, aParams.fUnitSearchPath)))));
+
+    lAnalyzer := TJSONObject.Create
+      .AddPair('requested', TJSONBool.Create(aRequested))
+      .AddPair('status', IfThen(not aRequested, 'not_requested', IfThen(lComplete, 'complete', 'failed')))
+      .AddPair('executable', aPascalAnalyzer.fPath)
+      .AddPair('version', aPal.Version)
+      .AddPair('count_quality', lQuality);
+    lOptionsInput := String.Join('|', [aPascalAnalyzer.fArgs, aPascalAnalyzer.fExcludeSearchFolders,
+      aPascalAnalyzer.fExcludeFiles, aPascalAnalyzer.fTimeoutSec.ToString,
+      HashArray(aParams.fDefines), HashArray(aParams.fUnitSearchPath)]);
+    lAnalyzer.AddPair('options', TJSONObject.Create
+      .AddPair('exclude_search_folders', aPascalAnalyzer.fExcludeSearchFolders)
+      .AddPair('exclude_files', aPascalAnalyzer.fExcludeFiles)
+      .AddPair('sha256', LowerCase(THashSHA2.GetHashString(lOptionsInput))));
+    lRuns := TJSONArray.Create;
+    if aPal.Ran then
+      lRuns.AddElement(TJSONObject.Create
+        .AddPair('exit_code', TJSONNumber.Create(aPal.ExitCode))
+        .AddPair('duration_ms', TJSONNumber.Create(aDurationMs))
+        .AddPair('parse_status', IfThen(lComplete, 'complete', 'unavailable'))
+        .AddPair('artifacts', TJSONObject.Create
+          .AddPair('stdout', 'pascal-analyzer/pascal-analyzer.stdout.log')
+          .AddPair('stderr', 'pascal-analyzer/pascal-analyzer.stderr.log')
+          .AddPair('log', 'pascal-analyzer/pascal-analyzer.log')));
+    lAnalyzer.AddPair('runs', lRuns);
+    lRoot.AddPair('analyzers', TJSONObject.Create.AddPair('pascal_analyzer', lAnalyzer));
+
+    lCounts := TJSONObject.Create.AddPair('quality', lQuality);
+    if lQuality <> 'unavailable' then
+    begin
+      lCounts.AddPair('warnings', TJSONNumber.Create(aPal.Warnings));
+      lCounts.AddPair('strong_warnings', TJSONNumber.Create(aPal.StrongWarnings));
+      lCounts.AddPair('optimizations', TJSONNumber.Create(aPal.Optimizations));
+      lCounts.AddPair('total', TJSONNumber.Create(aPal.Warnings + aPal.StrongWarnings + aPal.Optimizations));
+    end;
+    lRoot.AddPair('counts', TJSONObject.Create.AddPair('pascal_analyzer', lCounts));
+
+    lConfigFiles := TJSONArray.Create;
+    for lSettingsPath in aSettings.fLoadedPaths do
+      lConfigFiles.AddElement(TJSONObject.Create
+        .AddPair('path', lSettingsPath)
+        .AddPair('sha256', HashFile(lSettingsPath)));
+    lInputs := TJSONObject.Create
+      .AddPair('unit_sha256', HashFile(aUnitPath))
+      .AddPair('project_sha256', HashFile(aProjectContext))
+      .AddPair('config_manifests', lConfigFiles);
+    lRoot.AddPair('inputs', lInputs);
+    lPolicyValues := TJSONObject.Create
+      .AddPair('gate_ownership', StringListJson(aSettings.fAnalysisPolicy.fGateOwnership))
+      .AddPair('gate_metrics', StringListJson(aSettings.fAnalysisPolicy.fGateMetrics))
+      .AddPair('fixinsight_ignore', StringListJson(aSettings.fFixInsightIgnore.fWarnings))
+      .AddPair('pal_ignore_rules', StringListJson(aSettings.fPascalAnalyzerIgnore.fRules))
+      .AddPair('project_roots', StringListJson(aSettings.fAnalysisPolicy.fProjectRoots))
+      .AddPair('third_party_roots', StringListJson(aSettings.fAnalysisPolicy.fThirdPartyRoots))
+      .AddPair('exclude_path_masks', StringListJson(aSettings.fReportFilter.fExcludePathMasks));
+    lPolicySources := TJSONArray.Create;
+    for lSettingsPath in aSettings.fAnalysisPolicy.fSources do
+      lPolicySources.AddElement(TJSONString.Create(lSettingsPath));
+    lPolicyOrigins := TJSONObject.Create
+      .AddPair('pal_ignore_rules',
+        StringListJson(aSettings.fPascalAnalyzerIgnore.fSources));
+    lPolicy := TJSONObject.Create
+      .AddPair('resolver', 'Dak.Settings')
+      .AddPair('values', lPolicyValues)
+      .AddPair('sources', lPolicySources)
+      .AddPair('origins', lPolicyOrigins)
+      .AddPair('sha256', aSettings.fAnalysisPolicy.fSha256)
+      .AddPair('reporting_sha256', LowerCase(THashSHA2.GetHashString(
+        'GateMetrics=' + aSettings.fAnalysisPolicy.fGateMetrics + #10 +
+        'FixInsightIgnore=' + aSettings.fFixInsightIgnore.fWarnings + #10 +
+        'PascalAnalyzerIgnore=' + aSettings.fPascalAnalyzerIgnore.fRules + #10 +
+        'ExcludePathMasks=' + aSettings.fReportFilter.fExcludePathMasks)));
+    lRoot.AddPair('policy', lPolicy);
+    lErrors := TJSONArray.Create;
+    for lError in aErrors do
+      lErrors.AddElement(TJSONString.Create(lError));
+    lRoot.AddPair('errors', lErrors);
+    lRoot.AddPair('artifacts', TJSONObject.Create
+      .AddPair('summary_markdown', 'summary.md')
+      .AddPair('run_log', 'run.log'));
+    WriteLogText(TPath.Combine(aOutRoot, 'summary.json'), lRoot.Format(2));
+  finally
+    lRoot.Free;
   end;
 end;
 end.

@@ -102,6 +102,7 @@ begin
     Add('ignore-warning-ids', '', svpRequiredValue, [crResolve, crAnalyze]);
     Add('unit', '', svpRequiredValue, [crAnalyze, crGlobalVars, crDeps, crRemoveWith, crSymbolMap]);
     Add('project-context', '', svpRequiredValue, [crAnalyze]);
+    Add('workspace-root', '', svpRequiredValue, [crAnalyze]);
     Add('fi-formats', '', svpRequiredValue, [crAnalyze]);
     Add('fixinsight', '', svpOptionalBoolValue, [crAnalyze]);
     Add('pascal-analyzer', 'pal', svpOptionalBoolValue, [crAnalyze]);
@@ -110,6 +111,9 @@ begin
     Add('pa-path', '', svpRequiredValue, [crAnalyze]);
     Add('pa-output', '', svpRequiredValue, [crAnalyze]);
     Add('pa-args', '', svpRequiredValue, [crAnalyze]);
+    Add('pa-exclude-search-folders', '', svpRequiredValue, [crAnalyze]);
+    Add('pa-exclude-files', '', svpRequiredValue, [crAnalyze]);
+    Add('pal-ignore-rules', '', svpRequiredValue, [crAnalyze]);
     Add('pa-timeout-sec', '', svpRequiredValue, [crAnalyze]);
     Add('show-warnings', '', svpOptionalBoolValue, [crBuild]);
     Add('show-hints', '', svpOptionalBoolValue, [crBuild]);
@@ -1137,6 +1141,12 @@ begin
       Exit(False);
     fOptions.fProjectContextPath := lValue;
     fOptions.fHasProjectContextPath := True;
+  end else if SwitchMatches(aSwitch, 'workspace-root') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--workspace-root') then
+      Exit(False);
+    fOptions.fWorkspaceRoot := lValue;
+    fOptions.fHasWorkspaceRoot := True;
   end else if SwitchMatches(aSwitch, 'out') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--out') then
@@ -1277,6 +1287,27 @@ begin
       Exit(False);
     fOptions.fPaArgs := lValue;
     fOptions.fHasPaArgs := True;
+  end else if SwitchMatches(aSwitch, 'pa-exclude-search-folders') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue,
+      '--pa-exclude-search-folders', True) then
+      Exit(False);
+    fOptions.fPaExcludeSearchFolders := lValue;
+    fOptions.fHasPaExcludeSearchFolders := True;
+  end else if SwitchMatches(aSwitch, 'pa-exclude-files') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue,
+      '--pa-exclude-files', True) then
+      Exit(False);
+    fOptions.fPaExcludeFiles := lValue;
+    fOptions.fHasPaExcludeFiles := True;
+  end else if SwitchMatches(aSwitch, 'pal-ignore-rules') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue,
+      '--pal-ignore-rules') then
+      Exit(False);
+    fOptions.fPalIgnoreRules := lValue;
+    fOptions.fHasPalIgnoreRules := True;
   end else if SwitchMatches(aSwitch, 'pa-timeout-sec') then
   begin
     if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--pa-timeout-sec') then

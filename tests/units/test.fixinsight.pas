@@ -24,7 +24,7 @@ type
     [Test]
     procedure FixInsightTimeoutTerminatesChildProcess;
     [Test]
-    procedure FixInsightFiltering;
+    procedure FixInsightRawReportsPreserveFilteredEvidence;
   end;
 
 implementation
@@ -174,7 +174,7 @@ begin
   end;
 end;
 
-procedure TFixInsightTests.FixInsightFiltering;
+procedure TFixInsightTests.FixInsightRawReportsPreserveFilteredEvidence;
 var
   lFixInsightExe: string;
   lBaseTxt, lBaseXml, lBaseCsv: string;
@@ -199,19 +199,19 @@ begin
   lMask := '*' + lFileName;
   RunFixInsightOutputs('exclude', lMask, '', lExclTxt, lExclXml, lExclCsv);
 
-  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lExclTxt), lFileName), 'Exclude mask did not filter text output.');
-  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lExclXml), lFileName), 'Exclude mask did not filter XML output.');
-  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lExclCsv), lFileName), 'Exclude mask did not filter CSV output.');
+  Assert.IsTrue(ContainsText(ReadUtf8TextFile(lExclTxt), lFileName), 'Exclude mask erased raw text evidence.');
+  Assert.IsTrue(ContainsText(ReadUtf8TextFile(lExclXml), lFileName), 'Exclude mask erased raw XML evidence.');
+  Assert.IsTrue(ContainsText(ReadUtf8TextFile(lExclCsv), lFileName), 'Exclude mask erased raw CSV evidence.');
 
   lIds := lId1 + ';' + lId2;
   RunFixInsightOutputs('ignore-ids', '', lIds, lIdsTxt, lIdsXml, lIdsCsv);
 
-  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsTxt), lId1), 'Warning IDs not filtered from text output.');
-  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsTxt), lId2), 'Warning IDs not filtered from text output.');
-  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsXml), lId1), 'Warning IDs not filtered from XML output.');
-  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsXml), lId2), 'Warning IDs not filtered from XML output.');
-  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsCsv), ',' + lId1 + ','), 'Warning IDs not filtered from CSV output.');
-  Assert.IsFalse(ContainsText(ReadUtf8TextFile(lIdsCsv), ',' + lId2 + ','), 'Warning IDs not filtered from CSV output.');
+  Assert.IsTrue(ContainsText(ReadUtf8TextFile(lIdsTxt), lId1), 'Rule policy erased raw text evidence.');
+  Assert.IsTrue(ContainsText(ReadUtf8TextFile(lIdsTxt), lId2), 'Rule policy erased raw text evidence.');
+  Assert.IsTrue(ContainsText(ReadUtf8TextFile(lIdsXml), lId1), 'Rule policy erased raw XML evidence.');
+  Assert.IsTrue(ContainsText(ReadUtf8TextFile(lIdsXml), lId2), 'Rule policy erased raw XML evidence.');
+  Assert.IsTrue(ContainsText(ReadUtf8TextFile(lIdsCsv), ',' + lId1 + ','), 'Rule policy erased raw CSV evidence.');
+  Assert.IsTrue(ContainsText(ReadUtf8TextFile(lIdsCsv), ',' + lId2 + ','), 'Rule policy erased raw CSV evidence.');
 end;
 
 initialization

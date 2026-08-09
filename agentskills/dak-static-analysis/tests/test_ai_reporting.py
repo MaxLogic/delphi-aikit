@@ -5,7 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
@@ -104,6 +106,63 @@ def finding_streams(out_root: Path) -> tuple[Path, Path]:
     return fi_path, pal_path
 
 
+def write_schema2_seed(out_root: Path, project: Path) -> None:
+    (out_root / "summary.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "status": {
+                    "infrastructure": "complete",
+                    "policy": "not_evaluated",
+                },
+                "subject": {"kind": "project", "path": str(project)},
+                "compiler": {
+                    "platform": "Win64",
+                    "config": "Debug",
+                    "delphi": "23.0",
+                    "search_path_sha256": "search-path-seed",
+                },
+                "analyzers": {
+                    "fixinsight": {
+                        "requested": True,
+                        "status": "complete",
+                        "executable": "FixInsightCL.exe",
+                        "count_quality": "complete",
+                    },
+                    "pascal_analyzer": {
+                        "requested": True,
+                        "status": "complete",
+                        "executable": "palcmd.exe",
+                        "version": "9.21.3",
+                        "count_quality": "complete",
+                    },
+                },
+                "inputs": {
+                    "project_sha256": "project-seed",
+                    "main_source_sha256": "main-source-seed",
+                    "config_manifests": [
+                        {"name": "dak.ini", "sha256": "settings-seed"}
+                    ],
+                },
+                "artifacts": {"summary_markdown": "summary.md"},
+                "policy": {
+                    "resolver": "Dak.Settings",
+                    "status": "not_evaluated",
+                    "values": {
+                        "gate_ownership": ["project", "repository"],
+                        "project_roots": [],
+                        "third_party_roots": [],
+                    },
+                    "sources": [],
+                    "sha256": "b" * 64,
+                },
+                "errors": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 class AiSummaryTests(unittest.TestCase):
     def setUp(self):
         self.postprocess = load_postprocess()
@@ -115,43 +174,114 @@ class AiSummaryTests(unittest.TestCase):
             project.write_text("<Project />", encoding="ascii")
             write_summary(out_root / "summary.md", project)
             finding_streams(out_root)
+            write_schema2_seed(out_root, project)
+            fake_fixinsight = out_root / "FixInsightCL.cmd"
+            fake_fixinsight.write_text(
+                "@echo FixInsightCL Pro version 2023.12\r\n", encoding="ascii"
+            )
+            (out_root / "run.log").write_text(
+                f'CMD: "{fake_fixinsight}" --project=Sample.dpr\n',
+                encoding="utf-8",
+            )
 
             result = self.postprocess.run_postprocess(out_root, title="Sample")
 
             self.assertTrue(result["gate_pass"])
+            self.assertTrue(result["baseline_created"])
+            self.assertEqual(
+                str(out_root / "summary.json"), result["summary_json"]
+            )
             summary = json.loads((out_root / "summary.json").read_text(encoding="utf-8"))
-            self.assertEqual(1, summary["schema_version"])
+            self.assertEqual(3, summary["schema_version"])
+            self.assertEqual("complete", summary["status"]["infrastructure"])
+            self.assertEqual("complete", summary["status"]["postprocessor"])
+            self.assertEqual("complete", summary["status"]["finalization"])
+            self.assertEqual("not_evaluated", summary["status"]["policy"])
             self.assertEqual(
-                {"platform": "Win64", "config": "unknown", "delphi": "Delphi 13"},
-                summary["compiler"],
+                "search-path-seed", summary["compiler"]["search_path_sha256"]
             )
-            self.assertEqual("9.21.3", summary["tools"]["pal_version"])
+            self.assertEqual("complete", summary["analyzers"]["fixinsight"]["count_quality"])
             self.assertEqual(
-                {"total": 2, "warnings": 1, "maintainability": 1, "hygiene": 0},
-                summary["counts"]["fixinsight"],
+                "2023.12", summary["analyzers"]["fixinsight"]["version"]
             )
             self.assertEqual(
-                {"warnings": 1, "strong_warnings": 1, "optimizations": 1, "total": 3},
-                summary["counts"]["pascal_analyzer"],
+                "complete",
+                summary["analyzers"]["pascal_analyzer"]["count_quality"],
             )
-            self.assertEqual(5, summary["counts"]["total"])
+            self.assertEqual("project-seed", summary["inputs"]["project_sha256"])
+            self.assertNotIn("status", summary["policy"])
+            self.assertEqual(5, summary["counts"]["raw"]["total"])
+            self.assertEqual(0, summary["counts"]["actionable"]["total"])
+            self.assertEqual(5, summary["counts"]["unknown"]["total"])
+            self.assertEqual(
+                {
+                    "project": 0,
+                    "repository": 0,
+                    "third_party": 0,
+                    "unknown": 5,
+                },
+                summary["counts"]["raw"]["ownership"],
+            )
             self.assertEqual([], summary["errors"])
             self.assertEqual("summary.md", summary["artifacts"]["summary_markdown"])
             self.assertEqual("static-analysis.sarif", summary["artifacts"]["sarif"])
+            self.assertEqual(
+                "static-analysis.full.sarif", summary["artifacts"]["full_sarif"]
+            )
 
             sarif = json.loads(
                 (out_root / "static-analysis.sarif").read_text(encoding="utf-8")
             )
-            self.assertEqual(5, sum(len(run["results"]) for run in sarif["runs"]))
+            self.assertEqual(0, sum(len(run["results"]) for run in sarif["runs"]))
+            full_sarif = json.loads(
+                (out_root / "static-analysis.full.sarif").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                5, sum(len(run["results"]) for run in full_sarif["runs"])
+            )
             delta = json.loads((out_root / "delta.json").read_text(encoding="utf-8"))
-            self.assertEqual(1, delta["pascal_analyzer"]["optimizations_after"])
-            self.assertEqual(3, delta["pascal_analyzer"]["total_after"])
+            self.assertEqual(0, delta["pascal_analyzer"]["optimizations_after"])
+            self.assertEqual(0, delta["pascal_analyzer"]["total_after"])
             trend = (out_root / "trend.md").read_text(encoding="utf-8")
             self.assertIn("PAL optimizations", trend)
             self.assertIn("PAL total", trend)
             triage = (out_root / "triage.md").read_text(encoding="utf-8")
-            self.assertIn("FixInsight findings: 2", triage)
-            self.assertIn("Pascal Analyzer findings: 3", triage)
+            self.assertIn("FixInsight findings: 0", triage)
+            self.assertIn("Pascal Analyzer findings: 0", triage)
+
+            existing_baseline_result = self.postprocess.run_postprocess(
+                out_root, title="Sample"
+            )
+
+            self.assertTrue(existing_baseline_result["gate_pass"])
+            self.assertFalse(existing_baseline_result["baseline_updated"])
+            self.assertEqual(
+                str(out_root / "summary.json"),
+                existing_baseline_result["summary_json"],
+            )
+            existing_baseline_summary = json.loads(
+                (out_root / "summary.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(3, existing_baseline_summary["schema_version"])
+            self.assertEqual(
+                "complete",
+                existing_baseline_summary["status"]["infrastructure"],
+            )
+            self.assertEqual(
+                "complete",
+                existing_baseline_summary["status"]["postprocessor"],
+            )
+            self.assertEqual(
+                "complete",
+                existing_baseline_summary["status"]["finalization"],
+            )
+            self.assertEqual(
+                5, existing_baseline_summary["counts"]["raw"]["total"]
+            )
+            self.assertEqual(
+                0, existing_baseline_summary["counts"]["actionable"]["total"]
+            )
+            self.assertIn("sarif", existing_baseline_summary["artifacts"])
 
     def test_summary_count_mismatch_is_a_required_failure(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -165,6 +295,43 @@ class AiSummaryTests(unittest.TestCase):
 
             with self.assertRaisesRegex(ValueError, "Pascal Analyzer count mismatch"):
                 self.postprocess.run_postprocess(out_root, title="Sample")
+
+    def test_nonactionable_raw_findings_still_require_summary_totals(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out_root = Path(temp_dir)
+            fi_path = out_root / "fixinsight" / "fi-findings.jsonl"
+            pal_path = out_root / "pascal-analyzer" / "pal-findings.jsonl"
+            write_jsonl(
+                fi_path,
+                [
+                    {
+                        "kind": "W",
+                        "ownership": "third_party",
+                        "report_projection": "external",
+                    }
+                ],
+            )
+            write_jsonl(pal_path, [])
+            with self.assertRaisesRegex(
+                ValueError, "FixInsight count mismatch: summary total is missing"
+            ):
+                self.postprocess._actionable_counts({}, fi_path, pal_path)
+
+            write_jsonl(fi_path, [])
+            write_jsonl(
+                pal_path,
+                [
+                    {
+                        "severity": "warning",
+                        "ownership": "third_party",
+                        "report_projection": "external",
+                    }
+                ],
+            )
+            with self.assertRaisesRegex(
+                ValueError, "Pascal Analyzer count mismatch: summary totals are missing"
+            ):
+                self.postprocess._actionable_counts({}, fi_path, pal_path)
 
     def test_unit_summary_subject_and_pal_version_are_parsed(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -200,6 +367,47 @@ class AiSummaryTests(unittest.TestCase):
             self.postprocess._validate_success_summary(summary)
 
             self.assertEqual(["pascal_analyzer"], summary["analyzers"])
+
+    def test_skipped_unit_is_not_reclassified_as_requested_clean_analysis(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out_root = Path(temp_dir)
+            unit = out_root / "Sample.pas"
+            unit.write_text("unit Sample;\n", encoding="ascii")
+            (out_root / "summary.md").write_text(
+                "# Pascal Analyzer unit summary: Sample\n\n"
+                "- Timestamp: 2026-07-16T10:00:00Z\n"
+                f"- Unit: `{unit}`\n"
+                "- Skipped.\n",
+                encoding="utf-8",
+            )
+
+            self.postprocess.run_postprocess(out_root, title="Sample")
+
+            status = json.loads(
+                (out_root / "summary.json").read_text(encoding="utf-8")
+            )
+            analyzer = status["analyzers"]["pascal_analyzer"]
+            self.assertFalse(analyzer["requested"])
+            self.assertEqual("not_requested", analyzer["status"])
+
+    def test_enabled_gate_has_one_canonical_policy_outcome(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out_root = Path(temp_dir)
+            project = out_root / "Sample.dproj"
+            project.write_text("<Project />", encoding="ascii")
+            write_summary(out_root / "summary.md", project)
+            finding_streams(out_root)
+            write_schema2_seed(out_root, project)
+
+            with patch.dict(os.environ, {"DAK_GATE": "1"}, clear=False):
+                self.postprocess.run_postprocess(out_root, title="Sample")
+
+            status = json.loads(
+                (out_root / "summary.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual("fail", status["status"]["policy"])
+            self.assertNotIn("status", status["policy"])
+            self.assertFalse((out_root / "baseline.json").exists())
 
     def test_missing_optional_snippet_source_does_not_fail(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -324,6 +532,123 @@ class AiSummaryTests(unittest.TestCase):
 
             self.assertEqual("2023.12", context["tools"]["fixinsight_version"])
 
+    def test_schema2_provenance_tracks_dirty_sources_and_recursive_submodules(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir)
+            library = workspace / "library"
+            repo = workspace / "repo"
+            library.mkdir()
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=library, check=True)
+            (library / "LibraryUnit.pas").write_text(
+                "unit LibraryUnit;\n", encoding="ascii"
+            )
+            subprocess.run(["git", "add", "."], cwd=library, check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "user.name=DAK Test",
+                    "-c",
+                    "user.email=dak@example.invalid",
+                    "commit",
+                    "-qm",
+                    "library fixture",
+                ],
+                cwd=library,
+                check=True,
+            )
+
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            project = repo / "Sample.dproj"
+            project.write_text("<Project />", encoding="ascii")
+            (repo / "Sample.dpr").write_text(
+                "program Sample;\nbegin\nend.\n", encoding="ascii"
+            )
+            source = repo / "SampleUnit.pas"
+            source.write_text("unit SampleUnit;\n", encoding="ascii")
+            (repo / ".gitignore").write_text(".dak/\n", encoding="ascii")
+            subprocess.run(["git", "add", "."], cwd=repo, check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "user.name=DAK Test",
+                    "-c",
+                    "user.email=dak@example.invalid",
+                    "commit",
+                    "-qm",
+                    "project fixture",
+                ],
+                cwd=repo,
+                check=True,
+            )
+            subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "protocol.file.allow=always",
+                    "submodule",
+                    "add",
+                    "-q",
+                    str(library),
+                    "vendor/library",
+                ],
+                cwd=repo,
+                check=True,
+            )
+            subprocess.run(["git", "add", "."], cwd=repo, check=True)
+            subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "user.name=DAK Test",
+                    "-c",
+                    "user.email=dak@example.invalid",
+                    "commit",
+                    "-qm",
+                    "add submodule",
+                ],
+                cwd=repo,
+                check=True,
+            )
+            source.write_text("unit SampleUnit;\n// dirty\n", encoding="ascii")
+            (repo / "NewUnit.pas").write_text("unit NewUnit;\n", encoding="ascii")
+
+            out_root = repo / ".dak" / "Sample"
+            out_root.mkdir(parents=True)
+            write_summary(out_root / "summary.md", project)
+            finding_streams(out_root)
+            write_schema2_seed(out_root, project)
+
+            self.postprocess.run_postprocess(out_root, title="Sample")
+
+            summary = json.loads(
+                (out_root / "summary.json").read_text(encoding="utf-8")
+            )
+            target = summary["provenance"]["target"]
+            self.assertEqual(40, len(target["head"]))
+            self.assertTrue(target["dirty"])
+            self.assertEqual(
+                "git-delphi-inputs-with-recursive-submodules",
+                target["source_inputs"]["scope"],
+            )
+            self.assertGreaterEqual(target["source_inputs"]["file_count"], 4)
+            self.assertEqual(64, len(target["source_inputs"]["sha256"]))
+            self.assertEqual("vendor/library", target["submodules"][0]["path"])
+            self.assertEqual(40, len(target["submodules"][0]["revision"]))
+
+    def test_git_command_failure_is_not_reported_as_clean_provenance(self):
+        failed = SimpleNamespace(
+            returncode=128,
+            stdout="",
+            stderr="fatal: repository unavailable",
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.object(self.postprocess.subprocess, "run", return_value=failed):
+                with self.assertRaisesRegex(RuntimeError, "repository unavailable"):
+                    self.postprocess._git_identity(Path(temp_dir))
+
 
 class ChangedFileTriageTests(unittest.TestCase):
     def setUp(self):
@@ -437,7 +762,8 @@ class RequiredPostprocessExitTests(unittest.TestCase):
                 "goto args\r\n"
                 ":run\r\n"
                 "mkdir \"%OUT%\\pascal-analyzer\" 2>nul\r\n"
-                "(echo # Static analysis&echo.&echo - Timestamp: 2026-07-16T10:00:00Z&echo - Project: `%CD%\\Sample.dproj`&echo.&echo ## Pascal Analyzer&echo.&echo - Version: 9.21.3&echo - Compiler target: Delphi 13 ^(Win64^)&echo - Totals: warnings=1, strong_warnings=0, optimizations=0, total=1)>\"%OUT%\\summary.md\"\r\n"
+                "(echo # Static analysis&echo.&echo - Timestamp: 2026-07-16T10:00:00Z&echo - Project: `%CD%\\Sample.dproj`&echo.&echo ## FixInsight&echo.&echo - Findings ^(by code^): 0&echo.&echo ## Pascal Analyzer&echo.&echo - Version: 9.21.3&echo - Compiler target: Delphi 13 ^(Win64^)&echo - Totals: warnings=1, strong_warnings=0, optimizations=0, total=1)>\"%OUT%\\summary.md\"\r\n"
+                "echo {\"schema_version\":2,\"status\":{\"infrastructure\":\"complete\",\"policy\":\"not_evaluated\"},\"subject\":{\"kind\":\"project\",\"path\":\"%CD:\\=/%/Sample.dproj\",\"project_file\":\"%CD:\\=/%/Sample.dproj\"},\"compiler\":{\"delphi\":\"23.0\",\"platform\":\"Win64\",\"config\":\"Debug\",\"search_path_sha256\":\"fixture\"},\"analyzers\":{\"fixinsight\":{\"requested\":false,\"status\":\"not_requested\",\"count_quality\":\"complete\",\"runs\":[]},\"pascal_analyzer\":{\"requested\":true,\"status\":\"complete\",\"version\":\"9.21.3\",\"count_quality\":\"complete\",\"runs\":[]}},\"counts\":{\"fixinsight\":{\"quality\":\"complete\",\"total\":0},\"pascal_analyzer\":{\"quality\":\"complete\",\"warnings\":1,\"strong_warnings\":0,\"optimizations\":0,\"total\":1},\"total\":1},\"inputs\":{},\"policy\":{\"resolver\":\"Dak.Settings\"},\"errors\":[],\"artifacts\":{\"summary_markdown\":\"summary.md\"}}>\"%OUT%\\summary.json\"\r\n"
                 "echo {broken>\"%OUT%\\pascal-analyzer\\pal-findings.jsonl\"\r\n"
                 "exit /b 0\r\n",
                 encoding="ascii",
@@ -456,7 +782,19 @@ class RequiredPostprocessExitTests(unittest.TestCase):
 
             self.assertTrue((out_root / "summary.md").exists(), result.stdout + result.stderr)
             self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
-            self.assertIn("ERROR:", result.stderr)
+            self.assertIn(
+                "Post-processing failed after successful analyzer:", result.stderr
+            )
+            self.assertIn("pal-findings.jsonl", result.stderr)
+            status = json.loads(
+                (out_root / "summary.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual("complete", status["status"]["infrastructure"])
+            self.assertEqual("failed", status["status"]["postprocessor"])
+            self.assertEqual("incomplete", status["status"]["finalization"])
+            diagnostic = out_root / status["artifacts"]["postprocessor_diagnostic"]
+            self.assertTrue(diagnostic.exists())
+            self.assertIn("JSONDecodeError", diagnostic.read_text(encoding="utf-8"))
 
     def test_wrappers_return_nonzero_when_required_summary_is_missing(self):
         with tempfile.TemporaryDirectory() as temp_dir:

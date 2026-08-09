@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "results": [
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "Sample.dpr"
+                },
+                "region": {
+                  "startColumn": 1,
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "project fixture"
+          },
+          "properties": {
+            "code": "W101",
+            "kind": "W",
+            "ownership": "project",
+            "ownership_root": "F:/projects/MaxLogic/DelphiAiKit/agentskills/dak-static-analysis/tests/fixtures/workspace-report/workspace",
+            "tool": "FixInsight"
+          },
+          "ruleId": "W101"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "extras/RepoOnly.pas"
+                },
+                "region": {
+                  "startColumn": 1,
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "repository fixture"
+          },
+          "properties": {
+            "code": "W101",
+            "kind": "W",
+            "ownership": "repository",
+            "ownership_root": "F:/projects/MaxLogic/DelphiAiKit/agentskills/dak-static-analysis/tests/fixtures/workspace-report/workspace",
+            "tool": "FixInsight"
+          },
+          "ruleId": "W101"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "FixInsight",
+          "rules": [
+            {
+              "id": "W101",
+              "shortDescription": {
+                "text": "FixInsight W101"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "version": "2.1.0"
+}

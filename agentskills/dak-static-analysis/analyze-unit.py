@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import platform
 import re
@@ -12,6 +13,12 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from workspace import WorkspaceError, find_vcs_root, resolve_workspace
 
 
 def _is_wsl() -> bool:
@@ -40,18 +47,6 @@ def _wslpath_to_unix(p: str) -> str:
     return out
 
 
-def _find_vcs_root(start_dir: Path) -> tuple[Optional[Path], str]:
-    p = start_dir.resolve()
-    while True:
-        if (p / ".git").exists():
-            return p, "git"
-        if (p / ".svn").exists():
-            return p, "svn"
-        if p.parent == p:
-            return None, ""
-        p = p.parent
-
-
 def _to_win_arg(p: Path) -> str:
     s = str(p)
     if not _is_wsl():
@@ -61,7 +56,9 @@ def _to_win_arg(p: Path) -> str:
     return _wslpath_to_windows(p)
 
 
-def _find_dak_exe(unit_path: Path) -> Path:
+def _find_dak_exe(
+    unit_path: Path, workspace_root: Optional[Path] = None
+) -> Path:
     env = os.environ.get("DAK_EXE", "").strip()
     if env:
         candidates: list[Path] = [Path(env)]
@@ -100,15 +97,18 @@ def _find_dak_exe(unit_path: Path) -> Path:
 
     roots: list[Path] = []
 
-    cwd = Path.cwd()
-    roots.append(cwd)
-    cwd_root, _ = _find_vcs_root(cwd)
-    if cwd_root is not None:
-        roots.append(cwd_root)
+    if workspace_root is not None:
+        roots.append(workspace_root)
+    else:
+        cwd = Path.cwd()
+        roots.append(cwd)
+        cwd_root, _ = find_vcs_root(cwd)
+        if cwd_root is not None:
+            roots.append(cwd_root)
 
-    target_root, _ = _find_vcs_root(unit_path.parent)
-    if target_root is not None:
-        roots.append(target_root)
+        target_root, _ = find_vcs_root(unit_path.parent)
+        if target_root is not None:
+            roots.append(target_root)
 
     script_dir = Path(__file__).resolve().parent
     roots.append(script_dir.parent.parent)
@@ -136,6 +136,29 @@ def _maybe_add_arg(args: list[str], flag: str, value: Optional[str]) -> None:
     if not v:
         return
     args.extend([flag, v])
+
+
+def _merge_rule_lists(*values: str) -> str:
+    items: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        for item in value.split(";"):
+            rule = item.strip()
+            if rule and rule.lower() not in seen:
+                seen.add(rule.lower())
+                items.append(rule)
+    return ";".join(items)
+
+
+def _dak_child_environment(pal_ignore_rules: str) -> dict[str, str]:
+    environment = os.environ.copy()
+    if pal_ignore_rules:
+        environment["DAK_PAL_IGNORE_RULES_ORIGIN"] = (
+            "environment:DAK_PAL_IGNORE_RULES"
+        )
+    else:
+        environment.pop("DAK_PAL_IGNORE_RULES_ORIGIN", None)
+    return environment
 
 
 def _get_env(name: str, default: str) -> str:
@@ -168,6 +191,7 @@ def _build_dak_args(
     unit_path: Path,
     out_root: Path,
     project_context: Optional[Path],
+    workspace_selector: str = "",
 ) -> list[str]:
     delphi_ver = _get_env("DAK_DELPHI", "23.0")
     pal_flag = _get_env("DAK_PASCAL_ANALYZER", os.environ.get("DAK_PAL", "").strip() or "true")
@@ -193,6 +217,8 @@ def _build_dak_args(
             "--config",
             _get_env("DAK_CONFIG", "Release"),
         ]
+    if workspace_selector:
+        args += ["--workspace-root", workspace_selector]
 
     _maybe_add_arg(args, "--fixinsight", "false")
     _maybe_add_arg(args, "--pascal-analyzer", pal_flag)
@@ -201,19 +227,42 @@ def _build_dak_args(
 
     pa_path = os.environ.get("PA_PATH", "").strip()
     pa_args = os.environ.get("PA_ARGS", "").strip()
+    pa_exclude_search_folders = os.environ.get(
+        "DAK_PAL_EXCLUDE_SEARCH_FOLDERS", ""
+    ).strip()
+    pa_exclude_files = os.environ.get("DAK_PAL_EXCLUDE_FILES", "").strip()
+    fi_ignore_rules = _merge_rule_lists(
+        os.environ.get("DAK_FI_IGNORE_RULES", ""),
+        os.environ.get("DAK_IGNORE_WARNING_IDS", ""),
+    )
+    pal_ignore_rules = os.environ.get("DAK_PAL_IGNORE_RULES", "").strip()
     if pa_path:
         args += ["--pa-path", _to_win_arg(Path(pa_path))]
     if pa_args:
         args += ["--pa-args", pa_args]
+    if pa_exclude_search_folders:
+        args += ["--pa-exclude-search-folders", pa_exclude_search_folders]
+    if pa_exclude_files:
+        args += ["--pa-exclude-files", pa_exclude_files]
+    if fi_ignore_rules:
+        args += ["--ignore-warning-ids", fi_ignore_rules]
+    if pal_ignore_rules:
+        args += ["--pal-ignore-rules", pal_ignore_rules]
     return args
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) not in (2, 3):
-        print("Usage: analyze-unit.py <path-to-unit.pas> [project.dproj]", file=sys.stderr)
-        return 2
+def _parse_args(argv: list[str]) -> tuple[str, str, str]:
+    parser = argparse.ArgumentParser(prog=Path(argv[0]).name)
+    parser.add_argument("unit")
+    parser.add_argument("project_context", nargs="?", default="")
+    parser.add_argument("--workspace-root", default="")
+    options = parser.parse_args(argv[1:])
+    return options.unit, options.project_context, options.workspace_root
 
-    unit_path = _normalize_input_path(argv[1])
+
+def main(argv: list[str]) -> int:
+    unit_arg, project_arg, workspace_selector = _parse_args(argv)
+    unit_path = _normalize_input_path(unit_arg)
     if not unit_path.is_absolute():
         unit_path = (Path.cwd() / unit_path).resolve()
     else:
@@ -223,8 +272,8 @@ def main(argv: list[str]) -> int:
         return 2
 
     project_context: Optional[Path] = None
-    if len(argv) == 3 and argv[2].strip():
-        project_context = _normalize_input_path(argv[2])
+    if project_arg.strip():
+        project_context = _normalize_input_path(project_arg)
         if not project_context.is_absolute():
             project_context = (Path.cwd() / project_context).resolve()
         else:
@@ -233,19 +282,67 @@ def main(argv: list[str]) -> int:
             print(f"ERROR: .dproj not found: {project_context}", file=sys.stderr)
             return 2
 
-    dak_exe = _find_dak_exe(unit_path)
+    workspace_subject = project_context if project_context is not None else unit_path
+    resolution_selector = workspace_selector
+    if (
+        workspace_selector
+        and workspace_selector.casefold() not in {"auto", "git", "svn", "project"}
+        and _is_wsl()
+        and _looks_like_windows_path(workspace_selector)
+    ):
+        resolution_selector = str(_normalize_input_path(workspace_selector))
+    try:
+        workspace = resolve_workspace(
+            workspace_subject, resolution_selector, cwd=Path.cwd()
+        )
+        if workspace.source != "default":
+            dak_exe = _find_dak_exe(unit_path, workspace.root)
+        else:
+            dak_exe = _find_dak_exe(unit_path)
+            workspace = resolve_workspace(
+                workspace_subject,
+                executable_ini=dak_exe.parent / "dak.ini",
+                cwd=Path.cwd(),
+            )
+    except WorkspaceError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return 2
     dak_exe_arg = _to_win_arg(dak_exe) if _is_wsl() else str(dak_exe)
+    forwarded_selector = workspace_selector
+    if (
+        forwarded_selector
+        and forwarded_selector.casefold() not in {"auto", "git", "svn", "project"}
+    ):
+        forwarded_selector = _to_win_arg(workspace.root)
 
     out_root = _resolve_out_root(Path.cwd(), unit_path)
-    args = _build_dak_args(dak_exe_arg, unit_path, out_root, project_context)
+    args = _build_dak_args(
+        dak_exe_arg, unit_path, out_root, project_context, forwarded_selector
+    )
 
-    vcs_root, _ = _find_vcs_root(unit_path.parent)
-    work_root = vcs_root if vcs_root is not None else unit_path.parent
+    work_root = workspace.root
+    from postprocess import (
+        _record_postprocessor_failure,
+        capture_run_provenance,
+        run_postprocess,
+    )
+
+    captured_provenance = capture_run_provenance(
+        workspace_subject, dak_exe, workspace
+    )
+    for stale_name in ("summary.md", "summary.json"):
+        (out_root / stale_name).unlink(missing_ok=True)
+    pal_ignore_rules = os.environ.get("DAK_PAL_IGNORE_RULES", "").strip()
+    child_environment = _dak_child_environment(pal_ignore_rules)
 
     if _is_wsl():
-        p = subprocess.run([_cmd_exe(), "/C"] + args, cwd=str(work_root))
+        p = subprocess.run(
+            [_cmd_exe(), "/C"] + args,
+            cwd=str(work_root),
+            env=child_environment,
+        )
     else:
-        p = subprocess.run(args, cwd=str(work_root))
+        p = subprocess.run(args, cwd=str(work_root), env=child_environment)
 
     summary_path = out_root / "summary.md"
     if summary_path.exists():
@@ -254,13 +351,28 @@ def main(argv: list[str]) -> int:
         print(f"Summary not found: {summary_path}", file=sys.stderr)
 
     gate_pass = True
-    if p.returncode == 0 and summary_path.exists():
-        from postprocess import run_postprocess
-
-        res = run_postprocess(out_root, title=unit_path.stem)
-        gate_pass = bool(res.get("gate_pass", True))
-        if not gate_pass:
-            print(f"Static analysis gate failed (see: {res.get('delta', '')})", file=sys.stderr)
+    if summary_path.exists():
+        try:
+            res = run_postprocess(
+                out_root,
+                title=unit_path.stem,
+                captured_provenance=captured_provenance,
+                execution_exit_code=p.returncode,
+            )
+            gate_pass = bool(res.get("gate_pass", True))
+            if not gate_pass:
+                print(f"Static analysis gate failed (see: {res.get('delta', '')})", file=sys.stderr)
+        except Exception as e:
+            if p.returncode != 0:
+                print(f"Post-processing failed after analyzer failure: {e}", file=sys.stderr)
+                return p.returncode
+            diagnostic = _record_postprocessor_failure(out_root, e)
+            print(
+                f"Post-processing failed after successful analyzer: {e} "
+                f"(diagnostic: {diagnostic})",
+                file=sys.stderr,
+            )
+            return 4
 
     if p.returncode != 0:
         return p.returncode

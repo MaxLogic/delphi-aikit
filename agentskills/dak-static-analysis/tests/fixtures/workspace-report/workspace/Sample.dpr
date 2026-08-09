@@ -1,0 +1,3 @@
+program Sample;
+begin
+end.
