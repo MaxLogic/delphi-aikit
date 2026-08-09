@@ -140,11 +140,16 @@ begin
   end;
 end;
 
+function AddConditionalExpressionsDefine(const aDefines: TArray<string>): TArray<string>;
+begin
+  Result := CombineTextLists(aDefines, ['CONDITIONALEXPRESSIONS']);
+end;
+
 function CombineTargetCompilerDefines(const aDefines: TArray<string>;
   const aPlatform: string): TArray<string>;
 begin
-  Result := CombineTextLists(aDefines,
-    TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform(aPlatform));
+  Result := AddConditionalExpressionsDefine(CombineTextLists(aDefines,
+    TDelphiSemanticCompilerProfileBuilder.DefinesForPlatform(aPlatform)));
 end;
 
 function TargetCompilerDefinesText(const aPlatform: string): string;
@@ -588,7 +593,7 @@ begin
     end;
 
     aParams.fProjectDpr := aContext.MainSourcePath;
-    aParams.fDefines := SplitList(aContext.ParserDefines);
+    aParams.fDefines := AddConditionalExpressionsDefine(SplitList(aContext.ParserDefines));
     aParams.fUnitScopes := aContext.UnitScopes;
     aParams.fUnitAliases := aContext.UnitAliases;
     aParams.fUnitSearchPath := lCombinedPaths;

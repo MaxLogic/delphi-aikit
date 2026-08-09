@@ -22,6 +22,10 @@ type
     [Test]
     procedure MalformedHotspotReportsPreserveFindingsAndRecordWarning;
     [Test]
+    procedure ModulesXmlResolvesFindingPathsDeterministically;
+    [Test]
+    procedure LocInfoPreservesAnalyzerMessage;
+    [Test]
     procedure MissingPalFixturesFailClosedWithoutOptOut;
     [Test]
     procedure NegativeSectionCountsDoNotReduceActionableTotals;
@@ -222,6 +226,112 @@ begin
     'Malformed hotspot warning should name the degraded PAL report.');
   Assert.IsTrue(lText.Contains('PAL XML load failed') or lText.Contains('Complexity report section not found'),
     'Malformed hotspot warning should include the parse failure reason. Actual: ' + lText);
+end;
+
+procedure TPalFindingNormalizeTests.ModulesXmlResolvesFindingPathsDeterministically;
+var
+  lCounts: TPalFindingCounts;
+  lError: string;
+  lJson: TJSONObject;
+  lJsonLines: TArray<string>;
+  lModule: string;
+  lOutRoot: string;
+  lPath: string;
+  lReportRoot: string;
+  lStatus: string;
+  i: Integer;
+begin
+  lReportRoot := TPath.Combine(TempRoot, 'pal-module-paths');
+  lOutRoot := TPath.Combine(TempRoot, 'pal-module-paths-out');
+  TDirectory.CreateDirectory(lReportRoot);
+  TDirectory.CreateDirectory(lOutRoot);
+  TFile.WriteAllText(TPath.Combine(lReportRoot, 'Warnings.xml'),
+    '<?xml version="1.0" encoding="utf-8"?>' +
+    '<report><section name="Module paths" count="4">' +
+    '<item><id>suffix</id><locmod>sample.unit\TWorker\Run (7)</locmod></item>' +
+    '<item><id>same</id><locmod>SameUnit (8)</locmod></item>' +
+    '<item><id>ambiguous</id><locmod>AmbiguousUnit (9)</locmod></item>' +
+    '<item><id>missing</id><locmod>MissingUnit (10)</locmod></item>' +
+    '</section></report>', TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lReportRoot, 'Modules.xml'),
+    '<?xml version="1.0" encoding="utf-8"?>' +
+    '<report><section name="Module information" count="6">' +
+    '<module><name>Sample.Unit</name><path>C:\Repo\Sample.Unit.pas</path></module>' +
+    '<module><name>sameunit</name><path>C:\Repo\SameUnit.pas</path></module>' +
+    '<module><name>SAMEUNIT</name><path>c:\repo\sameunit.pas</path></module>' +
+    '<module><name>AmbiguousUnit</name><path>C:\Repo\A\AmbiguousUnit.pas</path></module>' +
+    '<module><name>ambiguousunit</name><path>C:\Repo\B\AmbiguousUnit.pas</path></module>' +
+    '<module><name>Unused</name><path>C:\Repo\Unused.pas</path></module>' +
+    '</section></report>', TEncoding.UTF8);
+
+  Assert.IsTrue(TryGeneratePalArtifactsWithCounts(lReportRoot, lOutRoot, lCounts, lError), lError);
+  Assert.AreEqual(4, lCounts.Total);
+  lJsonLines := TFile.ReadAllLines(TPath.Combine(lOutRoot, 'pal-findings.jsonl'));
+  Assert.AreEqual(4, Integer(Length(lJsonLines)));
+  for i := 0 to High(lJsonLines) do
+  begin
+    lJson := ParseJsonObject(lJsonLines[i]);
+    try
+      lModule := lJson.GetValue<string>('module');
+      lPath := lJson.GetValue<string>('path', '');
+      lStatus := lJson.GetValue<string>('path_status', '');
+      if SameText(lModule, 'sample.unit\TWorker\Run') then
+      begin
+        Assert.AreEqual('C:\Repo\Sample.Unit.pas', lPath);
+        Assert.AreEqual('resolved', lStatus);
+      end
+      else if SameText(lModule, 'SameUnit') then
+      begin
+        Assert.IsTrue(SameText('C:\Repo\SameUnit.pas', lPath), lPath);
+        Assert.AreEqual('resolved', lStatus);
+      end
+      else if SameText(lModule, 'AmbiguousUnit') then
+      begin
+        Assert.AreEqual('', lPath);
+        Assert.AreEqual('ambiguous', lStatus);
+      end
+      else if SameText(lModule, 'MissingUnit') then
+      begin
+        Assert.AreEqual('', lPath);
+        Assert.AreEqual('missing', lStatus);
+      end;
+    finally
+      lJson.Free;
+    end;
+  end;
+end;
+
+procedure TPalFindingNormalizeTests.LocInfoPreservesAnalyzerMessage;
+var
+  lCounts: TPalFindingCounts;
+  lError: string;
+  lJson: TJSONObject;
+  lJsonLines: TArray<string>;
+  lOutRoot: string;
+  lReportRoot: string;
+begin
+  lReportRoot := TPath.Combine(TempRoot, 'pal-loc-info');
+  lOutRoot := TPath.Combine(TempRoot, 'pal-loc-info-out');
+  TDirectory.CreateDirectory(lReportRoot);
+  TDirectory.CreateDirectory(lOutRoot);
+  TFile.WriteAllText(TPath.Combine(lReportRoot, 'Warnings.xml'),
+    '<?xml version="1.0" encoding="utf-8"?>' +
+    '<report><section name="Mismatch parameter value (32/64-bits)" count="1">' +
+    '<name>aDelta</name><loc><locmod>Sample.Unit</locmod><locline>24</locline>' +
+    '<info>64-bits aDelta passed as 32-bits parameter N]</info></loc>' +
+    '</section></report>', TEncoding.UTF8);
+
+  Assert.IsTrue(TryGeneratePalArtifactsWithCounts(lReportRoot, lOutRoot, lCounts, lError), lError);
+  Assert.AreEqual(1, lCounts.Total);
+  lJsonLines := TFile.ReadAllLines(TPath.Combine(lOutRoot, 'pal-findings.jsonl'));
+  Assert.AreEqual(1, Integer(Length(lJsonLines)));
+  lJson := ParseJsonObject(lJsonLines[0]);
+  try
+    Assert.AreEqual('64-bits aDelta passed as 32-bits parameter N]',
+      lJson.GetValue<string>('message', ''));
+  finally
+    lJson.Free;
+  end;
 end;
 
 procedure TPalFindingNormalizeTests.MissingPalFixturesFailClosedWithoutOptOut;

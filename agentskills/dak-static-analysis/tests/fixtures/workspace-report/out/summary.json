@@ -1,0 +1,466 @@
+{
+  "analyzers": {
+    "fixinsight": {
+      "count_quality": "complete",
+      "options": {
+        "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "requested": true,
+      "status": "complete",
+      "version": "fixture"
+    },
+    "pascal_analyzer": {
+      "count_quality": "complete",
+      "options": {
+        "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "requested": false,
+      "status": "not_requested",
+      "verified_rule_aliases": {}
+    }
+  },
+  "artifacts": {
+    "baseline": "baseline.json",
+    "delta": "delta.md",
+    "external_summary": "external-summary.md",
+    "fixinsight_jsonl": "fixinsight/fi-findings.jsonl",
+    "full_sarif": "static-analysis.full.sarif",
+    "history": "history.jsonl",
+    "metrics": "metrics.md",
+    "pascal_analyzer_jsonl": "pascal-analyzer/pal-findings.jsonl",
+    "sarif": "static-analysis.sarif",
+    "summary_markdown": "summary.md",
+    "trend": "trend.md",
+    "triage": "triage.md"
+  },
+  "compatibility": {
+    "context": {
+      "analyzers": {
+        "fixinsight": {
+          "options_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "requested": true,
+          "version": "fixture"
+        },
+        "pascal_analyzer": {
+          "options_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "requested": false,
+          "version": ""
+        }
+      },
+      "compiler": {
+        "config": "Debug",
+        "delphi": "23.0",
+        "platform": "Win64",
+        "search_path_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "config_manifest_sha256": [],
+      "dak": {
+        "executable_sha256": "5e06b71cc4f33456b45d8586bb1d7f48b8d5fa86c710e519b5723e3a696e32d7",
+        "head": "66d6f40192afc10173d9a6335f83e42e4c472954"
+      },
+      "policy_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "project_manifest_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "reporting_policy_origins": {},
+      "reporting_policy_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "subject_kind": "project",
+      "submodules": [],
+      "workspace": {
+        "capabilities": {},
+        "externals": [],
+        "inventory_scope": "",
+        "root": "F:/projects/MaxLogic/DelphiAiKit/agentskills/dak-static-analysis/tests/fixtures/workspace-report/workspace",
+        "status": "",
+        "vcs": "none"
+      }
+    },
+    "sha256": "f7316037ca9e8822edcabb9775e7aa22e54873411f6ce4ba6158432e9d5cc481"
+  },
+  "compiler": {
+    "config": "Debug",
+    "delphi": "23.0",
+    "platform": "Win64",
+    "search_path_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "counts": {
+    "actionable": {
+      "by_analyzer": {
+        "fixinsight": 2,
+        "pascal_analyzer": 0
+      },
+      "by_rule": {
+        "FI.W101": 2
+      },
+      "by_severity": {
+        "hygiene": 0,
+        "maintainability": 0,
+        "optimization": 0,
+        "other": 0,
+        "strong_warning": 0,
+        "warning": 2
+      },
+      "fixinsight": {
+        "by_rule": {
+          "FI.W101": 2
+        },
+        "by_severity": {
+          "warning": 2
+        },
+        "hygiene": 0,
+        "maintainability": 0,
+        "ownership": {
+          "project": 1,
+          "repository": 1,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "total": 2,
+        "warnings": 2
+      },
+      "ownership": {
+        "project": 1,
+        "repository": 1,
+        "third_party": 0,
+        "unknown": 0
+      },
+      "pascal_analyzer": {
+        "by_rule": {},
+        "by_severity": {},
+        "optimizations": 0,
+        "ownership": {
+          "project": 0,
+          "repository": 0,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "strong_warnings": 0,
+        "total": 0,
+        "warnings": 0
+      },
+      "total": 2
+    },
+    "advisory_metrics": {
+      "by_analyzer": {
+        "fixinsight": 0,
+        "pascal_analyzer": 0
+      },
+      "by_rule": {},
+      "by_severity": {
+        "hygiene": 0,
+        "maintainability": 0,
+        "optimization": 0,
+        "other": 0,
+        "strong_warning": 0,
+        "warning": 0
+      },
+      "fixinsight": {
+        "by_rule": {},
+        "by_severity": {},
+        "hygiene": 0,
+        "maintainability": 0,
+        "ownership": {
+          "project": 0,
+          "repository": 0,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "total": 0,
+        "warnings": 0
+      },
+      "ownership": {
+        "project": 0,
+        "repository": 0,
+        "third_party": 0,
+        "unknown": 0
+      },
+      "pascal_analyzer": {
+        "by_rule": {},
+        "by_severity": {},
+        "optimizations": 0,
+        "ownership": {
+          "project": 0,
+          "repository": 0,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "strong_warnings": 0,
+        "total": 0,
+        "warnings": 0
+      },
+      "total": 0
+    },
+    "external": {
+      "by_analyzer": {
+        "fixinsight": 0,
+        "pascal_analyzer": 0
+      },
+      "by_rule": {},
+      "by_severity": {
+        "hygiene": 0,
+        "maintainability": 0,
+        "optimization": 0,
+        "other": 0,
+        "strong_warning": 0,
+        "warning": 0
+      },
+      "fixinsight": {
+        "by_rule": {},
+        "by_severity": {},
+        "hygiene": 0,
+        "maintainability": 0,
+        "ownership": {
+          "project": 0,
+          "repository": 0,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "total": 0,
+        "warnings": 0
+      },
+      "ownership": {
+        "project": 0,
+        "repository": 0,
+        "third_party": 0,
+        "unknown": 0
+      },
+      "pascal_analyzer": {
+        "by_rule": {},
+        "by_severity": {},
+        "optimizations": 0,
+        "ownership": {
+          "project": 0,
+          "repository": 0,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "strong_warnings": 0,
+        "total": 0,
+        "warnings": 0
+      },
+      "total": 0
+    },
+    "ignored": {
+      "by_analyzer": {
+        "fixinsight": 0,
+        "pascal_analyzer": 0
+      },
+      "by_rule": {},
+      "by_severity": {
+        "hygiene": 0,
+        "maintainability": 0,
+        "optimization": 0,
+        "other": 0,
+        "strong_warning": 0,
+        "warning": 0
+      },
+      "fixinsight": {
+        "by_rule": {},
+        "by_severity": {},
+        "hygiene": 0,
+        "maintainability": 0,
+        "ownership": {
+          "project": 0,
+          "repository": 0,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "total": 0,
+        "warnings": 0
+      },
+      "ownership": {
+        "project": 0,
+        "repository": 0,
+        "third_party": 0,
+        "unknown": 0
+      },
+      "pascal_analyzer": {
+        "by_rule": {},
+        "by_severity": {},
+        "optimizations": 0,
+        "ownership": {
+          "project": 0,
+          "repository": 0,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "strong_warnings": 0,
+        "total": 0,
+        "warnings": 0
+      },
+      "total": 0
+    },
+    "raw": {
+      "by_analyzer": {
+        "fixinsight": 2,
+        "pascal_analyzer": 0
+      },
+      "by_rule": {
+        "FI.W101": 2
+      },
+      "by_severity": {
+        "hygiene": 0,
+        "maintainability": 0,
+        "optimization": 0,
+        "other": 0,
+        "strong_warning": 0,
+        "warning": 2
+      },
+      "fixinsight": {
+        "by_rule": {
+          "FI.W101": 2
+        },
+        "by_severity": {
+          "warning": 2
+        },
+        "hygiene": 0,
+        "maintainability": 0,
+        "ownership": {
+          "project": 1,
+          "repository": 1,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "total": 2,
+        "warnings": 2
+      },
+      "ownership": {
+        "project": 1,
+        "repository": 1,
+        "third_party": 0,
+        "unknown": 0
+      },
+      "pascal_analyzer": {
+        "by_rule": {},
+        "by_severity": {},
+        "optimizations": 0,
+        "ownership": {
+          "project": 0,
+          "repository": 0,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "strong_warnings": 0,
+        "total": 0,
+        "warnings": 0
+      },
+      "total": 2
+    },
+    "unknown": {
+      "by_analyzer": {
+        "fixinsight": 0,
+        "pascal_analyzer": 0
+      },
+      "by_rule": {},
+      "by_severity": {
+        "hygiene": 0,
+        "maintainability": 0,
+        "optimization": 0,
+        "other": 0,
+        "strong_warning": 0,
+        "warning": 0
+      },
+      "fixinsight": {
+        "by_rule": {},
+        "by_severity": {},
+        "hygiene": 0,
+        "maintainability": 0,
+        "ownership": {
+          "project": 0,
+          "repository": 0,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "total": 0,
+        "warnings": 0
+      },
+      "ownership": {
+        "project": 0,
+        "repository": 0,
+        "third_party": 0,
+        "unknown": 0
+      },
+      "pascal_analyzer": {
+        "by_rule": {},
+        "by_severity": {},
+        "optimizations": 0,
+        "ownership": {
+          "project": 0,
+          "repository": 0,
+          "third_party": 0,
+          "unknown": 0
+        },
+        "strong_warnings": 0,
+        "total": 0,
+        "warnings": 0
+      },
+      "total": 0
+    }
+  },
+  "errors": [],
+  "inputs": {
+    "project_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "policy": {
+    "active": {
+      "exclude_path_masks": [],
+      "fixinsight_ignore": [],
+      "gate_metrics": [],
+      "gate_ownership": [
+        "project",
+        "repository"
+      ],
+      "pal_ignore_rules": [],
+      "triage": {
+        "exclude_paths": "",
+        "include_paths": "",
+        "pal_include_call_tree": false,
+        "top": 20
+      }
+    },
+    "reporting_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "values": {
+      "exclude_path_masks": [],
+      "gate_ownership": [
+        "project",
+        "repository"
+      ],
+      "project_roots": [],
+      "third_party_roots": []
+    }
+  },
+  "provenance": {
+    "dak": {
+      "dirty": true,
+      "executable_sha256": "5e06b71cc4f33456b45d8586bb1d7f48b8d5fa86c710e519b5723e3a696e32d7",
+      "head": "66d6f40192afc10173d9a6335f83e42e4c472954",
+      "vcs": "git"
+    },
+    "target": {
+      "config_manifests": [],
+      "main_source_sha256": null,
+      "project_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "root": "F:\\projects\\MaxLogic\\DelphiAiKit\\agentskills\\dak-static-analysis\\tests\\fixtures\\workspace-report\\workspace",
+      "vcs": "none"
+    }
+  },
+  "schema_version": 3,
+  "status": {
+    "finalization": "complete",
+    "infrastructure": "complete",
+    "ownership_resolution": "complete",
+    "policy": "not_evaluated",
+    "postprocessor": "complete"
+  },
+  "subject": {
+    "kind": "project",
+    "path": "F:\\projects\\MaxLogic\\DelphiAiKit\\agentskills\\dak-static-analysis\\tests\\fixtures\\workspace-report\\workspace\\Sample.dpr",
+    "project_file": "F:\\projects\\MaxLogic\\DelphiAiKit\\agentskills\\dak-static-analysis\\tests\\fixtures\\workspace-report\\workspace\\Sample.dproj"
+  },
+  "timestamp": "2026-08-08T10:00:00Z",
+  "workspace": {
+    "root": "F:\\projects\\MaxLogic\\DelphiAiKit\\agentskills\\dak-static-analysis\\tests\\fixtures\\workspace-report\\workspace",
+    "selector": "project",
+    "source": "fixture",
+    "vcs": "none"
+  }
+}

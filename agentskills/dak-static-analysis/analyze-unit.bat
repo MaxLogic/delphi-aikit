@@ -10,13 +10,13 @@ set "SCRIPT_DIR=%~dp0"
 
 where py >nul 2>&1
 if errorlevel 1 goto try_python
-py -3 "%SCRIPT_DIR%analyze-unit.py" "%~1" "%~2"
+py -3 "%SCRIPT_DIR%analyze-unit.py" %*
 exit /b %errorlevel%
 
 :try_python
 where python >nul 2>&1
 if errorlevel 1 goto python_missing
-python "%SCRIPT_DIR%analyze-unit.py" "%~1" "%~2"
+python "%SCRIPT_DIR%analyze-unit.py" %*
 exit /b %errorlevel%
 
 :python_missing

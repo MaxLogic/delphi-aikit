@@ -166,6 +166,8 @@ type
     fHasExcludePathMasks: Boolean;
     fIgnoreWarningIds: string;
     fHasIgnoreWarningIds: Boolean;
+    fPalIgnoreRules: string;
+    fHasPalIgnoreRules: Boolean;
     fRunPascalAnalyzer: Boolean;
     fPaPath: string;
     fHasPaPath: Boolean;
@@ -173,6 +175,10 @@ type
     fHasPaOutput: Boolean;
     fPaArgs: string;
     fHasPaArgs: Boolean;
+    fPaExcludeSearchFolders: string;
+    fHasPaExcludeSearchFolders: Boolean;
+    fPaExcludeFiles: string;
+    fHasPaExcludeFiles: Boolean;
     fPaTimeoutSec: Integer;
     fHasPaTimeoutSec: Boolean;
     fLogFile: string;
@@ -260,6 +266,8 @@ type
     fUnitPath: string;
     fProjectContextPath: string;
     fHasProjectContextPath: Boolean;
+    fWorkspaceRoot: string;
+    fHasWorkspaceRoot: Boolean;
   end;
 
   TFixInsightExtraOptions = record
@@ -277,6 +285,11 @@ type
     fWarnings: string;
   end;
 
+  TPascalAnalyzerIgnoreDefaults = record
+    fRules: string;
+    fSources: string;
+  end;
+
   TReportFilterDefaults = record
     fExcludePathMasks: string;
   end;
@@ -285,6 +298,8 @@ type
     fPath: string;
     fOutput: string;
     fArgs: string;
+    fExcludeSearchFolders: string;
+    fExcludeFiles: string;
     fTimeoutSec: Integer;
   end;
 

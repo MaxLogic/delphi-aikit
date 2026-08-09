@@ -43,16 +43,42 @@ WSL path note for direct DAK calls:
 
 `DelphiAIKit.exe` reads cascading `dak.ini` files when it needs configuration
 (FixInsightCL path, report filtering, Pascal Analyzer path, diagnostics settings, etc.).
-The lookup order is:
+Workspace selection happens first. `[Workspace].Root` accepts `auto`, `git`,
+`svn`, `project`, or a fixed root path; `--workspace-root` is the CLI override.
+The command line wins, then the closest ancestor selector, then the executable
+`dak.ini` fallback. Bootstrap discovery scans to the filesystem root. The
+default `auto` selector chooses the nearest `.git` or `.svn`, otherwise the
+project directory. `git`/`svn` are strict marker requests, `project` ignores
+surrounding VCS, and a fixed root must contain the subject. Relative fixed paths
+are based on their declaring INI.
 
-1. `dak.ini` next to the executable
-2. repo-root `dak.ini` (folder containing `.git` or `.svn`)
-3. nested `dak.ini` files on the path down to the analyzed `.dproj`
-
-For repo-local machine settings, use repo-root `dak.ini` copied from
-`dak-template.ini`. The skill does not pass `--fi-settings` automatically,
+Normal configuration then loads from the selected workspace root down to the
+analyzed `.dproj`; selector files outside that boundary cannot leak other
+settings. The executable INI contributes normal defaults only when no selector
+exists and default `auto` is used. For workspace-local machine settings, copy
+`dak-template.ini` to the workspace as `dak.ini`. The skill does not pass
+`--fi-settings` automatically,
 because that flag is a FixInsightCL settings file passthrough and is not the
 same as our cascading `dak.ini`.
+
+Git and SVN executables are optional provenance capabilities. With the CLI,
+SVN uses `svn info --xml`, adjacent `svnversion`, `svn status --xml`, and
+`svn list --xml -R`. Without a usable VCS command, reports retain a bounded
+filesystem inventory, mark metadata `unavailable`, and do not fail analysis.
+
+The optional checked ownership policy uses that same cascade:
+
+```ini
+[AnalysisPolicy]
+GateOwnership=project;repository
+ProjectRoots=
+ThirdPartyRoots=
+```
+
+The two root lists are narrow fallbacks for otherwise unresolved paths.
+Automatic project and VCS topology wins. Keep accepted macros and optional
+missing paths under `[Diagnostics] IgnoreUnknownMacros` and
+`IgnoreMissingPaths`; those keys are invalid under `[AnalysisPolicy]`.
 
 If we need a FixInsightCL settings file, set one explicitly via:
 
@@ -81,6 +107,11 @@ Project runs write to:
   triage.md
   triage-changed.md
   static-analysis.sarif
+  static-analysis.full.sarif
+  external-summary.md
+  metrics.md
+  baseline.json
+  delta.json
   delta.md
   trend.md
   run.log
@@ -95,6 +126,11 @@ Unit runs write to:
   summary.md
   triage.md
   static-analysis.sarif
+  static-analysis.full.sarif
+  external-summary.md
+  metrics.md
+  baseline.json
+  delta.json
   delta.md
   trend.md
   run.log
@@ -114,7 +150,17 @@ as evidence, then remove the verified temporary output tree.
 
 - `DAK_DELPHI`, `DAK_PLATFORM`, `DAK_CONFIG`
 - `DAK_RSVARS`, `DAK_ENVOPTIONS`
-- `DAK_EXCLUDE_PATH_MASKS`, `DAK_IGNORE_WARNING_IDS`
+- `DAK_EXCLUDE_PATH_MASKS` (`--exclude-path-masks`,
+  `[ReportFilter].ExcludePathMasks`)
+- `DAK_FI_IGNORE_RULES` (`--ignore-warning-ids`,
+  `[FixInsightIgnore].Warnings`)
+- `DAK_PAL_IGNORE_RULES` (`--pal-ignore-rules`,
+  `[PascalAnalyzerIgnore].Rules`)
+- `DAK_PAL_EXCLUDE_SEARCH_FOLDERS` (`--pa-exclude-search-folders`,
+  `[PascalAnalyzer].ExcludeSearchFolders`, PAL `/X`)
+- `DAK_PAL_EXCLUDE_FILES` (`--pa-exclude-files`,
+  `[PascalAnalyzer].ExcludeFiles`, PAL `/XF`)
+- Deprecated FixInsight-only alias: `DAK_IGNORE_WARNING_IDS`
 - `DAK_FI_FORMATS` (default: `txt`; values: `txt`, `csv`, `xml`, `all`)
 - `DAK_OUT`, `DAK_FIXINSIGHT`, `DAK_PASCAL_ANALYZER` (or legacy `DAK_PAL`), `DAK_CLEAN`, `DAK_WRITE_SUMMARY`
   - default wrapper behavior: project runs use `DAK_FIXINSIGHT=true` and `DAK_PASCAL_ANALYZER=true`

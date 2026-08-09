@@ -11,6 +11,7 @@ function RunAnalyzeUnit(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
+  System.Diagnostics,
   Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
 
 type
@@ -23,14 +24,17 @@ type
     fFixIgnoreDefaults: TFixInsightIgnoreDefaults;
     fReportFilter: TReportFilterDefaults;
     fPascalAnalyzer: TPascalAnalyzerDefaults;
+    fSettings: TDakSettings;
     fParams: TFixInsightParams;
     fOutRoot: string;
     fPaDir: string;
     fRunLog: string;
     fUnitPath: string;
     fUnitName: string;
+    fProjectContextPath: string;
     fExitCode: Integer;
     fPal: TPalSummary;
+    fPalDurationMs: Int64;
     fSummaryPath: string;
     fSummaryText: string;
     procedure AddError(const aMessage: string; const aExitCode: Integer);
@@ -103,22 +107,39 @@ begin
     lOptions := fOptions;
     lOptions.fDprojPath := fOptions.fProjectContextPath;
     if not TryPrepareProjectParams(lOptions, fDiagnostics, fParams, fFixOptions, fFixIgnoreDefaults, fReportFilter,
-      fPascalAnalyzer, lProjectName, lProjectDproj, lError, lErrorCode) then
+      fPascalAnalyzer, fSettings, lProjectName, lProjectDproj, lError, lErrorCode) then
     begin
       WriteLn(ErrOutput, lError);
       fExitCode := lErrorCode;
       Exit(False);
     end;
+    fProjectContextPath := lProjectDproj;
     Exit(True);
   end;
 
-  if not LoadSettings(fDiagnostics, '', fFixOptions, fFixIgnoreDefaults, fReportFilter, fPascalAnalyzer) then
+  if fOptions.fHasWorkspaceRoot then
+    Result := LoadDakSettings(fDiagnostics, fUnitPath, nil, fOptions.fWorkspaceRoot, fSettings)
+  else
+    Result := LoadDakSettings(fDiagnostics, fUnitPath, nil, fSettings);
+  if not Result then
   begin
-    WriteLn(ErrOutput, 'Failed to read dak.ini.');
+    if fSettings.fError <> '' then
+      WriteLn(ErrOutput, fSettings.fError)
+    else
+      WriteLn(ErrOutput, 'Failed to read dak.ini.');
     fExitCode := 6;
     Exit(False);
   end;
+  fFixOptions := fSettings.fFixInsight;
+  fFixIgnoreDefaults := fSettings.fFixInsightIgnore;
+  fReportFilter := fSettings.fReportFilter;
+  fPascalAnalyzer := fSettings.fPascalAnalyzer;
   ApplySettingsOverrides(fOptions, fFixOptions, fFixIgnoreDefaults, fReportFilter, fPascalAnalyzer);
+  ApplyPascalAnalyzerIgnoreOverride(fOptions, fSettings.fPascalAnalyzerIgnore);
+  fSettings.fFixInsight := fFixOptions;
+  fSettings.fFixInsightIgnore := fFixIgnoreDefaults;
+  fSettings.fReportFilter := fReportFilter;
+  fSettings.fPascalAnalyzer := fPascalAnalyzer;
   fDiagnostics.AddWarning(rsAnalyzeUnitPalIniContext);
   Result := True;
 end;
@@ -169,13 +190,15 @@ var
   lPaReportRoot: string;
   lPalPostError: string;
   lRan: Boolean;
+  lStopwatch: TStopwatch;
   lStdErrLogPath: string;
   lStdOutLogPath: string;
   lUnitParams: TFixInsightParams;
 begin
   fPal := Default(TPalSummary);
+  fPalDurationMs := 0;
   if fOptions.fHasProjectContextPath then
-    fPal.Context := 'Project: ' + TPath.GetFullPath(fOptions.fProjectContextPath)
+    fPal.Context := 'Project: ' + fProjectContextPath
   else
     fPal.Context := rsAnalyzeUnitPalIniContext;
   if not fOptions.fAnalyzePal then
@@ -192,15 +215,21 @@ begin
   lStdOutLogPath := TPath.Combine(fPaDir, 'pascal-analyzer.stdout.log');
   lStdErrLogPath := TPath.Combine(fPaDir, 'pascal-analyzer.stderr.log');
 
-  if fOptions.fHasProjectContextPath then
-  begin
-    lUnitParams := fParams;
-    lUnitParams.fProjectDpr := fUnitPath;
-    lRan := TryRunPalLogged(lUnitParams, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog, lRunExit,
-      lRunError);
-  end else
-    lRan := TryRunPalUnitLogged(fUnitPath, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog, lRunExit,
-      lRunError);
+  lStopwatch := TStopwatch.StartNew;
+  try
+    if fOptions.fHasProjectContextPath then
+    begin
+      lUnitParams := fParams;
+      lUnitParams.fProjectDpr := fUnitPath;
+      lRan := TryRunPalLogged(lUnitParams, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog, lRunExit,
+        lRunError);
+    end else
+      lRan := TryRunPalUnitLogged(fUnitPath, fPascalAnalyzer, lStdOutLogPath, lStdErrLogPath, fRunLog, lRunExit,
+        lRunError);
+  finally
+    lStopwatch.Stop;
+    fPalDurationMs := lStopwatch.ElapsedMilliseconds;
+  end;
 
   if lRan then
   begin
@@ -253,6 +282,8 @@ begin
   fSummaryPath := TPath.Combine(fOutRoot, 'summary.md');
   fSummaryText := BuildUnitSummary(fUnitName, fUnitPath, fOutRoot, fPal, fErrors.ToArray);
   WriteLogText(fSummaryPath, fSummaryText);
+  WriteUnitStatusSeed(fOutRoot, fUnitPath, fProjectContextPath, fParams, fSettings, fPascalAnalyzer,
+    fPal, fPalDurationMs, fExitCode, fOptions.fAnalyzePal, fErrors.ToArray);
 end;
 
 function TAnalyzeUnitRunner.Execute: Integer;

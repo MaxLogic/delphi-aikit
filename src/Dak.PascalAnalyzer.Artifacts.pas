@@ -18,8 +18,8 @@ function TryGeneratePalArtifactsWithCounts(const aReportRoot: string; const aOut
 implementation
 
 uses
-  System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.StrUtils, System.SysUtils,
-  System.Types, System.Variants,
+  System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.Math, System.StrUtils,
+  System.SysUtils, System.Types, System.Variants,
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
   maxLogic.StrUtils;
 
@@ -33,6 +33,7 @@ const
   SPalComplexityFileName = 'Complexity.xml';
   SPalModuleTotalsFileName = 'Module Totals.xml';
   SPalStatusFileName = 'Status.xml';
+  cPalModulesFileName = 'Modules.xml';
 
 type
   TPalFinding = record
@@ -40,6 +41,8 @@ type
     Report: string;
     Section: string;
     ModuleName: string;
+    fSourcePath: string;
+    fPathStatus: string;
     Line: Integer;
     Message: string;
     ItemId: string;
@@ -122,6 +125,122 @@ begin
   Result := aModule <> '';
 end;
 
+function BaseModuleName(const aModule: string): string;
+var
+  lBackslashPos: Integer;
+  lPos: Integer;
+  lSlashPos: Integer;
+begin
+  Result := Trim(aModule);
+  lBackslashPos := Pos('\', Result);
+  lSlashPos := Pos('/', Result);
+  if (lBackslashPos > 0) and (lSlashPos > 0) then
+    lPos := Min(lBackslashPos, lSlashPos)
+  else if lBackslashPos > 0 then
+    lPos := lBackslashPos
+  else
+    lPos := lSlashPos;
+  if lPos > 0 then
+    Result := Trim(Copy(Result, 1, lPos - 1));
+end;
+
+function TryLoadXml(const aPath: string; out aDoc: IXMLDocument;
+  out aError: string): Boolean; forward;
+
+function NormalizeModulePath(const aPath, aReportRoot: string): string;
+var
+  lPath: string;
+begin
+  lPath := Trim(aPath);
+  if lPath = '' then
+    Exit('');
+  lPath := lPath.Replace('/', PathDelim, [rfReplaceAll]);
+  if not TPath.IsPathRooted(lPath) then
+    lPath := TPath.Combine(aReportRoot, lPath);
+  Result := TPath.GetFullPath(lPath);
+end;
+
+function TryLoadModulePaths(const aPath: string; out aPaths: TDictionary<string, string>;
+  out aError: string): Boolean;
+var
+  lDoc: IXMLDocument;
+  lExisting: string;
+  lModule: IXMLNode;
+  lName: string;
+  lPath: string;
+  lRoot: IXMLNode;
+  lSection: IXMLNode;
+  i: Integer;
+  j: Integer;
+begin
+  Result := False;
+  aError := '';
+  aPaths := TDictionary<string, string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  if not FileExists(aPath) then
+    Exit(True);
+  if not TryLoadXml(aPath, lDoc, aError) then
+    Exit(False);
+  lRoot := lDoc.DocumentElement;
+  try
+    for i := 0 to lRoot.ChildNodes.Count - 1 do
+    begin
+      lSection := lRoot.ChildNodes[i];
+      if not SameText(lSection.NodeName, 'section') then
+        Continue;
+      for j := 0 to lSection.ChildNodes.Count - 1 do
+      begin
+        lModule := lSection.ChildNodes[j];
+        if not SameText(lModule.NodeName, 'module') then
+          Continue;
+        lName := NormalizeLineText(ChildText(lModule, 'name'));
+        lPath := NormalizeModulePath(ChildText(lModule, 'path'), ExtractFilePath(aPath));
+        if (lName = '') or (lPath = '') then
+          Continue;
+        if not aPaths.TryGetValue(lName, lExisting) then
+          aPaths.Add(lName, lPath)
+        else if not SameText(lExisting, lPath) then
+          aPaths[lName] := '';
+      end;
+    end;
+    Result := True;
+  except
+    on E: Exception do
+    begin
+      aError := 'PAL Modules.xml parse failed: ' + aPath + ' (' + E.Message + ')';
+      aPaths.Free;
+      aPaths := nil;
+    end;
+  end;
+end;
+
+procedure ResolveFindingPaths(const aFindings: TList<TPalFinding>;
+  const aModulePaths: TDictionary<string, string>);
+var
+  lFinding: TPalFinding;
+  lModule: string;
+  lPath: string;
+  i: Integer;
+begin
+  if aModulePaths = nil then
+    Exit;
+  for i := 0 to aFindings.Count - 1 do
+  begin
+    lFinding := aFindings[i];
+    lModule := BaseModuleName(lFinding.ModuleName);
+    if aModulePaths.TryGetValue(lModule, lPath) then
+    begin
+      if lPath <> '' then
+      begin
+        lFinding.fSourcePath := lPath;
+        lFinding.fPathStatus := 'resolved';
+      end else
+        lFinding.fPathStatus := 'ambiguous';
+    end else
+      lFinding.fPathStatus := 'missing';
+    aFindings[i] := lFinding;
+  end;
+end;
+
 function ChooseMessage(const aItemId, aName, aKind: string): string;
 begin
   if aItemId <> '' then
@@ -185,6 +304,7 @@ var
   lLocMod: string;
   lLocLine: string;
   lLocKind: string;
+  lLocInfo: string;
   lModule: string;
   lLine: Integer;
   lLineFromMod: Integer;
@@ -194,6 +314,7 @@ begin
   lLocMod := NormalizeLineText(ChildText(aLoc, 'locmod'));
   lLocLine := NormalizeLineText(ChildText(aLoc, 'locline'));
   lLocKind := NormalizeLineText(ChildText(aLoc, 'kind'));
+  lLocInfo := NormalizeLineText(ChildText(aLoc, 'info'));
   lLine := StrToIntDef(lLocLine, 0);
   lModule := '';
 
@@ -203,7 +324,9 @@ begin
       lLine := lLineFromMod;
   end;
 
-  lMessage := ChooseMessage(aItemId, aName, aItemKind);
+  lMessage := lLocInfo;
+  if lMessage = '' then
+    lMessage := ChooseMessage(aItemId, aName, aItemKind);
   if (lMessage = '') and (lLocKind <> '') then
     lMessage := lLocKind;
 
@@ -566,7 +689,10 @@ begin
       lBuilder.Append(' | ');
       lBuilder.Append(lFinding.Section);
       lBuilder.Append(' | ');
-      lBuilder.Append(lFinding.ModuleName);
+      if lFinding.fSourcePath <> '' then
+        lBuilder.Append(lFinding.fSourcePath)
+      else
+        lBuilder.Append(lFinding.ModuleName);
       lBuilder.Append(':');
       lBuilder.Append(lFinding.Line.ToString);
       lBuilder.Append(' | ');
@@ -604,6 +730,9 @@ begin
         lJson.AddPair('report', lFinding.Report);
         lJson.AddPair('section', lFinding.Section);
         lJson.AddPair('module', lFinding.ModuleName);
+        if lFinding.fSourcePath <> '' then
+          lJson.AddPair('path', lFinding.fSourcePath);
+        lJson.AddPair('path_status', lFinding.fPathStatus);
         lJson.AddPair('line', TJSONNumber.Create(lFinding.Line));
         lJson.AddPair('message', lFinding.Message);
         if lFinding.ItemId <> '' then
@@ -741,6 +870,8 @@ var
   lOptimizationPath: string;
   lComplexityPath: string;
   lModuleTotalsPath: string;
+  lModulePaths: TDictionary<string, string>;
+  lModulesPath: string;
   lParsed: Boolean;
   lEntries: TArray<TComplexityEntry>;
   lModuleLines: TDictionary<string, Integer>;
@@ -783,10 +914,17 @@ begin
   lOptimizationPath := TPath.Combine(lReportRoot, SPalOptimizationFileName);
   lComplexityPath := TPath.Combine(lReportRoot, SPalComplexityFileName);
   lModuleTotalsPath := TPath.Combine(lReportRoot, SPalModuleTotalsFileName);
+  lModulesPath := TPath.Combine(lReportRoot, cPalModulesFileName);
 
   lFindings := TList<TPalFinding>.Create;
   lSeen := THashSet<string>.Create(TFastCaseAwareComparer.OrdinalIgnoreCase);
+  lModulePaths := nil;
   try
+    if not TryLoadModulePaths(lModulesPath, lModulePaths, lError) then
+    begin
+      aError := lError;
+      Exit(False);
+    end;
     lHasFindingsSource := False;
     lParsed := False;
     if FileExists(lWarningsPath) then
@@ -827,6 +965,7 @@ begin
     end;
 
     lHasHotspotSource := FileExists(lComplexityPath) or FileExists(lModuleTotalsPath);
+    ResolveFindingPaths(lFindings, lModulePaths);
     CaptureFindingCounts(lFindings, aCounts);
 
     if not (lHasFindingsSource or lHasHotspotSource) then
@@ -932,6 +1071,7 @@ begin
       end;
     end;
   finally
+    lModulePaths.Free;
     lFindings.Free;
     lSeen.Free;
   end;

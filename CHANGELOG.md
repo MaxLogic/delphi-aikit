@@ -5,15 +5,24 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Added VCS-neutral static-analysis workspaces with deterministic `auto`, `git`, `svn`, `project`, fixed-path, and `--workspace-root` selection.
 - Added PAL 9.21 help-aware Delphi 13 support, including BDS 37 Win64 target mapping and doctor reporting for the resolved PAL executable, version, architecture, help availability, and Delphi 12/13 capabilities.
 - Added project-context unit analysis and compact `summary.json`, JSONL, SARIF, delta, trend, and triage artifacts for AI-assisted static-analysis review.
+- Added deterministic PAL `Modules.xml` path resolution plus explicit validated `--pa-exclude-search-folders` (`/X`) and `--pa-exclude-files` (`/XF`) settings for CLI, `dak.ini`, and static-analysis wrappers.
+- Added schema-3 raw/actionable static-analysis projections, full-evidence SARIF, compact external and advisory-metric reports, explicit metric opt-in, and fail-closed ownership verification.
+- Added collision-safe canonical PAL rule identities, version-verified native aliases, PAL-specific actionable-report filtering, per-value filter provenance, and raw/ignored rule evidence across summary, baseline, delta, and SARIF artifacts.
 
 ### Changed
+- Static-analysis ownership, source identity, change triage, and provenance now use the resolved workspace and report truthful Git, SVN, or unmanaged capabilities instead of requiring Git.
+- The static-analysis skill now treats large legacy applications as an advisory, delta-oriented workflow by default: inherited findings and analyzer parser limitations no longer become routine feature gates, while full-project analysis remains available for explicit audits and dedicated maintenance work.
+- The static-analysis skill now distinguishes actionable, raw, ignored, external, advisory-metric, and unknown findings; documents only implemented analyzer-specific filters and explicit coverage exclusions; and contract-tests every named option and artifact.
 - PAL reporting now uses consistent actionable totals for strong warnings, warnings, and optimizations across all compact artifacts; raw `Exception.xml` call-tree rows no longer contribute to findings.
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
 - Command output now treats a closed stdout pipe as normal downstream termination, preventing `deps --output -` and other shared output paths from raising madExcept reports when a consumer exits early; requested file output still completes.
+- `global-vars` now requires AST-verified declaration roles and lexical ownership, excluding locals, `Result`, assignments, fields, and properties while preserving class-variable identity, routine provenance, cache invalidation, and decision-grade diagnostics.
+- PAL normalization now preserves each location's full analyzer `<info>` message when present, while retaining the previous fallback for reports without per-location detail.
 
 ## [1.2.1] - 2026-07-11
 

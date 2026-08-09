@@ -21,6 +21,8 @@ type
     [Test]
     procedure OwnedPalArgumentsAreRejected;
     [Test]
+    procedure ExplicitPalExclusionsAreValidatedAndForwarded;
+    [Test]
     procedure ProjectCommandOwnsReportName;
     [Test]
     procedure ProjectRunnerUsesExactNamedReportRoot;
@@ -228,6 +230,65 @@ begin
     Assert.IsTrue(lError.Contains('conflicts with DAK-owned automation'),
       'Expected a clear ownership diagnostic for ' + lSwitch + '. Actual: ' + lError);
   end;
+end;
+
+procedure TPascalAnalyzerTests.ExplicitPalExclusionsAreValidatedAndForwarded;
+var
+  lCmdLine: string;
+  lEnvGuard: IInterface;
+  lError: string;
+  lExePath: string;
+  lMapGuard: IInterface;
+  lMapPath: string;
+  lMapSource: string;
+  lPa: TPascalAnalyzerDefaults;
+  lParams: TFixInsightParams;
+begin
+  lMapSource := TPath.Combine(RepoRoot, 'bin\palcmd-map.json');
+  lMapGuard := SetScopedPalCmdMapFixture(TFile.ReadAllText(lMapSource, TEncoding.UTF8), lMapPath);
+  lEnvGuard := SetScopedEnvironmentVariable('DAK_TEST_PAL_HELP', '1');
+
+  lParams := Default(TFixInsightParams);
+  lParams.fProjectDpr := TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dpr');
+  lParams.fDelphiVersion := '23.0';
+  lParams.fPlatform := 'Win64';
+  lParams.fConfig := 'Release';
+
+  lPa := Default(TPascalAnalyzerDefaults);
+  lPa.fPath := ParamStr(0);
+  Assert.IsTrue(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError), lError);
+  Assert.IsFalse(lCmdLine.Contains('/X='), 'DAK must not derive PAL /X from ownership or search paths.');
+  Assert.IsFalse(lCmdLine.Contains('/XF='), 'DAK must not derive PAL /XF from ownership or search paths.');
+
+  lPa.fExcludeSearchFolders := 'C:\Program Files (x86)\Vendor<+>;F:\Vendor<+>';
+  lPa.fExcludeFiles := 'System.pas;Vendor.pas';
+  Assert.IsTrue(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError), lError);
+  Assert.IsTrue(lCmdLine.Contains('/X="C:\Program Files (x86)\Vendor<+>;F:\Vendor<+>"'), lCmdLine);
+  Assert.IsTrue(lCmdLine.Contains('/XF=System.pas;Vendor.pas'), lCmdLine);
+
+  Assert.IsTrue(BuildPalCmdUnitCommandLine(lParams.fProjectDpr, lPa, lExePath, lCmdLine, lError), lError);
+  Assert.IsTrue(lCmdLine.Contains('/X="C:\Program Files (x86)\Vendor<+>;F:\Vendor<+>"'), lCmdLine);
+  Assert.IsTrue(lCmdLine.Contains('/XF=System.pas;Vendor.pas'), lCmdLine);
+
+  lPa.fExcludeSearchFolders := 'relative\Vendor<+>';
+  Assert.IsFalse(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError),
+    'PAL /X folders must be absolute.');
+  Assert.IsTrue(lError.Contains('absolute'), lError);
+
+  lPa.fExcludeSearchFolders := '';
+  lPa.fExcludeFiles := 'System.pas;;Vendor.pas';
+  Assert.IsFalse(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError),
+    'PAL /XF lists must reject empty items.');
+  Assert.IsTrue(lError.Contains('empty item'), lError);
+
+  lPa := Default(TPascalAnalyzerDefaults);
+  lPa.fPath := ParamStr(0);
+  lPa.fArgs := '/X=C:\Vendor';
+  Assert.IsFalse(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError),
+    'Generic PAL arguments must not bypass the explicit /X contract.');
+  lPa.fArgs := '/XF=System.pas';
+  Assert.IsFalse(BuildPalCmdCommandLine(lParams, lPa, lExePath, lCmdLine, lError),
+    'Generic PAL arguments must not bypass the explicit /XF contract.');
 end;
 
 procedure TPascalAnalyzerTests.ExtraArgumentsRetainAutomationDefaults;

@@ -919,7 +919,75 @@ var
 begin
   lArg := UpperCase(aArg);
   Result := StartsText('/F=', lArg) or StartsText('/R=', lArg) or StartsText('/NAME=', lArg) or
-    StartsText('/T=', lArg) or MatchText(lArg, ['/A+', '/A-', '/FA', '/F+', '/FR', '/FM', '/F-', '/Q']);
+    StartsText('/T=', lArg) or StartsText('/X=', lArg) or StartsText('/XF=', lArg) or
+    MatchText(lArg, ['/A+', '/A-', '/FA', '/F+', '/FR', '/FM', '/F-', '/Q']);
+end;
+
+function TryValidatePalExclusionList(const aValue, aSwitch: string; const aRequireAbsolute: Boolean;
+  out aError: string): Boolean;
+var
+  lItem: string;
+  lItems: TStringList;
+  lPath: string;
+begin
+  Result := False;
+  aError := '';
+  if aValue = '' then
+    Exit(True);
+  if (Pos('"', aValue) > 0) or (Pos(#13, aValue) > 0) or (Pos(#10, aValue) > 0) then
+  begin
+    aError := aSwitch + ' contains an unsupported quote or line break.';
+    Exit(False);
+  end;
+
+  lItems := TStringList.Create;
+  try
+    lItems.StrictDelimiter := True;
+    lItems.Delimiter := ';';
+    lItems.DelimitedText := aValue;
+    for lItem in lItems do
+    begin
+      lPath := Trim(lItem);
+      if lPath = '' then
+      begin
+        aError := aSwitch + ' contains an empty item.';
+        Exit(False);
+      end;
+      if aRequireAbsolute then
+      begin
+        if EndsText('<+>', lPath) then
+          Delete(lPath, Length(lPath) - 2, 3);
+        if not TPath.IsPathRooted(lPath) then
+        begin
+          aError := aSwitch + ' folders must be absolute: ' + lItem;
+          Exit(False);
+        end;
+      end;
+    end;
+    Result := True;
+  finally
+    lItems.Free;
+  end;
+end;
+
+function TryValidatePalExclusions(const aPa: TPascalAnalyzerDefaults; out aError: string): Boolean;
+begin
+  Result := TryValidatePalExclusionList(aPa.fExcludeSearchFolders, 'PAL /X', True, aError) and
+    TryValidatePalExclusionList(aPa.fExcludeFiles, 'PAL /XF', False, aError);
+end;
+
+procedure AppendPalExclusions(const aArgs: TStringBuilder; const aPa: TPascalAnalyzerDefaults);
+begin
+  if aPa.fExcludeSearchFolders <> '' then
+  begin
+    aArgs.Append(' /X=');
+    aArgs.Append(QuoteArg(aPa.fExcludeSearchFolders));
+  end;
+  if aPa.fExcludeFiles <> '' then
+  begin
+    aArgs.Append(' /XF=');
+    aArgs.Append(QuoteArg(aPa.fExcludeFiles));
+  end;
 end;
 
 function TryValidatePalExtraArgs(const aArgs: string; out aError: string): Boolean;
@@ -1023,6 +1091,8 @@ begin
   Result := False;
   aCmdLine := '';
   aError := '';
+  if not TryValidatePalExclusions(aPa, aError) then
+    Exit(False);
   if not TryValidatePalExtraArgs(aPa.fArgs, aError) then
     Exit(False);
 
@@ -1076,6 +1146,7 @@ begin
     lArgs.Append(QuoteArg(lReportName));
 
     AppendAutomationDefaults(lArgs);
+    AppendPalExclusions(lArgs, aPa);
     if aPa.fArgs <> '' then
     begin
       lArgs.Append(' ');
@@ -1172,6 +1243,8 @@ begin
     aError := 'PALCMD unit path is empty.';
     Exit(False);
   end;
+  if not TryValidatePalExclusions(aPa, aError) then
+    Exit(False);
   if not TryValidatePalExtraArgs(aPa.fArgs, aError) then
     Exit(False);
   if not TryResolvePalCmdExe(aPa.fPath, lExe, aError) then
@@ -1189,6 +1262,7 @@ begin
     end;
 
     AppendAutomationDefaults(lArgs);
+    AppendPalExclusions(lArgs, aPa);
     if aPa.fArgs <> '' then
     begin
       lArgs.Append(' ');

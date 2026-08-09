@@ -40,6 +40,8 @@ type
     [Test]
     procedure AnalyzeUnitParsesProjectContext;
     [Test]
+    procedure AnalyzeCommandParsesWorkspaceRoot;
+    [Test]
     procedure AnalyzeProjectRejectsProjectContext;
     [Test]
     procedure AnalyzeHelpIncludesProjectContext;
@@ -92,15 +94,67 @@ type
     [Test]
     procedure AnalyzeCommandParsesAnalyzerTimeouts;
     [Test]
+    procedure AnalyzeCommandParsesPalExclusions;
+    [Test]
+    procedure AnalyzeCommandParsesPalRuleIgnore;
+    [Test]
     procedure AnalyzeCommandRejectsInvalidAnalyzerTimeout;
     [Test]
     procedure LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
     [Test]
+    procedure LoadDakSettingsUsesAncestorFixedWorkspaceBoundary;
+    [Test]
+    procedure LoadDakSettingsCommandLineWorkspaceOverridesIni;
+    [Test]
+    procedure LoadDakSettingsCommandLineRelativeWorkspaceUsesCurrentDirectory;
+    [Test]
+    procedure LoadDakSettingsAutoRecognizesGitMarkerFile;
+    [Test]
+    procedure LoadDakSettingsRejectsStrictGitWithoutMarker;
+    [Test]
+    procedure LoadDakSettingsRejectsStrictSvnWithoutMarker;
+    [Test]
+    procedure LoadDakSettingsRejectsMissingFixedWorkspaceRoot;
+    [Test]
+    procedure LoadDakSettingsRejectsFixedRootOutsideProject;
+    [Test]
+    procedure LoadDakSettingsProjectSelectorIgnoresOuterVcs;
+    [Test]
+    procedure LoadDakSettingsUsesExecutableWorkspaceSelectorFallback;
+    [Test]
+    procedure LoadDakSettingsDefaultAutoRetainsExecutableDefaults;
+    [Test]
+    procedure LoadDakSettingsRejectsEmptyWorkspaceSelector;
+    [Test]
+    procedure LoadDakSettingsReportsResolvedWorkspaceContext;
+    [Test]
+    procedure LoadDakSettingsAutoUsesNearestSvnWorkspace;
+    [Test]
+    procedure LoadDakSettingsStrictGitUsesRequestedOuterMarker;
+    [Test]
+    procedure LoadDakSettingsStrictSvnRetainsSvnIdentityAtMixedRoot;
+    [Test]
+    procedure LoadDakSettingsClosestSelectorIgnoresFartherInvalidSelector;
+    [Test]
     procedure LoadSettingsReadsAnalyzerTimeouts;
+    [Test]
+    procedure LoadSettingsReadsAndOverridesPalExclusions;
+    [Test]
+    procedure LoadDakSettingsReadsAndOverridesPalRuleIgnore;
     [Test]
     procedure DakIniLoadingIsCentralized;
     [Test]
     procedure LoadDakSettingsMergesTypedSections;
+    [Test]
+    procedure LoadDakSettingsRejectsInvalidAnalysisPolicyOwnership;
+    [Test]
+    procedure LoadDakSettingsRejectsInvalidAnalysisPolicyMetric;
+    [Test]
+    procedure LoadDakSettingsRejectsUnknownAnalysisPolicyKey;
+    [Test]
+    procedure LoadBuildSettingsRetainsBuildValuesWhenAnalysisPolicyInvalid;
+    [Test]
+    procedure LoadDefaultDelphiVersionIgnoresInvalidAnalysisPolicy;
     [Test]
     procedure CommandOutputWritingIsCentralized;
     [Test]
@@ -365,6 +419,24 @@ begin
   Assert.IsTrue(lOptions.fHasProjectContextPath);
 end;
 
+procedure TCliTests.AnalyzeCommandParsesWorkspaceRoot;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('analyze --project C:\repo\Sample.dproj --delphi 23.0 --workspace-root project');
+
+  Assert.IsTrue(TryParseOptions(lOptions, lError), lError);
+  Assert.IsTrue(lOptions.fHasWorkspaceRoot, 'Expected explicit workspace-root flag.');
+  Assert.AreEqual('project', lOptions.fWorkspaceRoot, 'Unexpected workspace-root selector.');
+
+  SetParams('analyze-unit --unit C:\repo\Unit1.pas --delphi 23.0 /workspace-root:project');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), lError);
+  Assert.AreEqual(TCommandKind.ckAnalyzeUnit, lOptions.fCommand);
+  Assert.IsTrue(lOptions.fHasWorkspaceRoot, 'Expected slash-form workspace-root flag.');
+  Assert.AreEqual('project', lOptions.fWorkspaceRoot, 'Unexpected slash-form workspace-root selector.');
+end;
+
 procedure TCliTests.AnalyzeProjectRejectsProjectContext;
 var
   lError: string;
@@ -379,6 +451,7 @@ end;
 procedure TCliTests.AnalyzeHelpIncludesProjectContext;
 begin
   Assert.IsTrue(SUsageAnalyze.Contains('--project-context "<dproj>"'));
+  Assert.IsTrue(SUsageAnalyze.Contains('--workspace-root <auto|git|svn|project|path>'));
 end;
 
 procedure TCliTests.DfmCheckCommandParsesRequiredFlagsAndDefaults;
@@ -826,6 +899,40 @@ begin
   Assert.AreEqual(22, lOptions.fPaTimeoutSec, 'Unexpected Pascal Analyzer timeout value.');
 end;
 
+procedure TCliTests.AnalyzeCommandParsesPalExclusions;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('analyze --project C:\repo\Sample.dproj --delphi 23.0 ' +
+    '--pa-exclude-search-folders "C:\Program Files (x86)\Vendor<+>;F:\Vendor<+>" ' +
+    '--pa-exclude-files "System.pas;Vendor.pas"');
+
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected explicit PAL exclusions to parse paths with spaces. Error: ' + lError);
+  Assert.AreEqual('C:\Program Files (x86)\Vendor<+>;F:\Vendor<+>',
+    lOptions.fPaExcludeSearchFolders);
+  Assert.AreEqual('System.pas;Vendor.pas', lOptions.fPaExcludeFiles);
+  Assert.IsTrue(SUsageAnalyze.Contains('--pa-exclude-search-folders'));
+  Assert.IsTrue(SUsageAnalyze.Contains('--pa-exclude-files'));
+end;
+
+procedure TCliTests.AnalyzeCommandParsesPalRuleIgnore;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('analyze --project C:\repo\Sample.dproj --delphi 23.0 ' +
+    '--pal-ignore-rules "WARN54;PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92"');
+
+  Assert.IsTrue(TryParseOptions(lOptions, lError),
+    'Expected explicit PAL report suppression to parse. Error: ' + lError);
+  Assert.AreEqual('WARN54;PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92',
+    lOptions.fPalIgnoreRules);
+  Assert.IsTrue(lOptions.fHasPalIgnoreRules);
+  Assert.IsTrue(SUsageAnalyze.Contains('--pal-ignore-rules'));
+end;
+
 procedure TCliTests.AnalyzeCommandRejectsInvalidAnalyzerTimeout;
 var
   lOptions: TAppOptions;
@@ -891,6 +998,562 @@ begin
   end;
 end;
 
+procedure TCliTests.LoadDakSettingsUsesAncestorFixedWorkspaceBoundary;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lProjectDir: string;
+  lProjectIniPath: string;
+  lSelectorIniPath: string;
+  lSettings: TDakSettings;
+  lWorkspaceDir: string;
+  lWorkspaceIniPath: string;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-fixed');
+  lWorkspaceDir := TPath.Combine(lBaseDir, 'workspace');
+  lProjectDir := TPath.Combine(lWorkspaceDir, 'src\app');
+  TDirectory.CreateDirectory(lProjectDir);
+
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+
+  lSelectorIniPath := TPath.Combine(lBaseDir, 'dak.ini');
+  TFile.WriteAllText(lSelectorIniPath,
+    '[Workspace]' + sLineBreak +
+    'Root=workspace' + sLineBreak +
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WOUTSIDE' + sLineBreak, TEncoding.ASCII);
+
+  lWorkspaceIniPath := TPath.Combine(lWorkspaceDir, 'dak.ini');
+  TFile.WriteAllText(lWorkspaceIniPath,
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WROOT' + sLineBreak, TEncoding.ASCII);
+
+  lProjectIniPath := TPath.Combine(lProjectDir, 'dak.ini');
+  TFile.WriteAllText(lProjectIniPath,
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WLOCAL' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.IsTrue(Pos('WROOT', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Ancestor selector did not establish the fixed workspace root.');
+    Assert.IsTrue(Pos('WLOCAL', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Expected project-local settings inside the workspace boundary.');
+    Assert.IsFalse(Pos('WOUTSIDE', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Selector settings outside the workspace boundary must not cascade.');
+    Assert.IsTrue(MatchText(lWorkspaceIniPath, lSettings.fLoadedPaths),
+      'Expected the workspace-root dak.ini to be loaded.');
+    Assert.IsFalse(MatchText(lSelectorIniPath, lSettings.fLoadedPaths),
+      'The selector dak.ini must not load ordinary settings from outside the workspace.');
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsCommandLineWorkspaceOverridesIni;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lProjectDir: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-cli');
+  lProjectDir := TPath.Combine(lBaseDir, 'project');
+  TDirectory.CreateDirectory(lProjectDir);
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lProjectDir, 'dak.ini'),
+    '[Workspace]' + sLineBreak +
+    'Root=project' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lBaseDir, lSettings), lSettings.fError);
+    Assert.AreEqual(lBaseDir, lSettings.fWorkspace.fRoot, 'CLI must override the INI workspace root.');
+    Assert.AreEqual(lBaseDir, lSettings.fWorkspace.fSelector, 'Expected the explicit selector to be retained.');
+    Assert.AreEqual('none', lSettings.fWorkspace.fVcs, 'Expected an unmanaged fixed workspace.');
+    Assert.AreEqual('command_line', lSettings.fWorkspace.fSource, 'Expected CLI selector provenance.');
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsCommandLineRelativeWorkspaceUsesCurrentDirectory;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lOldDir: string;
+  lProjectDir: string;
+  lSettings: TDakSettings;
+  lWorkspaceDir: string;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-cli-relative');
+  lWorkspaceDir := TPath.Combine(lBaseDir, 'workspace');
+  lProjectDir := TPath.Combine(lWorkspaceDir, 'project');
+  TDirectory.CreateDirectory(lProjectDir);
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  lOldDir := GetCurrentDir;
+  try
+    SetCurrentDir(lBaseDir);
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, 'workspace', lSettings), lSettings.fError);
+    Assert.AreEqual(lWorkspaceDir, lSettings.fWorkspace.fRoot,
+      'Relative CLI workspace roots must resolve from the process working directory.');
+    Assert.AreEqual('workspace', lSettings.fWorkspace.fSelector);
+    Assert.AreEqual('command_line', lSettings.fWorkspace.fSource);
+  finally
+    SetCurrentDir(lOldDir);
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsAutoRecognizesGitMarkerFile;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lProjectDir: string;
+  lSettings: TDakSettings;
+  lWorkspaceDir: string;
+  lWorkspaceIniPath: string;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-git-file');
+  lWorkspaceDir := TPath.Combine(lBaseDir, 'workspace');
+  lProjectDir := TPath.Combine(lWorkspaceDir, 'src');
+  TDirectory.CreateDirectory(lProjectDir);
+
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lWorkspaceDir, '.git'),
+    'gitdir: ..\.git\worktrees\workspace' + sLineBreak, TEncoding.ASCII);
+
+  lWorkspaceIniPath := TPath.Combine(lWorkspaceDir, 'dak.ini');
+  TFile.WriteAllText(lWorkspaceIniPath,
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WGITFILE' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.IsTrue(Pos('WGITFILE', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Auto discovery did not recognize the Git marker file.');
+    Assert.IsTrue(MatchText(lWorkspaceIniPath, lSettings.fLoadedPaths),
+      'Expected settings from the Git worktree root.');
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsRejectsStrictGitWithoutMarker;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-strict-git');
+  TDirectory.CreateDirectory(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[Workspace]' + sLineBreak +
+    'Root=git' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsFalse(LoadDakSettings(nil, lDprojPath, nil, lSettings),
+      'Strict Git selection must fail without a Git marker.');
+    Assert.IsTrue(Pos('git', LowerCase(lSettings.fError)) > 0,
+      'Expected the workspace error to identify the missing Git marker. Actual: ' + lSettings.fError);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsRejectsStrictSvnWithoutMarker;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-strict-svn');
+  TDirectory.CreateDirectory(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[Workspace]' + sLineBreak +
+    'Root=svn' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsFalse(LoadDakSettings(nil, lDprojPath, nil, lSettings),
+      'Strict SVN selection must fail without an SVN marker.');
+    Assert.IsTrue(Pos('svn', LowerCase(lSettings.fError)) > 0,
+      'Expected the workspace error to identify the missing SVN marker. Actual: ' + lSettings.fError);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsRejectsMissingFixedWorkspaceRoot;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-missing-fixed');
+  TDirectory.CreateDirectory(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[Workspace]' + sLineBreak +
+    'Root=missing' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsFalse(LoadDakSettings(nil, lDprojPath, nil, lSettings),
+      'A nonexistent fixed workspace root must be rejected.');
+    Assert.IsTrue(Pos('exist', LowerCase(lSettings.fError)) > 0,
+      'Expected a missing-root error. Actual: ' + lSettings.fError);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsRejectsFixedRootOutsideProject;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lOtherDir: string;
+  lProjectDir: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-outside-fixed');
+  lProjectDir := TPath.Combine(lBaseDir, 'project');
+  lOtherDir := TPath.Combine(lBaseDir, 'other');
+  TDirectory.CreateDirectory(lProjectDir);
+  TDirectory.CreateDirectory(lOtherDir);
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lProjectDir, 'dak.ini'),
+    '[Workspace]' + sLineBreak +
+    'Root=..\other' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsFalse(LoadDakSettings(nil, lDprojPath, nil, lSettings),
+      'A fixed workspace root outside the project must be rejected.');
+    Assert.IsTrue(Pos('contain', LowerCase(lSettings.fError)) > 0,
+      'Expected a containment error. Actual: ' + lSettings.fError);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsProjectSelectorIgnoresOuterVcs;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lProjectDir: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-project');
+  lProjectDir := TPath.Combine(lBaseDir, 'project');
+  TDirectory.CreateDirectory(TPath.Combine(lBaseDir, '.git'));
+  TDirectory.CreateDirectory(lProjectDir);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WOUTERGIT' + sLineBreak, TEncoding.ASCII);
+
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lProjectDir, 'dak.ini'),
+    '[Workspace]' + sLineBreak +
+    'Root=project' + sLineBreak +
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WPROJECT' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.IsTrue(Pos('WPROJECT', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Expected settings from the project boundary.');
+    Assert.IsFalse(Pos('WOUTERGIT', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Root=project must ignore an outer Git workspace.');
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsUsesExecutableWorkspaceSelectorFallback;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lExeIniPath: string;
+  lHadExeIni: Boolean;
+  lOriginalBytes: TBytes;
+  lProjectDir: string;
+  lSettings: TDakSettings;
+  lWorkspaceDir: string;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-exe-fallback');
+  lWorkspaceDir := TPath.Combine(lBaseDir, 'workspace');
+  lProjectDir := TPath.Combine(lWorkspaceDir, 'src');
+  TDirectory.CreateDirectory(lProjectDir);
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lWorkspaceDir, 'dak.ini'),
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WEXEROOT' + sLineBreak, TEncoding.ASCII);
+
+  lExeIniPath := TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)), 'dak.ini'));
+  lHadExeIni := FileExists(lExeIniPath);
+  if lHadExeIni then
+    lOriginalBytes := TFile.ReadAllBytes(lExeIniPath);
+  try
+    TFile.WriteAllText(lExeIniPath,
+      '[Workspace]' + sLineBreak +
+      'Root=' + lWorkspaceDir + sLineBreak +
+      '[FixInsightIgnore]' + sLineBreak +
+      'Warnings=WEXEOUTSIDE' + sLineBreak, TEncoding.ASCII);
+
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.IsTrue(Pos('WEXEROOT', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Executable dak.ini did not select the workspace fallback.');
+    Assert.IsFalse(Pos('WEXEOUTSIDE', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Executable selector settings outside the workspace must not cascade.');
+  finally
+    if lHadExeIni then
+      TFile.WriteAllBytes(lExeIniPath, lOriginalBytes)
+    else if FileExists(lExeIniPath) then
+      TFile.Delete(lExeIniPath);
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsDefaultAutoRetainsExecutableDefaults;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lExeIniPath: string;
+  lHadExeIni: Boolean;
+  lOriginalBytes: TBytes;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-exe-defaults');
+  TDirectory.CreateDirectory(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WPROJECTDEFAULT' + sLineBreak, TEncoding.ASCII);
+
+  lExeIniPath := TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)), 'dak.ini'));
+  lHadExeIni := FileExists(lExeIniPath);
+  if lHadExeIni then
+    lOriginalBytes := TFile.ReadAllBytes(lExeIniPath);
+  try
+    TFile.WriteAllText(lExeIniPath,
+      '[FixInsightIgnore]' + sLineBreak +
+      'Warnings=WEXEDEFAULT' + sLineBreak, TEncoding.ASCII);
+
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.IsTrue(Pos('WEXEDEFAULT', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Default auto loading must retain executable dak.ini defaults.');
+    Assert.IsTrue(Pos('WPROJECTDEFAULT', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Expected project-local settings to cascade after executable defaults.');
+  finally
+    if lHadExeIni then
+      TFile.WriteAllBytes(lExeIniPath, lOriginalBytes)
+    else if FileExists(lExeIniPath) then
+      TFile.Delete(lExeIniPath);
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsRejectsEmptyWorkspaceSelector;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-empty');
+  TDirectory.CreateDirectory(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[Workspace]' + sLineBreak +
+    'Root=' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsFalse(LoadDakSettings(nil, lDprojPath, nil, lSettings),
+      'An empty explicit workspace selector must be rejected.');
+    Assert.IsTrue(Pos('empty', LowerCase(lSettings.fError)) > 0,
+      'Expected an empty-selector error. Actual: ' + lSettings.fError);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsReportsResolvedWorkspaceContext;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lProjectDir: string;
+  lSelectorIniPath: string;
+  lSettings: TDakSettings;
+  lWorkspaceDir: string;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-context');
+  lWorkspaceDir := TPath.Combine(lBaseDir, 'workspace');
+  lProjectDir := TPath.Combine(lWorkspaceDir, 'src');
+  TDirectory.CreateDirectory(TPath.Combine(lWorkspaceDir, '.git'));
+  TDirectory.CreateDirectory(TPath.Combine(lWorkspaceDir, '.svn'));
+  TDirectory.CreateDirectory(lProjectDir);
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  lSelectorIniPath := TPath.Combine(lProjectDir, 'dak.ini');
+  TFile.WriteAllText(lSelectorIniPath,
+    '[Workspace]' + sLineBreak +
+    'Root=auto' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual('auto', lSettings.fWorkspace.fSelector);
+    Assert.AreEqual(TPath.GetFullPath(lWorkspaceDir), lSettings.fWorkspace.fRoot);
+    Assert.AreEqual('git', lSettings.fWorkspace.fVcs,
+      'Git must win when Git and SVN markers have the same depth.');
+    Assert.AreEqual(TPath.GetFullPath(lSelectorIniPath), lSettings.fWorkspace.fSource);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsAutoUsesNearestSvnWorkspace;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lProjectDir: string;
+  lSettings: TDakSettings;
+  lSvnRoot: string;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-nearest-svn');
+  lSvnRoot := TPath.Combine(lBaseDir, 'svn-workspace');
+  lProjectDir := TPath.Combine(lSvnRoot, 'src');
+  TDirectory.CreateDirectory(TPath.Combine(lBaseDir, '.git'));
+  TDirectory.CreateDirectory(TPath.Combine(lSvnRoot, '.svn'));
+  TDirectory.CreateDirectory(lProjectDir);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WOUTERGIT' + sLineBreak, TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lSvnRoot, 'dak.ini'),
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WNEARESTSVN' + sLineBreak, TEncoding.ASCII);
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+
+  try
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual(TPath.GetFullPath(lSvnRoot), lSettings.fWorkspace.fRoot);
+    Assert.AreEqual('svn', lSettings.fWorkspace.fVcs);
+    Assert.IsTrue(Pos('WNEARESTSVN', lSettings.fFixInsightIgnore.fWarnings) > 0);
+    Assert.IsFalse(Pos('WOUTERGIT', lSettings.fFixInsightIgnore.fWarnings) > 0);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsStrictGitUsesRequestedOuterMarker;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lProjectDir: string;
+  lSettings: TDakSettings;
+  lSvnRoot: string;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-strict-outer-git');
+  lSvnRoot := TPath.Combine(lBaseDir, 'svn-workspace');
+  lProjectDir := TPath.Combine(lSvnRoot, 'src');
+  TDirectory.CreateDirectory(TPath.Combine(lBaseDir, '.git'));
+  TDirectory.CreateDirectory(TPath.Combine(lSvnRoot, '.svn'));
+  TDirectory.CreateDirectory(lProjectDir);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WSTRICTGIT' + sLineBreak, TEncoding.ASCII);
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lProjectDir, 'dak.ini'),
+    '[Workspace]' + sLineBreak +
+    'Root=git' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual(TPath.GetFullPath(lBaseDir), lSettings.fWorkspace.fRoot);
+    Assert.AreEqual('git', lSettings.fWorkspace.fVcs);
+    Assert.IsTrue(Pos('WSTRICTGIT', lSettings.fFixInsightIgnore.fWarnings) > 0);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsStrictSvnRetainsSvnIdentityAtMixedRoot;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lProjectDir: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-strict-svn-mixed');
+  lProjectDir := TPath.Combine(lBaseDir, 'src');
+  TDirectory.CreateDirectory(TPath.Combine(lBaseDir, '.git'));
+  TDirectory.CreateDirectory(TPath.Combine(lBaseDir, '.svn'));
+  TDirectory.CreateDirectory(lProjectDir);
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lProjectDir, 'dak.ini'),
+    '[Workspace]' + sLineBreak +
+    'Root=svn' + sLineBreak, TEncoding.ASCII);
+
+  try
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual(TPath.GetFullPath(lBaseDir), lSettings.fWorkspace.fRoot);
+    Assert.AreEqual('svn', lSettings.fWorkspace.fVcs,
+      'A strict SVN selector must not inherit the automatic Git tie-break.');
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsClosestSelectorIgnoresFartherInvalidSelector;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lNearIniPath: string;
+  lProjectDir: string;
+  lSettings: TDakSettings;
+  lWorkspaceDir: string;
+begin
+  lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-closest-selector');
+  lWorkspaceDir := TPath.Combine(lBaseDir, 'workspace');
+  lProjectDir := TPath.Combine(lWorkspaceDir, 'src');
+  TDirectory.CreateDirectory(lProjectDir);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[Workspace]' + sLineBreak +
+    'Root=missing' + sLineBreak +
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WFARTHER' + sLineBreak, TEncoding.ASCII);
+  lNearIniPath := TPath.Combine(lWorkspaceDir, 'dak.ini');
+  TFile.WriteAllText(lNearIniPath,
+    '[Workspace]' + sLineBreak +
+    'Root=.' + sLineBreak +
+    '[FixInsightIgnore]' + sLineBreak +
+    'Warnings=WNEAR' + sLineBreak, TEncoding.ASCII);
+  lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
+
+  try
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual(TPath.GetFullPath(lWorkspaceDir), lSettings.fWorkspace.fRoot);
+    Assert.AreEqual(TPath.GetFullPath(lNearIniPath), lSettings.fWorkspace.fSource);
+    Assert.IsTrue(Pos('WNEAR', lSettings.fFixInsightIgnore.fWarnings) > 0);
+    Assert.IsFalse(Pos('WFARTHER', lSettings.fFixInsightIgnore.fWarnings) > 0);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
 procedure TCliTests.LoadSettingsReadsAnalyzerTimeouts;
 var
   lBaseDir: string;
@@ -923,6 +1586,89 @@ begin
     Assert.AreEqual(33, lFixOptions.fTimeoutSec, 'Unexpected FixInsight timeout from dak.ini.');
     Assert.AreEqual(44, lPascalAnalyzer.fTimeoutSec, 'Unexpected Pascal Analyzer timeout from dak.ini.');
   finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadSettingsReadsAndOverridesPalExclusions;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lFixIgnoreDefaults: TFixInsightIgnoreDefaults;
+  lFixOptions: TFixInsightExtraOptions;
+  lOptions: TAppOptions;
+  lPascalAnalyzer: TPascalAnalyzerDefaults;
+  lProjectIniPath: string;
+  lReportFilter: TReportFilterDefaults;
+begin
+  lBaseDir := UniqueTempPath('dak-settings-pal-exclusions');
+  TDirectory.CreateDirectory(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+  lProjectIniPath := TPath.Combine(lBaseDir, 'dak.ini');
+  TFile.WriteAllText(lProjectIniPath,
+    '[PascalAnalyzer]' + sLineBreak +
+    'ExcludeSearchFolders=C:\Vendor<+>;D:\Shared<+>' + sLineBreak +
+    'ExcludeFiles=System.pas;Vendor.pas' + sLineBreak, TEncoding.ASCII);
+  try
+    Assert.IsTrue(LoadSettings(nil, lDprojPath, lFixOptions, lFixIgnoreDefaults,
+      lReportFilter, lPascalAnalyzer), 'Expected settings loader to succeed.');
+    Assert.AreEqual('C:\Vendor<+>;D:\Shared<+>', lPascalAnalyzer.fExcludeSearchFolders);
+    Assert.AreEqual('System.pas;Vendor.pas', lPascalAnalyzer.fExcludeFiles);
+
+    lOptions := Default(TAppOptions);
+    lOptions.fHasPaExcludeSearchFolders := True;
+    lOptions.fPaExcludeSearchFolders := 'E:\CommandLine<+>';
+    lOptions.fHasPaExcludeFiles := True;
+    lOptions.fPaExcludeFiles := 'CommandLine.pas';
+    ApplySettingsOverrides(lOptions, lFixOptions, lFixIgnoreDefaults, lReportFilter, lPascalAnalyzer);
+    Assert.AreEqual('E:\CommandLine<+>', lPascalAnalyzer.fExcludeSearchFolders);
+    Assert.AreEqual('CommandLine.pas', lPascalAnalyzer.fExcludeFiles);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsReadsAndOverridesPalRuleIgnore;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lEnvGuard: IInterface;
+  lOptions: TAppOptions;
+  lOriginGuard: IInterface;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueTempPath('dak-settings-pal-rule-ignore');
+  TDirectory.CreateDirectory(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[PascalAnalyzerIgnore]' + sLineBreak +
+    'Rules=WARN54;PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92' + sLineBreak,
+    TEncoding.ASCII);
+  try
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings),
+      'Expected typed PAL ignore settings to load.');
+    Assert.AreEqual('WARN54;PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92',
+      lSettings.fPascalAnalyzerIgnore.fRules);
+
+    lEnvGuard := SetScopedEnvironmentVariable(
+      'DAK_PAL_IGNORE_RULES', 'WARN54');
+    lOriginGuard := ClearScopedEnvironmentVariable(
+      'DAK_PAL_IGNORE_RULES_ORIGIN');
+    lOptions := Default(TAppOptions);
+    lOptions.fPalIgnoreRules := 'STWA6';
+    lOptions.fHasPalIgnoreRules := True;
+    ApplyPascalAnalyzerIgnoreOverride(lOptions, lSettings.fPascalAnalyzerIgnore);
+    Assert.AreEqual(
+      'WARN54;PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92;STWA6',
+      lSettings.fPascalAnalyzerIgnore.fRules);
+    Assert.AreEqual(
+      TPath.Combine(lBaseDir, 'dak.ini') + ';command_line',
+      lSettings.fPascalAnalyzerIgnore.fSources);
+  finally
+    lOriginGuard := nil;
+    lEnvGuard := nil;
     DeleteTempPath(lBaseDir);
   end;
 end;
@@ -980,7 +1726,12 @@ begin
     '[MadExcept]' + sLineBreak +
     'Path=$(TOOLS)\madExcept' + sLineBreak +
     '[Build]' + sLineBreak +
-    'DelphiVersion=22.0' + sLineBreak);
+    'DelphiVersion=22.0' + sLineBreak +
+    '[AnalysisPolicy]' + sLineBreak +
+    'GateOwnership=project' + sLineBreak +
+    'GateMetrics=PAL.warnings.method-length-621eae6dfec836e8' + sLineBreak +
+    'ProjectRoots=src;shared' + sLineBreak +
+    'ThirdPartyRoots=$(TOOLS)\vendor' + sLineBreak);
   WriteIniText(TPath.Combine(lSubDir, 'dak.ini'),
     '[FixInsightCL]' + sLineBreak +
     'Ignore=obj;tmp' + sLineBreak +
@@ -992,7 +1743,11 @@ begin
     '[WebCore]' + sLineBreak +
     'CompilerPath=$(TOOLS)\webcore\TMSWebCompiler.exe' + sLineBreak +
     '[Build]' + sLineBreak +
-    'DelphiVersion=23.0' + sLineBreak);
+    'DelphiVersion=23.0' + sLineBreak +
+    '[AnalysisPolicy]' + sLineBreak +
+    'GateOwnership=repository;project' + sLineBreak +
+    'GateMetrics=PAL.warnings.parameter-count-75ab87a447776473' + sLineBreak +
+    'ProjectRoots=local;..\shared' + sLineBreak);
 
   lEnvVars := TDictionary<string, string>.Create;
   try
@@ -1017,8 +1772,166 @@ begin
       lSettings.fBuild.fWebCoreCompilerPath, 'WebCore compiler path should expand through the settings loader.');
     Assert.AreEqual('23.0', lSettings.fDelphiVersion,
       'More local Build DelphiVersion should override repo-level defaults.');
+    Assert.AreEqual('project;repository', lSettings.fAnalysisPolicy.fGateOwnership,
+      'Ownership categories should be canonical after the local override.');
+    Assert.AreEqual('PAL.warnings.parameter-count-75ab87a447776473', lSettings.fAnalysisPolicy.fGateMetrics,
+      'The local metric gate should override the repository default explicitly.');
+    Assert.AreEqual(
+      TPath.GetFullPath(TPath.Combine(lSubDir, 'local')) + ';' +
+      TPath.GetFullPath(TPath.Combine(lRepoDir, 'shared')),
+      lSettings.fAnalysisPolicy.fProjectRoots,
+      'Project roots should resolve relative to the contributing dak.ini.');
+    Assert.AreEqual(TPath.GetFullPath(TPath.Combine(lBaseDir, 'tools\vendor')),
+      lSettings.fAnalysisPolicy.fThirdPartyRoots,
+      'Unchanged third-party roots should remain inherited from the repo layer.');
+    Assert.AreEqual(2, Integer(Length(lSettings.fLoadedPaths)),
+      'Only existing dak.ini files should be recorded as loaded inputs.');
+    Assert.AreEqual(TPath.GetFullPath(TPath.Combine(lRepoDir, 'dak.ini')), lSettings.fLoadedPaths[0]);
+    Assert.AreEqual(TPath.GetFullPath(TPath.Combine(lSubDir, 'dak.ini')), lSettings.fLoadedPaths[1]);
+    Assert.AreEqual(2, Integer(Length(lSettings.fAnalysisPolicy.fSources)),
+      'Both policy-contributing dak.ini files should be retained.');
+    Assert.AreEqual(lSettings.fLoadedPaths[0], lSettings.fAnalysisPolicy.fSources[0]);
+    Assert.AreEqual(lSettings.fLoadedPaths[1], lSettings.fAnalysisPolicy.fSources[1]);
+    Assert.AreEqual(64, Length(lSettings.fAnalysisPolicy.fSha256),
+      'Resolved ownership policy should have a stable SHA-256 fingerprint.');
   finally
     lEnvVars.Free;
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsRejectsInvalidAnalysisPolicyOwnership;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueTempPath('dak-settings-policy-value');
+  ForceDirectories(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[AnalysisPolicy]' + sLineBreak +
+    'GateOwnership=project;unknown' + sLineBreak, TEncoding.ASCII);
+  try
+    Assert.IsFalse(LoadDakSettings(nil, lDprojPath, nil, lSettings),
+      'Unknown ownership categories must make dak.ini invalid.');
+    Assert.IsTrue(Pos('GateOwnership', lSettings.fError) > 0, lSettings.fError);
+    Assert.IsTrue(Pos('project;unknown', lSettings.fError) > 0, lSettings.fError);
+    Assert.IsTrue(Pos(TPath.Combine(lBaseDir, 'dak.ini'), lSettings.fError) > 0, lSettings.fError);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsRejectsInvalidAnalysisPolicyMetric;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueTempPath('dak-settings-policy-metric');
+  ForceDirectories(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[AnalysisPolicy]' + sLineBreak +
+    'GateMetrics=method-length' + sLineBreak, TEncoding.ASCII);
+  try
+    Assert.IsFalse(LoadDakSettings(nil, lDprojPath, nil, lSettings),
+      'Metric gates must use canonical PAL rule identities.');
+    Assert.IsTrue(Pos('GateMetrics', lSettings.fError) > 0, lSettings.fError);
+    Assert.IsTrue(Pos('method-length', lSettings.fError) > 0, lSettings.fError);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsRejectsUnknownAnalysisPolicyKey;
+var
+  lBaseDir: string;
+  lDprojPath: string;
+  lSettings: TDakSettings;
+begin
+  lBaseDir := UniqueTempPath('dak-settings-policy-key');
+  ForceDirectories(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[AnalysisPolicy]' + sLineBreak +
+    'IgnoreUnknownMacros=THIRD_PARTY_DEFINE' + sLineBreak, TEncoding.ASCII);
+  try
+    Assert.IsFalse(LoadDakSettings(nil, lDprojPath, nil, lSettings),
+      'Diagnostics controls must not be accepted under AnalysisPolicy.');
+    Assert.IsTrue(Pos('IgnoreUnknownMacros', lSettings.fError) > 0, lSettings.fError);
+    Assert.IsTrue(Pos(TPath.Combine(lBaseDir, 'dak.ini'), lSettings.fError) > 0, lSettings.fError);
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadBuildSettingsRetainsBuildValuesWhenAnalysisPolicyInvalid;
+var
+  lBaseDir: string;
+  lBuildSettings: TDakBuildSettings;
+  lDprojPath: string;
+  lOptions: TAppOptions;
+begin
+  lBaseDir := UniqueTempPath('dak-settings-build-invalid-policy');
+  ForceDirectories(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[BuildIgnore]' + sLineBreak +
+    'Warnings=W1000' + sLineBreak +
+    '[AnalysisPolicy]' + sLineBreak +
+    'GateOwnership=project;invalid' + sLineBreak, TEncoding.ASCII);
+  try
+    lOptions := Default(TAppOptions);
+    LoadBuildSettings(lDprojPath, lOptions, nil, lBuildSettings);
+    Assert.AreEqual('W1000', lBuildSettings.fIgnoreWarnings,
+      'Invalid analysis policy must not discard unrelated build settings.');
+  finally
+    DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDefaultDelphiVersionIgnoresInvalidAnalysisPolicy;
+var
+  lBaseDir: string;
+  lDefaultDelphiVersion: string;
+  lDiagnosticsDefaults: TDiagnosticsDefaults;
+  lDprojPath: string;
+  lFixIgnoreDefaults: TFixInsightIgnoreDefaults;
+  lFixOptions: TFixInsightExtraOptions;
+  lPascalAnalyzer: TPascalAnalyzerDefaults;
+  lReportFilter: TReportFilterDefaults;
+begin
+  lBaseDir := UniqueTempPath('dak-settings-delphi-invalid-policy');
+  ForceDirectories(lBaseDir);
+  lDprojPath := TPath.Combine(lBaseDir, 'Sample.dproj');
+  TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(lBaseDir, 'dak.ini'),
+    '[Build]' + sLineBreak +
+    'DelphiVersion=23.0' + sLineBreak +
+    '[Diagnostics]' + sLineBreak +
+    'SourceContextLines=4' + sLineBreak +
+    '[FixInsightCL]' + sLineBreak +
+    'Path=C:\Tools\FixInsightCL.exe' + sLineBreak +
+    '[AnalysisPolicy]' + sLineBreak +
+    'GateOwnership=project;invalid' + sLineBreak, TEncoding.ASCII);
+  try
+    Assert.IsTrue(LoadDefaultDelphiVersion(lDprojPath, lDefaultDelphiVersion),
+      'Invalid analysis policy must not invalidate unrelated compiler defaults.');
+    Assert.AreEqual('23.0', lDefaultDelphiVersion);
+    Assert.IsTrue(LoadDiagnosticsDefaults(nil, lDprojPath, lDiagnosticsDefaults),
+      'Invalid analysis policy must not invalidate unrelated diagnostics defaults.');
+    Assert.AreEqual(4, lDiagnosticsDefaults.fSourceContextLines);
+    Assert.IsTrue(LoadSettings(nil, lDprojPath, lFixOptions, lFixIgnoreDefaults,
+      lReportFilter, lPascalAnalyzer),
+      'Invalid analysis policy must not invalidate resolver settings.');
+    Assert.AreEqual('C:\Tools\FixInsightCL.exe', lFixOptions.fExePath);
+  finally
     DeleteTempPath(lBaseDir);
   end;
 end;
@@ -1747,7 +2660,9 @@ var
   lOptions: TAppOptions;
   lError: string;
 begin
-  SetParams('global-vars --project c:\temp\sample.dproj --format json --output out.json --cache cache.db --refresh force');
+  SetParams('global-vars --project c:\temp\sample.dproj --format json --output out.json ' +
+    '--cache cache.db --refresh force --delphi 23.0 --platform Win64 --config Debug ' +
+    '--rsvars c:\delphi\rsvars.bat --envoptions c:\delphi\EnvOptions.proj');
   Assert.IsTrue(TryParseOptions(lOptions, lError), 'Expected global-vars options to parse. Error: ' + lError);
   Assert.AreEqual(TCommandKind.ckGlobalVars, lOptions.fCommand);
   Assert.AreEqual(TGlobalVarsFormat.gvfJson, lOptions.fGlobalVarsFormat);
@@ -1756,6 +2671,16 @@ begin
   Assert.IsTrue(lOptions.fHasGlobalVarsCachePath);
   Assert.AreEqual('cache.db', lOptions.fGlobalVarsCachePath);
   Assert.AreEqual(TGlobalVarsRefresh.gvrForce, lOptions.fGlobalVarsRefresh);
+  Assert.AreEqual('23.0', lOptions.fDelphiVersion);
+  Assert.AreEqual('Win64', lOptions.fPlatform);
+  Assert.AreEqual('Debug', lOptions.fConfig);
+  Assert.AreEqual('c:\delphi\rsvars.bat', lOptions.fRsVarsPath);
+  Assert.AreEqual('c:\delphi\EnvOptions.proj', lOptions.fEnvOptionsPath);
+  Assert.IsTrue(SUsageGlobalVars.Contains('--delphi <23.0>'));
+  Assert.IsTrue(SUsageGlobalVars.Contains('--platform <Win32|Win64>'));
+  Assert.IsTrue(SUsageGlobalVars.Contains('--config <Debug|Release>'));
+  Assert.IsTrue(SUsageGlobalVars.Contains('--rsvars "<path>"'));
+  Assert.IsTrue(SUsageGlobalVars.Contains('--envoptions "<path>"'));
 end;
 
 procedure TCliTests.ParseGlobalVarsUnusedOnly;

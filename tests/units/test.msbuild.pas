@@ -568,6 +568,8 @@ begin
   Assert.IsTrue(Pos('LINUX', lDefineText) > 0, 'LINUX');
   Assert.IsTrue(Pos('POSIX', lDefineText) > 0, 'POSIX');
   Assert.IsTrue(Pos('CPUX64', lDefineText) > 0, 'CPUX64');
+  Assert.IsTrue(Pos('CONDITIONALEXPRESSIONS', lDefineText) > 0,
+    'Modern Delphi analyzer context must define CONDITIONALEXPRESSIONS.');
   Assert.AreEqual(0, Pos('MSWINDOWS', lDefineText), 'MSWINDOWS');
   Assert.AreEqual(0, Pos('WIN32', lDefineText), 'WIN32');
 end;
@@ -812,7 +814,7 @@ begin
 
   lContext := TProjectAnalysisContext.Create(lOptions.fDprojPath, 'ContextParams',
     lProjectDir, lMainSourcePath, TArray<string>.Create(lMainSourcePath),
-    'SEMANTIC_DEFINE;SECOND_DEFINE', lSearchDir,
+    'SEMANTIC_DEFINE;CONDITIONALEXPRESSIONS;SECOND_DEFINE;conditionalExpressions', lSearchDir,
     TArray<string>.Create('Vcl', 'System'), TArray<string>.Create('Legacy=Modern'),
     TPath.Combine(lProjectDir, '.dak\ContextParams'), True, '');
 
@@ -827,7 +829,7 @@ begin
   end;
 
   Assert.AreEqual(lMainSourcePath, lParams.fProjectDpr);
-  Assert.AreEqual('SEMANTIC_DEFINE;SECOND_DEFINE', ArrayText(lParams.fDefines));
+  Assert.AreEqual('SEMANTIC_DEFINE;CONDITIONALEXPRESSIONS;SECOND_DEFINE', ArrayText(lParams.fDefines));
   Assert.AreEqual(2, Integer(Length(lParams.fUnitSearchPath)));
   Assert.AreEqual(lSearchDir, lParams.fUnitSearchPath[0]);
   Assert.IsTrue(Pos(lLibDir, ArrayText(lParams.fUnitSearchPath)) > 0,
