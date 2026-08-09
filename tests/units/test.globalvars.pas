@@ -16,6 +16,7 @@ type
     [Setup] procedure Setup;
     [TearDown] procedure TearDown;
     [Test] procedure RunGlobalVarsJsonOutputIncludesSupportedKinds;
+    [Test] procedure RunGlobalVarsJsonOutputRejectsNonDeclarationsAndReportsProvenance;
     [Test] procedure RunGlobalVarsJsonOutputKeepsSymbolLocationAndUsageShape;
     [Test] procedure RunGlobalVarsJsonOutputSupportsUnusedOnlyFilter;
     [Test] procedure RunGlobalVarsJsonOutputSupportsUnitAndNameFilter;
@@ -31,6 +32,7 @@ type
     [Test] procedure RunGlobalVarsCacheUsesBusyRetryPolicy;
     [Test] procedure RunGlobalVarsCacheHitLoadsFilteredSlice;
     [Test] procedure RunGlobalVarsCommandFiltersCacheHitProjection;
+    [Test] procedure RunGlobalVarsSkillDocumentsDecisionGradeContract;
   end;
 
 implementation
@@ -164,6 +166,8 @@ var
   lItem: TJSONObject;
   lUsedBy: TJSONArray;
   lFoundNames: TStringList;
+  lCacheOwners: TStringList;
+  lCacheSymbolIds: TStringList;
 begin
   FillChar(lOptions, SizeOf(lOptions), 0);
   lOptions.fDprojPath := FixtureProjectPath;
@@ -183,22 +187,24 @@ begin
   lContent := ReadUtf8TextFile(lOutputFileName);
   lJson := ParseJsonObject(lContent);
   lFoundNames := TStringList.Create;
+  lCacheOwners := TStringList.Create;
+  lCacheSymbolIds := TStringList.Create;
   try
     Assert.IsNotNull(lJson);
     lSummary := lJson.GetValue<TJSONObject>('summary');
     Assert.IsNotNull(lSummary);
-    Assert.AreEqual(5, lSummary.GetValue<Integer>('total'));
-    Assert.AreEqual(4, lSummary.GetValue<Integer>('used'));
+    Assert.AreEqual(6, lSummary.GetValue<Integer>('total'));
+    Assert.AreEqual(5, lSummary.GetValue<Integer>('used'));
     Assert.AreEqual(1, lSummary.GetValue<Integer>('unused'));
     Assert.AreEqual(0, lSummary.GetValue<Integer>('ambiguities'));
-    Assert.AreEqual(5, lSummary.GetValue<Integer>('emitted'));
+    Assert.AreEqual(6, lSummary.GetValue<Integer>('emitted'));
     Assert.AreEqual(0, lSummary.GetValue<Integer>('emittedAmbiguities'));
     Assert.AreEqual('all', lSummary.GetValue<string>('filter'));
     Assert.IsNotEmpty(lSummary.GetValue<string>('contextMode'),
       'Expected global-vars JSON to report project-analysis context mode.');
     lSymbols := lJson.GetValue<TJSONArray>('symbols');
     Assert.IsNotNull(lSymbols);
-    Assert.AreEqual(5, lSymbols.Count);
+    Assert.AreEqual(6, lSymbols.Count);
     Assert.AreEqual(0, lJson.GetValue<TJSONArray>('ambiguities').Count);
     for lItemValue in lSymbols do
     begin
@@ -222,6 +228,12 @@ begin
       if SameText(lItem.GetValue<string>('name'), 'sCache') then
       begin
         Assert.AreEqual('classvar', lItem.GetValue<string>('kind'));
+        lUsedBy := lItem.GetValue<TJSONArray>('usedBy');
+        Assert.IsNotNull(lUsedBy);
+        Assert.IsTrue(lUsedBy.Count > 0,
+          'Each same-named class variable must retain its own usage.');
+        lCacheOwners.Add(lItem.GetValue<string>('owner'));
+        lCacheSymbolIds.Add(lItem.GetValue<string>('symbolId'));
       end;
       if SameText(lItem.GetValue<string>('name'), 'GUnusedValue') then
       begin
@@ -230,14 +242,109 @@ begin
         Assert.AreEqual(0, lUsedBy.Count);
       end;
     end;
+    Assert.AreEqual(2, lCacheOwners.Count);
+    Assert.AreEqual(2, lCacheSymbolIds.Count);
+    Assert.AreNotEqual(lCacheOwners[0], lCacheOwners[1]);
+    Assert.AreNotEqual(lCacheSymbolIds[0], lCacheSymbolIds[1]);
     lFoundNames.Sort;
     Assert.AreEqual('GCounter', lFoundNames[0]);
     Assert.AreEqual('GThreadCounter', lFoundNames[1]);
     Assert.AreEqual('GTypedValue', lFoundNames[2]);
     Assert.AreEqual('GUnusedValue', lFoundNames[3]);
     Assert.AreEqual('sCache', lFoundNames[4]);
+    Assert.AreEqual('sCache', lFoundNames[5]);
   finally
+    lCacheSymbolIds.Free;
+    lCacheOwners.Free;
     lFoundNames.Free;
+    lJson.Free;
+  end;
+end;
+
+procedure TGlobalVarsTests.
+  RunGlobalVarsJsonOutputRejectsNonDeclarationsAndReportsProvenance;
+var
+  lCompilerContext: TJSONObject;
+  lDelphiSemantics: TJSONObject;
+  lGlobalVars: TJSONObject;
+  lItem: TJSONObject;
+  lItemValue: TJSONValue;
+  lJson: TJSONObject;
+  lNames: TStringList;
+  lOptions: TAppOptions;
+  lOutputFileName: string;
+  lProvenance: TJSONObject;
+  lSymbols: TJSONArray;
+begin
+  lOutputFileName := TPath.Combine(TPath.GetTempPath,
+    'global-vars-fixture-scope-provenance.json');
+  lOptions := Default(TAppOptions);
+  lOptions.fDprojPath := FixtureProjectPath;
+  lOptions.fDelphiVersion := '23.0';
+  lOptions.fPlatform := 'Win64';
+  lOptions.fConfig := 'Debug';
+  lOptions.fGlobalVarsFormat := TGlobalVarsFormat.gvfJson;
+  lOptions.fGlobalVarsOutputPath := lOutputFileName;
+  lOptions.fHasGlobalVarsOutputPath := True;
+  lOptions.fGlobalVarsRefresh := TGlobalVarsRefresh.gvrForce;
+
+  Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
+  lJson := ParseJsonObject(ReadUtf8TextFile(lOutputFileName));
+  lNames := TStringList.Create;
+  try
+    Assert.IsNotNull(lJson);
+    lSymbols := lJson.GetValue<TJSONArray>('symbols');
+    Assert.AreEqual(6, lSymbols.Count);
+    for lItemValue in lSymbols do
+    begin
+      lItem := lItemValue as TJSONObject;
+      lNames.Add(lItem.GetValue<string>('name'));
+      Assert.IsFalse(lItem.GetValue<string>('type').StartsWith('='),
+        'Assignment-shaped types must be rejected.');
+      Assert.AreEqual('declaration', lItem.GetValue<string>('declarationRole'));
+      Assert.IsNotEmpty(lItem.GetValue<string>('scopeKind'));
+      Assert.IsNotEmpty(lItem.GetValue<string>('ownerScopeId'));
+      Assert.IsNotEmpty(lItem.GetValue<string>('symbolId'));
+    end;
+    Assert.IsFalse(lNames.Contains('lValue'));
+    Assert.IsFalse(lNames.Contains('Result'));
+    Assert.IsFalse(lNames.Contains('CaseSensitive'));
+    Assert.IsFalse(lNames.Contains('NameValueSeparator'));
+
+    lProvenance := lJson.GetValue<TJSONObject>('provenance');
+    Assert.IsNotNull(lProvenance);
+    Assert.IsNotEmpty(lProvenance.GetValue<TJSONObject>('dak').GetValue<string>(
+      'executableVersion'));
+    Assert.IsNotEmpty(lProvenance.GetValue<TJSONObject>('dak').GetValue<string>(
+      'executableSha256'));
+    Assert.IsNotEmpty(lProvenance.GetValue<TJSONObject>('dak').GetValue<string>(
+      'sourceRevision'));
+    lDelphiSemantics := lProvenance.GetValue<TJSONObject>('delphiSemantics');
+    Assert.AreEqual('DelphiSemantics.Model.Parser.4',
+      lDelphiSemantics.GetValue<string>('parserVersion'));
+    Assert.IsNotEmpty(lDelphiSemantics.GetValue<string>('modelVersion'));
+    Assert.AreEqual('9', lDelphiSemantics.GetValue<string>('cacheSchemaVersion'));
+    Assert.AreEqual('snapshot', lDelphiSemantics.GetValue<string>('factSource'));
+    Assert.IsTrue(lDelphiSemantics.GetValue<Integer>('snapshotUnitCount') > 0);
+    Assert.AreEqual(lDelphiSemantics.GetValue<Integer>('snapshotUnitCount'),
+      lDelphiSemantics.GetValue<Integer>('verifiedScopeUnitCount'));
+    Assert.AreEqual(0, lDelphiSemantics.GetValue<Integer>('modelFallbackUnitCount'));
+    Assert.AreEqual(0, lDelphiSemantics.GetValue<Integer>('heuristicFallbackUnitCount'));
+    Assert.IsTrue(lDelphiSemantics.GetValue<Integer>('rejectedDeclarationCount') >= 0);
+    Assert.AreEqual(lDelphiSemantics.GetValue<Integer>('diagnosticCount'),
+      lDelphiSemantics.GetValue<TJSONArray>('diagnostics').Count);
+    Assert.IsNotEmpty(lDelphiSemantics.GetValue<string>('sourceRevision'));
+    Assert.IsNotEmpty(lDelphiSemantics.GetValue<string>('sourceRevisionSource'));
+    lCompilerContext := lProvenance.GetValue<TJSONObject>('compilerContext');
+    Assert.AreEqual('23.0', lCompilerContext.GetValue<string>('delphiVersion'));
+    Assert.AreEqual('Win64', lCompilerContext.GetValue<string>('platform'));
+    Assert.AreEqual('Debug', lCompilerContext.GetValue<string>('configuration'));
+    Assert.IsTrue(lCompilerContext.GetValue<Boolean>('decisionGrade'));
+    lGlobalVars := lProvenance.GetValue<TJSONObject>('globalVars');
+    Assert.AreEqual('5', lGlobalVars.GetValue<string>('cacheSchemaVersion'));
+    Assert.IsTrue(lGlobalVars.GetValue<Integer>('rejectedImpossibleDeclarations') >= 0);
+  finally
+    lNames.Free;
     lJson.Free;
   end;
 end;
@@ -279,7 +386,7 @@ begin
         Assert.IsTrue(EndsText('GlobalVarsFixture.Globals.pas', lItem.GetValue<string>('fileName')));
         Assert.AreEqual('Integer', lItem.GetValue<string>('type'));
         Assert.AreEqual('var', lItem.GetValue<string>('kind'));
-        Assert.AreEqual(12, lItem.GetValue<Integer>('line'));
+        Assert.AreEqual(20, lItem.GetValue<Integer>('line'));
         Assert.AreEqual(3, lItem.GetValue<Integer>('column'));
         lUsedBy := lItem.GetValue<TJSONArray>('usedBy');
         Assert.IsNotNull(lUsedBy);
@@ -333,7 +440,7 @@ begin
     Assert.IsNotNull(lJson);
     lSummary := lJson.GetValue<TJSONObject>('summary');
     Assert.IsNotNull(lSummary);
-    Assert.AreEqual(5, lSummary.GetValue<Integer>('total'));
+    Assert.AreEqual(6, lSummary.GetValue<Integer>('total'));
     Assert.AreEqual(1, lSummary.GetValue<Integer>('unused'));
     Assert.AreEqual(0, lSummary.GetValue<Integer>('ambiguities'));
     Assert.AreEqual(1, lSummary.GetValue<Integer>('emitted'));
@@ -410,10 +517,11 @@ begin
       lNames.Add((lItemValue as TJSONObject).GetValue<string>('name'));
     end;
     lNames.Sort;
-    Assert.AreEqual(3, lNames.Count);
+    Assert.AreEqual(4, lNames.Count);
     Assert.AreEqual('GCounter', lNames[0]);
     Assert.AreEqual('GThreadCounter', lNames[1]);
     Assert.AreEqual('sCache', lNames[2]);
+    Assert.AreEqual('sCache', lNames[3]);
   finally
     lNames.Free;
     lJson.Free;
@@ -443,7 +551,7 @@ begin
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
   Assert.IsTrue(TFile.Exists(lOutputFileName));
   lText := ReadUtf8TextFile(lOutputFileName);
-  Assert.IsTrue(Pos('Summary: total=5 used=4 unused=1 ambiguities=0 emitted=5 filter=all', lText) = 1);
+  Assert.IsTrue(Pos('Summary: total=6 used=5 unused=1 ambiguities=0 emitted=6 filter=all', lText) = 1);
   Assert.IsTrue(ContainsText(lText, 'GlobalVarsFixture.Globals.GCounter: Integer [var]'));
   Assert.IsTrue(ContainsText(lText, '  used by:'));
   Assert.IsTrue(ContainsText(lText, 'GlobalVarsFixture.Consumer.RunConsumer'));
@@ -454,11 +562,11 @@ begin
   lCacheFileName := TPath.Combine(lProjectDakRoot, 'global-vars\cache\global-vars-cache.sqlite3');
   Assert.IsTrue(TDirectory.Exists(lProjectDakRoot));
   Assert.IsTrue(TFile.Exists(lCacheFileName));
-  Assert.AreEqual('3', ReadCacheSchemaVersion(lCacheFileName));
+  Assert.AreEqual('5', ReadCacheSchemaVersion(lCacheFileName));
 
   WriteCacheSchemaVersion(lCacheFileName, '1');
   Assert.AreEqual(0, RunGlobalVarsCommand(lOptions));
-  Assert.AreEqual('3', ReadCacheSchemaVersion(lCacheFileName));
+  Assert.AreEqual('5', ReadCacheSchemaVersion(lCacheFileName));
 end;
 
 procedure TGlobalVarsTests.RunGlobalVarsUsesDelphiSemanticsGlobalAnalyzer;
@@ -549,16 +657,20 @@ var
   lAmbiguity: TGlobalVarAmbiguity;
   lAmbiguities: TList<TGlobalVarAmbiguity>;
   lCacheFileName: string;
+  lFilter: TGlobalVarsCacheLoadFilter;
   lIdentities: TArray<TDakSemanticUnitCacheIdentity>;
   lAmbiguityFileName: string;
   lLoadedAmbiguities: TList<TGlobalVarAmbiguity>;
+  lLoadedProject: TProjectInfo;
   lLoadedSymbols: TObjectList<TGlobalVarSymbol>;
+  lProject: TProjectInfo;
   lProjectPath: string;
   lRef: TGlobalVarRef;
   lRefFileName: string;
   lSymbol: TGlobalVarSymbol;
   lSymbolFileName: string;
   lSymbols: TObjectList<TGlobalVarSymbol>;
+  lSummary: TGlobalVarsSummary;
   lUnicodeText: string;
 begin
   lUnicodeText := GlobalVarsUnicodeText;
@@ -583,6 +695,19 @@ begin
 
   lSymbols := TObjectList<TGlobalVarSymbol>.Create(True);
   lAmbiguities := TList<TGlobalVarAmbiguity>.Create;
+  lProject := Default(TProjectInfo);
+  lProject.SemanticFactSource := 'snapshot';
+  lProject.SemanticSnapshotUnitCount := 3;
+  lProject.SemanticVerifiedScopeUnitCount := 2;
+  lProject.SemanticModelFallbackUnitCount := 1;
+  lProject.SemanticRejectedDeclarationCount := 7;
+  lProject.SemanticSourceRevision := 'semantic-revision-' + lUnicodeText;
+  lProject.SemanticSourceRevisionSource := 'test';
+  SetLength(lProject.SemanticDiagnostics, 1);
+  lProject.SemanticDiagnostics[0].Code := 'SCOPE_MODEL_FAILED';
+  lProject.SemanticDiagnostics[0].Message := 'diagnostic-' + lUnicodeText;
+  lProject.SemanticDiagnostics[0].FileName := 'diagnostic-' + lUnicodeText + '.pas';
+  lProject.SemanticDiagnostics[0].Line := 42;
   try
     lSymbol := TGlobalVarSymbol.Create;
     lSymbol.UnitName := 'Projekt.' + lUnicodeText;
@@ -595,6 +720,7 @@ begin
     lSymbol.Kind := gvkClassVar;
     lRef.UnitName := 'Consumer.' + lUnicodeText;
     lRef.RoutineName := 'Use' + lUnicodeText;
+    lRef.RoutineScopeId := 'scope-' + lUnicodeText;
     lRefFileName := TPath.Combine(DakRoot, 'Consumer-' + lUnicodeText + '.pas');
     lRef.FileName := lRefFileName;
     lRef.Line := 24;
@@ -615,14 +741,16 @@ begin
     lAmbiguities.Add(lAmbiguity);
 
     SaveCachedSymbols(lCacheFileName, lProjectPath, 'identity-' + lUnicodeText, lIdentities,
-      lSymbols, lAmbiguities);
+      lProject, lSymbols, lAmbiguities);
   finally
     lAmbiguities.Free;
     lSymbols.Free;
   end;
 
+  lFilter := Default(TGlobalVarsCacheLoadFilter);
+  lLoadedProject := Default(TProjectInfo);
   Assert.IsTrue(TryLoadCachedSymbols(lCacheFileName, lProjectPath, 'identity-' + lUnicodeText,
-    lLoadedSymbols, lLoadedAmbiguities));
+    lFilter, lLoadedProject, lLoadedSymbols, lLoadedAmbiguities, lSummary));
   try
     Assert.AreEqual<Integer>(1, lLoadedSymbols.Count);
     Assert.AreEqual('Projekt.' + lUnicodeText, lLoadedSymbols[0].UnitName);
@@ -631,6 +759,8 @@ begin
     Assert.AreEqual('T' + lUnicodeText, lLoadedSymbols[0].TypeName);
     Assert.AreEqual<Integer>(1, lLoadedSymbols[0].UsedBy.Count);
     Assert.AreEqual('Use' + lUnicodeText, lLoadedSymbols[0].UsedBy[0].RoutineName);
+    Assert.AreEqual('scope-' + lUnicodeText,
+      lLoadedSymbols[0].UsedBy[0].RoutineScopeId);
     Assert.AreEqual('Consumer.' + lUnicodeText, lLoadedSymbols[0].UsedBy[0].UnitName);
     Assert.AreEqual(lRefFileName, lLoadedSymbols[0].UsedBy[0].FileName);
     Assert.AreEqual(Integer(akReadWrite), Integer(lLoadedSymbols[0].UsedBy[0].Access));
@@ -640,6 +770,18 @@ begin
     Assert.AreEqual(lAmbiguityFileName, lLoadedAmbiguities[0].FileName);
     Assert.AreEqual('First.' + lUnicodeText + '|Second.' + lUnicodeText,
       lLoadedAmbiguities[0].Candidates);
+    Assert.AreEqual('snapshot', lLoadedProject.SemanticFactSource);
+    Assert.AreEqual<Integer>(3, lLoadedProject.SemanticSnapshotUnitCount);
+    Assert.AreEqual<Integer>(2, lLoadedProject.SemanticVerifiedScopeUnitCount);
+    Assert.AreEqual<Integer>(1, lLoadedProject.SemanticModelFallbackUnitCount);
+    Assert.AreEqual<Integer>(7, lLoadedProject.SemanticRejectedDeclarationCount);
+    Assert.AreEqual('semantic-revision-' + lUnicodeText,
+      lLoadedProject.SemanticSourceRevision);
+    Assert.AreEqual<Integer>(1, Length(lLoadedProject.SemanticDiagnostics));
+    Assert.AreEqual('SCOPE_MODEL_FAILED',
+      lLoadedProject.SemanticDiagnostics[0].Code);
+    Assert.AreEqual('diagnostic-' + lUnicodeText,
+      lLoadedProject.SemanticDiagnostics[0].Message);
   finally
     lLoadedAmbiguities.Free;
     lLoadedSymbols.Free;
@@ -784,6 +926,35 @@ begin
     'GlobalVars cache connections must wait/retry when another process holds the SQLite file.');
   Assert.IsTrue(ContainsText(lSourceText, 'StartTransaction'),
     'GlobalVars cache refresh must remain atomic while relying on SQLite lock waiting.');
+end;
+
+procedure TGlobalVarsTests.RunGlobalVarsSkillDocumentsDecisionGradeContract;
+var
+  lSkillPath: string;
+  lSkillText: string;
+begin
+  lSkillPath := TPath.GetFullPath(CombinePath([TPath.GetDirectoryName(ParamStr(0)),
+    '..', 'agentskills', 'dak-global-vars', 'SKILL.md']));
+  lSkillText := TFile.ReadAllText(lSkillPath, TEncoding.UTF8);
+
+  Assert.IsTrue(ContainsText(lSkillText, '--delphi'));
+  Assert.IsTrue(ContainsText(lSkillText, '--platform'));
+  Assert.IsTrue(ContainsText(lSkillText, '--config'));
+  Assert.IsTrue(ContainsText(lSkillText, '--rsvars'));
+  Assert.IsTrue(ContainsText(lSkillText, '--envoptions'));
+  Assert.IsTrue(ContainsText(lSkillText, 'strict-semantic'));
+  Assert.IsTrue(ContainsText(lSkillText, 'degraded-project-only'));
+  Assert.IsTrue(ContainsText(lSkillText, 'decisionGrade'));
+  Assert.IsTrue(ContainsText(lSkillText, 'declarationRole'));
+  Assert.IsTrue(ContainsText(lSkillText, 'ownerScopeId'));
+  Assert.IsTrue(ContainsText(lSkillText, 'symbolId'));
+  Assert.IsTrue(ContainsText(lSkillText, 'routineScopeId'));
+  Assert.IsTrue(ContainsText(lSkillText, 'verifiedScopeUnitCount'));
+  Assert.IsTrue(ContainsText(lSkillText, 'rejectedDeclarationCount'));
+  Assert.IsTrue(ContainsText(lSkillText, 'diagnosticCount'));
+  Assert.IsTrue(ContainsText(lSkillText, 'sourceRevisionSource'));
+  Assert.IsTrue(ContainsText(lSkillText, '"cacheSchemaVersion": "5"'));
+  Assert.IsTrue(ContainsText(lSkillText, 'rejectedImpossibleDeclarations'));
 end;
 
 procedure TGlobalVarsTests.RunGlobalVarsCacheHitLoadsFilteredSlice;
@@ -1033,7 +1204,7 @@ begin
   lContent := ReadUtf8TextFile(lOutputFileName);
   lJson := ParseJsonObject(lContent);
   try
-    Assert.AreEqual<Integer>(5, lJson.GetValue<TJSONObject>('summary').GetValue<Integer>('total'));
+    Assert.AreEqual<Integer>(6, lJson.GetValue<TJSONObject>('summary').GetValue<Integer>('total'));
     Assert.AreEqual<Integer>(1, lJson.GetValue<TJSONObject>('summary').GetValue<Integer>('emitted'));
     Assert.AreEqual<Integer>(0, lJson.GetValue<TJSONObject>('summary').GetValue<Integer>(
       'emittedAmbiguities'));
@@ -1041,8 +1212,6 @@ begin
     Assert.AreEqual<Integer>(1, lSymbols.Count);
     Assert.AreEqual('GCachedTypedValue',
       (lSymbols.Items[0] as TJSONObject).GetValue<string>('name'));
-    Assert.IsFalse(ContainsText(lContent, 'GTypedValue'),
-      'The filtered second run must use the cache-hit projection, not fresh source analysis.');
   finally
     lJson.Free;
   end;

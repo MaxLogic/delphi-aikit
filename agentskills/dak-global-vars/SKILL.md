@@ -11,7 +11,7 @@ What it does:
 
 - finds unit-level `var`
 - finds `threadvar`
-- finds typed constants
+- finds writable typed constants for the selected compiler context
 - finds `class var`
 - reports declaration metadata
 - reports `usedBy` routines with access kind
@@ -57,6 +57,11 @@ Do not use it as sole proof when we need to:
 | Switch | Required | Purpose |
 | --- | --- | --- |
 | `--project <file.dproj>` | yes | project to analyze |
+| `--delphi <23.0>` | decision-grade audit | Delphi compiler context |
+| `--platform <Win32\|Win64>` | decision-grade audit | target platform |
+| `--config <Debug\|Release>` | decision-grade audit | target configuration |
+| `--rsvars <path>` | no | explicit `rsvars.bat` for compiler context |
+| `--envoptions <path>` | no | explicit Delphi environment-options project |
 | `--format json\|text` | no | output format; prefer `json` |
 | `--output <path\|->` | no | write to file or terminal |
 | `--unused-only` | no | emit only globals with no resolved usages |
@@ -81,6 +86,15 @@ Full project export:
 ```bash
 "$DAK_EXE" global-vars --project "<path-to-project.dproj>" --format json --output "<report.json>"
 ```
+
+Decision-grade export:
+
+```bash
+"$DAK_EXE" global-vars --project "<path-to-project.dproj>" --delphi 23.0 --platform Win32 --config Release --format json --output "<report.json>" --refresh force
+```
+
+Use `--rsvars "<path>"` and `--envoptions "<path>"` when automatic Delphi
+context discovery does not resolve the intended installation.
 
 Unused globals:
 
@@ -113,12 +127,46 @@ Prefer JSON. The top-level object is:
 ```json
 {
   "summary": {
-    "total": 5,
-    "used": 4,
+    "total": 6,
+    "used": 5,
     "unused": 1,
     "ambiguities": 0,
-    "emitted": 5,
-    "filter": "all"
+    "emitted": 6,
+    "filter": "all",
+    "contextMode": "strict-semantic"
+  },
+  "provenance": {
+    "dak": {
+      "executableVersion": "1.2.1.0",
+      "executableSha256": "...",
+      "sourceRevision": "..."
+    },
+    "delphiSemantics": {
+      "parserVersion": "DelphiSemantics.Model.Parser.4",
+      "modelVersion": "...",
+      "cacheSchemaVersion": "9",
+      "sourceRevision": "...",
+      "sourceRevisionSource": "DELPHI_SEMANTICS_SOURCE_REVISION",
+      "factSource": "snapshot",
+      "snapshotUnitCount": 3,
+      "verifiedScopeUnitCount": 3,
+      "modelFallbackUnitCount": 0,
+      "heuristicFallbackUnitCount": 0,
+      "rejectedDeclarationCount": 0,
+      "diagnosticCount": 0,
+      "diagnostics": []
+    },
+    "compilerContext": {
+      "mode": "strict-semantic",
+      "delphiVersion": "23.0",
+      "platform": "Win32",
+      "configuration": "Release",
+      "decisionGrade": true
+    },
+    "globalVars": {
+      "cacheSchemaVersion": "5",
+      "rejectedImpossibleDeclarations": 0
+    }
   },
   "symbols": [
     {
@@ -127,12 +175,17 @@ Prefer JSON. The top-level object is:
       "name": "GCounter",
       "type": "Integer",
       "kind": "var",
+      "declarationRole": "declaration",
+      "scopeKind": "unit",
+      "ownerScopeId": "globalvarsfixture.globals",
+      "symbolId": "globalvarsfixture.globals|var|gcounter",
       "line": 12,
       "column": 3,
       "usedBy": [
         {
           "unit": "GlobalVarsFixture.Consumer",
           "routine": "RunConsumer",
+          "routineScopeId": "globalvarsfixture.consumer|runconsumer()",
           "file": "F:\\projects\\MaxLogic\\DelphiAiKit\\tests\\fixtures\\GlobalVarsFixture.Consumer.pas",
           "line": 14,
           "column": 3,
@@ -155,15 +208,42 @@ Key fields:
 - `summary.ambiguities`: unresolved usage sites
 - `summary.emitted`: symbols left after filters
 - `symbols[*].fileName`, `line`, `column`: declaration location
+- `symbols[*].declarationRole`: must be `declaration`
+- `symbols[*].scopeKind`: `unit` for unit globals, `type` for `class var`
+- `symbols[*].ownerScopeId`, `symbolId`: stable audit identity
 - `symbols[*].usedBy`: resolved usage evidence
+- `symbols[*].usedBy[*].routineScopeId`: stable containing-routine identity
 - `symbols[*].usedBy[*].file`, `line`, `column`: usage location
 - `ambiguities[*]`: follow-up required before strong claims
+- `provenance.delphiSemantics.verifiedScopeUnitCount`: units with AST-verified
+  lexical ownership
+- `provenance.delphiSemantics.rejectedDeclarationCount`: declaration-shaped
+  candidates rejected by the semantic model
+- `provenance.delphiSemantics.diagnosticCount` and `diagnostics`: scope/model
+  failures retained for review
+- `sourceRevision` and `sourceRevisionSource`: exact source identity when the
+  build environment supplied it; otherwise the value is `unavailable`
 
 Confidence:
 
-- `high`: target symbol has clear declaration and no relevant ambiguity
-- `medium`: some ambiguity exists, but not on the target symbol or key write sites
-- `low`: ambiguity touches the target symbol or behavior-critical write sites
+| Output state | Allowed conclusion |
+| --- | --- |
+| `compilerContext.decisionGrade=true`, `factSource=snapshot`, `verifiedScopeUnitCount=snapshotUnitCount`, both fallback counts `0`, `diagnosticCount=0`, no relevant ambiguity | decision-grade inventory for the selected compiler context |
+| `contextMode=degraded-project-only` | diagnostic inventory only; do not claim globals are safe or absent |
+| `rejectedImpossibleDeclarations>0` | inspect the rejected-count provenance before refactoring |
+| model or heuristic fallback count `>0` | lower-confidence diagnostic; inspect source and diagnostics |
+| verified scope count differs from snapshot count, or `diagnosticCount>0` | fail closed; do not make a refactor or absence claim |
+| ambiguity touches the target or a key write | stop and inspect the site |
+
+DAK validates that emitted rows have an explicit declaration role and lexical
+owner. Assignment-shaped types beginning with `=` are rejected rather than
+reported as globals. Locals, parameters, `Result`, fields, and properties are
+not valid global declarations.
+
+Class variables with the same name remain separate symbols by `symbolId` and
+`ownerScopeId`; never merge or compare them by unit/name text alone. Cache hits
+preserve the measured scope counts, diagnostics, and source provenance used to
+compute `decisionGrade`.
 
 Text output is acceptable for quick inspection, but JSON is the refactor interface.
 
@@ -174,9 +254,9 @@ Rule:
 
 ## Refactor Workflow
 
-1. Export JSON for the project.
+1. Export JSON with explicit `--delphi`, `--platform`, and `--config`.
 2. Narrow with `--name` or `--unit` if needed.
-3. Read `summary`.
+3. Read `summary` and `provenance.compilerContext.decisionGrade`.
 4. Inspect the target symbol's declaration, kind, type, and `usedBy`.
 5. Inspect `ambiguities`.
 6. Choose one action:
@@ -231,10 +311,10 @@ Weaker for:
 
 - exact semantic proof at ambiguous sites
 - absolute claims when several same-name globals are visible
-- parser edge cases that still require heuristic handling
+- `degraded-project-only` runs
 
 Cache note:
 
 - default cache path is `.dak/<ProjectName>/global-vars/cache/global-vars-cache.sqlite3`
-- the cache exists for speed
+- cache schema and semantic parser/model identities invalidate stale declaration facts
 - review and refactor decisions should be based on command output, preferably JSON

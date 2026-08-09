@@ -20,6 +20,14 @@ type
     Ambiguities: TList<TGlobalVarAmbiguity>;
     IdentityHash: string;
     CacheIdentities: TArray<TDakSemanticUnitCacheIdentity>;
+    RejectedImpossibleDeclarations: Integer;
+    FactSource: string;
+    SnapshotUnitCount: Integer;
+    VerifiedScopeUnitCount: Integer;
+    ModelFallbackUnitCount: Integer;
+    HeuristicFallbackUnitCount: Integer;
+    RejectedDeclarationCount: Integer;
+    Diagnostics: TArray<TGlobalVarsDiagnostic>;
     constructor Create;
     destructor Destroy; override;
   end;
@@ -90,23 +98,37 @@ begin
   Result := False;
 end;
 
-function SemanticGlobalKey(const aUnitName, aName: string): string;
+function ValidSemanticDeclaration(const aDeclaration:
+  TDelphiSemanticGlobalDeclaration): Boolean;
 begin
-  Result := AnsiLowerCase(aUnitName) + '.' + AnsiLowerCase(aName);
+  Result := SameText(aDeclaration.DeclarationRole, 'declaration') and
+    (Trim(aDeclaration.OwnerScopeId) <> '') and
+    (Trim(aDeclaration.SymbolId) <> '');
+  if not Result then
+    Exit;
+  if (aDeclaration.TypeName <> '') and (aDeclaration.TypeName[1] = '=') then
+    Exit(False);
+
+  if SameText(aDeclaration.Kind, 'classvar') then
+    Result := SameText(aDeclaration.ScopeKind, 'type') and
+      (Trim(aDeclaration.OwnerName) <> '')
+  else
+    Result := SameText(aDeclaration.ScopeKind, 'unit');
 end;
 
-procedure AddSemanticUsage(const aSymbolsByKey: TDictionary<string, TGlobalVarSymbol>;
+procedure AddSemanticUsage(const aSymbolsById: TDictionary<string, TGlobalVarSymbol>;
   const aUsage: TDelphiSemanticGlobalUsage);
 var
   lRef: TGlobalVarRef;
   lSymbol: TGlobalVarSymbol;
 begin
-  if not aSymbolsByKey.TryGetValue(SemanticGlobalKey(aUsage.DeclaringUnitName,
-    aUsage.Name), lSymbol) then
+  if not aSymbolsById.TryGetValue(aUsage.DeclaringSymbolId, lSymbol) then
     Exit;
 
+  lRef := Default(TGlobalVarRef);
   lRef.UnitName := aUsage.UnitName;
   lRef.RoutineName := aUsage.RoutineName;
+  lRef.RoutineScopeId := aUsage.RoutineScopeId;
   lRef.FileName := aUsage.FileName;
   lRef.Line := aUsage.Line;
   lRef.Column := aUsage.Column;
@@ -181,18 +203,42 @@ procedure CopySemanticAnalysis(const aAnalysis: TDelphiSemanticGlobalAnalysis;
   const aResult: TGlobalVarsSemanticAnalysis);
 var
   lDeclaration: TDelphiSemanticGlobalDeclaration;
+  lDiagnostic: TDelphiSemanticGlobalDiagnostic;
+  lDiagnosticIndex: Integer;
   lKind: TGlobalVarKind;
   lSymbol: TGlobalVarSymbol;
-  lSymbolsByKey: TDictionary<string, TGlobalVarSymbol>;
+  lSymbolsById: TDictionary<string, TGlobalVarSymbol>;
   lUsage: TDelphiSemanticGlobalUsage;
   lAmbiguity: TDelphiSemanticGlobalAmbiguity;
 begin
-  lSymbolsByKey := TDictionary<string, TGlobalVarSymbol>.Create;
+  aResult.FactSource := aAnalysis.FactSource;
+  aResult.SnapshotUnitCount := aAnalysis.SnapshotUnitCount;
+  aResult.VerifiedScopeUnitCount := aAnalysis.VerifiedScopeUnitCount;
+  aResult.ModelFallbackUnitCount := aAnalysis.ModelFallbackUnitCount;
+  aResult.HeuristicFallbackUnitCount := aAnalysis.HeuristicFallbackUnitCount;
+  aResult.RejectedDeclarationCount := aAnalysis.RejectedDeclarationCount;
+  SetLength(aResult.Diagnostics, Length(aAnalysis.Diagnostics));
+  lDiagnosticIndex := 0;
+  for lDiagnostic in aAnalysis.Diagnostics do
+  begin
+    aResult.Diagnostics[lDiagnosticIndex].Code := lDiagnostic.Code;
+    aResult.Diagnostics[lDiagnosticIndex].Message := lDiagnostic.Message;
+    aResult.Diagnostics[lDiagnosticIndex].FileName := lDiagnostic.FileName;
+    aResult.Diagnostics[lDiagnosticIndex].Line := lDiagnostic.Line;
+    Inc(lDiagnosticIndex);
+  end;
+
+  lSymbolsById := TDictionary<string, TGlobalVarSymbol>.Create;
   try
     for lDeclaration in aAnalysis.Declarations do
     begin
-      if not GlobalVarKindForSemanticGlobalKind(lDeclaration.Kind, lKind) then
+      if not GlobalVarKindForSemanticGlobalKind(lDeclaration.Kind, lKind) or
+        not ValidSemanticDeclaration(lDeclaration) or
+        lSymbolsById.ContainsKey(lDeclaration.SymbolId) then
+      begin
+        Inc(aResult.RejectedImpossibleDeclarations);
         Continue;
+      end;
 
       lSymbol := TGlobalVarSymbol.Create;
       lSymbol.Name := lDeclaration.Name;
@@ -201,19 +247,23 @@ begin
       lSymbol.Line := lDeclaration.Line;
       lSymbol.Column := lDeclaration.Column;
       lSymbol.TypeName := lDeclaration.TypeName;
+      lSymbol.OwnerName := lDeclaration.OwnerName;
+      lSymbol.DeclarationRole := lDeclaration.DeclarationRole;
+      lSymbol.ScopeKind := lDeclaration.ScopeKind;
+      lSymbol.OwnerScopeId := lDeclaration.OwnerScopeId;
+      lSymbol.SymbolId := lDeclaration.SymbolId;
       lSymbol.Kind := lKind;
       aResult.Symbols.Add(lSymbol);
-      lSymbolsByKey.AddOrSetValue(SemanticGlobalKey(lSymbol.UnitName, lSymbol.Name),
-        lSymbol);
+      lSymbolsById.Add(lSymbol.SymbolId, lSymbol);
     end;
 
     for lUsage in aAnalysis.Usages do
-      AddSemanticUsage(lSymbolsByKey, lUsage);
+      AddSemanticUsage(lSymbolsById, lUsage);
 
     for lAmbiguity in aAnalysis.Ambiguities do
       AddSemanticAmbiguity(aResult.Ambiguities, lAmbiguity);
   finally
-    lSymbolsByKey.Free;
+    lSymbolsById.Free;
   end;
 end;
 
