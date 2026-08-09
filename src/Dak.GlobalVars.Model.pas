@@ -13,6 +13,7 @@ type
   TGlobalVarRef = record
     UnitName: string;
     RoutineName: string;
+    RoutineScopeId: string;
     FileName: string;
     Line: Integer;
     Column: Integer;
@@ -38,6 +39,11 @@ type
     Line: Integer;
     Column: Integer;
     TypeName: string;
+    OwnerName: string;
+    DeclarationRole: string;
+    ScopeKind: string;
+    OwnerScopeId: string;
+    SymbolId: string;
     Kind: TGlobalVarKind;
     UsedBy: TList<TGlobalVarRef>;
     constructor Create;
@@ -51,6 +57,14 @@ type
     Ambiguities: Integer;
     Emitted: Integer;
     EmittedAmbiguities: Integer;
+    RejectedImpossibleDeclarations: Integer;
+  end;
+
+  TGlobalVarsDiagnostic = record
+    Code: string;
+    Message: string;
+    FileName: string;
+    Line: Integer;
   end;
 
   TProjectInfo = record
@@ -67,6 +81,26 @@ type
     CachePath: string;
     ReportsPath: string;
     TempPath: string;
+    DakExecutableVersion: string;
+    DakExecutableHash: string;
+    DakSourceRevision: string;
+    DakSourceRevisionSource: string;
+    SemanticParserVersion: string;
+    SemanticModelVersion: string;
+    SemanticCacheSchemaVersion: string;
+    SemanticFactSource: string;
+    SemanticSnapshotUnitCount: Integer;
+    SemanticVerifiedScopeUnitCount: Integer;
+    SemanticModelFallbackUnitCount: Integer;
+    SemanticHeuristicFallbackUnitCount: Integer;
+    SemanticRejectedDeclarationCount: Integer;
+    SemanticSourceRevision: string;
+    SemanticSourceRevisionSource: string;
+    SemanticDiagnostics: TArray<TGlobalVarsDiagnostic>;
+    CompilerDelphiVersion: string;
+    CompilerPlatform: string;
+    CompilerConfiguration: string;
+    DecisionGrade: Boolean;
   end;
 
 function AccessToText(const aAccess: TAccessKind): string;

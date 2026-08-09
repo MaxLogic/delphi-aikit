@@ -13,7 +13,8 @@ function BuildFilteredAmbiguities(const aAmbiguities: TList<TGlobalVarAmbiguity>
   const aOptions: TAppOptions): TList<TGlobalVarAmbiguity>;
 function BuildGlobalVarsSummary(const aAllSymbols: TObjectList<TGlobalVarSymbol>;
   const aAmbiguities: TList<TGlobalVarAmbiguity>; const aEmittedCount,
-  aEmittedAmbiguityCount: Integer): TGlobalVarsSummary;
+  aEmittedAmbiguityCount: Integer;
+  const aRejectedImpossibleDeclarations: Integer = 0): TGlobalVarsSummary;
 function RenderJson(const aFilteredSymbols: TObjectList<TGlobalVarSymbol>;
   const aAmbiguities: TList<TGlobalVarAmbiguity>; const aSummary: TGlobalVarsSummary;
   const aProject: TProjectInfo; const aOptions: TAppOptions): string;
@@ -27,7 +28,8 @@ uses
   System.Classes,
   System.JSON,
   System.Masks,
-  System.SysUtils;
+  System.SysUtils,
+  Dak.GlobalVars.Cache;
 
 function MatchPatternText(const aValue, aPattern: string): Boolean;
 var
@@ -151,6 +153,11 @@ begin
           lSymbolCopy.Line := lSymbol.Line;
           lSymbolCopy.Column := lSymbol.Column;
           lSymbolCopy.TypeName := lSymbol.TypeName;
+          lSymbolCopy.OwnerName := lSymbol.OwnerName;
+          lSymbolCopy.DeclarationRole := lSymbol.DeclarationRole;
+          lSymbolCopy.ScopeKind := lSymbol.ScopeKind;
+          lSymbolCopy.OwnerScopeId := lSymbol.OwnerScopeId;
+          lSymbolCopy.SymbolId := lSymbol.SymbolId;
           lSymbolCopy.Kind := lSymbol.Kind;
           for lRef in lSymbol.UsedBy do
           begin
@@ -186,7 +193,8 @@ end;
 
 function BuildGlobalVarsSummary(const aAllSymbols: TObjectList<TGlobalVarSymbol>;
   const aAmbiguities: TList<TGlobalVarAmbiguity>; const aEmittedCount,
-  aEmittedAmbiguityCount: Integer): TGlobalVarsSummary;
+  aEmittedAmbiguityCount: Integer;
+  const aRejectedImpossibleDeclarations: Integer): TGlobalVarsSummary;
 begin
   Result.Total := aAllSymbols.Count;
   Result.Used := aAllSymbols.Count - CountUnusedSymbols(aAllSymbols);
@@ -194,6 +202,74 @@ begin
   Result.Ambiguities := aAmbiguities.Count;
   Result.Emitted := aEmittedCount;
   Result.EmittedAmbiguities := aEmittedAmbiguityCount;
+  Result.RejectedImpossibleDeclarations := aRejectedImpossibleDeclarations;
+end;
+
+function BuildJsonProvenance(const aSummary: TGlobalVarsSummary;
+  const aProject: TProjectInfo): TJSONObject;
+var
+  lCompilerContext: TJSONObject;
+  lDak: TJSONObject;
+  lDelphiSemantics: TJSONObject;
+  lDiagnostic: TGlobalVarsDiagnostic;
+  lDiagnosticJson: TJSONObject;
+  lDiagnostics: TJSONArray;
+  lGlobalVars: TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  lDak := TJSONObject.Create;
+  Result.AddPair('dak', lDak);
+  lDak.AddPair('executableVersion', aProject.DakExecutableVersion);
+  lDak.AddPair('executableSha256', aProject.DakExecutableHash);
+  lDak.AddPair('sourceRevision', aProject.DakSourceRevision);
+  lDak.AddPair('sourceRevisionSource', aProject.DakSourceRevisionSource);
+
+  lDelphiSemantics := TJSONObject.Create;
+  Result.AddPair('delphiSemantics', lDelphiSemantics);
+  lDelphiSemantics.AddPair('parserVersion', aProject.SemanticParserVersion);
+  lDelphiSemantics.AddPair('modelVersion', aProject.SemanticModelVersion);
+  lDelphiSemantics.AddPair('cacheSchemaVersion', aProject.SemanticCacheSchemaVersion);
+  lDelphiSemantics.AddPair('sourceRevision', aProject.SemanticSourceRevision);
+  lDelphiSemantics.AddPair('sourceRevisionSource',
+    aProject.SemanticSourceRevisionSource);
+  lDelphiSemantics.AddPair('factSource', aProject.SemanticFactSource);
+  lDelphiSemantics.AddPair('snapshotUnitCount',
+    TJSONNumber.Create(aProject.SemanticSnapshotUnitCount));
+  lDelphiSemantics.AddPair('verifiedScopeUnitCount',
+    TJSONNumber.Create(aProject.SemanticVerifiedScopeUnitCount));
+  lDelphiSemantics.AddPair('modelFallbackUnitCount',
+    TJSONNumber.Create(aProject.SemanticModelFallbackUnitCount));
+  lDelphiSemantics.AddPair('heuristicFallbackUnitCount',
+    TJSONNumber.Create(aProject.SemanticHeuristicFallbackUnitCount));
+  lDelphiSemantics.AddPair('rejectedDeclarationCount',
+    TJSONNumber.Create(aProject.SemanticRejectedDeclarationCount));
+  lDelphiSemantics.AddPair('diagnosticCount',
+    TJSONNumber.Create(Length(aProject.SemanticDiagnostics)));
+  lDiagnostics := TJSONArray.Create;
+  lDelphiSemantics.AddPair('diagnostics', lDiagnostics);
+  for lDiagnostic in aProject.SemanticDiagnostics do
+  begin
+    lDiagnosticJson := TJSONObject.Create;
+    lDiagnostics.AddElement(lDiagnosticJson);
+    lDiagnosticJson.AddPair('code', lDiagnostic.Code);
+    lDiagnosticJson.AddPair('message', lDiagnostic.Message);
+    lDiagnosticJson.AddPair('file', lDiagnostic.FileName);
+    lDiagnosticJson.AddPair('line', TJSONNumber.Create(lDiagnostic.Line));
+  end;
+
+  lCompilerContext := TJSONObject.Create;
+  Result.AddPair('compilerContext', lCompilerContext);
+  lCompilerContext.AddPair('mode', aProject.ContextMode);
+  lCompilerContext.AddPair('delphiVersion', aProject.CompilerDelphiVersion);
+  lCompilerContext.AddPair('platform', aProject.CompilerPlatform);
+  lCompilerContext.AddPair('configuration', aProject.CompilerConfiguration);
+  lCompilerContext.AddPair('decisionGrade', TJSONBool.Create(aProject.DecisionGrade));
+
+  lGlobalVars := TJSONObject.Create;
+  Result.AddPair('globalVars', lGlobalVars);
+  lGlobalVars.AddPair('cacheSchemaVersion', cGlobalVarsCacheSchemaVersion);
+  lGlobalVars.AddPair('rejectedImpossibleDeclarations',
+    TJSONNumber.Create(aSummary.RejectedImpossibleDeclarations));
 end;
 
 function BuildJsonSummary(const aSummary: TGlobalVarsSummary; const aProject: TProjectInfo;
@@ -227,6 +303,7 @@ begin
   lJson := TJSONObject.Create;
   try
     lJson.AddPair('summary', BuildJsonSummary(aSummary, aProject, aOptions));
+    lJson.AddPair('provenance', BuildJsonProvenance(aSummary, aProject));
     lSymbols := TJSONArray.Create;
     lJson.AddPair('symbols', lSymbols);
     for lSymbol in aFilteredSymbols do
@@ -238,6 +315,11 @@ begin
       lItem.AddPair('fileName', lSymbol.FileName);
       lItem.AddPair('type', lSymbol.TypeName);
       lItem.AddPair('kind', GlobalVarKindToText(lSymbol.Kind));
+      lItem.AddPair('owner', lSymbol.OwnerName);
+      lItem.AddPair('declarationRole', lSymbol.DeclarationRole);
+      lItem.AddPair('scopeKind', lSymbol.ScopeKind);
+      lItem.AddPair('ownerScopeId', lSymbol.OwnerScopeId);
+      lItem.AddPair('symbolId', lSymbol.SymbolId);
       lItem.AddPair('line', TJSONNumber.Create(lSymbol.Line));
       lItem.AddPair('column', TJSONNumber.Create(lSymbol.Column));
       lRefs := TJSONArray.Create;
@@ -248,6 +330,7 @@ begin
         lRefs.AddElement(lRefJson);
         lRefJson.AddPair('unit', lRef.UnitName);
         lRefJson.AddPair('routine', lRef.RoutineName);
+        lRefJson.AddPair('routineScopeId', lRef.RoutineScopeId);
         lRefJson.AddPair('file', lRef.FileName);
         lRefJson.AddPair('line', TJSONNumber.Create(lRef.Line));
         lRefJson.AddPair('column', TJSONNumber.Create(lRef.Column));
@@ -292,11 +375,27 @@ begin
     lBuilder.AppendLine('Context: ' + aProject.ContextMode);
     if aProject.ContextNote <> '' then
       lBuilder.AppendLine('Context note: ' + aProject.ContextNote);
+    lBuilder.AppendLine(Format(
+      'Provenance: DAK=%s exeSha256=%s source=%s semanticsParser=%s semanticsModel=%s ' +
+      'semanticsSchema=%s semanticsSource=%s factSource=%s snapshotUnits=%d ' +
+      'verifiedScopeUnits=%d modelFallbackUnits=%d heuristicFallbackUnits=%d ' +
+      'rejectedDeclarations=%d diagnostics=%d globalVarsCacheSchema=%s rejectedImpossible=%d',
+      [aProject.DakExecutableVersion, aProject.DakExecutableHash,
+      aProject.DakSourceRevision, aProject.SemanticParserVersion,
+      aProject.SemanticModelVersion, aProject.SemanticCacheSchemaVersion,
+      aProject.SemanticSourceRevision, aProject.SemanticFactSource,
+      aProject.SemanticSnapshotUnitCount, aProject.SemanticVerifiedScopeUnitCount,
+      aProject.SemanticModelFallbackUnitCount, aProject.SemanticHeuristicFallbackUnitCount,
+      aProject.SemanticRejectedDeclarationCount, Length(aProject.SemanticDiagnostics),
+      cGlobalVarsCacheSchemaVersion, aSummary.RejectedImpossibleDeclarations]));
     for lSymbol in aFilteredSymbols do
     begin
       lBuilder.AppendLine(Format('%s.%s: %s [%s] (%s:%d)', [lSymbol.UnitName,
         lSymbol.Name, lSymbol.TypeName, GlobalVarKindToText(lSymbol.Kind), lSymbol.FileName,
         lSymbol.Line]));
+      lBuilder.AppendLine(Format('  declaration: role=%s scope=%s ownerScope=%s symbol=%s',
+        [lSymbol.DeclarationRole, lSymbol.ScopeKind, lSymbol.OwnerScopeId,
+        lSymbol.SymbolId]));
       if lSymbol.UsedBy.Count = 0 then
         lBuilder.AppendLine('  used by: none')
       else begin

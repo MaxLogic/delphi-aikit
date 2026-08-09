@@ -8,7 +8,7 @@ uses
   Dak.Semantics.Session;
 
 const
-  cGlobalVarsCacheSchemaVersion = '3';
+  cGlobalVarsCacheSchemaVersion = '5';
   cGlobalVarsCacheBusyTimeoutMs = 30000;
 
 type
@@ -25,7 +25,14 @@ type
 procedure SaveCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
   const aIdentities: TArray<TDakSemanticUnitCacheIdentity>;
   const aSymbols: TObjectList<TGlobalVarSymbol>;
-  const aAmbiguities: TList<TGlobalVarAmbiguity>);
+  const aAmbiguities: TList<TGlobalVarAmbiguity>;
+  const aRejectedImpossibleDeclarations: Integer = 0); overload;
+
+procedure SaveCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
+  const aIdentities: TArray<TDakSemanticUnitCacheIdentity>;
+  const aProject: TProjectInfo; const aSymbols: TObjectList<TGlobalVarSymbol>;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>;
+  const aRejectedImpossibleDeclarations: Integer = 0); overload;
 
 function TryLoadCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
   out aSymbols: TObjectList<TGlobalVarSymbol>;
@@ -33,6 +40,12 @@ function TryLoadCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash:
 
 function TryLoadCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
   const aFilter: TGlobalVarsCacheLoadFilter;
+  out aSymbols: TObjectList<TGlobalVarSymbol>;
+  out aAmbiguities: TList<TGlobalVarAmbiguity>;
+  out aSummary: TGlobalVarsSummary): Boolean; overload;
+
+function TryLoadCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
+  const aFilter: TGlobalVarsCacheLoadFilter; var aProject: TProjectInfo;
   out aSymbols: TObjectList<TGlobalVarSymbol>;
   out aAmbiguities: TList<TGlobalVarAmbiguity>;
   out aSummary: TGlobalVarsSummary): Boolean; overload;
@@ -198,9 +211,23 @@ begin
 end;
 
 procedure EnsureCacheSchema(const aConnection: TFDConnection);
+var
+  lSchemaVersion: string;
 begin
   aConnection.ExecSQL(
     'create table if not exists meta (key_name text primary key, value_text text not null)');
+  lSchemaVersion := QueryWideString(aConnection,
+    'select value_text from meta where key_name = ?', 'schema_version');
+  if (lSchemaVersion <> '') and
+    (lSchemaVersion <> cGlobalVarsCacheSchemaVersion) then
+  begin
+    aConnection.ExecSQL('drop table if exists refs');
+    aConnection.ExecSQL('drop table if exists symbols');
+    aConnection.ExecSQL('drop table if exists ambiguities');
+    aConnection.ExecSQL('drop table if exists diagnostics');
+    aConnection.ExecSQL('drop table if exists unit_identities');
+    aConnection.ExecSQL('delete from meta');
+  end;
   aConnection.ExecSQL('create table if not exists unit_identities (' +
     'unit_cache_key text primary key, file_hash text not null, context_hash text not null, ' +
     'include_graph_hash text not null, defines_hash text not null, search_path_hash text not null, ' +
@@ -209,13 +236,18 @@ begin
     'model_version text not null, schema_version text not null)');
   aConnection.ExecSQL('create table if not exists symbols (' +
     'id integer primary key autoincrement, unit_name text not null, file_name text not null, name text not null, ' +
-    'type_name text not null, kind text not null, line_no integer not null, col_no integer not null)');
+    'type_name text not null, kind text not null, owner_name text not null, ' +
+    'declaration_role text not null, scope_kind text not null, owner_scope_id text not null, ' +
+    'semantic_symbol_id text not null, line_no integer not null, col_no integer not null)');
   aConnection.ExecSQL('create table if not exists refs (' +
     'symbol_id integer not null, unit_name text not null, routine_name text not null, file_name text not null, ' +
-    'line_no integer not null, col_no integer not null, access_kind text not null)');
+    'routine_scope_id text not null, line_no integer not null, col_no integer not null, ' +
+    'access_kind text not null)');
   aConnection.ExecSQL('create table if not exists ambiguities (' +
     'name text not null, unit_name text not null, routine_name text not null, file_name text not null, ' +
     'line_no integer not null, col_no integer not null, access_kind text not null, candidates text not null)');
+  aConnection.ExecSQL('create table if not exists diagnostics (' +
+    'code text not null, message text not null, file_name text not null, line_no integer not null)');
 end;
 
 procedure OpenCacheConnection(const aCacheFileName: string; out aDriverLink:
@@ -279,11 +311,27 @@ end;
 procedure SaveCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
   const aIdentities: TArray<TDakSemanticUnitCacheIdentity>;
   const aSymbols: TObjectList<TGlobalVarSymbol>;
-  const aAmbiguities: TList<TGlobalVarAmbiguity>);
+  const aAmbiguities: TList<TGlobalVarAmbiguity>;
+  const aRejectedImpossibleDeclarations: Integer); overload;
+var
+  lProject: TProjectInfo;
+begin
+  lProject := Default(TProjectInfo);
+  SaveCachedSymbols(aCacheFileName, aProjectPath, aIdentityHash, aIdentities,
+    lProject, aSymbols, aAmbiguities, aRejectedImpossibleDeclarations);
+end;
+
+procedure SaveCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
+  const aIdentities: TArray<TDakSemanticUnitCacheIdentity>;
+  const aProject: TProjectInfo; const aSymbols: TObjectList<TGlobalVarSymbol>;
+  const aAmbiguities: TList<TGlobalVarAmbiguity>;
+  const aRejectedImpossibleDeclarations: Integer); overload;
 var
   lAmbiguity: TGlobalVarAmbiguity;
   lAmbiguityQuery: TFDQuery;
   lConnection: TFDConnection;
+  lDiagnostic: TGlobalVarsDiagnostic;
+  lDiagnosticQuery: TFDQuery;
   lDriverLink: TFDPhysSQLiteDriverLink;
   lIdentity: TDakSemanticUnitCacheIdentity;
   lIdentityQuery: TFDQuery;
@@ -304,44 +352,78 @@ begin
       lConnection.ExecSQL('delete from refs');
       lConnection.ExecSQL('delete from symbols');
       lConnection.ExecSQL('delete from ambiguities');
+      lConnection.ExecSQL('delete from diagnostics');
       ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
         'schema_version', cGlobalVarsCacheSchemaVersion);
       ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
         'project_path', TPath.GetFullPath(aProjectPath));
       ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
         'identity_hash', aIdentityHash);
+      ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
+        'rejected_impossible_declarations', IntToStr(aRejectedImpossibleDeclarations));
+      ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
+        'semantic_fact_source', aProject.SemanticFactSource);
+      ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
+        'semantic_snapshot_unit_count', IntToStr(aProject.SemanticSnapshotUnitCount));
+      ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
+        'semantic_verified_scope_unit_count',
+        IntToStr(aProject.SemanticVerifiedScopeUnitCount));
+      ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
+        'semantic_model_fallback_unit_count',
+        IntToStr(aProject.SemanticModelFallbackUnitCount));
+      ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
+        'semantic_heuristic_fallback_unit_count',
+        IntToStr(aProject.SemanticHeuristicFallbackUnitCount));
+      ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
+        'semantic_rejected_declaration_count',
+        IntToStr(aProject.SemanticRejectedDeclarationCount));
+      ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
+        'semantic_source_revision', aProject.SemanticSourceRevision);
+      ExecWideSql(lConnection, 'insert into meta(key_name, value_text) values (?, ?)',
+        'semantic_source_revision_source', aProject.SemanticSourceRevisionSource);
       lIdentityQuery := nil;
       lSymbolQuery := nil;
       lRefQuery := nil;
       lAmbiguityQuery := nil;
+      lDiagnosticQuery := nil;
       try
         PrepareIdentityQuery(lConnection, lIdentityQuery);
         for lIdentity in aIdentities do
           SaveIdentity(lIdentityQuery, lIdentity);
 
         lSymbolQuery := NewQuery(lConnection, 'insert into symbols(unit_name, file_name, name, ' +
-          'type_name, kind, line_no, col_no) values (?, ?, ?, ?, ?, ?, ?)');
+          'type_name, kind, owner_name, declaration_role, scope_kind, owner_scope_id, ' +
+          'semantic_symbol_id, line_no, col_no) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
         lRefQuery := NewQuery(lConnection, 'insert into refs(symbol_id, unit_name, ' +
-          'routine_name, file_name, line_no, col_no, access_kind) values (?, ?, ?, ?, ?, ?, ?)');
+          'routine_name, routine_scope_id, file_name, line_no, col_no, access_kind) ' +
+          'values (?, ?, ?, ?, ?, ?, ?, ?)');
         lAmbiguityQuery := NewQuery(lConnection, 'insert into ambiguities(name, unit_name, ' +
           'routine_name, file_name, line_no, col_no, access_kind, candidates) values (?, ?, ?, ' +
           '?, ?, ?, ?, ?)');
+        lDiagnosticQuery := NewQuery(lConnection, 'insert into diagnostics(code, message, ' +
+          'file_name, line_no) values (?, ?, ?, ?)');
 
         lSymbolQuery.Params[0].DataType := ftWideString;
         lSymbolQuery.Params[1].DataType := ftWideString;
         lSymbolQuery.Params[2].DataType := ftWideString;
         lSymbolQuery.Params[3].DataType := ftWideString;
         lSymbolQuery.Params[4].DataType := ftWideString;
-        lSymbolQuery.Params[5].DataType := ftInteger;
-        lSymbolQuery.Params[6].DataType := ftInteger;
+        lSymbolQuery.Params[5].DataType := ftWideString;
+        lSymbolQuery.Params[6].DataType := ftWideString;
+        lSymbolQuery.Params[7].DataType := ftWideString;
+        lSymbolQuery.Params[8].DataType := ftWideString;
+        lSymbolQuery.Params[9].DataType := ftWideString;
+        lSymbolQuery.Params[10].DataType := ftInteger;
+        lSymbolQuery.Params[11].DataType := ftInteger;
         lSymbolQuery.Prepare;
         lRefQuery.Params[0].DataType := ftLargeint;
         lRefQuery.Params[1].DataType := ftWideString;
         lRefQuery.Params[2].DataType := ftWideString;
         lRefQuery.Params[3].DataType := ftWideString;
-        lRefQuery.Params[4].DataType := ftInteger;
+        lRefQuery.Params[4].DataType := ftWideString;
         lRefQuery.Params[5].DataType := ftInteger;
-        lRefQuery.Params[6].DataType := ftWideString;
+        lRefQuery.Params[6].DataType := ftInteger;
+        lRefQuery.Params[7].DataType := ftWideString;
         lRefQuery.Prepare;
         lAmbiguityQuery.Params[0].DataType := ftWideString;
         lAmbiguityQuery.Params[1].DataType := ftWideString;
@@ -352,6 +434,11 @@ begin
         lAmbiguityQuery.Params[6].DataType := ftWideString;
         lAmbiguityQuery.Params[7].DataType := ftWideString;
         lAmbiguityQuery.Prepare;
+        lDiagnosticQuery.Params[0].DataType := ftWideString;
+        lDiagnosticQuery.Params[1].DataType := ftWideString;
+        lDiagnosticQuery.Params[2].DataType := ftWideString;
+        lDiagnosticQuery.Params[3].DataType := ftInteger;
+        lDiagnosticQuery.Prepare;
 
         for lSymbol in aSymbols do
         begin
@@ -360,8 +447,13 @@ begin
           SetWideParam(lSymbolQuery, 2, lSymbol.Name);
           SetWideParam(lSymbolQuery, 3, lSymbol.TypeName);
           SetWideParam(lSymbolQuery, 4, GlobalVarKindToText(lSymbol.Kind));
-          lSymbolQuery.Params[5].AsInteger := lSymbol.Line;
-          lSymbolQuery.Params[6].AsInteger := lSymbol.Column;
+          SetWideParam(lSymbolQuery, 5, lSymbol.OwnerName);
+          SetWideParam(lSymbolQuery, 6, lSymbol.DeclarationRole);
+          SetWideParam(lSymbolQuery, 7, lSymbol.ScopeKind);
+          SetWideParam(lSymbolQuery, 8, lSymbol.OwnerScopeId);
+          SetWideParam(lSymbolQuery, 9, lSymbol.SymbolId);
+          lSymbolQuery.Params[10].AsInteger := lSymbol.Line;
+          lSymbolQuery.Params[11].AsInteger := lSymbol.Column;
           lSymbolQuery.ExecSQL;
           lSymbolId := lConnection.ExecSQLScalar('select last_insert_rowid()');
           for lRef in lSymbol.UsedBy do
@@ -369,10 +461,11 @@ begin
             lRefQuery.Params[0].AsLargeInt := lSymbolId;
             SetWideParam(lRefQuery, 1, lRef.UnitName);
             SetWideParam(lRefQuery, 2, lRef.RoutineName);
-            SetWideParam(lRefQuery, 3, lRef.FileName);
-            lRefQuery.Params[4].AsInteger := lRef.Line;
-            lRefQuery.Params[5].AsInteger := lRef.Column;
-            SetWideParam(lRefQuery, 6, AccessToText(lRef.Access));
+            SetWideParam(lRefQuery, 3, lRef.RoutineScopeId);
+            SetWideParam(lRefQuery, 4, lRef.FileName);
+            lRefQuery.Params[5].AsInteger := lRef.Line;
+            lRefQuery.Params[6].AsInteger := lRef.Column;
+            SetWideParam(lRefQuery, 7, AccessToText(lRef.Access));
             lRefQuery.ExecSQL;
           end;
         end;
@@ -389,7 +482,17 @@ begin
           SetWideParam(lAmbiguityQuery, 7, lAmbiguity.Candidates);
           lAmbiguityQuery.ExecSQL;
         end;
+
+        for lDiagnostic in aProject.SemanticDiagnostics do
+        begin
+          SetWideParam(lDiagnosticQuery, 0, lDiagnostic.Code);
+          SetWideParam(lDiagnosticQuery, 1, lDiagnostic.Message);
+          SetWideParam(lDiagnosticQuery, 2, lDiagnostic.FileName);
+          lDiagnosticQuery.Params[3].AsInteger := lDiagnostic.Line;
+          lDiagnosticQuery.ExecSQL;
+        end;
       finally
+        lDiagnosticQuery.Free;
         lAmbiguityQuery.Free;
         lRefQuery.Free;
         lSymbolQuery.Free;
@@ -424,21 +527,44 @@ function TryLoadCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash:
   out aAmbiguities: TList<TGlobalVarAmbiguity>;
   out aSummary: TGlobalVarsSummary): Boolean; overload;
 var
+  lProject: TProjectInfo;
+begin
+  lProject := Default(TProjectInfo);
+  Result := TryLoadCachedSymbols(aCacheFileName, aProjectPath, aIdentityHash, aFilter,
+    lProject, aSymbols, aAmbiguities, aSummary);
+end;
+
+function TryLoadCachedSymbols(const aCacheFileName, aProjectPath, aIdentityHash: string;
+  const aFilter: TGlobalVarsCacheLoadFilter; var aProject: TProjectInfo;
+  out aSymbols: TObjectList<TGlobalVarSymbol>;
+  out aAmbiguities: TList<TGlobalVarAmbiguity>;
+  out aSummary: TGlobalVarsSummary): Boolean; overload;
+var
   lAmbiguity: TGlobalVarAmbiguity;
   lAccessField: TField;
   lCandidatesField: TField;
+  lCodeField: TField;
   lColField: TField;
   lConnection: TFDConnection;
+  lDiagnostic: TGlobalVarsDiagnostic;
+  lDiagnostics: TList<TGlobalVarsDiagnostic>;
   lDriverLink: TFDPhysSQLiteDriverLink;
   lExpected: string;
   lFileField: TField;
   lIdField: TField;
   lKindField: TField;
   lLineField: TField;
+  lMessageField: TField;
   lNameField: TField;
+  lOwnerField: TField;
+  lOwnerScopeField: TField;
   lQuery: TFDQuery;
   lRef: TGlobalVarRef;
+  lRoleField: TField;
   lRoutineField: TField;
+  lRoutineScopeField: TField;
+  lScopeField: TField;
+  lSemanticSymbolField: TField;
   lSql: string;
   lSymbol: TGlobalVarSymbol;
   lSymbolById: TDictionary<Int64, TGlobalVarSymbol>;
@@ -456,6 +582,7 @@ begin
   OpenCacheConnection(aCacheFileName, lDriverLink, lConnection);
   lQuery := TFDQuery.Create(nil);
   lSymbolById := TDictionary<Int64, TGlobalVarSymbol>.Create;
+  lDiagnostics := TList<TGlobalVarsDiagnostic>.Create;
   try
     lQuery.Connection := lConnection;
     EnsureCacheSchema(lConnection);
@@ -474,6 +601,47 @@ begin
     if not SameText(aIdentityHash, lExpected) then
       Exit;
 
+    aProject.SemanticFactSource := QueryWideString(lConnection,
+      'select value_text from meta where key_name = ?', 'semantic_fact_source');
+    aProject.SemanticSnapshotUnitCount := StrToIntDef(QueryWideString(lConnection,
+      'select value_text from meta where key_name = ?',
+      'semantic_snapshot_unit_count'), 0);
+    aProject.SemanticVerifiedScopeUnitCount := StrToIntDef(QueryWideString(lConnection,
+      'select value_text from meta where key_name = ?',
+      'semantic_verified_scope_unit_count'), 0);
+    aProject.SemanticModelFallbackUnitCount := StrToIntDef(QueryWideString(lConnection,
+      'select value_text from meta where key_name = ?',
+      'semantic_model_fallback_unit_count'), 0);
+    aProject.SemanticHeuristicFallbackUnitCount := StrToIntDef(QueryWideString(lConnection,
+      'select value_text from meta where key_name = ?',
+      'semantic_heuristic_fallback_unit_count'), 0);
+    aProject.SemanticRejectedDeclarationCount := StrToIntDef(QueryWideString(lConnection,
+      'select value_text from meta where key_name = ?',
+      'semantic_rejected_declaration_count'), 0);
+    aProject.SemanticSourceRevision := QueryWideString(lConnection,
+      'select value_text from meta where key_name = ?', 'semantic_source_revision');
+    aProject.SemanticSourceRevisionSource := QueryWideString(lConnection,
+      'select value_text from meta where key_name = ?',
+      'semantic_source_revision_source');
+    lQuery.SQL.Text := 'select code, message, file_name, line_no from diagnostics ' +
+      'order by rowid';
+    lQuery.Open;
+    lCodeField := lQuery.FieldByName('code');
+    lMessageField := lQuery.FieldByName('message');
+    lFileField := lQuery.FieldByName('file_name');
+    lLineField := lQuery.FieldByName('line_no');
+    while not lQuery.Eof do
+    begin
+      lDiagnostic.Code := lCodeField.AsWideString;
+      lDiagnostic.Message := lMessageField.AsWideString;
+      lDiagnostic.FileName := lFileField.AsWideString;
+      lDiagnostic.Line := lLineField.AsInteger;
+      lDiagnostics.Add(lDiagnostic);
+      lQuery.Next;
+    end;
+    aProject.SemanticDiagnostics := lDiagnostics.ToArray;
+    lQuery.Close;
+
     aSymbols := TObjectList<TGlobalVarSymbol>.Create(True);
     aAmbiguities := TList<TGlobalVarAmbiguity>.Create;
     aSummary.Total := lConnection.ExecSQLScalar('select count(*) from symbols');
@@ -482,8 +650,13 @@ begin
     aSummary.Unused := lConnection.ExecSQLScalar(
       'select count(*) from symbols s where not exists (select 1 from refs r where r.symbol_id = s.id)');
     aSummary.Ambiguities := lConnection.ExecSQLScalar('select count(*) from ambiguities');
+    aSummary.RejectedImpossibleDeclarations := StrToIntDef(QueryWideString(lConnection,
+      'select value_text from meta where key_name = ?',
+      'rejected_impossible_declarations'), 0);
 
-    lSql := 'select id, unit_name, file_name, name, type_name, kind, line_no, col_no from symbols s where 1 = 1';
+    lSql := 'select id, unit_name, file_name, name, type_name, kind, owner_name, ' +
+      'declaration_role, scope_kind, owner_scope_id, semantic_symbol_id, line_no, ' +
+      'col_no from symbols s where 1 = 1';
     AppendSymbolWhere(lSql, aFilter);
     lSql := lSql + ' order by s.id';
     lQuery.SQL.Text := lSql;
@@ -495,6 +668,11 @@ begin
     lNameField := lQuery.FieldByName('name');
     lTypeField := lQuery.FieldByName('type_name');
     lKindField := lQuery.FieldByName('kind');
+    lOwnerField := lQuery.FieldByName('owner_name');
+    lRoleField := lQuery.FieldByName('declaration_role');
+    lScopeField := lQuery.FieldByName('scope_kind');
+    lOwnerScopeField := lQuery.FieldByName('owner_scope_id');
+    lSemanticSymbolField := lQuery.FieldByName('semantic_symbol_id');
     lLineField := lQuery.FieldByName('line_no');
     lColField := lQuery.FieldByName('col_no');
     while not lQuery.Eof do
@@ -504,6 +682,11 @@ begin
       lSymbol.FileName := lFileField.AsWideString;
       lSymbol.Name := lNameField.AsWideString;
       lSymbol.TypeName := lTypeField.AsWideString;
+      lSymbol.OwnerName := lOwnerField.AsWideString;
+      lSymbol.DeclarationRole := lRoleField.AsWideString;
+      lSymbol.ScopeKind := lScopeField.AsWideString;
+      lSymbol.OwnerScopeId := lOwnerScopeField.AsWideString;
+      lSymbol.SymbolId := lSemanticSymbolField.AsWideString;
       lSymbol.Line := lLineField.AsInteger;
       lSymbol.Column := lColField.AsInteger;
       if SameText(lKindField.AsWideString, 'threadvar') then
@@ -523,9 +706,9 @@ begin
     lQuery.Close;
     if not aFilter.UnusedOnly then
     begin
-      lSql := 'select r.symbol_id, r.unit_name, r.routine_name, r.file_name, r.line_no, ' +
-        'r.col_no, r.access_kind from refs r inner join symbols s on s.id = r.symbol_id ' +
-        'where 1 = 1';
+      lSql := 'select r.symbol_id, r.unit_name, r.routine_name, r.routine_scope_id, ' +
+        'r.file_name, r.line_no, r.col_no, r.access_kind from refs r inner join symbols s ' +
+        'on s.id = r.symbol_id where 1 = 1';
       AppendSymbolWhere(lSql, aFilter);
       lSql := lSql + AccessFilterSql('r', aFilter) + ' order by r.symbol_id, r.line_no, r.col_no';
       lQuery.SQL.Text := lSql;
@@ -534,6 +717,7 @@ begin
       lSymbolIdField := lQuery.FieldByName('symbol_id');
       lUnitField := lQuery.FieldByName('unit_name');
       lRoutineField := lQuery.FieldByName('routine_name');
+      lRoutineScopeField := lQuery.FieldByName('routine_scope_id');
       lFileField := lQuery.FieldByName('file_name');
       lLineField := lQuery.FieldByName('line_no');
       lColField := lQuery.FieldByName('col_no');
@@ -542,8 +726,10 @@ begin
       begin
         if lSymbolById.TryGetValue(lSymbolIdField.AsLargeInt, lSymbol) then
         begin
+          lRef := Default(TGlobalVarRef);
           lRef.UnitName := lUnitField.AsWideString;
           lRef.RoutineName := lRoutineField.AsWideString;
+          lRef.RoutineScopeId := lRoutineScopeField.AsWideString;
           lRef.FileName := lFileField.AsWideString;
           lRef.Line := lLineField.AsInteger;
           lRef.Column := lColField.AsInteger;
@@ -604,6 +790,7 @@ begin
       aAmbiguities := nil;
     end;
     lSymbolById.Free;
+    lDiagnostics.Free;
     lQuery.Free;
     lConnection.Free;
     lDriverLink.Free;
