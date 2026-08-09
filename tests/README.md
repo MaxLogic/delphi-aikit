@@ -71,5 +71,7 @@ Timing note:
 - `DAK_ALLOW_FIXINSIGHT_SKIP=1` explicitly skips FixInsight-backed DUnitX acceptance tests when FixInsightCL is unavailable.
 - `DAK_ALLOW_PAL_SKIP=1` explicitly skips PALCMD-backed DUnitX and batch acceptance tests when PALCMD is unavailable.
 - `DAK_ALLOW_LSP_SKIP=1` explicitly skips real DelphiLSP-backed DUnitX acceptance tests when DelphiLSP is unavailable.
+- `DAK_MAXTDB_FIXTURE` points opt-in `MaxTdbProof` tests at an external local-only
+  fixture. Never place that proprietary corpus inside the DAK checkout.
 - `DAK_ALLOW_MISSING_PAL_FIXTURES=1` explicitly skips PAL fixture-backed
   normalization tests when `docs\sample-pal-reports` is unavailable.

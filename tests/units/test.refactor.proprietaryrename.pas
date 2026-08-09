@@ -249,10 +249,11 @@ var
   lRoot: TJSONObject;
   lSourceDir: string;
 begin
-  lSourceDir := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
+  lSourceDir := MaxTdbFixtureRoot;
   if not TDirectory.Exists(lSourceDir) then
   begin
-    Assert.Pass('Optional proprietary maxTdb fixture is absent; no maxTdb rename dogfood check was run.');
+    Assert.Pass('Optional proprietary maxTdb fixture is absent; set ' + cMaxTdbFixtureEnvVar +
+      ' to its external local-only path to run maxTdb rename dogfood.');
     Exit;
   end;
 
