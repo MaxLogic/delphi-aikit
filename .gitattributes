@@ -10,6 +10,7 @@
 
 # Scripts should stay LF
 *.sh       text eol=lf
+*.py       text eol=lf
 
 
 # Then normalize:

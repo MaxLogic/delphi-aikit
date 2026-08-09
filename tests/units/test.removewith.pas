@@ -870,7 +870,6 @@ type
     function FindMaxTdbProject(const aFixtureDir: string): string;
     function IsIgnoredProjectArtifact(const aRelativePath: string): Boolean;
     function IsSourceSnapshotFile(const aPath: string): Boolean;
-    function MaxTdbFixtureRoot: string;
     procedure RequireMaxTdbFixture(const aSourceDir, aCheckName: string);
     function RunRemoveWithAllMode(const aDprojPath, aMode, aLogName: string;
       out aExitCode: Cardinal): TJSONObject;
@@ -11391,11 +11390,6 @@ begin
     (lExt = '.fmx') or (lExt = '.dproj') or (lExt = '.deployproj');
 end;
 
-function TRemoveWithProprietaryProjectTests.MaxTdbFixtureRoot: string;
-begin
-  Result := TPath.Combine(RepoRoot, 'tests\fixtures\test-projects\maxTdb');
-end;
-
 procedure TRemoveWithProprietaryProjectTests.RequireMaxTdbFixture(const aSourceDir, aCheckName: string);
 begin
   if TDirectory.Exists(aSourceDir) then
@@ -11409,7 +11403,8 @@ begin
   end;
 
   Assert.Fail('Required proprietary maxTdb fixture is absent for maxTdb ' + aCheckName + ': ' + aSourceDir +
-    '. Set ' + cAllowMissingMaxTdbFixtureEnv + '=1 only when this proprietary fixture is intentionally unavailable.');
+    '. Set ' + cMaxTdbFixtureEnvVar + ' to its external local-only path, or set ' +
+    cAllowMissingMaxTdbFixtureEnv + '=1 only when this proprietary fixture is intentionally unavailable.');
 end;
 
 function TRemoveWithProprietaryProjectTests.RunRemoveWithAllMode(const aDprojPath, aMode,

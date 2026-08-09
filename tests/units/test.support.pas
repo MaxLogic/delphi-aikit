@@ -20,6 +20,7 @@ uses
 
 function RepoRoot: string;
 function TempRoot: string;
+function MaxTdbFixtureRoot: string;
 function UniqueTempPath(const aPrefix: string): string;
 function UniqueNoRepoTempPath(const aPrefix: string): string;
 procedure DeleteTempPath(const aPath: string);
@@ -53,6 +54,7 @@ const
   cAllowFixInsightSkipEnvVar = 'DAK_ALLOW_FIXINSIGHT_SKIP';
   cAllowPalSkipEnvVar = 'DAK_ALLOW_PAL_SKIP';
   cAllowLspSkipEnvVar = 'DAK_ALLOW_LSP_SKIP';
+  cMaxTdbFixtureEnvVar = 'DAK_MAXTDB_FIXTURE';
 
 type
   TExternalToolMissingDecision = (etmdFail, etmdSkip);
@@ -314,6 +316,11 @@ begin
       GRepoRoot := ExcludeTrailingPathDelimiter(GetCurrentDir);
   end;
   Result := GRepoRoot;
+end;
+
+function MaxTdbFixtureRoot: string;
+begin
+  Result := Trim(GetEnvironmentVariable(cMaxTdbFixtureEnvVar));
 end;
 
 function TempRoot: string;

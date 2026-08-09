@@ -20,6 +20,8 @@ type
     [Test]
     procedure TempRootUsesProcessScopedRunDirectory;
     [Test]
+    procedure MaxTdbFixtureRootUsesExplicitEnvironmentPath;
+    [Test]
     procedure RunnerFailsNoAssertTests;
     [Test]
     procedure ReadUtf8TextFileAllowsSharedWriterHandle;
@@ -79,6 +81,20 @@ begin
     'DAK tests must use a process-scoped temp root, not the shared repo tests\temp directory.');
   Assert.IsTrue(Pos(GetCurrentProcessId.ToString, lRoot) > 0,
     'DAK temp root should include the current process id. Actual: ' + lRoot);
+end;
+
+procedure TUtilsTests.MaxTdbFixtureRootUsesExplicitEnvironmentPath;
+var
+  lGuard: IInterface;
+begin
+  lGuard := SetScopedEnvironmentVariable(cMaxTdbFixtureEnvVar,
+    '  F:\projects\OEC\TE5\maxTdb\.dak\DelphiAIKit-fixture  ');
+  try
+    Assert.AreEqual('F:\projects\OEC\TE5\maxTdb\.dak\DelphiAIKit-fixture',
+      MaxTdbFixtureRoot, 'The private fixture path must come only from the explicit environment variable.');
+  finally
+    lGuard := nil;
+  end;
 end;
 
 procedure TUtilsTests.RunnerFailsNoAssertTests;
