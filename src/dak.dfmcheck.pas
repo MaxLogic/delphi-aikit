@@ -176,7 +176,8 @@ function QuoteCmdArg(const aValue: string): string;
 var
   lNeedsQuotes: Boolean;
 begin
-  lNeedsQuotes := (aValue = '') or (Pos(' ', aValue) > 0) or (Pos(#9, aValue) > 0) or (Pos('"', aValue) > 0);
+  lNeedsQuotes := (aValue = '') or (Pos(' ', aValue) > 0) or (Pos(#9, aValue) > 0) or
+    (Pos('"', aValue) > 0) or (Pos(';', aValue) > 0);
   if not lNeedsQuotes then
     Exit(aValue);
   Result := '"' + StringReplace(aValue, '"', '""', [rfReplaceAll]) + '"';
@@ -2201,30 +2202,31 @@ begin
   end;
 end;
 
+function EnsureDefineSymbol(const aDefines: string; const aSymbol: string): string;
+var
+  lPart: string;
+  lParts: TArray<string>;
+  lText: string;
+begin
+  lParts := aDefines.Split([';']);
+  for lPart in lParts do
+    if SameText(Trim(lPart), aSymbol) then
+      Exit(aDefines);
+
+  lText := TrimRight(aDefines);
+  if Trim(lText) = '' then
+    Exit(aSymbol);
+  if EndsText(';', lText) then
+    Exit(aDefines + aSymbol);
+  Result := aDefines + ';' + aSymbol;
+end;
+
 function TryCopyDprojWithNewMainSource(const aSourceDprojPath: string; const aDestDprojPath: string;
   const aSourceMainSource: string; const aGeneratedMainSource: string; const aAdditionalUnitSearchPath: string;
   out aError: string): Boolean;
 const
   cDfmCheckSymbol = 'DFMCheck';
   cNoLocalizationSymbol = 'NO_LOCALIZATION';
-  function EnsureDefineSymbol(const aDefines: string; const aSymbol: string): string;
-  var
-    lPart: string;
-    lParts: TArray<string>;
-    lText: string;
-  begin
-    lParts := aDefines.Split([';']);
-    for lPart in lParts do
-      if SameText(Trim(lPart), aSymbol) then
-        Exit(aDefines);
-
-    lText := TrimRight(aDefines);
-    if Trim(lText) = '' then
-      Exit(aSymbol);
-    if EndsText(';', lText) then
-      Exit(aDefines + aSymbol);
-    Result := aDefines + ';' + aSymbol;
-  end;
   function AttributeText(const aNode: IXMLNode; const aName: string): string;
   begin
     Result := '';
@@ -3218,7 +3220,7 @@ begin
   Result := True;
 end;
 
-function TryGenerateDfmCheckProject(const aOptions: TAppOptions; const aDprojPath: string; const aFilterCsv: string;
+function TryGenerateDfmCheckProject(const aOptions: TAppOptions; const aDprojPath, aFilterCsv: string;
   var aPaths: TDfmCheckPaths; out aError: string): Boolean;
 var
   lContextOptions: TAppOptions;
@@ -3797,6 +3799,7 @@ var
   lDiagnostics: TDiagnostics;
   lDiagnosticsDefaults: TDiagnosticsDefaults;
   lDprojPath: string;
+  lEffectiveDefines: string;
   lEffectiveOptions: TAppOptions;
   lFailedResources: TStringList;
   lPaths: TDfmCheckPaths;
@@ -4076,9 +4079,13 @@ begin
     lPaths.fForcedDcuOutputDir := lForcedDcuOutputDir;
 
     EmitVerboseLine(lVerbose, aOutput, '[dfm-check] Building generated DfmCheck project via MSBuild...');
+    lEffectiveDefines := RemoveDefineSymbol(lProjectContext.ParserDefines, 'madExcept');
+    lEffectiveDefines := EnsureDefineSymbol(lEffectiveDefines, 'DFMCheck');
+    lEffectiveDefines := EnsureDefineSymbol(lEffectiveDefines, 'NO_LOCALIZATION');
     lBuildVerbosity := '/v:q';
     lBuildArgs :=
       QuoteCmdArg(lPaths.fGeneratedDproj) + ' /t:Build /p:Config=' + lConfig + ' /p:Platform=' + lPlatform +
+      ' /p:DCC_Define=' + QuoteCmdArg(lEffectiveDefines) +
       ' /p:DCC_ForceExecute=true /p:DCC_ExeOutput=' + QuoteCmdArg(IncludeTrailingPathDelimiter(lForcedExeOutputDir)) +
       ' /p:DCC_DcuOutput=' + QuoteCmdArg(IncludeTrailingPathDelimiter(lForcedDcuOutputDir)) +
       ' ' + lBuildVerbosity;
