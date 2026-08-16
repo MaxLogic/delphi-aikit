@@ -80,6 +80,8 @@ type
     [Test]
     procedure PipelineAddsUnitSearchPathWhenProjectInheritsOptsetSearchPath;
     [Test]
+    procedure PipelineImportedOptsetCannotReintroduceMadExcept;
+    [Test]
     procedure PipelineRebasesRelativeProjectImportsForGeneratedProject;
     [Test]
     procedure PipelineRebasesRelativeItemIncludesForGeneratedProject;
@@ -927,6 +929,7 @@ begin
   TFile.WriteAllText(lOptsetPath,
     '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + #13#10 +
     '  <PropertyGroup>' + #13#10 +
+    '    <DCC_Define>MadExcept;OPTSET_TRACE;MadExceptFeature;$(DCC_Define)</DCC_Define>' + #13#10 +
     '    <DCC_UnitSearchPath>$(ProjectRoot)\Shared;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>' + #13#10 +
     '  </PropertyGroup>' + #13#10 +
     '</Project>' + #13#10, TEncoding.UTF8);
@@ -1479,6 +1482,78 @@ begin
     Assert.IsTrue(DprojElementTextContains(lGeneratedXmlDoc, 'DCC_UnitSearchPath', '$(DCC_UnitSearchPath)'),
       'Generated checker DPROJ should still preserve inherited DCC_UnitSearchPath macros.');
   finally
+    lEnvGuard := nil;
+  end;
+end;
+
+procedure TDfmCheckTests.PipelineImportedOptsetCannotReintroduceMadExcept;
+var
+  lCategory: TDfmCheckErrorCategory;
+  lDefines: string;
+  lDprojPath: string;
+  lDprojBefore: string;
+  lError: string;
+  lEnvGuard: IInterface;
+  lInjectDir: string;
+  lOptions: TAppOptions;
+  lOptsetBefore: string;
+  lOptsetPath: string;
+  lPaths: TDfmCheckPaths;
+  lResult: Integer;
+  lRunner: IDfmCheckProcessRunner;
+  lRunnerImpl: TMockDfmCheckRunner;
+  lMatch: TMatch;
+begin
+  CreateFixtureProjectWithInheritedSearchPath(lDprojPath);
+  lDprojBefore := TFile.ReadAllText(lDprojPath);
+  lOptsetPath := TPath.Combine(ExtractFilePath(lDprojPath), 'Fixture.optset');
+  lOptsetBefore := TFile.ReadAllText(lOptsetPath);
+  lInjectDir := TPath.Combine(TempRoot, 'dfm-check-inject-imported-defines');
+  WriteInjectStubs(lInjectDir);
+
+  lEnvGuard := SetScopedEnvironmentVariables([
+    'DAK_DFMCHECK_INJECT_DIR', lInjectDir,
+    'DAK_DFMCHECK_MSBUILD', 'msbuild.exe',
+    'DAK_DFMCHECK_KEEP_ARTIFACTS', 'true'
+  ]);
+  try
+    lRunnerImpl := TMockDfmCheckRunner.Create(TMockValidatorMode.vmHappy, 'Release', 'Win32');
+    lRunner := lRunnerImpl;
+    lOptions := Default(TAppOptions);
+    lOptions.fDprojPath := lDprojPath;
+    lOptions.fConfig := 'Release';
+    lOptions.fPlatform := 'Win32';
+    lOptions.fDelphiVersion := '23.0';
+    lOptions.fDfmCheckFilter := 'MainForm.dfm';
+    lOptions.fHasRsVarsPath := True;
+    lOptions.fRsVarsPath := TPath.Combine(ExtractFilePath(lDprojPath), 'rsvars.bat');
+
+    lResult := RunDfmCheckPipeline(lOptions, lRunner, nil, lCategory, lError);
+
+    Assert.AreEqual(0, lResult, 'Expected imported-define fixture to complete with mock runner.');
+    lMatch := TRegEx.Match(lRunnerImpl.MsBuildArguments, '/p:DCC_Define="([^"]*)"', [roIgnoreCase]);
+    Assert.IsTrue(lMatch.Success,
+      'MSBuild must receive the effective DCC_Define value as a quoted global property. Arguments: ' +
+      lRunnerImpl.MsBuildArguments);
+    lDefines := lMatch.Groups[1].Value;
+    Assert.IsFalse(TextContainsSemicolonToken(lDefines, 'madExcept'),
+      'MSBuild effective defines must exclude the exact madExcept symbol. Defines: ' + lDefines);
+    Assert.IsTrue(TextContainsSemicolonToken(lDefines, 'OPTSET_TRACE'),
+      'MSBuild effective defines should preserve non-madExcept option-set defines. Defines: ' + lDefines);
+    Assert.IsTrue(TextContainsSemicolonToken(lDefines, 'MadExceptFeature'),
+      'MSBuild effective defines should preserve similarly named symbols. Defines: ' + lDefines);
+    Assert.IsTrue(TextContainsSemicolonToken(lDefines, 'DFMCheck'),
+      'MSBuild effective defines should retain the DFMCheck symbol. Defines: ' + lDefines);
+    Assert.IsTrue(TextContainsSemicolonToken(lDefines, 'NO_LOCALIZATION'),
+      'MSBuild effective defines should retain the NO_LOCALIZATION symbol. Defines: ' + lDefines);
+    lPaths := BuildExpectedDfmCheckPaths(lDprojPath);
+    Assert.IsTrue(TryLocateGeneratedDfmCheckProject(lPaths, lError), 'Expected generated project: ' + lError);
+    Assert.AreEqual(lOptsetBefore, TFile.ReadAllText(lOptsetPath),
+      'DFM-check generation must leave the source option set unchanged.');
+    Assert.AreEqual(lDprojBefore, TFile.ReadAllText(lDprojPath),
+      'DFM-check generation must leave the source project unchanged.');
+  finally
+    lRunner := nil;
     lEnvGuard := nil;
   end;
 end;
