@@ -69,6 +69,7 @@ __recovery/
 digest.txt
 pas-api-map.md
 agents.md
+spec.md
 .agents/
 TASKS.md
 TASKS.ARCHIVE.md
