@@ -48,6 +48,30 @@ class SkillDocumentationContractTests(unittest.TestCase):
             )
         )
 
+    def test_bundled_resources_resolve_from_loaded_skill_directory(self):
+        skill = read_text(SKILL_DIR / "SKILL.md")
+
+        self.assertIn(
+            "directory containing this `SKILL.md`",
+            skill,
+        )
+        self.assertNotIn("agentskills/dak-static-analysis", skill)
+        self.assertNotIn(r"agentskills\\dak-static-analysis", skill)
+        for resource in (
+            "doctor.bat",
+            "analyze.bat",
+            "analyze-unit.bat",
+            "doctor.sh",
+            "analyze.sh",
+            "analyze-unit.sh",
+            "postprocess.py",
+        ):
+            with self.subTest(resource=resource):
+                self.assertRegex(
+                    skill,
+                    rf"<skill-root>[\\/]+{re.escape(resource)}",
+                )
+
     def test_filtering_guidance_uses_only_implemented_contracts(self):
         blanket_lib_mask = "*" + "\\lib\\" + "*"
         self.assertNotIn(blanket_lib_mask, self.documents)
