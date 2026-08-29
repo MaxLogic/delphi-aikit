@@ -87,15 +87,22 @@ Choose the host from repository/user policy. For Windows-only repositories use
 the Windows wrappers directly. Use WSL wrappers only when the target repository
 permits WSL and path conversion is useful.
 
-WSL (when authorized):
-- Project doctor: `./agentskills/dak-static-analysis/doctor.sh /mnt/c/path/to/MyProject.dproj`
-- Project analyze: `./agentskills/dak-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
-- Unit analyze with project context: `./agentskills/dak-static-analysis/analyze-unit.sh /mnt/c/path/to/Unit1.pas /mnt/c/path/to/MyProject.dproj`
+Resolve `<skill-root>` from the skill path supplied by the harness. It is the
+directory containing this `SKILL.md`. Do not derive it from the current
+repository or assume that the repository contains an `agentskills/` directory.
+Project-local installations commonly expose this directory through
+`.agents/skills/dak-static-analysis`; junction and symlink targets are equally
+valid.
 
-Windows:
-- Project doctor: `agentskills\\dak-static-analysis\\doctor.bat C:\\path\\to\\MyProject.dproj`
-- Project analyze: `agentskills\\dak-static-analysis\\analyze.bat C:\\path\\to\\MyProject.dproj`
-- Unit analyze with project context: `agentskills\\dak-static-analysis\\analyze-unit.bat C:\\path\\to\\Unit1.pas C:\\path\\to\\MyProject.dproj`
+WSL (when authorized):
+- Project doctor: `bash "<skill-root>/doctor.sh" /mnt/c/path/to/MyProject.dproj`
+- Project analyze: `bash "<skill-root>/analyze.sh" /mnt/c/path/to/MyProject.dproj`
+- Unit analyze with project context: `bash "<skill-root>/analyze-unit.sh" /mnt/c/path/to/Unit1.pas /mnt/c/path/to/MyProject.dproj`
+
+Windows PowerShell:
+- Project doctor: `& "<skill-root>\doctor.bat" "C:\path\to\MyProject.dproj"`
+- Project analyze: `& "<skill-root>\analyze.bat" "C:\path\to\MyProject.dproj"`
+- Unit analyze with project context: `& "<skill-root>\analyze-unit.bat" "C:\path\to\Unit1.pas" "C:\path\to\MyProject.dproj"`
 
 Add `--workspace-root auto|git|svn|project|<fixed-root>` after the subject when
 the automatic nearest Git/SVN boundary is not the intended workspace. The CLI
@@ -138,8 +145,8 @@ changed-file data, `source_inputs`, nested roots, and `available`, `fallback`,
 uses a bounded filesystem inventory and does not fail analysis.
 
 Examples:
-- Disable PAL for one run: `DAK_PASCAL_ANALYZER=false ./agentskills/dak-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
-- PAL only (project): `DAK_FIXINSIGHT=false ./agentskills/dak-static-analysis/analyze.sh /mnt/c/path/to/MyProject.dproj`
+- Disable PAL for one WSL run: `DAK_PASCAL_ANALYZER=false bash "<skill-root>/analyze.sh" /mnt/c/path/to/MyProject.dproj`
+- PAL only in WSL: `DAK_FIXINSIGHT=false bash "<skill-root>/analyze.sh" /mnt/c/path/to/MyProject.dproj`
 
 ## Execution Model
 
@@ -186,7 +193,7 @@ Primary artifacts:
   `trend.md`, and `baseline.json` (after the first compatible baseline run).
 
 Before retaining a gated result, run
-`python agentskills/dak-static-analysis/postprocess.py --verify <output>`.
+`python "<skill-root>/postprocess.py" --verify <output>`.
 The check covers counts, ownership, SARIF/report parity, and passing-gate
 compatibility. Do not update a baseline to work around an incompatibility;
 rerun with the correct compiler/analyzer/policy context.
@@ -304,6 +311,6 @@ separate refactoring effort instead of expanding the current feature.
 
 ## Local References
 
-- Setup and environment: `agentskills/dak-static-analysis/SETUP.md`
-- Tooling notes: `agentskills/dak-static-analysis/references/tooling.md`
-- Triage heuristics: `agentskills/dak-static-analysis/references/triage.md`
+- Setup and environment: [SETUP.md](SETUP.md)
+- Tooling notes: [references/tooling.md](references/tooling.md)
+- Triage heuristics: [references/triage.md](references/triage.md)
