@@ -108,3 +108,5 @@ docs/delphi-dfm-checker/
 /tests/fixtures/KFZMeister_DfmCheck.vrc
 /docs/unit-cycle-fix-tool.md
 /.codex
+.codex/
+.claude/skills/
