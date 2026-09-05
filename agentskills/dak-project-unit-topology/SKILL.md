@@ -1,6 +1,6 @@
 ---
 name: dak-project-unit-topology
-description: "Inspect Delphi project unit topology with DelphiAIKit `deps`: resolved and unresolved units, project vs external edges, SCCs, cycle hotspots, and focused unit views. Use when Codex needs to answer what depends on what, why a unit is present, whether project-unit cycles exist, where to start reducing cycle debt, which `uses` edge is the best first candidate to cut, or when a Delphi `.dproj` needs dependency-topology diagnosis."
+description: "Inspect Delphi project topology with DelphiAIKit `deps`: resolved/unresolved units, project/external edges, SCCs, cycles, and focused views. Use to answer what depends on what, why a unit is present, where cycles exist, which `uses` edge to cut first, or to diagnose a `.dproj` dependency graph."
 ---
 
 # Delphi Project Unit Topology

@@ -1,6 +1,6 @@
 ---
 name: dak-semantic-refactoring
-description: Use DelphiAIKit project-scoped semantic commands for find-usages, rename dry-runs/apply, and dead-code review or guarded apply. Use this when Codex needs declaration-aware usage evidence, safe rename planning, conservative dead-code inspection, or explicitly approved transactional dead-code removal; prefer `dak-symbol-map` for index/search queries and never treat dead-code reports as automatic deletion approval.
+description: Use DelphiAIKit semantic commands for declaration-aware find-usages, rename dry-runs or apply, and conservative dead-code review. Trigger for safe rename planning or approved transactional dead-code removal. Use `dak-symbol-map` for indexing/search; a dead-code report is never deletion approval.
 ---
 
 # DAK Semantic Refactoring

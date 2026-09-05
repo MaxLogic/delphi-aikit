@@ -1,6 +1,6 @@
 ---
 name: dak-symbol-map
-description: Use DelphiAIKit `symbol-map` for cached Delphi project source indexing, definition lookup, symbol search, symbol description, reference-like token matches, and cache stats. Use this when Codex needs reusable project-wide symbol inventory or fast repeated lookup; prefer `dak-lsp` for editor-style hover/definition at one position and `dak-semantic-refactoring` for rename/apply workflows.
+description: Use DelphiAIKit `symbol-map` for cached indexing, definitions, symbol search and descriptions, reference-like matches, and cache stats. Trigger for reusable Delphi project inventory or repeated lookup. Use `dak-lsp` for position-based hover/definition and semantic refactoring for rename/apply.
 ---
 
 # DAK Symbol Map
