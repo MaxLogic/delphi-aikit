@@ -820,7 +820,10 @@ begin
     aSettings.fPascalAnalyzer.fOutput := lValue;
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'Args', ''));
   if lValue <> '' then
+  begin
     aSettings.fPascalAnalyzer.fArgs := lValue;
+    aSettings.fPascalAnalyzer.fArgsSource := '[PascalAnalyzer] Args in ' + aIniPath;
+  end;
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'ExcludeSearchFolders', ''));
   if lValue <> '' then
     aSettings.fPascalAnalyzer.fExcludeSearchFolders := lValue;
@@ -1016,7 +1019,13 @@ begin
   if aOverrides.fHasPaOutput then
     aPascalAnalyzer.fOutput := aOverrides.fPaOutput;
   if aOverrides.fHasPaArgs then
+  begin
     aPascalAnalyzer.fArgs := aOverrides.fPaArgs;
+    aPascalAnalyzer.fArgsSource := '--pa-args';
+    if (Trim(GetEnvironmentVariable('PA_ARGS')) <> '') and
+      (Trim(GetEnvironmentVariable('PA_ARGS')) = Trim(aOverrides.fPaArgs)) then
+      aPascalAnalyzer.fArgsSource := '--pa-args (matching PA_ARGS environment value)';
+  end;
   if aOverrides.fHasPaExcludeSearchFolders then
     aPascalAnalyzer.fExcludeSearchFolders := aOverrides.fPaExcludeSearchFolders;
   if aOverrides.fHasPaExcludeFiles then

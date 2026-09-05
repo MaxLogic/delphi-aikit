@@ -990,20 +990,22 @@ begin
   end;
 end;
 
-function TryValidatePalExtraArgs(const aArgs: string; out aError: string): Boolean;
+function TryValidatePalExtraArgs(const aPa: TPascalAnalyzerDefaults; out aError: string): Boolean;
 var
   i: Integer;
   lArg: string;
   lArgCount: Integer;
   lArgValues: PPWideChar;
   lCommandLine: string;
+  lConflicts: string;
+  lSource: string;
 begin
   Result := False;
   aError := '';
-  if Trim(aArgs) = '' then
+  if Trim(aPa.fArgs) = '' then
     Exit(True);
 
-  lCommandLine := 'palcmd ' + aArgs;
+  lCommandLine := 'palcmd ' + aPa.fArgs;
   lArgValues := CommandLineToArgvW(PWideChar(lCommandLine), lArgCount);
   if lArgValues = nil then
   begin
@@ -1016,14 +1018,27 @@ begin
       aError := 'Too many extra PALCMD arguments.';
       Exit(False);
     end;
+    lConflicts := '';
     for i := 1 to lArgCount - 1 do
     begin
       lArg := PPalArgValues(lArgValues)^[i];
       if IsOwnedPalArgument(lArg) then
       begin
-        aError := 'PALCMD argument conflicts with DAK-owned automation: ' + lArg;
-        Exit(False);
+        if lConflicts <> '' then
+          lConflicts := lConflicts + ', ';
+        lConflicts := lConflicts + lArg;
       end;
+    end;
+    if lConflicts <> '' then
+    begin
+      lSource := aPa.fArgsSource;
+      if lSource = '' then
+        lSource := '[PascalAnalyzer] Args / --pa-args';
+      aError := 'PALCMD argument conflicts with DAK-owned automation: ' + lConflicts +
+        '. Source: ' + lSource + '. Remove owned switches from Args; DAK supplies report, parse-scope, ' +
+        'quiet, name, output and thread options. Migrate /X to [PascalAnalyzer] ExcludeSearchFolders ' +
+        '(--pa-exclude-search-folders) and /XF to ExcludeFiles (--pa-exclude-files).';
+      Exit(False);
     end;
     Result := True;
   finally
@@ -1093,7 +1108,7 @@ begin
   aError := '';
   if not TryValidatePalExclusions(aPa, aError) then
     Exit(False);
-  if not TryValidatePalExtraArgs(aPa.fArgs, aError) then
+  if not TryValidatePalExtraArgs(aPa, aError) then
     Exit(False);
 
   lArgs := TStringBuilder.Create;
@@ -1245,7 +1260,7 @@ begin
   end;
   if not TryValidatePalExclusions(aPa, aError) then
     Exit(False);
-  if not TryValidatePalExtraArgs(aPa.fArgs, aError) then
+  if not TryValidatePalExtraArgs(aPa, aError) then
     Exit(False);
   if not TryResolvePalCmdExe(aPa.fPath, lExe, aError) then
     Exit(False);

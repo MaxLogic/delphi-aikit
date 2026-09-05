@@ -655,6 +655,7 @@ var
   lContext: string;
   lValue: TJSONValue;
 begin
+  Result := nil;
   lValue := ParseJsonValue(aText, aContext);
   if lValue is TJSONObject then
     Exit(TJSONObject(lValue));

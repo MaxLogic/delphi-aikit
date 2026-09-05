@@ -11,6 +11,7 @@ type
   end;
 
 function TryFindPalReportRoot(const aOutputRoot: string; out aReportRoot: string; out aError: string): Boolean;
+function PalArtifactPath(const aPath: string): string;
 function TryGeneratePalArtifacts(const aReportRoot: string; const aOutRoot: string; out aError: string): Boolean;
 function TryGeneratePalArtifactsWithCounts(const aReportRoot: string; const aOutRoot: string;
   out aCounts: TPalFindingCounts; out aError: string): Boolean;
@@ -34,6 +35,17 @@ const
   SPalModuleTotalsFileName = 'Module Totals.xml';
   SPalStatusFileName = 'Status.xml';
   cPalModulesFileName = 'Modules.xml';
+
+function PalArtifactPath(const aPath: string): string;
+begin
+  Result := TPath.GetFullPath(aPath);
+  if (Length(Result) + 64 <= 240) or TPath.IsExtendedPrefixed(Result) then
+    Exit;
+  if StartsStr('\\', Result) then
+    Result := '\\?\UNC\' + Copy(Result, 3, MaxInt)
+  else
+    Result := '\\?\' + Result;
+end;
 
 type
   TPalFinding = record

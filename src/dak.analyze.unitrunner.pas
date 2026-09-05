@@ -242,12 +242,13 @@ begin
         if fOptions.fHasProjectContextPath then
         begin
           lPaReportRoot := TPath.Combine(fPal.OutputRoot, fUnitName);
+          lPaReportRoot := PalArtifactPath(lPaReportRoot);
           if not FileExists(TPath.Combine(lPaReportRoot, 'Status.xml')) then
           begin
             lPalPostError := 'Status.xml not found in expected report folder: ' + lPaReportRoot;
             lPaReportRoot := '';
           end;
-        end else if not TryFindPalReportRoot(fPal.OutputRoot, lPaReportRoot, lPalPostError) then
+        end else if not TryFindPalReportRoot(PalArtifactPath(fPal.OutputRoot), lPaReportRoot, lPalPostError) then
           lPaReportRoot := '';
         if lPaReportRoot <> '' then
         begin

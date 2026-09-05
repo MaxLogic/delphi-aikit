@@ -13,6 +13,8 @@ All notable user-visible changes to this project will be documented in this file
 - Added collision-safe canonical PAL rule identities, version-verified native aliases, PAL-specific actionable-report filtering, per-value filter provenance, and raw/ignored rule evidence across summary, baseline, delta, and SARIF artifacts.
 
 ### Changed
+- PAL analysis now stages reports under a unique short path when the requested output would exceed PAL's Windows path budget, then publishes the retained reports to the requested directory. Failed staging and publication identify retained evidence.
+- Legacy PAL argument errors now identify the effective INI or CLI/environment source, list all conflicting DAK-owned switches, and explain how to migrate exclusions. The static-analysis doctor checks the same configuration.
 - Static-analysis ownership, source identity, change triage, and provenance now use the resolved workspace and report truthful Git, SVN, or unmanaged capabilities instead of requiring Git.
 - The static-analysis skill now treats large legacy applications as an advisory, delta-oriented workflow by default: inherited findings and analyzer parser limitations no longer become routine feature gates, while full-project analysis remains available for explicit audits and dedicated maintenance work.
 - The static-analysis skill now distinguishes actionable, raw, ignored, external, advisory-metric, and unknown findings; documents only implemented analyzer-specific filters and explicit coverage exclusions; and contract-tests every named option and artifact.

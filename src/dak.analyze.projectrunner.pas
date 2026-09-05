@@ -276,6 +276,7 @@ begin
     begin
       try
         lPaReportRoot := TPath.Combine(fPal.OutputRoot, TPath.GetFileNameWithoutExtension(fParams.fProjectDpr));
+        lPaReportRoot := PalArtifactPath(lPaReportRoot);
         if FileExists(TPath.Combine(lPaReportRoot, 'Status.xml')) then
         begin
           fPal.ReportRoot := lPaReportRoot;

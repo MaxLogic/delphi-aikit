@@ -298,6 +298,7 @@ type
     fPath: string;
     fOutput: string;
     fArgs: string;
+    fArgsSource: string;
     fExcludeSearchFolders: string;
     fExcludeFiles: string;
     fTimeoutSec: Integer;

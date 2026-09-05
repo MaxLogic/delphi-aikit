@@ -7,7 +7,7 @@ uses
   Winapi.Windows,
   DUnitX.TestFramework,
   Dak.Analyze.Common, Dak.ExternalToolProcess, Dak.Messages,
-  Dak.PascalAnalyzerRunner, Dak.Types,
+  Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner, Dak.Settings, Dak.Types,
   Test.Support;
 
 type
@@ -20,6 +20,18 @@ type
     procedure ExtraArgumentsRetainAutomationDefaults;
     [Test]
     procedure OwnedPalArgumentsAreRejected;
+    [Test]
+    [TestCase('Project INI', '0')]
+    [TestCase('Repository INI', '1')]
+    procedure LegacyArgumentsReportSourceAndAllConflicts(aRepository: Integer);
+    [Test]
+    procedure LongPalOutputPublishesReports;
+    [Test]
+    [TestCase('Short output', '0')]
+    [TestCase('Long output', '1')]
+    procedure ZeroExitWithoutStatusFails(aLong: Integer);
+    [Test]
+    procedure UnusableStagingPathFailsBeforePalStarts;
     [Test]
     procedure ExplicitPalExclusionsAreValidatedAndForwarded;
     [Test]
@@ -49,6 +61,173 @@ type
   end;
 
 implementation
+
+procedure TPascalAnalyzerTests.ZeroExitWithoutStatusFails(aLong: Integer);
+var
+  lRoot: string;
+  lUnit: string;
+  lOut: string;
+  lLog: string;
+  lStage: string;
+  lMatch: TMatch;
+  lArgs: string;
+  lExit: Cardinal;
+  lGuard: IInterface;
+begin
+  lRoot := UniqueTempPath('pal-no-status');
+  TDirectory.CreateDirectory(lRoot);
+  try
+    lUnit := TPath.Combine(lRoot, 'Sample.pas');
+    TFile.WriteAllText(lUnit, 'unit Sample; interface implementation end.', TEncoding.ASCII);
+    lOut := TPath.Combine(lRoot, 'out');
+    if aLong <> 0 then
+      lOut := TPath.Combine(lRoot, StringOfChar('x', 190 - Length(lRoot)));
+    // PAL's exit-0 internal failures vary by version; use the process fixture for this failure contract.
+    lGuard := SetScopedEnvironmentVariable('DAK_TEST_PAL_HELP', '1');
+    lArgs := 'analyze --unit ' + QuoteArg(lUnit) + ' --out ' + QuoteArg(lOut) +
+      ' --delphi 23.0 --platform Win64 --fixinsight false --pascal-analyzer true --write-summary true' +
+      ' --pa-path ' + QuoteArg(ParamStr(0));
+    Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, TPath.Combine(lRoot, 'client.log'), lExit));
+    Assert.AreEqual(Cardinal(6), lExit, 'Exit 0 without Status.xml must fail analysis.');
+    lLog := TFile.ReadAllText(TPath.Combine(lOut, 'summary.md'));
+    Assert.IsTrue(lLog.Contains('## Errors'), lLog);
+    if aLong <> 0 then
+    begin
+      Assert.IsTrue(lLog.Contains('Status.xml'), lLog);
+      Assert.IsTrue(lLog.Contains('Retained PAL staging directory:'), lLog);
+      lLog := TFile.ReadAllText(TPath.Combine(lOut, 'run.log'));
+      lMatch := TRegEx.Match(lLog, 'PAL staging: (.+?); publish to:');
+      Assert.IsTrue(lMatch.Success, lLog);
+      lStage := lMatch.Groups[1].Value;
+      Assert.IsTrue(DirectoryExists(lStage), 'Failed staging evidence must remain available.');
+    end;
+  finally
+    if (lStage <> '') and lStage.StartsWith(TPath.Combine(TPath.GetTempPath, 'dak-pal')) then
+      DeleteTempPath(lStage);
+    DeleteTempPath(lRoot);
+  end;
+end;
+
+procedure TPascalAnalyzerTests.UnusableStagingPathFailsBeforePalStarts;
+var
+  lPa: TPascalAnalyzerDefaults;
+  lError: string;
+  lExit: Cardinal;
+  lUnit: string;
+begin
+  lPa := Default(TPascalAnalyzerDefaults);
+  lPa.fPath := 'C:\does-not-exist\palcmd.exe';
+  lPa.fOutput := TPath.Combine(TempRoot, StringOfChar('x', 80));
+  lUnit := TPath.Combine(TempRoot, StringOfChar('u', 200) + '.pas');
+  Assert.IsFalse(TryRunPalUnitLogged(lUnit, lPa, '', '', '', lExit, lError));
+  Assert.IsTrue(lError.Contains('PAL path budget exceeded:'), lError);
+  Assert.IsTrue(lError.Contains('240'), lError);
+  Assert.IsTrue(lError.Contains('--out'), lError);
+  Assert.IsTrue(lError.Contains(lPa.fOutput), lError);
+end;
+
+procedure TPascalAnalyzerTests.LongPalOutputPublishesReports;
+const
+  cUnitName = 'IssueReview.LongUnitName.OptionalProviders.SelfTests';
+var
+  lRoot: string;
+  lUnitPath: string;
+  lOutput: string;
+  lReport: string;
+  lError: string;
+  lExit: Cardinal;
+  lPa: TPascalAnalyzerDefaults;
+  lLog: string;
+  lMatch: TMatch;
+begin
+  lRoot := UniqueTempPath('pal-path');
+  TDirectory.CreateDirectory(lRoot);
+  try
+    lUnitPath := TPath.Combine(lRoot, cUnitName + '.pas');
+    TFile.WriteAllText(lUnitPath, 'unit ' + cUnitName + '; interface implementation end.', TEncoding.ASCII);
+    lOutput := TPath.Combine(lRoot, StringOfChar('x', 200 - Length(lRoot)));
+    lPa := Default(TPascalAnalyzerDefaults);
+    Assert.IsTrue(TryResolvePalCmdExe('', lPa.fPath, lError), lError);
+    lPa.fArgs := '/CD12W64';
+    lPa.fOutput := lOutput;
+    Assert.IsTrue(TryRunPalUnitLogged(lUnitPath, lPa,
+      TPath.Combine(lRoot, 'stdout.log'), TPath.Combine(lRoot, 'stderr.log'),
+      TPath.Combine(lRoot, 'run.log'), lExit, lError), lError);
+    Assert.AreEqual(Cardinal(0), lExit);
+    lReport := PalArtifactPath(TPath.Combine(lOutput, cUnitName));
+    Assert.IsTrue(FileExists(TPath.Combine(lReport, 'Status.xml')),
+      'PAL exited successfully without publishing Status.xml for the long output path.');
+    Assert.IsTrue(FileExists(TPath.Combine(lReport, 'Warnings.xml')));
+    lLog := TFile.ReadAllText(TPath.Combine(lRoot, 'run.log'));
+    lMatch := TRegEx.Match(lLog, 'PAL staging: (.+?); publish to:');
+    Assert.IsTrue(lMatch.Success, lLog);
+    Assert.IsFalse(DirectoryExists(lMatch.Groups[1].Value), 'Successful staging must be removed.');
+    lPa.fOutput := TPath.Combine(lRoot, 'short');
+    Assert.IsTrue(TryRunPalUnitLogged(lUnitPath, lPa,
+      TPath.Combine(lRoot, 'short-stdout.log'), TPath.Combine(lRoot, 'short-stderr.log'),
+      TPath.Combine(lRoot, 'short-run.log'), lExit, lError), lError);
+    Assert.AreEqual(Cardinal(0), lExit);
+    lReport := PalArtifactPath(TPath.Combine(lPa.fOutput, cUnitName));
+    Assert.IsTrue(FileExists(TPath.Combine(lReport, 'Status.xml')));
+  finally
+    DeleteTempPath(lRoot);
+  end;
+end;
+
+procedure TPascalAnalyzerTests.LegacyArgumentsReportSourceAndAllConflicts(aRepository: Integer);
+var
+  lRoot: string;
+  lProjectDir: string;
+  lProject: string;
+  lIni: string;
+  lSettings: TDakSettings;
+  lOptions: TAppOptions;
+  lCmdLine: string;
+  lError: string;
+  lExe: string;
+  lSwitch: string;
+  lGuard: IInterface;
+begin
+  lRoot := UniqueTempPath('pal-legacy-args');
+  TDirectory.CreateDirectory(lRoot);
+  try
+    TDirectory.CreateDirectory(TPath.Combine(lRoot, '.git'));
+    lProjectDir := TPath.Combine(lRoot, 'src');
+    TDirectory.CreateDirectory(lProjectDir);
+    lProject := TPath.Combine(lProjectDir, 'Sample.dproj');
+    if aRepository <> 0 then
+      lIni := TPath.Combine(lRoot, 'dak.ini')
+    else
+      lIni := TPath.Combine(lProjectDir, 'dak.ini');
+    TFile.WriteAllText(lProject, '<Project/>', TEncoding.ASCII);
+    TFile.WriteAllText(lIni, '[PascalAnalyzer]' + sLineBreak +
+      'Args=/F=X /Q /A+ /FA /T=32 /X="C:\Vendor<+>" /XF=Vendor.pas /NAME=Other /R=C:\Reports',
+      TEncoding.ASCII);
+    Assert.IsTrue(LoadDakSettings(nil, lProject, nil, lSettings), lSettings.fError);
+    lSettings.fPascalAnalyzer.fPath := ParamStr(0);
+    Assert.IsFalse(BuildPalCmdUnitCommandLine(lProject, lSettings.fPascalAnalyzer, lExe, lCmdLine, lError));
+    Assert.IsTrue(lError.Contains(lIni), 'Missing effective configuration source: ' + lError);
+    for lSwitch in ['/F=X', '/Q', '/A+', '/FA', '/T=32', '/X=', '/XF=', '/NAME=', '/R='] do
+      Assert.IsTrue(lError.Contains(lSwitch), 'Missing conflict ' + lSwitch + ': ' + lError);
+    Assert.IsTrue(lError.Contains('ExcludeSearchFolders'), lError);
+    Assert.IsTrue(lError.Contains('ExcludeFiles'), lError);
+    lOptions := Default(TAppOptions);
+    lOptions.fHasPaArgs := True;
+    lOptions.fPaArgs := '/Q /FA';
+    ApplySettingsOverrides(lOptions, lSettings.fFixInsight, lSettings.fFixInsightIgnore,
+      lSettings.fReportFilter, lSettings.fPascalAnalyzer);
+    Assert.IsFalse(BuildPalCmdUnitCommandLine(lProject, lSettings.fPascalAnalyzer, lExe, lCmdLine, lError));
+    Assert.IsTrue(lError.Contains('--pa-args'), lError);
+    Assert.IsFalse(lError.Contains(lIni), 'CLI override must replace INI provenance: ' + lError);
+    lGuard := SetScopedEnvironmentVariable('PA_ARGS', lOptions.fPaArgs);
+    ApplySettingsOverrides(lOptions, lSettings.fFixInsight, lSettings.fFixInsightIgnore,
+      lSettings.fReportFilter, lSettings.fPascalAnalyzer);
+    Assert.IsFalse(BuildPalCmdUnitCommandLine(lProject, lSettings.fPascalAnalyzer, lExe, lCmdLine, lError));
+    Assert.IsTrue(lError.Contains('PA_ARGS'), lError);
+  finally
+    DeleteTempPath(lRoot);
+  end;
+end;
 
 function PalCmdSupportsFlag(const aPalCmdExe, aFlag: string): Boolean;
 var

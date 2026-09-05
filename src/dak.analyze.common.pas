@@ -75,7 +75,8 @@ procedure WriteUnitStatusSeed(const aOutRoot: string; const aUnitPath: string; c
 implementation
 
 uses
-  System.Hash, System.JSON, System.StrUtils;
+  System.Hash, System.JSON, System.StrUtils,
+  Dak.PascalAnalyzer.Artifacts;
 
 function FormatTimestamp: string;
 begin
@@ -612,40 +613,91 @@ begin
   end;
 end;
 
-function TryRunPalLogged(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
-  const aStdOutLogPath: string; const aStdErrLogPath: string; const aRunLogPath: string; out aExitCode: Cardinal;
-  out aError: string): Boolean;
+type
+  TPalOutputRun = record
+  private
+    fParams: TFixInsightParams;
+    fUnitPath: string;
+    fPa: TPascalAnalyzerDefaults;
+    fStdOutLogPath: string;
+    fStdErrLogPath: string;
+    fRunLogPath: string;
+    fStageRoot: string;
+    fReportRoot: string;
+    fDestination: string;
+    function TryPrepare(out aError: string): Boolean;
+    function TryRun(out aExitCode: Cardinal; out aError: string): Boolean;
+    function TryPublish(out aError: string): Boolean;
+    function Execute(out aExitCode: Cardinal; out aError: string): Boolean;
+  end;
+
+function TPalOutputRun.TryPrepare(out aError: string): Boolean;
+const
+  cPalPathBudget = 240;
+  // Reserve more than the longest shipped PAL XML report filename (including its separator).
+  cPalReportNameReserve = 64;
 var
+  lReportName: string;
+  lRunId: TGUID;
+  lPathLength: Integer;
   lExe: string;
   lCmdLine: string;
+begin
+  if fUnitPath <> '' then
+    lReportName := TPath.GetFileNameWithoutExtension(fUnitPath)
+  else
+    lReportName := TPath.GetFileNameWithoutExtension(fParams.fProjectDpr);
+  if fPa.fOutput <> '' then
+  begin
+    fDestination := TPath.GetFullPath(fPa.fOutput);
+    fReportRoot := TPath.Combine(fDestination, lReportName);
+    if Length(fReportRoot) + cPalReportNameReserve > cPalPathBudget then
+    begin
+      CreateGUID(lRunId);
+      fStageRoot := CombinePath([TPath.GetTempPath, 'dak-pal', GUIDToString(lRunId)]);
+      fReportRoot := TPath.Combine(fStageRoot, lReportName);
+      lPathLength := Length(fReportRoot) + cPalReportNameReserve;
+      if lPathLength > cPalPathBudget then
+      begin
+        aError := Format('PAL path budget exceeded: %s (%d characters including %d reserved for report filenames; ' +
+          'budget %d). Requested output: %s. Report name: %s. Use a shorter --out or --pa-output path.',
+          [fReportRoot, lPathLength, cPalReportNameReserve, cPalPathBudget, fDestination, lReportName]);
+        fStageRoot := '';
+        Exit(False);
+      end;
+      fPa.fOutput := fStageRoot;
+    end;
+  end;
+  if fUnitPath <> '' then
+    Result := BuildPalCmdUnitCommandLine(fUnitPath, fPa, lExe, lCmdLine, aError)
+  else
+    Result := BuildPalCmdCommandLine(fParams, fPa, lExe, lCmdLine, aError);
+  if not Result then
+    Exit;
+  if fStageRoot <> '' then
+    TDirectory.CreateDirectory(fStageRoot);
+  AppendAnalyzeRunLogIndex(fRunLogPath, GetCurrentDir, lCmdLine, fStdOutLogPath, fStdErrLogPath, fPa.fOutput);
+  if fStageRoot <> '' then
+    AppendLogText(fRunLogPath, 'PAL staging: ' + fStageRoot + '; publish to: ' + fDestination + sLineBreak);
+end;
+
+function TPalOutputRun.TryRun(out aExitCode: Cardinal; out aError: string): Boolean;
+var
   lStdErrHandle: THandle;
   lStdOutHandle: THandle;
-  lLogError: string;
-  lWorkDir: string;
 begin
   Result := False;
-  aError := '';
   aExitCode := 0;
-
-  if not BuildPalCmdCommandLine(aParams, aPa, lExe, lCmdLine, aError) then
-    Exit(False);
-
-  lWorkDir := GetCurrentDir;
-  AppendAnalyzeRunLogIndex(aRunLogPath, lWorkDir, lCmdLine, aStdOutLogPath, aStdErrLogPath, aPa.fOutput);
-
-  if not TryOpenLogHandle(aStdOutLogPath, lStdOutHandle, lLogError) then
-  begin
-    aError := lLogError;
-    Exit(False);
-  end;
+  if not TryOpenLogHandle(fStdOutLogPath, lStdOutHandle, aError) then
+    Exit;
   try
-    if not TryOpenLogHandle(aStdErrLogPath, lStdErrHandle, lLogError) then
-    begin
-      aError := lLogError;
-      Exit(False);
-    end;
+    if not TryOpenLogHandle(fStdErrLogPath, lStdErrHandle, aError) then
+      Exit;
     try
-      Result := TryRunPascalAnalyzerWithHandles(aParams, aPa, lStdOutHandle, lStdErrHandle, aExitCode, aError);
+      if fUnitPath <> '' then
+        Result := TryRunPascalAnalyzerUnit(fUnitPath, fPa, lStdOutHandle, lStdErrHandle, aExitCode, aError)
+      else
+        Result := TryRunPascalAnalyzerWithHandles(fParams, fPa, lStdOutHandle, lStdErrHandle, aExitCode, aError);
     finally
       CloseHandle(lStdErrHandle);
     end;
@@ -654,46 +706,79 @@ begin
   end;
 end;
 
+function TPalOutputRun.TryPublish(out aError: string): Boolean;
+begin
+  Result := True;
+  if fStageRoot = '' then
+    Exit;
+  if not FileExists(TPath.Combine(fReportRoot, 'Status.xml')) then
+  begin
+    aError := 'PAL exited 0 without Status.xml in expected report folder: ' + fReportRoot;
+    Exit(False);
+  end;
+  TDirectory.Copy(fStageRoot, PalArtifactPath(fDestination), False);
+  TDirectory.Delete(fStageRoot, True);
+  fStageRoot := '';
+end;
+
+function TPalOutputRun.Execute(out aExitCode: Cardinal; out aError: string): Boolean;
+begin
+  Result := False;
+  aExitCode := 0;
+  aError := '';
+  try
+    try
+      if not TryPrepare(aError) then
+        Exit;
+      Result := TryRun(aExitCode, aError);
+      if Result and (aExitCode = 0) then
+        Result := TryPublish(aError);
+    except
+      on E: Exception do
+      begin
+        Result := False;
+        aError := 'PAL report staging failed: ' + E.ClassName + ': ' + E.Message;
+      end;
+    end;
+  finally
+    if (fStageRoot <> '') and DirectoryExists(fStageRoot) then
+    begin
+      Result := False;
+      if aError = '' then
+        aError := Format('PAL failed (exit=%d).', [aExitCode]);
+      aError := aError + ' Retained PAL staging directory: ' + fStageRoot;
+    end;
+  end;
+end;
+
+function TryRunPalLogged(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
+  const aStdOutLogPath: string; const aStdErrLogPath: string; const aRunLogPath: string; out aExitCode: Cardinal;
+  out aError: string): Boolean;
+var
+  lRun: TPalOutputRun;
+begin
+  lRun := Default(TPalOutputRun);
+  lRun.fParams := aParams;
+  lRun.fPa := aPa;
+  lRun.fStdOutLogPath := aStdOutLogPath;
+  lRun.fStdErrLogPath := aStdErrLogPath;
+  lRun.fRunLogPath := aRunLogPath;
+  Result := lRun.Execute(aExitCode, aError);
+end;
+
 function TryRunPalUnitLogged(const aUnitPath: string; const aPa: TPascalAnalyzerDefaults;
   const aStdOutLogPath: string; const aStdErrLogPath: string; const aRunLogPath: string; out aExitCode: Cardinal;
   out aError: string): Boolean;
 var
-  lExe: string;
-  lCmdLine: string;
-  lStdErrHandle: THandle;
-  lStdOutHandle: THandle;
-  lLogError: string;
-  lWorkDir: string;
+  lRun: TPalOutputRun;
 begin
-  Result := False;
-  aError := '';
-  aExitCode := 0;
-
-  if not BuildPalCmdUnitCommandLine(aUnitPath, aPa, lExe, lCmdLine, aError) then
-    Exit(False);
-
-  lWorkDir := GetCurrentDir;
-  AppendAnalyzeRunLogIndex(aRunLogPath, lWorkDir, lCmdLine, aStdOutLogPath, aStdErrLogPath, aPa.fOutput);
-
-  if not TryOpenLogHandle(aStdOutLogPath, lStdOutHandle, lLogError) then
-  begin
-    aError := lLogError;
-    Exit(False);
-  end;
-  try
-    if not TryOpenLogHandle(aStdErrLogPath, lStdErrHandle, lLogError) then
-    begin
-      aError := lLogError;
-      Exit(False);
-    end;
-    try
-      Result := TryRunPascalAnalyzerUnit(aUnitPath, aPa, lStdOutHandle, lStdErrHandle, aExitCode, aError);
-    finally
-      CloseHandle(lStdErrHandle);
-    end;
-  finally
-    CloseHandle(lStdOutHandle);
-  end;
+  lRun := Default(TPalOutputRun);
+  lRun.fUnitPath := aUnitPath;
+  lRun.fPa := aPa;
+  lRun.fStdOutLogPath := aStdOutLogPath;
+  lRun.fStdErrLogPath := aStdErrLogPath;
+  lRun.fRunLogPath := aRunLogPath;
+  Result := lRun.Execute(aExitCode, aError);
 end;
 
 procedure CaptureFixInsightSummary(const aTxtPath: string; out aCounts: TFixInsightCounts);
