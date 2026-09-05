@@ -24,6 +24,40 @@ def load_doctor():
 
 
 class DoctorPalTests(unittest.TestCase):
+    def test_legacy_pal_arguments_report_source_and_all_conflicts(self):
+        module = load_doctor()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            target = root / 'Sample.dproj'
+            target.write_text('<Project/>', encoding='ascii')
+            ini = root / 'dak.ini'
+            ini.write_text('[PascalAnalyzer]\nArgs=/F=X /Q /A+ /FA /T=32 /X="C:\\Vendor<+>" /XF=Vendor.pas\n', encoding='ascii')
+            old_args = os.environ.pop('PA_ARGS', None)
+            try:
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    result = module.main(['doctor.py', str(target), '--workspace-root', 'project'])
+                self.assertNotEqual(0, result, output.getvalue())
+                for expected in (str(ini), '/F=X', '/Q', '/A+', '/FA', '/T=32', '/X=', '/XF=',
+                                 'ExcludeSearchFolders', 'ExcludeFiles'):
+                    self.assertIn(expected, output.getvalue())
+                os.environ['PA_ARGS'] = '/NAME=Other /R=C:\\Reports'
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    result = module.main(['doctor.py', str(target), '--workspace-root', 'project'])
+                self.assertNotEqual(0, result)
+                self.assertIn('PA_ARGS', output.getvalue())
+                self.assertIn('/NAME=Other', output.getvalue())
+                self.assertIn('/R=C:\\Reports', output.getvalue())
+                os.environ['PA_ARGS'] = '/CD12W64'
+                with redirect_stdout(io.StringIO()):
+                    self.assertEqual(0, module.main(['doctor.py', str(target), '--workspace-root', 'project']))
+            finally:
+                if old_args is None:
+                    os.environ.pop('PA_ARGS', None)
+                else:
+                    os.environ['PA_ARGS'] = old_args
+
     def test_explicit_workspace_dak_discovery_does_not_climb_outer_git(self):
         module = load_doctor()
         repo_dak_exe = SKILL_DIR.parents[1] / "bin" / "DelphiAIKit.exe"

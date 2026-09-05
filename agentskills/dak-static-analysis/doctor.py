@@ -13,6 +13,7 @@ import os
 import platform
 import re
 import shutil
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -365,6 +366,38 @@ def _fmt_kv(k: str, v: str) -> str:
     return f"{k}={v if v else '<empty>'}"
 
 
+def _pal_args_error(paths: list[Path]) -> str:
+    value, source = '', ''
+    for path in paths:
+        current = configparser.ConfigParser(interpolation=None)
+        current.read([str(path)], encoding='utf-8-sig')
+        candidate = current.get('PascalAnalyzer', 'Args', fallback='').strip()
+        if candidate:
+            value, source = candidate, f'[PascalAnalyzer] Args in {path}'
+    environment_args = os.environ.get('PA_ARGS', '').strip()
+    if environment_args:
+        value, source = environment_args, 'PA_ARGS environment variable'
+    # Preserve Windows backslashes while grouping quoted switch values.
+    lexer = shlex.shlex(value, posix=True)
+    lexer.whitespace_split = True
+    lexer.commenters = ''
+    lexer.escape = ''
+    lexer.quotes = '"'
+    try:
+        arguments = list(lexer)
+    except ValueError as error:
+        return f'Invalid PAL arguments. Source: {source}: {error}'
+    owned = {'/A+', '/A-', '/FA', '/F+', '/FR', '/FM', '/F-', '/Q'}
+    prefixes = ('/F=', '/R=', '/NAME=', '/T=', '/X=', '/XF=')
+    conflicts = [arg for arg in arguments if arg.upper() in owned or arg.upper().startswith(prefixes)]
+    if not conflicts:
+        return ''
+    return (f"PALCMD argument conflicts with DAK-owned automation: {', '.join(conflicts)}. "
+            f'Source: {source}. Remove owned switches from Args; DAK supplies report, parse-scope, '
+            'quiet, name, output and thread options. Migrate /X to [PascalAnalyzer] ExcludeSearchFolders '
+            '(--pa-exclude-search-folders) and /XF to ExcludeFiles (--pa-exclude-files).')
+
+
 def _analysis_policy_source_paths(paths: list[Path]) -> list[Path]:
     result: list[Path] = []
     for path in paths:
@@ -481,6 +514,11 @@ def main(argv: list[str]) -> int:
         return 2
     dak_dir = dak_exe.parent
     existing_ini_paths = [path for path in dak_ini_paths if path.exists()]
+
+    pal_args_error = _pal_args_error(existing_ini_paths)
+    if pal_args_error:
+        print(f'ERROR: {pal_args_error}')
+        return 2
 
     print()
     print("## Resolver")
