@@ -6560,8 +6560,11 @@ begin
     lApplyRoot.Free;
   end;
   lSafeUnitText := TFile.ReadAllText(lSafeUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('lWithE2ECustomerPtr := @aCustomerPtr^;', lSafeUnitText) > 0,
+    'Expected the receiver to be captured at statement entry.');
   Assert.IsTrue(Pos('with aCustomerPtr^ do', lSafeUnitText) = 0, 'Expected safe with to be removed.');
-  Assert.IsTrue(Pos('aCustomerPtr^.Name := ''e2e'';', lSafeUnitText) > 0, 'Expected safe receiver qualification.');
+  Assert.IsTrue(Pos('lWithE2ECustomerPtr^.Name := ''e2e'';', lSafeUnitText) > 0,
+    'Expected safe receiver qualification.');
   lSkippedUnitTextAfter := TFile.ReadAllText(lSkippedUnitPath, TEncoding.UTF8);
   Assert.AreEqual(lSkippedUnitTextBefore, lSkippedUnitTextAfter, 'Skipped unsafe unit must remain unchanged.');
   Assert.AreEqual(lExternalUnitTextBefore, TFile.ReadAllText(lExternalUnitPath, TEncoding.UTF8),
@@ -6716,34 +6719,37 @@ begin
   end;
 
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr := @aRecordPtr^;', lUnitText) > 0,
+    'Expected the receiver to be captured at statement entry.');
   Assert.IsTrue(Pos('with aRecordPtr^ do', lUnitText) = 0, 'Expected all with statements to be removed.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''block'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''block'';', lUnitText) > 0,
     'Expected begin-end body to be qualified.');
-  Assert.IsTrue(Pos('aRecordPtr^.Count := aRecordPtr^.Count + 1;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Count := lWithRewriteShapeRecordPtr^.Count + 1;', lUnitText) > 0,
     'Expected repeated begin-end identifier to be qualified.');
   Assert.IsTrue(Pos('if aRecordPtr <> nil then' + sLineBreak + '    begin', lUnitText) > 0,
     'Expected controlled with to be wrapped in a begin-end block.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''controlled'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''controlled'';', lUnitText) > 0,
     'Expected controlled with body to be qualified.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''controlled-block'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''controlled-block'';', lUnitText) > 0,
     'Expected controlled begin-end body to be qualified.');
-  Assert.IsTrue(Pos('aRecordPtr^.Count := aRecordPtr^.Count + 3;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Count := lWithRewriteShapeRecordPtr^.Count + 3;', lUnitText) > 0,
     'Expected controlled begin-end repeated identifier to be qualified.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''controlled-if'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''controlled-if'';', lUnitText) > 0,
     'Expected controlled if-body with to be qualified.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''controlled-inner-if''', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''controlled-inner-if''', lUnitText) > 0,
     'Expected controlled with body if-branch to be qualified.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''controlled-inner-else'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''controlled-inner-else'';', lUnitText) > 0,
     'Expected controlled with body else-branch to stay attached to the inner if.');
-  Assert.IsTrue(Pos('if aRecordPtr^.Count > 0 then' + sLineBreak +
-    '        aRecordPtr^.Name := ''controlled-inner-if''' + sLineBreak +
-    '      else' + sLineBreak + '        aRecordPtr^.Name := ''controlled-inner-else'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('if lWithRewriteShapeRecordPtr^.Count > 0 then' + sLineBreak +
+    '        lWithRewriteShapeRecordPtr^.Name := ''controlled-inner-if''' + sLineBreak +
+    '      else' + sLineBreak +
+    '        lWithRewriteShapeRecordPtr^.Name := ''controlled-inner-else'';', lUnitText) > 0,
     'Expected controlled with body else-branch not to be lifted out of the inner if.');
-  Assert.IsTrue(Pos('aRecordPtr^.Count := aRecordPtr^.Count + i;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Count := lWithRewriteShapeRecordPtr^.Count + i;', lUnitText) > 0,
     'Expected controlled for-body with to be qualified.');
-  Assert.IsTrue(Pos('if (aRecordPtr^.Count and $7FFF) > 0 then', lUnitText) > 0,
+  Assert.IsTrue(Pos('if (lWithRewriteShapeRecordPtr^.Count and $7FFF) > 0 then', lUnitText) > 0,
     'Expected hex literals not to block identifier resolution.');
-  Assert.IsTrue(Pos('aRecordPtr^.Count := aRecordPtr^.Count + $FFFF;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Count := lWithRewriteShapeRecordPtr^.Count + $FFFF;', lUnitText) > 0,
     'Expected hex literal assignment to be qualified.');
   Assert.IsTrue(Pos('lWithRewriteShapeImplementationItemPtr^.LocalName := ''implementation-array'';', lUnitText) > 0,
     'Expected implementation-section record array selector body to be qualified.');
@@ -6752,7 +6758,7 @@ begin
     'Expected implementation-section record array repeated identifiers to be qualified.');
   Assert.IsTrue(Pos('lWithRewriteShapeImplementationItemPtr := @lItems[LocalIndex];', lUnitText) > 0,
     'Expected implementation-section record array selector to survive nested local routine declarations.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''after-label'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''after-label'';', lUnitText) > 0,
     'Expected with after plain label to be treated as standalone.');
   Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr := @aRecord;', lUnitText) > 0,
     'Expected record value selector to be captured before the body.');
@@ -6779,7 +6785,7 @@ begin
     'Expected labeled record value body to be qualified.');
   Assert.IsTrue(Pos('lFlag: Boolean;' + sLineBreak + '  lWithRewriteShapeRecordPtr: ^TRewriteShapeRecord;' +
     sLineBreak + 'label', lUnitText) > 0, 'Expected record temp declaration before label section.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''single'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''single'';', lUnitText) > 0,
     'Expected single-statement body to be qualified.');
   Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr := @aRecord;', lUnitText) > 0,
     'Expected controlled block value selector before else to initialize a temp.');
@@ -6791,23 +6797,23 @@ begin
     'Expected wrapper end and original else to remain separate tokens.');
   Assert.IsTrue(Pos('with aLeftPtr^ do', lUnitText) = 0,
     'Expected single-statement range before else to be wrapped and rewritten safely.');
-  Assert.IsTrue(Pos('aLeftPtr^.Name := ''left''', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''left''', lUnitText) > 0,
     'Expected left branch body before else to be qualified.');
   Assert.IsTrue(Pos('with aRightPtr^ do', lUnitText) = 0,
     'Expected safe descendant of unsafe single-statement range before else to be rewritten independently.');
-  Assert.IsTrue(Pos('aRightPtr^.Name := ''right'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr1^.Name := ''right'';', lUnitText) > 0,
     'Expected safe descendant body before else to be qualified.');
-  Assert.IsTrue(Pos('aVariantPtr^.Mode := 1;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeVariantPtr^.Mode := 1;', lUnitText) > 0,
     'Expected variant tag field to be qualified.');
-  Assert.IsTrue(Pos('aVariantPtr^.Handle := aVariantPtr^.Prefix + 1;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeVariantPtr^.Handle := lWithRewriteShapeVariantPtr^.Prefix + 1;', lUnitText) > 0,
     'Expected variant record fields to be qualified.');
-  Assert.IsTrue(Pos('aVariantPtr^.Ptr := nil;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeVariantPtr^.Ptr := nil;', lUnitText) > 0,
     'Expected second variant record field to be qualified.');
-  Assert.IsTrue(Pos('if aVariantPtr^.Mode = cRewriteShapeVariantPointer then', lUnitText) > 0,
+  Assert.IsTrue(Pos('if lWithRewriteShapeVariantPtr^.Mode = cRewriteShapeVariantPointer then', lUnitText) > 0,
     'Expected variant arm label constants to remain unqualified.');
-  Assert.IsTrue(Pos('aVariantPtr^.Offset := aVariantPtr^.Size;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeVariantPtr^.Offset := lWithRewriteShapeVariantPtr^.Size;', lUnitText) > 0,
     'Expected compound variant record fields to be qualified.');
-  Assert.IsTrue(Pos('aVariantPtr^.cRewriteShapeVariantPointer', lUnitText) = 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeVariantPtr^.cRewriteShapeVariantPointer', lUnitText) = 0,
     'Expected variant labels not to be treated as fields.');
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-rewrite-shapes-build.log', lBuildExitCode);
@@ -6838,17 +6844,19 @@ begin
   end;
 
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr := @aLeftPtr^;', lUnitText) > 0,
+    'Expected the receiver to be captured at statement entry.');
   Assert.IsTrue(Pos('with aLeftPtr^ do', lUnitText) = 0,
     'Expected controlled left branch with before else to be removed.');
   Assert.IsTrue(Pos('with aRightPtr^ do', lUnitText) = 0,
     'Expected controlled right branch with before else to be removed.');
   Assert.IsTrue(Pos('if aLeftPtr <> nil then' + sLineBreak + '    begin', lUnitText) > 0,
     'Expected controlled then-branch replacement to preserve the if/else shape.');
-  Assert.IsTrue(Pos('aLeftPtr^.Name := ''controlled-left-before-else''', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr^.Name := ''controlled-left-before-else''', lUnitText) > 0,
     'Expected controlled left branch body before else to be qualified.');
   Assert.IsTrue(Pos('end' + sLineBreak + '  else', lUnitText) > 0,
     'Expected else to remain outside the inserted begin-end block.');
-  Assert.IsTrue(Pos('aRightPtr^.Name := ''controlled-right-before-else'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithRewriteShapeRecordPtr1^.Name := ''controlled-right-before-else'';', lUnitText) > 0,
     'Expected controlled right branch body to be qualified.');
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-controlled-single-before-else-build.log',
@@ -7279,7 +7287,7 @@ begin
     Assert.AreEqual(Cardinal(0), lExitCode, 'Expected temp-policy rewrite apply to succeed.');
     Assert.AreEqual('applied', lRoot.Values['status'].Value, 'Expected applied temp-policy rewrite status.');
     Assert.AreEqual(3, (lRoot.Values['plannedEdits'] as TJSONArray).Count,
-      'Expected direct pointer, record pointer temp, and object temp rewrites.');
+      'Expected two record captures and one object capture.');
     lSkipped := lRoot.Values['skipped'] as TJSONArray;
     lPropertySkipCount := 0;
     lCallSkipCount := 0;
@@ -7302,15 +7310,19 @@ begin
   end;
 
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('aRecordPtr^.Count := 0;', lUnitText) > 0,
+    'Expected the explicit assignment outside the with statement to remain unchanged.');
+  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr := @aRecordPtr^;', lUnitText) > 0,
+    'Expected the receiver to be captured at statement entry.');
   Assert.IsTrue(Pos('with aRecordPtr^ do', lUnitText) = 0,
     'Expected pointer-qualified record with to be removed.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''direct'';', lUnitText) > 0,
-    'Expected pointer-qualified selector to stay directly qualified.');
-  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr := @lRecord;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr^.Name := ''direct'';', lUnitText) > 0,
+    'Expected pointer receiver members to use the captured address.');
+  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr1 := @lRecord;', lUnitText) > 0,
     'Expected addressable record selector to be captured by pointer temp.');
-  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr^.Name := ''record'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr1^.Name := ''record'';', lUnitText) > 0,
     'Expected record member write to use pointer temp.');
-  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr^.Count := lWithTempRewriteRecordPtr^.Count + 1;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithTempRewriteRecordPtr1^.Count := lWithTempRewriteRecordPtr1^.Count + 1;', lUnitText) > 0,
     'Expected repeated record member use to preserve aliasing through pointer temp.');
   Assert.IsTrue(Pos('lWithTempRewriteObject1 := lObject;', lUnitText) > 0,
     'Expected class receiver temp to avoid the existing local name.');
@@ -7801,8 +7813,11 @@ begin
   end;
 
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('lWithApplyRecordPtr := @aRecordPtr^;', lUnitText) > 0,
+    'Expected the receiver to be captured at statement entry.');
   Assert.IsTrue(Pos('with aRecordPtr^ do', lUnitText) = 0, 'Expected with statement to be removed.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''applied'';', lUnitText) > 0, 'Expected direct pointer qualification.');
+  Assert.IsTrue(Pos('lWithApplyRecordPtr^.Name := ''applied'';', lUnitText) > 0,
+    'Expected captured receiver qualification.');
 
   lProjectDir := TPath.GetDirectoryName(lDprojPath);
   lManifestPath := FindSingleManifest(lProjectDir, 'RemoveWithApplyFixture');
@@ -7957,9 +7972,11 @@ begin
       'Expected edited ANSI file not to be rewritten as UTF-8.');
 
   lText := TFile.ReadAllText(lUnitPath, TEncoding.Default);
+  Assert.IsTrue(Pos('lWithApplyRecordPtr := @aRecordPtr^;', lText) > 0,
+    'Expected the receiver to be captured at statement entry.');
   Assert.IsTrue(Pos('with aRecordPtr^ do', lText) = 0, 'Expected with statement to be removed from ANSI file.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''applied'';', lText) > 0,
-    'Expected ANSI file to contain direct pointer qualification.');
+  Assert.IsTrue(Pos('lWithApplyRecordPtr^.Name := ''applied'';', lText) > 0,
+    'Expected ANSI file to contain captured receiver qualification.');
   Assert.IsTrue(Pos('// ansi marker: ' + lMarker, lText) > 0, 'Expected ANSI marker comment to remain.');
 
   lProjectDir := TPath.GetDirectoryName(lDprojPath);
@@ -8019,9 +8036,11 @@ begin
 
   lAppliedText := TEncoding.UTF8.GetString(TFile.ReadAllBytes(lUnitPath));
   Assert.AreEqual(0, Pos(#13, lAppliedText), 'Expected edited LF file not to gain CR bytes.');
+  Assert.IsTrue(Pos('lWithApplyRecordPtr := @aRecordPtr^;', lAppliedText) > 0,
+    'Expected the receiver to be captured at statement entry.');
   Assert.IsTrue(Pos('with aRecordPtr^ do', lAppliedText) = 0, 'Expected with statement to be removed.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''applied'';', lAppliedText) > 0,
-    'Expected LF file to contain direct pointer qualification.');
+  Assert.IsTrue(Pos('lWithApplyRecordPtr^.Name := ''applied'';', lAppliedText) > 0,
+    'Expected LF file to contain captured receiver qualification.');
 
   lProjectDir := TPath.GetDirectoryName(lDprojPath);
   lManifestPath := FindSingleManifest(lProjectDir, 'RemoveWithApplyFixture');
@@ -8319,9 +8338,11 @@ begin
     'Expected the second same-project apply to wait, revalidate, and fail before mutation.');
 
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('lWithApplyRecordPtr := @aRecordPtr^;', lUnitText) > 0,
+    'Expected the receiver to be captured at statement entry.');
   Assert.IsTrue(Pos('with aRecordPtr^ do', lUnitText) = 0,
     'Expected final source to contain one successful with removal.');
-  Assert.IsTrue(Pos('aRecordPtr^.Name := ''applied'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithApplyRecordPtr^.Name := ''applied'';', lUnitText) > 0,
     'Expected final source to contain the applied qualification.');
 end;
 
@@ -9485,24 +9506,28 @@ begin
 
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
   Assert.AreNotEqual(lBeforeText, lUnitText, 'Apply must edit safe scoped declaration bodies.');
+  Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr := @aItemPtr^;', lUnitText) > 0,
+    'Expected the receiver to be captured at statement entry.');
   Assert.IsTrue(Pos('var Count := 1;', lUnitText) > 0, 'Expected inline local variable declaration to stay local.');
-  Assert.IsTrue(Pos('aItemPtr^.Count := aItemPtr^.Count + 1;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr^.Count := lWithScopedDeclarationItemPtr^.Count + 1;', lUnitText) > 0,
     'Expected member uses before a same-name inline local declaration to be qualified.');
-  Assert.IsTrue(Pos('aItemPtr^.Name := IntToStr(Count);', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr^.Name := IntToStr(Count);', lUnitText) > 0,
     'Expected member assignment to be qualified while local Count remains unqualified.');
   Assert.IsTrue(Pos('var Name := ''local'';', lUnitText) > 0,
     'Expected same-name inline local after a member use to stay local.');
   Assert.IsTrue(Pos('Name := Name + ''x'';', lUnitText) > 0,
     'Expected same-name inline local use after a nested block to stay local.');
-  Assert.IsTrue(Pos('aItemPtr^.Name := aItemPtr^.Name + ''x'';', lUnitText) = 0,
+  Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr1^.Name := ' +
+    'lWithScopedDeclarationItemPtr1^.Name + ''x'';', lUnitText) = 0,
     'Expected nested blocks after a local declaration not to end the local range too early.');
-  Assert.IsTrue(Pos('for var i := 0 to aItemPtr^.Count do', lUnitText) > 0,
+  Assert.IsTrue(Pos('for var i := 0 to lWithScopedDeclarationItemPtr2^.Count do', lUnitText) > 0,
     'Expected inline for variable to stay local while member Count is qualified.');
-  Assert.IsTrue(Pos('aItemPtr^.Name := IntToStr(i);', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr2^.Name := IntToStr(i);', lUnitText) > 0,
     'Expected for body member assignment to be qualified while local i remains unqualified.');
-  Assert.IsTrue(Pos('aItemPtr^.Count := aItemPtr^.Count + 1;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr3^.Count := ' +
+    'lWithScopedDeclarationItemPtr3^.Count + 1;', lUnitText) > 0,
     'Expected try body member references to be qualified.');
-  Assert.IsTrue(Pos('aItemPtr^.Name := E.Message;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr3^.Name := E.Message;', lUnitText) > 0,
     'Expected exception body member assignment to be qualified while exception variable remains local.');
 
   lBuildOutput := RunBuildFixture(lDprojPath, 'remove-with-scoped-declarations-build.log', lBuildExitCode);
@@ -9630,25 +9655,27 @@ begin
   end;
 
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
+  Assert.IsTrue(Pos('lWithExpressionRoleItemPtr := @aItemPtr^;', lUnitText) > 0,
+    'Expected the receiver to be captured at statement entry.');
   Assert.IsTrue(Pos('goto LocalLabel;', lUnitText) > 0,
     'Expected goto target to remain unqualified.');
   Assert.IsTrue(Pos('LocalLabel:', lUnitText) > 0,
     'Expected label declaration to remain unqualified.');
-  Assert.IsTrue(Pos('aItemPtr^.Name := ''label'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithExpressionRoleItemPtr^.Name := ''label'';', lUnitText) > 0,
     'Expected labeled with body to be qualified.');
-  Assert.IsTrue(Pos('0:' + sLineBreak + '        aItemPtr^.Name := ''case'';', lUnitText) > 0,
+  Assert.IsTrue(Pos('0:' + sLineBreak + '        lWithExpressionRoleItemPtr1^.Name := ''case'';', lUnitText) > 0,
     'Expected case label to remain unqualified while the case body is qualified.');
-  Assert.IsTrue(Pos('aItemPtr^.Name := TExpressionRoleScope.DefaultName;', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithExpressionRoleItemPtr2^.Name := TExpressionRoleScope.DefaultName;', lUnitText) > 0,
     'Expected type-qualified call to stay unchanged while the receiver member is qualified.');
-  Assert.IsTrue(Pos('ExpressionRoleSupportUnit.TouchName(aItemPtr^.Name);', lUnitText) > 0,
+  Assert.IsTrue(Pos('ExpressionRoleSupportUnit.TouchName(lWithExpressionRoleItemPtr4^.Name);', lUnitText) > 0,
     'Expected the safe member argument to be qualified.');
   Assert.IsTrue(Pos('var Name := ''local'';', lUnitText) > 0,
     'Expected local inline variable declaration to remain unqualified.');
-  Assert.IsTrue(Pos('aItemPtr^.Count := Length(Name);', lUnitText) > 0,
+  Assert.IsTrue(Pos('lWithExpressionRoleItemPtr3^.Count := Length(Name);', lUnitText) > 0,
     'Expected declaration-like body member assignment to be qualified while local Name remains unqualified.');
-  Assert.IsTrue(Pos('aItemPtr^.ExpressionRoleSupportUnit', lUnitText) = 0,
+  Assert.IsTrue(Pos('lWithExpressionRoleItemPtr4^.ExpressionRoleSupportUnit', lUnitText) = 0,
     'Expected the source-unit qualifier to remain unchanged.');
-  Assert.IsTrue(Pos('aItemPtr^.TExpressionRoleScope', lUnitText) = 0,
+  Assert.IsTrue(Pos('lWithExpressionRoleItemPtr2^.TExpressionRoleScope', lUnitText) = 0,
     'Expected the type qualifier to remain unchanged.');
 end;
 

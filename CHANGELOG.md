@@ -13,7 +13,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added collision-safe canonical PAL rule identities, version-verified native aliases, PAL-specific actionable-report filtering, per-value filter provenance, and raw/ignored rule evidence across summary, baseline, delta, and SARIF artifacts.
 
 ### Changed
-- Semantic refactoring reuses coordinate indexes, builds project snapshot lookups once on a cold cache, and indexes binding candidates per operation. Current maxTdb Win64 Release medians are 14.594 seconds for cold remove-with, 8.960 seconds warm, and 6.620 seconds for cold rename; see `docs/remove-with-performance.md`.
+- Semantic refactoring reuses coordinate indexes, builds project snapshot lookups once on a cold cache, and indexes binding candidates per operation. The September 7 maxTdb Win64 Release baseline measured medians of 14.594 seconds for cold remove-with, 8.960 seconds warm, and 6.620 seconds for cold rename; see `docs/remove-with-performance.md`.
 - PAL analysis now stages reports under a unique short path when the requested output would exceed PAL's Windows path budget, then publishes the retained reports to the requested directory. Failed staging and publication identify retained evidence.
 - Legacy PAL argument errors now identify the effective INI or CLI/environment source, list all conflicting DAK-owned switches, and explain how to migrate exclusions. The static-analysis doctor checks the same configuration.
 - Static-analysis ownership, source identity, change triage, and provenance now use the resolved workspace and report truthful Git, SVN, or unmanaged capabilities instead of requiring Git.
@@ -23,6 +23,9 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- Semantic indexing now extracts main-program references with exact coordinates and no routine owner, preserving partial-cache resolution and avoiding coordinate-repair work.
+- Semantic variable types now exclude initializers while preserving type expressions, source coordinates and type-reference boundaries; older cached type facts are invalidated.
+- Remove-with now captures pointer and dependent receivers at statement entry, preserves nested receiver types and evaluation order, and retains literal/comment text in selectors. Unsupported repeated selectors remain unchanged.
 - Typed-constant mutability now follows active compiler directives in source order, including inline switches and includes; directive examples in comments and strings no longer change semantic results.
 - Shared symbol queries now retain read-only typed constants across cold and warm caches while mutable-global reports continue to exclude them.
 - Semantic indexing and rename now recognize declarations on the same line as `const` or `var`, preserve identifier positions, and invalidate older parser cache entries.
