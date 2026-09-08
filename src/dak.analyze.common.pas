@@ -50,6 +50,7 @@ function TryPrepareProjectParams(const aOptions: TAppOptions; aDiagnostics: TDia
   out aReportFilter: TReportFilterDefaults; out aPascalAnalyzer: TPascalAnalyzerDefaults;
   out aSettings: TDakSettings; out aProjectName: string; out aProjectDproj: string; out aError: string;
   out aErrorCode: Integer): Boolean; overload;
+procedure CleanAnalyzeOutput(const aOutRoot: string; const aProjectAnalysis: Boolean);
 function BuildOutputRoot(const aBaseOut: string; const aProjectPath: string; const aProjectName: string): string;
 function BuildUnitOutputRoot(const aBaseOut: string; const aUnitPath: string; const aUnitName: string): string;
 function TryRunFixInsightLogged(const aParams: TFixInsightParams; const aStdOutLogPath: string;
@@ -535,6 +536,66 @@ begin
   finally
     lRsVarsEnvVars.Free;
     lEnvVars.Free;
+  end;
+end;
+
+procedure CheckAnalyzeCleanupPath(const aPath: string; const aRecurse: Boolean);
+var
+  lAttributes: DWORD;
+  lChild: string;
+  lError: DWORD;
+begin
+  lAttributes := GetFileAttributes(PChar(aPath));
+  if lAttributes = INVALID_FILE_ATTRIBUTES then
+  begin
+    lError := GetLastError;
+    if (lError = ERROR_FILE_NOT_FOUND) or (lError = ERROR_PATH_NOT_FOUND) then
+      Exit;
+    RaiseLastOSError(lError);
+  end;
+  if (lAttributes and FILE_ATTRIBUTE_REPARSE_POINT) <> 0 then
+    raise EInOutError.Create('Refusing analyzer cleanup through a reparse point: ' + aPath);
+  if aRecurse and ((lAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0) then
+    for lChild in TDirectory.GetFileSystemEntries(aPath) do
+      CheckAnalyzeCleanupPath(lChild, True);
+end;
+
+procedure CleanAnalyzeOutput(const aOutRoot: string; const aProjectAnalysis: Boolean);
+const
+  cDirectories: array[0..1] of string = ('pascal-analyzer', 'fixinsight');
+  cReports: array[0..13] of string = ('run.log', 'summary.md', 'summary.json',
+    'postprocessor-error.txt', 'static-analysis.sarif', 'static-analysis.full.sarif',
+    'external-summary.md', 'metrics.md', 'delta.json', 'delta.md', 'triage.md',
+    'triage-changed.md', 'triage-snippets.md', 'trend.md');
+var
+  i: Integer;
+  lPath: string;
+  lReport: string;
+  lRoot: string;
+begin
+  lRoot := IncludeTrailingPathDelimiter(TPath.GetFullPath(aOutRoot));
+  CheckAnalyzeCleanupPath(lRoot, False);
+  for i := 0 to Ord(aProjectAnalysis) do
+  begin
+    lPath := TPath.GetFullPath(TPath.Combine(lRoot, cDirectories[i]));
+    if not SameFileName(IncludeTrailingPathDelimiter(ExtractFileDir(lPath)), lRoot) then
+      raise EInOutError.Create('Analyzer cleanup target is outside its output directory: ' + lPath);
+    CheckAnalyzeCleanupPath(lPath, True);
+  end;
+  for lReport in cReports do
+    CheckAnalyzeCleanupPath(TPath.Combine(lRoot, lReport), False);
+
+  for i := 0 to Ord(aProjectAnalysis) do
+  begin
+    lPath := TPath.Combine(lRoot, cDirectories[i]);
+    if TDirectory.Exists(lPath) then
+      TDirectory.Delete(lPath, True);
+  end;
+  for lReport in cReports do
+  begin
+    lPath := TPath.Combine(lRoot, lReport);
+    if TFile.Exists(lPath) then
+      TFile.Delete(lPath);
   end;
 end;
 

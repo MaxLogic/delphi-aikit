@@ -23,6 +23,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- Analyzer cleanup preserves shared project caches, retained evidence, baselines and history, and rejects linked output trees before deleting generated reports.
 - Semantic indexing now extracts main-program references with exact coordinates and no routine owner, preserving partial-cache resolution and avoiding coordinate-repair work.
 - Semantic variable types now exclude initializers while preserving type expressions, source coordinates and type-reference boundaries; older cached type facts are invalidated.
 - Remove-with now captures pointer and dependent receivers at statement entry, preserves nested receiver types and evaluation order, and retains literal/comment text in selectors. Unsupported repeated selectors remain unchanged.

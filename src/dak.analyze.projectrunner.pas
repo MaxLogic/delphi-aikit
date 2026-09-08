@@ -130,8 +130,8 @@ end;
 procedure TAnalyzeProjectRunner.PrepareOutputTree;
 begin
   fOutRoot := BuildOutputRoot(fOptions.fAnalyzeOutPath, fProjectDproj, fProjectName);
-  if fOptions.fAnalyzeClean and DirectoryExists(fOutRoot) then
-    TDirectory.Delete(fOutRoot, True);
+  if fOptions.fAnalyzeClean then
+    CleanAnalyzeOutput(fOutRoot, True);
   TDirectory.CreateDirectory(fOutRoot);
 
   fFixDir := TPath.Combine(fOutRoot, 'fixinsight');

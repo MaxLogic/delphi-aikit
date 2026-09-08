@@ -170,8 +170,8 @@ end;
 procedure TAnalyzeUnitRunner.PrepareOutputTree;
 begin
   fOutRoot := BuildUnitOutputRoot(fOptions.fAnalyzeOutPath, fUnitPath, fUnitName);
-  if fOptions.fAnalyzeClean and DirectoryExists(fOutRoot) then
-    TDirectory.Delete(fOutRoot, True);
+  if fOptions.fAnalyzeClean then
+    CleanAnalyzeOutput(fOutRoot, False);
   TDirectory.CreateDirectory(fOutRoot);
 
   fPaDir := TPath.Combine(fOutRoot, 'pascal-analyzer');

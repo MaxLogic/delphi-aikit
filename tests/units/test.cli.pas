@@ -84,6 +84,12 @@ type
     [Test]
     procedure AnalyzeProjectSummarySkipsStaleTxtWhenTxtReportWasNotRun;
     [Test]
+    [TestCase('Project', 'project')]
+    [TestCase('Unit', 'unit')]
+    procedure AnalyzeCleanPreservesSharedOutputState(const aMode: string);
+    [Test]
+    procedure AnalyzeCleanRejectsLinkedOutputBeforeDeleting;
+    [Test]
     procedure AnalyzeProjectDefaultOutRootUsesSiblingDakFolder;
     [Test]
     procedure AnalyzeProjectDefaultOutRootUsesSiblingDprojFolderWhenMainSourceLivesElsewhere;
@@ -742,6 +748,114 @@ begin
     'Expected summary to ignore stale TXT findings when TXT report was not run. Summary: ' + lSummaryPath);
   Assert.IsFalse(Pos('- Top codes:', lSummaryText) > 0,
     'Expected summary to skip top code output when TXT report was not run. Summary: ' + lSummaryPath);
+end;
+
+procedure TCliTests.AnalyzeCleanPreservesSharedOutputState(const aMode: string);
+const
+  cPreservedPaths: array[0..4] of string = ('goal-current\evidence.bin',
+    'symbol-map\cache.bin', 'baseline.json', 'history.jsonl', 'keep.bin');
+  cBytes: array[0..3] of Byte = (0, 255, 13, 10);
+var
+  lArgs: string;
+  lBytes: TBytes;
+  lExitCode: Cardinal;
+  lOutRoot: string;
+  lPath: string;
+  lRelativeName: string;
+  lRoot: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'analyze-clean-shared-' + aMode);
+  TDirectory.CreateDirectory(lRoot);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'SharedState.dpr'),
+    'program SharedState;' + sLineBreak + 'begin' + sLineBreak + 'end.');
+  TFile.WriteAllText(TPath.Combine(lRoot, 'SharedState.dproj'),
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' +
+    '<PropertyGroup><MainSource>SharedState.dpr</MainSource></PropertyGroup></Project>');
+  TFile.WriteAllText(TPath.Combine(lRoot, 'SharedStateUnit.pas'),
+    'unit SharedStateUnit;' + sLineBreak + 'interface' + sLineBreak +
+    'implementation' + sLineBreak + 'end.');
+  if aMode = 'project' then
+  begin
+    lOutRoot := TPath.Combine(lRoot, '.dak\SharedState');
+    lArgs := 'analyze --project ' + QuoteArg(TPath.Combine(lRoot, 'SharedState.dproj')) +
+      ' --fixinsight false';
+  end else begin
+    lOutRoot := TPath.Combine(lRoot, '.dak\_unit\SharedStateUnit');
+    lArgs := 'analyze --unit ' + QuoteArg(TPath.Combine(lRoot, 'SharedStateUnit.pas'));
+  end;
+  for lRelativeName in cPreservedPaths do
+  begin
+    lPath := TPath.Combine(lOutRoot, lRelativeName);
+    TDirectory.CreateDirectory(TPath.GetDirectoryName(lPath));
+    TFile.WriteAllBytes(lPath, TBytes.Create(0, 255, 13, 10));
+  end;
+  TDirectory.CreateDirectory(TPath.Combine(lOutRoot, 'pascal-analyzer'));
+  TDirectory.CreateDirectory(TPath.Combine(lOutRoot, 'fixinsight'));
+  TFile.WriteAllText(TPath.Combine(lOutRoot, 'pascal-analyzer\stale.txt'), 'stale PAL');
+  TFile.WriteAllText(TPath.Combine(lOutRoot, 'fixinsight\stale.txt'), 'stale FI');
+  TFile.WriteAllText(TPath.Combine(lOutRoot, 'run.log'), 'stale run log');
+  lArgs := lArgs + ' --platform Win64 --config Release --delphi 23.0 --pascal-analyzer false';
+  lPath := TPath.Combine(lRoot, 'run-output.log');
+  Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lPath, lExitCode));
+  Assert.AreEqual(Cardinal(0), lExitCode, 'See: ' + lPath);
+
+  for lRelativeName in cPreservedPaths do
+  begin
+    lPath := TPath.Combine(lOutRoot, lRelativeName);
+    Assert.IsTrue(TFile.Exists(lPath), 'Cleanup removed shared state: ' + lPath);
+    lBytes := TFile.ReadAllBytes(lPath);
+    Assert.AreEqual(Length(cBytes), Integer(Length(lBytes)), lPath);
+    Assert.IsTrue(CompareMem(@cBytes[0], @lBytes[0], Length(cBytes)), lPath);
+  end;
+  Assert.IsFalse(TFile.Exists(TPath.Combine(lOutRoot, 'pascal-analyzer\stale.txt')));
+  Assert.AreEqual(aMode = 'unit', TFile.Exists(TPath.Combine(lOutRoot, 'fixinsight\stale.txt')));
+  if aMode = 'unit' then
+    Assert.AreEqual('stale FI', TFile.ReadAllText(TPath.Combine(lOutRoot, 'fixinsight\stale.txt')));
+  Assert.IsTrue(TFile.Exists(TPath.Combine(lOutRoot, 'summary.json')));
+  Assert.IsFalse(ContainsText(TFile.ReadAllText(TPath.Combine(lOutRoot, 'run.log')), 'stale run log'));
+end;
+
+procedure TCliTests.AnalyzeCleanRejectsLinkedOutputBeforeDeleting;
+var
+  lArgs: string;
+  lExitCode: Cardinal;
+  lLinkPath: string;
+  lOutRoot: string;
+  lRoot: string;
+  lTarget: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'analyze-clean-linked-output');
+  lOutRoot := TPath.Combine(lRoot, 'reports');
+  lTarget := TPath.Combine(lRoot, 'external-data');
+  TDirectory.CreateDirectory(lOutRoot);
+  TDirectory.CreateDirectory(lTarget);
+  TFile.WriteAllText(TPath.Combine(lTarget, 'keep.txt'), 'external sentinel');
+  TFile.WriteAllText(TPath.Combine(lOutRoot, 'baseline.json'), 'baseline sentinel');
+  TDirectory.CreateDirectory(TPath.Combine(lOutRoot, 'pascal-analyzer'));
+  TFile.WriteAllText(TPath.Combine(lOutRoot, 'pascal-analyzer\stale.txt'), 'untouched before rejection');
+  lLinkPath := TPath.Combine(lOutRoot, 'fixinsight');
+  lArgs := '/C mklink /J ' + QuoteArg(lLinkPath) + ' ' + QuoteArg(lTarget);
+  Assert.IsTrue(RunCommandProcess(GetEnvironmentVariable('ComSpec'), lArgs, lRoot,
+    TPath.Combine(lRoot, 'junction.log'), lExitCode));
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Could not create isolated directory junction.');
+  try
+    lArgs := 'analyze --project ' + QuoteArg(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dproj')) +
+      ' --platform Win64 --config Release --delphi 23.0 --fixinsight false --pascal-analyzer false' +
+      ' --clean true --out ' + QuoteArg(lOutRoot);
+    Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, TPath.Combine(lRoot, 'analyze.log'), lExitCode));
+    Assert.AreNotEqual(Cardinal(0), lExitCode, 'Linked analyzer output must be rejected before cleanup.');
+    Assert.AreEqual('external sentinel', TFile.ReadAllText(TPath.Combine(lTarget, 'keep.txt')));
+    Assert.AreEqual('baseline sentinel', TFile.ReadAllText(TPath.Combine(lOutRoot, 'baseline.json')));
+    Assert.AreEqual('untouched before rejection',
+      TFile.ReadAllText(TPath.Combine(lOutRoot, 'pascal-analyzer\stale.txt')));
+    Assert.IsTrue(ContainsText(TFile.ReadAllText(TPath.Combine(lRoot, 'analyze.log')), 'reparse'));
+  finally
+    if TDirectory.Exists(lLinkPath) and
+      ((GetFileAttributes(PChar(lLinkPath)) and FILE_ATTRIBUTE_REPARSE_POINT) <> 0) then
+      Assert.IsTrue(Winapi.Windows.RemoveDirectory(PChar(lLinkPath)), 'Could not unlink isolated junction.');
+  end;
 end;
 
 procedure TCliTests.AnalyzeProjectDefaultOutRootUsesSiblingDakFolder;
