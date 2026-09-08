@@ -9,6 +9,16 @@
 
 This gives us a repeatable baseline across Delphi versions and handshake styles.
 
+## Delphi 13 raw-protocol retry, 2026-09-08
+
+The unchanged three-file fixture was copied into `projects/.dak/DelphiAIKit/goal-current/lsp-repro/`. DAK generated its project context for Win64 Debug using the installed Delphi 13 server, file version `37.0.59082.6021`. Four isolated raw sessions then tested a settings-file path, a settings-file URI, controller mode, and controller mode with `returnHoverModel: true`.
+
+All four sessions initialized and shut down successfully. Definition at `Unit1.pas:8:21` returned `Unit1.pas:13:1`, and document symbols were non-empty. Hover returned `null` at all three positions (`8:21`, `6:7`, `13:32`) in every mode. Each direct references, workspace-symbol and rename request returned `-32601 Method not found`. No rename was applied. The fixture source hashes remained unchanged.
+
+These fresh raw requests confirm that changing the documented initialization mode does not unblock the missing methods on this installed server. T-120 remains open. Its smallest unblock is a supported server build or documented configuration that returns references and useful hover content. T-127 also requires approval of the proposed rename contract before implementation; the installed server cannot currently supply its proposed LSP operation.
+
+Exact requests, responses, settings and server hashes are retained in `projects/.dak/DelphiAIKit/goal-current/lsp-{path,uri,controller,hover-model}-20260908.json`. The probe script is `probe-lsp-raw.py` in the same folder. The configuration variants follow the [official DelphiLSP integration documentation](https://docwiki.embarcadero.com/RADStudio/Florence/en/Using_DelphiLSP_Code_Insight_with_Other_Editors).
+
 ## Delphi 13 recheck, 2026-09-07
 
 Installed server: `C:\Program Files (x86)\Embarcadero\Studio\37.0\bin64\DelphiLSP.exe`, file version `37.0.59082.6021`.
