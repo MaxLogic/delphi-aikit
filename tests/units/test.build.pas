@@ -47,6 +47,12 @@ type
   TBuildTests = class
   public
     [Test]
+    [TestCase('Lazy streams', '1,0')]
+    [TestCase('Open streams', '0,0')]
+    [TestCase('Lazy streams after exception', '1,1')]
+    [TestCase('Open streams after exception', '0,1')]
+    procedure ConsoleCaptureRestoresTextState(aLazy, aRaise: Integer);
+    [Test]
     procedure ProjectDprListsMadExceptFirstAndAllSourceUnits;
     [Test]
     procedure ExternalToolProcessCentralizesBasicCommandRunners;
@@ -320,8 +326,8 @@ function CaptureConsoleOutput(const aProc: TProc): string;
 var
   lBytesRead: Cardinal;
   lChunk: AnsiString;
-  lOldErr: THandle;
-  lOldOut: THandle;
+  lOldErr: TTextRec;
+  lOldOut: TTextRec;
   lReadHandle: THandle;
   lSa: TSecurityAttributes;
   lWriteHandle: THandle;
@@ -336,17 +342,27 @@ begin
   if not CreatePipe(lReadHandle, lWriteHandle, @lSa, 0) then
     raise Exception.Create('Failed to create capture pipe.');
   try
-    lOldOut := TTextRec(Output).Handle;
-    lOldErr := TTextRec(ErrOutput).Handle;
-    TTextRec(Output).Handle := lWriteHandle;
-    TTextRec(ErrOutput).Handle := lWriteHandle;
+    Flush(Output);
+    Flush(ErrOutput);
+    lOldOut := TTextRec(Output);
+    lOldErr := TTextRec(ErrOutput);
     try
-      aProc();
-      Flush(Output);
-      Flush(ErrOutput);
+      // Open lazy RTL streams before redirecting; first-write initialization replaces their handles.
+      if TTextRec(Output).Mode = fmClosed then
+        Rewrite(Output);
+      if TTextRec(ErrOutput).Mode = fmClosed then
+        Rewrite(ErrOutput);
+      TTextRec(Output).Handle := lWriteHandle;
+      TTextRec(ErrOutput).Handle := lWriteHandle;
+      try
+        aProc();
+      finally
+        Flush(Output);
+        Flush(ErrOutput);
+      end;
     finally
-      TTextRec(Output).Handle := lOldOut;
-      TTextRec(ErrOutput).Handle := lOldErr;
+      TTextRec(Output) := lOldOut;
+      TTextRec(ErrOutput) := lOldErr;
     end;
 
     CloseHandle(lWriteHandle);
@@ -361,6 +377,69 @@ begin
       CloseHandle(lWriteHandle);
     if lReadHandle <> 0 then
       CloseHandle(lReadHandle);
+  end;
+end;
+
+procedure TBuildTests.ConsoleCaptureRestoresTextState(aLazy, aRaise: Integer);
+var
+  lOriginalOut: TTextRec;
+  lOriginalErr: TTextRec;
+  lExpectedOut: TTextRec;
+  lExpectedErr: TTextRec;
+  lCaptured: string;
+  lRestored: Boolean;
+  lRaised: Boolean;
+  lIoResult: Integer;
+begin
+  Flush(Output);
+  Flush(ErrOutput);
+  lOriginalOut := TTextRec(Output);
+  lOriginalErr := TTextRec(ErrOutput);
+  try
+    if aLazy <> 0 then
+    begin
+      TTextRec(Output) := Default(TTextRec);
+      TTextRec(Output).Mode := fmClosed;
+      TTextRec(ErrOutput) := Default(TTextRec);
+      TTextRec(ErrOutput).Mode := fmClosed;
+    end else begin
+      Write(Output, '');
+      Write(ErrOutput, '');
+    end;
+    lExpectedOut := TTextRec(Output);
+    lExpectedErr := TTextRec(ErrOutput);
+    lRaised := False;
+    try
+      lCaptured := CaptureConsoleOutput(
+        procedure
+        begin
+          System.WriteLn(Output, 'captured stdout');
+          System.WriteLn(ErrOutput, 'captured stderr');
+          if aRaise <> 0 then
+            raise EAbort.Create('capture exception');
+        end);
+    except
+      on E: EAbort do
+        lRaised := True;
+    end;
+    lRestored := CompareMem(@lExpectedOut, @Output, SizeOf(TTextRec)) and
+      CompareMem(@lExpectedErr, @ErrOutput, SizeOf(TTextRec));
+    {$IOCHECKS OFF}
+    System.WriteLn(ErrOutput, 'stderr after capture');
+    Flush(ErrOutput);
+    lIoResult := IOResult;
+    {$IOCHECKS ON}
+  finally
+    TTextRec(Output) := lOriginalOut;
+    TTextRec(ErrOutput) := lOriginalErr;
+  end;
+  Assert.IsTrue(lRestored, 'Capture must restore the complete RTL text state.');
+  Assert.AreEqual(0, lIoResult, 'A subsequent stderr write and flush must succeed.');
+  Assert.AreEqual(aRaise <> 0, lRaised, 'Capture must propagate callback exceptions.');
+  if aRaise = 0 then
+  begin
+    Assert.IsTrue(lCaptured.Contains('captured stdout'), lCaptured);
+    Assert.IsTrue(lCaptured.Contains('captured stderr'), lCaptured);
   end;
 end;
 
