@@ -9,7 +9,40 @@
 
 This gives us a repeatable baseline across Delphi versions and handshake styles.
 
-## Current Baseline
+## Delphi 13 recheck, 2026-09-07
+
+Installed server: `C:\Program Files (x86)\Embarcadero\Studio\37.0\bin64\DelphiLSP.exe`, file version `37.0.59082.6021`.
+
+The fixture source files were copied unchanged into `tests/.dak/DelphiAIKit.Tests/task-retry-20260907/lsp-fixture/` to keep the probe's generated context separate from the running test suite. Both handshake modes advertise the same nine capabilities listed in the April baseline below. Neither advertises `referencesProvider` or `workspaceSymbolProvider`.
+
+| Operation | Observed result |
+| --- | --- |
+| `probe` | Exit 0; both handshake modes succeeded. |
+| `definition`, `Unit1.pas:8:21` | Exit 0; points to the implementation at `Unit1.pas:13:1`. |
+| `symbols`, query `Fixture` | Exit 0; returns `TFixtureType` and `TFixtureType.Run`. |
+| `hover`, `Unit1.pas:8:21` | Exit 0; empty contents. Checks at `6:7` and `13:32` were also empty. |
+| `references` | Exit 2; the current DAK CLI rejects this unsupported operation before sending a server request. |
+
+The `references` result above is a CLI check. The raw JSON-RPC `-32601` results below belong to the April audit and were not rerun in this recheck. T-125's installed-version recheck is complete; T-120's requirement for non-empty hover and references results remains unmet. DAK's own `find-usages` command is available for project-scoped reference searches.
+
+Repeat from Windows PowerShell:
+
+```powershell
+$project = 'tests/fixtures/LspProjectFixture/LspProjectFixture.dproj'
+$unit = 'tests/fixtures/LspProjectFixture/Unit1.pas'
+$server = 'C:\Program Files (x86)\Embarcadero\Studio\37.0\bin64\DelphiLSP.exe'
+$context = @('--project', $project, '--delphi', '37.0', '--lsp-path', $server,
+  '--platform', 'Win32', '--config', 'Debug', '--format', 'json')
+& bin/DelphiAIKit.exe lsp probe @context
+& bin/DelphiAIKit.exe lsp definition @context --file $unit --line 8 --col 21
+& bin/DelphiAIKit.exe lsp hover @context --file $unit --line 8 --col 21
+& bin/DelphiAIKit.exe lsp symbols @context --file $unit --query Fixture
+& bin/DelphiAIKit.exe lsp references @context --file $unit --line 8 --col 21
+```
+
+Captured responses: `tests/.dak/DelphiAIKit.Tests/task-retry-20260907/lsp13-*.json`.
+
+## Historical baseline
 
 Date: 2026-04-20
 
