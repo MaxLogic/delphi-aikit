@@ -26,6 +26,38 @@ Default policy:
 - Whether analysis is a hard gate or advisory evidence depends on the
   repository's maintenance profile described below.
 
+## Third-party code in routine work
+
+Exclude verified third-party libraries from routine analysis targets, cleanup
+work, and acceptance findings. Start with changed owned units in their real
+project context. Do not launch a whole dependency-tree audit for an ordinary
+feature or bug fix. Shared libraries we maintain remain in scope; a `3rdParty`
+folder name or a path outside the project is not enough to establish ownership.
+
+Distinguish selecting work from supplying analyzer context. The default
+`GateOwnership=project;repository` removes vendor findings from actionable
+triage, but does not stop the analyzer reading dependency source. Retain the
+declarations and contracts needed to check our calls. Do not remove search
+paths or invent compiler defines to avoid vendor code.
+
+If vendor parsing prevents a useful run, use the analyzer's supported input
+exclusions in the affected project's `dak.ini`. For FixInsight, set
+`[FixInsightCL].Ignore` to the verified failing `.pas` filenames or paths,
+separated by semicolons; the CLI equivalent is `--fi-ignore`. Verify the exact
+entries with the installed tool, preserve the real compiler context, and compare
+our findings before and after. Ignoring an include file may not exclude the
+containing unit. PAL input exclusions use the explicit `/X` and `/XF` settings
+below; check for changed caller-side findings before adopting them.
+
+Record the excluded scope, reason, tool version, and remaining coverage. Keep
+the upstream defect open and retest exclusions after tool updates. A successful
+run with exclusions proves only the retained scope. Input exclusions are
+different from report filters, which cannot repair a parser failure.
+
+Reserve vendor-wide analysis for an explicit dependency audit, a maintained
+fork change, or a diagnosis that requires it. For daily work, open the summary
+and changed-file triage; do not review raw third-party rows by default.
+
 ## Legacy application policy
 
 Treat static analysis as advisory for an established legacy application when

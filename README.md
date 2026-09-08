@@ -730,6 +730,38 @@ GateMetrics=PAL.warnings.method-length-621eae6dfec836e8;PAL.warnings.parameter-c
 Unknown ownership remains visible and fails a gated run. `GateMetrics` changes
 reporting only; it never adds PAL `/X` or `/XF` analysis exclusions.
 
+For day-to-day work, use project-context unit analysis and review changed-file
+findings. The default `GateOwnership=project;repository` already keeps
+third-party findings out of actionable triage. It does not prevent the analyzers
+from reading dependency source. Reading declarations and method contracts can
+help check calls in our code; excluding a dependency can change caller-side
+findings as well as remove vendor findings. Shared code we maintain belongs in
+our review scope even when another project consumes it as a dependency.
+
+When a vendor unit breaks FixInsight parsing, put an explicit exclusion in the
+affected project's `dak.ini`, beside its `.dproj`:
+
+```ini
+[FixInsightCL]
+; Replace these example filenames with the verified failing vendor units.
+Ignore=Vendor.UnitA.pas;Vendor.UnitB.pas
+```
+
+DAK forwards this setting to FixInsight's `--ignore`; `--fi-ignore` provides a
+CLI override. Entries use semicolons. Verify the exact filenames or masks with
+the installed analyzer: the packed-include reproducer passed with its `.pas`
+filename excluded, while excluding `packed.inc` did not clear the fatal error.
+This removes FixInsight coverage for the excluded units. It is separate from
+`[FixInsightIgnore].Warnings`, which filters reported rule IDs, and from
+`[AnalysisPolicy].ThirdPartyRoots`, which classifies ownership.
+
+Keep vendor exclusions local and documented. Do not infer that every path
+outside the project, or every folder named `3rdParty`, is disposable analysis
+input. For maintained projects, use broader analysis at batch/release gates;
+for legacy applications, use focused advisory results and reserve full-project
+analysis for a deliberate audit. Retest parser workarounds after analyzer
+updates before removing them.
+
 For one reviewed source location, put a reason-bearing marker on PAL's reported
 line, for example
 `end; //PALOFF reviewed false positive: callback intentionally has no action`.
