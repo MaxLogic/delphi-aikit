@@ -1,4 +1,4 @@
-unit Dak.PascalAnalyzer.Artifacts;
+﻿unit Dak.PascalAnalyzer.Artifacts;
 
 interface
 
@@ -172,18 +172,35 @@ begin
   Result := TPath.GetFullPath(lPath);
 end;
 
+procedure AddModulePath(const aNode: IXMLNode; const aReportRoot: string;
+  const aPaths: TDictionary<string, string>);
+var
+  lExisting: string;
+  lName: string;
+  lPath: string;
+begin
+  lName := NormalizeLineText(ChildText(aNode, 'name'));
+  lPath := NormalizeModulePath(ChildText(aNode, 'path'), aReportRoot);
+  if (lName <> '') and (lPath <> '') then
+  begin
+    if not aPaths.TryGetValue(lName, lExisting) then
+      aPaths.Add(lName, lPath)
+    else if not SameText(lExisting, lPath) then
+      aPaths[lName] := '';
+  end;
+end;
+
 function TryLoadModulePaths(const aPath: string; out aPaths: TDictionary<string, string>;
   out aError: string): Boolean;
 var
   lDoc: IXMLDocument;
-  lExisting: string;
+  lInclude: IXMLNode;
   lModule: IXMLNode;
-  lName: string;
-  lPath: string;
   lRoot: IXMLNode;
   lSection: IXMLNode;
   i: Integer;
   j: Integer;
+  k: Integer;
 begin
   Result := False;
   aError := '';
@@ -204,14 +221,13 @@ begin
         lModule := lSection.ChildNodes[j];
         if not SameText(lModule.NodeName, 'module') then
           Continue;
-        lName := NormalizeLineText(ChildText(lModule, 'name'));
-        lPath := NormalizeModulePath(ChildText(lModule, 'path'), ExtractFilePath(aPath));
-        if (lName = '') or (lPath = '') then
-          Continue;
-        if not aPaths.TryGetValue(lName, lExisting) then
-          aPaths.Add(lName, lPath)
-        else if not SameText(lExisting, lPath) then
-          aPaths[lName] := '';
+        AddModulePath(lModule, ExtractFilePath(aPath), aPaths);
+        for k := 0 to lModule.ChildNodes.Count - 1 do
+        begin
+          lInclude := lModule.ChildNodes[k];
+          if SameText(lInclude.NodeName, 'includes') then
+            AddModulePath(lInclude, ExtractFilePath(aPath), aPaths);
+        end;
       end;
     end;
     Result := True;

@@ -24,6 +24,12 @@ type
     [Test]
     procedure ModulesXmlResolvesFindingPathsDeterministically;
     [Test]
+    [TestCase('Plain include', 'Shared.inc,resolved,False')]
+    [TestCase('Class-qualified include', 'shared.INC\TWorker\Run,resolved,False')]
+    [TestCase('Slash-qualified include', 'Shared.inc/TWorker/Run,resolved,False')]
+    [TestCase('Conflicting include paths', 'Shared.inc,ambiguous,True')]
+    procedure ModulesXmlResolvesIncludePaths(const aModule, aExpectedStatus: string; const aConflicting: Boolean);
+    [Test]
     procedure LocInfoPreservesAnalyzerMessage;
     [Test]
     procedure MissingPalFixturesFailClosedWithoutOptOut;
@@ -298,6 +304,53 @@ begin
     finally
       lJson.Free;
     end;
+  end;
+end;
+
+procedure TPalFindingNormalizeTests.ModulesXmlResolvesIncludePaths(const aModule, aExpectedStatus: string;
+  const aConflicting: Boolean);
+var
+  lCounts: TPalFindingCounts;
+  lError: string;
+  lJson: TJSONObject;
+  lJsonLines: TArray<string>;
+  lOtherPath: string;
+  lOutRoot: string;
+  lReportRoot: string;
+begin
+  lReportRoot := TPath.Combine(TempRoot, 'pal-include-paths');
+  lOutRoot := TPath.Combine(TempRoot, 'pal-include-paths-out');
+  TDirectory.CreateDirectory(lReportRoot);
+  TDirectory.CreateDirectory(lOutRoot);
+  TFile.WriteAllText(TPath.Combine(lReportRoot, 'Warnings.xml'),
+    '<report><section name="Unused variables" count="1"><item><id>include-variable</id>' +
+    '<locmod>' + aModule + ' (12)</locmod></item></section></report>', TEncoding.UTF8);
+  lOtherPath := 'c:\repo\shared.inc';
+  if aConflicting then
+    lOtherPath := 'C:\Other\Shared.inc';
+  TFile.WriteAllText(TPath.Combine(lReportRoot, 'Modules.xml'),
+    '<report><section name="Module information">' +
+    '<module><name>Owner</name><path>C:\Repo\Owner.pas</path>' +
+    '<includes><name>Shared.inc</name><path>C:\Repo\Shared.inc</path></includes></module>' +
+    '<module><name>OtherOwner</name><path>C:\Repo\OtherOwner.pas</path>' +
+    '<includes><name>SHARED.INC</name><path>' + lOtherPath + '</path></includes></module>' +
+    '<module><name>LastOwner</name><path>C:\Repo\LastOwner.pas</path>' +
+    '<includes><name>Shared.inc</name><path>C:\Repo\Shared.inc</path></includes></module>' +
+    '</section></report>', TEncoding.UTF8);
+
+  Assert.IsTrue(TryGeneratePalArtifactsWithCounts(lReportRoot, lOutRoot, lCounts, lError), lError);
+  Assert.AreEqual(1, lCounts.Total, 'Include path resolution must preserve the finding.');
+  lJsonLines := TFile.ReadAllLines(TPath.Combine(lOutRoot, 'pal-findings.jsonl'));
+  Assert.AreEqual(1, Integer(Length(lJsonLines)));
+  lJson := ParseJsonObject(lJsonLines[0]);
+  try
+    Assert.AreEqual(aExpectedStatus, lJson.GetValue<string>('path_status'));
+    if aConflicting then
+      Assert.AreEqual('', lJson.GetValue<string>('path', ''))
+    else
+      Assert.AreEqual('C:\Repo\Shared.inc', lJson.GetValue<string>('path'));
+  finally
+    lJson.Free;
   end;
 end;
 

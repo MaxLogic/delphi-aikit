@@ -23,6 +23,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- Fixed PAL include-file path resolution from nested `Modules.xml` entries, preserving ambiguous paths and class-qualified finding locations.
 - Remove-with now handles resolved by-value record parameters in procedures while preserving copy semantics and receiver-field precedence.
 - PAL report reprocessing now preserves source identity and ownership when external and repository files share a basename or a relative path also exists under the project directory.
 - DFM validation now passes sanitized effective compiler defines as an immutable MSBuild property, preventing imported option sets from restoring the exact `madExcept` symbol while preserving all other defines.
