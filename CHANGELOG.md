@@ -23,10 +23,14 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
-- The `build-delphi.bat` wrapper now counts compiler warnings and hints correctly in its success and JSON summaries, including diagnostics with relative source paths. Warning-code and path filters continue to apply.
-- Fixed PAL include-file path resolution from nested `Modules.xml` entries, preserving ambiguous paths and class-qualified finding locations.
+- Typed-constant mutability now follows active compiler directives in source order, including inline switches and includes; directive examples in comments and strings no longer change semantic results.
+- Shared symbol queries now retain read-only typed constants across cold and warm caches while mutable-global reports continue to exclude them.
+- Semantic indexing and rename now recognize declarations on the same line as `const` or `var`, preserve identifier positions, and invalidate older parser cache entries.
 - Remove-with now handles resolved by-value record parameters in procedures while preserving copy semantics and receiver-field precedence.
 - PAL report reprocessing now preserves source identity and ownership when external and repository files share a basename or a relative path also exists under the project directory.
+- Fixed PAL include-file path resolution from nested `Modules.xml` entries, preserving ambiguous paths and class-qualified finding locations.
+- Fixed nondeterministic mutability metadata on rejected semantic declarations by initializing declaration records before extraction.
+- The `build-delphi.bat` wrapper now counts compiler warnings and hints correctly in its success and JSON summaries, including diagnostics with relative source paths. Warning-code and path filters continue to apply.
 - DFM validation now passes sanitized effective compiler defines as an immutable MSBuild property, preventing imported option sets from restoring the exact `madExcept` symbol while preserving all other defines.
 - Command output now treats a closed stdout pipe as normal downstream termination, preventing `deps --output -` and other shared output paths from raising madExcept reports when a consumer exits early; requested file output still completes.
 - `global-vars` now requires AST-verified declaration roles and lexical ownership, excluding locals, `Result`, assignments, fields, and properties while preserving class-variable identity, routine provenance, cache invalidation, and decision-grade diagnostics.
