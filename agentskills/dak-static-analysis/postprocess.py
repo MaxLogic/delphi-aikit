@@ -2489,17 +2489,20 @@ def _normalize_findings_ownership(
         records = []
         for obj in _iter_jsonl(pal_jsonl_path):
             item = dict(obj)
-            raw = str(item.get("path") or "").strip()
+            raw = str(item.get("source_path") or item.get("path") or "").strip()
             resolved = _resolve_ownership_path(raw, context)
+            item["source_path"] = raw or None
             ownership = _classify_ownership(resolved, context)
             item["ownership"] = ownership
             item["ownership_root"] = _ownership_root_text(
                 _ownership_root(resolved, ownership, context)
             )
+            workspace_root = context["workspace_root"]
             item["path"] = (
-                _display_ownership_path(raw or str(resolved), resolved, context)
-                if resolved is not None or raw
-                else None
+                resolved.relative_to(workspace_root).as_posix()
+                if resolved is not None and workspace_root is not None
+                and resolved.is_relative_to(workspace_root)
+                else resolved.as_posix() if resolved is not None else item["source_path"]
             )
             records.append(item)
         _write_jsonl(pal_jsonl_path, records)

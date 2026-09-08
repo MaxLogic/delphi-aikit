@@ -59,6 +59,106 @@ class OwnershipReportingTests(unittest.TestCase):
     def setUp(self):
         self.postprocess = load_postprocess()
 
+    def test_reprocessing_preserves_source_identity_with_duplicate_basenames(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            workspace = root / "repo"
+            local = workspace / "tools" / "inject" / "autoFree.pas"
+            external = root / "MaxLogicFoundation" / "AutoFree.pas"
+            for path in (local, external):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("unit AutoFree;\n", encoding="ascii")
+            project = workspace / "Sample.dproj"
+            project.write_text("<Project/>", encoding="ascii")
+            out_root = workspace / ".dak" / "Sample"
+            pal = out_root / "pascal-analyzer" / "pal-findings.jsonl"
+            fi = out_root / "fixinsight" / "fi-findings.jsonl"
+            seed = {
+                "workspace": {"root": str(workspace), "vcs": "none"},
+                "subject": {"project_file": str(project)},
+                "policy": {"values": {}},
+            }
+            write_jsonl(pal, [
+                {"path": str(external), "module": "AutoFree", "line": 7, "id": "External"},
+                {"path": str(local), "module": "AutoFree", "line": 9, "id": "Owned"},
+            ])
+            first = None
+            for iteration in range(3):
+                self.postprocess._normalize_findings_ownership(
+                    fi, pal, out_root=out_root, status_seed=seed, repo_root=workspace
+                )
+                rows = list(self.postprocess._iter_jsonl(pal))
+                self.assertEqual(2, len(rows))
+                self.assertEqual(external.as_posix(), rows[0]["path"], iteration)
+                self.assertEqual("third_party", rows[0]["ownership"], iteration)
+                self.assertEqual("tools/inject/autoFree.pas", rows[1]["path"], iteration)
+                self.assertEqual("repository", rows[1]["ownership"], iteration)
+                self.assertEqual({"project": 0, "repository": 1, "third_party": 1, "unknown": 0},
+                                 ownership_counts(rows))
+                if first is None:
+                    first = rows
+                else:
+                    self.assertEqual(first, rows, iteration)
+
+    def test_reprocessing_keeps_workspace_relative_paths_out_of_project_subfolders(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace = Path(temp_dir)
+            source = workspace / "src" / "Owned.pas"
+            shadow = workspace / "src" / "src" / "Owned.pas"
+            for path in (source, shadow):
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("unit Owned;\n", encoding="ascii")
+            project = source.with_name("Sample.dproj")
+            project.write_text('<Project><ItemGroup><DCCReference Include="Owned.pas"/>'
+                               '</ItemGroup></Project>', encoding="ascii")
+            out_root = workspace / ".dak" / "Sample"
+            pal = out_root / "pascal-analyzer" / "pal-findings.jsonl"
+            fi = out_root / "fixinsight" / "fi-findings.jsonl"
+            seed = {"workspace": {"root": str(workspace), "vcs": "none"},
+                    "subject": {"project_file": str(project)}, "policy": {"values": {}}}
+            write_jsonl(pal, [{"path": str(source), "module": "Owned", "line": 1}])
+            self.postprocess._normalize_findings_ownership(
+                fi, pal, out_root=out_root, status_seed=seed, repo_root=workspace
+            )
+            first = list(self.postprocess._iter_jsonl(pal))
+            self.assertEqual("src/Owned.pas", first[0]["path"])
+            self.assertEqual("project", first[0]["ownership"])
+            self.postprocess._normalize_findings_ownership(
+                fi, pal, out_root=out_root, status_seed=seed, repo_root=workspace
+            )
+            self.assertEqual(first, list(self.postprocess._iter_jsonl(pal)))
+
+    def test_reprocessing_preserves_policy_only_project_ownership(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            workspace = root / "repo"
+            workspace.mkdir()
+            external = root / "external" / "PolicyOnly.pas"
+            external.parent.mkdir()
+            external.write_text("unit PolicyOnly;\n", encoding="ascii")
+            project = workspace / "Sample.dproj"
+            project.write_text("<Project/>", encoding="ascii")
+            out_root = workspace / ".dak" / "Sample"
+            pal = out_root / "pascal-analyzer" / "pal-findings.jsonl"
+            fi = out_root / "fixinsight" / "fi-findings.jsonl"
+            seed = {"workspace": {"root": str(workspace), "vcs": "none"},
+                    "subject": {"project_file": str(project)},
+                    "policy": {"values": {"project_roots": [str(external.parent)]}}}
+            write_jsonl(pal, [{"path": "PolicyOnly.pas", "line": 1}])
+            first = None
+            for iteration in range(3):
+                self.postprocess._normalize_findings_ownership(
+                    fi, pal, out_root=out_root, status_seed=seed, repo_root=workspace
+                )
+                rows = list(self.postprocess._iter_jsonl(pal))
+                self.assertEqual("project", rows[0]["ownership"], iteration)
+                self.assertEqual(external.parent.as_posix(), rows[0]["ownership_root"])
+                self.assertEqual(external.as_posix(), rows[0]["path"])
+                if first is None:
+                    first = rows
+                else:
+                    self.assertEqual(first, rows, iteration)
+
     def test_svn_and_unmanaged_workspace_ownership_is_path_based(self):
         for vcs in ("svn", "none"):
             with self.subTest(vcs=vcs), tempfile.TemporaryDirectory() as temp_dir:

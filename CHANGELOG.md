@@ -22,6 +22,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- PAL report reprocessing now preserves source identity and ownership when external and repository files share a basename or a relative path also exists under the project directory.
 - DFM validation now passes sanitized effective compiler defines as an immutable MSBuild property, preventing imported option sets from restoring the exact `madExcept` symbol while preserving all other defines.
 - Command output now treats a closed stdout pipe as normal downstream termination, preventing `deps --output -` and other shared output paths from raising madExcept reports when a consumer exits early; requested file output still completes.
 - `global-vars` now requires AST-verified declaration roles and lexical ownership, excluding locals, `Result`, assignments, fields, and properties while preserving class-variable identity, routine provenance, cache invalidation, and decision-grade diagnostics.

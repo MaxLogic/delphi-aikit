@@ -136,6 +136,18 @@ One JSON object per line. Each object includes at least:
 
 The `id` and `kind` fields are only present when available.
 
+The static-analysis postprocessor adds `source_path` to retain the original
+source reference, including relative references resolved through policy roots.
+Ownership is calculated from this field on subsequent passes.
+The display `path` is workspace-relative for workspace files and absolute for
+external files; matching basenames never substitute a workspace file for an
+external PAL source. Unknown paths retain their original spelling.
+
+Older processed reports do not contain `source_path`. If a previous pass has
+already replaced a source path with an incorrect display path, reimport the
+retained native PAL reports before processing again. The lost identity cannot
+be recovered reliably from that display path alone.
+
 ### Actionable counts
 
 - The deduplicated normalized finding list is the sole source for warning, strong-warning, optimization, and total
