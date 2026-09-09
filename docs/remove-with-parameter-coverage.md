@@ -125,3 +125,9 @@ unchanged. Five additional assertions retain the old boundaries in ClearBitArray
 MakeDirStr, NormIndFiles, h_FNr and getstructure. Their failures match the
 source-reviewed T-280 corrections; expectation migration remains T-209 work.
 See `t209-eighth-inventory.json` for the exact failures and unchanged inputs.
+
+The five boundary expectations have now been migrated without changing their
+planned/skip decisions. All five pass, and the full historical rerun passes
+164/203 with the same 39 prior failure names and messages. The Win64 rebuild
+has zero owned warnings, and touched-unit PAL analysis has no new findings.
+Evidence: `t209-five-boundaries-proof.json` and `t209-after-boundary-inventory.json`.
