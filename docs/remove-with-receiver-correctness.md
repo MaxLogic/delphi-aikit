@@ -154,3 +154,16 @@ The first full DAK run passed 658 of 659 tests and exposed the stale ScopedDecla
 The shared T-273/T-271/T-274 checkpoint passes 653 Semantics tests, 68 SQLite tests, 659 freshly built DAK tests and 110 Python analyzer tests. Explicit Win64 builds have zero owned compiler warnings; the three Semantics and four DAK vendor warnings are reported separately. This closes the inline-declaration task, while historical MaxTdb acceptance, performance certification, maintained-library ownership, external capabilities and T-127 approval remain open.
 
 Exact commands, durations and hashes are retained in `projects/.dak/DelphiAIKit/goal-current/t274-task-proof.json`. The supporting records include `t274-token-runtime-proof.json`, `t274-token-maxtdb-parity.json`, `t274-dak-characterization-proof.json`, `t274-scoped-characterization-proof.json`, the three current analysis deltas, and the source/token-refactor/scoped-assertion reviews.
+
+
+## Historical MaxTdb test migration, T-209
+
+The fresh historical run after T-274/T-275 passes 40 of 203 tests. Its 163 failures have no new names or changed shared messages compared with the prior run. Three expectations were then corrected using retained compiler evidence.
+
+In LINKFILE.InitRelation, Delphi cannot name `TMaskEntry` through DEKLARAT's imports. An isolated local `^TMaskEntry` declaration fails with E2003; adding the declaring unit directly makes the same project compile. Original and positive controls have zero errors and the same 445 inherited warning signatures. All 709 original files remain unchanged. The two affected tests now require the visibility skip, exact source text and ranges, and empty capture/edit data.
+
+The L_Nr indexed-pointer test now checks capture-once initialization, both exact edit ranges and the complete replacement body. A fresh default-context API run matches the complete retained 633-statement plan byte for byte. All 702 isolated compiler inputs still match the successful 434-edit compiler proof. This establishes compilation of that output for Win64/Release; the historical API context remains project-default Release/Linux64.
+
+The three updated tests and all 112 owning tests pass on a fresh Win64 runner. There are zero owned compiler warnings and three vendor warnings. Project-context PAL retains the same 323 actionable findings, with no additions or removals. Independent review passes. This is a partial T-209 checkpoint; the remaining historical tests, explicit Win64 API/CLI parity, timings and final certification remain open.
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-three-migrations-proof.json`, `t209-linkfile-visibility-compiler-proof.json`, `t209-current-default-parity.json` and `t209-three-migration-review.md`.
