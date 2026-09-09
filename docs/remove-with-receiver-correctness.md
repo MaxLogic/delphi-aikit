@@ -199,3 +199,18 @@ All 31 focused tests and all 653 standard Semantics tests pass. The Win64 build 
 The full historical run now passes 116 of 203 tests in 169.053 seconds, with 87 failures and no ignored, errored or leaked tests. All 76 migrations since the 40-pass inventory pass; there are no new failure names or changed remaining messages. Cases with unexplained resolution failures or questionable skipped ranges remain untouched for investigation. T-209 stays open.
 
 Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-fifth-migrations-proof.json`, `t209-after-76-inventory.json` and the three fifth-group migration reviews.
+
+
+## T-276: LF body origins
+
+A body starting with LF immediately after DO counted that newline twice: once in its extracted origin and once in the binder's relative line index. The fix anchors that retained LF to the preceding line and next column. CRLF and same-line body handling remain unchanged. Parser identity 11 invalidates older unit models; snapshot and project planning caches inherit the new unit keys.
+
+Three LF regression cases fail before the fix while the CRLF control passes. After the fix, all 23 binding tests, the obsolete-parser-10 cache regression and all 253 tests in the affected fixtures pass. The Win64 Semantics build has zero owned warnings and three DelphiAST warnings.
+
+Fresh MaxTdb bindings correct 1,160 reference positions in 62 WITH statements. Of 633 ordered final statements, 54 change only reference IDs; LowFileSize at lowFiles.pas:545 changes from an unresolved-symbol skip to a planned capture and replacement. All 436 final edits compile together in an isolated copy, with zero errors and the same 445 legacy warning signatures. All 709 original files remain unchanged. This compiler check does not establish legacy application runtime equivalence.
+
+Separate LF and CRLF controls use the real transactional apply path. Original and rewritten programs both print 0 for a nil child and 37 for a populated child. Both compile without warnings, and their complete ordered cold/warm plans match. The shared gate passes 658 Semantics tests, 68 SQLite tests, 659 freshly built DAK tests and 110 Python analyzer tests. All builds explicitly target Win64 and have zero owned compiler warnings; the three Semantics and four DAK vendor warnings remain separate. The DAK suite completed in 1,054.045 seconds with all 2,607 recorded inputs unchanged.
+
+Full Semantics analysis removes one PAL finding for RepoRoot, now used outside its unit. Two new FixInsight test metrics remain visible: the regression method has 73 lines and ten variables. Both were independently reviewed; neither is a correctness warning. DAK project and touched-unit findings are unchanged. The unchanged historical test source passes 116 of 203 tests in 176.336 seconds, with the same 87 failure names and no ignored, errored or leaked tests. LowFileSize now passes every existing assertion; its paired test first fails on the independently reviewed CutFile capture. No other first-failure message changes. T-276 is complete; T-209 remains open.
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/t276-body-coordinate-control-red.json`, `t276-cache-identity-red.json`, `t276-owning-fixtures.json`, `t276-maxtdb-compiler-proof.json`, `t276-final-runtime-proof.json`, `t276-coordinate-review.md`, `t276-historical-inventory.json` and `t276-task-proof.json`.
