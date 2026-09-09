@@ -190,3 +190,12 @@ All 21 focused tests and all 653 standard Semantics tests pass. The explicit Win
 A fresh full historical run passes 85 of 203 tests in 178.743 seconds. All 45 migrations since the 40-pass inventory now pass; the remaining 118 failures have no new names or changed messages. There are no ignored, errored or leaked tests. T-209 remains open for those failures, explicit Win64 semantic parity, timing certification and its final gate.
 
 Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-fourth-migrations-proof.json`, `t209-after-45-inventory.json`, `t209-fourth-tdb02-migration-review.md` and `t209-fourth-file-units-migration-review.md`.
+
+
+The fifth group updates 31 methods covering 37 planned positions and one cast-selector skip. Eleven RamFiles cases retain direct qualification of stable var TRamText parameters; the distinct RamFile case captures its receiver. Dependent selectors retain their ordered captures, and two shared-declaration cases assert the complete owner plus a single declaration occurrence. Original bodies, control boundaries, exact ranges, recipe data and existing replacement-length assertions remain covered. No production behavior changes.
+
+All 31 focused tests and all 653 standard Semantics tests pass. The Win64 build has zero owned warnings and three vendor warnings. PAL retains 323 actionable findings without additions or removals, and all three implementation reviews pass. Producer inputs and the retained original/isolated compiler inputs remain unchanged.
+
+The full historical run now passes 116 of 203 tests in 169.053 seconds, with 87 failures and no ignored, errored or leaked tests. All 76 migrations since the 40-pass inventory pass; there are no new failure names or changed remaining messages. Cases with unexplained resolution failures or questionable skipped ranges remain untouched for investigation. T-209 stays open.
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-fifth-migrations-proof.json`, `t209-after-76-inventory.json` and the three fifth-group migration reviews.
