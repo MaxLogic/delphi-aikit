@@ -158,13 +158,13 @@ all 709 original files remain unchanged. This compiler proof does not claim
 full MaxTdb runtime equivalence or close the historical T-209 assertions.
 
 Evidence is under `projects/.dak/DelphiAIKit/goal-current/`:
-`t281-regression-red.json`, `t281-cleanup-exact-green.json`,
-`t281-cleanup-final-runtime-proof.json`, `t281-complete-plan-delta.json`,
-`t281-cleanup-plan-parity.json`, `t281-cleanup-compiler-warning-delta.json`
-and `t281-cleanup-review.md`.
+`t281-regression-red.json`, `t281-conventions-exact-green.json`,
+`t281-conventions-final-runtime-proof.json`, `t281-complete-plan-delta.json`,
+`t281-conventions-plan-parity.json`, `t281-conventions-compiler-warning-delta.json`
+and `t281-conventions-review.md`.
 The shared gate passes Semantics 696/696, SQLite 68/68, DAK 659/659 and
 Python 110/110, with zero owned compiler warnings. Both compatible project
 analysis gates and output verification pass. Finding changes are documented
-in `t281-analysis-disposition.md`; T-265 still owns maintained-root
+in `t281-conventions-analysis-disposition.md`; T-265 still owns maintained-root
 classification. Exact task proof: `t281-task-proof.json`. T-209 historical
 acceptance and final statistical performance remain open.
