@@ -1,4 +1,4 @@
-# Remove-with receiver correctness, 2026-09-08
+# Remove-with receiver correctness
 
 T-261 corrects receiver re-evaluation discovered during T-209's historical MaxTdb audit. Delphi evaluates a `with` receiver on entry. Directly repeating a pointer expression in the replacement can select another record after a body call changes that pointer. The isolated compiler control produced `2,0` with the original statement and `1,1` with the previous emitted rewrite; both compiled without warnings.
 
@@ -77,3 +77,21 @@ Five old expectations have since been updated after separate source review and a
 The isolated real MaxTdb project compiles before and after these nine selected API edits. Both builds retain the same 445 legacy warning signatures, with no added warnings; all 709 original fixture files remain unchanged. These are compiler and source-control-flow checks, not an execution of the legacy database routines or a DAK transactional apply test. T-267's separate retained runtime controls remain the runtime evidence for captured-body handling.
 
 All five migrated tests and the unchanged parent test pass together (6/6). The historical category still needs its remaining acceptance work and a fresh complete run; this focused result does not certify that category or performance. Evidence: `t209-current-project-kind-parity.json`, `t209-dbf-compiler-proof.json`, `t209-boundary-compiler-proof.json` and `t209-five-migrations-exact.json` under `projects/.dak/DelphiAIKit/goal-current/`.
+
+## Nested forward declarations, T-270
+
+The routine-scope index previously pushed an unfinished routine frame for a nested forward declaration. The implementation closed its own frame, leaving the forward frame to claim the surrounding routine's later references and WITH statements. Captures for `CheckLinkFiles` were consequently declared inside its nested `CheckDirekt` routine.
+
+The index now recognizes bodyless `forward` and `external` declarations through the installed lexer before adding a body frame. It preserves ordinary nested implementations, parent ownership and bounded scope queries. Planning-facts identity 3 invalidates the affected cached ownership; parser identity 10, snapshot identity 8 and SQLite schema 10 remain unchanged.
+
+Retained regressions cover inline and next-line directives, split parameters, comment text and external declarations. The ownership cases and older-schema cache case each have recorded failures before the fix. The current owning suite passes 158/158 and the standard Semantics suite passes 640/640, with no ignored, failed, errored or leaked tests. Win64 production and test builds have zero owned warnings; vendor warnings remain separately identified.
+
+An actual cache produced by the old executable first returns the wrong nested owner on a warm hit. The fixed producer misses that planning entry, writes corrected facts and subsequently hits them. The old row and both unit-model rows remain unchanged. Complete ordered upgraded, warm and fresh plans agree. A freshly rebuilt probe also confirms that the final refactor preserves those complete plans.
+
+The isolated original and transactional rewrite both print `3`. All three original fixture files remain unchanged, and cold/warm plans agree in all 18 fields outside generated run and workspace details. The full isolated MaxTdb rewrite removes all 11 prior LINKFILE compiler errors. It then exposes two indexed-member errors in TDBUTILS, recorded separately as T-271; this is not a successful full-project compiler certification.
+
+Fresh Semantics analysis has unchanged PAL findings and the same FixInsight finding count. Two existing advisories change their measurements: `BuildRoutineScopeIndex` grows from 70 to 77 lines and from 10 to 11 variables. The lexer cursor and its cleanup account for that change. No suppression or ownership-policy change was introduced.
+
+One earlier full-suite process stalled with sustained CPU use. Later full runs, 30 isolated cases and 1,000 instrumented calls passed, but they do not establish its cause. T-272 records that investigation separately; a recurrence requires a thread-stack capture before terminating the process. Evidence is retained in `t270-full-suite-stall.json`. Current behavior proof is in `t270-current-runtime-proof.json`, `t270-cache-upgrade-proof.json`, `t270-current-sem-all.json` and `t270-final-sem-change-delta.json` under the same local evidence folder.
+
+The T-270 shared checkpoint passes DAK 659/659, Semantics 640/640, SQLite 68/68 and Python 110/110. All four explicit Win64 builds have zero owned warnings, and both current-host project analyses pass report verification and their comparison gates. DAK-owned findings are unchanged. The complete DAK run took 1047.959 seconds. `t270-batch-proof.json` records the commands and unchanged proof-input hash `06a07296480cf0cb808f3e97b4a4c824a9fcbf5f72b579e7796926d047e7cb48`. Maintained-library ownership, the historical MaxTdb category and performance certification remain separate open work.
