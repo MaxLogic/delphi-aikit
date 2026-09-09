@@ -39,3 +39,40 @@ specific coverage correction, not a general solution for the remaining skips.
 The exact added plans, original-versus-applied fixture proof, and regression
 logs are retained in `projects/.dak/DelphiAIKit/t250-t256/`. The real project
 source was not rewritten; its comparison used plan mode.
+
+## Controlled record-array receivers, T-278
+
+A global record's fixed array field can now be captured inside WHILE and IF
+statements when its declaration and named record element type are unambiguous.
+For `Container.Items[i]`, the pointer is initialized at each original WITH
+entry. Changing `i` inside the body does not change the selected element, and a
+false guard or zero iterations never evaluate the selector.
+
+The exception requires a same-unit global record, one directly declared fixed
+array field, a simple index identifier and a named same-unit record element.
+Every indexed root-name projection must identify that same variable declaration.
+Competing declarations, property/getter results, default indexers and nested
+routine or implicit Self shadows retain the conservative skip. Existing type
+visibility, member resolution and transactional verification still apply.
+
+The real fixture covers loop and IF captures, unchanged plain/pointer controls,
+and four getter/shadow negatives. Original and transactional-apply Win64 Release
+programs compile without warnings and produce identical output. Four statements
+are rewritten and four skipped; complete ordered cold/warm plans match. The
+owning fixture passes 101 tests, including separately retained failing shadow
+regressions before their fixes.
+
+The complete 633-record MaxTdb plan changes only TDB01:994 and its declaration
+owner at 986. The former gains a per-iteration capture; the latter includes that
+capture in its shared declaration. All 437 emitted edits across 21 units compile
+in an isolated copy. The 445 inherited warning messages and order are unchanged;
+two locations move by three lines. All 709 original source/configuration hashes
+remain unchanged. The shared gate passes Semantics 666/666, SQLite 68/68,
+Python 110/110 and DAK 659/659, with zero owned compiler warnings. Both project
+analysis gates pass; advisory metric changes remain visible. T-209 historical
+acceptance and performance certification remain open.
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/t278-verified-runtime-proof.json`,
+`t278-identity-owner-green.json`, `t278-final-maxtdb-plan-delta.json`,
+`t278-maxtdb-compiler-proof.json`, `t278-candidate-review.md` and
+`t278-task-proof.json`.
