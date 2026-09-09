@@ -214,3 +214,14 @@ Separate LF and CRLF controls use the real transactional apply path. Original an
 Full Semantics analysis removes one PAL finding for RepoRoot, now used outside its unit. Two new FixInsight test metrics remain visible: the regression method has 73 lines and ten variables. Both were independently reviewed; neither is a correctness warning. DAK project and touched-unit findings are unchanged. The unchanged historical test source passes 116 of 203 tests in 176.336 seconds, with the same 87 failure names and no ignored, errored or leaked tests. LowFileSize now passes every existing assertion; its paired test first fails on the independently reviewed CutFile capture. No other first-failure message changes. T-276 is complete; T-209 remains open.
 
 Evidence: `projects/.dak/DelphiAIKit/goal-current/t276-body-coordinate-control-red.json`, `t276-cache-identity-red.json`, `t276-owning-fixtures.json`, `t276-maxtdb-compiler-proof.json`, `t276-final-runtime-proof.json`, `t276-coordinate-review.md`, `t276-historical-inventory.json` and `t276-task-proof.json`.
+
+
+## Further historical coverage after T-276
+
+Eighteen source-reviewed methods now cover 22 planned positions in LowFiles, RamFiles and TDB01. They retain complete original/replacement text, ranges, ordered captures and recipe data, including covered children and shared declaration ownership. All existing LowFileSize assertions and the pointer-chain negative check remain. An obsolete unused nested helper was removed; its two replacement-length checks remain in the complete inline assertions. No production behavior changed.
+
+All 18 focused tests and all 658 standard Semantics tests pass on the cleaned Win64 candidate. The build has zero owned warnings and three DelphiAST warnings. Both implementation reviews pass. PAL adds no findings and removes the old local-subprogram advisory, leaving 322 actionable findings. The producer, all 709 original files and all 702 isolated compiler inputs still match the retained 436-edit compiler proof.
+
+The complete historical run passes 134 of 203 tests in 172.987 seconds, with 69 failures and no ignored, errored or leaked tests. All 94 migrations since the 40-pass inventory pass; no remaining failure name or message changes. T-209 remains open for those cases, explicit Win64 semantic parity, performance and final certification.
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-sixth-migrations-proof.json`, `t209-after-94-inventory.json`, `t209-sixth-lowfiles-migration-review.md` and `t209-sixth-tdb01-migration-review.md`.
