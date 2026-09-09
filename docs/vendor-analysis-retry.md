@@ -22,3 +22,12 @@ Exact commands, durations, binary versions and hashes, raw XML excerpts, control
 - `vendor-repro/*/.dak/*/retry-20260908/`
 
 The separate real DelphiLSP retry is recorded in [lsp-capability-probe.md](lsp-capability-probe.md).
+
+
+## Availability check, 2026-09-09
+
+Installed PAL remains 9.21.4.0; its executable hash matches the retained retry evidence.
+
+[Peganza's current history](https://peganza.com/history_pal.html) still lists 9.21.5, dated August 11, 2026. [TMS's FixInsight history](https://www.tmssoftware.com/site/fixinsight.asp?s=history) lists 2026.01. Neither entry explicitly documents correction of these retained reproductions. This refresh checked published version availability only; the raw native reproduction results above remain dated September 8. No vendor source or analyzer installation was changed.
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/vendor-availability-20260909.json` and `vendor-installed-metadata-20260909.json`. The upstream tasks and three active PAL reports remain open.
