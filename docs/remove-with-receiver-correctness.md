@@ -181,3 +181,12 @@ The third group updates eight tests covering five hidden-type skips, ten planned
 All eight focused tests and all 653 standard Semantics tests pass on the final Win64 runner. The build has zero owned warnings and three vendor warnings; PAL retains 323 actionable findings with no changes. Both reviews pass. A fresh full MaxTdbProof run now passes 64 of 203 tests, with 139 failures and no ignored, errored or leaked tests. All 24 migrated tests pass; the remaining failures have no new names or changed messages compared with the earlier run. T-209 remains open.
 
 Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-next-eight-migrations-proof.json`, `t209-next-eight-parity.json`, `t209-after-24-inventory.json` and the two next-eight migration reviews.
+
+
+The fourth group updates 21 tests in TDB01, TDB02, DBFUTIL, FileIO and RamFiles after source and compiler-input review. Assertions retain complete original and replacement text, exact ranges, capture order, declaration ownership and recipe verification. Nested captures remain distinct from a statement's own selectors. Three covered children have explicit ledger checks. FileIO's retained partial range ends before the original END/ELSE; the surrounding compiled source remains unchanged. These test updates do not change production behavior or prove execution of the legacy routines.
+
+All 21 focused tests and all 653 standard Semantics tests pass. The explicit Win64 build has zero owned warnings and three DelphiAST vendor warnings. PAL retains the same 323 actionable findings with no additions or removals. Both new implementation reviews pass. The producer inputs, all 709 original files and all 702 isolated compiler inputs still match the retained plan/compiler evidence.
+
+A fresh full historical run passes 85 of 203 tests in 178.743 seconds. All 45 migrations since the 40-pass inventory now pass; the remaining 118 failures have no new names or changed messages. There are no ignored, errored or leaked tests. T-209 remains open for those failures, explicit Win64 semantic parity, timing certification and its final gate.
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-fourth-migrations-proof.json`, `t209-after-45-inventory.json`, `t209-fourth-tdb02-migration-review.md` and `t209-fourth-file-units-migration-review.md`.
