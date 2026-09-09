@@ -1,5 +1,12 @@
 # Semantic refactoring performance, 2026-09-07
 
+The measurements below are historical. The DAK executable was built for Win64,
+but the benchmark calls omitted target options and used the CLI's Win32/Release
+semantic defaults. They are not explicit Win64 planning measurements. The
+separate 633-statement API probe inherited Release/Linux64 from its project.
+T-209 must establish new API/CLI plan parity in one explicit context before its
+next timing batches.
+
 The T-253/T-254/T-255 follow-up meets the tighter cold and warm budgets on the
 retained maxTdb workload. Measurements use Delphi 12, Release Win64 DAK, the
 same Windows machine and the existing benchmark harness. Builds, tests and
@@ -60,25 +67,50 @@ cross-unit targets, include changes and full-hit reuse. The binding tests cover
 local/member precedence, duplicate candidates, complex selectors, missing names,
 and changed declarations in subsequent operations.
 
-From DelphiSemantics, run `scripts/benchmark-maxtdb-semantic-workflows.ps1` with
-the fixture, executable and workflows below, using a new output directory:
+For the T-209 recheck, run the harness from DelphiSemantics with an explicit
+semantic context. T-275 adds optional `-Platform`, `-Config`, and `-DelphiVersion`
+parameters shared by warmup, measured calls and `-List`. Omitting them preserves
+the existing CLI defaults. List prints complete commands for each selected
+workflow/cache mode without creating benchmark output. Existing positional
+parameters retain their order.
+
+First verify complete ordered API/CLI plans against the same Win64/Release/23.0
+context. Then run two independent timing batches, with no concurrent builds,
+tests or analyzers:
 
 ```powershell
-$fixture = 'F:/projects/OEC/TE5/maxTdb/.dak/DelphiAIKit-fixture/src/maxtdb.dpr'
+$fixture = 'F:/projects/MaxLogic/DelphiAiKit/tests/fixtures/test-projects/maxTdb/src/maxtdb.dproj'
 $dak = 'F:/projects/MaxLogic/DelphiAiKit/bin/DelphiAIKit.exe'
-$proof = 'F:/projects/OEC/TE5/maxTdb/.dak/DelphiAIKit-fixture/src/.dak/maxtdb/t250-t256/recheck-' +
+$proof = 'F:/projects/MaxLogic/DelphiAiKit/tests/fixtures/test-projects/maxTdb/src/.dak/maxtdb/t209-' +
   (Get-Date -Format 'yyyyMMdd-HHmmss')
-$workflows = @('remove-with-plan-all', 'rename-dry-run-allfiles')
-& ./scripts/benchmark-maxtdb-semantic-workflows.ps1 -DakExe $dak -Project $fixture `
-  -Workflow $workflows -CacheMode cold -Repeat 5 -OutputDir "$proof/final-cold" -NoBaselineCopy
-& ./scripts/benchmark-maxtdb-semantic-workflows.ps1 -DakExe $dak -Project $fixture `
-  -Workflow $workflows -CacheMode warm -Repeat 10 -OutputDir "$proof/final-warm" -NoBaselineCopy
-python F:/projects/MaxLogic/DelphiAiKit/tests/scripts/verify-semantic-budgets.py `
-  "$proof/final-cold/baseline.json" "$proof/final-warm/baseline.json"
+$common = @{
+  DakExe = $dak
+  Project = $fixture
+  Workflow = @('remove-with-plan-all', 'rename-dry-run-allfiles')
+  Platform = 'Win64'
+  Config = 'Release'
+  DelphiVersion = '23.0'
+  NoBaselineCopy = $true
+}
+foreach ($batch in @('batch-1', 'batch-2')) {
+  & ./scripts/benchmark-maxtdb-semantic-workflows.ps1 @common `
+    -CacheMode cold -Repeat 5 -OutputDir "$proof/$batch/cold"
+  if ($LASTEXITCODE -ne 0) { throw "Cold benchmark failed: $batch" }
+  & ./scripts/benchmark-maxtdb-semantic-workflows.ps1 @common `
+    -CacheMode warm -Repeat 10 -OutputDir "$proof/$batch/warm"
+  if ($LASTEXITCODE -ne 0) { throw "Warm benchmark failed: $batch" }
+  python F:/projects/MaxLogic/DelphiAiKit/tests/scripts/verify-semantic-budgets.py `
+    "$proof/$batch/cold/baseline.json" "$proof/$batch/warm/baseline.json"
+  if ($LASTEXITCODE -ne 0) { throw "Semantic budgets failed: $batch" }
+}
 ```
 
-Current benchmark outputs are under the fixture's `.dak/maxtdb/t250-t256/`
-`final-cold/` and `final-warm/` folders. DAK's
+These commands define the pending certification. No new timings or Win64 plan
+parity are claimed by the harness change.
+
+Historical benchmark outputs are under
+`F:/projects/OEC/TE5/maxTdb/.dak/DelphiAIKit-fixture/src/.dak/maxtdb/t250-t256/`,
+in the `final-cold/` and `final-warm/` folders. DAK's
 `projects/.dak/DelphiAIKit/t250-t256/` retains the RED/GREEN logs, profiles,
 all-plan comparison script, input hashes, build warning audit and final test logs.
 `final2-*` build/test/analysis artifacts contain the final constructor cleanup;
