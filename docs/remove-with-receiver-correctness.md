@@ -167,3 +167,10 @@ The L_Nr indexed-pointer test now checks capture-once initialization, both exact
 The three updated tests and all 112 owning tests pass on a fresh Win64 runner. There are zero owned compiler warnings and three vendor warnings. Project-context PAL retains the same 323 actionable findings, with no additions or removals. Independent review passes. This is a partial T-209 checkpoint; the remaining historical tests, explicit Win64 API/CLI parity, timings and final certification remain open.
 
 Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-three-migrations-proof.json`, `t209-linkfile-visibility-compiler-proof.json`, `t209-current-default-parity.json` and `t209-three-migration-review.md`.
+
+
+The next visibility group covers 13 tests and 16 statements in seven consumer units. Fourteen exact routine-scope probes fail with undeclared `TMaskEntry`; each direct-import positive control compiles with zero errors and the same 445 inherited warning signatures. The 709 original files remain unchanged. Three positive controls needed line-ending normalization around their inserted uses clauses; their raw evidence is preserved, and the normalized copies were rebuilt with identical warning signatures.
+
+The migrated tests pin the full original source, source hashes and exact ranges, plus the visibility reason and empty capture/edit/recipe data. Six test names now describe their skip behavior. The three mixed tests remain untouched because their other assertions concern five planned rewrites and two children covered by parent rewrites. All 13 focused tests and all 653 standard Semantics tests pass. The Win64 build has zero owned warnings and three vendor warnings; PAL retains 323 actionable findings with no delta. Independent review passes. T-209 and its final gate remain open.
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-visibility-migrations-proof.json`, `t209-cohort-visibility-compiler-proof.json`, `t209-cohort-positive-hygiene-proof.json` and `t209-visibility-migration-review.md`.
