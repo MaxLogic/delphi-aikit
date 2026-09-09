@@ -23,6 +23,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- Remove-with captures source-visible pointer casts once at statement entry, preserving guards and loops. Same-spelling routines and receiver members retain precedence; ambiguous or invisible record targets remain excluded.
 - Remove-with preserves compiler type casts inside statement bodies, including writable Double and Pointer casts, while retaining user declarations and receiver-member precedence. Older cached planning facts are rebuilt.
 - Remove-with keeps nested and conditional body boundaries intact, preserves generated capture wrappers, and retains outer ELSE branches across whitespace and comments.
 - Remove-with captures unambiguous global record-array fields at each controlled statement entry, preserving index mutation and skipped guards. Getter and shadowed receivers remain excluded.

@@ -168,3 +168,48 @@ analysis gates and output verification pass. Finding changes are documented
 in `t281-conventions-analysis-disposition.md`; T-265 still owns maintained-root
 classification. Exact task proof: `t281-task-proof.json`. T-209 historical
 acceptance and final statistical performance remain open.
+
+## Pointer-cast receivers, T-282
+
+A source-visible pointer alias followed by record dereference can now use the
+existing capture-once renderer. The binder checks the actual alias and target
+declarations, caller visibility, lexical scope and receiver-member precedence.
+Imported functions, procedure variables and same-spelling members remain calls.
+For nested selectors with identical text, the innermost binding controls the
+decision. Planning-facts producer v5 rejects cached bindings from v4; the public
+interfaces and parser identity remain unchanged.
+
+Retained RED covers six failures among thirteen initial cases, one imported
+callable failure, and two nested callable failures. The final focused set passes
+20/20 and its owning fixtures pass 225/225. Three prior body-range assertions
+were migrated only after real apply and runtime proof. They retain exact source
+ranges, verification text, complete replacements and parent/child ownership.
+
+The Win64 pointer fixture applies six statements and keeps ten excluded.
+Changing a slot pointer between writes still updates the originally captured
+record. False guards and zero-iteration loops do not evaluate nil receivers.
+The body-range fixture applies nine parents and covers one child. Both isolated
+copies rebuild with zero warnings and reproduce all original output, sixteen
+and seventeen lines respectively. Their complete ordered cold/warm plans agree
+across eighteen fields; original sources and transaction backups retain their
+bytes.
+
+Both complete MaxTdb contexts add ten planned parents and cover one child;
+ten other casts remain skipped because body names are unresolved. All other
+final records and surviving order are unchanged. Each complete set of 464 edits
+compiles across 21 isolated units, with 445 unchanged inherited warning
+messages after line/path normalization. All 709 original files remain intact.
+This is compiler proof; full historical runtime equivalence and T-209 acceptance
+remain open.
+
+Evidence under `projects/.dak/DelphiAIKit/goal-current/` includes
+`t282-implementation-checkpoint.json`, `t282-current-runtime-proof.json`,
+`t282-complete-plan-delta.json`, `t282-historical-plan-review.md`,
+`t282-all-compiler-proof.json` and `t282-current-source-review.md`.
+The shared gate passes Semantics 712/712, SQLite 68/68, DAK 659/659 and
+Python 110/110, with zero owned compiler warnings. Both compatible project
+analysis gates and report verification pass. PAL findings are unchanged;
+FixInsight metric changes and an inherited MaxLogicFoundation W541 reference
+omission are documented in `t282-analysis-disposition.md`. Maintained-root
+classification remains T-265 work. Exact task proof: `t282-task-proof.json`.
+T-209 historical acceptance and final performance certification remain open.
