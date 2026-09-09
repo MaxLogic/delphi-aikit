@@ -76,3 +76,52 @@ Evidence: `projects/.dak/DelphiAIKit/goal-current/t278-verified-runtime-proof.js
 `t278-identity-owner-green.json`, `t278-final-maxtdb-plan-delta.json`,
 `t278-maxtdb-compiler-proof.json`, `t278-candidate-review.md` and
 `t278-task-proof.json`.
+
+
+## T-280/T-283 body boundaries and controlled wrappers
+
+The range extractor distinguishes an END opened inside the WITH body from an
+enclosing END. A compound before an outer ELSE keeps its own END. A final
+conditional, numeric literal or string/comment body excludes the enclosing
+routine END. Parser identity 12 invalidates persisted ranges from identity 11
+and the dependent project facts.
+
+Generated capture wrappers bypass source-tail trimming. The planner checks the
+first code token after the inclusive body endpoint, skipping whitespace and
+comments across lines. An outer ELSE keeps its attachment without a generated
+semicolon. Nested compounds without ELSE retain their closing tokens.
+
+The 16 range/cache cases reproduce 13 failures and retain three passing
+controls. All 16 pass with the fix. The six renderer cases reproduce five
+failures against the original producer and retain one passing control; all six
+pass with the candidate.
+
+The real BodyRanges fixture builds for Win64/Release/23.0 with zero warnings.
+In an isolated copy, all seven eligible statements apply and all 17 output
+lines match the original. Transaction backups match unchanged original bytes.
+Three cast-bearing statements remain skipped. Complete ordered cold/warm
+fixture plans match across 18 stable fields. Statistical performance
+verification remains open.
+
+The complete 633-row historical legacy API plan is identical before and after
+the renderer correction on the T-280 range candidate. T-280 changes 27 final
+DTOs without changing statuses; all 437 emitted edits compile in 21 isolated
+units. TDB02:2866 now ends at 2875:7, and TDB02:3107 ends at 3119:21.
+Historical expectation migration and full ownership/performance acceptance
+remain open. The shared gate passes Semantics 688/688, SQLite 68/68, DAK
+659/659 and Python 110/110, with zero owned compiler warnings. Both compatible
+project analysis gates pass; advisory metrics and shifted finding locations
+remain visible. T-265 still owns the maintained-root classification defect;
+dedicated Semantics analysis covers those sources here.
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/t280-regression-red.json`,
+`t283-counterfactual-red.json`, `t283-counterfactual-green.json`,
+`t283-final-runtime-proof.json`, `t283-current-all-rewritten-build.json`
+and the source reviews `t280-candidate-review.md` and `t283-candidate-review.md`.
+Exact inputs and shared gate results: `t280-t283-task-proof.json`.
+
+The fresh historical run passes 159 of 203 tests. Its 39 prior failures are
+unchanged. Five additional assertions retain the old boundaries in ClearBitArray,
+MakeDirStr, NormIndFiles, h_FNr and getstructure. Their failures match the
+source-reviewed T-280 corrections; expectation migration remains T-209 work.
+See `t209-eighth-inventory.json` for the exact failures and unchanged inputs.

@@ -320,7 +320,7 @@ begin
     Assert.IsNotEmpty(lProvenance.GetValue<TJSONObject>('dak').GetValue<string>(
       'sourceRevision'));
     lDelphiSemantics := lProvenance.GetValue<TJSONObject>('delphiSemantics');
-    Assert.AreEqual('DelphiSemantics.Model.Parser.11',
+    Assert.AreEqual('DelphiSemantics.Model.Parser.12',
       lDelphiSemantics.GetValue<string>('parserVersion'));
     Assert.IsNotEmpty(lDelphiSemantics.GetValue<string>('modelVersion'));
     Assert.AreEqual('9', lDelphiSemantics.GetValue<string>('cacheSchemaVersion'));

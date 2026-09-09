@@ -23,6 +23,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- Remove-with keeps nested and conditional body boundaries intact, preserves generated capture wrappers, and retains outer ELSE branches across whitespace and comments.
 - Remove-with captures unambiguous global record-array fields at each controlled statement entry, preserving index mutation and skipped guards. Getter and shadowed receivers remain excluded.
 - Remove-with now keeps reference coordinates correct in LF source files, including qualified pointer fields; cached models with the old coordinates are rebuilt.
 - Remove-with preserves receiver-member precedence across inline declarations, including initializer expressions and loop bodies, without qualifying declaration identifiers.
