@@ -9511,15 +9511,15 @@ begin
   Assert.IsTrue(Pos('var Count := 1;', lUnitText) > 0, 'Expected inline local variable declaration to stay local.');
   Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr^.Count := lWithScopedDeclarationItemPtr^.Count + 1;', lUnitText) > 0,
     'Expected member uses before a same-name inline local declaration to be qualified.');
-  Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr^.Name := IntToStr(Count);', lUnitText) > 0,
-    'Expected member assignment to be qualified while local Count remains unqualified.');
+  Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr^.Name := IntToStr(lWithScopedDeclarationItemPtr^.Count);', lUnitText) > 0,
+    'Expected compiler-proven WITH member precedence after the inline Count declaration.');
   Assert.IsTrue(Pos('var Name := ''local'';', lUnitText) > 0,
     'Expected same-name inline local after a member use to stay local.');
-  Assert.IsTrue(Pos('Name := Name + ''x'';', lUnitText) > 0,
-    'Expected same-name inline local use after a nested block to stay local.');
+  Assert.IsTrue(Pos('Name := Name + ''x'';', lUnitText) = 0,
+    'Expected the Name expression to retain receiver qualification after nested blocks.');
   Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr1^.Name := ' +
-    'lWithScopedDeclarationItemPtr1^.Name + ''x'';', lUnitText) = 0,
-    'Expected nested blocks after a local declaration not to end the local range too early.');
+    'lWithScopedDeclarationItemPtr1^.Name + ''x'';', lUnitText) > 0,
+    'Expected compiler-proven receiver member precedence after nested blocks.');
   Assert.IsTrue(Pos('for var i := 0 to lWithScopedDeclarationItemPtr2^.Count do', lUnitText) > 0,
     'Expected inline for variable to stay local while member Count is qualified.');
   Assert.IsTrue(Pos('lWithScopedDeclarationItemPtr2^.Name := IntToStr(i);', lUnitText) > 0,
@@ -9671,8 +9671,8 @@ begin
     'Expected the safe member argument to be qualified.');
   Assert.IsTrue(Pos('var Name := ''local'';', lUnitText) > 0,
     'Expected local inline variable declaration to remain unqualified.');
-  Assert.IsTrue(Pos('lWithExpressionRoleItemPtr3^.Count := Length(Name);', lUnitText) > 0,
-    'Expected declaration-like body member assignment to be qualified while local Name remains unqualified.');
+  Assert.IsTrue(Pos('lWithExpressionRoleItemPtr3^.Count := Length(lWithExpressionRoleItemPtr3^.Name);', lUnitText) > 0,
+    'Expected compiler-proven WITH member precedence while preserving the inline declaration.');
   Assert.IsTrue(Pos('lWithExpressionRoleItemPtr4^.ExpressionRoleSupportUnit', lUnitText) = 0,
     'Expected the source-unit qualifier to remain unchanged.');
   Assert.IsTrue(Pos('lWithExpressionRoleItemPtr2^.TExpressionRoleScope', lUnitText) = 0,
@@ -11070,8 +11070,8 @@ begin
   lUnitText := TFile.ReadAllText(lUnitPath, TEncoding.UTF8);
   Assert.IsTrue(Pos('var Name := ''local'';', lUnitText) > 0,
     'Expected declaration identifier to remain local.');
-  Assert.IsTrue(Pos('.Count := Length(Name);', lUnitText) > 0,
-    'Expected declaration body member assignment to be qualified while local Name remains unqualified.');
+  Assert.IsTrue(Pos('lWithBoundRewriteRecordPtr1^.Count := Length(lWithBoundRewriteRecordPtr1^.Name);', lUnitText) > 0,
+    'Expected compiler-proven WITH member precedence while preserving the inline declaration.');
   Assert.IsTrue(Pos('.Child <> nil', lUnitText) > 0,
     'Expected not-equal comparison member to be qualified, not treated as a generic type name.');
   Assert.IsTrue(Pos('.Count<', lUnitText) > 0,

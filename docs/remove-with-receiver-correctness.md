@@ -120,3 +120,37 @@ The complete MaxTdb API plan retains 633 final statements with unchanged identit
 Fresh current-host analysis and report verification pass. PAL findings are unchanged. FixInsight retains two new advisories: the six-case assertion method has 86 lines, and the completeness check has eight variables. Its existing `PrepareFinalBodyText` length measurement changes from 132 to 133 lines. The added variable names the proven receiver/member collision reused by both checks. No findings were suppressed or reclassified.
 
 Evidence is retained under `projects/.dak/DelphiAIKit/goal-current/`: `t271-task-proof.json`, `t271-bound-final-source-review.md`, `t271-bound-runtime-proof.json`, `t271-bound-plan-comparison.json`, `t271-bound-maxtdb-compiler-proof.json` and `t271-bound-sem-change-delta.json`. T-274 remains open: a separate inline-declaration control compiles successfully but changes runtime output from `17,0` to `17,99` after rewriting. Historical MaxTdb expectations, performance certification, ownership and the final goal gate remain open.
+
+
+## Inline declaration precedence, T-274
+
+An inline variable declaration inside WITH does not make every later matching expression refer to that local. Delphi still gives the receiver member precedence. The former name-based exemption could silently change a whole-array assignment: the original program printed `17,0`, while the rewritten program printed `17,99`. Both programs compiled without warnings.
+
+The renderer now protects declaration positions with one private lexer scan per body. Initializer expressions and loop bodies remain eligible for member qualification. The scan respects nested type punctuation, distinguishes a field named `On` from an exception header, and preserves unit-level conditional context. The completeness check builds its own position mask after rewriting. The existing scope guard remains for unrelated inline locals that the symbol inventory does not expose. Public APIs and cache identities are unchanged.
+
+Two older scalar tests generated invalid Delphi: one omitted System.SysUtils for IntToStr; the other redeclared the same inline name in a nested block. Their exact original failures are retained. Minimal valid copies then proved the expression-binding defect. Four related Semantics/DAK test methods were corrected only after isolated compiler/runtime controls demonstrated the old rewrite's wrong output. Declaration, lexical-local, range and complete replacement assertions remain covered.
+
+Eight exact semantic regressions, all 112 owning tests and all three affected DAK apply tests pass. Six fresh transactional fixture comparisons preserve their original output:
+
+| Fixture | Output before and after apply |
+| --- | --- |
+| Nested inline scope | `8,8`; `0,0` |
+| Inline blocks and try/finally | `24,receiverx`; `11,receiverx` |
+| Array, initializer, loop and handler control | `17,0`; `4,4`; `3,6`; `5` |
+| Contextual On and unit define | `5,2`; `6,2` |
+| Bound rewrite | `4,cast` |
+| Expression roles | `7,default` |
+
+A seventh controlled runtime check preserves all four original ScopedDeclaration WITH bodies and adds observations after each block. Starting Count at 10 and -5, the original and current rewrite agree in all eight observations. The old rewrite differs, including `11,1` instead of `11,11`. This justified correcting three assertions in its existing DAK test. All three affected DAK tests fail with the old producer and pass with the current one. The exception path remains compiled and text-checked; it was not forced at runtime.
+
+The six fixtures with complete cold/warm comparisons apply 16 planned edits and retain one unsupported handler skip. All fixture builds have zero warnings. Complete cold/warm plans match across all 18 fields outside generated run/workspace details, and original files remain unchanged.
+
+The fresh MaxTdb planner emits the same complete 633-statement plan byte for byte as before the equivalent token-switch cleanup. This probe leaves API platform/configuration at the project defaults, which are Release/Linux64 in the pinned DPROJ. It does not certify explicit Win64 planning; the Win64 evidence below is compilation of the emitted edits. T-275 makes the benchmark context explicit before T-209 certification. Its 434 edits across 21 isolated units retain the earlier compiler result: zero errors and 445 identical inherited warning signatures. All generated compiler inputs and 709 original files were checked before reusing that result. No legacy application runtime or performance improvement is claimed.
+
+Semantics and DAK project analysis, plus refreshed project-context PAL for the touched DAK test unit, pass report verification against compatible references. The token-switch cleanup removes all 216 new PAL missing-enum-case advisories without suppression. Two new FixInsight size advisories remain visible: the declaration scanner has 54 lines and the completeness method has 51. Other changed messages describe renamed tests or existing size/variable measurements; the argument helper loses its previous variable-count advisory.
+
+The first full DAK run passed 658 of 659 tests and exposed the stale ScopedDeclaration expectation. After its compiler/runtime characterization and reviewed assertion correction, the DAK test build, focused tests, touched-unit PAL and full DAK suite were refreshed. The unchanged Semantics, SQLite and Python test inputs and production analysis inputs were verified before reusing those results.
+
+The shared T-273/T-271/T-274 checkpoint passes 653 Semantics tests, 68 SQLite tests, 659 freshly built DAK tests and 110 Python analyzer tests. Explicit Win64 builds have zero owned compiler warnings; the three Semantics and four DAK vendor warnings are reported separately. This closes the inline-declaration task, while historical MaxTdb acceptance, performance certification, maintained-library ownership, external capabilities and T-127 approval remain open.
+
+Exact commands, durations and hashes are retained in `projects/.dak/DelphiAIKit/goal-current/t274-task-proof.json`. The supporting records include `t274-token-runtime-proof.json`, `t274-token-maxtdb-parity.json`, `t274-dak-characterization-proof.json`, `t274-scoped-characterization-proof.json`, the three current analysis deltas, and the source/token-refactor/scoped-assertion reviews.

@@ -23,6 +23,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- Remove-with preserves receiver-member precedence across inline declarations, including initializer expressions and loop bodies, without qualifying declaration identifiers.
 - Remove-with now qualifies indexed fields whose name matches the receiver, while preserving explicit qualifiers and anonymous nested receivers under skipped parents.
 - Remove-with preserves receiver-field precedence over outer locals in indexed arguments, while retaining lexical indexes and explicit qualifiers, including whitespace after a dot.
 - Remove-with captures following nested forward declarations are now declared in the enclosing routine; older cached planning facts are rebuilt automatically.
