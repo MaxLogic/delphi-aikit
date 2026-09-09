@@ -225,3 +225,14 @@ All 18 focused tests and all 658 standard Semantics tests pass on the cleaned Wi
 The complete historical run passes 134 of 203 tests in 172.987 seconds, with 69 failures and no ignored, errored or leaked tests. All 94 migrations since the 40-pass inventory pass; no remaining failure name or message changes. T-209 remains open for those cases, explicit Win64 semantic parity, performance and final certification.
 
 Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-sixth-migrations-proof.json`, `t209-after-94-inventory.json`, `t209-sixth-lowfiles-migration-review.md` and `t209-sixth-tdb01-migration-review.md`.
+
+
+## Further historical coverage after T-278
+
+Thirty reviewed methods now cover 37 selected planned positions across BITARRAY, DEKLARAT, IndexUtils, FORMELN, LINKFILE, MD5, STRFUNCS, TDB01, TDB06 and TDBJOBS. Complete source and replacement text, capture order, shared declarations and three covered children remain asserted. Existing SetIV uniqueness, replacement-length and negative qualification checks are preserved. The original DPR/DPROJ entrypoints are unchanged. This is a test-only characterization update.
+
+All 30 focused checks and all 666 standard Semantics tests pass. The explicit Win64 build has zero owned warnings and three DelphiAST warnings; guarded encoding cleanup changes no bytes. PAL retains 322 actionable findings with no additions or removals. The production code, all 709 original files and the isolated inputs for all 437 emitted MaxTdb edits still match the T-278 compiler proof. Both proposal reviews pass against the exact verified test candidate.
+
+The full historical run passes 164 of 203 tests in 181.739 seconds. Its 39 remaining failure names and messages are unchanged; no tests are ignored, errored or leaked. All 124 migrations since the 40-pass inventory pass. T-209 remains open. T-280 tracks two incorrect source ranges, T-281 body type-cast binding, and T-282 pointer-cast receiver capture. Explicit Win64 semantic parity, performance and final certification also remain open.
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/t209-seventh-migrations-proof.json`, `t209-after-124-inventory.json`, `t209-seventh-indexutils-proposal-review.md` and `t209-seventh-linkfile-proposal-review.md`.
