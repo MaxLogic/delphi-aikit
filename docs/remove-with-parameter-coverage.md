@@ -131,3 +131,40 @@ planned/skip decisions. All five pass, and the full historical rerun passes
 164/203 with the same 39 prior failure names and messages. The Win64 rebuild
 has zero owned warnings, and touched-unit PAL analysis has no new findings.
 Evidence: `t209-five-boundaries-proof.json` and `t209-after-boundary-inventory.json`.
+
+## Compiler type casts inside WITH bodies, T-281
+
+Body binding now retains compiler-owned type identity after receiver and lexical
+lookup have failed. It reuses the existing compiler profile once per binding
+session. Same-spelling user routines, types and receiver methods keep their
+declaration identity. Selector-cast restrictions are unchanged. Planning-facts
+producer v4 rejects older cached bindings; parser identity remains 12.
+
+The eight retained cases fail five assertions before the fix and all pass after
+it; three shadowing controls pass in both runs. Owning tests pass 209/209.
+The real Win64 fixture checks writable Double, Pointer and Integer casts, a
+Pointer value cast, false guards and the three shadow declarations. All seven
+statements apply in an isolated copy, rebuild without warnings and reproduce
+the original eleven output lines. Full cold/warm plans agree across 18 fields;
+original files and transaction backups retain their bytes.
+
+Complete MaxTdb comparisons cover explicit Win64/Release/23.0 and the historical
+project-default context separately. Four parent bodies become planned: GetVar,
+GetArrayVarPtr, build_str_array and Compile at TDBJOBS:2295. Two nested final
+rows are now covered by their parents. All remaining row order is preserved.
+Both complete 444-edit sets compile in 21 isolated units. The 445 inherited
+MaxTdb warnings retain the same ordered messages after line/path normalization;
+all 709 original files remain unchanged. This compiler proof does not claim
+full MaxTdb runtime equivalence or close the historical T-209 assertions.
+
+Evidence is under `projects/.dak/DelphiAIKit/goal-current/`:
+`t281-regression-red.json`, `t281-cleanup-exact-green.json`,
+`t281-cleanup-final-runtime-proof.json`, `t281-complete-plan-delta.json`,
+`t281-cleanup-plan-parity.json`, `t281-cleanup-compiler-warning-delta.json`
+and `t281-cleanup-review.md`.
+The shared gate passes Semantics 696/696, SQLite 68/68, DAK 659/659 and
+Python 110/110, with zero owned compiler warnings. Both compatible project
+analysis gates and output verification pass. Finding changes are documented
+in `t281-analysis-disposition.md`; T-265 still owns maintained-root
+classification. Exact task proof: `t281-task-proof.json`. T-209 historical
+acceptance and final statistical performance remain open.
