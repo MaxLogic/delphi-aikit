@@ -23,6 +23,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- Remove-with preserves receiver-field precedence over outer locals in indexed arguments, while retaining lexical indexes and explicit qualifiers, including whitespace after a dot.
 - Remove-with captures following nested forward declarations are now declared in the enclosing routine; older cached planning facts are rebuilt automatically.
 - Analyzer cleanup preserves shared project caches, retained evidence, baselines and history, and rejects linked output trees before deleting generated reports.
 - Remove-with replacements now keep pointer-body indentation when a receiver capture precedes the body, including indexed pointers and controlled statements.
