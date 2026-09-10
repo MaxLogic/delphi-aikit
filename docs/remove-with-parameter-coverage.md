@@ -334,14 +334,20 @@ declaration is emitted once by the first capture. NewInd pins both captures,
 the allocation/error path and the child's ownership. IndProc retains its full
 IF/ELSE, callback, GOTO and EXIT behavior.
 
-The four focused tests pass, the owning fixtures pass 257/257, and the standard
-Semantics suite passes 769/769. The historical category is now at 178/203,
-with exactly 25 remaining failures and unchanged failure messages. The Win64
+Five further methods now pin eight receiver captures in GetVar, DoMarkBits,
+GetBitArrayVar, BitArrayOp, InArray, InArrayPos, andmarks and KonvertVarNr.
+They retain the complete bodies and the first BitArrayOp skip. New assertions
+cover original source, capture metadata, declarations and recipes. Corrected
+replacement ranges exclude the enclosing routine end or following ELSE.
+
+The five focused tests pass, the owning fixtures pass 257/257, and the standard
+Semantics suite passes 769/769. The historical category is now at 183/203,
+with exactly 20 remaining failures and unchanged failure messages. The Win64
 build has zero owned warnings and three DelphiAST warnings. Project-context
 PAL retains the same 322 findings; report ownership verification passes.
-Production inputs remain unchanged from the verified T-285 through T-287
-batch. Evidence: `t209-next-four-proof.json` under the evidence folder above.
-The preceding 28-method checkpoint is retained in
+All 3,350 production inputs remain unchanged from the verified T-285 through
+T-287 batch. Evidence: `t209-capture-five-proof.json` under the evidence folder
+above. The preceding checkpoints remain in `t209-next-four-proof.json` and
 `t209-final-characterization-proof.json`. T-209 remains open.
 
 Two diagnostic witnesses establish limits of the remaining investigation.
