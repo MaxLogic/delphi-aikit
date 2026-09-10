@@ -1953,7 +1953,17 @@ def _compatibility_snapshot(status_seed: dict[str, Any]) -> dict[str, Any]:
         for key, value in sorted(capabilities.items())
         if isinstance(value, (str, int, float, bool)) or value is None
     }
+    ownership_roots = _checked_policy_roots(status_seed)
     material = {
+        "ownership_contract": "maintained-roots-v2",
+        "ownership_boundaries": {
+            "policy_roots": sorted(
+                (ownership, _canonical_path(root)) for ownership, root in ownership_roots
+            ),
+            "maintained_nested_roots": [
+                _canonical_path(root) for root in _maintained_nested_roots(ownership_roots)
+            ],
+        },
         "subject_kind": str(subject.get("kind") or ""),
         "compiler": {
             key: str(compiler.get(key) or "")
@@ -2252,6 +2262,22 @@ def _registered_nested_roots(
     return roots
 
 
+def _maintained_nested_roots(policy_roots: list[tuple[str, Path]]) -> list[Path]:
+    roots: set[Path] = set()
+    for ownership, root in policy_roots:
+        if ownership != "project":
+            continue
+        for ancestor in (root, *root.parents):
+            if (ancestor / ".git").exists() or (ancestor / ".gitmodules").is_file():
+                roots.update(
+                    nested
+                    for nested in _registered_nested_roots({}, ancestor, "git")
+                    if nested != root and nested.is_relative_to(root)
+                )
+                break
+    return sorted(roots)
+
+
 def _git_delphi_files(repo_root: Optional[Path]) -> list[Path]:
     if repo_root is None:
         return []
@@ -2288,12 +2314,7 @@ def _unique_basename_index(paths: Iterable[Path], repo_root: Optional[Path]) -> 
     return {key: value for key, value in seen.items() if value is not None}
 
 
-def _build_ownership_context(
-    out_root: Path,
-    status_seed: dict[str, Any],
-    legacy_repo_root: Optional[Path],
-) -> dict[str, Any]:
-    workspace_root, vcs = _workspace_context(status_seed, legacy_repo_root)
+def _checked_policy_roots(status_seed: dict[str, Any]) -> list[tuple[str, Path]]:
     policy = _resolved_analysis_policy(status_seed)
     policy_roots: list[tuple[str, Path]] = []
     for ownership, values in (
@@ -2309,6 +2330,17 @@ def _build_ownership_context(
             )
             if resolved is not None and resolved.is_dir():
                 policy_roots.append((ownership, resolved))
+
+    return policy_roots
+
+
+def _build_ownership_context(
+    out_root: Path,
+    status_seed: dict[str, Any],
+    legacy_repo_root: Optional[Path],
+) -> dict[str, Any]:
+    workspace_root, vcs = _workspace_context(status_seed, legacy_repo_root)
+    policy_roots = _checked_policy_roots(status_seed)
 
     project_files, project_file, project_dir = _project_source_files(status_seed)
     search_paths = _pal_search_paths(out_root, project_dir)
@@ -2338,12 +2370,12 @@ def _build_ownership_context(
         "project_files": project_files,
         "search_paths": search_paths,
         "base_dirs": base_dirs,
-        "nested_roots": _registered_nested_roots(
-            status_seed, workspace_root, vcs
-        ),
+        "nested_roots": [
+            *_registered_nested_roots(status_seed, workspace_root, vcs),
+            *_maintained_nested_roots(policy_roots),
+        ],
         "basename_index": basename_index,
         "policy_roots": policy_roots,
-        "policy_resolution": {},
     }
 
 
@@ -2386,22 +2418,50 @@ def _resolve_ownership_path(raw_path: str, context: dict[str, Any]) -> Optional[
                 )
             ] = (resolved, ownership, root)
     if len(candidates) == 1:
-        resolved, ownership, root = next(iter(candidates.values()))
-        context["policy_resolution"][_canonical_path(resolved)] = (
-            ownership,
-            root,
-        )
+        resolved, _, _ = next(iter(candidates.values()))
         return resolved
     return None
+
+
+def _policy_ownership(
+    path: Path, context: dict[str, Any]
+) -> Optional[tuple[str, Optional[Path]]]:
+    workspace = context["workspace_root"]
+    nested = [root for root in context["nested_roots"] if path.is_relative_to(root)]
+    if not nested and (
+        (workspace is not None and path.is_relative_to(workspace))
+        or (workspace is None and _canonical_path(path) in context["project_files"])
+    ):
+        return None  # Explicit third-party roots cannot demote automatically owned source.
+    matches = [
+        (ownership, root) for ownership, root in context["policy_roots"]
+        if path.is_relative_to(root)
+    ]
+    if not matches:
+        return None
+    depth = max(len(root.parts) for _, root in matches)
+    nearest = {(ownership, root) for ownership, root in matches if len(root.parts) == depth}
+    if len(nearest) != 1:
+        return "unknown", None
+    ownership, root = next(iter(nearest))
+    maintained = [root for category, root in matches if category == "project"]
+    if maintained:
+        maintained_depth = max(len(root.parts) for root in maintained)
+        deeper_vendors = [vendor for vendor in nested if len(vendor.parts) > maintained_depth]
+        if deeper_vendors:
+            return "third_party", max(deeper_vendors, key=lambda vendor: len(vendor.parts))
+        if ownership == "third_party":
+            return "unknown", None  # A path setting alone cannot demote maintained source.
+    return ownership, root
 
 
 def _classify_ownership(path: Optional[Path], context: dict[str, Any]) -> str:
     if path is None:
         return "unknown"
     canonical = _canonical_path(path)
-    policy_resolution = context["policy_resolution"].get(canonical)
-    if policy_resolution is not None:
-        return str(policy_resolution[0])
+    policy = _policy_ownership(path, context)
+    if policy is not None:
+        return policy[0]
     workspace_root = context["workspace_root"]
     for root in context["nested_roots"]:
         if path.is_relative_to(root):
@@ -2420,9 +2480,9 @@ def _ownership_root(
 ) -> Optional[Path]:
     if path is None or ownership == "unknown":
         return None
-    policy_resolution = context["policy_resolution"].get(_canonical_path(path))
-    if policy_resolution is not None:
-        return policy_resolution[1]
+    policy = _policy_ownership(path, context)
+    if policy is not None:
+        return policy[1]
     if ownership == "project":
         return context["project_dir"]
     if ownership == "repository":

@@ -81,15 +81,27 @@ ThirdPartyRoots=
 ```
 
 `GateOwnership` accepts only `project`, `repository`, and `third_party`.
-Unknown keys or categories make the configuration invalid. `ProjectRoots` and
-`ThirdPartyRoots` resolve only paths that automatic project/VCS topology could
-not classify; they cannot relabel an already resolved first-party file.
+Unknown keys or categories make the configuration invalid. Existing, checked
+`ProjectRoots` also identify libraries we maintain outside the primary worktree
+or inside registered submodules. Ownership is independent of whether a finding
+uses an absolute path, a project-relative path or the policy-root fallback.
+Automatically owned source cannot be demoted through `ThirdPartyRoots`.
+
+Registered vendor boundaries below a maintained root remain third-party,
+including submodules declared by that maintained Git repository. A narrower
+`ThirdPartyRoots` entry without such a boundary cannot silently demote maintained
+source: conflicting ownership remains `unknown` and fails the gate. Equal-root
+conflicts and ambiguous physical paths also remain unknown. More specific
+checked maintained roots can identify our libraries inside a broader external
+root. Both root settings retain their existing unresolved-path lookup role.
 
 DAK writes the canonical values, contributing `dak.ini` paths, and policy
 SHA-256 into `summary.json`. A gated comparison always requires a matching
 compatibility fingerprint covering compiler/search-path context, requested
 analyzer versions/options, policy, project/config manifests, recursive
-submodule revisions, and the DAK candidate. HEAD/dirty/source-content identity
+submodule revisions, and the DAK candidate. The ownership contract version,
+effective checked roots and registered boundaries inside maintained roots also
+participate, so older ownership baselines cannot be silently reused. HEAD/dirty/source-content identity
 is recorded separately so normal source edits can still be compared with a
 compatible baseline. Missing or incompatible fingerprints fail without
 creating, migrating, or updating the baseline.

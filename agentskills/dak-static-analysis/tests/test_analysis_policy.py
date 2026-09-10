@@ -388,6 +388,170 @@ class AnalysisPolicyTests(unittest.TestCase):
                 any("unknown ownership" in reason.lower() for reason in delta["gate"]["reasons"])
             )
 
+    def test_maintained_external_root_gates_all_resolved_path_forms(self):
+        for form in ("absolute", "relative", "basename"):
+            with self.subTest(form=form), tempfile.TemporaryDirectory() as temp_dir:
+                fixture = PolicyFixture(Path(temp_dir))
+                baseline = self.create_baseline(
+                    fixture, project_roots=(fixture.external,)
+                )
+                path = {
+                    "absolute": str(fixture.external_source),
+                    "relative": "../external/External.pas",
+                    "basename": "External.pas",
+                }[form]
+                fixture.write(
+                    [finding(path)], project_roots=(fixture.external,)
+                )
+                for repeat in range(2):
+                    with patch.dict(
+                        os.environ, fixture.environment(DAK_GATE="1"), clear=False
+                    ):
+                        result = self.postprocess.run_postprocess(
+                            fixture.out,
+                            title="Sample",
+                            captured_provenance=CAPTURED_PROVENANCE,
+                        )
+                    self.assertFalse(result["gate_pass"], (form, repeat))
+                    record = json.loads(
+                        (fixture.out / "fixinsight" / "fi-findings.jsonl")
+                        .read_text(encoding="utf-8")
+                        .strip()
+                    )
+                    self.assertEqual("project", record["ownership"])
+                    self.assertEqual(fixture.external.as_posix(), record["ownership_root"])
+                    self.assertEqual(baseline, (fixture.out / "baseline.json").read_bytes())
+
+    def test_maintained_roots_preserve_vendor_conflict_and_owned_boundaries(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture = PolicyFixture(Path(temp_dir))
+            maintained = fixture.repo / "maintained"
+            maintained.mkdir()
+            fixture.repo.joinpath(".gitmodules").write_text(
+                '[submodule "maintained"]\npath = maintained\n', encoding="ascii"
+            )
+            roots = (maintained, fixture.external)
+            for root in roots:
+                git(root, "init", "-q")
+                root.joinpath("Library.pas").write_text("unit Library;\n", encoding="ascii")
+                root.joinpath("vendor").mkdir()
+                root.joinpath("vendor/Vendor.pas").write_text("unit Vendor;\n", encoding="ascii")
+                root.joinpath(".gitmodules").write_text(
+                    '[submodule "vendor"]\npath = vendor\n', encoding="ascii"
+                )
+            conflict = fixture.external / "conflict"
+            conflict.mkdir()
+            conflict.joinpath("Conflict.pas").write_text("unit Conflict;\n", encoding="ascii")
+            fixture.write(
+                [], project_roots=(*roots, conflict),
+                third_party_roots=(fixture.repo, conflict),
+            )
+            expected = [
+                (root / "Library.pas", "project", root) for root in roots
+            ] + [
+                (root / "vendor/Vendor.pas", "third_party", root / "vendor")
+                for root in roots
+            ] + [
+                (fixture.repo / "src/Owned.pas", "project", fixture.repo),
+                (conflict / "Conflict.pas", "unknown", None),
+            ]
+            seed = json.loads((fixture.out / "summary.json").read_text(encoding="utf-8"))
+            fi = fixture.out / "fixinsight/fi-findings.jsonl"
+            pal = fixture.out / "pascal-analyzer/pal-findings.jsonl"
+            for rows in (expected, list(reversed(expected))):
+                write_jsonl(fi, [finding(str(path)) for path, _, _ in rows])
+                write_jsonl(pal, [{"source_path": str(path)} for path, _, _ in rows])
+                previous = None
+                for repeat in range(2):
+                    self.postprocess._normalize_findings_ownership(
+                        fi, pal, out_root=fixture.out, status_seed=seed,
+                        repo_root=fixture.repo,
+                    )
+                    projections = []
+                    for output in (fi, pal):
+                        records = [json.loads(line) for line in output.read_text(encoding="utf-8").splitlines()]
+                        projection = [(r["ownership"], r["ownership_root"]) for r in records]
+                        self.assertEqual(
+                            [(owner, root.as_posix() if root else None) for _, owner, root in rows],
+                            projection,
+                        )
+                        projections.append(projection)
+                    if previous is not None:
+                        self.assertEqual(previous, projections)
+                    previous = projections
+
+    def test_unregistered_third_party_child_cannot_demote_maintained_source(self):
+        for form in ("absolute", "fallback"):
+            with self.subTest(form=form), tempfile.TemporaryDirectory() as temp_dir:
+                fixture = PolicyFixture(Path(temp_dir))
+                child = fixture.external / "private"
+                child.mkdir()
+                source = child / "Private.pas"
+                source.write_text("unit Private;\n", encoding="ascii")
+                settings = dict(project_roots=(fixture.external,), third_party_roots=(child,))
+                baseline = self.create_baseline(fixture, **settings)
+                path = str(source) if form == "absolute" else "private/Private.pas"
+                fixture.write([finding(path)], **settings)
+                with patch.dict(os.environ, fixture.environment(DAK_GATE="1"), clear=False):
+                    result = self.postprocess.run_postprocess(
+                        fixture.out, title="Sample", captured_provenance=CAPTURED_PROVENANCE,
+                    )
+                record = json.loads(
+                    (fixture.out / "fixinsight/fi-findings.jsonl").read_text(encoding="utf-8")
+                )
+                self.assertEqual("unknown", record["ownership"])
+                self.assertFalse(result["gate_pass"])
+                self.assertEqual(baseline, (fixture.out / "baseline.json").read_bytes())
+
+    def test_external_vendor_boundary_change_invalidates_ownership_compatibility(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture = PolicyFixture(Path(temp_dir))
+            git(fixture.external, "init", "-q")
+            fixture.external.joinpath("vendor").mkdir()
+            baseline = self.create_baseline(fixture, project_roots=(fixture.external,))
+            fixture.external.joinpath(".gitmodules").write_text(
+                '[submodule "vendor"]\npath = vendor\n', encoding="ascii"
+            )
+            fixture.write([], project_roots=(fixture.external,))
+            with patch.dict(
+                os.environ, fixture.environment(DAK_GATE="1", DAK_UPDATE_BASELINE="1"),
+                clear=False,
+            ):
+                result = self.postprocess.run_postprocess(
+                    fixture.out, title="Sample", captured_provenance=CAPTURED_PROVENANCE,
+                )
+            self.assertFalse(result["gate_pass"])
+            self.assertEqual(baseline, (fixture.out / "baseline.json").read_bytes())
+            delta = json.loads((fixture.out / "delta.json").read_text(encoding="utf-8"))
+            self.assertTrue(any("compatibility" in reason.lower() for reason in delta["gate"]["reasons"]))
+
+    def test_ownership_contract_change_rejects_legacy_baseline_without_replacing_it(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture = PolicyFixture(Path(temp_dir))
+            self.create_baseline(fixture)
+            path = fixture.out / "baseline.json"
+            baseline = json.loads(path.read_text(encoding="utf-8"))
+            context = baseline["compatibility"]["context"]
+            context.pop("ownership_contract", None)
+            context.pop("ownership_boundaries", None)
+            baseline["compatibility"]["sha256"] = self.postprocess._sha256_text(
+                json.dumps(context, sort_keys=True, separators=(",", ":"))
+            )
+            path.write_text(json.dumps(baseline), encoding="utf-8")
+            original = path.read_bytes()
+            fixture.write([])
+            with patch.dict(
+                os.environ, fixture.environment(DAK_GATE="1", DAK_UPDATE_BASELINE="1"),
+                clear=False,
+            ):
+                result = self.postprocess.run_postprocess(
+                    fixture.out, title="Sample", captured_provenance=CAPTURED_PROVENANCE,
+                )
+            self.assertFalse(result["gate_pass"])
+            self.assertEqual(original, path.read_bytes())
+            delta = json.loads((fixture.out / "delta.json").read_text(encoding="utf-8"))
+            self.assertTrue(any("compatibility" in reason.lower() for reason in delta["gate"]["reasons"]))
+
     def test_policy_root_resolves_only_an_otherwise_unknown_finding(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             fixture = PolicyFixture(Path(temp_dir))
