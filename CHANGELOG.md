@@ -14,6 +14,7 @@ All notable user-visible changes to this project will be documented in this file
 - Added collision-safe canonical PAL rule identities, version-verified native aliases, PAL-specific actionable-report filtering, per-value filter provenance, and raw/ignored rule evidence across summary, baseline, delta, and SARIF artifacts.
 
 ### Changed
+- Source-cache validation preserves precise Windows timestamps with one ordinary-file metadata query. Two isolated Win64 certification batches meet the remove-with and rename budgets; see `docs/remove-with-performance.md`.
 - Semantic refactoring reuses coordinate indexes, builds project snapshot lookups once on a cold cache, and indexes binding candidates per operation. The September 7 maxTdb Win64 Release baseline measured medians of 14.594 seconds for cold remove-with, 8.960 seconds warm, and 6.620 seconds for cold rename; see `docs/remove-with-performance.md`.
 - PAL analysis now stages reports under a unique short path when the requested output would exceed PAL's Windows path budget, then publishes the retained reports to the requested directory. Failed staging and publication identify retained evidence.
 - Legacy PAL argument errors now identify the effective INI or CLI/environment source, list all conflicting DAK-owned switches, and explain how to migrate exclusions. The static-analysis doctor checks the same configuration.

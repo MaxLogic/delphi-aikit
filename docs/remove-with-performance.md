@@ -1,4 +1,76 @@
-# Semantic refactoring performance, 2026-09-10
+# Semantic refactoring performance
+
+## Isolated certification after T-313, September 10
+
+Both certification batches pass the tighter budgets in
+`tests/scripts/verify-semantic-budgets.py`. Each workflow has five cold samples,
+ten measured warm samples and one separate warmup per batch. Native builds,
+tests and analyzers ran outside the timing batches. T-312 keeps snapshot setup
+outside the measured native invocation.
+
+| Workflow | Cache | Batch 1 median | Batch 2 median | Median budget |
+| --- | --- | ---: | ---: | ---: |
+| Remove-with plan | Cold | 15.505 s | 14.903 s | 22 s |
+| Remove-with plan | Warm | 8.800 s | 9.183 s | 10 s |
+| Rename dry-run | Cold | 8.487 s | 6.795 s | 55 s |
+| Rename dry-run | Warm | 0.950 s | 1.150 s | 2 s |
+
+Warm rename p95 is 1.011 s and 1.373 s, below the 2.5-second limit. These are
+measurements of this fixture on this machine. The earlier isolated batch's
+10.030 s warm remove-with median failed its 10 s budget and remains retained
+in `t209-isolated-run.json`.
+
+All 60 measured plans and four warmups match the pinned complete ordered
+projections: source text and ranges, edits, skips, coverage, context and
+verification fields. Remove-with retains 363 planned, 258 skipped and 46 covered
+statements; rename retains four edits. All 1,154 certification inputs were
+unchanged during both batches. The later test-only ID migration changes one
+manifest entry that the benchmark executable does not consume; its production
+and fixture inputs remain unchanged. The pinned `semantic-isolated-t311` fixture includes private copies
+of Foundation, JEDI and FastMM; no shared source is restored or rewritten.
+
+The measured revisions were DAK `e7a6b6e` and DelphiSemantics `6f841f6`.
+The Release executable SHA-256 is
+`60bb4aa08443df7c9488a52eed3de9280e4d6b741fea226ea4536eb4f42a68c5`.
+Compiler and semantic context is Win64/Release/Delphi 23.0. T-313 preserves
+native Windows timestamp precision and checks ordinary-file metadata once per
+cache lookup. Instrumented cache-load cost fell from 2100.4812 ms to 556.2857 ms
+for the same 54,701 calls; profiling time is separate from certification.
+
+A fresh `semantic-emitted-t313` copy verifies compilation of all 652 emitted
+edits across 24 units. Original and rewritten Win64 builds have zero errors and
+the same 445 inherited fixture warnings, with identical warning messages and
+owner units. All 943 pinned originals remain unchanged. This check establishes
+emitted-source compilation; it does not establish runtime equivalence or
+transactional apply behavior.
+
+The historical Semantics tests select the older DAK-local maxTdb fixture
+directly, bypassing `DAK_MAXTDB_FIXTURE`. Its three shared dependency search
+paths now point to the pinned T-311 copies. The retained and freshly rebuilt
+planners produce byte-identical complete plans in that isolated default
+context. Changing search paths changes context-derived IDs; 600 exact ID
+literals in 138 historical tests were migrated using the independently
+corroborated mapping. Every other test byte and assertion remains unchanged.
+This fixture-only change preserves the shared Foundation optimization.
+The refreshed historical category passes 203/203 and the standard Semantics
+suite passes 772/772, with no ignored tests, failures, errors or leaks.
+
+Evidence under `projects/.dak/DelphiAIKit/goal-current/`:
+
+- `t209-t313-certified-run.json` and `t209-t313-certified-plan-comparison.json`
+- `t209-t313-emitted-compiler-proof.json` and its snapshot/apply records
+- `t313-task-proof.json` and `t313-profile-proof.json`
+- `t209-historical-isolation.json`, `t209-historical-isolated-producer-comparison.json`
+  and `t209-isolated-identities-preparation.json`
+- `t209-identity-migration-proof.json` and `t209-task-proof.json`
+
+Raw timing outputs are in
+`tests/fixtures/test-projects/semantic-isolated-t311/maxTdb/src/.dak/maxtdb/t209-t313-certified/`.
+Earlier checkpoints below retain their original inputs and timing boundaries.
+T-212's reviewed analysis baseline and vendor limitations are separate from
+these performance results.
+
+## Earlier September 10 checkpoint
 
 Two fresh batches pass the tighter budgets in explicit Win64/Release/Delphi 23.0
 context. Each batch contains five cold and ten measured warm samples per
@@ -111,7 +183,8 @@ cross-unit targets, include changes and full-hit reuse. The binding tests cover
 local/member precedence, duplicate candidates, complex selectors, missing names,
 and changed declarations in subsequent operations.
 
-For the T-209 recheck, run the harness from DelphiSemantics with an explicit
+Historical T-275 command example (the earlier `maxTdb` fixture): run the
+harness from DelphiSemantics with an explicit
 semantic context. T-275 adds optional `-Platform`, `-Config`, and `-DelphiVersion`
 parameters shared by warmup, measured calls and `-List`. Omitting them preserves
 the existing CLI defaults. List prints complete commands for each selected

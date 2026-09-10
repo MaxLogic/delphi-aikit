@@ -1,5 +1,8 @@
 # Procedure parameter coverage, T-256
 
+This records the original T-256 regression checkpoint. Later whole-fixture
+correctness and timing evidence is in [the performance report](remove-with-performance.md).
+
 The planner rejected a record-pointer rewrite in a procedure whenever a body
 reference resolved to an ordinary value parameter without a same-named global.
 That global is irrelevant: removing `with` does not remove the procedure's
