@@ -354,19 +354,29 @@ freeing and reassignment of the outer pointer. The array cases retain copy
 direction, sort-loop order and conditional entry points. Complete source,
 body, identity, declaration and recipe assertions cover each planned edit.
 
-The eight focused tests pass, the owning fixtures pass 257/257, and the standard
-Semantics suite passes 769/769. The historical category is now at 197/203,
-with exactly six remaining failures and unchanged failure messages. The Win64
-build has zero owned warnings and three DelphiAST warnings. Project-context
-PAL has 319 findings: three optimization advisories disappeared when two local
-skip helpers were replaced by full statement contracts. No findings were added;
-report ownership verification passes.
+The last six methods retain all 18 selected positions, including the hidden-type
+skip, shared declaration owners and the existing filter/marks assertions. Full
+source and replacement checks preserve nested capture order, array resizing,
+cursor movement and conditional text. GetIndPath's two unresolved names remain
+unchanged; neither selected record declares them. This does not establish their
+declaring scope or prove an OLD_NET build or runtime.
+
+All 203 historical tests now pass, with zero ignored, failed, errored or leaked
+tests. The final six focused cases pass, the owning fixtures pass 257/257,
+and the standard Semantics suite passes 769/769. The Win64 build has zero
+owned warnings and three DelphiAST warnings. Project-context PAL retains
+319 findings with no delta; report ownership verification passes.
 All 3,350 production inputs remain unchanged from the verified T-285 through
-T-287 batch. Evidence: `t209-storage-array-eight-proof.json` under the evidence
-folder above. Earlier checkpoints remain in
-`t209-imported-controlled-six-proof.json`, `t209-capture-five-proof.json`,
-`t209-next-four-proof.json` and `t209-final-characterization-proof.json`.
-T-209 remains open.
+T-287 batch. Evidence: `t209-remaining-six-proof.json` under the evidence folder
+above. Earlier batch proofs remain beside it, including
+`t209-storage-array-eight-proof.json` and
+`t209-imported-controlled-six-proof.json`.
+
+T-209 remains open. Explicit Win64 API/CLI request parity, both timing batches
+and the final gate are still required. The CLI supplies additional source files,
+skips semantic-graph construction and specifies body-analysis files; these
+settings must also be used for the API comparison. Matching platform and
+configuration alone did not produce matching plans in the fresh diagnostic.
 
 Two diagnostic witnesses establish limits of the remaining investigation.
 Removing a WITH while preserving unbound conditional text can compile yet
