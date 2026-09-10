@@ -100,3 +100,49 @@ generics correction, but the evaluation control above still varies. T-293 and
 T-212 remain open. The next external unblock is a vendor correction verified
 against the retained source/configuration case; no supported workaround has
 passed this proof. No mail was sent.
+
+## T-212: individual review after ownership correction, 2026-09-10
+
+The reviewed-baseline work now records 252 individual gated observations.
+These are findings from the retained project reports, including maintained
+external libraries; they are not 252 confirmed defects or new DAK warnings.
+
+| Reviewed scope | Rows | Source-explained behavior | Debt or unresolved risk |
+| --- | ---: | ---: | ---: |
+| DAK and DelphiSemantics newly gated observations | 35 | 24 | 11 |
+| Isolated external project's FixInsight W findings | 107 | 82 | 25 |
+| Retained external project's PAL strong findings | 110 | 76 | 34 |
+
+Each review retains the complete finding, source hash, reason and disposition.
+The external PAL source hashes match the frozen analysis manifest. The external
+FixInsight review uses the isolated T-294 snapshot; all 962 retained owned rows
+matched the ten-file exclusion control. No historical baseline was replaced,
+and every reviewed finding remains actionable in the reports.
+
+Isolated Win64 characterization using two real Foundation revisions confirms
+unchecked ANSI filename-conversion failure and generic-interface GUID aliasing.
+T-295 and T-296 record those inherited defects. The exception-recovery contract
+in a separate madExcept setup routine remains unproved under T-297; the reviewed
+DAK startup calls a different setup routine.
+
+The pinned external source also contains I/O status overwrites, an inclusive
+array scan beyond an exactly allocated buffer, and unchecked Int64-to-Int32
+file-size conversion followed by a success status. Other findings need result,
+file-format, numeric-range, custom-serializer or callback-lifetime contracts.
+T-298 through T-308 record the relevant follow-ups. Recheck current source before
+implementing them: these findings describe the pinned snapshot, not a verified
+current production revision. Production and Foundation source were not edited.
+T-292's redundant Boolean assignment remains optional fixture-only cleanup debt.
+
+The twenty PathResolver ambiguity findings are real binding debt. The selected
+`te5.ioUtils.NormalizePath` changes separators; the other imported implementation
+also collapses doubled separators. A future qualification or uses-order change
+must preserve that distinction. The Grijjy review explains the explicit
+interface-preserving conversions but leaves six numeric or custom-serializer
+risks open. It does not resolve T-293's inconsistent native PAL output.
+
+Individual records are under `projects/.dak/DelphiAIKit/goal-current/`:
+`t212-reviewed-findings.json`, `t212-external-return-review.json`,
+`t212-external-other-review.json`, `t212-grijjy-pal-review.json` and
+`t212-other-pal-review.json`. Source review alone does not satisfy the final
+analysis gate. Unchanged vendor probes were not rerun for this review.

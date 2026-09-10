@@ -58,7 +58,22 @@ Timing note:
 - The full DUnitX suite is not a fast smoke test. On Pawel's machine it took about 3.5 minutes on 2026-04-07 (`153` tests, all green).
 - `Test.FixInsight.TFixInsightTests` is the long pole. It runs FixInsight analysis three times (`base`, `exclude`, `ignore-ids`) and took about 190-200 seconds on 2026-04-07.
 - Avoid using a 120s or 240s watchdog for the full suite or the FixInsight fixture; those bounds are short enough to produce false "hang" diagnoses.
-- For bounded automation, prefer a full-suite timeout around `900s` and a FixInsight-fixture timeout around `420s`.
+- Size automation timeouts from current runs. On 2026-09-10 the five-test FixInsight fixture passed in 666 seconds; a full 661-test run took 1003 seconds before reporting path-length failures. Allow at least `1800s` for the full suite and `900s` for the FixInsight fixture on this machine, and inspect process progress before diagnosing a hang.
+
+Keep `DAK_TEST_OUTPUT_ROOT` unset for the full suite unless an alternative root
+has been checked against the deepest fixtures. The runner defaults to
+`tests\temp\run-<PID>-<GUID>` and isolates each run automatically. Each copied
+project keeps its analysis and refactoring artifacts in its sibling
+`.dak\<ProjectName>` directory, inside DAK.
+
+Adding checkpoint names or using a longer harness root can exceed Windows path
+limits after fixture, project and transaction directory names are appended.
+Observed failures include DFM file creation, SQLite cache creation and
+remove-with verification directories. A subsequent UTF-8 decoding error can be
+secondary to a native error message written in the console code page. Preserve
+the raw output and rerun the exact failed test with the default root before
+changing source or assertions. Put checkpoint names in the outer proof log
+filenames instead. `DAK_TEST_KEEP_TEMP=1` retains the isolated outputs for review.
 
 ## Useful env vars
 
