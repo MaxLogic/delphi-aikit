@@ -262,3 +262,50 @@ FixInsight metric changes and an inherited MaxLogicFoundation W541 reference
 omission are documented in `t282-analysis-disposition.md`. Maintained-root
 classification remains T-265 work. Exact task proof: `t282-task-proof.json`.
 T-209 historical acceptance and final performance certification remain open.
+
+## Imported procedures and nested selectors, T-285 through T-287
+
+A procedure exported by a directly imported unit can remain in a rewritten
+body without a return type. The planner requires a unique source-backed
+declaration and actual visibility. Unknown, private, unimported and ambiguous
+calls remain excluded; local and receiver members retain precedence.
+
+Selector partitioning now uses the Delphi lexer and balanced delimiters.
+Commas inside indexes, parentheses, strings or comments remain part of their
+selector. Before producing edits, the planner checks the complete ordered
+selector list against that statement's own bindings. An inherited selector
+cannot stand in for a missing own selector. Planning-facts producer v7
+invalidates v6 payloads; existing public signatures remain unchanged.
+
+When a parent WITH remains in the source, a child rewrite preserves the
+nearest retained member's unqualified spelling. This applies to body reads,
+writes and capture initializers. An active child receiver still takes
+precedence. A separate lookup result distinguishes a known retained member
+from an unresolved name, including the packed-record inventory case.
+
+Retained regression replays show T-285's two failures becoming ten passes,
+T-286's 26 failures becoming 54 passes, and T-287's three initial failures
+plus its later packed-record failure becoming five passes. The final focused
+and owning sets pass 63/63 and 257/257. Complete ordered results also agree
+after reopening real SQLite caches and loading standalone planning facts.
+
+Each of three isolated Release Win64 fixtures applies five rewrites. Original
+and rewritten programs produce identical output, compile without warnings,
+and preserve source and backup bytes. Both historical MaxTdb contexts compile
+all 674 emitted edits across 23 isolated units, with zero errors and the same
+445 inherited warnings. Cleanup produces byte-identical complete plans, so
+the emitted-program compiler proof remains applicable. All 709 original
+project files retain their bytes. This does not establish full MaxTdb runtime
+equivalence or close T-209.
+
+Both project analysis gates and report verification pass. PAL findings are
+unchanged; the reviewed FixInsight changes are method-size and variable-count
+metrics. Maintained-root ownership remains T-265 work. Evidence lives under
+`projects/.dak/DelphiAIKit/goal-current/`, including
+`t285-t287-final-source-review.md`, `t287-cleanup-compiler-reconciliation.json`,
+the three `t287-batch-t28*-runtime-proof.json` files, and
+`t287-analysis-disposition.md`. The shared gate passes Semantics 769/769,
+SQLite 68/68, DAK 659/659 and Python 110/110, with zero owned compiler
+warnings and no ignored tests, errors or leaks. Exact task records are
+`t285-task-proof.json`, `t286-task-proof.json` and `t287-task-proof.json`.
+T-209 historical acceptance and final performance certification remain open.
