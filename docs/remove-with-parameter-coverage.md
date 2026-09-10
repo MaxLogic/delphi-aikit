@@ -309,3 +309,51 @@ SQLite 68/68, DAK 659/659 and Python 110/110, with zero owned compiler
 warnings and no ignored tests, errors or leaks. Exact task records are
 `t285-task-proof.json`, `t286-task-proof.json` and `t287-task-proof.json`.
 T-209 historical acceptance and final performance certification remain open.
+
+
+## Historical characterization after T-287
+
+Twenty-eight historical methods now match the verified post-T-287 contracts.
+Seven methods account for new sibling captures and shared declarations;
+two preserve unqualified members of retained parent WITH scopes; fifteen
+update exact conservative skip reasons. Those twenty-four retain their
+existing body, range, identity, covered-child and negative checks.
+
+Four other methods replace unsupported positive recipes with complete
+original-source, range, hash, identity and zero-edit assertions. The real
+compiler, runtime and effective-profile witnesses below establish the
+conditional-scope and hidden-capture-type boundaries. These are test
+characterizations; production behavior and public APIs remain unchanged.
+Separately recorded model limits remain open.
+
+Focused tests pass 28/28, the owning fixtures pass 257/257, and the standard
+Semantics suite passes 769/769. The historical category is at 174/203, with
+exactly 29 remaining failures and unchanged failure messages. The Win64 build
+has zero owned warnings and three DelphiAST warnings. Project-context PAL
+retains the same 322 findings. Production inputs remain unchanged from the
+verified T-285 through T-287 batch. Evidence:
+`t209-final-characterization-proof.json` under the evidence folder above.
+T-209 remains open.
+
+Two diagnostic witnesses establish limits of the remaining investigation.
+Removing a WITH while preserving unbound conditional text can compile yet
+change behavior in another profile. The original alternate-profile program
+prints `12,100`; the handwritten incomplete rewrite prints `2,110`. This is
+a counterexample, not output emitted by DAK. The actual project loader and
+preprocessor confirm that the unresolved `WaitRead` call in `tdb01:964` is
+inactive in both retained profiles. That fact alone does not authorize
+removing its enclosing scope. See `t209-conditional-witness-proof.json` and
+`t209-effective-profile-proof.json`.
+
+A separate indexed-getter witness confirms why an explicit pointer capture
+needs a type visible to the consumer. A hidden `TEntry` pointer declaration
+fails compilation; importing its declaring unit makes the existing DAK
+capture recipe available. Real isolated apply preserves `18,1`, including
+one getter evaluation. A handwritten two-operation expansion evaluates the
+getter twice and prints `18,2`. The narrower single-assignment hypothesis
+was falsified: that handwritten expression evaluates the getter once on the
+installed compiler. No runtime defect is claimed for that exact expression.
+The evidence is retained in `t209-hidden-getter-single-assignment-observation.json`,
+`t209-hidden-getter-two-operations-proof.json` and
+`t209-getter-visible-runtime-proof.json`. These small witnesses do not establish
+full MaxTdb runtime equivalence or complete historical acceptance.
