@@ -5,11 +5,97 @@ interface
 uses
   System.IOUtils, System.SysUtils, System.Win.Registry,
   Winapi.Windows,
-  Dak.Diagnostics, Dak.Messages, Dak.Utils;
+  Dak.Diagnostics, Dak.Messages, Dak.Types, Dak.Utils;
 
 function TryResolveFixInsightExe(aDiagnostics: TDiagnostics; out aExePath: string): Boolean;
 
+procedure ApplyFixInsightVendorExclusions(const aParams: TFixInsightParams;
+  var aOptions: TFixInsightExtraOptions);
+
 implementation
+
+uses
+  System.Classes,
+  AutoFree, maxLogic.IOUtils;
+
+function IsFlexCelProductRoot(const aRoot: string): Boolean;
+var
+  lInfo: string;
+  lLine: string;
+begin
+  Result := False;
+  lInfo := CombinePath([aRoot, 'tmsfetch.info.txt']);
+  if not FileExists(lInfo) or not FileExists(CombinePath([aRoot, 'Source', 'Core', 'FlexCel.Core.pas'])) then
+    Exit;
+  for lLine in TFile.ReadAllLines(lInfo) do
+    if SameText(Trim(lLine), 'product_id: tms.flexcel.vcl') then
+      Exit(True);
+end;
+
+procedure AppendIgnoreMask(var aIgnore: string; const aMask: string);
+var
+  lItem: string;
+begin
+  for lItem in aIgnore.Split([';']) do
+    if SameText(Trim(lItem), aMask) then
+      Exit;
+  if (aIgnore <> '') and not aIgnore.EndsWith(';') then
+    aIgnore := aIgnore + ';';
+  aIgnore := aIgnore + aMask;
+end;
+
+procedure ApplyFixInsightVendorExclusions(const aParams: TFixInsightParams;
+  var aOptions: TFixInsightExtraOptions);
+var
+  g: TGarbos;
+  lSeen: TStringList;
+  lRoots: TStringList;
+  lPath: string;
+  lDir: string;
+  lParent: string;
+  lSource: string;
+  lMask: string;
+begin
+  aOptions.fFlexCelRoots := '';
+  if not aOptions.fExcludeFlexCel then
+    Exit;
+  GC(lSeen, TStringList.Create, g);
+  GC(lRoots, TStringList.Create, g);
+  lSeen.Sorted := True;
+  lSeen.CaseSensitive := False;
+  lRoots.Sorted := True;
+  lRoots.CaseSensitive := False;
+  for lPath in aParams.fUnitSearchPath + aParams.fLibraryPath do
+  begin
+    if (lPath = '') or not DirectoryExists(lPath) then
+      Continue;
+    lDir := ExcludeTrailingPathDelimiter(TPath.GetFullPath(lPath));
+    while (lDir <> '') and (lSeen.IndexOf(lDir) < 0) do
+    begin
+      lSeen.Add(lDir);
+      if IsFlexCelProductRoot(lDir) then
+      begin
+        lSource := CombinePath([lDir, 'Source']);
+        if lRoots.IndexOf(lSource) < 0 then
+          lRoots.Add(lSource);
+        Break;
+      end;
+      lParent := ExtractFileDir(lDir);
+      if SameText(lParent, lDir) then
+        Break;
+      lDir := lParent;
+    end;
+  end;
+  for lSource in lRoots do
+  begin
+    lMask := CombinePath([lSource, '*.pas']);
+    AppendIgnoreMask(aOptions.fIgnore, lMask);
+    // FixInsight matches both resolved dependencies and relative DPR entries.
+    if aParams.fProjectDpr <> '' then
+      AppendIgnoreMask(aOptions.fIgnore, ExtractRelativePath(aParams.fProjectDpr, lMask));
+  end;
+  aOptions.fFlexCelRoots := String.Join(';', lRoots.ToStringArray);
+end;
 
 const
   SFixInsightExeName = 'FixInsightCL.exe';

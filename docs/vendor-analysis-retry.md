@@ -63,3 +63,46 @@ automatic prerequisite for DAK completion. The redundant assignment arose from
 external-project analysis, not a failing DAK unit test. Keep its individual
 review reason if retained; do not change source or tests merely to quiet the
 analyzer. The historical production patch must not be applied.
+
+## Whole-library routine exclusion proof, 2026-09-10
+
+DAK now defaults `[FixInsightCL].ExcludeFlexCel` to `true`. It recognizes the
+installed Smart Setup product from `tmsfetch.info.txt` and the
+`Source/Core/FlexCel.Core.pas` marker, then adds absolute and project-relative
+source masks. This covers units without a FlexCel filename prefix. Other
+installation layouts need verified project-local exclusions. Existing manual
+exclusions and compiler search paths, defines, aliases and scopes are preserved.
+Both native analysis and generated FixInsight commands use the same policy;
+the status records its switch, effective ignore list and detected source roots.
+
+The isolated `order-access-analysis-t294` fixture contains maxTdb source from
+revision `93681be36c8fd23dcbe7c6f5e40175df13db3fdc`, byte-identical caller/backend
+copies and project paths redirected into DAK. Its resolved Win32/Release/23.0
+context matches the retained context after the recorded path substitutions.
+No T-292 cleanup was applied. Production source and configuration were not edited.
+
+With FixInsight 2026.01beta, comparing the ten-file policy with the complete
+FlexCel source exclusion on this same snapshot produced:
+
+| Observation | Ten files | Whole library |
+| --- | ---: | ---: |
+| Owned finding records | 962 | 962 |
+| FlexCel finding records | 5,306 | 0 |
+| Unknown ownership | 0 | 0 |
+| Ignored owned records | 0 | 0 |
+
+Every owned record matches in full, preserving duplicate counts. Both native
+runs and report verification completed; guarded inputs and historical baseline
+bytes remained unchanged. The policy result still fails against that retained
+baseline. This FI-only comparison does not close T-212 or prove a vendor parser
+correction. FlexCel itself is outside routine FixInsight coverage.
+
+A separate real CLI control checked relative and absolute nested vendor paths,
+an owned caller, a similarly named owned sibling, explicit raw mode and an
+unverified product folder. Only verified vendor units were excluded by default;
+owned diagnostics remained visible. Raw mode disables automatic masks only.
+
+Evidence under `projects/.dak/DelphiAIKit/goal-current/`:
+`t294-snapshot.json`, `t294-context-comparison.json`, `t294-caller-proof.json`,
+`t294-caller-comparison.json` and `t294-native-control.json`. Raw reports remain
+under the isolated fixture's project-local `.dak/order_access_cli/` directory.

@@ -6,7 +6,8 @@ uses
   System.Classes, System.Diagnostics, System.IOUtils, System.RegularExpressions, System.StrUtils, System.SysUtils,
   Winapi.Windows,
   DUnitX.TestFramework,
-  Dak.ExternalToolProcess,
+  maxLogic.IOUtils,
+  Dak.ExternalToolProcess, Dak.FixInsight, Dak.Settings, Dak.Types,
   Test.Support;
 
 type
@@ -20,6 +21,10 @@ type
     procedure ExtractIdsAndFile(const aText: string; out aId1, aId2, aFileName: string);
   public
     [Test]
+    procedure FlexCelExclusionsPreserveOtherInputs;
+    [Test]
+    procedure FlexCelExclusionSettingsAllowRawDiagnostics;
+    [Test]
     procedure FixInsightProcessWaitsAreBounded;
     [Test]
     procedure FixInsightTimeoutTerminatesChildProcess;
@@ -28,6 +33,90 @@ type
   end;
 
 implementation
+
+procedure TFixInsightTests.FlexCelExclusionsPreserveOtherInputs;
+var
+  lRoot: string;
+  lVendor: string;
+  lSource: string;
+  lCore: string;
+  lOwned: string;
+  lOriginal: string;
+  lParams: TFixInsightParams;
+  lOptions: TFixInsightExtraOptions;
+begin
+  lRoot := UniqueTempPath('fixinsight-flexcel-policy');
+  lVendor := CombinePath([lRoot, 'vendor']);
+  lSource := CombinePath([lVendor, 'Source']);
+  lCore := CombinePath([lSource, 'Core']);
+  lOwned := CombinePath([lRoot, 'vendor-owned']);
+  TDirectory.CreateDirectory(lCore);
+  TDirectory.CreateDirectory(lOwned);
+  try
+    lParams := Default(TFixInsightParams);
+    lParams.fProjectDpr := CombinePath([lRoot, 'App.dpr']);
+    lParams.fUnitSearchPath := [lCore, lOwned, lCore];
+    lParams.fLibraryPath := [lCore];
+    lParams.fDefines := ['WIN32', 'REAL_CONTEXT'];
+    lOptions := Default(TFixInsightExtraOptions);
+    lOptions.fExcludeFlexCel := True;
+    lOptions.fIgnore := 'Existing.pas';
+    ApplyFixInsightVendorExclusions(lParams, lOptions);
+    Assert.AreEqual('Existing.pas', lOptions.fIgnore, 'Unverified folders must not be excluded.');
+
+    TFile.WriteAllText(CombinePath([lVendor, 'tmsfetch.info.txt']),
+      'product_id: tms.flexcel.vcl' + sLineBreak + 'version: 7.26' + sLineBreak, TEncoding.ASCII);
+    TFile.WriteAllText(CombinePath([lCore, 'FlexCel.Core.pas']),
+      'unit FlexCel.Core;' + sLineBreak + 'interface' + sLineBreak +
+      'implementation' + sLineBreak + 'end.' + sLineBreak, TEncoding.ASCII);
+    ApplyFixInsightVendorExclusions(lParams, lOptions);
+    Assert.IsTrue(Pos(CombinePath([lSource, '*.pas']), lOptions.fIgnore) > 0,
+      'Verified FlexCel source needs a recursive absolute mask, including non-FlexCel unit names.');
+    Assert.IsTrue(Pos('vendor\Source\*.pas', lOptions.fIgnore) > 0,
+      'FixInsight also matches relative DPR source paths.');
+    Assert.IsTrue(Pos('Existing.pas', lOptions.fIgnore) > 0, 'Keep caller exclusions.');
+    Assert.IsFalse(Pos(lOwned, lOptions.fIgnore) > 0, 'Never exclude a similarly named owned sibling.');
+    Assert.AreEqual(lSource, lOptions.fFlexCelRoots, 'Report the verified source scope.');
+    lOriginal := lOptions.fIgnore;
+    ApplyFixInsightVendorExclusions(lParams, lOptions);
+    Assert.AreEqual(lOriginal, lOptions.fIgnore, 'Repeated paths must not duplicate exclusions.');
+    Assert.AreEqual('WIN32;REAL_CONTEXT', String.Join(';', lParams.fDefines));
+    Assert.AreEqual(lCore + ';' + lOwned + ';' + lCore, String.Join(';', lParams.fUnitSearchPath));
+
+    lOptions := Default(TFixInsightExtraOptions);
+    lOptions.fIgnore := 'Existing.pas';
+    ApplyFixInsightVendorExclusions(lParams, lOptions);
+    Assert.AreEqual('Existing.pas', lOptions.fIgnore, 'Raw diagnostic mode must not add exclusions.');
+    Assert.AreEqual('', lOptions.fFlexCelRoots);
+  finally
+    DeleteTempPath(lRoot);
+  end;
+end;
+
+procedure TFixInsightTests.FlexCelExclusionSettingsAllowRawDiagnostics;
+var
+  lRoot: string;
+  lProject: string;
+  lSettings: TDakSettings;
+begin
+  lRoot := UniqueTempPath('fixinsight-flexcel-settings');
+  TDirectory.CreateDirectory(lRoot);
+  lProject := CombinePath([lRoot, 'App.dproj']);
+  try
+    TFile.WriteAllText(lProject, '<Project/>', TEncoding.ASCII);
+    TFile.WriteAllText(CombinePath([lRoot, 'dak.ini']), '[Workspace]' + sLineBreak +
+      'Root=project' + sLineBreak, TEncoding.ASCII);
+    Assert.IsTrue(LoadDakSettings(nil, lProject, nil, lSettings), lSettings.fError);
+    Assert.IsTrue(lSettings.fFixInsight.fExcludeFlexCel, 'Routine exclusion must be enabled by default.');
+    TFile.AppendAllText(CombinePath([lRoot, 'dak.ini']), '[FixInsightCL]' + sLineBreak +
+      'ExcludeFlexCel=false' + sLineBreak + 'Ignore=Existing.pas' + sLineBreak, TEncoding.ASCII);
+    Assert.IsTrue(LoadDakSettings(nil, lProject, nil, lSettings), lSettings.fError);
+    Assert.IsFalse(lSettings.fFixInsight.fExcludeFlexCel, 'Explicit raw diagnostics can disable the default.');
+    Assert.AreEqual('Existing.pas', lSettings.fFixInsight.fIgnore);
+  finally
+    DeleteTempPath(lRoot);
+  end;
+end;
 
 procedure TFixInsightTests.AppendProgress(const aMessage: string);
 var

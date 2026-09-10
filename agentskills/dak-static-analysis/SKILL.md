@@ -49,6 +49,20 @@ our findings before and after. Ignoring an include file may not exclude the
 containing unit. PAL input exclusions use the explicit `/X` and `/XF` settings
 below; check for changed caller-side findings before adopting them.
 
+DAK defaults `[FixInsightCL].ExcludeFlexCel` to `true`. For verified Smart Setup
+FlexCel products on the resolved search/library paths, it adds recursive source
+masks for the whole library, including units without a `FlexCel` name prefix.
+The metadata and `Source/Core/FlexCel.Core.pas` marker establish the scope;
+a similarly named folder alone does not. The status records the effective
+ignore list and available FlexCel source roots, not proof of library consumption.
+Other installation layouts still need verified project-local input exclusions.
+
+For an explicit vendor diagnostic, use an isolated project's
+`[FixInsightCL].ExcludeFlexCel=false` and remove manual FlexCel exclusions from
+that diagnostic configuration. This setting only disables automatic masks.
+Retry the raw packed-include case only after a newer FixInsight version is
+available. Keep the routine workaround until an unexcluded correction is proved.
+
 Record the excluded scope, reason, tool version, and remaining coverage. Keep
 the upstream defect open and retest exclusions after tool updates. A successful
 run with exclusions proves only the retained scope. Input exclusions are

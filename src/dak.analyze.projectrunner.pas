@@ -12,7 +12,7 @@ implementation
 
 uses
   System.Diagnostics, System.Hash, System.JSON, System.StrUtils,
-  Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
+  Dak.FixInsight, Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
 
 type
   TAnalyzeProjectRunner = class
@@ -146,6 +146,9 @@ end;
 
 procedure TAnalyzeProjectRunner.PrepareFixInsightParams;
 begin
+  if fOptions.fAnalyzeFixInsight then
+    ApplyFixInsightVendorExclusions(fParams, fFixOptions);
+  fSettings.fFixInsight := fFixOptions;
   fParams.fFixIgnore := fFixOptions.fIgnore;
   fParams.fFixSettings := fFixOptions.fSettings;
   fParams.fFixSilent := fFixOptions.fSilent;
@@ -455,7 +458,8 @@ begin
     AddFixRun('csv', fFixCsvPath, fFixCsvRan, fFixCsvExit, fFixCsvDurationMs);
     lInput := String.Join('|', [String.Join(';', fParams.fDefines), HashArray(fParams.fUnitSearchPath),
       HashArray(fParams.fLibraryPath), String.Join(';', fParams.fUnitScopes), String.Join(';', fParams.fUnitAliases),
-      fFixOptions.fIgnore, fFixOptions.fSettings, fFixOptions.fTimeoutSec.ToString]);
+      fFixOptions.fIgnore, fFixOptions.fSettings, fFixOptions.fTimeoutSec.ToString,
+      BoolToStr(fFixOptions.fExcludeFlexCel, True), fFixOptions.fFlexCelRoots]);
     lFixAnalyzer := TJSONObject.Create
       .AddPair('requested', TJSONBool.Create(fOptions.fAnalyzeFixInsight))
       .AddPair('status', IfThen(not fOptions.fAnalyzeFixInsight, 'not_requested',
@@ -463,6 +467,9 @@ begin
       .AddPair('executable', fParams.fFixInsightExe)
       .AddPair('options', TJSONObject.Create
         .AddPair('formats', lFormats)
+        .AddPair('ignore', fFixOptions.fIgnore)
+        .AddPair('exclude_flexcel', TJSONBool.Create(fFixOptions.fExcludeFlexCel))
+        .AddPair('flexcel_source_roots', StringListJson(fFixOptions.fFlexCelRoots))
         .AddPair('sha256', LowerCase(THashSHA2.GetHashString(lInput))))
       .AddPair('runs', lFixRuns)
       .AddPair('count_quality', lFixQuality);

@@ -785,6 +785,7 @@ begin
   lValue := Trim(aIni.ReadString(SFixInsightSection, 'Settings', ''));
   if lValue <> '' then
     aSettings.fFixInsight.fSettings := lValue;
+  ReadBoolOption(aIni, 'ExcludeFlexCel', aSettings.fFixInsight.fExcludeFlexCel, aDiagnostics);
   ReadBoolOption(aIni, 'Silent', aSettings.fFixInsight.fSilent, aDiagnostics);
   ReadBoolOption(aIni, 'Xml', aSettings.fFixInsight.fXml, aDiagnostics);
   ReadBoolOption(aIni, 'Csv', aSettings.fFixInsight.fCsv, aDiagnostics);
@@ -893,6 +894,7 @@ var
   lPaths: TArray<string>;
 begin
   aSettings := Default(TDakSettings);
+  aSettings.fFixInsight.fExcludeFlexCel := True;
   aSettings.fDiagnosticsDefaults.fSourceContextMode := TSourceContextMode.scmAuto;
   aSettings.fDiagnosticsDefaults.fSourceContextLines := 2;
   aSettings.fAnalysisPolicy.fGateOwnership := 'project;repository';

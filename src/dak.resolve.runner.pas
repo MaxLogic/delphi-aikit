@@ -1,4 +1,4 @@
-﻿unit Dak.Resolve.Runner;
+unit Dak.Resolve.Runner;
 
 interface
 
@@ -202,6 +202,7 @@ end;
 
 procedure TResolveCommandRunner.ApplyFixInsightSettings;
 begin
+  ApplyFixInsightVendorExclusions(fParams, fFixOptions);
   fParams.fFixOutput := fFixOptions.fOutput;
   fParams.fFixIgnore := fFixOptions.fIgnore;
   fParams.fFixSettings := fFixOptions.fSettings;

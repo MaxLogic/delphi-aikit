@@ -271,6 +271,8 @@ type
   end;
 
   TFixInsightExtraOptions = record
+    fExcludeFlexCel: Boolean;
+    fFlexCelRoots: string;
     fExePath: string;
     fOutput: string;
     fIgnore: string;
