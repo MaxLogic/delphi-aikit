@@ -23,6 +23,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- Semantic indexing preserves multiline routine signatures, parameter types and source positions. Remove-with can resolve those routines and their parameters; comments and default strings no longer create false parameter type references, and older cached models are rebuilt.
 - Remove-with captures source-visible pointer casts once at statement entry, preserving guards and loops. Same-spelling routines and receiver members retain precedence; ambiguous or invisible record targets remain excluded.
 - Remove-with preserves compiler type casts inside statement bodies, including writable Double and Pointer casts, while retaining user declarations and receiver-member precedence. Older cached planning facts are rebuilt.
 - Remove-with keeps nested and conditional body boundaries intact, preserves generated capture wrappers, and retains outer ELSE branches across whitespace and comments.

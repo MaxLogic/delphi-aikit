@@ -40,6 +40,55 @@ The exact added plans, original-versus-applied fixture proof, and regression
 logs are retained in `projects/.dak/DelphiAIKit/t250-t256/`. The real project
 source was not rewritten; its comparison used plan mode.
 
+## Multiline routine headers, T-284
+
+Wrapping a routine's parameter list across lines previously omitted the routine
+from the semantic model. This could leave both its own result name and calls
+through its interface declaration unresolved. The extractor now retains the
+original signature, ordered parameters and source coordinates. It also stops
+an incomplete header before the following routine declaration.
+
+The `RemoveWithMultilineHeaders` fixture pairs single-line and wrapped functions
+with typed and untyped parameters, a same-unit function implemented later, and
+a parameter that shadows a unit type. A fourth case calls an earlier sibling
+procedure from a nested function. All four WITH statements are planned
+and transactionally applied in an isolated copy. Original and rewritten Win64
+Release programs compile without warnings and print the same five lines.
+Complete ordered cold/warm plans match, and the original files and transaction
+backups retain identical bytes. A separate model assertion covers nested
+default parentheses, a string containing parentheses, and a multiline comment
+containing a fake routine declaration.
+
+The retained original-extractor replay fails the missing model and both calls
+to the later-declared function; the shadow control passes. The candidate passes
+all four cases. The additional nested-scope and cached-facts regressions also
+pass after their retained failures; the owning semantic fixtures pass 351/351.
+Routine inventory now retains model body extents, so sibling calls keep their
+enclosing scope. Parser identity
+13 invalidates older models and the snapshots and WITH facts that depend on
+their unit-cache identities. WITH facts producer version 6 also invalidates
+older projected routine extents. All 478 emitted historical edits compile in
+both retained contexts, preserving 709 original files and the same 445 inherited
+warning messages. Fresh extraction after the delimiter refactor reproduces both
+complete ordered historical reports exactly; the retained compiler inputs and
+emitted source hashes also match. The global-vars provenance assertion now
+expects parser identity 13, with all other assertions preserved.
+
+The final shared gate passes Semantics 721/721, SQLite 68/68, DAK 659/659 and
+Python 110/110, with zero owned compiler warnings. Both project analysis gates
+and report verification pass. PAL findings are unchanged; the partial enum-case
+advisories were removed by an equivalent delimiter refactor. FixInsight's three
+net Semantics metric additions remain visible and are explained in
+`t284-analysis-disposition.md`. One PAL reference run crashed; an identical-input
+diagnostic retry and candidate pass succeeded. Its cause remains unresolved,
+and this does not establish an upstream fix.
+
+Evidence is retained under `projects/.dak/DelphiAIKit/goal-current/`, including
+`t284-task-proof.json`, `t284-delimiter-runtime-proof.json`,
+`t284-delimiter-plan-equivalence.json`, `t284-delimiter-compiler-reconciliation.json`
+and `t284-pal-retry-comparison.json`. T-285 imported procedures, T-209 historical
+acceptance/performance and T-265 maintained-root ownership remain open.
+
 ## Controlled record-array receivers, T-278
 
 A global record's fixed array field can now be captured inside WHILE and IF
