@@ -340,14 +340,22 @@ They retain the complete bodies and the first BitArrayOp skip. New assertions
 cover original source, capture metadata, declarations and recipes. Corrected
 replacement ranges exclude the enclosing routine end or following ELSE.
 
-The five focused tests pass, the owning fixtures pass 257/257, and the standard
-Semantics suite passes 769/769. The historical category is now at 183/203,
-with exactly 20 remaining failures and unchanged failure messages. The Win64
+Six further methods cover NaechsteRecNr, NextRec, getdef, GetAuto, the array
+size check and the report SubR branch. NextRec retains its three capture
+entry points and explicit child coverage. The two getdef selectors remain
+ordered. GetAuto and the other conditional rewrites keep initialization
+inside the original guards, with enclosing END/ELSE syntax outside the edits.
+Complete source, body, identity, declaration and recipe assertions remain.
+
+The six focused tests pass, the owning fixtures pass 257/257, and the standard
+Semantics suite passes 769/769. The historical category is now at 189/203,
+with exactly 14 remaining failures and unchanged failure messages. The Win64
 build has zero owned warnings and three DelphiAST warnings. Project-context
 PAL retains the same 322 findings; report ownership verification passes.
 All 3,350 production inputs remain unchanged from the verified T-285 through
-T-287 batch. Evidence: `t209-capture-five-proof.json` under the evidence folder
-above. The preceding checkpoints remain in `t209-next-four-proof.json` and
+T-287 batch. Evidence: `t209-imported-controlled-six-proof.json` under the
+evidence folder above. The preceding checkpoints remain in
+`t209-capture-five-proof.json`, `t209-next-four-proof.json` and
 `t209-final-characterization-proof.json`. T-209 remains open.
 
 Two diagnostic witnesses establish limits of the remaining investigation.
