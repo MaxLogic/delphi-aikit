@@ -619,6 +619,8 @@ CompilerPath=
 ## Static-analysis workspace root
 
 Static analysis uses a workspace boundary; it does not require a Git repository.
+See [reviewed analysis baselines](docs/reviewed-analysis-baselines.md) for the
+current finding reviews, recorded cleanup debt and remaining external acceptance limits.
 Set `[Workspace].Root` in `dak.ini`, or pass `--workspace-root` to `analyze`,
 the project/unit wrappers, or `doctor`. The CLI wins. Otherwise the closest
 ancestor `dak.ini` selector wins, with the executable `dak.ini` fallback; if no
