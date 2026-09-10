@@ -372,11 +372,18 @@ above. Earlier batch proofs remain beside it, including
 `t209-storage-array-eight-proof.json` and
 `t209-imported-controlled-six-proof.json`.
 
-T-209 remains open. Explicit Win64 API/CLI request parity, both timing batches
-and the final gate are still required. The CLI supplies additional source files,
-skips semantic-graph construction and specifies body-analysis files; these
-settings must also be used for the API comparison. Matching platform and
-configuration alone did not produce matching plans in the fresh diagnostic.
+The fresh Win64/Release/23.0 API/CLI comparison passes every ordered shared
+plan field: 363 planned statements, 258 skips and 46 covered children. It uses
+the same combined request, including additional source files and the scanned
+body-analysis scope. Evidence: `t209-cli-combined-scoped-comparison.json`.
+The graph option changes API-only semantic/reference identities; those exact
+differences remain recorded, without a claim of full-object equality.
+
+The legacy two-step facts API and canonical combined API retain different
+routine-ending trim behavior under DelphiSemantics T-614. The existing FlipMark
+test requires that distinction. Matching the legacy plan's counts is therefore
+not the canonical CLI acceptance criterion. T-209 remains open for compilation
+of the canonical emitted plan, both timing batches and the final gate.
 
 Two diagnostic witnesses establish limits of the remaining investigation.
 Removing a WITH while preserving unbound conditional text can compile yet
