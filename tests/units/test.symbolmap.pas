@@ -1498,6 +1498,7 @@ function TSymbolMapIntrinsicProfileTests.BuildFreshResolverExe: string;
 var
   lArgs: string;
   lBat: string;
+  lBinaryType: Cardinal;
   lCmdArgs: string;
   lExitCode: Cardinal;
   lLogPath: string;
@@ -1508,7 +1509,7 @@ begin
   ForceDirectories(lOutputDir);
   lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
   lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
-    ' -config Release -platform Win32 -ver 23 -test-output-dir ' + QuoteArg(lOutputDir);
+    ' -config Release -platform Win64 -ver 23 -test-output-dir ' + QuoteArg(lOutputDir);
   lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
   lLogPath := UniqueTempPath('symbol-map-intrinsic-resolver-build') + '.log';
   Assert.IsTrue(RunProcess(WindowsCmdExePath, lCmdArgs, RepoRoot, lLogPath, lExitCode),
@@ -1522,6 +1523,8 @@ begin
   end;
   Result := TPath.Combine(lOutputDir, 'DelphiAIKit.exe');
   Assert.IsTrue(TFile.Exists(Result), 'Expected fresh resolver exe: ' + Result);
+  Assert.IsTrue(GetBinaryType(PChar(Result), lBinaryType), 'Expected readable resolver binary: ' + Result);
+  Assert.AreEqual(Cardinal(SCS_64BIT_BINARY), lBinaryType, 'Expected a Win64 DAK host for every fixture target.');
 end;
 
 function TSymbolMapIntrinsicProfileTests.BuildContext(const aCacheRoot: string;
@@ -1867,6 +1870,7 @@ function TSymbolMapDefinitionQueryTests.BuildFreshResolverExe: string;
 var
   lArgs: string;
   lBat: string;
+  lBinaryType: Cardinal;
   lCmdArgs: string;
   lExitCode: Cardinal;
   lLogPath: string;
@@ -1877,7 +1881,7 @@ begin
   ForceDirectories(lOutputDir);
   lBat := TPath.Combine(RepoRoot, 'build-delphi.bat');
   lArgs := QuoteArg(TPath.Combine(RepoRoot, 'projects\DelphiAIKit.dproj')) +
-    ' -config Release -platform Win32 -ver 23 -test-output-dir ' + QuoteArg(lOutputDir);
+    ' -config Release -platform Win64 -ver 23 -test-output-dir ' + QuoteArg(lOutputDir);
   lCmdArgs := '/C "call ' + QuoteArg(lBat) + ' ' + lArgs + '"';
   lLogPath := UniqueTempPath('symbol-map-query-resolver-build') + '.log';
   Assert.IsTrue(RunProcess(WindowsCmdExePath, lCmdArgs, RepoRoot, lLogPath, lExitCode),
@@ -1891,6 +1895,8 @@ begin
   end;
   Result := TPath.Combine(lOutputDir, 'DelphiAIKit.exe');
   Assert.IsTrue(TFile.Exists(Result), 'Expected fresh resolver exe: ' + Result);
+  Assert.IsTrue(GetBinaryType(PChar(Result), lBinaryType), 'Expected readable resolver binary: ' + Result);
+  Assert.AreEqual(Cardinal(SCS_64BIT_BINARY), lBinaryType, 'Expected a Win64 DAK host for every fixture target.');
 end;
 
 function TSymbolMapDefinitionQueryTests.FixtureProjectPath: string;
