@@ -313,7 +313,8 @@ T-209 historical acceptance and final performance certification remain open.
 
 ## Historical characterization after T-287
 
-Twenty-eight historical methods now match the verified post-T-287 contracts.
+An initial twenty-eight historical methods were aligned with the verified
+post-T-287 contracts.
 Seven methods account for new sibling captures and shared declarations;
 two preserve unqualified members of retained parent WITH scopes; fifteen
 update exact conservative skip reasons. Those twenty-four retain their
@@ -326,14 +327,22 @@ conditional-scope and hidden-capture-type boundaries. These are test
 characterizations; production behavior and public APIs remain unchanged.
 Separately recorded model limits remain open.
 
-Focused tests pass 28/28, the owning fixtures pass 257/257, and the standard
-Semantics suite passes 769/769. The historical category is at 174/203, with
-exactly 29 remaining failures and unchanged failure messages. The Win64 build
-has zero owned warnings and three DelphiAST warnings. Project-context PAL
-retains the same 322 findings. Production inputs remain unchanged from the
-verified T-285 through T-287 batch. Evidence:
-`t209-final-characterization-proof.json` under the evidence folder above.
-T-209 remains open.
+Four further methods cover the Jump declaration owner, the complete NewInd
+parent and covered child, and IndProc's callback body. Jump retains its full
+replacement checks with the third capture name and verifies that the shared
+declaration is emitted once by the first capture. NewInd pins both captures,
+the allocation/error path and the child's ownership. IndProc retains its full
+IF/ELSE, callback, GOTO and EXIT behavior.
+
+The four focused tests pass, the owning fixtures pass 257/257, and the standard
+Semantics suite passes 769/769. The historical category is now at 178/203,
+with exactly 25 remaining failures and unchanged failure messages. The Win64
+build has zero owned warnings and three DelphiAST warnings. Project-context
+PAL retains the same 322 findings; report ownership verification passes.
+Production inputs remain unchanged from the verified T-285 through T-287
+batch. Evidence: `t209-next-four-proof.json` under the evidence folder above.
+The preceding 28-method checkpoint is retained in
+`t209-final-characterization-proof.json`. T-209 remains open.
 
 Two diagnostic witnesses establish limits of the remaining investigation.
 Removing a WITH while preserving unbound conditional text can compile yet
