@@ -31,3 +31,35 @@ Installed PAL remains 9.21.4.0; its executable hash matches the retained retry e
 [Peganza's current history](https://peganza.com/history_pal.html) still lists 9.21.5, dated August 11, 2026. [TMS's FixInsight history](https://www.tmssoftware.com/site/fixinsight.asp?s=history) lists 2026.01. Neither entry explicitly documents correction of these retained reproductions. This refresh checked published version availability only; the raw native reproduction results above remain dated September 8. No vendor source or analyzer installation was changed.
 
 Evidence: `projects/.dak/DelphiAIKit/goal-current/vendor-availability-20260909.json` and `vendor-installed-metadata-20260909.json`. The upstream tasks and three active PAL reports remain open.
+
+
+## Maintainer decisions, 2026-09-10
+
+Retry vendor reproductions after a relevant version or configuration change.
+An unchanged-version rerun alone does not establish a correction.
+
+Always exclude FlexCel from routine FixInsight analysis. The current
+`order_access_cli/project/dak.ini` contains ten verified exact-file exclusions;
+it does not yet exclude the whole library. T-294 records the broader routine
+input-exclusion implementation and its caller-coverage proof. Preserve the
+existing exclusions until that proof passes. Retry the raw packed-include case
+only when a newer FixInsight version is available, with exclusions disabled for
+that explicit diagnostic run. A newer version alone does not prove correction.
+
+T-212 will use a reviewed baseline under the corrected ownership contract.
+Fix confirmed correctness defects first where edits are authorized. Keep every
+accepted finding visible with a reason and a follow-up task where appropriate.
+Retain the historical baseline and raw findings; this decision does not accept
+an unreviewed replacement or certify PAL's inconsistent BSON reports.
+
+Both production repositories, `F:/projects/OEC/TE5/maxTdb` and
+`F:/projects/OEC/_git/TE5/order_access_cli`, are read-only for this effort,
+including their project files and configuration. Use recorded snapshots under
+DAK's test fixtures and keep generated analysis/build output inside DAK.
+Snapshot edits invalidate affected proof.
+
+T-292 is optional fixture-only cleanup debt, not a production fix or an
+automatic prerequisite for DAK completion. The redundant assignment arose from
+external-project analysis, not a failing DAK unit test. Keep its individual
+review reason if retained; do not change source or tests merely to quiet the
+analyzer. The historical production patch must not be applied.
