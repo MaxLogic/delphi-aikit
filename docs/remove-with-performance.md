@@ -1,11 +1,55 @@
-# Semantic refactoring performance, 2026-09-07
+# Semantic refactoring performance, 2026-09-10
+
+Two fresh batches pass the tighter budgets in explicit Win64/Release/Delphi 23.0
+context. Each batch contains five cold and ten measured warm samples per
+workflow, with one separate warmup per warm workflow. Builds, tests and
+analyzers ran outside the timing batches.
+
+| Workflow | Cache | Batch 1 median | Batch 2 median | Median budget |
+| --- | --- | ---: | ---: | ---: |
+| Remove-with plan | Cold | 12.410 s | 11.522 s | 22 s |
+| Remove-with plan | Warm | 9.000 s | 7.426 s | 10 s |
+| Rename dry-run | Cold | 6.335 s | 5.890 s | 55 s |
+| Rename dry-run | Warm | 0.962 s | 0.998 s | 2 s |
+
+Warm rename p95 is 1.180 s and 1.228 s, below the 2.5-second budget.
+These measurements describe this fixture on this machine, not arbitrary projects.
+All 60 measured outputs and four warmups match their complete ordered stable
+projections, including source ranges/text, context fingerprints, edits, skips,
+coverage and verification requirements. Remove-with retains 363 planned,
+258 skipped and 46 covered statements; rename retains four edits. Cache priming
+and measured runs preserve source files, and measured warm caches have zero
+misses. All 4,750 frozen proof inputs remain unchanged.
+
+The API reference uses the same additional-source list, body-analysis scope and
+semantic-graph setting as the CLI. The shared ordered projection matches exactly.
+Legacy facts-only planning has a separate trim contract under Semantics T-614;
+its different counts are not substituted for canonical CLI proof. All 652
+canonical edits across 24 isolated units compile with zero errors and the same
+445 inherited fixture warnings as the original. This compiler check does not
+establish runtime equivalence or transactional apply.
+
+Evidence is under `projects/.dak/DelphiAIKit/goal-current/`:
+`t209-current-benchmark-proof.json`, `t209-current-benchmark-plan-comparison.json`,
+`t209-benchmark-comparator-review.json` and `t209-canonical-compiler-proof.json`.
+Raw timing outputs are under the fixture's
+`src/.dak/maxtdb/t209-current-certified-pwsh/batch-1/` and `batch-2/`, each with
+`cold/` and `warm/` directories. Both batches measured DAK `0bd38e4` and
+DelphiSemantics `577d3e1`, using Release DAK executable SHA-256
+`81c6b5f22653c6ad7d4e1da81d1ca82b46a46b88875f1be7c6b20a762c0bd054`.
+The independent comparator checks exact sample identities and output paths;
+only generated run paths and schema-checked runtime metrics are excluded.
+The first cold rename sample is the current reference, not a pre-optimization
+baseline. T-209 remains open for the remaining final gates.
+
+## Historical September 7 measurements
 
 The measurements below are historical. The DAK executable was built for Win64,
 but the benchmark calls omitted target options and used the CLI's Win32/Release
 semantic defaults. They are not explicit Win64 planning measurements. The
 separate 633-statement API probe inherited Release/Linux64 from its project.
-T-209 must establish new API/CLI plan parity in one explicit context before its
-next timing batches.
+The September 10 proof above supplies the later explicit-context API/CLI
+comparison and timing batches.
 
 The T-253/T-254/T-255 follow-up meets the tighter cold and warm budgets on the
 retained maxTdb workload. Measurements use Delphi 12, Release Win64 DAK, the
@@ -105,8 +149,8 @@ foreach ($batch in @('batch-1', 'batch-2')) {
 }
 ```
 
-These commands define the pending certification. No new timings or Win64 plan
-parity are claimed by the harness change.
+The September 10 proof used these commands with a fresh output directory.
+The harness change itself did not establish plan parity or timing results.
 
 Historical benchmark outputs are under
 `F:/projects/OEC/TE5/maxTdb/.dak/DelphiAIKit-fixture/src/.dak/maxtdb/t250-t256/`,

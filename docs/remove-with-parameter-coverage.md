@@ -382,8 +382,18 @@ differences remain recorded, without a claim of full-object equality.
 The legacy two-step facts API and canonical combined API retain different
 routine-ending trim behavior under DelphiSemantics T-614. The existing FlipMark
 test requires that distinction. Matching the legacy plan's counts is therefore
-not the canonical CLI acceptance criterion. T-209 remains open for compilation
-of the canonical emitted plan, both timing batches and the final gate.
+not the canonical CLI acceptance criterion.
+
+The canonical plan also passes fresh isolated Win64 compilation: all 652 edits
+across 24 units compile with zero errors. The original and rewritten builds
+have the same 445 inherited fixture warnings, matched by warning code, message
+and unit. All 709 original files and 702 frozen compiler inputs are unchanged.
+This verifies the emitted source; it does not establish runtime equivalence or
+transactional apply. Evidence: `t209-canonical-compiler-proof.json`.
+Both explicit-context timing batches now pass their budgets, and all 60 measured
+outputs plus four warmups match complete ordered stable projections. See
+[performance evidence](remove-with-performance.md). T-209 remains open for the
+remaining final gates.
 
 Two diagnostic witnesses establish limits of the remaining investigation.
 Removing a WITH while preserving unbound conditional text can compile yet
