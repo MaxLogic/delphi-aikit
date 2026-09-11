@@ -12,6 +12,28 @@ binary inside the skill; we build it in this repo and point the skill to it.
 - FixInsightCL.exe (only if we run FixInsight)
 - PALCMD.EXE / PALCMD32.EXE (required by default; set `DAK_PASCAL_ANALYZER=false` to opt out)
 
+## PAL parser defaults
+
+Enable **Parse implementations for non-reported units** in PAL's parser
+defaults. The corresponding effective PAL.INI value is:
+
+```ini
+[Parser]
+CompleteParsing=1
+```
+
+For ordinary DAK calls, PALCMD reads PAL.INI next to its executable if present,
+otherwise `%APPDATA%\Peganza\Pascal Analyzer\PAL.INI`. An explicit `/I=<path>`
+overrides that choice; check that private file too. Existing PAP projects can
+retain their own parser settings. This is a PAL installation/setup policy,
+not a setting that DAK currently enforces in compiled code.
+
+Only change this value; preserve report selection, search paths and exclusions.
+Complete implementation parsing supplies context for checking our callers; it
+does not require routine vendor finding review. Record the effective INI hash
+and review affected baselines after changing it. Keep explicit disabled settings
+for raw comparison probes. See [verified before/after results](../../docs/pal-int64-and-parser-checks.md).
+
 ## Resolver discovery
 
 The scripts find the resolver like this:

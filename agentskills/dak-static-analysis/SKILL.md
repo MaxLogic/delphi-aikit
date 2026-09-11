@@ -72,6 +72,25 @@ Reserve vendor-wide analysis for an explicit dependency audit, a maintained
 fork change, or a diagnosis that requires it. For daily work, open the summary
 and changed-file triage; do not review raw third-party rows by default.
 
+## PAL implementation parsing default
+
+Use `[Parser] CompleteParsing=1` in the effective PAL.INI for routine PAL
+analysis. This is PAL's "Parse implementations for non-reported units" option.
+It preserves dependency implementation context while keeping vendor reporting
+exclusions in place. With PAL 9.21.4.0, disabling it produces false unused
+receiver warnings for fields passed to `TInterlocked`.
+
+DAK inherits PAL's configuration; it does not force this setting itself. Check
+the effective INI during setup or after an analyzer/configuration change:
+explicit `/I` first, otherwise PAL.INI beside PALCMD if present, otherwise the
+user's `%APPDATA%\Peganza\Pascal Analyzer\PAL.INI`. An explicit PAP project may
+have its own parser settings. Preserve unrelated settings and do not silently
+edit global configuration without authorization. See [SETUP.md](SETUP.md).
+
+Keep disabled/private configurations for deliberate vendor reproductions.
+Record the effective INI hash with proof; a setting change invalidates affected
+PAL comparisons and requires baseline review, not automatic replacement.
+
 ## Legacy application policy
 
 Treat static analysis as advisory for an established legacy application when

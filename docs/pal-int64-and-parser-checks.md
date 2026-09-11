@@ -35,3 +35,21 @@ Peganza documents the [parser option](https://www.peganza.com/PALHelp/properties
 and [PALCMD INI selection](https://www.peganza.com/PALHelp/how_to_use_palcmd_exe_.htm).
 Parsing dependency implementations supplies caller context while leaving
 routine vendor reporting exclusions in place.
+
+## Routine setup and verification
+
+Our routine PAL setup uses `CompleteParsing=1`. DAK inherits PAL's effective
+configuration; its executable does not enforce this value. An explicit `/I`
+or saved PAP project can override installation defaults. See the
+[analysis setup instructions](../agentskills/dak-static-analysis/SETUP.md).
+
+Two normal DAK project runs with the setting disabled reproduced the receiver
+rows. Four enabled runs, covering project and project-context unit analysis on
+both targets, retained only the genuine unused control. Raw and normalized
+rows agree, and all six finalized diagnostic outputs passed verification.
+
+The configuration change leaves source and executables unchanged. Record the
+effective INI hash and review affected PAL baselines before reuse; these
+diagnostic outputs do not replace maintained acceptance baselines. Isolated
+maxTdb caller acceptance remains open under T-234. The minimal result does not
+resolve T-293's separate BSON report instability.
