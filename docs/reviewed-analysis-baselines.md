@@ -67,3 +67,40 @@ Evidence under `projects/.dak/DelphiAIKit/goal-current/`:
   including external findings and retained debt.
 
 T-212 remains open until its external stability and final acceptance gates pass.
+
+## September 11 configuration review
+
+Fresh Win64/Release DAK and DelphiSemantics analysis under
+`CompleteParsing=1` retains all 37 previously reviewed gated occurrences,
+including complete rows, multiplicity and source hashes. Both analyzers
+complete, ownership resolves with no unknown findings, and reports verify.
+The original policy comparisons fail solely on the baseline's older DAK Git
+revision. The mapped source revision differs from the current candidate only
+in documentation; compiler, analyzer and ownership compatibility fields match.
+The effective PAL.INI is also hashed separately in the retained input manifest.
+
+The fresh reports differ from the retained reports by 16 advisory occurrences
+across the two projects.
+Each has a retained source review. Added reports concern initialized records
+passed through Windows APIs or callbacks, and a system-time record populated
+before conversion. Removed reports concern atomic counters that are read and
+an input array consumed by sorting. No gated finding was added or removed, and
+the advisory reports remain visible.
+
+Separate compatibility copies preserve every original baseline finding and
+update only compatibility metadata. Report-processing replays against these
+copies pass both policy gates. These are reviewed replays of the fresh native
+reports, not additional independent analyzer runs. Historical baselines and
+the initially failed comparisons are preserved.
+
+Evidence is under
+`projects/.dak/DelphiAIKit/goal-current/pal-acceptance-20260911/`:
+`maintained-proof.json`, `maintained-review.json`, the two
+`reviewed-*-compatibility.json` copies, and `maintained-*-reviewed-replay/`.
+DAK analysis took 269.17 s and DelphiSemantics 167.10 s.
+
+T-293 still reproduces 19/59 BSON cast findings with either complete-parsing
+setting on an unchanged isolated snapshot. The external baseline and overall
+T-212 final gate therefore remain blocked. The full build, test and performance
+certification was not repeated for these documentation and diagnostic changes;
+this checkpoint does not claim final goal completion.

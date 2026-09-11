@@ -146,3 +146,29 @@ Individual records are under `projects/.dak/DelphiAIKit/goal-current/`:
 `t212-external-other-review.json`, `t212-grijjy-pal-review.json` and
 `t212-other-pal-review.json`. Source review alone does not satisfy the final
 analysis gate. Unchanged vendor probes were not rerun for this review.
+
+## Complete-parsing recheck, September 11
+
+PAL 9.21.4.0 still varies on a byte-identical six-file BSON snapshot inside
+DAK. With `CompleteParsing=0`, two project-context unit runs produce 19 and 59
+cast findings. With `CompleteParsing=1`, the corresponding runs also produce
+19 and 59. Each pair differs by the same 40 complete name/location/message
+occurrences. All runs load the same 38 files, miss no dependencies, preserve
+input hashes and pass finalized-report verification. The earlier relocated
+control was stable; this new isolated context reproduces the defect.
+
+T-293 remains open. Preserve both variants and the individual source reviews;
+neither the smaller set nor their union is an accepted external baseline.
+The next retry needs a relevant vendor correction or supported configuration
+change. No production or vendor source was edited.
+
+Complete parsing also only partly resolves T-234. The isolated counter caller
+has four disputed receiver rows when disabled and one when enabled on each
+target. A clean RTL-only reduction confirms remaining `Read` and direct
+`CompareExchange` receiver warnings despite successful full-width runtime
+checks. See [the receiver checks](pal-int64-and-parser-checks.md).
+
+Evidence: `projects/.dak/DelphiAIKit/goal-current/pal-acceptance-20260911/`,
+especially `bson-proof.json`, `bson-snapshot.json`, `receiver-proof.json` and
+`read-proof.json`. T-314 separately records a malformed quoted `/I` argument;
+those invalid invocations are excluded from these conclusions.

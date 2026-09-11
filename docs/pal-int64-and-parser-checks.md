@@ -50,6 +50,35 @@ rows agree, and all six finalized diagnostic outputs passed verification.
 
 The configuration change leaves source and executables unchanged. Record the
 effective INI hash and review affected PAL baselines before reuse; these
-diagnostic outputs do not replace maintained acceptance baselines. Isolated
-maxTdb caller acceptance remains open under T-234. The minimal result does not
-resolve T-293's separate BSON report instability.
+diagnostic outputs do not replace maintained acceptance baselines.
+
+## Remaining receiver cases
+
+The isolated maxTdb caller comparison removes three of four disputed rows on
+both Win32 and Win64. `RecordExpressionPlanBuild`, `RecordIrProgramDecode` and
+`RecordProgramMetadataDecode` clear with complete parsing enabled. `Snapshot`
+still reports its `lState` receiver, whose Int64 fields are read through
+`TInterlocked.Read`. Raw and normalized occurrences agree. The larger caller
+context has the same three unresolved dependencies with either setting; this
+comparison does not certify complete project analysis.
+
+A separate RTL-only reduction has no missing dependencies. Its object and
+record `Read` cases and a direct `CompareExchange` case all retain the receiver
+warning with either setting, on both targets. The genuine unused-variable
+control also remains. Both builds and executions pass: each target checks six
+positive/negative full-width reads and four unchanged-input comparisons.
+All four analyzer outputs pass normalized-report verification.
+
+In Delphi 12, `TInterlocked.Read` calls `CompareExchange`, whose Int64 overload
+calls `AtomicCmpExchange`. The runtime checks show that the receiver is used;
+they do not establish PAL's internal cause. T-234 remains open. Complete parsing
+is still our default because it resolves the verified Increment/Add cases.
+
+The new BSON control also reproduces T-293 with complete parsing enabled. Two
+enabled runs yield 19 and 59 cast findings, as do the two disabled controls.
+The same 40 complete observations differ in each pair, with unchanged inputs
+and no missing dependencies. This setting does not resolve that instability.
+
+Commands, source hashes, raw reports, normalized comparisons and standalone
+sources are retained under
+`projects/.dak/DelphiAIKit/goal-current/pal-acceptance-20260911/`.
