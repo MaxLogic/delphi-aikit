@@ -106,3 +106,10 @@ Evidence under `projects/.dak/DelphiAIKit/goal-current/`:
 `t294-snapshot.json`, `t294-context-comparison.json`, `t294-caller-proof.json`,
 `t294-caller-comparison.json` and `t294-native-control.json`. Raw reports remain
 under the isolated fixture's project-local `.dak/order_access_cli/` directory.
+
+## Implementation parsing checks, 2026-09-11
+
+`CompleteParsing=1` resolves the two minimal T-234 receiver findings on both
+targets while retaining the unused control. Full-width runtime checks
+support T-232. See the [technical results](pal-int64-and-parser-checks.md)
+for scope, proof and remaining acceptance work.
