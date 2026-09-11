@@ -1,7 +1,7 @@
 # Pascal Analyzer self-test
 
-This folder contains a self-contained Pascal Analyzer run script that uses our
-DelphiAIKit to analyze this repo's own project.
+The script in this folder runs Pascal Analyzer against DelphiAIKit through
+DAK's own analysis command.
 
 ## What it does
 
@@ -36,7 +36,7 @@ From WSL:
 
 ## Notes
 
-- The script is designed to be editable. Update the parameters at the top of
-  the .bat if you need a different platform/config/Delphi version.
-- If Pascal Analyzer is not installed, the run will fail with a clear error.
+- Set the platform, configuration, and Delphi version in the parameters at the
+  top of the .bat file.
+- The run fails if Pascal Analyzer is not installed.
 - We keep results under `Out\` so `--clean` never wipes the script folder.

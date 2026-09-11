@@ -2,12 +2,12 @@
 
 ## Purpose
 
-`DelphiAIKit.exe lsp probe` compares the installed external `DelphiLSP.exe` capability matrix across two handshake modes:
+`DelphiAIKit.exe lsp probe` compares the capabilities of the installed external `DelphiLSP.exe` in two handshake modes:
 
-- `contextFile`: DAK's current owned `.dak/<ProjectName>/lsp/context.delphilsp.json` flow
+- `contextFile`: DAK's generated `.dak/<ProjectName>/lsp/context.delphilsp.json`
 - `settingsFile`: an official-style `.delphilsp.json` file plus `workspace/didChangeConfiguration`
 
-This gives us a repeatable baseline across Delphi versions and handshake styles.
+Use the results to compare Delphi versions and handshake styles.
 
 ## Delphi 13 raw-protocol retry, 2026-09-08
 
@@ -15,7 +15,7 @@ The unchanged three-file fixture was copied into `projects/.dak/DelphiAIKit/goal
 
 All four sessions initialized and shut down successfully. Definition at `Unit1.pas:8:21` returned `Unit1.pas:13:1`, and document symbols were non-empty. Hover returned `null` at all three positions (`8:21`, `6:7`, `13:32`) in every mode. Each direct references, workspace-symbol and rename request returned `-32601 Method not found`. No rename was applied. The fixture source hashes remained unchanged.
 
-These fresh raw requests confirm that changing the documented initialization mode does not unblock the missing methods on this installed server. T-120 remains open. Its smallest unblock is a supported server build or documented configuration that returns references and useful hover content. On September 10 the maintainer dropped the T-127 LSP rename proposal and chose to concentrate on DelphiSemantics. No LSP rename provider or further T-127 design approval is planned. The historical raw rename probe remains capability evidence.
+The missing methods remain unavailable in every tested initialization mode on this installed server. T-120 remains open until a supported server build or documented configuration returns references and useful hover content. On September 10 the maintainer dropped the T-127 LSP rename proposal and chose to concentrate on DelphiSemantics. No LSP rename provider or further T-127 design approval is planned. The historical raw rename probe remains capability evidence.
 
 Exact requests, responses, settings and server hashes are retained in `projects/.dak/DelphiAIKit/goal-current/lsp-{path,uri,controller,hover-model}-20260908.json`. The probe script is `probe-lsp-raw.py` in the same folder. The configuration variants follow the [official DelphiLSP integration documentation](https://docwiki.embarcadero.com/RADStudio/Florence/en/Using_DelphiLSP_Code_Insight_with_Other_Editors).
 
@@ -80,7 +80,6 @@ Not advertised in either mode:
 - `referencesProvider`
 - `workspaceSymbolProvider`
 
-Conclusion:
 On the locally installed Delphi 23.0 and Delphi 13 servers, the missing external capabilities are not explained by the `contextFile` versus `settingsFile` handshake difference. Delphi 13 also does not add them.
 
 Direct raw JSON-RPC checks against Delphi 13 confirm the same result:
@@ -88,7 +87,7 @@ Direct raw JSON-RPC checks against Delphi 13 confirm the same result:
 - `textDocument/references` returns `-32601 Method not found`
 - `workspace/symbol` returns `-32601 Method not found`
 
-Even the documented `serverType: "controller"` startup mode does not expose those methods. We should treat `references` and `workspace/symbol` as unsupported on the external Delphi LSP surface unless Embarcadero documents and ships them later.
+Even the documented `serverType: "controller"` startup mode does not expose those methods. Treat `references` and `workspace/symbol` as unsupported by these external Delphi LSP builds unless Embarcadero documents and ships support later.
 
 ## Commands
 

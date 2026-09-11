@@ -1,9 +1,8 @@
 # Delphi static analysis skill
 
-This skill helps us run Delphi static analysis in a repeatable way from an
-AI tool (Claude Code, Codex CLI, or similar). It invokes TMS FixInsight and
-Peganza Pascal Analyzer through `DelphiAIKit.exe`, captures reports into a
-stable folder tree, and produces a short summary we can review.
+Use this skill to run TMS FixInsight and Peganza Pascal Analyzer through
+`DelphiAIKit.exe` from Claude Code, Codex CLI, or another AI tool. It collects
+reports in a consistent folder structure and produces a short review summary.
 
 The scripts are thin wrappers around the DAK CLI subcommand
 `analyze`, using `--project` or `--unit`.
@@ -11,17 +10,17 @@ The scripts are thin wrappers around the DAK CLI subcommand
 WSL path contract:
 - Direct DAK calls accept Linux absolute paths only in `/mnt/<drive>/...` form.
 - Other Linux absolute paths (for example `/home/...`) are rejected.
-- Wrapper scripts remain the canonical safe route because they normalize paths with `wslpath`.
+- Prefer the wrapper scripts for path conversion; they use `wslpath`.
 
-Good for:
+Use it for:
 - One-command analysis runs against a .dproj
 - Consistent report collection and triage
 - Comparing results across changes
 - Local, repeatable analysis runs during development
 
-Newer additions:
+Reports and checks:
 - FixInsight normalization (`fi-findings.md` / `fi-findings.jsonl`)
-- Per-project baselines + delta reports (`baseline.json`, `delta.md`)
+- Per-project baselines and delta reports (`baseline.json`, `delta.md`)
 - Optional CI gating via env vars (see `SKILL.md`)
 - `doctor.*` preflight checks
 

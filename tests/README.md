@@ -1,6 +1,6 @@
 # Tests
 
-`tests\run.bat` is an end-to-end feature test that exercises:
+`tests\run.bat` checks the following end-to-end workflows:
 
 - resolver output generation (`resolve --format ini|xml|bat`) for fixtures and for our own `projects\DelphiAIKit.dproj`
 - FixInsightCL execution in `txt/xml/csv` (`analyze --fi-formats all`)
@@ -28,13 +28,13 @@ From WSL (runs via Windows `cmd.exe`):
 /mnt/c/Windows/System32/cmd.exe /C tests\\run.bat
 ```
 
-Or simply:
+Or use the WSL wrapper:
 
 ```bash
 ./tests/run.sh
 ```
 
-Artifacts are written under `tests\out\` (this folder is expected to be disposable).
+Artifacts are written under `tests\out\` and can be discarded after review.
 
 ## DUnitX suite (unit + integration)
 
@@ -51,12 +51,12 @@ build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win64 -ve
 tests\DelphiAIKit.Tests.exe
 ```
 
-Missing FixInsightCL, PALCMD, or real DelphiLSP acceptance tooling fails by default. Set `DAK_ALLOW_FIXINSIGHT_SKIP=1`, `DAK_ALLOW_PAL_SKIP=1`, or `DAK_ALLOW_LSP_SKIP=1` only when that tool lane is intentionally out of scope for the run.
+Missing FixInsightCL, PALCMD, or real DelphiLSP acceptance tooling fails by default. Set `DAK_ALLOW_FIXINSIGHT_SKIP=1`, `DAK_ALLOW_PAL_SKIP=1`, or `DAK_ALLOW_LSP_SKIP=1` only when that tool's tests are intentionally outside the run's scope.
 
 Timing note:
 
 - The full DUnitX suite is not a fast smoke test. On Pawel's machine it took about 3.5 minutes on 2026-04-07 (`153` tests, all green).
-- `Test.FixInsight.TFixInsightTests` is the long pole. It runs FixInsight analysis three times (`base`, `exclude`, `ignore-ids`) and took about 190-200 seconds on 2026-04-07.
+- `Test.FixInsight.TFixInsightTests` accounts for most of that time. It runs FixInsight analysis three times (`base`, `exclude`, `ignore-ids`) and took about 190-200 seconds on 2026-04-07.
 - Avoid using a 120s or 240s watchdog for the full suite or the FixInsight fixture; those bounds are short enough to produce false "hang" diagnoses.
 - Size automation timeouts from current runs. On 2026-09-10 the five-test FixInsight fixture passed in 666 seconds; a full 661-test run took 1003 seconds before reporting path-length failures. Allow at least `1800s` for the full suite and `900s` for the FixInsight fixture on this machine, and inspect process progress before diagnosing a hang.
 

@@ -1,8 +1,6 @@
 # Delphi global vars skill
 
-This skill helps an AI agent use DelphiAIKit's `global-vars` command effectively.
-
-It is designed for:
+Use this skill to run DelphiAIKit's `global-vars` command for:
 
 - project-wide global variable inventory
 - unused-global discovery
@@ -16,5 +14,5 @@ The skill assumes:
 - reports and caches live under sibling `.dak/<ProjectName>/global-vars/`
 - SQLite cache reuse is the default behavior
 
-Use this skill when the task is analysis/reporting. Do not use it for backend implementation work on the analyzer itself.
+This skill covers analysis and reporting. Work on the analyzer's implementation follows the repository's development workflow.
 

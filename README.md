@@ -1,6 +1,7 @@
 # DelphiAIKit
 
-“Utilities for AI-assisted Delphi code analysis and builds.”
+DelphiAIKit builds Delphi projects, runs static analysis, and provides symbol
+lookup and refactoring commands for developers and AI agents.
 
 ## What it can do
 
@@ -8,11 +9,11 @@
 - Expand IDE macros and environment variables
 - Merge project search paths with the IDE library path
 - Emit FixInsightCL parameters as `ini`, `xml`, or a runnable `bat`
-- Run static analysis via `analyze` with FixInsight and Pascal Analyzer orchestration
-- Validate compiled DFM resources via `dfm-check` (generated harness + DFM stream gate)
+- Run FixInsight and Pascal Analyzer through `analyze`
+- Validate compiled DFM resources by streaming them in a generated test program via `dfm-check`
 - Inspect text DFM component trees and event bindings via `dfm-inspect`
 - Analyze project-level globals via `global-vars` with JSON/text reports, ambiguity reporting, and SQLite caching
-- Analyze project unit dependencies via `deps` with JSON-first topology output, text summaries, focused unit views, and cycle reporting
+- Inspect project unit dependencies via `deps`, with JSON/text reports, focused unit views, and cycle detection
 - Navigate Delphi symbols semantically via `lsp` with `definition`, `hover`, file-scoped `symbols`, and capability probing backed by `DelphiLSP.exe`
 - Build and query a reusable local Symbol Map via `symbol-map` with project/RTL/compiler-intrinsic indexing, definition lookup, symbol search, description, references, and central/project SQLite caches
 - Find project-scoped Delphi symbol usages, plan or apply project-scoped renames, and review or transactionally apply conservative dead-code candidates via `find-usages`, `rename`, and `dead-code`
@@ -23,19 +24,19 @@
 - Running FixInsight in CI or scripted builds
 - Reproducing the exact IDE configuration in a headless environment
 - Comparing config differences between platforms or build types
-- Understanding which Delphi units a broken area depends on before we start AI-assisted debugging or refactoring
-- Jumping from a symbol use site to its definition, hover text, or file-scoped document symbols without guessing from raw text search
+- Checking unit dependencies before debugging or refactoring
+- Finding a symbol's definition, hover text, or file-scoped document symbols
 - Looking up project, source-available RTL, and compiler-intrinsic symbols through a deterministic cache when LSP is unavailable, incomplete, or too expensive for bulk work
 - Reviewing exact project-scoped symbol usages before making a rename, then applying the rename with backups and rollback behavior
-- Inspecting dead-code findings as review evidence before optionally applying an explicitly approved transactional removal
+- Reviewing dead-code candidates before approving removal with transaction support
 - Planning conservative `with` statement cleanup with JSON reports, safe skips, build verification, and rollback
 
 ## Repo-local AI skills
 
-The [`agentskills/`](agentskills/) folder contains repo-local skills that help AI agents use DelphiAIKit consistently instead of guessing workflows from scratch.
+The [`agentskills/`](agentskills/) folder contains instructions and wrappers for AI agents using DelphiAIKit.
 
-- `dak`: start here when the task is about choosing the right DelphiAIKit workflow; it routes to the focused skills below without duplicating their command contracts.
-- `dak-build`: build or rebuild Delphi and TMS WEB Core projects through the canonical DelphiAIKit build pipeline.
+- `dak`: choose the skill for the task from the list below.
+- `dak-build`: build or rebuild Delphi and TMS WEB Core projects through DelphiAIKit.
 - `dak-static-analysis`: run Delphi static analysis through DelphiAIKit wrappers, then triage and apply conservative verified fixes.
 - `dak-dfm-check`: inspect and validate `.dfm`-backed forms through `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
 - `dak-global-vars`: analyze project-level globals, declaration sites, and read/write usage before refactoring shared state.
@@ -54,7 +55,7 @@ The [`agentskills/`](agentskills/) folder contains repo-local skills that help A
 
 ## Build
 
-The project file is `projects\DelphiAIKit.dproj` and the executable is output to `bin\DelphiAIKit.exe`.
+Build `projects\DelphiAIKit.dproj` to produce `bin\DelphiAIKit.exe`.
 
 Build from Windows:
 
@@ -88,7 +89,7 @@ Or via the CLI:
 bin\DelphiAIKit.exe build --project "projects\DelphiAIKit.dproj" --delphi 23.0 --platform Win64 --config Debug
 ```
 
-`build` now runs through DelphiAIKit's native Delphi build pipeline. `build-delphi.bat` remains available as a compatibility/bootstrap wrapper, but `DelphiAIKit.exe build` no longer depends on batch/PowerShell helper scripts for normal operation.
+`build` uses DelphiAIKit's native Delphi build runner and needs no batch or PowerShell helpers for normal operation. `build-delphi.bat` is available for compatibility and bootstrap builds.
 
 `build-delphi.bat` writes wrapper logs under a per-run project `.dak\<ProjectName>\build\run-*` directory by default. Use `-log-dir "<path>"` to choose a caller-owned parent directory for per-run `run-*` log folders, and `-keep-logs` when we need to inspect them after the wrapper exits.
 
@@ -103,7 +104,7 @@ Additional build flags:
 - `--dfmcheck` runs DFM streaming validation after a successful source build (presence flag; same as calling `dfm-check` separately). If the source build fails, DAK reports that `dfm-check` was not run instead of treating the skipped validation as the failing phase.
 - `--dfm "MainForm.dfm,Frames\DetailSubEditDocs.dfm"` scopes post-build `--dfmcheck` to selected forms.
 - `--all` scopes post-build `--dfmcheck` to all forms (default when `--dfm` is omitted).
-- `--builder auto|delphi|webcore` selects the build backend. `auto` is the default and now detects strong TMS WEB Core project markers from the target `.dproj`.
+- `--builder auto|delphi|webcore` selects the build backend. `auto` is the default; it detects TMS WEB Core project markers in the target `.dproj`.
 - `--webcore-compiler "<path>"` overrides `TMSWebCompiler.exe` discovery for WebCore builds.
 - `--pwa` and `--no-pwa` force WebCore `/PWA` on or off. Without either flag, DAK follows the project's `TMSWebPWA` setting.
 - `--source-context auto|off|on` controls whether build/`dfm-check` failure output includes nearby source lines when a file and line can be resolved.
@@ -111,7 +112,7 @@ Additional build flags:
 - When `--ai` is enabled, build failures can append optional `lsp` semantic hints when DAK can resolve a meaningful token or enclosing symbol. Missing, unsupported, or empty LSP data leaves the original compiler failure untouched.
 - `--rsvars "<path>"` overrides `rsvars.bat` for build and post-build `--dfmcheck` validation.
 
-For TMS WEB Core projects, `build` can now call `TMSWebCompiler.exe` directly:
+For TMS WEB Core projects, `build` can call `TMSWebCompiler.exe` directly:
 
 ```
 bin\DelphiAIKit.exe build --project "C:\path\WebApp.dproj" --builder webcore --config Debug --webcore-compiler "F:\TMS-SmartSetUp\Products\tms.webcore\Bin\Win64\TMSWebCompiler.exe" --ai
@@ -135,7 +136,7 @@ Raw `msbuild.exe /p:DCC_Define=...` or `/p:DCC_UnitSearchPath=...` calls are res
 
 ## Command Unit Layout
 
-Command entry units now follow one naming pattern in `src/`:
+Command entry units in `src/` follow this naming pattern:
 - `Dak.Build` and `Dak.Resolve` are thin facades that keep the public entry points.
 - `Dak.Build.Runner`, `Dak.Resolve.Runner`, `Dak.Analyze.ProjectRunner`, and `Dak.Analyze.UnitRunner` hold the command execution logic.
 - Shared command helpers stay in dedicated support units such as `Dak.Build.Summary`, `Dak.Build.Types`, and `Dak.Analyze.Common`.
@@ -150,9 +151,9 @@ bin\DelphiAIKit.exe resolve --project "C:\path\Project.dproj" --platform Win32 -
 
 `--project` (alias: `--dproj`) accepts `.dproj`, `.dpr`, or `.dpk`. If we pass `.dpr`/`.dpk`, the resolver uses the sibling `.dproj`.
 `--delphi` is required; `23` is normalized to `23.0`. We can pass other Delphi versions here as well.
-When we run from WSL, `--project` and `--unit` accept Linux-style absolute paths only in the `/mnt/<drive>/...` form, and we normalize them internally.
-Other Linux absolute paths (for example `/home/...`) are rejected with a clear error.
-When we need maximum compatibility or explicit conversion, using `wslpath -w` remains the canonical safe route.
+From WSL, `--project` and `--unit` accept and normalize Linux-style absolute paths in `/mnt/<drive>/...` form.
+Other Linux absolute paths (for example `/home/...`) are rejected.
+Use `wslpath -w` when explicit conversion or compatibility with other callers is needed.
 
 If `--platform` or `--config` is omitted, we default to `Win32` and `Release`.
 
@@ -229,7 +230,7 @@ bin\DelphiAIKit.exe symbol-map describe-symbol --project "C:\path\Project.dproj"
 bin\DelphiAIKit.exe symbol-map find-references --project "C:\path\Project.dproj" --symbol "TCustomer" --limit 20 --format json
 ```
 
-`symbol-map` is DAK's own deterministic source index. It is not a DelphiLSP wrapper and it is not a clone of `delphi-lookup`: LSP remains useful for semantic editor-style probes, while Symbol Map is optimized for reusable project indexing, cacheable source inventories, and future bulk refactoring support such as `remove-with`.
+`symbol-map` is DAK's own deterministic source index, independent of DelphiLSP and `delphi-lookup`. Use LSP for semantic editor-style queries and Symbol Map for reusable project indexes and cached source inventories. The index also provides a basis for future bulk refactoring support such as `remove-with`.
 
 To inspect and rename a project-scoped symbol through DelphiSemantics:
 
@@ -248,7 +249,7 @@ The central cache stores reusable unit models by content and compiler context. B
 
 Each project also gets a lightweight project cache under the `.dproj` sibling `.dak/<ProjectName>/symbol-map/project-index.sqlite3`. That project cache records the resolved project context and links project units to central cache rows, but it does not duplicate the central unit model. Deleting the project `.dak/<ProjectName>/symbol-map/` folder forces project relinking on the next query. Deleting the central cache forces all shared unit models, compiler intrinsics, and source-available RTL rows to be rebuilt. Both cleanup operations are safe because Symbol Map is derived data.
 
-Normal invalidation is content/context based: changed source content or compiler profile context creates new central unit keys, and changed project context relinks project rows on the next index/query pass.
+Changing source content or compiler profile context creates new central unit keys. Changing project context relinks project rows on the next index or query.
 
 `symbol-map index` scans project units and, when source roots are available for the selected Delphi context, indexes source-available RTL units into the compiler profile. Targeted `symbol-map index --unit <path>` indexes only the requested unit and reports `rtlSource.status` as `not-indexed`; run the project-wide index or a query command when the RTL cache should be warmed. Missing RTL roots are non-fatal diagnostics because compiler intrinsics are seeded synthetically. Query commands refresh the project index when needed before answering. `find-references` currently reports token-name matches with explicit `confidence="token-name-match"` metadata; it is useful as an indexed search result, not yet a compiler-proven semantic reference identity.
 
@@ -260,7 +261,7 @@ bin\DelphiAIKit.exe remove-with --project "C:\path\Project.dproj" --dir "C:\path
 bin\DelphiAIKit.exe remove-with --project "C:\path\Project.dproj" --unit "C:\path\Project\CustomerUnit.pas" --mode apply --format json
 ```
 
-`remove-with` is a with refactoring command with three modes:
+`remove-with` has three modes:
 - `scan` parses selected project units and reports each `with` statement, selector text, source ranges, selector counts, and nesting depth.
 - `plan` adds AST-backed symbol resolution, resolver classifications, planned source edits, skipped statements, and warnings without changing source files.
 - `apply` writes planned safe edits transactionally, then runs build verification.
@@ -269,13 +270,13 @@ Target exactly one scope with `--unit`, `--dir`, or `--all`. Output defaults to 
 
 Plan and apply reports account for every discovered `with` statement across three top-level arrays: `planned`, `skipped`, and `covered`. Covered rows are nested statements already handled by a parent rewrite; they are counted in `summary.covered` and `telemetry.coveredStatements` without duplicating planned edit counts.
 
-The safety model is intentionally conservative. DAK builds one shared project model, extracts AST-backed unit data, and uses indexed semantic lookups for local variables, parameters, current-class members, unit globals/constants, source-available ancestors, interfaces, helpers, indexed/default properties, and active nested `with` receiver stacks. The legacy declaration scanner is retained only as a flat compatibility inventory while the AST-backed semantic model reaches full reporting parity. DAK qualifies only identifiers it can resolve safely. Ambiguous or unproven bindings are reported as skipped, including classifications such as `external`, `unsupported`, `unresolved`, and `ambiguous-to-DAK`.
+DAK builds one shared project model, extracts AST-backed unit data, and uses indexed semantic lookups for local variables, parameters, current-class members, unit globals/constants, source-available ancestors, interfaces, helpers, indexed/default properties, and active nested `with` receiver stacks. The legacy declaration scanner is retained only as a flat compatibility inventory while the AST-backed semantic model reaches full reporting parity. DAK qualifies only identifiers it can resolve safely. Ambiguous or unproven bindings are reported as skipped, including classifications such as `external`, `unsupported`, `unresolved`, and `ambiguous-to-DAK`.
 
 Record selectors that require preserved aliasing use pointer temps where the planner can prove the selector is addressable. Object and interface selectors can use reference temps. Non-addressable selectors, property selectors, call selectors, controlled statement contexts, and source-unavailable member lookups are skipped instead of guessed.
 
 `apply` creates a run workspace under `.dak/<ProjectName>/remove-with/<RunId>/`, backs up every changed file, writes a manifest with hashes and encoding/line-ending facts, and performs exact-byte rollback if verification fails. Successful and rolled-back runs report verification gates, transaction status, manifest paths, and per-file changed/restored status.
 
-`LSP` is not the primary resolver for this feature. The current DelphiLSP integration remains useful for navigation and future probes, but `remove-with` relies on the local AST/source model for deterministic bulk refactoring and build/rollback verification.
+`remove-with` resolves symbols through the local AST/source model and verifies rewrites through builds and rollback. DelphiLSP remains available for navigation and future capability probes.
 
 `deps` is JSON-first. The JSON contract is intended for tooling and AI agents and includes:
 - project metadata
@@ -286,7 +287,7 @@ Record selectors that require preserved aliasing use pointer temps where the pla
 
 `deps` always writes the rendered report to stdout. When `--output` is omitted, it also persists a copy under the target project's sibling `.dak/<ProjectName>/deps/` folder (`deps.json` or `deps.txt`).
 
-`deps` is meant for topology debugging, not deep semantic analysis. It helps us answer questions like "what units fan into this area?", "what unresolved references exist in this project graph?", and "which resolved project units participate in cycles?" It does not try to build a call graph, symbol graph, or full semantic/reference model.
+`deps` shows which units depend on an area, which unit references are unresolved, and which resolved project units form cycles. It does not build a call graph, symbol graph, or full semantic/reference model.
 
 Current scope:
 - shipped: deterministic JSON topology, AI-friendly text summaries, `--unit` focus mode, cycle/SCC reporting over resolved project units
@@ -306,7 +307,7 @@ Optional:
 - `--rsvars` is provided, or
 - `--delphi` is provided, or
 - `dak.ini` provides `[Build] DelphiVersion=<version>` (cascading settings).
-If none of the above is available, `dfm-check` fails with a hard error (Delphi context is required).
+If none is available, `dfm-check` fails because it requires a Delphi context.
 
 `global-vars` auto-loads `rsvars.bat` when either:
 - `--delphi` is provided, or
@@ -336,7 +337,7 @@ If no Delphi context can be resolved, `global-vars` still runs with `.dproj`-onl
 - non-verbose: actionable output only (`FAIL` lines + summary + final result)
 - verbose: full stage logs and per-resource output
 - each `FAIL` line includes mapped source context when available: `[unit=... pas=... dfm=...]`
-- on failures we also emit fix-oriented clues:
+- on failure, DAK also reports details to help locate the cause:
   - `[dfm-check] FAIL target: resource=... unit=... pas=... dfm=...`
   - `[dfm-check] FAIL clue: member=...`
   - `[dfm-check] FAIL clue: handler=...`
@@ -516,14 +517,14 @@ Workspace selection happens before the full settings cascade.
 selector wins, followed by the executable `dak.ini` fallback and default
 `auto`. Bootstrap may scan to the filesystem root, but reads no other settings.
 
-After selection, `dak.ini` files load in **cascading** order (lowest → highest
+After selection, `dak.ini` files load in cascading order (lowest to highest
 precedence) from the workspace root through each subfolder down to the `.dproj`
 folder. Selector files above that boundary contribute only `[Workspace].Root`.
 For backward compatibility, the executable INI contributes normal defaults
-only when no selector exists and default `auto` is used. We **do not** use the
-current working directory for settings discovery.
+only when no selector exists and default `auto` is used. The
+current working directory does not affect settings discovery.
 
-List-like values are merged + deduped case-insensitively, preserving first-seen order; singular strings override only when non-empty.
+Lists are merged in first-seen order, with duplicates removed case-insensitively. Single string values override earlier values only when non-empty.
 
 Example layout (more local files override/extend more global ones):
 

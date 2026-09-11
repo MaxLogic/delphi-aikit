@@ -1,7 +1,7 @@
 # FixInsight self-test
 
-This folder contains a self-contained FixInsight run script that uses our
-DelphiAIKit to analyze this repo's own project.
+The script in this folder runs FixInsight against DelphiAIKit through
+DAK's own analysis command.
 
 ## What it does
 
@@ -36,8 +36,8 @@ From WSL:
 
 ## Notes
 
-- The script is designed to be editable. Update the parameters at the top of
-  the .bat if we need a different platform/config/Delphi version.
+- Set the platform, configuration, and Delphi version in the parameters at the
+  top of the .bat file.
 - FixInsight must be installed, otherwise the run fails with a clear error.
 - By default we emit TXT only. Change `ML_FI_FORMATS` for xml/csv/all.
 - We keep results under `Out\` so `--clean` never wipes the script folder.
