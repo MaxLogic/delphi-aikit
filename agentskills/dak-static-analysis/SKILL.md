@@ -74,8 +74,8 @@ and changed-file triage; do not review raw third-party rows by default.
 
 ## PAL implementation parsing default
 
-Use `[Parser] CompleteParsing=1` in the effective PAL.INI for routine PAL
-analysis. This is PAL's "Parse implementations for non-reported units" option.
+For routine PAL analysis, set `CompleteParsing=1` in the effective PAL.INI's
+`Parser` section. This is PAL's "Parse implementations for non-reported units" option.
 It preserves dependency implementation context while keeping vendor reporting
 exclusions in place. With PAL 9.21.4.0, disabling it produces false unused
 receiver warnings for fields passed to `TInterlocked`.

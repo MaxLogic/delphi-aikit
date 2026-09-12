@@ -15,12 +15,8 @@ binary inside the skill; we build it in this repo and point the skill to it.
 ## PAL parser defaults
 
 Enable **Parse implementations for non-reported units** in PAL's parser
-defaults. The corresponding effective PAL.INI value is:
-
-```ini
-[Parser]
-CompleteParsing=1
-```
+defaults. In the effective PAL.INI's `Parser` section, set
+`CompleteParsing=1`.
 
 For ordinary DAK calls, PALCMD reads PAL.INI next to its executable if present,
 otherwise `%APPDATA%\Peganza\Pascal Analyzer\PAL.INI`. An explicit `/I=<path>`
