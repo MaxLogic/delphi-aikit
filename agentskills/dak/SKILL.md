@@ -30,7 +30,10 @@ This is a router, not a command manual. Pick the target skill, load it, and foll
    wrapper. Windows-only workflows run DAK directly on Windows; use WSL only
    when that target repository explicitly permits it. One OS owns each mutable
    runtime resource.
-2. For refactoring work, run analysis before editing and build after editing.
+2. For refactoring work, establish the relevant baseline before editing using
+   `dak-static-analysis` cadence; reuse valid retained analysis where allowed.
+   Build and test the changed candidate at the required gate. This does not
+   require a fresh full-project analyzer run before every edit.
 3. For UI/form work, combine the implementation flow with `dak-dfm-check`.
 4. For dependency cleanup, use `dak-project-unit-topology` before and after the change.
 5. For globals cleanup, use `dak-global-vars` for the decision surface and `dak-build` for final verification.
@@ -54,8 +57,11 @@ Generated tool artifacts are not agent memory:
 
 - Never place DAK caches, analyzer trees, generated validation clones, build outputs, or disposable worktrees under `.agents/`.
 - Use the target repository's `.dak/<ProjectName>/` only for DAK-owned project caches and generated state whose reuse is useful.
-- Use a unique OS temporary directory for large one-run artifacts when the selected skill supports an output override.
-- Retain only the small reports needed to reproduce a decision; remove verified disposable artifacts at the end of the task or goal.
+- Follow the target repository's artifact policy first. When it permits an
+  external location and the selected command supports an output override, a
+  unique OS temporary directory may hold one-run artifacts.
+- Retain evidence required by the task, including failed raw runs when requested.
+  Remove only verified disposable artifacts under the authorized cleanup policy.
 
 When reporting which workflow we chose, state:
 
