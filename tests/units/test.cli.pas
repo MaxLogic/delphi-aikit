@@ -3,11 +3,7 @@
 interface
 
 uses
-  System.Generics.Collections,
-  System.IniFiles,
-  System.IOUtils,
-  System.StrUtils,
-  System.SysUtils,
+  System.Generics.Collections, System.IniFiles, System.IOUtils, System.StrUtils, System.SysUtils,
   Winapi.Windows,
   DUnitX.TestFramework,
   maxLogic.CmdLineParams,
@@ -21,6 +17,8 @@ type
     function ToWslPath(const aWindowsPath: string): string;
   public
     procedure SetParams(const aCmdLine: string);
+    [Test]
+    procedure ProcessArgumentsPreserveWindowsEscapedQuotes;
     [Test]
     procedure ResolveAcceptsUnixStyleProjectPath;
     [Test]
@@ -238,6 +236,34 @@ type
   end;
 
 implementation
+
+procedure TCliTests.ProcessArgumentsPreserveWindowsEscapedQuotes;
+const
+  cArguments: array[0..2] of string = (
+    '"/I=\"C:\PAL configs\case.ini\""',
+    '"C:\PAL configs\\"',
+    '"plain path"');
+  cExpected: array[0..2] of string = (
+    '/I="C:\PAL configs\case.ini"',
+    'C:\PAL configs\',
+    'plain path');
+var
+  i: Integer;
+  lExitCode: Cardinal;
+  lRunLog: string;
+  lText: string;
+begin
+  EnsureResolverBuilt;
+  for i := Low(cArguments) to High(cArguments) do
+  begin
+    lRunLog := TPath.Combine(TempRoot, 'cli-windows-arguments-' + IntToStr(i) + '.log');
+    Assert.IsTrue(RunResolverProcess('resolve --format ' + cArguments[i], RepoRoot, lRunLog, lExitCode));
+    Assert.AreEqual(Cardinal(2), lExitCode);
+    lText := TFile.ReadAllText(lRunLog, TEncoding.UTF8);
+    Assert.IsTrue(lText.Contains('Invalid --format value: ' + cExpected[i] + sLineBreak),
+      'Windows argument spelling must reach the option parser unchanged: ' + lText);
+  end;
+end;
 
 procedure TCliTests.SetParams(const aCmdLine: string);
 var

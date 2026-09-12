@@ -26,16 +26,49 @@ type
 implementation
 
 uses
-  System.SysUtils,
+  System.Classes, System.SysUtils,
+  Winapi.ShellAPI, Winapi.Windows,
   Xml.omnixmldom, Xml.xmldom,
-  MaxMadExcept,
+  maxLogic.CmdLineParams, MaxMadExcept,
   Dak.Analyze, Dak.Build, Dak.Cli, Dak.Deps, Dak.DfmCheck, Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Lsp,
   Dak.Messages, Dak.Refactor, Dak.RemoveWith, Dak.Resolve, Dak.SymbolMap, Dak.Utils;
+
+procedure InitializeCommandLine;
+var
+  i: Integer;
+  lArgCount: Integer;
+  lArgValue: PPWideChar;
+  lArgValues: PPWideChar;
+  lList: TStringList;
+  lParams: iCmdLineParams;
+begin
+  lArgValues := CommandLineToArgvW(GetCommandLineW, lArgCount);
+  if lArgValues = nil then
+    RaiseLastOSError;
+  try
+    lParams := maxCmdLineParams;
+    lList := lParams.GetParamList;
+    lList.Clear;
+    lList.StrictDelimiter := True;
+    lList.Delimiter := ' ';
+    for i := 1 to lArgCount - 1 do
+    begin
+      lArgValue := lArgValues;
+      Inc(lArgValue, i);
+      lList.Add(lArgValue^);
+    end;
+    // Round-trip the decoded tokens to rebuild the existing switch lookup.
+    lParams.BuildFromString(lList.DelimitedText);
+  finally
+    LocalFree(HLOCAL(lArgValues));
+  end;
+end;
 
 class function TDelphiAIKitApp.Run: Integer;
 var
   lApp: TDelphiAIKitApp;
 begin
+  InitializeCommandLine;
   lApp := TDelphiAIKitApp.Create;
   try
     Result := RunApp(lApp);

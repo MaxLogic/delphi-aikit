@@ -25,6 +25,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- Windows process arguments retain embedded quotes and trailing backslashes, including quoted PAL configuration paths passed through Python subprocess arguments.
 - Static analysis includes checked maintained libraries regardless of finding-path format, preserves registered nested vendor boundaries, and rejects ownership conflicts and incompatible ownership baselines.
 - Remove-with preserves visible imported procedure calls and keeps complete selector expressions, including commas inside indexes, strings and comments. Child rewrites preserve member lookup under retained parent WITH statements; older cached selector facts are rebuilt.
 - Semantic indexing preserves multiline routine signatures, parameter types and source positions. Remove-with can resolve those routines and their parameters; comments and default strings no longer create false parameter type references, and older cached models are rebuilt.
