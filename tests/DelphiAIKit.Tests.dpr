@@ -9,6 +9,8 @@ uses
   DUnitX.FilterBuilder,
   DUnitX.Loggers.Console,
   DUnitX.TestFramework,
+  Dak.Analysis.Workspace in '..\src\Dak.Analysis.Workspace.pas',
+  Test.NativeAnalysisWorkspace in 'units\test.nativeanalysisworkspace.pas',
   DfmCheck_AppConsts in '..\\lib\\DFMCheck\\Source\\DfmCheck_AppConsts.pas',
   DfmCheck_DfmCheck in '..\\lib\\DFMCheck\\Source\\DfmCheck_DfmCheck.pas',
   DfmCheck_Options in '..\\lib\\DFMCheck\\Source\\DfmCheck_Options.pas',

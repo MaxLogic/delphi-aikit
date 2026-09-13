@@ -1,4 +1,4 @@
-﻿unit Test.Cli;
+unit Test.Cli;
 
 interface
 
@@ -1146,6 +1146,7 @@ var
   lProjectIniPath: string;
   lSelectorIniPath: string;
   lSettings: TDakSettings;
+  lPaths: TArray<string>;
   lWorkspaceDir: string;
   lWorkspaceIniPath: string;
 begin
@@ -1176,6 +1177,11 @@ begin
 
   try
     Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    lPaths := BuildSettingsPaths(lDprojPath);
+    Assert.AreEqual<NativeInt>(3, Length(lPaths), 'Only workspace-to-project candidate settings may cascade.');
+    Assert.AreEqual(lWorkspaceIniPath, lPaths[0]);
+    Assert.AreEqual(TPath.Combine(lWorkspaceDir, 'src\dak.ini'), lPaths[1]);
+    Assert.AreEqual(lProjectIniPath, lPaths[2]);
     Assert.IsTrue(Pos('WROOT', lSettings.fFixInsightIgnore.fWarnings) > 0,
       'Ancestor selector did not establish the fixed workspace root.');
     Assert.IsTrue(Pos('WLOCAL', lSettings.fFixInsightIgnore.fWarnings) > 0,
@@ -1197,9 +1203,12 @@ var
   lDprojPath: string;
   lProjectDir: string;
   lSettings: TDakSettings;
+  lWorkspaceDir: string;
 begin
   lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-cli');
-  lProjectDir := TPath.Combine(lBaseDir, 'project');
+  lWorkspaceDir := TPath.Combine(lBaseDir, 'workspace');
+  TDirectory.CreateDirectory(TPath.Combine(lBaseDir, '.git'));
+  lProjectDir := TPath.Combine(lWorkspaceDir, 'project');
   TDirectory.CreateDirectory(lProjectDir);
   lDprojPath := TPath.Combine(lProjectDir, 'Sample.dproj');
   TFile.WriteAllText(lDprojPath, '<Project/>', TEncoding.ASCII);
@@ -1208,9 +1217,9 @@ begin
     'Root=project' + sLineBreak, TEncoding.ASCII);
 
   try
-    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lBaseDir, lSettings), lSettings.fError);
-    Assert.AreEqual(lBaseDir, lSettings.fWorkspace.fRoot, 'CLI must override the INI workspace root.');
-    Assert.AreEqual(lBaseDir, lSettings.fWorkspace.fSelector, 'Expected the explicit selector to be retained.');
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lWorkspaceDir, lSettings), lSettings.fError);
+    Assert.AreEqual(lWorkspaceDir, lSettings.fWorkspace.fRoot, 'CLI must override the INI workspace root.');
+    Assert.AreEqual(lWorkspaceDir, lSettings.fWorkspace.fSelector, 'Expected the explicit selector to be retained.');
     Assert.AreEqual('none', lSettings.fWorkspace.fVcs, 'Expected an unmanaged fixed workspace.');
     Assert.AreEqual('command_line', lSettings.fWorkspace.fSource, 'Expected CLI selector provenance.');
   finally
@@ -1408,6 +1417,10 @@ begin
 
   try
     Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual(lProjectDir, lSettings.fWorkspace.fRoot);
+    Assert.AreEqual('project', lSettings.fWorkspace.fSelector);
+    Assert.AreEqual('none', lSettings.fWorkspace.fVcs);
+    Assert.AreEqual(TPath.Combine(lProjectDir, 'dak.ini'), lSettings.fWorkspace.fSource);
     Assert.IsTrue(Pos('WPROJECT', lSettings.fFixInsightIgnore.fWarnings) > 0,
       'Expected settings from the project boundary.');
     Assert.IsFalse(Pos('WOUTERGIT', lSettings.fFixInsightIgnore.fWarnings) > 0,
@@ -1426,6 +1439,7 @@ var
   lOriginalBytes: TBytes;
   lProjectDir: string;
   lSettings: TDakSettings;
+  lSelector: string;
   lWorkspaceDir: string;
 begin
   lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-exe-fallback');
@@ -1439,6 +1453,7 @@ begin
     'Warnings=WEXEROOT' + sLineBreak, TEncoding.ASCII);
 
   lExeIniPath := TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)), 'dak.ini'));
+  lSelector := ExtractRelativePath(lExeIniPath, lWorkspaceDir);
   lHadExeIni := FileExists(lExeIniPath);
   if lHadExeIni then
     lOriginalBytes := TFile.ReadAllBytes(lExeIniPath);
@@ -1450,6 +1465,26 @@ begin
       'Warnings=WEXEOUTSIDE' + sLineBreak, TEncoding.ASCII);
 
     Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual(lWorkspaceDir, lSettings.fWorkspace.fRoot);
+    Assert.AreEqual(lWorkspaceDir, lSettings.fWorkspace.fSelector);
+    Assert.AreEqual('none', lSettings.fWorkspace.fVcs);
+    Assert.AreEqual(lExeIniPath, lSettings.fWorkspace.fSource);
+    Assert.IsTrue(Pos('WEXEROOT', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Executable dak.ini did not select the workspace fallback.');
+    Assert.IsFalse(Pos('WEXEOUTSIDE', lSettings.fFixInsightIgnore.fWarnings) > 0,
+      'Executable selector settings outside the workspace must not cascade.');
+
+    TFile.WriteAllText(lExeIniPath,
+      '[Workspace]' + sLineBreak +
+      'Root=' + lSelector + sLineBreak +
+      '[FixInsightIgnore]' + sLineBreak +
+      'Warnings=WEXEOUTSIDE' + sLineBreak, TEncoding.ASCII);
+
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual(lWorkspaceDir, lSettings.fWorkspace.fRoot);
+    Assert.AreEqual(lSelector, lSettings.fWorkspace.fSelector);
+    Assert.AreEqual('none', lSettings.fWorkspace.fVcs);
+    Assert.AreEqual(lExeIniPath, lSettings.fWorkspace.fSource);
     Assert.IsTrue(Pos('WEXEROOT', lSettings.fFixInsightIgnore.fWarnings) > 0,
       'Executable dak.ini did not select the workspace fallback.');
     Assert.IsFalse(Pos('WEXEOUTSIDE', lSettings.fFixInsightIgnore.fWarnings) > 0,
@@ -1471,6 +1506,9 @@ var
   lHadExeIni: Boolean;
   lOriginalBytes: TBytes;
   lSettings: TDakSettings;
+  lPaths: TArray<string>;
+  lExeCount: Integer;
+  i: Integer;
 begin
   lBaseDir := UniqueNoRepoTempPath('dak-settings-workspace-exe-defaults');
   TDirectory.CreateDirectory(lBaseDir);
@@ -1494,6 +1532,16 @@ begin
       'Default auto loading must retain executable dak.ini defaults.');
     Assert.IsTrue(Pos('WPROJECTDEFAULT', lSettings.fFixInsightIgnore.fWarnings) > 0,
       'Expected project-local settings to cascade after executable defaults.');
+    lPaths := BuildSettingsPaths(lDprojPath);
+    Assert.AreEqual<NativeInt>(2, Length(lPaths));
+    Assert.AreEqual(lExeIniPath, lPaths[0]);
+    Assert.AreEqual(TPath.Combine(lBaseDir, 'dak.ini'), lPaths[1]);
+    lPaths := BuildSettingsPaths(TPath.Combine(ExtractFileDir(lExeIniPath), 'Sample.dproj'));
+    lExeCount := 0;
+    for i := 0 to High(lPaths) do
+      if SameFileName(lExeIniPath, lPaths[i]) then
+        Inc(lExeCount);
+    Assert.AreEqual(1, lExeCount, 'Executable defaults and directory traversal must not duplicate a candidate.');
   finally
     if lHadExeIni then
       TFile.WriteAllBytes(lExeIniPath, lOriginalBytes)
@@ -1556,6 +1604,16 @@ begin
     Assert.AreEqual('git', lSettings.fWorkspace.fVcs,
       'Git must win when Git and SVN markers have the same depth.');
     Assert.AreEqual(TPath.GetFullPath(lSelectorIniPath), lSettings.fWorkspace.fSource);
+
+    TDirectory.Delete(TPath.Combine(lWorkspaceDir, '.git'));
+    TFile.WriteAllText(TPath.Combine(lWorkspaceDir, '.git'),
+      'gitdir: elsewhere' + sLineBreak, TEncoding.ASCII);
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual('auto', lSettings.fWorkspace.fSelector);
+    Assert.AreEqual(TPath.GetFullPath(lWorkspaceDir), lSettings.fWorkspace.fRoot);
+    Assert.AreEqual('git', lSettings.fWorkspace.fVcs,
+      'Git must win when Git and SVN markers have the same depth.');
+    Assert.AreEqual(TPath.GetFullPath(lSelectorIniPath), lSettings.fWorkspace.fSource);
   finally
     DeleteTempPath(lBaseDir);
   end;
@@ -1590,6 +1648,11 @@ begin
     Assert.AreEqual('svn', lSettings.fWorkspace.fVcs);
     Assert.IsTrue(Pos('WNEARESTSVN', lSettings.fFixInsightIgnore.fWarnings) > 0);
     Assert.IsFalse(Pos('WOUTERGIT', lSettings.fFixInsightIgnore.fWarnings) > 0);
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, 'svn', lSettings), lSettings.fError);
+    Assert.AreEqual(lSvnRoot, lSettings.fWorkspace.fRoot);
+    Assert.AreEqual('svn', lSettings.fWorkspace.fSelector);
+    Assert.AreEqual('svn', lSettings.fWorkspace.fVcs);
+    Assert.AreEqual('command_line', lSettings.fWorkspace.fSource);
   finally
     DeleteTempPath(lBaseDir);
   end;
@@ -1689,6 +1752,14 @@ begin
     Assert.AreEqual(TPath.GetFullPath(lNearIniPath), lSettings.fWorkspace.fSource);
     Assert.IsTrue(Pos('WNEAR', lSettings.fFixInsightIgnore.fWarnings) > 0);
     Assert.IsFalse(Pos('WFARTHER', lSettings.fFixInsightIgnore.fWarnings) > 0);
+    lNearIniPath := TPath.Combine(lProjectDir, 'dak.ini');
+    TFile.WriteAllText(lNearIniPath, '[workspace]' + sLineBreak +
+      'root=project' + sLineBreak, TEncoding.ASCII);
+    Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual(lProjectDir, lSettings.fWorkspace.fRoot);
+    Assert.AreEqual('project', lSettings.fWorkspace.fSelector);
+    Assert.AreEqual('none', lSettings.fWorkspace.fVcs);
+    Assert.AreEqual(lNearIniPath, lSettings.fWorkspace.fSource);
   finally
     DeleteTempPath(lBaseDir);
   end;

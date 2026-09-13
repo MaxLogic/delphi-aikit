@@ -204,6 +204,7 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="..\src\dak.analyze.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.Workspace.pas"/>
         <DCCReference Include="..\src\dak.build.pas"/>
         <DCCReference Include="..\src\Dak.CommandOutput.pas"/>
         <DCCReference Include="..\src\dak.cli.pas"/>
