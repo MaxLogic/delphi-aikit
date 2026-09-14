@@ -74,6 +74,16 @@
     <DCCReference Include="units\test.nativeanalysisworkspace.pas"/>
     <DCCReference Include="units\test.nativeanalysisworkspace.provenance.pas"/>
         <DCCReference Include="units\test.nativeanalysisworkspace.command.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.Ownership.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.Findings.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.FixInsightImport.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.Text.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.OwnershipContext.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ProjectSources.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.SourceResolution.pas"/>
+        <DCCReference Include="units\test.nativeanalysisreports.ownership.pas"/>
+        <DCCReference Include="units\test.nativeanalysisreports.import.pas"/>
+        <DCCReference Include="units\test.nativeanalysisreports.import.fixinsight.pas"/>
     <DCCReference Include="units\\test.support.pas"/>
     <DCCReference Include="units\\test.app.pas"/>
     <DCCReference Include="units\\test.build.pas"/>

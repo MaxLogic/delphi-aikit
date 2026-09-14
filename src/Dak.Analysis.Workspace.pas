@@ -10,6 +10,10 @@ uses
 function CaptureWorkspaceIdentity(const aWorkspace: TWorkspaceSettings; const aScratchRoot: string = ''): TJSONObject;
 function CaptureRunProvenance(const aWorkspace: TWorkspaceSettings;
   const aDakExecutable, aScratchRoot: string): TJSONObject;
+// Shared handle-based identity for source resolution; missing paths retain absolute spelling.
+function ResolveFilesystemPath(const aPath: string): string;
+// Source inventory for report ownership; callers retain metadata failures as diagnostics.
+function CollectAnalysisSourcePaths(const aRoot, aVcs, aScratchRoot: string): TArray<string>;
 
 implementation
 
@@ -119,21 +123,50 @@ begin
     raise EInOutError.CreateFmt('Workspace inventory requires a directory: "%s".', [aDirectory]);
 end;
 
-procedure RaiseInventoryError(const aDirectory: string; aError: Integer);
+procedure RaiseInventoryError(const aDirectory: string; aError: DWORD);
 begin
   raise EInOutError.CreateFmt('Cannot enumerate workspace directory "%s": %s (Windows error %d).',
     [aDirectory, SysErrorMessage(aError), aError]);
 end;
 
-function CollectFilesystemInputs(const aRoot: string): TArray<TSourceInput>;
+procedure RequireAcyclicJunction(const aRoot, aDirectory, aJunction: string);
+var
+  lAncestor: string;
+  lParent: string;
+  lRoot: string;
+  lTarget: string;
+begin
+  lTarget := ResolveFilesystemPath(aJunction);
+  lRoot := ExcludeTrailingPathDelimiter(TPath.GetFullPath(aRoot));
+  lAncestor := ExcludeTrailingPathDelimiter(TPath.GetFullPath(aDirectory));
+  // Compare only ancestors, so independent aliases retain their reference inventory entries.
+  while lAncestor <> '' do
+  begin
+    if SameText(ResolveFilesystemPath(lAncestor), lTarget) then
+      raise EInOutError.CreateFmt('Cannot enumerate directory junction cycle at "%s".', [aJunction]);
+    if SameText(lAncestor, lRoot) then
+      Break;
+    lParent := ExtractFileDir(lAncestor);
+    if lParent = lAncestor then
+      Break;
+    lAncestor := lParent;
+  end;
+end;
+
+function CollectFilesystemInputs(const aRoot: string; const aIncludeJunctions: Boolean = False): TArray<TSourceInput>;
+const
+  // Windows SDK winnt.h: directory junctions are mount-point reparse entries.
+  cMountPointTag = $A0000003;
 var
   g: TGarbos;
   lDirectory: string;
   lEntry: TSourceInput;
   lFiles: TList<TSourceInput>;
   lPending: TStack<string>;
-  lSearch: TSearchRec;
-  lStatus: Integer;
+  lSearch: TWin32FindData;
+  lHandle: THandle;
+  lName: string;
+  lStatus: DWORD;
 begin
   GC(lFiles, TList<TSourceInput>.Create, g);
   GC(lPending, TStack<string>.Create, g);
@@ -142,7 +175,10 @@ begin
   begin
     lDirectory := lPending.Pop;
     RequireInventoryDirectory(lDirectory);
-    lStatus := FindFirst(TPath.Combine(lDirectory, '*'), faAnyFile, lSearch);
+    lHandle := Winapi.Windows.FindFirstFile(PChar(TPath.Combine(lDirectory, '*')), lSearch);
+    lStatus := 0;
+    if lHandle = INVALID_HANDLE_VALUE then
+      lStatus := GetLastError;
     if lStatus = ERROR_FILE_NOT_FOUND then
     begin
       // Recheck before accepting an empty directory: it may have disappeared during enumeration.
@@ -153,25 +189,33 @@ begin
       RaiseInventoryError(lDirectory, lStatus);
     try
       repeat
-        if not MatchText(lSearch.Name, ['.', '..', '.dak', '.git', '.svn']) and
-          ((lSearch.Attr and FILE_ATTRIBUTE_REPARSE_POINT) = 0) then
+        lName := lSearch.cFileName;
+        if not MatchText(lName, ['.', '..', '.dak', '.git', '.svn']) and
+          (((lSearch.dwFileAttributes and FILE_ATTRIBUTE_REPARSE_POINT) = 0) or
+          (aIncludeJunctions and ((lSearch.dwFileAttributes and faDirectory) <> 0) and
+          (lSearch.dwReserved0 = cMountPointTag))) then
         begin
-          lEntry.fPath := TPath.Combine(lDirectory, lSearch.Name);
-          if (lSearch.Attr and faDirectory) <> 0 then
-            lPending.Push(lEntry.fPath)
-          else if MatchText(ExtractFileExt(lSearch.Name), ['.pas', '.dpr', '.dpk', '.inc']) then
+          lEntry.fPath := TPath.Combine(lDirectory, lName);
+          if (lSearch.dwFileAttributes and faDirectory) <> 0 then
+          begin
+            if aIncludeJunctions and ((lSearch.dwFileAttributes and FILE_ATTRIBUTE_REPARSE_POINT) <> 0) then
+              RequireAcyclicJunction(aRoot, lDirectory, lEntry.fPath);
+            lPending.Push(lEntry.fPath);
+          end else if MatchText(ExtractFileExt(lName), ['.pas', '.dpr', '.dpk', '.inc']) then
           begin
             lEntry.fRelativeUtf8 := UTF8String(StringReplace(
               ExtractRelativePath(IncludeTrailingPathDelimiter(aRoot), lEntry.fPath), '\', '/', [rfReplaceAll]));
             lFiles.Add(lEntry);
           end;
         end;
-        lStatus := FindNext(lSearch);
+        lStatus := 0;
+        if not Winapi.Windows.FindNextFile(lHandle, lSearch) then
+          lStatus := GetLastError;
       until lStatus <> 0;
       if lStatus <> ERROR_NO_MORE_FILES then
         RaiseInventoryError(lDirectory, lStatus);
     finally
-      System.SysUtils.FindClose(lSearch);
+      Winapi.Windows.FindClose(lHandle);
     end;
   end;
   Result := lFiles.ToArray;
@@ -503,6 +547,30 @@ begin
     if GetEnvironmentVariable(lVariable) <> '' then
       raise EInOutError.Create(lVariable + ' overrides selected workspace metadata; provenance is unavailable.');
   Result := FindMetadataExecutable('git.exe');
+end;
+
+function CollectAnalysisSourcePaths(const aRoot, aVcs, aScratchRoot: string): TArray<string>;
+var
+  lInput: TSourceInput;
+  lInputs: TArray<TSourceInput>;
+  lPaths: TList<string>;
+begin
+  if aRoot = '' then
+    Exit(nil);
+  if SameText(aVcs, 'git') then
+    // Ownership indexes the selected repository, not its recursively expanded submodule inputs.
+    lInputs := GitSourceInputs(ResolveGitExecutable, aRoot, aScratchRoot)
+  else
+    lInputs := CollectFilesystemInputs(aRoot, True);
+  lPaths := TList<string>.Create;
+  try
+    for lInput in lInputs do
+      if TFile.Exists(lInput.fPath) then
+        lPaths.Add(ResolveFilesystemPath(lInput.fPath));
+    Result := lPaths.ToArray;
+  finally
+    lPaths.Free;
+  end;
 end;
 
 procedure AddGitMetadata(const aIdentity: TJSONObject; const aHead: string; const aChanged: TJSONArray);

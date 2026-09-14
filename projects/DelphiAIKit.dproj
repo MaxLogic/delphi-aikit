@@ -206,6 +206,13 @@
         <DCCReference Include="..\src\dak.analyze.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.Workspace.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.WorkspaceCommand.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.Findings.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.FixInsightImport.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.Ownership.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.OwnershipContext.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ProjectSources.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.SourceResolution.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.Text.pas"/>
         <DCCReference Include="..\src\dak.build.pas"/>
         <DCCReference Include="..\src\Dak.CommandOutput.pas"/>
         <DCCReference Include="..\src\dak.cli.pas"/>

@@ -1,0 +1,616 @@
+{
+  "seed": {
+    "workspace": {
+      "root": "@ROOT_WIN@\\repo",
+      "vcs": "none"
+    },
+    "subject": {
+      "path": "@ROOT_WIN@\\repo\\project\\Main.pas",
+      "project_file": "@ROOT_WIN@\\repo\\project\\Sample.dproj"
+    },
+    "policy": {
+      "values": {
+        "project_roots": [
+          "@ROOT_WIN@\\policy"
+        ]
+      }
+    }
+  },
+  "files": {
+    "policy/PolicyOnly.pas": "unit PolicyOnly;",
+    "repo/project/Sample.dproj": "<Project><ItemGroup><DCCReference Include=\"Main.pas\"/><DCCReference Include=\"@ROOT_WIN@\\external\\Main.pas\"/></ItemGroup></Project>"
+  },
+  "input": {
+    "fi": [
+      {
+        "file": "@ROOT_WIN@\\external\\Main.pas",
+        "rule": "W123",
+        "line": 1,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "file": "@ROOT_WIN@\\repo\\project\\Main.pas",
+        "rule": "W123",
+        "line": 2,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "file": "missing.pas",
+        "rule": "W123",
+        "line": 3,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "file": "Dupe.pas",
+        "rule": "W123",
+        "line": 4,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "file": "../missing.pas",
+        "rule": "W123",
+        "line": 5,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "file": "",
+        "rule": "W123",
+        "line": 6,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "file": "@ROOT_WIN@\\external\\Main.pas",
+        "rule": "W123",
+        "line": 7,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "file": "PolicyOnly.pas",
+        "rule": "W123",
+        "line": 8,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "file": "MAIN.PAS",
+        "rule": "W123",
+        "line": 9,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "file": null,
+        "rule": "W123",
+        "line": 10,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      }
+    ],
+    "pal": [
+      {
+        "path": "@ROOT_WIN@\\external\\Main.pas",
+        "rule": "W123",
+        "line": 1,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "path": "@ROOT_WIN@\\repo\\project\\Main.pas",
+        "rule": "W123",
+        "line": 2,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "path": "missing.pas",
+        "rule": "W123",
+        "line": 3,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "path": "Dupe.pas",
+        "rule": "W123",
+        "line": 4,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "path": "../missing.pas",
+        "rule": "W123",
+        "line": 5,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "path": "",
+        "rule": "W123",
+        "line": 6,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "path": "@ROOT_WIN@\\external\\Main.pas",
+        "rule": "W123",
+        "line": 7,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "path": "PolicyOnly.pas",
+        "rule": "W123",
+        "line": 8,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "path": "MAIN.PAS",
+        "rule": "W123",
+        "line": 9,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      },
+      {
+        "path": null,
+        "rule": "W123",
+        "line": 10,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        }
+      }
+    ]
+  },
+  "expected": {
+    "fi": [
+      {
+        "file": "@ROOT_WIN@\\external\\Main.pas",
+        "rule": "W123",
+        "line": 1,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "ownership": "third_party",
+        "ownership_root": "@ROOT_POSIX@/external",
+        "path": "@ROOT_POSIX@/external/Main.pas"
+      },
+      {
+        "file": "@ROOT_WIN@\\repo\\project\\Main.pas",
+        "rule": "W123",
+        "line": 2,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "ownership": "project",
+        "ownership_root": "@ROOT_POSIX@/repo/project",
+        "path": "project/Main.pas"
+      },
+      {
+        "file": "missing.pas",
+        "rule": "W123",
+        "line": 3,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "ownership": "unknown",
+        "ownership_root": null,
+        "path": "project/missing.pas"
+      },
+      {
+        "file": "Dupe.pas",
+        "rule": "W123",
+        "line": 4,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "ownership": "repository",
+        "ownership_root": "@ROOT_POSIX@/repo",
+        "path": "project/Dupe.pas"
+      },
+      {
+        "file": "../missing.pas",
+        "rule": "W123",
+        "line": 5,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "ownership": "unknown",
+        "ownership_root": null,
+        "path": "missing.pas"
+      },
+      {
+        "file": "",
+        "rule": "W123",
+        "line": 6,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "ownership": "unknown",
+        "ownership_root": null,
+        "path": ""
+      },
+      {
+        "file": "@ROOT_WIN@\\external\\Main.pas",
+        "rule": "W123",
+        "line": 7,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "ownership": "third_party",
+        "ownership_root": "@ROOT_POSIX@/external",
+        "path": "@ROOT_POSIX@/external/Main.pas"
+      },
+      {
+        "file": "PolicyOnly.pas",
+        "rule": "W123",
+        "line": 8,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "ownership": "project",
+        "ownership_root": "@ROOT_POSIX@/policy",
+        "path": "project/PolicyOnly.pas"
+      },
+      {
+        "file": "MAIN.PAS",
+        "rule": "W123",
+        "line": 9,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "ownership": "project",
+        "ownership_root": "@ROOT_POSIX@/repo/project",
+        "path": "project/Main.pas"
+      },
+      {
+        "file": null,
+        "rule": "W123",
+        "line": 10,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "ownership": "unknown",
+        "ownership_root": null,
+        "path": ""
+      }
+    ],
+    "pal": [
+      {
+        "path": "@ROOT_POSIX@/external/Main.pas",
+        "rule": "W123",
+        "line": 1,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "source_path": "@ROOT_WIN@\\external\\Main.pas",
+        "ownership": "third_party",
+        "ownership_root": "@ROOT_POSIX@/external"
+      },
+      {
+        "path": "project/Main.pas",
+        "rule": "W123",
+        "line": 2,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "source_path": "@ROOT_WIN@\\repo\\project\\Main.pas",
+        "ownership": "project",
+        "ownership_root": "@ROOT_POSIX@/repo/project"
+      },
+      {
+        "path": "missing.pas",
+        "rule": "W123",
+        "line": 3,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "source_path": "missing.pas",
+        "ownership": "unknown",
+        "ownership_root": null
+      },
+      {
+        "path": "project/Dupe.pas",
+        "rule": "W123",
+        "line": 4,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "source_path": "Dupe.pas",
+        "ownership": "repository",
+        "ownership_root": "@ROOT_POSIX@/repo"
+      },
+      {
+        "path": "../missing.pas",
+        "rule": "W123",
+        "line": 5,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "source_path": "../missing.pas",
+        "ownership": "unknown",
+        "ownership_root": null
+      },
+      {
+        "path": null,
+        "rule": "W123",
+        "line": 6,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "source_path": null,
+        "ownership": "unknown",
+        "ownership_root": null
+      },
+      {
+        "path": "@ROOT_POSIX@/external/Main.pas",
+        "rule": "W123",
+        "line": 7,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "source_path": "@ROOT_WIN@\\external\\Main.pas",
+        "ownership": "third_party",
+        "ownership_root": "@ROOT_POSIX@/external"
+      },
+      {
+        "path": "@ROOT_POSIX@/policy/PolicyOnly.pas",
+        "rule": "W123",
+        "line": 8,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "source_path": "PolicyOnly.pas",
+        "ownership": "project",
+        "ownership_root": "@ROOT_POSIX@/policy"
+      },
+      {
+        "path": "project/Main.pas",
+        "rule": "W123",
+        "line": 9,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "source_path": "MAIN.PAS",
+        "ownership": "project",
+        "ownership_root": "@ROOT_POSIX@/repo/project"
+      },
+      {
+        "path": null,
+        "rule": "W123",
+        "line": 10,
+        "extra": {
+          "keep": [
+            null,
+            false,
+            7,
+            "text"
+          ]
+        },
+        "source_path": null,
+        "ownership": "unknown",
+        "ownership_root": null
+      }
+    ]
+  },
+  "passes": 3
+}
