@@ -30,7 +30,7 @@ uses
   Winapi.ShellAPI, Winapi.Windows,
   Xml.omnixmldom, Xml.xmldom,
   maxLogic.CmdLineParams, MaxMadExcept,
-  Dak.Analyze, Dak.Build, Dak.Cli, Dak.Deps, Dak.DfmCheck, Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Lsp,
+  Dak.Analysis.WorkspaceCommand, Dak.Analyze, Dak.Build, Dak.Cli, Dak.Deps, Dak.DfmCheck, Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Lsp,
   Dak.Messages, Dak.Refactor, Dak.RemoveWith, Dak.Resolve, Dak.SymbolMap, Dak.Utils;
 
 procedure InitializeCommandLine;
@@ -186,6 +186,8 @@ begin
     Result := RunRenameCommand(fOptions)
   else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckDeadCode) then
     Result := RunDeadCodeCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeWorkspace) then
+    Result := RunAnalyzeWorkspaceCommand(fOptions)
   else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeProject) then
     Result := RunAnalyzeCommand(fOptions)
   else

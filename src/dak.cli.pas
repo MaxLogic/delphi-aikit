@@ -21,7 +21,7 @@ uses
 
 type
   TCommandRoute = (crResolve, crAnalyze, crBuild, crDfmCheck, crDfmInspect, crGlobalVars, crDeps, crLsp,
-    crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode);
+    crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode, crAnalyzeWorkspace);
   TCommandRouteSet = set of TCommandRoute;
   TSwitchValuePolicy = (svpFlag, svpRequiredValue, svpOptionalBoolValue);
 
@@ -75,7 +75,7 @@ var
 begin
   lDescriptors := TList<TSwitchDescriptor>.Create;
   try
-    Add('project', 'dproj', svpRequiredValue, cAllCommandRoutes);
+    Add('project', 'dproj', svpRequiredValue, cAllCommandRoutes + [crAnalyzeWorkspace]);
     Add('platform', '', svpRequiredValue, cAllCommandRoutes);
     Add('config', '', svpRequiredValue, cAllCommandRoutes);
     Add('delphi', '', svpRequiredValue, cAllCommandRoutes);
@@ -86,11 +86,11 @@ begin
     Add('verbose', '', svpOptionalBoolValue, cAllCommandRoutes);
     Add('source-context', '', svpRequiredValue, cAllCommandRoutes);
     Add('source-context-lines', '', svpRequiredValue, cAllCommandRoutes);
-    Add('help', 'h|?', svpOptionalBoolValue, cAllCommandRoutes);
+    Add('help', 'h|?', svpOptionalBoolValue, cAllCommandRoutes + [crAnalyzeWorkspace]);
     Add('format', 'out-kind', svpRequiredValue, [crResolve, crDfmInspect, crGlobalVars, crDeps, crLsp,
       crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode]);
     Add('out-file', 'out', svpRequiredValue, [crResolve]);
-    Add('out', '', svpRequiredValue, [crAnalyze]);
+    Add('out', '', svpRequiredValue, [crAnalyze, crAnalyzeWorkspace]);
     Add('fi-output', 'output', svpRequiredValue, [crResolve]);
     Add('fi-ignore', 'ignore', svpRequiredValue, [crResolve, crAnalyze]);
     Add('fi-settings', 'settings', svpRequiredValue, [crResolve, crAnalyze]);
@@ -100,9 +100,9 @@ begin
     Add('fi-timeout-sec', '', svpRequiredValue, [crAnalyze]);
     Add('exclude-path-masks', '', svpRequiredValue, [crResolve, crAnalyze, crBuild]);
     Add('ignore-warning-ids', '', svpRequiredValue, [crResolve, crAnalyze]);
-    Add('unit', '', svpRequiredValue, [crAnalyze, crGlobalVars, crDeps, crRemoveWith, crSymbolMap]);
-    Add('project-context', '', svpRequiredValue, [crAnalyze]);
-    Add('workspace-root', '', svpRequiredValue, [crAnalyze]);
+    Add('unit', '', svpRequiredValue, [crAnalyze, crGlobalVars, crDeps, crRemoveWith, crSymbolMap, crAnalyzeWorkspace]);
+    Add('project-context', '', svpRequiredValue, [crAnalyze, crAnalyzeWorkspace]);
+    Add('workspace-root', '', svpRequiredValue, [crAnalyze, crAnalyzeWorkspace]);
     Add('fi-formats', '', svpRequiredValue, [crAnalyze]);
     Add('fixinsight', '', svpOptionalBoolValue, [crAnalyze]);
     Add('pascal-analyzer', 'pal', svpOptionalBoolValue, [crAnalyze]);
@@ -118,7 +118,7 @@ begin
     Add('show-warnings', '', svpOptionalBoolValue, [crBuild]);
     Add('show-hints', '', svpOptionalBoolValue, [crBuild]);
     Add('ai', '', svpOptionalBoolValue, [crBuild]);
-    Add('json', '', svpOptionalBoolValue, [crBuild]);
+    Add('json', '', svpOptionalBoolValue, [crBuild, crAnalyzeWorkspace]);
     Add('target', '', svpRequiredValue, [crBuild]);
     Add('rebuild', '', svpOptionalBoolValue, [crBuild]);
     Add('max-findings', '', svpRequiredValue, [crBuild]);
@@ -278,7 +278,7 @@ end;
 
 function GetCommandDescriptors: TArray<TCommandDescriptor>;
 begin
-  SetLength(Result, 14);
+  SetLength(Result, 15);
   Result[0] := CommandDescriptor(TCommandKind.ckResolve, 'resolve', '', SUsageResolve, TCommandRoute.crResolve);
   Result[1] := CommandDescriptor(TCommandKind.ckAnalyzeProject, 'analyze', 'analyze-project', SUsageAnalyze,
     TCommandRoute.crAnalyze);
@@ -302,6 +302,8 @@ begin
   Result[12] := CommandDescriptor(TCommandKind.ckRename, 'rename', '', SUsageRename, TCommandRoute.crRename);
   Result[13] := CommandDescriptor(TCommandKind.ckDeadCode, 'dead-code', '', SUsageDeadCode,
     TCommandRoute.crDeadCode);
+  Result[14] := CommandDescriptor(TCommandKind.ckAnalyzeWorkspace, 'analyze-workspace', '', rsUsageAnalyzeWorkspace,
+    TCommandRoute.crAnalyzeWorkspace);
 end;
 
 function CommandDescriptorMatchesToken(const aDescriptor: TCommandDescriptor; const aToken: string): Boolean;
@@ -864,6 +866,7 @@ function TOptionParser.TryParseSwitch(const aArg: string; const aSwitch: string;
 var
   lCommandDescriptor: TCommandDescriptor;
   lHandled: Boolean;
+  lValue: string;
 begin
   if (not TryGetCommandDescriptor(fOptions.fCommand, lCommandDescriptor)) or
     (not CliSwitchAppliesToRoute(aSwitch, lCommandDescriptor.fRoute)) then
@@ -876,6 +879,18 @@ begin
     Exit(False);
   if lHandled then
     Exit(True);
+
+  if (fOptions.fCommand = TCommandKind.ckAnalyzeWorkspace) and SwitchMatches(aSwitch, 'json') then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--json') then
+      Exit(False);
+    if not TryParseBool(lValue, fOptions.fWorkspaceJson) then
+    begin
+      fError := Format(SInvalidBoolValue, ['--json', lValue]);
+      Exit(False);
+    end;
+    Exit(True);
+  end;
 
   if fOptions.fCommand = TCommandKind.ckResolve then
     Exit(TryParseResolveSwitch(aArg, aSwitch, aInlineValue, aHasInlineValue));
@@ -2427,6 +2442,21 @@ function TOptionParser.ValidateOptions: Boolean;
 var
   lRemoveWithTargetCount: Integer;
 begin
+  if fOptions.fCommand = TCommandKind.ckAnalyzeWorkspace then
+  begin
+    if (fOptions.fDprojPath = '') = (fOptions.fUnitPath = '') then
+    begin
+      fError := 'Workspace inspection requires exactly one of --project or --unit.';
+      Exit(False);
+    end;
+    if fOptions.fHasProjectContextPath and (fOptions.fUnitPath = '') then
+    begin
+      fError := rsProjectContextUnitOnly;
+      Exit(False);
+    end;
+    Exit(True);
+  end;
+
   if fOptions.fNoSemanticCache and
     (fOptions.fHasRemoveWithSemanticCachePath or
     fOptions.fHasRefactorSemanticCachePath) then

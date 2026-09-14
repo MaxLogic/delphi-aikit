@@ -13,6 +13,7 @@ uses
 
   FireDAC.Phys.SQLiteWrapper.Stat,
   Dak.Analysis.Workspace in '..\src\Dak.Analysis.Workspace.pas',
+  Dak.Analysis.WorkspaceCommand in '..\src\Dak.Analysis.WorkspaceCommand.pas',
   Dak.Analyze in '..\src\dak.analyze.pas',
   Dak.Analyze.Common in '..\src\dak.analyze.common.pas',
   Dak.Analyze.ProjectRunner in '..\src\dak.analyze.projectrunner.pas',

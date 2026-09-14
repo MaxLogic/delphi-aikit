@@ -6,7 +6,7 @@ interface
 
 type
   TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars,
-    ckDeps, ckLsp, ckRemoveWith, ckSymbolMap, ckFindUsages, ckRename, ckDeadCode);
+    ckDeps, ckLsp, ckRemoveWith, ckSymbolMap, ckFindUsages, ckRename, ckDeadCode, ckAnalyzeWorkspace);
 
   TOutputKind = (okIni, okXml, okBat);
   TBuildBackend = (bbAuto, bbDelphi, bbWebCore);
@@ -108,6 +108,7 @@ type
     fBuildShowHints: Boolean;
     fBuildAi: Boolean;
     fBuildJson: Boolean;
+    fWorkspaceJson: Boolean;
     fBuildQuiet: Boolean;
     fBuildBackend: TBuildBackend;
     fBuildRunDfmCheck: Boolean;

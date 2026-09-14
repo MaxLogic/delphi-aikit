@@ -1,4 +1,4 @@
-unit Test.NativeAnalysisWorkspace;
+﻿unit Test.NativeAnalysisWorkspace;
 
 interface
 
@@ -31,8 +31,31 @@ type
     [TestCase('Healthy', 'False')]
     [TestCase('BrokenMarker', 'True')]
     procedure GitIdentityIncludesInitializedSubmoduleSources(aBrokenMarker: Boolean);
+    [TestCase('CleanNested', '0')]
+    [TestCase('ModifiedChild', '1')]
+    [TestCase('UninitializedChild', '2')]
+    [TestCase('InactivePopulatedChild', '3')]
+    procedure GitIdentityPreservesExactRecursiveSubmodulePaths(aScenario: Integer);
+    [Test]
+    procedure GitWithoutSubmodulesAvoidsRecursiveToolStartup;
     [Test]
     procedure GitAlternateIndexCannotMasqueradeAsWorkspaceIdentity;
+    [Test]
+    procedure SvnCleanWorkspacePreservesReferenceContract;
+    [Test]
+    procedure SvnUnversionedRootPreservesIndependentFailures;
+    [TestCase('Changed', '1')]
+    [TestCase('MixedRevision', '2')]
+    [TestCase('External', '3')]
+    [TestCase('MissingSvnversion', '4')]
+    [TestCase('MissingExplicitSvn', '5')]
+    [TestCase('MissingTrackedFile', '6')]
+    [TestCase('ScheduledDeletion', '7')]
+    [TestCase('ScheduledAddition', '8')]
+    [TestCase('SparseCheckout', '9')]
+    [TestCase('RelativeExplicitSvn', '10')]
+    [TestCase('UnresolvableTrackedLink', '11')]
+    procedure SvnWorkspacePreservesPartialAndChangedReferenceCases(aScenario: Integer);
   end;
 
 implementation
@@ -433,6 +456,45 @@ begin
   end;
 end;
 
+procedure TNativeAnalysisWorkspaceTests.GitWithoutSubmodulesAvoidsRecursiveToolStartup;
+var
+  g: TGarbos;
+  lEnvironment: IInterface;
+  lIdentity: TJSONObject;
+  lLog: string;
+  lParent: string;
+  lRoot: string;
+  lTrace: string;
+  lWorkspace: TWorkspaceSettings;
+begin
+  lParent := UniqueTempPath('native-analysis-no-gitlinks');
+  lRoot := TPath.Combine(lParent, 'repository');
+  lLog := TPath.Combine(lParent, 'setup.log');
+  lTrace := TPath.Combine(lParent, 'git-trace.jsonl');
+  TDirectory.CreateDirectory(lRoot);
+  try
+    RunFixtureGit(lRoot, 'init -q', lLog);
+    TFile.WriteAllText(TPath.Combine(lRoot, 'Main.pas'), 'unit Main;', TEncoding.ASCII);
+    RunFixtureGit(lRoot, 'add Main.pas', lLog);
+    RunFixtureGit(lRoot, '-c user.name="DAK Test" -c user.email=dak@example.invalid commit -qm fixture', lLog);
+    lWorkspace := Default(TWorkspaceSettings);
+    lWorkspace.fRoot := lRoot;
+    lWorkspace.fVcs := 'git';
+    lEnvironment := SetScopedEnvironmentVariable('GIT_TRACE2_EVENT', lTrace);
+    GC(lIdentity, CaptureWorkspaceIdentity(lWorkspace, lParent), g);
+    lEnvironment := nil;
+    Assert.AreEqual('complete', lIdentity.GetValue<string>('status'), lIdentity.ToJSON);
+    Assert.AreEqual(1, lIdentity.GetValue<TJSONObject>('source_inputs').GetValue<Integer>('file_count'));
+    Assert.IsFalse(lIdentity.GetValue<Boolean>('dirty'));
+    Assert.IsTrue(TFile.Exists(lTrace), 'The installed Git must record actual command execution.');
+    Assert.IsFalse(Pos('"submodule"', ReadUtf8TextFile(lTrace)) > 0,
+      'A workspace without gitlinks must avoid recursive submodule tool startup.');
+  finally
+    lEnvironment := nil;
+    DeleteTempPath(lParent);
+  end;
+end;
+
 procedure TNativeAnalysisWorkspaceTests.GitIdentityIncludesInitializedSubmoduleSources(aBrokenMarker: Boolean);
 var
   g: TGarbos;
@@ -507,6 +569,173 @@ begin
   end;
 end;
 
+procedure TNativeAnalysisWorkspaceTests.GitIdentityPreservesExactRecursiveSubmodulePaths(aScenario: Integer);
+const
+  cChildPath = 'deps/a child żółć (topic)';
+  cLeafPath = 'nested β (leaf)';
+  cUninitializedPath = 'deps/a child żółć (topic) (tail)';
+var
+  g: TGarbos;
+  lChild: string;
+  lChildHead: string;
+  lChildRoot: string;
+  lExpectedHash: string;
+  lExpectedState: string;
+  lIdentity: TJSONObject;
+  lLeaf: string;
+  lLeafHead: string;
+  lLog: string;
+  lModules: TJSONArray;
+  lParent: string;
+  lRoot: string;
+  lScratch: string;
+  lSeed: string;
+  lSources: TJSONObject;
+  lWorkspace: TWorkspaceSettings;
+
+  procedure AssertModule(aIndex: Integer; const aPath, aRevision, aState: string);
+  var
+    lModule: TJSONObject;
+  begin
+    lModule := lModules.Items[aIndex] as TJSONObject;
+    Assert.AreEqual(3, lModule.Count);
+    Assert.AreEqual(aPath, lModule.GetValue<string>('path'));
+    Assert.AreEqual(aRevision, lModule.GetValue<string>('revision'));
+    Assert.AreEqual(aState, lModule.GetValue<string>('state'));
+  end;
+
+begin
+  lParent := UniqueTempPath('sm');
+  lLeaf := TPath.Combine(lParent, 'leaf');
+  lChild := TPath.Combine(lParent, 'child');
+  lSeed := TPath.Combine(lParent, 'seed');
+  lRoot := TPath.Combine(lParent, 'repository');
+  lScratch := TPath.Combine(lParent, 'capture');
+  lLog := TPath.Combine(lParent, 'setup.log');
+  TDirectory.CreateDirectory(lLeaf);
+  TDirectory.CreateDirectory(lChild);
+  TDirectory.CreateDirectory(lSeed);
+  TDirectory.CreateDirectory(lScratch);
+  try
+    RunFixtureGit(lLeaf, 'init -q', lLog);
+    TFile.WriteAllBytes(TPath.Combine(lLeaf, 'Leaf.inc'), TEncoding.ASCII.GetBytes('leaf'));
+    RunFixtureGit(lLeaf, 'add Leaf.inc', lLog);
+    RunFixtureGit(lLeaf, '-c user.name="DAK Test" -c user.email=dak@example.invalid commit -qm fixture', lLog);
+    lLeafHead := Trim(RunFixtureGit(lLeaf, 'rev-parse HEAD', lLog));
+
+    RunFixtureGit(lChild, 'init -q', lLog);
+    TFile.WriteAllBytes(TPath.Combine(lChild, 'Child.pas'), TEncoding.ASCII.GetBytes('unit Child;' + #10));
+    RunFixtureGit(lChild, '-c protocol.file.allow=always submodule add -q ' + QuoteArg(lLeaf) + ' ' +
+      QuoteArg(cLeafPath), lLog);
+    RunFixtureGit(lChild, 'add .', lLog);
+    RunFixtureGit(lChild, '-c user.name="DAK Test" -c user.email=dak@example.invalid commit -qm fixture', lLog);
+    lChildHead := Trim(RunFixtureGit(lChild, 'rev-parse HEAD', lLog));
+
+    RunFixtureGit(lSeed, 'init -q', lLog);
+    TFile.WriteAllBytes(TPath.Combine(lSeed, 'Main.pas'), TEncoding.ASCII.GetBytes('unit Main;' + #10));
+    RunFixtureGit(lSeed, '-c protocol.file.allow=always submodule add -q ' + QuoteArg(lChild) + ' ' +
+      QuoteArg(cChildPath), lLog);
+    RunFixtureGit(lSeed, '-c protocol.file.allow=always submodule add -q ' + QuoteArg(lLeaf) + ' ' +
+      QuoteArg(cUninitializedPath), lLog);
+    RunFixtureGit(lSeed, 'add .', lLog);
+    RunFixtureGit(lSeed, '-c user.name="DAK Test" -c user.email=dak@example.invalid commit -qm fixture', lLog);
+    // Clone without checkout recursion so uninitialized gitlinks are real Git state (T-333).
+    RunFixtureGit(lParent, 'clone -q --no-hardlinks --no-recurse-submodules ' + QuoteArg(lSeed) + ' ' +
+      QuoteArg(lRoot), lLog);
+    lExpectedState := 'clean';
+    if aScenario <> 2 then
+    begin
+      RunFixtureGit(lRoot, '-c protocol.file.allow=always submodule update --init --recursive -- ' +
+        QuoteArg(cChildPath), lLog);
+      lChildRoot := TPath.Combine(lRoot, cChildPath);
+      TFile.WriteAllBytes(TPath.Combine(lChildRoot, 'Extra.inc'), TEncoding.ASCII.GetBytes('extra'));
+      if aScenario = 1 then
+      begin
+        RunFixtureGit(lChildRoot, '-c user.name="DAK Test" -c user.email=dak@example.invalid ' +
+          'commit --allow-empty -qm advance', lLog);
+        lChildHead := Trim(RunFixtureGit(lChildRoot, 'rev-parse HEAD', lLog));
+        lExpectedState := 'modified';
+      end else if aScenario = 3 then
+      begin
+        // Inactive status stops recursion while the populated child still owns source inputs (T-333).
+        RunFixtureGit(lRoot, 'config ' + QuoteArg('submodule.' + cChildPath + '.active') + ' false', lLog);
+        lExpectedState := 'uninitialized';
+      end;
+    end else
+      lExpectedState := 'uninitialized';
+
+    lWorkspace := Default(TWorkspaceSettings);
+    lWorkspace.fRoot := lRoot;
+    lWorkspace.fVcs := 'git';
+    GC(lIdentity, CaptureWorkspaceIdentity(lWorkspace, lScratch), g);
+    Assert.AreEqual('complete', lIdentity.GetValue<string>('status'), lIdentity.ToJSON);
+    RequireJsonArrayKey(lIdentity, 'submodules', lModules);
+    if aScenario in [2, 3] then
+    begin
+      Assert.AreEqual(2, lModules.Count);
+      AssertModule(0, cChildPath, lChildHead, lExpectedState);
+      AssertModule(1, cUninitializedPath, lLeafHead, 'uninitialized');
+      if aScenario = 2 then
+        lExpectedHash := '47a1ccde1b3a5946c322e238eac3bf86bc21930a1d5a98686c132cab30f20093'
+      else
+        lExpectedHash := 'fe9ec688ce2446067a9b09d18b95ccaca5308bc38bdcda2cd8136d97e054ff42';
+    end else begin
+      Assert.AreEqual(3, lModules.Count);
+      AssertModule(0, cChildPath, lChildHead, lExpectedState);
+      AssertModule(1, cChildPath + '/' + cLeafPath, lLeafHead, 'clean');
+      AssertModule(2, cUninitializedPath, lLeafHead, 'uninitialized');
+      lExpectedHash := '0502af2741ce5fbffcb2849c0830d2f776f1a574f7d9e207bc6a180914a2b9a6';
+    end;
+    RequireJsonObjectKey(lIdentity, 'source_inputs', lSources);
+    Assert.AreEqual(3, lSources.Count);
+    if aScenario = 2 then
+      Assert.AreEqual(1, lSources.GetValue<Integer>('file_count'))
+    else if aScenario = 3 then
+      Assert.AreEqual(3, lSources.GetValue<Integer>('file_count'))
+    else
+      Assert.AreEqual(4, lSources.GetValue<Integer>('file_count'));
+    Assert.AreEqual('git-delphi-inputs-with-recursive-submodules', lSources.GetValue<string>('scope'));
+    // Fixed SHA256 controls include exact UTF-8 relative paths, lengths and bytes for every source.
+    Assert.AreEqual(lExpectedHash, lSources.GetValue<string>('sha256'));
+  finally
+    DeleteTempPath(lParent);
+  end;
+end;
+
+procedure TNativeAnalysisWorkspaceTests.SvnUnversionedRootPreservesIndependentFailures;
+var
+  g: TGarbos;
+  lDiagnostic: string;
+  lIdentity: TJSONObject;
+  lRoot: string;
+  lWorkspace: TWorkspaceSettings;
+begin
+  lRoot := UniqueTempPath('native-svn-unversioned-root');
+  TDirectory.CreateDirectory(lRoot);
+  try
+    TFile.WriteAllText(TPath.Combine(lRoot, 'Main.pas'), 'unit Main;', TEncoding.ASCII);
+    lWorkspace := Default(TWorkspaceSettings);
+    lWorkspace.fRoot := lRoot;
+    lWorkspace.fVcs := 'svn';
+    GC(lIdentity, CaptureWorkspaceIdentity(lWorkspace, lRoot), g);
+    Assert.AreEqual('unavailable', lIdentity.GetValue<string>('status'));
+    Assert.IsTrue(lIdentity.GetValue('revision') is TJSONNull);
+    Assert.IsTrue(lIdentity.GetValue('changed_files') is TJSONNull);
+    Assert.AreEqual('fallback', lIdentity.GetValue<TJSONObject>('capabilities').GetValue<string>('inventory'));
+    Assert.AreEqual(1, lIdentity.GetValue<TJSONObject>('source_inputs').GetValue<Integer>('file_count'));
+    Assert.IsTrue(lIdentity.GetValue('dirty') is TJSONNull);
+    Assert.AreEqual('filesystem-delphi-inputs',
+      lIdentity.GetValue<TJSONObject>('source_inputs').GetValue<string>('scope'));
+    lDiagnostic := lIdentity.GetValue<string>('diagnostic');
+    Assert.IsTrue(Pos('info --xml ', lDiagnostic) > 0, lDiagnostic);
+    Assert.IsTrue(Pos('unexpected svnversion output:', lDiagnostic) > Pos('info --xml ', lDiagnostic), lDiagnostic);
+    Assert.IsTrue(Pos('info --xml --depth infinity', lDiagnostic) >
+      Pos('unexpected svnversion output:', lDiagnostic), lDiagnostic);
+  finally
+    DeleteTempPath(lRoot);
+  end;
+end;
+
 procedure TNativeAnalysisWorkspaceTests.GitAlternateIndexCannotMasqueradeAsWorkspaceIdentity;
 var
   g: TGarbos;
@@ -545,6 +774,272 @@ begin
     lEnvironment := nil;
     DeleteTempPath(lParent);
   end;
+end;
+
+procedure RunSvnFixtureTool(const aExe, aArguments, aWorkDir, aLogPath: string);
+var
+  lExitCode: Cardinal;
+begin
+  Assert.IsTrue(RunProcessWithTimeout(aExe, aArguments, aWorkDir, aLogPath, 30000, lExitCode));
+  Assert.AreEqual<Cardinal>(0, lExitCode, ReadUtf8TextFile(aLogPath));
+end;
+
+procedure RunSvnReferenceCase(aScenario: Integer);
+var
+  g: TGarbos;
+  lCapabilities: TJSONObject;
+  lEnvironment: IInterface;
+  lExpectedHash: string;
+  lExternal: string;
+  lExternalSeed: string;
+  lIdentity: TJSONObject;
+  lLog: string;
+  lOldDir: string;
+  lParent: string;
+  lPathEnvironment: IInterface;
+  lRepository: string;
+  lRoot: string;
+  lSeed: string;
+  lSources: TJSONObject;
+  lSvn: string;
+  lTools: string;
+  lUrl: string;
+  lWorkspace: TWorkspaceSettings;
+  lVersion: TJSONObject;
+
+
+begin
+  lParent := UniqueTempPath('native-analysis-svn-clean');
+  lRepository := TPath.Combine(lParent, 'repository');
+  lRoot := TPath.Combine(lParent, 'working-copy');
+  lSeed := TPath.Combine(lParent, 'seed');
+  lLog := TPath.Combine(lParent, 'setup.log');
+  lSvn := 'C:\Program Files\TortoiseSVN\bin\svn.exe';
+  Assert.IsTrue(TFile.Exists(lSvn), 'Real SVN is required.');
+  TDirectory.CreateDirectory(lSeed);
+  lOldDir := GetCurrentDir;
+  try
+    TFile.WriteAllBytes(TPath.Combine(lSeed, 'Main.pas'), TEncoding.ASCII.GetBytes('unit Main;' + #10));
+    TFile.WriteAllBytes(TPath.Combine(lSeed, 'Shared.inc'), TEncoding.ASCII.GetBytes('CONST VALUE = 1;' + #10));
+    lUrl := 'file:///' + lRepository.Replace('\', '/').Replace(' ', '%20');
+    RunSvnFixtureTool(TPath.Combine(ExtractFileDir(lSvn), 'svnadmin.exe'), 'create ' + QuoteArg(lRepository), lParent, lLog);
+    RunSvnFixtureTool(lSvn, 'import ' + QuoteArg(lSeed) + ' ' + QuoteArg(lUrl) + ' -m initial', lParent, lLog);
+    RunSvnFixtureTool(lSvn, 'checkout ' + QuoteArg(lUrl) + ' ' + QuoteArg(lRoot), lParent, lLog);
+    lExpectedHash := '788ca2f20ff2226f83649047cfcaf2b1ba34922091a99b6fbc537f05d92696a8';
+    case aScenario of
+      1:
+      begin
+        TFile.WriteAllBytes(TPath.Combine(lRoot, 'Main.pas'), TEncoding.ASCII.GetBytes('unit Main; // modified' + #10));
+        RunSvnFixtureTool(lSvn, 'propset dak-test yes ' + QuoteArg(TPath.Combine(lRoot, 'Shared.inc')), lParent, lLog);
+        TFile.WriteAllBytes(TPath.Combine(lRoot, 'Unversioned.pas'), TEncoding.ASCII.GetBytes('unit Unversioned;' + #10));
+        lExpectedHash := 'f05be79184fcc4c6ba3bd81e84d3e653aa96c9935823395803608b3094214e61';
+      end;
+      2:
+      begin
+        TFile.WriteAllBytes(TPath.Combine(lRoot, 'New.pas'), TEncoding.ASCII.GetBytes('unit New;' + #10));
+        RunSvnFixtureTool(lSvn, 'add ' + QuoteArg(TPath.Combine(lRoot, 'New.pas')), lParent, lLog);
+        RunSvnFixtureTool(lSvn, 'commit ' + QuoteArg(lRoot) + ' -m "revision two"', lParent, lLog);
+        lExpectedHash := '9d508a318f3491ba91ada77f84fa3f5d0e18da93380f13dc2200839e0c3972f6';
+      end;
+      3:
+      begin
+        lExternal := TPath.Combine(lParent, 'external-repository');
+        lExternalSeed := TPath.Combine(lParent, 'external-seed');
+        TDirectory.CreateDirectory(lExternalSeed);
+        TFile.WriteAllBytes(TPath.Combine(lExternalSeed, 'Vendor.pas'), TEncoding.ASCII.GetBytes('unit Vendor;' + #10));
+        RunSvnFixtureTool(TPath.Combine(ExtractFileDir(lSvn), 'svnadmin.exe'), 'create ' + QuoteArg(lExternal), lParent, lLog);
+        lExternal := 'file:///' + lExternal.Replace('\', '/').Replace(' ', '%20');
+        RunSvnFixtureTool(lSvn, 'import ' + QuoteArg(lExternalSeed) + ' ' + QuoteArg(lExternal) + ' -m external', lParent, lLog);
+        RunSvnFixtureTool(lSvn, 'propset svn:externals ' + QuoteArg('external ' + lExternal) + ' ' + QuoteArg(lRoot), lParent, lLog);
+        RunSvnFixtureTool(lSvn, 'commit ' + QuoteArg(lRoot) + ' -m "register external"', lParent, lLog);
+        RunSvnFixtureTool(lSvn, 'update ' + QuoteArg(lRoot), lParent, lLog);
+      end;
+      4:
+      begin
+        lTools := TPath.Combine(lParent, 'tools');
+        TDirectory.Copy(ExtractFileDir(lSvn), lTools);
+        // Only this isolated tool copy is changed; the installed executable remains untouched.
+        TFile.Delete(TPath.Combine(lTools, 'svnversion.exe'));
+        Assert.IsFalse(TFile.Exists(TPath.Combine(lTools, 'svnversion.exe')));
+        lEnvironment := SetScopedEnvironmentVariable('DAK_SVN_EXE', TPath.Combine(lTools, 'svn.exe'));
+        lPathEnvironment := SetScopedEnvironmentVariable('PATH', '');
+      end;
+      5:
+        lEnvironment := SetScopedEnvironmentVariable('DAK_SVN_EXE', TPath.Combine(lParent, 'missing-svn.exe'));
+      6, 7:
+      begin
+        if aScenario = 6 then
+          TFile.Delete(TPath.Combine(lRoot, 'Main.pas'))
+        else
+          RunSvnFixtureTool(lSvn, 'delete ' + QuoteArg(TPath.Combine(lRoot, 'Main.pas')), lParent, lLog);
+        Assert.IsFalse(TFile.Exists(TPath.Combine(lRoot, 'Main.pas')));
+        lExpectedHash := '03a89dae70bad4c88f42586e01c42e6203f6628aa02fc8f1c93049b44aef640c';
+      end;
+      8:
+      begin
+        TFile.WriteAllBytes(TPath.Combine(lRoot, 'New.pas'), TEncoding.ASCII.GetBytes('unit New;' + #10));
+        RunSvnFixtureTool(lSvn, 'add ' + QuoteArg(TPath.Combine(lRoot, 'New.pas')), lParent, lLog);
+        lExpectedHash := '9d508a318f3491ba91ada77f84fa3f5d0e18da93380f13dc2200839e0c3972f6';
+      end;
+      9:
+      begin
+        RunSvnFixtureTool(lSvn, 'update --set-depth empty ' + QuoteArg(lRoot), lParent, lLog);
+        Assert.IsFalse(TFile.Exists(TPath.Combine(lRoot, 'Main.pas')));
+        Assert.IsFalse(TFile.Exists(TPath.Combine(lRoot, 'Shared.inc')));
+        lExpectedHash := 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+      end;
+      10:
+      begin
+        lTools := TPath.Combine(lParent, 'tools');
+        TDirectory.Copy(ExtractFileDir(lSvn), lTools);
+        Assert.IsTrue(SetCurrentDir(lParent));
+        Assert.IsFalse(SameFileName(GetCurrentDir, lRoot), 'Caller and SVN working directories must differ.');
+        lEnvironment := SetScopedEnvironmentVariable('DAK_SVN_EXE', 'tools\svn.exe');
+        lPathEnvironment := SetScopedEnvironmentVariable('PATH', '');
+      end;
+      11:
+      begin
+        TFile.Delete(TPath.Combine(lRoot, 'Main.pas'));
+        RunSvnFixtureTool(TPath.Combine(GetEnvironmentVariable('SystemRoot'), 'System32\cmd.exe'),
+          '/d /c mklink Main.pas Main.pas', lRoot, lLog);
+        lExpectedHash := 'd472c021343c7fedb2806eb9b076d4e99f2342d1afe6ea4c7c56df8922206a52';
+      end;
+    end;
+    lWorkspace := Default(TWorkspaceSettings);
+    lWorkspace.fRoot := lRoot;
+    lWorkspace.fVcs := 'svn';
+    GC(lIdentity, CaptureWorkspaceIdentity(lWorkspace, lParent), g);
+    Assert.AreEqual('svn', lIdentity.GetValue<string>('vcs'));
+    Assert.AreEqual(lRoot, lIdentity.GetValue<string>('root'));
+    RequireJsonObjectKey(lIdentity, 'source_inputs', lSources);
+    Assert.AreEqual(3, lSources.Count);
+    Assert.AreEqual(lExpectedHash, lSources.GetValue<string>('sha256'));
+    if aScenario = 11 then
+      Assert.AreEqual(1, lSources.GetValue<Integer>('file_count'))
+    else if aScenario = 9 then
+      Assert.AreEqual(0, lSources.GetValue<Integer>('file_count'))
+    else if (aScenario = 1) or (aScenario = 2) or (aScenario = 8) then
+      Assert.AreEqual(3, lSources.GetValue<Integer>('file_count'))
+    else
+      Assert.AreEqual(2, lSources.GetValue<Integer>('file_count'));
+    RequireJsonObjectKey(lIdentity, 'capabilities', lCapabilities);
+    Assert.AreEqual(5, lCapabilities.Count);
+    if aScenario = 11 then
+    begin
+      Assert.AreEqual('unavailable', lIdentity.GetValue<string>('status'));
+      Assert.AreEqual('1', lIdentity.GetValue<string>('revision'));
+      Assert.AreEqual(lUrl, lIdentity.GetValue<string>('url'));
+      Assert.AreEqual('available', lCapabilities.GetValue<string>('revision'));
+      Assert.AreEqual('unavailable', lCapabilities.GetValue<string>('status'));
+      Assert.AreEqual('unavailable', lCapabilities.GetValue<string>('changed_files'));
+      Assert.AreEqual('unavailable', lCapabilities.GetValue<string>('nested_roots'));
+      Assert.AreEqual('fallback', lCapabilities.GetValue<string>('inventory'));
+      Assert.IsTrue(lIdentity.GetValue('dirty') is TJSONNull);
+      Assert.IsTrue(lIdentity.GetValue('changed_files') is TJSONNull);
+      Assert.AreEqual('[]', lIdentity.GetValue<TJSONArray>('externals').ToJSON);
+      Assert.AreEqual('filesystem-delphi-inputs', lSources.GetValue<string>('scope'));
+      Assert.IsTrue(lIdentity.GetValue<string>('diagnostic') <> '');
+      Exit;
+    end;
+    if aScenario = 5 then
+    begin
+      Assert.AreEqual('unavailable', lIdentity.GetValue<string>('status'));
+      Assert.IsTrue(lIdentity.GetValue('revision') is TJSONNull);
+      Assert.IsTrue(lIdentity.GetValue('dirty') is TJSONNull);
+      Assert.IsTrue(lIdentity.GetValue('changed_files') is TJSONNull);
+      Assert.AreEqual('[]', lIdentity.GetValue<TJSONArray>('externals').ToJSON);
+      Assert.AreEqual('unavailable', lCapabilities.GetValue<string>('revision'));
+      Assert.AreEqual('unavailable', lCapabilities.GetValue<string>('status'));
+      Assert.AreEqual('unavailable', lCapabilities.GetValue<string>('changed_files'));
+      Assert.AreEqual('unavailable', lCapabilities.GetValue<string>('nested_roots'));
+      Assert.AreEqual('fallback', lCapabilities.GetValue<string>('inventory'));
+      Assert.AreEqual('filesystem-delphi-inputs', lSources.GetValue<string>('scope'));
+      Assert.IsTrue(Pos('svn', LowerCase(lIdentity.GetValue<string>('diagnostic'))) > 0);
+      Exit;
+    end;
+    Assert.AreEqual((aScenario = 1) or (aScenario in [6, 7, 8]), lIdentity.GetValue<Boolean>('dirty'));
+    if aScenario = 1 then
+      Assert.AreEqual('["Main.pas","Shared.inc","Unversioned.pas"]', lIdentity.GetValue<TJSONArray>('changed_files').ToJSON)
+    else if aScenario in [6, 7] then
+      Assert.AreEqual('["Main.pas"]', lIdentity.GetValue<TJSONArray>('changed_files').ToJSON)
+    else if aScenario = 8 then
+      Assert.AreEqual('["New.pas"]', lIdentity.GetValue<TJSONArray>('changed_files').ToJSON)
+    else
+      Assert.AreEqual('[]', lIdentity.GetValue<TJSONArray>('changed_files').ToJSON);
+    if aScenario = 3 then
+      Assert.AreEqual('[{"path":"external"}]', lIdentity.GetValue<TJSONArray>('externals').ToJSON)
+    else
+      Assert.AreEqual('[]', lIdentity.GetValue<TJSONArray>('externals').ToJSON);
+    Assert.AreEqual(lUrl, lIdentity.GetValue<string>('url'));
+    Assert.AreEqual(lUrl, lIdentity.GetValue<string>('repository_root'));
+    if aScenario = 3 then
+      Assert.AreEqual('2', lIdentity.GetValue<string>('root_revision'))
+    else
+      Assert.AreEqual('1', lIdentity.GetValue<string>('root_revision'));
+    Assert.AreEqual<NativeInt>(36, Length(lIdentity.GetValue<string>('repository_uuid')));
+    Assert.AreEqual('available', lCapabilities.GetValue<string>('status'));
+    Assert.AreEqual('available', lCapabilities.GetValue<string>('changed_files'));
+    Assert.AreEqual('available', lCapabilities.GetValue<string>('inventory'));
+    Assert.AreEqual('available', lCapabilities.GetValue<string>('nested_roots'));
+    Assert.AreEqual('svn-versioned-plus-unversioned-delphi-inputs', lSources.GetValue<string>('scope'));
+    if aScenario = 4 then
+    begin
+      Assert.AreEqual('unavailable', lIdentity.GetValue<string>('status'));
+      Assert.IsTrue(lIdentity.GetValue('revision') is TJSONNull);
+      Assert.IsNull(lIdentity.GetValue('svnversion'));
+      Assert.AreEqual('unavailable', lCapabilities.GetValue<string>('revision'));
+      Assert.IsTrue(Pos('svnversion', lIdentity.GetValue<string>('diagnostic')) > 0);
+    end else begin
+      Assert.AreEqual('complete', lIdentity.GetValue<string>('status'));
+      Assert.AreEqual('available', lCapabilities.GetValue<string>('revision'));
+      RequireJsonObjectKey(lIdentity, 'svnversion', lVersion);
+      Assert.AreEqual(7, lVersion.Count);
+      Assert.AreEqual((aScenario = 1) or (aScenario in [6, 7, 8]), lVersion.GetValue<Boolean>('modified'));
+      Assert.IsFalse(lVersion.GetValue<Boolean>('switched'));
+      Assert.AreEqual(aScenario = 9, lVersion.GetValue<Boolean>('sparse'));
+      Assert.AreEqual(lIdentity.GetValue<string>('revision'), lVersion.GetValue<string>('revision'));
+      if aScenario = 2 then
+        Assert.AreEqual('1:2', lVersion.GetValue<string>('raw'))
+      else if aScenario = 3 then
+        Assert.AreEqual('2', lVersion.GetValue<string>('raw'))
+      else if aScenario = 9 then
+        Assert.AreEqual('1P', lVersion.GetValue<string>('raw'))
+      else if (aScenario = 1) or (aScenario in [6, 7, 8]) then
+        Assert.AreEqual('1M', lVersion.GetValue<string>('raw'))
+      else
+        Assert.AreEqual('1', lVersion.GetValue<string>('raw'));
+      if aScenario = 2 then
+      begin
+        Assert.AreEqual('1:2', lIdentity.GetValue<string>('revision'));
+        Assert.AreEqual(1, lVersion.GetValue<Integer>('minimum'));
+        Assert.AreEqual(2, lVersion.GetValue<Integer>('maximum'));
+      end else if aScenario <> 3 then
+      begin
+        Assert.AreEqual('1', lIdentity.GetValue<string>('revision'));
+        Assert.AreEqual(1, lVersion.GetValue<Integer>('minimum'));
+        Assert.AreEqual(1, lVersion.GetValue<Integer>('maximum'));
+      end;
+    end;
+  finally
+    lPathEnvironment := nil;
+    lEnvironment := nil;
+    Assert.IsTrue(SetCurrentDir(lOldDir), 'Restore the caller directory before fixture deletion.');
+    if (aScenario = 11) and
+      (GetFileAttributes(PChar(TPath.Combine(lRoot, 'Main.pas'))) <> INVALID_FILE_ATTRIBUTES) then
+      Assert.IsTrue(Winapi.Windows.DeleteFile(PChar(TPath.Combine(lRoot, 'Main.pas'))),
+        'Unlink the looping fixture before RTL recursive directory cleanup.');
+    DeleteTempPath(lParent);
+  end;
+end;
+
+procedure TNativeAnalysisWorkspaceTests.SvnCleanWorkspacePreservesReferenceContract;
+begin
+  RunSvnReferenceCase(0);
+end;
+
+procedure TNativeAnalysisWorkspaceTests.SvnWorkspacePreservesPartialAndChangedReferenceCases(aScenario: Integer);
+begin
+  RunSvnReferenceCase(aScenario);
 end;
 
 initialization

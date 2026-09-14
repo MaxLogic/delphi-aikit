@@ -184,6 +184,63 @@ Describe 'Retained baseline completeness' {
     }
 }
 
+Describe 'Workspace semantic comparison' {
+    BeforeAll {
+        $script:WorkspaceReference = '{"workspace":{"root":"fixture"},"provenance":{"target":{"paths":["a","b"],"dirty":false,"revision":null},"dak":{"head":"old"}}}'
+        $script:WorkspaceCandidate = '{"provenance":{"dak":{"head":"new"},"target":{"revision":null,"dirty":false,"paths":["a","b"]}},"workspace":{"root":"fixture"}}'
+    }
+    It 'compares complete records despite object key order and validated engine identity' {
+        (Compare-MigrationWorkspace $script:WorkspaceReference $script:WorkspaceCandidate '{"head":"new"}').equal | Should -BeTrue
+    }
+    It 'rejects unvalidated identity and every target semantic change' {
+        { Compare-MigrationWorkspace $script:WorkspaceReference $script:WorkspaceCandidate '{"head":"wrong"}' } | Should -Throw '*identity*'
+        foreach ($pair in @(@('"a","b"','"b","a"'), @('false','"false"'), @('"revision":null,',''), @('null','"changed"'), @('"root":"fixture"','"root":"other"'))) {
+            $changed = $script:WorkspaceCandidate.Replace($pair[0], $pair[1])
+            { Compare-MigrationWorkspace $script:WorkspaceReference $changed '{"head":"new"}' } | Should -Throw '*differs*'
+        }
+    }
+    It 'rejects duplicate fields instead of silently replacing them' {
+        { Compare-MigrationWorkspace $script:WorkspaceReference $script:WorkspaceCandidate.Replace('"dirty":false','"dirty":false,"dirty":false') '{"head":"new"}' } | Should -Throw '*Duplicate*'
+    }
+}
+
+Describe 'Workspace benchmark budgets' {
+    BeforeEach {
+        $script:Budget = [pscustomobject]@{median_ms=100;p95_ms=150;peak_root_bytes=4096}
+        $script:BudgetSamples = @(foreach ($phase in @('cold','warmup','warm')) {
+            $count = switch ($phase) {cold {5} warmup {2} warm {10}}
+            for ($index=1; $index -le $count; $index++) {
+                [pscustomobject]@{phase=$phase;index=$index;exit_code=0;timed_out=$false;drain_timed_out=$false;elapsed_ms=100;peak_working_set_bytes=4096;memory_scope='root'}
+            }
+        })
+    }
+    It 'accepts inclusive limits and discards priming durations from latency statistics' {
+        $script:BudgetSamples[5].elapsed_ms=9999
+        $result=Get-MigrationWorkspaceBudgetResult -Samples $script:BudgetSamples -Budget $script:Budget
+        $result.passed | Should -BeTrue
+        $result.statistics.cold.count | Should -Be 5
+        $result.statistics.warm.count | Should -Be 10
+    }
+    It 'rejects each phase median and tail separately and any sample memory excess' {
+        foreach ($phase in @('cold','warm')) {
+            $selected=@($script:BudgetSamples | Where-Object phase -EQ $phase)
+            foreach ($sample in $selected) {$sample.elapsed_ms=101}
+            (Get-MigrationWorkspaceBudgetResult $script:BudgetSamples $script:Budget).violations | Should -Contain "$phase median_ms"
+            foreach ($sample in $selected) {$sample.elapsed_ms=100}
+            $selected[0].elapsed_ms=151
+            (Get-MigrationWorkspaceBudgetResult $script:BudgetSamples $script:Budget).violations | Should -Contain "$phase p95_ms"
+            $selected[0].elapsed_ms=100
+        }
+        $script:BudgetSamples[5].peak_working_set_bytes=4097
+        (Get-MigrationWorkspaceBudgetResult $script:BudgetSamples $script:Budget).passed | Should -BeFalse
+    }
+    It 'rejects incomplete samples and missing or nonfinite budget limits' {
+        {Get-MigrationWorkspaceBudgetResult $script:BudgetSamples[1..16] $script:Budget} | Should -Throw '*samples*'
+        $script:Budget.median_ms=[double]::NaN
+        {Get-MigrationWorkspaceBudgetResult $script:BudgetSamples $script:Budget} | Should -Throw '*budget*'
+    }
+}
+
 Describe 'Frozen source inventory' {
     It 'detects an added source while excluding generated state' {
         $root=Join-Path $script:AllowedRoot 'inventory'

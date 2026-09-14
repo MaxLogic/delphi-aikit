@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Native `analyze-workspace` inspects workspace selection and Git, SVN or unmanaged source provenance in human-readable or JSON form without running analyzers or changing reports.
 - Routine FixInsight analysis excludes verified Smart Setup FlexCel source trees while preserving compiler context and recording the effective input masks. Isolated vendor diagnostics can disable this default with `[FixInsightCL].ExcludeFlexCel=false`.
 - Added VCS-neutral static-analysis workspaces with deterministic `auto`, `git`, `svn`, `project`, fixed-path, and `--workspace-root` selection.
 - Added PAL 9.21 help-aware Delphi 13 support, including BDS 37 Win64 target mapping and doctor reporting for the resolved PAL executable, version, architecture, help availability, and Delphi 12/13 capabilities.

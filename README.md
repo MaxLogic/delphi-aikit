@@ -185,6 +185,19 @@ When `--out` is omitted, `analyze` writes under the target's sibling `.dak` work
 - project runs: `.dak/<ProjectName>/`
 - unit runs: `.dak/_unit/<UnitName>/`
 
+To inspect workspace selection and source provenance without running analyzers:
+
+```text
+bin\DelphiAIKit.exe analyze-workspace --project "C:\path\Project.dproj" --json
+bin\DelphiAIKit.exe analyze-workspace --unit "C:\path\Main.pas" --project-context "C:\path\Project.dproj" --json
+```
+
+`--workspace-root` uses the same selectors and settings precedence as analysis.
+The JSON contains `workspace` and `provenance` records for the target and DAK.
+Inspection creates no report or scratch files; an optional `--out` hint is accepted without changing that directory.
+Exit codes are 0 for complete or inapplicable VCS evidence, 2 for invalid input/settings,
+3 for partial evidence such as missing VCS tools, and 4 for capture/output failures.
+
 To validate DFMs in CI using generated DFMCheck projects:
 
 ```

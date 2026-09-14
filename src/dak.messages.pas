@@ -8,6 +8,7 @@ resourcestring
     'Commands:' + #13#10 +
     '  resolve   Resolve FixInsight params (ini/xml/bat)' + #13#10 +
     '  analyze   Run FixInsight / Pascal Analyzer' + #13#10 +
+    '  analyze-workspace Inspect analysis workspace and source provenance' + #13#10 +
     '  build     Build a Delphi or TMS WEB Core project (.dproj; or .dpr/.dpk with sibling .dproj)' + #13#10 +
     '  dfm-check Validate DFM streaming via generated _DfmCheck harness project' + #13#10 +
     '  dfm-inspect Inspect text DFM structure and event bindings' + #13#10 +
@@ -19,6 +20,11 @@ resourcestring
     '  find-usages Find project-scoped references for a resolved Delphi symbol' + #13#10 +
     '  rename    Plan or apply a project-scoped Delphi symbol rename' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
+  rsUsageAnalyzeWorkspace =
+    'DelphiAIKit.exe analyze-workspace (--project "<path>" | --unit "<path>")' + #13#10 +
+    '  [--project-context "<dproj>"] [--workspace-root <auto|git|svn|project|path>] [--json [true|false]]' + #13#10 +
+    '  [--out "<scratch-hint>"] accepts the analysis scratch location without creating or changing it.' + #13#10 +
+    'Inspects settings and provenance without running analyzers or publishing reports.';
   SUsageResolve =
     'DelphiAIKit.exe resolve --project "<path>" --delphi <23.0> ' +
     '[--platform <Win32|Win64>] [--config <Debug|Release>]' + #13#10 +

@@ -43,6 +43,27 @@ type
     procedure AnalyzeProjectRejectsProjectContext;
     [Test]
     procedure AnalyzeHelpIncludesProjectContext;
+    [TestCase('Project', '0')]
+    [TestCase('Unit', '1')]
+    [TestCase('ContextualUnit', '2')]
+    procedure AnalyzeWorkspaceParsesSubjectsAndOptions(aScenario: Integer);
+    [TestCase('MissingSubject', '--json')]
+    [TestCase('ConflictingSubjects', '--project Sample.dproj --unit Main.pas')]
+    [TestCase('ProjectContextWithoutUnit', '--project Sample.dproj --project-context Other.dproj')]
+    [TestCase('ContextOnly', '--project-context Sample.dproj')]
+    [TestCase('CompilerVersion', '--project Sample.dproj --delphi 23.0')]
+    [TestCase('Platform', '--project Sample.dproj --platform Win64')]
+    [TestCase('Configuration', '--project Sample.dproj --config Release')]
+    [TestCase('CompilerEnvironment', '--project Sample.dproj --rsvars compiler.bat')]
+    [TestCase('EnvironmentOptions', '--project Sample.dproj --envoptions options.proj')]
+    [TestCase('PascalAnalyzer', '--project Sample.dproj --pal false')]
+    [TestCase('FixInsight', '--project Sample.dproj --fixinsight false')]
+    [TestCase('Cleanup', '--project Sample.dproj --clean false')]
+    [TestCase('Summary', '--project Sample.dproj --write-summary false')]
+    [TestCase('InvalidJson', '--project Sample.dproj --json invalid')]
+    procedure AnalyzeWorkspaceRejectsInvalidArguments(const aArguments: string);
+    [Test]
+    procedure AnalyzeWorkspaceHelpUsesDedicatedRoute;
     [Test]
     procedure DfmCheckCommandParsesRequiredFlagsAndDefaults;
     [Test]
@@ -484,6 +505,73 @@ procedure TCliTests.AnalyzeHelpIncludesProjectContext;
 begin
   Assert.IsTrue(SUsageAnalyze.Contains('--project-context "<dproj>"'));
   Assert.IsTrue(SUsageAnalyze.Contains('--workspace-root <auto|git|svn|project|path>'));
+end;
+
+procedure TCliTests.AnalyzeWorkspaceParsesSubjectsAndOptions(aScenario: Integer);
+var
+  lArguments: string;
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  if aScenario = 0 then
+    lArguments := '--project C:\repo\Sample.dproj'
+  else
+    lArguments := '--unit C:\repo\Main.pas';
+  if aScenario = 2 then
+    lArguments := lArguments + ' --project-context C:\repo\Sample.dproj';
+  SetParams('analyze-workspace ' + lArguments);
+  Assert.IsTrue(TryParseOptions(lOptions, lError), lError);
+  Assert.AreEqual(TCommandKind.ckAnalyzeWorkspace, lOptions.fCommand);
+  Assert.IsFalse(lOptions.fWorkspaceJson);
+  Assert.IsFalse(lOptions.fHasWorkspaceRoot);
+  Assert.IsFalse(lOptions.fHasAnalyzeOutPath);
+  Assert.AreEqual(aScenario = 2, lOptions.fHasProjectContextPath);
+  if aScenario = 0 then
+  begin
+    Assert.AreEqual('C:\repo\Sample.dproj', lOptions.fDprojPath);
+    Assert.AreEqual('', lOptions.fUnitPath);
+  end else begin
+    Assert.AreEqual('C:\repo\Main.pas', lOptions.fUnitPath);
+    Assert.AreEqual('', lOptions.fDprojPath);
+  end;
+  if aScenario = 2 then
+    Assert.AreEqual('C:\repo\Sample.dproj', lOptions.fProjectContextPath);
+  SetParams('analyze-workspace ' + lArguments + ' --workspace-root project --out "C:\scratch space" --json');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), lError);
+  Assert.AreEqual(TCommandKind.ckAnalyzeWorkspace, lOptions.fCommand);
+  Assert.IsTrue(lOptions.fWorkspaceJson);
+  Assert.IsTrue(lOptions.fHasWorkspaceRoot);
+  Assert.AreEqual('project', lOptions.fWorkspaceRoot);
+  Assert.IsTrue(lOptions.fHasAnalyzeOutPath);
+  Assert.AreEqual('C:\scratch space', lOptions.fAnalyzeOutPath);
+  SetParams('analyze-workspace ' + lArguments + ' --json=false');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), lError);
+  Assert.IsFalse(lOptions.fWorkspaceJson);
+end;
+
+procedure TCliTests.AnalyzeWorkspaceRejectsInvalidArguments(const aArguments: string);
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('analyze-workspace ' + aArguments);
+  Assert.IsFalse(TryParseOptions(lOptions, lError), aArguments);
+  Assert.IsTrue(lError <> '', 'Rejected arguments must explain the failure.');
+end;
+
+procedure TCliTests.AnalyzeWorkspaceHelpUsesDedicatedRoute;
+var
+  lCommand: TCommandKind;
+  lError: string;
+  lHasCommand: Boolean;
+begin
+  SetParams('analyze-workspace --help');
+  Assert.IsTrue(IsHelpRequested);
+  Assert.IsTrue(TryGetCommand(lCommand, lHasCommand, lError), lError);
+  Assert.IsTrue(lHasCommand);
+  Assert.AreEqual(TCommandKind.ckAnalyzeWorkspace, lCommand);
+  Assert.IsFalse(CommandRoutesAs(lCommand, TCommandKind.ckAnalyzeProject));
+  Assert.IsFalse(CommandRoutesAs(lCommand, TCommandKind.ckResolve));
 end;
 
 procedure TCliTests.DfmCheckCommandParsesRequiredFlagsAndDefaults;
@@ -1528,6 +1616,10 @@ begin
       'Warnings=WEXEDEFAULT' + sLineBreak, TEncoding.ASCII);
 
     Assert.IsTrue(LoadDakSettings(nil, lDprojPath, nil, lSettings), lSettings.fError);
+    Assert.AreEqual(TPath.GetFullPath(lBaseDir), lSettings.fWorkspace.fRoot);
+    Assert.AreEqual('auto', lSettings.fWorkspace.fSelector);
+    Assert.AreEqual('none', lSettings.fWorkspace.fVcs);
+    Assert.AreEqual('default', lSettings.fWorkspace.fSource);
     Assert.IsTrue(Pos('WEXEDEFAULT', lSettings.fFixInsightIgnore.fWarnings) > 0,
       'Default auto loading must retain executable dak.ini defaults.');
     Assert.IsTrue(Pos('WPROJECTDEFAULT', lSettings.fFixInsightIgnore.fWarnings) > 0,

@@ -70,7 +70,10 @@
       <MainSource>MainSource</MainSource>
     </DelphiCompile>
     <DCCReference Include="..\src\Dak.Analysis.Workspace.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.WorkspaceCommand.pas"/>
     <DCCReference Include="units\test.nativeanalysisworkspace.pas"/>
+    <DCCReference Include="units\test.nativeanalysisworkspace.provenance.pas"/>
+        <DCCReference Include="units\test.nativeanalysisworkspace.command.pas"/>
     <DCCReference Include="units\\test.support.pas"/>
     <DCCReference Include="units\\test.app.pas"/>
     <DCCReference Include="units\\test.build.pas"/>

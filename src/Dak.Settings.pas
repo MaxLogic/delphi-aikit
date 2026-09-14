@@ -48,6 +48,7 @@ type
   end;
 
 function BuildSettingsPaths(const aDprojPath: string): TArray<string>;
+function FindNamedRepoRoot(const aStartDir, aMarker: string): string;
 function LoadDakSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;
   const aEnvVars: TDictionary<string, string>; out aSettings: TDakSettings): Boolean; overload;
 function LoadDakSettings(aDiagnostics: TDiagnostics; const aDprojPath: string;

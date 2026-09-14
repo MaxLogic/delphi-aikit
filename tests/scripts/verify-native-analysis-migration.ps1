@@ -4,7 +4,8 @@ param(
     [ValidateSet('Baseline', 'Compare', 'Coverage', 'NoPython', 'Benchmark', 'Delivery')]
     [string]$Mode = 'Baseline',
     [string]$Area = 'All',
-    [string]$Manifest
+    [string]$Manifest,
+    [string]$CandidateExecutable
 )
 
 function Resolve-MigrationOutputPath {
@@ -305,6 +306,152 @@ function Assert-MigrationSourceInventory {
     if (($actual -join "`n") -cne (@($Expected | Sort-Object -CaseSensitive) -join "`n")) { throw 'Frozen source inventory differs from current files.' }
 }
 
+function Compare-MigrationWorkspace {
+    param([string]$ReferenceText, [string]$CandidateText, [string]$IdentityText)
+    . (Join-Path $PSScriptRoot 'compare-native-analysis-artifacts.ps1')
+    $documents = [Collections.Generic.List[System.Text.Json.JsonDocument]]::new()
+    try {
+        foreach ($text in @($ReferenceText, $CandidateText, $IdentityText)) {
+            $document = [System.Text.Json.JsonDocument]::Parse($text)
+            $documents.Add($document)
+            Assert-MigrationJsonKey $document.RootElement
+        }
+        $identity = ConvertTo-MigrationWorkspaceJson $documents[2].RootElement
+        $actualIdentity = $documents[1].RootElement.GetProperty('provenance').GetProperty('dak')
+        if ((ConvertTo-MigrationWorkspaceJson $actualIdentity) -cne $identity) { throw 'Candidate DAK identity differs from independent evidence.' }
+        $reference = ConvertTo-MigrationWorkspaceJson -Element $documents[0].RootElement -Path '$' -Identity $identity
+        $candidate = ConvertTo-MigrationWorkspaceJson -Element $documents[1].RootElement -Path '$' -Identity $identity
+        if ($reference -cne $candidate) { throw 'Workspace record differs.' }
+        return [pscustomobject]@{equal=$true; identity=($IdentityText | ConvertFrom-Json); comparison_sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($candidate)))}
+    } finally { foreach ($document in $documents) { $document.Dispose() } }
+}
+
+function ConvertTo-MigrationWorkspaceJson {
+    param([System.Text.Json.JsonElement]$Element, [string]$Path = '$', [string]$Identity)
+    if ($Path -ceq '$.provenance.dak' -and $Identity) { return $Identity }
+    switch ($Element.ValueKind.ToString()) {
+        Object {
+            $properties = @($Element.EnumerateObject() | Sort-Object Name -CaseSensitive)
+            $values = foreach ($property in $properties) {
+                (ConvertTo-Json -InputObject $property.Name -Compress) + ':' + (ConvertTo-MigrationWorkspaceJson -Element $property.Value -Path ($Path+'.'+$property.Name) -Identity $Identity)
+            }
+            return '{' + ($values -join ',') + '}'
+        }
+        Array {
+            $values = foreach ($item in $Element.EnumerateArray()) { ConvertTo-MigrationWorkspaceJson -Element $item -Path ($Path+'[]') -Identity $Identity }
+            return '[' + ($values -join ',') + ']'
+        }
+        String { return ConvertTo-Json -InputObject $Element.GetString() -Compress }
+        default { return $Element.GetRawText() }
+    }
+}
+
+function Get-MigrationWorkspaceBudgetResult {
+    param([object[]]$Samples, [object]$Budget)
+    foreach ($field in @('median_ms','p95_ms','peak_root_bytes')) {
+        $value=$Budget.$field
+        if ($null -eq $value -or $value -is [string] -or $value -is [bool] -or -not [double]::IsFinite([double]$value) -or $value -le 0) { throw "Invalid workspace budget: $field" }
+    }
+    $statistics=Get-MigrationRetainedSampleSummary -Samples $Samples
+    $violations=[Collections.Generic.List[string]]::new()
+    foreach ($phase in @('cold','warm')) {
+        if ($statistics.$phase.median -gt $Budget.median_ms) {$violations.Add("$phase median_ms")}
+        if ($statistics.$phase.p95 -gt $Budget.p95_ms) {$violations.Add("$phase p95_ms")}
+    }
+    foreach ($sample in $Samples) {
+        if ($sample.peak_working_set_bytes -gt $Budget.peak_root_bytes) {$violations.Add("$($sample.phase)-$($sample.index) peak_root_bytes")}
+    }
+    return [pscustomobject]@{passed=($violations.Count -eq 0);statistics=$statistics;budget=$Budget;violations=@($violations)}
+}
+
+function Invoke-MigrationWorkspaceComparison {
+    param([string]$EvidenceRoot, [string]$Executable, [string]$ResultRoot, [switch]$Benchmark)
+    . (Join-Path $PSScriptRoot 'compare-native-analysis-artifacts.ps1')
+    $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+    $executablePath = Resolve-MigrationOutputPath -Path $Executable -Root $repoRoot
+    if (-not (Test-Path -LiteralPath $executablePath -PathType Leaf)) { throw 'Missing candidate executable.' }
+    $batchRoot = Resolve-MigrationOutputPath $ResultRoot (Join-Path $EvidenceRoot 'measurements')
+    if (Test-Path -LiteralPath $batchRoot) { throw 'Workspace comparison evidence already exists.' }
+    $budgetPath=Join-Path $EvidenceRoot 'frozen-budgets.json'
+    $budgetHash=(Get-FileHash -LiteralPath $budgetPath).Hash
+    $budgets = Get-Content -LiteralPath $budgetPath -Raw | ConvertFrom-Json
+    $scenarios = @($budgets.scenarios | Where-Object area -EQ Workspace)
+    if ($scenarios.Count -ne 5) { throw 'Expected five frozen workspace scenarios.' }
+    $childEnvironment = @{PYTHONDONTWRITEBYTECODE='1'; MAXLOGIC_MADEXCEPT_AI='1'}
+    foreach ($key in [Environment]::GetEnvironmentVariables().Keys) {
+        if ([string]$key -like 'DAK_*' -or [string]$key -like 'GIT_*') { $childEnvironment[$key]=$null }
+    }
+    [void][IO.Directory]::CreateDirectory($batchRoot)
+    $candidateHash = (Get-FileHash -LiteralPath $executablePath).Hash
+    $results = foreach ($frozen in $scenarios) {
+        $manifest = Get-Content -LiteralPath (Join-Path $EvidenceRoot $frozen.collection_manifest) -Raw | ConvertFrom-Json
+        $scenario = @($manifest.scenarios | Where-Object name -CEQ $frozen.name)
+        if ($scenario.Count -ne 1) { throw 'Frozen workspace scenario is missing or duplicated.' }
+        $scenario = $scenario[0]
+        [void](Resolve-MigrationOutputPath -Path $scenario.subject -Root (Join-Path $EvidenceRoot 'scratch'))
+        [void](Resolve-MigrationOutputPath -Path $scenario.working_directory -Root (Join-Path $EvidenceRoot 'scratch'))
+        if ($scenario.selector -notin @('git','project','svn') -or -not (Test-Path -LiteralPath $scenario.subject -PathType Leaf)) { throw 'Invalid frozen workspace subject or selector.' }
+        $scenarioRoot = Resolve-MigrationOutputPath (Join-Path $batchRoot $scenario.name) $batchRoot
+        [void][IO.Directory]::CreateDirectory($scenarioRoot)
+        $schedule = if ($Benchmark) {
+            foreach ($phase in @('cold','warmup','warm')) {
+                $count=switch ($phase) {cold {5} warmup {2} warm {10}}
+                for ($index=1; $index -le $count; $index++) {[pscustomobject]@{phase=$phase;index=$index}}
+            }
+        } else { [pscustomobject]@{phase='compare';index=1} }
+        $samples = @()
+        $records = foreach ($entry in $schedule) {
+        $sampleRoot = if ($Benchmark) { Resolve-MigrationOutputPath (Join-Path $scenarioRoot "$($entry.phase)-$($entry.index)") $scenarioRoot } else {$scenarioRoot}
+        [void][IO.Directory]::CreateDirectory($sampleRoot)
+        $scratch = Resolve-MigrationOutputPath (Join-Path $EvidenceRoot ('scratch/compare-workspace/'+[guid]::NewGuid().ToString())) (Join-Path $EvidenceRoot 'scratch')
+        [void][IO.Directory]::CreateDirectory($scratch)
+        # Capture the current engine identity independently with the pinned Python implementation.
+        # Require both executables to belong to the same checkout, avoiding script-parent inference outside DAK.
+        $driver = @'
+import sys,json
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from postprocess import _find_git_root,_dak_identity,_sha256_file
+exe=Path(sys.argv[2]).resolve()
+assert _find_git_root(exe.parent)==Path(sys.argv[3]).resolve(), 'Candidate must belong to the DAK checkout'
+assert _find_git_root(Path(sys.argv[1]))==Path(sys.argv[3]).resolve(), 'Reference must belong to the DAK checkout'
+identity=_dak_identity()
+assert identity.get('status')=='complete', 'Independent DAK identity is incomplete'
+identity.update(executable=str(exe),executable_sha256=_sha256_file(exe))
+print(json.dumps(identity,ensure_ascii=False))
+'@
+        $identityProcess = Invoke-MigrationProcess -Executable $scenario.executable -Arguments @('-c',$driver,(Join-Path $EvidenceRoot 'python-reference/agentskills/dak-static-analysis'),$executablePath,$repoRoot) -WorkingDirectory $scenario.working_directory -Environment $childEnvironment -LogPath (Join-Path $sampleRoot 'identity')
+        if ($identityProcess.exit_code -ne 0 -or $identityProcess.timed_out -or $identityProcess.drain_timed_out) { throw 'Independent identity capture failed.' }
+        $process = Invoke-MigrationProcess -Executable $executablePath -Arguments @('analyze-workspace','--project',$scenario.subject,'--workspace-root',$scenario.selector,'--out',$scratch,'--json') -WorkingDirectory $scenario.working_directory -Environment $childEnvironment -LogPath (Join-Path $sampleRoot 'process')
+        if ($process.exit_code -ne 0 -or $process.timed_out -or $process.drain_timed_out) { throw 'Native workspace capture failed.' }
+        $referencePath = Join-Path ([IO.Path]::GetDirectoryName((Join-Path $EvidenceRoot $frozen.measurements))) 'cold-1/artifacts/workspace.json'
+        $comparison = Compare-MigrationWorkspace -ReferenceText (Get-MigrationUtf8Text ([IO.File]::ReadAllBytes($referencePath))) -CandidateText (Get-MigrationUtf8Text ([IO.File]::ReadAllBytes((Join-Path $sampleRoot 'process.stdout')))) -IdentityText (Get-MigrationUtf8Text ([IO.File]::ReadAllBytes((Join-Path $sampleRoot 'identity.stdout'))))
+        if ($Benchmark) {
+            $process | Add-Member -NotePropertyName phase -NotePropertyValue $entry.phase
+            $process | Add-Member -NotePropertyName index -NotePropertyValue $entry.index
+            $samples += $process
+        }
+        $record=[pscustomobject]@{name=$scenario.name;comparison=$comparison;process=$process;reference_sha256=(Get-FileHash -LiteralPath $referencePath).Hash}
+        $record | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath (Join-Path $sampleRoot 'comparison.json')
+        $record
+        }
+        if ($Benchmark) {
+            $assessment=Get-MigrationWorkspaceBudgetResult -Samples $samples -Budget $frozen.budget
+            $scenarioResult=[pscustomobject]@{name=$scenario.name;assessment=$assessment;samples=@($samples);comparisons=@($records)}
+            $scenarioResult | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath (Join-Path $scenarioRoot 'measurements.json')
+            if (-not $assessment.passed) {throw "Workspace budget exceeded: $($scenario.name): $($assessment.violations -join ', '); raw samples retained."}
+            $scenarioResult
+        } else {$records}
+    }
+    if ((Get-FileHash -LiteralPath $executablePath).Hash -ne $candidateHash) { throw 'Candidate executable changed during comparison.' }
+    if ((Get-FileHash -LiteralPath $budgetPath).Hash -ne $budgetHash) {throw 'Frozen budget changed during the batch.'}
+    $scope=if ($Benchmark) {'Five workspace scenarios: full record equality and frozen cold/warm latency and root-memory budgets.'} else {'Workspace correctness only; no performance acceptance.'}
+    $result = [pscustomobject]@{passed=$true;candidate=$executablePath;candidate_sha256=$candidateHash;budget_sha256=$budgetHash;scenarios=@($results);scope=$scope}
+    $resultFile=if ($Benchmark) {'benchmark.json'} else {'comparison.json'}
+    $result | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath (Join-Path $batchRoot $resultFile)
+    return $result
+}
+
 function Get-MigrationWorkspaceArgument {
     [CmdletBinding()]
     [OutputType([object[]])]
@@ -326,9 +473,15 @@ print(json.dumps(result, default=str, ensure_ascii=False, sort_keys=True))
 
 if ($MyInvocation.InvocationName -ne '.') {
     $ErrorActionPreference = 'Stop'
-    if ($Mode -ne 'Baseline') { throw "Mode $Mode requires its native migration task; it is not certified yet." }
     $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
     $evidenceRoot = Join-Path $repoRoot 'projects/.dak/DelphiAIKit/native-analysis-migration'
+    if ($Mode -in @('Compare','Benchmark') -and $Area -eq 'Workspace') {
+        if (-not $CandidateExecutable) { throw "$Mode Workspace requires CandidateExecutable." }
+        $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/workspace-'+$Mode.ToLowerInvariant()+'-'+[guid]::NewGuid().ToString()) }
+        Invoke-MigrationWorkspaceComparison -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot -Benchmark:($Mode -eq 'Benchmark')
+        return
+    }
+    if ($Mode -ne 'Baseline') { throw "Mode $Mode requires its native migration task; it is not certified yet." }
     $scratchRoot = Join-Path $evidenceRoot 'scratch'
     $seedRoot = Join-Path $evidenceRoot 'seeds'
     $measurementRoot = Join-Path $evidenceRoot 'measurements'
