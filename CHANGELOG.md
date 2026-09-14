@@ -26,6 +26,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- Builds started outside the repository root retain compiler source snippets and semantic hints while keeping diagnostic paths repository-relative.
 - Routine header references keep their own lexical scope at adjacent and same-line routine boundaries.
 - Indented type aliases remain visible to snapshot-backed find-usages and rename.
 - Windows process arguments retain embedded quotes and trailing backslashes, including quoted PAL configuration paths passed through Python subprocess arguments.

@@ -1,4 +1,4 @@
-﻿unit Test.Build;
+unit Test.Build;
 
 interface
 
@@ -1840,6 +1840,8 @@ var
   lExitCode: Integer;
   lFailingRunner: TFailingBuildRunner;
   lOptions: TAppOptions;
+  lPreviousDirectory: string;
+  lWorkingDirectory: string;
   lPatchExePath: string;
   lDprPath: string;
   lProjectRoot: string;
@@ -1910,16 +1912,27 @@ begin
     sLineBreak;
   lRunner := lFailingRunner;
   lError := '';
-  lCapturedOutput := CaptureConsoleOutput(
-    procedure
-    begin
-      Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
-        'Expected scripted build run to complete. Error: ' + lError);
-    end);
+  lWorkingDirectory := TPath.Combine(lProjectRoot, 'unrelated-working-directory');
+  TDirectory.CreateDirectory(lWorkingDirectory);
+  lPreviousDirectory := GetCurrentDir;
+  try
+    Assert.IsTrue(SetCurrentDir(lWorkingDirectory));
+    lCapturedOutput := CaptureConsoleOutput(
+      procedure
+      begin
+        Assert.IsTrue(TryRunBuild(lOptions, lRunner, lExitCode, lError),
+          'Expected scripted build run to complete. Error: ' + lError);
+      end);
+  finally
+    Assert.IsTrue(SetCurrentDir(lPreviousDirectory));
+  end;
 
   Assert.AreEqual(1, lExitCode, 'Expected scripted build failure exit code.');
   Assert.IsTrue(Pos('BrokenUnit.pas(11): error E2003', lCapturedOutput) > 0,
     'Expected compiler error to be reported in summary output. Output: ' + lCapturedOutput);
+  Assert.IsTrue(lCapturedOutput.Contains(ExtractRelativePath(IncludeTrailingPathDelimiter(RepoRoot),
+    TPath.Combine(lProjectRoot, 'BrokenUnit.pas')) + '(11): error E2003'),
+    'The displayed diagnostic must remain repository-relative.');
   Assert.IsTrue(Pos('source context:', LowerCase(lCapturedOutput)) > 0,
     'Expected build output to include resolved source context. Output: ' + lCapturedOutput);
   Assert.IsTrue(Pos('MissingIdentifier := 1;', lCapturedOutput) > 0,

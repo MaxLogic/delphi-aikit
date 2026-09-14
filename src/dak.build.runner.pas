@@ -192,16 +192,30 @@ begin
   Result := String.Join(sLineBreak, lParts);
 end;
 
+function DiagnosticSourceToken(const aDiagnostic: TBuildDiagnostic): string;
+var
+  lColNumber: Integer;
+  lLineNumber: Integer;
+begin
+  // Display normalization can remove a repository prefix unrelated to the caller's directory.
+  // Retain the compiler's source identity for lookup, without changing the reported token.
+  if not TryParseFindingLocationWithColumn(aDiagnostic.fRawLine, Result, lLineNumber, lColNumber) or
+    (lLineNumber <> aDiagnostic.fLine) or (lColNumber <> aDiagnostic.fColumn) then
+    Result := aDiagnostic.fFileToken;
+end;
+
 function AppendSourceContextToFinding(const aDisplayFinding: string; const aDiagnostic: TBuildDiagnostic;
   const aCache: TSourceContextRunCache; aContextLines: Integer): string;
 var
   lContext: TSourceContextSnippet;
   lError: string;
+  lFileToken: string;
 begin
   Result := aDisplayFinding;
-  if (aDiagnostic.fFileToken = '') or (aDiagnostic.fLine <= 0) then
+  lFileToken := DiagnosticSourceToken(aDiagnostic);
+  if (lFileToken = '') or (aDiagnostic.fLine <= 0) then
     Exit(Result);
-  if not aCache.TryResolve(aDiagnostic.fFileToken, aDiagnostic.fLine, aContextLines, lContext, lError) then
+  if not aCache.TryResolve(lFileToken, aDiagnostic.fLine, aContextLines, lContext, lError) then
     Exit(Result);
   Result := Result + sLineBreak + PrefixSourceContext(FormatSourceContextLines(lContext));
 end;
@@ -382,6 +396,7 @@ var
   lCandidate: string;
   lColNumber: Integer;
   lEnclosingSymbol: string;
+  lFileToken: string;
   lHintResult: TLspRunnerResult;
   lLspOptions: TAppOptions;
   lOperation: TLspOperation;
@@ -392,12 +407,13 @@ begin
   aHintText := '';
   aError := '';
   lResolvedContext := Default(TSourceContextSnippet);
-  if (aDiagnostic.fFileToken = '') or (aDiagnostic.fLine <= 0) then
+  lFileToken := DiagnosticSourceToken(aDiagnostic);
+  if (lFileToken = '') or (aDiagnostic.fLine <= 0) then
   begin
     aError := 'Could not parse compiler failure location: ' + aDiagnostic.fNormalizedLine;
     Exit(False);
   end;
-  if not aSourceCache.TryResolveCandidate(aDiagnostic.fFileToken, aDiagnostic.fLine, aDiagnostic.fColumn,
+  if not aSourceCache.TryResolveCandidate(lFileToken, aDiagnostic.fLine, aDiagnostic.fColumn,
     aContextLines, aDiagnostic.fMessage, lResolvedContext, lCandidate,
     lEnclosingSymbol, aError) then
     Exit(False);
@@ -409,7 +425,7 @@ begin
   end;
 
   lColNumber := aDiagnostic.fColumn;
-  lCacheKey := LspHintCacheKey(EnrichmentOperationName(lOperation), aDiagnostic.fFileToken,
+  lCacheKey := LspHintCacheKey(EnrichmentOperationName(lOperation), lResolvedContext.fFilePath,
     aDiagnostic.fLine, lColNumber, lCandidate);
   if aCache.ContainsKey(lCacheKey) then
   begin
