@@ -71,9 +71,17 @@
     </DelphiCompile>
     <DCCReference Include="..\src\Dak.Analysis.Workspace.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.WorkspaceCommand.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.Doctor.pas"/>
+        <DCCReference Include="..\src\Dak.PascalAnalyzer.Help.pas"/>
     <DCCReference Include="units\test.nativeanalysisworkspace.pas"/>
     <DCCReference Include="units\test.nativeanalysisworkspace.provenance.pas"/>
         <DCCReference Include="units\test.nativeanalysisworkspace.command.pas"/>
+        <DCCReference Include="units\test.nativeanalysisdoctor.pas"/>
+        <DCCReference Include="units\test.nativeanalysisdoctor.palhelp.pas"/>
+        <DCCReference Include="units\test.nativeanalysisdoctor.settings.pas"/>
+        <DCCReference Include="units\test.nativeanalysisdoctor.remaining.pas"/>
+        <DCCReference Include="units\test.nativeanalysisdoctor.contracts.pas"/>
+        <DCCReference Include="units\test.nativeanalysisdoctor.paths.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.Ownership.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.Findings.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.FixInsightImport.pas"/>
@@ -88,6 +96,7 @@
         <DCCReference Include="units\test.nativeanalysisreports.projections.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.unicode.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.numeric.pas"/>
+        <DCCReference Include="units\test.externaltoolprocess.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.import.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.import.fixinsight.pas"/>
     <DCCReference Include="units\\test.support.pas"/>

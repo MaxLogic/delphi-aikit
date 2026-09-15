@@ -47,9 +47,26 @@ The DUnitX test runner lives under `tests\` and exercises:
 Build and run from a Windows shell:
 
 ```bat
-build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win64 -ver 23
+build-delphi.bat tests\DelphiAIKit.Tests.dproj -config Debug -platform Win64 -ver 23 -ai -keep-logs
 tests\DelphiAIKit.Tests.exe
 ```
+
+For compact agent output, replace the direct executable invocation with this
+PowerShell command (it runs the existing binary without rebuilding):
+
+```powershell
+.\tests\run-dunitx.ps1
+# Or select a focused fixture:
+.\tests\run-dunitx.ps1 -TestArguments '--run:Test.Cli.TCliTests'
+```
+
+The wrapper prints status, found/passed/failed/errored/leaked/ignored counts,
+bounded failure details and log paths. Complete stdout and stderr are retained
+in a unique `tests\.dak\DelphiAIKit.Tests\test-runs\run-*` directory alongside
+`summary.json`. Nonzero process exits are preserved; missing or empty counts,
+failed, errored, leaked or ignored tests also yield a nonzero wrapper exit.
+Verify binary freshness and expected test selection separately. This wrapper
+does not replace the legacy `tests\run.bat` workflows described above.
 
 Missing FixInsightCL, PALCMD, or real DelphiLSP acceptance tooling fails by default. Set `DAK_ALLOW_FIXINSIGHT_SKIP=1`, `DAK_ALLOW_PAL_SKIP=1`, or `DAK_ALLOW_LSP_SKIP=1` only when that tool's tests are intentionally outside the run's scope.
 

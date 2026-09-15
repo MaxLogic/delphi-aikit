@@ -10,6 +10,11 @@ uses
   Dak.ExternalToolProcess, Dak.PascalAnalyzer.Artifacts, Dak.Types, Dak.Utils;
 
 function TryResolvePalCmdExe(const aOverridePath: string; out aExePath: string; out aError: string): Boolean;
+function TryCapturePalCmdHelp(const aPalCmdExe: string; aTimeoutSec: Integer; out aText: string;
+  out aExitCode: Cardinal; out aTimedOut: Boolean; out aError: string): Boolean;
+function TryResolvePalTargetFlag(const aBdsVersion, aPlatform: string;
+  out aDelphiKey, aFlag, aError: string): Boolean;
+function TryValidatePalExtraArgs(const aPa: TPascalAnalyzerDefaults; out aError: string): Boolean;
 function BuildPalCmdCommandLine(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
   out aExePath: string; out aCmdLine: string; out aError: string): Boolean;
 function TryRunPascalAnalyzer(const aParams: TFixInsightParams; const aPa: TPascalAnalyzerDefaults;
@@ -24,6 +29,9 @@ function TryFindPalReportRoot(const aOutputRoot: string; out aReportRoot: string
 function TryGeneratePalArtifacts(const aReportRoot: string; const aOutRoot: string; out aError: string): Boolean;
 
 implementation
+
+uses
+  Dak.PascalAnalyzer.Help;
 
 const
   cMaxPalArguments = 256;
@@ -469,14 +477,20 @@ begin
   end;
 end;
 
+function TryCapturePalCmdHelp(const aPalCmdExe: string; aTimeoutSec: Integer; out aText: string;
+  out aExitCode: Cardinal; out aTimedOut: Boolean; out aError: string): Boolean;
+begin
+  aTimedOut := False;
+  Result := TryCaptureProcessOutput(aPalCmdExe, '', aTimeoutSec, aText, aExitCode, aError);
+  aTimedOut := aExitCode = cExternalToolTimeoutExitCode;
+end;
+
 function TryGetPalCmdHelpText(const aPalCmdExe: string; aTimeoutSec: Integer; out aText: string;
   out aTimedOut: Boolean; out aError: string): Boolean;
 var
   lExit: Cardinal;
 begin
-  aTimedOut := False;
-  Result := TryCaptureProcessOutput(aPalCmdExe, '', aTimeoutSec, aText, lExit, aError);
-  aTimedOut := lExit = cExternalToolTimeoutExitCode;
+  Result := TryCapturePalCmdHelp(aPalCmdExe, aTimeoutSec, aText, lExit, aTimedOut, aError);
   if Result and (lExit <> 0) then
   begin
     if aText = '' then
@@ -488,33 +502,8 @@ begin
 end;
 
 function ContainsFlag(const aText: string; const aFlag: string): Boolean;
-var
-  lText: string;
-  lFlag: string;
-  lPos: Integer;
-  lBefore: Char;
-  lAfter: Char;
 begin
-  if (aText = '') or (aFlag = '') then
-    Exit(False);
-  lText := UpperCase(aText);
-  lFlag := UpperCase(aFlag);
-  lPos := Pos(lFlag, lText);
-  while lPos > 0 do
-  begin
-    if lPos = 1 then
-      lBefore := #0
-    else
-      lBefore := lText[lPos - 1];
-    if (lPos + Length(lFlag)) > Length(lText) then
-      lAfter := #0
-    else
-      lAfter := lText[lPos + Length(lFlag)];
-    if not CharInSet(lBefore, ['A'..'Z', '0'..'9']) and not CharInSet(lAfter, ['A'..'Z', '0'..'9']) then
-      Exit(True);
-    lPos := PosEx(lFlag, lText, lPos + 1);
-  end;
-  Result := False;
+  Result := PalHelpContainsFlag(aText, aFlag);
 end;
 
 function TryResolveFlagFromHelp(const aMap: TPalCmdMap; const aHelpText: string; const aPlatform: string;
@@ -771,24 +760,15 @@ begin
   aError := 'PALCMD not found. Provide --pa-path or set [PascalAnalyzer].Path in dak.ini.';
 end;
 
-function TryBuildDelphiTargetFlag(const aBdsVersion: string; const aPlatform: string; const aPalCmdExe: string;
-  aTimeoutSec: Integer; out aFlag: string; out aError: string): Boolean;
+function TryLoadRequestedPalTarget(const aBdsVersion, aPlatform: string;
+  out aMap: TPalCmdMap; out aDelphiKey, aFlag, aError: string): Boolean;
 var
   lMajor: Integer;
   lIsWin32: Boolean;
   lIsWin64: Boolean;
-  lMap: TPalCmdMap;
-  lDelphiKey: string;
-  lMaxDelphi: string;
-  lExpectedFlag: string;
-  lResolvedFlag: string;
-  lIndex: Integer;
-  lMaxIndex: Integer;
-  lPalCmdMajor: Integer;
-  lHelpText: string;
-  lHelpError: string;
-  lHelpTimedOut: Boolean;
 begin
+  Result := False;
+  aDelphiKey := '';
   aFlag := '';
   aError := '';
 
@@ -806,10 +786,10 @@ begin
     Exit(False);
   end;
 
-  if not TryLoadPalCmdMap(lMap, aError) then
+  if not TryLoadPalCmdMap(aMap, aError) then
     Exit(False);
   try
-    if not lMap.BdsToDelphi.TryGetValue(lMajor, lDelphiKey) then
+    if not aMap.BdsToDelphi.TryGetValue(lMajor, aDelphiKey) then
     begin
       aError := 'PALCMD mapping missing for Delphi version: ' + aBdsVersion;
       Exit(False);
@@ -817,20 +797,57 @@ begin
 
     if lIsWin32 then
     begin
-      if not lMap.DelphiWin32.TryGetValue(lDelphiKey, lExpectedFlag) then
+      if not aMap.DelphiWin32.TryGetValue(aDelphiKey, aFlag) then
       begin
-        aError := 'PALCMD mapping missing Win32 flag for Delphi version: ' + lDelphiKey;
+        aError := 'PALCMD mapping missing Win32 flag for Delphi version: ' + aDelphiKey;
         Exit(False);
       end;
     end else
     begin
-      if not lMap.DelphiWin64.TryGetValue(lDelphiKey, lExpectedFlag) then
+      if not aMap.DelphiWin64.TryGetValue(aDelphiKey, aFlag) then
       begin
-        aError := 'PALCMD mapping missing Win64 flag for Delphi version: ' + lDelphiKey;
+        aError := 'PALCMD mapping missing Win64 flag for Delphi version: ' + aDelphiKey;
         Exit(False);
       end;
     end;
 
+    Result := True;
+  finally
+    // Successful callers retain this same map for fallback ordering; failed lookups own cleanup here.
+    if not Result then
+      FreePalCmdMap(aMap);
+  end;
+end;
+
+function TryResolvePalTargetFlag(const aBdsVersion, aPlatform: string;
+  out aDelphiKey, aFlag, aError: string): Boolean;
+var
+  lMap: TPalCmdMap;
+begin
+  Result := TryLoadRequestedPalTarget(aBdsVersion, aPlatform, lMap, aDelphiKey, aFlag, aError);
+  if Result then
+    FreePalCmdMap(lMap);
+end;
+
+function TryBuildDelphiTargetFlag(const aBdsVersion: string; const aPlatform: string; const aPalCmdExe: string;
+  aTimeoutSec: Integer; out aFlag: string; out aError: string): Boolean;
+var
+  lMap: TPalCmdMap;
+  lDelphiKey: string;
+  lMaxDelphi: string;
+  lExpectedFlag: string;
+  lResolvedFlag: string;
+  lIndex: Integer;
+  lMaxIndex: Integer;
+  lPalCmdMajor: Integer;
+  lHelpText: string;
+  lHelpError: string;
+  lHelpTimedOut: Boolean;
+begin
+  aFlag := '';
+  if not TryLoadRequestedPalTarget(aBdsVersion, aPlatform, lMap, lDelphiKey, lExpectedFlag, aError) then
+    Exit(False);
+  try
     if not TryGetPalCmdHelpText(aPalCmdExe, aTimeoutSec, lHelpText, lHelpTimedOut, lHelpError) then
     begin
       if lHelpTimedOut then

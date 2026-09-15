@@ -30,7 +30,8 @@ uses
   Winapi.ShellAPI, Winapi.Windows,
   Xml.omnixmldom, Xml.xmldom,
   maxLogic.CmdLineParams, MaxMadExcept,
-  Dak.Analysis.WorkspaceCommand, Dak.Analyze, Dak.Build, Dak.Cli, Dak.Deps, Dak.DfmCheck, Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Lsp,
+  Dak.Analysis.Doctor, Dak.Analysis.WorkspaceCommand, Dak.Analyze, Dak.Build, Dak.Cli, Dak.Deps, Dak.DfmCheck,
+  Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Lsp,
   Dak.Messages, Dak.Refactor, Dak.RemoveWith, Dak.Resolve, Dak.SymbolMap, Dak.Utils;
 
 procedure InitializeCommandLine;
@@ -134,6 +135,7 @@ end;
 
 function TDelphiAIKitApp.TryParseOptions(out aExitCode: Integer): Boolean;
 var
+  lDoctorOptions: TAppOptions;
   lError: string;
 begin
   Result := Dak.Cli.TryParseOptions(fOptions, lError);
@@ -143,6 +145,11 @@ begin
     Exit(True);
   end;
 
+  if Dak.Cli.TryGetDoctorErrorOptions(lDoctorOptions) then
+  begin
+    aExitCode := RunAnalyzeDoctorError(lDoctorOptions, lError);
+    Exit(False);
+  end;
   WriteLn(ErrOutput, SInvalidArgs);
   if lError <> '' then
     WriteLn(ErrOutput, lError);
@@ -188,6 +195,8 @@ begin
     Result := RunDeadCodeCommand(fOptions)
   else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeWorkspace) then
     Result := RunAnalyzeWorkspaceCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeDoctor) then
+    Result := RunAnalyzeDoctorCommand(fOptions)
   else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeProject) then
     Result := RunAnalyzeCommand(fOptions)
   else

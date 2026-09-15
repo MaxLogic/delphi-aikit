@@ -5,6 +5,7 @@ All notable user-visible changes to this project will be documented in this file
 ## [Unreleased]
 
 ### Added
+- Native `analyze-doctor` previews effective settings, sources, environment values, policy and output paths in readable text or JSON without creating analysis state. Optional checks report FixInsight discovery, compiler configuration and PAL capabilities; PAL help uses a 15-second default timeout and validates the requested Delphi target.
 - Native `analyze-workspace` inspects workspace selection and Git, SVN or unmanaged source provenance in human-readable or JSON form without running analyzers or changing reports.
 - Routine FixInsight analysis excludes verified Smart Setup FlexCel source trees while preserving compiler context and recording the effective input masks. Isolated vendor diagnostics can disable this default with `[FixInsightCL].ExcludeFlexCel=false`.
 - Added VCS-neutral static-analysis workspaces with deterministic `auto`, `git`, `svn`, `project`, fixed-path, and `--workspace-root` selection.
@@ -27,6 +28,7 @@ All notable user-visible changes to this project will be documented in this file
 
 ### Fixed
 - Builds started outside the repository root retain compiler source snippets and semantic hints while keeping diagnostic paths repository-relative.
+- UTF-8 BOM settings files now preserve the selected workspace boundary. The selector uses the same decoder as other settings while retaining case-insensitive key matching.
 - Routine header references keep their own lexical scope at adjacent and same-line routine boundaries.
 - Indented type aliases remain visible to snapshot-backed find-usages and rename.
 - Windows process arguments retain embedded quotes and trailing backslashes, including quoted PAL configuration paths passed through Python subprocess arguments.

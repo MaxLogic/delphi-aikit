@@ -1360,37 +1360,105 @@ begin
   end;
 end;
 
+procedure AddExecutableIdentity(const aDak: TJSONObject; const aExecutable: string);
+begin
+  aDak.AddPair('executable', aExecutable);
+  if TFile.Exists(aExecutable) then
+    aDak.AddPair('executable_sha256', ExecutableSha256(aExecutable))
+  else
+    aDak.AddPair('executable_sha256', TJSONNull.Create);
+end;
+
+function CaptureDakIdentityWithExecutable(const aRoot, aExecutable, aScratchRoot: string): TJSONObject;
+begin
+  Result := CaptureDakIdentity(aRoot, aScratchRoot);
+  try
+    AddExecutableIdentity(Result, aExecutable);
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
 function CaptureRunProvenance(const aWorkspace: TWorkspaceSettings;
   const aDakExecutable, aScratchRoot: string): TJSONObject;
 var
   lDak: TJSONObject;
   lDakRoot: string;
+  lError: TObject;
   lExecutable: string;
+  lShared: Boolean;
   lTarget: TJSONObject;
+  lWorker: TThread;
+  lWorkerError: TObject;
+  lWorkerResult: TJSONObject;
 begin
   lExecutable := ResolveFilesystemPath(aDakExecutable);
   lDakRoot := FindNamedRepoRoot(ExtractFileDir(lExecutable), '.git');
   if lDakRoot <> '' then
     lDakRoot := ResolveFilesystemPath(lDakRoot);
+  // A Git target at the DAK root shares one capture. Otherwise the two inspections are
+  // independent process trees, so the DAK identity runs concurrently with the target
+  // inspection; the commands, outputs and JSON ownership stay the same (T-334 budgets).
+  lShared := SameText(aWorkspace.fVcs, 'git') and
+    SameFileName(ResolveFilesystemPath(aWorkspace.fRoot), lDakRoot);
+  lWorker := nil;
+  lWorkerError := nil;
+  lWorkerResult := nil;
+  if not lShared then
+  begin
+    lWorker := TThread.CreateAnonymousThread(
+      procedure
+      begin
+        try
+          lWorkerResult := CaptureDakIdentityWithExecutable(lDakRoot, lExecutable, aScratchRoot);
+        except
+          lWorkerError := AcquireExceptionObject;
+        end;
+      end);
+    lWorker.FreeOnTerminate := False;
+    lWorker.Start;
+  end;
   Result := TJSONObject.Create;
   try
-    lTarget := CaptureWorkspaceIdentity(aWorkspace, aScratchRoot);
-    Result.AddPair('target', lTarget);
-    if (lTarget.GetValue<string>('vcs') = 'git') and
-      (lTarget.GetValue<string>('status') = 'complete') and
-      SameFileName(lTarget.GetValue<string>('root'), lDakRoot) then
-      // Both report views describe this one capture; retain separate JSON ownership for consumers.
-      lDak := ProjectDakIdentity(lTarget)
-    else
-      lDak := CaptureDakIdentity(lDakRoot, aScratchRoot);
-    Result.AddPair('dak', lDak);
-    lDak.AddPair('executable', lExecutable);
-    if TFile.Exists(lExecutable) then
-      lDak.AddPair('executable_sha256', ExecutableSha256(lExecutable))
-    else
-      lDak.AddPair('executable_sha256', TJSONNull.Create);
+    try
+      lTarget := CaptureWorkspaceIdentity(aWorkspace, aScratchRoot);
+      Result.AddPair('target', lTarget);
+    finally
+      if lWorker <> nil then
+      begin
+        lWorker.WaitFor;
+        lWorker.Free;
+      end;
+    end;
+    if lShared then
+    begin
+      if lTarget.GetValue<string>('status') = 'complete' then
+      begin
+        // Both report views describe this one capture; retain separate JSON ownership for consumers.
+        lDak := ProjectDakIdentity(lTarget);
+        Result.AddPair('dak', lDak);
+        AddExecutableIdentity(lDak, lExecutable);
+      end else
+        Result.AddPair('dak', CaptureDakIdentityWithExecutable(lDakRoot, lExecutable, aScratchRoot));
+    end else begin
+      if lWorkerError <> nil then
+      begin
+        lWorkerResult.Free;
+        lWorkerResult := nil;
+        // Re-raise the worker's own exception object; the handler below must not free it.
+        lError := lWorkerError;
+        lWorkerError := nil;
+        raise Exception(lError);
+      end;
+      Result.AddPair('dak', lWorkerResult);
+      lWorkerResult := nil;
+    end;
   except
     Result.Free;
+    lWorkerResult.Free;
+    if lWorkerError <> nil then
+      lWorkerError.Free;
     raise;
   end;
 end;

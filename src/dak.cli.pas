@@ -8,6 +8,7 @@ uses
   Dak.Messages, Dak.Types;
 
 function TryParseOptions(out aOptions: TAppOptions; out aError: string): Boolean;
+function TryGetDoctorErrorOptions(out aOptions: TAppOptions): Boolean;
 function CommandRoutesAs(const aCommand: TCommandKind; const aRouteCommand: TCommandKind): Boolean;
 function TryGetCommand(out aCommand: TCommandKind; out aHasCommand: Boolean; out aError: string): Boolean;
 procedure WriteUsage(const aCommand: TCommandKind; const aShowGlobalOnly: Boolean);
@@ -21,7 +22,7 @@ uses
 
 type
   TCommandRoute = (crResolve, crAnalyze, crBuild, crDfmCheck, crDfmInspect, crGlobalVars, crDeps, crLsp,
-    crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode, crAnalyzeWorkspace);
+    crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode, crAnalyzeWorkspace, crAnalyzeDoctor);
   TCommandRouteSet = set of TCommandRoute;
   TSwitchValuePolicy = (svpFlag, svpRequiredValue, svpOptionalBoolValue);
 
@@ -75,10 +76,10 @@ var
 begin
   lDescriptors := TList<TSwitchDescriptor>.Create;
   try
-    Add('project', 'dproj', svpRequiredValue, cAllCommandRoutes + [crAnalyzeWorkspace]);
-    Add('platform', '', svpRequiredValue, cAllCommandRoutes);
+    Add('project', 'dproj', svpRequiredValue, cAllCommandRoutes + [crAnalyzeWorkspace, crAnalyzeDoctor]);
+    Add('platform', '', svpRequiredValue, cAllCommandRoutes + [crAnalyzeDoctor]);
     Add('config', '', svpRequiredValue, cAllCommandRoutes);
-    Add('delphi', '', svpRequiredValue, cAllCommandRoutes);
+    Add('delphi', '', svpRequiredValue, cAllCommandRoutes + [crAnalyzeDoctor]);
     Add('rsvars', '', svpRequiredValue, cAllCommandRoutes);
     Add('envoptions', '', svpRequiredValue, cAllCommandRoutes);
     Add('log-file', 'logfile', svpRequiredValue, cAllCommandRoutes);
@@ -86,7 +87,7 @@ begin
     Add('verbose', '', svpOptionalBoolValue, cAllCommandRoutes);
     Add('source-context', '', svpRequiredValue, cAllCommandRoutes);
     Add('source-context-lines', '', svpRequiredValue, cAllCommandRoutes);
-    Add('help', 'h|?', svpOptionalBoolValue, cAllCommandRoutes + [crAnalyzeWorkspace]);
+    Add('help', 'h|?', svpOptionalBoolValue, cAllCommandRoutes + [crAnalyzeWorkspace, crAnalyzeDoctor]);
     Add('format', 'out-kind', svpRequiredValue, [crResolve, crDfmInspect, crGlobalVars, crDeps, crLsp,
       crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode]);
     Add('out-file', 'out', svpRequiredValue, [crResolve]);
@@ -100,15 +101,16 @@ begin
     Add('fi-timeout-sec', '', svpRequiredValue, [crAnalyze]);
     Add('exclude-path-masks', '', svpRequiredValue, [crResolve, crAnalyze, crBuild]);
     Add('ignore-warning-ids', '', svpRequiredValue, [crResolve, crAnalyze]);
-    Add('unit', '', svpRequiredValue, [crAnalyze, crGlobalVars, crDeps, crRemoveWith, crSymbolMap, crAnalyzeWorkspace]);
+    Add('unit', '', svpRequiredValue, [crAnalyze, crGlobalVars, crDeps, crRemoveWith, crSymbolMap,
+      crAnalyzeWorkspace, crAnalyzeDoctor]);
     Add('project-context', '', svpRequiredValue, [crAnalyze, crAnalyzeWorkspace]);
-    Add('workspace-root', '', svpRequiredValue, [crAnalyze, crAnalyzeWorkspace]);
+    Add('workspace-root', '', svpRequiredValue, [crAnalyze, crAnalyzeWorkspace, crAnalyzeDoctor]);
     Add('fi-formats', '', svpRequiredValue, [crAnalyze]);
     Add('fixinsight', '', svpOptionalBoolValue, [crAnalyze]);
     Add('pascal-analyzer', 'pal', svpOptionalBoolValue, [crAnalyze]);
     Add('clean', '', svpOptionalBoolValue, [crAnalyze]);
     Add('write-summary', '', svpOptionalBoolValue, [crAnalyze]);
-    Add('pa-path', '', svpRequiredValue, [crAnalyze]);
+    Add('pa-path', '', svpRequiredValue, [crAnalyze, crAnalyzeDoctor]);
     Add('pa-output', '', svpRequiredValue, [crAnalyze]);
     Add('pa-args', '', svpRequiredValue, [crAnalyze]);
     Add('pa-exclude-search-folders', '', svpRequiredValue, [crAnalyze]);
@@ -118,7 +120,8 @@ begin
     Add('show-warnings', '', svpOptionalBoolValue, [crBuild]);
     Add('show-hints', '', svpOptionalBoolValue, [crBuild]);
     Add('ai', '', svpOptionalBoolValue, [crBuild]);
-    Add('json', '', svpOptionalBoolValue, [crBuild, crAnalyzeWorkspace]);
+    Add('json', '', svpOptionalBoolValue, [crBuild, crAnalyzeWorkspace, crAnalyzeDoctor]);
+    Add('run-checks', '', svpRequiredValue, [crAnalyzeDoctor]);
     Add('target', '', svpRequiredValue, [crBuild]);
     Add('rebuild', '', svpOptionalBoolValue, [crBuild]);
     Add('max-findings', '', svpRequiredValue, [crBuild]);
@@ -278,7 +281,7 @@ end;
 
 function GetCommandDescriptors: TArray<TCommandDescriptor>;
 begin
-  SetLength(Result, 15);
+  SetLength(Result, 16);
   Result[0] := CommandDescriptor(TCommandKind.ckResolve, 'resolve', '', SUsageResolve, TCommandRoute.crResolve);
   Result[1] := CommandDescriptor(TCommandKind.ckAnalyzeProject, 'analyze', 'analyze-project', SUsageAnalyze,
     TCommandRoute.crAnalyze);
@@ -304,6 +307,8 @@ begin
     TCommandRoute.crDeadCode);
   Result[14] := CommandDescriptor(TCommandKind.ckAnalyzeWorkspace, 'analyze-workspace', '', rsUsageAnalyzeWorkspace,
     TCommandRoute.crAnalyzeWorkspace);
+  Result[15] := CommandDescriptor(TCommandKind.ckAnalyzeDoctor, 'analyze-doctor', '', rsUsageAnalyzeDoctor,
+    TCommandRoute.crAnalyzeDoctor);
 end;
 
 function CommandDescriptorMatchesToken(const aDescriptor: TCommandDescriptor; const aToken: string): Boolean;
@@ -821,6 +826,14 @@ begin
       Exit(False);
     end;
     fIndex := 1;
+    if fOptions.fCommand = TCommandKind.ckAnalyzeDoctor then
+    begin
+      // Apply legacy doctor defaults before parsing explicit command-line overrides.
+      fOptions.fDelphiVersion := Trim(GetEnvironmentVariable('DAK_DELPHI'));
+      lArg := Trim(GetEnvironmentVariable('DAK_PLATFORM'));
+      if lArg <> '' then
+        fOptions.fPlatform := lArg;
+    end;
   end;
 end;
 
@@ -879,6 +892,24 @@ begin
     Exit(False);
   if lHandled then
     Exit(True);
+
+  if (fOptions.fCommand = TCommandKind.ckAnalyzeDoctor) and
+    (SwitchMatches(aSwitch, 'json') or SwitchMatches(aSwitch, 'run-checks')) then
+  begin
+    if not TakeValue(SwitchMatches(aSwitch, 'run-checks'), True, aInlineValue, aHasInlineValue,
+      lValue, '--' + aSwitch) then
+      Exit(False);
+    if SwitchMatches(aSwitch, 'json') then
+      lHandled := TryParseBool(lValue, fOptions.fDoctorJson)
+    else
+    begin
+      fOptions.fHasDoctorRunChecks := True;
+      lHandled := TryParseBool(lValue, fOptions.fDoctorRunChecks);
+    end;
+    if not lHandled then
+      fError := Format(SInvalidBoolValue, ['--' + aSwitch, lValue]);
+    Exit(lHandled);
+  end;
 
   if (fOptions.fCommand = TCommandKind.ckAnalyzeWorkspace) and SwitchMatches(aSwitch, 'json') then
   begin
@@ -2442,6 +2473,14 @@ function TOptionParser.ValidateOptions: Boolean;
 var
   lRemoveWithTargetCount: Integer;
 begin
+  if fOptions.fCommand = TCommandKind.ckAnalyzeDoctor then
+  begin
+    Result := (fOptions.fDprojPath = '') or (fOptions.fUnitPath = '');
+    if not Result then
+      fError := 'Analysis doctor accepts at most one of --project or --unit.';
+    Exit;
+  end;
+
   if fOptions.fCommand = TCommandKind.ckAnalyzeWorkspace then
   begin
     if (fOptions.fDprojPath = '') = (fOptions.fUnitPath = '') then
@@ -2845,6 +2884,49 @@ begin
 
   aOptions := fOptions;
   Result := True;
+end;
+
+function TryGetDoctorErrorOptions(out aOptions: TAppOptions): Boolean;
+var
+  lEnabled: Boolean;
+  lHasValue: Boolean;
+  lInline: string;
+  lParser: TOptionParser;
+  lSwitch: string;
+  lValue: string;
+begin
+  aOptions := Default(TAppOptions);
+  lParser := TOptionParser.Create;
+  Result := lParser.TryParseCommand and (lParser.fOptions.fCommand = TCommandKind.ckAnalyzeDoctor);
+  if not Result then
+    Exit;
+  // Parse only output intent after a failed parse, reusing the normal token/value rules.
+  // An unknown earlier option must not conceal a later --json request.
+  while lParser.fIndex < lParser.fList.Count do
+  begin
+    if lParser.TrySplitSwitch(lParser.fList[lParser.fIndex], lParser.fParams.SwitchPrefixes,
+      lSwitch, lInline, lHasValue) then
+    begin
+      if SwitchMatches(lSwitch, 'json') or SwitchMatches(lSwitch, 'run-checks') then
+      begin
+        if lParser.TakeValue(SwitchMatches(lSwitch, 'run-checks'), True, lInline, lHasValue,
+          lValue, '--' + lSwitch) and lParser.TryParseBool(lValue, lEnabled) then
+        begin
+          if SwitchMatches(lSwitch, 'json') then
+            lParser.fOptions.fDoctorJson := lEnabled
+          else
+          begin
+            lParser.fOptions.fHasDoctorRunChecks := True;
+            lParser.fOptions.fDoctorRunChecks := lEnabled;
+          end;
+        end;
+      end else if CliSwitchRequiresValue(lSwitch) then
+        lParser.TakeValue(True, False, lInline, lHasValue, lValue, '--' + lSwitch,
+          SwitchMatches(lSwitch, 'pa-args'));
+    end;
+    Inc(lParser.fIndex);
+  end;
+  aOptions := lParser.fOptions;
 end;
 
 function TryParseOptions(out aOptions: TAppOptions; out aError: string): Boolean;

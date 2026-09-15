@@ -6,7 +6,7 @@ interface
 
 type
   TCommandKind = (ckResolve, ckAnalyzeProject, ckAnalyzeUnit, ckBuild, ckDfmCheck, ckDfmInspect, ckGlobalVars,
-    ckDeps, ckLsp, ckRemoveWith, ckSymbolMap, ckFindUsages, ckRename, ckDeadCode, ckAnalyzeWorkspace);
+    ckDeps, ckLsp, ckRemoveWith, ckSymbolMap, ckFindUsages, ckRename, ckDeadCode, ckAnalyzeWorkspace, ckAnalyzeDoctor);
 
   TOutputKind = (okIni, okXml, okBat);
   TBuildBackend = (bbAuto, bbDelphi, bbWebCore);
@@ -269,6 +269,9 @@ type
     fHasProjectContextPath: Boolean;
     fWorkspaceRoot: string;
     fHasWorkspaceRoot: Boolean;
+    fDoctorJson: Boolean;
+    fDoctorRunChecks: Boolean;
+    fHasDoctorRunChecks: Boolean;
   end;
 
   TFixInsightExtraOptions = record

@@ -364,6 +364,17 @@ function Get-MigrationWorkspaceBudgetResult {
     return [pscustomobject]@{passed=($violations.Count -eq 0);statistics=$statistics;budget=$Budget;violations=@($violations)}
 }
 
+function Get-MigrationWorkspaceEnvironment {
+    $childEnvironment = @{PYTHONDONTWRITEBYTECODE='1'; MAXLOGIC_MADEXCEPT_AI='1'}
+    foreach ($key in [Environment]::GetEnvironmentVariables().Keys) {
+        if ([string]$key -like 'DAK_*' -or [string]$key -like 'GIT_*') { $childEnvironment[$key]=$null }
+    }
+    $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+    $childEnvironment.DAK_MAXTDB_FIXTURE = Join-Path $repoRoot 'tests/fixtures/test-projects/semantic-isolated-t311/maxTdb'
+    $childEnvironment.DAK_TEST_OUTPUT_ROOT = $null
+    return $childEnvironment
+}
+
 function Invoke-MigrationWorkspaceComparison {
     param([string]$EvidenceRoot, [string]$Executable, [string]$ResultRoot, [switch]$Benchmark)
     . (Join-Path $PSScriptRoot 'compare-native-analysis-artifacts.ps1')
@@ -377,10 +388,7 @@ function Invoke-MigrationWorkspaceComparison {
     $budgets = Get-Content -LiteralPath $budgetPath -Raw | ConvertFrom-Json
     $scenarios = @($budgets.scenarios | Where-Object area -EQ Workspace)
     if ($scenarios.Count -ne 5) { throw 'Expected five frozen workspace scenarios.' }
-    $childEnvironment = @{PYTHONDONTWRITEBYTECODE='1'; MAXLOGIC_MADEXCEPT_AI='1'}
-    foreach ($key in [Environment]::GetEnvironmentVariables().Keys) {
-        if ([string]$key -like 'DAK_*' -or [string]$key -like 'GIT_*') { $childEnvironment[$key]=$null }
-    }
+    $childEnvironment = Get-MigrationWorkspaceEnvironment
     [void][IO.Directory]::CreateDirectory($batchRoot)
     $candidateHash = (Get-FileHash -LiteralPath $executablePath).Hash
     $results = foreach ($frozen in $scenarios) {
@@ -475,6 +483,13 @@ if ($MyInvocation.InvocationName -ne '.') {
     $ErrorActionPreference = 'Stop'
     $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
     $evidenceRoot = Join-Path $repoRoot 'projects/.dak/DelphiAIKit/native-analysis-migration'
+    if ($Mode -eq 'Compare' -and $Area -eq 'Doctor') {
+        if (-not $CandidateExecutable) { throw 'Compare Doctor requires CandidateExecutable.' }
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-doctor.ps1')
+        $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/doctor-compare-'+[guid]::NewGuid().ToString()) }
+        Invoke-MigrationDoctorComparison -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot
+        return
+    }
     if ($Mode -in @('Compare','Benchmark') -and $Area -eq 'Workspace') {
         if (-not $CandidateExecutable) { throw "$Mode Workspace requires CandidateExecutable." }
         $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/workspace-'+$Mode.ToLowerInvariant()+'-'+[guid]::NewGuid().ToString()) }

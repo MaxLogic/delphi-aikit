@@ -6,6 +6,31 @@ BeforeAll {
     [void][IO.Directory]::CreateDirectory($script:AllowedRoot)
 }
 
+Describe 'Workspace comparison child environment' {
+    It 'pins the authorized fixture and explicitly removes test output while preserving parent values' {
+        $beforeFixture = $env:DAK_MAXTDB_FIXTURE
+        $beforeOutput = $env:DAK_TEST_OUTPUT_ROOT
+        try {
+            $env:DAK_MAXTDB_FIXTURE = 'C:\unrelated\production'
+            $env:DAK_TEST_OUTPUT_ROOT = 'C:\unrelated\output'
+            $environment = Get-MigrationWorkspaceEnvironment
+            $environment.DAK_MAXTDB_FIXTURE | Should -Be 'F:\projects\MaxLogic\DelphiAiKit\tests\fixtures\test-projects\semantic-isolated-t311\maxTdb'
+            $environment.ContainsKey('DAK_TEST_OUTPUT_ROOT') | Should -BeTrue
+            $environment.DAK_TEST_OUTPUT_ROOT | Should -BeNullOrEmpty
+            $environment.PYTHONDONTWRITEBYTECODE | Should -Be '1'
+            $environment.MAXLOGIC_MADEXCEPT_AI | Should -Be '1'
+            $environment.DAK_DOCTOR_RUN | Should -BeNullOrEmpty
+            $env:DAK_MAXTDB_FIXTURE | Should -Be 'C:\unrelated\production'
+            $env:DAK_TEST_OUTPUT_ROOT | Should -Be 'C:\unrelated\output'
+            $env:DAK_TEST_OUTPUT_ROOT = $null
+            (Get-MigrationWorkspaceEnvironment).ContainsKey('DAK_TEST_OUTPUT_ROOT') | Should -BeTrue
+        } finally {
+            $env:DAK_MAXTDB_FIXTURE = $beforeFixture
+            $env:DAK_TEST_OUTPUT_ROOT = $beforeOutput
+        }
+    }
+}
+
 Describe 'Migration proof path boundary' {
     It 'accepts an ordinary descendant without creating it' {
         $path = Join-Path $script:AllowedRoot 'new/output'

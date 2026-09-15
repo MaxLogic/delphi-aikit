@@ -145,6 +145,8 @@ type
     [Test]
     procedure LoadDakSettingsProjectSelectorIgnoresOuterVcs;
     [Test]
+    procedure LoadDakSettingsUsesUtf8BomWorkspaceSelector;
+    [Test]
     procedure LoadDakSettingsUsesExecutableWorkspaceSelectorFallback;
     [Test]
     procedure LoadDakSettingsDefaultAutoRetainsExecutableDefaults;
@@ -1477,6 +1479,37 @@ begin
       'Expected a containment error. Actual: ' + lSettings.fError);
   finally
     DeleteTempPath(lBaseDir);
+  end;
+end;
+
+procedure TCliTests.LoadDakSettingsUsesUtf8BomWorkspaceSelector;
+var
+  lParent: string;
+  lProject: string;
+  lRoot: string;
+  lSettings: TDakSettings;
+begin
+  lParent := UniqueTempPath('settings-bom-boundary');
+  lRoot := TPath.Combine(lParent, 'project');
+  TDirectory.CreateDirectory(TPath.Combine(lParent, '.git'));
+  TDirectory.CreateDirectory(lRoot);
+  try
+    lProject := TPath.Combine(lRoot, 'App.dproj');
+    TFile.WriteAllText(lProject, '<Project/>', TEncoding.ASCII);
+    TFile.WriteAllText(TPath.Combine(lParent, 'dak.ini'),
+      '[FixInsightIgnore]' + sLineBreak + 'Warnings=WOUTSIDE', TEncoding.ASCII);
+    TFile.WriteAllText(TPath.Combine(lRoot, 'dak.ini'),
+      '[Workspace]' + sLineBreak + 'Root=project' + sLineBreak, TEncoding.UTF8);
+    Assert.IsTrue(LoadDakSettings(nil, lProject, nil, lSettings), lSettings.fError);
+    Assert.AreEqual('project', lSettings.fWorkspace.fSelector);
+    Assert.AreEqual(lRoot, lSettings.fWorkspace.fRoot);
+    Assert.AreEqual('none', lSettings.fWorkspace.fVcs);
+    Assert.AreEqual(TPath.Combine(lRoot, 'dak.ini'), lSettings.fWorkspace.fSource);
+    Assert.AreEqual(0, Pos('WOUTSIDE', lSettings.fFixInsightIgnore.fWarnings),
+      'BOM must not admit settings outside the selected workspace.');
+    Assert.AreEqual<NativeInt>(1, Length(lSettings.fLoadedPaths));
+  finally
+    DeleteTempPath(lParent);
   end;
 end;
 

@@ -32,6 +32,11 @@ type
     fVcs: string;
   end;
 
+  TSettingsValueOrigin = record
+    fName: string;
+    fSources: TArray<string>;
+  end;
+
   TDakSettings = record
     fFixInsight: TFixInsightExtraOptions;
     fFixInsightIgnore: TFixInsightIgnoreDefaults;
@@ -44,6 +49,9 @@ type
     fAnalysisPolicy: TAnalysisPolicySettings;
     fWorkspace: TWorkspaceSettings;
     fLoadedPaths: TArray<string>;
+    fOrigins: TArray<TSettingsValueOrigin>;
+    fIgnoreUnknownMacros: string;
+    fIgnoreMissingPaths: string;
     fError: string;
   end;
 
@@ -68,6 +76,8 @@ procedure LoadBuildSettings(const aDprojPath: string; const aOverrides: TAppOpti
 procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
   var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
   var aPascalAnalyzer: TPascalAnalyzerDefaults);
+procedure ApplyAnalysisSettingsOverrides(const aOptions: TAppOptions; var aSettings: TDakSettings);
+procedure ApplyPascalAnalyzerEnvironment(var aPascalAnalyzer: TPascalAnalyzerDefaults);
 procedure ApplyPascalAnalyzerIgnoreOverride(const aOverrides: TAppOptions;
   var aPascalAnalyzerIgnore: TPascalAnalyzerIgnoreDefaults);
 procedure ApplyBuildSettingsOverrides(const aOverrides: TAppOptions; var aSettings: TDakBuildSettings);
@@ -181,14 +191,28 @@ begin
   Result := (lDir <> '') and (lRoot <> '') and StartsText(lRoot, lDir);
 end;
 
+function OpenSettingsIni(const aPath: string;
+  aCaseSensitivity: TCaseSensitivity = TCaseSensitivity.csCaseSensitive): TCustomIniFile;
+var
+  lOptions: TRichIniOptions;
+  lIni: TRichIniFile;
+begin
+  lOptions := DefaultRichIniOptions;
+  lOptions.CaseSensitivity := aCaseSensitivity;
+  lIni := TRichIniFile.Create(aPath, lOptions);
+  lIni.LoadFromFile(aPath);
+  Result := lIni;
+end;
+
 function TryReadWorkspaceSelector(const aIniPath: string; out aSelector: string): Boolean;
 var
-  lIni: TIniFile;
+  lIni: TCustomIniFile;
 begin
   aSelector := '';
   if not FileExists(aIniPath) then
     Exit(False);
-  lIni := TIniFile.Create(aIniPath);
+  // Share decoding with typed settings while preserving case-insensitive selector keys.
+  lIni := OpenSettingsIni(aIniPath, TCaseSensitivity.csCaseInsensitive);
   try
     Result := lIni.ValueExists(SWorkspaceSection, 'Root');
     if Result then
@@ -436,19 +460,42 @@ begin
   Result := True;
 end;
 
-function OpenSettingsIni(const aPath: string): TCustomIniFile;
+procedure RecordSettingOrigin(var aOrigins: TArray<TSettingsValueOrigin>;
+  const aName, aSource: string; aMerge: Boolean = False);
 var
-  lOptions: TRichIniOptions;
-  lIni: TRichIniFile;
+  i: Integer;
+  lIndex: Integer;
+  lSource: string;
 begin
-  lOptions := DefaultRichIniOptions;
-  lIni := TRichIniFile.Create(aPath, lOptions);
-  lIni.LoadFromFile(aPath);
-  Result := lIni;
+  lIndex := -1;
+  for i := 0 to High(aOrigins) do
+    if SameText(aOrigins[i].fName, aName) then
+    begin
+      lIndex := i;
+      Break;
+    end;
+  // Detach managed arrays before mutating a copied settings record.
+  aOrigins := Copy(aOrigins);
+  if lIndex < 0 then
+  begin
+    lIndex := Length(aOrigins);
+    SetLength(aOrigins, lIndex + 1);
+    aOrigins[lIndex].fName := aName;
+  end;
+  if not aMerge then
+    aOrigins[lIndex].fSources := nil;
+  if aSource = '' then
+    Exit;
+  for lSource in aOrigins[lIndex].fSources do
+    if SameText(lSource, aSource) then
+      Exit;
+  aOrigins[lIndex].fSources := Copy(aOrigins[lIndex].fSources);
+  SetLength(aOrigins[lIndex].fSources, Length(aOrigins[lIndex].fSources) + 1);
+  aOrigins[lIndex].fSources[High(aOrigins[lIndex].fSources)] := aSource;
 end;
 
 procedure ReadBoolOption(const aIni: TCustomIniFile; const aKey: string; var aTarget: Boolean;
-  aDiagnostics: TDiagnostics);
+  aDiagnostics: TDiagnostics; const aIniPath: string; var aOrigins: TArray<TSettingsValueOrigin>);
 var
   lValue: string;
   lParsed: Boolean;
@@ -457,13 +504,16 @@ begin
   if lValue = '' then
     Exit;
   if TryParseBoolText(lValue, lParsed) then
-    aTarget := lParsed
-  else if aDiagnostics <> nil then
+  begin
+    aTarget := lParsed;
+    RecordSettingOrigin(aOrigins, SFixInsightSection + '.' + aKey, aIniPath);
+  end else if aDiagnostics <> nil then
     aDiagnostics.AddWarning(Format(SSettingsInvalidBool, [aKey, lValue]));
 end;
 
 procedure ReadPositiveIntegerOption(const aIni: TCustomIniFile; const aSection: string; const aKey: string;
-  var aTarget: Integer; aDiagnostics: TDiagnostics);
+  var aTarget: Integer; aDiagnostics: TDiagnostics; const aIniPath: string;
+  var aOrigins: TArray<TSettingsValueOrigin>);
 var
   lParsed: Integer;
   lValue: string;
@@ -474,8 +524,10 @@ begin
 
   lParsed := StrToIntDef(lValue, -1);
   if lParsed >= 1 then
-    aTarget := lParsed
-  else if aDiagnostics <> nil then
+  begin
+    aTarget := lParsed;
+    RecordSettingOrigin(aOrigins, aSection + '.' + aKey, aIniPath);
+  end else if aDiagnostics <> nil then
     aDiagnostics.AddWarning(Format(SSettingsInvalidInteger, [aSection, aKey, lValue]));
 end;
 
@@ -688,6 +740,10 @@ begin
         Exit(False);
       end;
       aSettings.fAnalysisPolicy.fGateOwnership := lNormalized;
+      if lNormalized <> '' then
+        RecordSettingOrigin(aSettings.fOrigins, 'AnalysisPolicy.GateOwnership', aIniPath)
+      else
+        RecordSettingOrigin(aSettings.fOrigins, 'AnalysisPolicy.GateOwnership', '');
     end;
 
     if lKeys.IndexOf('GateMetrics') >= 0 then
@@ -700,6 +756,7 @@ begin
         Exit(False);
       end;
       aSettings.fAnalysisPolicy.fGateMetrics := lNormalized;
+      RecordSettingOrigin(aSettings.fOrigins, 'AnalysisPolicy.GateMetrics', aIniPath);
     end;
 
     if lKeys.IndexOf('ProjectRoots') >= 0 then
@@ -714,6 +771,7 @@ begin
         Exit(False);
       end;
       aSettings.fAnalysisPolicy.fProjectRoots := lNormalized;
+      RecordSettingOrigin(aSettings.fOrigins, 'AnalysisPolicy.ProjectRoots', aIniPath);
     end;
 
     if lKeys.IndexOf('ThirdPartyRoots') >= 0 then
@@ -728,6 +786,7 @@ begin
         Exit(False);
       end;
       aSettings.fAnalysisPolicy.fThirdPartyRoots := lNormalized;
+      RecordSettingOrigin(aSettings.fOrigins, 'AnalysisPolicy.ThirdPartyRoots', aIniPath);
     end;
 
     if lKeys.Count > 0 then
@@ -776,30 +835,47 @@ var
 begin
   lValue := Trim(aIni.ReadString(SFixInsightSection, 'Path', ''));
   if lValue <> '' then
+  begin
     aSettings.fFixInsight.fExePath := lValue;
+    RecordSettingOrigin(aSettings.fOrigins, SFixInsightSection + '.Path', aIniPath);
+  end;
   lValue := Trim(aIni.ReadString(SFixInsightSection, 'Output', ''));
   if lValue <> '' then
+  begin
     aSettings.fFixInsight.fOutput := lValue;
+    RecordSettingOrigin(aSettings.fOrigins, SFixInsightSection + '.Output', aIniPath);
+  end;
   lValue := Trim(aIni.ReadString(SFixInsightSection, 'Ignore', ''));
   if lValue <> '' then
+  begin
     aSettings.fFixInsight.fIgnore := MergeList(aSettings.fFixInsight.fIgnore, lValue);
+    RecordSettingOrigin(aSettings.fOrigins, SFixInsightSection + '.Ignore', aIniPath, True);
+  end;
   lValue := Trim(aIni.ReadString(SFixInsightSection, 'Settings', ''));
   if lValue <> '' then
+  begin
     aSettings.fFixInsight.fSettings := lValue;
-  ReadBoolOption(aIni, 'ExcludeFlexCel', aSettings.fFixInsight.fExcludeFlexCel, aDiagnostics);
-  ReadBoolOption(aIni, 'Silent', aSettings.fFixInsight.fSilent, aDiagnostics);
-  ReadBoolOption(aIni, 'Xml', aSettings.fFixInsight.fXml, aDiagnostics);
-  ReadBoolOption(aIni, 'Csv', aSettings.fFixInsight.fCsv, aDiagnostics);
+    RecordSettingOrigin(aSettings.fOrigins, SFixInsightSection + '.Settings', aIniPath);
+  end;
+  ReadBoolOption(aIni, 'ExcludeFlexCel', aSettings.fFixInsight.fExcludeFlexCel, aDiagnostics,
+    aIniPath, aSettings.fOrigins);
+  ReadBoolOption(aIni, 'Silent', aSettings.fFixInsight.fSilent, aDiagnostics, aIniPath, aSettings.fOrigins);
+  ReadBoolOption(aIni, 'Xml', aSettings.fFixInsight.fXml, aDiagnostics, aIniPath, aSettings.fOrigins);
+  ReadBoolOption(aIni, 'Csv', aSettings.fFixInsight.fCsv, aDiagnostics, aIniPath, aSettings.fOrigins);
   ReadPositiveIntegerOption(aIni, SFixInsightSection, 'TimeoutSec', aSettings.fFixInsight.fTimeoutSec,
-    aDiagnostics);
+    aDiagnostics, aIniPath, aSettings.fOrigins);
 
   lValue := Trim(aIni.ReadString(SFixInsightIgnoreSection, 'Warnings', ''));
   if lValue <> '' then
+  begin
     aSettings.fFixInsightIgnore.fWarnings := MergeList(aSettings.fFixInsightIgnore.fWarnings, lValue);
+    RecordSettingOrigin(aSettings.fOrigins, SFixInsightIgnoreSection + '.Warnings', aIniPath, True);
+  end;
 
   lValue := Trim(aIni.ReadString(SPascalAnalyzerIgnoreSection, 'Rules', ''));
   if lValue <> '' then
   begin
+    RecordSettingOrigin(aSettings.fOrigins, 'PascalAnalyzerIgnore.Rules', aIniPath, True);
     aSettings.fPascalAnalyzerIgnore.fRules := MergeList(
       aSettings.fPascalAnalyzerIgnore.fRules, lValue);
     aSettings.fPascalAnalyzerIgnore.fSources := MergeList(
@@ -810,57 +886,88 @@ begin
   lValue := Trim(aIni.ReadString(SReportFilterSection, 'ExcludePathMasks', ''));
   if lValue <> '' then
   begin
+    RecordSettingOrigin(aSettings.fOrigins, 'ReportFilter.ExcludePathMasks', aIniPath, True);
     aSettings.fReportFilter.fExcludePathMasks := MergeList(aSettings.fReportFilter.fExcludePathMasks, lValue);
     aSettings.fBuild.fExcludePathMasks := MergeList(aSettings.fBuild.fExcludePathMasks, lValue);
   end;
 
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'Path', ''));
   if lValue <> '' then
+  begin
     aSettings.fPascalAnalyzer.fPath := lValue;
+    RecordSettingOrigin(aSettings.fOrigins, SPascalAnalyzerSection + '.Path', aIniPath);
+  end;
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'Output', ''));
   if lValue <> '' then
+  begin
     aSettings.fPascalAnalyzer.fOutput := lValue;
+    RecordSettingOrigin(aSettings.fOrigins, SPascalAnalyzerSection + '.Output', aIniPath);
+  end;
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'Args', ''));
   if lValue <> '' then
   begin
     aSettings.fPascalAnalyzer.fArgs := lValue;
+    RecordSettingOrigin(aSettings.fOrigins, 'PascalAnalyzer.Args', aIniPath);
     aSettings.fPascalAnalyzer.fArgsSource := '[PascalAnalyzer] Args in ' + aIniPath;
   end;
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'ExcludeSearchFolders', ''));
   if lValue <> '' then
+  begin
     aSettings.fPascalAnalyzer.fExcludeSearchFolders := lValue;
+    RecordSettingOrigin(aSettings.fOrigins, SPascalAnalyzerSection + '.ExcludeSearchFolders', aIniPath);
+  end;
   lValue := Trim(aIni.ReadString(SPascalAnalyzerSection, 'ExcludeFiles', ''));
   if lValue <> '' then
+  begin
     aSettings.fPascalAnalyzer.fExcludeFiles := lValue;
+    RecordSettingOrigin(aSettings.fOrigins, SPascalAnalyzerSection + '.ExcludeFiles', aIniPath);
+  end;
   ReadPositiveIntegerOption(aIni, SPascalAnalyzerSection, 'TimeoutSec', aSettings.fPascalAnalyzer.fTimeoutSec,
-    aDiagnostics);
+    aDiagnostics, aIniPath, aSettings.fOrigins);
 
   lValue := Trim(aIni.ReadString(SBuildSection, 'DelphiVersion', ''));
   if lValue <> '' then
+  begin
     aSettings.fDelphiVersion := lValue;
+    RecordSettingOrigin(aSettings.fOrigins, SBuildSection + '.DelphiVersion', aIniPath);
+  end;
 
   lValue := Trim(aIni.ReadString(SBuildIgnoreSection, 'Warnings', ''));
   if lValue <> '' then
+  begin
     aSettings.fBuild.fIgnoreWarnings := MergeList(aSettings.fBuild.fIgnoreWarnings, lValue);
+    RecordSettingOrigin(aSettings.fOrigins, SBuildIgnoreSection + '.Warnings', aIniPath, True);
+  end;
 
   lValue := Trim(aIni.ReadString(SBuildIgnoreSection, 'Hints', ''));
   if lValue <> '' then
+  begin
     aSettings.fBuild.fIgnoreHints := MergeList(aSettings.fBuild.fIgnoreHints, lValue);
+    RecordSettingOrigin(aSettings.fOrigins, SBuildIgnoreSection + '.Hints', aIniPath, True);
+  end;
 
   lValue := Trim(aIni.ReadString(SMadExceptSection, 'Path', ''));
   if lValue <> '' then
+  begin
     aSettings.fBuild.fMadExceptPath := ExpandSettingPath(lValue, aIniPath, aEnvVars);
+    RecordSettingOrigin(aSettings.fOrigins, SMadExceptSection + '.Path', aIniPath);
+  end;
 
   lValue := Trim(aIni.ReadString(SWebCoreSection, 'CompilerPath', ''));
   if lValue <> '' then
+  begin
     aSettings.fBuild.fWebCoreCompilerPath := ExpandSettingPath(lValue, aIniPath, aEnvVars);
+    RecordSettingOrigin(aSettings.fOrigins, SWebCoreSection + '.CompilerPath', aIniPath);
+  end;
 
   lValue := Trim(aIni.ReadString(SDiagnosticsSection, 'SourceContext', ''));
   if lValue <> '' then
   begin
     if TryParseSourceContextModeText(lValue, lMode) then
-      aSettings.fDiagnosticsDefaults.fSourceContextMode := lMode
-    else if aDiagnostics <> nil then
+    begin
+      aSettings.fDiagnosticsDefaults.fSourceContextMode := lMode;
+      RecordSettingOrigin(aSettings.fOrigins, 'Diagnostics.SourceContext', aIniPath);
+    end else if aDiagnostics <> nil then
       aDiagnostics.AddWarning('Invalid dak.ini SourceContext value: ' + lValue);
   end;
 
@@ -869,18 +976,27 @@ begin
   begin
     lLines := StrToIntDef(lValue, -1);
     if lLines >= 0 then
-      aSettings.fDiagnosticsDefaults.fSourceContextLines := lLines
-    else if aDiagnostics <> nil then
+    begin
+      aSettings.fDiagnosticsDefaults.fSourceContextLines := lLines;
+      RecordSettingOrigin(aSettings.fOrigins, 'Diagnostics.SourceContextLines', aIniPath);
+    end else if aDiagnostics <> nil then
       aDiagnostics.AddWarning('Invalid dak.ini SourceContextLines value: ' + lValue);
   end;
 
-  if aDiagnostics <> nil then
+  lValue := Trim(aIni.ReadString(SDiagnosticsSection, 'IgnoreUnknownMacros', ''));
+  if lValue <> '' then
   begin
-    lValue := Trim(aIni.ReadString(SDiagnosticsSection, 'IgnoreUnknownMacros', ''));
-    if lValue <> '' then
+    aSettings.fIgnoreUnknownMacros := MergeList(aSettings.fIgnoreUnknownMacros, lValue);
+    RecordSettingOrigin(aSettings.fOrigins, 'Diagnostics.IgnoreUnknownMacros', aIniPath, True);
+    if aDiagnostics <> nil then
       aDiagnostics.AddIgnoreUnknownMacros(lValue);
-    lValue := Trim(aIni.ReadString(SDiagnosticsSection, 'IgnoreMissingPaths', ''));
-    if lValue <> '' then
+  end;
+  lValue := Trim(aIni.ReadString(SDiagnosticsSection, 'IgnoreMissingPaths', ''));
+  if lValue <> '' then
+  begin
+    aSettings.fIgnoreMissingPaths := MergeList(aSettings.fIgnoreMissingPaths, lValue);
+    RecordSettingOrigin(aSettings.fOrigins, 'Diagnostics.IgnoreMissingPaths', aIniPath, True);
+    if aDiagnostics <> nil then
       aDiagnostics.AddIgnoreMissingPathMasks(lValue);
   end;
 end;
@@ -992,37 +1108,98 @@ begin
   ApplyBuildSettingsOverrides(aOverrides, aSettings);
 end;
 
-procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
+procedure ApplyPascalAnalyzerEnvironmentCore(var aPascalAnalyzer: TPascalAnalyzerDefaults;
+  var aOrigins: TArray<TSettingsValueOrigin>);
+var
+  lValue: string;
+begin
+  lValue := Trim(GetEnvironmentVariable('PA_PATH'));
+  if lValue <> '' then
+  begin
+    aPascalAnalyzer.fPath := lValue;
+    RecordSettingOrigin(aOrigins, 'PascalAnalyzer.Path', 'PA_PATH environment variable');
+  end;
+  lValue := Trim(GetEnvironmentVariable('PA_ARGS'));
+  if lValue <> '' then
+  begin
+    aPascalAnalyzer.fArgs := lValue;
+    RecordSettingOrigin(aOrigins, 'PascalAnalyzer.Args', 'PA_ARGS environment variable');
+    aPascalAnalyzer.fArgsSource := 'PA_ARGS environment variable';
+  end;
+end;
+
+procedure ApplyPascalAnalyzerEnvironment(var aPascalAnalyzer: TPascalAnalyzerDefaults);
+var
+  lOrigins: TArray<TSettingsValueOrigin>;
+begin
+  ApplyPascalAnalyzerEnvironmentCore(aPascalAnalyzer, lOrigins);
+end;
+
+procedure ApplySettingsOverridesCore(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
   var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
-  var aPascalAnalyzer: TPascalAnalyzerDefaults);
+  var aPascalAnalyzer: TPascalAnalyzerDefaults; var aOrigins: TArray<TSettingsValueOrigin>);
 begin
   if aOverrides.fHasFixOutput then
+  begin
     aFixInsight.fOutput := aOverrides.fFixOutput;
+    RecordSettingOrigin(aOrigins, 'FixInsightCL.Output', '--fi-output');
+  end;
   if aOverrides.fHasFixIgnore then
+  begin
     aFixInsight.fIgnore := MergeList(aFixInsight.fIgnore, aOverrides.fFixIgnore);
+    RecordSettingOrigin(aOrigins, 'FixInsightCL.Ignore', '--fi-ignore', True);
+  end;
   if aOverrides.fHasFixSettings then
+  begin
     aFixInsight.fSettings := aOverrides.fFixSettings;
+    RecordSettingOrigin(aOrigins, 'FixInsightCL.Settings', '--fi-settings');
+  end;
   if aOverrides.fHasFixSilent then
+  begin
     aFixInsight.fSilent := aOverrides.fFixSilent;
+    RecordSettingOrigin(aOrigins, 'FixInsightCL.Silent', '--fi-silent');
+  end;
   if aOverrides.fHasFixXml then
+  begin
     aFixInsight.fXml := aOverrides.fFixXml;
+    RecordSettingOrigin(aOrigins, 'FixInsightCL.Xml', '--fi-xml');
+  end;
   if aOverrides.fHasFixCsv then
+  begin
     aFixInsight.fCsv := aOverrides.fFixCsv;
+    RecordSettingOrigin(aOrigins, 'FixInsightCL.Csv', '--fi-csv');
+  end;
   if aOverrides.fHasFixTimeoutSec then
+  begin
     aFixInsight.fTimeoutSec := aOverrides.fFixTimeoutSec;
+    RecordSettingOrigin(aOrigins, 'FixInsightCL.TimeoutSec', '--fi-timeout-sec');
+  end;
 
   if aOverrides.fHasIgnoreWarningIds then
+  begin
     aFixInsightIgnore.fWarnings := MergeList(aFixInsightIgnore.fWarnings, aOverrides.fIgnoreWarningIds);
+    RecordSettingOrigin(aOrigins, 'FixInsightIgnore.Warnings', '--ignore-warning-ids', True);
+  end;
 
   if aOverrides.fHasExcludePathMasks then
+  begin
     aReportFilter.fExcludePathMasks := MergeList(aReportFilter.fExcludePathMasks, aOverrides.fExcludePathMasks);
+    RecordSettingOrigin(aOrigins, 'ReportFilter.ExcludePathMasks', '--exclude-path-masks', True);
+  end;
 
   if aOverrides.fHasPaPath then
+  begin
     aPascalAnalyzer.fPath := aOverrides.fPaPath;
+    RecordSettingOrigin(aOrigins, 'PascalAnalyzer.Path', '--pa-path');
+  end;
   if aOverrides.fHasPaOutput then
+  begin
     aPascalAnalyzer.fOutput := aOverrides.fPaOutput;
+    RecordSettingOrigin(aOrigins, 'PascalAnalyzer.Output', '--pa-output');
+  end;
   if aOverrides.fHasPaArgs then
   begin
+    RecordSettingOrigin(aOrigins, 'PascalAnalyzer.Args', '--pa-args');
     aPascalAnalyzer.fArgs := aOverrides.fPaArgs;
     aPascalAnalyzer.fArgsSource := '--pa-args';
     if (Trim(GetEnvironmentVariable('PA_ARGS')) <> '') and
@@ -1030,11 +1207,36 @@ begin
       aPascalAnalyzer.fArgsSource := '--pa-args (matching PA_ARGS environment value)';
   end;
   if aOverrides.fHasPaExcludeSearchFolders then
+  begin
     aPascalAnalyzer.fExcludeSearchFolders := aOverrides.fPaExcludeSearchFolders;
+    RecordSettingOrigin(aOrigins, 'PascalAnalyzer.ExcludeSearchFolders', '--pa-exclude-search-folders');
+  end;
   if aOverrides.fHasPaExcludeFiles then
+  begin
     aPascalAnalyzer.fExcludeFiles := aOverrides.fPaExcludeFiles;
+    RecordSettingOrigin(aOrigins, 'PascalAnalyzer.ExcludeFiles', '--pa-exclude-files');
+  end;
   if aOverrides.fHasPaTimeoutSec then
+  begin
     aPascalAnalyzer.fTimeoutSec := aOverrides.fPaTimeoutSec;
+    RecordSettingOrigin(aOrigins, 'PascalAnalyzer.TimeoutSec', '--pa-timeout-sec');
+  end;
+end;
+
+procedure ApplySettingsOverrides(const aOverrides: TAppOptions; var aFixInsight: TFixInsightExtraOptions;
+  var aFixInsightIgnore: TFixInsightIgnoreDefaults; var aReportFilter: TReportFilterDefaults;
+  var aPascalAnalyzer: TPascalAnalyzerDefaults);
+var
+  lOrigins: TArray<TSettingsValueOrigin>;
+begin
+  ApplySettingsOverridesCore(aOverrides, aFixInsight, aFixInsightIgnore, aReportFilter, aPascalAnalyzer, lOrigins);
+end;
+
+procedure ApplyAnalysisSettingsOverrides(const aOptions: TAppOptions; var aSettings: TDakSettings);
+begin
+  ApplyPascalAnalyzerEnvironmentCore(aSettings.fPascalAnalyzer, aSettings.fOrigins);
+  ApplySettingsOverridesCore(aOptions, aSettings.fFixInsight, aSettings.fFixInsightIgnore,
+    aSettings.fReportFilter, aSettings.fPascalAnalyzer, aSettings.fOrigins);
 end;
 
 procedure ApplyBuildSettingsOverrides(const aOverrides: TAppOptions; var aSettings: TDakBuildSettings);

@@ -9,6 +9,7 @@ resourcestring
     '  resolve   Resolve FixInsight params (ini/xml/bat)' + #13#10 +
     '  analyze   Run FixInsight / Pascal Analyzer' + #13#10 +
     '  analyze-workspace Inspect analysis workspace and source provenance' + #13#10 +
+    '  analyze-doctor Inspect analysis settings and tool availability' + #13#10 +
     '  build     Build a Delphi or TMS WEB Core project (.dproj; or .dpr/.dpk with sibling .dproj)' + #13#10 +
     '  dfm-check Validate DFM streaming via generated _DfmCheck harness project' + #13#10 +
     '  dfm-inspect Inspect text DFM structure and event bindings' + #13#10 +
@@ -20,6 +21,11 @@ resourcestring
     '  find-usages Find project-scoped references for a resolved Delphi symbol' + #13#10 +
     '  rename    Plan or apply a project-scoped Delphi symbol rename' + #13#10 +
     'Use "DelphiAIKit.exe <command> --help" for command-specific options.';
+  rsUsageAnalyzeDoctor =
+    'DelphiAIKit.exe analyze-doctor [--project "<path>" | --unit "<path>"]' + #13#10 +
+    '  [--workspace-root <auto|git|svn|project|path>] [--run-checks <true|false>] [--json [true|false]]' + #13#10 +
+    '  [--pa-path "<path>"] [--delphi <BDS version>] [--platform <Win32|Win64>]' + #13#10 +
+    'Preview is the default; --run-checks overrides DAK_DOCTOR_RUN.';
   rsUsageAnalyzeWorkspace =
     'DelphiAIKit.exe analyze-workspace (--project "<path>" | --unit "<path>")' + #13#10 +
     '  [--project-context "<dproj>"] [--workspace-root <auto|git|svn|project|path>] [--json [true|false]]' + #13#10 +

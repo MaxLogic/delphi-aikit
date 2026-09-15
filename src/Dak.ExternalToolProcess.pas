@@ -167,18 +167,67 @@ begin
   Result := aSystemError;
 end;
 
+type
+  // STARTUPINFOEX: the startup record followed by the attribute list that limits inheritance.
+  TStartupInfoEx = record
+    StartupInfo: TStartupInfo;
+    lpAttributeList: PProcThreadAttributeList;
+  end;
+
+const
+  cProcThreadAttributeHandleList = $00020002; // PROC_THREAD_ATTRIBUTE_HANDLE_LIST
+
+// The RTL overloads take the two reserved pointers by reference; the API requires NULL.
+function UpdateProcThreadAttributeNullable(aAttributeList: PProcThreadAttributeList; aFlags: DWORD;
+  aAttribute: NativeUInt; aValue: Pointer; aSize: NativeUInt; aPreviousValue, aReturnSize: Pointer): BOOL;
+  stdcall; external kernel32 name 'UpdateProcThreadAttribute';
+
+// Lists the inheritable standard handles so the child receives only those. Without the
+// list a concurrent launch inherits every inheritable handle, including another child's
+// pipe ends, and that reader only sees EOF when the unrelated child exits.
+function CollectInheritableHandles(const aStartupInfo: TStartupInfo;
+  var aHandles: array of THandle): Integer;
+
+  procedure AddHandle(aHandle: THandle);
+  var
+    i: Integer;
+    lFlags: DWORD;
+  begin
+    if (aHandle = 0) or (aHandle = INVALID_HANDLE_VALUE) then
+      Exit;
+    if not GetHandleInformation(aHandle, lFlags) or ((lFlags and HANDLE_FLAG_INHERIT) = 0) then
+      Exit;
+    for i := 0 to Result - 1 do
+      if aHandles[i] = aHandle then
+        Exit;
+    aHandles[Result] := aHandle;
+    Inc(Result);
+  end;
+
+begin
+  Result := 0;
+  AddHandle(aStartupInfo.hStdInput);
+  AddHandle(aStartupInfo.hStdOutput);
+  AddHandle(aStartupInfo.hStdError);
+end;
+
 function TryRunExternalToolProcess(const aOptions: TExternalToolProcessRunOptions;
   out aExitCode: Cardinal; out aTimedOut: Boolean; out aError: string): Boolean;
 var
   lApplicationName: string;
   lApplicationPtr: PChar;
+  lAttributeBuffer: TBytes;
+  lAttributeSize: NativeUInt;
   lCommandLine: string;
+  lCreated: Boolean;
   lCreationFlags: Cardinal;
   lEnvironment: PChar;
   lEnvironmentBlock: string;
+  lHandleCount: Integer;
+  lHandles: array[0..2] of THandle;
   lLastError: Cardinal;
   lProcessInfo: TProcessInformation;
-  lStartupInfo: TStartupInfo;
+  lStartupInfo: TStartupInfoEx;
   lToolName: string;
   lWait: Cardinal;
   lWorkDir: string;
@@ -190,18 +239,18 @@ begin
   aError := '';
 
   FillChar(lStartupInfo, SizeOf(lStartupInfo), 0);
-  lStartupInfo.cb := SizeOf(lStartupInfo);
-  lStartupInfo.dwFlags := STARTF_USESTDHANDLES or STARTF_USESHOWWINDOW;
-  lStartupInfo.wShowWindow := SW_HIDE;
-  lStartupInfo.hStdInput := aOptions.fStdInHandle;
-  if lStartupInfo.hStdInput = 0 then
-    lStartupInfo.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
-  lStartupInfo.hStdOutput := aOptions.fStdOutHandle;
-  if lStartupInfo.hStdOutput = 0 then
-    lStartupInfo.hStdOutput := GetStdHandle(STD_OUTPUT_HANDLE);
-  lStartupInfo.hStdError := aOptions.fStdErrHandle;
-  if lStartupInfo.hStdError = 0 then
-    lStartupInfo.hStdError := GetStdHandle(STD_ERROR_HANDLE);
+  lStartupInfo.StartupInfo.cb := SizeOf(lStartupInfo.StartupInfo);
+  lStartupInfo.StartupInfo.dwFlags := STARTF_USESTDHANDLES or STARTF_USESHOWWINDOW;
+  lStartupInfo.StartupInfo.wShowWindow := SW_HIDE;
+  lStartupInfo.StartupInfo.hStdInput := aOptions.fStdInHandle;
+  if lStartupInfo.StartupInfo.hStdInput = 0 then
+    lStartupInfo.StartupInfo.hStdInput := GetStdHandle(STD_INPUT_HANDLE);
+  lStartupInfo.StartupInfo.hStdOutput := aOptions.fStdOutHandle;
+  if lStartupInfo.StartupInfo.hStdOutput = 0 then
+    lStartupInfo.StartupInfo.hStdOutput := GetStdHandle(STD_OUTPUT_HANDLE);
+  lStartupInfo.StartupInfo.hStdError := aOptions.fStdErrHandle;
+  if lStartupInfo.StartupInfo.hStdError = 0 then
+    lStartupInfo.StartupInfo.hStdError := GetStdHandle(STD_ERROR_HANDLE);
 
   lApplicationName := aOptions.fApplicationName;
   if (lApplicationName = '') and not aOptions.fUseCommandLineApplication then
@@ -229,10 +278,41 @@ begin
     lEnvironment := nil;
 
   FillChar(lProcessInfo, SizeOf(lProcessInfo), 0);
-  if not CreateProcess(lApplicationPtr, PChar(lCommandLine), nil, nil, True, lCreationFlags,
-    lEnvironment, lWorkDirPtr, lStartupInfo, lProcessInfo) then
+  lHandleCount := CollectInheritableHandles(lStartupInfo.StartupInfo, lHandles);
+  if lHandleCount > 0 then
   begin
+    lAttributeSize := 0;
+    // The first call only reports the required size.
+    InitializeProcThreadAttributeList(nil, 1, 0, lAttributeSize);
+    SetLength(lAttributeBuffer, lAttributeSize);
+    lStartupInfo.lpAttributeList := PProcThreadAttributeList(@lAttributeBuffer[0]);
+    if not InitializeProcThreadAttributeList(lStartupInfo.lpAttributeList, 1, 0, lAttributeSize) then
+    begin
+      lLastError := GetLastError;
+      aError := ExternalToolStartError(aOptions, SysErrorMessage(lLastError));
+      Exit(False);
+    end;
+    if not UpdateProcThreadAttributeNullable(lStartupInfo.lpAttributeList, 0, cProcThreadAttributeHandleList,
+      @lHandles[0], NativeUInt(lHandleCount) * SizeOf(THandle), nil, nil) then
+    begin
+      lLastError := GetLastError;
+      DeleteProcThreadAttributeList(lStartupInfo.lpAttributeList);
+      aError := ExternalToolStartError(aOptions, SysErrorMessage(lLastError));
+      Exit(False);
+    end;
+    lStartupInfo.StartupInfo.cb := SizeOf(lStartupInfo);
+    lCreationFlags := lCreationFlags or EXTENDED_STARTUPINFO_PRESENT;
+  end;
+  try
+    lCreated := CreateProcess(lApplicationPtr, PChar(lCommandLine), nil, nil, True, lCreationFlags,
+      lEnvironment, lWorkDirPtr, lStartupInfo.StartupInfo, lProcessInfo);
     lLastError := GetLastError;
+  finally
+    if lHandleCount > 0 then
+      DeleteProcThreadAttributeList(lStartupInfo.lpAttributeList);
+  end;
+  if not lCreated then
+  begin
     aError := ExternalToolStartError(aOptions, SysErrorMessage(lLastError));
     Exit(False);
   end;
