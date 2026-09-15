@@ -1,0 +1,331 @@
+{
+  "status": "Python characterization; native expectations proposed, not executed",
+  "native_difference_contract": "Only original code number token is retained per T335; exact derived annotations remain Python-derived.",
+  "cases": [
+    {
+      "name": "number-00",
+      "token": "1e-999",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":1e-999,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 0.0, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 0.0, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e-999, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e-999, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-01",
+      "token": "-1e-999",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":-1e-999,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": -0.0, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": -0.0, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": -1e-999, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": -1e-999, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-02",
+      "token": "1.00",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":1.00,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1.0, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1.0, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1.00, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1.00, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-03",
+      "token": "1E-7",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":1E-7,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e-07, \"ownership\": \"project\", \"normalized_rule\": \"FI.1E-07\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e-07, \"ownership\": \"project\", \"normalized_rule\": \"FI.1E-07\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1E-7, \"ownership\": \"project\", \"normalized_rule\": \"FI.1E-07\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1E-7, \"ownership\": \"project\", \"normalized_rule\": \"FI.1E-07\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-04",
+      "token": "1e0",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":1e0,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1.0, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1.0, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e0, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e0, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-05",
+      "token": "-0",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":-0,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 0, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 0, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": -0, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": -0, \"ownership\": \"project\", \"normalized_rule\": \"PAL.unknown-report.unknown-848efe11772769f5\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-06",
+      "token": "5e-324",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":5e-324,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 5e-324, \"ownership\": \"project\", \"normalized_rule\": \"FI.5E-324\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 5e-324, \"ownership\": \"project\", \"normalized_rule\": \"FI.5E-324\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 5e-324, \"ownership\": \"project\", \"normalized_rule\": \"FI.5E-324\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 5e-324, \"ownership\": \"project\", \"normalized_rule\": \"FI.5E-324\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-07",
+      "token": "2.2250738585072014e-308",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":2.2250738585072014e-308,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 2.2250738585072014e-308, \"ownership\": \"project\", \"normalized_rule\": \"FI.2.2250738585072014E-308\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 2.2250738585072014e-308, \"ownership\": \"project\", \"normalized_rule\": \"FI.2.2250738585072014E-308\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 2.2250738585072014e-308, \"ownership\": \"project\", \"normalized_rule\": \"FI.2.2250738585072014E-308\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 2.2250738585072014e-308, \"ownership\": \"project\", \"normalized_rule\": \"FI.2.2250738585072014E-308\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-08",
+      "token": "1.234567890123456789",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":1.234567890123456789,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1.2345678901234567, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.2345678901234567\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1.2345678901234567, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.2345678901234567\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1.234567890123456789, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.2345678901234567\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1.234567890123456789, \"ownership\": \"project\", \"normalized_rule\": \"FI.1.2345678901234567\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-09",
+      "token": "1e+15",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":1e+15,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1000000000000000.0, \"ownership\": \"project\", \"normalized_rule\": \"FI.1000000000000000.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1000000000000000.0, \"ownership\": \"project\", \"normalized_rule\": \"FI.1000000000000000.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e+15, \"ownership\": \"project\", \"normalized_rule\": \"FI.1000000000000000.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e+15, \"ownership\": \"project\", \"normalized_rule\": \"FI.1000000000000000.0\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-10",
+      "token": "1e+16",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":1e+16,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e+16, \"ownership\": \"project\", \"normalized_rule\": \"FI.1E+16\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e+16, \"ownership\": \"project\", \"normalized_rule\": \"FI.1E+16\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e+16, \"ownership\": \"project\", \"normalized_rule\": \"FI.1E+16\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e+16, \"ownership\": \"project\", \"normalized_rule\": \"FI.1E+16\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-11",
+      "token": "1e999",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":1e999,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": Infinity, \"ownership\": \"project\", \"normalized_rule\": \"FI.INF\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": Infinity, \"ownership\": \"project\", \"normalized_rule\": \"FI.INF\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e999, \"ownership\": \"project\", \"normalized_rule\": \"FI.INF\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": 1e999, \"ownership\": \"project\", \"normalized_rule\": \"FI.INF\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    },
+    {
+      "name": "number-12",
+      "token": "-1e999",
+      "raw_fi_jsonl": "{\"path\":\"src/Unit.pas\",\"code\":-1e999,\"ownership\":\"project\"}\n",
+      "expected_python_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": -Infinity, \"ownership\": \"project\", \"normalized_rule\": \"FI.-INF\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": -Infinity, \"ownership\": \"project\", \"normalized_rule\": \"FI.-INF\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ],
+      "proposed_native_passes": [
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": -1e999, \"ownership\": \"project\", \"normalized_rule\": \"FI.-INF\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        },
+        {
+          "fi_jsonl": "{\"path\": \"src/Unit.pas\", \"code\": -1e999, \"ownership\": \"project\", \"normalized_rule\": \"FI.-INF\", \"report_projection\": \"actionable\"}\n",
+          "pal_jsonl": ""
+        }
+      ]
+    }
+  ]
+}

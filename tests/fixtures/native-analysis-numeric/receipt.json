@@ -1,0 +1,15 @@
+{
+ "python": "3.13.15 (tags/v3.13.15:4061bc4, Aug  5 2026, 13:05:39) [MSC v.1944 64 bit (AMD64)]",
+ "generator_sha256": "2f776957a290d6b653514c270688905cc21e2bfa4036af00ec417a9ac4869f49",
+ "parse-repr-corpus.json": {
+  "rows": 10998,
+  "sha256": "75c57afafad44fc5e4339698dba475581f5deb674c90a8c8ae12cbb6d2c4daed",
+  "bytes": 1390133
+ },
+ "boundary-corpus.json": {
+  "rows": 100,
+  "invalid_tokens": 19,
+  "sha256": "a7001dc669c942e07011fced8ff2bfdafc12381256f9aea1ad87c11aa980d1f1",
+  "bytes": 15178
+ }
+}

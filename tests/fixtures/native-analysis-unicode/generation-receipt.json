@@ -1,0 +1,58 @@
+{
+  "unicode_version": "15.1.0",
+  "python": "3.13.15 (tags/v3.13.15:4061bc4, Aug  5 2026, 13:05:39) [MSC v.1944 64 bit (AMD64)]",
+  "generator_sha256": "bf8cf9fce6485ea183fe01cb6ab9e38ae16b54fda2baa992abd8dbd9e321552b",
+  "inputs": {
+    "UnicodeData.txt": {
+      "url": "https://www.unicode.org/Public/15.1.0/ucd/UnicodeData.txt",
+      "sha256": "2fc713e6a31a87c4850a37fe2caffa4218180fadb5de86b43a143ddb4581fb86",
+      "bytes": 1914200
+    },
+    "SpecialCasing.txt": {
+      "url": "https://www.unicode.org/Public/15.1.0/ucd/SpecialCasing.txt",
+      "sha256": "55a477efd933a52cd27e6a9bf70265bb2d8814af31aab07767abc8eb421f27ef",
+      "bytes": 16832
+    },
+    "DerivedCoreProperties.txt": {
+      "url": "https://www.unicode.org/Public/15.1.0/ucd/DerivedCoreProperties.txt",
+      "sha256": "f55d0db69123431a7317868725b1fcbf1eab6b265d756d1bd7f0f6d9f9ee108b",
+      "bytes": 1072686
+    },
+    "LICENSE-Unicode.txt": {
+      "url": "https://www.unicode.org/license.txt",
+      "sha256": "e7a93b009565cfce55919a381437ac4db883e9da2126fa28b91d12732bc53d96",
+      "bytes": 1995
+    }
+  },
+  "validation_codepoints": 1114112,
+  "payload_bytes": 18708,
+  "stats": {
+    "Upper": {
+      "changed": 1525,
+      "simple_records": 197,
+      "expansions": 102
+    },
+    "Lower": {
+      "changed": 1433,
+      "simple_records": 181,
+      "expansions": 1
+    },
+    "Cased": {
+      "points": 4526,
+      "ranges": 157
+    },
+    "Case_Ignorable": {
+      "points": 2707,
+      "ranges": 437
+    },
+    "Whitespace": {
+      "points": 29,
+      "ranges": 10
+    },
+    "NonPrintable": {
+      "points": 964487,
+      "ranges": 713
+    }
+  },
+  "include_sha256": "22a24983a9b43cc8c052b32c06e79dfda91720a4890232f93f8f594a10b39aae"
+}

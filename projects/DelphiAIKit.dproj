@@ -213,6 +213,9 @@
         <DCCReference Include="..\src\Dak.Analysis.ProjectSources.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.SourceResolution.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.Text.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.Projections.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.UnicodeText.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.NumericText.pas"/>
         <DCCReference Include="..\src\dak.build.pas"/>
         <DCCReference Include="..\src\Dak.CommandOutput.pas"/>
         <DCCReference Include="..\src\dak.cli.pas"/>

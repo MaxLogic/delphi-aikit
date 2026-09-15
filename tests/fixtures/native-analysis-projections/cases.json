@@ -1,0 +1,5016 @@
+{
+  "reference_sha256": "D76C7B85E45E63825F46BB52D45A32DD2D62C159522F7A3C048D7FF28FC0F09D",
+  "purpose": "Full ordered projection characterization; native tests pending",
+  "cases": [
+    {
+      "name": "mask-slash-case-first",
+      "fi": [
+        {
+          "path": "SRC/Unit.PAS",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src\\*.pas",
+        "*"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "SRC/Unit.PAS",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src\\*.pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "SRC/Unit.PAS",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src\\*.pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "mask-bracket-range",
+      "fi": [
+        {
+          "path": "src/B.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/[a-c].pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/B.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[a-c].pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/B.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[a-c].pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "mask-bracket-negated",
+      "fi": [
+        {
+          "path": "src/Z.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/[!a-c].pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Z.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[!a-c].pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Z.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[!a-c].pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "mask-literal-bracket",
+      "fi": [
+        {
+          "path": "src/[abc.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/[abc.pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/[abc.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[abc.pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/[abc.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[abc.pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "mask-range-reversed",
+      "fi": [
+        {
+          "path": "src/b.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/[z-a].pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/b.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/b.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "mask-question-unicode",
+      "fi": [
+        {
+          "path": "src/\u0105.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/?.pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\u0105.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/?.pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\u0105.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/?.pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "mask-unicode-lower",
+      "fi": [
+        {
+          "path": "src/\u0104.PAS",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/\u0105.pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\u0104.PAS",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/\u0105.pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\u0104.PAS",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/\u0105.pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "mask-stars-cross-separators",
+      "fi": [
+        {
+          "path": "src/deep/Unit.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "s**c/*.pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/deep/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "s**c/*.pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/deep/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "s**c/*.pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "mask-first-closing-bracket",
+      "fi": [
+        {
+          "path": "src/].pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/[]].pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/].pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[]].pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/].pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[]].pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "mask-literal-caret",
+      "fi": [
+        {
+          "path": "src/^.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/[^a].pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/^.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[^a].pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/^.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[^a].pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "fallback-file",
+      "fi": [
+        {
+          "path": "",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          },
+          "file": " src/Unit.pas "
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/*"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "file": " src/Unit.pas ",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/*"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "file": " src/Unit.pas ",
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/*"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "stale-path-policy-cleared",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          },
+          "report_policy": {
+            "reason": "path_mask",
+            "disposition": "ignored",
+            "value": "*"
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "path-mask-overwrites-custom",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          },
+          "report_policy": {
+            "reason": "review",
+            "disposition": "accepted"
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "*"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "*"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "*"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "custom-policy-blocks-rule-ignore",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          },
+          "report_policy": {
+            "reason": "review",
+            "disposition": "accepted"
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "fixinsight_ignore": [
+          "W501"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "reason": "review",
+                "disposition": "accepted"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "reason": "review",
+                "disposition": "accepted"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "path-mask-precedes-rule-ignore",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "*"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "fixinsight_ignore": [
+          "W501"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "*"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "*"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "ownership-precedence",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "unknown",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        },
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "third_party",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        },
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        },
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "repository",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "fixinsight_ignore": [
+          "W501"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "unknown",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "fixinsight_ignore",
+                "value": "W501"
+              },
+              "report_projection": "unknown"
+            },
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "third_party",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "fixinsight_ignore",
+                "value": "W501"
+              },
+              "report_projection": "ignored"
+            },
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "fixinsight_ignore",
+                "value": "W501"
+              },
+              "report_projection": "ignored"
+            },
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "repository",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "fixinsight_ignore",
+                "value": "W501"
+              },
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "unknown",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "unknown",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "fixinsight_ignore",
+                "value": "W501"
+              }
+            },
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "third_party",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "fixinsight_ignore",
+                "value": "W501"
+              }
+            },
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "fixinsight_ignore",
+                "value": "W501"
+              }
+            },
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "repository",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "fixinsight_ignore",
+                "value": "W501"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "stale-rule-ignore-cleared",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          },
+          "report_policy": {
+            "reason": "fixinsight_ignore",
+            "disposition": "ignored"
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "aliases-9.21.3",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Set before passed as out parameter",
+          "ownership": "project",
+          "pal_code": "stale"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Strong Warnings.xml",
+          "section": "Possible bad typecast (for objects: consider using \"as\")",
+          "ownership": "project",
+          "pal_code": "stale"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Optimization.xml",
+          "section": "Parameter is \"var\", can be changed to \"out\"",
+          "ownership": "project",
+          "pal_code": "stale"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "9.21.3",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project",
+              "pal_code": "WARN54",
+              "normalized_rule": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Strong Warnings.xml",
+              "section": "Possible bad typecast (for objects: consider using \"as\")",
+              "ownership": "project",
+              "pal_code": "STWA6",
+              "normalized_rule": "PAL.strong-warnings.possible-bad-typecast-for-objects-consider-using-as-2f1b8d64c282a875",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Optimization.xml",
+              "section": "Parameter is \"var\", can be changed to \"out\"",
+              "ownership": "project",
+              "pal_code": "OPTI8",
+              "normalized_rule": "PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project",
+              "pal_code": "WARN54",
+              "normalized_rule": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Strong Warnings.xml",
+              "section": "Possible bad typecast (for objects: consider using \"as\")",
+              "ownership": "project",
+              "pal_code": "STWA6",
+              "normalized_rule": "PAL.strong-warnings.possible-bad-typecast-for-objects-consider-using-as-2f1b8d64c282a875",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Optimization.xml",
+              "section": "Parameter is \"var\", can be changed to \"out\"",
+              "ownership": "project",
+              "pal_code": "OPTI8",
+              "normalized_rule": "PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "aliases-9.21.3.0",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Set before passed as out parameter",
+          "ownership": "project",
+          "pal_code": "stale"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Strong Warnings.xml",
+          "section": "Possible bad typecast (for objects: consider using \"as\")",
+          "ownership": "project",
+          "pal_code": "stale"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Optimization.xml",
+          "section": "Parameter is \"var\", can be changed to \"out\"",
+          "ownership": "project",
+          "pal_code": "stale"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "9.21.3.0",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project",
+              "pal_code": "WARN54",
+              "normalized_rule": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Strong Warnings.xml",
+              "section": "Possible bad typecast (for objects: consider using \"as\")",
+              "ownership": "project",
+              "pal_code": "STWA6",
+              "normalized_rule": "PAL.strong-warnings.possible-bad-typecast-for-objects-consider-using-as-2f1b8d64c282a875",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Optimization.xml",
+              "section": "Parameter is \"var\", can be changed to \"out\"",
+              "ownership": "project",
+              "pal_code": "OPTI8",
+              "normalized_rule": "PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project",
+              "pal_code": "WARN54",
+              "normalized_rule": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Strong Warnings.xml",
+              "section": "Possible bad typecast (for objects: consider using \"as\")",
+              "ownership": "project",
+              "pal_code": "STWA6",
+              "normalized_rule": "PAL.strong-warnings.possible-bad-typecast-for-objects-consider-using-as-2f1b8d64c282a875",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Optimization.xml",
+              "section": "Parameter is \"var\", can be changed to \"out\"",
+              "ownership": "project",
+              "pal_code": "OPTI8",
+              "normalized_rule": "PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "aliases-9.21.4.0",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Set before passed as out parameter",
+          "ownership": "project",
+          "pal_code": "stale"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Strong Warnings.xml",
+          "section": "Possible bad typecast (for objects: consider using \"as\")",
+          "ownership": "project",
+          "pal_code": "stale"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Optimization.xml",
+          "section": "Parameter is \"var\", can be changed to \"out\"",
+          "ownership": "project",
+          "pal_code": "stale"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "9.21.4.0",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Strong Warnings.xml",
+              "section": "Possible bad typecast (for objects: consider using \"as\")",
+              "ownership": "project",
+              "normalized_rule": "PAL.strong-warnings.possible-bad-typecast-for-objects-consider-using-as-2f1b8d64c282a875",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Optimization.xml",
+              "section": "Parameter is \"var\", can be changed to \"out\"",
+              "ownership": "project",
+              "normalized_rule": "PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Strong Warnings.xml",
+              "section": "Possible bad typecast (for objects: consider using \"as\")",
+              "ownership": "project",
+              "normalized_rule": "PAL.strong-warnings.possible-bad-typecast-for-objects-consider-using-as-2f1b8d64c282a875",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Optimization.xml",
+              "section": "Parameter is \"var\", can be changed to \"out\"",
+              "ownership": "project",
+              "normalized_rule": "PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "aliases-unknown",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Set before passed as out parameter",
+          "ownership": "project",
+          "pal_code": "stale"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Strong Warnings.xml",
+          "section": "Possible bad typecast (for objects: consider using \"as\")",
+          "ownership": "project",
+          "pal_code": "stale"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Optimization.xml",
+          "section": "Parameter is \"var\", can be changed to \"out\"",
+          "ownership": "project",
+          "pal_code": "stale"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Strong Warnings.xml",
+              "section": "Possible bad typecast (for objects: consider using \"as\")",
+              "ownership": "project",
+              "normalized_rule": "PAL.strong-warnings.possible-bad-typecast-for-objects-consider-using-as-2f1b8d64c282a875",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Optimization.xml",
+              "section": "Parameter is \"var\", can be changed to \"out\"",
+              "ownership": "project",
+              "normalized_rule": "PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Strong Warnings.xml",
+              "section": "Possible bad typecast (for objects: consider using \"as\")",
+              "ownership": "project",
+              "normalized_rule": "PAL.strong-warnings.possible-bad-typecast-for-objects-consider-using-as-2f1b8d64c282a875",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Optimization.xml",
+              "section": "Parameter is \"var\", can be changed to \"out\"",
+              "ownership": "project",
+              "normalized_rule": "PAL.optimization.parameter-is-var-can-be-changed-to-out-8d547169dfe78c92",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "verified-code-ignore",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Set before passed as out parameter",
+          "ownership": "project"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "pal_ignore_rules": [
+          "warn54"
+        ]
+      },
+      "pal_version": "9.21.3.0",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+              "pal_code": "WARN54",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "pal_rule_ignore",
+                "value": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+                "matched": "warn54"
+              },
+              "report_projection": "ignored"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+              "pal_code": "WARN54",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "pal_rule_ignore",
+                "value": "PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864",
+                "matched": "warn54"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "new-version-code-rejected",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Set before passed as out parameter",
+          "ownership": "project"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "pal_ignore_rules": [
+          "WARN54"
+        ]
+      },
+      "pal_version": "9.21.4.0",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": {
+            "type": "ValueError",
+            "message": "Invalid Pascal Analyzer ignore rule(s) (unmatched: WARN54). Available canonical rules: PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864. Verified native codes: <none>"
+          },
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project"
+            }
+          ]
+        },
+        {
+          "error": {
+            "type": "ValueError",
+            "message": "Invalid Pascal Analyzer ignore rule(s) (unmatched: WARN54). Available canonical rules: PAL.warnings.set-before-passed-as-out-parameter-1f0b5be50a52e864. Verified native codes: <none>"
+          },
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Set before passed as out parameter",
+              "ownership": "project"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "empty-existing-code-known",
+      "fi": [],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "pal_ignore_rules": [
+          "WARN54"
+        ]
+      },
+      "pal_version": "9.21.3.0",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "empty-existing-unknown-rejected",
+      "fi": [],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "pal_ignore_rules": [
+          "NOPE"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": {
+            "type": "ValueError",
+            "message": "Invalid Pascal Analyzer ignore rule(s) (unmatched: NOPE). Available canonical rules: <none>. Verified native codes: <none>"
+          },
+          "fi": [],
+          "pal": []
+        },
+        {
+          "error": {
+            "type": "ValueError",
+            "message": "Invalid Pascal Analyzer ignore rule(s) (unmatched: NOPE). Available canonical rules: <none>. Verified native codes: <none>"
+          },
+          "fi": [],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "missing-pal-ignore-not-validated",
+      "fi": [],
+      "pal": null,
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "pal_ignore_rules": [
+          "NOPE"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": null
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": null
+        }
+      ]
+    },
+    {
+      "name": "unrequested-pal-cleared",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Set before passed as out parameter",
+          "ownership": "project"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "pal_ignore_rules": [
+          "NOPE"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": false,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "canonical-collision-pairs",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Rule (A)",
+          "ownership": "project"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Rule - A",
+          "ownership": "project"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Rule A",
+          "ownership": "project"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "rule a",
+          "ownership": "project"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "",
+          "ownership": "project"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "unknown",
+          "ownership": "project"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA first",
+          "ownership": "project"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA second",
+          "ownership": "project"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Rule (A)",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.rule-a-c8f8f3b3af707402",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Rule - A",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.rule-a-63c0cf6ae568db8d",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Rule A",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.rule-a-1e248620ebfe84a1",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "rule a",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.rule-a-229df4af49d027ec",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.unknown-228614655e7f948b",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "unknown",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.unknown-e97b0bd08a251251",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA first",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-036aaa5ae0ff2cc1",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA second",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-0ff4c953e87870c4",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Rule (A)",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.rule-a-c8f8f3b3af707402",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Rule - A",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.rule-a-63c0cf6ae568db8d",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Rule A",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.rule-a-1e248620ebfe84a1",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "rule a",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.rule-a-229df4af49d027ec",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.unknown-228614655e7f948b",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "unknown",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.unknown-e97b0bd08a251251",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA first",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-036aaa5ae0ff2cc1",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA second",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-0ff4c953e87870c4",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "severity-fallback",
+      "fi": [],
+      "pal": [
+        {
+          "severity": "warning",
+          "section": "Same",
+          "ownership": "project"
+        },
+        {
+          "severity": "strong-warning",
+          "section": "Same",
+          "ownership": "project"
+        },
+        {
+          "severity": "optimization",
+          "section": "Same",
+          "ownership": "project"
+        },
+        {
+          "severity": "other",
+          "section": "Same",
+          "ownership": "project"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "severity": "warning",
+              "section": "Same",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.same-9010adc0bf5ca46c",
+              "report_projection": "actionable"
+            },
+            {
+              "severity": "strong-warning",
+              "section": "Same",
+              "ownership": "project",
+              "normalized_rule": "PAL.strong-warnings.same-39508ea5ffae00b1",
+              "report_projection": "actionable"
+            },
+            {
+              "severity": "optimization",
+              "section": "Same",
+              "ownership": "project",
+              "normalized_rule": "PAL.optimization.same-d9eb04e8f0203931",
+              "report_projection": "actionable"
+            },
+            {
+              "severity": "other",
+              "section": "Same",
+              "ownership": "project",
+              "normalized_rule": "PAL.unknown-report.same-1aea1e0a99e4d612",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "severity": "warning",
+              "section": "Same",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.same-9010adc0bf5ca46c",
+              "report_projection": "actionable"
+            },
+            {
+              "severity": "strong-warning",
+              "section": "Same",
+              "ownership": "project",
+              "normalized_rule": "PAL.strong-warnings.same-39508ea5ffae00b1",
+              "report_projection": "actionable"
+            },
+            {
+              "severity": "optimization",
+              "section": "Same",
+              "ownership": "project",
+              "normalized_rule": "PAL.optimization.same-d9eb04e8f0203931",
+              "report_projection": "actionable"
+            },
+            {
+              "severity": "other",
+              "section": "Same",
+              "ownership": "project",
+              "normalized_rule": "PAL.unknown-report.same-1aea1e0a99e4d612",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "metric-advisory-default",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Cyclomatic complexity",
+          "ownership": "project"
+        },
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Ordinary",
+          "ownership": "project"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Cyclomatic complexity",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.cyclomatic-complexity-8b1dd72cd531be24",
+              "report_projection": "advisory_metrics"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Ordinary",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.ordinary-a3c4f2614319b919",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Cyclomatic complexity",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.cyclomatic-complexity-8b1dd72cd531be24",
+              "report_projection": "advisory_metrics"
+            },
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Ordinary",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.ordinary-a3c4f2614319b919",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "metric-explicit-opt-in",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Cyclomatic complexity",
+          "ownership": "project"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "gate_metrics": [
+          "PAL.WARNINGS.CYCLOMATIC-COMPLEXITY-8B1DD72CD531BE24"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Cyclomatic complexity",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.cyclomatic-complexity-8b1dd72cd531be24",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Cyclomatic complexity",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.cyclomatic-complexity-8b1dd72cd531be24",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "xml-empty-section-catalog",
+      "fi": [],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "pal_ignore_rules": [
+          "PAL.empty.empty-section-16dee37e87e2d5b7"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {
+        "nested/Empty.xml": "<report xmlns=\"urn:test\"><group><section name=\"Empty section\"/></group></report>",
+        "bad.xml": "<report>"
+      },
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "duplicates-and-stale-fields",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        },
+        {
+          "path": "src/Unit.pas",
+          "code": "W501",
+          "ownership": "project",
+          "extension": {
+            "keep": [
+              1,
+              null,
+              true
+            ]
+          }
+        }
+      ],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "report": "Warnings.xml",
+          "section": "Ordinary",
+          "ownership": "project",
+          "normalized_rule": "stale",
+          "pal_code": "stale",
+          "report_projection": "ignored"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Ordinary",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.ordinary-a3c4f2614319b919",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            },
+            {
+              "path": "src/Unit.pas",
+              "code": "W501",
+              "ownership": "project",
+              "extension": {
+                "keep": [
+                  1,
+                  null,
+                  true
+                ]
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "report": "Warnings.xml",
+              "section": "Ordinary",
+              "ownership": "project",
+              "normalized_rule": "PAL.warnings.ordinary-a3c4f2614319b919",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "unicode-astral-question",
+      "fi": [
+        {
+          "path": "src/\ud83d\ude42.pas",
+          "code": "W501",
+          "ownership": "project"
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/?.pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\ud83d\ude42.pas",
+              "code": "W501",
+              "ownership": "project",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/?.pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\ud83d\ude42.pas",
+              "code": "W501",
+              "ownership": "project",
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/?.pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "unicode-astral-class",
+      "fi": [
+        {
+          "path": "src/\ud83d\ude42.pas",
+          "code": "W501",
+          "ownership": "project"
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/[\ud83d\ude42].pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\ud83d\ude42.pas",
+              "code": "W501",
+              "ownership": "project",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[\ud83d\ude42].pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\ud83d\ude42.pas",
+              "code": "W501",
+              "ownership": "project",
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/[\ud83d\ude42].pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "unicode-dotted-capital-i",
+      "fi": [
+        {
+          "path": "src/\u0130.pas",
+          "code": "W501",
+          "ownership": "project"
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/i\u0307.pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\u0130.pas",
+              "code": "W501",
+              "ownership": "project",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/i\u0307.pas"
+              },
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\u0130.pas",
+              "code": "W501",
+              "ownership": "project",
+              "normalized_rule": "FI.W501",
+              "report_projection": "ignored",
+              "report_policy": {
+                "disposition": "ignored",
+                "reason": "path_mask",
+                "value": "src/i\u0307.pas"
+              }
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "unicode-final-sigma",
+      "fi": [
+        {
+          "path": "src/\u039f\u03a3.pas",
+          "code": "W501",
+          "ownership": "project"
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/\u03bf\u03c2.pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\u039f\u03a3.pas",
+              "code": "W501",
+              "ownership": "project",
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\u039f\u03a3.pas",
+              "code": "W501",
+              "ownership": "project",
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "unicode-long-s",
+      "fi": [
+        {
+          "path": "src/\u017f.pas",
+          "code": "W501",
+          "ownership": "project"
+        }
+      ],
+      "pal": [],
+      "masks": [
+        "src/s.pas"
+      ],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\u017f.pas",
+              "code": "W501",
+              "ownership": "project",
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/\u017f.pas",
+              "code": "W501",
+              "ownership": "project",
+              "normalized_rule": "FI.W501",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-boolean",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": true
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": true,
+              "normalized_rule": "FI.TRUE",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": true,
+              "normalized_rule": "FI.TRUE",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-float-integral",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": 1.0
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": 1.0,
+              "normalized_rule": "FI.1.0",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": 1.0,
+              "normalized_rule": "FI.1.0",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-float-small",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": 1e-07
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": 1e-07,
+              "normalized_rule": "FI.1E-07",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": 1e-07,
+              "normalized_rule": "FI.1E-07",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-float-large",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": 1e+20
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": 1e+20,
+              "normalized_rule": "FI.1E+20",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": 1e+20,
+              "normalized_rule": "FI.1E+20",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-parsed-underflow-zero",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": 0.0
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": 0.0,
+              "normalized_rule": "PAL.warnings.example-a894270c789fd2f1",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": 0.0,
+              "normalized_rule": "PAL.warnings.example-a894270c789fd2f1",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-negative-zero",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": -0.0
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": -0.0,
+              "normalized_rule": "PAL.warnings.example-a894270c789fd2f1",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": -0.0,
+              "normalized_rule": "PAL.warnings.example-a894270c789fd2f1",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-large-integer",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": 123456789012345678901234567890
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": 123456789012345678901234567890,
+              "normalized_rule": "FI.123456789012345678901234567890",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": 123456789012345678901234567890,
+              "normalized_rule": "FI.123456789012345678901234567890",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-list",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": [
+            "mixed",
+            null,
+            true,
+            1.0
+          ]
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": [
+                "mixed",
+                null,
+                true,
+                1.0
+              ],
+              "normalized_rule": "FI.['MIXED', NONE, TRUE, 1.0]",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": [
+                "mixed",
+                null,
+                true,
+                1.0
+              ],
+              "normalized_rule": "FI.['MIXED', NONE, TRUE, 1.0]",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-object",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": {
+            "quote": "can't",
+            "flag": false
+          }
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": {
+                "quote": "can't",
+                "flag": false
+              },
+              "normalized_rule": "FI.{'QUOTE': \"CAN'T\", 'FLAG': FALSE}",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": {
+                "quote": "can't",
+                "flag": false
+              },
+              "normalized_rule": "FI.{'QUOTE': \"CAN'T\", 'FLAG': FALSE}",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-empty-list",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": []
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": [],
+              "normalized_rule": "PAL.warnings.example-a894270c789fd2f1",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": [],
+              "normalized_rule": "PAL.warnings.example-a894270c789fd2f1",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-empty-object",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": {}
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": {},
+              "normalized_rule": "PAL.warnings.example-a894270c789fd2f1",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": {},
+              "normalized_rule": "PAL.warnings.example-a894270c789fd2f1",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-coercion-sharp-s",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": "\u00df"
+        }
+      ],
+      "pal": [],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": "\u00df",
+              "normalized_rule": "FI.SS",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": "\u00df",
+              "normalized_rule": "FI.SS",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-boolean",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": true
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": true,
+              "normalized_rule": "PAL.warnings.true-4d731eef4287d6a6",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": true,
+              "normalized_rule": "PAL.warnings.true-4d731eef4287d6a6",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-float-integral",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": 1.0
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": 1.0,
+              "normalized_rule": "PAL.warnings.1-0-c6cff626c86fc115",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": 1.0,
+              "normalized_rule": "PAL.warnings.1-0-c6cff626c86fc115",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-float-small",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": 1e-07
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": 1e-07,
+              "normalized_rule": "PAL.warnings.1e-07-4d499912b1ba54a3",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": 1e-07,
+              "normalized_rule": "PAL.warnings.1e-07-4d499912b1ba54a3",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-float-large",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": 1e+20
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": 1e+20,
+              "normalized_rule": "PAL.warnings.1e-20-9b5d9c9cd21d6a4f",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": 1e+20,
+              "normalized_rule": "PAL.warnings.1e-20-9b5d9c9cd21d6a4f",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-parsed-underflow-zero",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": 0.0
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": 0.0,
+              "normalized_rule": "PAL.warnings.unknown-228614655e7f948b",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": 0.0,
+              "normalized_rule": "PAL.warnings.unknown-228614655e7f948b",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-negative-zero",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": -0.0
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": -0.0,
+              "normalized_rule": "PAL.warnings.unknown-228614655e7f948b",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": -0.0,
+              "normalized_rule": "PAL.warnings.unknown-228614655e7f948b",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-large-integer",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": 123456789012345678901234567890
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": 123456789012345678901234567890,
+              "normalized_rule": "PAL.warnings.123456789012345678901234567890-ecc676e23aa1362b",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": 123456789012345678901234567890,
+              "normalized_rule": "PAL.warnings.123456789012345678901234567890-ecc676e23aa1362b",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-list",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": [
+            "mixed",
+            null,
+            true,
+            1.0
+          ]
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": [
+                "mixed",
+                null,
+                true,
+                1.0
+              ],
+              "normalized_rule": "PAL.warnings.mixed-none-true-1-0-1cf0e99581fdfc67",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": [
+                "mixed",
+                null,
+                true,
+                1.0
+              ],
+              "normalized_rule": "PAL.warnings.mixed-none-true-1-0-1cf0e99581fdfc67",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-object",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": {
+            "quote": "can't",
+            "flag": false
+          }
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": {
+                "quote": "can't",
+                "flag": false
+              },
+              "normalized_rule": "PAL.warnings.quote-can-t-flag-false-183f21bfe7b49f4e",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": {
+                "quote": "can't",
+                "flag": false
+              },
+              "normalized_rule": "PAL.warnings.quote-can-t-flag-false-183f21bfe7b49f4e",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-empty-list",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": []
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": [],
+              "normalized_rule": "PAL.warnings.unknown-228614655e7f948b",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": [],
+              "normalized_rule": "PAL.warnings.unknown-228614655e7f948b",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-empty-object",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": {}
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": {},
+              "normalized_rule": "PAL.warnings.unknown-228614655e7f948b",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": {},
+              "normalized_rule": "PAL.warnings.unknown-228614655e7f948b",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-coercion-sharp-s",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "\u00df"
+        }
+      ],
+      "masks": [],
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "pal_version": "",
+      "pal_requested": true,
+      "xml": {},
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "\u00df",
+              "normalized_rule": "PAL.warnings.unknown-fa5e4a303cde0c1d",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "\u00df",
+              "normalized_rule": "PAL.warnings.unknown-fa5e4a303cde0c1d",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "code-repr-quotes",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": [
+            "can't",
+            "say \"yes\"",
+            "both '\"",
+            "\\"
+          ]
+        }
+      ],
+      "pal": [],
+      "xml": {},
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "masks": [],
+      "pal_version": "",
+      "pal_requested": true,
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": [
+                "can't",
+                "say \"yes\"",
+                "both '\"",
+                "\\"
+              ],
+              "normalized_rule": "FI.[\"CAN'T\", 'SAY \"YES\"', 'BOTH \\'\"', '\\\\']",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": [
+                "can't",
+                "say \"yes\"",
+                "both '\"",
+                "\\"
+              ],
+              "normalized_rule": "FI.[\"CAN'T\", 'SAY \"YES\"', 'BOTH \\'\"', '\\\\']",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-repr-controls",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": [
+            "\t\n\r\u0000\u001b\u007f",
+            "\u00a0\u200b\u2028\ue000"
+          ]
+        }
+      ],
+      "pal": [],
+      "xml": {},
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "masks": [],
+      "pal_version": "",
+      "pal_requested": true,
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": [
+                "\t\n\r\u0000\u001b\u007f",
+                "\u00a0\u200b\u2028\ue000"
+              ],
+              "normalized_rule": "FI.['\\T\\N\\R\\X00\\X1B\\X7F', '\\XA0\\U200B\\U2028\\UE000']",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": [
+                "\t\n\r\u0000\u001b\u007f",
+                "\u00a0\u200b\u2028\ue000"
+              ],
+              "normalized_rule": "FI.['\\T\\N\\R\\X00\\X1B\\X7F', '\\XA0\\U200B\\U2028\\UE000']",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-repr-astral",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": [
+            "\ud83d\ude00",
+            "\udb40\udc01"
+          ]
+        }
+      ],
+      "pal": [],
+      "xml": {},
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "masks": [],
+      "pal_version": "",
+      "pal_requested": true,
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": [
+                "\ud83d\ude00",
+                "\udb40\udc01"
+              ],
+              "normalized_rule": "FI.['\ud83d\ude00', '\\U000E0001']",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": [
+                "\ud83d\ude00",
+                "\udb40\udc01"
+              ],
+              "normalized_rule": "FI.['\ud83d\ude00', '\\U000E0001']",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "code-repr-nested",
+      "fi": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": "Example",
+          "code": {
+            "a": [
+              null,
+              false,
+              {
+                "b": []
+              }
+            ],
+            "z": {}
+          }
+        }
+      ],
+      "pal": [],
+      "xml": {},
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "masks": [],
+      "pal_version": "",
+      "pal_requested": true,
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": {
+                "a": [
+                  null,
+                  false,
+                  {
+                    "b": []
+                  }
+                ],
+                "z": {}
+              },
+              "normalized_rule": "FI.{'A': [NONE, FALSE, {'B': []}], 'Z': {}}",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": "Example",
+              "code": {
+                "a": [
+                  null,
+                  false,
+                  {
+                    "b": []
+                  }
+                ],
+                "z": {}
+              },
+              "normalized_rule": "FI.{'A': [NONE, FALSE, {'B': []}], 'Z': {}}",
+              "report_projection": "actionable"
+            }
+          ],
+          "pal": []
+        }
+      ]
+    },
+    {
+      "name": "section-repr-quotes",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": [
+            "can't",
+            "say \"yes\"",
+            "both '\"",
+            "\\"
+          ]
+        }
+      ],
+      "xml": {},
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "masks": [],
+      "pal_version": "",
+      "pal_requested": true,
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": [
+                "can't",
+                "say \"yes\"",
+                "both '\"",
+                "\\"
+              ],
+              "normalized_rule": "PAL.warnings.can-t-say-yes-both-15cbe9f5d8291038",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": [
+                "can't",
+                "say \"yes\"",
+                "both '\"",
+                "\\"
+              ],
+              "normalized_rule": "PAL.warnings.can-t-say-yes-both-15cbe9f5d8291038",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-repr-controls",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": [
+            "\t\n\r\u0000\u001b\u007f",
+            "\u00a0\u200b\u2028\ue000"
+          ]
+        }
+      ],
+      "xml": {},
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "masks": [],
+      "pal_version": "",
+      "pal_requested": true,
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": [
+                "\t\n\r\u0000\u001b\u007f",
+                "\u00a0\u200b\u2028\ue000"
+              ],
+              "normalized_rule": "PAL.warnings.t-n-r-x00-x1b-x7f-xa0-u200b-u2028-ue000-3a4e623d8319341b",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": [
+                "\t\n\r\u0000\u001b\u007f",
+                "\u00a0\u200b\u2028\ue000"
+              ],
+              "normalized_rule": "PAL.warnings.t-n-r-x00-x1b-x7f-xa0-u200b-u2028-ue000-3a4e623d8319341b",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-repr-astral",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": [
+            "\ud83d\ude00",
+            "\udb40\udc01"
+          ]
+        }
+      ],
+      "xml": {},
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "masks": [],
+      "pal_version": "",
+      "pal_requested": true,
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": [
+                "\ud83d\ude00",
+                "\udb40\udc01"
+              ],
+              "normalized_rule": "PAL.warnings.u000e0001-1864da159e54a90f",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": [
+                "\ud83d\ude00",
+                "\udb40\udc01"
+              ],
+              "normalized_rule": "PAL.warnings.u000e0001-1864da159e54a90f",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "section-repr-nested",
+      "fi": [],
+      "pal": [
+        {
+          "path": "src/Unit.pas",
+          "ownership": "project",
+          "report": "Warnings.xml",
+          "section": {
+            "a": [
+              null,
+              false,
+              {
+                "b": []
+              }
+            ],
+            "z": {}
+          }
+        }
+      ],
+      "xml": {},
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ]
+      },
+      "masks": [],
+      "pal_version": "",
+      "pal_requested": true,
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": {
+                "a": [
+                  null,
+                  false,
+                  {
+                    "b": []
+                  }
+                ],
+                "z": {}
+              },
+              "normalized_rule": "PAL.warnings.a-none-false-b-z-d28ad557449e4429",
+              "report_projection": "actionable"
+            }
+          ]
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": [
+            {
+              "path": "src/Unit.pas",
+              "ownership": "project",
+              "report": "Warnings.xml",
+              "section": {
+                "a": [
+                  null,
+                  false,
+                  {
+                    "b": []
+                  }
+                ],
+                "z": {}
+              },
+              "normalized_rule": "PAL.warnings.a-none-false-b-z-d28ad557449e4429",
+              "report_projection": "actionable"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "catalog-leading-space",
+      "fi": [],
+      "pal": [],
+      "xml": {
+        " Warnings.xml": "<report><section name=\"Example\"/></report>"
+      },
+      "policy": {
+        "gate_ownership": [
+          "project",
+          "repository"
+        ],
+        "pal_ignore_rules": [
+          "PAL.warnings.example-a894270c789fd2f1"
+        ]
+      },
+      "masks": [],
+      "pal_version": "",
+      "pal_requested": true,
+      "expected_passes": [
+        {
+          "error": null,
+          "fi": [],
+          "pal": []
+        },
+        {
+          "error": null,
+          "fi": [],
+          "pal": []
+        }
+      ]
+    }
+  ]
+}

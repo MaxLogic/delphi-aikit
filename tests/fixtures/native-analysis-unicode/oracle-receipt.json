@@ -1,0 +1,31 @@
+{
+  "python": "3.13.15 (tags/v3.13.15:4061bc4, Aug  5 2026, 13:05:39) [MSC v.1944 64 bit (AMD64)]",
+  "unicode_version": "15.1.0",
+  "oracle_generator_sha256": "921d611fafab50249237e57f38b672ab4b31ec3fca847f629473972881b7b9fa",
+  "singleton_records": 1114112,
+  "singleton_bytes": 12255720,
+  "singleton_sha256": "5dc6a6185068604df6d6acb48f61b7ff7c7ed3ef1ced5e011c01486e29fe8ce6",
+  "compressed_bytes": 3922656,
+  "compressed_sha256": "180cda2655afd52fb02aa81e64b7ff59c1300e9b561f51a6f35abe5ea00bf637",
+  "zlib_version": "1.3.1",
+  "context_format": "For each cp from 0 through 0x10ffff inclusive, append UInt32LE UTF-16 code-unit count, then exact UTF-16LE bytes of Python lower(recipe); surrogatepass. No header.",
+  "contexts": [
+    {
+      "input": "A+c+SIGMA",
+      "records": 1114112,
+      "sha256": "ff806e385534d10d3a6b924b50a30eeec8502758710a40d32f29631ea88b1adb"
+    },
+    {
+      "input": "A+SIGMA+c",
+      "records": 1114112,
+      "sha256": "3f8a8e9a14dc1e756d20657ec1d00f9e2a960858d4f40b2d46e32d706ceb4438"
+    },
+    {
+      "input": "A+SIGMA+c+A",
+      "records": 1114112,
+      "sha256": "b6956f97f2751b554259db76a107551e19fe22842a455c8c895cfdd517c2caea"
+    }
+  ],
+  "targeted_rows": 114,
+  "targeted_rows_sha256": "6a0bc76f5ca6c21c7c03647ac5b1bb4b54a849aa431557a94a5a5d35d72b1431"
+}
