@@ -12,14 +12,19 @@ uses
 // Policy, baseline, delta, history and trend belong to the policy stage (T-325).
 // Returns a caller-owned result object with the written artifact paths.
 function FinalizeAnalysisReport(const aOutRoot: string; aCapturedProvenance: TJSONObject;
-  aExecutionExitCode: Integer): TJSONObject;
+  aExecutionExitCode: Integer): TJSONObject; overload;
+// The workflow passes the subject's own name, as analyze.py passes title=dproj.stem. Without it the
+// title would follow the output folder, which the caller is free to point anywhere.
+function FinalizeAnalysisReport(const aOutRoot, aTitle: string; aCapturedProvenance: TJSONObject;
+  aExecutionExitCode: Integer): TJSONObject; overload;
 
 implementation
 
 uses
   System.Generics.Collections, System.Hash, System.IOUtils, System.StrUtils, System.SysUtils,
   AutoFree,
-  Dak.Analysis.Findings, Dak.Analysis.Ownership, Dak.Analysis.OwnershipContext, Dak.Analysis.Projections,
+  Dak.Analysis.Findings, Dak.Analysis.FixInsightImport, Dak.Analysis.Ownership,
+  Dak.Analysis.OwnershipContext, Dak.Analysis.Projections,
   Dak.Analysis.ReportBundle, Dak.Analysis.ReportPolicy, Dak.Analysis.ReportWriters,
   Dak.Analysis.SourceResolution, Dak.Analysis.Workspace, Dak.Settings;
 
@@ -264,6 +269,12 @@ end;
 
 function FinalizeAnalysisReport(const aOutRoot: string; aCapturedProvenance: TJSONObject;
   aExecutionExitCode: Integer): TJSONObject;
+begin
+  Result := FinalizeAnalysisReport(aOutRoot, '', aCapturedProvenance, aExecutionExitCode);
+end;
+
+function FinalizeAnalysisReport(const aOutRoot, aTitle: string; aCapturedProvenance: TJSONObject;
+  aExecutionExitCode: Integer): TJSONObject;
 var
   g: TGarbos;
   lActionable, lActive, lAnalyzer, lAnalyzers, lArtifacts, lCompatibility, lCompiler, lCounts,
@@ -273,6 +284,7 @@ var
   lErrors: TList<string>;
   lFi, lPal: TJSONArray;
   lFiPath, lLegacyRoot, lOutRoot, lPalPath, lProjectDirectory, lSubject, lSummaryPath, lTitle: string;
+  lWorkspaceRoot: string;
   lFullSarif, lMetrics, lExternal, lSarif, lTriage, lTriageChanged: string;
   lItem: TJSONValue;
   lPalRequested: Boolean;
@@ -292,7 +304,9 @@ const
     'external_summary', 'metrics', 'history', 'trend');
 begin
   lOutRoot := ExcludeTrailingPathDelimiter(TPath.GetFullPath(aOutRoot));
-  lTitle := TPath.GetFileName(lOutRoot);
+  lTitle := aTitle;
+  if lTitle = '' then
+    lTitle := TPath.GetFileName(lOutRoot);
   lSummaryPath := TPath.Combine(lOutRoot, 'summary.md');
   lFiPath := TPath.Combine(lOutRoot, 'fixinsight\fi-findings.jsonl');
   lPalPath := TPath.Combine(lOutRoot, 'pascal-analyzer\pal-findings.jsonl');
@@ -339,6 +353,13 @@ begin
       if lLegacyRoot = '' then
         lLegacyRoot := FindNamedRepoRoot(lProjectDirectory, '.git');
     end;
+    // write_fixinsight_normalized: the analyzer's own fixinsight.txt becomes the normalized rows
+    // the report stage reads. It runs before the empty-file rule so a real report is never
+    // replaced by an empty one, and it does nothing when there is no text report to read.
+    lWorkspaceRoot := JsonText(JsonObjectMember(lSeed, 'workspace'), 'root');
+    if TDirectory.Exists(TPath.GetDirectoryName(lFiPath)) then
+      WriteFixInsightNormalized(TPath.GetDirectoryName(lFiPath), lWorkspaceRoot,
+        [lProjectDirectory, lWorkspaceRoot]);
     // Requested complete analyzers without a JSONL file own an empty one; an unrequested PAL
     // file is emptied.
     for lName in cAnalyzers do
@@ -499,9 +520,14 @@ begin
       lArtifacts := TJSONObject.Create;
       lSeed.AddPair('artifacts', lArtifacts);
     end;
-    JsonPutText(lArtifacts, 'summary_markdown', 'summary.md');
-    JsonPutText(lArtifacts, 'fixinsight_jsonl', RelativeArtifact(lOutRoot, lFiPath));
-    JsonPutText(lArtifacts, 'pascal_analyzer_jsonl', RelativeArtifact(lOutRoot, lPalPath));
+    // summary_json["artifacts"].update(artifacts): only artifacts that exist are added, and an entry
+    // the seed already carries is kept rather than blanked.
+    if RelativeArtifact(lOutRoot, lSummaryPath) <> '' then
+      JsonPutText(lArtifacts, 'summary_markdown', RelativeArtifact(lOutRoot, lSummaryPath));
+    if RelativeArtifact(lOutRoot, lFiPath) <> '' then
+      JsonPutText(lArtifacts, 'fixinsight_jsonl', RelativeArtifact(lOutRoot, lFiPath));
+    if RelativeArtifact(lOutRoot, lPalPath) <> '' then
+      JsonPutText(lArtifacts, 'pascal_analyzer_jsonl', RelativeArtifact(lOutRoot, lPalPath));
     for lName in cArtifactNames do
       if (Result.GetValue(lName) <> nil) and (RelativeArtifact(lOutRoot, Result.GetValue(lName).Value) <> '') then
         JsonPutText(lArtifacts, lName, RelativeArtifact(lOutRoot, Result.GetValue(lName).Value));

@@ -512,6 +512,20 @@ if ($MyInvocation.InvocationName -ne '.') {
         Invoke-MigrationReportComparison -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot -Benchmark:($Mode -eq 'Benchmark') -ArtifactSet $ArtifactSet
         return
     }
+    if ($Mode -eq 'Compare' -and $Area -eq 'Project') {
+        if (-not $CandidateExecutable) { throw 'Compare Project requires CandidateExecutable.' }
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-project.ps1')
+        $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/project-compare-'+[guid]::NewGuid().ToString()) }
+        Invoke-MigrationProjectComparison -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot
+        return
+    }
+    if ($Mode -eq 'Compare' -and $Area -eq 'Unit') {
+        if (-not $CandidateExecutable) { throw 'Compare Unit requires CandidateExecutable.' }
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-unit.ps1')
+        $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/unit-compare-'+[guid]::NewGuid().ToString()) }
+        Invoke-MigrationUnitComparison -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot
+        return
+    }
     if ($Mode -ne 'Baseline') { throw "Mode $Mode requires its native migration task; it is not certified yet." }
     $scratchRoot = Join-Path $evidenceRoot 'scratch'
     $seedRoot = Join-Path $evidenceRoot 'seeds'

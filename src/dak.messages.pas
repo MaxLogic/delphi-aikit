@@ -62,6 +62,11 @@ resourcestring
     '  [--clean [true|false]] [--write-summary [true|false]]' + #13#10 +
     '  [--rsvars "<path>"] [--envoptions "<path>"] [--log-file "<path>"] [--log-tee [true|false]] ' +
     '[--verbose [true|false]]' + #13#10 +
+    '  A missing switch is taken from the environment: DAK_DELPHI, DAK_PLATFORM, DAK_CONFIG, DAK_OUT, ' +
+    'DAK_FI_FORMATS, DAK_FIXINSIGHT, DAK_PASCAL_ANALYZER (or DAK_PAL, default true), DAK_CLEAN, ' +
+    'DAK_WRITE_SUMMARY, DAK_RSVARS, DAK_ENVOPTIONS, DAK_EXCLUDE_PATH_MASKS, DAK_FI_IGNORE_RULES and ' +
+    'DAK_IGNORE_WARNING_IDS (merged), DAK_PAL_IGNORE_RULES, FIXINSIGHT_SETTINGS (or FI_SETTINGS), PA_PATH, ' +
+    'PA_ARGS, DAK_PAL_EXCLUDE_SEARCH_FOLDERS, DAK_PAL_EXCLUDE_FILES.' + #13#10 +
     'DelphiAIKit.exe analyze --unit "<path>" [--project-context "<dproj>"] --delphi <23.0> [--out "<path>"] ' +
     '[--workspace-root <auto|git|svn|project|path>] ' +
     '[--pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +

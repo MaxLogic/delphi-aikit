@@ -186,13 +186,27 @@ begin
   TArray.Sort<string>(Result, TStringComparer.Ordinal);
 end;
 
-function CountsObject(aCounts: TStringCounts): TJSONObject;
+// A Python dict filled in row order: the members follow aOrder, the first-seen order of the keys.
+function OrderedCountsObject(aCounts: TStringCounts; aOrder: TList<string>): TJSONObject;
 var
   lKey: string;
 begin
   Result := TJSONObject.Create;
-  for lKey in SortedCountKeys(aCounts) do
+  for lKey in aOrder do
     Result.AddPair(lKey, TJSONNumber.Create(aCounts[lKey]));
+end;
+
+// The member names of a counts object in document order, which is the dict order Python iterates:
+// row order for a fresh snapshot, file order for a loaded baseline.
+function MemberNames(aObject: TJSONObject): TArray<string>;
+var
+  lPair: TJSONPair;
+begin
+  Result := nil;
+  if aObject = nil then
+    Exit;
+  for lPair in aObject do
+    Result := Result + [lPair.JsonString.Value];
 end;
 
 procedure Bump(aCounts: TStringCounts; const aKey: string);
@@ -569,8 +583,8 @@ begin
   if lCounts.Count > 0 then
   begin
     lLines.Add('- Top codes:');
-    lKeys := SortedCountKeys(lCounts);
-    // sorted(..., key=count, reverse=True) keeps equal counts in their original ascending key order.
+    lKeys := MemberNames(JsonObjectMember(lFi, 'counts_by_code'));
+    // sorted(..., key=count, reverse=True) is stable: equal counts keep the dict's own order.
     for i := 0 to High(lKeys) do
     begin
       lBest := i;
@@ -719,6 +733,7 @@ var
   g: TGarbos;
   lActionableFi, lActionablePal, lPalWarnings: TList<TJSONObject>;
   lCountsByCode: TStringCounts;
+  lCodeOrder: TList<string>;
   lCreated: string;
   lFi, lPal, lRawCounts, lActionableCounts: TJSONObject;
   lRow: TJSONObject;
@@ -730,6 +745,7 @@ begin
   GC(lActionablePal, ActionableRows(aInput.fPal), g);
   GC(lPalWarnings, TList<TJSONObject>.Create, g);
   GC(lCountsByCode, TStringCounts.Create, g);
+  GC(lCodeOrder, TList<string>.Create, g);
   GC(lWarning, TDictionary<string, Boolean>.Create, g);
   GC(lStrong, TDictionary<string, Boolean>.Create, g);
   GC(lWHashes, TDictionary<string, Boolean>.Create, g);
@@ -745,7 +761,11 @@ begin
   for lRow in lActionableFi do
   begin
     if JsonText(lRow, 'code') <> '' then
+    begin
+      if not lCountsByCode.ContainsKey(JsonText(lRow, 'code')) then
+        lCodeOrder.Add(JsonText(lRow, 'code'));
       Bump(lCountsByCode, JsonText(lRow, 'code'));
+    end;
     if JsonText(lRow, 'kind') <> 'W' then
       Continue;
     lWHashes.AddOrSetValue(FixInsightFingerprint(lRow, True), True);
@@ -761,7 +781,7 @@ begin
       JsonObjectMember(lActionableCounts, 'pascal_analyzer').GetValue(lName)));
   lFi := TJSONObject.Create
     .AddPair('total', JsonCloneValue(JsonObjectMember(lActionableCounts, 'fixinsight').GetValue('total')))
-    .AddPair('counts_by_code', CountsObject(lCountsByCode))
+    .AddPair('counts_by_code', OrderedCountsObject(lCountsByCode, lCodeOrder))
     .AddPair('w_hashes', SortedStringArray(lWHashes))
     .AddPair('ownership', JsonCloneValue(JsonObjectMember(JsonObjectMember(lActionableCounts, 'fixinsight'), 'ownership')));
   lPal := TJSONObject.Create

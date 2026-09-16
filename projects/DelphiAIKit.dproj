@@ -224,6 +224,7 @@
         <DCCReference Include="..\src\Dak.Analysis.ReportReplay.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ReportVerify.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ReportCommand.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.WorkflowFinish.pas"/>
         <DCCReference Include="..\src\Dak.PascalAnalyzer.Help.pas"/>
         <DCCReference Include="..\src\dak.build.pas"/>
         <DCCReference Include="..\src\Dak.CommandOutput.pas"/>

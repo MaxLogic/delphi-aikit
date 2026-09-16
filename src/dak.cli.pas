@@ -17,7 +17,7 @@ function IsHelpRequested: Boolean;
 implementation
 
 uses
-  System.Generics.Collections,
+  System.Generics.Collections, System.IOUtils,
   Dak.DeadCodeProfile;
 
 type
@@ -537,7 +537,12 @@ type
     fIndex: Integer;
     fOptions: TAppOptions;
     fError: string;
+    // Canonical names of the switches typed on the command line, so environment defaults never
+    // overwrite an explicit choice.
+    fGivenSwitches: TArray<string>;
     procedure InitDefaults;
+    function SwitchGiven(const aName: string): Boolean;
+    function ApplyLegacyAnalyzeEnvironment(aUnit: Boolean): Boolean;
     function TryParseOutKind(const aText: string; out aKind: TOutputKind): Boolean;
     function TryParseFiFormats(const aText: string; out aFormats: TReportFormatSet): Boolean;
     function TryParseBool(const aText: string; out aValue: Boolean): Boolean;
@@ -698,6 +703,235 @@ begin
   end;
 
   Result := aFormats <> [];
+end;
+
+function TOptionParser.SwitchGiven(const aName: string): Boolean;
+var
+  lName: string;
+begin
+  for lName in fGivenSwitches do
+    if SameText(lName, aName) then
+      Exit(True);
+  Result := False;
+end;
+
+// analyze.py and analyze-unit.py translated these variables into switches before starting DAK (D2).
+// The value of a variable is used exactly as that switch would be, and only when the switch was not
+// typed. The unit wrapper forwarded a narrower set, because a unit run never starts FixInsight.
+function TOptionParser.ApplyLegacyAnalyzeEnvironment(aUnit: Boolean): Boolean;
+
+  function EnvValue(const aName: string): string;
+  begin
+    Result := Trim(GetEnvironmentVariable(aName));
+  end;
+
+  // _merge_rule_lists: case-insensitive, order preserving, first spelling kept, empty items dropped.
+  function MergeRuleLists(const aValues: array of string): string;
+  var
+    lItem: string;
+    lRule: string;
+    lSeen: TStringList;
+    lValue: string;
+  begin
+    Result := '';
+    lSeen := TStringList.Create;
+    try
+      lSeen.CaseSensitive := False;
+      for lValue in aValues do
+        for lItem in lValue.Split([';']) do
+        begin
+          lRule := Trim(lItem);
+          if (lRule = '') or (lSeen.IndexOf(lRule) >= 0) then
+            Continue;
+          lSeen.Add(lRule);
+          if Result <> '' then
+            Result := Result + ';';
+          Result := Result + lRule;
+        end;
+    finally
+      lSeen.Free;
+    end;
+  end;
+
+  // str(PureWindowsPath(value)): separators become backslashes, empty and "." segments collapse,
+  // ".." is kept, a trailing separator is dropped, and a drive or UNC share keeps its root.
+  function WindowsPathText(const aValue: string): string;
+  var
+    lDrive: string;
+    lParts: TArray<string>;
+    lPart: string;
+    lRest: string;
+    lRoot: string;
+    lSecond: Integer;
+    lText: string;
+    lThird: Integer;
+  begin
+    if aValue = '' then
+      Exit('');
+    lText := aValue.Replace('/', '\');
+    lDrive := '';
+    lRoot := '';
+    lRest := lText;
+    if lText.StartsWith('\\\') then
+      // A run of three or more separators has no meaningful Windows reading; keep it unchanged.
+      Exit(lText)
+    else if lText.StartsWith('\\') then
+    begin
+      lSecond := Pos('\', lText, 3);
+      if lSecond = 0 then
+        Exit(lText + '\');
+      lThird := Pos('\', lText, lSecond + 1);
+      if lThird = 0 then
+        lThird := Length(lText) + 1;
+      lDrive := Copy(lText, 1, lThird - 1);
+      lRoot := '\';
+      lRest := Copy(lText, lThird + 1, MaxInt);
+    end else if (Length(lText) >= 2) and (lText[2] = ':') then
+    begin
+      lDrive := Copy(lText, 1, 2);
+      lRest := Copy(lText, 3, MaxInt);
+      if lRest.StartsWith('\') then
+        lRoot := '\';
+    end else if lText.StartsWith('\') then
+      lRoot := '\';
+    Result := '';
+    lParts := lRest.Split(['\']);
+    for lPart in lParts do
+    begin
+      if (lPart = '') or (lPart = '.') then
+        Continue;
+      if Result <> '' then
+        Result := Result + '\';
+      Result := Result + lPart;
+    end;
+    Result := lDrive + lRoot + Result;
+    if Result = '' then
+      Result := '.';
+  end;
+
+  function TryBool(const aSwitch, aVariable, aText: string; var aTarget: Boolean): Boolean;
+  begin
+    Result := True;
+    if SwitchGiven(aSwitch) or (aText = '') then
+      Exit;
+    if not TryParseBool(aText, aTarget) then
+    begin
+      fError := Format(SInvalidBoolValue, [aVariable, aText]);
+      Result := False;
+    end;
+  end;
+
+  procedure TakeText(const aSwitch, aText: string; var aTarget: string; var aHas: Boolean);
+  begin
+    if SwitchGiven(aSwitch) or (aText = '') then
+      Exit;
+    aTarget := aText;
+    aHas := True;
+  end;
+
+var
+  lPal: string;
+  lHadPalRules: Boolean;
+  lValue: string;
+begin
+  Result := False;
+  if not aUnit then
+  begin
+    lValue := EnvValue('DAK_PLATFORM');
+    if (lValue <> '') and not SwitchGiven('platform') then
+      fOptions.fPlatform := lValue;
+    lValue := EnvValue('DAK_CONFIG');
+    if (lValue <> '') and not SwitchGiven('config') then
+      fOptions.fConfig := lValue;
+  end else if fOptions.fHasProjectContextPath then
+  begin
+    // analyze-unit.py passed --platform and --config only with a project context, defaulting to
+    // Win64 and Release; a standalone unit keeps DAK's own defaults.
+    if not SwitchGiven('platform') then
+    begin
+      fOptions.fPlatform := EnvValue('DAK_PLATFORM');
+      if fOptions.fPlatform = '' then
+        fOptions.fPlatform := 'Win64';
+    end;
+    if not SwitchGiven('config') then
+    begin
+      fOptions.fConfig := EnvValue('DAK_CONFIG');
+      if fOptions.fConfig = '' then
+        fOptions.fConfig := 'Release';
+    end;
+  end;
+  lValue := EnvValue('DAK_DELPHI');
+  if (lValue <> '') and not SwitchGiven('delphi') then
+  begin
+    if Pos('.', lValue) = 0 then
+      lValue := lValue + '.0';
+    fOptions.fDelphiVersion := lValue;
+  end;
+
+  lValue := EnvValue('DAK_OUT');
+  if (lValue <> '') and not SwitchGiven('out') then
+  begin
+    fOptions.fAnalyzeOutPath := TPath.GetFullPath(lValue);
+    fOptions.fHasAnalyzeOutPath := True;
+  end;
+  if not aUnit then
+  begin
+    lValue := EnvValue('DAK_FI_FORMATS');
+    if (lValue <> '') and not SwitchGiven('fi-formats') then
+      if not TryParseFiFormats(lValue, fOptions.fAnalyzeFiFormats) then
+      begin
+        fError := Format(SInvalidBoolValue, ['DAK_FI_FORMATS', lValue]);
+        Exit;
+      end;
+    if not TryBool('fixinsight', 'DAK_FIXINSIGHT', EnvValue('DAK_FIXINSIGHT'), fOptions.fAnalyzeFixInsight) then
+      Exit;
+  end;
+  // analyze.py: DAK_PASCAL_ANALYZER, else DAK_PAL, else on.
+  lPal := EnvValue('DAK_PASCAL_ANALYZER');
+  if lPal = '' then
+    lPal := EnvValue('DAK_PAL');
+  if lPal = '' then
+    lPal := 'true';
+  if not TryBool('pascal-analyzer', 'DAK_PASCAL_ANALYZER', lPal, fOptions.fAnalyzePal) then
+    Exit;
+  if not TryBool('clean', 'DAK_CLEAN', EnvValue('DAK_CLEAN'), fOptions.fAnalyzeClean) then
+    Exit;
+  if not TryBool('write-summary', 'DAK_WRITE_SUMMARY', EnvValue('DAK_WRITE_SUMMARY'),
+    fOptions.fAnalyzeWriteSummary) then
+    Exit;
+
+  // The path-valued variables went through _to_win_arg(Path(value)) in the wrappers.
+  if not aUnit then
+  begin
+    TakeText('rsvars', WindowsPathText(EnvValue('DAK_RSVARS')), fOptions.fRsVarsPath, fOptions.fHasRsVarsPath);
+    TakeText('envoptions', WindowsPathText(EnvValue('DAK_ENVOPTIONS')), fOptions.fEnvOptionsPath,
+      fOptions.fHasEnvOptionsPath);
+    TakeText('exclude-path-masks', EnvValue('DAK_EXCLUDE_PATH_MASKS'), fOptions.fExcludePathMasks,
+      fOptions.fHasExcludePathMasks);
+  end;
+  TakeText('ignore-warning-ids', MergeRuleLists([GetEnvironmentVariable('DAK_FI_IGNORE_RULES'),
+    GetEnvironmentVariable('DAK_IGNORE_WARNING_IDS')]), fOptions.fIgnoreWarningIds,
+    fOptions.fHasIgnoreWarningIds);
+  lHadPalRules := fOptions.fHasPalIgnoreRules;
+  TakeText('pal-ignore-rules', EnvValue('DAK_PAL_IGNORE_RULES'), fOptions.fPalIgnoreRules,
+    fOptions.fHasPalIgnoreRules);
+  // D3: the origin is known here, so nothing has to pass it through the process environment.
+  if fOptions.fHasPalIgnoreRules and not lHadPalRules then
+    fOptions.fPalIgnoreRulesOrigin := 'environment:DAK_PAL_IGNORE_RULES';
+  if not aUnit then
+  begin
+    lValue := EnvValue('FIXINSIGHT_SETTINGS');
+    if lValue = '' then
+      lValue := EnvValue('FI_SETTINGS');
+    TakeText('fi-settings', WindowsPathText(lValue), fOptions.fFixSettings, fOptions.fHasFixSettings);
+  end;
+  TakeText('pa-path', WindowsPathText(EnvValue('PA_PATH')), fOptions.fPaPath, fOptions.fHasPaPath);
+  TakeText('pa-args', EnvValue('PA_ARGS'), fOptions.fPaArgs, fOptions.fHasPaArgs);
+  TakeText('pa-exclude-search-folders', EnvValue('DAK_PAL_EXCLUDE_SEARCH_FOLDERS'),
+    fOptions.fPaExcludeSearchFolders, fOptions.fHasPaExcludeSearchFolders);
+  TakeText('pa-exclude-files', EnvValue('DAK_PAL_EXCLUDE_FILES'), fOptions.fPaExcludeFiles,
+    fOptions.fHasPaExcludeFiles);
+  Result := True;
 end;
 
 function TOptionParser.TryParseBool(const aText: string; out aValue: Boolean): Boolean;
@@ -886,6 +1120,7 @@ function TOptionParser.TryParseSwitch(const aArg: string; const aSwitch: string;
 var
   lCommandDescriptor: TCommandDescriptor;
   lHandled: Boolean;
+  lSwitchDescriptor: TSwitchDescriptor;
   lValue: string;
 begin
   if (not TryGetCommandDescriptor(fOptions.fCommand, lCommandDescriptor)) or
@@ -894,6 +1129,12 @@ begin
     fError := Format(SUnknownArg, [aArg]);
     Exit(False);
   end;
+  // An alias can belong to another command's switch (--out is also out-file's alias), so the
+  // canonical name is taken from the descriptor that applies to this command.
+  for lSwitchDescriptor in GetSwitchDescriptors do
+    if SwitchDescriptorMatchesName(lSwitchDescriptor, aSwitch) and
+      SwitchDescriptorAppliesToRoute(lSwitchDescriptor, lCommandDescriptor.fRoute) then
+      fGivenSwitches := fGivenSwitches + [lSwitchDescriptor.fName];
 
   if not TryParseGlobalSwitch(aSwitch, aInlineValue, aHasInlineValue, lHandled) then
     Exit(False);
@@ -2910,6 +3151,16 @@ begin
     Exit(False);
   end;
   if not TryParseArgs then
+  begin
+    aError := fError;
+    Exit(False);
+  end;
+  // The environment fills in after the command line is known and before validation, so a value it
+  // supplies is validated exactly like the switch it stands for.
+  // `analyze --unit` becomes a unit command only in validation, by the same rule used here.
+  if (fOptions.fCommand in [TCommandKind.ckAnalyzeProject, TCommandKind.ckAnalyzeUnit]) and
+    not ApplyLegacyAnalyzeEnvironment((fOptions.fCommand = TCommandKind.ckAnalyzeUnit) or
+      ((fOptions.fUnitPath <> '') and (fOptions.fDprojPath = ''))) then
   begin
     aError := fError;
     Exit(False);

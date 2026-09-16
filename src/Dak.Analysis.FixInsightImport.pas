@@ -7,12 +7,17 @@ uses
 
 // Caller owns the array and its raw finding objects.
 function LoadFixInsightFindings(const aPath: string): TJSONArray;
+// write_fixinsight_normalized: turn the analyzer's own fixinsight.txt into the normalized
+// fi-findings.jsonl and fi-findings.md the report stage reads. An empty report writes nothing,
+// exactly as the reference leaves the directory alone.
+procedure WriteFixInsightNormalized(const aFixInsightDir, aRepoRoot: string;
+  const aBaseDirs: TArray<string>);
 
 implementation
 
 uses
-  System.Character, System.IOUtils, System.RegularExpressions, System.SysUtils,
-  Dak.Analysis.Text;
+  System.Character, System.Classes, System.IOUtils, System.RegularExpressions, System.SysUtils,
+  Dak.Analysis.ReportBundle, Dak.Analysis.ReportWriters, Dak.Analysis.SourceResolution, Dak.Analysis.Text;
 
 const
   cPythonSpace = '[\x09-\x0D\x1C-\x20\x85\xA0\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}]';
@@ -116,6 +121,64 @@ begin
   except
     Result.Free;
     raise;
+  end;
+end;
+
+procedure WriteFixInsightNormalized(const aFixInsightDir, aRepoRoot: string;
+  const aBaseDirs: TArray<string>);
+var
+  lFindings: TJSONArray;
+  lItem: TJSONValue;
+  lLines: TStringList;
+  lLocation: string;
+  lRaw: TJSONObject;
+  lRecord: TJSONObject;
+  lRecords: TJSONArray;
+  lTextPath: string;
+begin
+  lTextPath := TPath.Combine(aFixInsightDir, 'fixinsight.txt');
+  lFindings := LoadFixInsightFindings(lTextPath);
+  try
+    if lFindings.Count = 0 then
+      Exit;
+    lRecords := TJSONArray.Create;
+    try
+      lLines := TStringList.Create;
+      try
+        lLines.LineBreak := #10;
+        for lItem in lFindings do
+        begin
+          lRaw := TJSONObject(lItem);
+          // The member order is the reference's, because the JSONL rows are compared byte for byte.
+          lRecord := TJSONObject.Create
+            .AddPair('tool', 'FixInsight')
+            .AddPair('code', JsonText(lRaw, 'code'))
+            .AddPair('kind', JsonText(lRaw, 'kind'))
+            .AddPair('file', AnalysisPosixNormPath(JsonText(lRaw, 'file').Replace('\', '/')))
+            .AddPair('path', AnalysisNormalizedPathValue(JsonText(lRaw, 'file'), aRepoRoot, aBaseDirs));
+          lRecord.AddPair('line', JsonCloneValue(lRaw.GetValue('line')));
+          lRecord.AddPair('col', JsonCloneValue(lRaw.GetValue('col')));
+          lRecord.AddPair('message', JsonText(lRaw, 'message'));
+          lRecords.AddElement(lRecord);
+          lLocation := JsonText(lRecord, 'path');
+          if lLocation = '' then
+            lLocation := JsonText(lRecord, 'file');
+          if lLocation = '' then
+            lLocation := '?';
+          lLines.Add(Format('%s | %s:%s:%s | %s', [JsonText(lRecord, 'code'), lLocation,
+            JsonText(lRecord, 'line'), JsonText(lRecord, 'col'), JsonText(lRecord, 'message')]));
+        end;
+        WriteAnalysisJsonLines(TPath.Combine(aFixInsightDir, 'fi-findings.jsonl'), lRecords);
+        WriteAnalysisText(TPath.Combine(aFixInsightDir, 'fi-findings.md'),
+          string.Join(#10, lLines.ToStringArray) + #10);
+      finally
+        lLines.Free;
+      end;
+    finally
+      lRecords.Free;
+    end;
+  finally
+    lFindings.Free;
   end;
 end;
 

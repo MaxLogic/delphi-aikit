@@ -24,6 +24,12 @@ type
   end;
 
 function IsAbsoluteAnalysisPath(const aPath: string): Boolean;
+// posixpath.normpath over a value whose separators have already been made forward slashes.
+function AnalysisPosixNormPath(const aPath: string): string;
+// _normalize_path_value with an empty basename index: repo-relative when the value resolves under
+// the repository, otherwise the deterministic separator and dot-segment normalization.
+function AnalysisNormalizedPathValue(const aRawPath, aRepoRoot: string;
+  const aBaseDirs: TArray<string>): string;
 
 implementation
 
@@ -36,6 +42,115 @@ begin
   Result := '';
   if TFile.Exists(aPath) or (not aRequireFile and TDirectory.Exists(aPath)) then
     Result := ResolveFilesystemPath(aPath);
+end;
+
+function AnalysisPosixNormPath(const aPath: string): string;
+var
+  lLeading: string;
+  lParts: TArray<string>;
+  lPart: string;
+  lStack: TList<string>;
+  i: Integer;
+begin
+  if aPath = '' then
+    Exit('.');
+  // POSIX keeps exactly two leading slashes distinct; one or three or more collapse to one.
+  lLeading := '';
+  if aPath.StartsWith('/') then
+  begin
+    if aPath.StartsWith('//') and not aPath.StartsWith('///') then
+      lLeading := '//'
+    else
+      lLeading := '/';
+  end;
+  lStack := TList<string>.Create;
+  try
+    lParts := aPath.Split(['/']);
+    for lPart in lParts do
+    begin
+      if (lPart = '') or (lPart = '.') then
+        Continue;
+      if lPart = '..' then
+      begin
+        if (lStack.Count > 0) and (lStack[lStack.Count - 1] <> '..') then
+          lStack.Delete(lStack.Count - 1)
+        else if lLeading = '' then
+          lStack.Add('..');
+        Continue;
+      end;
+      lStack.Add(lPart);
+    end;
+    Result := '';
+    for i := 0 to lStack.Count - 1 do
+    begin
+      if Result <> '' then
+        Result := Result + '/';
+      Result := Result + lStack[i];
+    end;
+  finally
+    lStack.Free;
+  end;
+  Result := lLeading + Result;
+  if Result = '' then
+    Result := '.';
+end;
+
+// Path.resolve() then is_relative_to(repo_root): an empty result means the value does not live
+// under the repository, which is what tells the caller to fall back.
+function RepoRelativeOf(const aFullPath, aRepoRoot: string): string;
+var
+  lRoot: string;
+  lResolved: string;
+begin
+  Result := '';
+  if (aFullPath = '') or (aRepoRoot = '') then
+    Exit;
+  try
+    lResolved := ResolveFilesystemPath(aFullPath);
+    lRoot := IncludeTrailingPathDelimiter(ResolveFilesystemPath(aRepoRoot));
+  except
+    // An unresolvable path is simply not repo-relative; the caller normalizes it instead.
+    on E: Exception do
+      Exit;
+  end;
+  if SameText(IncludeTrailingPathDelimiter(lResolved), lRoot) then
+    Exit('.');
+  if not lResolved.StartsWith(lRoot, True) then
+    Exit;
+  Result := lResolved.Substring(Length(lRoot)).Replace('\', '/');
+end;
+
+function AnalysisNormalizedPathValue(const aRawPath, aRepoRoot: string;
+  const aBaseDirs: TArray<string>): string;
+var
+  lBase: string;
+  lRelative: string;
+  lValue: string;
+begin
+  lValue := aRawPath.Trim;
+  if lValue = '' then
+    Exit('');
+  lValue := lValue.Replace('\', '/');
+  if aRepoRoot <> '' then
+  begin
+    if lValue.StartsWith('/') or IsAbsoluteAnalysisPath(aRawPath) then
+    begin
+      lRelative := RepoRelativeOf(lValue, aRepoRoot);
+      if lRelative <> '' then
+        Exit(lRelative);
+      // Absolute but outside this repository: the deterministic form is all we can offer.
+      Exit(AnalysisPosixNormPath(lValue));
+    end;
+    for lBase in aBaseDirs do
+    begin
+      if lBase = '' then
+        Continue;
+      lRelative := RepoRelativeOf(TPath.Combine(lBase, lValue), aRepoRoot);
+      if lRelative <> '' then
+        Exit(lRelative);
+    end;
+  end;
+  Result := AnalysisPosixNormPath(lValue);
 end;
 
 function IsAbsoluteAnalysisPath(const aPath: string): Boolean;

@@ -12,6 +12,7 @@ implementation
 
 uses
   System.Diagnostics, System.Hash, System.JSON, System.StrUtils,
+  Dak.Analysis.WorkflowFinish,
   Dak.FixInsight, Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
 
 type
@@ -50,6 +51,7 @@ type
     fPalDurationMs: Int64;
     fSummaryPath: string;
     fSummaryText: string;
+    fCapturedProvenance: TJSONObject;
     procedure AddError(const aMessage: string; const aExitCode: Integer);
     function TryOpenLog: Boolean;
     function TryPrepareParams: Boolean;
@@ -133,6 +135,7 @@ begin
   if fOptions.fAnalyzeClean then
     CleanAnalyzeOutput(fOutRoot, True);
   TDirectory.CreateDirectory(fOutRoot);
+  RemoveStaleAnalysisSummary(fOutRoot);
 
   fFixDir := TPath.Combine(fOutRoot, 'fixinsight');
   fPaDir := TPath.Combine(fOutRoot, 'pascal-analyzer');
@@ -588,6 +591,8 @@ begin
 end;
 
 function TAnalyzeProjectRunner.Execute: Integer;
+var
+  lCallerDirectory: string;
 begin
   try
     if not TryOpenLog then
@@ -595,13 +600,27 @@ begin
     if not TryPrepareParams then
       Exit(fExitCode);
     PrepareOutputTree;
-    RunFixInsightReports;
-    RunPascalAnalyzer;
-    fFixCounts := Default(TFixInsightCounts);
-    if fFixTxtRan and FileExists(fFixTxtPath) then
-      CaptureFixInsightSummary(fFixTxtPath, fFixCounts);
-    WriteSummary;
+    // Before the analyzers, so the report records the sources as they were analyzed.
+    fCapturedProvenance := CaptureAnalysisRunProvenance(fSettings.fWorkspace, fOutRoot, fDiagnostics);
+    // The analyzer stage runs where analyze.py started DAK; finalization runs back in the caller's
+    // directory, where analyze.py itself ran.
+    lCallerDirectory := EnterAnalysisWorkspace(fSettings.fWorkspace.fRoot);
+    try
+      RunFixInsightReports;
+      RunPascalAnalyzer;
+      fFixCounts := Default(TFixInsightCounts);
+      if fFixTxtRan and FileExists(fFixTxtPath) then
+        CaptureFixInsightSummary(fFixTxtPath, fFixCounts);
+      WriteSummary;
+    finally
+      LeaveAnalysisWorkspace(lCallerDirectory);
+    end;
+    // The workflow always reports on what is there: a run that published no summary is a rejected
+    // result, exactly as it is when the wrapper drives the analyzers.
+    fExitCode := FinishAnalysisRun(fOutRoot, fProjectName, fCapturedProvenance, fExitCode, fDiagnostics);
   finally
+    fCapturedProvenance.Free;
+    fCapturedProvenance := nil;
     fDiagnostics.WriteToStderr;
   end;
   Result := fExitCode;

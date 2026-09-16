@@ -96,9 +96,13 @@
         <DCCReference Include="..\src\Dak.Analysis.ReportReplay.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ReportVerify.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ReportCommand.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.WorkflowFinish.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.replay.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.verify.pas"/>
         <DCCReference Include="units\test.nativeanalysispolicy.pas"/>
+        <DCCReference Include="units\test.nativeanalysisproject.pas"/>
+        <DCCReference Include="units\test.nativeanalysisunit.pas"/>
+        <DCCReference Include="units\test.analyzeenvironment.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.OwnershipContext.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ProjectSources.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.SourceResolution.pas"/>

@@ -52,6 +52,8 @@ type
     [Test]
     procedure AcceptedUpdateReplacesTheBaselineAndItsMarkdown;
     [Test]
+    procedure FixInsightCodeCountsKeepFirstSeenOrder;
+    [Test]
     procedure DurableJsonWriteNeverLeavesTheTargetMissing;
     // A baseline records the host release, so a run context that names the release differently
     // than the reference would make every migrated baseline look incompatible.
@@ -128,6 +130,38 @@ end;
 // A reader that shares deletion lets a delete-then-rename replacement destroy the accepted
 // document: the delete is accepted, the rename is refused and the file disappears when the reader
 // closes. The replacement must therefore be one operation that either succeeds or changes nothing.
+// current_fi_counts_by_code is a plain dict filled in row order. history.jsonl writes it in that order
+// and baseline.md sorts by count with a stable sort, so equal counts keep first-seen order there too.
+// Found by Compare -Area Project: W501 then C101 must not become C101 then W501.
+procedure TNativeAnalysisPolicyTests.FixInsightCodeCountsKeepFirstSeenOrder;
+var
+  g: TGarbos;
+  lCodes: TJSONObject;
+  lHistory: TJSONObject;
+  lLines: TArray<string>;
+  lMarkdown: string;
+begin
+  WriteRun(['src/Owned.pas', 'src/Owned.pas']);
+  WriteUtf8(TPath.Combine(fOut, 'fixinsight\fi-findings.jsonl'),
+    '{"tool": "FixInsight", "code": "W501", "kind": "W", "file": "src/Owned.pas", "path": "src/Owned.pas", ' +
+    '"line": 1, "col": 1, "message": "first"}'#10 +
+    '{"tool": "FixInsight", "code": "C101", "kind": "C", "file": "src/Owned.pas", "path": "src/Owned.pas", ' +
+    '"line": 2, "col": 1, "message": "second"}'#10);
+  Finalize(True);
+
+  lLines := ReadUtf8(TPath.Combine(fOut, 'history.jsonl')).Trim.Split([#10]);
+  GC(lHistory, ParseJsonObject(lLines[High(lLines)], 'history.jsonl'), g);
+  lCodes := JsonObjectMember(JsonObjectMember(lHistory, 'fixinsight'), 'counts_by_code');
+  Assert.AreEqual(2, lCodes.Count, 'counts_by_code');
+  Assert.AreEqual('W501', lCodes.Pairs[0].JsonString.Value, 'history keeps the first-seen code first');
+  Assert.AreEqual('C101', lCodes.Pairs[1].JsonString.Value);
+
+  lMarkdown := ReadUtf8(TPath.Combine(fOut, 'baseline.md'));
+  Assert.IsTrue(Pos('  - W501: 1', lMarkdown) > 0, lMarkdown);
+  Assert.IsTrue(Pos('  - W501: 1', lMarkdown) < Pos('  - C101: 1', lMarkdown),
+    'baseline.md keeps equal counts in first-seen order: ' + lMarkdown);
+end;
+
 procedure TNativeAnalysisPolicyTests.DurableJsonWriteNeverLeavesTheTargetMissing;
 var
   g: TGarbos;

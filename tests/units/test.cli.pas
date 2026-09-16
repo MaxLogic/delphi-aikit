@@ -914,7 +914,12 @@ begin
   lArgs := lArgs + ' --platform Win64 --config Release --delphi 23.0 --pascal-analyzer false';
   lPath := TPath.Combine(lRoot, 'run-output.log');
   Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lPath, lExitCode));
-  Assert.AreEqual(Cardinal(0), lExitCode, 'See: ' + lPath);
+  // Both workflows finalize the report, and the seeded baseline.json is not a baseline. Like the
+  // wrappers they refuse with exit 4 and a diagnostic rather than replacing accepted state, so the
+  // bytes below also prove the unreadable baseline and its history were left alone.
+  Assert.AreEqual(Cardinal(4), lExitCode, 'See: ' + lPath);
+  Assert.IsTrue(ContainsText(TFile.ReadAllText(TPath.Combine(lOutRoot, 'postprocessor-error.txt')),
+    'Invalid analysis baseline'), 'The diagnostic must name the unreadable baseline.');
 
   for lRelativeName in cPreservedPaths do
   begin

@@ -75,6 +75,44 @@ function Compare-MigrationReportReplay {
     return [pscustomobject]@{ equal = $true; profile = 'Replay'; artifact_set = $ArtifactSet; files = $candidateFiles; reference_files = $referenceFiles }
 }
 
+# D4 (T-342): the frozen budgets are absolute times measured on one machine state. A same-run
+# reference control, the pinned Python reference timed on the same fixture, shows whether the machine
+# itself has drifted. The ratio compares the control to the reference's own frozen medians.
+function Get-MigrationReferenceControl {
+    param([Parameter(Mandatory)][object[]]$Samples, [Parameter(Mandatory)][object]$Frozen, [double]$Threshold = 1.5)
+    $cold = @($Samples | Where-Object phase -CEQ 'cold')
+    $warm = @($Samples | Where-Object phase -CEQ 'warm')
+    if ($cold.Count -ne 1 -or $warm.Count -ne 2 -or $Samples.Count -ne 3) { throw 'The reference control needs exactly one cold and two warm samples.' }
+    foreach ($sample in $Samples) {
+        $value = $sample.elapsed_ms
+        if ($null -eq $value -or $value -is [string] -or -not [double]::IsFinite([double]$value) -or $value -le 0) { throw 'Invalid reference control duration.' }
+    }
+    foreach ($phase in @('cold', 'warm')) {
+        $value = $Frozen.$phase.median
+        if ($null -eq $value -or $value -is [string] -or -not [double]::IsFinite([double]$value) -or $value -le 0) { throw "Invalid frozen reference median: $phase" }
+    }
+    $coldMs = [double]$cold[0].elapsed_ms
+    $warmMs = ([double]$warm[0].elapsed_ms + [double]$warm[1].elapsed_ms) / 2
+    $coldRatio = $coldMs / [double]$Frozen.cold.median
+    $warmRatio = $warmMs / [double]$Frozen.warm.median
+    $ratio = [Math]::Max($coldRatio, $warmRatio)
+    return [pscustomobject]@{
+        cold_ms = $coldMs; warm_median_ms = $warmMs
+        frozen_cold_median_ms = [double]$Frozen.cold.median; frozen_warm_median_ms = [double]$Frozen.warm.median
+        cold_ratio = $coldRatio; warm_ratio = $warmRatio; ratio = $ratio; threshold = $Threshold
+        environment_drift = ($ratio -gt $Threshold)
+    }
+}
+
+# A passing candidate passes. A failing candidate on a drifted machine is not measurable here, which
+# never satisfies a gate; a failing candidate with a good control is a regression.
+function Get-MigrationBudgetVerdict {
+    param([Parameter(Mandatory)][object]$Assessment, [Parameter(Mandatory)][object]$Control)
+    if ($Assessment.passed) { return 'passed' }
+    if ($Control.environment_drift) { return 'not_measurable_here' }
+    return 'failed'
+}
+
 function Get-MigrationReportTreeHash {
     param([string]$Root)
     $files = Get-MigrationArtifactManifest -Root $Root -ComparisonProfile Exact
@@ -166,9 +204,39 @@ function Invoke-MigrationReportComparison {
         }
         if ($Benchmark) {
             $assessment = Get-MigrationWorkspaceBudgetResult -Samples $samples -Budget $frozen.budget
-            $scenarioResult = [pscustomobject]@{ name = $scenario.name; assessment = $assessment; samples = @($samples); comparisons = @($records) }
+            # Reference control on the same fixture, immediately after the candidate samples.
+            $controlSamples = foreach ($entry in @(
+                [pscustomobject]@{ phase = 'cold'; index = 1 }, [pscustomobject]@{ phase = 'warm'; index = 1 },
+                [pscustomobject]@{ phase = 'warm'; index = 2 })) {
+                $controlRoot = Resolve-MigrationOutputPath (Join-Path $scenarioRoot "reference-control-$($entry.phase)-$($entry.index)") $scenarioRoot
+                [void][IO.Directory]::CreateDirectory($controlRoot)
+                Initialize-MigrationSample -Seed $scenario.reset_source -Output $scenario.output -ScratchRoot $scratchRoot
+                try {
+                    $environment = $childEnvironment.Clone()
+                    foreach ($key in $scenario.environment.PSObject.Properties.Name) { $environment[$key] = $scenario.environment.$key }
+                    $control = Invoke-MigrationProcess -Executable $scenario.executable -Arguments @($scenario.arguments) `
+                        -WorkingDirectory $scenario.working_directory -Environment $environment -LogPath (Join-Path $controlRoot 'process')
+                    if ($control.exit_code -ne 0 -or $control.timed_out -or $control.drain_timed_out) { throw "Reference control failed: $($scenario.name); raw evidence retained." }
+                } finally {
+                    [void](Resolve-MigrationOutputPath -Path $scenario.output -Root $scratchRoot)
+                    if (Test-Path -LiteralPath $scenario.output) { [IO.Directory]::Delete($scenario.output, $true) }
+                }
+                $control | Add-Member -NotePropertyName phase -NotePropertyValue $entry.phase
+                $control | Add-Member -NotePropertyName index -NotePropertyValue $entry.index
+                $control
+            }
+            $frozenReference = Get-Content -LiteralPath (Join-Path $EvidenceRoot $frozen.measurements) -Raw | ConvertFrom-Json
+            $referenceControl = Get-MigrationReferenceControl -Samples @($controlSamples) -Frozen $frozenReference
+            $verdict = Get-MigrationBudgetVerdict -Assessment $assessment -Control $referenceControl
+            $scenarioResult = [pscustomobject]@{ name = $scenario.name; verdict = $verdict; assessment = $assessment
+                reference_control = $referenceControl; reference_control_samples = @($controlSamples)
+                samples = @($samples); comparisons = @($records) }
             $scenarioResult | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath (Join-Path $scenarioRoot 'measurements.json')
-            if (-not $assessment.passed) { throw "Report budget exceeded: $($scenario.name): $($assessment.violations -join ', '); raw samples retained." }
+            if ($verdict -eq 'not_measurable_here') {
+                throw ("Report budget not measurable here: $($scenario.name): $($assessment.violations -join ', '); " +
+                    "reference control ratio $([Math]::Round($referenceControl.ratio, 2)) exceeds $($referenceControl.threshold). Raw samples retained.")
+            }
+            if ($verdict -ne 'passed') { throw "Report budget exceeded: $($scenario.name): $($assessment.violations -join ', '); raw samples retained." }
             $scenarioResult
         } else { $records }
     }

@@ -633,11 +633,12 @@ begin
   if not TDirectory.Exists(lOutDir) then
     TDirectory.CreateDirectory(lOutDir);
 
+  // The standard report layout: analyze now finalizes the report, which reads the normalized PAL rows
+  // from pascal-analyzer\. A relocating --pa-output is tracked separately (T-343).
   lArgs := 'analyze --project ' + QuoteArg(TPath.Combine(RepoRoot, 'projects\\DelphiAIKit.dproj')) +
     ' --platform Win32 --config Release --delphi 23.0 --fixinsight false --pascal-analyzer true' +
     ' --out ' + QuoteArg(lOutDir) +
-    ' --pa-path ' + QuoteArg(lPalCmdExe) +
-    ' --pa-output ' + QuoteArg(lOutDir);
+    ' --pa-path ' + QuoteArg(lPalCmdExe);
 
   lLog := TPath.Combine(lOutDir, 'pascal-analyzer.log');
   if not RunResolverProcess(lArgs, RepoRoot, lLog, lExit) then

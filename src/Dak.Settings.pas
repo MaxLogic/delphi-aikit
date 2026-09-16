@@ -1260,6 +1260,11 @@ begin
       aPascalAnalyzerIgnore.fRules, aOverrides.fPalIgnoreRules);
     aPascalAnalyzerIgnore.fSources := MergeList(
       aPascalAnalyzerIgnore.fSources, 'command_line');
+    // D3: the parser records an environment origin directly. The process variable is still
+    // honored for callers that set it themselves.
+    if aOverrides.fPalIgnoreRulesOrigin <> '' then
+      aPascalAnalyzerIgnore.fSources := MergeList(
+        aPascalAnalyzerIgnore.fSources, aOverrides.fPalIgnoreRulesOrigin);
     lOrigin := Trim(GetEnvironmentVariable(
       SPalIgnoreRulesOriginEnvironment));
     if SameText(lOrigin, 'environment:' + SPalIgnoreRulesEnvironment) then

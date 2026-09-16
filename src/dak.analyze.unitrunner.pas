@@ -11,8 +11,8 @@ function RunAnalyzeUnit(const aOptions: TAppOptions): Integer;
 implementation
 
 uses
-  System.Diagnostics,
-  Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
+  System.Diagnostics, System.JSON,
+  Dak.Analysis.WorkflowFinish, Dak.PascalAnalyzer.Artifacts, Dak.PascalAnalyzerRunner;
 
 type
   TAnalyzeUnitRunner = class
@@ -37,6 +37,7 @@ type
     fPalDurationMs: Int64;
     fSummaryPath: string;
     fSummaryText: string;
+    fCapturedProvenance: TJSONObject;
     procedure AddError(const aMessage: string; const aExitCode: Integer);
     function TryOpenLog: Boolean;
     function TryLoadSettings: Boolean;
@@ -173,6 +174,7 @@ begin
   if fOptions.fAnalyzeClean then
     CleanAnalyzeOutput(fOutRoot, False);
   TDirectory.CreateDirectory(fOutRoot);
+  RemoveStaleAnalysisSummary(fOutRoot);
 
   fPaDir := TPath.Combine(fOutRoot, 'pascal-analyzer');
   TDirectory.CreateDirectory(fPaDir);
@@ -288,6 +290,8 @@ begin
 end;
 
 function TAnalyzeUnitRunner.Execute: Integer;
+var
+  lCallerDirectory: string;
 begin
   try
     if not TryOpenLog then
@@ -297,9 +301,22 @@ begin
     if not TryLoadSettings then
       Exit(fExitCode);
     PrepareOutputTree;
-    RunPascalAnalyzer;
-    WriteSummary;
+    // analyze-unit.py captures provenance for the project context when there is one, else the unit;
+    // the settings already resolved the workspace for that subject.
+    fCapturedProvenance := CaptureAnalysisRunProvenance(fSettings.fWorkspace, fOutRoot, fDiagnostics);
+    // analyze-unit.py started DAK in the workspace root and finalized in its own directory.
+    lCallerDirectory := EnterAnalysisWorkspace(fSettings.fWorkspace.fRoot);
+    try
+      RunPascalAnalyzer;
+      WriteSummary;
+    finally
+      LeaveAnalysisWorkspace(lCallerDirectory);
+    end;
+    // run_postprocess(title=unit_path.stem)
+    fExitCode := FinishAnalysisRun(fOutRoot, fUnitName, fCapturedProvenance, fExitCode, fDiagnostics);
   finally
+    fCapturedProvenance.Free;
+    fCapturedProvenance := nil;
     fDiagnostics.WriteToStderr;
   end;
   Result := fExitCode;

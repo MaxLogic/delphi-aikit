@@ -257,6 +257,40 @@ end;
 
 // The published SARIF must be what the normalized rows regenerate, and its results must carry the
 // rows' ownership in row order (FixInsight rows first, then Pascal Analyzer rows).
+// Two published files with identical bytes. Sizes are compared first, then 1 MiB blocks.
+function FilesByteEqual(const aLeft, aRight: string): Boolean;
+const
+  cBlock = 1024 * 1024;
+var
+  lLeft, lRight: TFileStream;
+  lLeftBuffer, lRightBuffer: TBytes;
+  // NativeInt, because CompareMem takes a native-width length.
+  lRead: NativeInt;
+begin
+  lLeft := TFileStream.Create(aLeft, fmOpenRead or fmShareDenyWrite);
+  try
+    lRight := TFileStream.Create(aRight, fmOpenRead or fmShareDenyWrite);
+    try
+      if lLeft.Size <> lRight.Size then
+        Exit(False);
+      SetLength(lLeftBuffer, cBlock);
+      SetLength(lRightBuffer, cBlock);
+      repeat
+        lRead := lLeft.Read(lLeftBuffer[0], cBlock);
+        if lRight.Read(lRightBuffer[0], cBlock) <> lRead then
+          Exit(False);
+        if (lRead > 0) and not CompareMem(@lLeftBuffer[0], @lRightBuffer[0], lRead) then
+          Exit(False);
+      until lRead < cBlock;
+      Result := True;
+    finally
+      lRight.Free;
+    end;
+  finally
+    lLeft.Free;
+  end;
+end;
+
 procedure VerifySarifEvidence(const aOutRoot, aName: string; aFi, aPal: TJSONArray; aFull: Boolean;
   aOwnership: TJSONObject);
 var
@@ -565,7 +599,13 @@ begin
     VerifyTrendTotals(lTrendText, JsonObjectMember(lExpectedCounts, 'fixinsight'),
       JsonObjectMember(lExpectedCounts, 'pascal_analyzer'));
     VerifySarifEvidence(lOutRoot, 'static-analysis.sarif', lFi, lPal, False, Result);
-    VerifySarifEvidence(lOutRoot, 'static-analysis.full.sarif', lFi, lPal, True, Result);
+    // The full document differs from the actionable one only by the rows it selects. When every row is
+    // actionable both renderings are the same bytes, so a full file identical to the actionable file
+    // just verified needs no second rendering. Anything else takes the complete check.
+    if (lActionable <> lFi.Count + lPal.Count) or
+      not FilesByteEqual(TPath.Combine(lOutRoot, 'static-analysis.sarif'),
+        TPath.Combine(lOutRoot, 'static-analysis.full.sarif')) then
+      VerifySarifEvidence(lOutRoot, 'static-analysis.full.sarif', lFi, lPal, True, Result);
   except
     Result.Free;
     raise;

@@ -170,6 +170,9 @@ type
     fHasIgnoreWarningIds: Boolean;
     fPalIgnoreRules: string;
     fHasPalIgnoreRules: Boolean;
+    // Where fPalIgnoreRules came from when it was not typed on the command line, for example
+    // 'environment:DAK_PAL_IGNORE_RULES'. Empty for an explicit switch.
+    fPalIgnoreRulesOrigin: string;
     fRunPascalAnalyzer: Boolean;
     fPaPath: string;
     fHasPaPath: Boolean;

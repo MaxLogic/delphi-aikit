@@ -279,3 +279,122 @@ Describe 'Frozen source inventory' {
         { Assert-MigrationSourceInventory -Root $root -Expected $frozen } | Should -Throw '*inventory*'
     }
 }
+
+Describe 'Report benchmark reference control' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-reports.ps1')
+        $script:Frozen = [pscustomobject]@{ cold = [pscustomobject]@{ median = 2000.0 }; warm = [pscustomobject]@{ median = 1000.0 } }
+        function New-ControlSample { param([string]$Phase, [double]$Ms) [pscustomobject]@{ phase = $Phase; elapsed_ms = $Ms } }
+    }
+
+    It 'takes the larger of the cold ratio and the averaged warm ratio' {
+        $control = Get-MigrationReferenceControl -Frozen $script:Frozen -Samples @(
+            (New-ControlSample cold 2400), (New-ControlSample warm 1500), (New-ControlSample warm 1700))
+        $control.cold_ratio | Should -Be 1.2
+        $control.warm_median_ms | Should -Be 1600
+        $control.warm_ratio | Should -Be 1.6
+        $control.ratio | Should -Be 1.6
+        $control.environment_drift | Should -BeTrue
+    }
+
+    It 'treats the threshold itself as a usable machine' {
+        $control = Get-MigrationReferenceControl -Frozen $script:Frozen -Samples @(
+            (New-ControlSample cold 3000), (New-ControlSample warm 1500), (New-ControlSample warm 1500))
+        $control.ratio | Should -Be 1.5
+        $control.environment_drift | Should -BeFalse
+    }
+
+    It 'rejects a malformed control instead of guessing' {
+        { Get-MigrationReferenceControl -Frozen $script:Frozen -Samples @((New-ControlSample cold 1), (New-ControlSample warm 1)) } |
+            Should -Throw '*one cold and two warm*'
+        { Get-MigrationReferenceControl -Frozen $script:Frozen -Samples @(
+            (New-ControlSample cold 0), (New-ControlSample warm 1), (New-ControlSample warm 1)) } | Should -Throw '*duration*'
+        $badFrozen = [pscustomobject]@{ cold = [pscustomobject]@{ median = 0 }; warm = [pscustomobject]@{ median = 1 } }
+        { Get-MigrationReferenceControl -Frozen $badFrozen -Samples @(
+            (New-ControlSample cold 1), (New-ControlSample warm 1), (New-ControlSample warm 1)) } | Should -Throw '*frozen reference median*'
+    }
+
+    It 'separates a pass, a regression and an unmeasurable machine' {
+        $pass = [pscustomobject]@{ passed = $true }
+        $miss = [pscustomobject]@{ passed = $false }
+        $good = [pscustomobject]@{ environment_drift = $false }
+        $drift = [pscustomobject]@{ environment_drift = $true }
+        Get-MigrationBudgetVerdict -Assessment $pass -Control $drift | Should -Be 'passed'
+        Get-MigrationBudgetVerdict -Assessment $miss -Control $good | Should -Be 'failed'
+        Get-MigrationBudgetVerdict -Assessment $miss -Control $drift | Should -Be 'not_measurable_here'
+    }
+}
+
+Describe 'Project comparison projection' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-artifacts.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-policy.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-project.ps1')
+        function New-ProjectSnapshotRoot {
+            param([string]$Name, [hashtable]$Files)
+            $root = Join-Path $script:AllowedRoot $Name
+            foreach ($relative in $Files.Keys) {
+                $path = Join-Path $root $relative
+                [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($path))
+                [IO.File]::WriteAllText($path, $Files[$relative])
+            }
+            return $root
+        }
+    }
+
+    It 'masks clocks, analyzer timings and staging names but nothing else' {
+        $reference = New-ProjectSnapshotRoot 'project-projection-a' @{
+            'trend.md' = "| 2026-09-16T15:07:19 | 2 |`n"
+            'run.log' = "[2026-09-16T15:07:18] CHILD`nARTIFACT: C:\t\dak-pal\{4FA34380-FE6B-44EE-BEE5-14E55F4B1320}`n"
+            'pascal-analyzer/P/Status.xml' = "<created>16.09.2026 15:15:13</created><seconds>0,40</seconds><lines_per_second>9250</lines_per_second><warnings>3</warnings>"
+            'summary.json' = '{"analyzers":{"fixinsight":{"runs":[{"duration_ms":94,"exit_code":0}]}}}'
+        }
+        $candidate = New-ProjectSnapshotRoot 'project-projection-b' @{
+            'trend.md' = "| 2026-09-16T15:07:20 | 2 |`n"
+            'run.log' = "[2026-09-16T15:07:19] CHILD`nARTIFACT: C:\t\dak-pal\{7FF363C8-B637-46F6-99BF-FEEA78C16BE8}`n"
+            'pascal-analyzer/P/Status.xml' = "<created>16.09.2026 15:15:17</created><seconds>0,41</seconds><lines_per_second>12333</lines_per_second><warnings>3</warnings>"
+            'summary.json' = '{"analyzers":{"fixinsight":{"runs":[{"duration_ms":132,"exit_code":0}]}}}'
+        }
+        $differences = Compare-MigrationPolicySnapshot -Reference (Get-MigrationProjectSnapshot -Root $reference) `
+            -Candidate (Get-MigrationProjectSnapshot -Root $candidate)
+        $differences | Should -BeNullOrEmpty
+    }
+
+    It 'still reports a changed result next to a masked clock' {
+        $reference = New-ProjectSnapshotRoot 'project-projection-c' @{
+            'trend.md' = "| 2026-09-16T15:07:19 | 2 |`n"
+            'pascal-analyzer/P/Status.xml' = "<created>x</created><warnings>3</warnings>"
+            'summary.json' = '{"analyzers":{"fixinsight":{"runs":[{"duration_ms":94,"exit_code":0}]}}}'
+        }
+        $candidate = New-ProjectSnapshotRoot 'project-projection-d' @{
+            'trend.md' = "| 2026-09-16T15:07:20 | 3 |`n"
+            'pascal-analyzer/P/Status.xml' = "<created>y</created><warnings>4</warnings>"
+            'summary.json' = '{"analyzers":{"fixinsight":{"runs":[{"duration_ms":94,"exit_code":7}]}}}'
+        }
+        $differences = Compare-MigrationPolicySnapshot -Reference (Get-MigrationProjectSnapshot -Root $reference) `
+            -Candidate (Get-MigrationProjectSnapshot -Root $candidate)
+        $differences | Should -Be @('differs: pascal-analyzer/P/Status.xml', 'differs: summary.json', 'differs: trend.md')
+    }
+
+    It 'masks a staging GUID inside a JSON message but not the message around it' {
+        $reference = New-ProjectSnapshotRoot 'project-projection-e' @{
+            'summary.json' = '{"errors":["PAL failed (exit=7). Retained PAL staging directory: C:\\t\\{9357E62F-4514-4AF7-A925-82EABFFC445A}"]}'
+        }
+        $candidate = New-ProjectSnapshotRoot 'project-projection-f' @{
+            'summary.json' = '{"errors":["PAL failed (exit=7). Retained PAL staging directory: C:\\t\\{A1910F9B-DBC0-49EC-9C9A-BBCFD6A620E5}"]}'
+        }
+        $changed = New-ProjectSnapshotRoot 'project-projection-g' @{
+            'summary.json' = '{"errors":["PAL failed (exit=8). Retained PAL staging directory: C:\\t\\{A1910F9B-DBC0-49EC-9C9A-BBCFD6A620E5}"]}'
+        }
+        $referenceSnapshot = Get-MigrationProjectSnapshot -Root $reference
+        Compare-MigrationPolicySnapshot -Reference $referenceSnapshot -Candidate (Get-MigrationProjectSnapshot -Root $candidate) |
+            Should -BeNullOrEmpty
+        Compare-MigrationPolicySnapshot -Reference $referenceSnapshot -Candidate (Get-MigrationProjectSnapshot -Root $changed) |
+            Should -Be @('differs: summary.json')
+    }
+
+    It 'keeps only the result-deciding stderr lines, once each' {
+        $text = "noise`nStatic analysis gate failed (see: C:\x\delta.md)`nStatic analysis gate failed (see: again)`nSummary not found: C:\y`n"
+        Get-MigrationProjectStderrMarkers -Text $text | Should -Be @('Static analysis gate failed (see', 'Summary not found')
+    }
+}

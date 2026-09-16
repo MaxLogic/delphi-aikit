@@ -32,6 +32,7 @@ uses
   Dak.Analysis.ReportReplay in '..\src\Dak.Analysis.ReportReplay.pas',
   Dak.Analysis.ReportVerify in '..\src\Dak.Analysis.ReportVerify.pas',
   Dak.Analysis.ReportCommand in '..\src\Dak.Analysis.ReportCommand.pas',
+  Dak.Analysis.WorkflowFinish in '..\src\Dak.Analysis.WorkflowFinish.pas',
   Dak.PascalAnalyzer.Help in '..\src\Dak.PascalAnalyzer.Help.pas',
   Dak.Analyze in '..\src\dak.analyze.pas',
   Dak.Analyze.Common in '..\src\dak.analyze.common.pas',

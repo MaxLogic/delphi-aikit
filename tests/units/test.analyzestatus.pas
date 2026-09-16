@@ -17,11 +17,11 @@ type
     function RunContextFreeUnitFixture(out aProcessExit: Cardinal): TJSONObject;
   public
     [Test]
-    procedure SuccessfulAnalyzerWritesCompleteSchema2Seed;
+    procedure SuccessfulAnalyzerPublishesACompleteReport;
     [Test]
     procedure FailedAnalyzerWritesPartialSchema2Seed;
     [Test]
-    procedure SuccessfulProjectContextUnitWritesCompleteSchema2Seed;
+    procedure SuccessfulProjectContextUnitPublishesACompleteReport;
     [Test]
     procedure FailedProjectContextUnitWritesUnavailableSchema2Seed;
     [Test]
@@ -115,7 +115,7 @@ begin
     Assert.IsTrue(RunResolverProcess(lArgs, RepoRoot, lRunLog, aProcessExit),
       'Failed to start context-free unit analysis.');
     lSummaryPath := TPath.Combine(lOutRoot, 'summary.json');
-    Assert.IsTrue(TFile.Exists(lSummaryPath), 'Expected unit schema-2 status seed: ' + lSummaryPath);
+    Assert.IsTrue(TFile.Exists(lSummaryPath), 'Expected a published unit summary: ' + lSummaryPath);
     Result := ParseJsonObject(TFile.ReadAllText(lSummaryPath), lSummaryPath);
   finally
     DeleteTempPath(lFixtureRoot);
@@ -186,14 +186,14 @@ begin
     end;
 
     lSummaryPath := TPath.Combine(lOutRoot, 'summary.json');
-    Assert.IsTrue(TFile.Exists(lSummaryPath), 'Expected unit schema-2 status seed: ' + lSummaryPath);
+    Assert.IsTrue(TFile.Exists(lSummaryPath), 'Expected a published unit summary: ' + lSummaryPath);
     Result := ParseJsonObject(TFile.ReadAllText(lSummaryPath), lSummaryPath);
   finally
     DeleteTempPath(lFixtureRoot);
   end;
 end;
 
-procedure TAnalyzeStatusTests.SuccessfulAnalyzerWritesCompleteSchema2Seed;
+procedure TAnalyzeStatusTests.SuccessfulAnalyzerPublishesACompleteReport;
 var
   lAnalyzer: TJSONObject;
   lConfigFound: Boolean;
@@ -208,9 +208,11 @@ begin
   lJson := RunFixInsightFixture(0, lProcessExit);
   try
     Assert.AreEqual(Cardinal(0), lProcessExit, lJson.ToJSON);
-    Assert.AreEqual(2, lJson.GetValue<Integer>('schema_version'));
+    // The project workflow no longer stops at the status seed: it finalizes the report, so the
+    // published document is schema 3 and carries everything the seed did.
+    Assert.AreEqual(3, lJson.GetValue<Integer>('schema_version'));
     Assert.AreEqual('complete', lJson.GetValue<string>('status.infrastructure'));
-    Assert.AreEqual('not_evaluated', lJson.GetValue<string>('status.policy'));
+    Assert.AreEqual('complete', lJson.GetValue<string>('status.finalization'));
     Assert.AreEqual('.dpr', LowerCase(TPath.GetExtension(lJson.GetValue<string>('subject.path'))));
     Assert.AreEqual('.dproj', LowerCase(TPath.GetExtension(lJson.GetValue<string>('subject.project_file'))));
     Assert.IsNotNull(lJson.GetValue('workspace'), 'Expected resolved workspace seed data.');
@@ -229,12 +231,16 @@ begin
     Assert.AreEqual('complete', lAnalyzer.GetValue<string>('runs[0].parse_status'));
     Assert.AreEqual('fixinsight/fixinsight.txt',
       lAnalyzer.GetValue<string>('runs[0].artifacts.report'));
-    Assert.AreEqual(2, lJson.GetValue<Integer>('counts.fixinsight.total'));
+    // Both raw findings are counted, and the configured W501 ignore leaves one actionable.
+    Assert.AreEqual(2, lJson.GetValue<Integer>('counts.raw.fixinsight.total'));
+    Assert.AreEqual(1, lJson.GetValue<Integer>('counts.actionable.fixinsight.total'));
+    Assert.AreEqual(1, lJson.GetValue<Integer>('counts.ignored.fixinsight.total'));
+    Assert.AreEqual(0, lJson.GetValue<Integer>('counts.unknown.total'));
     Assert.AreEqual(64, Length(lJson.GetValue<string>('compiler.search_path_sha256')));
     Assert.AreEqual(64, Length(lJson.GetValue<string>('inputs.project_sha256')));
     Assert.AreEqual(64, Length(lJson.GetValue<string>('inputs.main_source_sha256')));
     Assert.IsNotNull(lJson.GetValue<TJSONObject>('policy.values'),
-      'The schema-2 seed must carry the resolved AnalysisPolicy values.');
+      'The published report must carry the resolved AnalysisPolicy values.');
     Assert.AreEqual('project', lJson.GetValue<string>('policy.values.gate_ownership[0]'));
     Assert.AreEqual('repository', lJson.GetValue<string>('policy.values.gate_ownership[1]'));
     Assert.AreEqual('PAL.warnings.method-length-621eae6dfec836e8',
@@ -291,7 +297,7 @@ begin
   end;
 end;
 
-procedure TAnalyzeStatusTests.SuccessfulProjectContextUnitWritesCompleteSchema2Seed;
+procedure TAnalyzeStatusTests.SuccessfulProjectContextUnitPublishesACompleteReport;
 var
   lAnalyzer: TJSONObject;
   lJson: TJSONObject;
@@ -301,7 +307,9 @@ begin
   lJson := RunPalUnitFixture(0, lProcessExit);
   try
     Assert.AreEqual(Cardinal(0), lProcessExit, lJson.ToJSON);
-    Assert.AreEqual(2, lJson.GetValue<Integer>('schema_version'));
+    // The unit workflow finalizes its report like the project workflow; the seed's contract survives.
+    Assert.AreEqual(3, lJson.GetValue<Integer>('schema_version'));
+    Assert.AreEqual('complete', lJson.GetValue<string>('status.finalization'));
     Assert.IsNotNull(lJson.GetValue('workspace'), 'Expected project-context unit workspace data.');
     Assert.AreEqual(TPath.GetDirectoryName(lJson.GetValue<string>('subject.project_context')),
       lJson.GetValue<string>('workspace.root'));
@@ -371,7 +379,8 @@ begin
   lJson := RunContextFreeUnitFixture(lProcessExit);
   try
     Assert.AreEqual(Cardinal(0), lProcessExit, lJson.ToJSON);
-    Assert.AreEqual(2, lJson.GetValue<Integer>('schema_version'));
+    Assert.AreEqual(3, lJson.GetValue<Integer>('schema_version'));
+    Assert.AreEqual('complete', lJson.GetValue<string>('status.finalization'));
     Assert.AreEqual(TPath.GetDirectoryName(lJson.GetValue<string>('subject.path')),
       lJson.GetValue<string>('workspace.root'));
     Assert.AreEqual('auto', lJson.GetValue<string>('workspace.selector'));
