@@ -2,31 +2,48 @@
 # Development proof helper for the native report replay/verification candidate. Not part of the delivered workflow.
 # Dot-sourced by verify-native-analysis-migration.ps1, which supplies the shared process, sample and budget helpers.
 
-# The artifacts owned by T-324: everything the reference replay publishes except the policy stage
-# (baseline, delta, history, trend), which T-325 adds to the Full set.
+# T324 is everything the reference replay publishes except the policy stage; Full adds the six
+# artifacts the policy stage owns, so a Full comparison covers the whole published set.
+$script:MigrationReportPolicyArtifacts = @('baseline.json', 'baseline.md', 'delta.json', 'delta.md',
+    'history.jsonl', 'trend.md')
 $script:MigrationReportArtifactSets = @{
     T324 = @('external-summary.md', 'fixinsight/fi-findings.jsonl', 'metrics.md', 'pascal-analyzer/pal-findings.jsonl',
         'run.log', 'static-analysis.full.sarif', 'static-analysis.sarif', 'summary.json', 'summary.md', 'triage.md')
 }
-$script:MigrationReportPolicyArtifacts = @('baseline.json', 'baseline.md', 'delta.json', 'delta.md', 'history.jsonl', 'trend.md')
+$script:MigrationReportArtifactSets.Full =
+    @($script:MigrationReportArtifactSets.T324 + $script:MigrationReportPolicyArtifacts)
 
-function Get-MigrationReportSummaryProjection {
+# The DAK executable identity, the fingerprint that covers it and the interpreter version differ by
+# construction between the Python reference and the native candidate. Everything else about the
+# host, including the Windows release, is compared.
+function Remove-MigrationEngineIdentity {
+    param($Value)
+    if ($Value -is [System.Collections.IDictionary]) {
+        $out = [ordered]@{}
+        foreach ($key in $Value.Keys) {
+            if ($key -cin @('dak', 'compatibility', 'python')) { continue }
+            $out[$key] = Remove-MigrationEngineIdentity -Value $Value[$key]
+        }
+        return $out
+    }
+    if ($Value -is [System.Collections.IList] -and $Value -isnot [string]) {
+        return @($Value | ForEach-Object { Remove-MigrationEngineIdentity -Value $_ })
+    }
+    return $Value
+}
+
+function Get-MigrationReportJsonProjection {
     param([string]$Text, [string]$ArtifactSet)
-    # summary.json for the T324 set: the policy stage members, the engine identity and the fingerprint
-    # that covers that identity are outside the comparison; every other member must match exactly.
+    # For the T324 set the policy members are not published yet; for either set the engine that
+    # produced the run is outside the comparison. Every other member must match exactly.
     $document = [System.Text.Json.JsonDocument]::Parse($Text)
     try { Assert-MigrationJsonKey -Element $document.RootElement } finally { $document.Dispose() }
     $data = ConvertFrom-Json -InputObject $Text -AsHashtable -NoEnumerate -DateKind String -Depth 100
     if ($ArtifactSet -eq 'T324') {
         foreach ($name in @('baseline', 'delta', 'history', 'trend')) { if ($data.artifacts) { $data.artifacts.Remove($name) } }
         if ($data.status) { $data.status.Remove('policy') }
-        if ($data.provenance) { $data.provenance.Remove('dak') }
-        if ($data.compatibility) {
-            if ($data.compatibility.context) { $data.compatibility.context.Remove('dak') }
-            $data.compatibility.Remove('sha256')
-        }
     }
-    return ConvertTo-Json -InputObject $data -Depth 100 -Compress
+    return ConvertTo-Json -InputObject (Remove-MigrationEngineIdentity -Value $data) -Depth 100 -Compress
 }
 
 function Compare-MigrationReportReplay {
@@ -40,15 +57,17 @@ function Compare-MigrationReportReplay {
     if (($referenceFiles.path -join "`n") -cne ($expected -join "`n")) { throw 'Reference replay artifacts are incomplete for the requested set.' }
     # The candidate must publish exactly the owned set: the policy artifacts stay untouched (absent) until T-325.
     if (($candidateFiles.path -join "`n") -cne ($expected -join "`n")) { throw "Candidate artifact inventory differs: $($candidateFiles.path -join ', ')" }
-    foreach ($policyArtifact in $script:MigrationReportPolicyArtifacts) {
-        if (Test-Path -LiteralPath (Join-Path $Candidate $policyArtifact)) { throw "Candidate touched a policy artifact: $policyArtifact" }
+    if ($ArtifactSet -eq 'T324') {
+        foreach ($policyArtifact in $script:MigrationReportPolicyArtifacts) {
+            if (Test-Path -LiteralPath (Join-Path $Candidate $policyArtifact)) { throw "Candidate touched a policy artifact: $policyArtifact" }
+        }
     }
     $differences = [Collections.Generic.List[string]]::new()
     for ($index = 0; $index -lt $referenceFiles.Count; $index++) {
         $path = $referenceFiles[$index].path
-        if ($path -ceq 'summary.json') {
-            $referenceText = Get-MigrationReportSummaryProjection -Text (Get-MigrationUtf8Text ([IO.File]::ReadAllBytes((Join-Path $Reference $path)))) -ArtifactSet $ArtifactSet
-            $candidateText = Get-MigrationReportSummaryProjection -Text (Get-MigrationUtf8Text ([IO.File]::ReadAllBytes((Join-Path $Candidate $path)))) -ArtifactSet $ArtifactSet
+        if ($path -cin @('summary.json', 'baseline.json', 'delta.json')) {
+            $referenceText = Get-MigrationReportJsonProjection -Text (Get-MigrationUtf8Text ([IO.File]::ReadAllBytes((Join-Path $Reference $path)))) -ArtifactSet $ArtifactSet
+            $candidateText = Get-MigrationReportJsonProjection -Text (Get-MigrationUtf8Text ([IO.File]::ReadAllBytes((Join-Path $Candidate $path)))) -ArtifactSet $ArtifactSet
             if ($referenceText -cne $candidateText) { $differences.Add($path) }
         } elseif ($referenceFiles[$index].comparison_sha256 -cne $candidateFiles[$index].comparison_sha256) { $differences.Add($path) }
     }
@@ -74,7 +93,7 @@ function Compare-MigrationReportVerification {
 
 function Invoke-MigrationReportComparison {
     [CmdletBinding()]
-    param([string]$EvidenceRoot, [string]$Executable, [string]$ResultRoot, [switch]$Benchmark, [ValidateSet('T324')][string]$ArtifactSet = 'T324')
+    param([string]$EvidenceRoot, [string]$Executable, [string]$ResultRoot, [switch]$Benchmark, [ValidateSet('T324', 'Full')][string]$ArtifactSet = 'Full')
     . (Join-Path $PSScriptRoot 'compare-native-analysis-artifacts.ps1')
     $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
     $executablePath = Resolve-MigrationOutputPath -Path $Executable -Root $repoRoot

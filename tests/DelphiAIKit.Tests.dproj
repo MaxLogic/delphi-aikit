@@ -92,11 +92,13 @@
         <DCCReference Include="..\src\Dak.Analysis.JsonText.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ReportBundle.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ReportWriters.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportPolicy.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ReportReplay.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ReportVerify.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ReportCommand.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.replay.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.verify.pas"/>
+        <DCCReference Include="units\test.nativeanalysispolicy.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.OwnershipContext.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ProjectSources.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.SourceResolution.pas"/>

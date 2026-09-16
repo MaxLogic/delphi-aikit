@@ -6,8 +6,8 @@ param(
     [string]$Area = 'All',
     [string]$Manifest,
     [string]$CandidateExecutable,
-    # Reports comparison scope: T324 owns everything but the policy stage; T-325 adds the Full set.
-    [ValidateSet('T324')][string]$ArtifactSet = 'T324'
+    # Reports comparison scope: Full is the whole published set; T324 excludes the policy stage.
+    [ValidateSet('T324', 'Full')][string]$ArtifactSet = 'Full'
 )
 
 function Resolve-MigrationOutputPath {
@@ -496,6 +496,13 @@ if ($MyInvocation.InvocationName -ne '.') {
         if (-not $CandidateExecutable) { throw "$Mode Workspace requires CandidateExecutable." }
         $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/workspace-'+$Mode.ToLowerInvariant()+'-'+[guid]::NewGuid().ToString()) }
         Invoke-MigrationWorkspaceComparison -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot -Benchmark:($Mode -eq 'Benchmark')
+        return
+    }
+    if ($Mode -eq 'Compare' -and $Area -eq 'Policy') {
+        if (-not $CandidateExecutable) { throw 'Compare Policy requires CandidateExecutable.' }
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-policy.ps1')
+        $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/policy-compare-'+[guid]::NewGuid().ToString()) }
+        Invoke-MigrationPolicyComparison -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot
         return
     }
     if ($Mode -in @('Compare','Benchmark') -and $Area -eq 'Reports') {

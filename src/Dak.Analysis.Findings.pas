@@ -8,11 +8,15 @@ uses
 // The returned array owns complete input values, including extension fields and duplicate rows.
 // Shape, ownership and policy validation belong to the report context, not this input adapter.
 function LoadAnalysisJsonLines(const aPath: string): TJSONArray;
+// The same for an appended history: a line that does not decode to an object is skipped, so one
+// damaged row never costs the run its history.
+function LoadAnalysisHistoryRows(const aPath: string): TJSONArray;
 
 implementation
 
 uses
-  System.Character, System.Generics.Collections, System.IOUtils, System.SysUtils;
+  System.Character, System.Generics.Collections, System.IOUtils, System.SysUtils,
+  Dak.Analysis.Text;
 
 function IsLineWhitespace(aChar: Char): Boolean;
 begin
@@ -137,6 +141,29 @@ begin
     end;
   end else
     Result := aValue.Clone as TJSONValue;
+end;
+
+function LoadAnalysisHistoryRows(const aPath: string): TJSONArray;
+var
+  lLine: string;
+  lValue: TJSONValue;
+begin
+  Result := TJSONArray.Create;
+  try
+    for lLine in ReadAnalysisText(aPath).Replace(#13#10, #10).Split([#10]) do
+    begin
+      if Trim(lLine) = '' then
+        Continue;
+      lValue := TJSONObject.ParseJSONValue(Trim(lLine), True);
+      if lValue is TJSONObject then
+        Result.AddElement(lValue)
+      else
+        lValue.Free;
+    end;
+  except
+    Result.Free;
+    raise;
+  end;
 end;
 
 function LoadAnalysisJsonLines(const aPath: string): TJSONArray;

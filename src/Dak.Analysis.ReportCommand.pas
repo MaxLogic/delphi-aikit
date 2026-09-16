@@ -5,15 +5,17 @@ interface
 uses
   Dak.Types;
 
-// analyze-report --out <existing output> [--verify]: replay/finalize the reports of an analysis
-// output directory or verify them without writing. Mirrors postprocess.py's exit contract:
-// 0 success, 2 usage, 3 a rejected result (failed gate or failed verification), 1 a broken run.
+// analyze-report --out <existing output> [--verify] [--baseline <file>] [--update-baseline]:
+// replay/finalize the reports of an analysis output directory, or verify them without writing.
+// Mirrors postprocess.py's exit contract: 0 success, 2 usage, 3 a rejected result (failed gate
+// or failed verification), 1 a broken run.
 function RunAnalyzeReportCommand(const aOptions: TAppOptions): Integer;
 
 implementation
 
 uses
   System.IOUtils, System.JSON, System.SysUtils,
+  Winapi.Windows,
   AutoFree,
   Dak.Analysis.JsonText, Dak.Analysis.ReportBundle, Dak.Analysis.ReportReplay, Dak.Analysis.ReportVerify,
   Dak.CommandOutput, Dak.ExitCodes;
@@ -30,13 +32,13 @@ begin
     WriteLn(ErrOutput, 'Usage: DelphiAIKit.exe analyze-report --out "<path-to-analysis-out-root>" [--verify]');
     Exit(cExitInvalidArgs);
   end;
-  // The baseline switches are parsed for the policy stage (T-325); refuse them here rather than
-  // letting a caller believe a baseline decision was made.
-  if aOptions.fHasReportBaselinePath or aOptions.fReportUpdateBaseline then
-  begin
-    WriteLn(ErrOutput, 'Baseline options are not available yet: this build replays and verifies reports only.');
-    Exit(cExitInvalidArgs);
-  end;
+  // The switches select the baseline the policy stage reads, the same selection the wrappers make
+  // through the environment; an explicit switch wins over an inherited variable.
+  // The switch parser already rejects a missing or empty --baseline value.
+  if aOptions.fHasReportBaselinePath then
+    SetEnvironmentVariable('DAK_BASELINE', PChar(TPath.GetFullPath(Trim(aOptions.fReportBaselinePath))));
+  if aOptions.fReportUpdateBaseline then
+    SetEnvironmentVariable('DAK_UPDATE_BASELINE', PChar('1'));
   lOutRoot := TPath.GetFullPath(lOutRoot);
   try
     if aOptions.fReportVerify then

@@ -20,8 +20,8 @@ uses
   System.Generics.Collections, System.Hash, System.IOUtils, System.StrUtils, System.SysUtils,
   AutoFree,
   Dak.Analysis.Findings, Dak.Analysis.Ownership, Dak.Analysis.OwnershipContext, Dak.Analysis.Projections,
-  Dak.Analysis.ReportBundle, Dak.Analysis.ReportWriters, Dak.Analysis.SourceResolution, Dak.Analysis.Workspace,
-  Dak.Settings;
+  Dak.Analysis.ReportBundle, Dak.Analysis.ReportPolicy, Dak.Analysis.ReportWriters,
+  Dak.Analysis.SourceResolution, Dak.Analysis.Workspace, Dak.Settings;
 
 
 
@@ -162,16 +162,23 @@ begin
     Result := TJSONArray.Create;
 end;
 
+// _relative_artifact: an artifact that was not published has no entry, one inside the output root
+// is named relative to it, and one published elsewhere keeps its absolute path.
 function RelativeArtifact(const aOutRoot, aPath: string): string;
 var
-  lRoot: string;
+  lFull, lRoot: string;
 begin
   Result := '';
   if aPath = '' then
     Exit;
+  lFull := TPath.GetFullPath(aPath);
+  if not (TFile.Exists(lFull) or TDirectory.Exists(lFull)) then
+    Exit;
   lRoot := IncludeTrailingPathDelimiter(TPath.GetFullPath(aOutRoot));
-  if TPath.GetFullPath(aPath).StartsWith(lRoot, True) then
-    Result := TPath.GetFullPath(aPath).Substring(Length(lRoot)).Replace('\', '/');
+  if lFull.StartsWith(lRoot, True) then
+    Result := lFull.Substring(Length(lRoot)).Replace(PathDelim, '/')
+  else
+    Result := lFull;
 end;
 
 function StringsToArray(aValues: TJSONArray): TArray<string>;
@@ -269,6 +276,10 @@ var
   lFullSarif, lMetrics, lExternal, lSarif, lTriage, lTriageChanged: string;
   lItem: TJSONValue;
   lPalRequested: Boolean;
+  lPolicy: TAnalysisPolicyOutcome;
+  lPolicyInput: TAnalysisPolicyInput;
+  lSnapshot: TJSONObject;
+  lHistory, lTrend: string;
   lResolver: TAnalysisSourceResolver;
   lName: string;
   lFailed: Boolean;
@@ -276,9 +287,9 @@ var
   lTimestamp: string;
 const
   cAnalyzers: array[0..1] of string = ('fixinsight', 'pascal_analyzer');
-  cArtifactNames: array[0..12] of string = ('summary_markdown', 'fixinsight_jsonl', 'pascal_analyzer_jsonl',
+  cArtifactNames: array[0..13] of string = ('summary_markdown', 'fixinsight_jsonl', 'pascal_analyzer_jsonl',
     'baseline', 'delta', 'triage', 'triage_changed', 'triage_snippets', 'sarif', 'full_sarif',
-    'external_summary', 'metrics', 'history');
+    'external_summary', 'metrics', 'history', 'trend');
 begin
   lOutRoot := ExcludeTrailingPathDelimiter(TPath.GetFullPath(aOutRoot));
   lTitle := TPath.GetFileName(lOutRoot);
@@ -372,9 +383,36 @@ begin
         [lSarifCount, JsonText(JsonObjectMember(lCounts, 'raw'), 'total')]);
     lExternal := WriteAnalysisExternalSummary(lOutRoot, lFi, lPal);
     lMetrics := WriteAnalysisMetricsSummary(lOutRoot, lFi, lPal);
+    GC(lCompatibility, AnalysisCompatibilitySnapshot(lSeed, lContext), g);
+    lPolicyInput := Default(TAnalysisPolicyInput);
+    lPolicyInput.fOutRoot := lOutRoot;
+    lPolicyInput.fTitle := lTitle;
+    lPolicyInput.fSummaryPath := lSummaryPath;
+    // Only a Git workspace contributes revision facts to the history rows.
+    lPolicyInput.fRepoRoot := '';
+    if SameText(JsonText(JsonObjectMember(lSeed, 'workspace'), 'vcs'), 'git') or
+      SameText(JsonText(JsonObjectMember(JsonObjectMember(lSeed, 'provenance'), 'target'), 'vcs'), 'git') then
+      lPolicyInput.fRepoRoot := lContext.fWorkspaceRoot;
+    lPolicyInput.fSummary := lSummary;
+    lPolicyInput.fSeed := lSeed;
+    lPolicyInput.fRunContext := lRunContext;
+    lPolicyInput.fResolvedPolicy := lResolvedPolicy;
+    lPolicyInput.fActionable := lActionable;
+    lPolicyInput.fCounts := lCounts;
+    lPolicyInput.fCompatibility := lCompatibility;
+    lPolicyInput.fFi := lFi;
+    lPolicyInput.fPal := lPal;
+    lPolicy := ApplyAnalysisReportPolicy(lPolicyInput);
+    GC(lSnapshot, lPolicy.fSnapshot, g);
     lTriage := WriteAnalysisTriage(lOutRoot, lTitle, lFi, lPal, TAnalysisTriagePolicy.FromEnvironment);
-    Result.AddPair('gate_pass', TJSONBool.Create(True));
-    Result.AddPair('policy_evaluated', TJSONBool.Create(False));
+    Result.AddPair('baseline', lPolicy.fBaselinePath);
+    Result.AddPair('delta', lPolicy.fDeltaMdPath);
+    Result.AddPair('gate_pass', TJSONBool.Create(lPolicy.fGatePass));
+    Result.AddPair('policy_evaluated', TJSONBool.Create(lPolicy.fPolicyEvaluated));
+    if lPolicy.fBaselineCreated then
+      Result.AddPair('baseline_created', TJSONBool.Create(True));
+    if lPolicy.fBaselineUpdated then
+      Result.AddPair('baseline_updated', TJSONBool.Create(True));
     Result.AddPair('triage', lTriage);
     if AnalysisTruthyEnvironment('DAK_TRIAGE_SNIPPETS', False) and
       TFile.Exists(TPath.Combine(lOutRoot, 'triage-snippets.md')) then
@@ -383,6 +421,9 @@ begin
     Result.AddPair('full_sarif', lFullSarif);
     Result.AddPair('external_summary', lExternal);
     Result.AddPair('metrics', lMetrics);
+    UpdateAnalysisHistoryAndTrend(lPolicyInput, lSnapshot, lHistory, lTrend);
+    Result.AddPair('history', lHistory);
+    Result.AddPair('trend', lTrend);
     if Trim(GetEnvironmentVariable('DAK_SCOPE')).ToLowerInvariant = 'changed' then
     begin
       lTriageChanged := WriteAnalysisTriageChanged(lOutRoot, lTitle, lSummary, lFi, lPal, lContext.fWorkspaceFiles);
@@ -406,7 +447,10 @@ begin
     JsonPutText(lStatus, 'finalization', 'complete');
     JsonPutText(lStatus, 'ownership_resolution',
       IfThen(JsonText(JsonObjectMember(lCounts, 'unknown'), 'total') <> '0', 'failed', 'complete'));
-    JsonPutText(lStatus, 'policy', 'not_evaluated');
+    if lPolicy.fPolicyEvaluated then
+      JsonPutText(lStatus, 'policy', IfThen(lPolicy.fGatePass, 'pass', 'fail'))
+    else
+      JsonPutText(lStatus, 'policy', 'not_evaluated');
     lCompiler := JsonObjectMember(lSeed, 'compiler');
     if lCompiler = nil then
     begin
@@ -444,7 +488,6 @@ begin
     lAnalyzer := JsonObjectMember(lAnalyzers, 'pascal_analyzer');
     JsonPut(lAnalyzer, 'verified_rule_aliases', AnalysisPalRegisteredAliases(JsonText(lAnalyzer, 'version')));
     JsonPut(lSeed, 'counts', JsonCloneValue(lCounts));
-    GC(lCompatibility, AnalysisCompatibilitySnapshot(lSeed, lContext), g);
     JsonPut(lSeed, 'compatibility', JsonCloneValue(lCompatibility));
     if JsonArrayMember(lSummary, 'errors') <> nil then
       JsonPut(lSeed, 'errors', JsonCloneValue(JsonArrayMember(lSummary, 'errors')))

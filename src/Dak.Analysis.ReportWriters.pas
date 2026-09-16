@@ -44,6 +44,8 @@ function WriteAnalysisTriage(const aOutRoot, aTitle: string; aFixInsight, aPal: 
 // The triage.md text alone, for verification without touching the output.
 function RenderAnalysisTriage(const aTitle: string; aFixInsight, aPal: TJSONArray;
   const aPolicy: TAnalysisTriagePolicy): string;
+// _triage_path_allowed: an empty path passes only without include patterns; exclude wins.
+function AnalysisTriagePathAllowed(const aPath: string; const aInclude, aExclude: TArray<string>): Boolean;
 // _write_triage_changed using the provenance target's changed files.
 function WriteAnalysisTriageChanged(const aOutRoot, aTitle: string; aSummary: TJSONObject;
   aFixInsight, aPal: TJSONArray; const aWorkspaceFiles: TArray<string>): string;
@@ -56,6 +58,16 @@ uses
   Winapi.Windows,
   Dak.Analysis.JsonText, Dak.Analysis.Projections, Dak.Analysis.ReportBundle, Dak.Analysis.Text,
   Dak.Settings;
+
+// One more occurrence of a key. IfThen would evaluate the lookup even when the key is absent.
+procedure BumpCount(aCounts: TDictionary<string, Integer>; const aKey: string);
+var
+  lCount: Integer;
+begin
+  if not aCounts.TryGetValue(aKey, lCount) then
+    lCount := 0;
+  aCounts.AddOrSetValue(aKey, lCount + 1);
+end;
 
 function OrDefaultText(const aValue, aDefault: string): string;
 begin
@@ -162,9 +174,12 @@ begin
     finally
       lStream.Free;
     end;
-    if TFile.Exists(aPath) then
-      TFile.Delete(aPath);
-    TFile.Move(lTemp, aPath);
+    // os.replace: one operation, so there is no moment when neither the accepted document nor the
+    // new one is on disk. Deleting first would lose the accepted document if the process stopped
+    // between the two calls. Both forms refuse the same way when the target cannot be replaced,
+    // which is what the durable-write regression test pins.
+    if not MoveFileEx(PChar(lTemp), PChar(aPath), MOVEFILE_REPLACE_EXISTING) then
+      RaiseLastOSError;
   finally
     if TFile.Exists(lTemp) then
       TFile.Delete(lTemp);
@@ -582,10 +597,10 @@ begin
       lRule := RowText(lRow, 'normalized_rule');
       if lRule = '' then
         lRule := 'unknown';
-      lRoots.AddOrSetValue(lRoot, IfThen(lRoots.ContainsKey(lRoot), lRoots[lRoot], 0) + 1);
+      BumpCount(lRoots, lRoot);
       lRootOwnership.AddOrSetValue(lRoot, IfThen(RowText(lRow, 'ownership') = '', 'unknown', RowText(lRow, 'ownership')));
       lKey := lRoot + #0 + lRule;
-      lGrouped.AddOrSetValue(lKey, IfThen(lGrouped.ContainsKey(lKey), lGrouped[lKey], 0) + 1);
+      BumpCount(lGrouped, lKey);
     end;
     lLines.Add('# External static-analysis summary');
     lLines.Add('');
@@ -652,7 +667,7 @@ begin
       lRule := RowText(lRow, 'normalized_rule');
       if lRule = '' then
         lRule := 'unknown';
-      lByRule.AddOrSetValue(lRule, IfThen(lByRule.ContainsKey(lRule), lByRule[lRule], 0) + 1);
+      BumpCount(lByRule, lRule);
     end;
     lLines.Add('# Advisory static-analysis metrics');
     lLines.Add('');
@@ -775,13 +790,12 @@ begin
   end;
 end;
 
-function TriagePathAllowed(const aPath: string; const aInclude, aExclude: TArray<string>): Boolean;
+function AnalysisTriagePathAllowed(const aPath: string; const aInclude, aExclude: TArray<string>): Boolean;
 var
   lPattern: string;
   lPath: string;
   lMatched: Boolean;
 begin
-  // _triage_path_allowed: an empty path passes only without include patterns; exclude wins.
   lPath := Trim(aPath);
   if lPath = '' then
     Exit(Length(aInclude) = 0);
@@ -1188,7 +1202,7 @@ begin
     begin
       lTriage := Default(TTriageItem);
       lTriage.fPath := OrDefault(OrDefault(RowText(lRow, 'path'), RowText(lRow, 'file')), '?');
-      if not TriagePathAllowed(lTriage.fPath, lInclude, lExclude) then
+      if not AnalysisTriagePathAllowed(lTriage.fPath, lInclude, lExclude) then
         Continue;
       lTriage.fKind := Trim(RowText(lRow, 'kind'));
       lTriage.fPriority := FixInsightPriority(lTriage.fKind);
@@ -1210,7 +1224,7 @@ begin
       lTriage := Default(TTriageItem);
       lTriage.fSeverity := Trim(RowText(lRow, 'severity'));
       lTriage.fPath := OrDefault(OrDefault(RowText(lRow, 'path'), RowText(lRow, 'module')), '?');
-      if not TriagePathAllowed(lTriage.fPath, lInclude, lExclude) then
+      if not AnalysisTriagePathAllowed(lTriage.fPath, lInclude, lExclude) then
         Continue;
       lTriage.fSection := RowText(lRow, 'section');
       lTriage.fMessage := RowText(lRow, 'message');

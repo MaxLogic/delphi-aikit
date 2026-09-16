@@ -22,9 +22,22 @@ uses
   Dak.Analysis.Findings, Dak.Analysis.JsonText, Dak.Analysis.Ownership, Dak.Analysis.OwnershipContext,
   Dak.Analysis.Projections, Dak.Analysis.ReportBundle, Dak.Analysis.ReportWriters, Dak.Analysis.Text;
 
+type
+  // The published views that must all repeat the same actionable ownership counts.
+  TOwnershipLine = record
+    fArtifact: string;
+    fPrefix: string;
+    fMessage: string;
+  end;
+
 const
   cAnalyzers: array[0..1] of string = ('fixinsight', 'pascal_analyzer');
   cLabels: array[0..1] of string = ('FixInsight', 'Pascal Analyzer');
+  cOwnershipLines: array[0..3] of TOwnershipLine = (
+    (fArtifact: 'summary.md'; fPrefix: '- '; fMessage: 'summary.md ownership mismatch'),
+    (fArtifact: 'delta.md'; fPrefix: '- After: '; fMessage: 'delta.md After ownership mismatch'),
+    (fArtifact: 'trend.md'; fPrefix: '- Latest ownership: '; fMessage: 'trend.md ownership mismatch'),
+    (fArtifact: 'triage.md'; fPrefix: '- Ownership: '; fMessage: 'triage.md ownership mismatch'));
 
 function LoadJsonObject(const aPath, aLabel: string): TJSONObject;
 var
@@ -55,6 +68,109 @@ begin
   finally
     lLines.Free;
   end;
+end;
+
+// The baseline's counts for one rule projection, or nil when there is no baseline to compare.
+function BaselineCounts(aBaseline, aBaselinePal: TJSONObject; const aName: string): TJSONObject;
+begin
+  Result := nil;
+  if aBaseline <> nil then
+    Result := JsonObjectMember(aBaselinePal, aName);
+end;
+
+// The four PAL totals a history row repeats, taken from the actionable counts.
+function PalTotalsOf(aPalCounts: TJSONObject): TJSONObject;
+var
+  lName: string;
+begin
+  Result := TJSONObject.Create;
+  for lName in ['warnings', 'strong_warnings', 'optimizations', 'total'] do
+    Result.AddPair(lName, JsonCloneValue(aPalCounts.GetValue(lName)));
+end;
+
+// The last trend row must repeat this run's published totals.
+procedure VerifyTrendTotals(const aTrendText: string; aFi, aPal: TJSONObject);
+var
+  lCells: TArray<string>;
+  lExpected: TArray<string>;
+  lLastRow, lLine: string;
+  i: Integer;
+const
+  cColumns: array[0..4] of Integer = (1, 3, 5, 7, 9);
+begin
+  lLastRow := '';
+  for lLine in aTrendText.Replace(#13#10, #10).Split([#10]) do
+    if lLine.StartsWith('| ') and not lLine.StartsWith('| ---') then
+      lLastRow := lLine;
+  if lLastRow = '' then
+    raise EConvertError.Create('trend.md latest totals are missing');
+  lCells := lLastRow.Trim.Trim(['|']).Split(['|']);
+  for i := 0 to High(lCells) do
+    lCells[i] := lCells[i].Trim;
+  lExpected := [JsonText(aFi, 'total'), JsonText(aPal, 'strong_warnings'), JsonText(aPal, 'warnings'),
+    JsonText(aPal, 'optimizations'), JsonText(aPal, 'total')];
+  for i := 0 to High(cColumns) do
+    if (cColumns[i] > High(lCells)) or (lCells[cColumns[i]] <> lExpected[i]) then
+      raise EConvertError.CreateFmt('trend.md total mismatch: expected=%s', [String.Join(', ', lExpected)]);
+end;
+
+// The nonzero counts only: Python compares the dictionaries the delta rows reconstruct.
+function NonZeroCounts(aCounts: TJSONObject): TJSONObject;
+var
+  lPair: TJSONPair;
+  lValue: Integer;
+begin
+  Result := TJSONObject.Create;
+  if aCounts = nil then
+    Exit;
+  for lPair in aCounts do
+    if TryStrToInt(lPair.JsonValue.Value, lValue) and (lValue <> 0) then
+      Result.AddPair(lPair.JsonString.Value, TJSONNumber.Create(lValue));
+end;
+
+// A rule-count delta row set must be internally consistent and reconstruct the counts it claims.
+procedure VerifyRuleDelta(aDeltaPal: TJSONObject; const aField: string; aExpectedBefore, aExpectedAfter: TJSONObject);
+var
+  g: TGarbos;
+  lAfter, lBefore, lExpectedAfter, lExpectedBefore, lRow: TJSONObject;
+  lAfterCount, lBeforeCount: Integer;
+  lItem: TJSONValue;
+  lRows: TJSONArray;
+  lRule: string;
+  lSeen: TDictionary<string, Boolean>;
+begin
+  lRows := JsonArrayMember(aDeltaPal, aField);
+  if lRows = nil then
+    raise EConvertError.CreateFmt('delta.json %s is missing', [aField]);
+  GC(lBefore, TJSONObject.Create, g);
+  GC(lAfter, TJSONObject.Create, g);
+  GC(lSeen, TDictionary<string, Boolean>.Create, g);
+  for lItem in lRows do
+  begin
+    if not (lItem is TJSONObject) then
+      raise EConvertError.CreateFmt('delta.json %s is invalid', [aField]);
+    lRow := TJSONObject(lItem);
+    lRule := JsonText(lRow, 'rule');
+    if (lRule = '') or lSeen.ContainsKey(lRule) then
+      raise EConvertError.CreateFmt('delta.json %s is invalid', [aField]);
+    lSeen.Add(lRule, True);
+    lBeforeCount := StrToIntDef(JsonText(lRow, 'before'), 0);
+    lAfterCount := StrToIntDef(JsonText(lRow, 'after'), 0);
+    if StrToIntDef(JsonText(lRow, 'delta'), 0) <> lAfterCount - lBeforeCount then
+      raise EConvertError.CreateFmt('delta.json %s is invalid', [aField]);
+    if lBeforeCount <> 0 then
+      lBefore.AddPair(lRule, TJSONNumber.Create(lBeforeCount));
+    if lAfterCount <> 0 then
+      lAfter.AddPair(lRule, TJSONNumber.Create(lAfterCount));
+  end;
+  GC(lExpectedAfter, NonZeroCounts(aExpectedAfter), g);
+  if not AnalysisJsonEquivalent(lAfter, lExpectedAfter) then
+    raise EConvertError.CreateFmt('delta.json %s evidence mismatch', [aField]);
+  if aExpectedBefore = nil then
+    Exit;
+  GC(lExpectedBefore, NonZeroCounts(aExpectedBefore), g);
+  if not AnalysisJsonEquivalent(lBefore, lExpectedBefore) then
+    raise EConvertError.CreateFmt('delta.json %s baseline evidence mismatch', [aField]);
 end;
 
 // triage.md must be what the recorded active policy regenerates from the normalized rows.
@@ -241,12 +357,15 @@ var
   g: TGarbos;
   lActive, lAliases, lAnalyzer, lAnalyzers, lCompatibility, lCounts, lExpectedCompatibility, lExpectedCounts,
     lExpectedProjections, lPolicy, lResolved, lRow, lSummaryJson, lSummaryMarkdown: TJSONObject;
+  lBaselineJson, lBaselinePal, lDelta, lDeltaAliases, lDeltaFi, lDeltaPal, lGate, lHistoryRow,
+    lProjectionPal: TJSONObject;
+  lBaselinePath, lDeltaText, lTrendText: string;
+  lHistory: TJSONArray;
   lFi, lOrigins, lPal, lRows: TJSONArray;
   lBoundaries: TAnalysisOwnershipContext;
-  lFiPath, lLine, lName, lOutRoot, lPalPath, lPalVersion, lText: string;
+  lFiPath, lLine, lOutRoot, lPalPath, lPalVersion, lText: string;
   lItem: TJSONValue;
   lActionable, lTotal: Integer;
-  lPrefixes: array[0..1] of string;
   i: Integer;
   lFound: Boolean;
 begin
@@ -297,6 +416,9 @@ begin
     lTotal := StrToIntDef(JsonText(JsonObjectMember(lCounts, 'actionable'), 'total'), -1);
     if lTotal <> lActionable then
       raise EConvertError.CreateFmt('summary.json total mismatch: expected=%d, actual=%d', [lActionable, lTotal]);
+    GC(lDelta, LoadJsonObject(TPath.Combine(lOutRoot, 'delta.json'), 'delta.json'), g);
+    lDeltaPal := JsonObjectMember(lDelta, 'pascal_analyzer');
+    lDeltaFi := JsonObjectMember(lDelta, 'fixinsight');
     lPolicy := JsonObjectMember(lSummaryJson, 'policy');
     GC(lResolved, ResolveAnalysisPolicy(lSummaryJson), g);
     lActive := JsonObjectMember(lPolicy, 'active');
@@ -326,31 +448,122 @@ begin
     GC(lAliases, AnalysisPalRegisteredAliases(lPalVersion), g);
     if not AnalysisJsonEquivalent(JsonObjectMember(lAnalyzer, 'verified_rule_aliases'), lAliases) then
       raise EConvertError.Create('summary.json verified PAL alias mismatch');
+    lDeltaAliases := JsonObjectMember(lDeltaPal, 'verified_rule_aliases');
+    if not AnalysisJsonEquivalent(JsonObjectMember(lDeltaAliases, 'after'), lAliases) then
+      raise EConvertError.Create('delta.json verified PAL alias mismatch');
+    // The delta names the baseline it compared against; that file must still be there.
+    lBaselineJson := nil;
+    lBaselinePath := JsonText(JsonObjectMember(lDelta, 'baseline'), 'path');
+    if lBaselinePath <> '' then
+    begin
+      if not TPath.IsPathRooted(lBaselinePath) then
+        lBaselinePath := TPath.Combine(lOutRoot, lBaselinePath);
+      if not TFile.Exists(lBaselinePath) then
+        raise EConvertError.CreateFmt('referenced baseline is missing: %s', [lBaselinePath]);
+      GC(lBaselineJson, LoadJsonObject(lBaselinePath, 'baseline.json'), g);
+    end;
+    lBaselinePal := JsonObjectMember(lBaselineJson, 'pascal_analyzer');
+    if (lBaselineJson <> nil) and not AnalysisJsonEquivalent(JsonObjectMember(lDeltaAliases, 'before'),
+      JsonObjectMember(lBaselinePal, 'verified_rule_aliases')) then
+      raise EConvertError.Create('delta.json verified PAL alias baseline mismatch');
+    lProjectionPal := JsonObjectMember(JsonObjectMember(lExpectedProjections, 'actionable'), 'pascal_analyzer');
+    VerifyRuleDelta(lDeltaPal, 'rule_count_deltas',
+      BaselineCounts(lBaselineJson, lBaselinePal, 'rule_counts'),
+      JsonObjectMember(lProjectionPal, 'by_rule'));
+    lProjectionPal := JsonObjectMember(JsonObjectMember(lExpectedProjections, 'raw'), 'pascal_analyzer');
+    VerifyRuleDelta(lDeltaPal, 'raw_rule_count_deltas',
+      BaselineCounts(lBaselineJson, lBaselinePal, 'raw_rule_counts'),
+      JsonObjectMember(lProjectionPal, 'by_rule'));
+    lProjectionPal := JsonObjectMember(JsonObjectMember(lExpectedProjections, 'ignored'), 'pascal_analyzer');
+    VerifyRuleDelta(lDeltaPal, 'ignored_rule_count_deltas',
+      BaselineCounts(lBaselineJson, lBaselinePal, 'ignored_rule_counts'),
+      JsonObjectMember(lProjectionPal, 'by_rule'));
     // Like the reference, the fingerprint is recomputed from the recorded seed alone; no inventory runs.
     lBoundaries := BuildAnalysisPolicyBoundaries(lSummaryJson);
     GC(lExpectedCompatibility, AnalysisCompatibilitySnapshot(lSummaryJson, lBoundaries), g);
     lCompatibility := JsonObjectMember(lSummaryJson, 'compatibility');
     if (lCompatibility = nil) or (JsonText(lCompatibility, 'sha256') <> JsonText(lExpectedCompatibility, 'sha256')) then
       raise EConvertError.Create('summary.json compatibility fingerprint mismatch');
-    lText := AnalysisOwnershipText(Result);
-    lPrefixes[0] := '- ';
-    lPrefixes[1] := '- Ownership: ';
-    for i := 0 to 1 do
+    if JsonText(JsonObjectMember(JsonObjectMember(lDelta, 'current'), 'compatibility'), 'sha256') <>
+      JsonText(lCompatibility, 'sha256') then
+      raise EConvertError.Create('delta.json current compatibility mismatch');
+    lGate := JsonObjectMember(lDelta, 'gate');
+    // A gate may only pass against a baseline recorded under the same analysis context.
+    if (lGate <> nil) and (lGate.GetValue('enabled') is TJSONBool) and TJSONBool(lGate.GetValue('enabled')).AsBoolean and
+      (lGate.GetValue('pass') is TJSONBool) and TJSONBool(lGate.GetValue('pass')).AsBoolean then
     begin
-      lName := IfThen(i = 0, 'summary.md', 'triage.md');
+      if JsonText(JsonObjectMember(JsonObjectMember(lDelta, 'baseline'), 'compatibility'), 'sha256') <>
+        JsonText(lCompatibility, 'sha256') then
+        raise EConvertError.Create('passing gate baseline compatibility mismatch');
+      if lBaselineJson = nil then
+        raise EConvertError.Create('passing gate baseline.json is missing');
+      if JsonText(JsonObjectMember(lBaselineJson, 'compatibility'), 'sha256') <> JsonText(lCompatibility, 'sha256') then
+        raise EConvertError.Create('baseline.json compatibility mismatch');
+    end;
+    if not AnalysisJsonEquivalent(JsonObjectMember(JsonObjectMember(lDelta, 'ownership'), 'after'), Result) then
+      raise EConvertError.CreateFmt('delta.json ownership mismatch: expected=%s, actual=%s',
+        [TPythonJson.Compact(Result),
+         TPythonJson.Compact(JsonObjectMember(JsonObjectMember(lDelta, 'ownership'), 'after'))]);
+    if JsonText(lDeltaFi, 'total_after') <> JsonText(JsonObjectMember(lExpectedCounts, 'fixinsight'), 'total') then
+      raise EConvertError.Create('delta.json FixInsight total mismatch');
+    if JsonText(lDeltaPal, 'total_after') <> JsonText(JsonObjectMember(lExpectedCounts, 'pascal_analyzer'), 'total') then
+      raise EConvertError.Create('delta.json Pascal Analyzer total mismatch');
+    // The last history row must describe this run.
+    if TFile.Exists(TPath.Combine(lOutRoot, 'history.jsonl')) then
+      GC(lHistory, LoadAnalysisJsonLines(TPath.Combine(lOutRoot, 'history.jsonl')), g)
+    else
+      GC(lHistory, TJSONArray.Create, g);
+    lHistoryRow := nil;
+    if lHistory.Count > 0 then
+      lHistoryRow := TJSONObject(lHistory.Items[lHistory.Count - 1]);
+    if not AnalysisJsonEquivalent(JsonObjectMember(lHistoryRow, 'ownership'), Result) then
+      raise EConvertError.CreateFmt('history.jsonl ownership mismatch: expected=%s, actual=%s',
+        [TPythonJson.Compact(Result), IfThen(lHistoryRow = nil, 'None',
+         TPythonJson.Compact(JsonObjectMember(lHistoryRow, 'ownership')))]);
+    if JsonText(JsonObjectMember(lHistoryRow, 'fixinsight'), 'total') <>
+      JsonText(JsonObjectMember(lExpectedCounts, 'fixinsight'), 'total') then
+      raise EConvertError.Create('history.jsonl FixInsight total mismatch');
+    if not AnalysisJsonEquivalent(JsonObjectMember(JsonObjectMember(lHistoryRow, 'pascal_analyzer'), 'totals'),
+      PalTotalsOf(JsonObjectMember(lExpectedCounts, 'pascal_analyzer'))) then
+      raise EConvertError.Create('history.jsonl Pascal Analyzer totals mismatch');
+    if not AnalysisJsonEquivalent(JsonObjectMember(lHistoryRow, 'raw'),
+      JsonObjectMember(lExpectedProjections, 'raw')) then
+      raise EConvertError.Create('history.jsonl raw projection mismatch');
+    lText := AnalysisOwnershipText(Result);
+    for i := 0 to High(cOwnershipLines) do
+    begin
       lFound := False;
-      for lLine in ReadAnalysisText(TPath.Combine(lOutRoot, lName)).Replace(#13#10, #10).Split([#10]) do
-        if lLine = lPrefixes[i] + lText then
+      for lLine in ReadAnalysisText(TPath.Combine(lOutRoot, cOwnershipLines[i].fArtifact))
+        .Replace(#13#10, #10).Split([#10]) do
+        if lLine = cOwnershipLines[i].fPrefix + lText then
           lFound := True;
       if not lFound then
-        raise EConvertError.CreateFmt('%s ownership mismatch: expected ''%s''', [lName, lText]);
+        raise EConvertError.CreateFmt('%s ownership mismatch: expected ''%s''',
+          [cOwnershipLines[i].fMessage, lText]);
     end;
+    lTrendText := ReadAnalysisText(TPath.Combine(lOutRoot, 'trend.md'));
+    lText := AnalysisOwnershipText(JsonObjectMember(JsonObjectMember(lExpectedProjections, 'raw'), 'ownership'));
+    lFound := False;
+    for lLine in lTrendText.Replace(#13#10, #10).Split([#10]) do
+      if lLine = '- Latest raw ownership: ' + lText then
+        lFound := True;
+    if not lFound then
+      raise EConvertError.CreateFmt('trend.md raw ownership mismatch: expected ''%s''', [lText]);
     VerifyTriageEvidence(lOutRoot, lSummaryJson, lFi, lPal);
     lText := ReadAnalysisText(TPath.Combine(lOutRoot, 'triage.md'));
     for i := 0 to 1 do
       if not lText.Contains(Format('- %s findings: %s ', [cLabels[i],
         JsonText(JsonObjectMember(lExpectedCounts, cAnalyzers[i]), 'total')])) then
         raise EConvertError.CreateFmt('triage.md %s total mismatch', [cLabels[i]]);
+    lDeltaText := ReadAnalysisText(TPath.Combine(lOutRoot, 'delta.md'));
+    if not TRegEx.IsMatch(lDeltaText, '^- Findings: .* -> ' +
+      TRegEx.Escape(JsonText(JsonObjectMember(lExpectedCounts, 'fixinsight'), 'total')) + ' \(', [roMultiLine]) then
+      raise EConvertError.Create('delta.md FixInsight total mismatch');
+    if not TRegEx.IsMatch(lDeltaText, '^- Total: .* -> ' +
+      TRegEx.Escape(JsonText(JsonObjectMember(lExpectedCounts, 'pascal_analyzer'), 'total')) + ' \(', [roMultiLine]) then
+      raise EConvertError.Create('delta.md Pascal Analyzer total mismatch');
+    VerifyTrendTotals(lTrendText, JsonObjectMember(lExpectedCounts, 'fixinsight'),
+      JsonObjectMember(lExpectedCounts, 'pascal_analyzer'));
     VerifySarifEvidence(lOutRoot, 'static-analysis.sarif', lFi, lPal, False, Result);
     VerifySarifEvidence(lOutRoot, 'static-analysis.full.sarif', lFi, lPal, True, Result);
   except

@@ -113,7 +113,7 @@ type
     [Test]
     procedure BrokenReplayIsNotARejectedResult;
     [Test]
-    procedure BaselineOptionsAreRefused;
+    procedure BaselineSwitchSelectsTheBaselineFile;
   end;
 
 implementation
@@ -835,17 +835,34 @@ begin
   Assert.IsFalse(TFile.Exists(TPath.Combine(lOutput, 'summary.json')), 'no summary.json');
 end;
 
-procedure TNativeAnalysisReportCommandTests.BaselineOptionsAreRefused;
+// --baseline selects where the policy stage reads and writes the accepted baseline.
+procedure TNativeAnalysisReportCommandTests.BaselineSwitchSelectsTheBaselineFile;
 var
-  lOutput: string;
+  lBaseline, lOutput: string;
 begin
-  lOutput := TPath.Combine(fRoot, 'baseline');
-  TDirectory.CreateDirectory(lOutput);
-  Assert.IsTrue(RunReport('--out ' + QuoteArg(lOutput) + ' --baseline ' +
-    QuoteArg(TPath.Combine(lOutput, 'baseline.json')), 2).Contains('not available yet'),
-    '--baseline is refused until the policy stage owns it');
-  Assert.IsTrue(RunReport('--out ' + QuoteArg(lOutput) + ' --update-baseline', 2).Contains('not available yet'),
-    '--update-baseline is refused until the policy stage owns it');
+  lOutput := TPath.Combine(fRoot, 'selected');
+  WriteUtf8(TPath.Combine(lOutput, 'Sample.dproj'), '<Project />');
+  WriteUtf8(TPath.Combine(lOutput, 'summary.md'),
+    '# Static analysis'#10#10 +
+    '- Timestamp: 2026-07-16T10:00:00Z'#10 +
+    '- Project: `' + TPath.Combine(lOutput, 'Sample.dproj') + '`'#10#10 +
+    '## FixInsight'#10#10 +
+    '- Findings (by code): 1'#10 +
+    '  - W101: 1'#10#10 +
+    '## Pascal Analyzer'#10#10 +
+    '- Version: 9.21.3'#10 +
+    '- Compiler target: Delphi 13 (Win64)'#10 +
+    '- Totals: warnings=0, strong_warnings=0, optimizations=0, total=0'#10);
+  WriteUtf8(TPath.Combine(lOutput, 'fixinsight' + PathDelim + 'fi-findings.jsonl'),
+    '{"tool": "FixInsight", "code": "W101", "kind": "W", "path": "src/One.pas", "line": 10, "col": 2, "message": "warning"}'#10);
+  WriteUtf8(TPath.Combine(lOutput, 'pascal-analyzer\pal-findings.jsonl'), '');
+  lBaseline := TPath.Combine(fRoot, 'chosen-baseline.json');
+  RunReport('--out ' + QuoteArg(lOutput) + ' --baseline ' + QuoteArg(lBaseline), 0);
+  Assert.IsTrue(TFile.Exists(lBaseline), 'the selected baseline file is written');
+  Assert.IsFalse(TFile.Exists(TPath.Combine(lOutput, 'baseline.json')), 'the default baseline is not written');
+  Assert.IsTrue(TFile.Exists(TPath.ChangeExtension(lBaseline, '.md')), 'its Markdown view sits beside it');
+  Assert.IsTrue(RunReport('--out ' + QuoteArg(lOutput) + ' --baseline', 2).Contains('Missing value for parameter'),
+    '--baseline without a path is a usage error');
 end;
 
 initialization

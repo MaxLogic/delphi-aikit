@@ -31,7 +31,8 @@ resourcestring
     'DelphiAIKit.exe analyze-report --out "<analysis-output-directory>" [--verify [true|false]]' + #13#10 +
     '  [--baseline "<file>"] [--update-baseline [true|false]]' + #13#10 +
     'Replays report processing from the retained analyzer outputs, or verifies the published' + #13#10 +
-    'artifacts without writing when --verify is set. Exit 3 reports a rejected result.';
+    'artifacts without writing when --verify is set. --baseline selects the baseline file and' + #13#10 +
+    '--update-baseline accepts this run as the new baseline. Exit 3 reports a rejected result.';
   rsUsageAnalyzeWorkspace =
     'DelphiAIKit.exe analyze-workspace (--project "<path>" | --unit "<path>")' + #13#10 +
     '  [--project-context "<dproj>"] [--workspace-root <auto|git|svn|project|path>] [--json [true|false]]' + #13#10 +

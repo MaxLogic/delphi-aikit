@@ -39,12 +39,20 @@ function AnalysisActionableCounts(aSummary: TJSONObject; aFixInsight, aPal: TJSO
 function AnalysisReportProjections(aSummary: TJSONObject; aFixInsight, aPal: TJSONArray): TJSONObject;
 // _compatibility_snapshot: {sha256, context}.
 function AnalysisCompatibilitySnapshot(aSeed: TJSONObject; const aContext: TAnalysisOwnershipContext): TJSONObject;
+// platform.win32_ver: the Windows release name the reference records in the run context. The
+// tables are ordered high to low and the first entry not above the running version wins, so a
+// Windows 10 kernel with build 22000 or later is reported as 11, not as 10.
+function AnalysisHostRelease(aMajor, aMinor, aBuild: Integer; aIsClient: Boolean): string;
 // _active_triage_policy
 function AnalysisActiveTriagePolicy: TJSONObject;
 // datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 function AnalysisUtcNowIso: string;
 function AnalysisTruthyEnvironment(const aName: string; aDefault: Boolean): Boolean;
+// _int_env: an unset or blank name yields the default; a value that is not an integer is an
+// error, never a silent fallback that would weaken a configured limit.
 function AnalysisIntegerEnvironment(const aName: string; aDefault: Integer): Integer;
+// The same without a default: aHasValue is False when the variable is unset or blank.
+function AnalysisOptionalIntegerEnvironment(const aName: string; out aHasValue: Boolean): Integer;
 function SplitSemicolonPatterns(const aRaw: string): TArray<string>;
 // Nullable text member: '' for absent, null, or empty.
 function JsonText(aObject: TJSONObject; const aName: string): string;
@@ -244,14 +252,25 @@ begin
   Result := MatchText(lValue, ['1', 'true', 'yes', 'on']);
 end;
 
-function AnalysisIntegerEnvironment(const aName: string; aDefault: Integer): Integer;
+function AnalysisOptionalIntegerEnvironment(const aName: string; out aHasValue: Boolean): Integer;
 var
   lValue: string;
 begin
+  Result := 0;
   lValue := Trim(GetEnvironmentVariable(aName));
-  if lValue = '' then
-    Exit(aDefault);
+  aHasValue := lValue <> '';
+  if not aHasValue then
+    Exit;
   if not TryStrToInt(lValue, Result) then
+    raise EConvertError.CreateFmt('%s must be an integer, got: %s', [aName, QuotedStr(lValue)]);
+end;
+
+function AnalysisIntegerEnvironment(const aName: string; aDefault: Integer): Integer;
+var
+  lHasValue: Boolean;
+begin
+  Result := AnalysisOptionalIntegerEnvironment(aName, lHasValue);
+  if not lHasValue then
     Result := aDefault;
 end;
 
@@ -527,6 +546,105 @@ begin
     Result := lMatch.Groups[1].Value;
 end;
 
+type
+  // One row of platform.win32_ver's release tables: the lowest version that still carries the name.
+  TAnalysisReleaseEntry = record
+    fMajor: Integer;
+    fMinor: Integer;
+    fBuild: Integer;
+    fName: string;
+  end;
+
+const
+  cClientReleases: array[0..10] of TAnalysisReleaseEntry = (
+    (fMajor: 10; fMinor: 1; fBuild: 0; fName: 'post11'),
+    (fMajor: 10; fMinor: 0; fBuild: 22000; fName: '11'),
+    (fMajor: 6; fMinor: 4; fBuild: 0; fName: '10'),
+    (fMajor: 6; fMinor: 3; fBuild: 0; fName: '8.1'),
+    (fMajor: 6; fMinor: 2; fBuild: 0; fName: '8'),
+    (fMajor: 6; fMinor: 1; fBuild: 0; fName: '7'),
+    (fMajor: 6; fMinor: 0; fBuild: 0; fName: 'Vista'),
+    (fMajor: 5; fMinor: 2; fBuild: 3790; fName: 'XP64'),
+    (fMajor: 5; fMinor: 2; fBuild: 0; fName: 'XPMedia'),
+    (fMajor: 5; fMinor: 1; fBuild: 0; fName: 'XP'),
+    (fMajor: 5; fMinor: 0; fBuild: 0; fName: '2000'));
+  cServerReleases: array[0..10] of TAnalysisReleaseEntry = (
+    (fMajor: 10; fMinor: 1; fBuild: 0; fName: 'post2025Server'),
+    (fMajor: 10; fMinor: 0; fBuild: 26100; fName: '2025Server'),
+    (fMajor: 10; fMinor: 0; fBuild: 20348; fName: '2022Server'),
+    (fMajor: 10; fMinor: 0; fBuild: 17763; fName: '2019Server'),
+    (fMajor: 6; fMinor: 4; fBuild: 0; fName: '2016Server'),
+    (fMajor: 6; fMinor: 3; fBuild: 0; fName: '2012ServerR2'),
+    (fMajor: 6; fMinor: 2; fBuild: 0; fName: '2012Server'),
+    (fMajor: 6; fMinor: 1; fBuild: 0; fName: '2008ServerR2'),
+    (fMajor: 6; fMinor: 0; fBuild: 0; fName: '2008Server'),
+    (fMajor: 5; fMinor: 2; fBuild: 0; fName: '2003Server'),
+    (fMajor: 5; fMinor: 0; fBuild: 0; fName: '2000Server'));
+
+function AnalysisHostRelease(aMajor, aMinor, aBuild: Integer; aIsClient: Boolean): string;
+
+  function EntryAtMost(const aEntry: TAnalysisReleaseEntry): Boolean;
+  begin
+    if aEntry.fMajor <> aMajor then
+      Exit(aEntry.fMajor < aMajor);
+    if aEntry.fMinor <> aMinor then
+      Exit(aEntry.fMinor < aMinor);
+    Result := aEntry.fBuild <= aBuild;
+  end;
+
+var
+  lEntry: TAnalysisReleaseEntry;
+begin
+  // The tables run from newest to oldest, so the first row the running version reaches wins.
+  // Nothing matching leaves the release empty, exactly as the reference's default does.
+  Result := '';
+  if aIsClient then
+  begin
+    for lEntry in cClientReleases do
+      if EntryAtMost(lEntry) then
+        Exit(lEntry.fName);
+  end else
+  begin
+    for lEntry in cServerReleases do
+      if EntryAtMost(lEntry) then
+        Exit(lEntry.fName);
+  end;
+end;
+
+// RtlGetVersion reports the real build even when a process manifest would make GetVersionEx answer
+// for an older Windows, and it carries the product type the reference reads from WMI.
+function CurrentHostRelease: string;
+type
+  TOsVersionInfoExW = record
+    dwOSVersionInfoSize: ULONG;
+    dwMajorVersion: ULONG;
+    dwMinorVersion: ULONG;
+    dwBuildNumber: ULONG;
+    dwPlatformId: ULONG;
+    szCSDVersion: array[0..127] of WideChar;
+    wServicePackMajor: USHORT;
+    wServicePackMinor: USHORT;
+    wSuiteMask: USHORT;
+    wProductType: Byte;
+    wReserved: Byte;
+  end;
+  TRtlGetVersion = function(var aInfo: TOsVersionInfoExW): LongInt; stdcall;
+var
+  lInfo: TOsVersionInfoExW;
+  lRtlGetVersion: TRtlGetVersion;
+begin
+  lRtlGetVersion := TRtlGetVersion(GetProcAddress(GetModuleHandle('ntdll.dll'), 'RtlGetVersion'));
+  if Assigned(lRtlGetVersion) then
+  begin
+    FillChar(lInfo, SizeOf(lInfo), 0);
+    lInfo.dwOSVersionInfoSize := SizeOf(lInfo);
+    if lRtlGetVersion(lInfo) = 0 then
+      Exit(AnalysisHostRelease(lInfo.dwMajorVersion, lInfo.dwMinorVersion, lInfo.dwBuildNumber,
+        lInfo.wProductType = VER_NT_WORKSTATION));
+  end;
+  Result := AnalysisHostRelease(TOSVersion.Major, TOSVersion.Minor, TOSVersion.Build, True);
+end;
+
 function BuildAnalysisRunContext(const aOutRoot: string; aSummary: TJSONObject): TJSONObject;
 const
   cKeys: array[0..2] of string = ('platform', 'config', 'delphi');
@@ -583,7 +701,7 @@ begin
       lTools.Free;
     lHost := TJSONObject.Create
       .AddPair('os', 'Windows')
-      .AddPair('release', IntToStr(TOSVersion.Major))
+      .AddPair('release', CurrentHostRelease)
       .AddPair('python', TJSONNull.Create)
       .AddPair('wsl', TJSONBool.Create(False));
     if JsonText(lRunLog, 'analysis_cwd') <> '' then

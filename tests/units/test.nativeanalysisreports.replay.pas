@@ -28,8 +28,15 @@ uses
 
 const
   cMigrationRoot = 'projects\.dak\DelphiAIKit\native-analysis-migration';
-  cExactArtifacts: array[0..6] of string = ('fixinsight\fi-findings.jsonl', 'pascal-analyzer\pal-findings.jsonl',
-    'summary.md', 'static-analysis.sarif', 'static-analysis.full.sarif', 'external-summary.md', 'metrics.md');
+  // The complete published set: the report artifacts (T-324) and the six the policy stage owns
+  // (T-325). These must be byte-identical to the retained Python reference.
+  cExactArtifacts: array[0..9] of string = ('fixinsight\fi-findings.jsonl', 'pascal-analyzer\pal-findings.jsonl',
+    'summary.md', 'static-analysis.sarif', 'static-analysis.full.sarif', 'external-summary.md', 'metrics.md',
+    'baseline.md', 'delta.md', 'run.log');
+  // Documents that record which engine produced the run; only that identity may differ.
+  cIdentityArtifacts: array[0..2] of string = ('summary.json', 'baseline.json', 'delta.json');
+  // Artifacts whose generated clock is the only allowed difference.
+  cClockArtifacts: array[0..2] of string = ('triage.md', 'trend.md', 'history.jsonl');
 
 function MigrationPath(const aRelative: string): string;
 begin
@@ -53,30 +60,42 @@ begin
   end;
 end;
 
-function NormalizeTriage(const aText: string): string;
+// The generated clocks: triage.md's timestamp, trend.md's update line and the history row's own timestamp.
+function NormalizeClocks(const aText: string): string;
 begin
   Result := TRegEx.Replace(aText, '^- Timestamp: .*$', '- Timestamp: <normalized>', [roMultiLine]);
+  Result := TRegEx.Replace(Result, '^- Updated: .*$', '- Updated: <normalized>', [roMultiLine]);
+  Result := TRegEx.Replace(Result, '"timestamp": "[^"]*"', '"timestamp": "<normalized>"');
 end;
 
-// Removes the policy-owned members (T-325) and the recorded engine identity before comparison.
-function NormalizeSummaryJson(const aText: string): string;
+// Removes what identifies the engine that produced the run, wherever it appears: the DAK
+// executable identity, the compatibility fingerprint that covers it, and the interpreter and
+// operating-system facts of the host. Everything else must match the reference exactly.
+procedure StripEngineIdentity(aValue: TJSONValue);
+var
+  lItem: TJSONValue;
+  lName: string;
+  lPair: TJSONPair;
+begin
+  if aValue is TJSONObject then
+  begin
+    for lName in ['dak', 'compatibility', 'host'] do
+      if TJSONObject(aValue).GetValue(lName) <> nil then
+        TJSONObject(aValue).RemovePair(lName).Free;
+    for lPair in TJSONObject(aValue) do
+      StripEngineIdentity(lPair.JsonValue);
+  end else if aValue is TJSONArray then
+    for lItem in TJSONArray(aValue) do
+      StripEngineIdentity(lItem);
+end;
+
+function NormalizeEngineIdentity(const aText, aContext: string): string;
 var
   g: TGarbos;
-  lArtifacts, lDocument, lProvenance, lStatus: TJSONObject;
-  lName: string;
+  lDocument: TJSONObject;
 begin
-  GC(lDocument, ParseJsonObject(aText, 'summary.json'), g);
-  lArtifacts := JsonObjectMember(lDocument, 'artifacts');
-  if lArtifacts <> nil then
-    for lName in ['baseline', 'delta', 'history', 'trend'] do
-      lArtifacts.RemovePair(lName).Free;
-  lStatus := JsonObjectMember(lDocument, 'status');
-  if lStatus <> nil then
-    lStatus.RemovePair('policy').Free;
-  lProvenance := JsonObjectMember(lDocument, 'provenance');
-  if lProvenance <> nil then
-    lProvenance.RemovePair('dak').Free;
-  lDocument.RemovePair('compatibility').Free;
+  GC(lDocument, ParseJsonObject(aText, aContext), g);
+  StripEngineIdentity(lDocument);
   Result := TPythonJson.Document(lDocument);
 end;
 
@@ -106,12 +125,15 @@ begin
         lArtifact + ' must be byte-identical to the reference');
       Assert.AreEqual(Integer(Length(lExpected)), Integer(Length(lActual)), lArtifact + ' byte length');
     end;
-    Assert.AreEqual(Visible(NormalizeTriage(TFile.ReadAllText(TPath.Combine(lReference, 'triage.md'), TEncoding.UTF8))),
-      Visible(NormalizeTriage(TFile.ReadAllText(TPath.Combine(lOutput, 'triage.md'), TEncoding.UTF8))),
-      'triage.md must match apart from its generated timestamp');
-    Assert.AreEqual(Visible(NormalizeSummaryJson(TFile.ReadAllText(TPath.Combine(lReference, 'summary.json'), TEncoding.UTF8))),
-      Visible(NormalizeSummaryJson(TFile.ReadAllText(TPath.Combine(lOutput, 'summary.json'), TEncoding.UTF8))),
-      'summary.json must match apart from policy-owned members and the engine identity');
+    for lArtifact in cClockArtifacts do
+      Assert.AreEqual(Visible(NormalizeClocks(TFile.ReadAllText(TPath.Combine(lReference, lArtifact), TEncoding.UTF8))),
+        Visible(NormalizeClocks(TFile.ReadAllText(TPath.Combine(lOutput, lArtifact), TEncoding.UTF8))),
+        lArtifact + ' must match apart from its generated clock');
+    for lArtifact in cIdentityArtifacts do
+      Assert.AreEqual(
+        Visible(NormalizeEngineIdentity(TFile.ReadAllText(TPath.Combine(lReference, lArtifact), TEncoding.UTF8), lArtifact)),
+        Visible(NormalizeEngineIdentity(TFile.ReadAllText(TPath.Combine(lOutput, lArtifact), TEncoding.UTF8), lArtifact)),
+        lArtifact + ' must match apart from the engine identity');
     Assert.IsFalse(TFile.Exists(TPath.Combine(lOutput, 'triage-changed.md')), 'no changed-file triage without DAK_SCOPE');
     Assert.IsFalse(TFile.Exists(TPath.Combine(lOutput, 'triage-snippets.md')), 'no snippets without DAK_TRIAGE_SNIPPETS');
   finally

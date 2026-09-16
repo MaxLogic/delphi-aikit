@@ -38,12 +38,12 @@ type
     fNext: TFunc<TJSONValue>;
     fProducer: TObject;
     fRendered: Integer;
-  protected
+  public
     // The RTL's own serializers see an empty array; only TPythonJson renders the elements.
+    // They keep the base class's public visibility so no override narrows it.
     function EstimatedByteSize: Integer; override;
     function ToBytes(const aData: TArray<Byte>; aOffset: Integer): Integer; override;
     procedure ToChars(aBuilder: TStringBuilder; aOptions: TJSONAncestor.TJSONOutputOptions); override;
-  public
     // aProducer is owned and freed with the array; it typically backs aNext.
     constructor Create(aProducer: TObject; const aNext: TFunc<TJSONValue>); reintroduce;
     destructor Destroy; override;

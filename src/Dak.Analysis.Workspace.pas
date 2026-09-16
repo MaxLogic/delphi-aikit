@@ -18,6 +18,9 @@ function CollectAnalysisSourcePaths(const aRoot, aVcs, aScratchRoot: string): TA
 // streams joined by a line feed. False when the tool cannot start; exit codes are not judged.
 function TryCaptureToolOutput(const aExePath, aArguments, aWorkDir: string; aTimeoutSec: Integer;
   out aOutput: string): Boolean;
+// The Git facts one trend history row records: repository root, head, branch and whether the
+// working tree had changes. Returns an empty object when the root is not a readable Git checkout.
+function CaptureAnalysisHistoryGit(const aRoot, aScratchRoot: string): TJSONObject;
 
 implementation
 
@@ -766,6 +769,37 @@ begin
         AddGitSubmoduleInputs(aExePath, lModuleRoot, lModulePath + '/', aScratchRoot,
           aLines, aNextLine, aModules, aInputs);
     end;
+  end;
+end;
+
+function CaptureAnalysisHistoryGit(const aRoot, aScratchRoot: string): TJSONObject;
+var
+  g: TGarbos;
+  lBranch, lExePath, lHead: string;
+  lChanged: TJSONArray;
+begin
+  Result := TJSONObject.Create;
+  try
+    if aRoot = '' then
+      Exit;
+    lExePath := ResolveGitExecutable;
+    lHead := GitRevision(lExePath, aRoot, aScratchRoot);
+    lBranch := Trim(RunMetadataCommand(lExePath, '--no-optional-locks rev-parse --abbrev-ref HEAD',
+      aRoot, aScratchRoot));
+    Result.AddPair('root', aRoot);
+    if lHead <> '' then
+      Result.AddPair('head', lHead);
+    if lBranch <> '' then
+      Result.AddPair('branch', lBranch);
+    GC(lChanged, GitChangedFiles(lExePath, aRoot, aScratchRoot), g);
+    if lChanged <> nil then
+    begin
+      Result.AddPair('dirty', TJSONBool.Create(lChanged.Count > 0));
+      Result.AddPair('changed_files', TJSONNumber.Create(lChanged.Count));
+    end;
+  except
+    Result.Free;
+    raise;
   end;
 end;
 

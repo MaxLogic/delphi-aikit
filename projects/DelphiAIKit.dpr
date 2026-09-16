@@ -28,6 +28,7 @@ uses
   Dak.Analysis.JsonText in '..\src\Dak.Analysis.JsonText.pas',
   Dak.Analysis.ReportBundle in '..\src\Dak.Analysis.ReportBundle.pas',
   Dak.Analysis.ReportWriters in '..\src\Dak.Analysis.ReportWriters.pas',
+  Dak.Analysis.ReportPolicy in '..\src\Dak.Analysis.ReportPolicy.pas',
   Dak.Analysis.ReportReplay in '..\src\Dak.Analysis.ReportReplay.pas',
   Dak.Analysis.ReportVerify in '..\src\Dak.Analysis.ReportVerify.pas',
   Dak.Analysis.ReportCommand in '..\src\Dak.Analysis.ReportCommand.pas',
