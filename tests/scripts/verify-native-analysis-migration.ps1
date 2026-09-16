@@ -5,7 +5,9 @@ param(
     [string]$Mode = 'Baseline',
     [string]$Area = 'All',
     [string]$Manifest,
-    [string]$CandidateExecutable
+    [string]$CandidateExecutable,
+    # Reports comparison scope: T324 owns everything but the policy stage; T-325 adds the Full set.
+    [ValidateSet('T324')][string]$ArtifactSet = 'T324'
 )
 
 function Resolve-MigrationOutputPath {
@@ -494,6 +496,13 @@ if ($MyInvocation.InvocationName -ne '.') {
         if (-not $CandidateExecutable) { throw "$Mode Workspace requires CandidateExecutable." }
         $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/workspace-'+$Mode.ToLowerInvariant()+'-'+[guid]::NewGuid().ToString()) }
         Invoke-MigrationWorkspaceComparison -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot -Benchmark:($Mode -eq 'Benchmark')
+        return
+    }
+    if ($Mode -in @('Compare','Benchmark') -and $Area -eq 'Reports') {
+        if (-not $CandidateExecutable) { throw "$Mode Reports requires CandidateExecutable." }
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-reports.ps1')
+        $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/reports-'+$Mode.ToLowerInvariant()+'-'+[guid]::NewGuid().ToString()) }
+        Invoke-MigrationReportComparison -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot -Benchmark:($Mode -eq 'Benchmark') -ArtifactSet $ArtifactSet
         return
     }
     if ($Mode -ne 'Baseline') { throw "Mode $Mode requires its native migration task; it is not certified yet." }

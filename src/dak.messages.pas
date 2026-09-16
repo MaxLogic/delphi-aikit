@@ -10,6 +10,7 @@ resourcestring
     '  analyze   Run FixInsight / Pascal Analyzer' + #13#10 +
     '  analyze-workspace Inspect analysis workspace and source provenance' + #13#10 +
     '  analyze-doctor Inspect analysis settings and tool availability' + #13#10 +
+    '  analyze-report Replay or verify the reports of an analysis output directory' + #13#10 +
     '  build     Build a Delphi or TMS WEB Core project (.dproj; or .dpr/.dpk with sibling .dproj)' + #13#10 +
     '  dfm-check Validate DFM streaming via generated _DfmCheck harness project' + #13#10 +
     '  dfm-inspect Inspect text DFM structure and event bindings' + #13#10 +
@@ -26,6 +27,11 @@ resourcestring
     '  [--workspace-root <auto|git|svn|project|path>] [--run-checks <true|false>] [--json [true|false]]' + #13#10 +
     '  [--pa-path "<path>"] [--delphi <BDS version>] [--platform <Win32|Win64>]' + #13#10 +
     'Preview is the default; --run-checks overrides DAK_DOCTOR_RUN.';
+  rsUsageAnalyzeReport =
+    'DelphiAIKit.exe analyze-report --out "<analysis-output-directory>" [--verify [true|false]]' + #13#10 +
+    '  [--baseline "<file>"] [--update-baseline [true|false]]' + #13#10 +
+    'Replays report processing from the retained analyzer outputs, or verifies the published' + #13#10 +
+    'artifacts without writing when --verify is set. Exit 3 reports a rejected result.';
   rsUsageAnalyzeWorkspace =
     'DelphiAIKit.exe analyze-workspace (--project "<path>" | --unit "<path>")' + #13#10 +
     '  [--project-context "<dproj>"] [--workspace-root <auto|git|svn|project|path>] [--json [true|false]]' + #13#10 +

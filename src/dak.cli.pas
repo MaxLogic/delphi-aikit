@@ -22,7 +22,8 @@ uses
 
 type
   TCommandRoute = (crResolve, crAnalyze, crBuild, crDfmCheck, crDfmInspect, crGlobalVars, crDeps, crLsp,
-    crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode, crAnalyzeWorkspace, crAnalyzeDoctor);
+    crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode, crAnalyzeWorkspace, crAnalyzeDoctor,
+    crAnalyzeReport);
   TCommandRouteSet = set of TCommandRoute;
   TSwitchValuePolicy = (svpFlag, svpRequiredValue, svpOptionalBoolValue);
 
@@ -87,11 +88,15 @@ begin
     Add('verbose', '', svpOptionalBoolValue, cAllCommandRoutes);
     Add('source-context', '', svpRequiredValue, cAllCommandRoutes);
     Add('source-context-lines', '', svpRequiredValue, cAllCommandRoutes);
-    Add('help', 'h|?', svpOptionalBoolValue, cAllCommandRoutes + [crAnalyzeWorkspace, crAnalyzeDoctor]);
+    Add('help', 'h|?', svpOptionalBoolValue, cAllCommandRoutes + [crAnalyzeWorkspace, crAnalyzeDoctor,
+      crAnalyzeReport]);
+    Add('verify', '', svpOptionalBoolValue, [crAnalyzeReport]);
+    Add('baseline', '', svpRequiredValue, [crAnalyzeReport]);
+    Add('update-baseline', '', svpOptionalBoolValue, [crAnalyzeReport]);
     Add('format', 'out-kind', svpRequiredValue, [crResolve, crDfmInspect, crGlobalVars, crDeps, crLsp,
       crRemoveWith, crSymbolMap, crFindUsages, crRename, crDeadCode]);
     Add('out-file', 'out', svpRequiredValue, [crResolve]);
-    Add('out', '', svpRequiredValue, [crAnalyze, crAnalyzeWorkspace]);
+    Add('out', '', svpRequiredValue, [crAnalyze, crAnalyzeWorkspace, crAnalyzeReport]);
     Add('fi-output', 'output', svpRequiredValue, [crResolve]);
     Add('fi-ignore', 'ignore', svpRequiredValue, [crResolve, crAnalyze]);
     Add('fi-settings', 'settings', svpRequiredValue, [crResolve, crAnalyze]);
@@ -281,7 +286,7 @@ end;
 
 function GetCommandDescriptors: TArray<TCommandDescriptor>;
 begin
-  SetLength(Result, 16);
+  SetLength(Result, 17);
   Result[0] := CommandDescriptor(TCommandKind.ckResolve, 'resolve', '', SUsageResolve, TCommandRoute.crResolve);
   Result[1] := CommandDescriptor(TCommandKind.ckAnalyzeProject, 'analyze', 'analyze-project', SUsageAnalyze,
     TCommandRoute.crAnalyze);
@@ -309,6 +314,8 @@ begin
     TCommandRoute.crAnalyzeWorkspace);
   Result[15] := CommandDescriptor(TCommandKind.ckAnalyzeDoctor, 'analyze-doctor', '', rsUsageAnalyzeDoctor,
     TCommandRoute.crAnalyzeDoctor);
+  Result[16] := CommandDescriptor(TCommandKind.ckAnalyzeReport, 'analyze-report', '', rsUsageAnalyzeReport,
+    TCommandRoute.crAnalyzeReport);
 end;
 
 function CommandDescriptorMatchesToken(const aDescriptor: TCommandDescriptor; const aToken: string): Boolean;
@@ -892,6 +899,29 @@ begin
     Exit(False);
   if lHandled then
     Exit(True);
+
+  if (fOptions.fCommand = TCommandKind.ckAnalyzeReport) and
+    (SwitchMatches(aSwitch, 'verify') or SwitchMatches(aSwitch, 'update-baseline')) then
+  begin
+    if not TakeValue(False, True, aInlineValue, aHasInlineValue, lValue, '--' + aSwitch) then
+      Exit(False);
+    if SwitchMatches(aSwitch, 'verify') then
+      lHandled := TryParseBool(lValue, fOptions.fReportVerify)
+    else
+      lHandled := TryParseBool(lValue, fOptions.fReportUpdateBaseline);
+    if not lHandled then
+      fError := Format(SInvalidBoolValue, ['--' + aSwitch, lValue]);
+    Exit(lHandled);
+  end;
+
+  if (fOptions.fCommand = TCommandKind.ckAnalyzeReport) and SwitchMatches(aSwitch, 'baseline') then
+  begin
+    if not TakeValue(True, False, aInlineValue, aHasInlineValue, lValue, '--baseline') then
+      Exit(False);
+    fOptions.fReportBaselinePath := lValue;
+    fOptions.fHasReportBaselinePath := True;
+    Exit(True);
+  end;
 
   if (fOptions.fCommand = TCommandKind.ckAnalyzeDoctor) and
     (SwitchMatches(aSwitch, 'json') or SwitchMatches(aSwitch, 'run-checks')) then
@@ -2473,6 +2503,14 @@ function TOptionParser.ValidateOptions: Boolean;
 var
   lRemoveWithTargetCount: Integer;
 begin
+  if fOptions.fCommand = TCommandKind.ckAnalyzeReport then
+  begin
+    Result := Trim(fOptions.fAnalyzeOutPath) <> '';
+    if not Result then
+      fError := 'Report replay requires --out with an existing analysis output directory.';
+    Exit;
+  end;
+
   if fOptions.fCommand = TCommandKind.ckAnalyzeDoctor then
   begin
     Result := (fOptions.fDprojPath = '') or (fOptions.fUnitPath = '');

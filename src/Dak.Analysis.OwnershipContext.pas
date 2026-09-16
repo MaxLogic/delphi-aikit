@@ -8,6 +8,10 @@ uses
 
 function BuildAnalysisOwnershipContext(aSeed: TJSONObject;
   const aOutputRoot, aLegacyRoot: string; out aDiagnostics: TArray<string>): TAnalysisOwnershipContext;
+// _checked_policy_roots and _maintained_nested_roots alone: the ownership boundaries the
+// compatibility fingerprint covers, derived from the seed and the filesystem without any
+// source inventory. Only fPolicyRoots and fMaintainedNestedRoots are filled.
+function BuildAnalysisPolicyBoundaries(aSeed: TJSONObject): TAnalysisOwnershipContext;
 
 implementation
 
@@ -236,6 +240,7 @@ begin
     end;
     lOrdered := lRoots.Keys.ToArray;
     TArray.Sort<string>(lOrdered, TStringComparer.Ordinal);
+    aContext.fMaintainedNestedRoots := Copy(lOrdered);
     lCombined := TList<string>.Create;
     try
       lCombined.AddRange(aContext.fNestedRoots);
@@ -247,6 +252,24 @@ begin
   finally
     lRoots.Free;
   end;
+end;
+
+function BuildAnalysisPolicyBoundaries(aSeed: TJSONObject): TAnalysisOwnershipContext;
+var
+  lPolicy: TJSONObject;
+  lRoots: TList<TAnalysisOwnershipRoot>;
+begin
+  Result := Default(TAnalysisOwnershipContext);
+  lRoots := TList<TAnalysisOwnershipRoot>.Create;
+  try
+    lPolicy := ObjectMember(ObjectMember(aSeed, 'policy'), 'values');
+    AddPolicyRoots(lPolicy, 'project_roots', 'project', lRoots);
+    AddPolicyRoots(lPolicy, 'third_party_roots', 'third_party', lRoots);
+    Result.fPolicyRoots := lRoots.ToArray;
+  finally
+    lRoots.Free;
+  end;
+  AddMaintainedNestedRoots(Result);
 end;
 
 function BuildAnalysisOwnershipContext(aSeed: TJSONObject;

@@ -217,6 +217,12 @@
         <DCCReference Include="..\src\Dak.Analysis.Projections.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.UnicodeText.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.NumericText.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.JsonText.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportBundle.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportWriters.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportReplay.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportVerify.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportCommand.pas"/>
         <DCCReference Include="..\src\Dak.PascalAnalyzer.Help.pas"/>
         <DCCReference Include="..\src\dak.build.pas"/>
         <DCCReference Include="..\src\Dak.CommandOutput.pas"/>

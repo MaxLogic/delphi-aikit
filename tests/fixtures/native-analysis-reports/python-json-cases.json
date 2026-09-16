@@ -1,0 +1,101 @@
+{
+ "python": "3.13.15 (tags/v3.13.15:4061bc4, Aug  5 2026, 13:05:39) [MSC v.1944 64 bit (AMD64)]",
+ "cases": [
+  {
+   "source": "{}",
+   "document": "{}\n",
+   "line": "{}",
+   "compact": "{}"
+  },
+  {
+   "source": "[]",
+   "document": "[]\n",
+   "line": "[]",
+   "compact": "[]"
+  },
+  {
+   "source": "[[]]",
+   "document": "[\n  []\n]\n",
+   "line": "[[]]",
+   "compact": "[[]]"
+  },
+  {
+   "source": "{\"a\": {}}",
+   "document": "{\n  \"a\": {}\n}\n",
+   "line": "{\"a\": {}}",
+   "compact": "{\"a\":{}}"
+  },
+  {
+   "source": "{\"a\": []}",
+   "document": "{\n  \"a\": []\n}\n",
+   "line": "{\"a\": []}",
+   "compact": "{\"a\":[]}"
+  },
+  {
+   "source": "[{}, [], 0]",
+   "document": "[\n  {},\n  [],\n  0\n]\n",
+   "line": "[{}, [], 0]",
+   "compact": "[{},[],0]"
+  },
+  {
+   "source": "{\"z\": 1, \"a\": 2, \"m\": {\"y\": [1, 2, {\"k\": null}], \"b\": true}}",
+   "document": "{\n  \"a\": 2,\n  \"m\": {\n    \"b\": true,\n    \"y\": [\n      1,\n      2,\n      {\n        \"k\": null\n      }\n    ]\n  },\n  \"z\": 1\n}\n",
+   "line": "{\"z\": 1, \"a\": 2, \"m\": {\"y\": [1, 2, {\"k\": null}], \"b\": true}}",
+   "compact": "{\"a\":2,\"m\":{\"b\":true,\"y\":[1,2,{\"k\":null}]},\"z\":1}"
+  },
+  {
+   "source": "{\"b\": false, \"a\": null, \"c\": \"text\"}",
+   "document": "{\n  \"a\": null,\n  \"b\": false,\n  \"c\": \"text\"\n}\n",
+   "line": "{\"b\": false, \"a\": null, \"c\": \"text\"}",
+   "compact": "{\"a\":null,\"b\":false,\"c\":\"text\"}"
+  },
+  {
+   "source": "{\"key with space\": \"v\", \"\": \"empty key\", \"\\u00e9\": \"e acute key\"}",
+   "document": "{\n  \"\": \"empty key\",\n  \"key with space\": \"v\",\n  \"\\u00e9\": \"e acute key\"\n}\n",
+   "line": "{\"key with space\": \"v\", \"\": \"empty key\", \"\\u00e9\": \"e acute key\"}",
+   "compact": "{\"\":\"empty key\",\"key with space\":\"v\",\"\\u00e9\":\"e acute key\"}"
+  },
+  {
+   "source": "[\"\\u00df\", \"\\u0130\", \"\\ud83d\\ude00\", \"\\udb40\\udc01\", \"\\u2028\", \"\\u007f\", \"\\u0000\", \"tab\\tnew\\nline\\rcr\\bbs\\fff\\\"q\\\\bs/slash\"]",
+   "document": "[\n  \"\\u00df\",\n  \"\\u0130\",\n  \"\\ud83d\\ude00\",\n  \"\\udb40\\udc01\",\n  \"\\u2028\",\n  \"\\u007f\",\n  \"\\u0000\",\n  \"tab\\tnew\\nline\\rcr\\bbs\\fff\\\"q\\\\bs/slash\"\n]\n",
+   "line": "[\"\\u00df\", \"\\u0130\", \"\\ud83d\\ude00\", \"\\udb40\\udc01\", \"\\u2028\", \"\\u007f\", \"\\u0000\", \"tab\\tnew\\nline\\rcr\\bbs\\fff\\\"q\\\\bs/slash\"]",
+   "compact": "[\"\\u00df\",\"\\u0130\",\"\\ud83d\\ude00\",\"\\udb40\\udc01\",\"\\u2028\",\"\\u007f\",\"\\u0000\",\"tab\\tnew\\nline\\rcr\\bbs\\fff\\\"q\\\\bs/slash\"]"
+  },
+  {
+   "source": "[0, -0, 1, -1, 10, 9007199254740993, 12345678901234567890123, 1.0, 1.5, 1e-7, 1E-7, 1e0, 1.00, 1e+15, 1e16, 2.5e-324, 1e999, -1e999, 1e-999, 0.30000000000000004]",
+   "document": "[\n  0,\n  0,\n  1,\n  -1,\n  10,\n  9007199254740993,\n  12345678901234567890123,\n  1.0,\n  1.5,\n  1e-07,\n  1e-07,\n  1.0,\n  1.0,\n  1000000000000000.0,\n  1e+16,\n  5e-324,\n  Infinity,\n  -Infinity,\n  0.0,\n  0.30000000000000004\n]\n",
+   "line": "[0, 0, 1, -1, 10, 9007199254740993, 12345678901234567890123, 1.0, 1.5, 1e-07, 1e-07, 1.0, 1.0, 1000000000000000.0, 1e+16, 5e-324, Infinity, -Infinity, 0.0, 0.30000000000000004]",
+   "compact": "[0,0,1,-1,10,9007199254740993,12345678901234567890123,1.0,1.5,1e-07,1e-07,1.0,1.0,1000000000000000.0,1e+16,5e-324,Infinity,-Infinity,0.0,0.30000000000000004]"
+  },
+  {
+   "source": "{\"nested\": {\"deep\": {\"deeper\": {\"deepest\": [1, {\"x\": [2, [3, [4]]]}]}}}}",
+   "document": "{\n  \"nested\": {\n    \"deep\": {\n      \"deeper\": {\n        \"deepest\": [\n          1,\n          {\n            \"x\": [\n              2,\n              [\n                3,\n                [\n                  4\n                ]\n              ]\n            ]\n          }\n        ]\n      }\n    }\n  }\n}\n",
+   "line": "{\"nested\": {\"deep\": {\"deeper\": {\"deepest\": [1, {\"x\": [2, [3, [4]]]}]}}}}",
+   "compact": "{\"nested\":{\"deep\":{\"deeper\":{\"deepest\":[1,{\"x\":[2,[3,[4]]]}]}}}}"
+  },
+  {
+   "source": "{\"order\": [\"b\", \"a\"], \"Z\": 0, \"a\": 1, \"A\": 2, \"_\": 3, \"1\": 4, \"10\": 5, \"2\": 6}",
+   "document": "{\n  \"1\": 4,\n  \"10\": 5,\n  \"2\": 6,\n  \"A\": 2,\n  \"Z\": 0,\n  \"_\": 3,\n  \"a\": 1,\n  \"order\": [\n    \"b\",\n    \"a\"\n  ]\n}\n",
+   "line": "{\"order\": [\"b\", \"a\"], \"Z\": 0, \"a\": 1, \"A\": 2, \"_\": 3, \"1\": 4, \"10\": 5, \"2\": 6}",
+   "compact": "{\"1\":4,\"10\":5,\"2\":6,\"A\":2,\"Z\":0,\"_\":3,\"a\":1,\"order\":[\"b\",\"a\"]}"
+  },
+  {
+   "source": "[true, false, null, \"true\", \"null\", \"1\"]",
+   "document": "[\n  true,\n  false,\n  null,\n  \"true\",\n  \"null\",\n  \"1\"\n]\n",
+   "line": "[true, false, null, \"true\", \"null\", \"1\"]",
+   "compact": "[true,false,null,\"true\",\"null\",\"1\"]"
+  },
+  {
+   "source": "{\"path\": \"src\\\\Unit.pas\", \"uri\": \"src/Unit.pas\", \"quote\": \"it's\"}",
+   "document": "{\n  \"path\": \"src\\\\Unit.pas\",\n  \"quote\": \"it's\",\n  \"uri\": \"src/Unit.pas\"\n}\n",
+   "line": "{\"path\": \"src\\\\Unit.pas\", \"uri\": \"src/Unit.pas\", \"quote\": \"it's\"}",
+   "compact": "{\"path\":\"src\\\\Unit.pas\",\"quote\":\"it's\",\"uri\":\"src/Unit.pas\"}"
+  },
+  {
+   "source": "{\"message\": \"Fixture warning \\u2013 dash \\u201cquotes\\u201d\"}",
+   "document": "{\n  \"message\": \"Fixture warning \\u2013 dash \\u201cquotes\\u201d\"\n}\n",
+   "line": "{\"message\": \"Fixture warning \\u2013 dash \\u201cquotes\\u201d\"}",
+   "compact": "{\"message\":\"Fixture warning \\u2013 dash \\u201cquotes\\u201d\"}"
+  }
+ ]
+}

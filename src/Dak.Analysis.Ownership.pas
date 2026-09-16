@@ -15,6 +15,9 @@ type
     fProjectFiles: TArray<string>;
     fWorkspaceFiles: TArray<string>;
     fNestedRoots: TArray<string>;
+    // Nested repositories registered below maintained project roots; a subset of fNestedRoots
+    // that the compatibility fingerprint records separately.
+    fMaintainedNestedRoots: TArray<string>;
     fSearchRoots: TArray<string>;
     fPolicyRoots: TArray<TAnalysisOwnershipRoot>;
   end;

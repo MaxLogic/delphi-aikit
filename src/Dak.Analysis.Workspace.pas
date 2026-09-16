@@ -14,6 +14,10 @@ function CaptureRunProvenance(const aWorkspace: TWorkspaceSettings;
 function ResolveFilesystemPath(const aPath: string): string;
 // Source inventory for report ownership; callers retain metadata failures as diagnostics.
 function CollectAnalysisSourcePaths(const aRoot, aVcs, aScratchRoot: string): TArray<string>;
+// Runs a tool through the command line (so .cmd launchers work) and returns both output
+// streams joined by a line feed. False when the tool cannot start; exit codes are not judged.
+function TryCaptureToolOutput(const aExePath, aArguments, aWorkDir: string; aTimeoutSec: Integer;
+  out aOutput: string): Boolean;
 
 implementation
 
@@ -454,6 +458,51 @@ begin
       raise EInOutError.CreateFmt('%s %s failed in %s: %s (exit code %d)',
         [ExtractFileName(aExePath), aArguments, aRoot, Trim(lCapture.Text(1)), lExitCode]);
     Result := lCapture.Text(0);
+  finally
+    CloseHandle(lInput);
+  end;
+end;
+
+function TryCaptureToolOutput(const aExePath, aArguments, aWorkDir: string; aTimeoutSec: Integer;
+  out aOutput: string): Boolean;
+var
+  g: TGarbos;
+  lCapture: TMetadataCapture;
+  lError: string;
+  lExitCode: Cardinal;
+  lInput: THandle;
+  lOptions: TExternalToolProcessRunOptions;
+  lSecurity: TSecurityAttributes;
+  lTimedOut: Boolean;
+begin
+  aOutput := '';
+  GC(lCapture, TMetadataCapture.Create, g);
+  lCapture.Start;
+  lSecurity := Default(TSecurityAttributes);
+  lSecurity.nLength := SizeOf(lSecurity);
+  lSecurity.bInheritHandle := True;
+  lInput := CreateFile('NUL', GENERIC_READ, FILE_SHARE_READ or FILE_SHARE_WRITE,
+    @lSecurity, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+  if lInput = INVALID_HANDLE_VALUE then
+    RaiseLastOSError;
+  try
+    lOptions := Default(TExternalToolProcessRunOptions);
+    lOptions.fExePath := aExePath;
+    lOptions.fArguments := aArguments;
+    lOptions.fWorkDir := aWorkDir;
+    lOptions.fUseCommandLineApplication := True;
+    lOptions.fStdInHandle := lInput;
+    lOptions.fStdOutHandle := lCapture.fWrite[0];
+    lOptions.fStdErrHandle := lCapture.fWrite[1];
+    lOptions.fCreationFlags := CREATE_NO_WINDOW;
+    lOptions.fTimeoutSec := aTimeoutSec;
+    try
+      Result := TryRunExternalToolProcess(lOptions, lExitCode, lTimedOut, lError) or (lExitCode <> 0);
+    finally
+      lCapture.Finish;
+    end;
+    if Result then
+      aOutput := lCapture.Text(0) + #10 + lCapture.Text(1);
   finally
     CloseHandle(lInput);
   end;

@@ -30,7 +30,8 @@ uses
   Winapi.ShellAPI, Winapi.Windows,
   Xml.omnixmldom, Xml.xmldom,
   maxLogic.CmdLineParams, MaxMadExcept,
-  Dak.Analysis.Doctor, Dak.Analysis.WorkspaceCommand, Dak.Analyze, Dak.Build, Dak.Cli, Dak.Deps, Dak.DfmCheck,
+  Dak.Analysis.Doctor, Dak.Analysis.ReportCommand, Dak.Analysis.WorkspaceCommand, Dak.Analyze, Dak.Build, Dak.Cli,
+  Dak.Deps, Dak.DfmCheck,
   Dak.DfmInspect, Dak.ExitCodes, Dak.GlobalVars, Dak.Lsp,
   Dak.Messages, Dak.Refactor, Dak.RemoveWith, Dak.Resolve, Dak.SymbolMap, Dak.Utils;
 
@@ -197,6 +198,8 @@ begin
     Result := RunAnalyzeWorkspaceCommand(fOptions)
   else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeDoctor) then
     Result := RunAnalyzeDoctorCommand(fOptions)
+  else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeReport) then
+    Result := RunAnalyzeReportCommand(fOptions)
   else if CommandRoutesAs(fOptions.fCommand, TCommandKind.ckAnalyzeProject) then
     Result := RunAnalyzeCommand(fOptions)
   else

@@ -59,6 +59,15 @@ interface
 uses
   System.JSON;
 
+// FI.<CODE> for FixInsight rows, otherwise the canonical PAL rule identity of report and section.
+function AnalysisNormalizedRuleId(aRow: TJSONObject): string;
+// Installed-version verified PAL aliases as code -> canonical rule, in code-point key order.
+function AnalysisPalRegisteredAliases(const aPalVersion: string): TJSONObject;
+// fnmatch.fnmatch on Windows: both sides lower-cased with backslash separators.
+function AnalysisPathMaskMatches(const aPath, aMask: string): Boolean;
+// Verified native PAL code for a row's report and section under an installed version, or ''.
+function AnalysisPalNativeCode(aRow: TJSONObject; const aPalVersion: string): string;
+
 // Arrays remain caller-owned. Nil denotes an absent report, unlike a present empty array.
 procedure ApplyAnalysisReportProjections(aFixInsight, aPal: TJSONArray; aPolicy: TJSONObject;
   const aPathMasks: TArray<string>; const aPalVersion, aPalReportRoot: string; aPalRequested: Boolean);
@@ -303,12 +312,18 @@ begin
     Copy(THashSHA2.GetHashString(aReport + #0 + aSection), 1, 16);
 end;
 
+// The installed PAL releases whose rule-code aliases we verified against the tool itself.
+function IsVerifiedPalAliasVersion(const aVersion: string): Boolean;
+begin
+  Result := (aVersion = '9.21.3') or (aVersion = '9.21.3.0');
+end;
+
 function NativeCode(const aReport, aSection, aVersion: string): string;
 var
   i: Integer;
 begin
   Result := '';
-  if (aVersion <> '9.21.3') and (aVersion <> '9.21.3.0') then
+  if not IsVerifiedPalAliasVersion(aVersion) then
     Exit;
   for i := Low(cAliasCodes) to High(cAliasCodes) do
     if (Slug(aReport) = Slug(cAliasReports[i])) and (aSection = cAliasSections[i]) then
@@ -590,7 +605,7 @@ begin
   GC(lUnmatched, TList<string>.Create, g);
   GC(lAmbiguous, TList<string>.Create, g);
   LoadCatalog(aRoot, lRules);
-  if (aVersion = '9.21.3') or (aVersion = '9.21.3.0') then
+  if IsVerifiedPalAliasVersion(aVersion) then
     for i := Low(cAliasCodes) to High(cAliasCodes) do
     begin
       lCanonical := CanonicalRule(cAliasReports[i], cAliasSections[i]);
@@ -734,6 +749,37 @@ begin
       lProjection := 'actionable';
     PutText(lRow, 'report_projection', lProjection);
   end;
+end;
+
+function AnalysisNormalizedRuleId(aRow: TJSONObject): string;
+var
+  lCode: string;
+begin
+  lCode := UpperText(StripText(FieldText(aRow, 'code')));
+  if lCode <> '' then
+    Exit('FI.' + lCode);
+  Result := CanonicalRule(ReportName(aRow), StripText(FieldText(aRow, 'section')));
+end;
+
+function AnalysisPathMaskMatches(const aPath, aMask: string): Boolean;
+begin
+  Result := TRegEx.IsMatch(LowerText(aPath.Replace('/', '\')), MaskPattern(aMask));
+end;
+
+function AnalysisPalNativeCode(aRow: TJSONObject; const aPalVersion: string): string;
+begin
+  Result := NativeCode(ReportName(aRow), StripText(FieldText(aRow, 'section')), aPalVersion);
+end;
+
+function AnalysisPalRegisteredAliases(const aPalVersion: string): TJSONObject;
+var
+  i: Integer;
+begin
+  Result := TJSONObject.Create;
+  if not IsVerifiedPalAliasVersion(aPalVersion) then
+    Exit;
+  for i := 0 to High(cAliasCodes) do
+    Result.AddPair(cAliasCodes[i], CanonicalRule(cAliasReports[i], cAliasSections[i]));
 end;
 
 procedure ApplyAnalysisReportProjections(aFixInsight, aPal: TJSONArray; aPolicy: TJSONObject;

@@ -51,6 +51,32 @@ begin
   Result := True;
 end;
 
+function HasDuplicateJsonKeys(const aValue: TJSONValue): Boolean;
+var
+  lItem: TJSONValue;
+  lNames: TDictionary<string, Boolean>;
+  lPair: TJSONPair;
+begin
+  Result := False;
+  if aValue is TJSONObject then
+  begin
+    lNames := TDictionary<string, Boolean>.Create;
+    try
+      for lPair in TJSONObject(aValue) do
+      begin
+        if lNames.ContainsKey(lPair.JsonString.Value) or HasDuplicateJsonKeys(lPair.JsonValue) then
+          Exit(True);
+        lNames.Add(lPair.JsonString.Value, True);
+      end;
+    finally
+      lNames.Free;
+    end;
+  end else if aValue is TJSONArray then
+    for lItem in TJSONArray(aValue) do
+      if HasDuplicateJsonKeys(lItem) then
+        Exit(True);
+end;
+
 function CopyJsonDictionaryValue(const aValue: TJSONValue): TJSONValue;
 var
   c: Char;
@@ -156,11 +182,16 @@ begin
         lValue := TJSONObject.ParseJSONValue(Copy(lText, lFirst, lLast - lFirst + 1), True);
         if lValue = nil then
           raise EConvertError.CreateFmt('Malformed JSONL in %s at line %d.', [aPath, lLine]);
-        try
-          Result.AddElement(CopyJsonDictionaryValue(lValue));
-        finally
-          lValue.Free;
-        end;
+        // The parsed value already keeps number tokens; only duplicate keys need json.loads's
+        // dictionary normalization, so ordinary rows are adopted without a copy.
+        if HasDuplicateJsonKeys(lValue) then
+          try
+            Result.AddElement(CopyJsonDictionaryValue(lValue));
+          finally
+            lValue.Free;
+          end
+        else
+          Result.AddElement(lValue);
       end;
       lOffset := lEnd + 1;
       if (lEnd < Length(lText)) and (lText[lEnd] = #13) and (lText[lEnd + 1] = #10) then

@@ -89,6 +89,14 @@
         <DCCReference Include="..\src\Dak.Analysis.Projections.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.UnicodeText.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.NumericText.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.JsonText.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportBundle.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportWriters.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportReplay.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportVerify.pas"/>
+        <DCCReference Include="..\src\Dak.Analysis.ReportCommand.pas"/>
+        <DCCReference Include="units\test.nativeanalysisreports.replay.pas"/>
+        <DCCReference Include="units\test.nativeanalysisreports.verify.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.OwnershipContext.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.ProjectSources.pas"/>
         <DCCReference Include="..\src\Dak.Analysis.SourceResolution.pas"/>
@@ -97,6 +105,7 @@
         <DCCReference Include="units\test.nativeanalysisreports.unicode.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.numeric.pas"/>
         <DCCReference Include="units\test.externaltoolprocess.pas"/>
+        <DCCReference Include="units\test.nativeanalysisreports.jsontext.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.import.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.import.fixinsight.pas"/>
     <DCCReference Include="units\\test.support.pas"/>
