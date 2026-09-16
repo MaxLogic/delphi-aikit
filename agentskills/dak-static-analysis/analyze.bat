@@ -1,25 +1,19 @@
 @echo off
+rem Forwards to: DelphiAIKit.exe analyze --project <project.dproj> [options]
 setlocal enableextensions
-
-if "%~1"=="" (
-  echo Usage: %~nx0 ^<path-to-project.dproj^>
-  exit /b 2
-)
-
-set "SCRIPT_DIR=%~dp0"
-
-rem Prefer the Python launcher if present.
-where py >nul 2>&1
-if errorlevel 1 goto try_python
-py -3 "%SCRIPT_DIR%analyze.py" %*
+if "%~1"=="" goto :usage
+call "%~dp0find-dak.cmd"
+if errorlevel 1 exit /b 2
+if /i "%~1"=="--help" goto :help
+if /i "%~1"=="-h" goto :help
+if "%~1"=="/?" goto :help
+"%DAK%" analyze --project %*
 exit /b %errorlevel%
 
-:try_python
-where python >nul 2>&1
-if errorlevel 1 goto python_missing
-python "%SCRIPT_DIR%analyze.py" %*
+:help
+"%DAK%" analyze --help
 exit /b %errorlevel%
 
-:python_missing
-echo ERROR: Python not found. Install Python 3, or run analyze.sh from WSL.
+:usage
+>&2 echo Usage: %~nx0 ^<project.dproj^> [--workspace-root ^<selector^>] [DelphiAIKit.exe analyze options]
 exit /b 2

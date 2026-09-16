@@ -42,6 +42,7 @@ type
     function TryOpenLog: Boolean;
     function TryLoadSettings: Boolean;
     function TryPrepareUnit: Boolean;
+    procedure ResolveOutputRoot;
     procedure PrepareOutputTree;
     procedure RunPascalAnalyzer;
     procedure WriteSummary;
@@ -168,9 +169,15 @@ begin
   Result := True;
 end;
 
-procedure TAnalyzeUnitRunner.PrepareOutputTree;
+procedure TAnalyzeUnitRunner.ResolveOutputRoot;
 begin
   fOutRoot := BuildUnitOutputRoot(fOptions.fAnalyzeOutPath, fUnitPath, fUnitName);
+  // Provenance capture needs its scratch directory; an empty directory is invisible to version control.
+  TDirectory.CreateDirectory(fOutRoot);
+end;
+
+procedure TAnalyzeUnitRunner.PrepareOutputTree;
+begin
   if fOptions.fAnalyzeClean then
     CleanAnalyzeOutput(fOutRoot, False);
   TDirectory.CreateDirectory(fOutRoot);
@@ -300,10 +307,11 @@ begin
       Exit(fExitCode);
     if not TryLoadSettings then
       Exit(fExitCode);
-    PrepareOutputTree;
-    // analyze-unit.py captures provenance for the project context when there is one, else the unit;
-    // the settings already resolved the workspace for that subject.
+    ResolveOutputRoot;
+    // analyze-unit.py captures provenance for the project context when there is one, else the unit,
+    // before DAK writes anything; the settings already resolved the workspace for that subject.
     fCapturedProvenance := CaptureAnalysisRunProvenance(fSettings.fWorkspace, fOutRoot, fDiagnostics);
+    PrepareOutputTree;
     // analyze-unit.py started DAK in the workspace root and finalized in its own directory.
     lCallerDirectory := EnterAnalysisWorkspace(fSettings.fWorkspace.fRoot);
     try

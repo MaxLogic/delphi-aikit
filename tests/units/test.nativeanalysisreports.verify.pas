@@ -493,8 +493,8 @@ end;
 procedure TNativeAnalysisReplayControlTests.SummaryJsonAndSarifMatchNormalizedFindings;
 var
   g: TGarbos;
-  lCounts, lFull, lResult, lSarif, lSummary: TJSONObject;
-  lTriage: string;
+  lCounts, lDelta, lFull, lResult, lSarif, lSecond, lSecondSummary, lSummary: TJSONObject;
+  lTrend, lTriage: string;
 begin
   WriteSummary;
   WriteFindingStreams;
@@ -502,12 +502,14 @@ begin
   WriteFakeFixInsight;
   GC(lResult, ParseJsonObject(Finalize, 'result'), g);
   Assert.IsTrue(TJSONBool(lResult.GetValue('gate_pass')).AsBoolean, 'gate_pass');
+  Assert.IsTrue(TJSONBool(lResult.GetValue('baseline_created')).AsBoolean, 'baseline_created');
   Assert.AreEqual(TPath.Combine(fRoot, 'summary.json'), MemberText(lResult, ['summary_json']));
   GC(lSummary, ParseJsonObject(ReadUtf8(TPath.Combine(fRoot, 'summary.json')), 'summary.json'), g);
   Assert.AreEqual('3', MemberText(lSummary, ['schema_version']));
   Assert.AreEqual('complete', MemberText(lSummary, ['status', 'infrastructure']));
   Assert.AreEqual('complete', MemberText(lSummary, ['status', 'postprocessor']));
   Assert.AreEqual('complete', MemberText(lSummary, ['status', 'finalization']));
+  Assert.AreEqual('not_evaluated', MemberText(lSummary, ['status', 'policy']));
   Assert.AreEqual('search-path-seed', MemberText(lSummary, ['compiler', 'search_path_sha256']));
   Assert.AreEqual('complete', MemberText(lSummary, ['analyzers', 'fixinsight', 'count_quality']));
   Assert.AreEqual('2023.12', MemberText(lSummary, ['analyzers', 'fixinsight', 'version']));
@@ -527,12 +529,33 @@ begin
   Assert.AreEqual(0, SarifResultCount(lSarif), 'actionable SARIF results');
   GC(lFull, ParseJsonObject(ReadUtf8(TPath.Combine(fRoot, 'static-analysis.full.sarif')), 'full sarif'), g);
   Assert.AreEqual(5, SarifResultCount(lFull), 'full SARIF results');
+  GC(lDelta, ParseJsonObject(ReadUtf8(TPath.Combine(fRoot, 'delta.json')), 'delta.json'), g);
+  Assert.AreEqual('0', MemberText(lDelta, ['pascal_analyzer', 'optimizations_after']));
+  Assert.AreEqual('0', MemberText(lDelta, ['pascal_analyzer', 'total_after']));
+  lTrend := ReadUtf8(TPath.Combine(fRoot, 'trend.md'));
+  Assert.IsTrue(lTrend.Contains('PAL optimizations'), lTrend);
+  Assert.IsTrue(lTrend.Contains('PAL total'), lTrend);
   lTriage := ReadUtf8(TPath.Combine(fRoot, 'triage.md'));
   Assert.IsTrue(lTriage.Contains('FixInsight findings: 0'), 'triage FixInsight line');
   Assert.IsTrue(lTriage.Contains('Pascal Analyzer findings: 0'), 'triage PAL line');
   // The published output verifies against itself.
   GC(lCounts, VerifyAnalysisReport(fRoot), g);
   Assert.AreEqual('project=0, repository=0, third_party=0, unknown=0', AnalysisOwnershipText(lCounts));
+
+  // A second run against the baseline the first run created keeps it and republishes completely.
+  GC(lSecond, ParseJsonObject(Finalize, 'second result'), g);
+  Assert.IsTrue(TJSONBool(lSecond.GetValue('gate_pass')).AsBoolean, 'second gate_pass');
+  // The native result names only flags that are true; an absent flag is the reference's False.
+  Assert.AreNotEqual('True', JsonText(lSecond, 'baseline_updated'), 'second baseline_updated');
+  Assert.AreEqual(TPath.Combine(fRoot, 'summary.json'), MemberText(lSecond, ['summary_json']));
+  GC(lSecondSummary, ParseJsonObject(ReadUtf8(TPath.Combine(fRoot, 'summary.json')), 'second summary.json'), g);
+  Assert.AreEqual('3', MemberText(lSecondSummary, ['schema_version']));
+  Assert.AreEqual('complete', MemberText(lSecondSummary, ['status', 'infrastructure']));
+  Assert.AreEqual('complete', MemberText(lSecondSummary, ['status', 'postprocessor']));
+  Assert.AreEqual('complete', MemberText(lSecondSummary, ['status', 'finalization']));
+  Assert.AreEqual('5', MemberText(lSecondSummary, ['counts', 'raw', 'total']));
+  Assert.AreEqual('0', MemberText(lSecondSummary, ['counts', 'actionable', 'total']));
+  Assert.IsNotNull(TJSONObject(Member(lSecondSummary, ['artifacts'])).GetValue('sarif'), 'second artifacts.sarif');
 end;
 
 procedure TNativeAnalysisReplayControlTests.CorruptPalCodeIsIdentityMismatch;
@@ -667,7 +690,7 @@ end;
 procedure TNativeAnalysisReplayControlTests.DisabledAnalyzerCountsAreZeroNotUnknown;
 var
   g: TGarbos;
-  lSummary: TJSONObject;
+  lDelta, lSummary: TJSONObject;
 begin
   WriteUtf8(TPath.Combine(fRoot, 'summary.md'),
     '# Static analysis'#10#10 +
@@ -684,6 +707,10 @@ begin
   Assert.AreEqual('0', MemberText(lSummary, ['counts', 'actionable', 'fixinsight', 'total']));
   Assert.AreEqual('0', MemberText(lSummary, ['counts', 'unknown', 'total']));
   Assert.AreEqual('0', MemberText(lSummary, ['counts', 'raw', 'total']));
+  GC(lDelta, ParseJsonObject(ReadUtf8(TPath.Combine(fRoot, 'delta.json')), 'delta.json'), g);
+  Assert.AreEqual('0', MemberText(lDelta, ['fixinsight', 'total_after']));
+  Assert.IsTrue(ReadUtf8(TPath.Combine(fRoot, 'trend.md')).Contains('| 2026-07-16T10:00:00Z | 0 |'),
+    ReadUtf8(TPath.Combine(fRoot, 'trend.md')));
 end;
 
 procedure TNativeAnalysisReplayControlTests.MalformedPresentSummaryFailsBeforeStateMutation(const aCase: string);

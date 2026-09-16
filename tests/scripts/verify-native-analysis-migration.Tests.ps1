@@ -398,3 +398,151 @@ Describe 'Project comparison projection' {
         Get-MigrationProjectStderrMarkers -Text $text | Should -Be @('Static analysis gate failed (see', 'Summary not found')
     }
 }
+
+Describe 'Coverage certification verdict' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-coverage.ps1')
+        $script:Index = @{ TFooTests = 'Test.Foo'; TBarTests = 'Test.Bar' }
+        function New-CoverageCase {
+            param([string]$Case, [string]$Status, [string[]]$Native = @(), [string]$Reason = '')
+            [pscustomobject]@{
+                source = 'agentskills/dak-static-analysis/tests/test_x.py'; case = $Case
+                coverage = if ($Status) { [pscustomobject]@{ status = $Status; native_cases = $Native; reason = $Reason } } else { $null }
+            }
+        }
+        function New-CoverageResult { param([bool]$Success = $true) [pscustomobject]@{ executed = $true; success = $Success; result = if ($Success) { 'Success' } else { 'Failure' } } }
+    }
+
+    It 'accepts native, consolidated and retired cases with unit-qualified or bare native names' {
+        $cases = @(
+            (New-CoverageCase 'A.test_a' native @('Test.Foo.TFooTests.Alpha')),
+            (New-CoverageCase 'A.test_b' consolidated @('TFooTests.Beta', 'TBarTests.Gamma') 'two fixtures together'),
+            (New-CoverageCase 'A.test_c' retired @() 'wrapper-only launcher behavior'))
+        $results = @{ 'TFooTests.Alpha' = (New-CoverageResult); 'TFooTests.Beta.one' = (New-CoverageResult); 'TFooTests.Beta.two' = (New-CoverageResult); 'TBarTests.Gamma' = (New-CoverageResult) }
+        $verdict = Get-MigrationCoverageVerdict -Cases $cases -DiscoveredCases @('test_x.py|A.test_a', 'test_x.py|A.test_b', 'test_x.py|A.test_c') -FixtureIndex $script:Index -Results $results
+        $verdict.failures | Should -BeNullOrEmpty
+        $verdict.passed | Should -BeTrue
+        $verdict.native_cases_passed | Should -Be 4
+        $verdict.counts.retired | Should -Be 1
+    }
+
+    It 'rejects unmapped, unreviewed and inconsistent dispositions' {
+        $cases = @(
+            (New-CoverageCase 'A.test_a' $null),
+            (New-CoverageCase 'A.test_b' consolidated @('TFooTests.Alpha')),
+            (New-CoverageCase 'A.test_c' retired @('TFooTests.Alpha') 'why'),
+            (New-CoverageCase 'A.test_d' gap @() 'not yet'),
+            (New-CoverageCase 'A.test_e' native @()))
+        $discovered = @('a', 'b', 'c', 'd', 'e' | ForEach-Object { "test_x.py|A.test_$_" })
+        $verdict = Get-MigrationCoverageVerdict -Cases $cases -DiscoveredCases $discovered -FixtureIndex $script:Index -Results @{ 'TFooTests.Alpha' = (New-CoverageResult) }
+        $verdict.passed | Should -BeFalse
+        ($verdict.failures -join "`n") | Should -Match 'unmapped: test_x.py\|A.test_a'
+        ($verdict.failures -join "`n") | Should -Match 'unreviewed: test_x.py\|A.test_b'
+        ($verdict.failures -join "`n") | Should -Match 'inconsistent: test_x.py\|A.test_c'
+        ($verdict.failures -join "`n") | Should -Match "unaccepted: test_x.py\|A.test_d has status 'gap'"
+        ($verdict.failures -join "`n") | Should -Match 'unproven: test_x.py\|A.test_e'
+    }
+
+    It 'rejects a missing fixture, a case that did not run and a failed case' {
+        $cases = @(
+            (New-CoverageCase 'A.test_a' native @('Test.Gone.TGoneTests.Alpha')),
+            (New-CoverageCase 'A.test_b' native @('TFooTests.Missing')),
+            (New-CoverageCase 'A.test_c' native @('TBarTests.Gamma')))
+        $discovered = @('a', 'b', 'c' | ForEach-Object { "test_x.py|A.test_$_" })
+        $verdict = Get-MigrationCoverageVerdict -Cases $cases -DiscoveredCases $discovered -FixtureIndex $script:Index -Results @{ 'TBarTests.Gamma.variant' = (New-CoverageResult $false) }
+        ($verdict.failures -join "`n") | Should -Match 'missing fixture: test_x.py\|A.test_a'
+        ($verdict.failures -join "`n") | Should -Match "not executed: test_x.py\|A.test_b needs 'TFooTests.Missing'"
+        ($verdict.failures -join "`n") | Should -Match "failed: test_x.py\|A.test_c needs 'TBarTests.Gamma.variant'"
+    }
+
+    It 'rejects discovery drift and duplicate mappings in both directions' {
+        $cases = @((New-CoverageCase 'A.test_a' retired @() 'r'), (New-CoverageCase 'A.test_a' retired @() 'r'), (New-CoverageCase 'A.test_gone' retired @() 'r'))
+        $verdict = Get-MigrationCoverageVerdict -Cases $cases -DiscoveredCases @('test_x.py|A.test_a', 'test_x.py|A.test_new') -FixtureIndex $script:Index -Results @{}
+        ($verdict.failures -join "`n") | Should -Match 'duplicate: test_x.py\|A.test_a'
+        ($verdict.failures -join "`n") | Should -Match 'discovery: test_x.py\|A.test_new exists in the reference'
+        ($verdict.failures -join "`n") | Should -Match 'discovery: test_x.py\|A.test_gone is mapped but no longer exists'
+    }
+
+    It 'keeps its own negative controls rejecting for the intended reason' {
+        $cases = @((New-CoverageCase 'A.test_a' native @('TFooTests.Alpha')))
+        $controls = Get-MigrationCoverageControls -Cases $cases -DiscoveredCases @('test_x.py|A.test_a') -FixtureIndex $script:Index -Results @{ 'TFooTests.Alpha' = (New-CoverageResult) }
+        $controls.Count | Should -Be 3
+        @($controls | Where-Object { -not ($_.rejected -and $_.intended_reason) }) | Should -BeNullOrEmpty
+    }
+
+    It 'discovers unittest methods per class from reference text and indexes registered fixtures' {
+        $tests = Join-Path $TestDrive 'py'
+        [void][IO.Directory]::CreateDirectory($tests)
+        [IO.File]::WriteAllText((Join-Path $tests 'test_one.py'), "import unittest`nclass First(unittest.TestCase):`n    def test_a(self):`n        def test_nested(): pass`n    def helper(self): pass`nclass Second(First):`n    def test_b(self): pass`n")
+        $inventory = Get-MigrationPythonCaseInventory -TestsRoot $tests
+        $inventory | Should -Be @('test_one.py|First.test_a', 'test_one.py|Second.test_b')
+        $units = Join-Path $TestDrive 'units'
+        [void][IO.Directory]::CreateDirectory($units)
+        [IO.File]::WriteAllText((Join-Path $units 'a.pas'), "unit Test.Alpha;`ninterface`nimplementation`ninitialization`n  TDUnitX.RegisterTestFixture(TAlphaTests);`nend.`n")
+        (Get-MigrationFixtureIndex -UnitsRoot $units)['TAlphaTests'] | Should -Be 'Test.Alpha'
+        [IO.File]::WriteAllText((Join-Path $units 'c.pas'), "unit Test.Gamma;`ninterface`ntype`n  [TestFixture]`n  TGammaTests = class`n  end;`nend.`n")
+        (Get-MigrationFixtureIndex -UnitsRoot $units)['TGammaTests'] | Should -Be 'Test.Gamma'
+        ConvertTo-MigrationNativeCaseKey -Name 'Pester:Docs.checks one thing' -FixtureIndex @{} | Should -Be 'Pester:Docs.checks one thing'
+        [IO.File]::WriteAllText((Join-Path $units 'b.pas'), "unit Test.Beta;`ninitialization`n  TDUnitX.RegisterTestFixture(TAlphaTests);`nend.`n")
+        { Get-MigrationFixtureIndex -UnitsRoot $units } | Should -Throw '*registered in both*'
+    }
+
+    It 'reads DUnitX NUnit XML fixtures and parameterized case names' {
+        $xml = Join-Path $TestDrive 'r.xml'
+        [IO.File]::WriteAllText($xml, '<test-results><test-suite type="Assembly" name="x"><results><test-suite type="Namespace" name="Test"><results><test-suite type="Fixture" name="TFooTests"><results><test-case name="Alpha.one" executed="True" result="Success" success="True" /><test-case name="Beta" executed="True" result="Failure" success="False" /></results></test-suite></results></test-suite></results></test-suite></test-results>')
+        $results = Read-MigrationDunitxResults -Path $xml
+        $results['TFooTests.Alpha.one'].success | Should -BeTrue
+        $results['TFooTests.Beta'].result | Should -Be 'Failure'
+    }
+}
+
+Describe 'Delivery audit helpers' {
+    BeforeAll {
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-nopython.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-delivery.ps1')
+    }
+
+    It 'flags interpreter children but not the analysis tools' {
+        $processes = @(
+            [pscustomobject]@{ image = 'C:\Windows\System32\cmd.exe' },
+            [pscustomobject]@{ image = 'C:\tools\DelphiAIKit.exe' },
+            [pscustomobject]@{ image = 'C:\Program Files\Peganza\Pascal Analyzer 9\palcmd.exe' })
+        (Get-MigrationProcessVerdict -Processes $processes).interpreters | Should -BeNullOrEmpty
+        foreach ($image in 'C:\Program Files\Python313\python.exe', 'C:\Windows\py.exe', 'C:\Users\x\AppData\Local\Microsoft\WindowsApps\python3.exe',
+            'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe', 'C:\venv\Scripts\pythonw.exe') {
+            (Get-MigrationProcessVerdict -Processes @([pscustomobject]@{ image = $image })).interpreters.Count | Should -Be 1 -Because $image
+        }
+    }
+
+    It 'finds Python references in single-byte and UTF-16 content and reviews only the stated forms' {
+        $file = Join-Path $TestDrive 'mixed.bin'
+        [IO.File]::WriteAllBytes($file, [byte[]]([Text.Encoding]::ASCII.GetBytes('call python analyze.py ') + [Text.Encoding]::Unicode.GetBytes('run py.exe')))
+        $hits = Get-MigrationPythonHits -Path $file -DisplayPath 'bin/DelphiAIKit.exe'
+        @($hits | Where-Object encoding -EQ 'single-byte').Count | Should -BeGreaterOrEqual 2
+        @($hits | Where-Object encoding -EQ 'utf-16le').Count | Should -BeGreaterOrEqual 1
+        @($hits | Where-Object { Get-MigrationPackageHitReview -Hit $_ }) | Should -BeNullOrEmpty
+        Get-MigrationPackageHitReview -Hit ([pscustomobject]@{ file = 'agentskills/dak-static-analysis/README.md'; encoding = 'single-byte'; match = 'Python'; context = 'No Python is required.' }) |
+            Should -Not -BeNullOrEmpty
+        Get-MigrationPackageHitReview -Hit ([pscustomobject]@{ file = 'bin/DelphiAIKit.exe'; encoding = 'utf-16le'; match = 'python'; context = 'os  release  python  wsl  analysis_cwd' }) |
+            Should -Not -BeNullOrEmpty
+        Get-MigrationPackageHitReview -Hit ([pscustomobject]@{ file = 'bin/DelphiAIKit.exe'; encoding = 'utf-16le'; match = 'python'; context = 'python.exe -c' }) |
+            Should -BeNullOrEmpty
+    }
+
+    It 'reads the import tables of a real PE32+ image' {
+        $imports = Get-MigrationPeImports -Path (Join-Path $env:SystemRoot 'System32\where.exe')
+        $imports | Should -Contain 'KERNEL32.dll'
+        { Get-MigrationPeImports -Path (Join-Path $TestDrive 'mixed.bin') } | Should -Throw
+    }
+
+    It 'extracts the documented launcher examples and the verification command' {
+        $text = "## Run Commands`n`nWSL:`n- Project analyze: ``bash `"<skill-root>/analyze.sh`" /mnt/c/path/to/MyProject.dproj```n`n" +
+            "Windows PowerShell:`n- Project analyze: ``& `"<skill-root>\analyze.bat`" `"C:\path\to\MyProject.dproj`"```n`n## Next`n" +
+            "Run ``DelphiAIKit.exe analyze-report --out <output> --verify``."
+        $examples = Get-MigrationDocumentedExamples -SkillText $text
+        $examples.Count | Should -Be 3
+        $examples[0].kind | Should -Be 'wsl'
+        $examples[1].kind | Should -Be 'powershell'
+        $examples[2].command | Should -Be 'DelphiAIKit.exe analyze-report --out <output> --verify'
+    }
+}

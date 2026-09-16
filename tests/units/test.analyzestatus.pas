@@ -365,7 +365,10 @@ begin
     Assert.AreEqual('failed', lAnalyzer.GetValue<string>('status'));
     Assert.AreEqual('unavailable', lAnalyzer.GetValue<string>('count_quality'));
     Assert.AreEqual(64, Length(lAnalyzer.GetValue<string>('options.sha256')));
-    Assert.IsNull(lJson.GetValue('counts.pascal_analyzer.total'));
+    // Non-generic GetValue does not follow dotted paths, so the count object is located first.
+    Assert.IsTrue(lJson.FindValue('counts.pascal_analyzer') is TJSONObject, lJson.ToJSON);
+    Assert.IsNull(TJSONObject(lJson.FindValue('counts.pascal_analyzer')).GetValue('total'),
+      'an unavailable PAL count has no total');
   finally
     lJson.Free;
   end;

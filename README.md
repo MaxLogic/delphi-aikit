@@ -37,7 +37,7 @@ The [`agentskills/`](agentskills/) folder contains instructions and wrappers for
 
 - `dak`: choose the skill for the task from the list below.
 - `dak-build`: build or rebuild Delphi and TMS WEB Core projects through DelphiAIKit.
-- `dak-static-analysis`: run Delphi static analysis through DelphiAIKit wrappers, then triage and apply conservative verified fixes.
+- `dak-static-analysis`: run Delphi static analysis through DelphiAIKit.exe and thin launchers (no Python required), then triage and apply conservative verified fixes.
 - `dak-dfm-check`: inspect and validate `.dfm`-backed forms through `dfm-inspect`, `dfm-check`, or `build --dfmcheck`.
 - `dak-global-vars`: analyze project-level globals, declaration sites, and read/write usage before refactoring shared state.
 - `dak-project-unit-topology`: use `DelphiAIKit.exe deps` to inspect project unit topology, unresolved unit references, focused unit neighborhoods, and resolved project-unit cycles. Useful for questions like "why is this unit included?", "what fans into this area?", and "do we have cycles?"
@@ -636,7 +636,7 @@ Static analysis uses a workspace boundary; it does not require a Git repository.
 See [reviewed analysis baselines](docs/reviewed-analysis-baselines.md) for the
 current finding reviews, recorded cleanup debt and remaining external acceptance limits.
 Set `[Workspace].Root` in `dak.ini`, or pass `--workspace-root` to `analyze`,
-the project/unit wrappers, or `doctor`. The CLI wins. Otherwise the closest
+`analyze-unit`, `analyze-doctor`, or the skill launchers. The CLI wins. Otherwise the closest
 ancestor `dak.ini` selector wins, with the executable `dak.ini` fallback; if no
 selector is configured, `auto` searches to the filesystem root and chooses the
 nearest `.git` or `.svn` marker, then falls back to the project directory.
@@ -681,7 +681,7 @@ Notes:
   remain valid on zero-finding runs. Unknown or ambiguous entries fail with the
   unmatched values and available rules. PAL ignores never become `/X`, `/XF`,
   or `PALOFF`.
-- Wrappers use `DAK_FI_IGNORE_RULES` for FixInsight and
+- DAK reads `DAK_FI_IGNORE_RULES` for FixInsight and
   `DAK_PAL_IGNORE_RULES` for PAL. `DAK_IGNORE_WARNING_IDS` remains a deprecated
   FixInsight-only alias and is merged with `DAK_FI_IGNORE_RULES`.
 
@@ -720,7 +720,10 @@ bin\DelphiAIKit.exe analyze --project "C:\path\Project.dproj" --platform Win32 -
 ```
 
 For focused unit analysis, prefer
-`agentskills\dak-static-analysis\analyze-unit.bat Unit1.pas MyProject.dproj`.
+`bin\DelphiAIKit.exe analyze-unit --unit Unit1.pas --project-context MyProject.dproj --delphi 23.0`
+or its launcher `agentskills\dak-static-analysis\analyze-unit.bat Unit1.pas MyProject.dproj`
+(with `DAK_DELPHI` set). Verify a report read-only with
+`bin\DelphiAIKit.exe analyze-report --out <DAK_OUT> --verify`.
 The project argument supplies search paths, defines, build configuration, and
 compiler target. Omitting it keeps the legacy PAL.INI-based mode and is not
 project-equivalent proof.

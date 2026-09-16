@@ -447,14 +447,37 @@ print(json.dumps(identity,ensure_ascii=False))
         }
         if ($Benchmark) {
             $assessment=Get-MigrationWorkspaceBudgetResult -Samples $samples -Budget $frozen.budget
-            $scenarioResult=[pscustomobject]@{name=$scenario.name;assessment=$assessment;samples=@($samples);comparisons=@($records)}
+            # D4 reference control: the pinned Python capture on the same subject, one cold and two warm runs.
+            . (Join-Path $PSScriptRoot 'compare-native-analysis-reports.ps1')
+            $controlSamples = foreach ($entry in @([pscustomobject]@{phase='cold';index=1},[pscustomobject]@{phase='warm';index=1},[pscustomobject]@{phase='warm';index=2})) {
+                $controlRoot = Resolve-MigrationOutputPath (Join-Path $scenarioRoot "reference-control-$($entry.phase)-$($entry.index)") $scenarioRoot
+                [void][IO.Directory]::CreateDirectory($controlRoot)
+                $control = Invoke-MigrationProcess -Executable $scenario.executable -Arguments @($scenario.arguments) -WorkingDirectory $scenario.working_directory -Environment $childEnvironment -LogPath (Join-Path $controlRoot 'process')
+                if ($control.exit_code -ne 0 -or $control.timed_out -or $control.drain_timed_out) { throw "Workspace reference control failed: $($scenario.name); raw evidence retained." }
+                $control | Add-Member -NotePropertyName phase -NotePropertyValue $entry.phase
+                $control | Add-Member -NotePropertyName index -NotePropertyValue $entry.index
+                $control
+            }
+            $frozenReference = Get-Content -LiteralPath (Join-Path $EvidenceRoot $frozen.measurements) -Raw | ConvertFrom-Json
+            $referenceControl = Get-MigrationReferenceControl -Samples @($controlSamples) -Frozen $frozenReference
+            $verdict = Get-MigrationBudgetVerdict -Assessment $assessment -Control $referenceControl
+            $scenarioResult=[pscustomobject]@{name=$scenario.name;verdict=$verdict;assessment=$assessment;reference_control=$referenceControl;reference_control_samples=@($controlSamples);samples=@($samples);comparisons=@($records)}
             $scenarioResult | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath (Join-Path $scenarioRoot 'measurements.json')
-            if (-not $assessment.passed) {throw "Workspace budget exceeded: $($scenario.name): $($assessment.violations -join ', '); raw samples retained."}
             $scenarioResult
         } else {$records}
     }
     if ((Get-FileHash -LiteralPath $executablePath).Hash -ne $candidateHash) { throw 'Candidate executable changed during comparison.' }
     if ((Get-FileHash -LiteralPath $budgetPath).Hash -ne $budgetHash) {throw 'Frozen budget changed during the batch.'}
+    if ($Benchmark) {
+        # Every scenario is measured before the verdicts are reported, so one miss does not hide the rest.
+        $missed = @($results | Where-Object verdict -NE 'passed')
+        if ($missed.Count) {
+            $batchResult = [pscustomobject]@{passed=$false;candidate=$executablePath;candidate_sha256=$candidateHash;budget_sha256=$budgetHash;scenarios=@($results)}
+            $batchResult | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath (Join-Path $batchRoot 'benchmark.json')
+            throw ('Workspace benchmark did not pass: ' + (($missed | ForEach-Object {
+                "$($_.name) $($_.verdict) ($($_.assessment.violations -join ', '); control ratio $([Math]::Round($_.reference_control.ratio, 2)))" }) -join '; '))
+        }
+    }
     $scope=if ($Benchmark) {'Five workspace scenarios: full record equality and frozen cold/warm latency and root-memory budgets.'} else {'Workspace correctness only; no performance acceptance.'}
     $result = [pscustomobject]@{passed=$true;candidate=$executablePath;candidate_sha256=$candidateHash;budget_sha256=$budgetHash;scenarios=@($results);scope=$scope}
     $resultFile=if ($Benchmark) {'benchmark.json'} else {'comparison.json'}
@@ -524,6 +547,64 @@ if ($MyInvocation.InvocationName -ne '.') {
         . (Join-Path $PSScriptRoot 'compare-native-analysis-unit.ps1')
         $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/unit-compare-'+[guid]::NewGuid().ToString()) }
         Invoke-MigrationUnitComparison -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot
+        return
+    }
+    if ($Mode -eq 'Benchmark' -and $Area -in @('All', 'Project', 'Unit')) {
+        if (-not $CandidateExecutable) { throw "Benchmark $Area requires CandidateExecutable." }
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-artifacts.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-policy.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-project.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-reports.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-benchmark.ps1')
+        $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/benchmark-'+$Area.ToLowerInvariant()+'-'+[guid]::NewGuid().ToString()) }
+        $benchmark = if ($Area -eq 'All') { Invoke-MigrationBenchmarkAll -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot }
+            else { Invoke-MigrationLiveBenchmark -EvidenceRoot $evidenceRoot -Executable $CandidateExecutable -ResultRoot $resultRoot -Area $Area }
+        "Benchmark ${Area}: passed=$($benchmark.passed) result=$resultRoot"
+        if ($Area -eq 'All') { $benchmark.areas.GetEnumerator() | ForEach-Object { "  $($_.Key): passed=$($_.Value.passed) $($_.Value.error)" } }
+        else { $benchmark.scenarios | ForEach-Object { "  $($_.name): verdict=$($_.verdict) parity=$($_.parity_passed) violations=$($_.assessment.violations -join ', ')" } }
+        if (-not $benchmark.passed) { exit 1 }
+        return
+    }
+    if ($Mode -eq 'NoPython') {
+        if ($Area -ne 'All') { throw 'NoPython audits the complete delivery and requires Area All.' }
+        if (-not $CandidateExecutable) { throw 'NoPython requires CandidateExecutable (its folder supplies dak.ini and palcmd-map.json).' }
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-artifacts.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-policy.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-project.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-nopython.ps1')
+        $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/nopython-'+[guid]::NewGuid().ToString()) }
+        $audit = Invoke-MigrationNoPython -EvidenceRoot $evidenceRoot -CandidateExecutable ([IO.Path]::GetFullPath($CandidateExecutable)) -ResultRoot $resultRoot
+        "NoPython: passed=$($audit.passed) runs=$(@($audit.runs).Count) failures=$(@($audit.failures).Count) result=$resultRoot"
+        $audit.failures | Select-Object -First 60
+        if (-not $audit.passed) { exit 1 }
+        return
+    }
+    if ($Mode -eq 'Delivery') {
+        if ($Area -ne 'All') { throw 'Delivery certifies the complete delivery and requires Area All.' }
+        if (-not $CandidateExecutable) { throw 'Delivery requires CandidateExecutable (its folder supplies dak.ini and palcmd-map.json).' }
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-artifacts.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-policy.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-project.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-nopython.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-coverage.ps1')
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-delivery.ps1')
+        $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/delivery-'+[guid]::NewGuid().ToString()) }
+        $delivery = Invoke-MigrationDelivery -EvidenceRoot $evidenceRoot -CandidateExecutable ([IO.Path]::GetFullPath($CandidateExecutable)) -ResultRoot $resultRoot
+        "Delivery: passed=$($delivery.passed) examples=$(@($delivery.documented_examples).Count) failures=$(@($delivery.failures).Count) result=$resultRoot"
+        $delivery.failures | Select-Object -First 60
+        if (-not $delivery.passed) { exit 1 }
+        return
+    }
+    if ($Mode -eq 'Coverage') {
+        if ($Area -ne 'All') { throw 'Coverage certifies the complete map and requires Area All.' }
+        . (Join-Path $PSScriptRoot 'compare-native-analysis-coverage.ps1')
+        # For Coverage, CandidateExecutable names the DUnitX test binary.
+        $testExecutable = if ($CandidateExecutable) { $CandidateExecutable } else { Join-Path $repoRoot 'tests/DelphiAIKit.Tests.exe' }
+        $resultRoot = if ($Manifest) { (Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).result_root } else { Join-Path $evidenceRoot ('measurements/coverage-'+[guid]::NewGuid().ToString()) }
+        $coverage = Invoke-MigrationCoverage -EvidenceRoot $evidenceRoot -TestExecutable $testExecutable -ResultRoot $resultRoot
+        "Coverage: passed=$($coverage.passed) cases=$($coverage.verdict.case_count) native_cases_passed=$($coverage.verdict.native_cases_passed) failures=$($coverage.verdict.failures.Count) result=$resultRoot"
+        $coverage.verdict.failures | Select-Object -First 40
+        if (-not $coverage.passed) { exit 1 }
         return
     }
     if ($Mode -ne 'Baseline') { throw "Mode $Mode requires its native migration task; it is not certified yet." }

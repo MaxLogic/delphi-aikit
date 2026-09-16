@@ -232,16 +232,22 @@ function Invoke-MigrationReportComparison {
                 reference_control = $referenceControl; reference_control_samples = @($controlSamples)
                 samples = @($samples); comparisons = @($records) }
             $scenarioResult | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath (Join-Path $scenarioRoot 'measurements.json')
-            if ($verdict -eq 'not_measurable_here') {
-                throw ("Report budget not measurable here: $($scenario.name): $($assessment.violations -join ', '); " +
-                    "reference control ratio $([Math]::Round($referenceControl.ratio, 2)) exceeds $($referenceControl.threshold). Raw samples retained.")
-            }
-            if ($verdict -ne 'passed') { throw "Report budget exceeded: $($scenario.name): $($assessment.violations -join ', '); raw samples retained." }
             $scenarioResult
         } else { $records }
     }
     if ((Get-FileHash -LiteralPath $executablePath).Hash -ne $candidateHash) { throw 'Candidate executable changed during comparison.' }
     if ((Get-FileHash -LiteralPath $budgetPath).Hash -ne $budgetHash) { throw 'Frozen budget changed during the batch.' }
+    if ($Benchmark) {
+        # Every scenario is measured before the verdicts are reported, so one miss does not hide the rest.
+        $missed = @($results | Where-Object verdict -NE 'passed')
+        if ($missed.Count) {
+            [pscustomobject]@{ passed = $false; candidate = $executablePath; candidate_sha256 = $candidateHash; budget_sha256 = $budgetHash; scenarios = @($results) } |
+                ConvertTo-Json -Depth 30 | Set-Content -LiteralPath (Join-Path $batchRoot 'benchmark.json')
+            throw ('Report benchmark did not pass: ' + (($missed | ForEach-Object {
+                $reason = if ($_.verdict -eq 'not_measurable_here') { 'not measurable here' } else { 'budget exceeded' }
+                "$($_.name) $reason ($($_.assessment.violations -join ', '); control ratio $([Math]::Round($_.reference_control.ratio, 2)))" }) -join '; '))
+        }
+    }
     $scope = if ($Benchmark) { "Four report scenarios: $ArtifactSet replay artifact equality, exact verification output, frozen cold/warm latency and root-memory budgets." } else { "Report correctness only ($ArtifactSet replay artifacts, exact verification output); no performance acceptance." }
     $result = [pscustomobject]@{ passed = $true; candidate = $executablePath; candidate_sha256 = $candidateHash; budget_sha256 = $budgetHash; artifact_set = $ArtifactSet; scenarios = @($results); scope = $scope }
     $resultFile = if ($Benchmark) { 'benchmark.json' } else { 'comparison.json' }

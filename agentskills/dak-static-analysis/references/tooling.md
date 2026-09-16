@@ -1,21 +1,22 @@
 # Tooling notes (FixInsightCL, PALCMD, DAK)
 
-## Environment variables (forwarded by analyze.*)
+## Environment variables (read by DAK for analyze and analyze-unit)
 
-Common overrides:
+DAK applies these only for switches not given on the command line.
 
-- `DAK_EXE=<path>` (overrides resolver location)
-- `PA_PATH=...` (forwarded to `--pa-path`)
+- `DAK_EXE=<path>` (read by the launchers only: the executable they start)
+- `DAK_DELPHI=<version>` (same as `--delphi`; required unless the switch is given)
+- `PA_PATH=...` (same as `--pa-path`)
 - `PA_ARGS=...` (additive PAL options only; DAK-owned automation arguments are rejected)
-- `FI_SETTINGS=...` / `FIXINSIGHT_SETTINGS=...` (forwarded to FixInsightCL `--fi-settings` via DAK)
-- `DAK_RSVARS=...` (forwarded to `--rsvars`)
-- `DAK_ENVOPTIONS=...` (forwarded to `--envoptions`)
-- `DAK_EXCLUDE_PATH_MASKS=...` (forwarded to `--exclude-path-masks`)
-- `DAK_FI_IGNORE_RULES=...` (forwarded to `--ignore-warning-ids`)
-- `DAK_PAL_IGNORE_RULES=...` (forwarded to `--pal-ignore-rules`)
-- `DAK_PAL_EXCLUDE_SEARCH_FOLDERS=...` (forwarded to
+- `FI_SETTINGS=...` / `FIXINSIGHT_SETTINGS=...` (same as FixInsightCL settings `--fi-settings`)
+- `DAK_RSVARS=...` (same as `--rsvars`)
+- `DAK_ENVOPTIONS=...` (same as `--envoptions`)
+- `DAK_EXCLUDE_PATH_MASKS=...` (same as `--exclude-path-masks`)
+- `DAK_FI_IGNORE_RULES=...` (same as `--ignore-warning-ids`)
+- `DAK_PAL_IGNORE_RULES=...` (same as `--pal-ignore-rules`)
+- `DAK_PAL_EXCLUDE_SEARCH_FOLDERS=...` (same as
   `--pa-exclude-search-folders`, explicit PAL `/X`)
-- `DAK_PAL_EXCLUDE_FILES=...` (forwarded to `--pa-exclude-files`, explicit
+- `DAK_PAL_EXCLUDE_FILES=...` (same as `--pa-exclude-files`, explicit
   PAL `/XF`)
 - `DAK_IGNORE_WARNING_IDS=...` is a deprecated FixInsight-only alias merged
   with `DAK_FI_IGNORE_RULES`.
@@ -38,9 +39,10 @@ data from `svn info --xml`, adjacent `svnversion`, `svn status --xml`, and
 inventory and does not fail analysis. DAK first requires `svn info` to identify
 a valid working copy; remaining command capabilities are then independent.
 
-## Environment variables (wrapper-only; not forwarded to DAK)
+## Environment variables for baselines and gating
 
-These are used by the skill wrappers to maintain baselines/deltas and optional CI gating:
+DAK's report finalization reads these after `analyze`, `analyze-unit` and
+`analyze-report` to maintain baselines/deltas and optional CI gating:
 
 - `DAK_BASELINE=<path>` (default: `.dak/<ProjectName>/baseline.json`)
 - `DAK_UPDATE_BASELINE=1`

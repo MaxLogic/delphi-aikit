@@ -46,12 +46,79 @@ type
     procedure ProjectSelectorResolvesTheContextWorkspace;
     [Test]
     procedure AnalyzersRunInTheWorkspaceRootWhateverTheCallerDirectory;
+    [Test]
+    procedure FailedRunInACommittedWorkspaceKeepsBaselineAndCapturedProvenance;
   end;
 
 implementation
 
 uses
   Dak.Analysis.ReportBundle;
+
+function RunGit(const aRepo, aArguments: string): string;
+var
+  lExitCode: Cardinal;
+  lGit, lLog: string;
+begin
+  lGit := FileSearch('git.exe', GetEnvironmentVariable('PATH'));
+  Assert.IsTrue(lGit <> '', 'git.exe must be on PATH for this test');
+  lLog := TPath.Combine(TPath.GetTempPath, 'dak-unit-git-' + TGUID.NewGuid.ToString + '.log');
+  try
+    Assert.IsTrue(RunCommandProcess(lGit, aArguments, aRepo, lLog, lExitCode), 'git must run: ' + aArguments);
+    Result := TFile.ReadAllText(lLog);
+    Assert.AreEqual<Cardinal>(0, lExitCode, 'git ' + aArguments + ': ' + Result);
+  finally
+    if TFile.Exists(lLog) then
+      TFile.Delete(lLog);
+  end;
+end;
+
+// test_valid_failed_summary_is_postprocessed_without_masking_dak_exit: a failed analyzer run in a
+// committed workspace is still finalized, keeps its exit code and the accepted baseline, and records
+// the provenance captured before the run wrote its untracked output.
+procedure TNativeAnalysisUnitTests.FailedRunInACommittedWorkspaceKeepsBaselineAndCapturedProvenance;
+var
+  lBaseline: string;
+  lBaselineBytes, lAfter: TBytes;
+  lCounts, lSummary, lTarget: TJSONObject;
+  lExit: Cardinal;
+  lLog: string;
+  lScope: IInterface;
+begin
+  lBaseline := TPath.Combine(fRoot, 'accepted-baseline.json');
+  TFile.WriteAllText(lBaseline, '{'#13#10'  "version": 1'#13#10'}'#13#10, TEncoding.ASCII);
+  lBaselineBytes := TFile.ReadAllBytes(lBaseline);
+  // Only the harness log is ignored; the run's own output stays visible to Git.
+  TFile.WriteAllText(TPath.Combine(fRoot, '.gitignore'), 'analyze-unit.log'#10, TEncoding.ASCII);
+  RunGit(fRoot, 'init -q');
+  RunGit(fRoot, 'add .');
+  RunGit(fRoot, '-c user.name="DAK Test" -c user.email=dak@example.invalid commit -qm fixture');
+  lScope := SetScopedEnvironmentVariables(['DAK_BASELINE', lBaseline, 'DAK_UPDATE_BASELINE', '1']);
+
+  lLog := RunUnit(7, True, lExit);
+  Assert.AreEqual(Cardinal(7), lExit, 'The analyzer exit code is the run result. Log: ' + lLog);
+  Assert.IsTrue(TFile.Exists(TPath.Combine(fOutRoot, 'delta.json')), 'the failed run is still finalized');
+  lAfter := TFile.ReadAllBytes(lBaseline);
+  Assert.IsTrue((Length(lAfter) = Length(lBaselineBytes)) and CompareMem(@lAfter[0], @lBaselineBytes[0], Length(lAfter)),
+    'the accepted baseline is unchanged');
+  Assert.IsFalse(RunGit(fRoot, 'status --porcelain').Trim.IsEmpty, 'the run left untracked output behind');
+  lSummary := ReadSummary;
+  try
+    Assert.AreEqual('failed', JsonText(JsonObjectMember(lSummary, 'status'), 'infrastructure'));
+    Assert.AreEqual('not_evaluated', JsonText(JsonObjectMember(lSummary, 'status'), 'policy'));
+    // The version kept from a failed run's summary is asserted at service level in
+    // TNativeAnalysisReportControlTests.FailedSummaryKeepsItsPalVersionWithoutATotal.
+    lCounts := JsonObjectMember(JsonObjectMember(lSummary, 'counts'), 'pascal_analyzer');
+    Assert.IsNotNull(lCounts, lSummary.ToJSON);
+    Assert.IsNull(lCounts.GetValue('total'), 'a failed PAL run publishes no total');
+    lTarget := JsonObjectMember(JsonObjectMember(lSummary, 'provenance'), 'target');
+    Assert.AreEqual('False', JsonText(lTarget, 'dirty'), 'provenance was captured before the output existed: ' +
+      lTarget.ToJSON);
+    Assert.AreEqual(40, Length(JsonText(lTarget, 'head')), lTarget.ToJSON);
+  finally
+    lSummary.Free;
+  end;
+end;
 
 procedure TNativeAnalysisUnitTests.Setup;
 begin
@@ -168,10 +235,12 @@ end;
 procedure TNativeAnalysisUnitTests.WithoutASummaryTheRunIsARejectedResult;
 var
   lExit: Cardinal;
+  lLog: string;
 begin
   fExtraArgs := ' --write-summary false';
-  RunUnit(0, False, lExit);
+  lLog := RunUnit(0, False, lExit);
   Assert.AreEqual(Cardinal(3), lExit, 'A unit run with no summary is a rejected result.');
+  Assert.IsTrue(lLog.Contains('Summary not found: '), lLog);
 end;
 
 // DAK's own contract for an analysis subject that does not exist is exit 3 (cExitInvalidProjectInput),

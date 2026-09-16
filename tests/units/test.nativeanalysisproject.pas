@@ -50,12 +50,183 @@ type
     procedure PlainRunNeverReplacesTheAcceptedBaseline;
     [Test]
     procedure ThirdPartyFindingsLeaveOwnedCoverageAndPalSettingsVisible;
+    [Test]
+    procedure CapturedProvenanceDoesNotSeeTheRunsOwnOutput;
+    // Expectations pinned from workspace.resolve_workspace on the same layout (T-328 evidence).
+    [TestCase('default', 'default,,none,src,auto,default')]
+    [TestCase('project', 'project,project,none,src,project,command_line')]
+    [TestCase('fixed', 'fixed,<fixed>,none,workspace,<fixed>,command_line')]
+    [TestCase('git', 'git,git,git,workspace,git,command_line')]
+    [TestCase('svn', 'svn,svn,svn,workspace,svn,command_line')]
+    [TestCase('auto-svn', 'auto-svn,auto,svn,workspace,auto,command_line')]
+    [TestCase('ini-project', 'ini-project,,none,src,project,<ini>')]
+    procedure WorkspaceSelectorMatrixPublishesTheResolvedWorkspace(const aName, aSelector, aVcs, aRoot,
+      aExpectedSelector, aExpectedSource: string);
+    [TestCase('explicit', 'explicit')]
+    [TestCase('closest-ini', 'closest-ini')]
+    procedure OuterGitCheckoutDoesNotBecomeTheWorkspace(const aMode: string);
   end;
 
 implementation
 
 uses
+  System.RegularExpressions,
   Dak.Analysis.ReportBundle;
+
+function RunGit(const aRepo, aArguments: string): string;
+var
+  lExitCode: Cardinal;
+  lGit, lLog: string;
+begin
+  lGit := FileSearch('git.exe', GetEnvironmentVariable('PATH'));
+  Assert.IsTrue(lGit <> '', 'git.exe must be on PATH for this test');
+  lLog := TPath.Combine(TPath.GetTempPath, 'dak-project-git-' + TGUID.NewGuid.ToString + '.log');
+  try
+    Assert.IsTrue(RunCommandProcess(lGit, aArguments, aRepo, lLog, lExitCode), 'git must run: ' + aArguments);
+    Result := TFile.ReadAllText(lLog);
+    Assert.AreEqual<Cardinal>(0, lExitCode, 'git ' + aArguments + ': ' + Result);
+  finally
+    if TFile.Exists(lLog) then
+      TFile.Delete(lLog);
+  end;
+end;
+
+// test_delphi_seed_matches_python_selector_matrix, finalized: every selector form publishes the
+// workspace the reference resolver chose for the same layout.
+procedure TNativeAnalysisProjectTests.WorkspaceSelectorMatrixPublishesTheResolvedWorkspace(const aName, aSelector,
+  aVcs, aRoot, aExpectedSelector, aExpectedSource: string);
+var
+  lArgs, lCaseRoot, lExpectedRoot, lExpectedSelector, lExpectedSource, lLog, lOut, lProject, lProjectDir,
+    lSelector, lWorkspace: string;
+  lExit: Cardinal;
+  lSummary, lWorkspaceJson: TJSONObject;
+begin
+  lCaseRoot := TPath.Combine(fRoot, aName);
+  lWorkspace := TPath.Combine(lCaseRoot, 'workspace');
+  lProjectDir := TPath.Combine(lWorkspace, 'src');
+  TDirectory.CreateDirectory(lProjectDir);
+  lProject := TPath.Combine(lProjectDir, 'Sample.dproj');
+  TFile.Copy(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dproj'), lProject);
+  TFile.Copy(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dpr'), TPath.Combine(lProjectDir, 'Sample.dpr'));
+  if aName = 'git' then
+    TFile.WriteAllText(TPath.Combine(lWorkspace, '.git'), 'gitdir: elsewhere'#10, TEncoding.ASCII);
+  if (aName = 'svn') or (aName = 'auto-svn') then
+  begin
+    TDirectory.CreateDirectory(TPath.Combine(lWorkspace, '.svn'));
+    TDirectory.CreateDirectory(TPath.Combine(lCaseRoot, '.git'));
+  end;
+  if aName = 'ini-project' then
+    TFile.WriteAllText(TPath.Combine(lProjectDir, 'dak.ini'), '[workspace]'#10'root=project'#10, TEncoding.ASCII);
+  lSelector := aSelector.Replace('<fixed>', lWorkspace);
+  lOut := TPath.Combine(lCaseRoot, 'out');
+  lArgs := 'analyze --project ' + QuoteArg(lProject) + ' --delphi 23.0 --platform Win64 --config Debug' +
+    ' --fixinsight false --pascal-analyzer false --out ' + QuoteArg(lOut);
+  if lSelector <> '' then
+    lArgs := lArgs + ' --workspace-root ' + QuoteArg(lSelector);
+  lLog := TPath.Combine(fRoot, aName + '.log');
+  Assert.IsTrue(RunResolverProcess(lArgs, lCaseRoot, lLog, lExit), 'analysis must start');
+  // The git case's marker points nowhere: finalization cannot read the revision and fails with
+  // exit 4, as the reference postprocessor raised on the same Git failure. The seed it patches
+  // still records the resolved workspace, which is what the reference matrix compared.
+  if aName = 'git' then
+    Assert.AreEqual(Cardinal(4), lExit, TFile.ReadAllText(lLog))
+  else
+    Assert.AreEqual(Cardinal(0), lExit, TFile.ReadAllText(lLog));
+
+  if aRoot = 'src' then
+    lExpectedRoot := lProjectDir
+  else
+    lExpectedRoot := lWorkspace;
+  lExpectedSelector := aExpectedSelector.Replace('<fixed>', lWorkspace);
+  lExpectedSource := aExpectedSource.Replace('<ini>', TPath.Combine(lProjectDir, 'dak.ini'));
+  lSummary := ParseJsonObject(TFile.ReadAllText(TPath.Combine(lOut, 'summary.json')), 'summary.json');
+  try
+    lWorkspaceJson := JsonObjectMember(lSummary, 'workspace');
+    Assert.IsTrue(SameText(lExpectedRoot, JsonText(lWorkspaceJson, 'root')), 'root: ' + lWorkspaceJson.ToJSON);
+    Assert.IsTrue(SameText(lExpectedSelector, JsonText(lWorkspaceJson, 'selector')), 'selector: ' + lWorkspaceJson.ToJSON);
+    Assert.AreEqual(aVcs, JsonText(lWorkspaceJson, 'vcs'), 'vcs');
+    Assert.IsTrue(SameText(lExpectedSource, JsonText(lWorkspaceJson, 'source')), 'source: ' + lWorkspaceJson.ToJSON);
+  finally
+    lSummary.Free;
+  end;
+end;
+
+// A workspace nested in an unrelated outer Git checkout stays the workspace for project and unit
+// analysis, whether "." is given on the command line or by the closest dak.ini.
+procedure TNativeAnalysisProjectTests.OuterGitCheckoutDoesNotBecomeTheWorkspace(const aMode: string);
+var
+  lArgs, lLog, lOut, lProject, lSelector, lSourceDir, lUnit, lWorkspace: string;
+  lExit: Cardinal;
+  i: Integer;
+  lScope: IInterface;
+  lSummary: TJSONObject;
+begin
+  lWorkspace := TPath.Combine(fRoot, 'outer\workspace');
+  lSourceDir := TPath.Combine(lWorkspace, 'src');
+  TDirectory.CreateDirectory(TPath.Combine(fRoot, 'outer\.git'));
+  TDirectory.CreateDirectory(lSourceDir);
+  lSelector := '';
+  if aMode = 'explicit' then
+    lSelector := ' --workspace-root .'
+  else
+    TFile.WriteAllText(TPath.Combine(lWorkspace, 'dak.ini'), '[Workspace]'#10'Root=.'#10, TEncoding.ASCII);
+  lProject := TPath.Combine(lSourceDir, 'Sample.dproj');
+  TFile.Copy(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dproj'), lProject);
+  TFile.Copy(TPath.Combine(RepoRoot, 'tests\fixtures\Sample.dpr'), TPath.Combine(lSourceDir, 'Sample.dpr'));
+  lUnit := TPath.Combine(lSourceDir, 'Sample.pas');
+  TFile.WriteAllText(lUnit, 'unit Sample; interface implementation end.', TEncoding.ASCII);
+  for i := 0 to 1 do
+  begin
+    if i = 0 then
+    begin
+      lOut := TPath.Combine(fRoot, 'outer\project-out');
+      lArgs := 'analyze --project ' + QuoteArg(lProject) + ' --delphi 23.0 --platform Win64 --config Debug' +
+        ' --fixinsight false --pascal-analyzer false';
+    end else begin
+      lOut := TPath.Combine(fRoot, 'outer\unit-out');
+      // The unit route needs an analyzer, so the DUnitX executable stands in for PALCMD.
+      lArgs := 'analyze-unit --unit ' + QuoteArg(lUnit) + ' --delphi 23.0 --pascal-analyzer true --pa-path ' +
+        QuoteArg(ParamStr(0));
+    end;
+    lArgs := lArgs + ' --out ' + QuoteArg(lOut) + lSelector;
+    lLog := TPath.Combine(fRoot, aMode + '-' + i.ToString + '.log');
+    lScope := SetScopedEnvironmentVariable('DAK_TEST_PAL_EXIT', '0');
+    Assert.IsTrue(RunResolverProcess(lArgs, lWorkspace, lLog, lExit), 'analysis must start');
+    lScope := nil;
+    Assert.AreEqual(Cardinal(0), lExit, TFile.ReadAllText(lLog));
+    lSummary := ParseJsonObject(TFile.ReadAllText(TPath.Combine(lOut, 'summary.json')), 'summary.json');
+    try
+      Assert.IsTrue(SameText(lWorkspace, JsonText(JsonObjectMember(lSummary, 'workspace'), 'root')),
+        lArgs + ': ' + JsonObjectMember(lSummary, 'workspace').ToJSON);
+    finally
+      lSummary.Free;
+    end;
+  end;
+end;
+
+// analyze.py captured provenance before DAK started, so a committed workspace was clean even though
+// the run then wrote untracked output into it.
+procedure TNativeAnalysisProjectTests.CapturedProvenanceDoesNotSeeTheRunsOwnOutput;
+var
+  lExit: Cardinal;
+  lLog: string;
+  lSummary, lTarget: TJSONObject;
+begin
+  TFile.WriteAllText(TPath.Combine(fRoot, '.gitignore'), 'analyze.log'#10, TEncoding.ASCII);
+  RunGit(fRoot, 'init -q');
+  RunGit(fRoot, 'add .');
+  RunGit(fRoot, '-c user.name="DAK Test" -c user.email=dak@example.invalid commit -qm fixture');
+  lLog := RunAnalyze(0, lExit);
+  Assert.IsFalse(RunGit(fRoot, 'status --porcelain').Trim.IsEmpty, 'the run left untracked output behind');
+  lSummary := ReadSummary;
+  try
+    lTarget := JsonObjectMember(JsonObjectMember(lSummary, 'provenance'), 'target');
+    Assert.AreEqual('False', JsonText(lTarget, 'dirty'), 'captured before the run wrote anything: ' + lTarget.ToJSON);
+    Assert.AreEqual(40, Length(JsonText(lTarget, 'head')), lTarget.ToJSON);
+  finally
+    lSummary.Free;
+  end;
+end;
 
 procedure TNativeAnalysisProjectTests.Setup;
 begin
@@ -209,10 +380,12 @@ end;
 procedure TNativeAnalysisProjectTests.WithoutASummaryTheRunIsARejectedResult;
 var
   lExit: Cardinal;
+  lLog: string;
 begin
   fExtraArgs := ' --write-summary false';
-  RunAnalyze(0, lExit);
+  lLog := RunAnalyze(0, lExit);
   Assert.AreEqual(Cardinal(3), lExit, 'A run with no summary is a rejected result.');
+  Assert.IsTrue(lLog.Contains('Summary not found: '), lLog);
   Assert.IsFalse(TFile.Exists(TPath.Combine(fOutRoot, 'summary.md')),
     'The fixture must not have published a summary.');
 end;
@@ -285,11 +458,16 @@ begin
   fMalformedReport := True;
   lLog := RunAnalyze(0, lExit);
   Assert.AreEqual(Cardinal(4), lExit, 'Finalization failure over a successful analyzer is exit 4. Log: ' + lLog);
+  Assert.IsTrue(lLog.Contains('Post-processing failed after successful analyzer: '), lLog);
   Assert.IsTrue(TFile.Exists(TPath.Combine(fOutRoot, 'postprocessor-error.txt')),
     'The diagnostic must be left beside the report.');
+  // The diagnostic names the exception class and its message, as the reference traceback tail did.
+  Assert.IsTrue(TRegEx.IsMatch(TFile.ReadAllText(TPath.Combine(fOutRoot, 'postprocessor-error.txt')), '^E\w+: \S'),
+    TFile.ReadAllText(TPath.Combine(fOutRoot, 'postprocessor-error.txt')));
   lSummary := ReadSummary;
   try
     lStatus := JsonObjectMember(lSummary, 'status');
+    Assert.AreEqual('complete', JsonText(lStatus, 'infrastructure'), 'the analyzers themselves completed');
     Assert.AreEqual('failed', JsonText(lStatus, 'postprocessor'), 'status.postprocessor');
     Assert.AreEqual('incomplete', JsonText(lStatus, 'finalization'), 'status.finalization');
     Assert.AreEqual('postprocessor-error.txt',

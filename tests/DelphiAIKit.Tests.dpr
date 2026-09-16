@@ -8,6 +8,7 @@ uses
   FireDAC.Phys.SQLiteWrapper.Stat,
   DUnitX.FilterBuilder,
   DUnitX.Loggers.Console,
+  DUnitX.Loggers.XML.NUnit,
   DUnitX.TestFramework,
   Dak.Analysis.Workspace in '..\src\Dak.Analysis.Workspace.pas',
   Dak.Analysis.WorkspaceCommand in '..\src\Dak.Analysis.WorkspaceCommand.pas',
@@ -38,6 +39,8 @@ uses
   Dak.Analysis.WorkflowFinish in '..\src\Dak.Analysis.WorkflowFinish.pas',
   Test.NativeAnalysisReports.Replay in 'units\test.nativeanalysisreports.replay.pas',
   Test.NativeAnalysisReports.Verify in 'units\test.nativeanalysisreports.verify.pas',
+  Test.NativeAnalysisReports.Controls in 'units\test.nativeanalysisreports.controls.pas',
+  Test.NativeAnalysisReports.OwnershipControls in 'units\test.nativeanalysisreports.ownershipcontrols.pas',
   Test.NativeAnalysisPolicy in 'units\test.nativeanalysispolicy.pas',
   Test.NativeAnalysisProject in 'units\test.nativeanalysisproject.pas',
   Test.NativeAnalysisUnit in 'units\test.nativeanalysisunit.pas',
@@ -235,6 +238,10 @@ begin
 
     Logger := TDUnitXConsoleLogger.Create(True);
     Runner.AddLogger(Logger);
+    // --xmlfile:<path> writes an NUnit report with one entry per executed test, which the migration
+    // coverage check reads to prove every mapped native case ran and passed.
+    if TDUnitX.Options.XMLOutputFile <> '' then
+      Runner.AddLogger(TDUnitXXMLNUnitFileLogger.Create(TDUnitX.Options.XMLOutputFile));
 
     Results := Runner.Execute;
     if not Results.AllPassed then

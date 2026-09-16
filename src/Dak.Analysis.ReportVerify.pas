@@ -391,7 +391,7 @@ var
   g: TGarbos;
   lActive, lAliases, lAnalyzer, lAnalyzers, lCompatibility, lCounts, lExpectedCompatibility, lExpectedCounts,
     lExpectedProjections, lPolicy, lResolved, lRow, lSummaryJson, lSummaryMarkdown: TJSONObject;
-  lBaselineJson, lBaselinePal, lDelta, lDeltaAliases, lDeltaFi, lDeltaPal, lGate, lHistoryRow,
+  lBaselineJson, lBaselinePal, lDelta, lDeltaAliases, lDeltaFi, lDeltaPal, lExpectedPalTotals, lGate, lHistoryRow,
     lProjectionPal: TJSONObject;
   lBaselinePath, lDeltaText, lTrendText: string;
   lHistory: TJSONArray;
@@ -557,8 +557,9 @@ begin
     if JsonText(JsonObjectMember(lHistoryRow, 'fixinsight'), 'total') <>
       JsonText(JsonObjectMember(lExpectedCounts, 'fixinsight'), 'total') then
       raise EConvertError.Create('history.jsonl FixInsight total mismatch');
+    GC(lExpectedPalTotals, PalTotalsOf(JsonObjectMember(lExpectedCounts, 'pascal_analyzer')), g);
     if not AnalysisJsonEquivalent(JsonObjectMember(JsonObjectMember(lHistoryRow, 'pascal_analyzer'), 'totals'),
-      PalTotalsOf(JsonObjectMember(lExpectedCounts, 'pascal_analyzer'))) then
+      lExpectedPalTotals) then
       raise EConvertError.Create('history.jsonl Pascal Analyzer totals mismatch');
     if not AnalysisJsonEquivalent(JsonObjectMember(lHistoryRow, 'raw'),
       JsonObjectMember(lExpectedProjections, 'raw')) then

@@ -7,8 +7,8 @@ binary inside the skill; we build it in this repo and point the skill to it.
 ## Prerequisites
 
 - Windows + WSL (optional but supported)
-- Python 3 (for `analyze.py` / `analyze-unit.py`)
-- Built resolver binary: `bin\DelphiAIKit.exe`
+- Built resolver binary: `bin\DelphiAIKit.exe` (the analysis workflow needs no Python)
+- The Delphi version for analysis: `DAK_DELPHI` or `--delphi`, for example `23.0`
 - FixInsightCL.exe (only if we run FixInsight)
 - PALCMD.EXE / PALCMD32.EXE (required by default; set `DAK_PASCAL_ANALYZER=false` to opt out)
 
@@ -32,13 +32,17 @@ for raw comparison probes. See [verified before/after results](../../docs/pal-in
 
 ## Resolver discovery
 
-The scripts find the resolver like this:
+The launchers (`analyze.*`, `analyze-unit.*`, `doctor.*`, through `find-dak.cmd`
+and `find-dak.sh`) find the resolver like this:
 
 1. `DAK_EXE` environment variable (absolute path is recommended)
-2. Windows `PATH` (`where DelphiAIKit.exe` on WSL / `where` on Windows)
-3. Repo-local `bin\DelphiAIKit.exe` under the current repo, the target repo, or the DAK repo
+2. Windows `PATH` (`where DelphiAIKit.exe`, also from WSL)
+3. `bin\DelphiAIKit.exe` of the repository that contains this skill
 
-If the resolver is not found, the scripts abort with a clear error.
+They never search the current directory or the analyzed workspace, so an
+unrelated checkout around the project cannot supply a different executable. If
+the resolver is not found, or `DAK_EXE` names a missing file, the launchers exit
+with code 2 and a clear error. Otherwise they return DAK's own exit code.
 
 Example overrides:
 
@@ -55,7 +59,9 @@ export DAK_EXE=/mnt/c/tools/DelphiAIKit.exe
 WSL path note for direct DAK calls:
 - Supported Linux absolute form is `/mnt/<drive>/...`.
 - Other absolute Linux paths (for example `/home/...`) are rejected.
-- Use wrapper scripts (or `wslpath -w`) as the canonical safe conversion path.
+- Use the shell launchers (or `wslpath -w`) as the canonical safe conversion path.
+  They convert path arguments and path-valued variables and share the analysis
+  variables with the Windows process through `WSLENV`.
 
 ## Resolver configuration
 
@@ -155,10 +161,10 @@ Unit runs write to:
 ```
 
 These are sibling working directories next to the analyzed target, not under the
-wrapper's current working directory unless we are already running from that same
+caller's current working directory unless we are already running from that same
 target location.
 
-Those paths are wrapper defaults, not a requirement for every run. For large,
+Those paths are defaults, not a requirement for every run. For large,
 disposable agent runs, set `DAK_OUT` to a unique directory under the OS temporary
 root. Never redirect analyzer output into `.agents/`; that directory is for small
 agent knowledge, decisions, plans, and run state. Preserve only the reports needed
@@ -166,7 +172,9 @@ as evidence, then remove the verified temporary output tree.
 
 ## Optional env vars
 
-- `DAK_DELPHI`, `DAK_PLATFORM`, `DAK_CONFIG`
+DAK reads these itself; a switch given on the command line wins.
+
+- `DAK_DELPHI` (required unless `--delphi` is given), `DAK_PLATFORM`, `DAK_CONFIG`
 - `DAK_RSVARS`, `DAK_ENVOPTIONS`
 - `DAK_EXCLUDE_PATH_MASKS` (`--exclude-path-masks`,
   `[ReportFilter].ExcludePathMasks`)
@@ -181,7 +189,7 @@ as evidence, then remove the verified temporary output tree.
 - Deprecated FixInsight-only alias: `DAK_IGNORE_WARNING_IDS`
 - `DAK_FI_FORMATS` (default: `txt`; values: `txt`, `csv`, `xml`, `all`)
 - `DAK_OUT`, `DAK_FIXINSIGHT`, `DAK_PASCAL_ANALYZER` (or legacy `DAK_PAL`), `DAK_CLEAN`, `DAK_WRITE_SUMMARY`
-  - default wrapper behavior: project runs use `DAK_FIXINSIGHT=true` and `DAK_PASCAL_ANALYZER=true`
+  - defaults: project runs use `DAK_FIXINSIGHT=true` and `DAK_PASCAL_ANALYZER=true`
 - `FI_SETTINGS` / `FIXINSIGHT_SETTINGS`
 - `PA_PATH`, `PA_ARGS`
   - `PA_ARGS` accepts only additive PAL options. DAK always owns report format,

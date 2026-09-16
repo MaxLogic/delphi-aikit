@@ -55,6 +55,7 @@ type
     procedure AddError(const aMessage: string; const aExitCode: Integer);
     function TryOpenLog: Boolean;
     function TryPrepareParams: Boolean;
+    procedure ResolveOutputRoot;
     procedure PrepareOutputTree;
     procedure PrepareFixInsightParams;
     procedure InitFixInsightDefaults;
@@ -129,9 +130,15 @@ begin
   Result := True;
 end;
 
-procedure TAnalyzeProjectRunner.PrepareOutputTree;
+procedure TAnalyzeProjectRunner.ResolveOutputRoot;
 begin
   fOutRoot := BuildOutputRoot(fOptions.fAnalyzeOutPath, fProjectDproj, fProjectName);
+  // Provenance capture needs its scratch directory; an empty directory is invisible to version control.
+  TDirectory.CreateDirectory(fOutRoot);
+end;
+
+procedure TAnalyzeProjectRunner.PrepareOutputTree;
+begin
   if fOptions.fAnalyzeClean then
     CleanAnalyzeOutput(fOutRoot, True);
   TDirectory.CreateDirectory(fOutRoot);
@@ -599,9 +606,11 @@ begin
       Exit(fExitCode);
     if not TryPrepareParams then
       Exit(fExitCode);
-    PrepareOutputTree;
-    // Before the analyzers, so the report records the sources as they were analyzed.
+    ResolveOutputRoot;
+    // Before the run writes anything, as analyze.py captured it before starting DAK: the report
+    // records the sources as they were analyzed, not the run's own untracked output.
     fCapturedProvenance := CaptureAnalysisRunProvenance(fSettings.fWorkspace, fOutRoot, fDiagnostics);
+    PrepareOutputTree;
     // The analyzer stage runs where analyze.py started DAK; finalization runs back in the caller's
     // directory, where analyze.py itself ran.
     lCallerDirectory := EnterAnalysisWorkspace(fSettings.fWorkspace.fRoot);

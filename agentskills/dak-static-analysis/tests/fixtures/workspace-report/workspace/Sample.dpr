@@ -1,3 +1,0 @@
-program Sample;
-begin
-end.

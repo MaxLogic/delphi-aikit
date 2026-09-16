@@ -99,6 +99,8 @@
         <DCCReference Include="..\src\Dak.Analysis.WorkflowFinish.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.replay.pas"/>
         <DCCReference Include="units\test.nativeanalysisreports.verify.pas"/>
+        <DCCReference Include="units\test.nativeanalysisreports.controls.pas"/>
+        <DCCReference Include="units\test.nativeanalysisreports.ownershipcontrols.pas"/>
         <DCCReference Include="units\test.nativeanalysispolicy.pas"/>
         <DCCReference Include="units\test.nativeanalysisproject.pas"/>
         <DCCReference Include="units\test.nativeanalysisunit.pas"/>

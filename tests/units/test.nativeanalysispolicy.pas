@@ -3,7 +3,7 @@ unit Test.NativeAnalysisPolicy;
 interface
 
 uses
-  System.SysUtils,
+  System.JSON, System.SysUtils,
   DUnitX.TestFramework;
 
 type
@@ -23,9 +23,12 @@ type
     procedure BuildFixture;
     procedure WriteRun(const aFindingPaths: array of string); overload;
     procedure WriteRun(const aFindingPaths: array of string; const aSearchHash: string;
-      const aThirdPartyRoots: array of string); overload;
+      const aProjectRoots, aThirdPartyRoots: array of string); overload;
     function Finalize(aExpectGatePass: Boolean): string;
-    function CreateBaseline: TBytes;
+    function CreateBaseline: TBytes; overload;
+    function CreateBaseline(const aProjectRoots, aThirdPartyRoots: array of string): TBytes; overload;
+    function FirstFixInsightRecord: TJSONObject;
+    function GateReasonsContain(const aText: string): Boolean;
   public
     [Setup]
     procedure Setup;
@@ -67,16 +70,47 @@ type
     [TestCase('server-2016', '6,4,0,False,2016Server')]
     procedure HostReleaseFollowsTheReferenceWindowsTable(aMajor, aMinor, aBuild: Integer;
       aIsClient: Boolean; const aExpected: string);
+    [Test]
+    procedure UnitProjectContextParticipatesInCompatibility;
+    [TestCase('root', 'root')]
+    [TestCase('vcs', 'vcs')]
+    [TestCase('status', 'status')]
+    [TestCase('inventory_scope', 'inventory_scope')]
+    [TestCase('capability', 'capability')]
+    [TestCase('external', 'external')]
+    procedure WorkspaceSemanticsParticipateInCompatibility(const aMutation: string);
+    [Test]
+    procedure CandidateWorkspaceIdentityStaysOutOfCompatibility;
+    [Test]
+    procedure PalFilterOriginParticipatesInCompatibility;
+    [TestCase('absolute', 'absolute')]
+    [TestCase('relative', 'relative')]
+    [TestCase('basename', 'basename')]
+    procedure MaintainedExternalRootGatesAllResolvedPathForms(const aForm: string);
+    [Test]
+    procedure MaintainedRootsPreserveVendorConflictAndOwnedBoundaries;
+    [TestCase('absolute', 'absolute')]
+    [TestCase('fallback', 'fallback')]
+    procedure UnregisteredThirdPartyChildCannotDemoteMaintainedSource(const aForm: string);
+    [Test]
+    procedure ExternalVendorBoundaryChangeInvalidatesOwnershipCompatibility;
+    [Test]
+    procedure PolicyRootResolvesOnlyAnOtherwiseUnknownFinding;
+    [Test]
+    procedure OverlappingPolicyRootsRemainUnknown;
+    [Test]
+    procedure FailedRunWritesStatusAndPreservesBaselineBytes;
   end;
 
 implementation
 
 uses
-  System.Classes, System.IOUtils, System.JSON, System.StrUtils,
+  System.Classes, System.Generics.Collections, System.IOUtils, System.StrUtils,
   Winapi.Windows,
   AutoFree,
-  Dak.Analysis.JsonText, Dak.Analysis.ReportBundle, Dak.Analysis.ReportReplay, Dak.Analysis.ReportVerify,
-  Dak.Analysis.ReportWriters,
+  Dak.Analysis.JsonText, Dak.Analysis.Ownership, Dak.Analysis.OwnershipContext, Dak.Analysis.ReportBundle,
+  Dak.Analysis.ReportReplay, Dak.Analysis.ReportVerify, Dak.Analysis.ReportWriters,
+  Dak.Analysis.SourceResolution,
   Test.Support;
 
 const
@@ -240,15 +274,27 @@ end;
 
 procedure TNativeAnalysisPolicyTests.WriteRun(const aFindingPaths: array of string);
 begin
-  WriteRun(aFindingPaths, '', []);
+  WriteRun(aFindingPaths, '', [], []);
+end;
+
+function RootsJson(const aRoots: array of string): string;
+var
+  i: Integer;
+begin
+  Result := '';
+  for i := 0 to High(aRoots) do
+  begin
+    if i > 0 then
+      Result := Result + ', ';
+    Result := Result + '"' + JsonQuotedPath(aRoots[i]) + '"';
+  end;
 end;
 
 procedure TNativeAnalysisPolicyTests.WriteRun(const aFindingPaths: array of string; const aSearchHash: string;
-  const aThirdPartyRoots: array of string);
+  const aProjectRoots, aThirdPartyRoots: array of string);
 var
   lFindings: TStringList;
-  lPath, lRoots, lSearch, lTopCodes: string;
-  i: Integer;
+  lPath, lSearch, lTopCodes: string;
 begin
   lSearch := aSearchHash;
   if lSearch = '' then
@@ -279,13 +325,6 @@ begin
   WriteUtf8(TPath.Combine(fOut, 'pascal-analyzer\pal-findings.jsonl'), '');
   WriteUtf8(TPath.Combine(fOut, 'run.log'),
     Format('CMD: palcmd.exe "%s" /S="%s" /CD13W64'#10, [fMainSource, TPath.Combine(fRepo, 'src')]));
-  lRoots := '';
-  for i := 0 to High(aThirdPartyRoots) do
-  begin
-    if i > 0 then
-      lRoots := lRoots + ', ';
-    lRoots := lRoots + '"' + JsonQuotedPath(aThirdPartyRoots[i]) + '"';
-  end;
   WriteUtf8(TPath.Combine(fOut, 'summary.json'),
     '{"schema_version": 2, "status": {"infrastructure": "complete", "policy": "not_evaluated"}, ' +
     '"subject": {"kind": "project", "path": "' + JsonQuotedPath(fMainSource) + '", "project_file": "' +
@@ -299,7 +338,8 @@ begin
     '"config_manifests": [{"path": "' + JsonQuotedPath(TPath.Combine(fRepo, 'dak.ini')) + '", "sha256": "' +
     Repeated('7') + '"}]}, ' +
     '"policy": {"resolver": "Dak.Settings", "values": {"gate_ownership": ["project", "repository"], ' +
-    '"project_roots": [], "third_party_roots": [' + lRoots + ']}, "sources": ["' +
+    '"project_roots": [' + RootsJson(aProjectRoots) + '], "third_party_roots": [' + RootsJson(aThirdPartyRoots) +
+    ']}, "sources": ["' +
     JsonQuotedPath(TPath.Combine(fRepo, 'dak.ini')) + '"], "sha256": "' + Repeated('2') + '"}, ' +
     '"errors": [], "artifacts": {"summary_markdown": "summary.md"}}');
 end;
@@ -318,9 +358,374 @@ end;
 
 function TNativeAnalysisPolicyTests.CreateBaseline: TBytes;
 begin
-  WriteRun([]);
+  Result := CreateBaseline([], []);
+end;
+
+function TNativeAnalysisPolicyTests.CreateBaseline(const aProjectRoots, aThirdPartyRoots: array of string): TBytes;
+begin
+  WriteRun([], '', aProjectRoots, aThirdPartyRoots);
   Finalize(True);
   Result := TFile.ReadAllBytes(TPath.Combine(fOut, 'baseline.json'));
+end;
+
+// The caller owns the returned record.
+function TNativeAnalysisPolicyTests.FirstFixInsightRecord: TJSONObject;
+begin
+  Result := ParseJsonObject(ReadUtf8(TPath.Combine(fOut, 'fixinsight\fi-findings.jsonl')).Trim.Split([#10])[0],
+    'fi-findings.jsonl');
+end;
+
+function TNativeAnalysisPolicyTests.GateReasonsContain(const aText: string): Boolean;
+var
+  g: TGarbos;
+  lDelta: TJSONObject;
+  lItem: TJSONValue;
+begin
+  Result := False;
+  GC(lDelta, ParseJsonObject(ReadUtf8(TPath.Combine(fOut, 'delta.json')), 'delta.json'), g);
+  for lItem in JsonArrayMember(JsonObjectMember(lDelta, 'gate'), 'reasons') do
+    if lItem.Value.ToLowerInvariant.Contains(aText) then
+      Result := True;
+end;
+
+function PosixPath(const aPath: string): string;
+begin
+  Result := aPath.Replace('\', '/');
+end;
+
+function SnapshotSha(const aSeedText: string): string;
+var
+  g: TGarbos;
+  lSeed, lSnapshot: TJSONObject;
+begin
+  GC(lSeed, ParseJsonObject(aSeedText, 'seed'), g);
+  GC(lSnapshot, AnalysisCompatibilitySnapshot(lSeed, BuildAnalysisPolicyBoundaries(lSeed)), g);
+  Result := JsonText(lSnapshot, 'sha256');
+  Assert.AreEqual(64, Length(Result), 'the snapshot publishes a SHA-256 fingerprint');
+end;
+
+// The workspace seed of test_workspace_semantics_participate_in_compatibility with one field replaced.
+function WorkspaceSeed(const aMutation: string): string;
+var
+  lCapability, lDiagnostic, lDirty, lExternal, lFileCount, lHead, lRoot, lScope, lSha, lStatus, lVcs: string;
+begin
+  lRoot := 'C:\\work';
+  lVcs := 'svn';
+  lStatus := 'complete';
+  lScope := 'svn-versioned-plus-unversioned-delphi-inputs';
+  lCapability := 'available';
+  lExternal := 'vendor/external';
+  lDirty := 'false';
+  lDiagnostic := 'fixture';
+  lHead := '';
+  lSha := Repeated('2');
+  lFileCount := '12';
+  if aMutation = 'root' then
+    lRoot := 'D:\\work'
+  else if aMutation = 'vcs' then
+    lVcs := 'none'
+  else if aMutation = 'status' then
+    lStatus := 'unavailable'
+  else if aMutation = 'inventory_scope' then
+    lScope := 'filesystem-delphi-inputs'
+  else if aMutation = 'capability' then
+    lCapability := 'fallback'
+  else if aMutation = 'external' then
+    lExternal := 'vendor/other'
+  else if aMutation = 'candidate' then
+  begin
+    lDirty := 'true';
+    lDiagnostic := 'changed';
+    lHead := '"head": "different", ';
+    lSha := Repeated('3');
+    lFileCount := '99';
+  end else if aMutation <> '' then
+    Assert.Fail('unknown mutation ' + aMutation);
+  // The workspace root stays C:\work inside the target so only the named member changes.
+  Result := '{"workspace": {"root": "' + lRoot + '", "vcs": "' + lVcs + '"}, "subject": {"kind": "project"}, ' +
+    '"compiler": {}, "analyzers": {}, "inputs": {}, "policy": {"sha256": "' + Repeated('1') + '"}, ' +
+    '"provenance": {"target": {' + lHead + '"root": "C:\\work", "vcs": "svn", "status": "' + lStatus + '", ' +
+    '"dirty": ' + lDirty + ', "diagnostic": "' + lDiagnostic + '", ' +
+    '"source_inputs": {"scope": "' + lScope + '", "sha256": "' + lSha + '", "file_count": ' + lFileCount + '}, ' +
+    '"capabilities": {"revision": "available", "status": "available", "inventory": "' + lCapability + '"}, ' +
+    '"externals": [{"path": "' + lExternal + '", "revision": "42"}]}, "dak": {}}}';
+end;
+
+procedure TNativeAnalysisPolicyTests.UnitProjectContextParticipatesInCompatibility;
+const
+  cSeed = '{"subject": {"kind": "unit"}, "compiler": {}, "analyzers": {}, ' +
+    '"inputs": {"project_context_sha256": "%s"}, "policy": {"sha256": "%s"}, "provenance": %s}';
+begin
+  Assert.AreNotEqual(SnapshotSha(Format(cSeed, [Repeated('1'), Repeated('2'), cCapturedProvenance])),
+    SnapshotSha(Format(cSeed, [Repeated('3'), Repeated('2'), cCapturedProvenance])),
+    'a unit fingerprint follows its project context');
+end;
+
+procedure TNativeAnalysisPolicyTests.WorkspaceSemanticsParticipateInCompatibility(const aMutation: string);
+begin
+  Assert.AreNotEqual(SnapshotSha(WorkspaceSeed('')), SnapshotSha(WorkspaceSeed(aMutation)),
+    aMutation + ' is part of the compatibility contract');
+end;
+
+// Dirty state, diagnostics, revision and inventory content describe the candidate, not the contract.
+procedure TNativeAnalysisPolicyTests.CandidateWorkspaceIdentityStaysOutOfCompatibility;
+begin
+  Assert.AreEqual(SnapshotSha(WorkspaceSeed('')), SnapshotSha(WorkspaceSeed('candidate')));
+end;
+
+procedure TNativeAnalysisPolicyTests.PalFilterOriginParticipatesInCompatibility;
+const
+  cSeed = '{"policy": {"sha256": "%s", "reporting_sha256": "%s", "origins": {"pal_ignore_rules": ["%s"]}}}';
+begin
+  Assert.AreNotEqual(SnapshotSha(Format(cSeed, [Repeated('1'), Repeated('2'), 'command_line'])),
+    SnapshotSha(Format(cSeed, [Repeated('1'), Repeated('2'), 'C:/repo/dak.ini'])),
+    'where the PAL filter came from is part of the contract');
+end;
+
+// A maintained root outside the repository owns its findings in every path spelling, so the gate
+// fails and the accepted baseline stays as it was, run after run.
+procedure TNativeAnalysisPolicyTests.MaintainedExternalRootGatesAllResolvedPathForms(const aForm: string);
+var
+  g: TGarbos;
+  lBaseline: TBytes;
+  lPath: string;
+  lRecord: TJSONObject;
+  lRepeat: Integer;
+begin
+  lBaseline := CreateBaseline([fExternal], []);
+  if aForm = 'absolute' then
+    lPath := fExternalSource
+  else if aForm = 'relative' then
+    lPath := '../external/External.pas'
+  else
+    lPath := 'External.pas';
+  WriteRun([lPath], '', [fExternal], []);
+  SetEnvironmentVariable('DAK_GATE', PChar('1'));
+  for lRepeat := 1 to 2 do
+  begin
+    Finalize(False);
+    GC(lRecord, FirstFixInsightRecord, g);
+    Assert.AreEqual('project', JsonText(lRecord, 'ownership'), 'run ' + lRepeat.ToString);
+    Assert.AreEqual(PosixPath(fExternal), JsonText(lRecord, 'ownership_root'), 'run ' + lRepeat.ToString);
+    Assert.AreEqual(TEncoding.UTF8.GetString(lBaseline),
+      TEncoding.UTF8.GetString(TFile.ReadAllBytes(TPath.Combine(fOut, 'baseline.json'))), 'run ' + lRepeat.ToString);
+  end;
+end;
+
+// Registered vendors stay third-party inside maintained roots, a root named on both sides stays
+// unknown, and a repository marked third-party cannot demote the project's own source. Row order
+// and reprocessing change nothing.
+procedure TNativeAnalysisPolicyTests.MaintainedRootsPreserveVendorConflictAndOwnedBoundaries;
+type
+  TExpectedRow = record
+    fPath, fOwnership, fRoot: string;
+  end;
+var
+  g: TGarbos;
+  lConflict, lMaintained, lRoot: string;
+  lContext: TAnalysisOwnershipContext;
+  lDiagnostics: TArray<string>;
+  lExpected: TList<TExpectedRow>;
+  lFi, lPal: TJSONArray;
+  lOrder, lRepeat, i, lIndex: Integer;
+  lResolver: TAnalysisSourceResolver;
+  lRow: TExpectedRow;
+  lSeed: TJSONObject;
+
+  function Expected(const aPath, aOwnership, aRoot: string): TExpectedRow;
+  begin
+    Result.fPath := aPath;
+    Result.fOwnership := aOwnership;
+    Result.fRoot := aRoot;
+  end;
+
+begin
+  lMaintained := TPath.Combine(fRepo, 'maintained');
+  TDirectory.CreateDirectory(lMaintained);
+  WriteUtf8(TPath.Combine(fRepo, '.gitmodules'), '[submodule "maintained"]'#10'path = maintained'#10);
+  for lRoot in [lMaintained, fExternal] do
+  begin
+    Git(lRoot, 'init -q');
+    WriteUtf8(TPath.Combine(lRoot, 'Library.pas'), 'unit Library;'#10);
+    WriteUtf8(TPath.Combine(lRoot, 'vendor\Vendor.pas'), 'unit Vendor;'#10);
+    WriteUtf8(TPath.Combine(lRoot, '.gitmodules'), '[submodule "vendor"]'#10'path = vendor'#10);
+  end;
+  lConflict := TPath.Combine(fExternal, 'conflict');
+  WriteUtf8(TPath.Combine(lConflict, 'Conflict.pas'), 'unit Conflict;'#10);
+  WriteRun([], '', [lMaintained, fExternal, lConflict], [fRepo, lConflict]);
+
+  GC(lExpected, TList<TExpectedRow>.Create, g);
+  for lRoot in [lMaintained, fExternal] do
+    lExpected.Add(Expected(TPath.Combine(lRoot, 'Library.pas'), 'project', PosixPath(lRoot)));
+  for lRoot in [lMaintained, fExternal] do
+    lExpected.Add(Expected(TPath.Combine(lRoot, 'vendor\Vendor.pas'), 'third_party',
+      PosixPath(TPath.Combine(lRoot, 'vendor'))));
+  lExpected.Add(Expected(TPath.Combine(fRepo, 'src\Owned.pas'), 'project', PosixPath(fRepo)));
+  lExpected.Add(Expected(TPath.Combine(lConflict, 'Conflict.pas'), 'unknown', ''));
+
+  GC(lSeed, ParseJsonObject(ReadUtf8(TPath.Combine(fOut, 'summary.json')), 'summary.json'), g);
+  lContext := BuildAnalysisOwnershipContext(lSeed, fOut, fRepo, lDiagnostics);
+  GC(lResolver, TAnalysisSourceResolver.Create(lContext), g);
+  for lOrder := 0 to 1 do
+  begin
+    GC(lFi, TJSONArray.Create, g);
+    GC(lPal, TJSONArray.Create, g);
+    for i := 0 to lExpected.Count - 1 do
+    begin
+      if lOrder = 0 then
+        lRow := lExpected[i]
+      else
+        lRow := lExpected[lExpected.Count - 1 - i];
+      lFi.Add(TJSONObject.Create.AddPair('tool', 'FixInsight').AddPair('code', 'W101').AddPair('kind', 'W')
+        .AddPair('file', lRow.fPath).AddPair('path', lRow.fPath).AddPair('line', TJSONNumber.Create(1))
+        .AddPair('col', TJSONNumber.Create(1)).AddPair('message', 'fixture warning'));
+      lPal.Add(TJSONObject.Create.AddPair('source_path', lRow.fPath));
+    end;
+    // The second pass reprocesses rows that already carry an annotation.
+    for lRepeat := 1 to 2 do
+    begin
+      lResolver.AnnotateFixInsight(lFi);
+      lResolver.AnnotatePal(lPal);
+      for i := 0 to lExpected.Count - 1 do
+      begin
+        if lOrder = 0 then
+          lIndex := i
+        else
+          lIndex := lExpected.Count - 1 - i;
+        lRow := lExpected[lIndex];
+        Assert.AreEqual(lRow.fOwnership, JsonText(TJSONObject(lFi.Items[i]), 'ownership'), 'FixInsight ' + lRow.fPath);
+        Assert.AreEqual(lRow.fRoot, JsonText(TJSONObject(lFi.Items[i]), 'ownership_root'), 'FixInsight ' + lRow.fPath);
+        Assert.AreEqual(lRow.fOwnership, JsonText(TJSONObject(lPal.Items[i]), 'ownership'), 'PAL ' + lRow.fPath);
+        Assert.AreEqual(lRow.fRoot, JsonText(TJSONObject(lPal.Items[i]), 'ownership_root'), 'PAL ' + lRow.fPath);
+      end;
+    end;
+  end;
+end;
+
+// A third-party root nested in a maintained root has no registration behind it, so its source
+// cannot be demoted to vendor code: it stays unknown and fails the gate.
+procedure TNativeAnalysisPolicyTests.UnregisteredThirdPartyChildCannotDemoteMaintainedSource(const aForm: string);
+var
+  g: TGarbos;
+  lBaseline: TBytes;
+  lChild, lPath, lSource: string;
+  lRecord: TJSONObject;
+begin
+  lChild := TPath.Combine(fExternal, 'private');
+  lSource := TPath.Combine(lChild, 'Private.pas');
+  WriteUtf8(lSource, 'unit Private;'#10);
+  lBaseline := CreateBaseline([fExternal], [lChild]);
+  if aForm = 'absolute' then
+    lPath := lSource
+  else
+    lPath := 'private/Private.pas';
+  WriteRun([lPath], '', [fExternal], [lChild]);
+  SetEnvironmentVariable('DAK_GATE', PChar('1'));
+  Finalize(False);
+  GC(lRecord, FirstFixInsightRecord, g);
+  Assert.AreEqual('unknown', JsonText(lRecord, 'ownership'));
+  Assert.AreEqual(TEncoding.UTF8.GetString(lBaseline),
+    TEncoding.UTF8.GetString(TFile.ReadAllBytes(TPath.Combine(fOut, 'baseline.json'))), 'baseline.json is unchanged');
+end;
+
+// Registering a vendor inside a maintained root changes ownership boundaries, which the accepted
+// baseline did not record, so an update is refused.
+procedure TNativeAnalysisPolicyTests.ExternalVendorBoundaryChangeInvalidatesOwnershipCompatibility;
+var
+  lBaseline: TBytes;
+begin
+  Git(fExternal, 'init -q');
+  TDirectory.CreateDirectory(TPath.Combine(fExternal, 'vendor'));
+  lBaseline := CreateBaseline([fExternal], []);
+  WriteUtf8(TPath.Combine(fExternal, '.gitmodules'), '[submodule "vendor"]'#10'path = vendor'#10);
+  WriteRun([], '', [fExternal], []);
+  SetEnvironmentVariable('DAK_GATE', PChar('1'));
+  SetEnvironmentVariable('DAK_UPDATE_BASELINE', PChar('1'));
+  Finalize(False);
+  Assert.AreEqual(TEncoding.UTF8.GetString(lBaseline),
+    TEncoding.UTF8.GetString(TFile.ReadAllBytes(TPath.Combine(fOut, 'baseline.json'))), 'baseline.json is unchanged');
+  Assert.IsTrue(GateReasonsContain('compatibility'), 'the reason names the compatibility mismatch');
+end;
+
+// A policy root only resolves a finding nothing else could place; here it makes the row third-party.
+procedure TNativeAnalysisPolicyTests.PolicyRootResolvesOnlyAnOtherwiseUnknownFinding;
+var
+  g: TGarbos;
+  lRecord: TJSONObject;
+begin
+  CreateBaseline([], [fExternal]);
+  WriteRun(['External.pas'], '', [], [fExternal]);
+  SetEnvironmentVariable('DAK_GATE', PChar('1'));
+  Finalize(True);
+  GC(lRecord, FirstFixInsightRecord, g);
+  Assert.AreEqual('third_party', JsonText(lRecord, 'ownership'));
+  Assert.AreEqual(PosixPath(fExternal), JsonText(lRecord, 'ownership_root'));
+end;
+
+procedure TNativeAnalysisPolicyTests.OverlappingPolicyRootsRemainUnknown;
+var
+  g: TGarbos;
+  lRecord: TJSONObject;
+begin
+  WriteRun(['External.pas'], '', [fExternal], [fExternal]);
+  SetEnvironmentVariable('DAK_GATE', PChar('1'));
+  Finalize(False);
+  GC(lRecord, FirstFixInsightRecord, g);
+  Assert.AreEqual('unknown', JsonText(lRecord, 'ownership'));
+  Assert.IsFalse(TFile.Exists(TPath.Combine(fOut, 'baseline.json')), 'no baseline is created');
+end;
+
+// A failed analyzer run keeps its failure status and never touches the accepted baseline, even
+// when an update was requested.
+procedure TNativeAnalysisPolicyTests.FailedRunWritesStatusAndPreservesBaselineBytes;
+var
+  g: TGarbos;
+  lAnalyzers, lResult, lStatus: TJSONObject;
+  lBaseline, lBaselineMarkdown, lOut: string;
+  lBaselineBytes, lMarkdownBytes: TBytes;
+begin
+  lOut := TPath.Combine(fRoot, 'failed');
+  lBaseline := TPath.Combine(lOut, 'accepted\baseline.json');
+  lBaselineMarkdown := TPath.Combine(lOut, 'accepted\baseline.md');
+  WriteUtf8(lBaseline, '{'#13#10'  "version": 1'#13#10'}'#13#10);
+  WriteUtf8(lBaselineMarkdown, 'accepted baseline'#13#10);
+  lBaselineBytes := TFile.ReadAllBytes(lBaseline);
+  lMarkdownBytes := TFile.ReadAllBytes(lBaselineMarkdown);
+  WriteUtf8(TPath.Combine(lOut, 'summary.md'),
+    '# Static analysis'#10#10'- Timestamp: 2026-07-15T10:00:00Z'#10'- Project: `C:\work\sample.dproj`'#10#10 +
+    '## FixInsight'#10#10'- Findings (by code): 2'#10#10'## Pascal Analyzer'#10#10'- Totals: unavailable'#10#10 +
+    '## Errors'#10#10'- FixInsight TXT failed (exit=1).'#10'- Pascal Analyzer failed (exit=99).'#10);
+  WriteUtf8(TPath.Combine(lOut, 'summary.json'),
+    '{"schema_version": 2, "subject": {"kind": "project", "path": "C:\\work\\sample.dproj"}, ' +
+    '"status": {"infrastructure": "failed", "policy": "not_evaluated"}, ' +
+    '"analyzers": {"fixinsight": {"requested": true, "status": "failed", "count_quality": "partial"}, ' +
+    '"pascal_analyzer": {"requested": true, "status": "failed", "count_quality": "unavailable"}}, ' +
+    '"counts": {"fixinsight": {"quality": "partial", "total": 2}, "pascal_analyzer": {"quality": "unavailable"}}, ' +
+    '"errors": ["FixInsight TXT failed (exit=1).", "Pascal Analyzer failed (exit=99)."]}');
+  SetEnvironmentVariable('DAK_BASELINE', PChar(lBaseline));
+  SetEnvironmentVariable('DAK_UPDATE_BASELINE', PChar('1'));
+
+  GC(lResult, FinalizeAnalysisReport(lOut, nil, -1), g);
+  Assert.AreEqual('False', JsonText(lResult, 'gate_pass'), 'gate_pass');
+  Assert.AreEqual('False', JsonText(lResult, 'baseline_created'), 'baseline_created');
+  Assert.AreEqual('False', JsonText(lResult, 'baseline_updated'), 'baseline_updated');
+
+  GC(lStatus, ParseJsonObject(ReadUtf8(TPath.Combine(lOut, 'summary.json')), 'summary.json'), g);
+  Assert.AreEqual('2', JsonText(lStatus, 'schema_version'), 'schema_version');
+  Assert.AreEqual('failed', JsonText(JsonObjectMember(lStatus, 'status'), 'infrastructure'));
+  Assert.AreEqual('not_evaluated', JsonText(JsonObjectMember(lStatus, 'status'), 'policy'));
+  lAnalyzers := JsonObjectMember(lStatus, 'analyzers');
+  Assert.AreEqual('partial', JsonText(JsonObjectMember(lAnalyzers, 'fixinsight'), 'count_quality'));
+  Assert.AreEqual('unavailable', JsonText(JsonObjectMember(lAnalyzers, 'fixinsight'), 'version'));
+  Assert.AreEqual('2', JsonText(JsonObjectMember(JsonObjectMember(lStatus, 'counts'), 'fixinsight'), 'total'));
+  Assert.AreEqual('unavailable', JsonText(JsonObjectMember(lAnalyzers, 'pascal_analyzer'), 'count_quality'));
+  Assert.AreEqual('unavailable', JsonText(JsonObjectMember(lAnalyzers, 'pascal_analyzer'), 'version'));
+  Assert.IsNull(JsonObjectMember(JsonObjectMember(lStatus, 'counts'), 'pascal_analyzer').GetValue('total'),
+    'an unavailable PAL count has no total');
+  Assert.AreEqual(TEncoding.UTF8.GetString(lBaselineBytes), TEncoding.UTF8.GetString(TFile.ReadAllBytes(lBaseline)),
+    'baseline.json is unchanged');
+  Assert.AreEqual(TEncoding.UTF8.GetString(lMarkdownBytes),
+    TEncoding.UTF8.GetString(TFile.ReadAllBytes(lBaselineMarkdown)), 'baseline.md is unchanged');
 end;
 
 // The default gate owns project and repository findings; a third-party finding is reported, not gated.
@@ -365,7 +770,7 @@ end;
 procedure TNativeAnalysisPolicyTests.UnknownOwnershipFailsBeforeFirstBaselineCreation;
 var
   g: TGarbos;
-  lDelta: TJSONObject;
+  lDelta, lSummary: TJSONObject;
   lFound: Boolean;
   lItem: TJSONValue;
 begin
@@ -379,6 +784,10 @@ begin
     if lItem.Value.ToLowerInvariant.Contains('unknown ownership') then
       lFound := True;
   Assert.IsTrue(lFound, 'the reason names the unknown ownership');
+  // test_enabled_gate_has_one_canonical_policy_outcome: the outcome lives in status.policy only.
+  GC(lSummary, ParseJsonObject(ReadUtf8(TPath.Combine(fOut, 'summary.json')), 'summary.json'), g);
+  Assert.AreEqual('fail', JsonText(JsonObjectMember(lSummary, 'status'), 'policy'), 'status.policy');
+  Assert.IsNull(JsonObjectMember(lSummary, 'policy').GetValue('status'), 'the policy object carries no second status');
 end;
 
 // A rejected update leaves the accepted baseline and its Markdown view byte-identical.
@@ -392,7 +801,7 @@ var
 begin
   lBefore := CreateBaseline;
   lMarkdownBefore := TFile.ReadAllBytes(TPath.Combine(fOut, 'baseline.md'));
-  WriteRun([], Repeated('9'), []);
+  WriteRun([], Repeated('9'), [], []);
   SetEnvironmentVariable('DAK_GATE', PChar('1'));
   SetEnvironmentVariable('DAK_UPDATE_BASELINE', PChar('1'));
   Finalize(False);

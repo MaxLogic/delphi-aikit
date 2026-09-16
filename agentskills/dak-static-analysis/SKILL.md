@@ -1,6 +1,6 @@
 ---
 name: dak-static-analysis
-description: Run cadence-aware Delphi static analysis through DelphiAIKit wrappers, using project-context PAL for touched units, deliberate project analysis for maintained codebases, and advisory delta-oriented analysis for legacy applications, then triage findings and apply safe verified fixes.
+description: Run cadence-aware Delphi static analysis through DelphiAIKit.exe and its thin launchers, using project-context PAL for touched units, deliberate project analysis for maintained codebases, and advisory delta-oriented analysis for legacy applications, then triage findings and apply safe verified fixes.
 license: internal
 metadata:
   tags: [delphi, static-analysis]
@@ -149,7 +149,7 @@ or claiming unsupported coverage.
 ## Run Commands
 
 Choose the host from repository/user policy. For Windows-only repositories use
-the Windows wrappers directly. Use WSL wrappers only when the target repository
+the Windows launchers directly. Use WSL launchers only when the target repository
 permits WSL and path conversion is useful.
 
 Resolve `<skill-root>` from the skill path supplied by the harness. It is the
@@ -178,14 +178,22 @@ with the executable `dak.ini` fallback. Unmanaged projects are supported.
 
 Recommended baseline:
 - `DAK_EXE`: absolute path to `DelphiAIKit.exe`.
-- If `DAK_EXE` is unset, wrappers fall back to Windows `PATH` (`where DelphiAIKit.exe`), then repo-local `bin/DelphiAIKit.exe`.
+- If `DAK_EXE` is unset, the launchers use `DelphiAIKit.exe` from Windows `PATH`
+  (`where DelphiAIKit.exe`), then `bin/DelphiAIKit.exe` of the repository that
+  contains this skill. They never search the analyzed workspace or the current
+  directory.
+- `DAK_DELPHI` (or `--delphi`): the BDS version, for example `23.0`. Project and
+  unit analysis require it; there is no implicit default.
+
+DAK reads the variables below itself, so direct `DelphiAIKit.exe` calls and the
+launchers behave the same. A switch given on the command line wins.
 
 Analyzer toggles:
-- `DAK_PASCAL_ANALYZER`: default `true` (project and unit wrappers). Set `false` only when PAL must be skipped.
-- `DAK_FIXINSIGHT`: default `true` for project wrapper.
+- `DAK_PASCAL_ANALYZER`: default `true` for project and unit analysis. Set `false` only when PAL must be skipped.
+- `DAK_FIXINSIGHT`: default `true` for project analysis.
 
 Common overrides:
-- `DAK_DELPHI`, `DAK_PLATFORM`, `DAK_CONFIG`
+- `DAK_PLATFORM`, `DAK_CONFIG`
 - `DAK_OUT`
 - `DAK_RSVARS`, `DAK_ENVOPTIONS`
 - `DAK_FI_FORMATS` (`txt|csv|xml|all`, default `txt`)
@@ -215,18 +223,25 @@ Examples:
 
 ## Execution Model
 
-Wrappers call DAK only:
-- `DelphiAIKit.exe analyze --project ...`
-- `DelphiAIKit.exe analyze --unit ...`
+The launchers find DAK, forward their arguments and, under WSL, convert paths.
+All analysis logic runs inside `DelphiAIKit.exe`:
+- `analyze.* <project.dproj> [options]` runs
+  `DelphiAIKit.exe analyze --project <project.dproj> [options]`.
+- `analyze-unit.* <unit.pas> [project.dproj] [options]` runs
+  `DelphiAIKit.exe analyze-unit --unit <unit.pas> [--project-context <project.dproj>] [options]`.
+- `doctor.* [subject] [options]` runs `DelphiAIKit.exe analyze-doctor` with
+  `--unit` for a `.pas` subject and `--project` otherwise.
 
 Path note:
 - Direct DAK calls accept Linux-style absolute paths only in `/mnt/<drive>/...` form for `--project` and `--unit` when run from WSL.
 - Other Linux absolute paths (for example `/home/...`) are rejected with a clear error.
-- Wrapper scripts with `wslpath` conversion remain the canonical safe route.
+- The WSL launchers convert path arguments and path-valued variables with
+  `wslpath` and share the analysis variables through `WSLENV`; they remain the
+  safe route from WSL.
 
 We do not call `FixInsightCL` or `PALCMD` directly in normal workflow.
 
-Wrapper defaults are project-local:
+Default output locations are project-local:
 - Project: `.dak/<ProjectName>/`
 - Unit: `.dak/_unit/<UnitName>/`
 
@@ -258,7 +273,8 @@ Primary artifacts:
   `trend.md`, and `baseline.json` (after the first compatible baseline run).
 
 Before retaining a gated result, run
-`python "<skill-root>/postprocess.py" --verify <output>`.
+`DelphiAIKit.exe analyze-report --out <output> --verify`.
+It is read-only and exits 3 when the output is rejected.
 The check covers counts, ownership, SARIF/report parity, and passing-gate
 compatibility. Do not update a baseline to work around an incompatibility;
 rerun with the correct compiler/analyzer/policy context.
@@ -291,7 +307,7 @@ After a coherent batch of Delphi source edits, run the shared `encodingfix-delph
 ## Report-Driven Fix Loop
 
 1. Start with `<DAK_OUT>/summary.json`, then `<DAK_OUT>/triage-changed.md` or
-   `<DAK_OUT>/triage.md` (or the wrapper's project-local default when
+   `<DAK_OUT>/triage.md` (or the project-local default when
    `DAK_OUT` is unset).
 2. Investigate every non-zero `unknown` ownership count. Never suppress or
    relabel an unknown row as third-party merely to make a gate pass.
@@ -369,10 +385,12 @@ separate refactoring effort instead of expanding the current feature.
 
 - PAL not found: set `PA_PATH` or configure `[PascalAnalyzer].Path` in `dak.ini`.
 - FixInsight not found: configure `[FixInsightCL].Path` in `dak.ini` or install/discoverable path.
+- DAK not found: set `DAK_EXE` or add `DelphiAIKit.exe` to Windows `PATH`.
+- `--delphi` missing: set `DAK_DELPHI` or pass `--delphi <version>`.
 - WSL path issues: only in a WSL-authorized repository, pass Linux paths to
-  shell scripts; wrappers convert with `wslpath`. Otherwise switch to the
-  Windows wrapper instead of adding another path bridge.
-- `cmd.exe` quoting issues: prefer wrapper scripts over manual `cmd.exe` command construction.
+  the shell launchers; they convert with `wslpath`. Otherwise switch to the
+  Windows launcher instead of adding another path bridge.
+- `cmd.exe` quoting issues: prefer the launchers over manual `cmd.exe` command construction.
 
 ## Local References
 

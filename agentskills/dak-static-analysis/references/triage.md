@@ -2,7 +2,7 @@
 
 ## Generated triage.md (shortlist)
 
-Our `postprocess.py` emits `.dak/<ProjectName>/triage.md` as a prioritized shortlist (top 20 by default; override with `DAK_TRIAGE_TOP=<N>`). It is intentionally a *short* "what to fix next" view; full detail remains in `fi-findings.*` and `pal-findings.*` / raw PAL XML.
+DAK's report finalization emits `.dak/<ProjectName>/triage.md` as a prioritized shortlist (top 20 by default; override with `DAK_TRIAGE_TOP=<N>`). It is intentionally a *short* "what to fix next" view; full detail remains in `fi-findings.*` and `pal-findings.*` / raw PAL XML.
 
 `summary.json` is the compact AI entry point. Read it first for analyzer
 completeness, raw/actionable/ignored/external/advisory/unknown counts, active
@@ -28,7 +28,7 @@ evidence, dependency groups are in `external-summary.md`, and advisory metrics
 are in `metrics.md`. Open these full/non-actionable views for ownership
 diagnosis, dependency drift, analyzer failure, or an explicit full audit.
 
-Run `python postprocess.py --verify <analysis-output>` for a read-only
+Run `DelphiAIKit.exe analyze-report --out <analysis-output> --verify` for a read-only
 consistency check before consuming or retaining a report. It fails when
 normalized totals, identities, ownership, projections, baseline/delta
 evidence, or SARIF disagree, and when a passing gated report has stale or
@@ -65,7 +65,7 @@ PALCMD produces multiple reports. Triage order:
 
 `Exception.xml`, including the Exception Call Tree, remains raw diagnostic evidence for throw propagation. It is not an actionable finding source and does not enter JSONL, counts, gates, triage, or SARIF.
 
-Normalization, `summary.json`, and SARIF are required outputs: their failure makes the wrapper fail. Source snippets are optional and remain best-effort.
+Normalization, `summary.json`, and SARIF are required outputs: their failure makes the analysis command fail with exit code 4. Source snippets are optional and remain best-effort.
 
 ## Suppressions and baselines (avoid churn)
 

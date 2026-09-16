@@ -48,6 +48,8 @@ function ApplyAnalysisReportPolicy(const aInput: TAnalysisPolicyInput): TAnalysi
 // the human-readable trend view.
 procedure UpdateAnalysisHistoryAndTrend(const aInput: TAnalysisPolicyInput; aSnapshot: TJSONObject;
   out aHistoryPath, aTrendPath: string);
+// _pal_fingerprint: the baseline identity of one PAL row, covering its canonical rule identity.
+function PalFingerprint(aRow: TJSONObject): string;
 
 implementation
 
