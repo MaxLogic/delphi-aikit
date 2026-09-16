@@ -3,8 +3,10 @@ unit Test.Build;
 interface
 
 uses
+  System.DateUtils,
   System.Generics.Collections,
   System.IOUtils,
+  System.JSON,
   System.StrUtils,
   System.SysUtils,
   Winapi.Windows,
@@ -144,6 +146,10 @@ type
     procedure IdeConfigFallsBackToEnvOptionsWin64Alias;
     [Test]
     procedure ParseBuildLogsAppliesIgnoreAndExcludeFilters;
+    // T-264: a real Win64 build whose DPR file name differs from its program identifier.
+    [TestCase('file-name', 'False')]
+    [TestCase('wrong-prediction', 'True')]
+    procedure BuildReportsTheExecutableTheCompilerEmitted(aForceWrongPrediction: Boolean);
   end;
 
 const
@@ -157,6 +163,57 @@ implementation
 function ReadRepoTextFile(const aRelativePath: string): string;
 begin
   Result := TFile.ReadAllText(TPath.Combine(RepoRoot, aRelativePath), TEncoding.UTF8);
+end;
+
+// The compiler names the executable after the DPR file, not after the program identifier or
+// SanitizedProjectName. The reported output must be that fresh file, and a predicted output that does
+// not exist after a successful build must never be reported as fresh.
+procedure TBuildTests.BuildReportsTheExecutableTheCompilerEmitted(aForceWrongPrediction: Boolean);
+var
+  lDproj, lEmitted, lJsonText, lLog, lOutput, lRoot: string;
+  lExit: Cardinal;
+  lFile: string;
+  lJson: TJSONObject;
+  lStarted: TDateTime;
+begin
+  lRoot := UniqueNoRepoTempPath('build-output-name');
+  try
+    TDirectory.CreateDirectory(lRoot);
+    for lFile in TDirectory.GetFiles(TPath.Combine(RepoRoot, 'tests\fixtures\BuildOutputNameFixture')) do
+      TFile.Copy(lFile, TPath.Combine(lRoot, TPath.GetFileName(lFile)));
+    lDproj := TPath.Combine(lRoot, 'Build.Output.Name.dproj');
+    if aForceWrongPrediction then
+      // DCC_DependencyCheckOutputName names a file the compiler never writes.
+      TFile.WriteAllText(lDproj, TFile.ReadAllText(lDproj, TEncoding.UTF8).Replace(
+        '<SanitizedProjectName>', '<DCC_DependencyCheckOutputName>Never.Written.exe</DCC_DependencyCheckOutputName>' +
+        sLineBreak + '    <SanitizedProjectName>'), TEncoding.UTF8);
+    lEmitted := TPath.Combine(lRoot, 'bin\Build.Output.Name.exe');
+    lLog := TPath.Combine(lRoot, 'build.json.log');
+    lStarted := Now;
+    Assert.IsTrue(RunResolverProcess('build --project ' + QuoteArg(lDproj) +
+      ' --config Debug --platform Win64 --delphi 23.0 --json', RepoRoot, lLog, lExit), 'build must start');
+    lJsonText := TFile.ReadAllText(lLog);
+    Assert.AreEqual(Cardinal(0), lExit, lJsonText);
+    Assert.IsTrue(TFile.Exists(lEmitted), 'the compiler emits the file-named executable: ' + lJsonText);
+    Assert.IsTrue(TFile.GetLastWriteTime(lEmitted) >= IncSecond(lStarted, -2), 'the emitted executable is fresh');
+    lJson := ParseJsonObject(lJsonText.Substring(lJsonText.IndexOf('{'), lJsonText.LastIndexOf('}') - lJsonText.IndexOf('{') + 1), 'build json');
+    try
+      lOutput := lJson.GetValue<string>('output');
+      if aForceWrongPrediction then
+      begin
+        Assert.IsFalse(TFile.Exists(lOutput), 'the forced prediction names a missing file: ' + lOutput);
+        Assert.IsTrue(lJson.GetValue<Boolean>('output_stale'), 'a missing output is not reported as fresh: ' + lJsonText);
+        Assert.IsTrue(lJson.GetValue<string>('output_message').Contains(lOutput), lJsonText);
+      end else begin
+        Assert.IsTrue(SameText(lEmitted, lOutput), 'reported ' + lOutput + ', compiler emitted ' + lEmitted);
+        Assert.IsFalse(lJson.GetValue<Boolean>('output_stale'), lJsonText);
+      end;
+    finally
+      lJson.Free;
+    end;
+  finally
+    DeleteTempPath(lRoot);
+  end;
 end;
 
 procedure TBuildTests.ProjectDprListsMadExceptFirstAndAllSourceUnits;

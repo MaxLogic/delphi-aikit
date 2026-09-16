@@ -22,7 +22,8 @@ uses
   System.Generics.Collections, System.Generics.Defaults, System.IOUtils, System.JSON, System.Math, System.StrUtils,
   System.SysUtils, System.Types, System.Variants,
   Xml.omnixmldom, Xml.XMLDoc, Xml.XMLIntf, Xml.xmldom,
-  maxLogic.StrUtils;
+  maxLogic.StrUtils,
+  Dak.Utils;
 
 const
   SPalFindingsFileName = 'pal-findings.md';
@@ -38,13 +39,7 @@ const
 
 function PalArtifactPath(const aPath: string): string;
 begin
-  Result := TPath.GetFullPath(aPath);
-  if (Length(Result) + 64 <= 240) or TPath.IsExtendedPrefixed(Result) then
-    Exit;
-  if StartsStr('\\', Result) then
-    Result := '\\?\UNC\' + Copy(Result, 3, MaxInt)
-  else
-    Result := '\\?\' + Result;
+  Result := LongPathSafe(aPath);
 end;
 
 type

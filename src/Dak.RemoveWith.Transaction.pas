@@ -65,7 +65,7 @@ uses
   Winapi.Windows,
   DelphiSemantics.Api.RemoveWith.Compatibility,
   MaxLogic.StrUtils,
-  Dak.Build.Runner, Dak.RemoveWith.Discovery, Dak.RemoveWith.Source;
+  Dak.Build.Runner, Dak.RemoveWith.Discovery, Dak.RemoveWith.Source, Dak.Utils;
 
 const
   cApplyTransactionMutexPrefix = 'Local\DakRemoveWithApplyTransaction-';
@@ -504,7 +504,9 @@ begin
   Result := False;
   aError := '';
   lStream := nil;
-  lDirectory := TPath.GetDirectoryName(TPath.GetFullPath(aPath));
+  // The transaction workspace lives inside the project's .dak folder, where the temporary name can pass
+  // MAX_PATH (T-263); the file system calls use extended-length paths, the messages the readable path.
+  lDirectory := LongPathSafe(TPath.GetDirectoryName(TPath.GetFullPath(aPath)));
   lTempName := AtomicTempFileName;
   lTempPath := TPath.Combine(lDirectory, lTempName);
 
@@ -522,7 +524,7 @@ begin
       end;
       FreeAndNil(lStream);
 
-      if not Winapi.Windows.MoveFileEx(PChar(lTempPath), PChar(aPath),
+      if not Winapi.Windows.MoveFileEx(PChar(lTempPath), PChar(LongPathSafe(aPath)),
         Winapi.Windows.MOVEFILE_REPLACE_EXISTING or Winapi.Windows.MOVEFILE_WRITE_THROUGH) then
       begin
         lLastError := Winapi.Windows.GetLastError;
@@ -578,7 +580,7 @@ begin
     lFile.fEncoding := RemoveWithSourceEncodingToText(lSource.fEncoding, lSource.fHasUtf8Bom);
     lFile.fStatus := 'backed-up';
     lFile.fSize := Length(lBytes);
-    TDirectory.CreateDirectory(TPath.GetDirectoryName(lFile.fBackupPath));
+    TDirectory.CreateDirectory(LongPathSafe(TPath.GetDirectoryName(lFile.fBackupPath)));
     if not AtomicWriteAllBytes(lFile.fBackupPath, lBytes, aError) then
       Exit;
     SetLength(aTransactionResult.fFiles, lIndex + 1);
@@ -602,12 +604,12 @@ begin
   try
     for lFile in aTransactionResult.fFiles do
     begin
-      if not FileExists(lFile.fBackupPath) then
+      if not FileExists(LongPathSafe(lFile.fBackupPath)) then
       begin
         aError := 'backup-missing: ' + lFile.fBackupPath;
         Exit(False);
       end;
-      lBytes := TFile.ReadAllBytes(lFile.fBackupPath);
+      lBytes := TFile.ReadAllBytes(LongPathSafe(lFile.fBackupPath));
       if not AtomicWriteAllBytes(lFile.fPath, lBytes, aError) then
         Exit(False);
       lRestoredBytes := TFile.ReadAllBytes(lFile.fPath);
@@ -1074,9 +1076,11 @@ begin
     Result := TryRunBuildInternal(lBuildOptions, lExitCode, aError) and (lExitCode = 0);
     if (not Result) and (aError = '') then
       aError := 'build-verification-failed';
-    if FileExists(lStdOutLogPath) then
+    // The logs can sit beyond MAX_PATH; the existence check must see them, while the report keeps the
+    // readable path.
+    if FileExists(LongPathSafe(lStdOutLogPath)) then
       aTransactionResult.fVerificationStdOutLogPath := lStdOutLogPath;
-    if FileExists(lStdErrLogPath) then
+    if FileExists(LongPathSafe(lStdErrLogPath)) then
       aTransactionResult.fVerificationStdErrLogPath := lStdErrLogPath;
   finally
     if lMutexAcquired then

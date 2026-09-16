@@ -31,6 +31,7 @@ const
   cStatusError = 'error';
   cStatusTimeout = 'timeout';
   cStatusOutputLocked = 'output_locked';
+  cStatusOutputMissing = 'output_missing';
   cStatusInternalError = 'internal_error';
   cMadExceptSymbol = 'madExcept';
   cMadExceptPatchExeName = 'madExceptPatch.exe';
@@ -43,6 +44,7 @@ const
   cWebCoreCompilerMissingMessage =
     'TMSWebCompiler.exe not found. Checked --webcore-compiler, [WebCore].CompilerPath in dak.ini, ' +
     'DAK_TMSWEB_COMPILER, and PATH.';
+  cOutputMissingMessage = 'Compilation succeeded but the resolved output file does not exist: %s';
   cOutputLockedMessage =
     'Compilation succeeded but output file timestamp was not updated. The executable may be locked by another process.';
   cBuildDiagnosticsDirEnvVar = 'DAK_BUILD_DIAGNOSTICS_DIR';
@@ -667,9 +669,14 @@ begin
       Exit;
   end;
 
-  Result := ResolveOutputName(aProps, aProjectName);
   lMainSource := '';
   aProps.TryGetValue('MainSource', lMainSource);
+  // The compiler names the output after the main source file. SanitizedProjectName is the program
+  // identifier form, which differs for dotted names such as Build.Output.Name.dpr (T-264).
+  if Trim(lMainSource) <> '' then
+    Result := TPath.GetFileNameWithoutExtension(Trim(lMainSource))
+  else
+    Result := ResolveOutputName(aProps, aProjectName);
   if SameText(TPath.GetExtension(lMainSource), '.dpk') then
     Exit(Result + '.bpl');
 
@@ -1534,6 +1541,9 @@ begin
   if (lDiagnosticsDir = '') or (aSourcePath = '') or (not FileExists(aSourcePath)) then
     Exit;
 
+  // Callers such as remove-with verification place diagnostics deep inside the project's .dak
+  // workspace, where the log path can pass MAX_PATH (T-263).
+  lDiagnosticsDir := LongPathSafe(lDiagnosticsDir);
   TDirectory.CreateDirectory(lDiagnosticsDir);
   lTargetPath := TPath.Combine(lDiagnosticsDir, aTargetName);
   TFile.Copy(aSourcePath, lTargetPath, True);
@@ -2009,6 +2019,12 @@ begin
         lSummary.fOutputStale := True;
         lSummary.fOutputMessage := cOutputLockedMessage;
         lSummary.fStatus := cStatusOutputLocked;
+      end else if not FileExists(lProjectInfo.fOutputPath) then
+      begin
+        // A predicted output the compiler did not write is never reported as a fresh result.
+        lSummary.fOutputStale := True;
+        lSummary.fOutputMessage := Format(cOutputMissingMessage, [lProjectInfo.fOutputPath]);
+        lSummary.fStatus := cStatusOutputMissing;
       end else if lSummary.fWarningCount > 0 then
         lSummary.fStatus := cStatusWarnings
       else if lSummary.fHintCount > 0 then

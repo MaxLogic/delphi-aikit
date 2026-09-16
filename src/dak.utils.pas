@@ -8,13 +8,27 @@ function ResolveExePathFromConfiguredValue(const aValue, aExeName: string; const
 function TryNormalizeInputPath(const aPath: string; out aNormalizedPath: string; out aError: string): Boolean;
 function TryResolveAbsolutePath(const aInputPath: string; out aResolvedPath: string; out aError: string): Boolean;
 function TryResolveDprojPath(const aInputPath: string; out aDprojPath: string; out aError: string): Boolean;
+// The full path, with the Windows extended-length prefix when a file of up to aReserve more characters
+// beneath it could pass the classic MAX_PATH limit. Short paths stay unprefixed for readability.
+function LongPathSafe(const aPath: string; aReserve: Integer = 64): string;
 
 implementation
 
 uses
-  System.IOUtils, System.SysUtils,
+  System.IOUtils, System.StrUtils, System.SysUtils,
   maxLogic.StrUtils,
   Dak.Messages;
+
+function LongPathSafe(const aPath: string; aReserve: Integer): string;
+begin
+  Result := TPath.GetFullPath(aPath);
+  if (Length(Result) + aReserve <= 240) or TPath.IsExtendedPrefixed(Result) then
+    Exit;
+  if StartsStr('\\', Result) then
+    Result := '\\?\UNC\' + Copy(Result, 3, MaxInt)
+  else
+    Result := '\\?\' + Result;
+end;
 
 function ExeDir: string;
 begin

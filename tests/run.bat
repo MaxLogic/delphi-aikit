@@ -38,7 +38,11 @@ if not exist "%EXE%" (
     echo         "%ROOT%\build-delphi.bat"
     exit /b 2
   )
-  call "%ROOT%\build-delphi.bat" "%ROOT%\projects\DelphiAIKit.dproj" -config %CONFIG% -platform %PLATFORM% -ver %DELPHI%
+  rem build-delphi.bat takes the BDS major version (23), not the BDS version string (23.0).
+  set "HOST_DELPHI_VER=%DELPHI%"
+  if "!HOST_DELPHI_VER:~-2!"==".0" set "HOST_DELPHI_VER=!HOST_DELPHI_VER:~0,-2!"
+  rem DAK itself is a Win64 tool; DAK_PLATFORM selects only the fixture analysis platform below.
+  call "%ROOT%\build-delphi.bat" "%ROOT%\projects\DelphiAIKit.dproj" -config %CONFIG% -platform Win64 -ver !HOST_DELPHI_VER!
   if errorlevel 1 (
     echo [ERROR] build-delphi.bat failed.
     exit /b 2

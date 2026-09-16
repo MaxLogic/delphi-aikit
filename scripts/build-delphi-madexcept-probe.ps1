@@ -118,12 +118,9 @@ try {
     $exeDir = [IO.Path]::GetFullPath((Join-Path $projDir $exeOut))
   }
 
-  $exeBase = $dprojBase
-  if ($props.ContainsKey('SanitizedProjectName') -and -not [string]::IsNullOrWhiteSpace($props['SanitizedProjectName'])) {
-    $exeBase = $props['SanitizedProjectName']
-  } elseif ($props.ContainsKey('ProjectName') -and -not [string]::IsNullOrWhiteSpace($props['ProjectName'])) {
-    $exeBase = $props['ProjectName']
-  }
+  # The compiler names the executable after the main source file. SanitizedProjectName is the program
+  # identifier form and differs for dotted names such as Build.Output.Name.dpr (T-264).
+  $exeBase = $dprBase
   $exe = [IO.Path]::Combine($exeDir, $exeBase + '.exe')
 
   if (-not $hasDpr) {

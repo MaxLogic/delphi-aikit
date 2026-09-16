@@ -38,6 +38,7 @@ set "JSON_MODE="
 set "RESULT_STATUS=internal_error"
 set "BUILD_TIMED_OUT=0"
 set "OUTPUT_STALE=0"
+set "OUTPUT_MISSING=0"
 set "OUTPUT_MESSAGE="
 set "BUILD_TARGET_EXE="
 set "BUILD_OUTPUT_PRE_TICKS=0"
@@ -629,9 +630,17 @@ if defined BUILD_TARGET_EXE (
   if "%OUTPUT_STALE%"=="1" (
     set "OUTPUT_MESSAGE=Compilation succeeded but output file timestamp was not updated. The executable may be locked by another process."
   )
+  rem A predicted output the compiler did not write is never reported as a fresh result.
+  if "!BUILD_OUTPUT_POST_TICKS!"=="0" (
+    set "OUTPUT_STALE=1"
+    set "OUTPUT_MISSING=1"
+    set "OUTPUT_MESSAGE=Compilation succeeded but the resolved output file does not exist: !BUILD_TARGET_EXE!"
+  )
 )
 
-if "%OUTPUT_STALE%"=="1" (
+if "%OUTPUT_MISSING%"=="1" (
+  set "RESULT_STATUS=output_missing"
+) else if "%OUTPUT_STALE%"=="1" (
   set "RESULT_STATUS=output_locked"
 ) else if not "%WARNCOUNT%"=="0" (
   set "RESULT_STATUS=warnings"
