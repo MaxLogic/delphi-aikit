@@ -2,8 +2,12 @@ function Get-DakTestSummary {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][AllowEmptyString()][string]$Text,
-        [Parameter(Mandatory)][int]$ProcessExitCode
+        [Parameter(Mandatory)][int]$ProcessExitCode,
+        [AllowEmptyString()][string]$ErrorText = ''
     )
+    # FastMM writes its shutdown report after DUnitX has printed Leaked=0, usually to stderr (T-347).
+    $leakPattern = '(?im)^Unexpected Memory Leak\s*$|An unexpected memory leak has occurred'
+    $shutdownLeak = [regex]::IsMatch($Text, $leakPattern) -or [regex]::IsMatch($ErrorText, $leakPattern)
     $counts = $null
     $status = 'incomplete'
     # Match only the final footer as a block. Never fill a missing field from
@@ -24,8 +28,9 @@ function Get-DakTestSummary {
             elseif ($counts.Passed -eq $counts.Found) { $status = 'passed' }
         }
     }
+    if ($shutdownLeak -and $status -eq 'passed') { $status = 'failed' }
     $exitCode = $ProcessExitCode
     if ($ProcessExitCode -ne 0) { $status = 'failed' }
     elseif ($status -ne 'passed') { $exitCode = 1 }
-    [pscustomobject]@{ Status = $status; ExitCode = $exitCode; Counts = $counts }
+    [pscustomobject]@{ Status = $status; ExitCode = $exitCode; Counts = $counts; ShutdownLeakReport = $shutdownLeak }
 }

@@ -67,12 +67,15 @@ finally {
 
 $stdoutText = ''
 if (Test-Path -LiteralPath $stdoutPath) { $stdoutText = [IO.File]::ReadAllText($stdoutPath) }
-$result = Get-DakTestSummary -Text $stdoutText -ProcessExitCode $processExitCode
+$stderrText = ''
+if (Test-Path -LiteralPath $stderrPath) { $stderrText = [IO.File]::ReadAllText($stderrPath) }
+$result = Get-DakTestSummary -Text $stdoutText -ErrorText $stderrText -ProcessExitCode $processExitCode
 $summary = [ordered]@{
     status = $result.Status
     exitCode = $result.ExitCode
     processExitCode = $processExitCode
     counts = $result.Counts
+    shutdownLeakReport = $result.ShutdownLeakReport
     executable = $ExecutablePath
     arguments = $TestArguments
     durationSeconds = [math]::Round($timer.Elapsed.TotalSeconds, 3)
@@ -86,6 +89,7 @@ if ($null -ne $result.Counts) {
     $c = $result.Counts
     Write-Output ("Found={0} Passed={1} Failed={2} Errored={3} Leaked={4} Ignored={5}" -f $c.Found, $c.Passed, $c.Failed, $c.Errored, $c.Leaked, $c.Ignored)
 } else { Write-Output 'Counts unavailable: complete DUnitX footer not found.' }
+if ($result.ShutdownLeakReport) { Write-Output 'Shutdown memory leak report found (FastMM, printed after the DUnitX counts); see stderr.' }
 if ($result.ExitCode -ne 0) {
     if ($launchError) { Write-Output ('Runner error: ' + $launchError) }
     $failureStart = $stdoutText.IndexOf('Failing Tests', [StringComparison]::Ordinal)
