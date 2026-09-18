@@ -95,12 +95,27 @@ const
   cMaxTdbProofCategory = 'MaxTdbProof';
 
 procedure RunPalHelpFixture;
+var
+  lMode: string;
 begin
-  if GetEnvironmentVariable('DAK_TEST_PAL_HELP') <> '1' then
-    Exit;
-
-  Writeln('/CD12W32 /CD12W64 /CD13W32 /CD13W64 /NAME=projectname');
-  Halt(0);
+  lMode := GetEnvironmentVariable('DAK_TEST_PAL_HELP');
+  if lMode = '1' then
+  begin
+    Writeln('/CD12W32 /CD12W64 /CD13W32 /CD13W64 /NAME=projectname');
+    Halt(0);
+  end;
+  // A complete help text as the doctor reads it: version line, syntax marker and one flag per line.
+  if lMode = 'doctor' then
+  begin
+    Writeln('Pascal Analyzer (64-bits) version 9.21.4.0');
+    Writeln('Syntax: PALCMD sourcepath [options]');
+    Writeln('/CD12W32');
+    Writeln('/CD12W64');
+    Writeln('/CD13W32');
+    Writeln('/CD13W64');
+    Writeln('/NAME=projectname');
+    Halt(0);
+  end;
 end;
 
 procedure RunFixInsightFixture;

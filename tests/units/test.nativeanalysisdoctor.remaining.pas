@@ -187,11 +187,19 @@ var
   lDocument: TJSONObject;
   lExtraIni: string;
   lHelp: TJSONObject;
+  lHelpFixture: IInterface;
 begin
   lExtraIni := '';
   if aConfigured > 0 then
     lExtraIni := 'TimeoutSec=' + IntToStr(aConfigured) + sLineBreak;
-  GC(lDocument, LiveChecks(lExtraIni), g);
+  // The case is about which timeout reaches the help check, not about how fast the installed PALCMD
+  // answers: a 1-second limit failed under machine load (T-348). The DUnitX executable stands in for
+  // PALCMD and prints a complete help text at once (RunPalHelpFixture, doctor mode).
+  TFile.WriteAllText(fConfig, '[FixInsightCL]' + sLineBreak + 'Path=' + TPath.Combine(fRoot, 'missing-FixInsightCL.exe') +
+    sLineBreak + '[PascalAnalyzer]' + sLineBreak + 'Path=' + ParamStr(0) + sLineBreak + lExtraIni, TEncoding.UTF8);
+  lHelpFixture := SetScopedEnvironmentVariable('DAK_TEST_PAL_HELP', 'doctor');
+  GC(lDocument, ParseJsonObject(RunDoctor('--run-checks true --json'), 'Doctor timeout checks'), g);
+  lHelpFixture := nil;
   lHelp := RequireCheck(lDocument, 'pal_help');
   RequireJsonNumberKey(lHelp, 'timeout_seconds');
   Assert.AreEqual<Integer>(aExpected, lHelp.GetValue<Integer>('timeout_seconds'));
