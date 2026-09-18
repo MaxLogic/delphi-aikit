@@ -102,25 +102,28 @@ begin
     Result := TJSONArray(lValue);
 end;
 
-function JsonText(aObject: TJSONObject; const aName: string): string;
-var
-  lValue: TJSONValue;
+// JsonText of a value already found; nil and null are the empty text, as for a missing member.
+function JsonValueText(aValue: TJSONValue): string;
 begin
   Result := '';
-  if aObject = nil then
+  if (aValue = nil) or (aValue is TJSONNull) then
     Exit;
-  lValue := aObject.GetValue(aName);
-  if (lValue = nil) or (lValue is TJSONNull) then
-    Exit;
-  if lValue is TJSONNumber then
-    Exit(TNumericText.PythonText(lValue.Value));
-  if lValue is TJSONBool then
+  if aValue is TJSONNumber then
+    Exit(TNumericText.PythonText(aValue.Value));
+  if aValue is TJSONBool then
   begin
-    if TJSONBool(lValue).AsBoolean then
+    if TJSONBool(aValue).AsBoolean then
       Exit('True');
     Exit('False');
   end;
-  Result := lValue.Value;
+  Result := aValue.Value;
+end;
+
+function JsonText(aObject: TJSONObject; const aName: string): string;
+begin
+  Result := '';
+  if aObject <> nil then
+    Result := JsonValueText(aObject.GetValue(aName));
 end;
 
 procedure JsonPut(aObject: TJSONObject; const aName: string; aValue: TJSONValue);
@@ -989,56 +992,6 @@ begin
   Result := String.Join(', ', lParts);
 end;
 
-function FilterRows(aRows: TJSONArray; const aProjection: string; aActionableOnly: Boolean): TList<TJSONObject>;
-var
-  lItem: TJSONValue;
-begin
-  Result := TList<TJSONObject>.Create;
-  if aRows = nil then
-    Exit;
-  for lItem in aRows do
-    if aActionableOnly then
-    begin
-      if AnalysisRecordIsActionable(TJSONObject(lItem)) then
-        Result.Add(TJSONObject(lItem));
-    end else if JsonText(TJSONObject(lItem), 'report_projection') = aProjection then
-      Result.Add(TJSONObject(lItem));
-end;
-
-function CountKind(aRows: TList<TJSONObject>; const aKey: string; aUpper: Boolean): TDictionary<string, Integer>; overload;
-var
-  lRow: TJSONObject;
-  lValue: string;
-begin
-  Result := TDictionary<string, Integer>.Create;
-  if aRows = nil then
-    Exit;
-  for lRow in aRows do
-  begin
-    lValue := Trim(JsonText(lRow, aKey));
-    if aUpper then
-      lValue := lValue.ToUpperInvariant
-    else
-      lValue := lValue.ToLowerInvariant;
-    if Result.ContainsKey(lValue) then
-      Result[lValue] := Result[lValue] + 1
-    else
-      Result.Add(lValue, 1);
-  end;
-end;
-
-function CountKind(aRows: TJSONArray; const aKey: string; aUpper: Boolean): TDictionary<string, Integer>; overload;
-var
-  lRows: TList<TJSONObject>;
-begin
-  lRows := AllRows(aRows);
-  try
-    Result := CountKind(lRows, aKey, aUpper);
-  finally
-    lRows.Free;
-  end;
-end;
-
 function CountOf(aCounts: TDictionary<string, Integer>; const aKey: string): Integer;
 begin
   if not aCounts.TryGetValue(aKey, Result) then
@@ -1051,46 +1004,222 @@ begin
   TArray.Sort<string>(Result, TStringComparer.Ordinal);
 end;
 
-function RuleCounts(const aRowSets: array of TList<TJSONObject>): TJSONObject;
+type
+  // The fields the count projections read from one normalized row, taken in a single pass over the
+  // row's pairs. The projections below walk every row several times; reading each field by name on
+  // every walk dominated report verification and replay on large reports (T-344).
+  TAnalysisRowFacts = record
+    fKind: string;
+    fSeverity: string;
+    fOwnership: Integer;
+    fOwnershipText: string;
+    fRule: string;
+    fProjection: string;
+    fActionable: Boolean;
+  end;
+  TAnalysisRowFactsArray = TArray<TAnalysisRowFacts>;
+  TAnalysisRowSelector = reference to function(const aFacts: TAnalysisRowFacts): Boolean;
+
+// Exact, ordinal member-name match. IndexStr compares through the locale, which dominated this loop.
+function FactField(const aName: string): Integer;
+begin
+  if aName = 'kind' then
+    Result := 0
+  else if aName = 'severity' then
+    Result := 1
+  else if aName = 'ownership' then
+    Result := 2
+  else if aName = 'normalized_rule' then
+    Result := 3
+  else if aName = 'report_projection' then
+    Result := 4
+  else
+    Result := -1;
+end;
+
+function OwnershipIndex(const aValue: string): Integer;
+var
+  i: Integer;
+begin
+  for i := 0 to High(cOwnershipNames) do
+    if aValue = cOwnershipNames[i] then
+      Exit(i);
+  Result := -1;
+end;
+
+function AnalysisRowFacts(aRows: TJSONArray): TAnalysisRowFactsArray;
+var
+  lFacts: TAnalysisRowFacts;
+  lField: Integer;
+  lItem: TJSONValue;
+  lPair: TJSONPair;
+  lProjection: TJSONValue;
+  lRow: TJSONObject;
+  lSeen: array[0..4] of Boolean;
+  i: Integer;
+  lCount: Integer;
+begin
+  Result := nil;
+  if aRows = nil then
+    Exit;
+  SetLength(Result, aRows.Count);
+  lCount := 0;
+  for lItem in aRows do
+  begin
+    lRow := TJSONObject(lItem);
+    lFacts := Default(TAnalysisRowFacts);
+    lFacts.fOwnership := -1;
+    lProjection := nil;
+    for i := 0 to High(lSeen) do
+      lSeen[i] := False;
+    for lPair in lRow do
+    begin
+      lField := FactField(lPair.JsonString.Value);
+      // TJSONObject.GetValue answers the first member of a name; so does this pass.
+      if (lField < 0) or lSeen[lField] then
+        Continue;
+      lSeen[lField] := True;
+      case lField of
+        0: lFacts.fKind := Trim(JsonValueText(lPair.JsonValue)).ToUpperInvariant;
+        1: lFacts.fSeverity := Trim(JsonValueText(lPair.JsonValue)).ToLowerInvariant;
+        2:
+          begin
+            lFacts.fOwnershipText := JsonValueText(lPair.JsonValue);
+            if (lPair.JsonValue is TJSONString) and not (lPair.JsonValue is TJSONNumber) then
+              lFacts.fOwnership := OwnershipIndex(lPair.JsonValue.Value);
+          end;
+        3: lFacts.fRule := JsonValueText(lPair.JsonValue);
+        4:
+          begin
+            lProjection := lPair.JsonValue;
+            lFacts.fProjection := JsonValueText(lProjection);
+          end;
+      end;
+    end;
+    // AnalysisRecordIsActionable, answered from the projection already found when it is a string.
+    if (lProjection is TJSONString) and not (lProjection is TJSONNumber) then
+      lFacts.fActionable := lProjection.Value = 'actionable'
+    else
+      lFacts.fActionable := AnalysisRecordIsActionable(lRow);
+    Result[lCount] := lFacts;
+    Inc(lCount);
+  end;
+  SetLength(Result, lCount);
+end;
+
+function SelectAll: TAnalysisRowSelector;
+begin
+  Result :=
+    function(const aFacts: TAnalysisRowFacts): Boolean
+    begin
+      Result := True;
+    end;
+end;
+
+function SelectActionable: TAnalysisRowSelector;
+begin
+  Result :=
+    function(const aFacts: TAnalysisRowFacts): Boolean
+    begin
+      Result := aFacts.fActionable;
+    end;
+end;
+
+function SelectProjection(const aProjection: string): TAnalysisRowSelector;
+begin
+  Result :=
+    function(const aFacts: TAnalysisRowFacts): Boolean
+    begin
+      Result := aFacts.fProjection = aProjection;
+    end;
+end;
+
+function SelectedCount(const aFacts: TAnalysisRowFactsArray; const aSelect: TAnalysisRowSelector): Integer;
+var
+  i: Integer;
+begin
+  Result := 0;
+  for i := 0 to High(aFacts) do
+    if aSelect(aFacts[i]) then
+      Inc(Result);
+end;
+
+// Counts of the FixInsight kind (aKind) or the Pascal Analyzer severity of the selected rows.
+function FactCounts(const aFacts: TAnalysisRowFactsArray; const aSelect: TAnalysisRowSelector;
+  aKind: Boolean): TDictionary<string, Integer>;
+var
+  lValue: string;
+  i: Integer;
+begin
+  Result := TDictionary<string, Integer>.Create;
+  for i := 0 to High(aFacts) do
+    if aSelect(aFacts[i]) then
+    begin
+      if aKind then
+        lValue := aFacts[i].fKind
+      else
+        lValue := aFacts[i].fSeverity;
+      Result.AddOrSetValue(lValue, CountOf(Result, lValue) + 1);
+    end;
+end;
+
+// AnalysisOwnershipCounts over the selected rows, raising on the first invalid category in order.
+function FactOwnershipCounts(const aSets: array of TAnalysisRowFactsArray;
+  const aSelect: TAnalysisRowSelector): TJSONObject;
+var
+  lCounts: array[0..3] of Integer;
+  i, lSet: Integer;
+begin
+  for i := 0 to High(lCounts) do
+    lCounts[i] := 0;
+  for lSet := 0 to High(aSets) do
+    for i := 0 to High(aSets[lSet]) do
+      if aSelect(aSets[lSet][i]) then
+      begin
+        if aSets[lSet][i].fOwnership < 0 then
+          raise EConvertError.CreateFmt('invalid ownership category: %s', [QuotedStr(aSets[lSet][i].fOwnershipText)]);
+        Inc(lCounts[aSets[lSet][i].fOwnership]);
+      end;
+  Result := TJSONObject.Create;
+  for i := 0 to High(cOwnershipNames) do
+    Result.AddPair(cOwnershipNames[i], TJSONNumber.Create(lCounts[i]));
+end;
+
+function FactRuleCounts(const aSets: array of TAnalysisRowFactsArray; const aSelect: TAnalysisRowSelector): TJSONObject;
 var
   g: TGarbos;
   lCounts: TDictionary<string, Integer>;
   lKey: string;
-  lRow: TJSONObject;
-  lRows: TList<TJSONObject>;
+  i, lSet: Integer;
 begin
   GC(lCounts, TDictionary<string, Integer>.Create, g);
-  for lRows in aRowSets do
-    for lRow in lRows do
-    begin
-      lKey := JsonText(lRow, 'normalized_rule');
-      if lCounts.ContainsKey(lKey) then
-        lCounts[lKey] := lCounts[lKey] + 1
-      else
-        lCounts.Add(lKey, 1);
-    end;
+  for lSet := 0 to High(aSets) do
+    for i := 0 to High(aSets[lSet]) do
+      if aSelect(aSets[lSet][i]) then
+        lCounts.AddOrSetValue(aSets[lSet][i].fRule, CountOf(lCounts, aSets[lSet][i].fRule) + 1);
   Result := TJSONObject.Create;
   for lKey in SortedKeys(lCounts) do
     Result.AddPair(lKey, TJSONNumber.Create(lCounts[lKey]));
 end;
 
-function AnalysisActionableCounts(aSummary: TJSONObject; aFixInsight, aPal: TJSONArray): TJSONObject;
+function ActionableCountsOfFacts(aSummary: TJSONObject; const aFi, aPal: TAnalysisRowFactsArray): TJSONObject;
 var
   g: TGarbos;
-  lFiActionable, lPalActionable: TList<TJSONObject>;
+  lActionable: TAnalysisRowSelector;
   lFiKinds, lPalSeverities, lRawSeverities: TDictionary<string, Integer>;
   lFiCounts, lPalCounts, lOwnership, lSummaryPal: TJSONObject;
   lKey: string;
   lUnknown: TList<string>;
   lExpected, lActual: TArray<Integer>;
-  lRawFiCount, lRawPalCount: Integer;
+  lFiActionable, lPalActionable, lRawFiCount, lRawPalCount: Integer;
   i: Integer;
 const
   cPalKeys: array[0..3] of string = ('warnings', 'strong_warnings', 'optimizations', 'total');
 begin
-  GC(lFiActionable, FilterRows(aFixInsight, '', True), g);
-  GC(lPalActionable, FilterRows(aPal, '', True), g);
-  GC(lFiKinds, CountKind(lFiActionable, 'kind', True), g);
+  lActionable := SelectActionable();
+  lFiActionable := SelectedCount(aFi, lActionable);
+  lPalActionable := SelectedCount(aPal, lActionable);
+  GC(lFiKinds, FactCounts(aFi, lActionable, True), g);
   GC(lUnknown, TList<string>.Create, g);
   for lKey in SortedKeys(lFiKinds) do
     if not MatchStr(lKey, ['W', 'C', 'O']) then
@@ -1101,21 +1230,19 @@ begin
   try
     lFiCounts := TJSONObject.Create;
     Result.AddPair('fixinsight', lFiCounts);
-    lFiCounts.AddPair('total', TJSONNumber.Create(lFiActionable.Count))
+    lFiCounts.AddPair('total', TJSONNumber.Create(lFiActionable))
       .AddPair('warnings', TJSONNumber.Create(CountOf(lFiKinds, 'W')))
       .AddPair('maintainability', TJSONNumber.Create(CountOf(lFiKinds, 'C')))
       .AddPair('hygiene', TJSONNumber.Create(CountOf(lFiKinds, 'O')))
-      .AddPair('ownership', AnalysisOwnershipCounts([lFiActionable]));
-    lRawFiCount := 0;
-    if aFixInsight <> nil then
-      lRawFiCount := aFixInsight.Count;
+      .AddPair('ownership', FactOwnershipCounts([aFi], lActionable));
+    lRawFiCount := Length(aFi);
     if (aSummary.GetValue('fixinsight_total') <> nil) and
       (StrToInt(aSummary.GetValue('fixinsight_total').Value) <> lRawFiCount) then
       raise EConvertError.CreateFmt('FixInsight count mismatch: summary=%s, JSONL=%d',
         [aSummary.GetValue('fixinsight_total').Value, lRawFiCount]);
     if (lRawFiCount > 0) and (aSummary.GetValue('fixinsight_total') = nil) then
       raise EConvertError.Create('FixInsight count mismatch: summary total is missing');
-    GC(lPalSeverities, CountKind(lPalActionable, 'severity', False), g);
+    GC(lPalSeverities, FactCounts(aPal, lActionable, False), g);
     lUnknown.Clear;
     for lKey in SortedKeys(lPalSeverities) do
       if not MatchStr(lKey, ['warning', 'strong-warning', 'optimization']) then
@@ -1127,15 +1254,13 @@ begin
     lPalCounts.AddPair('warnings', TJSONNumber.Create(CountOf(lPalSeverities, 'warning')))
       .AddPair('strong_warnings', TJSONNumber.Create(CountOf(lPalSeverities, 'strong-warning')))
       .AddPair('optimizations', TJSONNumber.Create(CountOf(lPalSeverities, 'optimization')))
-      .AddPair('total', TJSONNumber.Create(lPalActionable.Count))
-      .AddPair('ownership', AnalysisOwnershipCounts([lPalActionable]));
-    lRawPalCount := 0;
-    if aPal <> nil then
-      lRawPalCount := aPal.Count;
+      .AddPair('total', TJSONNumber.Create(lPalActionable))
+      .AddPair('ownership', FactOwnershipCounts([aPal], lActionable));
+    lRawPalCount := Length(aPal);
     lSummaryPal := JsonObjectMember(aSummary, 'pal_totals');
     if lSummaryPal <> nil then
     begin
-      GC(lRawSeverities, CountKind(aPal, 'severity', False), g);
+      GC(lRawSeverities, FactCounts(aPal, SelectAll(), False), g);
       SetLength(lExpected, 4);
       SetLength(lActual, 4);
       for i := 0 to 3 do
@@ -1158,14 +1283,19 @@ begin
         StrToInt(JsonText(JsonObjectMember(lFiCounts, 'ownership'), lKey)) +
         StrToInt(JsonText(JsonObjectMember(lPalCounts, 'ownership'), lKey))));
     Result.AddPair('ownership', lOwnership);
-    Result.AddPair('total', TJSONNumber.Create(lFiActionable.Count + lPalActionable.Count));
+    Result.AddPair('total', TJSONNumber.Create(lFiActionable + lPalActionable));
   except
     Result.Free;
     raise;
   end;
 end;
 
-function ProjectionCounts(aFi, aPal: TList<TJSONObject>): TJSONObject;
+function AnalysisActionableCounts(aSummary: TJSONObject; aFixInsight, aPal: TJSONArray): TJSONObject;
+begin
+  Result := ActionableCountsOfFacts(aSummary, AnalysisRowFacts(aFixInsight), AnalysisRowFacts(aPal));
+end;
+
+function ProjectionCounts(const aFi, aPal: TAnalysisRowFactsArray; const aSelect: TAnalysisRowSelector): TJSONObject;
 const
   cSeverityOrder: array[0..5] of string = ('warning', 'strong_warning', 'optimization',
     'maintainability', 'hygiene', 'other');
@@ -1173,34 +1303,34 @@ var
   g: TGarbos;
   lBySeverity, lFiBySeverity, lPalBySeverity: TJSONObject;
   lFiKinds, lFiSeverity, lPalSeverity, lPalRaw, lSeverity: TDictionary<string, Integer>;
-  lRow: TJSONObject;
-  lKey, lKind: string;
-  lName: string;
+  lKey, lName: string;
+  lFiCount, lPalCount: Integer;
 begin
-  GC(lFiKinds, CountKind(aFi, 'kind', True), g);
-  GC(lPalRaw, CountKind(aPal, 'severity', False), g);
+  lFiCount := SelectedCount(aFi, aSelect);
+  lPalCount := SelectedCount(aPal, aSelect);
+  GC(lFiKinds, FactCounts(aFi, aSelect, True), g);
+  GC(lPalRaw, FactCounts(aPal, aSelect, False), g);
   GC(lFiSeverity, TDictionary<string, Integer>.Create, g);
   GC(lPalSeverity, TDictionary<string, Integer>.Create, g);
   GC(lSeverity, TDictionary<string, Integer>.Create, g);
-  for lRow in aFi do
+  for lKey in lFiKinds.Keys do
   begin
-    lKind := Trim(JsonText(lRow, 'kind')).ToUpperInvariant;
-    if lKind = 'W' then
+    if lKey = 'W' then
       lName := 'warning'
-    else if lKind = 'C' then
+    else if lKey = 'C' then
       lName := 'maintainability'
-    else if lKind = 'O' then
+    else if lKey = 'O' then
       lName := 'hygiene'
     else
       lName := 'other';
-    lFiSeverity.AddOrSetValue(lName, CountOf(lFiSeverity, lName) + 1);
+    lFiSeverity.AddOrSetValue(lName, CountOf(lFiSeverity, lName) + lFiKinds[lKey]);
   end;
-  for lRow in aPal do
+  for lKey in lPalRaw.Keys do
   begin
-    lName := Trim(JsonText(lRow, 'severity')).ToLowerInvariant.Replace('-', '_');
+    lName := lKey.Replace('-', '_');
     if lName = '' then
       lName := 'other';
-    lPalSeverity.AddOrSetValue(lName, CountOf(lPalSeverity, lName) + 1);
+    lPalSeverity.AddOrSetValue(lName, CountOf(lPalSeverity, lName) + lPalRaw[lKey]);
   end;
   for lKey in lFiSeverity.Keys do
     lSeverity.AddOrSetValue(lKey, CountOf(lSeverity, lKey) + lFiSeverity[lKey]);
@@ -1220,50 +1350,46 @@ begin
     lPalBySeverity.AddPair(lKey, TJSONNumber.Create(lPalSeverity[lKey]));
   Result := TJSONObject.Create
     .AddPair('fixinsight', TJSONObject.Create
-      .AddPair('total', TJSONNumber.Create(aFi.Count))
+      .AddPair('total', TJSONNumber.Create(lFiCount))
       .AddPair('warnings', TJSONNumber.Create(CountOf(lFiKinds, 'W')))
       .AddPair('maintainability', TJSONNumber.Create(CountOf(lFiKinds, 'C')))
       .AddPair('hygiene', TJSONNumber.Create(CountOf(lFiKinds, 'O')))
       .AddPair('by_severity', lFiBySeverity)
-      .AddPair('ownership', AnalysisOwnershipCounts([aFi]))
-      .AddPair('by_rule', RuleCounts([aFi])))
+      .AddPair('ownership', FactOwnershipCounts([aFi], aSelect))
+      .AddPair('by_rule', FactRuleCounts([aFi], aSelect)))
     .AddPair('pascal_analyzer', TJSONObject.Create
-      .AddPair('total', TJSONNumber.Create(aPal.Count))
+      .AddPair('total', TJSONNumber.Create(lPalCount))
       .AddPair('warnings', TJSONNumber.Create(CountOf(lPalRaw, 'warning')))
       .AddPair('strong_warnings', TJSONNumber.Create(CountOf(lPalRaw, 'strong-warning')))
       .AddPair('optimizations', TJSONNumber.Create(CountOf(lPalRaw, 'optimization')))
       .AddPair('by_severity', lPalBySeverity)
-      .AddPair('ownership', AnalysisOwnershipCounts([aPal]))
-      .AddPair('by_rule', RuleCounts([aPal])))
-    .AddPair('ownership', AnalysisOwnershipCounts([aFi, aPal]))
+      .AddPair('ownership', FactOwnershipCounts([aPal], aSelect))
+      .AddPair('by_rule', FactRuleCounts([aPal], aSelect)))
+    .AddPair('ownership', FactOwnershipCounts([aFi, aPal], aSelect))
     .AddPair('by_analyzer', TJSONObject.Create
-      .AddPair('fixinsight', TJSONNumber.Create(aFi.Count))
-      .AddPair('pascal_analyzer', TJSONNumber.Create(aPal.Count)))
+      .AddPair('fixinsight', TJSONNumber.Create(lFiCount))
+      .AddPair('pascal_analyzer', TJSONNumber.Create(lPalCount)))
     .AddPair('by_severity', lBySeverity)
-    .AddPair('by_rule', RuleCounts([aFi, aPal]))
-    .AddPair('total', TJSONNumber.Create(aFi.Count + aPal.Count));
+    .AddPair('by_rule', FactRuleCounts([aFi, aPal], aSelect))
+    .AddPair('total', TJSONNumber.Create(lFiCount + lPalCount));
 end;
 
 function AnalysisReportProjections(aSummary: TJSONObject; aFixInsight, aPal: TJSONArray): TJSONObject;
 const
   cProjections: array[0..4] of string = ('actionable', 'ignored', 'external', 'advisory_metrics', 'unknown');
 var
-  g: TGarbos;
-  lFi, lPal: TList<TJSONObject>;
+  lFi, lPal: TAnalysisRowFactsArray;
   lName: string;
 begin
-  AnalysisActionableCounts(aSummary, aFixInsight, aPal).Free;
+  lFi := AnalysisRowFacts(aFixInsight);
+  lPal := AnalysisRowFacts(aPal);
+  // The actionable counts are validated first, as report_projections does before projecting.
+  ActionableCountsOfFacts(aSummary, lFi, lPal).Free;
   Result := TJSONObject.Create;
   try
-    GC(lFi, AllRows(aFixInsight), g);
-    GC(lPal, AllRows(aPal), g);
-    Result.AddPair('raw', ProjectionCounts(lFi, lPal));
+    Result.AddPair('raw', ProjectionCounts(lFi, lPal, SelectAll()));
     for lName in cProjections do
-    begin
-      GC(lFi, FilterRows(aFixInsight, lName, False), g);
-      GC(lPal, FilterRows(aPal, lName, False), g);
-      Result.AddPair(lName, ProjectionCounts(lFi, lPal));
-    end;
+      Result.AddPair(lName, ProjectionCounts(lFi, lPal, SelectProjection(lName)));
   except
     Result.Free;
     raise;

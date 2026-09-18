@@ -178,30 +178,41 @@ end;
 procedure TJsonSink.Flush;
 var
   lBytes: TBytes;
-  lChunk: TStringBuilder;
-  i: Integer;
-  c: Char;
+  lOut: string;
+  lEnd, lSource, lTarget: PChar;
+  lText: string;
+  lCount: Integer;
 begin
   if fBuilder.Length = 0 then
     Exit;
+  lText := fBuilder.ToString;
   if fHashing then
-    fHash.Update(TEncoding.UTF8.GetBytes(fBuilder.ToString))
+    fHash.Update(TEncoding.UTF8.GetBytes(lText))
   else begin
     // Python text mode: each LF becomes CRLF; an LF already preceded by CR keeps that CR.
-    lChunk := TStringBuilder.Create(fBuilder.Length + fBuilder.Length div 16);
-    try
-      for i := 0 to fBuilder.Length - 1 do
+    // One pass over the chunk into a buffer sized for the worst case (T-344: a builder append per
+    // character dominated large SARIF renderings).
+    SetLength(lOut, Length(lText) * 2);
+    lSource := PChar(lText);
+    lEnd := lSource + Length(lText);
+    lTarget := PChar(lOut);
+    lCount := 0;
+    while lSource < lEnd do
+    begin
+      if (lSource^ = #10) and (fPrevious <> #13) then
       begin
-        c := fBuilder.Chars[i];
-        if (c = #10) and (fPrevious <> #13) then
-          lChunk.Append(#13);
-        lChunk.Append(c);
-        fPrevious := c;
+        lTarget^ := #13;
+        Inc(lTarget);
+        Inc(lCount);
       end;
-      lBytes := TEncoding.UTF8.GetBytes(lChunk.ToString);
-    finally
-      lChunk.Free;
+      lTarget^ := lSource^;
+      fPrevious := lSource^;
+      Inc(lTarget);
+      Inc(lCount);
+      Inc(lSource);
     end;
+    SetLength(lOut, lCount);
+    lBytes := TEncoding.UTF8.GetBytes(lOut);
     if Length(lBytes) > 0 then
       fStream.WriteBuffer(lBytes[0], Length(lBytes));
   end;
