@@ -67,6 +67,8 @@ resourcestring
     'DAK_WRITE_SUMMARY, DAK_RSVARS, DAK_ENVOPTIONS, DAK_EXCLUDE_PATH_MASKS, DAK_FI_IGNORE_RULES and ' +
     'DAK_IGNORE_WARNING_IDS (merged), DAK_PAL_IGNORE_RULES, FIXINSIGHT_SETTINGS (or FI_SETTINGS), PA_PATH, ' +
     'PA_ARGS, DAK_PAL_EXCLUDE_SEARCH_FOLDERS, DAK_PAL_EXCLUDE_FILES.' + #13#10 +
+    '  --pa-output moves only the raw Pascal Analyzer XML reports; the normalized findings are always ' +
+    'written to the report''s pascal-analyzer folder.' + #13#10 +
     'DelphiAIKit.exe analyze --unit "<path>" [--project-context "<dproj>"] --delphi <23.0> [--out "<path>"] ' +
     '[--workspace-root <auto|git|svn|project|path>] ' +
     '[--pascal-analyzer [true|false]] [--pa-path "<path>"] [--pa-output "<path>"] [--pa-args "<args>"] ' +

@@ -173,5 +173,8 @@ lines=<value> | <name>
 
 ## Location of outputs
 
-When PALCMD is run via `analyze --pascal-analyzer true`, outputs are written next to the PAL output root (the folder
-containing the PAL XML reports, usually `--pa-output`).
+When PALCMD is run via `analyze --pascal-analyzer true`, `pal-findings.jsonl`, `pal-findings.md` and
+`pal-hotspots.md` are written to the report's `pascal-analyzer` folder (`<out>/pascal-analyzer/`), beside the PAL
+logs. This holds when `--pa-output` or `[PascalAnalyzer].Output` relocates the PAL output root: that root receives
+only the raw PAL XML reports, and the report stays self-contained because finalization, replay and verify read the
+normalized rows from the fixed report path.

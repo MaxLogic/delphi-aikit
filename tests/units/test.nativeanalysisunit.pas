@@ -48,6 +48,8 @@ type
     procedure AnalyzersRunInTheWorkspaceRootWhateverTheCallerDirectory;
     [Test]
     procedure FailedRunInACommittedWorkspaceKeepsBaselineAndCapturedProvenance;
+    [Test]
+    procedure RelocatedPalOutputFromDakIniKeepsNormalizedFindingsInTheReport;
   end;
 
 implementation
@@ -333,6 +335,36 @@ begin
       'The analyzers run in the workspace root.');
   finally
     lBaseline.Free;
+  end;
+end;
+
+// T-343 contract through [PascalAnalyzer].Output: only the raw Pascal Analyzer XML reports move; the
+// normalized rows stay in the report's pascal-analyzer folder so the unit report finalizes.
+procedure TNativeAnalysisUnitTests.RelocatedPalOutputFromDakIniKeepsNormalizedFindingsInTheReport;
+var
+  lExit: Cardinal;
+  lLog: string;
+  lPalDir: string;
+  lRelocated: string;
+  lSummary: TJSONObject;
+begin
+  lRelocated := TPath.Combine(fRoot, 'pa-relocated');
+  lPalDir := TPath.Combine(fOutRoot, 'pascal-analyzer');
+  TFile.AppendAllText(TPath.Combine(fProjectDir, 'dak.ini'),
+    '[PascalAnalyzer]' + sLineBreak + 'Output=' + lRelocated + sLineBreak, TEncoding.ASCII);
+  lLog := RunUnit(0, True, lExit);
+  Assert.AreEqual(Cardinal(0), lExit, 'A relocated PAL output still finalizes the report. Log: ' + lLog);
+  Assert.IsTrue(Length(TDirectory.GetFiles(lRelocated, 'Status.xml', TSearchOption.soAllDirectories)) > 0,
+    'The raw PAL reports go to the relocated root.');
+  Assert.IsTrue(TFile.Exists(TPath.Combine(lPalDir, 'pal-findings.jsonl')), 'normalized rows in the report');
+  Assert.IsTrue(TFile.Exists(TPath.Combine(lPalDir, 'pal-findings.md')), 'findings summary in the report');
+  Assert.IsFalse(TFile.Exists(TPath.Combine(lRelocated, 'pal-findings.jsonl')),
+    'Nothing normalized is left beside the raw reports.');
+  lSummary := ReadSummary;
+  try
+    Assert.AreEqual('complete', JsonText(JsonObjectMember(lSummary, 'status'), 'finalization'));
+  finally
+    lSummary.Free;
   end;
 end;
 

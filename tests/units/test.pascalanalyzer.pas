@@ -615,6 +615,7 @@ procedure TPascalAnalyzerTests.RunPascalAnalyzer;
 var
   lPalCmdExe: string;
   lOutDir: string;
+  lPaOutDir: string;
   lArgs: string;
   lExit: Cardinal;
   lFiles: TArray<string>;
@@ -633,12 +634,14 @@ begin
   if not TDirectory.Exists(lOutDir) then
     TDirectory.CreateDirectory(lOutDir);
 
-  // The standard report layout: analyze now finalizes the report, which reads the normalized PAL rows
-  // from pascal-analyzer\. A relocating --pa-output is tracked separately (T-343).
+  // --pa-output relocates only the raw PAL XML reports; the finalized report reads the normalized
+  // rows from its own pascal-analyzer folder (T-343).
+  lPaOutDir := TPath.Combine(TempRoot, 'pa-run-xml');
   lArgs := 'analyze --project ' + QuoteArg(TPath.Combine(RepoRoot, 'projects\\DelphiAIKit.dproj')) +
     ' --platform Win32 --config Release --delphi 23.0 --fixinsight false --pascal-analyzer true' +
     ' --out ' + QuoteArg(lOutDir) +
-    ' --pa-path ' + QuoteArg(lPalCmdExe);
+    ' --pa-path ' + QuoteArg(lPalCmdExe) +
+    ' --pa-output ' + QuoteArg(lPaOutDir);
 
   lLog := TPath.Combine(lOutDir, 'pascal-analyzer.log');
   if not RunResolverProcess(lArgs, RepoRoot, lLog, lExit) then
@@ -651,8 +654,14 @@ begin
     Assert.Fail('Pascal Analyzer run failed, exit=' + lExit.ToString + '. See: ' + lLog + lTail);
   end;
 
-  lFiles := TDirectory.GetFiles(lOutDir, '*.xml', TSearchOption.soAllDirectories);
-  Assert.IsTrue(Length(lFiles) > 0, 'No XML report produced under: ' + lOutDir);
+  lFiles := TDirectory.GetFiles(lPaOutDir, '*.xml', TSearchOption.soAllDirectories);
+  Assert.IsTrue(Length(lFiles) > 0, 'No XML report produced under: ' + lPaOutDir);
+  Assert.IsTrue(TFile.Exists(TPath.Combine(lOutDir, 'pascal-analyzer\pal-findings.jsonl')),
+    'The normalized rows publish in the report.');
+  Assert.IsTrue(TFile.Exists(TPath.Combine(lOutDir, 'pascal-analyzer\pal-hotspots.md')),
+    'The hotspots publish in the report.');
+  Assert.IsFalse(TFile.Exists(TPath.Combine(lPaOutDir, 'pal-findings.jsonl')),
+    'Nothing normalized is left beside the raw reports.');
 end;
 
 procedure TPascalAnalyzerTests.PascalAnalyzerProcessWaitsAreBounded;

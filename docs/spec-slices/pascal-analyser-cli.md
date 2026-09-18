@@ -47,7 +47,8 @@ TimeoutSec=
 Semantics:
 
 - `Path` may be a full path to `palcmd.exe` / `palcmd32.exe`, or a folder containing them.
-- `Output` is a report root folder; we pass it to PALCMD as `/R=...`.
+- `Output` is a report root folder; we pass it to PALCMD as `/R=...`. It relocates only the raw PAL XML
+  reports; the normalized findings stay in the analysis report's `pascal-analyzer` folder.
 - `Args` are parsed as additive PAL options. DAK rejects attempts to override
   its report format/root/name, quiet mode, parse scope, or thread count.
 - `TimeoutSec` bounds the external PALCMD wait; the CLI override wins when both are present.

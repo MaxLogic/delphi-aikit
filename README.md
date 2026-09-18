@@ -598,7 +598,7 @@ ExcludePathMasks=
 [PascalAnalyzer]
 ; path to palcmd.exe / palcmd32.exe (or its folder)
 Path=
-; report root folder (PALCMD /R=...)
+; report root folder (PALCMD /R=...); raw XML reports only, findings stay in the report
 Output=
 ; optional PALCMD args; DAK owns report, parse-scope, quiet, and thread arguments
 Args=
@@ -701,7 +701,8 @@ To run Peganza Pascal Analyzer headlessly using our resolved project inputs:
 - `analyze --pascal-analyzer true`
 - optional overrides:
   - `--pa-path "...\palcmd.exe"` (or `palcmd32.exe`, or a folder containing it)
-  - `--pa-output "C:\temp\pa"` (report root folder, passed as `/R=...`)
+  - `--pa-output "C:\temp\pa"` (report root folder, passed as `/R=...`; it receives only the raw
+    PAL XML reports, while the normalized findings stay in the report's `pascal-analyzer` folder)
   - `--pa-args "..."` (additive PALCMD options; DAK-owned options are rejected)
   - `--pa-timeout-sec N` (external process timeout in seconds)
 

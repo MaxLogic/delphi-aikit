@@ -52,6 +52,8 @@ type
     procedure ThirdPartyFindingsLeaveOwnedCoverageAndPalSettingsVisible;
     [Test]
     procedure CapturedProvenanceDoesNotSeeTheRunsOwnOutput;
+    [Test]
+    procedure RelocatedPalOutputKeepsNormalizedFindingsInTheReport;
     // Expectations pinned from workspace.resolve_workspace on the same layout (T-328 evidence).
     [TestCase('default', 'default,,none,src,auto,default')]
     [TestCase('project', 'project,project,none,src,project,command_line')]
@@ -598,6 +600,40 @@ begin
   end;
   finally
     DeleteTempPath(lExternal);
+  end;
+end;
+
+// T-343 contract: --pa-output moves only the raw Pascal Analyzer XML reports. The normalized rows
+// publish under the report's pascal-analyzer folder, where finalization, replay and verify read them.
+procedure TNativeAnalysisProjectTests.RelocatedPalOutputKeepsNormalizedFindingsInTheReport;
+var
+  lExit: Cardinal;
+  lLog: string;
+  lPalDir: string;
+  lRelocated: string;
+  lScope: IInterface;
+  lSummary: TJSONObject;
+begin
+  lRelocated := TPath.Combine(fRoot, 'pa-relocated');
+  lPalDir := TPath.Combine(fOutRoot, 'pascal-analyzer');
+  fExtraArgs := ' --pascal-analyzer true --pa-path ' + QuoteArg(ParamStr(0)) + ' --pa-output ' + QuoteArg(lRelocated);
+  lScope := SetScopedEnvironmentVariable('DAK_TEST_PAL_EXIT', '0');
+  lLog := RunAnalyze(0, lExit);
+  lScope := nil;
+  Assert.AreEqual(Cardinal(0), lExit, 'A relocated PAL output still finalizes the report. Log: ' + lLog);
+  Assert.IsTrue(TFile.Exists(TPath.Combine(lRelocated, 'Sample\Status.xml')),
+    'The raw PAL reports go to the relocated root.');
+  Assert.IsTrue(TFile.Exists(TPath.Combine(lPalDir, 'pal-findings.jsonl')), 'normalized rows in the report');
+  Assert.IsTrue(TFile.Exists(TPath.Combine(lPalDir, 'pal-findings.md')), 'findings summary in the report');
+  Assert.IsFalse(TFile.Exists(TPath.Combine(lRelocated, 'pal-findings.jsonl')),
+    'Nothing normalized is left beside the raw reports.');
+  lSummary := ReadSummary;
+  try
+    Assert.AreEqual('complete', JsonText(JsonObjectMember(lSummary, 'status'), 'finalization'));
+    Assert.AreEqual('pascal-analyzer/pal-findings.jsonl',
+      JsonText(JsonObjectMember(lSummary, 'artifacts'), 'pascal_analyzer_jsonl'));
+  finally
+    lSummary.Free;
   end;
 end;
 

@@ -123,6 +123,8 @@ type
     [Test]
     procedure AnalyzeCommandParsesPalRuleIgnore;
     [Test]
+    procedure AnalyzeUsageStatesWhatPalOutputRelocates;
+    [Test]
     procedure AnalyzeCommandRejectsInvalidAnalyzerTimeout;
     [Test]
     procedure LoadSettingsWithoutRepoMarkerUsesOnlyProjectLocalDakIni;
@@ -1166,6 +1168,21 @@ begin
     lOptions.fPalIgnoreRules);
   Assert.IsTrue(lOptions.fHasPalIgnoreRules);
   Assert.IsTrue(SUsageAnalyze.Contains('--pal-ignore-rules'));
+end;
+
+// T-343: --pa-output moves only the raw PAL XML reports; the usage text must not suggest it moves
+// the normalized findings the report reads.
+procedure TCliTests.AnalyzeUsageStatesWhatPalOutputRelocates;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('analyze --project C:\repo\Sample.dproj --delphi 23.0 --pa-output "C:\pal xml"');
+  Assert.IsTrue(TryParseOptions(lOptions, lError), lError);
+  Assert.IsTrue(lOptions.fHasPaOutput);
+  Assert.AreEqual('C:\pal xml', lOptions.fPaOutput);
+  Assert.IsTrue(SUsageAnalyze.Contains('--pa-output moves only the raw Pascal Analyzer XML reports'),
+    SUsageAnalyze);
 end;
 
 procedure TCliTests.AnalyzeCommandRejectsInvalidAnalyzerTimeout;
