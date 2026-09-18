@@ -247,6 +247,8 @@ type
     [Test]
     procedure LspHelpListsSupportedOperationsOnly;
     [Test]
+    procedure LspReferencesPointsToFindUsages;
+    [Test]
     procedure DepsCommandParsesJsonDefaults;
     [Test]
     procedure DepsCommandParsesTopLimit;
@@ -2928,6 +2930,19 @@ begin
   SetParams('lsp hover --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 3 --col 5 --include-declaration false');
   Assert.IsFalse(TryParseOptions(lOptions, lError), 'Expected unsupported --include-declaration switch to be rejected.');
   Assert.IsTrue(Pos('--include-declaration', lError) > 0, 'Expected unsupported include-declaration error. Actual: ' + lError);
+end;
+
+// T-120: the installed Delphi 12 and 13 DelphiLSP builds do not advertise textDocument/references,
+// so the command explains that and names the project-scoped alternative instead of a bare rejection.
+procedure TCliTests.LspReferencesPointsToFindUsages;
+var
+  lError: string;
+  lOptions: TAppOptions;
+begin
+  SetParams('lsp references --project c:\temp\sample.dproj --file c:\temp\unit1.pas --line 3 --col 5');
+  Assert.IsFalse(TryParseOptions(lOptions, lError), 'lsp references must not parse as a supported operation.');
+  Assert.IsTrue(lError.Contains('textDocument/references'), lError);
+  Assert.IsTrue(lError.Contains('find-usages'), lError);
 end;
 
 procedure TCliTests.LspHelpListsSupportedOperationsOnly;

@@ -1825,7 +1825,11 @@ begin
     fOptions.fLspOperation := TLspOperation.loSymbols
   else if SameText(aArg, 'probe') then
     fOptions.fLspOperation := TLspOperation.loProbe
-  else
+  else if SameText(aArg, 'references') then
+  begin
+    fError := SLspReferencesUnavailable;
+    Exit(False);
+  end else
   begin
     fError := Format(SLspInvalidOperation, [aArg]);
     Exit(False);

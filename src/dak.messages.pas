@@ -167,6 +167,8 @@ resourcestring
   SDepsInvalidTopLimit = 'Invalid --top value: %s (expected integer >= 0).';
   SLspMissingOperation = 'Missing lsp operation. Expected one of: definition, hover, symbols, probe.';
   SLspInvalidOperation = 'Unsupported lsp operation: %s';
+  SLspReferencesUnavailable = 'lsp references is not available: the installed DelphiLSP builds (Delphi 12 and 13) ' +
+    'do not advertise textDocument/references. Use find-usages for project-scoped references.';
   SLspInvalidFormat = 'Unsupported lsp format: %s';
   SLspInvalidPosition = 'Invalid %s value: %s (expected integer >= 1).';
   SLspInvalidLimit = 'Invalid --limit value: %s (expected integer >= 1).';
