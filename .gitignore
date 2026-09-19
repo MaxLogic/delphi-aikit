@@ -110,3 +110,12 @@ docs/delphi-dfm-checker/
 /.codex
 .codex/
 .claude/skills/
+
+# Local Claude Code guidance pointer (loads AGENTS.md)
+CLAUDE.md
+
+# Output of tests/manual-test.bat, written at the repository root
+/_dak_pa_main/
+/_dak_pa_tests/
+/_dak_pa_unit/
+/_palcmd_test/
