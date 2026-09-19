@@ -119,3 +119,6 @@ CLAUDE.md
 /_dak_pa_tests/
 /_dak_pa_unit/
 /_palcmd_test/
+
+# Local archive of obsolete sources; never tracked
+/_obselete/
