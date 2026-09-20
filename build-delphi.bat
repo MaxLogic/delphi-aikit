@@ -449,10 +449,10 @@ if not exist "%MSBUILD_ARGS_FILE%" (
 )
 if exist "%RUN_MSBUILD_SCRIPT%" (
   powershell -NoProfile -ExecutionPolicy Bypass -File "%RUN_MSBUILD_SCRIPT%" -MsBuild "%MSBUILD%" -Project "%PROJECT%" -ArgsFile "%MSBUILD_ARGS_FILE%" -OutLog "%OUTLOG%" -TimeoutSec %BUILD_TIMEOUT_SEC%
-  set "RC=%ERRORLEVEL%"
+  set "RC=!ERRORLEVEL!"
 ) else (
   cmd /c ""%MSBUILD%" "%PROJECT%" !ARGS! > "%OUTLOG%" 2>&1"
-  set "RC=%ERRORLEVEL%"
+  set "RC=!ERRORLEVEL!"
 )
 if exist "%MSBUILD_ARGS_FILE%" del /q "%MSBUILD_ARGS_FILE%" >nul 2>&1
 if defined MSBUILD_ENV_PROPS_FILE if exist "%MSBUILD_ENV_PROPS_FILE%" del /q "%MSBUILD_ENV_PROPS_FILE%" >nul 2>&1

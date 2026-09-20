@@ -20,7 +20,8 @@ try {
   }
 
   $argList = New-Object 'System.Collections.Generic.List[string]'
-  $argList.Add($Project)
+  # Start-Process flattens ArgumentList; keep the project path as one native argument (T-352).
+  $argList.Add('"' + $Project + '"')
   if (-not [string]::IsNullOrWhiteSpace($argsText)) {
     $matches = [regex]::Matches($argsText, '(?:"(?:[^"]|"")*"|\S+)')
     foreach ($match in $matches) {
@@ -42,6 +43,9 @@ try {
 
   $proc = Start-Process -FilePath $MsBuild -ArgumentList $argList.ToArray() -PassThru -WindowStyle Hidden `
     -RedirectStandardOutput $OutLog -RedirectStandardError $errLog
+  # Keep the native handle while waiting; Windows PowerShell can otherwise expose
+  # a null ExitCode after a fast child exits, turning a native failure into exit 0 (T-353).
+  $null = $proc.Handle
 
   if ($TimeoutSec -gt 0) {
     if (-not $proc.WaitForExit($TimeoutSec * 1000)) {

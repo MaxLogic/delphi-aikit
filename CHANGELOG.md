@@ -33,6 +33,7 @@ All notable user-visible changes to this project will be documented in this file
 - Required report post-processing failures now fail the analysis run instead of leaving a partial success result.
 
 ### Fixed
+- The build wrapper resolves `$(MSBuildProjectDirectory)` in executable output paths and builds projects in directories containing spaces. Native MSBuild failures now produce a nonzero exit and error status even when they occur before file logging starts.
 - `remove-with --mode apply` works when its verification and backup workspace inside the project's `.dak` folder passes the classic 260-character path limit; previously the preflight build crashed with an unhandled `EInOutError` and backups could not be written.
 - `build` and `build-delphi.bat` report the executable the compiler emits, named after the main source file, when the program identifier differs (for example `DelphiAIKit.Tests.exe`). A successful build whose resolved output does not exist reports `output_missing` with `output_stale=true` instead of a fresh result.
 - Report verification with a baseline no longer leaks memory.

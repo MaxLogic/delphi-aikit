@@ -12,8 +12,8 @@ $fixtureRoot = Join-Path $repoRoot 'tests\fixtures\BuildOutputNameFixture'
 $tempRoot = New-DakProofTempRoot 'dak-build-output-name'
 
 function Invoke-JsonBuild {
-  param([Parameter(Mandatory = $true)][string]$Project)
-  $output = & cmd.exe /d /c "`"$buildBat`" `"$Project`" -config Debug -platform Win64 -target Build -json" 2>&1 | Out-String
+  param([Parameter(Mandatory = $true)][string]$Project, [string]$Target = 'Build')
+  $output = & cmd.exe /d /c "`"$buildBat`" `"$Project`" -config Debug -platform Win64 -target $Target -json -keep-logs" 2>&1 | Out-String
   $exit = $LASTEXITCODE
   $start = $output.IndexOf('{')
   if ($start -lt 0) { throw "build-delphi.bat printed no JSON (exit $exit): $output" }
@@ -48,6 +48,21 @@ try {
   if (-not $result.Json.output_stale) { throw "A missing output was reported fresh: $($result.Raw)" }
   if ($result.Json.status -ne 'output_missing') { throw "Expected status output_missing: $($result.Raw)" }
   if (-not ([string]$result.Json.output_message).Contains([string]$result.Json.output)) { throw "The message does not name the missing output: $($result.Raw)" }
+
+  # 3. Reserved MSBuild project directory resolves before project-local properties.
+  $reserved = Join-Path $tempRoot 'reserved project directory'
+  Copy-Item -LiteralPath $fixtureRoot -Destination $reserved -Recurse
+  $project = Join-Path $reserved 'Build.Output.Name.dproj'
+  $text = [IO.File]::ReadAllText($project)
+  $text = $text.Replace('<DCC_ExeOutput>.\bin</DCC_ExeOutput>',
+    '<DCC_ExeOutput>$(MSBuildProjectDirectory)\.dak\Build.Output.Name\bin\$(Platform)\$(Config)</DCC_ExeOutput>')
+  [IO.File]::WriteAllText($project, $text)
+  $result = Invoke-JsonBuild -Project $project -Target Rebuild
+  $emitted = Join-Path $reserved '.dak\Build.Output.Name\bin\Win64\Debug\Build.Output.Name.exe'
+  if ($result.ExitCode -ne 0) { throw "Reserved-directory build failed: $($result.Raw)" }
+  if (-not (Test-Path -LiteralPath $emitted -PathType Leaf)) { throw "The compiler did not emit $emitted" }
+  if ($result.Json.output -ne $emitted) { throw "Reserved-directory output mismatch: reported $($result.Json.output), compiler emitted $emitted" }
+  if ($result.Json.output_stale) { throw "Reserved-directory output was reported stale: $($result.Raw)" }
 
   Remove-DakProofTempRoot $tempRoot
   Write-Host 'PASS build-delphi output name and freshness'

@@ -24,6 +24,8 @@ try {
   $props = @{}
   $props['Config'] = $Config
   $props['Platform'] = $Platform
+  # MSBuild defines this reserved property before evaluating project properties (T-351).
+  $props['MSBuildProjectDirectory'] = [IO.Path]::GetDirectoryName($proj)
 
   function Expand-Val([string]$Value) {
     if ($null -eq $Value) {
