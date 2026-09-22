@@ -25,7 +25,11 @@ test -x "$DAK_EXE" || { echo "DAK_EXE not executable"; exit 1; }
 | "Why was this skipped?" | inspect plan JSON | Read resolver classifications, skipped reasons, and warnings |
 | "Should we use LSP for this?" | no | `remove-with` uses DAK's local AST/source model, not DelphiLSP, for bulk refactoring |
 
-Start with `plan` unless the user only asks for an inventory. Use `apply` only after reviewing the plan output or when the user explicitly asks for the refactor to be applied.
+Start with `plan` unless the user only asks for an inventory. For an authorized
+refactor, review the plan and continue through `apply` and verification without
+asking again for the same scope. An inventory or plan-only request does not
+authorize applying edits. Preserve the scope, skip reasons, and transaction
+gates below.
 
 ## Command Patterns
 
