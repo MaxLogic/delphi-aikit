@@ -69,4 +69,7 @@ When reporting which workflow we chose, state:
 - the reason it matches the user intent
 - any secondary skill needed for verification
 
-Then load the selected skill and follow it. Do not duplicate command syntax here unless the target skill is missing or unavailable.
+Then load only the selected skill and any required verification skill. Carry the
+authorized task through its completion gates; routing is not completion when
+the user requested execution. Do not duplicate command syntax here unless the
+target skill is missing or unavailable.
