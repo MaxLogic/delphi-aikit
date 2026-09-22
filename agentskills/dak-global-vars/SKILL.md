@@ -265,6 +265,11 @@ Rule:
    - encapsulate
    - stop and inspect source manually
 
+An inventory request ends with evidence and its limits; it does not authorize
+source edits. When the user requests a refactor, apply only the selected
+change, then build and run the applicable tests before reporting completion.
+Refresh the scoped inventory when source or compiler context changes.
+
 ## Refactor Actions
 
 Remove:
