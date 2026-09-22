@@ -43,7 +43,9 @@ Pass `--platform` and `--config` when the target project requires a non-default 
 1. Run `find-usages` first when identity is unclear.
 2. Run `rename` without `--apply` and review the plan.
 3. Check ambiguous names, DFM handlers, RTTI-visible members, package boundaries, generated code, and external callers.
-4. Use `--apply` only after the plan is acceptable or the user explicitly asked for the edit.
+4. Use `--apply` after reviewing an acceptable plan when the user authorized
+   the rename. Reuse that authorization; a usages or plan-only request does
+   not authorize edits.
 5. Verify the changed project with `dak-build`.
 
 ## Dead-Code Workflow
