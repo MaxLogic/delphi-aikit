@@ -12,7 +12,7 @@ Use this skill whenever we touch Delphi forms, frames, datamodules, or any `.dfm
 1. After every form-related change, run DFM validation before we finalize work.
 2. Prefer `build --dfmcheck` when we are already building the project.
 3. Use `dfm-check` standalone when we only need DFM validation.
-4. Treat any `FAIL` line as a critical error and fix it immediately.
+4. Treat any `FAIL` line as a critical error; diagnose it and fix authorized issues before completion.
 5. Do not skip, suppress, or defer DFM failures.
 6. Do not call `msbuild` directly; use `DelphiAIKit.exe` orchestration commands only.
 7. Treat source `.dpr`, `.dproj`, `.pas`, and `.dfm` files as read-only inputs. DAK may rewrite only its generated clone under `.dak/<ProjectName>/dfm-check/runs/<RunId>/generated/`.
@@ -94,7 +94,11 @@ Defaults:
 
 ## Remediation Rules (required)
 
-When validation reports `FAIL`, we must fix DFM-related issues and re-run validation until exit code is `0`.
+When validation reports `FAIL`, fix DFM-related issues within the authorized
+scope and re-run validation until exit code is `0`. If repair requires an
+unapproved application or public-contract change, retain the failure evidence
+and report the exact blocker. A blocked repair is not a passing validation;
+continue any independent authorized work.
 
 Typical fixes:
 
