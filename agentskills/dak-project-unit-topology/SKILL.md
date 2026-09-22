@@ -152,7 +152,8 @@ For topology questions:
 1. Run `deps --format json`.
 2. Read `project.contextMode`, `summary`, `nodes`, `edges`, `unresolvedUnits`, `parserProblems`.
 3. Quote exact unit names and edge kinds.
-4. If the user asks about one unit, rerun with `--format text --unit`.
+4. Answer a single-unit question from the retained graph when sufficient. Use
+   `--format text --unit` when a focused view adds evidence or clarity.
 
 For cycle-remediation questions:
 
