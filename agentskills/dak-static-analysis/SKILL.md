@@ -281,7 +281,8 @@ rerun with the correct compiler/analyzer/policy context.
 
 ## Agent Workflow
 
-1. Run `doctor` first for tool/path sanity.
+1. Run `doctor` when required by the cadence contract above; reuse unchanged
+   tool/path evidence.
 2. At task tier run `analyze-unit` for touched units when it can cover the
    change. Run project analysis at scheduled batch/final gates for maintained
    projects, or when a shared analyzer/build boundary changes. For legacy
@@ -292,7 +293,8 @@ rerun with the correct compiler/analyzer/policy context.
    `unknown=0`. Then open `triage-changed.md` or `triage.md`. Inspect raw/full
    or external evidence only for ownership diagnosis, dependency drift,
    analyzer failure, or an explicit full audit.
-4. Apply only low-risk fixes in small batches.
+4. For authorized remediation, apply only in-scope, low-risk fixes in small
+   batches. A report-only request ends with findings, not source edits.
 5. Verify through `$dak-build` in the execution domain selected by repository/
    user policy. Use its separate PowerShell or Bash command form; do not paste
    Bash variable syntax into PowerShell. For DelphiAiKit itself, use
@@ -394,6 +396,8 @@ separate refactoring effort instead of expanding the current feature.
 
 ## Local References
 
-- Setup and environment: [SETUP.md](SETUP.md)
-- Tooling notes: [references/tooling.md](references/tooling.md)
-- Triage heuristics: [references/triage.md](references/triage.md)
+- Read [SETUP.md](SETUP.md) when configuring or diagnosing tool discovery.
+- Read [references/tooling.md](references/tooling.md) when option precedence,
+  analyzer configuration, or report provenance needs clarification.
+- Read [references/triage.md](references/triage.md) when interpreting findings
+  or considering a suppression; load only the relevant reference.
