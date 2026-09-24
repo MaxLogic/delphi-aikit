@@ -174,6 +174,21 @@ the automatic nearest Git/SVN boundary is not the intended workspace. The CLI
 overrides `[Workspace].Root`; otherwise the closest ancestor selector wins,
 with the executable `dak.ini` fallback. Unmanaged projects are supported.
 
+The workspace root also bounds ownership. A unit outside it is classified
+`third_party` even when the `.dpr`/`.dproj` lists it or `analyze-unit` names it
+as the subject (DAK issue `2026-09-24-ownership-marks-project-units-third-party`).
+`project` means the `.dproj` folder, so with a `projects/` + `src/` layout it
+hides every owned finding behind "0 findings", `unknown=0` and exit 0. When an
+override is needed, pass the repository root as a fixed path; use `project`
+only when all owned source lives under the `.dproj` folder. In a repository
+without commits the default root fails as well, because provenance runs
+`git rev-parse --show-toplevel HEAD` against the unborn `HEAD` and leaves
+`status.postprocessor: failed`; commit first or pass the fixed root. Before
+treating a zero owned count as evidence, confirm that the workspace root in
+`summary.json` contains the subject or touched units' source folders and that
+any rows for those units are `project`. On first use in a repository, compare
+the owned counts with the raw total.
+
 ## Environment Contract
 
 Recommended baseline:
@@ -290,7 +305,9 @@ rerun with the correct compiler/analyzer/policy context.
    audit or repository policy explicitly asks for the full project.
 3. Open `summary.json` first and confirm analyzer completeness, actionable
    ownership, ignored/external/advisory projections, filter provenance, and
-   `unknown=0`. Then open `triage-changed.md` or `triage.md`. Inspect raw/full
+   `unknown=0`. Zero owned findings against a non-zero raw total means the
+   workspace root probably excludes the owned units (see Run Commands), not a
+   clean result. Then open `triage-changed.md` or `triage.md`. Inspect raw/full
    or external evidence only for ownership diagnosis, dependency drift,
    analyzer failure, or an explicit full audit.
 4. For authorized remediation, apply only in-scope, low-risk fixes in small
