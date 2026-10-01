@@ -119,5 +119,7 @@ uses
   Dak.Utils in '..\src\dak.utils.pas';
 
 begin
+  // DAK-394: before any command runs, so neither DAK nor a tool it starts can block on an OS message box.
+  ApplyUnattendedErrorMode;
   Halt(TDelphiAIKitApp.Run);
 end.

@@ -42,6 +42,10 @@ type
     [Test]
     procedure ScanModeWritesJsonShellWithoutEditingSource;
     [Test]
+    procedure PlanQualifiesMemberAfterRangeSeparator;
+    [Test]
+    procedure PlanQualifiesTypeConstantsShadowingOuterDeclarations;
+    [Test]
     procedure LegacySymbolParserIsNotCompiled;
     [Test]
     procedure RemoveWithSymbolMapBridgeIsRetired;
@@ -1237,6 +1241,143 @@ begin
   Assert.IsTrue(LoadDakSource(lNoBreakPath, lSource, lError), lError);
   Assert.AreEqual('none', lSource.fLineEndingName, 'Expected no-line-ending provenance.');
   Assert.AreEqual(sLineBreak, lSource.fLineBreak, 'Expected no-line-ending source to use platform fallback.');
+end;
+
+procedure TRemoveWithCommandTests.PlanQualifiesMemberAfterRangeSeparator;
+var
+  lDprojPath: string;
+  lExitCode: Cardinal;
+  lLogPath: string;
+  lPlan: string;
+  lRoot: string;
+  lUnitPath: string;
+begin
+  lRoot := TPath.Combine(TempRoot, 'remove-with-range-bound');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+  lDprojPath := TPath.Combine(lRoot, 'RangeBoundProject.dproj');
+  lUnitPath := TPath.Combine(lRoot, 'RangeBoundUnit.pas');
+  TFile.WriteAllText(TPath.Combine(lRoot, 'RangeBoundProject.dpr'),
+    'program RangeBoundProject;' + sLineBreak +
+    'uses RangeBoundUnit in ''RangeBoundUnit.pas'';' + sLineBreak +
+    'begin' + sLineBreak + 'end.', TEncoding.UTF8);
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup><MainSource>RangeBoundProject.dpr</MainSource></PropertyGroup>' + sLineBreak +
+    '</Project>', TEncoding.UTF8);
+  // Inside the with body Hi is the record member; the unit-level Hi would capture a
+  // bare Hi after the rewrite and still compile.
+  TFile.WriteAllText(lUnitPath,
+    'unit RangeBoundUnit;' + sLineBreak + 'interface' + sLineBreak + 'type' + sLineBreak +
+    '  TR = record' + sLineBreak + '    Lo, Hi: Integer;' + sLineBreak + '  end;' + sLineBreak +
+    'procedure P(var R: TR; X: Integer);' + sLineBreak + 'implementation' + sLineBreak +
+    'const' + sLineBreak + '  Hi = 100;' + sLineBreak +
+    'procedure P(var R: TR; X: Integer);' + sLineBreak + 'begin' + sLineBreak +
+    '  with R do' + sLineBreak + '    if X in [Lo..Hi] then' + sLineBreak +
+    '      Lo := 1;' + sLineBreak + 'end;' + sLineBreak + 'end.', TEncoding.UTF8);
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-range-bound-plan.json');
+
+  Assert.IsTrue(RunResolverProcess('remove-with --project ' + QuoteArg(lDprojPath) +
+    ' --unit ' + QuoteArg(lUnitPath) + ' --mode plan --format json', RepoRoot, lLogPath,
+    lExitCode), 'Failed to start remove-with plan.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan to succeed. See: ' + lLogPath);
+  lPlan := ReadUtf8TextFile(lLogPath);
+  Assert.IsTrue(Pos('"status":"planned"', lPlan) > 0, 'Expected a planned statement. See: ' + lLogPath);
+  Assert.IsTrue(Pos('[lWithRPtr^.Lo..lWithRPtr^.Hi]', lPlan) > 0,
+    'Both range bounds must be qualified. See: ' + lLogPath);
+  Assert.IsTrue(Pos('[Lo..Hi]', TFile.ReadAllText(lUnitPath, TEncoding.UTF8)) > 0,
+    'Plan mode must not edit the fixture.');
+end;
+
+procedure TRemoveWithCommandTests.PlanQualifiesTypeConstantsShadowingOuterDeclarations;
+const
+  // One expected statement body per with, in source order; %0:s is that statement's qualifier.
+  cExpected: array[0..3] of string = (
+    'X := %0:s.CHi + %0:s.CLo + %0:s.CMid;',
+    'if X in [%0:s.CLo..%0:s.CHi] then %0:s.Lo := 2;',
+    'case X of %0:s.CLo..%0:s.CHi: %0:s.Lo := 2; end;',
+    'X := %0:s.KC + %0:s.KA;');
+var
+  g: TGarbos;
+  i: Integer;
+  lDprojPath: string;
+  lEdit: TJSONValue;
+  lEdits: TJSONArray;
+  lExitCode: Cardinal;
+  lExpected: string;
+  lJson: TJSONObject;
+  lLogPath: string;
+  lPlanned: TJSONArray;
+  lQualifier: string;
+  lReplacement: string;
+  lRoot: string;
+  lStatement: TJSONObject;
+  lTemps: TJSONArray;
+  lUnitPath: string;
+begin
+  g := Default(TGarbos);
+  lRoot := TPath.Combine(TempRoot, 'remove-with-type-constants');
+  if TDirectory.Exists(lRoot) then
+    TDirectory.Delete(lRoot, True);
+  TDirectory.CreateDirectory(lRoot);
+  lDprojPath := TPath.Combine(lRoot, 'TypeConstProject.dproj');
+  lUnitPath := TPath.Combine(lRoot, 'TypeConstUnit.pas');
+  TFile.WriteAllText(TPath.Combine(lRoot, 'TypeConstProject.dpr'),
+    'program TypeConstProject;' + sLineBreak +
+    'uses TypeConstUnit in ''TypeConstUnit.pas'';' + sLineBreak +
+    'begin' + sLineBreak + 'end.', TEncoding.UTF8);
+  TFile.WriteAllText(lDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup><MainSource>TypeConstProject.dpr</MainSource></PropertyGroup>' + sLineBreak +
+    '</Project>', TEncoding.UTF8);
+  // DS-646: inside each with body the record and class constants hide the unit-level CHi and
+  // KC. A bare CHi or KC after the rewrite would silently bind to 300 or 900 and still compile.
+  TFile.WriteAllText(lUnitPath,
+    'unit TypeConstUnit;' + sLineBreak + 'interface' + sLineBreak + 'type' + sLineBreak +
+    '  TR = record' + sLineBreak + '    Lo, Hi: Integer;' + sLineBreak +
+    '    const CLo = 1; CHi = 5; CMid = 3;' + sLineBreak + '  end;' + sLineBreak +
+    '  TC = class' + sLineBreak + '  public' + sLineBreak + '    const KA = 2; KC = 7;' +
+    sLineBreak + '  end;' + sLineBreak +
+    'procedure P(var R: TR; C: TC; X: Integer);' + sLineBreak + 'implementation' + sLineBreak +
+    'const' + sLineBreak + '  CHi = 300;' + sLineBreak + '  KC = 900;' + sLineBreak +
+    'procedure P(var R: TR; C: TC; X: Integer);' + sLineBreak + 'begin' + sLineBreak +
+    '  with R do' + sLineBreak + '    X := CHi + CLo + CMid;' + sLineBreak +
+    '  with R do' + sLineBreak + '    if X in [CLo..CHi] then Lo := 2;' + sLineBreak +
+    '  with R do' + sLineBreak + '    case X of CLo..CHi: Lo := 2; end;' + sLineBreak +
+    '  with C do' + sLineBreak + '    X := KC + KA;' + sLineBreak +
+    'end;' + sLineBreak + 'end.', TEncoding.UTF8);
+  lLogPath := TPath.Combine(TempRoot, 'remove-with-type-constants-plan.json');
+
+  Assert.IsTrue(RunResolverProcess('remove-with --project ' + QuoteArg(lDprojPath) +
+    ' --unit ' + QuoteArg(lUnitPath) + ' --mode plan --format json', RepoRoot, lLogPath,
+    lExitCode), 'Failed to start remove-with plan.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected remove-with plan to succeed. See: ' + lLogPath);
+  lJson := TJSONObject.ParseJSONValue(ReadUtf8TextFile(lLogPath)) as TJSONObject;
+  GC(lJson, g);
+  Assert.IsNotNull(lJson, 'Expected a JSON plan. See: ' + lLogPath);
+  lPlanned := lJson.GetValue<TJSONArray>('plannedEdits');
+  Assert.AreEqual(Length(cExpected), lPlanned.Count, 'Every with statement must be planned. See: ' +
+    lLogPath);
+  for i := 0 to lPlanned.Count - 1 do
+  begin
+    lStatement := lPlanned.Items[i] as TJSONObject;
+    Assert.AreEqual('planned', lStatement.GetValue<string>('status'), 'See: ' + lLogPath);
+    lTemps := lStatement.GetValue<TJSONArray>('temps');
+    if lTemps.Count > 0 then
+      lQualifier := (lTemps.Items[0] as TJSONObject).GetValue<string>('qualifier')
+    else if i < 3 then
+      lQualifier := 'R'
+    else
+      lQualifier := 'C';
+    lReplacement := '';
+    lEdits := lStatement.GetValue<TJSONArray>('edits');
+    for lEdit in lEdits do
+      if (lEdit as TJSONObject).GetValue<string>('kind') = 'replace-statement' then
+        lReplacement := (lEdit as TJSONObject).GetValue<string>('replacementText');
+    lExpected := Format(cExpected[i], [lQualifier]);
+    Assert.IsTrue(Pos(lExpected, lReplacement) > 0, lExpected + ' in ' + lReplacement);
+  end;
 end;
 
 procedure TRemoveWithCommandTests.ScanModeWritesJsonShellWithoutEditingSource;

@@ -45,6 +45,14 @@ type
     procedure ChildRunRootSweepRemovesOnlyRootsMarkedWithThisRunsIdentity;
     [Test]
     procedure ChildRunRootSweepReportsAnUnlistableFolderInsteadOfRaising;
+    [Test]
+    procedure TestRunnerSuppressesErrorDialogsWhateverItsParentMode;
+    [Test]
+    [TestCase('Text file', '0')]
+    [TestCase('DOS stub without a PE header', '1')]
+    [TestCase('Truncated DOS header', '2')]
+    [TestCase('PE offset past the end', '3')]
+    procedure InvalidExecutableFailsWithNamedErrorBeforeLaunch(aVariant: Integer);
   end;
 
 implementation
@@ -792,6 +800,71 @@ begin
       Assert.Fail('The lock-release task did not finish');
   end;
   Assert.AreEqual('retry-ok', TFile.ReadAllText(lPath).Trim);
+end;
+
+// DAK-394: a process inherits its parent's error mode. Under a parent with mode 0, CreateProcess on a file that
+// is not a PE image opens a modal "Unsupported 16-bit application" dialog and the run blocks. The child starts
+// with CREATE_DEFAULT_ERROR_MODE, so only the runner's own startup can set the flags it reports as exit code.
+procedure TExternalToolProcessTests.TestRunnerSuppressesErrorDialogsWhateverItsParentMode;
+const
+  cRequired = SEM_FAILCRITICALERRORS or SEM_NOGPFAULTERRORBOX or SEM_NOOPENFILEERRORBOX;
+var
+  lError: string;
+  lExit: Cardinal;
+  lGuard: IInterface;
+  lOptions: TExternalToolProcessRunOptions;
+  lTimedOut: Boolean;
+begin
+  lGuard := SetScopedEnvironmentVariable('DAK_TEST_REPORT_ERROR_MODE', '1');
+  Assert.IsNotNull(lGuard);
+  lOptions := Default(TExternalToolProcessRunOptions);
+  lOptions.fExePath := ParamStr(0);
+  lOptions.fCreationFlags := CREATE_DEFAULT_ERROR_MODE;
+  lOptions.fTimeoutSec := 30;
+  Assert.IsTrue(TryRunExternalToolProcess(lOptions, lExit, lTimedOut, lError), lError);
+  Assert.AreEqual<Cardinal>(cRequired, lExit and cRequired,
+    Format('Child error mode $%.4x lacks the dialog-suppressing flags $%.4x', [lExit, cRequired]));
+end;
+
+procedure TExternalToolProcessTests.InvalidExecutableFailsWithNamedErrorBeforeLaunch(aVariant: Integer);
+var
+  lBytes: TBytes;
+  lError: string;
+  lExit: Cardinal;
+  lOptions: TExternalToolProcessRunOptions;
+  lPath: string;
+  lTimedOut: Boolean;
+begin
+  lPath := UniqueTempPath('invalid-image') + '.exe';
+  ForceDirectories(ExtractFileDir(lPath));
+  case aVariant of
+    0:
+      lBytes := TEncoding.ASCII.GetBytes('not a Windows executable');
+    2:
+      lBytes := TEncoding.ASCII.GetBytes('MZ');
+  else
+    // SetLength zero-fills the new array.
+    SetLength(lBytes, 256);
+    lBytes[0] := Ord('M');
+    lBytes[1] := Ord('Z');
+    // Variant 1 points e_lfanew at zero bytes; variant 3 points it past the end of the file.
+    if aVariant = 1 then
+      lBytes[$3C] := $80
+    else
+      lBytes[$3D] := $10;
+  end;
+  TFile.WriteAllBytes(lPath, lBytes);
+  try
+    lOptions := Default(TExternalToolProcessRunOptions);
+    lOptions.fExePath := lPath;
+    lOptions.fStartFailureFormat := 'Sample tool failed to start: %s';
+    lOptions.fTimeoutSec := 30;
+    Assert.IsFalse(TryRunExternalToolProcess(lOptions, lExit, lTimedOut, lError), 'An invalid image must not start');
+    Assert.IsFalse(lTimedOut);
+    Assert.AreEqual('Sample tool failed to start: ' + lPath + ' is not a valid Windows executable', lError);
+  finally
+    TFile.Delete(lPath);
+  end;
 end;
 
 initialization

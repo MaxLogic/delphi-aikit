@@ -31,6 +31,8 @@ type
     [Test]
     procedure RenameCommandAcceptsSourcePositionTarget;
     [Test]
+    procedure RenamePlanKeepsOverloadAndRangeBoundIdentity;
+    [Test]
     procedure RenameCommandReportsSemanticPhaseMetricsAsJson;
     [Test]
     procedure ScopedIdentifierAdapterMatchesForcedFullRename;
@@ -443,6 +445,100 @@ begin
   Assert.IsTrue(Pos('RenamedValue', lLogText) > 0, 'Expected planned rename text. See: ' + lLogPath);
   Assert.IsTrue(Pos('SharedValue', TFile.ReadAllText(lUnitOnePath, TEncoding.UTF8)) > 0,
     'Dry-run position rename must not edit declaration file.');
+end;
+
+procedure CreateOverloadRangeFixtureProject(const aRoot: string; out aDprojPath,
+  aUnitPath: string);
+begin
+  ForceDirectories(aRoot);
+  aDprojPath := TPath.Combine(aRoot, 'OverloadRangeFixture.dproj');
+  aUnitPath := TPath.Combine(aRoot, 'OverloadRange.pas');
+  TFile.WriteAllText(aDprojPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' + sLineBreak +
+    '  <PropertyGroup><MainSource>OverloadRangeFixture.dpr</MainSource></PropertyGroup>' + sLineBreak +
+    '</Project>' + sLineBreak, TEncoding.UTF8);
+  TFile.WriteAllText(TPath.Combine(aRoot, 'OverloadRangeFixture.dpr'),
+    'program OverloadRangeFixture;' + sLineBreak + 'uses' + sLineBreak +
+    '  OverloadRange in ''OverloadRange.pas'';' + sLineBreak + 'begin' + sLineBreak + '  Run(1);' + sLineBreak +
+    'end.' + sLineBreak, TEncoding.UTF8);
+  // Line layout: cMax 7, subrange 10, Add overloads 12/13 and 20/25, calls 42/43,
+  // case label with a second cMax use on 47.
+  TFile.WriteAllText(aUnitPath,
+    'unit OverloadRange;' + sLineBreak + '' + sLineBreak + 'interface' + sLineBreak +
+    '' + sLineBreak + 'const' + sLineBreak + '  cMin = 1;' + sLineBreak +
+    '  cMax = 5;' + sLineBreak + '' + sLineBreak + 'type' + sLineBreak +
+    '  TR = cMin..cMax;' + sLineBreak + '' + sLineBreak +
+    'procedure Add(const A: array of Integer); overload;' + sLineBreak +
+    'procedure Add(const A: array of string); overload;' + sLineBreak +
+    'procedure Put(const A: Integer); overload;' + sLineBreak +
+    'procedure Put(const A: string); overload;' + sLineBreak +
+    'procedure Run(X: Integer);' + sLineBreak + '' + sLineBreak +
+    'implementation' + sLineBreak + '' + sLineBreak +
+    'procedure Add(const A: array of Integer);' + sLineBreak + 'begin' + sLineBreak +
+    '  WriteLn(Length(A));' + sLineBreak + 'end;' + sLineBreak + '' + sLineBreak +
+    'procedure Add(const A: array of string);' + sLineBreak + 'begin' + sLineBreak +
+    '  WriteLn(Length(A));' + sLineBreak + 'end;' + sLineBreak + '' + sLineBreak +
+    'procedure Put(const A: Integer);' + sLineBreak + 'begin' + sLineBreak +
+    '  WriteLn(A);' + sLineBreak + 'end;' + sLineBreak + '' + sLineBreak +
+    'procedure Put(const A: string);' + sLineBreak + 'begin' + sLineBreak +
+    '  WriteLn(A);' + sLineBreak + 'end;' + sLineBreak + '' + sLineBreak +
+    'procedure Run(X: Integer);' + sLineBreak + 'begin' + sLineBreak +
+    '  Add([1, 2]);' + sLineBreak + '  Add([''x'']);' + sLineBreak +
+    '  Put(1);' + sLineBreak + '  Put(''x'');' + sLineBreak +
+    '  case X of' + sLineBreak + '    cMin..cMax: WriteLn(cMax);' + sLineBreak +
+    '  end;' + sLineBreak + 'end;' + sLineBreak + '' + sLineBreak + 'end.' + sLineBreak,
+    TEncoding.UTF8);
+end;
+
+function PlanFixtureRename(const aDprojPath, aUnitPath: string; const aLine,
+  aColumn: Integer; const aNewName: string): string;
+var
+  lExitCode: Cardinal;
+  lLogPath: string;
+begin
+  lLogPath := TPath.Combine(TempRoot, 'refactor-rename-overload-range-' + aNewName + '.log');
+  Assert.IsTrue(RunResolverProcess('rename --project ' + QuoteArg(aDprojPath) +
+    ' --platform Win64 --file ' + QuoteArg(aUnitPath) +
+    Format(' --line %d --col %d', [aLine, aColumn]) + ' --new-name ' + aNewName +
+    ' --format json', RepoRoot, lLogPath, lExitCode), 'Failed to start rename command.');
+  Assert.AreEqual(Cardinal(0), lExitCode, 'Expected rename dry-run to succeed. See: ' + lLogPath);
+  Result := ReadUtf8TextFile(lLogPath);
+  Assert.IsTrue(Pos('"status":"planned"', Result) > 0, 'Expected planned status. See: ' + lLogPath);
+end;
+
+function PlanHasEditAt(const aPlan: string; const aLine, aColumn: Integer): Boolean;
+begin
+  Result := Pos(Format('"startLine":%d,"startColumn":%d,', [aLine, aColumn]), aPlan) > 0;
+end;
+
+procedure TRefactorCommandTests.RenamePlanKeepsOverloadAndRangeBoundIdentity;
+var
+  lDprojPath: string;
+  lPlan: string;
+  lUnitPath: string;
+begin
+  CreateOverloadRangeFixtureProject(TPath.Combine(TempRoot, 'refactor-rename-overload-range'),
+    lDprojPath, lUnitPath);
+
+  // Without argument types a call may stay unresolved, but never belongs to the other overload.
+  lPlan := PlanFixtureRename(lDprojPath, lUnitPath, 12, 11, 'AddInts');
+  Assert.IsTrue(PlanHasEditAt(lPlan, 12, 11) and PlanHasEditAt(lPlan, 20, 11),
+    'Integer overload declarations: ' + lPlan);
+  Assert.IsFalse(PlanHasEditAt(lPlan, 13, 11) or PlanHasEditAt(lPlan, 25, 11) or
+    PlanHasEditAt(lPlan, 43, 3), 'Integer rename must not touch the string overload: ' + lPlan);
+  lPlan := PlanFixtureRename(lDprojPath, lUnitPath, 13, 11, 'AddStrs');
+  Assert.IsTrue(PlanHasEditAt(lPlan, 13, 11) and PlanHasEditAt(lPlan, 25, 11),
+    'String overload declarations: ' + lPlan);
+  Assert.IsFalse(PlanHasEditAt(lPlan, 12, 11) or PlanHasEditAt(lPlan, 20, 11) or
+    PlanHasEditAt(lPlan, 42, 3), 'String rename must not touch the Integer overload: ' + lPlan);
+
+  // Range separators are not member access: every bound use of cMax is renamed.
+  lPlan := PlanFixtureRename(lDprojPath, lUnitPath, 7, 3, 'cTop');
+  Assert.IsTrue(PlanHasEditAt(lPlan, 7, 3) and PlanHasEditAt(lPlan, 10, 14) and
+    PlanHasEditAt(lPlan, 47, 11) and PlanHasEditAt(lPlan, 47, 25),
+    'Every cMax use must be planned: ' + lPlan);
+  Assert.IsTrue(Pos('cMax', TFile.ReadAllText(lUnitPath, TEncoding.UTF8)) > 0,
+    'Dry-run rename must not edit the fixture.');
 end;
 
 procedure TRefactorCommandTests.RenameCommandReportsSemanticPhaseMetricsAsJson;

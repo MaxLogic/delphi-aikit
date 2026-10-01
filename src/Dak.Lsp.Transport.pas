@@ -40,7 +40,8 @@ function ValidateLspResponse(aResponse: TJSONObject; aId: Integer; out aError: s
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils,
+  Dak.ExternalToolProcess;
 
 const
   cDefaultLspRequestTimeoutMs = 30000;
@@ -471,9 +472,17 @@ var
   lSi: TStartupInfo;
   lStdErrHandle: THandle;
   lStdErrDir: string;
+  lValidationError: string;
 begin
   Result := False;
   aError := '';
+  // DAK-394: a file that is not a PE image fails here with its path named, before CreateProcess could raise a
+  // modal "Unsupported 16-bit application" box.
+  if not TryValidateWindowsExecutable(aExePath, lValidationError) then
+  begin
+    aError := 'Failed to start DelphiLSP.exe: ' + lValidationError;
+    Exit(False);
+  end;
   lChildStdInRead := 0;
   lChildStdInWrite := 0;
   lChildStdOutRead := 0;

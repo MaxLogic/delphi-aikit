@@ -60,6 +60,10 @@ type
     [TestCase('Missing compiler DLL still starts the server', '2')]
     procedure LspRunnerReportsExecutableFailures(aVariant: Integer);
     [Test]
+    [TestCase('Text file', '0')]
+    [TestCase('DOS stub without a PE header', '1')]
+    procedure LspRunnerNamesInvalidExecutableBeforeLaunch(aVariant: Integer);
+    [Test]
     [TestCase('Initialize error response', '0')]
     [TestCase('Probe initialize error response', '1')]
     [TestCase('Unresponsive initialize', '2')]
@@ -703,6 +707,37 @@ begin
     Assert.IsTrue(lError.StartsWith('DelphiLSP.exe not found at: ' + lExePath), lError)
   else
     Assert.IsTrue(lError.StartsWith('Failed to start DelphiLSP.exe:'), lError);
+end;
+
+// DAK-394: CreateProcess on a file without a PE image may show a modal "Unsupported 16-bit application"
+// dialog. The transport reads the image signatures first, so the start fails at once with a named reason.
+procedure TLspRunnerTests.LspRunnerNamesInvalidExecutableBeforeLaunch(aVariant: Integer);
+var
+  lBytes: TBytes;
+  lContext: TLspContext;
+  lDprojPath, lError, lExePath: string;
+  lOptions: TAppOptions;
+  lResult: TLspRunnerResult;
+begin
+  lDprojPath := PrepareContext('lsp-runner-invalid-image-' + IntToStr(aVariant), lContext);
+  lExePath := TPath.Combine(ExtractFilePath(lDprojPath), 'Tools\DelphiLSP.exe');
+  if aVariant = 0 then
+    WriteAsciiFile(lExePath, 'not a Windows executable')
+  else begin
+    // A DOS header whose e_lfanew points at bytes that are not "PE\0\0"; SetLength zero-fills the array.
+    SetLength(lBytes, 256);
+    lBytes[0] := Ord('M');
+    lBytes[1] := Ord('Z');
+    lBytes[$3C] := $80;
+    ForceDirectories(ExtractFileDir(lExePath));
+    TFile.WriteAllBytes(lExePath, lBytes);
+  end;
+  WriteAsciiFile(TPath.Combine(ExtractFilePath(lExePath), 'dcc32290.dll'), 'dll');
+  lOptions := BuildRunnerOptions(lDprojPath);
+  lOptions.fLspPath := lExePath;
+  lOptions.fHasLspPath := True;
+  Assert.IsFalse(TryRunLspRequest(lOptions, lContext, lResult, lError));
+  Assert.AreEqual('Failed to start DelphiLSP.exe: ' + lExePath + ' is not a valid Windows executable', lError);
 end;
 
 procedure TLspRunnerTests.LspCompilerDllWarningNamesReasonWithoutRefusing(aVariant: Integer);

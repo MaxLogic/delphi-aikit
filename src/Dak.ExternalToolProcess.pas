@@ -9,6 +9,8 @@ uses
 const
   cExternalToolDefaultTimeoutSec = 1800;
   cExternalToolTimeoutExitCode = WAIT_TIMEOUT;
+  // Fail instead of asking: no critical-error, GP-fault or open-file message box.
+  cUnattendedErrorMode = SEM_FAILCRITICALERRORS or SEM_NOGPFAULTERRORBOX or SEM_NOOPENFILEERRORBOX;
 
 type
   TExternalToolProcessRunOptions = record
@@ -30,6 +32,8 @@ type
     fTimeoutExitCode: Cardinal;
   end;
 
+procedure ApplyUnattendedErrorMode;
+function TryValidateWindowsExecutable(const aPath: string; out aError: string): Boolean;
 function ResolveExternalToolTimeoutSec(aTimeoutSec: Integer): Integer;
 function ResolveExternalToolTimeoutMs(aTimeoutSec: Integer): Cardinal;
 function TryTerminateTimedOutExternalToolProcess(const aToolName: string; aProcess: THandle; aTimeoutSec: Integer;
@@ -42,6 +46,53 @@ function TryWaitForExternalToolProcess(const aToolName: string; aProcess: THandl
   out aExitCode: Cardinal; out aError: string): Boolean;
 
 implementation
+
+// DAK-394: a process inherits its parent's error mode unless it sets its own. With mode 0, CreateProcess on a
+// file that is not a PE image opens a modal "Unsupported 16-bit application" box in the calling process and
+// does not return until someone closes it; a crash may wait on a GP-fault box too. Each executable calls this
+// first at startup, so it and every child it starts fail with an error code instead, whatever launched it.
+procedure ApplyUnattendedErrorMode;
+begin
+  SetErrorMode(GetErrorMode or cUnattendedErrorMode);
+end;
+
+// DAK-394: rejects a file that has no "MZ" DOS header or no "PE\0\0" signature where e_lfanew points, before
+// CreateProcess sends it down the 16-bit application path. Batch files are run by cmd.exe and are not images.
+// A file we cannot open or read is left to CreateProcess, which reports its own reason.
+function TryValidateWindowsExecutable(const aPath: string; out aError: string): Boolean;
+var
+  lDosHeader: TImageDosHeader;
+  lHandle: THandle;
+  lRead: Integer;
+  lSignature: Cardinal;
+begin
+  aError := '';
+  if SameText(ExtractFileExt(aPath), '.bat') or SameText(ExtractFileExt(aPath), '.cmd') then
+    Exit(True);
+  lHandle := FileOpen(aPath, fmOpenRead or fmShareDenyNone);
+  if lHandle = INVALID_HANDLE_VALUE then
+    Exit(True);
+  try
+    lRead := FileRead(lHandle, lDosHeader, SizeOf(lDosHeader));
+    if lRead < 0 then
+      Exit(True);
+    Result := (lRead = SizeOf(lDosHeader)) and (lDosHeader.e_magic = IMAGE_DOS_SIGNATURE) and
+      (lDosHeader._lfanew >= 0);
+    if Result then
+    begin
+      if FileSeek(lHandle, Int64(lDosHeader._lfanew), 0) < 0 then
+        Exit(True);
+      lRead := FileRead(lHandle, lSignature, SizeOf(lSignature));
+      if lRead < 0 then
+        Exit(True);
+      Result := (lRead = SizeOf(lSignature)) and (lSignature = IMAGE_NT_SIGNATURE);
+    end;
+  finally
+    FileClose(lHandle);
+  end;
+  if not Result then
+    aError := aPath + ' is not a valid Windows executable';
+end;
 
 function ResolveExternalToolTimeoutSec(aTimeoutSec: Integer): Integer;
 begin
@@ -257,6 +308,7 @@ var
   lStarted: Boolean;
   lStartupInfo: TStartupInfoEx;
   lToolName: string;
+  lValidationError: string;
   lWait: Cardinal;
   lWorkDir: string;
   lWorkDirPtr: PChar;
@@ -307,6 +359,12 @@ begin
     lEnvironment := PChar(lEnvironmentBlock);
   end else
     lEnvironment := nil;
+
+  if (lApplicationPtr <> nil) and not TryValidateWindowsExecutable(lApplicationName, lValidationError) then
+  begin
+    aError := ExternalToolStartError(aOptions, lValidationError);
+    Exit(False);
+  end;
 
   FillChar(lProcessInfo, SizeOf(lProcessInfo), 0);
   lHandleCount := CollectInheritableHandles(lStartupInfo.StartupInfo, lHandles);

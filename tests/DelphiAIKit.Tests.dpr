@@ -586,6 +586,11 @@ var
   Results: IRunResults;
   Logger: ITestLogger;
 begin
+  // DAK-394: first, so no test, fixture child or tool they start can block on an OS message box.
+  ApplyUnattendedErrorMode;
+  // Reports the error mode the runner runs with, after its own startup has set it.
+  if GetEnvironmentVariable('DAK_TEST_REPORT_ERROR_MODE') = '1' then
+    Halt(Integer(GetErrorMode));
   if GetEnvironmentVariable('DAK_TEST_LARGE_OUTPUT_CHILD') = '1' then
   begin
     for var i := 0 to 19999 do
