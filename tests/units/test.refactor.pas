@@ -23,6 +23,12 @@ type
     [Test]
     procedure FindUsagesCommandReportsProjectScopedReferencesAsJson;
     [Test]
+    procedure FindUsagesAndRenameRefuseUnverifiedMembers;
+    [Test]
+    [TestCase('Failed syntax tree', 'True')]
+    [TestCase('Verified control', 'False')]
+    procedure DeadCodeBlocksUnverifiedMembers(const aFailed: Boolean);
+    [Test]
     procedure RenameCommandDefaultsToDryRun;
     [Test]
     procedure RenameCommandAppliesEditsAndCreatesBackups;
@@ -289,6 +295,145 @@ begin
   finally
     lJson.Free;
   end;
+end;
+
+// UProv compiles, but the syntax tree builder rejects the one-character deprecation message.
+// Its members then come from an unverified line scan, so find-usages and rename must refuse.
+procedure TRefactorCommandTests.FindUsagesAndRenameRefuseUnverifiedMembers;
+var
+  lExitCode: Cardinal;
+  lJson: TJSONObject;
+  lLogPath: string;
+  lProjectPath: string;
+  lRoot: string;
+  lSourceHash: string;
+  lUnitPath: string;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-unverified-members');
+  ForceDirectories(lRoot);
+  lUnitPath := TPath.Combine(lRoot, 'UProv.pas');
+  lProjectPath := TPath.Combine(lRoot, 'Prov.dproj');
+  TFile.WriteAllText(lUnitPath, 'unit UProv;'#13#10'interface'#13#10'type'#13#10 +
+    '  TA = class'#13#10'  public'#13#10'    FCounter: Integer;'#13#10 +
+    '    procedure Y; deprecated ''z'';'#13#10'  end;'#13#10'implementation'#13#10 +
+    'procedure TA.Y;'#13#10'begin'#13#10'  FCounter := 1;'#13#10'end;'#13#10'end.'#13#10,
+    TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'Prov.dpr'),
+    'program Prov;'#13#10'uses UProv in ''UProv.pas'';'#13#10'begin end.'#13#10, TEncoding.ASCII);
+  TFile.WriteAllText(lProjectPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup>' +
+    '<MainSource>Prov.dpr</MainSource></PropertyGroup><ItemGroup>' +
+    '<DCCReference Include="UProv.pas"/></ItemGroup></Project>', TEncoding.ASCII);
+  lSourceHash := THashSHA2.GetHashStringFromFile(lUnitPath);
+
+  lLogPath := TPath.Combine(TempRoot, 'refactor-unverified-find-usages.log');
+  Assert.IsTrue(RunResolverProcess('find-usages --project ' + QuoteArg(lProjectPath) +
+    ' --file ' + QuoteArg(lUnitPath) + ' --line 6 --col 5 --format json --no-semantic-cache',
+    RepoRoot, lLogPath, lExitCode), 'Failed to start find-usages command.');
+  Assert.AreNotEqual(Cardinal(0), lExitCode, 'Unverified members must not resolve. See: ' + lLogPath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+  try
+    Assert.AreEqual('unknown', lJson.GetValue<string>('status', ''), lLogPath);
+    Assert.IsTrue(ContainsText(lJson.GetValue<string>('diagnostic', ''), 'ast-failed'), lLogPath);
+    Assert.AreEqual(0, lJson.GetValue<Integer>('count', -1), lLogPath);
+  finally
+    lJson.Free;
+  end;
+
+  lLogPath := TPath.Combine(TempRoot, 'refactor-unverified-rename.log');
+  Assert.IsTrue(RunResolverProcess('rename --project ' + QuoteArg(lProjectPath) +
+    ' --file ' + QuoteArg(lUnitPath) + ' --line 6 --col 5 --new-name FTally --format json' +
+    ' --no-semantic-cache', RepoRoot, lLogPath, lExitCode), 'Failed to start rename command.');
+  Assert.AreNotEqual(Cardinal(0), lExitCode, 'Unverified members must not be renamed. See: ' + lLogPath);
+  lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+  try
+    Assert.AreEqual('blocked', lJson.GetValue<string>('status', ''), lLogPath);
+    Assert.IsTrue(ContainsText(lJson.GetValue<string>('diagnostic', ''), 'ast-failed'), lLogPath);
+    Assert.AreEqual(0, lJson.GetValue<Integer>('editCount', -1), lLogPath);
+  finally
+    lJson.Free;
+  end;
+  Assert.AreEqual(lSourceHash, THashSHA2.GetHashStringFromFile(lUnitPath));
+end;
+
+// FUnused is private and unreferenced. In the ast-failed unit it is only an unverified fallback
+// member, so no profile may report it as definitely unused.
+procedure TRefactorCommandTests.DeadCodeBlocksUnverifiedMembers(const aFailed: Boolean);
+var
+  lCandidate: TJSONObject;
+  lCandidates: TJSONArray;
+  lDeprecation: string;
+  lExitCode: Cardinal;
+  lFound: Boolean;
+  lJson: TJSONObject;
+  lLogPath: string;
+  lProfile: string;
+  lProjectPath: string;
+  lRoot: string;
+  lSourceHash: string;
+  lUnitPath: string;
+  i: Integer;
+begin
+  EnsureResolverBuilt;
+  lRoot := TPath.Combine(TempRoot, 'refactor-unverified-dead-code-' + BoolToStr(aFailed, True));
+  ForceDirectories(lRoot);
+  lUnitPath := TPath.Combine(lRoot, 'UProv.pas');
+  lProjectPath := TPath.Combine(lRoot, 'Prov.dproj');
+  lDeprecation := '';
+  if aFailed then
+    lDeprecation := ' deprecated ''z'';';
+  TFile.WriteAllText(lUnitPath, 'unit UProv;'#13#10'interface'#13#10'type'#13#10 +
+    '  TA = class'#13#10'  private'#13#10'    FUnused: Integer;'#13#10'  public'#13#10 +
+    '    FCounter: Integer;'#13#10'    procedure Y;' + lDeprecation + #13#10'  end;'#13#10 +
+    'implementation'#13#10'procedure TA.Y;'#13#10'begin'#13#10'  FCounter := 1;'#13#10 +
+    'end;'#13#10'end.'#13#10, TEncoding.ASCII);
+  TFile.WriteAllText(TPath.Combine(lRoot, 'Prov.dpr'),
+    'program Prov;'#13#10'uses UProv in ''UProv.pas'';'#13#10'begin end.'#13#10, TEncoding.ASCII);
+  TFile.WriteAllText(lProjectPath,
+    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup>' +
+    '<MainSource>Prov.dpr</MainSource></PropertyGroup><ItemGroup>' +
+    '<DCCReference Include="UProv.pas"/></ItemGroup></Project>', TEncoding.ASCII);
+  lSourceHash := THashSHA2.GetHashStringFromFile(lUnitPath);
+
+  for lProfile in TArray<string>.Create('legacy-static', 'conservative') do
+  begin
+    lLogPath := TPath.Combine(TempRoot, 'refactor-unverified-dead-code-' +
+      BoolToStr(aFailed, True) + '-' + lProfile + '.log');
+    Assert.IsTrue(RunResolverProcess('dead-code --project ' + QuoteArg(lProjectPath) +
+      ' --profile ' + lProfile + ' --format json --no-semantic-cache', RepoRoot, lLogPath,
+      lExitCode), 'Failed to start dead-code command.');
+    lJson := ParseJsonObject(ReadUtf8TextFile(lLogPath), lLogPath);
+    try
+      Assert.IsTrue(lJson.Values['candidates'] is TJSONArray, lLogPath);
+      lCandidates := lJson.Values['candidates'] as TJSONArray;
+      lFound := False;
+      for i := 0 to lCandidates.Count - 1 do
+      begin
+        lCandidate := lCandidates.Items[i] as TJSONObject;
+        if not SameText(lCandidate.GetValue<string>('unit', ''), 'UProv') then
+          Continue;
+        if aFailed then
+          Assert.AreNotEqual('definitely-unused', lCandidate.GetValue<string>('status', ''),
+            'An ast-failed unit must not yield definitely-unused candidates. See: ' + lLogPath);
+        if not SameText(lCandidate.GetValue<string>('name', ''), 'FUnused') then
+          Continue;
+        lFound := True;
+        if aFailed then
+        begin
+          Assert.AreEqual('blocked', lCandidate.GetValue<string>('status', ''), lLogPath);
+          Assert.AreEqual('unverified-scope-facts',
+            lCandidate.GetValue<string>('reason', ''), lLogPath);
+        end else
+          Assert.AreEqual('definitely-unused', lCandidate.GetValue<string>('status', ''),
+            'The verified control still reports. See: ' + lLogPath);
+      end;
+      Assert.IsTrue(lFound, 'Expected the FUnused candidate. See: ' + lLogPath);
+    finally
+      lJson.Free;
+    end;
+  end;
+  Assert.AreEqual(lSourceHash, THashSHA2.GetHashStringFromFile(lUnitPath));
 end;
 
 procedure TRefactorCommandTests.RenameCommandDefaultsToDryRun;

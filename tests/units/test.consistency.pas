@@ -41,6 +41,8 @@ type
     [TestCase('AliasChain', 'alias-chain,OnData,match,ok')]
     [TestCase('DistinctAlias', 'alias-distinct,OnData,mismatch,ok')]
     [TestCase('EventAlias', 'alias-event,OnData,match,ok')]
+    [TestCase('SameLineHandlers', 'same-line,Changed,match,ok')]
+    [TestCase('FieldVisibilityHandlerLine', 'mixed-line,OnData,match,ok')]
     [Category('RefactoringLightConsistency')]
     procedure ReportsSourceBackedDfmBindings(const aShape, aEvent, aStatus, aOverall: string);
     [Test]
@@ -157,7 +159,7 @@ end;
 
 function WriteBindingFixture(const aFixture: TReportFixture; const aShape, aEvent: string): string;
 var
-  lConvention, lComponent: string;
+  lConvention, lComponent, lHandlers, lOther: string;
 begin
   Result := 'HandleData';
   lConvention := '';
@@ -168,14 +170,24 @@ begin
     lConvention := ' stdcall;';
   if aShape = 'external' then
     lComponent := 'TSourceLessWidget';
+  lHandlers := '    procedure HandleData(aValue: TValue);' + lConvention;
+  lOther := '';
+  // The bound handler follows another member on the same physical line.
+  if aShape = 'same-line' then
+    lHandlers := '    procedure HandleOther(aValue: TValue); procedure HandleData(aValue: TValue);'
+  else if aShape = 'mixed-line' then
+    lHandlers := '  private FX: Integer; published procedure HandleOther(aValue: TValue);'#13#10 +
+      '    procedure HandleData(aValue: TValue);';
+  if (aShape = 'same-line') or (aShape = 'mixed-line') then
+    lOther := 'procedure TBindingForm.HandleOther(aValue: TValue);'#13#10'begin end;'#13#10;
   TFile.WriteAllText(aFixture.fSource,
     'unit BindingForm;'#13#10'interface'#13#10'type'#13#10 +
     '  TValue = class end;'#13#10 +
     '  TDataEvent = procedure(aValue: TValue) of object;'#13#10 +
     '  TWidget = class'#13#10'  private'#13#10'    FData: TDataEvent;'#13#10'  published'#13#10 +
     '    property ' + aEvent + ': TDataEvent read FData write FData;'#13#10'  end;'#13#10 +
-    '  TBindingForm = class'#13#10'  published'#13#10'    procedure HandleData(aValue: TValue);' +
-    lConvention + #13#10'  end;'#13#10'implementation'#13#10 +
+    '  TBindingForm = class'#13#10'  published'#13#10 + lHandlers + #13#10'  end;'#13#10 +
+    'implementation'#13#10 + lOther +
     'procedure TBindingForm.HandleData(aValue: TValue);' + lConvention + #13#10'begin end;'#13#10'end.'#13#10,
     TEncoding.UTF8);
   TFile.WriteAllText(aFixture.fDfm, 'object BindingForm: TBindingForm'#13#10 +
